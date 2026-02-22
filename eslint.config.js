@@ -20,6 +20,7 @@ export default [
     },
     rules: {
       'no-undef': 'off', // TypeScript handles this
+      'vue/no-v-html': 'off', // Needed for icon SVG rendering from trusted registries
     },
   },
   {

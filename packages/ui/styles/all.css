@@ -6,4 +6,5 @@
  */
 
 @import './tokens/all.css';
+@import './base.css';
 @import './components.css';

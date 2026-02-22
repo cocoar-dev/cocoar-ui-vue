@@ -9,6 +9,7 @@
     "test": "turbo run test",
     "lint": "turbo run lint",
     "storybook": "turbo run storybook",
+    "build:icons": "node scripts/icons/build-frontend-icons.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

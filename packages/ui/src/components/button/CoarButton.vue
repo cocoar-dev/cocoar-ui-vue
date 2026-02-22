@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import CoarIcon from '../icon/CoarIcon.vue';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'tertiary' | 'danger' | 'ghost';
 export type ButtonSize = 'xs' | 's' | 'm' | 'l';
@@ -76,23 +77,7 @@ function handleClick(event: MouseEvent) {
       class="coar-button__spinner coar-button__spinner--overlay"
       aria-hidden="true"
     >
-      <!-- TODO: Replace with CoarIcon/CoarSpinner when available -->
-      <svg
-        class="coar-button__spinner-svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <circle
-          cx="12"
-          cy="12"
-          r="10"
-          stroke="currentColor"
-          stroke-width="3"
-          stroke-linecap="round"
-          stroke-dasharray="31.42 31.42"
-        />
-      </svg>
+      <CoarIcon name="load" spin size="auto" />
     </span>
 
     <!-- Icon Start: Show spinner instead when loading -->
@@ -101,30 +86,14 @@ function handleClick(event: MouseEvent) {
       class="coar-button__spinner coar-button__spinner--inline"
       aria-hidden="true"
     >
-      <svg
-        class="coar-button__spinner-svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <circle
-          cx="12"
-          cy="12"
-          r="10"
-          stroke="currentColor"
-          stroke-width="3"
-          stroke-linecap="round"
-          stroke-dasharray="31.42 31.42"
-        />
-      </svg>
+      <CoarIcon name="load" spin size="auto" />
     </span>
     <span
       v-else-if="iconStart"
       class="coar-button__icon coar-button__icon--start"
       aria-hidden="true"
     >
-      <!-- TODO: Replace with CoarIcon when available -->
-      <slot name="icon-start">{{ iconStart }}</slot>
+      <CoarIcon :name="iconStart" size="auto" />
     </span>
 
     <!-- Content -->
@@ -138,30 +107,14 @@ function handleClick(event: MouseEvent) {
       class="coar-button__spinner coar-button__spinner--inline"
       aria-hidden="true"
     >
-      <svg
-        class="coar-button__spinner-svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <circle
-          cx="12"
-          cy="12"
-          r="10"
-          stroke="currentColor"
-          stroke-width="3"
-          stroke-linecap="round"
-          stroke-dasharray="31.42 31.42"
-        />
-      </svg>
+      <CoarIcon name="load" spin size="auto" />
     </span>
     <span
       v-else-if="iconEnd"
       class="coar-button__icon coar-button__icon--end"
       aria-hidden="true"
     >
-      <!-- TODO: Replace with CoarIcon when available -->
-      <slot name="icon-end">{{ iconEnd }}</slot>
+      <CoarIcon :name="iconEnd" size="auto" />
     </span>
   </button>
 </template>
@@ -403,18 +356,6 @@ function handleClick(event: MouseEvent) {
   margin-right: -0.125rem;
 }
 
-.coar-button__spinner-svg {
-  width: 1em;
-  height: 1em;
-  animation: coar-spin 0.8s linear infinite;
-}
-
-@keyframes coar-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 /* ========================================
    REDUCED MOTION
    ======================================== */
@@ -422,10 +363,6 @@ function handleClick(event: MouseEvent) {
 @media (prefers-reduced-motion: reduce) {
   .coar-button {
     transition: none;
-  }
-
-  .coar-button__spinner-svg {
-    animation: none;
   }
 }
 </style>

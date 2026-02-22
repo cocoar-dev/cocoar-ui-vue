@@ -1,0 +1,16 @@
+/**
+ * Cocoar Design System - Base Styles
+ *
+ * Applies design tokens to html/body so the design system fonts,
+ * colors, and sizing work globally without per-component overrides.
+ */
+
+body {
+  font-family: var(--coar-body-base-family, Poppins, sans-serif);
+  font-size: var(--coar-body-base-size, 14px);
+  font-weight: var(--coar-body-base-weight, 400);
+  line-height: var(--coar-body-base-line-height, 1.5);
+  color: var(--coar-text-neutral-primary, #1a1a1a);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
