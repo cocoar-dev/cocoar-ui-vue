@@ -1,0 +1,169 @@
+<script setup lang="ts">
+import { computed } from 'vue';
+
+export type TagVariant = 'neutral' | 'success' | 'warning' | 'error' | 'info' | 'accent';
+export type TagSize = 's' | 'm' | 'l';
+
+export interface CoarTagProps {
+  /** Tag semantic variant — matches Card variants. */
+  variant?: TagVariant;
+  /** Tag size. */
+  size?: TagSize;
+  /** Adds a box-shadow for elevation/depth. */
+  elevated?: boolean;
+  /** Removes the border from the tag. */
+  borderless?: boolean;
+  /** Whether the tag can be closed/removed. */
+  closable?: boolean;
+}
+
+const props = withDefaults(defineProps<CoarTagProps>(), {
+  variant: 'neutral',
+  size: 'm',
+  elevated: false,
+  borderless: false,
+  closable: false,
+});
+
+const emit = defineEmits<{
+  closed: [];
+}>();
+
+const hostClasses = computed(() => [
+  'coar-tag',
+  `coar-tag--${props.variant}`,
+  `coar-tag--${props.size}`,
+  {
+    'coar-tag--elevated': props.elevated,
+    'coar-tag--borderless': props.borderless,
+  },
+]);
+
+function onClose(event: MouseEvent): void {
+  event.stopPropagation();
+  emit('closed');
+}
+</script>
+
+<template>
+  <span :class="hostClasses">
+    <span class="coar-tag__content">
+      <slot />
+    </span>
+    <button
+      v-if="closable"
+      type="button"
+      class="coar-tag__close"
+      aria-label="Remove tag"
+      @click="onClose"
+    >
+      <svg class="coar-tag__close-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+      </svg>
+    </button>
+  </span>
+</template>
+
+<style scoped>
+.coar-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--coar-spacing-xxs);
+  padding: var(--coar-spacing-xs) var(--coar-spacing-s);
+  border-radius: var(--coar-radius-xs);
+  background-color: var(--coar-tag-bg);
+  border: 1px solid var(--coar-tag-border-color);
+  font-family: var(--coar-body-small-base-family);
+  font-weight: var(--coar-body-small-base-weight);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  user-select: none;
+  box-sizing: border-box;
+  line-height: 1;
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Elevated */
+.coar-tag--elevated { box-shadow: var(--coar-elevation-medium); }
+
+/* Sizes */
+.coar-tag--s { font-size: var(--coar-body-footnote-size); }
+.coar-tag--m { font-size: var(--coar-body-caption-size); }
+.coar-tag--l { font-size: var(--coar-body-small-base-size); }
+
+/* Variants */
+.coar-tag--neutral {
+  --coar-tag-bg: var(--coar-background-neutral-secondary);
+  --coar-tag-border-color: var(--coar-border-neutral-tertiary);
+  color: var(--coar-text-neutral-primary);
+}
+
+.coar-tag--success {
+  --coar-tag-bg: var(--coar-background-semantic-success-subtle);
+  --coar-tag-border-color: var(--coar-border-semantic-success-subtle);
+  color: var(--coar-text-neutral-primary);
+}
+
+.coar-tag--warning {
+  --coar-tag-bg: var(--coar-background-semantic-warning-subtle);
+  --coar-tag-border-color: var(--coar-border-semantic-warning-subtle);
+  color: var(--coar-text-neutral-primary);
+}
+
+.coar-tag--error {
+  --coar-tag-bg: var(--coar-background-semantic-error-subtle);
+  --coar-tag-border-color: var(--coar-border-semantic-error-subtle);
+  color: var(--coar-text-neutral-primary);
+}
+
+.coar-tag--info {
+  --coar-tag-bg: var(--coar-background-semantic-info-subtle);
+  --coar-tag-border-color: var(--coar-border-semantic-info-subtle);
+  color: var(--coar-text-neutral-primary);
+}
+
+.coar-tag--accent {
+  --coar-tag-bg: var(--coar-background-accent-secondary);
+  --coar-tag-border-color: var(--coar-border-accent-secondary);
+  color: var(--coar-text-neutral-primary);
+}
+
+/* Borderless — must come after variants */
+.coar-tag--borderless { --coar-tag-border-color: transparent; }
+
+/* Content */
+.coar-tag__content {
+  display: flex;
+  align-items: center;
+}
+
+/* Close button */
+.coar-tag__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  margin-left: var(--coar-spacing-xxs);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.7;
+  border-radius: var(--coar-radius-xxs);
+  transition: opacity 0.15s ease;
+}
+
+.coar-tag__close:hover { opacity: 1; }
+
+.coar-tag__close:focus-visible {
+  outline: 2px solid var(--coar-border-accent-primary);
+  outline-offset: 1px;
+}
+
+/* Close icon sizes match font sizes */
+.coar-tag--s .coar-tag__close-icon { width: 10px; height: 10px; }
+.coar-tag--m .coar-tag__close-icon { width: 12px; height: 12px; }
+.coar-tag--l .coar-tag__close-icon { width: 14px; height: 14px; }
+</style>

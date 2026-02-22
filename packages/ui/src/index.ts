@@ -29,3 +29,12 @@ export type { CoarCardProps, CardVariant, CardPadding } from './components/card'
 
 export { CoarCodeBlock } from './components/code-block';
 export type { CoarCodeBlockProps, CodeBlockVariant } from './components/code-block';
+
+export { CoarTag } from './components/tag';
+export type { CoarTagProps, TagVariant, TagSize } from './components/tag';
+
+export { CoarAvatar } from './components/avatar';
+export type { CoarAvatarProps, AvatarSize, AvatarShape } from './components/avatar';
+
+export { CoarTable } from './components/table';
+export type { CoarTableProps, CoarTableVariant } from './components/table';
