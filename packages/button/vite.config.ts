@@ -11,11 +11,11 @@ export default defineConfig({
       fileName: 'index',
     },
     rollupOptions: {
-      external: ['vue', '@cocoar/ui-vue-core'],
+      external: ['vue', '@cocoar/vue-core'],
       output: {
         globals: {
           vue: 'Vue',
-          '@cocoar/ui-vue-core': 'CocoarUiVueCore',
+          '@cocoar/vue-core': 'CocoarVueCore',
         },
       },
     },

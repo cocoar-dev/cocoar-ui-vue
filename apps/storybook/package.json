@@ -7,7 +7,7 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
-    "@cocoar/ui-vue-core": "workspace:*",
-    "@cocoar/ui-vue-button": "workspace:*"
+    "@cocoar/vue-core": "workspace:*",
+    "@cocoar/vue-button": "workspace:*"
   }
 }

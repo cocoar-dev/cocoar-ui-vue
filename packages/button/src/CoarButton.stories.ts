@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/vue3';
-import CcrButton from './CcrButton.vue';
+import CoarButton from './CoarButton.vue';
 
-const meta: Meta<typeof CcrButton> = {
-  title: 'Components/CcrButton',
-  component: CcrButton,
+const meta: Meta<typeof CoarButton> = {
+  title: 'Components/CoarButton',
+  component: CoarButton,
   tags: ['autodocs'],
   argTypes: {
     variant: {
@@ -19,7 +19,7 @@ const meta: Meta<typeof CcrButton> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof CcrButton>;
+type Story = StoryObj<typeof CoarButton>;
 
 export const Primary: Story = {
   args: {
@@ -55,14 +55,14 @@ export const Disabled: Story = {
 
 export const AllSizes: Story = {
   render: () => ({
-    components: { CcrButton },
+    components: { CoarButton },
     template: `
       <div style="display: flex; gap: 8px; align-items: center;">
-        <CcrButton label="Size 1" :size="1" />
-        <CcrButton label="Size 2" :size="2" />
-        <CcrButton label="Size 3" :size="3" />
-        <CcrButton label="Size 4" :size="4" />
-        <CcrButton label="Size 5" :size="5" />
+        <CoarButton label="Size 1" :size="1" />
+        <CoarButton label="Size 2" :size="2" />
+        <CoarButton label="Size 3" :size="3" />
+        <CoarButton label="Size 4" :size="4" />
+        <CoarButton label="Size 5" :size="5" />
       </div>
     `,
   }),

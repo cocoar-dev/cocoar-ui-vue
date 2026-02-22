@@ -1,2 +1,2 @@
-export { default as CcrButton } from './CcrButton.vue';
-export type { CcrButtonProps } from './CcrButton.vue';
+export { default as CoarButton } from './CoarButton.vue';
+export type { CoarButtonProps } from './CoarButton.vue';

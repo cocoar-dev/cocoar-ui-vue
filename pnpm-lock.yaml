@@ -62,16 +62,16 @@ importers:
 
   apps/storybook:
     dependencies:
-      '@cocoar/ui-vue-button':
+      '@cocoar/vue-button':
         specifier: workspace:*
         version: link:../../packages/button
-      '@cocoar/ui-vue-core':
+      '@cocoar/vue-core':
         specifier: workspace:*
         version: link:../../packages/core
 
   packages/button:
     dependencies:
-      '@cocoar/ui-vue-core':
+      '@cocoar/vue-core':
         specifier: workspace:*
         version: link:../core
     devDependencies:

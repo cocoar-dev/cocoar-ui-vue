@@ -1,0 +1,25 @@
+# Add files here to ignore them from prettier formatting
+
+# Build outputs
+/dist
+/coverage
+/.turbo
+storybook-static
+
+# Dependencies and lock files
+node_modules
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Generated files
+*.d.ts
+*.log
+
+# Documentation (preserve manual formatting)
+*.md
+CHANGELOG.md
+LICENSE
+NOTICE
+
+# Config files that should preserve exact formatting
