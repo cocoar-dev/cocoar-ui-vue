@@ -8,9 +8,8 @@
 
 /* ========================================
    LINK (CSS-only component)
-   ========================================
-   TODO: Add coar-link styles when link component is migrated
    ======================================== */
+@import './link.css';
 
 /* ========================================
    SELECT DROPDOWN SIZE VARIANTS

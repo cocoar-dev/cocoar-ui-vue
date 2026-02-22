@@ -8,3 +8,18 @@ export { CoarIconService, CoarIconMapSource, CoarHttpIconSource, COAR_ICON_SERVI
 
 export { CoarLabel } from './components/label';
 export type { CoarLabelProps, CoarLabelSize } from './components/label';
+
+export { CoarDivider } from './components/divider';
+export type { CoarDividerProps, DividerAlign, DividerVariant } from './components/divider';
+
+export { CoarSpinner } from './components/spinner';
+export type { CoarSpinnerProps, CoarSpinnerSize } from './components/spinner';
+
+export { CoarBadge } from './components/badge';
+export type { CoarBadgeProps, BadgeVariant, BadgeSize } from './components/badge';
+
+export { CoarNote } from './components/note';
+export type { CoarNoteProps, NoteVariant, NotePadding } from './components/note';
+
+export { CoarProgressBar } from './components/progress-bar';
+export type { CoarProgressBarProps, ProgressBarVariant, ProgressBarSize } from './components/progress-bar';
