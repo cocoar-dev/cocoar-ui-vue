@@ -2,7 +2,9 @@
   "name": "@cocoar/vue-ui",
   "version": "0.0.1",
   "type": "module",
-  "sideEffects": ["*.css"],
+  "sideEffects": [
+    "*.css"
+  ],
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -14,19 +16,24 @@
     "./styles": "./styles/all.css",
     "./styles/*": "./styles/*"
   },
-  "files": ["dist", "styles"],
+  "files": [
+    "dist",
+    "styles"
+  ],
   "scripts": {
     "build": "vite build",
     "test": "vitest run",
     "lint": "eslint src/"
   },
   "dependencies": {
-    "@cocoar/vue-core": "workspace:*"
+    "@cocoar/vue-core": "workspace:*",
+    "prismjs": "^1.30.0"
   },
   "peerDependencies": {
     "vue": "^3.5.0"
   },
   "devDependencies": {
+    "@types/prismjs": "^1.26.6",
     "vue": "^3.5.0"
   }
 }

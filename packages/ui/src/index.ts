@@ -23,3 +23,9 @@ export type { CoarNoteProps, NoteVariant, NotePadding } from './components/note'
 
 export { CoarProgressBar } from './components/progress-bar';
 export type { CoarProgressBarProps, ProgressBarVariant, ProgressBarSize } from './components/progress-bar';
+
+export { CoarCard } from './components/card';
+export type { CoarCardProps, CardVariant, CardPadding } from './components/card';
+
+export { CoarCodeBlock } from './components/code-block';
+export type { CoarCodeBlockProps, CodeBlockVariant } from './components/code-block';
