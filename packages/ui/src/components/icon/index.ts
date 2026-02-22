@@ -4,4 +4,5 @@ export type { CoarIconSize, CoarIconSource, CoarIconSourceEntry, CoarIconRegiste
 export { CoarIconService, CoarIconMapSource, CoarHttpIconSource, COAR_ICON_SERVICE_KEY, COAR_BUILTIN_ICON_SOURCE_KEY, PRESET_SIZES } from './icon-service';
 export { CoarIconPlugin, createCoarIconService } from './icon-plugin';
 export type { CoarIconPluginOptions } from './icon-plugin';
+export { CORE_ICONS } from './core-icons';
 export type { CoreIconName } from './core-icons';

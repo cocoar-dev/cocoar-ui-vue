@@ -11,10 +11,25 @@ const config: StorybookConfig = {
       titlePrefix: '',
       files: '*/src/**/*.stories.ts',
     },
+    {
+      directory: join(__dirname, '../src'),
+      titlePrefix: '',
+      files: '**/*.stories.ts',
+    },
   ],
   framework: {
     name: '@storybook/vue3-vite',
     options: {},
+  },
+  viteFinal: async (config) => {
+    config.resolve = config.resolve || {};
+    const existingAlias = Array.isArray(config.resolve.alias) ? config.resolve.alias : [];
+    config.resolve.alias = [
+      ...existingAlias,
+      { find: /^@cocoar\/vue-ui$/, replacement: join(__dirname, '../../../packages/ui/src/index.ts') },
+      { find: /^@cocoar\/vue-core$/, replacement: join(__dirname, '../../../packages/core/src/index.ts') },
+    ];
+    return config;
   },
 };
 
