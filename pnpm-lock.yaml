@@ -62,24 +62,24 @@ importers:
 
   apps/storybook:
     dependencies:
-      '@cocoar/vue-button':
-        specifier: workspace:*
-        version: link:../../packages/button
       '@cocoar/vue-core':
         specifier: workspace:*
         version: link:../../packages/core
-
-  packages/button:
-    dependencies:
-      '@cocoar/vue-core':
+      '@cocoar/vue-ui':
         specifier: workspace:*
-        version: link:../core
+        version: link:../../packages/ui
+
+  packages/core:
     devDependencies:
       vue:
         specifier: ^3.5.0
         version: 3.5.28(typescript@5.9.3)
 
-  packages/core:
+  packages/ui:
+    dependencies:
+      '@cocoar/vue-core':
+        specifier: workspace:*
+        version: link:../core
     devDependencies:
       vue:
         specifier: ^3.5.0

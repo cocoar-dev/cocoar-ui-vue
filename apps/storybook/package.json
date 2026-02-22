@@ -8,6 +8,6 @@
   },
   "dependencies": {
     "@cocoar/vue-core": "workspace:*",
-    "@cocoar/vue-button": "workspace:*"
+    "@cocoar/vue-ui": "workspace:*"
   }
 }
