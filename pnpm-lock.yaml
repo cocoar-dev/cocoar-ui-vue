@@ -80,6 +80,15 @@ importers:
       '@cocoar/vue-core':
         specifier: workspace:*
         version: link:../core
+      '@maskito/core':
+        specifier: ^5.1.1
+        version: 5.1.1
+      '@maskito/kit':
+        specifier: ^5.1.1
+        version: 5.1.1(@maskito/core@5.1.1)
+      '@maskito/vue':
+        specifier: ^5.1.1
+        version: 5.1.1(@maskito/core@5.1.1)(vue@3.5.28(typescript@5.9.3))
       prismjs:
         specifier: ^1.30.0
         version: 1.30.0
@@ -351,6 +360,20 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@maskito/core@5.1.1':
+    resolution: {integrity: sha512-grxipbOGKBs++kgAM/5K/lCghY/AfkSKNcRDSp8Nspf9dngxWiraMiPQVFsS8E0sab1wHEWlMXBdqEa3WyQXPA==}
+
+  '@maskito/kit@5.1.1':
+    resolution: {integrity: sha512-YlMPGzyX/zuYaAxWRFTwBYoP3bV1WzMhrW8D+7Tn6nUfCBUTogvnJrVhVyOi6dZzXGX8qP1yRVT6W/IVt79F5g==}
+    peerDependencies:
+      '@maskito/core': ^5.1.1
+
+  '@maskito/vue@5.1.1':
+    resolution: {integrity: sha512-hKPYIRU3eEGmRfOY52NGmvWG7nIGKB3C2sy4DDnTtZNCJHmzOMrhj3PReox/nYcUGTKE4npB/OqTRGONppxvAA==}
+    peerDependencies:
+      '@maskito/core': ^5.1.1
+      vue: '>=3.0.0'
 
   '@one-ini/wasm@0.1.1':
     resolution: {integrity: sha512-XuySG1E38YScSJoMlqovLru4KTUNSjgVTIjyh7qMX6aNN5HY5Ct5LhRJdxO79JtTzKfzV/bnWpz+zquYrISsvw==}
@@ -2010,6 +2033,17 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  '@maskito/core@5.1.1': {}
+
+  '@maskito/kit@5.1.1(@maskito/core@5.1.1)':
+    dependencies:
+      '@maskito/core': 5.1.1
+
+  '@maskito/vue@5.1.1(@maskito/core@5.1.1)(vue@3.5.28(typescript@5.9.3))':
+    dependencies:
+      '@maskito/core': 5.1.1
+      vue: 3.5.28(typescript@5.9.3)
 
   '@one-ini/wasm@0.1.1': {}
 

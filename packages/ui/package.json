@@ -27,6 +27,9 @@
   },
   "dependencies": {
     "@cocoar/vue-core": "workspace:*",
+    "@maskito/core": "^5.1.1",
+    "@maskito/kit": "^5.1.1",
+    "@maskito/vue": "^5.1.1",
     "prismjs": "^1.30.0"
   },
   "peerDependencies": {

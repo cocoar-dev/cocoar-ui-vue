@@ -38,3 +38,53 @@ export type { CoarAvatarProps, AvatarSize, AvatarShape } from './components/avat
 
 export { CoarTable } from './components/table';
 export type { CoarTableProps, CoarTableVariant } from './components/table';
+
+// Form Controls
+export { CoarTextInput } from './components/text-input';
+export type { CoarTextInputProps, CoarTextInputSize } from './components/text-input';
+
+export { CoarPasswordInput } from './components/password-input';
+export type { CoarPasswordInputProps, CoarPasswordInputSize } from './components/password-input';
+
+export { CoarNumberInput } from './components/number-input';
+export type { CoarNumberInputProps, CoarNumberInputSize, CoarNumberInputStepperButtons, NumberFormatConfig } from './components/number-input';
+
+export { CoarCheckbox } from './components/checkbox';
+export type { CoarCheckboxProps, CoarCheckboxSize } from './components/checkbox';
+
+export { CoarRadioGroup, CoarRadioButton, RADIO_GROUP_INJECTION_KEY } from './components/radio-group';
+export type { CoarRadioGroupProps, RadioGroupOrientation, RadioGroupSize, CoarRadioButtonProps } from './components/radio-group';
+
+export { CoarSwitch } from './components/switch';
+export type { CoarSwitchProps, CoarSwitchSize } from './components/switch';
+
+export { CoarSelect, CoarMultiSelect, CoarTagSelect } from './components/select';
+export type { CoarSelectOption, CoarSelectSize, CoarSelectAppearance } from './components/select';
+
+// Overlay System
+export { CoarOverlayHost, CoarOverlayOutlet, CoarOverlayPlugin, useOverlay, OVERLAY_SERVICE_KEY, createOverlayService } from './components/overlay';
+export { tooltipPreset, modalPreset, menuPreset, selectPreset, hoverMenuPreset, OVERLAY_DEFAULTS, resolveOverlaySpec } from './components/overlay';
+export { computeOverlayCoordinates, getViewportRect, getAnchorRect, getContainerRect, getScrollParents } from './components/overlay';
+export type { Placement, OverlaySpec, OverlayRef, OverlayService, OverlayInstance, OverlayContent, OverlayOpenOptions } from './components/overlay';
+export type { AnchorSpec, PositionSpec, SizeSpec, BackdropSpec, ScrollSpec, DismissSpec, FocusSpec, A11ySpec, AttachmentSpec, ResolvedOverlaySpec } from './components/overlay';
+export type { ViewportRect, Rect, OverlaySize, OverlayCoordinates } from './components/overlay';
+
+// Tooltip
+export { vTooltip } from './components/tooltip/vTooltip';
+export type { TooltipOptions, TooltipPlacement } from './components/tooltip/vTooltip';
+
+// Popconfirm
+export { CoarPopconfirm } from './components/popconfirm';
+export type { PopconfirmPlacement, PopconfirmVariant } from './components/popconfirm';
+
+// Toast
+export { useToast, CoarToastContainer, CoarToastItem } from './components/toast';
+export type { ToastConfig, ToastRef, ToastVariant, ToastPosition } from './components/toast';
+
+// Popover
+export { CoarPopover } from './components/popover';
+export type { PopoverMode } from './components/popover';
+
+// Dialog
+export { useDialog, CoarDialogShell } from './components/dialog';
+export type { DialogConfig, DialogRef, DialogSize, ConfirmOptions } from './components/dialog';

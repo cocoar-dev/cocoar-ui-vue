@@ -1,0 +1,433 @@
+<script setup lang="ts">
+import { computed, ref, useTemplateRef } from 'vue';
+import { CoarIcon } from '../icon';
+
+export type CoarPasswordInputSize = 'xs' | 's' | 'm' | 'l';
+
+export interface CoarPasswordInputProps {
+  /** Label text displayed above the input */
+  label?: string;
+  /** Placeholder text shown when input is empty */
+  placeholder?: string;
+  /** Input size */
+  size?: CoarPasswordInputSize;
+  /** Disables the input */
+  disabled?: boolean;
+  /** Makes the input read-only */
+  readonly?: boolean;
+  /** Marks the input as required */
+  required?: boolean;
+  /** Error message to display */
+  error?: string;
+  /** Hint text displayed below the input */
+  hint?: string;
+  /** Show clear button when input has value */
+  clearable?: boolean;
+  /** HTML id attribute */
+  id?: string;
+  /** HTML name attribute */
+  name?: string;
+  /** HTML autocomplete attribute */
+  autocomplete?: string;
+  /** Maximum character length */
+  maxlength?: number;
+}
+
+const props = withDefaults(defineProps<CoarPasswordInputProps>(), {
+  label: '',
+  placeholder: '',
+  size: 'm',
+  disabled: false,
+  readonly: false,
+  required: false,
+  error: '',
+  hint: '',
+  clearable: true,
+  id: '',
+  name: '',
+  autocomplete: 'current-password',
+  maxlength: undefined,
+});
+
+const model = defineModel<string>({ default: '' });
+
+const emit = defineEmits<{
+  focused: [event: FocusEvent];
+  blurred: [event: FocusEvent];
+  clear: [];
+}>();
+
+const isFocused = ref(false);
+const showPassword = ref(false);
+const inputElement = useTemplateRef<HTMLInputElement>('inputElement');
+
+const autoId = `coar-password-input-${crypto.randomUUID?.() ?? Date.now().toString(16)}`;
+const inputId = computed(() => props.id || autoId);
+const messageId = computed(() => `${inputId.value}-message`);
+
+const inputType = computed(() => (showPassword.value ? 'text' : 'password'));
+const toggleIcon = computed(() => (showPassword.value ? 'eye-open' : 'eye-closed'));
+const toggleAriaLabel = computed(() => (showPassword.value ? 'Hide password' : 'Show password'));
+
+const hasError = computed(() => props.error.length > 0);
+const displayMessage = computed(() => props.error || props.hint);
+
+const showClearButton = computed(() =>
+  props.clearable && model.value.length > 0 && !props.disabled && !props.readonly
+);
+
+const hostClasses = computed(() => [
+  'coar-password-input-host',
+  `coar-password-input--${props.size}`,
+]);
+
+const containerClasses = computed(() => [
+  'coar-password-input-container',
+  {
+    'coar-password-input-focused': isFocused.value,
+    'coar-password-input-disabled': props.disabled,
+    'coar-password-input-readonly': props.readonly,
+    'coar-password-input-error': hasError.value,
+  },
+]);
+
+function onInput(event: Event) {
+  const target = event.target as HTMLInputElement;
+  model.value = target.value;
+}
+
+function onFocus(event: FocusEvent) {
+  isFocused.value = true;
+  emit('focused', event);
+}
+
+function onBlur(event: FocusEvent) {
+  isFocused.value = false;
+  emit('blurred', event);
+}
+
+function onClear() {
+  model.value = '';
+  emit('clear');
+  inputElement.value?.focus();
+}
+
+function onLabelClick() {
+  inputElement.value?.focus();
+}
+
+function togglePasswordVisibility() {
+  if (!props.disabled && !props.readonly) {
+    showPassword.value = !showPassword.value;
+  }
+}
+</script>
+
+<template>
+  <div :class="hostClasses">
+    <div class="coar-password-input-wrapper">
+      <!-- Label -->
+      <label
+        v-if="label"
+        :for="inputId"
+        class="coar-password-input-label"
+        @click="onLabelClick"
+      >
+        {{ label }}
+        <span v-if="required" class="coar-password-input-required">*</span>
+      </label>
+
+      <!-- Input Container -->
+      <div :class="containerClasses">
+        <!-- Input Element -->
+        <input
+          :id="inputId"
+          ref="inputElement"
+          :name="name"
+          :type="inputType"
+          :value="model"
+          :placeholder="placeholder"
+          :disabled="disabled"
+          :readonly="readonly"
+          :required="required"
+          :autocomplete="autocomplete || undefined"
+          :maxlength="maxlength"
+          :aria-describedby="displayMessage ? messageId : undefined"
+          :aria-invalid="hasError ? 'true' : undefined"
+          class="coar-password-input-field"
+          @input="onInput"
+          @focus="onFocus"
+          @blur="onBlur"
+        />
+
+        <!-- Clear button -->
+        <button
+          v-if="showClearButton"
+          type="button"
+          class="coar-password-input-clear"
+          tabindex="-1"
+          aria-label="Clear"
+          @click="onClear"
+        >
+          <CoarIcon name="x" source="coar-builtin" size="auto" />
+        </button>
+
+        <!-- Toggle Visibility -->
+        <button
+          type="button"
+          class="coar-password-input-toggle"
+          tabindex="-1"
+          :aria-label="toggleAriaLabel"
+          @click="togglePasswordVisibility"
+        >
+          <CoarIcon :name="toggleIcon" source="coar-builtin" size="auto" />
+        </button>
+      </div>
+
+      <!-- Hint/Error Message -->
+      <div
+        :id="messageId"
+        class="coar-form-field-message"
+        :class="{ 'coar-form-field-message--error': hasError }"
+        :title="displayMessage || undefined"
+      >
+        {{ displayMessage }}
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.coar-password-input-host {
+  display: block;
+}
+
+.coar-password-input-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* Label */
+.coar-password-input-label {
+  display: block;
+  margin-bottom: var(--coar-component-m-label-margin);
+  font-family: var(--coar-body-small-bold-family);
+  font-size: var(--coar-component-m-label-font-size);
+  font-weight: var(--coar-body-small-bold-weight);
+  color: var(--coar-text-neutral-primary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.coar-password-input-required {
+  color: var(--coar-text-semantic-error-bold);
+  margin-left: var(--coar-spacing-xs);
+}
+
+/* Input Container */
+.coar-password-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: var(--coar-component-m-height);
+  border: 1px solid var(--coar-border-input);
+  border-radius: var(--coar-radius-xs);
+  background: var(--coar-surface-input);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+  overflow: hidden;
+}
+
+/* Size variants */
+.coar-password-input--xs .coar-password-input-container { height: var(--coar-component-xs-height); }
+.coar-password-input--s .coar-password-input-container { height: var(--coar-component-s-height); }
+.coar-password-input--l .coar-password-input-container { height: var(--coar-component-l-height); }
+
+/* Size-specific typography */
+.coar-password-input--xs .coar-password-input-field { font-size: var(--coar-component-xs-font-size); }
+.coar-password-input--xs .coar-password-input-label {
+  font-size: var(--coar-component-xs-label-font-size);
+  margin-bottom: var(--coar-component-xs-label-margin);
+}
+
+.coar-password-input--s .coar-password-input-field { font-size: var(--coar-component-s-font-size); }
+.coar-password-input--s .coar-password-input-label {
+  font-size: var(--coar-component-s-label-font-size);
+  margin-bottom: var(--coar-component-s-label-margin);
+}
+
+.coar-password-input--l .coar-password-input-field { font-size: var(--coar-component-l-font-size); }
+.coar-password-input--l .coar-password-input-label {
+  font-size: var(--coar-component-l-label-font-size);
+  margin-bottom: var(--coar-component-l-label-margin);
+}
+
+.coar-password-input-container:hover:not(.coar-password-input-disabled):not(
+    .coar-password-input-readonly
+  ):not(.coar-password-input-error):not(.coar-password-input-focused) {
+  border-color: var(--coar-border-input-hover);
+}
+
+/* Focus state */
+.coar-password-input-container.coar-password-input-focused:not(.coar-password-input-error) {
+  border-color: var(--coar-border-accent-primary);
+  box-shadow: inset 0 0 0 1px var(--coar-border-accent-primary);
+  outline: none;
+}
+
+.coar-password-input-container.coar-password-input-disabled {
+  background: var(--coar-surface-input-disabled);
+  border-color: var(--coar-border-input);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.coar-password-input-container.coar-password-input-readonly {
+  background: var(--coar-surface-input);
+  border-color: var(--coar-border-input);
+  cursor: default;
+}
+
+/* Error state */
+.coar-password-input-container.coar-password-input-error {
+  border-color: var(--coar-border-semantic-error-bold);
+}
+
+.coar-password-input-container.coar-password-input-error.coar-password-input-focused {
+  border-color: var(--coar-border-semantic-error-bold);
+  box-shadow: inset 0 0 0 1px var(--coar-border-semantic-error-bold);
+  outline: none;
+}
+
+.coar-password-input-container.coar-password-input-error:hover:not(.coar-password-input-disabled) {
+  border-color: var(--coar-border-semantic-error-bold);
+}
+
+/* Input Field */
+.coar-password-input-field {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0 calc(var(--coar-spacing-s) + var(--coar-spacing-xs));
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: var(--coar-body-small-base-family);
+  font-size: var(--coar-body-small-base-size);
+  font-weight: var(--coar-body-small-base-weight);
+  color: var(--coar-text-neutral-primary);
+}
+
+.coar-password-input-field::placeholder { color: var(--coar-text-neutral-tertiary); }
+.coar-password-input-field:disabled { color: var(--coar-text-neutral-disabled); cursor: not-allowed; }
+.coar-password-input-field:read-only { cursor: default; }
+
+/* Clear Button */
+.coar-password-input-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  height: auto;
+  margin-right: var(--coar-spacing-s);
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--coar-icon-neutral-disabled);
+  font-size: var(--coar-body-small-base-size);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    opacity 0.15s ease;
+  flex-shrink: 0;
+  opacity: 0.4;
+}
+
+.coar-password-input-focused .coar-password-input-clear {
+  opacity: 1;
+  color: var(--coar-icon-neutral-tertiary);
+}
+
+.coar-password-input-container:hover .coar-password-input-clear {
+  opacity: 1;
+  color: var(--coar-icon-neutral-tertiary);
+}
+
+.coar-password-input--xs .coar-password-input-clear { font-size: var(--coar-component-xs-font-size); }
+.coar-password-input--s .coar-password-input-clear { font-size: var(--coar-component-s-font-size); }
+.coar-password-input--l .coar-password-input-clear { font-size: var(--coar-component-l-font-size); }
+
+.coar-password-input-clear:hover { color: var(--coar-icon-neutral-primary); }
+.coar-password-input-clear:focus { outline: none; }
+.coar-password-input-clear:focus-visible { color: var(--coar-icon-neutral-primary); }
+
+/* Toggle Visibility Button */
+.coar-password-input-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--coar-spacing-xs) var(--coar-spacing-s);
+  border: none;
+  background: transparent;
+  color: var(--coar-icon-neutral-secondary);
+  font-size: var(--coar-body-small-base-size);
+  cursor: pointer;
+  transition: color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.coar-password-input--xs .coar-password-input-toggle {
+  font-size: var(--coar-component-xs-font-size);
+  padding: var(--coar-spacing-xxs) calc(var(--coar-spacing-xs) + var(--coar-spacing-xxs));
+}
+
+.coar-password-input--s .coar-password-input-toggle {
+  font-size: var(--coar-component-s-font-size);
+  padding: var(--coar-spacing-xxs) calc(var(--coar-spacing-s) - var(--coar-spacing-xxs));
+}
+
+.coar-password-input--l .coar-password-input-toggle {
+  font-size: var(--coar-component-l-font-size);
+  padding: var(--coar-spacing-xs) calc(var(--coar-spacing-s) + var(--coar-spacing-xs));
+}
+
+.coar-password-input-toggle:hover { color: var(--coar-icon-neutral-primary); }
+.coar-password-input-toggle:focus { outline: none; }
+.coar-password-input-toggle:focus-visible { color: var(--coar-icon-neutral-primary); }
+
+/* Browser autofill styling */
+.coar-password-input-field:-webkit-autofill,
+.coar-password-input-field:-webkit-autofill:hover,
+.coar-password-input-field:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--coar-text-neutral-primary);
+  -webkit-box-shadow: 0 0 0px 1000px var(--coar-surface-input) inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+.coar-password-input-disabled .coar-password-input-toggle,
+.coar-password-input-readonly .coar-password-input-toggle {
+  cursor: not-allowed;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Message */
+.coar-form-field-message {
+  display: block;
+  margin-top: var(--coar-spacing-xs);
+  height: calc(var(--coar-body-caption-size) * 1.4);
+  font-family: var(--coar-body-caption-family);
+  font-size: var(--coar-body-caption-size);
+  font-weight: var(--coar-body-caption-weight);
+  line-height: 1.4;
+  color: var(--coar-text-neutral-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.coar-form-field-message:empty { visibility: hidden; }
+.coar-form-field-message--error { color: var(--coar-text-semantic-error-bold); }
+</style>

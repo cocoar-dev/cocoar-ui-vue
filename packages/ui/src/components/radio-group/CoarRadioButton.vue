@@ -1,0 +1,195 @@
+<script setup lang="ts">
+import { computed, ref, inject } from 'vue';
+import { RADIO_GROUP_INJECTION_KEY } from './constants';
+
+export interface CoarRadioButtonProps {
+  /** Value of this radio option */
+  value: unknown;
+  /** Disables this specific radio button */
+  disabled?: boolean;
+}
+
+const props = withDefaults(defineProps<CoarRadioButtonProps>(), {
+  disabled: false,
+});
+
+const group = inject(RADIO_GROUP_INJECTION_KEY, undefined);
+
+const isFocused = ref(false);
+const autoId = `coar-radio-${crypto.randomUUID?.() ?? Date.now().toString(16)}`;
+
+const isChecked = computed(() => group?.value.modelValue === props.value);
+const isDisabled = computed(() => props.disabled || (group?.value.disabled ?? false));
+const groupSize = computed(() => group?.value.size ?? 'm');
+const groupHasError = computed(() => group?.value.hasError ?? false);
+const radioName = computed(() => group?.value.name ?? '');
+
+const hostClasses = computed(() => [
+  'coar-radio',
+  `coar-radio--${groupSize.value}`,
+  {
+    'coar-radio--checked': isChecked.value,
+    'coar-radio--disabled': isDisabled.value,
+    'coar-radio--focused': isFocused.value,
+    'coar-radio--error': groupHasError.value,
+  },
+]);
+
+function onInputChange() {
+  if (isDisabled.value) return;
+  if (group && !isChecked.value) {
+    group.value.selectValue(props.value);
+  }
+}
+
+function onClick(event: Event) {
+  if (isDisabled.value) {
+    event.preventDefault();
+    return;
+  }
+  if (group && !isChecked.value) {
+    group.value.selectValue(props.value);
+  }
+}
+
+function onFocus() { isFocused.value = true; }
+function onBlur() { isFocused.value = false; }
+</script>
+
+<template>
+  <div :class="hostClasses" @click="onClick">
+    <label class="coar-radio__label" :for="autoId">
+      <input
+        :id="autoId"
+        type="radio"
+        class="coar-radio__input"
+        :name="radioName"
+        :checked="isChecked"
+        :disabled="isDisabled"
+        @change="onInputChange"
+        @focus="onFocus"
+        @blur="onBlur"
+      />
+      <span class="coar-radio__control">
+        <span class="coar-radio__dot" />
+      </span>
+      <span class="coar-radio__text">
+        <slot />
+      </span>
+    </label>
+  </div>
+</template>
+
+<style scoped>
+.coar-radio {
+  display: inline-flex;
+}
+
+.coar-radio__label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--coar-spacing-s);
+  cursor: pointer;
+  user-select: none;
+  font-family: var(--coar-body-base-family);
+  font-size: var(--coar-body-base-size);
+  line-height: var(--coar-body-base-line-height);
+  color: var(--coar-text-neutral-primary);
+}
+
+.coar-radio--disabled .coar-radio__label {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Hidden input */
+.coar-radio__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Custom radio control */
+.coar-radio__control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--coar-border-neutral-primary);
+  border-radius: 50%;
+  background: var(--coar-background-neutral-primary);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  flex-shrink: 0;
+}
+
+.coar-radio__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: transparent;
+  transition: background 0.15s ease;
+}
+
+/* Hover */
+.coar-radio:not(.coar-radio--disabled):not(.coar-radio--checked):hover .coar-radio__control {
+  border-color: var(--coar-border-accent-primary);
+}
+
+/* Focus */
+.coar-radio--focused .coar-radio__control {
+  border-color: var(--coar-border-accent-primary);
+  box-shadow: inset 0 0 0 1px var(--coar-border-accent-primary);
+}
+
+/* Checked */
+.coar-radio--checked .coar-radio__control {
+  border-color: var(--coar-border-accent-primary);
+  background: var(--coar-background-neutral-primary);
+}
+
+.coar-radio--checked .coar-radio__dot {
+  background: var(--coar-background-accent-primary);
+}
+
+/* Checked + Hover */
+.coar-radio--checked:not(.coar-radio--disabled):hover .coar-radio__control {
+  border-color: var(--coar-border-accent-secondary);
+}
+
+.coar-radio--checked:not(.coar-radio--disabled):hover .coar-radio__dot {
+  background: var(--coar-background-accent-secondary);
+}
+
+/* Sizes */
+.coar-radio--s .coar-radio__control { width: 16px; height: 16px; }
+.coar-radio--s .coar-radio__dot { width: 6px; height: 6px; }
+.coar-radio--s .coar-radio__label { font-size: var(--coar-body-small-size); }
+
+.coar-radio--l .coar-radio__control { width: 22px; height: 22px; }
+.coar-radio--l .coar-radio__dot { width: 10px; height: 10px; }
+.coar-radio--l .coar-radio__label { font-size: var(--coar-body-large-size); }
+
+/* Error */
+.coar-radio--error .coar-radio__control {
+  border-color: var(--coar-border-semantic-error-bold);
+}
+
+.coar-radio--error.coar-radio--checked .coar-radio__dot {
+  background: var(--coar-background-semantic-error-bold);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .coar-radio__control,
+  .coar-radio__dot {
+    transition: none;
+  }
+}
+</style>
