@@ -88,3 +88,19 @@ export type { PopoverMode } from './components/popover';
 // Dialog
 export { useDialog, CoarDialogShell } from './components/dialog';
 export type { DialogConfig, DialogRef, DialogSize, ConfirmOptions } from './components/dialog';
+
+// Menu
+export {
+  CoarMenu,
+  CoarMenuItem,
+  CoarMenuDivider,
+  CoarMenuHeading,
+  CoarSubExpand,
+  CoarSubmenuItem,
+  MenuCascade,
+  provideMenuCascade,
+  useMenuCascade,
+  provideMenuClose,
+  useMenuClose,
+} from './components/menu';
+export type { MenuItemClickEvent, MenuAimPoint, MenuAimDirection, MenuAimConfig } from './components/menu';
