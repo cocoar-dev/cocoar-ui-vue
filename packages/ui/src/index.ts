@@ -104,3 +104,44 @@ export {
   useMenuClose,
 } from './components/menu';
 export type { MenuItemClickEvent, MenuAimPoint, MenuAimDirection, MenuAimConfig } from './components/menu';
+
+// Tabs
+export { CoarTabGroup, CoarTab } from './components/tabs';
+
+// Breadcrumb
+export { CoarBreadcrumb, CoarBreadcrumbItem } from './components/breadcrumb';
+
+// Pagination
+export { CoarPagination } from './components/pagination';
+export type { PaginationPageItem } from './components/pagination';
+
+// Sidebar
+export { CoarSidebar } from './components/sidebar';
+
+// Navbar
+export { CoarNavbar } from './components/navbar';
+
+// Date/Time
+export { CoarTimePicker } from './components/date-time/time-picker';
+export type { CoarTimePickerSize } from './components/date-time/time-picker';
+export { CoarScrollableCalendar } from './components/date-time/scrollable-calendar';
+export { CoarMonthList } from './components/date-time/month-list';
+export { CoarPlainDatePicker } from './components/date-time/plain-date-picker';
+export type { CoarPlainDatePickerSize } from './components/date-time/plain-date-picker';
+export { CoarPlainDateTimePicker } from './components/date-time/plain-date-time-picker';
+export type { CoarPlainDateTimePickerSize } from './components/date-time/plain-date-time-picker';
+export { CoarZonedDateTimePicker } from './components/date-time/zoned-date-time-picker';
+export type { CoarZonedDateTimePickerSize } from './components/date-time/zoned-date-time-picker';
+export type {
+  DateFormatConfig,
+  CoarDateMarker,
+  CoarTimeValue,
+  CoarTimePeriod,
+  TimeFormatConfig,
+  CoarCalendarGridCell,
+} from './components/date-time/_shared/types';
+export { COAR_DEFAULT_TIME_FORMAT, COAR_DATE_FORMAT_TO_MASKITO_MODE } from './components/date-time/_shared/types';
+
+// Scrollbar
+export { vScrollbar, getScrollbarInstance } from './components/scrollbar';
+export type { ScrollbarOptions, ScrollbarTheme, ScrollbarAutoHide, ScrollbarOverflow } from './components/scrollbar';

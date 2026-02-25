@@ -8,6 +8,7 @@ import {
 } from 'vue';
 import { computeOverlayCoordinates } from '../overlay/overlay-position';
 import type { Placement } from '../overlay/overlay-types';
+import { vScrollbar } from '../scrollbar/vScrollbar';
 
 export type PopoverMode = 'hover' | 'click' | 'both';
 
@@ -289,7 +290,7 @@ onBeforeUnmount(() => {
         @focusin="onPanelMouseEnter"
         @focusout="onFocusOut"
       >
-        <div class="coar-popover-content">
+        <div v-scrollbar="{ overflowX: 'hidden', defer: false }" class="coar-popover-content">
           <slot name="content" />
         </div>
       </div>
@@ -326,7 +327,6 @@ onBeforeUnmount(() => {
 
 .coar-popover-content {
   max-height: var(--coar-popover-max-height, 240px);
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 </style>

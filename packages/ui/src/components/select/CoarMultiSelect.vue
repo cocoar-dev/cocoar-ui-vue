@@ -3,6 +3,7 @@ import { computed, toRef, onMounted, onBeforeUnmount, useTemplateRef, nextTick }
 import { CoarIcon } from '../icon';
 import { useSelectBase, type CoarSelectSize, type CoarSelectAppearance } from './useSelectBase';
 import { useSelectDropdown } from './useSelectDropdown';
+import { vScrollbar } from '../scrollbar/vScrollbar';
 import type { CoarSelectOption } from './types';
 
 export interface CoarMultiSelectProps {
@@ -215,7 +216,7 @@ function handleKeyDown(event: KeyboardEvent) {
   }
 }
 
-function onDocumentClick(event: MouseEvent) {
+function onDocumentMouseDown(event: MouseEvent) {
   if (!isOpen.value) return;
   const target = event.target as Node;
   if (hostRef.value?.contains(target)) return;
@@ -223,8 +224,8 @@ function onDocumentClick(event: MouseEvent) {
   closeDropdown();
 }
 
-onMounted(() => document.addEventListener('click', onDocumentClick));
-onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick));
+onMounted(() => document.addEventListener('mousedown', onDocumentMouseDown));
+onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseDown));
 </script>
 
 <template>
@@ -343,6 +344,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick));
           <!-- Options List -->
           <div
             :id="listboxId"
+            v-scrollbar="{ overflowX: 'hidden', defer: false }"
             class="coar-select-options"
             role="listbox"
             aria-multiselectable="true"
@@ -635,7 +637,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick));
 /* Options */
 .coar-select-options {
   max-height: 240px;
-  overflow-y: auto;
+  overflow: hidden;
   padding: var(--coar-spacing-xs) 0;
 }
 

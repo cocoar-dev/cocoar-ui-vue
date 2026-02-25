@@ -3,6 +3,7 @@ import { computed, onMounted, onBeforeUnmount, ref } from 'vue';
 import type { DialogSize } from './dialog-types';
 import CoarIcon from '../icon/CoarIcon.vue';
 import CoarButton from '../button/CoarButton.vue';
+import { vScrollbar } from '../scrollbar/vScrollbar';
 
 const props = defineProps<{
   title: string;
@@ -79,7 +80,7 @@ const sizeClass = computed(() => `coar-dialog--${props.size}`);
         </button>
       </div>
 
-      <div class="coar-dialog-body">
+      <div v-scrollbar="{ overflowX: 'hidden', defer: false }" class="coar-dialog-body">
         <p v-if="confirmMode">{{ confirmMessage }}</p>
         <slot v-else />
       </div>
@@ -167,7 +168,7 @@ const sizeClass = computed(() => `coar-dialog--${props.size}`);
 
 .coar-dialog-body {
   padding: var(--coar-spacing-l, 24px);
-  overflow-y: auto;
+  overflow: hidden;
   flex: 1;
   color: var(--coar-text-neutral-primary);
 }

@@ -38,7 +38,7 @@
   --coar-sidebar-header-border: 1px solid var(--coar-border-neutral-tertiary);
 
   /* Content section (scrollable area) */
-  --coar-sidebar-content-padding: var(--coar-spacing-s);
+  --coar-sidebar-content-padding: 0;
 
   /* Footer section */
   --coar-sidebar-footer-padding: var(--coar-spacing-m);

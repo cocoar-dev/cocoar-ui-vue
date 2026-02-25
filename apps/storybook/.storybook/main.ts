@@ -28,6 +28,7 @@ const config: StorybookConfig = {
       ...existingAlias,
       { find: /^@cocoar\/vue-ui$/, replacement: join(__dirname, '../../../packages/ui/src/index.ts') },
       { find: /^@cocoar\/vue-core$/, replacement: join(__dirname, '../../../packages/core/src/index.ts') },
+      { find: /^@cocoar\/vue-localization$/, replacement: join(__dirname, '../../../packages/localization/src/index.ts') },
     ];
     return config;
   },

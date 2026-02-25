@@ -27,6 +27,8 @@
   },
   "dependencies": {
     "@cocoar/vue-core": "workspace:*",
+    "@cocoar/vue-localization": "workspace:*",
+    "@js-temporal/polyfill": "^0.5.1",
     "@maskito/core": "^5.1.1",
     "@maskito/kit": "^5.1.1",
     "@maskito/vue": "^5.1.1",
@@ -37,6 +39,7 @@
   },
   "devDependencies": {
     "@types/prismjs": "^1.26.6",
+    "overlayscrollbars": "^2.14.0",
     "vue": "^3.5.0"
   }
 }

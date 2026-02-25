@@ -8,3 +8,4 @@
 @import './tokens/all.css';
 @import './base.css';
 @import './components.css';
+@import 'overlayscrollbars/overlayscrollbars.css';
