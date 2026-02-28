@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import { CoarPagination } from '@cocoar/vue-ui';
 
 const meta: Meta<typeof CoarPagination> = {
-  title: 'Components/Pagination',
+  title: 'Navigation/Pagination',
   component: CoarPagination,
   argTypes: {
     totalItems: { control: { type: 'number', min: 0 } },

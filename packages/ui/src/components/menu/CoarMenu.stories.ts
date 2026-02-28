@@ -10,7 +10,7 @@ import {
 } from '@cocoar/vue-ui';
 
 const meta: Meta = {
-  title: 'Components/Menu',
+  title: 'Overlay/Menu',
   tags: ['autodocs'],
 };
 export default meta;

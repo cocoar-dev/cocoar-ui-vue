@@ -145,3 +145,38 @@ export { COAR_DEFAULT_TIME_FORMAT, COAR_DATE_FORMAT_TO_MASKITO_MODE } from './co
 // Scrollbar
 export { vScrollbar, getScrollbarInstance } from './components/scrollbar';
 export type { ScrollbarOptions, ScrollbarTheme, ScrollbarAutoHide, ScrollbarOverflow } from './components/scrollbar';
+
+// DataGrid
+export { CoarDataGrid, useDataGrid } from './components/data-grid';
+export { CoarGridBuilder, CoarGridColumnBuilder, CoarGridColumnFactory } from './components/data-grid';
+export type { ColumnDefinition } from './components/data-grid';
+export { cocoarTheme, createCocoarTheme } from './components/data-grid';
+export { TagCellRenderer, IconCellRenderer, DateCellRenderer } from './components/data-grid';
+export type { TagCellRendererConfig, IconCellRendererConfig, DateCellRendererConfig } from './components/data-grid';
+export type {
+  ColDef,
+  GridOptions,
+  GridApi,
+  GridReadyEvent,
+  RowClickedEvent,
+  RowDoubleClickedEvent,
+  CellClickedEvent,
+  CellDoubleClickedEvent,
+  CellContextMenuEvent,
+  GridSizeChangedEvent,
+  ColumnState,
+  GetRowIdFunc,
+  RowClassParams,
+  ValueFormatterParams,
+  ValueGetterParams,
+  CellClassParams,
+  ICellRendererParams,
+  IRowNode,
+  PostSortRowsParams,
+  GetQuickFilterTextParams,
+  RowDragCallback,
+} from './components/data-grid';
+
+// Markdown
+export { CoarMarkdown } from './components/markdown';
+export type { CoarMarkdownProps } from './components/markdown';

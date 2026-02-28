@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/vue3';
 import { CoarCard } from '@cocoar/vue-ui';
 
 const meta: Meta<typeof CoarCard> = {
-  title: 'Components/Card',
+  title: 'Data Display/Card',
   component: CoarCard,
   tags: ['autodocs'],
   argTypes: {

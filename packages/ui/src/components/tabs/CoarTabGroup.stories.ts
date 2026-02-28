@@ -3,7 +3,7 @@ import { ref, defineComponent, onMounted, onBeforeUnmount } from 'vue';
 import { CoarTabGroup, CoarTab, CoarButton, CoarBadge } from '@cocoar/vue-ui';
 
 const meta: Meta = {
-  title: 'Components/Tabs',
+  title: 'Navigation/Tabs',
 };
 
 export default meta;

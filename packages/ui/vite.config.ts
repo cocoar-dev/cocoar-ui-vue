@@ -4,6 +4,9 @@ import vue from '@vitejs/plugin-vue';
 
 export default defineConfig({
   plugins: [vue()],
+  resolve: {
+    conditions: ['source'],
+  },
   build: {
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),

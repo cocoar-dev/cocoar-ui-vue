@@ -15,7 +15,7 @@ const frameworkOptions: CoarSelectOption[] = [
 ];
 
 const meta: Meta<typeof CoarMultiSelect> = {
-  title: 'Components/MultiSelect',
+  title: 'Form Controls/MultiSelect',
   component: CoarMultiSelect,
   tags: ['autodocs'],
   argTypes: {

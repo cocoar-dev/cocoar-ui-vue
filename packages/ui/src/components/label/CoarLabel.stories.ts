@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/vue3';
 import CoarLabel from './CoarLabel.vue';
 
 const meta: Meta<typeof CoarLabel> = {
-  title: 'Components/CoarLabel',
+  title: 'General/Label',
   component: CoarLabel,
   tags: ['autodocs'],
   argTypes: {

@@ -54,7 +54,7 @@ const LinkDemo = defineComponent({
 });
 
 const meta: Meta = {
-  title: 'Components/Link',
+  title: 'General/Link',
   component: LinkDemo,
 };
 export default meta;

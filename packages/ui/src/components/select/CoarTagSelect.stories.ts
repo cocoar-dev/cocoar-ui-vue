@@ -17,7 +17,7 @@ const skillOptions: CoarSelectOption[] = [
 ];
 
 const meta: Meta<typeof CoarTagSelect> = {
-  title: 'Components/TagSelect',
+  title: 'Form Controls/TagSelect',
   component: CoarTagSelect,
   tags: ['autodocs'],
   argTypes: {

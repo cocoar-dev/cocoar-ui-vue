@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/vue3';
 import { CoarBadge } from '@cocoar/vue-ui';
 
 const meta: Meta<typeof CoarBadge> = {
-  title: 'Components/Badge',
+  title: 'General/Badge',
   component: CoarBadge,
   tags: ['autodocs'],
   argTypes: {

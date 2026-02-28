@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/vue3';
 import { CoarAvatar } from '@cocoar/vue-ui';
 
 const meta: Meta<typeof CoarAvatar> = {
-  title: 'Components/Avatar',
+  title: 'General/Avatar',
   component: CoarAvatar,
   tags: ['autodocs'],
   argTypes: {

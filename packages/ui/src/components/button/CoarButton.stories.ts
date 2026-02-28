@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/vue3';
 import CoarButton from './CoarButton.vue';
 
 const meta: Meta<typeof CoarButton> = {
-  title: 'Components/CoarButton',
+  title: 'General/Button',
   component: CoarButton,
   tags: ['autodocs'],
   argTypes: {

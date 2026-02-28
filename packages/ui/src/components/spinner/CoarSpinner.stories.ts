@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/vue3';
 import { CoarSpinner } from '@cocoar/vue-ui';
 
 const meta: Meta<typeof CoarSpinner> = {
-  title: 'Components/Spinner',
+  title: 'General/Spinner',
   component: CoarSpinner,
   tags: ['autodocs'],
   argTypes: {

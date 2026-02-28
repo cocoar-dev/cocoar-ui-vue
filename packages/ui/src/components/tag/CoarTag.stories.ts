@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/vue3';
 import { CoarTag } from '@cocoar/vue-ui';
 
 const meta: Meta<typeof CoarTag> = {
-  title: 'Components/Tag',
+  title: 'General/Tag',
   component: CoarTag,
   tags: ['autodocs'],
   argTypes: {

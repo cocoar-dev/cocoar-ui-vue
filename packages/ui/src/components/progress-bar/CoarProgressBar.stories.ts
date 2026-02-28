@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/vue3';
 import { CoarProgressBar } from '@cocoar/vue-ui';
 
 const meta: Meta<typeof CoarProgressBar> = {
-  title: 'Components/ProgressBar',
+  title: 'General/ProgressBar',
   component: CoarProgressBar,
   tags: ['autodocs'],
   argTypes: {

@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/vue3';
 import { CoarNavbar, CoarButton, CoarAvatar, CoarIcon } from '@cocoar/vue-ui';
 
 const meta: Meta<typeof CoarNavbar> = {
-  title: 'Components/Navbar',
+  title: 'Navigation/Navbar',
   component: CoarNavbar,
   argTypes: {
     elevated: { control: 'boolean' },

@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import { CoarSidebar, CoarMenu, CoarMenuItem, CoarMenuHeading, CoarMenuDivider, CoarButton, CoarIcon, CoarAvatar } from '@cocoar/vue-ui';
 
 const meta: Meta<typeof CoarSidebar> = {
-  title: 'Components/Sidebar',
+  title: 'Navigation/Sidebar',
   component: CoarSidebar,
   argTypes: {
     position: { control: 'inline-radio', options: ['left', 'right'] },

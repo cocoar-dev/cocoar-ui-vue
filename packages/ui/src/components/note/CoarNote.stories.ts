@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/vue3';
 import { CoarNote } from '@cocoar/vue-ui';
 
 const meta: Meta<typeof CoarNote> = {
-  title: 'Components/Note',
+  title: 'General/Note',
   component: CoarNote,
   tags: ['autodocs'],
   argTypes: {

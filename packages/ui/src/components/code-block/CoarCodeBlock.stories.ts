@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/vue3';
 import { CoarCodeBlock } from '@cocoar/vue-ui';
 
 const meta: Meta<typeof CoarCodeBlock> = {
-  title: 'Components/CodeBlock',
+  title: 'Data Display/CodeBlock',
   component: CoarCodeBlock,
   tags: ['autodocs'],
   argTypes: {

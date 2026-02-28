@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/vue3';
 import { CoarDivider } from '@cocoar/vue-ui';
 
 const meta: Meta<typeof CoarDivider> = {
-  title: 'Components/Divider',
+  title: 'General/Divider',
   component: CoarDivider,
   tags: ['autodocs'],
   argTypes: {

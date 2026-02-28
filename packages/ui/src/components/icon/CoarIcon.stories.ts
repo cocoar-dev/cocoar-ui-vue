@@ -5,7 +5,7 @@ import { CORE_ICONS } from './core-icons';
 const iconNames = Object.keys(CORE_ICONS).sort();
 
 const meta: Meta<typeof CoarIcon> = {
-  title: 'Components/CoarIcon',
+  title: 'General/Icon',
   component: CoarIcon,
   tags: ['autodocs'],
   argTypes: {

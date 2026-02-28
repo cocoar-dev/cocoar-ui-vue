@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/vue3';
 import { CoarBreadcrumb, CoarBreadcrumbItem } from '@cocoar/vue-ui';
 
 const meta: Meta = {
-  title: 'Components/Breadcrumb',
+  title: 'Navigation/Breadcrumb',
 };
 
 export default meta;

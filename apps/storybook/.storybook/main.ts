@@ -5,6 +5,10 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const config: StorybookConfig = {
+  addons: [
+    '@storybook/addon-docs',
+    '@storybook/addon-a11y',
+  ],
   stories: [
     {
       directory: join(__dirname, '../../../packages'),
@@ -28,6 +32,7 @@ const config: StorybookConfig = {
       ...existingAlias,
       { find: /^@cocoar\/vue-ui$/, replacement: join(__dirname, '../../../packages/ui/src/index.ts') },
       { find: /^@cocoar\/vue-core$/, replacement: join(__dirname, '../../../packages/core/src/index.ts') },
+      { find: /^@cocoar\/vue-fragment-parser$/, replacement: join(__dirname, '../../../packages/fragment-parser/src/index.ts') },
       { find: /^@cocoar\/vue-localization$/, replacement: join(__dirname, '../../../packages/localization/src/index.ts') },
     ];
     return config;

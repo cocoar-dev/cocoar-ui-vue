@@ -3,7 +3,7 @@ import { CoarTable } from '@cocoar/vue-ui';
 import { defineComponent } from 'vue';
 
 const meta: Meta<typeof CoarTable> = {
-  title: 'Components/Table',
+  title: 'Data Display/Table',
   component: CoarTable,
   tags: ['autodocs'],
   argTypes: {

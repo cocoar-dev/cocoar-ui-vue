@@ -27,7 +27,7 @@ const countryOptions: CoarSelectOption[] = [
 ];
 
 const meta: Meta<typeof CoarSelect> = {
-  title: 'Components/Select',
+  title: 'Form Controls/Select',
   component: CoarSelect,
   tags: ['autodocs'],
   argTypes: {

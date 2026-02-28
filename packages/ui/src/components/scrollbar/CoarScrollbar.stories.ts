@@ -13,7 +13,7 @@ const ScrollbarDemo = defineComponent({
 });
 
 const meta: Meta = {
-  title: 'Components/Scrollbar',
+  title: 'Data Display/Scrollbar',
 };
 
 export default meta;
