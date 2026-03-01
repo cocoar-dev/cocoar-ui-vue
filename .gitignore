@@ -5,3 +5,5 @@ storybook-static
 coverage
 *.local
 .DS_Store
+.claude
+.analysis

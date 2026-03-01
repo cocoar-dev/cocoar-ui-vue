@@ -38,4 +38,12 @@
   --coar-titles-title-family: Inter;
   --coar-titles-title-size: 48px;
   --coar-titles-title-weight: 700;
+
+  /* Line-height tokens */
+  --coar-body-base-line-height: 1.5;
+  --coar-body-small-base-line-height: 1.5;
+
+  /* Composed font shorthand tokens
+     CSS font shorthand format: <weight> <size>/<line-height> <family> */
+  --coar-heading-s: 600 20px/1.4 Poppins, sans-serif;
 }

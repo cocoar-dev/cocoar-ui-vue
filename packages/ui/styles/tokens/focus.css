@@ -19,6 +19,12 @@
 
   /* If you want a shadow-based focus instead of outline */
   --coar-focus-shadow: 0 0 0 var(--coar-focus-width) var(--coar-focus-color);
+
+  /* Border alias for focus outlines (used by dialog/toast focus-visible) */
+  --coar-border-focus: var(--coar-focus-color);
+
+  /* Ring color alias (used by pagination focus-visible) */
+  --coar-focus-ring-color: var(--coar-focus-color);
 }
 
 /* Dark mode override */
@@ -27,4 +33,7 @@
   /* Typically slightly brighter or desaturated…
      You can tune this later via semantic building blocks */
   --coar-focus-color: var(--coar-color-accent-300);
+
+  --coar-border-focus: var(--coar-focus-color);
+  --coar-focus-ring-color: var(--coar-focus-color);
 }

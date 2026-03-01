@@ -146,7 +146,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <span ref="triggerRef" class="coar-popconfirm-trigger" @click="onClick">
+  <span ref="triggerRef" class="coar-popconfirm-trigger" aria-haspopup="dialog" @click="onClick">
     <slot />
   </span>
   <Teleport to="body">
@@ -156,6 +156,7 @@ onBeforeUnmount(() => {
       class="coar-popconfirm-host"
       :data-placement="actualPlacement"
       role="dialog"
+      :aria-label="title || message"
       :style="{
         position: 'fixed',
         zIndex: 'var(--coar-z-overlay, 1000)',

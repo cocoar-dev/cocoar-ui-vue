@@ -53,9 +53,9 @@ describe('CoarToastItem', () => {
       expect(wrapper.find('.coar-toast').attributes('role')).toBe('alert');
     });
 
-    it('should not set role for non-error variants', () => {
+    it('should set role="status" for non-error variants', () => {
       const wrapper = createWrapper({ variant: 'success' });
-      expect(wrapper.find('.coar-toast').attributes('role')).toBeUndefined();
+      expect(wrapper.find('.coar-toast').attributes('role')).toBe('status');
     });
   });
 

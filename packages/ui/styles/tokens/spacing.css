@@ -5,6 +5,7 @@
  */
 
 :root {
+  --coar-spacing-3xs: 1px;
   --coar-spacing-xxs: 2px;
   --coar-spacing-xs: 4px;
   --coar-spacing-s: 8px;

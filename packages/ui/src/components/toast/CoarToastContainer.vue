@@ -50,7 +50,7 @@ defineExpose({ addToast, onDismissed, removeAll, setPosition });
 </script>
 
 <template>
-  <div :class="['coar-toast-container', `coar-toast-container--${position}`]">
+  <div :class="['coar-toast-container', `coar-toast-container--${position}`]" aria-live="polite" aria-relevant="additions">
     <CoarToastItem
       v-for="toast in toasts"
       :key="toast.id"

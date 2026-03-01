@@ -89,7 +89,7 @@ defineExpose({ startAutoClose });
 <template>
   <div
     :class="['coar-toast', `coar-toast--${variant}`, { 'coar-toast--no-title': !title }]"
-    :role="variant === 'error' ? 'alert' : undefined"
+    :role="variant === 'error' ? 'alert' : 'status'"
     @mouseenter="onMouseEnter"
     @mouseleave="onMouseLeave"
   >

@@ -26,6 +26,7 @@
   --coar-background-neutral-primary: var(--coar-color-white);
   --coar-background-neutral-secondary: var(--coar-color-gray-50);
   --coar-background-neutral-tertiary: var(--coar-color-gray-100);
+  --coar-background-neutral-quaternary: var(--coar-color-gray-200);
   --coar-background-neutral-disabled: var(--coar-color-gray-200);
   --coar-background-neutral-active: var(--coar-color-gray-200);
 
@@ -146,6 +147,9 @@
      Used for: text on primary buttons, badges, bold semantic backgrounds */
   --coar-text-on-bold: var(--coar-color-white);
 
+  /* White text for use on brand-colored surfaces (e.g. active pagination) */
+  --coar-text-on-brand-primary: var(--coar-color-white);
+
   /* ==========================================================================
      SURFACE - Elevated surfaces for form controls and interactive elements
      In light mode, inputs are white. In dark mode, they're slightly elevated.
@@ -176,6 +180,7 @@
   --coar-background-neutral-primary: var(--coar-color-gray-200);
   --coar-background-neutral-secondary: var(--coar-color-gray-100);
   --coar-background-neutral-tertiary: var(--coar-color-gray-50);
+  --coar-background-neutral-quaternary: var(--coar-color-gray-300);
   --coar-background-neutral-active: var(--coar-color-gray-300);
 
   /* Text */

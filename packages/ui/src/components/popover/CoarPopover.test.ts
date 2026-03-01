@@ -158,8 +158,14 @@ describe('CoarPopover', () => {
   });
 
   describe('accessibility', () => {
-    it('should have role tooltip on panel', async () => {
+    it('should have role dialog on interactive panel', async () => {
       wrapper = createWrapper({ mode: 'click' });
+      await wrapper.find('.coar-popover-trigger').trigger('click');
+      expect(wrapper.find('.coar-popover-panel').attributes('role')).toBe('dialog');
+    });
+
+    it('should have role tooltip on non-interactive panel', async () => {
+      wrapper = createWrapper({ mode: 'click', interactive: false });
       await wrapper.find('.coar-popover-trigger').trigger('click');
       expect(wrapper.find('.coar-popover-panel').attributes('role')).toBe('tooltip');
     });

@@ -110,8 +110,7 @@ const activeMonth = ref<Temporal.PlainYearMonth>(
 );
 
 // IDs
-let instanceId = 0;
-const uid = `coar-plain-date-picker-${instanceId++}`;
+const uid = `coar-plain-date-picker-${crypto.randomUUID?.() ?? Date.now().toString(16)}`;
 const labelId = `${uid}-label`;
 const inputId = `${uid}-input`;
 const panelId = `${uid}-panel`;

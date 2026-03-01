@@ -162,7 +162,9 @@ describe('CoarDialogShell', () => {
 
     it('should have aria-labelledby when title exists', () => {
       wrapper = createWrapper({ title: 'My Title' });
-      expect(wrapper.find('.coar-dialog').attributes('aria-labelledby')).toBe('coar-dialog-title');
+      const labelledBy = wrapper.find('.coar-dialog').attributes('aria-labelledby');
+      expect(labelledBy).toBeDefined();
+      expect(wrapper.find(`#${labelledBy}`).exists()).toBe(true);
     });
   });
 

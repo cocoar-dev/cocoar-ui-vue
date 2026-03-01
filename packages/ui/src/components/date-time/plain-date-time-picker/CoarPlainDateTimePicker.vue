@@ -102,8 +102,7 @@ const activeMonth = ref<Temporal.PlainYearMonth>(
 const pendingTime = ref<CoarTimeValue | null>(null);
 
 // IDs
-let instanceId = 0;
-const uid = `coar-plain-dt-picker-${instanceId++}`;
+const uid = `coar-plain-dt-picker-${crypto.randomUUID?.() ?? Date.now().toString(16)}`;
 const labelId = `${uid}-label`;
 const inputId = `${uid}-input`;
 const panelId = `${uid}-panel`;

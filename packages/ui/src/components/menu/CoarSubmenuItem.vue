@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onBeforeUnmount, nextTick } from 'vue';
+import { ref, watch, onBeforeUnmount, nextTick } from 'vue';
 import CoarIcon from '../icon/CoarIcon.vue';
 import { computeOverlayCoordinates } from '../overlay/overlay-position';
 import { MenuCascade, useMenuCascade, provideMenuCascade, provideMenuClose } from './menu-cascade';
@@ -187,7 +187,6 @@ function removeDocumentListener() {
 }
 
 // Watch open state to manage document listener
-import { watch } from 'vue';
 watch(isOpen, (val) => {
   if (val) {
     // Defer adding listener so it doesn't catch the current click

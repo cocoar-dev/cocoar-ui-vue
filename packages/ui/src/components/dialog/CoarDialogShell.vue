@@ -25,6 +25,9 @@ const emit = defineEmits<{
 
 const dialogRef = ref<HTMLElement | null>(null);
 
+const autoId = `coar-dialog-${crypto.randomUUID?.() ?? Date.now().toString(16)}`;
+const titleId = `${autoId}-title`;
+
 function onClose(result?: unknown) {
   emit('close', result);
 }
@@ -64,14 +67,15 @@ const sizeClass = computed(() => `coar-dialog--${props.size}`);
       :class="sizeClass"
       role="dialog"
       aria-modal="true"
-      :aria-label="title || undefined"
-      :aria-labelledby="title ? 'coar-dialog-title' : undefined"
+      :aria-label="title ? undefined : 'Dialog'"
+      :aria-labelledby="title ? titleId : undefined"
       tabindex="-1"
     >
       <div v-if="title || showCloseButton" class="coar-dialog-header">
-        <h2 v-if="title" id="coar-dialog-title" class="coar-dialog-title">{{ title }}</h2>
+        <h2 v-if="title" :id="titleId" class="coar-dialog-title">{{ title }}</h2>
         <button
           v-if="showCloseButton"
+          type="button"
           class="coar-dialog-close"
           aria-label="Close dialog"
           @click="onClose()"

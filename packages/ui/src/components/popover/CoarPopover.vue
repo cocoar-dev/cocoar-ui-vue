@@ -2,6 +2,7 @@
 import {
   ref,
   nextTick,
+  onMounted,
   onBeforeUnmount,
   watch,
   type PropType,
@@ -22,6 +23,8 @@ const props = defineProps({
   /** Offset from trigger in px. */
   offset: { type: Number, default: 6 },
 });
+
+const panelId = `coar-popover-${Math.random().toString(36).slice(2, 9)}`;
 
 const isOpen = ref(false);
 const pinnedByClick = ref(false);
@@ -243,8 +246,10 @@ function onKeydown(event: KeyboardEvent) {
   }
 }
 
-document.addEventListener('click', onDocumentClick);
-document.addEventListener('keydown', onKeydown);
+onMounted(() => {
+  document.addEventListener('click', onDocumentClick);
+  document.addEventListener('keydown', onKeydown);
+});
 
 watch(
   () => props.disabled,
@@ -271,6 +276,9 @@ onBeforeUnmount(() => {
     <span
       ref="triggerRef"
       class="coar-popover-trigger"
+      :aria-describedby="!interactive && isOpen ? panelId : undefined"
+      :aria-haspopup="interactive ? 'dialog' : undefined"
+      :aria-expanded="interactive ? isOpen : undefined"
       @click="onTriggerClick"
     >
       <slot />
@@ -279,11 +287,12 @@ onBeforeUnmount(() => {
     <Teleport to="body">
       <div
         v-if="isOpen"
+        :id="panelId"
         ref="panelRef"
         class="coar-popover-panel"
         :style="panelStyle"
         :data-placement="currentPlacement"
-        role="tooltip"
+        :role="interactive ? 'dialog' : 'tooltip'"
         :class="{ 'coar-popover-panel--non-interactive': !interactive }"
         @mouseenter="onPanelMouseEnter"
         @mouseleave="onPanelMouseLeave"

@@ -128,8 +128,7 @@ const timezoneSearchQuery = ref('');
 const tzSearchInputRef = ref<HTMLInputElement | null>(null);
 
 // IDs
-let instanceId = 0;
-const uid = `coar-zdtp-${instanceId++}`;
+const uid = `coar-zdtp-${crypto.randomUUID?.() ?? Date.now().toString(16)}`;
 const labelId = `${uid}-label`;
 const inputId = `${uid}-input`;
 const panelId = `${uid}-panel`;

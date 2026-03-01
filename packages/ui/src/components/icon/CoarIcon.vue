@@ -1,14 +1,26 @@
+<script lang="ts">
+import {
+  COAR_BUILTIN_ICON_SOURCE_KEY,
+  CoarIconMapSource,
+  CoarIconService,
+} from './icon-service';
+import { CORE_ICONS } from './core-icons';
+
+// Module-level singleton: shared fallback when no CoarIconPlugin is installed.
+const fallbackService = new CoarIconService();
+fallbackService.registerSource(
+  COAR_BUILTIN_ICON_SOURCE_KEY,
+  new CoarIconMapSource(CORE_ICONS),
+);
+</script>
+
 <script setup lang="ts">
 import { ref, watchEffect, inject, computed } from 'vue';
 import {
   COAR_ICON_SERVICE_KEY,
-  COAR_BUILTIN_ICON_SOURCE_KEY,
-  CoarIconMapSource,
-  CoarIconService,
   PRESET_SIZES,
   type CoarIconSize,
 } from './icon-service';
-import { CORE_ICONS } from './core-icons';
 
 export interface CoarIconProps {
   /** Icon identifier (e.g. "settings", "user") */
@@ -40,17 +52,9 @@ const props = withDefaults(defineProps<CoarIconProps>(), {
   label: undefined,
 });
 
-// ─── Icon service (injected or default built-in) ─────────────────────────────
+// ─── Icon service (injected or plugin-provided, else shared fallback) ────────
 
-const injectedService = inject(COAR_ICON_SERVICE_KEY, null);
-
-const defaultService = new CoarIconService();
-defaultService.registerSource(
-  COAR_BUILTIN_ICON_SOURCE_KEY,
-  new CoarIconMapSource(CORE_ICONS),
-);
-
-const iconService = injectedService ?? defaultService;
+const iconService = inject(COAR_ICON_SERVICE_KEY, null) ?? fallbackService;
 
 // ─── Reactive icon loading ───────────────────────────────────────────────────
 
