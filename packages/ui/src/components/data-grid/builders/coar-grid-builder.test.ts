@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { ref } from 'vue';
 import { CoarGridBuilder } from './coar-grid-builder';
 import { CoarGridColumnBuilder } from './coar-grid-column-builder';
@@ -72,14 +72,24 @@ describe('CoarGridBuilder', () => {
       const builder = CoarGridBuilder.create<TestRow>().rowSelection('single');
       const options = builder._getGridOptions();
 
-      expect(options.rowSelection).toEqual({ mode: 'singleRow' });
+      expect(options.rowSelection).toEqual({
+        checkboxes: false,
+        enableClickSelection: true,
+        headerCheckbox: false,
+        mode: 'singleRow',
+      });
     });
 
     it('should configure multiple row selection', () => {
       const builder = CoarGridBuilder.create<TestRow>().rowSelection('multiple');
       const options = builder._getGridOptions();
 
-      expect(options.rowSelection).toEqual({ mode: 'multiRow' });
+      expect(options.rowSelection).toEqual({
+        checkboxes: false,
+        enableClickSelection: true,
+        headerCheckbox: false,
+        mode: 'multiRow',
+      });
     });
   });
 
@@ -123,9 +133,7 @@ describe('CoarGridBuilder', () => {
       const builder = CoarGridBuilder.create<TestRow>().defaultSort('name', 'asc');
       const options = builder._getGridOptions();
 
-      expect(options.initialState?.sort?.sortModel).toEqual([
-        { colId: 'name', sort: 'asc' },
-      ]);
+      expect(options.initialState?.sort?.sortModel).toEqual([{ colId: 'name', sort: 'asc' }]);
     });
   });
 
