@@ -1,3 +1,4 @@
+/* eslint-disable vue/one-component-per-file */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { defineComponent, nextTick, ref } from 'vue';
@@ -28,11 +29,11 @@ vi.mock('overlayscrollbars', () => {
 function createWrapper(options: Record<string, unknown> | boolean = {}, template?: string) {
   const Comp = defineComponent({
     directives: { scrollbar: vScrollbar },
-    template: template ?? '<div v-scrollbar="opts" style="height: 200px;">Content</div>',
     setup() {
       const opts = ref(options);
       return { opts };
     },
+    template: template ?? '<div v-scrollbar="opts" style="height: 200px;">Content</div>',
   });
   return mount(Comp, { attachTo: document.body });
 }
@@ -125,8 +126,8 @@ describe('vScrollbar', () => {
     const opts = ref<Record<string, unknown> | boolean>({ theme: 'dark' });
     const Comp = defineComponent({
       directives: { scrollbar: vScrollbar },
-      template: '<div v-scrollbar="opts">Content</div>',
       setup() { return { opts }; },
+      template: '<div v-scrollbar="opts">Content</div>',
     });
     const wrapper = mount(Comp, { attachTo: document.body });
     await nextTick();
@@ -157,8 +158,8 @@ describe('vScrollbar', () => {
     const opts = ref<Record<string, unknown> | boolean>({});
     const Comp = defineComponent({
       directives: { scrollbar: vScrollbar },
-      template: '<div v-scrollbar="opts">Content</div>',
       setup() { return { opts }; },
+      template: '<div v-scrollbar="opts">Content</div>',
     });
     const wrapper = mount(Comp, { attachTo: document.body });
     await nextTick();

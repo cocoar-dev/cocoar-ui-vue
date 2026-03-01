@@ -239,7 +239,7 @@ const LazyDemo = defineComponent({
       mountedAt.value = new Date().toLocaleTimeString();
     });
     onBeforeUnmount(() => {
-      // eslint-disable-next-line no-console
+       
       console.log(`[${props.name}] destroyed`);
     });
     return { mountedAt };

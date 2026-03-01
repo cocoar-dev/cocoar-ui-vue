@@ -30,6 +30,8 @@ const props = withDefaults(
   }>(),
   {
     theme: () => cocoarTheme,
+    class: undefined,
+    style: undefined,
   }
 );
 

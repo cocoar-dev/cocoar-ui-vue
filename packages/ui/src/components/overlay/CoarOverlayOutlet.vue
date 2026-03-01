@@ -40,7 +40,7 @@ function getA11yAttrs(): Record<string, string | undefined> {
   if (a11y.label) attrs['aria-label'] = a11y.label;
   if (a11y.labelledBy) attrs['aria-labelledby'] = a11y.labelledBy;
   if (a11y.describedBy) attrs['aria-describedby'] = a11y.describedBy;
-  if (a11y.role === 'dialog' && props.instance.spec.backdrop.kind === 'modal') {
+  if ((a11y.role === 'dialog' || a11y.role === 'alertdialog') && props.instance.spec.backdrop.kind === 'modal') {
     attrs['aria-modal'] = 'true';
   }
   return attrs;
@@ -77,6 +77,7 @@ function getA11yAttrs(): Record<string, string | undefined> {
         opacity: instance.presented ? '1' : '0',
         pointerEvents: instance.presented ? 'auto' : 'none',
       }"
+      :data-placement="instance.placement"
       v-bind="getA11yAttrs()"
     >
       <!-- Panel -->

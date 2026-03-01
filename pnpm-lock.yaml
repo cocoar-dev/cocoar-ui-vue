@@ -71,12 +71,34 @@ importers:
       '@cocoar/vue-core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@cocoar/vue-data-grid':
+        specifier: workspace:*
+        version: link:../../packages/data-grid
       '@cocoar/vue-ui':
         specifier: workspace:*
         version: link:../../packages/ui
 
   packages/core:
     devDependencies:
+      vue:
+        specifier: ^3.5.0
+        version: 3.5.28(typescript@5.9.3)
+
+  packages/data-grid:
+    dependencies:
+      ag-grid-community:
+        specifier: 35.0.0
+        version: 35.0.0
+      ag-grid-vue3:
+        specifier: 35.0.0
+        version: 35.0.0(vue@3.5.28(typescript@5.9.3))
+    devDependencies:
+      '@cocoar/vue-localization':
+        specifier: workspace:*
+        version: link:../localization
+      '@cocoar/vue-ui':
+        specifier: workspace:*
+        version: link:../ui
       vue:
         specifier: ^3.5.0
         version: 3.5.28(typescript@5.9.3)
@@ -138,12 +160,6 @@ importers:
       '@maskito/vue':
         specifier: ^5.1.1
         version: 5.1.1(@maskito/core@5.1.1)(vue@3.5.28(typescript@5.9.3))
-      ag-grid-community:
-        specifier: 35.0.0
-        version: 35.0.0
-      ag-grid-vue3:
-        specifier: 35.0.0
-        version: 35.0.0(vue@3.5.28(typescript@5.9.3))
       prismjs:
         specifier: ^1.30.0
         version: 1.30.0

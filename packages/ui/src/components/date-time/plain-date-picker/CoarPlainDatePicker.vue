@@ -427,7 +427,7 @@ function onInputBlur() {
     ]"
   >
     <!-- Label -->
-    <span v-if="label" class="coar-plain-date-picker-label" :id="labelId">
+    <span v-if="label" :id="labelId" class="coar-plain-date-picker-label">
       {{ label }}
       <span v-if="required" class="coar-plain-date-picker-required" aria-hidden="true">*</span>
     </span>
@@ -461,10 +461,10 @@ function onInputBlur() {
 
       <!-- Input -->
       <input
+        :id="inputId"
         ref="dateInputRef"
         type="text"
         class="coar-plain-date-picker-input"
-        :id="inputId"
         :value="displayValue"
         :placeholder="inputPlaceholder"
         :disabled="isDisabled"
@@ -495,10 +495,10 @@ function onInputBlur() {
     <Teleport to="body">
       <div
         v-if="pickerBase.isOpen.value"
+        :id="panelId"
         ref="panelRef"
         class="coar-plain-date-picker-panel"
         :class="{ 'coar-plain-date-picker-panel--with-weeks': showWeekNumbers }"
-        :id="panelId"
         role="dialog"
         aria-modal="true"
         aria-label="Date picker"
@@ -514,17 +514,17 @@ function onInputBlur() {
         <!-- Left Column: Calendar -->
         <div class="coar-plain-date-picker-calendar-column">
           <CoarScrollableCalendar
-            :modelValue="modelValue"
-            :activeMonth="activeMonth"
-            @update:activeMonth="onActiveMonthChanged"
+            :model-value="modelValue"
+            :active-month="activeMonth"
             :min="min ?? undefined"
             :max="max ?? undefined"
             :locale="pickerBase.effectiveLocale.value"
-            :dateFormatConfig="pickerBase.effectiveDateFormat.value"
-            :showWeekNumbers="showWeekNumbers"
-            :highlightWeekends="highlightWeekends"
+            :date-format-config="pickerBase.effectiveDateFormat.value"
+            :show-week-numbers="showWeekNumbers"
+            :highlight-weekends="highlightWeekends"
             :markers="markers"
-            @dateSelected="onDateSelected"
+            @update:active-month="onActiveMonthChanged"
+            @date-selected="onDateSelected"
           />
 
           <button

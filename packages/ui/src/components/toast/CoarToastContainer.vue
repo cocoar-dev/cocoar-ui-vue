@@ -1,58 +1,39 @@
 <script setup lang="ts">
 import { ref, nextTick, type ComponentPublicInstance } from 'vue';
-import type { InternalToast, ToastPosition } from './toast-types';
+import type { ToastService } from './toast-service';
 import CoarToastItem from './CoarToastItem.vue';
 
-const toasts = ref<InternalToast[]>([]);
-const position = ref<ToastPosition>('top-right');
+const props = defineProps<{
+  service: ToastService;
+}>();
+
 const toastRefs = ref<Record<number, ComponentPublicInstance | null>>({});
 
-function addToast(toast: InternalToast) {
-  // Limit to 5 visible toasts max (FIFO eviction)
-  if (toasts.value.length >= 5) {
-    const evicted = toasts.value[0];
-    evicted.onDismiss();
-    toasts.value = toasts.value.slice(1);
-  }
-  toasts.value = [...toasts.value, toast];
-
-  if (toast.duration > 0) {
-    nextTick(() => {
-      const comp = toastRefs.value[toast.id] as { startAutoClose?: () => void } | null;
-      comp?.startAutoClose?.();
-    });
-  }
-}
-
 function onDismissed(id: number) {
-  const toast = toasts.value.find((t) => t.id === id);
-  if (toast) {
-    toast.onDismiss();
-  }
-  toasts.value = toasts.value.filter((t) => t.id !== id);
+  props.service.onDismissed(id);
   delete toastRefs.value[id];
-}
-
-function removeAll() {
-  toasts.value = [];
-  toastRefs.value = {};
-}
-
-function setPosition(pos: ToastPosition) {
-  position.value = pos;
 }
 
 function setToastRef(id: number, el: Element | ComponentPublicInstance | null) {
   toastRefs.value[id] = el as ComponentPublicInstance | null;
-}
 
-defineExpose({ addToast, onDismissed, removeAll, setPosition });
+  // Start auto-close for newly added toasts
+  if (el) {
+    const toast = props.service.toasts.value.find((t) => t.id === id);
+    if (toast && toast.duration > 0) {
+      nextTick(() => {
+        const comp = toastRefs.value[id] as { startAutoClose?: () => void } | null;
+        comp?.startAutoClose?.();
+      });
+    }
+  }
+}
 </script>
 
 <template>
-  <div :class="['coar-toast-container', `coar-toast-container--${position}`]" aria-live="polite" aria-relevant="additions">
+  <div :class="['coar-toast-container', `coar-toast-container--${service.position.value}`]" aria-live="polite" aria-relevant="additions">
     <CoarToastItem
-      v-for="toast in toasts"
+      v-for="toast in service.toasts.value"
       :key="toast.id"
       :ref="(el: any) => setToastRef(toast.id, el)"
       :variant="toast.variant"

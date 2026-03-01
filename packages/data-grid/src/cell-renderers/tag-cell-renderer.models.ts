@@ -1,4 +1,4 @@
-import type { TagVariant, TagSize } from '../../tag/CoarTag.vue';
+import type { TagVariant, TagSize } from '@cocoar/vue-ui';
 
 export interface TagCellRendererConfig {
   /** Delimiter to split a string value into multiple tags (default: ',') */

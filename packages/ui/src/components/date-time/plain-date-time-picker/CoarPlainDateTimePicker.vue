@@ -427,7 +427,7 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
     ]"
   >
     <!-- Label -->
-    <span v-if="label" class="coar-pdtp-label" :id="labelId">
+    <span v-if="label" :id="labelId" class="coar-pdtp-label">
       {{ label }}
       <span v-if="required" class="coar-pdtp-required" aria-hidden="true">*</span>
     </span>
@@ -459,10 +459,10 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
       </button>
 
       <input
+        :id="inputId"
         ref="dateInputRef"
         type="text"
         class="coar-pdtp-input"
-        :id="inputId"
         :value="displayValue"
         :placeholder="inputPlaceholder"
         :disabled="isDisabled"
@@ -492,10 +492,10 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
     <Teleport to="body">
       <div
         v-if="pickerBase.isOpen.value"
+        :id="panelId"
         ref="panelRef"
         class="coar-pdtp-panel"
         :class="{ 'coar-pdtp-panel--with-weeks': showWeekNumbers }"
-        :id="panelId"
         role="dialog"
         aria-modal="true"
         aria-label="Date time picker"
@@ -511,17 +511,17 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
         <!-- Left: Calendar -->
         <div class="coar-pdtp-calendar-column">
           <CoarScrollableCalendar
-            :modelValue="selectedDate"
-            :activeMonth="activeMonth"
-            @update:activeMonth="onActiveMonthChanged"
+            :model-value="selectedDate"
+            :active-month="activeMonth"
             :min="minDate ?? undefined"
             :max="maxDate ?? undefined"
             :locale="pickerBase.effectiveLocale.value"
-            :dateFormatConfig="pickerBase.effectiveDateFormat.value"
-            :showWeekNumbers="showWeekNumbers"
-            :highlightWeekends="highlightWeekends"
+            :date-format-config="pickerBase.effectiveDateFormat.value"
+            :show-week-numbers="showWeekNumbers"
+            :highlight-weekends="highlightWeekends"
             :markers="markers"
-            @dateSelected="onDateSelected"
+            @update:active-month="onActiveMonthChanged"
+            @date-selected="onDateSelected"
           />
           <button
             v-if="showTodayFab"
@@ -570,16 +570,16 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
           <!-- Time Picker -->
           <div class="coar-pdtp-time-section">
             <CoarTimePicker
-              :modelValue="selectedTime"
-              :use24Hour="use24Hour"
-              :minuteStep="minuteStep"
+              :model-value="selectedTime"
+              :use24-hour="use24Hour"
+              :minute-step="minuteStep"
               :locale="pickerBase.effectiveLocale.value"
               :disabled="isDisabled"
               :readonly="readonly"
-              :minTime="effectiveMinTime"
-              :maxTime="effectiveMaxTime"
+              :min-time="effectiveMinTime"
+              :max-time="effectiveMaxTime"
               size="s"
-              @update:modelValue="onTimeChanged"
+              @update:model-value="onTimeChanged"
             />
           </div>
 

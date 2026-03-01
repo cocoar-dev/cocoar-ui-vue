@@ -13,7 +13,7 @@ const props = withDefaults(
     /** Disabled state */
     disabled?: boolean;
   }>(),
-  { disabled: false },
+  { icon: undefined, disabled: false },
 );
 
 const parentCascade = useMenuCascade();

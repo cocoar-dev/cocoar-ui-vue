@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { ICellRendererParams } from 'ag-grid-community';
-import CoarIcon from '../../icon/CoarIcon.vue';
-import type { CoarIconSize } from '../../icon/icon-service';
+import { CoarIcon } from '@cocoar/vue-ui';
+import type { CoarIconSize } from '@cocoar/vue-ui';
 import type { IconCellRendererConfig } from './icon-cell-renderer.models';
 
 const props = defineProps<{

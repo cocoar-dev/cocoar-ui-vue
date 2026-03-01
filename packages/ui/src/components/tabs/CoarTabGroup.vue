@@ -7,7 +7,7 @@ const props = withDefaults(
     /** Currently active tab id (controlled mode) */
     modelValue?: string;
   }>(),
-  {},
+  { modelValue: undefined },
 );
 
 const emit = defineEmits<{
@@ -185,11 +185,11 @@ function onKeydown(event: KeyboardEvent) {
     <div class="coar-tab-content">
       <div
         v-for="tab in tabs"
+        :id="'panel-' + tab.id"
         :key="tab.id"
         role="tabpanel"
         class="coar-tab-panel"
         :class="{ active: activeTabId === tab.id }"
-        :id="'panel-' + tab.id"
         :aria-labelledby="tab.id"
         :hidden="activeTabId !== tab.id"
       >

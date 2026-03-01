@@ -108,7 +108,7 @@ export interface FocusSpec {
  * Accessibility attributes for the overlay.
  */
 export interface A11ySpec {
-  role?: 'dialog' | 'menu' | 'tooltip' | 'listbox';
+  role?: 'dialog' | 'alertdialog' | 'menu' | 'tooltip' | 'listbox';
   label?: string;
   labelledBy?: string;
   describedBy?: string;

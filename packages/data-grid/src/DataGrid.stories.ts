@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/vue3';
 import { ref, onMounted, onUnmounted } from 'vue';
-import { CoarDataGrid, CoarGridBuilder } from '@cocoar/vue-ui';
+import { CoarDataGrid, CoarGridBuilder } from '@cocoar/vue-data-grid';
 
 interface SampleRow {
   id: number;

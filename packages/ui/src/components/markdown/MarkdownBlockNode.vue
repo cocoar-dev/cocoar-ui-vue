@@ -27,10 +27,10 @@ defineProps<{
   <template v-for="node in nodes" :key="node.id">
     <!-- heading -->
     <component
-      v-if="node.type === 'heading'"
       :is="'h' + headingDepth(node)"
-      class="coar-markdown-heading"
+      v-if="node.type === 'heading'"
       :id="headingAnchor(node) ?? undefined"
+      class="coar-markdown-heading"
     >
       <MarkdownInlineNode :nodes="node.children ?? []" />
     </component>

@@ -1,37 +1,52 @@
-import { createApp, h, type App, type Component } from 'vue';
+import { markRaw, type Component } from 'vue';
 import CoarDialogShell from './CoarDialogShell.vue';
 import type { DialogConfig, DialogRef, ConfirmOptions, DialogSize } from './dialog-types';
+import { getOverlayService } from '../overlay/useOverlay';
+import { dialogPreset } from '../overlay/overlay-presets';
+import type { OverlayRef } from '../overlay/overlay-types';
 
-function createDialog<T = unknown>(shellProps: Record<string, unknown>): DialogRef<T> {
+function openOverlayDialog<T = unknown>(shellProps: Record<string, unknown>): DialogRef<T> {
   let resolve: (value: T | undefined) => void;
   const result = new Promise<T | undefined>((r) => {
     resolve = r;
   });
 
-  const container = document.createElement('div');
-  document.body.appendChild(container);
+  let overlayRef: OverlayRef | null = null;
 
-  let app: App | null = null;
+  const closeOnBackdropClick = shellProps.closeOnBackdropClick ?? true;
+  const closeOnEscape = shellProps.closeOnEscape ?? true;
 
-  function close(val?: T) {
-    resolve(val);
-    if (app) {
-      app.unmount();
-      app = null;
-    }
-    container.remove();
-  }
-
-  app = createApp({
-    render() {
-      return h(CoarDialogShell, {
-        ...shellProps,
-        onClose: (r: unknown) => close(r as T),
-      });
+  overlayRef = getOverlayService().open({
+    spec: {
+      ...dialogPreset,
+      dismiss: {
+        outsideClick: closeOnBackdropClick as boolean,
+        escapeKey: closeOnEscape as boolean,
+      },
+      backdrop: {
+        kind: 'modal',
+        closeOnBackdropClick: closeOnBackdropClick as boolean,
+      },
+    },
+    content: { kind: 'component', component: markRaw(CoarDialogShell) },
+    inputs: {
+      ...shellProps,
+      onClose: (r: unknown) => {
+        resolve!(r as T);
+        overlayRef?.close(r);
+      },
     },
   });
 
-  app.mount(container);
+  // When overlay closes externally (escape, backdrop), resolve promise
+  overlayRef.afterClosed.then((r) => {
+    resolve!(r as T);
+  });
+
+  function close(val?: T) {
+    resolve!(val);
+    overlayRef?.close(val);
+  }
 
   return { close, result };
 }
@@ -45,54 +60,53 @@ function open<T = unknown>(
   config: DialogConfig = {},
   bodyProps?: Record<string, unknown>,
 ): DialogRef<T> {
-  const container = document.createElement('div');
-  document.body.appendChild(container);
-
   let resolve: (value: T | undefined) => void;
   const result = new Promise<T | undefined>((r) => {
     resolve = r;
   });
 
-  let app: App | null = null;
+  let overlayRef: OverlayRef | null = null;
+
+  const closeOnBackdropClick = config.closeOnBackdropClick ?? true;
+  const closeOnEscape = config.closeOnEscape ?? true;
 
   const closeFn = (val?: T) => {
     resolve!(val);
-    if (app) {
-      app.unmount();
-      app = null;
-    }
-    container.remove();
+    overlayRef?.close(val);
   };
 
-  const BodyWrapper = {
-    render() {
-      return h(body, { ...bodyProps, close: closeFn });
+  overlayRef = getOverlayService().open({
+    spec: {
+      ...dialogPreset,
+      dismiss: {
+        outsideClick: closeOnBackdropClick,
+        escapeKey: closeOnEscape,
+      },
+      backdrop: {
+        kind: 'modal',
+        closeOnBackdropClick: closeOnBackdropClick,
+      },
     },
-  };
-
-  app = createApp({
-    render() {
-      return h(
-        CoarDialogShell,
-        {
-          title: config.title ?? '',
-          size: config.size ?? 'm',
-          showCloseButton: config.showCloseButton ?? true,
-          closeOnBackdropClick: config.closeOnBackdropClick ?? true,
-          closeOnEscape: config.closeOnEscape ?? true,
-          confirmMode: false,
-          confirmMessage: '',
-          confirmText: 'Confirm',
-          cancelText: 'Cancel',
-          confirmVariant: 'primary' as const,
-          onClose: (r: unknown) => closeFn(r as T),
-        },
-        { default: () => h(BodyWrapper) },
-      );
+    content: { kind: 'component', component: markRaw(CoarDialogShell) },
+    inputs: {
+      title: config.title ?? '',
+      size: config.size ?? 'm',
+      showCloseButton: config.showCloseButton ?? true,
+      confirmMode: false,
+      confirmMessage: '',
+      confirmText: 'Confirm',
+      cancelText: 'Cancel',
+      confirmVariant: 'primary' as const,
+      bodyComponent: markRaw(body),
+      bodyComponentProps: { ...bodyProps, close: closeFn },
+      onClose: (r: unknown) => closeFn(r as T),
     },
   });
 
-  app.mount(container);
+  // When overlay closes externally (escape, backdrop), resolve promise
+  overlayRef.afterClosed.then((r) => {
+    resolve!(r as T);
+  });
 
   return { close: closeFn, result };
 }
@@ -101,7 +115,7 @@ function open<T = unknown>(
  * Show a simple confirm dialog that resolves to true (confirm) or false/undefined (cancel/dismiss).
  */
 function confirm(options: ConfirmOptions): DialogRef<boolean> {
-  return createDialog<boolean>({
+  return openOverlayDialog<boolean>({
     title: options.title,
     size: (options.size ?? 's') as DialogSize,
     showCloseButton: false,
@@ -119,7 +133,7 @@ function confirm(options: ConfirmOptions): DialogRef<boolean> {
  * Show a simple alert/info dialog with only a close button.
  */
 function alert(title: string, message: string): DialogRef<void> {
-  return createDialog<void>({
+  return openOverlayDialog<void>({
     title,
     size: 's' as DialogSize,
     showCloseButton: true,

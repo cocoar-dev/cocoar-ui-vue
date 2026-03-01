@@ -62,8 +62,8 @@ export { CoarSelect, CoarMultiSelect, CoarTagSelect } from './components/select'
 export type { CoarSelectOption, CoarSelectSize, CoarSelectAppearance } from './components/select';
 
 // Overlay System
-export { CoarOverlayHost, CoarOverlayOutlet, CoarOverlayPlugin, useOverlay, OVERLAY_SERVICE_KEY, createOverlayService } from './components/overlay';
-export { tooltipPreset, modalPreset, menuPreset, selectPreset, hoverMenuPreset, OVERLAY_DEFAULTS, resolveOverlaySpec } from './components/overlay';
+export { CoarOverlayHost, CoarOverlayOutlet, CoarOverlayPlugin, useOverlay, getOverlayService, OVERLAY_SERVICE_KEY, createOverlayService } from './components/overlay';
+export { tooltipPreset, modalPreset, menuPreset, selectPreset, hoverMenuPreset, dialogPreset, popconfirmPreset, OVERLAY_DEFAULTS, resolveOverlaySpec } from './components/overlay';
 export { computeOverlayCoordinates, getViewportRect, getAnchorRect, getContainerRect, getScrollParents } from './components/overlay';
 export type { Placement, OverlaySpec, OverlayRef, OverlayService, OverlayInstance, OverlayContent, OverlayOpenOptions } from './components/overlay';
 export type { AnchorSpec, PositionSpec, SizeSpec, BackdropSpec, ScrollSpec, DismissSpec, FocusSpec, A11ySpec, AttachmentSpec, ResolvedOverlaySpec } from './components/overlay';
@@ -74,11 +74,13 @@ export { vTooltip } from './components/tooltip/vTooltip';
 export type { TooltipOptions, TooltipPlacement } from './components/tooltip/vTooltip';
 
 // Popconfirm
-export { CoarPopconfirm } from './components/popconfirm';
+export { CoarPopconfirm, CoarPopconfirmPanel } from './components/popconfirm';
 export type { PopconfirmPlacement, PopconfirmVariant } from './components/popconfirm';
 
 // Toast
 export { useToast, CoarToastContainer, CoarToastItem } from './components/toast';
+export { createToastService, getToastService, TOAST_SERVICE_KEY } from './components/toast';
+export type { ToastService } from './components/toast';
 export type { ToastConfig, ToastRef, ToastVariant, ToastPosition } from './components/toast';
 
 // Popover
@@ -146,36 +148,6 @@ export { COAR_DEFAULT_TIME_FORMAT, COAR_DATE_FORMAT_TO_MASKITO_MODE } from './co
 export { vScrollbar, getScrollbarInstance } from './components/scrollbar';
 export type { ScrollbarOptions, ScrollbarTheme, ScrollbarAutoHide, ScrollbarOverflow } from './components/scrollbar';
 
-// DataGrid
-export { CoarDataGrid, useDataGrid } from './components/data-grid';
-export { CoarGridBuilder, CoarGridColumnBuilder, CoarGridColumnFactory } from './components/data-grid';
-export type { ColumnDefinition } from './components/data-grid';
-export { cocoarTheme, createCocoarTheme } from './components/data-grid';
-export { TagCellRenderer, IconCellRenderer, DateCellRenderer } from './components/data-grid';
-export type { TagCellRendererConfig, IconCellRendererConfig, DateCellRendererConfig } from './components/data-grid';
-export type {
-  ColDef,
-  GridOptions,
-  GridApi,
-  GridReadyEvent,
-  RowClickedEvent,
-  RowDoubleClickedEvent,
-  CellClickedEvent,
-  CellDoubleClickedEvent,
-  CellContextMenuEvent,
-  GridSizeChangedEvent,
-  ColumnState,
-  GetRowIdFunc,
-  RowClassParams,
-  ValueFormatterParams,
-  ValueGetterParams,
-  CellClassParams,
-  ICellRendererParams,
-  IRowNode,
-  PostSortRowsParams,
-  GetQuickFilterTextParams,
-  RowDragCallback,
-} from './components/data-grid';
 
 // Markdown
 export { CoarMarkdown } from './components/markdown';

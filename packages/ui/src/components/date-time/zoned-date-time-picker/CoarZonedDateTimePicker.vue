@@ -787,10 +787,10 @@ const tzIndicatorIcon = computed(() => {
     <Teleport to="body">
       <div
         v-if="pickerBase.isOpen.value"
+        :id="panelId"
         ref="panelRef"
         class="coar-zdtp-panel"
         :class="{ 'coar-zdtp-panel--with-weeks': showWeekNumbers }"
-        :id="panelId"
         role="dialog"
         aria-modal="true"
         aria-label="Date, time and timezone picker"
@@ -808,17 +808,17 @@ const tzIndicatorIcon = computed(() => {
           <!-- Left Column: Calendar -->
           <div class="coar-zdtp-calendar-column">
             <CoarScrollableCalendar
-              :modelValue="selectedDate"
-              :activeMonth="activeMonth"
-              @update:activeMonth="onActiveMonthChanged"
+              :model-value="selectedDate"
+              :active-month="activeMonth"
               :min="minDate ?? undefined"
               :max="maxDate ?? undefined"
               :locale="pickerBase.effectiveLocale.value"
-              :dateFormatConfig="pickerBase.effectiveDateFormat.value"
-              :showWeekNumbers="showWeekNumbers"
-              :highlightWeekends="highlightWeekends"
+              :date-format-config="pickerBase.effectiveDateFormat.value"
+              :show-week-numbers="showWeekNumbers"
+              :highlight-weekends="highlightWeekends"
               :markers="markers"
-              @dateSelected="onDateSelected"
+              @update:active-month="onActiveMonthChanged"
+              @date-selected="onDateSelected"
             />
 
             <!-- Today FAB -->
@@ -878,7 +878,7 @@ const tzIndicatorIcon = computed(() => {
             </div>
 
             <!-- Timezone picker list (replaces month grid + time + events) -->
-            <div v-if="isSelectingDisplayTimezone" class="coar-zdtp-tz-picker-list" v-scrollbar="{ overflowX: 'hidden', autoHide: 'leave' }">
+            <div v-if="isSelectingDisplayTimezone" v-scrollbar="{ overflowX: 'hidden', autoHide: 'leave' }" class="coar-zdtp-tz-picker-list">
               <div
                 v-for="group in groupedTimezoneList"
                 :key="group.name"
@@ -920,13 +920,13 @@ const tzIndicatorIcon = computed(() => {
               <!-- Time Picker -->
               <div class="coar-zdtp-time-section">
                 <CoarTimePicker
-                  :modelValue="selectedTime ?? undefined"
-                  @update:modelValue="onTimeChanged"
-                  :use24Hour="effectiveUse24Hour"
-                  :minuteStep="minuteStep"
+                  :model-value="selectedTime ?? undefined"
+                  :use24-hour="effectiveUse24Hour"
+                  :minute-step="minuteStep"
                   :min="effectiveMinTime ?? undefined"
                   :max="effectiveMaxTime ?? undefined"
                   size="s"
+                  @update:model-value="onTimeChanged"
                 />
               </div>
 
@@ -944,7 +944,7 @@ const tzIndicatorIcon = computed(() => {
               </button>
 
               <!-- Events for selected date -->
-              <div v-if="selectedDateMarkers.length > 0" class="coar-zdtp-events" v-scrollbar="{ overflowX: 'hidden', autoHide: 'leave' }">
+              <div v-if="selectedDateMarkers.length > 0" v-scrollbar="{ overflowX: 'hidden', autoHide: 'leave' }" class="coar-zdtp-events">
                 <div
                   v-for="(marker, idx) in selectedDateMarkers"
                   :key="idx"

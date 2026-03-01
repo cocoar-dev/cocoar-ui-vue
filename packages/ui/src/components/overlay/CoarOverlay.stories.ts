@@ -1,3 +1,4 @@
+/* eslint-disable vue/one-component-per-file */
 import type { Meta, StoryObj } from '@storybook/vue3';
 import { defineComponent, h, ref, provide } from 'vue';
 import CoarOverlayHost from './CoarOverlayHost.vue';
@@ -108,7 +109,7 @@ export const ModalDialog: StoryObj = {
 
       function openModal() {
         const DialogContent = defineComponent({
-          props: { title: String },
+          props: { title: { type: String, default: '' } },
           emits: ['close'],
           setup(props) {
             return () =>

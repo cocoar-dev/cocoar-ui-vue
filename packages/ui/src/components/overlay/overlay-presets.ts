@@ -82,3 +82,39 @@ export const hoverMenuPreset: OverlaySpec = {
   ...menuPreset,
   dismiss: { outsideClick: true, escapeKey: true, hoverTree: { enabled: true, delayMs: 300 } },
 };
+
+/**
+ * Preset for programmatic dialogs (useDialog).
+ * Modal backdrop, centered, but dismiss and focus trap are off because
+ * CoarDialogShell handles its own focus trap, escape, and backdrop click.
+ */
+export const dialogPreset: OverlaySpec = {
+  anchor: { kind: 'virtual', placement: 'center' },
+  position: { placement: 'center', offset: 0, flip: false, shift: false },
+  size: { maxWidth: '90vw', maxHeight: '90vh', overflow: 'auto' },
+  backdrop: { kind: 'modal', closeOnBackdropClick: false },
+  scroll: { strategy: 'noop' },
+  dismiss: { outsideClick: false, escapeKey: false },
+  focus: { trap: false, restore: false },
+  a11y: { role: 'dialog' },
+  attachment: { strategy: 'body' },
+};
+
+/**
+ * Preset for popconfirm overlays.
+ * Anchor-relative, no backdrop, outside-click + escape dismiss.
+ */
+export const popconfirmPreset: OverlaySpec = {
+  position: {
+    placement: ['top', 'bottom', 'left', 'right'],
+    offset: 8,
+    flip: true,
+    shift: true,
+  },
+  backdrop: { kind: 'none' },
+  scroll: { strategy: 'reposition' },
+  dismiss: { outsideClick: true, escapeKey: true },
+  focus: { trap: false, restore: true },
+  a11y: { role: 'alertdialog' },
+  attachment: { strategy: 'body' },
+};

@@ -1,4 +1,4 @@
-import type { CoarIconSize } from '../../icon/icon-service';
+import type { CoarIconSize } from '@cocoar/vue-ui';
 import type { ICellRendererParams } from 'ag-grid-community';
 
 export interface IconCellRendererConfig {

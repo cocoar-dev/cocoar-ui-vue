@@ -31,11 +31,11 @@ export { createOverlayService } from './overlay-service';
 export type { OverlayService, OverlayInstance, OverlayContent, OverlayOpenOptions } from './overlay-service';
 
 // Plugin & composable
-export { CoarOverlayPlugin, OVERLAY_SERVICE_KEY, useOverlay } from './useOverlay';
+export { CoarOverlayPlugin, OVERLAY_SERVICE_KEY, useOverlay, getOverlayService, _resetOverlayServiceForTests } from './useOverlay';
 
 // Components
 export { default as CoarOverlayHost } from './CoarOverlayHost.vue';
 export { default as CoarOverlayOutlet } from './CoarOverlayOutlet.vue';
 
 // Presets
-export { tooltipPreset, modalPreset, menuPreset, selectPreset, hoverMenuPreset } from './overlay-presets';
+export { tooltipPreset, modalPreset, menuPreset, selectPreset, hoverMenuPreset, dialogPreset, popconfirmPreset } from './overlay-presets';

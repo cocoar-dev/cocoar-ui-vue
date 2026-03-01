@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@cocoar/vue-core": "workspace:*",
+    "@cocoar/vue-data-grid": "workspace:*",
     "@cocoar/vue-ui": "workspace:*"
   }
 }

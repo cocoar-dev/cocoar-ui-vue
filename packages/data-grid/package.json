@@ -1,0 +1,33 @@
+{
+  "name": "@cocoar/vue-data-grid",
+  "version": "0.0.1",
+  "type": "module",
+  "sideEffects": ["*.css"],
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "vite build",
+    "test": "vitest run",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "ag-grid-community": "35.0.0",
+    "ag-grid-vue3": "35.0.0"
+  },
+  "peerDependencies": {
+    "vue": "^3.5.0",
+    "@cocoar/vue-ui": "workspace:*",
+    "@cocoar/vue-localization": "workspace:*"
+  },
+  "devDependencies": {
+    "vue": "^3.5.0",
+    "@cocoar/vue-ui": "workspace:*",
+    "@cocoar/vue-localization": "workspace:*"
+  }
+}

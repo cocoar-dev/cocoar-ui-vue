@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { ICellRendererParams } from 'ag-grid-community';
-import CoarTag from '../../tag/CoarTag.vue';
-import type { TagVariant, TagSize } from '../../tag/CoarTag.vue';
+import { CoarTag } from '@cocoar/vue-ui';
+import type { TagVariant, TagSize } from '@cocoar/vue-ui';
 import { useI18n } from '@cocoar/vue-localization';
 import type { TagCellRendererConfig } from './tag-cell-renderer.models';
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onBeforeUnmount, ref, nextTick } from 'vue';
+import { computed, onMounted, onBeforeUnmount, ref, nextTick, type Component, h } from 'vue';
 import type { DialogSize } from './dialog-types';
 import CoarIcon from '../icon/CoarIcon.vue';
 import CoarButton from '../button/CoarButton.vue';
@@ -9,14 +9,16 @@ const props = defineProps<{
   title: string;
   size: DialogSize;
   showCloseButton: boolean;
-  closeOnBackdropClick: boolean;
-  closeOnEscape: boolean;
   /** When true, renders built-in confirm UI (message + buttons). */
   confirmMode: boolean;
   confirmMessage: string;
   confirmText: string;
   cancelText: string;
   confirmVariant: 'primary' | 'danger';
+  /** Optional body component for programmatic rendering (falls back to slot). */
+  bodyComponent?: Component;
+  /** Props to pass to bodyComponent. */
+  bodyComponentProps?: Record<string, unknown>;
 }>();
 
 const emit = defineEmits<{
@@ -28,7 +30,7 @@ const dialogRef = ref<HTMLElement | null>(null);
 const autoId = `coar-dialog-${crypto.randomUUID?.() ?? Date.now().toString(16)}`;
 const titleId = `${autoId}-title`;
 
-// --- Focus trap & scroll lock state ---
+// --- Focus trap state ---
 const FOCUSABLE_SELECTOR = [
   'a[href]',
   'button:not(:disabled)',
@@ -39,7 +41,6 @@ const FOCUSABLE_SELECTOR = [
 ].join(', ');
 
 let previouslyFocusedElement: Element | null = null;
-let savedBodyOverflow = '';
 
 function getFocusableElements(): HTMLElement[] {
   if (!dialogRef.value) return [];
@@ -71,20 +72,7 @@ function onClose(result?: unknown) {
   emit('close', result);
 }
 
-function onBackdropClick(event: MouseEvent) {
-  if (!props.closeOnBackdropClick) return;
-  // Only close when clicking the backdrop itself, not the dialog panel
-  if (event.target === event.currentTarget) {
-    onClose();
-  }
-}
-
 function onKeydown(event: KeyboardEvent) {
-  if (event.key === 'Escape' && props.closeOnEscape) {
-    onClose();
-    return;
-  }
-
   // Focus trap: intercept Tab / Shift+Tab
   if (event.key === 'Tab') {
     const focusable = getFocusableElements();
@@ -116,10 +104,6 @@ onMounted(() => {
   // Save the currently focused element for restoration on close
   if (typeof document !== 'undefined') {
     previouslyFocusedElement = document.activeElement;
-
-    // Scroll lock: prevent body scrolling
-    savedBodyOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
   }
 
   document.addEventListener('keydown', onKeydown);
@@ -133,11 +117,6 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', onKeydown);
 
-  // Restore body scroll
-  if (typeof document !== 'undefined') {
-    document.body.style.overflow = savedBodyOverflow;
-  }
-
   // Restore focus to the element that was focused before the dialog opened
   if (previouslyFocusedElement && previouslyFocusedElement instanceof HTMLElement) {
     nextTick(() => {
@@ -147,62 +126,57 @@ onBeforeUnmount(() => {
 });
 
 const sizeClass = computed(() => `coar-dialog--${props.size}`);
+
+const BodyRenderer = computed(() => {
+  if (!props.bodyComponent) return null;
+  const comp = props.bodyComponent;
+  const compProps = props.bodyComponentProps;
+  return { render: () => h(comp, compProps) };
+});
 </script>
 
 <template>
-  <div class="coar-dialog-backdrop" @mousedown="onBackdropClick">
-    <div
-      ref="dialogRef"
-      class="coar-dialog"
-      :class="sizeClass"
-      role="dialog"
-      aria-modal="true"
-      :aria-label="title ? undefined : 'Dialog'"
-      :aria-labelledby="title ? titleId : undefined"
-      tabindex="-1"
-    >
-      <div v-if="title || showCloseButton" class="coar-dialog-header">
-        <h2 v-if="title" :id="titleId" class="coar-dialog-title">{{ title }}</h2>
-        <button
-          v-if="showCloseButton"
-          type="button"
-          class="coar-dialog-close"
-          aria-label="Close dialog"
-          @click="onClose()"
-        >
-          <CoarIcon name="x" size="s" />
-        </button>
-      </div>
+  <div
+    ref="dialogRef"
+    class="coar-dialog"
+    :class="sizeClass"
+    role="dialog"
+    aria-modal="true"
+    :aria-label="title ? undefined : 'Dialog'"
+    :aria-labelledby="title ? titleId : undefined"
+    tabindex="-1"
+  >
+    <div v-if="title || showCloseButton" class="coar-dialog-header">
+      <h2 v-if="title" :id="titleId" class="coar-dialog-title">{{ title }}</h2>
+      <button
+        v-if="showCloseButton"
+        type="button"
+        class="coar-dialog-close"
+        aria-label="Close dialog"
+        @click="onClose()"
+      >
+        <CoarIcon name="x" size="s" />
+      </button>
+    </div>
 
-      <div v-scrollbar="{ overflowX: 'hidden', defer: false }" class="coar-dialog-body">
-        <p v-if="confirmMode">{{ confirmMessage }}</p>
-        <slot v-else />
-      </div>
+    <div v-scrollbar="{ overflowX: 'hidden', defer: false }" class="coar-dialog-body">
+      <p v-if="confirmMode">{{ confirmMessage }}</p>
+      <component :is="BodyRenderer" v-else-if="BodyRenderer" />
+      <slot v-else />
+    </div>
 
-      <div v-if="confirmMode" class="coar-dialog-footer">
-        <CoarButton variant="secondary" @click="onClose(false)">{{ cancelText }}</CoarButton>
-        <CoarButton :variant="confirmVariant" @click="onClose(true)">{{ confirmText }}</CoarButton>
-      </div>
+    <div v-if="confirmMode" class="coar-dialog-footer">
+      <CoarButton variant="secondary" @click="onClose(false)">{{ cancelText }}</CoarButton>
+      <CoarButton :variant="confirmVariant" @click="onClose(true)">{{ confirmText }}</CoarButton>
+    </div>
 
-      <div v-if="!confirmMode && $slots.footer" class="coar-dialog-footer">
-        <slot name="footer" />
-      </div>
+    <div v-if="!confirmMode && $slots.footer" class="coar-dialog-footer">
+      <slot name="footer" />
     </div>
   </div>
 </template>
 
 <style scoped>
-.coar-dialog-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.4);
-  animation: coar-dialog-fade-in var(--coar-duration-fast) var(--coar-ease-out);
-}
-
 .coar-dialog {
   background: var(--coar-dialog-background);
   border-radius: var(--coar-dialog-border-radius);
@@ -281,18 +255,12 @@ const sizeClass = computed(() => `coar-dialog--${props.size}`);
   padding-top: 0;
 }
 
-@keyframes coar-dialog-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
 @keyframes coar-dialog-scale-in {
   from { transform: scale(0.95); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .coar-dialog-backdrop,
   .coar-dialog {
     animation: none;
   }

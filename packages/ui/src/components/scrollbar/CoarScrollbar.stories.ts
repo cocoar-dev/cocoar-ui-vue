@@ -5,11 +5,11 @@ import { vScrollbar } from '@cocoar/vue-ui';
 const ScrollbarDemo = defineComponent({
   name: 'ScrollbarDemo',
   directives: { scrollbar: vScrollbar },
-  template: '<div v-scrollbar="options" :style="containerStyle"><slot /></div>',
   props: {
     options: { type: [Object, Boolean], default: () => ({}) },
     containerStyle: { type: String, default: '' },
   },
+  template: '<div v-scrollbar="options" :style="containerStyle"><slot /></div>',
 });
 
 const meta: Meta = {

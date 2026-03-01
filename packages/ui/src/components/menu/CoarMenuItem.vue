@@ -19,7 +19,7 @@ const props = withDefaults(
     /** Disabled state */
     disabled?: boolean;
   }>(),
-  { disabled: false },
+  { label: undefined, icon: undefined, disabled: false },
 );
 
 const emit = defineEmits<{

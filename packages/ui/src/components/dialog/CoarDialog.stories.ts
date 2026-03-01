@@ -1,3 +1,4 @@
+/* eslint-disable vue/one-component-per-file */
 import type { Meta, StoryObj } from '@storybook/vue3';
 import { defineComponent, ref } from 'vue';
 import { useDialog, CoarButton } from '@cocoar/vue-ui';

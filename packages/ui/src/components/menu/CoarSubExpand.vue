@@ -11,7 +11,7 @@ const props = withDefaults(
     /** Disabled state */
     disabled?: boolean;
   }>(),
-  { disabled: false },
+  { icon: undefined, disabled: false },
 );
 
 const open = defineModel<boolean>('open', { default: false });

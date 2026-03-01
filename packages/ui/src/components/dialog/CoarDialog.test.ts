@@ -9,8 +9,6 @@ function createWrapper(props: Record<string, unknown> = {}, slots: Record<string
       title: 'Test Dialog',
       size: 'm',
       showCloseButton: true,
-      closeOnBackdropClick: true,
-      closeOnEscape: true,
       confirmMode: false,
       confirmMessage: '',
       confirmText: 'Confirm',
@@ -80,38 +78,6 @@ describe('CoarDialogShell', () => {
       wrapper = createWrapper();
       await wrapper.find('.coar-dialog-close').trigger('click');
       expect(wrapper.emitted('close')).toHaveLength(1);
-    });
-
-    it('should emit close on backdrop click', async () => {
-      wrapper = createWrapper({ closeOnBackdropClick: true });
-      await wrapper.find('.coar-dialog-backdrop').trigger('mousedown');
-      expect(wrapper.emitted('close')).toHaveLength(1);
-    });
-
-    it('should not close on backdrop click when disabled', async () => {
-      wrapper = createWrapper({ closeOnBackdropClick: false });
-      await wrapper.find('.coar-dialog-backdrop').trigger('mousedown');
-      expect(wrapper.emitted('close')).toBeUndefined();
-    });
-
-    it('should not close when clicking dialog panel', async () => {
-      wrapper = createWrapper();
-      await wrapper.find('.coar-dialog').trigger('mousedown');
-      expect(wrapper.emitted('close')).toBeUndefined();
-    });
-
-    it('should emit close on Escape', async () => {
-      wrapper = createWrapper({ closeOnEscape: true });
-      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-      await nextTick();
-      expect(wrapper.emitted('close')).toHaveLength(1);
-    });
-
-    it('should not close on Escape when disabled', async () => {
-      wrapper = createWrapper({ closeOnEscape: false });
-      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-      await nextTick();
-      expect(wrapper.emitted('close')).toBeUndefined();
     });
   });
 
@@ -257,31 +223,6 @@ describe('CoarDialogShell', () => {
       expect(document.activeElement).toBe(trigger);
 
       trigger.remove();
-    });
-  });
-
-  describe('scroll lock', () => {
-    it('should set body overflow to hidden on mount', async () => {
-      const originalOverflow = document.body.style.overflow;
-      wrapper = createWrapper();
-      await nextTick();
-      expect(document.body.style.overflow).toBe('hidden');
-
-      wrapper.unmount();
-      await nextTick();
-      expect(document.body.style.overflow).toBe(originalOverflow);
-    });
-
-    it('should restore previous body overflow on unmount', async () => {
-      document.body.style.overflow = 'scroll';
-      wrapper = createWrapper();
-      await nextTick();
-      expect(document.body.style.overflow).toBe('hidden');
-
-      wrapper.unmount();
-      await nextTick();
-      expect(document.body.style.overflow).toBe('scroll');
-      document.body.style.overflow = '';
     });
   });
 });
