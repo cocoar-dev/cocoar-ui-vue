@@ -1,18 +1,25 @@
 <script setup lang="ts">
-withDefaults(
+import { computed } from 'vue';
+
+const props = withDefaults(
   defineProps<{
-    /** Separator character between breadcrumb items */
+    /** Separator character between breadcrumb items. */
     separator?: string;
+    /** Accessible label for the nav landmark. Localizable. */
+    ariaLabel?: string;
   }>(),
-  { separator: '/' },
+  { separator: '/', ariaLabel: 'Breadcrumb' },
 );
+
+// Wrap in CSS quotes and escape any embedded single quotes.
+const separatorCssValue = computed(() => `'${props.separator.replace(/'/g, "\\'")}' `);
 </script>
 
 <template>
   <nav
     class="coar-breadcrumb"
-    aria-label="Breadcrumb"
-    :style="{ '--coar-breadcrumb-separator': `'${separator}'` }"
+    :aria-label="ariaLabel"
+    :style="{ '--coar-breadcrumb-separator': separatorCssValue }"
   >
     <ol class="coar-breadcrumb-list">
       <slot />
@@ -35,34 +42,5 @@ withDefaults(
   list-style: none;
   margin: 0;
   padding: 0;
-}
-</style>
-
-<style>
-/* Unscoped: styles for breadcrumb items (child component) */
-.coar-breadcrumb-item {
-  display: inline-flex;
-  align-items: center;
-}
-
-.coar-breadcrumb-item + .coar-breadcrumb-item::before {
-  content: var(--coar-breadcrumb-separator, '/');
-  color: var(--coar-breadcrumb-separator-color, var(--coar-text-neutral-tertiary, #999));
-  margin-right: var(--coar-breadcrumb-separator-gap, var(--coar-spacing-xs, 4px));
-  user-select: none;
-}
-
-.coar-breadcrumb-item a {
-  color: var(--coar-breadcrumb-link-color, var(--coar-text-neutral-secondary, #555));
-  text-decoration: none;
-}
-
-.coar-breadcrumb-item a:hover {
-  text-decoration: underline;
-}
-
-.coar-breadcrumb-item--active {
-  color: var(--coar-breadcrumb-active-color, var(--coar-text-neutral-primary, #111));
-  font-weight: 500;
 }
 </style>

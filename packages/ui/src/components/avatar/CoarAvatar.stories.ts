@@ -1,5 +1,5 @@
-import type { Meta, StoryObj } from '@storybook/vue3';
 import { CoarAvatar } from '@cocoar/vue-ui';
+import type { Meta, StoryObj } from '@storybook/vue3';
 
 const meta: Meta<typeof CoarAvatar> = {
   title: 'General/Avatar',
@@ -12,6 +12,7 @@ const meta: Meta<typeof CoarAvatar> = {
     shape: { control: 'select', options: ['circle', 'square'] },
     clickable: { control: 'boolean' },
     initials: { control: 'text' },
+    maxLength: { control: 'inline-radio', options: [2, 3] },
     bgColor: { control: 'color' },
   },
 };
@@ -58,6 +59,35 @@ export const WithImages: Story = {
         <CoarAvatar src="https://i.pravatar.cc/150?u=alice" name="Alice" size="l" />
         <CoarAvatar src="https://i.pravatar.cc/150?u=bob" name="Bob" size="l" />
         <CoarAvatar src="https://broken-url.invalid/avatar.jpg" name="Fallback" size="l" />
+      </div>
+    `,
+  }),
+};
+
+export const InitialsLength: Story = {
+  name: 'Initials length (maxLength)',
+  render: () => ({
+    components: { CoarAvatar },
+    template: `
+      <div style="display: flex; flex-direction: column; gap: 16px; font-family: sans-serif; font-size: 13px;">
+        <div>
+          <p style="margin: 0 0 8px;">maxLength: 2</p>
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <CoarAvatar name="Alice" :maxLength="2" size="l" />
+            <CoarAvatar name="Alice Johnson" :maxLength="2" size="l" />
+            <CoarAvatar name="Alice Jane Doe" :maxLength="2" size="l" />
+          </div>
+          <p style="margin: 4px 0 0; color: #999;">AL · AJ · AJ</p>
+        </div>
+        <div>
+          <p style="margin: 0 0 8px;">maxLength: 3 (default)</p>
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <CoarAvatar name="Alice" size="l" />
+            <CoarAvatar name="Alice Johnson" size="l" />
+            <CoarAvatar name="Alice Jane Doe" size="l" />
+          </div>
+          <p style="margin: 4px 0 0; color: #999;">ALI · AJO · AJD</p>
+        </div>
       </div>
     `,
   }),

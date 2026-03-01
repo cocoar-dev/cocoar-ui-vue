@@ -1,12 +1,33 @@
-import type { Meta, StoryObj } from '@storybook/vue3';
 import { CoarBreadcrumb, CoarBreadcrumbItem } from '@cocoar/vue-ui';
+import type { Meta, StoryObj } from '@storybook/vue3';
 
-const meta: Meta = {
+const meta: Meta<typeof CoarBreadcrumb> = {
   title: 'Navigation/Breadcrumb',
+  component: CoarBreadcrumb,
+  tags: ['autodocs'],
+  argTypes: {
+    separator: { control: 'text' },
+    ariaLabel: { control: 'text' },
+  },
 };
 
 export default meta;
-type Story = StoryObj;
+type Story = StoryObj<typeof CoarBreadcrumb>;
+
+export const Playground: Story = {
+  args: { separator: '/' },
+  render: (args) => ({
+    components: { CoarBreadcrumb, CoarBreadcrumbItem },
+    setup: () => ({ args }),
+    template: `
+      <CoarBreadcrumb v-bind="args">
+        <CoarBreadcrumbItem><a href="#">Home</a></CoarBreadcrumbItem>
+        <CoarBreadcrumbItem><a href="#">Products</a></CoarBreadcrumbItem>
+        <CoarBreadcrumbItem active>Laptops</CoarBreadcrumbItem>
+      </CoarBreadcrumb>
+    `,
+  }),
+};
 
 export const BasicBreadcrumb: Story = {
   render: () => ({

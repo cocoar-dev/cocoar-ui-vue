@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
+import { describe, expect, it } from 'vitest';
 import CoarBadge from './CoarBadge.vue';
 
 function mountBadge(props: Record<string, unknown> = {}) {
@@ -62,17 +62,9 @@ describe('CoarBadge', () => {
   });
 
   describe('sizes', () => {
-    it.each(['xs', 's', 'm', 'l', 'xl', 'auto'] as const)(
-      'should apply %s size class',
-      (size) => {
-        const wrapper = mountBadge({ size });
-        expect(wrapper.find(`.coar-badge--${size}`).exists()).toBe(true);
-      },
-    );
-
-    it('should apply auto host class for auto size', () => {
-      const wrapper = mountBadge({ size: 'auto' });
-      expect(wrapper.find('.coar-badge-host--auto').exists()).toBe(true);
+    it.each(['xs', 's', 'm', 'l', 'xl'] as const)('should apply %s size class', (size) => {
+      const wrapper = mountBadge({ size });
+      expect(wrapper.find(`.coar-badge--${size}`).exists()).toBe(true);
     });
   });
 
@@ -130,14 +122,19 @@ describe('CoarBadge', () => {
       expect(wrapper.find('.coar-badge').attributes('aria-label')).toBe('5');
     });
 
-    it('should use default aria-label for empty content', () => {
+    it('should use variant as aria-label for empty content', () => {
       const wrapper = mountBadge();
-      expect(wrapper.find('.coar-badge').attributes('aria-label')).toBe('status indicator');
+      expect(wrapper.find('.coar-badge').attributes('aria-label')).toBe('primary');
     });
 
-    it('should use default aria-label in dot mode', () => {
-      const wrapper = mountBadge({ dot: true, content: '5' });
-      expect(wrapper.find('.coar-badge').attributes('aria-label')).toBe('status indicator');
+    it('should use variant as aria-label in dot mode', () => {
+      const wrapper = mountBadge({ dot: true, variant: 'success' });
+      expect(wrapper.find('.coar-badge').attributes('aria-label')).toBe('success');
+    });
+
+    it('should use variant as aria-label when no content', () => {
+      const wrapper = mountBadge({ variant: 'error' });
+      expect(wrapper.find('.coar-badge').attributes('aria-label')).toBe('error');
     });
   });
 });

@@ -17,6 +17,8 @@ export interface CoarAvatarProps {
   clickable?: boolean;
   /** Custom initials override (otherwise computed from name). */
   initials?: string;
+  /** Maximum number of characters to compute from name (2 or 3). */
+  maxLength?: 2 | 3;
   /** Background color for initials (auto-generated from name if not set). */
   bgColor?: string;
 }
@@ -28,6 +30,7 @@ const props = withDefaults(defineProps<CoarAvatarProps>(), {
   shape: 'circle',
   clickable: false,
   initials: '',
+  maxLength: 3,
   bgColor: '',
 });
 
@@ -36,10 +39,19 @@ const imageError = ref(false);
 const showInitials = computed(() => !props.src || imageError.value);
 
 const displayInitials = computed(() => {
-  if (props.initials) return props.initials.slice(0, 3).toUpperCase();
+  if (props.initials) return props.initials.slice(0, props.maxLength).toUpperCase();
   const name = props.name.trim();
   if (!name) return '?';
-  return name.slice(0, 3).toUpperCase();
+  const words = name.split(/\s+/).filter(Boolean);
+  const letters = words.map((w) => w[0]);
+  if (letters.length >= props.maxLength) {
+    // Enough words — one letter per word up to maxLength
+    return letters.slice(0, props.maxLength).join('').toUpperCase();
+  }
+  // Fewer words than maxLength — pad from the last word's remaining chars
+  const prefix = letters.join('');
+  const extra = words[words.length - 1].slice(1, 1 + (props.maxLength - prefix.length));
+  return (prefix + extra).toUpperCase();
 });
 
 const computedBgColor = computed(() => {
@@ -111,7 +123,9 @@ defineExpose({ showInitials, displayInitials, computedBgColor });
   flex-shrink: 0;
 }
 
-.coar-avatar--clickable { cursor: pointer; }
+.coar-avatar--clickable {
+  cursor: pointer;
+}
 
 .coar-avatar--clickable:focus-visible {
   outline: 2px solid var(--coar-border-accent-primary);
@@ -166,32 +180,72 @@ defineExpose({ showInitials, displayInitials, computedBgColor });
   transform: translate(25%, 25%);
 }
 
-.coar-avatar__status:empty { display: none; }
+.coar-avatar__status:empty {
+  display: none;
+}
 
 /* Sizes: xs=24, s=32, m=40, l=48, xl=64, xxl=96 */
-.coar-avatar--xs .coar-avatar { width: 24px; height: 24px; }
-.coar-avatar--xs .coar-avatar__initials { font-size: 10px; }
+.coar-avatar--xs .coar-avatar {
+  width: 24px;
+  height: 24px;
+}
+.coar-avatar--xs .coar-avatar__initials {
+  font-size: 10px;
+}
 
-.coar-avatar--s .coar-avatar { width: 32px; height: 32px; }
-.coar-avatar--s .coar-avatar__initials { font-size: 12px; }
+.coar-avatar--s .coar-avatar {
+  width: 32px;
+  height: 32px;
+}
+.coar-avatar--s .coar-avatar__initials {
+  font-size: 12px;
+}
 
-.coar-avatar--m .coar-avatar { width: 40px; height: 40px; }
-.coar-avatar--m .coar-avatar__initials { font-size: 14px; }
+.coar-avatar--m .coar-avatar {
+  width: 40px;
+  height: 40px;
+}
+.coar-avatar--m .coar-avatar__initials {
+  font-size: 14px;
+}
 
-.coar-avatar--l .coar-avatar { width: 48px; height: 48px; }
-.coar-avatar--l .coar-avatar__initials { font-size: 16px; }
+.coar-avatar--l .coar-avatar {
+  width: 48px;
+  height: 48px;
+}
+.coar-avatar--l .coar-avatar__initials {
+  font-size: 16px;
+}
 
-.coar-avatar--xl .coar-avatar { width: 64px; height: 64px; }
-.coar-avatar--xl .coar-avatar__initials { font-size: 20px; }
+.coar-avatar--xl .coar-avatar {
+  width: 64px;
+  height: 64px;
+}
+.coar-avatar--xl .coar-avatar__initials {
+  font-size: 20px;
+}
 
-.coar-avatar--xxl .coar-avatar { width: 96px; height: 96px; }
-.coar-avatar--xxl .coar-avatar__initials { font-size: 28px; }
+.coar-avatar--xxl .coar-avatar {
+  width: 96px;
+  height: 96px;
+}
+.coar-avatar--xxl .coar-avatar__initials {
+  font-size: 28px;
+}
 
 /* Status position by size */
-.coar-avatar--xs .coar-avatar__status { transform: translate(15%, 15%); }
-.coar-avatar--s .coar-avatar__status { transform: translate(20%, 20%); }
+.coar-avatar--xs .coar-avatar__status {
+  transform: translate(15%, 15%);
+}
+.coar-avatar--s .coar-avatar__status {
+  transform: translate(20%, 20%);
+}
 .coar-avatar--m .coar-avatar__status,
-.coar-avatar--l .coar-avatar__status { transform: translate(25%, 25%); }
+.coar-avatar--l .coar-avatar__status {
+  transform: translate(25%, 25%);
+}
 .coar-avatar--xl .coar-avatar__status,
-.coar-avatar--xxl .coar-avatar__status { transform: translate(30%, 30%); }
+.coar-avatar--xxl .coar-avatar__status {
+  transform: translate(30%, 30%);
+}
 </style>

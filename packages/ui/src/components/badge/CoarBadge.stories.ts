@@ -1,5 +1,5 @@
-import type { Meta, StoryObj } from '@storybook/vue3';
 import { CoarBadge } from '@cocoar/vue-ui';
+import type { Meta, StoryObj } from '@storybook/vue3';
 
 const meta: Meta<typeof CoarBadge> = {
   title: 'General/Badge',
@@ -11,10 +11,7 @@ const meta: Meta<typeof CoarBadge> = {
       control: 'select',
       options: ['primary', 'secondary', 'success', 'warning', 'error', 'info'],
     },
-    size: {
-      control: 'select',
-      options: ['xs', 's', 'm', 'l', 'xl'],
-    },
+    size: { control: 'select', options: ['xs', 's', 'm', 'l', 'xl'] },
     pulse: { control: 'boolean' },
     dot: { control: 'boolean' },
     max: { control: 'number' },

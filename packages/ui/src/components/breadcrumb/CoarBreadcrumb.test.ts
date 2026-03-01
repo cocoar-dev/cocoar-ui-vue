@@ -1,9 +1,12 @@
-import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
+import { describe, expect, it } from 'vitest';
 import CoarBreadcrumb from './CoarBreadcrumb.vue';
 import CoarBreadcrumbItem from './CoarBreadcrumbItem.vue';
 
-function createBreadcrumb(options: { separator?: string; items: Array<{ label: string; active?: boolean; href?: string }> }) {
+function createBreadcrumb(options: {
+  separator?: string;
+  items: Array<{ label: string; active?: boolean; href?: string }>;
+}) {
   const itemSlots = options.items
     .map((item) => {
       const attrs = item.active ? 'active' : '';
@@ -100,5 +103,30 @@ describe('CoarBreadcrumb', () => {
     });
     const nav = wrapper.find('nav');
     expect(nav.attributes('style')).toContain("'/'");
+  });
+
+  it('escapes single quotes in separator', () => {
+    const wrapper = createBreadcrumb({
+      separator: "it's",
+      items: [{ label: 'A' }, { label: 'B' }],
+    });
+    const nav = wrapper.find('nav');
+    expect(nav.attributes('style')).toContain("it\\'s");
+  });
+
+  it('renders with default aria-label', () => {
+    const wrapper = createBreadcrumb({ items: [{ label: 'Home' }] });
+    expect(wrapper.find('nav').attributes('aria-label')).toBe('Breadcrumb');
+  });
+
+  it('renders with custom aria-label', () => {
+    const wrapper = mount(
+      {
+        components: { CoarBreadcrumb, CoarBreadcrumbItem },
+        template: `<CoarBreadcrumb ariaLabel="Standort"><CoarBreadcrumbItem>Start</CoarBreadcrumbItem></CoarBreadcrumb>`,
+      },
+      { attachTo: document.body },
+    );
+    expect(wrapper.find('nav').attributes('aria-label')).toBe('Standort');
   });
 });

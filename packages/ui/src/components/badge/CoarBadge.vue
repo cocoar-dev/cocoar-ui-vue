@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 
 export type BadgeVariant = 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info';
-export type BadgeSize = 'xs' | 's' | 'm' | 'l' | 'xl' | 'auto';
+export type BadgeSize = 'xs' | 's' | 'm' | 'l' | 'xl';
 
 export interface CoarBadgeProps {
   /** Content to display (number, text, or icon). */
@@ -15,7 +15,10 @@ export interface CoarBadgeProps {
   pulse?: boolean;
   /** Whether to show as a dot without content. */
   dot?: boolean;
-  /** Maximum number to display (shows "99+" if exceeded). */
+  /**
+   * Maximum number to display (shows "99+" if exceeded).
+   * Only applies when `content` is a number.
+   */
   max?: number | null;
   /** Whether to show a border around the badge. */
   bordered?: boolean;
@@ -47,7 +50,6 @@ const displayValue = computed(() => {
 const hostClasses = computed(() => [
   'coar-badge-host',
   {
-    'coar-badge-host--auto': props.size === 'auto',
     'coar-badge-host--pulse': props.pulse,
   },
 ]);
@@ -65,11 +67,7 @@ const badgeClasses = computed(() => [
 
 <template>
   <span :class="hostClasses">
-    <span
-      :class="badgeClasses"
-      role="status"
-      :aria-label="displayValue || 'status indicator'"
-    >
+    <span :class="badgeClasses" role="status" :aria-label="displayValue || variant">
       <span v-if="!dot && displayValue" class="coar-badge__content">{{ displayValue }}</span>
     </span>
   </span>
@@ -79,12 +77,6 @@ const badgeClasses = computed(() => [
 .coar-badge-host {
   display: inline-flex;
   vertical-align: middle;
-}
-
-.coar-badge-host--auto {
-  display: flex;
-  width: 100%;
-  height: 100%;
 }
 
 .coar-badge-host--pulse {
@@ -113,28 +105,91 @@ const badgeClasses = computed(() => [
 }
 
 /* Sizes */
-.coar-badge--xs { min-width: 12px; height: 12px; padding: 0 2px; font-size: 8px; }
-.coar-badge--s  { min-width: 16px; height: 16px; padding: 0 4px; font-size: 10px; }
-.coar-badge--m  { min-width: 20px; height: 20px; padding: 0 6px; font-size: 11px; }
-.coar-badge--l  { min-width: 24px; height: 24px; padding: 0 8px; font-size: 12px; }
-.coar-badge--xl { min-width: 32px; height: 32px; padding: 0 10px; font-size: 14px; }
-.coar-badge--auto { min-width: auto; width: 100%; height: 100%; padding: 0; font-size: inherit; }
-
+.coar-badge--xs {
+  min-width: 12px;
+  height: 12px;
+  padding: 0 2px;
+  font-size: 8px;
+}
+.coar-badge--s {
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  font-size: 10px;
+}
+.coar-badge--m {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  font-size: 11px;
+}
+.coar-badge--l {
+  min-width: 24px;
+  height: 24px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+.coar-badge--xl {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 10px;
+  font-size: 14px;
+}
 /* Variants */
-.coar-badge--primary   { background: var(--coar-background-accent-primary); color: var(--coar-text-on-bold); }
-.coar-badge--secondary { background: var(--coar-background-neutral-tertiary); color: var(--coar-text-neutral-primary); }
-.coar-badge--success   { background: var(--coar-background-semantic-success-bold); color: var(--coar-text-on-bold); }
-.coar-badge--warning   { background: var(--coar-background-semantic-warning-bold); color: var(--coar-text-on-bold); }
-.coar-badge--error     { background: var(--coar-background-semantic-error-bold); color: var(--coar-text-on-bold); }
-.coar-badge--info      { background: var(--coar-background-semantic-info-bold); color: var(--coar-text-on-bold); }
+.coar-badge--primary {
+  background: var(--coar-background-accent-primary);
+  color: var(--coar-text-on-bold);
+}
+.coar-badge--secondary {
+  background: var(--coar-background-neutral-tertiary);
+  color: var(--coar-text-neutral-primary);
+}
+.coar-badge--success {
+  background: var(--coar-background-semantic-success-bold);
+  color: var(--coar-text-on-bold);
+}
+.coar-badge--warning {
+  background: var(--coar-background-semantic-warning-bold);
+  color: var(--coar-text-on-bold);
+}
+.coar-badge--error {
+  background: var(--coar-background-semantic-error-bold);
+  color: var(--coar-text-on-bold);
+}
+.coar-badge--info {
+  background: var(--coar-background-semantic-info-bold);
+  color: var(--coar-text-on-bold);
+}
 
 /* Dot mode */
-.coar-badge--dot { padding: 0; }
-.coar-badge--dot.coar-badge--xs { min-width: 4px; width: 4px; height: 4px; }
-.coar-badge--dot.coar-badge--s  { min-width: 6px; width: 6px; height: 6px; }
-.coar-badge--dot.coar-badge--m  { min-width: 8px; width: 8px; height: 8px; }
-.coar-badge--dot.coar-badge--l  { min-width: 10px; width: 10px; height: 10px; }
-.coar-badge--dot.coar-badge--xl { min-width: 12px; width: 12px; height: 12px; }
+.coar-badge--dot {
+  padding: 0;
+}
+.coar-badge--dot.coar-badge--xs {
+  min-width: 4px;
+  width: 4px;
+  height: 4px;
+}
+.coar-badge--dot.coar-badge--s {
+  min-width: 6px;
+  width: 6px;
+  height: 6px;
+}
+.coar-badge--dot.coar-badge--m {
+  min-width: 8px;
+  width: 8px;
+  height: 8px;
+}
+.coar-badge--dot.coar-badge--l {
+  min-width: 10px;
+  width: 10px;
+  height: 10px;
+}
+.coar-badge--dot.coar-badge--xl {
+  min-width: 12px;
+  width: 12px;
+  height: 12px;
+}
 
 /* Bordered */
 .coar-badge--bordered {
@@ -143,7 +198,20 @@ const badgeClasses = computed(() => [
 
 /* Pulse animation */
 @keyframes coar-badge-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%      { opacity: 0.8; transform: scale(1.1); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coar-badge-host--pulse {
+    animation: none;
+  }
 }
 </style>
