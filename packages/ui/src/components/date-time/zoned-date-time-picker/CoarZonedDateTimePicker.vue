@@ -1060,8 +1060,8 @@ const tzIndicatorIcon = computed(() => {
   background: var(--coar-surface-input);
   cursor: pointer;
   transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
+    border-color var(--coar-duration-fast) var(--coar-ease-out),
+    box-shadow var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-zdtp-trigger:hover:not(
@@ -1112,8 +1112,8 @@ const tzIndicatorIcon = computed(() => {
   color: var(--coar-icon-neutral-disabled);
   cursor: pointer;
   transition:
-    color 0.15s ease,
-    opacity 0.15s ease;
+    color var(--coar-duration-fast) var(--coar-ease-out),
+    opacity var(--coar-duration-fast) var(--coar-ease-out);
   opacity: 0.4;
 }
 
@@ -1175,7 +1175,7 @@ const tzIndicatorIcon = computed(() => {
   padding: 0;
   color: var(--coar-icon-neutral-secondary);
   cursor: pointer;
-  transition: color 0.15s ease, opacity 0.15s ease;
+  transition: color var(--coar-duration-fast) var(--coar-ease-out), opacity var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-zdtp-tz-indicator--clickable:hover {
@@ -1205,8 +1205,8 @@ const tzIndicatorIcon = computed(() => {
   color: var(--coar-icon-neutral-secondary);
   cursor: pointer;
   transition:
-    background-color 0.15s ease,
-    color 0.15s ease;
+    background-color var(--coar-duration-fast) var(--coar-ease-out),
+    color var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-zdtp-btn:hover:not(:disabled) {
@@ -1298,7 +1298,7 @@ const tzIndicatorIcon = computed(() => {
   color: var(--coar-icon-neutral-secondary);
   cursor: pointer;
   z-index: 10;
-  transition: background-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+  transition: background-color var(--coar-duration-fast) var(--coar-ease-out), color var(--coar-duration-fast) var(--coar-ease-out), transform var(--coar-duration-fast) var(--coar-ease-out);
 }
 .coar-zdtp-today-fab:hover { background: var(--coar-surface-neutral-secondary); color: var(--coar-icon-neutral-primary); }
 .coar-zdtp-today-fab:active { transform: scale(0.95); }
@@ -1346,7 +1346,7 @@ const tzIndicatorIcon = computed(() => {
   color: var(--coar-icon-neutral-secondary);
   cursor: pointer;
   opacity: 0.5;
-  transition: opacity 0.15s ease, background-color 0.15s ease;
+  transition: opacity var(--coar-duration-fast) var(--coar-ease-out), background-color var(--coar-duration-fast) var(--coar-ease-out);
 }
 .coar-zdtp-year-btn:hover:not(:disabled) { opacity: 1; background: var(--coar-surface-neutral-tertiary); }
 .coar-zdtp-year-btn:disabled { cursor: not-allowed; opacity: 0.2; }
@@ -1433,7 +1433,7 @@ const tzIndicatorIcon = computed(() => {
   font-size: var(--coar-body-small-base-size);
   color: var(--coar-text-neutral-primary);
   text-align: left;
-  transition: background-color 0.1s ease;
+  transition: background-color var(--coar-duration-fast) var(--coar-ease-out);
 }
 .coar-zdtp-tz-picker-item:hover {
   background: var(--coar-surface-neutral-tertiary);
@@ -1484,7 +1484,7 @@ const tzIndicatorIcon = computed(() => {
   font-size: var(--coar-body-caption-size);
   color: var(--coar-text-neutral-primary);
   cursor: pointer;
-  transition: background-color 0.1s ease;
+  transition: background-color var(--coar-duration-fast) var(--coar-ease-out);
 }
 .coar-zdtp-month-item:hover { background: var(--coar-surface-neutral-tertiary); }
 .coar-zdtp-month-item--active {
@@ -1531,7 +1531,7 @@ const tzIndicatorIcon = computed(() => {
   font-size: var(--coar-body-small-base-size);
   color: var(--coar-text-neutral-secondary);
   text-align: left;
-  transition: background-color 0.1s ease, color 0.1s ease;
+  transition: background-color var(--coar-duration-fast) var(--coar-ease-out), color var(--coar-duration-fast) var(--coar-ease-out);
 }
 .coar-zdtp-display-tz-btn:hover {
   background: var(--coar-surface-neutral-tertiary);
@@ -1643,7 +1643,7 @@ const tzIndicatorIcon = computed(() => {
   color: var(--coar-icon-neutral-tertiary);
   cursor: pointer;
   border-radius: var(--coar-radius-xs);
-  transition: color 0.15s ease, background-color 0.15s ease;
+  transition: color var(--coar-duration-fast) var(--coar-ease-out), background-color var(--coar-duration-fast) var(--coar-ease-out);
 }
 .coar-zdtp-footer-lock:hover {
   color: var(--coar-icon-neutral-primary);

@@ -679,8 +679,8 @@ function onInputBlur() {
   background: var(--coar-surface-input);
   cursor: pointer;
   transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
+    border-color var(--coar-duration-fast) var(--coar-ease-out),
+    box-shadow var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-plain-date-picker-trigger:hover:not(
@@ -800,8 +800,8 @@ function onInputBlur() {
   color: var(--coar-icon-neutral-disabled);
   cursor: pointer;
   transition:
-    color 0.15s ease,
-    opacity 0.15s ease;
+    color var(--coar-duration-fast) var(--coar-ease-out),
+    opacity var(--coar-duration-fast) var(--coar-ease-out);
   opacity: 0.4;
 }
 
@@ -839,8 +839,8 @@ function onInputBlur() {
   color: var(--coar-icon-neutral-secondary);
   cursor: pointer;
   transition:
-    background-color 0.15s ease,
-    color 0.15s ease;
+    background-color var(--coar-duration-fast) var(--coar-ease-out),
+    color var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-plain-date-picker-btn:hover:not(:disabled) {
@@ -916,8 +916,8 @@ function onInputBlur() {
   cursor: pointer;
   box-shadow: var(--coar-shadow-md, 0 2px 8px rgba(0, 0, 0, 0.12));
   transition:
-    background-color 150ms ease,
-    transform 100ms ease;
+    background-color var(--coar-duration-fast) var(--coar-ease-out),
+    transform var(--coar-duration-fast) var(--coar-ease-out);
   z-index: 10;
 }
 
@@ -968,9 +968,9 @@ function onInputBlur() {
   cursor: pointer;
   opacity: 0.35;
   transition:
-    background-color 0.15s ease,
-    color 0.15s ease,
-    opacity 0.15s ease;
+    background-color var(--coar-duration-fast) var(--coar-ease-out),
+    color var(--coar-duration-fast) var(--coar-ease-out),
+    opacity var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-plain-date-picker-year-btn:hover:not(:disabled) {
@@ -1033,8 +1033,8 @@ function onInputBlur() {
   text-align: center;
   cursor: pointer;
   transition:
-    background-color 0.15s ease,
-    color 0.15s ease;
+    background-color var(--coar-duration-fast) var(--coar-ease-out),
+    color var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-plain-date-picker-month-item:hover {

@@ -90,7 +90,7 @@ function toggle(event: Event) {
   background: transparent;
   cursor: pointer;
   user-select: none;
-  transition: background 100ms ease;
+  transition: background var(--coar-duration-fast) var(--coar-ease-out);
   outline: none;
 }
 
@@ -134,7 +134,7 @@ function toggle(event: Event) {
   flex-shrink: 0;
   margin-left: auto;
   opacity: 0.6;
-  transition: opacity 100ms ease;
+  transition: opacity var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-sub-expand:hover:not(.coar-sub-expand--disabled) .coar-sub-expand__arrow {
@@ -149,7 +149,7 @@ function toggle(event: Event) {
   display: grid;
   grid-template-rows: 0fr;
   overflow: hidden;
-  transition: grid-template-rows 200ms ease;
+  transition: grid-template-rows var(--coar-duration-normal) var(--coar-ease-out);
 }
 
 /* Guide line */
@@ -163,7 +163,7 @@ function toggle(event: Event) {
   background: var(--coar-border-neutral-tertiary, #e5e5e5);
   pointer-events: none;
   opacity: 0;
-  transition: opacity 100ms ease;
+  transition: opacity var(--coar-duration-fast) var(--coar-ease-out);
   z-index: 1;
 }
 
@@ -183,8 +183,8 @@ function toggle(event: Event) {
   opacity: 0;
   transform: translateY(-2px);
   transition:
-    opacity 100ms ease,
-    transform 100ms ease;
+    opacity var(--coar-duration-fast) var(--coar-ease-out),
+    transform var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-sub-expand__panel--open > .coar-sub-expand__panel-inner {
@@ -192,5 +192,15 @@ function toggle(event: Event) {
   padding-bottom: 0.25rem;
   opacity: 1;
   transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coar-sub-expand,
+  .coar-sub-expand__arrow,
+  .coar-sub-expand__panel,
+  .coar-sub-expand__panel::before,
+  .coar-sub-expand__panel-inner {
+    transition-duration: 0s;
+  }
 }
 </style>

@@ -2,11 +2,21 @@
  * Cocoar Design System - All Styles
  *
  * Import this file to get all design tokens and component global styles:
- * @import '@cocoar/ui/styles/all.css';
+ * @import '@cocoar/vue-ui/styles';
+ *
+ * CSS Cascade Layers (lowest → highest priority):
+ *   1. cocoar.tokens     — design token custom properties
+ *   2. cocoar.base       — body reset + typography utilities
+ *   3. cocoar.components — global component styles (link, select dropdowns, form messages)
+ *
+ * Vue scoped component styles and consumer styles are unlayered,
+ * so they always take priority over library globals.
  */
 
-@import './tokens/all.css';
-@import './shared/form-field-message.css';
-@import './base.css';
-@import './components.css';
+@layer cocoar.tokens, cocoar.base, cocoar.components;
+
+@import './tokens/all.css' layer(cocoar.tokens);
+@import './shared/form-field-message.css' layer(cocoar.components);
+@import './base.css' layer(cocoar.base);
+@import './components.css' layer(cocoar.components);
 @import 'overlayscrollbars/overlayscrollbars.css';

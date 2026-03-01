@@ -149,7 +149,7 @@ function onKeydown(event: KeyboardEvent) {
     const newTab = enabledTabs[newIndex];
     selectTab(newTab.id);
     // Focus the button
-    const el = document.querySelector(`[data-tab-id="${newTab.id}"]`) as HTMLElement;
+    const el = document.getElementById(newTab.id);
     el?.focus();
   }
 }
@@ -160,6 +160,7 @@ function onKeydown(event: KeyboardEvent) {
     <div class="coar-tab-list" role="tablist">
       <button
         v-for="tab in tabs"
+        :id="tab.id"
         :key="tab.id"
         type="button"
         role="tab"
@@ -228,8 +229,8 @@ function onKeydown(event: KeyboardEvent) {
   color: var(--coar-text-neutral-secondary);
   cursor: pointer;
   transition:
-    color 0.15s ease,
-    border-color 0.15s ease;
+    color var(--coar-duration-fast) var(--coar-ease-out),
+    border-color var(--coar-duration-fast) var(--coar-ease-out);
   white-space: nowrap;
 }
 
@@ -263,5 +264,11 @@ function onKeydown(event: KeyboardEvent) {
 
 .coar-tab-panel.active {
   display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coar-tab-button {
+    transition-duration: 0s;
+  }
 }
 </style>

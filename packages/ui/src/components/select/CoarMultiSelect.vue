@@ -449,7 +449,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
   border-radius: var(--coar-radius-xs);
   background: var(--coar-surface-input);
   cursor: pointer;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color var(--coar-duration-fast) var(--coar-ease-out), box-shadow var(--coar-duration-fast) var(--coar-ease-out);
   outline: none;
 }
 
@@ -544,7 +544,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
   border: 2px solid var(--coar-border-input);
   border-radius: var(--coar-radius-xs);
   flex-shrink: 0;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition: background-color var(--coar-duration-fast) var(--coar-ease-out), border-color var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-multi-select-check--checked,
@@ -572,7 +572,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
   color: var(--coar-icon-neutral-disabled);
   cursor: pointer;
   border-radius: var(--coar-radius-xs);
-  transition: color 0.15s ease, opacity 0.15s ease;
+  transition: color var(--coar-duration-fast) var(--coar-ease-out), opacity var(--coar-duration-fast) var(--coar-ease-out);
   opacity: 0.4;
 }
 
@@ -590,7 +590,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
   height: 16px;
   color: var(--coar-icon-neutral-secondary);
   transform: rotate(90deg);
-  transition: transform 0.15s ease;
+  transition: transform var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-select-arrow--open { transform: rotate(-90deg); }
@@ -624,7 +624,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
   font-size: var(--coar-select-option-font-size, var(--coar-body-small-base-size));
   color: var(--coar-text-neutral-primary);
   outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color var(--coar-duration-fast) var(--coar-ease-out), box-shadow var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-select-search-input::placeholder { color: var(--coar-text-neutral-tertiary); }
@@ -650,7 +650,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
   font-size: var(--coar-select-option-font-size, var(--coar-body-small-base-size));
   color: var(--coar-text-neutral-primary);
   cursor: pointer;
-  transition: background-color 0.1s ease;
+  transition: background-color var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-select-option:hover:not(.coar-select-option--disabled),

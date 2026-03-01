@@ -125,7 +125,7 @@ function onBlur() { isFocused.value = false; }
   border: 2px solid var(--coar-border-neutral-primary);
   border-radius: 50%;
   background: var(--coar-background-neutral-primary);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color var(--coar-duration-fast) var(--coar-ease-out), box-shadow var(--coar-duration-fast) var(--coar-ease-out);
   flex-shrink: 0;
 }
 
@@ -134,7 +134,7 @@ function onBlur() { isFocused.value = false; }
   height: 8px;
   border-radius: 50%;
   background: transparent;
-  transition: background 0.15s ease;
+  transition: background var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 /* Hover */

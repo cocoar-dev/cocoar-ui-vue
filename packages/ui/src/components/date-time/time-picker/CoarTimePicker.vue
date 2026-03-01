@@ -461,9 +461,9 @@ const sizeClass = computed(
   cursor: pointer;
   opacity: 0;
   transition:
-    background-color 0.15s ease,
-    color 0.15s ease,
-    opacity 0.15s ease;
+    background-color var(--coar-duration-fast) var(--coar-ease-out),
+    color var(--coar-duration-fast) var(--coar-ease-out),
+    opacity var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-time-picker__btn:hover:not(:disabled) {
@@ -513,8 +513,8 @@ const sizeClass = computed(
   cursor: default;
   user-select: none;
   transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
+    border-color var(--coar-duration-fast) var(--coar-ease-out),
+    box-shadow var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-time-picker__value:focus {

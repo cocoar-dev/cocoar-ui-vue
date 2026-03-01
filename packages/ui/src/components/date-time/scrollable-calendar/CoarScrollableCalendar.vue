@@ -773,8 +773,8 @@ onMounted(() => {
   cursor: pointer;
   outline: none;
   transition:
-    background-color 0.15s ease,
-    color 0.15s ease;
+    background-color var(--coar-duration-fast) var(--coar-ease-out),
+    color var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-scrollable-calendar__day:hover:not(:disabled):not(.coar-scrollable-calendar__day--selected) {

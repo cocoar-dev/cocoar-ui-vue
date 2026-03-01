@@ -221,9 +221,9 @@ onMounted(() => {
   cursor: pointer;
   opacity: 0.35;
   transition:
-    background-color 0.15s ease,
-    color 0.15s ease,
-    opacity 0.15s ease;
+    background-color var(--coar-duration-fast) var(--coar-ease-out),
+    color var(--coar-duration-fast) var(--coar-ease-out),
+    opacity var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-month-list__year-btn:hover:not(:disabled) {
@@ -277,8 +277,8 @@ onMounted(() => {
   text-align: left;
   cursor: pointer;
   transition:
-    background-color 0.15s ease,
-    color 0.15s ease;
+    background-color var(--coar-duration-fast) var(--coar-ease-out),
+    color var(--coar-duration-fast) var(--coar-ease-out);
   flex-shrink: 0;
 }
 

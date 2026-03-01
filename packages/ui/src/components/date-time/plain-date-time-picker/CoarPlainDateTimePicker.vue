@@ -654,7 +654,7 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
   border-radius: var(--coar-radius-xs);
   background: var(--coar-surface-input);
   cursor: pointer;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color var(--coar-duration-fast) var(--coar-ease-out), box-shadow var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-pdtp-trigger:hover:not(.coar-pdtp-trigger--disabled):not(.coar-pdtp-trigger--readonly):not(.coar-pdtp-trigger--error) {
@@ -718,7 +718,7 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
   margin-left: var(--coar-spacing-s);
   color: var(--coar-icon-neutral-disabled);
   cursor: pointer;
-  transition: color 0.15s ease, opacity 0.15s ease;
+  transition: color var(--coar-duration-fast) var(--coar-ease-out), opacity var(--coar-duration-fast) var(--coar-ease-out);
   opacity: 0.4;
 }
 
@@ -742,7 +742,7 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
   background: var(--coar-surface-neutral-secondary);
   color: var(--coar-icon-neutral-secondary);
   cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition: background-color var(--coar-duration-fast) var(--coar-ease-out), color var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-pdtp-btn:hover:not(:disabled) { background: var(--coar-surface-neutral-tertiary); color: var(--coar-icon-neutral-primary); }
@@ -793,7 +793,7 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
   border-radius: var(--coar-radius-full);
   cursor: pointer;
   box-shadow: var(--coar-shadow-md, 0 2px 8px rgba(0, 0, 0, 0.12));
-  transition: background-color 150ms ease, transform 100ms ease;
+  transition: background-color var(--coar-duration-fast) var(--coar-ease-out), transform var(--coar-duration-fast) var(--coar-ease-out);
   z-index: 10;
 }
 
@@ -832,7 +832,7 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
   color: var(--coar-icon-neutral-secondary);
   cursor: pointer;
   opacity: 0.35;
-  transition: background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+  transition: background-color var(--coar-duration-fast) var(--coar-ease-out), color var(--coar-duration-fast) var(--coar-ease-out), opacity var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-pdtp-year-btn:hover:not(:disabled) { background: var(--coar-background-neutral-tertiary); color: var(--coar-icon-neutral-primary); opacity: 1; }
@@ -874,7 +874,7 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
   color: var(--coar-text-neutral-primary);
   text-align: center;
   cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition: background-color var(--coar-duration-fast) var(--coar-ease-out), color var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-pdtp-month-item:hover { background: var(--coar-background-neutral-tertiary); }

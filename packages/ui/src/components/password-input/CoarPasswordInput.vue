@@ -235,8 +235,8 @@ function togglePasswordVisibility() {
   border-radius: var(--coar-radius-xs);
   background: var(--coar-surface-input);
   transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
+    border-color var(--coar-duration-fast) var(--coar-ease-out),
+    box-shadow var(--coar-duration-fast) var(--coar-ease-out);
   overflow: hidden;
 }
 
@@ -339,8 +339,8 @@ function togglePasswordVisibility() {
   font-size: var(--coar-body-small-base-size);
   cursor: pointer;
   transition:
-    color 0.15s ease,
-    opacity 0.15s ease;
+    color var(--coar-duration-fast) var(--coar-ease-out),
+    opacity var(--coar-duration-fast) var(--coar-ease-out);
   flex-shrink: 0;
   opacity: 0.4;
 }
@@ -374,7 +374,7 @@ function togglePasswordVisibility() {
   color: var(--coar-icon-neutral-secondary);
   font-size: var(--coar-body-small-base-size);
   cursor: pointer;
-  transition: color 0.15s ease;
+  transition: color var(--coar-duration-fast) var(--coar-ease-out);
   flex-shrink: 0;
 }
 
@@ -414,4 +414,12 @@ function togglePasswordVisibility() {
 }
 
 /* Message styles are in shared/form-field-message.css */
+
+@media (prefers-reduced-motion: reduce) {
+  .coar-password-input-container,
+  .coar-password-input-clear,
+  .coar-password-input-toggle {
+    transition-duration: 0s;
+  }
+}
 </style>

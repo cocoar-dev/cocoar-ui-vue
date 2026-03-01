@@ -389,7 +389,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
   border-radius: var(--coar-radius-xs);
   background: var(--coar-surface-input);
   cursor: text;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color var(--coar-duration-fast) var(--coar-ease-out), box-shadow var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-select--xs .coar-tag-select-trigger { min-height: var(--coar-component-xs-height); }
@@ -471,7 +471,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
   cursor: pointer;
   border-radius: 2px;
   opacity: 0.6;
-  transition: opacity 0.1s ease;
+  transition: opacity var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-tag-select-tag-remove:hover { opacity: 1; }
@@ -519,7 +519,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
   font-size: var(--coar-select-option-font-size, var(--coar-body-small-base-size));
   color: var(--coar-text-neutral-primary);
   cursor: pointer;
-  transition: background-color 0.1s ease;
+  transition: background-color var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-select-option:hover:not(.coar-select-option--disabled),

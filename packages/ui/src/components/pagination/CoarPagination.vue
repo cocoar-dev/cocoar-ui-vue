@@ -186,8 +186,8 @@ function trackByItem(index: number, item: PaginationPageItem): string {
   color: var(--coar-text-neutral-primary, #111);
   cursor: pointer;
   transition:
-    background-color 0.15s ease,
-    color 0.15s ease;
+    background-color var(--coar-duration-fast) var(--coar-ease-out),
+    color var(--coar-duration-fast) var(--coar-ease-out);
   user-select: none;
 }
 
