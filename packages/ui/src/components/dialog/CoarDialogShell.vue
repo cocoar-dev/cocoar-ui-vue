@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onBeforeUnmount, ref } from 'vue';
+import { computed, onMounted, onBeforeUnmount, ref, nextTick } from 'vue';
 import type { DialogSize } from './dialog-types';
 import CoarIcon from '../icon/CoarIcon.vue';
 import CoarButton from '../button/CoarButton.vue';
@@ -28,6 +28,45 @@ const dialogRef = ref<HTMLElement | null>(null);
 const autoId = `coar-dialog-${crypto.randomUUID?.() ?? Date.now().toString(16)}`;
 const titleId = `${autoId}-title`;
 
+// --- Focus trap & scroll lock state ---
+const FOCUSABLE_SELECTOR = [
+  'a[href]',
+  'button:not(:disabled)',
+  'input:not(:disabled)',
+  'select:not(:disabled)',
+  'textarea:not(:disabled)',
+  '[tabindex]:not([tabindex="-1"])',
+].join(', ');
+
+let previouslyFocusedElement: Element | null = null;
+let savedBodyOverflow = '';
+
+function getFocusableElements(): HTMLElement[] {
+  if (!dialogRef.value) return [];
+  return Array.from(dialogRef.value.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
+    .filter((el) => el.offsetParent !== null); // exclude hidden elements
+}
+
+function setInitialFocus() {
+  if (!dialogRef.value) return;
+
+  // Prefer element with autofocus attribute
+  const autofocusEl = dialogRef.value.querySelector<HTMLElement>('[autofocus]');
+  if (autofocusEl) {
+    autofocusEl.focus();
+    return;
+  }
+
+  // Otherwise focus first focusable element
+  const focusable = getFocusableElements();
+  if (focusable.length > 0) {
+    focusable[0].focus();
+  } else {
+    // Fallback: focus the dialog container itself
+    dialogRef.value.focus();
+  }
+}
+
 function onClose(result?: unknown) {
   emit('close', result);
 }
@@ -43,17 +82,68 @@ function onBackdropClick(event: MouseEvent) {
 function onKeydown(event: KeyboardEvent) {
   if (event.key === 'Escape' && props.closeOnEscape) {
     onClose();
+    return;
+  }
+
+  // Focus trap: intercept Tab / Shift+Tab
+  if (event.key === 'Tab') {
+    const focusable = getFocusableElements();
+    if (focusable.length === 0) {
+      event.preventDefault();
+      return;
+    }
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+
+    if (event.shiftKey) {
+      // Shift+Tab: if on first element, wrap to last
+      if (document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      }
+    } else {
+      // Tab: if on last element, wrap to first
+      if (document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
   }
 }
 
 onMounted(() => {
+  // Save the currently focused element for restoration on close
+  if (typeof document !== 'undefined') {
+    previouslyFocusedElement = document.activeElement;
+
+    // Scroll lock: prevent body scrolling
+    savedBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+  }
+
   document.addEventListener('keydown', onKeydown);
-  // Focus the dialog for keyboard accessibility
-  dialogRef.value?.focus();
+
+  // Move focus into the dialog
+  nextTick(() => {
+    setInitialFocus();
+  });
 });
 
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', onKeydown);
+
+  // Restore body scroll
+  if (typeof document !== 'undefined') {
+    document.body.style.overflow = savedBodyOverflow;
+  }
+
+  // Restore focus to the element that was focused before the dialog opened
+  if (previouslyFocusedElement && previouslyFocusedElement instanceof HTMLElement) {
+    nextTick(() => {
+      (previouslyFocusedElement as HTMLElement).focus();
+    });
+  }
 });
 
 const sizeClass = computed(() => `coar-dialog--${props.size}`);

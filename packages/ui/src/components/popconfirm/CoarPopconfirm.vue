@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onBeforeUnmount, nextTick, type PropType } from 'vue';
-import { Teleport } from 'vue';
+import { ref, onBeforeUnmount, nextTick, type PropType } from 'vue';
 import { computeOverlayCoordinates } from '../overlay/overlay-position';
 import type { Placement } from '../overlay/overlay-types';
 import CoarButton from '../button/CoarButton.vue';

@@ -166,7 +166,7 @@ defineExpose({ showInitials, displayInitials, computedBgColor });
   width: 100%;
   height: 100%;
   font-family: var(--coar-body-base-family);
-  font-weight: 600;
+  font-weight: var(--coar-font-weight-semi-bold, 600);
   color: var(--coar-text-on-bold);
   text-transform: uppercase;
   user-select: none;
@@ -190,7 +190,7 @@ defineExpose({ showInitials, displayInitials, computedBgColor });
   height: 24px;
 }
 .coar-avatar--xs .coar-avatar__initials {
-  font-size: 10px;
+  font-size: var(--coar-body-footnote-size, 10px);
 }
 
 .coar-avatar--s .coar-avatar {
@@ -198,7 +198,7 @@ defineExpose({ showInitials, displayInitials, computedBgColor });
   height: 32px;
 }
 .coar-avatar--s .coar-avatar__initials {
-  font-size: 12px;
+  font-size: var(--coar-body-caption-size, 12px);
 }
 
 .coar-avatar--m .coar-avatar {
@@ -206,7 +206,7 @@ defineExpose({ showInitials, displayInitials, computedBgColor });
   height: 40px;
 }
 .coar-avatar--m .coar-avatar__initials {
-  font-size: 14px;
+  font-size: var(--coar-body-small-base-size, 14px);
 }
 
 .coar-avatar--l .coar-avatar {
@@ -214,7 +214,7 @@ defineExpose({ showInitials, displayInitials, computedBgColor });
   height: 48px;
 }
 .coar-avatar--l .coar-avatar__initials {
-  font-size: 16px;
+  font-size: var(--coar-body-base-size, 16px);
 }
 
 .coar-avatar--xl .coar-avatar {
@@ -222,7 +222,7 @@ defineExpose({ showInitials, displayInitials, computedBgColor });
   height: 64px;
 }
 .coar-avatar--xl .coar-avatar__initials {
-  font-size: 20px;
+  font-size: var(--coar-font-size-m, 20px);
 }
 
 .coar-avatar--xxl .coar-avatar {
@@ -230,7 +230,7 @@ defineExpose({ showInitials, displayInitials, computedBgColor });
   height: 96px;
 }
 .coar-avatar--xxl .coar-avatar__initials {
-  font-size: 28px;
+  font-size: 28px; /* No exact token — between font-size-l(24px) and font-size-xl(32px) */
 }
 
 /* Status position by size */

@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
-import { nextTick } from 'vue';
 import CoarPagination from './CoarPagination.vue';
 
 function mountPagination(props: Record<string, unknown> = {}) {

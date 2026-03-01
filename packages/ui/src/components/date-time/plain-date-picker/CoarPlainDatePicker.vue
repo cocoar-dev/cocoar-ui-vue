@@ -23,11 +23,9 @@ import { useDatePickerBase } from '../_shared/use-date-picker-base';
 import {
   coarFormatPlainDate,
   coarParsePlainDateFromInput,
-  coarTemporalPlainDateToDate,
 } from '../_shared/date-helpers';
 import { coarCreateDateMask } from '../_shared/maskito-config';
 import type { DateFormatConfig, CoarDateMarker } from '../_shared/types';
-import { COAR_DATE_FORMAT_TO_MASKITO_MODE } from '../_shared/types';
 
 export type CoarPlainDatePickerSize = 'xs' | 's' | 'm' | 'l';
 

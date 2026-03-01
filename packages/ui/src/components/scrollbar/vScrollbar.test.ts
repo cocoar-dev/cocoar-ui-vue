@@ -20,12 +20,12 @@ const mockInstance = {
 
 vi.mock('overlayscrollbars', () => {
   const OverlayScrollbars = vi.fn(() => mockInstance) as unknown as typeof import('overlayscrollbars').OverlayScrollbars;
-  (OverlayScrollbars as any).plugin = vi.fn();
+  (OverlayScrollbars as unknown as Record<string, unknown>).plugin = vi.fn();
   const ClickScrollPlugin = {};
   return { OverlayScrollbars, ClickScrollPlugin };
 });
 
-function createWrapper(options: any = {}, template?: string) {
+function createWrapper(options: Record<string, unknown> | boolean = {}, template?: string) {
   const Comp = defineComponent({
     directives: { scrollbar: vScrollbar },
     template: template ?? '<div v-scrollbar="opts" style="height: 200px;">Content</div>',
@@ -41,7 +41,7 @@ describe('vScrollbar', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Mock requestIdleCallback to run immediately
-    vi.stubGlobal('requestIdleCallback', (cb: Function) => { cb(); return 0; });
+    vi.stubGlobal('requestIdleCallback', (cb: () => void) => { cb(); return 0; });
   });
 
   afterEach(() => {
@@ -122,7 +122,7 @@ describe('vScrollbar', () => {
   });
 
   it('updates options when binding value changes', async () => {
-    const opts = ref<any>({ theme: 'dark' });
+    const opts = ref<Record<string, unknown> | boolean>({ theme: 'dark' });
     const Comp = defineComponent({
       directives: { scrollbar: vScrollbar },
       template: '<div v-scrollbar="opts">Content</div>',
@@ -144,7 +144,7 @@ describe('vScrollbar', () => {
 
   it('does not initialize when value is false', async () => {
     const { OverlayScrollbars } = await import('overlayscrollbars');
-    vi.mocked(OverlayScrollbars as any).mockClear();
+    vi.mocked(OverlayScrollbars as unknown as ReturnType<typeof vi.fn>).mockClear();
 
     const wrapper = createWrapper(false, '<div v-scrollbar="opts">Content</div>');
     await nextTick();
@@ -154,7 +154,7 @@ describe('vScrollbar', () => {
   });
 
   it('destroys when updated to false', async () => {
-    const opts = ref<any>({});
+    const opts = ref<Record<string, unknown> | boolean>({});
     const Comp = defineComponent({
       directives: { scrollbar: vScrollbar },
       template: '<div v-scrollbar="opts">Content</div>',
@@ -182,7 +182,7 @@ describe('vScrollbar', () => {
 
   it('initializes immediately when defer is false', async () => {
     const { OverlayScrollbars } = await import('overlayscrollbars');
-    vi.mocked(OverlayScrollbars as any).mockClear();
+    vi.mocked(OverlayScrollbars as unknown as ReturnType<typeof vi.fn>).mockClear();
 
     // Remove requestIdleCallback to verify it's not used
     vi.stubGlobal('requestIdleCallback', undefined);

@@ -55,7 +55,7 @@ const hostClasses = computed(() => [
   width: 100%;
   border-collapse: collapse;
   font-family: var(--coar-body-base-family);
-  font-size: 0.875rem;
+  font-size: var(--coar-body-small-base-size, 0.875rem);
   line-height: 1.5;
 }
 
@@ -65,10 +65,10 @@ const hostClasses = computed(() => [
 }
 
 .coar-table :deep(th) {
-  padding: 0.75rem 1rem;
+  padding: 0.75rem var(--coar-spacing-m, 1rem);
   text-align: left;
-  font-weight: 600;
-  font-size: 0.8125rem;
+  font-weight: var(--coar-font-weight-semi-bold, 600);
+  font-size: var(--coar-component-s-font-size, 0.8125rem);
   color: var(--coar-text-neutral-primary);
   border-bottom: 1px solid var(--coar-border-neutral-tertiary);
   white-space: nowrap;
@@ -86,7 +86,7 @@ const hostClasses = computed(() => [
 }
 
 .coar-table :deep(td) {
-  padding: 0.75rem 1rem;
+  padding: 0.75rem var(--coar-spacing-m, 1rem);
   text-align: left;
   color: var(--coar-text-neutral-secondary);
   vertical-align: top;
@@ -95,7 +95,7 @@ const hostClasses = computed(() => [
 /* Code within table */
 .coar-table :deep(code) {
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-  font-size: 0.8125rem;
+  font-size: var(--coar-component-s-font-size, 0.8125rem);
   color: var(--coar-text-accent-secondary);
   white-space: nowrap;
 }
@@ -132,8 +132,8 @@ const hostClasses = computed(() => [
 /* Compact */
 .coar-table--compact .coar-table :deep(th),
 .coar-table--compact .coar-table :deep(td) {
-  padding: 0.5rem 0.75rem;
-  font-size: 0.8125rem;
+  padding: var(--coar-spacing-s, 0.5rem) 0.75rem;
+  font-size: var(--coar-component-s-font-size, 0.8125rem);
 }
 
 /* Hover */
@@ -148,7 +148,7 @@ const hostClasses = computed(() => [
 
 .coar-table :deep(.prop-name code) {
   color: var(--coar-text-accent-primary);
-  font-weight: 500;
+  font-weight: var(--coar-font-weight-medium, 500);
 }
 
 .coar-table :deep(.type) { color: var(--coar-text-neutral-tertiary); }
@@ -158,8 +158,8 @@ const hostClasses = computed(() => [
   display: inline-block;
   margin-left: 0.5rem;
   padding: 0.125rem 0.375rem;
-  font-size: 0.625rem;
-  font-weight: 600;
+  font-size: var(--coar-body-footnote-size, 0.625rem);
+  font-weight: var(--coar-font-weight-semi-bold, 600);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--coar-text-semantic-warning-bold);

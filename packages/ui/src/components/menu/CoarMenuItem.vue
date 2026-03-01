@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { ref, inject, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import CoarIcon from '../icon/CoarIcon.vue';
-import { useMenuClose } from './menu-cascade';
+import { useMenuClose, MENU_NAV_KEY } from './menu-cascade';
 
 export interface MenuItemClickEvent {
   /** Call to prevent auto-close of the menu tree */
@@ -26,6 +27,37 @@ const emit = defineEmits<{
 }>();
 
 const closeMenu = useMenuClose();
+const menuNav = inject(MENU_NAV_KEY, undefined);
+const itemRef = ref<HTMLElement | null>(null);
+
+// --- Roving tabindex registration ---
+let unregister: (() => void) | null = null;
+
+onMounted(() => {
+  if (menuNav && itemRef.value) {
+    const navItem = { el: itemRef.value, disabled: props.disabled };
+    unregister = menuNav.register(navItem);
+
+    // Keep disabled state in sync
+    watch(
+      () => props.disabled,
+      (val) => {
+        navItem.disabled = val;
+      },
+    );
+  }
+});
+
+onBeforeUnmount(() => {
+  unregister?.();
+});
+
+const itemTabindex = computed(() => {
+  if (props.disabled) return -1;
+  if (!menuNav) return 0; // no parent menu context, fallback to always-focusable
+  const idx = menuNav.items.value.findIndex((item) => item.el === itemRef.value);
+  return idx === menuNav.activeIndex.value ? 0 : -1;
+});
 
 function handleClick(event: MouseEvent) {
   if (props.disabled) {
@@ -73,11 +105,12 @@ function handleKeydown(event: KeyboardEvent) {
 
 <template>
   <div
+    ref="itemRef"
     role="menuitem"
     class="coar-menu-item"
     :class="{ 'coar-menu-item--disabled': props.disabled }"
     :aria-disabled="props.disabled || undefined"
-    :tabindex="props.disabled ? -1 : 0"
+    :tabindex="itemTabindex"
     @click="handleClick"
     @keydown="handleKeydown"
   >

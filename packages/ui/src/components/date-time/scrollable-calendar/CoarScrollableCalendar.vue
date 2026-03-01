@@ -3,7 +3,6 @@ import {
   computed,
   nextTick,
   onMounted,
-  onUnmounted,
   ref,
   watch,
 } from 'vue';
@@ -12,7 +11,7 @@ import { Temporal } from '@js-temporal/polyfill';
 import { useL10n } from '@cocoar/vue-localization';
 
 import { vScrollbar } from '../../scrollbar';
-import type { CoarCalendarGridCell, CoarDateMarker, DateFormatConfig } from '../_shared/types';
+import type { CoarDateMarker, DateFormatConfig } from '../_shared/types';
 import {
   coarCalculateIsoWeekNumber,
   coarClampPlainDate,

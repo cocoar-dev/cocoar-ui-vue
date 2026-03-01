@@ -1,7 +1,7 @@
 import { unified } from 'unified';
 import remarkStringify from 'remark-stringify';
 import remarkGfm from 'remark-gfm';
-import type { Root } from 'mdast';
+import type { Root, RootContent, Table } from 'mdast';
 
 import type { MarkdownDocument, MarkdownNode } from './types';
 
@@ -23,7 +23,7 @@ export function serialize(doc: MarkdownDocument, options: SerializeMarkdownOptio
 function toMdastRoot(doc: MarkdownDocument): Root {
   return {
     type: 'root',
-    children: doc.nodes.map((n) => toMdastNode(n) as any),
+    children: doc.nodes.map((n) => toMdastNode(n) as RootContent),
   };
 }
 
@@ -117,7 +117,7 @@ function toMdastNode(node: MarkdownNode): unknown {
     case 'table':
       return {
         type: 'table',
-        align: Array.isArray(node.attrs?.['align']) ? (node.attrs?.['align'] as any) : undefined,
+        align: Array.isArray(node.attrs?.['align']) ? (node.attrs['align'] as Table['align']) : undefined,
         children: (node.children ?? []).map(toMdastNode),
       };
     case 'tableRow':

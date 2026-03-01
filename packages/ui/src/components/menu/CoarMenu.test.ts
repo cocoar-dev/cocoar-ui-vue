@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { nextTick } from 'vue';
 import CoarMenu from './CoarMenu.vue';
@@ -245,6 +245,134 @@ describe('CoarSubExpand', () => {
     });
     await wrapper.find('.coar-sub-expand').trigger('keydown.enter');
     expect(wrapper.find('[aria-expanded="true"]').exists()).toBe(true);
+  });
+});
+
+describe('Menu keyboard navigation', () => {
+  const stubs = { CoarIcon: { template: '<span />', props: ['name', 'size'] } };
+
+  function mountMenu(template: string) {
+    return mount(CoarMenu, {
+      slots: {
+        default: {
+          components: { CoarMenuItem },
+          template,
+        },
+      },
+      global: { stubs },
+      attachTo: document.body,
+    });
+  }
+
+  it('should set first item tabindex=0 and others tabindex=-1 (roving tabindex)', async () => {
+    const wrapper = mountMenu('<CoarMenuItem label="Cut" /><CoarMenuItem label="Copy" /><CoarMenuItem label="Paste" />');
+    await nextTick();
+    await nextTick();
+    const items = wrapper.findAll('[role="menuitem"]');
+    expect(items[0].attributes('tabindex')).toBe('0');
+    expect(items[1].attributes('tabindex')).toBe('-1');
+    expect(items[2].attributes('tabindex')).toBe('-1');
+    wrapper.unmount();
+  });
+
+  it('should move focus to next item on ArrowDown', async () => {
+    const wrapper = mountMenu('<CoarMenuItem label="Cut" /><CoarMenuItem label="Copy" /><CoarMenuItem label="Paste" />');
+    await nextTick();
+    await nextTick();
+    const items = wrapper.findAll('[role="menuitem"]');
+    (items[0].element as HTMLElement).focus();
+
+    await wrapper.find('[role="menu"]').trigger('keydown', { key: 'ArrowDown' });
+    expect(document.activeElement).toBe(items[1].element);
+
+    wrapper.unmount();
+  });
+
+  it('should move focus to previous item on ArrowUp', async () => {
+    const wrapper = mountMenu('<CoarMenuItem label="Cut" /><CoarMenuItem label="Copy" /><CoarMenuItem label="Paste" />');
+    await nextTick();
+    await nextTick();
+    const items = wrapper.findAll('[role="menuitem"]');
+
+    (items[0].element as HTMLElement).focus();
+    await wrapper.find('[role="menu"]').trigger('keydown', { key: 'ArrowDown' });
+    expect(document.activeElement).toBe(items[1].element);
+
+    await wrapper.find('[role="menu"]').trigger('keydown', { key: 'ArrowUp' });
+    expect(document.activeElement).toBe(items[0].element);
+
+    wrapper.unmount();
+  });
+
+  it('should wrap from last to first on ArrowDown', async () => {
+    const wrapper = mountMenu('<CoarMenuItem label="Cut" /><CoarMenuItem label="Copy" />');
+    await nextTick();
+    await nextTick();
+    const items = wrapper.findAll('[role="menuitem"]');
+    (items[0].element as HTMLElement).focus();
+
+    await wrapper.find('[role="menu"]').trigger('keydown', { key: 'ArrowDown' });
+    expect(document.activeElement).toBe(items[1].element);
+
+    await wrapper.find('[role="menu"]').trigger('keydown', { key: 'ArrowDown' });
+    expect(document.activeElement).toBe(items[0].element);
+
+    wrapper.unmount();
+  });
+
+  it('should wrap from first to last on ArrowUp', async () => {
+    const wrapper = mountMenu('<CoarMenuItem label="Cut" /><CoarMenuItem label="Copy" />');
+    await nextTick();
+    await nextTick();
+    const items = wrapper.findAll('[role="menuitem"]');
+    (items[0].element as HTMLElement).focus();
+
+    await wrapper.find('[role="menu"]').trigger('keydown', { key: 'ArrowUp' });
+    expect(document.activeElement).toBe(items[1].element);
+
+    wrapper.unmount();
+  });
+
+  it('should focus first item on Home', async () => {
+    const wrapper = mountMenu('<CoarMenuItem label="Cut" /><CoarMenuItem label="Copy" /><CoarMenuItem label="Paste" />');
+    await nextTick();
+    await nextTick();
+    const items = wrapper.findAll('[role="menuitem"]');
+    (items[0].element as HTMLElement).focus();
+    await wrapper.find('[role="menu"]').trigger('keydown', { key: 'ArrowDown' });
+    await wrapper.find('[role="menu"]').trigger('keydown', { key: 'ArrowDown' });
+    expect(document.activeElement).toBe(items[2].element);
+
+    await wrapper.find('[role="menu"]').trigger('keydown', { key: 'Home' });
+    expect(document.activeElement).toBe(items[0].element);
+
+    wrapper.unmount();
+  });
+
+  it('should focus last item on End', async () => {
+    const wrapper = mountMenu('<CoarMenuItem label="Cut" /><CoarMenuItem label="Copy" /><CoarMenuItem label="Paste" />');
+    await nextTick();
+    await nextTick();
+    const items = wrapper.findAll('[role="menuitem"]');
+    (items[0].element as HTMLElement).focus();
+
+    await wrapper.find('[role="menu"]').trigger('keydown', { key: 'End' });
+    expect(document.activeElement).toBe(items[2].element);
+
+    wrapper.unmount();
+  });
+
+  it('should skip disabled items during arrow navigation', async () => {
+    const wrapper = mountMenu('<CoarMenuItem label="Cut" /><CoarMenuItem label="Copy" disabled /><CoarMenuItem label="Paste" />');
+    await nextTick();
+    await nextTick();
+    const items = wrapper.findAll('[role="menuitem"]');
+    (items[0].element as HTMLElement).focus();
+
+    await wrapper.find('[role="menu"]').trigger('keydown', { key: 'ArrowDown' });
+    expect(document.activeElement).toBe(items[2].element);
+
+    wrapper.unmount();
   });
 });
 

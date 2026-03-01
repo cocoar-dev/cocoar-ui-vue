@@ -10,6 +10,10 @@ export interface CoarSwitchProps {
   disabled?: boolean;
   /** Prevents changes but keeps normal appearance */
   readonly?: boolean;
+  /** Error message to display */
+  error?: string;
+  /** Hint text displayed below the switch */
+  hint?: string;
   /** Switch size */
   size?: CoarSwitchSize;
   /** Label position relative to the switch */
@@ -24,6 +28,8 @@ const props = withDefaults(defineProps<CoarSwitchProps>(), {
   label: '',
   disabled: false,
   readonly: false,
+  error: '',
+  hint: '',
   size: 'm',
   labelPosition: 'after',
   id: '',
@@ -36,6 +42,10 @@ const isFocused = ref(false);
 
 const autoId = `coar-switch-${crypto.randomUUID?.() ?? Date.now().toString(16)}`;
 const inputId = computed(() => props.id || autoId);
+const messageId = computed(() => `${inputId.value}-message`);
+
+const hasError = computed(() => props.error.length > 0);
+const displayMessage = computed(() => props.error || props.hint);
 
 const hostClasses = computed(() => [
   'coar-switch-host',
@@ -44,6 +54,7 @@ const hostClasses = computed(() => [
     'coar-switch--disabled': props.disabled,
     'coar-switch--readonly': props.readonly,
     'coar-switch--checked': model.value,
+    'coar-switch--error': hasError.value,
   },
 ]);
 
@@ -79,6 +90,8 @@ function onBlur() { isFocused.value = false; }
         :aria-checked="model"
         :aria-disabled="disabled ? 'true' : undefined"
         :aria-readonly="readonly ? 'true' : undefined"
+        :aria-invalid="hasError ? 'true' : undefined"
+        :aria-describedby="displayMessage ? messageId : undefined"
         @change="onToggle"
         @focus="onFocus"
         @blur="onBlur"
@@ -91,6 +104,16 @@ function onBlur() { isFocused.value = false; }
 
       <span v-if="labelPosition === 'after' && label" class="coar-switch-label">{{ label }}</span>
     </label>
+
+    <!-- Hint/Error Message -->
+    <div
+      :id="messageId"
+      class="coar-form-field-message coar-switch-message"
+      :class="{ 'coar-form-field-message--error': hasError }"
+      :title="displayMessage || undefined"
+    >
+      {{ displayMessage }}
+    </div>
   </div>
 </template>
 
@@ -158,14 +181,15 @@ function onBlur() { isFocused.value = false; }
   height: var(--coar-switch-track-height);
   border: 1px solid transparent;
   border-radius: calc(var(--coar-switch-track-height) / 2);
-  background: var(--coar-color-gray-300);
+  background: var(--coar-background-neutral-tertiary);
   transition: background var(--coar-duration-fast) ease,
-              border-color var(--coar-duration-fast) ease;
+              border-color var(--coar-duration-fast) ease,
+              box-shadow var(--coar-duration-fast) ease;
 }
 
 /* Track hover (off) */
 .coar-switch-wrapper:hover .coar-switch-track:not(.coar-switch-track--checked) {
-  background: var(--coar-color-gray-400);
+  background: var(--coar-border-input-hover);
 }
 
 /* Track checked */
@@ -178,6 +202,12 @@ function onBlur() { isFocused.value = false; }
 .coar-switch-wrapper:hover .coar-switch-track--checked {
   background: var(--coar-background-accent-hover);
   border-color: var(--coar-background-accent-hover);
+}
+
+/* Focus ring - visible on keyboard navigation only */
+.coar-switch-wrapper.coar-switch-focused .coar-switch-track {
+  outline: var(--coar-focus-width) var(--coar-focus-style) var(--coar-focus-color);
+  outline-offset: var(--coar-focus-offset);
 }
 
 /* Thumb */
@@ -209,7 +239,7 @@ function onBlur() { isFocused.value = false; }
 }
 
 .coar-switch--disabled .coar-switch-wrapper:hover .coar-switch-track {
-  background: var(--coar-color-gray-300);
+  background: var(--coar-background-neutral-tertiary);
 }
 
 .coar-switch--disabled .coar-switch-wrapper:hover .coar-switch-track--checked {
@@ -217,14 +247,24 @@ function onBlur() { isFocused.value = false; }
   border-color: var(--coar-background-neutral-tertiary);
 }
 
-/* Readonly hover – no change */
+/* Readonly hover - no change */
 .coar-switch--readonly .coar-switch-wrapper:hover .coar-switch-track:not(.coar-switch-track--checked) {
-  background: var(--coar-color-gray-300);
+  background: var(--coar-background-neutral-tertiary);
 }
 
 .coar-switch--readonly .coar-switch-wrapper:hover .coar-switch-track--checked {
   background: var(--coar-background-accent-primary);
   border-color: var(--coar-background-accent-primary);
+}
+
+/* Error state */
+.coar-switch--error .coar-switch-track {
+  border-color: var(--coar-text-semantic-error-bold);
+}
+
+.coar-switch--error .coar-switch-track--checked {
+  background: var(--coar-text-semantic-error-bold);
+  border-color: var(--coar-text-semantic-error-bold);
 }
 
 /* Label */
@@ -245,6 +285,12 @@ function onBlur() { isFocused.value = false; }
 
 .coar-switch--disabled .coar-switch-label {
   color: var(--coar-text-neutral-disabled);
+}
+
+/* Message - base styles are in shared/form-field-message.css,
+   only switch-specific margin-left overrides here */
+.coar-switch-message {
+  margin-left: calc(var(--coar-switch-track-width) + var(--coar-spacing-s));
 }
 
 /* Reduced motion */

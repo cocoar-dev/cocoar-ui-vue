@@ -1,8 +1,6 @@
 import type {
   CoarLocalizationData,
   CoarNumberFormatData,
-  CoarCurrencyFormatData,
-  CoarPercentFormatData,
   CoarDateFormatData,
 } from '../types';
 

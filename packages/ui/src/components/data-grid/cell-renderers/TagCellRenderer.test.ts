@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
 import TagCellRenderer from './TagCellRenderer.vue';
-import type { ICellRendererParams } from 'ag-grid-community';
+import type { Column, GridApi, ICellRendererParams, IRowNode } from 'ag-grid-community';
 
 function createParams(
   value: unknown,
@@ -16,10 +16,10 @@ function createParams(
     },
     // Minimal stubs for the rest of ICellRendererParams
     data: undefined,
-    node: {} as any,
+    node: {} as IRowNode,
     rowIndex: 0,
-    api: {} as any,
-    column: {} as any,
+    api: {} as GridApi,
+    column: {} as Column,
     eGridCell: document.createElement('div'),
     eParentOfValue: document.createElement('div'),
     formatValue: (v: unknown) => String(v),

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ref } from 'vue';
+import type { GridApi } from 'ag-grid-community';
 import { CoarGridBuilder } from './coar-grid-builder';
 import { CoarGridColumnBuilder } from './coar-grid-column-builder';
 
@@ -214,12 +215,12 @@ describe('CoarGridBuilder', () => {
 
       // Simulate ctrl+click - handler should NOT be called
       const ctrlEvent = { event: { ctrlKey: true } };
-      (options.onCellContextMenu as Function)(ctrlEvent);
+      (options.onCellContextMenu as (event: unknown) => void)(ctrlEvent);
       expect(handler).not.toHaveBeenCalled();
 
       // Simulate normal right-click - handler SHOULD be called
       const normalEvent = { event: { ctrlKey: false } };
-      (options.onCellContextMenu as Function)(normalEvent);
+      (options.onCellContextMenu as (event: unknown) => void)(normalEvent);
       expect(handler).toHaveBeenCalledWith(normalEvent);
     });
 
@@ -277,7 +278,7 @@ describe('CoarGridBuilder', () => {
       expect(options.doesExternalFilterPass).toBe(filterFn);
       expect(options.isExternalFilterPresent).toBeDefined();
       // Default isFilterPresent returns true
-      expect((options.isExternalFilterPresent as Function)()).toBe(true);
+      expect((options.isExternalFilterPresent as () => boolean)()).toBe(true);
     });
 
     it('should set external filter with custom isFilterPresent', () => {
@@ -309,7 +310,7 @@ describe('CoarGridBuilder', () => {
   describe('_bind and _destroy', () => {
     it('should set gridReady to true on bind', () => {
       const builder = CoarGridBuilder.create<TestRow>();
-      const mockApi = {} as any;
+      const mockApi = {} as GridApi<TestRow>;
 
       builder._bind(mockApi);
 
@@ -319,7 +320,7 @@ describe('CoarGridBuilder', () => {
 
     it('should set gridReady to false on destroy', () => {
       const builder = CoarGridBuilder.create<TestRow>();
-      const mockApi = {} as any;
+      const mockApi = {} as GridApi<TestRow>;
 
       builder._bind(mockApi);
       builder._destroy();
@@ -332,7 +333,7 @@ describe('CoarGridBuilder', () => {
       const data = ref<TestRow[] | null>(null);
       const mockApi = {
         setGridOption: vi.fn(),
-      } as any;
+      } as unknown as GridApi<TestRow>;
 
       const builder = CoarGridBuilder.create<TestRow>().rowDataRef(data);
       builder._bind(mockApi);
@@ -346,7 +347,7 @@ describe('CoarGridBuilder', () => {
       const columnState = [{ colId: 'name', width: 200 }];
       const mockApi = {
         applyColumnState: vi.fn(),
-      } as any;
+      } as unknown as GridApi<TestRow>;
 
       const builder = CoarGridBuilder.create<TestRow>().columnState(columnState);
       builder._bind(mockApi);

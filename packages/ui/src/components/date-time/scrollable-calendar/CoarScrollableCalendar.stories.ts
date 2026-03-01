@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/vue3';
-import { ref, watch } from 'vue';
+import { ref } from 'vue';
 
 import { Temporal } from '@js-temporal/polyfill';
 

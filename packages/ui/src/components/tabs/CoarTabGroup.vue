@@ -43,7 +43,7 @@ const tabs = computed<TabDef[]>(() => {
         (vnodeProps['loading-strategy'] as string) ??
         'lazy';
 
-      const vnodeChildren = vnode.children as Record<string, any> | null;
+      const vnodeChildren = vnode.children as Record<string, (...args: unknown[]) => VNode[]> | null;
       const labelSlot = vnodeChildren?.default?.() ?? [];
       const contentSlot = vnodeChildren?.content?.() ?? [];
 
@@ -63,7 +63,7 @@ const tabs = computed<TabDef[]>(() => {
 function flattenFragments(vnodes: VNode[]): VNode[] {
   const result: VNode[] = [];
   for (const vnode of vnodes) {
-    if (vnode.type === Symbol.for('v-fgt') || (vnode.type as any) === Symbol.for('v-fgt')) {
+    if (vnode.type === Symbol.for('v-fgt') || (vnode.type as unknown as symbol) === Symbol.for('v-fgt')) {
       // Fragment — recurse into children
       if (Array.isArray(vnode.children)) {
         result.push(...flattenFragments(vnode.children as VNode[]));
@@ -122,7 +122,7 @@ function shouldRender(tab: TabDef): boolean {
 function onKeydown(event: KeyboardEvent) {
   const enabledTabs = tabs.value.filter((t) => !t.disabled);
   const currentIndex = enabledTabs.findIndex((t) => t.id === activeTabId.value);
-  let newIndex = currentIndex;
+  let newIndex: number;
 
   switch (event.key) {
     case 'ArrowLeft':

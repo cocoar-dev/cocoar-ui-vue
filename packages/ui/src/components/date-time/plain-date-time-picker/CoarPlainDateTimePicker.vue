@@ -309,7 +309,11 @@ function closePanel() {
 }
 
 function togglePanel() {
-  pickerBase.isOpen.value ? closePanel() : openPanel();
+  if (pickerBase.isOpen.value) {
+    closePanel();
+  } else {
+    openPanel();
+  }
 }
 
 // Outside click

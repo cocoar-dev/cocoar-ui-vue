@@ -85,7 +85,7 @@ export class MenuCascade {
     this.scheduleSwitch(child, activate, this.aimConfig.switchDelayMs);
   }
 
-  notifyChildOpened(_child: MenuCascade): void {
+  notifyChildOpened(): void {
     // placeholder for panel enter listener if needed
   }
 
@@ -203,6 +203,26 @@ export const MENU_CASCADE_KEY: InjectionKey<MenuCascade> = Symbol('coar-menu-cas
 
 /** Close callback injected by root menu overlay (e.g. popover trigger) */
 export const MENU_CLOSE_KEY: InjectionKey<() => void> = Symbol('coar-menu-close');
+
+// --- Roving tabindex menu navigation ---
+
+export interface MenuNavigationItem {
+  /** The DOM element for this menu item */
+  el: HTMLElement;
+  /** Whether this item is disabled */
+  disabled: boolean;
+}
+
+export interface MenuNavigationContext {
+  /** Register a menu item. Returns an unregister function. */
+  register(item: MenuNavigationItem): () => void;
+  /** The index of the currently active (tabindex=0) item. -1 means none. */
+  activeIndex: import('vue').Ref<number>;
+  /** All registered items (ordered by DOM position). */
+  items: import('vue').Ref<MenuNavigationItem[]>;
+}
+
+export const MENU_NAV_KEY: InjectionKey<MenuNavigationContext> = Symbol('coar-menu-nav');
 
 export function provideMenuCascade(cascade: MenuCascade): void {
   provide(MENU_CASCADE_KEY, cascade);

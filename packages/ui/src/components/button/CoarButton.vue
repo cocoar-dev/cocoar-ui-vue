@@ -154,14 +154,14 @@ function handleClick(event: MouseEvent) {
 
 .coar-button--xs {
   height: var(--coar-component-xs-height);
-  padding: 0 10px;
+  padding: 0 10px; /* 10px is off the spacing grid — between s(8px) and m(16px) */
   font-size: var(--coar-component-xs-font-size);
   gap: 0.375rem;
 }
 
 .coar-button--s {
   height: var(--coar-component-s-height);
-  padding: 0 12px;
+  padding: 0 12px; /* 12px is off the spacing grid — between s(8px) and m(16px) */
   font-size: var(--coar-component-s-font-size);
   gap: 0.375rem;
 }

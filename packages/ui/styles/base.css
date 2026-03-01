@@ -111,3 +111,33 @@ body {
   line-height: 1.4;
   color: var(--coar-text-neutral-tertiary);
 }
+
+/* ========================================
+   RESPONSIVE TYPOGRAPHY
+   ========================================
+   Scale down heading and title sizes at smaller breakpoints.
+   Body text (14-16px) stays unchanged — already appropriate for mobile.
+   Tokens defined in tokens/typography-responsive.css are applied here.
+   ======================================== */
+
+/* Tablet and below (< 1024px) */
+@media (max-width: 1023px) {
+  :root {
+    --coar-titles-display-size: var(--coar-titles-display-size-tablet);
+    --coar-titles-title-size: var(--coar-titles-title-size-tablet);
+    --coar-titles-subtitle-size: var(--coar-titles-subtitle-size-tablet);
+    --coar-headings-heading-size: var(--coar-headings-heading-size-tablet);
+    --coar-headings-subheading-size: var(--coar-headings-subheading-size-tablet);
+  }
+}
+
+/* Mobile (< 768px) */
+@media (max-width: 767px) {
+  :root {
+    --coar-titles-display-size: var(--coar-titles-display-size-mobile);
+    --coar-titles-title-size: var(--coar-titles-title-size-mobile);
+    --coar-titles-subtitle-size: var(--coar-titles-subtitle-size-mobile);
+    --coar-headings-heading-size: var(--coar-headings-heading-size-mobile);
+    --coar-headings-subheading-size: var(--coar-headings-subheading-size-mobile);
+  }
+}

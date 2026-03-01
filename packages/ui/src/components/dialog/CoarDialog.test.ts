@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach, vi } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { mount, type VueWrapper } from '@vue/test-utils';
 import { nextTick } from 'vue';
 import CoarDialogShell from './CoarDialogShell.vue';
@@ -183,6 +183,105 @@ describe('CoarDialogShell', () => {
         { footer: '<button class="custom-footer-btn">Nope</button>' },
       );
       expect(wrapper.find('.custom-footer-btn').exists()).toBe(false);
+    });
+  });
+
+  describe('focus trap', () => {
+    it('should move focus to the first focusable element on mount', async () => {
+      wrapper = createWrapper();
+      await nextTick();
+      await nextTick();
+      // The close button should be the first focusable element
+      const closeBtn = wrapper.find('.coar-dialog-close').element;
+      expect(document.activeElement).toBe(closeBtn);
+    });
+
+    it('should trap focus on Tab at last element (wrap to first)', async () => {
+      wrapper = createWrapper(
+        { confirmMode: true, confirmMessage: 'Go?', showCloseButton: true },
+      );
+      await nextTick();
+      await nextTick();
+      const focusableEls = wrapper.element.querySelectorAll<HTMLElement>(
+        'button:not(:disabled), [tabindex]:not([tabindex="-1"])',
+      );
+      const lastEl = focusableEls[focusableEls.length - 1];
+      lastEl.focus();
+      expect(document.activeElement).toBe(lastEl);
+
+      // Dispatch Tab at the last element
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+      await nextTick();
+      expect(document.activeElement).toBe(focusableEls[0]);
+    });
+
+    it('should trap focus on Shift+Tab at first element (wrap to last)', async () => {
+      wrapper = createWrapper(
+        { confirmMode: true, confirmMessage: 'Go?', showCloseButton: true },
+      );
+      await nextTick();
+      await nextTick();
+      const focusableEls = wrapper.element.querySelectorAll<HTMLElement>(
+        'button:not(:disabled), [tabindex]:not([tabindex="-1"])',
+      );
+      const firstEl = focusableEls[0];
+      firstEl.focus();
+      expect(document.activeElement).toBe(firstEl);
+
+      // Dispatch Shift+Tab at the first element
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true }));
+      await nextTick();
+      expect(document.activeElement).toBe(focusableEls[focusableEls.length - 1]);
+    });
+  });
+
+  describe('focus restoration', () => {
+    it('should restore focus to previously focused element on unmount', async () => {
+      // Create a trigger button and focus it
+      const trigger = document.createElement('button');
+      trigger.textContent = 'Open dialog';
+      document.body.appendChild(trigger);
+      trigger.focus();
+      expect(document.activeElement).toBe(trigger);
+
+      wrapper = createWrapper();
+      await nextTick();
+      await nextTick();
+      // Focus should have moved into the dialog
+      expect(document.activeElement).not.toBe(trigger);
+
+      // Unmount the dialog
+      wrapper.unmount();
+      await nextTick();
+      await nextTick();
+      expect(document.activeElement).toBe(trigger);
+
+      trigger.remove();
+    });
+  });
+
+  describe('scroll lock', () => {
+    it('should set body overflow to hidden on mount', async () => {
+      const originalOverflow = document.body.style.overflow;
+      wrapper = createWrapper();
+      await nextTick();
+      expect(document.body.style.overflow).toBe('hidden');
+
+      wrapper.unmount();
+      await nextTick();
+      expect(document.body.style.overflow).toBe(originalOverflow);
+    });
+
+    it('should restore previous body overflow on unmount', async () => {
+      document.body.style.overflow = 'scroll';
+      wrapper = createWrapper();
+      await nextTick();
+      expect(document.body.style.overflow).toBe('hidden');
+
+      wrapper.unmount();
+      await nextTick();
+      expect(document.body.style.overflow).toBe('scroll');
+      document.body.style.overflow = '';
     });
   });
 });

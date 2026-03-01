@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, watch, onBeforeUnmount, nextTick } from 'vue';
+import { ref, watch, computed, inject, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import CoarIcon from '../icon/CoarIcon.vue';
 import { computeOverlayCoordinates } from '../overlay/overlay-position';
-import { MenuCascade, useMenuCascade, provideMenuCascade, provideMenuClose } from './menu-cascade';
+import { MenuCascade, useMenuCascade, provideMenuCascade, provideMenuClose, MENU_NAV_KEY } from './menu-cascade';
 
 const props = withDefaults(
   defineProps<{
@@ -20,9 +20,35 @@ const parentCascade = useMenuCascade();
 const cascade = new MenuCascade(parentCascade ?? null);
 provideMenuCascade(cascade);
 
+const menuNav = inject(MENU_NAV_KEY, undefined);
+
 const isOpen = ref(false);
 const panelRef = ref<HTMLElement | null>(null);
 const itemRef = ref<HTMLElement | null>(null);
+
+// --- Roving tabindex registration ---
+let unregister: (() => void) | null = null;
+
+onMounted(() => {
+  if (menuNav && itemRef.value) {
+    const navItem = { el: itemRef.value, disabled: props.disabled };
+    unregister = menuNav.register(navItem);
+
+    watch(
+      () => props.disabled,
+      (val) => {
+        navItem.disabled = val;
+      },
+    );
+  }
+});
+
+const itemTabindex = computed(() => {
+  if (props.disabled) return -1;
+  if (!menuNav) return 0;
+  const idx = menuNav.items.value.findIndex((item) => item.el === itemRef.value);
+  return idx === menuNav.activeIndex.value ? 0 : -1;
+});
 
 let closeTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -144,14 +170,42 @@ function onClick(event: MouseEvent) {
 }
 
 function onKeydown(event: KeyboardEvent) {
-  if (event.key !== 'Enter' && event.key !== ' ') return;
   if (props.disabled) return;
-  event.preventDefault();
 
-  if (isOpen.value) {
-    closeSubmenu();
-  } else {
-    openSubmenu(itemRef.value!);
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    if (isOpen.value) {
+      closeSubmenu();
+    } else {
+      openSubmenu(itemRef.value!);
+    }
+    return;
+  }
+
+  // ArrowRight: open submenu and focus first item inside
+  if (event.key === 'ArrowRight') {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!isOpen.value) {
+      openSubmenu(itemRef.value!);
+    }
+    // Focus the first focusable menuitem in the submenu panel
+    nextTick(() => {
+      const firstItem = panelRef.value?.querySelector<HTMLElement>('[role="menuitem"]:not([aria-disabled="true"])');
+      firstItem?.focus();
+    });
+    return;
+  }
+
+  // ArrowLeft: close submenu and return focus to this item
+  if (event.key === 'ArrowLeft') {
+    if (isOpen.value) {
+      event.preventDefault();
+      event.stopPropagation();
+      closeSubmenu();
+      itemRef.value?.focus();
+    }
+    return;
   }
 }
 
@@ -197,6 +251,7 @@ watch(isOpen, (val) => {
 });
 
 onBeforeUnmount(() => {
+  unregister?.();
   cancelCloseTimer();
   removeDocumentListener();
   cascade.destroy();
@@ -216,7 +271,7 @@ onBeforeUnmount(() => {
       aria-haspopup="menu"
       :aria-expanded="isOpen"
       :aria-disabled="props.disabled || undefined"
-      :tabindex="props.disabled ? -1 : 0"
+      :tabindex="itemTabindex"
       @mouseenter="onMouseEnter"
       @mouseleave="onMouseLeave"
       @click="onClick"

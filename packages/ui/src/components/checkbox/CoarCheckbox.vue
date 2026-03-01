@@ -211,7 +211,7 @@ function onBlur() {
   flex-shrink: 0;
   width: 20px;
   height: 20px;
-  margin-top: 10px;
+  margin-top: 10px; /* Vertically centers box within component height — off the spacing grid */
   border: 1px solid var(--coar-border-input);
   border-radius: var(--coar-radius-xs);
   background: var(--coar-surface-input);
@@ -219,9 +219,9 @@ function onBlur() {
 }
 
 /* Size variants */
-.coar-checkbox--xs .coar-checkbox-box { width: 14px; height: 14px; margin-top: 6px; }
-.coar-checkbox--s .coar-checkbox-box { width: 16px; height: 16px; margin-top: 8px; }
-.coar-checkbox--l .coar-checkbox-box { width: 24px; height: 24px; margin-top: 12px; }
+.coar-checkbox--xs .coar-checkbox-box { width: 14px; height: 14px; margin-top: 6px; /* Vertical centering — off the spacing grid */ }
+.coar-checkbox--s .coar-checkbox-box { width: 16px; height: 16px; margin-top: var(--coar-spacing-s, 8px); }
+.coar-checkbox--l .coar-checkbox-box { width: 24px; height: 24px; margin-top: 12px; /* Vertical centering — off the spacing grid */ }
 
 /* Hover state */
 .coar-checkbox-wrapper:hover

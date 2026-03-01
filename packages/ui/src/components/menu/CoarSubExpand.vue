@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { computed } from 'vue';
 import CoarIcon from '../icon/CoarIcon.vue';
 
 const props = withDefaults(

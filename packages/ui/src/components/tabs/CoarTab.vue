@@ -19,9 +19,5 @@ defineProps<{
 </script>
 
 <template>
-  <!--
-    CoarTab is a declaration-only component. CoarTabGroup reads its props
-    and slots to render the tab list and panels. This component renders
-    nothing on its own.
-  -->
+  <slot />
 </template>

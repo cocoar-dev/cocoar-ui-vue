@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { MarkdownNode } from '@cocoar/vue-markdown-core';
-import { linkUrl, linkHref, linkTarget, linkRel, imageSrc, imageAlt, imageTitle } from './helpers';
+import { linkHref, linkTarget, linkRel, imageSrc, imageAlt, imageTitle } from './helpers';
 
 defineProps<{
   nodes: readonly MarkdownNode[];

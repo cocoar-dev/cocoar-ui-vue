@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import type { Component } from 'vue';
 import { CoarGridColumnBuilder } from './coar-grid-column-builder';
 
 interface TestRow {
@@ -189,7 +190,7 @@ describe('CoarGridColumnBuilder', () => {
 
   describe('cellRenderer', () => {
     it('should set cell renderer component', () => {
-      const FakeRenderer = {} as any;
+      const FakeRenderer = {} as Component;
       const colDef = new CoarGridColumnBuilder<TestRow>('name')
         .cellRenderer(FakeRenderer)
         .build();
@@ -198,7 +199,7 @@ describe('CoarGridColumnBuilder', () => {
     });
 
     it('should set cell renderer with params', () => {
-      const FakeRenderer = {} as any;
+      const FakeRenderer = {} as Component;
       const colDef = new CoarGridColumnBuilder<TestRow>('name')
         .cellRenderer(FakeRenderer, { foo: 'bar' })
         .build();
@@ -221,7 +222,7 @@ describe('CoarGridColumnBuilder', () => {
 
   describe('cellRendererConfig', () => {
     it('should set cell renderer with config wrapped in config key', () => {
-      const FakeRenderer = {} as any;
+      const FakeRenderer = {} as Component;
       const config = { size: 's' };
       const colDef = new CoarGridColumnBuilder<TestRow>('name')
         .cellRendererConfig(FakeRenderer, config)
@@ -350,7 +351,7 @@ describe('CoarGridColumnBuilder', () => {
       const colDef = new CoarGridColumnBuilder<TestRow>('name').quickFilter(false).build();
 
       expect(typeof colDef.getQuickFilterText).toBe('function');
-      expect((colDef.getQuickFilterText as Function)()).toBe('');
+      expect((colDef.getQuickFilterText as () => string)()).toBe('');
     });
 
     it('should set custom quick filter function', () => {

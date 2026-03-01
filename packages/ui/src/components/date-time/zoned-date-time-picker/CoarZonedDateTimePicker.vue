@@ -31,8 +31,6 @@ import {
   coarGetAllTimezones,
   coarFilterTimezones,
   coarGroupTimezones,
-  coarTimezoneDisplayName,
-  coarGetTimezoneOffset,
   coarFormatTimezoneLabel,
   type TimezoneGroup,
 } from '../_shared/timezone-helpers';
@@ -488,7 +486,11 @@ function closePanel() {
 }
 
 function togglePanel() {
-  pickerBase.isOpen.value ? closePanel() : openPanel();
+  if (pickerBase.isOpen.value) {
+    closePanel();
+  } else {
+    openPanel();
+  }
 }
 
 // Outside click
@@ -664,6 +666,7 @@ const tzIndicatorIcon = computed(() => {
     case 'home': return 'home';
     case 'location': return 'location';
     case 'world': return 'globe';
+    default: return 'globe';
   }
 });
 </script>

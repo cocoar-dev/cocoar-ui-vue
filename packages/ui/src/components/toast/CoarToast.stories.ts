@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/vue3';
-import { defineComponent, ref } from 'vue';
+import { defineComponent } from 'vue';
 import { useToast, CoarButton } from '@cocoar/vue-ui';
 
 const ToastDemo = defineComponent({

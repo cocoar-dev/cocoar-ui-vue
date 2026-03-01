@@ -1,6 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { mount, type VueWrapper } from '@vue/test-utils';
-import { nextTick } from 'vue';
 import CoarToastItem from './CoarToastItem.vue';
 
 function createWrapper(props: Record<string, unknown> = {}): VueWrapper {

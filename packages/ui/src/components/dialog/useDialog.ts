@@ -45,14 +45,6 @@ function open<T = unknown>(
   config: DialogConfig = {},
   bodyProps?: Record<string, unknown>,
 ): DialogRef<T> {
-  let closeFn: (result?: T) => void;
-
-  const BodyWrapper = {
-    render() {
-      return h(body, { ...bodyProps, close: closeFn });
-    },
-  };
-
   const container = document.createElement('div');
   document.body.appendChild(container);
 
@@ -63,13 +55,19 @@ function open<T = unknown>(
 
   let app: App | null = null;
 
-  closeFn = (val?: T) => {
+  const closeFn = (val?: T) => {
     resolve!(val);
     if (app) {
       app.unmount();
       app = null;
     }
     container.remove();
+  };
+
+  const BodyWrapper = {
+    render() {
+      return h(body, { ...bodyProps, close: closeFn });
+    },
   };
 
   app = createApp({

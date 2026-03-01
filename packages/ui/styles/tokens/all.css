@@ -16,6 +16,7 @@
 /* 3. Typografie-Primitives & -Semantik */
 @import './type-primitives.css'; /* Font families, weights, etc. */
 @import './typography.css'; /* Headings, titles, body, etc. */
+@import './typography-responsive.css'; /* Responsive size variants for tablet/mobile */
 
 /* 4. Layout / Shape-Primitives */
 @import './spacing.css';

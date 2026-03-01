@@ -170,11 +170,11 @@ function onBlur() { isFocused.value = false; }
 /* Sizes */
 .coar-radio--s .coar-radio__control { width: 16px; height: 16px; }
 .coar-radio--s .coar-radio__dot { width: 6px; height: 6px; }
-.coar-radio--s .coar-radio__label { font-size: var(--coar-body-small-size); }
+.coar-radio--s .coar-radio__label { font-size: var(--coar-body-small-base-size, 14px); }
 
 .coar-radio--l .coar-radio__control { width: 22px; height: 22px; }
 .coar-radio--l .coar-radio__dot { width: 10px; height: 10px; }
-.coar-radio--l .coar-radio__label { font-size: var(--coar-body-large-size); }
+.coar-radio--l .coar-radio__label { font-size: var(--coar-body-base-size, 16px); }
 
 /* Error */
 .coar-radio--error .coar-radio__control {

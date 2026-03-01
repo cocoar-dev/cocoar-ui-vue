@@ -473,7 +473,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
   color: var(--coar-icon-neutral-disabled);
   cursor: pointer;
   border-radius: var(--coar-radius-xs);
-  transition: color 0.15s ease, opacity 0.15s ease;
+  transition: color var(--coar-duration-fast) var(--coar-ease-out), opacity var(--coar-duration-fast) var(--coar-ease-out);
   opacity: 0.4;
 }
 
@@ -494,7 +494,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
   height: 16px;
   color: var(--coar-icon-neutral-secondary);
   transform: rotate(90deg);
-  transition: transform 0.15s ease;
+  transition: transform var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-select-arrow--open {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createApp, defineComponent, h } from 'vue';
+import { createApp, defineComponent, h, inject } from 'vue';
 import { createCoarLocalization } from './plugin';
 import { COAR_LOCALIZATION_KEY } from './injection-keys';
 import type { CoarLocalizationService } from './localization-service';
@@ -18,7 +18,6 @@ describe('createCoarLocalization', () => {
 
     const TestComponent = defineComponent({
       setup() {
-        const { inject } = require('vue');
         injected = inject(COAR_LOCALIZATION_KEY);
         return () => h('div');
       },
