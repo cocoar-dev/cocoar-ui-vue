@@ -248,7 +248,7 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
   color: var(--coar-code-block-text-muted);
   cursor: pointer;
   border-radius: var(--coar-radius-xs);
-  transition: color 0.15s ease, background 0.15s ease;
+  transition: color var(--coar-duration-fast) var(--coar-ease-out), background var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-code-toggle:hover {
@@ -257,7 +257,7 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
 }
 
 .coar-code-chevron {
-  transition: transform 0.2s ease;
+  transition: transform var(--coar-duration-normal) var(--coar-ease-out);
 }
 
 .coar-code-chevron.rotated {
@@ -291,7 +291,7 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
   border-radius: var(--coar-radius-xs);
   color: var(--coar-code-block-text-muted);
   cursor: pointer;
-  transition: color 0.15s ease, background 0.15s ease;
+  transition: color var(--coar-duration-fast) var(--coar-ease-out), background var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-code-copy-btn:hover {
@@ -428,6 +428,18 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
 
 .coar-code :deep(.token.italic) { font-style: italic; }
 .coar-code :deep(.token.entity) { cursor: help; }
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .coar-code-toggle,
+  .coar-code-copy-btn {
+    transition: none;
+  }
+
+  .coar-code-chevron {
+    transition: none;
+  }
+}
 
 .coar-code :deep(.token.tag .token.tag) { color: var(--coar-code-block-tag); }
 .coar-code :deep(.token.tag .token.attr-name) { color: var(--coar-code-block-attr-name); }

@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="T">
 import { computed, ref, toRef, onMounted, onBeforeUnmount, useTemplateRef, nextTick } from 'vue';
 import { CoarIcon } from '../icon';
 import { useSelectBase, type CoarSelectSize, type CoarSelectAppearance } from './useSelectBase';
@@ -6,13 +6,13 @@ import { useSelectDropdown } from './useSelectDropdown';
 import { vScrollbar } from '../scrollbar/vScrollbar';
 import type { CoarSelectOption } from './types';
 
-export interface CoarTagSelectProps {
+export interface CoarTagSelectProps<T = unknown> {
   /** Label text */
   label?: string;
   /** Placeholder text */
   placeholder?: string;
   /** Available options */
-  options?: CoarSelectOption[];
+  options?: CoarSelectOption<T>[];
   /** Select size */
   size?: CoarSelectSize;
   /** Visual appearance */
@@ -36,12 +36,12 @@ export interface CoarTagSelectProps {
   /** Allow creating new tags by typing */
   allowCreate?: boolean;
   /** Comparison function */
-  compareWith?: (a: unknown, b: unknown) => boolean;
+  compareWith?: (a: T, b: T) => boolean;
   /** Dropdown position */
   dropdownPosition?: 'auto' | 'top' | 'bottom';
 }
 
-const props = withDefaults(defineProps<CoarTagSelectProps>(), {
+const props = withDefaults(defineProps<CoarTagSelectProps<T>>(), {
   label: '',
   placeholder: 'Type to search...',
   options: () => [],
@@ -60,7 +60,7 @@ const props = withDefaults(defineProps<CoarTagSelectProps>(), {
   dropdownPosition: 'auto',
 });
 
-const model = defineModel<unknown[]>({ default: () => [] });
+const model = defineModel<T[]>({ default: () => [] });
 
 const hostRef = useTemplateRef<HTMLElement>('hostRef');
 const triggerRef = useTemplateRef<HTMLElement>('triggerRef');
@@ -71,7 +71,7 @@ const hasError = computed(() => props.error.length > 0);
 const displayMessage = computed(() => props.error || props.hint);
 const tagInputValue = ref('');
 
-const compare = computed(() => props.compareWith ?? ((a: unknown, b: unknown) => a === b));
+const compare = computed(() => props.compareWith ?? ((a: T, b: T) => a === b));
 
 // Options minus already selected
 const availableOptions = computed(() =>
@@ -125,13 +125,13 @@ const hostClasses = computed(() => [
   },
 ]);
 
-function removeTag(value: unknown, event?: Event) {
+function removeTag(value: T, event?: Event) {
   event?.stopPropagation();
   if (props.disabled || props.readonly) return;
   model.value = model.value.filter((v) => !compare.value(v, value));
 }
 
-function selectOption(option: CoarSelectOption) {
+function selectOption(option: CoarSelectOption<T>) {
   if (option.disabled || props.disabled || props.readonly) return;
   model.value = [...model.value, option.value];
   tagInputValue.value = '';
@@ -172,8 +172,8 @@ function onTagKeyDown(event: KeyboardEvent) {
     } else if (match) {
       selectOption(match);
     } else {
-      // Create new tag
-      model.value = [...model.value, query];
+      // Create new tag (cast to T — allowCreate assumes T is string-compatible)
+      model.value = [...model.value, query as T];
       tagInputValue.value = '';
       searchQuery.value = '';
     }

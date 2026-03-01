@@ -50,10 +50,10 @@ const hostClasses = computed(() => [
 }
 
 /* Size variants */
-.coar-spinner--xs { --coar-spinner-size: 16px; }
-.coar-spinner--s  { --coar-spinner-size: 20px; }
-.coar-spinner--m  { --coar-spinner-size: 24px; }
-.coar-spinner--l  { --coar-spinner-size: 32px; }
+.coar-spinner--xs { --coar-spinner-size: var(--coar-spinner-xs-size); }
+.coar-spinner--s  { --coar-spinner-size: var(--coar-spinner-s-size); }
+.coar-spinner--m  { --coar-spinner-size: var(--coar-spinner-m-size); }
+.coar-spinner--l  { --coar-spinner-size: var(--coar-spinner-l-size); }
 
 .coar-spinner-svg {
   width: var(--coar-spinner-size);

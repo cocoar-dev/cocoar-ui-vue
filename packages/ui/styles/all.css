@@ -6,6 +6,7 @@
  */
 
 @import './tokens/all.css';
+@import './shared/form-field-message.css';
 @import './base.css';
 @import './components.css';
 @import 'overlayscrollbars/overlayscrollbars.css';

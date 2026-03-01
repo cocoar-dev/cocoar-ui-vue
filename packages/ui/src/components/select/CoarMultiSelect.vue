@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="T">
 import { computed, toRef, onMounted, onBeforeUnmount, useTemplateRef, nextTick } from 'vue';
 import { CoarIcon } from '../icon';
 import { useSelectBase, type CoarSelectSize, type CoarSelectAppearance } from './useSelectBase';
@@ -6,13 +6,13 @@ import { useSelectDropdown } from './useSelectDropdown';
 import { vScrollbar } from '../scrollbar/vScrollbar';
 import type { CoarSelectOption } from './types';
 
-export interface CoarMultiSelectProps {
+export interface CoarMultiSelectProps<T = unknown> {
   /** Label text */
   label?: string;
   /** Placeholder text */
   placeholder?: string;
   /** Available options */
-  options?: CoarSelectOption[];
+  options?: CoarSelectOption<T>[];
   /** Select size */
   size?: CoarSelectSize;
   /** Visual appearance */
@@ -42,12 +42,12 @@ export interface CoarMultiSelectProps {
   /** Label for "Select All" */
   selectAllLabel?: string;
   /** Comparison function */
-  compareWith?: (a: unknown, b: unknown) => boolean;
+  compareWith?: (a: T, b: T) => boolean;
   /** Dropdown position */
   dropdownPosition?: 'auto' | 'top' | 'bottom';
 }
 
-const props = withDefaults(defineProps<CoarMultiSelectProps>(), {
+const props = withDefaults(defineProps<CoarMultiSelectProps<T>>(), {
   label: '',
   placeholder: 'Select options...',
   options: () => [],
@@ -69,7 +69,7 @@ const props = withDefaults(defineProps<CoarMultiSelectProps>(), {
   dropdownPosition: 'auto',
 });
 
-const model = defineModel<unknown[]>({ default: () => [] });
+const model = defineModel<T[]>({ default: () => [] });
 
 const hostRef = useTemplateRef<HTMLElement>('hostRef');
 const triggerRef = useTemplateRef<HTMLElement>('triggerRef');
@@ -110,7 +110,7 @@ const { left: ddLeft, top: ddTop, minWidth: ddMinWidth } = useSelectDropdown({
   dropdownEl: dropdownRef,
 });
 
-const compare = computed(() => props.compareWith ?? ((a: unknown, b: unknown) => a === b));
+const compare = computed(() => props.compareWith ?? ((a: T, b: T) => a === b));
 
 const selectedCount = computed(() => model.value.length);
 
@@ -155,11 +155,11 @@ const hostClasses = computed(() => [
   },
 ]);
 
-function isSelected(option: CoarSelectOption): boolean {
+function isSelected(option: CoarSelectOption<T>): boolean {
   return model.value.some((v) => compare.value(v, option.value));
 }
 
-function toggleOption(option: CoarSelectOption) {
+function toggleOption(option: CoarSelectOption<T>) {
   if (option.disabled || props.disabled || props.readonly) return;
   const idx = model.value.findIndex((v) => compare.value(v, option.value));
   if (idx >= 0) {

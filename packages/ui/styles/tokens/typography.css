@@ -5,37 +5,37 @@
  */
 
 :root {
-  --coar-body-base-family: Poppins;
+  --coar-body-base-family: Poppins, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --coar-body-base-size: 16px;
   --coar-body-base-weight: 400;
-  --coar-body-bold-family: Poppins;
+  --coar-body-bold-family: Poppins, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --coar-body-bold-size: 16px;
   --coar-body-bold-weight: 700;
-  --coar-body-caption-family: Poppins;
+  --coar-body-caption-family: Poppins, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --coar-body-caption-size: 12px;
   --coar-body-caption-weight: 500;
-  --coar-body-footnote-family: Poppins;
+  --coar-body-footnote-family: Poppins, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --coar-body-footnote-size: 10px;
   --coar-body-footnote-weight: 400;
-  --coar-body-small-base-family: Poppins;
+  --coar-body-small-base-family: Poppins, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --coar-body-small-base-size: 14px;
   --coar-body-small-base-weight: 400;
-  --coar-body-small-bold-family: Poppins;
+  --coar-body-small-bold-family: Poppins, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --coar-body-small-bold-size: 14px;
   --coar-body-small-bold-weight: 700;
-  --coar-headings-heading-family: Poppins;
+  --coar-headings-heading-family: Poppins, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --coar-headings-heading-size: 24px;
   --coar-headings-heading-weight: 600;
-  --coar-headings-subheading-family: Poppins;
+  --coar-headings-subheading-family: Poppins, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --coar-headings-subheading-size: 20px;
   --coar-headings-subheading-weight: 400;
-  --coar-titles-display-family: Inter;
+  --coar-titles-display-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --coar-titles-display-size: 72px;
   --coar-titles-display-weight: 700;
-  --coar-titles-subtitle-family: Inter;
+  --coar-titles-subtitle-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --coar-titles-subtitle-size: 32px;
   --coar-titles-subtitle-weight: 400;
-  --coar-titles-title-family: Inter;
+  --coar-titles-title-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --coar-titles-title-size: 48px;
   --coar-titles-title-weight: 700;
 
@@ -45,5 +45,5 @@
 
   /* Composed font shorthand tokens
      CSS font shorthand format: <weight> <size>/<line-height> <family> */
-  --coar-heading-s: 600 20px/1.4 Poppins, sans-serif;
+  --coar-heading-s: 600 20px/1.4 Poppins, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }

@@ -106,7 +106,7 @@ function handleKeydown(event: KeyboardEvent) {
   background: transparent;
   cursor: pointer;
   user-select: none;
-  transition: background 100ms ease;
+  transition: background var(--coar-duration-fast) var(--coar-ease-out);
   outline: none;
 }
 

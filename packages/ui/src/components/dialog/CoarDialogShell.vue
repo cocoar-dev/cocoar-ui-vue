@@ -110,31 +110,31 @@ const sizeClass = computed(() => `coar-dialog--${props.size}`);
   align-items: center;
   justify-content: center;
   background: rgba(0, 0, 0, 0.4);
-  animation: coar-dialog-fade-in 150ms ease;
+  animation: coar-dialog-fade-in var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-dialog {
-  background: var(--coar-background-neutral-primary);
-  border-radius: var(--coar-radius-l, 12px);
+  background: var(--coar-dialog-background);
+  border-radius: var(--coar-dialog-border-radius);
   box-shadow: var(--coar-shadow-xl, 0 16px 48px rgba(0, 0, 0, 0.2));
   display: flex;
   flex-direction: column;
   max-height: 85vh;
   overflow: hidden;
-  animation: coar-dialog-scale-in 200ms ease;
+  animation: coar-dialog-scale-in var(--coar-duration-normal) var(--coar-ease-out);
   outline: none;
 }
 
-.coar-dialog--s { width: 400px; }
-.coar-dialog--m { width: 560px; }
-.coar-dialog--l { width: 720px; }
+.coar-dialog--s { width: var(--coar-dialog-s-width); }
+.coar-dialog--m { width: var(--coar-dialog-m-width); }
+.coar-dialog--l { width: var(--coar-dialog-l-width); }
 
 .coar-dialog-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--coar-spacing-m, 16px);
-  padding: var(--coar-spacing-l, 24px);
+  gap: var(--coar-dialog-header-gap);
+  padding: var(--coar-dialog-padding);
   padding-bottom: 0;
 }
 
@@ -157,7 +157,7 @@ const sizeClass = computed(() => `coar-dialog--${props.size}`);
   color: var(--coar-text-neutral-secondary);
   cursor: pointer;
   flex-shrink: 0;
-  transition: background-color 150ms ease, color 150ms ease;
+  transition: background-color var(--coar-duration-fast) var(--coar-ease-out), color var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-dialog-close:hover {
@@ -171,7 +171,7 @@ const sizeClass = computed(() => `coar-dialog--${props.size}`);
 }
 
 .coar-dialog-body {
-  padding: var(--coar-spacing-l, 24px);
+  padding: var(--coar-dialog-padding);
   overflow: hidden;
   flex: 1;
   color: var(--coar-text-neutral-primary);
@@ -187,7 +187,7 @@ const sizeClass = computed(() => `coar-dialog--${props.size}`);
   align-items: center;
   justify-content: flex-end;
   gap: var(--coar-spacing-s, 8px);
-  padding: var(--coar-spacing-l, 24px);
+  padding: var(--coar-dialog-padding);
   padding-top: 0;
 }
 

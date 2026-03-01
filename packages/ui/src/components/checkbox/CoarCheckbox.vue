@@ -146,8 +146,8 @@ function onBlur() {
     <!-- Hint/Error Message -->
     <div
       :id="messageId"
-      class="coar-checkbox-message"
-      :class="{ 'coar-checkbox-message--error': hasError }"
+      class="coar-form-field-message coar-checkbox-message"
+      :class="{ 'coar-form-field-message--error': hasError }"
       :title="displayMessage || undefined"
     >
       {{ displayMessage }}
@@ -215,7 +215,7 @@ function onBlur() {
   border: 1px solid var(--coar-border-input);
   border-radius: var(--coar-radius-xs);
   background: var(--coar-surface-input);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color var(--coar-duration-fast) var(--coar-ease-out), box-shadow var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 /* Size variants */
@@ -317,7 +317,7 @@ function onBlur() {
   height: 14px;
   color: var(--coar-text-on-bold);
   opacity: 0;
-  transition: opacity 0.1s ease;
+  transition: opacity var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-checkbox-box.coar-checkbox-checked:not(.coar-checkbox-indeterminate) .coar-checkbox-icon-check {
@@ -370,31 +370,15 @@ function onBlur() {
   margin-left: var(--coar-spacing-xs);
 }
 
-/* Message */
+/* Message - base styles are in shared/form-field-message.css,
+   only checkbox-specific margin-left overrides here */
 .coar-checkbox-message {
-  display: block;
-  margin-top: var(--coar-spacing-xs);
   margin-left: 28px;
-  height: calc(var(--coar-body-caption-size) * 1.4);
-  font-family: var(--coar-body-caption-family);
-  font-size: var(--coar-body-caption-size);
-  font-weight: var(--coar-body-caption-weight);
-  line-height: 1.4;
-  color: var(--coar-text-neutral-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
-
-.coar-checkbox-message:empty { visibility: hidden; }
 
 .coar-checkbox--xs .coar-checkbox-message { margin-left: 18px; }
 .coar-checkbox--s .coar-checkbox-message { margin-left: 22px; }
 .coar-checkbox--l .coar-checkbox-message { margin-left: 34px; }
-
-.coar-checkbox-message--error {
-  color: var(--coar-text-semantic-error-bold);
-}
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {

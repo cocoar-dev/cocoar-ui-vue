@@ -135,8 +135,8 @@ function handleClick(event: MouseEvent) {
   font-weight: var(--coar-body-base-weight);
   cursor: pointer;
   transition:
-    background-color 0.15s ease,
-    color 0.15s ease;
+    background-color var(--coar-duration-fast) var(--coar-ease-out),
+    color var(--coar-duration-fast) var(--coar-ease-out);
   white-space: nowrap;
   text-decoration: none;
   position: relative;

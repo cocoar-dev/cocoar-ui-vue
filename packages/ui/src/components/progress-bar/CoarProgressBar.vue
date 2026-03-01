@@ -75,9 +75,9 @@ const fillWidth = computed(() =>
 }
 
 /* Size variants */
-.coar-progress-bar--s { --coar-progress-bar-height: 2px; }
-.coar-progress-bar--m { --coar-progress-bar-height: 4px; }
-.coar-progress-bar--l { --coar-progress-bar-height: 8px; }
+.coar-progress-bar--s { --coar-progress-bar-height: var(--coar-progress-bar-s-height); }
+.coar-progress-bar--m { --coar-progress-bar-height: var(--coar-progress-bar-m-height); }
+.coar-progress-bar--l { --coar-progress-bar-height: var(--coar-progress-bar-l-height); }
 
 /* Variant colors */
 .coar-progress-bar--accent  { --coar-progress-bar-fill-color: var(--coar-background-accent-primary); }
@@ -89,8 +89,8 @@ const fillWidth = computed(() =>
 .coar-progress-bar-container {
   flex: 1;
   height: var(--coar-progress-bar-height);
-  border-radius: calc(var(--coar-progress-bar-height) / 2);
-  background: var(--coar-background-neutral-tertiary);
+  border-radius: var(--coar-progress-bar-radius);
+  background: var(--coar-progress-bar-background);
   overflow: hidden;
 }
 

@@ -6,7 +6,7 @@
  */
 
 body {
-  font-family: var(--coar-body-base-family, Poppins, sans-serif);
+  font-family: var(--coar-body-base-family, Poppins, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
   font-size: var(--coar-body-base-size, 14px);
   font-weight: var(--coar-body-base-weight, 400);
   line-height: var(--coar-body-base-line-height, 1.5);

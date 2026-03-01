@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch, useSlots, type VNode } from 'vue';
+import CoarTab from './CoarTab.vue';
 
 const props = withDefaults(
   defineProps<{
@@ -28,7 +29,7 @@ const tabs = computed<TabDef[]>(() => {
   const result: TabDef[] = [];
 
   for (const vnode of flattenFragments(children)) {
-    if (typeof vnode.type === 'object' && (vnode.type as any).__name === 'CoarTab') {
+    if (vnode.type === CoarTab) {
       const vnodeProps = (vnode.props ?? {}) as Record<string, unknown>;
       const id = String(vnodeProps.id ?? '');
       if (!id) continue;

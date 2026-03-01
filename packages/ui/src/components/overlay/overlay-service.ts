@@ -1,4 +1,4 @@
-import { shallowRef, reactive, markRaw, type Component, type Raw } from 'vue';
+import { shallowRef, shallowReactive, markRaw, type Component, type Raw } from 'vue';
 import type {
   OverlaySpec,
   OverlayRef,
@@ -99,7 +99,7 @@ export function createOverlayService() {
       resolveAfterClosed = resolve;
     });
 
-    const instance = reactive<OverlayInstance>({
+    const instance = shallowReactive<OverlayInstance>({
       id,
       spec,
       content: options.content.kind === 'component'

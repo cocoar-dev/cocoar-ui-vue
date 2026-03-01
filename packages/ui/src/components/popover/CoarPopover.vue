@@ -327,7 +327,7 @@ onBeforeUnmount(() => {
   min-width: var(--coar-popover-min-width, 200px);
   max-width: var(--coar-popover-max-width, 360px);
   pointer-events: auto;
-  transition: opacity 150ms ease;
+  transition: opacity var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-popover-panel--non-interactive {
@@ -337,5 +337,12 @@ onBeforeUnmount(() => {
 .coar-popover-content {
   max-height: var(--coar-popover-max-height, 240px);
   overflow: hidden;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .coar-popover-panel {
+    transition: none;
+  }
 }
 </style>

@@ -4,8 +4,8 @@ import type { CoarSelectOption } from './types';
 export type CoarSelectSize = 'xs' | 's' | 'm' | 'l';
 export type CoarSelectAppearance = 'outline' | 'inline';
 
-export interface UseSelectBaseOptions {
-  options: Ref<CoarSelectOption[]>;
+export interface UseSelectBaseOptions<T = unknown> {
+  options: Ref<CoarSelectOption<T>[]>;
   searchable: Ref<boolean>;
   disabled: Ref<boolean>;
   readonly: Ref<boolean>;
@@ -13,7 +13,7 @@ export interface UseSelectBaseOptions {
   dropdownPositionPreference: Ref<'auto' | 'top' | 'bottom'>;
 }
 
-export function useSelectBase(opts: UseSelectBaseOptions) {
+export function useSelectBase<T = unknown>(opts: UseSelectBaseOptions<T>) {
   const isOpen = ref(false);
   const isFocused = ref(false);
   const searchQuery = ref('');

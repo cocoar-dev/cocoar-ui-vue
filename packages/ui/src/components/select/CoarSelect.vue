@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="T">
 import { computed, toRef, onMounted, onBeforeUnmount, useTemplateRef, nextTick } from 'vue';
 import { CoarIcon } from '../icon';
 import { useSelectBase, type CoarSelectSize, type CoarSelectAppearance } from './useSelectBase';
@@ -6,13 +6,13 @@ import { useSelectDropdown } from './useSelectDropdown';
 import { vScrollbar } from '../scrollbar/vScrollbar';
 import type { CoarSelectOption } from './types';
 
-export interface CoarSelectProps {
+export interface CoarSelectProps<T = unknown> {
   /** Label text displayed above the select */
   label?: string;
   /** Placeholder text */
   placeholder?: string;
   /** Available options */
-  options?: CoarSelectOption[];
+  options?: CoarSelectOption<T>[];
   /** Select size */
   size?: CoarSelectSize;
   /** Visual appearance */
@@ -38,12 +38,12 @@ export interface CoarSelectProps {
   /** Show clear button */
   clearable?: boolean;
   /** Comparison function for matching values */
-  compareWith?: (a: unknown, b: unknown) => boolean;
+  compareWith?: (a: T, b: T) => boolean;
   /** Dropdown position preference */
   dropdownPosition?: 'auto' | 'top' | 'bottom';
 }
 
-const props = withDefaults(defineProps<CoarSelectProps>(), {
+const props = withDefaults(defineProps<CoarSelectProps<T>>(), {
   label: '',
   placeholder: 'Select an option...',
   options: () => [],
@@ -63,7 +63,7 @@ const props = withDefaults(defineProps<CoarSelectProps>(), {
   dropdownPosition: 'auto',
 });
 
-const model = defineModel<unknown>({ default: null });
+const model = defineModel<T | null>({ default: null });
 
 const hostRef = useTemplateRef<HTMLElement>('hostRef');
 const triggerRef = useTemplateRef<HTMLElement>('triggerRef');
@@ -104,11 +104,11 @@ const { left: ddLeft, top: ddTop, minWidth: ddMinWidth } = useSelectDropdown({
   dropdownEl: dropdownRef,
 });
 
-const compare = computed(() => props.compareWith ?? ((a: unknown, b: unknown) => a === b));
+const compare = computed(() => props.compareWith ?? ((a: T, b: T) => a === b));
 
 const selectedOption = computed(() => {
   if (model.value === null || model.value === undefined) return null;
-  return props.options.find((o) => compare.value(o.value, model.value)) ?? null;
+  return props.options.find((o) => compare.value(o.value, model.value as T)) ?? null;
 });
 
 const showClearButton = computed(() =>
@@ -127,7 +127,7 @@ const hostClasses = computed(() => [
   },
 ]);
 
-function selectOption(option: CoarSelectOption) {
+function selectOption(option: CoarSelectOption<T>) {
   if (option.disabled || props.disabled || props.readonly) return;
   model.value = option.value;
   closeDropdown();
@@ -146,8 +146,9 @@ function clearSelection(event: Event) {
   model.value = null;
 }
 
-function isSelected(option: CoarSelectOption): boolean {
-  return compare.value(model.value, option.value);
+function isSelected(option: CoarSelectOption<T>): boolean {
+  if (model.value === null || model.value === undefined) return false;
+  return compare.value(model.value as T, option.value);
 }
 
 function onTriggerClick(event: Event) {
@@ -376,7 +377,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
   border-radius: var(--coar-radius-xs);
   background: var(--coar-surface-input);
   cursor: pointer;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color var(--coar-duration-fast) var(--coar-ease-out), box-shadow var(--coar-duration-fast) var(--coar-ease-out);
   outline: none;
 }
 
@@ -529,7 +530,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
   font-size: var(--coar-select-option-font-size, var(--coar-body-small-base-size));
   color: var(--coar-text-neutral-primary);
   outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color var(--coar-duration-fast) var(--coar-ease-out), box-shadow var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-select-search-input::placeholder {
@@ -604,23 +605,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
   color: var(--coar-text-neutral-tertiary);
 }
 
-/* Message */
-.coar-form-field-message {
-  display: block;
-  margin-top: var(--coar-spacing-xs);
-  height: calc(var(--coar-body-caption-size) * 1.4);
-  font-family: var(--coar-body-caption-family);
-  font-size: var(--coar-body-caption-size);
-  font-weight: var(--coar-body-caption-weight);
-  line-height: 1.4;
-  color: var(--coar-text-neutral-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.coar-form-field-message:empty { visibility: hidden; }
-.coar-form-field-message--error { color: var(--coar-text-semantic-error-bold); }
+/* Message styles are in shared/form-field-message.css */
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {

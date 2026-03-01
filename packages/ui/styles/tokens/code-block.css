@@ -42,8 +42,8 @@
    CODE BLOCK - DARK THEME
    ======================================== */
 
-.dark-mode,
-[data-theme='dark'] {
+:root.dark-mode,
+.dark-mode {
   /* Layout */
   --coar-code-block-bg: var(--coar-color-gray-100, #27272a);
   --coar-code-block-header-bg: var(--coar-color-gray-200, #3f3f46);

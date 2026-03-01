@@ -56,6 +56,7 @@
    Dark Mode Overrides
    ======================================== */
 
+:root.dark-mode,
 .dark-mode {
   --coar-sidebar-background: var(--coar-background-neutral-primary);
   --coar-sidebar-border: 1px solid var(--coar-border-neutral-tertiary);

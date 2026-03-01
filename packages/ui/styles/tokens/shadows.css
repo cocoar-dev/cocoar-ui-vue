@@ -21,6 +21,7 @@
 }
 
 /* Dark mode - use lighter borders/glows since shadows don't work on dark backgrounds */
+:root.dark-mode,
 .dark-mode {
   /* In dark mode, we combine a subtle dark outer shadow with a light inner glow/edge */
   --coar-shadow-color: rgba(0, 0, 0, 0.5);

@@ -132,19 +132,19 @@ defineExpose({ startAutoClose });
 .coar-toast {
   display: flex;
   align-items: flex-start;
-  gap: var(--coar-spacing-s);
-  padding: var(--coar-spacing-m);
-  background: var(--coar-background-neutral-primary);
-  border-radius: var(--coar-radius-m);
+  gap: var(--coar-toast-gap);
+  padding: var(--coar-toast-padding);
+  background: var(--coar-toast-background);
+  border-radius: var(--coar-toast-border-radius);
   box-shadow: var(--coar-shadow-l, 0 8px 24px rgba(0, 0, 0, 0.12));
   border: 1px solid var(--coar-border-neutral);
-  border-left: 3px solid transparent;
+  border-left: var(--coar-toast-border-width) solid transparent;
   position: relative;
   overflow: hidden;
-  min-width: 320px;
-  max-width: 420px;
+  min-width: var(--coar-toast-width);
+  max-width: var(--coar-toast-width);
   pointer-events: auto;
-  animation: coar-toast-slide-in 300ms ease-out;
+  animation: coar-toast-slide-in var(--coar-duration-slow) var(--coar-ease-out);
 }
 
 /* Variant border colors */
@@ -210,7 +210,7 @@ defineExpose({ startAutoClose });
   color: var(--coar-text-accent-primary);
   cursor: pointer;
   border-radius: var(--coar-radius-s);
-  transition: background-color 150ms ease;
+  transition: background-color var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-toast-action-btn:hover {
@@ -232,7 +232,7 @@ defineExpose({ startAutoClose });
   border-radius: var(--coar-radius-s);
   color: var(--coar-text-neutral-secondary);
   cursor: pointer;
-  transition: background-color 150ms ease, color 150ms ease;
+  transition: background-color var(--coar-duration-fast) var(--coar-ease-out), color var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-toast-close:hover {
@@ -251,7 +251,7 @@ defineExpose({ startAutoClose });
   bottom: 0;
   left: 0;
   right: 0;
-  height: 3px;
+  height: var(--coar-toast-progress-height);
   background: var(--coar-background-neutral-tertiary);
 }
 

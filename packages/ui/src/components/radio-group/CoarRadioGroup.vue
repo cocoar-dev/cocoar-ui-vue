@@ -66,17 +66,16 @@ function selectValue(value: unknown) {
   model.value = value;
 }
 
-// Provide context to child CoarRadioButton components
-const context = computed<RadioGroupContext>(() => ({
-  name: props.name,
-  size: props.size,
-  disabled: props.disabled,
-  hasError: hasError.value,
-  modelValue: model.value,
+// Provide individual refs to child CoarRadioButton components
+// so that each child only re-renders when the specific property it uses changes
+provide(RADIO_GROUP_INJECTION_KEY, {
+  name: computed(() => props.name),
+  size: computed(() => props.size),
+  disabled: computed(() => props.disabled),
+  hasError,
+  modelValue: computed(() => model.value),
   selectValue,
-}));
-
-provide(RADIO_GROUP_INJECTION_KEY, context);
+});
 </script>
 
 <template>
@@ -124,26 +123,7 @@ provide(RADIO_GROUP_INJECTION_KEY, context);
   gap: var(--coar-spacing-xl);
 }
 
-/* Message */
-.coar-form-field-message {
-  display: block;
-  margin-top: var(--coar-spacing-xs);
-  height: calc(var(--coar-body-caption-size) * 1.4);
-  font-family: var(--coar-body-caption-family);
-  font-size: var(--coar-body-caption-size);
-  font-weight: var(--coar-body-caption-weight);
-  line-height: 1.4;
-  color: var(--coar-text-neutral-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.coar-form-field-message:empty { visibility: hidden; }
-
-.coar-form-field-message--error {
-  color: var(--coar-text-semantic-error-bold);
-}
+/* Message styles are in shared/form-field-message.css */
 
 /* Disabled */
 .coar-radio-group--disabled {

@@ -21,8 +21,7 @@
 }
 
 :root.dark-mode,
-.dark-mode,
-[data-theme='dark'] {
+.dark-mode {
   /* Menu container background - dark, subtle for context menus */
   --coar-menu-background: var(--coar-color-gray-100, #27272a);
 
@@ -43,8 +42,7 @@
 }
 
 :root.dark-mode .coar-menu--sidebar,
-.dark-mode .coar-menu--sidebar,
-[data-theme='dark'] .coar-menu--sidebar {
+.dark-mode .coar-menu--sidebar {
   --coar-menu-background: var(--coar-background-neutral-secondary, #27272a);
   --coar-menu-item-background-hover: var(--coar-background-neutral-tertiary, #3f3f46);
   --coar-menu-item-background-focus: var(--coar-background-neutral-tertiary, #3f3f46);

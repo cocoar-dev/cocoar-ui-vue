@@ -413,21 +413,5 @@ function togglePasswordVisibility() {
   pointer-events: none;
 }
 
-/* Message */
-.coar-form-field-message {
-  display: block;
-  margin-top: var(--coar-spacing-xs);
-  height: calc(var(--coar-body-caption-size) * 1.4);
-  font-family: var(--coar-body-caption-family);
-  font-size: var(--coar-body-caption-size);
-  font-weight: var(--coar-body-caption-weight);
-  line-height: 1.4;
-  color: var(--coar-text-neutral-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.coar-form-field-message:empty { visibility: hidden; }
-.coar-form-field-message--error { color: var(--coar-text-semantic-error-bold); }
+/* Message styles are in shared/form-field-message.css */
 </style>

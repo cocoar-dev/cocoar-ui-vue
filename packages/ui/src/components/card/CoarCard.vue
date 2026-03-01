@@ -55,7 +55,7 @@ const hostClasses = computed(() => [
   display: block;
   border-radius: var(--coar-radius-s);
   border: 1px solid transparent;
-  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: background-color var(--coar-duration-normal) var(--coar-ease-out), border-color var(--coar-duration-normal) var(--coar-ease-out), box-shadow var(--coar-duration-normal) var(--coar-ease-out);
 }
 
 /* Elevated */

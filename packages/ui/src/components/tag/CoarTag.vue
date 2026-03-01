@@ -81,7 +81,7 @@ function onClose(event: MouseEvent): void {
   user-select: none;
   box-sizing: border-box;
   line-height: 1;
-  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: background-color var(--coar-duration-normal) var(--coar-ease-out), border-color var(--coar-duration-normal) var(--coar-ease-out), box-shadow var(--coar-duration-normal) var(--coar-ease-out);
 }
 
 /* Elevated */
@@ -152,7 +152,7 @@ function onClose(event: MouseEvent): void {
   color: inherit;
   opacity: 0.7;
   border-radius: var(--coar-radius-xxs);
-  transition: opacity 0.15s ease;
+  transition: opacity var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-tag__close:hover { opacity: 1; }

@@ -101,21 +101,21 @@ function onBlur() { isFocused.value = false; }
 
 /* Track sizes */
 .coar-switch--s {
-  --coar-switch-track-width: 32px;
-  --coar-switch-track-height: 18px;
-  --coar-switch-thumb-size: 14px;
+  --coar-switch-track-width: var(--coar-switch-s-track-width);
+  --coar-switch-track-height: var(--coar-switch-s-track-height);
+  --coar-switch-thumb-size: var(--coar-switch-s-thumb-size);
 }
 
 .coar-switch--m {
-  --coar-switch-track-width: 40px;
-  --coar-switch-track-height: 22px;
-  --coar-switch-thumb-size: 18px;
+  --coar-switch-track-width: var(--coar-switch-m-track-width);
+  --coar-switch-track-height: var(--coar-switch-m-track-height);
+  --coar-switch-thumb-size: var(--coar-switch-m-thumb-size);
 }
 
 .coar-switch--l {
-  --coar-switch-track-width: 48px;
-  --coar-switch-track-height: 26px;
-  --coar-switch-thumb-size: 22px;
+  --coar-switch-track-width: var(--coar-switch-l-track-width);
+  --coar-switch-track-height: var(--coar-switch-l-track-height);
+  --coar-switch-thumb-size: var(--coar-switch-l-thumb-size);
 }
 
 /* Wrapper */

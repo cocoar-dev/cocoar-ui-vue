@@ -18,11 +18,11 @@ const group = inject(RADIO_GROUP_INJECTION_KEY, undefined);
 const isFocused = ref(false);
 const autoId = `coar-radio-${crypto.randomUUID?.() ?? Date.now().toString(16)}`;
 
-const isChecked = computed(() => group?.value.modelValue === props.value);
-const isDisabled = computed(() => props.disabled || (group?.value.disabled ?? false));
-const groupSize = computed(() => group?.value.size ?? 'm');
-const groupHasError = computed(() => group?.value.hasError ?? false);
-const radioName = computed(() => group?.value.name ?? '');
+const isChecked = computed(() => group?.modelValue.value === props.value);
+const isDisabled = computed(() => props.disabled || (group?.disabled.value ?? false));
+const groupSize = computed(() => group?.size.value ?? 'm');
+const groupHasError = computed(() => group?.hasError.value ?? false);
+const radioName = computed(() => group?.name.value ?? '');
 
 const hostClasses = computed(() => [
   'coar-radio',
@@ -38,7 +38,7 @@ const hostClasses = computed(() => [
 function onInputChange() {
   if (isDisabled.value) return;
   if (group && !isChecked.value) {
-    group.value.selectValue(props.value);
+    group.selectValue(props.value);
   }
 }
 
@@ -48,7 +48,7 @@ function onClick(event: Event) {
     return;
   }
   if (group && !isChecked.value) {
-    group.value.selectValue(props.value);
+    group.selectValue(props.value);
   }
 }
 

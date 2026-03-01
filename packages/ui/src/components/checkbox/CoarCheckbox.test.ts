@@ -81,13 +81,13 @@ describe('CoarCheckbox', () => {
   it('shows error state', () => {
     const wrapper = mountCheckbox({ error: 'Must accept' });
     expect(wrapper.find('.coar-checkbox--error').exists()).toBe(true);
-    expect(wrapper.find('.coar-checkbox-message--error').text()).toBe('Must accept');
+    expect(wrapper.find('.coar-form-field-message--error').text()).toBe('Must accept');
   });
 
   it('shows hint when no error', () => {
     const wrapper = mountCheckbox({ hint: 'Optional' });
     expect(wrapper.find('.coar-checkbox-message').text()).toBe('Optional');
-    expect(wrapper.find('.coar-checkbox-message--error').exists()).toBe(false);
+    expect(wrapper.find('.coar-form-field-message--error').exists()).toBe(false);
   });
 
   it('error takes priority over hint', () => {

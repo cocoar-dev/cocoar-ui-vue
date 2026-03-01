@@ -265,8 +265,8 @@ function onLabelClick() {
   border-radius: var(--coar-radius-xs);
   background: var(--coar-surface-input);
   transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
+    border-color var(--coar-duration-fast) var(--coar-ease-out),
+    box-shadow var(--coar-duration-fast) var(--coar-ease-out);
   overflow: hidden;
 }
 
@@ -457,8 +457,8 @@ function onLabelClick() {
   font-size: var(--coar-body-small-base-size);
   cursor: pointer;
   transition:
-    color 0.15s ease,
-    opacity 0.15s ease;
+    color var(--coar-duration-fast) var(--coar-ease-out),
+    opacity var(--coar-duration-fast) var(--coar-ease-out);
   flex-shrink: 0;
   opacity: 0.4;
 }
@@ -501,21 +501,5 @@ function onLabelClick() {
   transition: background-color 5000s ease-in-out 0s;
 }
 
-/* Message (always reserves 1 line) */
-.coar-form-field-message {
-  display: block;
-  margin-top: var(--coar-spacing-xs);
-  height: calc(var(--coar-body-caption-size) * 1.4);
-  font-family: var(--coar-body-caption-family);
-  font-size: var(--coar-body-caption-size);
-  font-weight: var(--coar-body-caption-weight);
-  line-height: 1.4;
-  color: var(--coar-text-neutral-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.coar-form-field-message:empty { visibility: hidden; }
-.coar-form-field-message--error { color: var(--coar-text-semantic-error-bold); }
+/* Message styles are in shared/form-field-message.css */
 </style>
