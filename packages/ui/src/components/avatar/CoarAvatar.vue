@@ -128,8 +128,8 @@ defineExpose({ showInitials, displayInitials, computedBgColor });
 }
 
 .coar-avatar--clickable:focus-visible {
-  outline: 2px solid var(--coar-border-accent-primary);
-  outline-offset: 2px;
+  outline: var(--coar-focus-width) var(--coar-focus-style) var(--coar-focus-color);
+  outline-offset: var(--coar-focus-offset);
   border-radius: 50%;
 }
 

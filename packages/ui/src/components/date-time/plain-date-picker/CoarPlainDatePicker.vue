@@ -1100,7 +1100,7 @@ function onInputBlur() {
   font-family: var(--coar-body-small-base-family);
   font-size: var(--coar-body-caption-size);
   color: var(--coar-text-neutral-primary);
-  line-height: 1.3;
+  line-height: var(--coar-line-height-snug);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1110,7 +1110,7 @@ function onInputBlur() {
   font-family: var(--coar-body-small-base-family);
   font-size: var(--coar-component-xs-font-size);
   color: var(--coar-text-neutral-secondary);
-  line-height: 1.2;
+  line-height: var(--coar-line-height-tight);
 }
 
 /* ========================================
@@ -1124,7 +1124,7 @@ function onInputBlur() {
   font-family: var(--coar-body-caption-family);
   font-size: var(--coar-body-caption-size);
   font-weight: var(--coar-body-caption-weight);
-  line-height: 1.4;
+  line-height: var(--coar-line-height-normal);
   color: var(--coar-text-neutral-secondary);
   white-space: nowrap;
   overflow: hidden;

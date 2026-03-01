@@ -56,7 +56,7 @@ const hostClasses = computed(() => [
   border-collapse: collapse;
   font-family: var(--coar-body-base-family);
   font-size: var(--coar-body-small-base-size, 0.875rem);
-  line-height: 1.5;
+  line-height: var(--coar-line-height-relaxed);
 }
 
 /* Header */

@@ -95,7 +95,7 @@ const badgeClasses = computed(() => [
   text-align: center;
   font-variant-numeric: tabular-nums;
   box-sizing: border-box;
-  line-height: 1;
+  line-height: var(--coar-line-height-none);
 }
 
 .coar-badge__content {

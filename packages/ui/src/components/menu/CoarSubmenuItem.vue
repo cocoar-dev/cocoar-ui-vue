@@ -312,7 +312,7 @@ onBeforeUnmount(() => {
   font-family: var(--coar-font-family-body, Poppins, sans-serif);
   font-size: var(--coar-menu-item-font-size, var(--coar-component-m-font-size, 14px));
   font-weight: var(--coar-font-weight-regular, 400);
-  line-height: 1.5;
+  line-height: var(--coar-line-height-relaxed);
   color: var(--coar-text-neutral-primary, #545454);
   background: transparent;
   cursor: pointer;
@@ -331,7 +331,7 @@ onBeforeUnmount(() => {
 
 .coar-submenu-item:focus-visible {
   background: var(--coar-background-neutral-secondary, #f5f5f5);
-  outline: 2px solid var(--coar-border-accent-primary, #156db7);
+  outline: var(--coar-focus-width) var(--coar-focus-style) var(--coar-focus-color);
   outline-offset: -2px;
 }
 

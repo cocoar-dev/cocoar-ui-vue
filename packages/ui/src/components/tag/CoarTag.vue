@@ -80,7 +80,7 @@ function onClose(event: MouseEvent): void {
   white-space: nowrap;
   user-select: none;
   box-sizing: border-box;
-  line-height: 1;
+  line-height: var(--coar-line-height-none);
   transition: background-color var(--coar-duration-normal) var(--coar-ease-out), border-color var(--coar-duration-normal) var(--coar-ease-out), box-shadow var(--coar-duration-normal) var(--coar-ease-out);
 }
 
@@ -158,7 +158,7 @@ function onClose(event: MouseEvent): void {
 .coar-tag__close:hover { opacity: 1; }
 
 .coar-tag__close:focus-visible {
-  outline: 2px solid var(--coar-border-accent-primary);
+  outline: var(--coar-focus-width) var(--coar-focus-style) var(--coar-focus-color);
   outline-offset: 1px;
 }
 

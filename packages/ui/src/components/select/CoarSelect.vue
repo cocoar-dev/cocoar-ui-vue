@@ -390,8 +390,8 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
 }
 
 .coar-select-trigger--focused:not(.coar-select-trigger--error) {
-  border-color: var(--coar-border-accent-primary);
-  box-shadow: inset 0 0 0 1px var(--coar-border-accent-primary);
+  border-color: var(--coar-focus-color);
+  box-shadow: inset 0 0 0 1px var(--coar-focus-color);
 }
 
 .coar-select-trigger--disabled {
@@ -538,8 +538,8 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
 }
 
 .coar-select-search-input:focus {
-  border-color: var(--coar-border-accent-primary);
-  box-shadow: inset 0 0 0 1px var(--coar-border-accent-primary);
+  border-color: var(--coar-focus-color);
+  box-shadow: inset 0 0 0 1px var(--coar-focus-color);
 }
 
 /* Options */

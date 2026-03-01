@@ -103,7 +103,7 @@ defineProps<{
   font-size: var(--coar-body-small-base-size);
   color: var(--coar-text-neutral-secondary);
   margin-bottom: 0.75rem;
-  line-height: 1.4;
+  line-height: var(--coar-line-height-normal);
 }
 
 .coar-popconfirm-panel__actions {

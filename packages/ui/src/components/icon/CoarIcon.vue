@@ -188,7 +188,7 @@ const rotateTransitionValue = computed(() => {
   align-items: center;
   justify-content: center;
   vertical-align: middle;
-  line-height: 1;
+  line-height: var(--coar-line-height-none);
   aspect-ratio: 1;
 }
 

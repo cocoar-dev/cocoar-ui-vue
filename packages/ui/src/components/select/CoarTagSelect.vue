@@ -401,8 +401,8 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
 }
 
 .coar-tag-select-trigger--focused:not(.coar-tag-select-trigger--error) {
-  border-color: var(--coar-border-accent-primary);
-  box-shadow: inset 0 0 0 1px var(--coar-border-accent-primary);
+  border-color: var(--coar-focus-color);
+  box-shadow: inset 0 0 0 1px var(--coar-focus-color);
 }
 
 .coar-tag-select-trigger--disabled {
@@ -545,7 +545,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
   font-family: var(--coar-body-caption-family);
   font-size: var(--coar-body-caption-size);
   font-weight: var(--coar-body-caption-weight);
-  line-height: 1.4;
+  line-height: var(--coar-line-height-normal);
   color: var(--coar-text-neutral-secondary);
   white-space: nowrap;
   overflow: hidden;

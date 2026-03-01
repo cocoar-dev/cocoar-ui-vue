@@ -272,8 +272,8 @@ function togglePasswordVisibility() {
 
 /* Focus state */
 .coar-password-input-container.coar-password-input-focused:not(.coar-password-input-error) {
-  border-color: var(--coar-border-accent-primary);
-  box-shadow: inset 0 0 0 1px var(--coar-border-accent-primary);
+  border-color: var(--coar-focus-color);
+  box-shadow: inset 0 0 0 1px var(--coar-focus-color);
   outline: none;
 }
 

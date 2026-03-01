@@ -39,9 +39,17 @@
   --coar-titles-title-size: 48px;
   --coar-titles-title-weight: 700;
 
-  /* Line-height tokens */
-  --coar-body-base-line-height: 1.5;
-  --coar-body-small-base-line-height: 1.5;
+  /* Line-height scale */
+  --coar-line-height-none: 1;         /* Icons, badges, tags, compact inline elements */
+  --coar-line-height-tight: 1.2;      /* Display titles, large headings */
+  --coar-line-height-snug: 1.3;       /* Headings, subtitles */
+  --coar-line-height-normal: 1.4;     /* Subheadings, captions, helper text */
+  --coar-line-height-relaxed: 1.5;    /* Body small, code, tables */
+  --coar-line-height-loose: 1.6;      /* Body text, comfortable reading */
+
+  /* Semantic aliases (kept for backward compat) */
+  --coar-body-base-line-height: var(--coar-line-height-relaxed);
+  --coar-body-small-base-line-height: var(--coar-line-height-relaxed);
 
   /* Composed font shorthand tokens
      CSS font shorthand format: <weight> <size>/<line-height> <family> */

@@ -179,7 +179,7 @@ function trackByItem(index: number, item: PaginationPageItem): string {
   padding: 0 var(--coar-spacing-xs, 4px);
   font-size: var(--coar-pagination-font-size, var(--coar-font-size-s, 14px));
   font-family: inherit;
-  line-height: 1;
+  line-height: var(--coar-line-height-none);
   border: 1px solid transparent;
   border-radius: var(--coar-radius-xs, 4px);
   background: transparent;
@@ -202,7 +202,7 @@ function trackByItem(index: number, item: PaginationPageItem): string {
 }
 
 .coar-pagination-button:focus-visible {
-  outline: 2px solid var(--coar-focus-ring-color, var(--coar-border-brand-primary, #0066cc));
+  outline: var(--coar-focus-width) var(--coar-focus-style) var(--coar-focus-color);
   outline-offset: 1px;
 }
 

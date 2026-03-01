@@ -9,7 +9,7 @@
   --coar-focus-color: var(--coar-color-accent-300);
 
   /* The width of the focus outline or ring */
-  --coar-focus-width: 3px;
+  --coar-focus-width: 2px;
 
   /* Optional offset between the component and the ring */
   --coar-focus-offset: 2px;
@@ -20,10 +20,8 @@
   /* If you want a shadow-based focus instead of outline */
   --coar-focus-shadow: 0 0 0 var(--coar-focus-width) var(--coar-focus-color);
 
-  /* Border alias for focus outlines (used by dialog/toast focus-visible) */
+  /* Aliases (kept for backward compat — prefer --coar-focus-color directly) */
   --coar-border-focus: var(--coar-focus-color);
-
-  /* Ring color alias (used by pagination focus-visible) */
   --coar-focus-ring-color: var(--coar-focus-color);
 }
 

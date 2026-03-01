@@ -22,7 +22,7 @@ const props = defineProps<{
   font-family: var(--coar-font-family-body, Poppins, sans-serif);
   font-size: var(--coar-component-xs-font-size, 11px);
   font-weight: var(--coar-font-weight-semi-bold, 600);
-  line-height: 1.4;
+  line-height: var(--coar-line-height-normal);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--coar-text-neutral-secondary, #6b7280);

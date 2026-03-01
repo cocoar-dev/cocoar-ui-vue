@@ -462,8 +462,8 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
 }
 
 .coar-select-trigger--focused:not(.coar-select-trigger--error) {
-  border-color: var(--coar-border-accent-primary);
-  box-shadow: inset 0 0 0 1px var(--coar-border-accent-primary);
+  border-color: var(--coar-focus-color);
+  box-shadow: inset 0 0 0 1px var(--coar-focus-color);
 }
 
 .coar-select-trigger--disabled {
@@ -531,7 +531,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
   font-family: var(--coar-body-caption-family);
   font-size: var(--coar-body-caption-size);
   font-weight: var(--coar-body-small-bold-weight);
-  line-height: 1;
+  line-height: var(--coar-line-height-none);
 }
 
 /* Checkbox indicator */
@@ -630,8 +630,8 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
 .coar-select-search-input::placeholder { color: var(--coar-text-neutral-tertiary); }
 
 .coar-select-search-input:focus {
-  border-color: var(--coar-border-accent-primary);
-  box-shadow: inset 0 0 0 1px var(--coar-border-accent-primary);
+  border-color: var(--coar-focus-color);
+  box-shadow: inset 0 0 0 1px var(--coar-focus-color);
 }
 
 /* Options */
@@ -700,7 +700,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
   font-family: var(--coar-body-caption-family);
   font-size: var(--coar-body-caption-size);
   font-weight: var(--coar-body-caption-weight);
-  line-height: 1.4;
+  line-height: var(--coar-line-height-normal);
   color: var(--coar-text-neutral-secondary);
   white-space: nowrap;
   overflow: hidden;

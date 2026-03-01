@@ -144,8 +144,8 @@ function onBlur() { isFocused.value = false; }
 
 /* Focus */
 .coar-radio--focused .coar-radio__control {
-  border-color: var(--coar-border-accent-primary);
-  box-shadow: inset 0 0 0 1px var(--coar-border-accent-primary);
+  border-color: var(--coar-focus-color);
+  box-shadow: inset 0 0 0 1px var(--coar-focus-color);
 }
 
 /* Checked */

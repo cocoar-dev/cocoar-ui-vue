@@ -522,8 +522,8 @@ function onDragEnd() {
 
 /* Focus state */
 .coar-number-input-container.coar-number-input-focused:not(.coar-number-input-error) {
-  border-color: var(--coar-border-accent-primary);
-  box-shadow: inset 0 0 0 1px var(--coar-border-accent-primary);
+  border-color: var(--coar-focus-color);
+  box-shadow: inset 0 0 0 1px var(--coar-focus-color);
   outline: none;
 }
 
@@ -556,8 +556,8 @@ function onDragEnd() {
 }
 
 .coar-number-input-container.coar-number-input-dragging {
-  border-color: var(--coar-border-accent-primary);
-  box-shadow: inset 0 0 0 1px var(--coar-border-accent-primary);
+  border-color: var(--coar-focus-color);
+  box-shadow: inset 0 0 0 1px var(--coar-focus-color);
 }
 
 /* Input Field - right aligned for numbers */
@@ -735,7 +735,7 @@ function onDragEnd() {
   font-family: var(--coar-body-caption-family);
   font-size: var(--coar-body-caption-size);
   font-weight: var(--coar-body-caption-weight);
-  line-height: 1.4;
+  line-height: var(--coar-line-height-normal);
   color: var(--coar-text-neutral-secondary);
   white-space: nowrap;
   overflow: hidden;

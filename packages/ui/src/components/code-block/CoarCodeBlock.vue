@@ -315,7 +315,7 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
   gap: 0;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: var(--coar-component-s-font-size, 13px);
-  line-height: 1.5;
+  line-height: var(--coar-line-height-relaxed);
   color: var(--coar-code-block-text);
 }
 
@@ -345,7 +345,7 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
 .coar-code {
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: var(--coar-component-s-font-size, 13px);
-  line-height: 1.5;
+  line-height: var(--coar-line-height-relaxed);
   color: var(--coar-code-block-text);
   white-space: pre;
   display: block;

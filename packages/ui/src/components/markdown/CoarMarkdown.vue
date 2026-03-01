@@ -46,7 +46,7 @@ defineProps<CoarMarkdownProps>();
 .coar-markdown h1 {
   font-size: var(--coar-font-size-xl);
   font-weight: var(--coar-font-weight-bold);
-  line-height: 1.2;
+  line-height: var(--coar-line-height-tight);
 }
 
 .coar-markdown h2 {
@@ -58,7 +58,7 @@ defineProps<CoarMarkdownProps>();
 .coar-markdown h3 {
   font-size: var(--coar-font-size-m);
   font-weight: var(--coar-font-weight-semi-bold);
-  line-height: 1.3;
+  line-height: var(--coar-line-height-snug);
 }
 
 .coar-markdown h4 {
@@ -70,7 +70,7 @@ defineProps<CoarMarkdownProps>();
 .coar-markdown h5 {
   font-size: var(--coar-font-size-xs);
   font-weight: var(--coar-font-weight-semi-bold);
-  line-height: 1.4;
+  line-height: var(--coar-line-height-normal);
 }
 
 .coar-markdown h6 {

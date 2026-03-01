@@ -71,6 +71,14 @@ function handleClick(event: MouseEvent) {
     :aria-label="ariaLabel"
     @click="handleClick"
   >
+    <!-- Screen reader loading announcement -->
+    <span
+      v-if="loading"
+      class="coar-button__sr-status"
+      role="status"
+      aria-live="polite"
+    >Loading</span>
+
     <!-- Loading Spinner: Centered overlay when no icons -->
     <span
       v-if="loading && !iconStart && !iconEnd"
@@ -144,8 +152,8 @@ function handleClick(event: MouseEvent) {
 }
 
 .coar-button:focus-visible {
-  outline: 2px solid var(--coar-border-accent-primary);
-  outline-offset: 2px;
+  outline: var(--coar-focus-width) var(--coar-focus-style) var(--coar-focus-color);
+  outline-offset: var(--coar-focus-offset);
 }
 
 /* ========================================
@@ -317,7 +325,7 @@ function handleClick(event: MouseEvent) {
   width: 1.25em;
   height: 1.25em;
   font-size: 1.125em;
-  line-height: 1;
+  line-height: var(--coar-line-height-none);
   flex-shrink: 0;
 }
 
@@ -327,6 +335,19 @@ function handleClick(event: MouseEvent) {
 
 .coar-button__icon--end {
   margin-right: -0.125rem;
+}
+
+/* Screen reader status */
+.coar-button__sr-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* Spinner */
@@ -344,7 +365,7 @@ function handleClick(event: MouseEvent) {
   width: 1.25em;
   height: 1.25em;
   font-size: 1.125em;
-  line-height: 1;
+  line-height: var(--coar-line-height-none);
   flex-shrink: 0;
 }
 

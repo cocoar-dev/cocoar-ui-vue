@@ -218,7 +218,7 @@ defineExpose({ startAutoClose });
 }
 
 .coar-toast-action-btn:focus-visible {
-  outline: 2px solid var(--coar-border-focus);
+  outline: var(--coar-focus-width) var(--coar-focus-style) var(--coar-focus-color);
   outline-offset: -2px;
 }
 
@@ -241,7 +241,7 @@ defineExpose({ startAutoClose });
 }
 
 .coar-toast-close:focus-visible {
-  outline: 2px solid var(--coar-border-focus);
+  outline: var(--coar-focus-width) var(--coar-focus-style) var(--coar-focus-color);
   outline-offset: -2px;
 }
 

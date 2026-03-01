@@ -243,7 +243,7 @@ function onKeydown(event: KeyboardEvent) {
 }
 
 .coar-tab-button:focus-visible {
-  outline: 2px solid var(--coar-border-accent-primary);
+  outline: var(--coar-focus-width) var(--coar-focus-style) var(--coar-focus-color);
   outline-offset: -2px;
   border-radius: var(--coar-radius-xs) var(--coar-radius-xs) 0 0;
 }
