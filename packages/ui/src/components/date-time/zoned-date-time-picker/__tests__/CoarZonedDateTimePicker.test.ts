@@ -208,7 +208,6 @@ describe('CoarZonedDateTimePicker', () => {
       const w = mountPicker({ locale: 'de-DE', timeZone: 'Europe/Vienna' });
       const input = w.find('.coar-zdtp-input');
       await input.setValue('15.06.2025 14:30');
-      await input.trigger('input');
 
       const emitted = w.emitted('update:modelValue');
       expect(emitted).toBeTruthy();
