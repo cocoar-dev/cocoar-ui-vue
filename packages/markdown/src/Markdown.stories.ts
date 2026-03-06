@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/vue3';
 import { parse } from '@cocoar/vue-markdown-core';
-import { CoarMarkdown } from '@cocoar/vue-ui';
+import { CoarMarkdown } from '@cocoar/vue-markdown';
 
 const meta: Meta<typeof CoarMarkdown> = {
   title: 'Data Display/Markdown',
@@ -104,16 +104,17 @@ This project provides a **powerful** markdown rendering engine with support for 
 
 ### Getting Started
 
-Install the package:
+Install the packages:
 
 \`\`\`bash
-pnpm add @cocoar/vue-markdown-core
+pnpm add @cocoar/vue-markdown @cocoar/vue-markdown-core
 \`\`\`
 
 Then use it in your component:
 
 \`\`\`typescript
 import { parse } from '@cocoar/vue-markdown-core';
+import { CoarMarkdown } from '@cocoar/vue-markdown';
 
 const doc = parse('# Hello World');
 \`\`\`

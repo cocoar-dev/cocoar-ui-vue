@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { MarkdownNode } from '@cocoar/vue-markdown-core';
-import CoarCodeBlock from '../code-block/CoarCodeBlock.vue';
-import CoarTable from '../table/CoarTable.vue';
+import { CoarCodeBlock, CoarTable } from '@cocoar/vue-ui';
 import MarkdownInlineNode from './MarkdownInlineNode.vue';
 import {
   headingDepth,

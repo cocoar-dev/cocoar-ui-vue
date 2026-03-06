@@ -7,8 +7,11 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
-    "@cocoar/vue-core": "workspace:*",
     "@cocoar/vue-data-grid": "workspace:*",
+    "@cocoar/vue-fragment-parser": "workspace:*",
+    "@cocoar/vue-localization": "workspace:*",
+    "@cocoar/vue-markdown": "workspace:*",
+    "@cocoar/vue-markdown-core": "workspace:*",
     "@cocoar/vue-ui": "workspace:*"
   }
 }

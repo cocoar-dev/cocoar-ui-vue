@@ -2,6 +2,7 @@
 import {
   computed,
   nextTick,
+  onBeforeUnmount,
   onMounted,
   ref,
   watch,
@@ -119,6 +120,7 @@ const weekdayHeaders = computed((): WeekdayHeader[] => {
 const MONTHS_BEFORE = 12;
 const MONTHS_AFTER = 12;
 const MONTHS_TO_LOAD = 6;
+const MAX_MONTHS_IN_DOM = 25;
 
 const earliestMonth = ref<Temporal.PlainYearMonth>(
   Temporal.Now.plainDateISO().toPlainYearMonth().subtract({ months: MONTHS_BEFORE }),
@@ -136,6 +138,16 @@ const isScrollPositioned = ref(false);
 let isScrollingProgrammatically = false;
 let isUpdatingFromScroll = false;
 let isLoadingMonths = false;
+
+/**
+ * Returns the actual scrolling element — the OverlayScrollbars viewport if present,
+ * otherwise falls back to the container itself.
+ */
+function getScrollViewport(): HTMLElement | null {
+  const container = scrollContainerRef.value;
+  if (!container) return null;
+  return (container.querySelector('[data-overlayscrollbars-viewport]') as HTMLElement) ?? container;
+}
 
 // ============================================================
 // Month generation
@@ -233,8 +245,7 @@ function scrollToMonth(targetMonth: Temporal.PlainYearMonth, smooth = false): vo
 
   isScrollingProgrammatically = true;
 
-  // Use the OverlayScrollbars viewport if available, otherwise the container itself
-  const viewport = container.querySelector('[data-overlayscrollbars-viewport]') as HTMLElement ?? container;
+  const viewport = getScrollViewport() ?? container;
 
   if (smooth) {
     viewport.scrollTo({ top: el.offsetTop, behavior: 'smooth' });
@@ -309,10 +320,10 @@ function onScroll(): void {
 
 function checkInfiniteScroll(): void {
   if (isLoadingMonths || isScrollingProgrammatically) return;
-  const container = scrollContainerRef.value;
-  if (!container) return;
+  const viewport = getScrollViewport();
+  if (!viewport) return;
 
-  const { scrollTop, scrollHeight, clientHeight } = container;
+  const { scrollTop, scrollHeight, clientHeight } = viewport;
   const threshold = 500;
 
   const minMonth = props.min?.toPlainYearMonth() ?? null;
@@ -333,8 +344,8 @@ function loadEarlierMonths(): void {
   if (isLoadingMonths) return;
   isLoadingMonths = true;
 
-  const container = scrollContainerRef.value;
-  const scrollHeightBefore = container?.scrollHeight ?? 0;
+  const viewport = getScrollViewport();
+  const scrollHeightBefore = viewport?.scrollHeight ?? 0;
 
   const minMonth = props.min?.toPlainYearMonth() ?? null;
   let current = earliestMonth.value;
@@ -351,11 +362,12 @@ function loadEarlierMonths(): void {
 
   earliestMonth.value = current;
   months.value = [...newMonths, ...months.value];
+  trimMonthsFromEnd();
 
   requestAnimationFrame(() => {
-    if (container) {
-      const addedHeight = container.scrollHeight - scrollHeightBefore;
-      container.scrollTop += addedHeight;
+    if (viewport) {
+      const addedHeight = viewport.scrollHeight - scrollHeightBefore;
+      viewport.scrollTop += addedHeight;
     }
     isLoadingMonths = false;
   });
@@ -380,8 +392,26 @@ function loadLaterMonths(): void {
 
   latestMonth.value = current;
   months.value = [...months.value, ...newMonths];
+  trimMonthsFromBeginning();
 
   requestAnimationFrame(() => { isLoadingMonths = false; });
+}
+
+function trimMonthsFromEnd(): void {
+  const current = months.value;
+  if (current.length <= MAX_MONTHS_IN_DOM) return;
+  const trimmed = current.slice(0, MAX_MONTHS_IN_DOM);
+  months.value = trimmed;
+  latestMonth.value = trimmed[trimmed.length - 1].yearMonth;
+}
+
+function trimMonthsFromBeginning(): void {
+  const current = months.value;
+  if (current.length <= MAX_MONTHS_IN_DOM) return;
+  const trimCount = current.length - MAX_MONTHS_IN_DOM;
+  const trimmed = current.slice(trimCount);
+  months.value = trimmed;
+  earliestMonth.value = trimmed[0].yearMonth;
 }
 
 // ============================================================
@@ -483,13 +513,51 @@ watch(modelValue, (val) => {
 
 if (!focusedDate.value) focusedDate.value = today.value;
 
-// Mount: scroll to active month
-// Use setTimeout(0) to defer scroll until after OverlayScrollbars has initialized
-// and the browser has completed layout of the Teleport-rendered panel.
+// Mount: scroll to active month immediately (works with native overflow-y:auto
+// before OverlayScrollbars takes over), then observe for the OverlayScrollbars
+// viewport element to appear and attach the scroll listener to it.
+let scrollListenerTarget: HTMLElement | null = null;
+let viewportObserver: MutationObserver | null = null;
+
+function attachScrollListener(): void {
+  const viewport = getScrollViewport();
+  if (viewport && viewport !== scrollListenerTarget) {
+    scrollListenerTarget?.removeEventListener('scroll', onScroll);
+    viewport.addEventListener('scroll', onScroll, { passive: true });
+    scrollListenerTarget = viewport;
+  }
+}
+
 onMounted(() => {
-  setTimeout(() => {
-    scrollToMonth(activeMonth.value, false);
-  }, 0);
+  // Defer initial scroll to after layout
+  setTimeout(() => scrollToMonth(activeMonth.value, false), 0);
+
+  const container = scrollContainerRef.value;
+  if (!container) return;
+
+  // If OverlayScrollbars viewport already exists (sync init), attach immediately
+  if (container.querySelector('[data-overlayscrollbars-viewport]')) {
+    attachScrollListener();
+  } else {
+    // Wait for OverlayScrollbars to create the viewport via requestIdleCallback
+    viewportObserver = new MutationObserver(() => {
+      if (container.querySelector('[data-overlayscrollbars-viewport]')) {
+        viewportObserver!.disconnect();
+        viewportObserver = null;
+        attachScrollListener();
+      }
+    });
+    viewportObserver.observe(container, { childList: true });
+  }
+});
+
+onBeforeUnmount(() => {
+  viewportObserver?.disconnect();
+  viewportObserver = null;
+  if (scrollListenerTarget) {
+    scrollListenerTarget.removeEventListener('scroll', onScroll);
+    scrollListenerTarget = null;
+  }
 });
 </script>
 
@@ -520,7 +588,6 @@ onMounted(() => {
         ref="scrollContainerRef"
         v-scrollbar="{ overflowX: 'hidden', autoHide: 'leave' }"
         class="coar-scrollable-calendar__months"
-        @scroll="onScroll"
       >
         <div
           v-for="month in months"

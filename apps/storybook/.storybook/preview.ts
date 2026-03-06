@@ -1,4 +1,5 @@
 import type { Preview } from '@storybook/vue3';
+import { CoarOverlayPlugin, CoarOverlayHost } from '@cocoar/vue-ui';
 import '@cocoar/vue-ui/styles';
 
 const preview: Preview = {
@@ -27,7 +28,14 @@ const preview: Preview = {
       document.documentElement.classList.toggle('dark-mode', isDark);
       document.body.style.backgroundColor = isDark ? 'var(--coar-background-neutral-primary)' : '';
       document.body.style.color = isDark ? 'var(--coar-text-neutral-primary)' : '';
-      return story();
+      return {
+        components: { story: story(), CoarOverlayHost },
+        template: '<story /><CoarOverlayHost />',
+        beforeCreate() {
+          // Install on each new Vue app; Vue deduplicates per-app automatically
+          this.$.appContext.app.use(CoarOverlayPlugin);
+        },
+      };
     },
   ],
   parameters: {

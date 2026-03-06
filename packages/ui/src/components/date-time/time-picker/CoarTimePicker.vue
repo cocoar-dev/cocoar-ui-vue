@@ -467,13 +467,13 @@ const sizeClass = computed(
 }
 
 .coar-time-picker__btn:hover:not(:disabled) {
-  background: var(--coar-surface-neutral-hover);
+  background: var(--coar-background-neutral-secondary);
   color: var(--coar-icon-neutral-primary);
   opacity: 1;
 }
 
 .coar-time-picker__btn:active:not(:disabled) {
-  background: var(--coar-surface-neutral-pressed);
+  background: var(--coar-background-neutral-tertiary);
 }
 
 .coar-time-picker__btn:disabled {

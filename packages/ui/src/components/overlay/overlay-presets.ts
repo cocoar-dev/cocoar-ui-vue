@@ -104,6 +104,25 @@ export const dialogPreset: OverlaySpec = {
  * Preset for popconfirm overlays.
  * Anchor-relative, no backdrop, outside-click + escape dismiss.
  */
+/**
+ * Preset for date picker overlays.
+ * Anchor-relative, no backdrop, outside-click + escape dismiss, focus restore.
+ */
+export const datepickerPreset: OverlaySpec = {
+  position: {
+    placement: ['bottom-start', 'top-start'],
+    offset: 4,
+    flip: true,
+    shift: true,
+  },
+  backdrop: { kind: 'none' },
+  scroll: { strategy: 'reposition' },
+  dismiss: { outsideClick: true, escapeKey: true },
+  focus: { trap: false, restore: true },
+  a11y: { role: 'dialog' },
+  attachment: { strategy: 'body' },
+};
+
 export const popconfirmPreset: OverlaySpec = {
   position: {
     placement: ['top', 'bottom', 'left', 'right'],

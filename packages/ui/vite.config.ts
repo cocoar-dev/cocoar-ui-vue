@@ -14,11 +14,16 @@ export default defineConfig({
       fileName: 'index',
     },
     rollupOptions: {
-      external: ['vue', '@cocoar/vue-core'],
+      external: [
+        'vue',
+        '@cocoar/vue-localization',
+        '@cocoar/vue-fragment-parser',
+      ],
       output: {
         globals: {
           vue: 'Vue',
-          '@cocoar/vue-core': 'CocoarVueCore',
+          '@cocoar/vue-localization': 'CocoarVueLocalization',
+          '@cocoar/vue-fragment-parser': 'CocoarVueFragmentParser',
         },
       },
     },

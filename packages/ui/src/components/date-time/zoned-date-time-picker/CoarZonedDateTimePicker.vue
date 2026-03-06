@@ -1,19 +1,13 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch, markRaw } from 'vue';
 
 import { Temporal } from '@js-temporal/polyfill';
 import { Maskito } from '@maskito/core';
 
 import CoarIcon from '../../icon/CoarIcon.vue';
-import CoarScrollableCalendar from '../scrollable-calendar/CoarScrollableCalendar.vue';
-import CoarTimePicker from '../time-picker/CoarTimePicker.vue';
-import {
-  computeOverlayCoordinates,
-  getViewportRect,
-  getScrollParents,
-} from '../../overlay/overlay-position';
-import type { Placement, PositionSpec } from '../../overlay/overlay-types';
-import { vScrollbar } from '../../scrollbar';
+import { getOverlayService } from '../../overlay/useOverlay';
+import { datepickerPreset } from '../../overlay/overlay-presets';
+import type { OverlayRef } from '../../overlay/overlay-types';
 import { useDatePickerBase } from '../_shared/use-date-picker-base';
 import {
   coarFormatPlainDate,
@@ -29,11 +23,9 @@ import { coarCreateDateTimeMask } from '../_shared/maskito-config';
 import type { DateFormatConfig, CoarDateMarker, CoarTimeValue } from '../_shared/types';
 import {
   coarGetAllTimezones,
-  coarFilterTimezones,
-  coarGroupTimezones,
   coarFormatTimezoneLabel,
-  type TimezoneGroup,
 } from '../_shared/timezone-helpers';
+import CoarZonedDateTimePickerPanel from './CoarZonedDateTimePickerPanel.vue';
 
 export type CoarZonedDateTimePickerSize = 'xs' | 's' | 'm' | 'l';
 
@@ -120,10 +112,6 @@ const pendingTime = ref<CoarTimeValue | null>(null);
 
 // Timezone state
 const displayTimeZone = ref<string | null>(null);
-const isSelectingDisplayTimezone = ref(false);
-const isEditingValueTimezone = ref(false);
-const timezoneSearchQuery = ref('');
-const tzSearchInputRef = ref<HTMLInputElement | null>(null);
 
 // IDs
 const uid = `coar-zdtp-${crypto.randomUUID?.() ?? Date.now().toString(16)}`;
@@ -134,8 +122,10 @@ const messageId = `${uid}-message`;
 
 // Refs
 const triggerRef = ref<HTMLElement | null>(null);
-const panelRef = ref<HTMLElement | null>(null);
 const dateInputRef = ref<HTMLInputElement | null>(null);
+
+// Overlay
+let overlayRef: OverlayRef | null = null;
 
 // Display value
 const displayValue = ref('');
@@ -205,24 +195,6 @@ const valueTimeZoneLabel = computed(() => {
 // ============================================================
 
 const allTimezones = coarGetAllTimezones();
-
-/** Filtered timezone IDs based on timezoneFilter prop */
-const filteredTimezones = computed(() =>
-  coarFilterTimezones(allTimezones, props.timezoneFilter),
-);
-
-/** Grouped timezones for the display timezone picker */
-const groupedTimezoneList = computed((): TimezoneGroup[] =>
-  coarGroupTimezones(filteredTimezones.value, timezoneSearchQuery.value),
-);
-
-/** Flat timezone options for the value timezone select (footer) */
-const timezoneOptions = computed(() =>
-  filteredTimezones.value.map((tz) => ({
-    id: tz,
-    label: coarFormatTimezoneLabel(tz),
-  })),
-);
 
 // ============================================================
 // Use24Hour / Maskito
@@ -304,7 +276,13 @@ watch([dateInputRef, () => pickerBase.effectiveDateFormat.value], () => {
   nextTick(() => initMaskito());
 });
 
-onBeforeUnmount(() => maskitoInstance?.destroy());
+onBeforeUnmount(() => {
+  maskitoInstance?.destroy();
+  if (overlayRef && !overlayRef.isClosed) {
+    overlayRef.close();
+    overlayRef = null;
+  }
+});
 
 // ============================================================
 // Computed helpers
@@ -366,157 +344,10 @@ const effectiveMaxTime = computed((): CoarTimeValue | null => {
   return null;
 });
 
-// Month list
-const currentYear = computed(() => activeMonth.value.year);
-const currentMonthNumber = computed(() => activeMonth.value.month);
-const isPrevYearDisabled = computed(() => currentYear.value <= Temporal.Now.plainDateISO().year - 100);
-const isNextYearDisabled = computed(() => currentYear.value >= Temporal.Now.plainDateISO().year + 50);
-const monthItems = computed(() => {
-  const year = currentYear.value;
-  const active = currentMonthNumber.value;
-  const locale = pickerBase.effectiveLocale.value;
-  const formatter = new Intl.DateTimeFormat(locale, { month: 'short' });
-  const items: Array<{ month: number; name: string; isActive: boolean; yearMonth: Temporal.PlainYearMonth }> = [];
-  for (let m = 1; m <= 12; m++) {
-    items.push({
-      month: m,
-      name: formatter.format(new Date(year, m - 1, 1)),
-      isActive: m === active,
-      yearMonth: Temporal.PlainYearMonth.from({ year, month: m }),
-    });
-  }
-  return items;
-});
-
-// Today FAB
+// Year boundary helpers
+const isPrevYearDisabled = computed(() => activeMonth.value.year <= Temporal.Now.plainDateISO().year - 100);
+const isNextYearDisabled = computed(() => activeMonth.value.year >= Temporal.Now.plainDateISO().year + 50);
 const today = computed(() => Temporal.Now.plainDateISO());
-const todayMonthDirection = computed((): 'up' | 'down' | 'hidden' => {
-  const cmp = Temporal.PlainYearMonth.compare(activeMonth.value, today.value.toPlainYearMonth());
-  if (cmp === 0) return 'hidden';
-  return cmp > 0 ? 'up' : 'down';
-});
-const showTodayFab = computed(() => props.showTodayMonthButton && todayMonthDirection.value !== 'hidden');
-
-// Selected date markers
-const selectedDateMarkers = computed((): CoarDateMarker[] => {
-  const date = selectedDate.value;
-  if (!date) return [];
-  return props.markers.filter((m) => {
-    const afterStart = Temporal.PlainDate.compare(date, m.startDate) >= 0;
-    const beforeEnd = m.endDate
-      ? Temporal.PlainDate.compare(date, m.endDate) <= 0
-      : Temporal.PlainDate.compare(date, m.startDate) === 0;
-    return afterStart && beforeEnd;
-  });
-});
-
-// ============================================================
-// Panel positioning
-// ============================================================
-
-const panelLeft = ref(0);
-const panelTop = ref(0);
-const positionSpec: PositionSpec = {
-  placement: ['bottom-start', 'top-start'] as Placement[],
-  offset: 4,
-  flip: true,
-  shift: true,
-};
-let scrollParents: Element[] = [];
-let resizeObserver: ResizeObserver | null = null;
-let rafId: number | null = null;
-
-function repositionPanel() {
-  if (!triggerRef.value || !panelRef.value) return;
-  const viewport = getViewportRect();
-  const anchorRect = triggerRef.value.getBoundingClientRect();
-  const panelRect = panelRef.value.getBoundingClientRect();
-  const coords = computeOverlayCoordinates(anchorRect, { width: panelRect.width, height: panelRect.height }, positionSpec, viewport);
-  panelLeft.value = Math.round(coords.left);
-  panelTop.value = Math.round(coords.top);
-}
-
-function scheduleReposition() {
-  if (rafId != null) return;
-  rafId = requestAnimationFrame(() => { rafId = null; if (pickerBase.isOpen.value) repositionPanel(); });
-}
-
-function installListeners() {
-  if (!triggerRef.value) return;
-  scrollParents = getScrollParents(triggerRef.value);
-  for (const sp of scrollParents) sp.addEventListener('scroll', scheduleReposition, { passive: true });
-  window.addEventListener('resize', scheduleReposition, { passive: true });
-  resizeObserver = new ResizeObserver(scheduleReposition);
-  resizeObserver.observe(triggerRef.value);
-}
-
-function removeListeners() {
-  for (const sp of scrollParents) sp.removeEventListener('scroll', scheduleReposition);
-  scrollParents = [];
-  window.removeEventListener('resize', scheduleReposition);
-  resizeObserver?.disconnect();
-  resizeObserver = null;
-  if (rafId != null) { cancelAnimationFrame(rafId); rafId = null; }
-}
-
-// ============================================================
-// Open / close
-// ============================================================
-
-function openPanel() {
-  if (isDisabled.value || props.readonly || pickerBase.isOpen.value) return;
-  if (valueInWorkingTz.value) {
-    activeMonth.value = valueInWorkingTz.value.toPlainDate().toPlainYearMonth();
-  }
-  isSelectingDisplayTimezone.value = false;
-  isEditingValueTimezone.value = false;
-  timezoneSearchQuery.value = '';
-  pickerBase.open();
-  emit('opened');
-  nextTick(() => requestAnimationFrame(() => { repositionPanel(); installListeners(); }));
-}
-
-function closePanel() {
-  if (!pickerBase.isOpen.value) return;
-  pickerBase.close();
-  removeListeners();
-  isSelectingDisplayTimezone.value = false;
-  isEditingValueTimezone.value = false;
-  emit('closed');
-}
-
-function togglePanel() {
-  if (pickerBase.isOpen.value) {
-    closePanel();
-  } else {
-    openPanel();
-  }
-}
-
-// Outside click
-function onDocumentMouseDown(event: MouseEvent) {
-  if (!pickerBase.isOpen.value) return;
-  const target = event.target as Node;
-  if (triggerRef.value?.contains(target) || panelRef.value?.contains(target)) return;
-  closePanel();
-}
-
-onMounted(() => {
-  document.addEventListener('mousedown', onDocumentMouseDown);
-  nextTick(() => initMaskito());
-});
-onBeforeUnmount(() => {
-  document.removeEventListener('mousedown', onDocumentMouseDown);
-  removeListeners();
-});
-
-function onKeydown(event: KeyboardEvent) {
-  if (event.key === 'Escape' && pickerBase.isOpen.value) {
-    event.preventDefault(); closePanel(); dateInputRef.value?.focus();
-  } else if ((event.key === 'Enter' || event.key === 'ArrowDown') && !pickerBase.isOpen.value) {
-    event.preventDefault(); openPanel();
-  }
-}
 
 // ============================================================
 // Clamping
@@ -533,6 +364,177 @@ function clampZonedDateTime(zdt: Temporal.ZonedDateTime): Temporal.ZonedDateTime
 }
 
 // ============================================================
+// Open / close
+// ============================================================
+
+function openPanel() {
+  if (isDisabled.value || props.readonly || pickerBase.isOpen.value) return;
+  if (valueInWorkingTz.value) {
+    activeMonth.value = valueInWorkingTz.value.toPlainDate().toPlainYearMonth();
+  }
+
+  const trigger = triggerRef.value;
+  if (!trigger) return;
+
+  const panelInputs = reactive({
+    modelValue: selectedDate.value,
+    activeMonth: activeMonth.value,
+    min: minDate.value,
+    max: maxDate.value,
+    locale: pickerBase.effectiveLocale.value,
+    dateFormatConfig: pickerBase.effectiveDateFormat.value,
+    showWeekNumbers: props.showWeekNumbers,
+    highlightWeekends: props.highlightWeekends,
+    markers: props.markers,
+    showTodayMonthButton: props.showTodayMonthButton,
+    selectedTime: selectedTime.value,
+    use24Hour: effectiveUse24Hour.value,
+    minuteStep: props.minuteStep,
+    effectiveMinTime: effectiveMinTime.value,
+    effectiveMaxTime: effectiveMaxTime.value,
+    effectiveDisplayTimeZone: effectiveDisplayTimeZone.value,
+    valueTimeZone: valueTimeZone.value,
+    allTimezones,
+    timezoneFilter: props.timezoneFilter,
+    valueTimeZoneLabel: valueTimeZoneLabel.value,
+    timeZonesDiffer: timeZonesDiffer.value,
+    hasValue: modelValue.value != null,
+    formatValueInValueTz: formatValueInValueTz(),
+    onDateSelected: (date: Temporal.PlainDate) => {
+      const time = selectedTime.value ?? props.defaultTime;
+      const pdt = date.toPlainDateTime({
+        hour: time.hours,
+        minute: coarRoundMinutesToStep(time.minutes, props.minuteStep),
+      });
+      const tz = valueTimeZone.value ?? effectiveDefaultTimeZone.value;
+      let zdt: Temporal.ZonedDateTime;
+      if (workingTimeZone.value !== tz) {
+        const inDisplayTz = pdt.toZonedDateTime(workingTimeZone.value);
+        zdt = inDisplayTz.withTimeZone(tz);
+      } else {
+        zdt = pdt.toZonedDateTime(tz);
+      }
+      zdt = clampZonedDateTime(zdt);
+      modelValue.value = zdt;
+    },
+    onActiveMonthChanged: (ym: Temporal.PlainYearMonth) => {
+      activeMonth.value = ym;
+    },
+    onSelectMonth: (ym: Temporal.PlainYearMonth) => {
+      activeMonth.value = ym;
+    },
+    onPreviousYear: () => {
+      if (!isPrevYearDisabled.value) activeMonth.value = activeMonth.value.subtract({ years: 1 });
+    },
+    onNextYear: () => {
+      if (!isNextYearDisabled.value) activeMonth.value = activeMonth.value.add({ years: 1 });
+    },
+    onScrollToTodayMonth: () => {
+      activeMonth.value = today.value.toPlainYearMonth();
+    },
+    onTimeChanged: (time: CoarTimeValue | null) => {
+      if (!time) return;
+      if (selectedDate.value) {
+        const pdt = selectedDate.value.toPlainDateTime({ hour: time.hours, minute: time.minutes });
+        const tz = valueTimeZone.value ?? effectiveDefaultTimeZone.value;
+        let zdt: Temporal.ZonedDateTime;
+        if (workingTimeZone.value !== tz) {
+          const inDisplayTz = pdt.toZonedDateTime(workingTimeZone.value);
+          zdt = inDisplayTz.withTimeZone(tz);
+        } else {
+          zdt = pdt.toZonedDateTime(tz);
+        }
+        zdt = clampZonedDateTime(zdt);
+        modelValue.value = zdt;
+      } else {
+        pendingTime.value = time;
+      }
+    },
+    onSelectDisplayTimezone: (tzId: string) => {
+      displayTimeZone.value = tzId;
+    },
+    onChangeValueTimezone: (newTzId: string) => {
+      if (modelValue.value) {
+        const pdt = modelValue.value.toPlainDateTime();
+        modelValue.value = pdt.toZonedDateTime(newTzId);
+      }
+    },
+  });
+
+  // Sync parent state → panel inputs
+  const stopWatchers: Array<() => void> = [];
+  stopWatchers.push(watch(selectedDate, (v) => { panelInputs.modelValue = v; }));
+  stopWatchers.push(watch(activeMonth, (v) => { panelInputs.activeMonth = v; }));
+  stopWatchers.push(watch(minDate, (v) => { panelInputs.min = v; }));
+  stopWatchers.push(watch(maxDate, (v) => { panelInputs.max = v; }));
+  stopWatchers.push(watch(() => pickerBase.effectiveLocale.value, (v) => { panelInputs.locale = v; }));
+  stopWatchers.push(watch(() => pickerBase.effectiveDateFormat.value, (v) => { panelInputs.dateFormatConfig = v; }));
+  stopWatchers.push(watch(() => props.showWeekNumbers, (v) => { panelInputs.showWeekNumbers = v; }));
+  stopWatchers.push(watch(() => props.highlightWeekends, (v) => { panelInputs.highlightWeekends = v; }));
+  stopWatchers.push(watch(() => props.markers, (v) => { panelInputs.markers = v; }));
+  stopWatchers.push(watch(() => props.showTodayMonthButton, (v) => { panelInputs.showTodayMonthButton = v; }));
+  stopWatchers.push(watch(selectedTime, (v) => { panelInputs.selectedTime = v; }));
+  stopWatchers.push(watch(effectiveUse24Hour, (v) => { panelInputs.use24Hour = v; }));
+  stopWatchers.push(watch(() => props.minuteStep, (v) => { panelInputs.minuteStep = v; }));
+  stopWatchers.push(watch(effectiveMinTime, (v) => { panelInputs.effectiveMinTime = v; }));
+  stopWatchers.push(watch(effectiveMaxTime, (v) => { panelInputs.effectiveMaxTime = v; }));
+  stopWatchers.push(watch(effectiveDisplayTimeZone, (v) => { panelInputs.effectiveDisplayTimeZone = v; }));
+  stopWatchers.push(watch(valueTimeZone, (v) => { panelInputs.valueTimeZone = v; }));
+  stopWatchers.push(watch(() => props.timezoneFilter, (v) => { panelInputs.timezoneFilter = v; }));
+  stopWatchers.push(watch(valueTimeZoneLabel, (v) => { panelInputs.valueTimeZoneLabel = v; }));
+  stopWatchers.push(watch(timeZonesDiffer, (v) => { panelInputs.timeZonesDiffer = v; }));
+  stopWatchers.push(watch(modelValue, (v) => {
+    panelInputs.hasValue = v != null;
+    panelInputs.formatValueInValueTz = formatValueInValueTz();
+  }));
+
+  overlayRef = getOverlayService().open({
+    spec: {
+      ...datepickerPreset,
+      anchor: { kind: 'element', element: trigger },
+      a11y: { role: 'dialog', label: 'Date, time and timezone picker' },
+    },
+    content: { kind: 'component', component: markRaw(CoarZonedDateTimePickerPanel) },
+    inputs: panelInputs,
+  });
+
+  pickerBase.open();
+  emit('opened');
+
+  overlayRef.afterClosed.then(() => {
+    stopWatchers.forEach((stop) => stop());
+    overlayRef = null;
+    if (pickerBase.isOpen.value) {
+      pickerBase.close();
+      emit('closed');
+    }
+  });
+}
+
+function closePanel() {
+  if (!pickerBase.isOpen.value) return;
+  overlayRef?.close();
+}
+
+function togglePanel() {
+  if (pickerBase.isOpen.value) {
+    closePanel();
+  } else {
+    openPanel();
+  }
+}
+
+onMounted(() => {
+  nextTick(() => initMaskito());
+});
+
+function onKeydown(event: KeyboardEvent) {
+  if ((event.key === 'Enter' || event.key === 'ArrowDown') && !pickerBase.isOpen.value) {
+    event.preventDefault(); openPanel();
+  }
+}
+
+// ============================================================
 // Actions
 // ============================================================
 
@@ -542,52 +544,6 @@ function clearValue(event: Event) {
   pendingTime.value = null;
   displayValue.value = '';
 }
-
-function onDateSelected(date: Temporal.PlainDate) {
-  const time = selectedTime.value ?? props.defaultTime;
-  const pdt = date.toPlainDateTime({
-    hour: time.hours,
-    minute: coarRoundMinutesToStep(time.minutes, props.minuteStep),
-  });
-  // Use value's existing timezone, or the default timezone
-  const tz = valueTimeZone.value ?? effectiveDefaultTimeZone.value;
-  let zdt: Temporal.ZonedDateTime;
-  if (workingTimeZone.value !== tz) {
-    // Editing in display TZ but value lives in a different TZ:
-    // Create in display TZ, then convert to value TZ preserving the instant
-    const inDisplayTz = pdt.toZonedDateTime(workingTimeZone.value);
-    zdt = inDisplayTz.withTimeZone(tz);
-  } else {
-    zdt = pdt.toZonedDateTime(tz);
-  }
-  zdt = clampZonedDateTime(zdt);
-  modelValue.value = zdt;
-}
-
-function onTimeChanged(time: CoarTimeValue | null) {
-  if (!time) return;
-  if (selectedDate.value) {
-    const pdt = selectedDate.value.toPlainDateTime({ hour: time.hours, minute: time.minutes });
-    const tz = valueTimeZone.value ?? effectiveDefaultTimeZone.value;
-    let zdt: Temporal.ZonedDateTime;
-    if (workingTimeZone.value !== tz) {
-      const inDisplayTz = pdt.toZonedDateTime(workingTimeZone.value);
-      zdt = inDisplayTz.withTimeZone(tz);
-    } else {
-      zdt = pdt.toZonedDateTime(tz);
-    }
-    zdt = clampZonedDateTime(zdt);
-    modelValue.value = zdt;
-  } else {
-    pendingTime.value = time;
-  }
-}
-
-function onActiveMonthChanged(ym: Temporal.PlainYearMonth) { activeMonth.value = ym; }
-function selectMonth(ym: Temporal.PlainYearMonth) { activeMonth.value = ym; }
-function previousYear() { if (!isPrevYearDisabled.value) activeMonth.value = activeMonth.value.subtract({ years: 1 }); }
-function nextYear() { if (!isNextYearDisabled.value) activeMonth.value = activeMonth.value.add({ years: 1 }); }
-function scrollToTodayMonth() { activeMonth.value = today.value.toPlainYearMonth(); }
 
 function onInputChange(event: Event) {
   const text = (event.target as HTMLInputElement).value;
@@ -609,7 +565,7 @@ function onInputBlur() {
 }
 
 // ============================================================
-// Timezone actions
+// Timezone actions (trigger)
 // ============================================================
 
 /** Toggle display TZ between home ↔ location */
@@ -621,43 +577,6 @@ function toggleDisplayTimezone() {
   } else {
     displayTimeZone.value = userTimeZone.value;
   }
-}
-
-/** Open the display timezone picker in the side column */
-function openDisplayTimezonePicker() {
-  isSelectingDisplayTimezone.value = true;
-  timezoneSearchQuery.value = '';
-  nextTick(() => tzSearchInputRef.value?.focus());
-}
-
-/** Close the display timezone picker */
-function closeDisplayTimezonePicker() {
-  isSelectingDisplayTimezone.value = false;
-  timezoneSearchQuery.value = '';
-}
-
-/** Select a display timezone from the picker list */
-function selectDisplayTimezone(tzId: string) {
-  displayTimeZone.value = tzId;
-  closeDisplayTimezonePicker();
-}
-
-/** Start editing the value timezone (footer) */
-function startEditValueTimezone() {
-  isEditingValueTimezone.value = true;
-}
-
-/** Change the value's timezone — keeps local time, changes TZ interpretation */
-function changeValueTimezone(newTzId: string) {
-  if (modelValue.value) {
-    const pdt = modelValue.value.toPlainDateTime();
-    modelValue.value = pdt.toZonedDateTime(newTzId);
-  }
-  isEditingValueTimezone.value = false;
-}
-
-function cancelEditValueTimezone() {
-  isEditingValueTimezone.value = false;
 }
 
 // Timezone indicator icon name
@@ -782,238 +701,6 @@ const tzIndicatorIcon = computed(() => {
     >
       {{ displayMessage }}
     </div>
-
-    <!-- Panel (Teleported) -->
-    <Teleport to="body">
-      <div
-        v-if="pickerBase.isOpen.value"
-        :id="panelId"
-        ref="panelRef"
-        class="coar-zdtp-panel"
-        :class="{ 'coar-zdtp-panel--with-weeks': showWeekNumbers }"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Date, time and timezone picker"
-        :style="{
-          position: 'fixed',
-          top: '0px',
-          left: '0px',
-          transform: `translate3d(${panelLeft}px, ${panelTop}px, 0)`,
-          zIndex: 'var(--coar-z-overlay, 1000)',
-        }"
-        @keydown.escape.prevent="closePanel"
-      >
-        <!-- Panel body (two columns) -->
-        <div class="coar-zdtp-body">
-          <!-- Left Column: Calendar -->
-          <div class="coar-zdtp-calendar-column">
-            <CoarScrollableCalendar
-              :model-value="selectedDate"
-              :active-month="activeMonth"
-              :min="minDate ?? undefined"
-              :max="maxDate ?? undefined"
-              :locale="pickerBase.effectiveLocale.value"
-              :date-format-config="pickerBase.effectiveDateFormat.value"
-              :show-week-numbers="showWeekNumbers"
-              :highlight-weekends="highlightWeekends"
-              :markers="markers"
-              @update:active-month="onActiveMonthChanged"
-              @date-selected="onDateSelected"
-            />
-
-            <!-- Today FAB -->
-            <button
-              v-if="showTodayFab"
-              type="button"
-              class="coar-zdtp-today-fab"
-              aria-label="Jump to today's month"
-              @click="scrollToTodayMonth"
-            >
-              <CoarIcon :name="todayMonthDirection === 'up' ? 'up' : 'down'" size="xs" />
-            </button>
-          </div>
-
-          <!-- Right Column -->
-          <div class="coar-zdtp-side-column">
-            <!-- Header: Year stepper OR timezone search -->
-            <div v-if="!isSelectingDisplayTimezone" class="coar-zdtp-side-header">
-              <button
-                type="button"
-                class="coar-zdtp-year-btn"
-                :disabled="isPrevYearDisabled"
-                aria-label="Previous year"
-                @click="previousYear"
-              >
-                <CoarIcon name="left" size="s" />
-              </button>
-              <span class="coar-zdtp-year">{{ currentYear }}</span>
-              <button
-                type="button"
-                class="coar-zdtp-year-btn"
-                :disabled="isNextYearDisabled"
-                aria-label="Next year"
-                @click="nextYear"
-              >
-                <CoarIcon name="right" size="s" />
-              </button>
-            </div>
-
-            <div v-else class="coar-zdtp-side-header coar-zdtp-side-header--search">
-              <input
-                ref="tzSearchInputRef"
-                v-model="timezoneSearchQuery"
-                type="text"
-                class="coar-zdtp-tz-search-input"
-                placeholder="Search timezone..."
-                @keydown.escape.stop="closeDisplayTimezonePicker"
-              />
-              <button
-                type="button"
-                class="coar-zdtp-tz-search-close"
-                aria-label="Close timezone search"
-                @click="closeDisplayTimezonePicker"
-              >
-                <CoarIcon name="close" size="xs" />
-              </button>
-            </div>
-
-            <!-- Timezone picker list (replaces month grid + time + events) -->
-            <div v-if="isSelectingDisplayTimezone" v-scrollbar="{ overflowX: 'hidden', autoHide: 'leave' }" class="coar-zdtp-tz-picker-list">
-              <div
-                v-for="group in groupedTimezoneList"
-                :key="group.name"
-                class="coar-zdtp-tz-group"
-              >
-                <div class="coar-zdtp-tz-group-header">{{ group.name }}</div>
-                <button
-                  v-for="item in group.items"
-                  :key="item.id"
-                  type="button"
-                  class="coar-zdtp-tz-picker-item"
-                  :class="{ 'coar-zdtp-tz-picker-item--active': item.id === effectiveDisplayTimeZone }"
-                  @click="selectDisplayTimezone(item.id)"
-                >
-                  <span class="coar-zdtp-tz-picker-item-city">{{ item.city }}</span>
-                  <span class="coar-zdtp-tz-picker-item-offset">{{ item.offset }}</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- Normal side content (when NOT selecting display TZ) -->
-            <template v-if="!isSelectingDisplayTimezone">
-              <!-- Month grid (4-column) -->
-              <div class="coar-zdtp-month-grid" role="listbox" aria-label="Months">
-                <button
-                  v-for="item in monthItems"
-                  :key="item.month"
-                  type="button"
-                  class="coar-zdtp-month-item"
-                  :class="{ 'coar-zdtp-month-item--active': item.isActive }"
-                  role="option"
-                  :aria-selected="item.isActive"
-                  @click="selectMonth(item.yearMonth)"
-                >
-                  {{ item.name }}
-                </button>
-              </div>
-
-              <!-- Time Picker -->
-              <div class="coar-zdtp-time-section">
-                <CoarTimePicker
-                  :model-value="selectedTime ?? undefined"
-                  :use24-hour="effectiveUse24Hour"
-                  :minute-step="minuteStep"
-                  :min="effectiveMinTime ?? undefined"
-                  :max="effectiveMaxTime ?? undefined"
-                  size="s"
-                  @update:model-value="onTimeChanged"
-                />
-              </div>
-
-              <!-- Display timezone button -->
-              <div class="coar-zdtp-display-tz-label">Display Timezone</div>
-              <button
-                type="button"
-                class="coar-zdtp-display-tz-btn"
-                @click="openDisplayTimezonePicker"
-              >
-                <span class="coar-zdtp-display-tz-btn-label">
-                  {{ coarFormatTimezoneLabel(effectiveDisplayTimeZone) }}
-                </span>
-                <CoarIcon name="down" size="xs" />
-              </button>
-
-              <!-- Events for selected date -->
-              <div v-if="selectedDateMarkers.length > 0" v-scrollbar="{ overflowX: 'hidden', autoHide: 'leave' }" class="coar-zdtp-events">
-                <div
-                  v-for="(marker, idx) in selectedDateMarkers"
-                  :key="idx"
-                  class="coar-zdtp-event-item"
-                  :class="marker.cssClass"
-                >
-                  {{ marker.description }}
-                </div>
-              </div>
-            </template>
-          </div>
-        </div>
-
-        <!-- Footer: Value timezone display -->
-        <div
-          class="coar-zdtp-footer"
-          :class="{ 'coar-zdtp-footer--differs': timeZonesDiffer }"
-        >
-          <template v-if="!modelValue">
-            <span class="coar-zdtp-footer-placeholder">
-              <CoarIcon name="location" size="xs" />
-              <span>Event timezone</span>
-            </span>
-          </template>
-
-          <template v-else-if="isEditingValueTimezone">
-            <div class="coar-zdtp-footer-edit">
-              <select
-                class="coar-zdtp-footer-tz-select"
-                :value="valueTimeZone"
-                @change="changeValueTimezone(($event.target as HTMLSelectElement).value)"
-              >
-                <option
-                  v-for="opt in timezoneOptions"
-                  :key="opt.id"
-                  :value="opt.id"
-                >
-                  {{ opt.label }}
-                </option>
-              </select>
-              <button
-                type="button"
-                class="coar-zdtp-footer-cancel"
-                aria-label="Cancel timezone edit"
-                @click="cancelEditValueTimezone"
-              >
-                <CoarIcon name="close" size="xs" />
-              </button>
-            </div>
-          </template>
-
-          <template v-else>
-            <div class="coar-zdtp-footer-display">
-              <CoarIcon name="location" size="xs" class="coar-zdtp-footer-icon" />
-              <span class="coar-zdtp-footer-tz-name">{{ valueTimeZoneLabel }}</span>
-              <span class="coar-zdtp-footer-tz-value">{{ formatValueInValueTz() }}</span>
-              <button
-                type="button"
-                class="coar-zdtp-footer-lock"
-                aria-label="Change event timezone"
-                @click="startEditValueTimezone"
-              >
-                <CoarIcon name="settings" size="xs" />
-              </button>
-            </div>
-          </template>
-        </div>
-      </div>
-    </Teleport>
   </div>
 </template>
 
@@ -1090,7 +777,7 @@ const tzIndicatorIcon = computed(() => {
 }
 
 .coar-zdtp-trigger--readonly {
-  background: var(--coar-surface-neutral-secondary);
+  background: var(--coar-background-neutral-secondary);
   cursor: default;
 }
 
@@ -1201,7 +888,7 @@ const tzIndicatorIcon = computed(() => {
   border: none;
   border-left: 1px solid var(--coar-border-input);
   border-radius: 0 var(--coar-radius-xs) var(--coar-radius-xs) 0;
-  background: var(--coar-surface-neutral-secondary);
+  background: var(--coar-background-neutral-secondary);
   color: var(--coar-icon-neutral-secondary);
   cursor: pointer;
   transition:
@@ -1210,7 +897,7 @@ const tzIndicatorIcon = computed(() => {
 }
 
 .coar-zdtp-btn:hover:not(:disabled) {
-  background: var(--coar-surface-neutral-tertiary);
+  background: var(--coar-background-neutral-tertiary);
   color: var(--coar-icon-neutral-primary);
 }
 
@@ -1233,468 +920,6 @@ const tzIndicatorIcon = computed(() => {
 
 .coar-zdtp--l .coar-zdtp-trigger { height: var(--coar-component-l-height); }
 .coar-zdtp--l .coar-zdtp-btn { width: var(--coar-component-l-height); }
-
-/* ========================================
-   PANEL
-   ======================================== */
-
-.coar-zdtp-panel {
-  display: flex;
-  flex-direction: column;
-  min-width: 480px;
-  max-width: 600px;
-  max-height: 440px;
-  background: var(--coar-background-neutral-primary);
-  border: 1px solid var(--coar-border-neutral-tertiary);
-  border-radius: var(--coar-radius-s);
-  box-shadow: var(--coar-shadow-m);
-  overflow: hidden;
-}
-
-.coar-zdtp-panel--with-weeks {
-  min-width: 528px;
-  max-width: 648px;
-}
-
-/* ========================================
-   PANEL BODY (two columns)
-   ======================================== */
-
-.coar-zdtp-body {
-  display: flex;
-  flex-direction: row;
-  flex: 0 0 auto;
-  min-height: 0;
-  height: 330px;
-  overflow: hidden;
-}
-
-/* ========================================
-   CALENDAR COLUMN
-   ======================================== */
-
-.coar-zdtp-calendar-column {
-  position: relative;
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-  background: var(--coar-background-neutral-primary);
-}
-
-.coar-zdtp-today-fab {
-  position: absolute;
-  bottom: 1rem;
-  right: 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 1px solid var(--coar-border-neutral-secondary);
-  background: var(--coar-surface-neutral-primary);
-  box-shadow: var(--coar-shadow-s);
-  color: var(--coar-icon-neutral-secondary);
-  cursor: pointer;
-  z-index: 10;
-  transition: background-color var(--coar-duration-fast) var(--coar-ease-out), color var(--coar-duration-fast) var(--coar-ease-out), transform var(--coar-duration-fast) var(--coar-ease-out);
-}
-.coar-zdtp-today-fab:hover { background: var(--coar-surface-neutral-secondary); color: var(--coar-icon-neutral-primary); }
-.coar-zdtp-today-fab:active { transform: scale(0.95); }
-
-/* ========================================
-   SIDE COLUMN
-   ======================================== */
-
-.coar-zdtp-side-column {
-  display: flex;
-  flex-direction: column;
-  width: 200px;
-  flex-shrink: 0;
-  background: var(--coar-background-neutral-secondary);
-  border-left: 1px solid var(--coar-border-neutral-tertiary);
-}
-
-/* ========================================
-   SIDE HEADER (year stepper / tz search)
-   ======================================== */
-
-.coar-zdtp-side-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--coar-spacing-xs);
-  padding: var(--coar-spacing-s);
-  flex-shrink: 0;
-  min-height: 44px;
-}
-
-.coar-zdtp-side-header--search {
-  gap: var(--coar-spacing-xs);
-}
-
-.coar-zdtp-year-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--coar-radius-xs);
-  border: none;
-  background: none;
-  color: var(--coar-icon-neutral-secondary);
-  cursor: pointer;
-  opacity: 0.5;
-  transition: opacity var(--coar-duration-fast) var(--coar-ease-out), background-color var(--coar-duration-fast) var(--coar-ease-out);
-}
-.coar-zdtp-year-btn:hover:not(:disabled) { opacity: 1; background: var(--coar-surface-neutral-tertiary); }
-.coar-zdtp-year-btn:disabled { cursor: not-allowed; opacity: 0.2; }
-
-.coar-zdtp-year {
-  font-family: var(--coar-body-base-family);
-  font-size: var(--coar-body-base-size);
-  font-weight: var(--coar-headings-heading-weight);
-  color: var(--coar-text-neutral-primary);
-  user-select: none;
-}
-
-.coar-zdtp-tz-search-input {
-  flex: 1;
-  min-width: 0;
-  height: 28px;
-  border: 1px solid var(--coar-border-input);
-  border-radius: var(--coar-radius-xs);
-  padding: 0 var(--coar-spacing-xs);
-  font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-body-small-base-size);
-  color: var(--coar-text-neutral-primary);
-  background: var(--coar-surface-input);
-  outline: none;
-}
-.coar-zdtp-tz-search-input:focus {
-  border-color: var(--coar-border-accent-primary);
-}
-.coar-zdtp-tz-search-input::placeholder {
-  color: var(--coar-text-neutral-disabled);
-}
-
-.coar-zdtp-tz-search-close {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border: none;
-  background: none;
-  color: var(--coar-icon-neutral-secondary);
-  cursor: pointer;
-  border-radius: var(--coar-radius-xs);
-}
-.coar-zdtp-tz-search-close:hover { background: var(--coar-surface-neutral-tertiary); }
-
-/* ========================================
-   TIMEZONE PICKER LIST
-   ======================================== */
-
-.coar-zdtp-tz-picker-list {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  scrollbar-width: none;
-}
-.coar-zdtp-tz-picker-list::-webkit-scrollbar { display: none; }
-
-.coar-zdtp-tz-group-header {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  padding: var(--coar-spacing-xs) var(--coar-spacing-s);
-  font-family: var(--coar-body-caption-family);
-  font-size: var(--coar-body-caption-size);
-  font-weight: var(--coar-body-small-bold-weight);
-  color: var(--coar-text-neutral-secondary);
-  text-transform: uppercase;
-  background: var(--coar-background-neutral-secondary);
-  letter-spacing: 0.5px;
-}
-
-.coar-zdtp-tz-picker-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: var(--coar-spacing-xs) var(--coar-spacing-s);
-  border: none;
-  background: none;
-  cursor: pointer;
-  font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-body-small-base-size);
-  color: var(--coar-text-neutral-primary);
-  text-align: left;
-  transition: background-color var(--coar-duration-fast) var(--coar-ease-out);
-}
-.coar-zdtp-tz-picker-item:hover {
-  background: var(--coar-surface-neutral-tertiary);
-}
-.coar-zdtp-tz-picker-item--active {
-  background: var(--coar-surface-accent-secondary);
-  color: var(--coar-text-accent-primary);
-  font-weight: var(--coar-body-small-bold-weight);
-}
-
-.coar-zdtp-tz-picker-item-city {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.coar-zdtp-tz-picker-item-offset {
-  flex-shrink: 0;
-  margin-left: var(--coar-spacing-xs);
-  font-family: var(--coar-body-caption-family);
-  font-size: var(--coar-body-caption-size);
-  color: var(--coar-text-neutral-tertiary);
-}
-
-/* ========================================
-   MONTH GRID (4-column)
-   ======================================== */
-
-.coar-zdtp-month-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 2px;
-  padding: var(--coar-spacing-xs) var(--coar-spacing-s);
-  flex-shrink: 0;
-}
-
-.coar-zdtp-month-item {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 24px;
-  border: none;
-  border-radius: var(--coar-radius-xs);
-  background: none;
-  font-family: var(--coar-body-caption-family);
-  font-size: var(--coar-body-caption-size);
-  color: var(--coar-text-neutral-primary);
-  cursor: pointer;
-  transition: background-color var(--coar-duration-fast) var(--coar-ease-out);
-}
-.coar-zdtp-month-item:hover { background: var(--coar-surface-neutral-tertiary); }
-.coar-zdtp-month-item--active {
-  background: var(--coar-surface-accent-secondary);
-  color: var(--coar-text-accent-primary);
-  font-weight: var(--coar-body-small-bold-weight);
-}
-
-/* ========================================
-   TIME SECTION
-   ======================================== */
-
-.coar-zdtp-time-section {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--coar-spacing-xs) var(--coar-spacing-s);
-  flex-shrink: 0;
-}
-
-/* ========================================
-   DISPLAY TIMEZONE BUTTON
-   ======================================== */
-
-.coar-zdtp-display-tz-label {
-  padding: var(--coar-spacing-xs) var(--coar-spacing-s) 0;
-  font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-body-small-base-size);
-  color: var(--coar-text-neutral-tertiary);
-}
-
-.coar-zdtp-display-tz-btn {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--coar-spacing-xs);
-  width: 100%;
-  padding: var(--coar-spacing-xs) var(--coar-spacing-s);
-  border: none;
-  border-top: 1px solid var(--coar-border-neutral-tertiary);
-  background: none;
-  cursor: pointer;
-  font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-body-small-base-size);
-  color: var(--coar-text-neutral-secondary);
-  text-align: left;
-  transition: background-color var(--coar-duration-fast) var(--coar-ease-out), color var(--coar-duration-fast) var(--coar-ease-out);
-}
-.coar-zdtp-display-tz-btn:hover {
-  background: var(--coar-surface-neutral-tertiary);
-  color: var(--coar-text-neutral-primary);
-}
-
-.coar-zdtp-display-tz-btn-label {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* ========================================
-   EVENTS
-   ======================================== */
-
-.coar-zdtp-events {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  scrollbar-width: none;
-  padding: var(--coar-spacing-xs) var(--coar-spacing-s);
-  border-top: 1px solid var(--coar-border-neutral-tertiary);
-}
-.coar-zdtp-events::-webkit-scrollbar { display: none; }
-
-.coar-zdtp-event-item {
-  padding: var(--coar-spacing-xs) 0;
-  font-family: var(--coar-body-caption-family);
-  font-size: var(--coar-body-caption-size);
-  color: var(--coar-text-neutral-secondary);
-  border-bottom: 1px solid var(--coar-border-neutral-quaternary);
-}
-.coar-zdtp-event-item:last-child { border-bottom: none; }
-
-/* ========================================
-   FOOTER (value timezone bar)
-   ======================================== */
-
-.coar-zdtp-footer {
-  display: flex;
-  align-items: center;
-  min-height: 36px;
-  padding: 0 var(--coar-spacing-s);
-  border-top: 1px solid var(--coar-border-neutral-tertiary);
-  background: var(--coar-background-neutral-primary);
-  flex-shrink: 0;
-}
-
-.coar-zdtp-footer--differs {
-  background: var(--coar-surface-accent-secondary);
-}
-
-.coar-zdtp-footer-placeholder {
-  display: flex;
-  align-items: center;
-  gap: var(--coar-spacing-xs);
-  font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-body-small-base-size);
-  color: var(--coar-text-neutral-disabled);
-}
-
-.coar-zdtp-footer-display {
-  display: flex;
-  align-items: center;
-  gap: var(--coar-spacing-xs);
-  width: 100%;
-  min-width: 0;
-}
-
-.coar-zdtp-footer-icon {
-  flex-shrink: 0;
-  color: var(--coar-icon-neutral-secondary);
-}
-
-.coar-zdtp-footer-tz-name {
-  flex-shrink: 0;
-  font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-body-small-base-size);
-  font-weight: var(--coar-body-small-bold-weight);
-  color: var(--coar-text-neutral-primary);
-  white-space: nowrap;
-}
-
-.coar-zdtp-footer-tz-value {
-  flex: 1;
-  min-width: 0;
-  text-align: right;
-  font-family: var(--coar-body-caption-family);
-  font-size: var(--coar-body-caption-size);
-  color: var(--coar-text-neutral-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.coar-zdtp-footer-lock {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  flex-shrink: 0;
-  border: none;
-  background: none;
-  color: var(--coar-icon-neutral-tertiary);
-  cursor: pointer;
-  border-radius: var(--coar-radius-xs);
-  transition: color var(--coar-duration-fast) var(--coar-ease-out), background-color var(--coar-duration-fast) var(--coar-ease-out);
-}
-.coar-zdtp-footer-lock:hover {
-  color: var(--coar-icon-neutral-primary);
-  background: var(--coar-surface-neutral-tertiary);
-}
-
-/* ========================================
-   FOOTER EDIT MODE
-   ======================================== */
-
-.coar-zdtp-footer-edit {
-  display: flex;
-  align-items: center;
-  gap: var(--coar-spacing-xs);
-  width: 100%;
-}
-
-.coar-zdtp-footer-tz-select {
-  flex: 1;
-  min-width: 0;
-  height: 26px;
-  border: 1px solid var(--coar-border-input);
-  border-radius: var(--coar-radius-xs);
-  padding: 0 var(--coar-spacing-xs);
-  font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-body-small-base-size);
-  color: var(--coar-text-neutral-primary);
-  background: var(--coar-surface-input);
-  outline: none;
-  cursor: pointer;
-}
-.coar-zdtp-footer-tz-select:focus {
-  border-color: var(--coar-border-accent-primary);
-}
-
-.coar-zdtp-footer-cancel {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  flex-shrink: 0;
-  border: none;
-  background: none;
-  color: var(--coar-icon-neutral-secondary);
-  cursor: pointer;
-  border-radius: var(--coar-radius-xs);
-}
-.coar-zdtp-footer-cancel:hover {
-  background: var(--coar-surface-neutral-tertiary);
-}
 
 /* ========================================
    FORM FIELD MESSAGE

@@ -31,8 +31,8 @@ const config: StorybookConfig = {
     config.resolve.alias = [
       ...existingAlias,
       { find: /^@cocoar\/vue-ui$/, replacement: join(__dirname, '../../../packages/ui/src/index.ts') },
+      { find: /^@cocoar\/vue-markdown$/, replacement: join(__dirname, '../../../packages/markdown/src/index.ts') },
       { find: /^@cocoar\/vue-data-grid$/, replacement: join(__dirname, '../../../packages/data-grid/src/index.ts') },
-      { find: /^@cocoar\/vue-core$/, replacement: join(__dirname, '../../../packages/core/src/index.ts') },
       { find: /^@cocoar\/vue-fragment-parser$/, replacement: join(__dirname, '../../../packages/fragment-parser/src/index.ts') },
       { find: /^@cocoar\/vue-localization$/, replacement: join(__dirname, '../../../packages/localization/src/index.ts') },
     ];

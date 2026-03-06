@@ -148,7 +148,3 @@ export { COAR_DEFAULT_TIME_FORMAT, COAR_DATE_FORMAT_TO_MASKITO_MODE } from './co
 export { vScrollbar, getScrollbarInstance } from './components/scrollbar';
 export type { ScrollbarOptions, ScrollbarTheme, ScrollbarAutoHide, ScrollbarOverflow } from './components/scrollbar';
 
-
-// Markdown
-export { CoarMarkdown } from './components/markdown';
-export type { CoarMarkdownProps } from './components/markdown';

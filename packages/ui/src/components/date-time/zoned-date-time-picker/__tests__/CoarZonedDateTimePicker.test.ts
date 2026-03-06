@@ -23,12 +23,36 @@ vi.mock('../../../_shared/maskito-config', () => ({
   coarCreateDateTimeMask: () => ({ mask: [] }),
 }));
 
+// Mock overlay service
+const mockClose = vi.fn();
+const mockOpen = vi.fn();
+
+function createMockOverlayRef() {
+  let resolve: (value?: unknown) => void;
+  const afterClosed = new Promise<unknown>((r) => { resolve = r; });
+  return {
+    close: (...args: unknown[]) => { mockClose(...args); resolve!(); },
+    get isClosed() { return false; },
+    afterClosed,
+    panelElement: null,
+    updatePosition: vi.fn(),
+  };
+}
+
+vi.mock('../../../../overlay/useOverlay', () => ({
+  getOverlayService: () => ({
+    open: (...args: unknown[]) => { mockOpen(...args); return createMockOverlayRef(); },
+    instances: { value: [] },
+    closeAll: vi.fn(),
+    onPanelMounted: vi.fn(),
+  }),
+}));
+
 function mountPicker(opts: Record<string, unknown> = {}) {
   return mount(CoarZonedDateTimePicker, {
     props: opts,
     global: {
       provide: { 'coar-l10n': undefined },
-      stubs: { Teleport: true },
     },
     attachTo: document.body,
   });

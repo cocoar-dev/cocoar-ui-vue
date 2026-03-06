@@ -1,0 +1,110 @@
+name: Develop - Push
+
+on:
+  push:
+    branches: [develop]
+
+jobs:
+  build-and-pack-alpha:
+    name: Lint, Test, Build & Pack Alpha
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: .
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Volta (Node + pnpm)
+        uses: volta-cli/action@v4
+        with:
+          package-json-path: ./package.json
+
+      - name: Install Node.js
+        run: volta install node
+
+      - name: Install pnpm
+        run: volta install pnpm
+
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v3
+        with:
+          versionSpec: '6.x'
+
+      - name: Calculate version
+        id: gv
+        uses: gittools/actions/gitversion/execute@v3
+
+      - name: Log calculated version
+        run: echo "GitVersion calculated version ${{ steps.gv.outputs.SemVer }}"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Ensure jq is available
+        run: |
+          if ! command -v jq >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y jq
+          fi
+
+      - name: Stamp package versions
+        run: |
+          VERSION="${{ steps.gv.outputs.SemVer }}"
+          echo "Setting package versions to: $VERSION"
+
+          shopt -s nullglob
+          for pkg in packages/*/package.json; do
+            if [ -f "$pkg" ] && [ "$(jq -r '.private // false' "$pkg")" != "true" ]; then
+              PKG_NAME=$(jq -r '.name' "$pkg")
+              echo "Updating $PKG_NAME → $VERSION"
+              jq --arg v "$VERSION" '
+                .version = $v
+                | (if .exports then .exports |= with_entries(if (.value | type) == "object" then .value |= del(.source) else . end) else . end)
+                | (if .dependencies then
+                    .dependencies |= with_entries(
+                      if (.key | startswith("@cocoar/")) and (.value | startswith("workspace:"))
+                      then .value = $v else . end)
+                  else . end)
+                | (if .peerDependencies then
+                    .peerDependencies |= with_entries(
+                      if (.key | startswith("@cocoar/")) and (.value | startswith("workspace:"))
+                      then .value = $v else . end)
+                  else . end)
+              ' "$pkg" > tmp.json && mv tmp.json "$pkg"
+            fi
+          done
+
+      - name: Pack npm packages
+        run: |
+          mkdir -p artifacts
+          shopt -s nullglob
+          for pkg_dir in packages/*/; do
+            if [ -f "$pkg_dir/package.json" ] && [ "$(jq -r '.private // false' "$pkg_dir/package.json")" != "true" ]; then
+              PKG_NAME=$(jq -r '.name' "$pkg_dir/package.json")
+              echo "Packing $PKG_NAME"
+              (cd "$pkg_dir" && pnpm pack --pack-destination ../../artifacts)
+            fi
+          done
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: prerelease-${{ steps.gv.outputs.SemVer }}
+          path: artifacts
+          retention-days: 7

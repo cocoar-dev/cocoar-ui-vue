@@ -4,6 +4,9 @@ import vue from '@vitejs/plugin-vue';
 
 export default defineConfig({
   plugins: [vue()],
+  resolve: {
+    conditions: ['source'],
+  },
   build: {
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
@@ -11,10 +14,18 @@ export default defineConfig({
       fileName: 'index',
     },
     rollupOptions: {
-      external: ['vue'],
+      external: ['vue', '@cocoar/vue-ui', '@cocoar/vue-markdown-core'],
       output: {
-        globals: { vue: 'Vue' },
+        globals: {
+          vue: 'Vue',
+          '@cocoar/vue-ui': 'CocoarVueUi',
+          '@cocoar/vue-markdown-core': 'CocoarVueMarkdownCore',
+        },
       },
     },
+  },
+  test: {
+    environment: 'happy-dom',
+    globals: true,
   },
 });

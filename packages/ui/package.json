@@ -10,6 +10,7 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "source": "./src/index.ts",
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
     },
@@ -26,10 +27,8 @@
     "lint": "eslint src/"
   },
   "dependencies": {
-    "@cocoar/vue-core": "workspace:*",
     "@cocoar/vue-localization": "workspace:*",
     "@cocoar/vue-fragment-parser": "workspace:*",
-    "@cocoar/vue-markdown-core": "workspace:*",
     "@js-temporal/polyfill": "^0.5.1",
     "@maskito/core": "^5.1.1",
     "@maskito/kit": "^5.1.1",

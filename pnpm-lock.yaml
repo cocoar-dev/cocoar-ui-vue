@@ -68,21 +68,24 @@ importers:
 
   apps/storybook:
     dependencies:
-      '@cocoar/vue-core':
-        specifier: workspace:*
-        version: link:../../packages/core
       '@cocoar/vue-data-grid':
         specifier: workspace:*
         version: link:../../packages/data-grid
+      '@cocoar/vue-fragment-parser':
+        specifier: workspace:*
+        version: link:../../packages/fragment-parser
+      '@cocoar/vue-localization':
+        specifier: workspace:*
+        version: link:../../packages/localization
+      '@cocoar/vue-markdown':
+        specifier: workspace:*
+        version: link:../../packages/markdown
+      '@cocoar/vue-markdown-core':
+        specifier: workspace:*
+        version: link:../../packages/markdown-core
       '@cocoar/vue-ui':
         specifier: workspace:*
         version: link:../../packages/ui
-
-  packages/core:
-    devDependencies:
-      vue:
-        specifier: ^3.5.0
-        version: 3.5.28(typescript@5.9.3)
 
   packages/data-grid:
     dependencies:
@@ -115,6 +118,19 @@ importers:
         specifier: ^3.5.0
         version: 3.5.28(typescript@5.9.3)
 
+  packages/markdown:
+    dependencies:
+      '@cocoar/vue-markdown-core':
+        specifier: workspace:*
+        version: link:../markdown-core
+    devDependencies:
+      '@cocoar/vue-ui':
+        specifier: workspace:*
+        version: link:../ui
+      vue:
+        specifier: ^3.5.0
+        version: 3.5.28(typescript@5.9.3)
+
   packages/markdown-core:
     dependencies:
       remark-gfm:
@@ -136,18 +152,12 @@ importers:
 
   packages/ui:
     dependencies:
-      '@cocoar/vue-core':
-        specifier: workspace:*
-        version: link:../core
       '@cocoar/vue-fragment-parser':
         specifier: workspace:*
         version: link:../fragment-parser
       '@cocoar/vue-localization':
         specifier: workspace:*
         version: link:../localization
-      '@cocoar/vue-markdown-core':
-        specifier: workspace:*
-        version: link:../markdown-core
       '@js-temporal/polyfill':
         specifier: ^0.5.1
         version: 0.5.1

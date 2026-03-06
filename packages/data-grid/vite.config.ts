@@ -14,7 +14,7 @@ export default defineConfig({
       fileName: 'index',
     },
     rollupOptions: {
-      external: ['vue', '@cocoar/vue-ui', '@cocoar/vue-localization', '@cocoar/vue-core'],
+      external: ['vue', '@cocoar/vue-ui', '@cocoar/vue-localization'],
       output: {
         globals: {
           vue: 'Vue',

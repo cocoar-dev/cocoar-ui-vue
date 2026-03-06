@@ -11,7 +11,7 @@ import { themeQuartz, type Theme } from 'ag-grid-community';
  *
  * @example
  * ```typescript
- * import { createCocoarTheme } from '@cocoar/ui';
+ * import { createCocoarTheme } from '@cocoar/vue-ui';
  *
  * const gridOptions = {
  *   theme: createCocoarTheme(),
@@ -62,7 +62,7 @@ export function createCocoarTheme(): Theme {
  *
  * @example
  * ```typescript
- * import { cocoarTheme } from '@cocoar/ui';
+ * import { cocoarTheme } from '@cocoar/vue-ui';
  *
  * <AgGridVue :theme="cocoarTheme" />
  * ```
