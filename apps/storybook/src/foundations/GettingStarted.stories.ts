@@ -24,7 +24,7 @@ const GettingStartedPage = defineComponent({
           Add the design tokens to your app's entry point. This provides all CSS variables for colors, typography, spacing, and more.
         </p>
         <pre style="background: #1e1e2e; color: #cdd6f4; padding: 12px 16px; border-radius: 6px; font-size: 13px; overflow-x: auto; margin: 0;"><code>// main.ts
-import '@cocoar/vue-ui/styles';</code></pre>
+import '@cocoar/vue-ui/tokens';</code></pre>
       </div>
 
       <!-- Step 3 -->
