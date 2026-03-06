@@ -1,6 +1,6 @@
 import type { Preview } from '@storybook/vue3';
 import { CoarOverlayPlugin, CoarOverlayHost } from '@cocoar/vue-ui';
-import '@cocoar/vue-ui/tokens';
+import '@cocoar/vue-ui/styles';
 
 const preview: Preview = {
   globalTypes: {
