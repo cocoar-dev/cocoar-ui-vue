@@ -136,7 +136,7 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
             v-if="collapsible"
             type="button"
             class="coar-code-toggle"
-            :aria-expanded="String(!isCollapsed)"
+            :aria-expanded="!isCollapsed"
             aria-label="Toggle code visibility"
             @click="toggleCollapsed"
           >
@@ -175,7 +175,9 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
             "
             @click="copyCode"
           >
-            {{ copyFeedback === 'copied' ? 'Copied!' : copyFeedback === 'error' ? 'Failed' : 'Copy' }}
+            {{
+              copyFeedback === 'copied' ? 'Copied!' : copyFeedback === 'error' ? 'Failed' : 'Copy'
+            }}
           </button>
         </div>
       </div>
@@ -194,7 +196,10 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
             </div>
           </div>
         </pre>
-        <pre v-else class="coar-code-pre"><code class="coar-code" v-html="highlightedCode"></code></pre>
+        <pre
+          v-else
+          class="coar-code-pre"
+        ><code class="coar-code" v-html="highlightedCode"></code></pre>
       </div>
     </div>
   </div>
@@ -248,7 +253,9 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
   color: var(--coar-code-block-text-muted);
   cursor: pointer;
   border-radius: var(--coar-radius-xs);
-  transition: color var(--coar-duration-fast) var(--coar-ease-out), background var(--coar-duration-fast) var(--coar-ease-out);
+  transition:
+    color var(--coar-duration-fast) var(--coar-ease-out),
+    background var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-code-toggle:hover {
@@ -291,7 +298,9 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
   border-radius: var(--coar-radius-xs);
   color: var(--coar-code-block-text-muted);
   cursor: pointer;
-  transition: color var(--coar-duration-fast) var(--coar-ease-out), background var(--coar-duration-fast) var(--coar-ease-out);
+  transition:
+    color var(--coar-duration-fast) var(--coar-ease-out),
+    background var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-code-copy-btn:hover {
@@ -368,28 +377,57 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
 }
 
 /* Color variants */
-.coar-code-block--info .coar-code-block { border-color: var(--coar-border-semantic-info-subtle); }
-.coar-code-block--info .coar-code-header { background: var(--coar-background-semantic-info-subtle); border-bottom-color: var(--coar-border-semantic-info-subtle); }
+.coar-code-block--info .coar-code-block {
+  border-color: var(--coar-border-semantic-info-subtle);
+}
+.coar-code-block--info .coar-code-header {
+  background: var(--coar-background-semantic-info-subtle);
+  border-bottom-color: var(--coar-border-semantic-info-subtle);
+}
 
-.coar-code-block--success .coar-code-block { border-color: var(--coar-border-semantic-success-subtle); }
-.coar-code-block--success .coar-code-header { background: var(--coar-background-semantic-success-subtle); border-bottom-color: var(--coar-border-semantic-success-subtle); }
+.coar-code-block--success .coar-code-block {
+  border-color: var(--coar-border-semantic-success-subtle);
+}
+.coar-code-block--success .coar-code-header {
+  background: var(--coar-background-semantic-success-subtle);
+  border-bottom-color: var(--coar-border-semantic-success-subtle);
+}
 
-.coar-code-block--warning .coar-code-block { border-color: var(--coar-border-semantic-warning-subtle); }
-.coar-code-block--warning .coar-code-header { background: var(--coar-background-semantic-warning-subtle); border-bottom-color: var(--coar-border-semantic-warning-subtle); }
+.coar-code-block--warning .coar-code-block {
+  border-color: var(--coar-border-semantic-warning-subtle);
+}
+.coar-code-block--warning .coar-code-header {
+  background: var(--coar-background-semantic-warning-subtle);
+  border-bottom-color: var(--coar-border-semantic-warning-subtle);
+}
 
-.coar-code-block--error .coar-code-block { border-color: var(--coar-border-semantic-error-subtle); }
-.coar-code-block--error .coar-code-header { background: var(--coar-background-semantic-error-subtle); border-bottom-color: var(--coar-border-semantic-error-subtle); }
+.coar-code-block--error .coar-code-block {
+  border-color: var(--coar-border-semantic-error-subtle);
+}
+.coar-code-block--error .coar-code-header {
+  background: var(--coar-background-semantic-error-subtle);
+  border-bottom-color: var(--coar-border-semantic-error-subtle);
+}
 
-.coar-code-block--accent .coar-code-block { border-color: var(--coar-border-accent-secondary); }
-.coar-code-block--accent .coar-code-header { background: var(--coar-background-accent-secondary); border-bottom-color: var(--coar-border-accent-secondary); }
+.coar-code-block--accent .coar-code-block {
+  border-color: var(--coar-border-accent-secondary);
+}
+.coar-code-block--accent .coar-code-header {
+  background: var(--coar-background-accent-secondary);
+  border-bottom-color: var(--coar-border-accent-secondary);
+}
 
 /* Prism syntax tokens — use :deep because v-html doesn't get scoped attrs */
 .coar-code :deep(.token.comment),
 .coar-code :deep(.token.prolog),
 .coar-code :deep(.token.doctype),
-.coar-code :deep(.token.cdata) { color: var(--coar-code-block-comment); }
+.coar-code :deep(.token.cdata) {
+  color: var(--coar-code-block-comment);
+}
 
-.coar-code :deep(.token.punctuation) { color: var(--coar-code-block-punctuation); }
+.coar-code :deep(.token.punctuation) {
+  color: var(--coar-code-block-punctuation);
+}
 
 .coar-code :deep(.token.property),
 .coar-code :deep(.token.tag),
@@ -397,37 +435,55 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
 .coar-code :deep(.token.number),
 .coar-code :deep(.token.constant),
 .coar-code :deep(.token.symbol),
-.coar-code :deep(.token.deleted) { color: var(--coar-code-block-number); }
+.coar-code :deep(.token.deleted) {
+  color: var(--coar-code-block-number);
+}
 
 .coar-code :deep(.token.selector),
 .coar-code :deep(.token.attr-name),
 .coar-code :deep(.token.string),
 .coar-code :deep(.token.char),
 .coar-code :deep(.token.builtin),
-.coar-code :deep(.token.inserted) { color: var(--coar-code-block-string); }
+.coar-code :deep(.token.inserted) {
+  color: var(--coar-code-block-string);
+}
 
 .coar-code :deep(.token.operator),
 .coar-code :deep(.token.entity),
 .coar-code :deep(.token.url),
 .coar-code :deep(.language-css .token.string),
-.coar-code :deep(.style .token.string) { color: var(--coar-code-block-operator); }
+.coar-code :deep(.style .token.string) {
+  color: var(--coar-code-block-operator);
+}
 
 .coar-code :deep(.token.atrule),
 .coar-code :deep(.token.attr-value),
-.coar-code :deep(.token.keyword) { color: var(--coar-code-block-keyword); }
+.coar-code :deep(.token.keyword) {
+  color: var(--coar-code-block-keyword);
+}
 
 .coar-code :deep(.token.function),
-.coar-code :deep(.token.class-name) { color: var(--coar-code-block-function); }
+.coar-code :deep(.token.class-name) {
+  color: var(--coar-code-block-function);
+}
 
 .coar-code :deep(.token.regex),
 .coar-code :deep(.token.important),
-.coar-code :deep(.token.variable) { color: var(--coar-code-block-class); }
+.coar-code :deep(.token.variable) {
+  color: var(--coar-code-block-class);
+}
 
 .coar-code :deep(.token.important),
-.coar-code :deep(.token.bold) { font-weight: bold; }
+.coar-code :deep(.token.bold) {
+  font-weight: bold;
+}
 
-.coar-code :deep(.token.italic) { font-style: italic; }
-.coar-code :deep(.token.entity) { cursor: help; }
+.coar-code :deep(.token.italic) {
+  font-style: italic;
+}
+.coar-code :deep(.token.entity) {
+  cursor: help;
+}
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
@@ -441,31 +497,49 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
   }
 }
 
-.coar-code :deep(.token.tag .token.tag) { color: var(--coar-code-block-tag); }
-.coar-code :deep(.token.tag .token.attr-name) { color: var(--coar-code-block-attr-name); }
+.coar-code :deep(.token.tag .token.tag) {
+  color: var(--coar-code-block-tag);
+}
+.coar-code :deep(.token.tag .token.attr-name) {
+  color: var(--coar-code-block-attr-name);
+}
 .coar-code :deep(.token.tag .token.attr-value),
-.coar-code :deep(.token.tag .token.attr-value .token.punctuation) { color: var(--coar-code-block-attr-value); }
+.coar-code :deep(.token.tag .token.attr-value .token.punctuation) {
+  color: var(--coar-code-block-attr-value);
+}
 
 /* Line number Prism tokens */
 .coar-code-line-content :deep(.token.comment),
 .coar-code-line-content :deep(.token.prolog),
 .coar-code-line-content :deep(.token.doctype),
-.coar-code-line-content :deep(.token.cdata) { color: var(--coar-code-block-comment); }
-.coar-code-line-content :deep(.token.punctuation) { color: var(--coar-code-block-punctuation); }
+.coar-code-line-content :deep(.token.cdata) {
+  color: var(--coar-code-block-comment);
+}
+.coar-code-line-content :deep(.token.punctuation) {
+  color: var(--coar-code-block-punctuation);
+}
 .coar-code-line-content :deep(.token.property),
 .coar-code-line-content :deep(.token.tag),
 .coar-code-line-content :deep(.token.boolean),
 .coar-code-line-content :deep(.token.number),
 .coar-code-line-content :deep(.token.constant),
 .coar-code-line-content :deep(.token.symbol),
-.coar-code-line-content :deep(.token.deleted) { color: var(--coar-code-block-number); }
+.coar-code-line-content :deep(.token.deleted) {
+  color: var(--coar-code-block-number);
+}
 .coar-code-line-content :deep(.token.selector),
 .coar-code-line-content :deep(.token.attr-name),
 .coar-code-line-content :deep(.token.string),
 .coar-code-line-content :deep(.token.char),
 .coar-code-line-content :deep(.token.builtin),
-.coar-code-line-content :deep(.token.inserted) { color: var(--coar-code-block-string); }
-.coar-code-line-content :deep(.token.keyword) { color: var(--coar-code-block-keyword); }
+.coar-code-line-content :deep(.token.inserted) {
+  color: var(--coar-code-block-string);
+}
+.coar-code-line-content :deep(.token.keyword) {
+  color: var(--coar-code-block-keyword);
+}
 .coar-code-line-content :deep(.token.function),
-.coar-code-line-content :deep(.token.class-name) { color: var(--coar-code-block-function); }
+.coar-code-line-content :deep(.token.class-name) {
+  color: var(--coar-code-block-function);
+}
 </style>

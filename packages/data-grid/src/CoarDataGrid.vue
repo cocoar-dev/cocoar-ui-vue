@@ -3,12 +3,11 @@ import { onBeforeUnmount, computed } from 'vue';
 import { AgGridVue } from 'ag-grid-vue3';
 import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 import type { GridReadyEvent, Theme } from 'ag-grid-community';
-
-ModuleRegistry.registerModules([AllCommunityModule]);
-
 import { CoarGridBuilder } from './builders';
 import { cocoarTheme } from './theme';
 import './theme/ag-theme-cocoar.css';
+
+ModuleRegistry.registerModules([AllCommunityModule]);
 
 const VIEWPORT_CLASSES = ['ag-body-viewport', 'ag-center-cols-viewport'];
 
@@ -32,7 +31,7 @@ const props = withDefaults(
     theme: () => cocoarTheme,
     class: undefined,
     style: undefined,
-  }
+  },
 );
 
 const gridOptions = computed(() => props.builder._getGridOptions());

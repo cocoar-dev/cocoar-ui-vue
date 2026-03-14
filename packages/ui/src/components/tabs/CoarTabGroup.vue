@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, useSlots, type VNode } from 'vue';
+import { computed, ref, watch, type VNode } from 'vue';
 import CoarTab from './CoarTab.vue';
 
 const props = withDefaults(
@@ -14,7 +14,9 @@ const emit = defineEmits<{
   (e: 'update:modelValue', tabId: string): void;
 }>();
 
-const slots = useSlots();
+const slots = defineSlots<{
+  default?(): VNode[];
+}>();
 
 interface TabDef {
   id: string;
@@ -43,7 +45,10 @@ const tabs = computed<TabDef[]>(() => {
         (vnodeProps['loading-strategy'] as string) ??
         'lazy';
 
-      const vnodeChildren = vnode.children as Record<string, (...args: unknown[]) => VNode[]> | null;
+      const vnodeChildren = vnode.children as Record<
+        string,
+        (...args: unknown[]) => VNode[]
+      > | null;
       const labelSlot = vnodeChildren?.default?.() ?? [];
       const contentSlot = vnodeChildren?.content?.() ?? [];
 
@@ -63,7 +68,10 @@ const tabs = computed<TabDef[]>(() => {
 function flattenFragments(vnodes: VNode[]): VNode[] {
   const result: VNode[] = [];
   for (const vnode of vnodes) {
-    if (vnode.type === Symbol.for('v-fgt') || (vnode.type as unknown as symbol) === Symbol.for('v-fgt')) {
+    if (
+      vnode.type === Symbol.for('v-fgt') ||
+      (vnode.type as unknown as symbol) === Symbol.for('v-fgt')
+    ) {
       // Fragment — recurse into children
       if (Array.isArray(vnode.children)) {
         result.push(...flattenFragments(vnode.children as VNode[]));

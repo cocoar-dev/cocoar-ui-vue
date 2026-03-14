@@ -71,8 +71,8 @@ export class CoarHttpIconSource implements CoarIconSource {
     return request;
   }
 
-  getAvailableIconKeys(): Promise<readonly string[]> | undefined {
-    return this.fetchIconKeys?.();
+  getAvailableIconKeys(): Promise<readonly string[]> {
+    return this.fetchIconKeys?.() ?? Promise.resolve([]);
   }
 
   clearCache(): void {

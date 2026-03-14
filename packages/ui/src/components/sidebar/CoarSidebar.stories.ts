@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/vue3';
 import { ref } from 'vue';
-import { CoarSidebar, CoarMenu, CoarMenuItem, CoarMenuHeading, CoarMenuDivider, CoarButton, CoarIcon, CoarAvatar } from '@cocoar/vue-ui';
+import { CoarSidebar, CoarMenu, CoarMenuItem, CoarMenuHeading, CoarMenuDivider, CoarButton, CoarIcon, CoarAvatar, CoarSelect } from '@cocoar/vue-ui';
 
 const meta: Meta<typeof CoarSidebar> = {
   title: 'Navigation/Sidebar',

@@ -1,4 +1,4 @@
-name: Deploy Storybook (GitHub Pages)
+name: Deploy Showcase (GitHub Pages)
 
 on:
   workflow_dispatch:
@@ -9,12 +9,12 @@ permissions:
   id-token: write
 
 concurrency:
-  group: storybook-pages
+  group: showcase-pages
   cancel-in-progress: true
 
 jobs:
   build:
-    name: Build Storybook
+    name: Build Showcase
     runs-on: ubuntu-latest
     timeout-minutes: 30
     defaults:
@@ -43,11 +43,8 @@ jobs:
 
       - name: Build packages
         run: pnpm build
-
-      - name: Build Storybook (production)
-        run: pnpm --filter @cocoar/storybook build-storybook
         env:
-          NODE_OPTIONS: --max_old_space_size=4096
+          GITHUB_PAGES: true
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
@@ -55,7 +52,7 @@ jobs:
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: apps/storybook/storybook-static
+          path: apps/showcase/dist
 
   deploy:
     name: Deploy to GitHub Pages

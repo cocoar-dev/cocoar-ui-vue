@@ -1,10 +1,10 @@
-import { ref, watch, onBeforeUnmount, type Ref } from 'vue';
+import { onBeforeUnmount, ref, watch, type Ref } from 'vue';
 import {
   computeOverlayCoordinates,
-  getViewportRect,
   getScrollParents,
+  getViewportRect,
 } from '../overlay/overlay-position';
-import type { PositionSpec, Placement } from '../overlay/overlay-types';
+import type { Placement, PositionSpec } from '../overlay/overlay-types';
 
 export interface UseSelectDropdownOptions {
   isOpen: Ref<boolean>;
@@ -30,7 +30,7 @@ export function useSelectDropdown(opts: UseSelectDropdownOptions) {
     shift: false,
   };
 
-  let scrollParents: Element[] = [];
+  let scrollParents: Array<Element | Window> = [];
   let resizeObserver: ResizeObserver | null = null;
   let rafId: number | null = null;
 

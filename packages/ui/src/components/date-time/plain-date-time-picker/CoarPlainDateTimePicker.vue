@@ -9,10 +9,7 @@ import { getOverlayService } from '../../overlay/useOverlay';
 import { datepickerPreset } from '../../overlay/overlay-presets';
 import type { OverlayRef } from '../../overlay/overlay-types';
 import { useDatePickerBase } from '../_shared/use-date-picker-base';
-import {
-  coarFormatPlainDate,
-  coarParsePlainDateFromInput,
-} from '../_shared/date-helpers';
+import { coarFormatPlainDate, coarParsePlainDateFromInput } from '../_shared/date-helpers';
 import {
   coarFormatTime,
   coarParseTimeInput,
@@ -91,7 +88,8 @@ const pickerBase = useDatePickerBase({ locale: localeRef, dateFormat: dateFormat
 
 // Active month
 const activeMonth = ref<Temporal.PlainYearMonth>(
-  modelValue.value?.toPlainDate().toPlainYearMonth() ?? Temporal.Now.plainDateISO().toPlainYearMonth(),
+  modelValue.value?.toPlainDate().toPlainYearMonth() ??
+    Temporal.Now.plainDateISO().toPlainYearMonth(),
 );
 
 // Pending time (stored until a date is selected)
@@ -136,7 +134,10 @@ function initMaskito() {
 
 // Format value
 function formatValue(val: Temporal.PlainDateTime): string {
-  const datePart = coarFormatPlainDate(val.toPlainDate(), pickerBase.effectiveDateFormat.value.pattern);
+  const datePart = coarFormatPlainDate(
+    val.toPlainDate(),
+    pickerBase.effectiveDateFormat.value.pattern,
+  );
   const timePart = coarFormatTime(val.hour, val.minute, effectiveUse24Hour.value);
   return `${datePart} ${timePart}`;
 }
@@ -207,8 +208,12 @@ const effectiveMaxTime = computed((): CoarTimeValue | null => {
 });
 
 // Year boundary helpers
-const isPrevYearDisabled = computed(() => activeMonth.value.year <= Temporal.Now.plainDateISO().year - 100);
-const isNextYearDisabled = computed(() => activeMonth.value.year >= Temporal.Now.plainDateISO().year + 50);
+const isPrevYearDisabled = computed(
+  () => activeMonth.value.year <= Temporal.Now.plainDateISO().year - 100,
+);
+const isNextYearDisabled = computed(
+  () => activeMonth.value.year >= Temporal.Now.plainDateISO().year + 50,
+);
 const today = computed(() => Temporal.Now.plainDateISO());
 
 // DateTime clamp
@@ -241,7 +246,7 @@ function openPanel() {
     use24Hour: props.use24Hour,
     minuteStep: props.minuteStep,
     disabled: props.disabled,
-    readonly: props.readonly,
+    readonly: props.readonly as boolean,
     effectiveMinTime: effectiveMinTime.value,
     effectiveMaxTime: effectiveMaxTime.value,
     onDateSelected: (date: Temporal.PlainDate) => {
@@ -282,23 +287,121 @@ function openPanel() {
 
   // Sync parent state → panel inputs
   const stopWatchers: Array<() => void> = [];
-  stopWatchers.push(watch(selectedDate, (v) => { panelInputs.modelValue = v; }));
-  stopWatchers.push(watch(activeMonth, (v) => { panelInputs.activeMonth = v; }));
-  stopWatchers.push(watch(minDate, (v) => { panelInputs.min = v; }));
-  stopWatchers.push(watch(maxDate, (v) => { panelInputs.max = v; }));
-  stopWatchers.push(watch(() => pickerBase.effectiveLocale.value, (v) => { panelInputs.locale = v; }));
-  stopWatchers.push(watch(() => pickerBase.effectiveDateFormat.value, (v) => { panelInputs.dateFormatConfig = v; }));
-  stopWatchers.push(watch(() => props.showWeekNumbers, (v) => { panelInputs.showWeekNumbers = v; }));
-  stopWatchers.push(watch(() => props.highlightWeekends, (v) => { panelInputs.highlightWeekends = v; }));
-  stopWatchers.push(watch(() => props.markers, (v) => { panelInputs.markers = v; }));
-  stopWatchers.push(watch(() => props.showTodayMonthButton, (v) => { panelInputs.showTodayMonthButton = v; }));
-  stopWatchers.push(watch(selectedTime, (v) => { panelInputs.selectedTime = v; }));
-  stopWatchers.push(watch(() => props.use24Hour, (v) => { panelInputs.use24Hour = v; }));
-  stopWatchers.push(watch(() => props.minuteStep, (v) => { panelInputs.minuteStep = v; }));
-  stopWatchers.push(watch(() => props.disabled, (v) => { panelInputs.disabled = v; }));
-  stopWatchers.push(watch(() => props.readonly, (v) => { panelInputs.readonly = v; }));
-  stopWatchers.push(watch(effectiveMinTime, (v) => { panelInputs.effectiveMinTime = v; }));
-  stopWatchers.push(watch(effectiveMaxTime, (v) => { panelInputs.effectiveMaxTime = v; }));
+  stopWatchers.push(
+    watch(selectedDate, (v) => {
+      panelInputs.modelValue = v;
+    }),
+  );
+  stopWatchers.push(
+    watch(activeMonth, (v) => {
+      panelInputs.activeMonth = v;
+    }),
+  );
+  stopWatchers.push(
+    watch(minDate, (v) => {
+      panelInputs.min = v;
+    }),
+  );
+  stopWatchers.push(
+    watch(maxDate, (v) => {
+      panelInputs.max = v;
+    }),
+  );
+  stopWatchers.push(
+    watch(
+      () => pickerBase.effectiveLocale.value,
+      (v) => {
+        panelInputs.locale = v;
+      },
+    ),
+  );
+  stopWatchers.push(
+    watch(
+      () => pickerBase.effectiveDateFormat.value,
+      (v) => {
+        panelInputs.dateFormatConfig = v;
+      },
+    ),
+  );
+  stopWatchers.push(
+    watch(
+      () => props.showWeekNumbers,
+      (v) => {
+        panelInputs.showWeekNumbers = v;
+      },
+    ),
+  );
+  stopWatchers.push(
+    watch(
+      () => props.highlightWeekends,
+      (v) => {
+        panelInputs.highlightWeekends = v;
+      },
+    ),
+  );
+  stopWatchers.push(
+    watch(
+      () => props.markers,
+      (v) => {
+        panelInputs.markers = v;
+      },
+    ),
+  );
+  stopWatchers.push(
+    watch(
+      () => props.showTodayMonthButton,
+      (v) => {
+        panelInputs.showTodayMonthButton = v;
+      },
+    ),
+  );
+  stopWatchers.push(
+    watch(selectedTime, (v) => {
+      panelInputs.selectedTime = v;
+    }),
+  );
+  stopWatchers.push(
+    watch(
+      () => props.use24Hour,
+      (v) => {
+        panelInputs.use24Hour = v;
+      },
+    ),
+  );
+  stopWatchers.push(
+    watch(
+      () => props.minuteStep,
+      (v) => {
+        panelInputs.minuteStep = v;
+      },
+    ),
+  );
+  stopWatchers.push(
+    watch(
+      () => props.disabled,
+      (v) => {
+        panelInputs.disabled = v;
+      },
+    ),
+  );
+  stopWatchers.push(
+    watch(
+      () => props.readonly,
+      (v) => {
+        panelInputs.readonly = v;
+      },
+    ),
+  );
+  stopWatchers.push(
+    watch(effectiveMinTime, (v) => {
+      panelInputs.effectiveMinTime = v;
+    }),
+  );
+  stopWatchers.push(
+    watch(effectiveMaxTime, (v) => {
+      panelInputs.effectiveMaxTime = v;
+    }),
+  );
 
   overlayRef = getOverlayService().open({
     spec: {
@@ -342,7 +445,8 @@ onMounted(() => {
 
 function onKeydown(event: KeyboardEvent) {
   if ((event.key === 'Enter' || event.key === 'ArrowDown') && !pickerBase.isOpen.value) {
-    event.preventDefault(); openPanel();
+    event.preventDefault();
+    openPanel();
   }
 }
 
@@ -376,7 +480,10 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
   if (!text) return null;
   const parts = text.split(' ');
   if (parts.length < 2) return null;
-  const date = coarParsePlainDateFromInput(parts[0], pickerBase.effectiveDateFormat.value.pattern, { min: minDate.value, max: maxDate.value });
+  const date = coarParsePlainDateFromInput(parts[0], pickerBase.effectiveDateFormat.value.pattern, {
+    min: minDate.value,
+    max: maxDate.value,
+  });
   if (!date) return null;
   const time = coarParseTimeInput(parts.slice(1).join(' '));
   if (!time) return null;
@@ -495,9 +602,18 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
   margin-left: var(--coar-spacing-xs);
 }
 
-.coar-pdtp--xs .coar-pdtp-label { font-size: var(--coar-component-xs-label-font-size); margin-bottom: var(--coar-component-xs-label-margin); }
-.coar-pdtp--s .coar-pdtp-label { font-size: var(--coar-component-s-label-font-size); margin-bottom: var(--coar-component-s-label-margin); }
-.coar-pdtp--l .coar-pdtp-label { font-size: var(--coar-component-l-label-font-size); margin-bottom: var(--coar-component-l-label-margin); }
+.coar-pdtp--xs .coar-pdtp-label {
+  font-size: var(--coar-component-xs-label-font-size);
+  margin-bottom: var(--coar-component-xs-label-margin);
+}
+.coar-pdtp--s .coar-pdtp-label {
+  font-size: var(--coar-component-s-label-font-size);
+  margin-bottom: var(--coar-component-s-label-margin);
+}
+.coar-pdtp--l .coar-pdtp-label {
+  font-size: var(--coar-component-l-label-font-size);
+  margin-bottom: var(--coar-component-l-label-margin);
+}
 
 /* Trigger */
 .coar-pdtp-trigger {
@@ -510,10 +626,14 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
   border-radius: var(--coar-radius-xs);
   background: var(--coar-surface-input);
   cursor: pointer;
-  transition: border-color var(--coar-duration-fast) var(--coar-ease-out), box-shadow var(--coar-duration-fast) var(--coar-ease-out);
+  transition:
+    border-color var(--coar-duration-fast) var(--coar-ease-out),
+    box-shadow var(--coar-duration-fast) var(--coar-ease-out);
 }
 
-.coar-pdtp-trigger:hover:not(.coar-pdtp-trigger--disabled):not(.coar-pdtp-trigger--readonly):not(.coar-pdtp-trigger--error) {
+.coar-pdtp-trigger:hover:not(.coar-pdtp-trigger--disabled):not(.coar-pdtp-trigger--readonly):not(
+    .coar-pdtp-trigger--error
+  ) {
   border-color: var(--coar-border-input-hover);
 }
 
@@ -528,15 +648,35 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
   box-shadow: inset 0 0 0 1px var(--coar-border-accent-primary);
 }
 
-.coar-pdtp-trigger--disabled { background: var(--coar-surface-input-disabled); cursor: not-allowed; opacity: 0.6; }
-.coar-pdtp-trigger--readonly { cursor: default; }
-.coar-pdtp-trigger--error { border-color: var(--coar-border-semantic-error-bold); }
+.coar-pdtp-trigger--disabled {
+  background: var(--coar-surface-input-disabled);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.coar-pdtp-trigger--readonly {
+  cursor: default;
+}
+.coar-pdtp-trigger--error {
+  border-color: var(--coar-border-semantic-error-bold);
+}
 .coar-pdtp-trigger--error:focus-within,
-.coar-pdtp-trigger--error.coar-pdtp-trigger--open { box-shadow: inset 0 0 0 1px var(--coar-border-semantic-error-bold); }
+.coar-pdtp-trigger--error.coar-pdtp-trigger--open {
+  box-shadow: inset 0 0 0 1px var(--coar-border-semantic-error-bold);
+}
 
-.coar-pdtp--xs .coar-pdtp-trigger { height: var(--coar-component-xs-height); padding: 0 var(--coar-spacing-s); gap: var(--coar-spacing-xs); }
-.coar-pdtp--s .coar-pdtp-trigger { height: var(--coar-component-s-height); padding: 0 var(--coar-spacing-s); }
-.coar-pdtp--l .coar-pdtp-trigger { height: var(--coar-component-l-height); padding: 0 var(--coar-spacing-l); }
+.coar-pdtp--xs .coar-pdtp-trigger {
+  height: var(--coar-component-xs-height);
+  padding: 0 var(--coar-spacing-s);
+  gap: var(--coar-spacing-xs);
+}
+.coar-pdtp--s .coar-pdtp-trigger {
+  height: var(--coar-component-s-height);
+  padding: 0 var(--coar-spacing-s);
+}
+.coar-pdtp--l .coar-pdtp-trigger {
+  height: var(--coar-component-l-height);
+  padding: 0 var(--coar-spacing-l);
+}
 
 /* Input */
 .coar-pdtp-input {
@@ -554,13 +694,26 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
   text-align: right;
 }
 
-.coar-pdtp-input::placeholder { color: var(--coar-text-neutral-tertiary); }
-.coar-pdtp-input:disabled { cursor: not-allowed; color: var(--coar-text-neutral-disabled); }
-.coar-pdtp-input:read-only { cursor: default; }
+.coar-pdtp-input::placeholder {
+  color: var(--coar-text-neutral-tertiary);
+}
+.coar-pdtp-input:disabled {
+  cursor: not-allowed;
+  color: var(--coar-text-neutral-disabled);
+}
+.coar-pdtp-input:read-only {
+  cursor: default;
+}
 
-.coar-pdtp--xs .coar-pdtp-input { font-size: var(--coar-component-xs-font-size); }
-.coar-pdtp--s .coar-pdtp-input { font-size: var(--coar-component-s-font-size); }
-.coar-pdtp--l .coar-pdtp-input { font-size: var(--coar-component-l-font-size); }
+.coar-pdtp--xs .coar-pdtp-input {
+  font-size: var(--coar-component-xs-font-size);
+}
+.coar-pdtp--s .coar-pdtp-input {
+  font-size: var(--coar-component-s-font-size);
+}
+.coar-pdtp--l .coar-pdtp-input {
+  font-size: var(--coar-component-l-font-size);
+}
 
 /* Clear */
 .coar-pdtp-clear {
@@ -574,13 +727,23 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
   margin-left: var(--coar-spacing-s);
   color: var(--coar-icon-neutral-disabled);
   cursor: pointer;
-  transition: color var(--coar-duration-fast) var(--coar-ease-out), opacity var(--coar-duration-fast) var(--coar-ease-out);
+  transition:
+    color var(--coar-duration-fast) var(--coar-ease-out),
+    opacity var(--coar-duration-fast) var(--coar-ease-out);
   opacity: 0.4;
 }
 
-.coar-pdtp-clear--hidden { opacity: 0; pointer-events: none; }
-.coar-pdtp-trigger:hover .coar-pdtp-clear:not(.coar-pdtp-clear--hidden) { opacity: 1; color: var(--coar-icon-neutral-tertiary); }
-.coar-pdtp-clear:hover { color: var(--coar-icon-neutral-primary); }
+.coar-pdtp-clear--hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.coar-pdtp-trigger:hover .coar-pdtp-clear:not(.coar-pdtp-clear--hidden) {
+  opacity: 1;
+  color: var(--coar-icon-neutral-tertiary);
+}
+.coar-pdtp-clear:hover {
+  color: var(--coar-icon-neutral-primary);
+}
 
 /* Calendar button */
 .coar-pdtp-btn {
@@ -598,15 +761,29 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
   background: var(--coar-background-neutral-secondary);
   color: var(--coar-icon-neutral-secondary);
   cursor: pointer;
-  transition: background-color var(--coar-duration-fast) var(--coar-ease-out), color var(--coar-duration-fast) var(--coar-ease-out);
+  transition:
+    background-color var(--coar-duration-fast) var(--coar-ease-out),
+    color var(--coar-duration-fast) var(--coar-ease-out);
 }
 
-.coar-pdtp-btn:hover:not(:disabled) { background: var(--coar-background-neutral-tertiary); color: var(--coar-icon-neutral-primary); }
-.coar-pdtp-btn:disabled { cursor: not-allowed; color: var(--coar-icon-neutral-disabled); }
+.coar-pdtp-btn:hover:not(:disabled) {
+  background: var(--coar-background-neutral-tertiary);
+  color: var(--coar-icon-neutral-primary);
+}
+.coar-pdtp-btn:disabled {
+  cursor: not-allowed;
+  color: var(--coar-icon-neutral-disabled);
+}
 
-.coar-pdtp--xs .coar-pdtp-btn { width: var(--coar-component-xs-height); }
-.coar-pdtp--s .coar-pdtp-btn { width: var(--coar-component-s-height); }
-.coar-pdtp--l .coar-pdtp-btn { width: var(--coar-component-l-height); }
+.coar-pdtp--xs .coar-pdtp-btn {
+  width: var(--coar-component-xs-height);
+}
+.coar-pdtp--s .coar-pdtp-btn {
+  width: var(--coar-component-s-height);
+}
+.coar-pdtp--l .coar-pdtp-btn {
+  width: var(--coar-component-l-height);
+}
 
 /* Message */
 .coar-form-field-message {
@@ -623,12 +800,18 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
   text-overflow: ellipsis;
 }
 
-.coar-form-field-message:empty { visibility: hidden; }
-.coar-form-field-message--error { color: var(--coar-text-semantic-error-bold); }
+.coar-form-field-message:empty {
+  visibility: hidden;
+}
+.coar-form-field-message--error {
+  color: var(--coar-text-semantic-error-bold);
+}
 
 @media (prefers-reduced-motion: reduce) {
   .coar-pdtp-trigger,
   .coar-pdtp-clear,
-  .coar-pdtp-btn { transition: none; }
+  .coar-pdtp-btn {
+    transition: none;
+  }
 }
 </style>

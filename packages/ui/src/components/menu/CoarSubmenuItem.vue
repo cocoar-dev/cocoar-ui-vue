@@ -2,7 +2,13 @@
 import { ref, watch, computed, inject, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import CoarIcon from '../icon/CoarIcon.vue';
 import { computeOverlayCoordinates } from '../overlay/overlay-position';
-import { MenuCascade, useMenuCascade, provideMenuCascade, provideMenuClose, MENU_NAV_KEY } from './menu-cascade';
+import {
+  MenuCascade,
+  useMenuCascade,
+  provideMenuCascade,
+  provideMenuClose,
+  MENU_NAV_KEY,
+} from './menu-cascade';
 
 const props = withDefaults(
   defineProps<{
@@ -76,7 +82,7 @@ function openSubmenu(anchorEl: HTMLElement) {
       panelEl: panelRef.value,
       close: () => closeSubmenu(),
     };
-    parentCascade?.notifyChildOpened(cascade);
+    parentCascade?.notifyChildOpened();
   });
 }
 
@@ -98,7 +104,14 @@ function positionPanel(anchorEl: HTMLElement) {
   const pr = panel.getBoundingClientRect();
 
   const coords = computeOverlayCoordinates(
-    { left: ar.left, top: ar.top, right: ar.right, bottom: ar.bottom, width: ar.width, height: ar.height },
+    {
+      left: ar.left,
+      top: ar.top,
+      right: ar.right,
+      bottom: ar.bottom,
+      width: ar.width,
+      height: ar.height,
+    },
     { width: pr.width || 200, height: pr.height || 100 },
     { placement: ['right-start', 'left-start'], offset: -4, flip: false, shift: true },
     { width: window.innerWidth, height: window.innerHeight },
@@ -112,7 +125,7 @@ function onMouseEnter(event: MouseEvent) {
   if (props.disabled) return;
   cancelCloseTimer();
 
-  const anchor = (event.currentTarget as HTMLElement);
+  const anchor = event.currentTarget as HTMLElement;
 
   if (parentCascade) {
     parentCascade.requestOpenFromChild(cascade, () => openSubmenu(anchor), {
@@ -191,7 +204,9 @@ function onKeydown(event: KeyboardEvent) {
     }
     // Focus the first focusable menuitem in the submenu panel
     nextTick(() => {
-      const firstItem = panelRef.value?.querySelector<HTMLElement>('[role="menuitem"]:not([aria-disabled="true"])');
+      const firstItem = panelRef.value?.querySelector<HTMLElement>(
+        '[role="menuitem"]:not([aria-disabled="true"])',
+      );
       firstItem?.focus();
     });
     return;
@@ -281,7 +296,12 @@ onBeforeUnmount(() => {
         <CoarIcon :name="props.icon || 'square-rounded-dashed'" size="s" />
       </span>
       <span class="coar-submenu-item__label">{{ props.label }}</span>
-      <CoarIcon name="chevron-right" size="xs" class="coar-submenu-item__arrow" aria-hidden="true" />
+      <CoarIcon
+        name="chevron-right"
+        size="xs"
+        class="coar-submenu-item__arrow"
+        aria-hidden="true"
+      />
     </div>
 
     <Teleport to="body">

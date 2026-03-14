@@ -1,12 +1,18 @@
-import { ref, type InjectionKey } from 'vue';
-import type { InternalToast, ToastPosition, ToastConfig, ToastRef, ToastVariant } from './toast-types';
+import { ref, type InjectionKey, type Ref } from 'vue';
+import type {
+  InternalToast,
+  ToastConfig,
+  ToastPosition,
+  ToastRef,
+  ToastVariant,
+} from './toast-types';
 
 const DEFAULT_DURATION = 5000;
 const ERROR_DURATION = 0;
 
 export interface ToastService {
-  readonly toasts: ReturnType<typeof ref<InternalToast[]>>;
-  readonly position: ReturnType<typeof ref<ToastPosition>>;
+  readonly toasts: Ref<InternalToast[]>;
+  readonly position: Ref<ToastPosition>;
   addToast(toast: InternalToast): void;
   onDismissed(id: number): void;
   removeAll(): void;

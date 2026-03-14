@@ -103,18 +103,19 @@ const messageId = computed(() => `${inputId.value}-message`);
 const hasError = computed(() => props.error.length > 0);
 const displayMessage = computed(() => props.error || props.hint);
 
-const showClearButton = computed(() =>
-  props.clearable && model.value !== null && !props.disabled && !props.readonly
+const showClearButton = computed(
+  () => props.clearable && model.value !== null && !props.disabled && !props.readonly,
 );
 
-const showIncrementButton = computed(() =>
-  props.stepperButtons === 'increment' || props.stepperButtons === 'both'
+const showIncrementButton = computed(
+  () => props.stepperButtons === 'increment' || props.stepperButtons === 'both',
 );
-const showDecrementButton = computed(() =>
-  props.stepperButtons === 'decrement' || props.stepperButtons === 'both'
+const showDecrementButton = computed(
+  () => props.stepperButtons === 'decrement' || props.stepperButtons === 'both',
 );
-const showButtons = computed(() =>
-  (showIncrementButton.value || showDecrementButton.value) && !props.disabled && !props.readonly
+const showButtons = computed(
+  () =>
+    (showIncrementButton.value || showDecrementButton.value) && !props.disabled && !props.readonly,
 );
 
 const canDecrement = computed(() => {
@@ -132,10 +133,7 @@ const iconSize = computed<CoarIconSize>(() => {
   return sizeMap[props.size];
 });
 
-const hostClasses = computed(() => [
-  'coar-number-input-host',
-  `coar-number-input--${props.size}`,
-]);
+const hostClasses = computed(() => ['coar-number-input-host', `coar-number-input--${props.size}`]);
 
 const containerClasses = computed(() => [
   'coar-number-input-container',
@@ -163,10 +161,12 @@ const resolvedNumberFormat = computed<NumberFormatConfig>(() => {
       const formatter = new Intl.NumberFormat(locale);
       const parts = formatter.formatToParts(1000.1);
       return {
-        decimal: parts.find(p => p.type === 'decimal')?.value ?? '.',
-        thousand: parts.find(p => p.type === 'group')?.value ?? '',
+        decimal: parts.find((p) => p.type === 'decimal')?.value ?? '.',
+        thousand: parts.find((p) => p.type === 'group')?.value ?? '',
       };
-    } catch { /* fall through */ }
+    } catch {
+      /* fall through */
+    }
   }
 
   return { decimal: '.', thousand: '' };
@@ -217,7 +217,7 @@ function initMaskito() {
   const maskOptions = maskitoNumberOptionsGenerator({
     decimalSeparator: format.decimal,
     thousandSeparator: format.thousand,
-    precision: props.decimals,
+    maximumFractionDigits: props.decimals,
     min: props.min,
     max: props.max,
   });
@@ -230,9 +230,13 @@ function destroyMaskito() {
 }
 
 // Sync displayValue when model changes externally
-watch(() => model.value, (newValue) => {
-  displayValue.value = formatValue(newValue);
-}, { immediate: true });
+watch(
+  () => model.value,
+  (newValue) => {
+    displayValue.value = formatValue(newValue);
+  },
+  { immediate: true },
+);
 
 // Re-initialize maskito when relevant props change
 watch([() => props.decimals, () => props.min, () => props.max, resolvedNumberFormat], () => {
@@ -491,24 +495,36 @@ function onDragEnd() {
 }
 
 /* Size variants */
-.coar-number-input--xs .coar-number-input-container { height: var(--coar-component-xs-height); }
-.coar-number-input--s .coar-number-input-container { height: var(--coar-component-s-height); }
-.coar-number-input--l .coar-number-input-container { height: var(--coar-component-l-height); }
+.coar-number-input--xs .coar-number-input-container {
+  height: var(--coar-component-xs-height);
+}
+.coar-number-input--s .coar-number-input-container {
+  height: var(--coar-component-s-height);
+}
+.coar-number-input--l .coar-number-input-container {
+  height: var(--coar-component-l-height);
+}
 
 /* Size-specific typography */
-.coar-number-input--xs .coar-number-input-field { font-size: var(--coar-component-xs-font-size); }
+.coar-number-input--xs .coar-number-input-field {
+  font-size: var(--coar-component-xs-font-size);
+}
 .coar-number-input--xs .coar-number-input-label {
   font-size: var(--coar-component-xs-label-font-size);
   margin-bottom: var(--coar-component-xs-label-margin);
 }
 
-.coar-number-input--s .coar-number-input-field { font-size: var(--coar-component-s-font-size); }
+.coar-number-input--s .coar-number-input-field {
+  font-size: var(--coar-component-s-font-size);
+}
 .coar-number-input--s .coar-number-input-label {
   font-size: var(--coar-component-s-label-font-size);
   margin-bottom: var(--coar-component-s-label-margin);
 }
 
-.coar-number-input--l .coar-number-input-field { font-size: var(--coar-component-l-font-size); }
+.coar-number-input--l .coar-number-input-field {
+  font-size: var(--coar-component-l-font-size);
+}
 .coar-number-input--l .coar-number-input-label {
   font-size: var(--coar-component-l-label-font-size);
   margin-bottom: var(--coar-component-l-label-margin);
@@ -582,8 +598,13 @@ function onDragEnd() {
   text-align: right;
 }
 
-.coar-number-input-field:disabled { color: var(--coar-text-neutral-disabled); cursor: not-allowed; }
-.coar-number-input-field:read-only { cursor: default; }
+.coar-number-input-field:disabled {
+  color: var(--coar-text-neutral-disabled);
+  cursor: not-allowed;
+}
+.coar-number-input-field:read-only {
+  cursor: default;
+}
 
 /* Hide native spinner buttons */
 .coar-number-input-field::-webkit-inner-spin-button,
@@ -659,18 +680,30 @@ function onDragEnd() {
   color: var(--coar-icon-neutral-tertiary);
 }
 
-.coar-number-input--xs .coar-number-input-clear { font-size: var(--coar-component-xs-font-size); }
-.coar-number-input--s .coar-number-input-clear { font-size: var(--coar-component-s-font-size); }
-.coar-number-input--l .coar-number-input-clear { font-size: var(--coar-component-l-font-size); }
+.coar-number-input--xs .coar-number-input-clear {
+  font-size: var(--coar-component-xs-font-size);
+}
+.coar-number-input--s .coar-number-input-clear {
+  font-size: var(--coar-component-s-font-size);
+}
+.coar-number-input--l .coar-number-input-clear {
+  font-size: var(--coar-component-l-font-size);
+}
 
 .coar-number-input-clear--hidden {
   opacity: 0;
   pointer-events: none;
 }
 
-.coar-number-input-clear:hover { color: var(--coar-icon-neutral-primary); }
-.coar-number-input-clear:focus { outline: none; }
-.coar-number-input-clear:focus-visible { color: var(--coar-icon-neutral-primary); }
+.coar-number-input-clear:hover {
+  color: var(--coar-icon-neutral-primary);
+}
+.coar-number-input-clear:focus {
+  outline: none;
+}
+.coar-number-input-clear:focus-visible {
+  color: var(--coar-icon-neutral-primary);
+}
 
 /* Browser autofill styling */
 .coar-number-input-field:-webkit-autofill,
@@ -705,9 +738,15 @@ function onDragEnd() {
     color var(--coar-duration-fast) var(--coar-ease-out);
 }
 
-.coar-number-input--xs .coar-number-input-button { width: 20px; }
-.coar-number-input--s .coar-number-input-button { width: 24px; }
-.coar-number-input--l .coar-number-input-button { width: 32px; }
+.coar-number-input--xs .coar-number-input-button {
+  width: 20px;
+}
+.coar-number-input--s .coar-number-input-button {
+  width: 24px;
+}
+.coar-number-input--l .coar-number-input-button {
+  width: 32px;
+}
 
 .coar-number-input-button:hover:not(:disabled) {
   background: var(--coar-background-neutral-secondary);
@@ -742,8 +781,12 @@ function onDragEnd() {
   text-overflow: ellipsis;
 }
 
-.coar-form-field-message:empty { visibility: hidden; }
-.coar-form-field-message--error { color: var(--coar-text-semantic-error-bold); }
+.coar-form-field-message:empty {
+  visibility: hidden;
+}
+.coar-form-field-message--error {
+  color: var(--coar-text-semantic-error-bold);
+}
 
 @media (prefers-reduced-motion: reduce) {
   .coar-number-input-container,
