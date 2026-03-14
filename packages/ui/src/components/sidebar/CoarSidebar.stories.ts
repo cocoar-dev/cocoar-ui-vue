@@ -1,6 +1,15 @@
+import {
+  CoarAvatar,
+  CoarButton,
+  CoarIcon,
+  CoarMenu,
+  CoarMenuDivider,
+  CoarMenuHeading,
+  CoarMenuItem,
+  CoarSidebar,
+} from '@cocoar/vue-ui';
 import type { Meta, StoryObj } from '@storybook/vue3';
 import { ref } from 'vue';
-import { CoarSidebar, CoarMenu, CoarMenuItem, CoarMenuHeading, CoarMenuDivider, CoarButton, CoarIcon, CoarAvatar, CoarSelect } from '@cocoar/vue-ui';
 
 const meta: Meta<typeof CoarSidebar> = {
   title: 'Navigation/Sidebar',
@@ -18,13 +27,17 @@ const meta: Meta<typeof CoarSidebar> = {
 export default meta;
 type Story = StoryObj<typeof CoarSidebar>;
 
-const containerStyle = 'height: 400px; display: flex; border: 1px solid var(--coar-border-neutral-tertiary); border-radius: 8px; overflow: hidden;';
-const contentStyle = 'flex: 1; padding: 24px; background: var(--coar-background-neutral-secondary, #fafafa); display: flex; align-items: center; justify-content: center; color: var(--coar-text-neutral-tertiary);';
+const containerStyle =
+  'height: 400px; display: flex; border: 1px solid var(--coar-border-neutral-tertiary); border-radius: 8px; overflow: hidden;';
+const contentStyle =
+  'flex: 1; padding: 24px; background: var(--coar-background-neutral-secondary, #fafafa); display: flex; align-items: center; justify-content: center; color: var(--coar-text-neutral-tertiary);';
 
 export const BasicSidebar: Story = {
   render: (args) => ({
     components: { CoarSidebar, CoarMenu, CoarMenuItem, CoarMenuHeading, CoarMenuDivider },
-    setup() { return { args, containerStyle, contentStyle }; },
+    setup() {
+      return { args, containerStyle, contentStyle };
+    },
     template: `
       <div :style="containerStyle">
         <CoarSidebar v-bind="args">
@@ -61,8 +74,17 @@ export const BasicSidebar: Story = {
 
 export const WithIcons: Story = {
   render: () => ({
-    components: { CoarSidebar, CoarMenu, CoarMenuItem, CoarMenuHeading, CoarMenuDivider, CoarAvatar },
-    setup() { return { containerStyle, contentStyle }; },
+    components: {
+      CoarSidebar,
+      CoarMenu,
+      CoarMenuItem,
+      CoarMenuHeading,
+      CoarMenuDivider,
+      CoarAvatar,
+    },
+    setup() {
+      return { containerStyle, contentStyle };
+    },
     template: `
       <div :style="containerStyle">
         <CoarSidebar>
@@ -99,7 +121,9 @@ export const WithIcons: Story = {
 export const RightPosition: Story = {
   render: () => ({
     components: { CoarSidebar, CoarMenu, CoarMenuItem, CoarMenuDivider },
-    setup() { return { containerStyle, contentStyle }; },
+    setup() {
+      return { containerStyle, contentStyle };
+    },
     template: `
       <div :style="containerStyle">
         <div :style="contentStyle">Main Content Area</div>
