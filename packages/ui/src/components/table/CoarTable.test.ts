@@ -19,17 +19,12 @@ describe('CoarTable', () => {
   describe('rendering', () => {
     it('should create', () => {
       const wrapper = mountTable();
-      expect(wrapper.find('.coar-table-host').exists()).toBe(true);
-    });
-
-    it('should render table wrapper', () => {
-      const wrapper = mountTable();
-      expect(wrapper.find('.coar-table-wrapper').exists()).toBe(true);
-    });
-
-    it('should render table element', () => {
-      const wrapper = mountTable();
       expect(wrapper.find('.coar-table').exists()).toBe(true);
+    });
+
+    it('should render as a table element', () => {
+      const wrapper = mountTable();
+      expect(wrapper.element.tagName).toBe('TABLE');
     });
 
     it('should render slot content', () => {
