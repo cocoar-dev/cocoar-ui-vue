@@ -1,3 +1,8 @@
+<script setup>
+import TypeScale from './typography/demos/TypeScale.vue';
+import TypographyExample from './typography/demos/TypographyExample.vue';
+</script>
+
 # Typography
 
 Our type system creates clear visual hierarchy and ensures readability across all interfaces. Eleven styles cover everything from large display headings to fine-print footnotes.
@@ -6,13 +11,13 @@ Our type system creates clear visual hierarchy and ensures readability across al
 
 Each row shows the style rendered at its actual size, with font metadata alongside.
 
-<preview path="./typography/demos/TypeScale.vue" />
+<TypeScale />
 
 ## Usage Example
 
 Typography hierarchy applied to a realistic article layout — caption, title, subtitle, body, and footnote working together.
 
-<preview path="./typography/demos/TypographyExample.vue" />
+<TypographyExample />
 
 ## CSS Classes Reference
 

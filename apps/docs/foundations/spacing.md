@@ -1,3 +1,9 @@
+<script setup>
+import BorderRadius from './spacing/demos/BorderRadius.vue';
+import SpacingScale from './spacing/demos/SpacingScale.vue';
+import Shadows from './spacing/demos/Shadows.vue';
+</script>
+
 # Spacing & Effects
 
 Layout rhythm, corner shapes, and depth — the visual building blocks that give the system its feel.
@@ -6,13 +12,13 @@ Layout rhythm, corner shapes, and depth — the visual building blocks that give
 
 Seven radius tokens shape everything from subtle input rounding to fully circular avatars.
 
-<preview path="./spacing/demos/BorderRadius.vue" />
+<BorderRadius />
 
 ## Spacing Scale
 
 All spacing is built on a **4 px grid**. These tokens control padding, margins, and gaps throughout the system.
 
-<preview path="./spacing/demos/SpacingScale.vue" />
+<SpacingScale />
 
 ## Stroke Width
 
@@ -29,7 +35,7 @@ Border thickness for dividers, outlines, and component borders.
 
 Six shadow levels create the illusion of depth. The shadow _is_ the demo — notice how each card lifts further off the surface.
 
-<preview path="./spacing/demos/Shadows.vue" />
+<Shadows />
 
 ## Token Reference
 

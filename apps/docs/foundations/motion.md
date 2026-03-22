@@ -1,3 +1,9 @@
+<script setup>
+import DurationDemo from './motion/demos/DurationDemo.vue';
+import EasingDemo from './motion/demos/EasingDemo.vue';
+import TransitionDemo from './motion/demos/TransitionDemo.vue';
+</script>
+
 # Motion
 
 Timing, easing, and pre-composed transitions that make the UI feel responsive and alive.
@@ -6,19 +12,19 @@ Timing, easing, and pre-composed transitions that make the UI feel responsive an
 
 How long an animation takes. Short durations suit small changes; longer ones give complex movements room to breathe. Press **Play** to see each duration side by side.
 
-<preview path="./motion/demos/DurationDemo.vue" />
+<DurationDemo />
 
 ## Easing
 
 How animations accelerate and decelerate. Press **Play** to compare every curve at the same duration.
 
-<preview path="./motion/demos/EasingDemo.vue" />
+<EasingDemo />
 
 ## Pre-composed Transitions
 
 Ready-made `transition` values that pair a duration with an easing curve. Hover each button to see the effect it controls.
 
-<preview path="./motion/demos/TransitionDemo.vue" />
+<TransitionDemo />
 
 ## Usage
 

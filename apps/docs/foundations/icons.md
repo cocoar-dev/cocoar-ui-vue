@@ -1,3 +1,11 @@
+<script setup>
+import IconGallery from './icons/demos/IconGallery.vue';
+import IconSizes from './icons/demos/IconSizes.vue';
+import IconColors from './icons/demos/IconColors.vue';
+import IconRotation from './icons/demos/IconRotation.vue';
+import IconSpin from './icons/demos/IconSpin.vue';
+</script>
+
 # Icons
 
 A flexible icon system with built-in SVG icons. Icons support multiple sizes, colors, rotation, and animations.
@@ -8,31 +16,31 @@ import { CoarIcon } from '@cocoar/vue-ui';
 
 ## Icon Gallery
 
-<preview path="./icons/demos/IconGallery.vue" />
+<IconGallery />
 
 ## Sizes
 
 Icons come in 5 preset sizes and can use any valid CSS value.
 
-<preview path="./icons/demos/IconSizes.vue" />
+<IconSizes />
 
 ## Colors
 
 Icons inherit color by default. Override with any valid CSS color value.
 
-<preview path="./icons/demos/IconColors.vue" />
+<IconColors />
 
 ## Rotation
 
 Rotate icons to any angle using the `rotate` prop.
 
-<preview path="./icons/demos/IconRotation.vue" />
+<IconRotation />
 
 ## Spin Animation
 
 Enable continuous spinning for loading indicators.
 
-<preview path="./icons/demos/IconSpin.vue" />
+<IconSpin />
 
 ## Usage
 

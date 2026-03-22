@@ -1,17 +1,11 @@
 /**
- * Overrides to make Cocoar components render correctly inside VitePress pages.
- * VitePress applies its own styling to common HTML elements which can conflict
- * with Cocoar's component styles.
+ * Overrides to make Cocoar components render correctly inside VitePress pages
+ * and to style VitePress elements to match the Cocoar Design System.
  */
 
 /* Ensure Cocoar's overlay z-index works above VitePress's sidebar/nav */
 .coar-overlay-host {
   z-index: 100;
-}
-
-/* Demo preview containers */
-.vp-demo-preview {
-  margin: 16px 0;
 }
 
 /* Let Cocoar components use their own font families instead of VitePress's Inter */
@@ -28,4 +22,60 @@
 /* Restore CoarTable's own bottom border on th */
 .vp-doc .coar-table thead th {
   border-bottom: 1px solid var(--coar-border-neutral-tertiary);
+}
+
+/* --- VitePress code blocks → Cocoar style -------------------------------- */
+
+.vp-doc div[class*='language-'] {
+  border-radius: var(--coar-radius-s, 6px);
+  border: 1px solid var(--coar-border-neutral-tertiary, #e2e8f0);
+}
+
+.dark .vp-doc div[class*='language-'] {
+  border-color: var(--coar-border-neutral-tertiary, #333);
+}
+
+/* --- VitePress custom containers → Cocoar Note style --------------------- */
+
+.vp-doc .custom-block {
+  border-radius: var(--coar-radius-s, 6px);
+  font-family: var(--coar-body-base-family, Poppins, sans-serif);
+  font-size: var(--coar-body-small-base-size, 14px);
+}
+
+.vp-doc .custom-block.info {
+  background-color: var(--coar-background-semantic-info-subtle, #eff6ff);
+  border-left: 3px solid var(--coar-border-semantic-info-subtle, #3b82f6);
+  border-top: none;
+  border-right: none;
+  border-bottom: none;
+}
+
+.vp-doc .custom-block.tip {
+  background-color: var(--coar-background-semantic-success-subtle, #f0fdf4);
+  border-left: 3px solid var(--coar-border-semantic-success-subtle, #22c55e);
+  border-top: none;
+  border-right: none;
+  border-bottom: none;
+}
+
+.vp-doc .custom-block.warning {
+  background-color: var(--coar-background-semantic-warning-subtle, #fffbeb);
+  border-left: 3px solid var(--coar-border-semantic-warning-subtle, #f59e0b);
+  border-top: none;
+  border-right: none;
+  border-bottom: none;
+}
+
+.vp-doc .custom-block.danger {
+  background-color: var(--coar-background-semantic-error-subtle, #fef2f2);
+  border-left: 3px solid var(--coar-border-semantic-error-subtle, #ef4444);
+  border-top: none;
+  border-right: none;
+  border-bottom: none;
+}
+
+.vp-doc .custom-block .custom-block-title {
+  font-weight: 600;
+  font-size: var(--coar-body-small-bold-size, 14px);
 }

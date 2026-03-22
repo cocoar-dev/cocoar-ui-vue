@@ -1,3 +1,9 @@
+<script setup>
+import ColorPrimitives from './colors/demos/ColorPrimitives.vue';
+import SemanticColors from './colors/demos/SemanticColors.vue';
+import ColorUsageExample from './colors/demos/ColorUsageExample.vue';
+</script>
+
 # Colors
 
 Cocoar's color system is built on two layers: **primitives** (the raw palette) and **semantic tokens** (purpose-driven aliases). Semantic tokens adapt to light and dark mode automatically — always use them in your components instead of referencing primitives directly.
@@ -6,7 +12,7 @@ Cocoar's color system is built on two layers: **primitives** (the raw palette) a
 
 Six scales, ten shades each. These are the building blocks that semantic tokens reference under the hood.
 
-<preview path="./colors/demos/ColorPrimitives.vue" />
+<ColorPrimitives />
 
 ::: tip When to use primitives
 Almost never. Use semantic tokens in component code. Primitives are useful only when defining new semantic tokens or building one-off illustrations.
@@ -16,13 +22,13 @@ Almost never. Use semantic tokens in component code. Primitives are useful only 
 
 Semantic tokens give colors *meaning* — background, text, border, or status — so your UI stays consistent and adapts to theme changes without touching component code.
 
-<preview path="./colors/demos/SemanticColors.vue" />
+<SemanticColors />
 
 ## Usage Example
 
 A realistic card built entirely with semantic tokens. Toggle light/dark mode to see every color adapt.
 
-<preview path="./colors/demos/ColorUsageExample.vue" />
+<ColorUsageExample />
 
 ## Token Naming Convention
 
