@@ -1,11 +1,8 @@
 /**
  * Cocoar Design System - Responsive Typography Extensions
  *
- * This file extends the base typography tokens with responsive variants.
- * These are NOT auto-generated from Figma - they can be edited manually.
- *
- * The base tokens (--coar-titles-display-size, etc.) come from Figma.
- * These responsive variants scale typography for different screen sizes.
+ * Responsive typography extensions.
+ * Scales base typography tokens (--coar-titles-display-size, etc.) for different screen sizes.
  */
 
 :root {

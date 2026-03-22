@@ -21,7 +21,16 @@ export default defineConfig({
       fileName: 'index',
     },
     rollupOptions: {
-      external: ['vue', '@cocoar/vue-localization', '@cocoar/vue-fragment-parser'],
+      external: [
+        'vue',
+        '@cocoar/vue-localization',
+        '@cocoar/vue-fragment-parser',
+        '@js-temporal/polyfill',
+        '@maskito/core',
+        '@maskito/kit',
+        '@maskito/vue',
+        'prismjs',
+      ],
       output: {
         globals: {
           vue: 'Vue',
