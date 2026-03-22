@@ -19,16 +19,6 @@ describe('CoarSelect', () => {
     expect(w.text()).toContain('Select an option...');
   });
 
-  it('renders label', () => {
-    const w = mount(CoarSelect, { ...globalStubs, props: { label: 'Fruit', options: baseOptions } });
-    expect(w.find('.coar-select-label').text()).toBe('Fruit');
-  });
-
-  it('renders required indicator', () => {
-    const w = mount(CoarSelect, { ...globalStubs, props: { label: 'Fruit', required: true, options: baseOptions } });
-    expect(w.find('.coar-select-required').exists()).toBe(true);
-  });
-
   it('shows selected option label', () => {
     const w = mount(CoarSelect, { ...globalStubs, props: { modelValue: 'b', options: baseOptions } });
     expect(w.find('.coar-select-value').text()).toBe('Banana');
@@ -72,21 +62,6 @@ describe('CoarSelect', () => {
     const w = mount(CoarSelect, { ...globalStubs, props: { readonly: true, options: baseOptions } });
     await w.find('.coar-select-trigger').trigger('click');
     expect(w.find('.coar-select-dropdown').exists()).toBe(false);
-  });
-
-  it('shows error message', () => {
-    const w = mount(CoarSelect, { ...globalStubs, props: { error: 'Required', options: baseOptions } });
-    expect(w.find('.coar-form-field-message--error').text()).toBe('Required');
-  });
-
-  it('shows hint message', () => {
-    const w = mount(CoarSelect, { ...globalStubs, props: { hint: 'Pick one', options: baseOptions } });
-    expect(w.find('.coar-form-field-message').text()).toBe('Pick one');
-  });
-
-  it('error takes priority over hint', () => {
-    const w = mount(CoarSelect, { ...globalStubs, props: { error: 'Error!', hint: 'Hint', options: baseOptions } });
-    expect(w.find('.coar-form-field-message').text()).toBe('Error!');
   });
 
   it('applies size class', () => {
@@ -171,7 +146,7 @@ describe('CoarSelect', () => {
   });
 
   it('has correct ARIA attributes', () => {
-    const w = mount(CoarSelect, { ...globalStubs, props: { label: 'Fruit', error: 'Required', options: baseOptions } });
+    const w = mount(CoarSelect, { ...globalStubs, props: { error: true, options: baseOptions } });
     const trigger = w.find('.coar-select-trigger');
     expect(trigger.attributes('role')).toBe('combobox');
     expect(trigger.attributes('aria-haspopup')).toBe('listbox');

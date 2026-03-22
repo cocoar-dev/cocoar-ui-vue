@@ -1,0 +1,17 @@
+/**
+ * Cocoar Design System — Transition CSS
+ *
+ * Collapse transition classes (used by CoarCollapse).
+ * Fade, Slide, and Scale use JavaScript hooks and don't need CSS classes.
+ */
+
+.coar-collapse-enter-active,
+.coar-collapse-leave-active {
+  transition: height var(--coar-duration-normal) var(--coar-ease-out),
+              opacity var(--coar-duration-normal) var(--coar-ease-out);
+}
+
+.coar-collapse-enter-from,
+.coar-collapse-leave-to {
+  opacity: 0;
+}

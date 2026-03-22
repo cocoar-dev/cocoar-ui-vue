@@ -19,4 +19,5 @@
 @import './shared/form-field-message.css' layer(cocoar.components);
 @import './base.css' layer(cocoar.base);
 @import './components.css' layer(cocoar.components);
+@import './transitions.css' layer(cocoar.components);
 @import 'overlayscrollbars/overlayscrollbars.css';

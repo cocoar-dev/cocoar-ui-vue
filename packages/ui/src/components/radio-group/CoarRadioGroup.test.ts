@@ -77,22 +77,14 @@ describe('CoarRadioGroup', () => {
     expect(wrapper.find('.coar-radio-group--disabled').exists()).toBe(true);
   });
 
-  it('applies error state', () => {
-    const wrapper = mountGroup({ error: 'Required!' });
+  it('applies error CSS class when error is true', () => {
+    const wrapper = mountGroup({ error: true });
     expect(wrapper.find('.coar-radio-group--error').exists()).toBe(true);
-    expect(wrapper.find('.coar-form-field-message--error').text()).toBe('Required!');
   });
 
-  it('shows hint when no error', () => {
-    const wrapper = mountGroup({ hint: 'Pick one' });
-    const msg = wrapper.find('.coar-form-field-message');
-    expect(msg.text()).toBe('Pick one');
-    expect(msg.classes()).not.toContain('coar-form-field-message--error');
-  });
-
-  it('error takes priority over hint', () => {
-    const wrapper = mountGroup({ error: 'Error', hint: 'Hint' });
-    expect(wrapper.find('.coar-form-field-message').text()).toBe('Error');
+  it('does not apply error class when error is false', () => {
+    const wrapper = mountGroup({ error: false });
+    expect(wrapper.find('.coar-radio-group--error').exists()).toBe(false);
   });
 
   it('applies size classes to radios', () => {
@@ -108,7 +100,7 @@ describe('CoarRadioGroup', () => {
   });
 
   it('propagates error state to radio buttons', () => {
-    const wrapper = mountGroup({ error: 'Bad' });
+    const wrapper = mountGroup({ error: true });
     const radios = wrapper.findAll('.coar-radio');
     radios.forEach(r => expect(r.classes()).toContain('coar-radio--error'));
   });

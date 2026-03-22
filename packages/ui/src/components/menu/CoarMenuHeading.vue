@@ -6,7 +6,7 @@ const props = defineProps<{
 </script>
 
 <template>
-  <div class="coar-menu-heading">
+  <div class="coar-menu-heading" role="heading" aria-level="3">
     <template v-if="props.label">{{ props.label }}</template>
     <slot v-else />
   </div>

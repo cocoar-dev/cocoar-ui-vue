@@ -17,16 +17,6 @@ describe('CoarNumberInput', () => {
     expect(wrapper.find('input.coar-number-input-field').exists()).toBe(true);
   });
 
-  it('renders label when provided', () => {
-    const wrapper = mountInput({ label: 'Amount' });
-    expect(wrapper.find('.coar-number-input-label').text()).toContain('Amount');
-  });
-
-  it('shows required asterisk', () => {
-    const wrapper = mountInput({ label: 'Amount', required: true });
-    expect(wrapper.find('.coar-number-input-required').text()).toBe('*');
-  });
-
   it('input is right-aligned', () => {
     const wrapper = mountInput();
     expect(wrapper.find('.coar-number-input-field').exists()).toBe(true);
@@ -58,15 +48,9 @@ describe('CoarNumberInput', () => {
     expect(wrapper.emitted('clear')).toHaveLength(1);
   });
 
-  it('shows error state', () => {
-    const wrapper = mountInput({ error: 'Out of range' });
+  it('applies error class when error is true', () => {
+    const wrapper = mountInput({ error: true });
     expect(wrapper.find('.coar-number-input-error').exists()).toBe(true);
-    expect(wrapper.find('.coar-form-field-message--error').text()).toBe('Out of range');
-  });
-
-  it('shows hint when no error', () => {
-    const wrapper = mountInput({ hint: 'Enter a number' });
-    expect(wrapper.find('.coar-form-field-message').text()).toBe('Enter a number');
   });
 
   it('applies disabled state', () => {
@@ -170,16 +154,6 @@ describe('CoarNumberInput', () => {
     const input = wrapper.find('input');
     expect(input.attributes('aria-valuemin')).toBe('0');
     expect(input.attributes('aria-valuemax')).toBe('100');
-  });
-
-  it('label has draggable cursor when not disabled', () => {
-    const wrapper = mountInput({ label: 'Value' });
-    expect(wrapper.find('.coar-number-input-label--draggable').exists()).toBe(true);
-  });
-
-  it('label is not draggable when disabled', () => {
-    const wrapper = mountInput({ label: 'Value', disabled: true });
-    expect(wrapper.find('.coar-number-input-label--draggable').exists()).toBe(false);
   });
 
   it('keyboard ArrowUp increments value', async () => {

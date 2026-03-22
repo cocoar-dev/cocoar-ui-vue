@@ -1,11 +1,12 @@
 <template>
   <div style="max-width: 320px;">
-    <CoarSelect
-      v-model="value"
-      :options="options"
-      label="Favorite fruit"
-      placeholder="Choose a fruit..."
-    />
+    <CoarFormField label="Favorite fruit">
+      <CoarSelect
+        v-model="value"
+        :options="options"
+        placeholder="Choose a fruit..."
+      />
+    </CoarFormField>
     <p style="margin-top: 8px; font-size: 13px; color: #64748b;">
       Selected: {{ value || 'none' }}
     </p>
@@ -14,7 +15,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { CoarSelect } from '@cocoar/vue-ui';
+import { CoarSelect, CoarFormField } from '@cocoar/vue-ui';
 import type { CoarSelectOption } from '@cocoar/vue-ui';
 
 const options: CoarSelectOption<string>[] = [

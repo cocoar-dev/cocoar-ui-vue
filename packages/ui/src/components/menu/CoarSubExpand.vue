@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, useId } from 'vue';
 import CoarIcon from '../icon/CoarIcon.vue';
+
+const panelId = `coar-sub-expand-${useId()}`;
 
 const props = withDefaults(
   defineProps<{
@@ -39,6 +41,7 @@ function toggle(event: Event) {
       role="menuitem"
       aria-haspopup="menu"
       :aria-expanded="isOpen"
+      :aria-controls="panelId"
       :aria-disabled="props.disabled || undefined"
       :tabindex="props.disabled ? -1 : 0"
       @click="toggle"
@@ -58,6 +61,7 @@ function toggle(event: Event) {
     </div>
 
     <div
+      :id="panelId"
       class="coar-sub-expand__panel"
       :class="{ 'coar-sub-expand__panel--open': isOpen }"
       :aria-hidden="!isOpen || undefined"
@@ -152,27 +156,8 @@ function toggle(event: Event) {
   transition: grid-template-rows var(--coar-duration-normal) var(--coar-ease-out);
 }
 
-/* Guide line */
-.coar-sub-expand__panel::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 1px;
-  background: var(--coar-border-neutral-tertiary);
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity var(--coar-duration-fast) var(--coar-ease-out);
-  z-index: 1;
-}
-
 .coar-sub-expand__panel--open {
   grid-template-rows: 1fr;
-}
-
-.coar-sub-expand__panel--open::before {
-  opacity: 1;
 }
 
 .coar-sub-expand__panel-inner {
@@ -198,7 +183,6 @@ function toggle(event: Event) {
   .coar-sub-expand,
   .coar-sub-expand__arrow,
   .coar-sub-expand__panel,
-  .coar-sub-expand__panel::before,
   .coar-sub-expand__panel-inner {
     transition-duration: 0s;
   }

@@ -15,9 +15,6 @@ export default defineConfig({
   base: process.env.GITHUB_PAGES ? '/cocoar-ui-vue/' : '/',
 
   head: [
-    ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
-    ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
-    ['link', { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Poppins:wght@400;500;600;700&display=swap' }],
     [
       'link',
       { rel: 'icon', type: 'image/svg+xml', href: '/logo_light.svg' },
@@ -157,6 +154,7 @@ export default defineConfig({
           text: 'Form Controls',
           items: [
             { text: 'Button', link: '/components/button' },
+            { text: 'Form Field', link: '/components/form-field' },
             { text: 'Text Input', link: '/components/text-input' },
             { text: 'Number Input', link: '/components/number-input' },
             { text: 'Password Input', link: '/components/password-input' },
@@ -205,6 +203,12 @@ export default defineConfig({
             { text: 'Popconfirm', link: '/components/popconfirm' },
             { text: 'Toast', link: '/components/toast' },
             { text: 'Tooltip', link: '/components/tooltip' },
+          ],
+        },
+        {
+          text: 'Utilities',
+          items: [
+            { text: 'Transitions', link: '/components/transitions' },
           ],
         },
         {

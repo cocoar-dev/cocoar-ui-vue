@@ -3,10 +3,12 @@
     <CoarSwitch :model-value="true" label="Disabled (on)" :disabled="true" />
     <CoarSwitch :model-value="false" label="Disabled (off)" :disabled="true" />
     <CoarSwitch :model-value="false" label="Required switch" :required="true" />
-    <CoarSwitch :model-value="false" label="With error" error="This setting must be enabled" />
+    <CoarFormField error="This setting must be enabled">
+      <CoarSwitch :model-value="false" label="With error" />
+    </CoarFormField>
   </div>
 </template>
 
 <script setup lang="ts">
-import { CoarSwitch } from '@cocoar/vue-ui';
+import { CoarSwitch, CoarFormField } from '@cocoar/vue-ui';
 </script>

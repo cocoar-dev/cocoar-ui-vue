@@ -1,10 +1,14 @@
 <template>
   <div style="display: flex; flex-direction: column; gap: 12px; max-width: 320px;">
-    <CoarPlainDatePicker label="Disabled" placeholder="DD.MM.YYYY" :disabled="true" />
-    <CoarPlainDatePicker label="Readonly" placeholder="DD.MM.YYYY" :readonly="true" />
+    <CoarFormField label="Disabled">
+      <CoarPlainDatePicker placeholder="DD.MM.YYYY" :disabled="true" />
+    </CoarFormField>
+    <CoarFormField label="Readonly">
+      <CoarPlainDatePicker placeholder="DD.MM.YYYY" :readonly="true" />
+    </CoarFormField>
   </div>
 </template>
 
 <script setup lang="ts">
-import { CoarPlainDatePicker } from '@cocoar/vue-ui';
+import { CoarPlainDatePicker, CoarFormField } from '@cocoar/vue-ui';
 </script>

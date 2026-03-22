@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { computed, ref, useTemplateRef } from 'vue';
+import { computed, ref, inject, useTemplateRef } from 'vue';
 import { CoarIcon } from '../icon';
+import { FORM_FIELD_INJECTION_KEY } from '../form-field/constants';
 
 export type CoarPasswordInputSize = 'xs' | 's' | 'm' | 'l';
 
 export interface CoarPasswordInputProps {
-  /** Label text displayed above the input */
-  label?: string;
   /** Placeholder text shown when input is empty */
   placeholder?: string;
   /** Input size */
@@ -17,10 +16,8 @@ export interface CoarPasswordInputProps {
   readonly?: boolean;
   /** Marks the input as required */
   required?: boolean;
-  /** Error message to display */
-  error?: string;
-  /** Hint text displayed below the input */
-  hint?: string;
+  /** Error state (boolean for standalone use; auto-injected from CoarFormField) */
+  error?: boolean;
   /** Show clear button when input has value */
   clearable?: boolean;
   /** HTML id attribute */
@@ -34,14 +31,12 @@ export interface CoarPasswordInputProps {
 }
 
 const props = withDefaults(defineProps<CoarPasswordInputProps>(), {
-  label: '',
   placeholder: '',
   size: 'm',
   disabled: false,
   readonly: false,
   required: false,
-  error: '',
-  hint: '',
+  error: false,
   clearable: true,
   id: '',
   name: '',
@@ -57,20 +52,21 @@ const emit = defineEmits<{
   clear: [];
 }>();
 
+const formField = inject(FORM_FIELD_INJECTION_KEY, undefined);
+
 const isFocused = ref(false);
 const showPassword = ref(false);
 const inputElement = useTemplateRef<HTMLInputElement>('inputElement');
 
 const autoId = `coar-password-input-${crypto.randomUUID?.() ?? Date.now().toString(16)}`;
-const inputId = computed(() => props.id || autoId);
-const messageId = computed(() => `${inputId.value}-message`);
+const inputId = computed(() => props.id || formField?.inputId.value || autoId);
 
 const inputType = computed(() => (showPassword.value ? 'text' : 'password'));
 const toggleIcon = computed(() => (showPassword.value ? 'eye' : 'eye-off'));
 const toggleAriaLabel = computed(() => (showPassword.value ? 'Hide password' : 'Show password'));
 
-const hasError = computed(() => props.error.length > 0);
-const displayMessage = computed(() => props.error || props.hint);
+const hasError = computed(() => props.error || (formField?.hasError.value ?? false));
+const describedBy = computed(() => formField?.messageId.value || undefined);
 
 const showClearButton = computed(() =>
   props.clearable && model.value.length > 0 && !props.disabled && !props.readonly
@@ -112,10 +108,6 @@ function onClear() {
   inputElement.value?.focus();
 }
 
-function onLabelClick() {
-  inputElement.value?.focus();
-}
-
 function togglePasswordVisibility() {
   if (!props.disabled && !props.readonly) {
     showPassword.value = !showPassword.value;
@@ -126,17 +118,6 @@ function togglePasswordVisibility() {
 <template>
   <div :class="hostClasses">
     <div class="coar-password-input-wrapper">
-      <!-- Label -->
-      <label
-        v-if="label"
-        :for="inputId"
-        class="coar-password-input-label"
-        @click="onLabelClick"
-      >
-        {{ label }}
-        <span v-if="required" class="coar-password-input-required">*</span>
-      </label>
-
       <!-- Input Container -->
       <div :class="containerClasses">
         <!-- Input Element -->
@@ -152,7 +133,7 @@ function togglePasswordVisibility() {
           :required="required"
           :autocomplete="autocomplete || undefined"
           :maxlength="maxlength"
-          :aria-describedby="displayMessage ? messageId : undefined"
+          :aria-describedby="describedBy"
           :aria-invalid="hasError ? 'true' : undefined"
           class="coar-password-input-field"
           @input="onInput"
@@ -178,20 +159,11 @@ function togglePasswordVisibility() {
           class="coar-password-input-toggle"
           tabindex="-1"
           :aria-label="toggleAriaLabel"
+          :aria-controls="inputId"
           @click="togglePasswordVisibility"
         >
           <CoarIcon :name="toggleIcon" source="coar-builtin" size="auto" />
         </button>
-      </div>
-
-      <!-- Hint/Error Message -->
-      <div
-        :id="messageId"
-        class="coar-form-field-message"
-        :class="{ 'coar-form-field-message--error': hasError }"
-        :title="displayMessage || undefined"
-      >
-        {{ displayMessage }}
       </div>
     </div>
   </div>
@@ -206,23 +178,6 @@ function togglePasswordVisibility() {
   display: flex;
   flex-direction: column;
   width: 100%;
-}
-
-/* Label */
-.coar-password-input-label {
-  display: block;
-  margin-bottom: var(--coar-component-m-label-margin);
-  font-family: var(--coar-body-small-bold-family);
-  font-size: var(--coar-component-m-label-font-size);
-  font-weight: var(--coar-body-small-bold-weight);
-  color: var(--coar-text-neutral-primary);
-  cursor: pointer;
-  user-select: none;
-}
-
-.coar-password-input-required {
-  color: var(--coar-text-semantic-error-bold);
-  margin-left: var(--coar-spacing-xs);
 }
 
 /* Input Container */
@@ -247,22 +202,8 @@ function togglePasswordVisibility() {
 
 /* Size-specific typography */
 .coar-password-input--xs .coar-password-input-field { font-size: var(--coar-component-xs-font-size); }
-.coar-password-input--xs .coar-password-input-label {
-  font-size: var(--coar-component-xs-label-font-size);
-  margin-bottom: var(--coar-component-xs-label-margin);
-}
-
 .coar-password-input--s .coar-password-input-field { font-size: var(--coar-component-s-font-size); }
-.coar-password-input--s .coar-password-input-label {
-  font-size: var(--coar-component-s-label-font-size);
-  margin-bottom: var(--coar-component-s-label-margin);
-}
-
 .coar-password-input--l .coar-password-input-field { font-size: var(--coar-component-l-font-size); }
-.coar-password-input--l .coar-password-input-label {
-  font-size: var(--coar-component-l-label-font-size);
-  margin-bottom: var(--coar-component-l-label-margin);
-}
 
 .coar-password-input-container:hover:not(.coar-password-input-disabled):not(
     .coar-password-input-readonly

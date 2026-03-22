@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, onBeforeUnmount, useTemplateRef } from 'vue';
+import { computed, ref, watch, onMounted, onBeforeUnmount, inject, useTemplateRef } from 'vue';
 import { CoarIcon, type CoarIconSize } from '../icon';
+import { FORM_FIELD_INJECTION_KEY } from '../form-field/constants';
 import { Maskito } from '@maskito/core';
 import { maskitoNumberOptionsGenerator } from '@maskito/kit';
 
@@ -14,8 +15,6 @@ export type CoarNumberInputSize = 'xs' | 's' | 'm' | 'l';
 export type CoarNumberInputStepperButtons = 'none' | 'increment' | 'decrement' | 'both';
 
 export interface CoarNumberInputProps {
-  /** Label text displayed above the input */
-  label?: string;
   /** Placeholder text shown when input is empty */
   placeholder?: string;
   /** Input size */
@@ -34,10 +33,8 @@ export interface CoarNumberInputProps {
   readonly?: boolean;
   /** Marks the input as required */
   required?: boolean;
-  /** Error message to display */
-  error?: string;
-  /** Hint text displayed below the input */
-  hint?: string;
+  /** Error state (boolean for standalone use; auto-injected from CoarFormField) */
+  error?: boolean;
   /** Show clear button when input has value */
   clearable?: boolean;
   /** Stepper button mode */
@@ -57,7 +54,6 @@ export interface CoarNumberInputProps {
 }
 
 const props = withDefaults(defineProps<CoarNumberInputProps>(), {
-  label: '',
   placeholder: '',
   size: 'm',
   min: undefined,
@@ -67,8 +63,7 @@ const props = withDefaults(defineProps<CoarNumberInputProps>(), {
   disabled: false,
   readonly: false,
   required: false,
-  error: '',
-  hint: '',
+  error: false,
   clearable: true,
   stepperButtons: 'none',
   prefix: '',
@@ -87,21 +82,19 @@ const emit = defineEmits<{
   clear: [];
 }>();
 
+const formField = inject(FORM_FIELD_INJECTION_KEY, undefined);
+
 const displayValue = ref('');
 const isFocused = ref(false);
-const isDragging = ref(false);
-const dragStartX = ref(0);
-const dragStartValue = ref(0);
 const inputElement = useTemplateRef<HTMLInputElement>('inputElement');
 
 let maskitoInstance: Maskito | null = null;
 
 const autoId = `coar-number-input-${crypto.randomUUID?.() ?? Date.now().toString(16)}`;
-const inputId = computed(() => props.id || autoId);
-const messageId = computed(() => `${inputId.value}-message`);
+const inputId = computed(() => props.id || formField?.inputId.value || autoId);
 
-const hasError = computed(() => props.error.length > 0);
-const displayMessage = computed(() => props.error || props.hint);
+const hasError = computed(() => props.error || (formField?.hasError.value ?? false));
+const describedBy = computed(() => formField?.messageId.value || undefined);
 
 const showClearButton = computed(
   () => props.clearable && model.value !== null && !props.disabled && !props.readonly,
@@ -142,7 +135,6 @@ const containerClasses = computed(() => [
     'coar-number-input-disabled': props.disabled,
     'coar-number-input-readonly': props.readonly,
     'coar-number-input-error': hasError.value,
-    'coar-number-input-dragging': isDragging.value,
   },
 ]);
 
@@ -249,9 +241,6 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   destroyMaskito();
-  // Clean up drag listeners
-  document.removeEventListener('mousemove', onDragMove);
-  document.removeEventListener('mouseup', onDragEnd);
 });
 
 function onInput(event: Event) {
@@ -304,55 +293,11 @@ function decrement() {
   model.value = rounded;
   displayValue.value = formatValue(rounded);
 }
-
-// Figma-style drag to change value
-function onDragStart(event: MouseEvent) {
-  if (props.disabled || props.readonly) return;
-  event.preventDefault();
-  isDragging.value = true;
-  dragStartX.value = event.clientX;
-  dragStartValue.value = model.value ?? 0;
-  document.body.style.cursor = 'ew-resize';
-  document.addEventListener('mousemove', onDragMove);
-  document.addEventListener('mouseup', onDragEnd);
-}
-
-function onDragMove(event: MouseEvent) {
-  if (!isDragging.value) return;
-  const deltaX = event.clientX - dragStartX.value;
-  const sensitivity = 10;
-  const stepCount = Math.round(deltaX / sensitivity);
-  const newValue = clampValue(dragStartValue.value + stepCount * props.step);
-  const rounded = parseFloat(newValue.toFixed(props.decimals));
-  model.value = rounded;
-  displayValue.value = formatValue(rounded);
-}
-
-function onDragEnd() {
-  if (isDragging.value) {
-    isDragging.value = false;
-    document.body.style.cursor = '';
-    document.removeEventListener('mousemove', onDragMove);
-    document.removeEventListener('mouseup', onDragEnd);
-  }
-}
 </script>
 
 <template>
   <div :class="hostClasses">
     <div class="coar-number-input-wrapper">
-      <!-- Label -->
-      <label
-        v-if="label"
-        :for="inputId"
-        class="coar-number-input-label"
-        :class="{ 'coar-number-input-label--draggable': !disabled && !readonly }"
-        @mousedown="onDragStart"
-      >
-        {{ label }}
-        <span v-if="required" class="coar-number-input-required">*</span>
-      </label>
-
       <!-- Input Container -->
       <div :class="containerClasses">
         <!-- Clear button (left side) -->
@@ -385,7 +330,7 @@ function onDragEnd() {
           :disabled="disabled"
           :readonly="readonly"
           :required="required"
-          :aria-describedby="displayMessage ? messageId : undefined"
+          :aria-describedby="describedBy"
           :aria-invalid="hasError ? 'true' : undefined"
           :aria-valuemin="min"
           :aria-valuemax="max"
@@ -429,16 +374,6 @@ function onDragEnd() {
           </button>
         </div>
       </div>
-
-      <!-- Hint/Error Message -->
-      <div
-        :id="messageId"
-        class="coar-form-field-message"
-        :class="{ 'coar-form-field-message--error': hasError }"
-        :title="displayMessage || undefined"
-      >
-        {{ displayMessage }}
-      </div>
     </div>
   </div>
 </template>
@@ -452,31 +387,6 @@ function onDragEnd() {
   display: flex;
   flex-direction: column;
   width: 100%;
-}
-
-/* Label */
-.coar-number-input-label {
-  display: block;
-  margin-bottom: var(--coar-component-m-label-margin);
-  font-family: var(--coar-body-small-bold-family);
-  font-size: var(--coar-component-m-label-font-size);
-  font-weight: var(--coar-body-small-bold-weight);
-  color: var(--coar-text-neutral-primary);
-  cursor: pointer;
-  user-select: none;
-}
-
-.coar-number-input-label--draggable {
-  cursor: ew-resize;
-}
-
-.coar-number-input-label--draggable:hover {
-  color: var(--coar-text-accent-primary);
-}
-
-.coar-number-input-required {
-  color: var(--coar-text-semantic-error-bold);
-  margin-left: var(--coar-spacing-xs);
 }
 
 /* Input Container */
@@ -509,25 +419,13 @@ function onDragEnd() {
 .coar-number-input--xs .coar-number-input-field {
   font-size: var(--coar-component-xs-font-size);
 }
-.coar-number-input--xs .coar-number-input-label {
-  font-size: var(--coar-component-xs-label-font-size);
-  margin-bottom: var(--coar-component-xs-label-margin);
-}
 
 .coar-number-input--s .coar-number-input-field {
   font-size: var(--coar-component-s-font-size);
 }
-.coar-number-input--s .coar-number-input-label {
-  font-size: var(--coar-component-s-label-font-size);
-  margin-bottom: var(--coar-component-s-label-margin);
-}
 
 .coar-number-input--l .coar-number-input-field {
   font-size: var(--coar-component-l-font-size);
-}
-.coar-number-input--l .coar-number-input-label {
-  font-size: var(--coar-component-l-label-font-size);
-  margin-bottom: var(--coar-component-l-label-margin);
 }
 
 .coar-number-input-container:hover:not(.coar-number-input-disabled):not(
@@ -569,11 +467,6 @@ function onDragEnd() {
 
 .coar-number-input-container.coar-number-input-error:hover:not(.coar-number-input-disabled) {
   border-color: var(--coar-border-semantic-error-bold);
-}
-
-.coar-number-input-container.coar-number-input-dragging {
-  border-color: var(--coar-focus-color);
-  box-shadow: inset 0 0 0 1px var(--coar-focus-color);
 }
 
 /* Input Field - right aligned for numbers */
@@ -764,28 +657,6 @@ function onDragEnd() {
 
 .coar-number-input-button--decrement {
   border-right: 1px solid var(--coar-background-neutral-tertiary);
-}
-
-/* Message */
-.coar-form-field-message {
-  display: block;
-  margin-top: var(--coar-spacing-xs);
-  height: calc(var(--coar-body-caption-size) * 1.4);
-  font-family: var(--coar-body-caption-family);
-  font-size: var(--coar-body-caption-size);
-  font-weight: var(--coar-body-caption-weight);
-  line-height: var(--coar-line-height-normal);
-  color: var(--coar-text-neutral-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.coar-form-field-message:empty {
-  visibility: hidden;
-}
-.coar-form-field-message--error {
-  color: var(--coar-text-semantic-error-bold);
 }
 
 @media (prefers-reduced-motion: reduce) {

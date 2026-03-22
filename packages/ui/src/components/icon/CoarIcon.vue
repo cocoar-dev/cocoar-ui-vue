@@ -161,6 +161,7 @@ const rotateTransitionValue = computed(() => {
       v-if="name && svgContent"
       :class="iconClasses"
       :style="rotateStyle"
+      aria-hidden="true"
       v-html="renderedSvg"
     />
     <!-- Loading placeholder -->
@@ -168,6 +169,7 @@ const rotateTransitionValue = computed(() => {
       v-else-if="name && isLoading"
       :class="loadingClasses"
       :style="customSizeStyle"
+      aria-hidden="true"
     />
 
     <!-- Label -->

@@ -18,11 +18,6 @@ describe('CoarMultiSelect', () => {
     expect(w.text()).toContain('Select options...');
   });
 
-  it('renders label', () => {
-    const w = mount(CoarMultiSelect, { ...globalStubs, props: { label: 'Fruits', options: baseOptions } });
-    expect(w.find('.coar-select-label').text()).toBe('Fruits');
-  });
-
   it('shows selected count badge', () => {
     const w = mount(CoarMultiSelect, { ...globalStubs, props: { modelValue: ['a', 'b'], options: baseOptions } });
     expect(w.find('.coar-multi-select-badge').text()).toBe('2');
@@ -93,11 +88,6 @@ describe('CoarMultiSelect', () => {
     const w = mount(CoarMultiSelect, { ...globalStubs, props: { disabled: true, options: baseOptions } });
     await w.find('.coar-select-trigger').trigger('click');
     expect(w.find('.coar-select-dropdown').exists()).toBe(false);
-  });
-
-  it('shows error message', () => {
-    const w = mount(CoarMultiSelect, { ...globalStubs, props: { error: 'Required', options: baseOptions } });
-    expect(w.find('.coar-form-field-message--error').text()).toBe('Required');
   });
 
   it('shows checkboxes in options', async () => {

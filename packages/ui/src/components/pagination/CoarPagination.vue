@@ -120,7 +120,7 @@ function trackByItem(index: number, item: PaginationPageItem): string {
       </button>
 
       <template v-for="(item, index) in visiblePages" :key="trackByItem(index, item)">
-        <span v-if="item.type === 'ellipsis'" class="coar-pagination-ellipsis">...</span>
+        <span v-if="item.type === 'ellipsis'" class="coar-pagination-ellipsis" role="separator" aria-label="More pages">...</span>
         <button
           v-else
           type="button"

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, ref, watch, useTemplateRef } from 'vue';
+import { computed, ref, watch, useTemplateRef, inject } from 'vue';
+import { FORM_FIELD_INJECTION_KEY } from '../form-field/constants';
 
 export type CoarCheckboxSize = 'xs' | 's' | 'm' | 'l';
 
@@ -14,10 +15,8 @@ export interface CoarCheckboxProps {
   readonly?: boolean;
   /** Marks as required, shows asterisk on label */
   required?: boolean;
-  /** Error message to display */
-  error?: string;
-  /** Hint text displayed below the checkbox */
-  hint?: string;
+  /** Whether the checkbox is in an error state */
+  error?: boolean;
   /** Checkbox size */
   size?: CoarCheckboxSize;
   /** HTML id attribute */
@@ -34,8 +33,7 @@ const props = withDefaults(defineProps<CoarCheckboxProps>(), {
   disabled: false,
   readonly: false,
   required: false,
-  error: '',
-  hint: '',
+  error: false,
   size: 'm',
   id: '',
   name: '',
@@ -47,12 +45,12 @@ const model = defineModel<boolean>({ default: false });
 const isFocused = ref(false);
 const checkboxElement = useTemplateRef<HTMLInputElement>('checkboxElement');
 
+const formField = inject(FORM_FIELD_INJECTION_KEY, undefined);
+
 const autoId = `coar-checkbox-${crypto.randomUUID?.() ?? Date.now().toString(16)}`;
 const inputId = computed(() => props.id || autoId);
-const messageId = computed(() => `${inputId.value}-message`);
 
-const hasError = computed(() => props.error.length > 0);
-const displayMessage = computed(() => props.error || props.hint);
+const hasError = computed(() => props.error || (formField?.hasError.value ?? false));
 
 const hostClasses = computed(() => [
   'coar-checkbox-host',
@@ -115,7 +113,7 @@ function onBlur() {
         :checked="model === true"
         :disabled="disabled"
         :required="required"
-        :aria-describedby="displayMessage ? messageId : undefined"
+        :aria-describedby="formField?.messageId.value || undefined"
         :aria-invalid="hasError ? 'true' : undefined"
         :aria-readonly="readonly ? 'true' : undefined"
         :aria-checked="indeterminate ? 'mixed' : model === true"
@@ -143,15 +141,6 @@ function onBlur() {
       </span>
     </label>
 
-    <!-- Hint/Error Message -->
-    <div
-      :id="messageId"
-      class="coar-form-field-message coar-checkbox-message"
-      :class="{ 'coar-form-field-message--error': hasError }"
-      :title="displayMessage || undefined"
-    >
-      {{ displayMessage }}
-    </div>
   </div>
 </template>
 
@@ -369,16 +358,6 @@ function onBlur() {
   color: var(--coar-text-semantic-error-bold);
   margin-left: var(--coar-spacing-xs);
 }
-
-/* Message - base styles are in shared/form-field-message.css,
-   only checkbox-specific margin-left overrides here */
-.coar-checkbox-message {
-  margin-left: 28px;
-}
-
-.coar-checkbox--xs .coar-checkbox-message { margin-left: 18px; }
-.coar-checkbox--s .coar-checkbox-message { margin-left: 22px; }
-.coar-checkbox--l .coar-checkbox-message { margin-left: 34px; }
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {

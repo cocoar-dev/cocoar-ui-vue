@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, computed, inject, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { ref, watch, computed, inject, onMounted, onBeforeUnmount, nextTick, useId } from 'vue';
 import CoarIcon from '../icon/CoarIcon.vue';
 import { computeOverlayCoordinates } from '../overlay/overlay-position';
 import {
@@ -22,6 +22,7 @@ const props = withDefaults(
   { icon: undefined, disabled: false },
 );
 
+const submenuPanelId = `coar-submenu-panel-${useId()}`;
 const parentCascade = useMenuCascade();
 const cascade = new MenuCascade(parentCascade ?? null);
 provideMenuCascade(cascade);
@@ -285,6 +286,7 @@ onBeforeUnmount(() => {
       role="menuitem"
       aria-haspopup="menu"
       :aria-expanded="isOpen"
+      :aria-controls="submenuPanelId"
       :aria-disabled="props.disabled || undefined"
       :tabindex="itemTabindex"
       @mouseenter="onMouseEnter"
@@ -307,6 +309,7 @@ onBeforeUnmount(() => {
     <Teleport to="body">
       <div
         v-if="isOpen"
+        :id="submenuPanelId"
         ref="panelRef"
         class="coar-submenu-panel"
         @mouseenter="onPanelMouseEnter"

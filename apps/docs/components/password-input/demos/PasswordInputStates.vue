@@ -1,10 +1,14 @@
 <template>
   <div style="display: flex; flex-direction: column; gap: 12px; max-width: 320px;">
-    <CoarPasswordInput :model-value="'secret123'" label="Disabled" :disabled="true" />
-    <CoarPasswordInput :model-value="'readonly-pass'" label="Readonly" :readonly="true" />
+    <CoarFormField label="Disabled">
+      <CoarPasswordInput :model-value="'secret123'" :disabled="true" />
+    </CoarFormField>
+    <CoarFormField label="Readonly">
+      <CoarPasswordInput :model-value="'readonly-pass'" :readonly="true" />
+    </CoarFormField>
   </div>
 </template>
 
 <script setup lang="ts">
-import { CoarPasswordInput } from '@cocoar/vue-ui';
+import { CoarPasswordInput, CoarFormField } from '@cocoar/vue-ui';
 </script>

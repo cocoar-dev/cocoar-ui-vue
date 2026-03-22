@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, inject } from 'vue';
+import { FORM_FIELD_INJECTION_KEY } from '../form-field/constants';
 
 export type CoarSwitchSize = 's' | 'm' | 'l';
 
@@ -10,10 +11,8 @@ export interface CoarSwitchProps {
   disabled?: boolean;
   /** Prevents changes but keeps normal appearance */
   readonly?: boolean;
-  /** Error message to display */
-  error?: string;
-  /** Hint text displayed below the switch */
-  hint?: string;
+  /** Whether the switch is in an error state */
+  error?: boolean;
   /** Switch size */
   size?: CoarSwitchSize;
   /** Label position relative to the switch */
@@ -28,8 +27,7 @@ const props = withDefaults(defineProps<CoarSwitchProps>(), {
   label: '',
   disabled: false,
   readonly: false,
-  error: '',
-  hint: '',
+  error: false,
   size: 'm',
   labelPosition: 'after',
   id: '',
@@ -40,12 +38,12 @@ const model = defineModel<boolean>({ default: false });
 
 const isFocused = ref(false);
 
+const formField = inject(FORM_FIELD_INJECTION_KEY, undefined);
+
 const autoId = `coar-switch-${crypto.randomUUID?.() ?? Date.now().toString(16)}`;
 const inputId = computed(() => props.id || autoId);
-const messageId = computed(() => `${inputId.value}-message`);
 
-const hasError = computed(() => props.error.length > 0);
-const displayMessage = computed(() => props.error || props.hint);
+const hasError = computed(() => props.error || (formField?.hasError.value ?? false));
 
 const hostClasses = computed(() => [
   'coar-switch-host',
@@ -91,7 +89,7 @@ function onBlur() { isFocused.value = false; }
         :aria-disabled="disabled ? 'true' : undefined"
         :aria-readonly="readonly ? 'true' : undefined"
         :aria-invalid="hasError ? 'true' : undefined"
-        :aria-describedby="displayMessage ? messageId : undefined"
+        :aria-describedby="formField?.messageId.value || undefined"
         @change="onToggle"
         @focus="onFocus"
         @blur="onBlur"
@@ -105,15 +103,6 @@ function onBlur() { isFocused.value = false; }
       <span v-if="labelPosition === 'after' && label" class="coar-switch-label">{{ label }}</span>
     </label>
 
-    <!-- Hint/Error Message -->
-    <div
-      :id="messageId"
-      class="coar-form-field-message coar-switch-message"
-      :class="{ 'coar-form-field-message--error': hasError }"
-      :title="displayMessage || undefined"
-    >
-      {{ displayMessage }}
-    </div>
   </div>
 </template>
 
@@ -285,12 +274,6 @@ function onBlur() { isFocused.value = false; }
 
 .coar-switch--disabled .coar-switch-label {
   color: var(--coar-text-neutral-disabled);
-}
-
-/* Message - base styles are in shared/form-field-message.css,
-   only switch-specific margin-left overrides here */
-.coar-switch-message {
-  margin-left: calc(var(--coar-switch-track-width) + var(--coar-spacing-s));
 }
 
 /* Reduced motion */

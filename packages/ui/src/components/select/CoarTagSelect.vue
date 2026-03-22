@@ -1,14 +1,13 @@
 <script setup lang="ts" generic="T">
-import { computed, ref, toRef, onMounted, onBeforeUnmount, useTemplateRef, nextTick } from 'vue';
+import { computed, inject, ref, toRef, onMounted, onBeforeUnmount, useTemplateRef, nextTick } from 'vue';
 import { CoarIcon } from '../icon';
 import { useSelectBase, type CoarSelectSize, type CoarSelectAppearance } from './useSelectBase';
 import { useSelectDropdown } from './useSelectDropdown';
 import { vScrollbar } from '../scrollbar/vScrollbar';
 import type { CoarSelectOption } from './types';
+import { FORM_FIELD_INJECTION_KEY } from '../form-field/constants';
 
 export interface CoarTagSelectProps<T = unknown> {
-  /** Label text */
-  label?: string;
   /** Placeholder text */
   placeholder?: string;
   /** Available options */
@@ -21,12 +20,8 @@ export interface CoarTagSelectProps<T = unknown> {
   disabled?: boolean;
   /** Makes the select read-only */
   readonly?: boolean;
-  /** Marks as required */
-  required?: boolean;
-  /** Error message */
-  error?: string;
-  /** Hint text */
-  hint?: string;
+  /** Whether the select has an error */
+  error?: boolean;
   /** HTML id */
   id?: string;
   /** HTML name */
@@ -42,16 +37,13 @@ export interface CoarTagSelectProps<T = unknown> {
 }
 
 const props = withDefaults(defineProps<CoarTagSelectProps<T>>(), {
-  label: '',
   placeholder: 'Type to search...',
   options: () => [],
   size: 'm',
   appearance: 'outline',
   disabled: false,
   readonly: false,
-  required: false,
-  error: '',
-  hint: '',
+  error: false,
   id: '',
   name: '',
   searchPlaceholder: 'Type to search...',
@@ -62,13 +54,14 @@ const props = withDefaults(defineProps<CoarTagSelectProps<T>>(), {
 
 const model = defineModel<T[]>({ default: () => [] });
 
+const formField = inject(FORM_FIELD_INJECTION_KEY, undefined);
+
 const hostRef = useTemplateRef<HTMLElement>('hostRef');
 const triggerRef = useTemplateRef<HTMLElement>('triggerRef');
 const tagInputRef = useTemplateRef<HTMLInputElement>('tagInputRef');
 const dropdownRef = useTemplateRef<HTMLElement>('dropdownRef');
 
-const hasError = computed(() => props.error.length > 0);
-const displayMessage = computed(() => props.error || props.hint);
+const hasError = computed(() => props.error || (formField?.hasError.value ?? false));
 const tagInputValue = ref('');
 
 const compare = computed(() => props.compareWith ?? ((a: T, b: T) => a === b));
@@ -83,8 +76,7 @@ const {
   isFocused,
   searchQuery,
   highlightedIndex,
-  inputId,
-  messageId,
+  inputId: baseInputId,
   listboxId,
   filteredOptions,
   activeDescendantId,
@@ -99,6 +91,9 @@ const {
   id: toRef(props, 'id'),
   dropdownPositionPreference: toRef(props, 'dropdownPosition'),
 });
+
+const inputId = computed(() => props.id || formField?.inputId.value || baseInputId.value);
+const describedBy = computed(() => formField?.messageId.value || undefined);
 
 const { left: ddLeft, top: ddTop, minWidth: ddMinWidth } = useSelectDropdown({
   isOpen,
@@ -218,12 +213,6 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
 <template>
   <div ref="hostRef" :class="hostClasses">
     <div class="coar-select-wrapper">
-      <!-- Label -->
-      <label v-if="label" :for="inputId" class="coar-select-label">
-        {{ label }}
-        <span v-if="required" class="coar-select-required">*</span>
-      </label>
-
       <!-- Trigger with Tags -->
       <div
         ref="triggerRef"
@@ -267,7 +256,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
             aria-haspopup="listbox"
             :aria-controls="listboxId"
             :aria-activedescendant="activeDescendantId"
-            :aria-describedby="displayMessage ? messageId : undefined"
+            :aria-describedby="describedBy"
             :aria-invalid="hasError ? 'true' : undefined"
             role="combobox"
             autocomplete="off"
@@ -300,7 +289,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
             v-scrollbar="{ overflowX: 'hidden', defer: false }"
             class="coar-select-options"
             role="listbox"
-            :aria-label="label || 'Options'"
+            aria-label="Options"
           >
             <div
               v-for="(option, i) in filteredOptions"
@@ -324,15 +313,6 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
         </div>
       </Teleport>
 
-      <!-- Message -->
-      <div
-        :id="messageId"
-        class="coar-form-field-message"
-        :class="{ 'coar-form-field-message--error': hasError }"
-        :title="displayMessage || undefined"
-      >
-        {{ displayMessage }}
-      </div>
     </div>
   </div>
 </template>
@@ -347,36 +327,6 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
   display: flex;
   flex-direction: column;
   width: 100%;
-}
-
-/* Label */
-.coar-select-label {
-  display: block;
-  margin-bottom: var(--coar-component-m-label-margin);
-  font-family: var(--coar-body-small-bold-family);
-  font-size: var(--coar-component-m-label-font-size);
-  font-weight: var(--coar-body-small-bold-weight);
-  color: var(--coar-text-neutral-primary);
-  cursor: pointer;
-  user-select: none;
-}
-
-.coar-select-required {
-  color: var(--coar-text-semantic-error-bold);
-  margin-left: var(--coar-spacing-xs);
-}
-
-.coar-select--xs .coar-select-label {
-  font-size: var(--coar-component-xs-label-font-size);
-  margin-bottom: var(--coar-component-xs-label-margin);
-}
-.coar-select--s .coar-select-label {
-  font-size: var(--coar-component-s-label-font-size);
-  margin-bottom: var(--coar-component-s-label-margin);
-}
-.coar-select--l .coar-select-label {
-  font-size: var(--coar-component-l-label-font-size);
-  margin-bottom: var(--coar-component-l-label-margin);
 }
 
 /* Tag Trigger */
@@ -536,24 +486,6 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
-/* Message */
-.coar-form-field-message {
-  display: block;
-  margin-top: var(--coar-spacing-xs);
-  height: calc(var(--coar-body-caption-size) * 1.4);
-  font-family: var(--coar-body-caption-family);
-  font-size: var(--coar-body-caption-size);
-  font-weight: var(--coar-body-caption-weight);
-  line-height: var(--coar-line-height-normal);
-  color: var(--coar-text-neutral-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.coar-form-field-message:empty { visibility: hidden; }
-.coar-form-field-message--error { color: var(--coar-text-semantic-error-bold); }
 
 @media (prefers-reduced-motion: reduce) {
   .coar-tag-select-trigger,

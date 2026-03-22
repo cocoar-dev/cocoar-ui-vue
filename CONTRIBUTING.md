@@ -40,7 +40,6 @@ docs: improve README
 - Define props with `defineProps<T>()` (TypeScript-first)
 - Define emits with `defineEmits<T>()`
 - Prefix component names with `Coar` (e.g. `CoarButton`, `CoarSelect`)
-- Co-locate stories: `CoarButton.stories.ts` next to `CoarButton.vue`
 - Co-locate tests: `CoarButton.test.ts` next to `CoarButton.vue`
 
 ### Composables
@@ -64,12 +63,6 @@ See [NAMING.md](NAMING.md) for the full naming convention.
 - Write unit tests with **Vitest** and **@vue/test-utils**
 - Component tests use `happy-dom` environment
 - Run tests: `pnpm test`
-
-## Storybook
-
-- Stories live next to components: `src/CoarButton.stories.ts`
-- The centralized Storybook (`apps/storybook/`) discovers them automatically
-- Run: `pnpm storybook`
 
 ## Code of Conduct
 

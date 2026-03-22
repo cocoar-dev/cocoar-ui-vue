@@ -3,7 +3,8 @@
   "version": "0.0.1",
   "type": "module",
   "sideEffects": [
-    "*.css"
+    "*.css",
+    "./src/fonts.ts"
   ],
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -14,7 +15,8 @@
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
     },
-    "./styles": "./styles/bundle.css"
+    "./styles": "./styles/bundle.css",
+    "./fonts": "./src/fonts.ts"
   },
   "files": [
     "dist",
@@ -26,8 +28,10 @@
     "lint": "eslint src/"
   },
   "dependencies": {
-    "@cocoar/vue-localization": "workspace:*",
     "@cocoar/vue-fragment-parser": "workspace:*",
+    "@cocoar/vue-localization": "workspace:*",
+    "@fontsource/inter": "^5.2.8",
+    "@fontsource/poppins": "^5.2.7",
     "@js-temporal/polyfill": "^0.5.1",
     "@maskito/core": "^5.1.1",
     "@maskito/kit": "^5.1.1",

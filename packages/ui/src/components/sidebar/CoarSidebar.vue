@@ -15,6 +15,8 @@ withDefaults(
     position?: 'left' | 'right';
     /** Collapsed state for narrow/icon-only sidebar */
     collapsed?: boolean;
+    /** Accessible label for the sidebar landmark */
+    ariaLabel?: string;
   }>(),
   {
     position: 'left',
@@ -26,6 +28,8 @@ withDefaults(
 <template>
   <aside
     class="coar-sidebar"
+    role="navigation"
+    :aria-label="ariaLabel || 'Sidebar'"
     :class="{
       'coar-sidebar--collapsed': collapsed,
       'coar-sidebar--position-right': position === 'right',

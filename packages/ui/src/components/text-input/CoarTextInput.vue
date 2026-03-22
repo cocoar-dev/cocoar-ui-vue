@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { computed, ref, useTemplateRef } from 'vue';
+import { computed, ref, inject, useTemplateRef } from 'vue';
 import { CoarIcon } from '../icon';
+import { FORM_FIELD_INJECTION_KEY } from '../form-field/constants';
 
 export type CoarTextInputSize = 'xs' | 's' | 'm' | 'l';
 
 export interface CoarTextInputProps {
-  /** Label text displayed above the input */
-  label?: string;
   /** Placeholder text shown when input is empty */
   placeholder?: string;
   /** Input size */
@@ -19,10 +18,8 @@ export interface CoarTextInputProps {
   readonly?: boolean;
   /** Marks the input as required */
   required?: boolean;
-  /** Error message to display */
-  error?: string;
-  /** Hint text displayed below the input */
-  hint?: string;
+  /** Error state (boolean for standalone use; auto-injected from CoarFormField) */
+  error?: boolean;
   /** Show clear button when input has value */
   clearable?: boolean;
   /** Text displayed before the input value */
@@ -40,15 +37,13 @@ export interface CoarTextInputProps {
 }
 
 const props = withDefaults(defineProps<CoarTextInputProps>(), {
-  label: '',
   placeholder: '',
   size: 'm',
   rows: 1,
   disabled: false,
   readonly: false,
   required: false,
-  error: '',
-  hint: '',
+  error: false,
   clearable: true,
   prefix: '',
   suffix: '',
@@ -66,16 +61,17 @@ const emit = defineEmits<{
   clear: [];
 }>();
 
+const formField = inject(FORM_FIELD_INJECTION_KEY, undefined);
+
 const isFocused = ref(false);
 const inputElement = useTemplateRef<HTMLInputElement | HTMLTextAreaElement>('inputElement');
 
 const autoId = `coar-text-input-${crypto.randomUUID?.() ?? Date.now().toString(16)}`;
-const inputId = computed(() => props.id || autoId);
-const messageId = computed(() => `${inputId.value}-message`);
+const inputId = computed(() => props.id || formField?.inputId.value || autoId);
 
 const isMultiline = computed(() => props.rows > 1);
-const hasError = computed(() => props.error.length > 0);
-const displayMessage = computed(() => props.error || props.hint);
+const hasError = computed(() => props.error || (formField?.hasError.value ?? false));
+const describedBy = computed(() => formField?.messageId.value || undefined);
 
 const showClearButton = computed(() =>
   props.clearable && model.value.length > 0 && !props.disabled && !props.readonly
@@ -117,26 +113,11 @@ function onClear() {
   emit('clear');
   inputElement.value?.focus();
 }
-
-function onLabelClick() {
-  inputElement.value?.focus();
-}
 </script>
 
 <template>
   <div :class="hostClasses">
     <div class="coar-text-input-wrapper">
-      <!-- Label -->
-      <label
-        v-if="label"
-        :for="inputId"
-        class="coar-text-input-label"
-        @click="onLabelClick"
-      >
-        {{ label }}
-        <span v-if="required" class="coar-text-input-required">*</span>
-      </label>
-
       <!-- Input Container -->
       <div :class="containerClasses">
         <!-- Prefix (single-line only) -->
@@ -159,7 +140,7 @@ function onLabelClick() {
           :required="required"
           :autocomplete="autocomplete || undefined"
           :maxlength="maxlength"
-          :aria-describedby="displayMessage ? messageId : undefined"
+          :aria-describedby="describedBy"
           :aria-invalid="hasError ? 'true' : undefined"
           class="coar-text-input-field"
           @input="onInput"
@@ -179,7 +160,7 @@ function onLabelClick() {
           :readonly="readonly"
           :required="required"
           :maxlength="maxlength"
-          :aria-describedby="displayMessage ? messageId : undefined"
+          :aria-describedby="describedBy"
           :aria-invalid="hasError ? 'true' : undefined"
           :rows="rows"
           class="coar-text-input-field coar-text-input-textarea"
@@ -212,16 +193,6 @@ function onLabelClick() {
           <slot name="suffixAction" />
         </span>
       </div>
-
-      <!-- Hint/Error Message -->
-      <div
-        :id="messageId"
-        class="coar-form-field-message"
-        :class="{ 'coar-form-field-message--error': hasError }"
-        :title="displayMessage || undefined"
-      >
-        {{ displayMessage }}
-      </div>
     </div>
   </div>
 </template>
@@ -236,23 +207,6 @@ function onLabelClick() {
   display: flex;
   flex-direction: column;
   width: 100%;
-}
-
-/* Label */
-.coar-text-input-label {
-  display: block;
-  margin-bottom: var(--coar-component-m-label-margin);
-  font-family: var(--coar-body-small-bold-family);
-  font-size: var(--coar-component-m-label-font-size);
-  font-weight: var(--coar-body-small-bold-weight);
-  color: var(--coar-text-neutral-primary);
-  cursor: pointer;
-  user-select: none;
-}
-
-.coar-text-input-required {
-  color: var(--coar-text-semantic-error-bold);
-  margin-left: var(--coar-spacing-xs);
 }
 
 /* Input Container */
@@ -292,22 +246,8 @@ function onLabelClick() {
 
 /* Size-specific typography */
 .coar-text-input--xs .coar-text-input-field { font-size: var(--coar-component-xs-font-size); }
-.coar-text-input--xs .coar-text-input-label {
-  font-size: var(--coar-component-xs-label-font-size);
-  margin-bottom: var(--coar-component-xs-label-margin);
-}
-
 .coar-text-input--s .coar-text-input-field { font-size: var(--coar-component-s-font-size); }
-.coar-text-input--s .coar-text-input-label {
-  font-size: var(--coar-component-s-label-font-size);
-  margin-bottom: var(--coar-component-s-label-margin);
-}
-
 .coar-text-input--l .coar-text-input-field { font-size: var(--coar-component-l-font-size); }
-.coar-text-input--l .coar-text-input-label {
-  font-size: var(--coar-component-l-label-font-size);
-  margin-bottom: var(--coar-component-l-label-margin);
-}
 
 .coar-text-input-container:hover:not(.coar-text-input-disabled):not(.coar-text-input-readonly):not(
     .coar-text-input-error

@@ -24,6 +24,6 @@ export default [
     },
   },
   {
-    ignores: ['**/dist/**', '**/node_modules/**', '**/.turbo/**', '**/storybook-static/**'],
+    ignores: ['**/dist/**', '**/node_modules/**', '**/.turbo/**'],
   },
 ];

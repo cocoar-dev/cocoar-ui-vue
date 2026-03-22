@@ -8,9 +8,7 @@
     "build": "turbo run build",
     "test": "turbo run test",
     "lint": "turbo run lint",
-    "storybook": "turbo run storybook",
     "docs": "turbo run dev --filter @cocoar/docs",
-    "showcase": "turbo run dev --filter @cocoar/showcase",
     "build:icons": "node scripts/icons/build-frontend-icons.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
@@ -22,9 +20,6 @@
   "packageManager": "pnpm@10.13.1",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@storybook/addon-a11y": "^10.2.13",
-    "@storybook/addon-docs": "^10.2.13",
-    "@storybook/vue3-vite": "^10.2.13",
     "@vitejs/plugin-vue": "^6.0.4",
     "@vue/test-utils": "^2.4.6",
     "eslint": "^10.0.1",
@@ -33,7 +28,6 @@
     "happy-dom": "^20.7.0",
     "lucide-static": "^0.577.0",
     "prettier": "^3.8.1",
-    "storybook": "^10.2.13",
     "turbo": "^2.8.10",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.56.0",

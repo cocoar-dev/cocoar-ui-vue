@@ -10,7 +10,7 @@ body:
     attributes:
       label: Component
       description: Which component or library is affected?
-      placeholder: e.g. CoarButton, vue-core, storybook
+      placeholder: e.g. CoarButton, vue-ui, localization
     validations:
       required: true
   - type: textarea

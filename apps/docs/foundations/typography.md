@@ -47,5 +47,5 @@ Apply these utility classes directly to any HTML element.
 ```
 
 ::: tip Font Loading
-The type scale uses **Inter** for display-level text and **Poppins** for body and UI text. Make sure both fonts are loaded before rendering to avoid layout shift.
+The type scale uses **Inter** for display-level text and **Poppins** for body and UI text. Import `@cocoar/vue-ui/fonts` to self-host both fonts — no external CDN required.
 :::

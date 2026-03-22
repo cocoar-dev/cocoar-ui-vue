@@ -19,16 +19,6 @@ describe('CoarTextInput', () => {
     expect(wrapper.find('input.coar-text-input-field').exists()).toBe(true);
   });
 
-  it('renders label when provided', () => {
-    const wrapper = mountInput({ label: 'Username' });
-    expect(wrapper.find('.coar-text-input-label').text()).toContain('Username');
-  });
-
-  it('shows required asterisk', () => {
-    const wrapper = mountInput({ label: 'Email', required: true });
-    expect(wrapper.find('.coar-text-input-required').text()).toBe('*');
-  });
-
   it('renders textarea when rows > 1', () => {
     const wrapper = mountInput({ rows: 3 });
     expect(wrapper.find('textarea.coar-text-input-field').exists()).toBe(true);
@@ -85,21 +75,9 @@ describe('CoarTextInput', () => {
     expect(wrapper.emitted('clear')).toHaveLength(1);
   });
 
-  it('shows error state', () => {
-    const wrapper = mountInput({ error: 'Required field' });
+  it('applies error class when error is true', () => {
+    const wrapper = mountInput({ error: true });
     expect(wrapper.find('.coar-text-input-error').exists()).toBe(true);
-    expect(wrapper.find('.coar-form-field-message--error').text()).toBe('Required field');
-  });
-
-  it('shows hint when no error', () => {
-    const wrapper = mountInput({ hint: 'Enter your name' });
-    expect(wrapper.find('.coar-form-field-message').text()).toBe('Enter your name');
-    expect(wrapper.find('.coar-form-field-message--error').exists()).toBe(false);
-  });
-
-  it('error takes priority over hint', () => {
-    const wrapper = mountInput({ error: 'Error!', hint: 'Hint' });
-    expect(wrapper.find('.coar-form-field-message').text()).toBe('Error!');
   });
 
   it('renders prefix text', () => {
@@ -141,7 +119,7 @@ describe('CoarTextInput', () => {
   });
 
   it('applies aria-invalid on error', () => {
-    const wrapper = mountInput({ error: 'Bad!' });
+    const wrapper = mountInput({ error: true });
     expect(wrapper.find('input').attributes('aria-invalid')).toBe('true');
   });
 

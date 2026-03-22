@@ -34,16 +34,6 @@ describe('CoarPasswordInput', () => {
     expect(wrapper.find('input').attributes('type')).toBe('password');
   });
 
-  it('renders label when provided', () => {
-    const wrapper = mountInput({ label: 'Password' });
-    expect(wrapper.find('.coar-password-input-label').text()).toContain('Password');
-  });
-
-  it('shows required asterisk', () => {
-    const wrapper = mountInput({ label: 'Password', required: true });
-    expect(wrapper.find('.coar-password-input-required').text()).toBe('*');
-  });
-
   it('v-model works', async () => {
     const wrapper = mountInput({ modelValue: 'secret' });
     const input = wrapper.find('input');
@@ -70,15 +60,9 @@ describe('CoarPasswordInput', () => {
     expect(wrapper.emitted('clear')).toHaveLength(1);
   });
 
-  it('shows error state', () => {
-    const wrapper = mountInput({ error: 'Wrong password' });
+  it('applies error class when error is true', () => {
+    const wrapper = mountInput({ error: true });
     expect(wrapper.find('.coar-password-input-error').exists()).toBe(true);
-    expect(wrapper.find('.coar-form-field-message--error').text()).toBe('Wrong password');
-  });
-
-  it('shows hint when no error', () => {
-    const wrapper = mountInput({ hint: 'Min 8 characters' });
-    expect(wrapper.find('.coar-form-field-message').text()).toBe('Min 8 characters');
   });
 
   it('applies disabled state', () => {

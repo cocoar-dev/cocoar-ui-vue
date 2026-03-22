@@ -14,7 +14,7 @@ Vue 3 component libraries for the [Coar Design System](https://github.com/cocoar
 | Language | TypeScript |
 | Build | Vite (library mode) |
 | Testing | Vitest + @vue/test-utils |
-| Component showcase | Storybook 10 |
+| Documentation | VitePress |
 | Linting | ESLint (flat config) + Prettier |
 
 ## Repository Structure
@@ -29,7 +29,7 @@ cocoar-ui-vue/
 │   ├── markdown-core/     @cocoar/vue-markdown-core    Markdown parser
 │   └── fragment-parser/   @cocoar/vue-fragment-parser  HTML fragment parsing utilities
 ├── apps/
-│   └── storybook/         Centralized Storybook 10    Component showcase & docs
+│   └── docs/              VitePress documentation      Component docs & demos
 ├── assets/
 │   └── icons/             Source SVG icon set
 ├── scripts/
@@ -73,7 +73,7 @@ pnpm install
 | `pnpm build` | Build all packages (topological order) |
 | `pnpm test` | Run all tests |
 | `pnpm lint` | Lint all packages |
-| `pnpm storybook` | Start Storybook dev server |
+| `pnpm docs` | Start VitePress docs dev server |
 | `pnpm build:icons` | Rebuild icon components from SVG sources |
 | `pnpm format` | Format all files with Prettier |
 | `pnpm format:check` | Check formatting without writing |

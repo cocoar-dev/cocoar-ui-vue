@@ -67,7 +67,7 @@ const badgeClasses = computed(() => [
 
 <template>
   <span :class="hostClasses">
-    <span :class="badgeClasses" role="status" :aria-label="displayValue || variant">
+    <span :class="badgeClasses" role="status" :aria-label="displayValue || (dot ? 'Notification indicator' : undefined)">
       <span v-if="!dot && displayValue" class="coar-badge__content">{{ displayValue }}</span>
     </span>
   </span>

@@ -24,7 +24,7 @@ const hostClasses = computed(() => [
 </script>
 
 <template>
-  <div :class="hostClasses">
+  <div :class="hostClasses" role="note">
     <slot />
   </div>
 </template>

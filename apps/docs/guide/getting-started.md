@@ -8,30 +8,21 @@ Set up the Cocoar Design System in your Vue 3 project in a few steps.
 pnpm add @cocoar/vue-ui
 ```
 
-## 2. Load Fonts
+## 2. Import Fonts & Styles
 
-Cocoar uses **Poppins** (body, headings) and **Inter** (display titles). Add them to your `index.html`:
-
-```html
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
-```
-
-::: info
-Without these fonts, components fall back to system fonts and won't match the design specs.
-:::
-
-## 3. Import Styles
-
-Import the stylesheet in your app's entry point. This loads all design tokens (CSS variables) and component styles.
+Import fonts and styles in your app's entry point. Fonts are self-hosted via `@fontsource` — no external CDN needed.
 
 ```ts
 // main.ts
-import '@cocoar/vue-ui/styles';
+import '@cocoar/vue-ui/fonts';   // Poppins + Inter (self-hosted)
+import '@cocoar/vue-ui/styles';  // Design tokens + component styles
 ```
 
-## 4. Use Components
+::: info Bring your own fonts?
+The font import is optional. If you prefer a CDN or custom fonts, skip `@cocoar/vue-ui/fonts` and load them yourself. Components fall back to system fonts gracefully.
+:::
+
+## 3. Use Components
 
 Import components directly — no global registration required. Tree-shaking is automatic.
 
@@ -45,7 +36,7 @@ import { CoarButton } from '@cocoar/vue-ui';
 </template>
 ```
 
-## 5. Dark Mode
+## 4. Dark Mode
 
 Toggle dark mode by adding the `.dark-mode` class to the root element. All design tokens and components adapt automatically.
 
@@ -53,7 +44,7 @@ Toggle dark mode by adding the `.dark-mode` class to the root element. All desig
 document.documentElement.classList.toggle('dark-mode', isDark);
 ```
 
-## 6. Overlay System
+## 5. Overlay System
 
 For components that render overlays (Dialog, Toast, Popover, Tooltip), register the plugin once:
 

@@ -18,11 +18,6 @@ describe('CoarTagSelect', () => {
     expect(w.find('.coar-tag-select-input').attributes('placeholder')).toBe('Type to search...');
   });
 
-  it('renders label', () => {
-    const w = mount(CoarTagSelect, { ...globalStubs, props: { label: 'Frameworks', options: baseOptions } });
-    expect(w.find('.coar-select-label').text()).toBe('Frameworks');
-  });
-
   it('renders selected tags', () => {
     const w = mount(CoarTagSelect, { ...globalStubs, props: { modelValue: ['vue', 'react'], options: baseOptions } });
     const tags = w.findAll('.coar-tag-select-tag');
@@ -91,11 +86,6 @@ describe('CoarTagSelect', () => {
   it('does not remove tags when readonly', async () => {
     const w = mount(CoarTagSelect, { ...globalStubs, props: { modelValue: ['vue'], readonly: true, options: baseOptions } });
     expect(w.find('.coar-tag-select-tag-remove').exists()).toBe(false);
-  });
-
-  it('shows error message', () => {
-    const w = mount(CoarTagSelect, { ...globalStubs, props: { error: 'Required', options: baseOptions } });
-    expect(w.find('.coar-form-field-message--error').text()).toBe('Required');
   });
 
   it('backspace removes last tag when input is empty', async () => {

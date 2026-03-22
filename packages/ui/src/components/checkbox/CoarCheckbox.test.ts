@@ -78,25 +78,18 @@ describe('CoarCheckbox', () => {
     expect(wrapper.emitted('update:modelValue')).toBeUndefined();
   });
 
-  it('shows error state', () => {
-    const wrapper = mountCheckbox({ error: 'Must accept' });
+  it('applies error CSS class when error is true', () => {
+    const wrapper = mountCheckbox({ error: true });
     expect(wrapper.find('.coar-checkbox--error').exists()).toBe(true);
-    expect(wrapper.find('.coar-form-field-message--error').text()).toBe('Must accept');
   });
 
-  it('shows hint when no error', () => {
-    const wrapper = mountCheckbox({ hint: 'Optional' });
-    expect(wrapper.find('.coar-checkbox-message').text()).toBe('Optional');
-    expect(wrapper.find('.coar-form-field-message--error').exists()).toBe(false);
-  });
-
-  it('error takes priority over hint', () => {
-    const wrapper = mountCheckbox({ error: 'Error!', hint: 'Hint' });
-    expect(wrapper.find('.coar-checkbox-message').text()).toBe('Error!');
+  it('does not apply error class when error is false', () => {
+    const wrapper = mountCheckbox({ error: false });
+    expect(wrapper.find('.coar-checkbox--error').exists()).toBe(false);
   });
 
   it('applies aria-invalid on error', () => {
-    const wrapper = mountCheckbox({ error: 'Bad!' });
+    const wrapper = mountCheckbox({ error: true });
     expect(wrapper.find('input').attributes('aria-invalid')).toBe('true');
   });
 

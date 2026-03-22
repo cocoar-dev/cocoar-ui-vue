@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, provide } from 'vue';
+import { computed, provide, inject } from 'vue';
 import { RADIO_GROUP_INJECTION_KEY } from './constants';
+import { FORM_FIELD_INJECTION_KEY } from '../form-field/constants';
 
 export type RadioGroupOrientation = 'horizontal' | 'vertical';
 export type RadioGroupSize = 's' | 'm' | 'l';
@@ -18,10 +19,8 @@ export interface CoarRadioGroupProps {
   disabled?: boolean;
   /** Marks the group as required */
   required?: boolean;
-  /** Error message */
-  error?: string;
-  /** Hint text */
-  hint?: string;
+  /** Whether the group is in an error state */
+  error?: boolean;
 }
 
 export interface RadioGroupContext {
@@ -39,17 +38,14 @@ const props = withDefaults(defineProps<CoarRadioGroupProps>(), {
   size: 'm',
   disabled: false,
   required: false,
-  error: '',
-  hint: '',
+  error: false,
 });
 
 const model = defineModel<unknown>({ default: undefined });
 
-const hasError = computed(() => props.error.length > 0);
-const displayMessage = computed(() => props.error || props.hint);
+const formField = inject(FORM_FIELD_INJECTION_KEY, undefined);
 
-const autoId = `coar-radio-group-${crypto.randomUUID?.() ?? Date.now().toString(16)}`;
-const messageId = computed(() => `${autoId}-message`);
+const hasError = computed(() => props.error || (formField?.hasError.value ?? false));
 
 const hostClasses = computed(() => [
   'coar-radio-group-host',
@@ -84,20 +80,11 @@ provide(RADIO_GROUP_INJECTION_KEY, {
     role="radiogroup"
     :aria-label="label || undefined"
     :aria-required="required ? 'true' : undefined"
-    :aria-describedby="displayMessage ? messageId : undefined"
+    :aria-invalid="hasError ? 'true' : undefined"
+    :aria-describedby="formField?.messageId.value || undefined"
   >
     <div class="coar-radio-group-items">
       <slot />
-    </div>
-
-    <!-- Hint/Error Message -->
-    <div
-      :id="messageId"
-      class="coar-form-field-message"
-      :class="{ 'coar-form-field-message--error': hasError }"
-      :title="displayMessage || undefined"
-    >
-      {{ displayMessage }}
     </div>
   </div>
 </template>
@@ -122,8 +109,6 @@ provide(RADIO_GROUP_INJECTION_KEY, {
   flex-direction: row;
   gap: var(--coar-spacing-xl);
 }
-
-/* Message styles are in shared/form-field-message.css */
 
 /* Disabled */
 .coar-radio-group--disabled {

@@ -1,3 +1,11 @@
+// Layout
+export { CoarFormField } from './components/form-field';
+export type { CoarFormFieldProps, FormFieldProvided } from './components/form-field';
+export { FORM_FIELD_INJECTION_KEY } from './components/form-field';
+
+// Transitions
+export { CoarFade, CoarSlide, CoarScale, CoarCollapse } from './components/transitions';
+
 // Components
 export { CoarButton } from './components/button';
 export type { CoarButtonProps, ButtonVariant, ButtonSize } from './components/button';

@@ -10,7 +10,7 @@ body:
     attributes:
       label: Component / Area
       description: Which component or area does this relate to?
-      placeholder: e.g. CoarButton, storybook, CI/CD
+      placeholder: e.g. CoarButton, vue-ui, CI/CD
   - type: textarea
     id: problem
     attributes:

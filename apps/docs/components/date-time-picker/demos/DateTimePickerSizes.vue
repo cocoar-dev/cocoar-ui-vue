@@ -1,12 +1,20 @@
 <template>
   <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
-    <CoarPlainDateTimePicker size="xs" label="Extra Small" placeholder="DD.MM.YYYY HH:mm" />
-    <CoarPlainDateTimePicker size="s" label="Small" placeholder="DD.MM.YYYY HH:mm" />
-    <CoarPlainDateTimePicker size="m" label="Medium" placeholder="DD.MM.YYYY HH:mm" />
-    <CoarPlainDateTimePicker size="l" label="Large" placeholder="DD.MM.YYYY HH:mm" />
+    <CoarFormField label="Extra Small">
+      <CoarPlainDateTimePicker size="xs" placeholder="DD.MM.YYYY HH:mm" />
+    </CoarFormField>
+    <CoarFormField label="Small">
+      <CoarPlainDateTimePicker size="s" placeholder="DD.MM.YYYY HH:mm" />
+    </CoarFormField>
+    <CoarFormField label="Medium">
+      <CoarPlainDateTimePicker size="m" placeholder="DD.MM.YYYY HH:mm" />
+    </CoarFormField>
+    <CoarFormField label="Large">
+      <CoarPlainDateTimePicker size="l" placeholder="DD.MM.YYYY HH:mm" />
+    </CoarFormField>
   </div>
 </template>
 
 <script setup lang="ts">
-import { CoarPlainDateTimePicker } from '@cocoar/vue-ui';
+import { CoarPlainDateTimePicker, CoarFormField } from '@cocoar/vue-ui';
 </script>

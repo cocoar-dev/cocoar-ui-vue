@@ -2,13 +2,13 @@
   <CoarMenu>
     <CoarMenuItem @click="handleClick('Dashboard')">Dashboard</CoarMenuItem>
     <CoarSubExpand label="Settings">
-      <CoarSubmenuItem @click="handleClick('Profile')">Profile</CoarSubmenuItem>
-      <CoarSubmenuItem @click="handleClick('Security')">Security</CoarSubmenuItem>
-      <CoarSubmenuItem @click="handleClick('Notifications')">Notifications</CoarSubmenuItem>
+      <CoarMenuItem @click="handleClick('Profile')">Profile</CoarMenuItem>
+      <CoarMenuItem @click="handleClick('Security')">Security</CoarMenuItem>
+      <CoarMenuItem @click="handleClick('Notifications')">Notifications</CoarMenuItem>
     </CoarSubExpand>
     <CoarSubExpand label="Reports">
-      <CoarSubmenuItem @click="handleClick('Sales')">Sales</CoarSubmenuItem>
-      <CoarSubmenuItem @click="handleClick('Traffic')">Traffic</CoarSubmenuItem>
+      <CoarMenuItem @click="handleClick('Sales')">Sales</CoarMenuItem>
+      <CoarMenuItem @click="handleClick('Traffic')">Traffic</CoarMenuItem>
     </CoarSubExpand>
     <CoarMenuDivider />
     <CoarMenuItem @click="handleClick('Logout')">Logout</CoarMenuItem>
@@ -17,7 +17,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { CoarMenu, CoarMenuItem, CoarMenuDivider, CoarSubExpand, CoarSubmenuItem } from '@cocoar/vue-ui';
+import { CoarMenu, CoarMenuItem, CoarMenuDivider, CoarSubExpand } from '@cocoar/vue-ui';
 
 const lastClicked = ref('');
 

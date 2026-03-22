@@ -3,18 +3,18 @@
 The go-to component for collecting short text from users -- names, emails, search queries, and more. It handles labels, validation, prefix/suffix decorations, and can even stretch into a textarea when you need longer content.
 
 ```ts
-import { CoarTextInput } from '@cocoar/vue-ui';
+import { CoarTextInput, CoarFormField } from '@cocoar/vue-ui';
 ```
 
 ## Basic Usage
 
-Wire up a text input with `v-model` and add a `label`, `placeholder`, and optional `hint` to guide the user.
+Wire up a text input with `v-model` and wrap it in a `CoarFormField` to add a label, placeholder, and optional hint to guide the user.
 
 <preview path="./text-input/demos/BasicTextInput.vue" />
 
 ## Validation States
 
-Mark a field as `required` to show the asterisk indicator, and pass an `error` string to surface validation feedback beneath the input.
+Add `required` to both `CoarFormField` (for the asterisk) and the input (for the HTML attribute). Pass an `error` string to `CoarFormField` to surface validation feedback beneath the input.
 
 <preview path="./text-input/demos/TextInputValidation.vue" />
 
@@ -76,10 +76,7 @@ Labels are automatically associated with their inputs. The required asterisk is 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `v-model` | `string` | `''` | Current input value (two-way binding) |
-| `label` | `string` | `''` | Label text above the input |
 | `placeholder` | `string` | `''` | Placeholder text when empty |
-| `hint` | `string` | `''` | Hint text below the input |
-| `error` | `string` | `''` | Error message to display |
 | `prefix` | `string` | `''` | Prefix text before the input |
 | `suffix` | `string` | `''` | Suffix text after the input |
 | `size` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Input size |
@@ -87,4 +84,8 @@ Labels are automatically associated with their inputs. The required asterisk is 
 | `clearable` | `boolean` | `true` | Show clear button when input has value |
 | `disabled` | `boolean` | `false` | Disable the input |
 | `readonly` | `boolean` | `false` | Make read-only |
-| `required` | `boolean` | `false` | Mark as required (shows asterisk) |
+| `required` | `boolean` | `false` | HTML required attribute |
+
+::: tip
+Label, hint, and error are provided by [`CoarFormField`](/components/form-field). Wrap inputs in a `CoarFormField` to add these features.
+:::

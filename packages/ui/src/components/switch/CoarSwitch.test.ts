@@ -102,77 +102,24 @@ describe('CoarSwitch', () => {
 
   // Error state tests
   describe('error state', () => {
-    it('displays error message when error prop is set', () => {
-      const wrapper = mountSwitch({ error: 'This field is required' });
-      const message = wrapper.find('.coar-form-field-message');
-      expect(message.exists()).toBe(true);
-      expect(message.text()).toBe('This field is required');
-    });
-
     it('applies error CSS class to host', () => {
-      const wrapper = mountSwitch({ error: 'Error occurred' });
+      const wrapper = mountSwitch({ error: true });
       expect(wrapper.find('.coar-switch--error').exists()).toBe(true);
     });
 
-    it('does not apply error class when error is empty', () => {
-      const wrapper = mountSwitch({ error: '' });
+    it('does not apply error class when error is false', () => {
+      const wrapper = mountSwitch({ error: false });
       expect(wrapper.find('.coar-switch--error').exists()).toBe(false);
     });
 
-    it('applies error styling class to message', () => {
-      const wrapper = mountSwitch({ error: 'Invalid' });
-      const message = wrapper.find('.coar-form-field-message');
-      expect(message.classes()).toContain('coar-form-field-message--error');
-    });
-
-    it('sets aria-invalid when error is present', () => {
-      const wrapper = mountSwitch({ error: 'Error' });
+    it('sets aria-invalid when error is true', () => {
+      const wrapper = mountSwitch({ error: true });
       expect(wrapper.find('input').attributes('aria-invalid')).toBe('true');
     });
 
     it('does not set aria-invalid when no error', () => {
       const wrapper = mountSwitch();
       expect(wrapper.find('input').attributes('aria-invalid')).toBeUndefined();
-    });
-
-    it('sets aria-describedby linking to the message element', () => {
-      const wrapper = mountSwitch({ error: 'Error msg', id: 'test-switch' });
-      const input = wrapper.find('input');
-      const message = wrapper.find('.coar-form-field-message');
-      expect(input.attributes('aria-describedby')).toBe('test-switch-message');
-      expect(message.attributes('id')).toBe('test-switch-message');
-    });
-
-    it('does not set aria-describedby when no message', () => {
-      const wrapper = mountSwitch();
-      expect(wrapper.find('input').attributes('aria-describedby')).toBeUndefined();
-    });
-  });
-
-  // Hint tests
-  describe('hint', () => {
-    it('displays hint message when hint prop is set', () => {
-      const wrapper = mountSwitch({ hint: 'Toggle to enable' });
-      const message = wrapper.find('.coar-form-field-message');
-      expect(message.text()).toBe('Toggle to enable');
-    });
-
-    it('does not apply error styling to hint message', () => {
-      const wrapper = mountSwitch({ hint: 'Just a hint' });
-      const message = wrapper.find('.coar-form-field-message');
-      expect(message.classes()).not.toContain('coar-form-field-message--error');
-    });
-
-    it('error takes priority over hint', () => {
-      const wrapper = mountSwitch({ error: 'Error!', hint: 'Hint text' });
-      const message = wrapper.find('.coar-form-field-message');
-      expect(message.text()).toBe('Error!');
-      expect(message.classes()).toContain('coar-form-field-message--error');
-    });
-
-    it('sets aria-describedby for hint message', () => {
-      const wrapper = mountSwitch({ hint: 'Some hint', id: 'hint-switch' });
-      expect(wrapper.find('input').attributes('aria-describedby')).toBe('hint-switch-message');
     });
   });
 

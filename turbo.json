@@ -12,10 +12,6 @@
     "dev": {
       "persistent": true,
       "cache": false
-    },
-    "storybook": {
-      "persistent": true,
-      "cache": false
     }
   }
 }

@@ -122,19 +122,19 @@ describe('CoarBadge', () => {
       expect(wrapper.find('.coar-badge').attributes('aria-label')).toBe('5');
     });
 
-    it('should use variant as aria-label for empty content', () => {
+    it('should omit aria-label for empty non-dot badge', () => {
       const wrapper = mountBadge();
-      expect(wrapper.find('.coar-badge').attributes('aria-label')).toBe('primary');
+      expect(wrapper.find('.coar-badge').attributes('aria-label')).toBeUndefined();
     });
 
-    it('should use variant as aria-label in dot mode', () => {
+    it('should use notification indicator as aria-label in dot mode', () => {
       const wrapper = mountBadge({ dot: true, variant: 'success' });
-      expect(wrapper.find('.coar-badge').attributes('aria-label')).toBe('success');
+      expect(wrapper.find('.coar-badge').attributes('aria-label')).toBe('Notification indicator');
     });
 
-    it('should use variant as aria-label when no content', () => {
+    it('should omit aria-label when no content provided', () => {
       const wrapper = mountBadge({ variant: 'error' });
-      expect(wrapper.find('.coar-badge').attributes('aria-label')).toBe('error');
+      expect(wrapper.find('.coar-badge').attributes('aria-label')).toBeUndefined();
     });
   });
 });

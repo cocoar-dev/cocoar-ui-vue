@@ -1,23 +1,25 @@
 <template>
   <div style="display: flex; flex-direction: column; gap: 24px; max-width: 320px;">
     <div>
-      <CoarMultiSelect
-        v-model="multiValue"
-        :options="fruitOptions"
-        label="Favorite fruits"
-        placeholder="Choose multiple..."
-      />
+      <CoarFormField label="Favorite fruits">
+        <CoarMultiSelect
+          v-model="multiValue"
+          :options="fruitOptions"
+          placeholder="Choose multiple..."
+        />
+      </CoarFormField>
       <p style="margin-top: 8px; font-size: 13px; color: #64748b;">
         Selected: {{ multiValue.join(', ') || 'none' }}
       </p>
     </div>
     <div>
-      <CoarTagSelect
-        v-model="tagValue"
-        :options="countryOptions"
-        label="Countries"
-        placeholder="Add countries..."
-      />
+      <CoarFormField label="Countries">
+        <CoarTagSelect
+          v-model="tagValue"
+          :options="countryOptions"
+          placeholder="Add countries..."
+        />
+      </CoarFormField>
       <p style="margin-top: 8px; font-size: 13px; color: #64748b;">
         Selected: {{ tagValue.join(', ') || 'none' }}
       </p>
@@ -27,7 +29,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { CoarMultiSelect, CoarTagSelect } from '@cocoar/vue-ui';
+import { CoarMultiSelect, CoarTagSelect, CoarFormField } from '@cocoar/vue-ui';
 import type { CoarSelectOption } from '@cocoar/vue-ui';
 
 const fruitOptions: CoarSelectOption<string>[] = [

@@ -40,12 +40,13 @@ Design for everyone. Meet WCAG AA standards at minimum. Keyboard navigation is n
 
 ### Touch-First
 
-All interactive elements meet touch target sizes. Components are designed for mobile first, then enhanced for desktop.
+All components work with **touch and focus** — hover is an enhancement, not a requirement. This is **tablet-first** design: touch interaction with desktop-appropriate information density. Not mobile-first — mobile phones have different constraints (small screens, portrait orientation, one-handed use). Tablets have similar screen real estate to laptops but use touch instead of mouse.
 
 - Minimum **44 x 44 px** touch targets on all interactive elements
 - Appropriate tap spacing to prevent accidental activation
 - No hover-only interactions — every feature is reachable via tap or keyboard
-- Responsive layouts that adapt gracefully across breakpoints
+- Use dimmed states instead of hiding; on focus/hover elements become prominent
+- Desktop gets additional polish (hover states) as progressive enhancement
 
 ---
 

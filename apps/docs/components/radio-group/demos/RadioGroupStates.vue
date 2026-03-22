@@ -4,13 +4,15 @@
       <CoarRadioButton value="a">Option A</CoarRadioButton>
       <CoarRadioButton value="b">Option B</CoarRadioButton>
     </CoarRadioGroup>
-    <CoarRadioGroup :model-value="''" label="With Error" error="Please select an option">
-      <CoarRadioButton value="a">Option A</CoarRadioButton>
-      <CoarRadioButton value="b">Option B</CoarRadioButton>
-    </CoarRadioGroup>
+    <CoarFormField error="Please select an option">
+      <CoarRadioGroup :model-value="''" label="With Error">
+        <CoarRadioButton value="a">Option A</CoarRadioButton>
+        <CoarRadioButton value="b">Option B</CoarRadioButton>
+      </CoarRadioGroup>
+    </CoarFormField>
   </div>
 </template>
 
 <script setup lang="ts">
-import { CoarRadioGroup, CoarRadioButton } from '@cocoar/vue-ui';
+import { CoarRadioGroup, CoarRadioButton, CoarFormField } from '@cocoar/vue-ui';
 </script>

@@ -30,6 +30,12 @@ When a menu item leads to a group of related options, wrap them in `CoarSubExpan
 
 <preview path="./menu/demos/MenuSubmenus.vue" />
 
+## Flyout Submenus
+
+Use `CoarSubmenuItem` when the submenu should appear as a floating panel beside the trigger instead of expanding inline. The `label` prop sets the visible text; child items go in the default slot and render inside the flyout.
+
+<preview path="./menu/demos/MenuFlyout.vue" />
+
 ## Borderless (Sidebar)
 
 Pass the `borderless` prop when embedding a menu inside a sidebar, panel, or card. This removes the outer border and background so the menu blends into its container.

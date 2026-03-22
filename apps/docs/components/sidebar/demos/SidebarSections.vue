@@ -14,13 +14,13 @@
         <CoarMenuItem icon="list">Projects</CoarMenuItem>
         <CoarMenuHeading>Management</CoarMenuHeading>
         <CoarSubExpand label="Users">
-          <CoarSubmenuItem>All Users</CoarSubmenuItem>
-          <CoarSubmenuItem>Roles</CoarSubmenuItem>
-          <CoarSubmenuItem>Permissions</CoarSubmenuItem>
+          <CoarMenuItem>All Users</CoarMenuItem>
+          <CoarMenuItem>Roles</CoarMenuItem>
+          <CoarMenuItem>Permissions</CoarMenuItem>
         </CoarSubExpand>
         <CoarSubExpand label="Reports">
-          <CoarSubmenuItem>Sales</CoarSubmenuItem>
-          <CoarSubmenuItem>Analytics</CoarSubmenuItem>
+          <CoarMenuItem>Sales</CoarMenuItem>
+          <CoarMenuItem>Analytics</CoarMenuItem>
         </CoarSubExpand>
         <CoarMenuHeading>System</CoarMenuHeading>
         <CoarMenuItem icon="settings">Settings</CoarMenuItem>
@@ -39,5 +39,5 @@
 </template>
 
 <script setup lang="ts">
-import { CoarSidebar, CoarMenu, CoarMenuItem, CoarMenuDivider, CoarMenuHeading, CoarSubExpand, CoarSubmenuItem } from '@cocoar/vue-ui';
+import { CoarSidebar, CoarMenu, CoarMenuItem, CoarMenuDivider, CoarMenuHeading, CoarSubExpand } from '@cocoar/vue-ui';
 </script>

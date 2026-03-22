@@ -31,7 +31,7 @@ function setToastRef(id: number, el: Element | ComponentPublicInstance | null) {
 </script>
 
 <template>
-  <div :class="['coar-toast-container', `coar-toast-container--${service.position.value}`]" aria-live="polite" aria-relevant="additions">
+  <div :class="['coar-toast-container', `coar-toast-container--${service.position.value}`]" role="region" aria-label="Notifications" aria-live="polite" aria-relevant="additions">
     <CoarToastItem
       v-for="toast in service.toasts.value"
       :key="toast.id"

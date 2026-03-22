@@ -1,22 +1,28 @@
 import DefaultTheme from 'vitepress/theme';
 import type { Theme } from 'vitepress';
-import { h, watchEffect } from 'vue';
-import { useData } from 'vitepress';
+import { h, watchEffect, onMounted } from 'vue';
+import { useData, inBrowser } from 'vitepress';
 
+import '@cocoar/vue-ui/fonts';
 import '@cocoar/vue-ui/styles';
 
 import './custom.css';
 import './coar-overrides.css';
 
 import { CoarOverlayPlugin, CoarOverlayHost } from '@cocoar/vue-ui';
+import { createCoarLocalization } from '@cocoar/vue-localization';
 
 import DemoPreview from './DemoPreview.vue';
+
+const localization = createCoarLocalization({ defaultLanguage: 'en' });
 
 const DarkModeSync = {
   setup() {
     const { isDark } = useData();
-    watchEffect(() => {
-      document.documentElement.classList.toggle('dark-mode', isDark.value);
+    onMounted(() => {
+      watchEffect(() => {
+        document.documentElement.classList.toggle('dark-mode', isDark.value);
+      });
     });
     return () => null;
   },
@@ -31,6 +37,7 @@ const theme: Theme = {
   },
   enhanceApp({ app }) {
     app.use(CoarOverlayPlugin);
+    app.use(localization);
     app.component('demo-preview', DemoPreview);
   },
 };
