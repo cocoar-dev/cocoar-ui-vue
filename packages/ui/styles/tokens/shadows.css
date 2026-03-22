@@ -13,6 +13,7 @@
   --coar-shadow-xs: 0 1px 2px var(--coar-shadow-color);
   --coar-shadow-s: 0 2px 4px var(--coar-shadow-color), 0 1px 2px var(--coar-shadow-color);
   --coar-shadow-m: 0 4px 8px var(--coar-shadow-color), 0 2px 4px var(--coar-shadow-color);
+  --coar-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.12);
   --coar-shadow-l: 0 8px 16px var(--coar-shadow-color), 0 4px 8px var(--coar-shadow-color);
   --coar-shadow-xl: 0 16px 32px var(--coar-shadow-color-strong), 0 8px 16px var(--coar-shadow-color);
 
@@ -31,6 +32,7 @@
   --coar-shadow-xs: 0 1px 2px var(--coar-shadow-color), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   --coar-shadow-s: 0 2px 4px var(--coar-shadow-color), 0 0 0 1px rgba(255, 255, 255, 0.05);
   --coar-shadow-m: 0 4px 12px var(--coar-shadow-color), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  --coar-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.25);
   --coar-shadow-l: 0 8px 24px var(--coar-shadow-color), 0 0 0 1px rgba(255, 255, 255, 0.1);
   --coar-shadow-xl: 0 16px 48px var(--coar-shadow-color-strong), 0 0 0 1px rgba(255, 255, 255, 0.12);
 

@@ -318,14 +318,14 @@ onBeforeUnmount(() => {
 }
 
 .coar-popover-panel {
-  z-index: var(--coar-z-overlay, 1000);
+  z-index: var(--coar-z-overlay);
   padding: var(--coar-spacing-s);
   background: var(--coar-background-neutral-primary);
   border: 1px solid var(--coar-border-neutral);
   border-radius: var(--coar-radius-s);
-  box-shadow: var(--coar-shadow-m, 0 4px 16px rgba(0, 0, 0, 0.1));
-  min-width: var(--coar-popover-min-width, 200px);
-  max-width: var(--coar-popover-max-width, 360px);
+  box-shadow: var(--coar-shadow-m);
+  min-width: var(--coar-popover-min-width);
+  max-width: var(--coar-popover-max-width);
   pointer-events: auto;
   transition: opacity var(--coar-duration-fast) var(--coar-ease-out);
 }
@@ -335,7 +335,7 @@ onBeforeUnmount(() => {
 }
 
 .coar-popover-content {
-  max-height: var(--coar-popover-max-height, 240px);
+  max-height: var(--coar-popover-max-height);
   overflow: hidden;
 }
 

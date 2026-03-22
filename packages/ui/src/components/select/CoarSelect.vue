@@ -521,13 +521,13 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
 .coar-select-search-input {
   box-sizing: border-box;
   width: 100%;
-  height: var(--coar-select-search-height, 32px);
+  height: var(--coar-select-search-height);
   padding: 0 var(--coar-spacing-s);
   border: 1px solid var(--coar-border-input);
   border-radius: var(--coar-radius-xs);
   background: var(--coar-surface-input);
   font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-select-option-font-size, var(--coar-body-small-base-size));
+  font-size: var(--coar-select-option-font-size);
   color: var(--coar-text-neutral-primary);
   outline: none;
   transition: border-color var(--coar-duration-fast) var(--coar-ease-out), box-shadow var(--coar-duration-fast) var(--coar-ease-out);
@@ -552,10 +552,10 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
 .coar-select-option {
   display: flex;
   align-items: center;
-  gap: var(--coar-select-option-gap, var(--coar-spacing-xs));
-  padding: var(--coar-select-option-padding, var(--coar-spacing-s) var(--coar-spacing-m));
+  gap: var(--coar-select-option-gap);
+  padding: var(--coar-select-option-padding);
   font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-select-option-font-size, var(--coar-body-small-base-size));
+  font-size: var(--coar-select-option-font-size);
   color: var(--coar-text-neutral-primary);
   cursor: pointer;
   transition: background-color 0.1s ease;
@@ -598,10 +598,10 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
 
 /* Empty */
 .coar-select-empty {
-  padding: var(--coar-select-option-padding, var(--coar-spacing-m));
+  padding: var(--coar-select-option-padding);
   text-align: center;
   font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-select-option-font-size, var(--coar-body-small-base-size));
+  font-size: var(--coar-select-option-font-size);
   color: var(--coar-text-neutral-tertiary);
 }
 

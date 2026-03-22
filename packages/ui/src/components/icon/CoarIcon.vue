@@ -258,7 +258,7 @@ const rotateTransitionValue = computed(() => {
 }
 
 .coar-icon__label {
-  margin-left: var(--coar-spacing-xs, 4px);
+  margin-left: var(--coar-spacing-xs);
 }
 
 .coar-icon-host--xs .coar-icon__label { font-size: var(--coar-component-xs-label-font-size); }

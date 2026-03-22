@@ -128,14 +128,14 @@ function handleKeydown(event: KeyboardEvent) {
 .coar-menu-item {
   display: flex;
   align-items: center;
-  gap: var(--coar-menu-item-gap, 0.75rem);
+  gap: var(--coar-menu-item-gap);
   box-sizing: border-box;
-  padding: var(--coar-menu-item-padding, 0.5rem 0.75rem);
-  font-family: var(--coar-font-family-body, Poppins, sans-serif);
-  font-size: var(--coar-menu-item-font-size, var(--coar-component-m-font-size, 14px));
-  font-weight: var(--coar-font-weight-regular, 400);
-  line-height: var(--coar-line-height-relaxed);
-  color: var(--coar-text-neutral-primary, #545454);
+  padding: var(--coar-menu-item-padding);
+  font-family: var(--coar-menu-item-font-family);
+  font-size: var(--coar-menu-item-font-size);
+  font-weight: var(--coar-menu-item-font-weight);
+  line-height: var(--coar-menu-item-line-height);
+  color: var(--coar-menu-item-color);
   background: transparent;
   cursor: pointer;
   user-select: none;
@@ -144,28 +144,28 @@ function handleKeydown(event: KeyboardEvent) {
 }
 
 .coar-menu-item:hover:not(.coar-menu-item--disabled) {
-  background: var(--coar-background-neutral-secondary, #f5f5f5);
+  background: var(--coar-background-neutral-secondary);
 }
 
 .coar-menu-item:focus-visible {
-  background: var(--coar-background-neutral-secondary, #f5f5f5);
+  background: var(--coar-background-neutral-secondary);
   outline: var(--coar-focus-width) var(--coar-focus-style) var(--coar-focus-color);
   outline-offset: -2px;
 }
 
 .coar-menu-item--disabled {
-  color: var(--coar-text-neutral-disabled, #999999);
+  color: var(--coar-text-neutral-disabled);
   cursor: not-allowed;
   opacity: 0.5;
 }
 
 .coar-menu-item__icon {
-  display: var(--coar-menu-icon-slot-display, inline-flex);
+  display: var(--coar-menu-icon-slot-display);
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: var(--coar-menu-item-icon-slot-size, 16px);
-  height: var(--coar-menu-item-icon-slot-size, 16px);
+  width: var(--coar-menu-item-icon-slot-size);
+  height: var(--coar-menu-item-icon-slot-size);
 }
 
 /* Placeholder icon: very subtle */

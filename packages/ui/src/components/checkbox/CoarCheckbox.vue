@@ -220,7 +220,7 @@ function onBlur() {
 
 /* Size variants */
 .coar-checkbox--xs .coar-checkbox-box { width: 14px; height: 14px; margin-top: 6px; /* Vertical centering — off the spacing grid */ }
-.coar-checkbox--s .coar-checkbox-box { width: 16px; height: 16px; margin-top: var(--coar-spacing-s, 8px); }
+.coar-checkbox--s .coar-checkbox-box { width: 16px; height: 16px; margin-top: var(--coar-spacing-s); }
 .coar-checkbox--l .coar-checkbox-box { width: 24px; height: 24px; margin-top: 12px; /* Vertical centering — off the spacing grid */ }
 
 /* Hover state */

@@ -106,7 +106,7 @@ function getA11yAttrs(): Record<string, string | undefined> {
   border: none;
   padding: 0;
   overflow: visible;
-  background: color-mix(in srgb, var(--coar-color-black, #000) 40%, transparent);
+  background: color-mix(in srgb, var(--coar-color-black) 40%, transparent);
 }
 
 .coar-overlay-host {

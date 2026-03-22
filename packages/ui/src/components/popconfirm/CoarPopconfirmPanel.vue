@@ -93,7 +93,7 @@ defineProps<{
 }
 
 .coar-popconfirm-panel__title {
-  font-weight: 600;
+  font-weight: var(--coar-font-weight-semi-bold);
   font-size: var(--coar-body-base-size);
   color: var(--coar-text-neutral-primary);
   margin-bottom: 0.25rem;

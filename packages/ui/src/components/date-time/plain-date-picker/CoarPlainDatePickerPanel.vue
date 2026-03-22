@@ -223,7 +223,7 @@ const selectedDateMarkers = computed((): CoarDateMarker[] => {
   border: 1px solid var(--coar-border-neutral-tertiary);
   border-radius: var(--coar-radius-full);
   cursor: pointer;
-  box-shadow: var(--coar-shadow-md, 0 2px 8px rgba(0, 0, 0, 0.12));
+  box-shadow: var(--coar-shadow-md);
   transition:
     background-color var(--coar-duration-fast) var(--coar-ease-out),
     transform var(--coar-duration-fast) var(--coar-ease-out);
@@ -312,7 +312,7 @@ const selectedDateMarkers = computed((): CoarDateMarker[] => {
 .coar-plain-date-picker-month-list-content {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: var(--coar-spacing-xxs, 2px) var(--coar-spacing-xxs, 2px);
+  gap: var(--coar-spacing-xxs) var(--coar-spacing-xxs);
   padding: var(--coar-spacing-xs) var(--coar-spacing-s);
 }
 

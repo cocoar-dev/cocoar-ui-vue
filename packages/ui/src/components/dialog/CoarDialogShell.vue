@@ -180,7 +180,7 @@ const BodyRenderer = computed(() => {
 .coar-dialog {
   background: var(--coar-dialog-background);
   border-radius: var(--coar-dialog-border-radius);
-  box-shadow: var(--coar-shadow-xl, 0 16px 48px rgba(0, 0, 0, 0.2));
+  box-shadow: var(--coar-shadow-xl);
   display: flex;
   flex-direction: column;
   max-height: 85vh;
@@ -216,8 +216,8 @@ const BodyRenderer = computed(() => {
   justify-content: center;
   background: none;
   border: none;
-  padding: var(--coar-spacing-xs, 4px);
-  border-radius: var(--coar-radius-s, 4px);
+  padding: var(--coar-spacing-xs);
+  border-radius: var(--coar-radius-s);
   color: var(--coar-text-neutral-secondary);
   cursor: pointer;
   flex-shrink: 0;
@@ -250,7 +250,7 @@ const BodyRenderer = computed(() => {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--coar-spacing-s, 8px);
+  gap: var(--coar-spacing-s);
   padding: var(--coar-dialog-padding);
   padding-top: 0;
 }

@@ -30,15 +30,15 @@ const separatorCssValue = computed(() => `'${props.separator.replace(/'/g, "\\'"
 <style scoped>
 .coar-breadcrumb {
   display: block;
-  font-size: var(--coar-breadcrumb-font-size, var(--coar-font-size-s, 14px));
-  font-family: var(--coar-body-base-family, Poppins, sans-serif);
+  font-size: var(--coar-breadcrumb-font-size);
+  font-family: var(--coar-body-base-family);
 }
 
 .coar-breadcrumb-list {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: var(--coar-breadcrumb-separator-gap, var(--coar-spacing-xs, 4px));
+  align-items: baseline;
+  gap: var(--coar-breadcrumb-separator-gap);
   list-style: none;
   margin: 0;
   padding: 0;

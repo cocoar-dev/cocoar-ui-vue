@@ -136,7 +136,7 @@ defineExpose({ startAutoClose });
   padding: var(--coar-toast-padding);
   background: var(--coar-toast-background);
   border-radius: var(--coar-toast-border-radius);
-  box-shadow: var(--coar-shadow-l, 0 8px 24px rgba(0, 0, 0, 0.12));
+  box-shadow: var(--coar-shadow-l);
   border: 1px solid var(--coar-border-neutral);
   border-left: var(--coar-toast-border-width) solid transparent;
   position: relative;
@@ -172,7 +172,7 @@ defineExpose({ startAutoClose });
 }
 
 .coar-toast-title {
-  font-weight: 600;
+  font-weight: var(--coar-font-weight-semi-bold);
   font-size: var(--coar-body-base-size);
   color: var(--coar-text-neutral-primary);
   margin-bottom: var(--coar-spacing-xxs);
@@ -189,7 +189,7 @@ defineExpose({ startAutoClose });
 }
 
 .coar-toast--no-title .coar-toast-message {
-  font-weight: 600;
+  font-weight: var(--coar-font-weight-semi-bold);
   font-size: var(--coar-body-base-size);
   color: var(--coar-text-neutral-primary);
 }
@@ -206,7 +206,7 @@ defineExpose({ startAutoClose });
   border: none;
   padding: var(--coar-spacing-xxs) var(--coar-spacing-xs);
   font-size: var(--coar-body-small-base-size);
-  font-weight: 600;
+  font-weight: var(--coar-font-weight-semi-bold);
   color: var(--coar-text-accent-primary);
   cursor: pointer;
   border-radius: var(--coar-radius-s);

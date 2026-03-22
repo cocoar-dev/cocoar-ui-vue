@@ -49,17 +49,17 @@ withDefaults(
 .coar-navbar {
   display: flex;
   align-items: center;
-  height: var(--coar-navbar-height, 3.5rem);
-  padding: 0 var(--coar-navbar-padding-x, var(--coar-spacing-l, 16px));
-  background: var(--coar-navbar-background, var(--coar-background-neutral-primary, #ffffff));
+  height: var(--coar-navbar-height);
+  padding: 0 var(--coar-navbar-padding-x);
+  background: var(--coar-navbar-background);
 }
 
 .coar-navbar--elevated {
-  box-shadow: var(--coar-elevation-low, 0 1px 3px rgba(0, 0, 0, 0.1));
+  box-shadow: var(--coar-elevation-low);
 }
 
 .coar-navbar--bordered {
-  border-bottom: 1px solid var(--coar-navbar-border-color, var(--coar-border-neutral-tertiary, #e5e5e5));
+  border-bottom: 1px solid var(--coar-navbar-border-color);
 }
 
 .coar-navbar__spacer {
@@ -70,7 +70,7 @@ withDefaults(
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: var(--coar-spacing-s, 8px);
+  gap: var(--coar-spacing-s);
 }
 
 .coar-navbar__center {
@@ -78,13 +78,13 @@ withDefaults(
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--coar-spacing-s, 8px);
+  gap: var(--coar-spacing-s);
 }
 
 .coar-navbar__end {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: var(--coar-spacing-s, 8px);
+  gap: var(--coar-spacing-s);
 }
 </style>

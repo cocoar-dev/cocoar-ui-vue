@@ -224,7 +224,7 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--coar-spacing-s, 0.5rem) 0.75rem;
+  padding: var(--coar-spacing-s) 0.75rem;
   border-bottom: 1px solid var(--coar-code-block-border);
   min-height: 36px;
 }
@@ -232,13 +232,13 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
 .coar-code-header-left {
   display: flex;
   align-items: center;
-  gap: var(--coar-spacing-s, 0.5rem);
+  gap: var(--coar-spacing-s);
 }
 
 .coar-code-header-right {
   display: flex;
   align-items: center;
-  gap: var(--coar-spacing-s, 0.5rem);
+  gap: var(--coar-spacing-s);
 }
 
 /* Toggle button */
@@ -275,15 +275,15 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
 /* Title / Language */
 .coar-code-title {
   font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-body-caption-size, 12px);
-  font-weight: var(--coar-font-weight-medium, 500);
+  font-size: var(--coar-body-caption-size);
+  font-weight: var(--coar-font-weight-medium);
   color: var(--coar-code-block-text);
 }
 
 .coar-code-language {
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-  font-size: var(--coar-component-xs-font-size, 11px);
-  font-weight: var(--coar-font-weight-medium, 500);
+  font-size: var(--coar-component-xs-font-size);
+  font-weight: var(--coar-font-weight-medium);
   color: var(--coar-code-block-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -291,8 +291,8 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
 
 /* Copy button */
 .coar-code-copy-btn {
-  padding: var(--coar-spacing-xxs, 2px) var(--coar-spacing-s, 8px);
-  font-size: var(--coar-component-xs-font-size, 11px);
+  padding: var(--coar-spacing-xxs) var(--coar-spacing-s);
+  font-size: var(--coar-component-xs-font-size);
   font-family: var(--coar-body-small-base-family);
   background: transparent;
   border: none;
@@ -316,7 +316,7 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
 
 .coar-code-pre {
   margin: 0;
-  padding: var(--coar-spacing-m, 1rem);
+  padding: var(--coar-spacing-m);
   overflow-x: auto;
 }
 
@@ -324,7 +324,7 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
   display: grid;
   gap: 0;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-  font-size: var(--coar-component-s-font-size, 13px);
+  font-size: var(--coar-component-s-font-size);
   line-height: var(--coar-line-height-relaxed);
   color: var(--coar-code-block-text);
 }
@@ -340,7 +340,7 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
   padding-right: 0.75rem;
   color: var(--coar-code-block-text-muted);
   user-select: none;
-  font-size: var(--coar-body-caption-size, 12px);
+  font-size: var(--coar-body-caption-size);
   line-height: inherit;
 }
 
@@ -354,7 +354,7 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
 
 .coar-code {
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-  font-size: var(--coar-component-s-font-size, 13px);
+  font-size: var(--coar-component-s-font-size);
   line-height: var(--coar-line-height-relaxed);
   color: var(--coar-code-block-text);
   white-space: pre;

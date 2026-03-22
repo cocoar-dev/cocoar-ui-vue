@@ -133,14 +133,14 @@ onBeforeUnmount(() => {
 .coar-menu {
   display: inline-flex;
   flex-direction: column;
-  min-width: var(--coar-menu-min-width, 12rem);
-  max-width: var(--coar-menu-max-width, 20rem);
+  min-width: var(--coar-menu-min-width);
+  max-width: var(--coar-menu-max-width);
   gap: 0;
-  background: var(--coar-background-neutral-primary, #f8f9fa);
-  border: 1px solid var(--coar-border-neutral-tertiary, #d0d0d0);
-  border-radius: var(--coar-radius-s, 4px);
+  background: var(--coar-background-neutral-primary);
+  border: 1px solid var(--coar-border-neutral-tertiary);
+  border-radius: var(--coar-radius-s);
   overflow: hidden;
-  box-shadow: var(--coar-shadow-s, none);
+  box-shadow: var(--coar-shadow-s);
 }
 
 .coar-menu--borderless {

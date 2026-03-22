@@ -18,14 +18,14 @@ const props = defineProps<{
   align-items: center;
   width: 100%;
   box-sizing: border-box;
-  padding: 0.75rem 0.75rem 0.25rem 0.75rem;
-  font-family: var(--coar-font-family-body, Poppins, sans-serif);
-  font-size: var(--coar-component-xs-font-size, 11px);
-  font-weight: var(--coar-font-weight-semi-bold, 600);
-  line-height: var(--coar-line-height-normal);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--coar-text-neutral-secondary, #6b7280);
+  padding: var(--coar-menu-heading-padding);
+  font-family: var(--coar-menu-heading-font-family);
+  font-size: var(--coar-menu-heading-font-size);
+  font-weight: var(--coar-menu-heading-font-weight);
+  line-height: var(--coar-menu-heading-line-height);
+  text-transform: var(--coar-menu-heading-text-transform);
+  letter-spacing: var(--coar-menu-heading-letter-spacing);
+  color: var(--coar-menu-heading-color);
   cursor: default;
   user-select: none;
 }

@@ -513,10 +513,10 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
 .coar-select-option {
   display: flex;
   align-items: center;
-  gap: var(--coar-select-option-gap, var(--coar-spacing-xs));
-  padding: var(--coar-select-option-padding, var(--coar-spacing-s) var(--coar-spacing-m));
+  gap: var(--coar-select-option-gap);
+  padding: var(--coar-select-option-padding);
   font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-select-option-font-size, var(--coar-body-small-base-size));
+  font-size: var(--coar-select-option-font-size);
   color: var(--coar-text-neutral-primary);
   cursor: pointer;
   transition: background-color var(--coar-duration-fast) var(--coar-ease-out);

@@ -54,40 +54,40 @@ function setToastRef(id: number, el: Element | ComponentPublicInstance | null) {
   z-index: 9999;
   display: flex;
   flex-direction: column;
-  gap: var(--coar-spacing-s, 8px);
+  gap: var(--coar-spacing-s);
   pointer-events: none;
   max-height: 100vh;
   overflow: hidden;
 }
 
 .coar-toast-container--top-right {
-  top: var(--coar-spacing-l, 24px);
-  right: var(--coar-spacing-l, 24px);
+  top: var(--coar-spacing-l);
+  right: var(--coar-spacing-l);
 }
 
 .coar-toast-container--top-left {
-  top: var(--coar-spacing-l, 24px);
-  left: var(--coar-spacing-l, 24px);
+  top: var(--coar-spacing-l);
+  left: var(--coar-spacing-l);
 }
 
 .coar-toast-container--top-center {
-  top: var(--coar-spacing-l, 24px);
+  top: var(--coar-spacing-l);
   left: 50%;
   transform: translateX(-50%);
 }
 
 .coar-toast-container--bottom-right {
-  bottom: var(--coar-spacing-l, 24px);
-  right: var(--coar-spacing-l, 24px);
+  bottom: var(--coar-spacing-l);
+  right: var(--coar-spacing-l);
 }
 
 .coar-toast-container--bottom-left {
-  bottom: var(--coar-spacing-l, 24px);
-  left: var(--coar-spacing-l, 24px);
+  bottom: var(--coar-spacing-l);
+  left: var(--coar-spacing-l);
 }
 
 .coar-toast-container--bottom-center {
-  bottom: var(--coar-spacing-l, 24px);
+  bottom: var(--coar-spacing-l);
   left: 50%;
   transform: translateX(-50%);
 }

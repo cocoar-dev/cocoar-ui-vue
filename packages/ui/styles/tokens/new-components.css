@@ -24,6 +24,11 @@
   /* Thumb offset from track edge */
   --coar-switch-thumb-offset: 2px;
 
+  /* Current size (set by size variant classes, defaults to medium) */
+  --coar-switch-track-width: var(--coar-switch-m-track-width);
+  --coar-switch-track-height: var(--coar-switch-m-track-height);
+  --coar-switch-thumb-size: var(--coar-switch-m-thumb-size);
+
   /* ==========================================================================
      PROGRESS BAR
      ========================================================================== */
@@ -33,6 +38,12 @@
   --coar-progress-bar-l-height: 8px;
   --coar-progress-bar-radius: var(--coar-radius-full);
   --coar-progress-bar-background: var(--coar-background-neutral-tertiary);
+
+  /* Current size (set by size variant classes, defaults to medium) */
+  --coar-progress-bar-height: var(--coar-progress-bar-m-height);
+
+  /* Current fill color (set by variant classes, defaults to accent) */
+  --coar-progress-bar-fill-color: var(--coar-background-accent-primary);
 
   /* ==========================================================================
      SPINNER
@@ -44,6 +55,9 @@
   --coar-spinner-l-size: 32px;
   --coar-spinner-stroke-width: 2.5;
   --coar-spinner-color: var(--coar-background-accent-primary);
+
+  /* Current size (set by size variant classes, defaults to medium) */
+  --coar-spinner-size: var(--coar-spinner-m-size);
 
   /* ==========================================================================
      NAVBAR
@@ -58,6 +72,7 @@
      BREADCRUMB
      ========================================================================== */
 
+  --coar-breadcrumb-separator: '/';
   --coar-breadcrumb-separator-color: var(--coar-text-neutral-tertiary);
   --coar-breadcrumb-separator-gap: var(--coar-spacing-s);
   --coar-breadcrumb-font-size: var(--coar-component-m-font-size);
@@ -101,4 +116,47 @@
   --coar-toast-stack-gap: var(--coar-spacing-s);
   --coar-toast-progress-height: 3px;
   --coar-toast-max-stack: 5;
+
+  /* ==========================================================================
+     POPOVER
+     ========================================================================== */
+
+  --coar-popover-min-width: 200px;
+  --coar-popover-max-width: 360px;
+  --coar-popover-max-height: 240px;
+
+  /* ==========================================================================
+     CARD
+     ========================================================================== */
+
+  /* Current padding (set by padding variant classes, defaults to medium) */
+  --coar-card-padding: var(--coar-spacing-m);
+
+  /* ==========================================================================
+     NOTE
+     ========================================================================== */
+
+  /* Current variant colors (set by variant classes, defaults to neutral) */
+  --coar-note-bg: var(--coar-background-neutral-secondary);
+  --coar-note-border-color: var(--coar-border-neutral-secondary);
+
+  /* ==========================================================================
+     TAG
+     ========================================================================== */
+
+  /* Current variant colors (set by variant classes, defaults to neutral) */
+  --coar-tag-bg: var(--coar-background-neutral-secondary);
+  --coar-tag-border-color: var(--coar-border-neutral-tertiary);
+
+  /* ==========================================================================
+     AVATAR
+     ========================================================================== */
+
+  --coar-avatar-xl-font-size: 28px;
+
+  /* ==========================================================================
+     BADGE
+     ========================================================================== */
+
+  --coar-badge-xs-font-size: 8px;
 }

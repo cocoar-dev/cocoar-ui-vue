@@ -233,7 +233,7 @@ function onKeydown(event: KeyboardEvent) {
   margin-bottom: -1px;
   font-family: var(--coar-body-base-family);
   font-size: var(--coar-body-small-base-size);
-  font-weight: 500;
+  font-weight: var(--coar-font-weight-medium);
   color: var(--coar-text-neutral-secondary);
   cursor: pointer;
   transition:

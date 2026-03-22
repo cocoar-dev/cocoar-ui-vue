@@ -40,6 +40,7 @@
   --coar-border-neutral-primary: var(--coar-color-gray-900);
   --coar-border-neutral-secondary: var(--coar-color-gray-800);
   --coar-border-neutral-tertiary: var(--coar-color-gray-200);
+  --coar-border-neutral-quaternary: var(--coar-color-gray-100);
   --coar-border-neutral: var(--coar-color-gray-200); /* Alias for tertiary - used in dropdowns */
 
   /* Icon */
@@ -88,6 +89,9 @@
   --coar-border-accent-primary: var(--coar-color-accent-500);
   --coar-border-accent-secondary: var(--coar-color-accent-400);
 
+  /* Surface */
+  --coar-surface-accent-secondary: var(--coar-color-accent-100);
+
   /* Icon */
   --coar-icon-accent-primary: var(--coar-color-accent-700);
 
@@ -114,6 +118,7 @@
   --coar-background-semantic-error-subtle: var(--coar-color-red-100);
   --coar-text-semantic-error-bold: var(--coar-color-red-800);
   --coar-text-semantic-error-subtle: var(--coar-color-red-700);
+  --coar-border-semantic-error: var(--coar-color-red-600);
   --coar-border-semantic-error-bold: var(--coar-color-red-800);
   --coar-border-semantic-error-subtle: var(--coar-color-red-200);
   --coar-icon-semantic-error-bold: var(--coar-color-red-800);
@@ -192,6 +197,7 @@
   --coar-border-neutral-primary: var(--coar-color-gray-700);
   --coar-border-neutral-secondary: var(--coar-color-gray-600);
   --coar-border-neutral-tertiary: var(--coar-color-gray-300);
+  --coar-border-neutral-quaternary: var(--coar-color-gray-200);
 
   /* Icon */
   --coar-icon-neutral-primary: var(--coar-color-gray-900);
@@ -213,6 +219,9 @@
   /* Text */
   --coar-text-accent-primary: var(--coar-color-accent-500);
   --coar-text-accent-secondary: var(--coar-color-accent-400);
+
+  /* Surface */
+  --coar-surface-accent-secondary: var(--coar-color-accent-200);
 
   /* ==========================================================================
      SEMANTIC - Adjusted for dark backgrounds
@@ -236,6 +245,7 @@
   --coar-background-semantic-error-subtle: var(--coar-color-red-200);
   --coar-text-semantic-error-bold: var(--coar-color-red-900);
   --coar-text-semantic-error-subtle: var(--coar-color-red-700);
+  --coar-border-semantic-error: var(--coar-color-red-500);
   --coar-border-semantic-error-bold: var(--coar-color-red-600);
   --coar-border-semantic-error-subtle: var(--coar-color-red-300);
   --coar-icon-semantic-error-bold: var(--coar-color-red-900);

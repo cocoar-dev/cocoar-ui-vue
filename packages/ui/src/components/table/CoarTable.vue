@@ -41,7 +41,7 @@ const tableClasses = computed(() => [
   width: 100%;
   border-collapse: collapse;
   font-family: var(--coar-body-base-family);
-  font-size: var(--coar-body-small-base-size, 0.875rem);
+  font-size: var(--coar-body-small-base-size);
   line-height: var(--coar-line-height-relaxed);
 }
 
@@ -51,10 +51,10 @@ const tableClasses = computed(() => [
 }
 
 .coar-table :deep(th) {
-  padding: 0.75rem var(--coar-spacing-m, 1rem);
+  padding: 0.75rem var(--coar-spacing-m);
   text-align: left;
-  font-weight: var(--coar-font-weight-semi-bold, 600);
-  font-size: var(--coar-component-s-font-size, 0.8125rem);
+  font-weight: var(--coar-font-weight-semi-bold);
+  font-size: var(--coar-component-s-font-size);
   color: var(--coar-text-neutral-primary);
   border-bottom: 1px solid var(--coar-border-neutral-tertiary);
   white-space: nowrap;
@@ -72,7 +72,7 @@ const tableClasses = computed(() => [
 }
 
 .coar-table :deep(td) {
-  padding: 0.75rem var(--coar-spacing-m, 1rem);
+  padding: 0.75rem var(--coar-spacing-m);
   text-align: left;
   color: var(--coar-text-neutral-secondary);
   vertical-align: top;
@@ -81,7 +81,7 @@ const tableClasses = computed(() => [
 /* Code within table */
 .coar-table :deep(code) {
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-  font-size: var(--coar-component-s-font-size, 0.8125rem);
+  font-size: var(--coar-component-s-font-size);
   color: var(--coar-text-accent-secondary);
   white-space: nowrap;
 }
@@ -114,8 +114,8 @@ const tableClasses = computed(() => [
 /* Compact */
 .coar-table--compact :deep(th),
 .coar-table--compact :deep(td) {
-  padding: var(--coar-spacing-s, 0.5rem) 0.75rem;
-  font-size: var(--coar-component-s-font-size, 0.8125rem);
+  padding: var(--coar-spacing-s) 0.75rem;
+  font-size: var(--coar-component-s-font-size);
 }
 
 /* Hover */
@@ -130,7 +130,7 @@ const tableClasses = computed(() => [
 
 .coar-table :deep(.prop-name code) {
   color: var(--coar-text-accent-primary);
-  font-weight: var(--coar-font-weight-medium, 500);
+  font-weight: var(--coar-font-weight-medium);
 }
 
 .coar-table :deep(.type) { color: var(--coar-text-neutral-tertiary); }
@@ -140,8 +140,8 @@ const tableClasses = computed(() => [
   display: inline-block;
   margin-left: 0.5rem;
   padding: 0.125rem 0.375rem;
-  font-size: var(--coar-body-footnote-size, 0.625rem);
-  font-weight: var(--coar-font-weight-semi-bold, 600);
+  font-size: var(--coar-body-footnote-size);
+  font-weight: var(--coar-font-weight-semi-bold);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--coar-text-semantic-warning-bold);

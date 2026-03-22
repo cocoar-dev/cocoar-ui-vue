@@ -1,3 +1,8 @@
+/* Tooltip tokens */
+:root {
+  --coar-tooltip-max-width: 320px;
+}
+
 /* Tooltip component styles — injected globally */
 
 .coar-tooltip {
@@ -7,7 +12,7 @@
   border: 1px solid var(--coar-border-neutral);
   border-radius: var(--coar-radius-s);
   box-shadow: var(--coar-shadow-m);
-  max-width: var(--coar-tooltip-max-width, 320px);
+  max-width: var(--coar-tooltip-max-width);
   pointer-events: none !important;
   box-sizing: border-box;
 }

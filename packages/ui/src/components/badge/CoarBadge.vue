@@ -108,32 +108,32 @@ const badgeClasses = computed(() => [
 .coar-badge--xs {
   min-width: 12px;
   height: 12px;
-  padding: 0 var(--coar-spacing-xxs, 2px);
-  font-size: 8px; /* No token for 8px — intentionally below the type scale for compact badge */
+  padding: 0 var(--coar-spacing-xxs);
+  font-size: var(--coar-badge-xs-font-size);
 }
 .coar-badge--s {
   min-width: 16px;
   height: 16px;
-  padding: 0 var(--coar-spacing-xs, 4px);
-  font-size: var(--coar-body-footnote-size, 10px);
+  padding: 0 var(--coar-spacing-xs);
+  font-size: var(--coar-body-footnote-size);
 }
 .coar-badge--m {
   min-width: 20px;
   height: 20px;
   padding: 0 6px; /* 6px is off the spacing grid — between xs(4) and s(8) */
-  font-size: var(--coar-component-xs-font-size, 11px);
+  font-size: var(--coar-component-xs-font-size);
 }
 .coar-badge--l {
   min-width: 24px;
   height: 24px;
-  padding: 0 var(--coar-spacing-s, 8px);
-  font-size: var(--coar-body-caption-size, 12px);
+  padding: 0 var(--coar-spacing-s);
+  font-size: var(--coar-body-caption-size);
 }
 .coar-badge--xl {
   min-width: 32px;
   height: 32px;
   padding: 0 10px; /* 10px is off the spacing grid — between s(8) and m(16) */
-  font-size: var(--coar-body-small-base-size, 14px);
+  font-size: var(--coar-body-small-base-size);
 }
 /* Variants */
 .coar-badge--primary {

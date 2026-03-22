@@ -167,23 +167,23 @@ function trackByItem(index: number, item: PaginationPageItem): string {
 .coar-pagination-nav {
   display: flex;
   align-items: center;
-  gap: var(--coar-pagination-gap, var(--coar-spacing-3xs, 2px));
+  gap: var(--coar-pagination-gap);
 }
 
 .coar-pagination-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: var(--coar-pagination-button-size, 2rem);
-  height: var(--coar-pagination-button-size, 2rem);
-  padding: 0 var(--coar-spacing-xs, 4px);
-  font-size: var(--coar-pagination-font-size, var(--coar-font-size-s, 14px));
+  min-width: var(--coar-pagination-button-size);
+  height: var(--coar-pagination-button-size);
+  padding: 0 var(--coar-spacing-xs);
+  font-size: var(--coar-pagination-font-size);
   font-family: inherit;
   line-height: var(--coar-line-height-none);
   border: 1px solid transparent;
-  border-radius: var(--coar-radius-xs, 4px);
+  border-radius: var(--coar-radius-xs);
   background: transparent;
-  color: var(--coar-text-neutral-primary, #111);
+  color: var(--coar-text-neutral-primary);
   cursor: pointer;
   transition:
     background-color var(--coar-duration-fast) var(--coar-ease-out),
@@ -198,7 +198,7 @@ function trackByItem(index: number, item: PaginationPageItem): string {
 }
 
 .coar-pagination-button:hover:not(:disabled) {
-  background: var(--coar-pagination-hover-background, var(--coar-background-neutral-tertiary, #f0f0f0));
+  background: var(--coar-pagination-hover-background);
 }
 
 .coar-pagination-button:focus-visible {
@@ -212,23 +212,23 @@ function trackByItem(index: number, item: PaginationPageItem): string {
 }
 
 .coar-pagination-button--active {
-  background: var(--coar-pagination-active-background, var(--coar-background-brand-primary, #0066cc));
-  color: var(--coar-pagination-active-color, var(--coar-text-on-brand-primary, #fff));
-  font-weight: 600;
+  background: var(--coar-pagination-active-background);
+  color: var(--coar-pagination-active-color);
+  font-weight: var(--coar-font-weight-semi-bold);
 }
 
 .coar-pagination-button--active:hover:not(:disabled) {
-  background: var(--coar-pagination-active-background, var(--coar-background-brand-primary, #0066cc));
+  background: var(--coar-pagination-active-background);
 }
 
 .coar-pagination-ellipsis {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: var(--coar-pagination-button-size, 2rem);
-  height: var(--coar-pagination-button-size, 2rem);
-  font-size: var(--coar-pagination-font-size, var(--coar-font-size-s, 14px));
-  color: var(--coar-text-neutral-tertiary, #999);
+  min-width: var(--coar-pagination-button-size);
+  height: var(--coar-pagination-button-size);
+  font-size: var(--coar-pagination-font-size);
+  color: var(--coar-text-neutral-tertiary);
   user-select: none;
 }
 

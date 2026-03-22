@@ -7,6 +7,6 @@
   display: block;
   height: 1px;
   margin: 0.25rem 0.75rem;
-  background: var(--coar-border-neutral-tertiary, #e0e0e0);
+  background: var(--coar-border-neutral-tertiary);
 }
 </style>
