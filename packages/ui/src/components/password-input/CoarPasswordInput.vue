@@ -66,7 +66,7 @@ const inputId = computed(() => props.id || autoId);
 const messageId = computed(() => `${inputId.value}-message`);
 
 const inputType = computed(() => (showPassword.value ? 'text' : 'password'));
-const toggleIcon = computed(() => (showPassword.value ? 'eye-open' : 'eye-closed'));
+const toggleIcon = computed(() => (showPassword.value ? 'eye' : 'eye-off'));
 const toggleAriaLabel = computed(() => (showPassword.value ? 'Hide password' : 'Show password'));
 
 const hasError = computed(() => props.error.length > 0);

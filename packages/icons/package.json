@@ -1,0 +1,14 @@
+{
+  "name": "@cocoar/icons-cli",
+  "version": "0.0.1",
+  "type": "module",
+  "description": "CLI tools for managing SVG icons with @cocoar/vue-ui",
+  "license": "Apache-2.0",
+  "bin": {
+    "cocoar-icons": "./bin/cocoar-icons.mjs"
+  },
+  "files": [
+    "bin",
+    "lib"
+  ]
+}

@@ -99,10 +99,14 @@ export interface CoarIconRegisteredSource {
  */
 export class CoarIconService {
   private readonly sources = new Map<string, CoarIconSource>();
+  private readonly sourcePriority: string[] = [];
   private defaultSourceKey: string = COAR_BUILTIN_ICON_SOURCE_KEY;
 
   registerSource(key: string, source: CoarIconSource): void {
     this.sources.set(key, source);
+    if (!this.sourcePriority.includes(key)) {
+      this.sourcePriority.push(key);
+    }
   }
 
   setDefaultSource(key: string): void {
@@ -112,11 +116,19 @@ export class CoarIconService {
       );
     }
     this.defaultSourceKey = key;
+    // Move to front of priority list
+    const idx = this.sourcePriority.indexOf(key);
+    if (idx > 0) {
+      this.sourcePriority.splice(idx, 1);
+      this.sourcePriority.unshift(key);
+    }
   }
 
   getIcon(name: string, sourceKey?: string): string | null | Promise<string | null> {
-    const source = this.getSourceOrThrow(sourceKey);
-    return source.getIcon(name);
+    if (sourceKey) {
+      return this.getSourceOrThrow(sourceKey).getIcon(name);
+    }
+    return this.resolveWithFallback(name);
   }
 
   getRegisteredSources(): ReadonlyArray<CoarIconRegisteredSource> {
@@ -129,10 +141,34 @@ export class CoarIconService {
 
   getAvailableIconKeys(
     sourceKey?: string,
-  ): readonly string[] | Promise<readonly string[]> | undefined {
-    const effectiveKey = sourceKey ?? this.defaultSourceKey;
-    const source = this.sources.get(effectiveKey);
-    return source?.getAvailableIconKeys?.();
+  ): readonly string[] | Promise<readonly string[]> {
+    if (sourceKey) {
+      const source = this.sources.get(sourceKey);
+      return source?.getAvailableIconKeys?.() ?? [];
+    }
+
+    // Aggregate keys from all sources
+    const syncKeys: string[] = [];
+    const asyncResults: Promise<readonly string[]>[] = [];
+
+    for (const source of this.sources.values()) {
+      const keys = source.getAvailableIconKeys?.();
+      if (!keys) continue;
+      if (keys instanceof Promise) {
+        asyncResults.push(keys);
+      } else {
+        syncKeys.push(...keys);
+      }
+    }
+
+    if (asyncResults.length === 0) {
+      return [...new Set(syncKeys)].sort();
+    }
+
+    return Promise.all(asyncResults).then((results) => {
+      const all = [...syncKeys, ...results.flat()];
+      return [...new Set(all)].sort();
+    });
   }
 
   clearCache(): void {
@@ -147,11 +183,40 @@ export class CoarIconService {
     }
   }
 
-  private getSourceOrThrow(sourceKey?: string): CoarIconSource {
-    const effectiveKey = sourceKey ?? this.defaultSourceKey;
-    const source = this.sources.get(effectiveKey);
+  /**
+   * Try each source in priority order. Return the first non-null result.
+   * Handles mixed sync/async sources correctly by chaining promises
+   * once the first async source is encountered.
+   */
+  private resolveWithFallback(name: string): string | null | Promise<string | null> {
+    let asyncChain: Promise<string | null> | null = null;
+
+    for (const key of this.sourcePriority) {
+      const source = this.sources.get(key);
+      if (!source) continue;
+
+      if (asyncChain !== null) {
+        const s = source;
+        asyncChain = asyncChain.then((result) =>
+          result !== null ? result : s.getIcon(name),
+        );
+      } else {
+        const result = source.getIcon(name);
+        if (result instanceof Promise) {
+          asyncChain = result;
+        } else if (result !== null) {
+          return result;
+        }
+      }
+    }
+
+    return asyncChain ?? null;
+  }
+
+  private getSourceOrThrow(sourceKey: string): CoarIconSource {
+    const source = this.sources.get(sourceKey);
     if (!source) {
-      throw new Error(`Unknown icon source key: "${effectiveKey}".`);
+      throw new Error(`Unknown icon source key: "${sourceKey}".`);
     }
     return source;
   }

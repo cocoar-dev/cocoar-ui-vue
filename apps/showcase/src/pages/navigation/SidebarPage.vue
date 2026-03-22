@@ -13,7 +13,7 @@ const codeBasic = `<CoarSidebar>
   </CoarMenu>
 
   <template #footer>
-    <CoarMenuItem icon="back">Logout</CoarMenuItem>
+    <CoarMenuItem icon="log-out">Logout</CoarMenuItem>
   </template>
 </CoarSidebar>`;
 </script>
@@ -52,13 +52,13 @@ const codeBasic = `<CoarSidebar>
                 <CoarMenuItem icon="home">Dashboard</CoarMenuItem>
                 <CoarMenuItem icon="user">Profile</CoarMenuItem>
                 <CoarMenuItem icon="list">Projects</CoarMenuItem>
-                <CoarMenuItem icon="setting">Settings</CoarMenuItem>
+                <CoarMenuItem icon="settings">Settings</CoarMenuItem>
               </CoarMenu>
 
               <template #footer>
                 <CoarMenu borderless>
                   <CoarMenuDivider />
-                  <CoarMenuItem icon="back">Logout</CoarMenuItem>
+                  <CoarMenuItem icon="log-out">Logout</CoarMenuItem>
                 </CoarMenu>
               </template>
             </CoarSidebar>
@@ -93,7 +93,7 @@ const codeBasic = `<CoarSidebar>
                   <CoarSubmenuItem>Analytics</CoarSubmenuItem>
                 </CoarSubExpand>
                 <CoarMenuHeading>System</CoarMenuHeading>
-                <CoarMenuItem icon="setting">Settings</CoarMenuItem>
+                <CoarMenuItem icon="settings">Settings</CoarMenuItem>
                 <CoarMenuItem icon="globe">Localization</CoarMenuItem>
               </CoarMenu>
 
@@ -101,7 +101,7 @@ const codeBasic = `<CoarSidebar>
                 <CoarMenu borderless>
                   <CoarMenuDivider />
                   <CoarMenuItem icon="user">John Doe</CoarMenuItem>
-                  <CoarMenuItem icon="back">Logout</CoarMenuItem>
+                  <CoarMenuItem icon="log-out">Logout</CoarMenuItem>
                 </CoarMenu>
               </template>
             </CoarSidebar>

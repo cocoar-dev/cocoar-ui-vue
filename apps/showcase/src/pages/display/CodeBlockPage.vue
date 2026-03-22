@@ -14,7 +14,7 @@ function increment() {
 const htmlExample = `<template>
   <CoarButton
     variant="primary"
-    icon-start="add"
+    icon-start="plus"
     @click="increment"
   >
     Count: {{ count }}

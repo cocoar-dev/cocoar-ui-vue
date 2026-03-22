@@ -46,7 +46,7 @@ function toggle(event: Event) {
       @keydown.space.prevent="toggle"
     >
       <span class="coar-sub-expand__icon" aria-hidden="true">
-        <CoarIcon :name="props.icon || 'square-rounded-dashed'" size="s" />
+        <CoarIcon :name="props.icon || 'square-dashed'" size="s" />
       </span>
       <span class="coar-sub-expand__label">{{ props.label }}</span>
       <CoarIcon
@@ -119,7 +119,7 @@ function toggle(event: Event) {
   height: var(--coar-menu-item-icon-slot-size, 16px);
 }
 
-.coar-sub-expand__icon :deep([icon-name='square-rounded-dashed']) {
+.coar-sub-expand__icon :deep([icon-name='square-dashed']) {
   opacity: 0.15;
 }
 

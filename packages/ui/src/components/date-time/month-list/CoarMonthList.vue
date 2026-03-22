@@ -136,7 +136,7 @@ onMounted(() => {
           aria-label="Previous year"
           @click="previousYear"
         >
-          <CoarIcon name="left" size="s" />
+          <CoarIcon name="chevron-left" size="s" />
         </button>
 
         <span class="coar-month-list__year">{{ currentYear }}</span>
@@ -148,7 +148,7 @@ onMounted(() => {
           aria-label="Next year"
           @click="nextYear"
         >
-          <CoarIcon name="right" size="s" />
+          <CoarIcon name="chevron-right" size="s" />
         </button>
       </div>
 

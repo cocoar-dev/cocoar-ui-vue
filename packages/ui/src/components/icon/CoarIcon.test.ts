@@ -25,7 +25,7 @@ function mountIcon(
 
 describe('CoarIcon', () => {
   it('should render', () => {
-    const wrapper = mountIcon({ name: 'add' });
+    const wrapper = mountIcon({ name: 'plus' });
     expect(wrapper.find('.coar-icon-host').exists()).toBe(true);
   });
 
@@ -63,7 +63,7 @@ describe('CoarIcon', () => {
 
     it('should use the default built-in source when no plugin is installed', async () => {
       // No service provided — should fall back to default built-in
-      const wrapper = mountIcon({ name: 'add' });
+      const wrapper = mountIcon({ name: 'plus' });
       await flushPromises();
 
       const iconEl = wrapper.find('.coar-icon');
@@ -354,6 +354,114 @@ describe('CoarIcon', () => {
       await flushPromises();
 
       expect(wrapper.html()).toContain('id="extra-icon"');
+    });
+  });
+
+  describe('fallback chain', () => {
+    it('should fall back to second source when first returns null', async () => {
+      const service = new CoarIconService();
+      service.registerSource('primary', new CoarIconMapSource({}));
+      service.registerSource('fallback', new CoarIconMapSource({
+        'rare-icon': '<svg id="from-fallback"></svg>',
+      }));
+      service.setDefaultSource('primary');
+
+      const wrapper = mountIcon({ name: 'rare-icon' }, service);
+      await flushPromises();
+
+      expect(wrapper.html()).toContain('id="from-fallback"');
+    });
+
+    it('should use first source when it has the icon', async () => {
+      const service = new CoarIconService();
+      service.registerSource('primary', new CoarIconMapSource({
+        check: '<svg id="from-primary"></svg>',
+      }));
+      service.registerSource('fallback', new CoarIconMapSource({
+        check: '<svg id="from-fallback"></svg>',
+      }));
+      service.setDefaultSource('primary');
+
+      const wrapper = mountIcon({ name: 'check' }, service);
+      await flushPromises();
+
+      expect(wrapper.html()).toContain('id="from-primary"');
+      expect(wrapper.html()).not.toContain('id="from-fallback"');
+    });
+
+    it('should fall back through async sources', async () => {
+      const service = new CoarIconService();
+      service.registerSource('bundled', new CoarIconMapSource({}));
+
+      let resolveHttp!: (value: string | null) => void;
+      service.registerSource('http', {
+        getIcon: () => new Promise<string | null>((r) => { resolveHttp = r; }),
+      });
+      service.setDefaultSource('bundled');
+
+      const wrapper = mountIcon({ name: 'cloud' }, service);
+      await flushPromises();
+
+      // Should be loading while http resolves
+      expect(wrapper.find('.coar-icon--loading').exists()).toBe(true);
+
+      resolveHttp('<svg id="from-http"></svg>');
+      await flushPromises();
+
+      expect(wrapper.html()).toContain('id="from-http"');
+      expect(wrapper.find('.coar-icon--loading').exists()).toBe(false);
+    });
+
+    it('should skip explicit source and not fall back', async () => {
+      const service = new CoarIconService();
+      service.registerSource('primary', new CoarIconMapSource({}));
+      service.registerSource('fallback', new CoarIconMapSource({
+        check: '<svg id="from-fallback"></svg>',
+      }));
+
+      const wrapper = mountIcon({ name: 'check', source: 'primary' }, service);
+      await flushPromises();
+
+      // Explicit source, no fallback — icon not found
+      expect(wrapper.find('.coar-icon').exists()).toBe(false);
+    });
+
+    it('should return null when no source has the icon', async () => {
+      const service = new CoarIconService();
+      service.registerSource('a', new CoarIconMapSource({}));
+      service.registerSource('b', new CoarIconMapSource({}));
+
+      const wrapper = mountIcon({ name: 'nonexistent' }, service);
+      await flushPromises();
+
+      expect(wrapper.find('.coar-icon').exists()).toBe(false);
+    });
+  });
+
+  describe('strokeWidth', () => {
+    let service: CoarIconService;
+
+    beforeEach(() => {
+      service = new CoarIconService();
+      service.registerSource(COAR_BUILTIN_ICON_SOURCE_KEY, new CoarIconMapSource({
+        'test-stroke': '<svg stroke="currentColor" stroke-width="2"><path stroke-width="2" d="M1 1" /></svg>',
+      }));
+    });
+
+    it('should override stroke-width when prop is set', async () => {
+      const wrapper = mountIcon({ name: 'test-stroke', strokeWidth: 1.5 }, service);
+      await flushPromises();
+
+      const html = wrapper.find('.coar-icon').html();
+      expect(html).toContain('stroke-width="1.5"');
+      expect(html).not.toContain('stroke-width="2"');
+    });
+
+    it('should not modify SVG when strokeWidth is not set', async () => {
+      const wrapper = mountIcon({ name: 'test-stroke' }, service);
+      await flushPromises();
+
+      expect(wrapper.find('.coar-icon').html()).toContain('stroke-width="2"');
     });
   });
 });

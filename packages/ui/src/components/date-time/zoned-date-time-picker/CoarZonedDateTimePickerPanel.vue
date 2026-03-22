@@ -181,7 +181,7 @@ function cancelEditValueTimezone() {
           aria-label="Jump to today's month"
           @click="onScrollToTodayMonth"
         >
-          <CoarIcon :name="todayMonthDirection === 'up' ? 'up' : 'down'" size="xs" />
+          <CoarIcon :name="todayMonthDirection === 'up' ? 'chevron-up' : 'chevron-down'" size="xs" />
         </button>
       </div>
 
@@ -196,7 +196,7 @@ function cancelEditValueTimezone() {
             aria-label="Previous year"
             @click="onPreviousYear"
           >
-            <CoarIcon name="left" size="s" />
+            <CoarIcon name="chevron-left" size="s" />
           </button>
           <span class="coar-zdtp-year">{{ currentYear }}</span>
           <button
@@ -206,7 +206,7 @@ function cancelEditValueTimezone() {
             aria-label="Next year"
             @click="onNextYear"
           >
-            <CoarIcon name="right" size="s" />
+            <CoarIcon name="chevron-right" size="s" />
           </button>
         </div>
 
@@ -225,7 +225,7 @@ function cancelEditValueTimezone() {
             aria-label="Close timezone search"
             @click="closeDisplayTimezonePicker"
           >
-            <CoarIcon name="close" size="xs" />
+            <CoarIcon name="x" size="xs" />
           </button>
         </div>
 
@@ -292,7 +292,7 @@ function cancelEditValueTimezone() {
             <span class="coar-zdtp-display-tz-btn-label">
               {{ coarFormatTimezoneLabel(effectiveDisplayTimeZone) }}
             </span>
-            <CoarIcon name="down" size="xs" />
+            <CoarIcon name="chevron-down" size="xs" />
           </button>
 
           <!-- Events for selected date -->
@@ -317,7 +317,7 @@ function cancelEditValueTimezone() {
     >
       <template v-if="!hasValue">
         <span class="coar-zdtp-footer-placeholder">
-          <CoarIcon name="location" size="xs" />
+          <CoarIcon name="map-pin" size="xs" />
           <span>Event timezone</span>
         </span>
       </template>
@@ -343,14 +343,14 @@ function cancelEditValueTimezone() {
             aria-label="Cancel timezone edit"
             @click="cancelEditValueTimezone"
           >
-            <CoarIcon name="close" size="xs" />
+            <CoarIcon name="x" size="xs" />
           </button>
         </div>
       </template>
 
       <template v-else>
         <div class="coar-zdtp-footer-display">
-          <CoarIcon name="location" size="xs" class="coar-zdtp-footer-icon" />
+          <CoarIcon name="map-pin" size="xs" class="coar-zdtp-footer-icon" />
           <span class="coar-zdtp-footer-tz-name">{{ valueTimeZoneLabel }}</span>
           <span class="coar-zdtp-footer-tz-value">{{ formatValueInValueTz }}</span>
           <button

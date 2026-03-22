@@ -52,6 +52,7 @@ const props = withDefaults(defineProps<CoarCodeBlockProps>(), {
 
 const langMap: Record<string, string> = {
   html: 'markup',
+  vue: 'markup',
   xml: 'markup',
   svg: 'markup',
   ts: 'typescript',
@@ -294,7 +295,7 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
   font-size: var(--coar-component-xs-font-size, 11px);
   font-family: var(--coar-body-small-base-family);
   background: transparent;
-  border: 1px solid var(--coar-code-block-border);
+  border: none;
   border-radius: var(--coar-radius-xs);
   color: var(--coar-code-block-text-muted);
   cursor: pointer;

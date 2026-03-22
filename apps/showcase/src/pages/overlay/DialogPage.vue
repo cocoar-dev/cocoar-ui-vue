@@ -98,7 +98,7 @@ createApp(App)
           <h3>Confirm Dialog</h3>
           <p class="example-description">Use <code>dialog.confirm()</code> for destructive or important actions that need user confirmation.</p>
           <div class="example-demo demo-row">
-            <CoarButton variant="danger" icon-start="bin" @click="openConfirm">Delete Item</CoarButton>
+            <CoarButton variant="danger" icon-start="trash-2" @click="openConfirm">Delete Item</CoarButton>
             <CoarButton variant="primary" @click="openConfirmPrimary">Publish Changes</CoarButton>
           </div>
           <p class="demo-value">Last result: {{ lastResult || 'none' }}</p>

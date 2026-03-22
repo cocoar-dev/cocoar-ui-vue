@@ -29,6 +29,8 @@ export interface CoarIconProps {
   source?: string;
   /** Icon size — preset token or custom CSS value (e.g. '42px', '3rem') */
   size?: CoarIconSize | string;
+  /** Override stroke width for stroke-based icons (e.g. Lucide). Default is unmodified. */
+  strokeWidth?: number;
   /** Rotation angle in degrees */
   rotate?: number;
   /** Rotation transition — number (ms) or CSS transition string */
@@ -45,6 +47,7 @@ const props = withDefaults(defineProps<CoarIconProps>(), {
   name: undefined,
   source: undefined,
   size: 'm',
+  strokeWidth: undefined,
   rotate: 0,
   rotateTransition: undefined,
   spin: false,
@@ -100,6 +103,14 @@ watchEffect((onCleanup) => {
 
 // ─── Computed helpers ────────────────────────────────────────────────────────
 
+const renderedSvg = computed(() => {
+  if (!svgContent.value || props.strokeWidth == null) return svgContent.value;
+  return svgContent.value.replace(
+    /stroke-width="[^"]*"/g,
+    `stroke-width="${props.strokeWidth}"`,
+  );
+});
+
 const isPreset = computed(() => PRESET_SIZES.has(props.size));
 
 const LABEL_SIZE_MAP: Record<string, string> = {
@@ -150,7 +161,7 @@ const rotateTransitionValue = computed(() => {
       v-if="name && svgContent"
       :class="iconClasses"
       :style="rotateStyle"
-      v-html="svgContent"
+      v-html="renderedSvg"
     />
     <!-- Loading placeholder -->
     <span
@@ -211,10 +222,14 @@ const rotateTransitionValue = computed(() => {
   fill: currentColor;
 }
 
-/* For stroke-based icons, inherit stroke color */
+/* For stroke-based icons (e.g. Lucide), inherit stroke color */
 .coar-icon :deep(svg[stroke='currentColor'] path),
 .coar-icon :deep(svg[stroke='currentColor'] circle),
-.coar-icon :deep(svg[stroke='currentColor'] line) {
+.coar-icon :deep(svg[stroke='currentColor'] line),
+.coar-icon :deep(svg[stroke='currentColor'] rect),
+.coar-icon :deep(svg[stroke='currentColor'] polyline),
+.coar-icon :deep(svg[stroke='currentColor'] polygon),
+.coar-icon :deep(svg[stroke='currentColor'] ellipse) {
   fill: none;
   stroke: currentColor;
 }

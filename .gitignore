@@ -7,3 +7,7 @@ coverage
 .DS_Store
 .claude
 .analysis
+
+# VitePress docs
+apps/docs/.vitepress/cache/
+apps/docs/.vitepress/dist/

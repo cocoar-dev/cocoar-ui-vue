@@ -293,7 +293,7 @@ onBeforeUnmount(() => {
       @keydown="onKeydown"
     >
       <span class="coar-submenu-item__icon" aria-hidden="true">
-        <CoarIcon :name="props.icon || 'square-rounded-dashed'" size="s" />
+        <CoarIcon :name="props.icon || 'square-dashed'" size="s" />
       </span>
       <span class="coar-submenu-item__label">{{ props.label }}</span>
       <CoarIcon
@@ -370,7 +370,7 @@ onBeforeUnmount(() => {
   height: var(--coar-menu-item-icon-slot-size, 16px);
 }
 
-.coar-submenu-item__icon :deep([icon-name='square-rounded-dashed']) {
+.coar-submenu-item__icon :deep([icon-name='square-dashed']) {
   opacity: 0.15;
 }
 

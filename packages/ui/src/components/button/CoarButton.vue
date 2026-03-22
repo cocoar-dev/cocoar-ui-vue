@@ -85,7 +85,7 @@ function handleClick(event: MouseEvent) {
       class="coar-button__spinner coar-button__spinner--overlay"
       aria-hidden="true"
     >
-      <CoarIcon name="load" spin size="auto" />
+      <CoarIcon name="loader-circle" spin size="auto" />
     </span>
 
     <!-- Icon Start: Show spinner instead when loading -->
@@ -94,7 +94,7 @@ function handleClick(event: MouseEvent) {
       class="coar-button__spinner coar-button__spinner--inline"
       aria-hidden="true"
     >
-      <CoarIcon name="load" spin size="auto" />
+      <CoarIcon name="loader-circle" spin size="auto" />
     </span>
     <span
       v-else-if="iconStart"
@@ -115,7 +115,7 @@ function handleClick(event: MouseEvent) {
       class="coar-button__spinner coar-button__spinner--inline"
       aria-hidden="true"
     >
-      <CoarIcon name="load" spin size="auto" />
+      <CoarIcon name="loader-circle" spin size="auto" />
     </span>
     <span
       v-else-if="iconEnd"

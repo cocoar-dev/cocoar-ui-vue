@@ -5,9 +5,9 @@ import CoarIcon from '../icon/CoarIcon.vue';
 
 const ICON_MAP: Record<ToastVariant, string> = {
   success: 'check',
-  error: 'close',
-  warning: 'important',
-  info: 'question',
+  error: 'x',
+  warning: 'triangle-alert',
+  info: 'circle-help',
 };
 
 const props = defineProps<{

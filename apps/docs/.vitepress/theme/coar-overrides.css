@@ -1,0 +1,31 @@
+/**
+ * Overrides to make Cocoar components render correctly inside VitePress pages.
+ * VitePress applies its own styling to common HTML elements which can conflict
+ * with Cocoar's component styles.
+ */
+
+/* Ensure Cocoar's overlay z-index works above VitePress's sidebar/nav */
+.coar-overlay-host {
+  z-index: 100;
+}
+
+/* Demo preview containers */
+.vp-demo-preview {
+  margin: 16px 0;
+}
+
+/* Let Cocoar components use their own font families instead of VitePress's Inter */
+.vp-doc .demo-card {
+  font-family: var(--coar-body-base-family);
+}
+
+/* Prevent VitePress from adding borders to CoarTable cells */
+.vp-doc .coar-table th,
+.vp-doc .coar-table td {
+  border: none;
+}
+
+/* Restore CoarTable's own bottom border on th */
+.vp-doc .coar-table thead th {
+  border-bottom: 1px solid var(--coar-border-neutral-tertiary);
+}

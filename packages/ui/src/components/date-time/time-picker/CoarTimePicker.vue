@@ -309,7 +309,7 @@ const sizeClass = computed(
           aria-label="Increase hours"
           @click="incrementHoursAction"
         >
-          <CoarIcon name="up" :size="iconSize" />
+          <CoarIcon name="chevron-up" :size="iconSize" />
         </button>
 
         <div
@@ -333,7 +333,7 @@ const sizeClass = computed(
           aria-label="Decrease hours"
           @click="decrementHoursAction"
         >
-          <CoarIcon name="down" :size="iconSize" />
+          <CoarIcon name="chevron-down" :size="iconSize" />
         </button>
       </div>
 
@@ -350,7 +350,7 @@ const sizeClass = computed(
           aria-label="Increase minutes"
           @click="incrementMinutesAction"
         >
-          <CoarIcon name="up" :size="iconSize" />
+          <CoarIcon name="chevron-up" :size="iconSize" />
         </button>
 
         <div
@@ -374,7 +374,7 @@ const sizeClass = computed(
           aria-label="Decrease minutes"
           @click="decrementMinutesAction"
         >
-          <CoarIcon name="down" :size="iconSize" />
+          <CoarIcon name="chevron-down" :size="iconSize" />
         </button>
       </div>
 
@@ -388,7 +388,7 @@ const sizeClass = computed(
           aria-label="Toggle AM/PM"
           @click="togglePeriodAction"
         >
-          <CoarIcon name="up" :size="iconSize" />
+          <CoarIcon name="chevron-up" :size="iconSize" />
         </button>
 
         <div
@@ -413,7 +413,7 @@ const sizeClass = computed(
           aria-label="Toggle AM/PM"
           @click="togglePeriodAction"
         >
-          <CoarIcon name="down" :size="iconSize" />
+          <CoarIcon name="chevron-down" :size="iconSize" />
         </button>
       </div>
     </div>

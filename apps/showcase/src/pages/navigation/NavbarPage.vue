@@ -77,7 +77,7 @@ const codeBasic = `<CoarNavbar>
                 </nav>
               </template>
               <template #end>
-                <CoarButton variant="ghost" icon-start="important" size="s" aria-label="Notifications" />
+                <CoarButton variant="ghost" icon-start="triangle-alert" size="s" aria-label="Notifications" />
                 <CoarAvatar name="John Doe" size="s" />
               </template>
             </CoarNavbar>

@@ -146,7 +146,7 @@ const codeUserMenu = `<CoarPopover mode="click">
           <p class="example-description">Use a hover popover on an icon to provide contextual help without navigating away.</p>
           <div class="example-demo demo-row">
             <CoarPopover mode="hover">
-              <CoarButton variant="ghost" icon-start="question" aria-label="More information" />
+              <CoarButton variant="ghost" icon-start="circle-help" aria-label="More information" />
               <template #content>
                 <div class="popover-content">
                   <h4>How it works</h4>
@@ -156,7 +156,7 @@ const codeUserMenu = `<CoarPopover mode="click">
             </CoarPopover>
 
             <CoarPopover mode="hover">
-              <CoarButton variant="ghost" icon-start="important" aria-label="Warning details" />
+              <CoarButton variant="ghost" icon-start="triangle-alert" aria-label="Warning details" />
               <template #content>
                 <div class="popover-content">
                   <h4>Rate limit approaching</h4>

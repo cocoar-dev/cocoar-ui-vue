@@ -236,7 +236,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
             <CoarIcon name="x" source="coar-builtin" size="auto" />
           </button>
           <CoarIcon
-            name="caret-right"
+            name="chevron-right"
             source="coar-builtin"
             size="auto"
             class="coar-select-arrow"

@@ -26,9 +26,9 @@ const codeSizes = `<CoarButton size="xs">Extra Small</CoarButton>
 <CoarButton size="m">Medium</CoarButton>
 <CoarButton size="l">Large</CoarButton>`;
 
-const codeIcons = `<CoarButton icon-start="add">Add Item</CoarButton>
-<CoarButton variant="secondary" icon-end="caret-right">Next</CoarButton>
-<CoarButton variant="danger" icon-start="bin">Delete</CoarButton>`;
+const codeIcons = `<CoarButton icon-start="plus">Add Item</CoarButton>
+<CoarButton variant="secondary" icon-end="chevron-right">Next</CoarButton>
+<CoarButton variant="danger" icon-start="trash-2">Delete</CoarButton>`;
 
 const codeLoading = `<CoarButton :loading="isLoading" @click="handleClick">Save</CoarButton>`;
 
@@ -103,10 +103,10 @@ const codeDisabled = `<CoarButton :disabled="true">Disabled</CoarButton>`;
           <h3>With Icons</h3>
           <p class="example-description">Add icons before or after the label to enhance meaning.</p>
           <div class="example-demo demo-row">
-            <CoarButton icon-start="add">Add Item</CoarButton>
-            <CoarButton variant="secondary" icon-end="caret-right">Next</CoarButton>
+            <CoarButton icon-start="plus">Add Item</CoarButton>
+            <CoarButton variant="secondary" icon-end="chevron-right">Next</CoarButton>
             <CoarButton variant="tertiary" icon-start="clipboard">Download</CoarButton>
-            <CoarButton variant="danger" icon-start="bin">Delete</CoarButton>
+            <CoarButton variant="danger" icon-start="trash-2">Delete</CoarButton>
           </div>
           <CoarCodeBlock coar-card-footer coar-card-inset borderless :code="codeIcons" language="html" :show-line-numbers="false" :collapsed="true" />
         </CoarCard>
@@ -126,7 +126,7 @@ const codeDisabled = `<CoarButton :disabled="true">Disabled</CoarButton>`;
             </div>
             <div class="loading-row">
               <span class="loading-label">Icon end:</span>
-              <CoarButton icon-end="caret-right" :loading="isLoadingEnd" @click="simulateLoadingEnd">Continue</CoarButton>
+              <CoarButton icon-end="chevron-right" :loading="isLoadingEnd" @click="simulateLoadingEnd">Continue</CoarButton>
             </div>
           </div>
           <CoarNote variant="info">

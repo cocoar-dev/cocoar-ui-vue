@@ -14,13 +14,13 @@ interface SampleRow {
 }
 
 const sampleData: SampleRow[] = [
-  { id: 1, name: 'Alice Johnson', email: 'alice@example.com', role: 'Engineer', status: 'active', salary: 95000, joinDate: '2022-03-15', icon: 'person' },
+  { id: 1, name: 'Alice Johnson', email: 'alice@example.com', role: 'Engineer', status: 'active', salary: 95000, joinDate: '2022-03-15', icon: 'user' },
   { id: 2, name: 'Bob Smith', email: 'bob@example.com', role: 'Designer', status: 'active', salary: 85000, joinDate: '2021-07-01', icon: 'palette' },
-  { id: 3, name: 'Carol Williams', email: 'carol@example.com', role: 'Manager', status: 'inactive', salary: 110000, joinDate: '2020-01-20', icon: 'group' },
-  { id: 4, name: 'David Brown', email: 'david@example.com', role: 'Engineer', status: 'pending', salary: 90000, joinDate: '2023-06-10', icon: 'person' },
+  { id: 3, name: 'Carol Williams', email: 'carol@example.com', role: 'Manager', status: 'inactive', salary: 110000, joinDate: '2020-01-20', icon: 'users' },
+  { id: 4, name: 'David Brown', email: 'david@example.com', role: 'Engineer', status: 'pending', salary: 90000, joinDate: '2023-06-10', icon: 'user' },
   { id: 5, name: 'Eve Davis', email: 'eve@example.com', role: 'Designer', status: 'active', salary: 88000, joinDate: '2022-11-05', icon: 'palette' },
-  { id: 6, name: 'Frank Miller', email: 'frank@example.com', role: 'Engineer', status: 'active', salary: 102000, joinDate: '2019-09-12', icon: 'person' },
-  { id: 7, name: 'Grace Wilson', email: 'grace@example.com', role: 'Manager', status: 'active', salary: 115000, joinDate: '2018-04-25', icon: 'group' },
+  { id: 6, name: 'Frank Miller', email: 'frank@example.com', role: 'Engineer', status: 'active', salary: 102000, joinDate: '2019-09-12', icon: 'user' },
+  { id: 7, name: 'Grace Wilson', email: 'grace@example.com', role: 'Manager', status: 'active', salary: 115000, joinDate: '2018-04-25', icon: 'users' },
   { id: 8, name: 'Henry Taylor', email: 'henry@example.com', role: 'Designer', status: 'inactive', salary: 78000, joinDate: '2023-01-30', icon: 'palette' },
 ];
 

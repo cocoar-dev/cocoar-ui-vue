@@ -52,7 +52,7 @@ const codeLabels = `<CoarPopconfirm
               @confirmed="lastAction = 'deleted'"
               @cancelled="lastAction = 'cancelled'"
             >
-              <CoarButton variant="danger" icon-start="bin">Delete</CoarButton>
+              <CoarButton variant="danger" icon-start="trash-2">Delete</CoarButton>
             </CoarPopconfirm>
           </div>
           <p class="demo-value">Last action: {{ lastAction || 'none' }}</p>

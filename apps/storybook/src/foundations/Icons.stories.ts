@@ -42,7 +42,7 @@ const IconsPage = defineComponent({
       <h2 style="font-size: 20px; margin: 0 0 12px;">Usage</h2>
       <pre style="background: #1e1e2e; color: #cdd6f4; padding: 12px 16px; border-radius: 6px; font-size: 13px; overflow-x: auto; margin: 0 0 32px;"><code>&lt;CoarIcon name="check" size="m" /&gt;
 &lt;CoarIcon name="settings" size="l" color="var(--coar-text-accent-primary)" /&gt;
-&lt;CoarIcon name="load" spin size="m" /&gt;
+&lt;CoarIcon name="loader-circle" spin size="m" /&gt;
 &lt;CoarIcon name="chevron-right" :rotate="90" /&gt;</code></pre>
 
       <!-- Gallery -->

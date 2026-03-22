@@ -115,7 +115,7 @@ function handleKeydown(event: KeyboardEvent) {
     @keydown="handleKeydown"
   >
     <span class="coar-menu-item__icon" aria-hidden="true">
-      <CoarIcon :name="props.icon || 'square-rounded-dashed'" size="s" />
+      <CoarIcon :name="props.icon || 'square-dashed'" size="s" />
     </span>
     <span class="coar-menu-item__label">
       <template v-if="props.label">{{ props.label }}</template>
@@ -169,7 +169,7 @@ function handleKeydown(event: KeyboardEvent) {
 }
 
 /* Placeholder icon: very subtle */
-.coar-menu-item__icon :deep([icon-name='square-rounded-dashed']) {
+.coar-menu-item__icon :deep([icon-name='square-dashed']) {
   opacity: 0.3;
 }
 

@@ -85,7 +85,7 @@ export const Features: Story = {
         <div>
           <strong style="display: block; margin-bottom: 8px; font-family: Poppins, sans-serif; font-size: 13px; color: #6b6b6b;">Spin</strong>
           <div style="display: flex; gap: 16px; align-items: center;">
-            <CoarIcon name="load" size="l" spin />
+            <CoarIcon name="loader-circle" size="l" spin />
             <CoarIcon name="settings" size="l" spin />
           </div>
         </div>

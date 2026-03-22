@@ -583,7 +583,7 @@ function toggleDisplayTimezone() {
 const tzIndicatorIcon = computed(() => {
   switch (timezoneIndicatorState.value) {
     case 'home': return 'home';
-    case 'location': return 'location';
+    case 'location': return 'map-pin';
     case 'world': return 'globe';
     default: return 'globe';
   }
@@ -634,7 +634,7 @@ const tzIndicatorIcon = computed(() => {
         :disabled="isDisabled"
         @click="clearValue"
       >
-        <CoarIcon name="close" size="xs" />
+        <CoarIcon name="x" size="xs" />
       </button>
 
       <!-- Input -->

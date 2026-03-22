@@ -102,7 +102,7 @@ const selectedDateMarkers = computed((): CoarDateMarker[] => {
         aria-label="Jump to today's month"
         @click="onScrollToTodayMonth"
       >
-        <CoarIcon :name="todayMonthDirection === 'up' ? 'up' : 'down'" size="xs" />
+        <CoarIcon :name="todayMonthDirection === 'up' ? 'chevron-up' : 'chevron-down'" size="xs" />
       </button>
     </div>
 
@@ -117,7 +117,7 @@ const selectedDateMarkers = computed((): CoarDateMarker[] => {
           aria-label="Previous year"
           @click="onPreviousYear"
         >
-          <CoarIcon name="left" size="s" />
+          <CoarIcon name="chevron-left" size="s" />
         </button>
         <span class="coar-plain-date-picker-year">{{ currentYear }}</span>
         <button
@@ -127,7 +127,7 @@ const selectedDateMarkers = computed((): CoarDateMarker[] => {
           aria-label="Next year"
           @click="onNextYear"
         >
-          <CoarIcon name="right" size="s" />
+          <CoarIcon name="chevron-right" size="s" />
         </button>
       </div>
 

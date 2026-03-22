@@ -72,9 +72,9 @@ const codePopover = `<CoarPopover mode="click">
           <h3>On Icon Buttons</h3>
           <p class="example-description">Essential for icon-only buttons — provides accessible labels.</p>
           <div class="example-demo demo-row">
-            <CoarButton variant="ghost" icon-start="add" v-tooltip="'Add new item'" aria-label="Add new item" />
+            <CoarButton variant="ghost" icon-start="plus" v-tooltip="'Add new item'" aria-label="Add new item" />
             <CoarButton variant="ghost" icon-start="copy" v-tooltip="'Copy to clipboard'" aria-label="Copy" />
-            <CoarButton variant="ghost" icon-start="bin" v-tooltip="'Delete selected'" aria-label="Delete" />
+            <CoarButton variant="ghost" icon-start="trash-2" v-tooltip="'Delete selected'" aria-label="Delete" />
             <CoarButton variant="ghost" icon-start="settings" v-tooltip="'Open settings'" aria-label="Settings" />
           </div>
         </CoarCard>
@@ -84,7 +84,7 @@ const codePopover = `<CoarPopover mode="click">
           <p class="example-description"><code>v-tooltip</code> works on any HTML element, not just buttons.</p>
           <div class="example-demo demo-row">
             <span v-tooltip="'This is a span'" class="tooltip-target">Hover me (span)</span>
-            <CoarIcon name="question" size="l" v-tooltip="'Help: Click for more info'" style="cursor: help" />
+            <CoarIcon name="circle-help" size="l" v-tooltip="'Help: Click for more info'" style="cursor: help" />
             <code v-tooltip="'CSS custom property'" style="cursor: default">--coar-spacing-m</code>
           </div>
         </CoarCard>

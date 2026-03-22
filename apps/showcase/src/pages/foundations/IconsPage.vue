@@ -82,9 +82,9 @@ const sizeLabels: Record<string, string> = { xs: '12px', s: '16px', m: '20px', l
           <p class="example-description">Icons inherit color by default. Override with any valid CSS color value.</p>
           <div class="demo-row" style="gap: var(--coar-spacing-l)">
             <div class="color-item"><CoarIcon name="check" size="l" color="green" /><span class="color-label">green</span></div>
-            <div class="color-item"><CoarIcon name="close" size="l" color="red" /><span class="color-label">red</span></div>
-            <div class="color-item"><CoarIcon name="important" size="l" color="orange" /><span class="color-label">orange</span></div>
-            <div class="color-item"><CoarIcon name="question" size="l" color="blue" /><span class="color-label">blue</span></div>
+            <div class="color-item"><CoarIcon name="x" size="l" color="red" /><span class="color-label">red</span></div>
+            <div class="color-item"><CoarIcon name="triangle-alert" size="l" color="orange" /><span class="color-label">orange</span></div>
+            <div class="color-item"><CoarIcon name="circle-help" size="l" color="blue" /><span class="color-label">blue</span></div>
             <div class="color-item"><CoarIcon name="settings" size="l" color="#888" /><span class="color-label">#888</span></div>
             <div class="color-item"><CoarIcon name="user" size="l" color="var(--coar-text-accent-primary)" /><span class="color-label">accent</span></div>
           </div>
@@ -99,10 +99,10 @@ const sizeLabels: Record<string, string> = { xs: '12px', s: '16px', m: '20px', l
           <h3>Rotation</h3>
           <p class="example-description">Rotate icons to any angle using the <code>rotate</code> prop.</p>
           <div class="demo-row" style="gap: var(--coar-spacing-l)">
-            <div class="rotation-item"><CoarIcon name="caret-right" size="l" :rotate="0" /><span class="rotation-label">0°</span></div>
-            <div class="rotation-item"><CoarIcon name="caret-right" size="l" :rotate="90" /><span class="rotation-label">90°</span></div>
-            <div class="rotation-item"><CoarIcon name="caret-right" size="l" :rotate="180" /><span class="rotation-label">180°</span></div>
-            <div class="rotation-item"><CoarIcon name="caret-right" size="l" :rotate="270" /><span class="rotation-label">270°</span></div>
+            <div class="rotation-item"><CoarIcon name="chevron-right" size="l" :rotate="0" /><span class="rotation-label">0°</span></div>
+            <div class="rotation-item"><CoarIcon name="chevron-right" size="l" :rotate="90" /><span class="rotation-label">90°</span></div>
+            <div class="rotation-item"><CoarIcon name="chevron-right" size="l" :rotate="180" /><span class="rotation-label">180°</span></div>
+            <div class="rotation-item"><CoarIcon name="chevron-right" size="l" :rotate="270" /><span class="rotation-label">270°</span></div>
           </div>
         </CoarCard>
 
@@ -111,7 +111,7 @@ const sizeLabels: Record<string, string> = { xs: '12px', s: '16px', m: '20px', l
           <p class="example-description">Enable continuous spinning for loading indicators.</p>
           <div class="demo-row" style="gap: var(--coar-spacing-xl); align-items: flex-start; margin-top: var(--coar-spacing-s)">
             <div class="spin-item">
-              <CoarIcon name="load" size="xl" :spin="true" />
+              <CoarIcon name="loader-circle" size="xl" :spin="true" />
               <span class="coar-body-small">Loading...</span>
             </div>
             <div class="spin-item">

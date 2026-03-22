@@ -17,11 +17,11 @@ const fruitOptions: CoarSelectOption[] = [
 ];
 
 const countryOptions: CoarSelectOption[] = [
-  { value: 'at', label: 'Austria', icon: 'flag' },
-  { value: 'de', label: 'Germany', icon: 'flag' },
-  { value: 'ch', label: 'Switzerland', icon: 'flag' },
-  { value: 'it', label: 'Italy', icon: 'flag' },
-  { value: 'fr', label: 'France', icon: 'flag' },
+  { value: 'at', label: 'Austria', icon: 'globe' },
+  { value: 'de', label: 'Germany', icon: 'globe' },
+  { value: 'ch', label: 'Switzerland', icon: 'globe' },
+  { value: 'it', label: 'Italy', icon: 'globe' },
+  { value: 'fr', label: 'France', icon: 'globe' },
   { value: 'es', label: 'Spain', disabled: true },
   { value: 'pt', label: 'Portugal', disabled: true },
 ];

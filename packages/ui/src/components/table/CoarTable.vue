@@ -18,8 +18,8 @@ const props = withDefaults(defineProps<CoarTableProps>(), {
   hover: true,
 });
 
-const hostClasses = computed(() => [
-  'coar-table-host',
+const tableClasses = computed(() => [
+  'coar-table',
   {
     'coar-table--plain': props.variant === 'plain',
     'coar-table--bordered': props.variant === 'bordered',
@@ -30,28 +30,14 @@ const hostClasses = computed(() => [
 </script>
 
 <template>
-  <div :class="hostClasses">
-    <div class="coar-table-wrapper">
-      <table class="coar-table">
-        <slot />
-      </table>
-    </div>
-  </div>
+  <table :class="tableClasses">
+    <slot />
+  </table>
 </template>
 
 <style scoped>
-.coar-table-host {
-  display: block;
-}
-
-.coar-table-wrapper {
-  overflow-x: auto;
-  border: 1px solid var(--coar-border-neutral-tertiary);
-  border-radius: var(--coar-radius-xs);
-  background: var(--coar-background-neutral-primary);
-}
-
 .coar-table {
+  display: table;
   width: 100%;
   border-collapse: collapse;
   font-family: var(--coar-body-base-family);
@@ -101,43 +87,39 @@ const hostClasses = computed(() => [
 }
 
 /* Plain variant */
-.coar-table--plain .coar-table :deep(tbody tr:nth-child(odd)),
-.coar-table--plain .coar-table :deep(tbody tr:nth-child(even)) {
+.coar-table--plain :deep(tbody tr:nth-child(odd)),
+.coar-table--plain :deep(tbody tr:nth-child(even)) {
   background: var(--coar-background-neutral-primary);
 }
 
-.coar-table--plain .coar-table :deep(td) {
+.coar-table--plain :deep(td) {
   border-bottom: 1px solid var(--coar-border-neutral-tertiary);
 }
 
-.coar-table--plain .coar-table :deep(tbody tr:last-child td) {
+.coar-table--plain :deep(tbody tr:last-child td) {
   border-bottom: none;
 }
 
 /* Bordered variant */
-.coar-table--bordered .coar-table-wrapper {
-  border: none;
-}
-
-.coar-table--bordered .coar-table :deep(th),
-.coar-table--bordered .coar-table :deep(td) {
+.coar-table--bordered :deep(th),
+.coar-table--bordered :deep(td) {
   border: 1px solid var(--coar-border-neutral-tertiary);
 }
 
-.coar-table--bordered .coar-table :deep(tbody tr:nth-child(odd)),
-.coar-table--bordered .coar-table :deep(tbody tr:nth-child(even)) {
+.coar-table--bordered :deep(tbody tr:nth-child(odd)),
+.coar-table--bordered :deep(tbody tr:nth-child(even)) {
   background: var(--coar-background-neutral-primary);
 }
 
 /* Compact */
-.coar-table--compact .coar-table :deep(th),
-.coar-table--compact .coar-table :deep(td) {
+.coar-table--compact :deep(th),
+.coar-table--compact :deep(td) {
   padding: var(--coar-spacing-s, 0.5rem) 0.75rem;
   font-size: var(--coar-component-s-font-size, 0.8125rem);
 }
 
 /* Hover */
-.coar-table--hover .coar-table :deep(tbody tr:hover) {
+.coar-table--hover :deep(tbody tr:hover) {
   background: var(--coar-background-neutral-secondary);
 }
 

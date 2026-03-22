@@ -26,9 +26,9 @@ const codeHeadings = `<CoarMenu>
   <CoarMenuItem>Copy</CoarMenuItem>
 </CoarMenu>`;
 
-const codeIcons = `<CoarMenuItem icon="add">New File</CoarMenuItem>
+const codeIcons = `<CoarMenuItem icon="plus">New File</CoarMenuItem>
 <CoarMenuItem icon="copy">Duplicate</CoarMenuItem>
-<CoarMenuItem icon="bin" variant="danger">Delete</CoarMenuItem>`;
+<CoarMenuItem icon="trash-2" variant="danger">Delete</CoarMenuItem>`;
 </script>
 
 <template>
@@ -88,12 +88,12 @@ const codeIcons = `<CoarMenuItem icon="add">New File</CoarMenuItem>
           <p class="example-description">Add icons to menu items for visual clarity.</p>
           <div class="example-demo">
             <CoarMenu>
-              <CoarMenuItem icon="add" @click="handleClick('New File')">New File</CoarMenuItem>
+              <CoarMenuItem icon="plus" @click="handleClick('New File')">New File</CoarMenuItem>
               <CoarMenuItem icon="copy" @click="handleClick('Duplicate')">Duplicate</CoarMenuItem>
               <CoarMenuItem icon="clipboard" @click="handleClick('Paste')">Paste</CoarMenuItem>
               <CoarMenuDivider />
               <CoarMenuItem icon="settings" @click="handleClick('Settings')">Settings</CoarMenuItem>
-              <CoarMenuItem icon="bin" variant="danger" @click="handleClick('Delete')">Delete</CoarMenuItem>
+              <CoarMenuItem icon="trash-2" variant="danger" @click="handleClick('Delete')">Delete</CoarMenuItem>
             </CoarMenu>
           </div>
           <CoarCodeBlock coar-card-footer coar-card-inset borderless :code="codeIcons" language="html" :show-line-numbers="false" :collapsed="true" />
