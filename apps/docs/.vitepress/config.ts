@@ -77,6 +77,13 @@ export default defineConfig({
             '../../../packages/fragment-parser/src/index.ts',
           ),
         },
+        {
+          find: /^@cocoar\/vue-data-grid$/,
+          replacement: resolve(
+            __dirname,
+            '../../../packages/data-grid/src/index.ts',
+          ),
+        },
       ],
     },
     plugins: [
@@ -90,6 +97,9 @@ export default defineConfig({
         '@cocoar/vue-ui',
         '@cocoar/vue-localization',
         '@cocoar/vue-fragment-parser',
+        '@cocoar/vue-data-grid',
+        'ag-grid-community',
+        'ag-grid-vue3',
         '@maskito/core',
         '@maskito/kit',
         '@maskito/vue',
@@ -125,7 +135,6 @@ export default defineConfig({
           text: 'Guide',
           items: [
             { text: 'Getting Started', link: '/guide/getting-started' },
-            { text: 'Data Grid', link: '/guide/data-grid' },
           ],
         },
       ],
@@ -196,6 +205,12 @@ export default defineConfig({
             { text: 'Popconfirm', link: '/components/popconfirm' },
             { text: 'Toast', link: '/components/toast' },
             { text: 'Tooltip', link: '/components/tooltip' },
+          ],
+        },
+        {
+          text: 'Data',
+          items: [
+            { text: 'Data Grid', link: '/components/data-grid' },
           ],
         },
       ],

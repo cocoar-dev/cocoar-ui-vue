@@ -74,6 +74,9 @@ importers:
 
   apps/docs:
     dependencies:
+      '@cocoar/vue-data-grid':
+        specifier: workspace:*
+        version: link:../../packages/data-grid
       '@cocoar/vue-localization':
         specifier: workspace:*
         version: link:../../packages/localization

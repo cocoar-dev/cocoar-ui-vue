@@ -9,6 +9,7 @@
     "preview": "vitepress preview"
   },
   "dependencies": {
+    "@cocoar/vue-data-grid": "workspace:*",
     "@cocoar/vue-localization": "workspace:*",
     "@cocoar/vue-ui": "workspace:*"
   },
