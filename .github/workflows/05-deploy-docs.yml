@@ -45,15 +45,14 @@ jobs:
       - name: Upload to Shelf
         env:
           KEY: ${{ secrets.SHELF_API_KEY }}
-          URL: ${{ secrets.SHELF_BASE_URL }}
           VER: ${{ inputs.version }}
         run: |
-          echo "Deploying cocoar-ui-vue docs $VER to $URL"
+          echo "Deploying cocoar-ui-vue docs $VER"
           curl -f -X POST \
             -H "Authorization: Bearer $KEY" \
             -H "Content-Type: application/zip" \
             --data-binary @$GITHUB_WORKSPACE/docs.zip \
-            "${URL}/api/products/cocoar-ui-vue/versions/${VER}"
+            "https://docs.cocoar.dev/_api/products/cocoar-ui-vue/versions/${VER}"
 
       - name: Deployment summary
         run: |
@@ -61,4 +60,4 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Product:** cocoar-ui-vue" >> $GITHUB_STEP_SUMMARY
           echo "**Version:** ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "**URL:** ${{ secrets.SHELF_BASE_URL }}/cocoar-ui-vue/" >> $GITHUB_STEP_SUMMARY
+          echo "**URL:** https://docs.cocoar.dev/cocoar-ui-vue/${{ inputs.version }}/" >> $GITHUB_STEP_SUMMARY
