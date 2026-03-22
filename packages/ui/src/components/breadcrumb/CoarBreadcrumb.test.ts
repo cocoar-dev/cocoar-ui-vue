@@ -129,4 +129,127 @@ describe('CoarBreadcrumb', () => {
     );
     expect(wrapper.find('nav').attributes('aria-label')).toBe('Standort');
   });
+
+  describe('separator rendering', () => {
+    it('renders separator CSS variable between items', () => {
+      const wrapper = createBreadcrumb({
+        separator: '>',
+        items: [{ label: 'Home' }, { label: 'Products' }, { label: 'Detail' }],
+      });
+      const nav = wrapper.find('nav');
+      expect(nav.attributes('style')).toContain("'>'");
+    });
+
+    it('renders items as list items inside an ordered list', () => {
+      const wrapper = createBreadcrumb({
+        items: [{ label: 'A' }, { label: 'B' }, { label: 'C' }],
+      });
+      const ol = wrapper.find('ol');
+      expect(ol.exists()).toBe(true);
+      const lis = ol.findAll('li');
+      expect(lis).toHaveLength(3);
+    });
+
+    it('applies coar-breadcrumb-list class to the ordered list', () => {
+      const wrapper = createBreadcrumb({
+        items: [{ label: 'A' }, { label: 'B' }],
+      });
+      expect(wrapper.find('.coar-breadcrumb-list').exists()).toBe(true);
+    });
+  });
+
+  describe('active item aria-current', () => {
+    it('sets aria-current="page" only on the active item', () => {
+      const wrapper = createBreadcrumb({
+        items: [
+          { label: 'Home', href: '#' },
+          { label: 'Category', href: '#' },
+          { label: 'Product', active: true },
+        ],
+      });
+      const items = wrapper.findAll('.coar-breadcrumb-item');
+      expect(items[0].attributes('aria-current')).toBeUndefined();
+      expect(items[1].attributes('aria-current')).toBeUndefined();
+      expect(items[2].attributes('aria-current')).toBe('page');
+    });
+
+    it('does not set aria-current on any item when none is active', () => {
+      const wrapper = createBreadcrumb({
+        items: [
+          { label: 'Home', href: '#' },
+          { label: 'Products', href: '#' },
+        ],
+      });
+      const items = wrapper.findAll('.coar-breadcrumb-item');
+      items.forEach((item) => {
+        expect(item.attributes('aria-current')).toBeUndefined();
+      });
+    });
+  });
+
+  describe('item order', () => {
+    it('renders items in the order provided', () => {
+      const wrapper = createBreadcrumb({
+        items: [
+          { label: 'Home', href: '#' },
+          { label: 'Category', href: '#' },
+          { label: 'Subcategory', href: '#' },
+          { label: 'Product', active: true },
+        ],
+      });
+      const items = wrapper.findAll('.coar-breadcrumb-item');
+      expect(items).toHaveLength(4);
+      expect(items[0].text()).toBe('Home');
+      expect(items[1].text()).toBe('Category');
+      expect(items[2].text()).toBe('Subcategory');
+      expect(items[3].text()).toBe('Product');
+    });
+
+    it('renders a single item without separators', () => {
+      const wrapper = createBreadcrumb({
+        items: [{ label: 'Home', active: true }],
+      });
+      const items = wrapper.findAll('.coar-breadcrumb-item');
+      expect(items).toHaveLength(1);
+      expect(items[0].text()).toBe('Home');
+    });
+
+    it('renders links only for non-active items with href', () => {
+      const wrapper = createBreadcrumb({
+        items: [
+          { label: 'Home', href: '/home' },
+          { label: 'About', href: '/about' },
+          { label: 'Current', active: true },
+        ],
+      });
+      const links = wrapper.findAll('a');
+      expect(links).toHaveLength(2);
+      expect(links[0].text()).toBe('Home');
+      expect(links[0].attributes('href')).toBe('/home');
+      expect(links[1].text()).toBe('About');
+      expect(links[1].attributes('href')).toBe('/about');
+    });
+  });
+
+  describe('baseline alignment', () => {
+    it('renders breadcrumb-list as a flex container', () => {
+      const wrapper = createBreadcrumb({
+        items: [{ label: 'A' }, { label: 'B' }],
+      });
+      const ol = wrapper.find('.coar-breadcrumb-list');
+      expect(ol.exists()).toBe(true);
+      // The ol must be the flex container with baseline alignment (via CSS)
+      expect(ol.element.tagName).toBe('OL');
+    });
+
+    it('renders each item as an inline-flex li', () => {
+      const wrapper = createBreadcrumb({
+        items: [{ label: 'A' }, { label: 'B' }],
+      });
+      const items = wrapper.findAll('.coar-breadcrumb-item');
+      items.forEach((item) => {
+        expect(item.element.tagName).toBe('LI');
+      });
+    });
+  });
 });

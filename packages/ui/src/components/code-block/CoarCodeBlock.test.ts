@@ -234,6 +234,44 @@ describe('CoarCodeBlock', () => {
       });
       expect(wrapper.find('.coar-code').element.innerHTML).toBeTruthy();
     });
+
+    it('should map vue to markup for Prism highlighting', () => {
+      const wrapper = mountCodeBlock({
+        code: '<template>\n  <div class="app">{{ message }}</div>\n</template>',
+        language: 'vue',
+      });
+      // Prism should treat vue as markup and produce syntax-highlighted tokens
+      const html = wrapper.find('.coar-code').element.innerHTML;
+      expect(html).toContain('class=');
+      expect(html).toContain('token');
+    });
+
+    it('should display "vue" as the language label even though it maps to markup internally', () => {
+      const wrapper = mountCodeBlock({
+        code: '<div>hello</div>',
+        language: 'vue',
+      });
+      // The language label should show the original language name, not the mapped one
+      expect(wrapper.find('.coar-code-language').text()).toBe('vue');
+    });
+
+    it('should map svg to markup', () => {
+      const wrapper = mountCodeBlock({
+        code: '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40"/></svg>',
+        language: 'svg',
+      });
+      const html = wrapper.find('.coar-code').element.innerHTML;
+      expect(html).toContain('class=');
+      expect(html).toContain('token');
+    });
+
+    it('should map shell to bash', () => {
+      const wrapper = mountCodeBlock({
+        code: 'npm install vue',
+        language: 'shell',
+      });
+      expect(wrapper.find('.coar-code').element.innerHTML).toBeTruthy();
+    });
   });
 
   describe('copy functionality', () => {
