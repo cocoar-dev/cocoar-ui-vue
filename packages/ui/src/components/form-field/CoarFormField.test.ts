@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
-import { defineComponent, inject, computed } from 'vue';
+import { defineComponent, inject } from 'vue';
 import CoarFormField from './CoarFormField.vue';
 import { FORM_FIELD_INJECTION_KEY } from './constants';
 

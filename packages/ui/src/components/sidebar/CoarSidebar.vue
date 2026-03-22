@@ -21,6 +21,7 @@ withDefaults(
   {
     position: 'left',
     collapsed: false,
+    ariaLabel: undefined,
   },
 );
 </script>

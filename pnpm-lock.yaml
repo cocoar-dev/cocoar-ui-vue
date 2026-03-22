@@ -177,7 +177,7 @@ importers:
         specifier: ^5.2.7
         version: 5.2.7
       '@js-temporal/polyfill':
-        specifier: ^0.5.1
+        specifier: ^0.5.0
         version: 0.5.1
       '@maskito/core':
         specifier: ^5.1.1

@@ -7,12 +7,6 @@ withDefaults(
   { duration: 'normal' },
 );
 
-const durationMap: Record<string, string> = {
-  fast: 'var(--coar-duration-fast)',
-  normal: 'var(--coar-duration-normal)',
-  slow: 'var(--coar-duration-slow)',
-};
-
 function onEnter(el: Element) {
   const htmlEl = el as HTMLElement;
   htmlEl.style.height = '0';
