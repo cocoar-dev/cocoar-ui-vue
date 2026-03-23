@@ -49,9 +49,12 @@ export function coarDetectDateFormatPatternFromIntl(
  */
 export function coarDetectFirstDayOfWeekFromLocale(locale: string): 1 | 7 {
   try {
-    const loc = new Intl.Locale(locale);
+    const loc = new Intl.Locale(locale) as Intl.Locale & {
+      getWeekInfo?: () => { firstDay: number };
+      weekInfo?: { firstDay: number };
+    };
     // getWeekInfo() is the newer API; weekInfo is the older property form
-    const weekInfo = (loc as any).getWeekInfo?.() ?? (loc as any).weekInfo;
+    const weekInfo = loc.getWeekInfo?.() ?? loc.weekInfo;
     if (weekInfo?.firstDay === 7) return 7; // Sunday
     return 1; // Monday (covers firstDay === 1 and unsupported locales like firstDay === 6)
   } catch {
