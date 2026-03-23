@@ -132,6 +132,8 @@ export default defineConfig({
           text: 'Guide',
           items: [
             { text: 'Getting Started', link: '/guide/getting-started' },
+            { text: 'i18n / Component Strings', link: '/guide/i18n' },
+            { text: 'Error Handling', link: '/guide/error-handling' },
           ],
         },
       ],
