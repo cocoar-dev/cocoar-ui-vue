@@ -98,7 +98,7 @@ function trackByItem(index: number, item: PaginationPageItem): string {
   <nav
     class="coar-pagination"
     :class="{ 'coar-pagination--disabled': disabled }"
-    aria-label="Pagination"
+    :aria-label="t('coar.ui.pagination.nav', undefined, 'Pagination')"
   >
     <div class="coar-pagination-nav">
       <button

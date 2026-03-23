@@ -187,8 +187,8 @@ const selectedDateMarkers = computed((): CoarDateMarker[] => {
 .coar-plain-date-picker-panel {
   display: flex;
   flex-direction: row;
-  min-width: 480px;
-  max-width: 600px;
+  min-width: min(480px, calc(100vw - 16px));
+  max-width: min(600px, calc(100vw - 16px));
   height: 340px;
   background: var(--coar-background-neutral-primary);
   border: 1px solid var(--coar-border-neutral-tertiary);
@@ -198,8 +198,8 @@ const selectedDateMarkers = computed((): CoarDateMarker[] => {
 }
 
 .coar-plain-date-picker-panel--with-weeks {
-  min-width: 528px;
-  max-width: 648px;
+  min-width: min(528px, calc(100vw - 16px));
+  max-width: min(648px, calc(100vw - 16px));
 }
 
 /* Calendar column */
@@ -418,6 +418,26 @@ const selectedDateMarkers = computed((): CoarDateMarker[] => {
   .coar-plain-date-picker-year-btn,
   .coar-plain-date-picker-month-item {
     transition: none;
+  }
+}
+
+/* Stacked single-column layout for small viewports */
+@media (max-width: 540px) {
+  .coar-plain-date-picker-panel {
+    flex-direction: column;
+    height: auto;
+    max-height: 90dvh;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .coar-plain-date-picker-calendar-column {
+    flex: 0 0 340px;
+    overflow: hidden;
+  }
+
+  .coar-plain-date-picker-side-column {
+    width: 100%;
   }
 }
 </style>

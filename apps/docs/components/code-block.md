@@ -61,3 +61,4 @@ These keys can be translated via [`@cocoar/vue-localization`](/guide/i18n).
 | `coar.ui.codeBlock.failed` | `'Failed'` | Copy button text (after error) |
 | `coar.ui.codeBlock.copyLabel` | `'Copy code'` | Copy button `aria-label` |
 | `coar.ui.codeBlock.toggleVisibility` | `'Toggle code visibility'` | Collapse/expand button `aria-label` |
+| `coar.ui.codeBlock.code` | `'Code'` | Code block `aria-label` |

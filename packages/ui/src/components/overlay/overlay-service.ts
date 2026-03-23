@@ -419,6 +419,20 @@ export function createOverlayService() {
     if (hostEl?.contains(target)) return true;
     // Check anchor
     if (instance.anchorEl?.contains(target)) return true;
+    // Check teleported companion dropdowns (e.g. CoarSelect dropdown opened from inside this overlay).
+    // The target might be inside a body-teleported dropdown whose trigger lives inside our panel.
+    if (target instanceof Element) {
+      const dropdown = target.closest('[data-coar-overlay-companion]');
+      if (dropdown) {
+        const companionId = dropdown.getAttribute('data-coar-overlay-companion');
+        if (companionId) {
+          const triggerEl = document.getElementById(companionId);
+          if (triggerEl && (instance.panelEl?.contains(triggerEl) || hostEl?.contains(triggerEl))) {
+            return true;
+          }
+        }
+      }
+    }
     return false;
   }
 

@@ -70,3 +70,5 @@ These keys apply to `CoarSelect`, `CoarMultiSelect`, and `CoarTagSelect`.
 | `coar.ui.select.options` | `'Options'` | Options listbox `aria-label` |
 | `coar.ui.select.noResults` | `'No results found'` | Empty state text when search returns no matches |
 | `coar.ui.select.noOptions` | `'No options available'` | Empty state text when options list is empty |
+| `coar.ui.tagSelect.remove` | `'Remove'` | Tag remove button `aria-label` |
+| `coar.ui.tagSelect.options` | `'Options'` | Tag select listbox `aria-label` |

@@ -1,8 +1,6 @@
 # Coar Design System — Vue
 
-Vue 3 component libraries for the [Coar Design System](https://github.com/cocoar-dev/cocoar-ui), built as a pnpm monorepo with Turborepo.
-
-> **Status:** Active development — core component library and design tokens are in place, new components are being added continuously.
+> **Documentation:** [docs.cocoar.dev/cocoar-ui-vue](https://docs.cocoar.dev/cocoar-ui-vue/) — live demos, API reference, and design foundations.
 
 ## Tech Stack
 
@@ -27,7 +25,8 @@ cocoar-ui-vue/
 │   ├── data-grid/         @cocoar/vue-data-grid        Data grid component
 │   ├── markdown/          @cocoar/vue-markdown         Markdown viewer component (optional)
 │   ├── markdown-core/     @cocoar/vue-markdown-core    Markdown parser
-│   └── fragment-parser/   @cocoar/vue-fragment-parser  HTML fragment parsing utilities
+│   ├── fragment-parser/   @cocoar/vue-fragment-parser  HTML fragment parsing utilities
+│   └── icons/             @cocoar/icons-cli            Icon generation CLI
 ├── apps/
 │   └── docs/              VitePress documentation      Component docs & demos
 ├── assets/
@@ -98,10 +97,6 @@ Use the workspace protocol for inter-library dependencies:
 ```
 
 Turborepo ensures packages build in the correct topological order.
-
-## Related
-
-- [cocoar-ui](https://github.com/cocoar-dev/cocoar-ui) — Angular version of the Coar Design System
 
 ## Contributing
 

@@ -46,6 +46,26 @@ Four sizes to match surrounding inputs and keep your forms visually balanced.
 - Required and error states announced
 - Calendar navigation is keyboard accessible
 
+## i18n Keys
+
+These keys can be translated via [`@cocoar/vue-localization`](/guide/i18n).
+
+| Key | Default (English) | Used as |
+|-----|-------------------|---------|
+| `coar.ui.dateTimePicker.dialog` | `'Date time picker'` | Overlay dialog `aria-label` |
+| `coar.ui.dateTimePicker.clearDate` | `'Clear date'` | Clear button `aria-label` |
+| `coar.ui.dateTimePicker.openPicker` | `'Open picker'` | Calendar button `aria-label` |
+| `coar.ui.datePicker.jumpToToday` | `'Jump to today\'s month'` | Scroll-to-today button `aria-label` |
+| `coar.ui.datePicker.previousYear` | `'Previous year'` | Previous year button `aria-label` |
+| `coar.ui.datePicker.nextYear` | `'Next year'` | Next year button `aria-label` |
+| `coar.ui.datePicker.months` | `'Months'` | Month grid `aria-label` |
+| `coar.ui.timePicker.increaseHours` | `'Increase hours'` | Hours increment button `aria-label` |
+| `coar.ui.timePicker.decreaseHours` | `'Decrease hours'` | Hours decrement button `aria-label` |
+| `coar.ui.timePicker.hours` | `'Hours'` | Hours spinbutton `aria-label` |
+| `coar.ui.timePicker.increaseMinutes` | `'Increase minutes'` | Minutes increment button `aria-label` |
+| `coar.ui.timePicker.decreaseMinutes` | `'Decrease minutes'` | Minutes decrement button `aria-label` |
+| `coar.ui.timePicker.minutes` | `'Minutes'` | Minutes spinbutton `aria-label` |
+
 ## API
 
 ### Props

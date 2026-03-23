@@ -1,6 +1,16 @@
 {
   "name": "@cocoar/vue-markdown",
   "version": "0.0.1",
+  "description": "Markdown viewer component for Vue 3 with Cocoar Design System styling",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cocoar-dev/cocoar-ui-vue.git",
+    "directory": "packages/markdown"
+  },
+  "homepage": "https://docs.cocoar.dev/cocoar-ui-vue/",
+  "bugs": "https://github.com/cocoar-dev/cocoar-ui-vue/issues",
+  "keywords": ["vue", "vue3", "markdown", "viewer"],
   "type": "module",
   "sideEffects": [
     "*.css"

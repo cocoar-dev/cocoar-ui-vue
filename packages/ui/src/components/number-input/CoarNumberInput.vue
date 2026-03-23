@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onBeforeUnmount, inject, useTemplateRef } from 'vue';
+import { useI18n } from '@cocoar/vue-localization';
 import { CoarIcon, type CoarIconSize } from '../icon';
 import { FORM_FIELD_INJECTION_KEY } from '../form-field/constants';
 import { Maskito } from '@maskito/core';
@@ -82,6 +83,7 @@ const emit = defineEmits<{
   clear: [];
 }>();
 
+const { t } = useI18n();
 const formField = inject(FORM_FIELD_INJECTION_KEY, undefined);
 
 const displayValue = ref('');
@@ -306,7 +308,7 @@ function decrement() {
           class="coar-number-input-clear"
           :class="{ 'coar-number-input-clear--hidden': !showClearButton }"
           tabindex="-1"
-          aria-label="Clear"
+          :aria-label="t('coar.ui.numberInput.clear', undefined, 'Clear')"
           @click="onClear"
         >
           <CoarIcon name="x" source="coar-builtin" size="auto" />
@@ -355,7 +357,7 @@ function decrement() {
             type="button"
             class="coar-number-input-button coar-number-input-button--decrement"
             :disabled="!canDecrement"
-            aria-label="Decrease value"
+            :aria-label="t('coar.ui.numberInput.decrease', undefined, 'Decrease value')"
             tabindex="-1"
             @click="decrement"
           >
@@ -366,7 +368,7 @@ function decrement() {
             type="button"
             class="coar-number-input-button coar-number-input-button--increment"
             :disabled="!canIncrement"
-            aria-label="Increase value"
+            :aria-label="t('coar.ui.numberInput.increase', undefined, 'Increase value')"
             tabindex="-1"
             @click="increment"
           >

@@ -32,12 +32,26 @@ Initial release of the Cocoar Design System for Vue 3.
 - CSS `@layer` cascade for predictable specificity
 - Tablet-first design: touch interaction with desktop information density
 
+### Localization
+
+- All 57 built-in component strings (aria-labels, button text, placeholders) translatable via `useI18n()` from `@cocoar/vue-localization`
+- English defaults — works without any configuration
+- Locale-aware `firstDayOfWeek` detection via `Intl.Locale.getWeekInfo()`
+- Date format pattern auto-detection from browser `Intl` API
+
+### Responsive
+
+- Date picker panels: viewport-clamped widths via CSS `min()`, stacked layout below 540px
+- Overlay system: `shift` + `flip` positioning, `maxWidth: 'viewport'` constraint
+- Typography scales across 3 breakpoints (1024px+, 768–1023px, <768px)
+
 ### Architecture
 
 - Monorepo: pnpm workspaces + Turborepo
 - 8 packages: `vue-ui`, `vue-data-grid`, `vue-markdown`, `vue-markdown-core`, `vue-localization`, `vue-fragment-parser`, docs, icons
 - Self-hosted fonts via `@fontsource` (Poppins + Inter) — `import '@cocoar/vue-ui/fonts'`
 - Overlay service with plugin architecture (`CoarOverlayPlugin` + `CoarOverlayHost`)
+- Overlay companion detection for teleported dropdowns (Select inside overlays)
 - Temporal API for date/time components — native in Chrome/Firefox/Edge, optional polyfill for Safari
 
 ### Accessibility
@@ -50,10 +64,13 @@ Initial release of the Cocoar Design System for Vue 3.
 
 ### Documentation
 
-- VitePress docs with 45+ pages
+- VitePress docs with 47 pages, deployed to docs.cocoar.dev via Shelf
 - Interactive demos with source code preview
+- i18n keys documented on each component page
 - Design principles, typography, colors, spacing, motion foundations
+- Localization guide: l10n formatting, i18n translations, timezone providers
 - Form validation examples with vee-validate + Zod
+- Error handling guide
 
 ### Bundle
 

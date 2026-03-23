@@ -189,6 +189,45 @@ Nested keys are automatically flattened: `actions.save` resolves `'Save'` for En
 3. If still not found, use the provided `fallback` argument
 4. If no fallback, return the key itself
 
+### Translating Component Strings
+
+All built-in text in Cocoar UI components -- `aria-label`s, button labels, empty state messages, screen-reader announcements -- defaults to English and can be translated by providing a `coar.ui.*` namespace in your translation JSON.
+
+If the localization plugin is **not** installed, every string falls back to its English default automatically. Nothing breaks, nothing needs to be configured.
+
+```
+Plugin not installed        →  English fallbacks (default)
+Plugin installed            →  Translated strings, if the key exists in your JSON
+Plugin installed, key missing  →  English fallback
+```
+
+Your translation file only needs to contain the keys you want to override:
+
+```json
+{
+  "coar": {
+    "ui": {
+      "dialog": { "dialog": "Dialog", "close": "Schließen" },
+      "select": { "noResults": "Keine Ergebnisse", "noOptions": "Keine Optionen verfügbar" },
+      "datePicker": {
+        "dialog": "Datumsauswahl",
+        "clearDate": "Datum löschen",
+        "previousYear": "Vorheriges Jahr",
+        "nextYear": "Nächstes Jahr",
+        "months": "Monate"
+      },
+      "toast": { "dismiss": "Benachrichtigung schließen" }
+    }
+  }
+}
+```
+
+Each component's documentation page lists its translatable keys under an **i18n Keys** section. Check the component page you're working with for the exact keys available.
+
+::: tip Props as alternative
+If you only need to change a single string in one place, some components offer direct props -- for example `CoarSpinner` has a `label` prop, `CoarPopconfirm` has `confirmText` and `cancelText`. Check the component's **Props** table first before reaching for i18n.
+:::
+
 ## Timezone Detection
 
 The `useTimezone()` composable provides the browser's detected IANA timezone identifier as a reactive ref. The date/time picker components in `@cocoar/vue-ui` use this automatically.

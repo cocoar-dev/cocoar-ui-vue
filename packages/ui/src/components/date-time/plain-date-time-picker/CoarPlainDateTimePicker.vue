@@ -4,6 +4,8 @@ import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch, m
 import { Temporal } from '@js-temporal/polyfill';
 import { Maskito } from '@maskito/core';
 
+import { useI18n } from '@cocoar/vue-localization';
+
 import CoarIcon from '../../icon/CoarIcon.vue';
 import { getOverlayService } from '../../overlay/useOverlay';
 import { datepickerPreset } from '../../overlay/overlay-presets';
@@ -80,6 +82,9 @@ const emit = defineEmits<{
   opened: [];
   closed: [];
 }>();
+
+// i18n
+const { t } = useI18n();
 
 // Composable
 const localeRef = computed(() => props.locale);
@@ -407,7 +412,7 @@ function openPanel() {
     spec: {
       ...datepickerPreset,
       anchor: { kind: 'element', element: trigger },
-      a11y: { role: 'dialog', label: 'Date time picker' },
+      a11y: { role: 'dialog', label: t('coar.ui.dateTimePicker.dialog', undefined, 'Date time picker') },
     },
     content: { kind: 'component', component: markRaw(CoarPlainDateTimePickerPanel) },
     inputs: panelInputs,
@@ -530,7 +535,7 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
         class="coar-pdtp-clear"
         :class="{ 'coar-pdtp-clear--hidden': !showClearButton }"
         tabindex="-1"
-        aria-label="Clear date"
+        :aria-label="t('coar.ui.dateTimePicker.clearDate', undefined, 'Clear date')"
         @click="clearValue($event)"
       >
         <CoarIcon name="x" size="auto" />
@@ -558,7 +563,7 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
         type="button"
         class="coar-pdtp-btn"
         tabindex="-1"
-        aria-label="Open picker"
+        :aria-label="t('coar.ui.dateTimePicker.openPicker', undefined, 'Open picker')"
         :disabled="isDisabled || readonly"
         @click="togglePanel"
       >

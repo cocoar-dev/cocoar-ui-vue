@@ -70,3 +70,4 @@ These keys can be translated via [`@cocoar/vue-localization`](/guide/i18n).
 | Key | Default (English) | Used as |
 |-----|-------------------|---------|
 | `coar.ui.dialog.close` | `'Close dialog'` | Close button `aria-label` |
+| `coar.ui.dialog.dialog` | `'Dialog'` | Fallback dialog `aria-label` (when no title) |

@@ -1,6 +1,16 @@
 {
   "name": "@cocoar/vue-fragment-parser",
   "version": "0.0.1",
+  "description": "HTML fragment parser utility for Cocoar UI components",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cocoar-dev/cocoar-ui-vue.git",
+    "directory": "packages/fragment-parser"
+  },
+  "homepage": "https://docs.cocoar.dev/cocoar-ui-vue/",
+  "bugs": "https://github.com/cocoar-dev/cocoar-ui-vue/issues",
+  "keywords": ["html", "parser", "fragment"],
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",

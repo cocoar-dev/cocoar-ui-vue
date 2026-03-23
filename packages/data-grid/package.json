@@ -1,6 +1,16 @@
 {
   "name": "@cocoar/vue-data-grid",
   "version": "0.0.1",
+  "description": "AG Grid wrapper with Cocoar Design System theming for Vue 3",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cocoar-dev/cocoar-ui-vue.git",
+    "directory": "packages/data-grid"
+  },
+  "homepage": "https://docs.cocoar.dev/cocoar-ui-vue/",
+  "bugs": "https://github.com/cocoar-dev/cocoar-ui-vue/issues",
+  "keywords": ["vue", "vue3", "data-grid", "ag-grid", "table"],
   "type": "module",
   "sideEffects": ["*.css"],
   "exports": {

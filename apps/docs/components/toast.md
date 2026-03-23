@@ -78,3 +78,4 @@ These keys can be translated via [`@cocoar/vue-localization`](/guide/i18n).
 | Key | Default (English) | Used as |
 |-----|-------------------|---------|
 | `coar.ui.toast.dismiss` | `'Dismiss notification'` | Dismiss button `aria-label` |
+| `coar.ui.toast.notifications` | `'Notifications'` | Toast container region `aria-label` |

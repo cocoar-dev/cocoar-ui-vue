@@ -60,6 +60,29 @@ Four sizes that stay visually aligned with every other Cocoar input component.
 - Selected timezone is announced
 - Required and error states announced
 
+## i18n Keys
+
+These keys can be translated via [`@cocoar/vue-localization`](/guide/i18n).
+
+| Key | Default (English) | Used as |
+|-----|-------------------|---------|
+| `coar.ui.zonedDateTimePicker.dialog` | `'Date, time and timezone picker'` | Overlay dialog `aria-label` |
+| `coar.ui.zonedDateTimePicker.clearValue` | `'Clear value'` | Clear button `aria-label` |
+| `coar.ui.zonedDateTimePicker.openPicker` | `'Open date and time picker'` | Calendar button `aria-label` |
+| `coar.ui.zonedDateTimePicker.timezoneIndicator` | `'Timezone: {tz}'` | Timezone indicator `aria-label` |
+| `coar.ui.zonedDateTimePicker.clickToToggle` | `'Click to toggle.'` | Timezone indicator `aria-label` suffix |
+| `coar.ui.zonedDateTimePicker.searchTimezone` | `'Search timezone...'` | Timezone search placeholder |
+| `coar.ui.zonedDateTimePicker.closeTimezoneSearch` | `'Close timezone search'` | Close search button `aria-label` |
+| `coar.ui.zonedDateTimePicker.displayTimezone` | `'Display Timezone'` | Display timezone section label |
+| `coar.ui.zonedDateTimePicker.eventTimezone` | `'Event timezone'` | Footer placeholder text |
+| `coar.ui.zonedDateTimePicker.cancelTimezoneEdit` | `'Cancel timezone edit'` | Cancel button `aria-label` |
+| `coar.ui.zonedDateTimePicker.changeEventTimezone` | `'Change event timezone'` | Settings button `aria-label` |
+| `coar.ui.datePicker.jumpToToday` | `'Jump to today\'s month'` | Scroll-to-today button `aria-label` |
+| `coar.ui.datePicker.previousYear` | `'Previous year'` | Previous year button `aria-label` |
+| `coar.ui.datePicker.nextYear` | `'Next year'` | Next year button `aria-label` |
+| `coar.ui.datePicker.months` | `'Months'` | Month grid `aria-label` |
+| `coar.ui.timePicker.*` | *(see DateTime Picker)* | Time picker spinbutton labels |
+
 ## API
 
 ### Props

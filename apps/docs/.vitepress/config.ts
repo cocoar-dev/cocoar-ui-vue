@@ -12,7 +12,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
   title: 'Cocoar UI Vue',
   description: 'Vue 3 component library for the Cocoar Design System',
-  base: process.env.GITHUB_PAGES ? '/cocoar-ui-vue/' : '/',
+  base: '/',
 
   head: [
     [
@@ -120,8 +120,7 @@ export default defineConfig({
     siteTitle: 'Cocoar UI Vue',
 
     nav: [
-      { text: 'Guide', link: '/guide/getting-started', activeMatch: '/guide/' },
-      { text: 'Foundations', link: '/foundations/design-principles', activeMatch: '/foundations/' },
+      { text: 'Guide', link: '/guide/getting-started', activeMatch: '/guide/|/foundations/' },
       { text: 'Components', link: '/components/button', activeMatch: '/components/' },
       { text: 'LLM Docs', link: '/llms-full.txt', target: '_blank' },
     ],
@@ -132,12 +131,32 @@ export default defineConfig({
           text: 'Guide',
           items: [
             { text: 'Getting Started', link: '/guide/getting-started' },
-            { text: 'i18n / Component Strings', link: '/guide/i18n' },
             { text: 'Error Handling', link: '/guide/error-handling' },
+            { text: 'i18n / Component Strings', link: '/guide/i18n' },
+          ],
+        },
+        {
+          text: 'Foundations',
+          items: [
+            { text: 'Design Principles', link: '/foundations/design-principles' },
+            { text: 'Colors', link: '/foundations/colors' },
+            { text: 'Typography', link: '/foundations/typography' },
+            { text: 'Spacing & Effects', link: '/foundations/spacing' },
+            { text: 'Icons', link: '/foundations/icons' },
+            { text: 'Motion', link: '/foundations/motion' },
+            { text: 'Localization', link: '/foundations/localization' },
           ],
         },
       ],
       '/foundations/': [
+        {
+          text: 'Guide',
+          items: [
+            { text: 'Getting Started', link: '/guide/getting-started' },
+            { text: 'Error Handling', link: '/guide/error-handling' },
+            { text: 'i18n / Component Strings', link: '/guide/i18n' },
+          ],
+        },
         {
           text: 'Foundations',
           items: [
@@ -233,7 +252,7 @@ export default defineConfig({
 
     footer: {
       message: 'Released under the Apache-2.0 License.',
-      copyright: 'Copyright 2025-present Cocoar',
+      copyright: 'Copyright 2026-present COCOAR e.U.',
     },
   },
 });

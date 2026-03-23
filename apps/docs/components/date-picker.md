@@ -85,3 +85,6 @@ These keys can be translated via [`@cocoar/vue-localization`](/guide/i18n).
 | `coar.ui.datePicker.nextYear` | `'Next year'` | Next year button `aria-label` |
 | `coar.ui.datePicker.jumpToToday` | `'Jump to today\'s month'` | Scroll-to-today button `aria-label` |
 | `coar.ui.datePicker.months` | `'Months'` | Month grid `aria-label` |
+| `coar.ui.datePicker.dialog` | `'Date picker'` | Overlay dialog `aria-label` |
+| `coar.ui.datePicker.clearDate` | `'Clear date'` | Clear button `aria-label` |
+| `coar.ui.datePicker.openPicker` | `'Open picker'` | Calendar button `aria-label` |

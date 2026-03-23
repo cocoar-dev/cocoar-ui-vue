@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 
 import { Temporal } from '@js-temporal/polyfill';
+import { useI18n } from '@cocoar/vue-localization';
 
 import CoarIcon from '../../icon/CoarIcon.vue';
 import CoarScrollableCalendar from '../scrollable-calendar/CoarScrollableCalendar.vue';
@@ -34,6 +35,9 @@ const props = defineProps<{
   onScrollToTodayMonth: () => void;
   onTimeChanged: (time: CoarTimeValue | null) => void;
 }>();
+
+// i18n
+const { t } = useI18n();
 
 // Month list
 const currentYear = computed(() => props.activeMonth.year);
@@ -107,7 +111,7 @@ const selectedDateMarkers = computed((): CoarDateMarker[] => {
         v-if="showTodayFab"
         type="button"
         class="coar-pdtp-today-fab"
-        aria-label="Jump to today's month"
+        :aria-label="t('coar.ui.datePicker.jumpToToday', undefined, 'Jump to today\'s month')"
         @click="onScrollToTodayMonth"
       >
         <CoarIcon :name="todayMonthDirection === 'up' ? 'chevron-up' : 'chevron-down'" size="xs" />
@@ -118,18 +122,18 @@ const selectedDateMarkers = computed((): CoarDateMarker[] => {
     <div class="coar-pdtp-side-column">
       <!-- Year Stepper -->
       <div class="coar-pdtp-year-stepper">
-        <button type="button" class="coar-pdtp-year-btn" :disabled="isPrevYearDisabled" aria-label="Previous year" @click="onPreviousYear">
+        <button type="button" class="coar-pdtp-year-btn" :disabled="isPrevYearDisabled" :aria-label="t('coar.ui.datePicker.previousYear', undefined, 'Previous year')" @click="onPreviousYear">
           <CoarIcon name="chevron-left" size="s" />
         </button>
         <span class="coar-pdtp-year">{{ currentYear }}</span>
-        <button type="button" class="coar-pdtp-year-btn" :disabled="isNextYearDisabled" aria-label="Next year" @click="onNextYear">
+        <button type="button" class="coar-pdtp-year-btn" :disabled="isNextYearDisabled" :aria-label="t('coar.ui.datePicker.nextYear', undefined, 'Next year')" @click="onNextYear">
           <CoarIcon name="chevron-right" size="s" />
         </button>
       </div>
 
       <!-- Month Grid -->
       <div class="coar-pdtp-month-list-wrapper">
-        <div class="coar-pdtp-month-list" role="listbox" aria-label="Months">
+        <div class="coar-pdtp-month-list" role="listbox" :aria-label="t('coar.ui.datePicker.months', undefined, 'Months')">
           <div class="coar-pdtp-month-list-content">
             <button
               v-for="item in monthItems"
@@ -189,8 +193,8 @@ const selectedDateMarkers = computed((): CoarDateMarker[] => {
 .coar-pdtp-panel {
   display: flex;
   flex-direction: row;
-  min-width: 480px;
-  max-width: 600px;
+  min-width: min(480px, calc(100vw - 16px));
+  max-width: min(600px, calc(100vw - 16px));
   height: 340px;
   background: var(--coar-background-neutral-primary);
   border: 1px solid var(--coar-border-neutral-tertiary);
@@ -199,7 +203,7 @@ const selectedDateMarkers = computed((): CoarDateMarker[] => {
   overflow: hidden;
 }
 
-.coar-pdtp-panel--with-weeks { min-width: 528px; max-width: 648px; }
+.coar-pdtp-panel--with-weeks { min-width: min(528px, calc(100vw - 16px)); max-width: min(648px, calc(100vw - 16px)); }
 
 /* Calendar column */
 .coar-pdtp-calendar-column {
@@ -335,5 +339,25 @@ const selectedDateMarkers = computed((): CoarDateMarker[] => {
   .coar-pdtp-today-fab,
   .coar-pdtp-year-btn,
   .coar-pdtp-month-item { transition: none; }
+}
+
+/* Stacked single-column layout for small viewports */
+@media (max-width: 540px) {
+  .coar-pdtp-panel {
+    flex-direction: column;
+    height: auto;
+    max-height: 90dvh;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .coar-pdtp-calendar-column {
+    flex: 0 0 340px;
+    overflow: hidden;
+  }
+
+  .coar-pdtp-side-column {
+    width: 100%;
+  }
 }
 </style>

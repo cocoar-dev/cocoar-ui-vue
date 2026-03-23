@@ -61,3 +61,4 @@ These keys can be translated via [`@cocoar/vue-localization`](/guide/i18n).
 | `coar.ui.pagination.lastPage` | `'Go to last page'` | Last page button `aria-label` |
 | `coar.ui.pagination.morePage` | `'More pages'` | Ellipsis separator `aria-label` |
 | `coar.ui.pagination.goToPage` | `'Go to page {page}'` | Page number button `aria-label` — `{page}` is replaced with the page number |
+| `coar.ui.pagination.nav` | `'Pagination'` | Nav element `aria-label` |

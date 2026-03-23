@@ -2,7 +2,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 
 import { Temporal } from '@js-temporal/polyfill';
-import { useL10n } from '@cocoar/vue-localization';
+import { useI18n, useL10n } from '@cocoar/vue-localization';
 
 import CoarIcon from '../../icon/CoarIcon.vue';
 import { vScrollbar } from '../../scrollbar';
@@ -40,6 +40,7 @@ const emit = defineEmits<{
 }>();
 
 // Localization
+const { t } = useI18n();
 const l10n = useL10n();
 const effectiveLocale = computed(() => props.locale ?? l10n?.language.value ?? navigator.language);
 
@@ -133,7 +134,7 @@ onMounted(() => {
           type="button"
           class="coar-month-list__year-btn"
           :disabled="isPrevYearDisabled"
-          aria-label="Previous year"
+          :aria-label="t('coar.ui.datePicker.previousYear', undefined, 'Previous year')"
           @click="previousYear"
         >
           <CoarIcon name="chevron-left" size="s" />
@@ -145,7 +146,7 @@ onMounted(() => {
           type="button"
           class="coar-month-list__year-btn"
           :disabled="isNextYearDisabled"
-          aria-label="Next year"
+          :aria-label="t('coar.ui.datePicker.nextYear', undefined, 'Next year')"
           @click="nextYear"
         >
           <CoarIcon name="chevron-right" size="s" />
@@ -158,7 +159,7 @@ onMounted(() => {
         v-scrollbar="{ overflowX: 'hidden', autoHide: 'leave' }"
         class="coar-month-list__months"
         role="listbox"
-        aria-label="Months"
+        :aria-label="t('coar.ui.datePicker.months', undefined, 'Months')"
       >
         <button
           v-for="item in monthItems"

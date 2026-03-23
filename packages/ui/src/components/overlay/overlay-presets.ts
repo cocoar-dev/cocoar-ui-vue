@@ -107,6 +107,8 @@ export const dialogPreset: OverlaySpec = {
 /**
  * Preset for date picker overlays.
  * Anchor-relative, no backdrop, outside-click + escape dismiss, focus restore.
+ * size.maxWidth ensures the overlay host is constrained to the viewport on small screens,
+ * which feeds into the position measurement so shift/flip calculations stay accurate.
  */
 export const datepickerPreset: OverlaySpec = {
   position: {
@@ -115,6 +117,7 @@ export const datepickerPreset: OverlaySpec = {
     flip: true,
     shift: true,
   },
+  size: { maxWidth: 'viewport' },
   backdrop: { kind: 'none' },
   scroll: { strategy: 'reposition' },
   dismiss: { outsideClick: true, escapeKey: true },

@@ -44,7 +44,7 @@ docs: improve README
 
 ### Composables
 
-- Use for stateful/reactive logic (replaces Angular services)
+- Use for stateful/reactive logic (shared state, side effects)
 - Prefix with `use` (e.g. `useLocalization`, `useBreakpoints`)
 - Return plain refs/computed/functions — no classes
 

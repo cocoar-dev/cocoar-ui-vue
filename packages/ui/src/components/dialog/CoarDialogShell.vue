@@ -145,7 +145,7 @@ const BodyRenderer = computed(() => {
     :class="sizeClass"
     role="dialog"
     aria-modal="true"
-    :aria-label="title ? undefined : 'Dialog'"
+    :aria-label="title ? undefined : t('coar.ui.dialog.dialog', undefined, 'Dialog')"
     :aria-labelledby="title ? titleId : undefined"
     tabindex="-1"
   >

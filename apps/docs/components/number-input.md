@@ -57,6 +57,16 @@ Stepper buttons are keyboard accessible. Min/max bounds are enforced on blur and
 - Error messages linked via `aria-describedby`
 - Value constraints announced through `aria-valuemin`, `aria-valuemax`
 
+## i18n Keys
+
+These keys can be translated via [`@cocoar/vue-localization`](/guide/i18n).
+
+| Key | Default (English) | Used as |
+|-----|-------------------|---------|
+| `coar.ui.numberInput.clear` | `'Clear'` | Clear button `aria-label` |
+| `coar.ui.numberInput.decrease` | `'Decrease value'` | Decrement button `aria-label` |
+| `coar.ui.numberInput.increase` | `'Increase value'` | Increment button `aria-label` |
+
 ## API
 
 ### Props

@@ -288,13 +288,14 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
           ref="dropdownRef"
           :class="['coar-select-dropdown', `coar-select-dropdown--${props.size}`]"
           role="presentation"
+          :data-coar-overlay-companion="inputId"
           :style="{
             position: 'fixed',
             top: '0px',
             left: '0px',
             transform: `translate3d(${ddLeft}px, ${ddTop}px, 0)`,
             minWidth: `${ddMinWidth}px`,
-            zIndex: 'var(--coar-z-overlay, 1000)',
+            zIndex: 'calc(var(--coar-z-overlay, 1000) + 50)',
           }"
         >
           <!-- Search -->

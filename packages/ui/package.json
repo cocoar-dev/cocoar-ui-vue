@@ -1,6 +1,16 @@
 {
   "name": "@cocoar/vue-ui",
   "version": "0.0.1",
+  "description": "Cocoar Design System — a touch-first Vue 3 component library with 30+ accessible, themeable components",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cocoar-dev/cocoar-ui-vue.git",
+    "directory": "packages/ui"
+  },
+  "homepage": "https://docs.cocoar.dev/cocoar-ui-vue/",
+  "bugs": "https://github.com/cocoar-dev/cocoar-ui-vue/issues",
+  "keywords": ["vue", "vue3", "component-library", "design-system", "ui", "accessible", "typescript"],
   "type": "module",
   "sideEffects": [
     "*.css",

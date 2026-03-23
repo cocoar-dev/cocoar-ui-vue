@@ -1,5 +1,6 @@
 <script setup lang="ts" generic="T">
 import { computed, inject, ref, toRef, onMounted, onBeforeUnmount, useTemplateRef, nextTick } from 'vue';
+import { useI18n } from '@cocoar/vue-localization';
 import { CoarIcon } from '../icon';
 import { useSelectBase, type CoarSelectSize, type CoarSelectAppearance } from './useSelectBase';
 import { useSelectDropdown } from './useSelectDropdown';
@@ -52,6 +53,7 @@ const props = withDefaults(defineProps<CoarTagSelectProps<T>>(), {
   dropdownPosition: 'auto',
 });
 
+const { t } = useI18n();
 const model = defineModel<T[]>({ default: () => [] });
 
 const formField = inject(FORM_FIELD_INJECTION_KEY, undefined);
@@ -237,7 +239,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
               type="button"
               class="coar-tag-select-tag-remove"
               tabindex="-1"
-              aria-label="Remove"
+              :aria-label="t('coar.ui.tagSelect.remove', undefined, 'Remove')"
               @click="removeTag(tag.value, $event)"
             >
               <CoarIcon name="x" source="coar-builtin" size="auto" />
@@ -275,13 +277,14 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
           ref="dropdownRef"
           :class="['coar-select-dropdown', `coar-select-dropdown--${props.size}`]"
           role="presentation"
+          :data-coar-overlay-companion="inputId"
           :style="{
             position: 'fixed',
             top: '0px',
             left: '0px',
             transform: `translate3d(${ddLeft}px, ${ddTop}px, 0)`,
             minWidth: `${ddMinWidth}px`,
-            zIndex: 'var(--coar-z-overlay, 1000)',
+            zIndex: 'calc(var(--coar-z-overlay, 1000) + 50)',
           }"
         >
           <div
@@ -289,7 +292,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
             v-scrollbar="{ overflowX: 'hidden', defer: false }"
             class="coar-select-options"
             role="listbox"
-            aria-label="Options"
+            :aria-label="t('coar.ui.tagSelect.options', undefined, 'Options')"
           >
             <div
               v-for="(option, i) in filteredOptions"

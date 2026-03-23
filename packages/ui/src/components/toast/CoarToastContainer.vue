@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { ref, nextTick, type ComponentPublicInstance } from 'vue';
+import { useI18n } from '@cocoar/vue-localization';
 import type { ToastService } from './toast-service';
 import CoarToastItem from './CoarToastItem.vue';
 
 const props = defineProps<{
   service: ToastService;
 }>();
+
+const { t } = useI18n();
 
 const toastRefs = ref<Record<number, ComponentPublicInstance | null>>({});
 
@@ -31,7 +34,7 @@ function setToastRef(id: number, el: Element | ComponentPublicInstance | null) {
 </script>
 
 <template>
-  <div :class="['coar-toast-container', `coar-toast-container--${service.position.value}`]" role="region" aria-label="Notifications" aria-live="polite" aria-relevant="additions">
+  <div :class="['coar-toast-container', `coar-toast-container--${service.position.value}`]" role="region" :aria-label="t('coar.ui.toast.notifications', undefined, 'Notifications')" aria-live="polite" aria-relevant="additions">
     <CoarToastItem
       v-for="toast in service.toasts.value"
       :key="toast.id"

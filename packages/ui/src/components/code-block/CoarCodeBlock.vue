@@ -196,7 +196,7 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
         class="coar-code-content"
         :style="maxHeight ? { maxHeight: maxHeight + 'px' } : undefined"
       >
-        <pre v-if="showLineNumbers" class="coar-code-pre" aria-label="Code">
+        <pre v-if="showLineNumbers" class="coar-code-pre" :aria-label="t('coar.ui.codeBlock.code', undefined, 'Code')">
           <div class="coar-code-lines-grid">
             <div v-for="(line, idx) in highlightedLines" :key="idx" class="coar-code-line">
               <span class="coar-code-line-number">{{ idx + 1 }}</span>

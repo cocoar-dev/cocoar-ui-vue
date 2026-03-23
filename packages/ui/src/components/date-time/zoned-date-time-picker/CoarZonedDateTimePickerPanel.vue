@@ -2,8 +2,10 @@
 import { computed, ref, nextTick } from 'vue';
 
 import { Temporal } from '@js-temporal/polyfill';
+import { useI18n } from '@cocoar/vue-localization';
 
 import CoarIcon from '../../icon/CoarIcon.vue';
+import CoarSelect from '../../select/CoarSelect.vue';
 import CoarScrollableCalendar from '../scrollable-calendar/CoarScrollableCalendar.vue';
 import CoarTimePicker from '../time-picker/CoarTimePicker.vue';
 import { vScrollbar } from '../../scrollbar';
@@ -50,11 +52,15 @@ const props = defineProps<{
   onChangeValueTimezone: (tzId: string) => void;
 }>();
 
+// i18n
+const { t } = useI18n();
+
 // Panel-local timezone UI state
 const isSelectingDisplayTimezone = ref(false);
 const isEditingValueTimezone = ref(false);
 const timezoneSearchQuery = ref('');
 const tzSearchInputRef = ref<HTMLInputElement | null>(null);
+const tzPickerListRef = ref<HTMLElement | null>(null);
 
 // Month list
 const currentYear = computed(() => props.activeMonth.year);
@@ -114,7 +120,7 @@ const groupedTimezoneList = computed((): TimezoneGroup[] =>
 
 const timezoneOptions = computed(() =>
   filteredTimezones.value.map((tz) => ({
-    id: tz,
+    value: tz,
     label: coarFormatTimezoneLabel(tz),
   })),
 );
@@ -123,7 +129,14 @@ const timezoneOptions = computed(() =>
 function openDisplayTimezonePicker() {
   isSelectingDisplayTimezone.value = true;
   timezoneSearchQuery.value = '';
-  nextTick(() => tzSearchInputRef.value?.focus());
+  nextTick(() => {
+    tzSearchInputRef.value?.focus();
+    // Allow the list + OverlayScrollbars to render, then scroll to active timezone
+    setTimeout(() => {
+      const activeItem = tzPickerListRef.value?.querySelector('.coar-zdtp-tz-picker-item--active') as HTMLElement | null;
+      activeItem?.scrollIntoView({ block: 'center', behavior: 'instant' });
+    }, 50);
+  });
 }
 
 function closeDisplayTimezonePicker() {
@@ -178,7 +191,7 @@ function cancelEditValueTimezone() {
           v-if="showTodayFab"
           type="button"
           class="coar-zdtp-today-fab"
-          aria-label="Jump to today's month"
+          :aria-label="t('coar.ui.datePicker.jumpToToday', undefined, 'Jump to today\'s month')"
           @click="onScrollToTodayMonth"
         >
           <CoarIcon :name="todayMonthDirection === 'up' ? 'chevron-up' : 'chevron-down'" size="xs" />
@@ -193,7 +206,7 @@ function cancelEditValueTimezone() {
             type="button"
             class="coar-zdtp-year-btn"
             :disabled="isPrevYearDisabled"
-            aria-label="Previous year"
+            :aria-label="t('coar.ui.datePicker.previousYear', undefined, 'Previous year')"
             @click="onPreviousYear"
           >
             <CoarIcon name="chevron-left" size="s" />
@@ -203,7 +216,7 @@ function cancelEditValueTimezone() {
             type="button"
             class="coar-zdtp-year-btn"
             :disabled="isNextYearDisabled"
-            aria-label="Next year"
+            :aria-label="t('coar.ui.datePicker.nextYear', undefined, 'Next year')"
             @click="onNextYear"
           >
             <CoarIcon name="chevron-right" size="s" />
@@ -216,13 +229,13 @@ function cancelEditValueTimezone() {
             v-model="timezoneSearchQuery"
             type="text"
             class="coar-zdtp-tz-search-input"
-            placeholder="Search timezone..."
+            :placeholder="t('coar.ui.zonedDateTimePicker.searchTimezone', undefined, 'Search timezone...')"
             @keydown.escape.stop="closeDisplayTimezonePicker"
           />
           <button
             type="button"
             class="coar-zdtp-tz-search-close"
-            aria-label="Close timezone search"
+            :aria-label="t('coar.ui.zonedDateTimePicker.closeTimezoneSearch', undefined, 'Close timezone search')"
             @click="closeDisplayTimezonePicker"
           >
             <CoarIcon name="x" size="xs" />
@@ -230,7 +243,7 @@ function cancelEditValueTimezone() {
         </div>
 
         <!-- Timezone picker list (replaces month grid + time + events) -->
-        <div v-if="isSelectingDisplayTimezone" v-scrollbar="{ overflowX: 'hidden', autoHide: 'leave' }" class="coar-zdtp-tz-picker-list">
+        <div v-if="isSelectingDisplayTimezone" ref="tzPickerListRef" v-scrollbar="{ overflowX: 'hidden', autoHide: 'leave' }" class="coar-zdtp-tz-picker-list">
           <div
             v-for="group in groupedTimezoneList"
             :key="group.name"
@@ -254,7 +267,7 @@ function cancelEditValueTimezone() {
         <!-- Normal side content (when NOT selecting display TZ) -->
         <template v-if="!isSelectingDisplayTimezone">
           <!-- Month grid (4-column) -->
-          <div class="coar-zdtp-month-grid" role="listbox" aria-label="Months">
+          <div class="coar-zdtp-month-grid" role="listbox" :aria-label="t('coar.ui.datePicker.months', undefined, 'Months')">
             <button
               v-for="item in monthItems"
               :key="item.month"
@@ -283,7 +296,7 @@ function cancelEditValueTimezone() {
           </div>
 
           <!-- Display timezone button -->
-          <div class="coar-zdtp-display-tz-label">Display Timezone</div>
+          <div class="coar-zdtp-display-tz-label">{{ t('coar.ui.zonedDateTimePicker.displayTimezone', undefined, 'Display Timezone') }}</div>
           <button
             type="button"
             class="coar-zdtp-display-tz-btn"
@@ -318,29 +331,26 @@ function cancelEditValueTimezone() {
       <template v-if="!hasValue">
         <span class="coar-zdtp-footer-placeholder">
           <CoarIcon name="map-pin" size="xs" />
-          <span>Event timezone</span>
+          <span>{{ t('coar.ui.zonedDateTimePicker.eventTimezone', undefined, 'Event timezone') }}</span>
         </span>
       </template>
 
       <template v-else-if="isEditingValueTimezone">
         <div class="coar-zdtp-footer-edit">
-          <select
+          <CoarSelect
+            :model-value="valueTimeZone"
+            :options="timezoneOptions"
+            appearance="inline"
+            size="xs"
+            searchable
+            :search-placeholder="t('coar.ui.zonedDateTimePicker.searchTimezone', undefined, 'Search timezone...')"
             class="coar-zdtp-footer-tz-select"
-            :value="valueTimeZone"
-            @change="changeValueTimezone(($event.target as HTMLSelectElement).value)"
-          >
-            <option
-              v-for="opt in timezoneOptions"
-              :key="opt.id"
-              :value="opt.id"
-            >
-              {{ opt.label }}
-            </option>
-          </select>
+            @update:model-value="(v: string) => changeValueTimezone(v)"
+          />
           <button
             type="button"
             class="coar-zdtp-footer-cancel"
-            aria-label="Cancel timezone edit"
+            :aria-label="t('coar.ui.zonedDateTimePicker.cancelTimezoneEdit', undefined, 'Cancel timezone edit')"
             @click="cancelEditValueTimezone"
           >
             <CoarIcon name="x" size="xs" />
@@ -356,7 +366,7 @@ function cancelEditValueTimezone() {
           <button
             type="button"
             class="coar-zdtp-footer-lock"
-            aria-label="Change event timezone"
+            :aria-label="t('coar.ui.zonedDateTimePicker.changeEventTimezone', undefined, 'Change event timezone')"
             @click="startEditValueTimezone"
           >
             <CoarIcon name="settings" size="xs" />
@@ -373,8 +383,8 @@ function cancelEditValueTimezone() {
 .coar-zdtp-panel {
   display: flex;
   flex-direction: column;
-  min-width: 480px;
-  max-width: 600px;
+  min-width: min(480px, calc(100vw - 16px));
+  max-width: min(600px, calc(100vw - 16px));
   max-height: 440px;
   background: var(--coar-background-neutral-primary);
   border: 1px solid var(--coar-border-neutral-tertiary);
@@ -384,8 +394,8 @@ function cancelEditValueTimezone() {
 }
 
 .coar-zdtp-panel--with-weeks {
-  min-width: 528px;
-  max-width: 648px;
+  min-width: min(528px, calc(100vw - 16px));
+  max-width: min(648px, calc(100vw - 16px));
 }
 
 .coar-zdtp-body {
@@ -677,8 +687,11 @@ function cancelEditValueTimezone() {
   flex-shrink: 0;
 }
 
-.coar-zdtp-footer--differs {
-  background: var(--coar-surface-accent-secondary);
+.coar-zdtp-footer--differs .coar-zdtp-footer-tz-name {
+  font-weight: var(--coar-body-bold-weight);
+}
+.coar-zdtp-footer--differs .coar-zdtp-footer-tz-value {
+  font-weight: var(--coar-body-small-bold-weight);
 }
 
 .coar-zdtp-footer-placeholder {
@@ -705,9 +718,9 @@ function cancelEditValueTimezone() {
 
 .coar-zdtp-footer-tz-name {
   flex-shrink: 0;
-  font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-body-small-base-size);
-  font-weight: var(--coar-body-small-bold-weight);
+  font-family: var(--coar-body-caption-family);
+  font-size: var(--coar-body-caption-size);
+  font-weight: var(--coar-body-small-base-weight);
   color: var(--coar-text-neutral-primary);
   white-space: nowrap;
 }
@@ -753,19 +766,6 @@ function cancelEditValueTimezone() {
 .coar-zdtp-footer-tz-select {
   flex: 1;
   min-width: 0;
-  height: 26px;
-  border: 1px solid var(--coar-border-input);
-  border-radius: var(--coar-radius-xs);
-  padding: 0 var(--coar-spacing-xs);
-  font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-body-small-base-size);
-  color: var(--coar-text-neutral-primary);
-  background: var(--coar-surface-input);
-  outline: none;
-  cursor: pointer;
-}
-.coar-zdtp-footer-tz-select:focus {
-  border-color: var(--coar-border-accent-primary);
 }
 
 .coar-zdtp-footer-cancel {
@@ -783,5 +783,29 @@ function cancelEditValueTimezone() {
 }
 .coar-zdtp-footer-cancel:hover {
   background: var(--coar-background-neutral-tertiary);
+}
+
+/* Stacked single-column layout for small viewports */
+@media (max-width: 540px) {
+  .coar-zdtp-panel {
+    max-height: 90dvh;
+    overflow-y: auto;
+  }
+
+  .coar-zdtp-body {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .coar-zdtp-calendar-column {
+    flex: 0 0 340px;
+    overflow: hidden;
+  }
+
+  .coar-zdtp-side-column {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid var(--coar-border-neutral-tertiary);
+  }
 }
 </style>

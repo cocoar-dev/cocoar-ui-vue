@@ -38,6 +38,27 @@ export function coarDetectDateFormatPatternFromIntl(
   }
 }
 
+/**
+ * Detects the first day of week for a locale using Intl.Locale.weekInfo.
+ * Returns 1 (Monday) or 7 (Sunday). Falls back to 1 on unsupported environments.
+ *
+ * @example
+ * coarDetectFirstDayOfWeekFromLocale('en-US') // 7 (Sunday)
+ * coarDetectFirstDayOfWeekFromLocale('de-DE') // 1 (Monday)
+ * coarDetectFirstDayOfWeekFromLocale('en-GB') // 1 (Monday)
+ */
+export function coarDetectFirstDayOfWeekFromLocale(locale: string): 1 | 7 {
+  try {
+    const loc = new Intl.Locale(locale);
+    // getWeekInfo() is the newer API; weekInfo is the older property form
+    const weekInfo = (loc as any).getWeekInfo?.() ?? (loc as any).weekInfo;
+    if (weekInfo?.firstDay === 7) return 7; // Sunday
+    return 1; // Monday (covers firstDay === 1 and unsupported locales like firstDay === 6)
+  } catch {
+    return 1;
+  }
+}
+
 /** Returns the separator character for a date format pattern. */
 export function coarGetDateSeparatorForPattern(
   pattern: DateFormatConfig['pattern'],

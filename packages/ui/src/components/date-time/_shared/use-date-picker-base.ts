@@ -8,7 +8,7 @@ import { computed, ref, type Ref, type ComputedRef } from 'vue';
 import { useL10n, useTimezone } from '@cocoar/vue-localization';
 
 import type { DateFormatConfig } from './types';
-import { coarDetectDateFormatPatternFromIntl } from './date-helpers';
+import { coarDetectDateFormatPatternFromIntl, coarDetectFirstDayOfWeekFromLocale } from './date-helpers';
 
 /** Common props shared by all date picker variants. */
 export interface DatePickerBaseProps {
@@ -68,11 +68,12 @@ export function useDatePickerBase(props: {
 
     // Detect from Intl
     const detected = coarDetectDateFormatPatternFromIntl(effectiveLocale.value);
+    const firstDayOfWeek = coarDetectFirstDayOfWeekFromLocale(effectiveLocale.value);
     if (detected) {
-      return { pattern: detected, firstDayOfWeek: DEFAULT_DATE_FORMAT.firstDayOfWeek };
+      return { pattern: detected, firstDayOfWeek };
     }
 
-    return DEFAULT_DATE_FORMAT;
+    return { ...DEFAULT_DATE_FORMAT, firstDayOfWeek };
   });
 
   /** Date separator derived from format pattern */

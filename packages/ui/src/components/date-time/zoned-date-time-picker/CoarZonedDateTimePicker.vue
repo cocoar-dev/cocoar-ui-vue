@@ -4,6 +4,8 @@ import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch, m
 import { Temporal } from '@js-temporal/polyfill';
 import { Maskito } from '@maskito/core';
 
+import { useI18n } from '@cocoar/vue-localization';
+
 import CoarIcon from '../../icon/CoarIcon.vue';
 import { getOverlayService } from '../../overlay/useOverlay';
 import { datepickerPreset } from '../../overlay/overlay-presets';
@@ -93,6 +95,9 @@ const emit = defineEmits<{
   opened: [];
   closed: [];
 }>();
+
+// i18n
+const { t } = useI18n();
 
 // ============================================================
 // Composable
@@ -492,7 +497,7 @@ function openPanel() {
     spec: {
       ...datepickerPreset,
       anchor: { kind: 'element', element: trigger },
-      a11y: { role: 'dialog', label: 'Date, time and timezone picker' },
+      a11y: { role: 'dialog', label: t('coar.ui.zonedDateTimePicker.dialog', undefined, 'Date, time and timezone picker') },
     },
     content: { kind: 'component', component: markRaw(CoarZonedDateTimePickerPanel) },
     inputs: panelInputs,
@@ -629,7 +634,7 @@ const tzIndicatorIcon = computed(() => {
         type="button"
         class="coar-zdtp-clear"
         :class="{ 'coar-zdtp-clear--hidden': !showClearButton }"
-        aria-label="Clear value"
+        :aria-label="t('coar.ui.zonedDateTimePicker.clearValue', undefined, 'Clear value')"
         tabindex="-1"
         :disabled="isDisabled"
         @click="clearValue"
@@ -670,7 +675,7 @@ const tzIndicatorIcon = computed(() => {
           'coar-zdtp-tz-indicator--clickable': timezoneIndicatorClickable,
           'coar-zdtp-tz-indicator--disabled': !timezoneIndicatorClickable,
         }"
-        :aria-label="`Timezone: ${currentTimeZoneDisplayName}. ${timezoneIndicatorClickable ? 'Click to toggle.' : ''}`"
+        :aria-label="t('coar.ui.zonedDateTimePicker.timezoneIndicator', { tz: currentTimeZoneDisplayName }, `Timezone: ${currentTimeZoneDisplayName}`) + (timezoneIndicatorClickable ? '. ' + t('coar.ui.zonedDateTimePicker.clickToToggle', undefined, 'Click to toggle.') : '')"
         tabindex="-1"
         :disabled="isDisabled"
         @click.stop="toggleDisplayTimezone"
@@ -683,7 +688,7 @@ const tzIndicatorIcon = computed(() => {
         type="button"
         class="coar-zdtp-btn"
         :disabled="isDisabled"
-        aria-label="Open date and time picker"
+        :aria-label="t('coar.ui.zonedDateTimePicker.openPicker', undefined, 'Open date and time picker')"
         tabindex="-1"
         @click.stop="togglePanel"
       >
@@ -822,6 +827,7 @@ const tzIndicatorIcon = computed(() => {
   font-family: var(--coar-body-base-family);
   font-size: var(--coar-body-base-size);
   color: var(--coar-text-neutral-primary);
+  text-align: right;
 }
 
 .coar-zdtp-input::placeholder {
@@ -833,17 +839,20 @@ const tzIndicatorIcon = computed(() => {
    ======================================== */
 
 .coar-zdtp-tz-inline {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
+  position: absolute;
+  bottom: 0;
+  right: var(--coar-component-m-height);
+  transform: translateY(50%);
   padding: 0 var(--coar-spacing-xs);
   font-family: var(--coar-body-caption-family);
-  font-size: var(--coar-body-caption-size);
-  color: var(--coar-text-neutral-secondary);
+  font-size: var(--coar-body-footnote-size);
+  color: var(--coar-text-neutral-tertiary);
+  background-color: var(--coar-surface-input);
   white-space: nowrap;
-  max-width: 100px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  pointer-events: none;
+  border-radius: var(--coar-radius-xs);
+  line-height: 1.2;
+  letter-spacing: 0.02em;
 }
 
 /* ========================================
@@ -913,13 +922,16 @@ const tzIndicatorIcon = computed(() => {
 .coar-zdtp--xs .coar-zdtp-trigger { height: var(--coar-component-xs-height); }
 .coar-zdtp--xs .coar-zdtp-btn { width: var(--coar-component-xs-height); }
 .coar-zdtp--xs .coar-zdtp-input { font-size: var(--coar-component-xs-font-size); }
+.coar-zdtp--xs .coar-zdtp-tz-inline { right: var(--coar-component-xs-height); }
 
 .coar-zdtp--s .coar-zdtp-trigger { height: var(--coar-component-s-height); }
 .coar-zdtp--s .coar-zdtp-btn { width: var(--coar-component-s-height); }
 .coar-zdtp--s .coar-zdtp-input { font-size: var(--coar-body-small-base-size); }
+.coar-zdtp--s .coar-zdtp-tz-inline { right: var(--coar-component-s-height); }
 
 .coar-zdtp--l .coar-zdtp-trigger { height: var(--coar-component-l-height); }
 .coar-zdtp--l .coar-zdtp-btn { width: var(--coar-component-l-height); }
+.coar-zdtp--l .coar-zdtp-tz-inline { right: var(--coar-component-l-height); }
 
 /* ========================================
    FORM FIELD MESSAGE

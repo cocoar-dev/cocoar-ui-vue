@@ -1,7 +1,7 @@
 /**
  * Interpolate parameters into a translation string.
  * Replaces {param} placeholders with values from the params object.
- * Missing params are replaced with empty string (Angular-compatible behavior).
+ * Missing params are replaced with empty string.
  *
  * @example
  * interpolate('Hello, {name}!', { name: 'Alice' }) → 'Hello, Alice!'

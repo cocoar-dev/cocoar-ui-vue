@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 
-import { useL10n } from '@cocoar/vue-localization';
+import { useI18n, useL10n } from '@cocoar/vue-localization';
 
 import CoarIcon from '../../icon/CoarIcon.vue';
 import type { CoarTimePeriod, CoarTimeValue } from '../_shared/types';
@@ -53,6 +53,7 @@ const props = withDefaults(
 const modelValue = defineModel<CoarTimeValue | null>({ default: null });
 
 // Localization
+const { t } = useI18n();
 const l10n = useL10n();
 
 const effectiveLocale = computed(() => {
@@ -306,7 +307,7 @@ const sizeClass = computed(
           class="coar-time-picker__btn coar-time-picker__btn--up"
           :disabled="disabled || readonly || isIncrementHoursDisabled"
           tabindex="-1"
-          aria-label="Increase hours"
+          :aria-label="t('coar.ui.timePicker.increaseHours', undefined, 'Increase hours')"
           @click="incrementHoursAction"
         >
           <CoarIcon name="chevron-up" :size="iconSize" />
@@ -319,7 +320,7 @@ const sizeClass = computed(
           :aria-valuenow="displayHours"
           :aria-valuemin="minHoursDisplay"
           :aria-valuemax="maxHoursDisplay"
-          aria-label="Hours"
+          :aria-label="t('coar.ui.timePicker.hours', undefined, 'Hours')"
           @keydown="onHoursKeydown"
         >
           {{ displayHours.toString().padStart(2, '0') }}
@@ -330,7 +331,7 @@ const sizeClass = computed(
           class="coar-time-picker__btn coar-time-picker__btn--down"
           :disabled="disabled || readonly || isDecrementHoursDisabled"
           tabindex="-1"
-          aria-label="Decrease hours"
+          :aria-label="t('coar.ui.timePicker.decreaseHours', undefined, 'Decrease hours')"
           @click="decrementHoursAction"
         >
           <CoarIcon name="chevron-down" :size="iconSize" />
@@ -347,7 +348,7 @@ const sizeClass = computed(
           class="coar-time-picker__btn coar-time-picker__btn--up"
           :disabled="disabled || readonly || isIncrementMinutesDisabled"
           tabindex="-1"
-          aria-label="Increase minutes"
+          :aria-label="t('coar.ui.timePicker.increaseMinutes', undefined, 'Increase minutes')"
           @click="incrementMinutesAction"
         >
           <CoarIcon name="chevron-up" :size="iconSize" />
@@ -360,7 +361,7 @@ const sizeClass = computed(
           :aria-valuenow="displayMinutes"
           aria-valuemin="0"
           aria-valuemax="59"
-          aria-label="Minutes"
+          :aria-label="t('coar.ui.timePicker.minutes', undefined, 'Minutes')"
           @keydown="onMinutesKeydown"
         >
           {{ displayMinutes.toString().padStart(2, '0') }}
@@ -371,7 +372,7 @@ const sizeClass = computed(
           class="coar-time-picker__btn coar-time-picker__btn--down"
           :disabled="disabled || readonly || isDecrementMinutesDisabled"
           tabindex="-1"
-          aria-label="Decrease minutes"
+          :aria-label="t('coar.ui.timePicker.decreaseMinutes', undefined, 'Decrease minutes')"
           @click="decrementMinutesAction"
         >
           <CoarIcon name="chevron-down" :size="iconSize" />

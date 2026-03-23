@@ -43,5 +43,4 @@ Consistent naming across the Coar Design System.
 | Package directory | kebab-case | `packages/button/` |
 | Source entry | `index.ts` | `src/index.ts` |
 | Test file | `.test.ts` suffix | `CoarButton.test.ts` |
-| Story file | `.stories.ts` suffix | `CoarButton.stories.ts` |
 | Utility file | camelCase `.ts` | `clamp.ts` |

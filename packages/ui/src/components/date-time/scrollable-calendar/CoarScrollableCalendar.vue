@@ -17,6 +17,7 @@ import {
   coarCalculateIsoWeekNumber,
   coarClampPlainDate,
   coarDetectDateFormatPatternFromIntl,
+  coarDetectFirstDayOfWeekFromLocale,
   coarGetCalendarGridDates,
   coarGetLocalizedWeekdays,
 } from '../_shared/date-helpers';
@@ -94,7 +95,8 @@ const effectiveLocale = computed(() => props.locale ?? l10n?.language.value ?? n
 const effectiveDateFormat = computed((): DateFormatConfig => {
   if (props.dateFormatConfig) return props.dateFormatConfig;
   const detected = coarDetectDateFormatPatternFromIntl(effectiveLocale.value);
-  return { pattern: detected ?? 'dd.mm.yyyy', firstDayOfWeek: 1 };
+  const firstDayOfWeek = coarDetectFirstDayOfWeekFromLocale(effectiveLocale.value);
+  return { pattern: detected ?? 'dd.mm.yyyy', firstDayOfWeek };
 });
 
 const firstDayOfWeek = computed(() => effectiveDateFormat.value.firstDayOfWeek);
@@ -525,6 +527,9 @@ function attachScrollListener(): void {
     scrollListenerTarget?.removeEventListener('scroll', onScroll);
     viewport.addEventListener('scroll', onScroll, { passive: true });
     scrollListenerTarget = viewport;
+    // Re-scroll now that the OS viewport is ready; the earlier setTimeout call
+    // targeted the container element (OS not yet init'd), producing an offset.
+    scrollToMonth(activeMonth.value, false);
   }
 }
 

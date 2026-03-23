@@ -13,6 +13,8 @@ import {
 import { Temporal } from '@js-temporal/polyfill';
 import { Maskito } from '@maskito/core';
 
+import { useI18n } from '@cocoar/vue-localization';
+
 import CoarIcon from '../../icon/CoarIcon.vue';
 import { getOverlayService } from '../../overlay/useOverlay';
 import { datepickerPreset } from '../../overlay/overlay-presets';
@@ -95,6 +97,9 @@ const emit = defineEmits<{
   opened: [];
   closed: [];
 }>();
+
+// i18n
+const { t } = useI18n();
 
 // Date picker base composable
 const localeRef = computed(() => props.locale);
@@ -242,7 +247,7 @@ function openPanel() {
     spec: {
       ...datepickerPreset,
       anchor: { kind: 'element', element: trigger },
-      a11y: { role: 'dialog', label: 'Date picker' },
+      a11y: { role: 'dialog', label: t('coar.ui.datePicker.dialog', undefined, 'Date picker') },
     },
     content: { kind: 'component', component: markRaw(CoarPlainDatePickerPanel) },
     inputs: panelInputs,
@@ -364,7 +369,7 @@ function onInputBlur() {
         class="coar-plain-date-picker-clear"
         :class="{ 'coar-plain-date-picker-clear--hidden': !showClearButton }"
         tabindex="-1"
-        aria-label="Clear date"
+        :aria-label="t('coar.ui.datePicker.clearDate', undefined, 'Clear date')"
         @click="clearValue($event)"
       >
         <CoarIcon name="x" size="auto" />
@@ -394,7 +399,7 @@ function onInputBlur() {
         type="button"
         class="coar-plain-date-picker-btn"
         tabindex="-1"
-        aria-label="Open picker"
+        :aria-label="t('coar.ui.datePicker.openPicker', undefined, 'Open picker')"
         :disabled="isDisabled || readonly"
         @click="togglePanel"
       >
