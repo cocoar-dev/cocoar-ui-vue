@@ -1,11 +1,11 @@
 <template>
   <div>
     <CoarMenu>
-      <CoarMenuItem @click="handleClick('New File')">New File</CoarMenuItem>
-      <CoarMenuItem @click="handleClick('Open...')">Open...</CoarMenuItem>
+      <CoarMenuItem @clicked="handleClick('New File')">New File</CoarMenuItem>
+      <CoarMenuItem @clicked="handleClick('Open...')">Open...</CoarMenuItem>
       <CoarMenuDivider />
-      <CoarMenuItem @click="handleClick('Save')">Save</CoarMenuItem>
-      <CoarMenuItem @click="handleClick('Save As...')">Save As...</CoarMenuItem>
+      <CoarMenuItem @clicked="handleClick('Save')">Save</CoarMenuItem>
+      <CoarMenuItem @clicked="handleClick('Save As...')">Save As...</CoarMenuItem>
       <CoarMenuDivider />
       <CoarMenuItem :disabled="true">Export (disabled)</CoarMenuItem>
     </CoarMenu>

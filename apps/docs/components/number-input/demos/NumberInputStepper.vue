@@ -8,10 +8,10 @@
         :max="99"
       />
     </CoarFormField>
-    <CoarFormField label="Price (end)">
+    <CoarFormField label="Price (increment only)">
       <CoarNumberInput
         v-model="price"
-        stepper-buttons="end"
+        stepper-buttons="increment"
         :min="0"
         :step="0.01"
         suffix="€"

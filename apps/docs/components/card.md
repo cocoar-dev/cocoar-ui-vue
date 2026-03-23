@@ -42,12 +42,16 @@ Cards shine when combining multiple elements. Here a header, tags, body text, an
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `variant` | `'neutral' \| 'info' \| 'success' \| 'warning' \| 'error' \| 'outlined'` | `'neutral'` | Card color/style variant |
-| `padding` | `'s' \| 'm' \| 'l'` | `'m'` | Internal padding size |
+| `variant` | `'neutral' \| 'outlined' \| 'info' \| 'success' \| 'warning' \| 'error' \| 'accent'` | `'neutral'` | Card color/style variant |
+| `padding` | `'none' \| 's' \| 'm' \| 'l'` | `'m'` | Internal padding size |
 | `elevated` | `boolean` | `false` | Add box shadow for elevation |
+| `borderless` | `boolean` | `false` | Hide the border |
 
 ### Slots
 
 | Slot | Description |
 |------|-------------|
 | `default` | Card content |
+| `#header` | Fixed header area |
+| `#footer` | Fixed footer area |
+| `#inset` | Full-width inset area (negative margins) |

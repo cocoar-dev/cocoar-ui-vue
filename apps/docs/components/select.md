@@ -52,9 +52,8 @@ const options: CoarSelectOption<string>[] = [
 |------|------|---------|-------------|
 | `v-model` | `T \| null` | `null` | Selected value (the option's `value` field) |
 | `options` | `CoarSelectOption<T>[]` | `[]` | Array of `{ value, label }` option objects |
-| `label` | `string` | `''` | Field label |
 | `placeholder` | `string` | `''` | Placeholder when empty |
 | `size` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Input size |
 | `disabled` | `boolean` | `false` | Disable the select |
 | `required` | `boolean` | `false` | Mark as required |
-| `error` | `string` | `''` | Error message |
+| `error` | `boolean` | `false` | Error state (auto-injected from `CoarFormField`) |

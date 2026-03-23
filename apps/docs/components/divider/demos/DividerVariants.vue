@@ -1,8 +1,7 @@
 <template>
   <div style="display: flex; flex-direction: column; gap: 12px;">
-    <CoarDivider label="Default" />
-    <CoarDivider label="Subtle" variant="subtle" />
-    <CoarDivider label="Bold" variant="bold" />
+    <CoarDivider>Subtle (default)</CoarDivider>
+    <CoarDivider variant="strong">Strong</CoarDivider>
   </div>
 </template>
 

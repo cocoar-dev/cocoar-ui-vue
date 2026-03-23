@@ -36,7 +36,8 @@ Prefer a flat aesthetic? The `bordered` prop swaps the drop shadow for a thin bo
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `bordered` | `boolean` | `false` | Use border instead of shadow |
+| `elevated` | `boolean` | `true` | Show subtle box-shadow elevation |
+| `bordered` | `boolean` | `false` | Show bottom border instead of shadow |
 
 ### Slots
 

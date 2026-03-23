@@ -47,5 +47,6 @@ Disable individual tabs to prevent access to sections that are not yet available
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `id` | `string` | -- | Unique tab identifier |
+| `id` | `string` | — | Unique tab identifier (**required**) |
 | `disabled` | `boolean` | `false` | Disable this tab |
+| `loadingStrategy` | `'lazy' \| 'eager'` | `'lazy'` | `lazy`: content only rendered when active; `eager`: always in DOM |

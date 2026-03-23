@@ -5,7 +5,7 @@
     <CoarNote variant="warning"><strong>Warning:</strong> Pay attention, potential issue ahead.</CoarNote>
     <CoarNote variant="error"><strong>Error:</strong> Something went wrong. Action required.</CoarNote>
     <CoarNote variant="neutral">Neutral note for general content without semantic meaning.</CoarNote>
-    <CoarNote variant="brand">Brand-colored note for promotional or feature highlights.</CoarNote>
+    <CoarNote variant="accent">Accent-colored note for brand-specific or promotional callouts.</CoarNote>
   </div>
 </template>
 

@@ -1,21 +1,21 @@
 <template>
   <CoarMenu>
-    <CoarMenuItem icon="home" @click="handleClick('Home')">Home</CoarMenuItem>
+    <CoarMenuItem icon="home" @clicked="handleClick('Home')">Home</CoarMenuItem>
     <CoarSubmenuItem label="Account" icon="user">
       <CoarMenu>
-        <CoarMenuItem icon="user" @click="handleClick('Profile')">Profile</CoarMenuItem>
-        <CoarMenuItem icon="shield" @click="handleClick('Security')">Security</CoarMenuItem>
-        <CoarMenuItem icon="bell" @click="handleClick('Notifications')">Notifications</CoarMenuItem>
+        <CoarMenuItem icon="user" @clicked="handleClick('Profile')">Profile</CoarMenuItem>
+        <CoarMenuItem icon="shield" @clicked="handleClick('Security')">Security</CoarMenuItem>
+        <CoarMenuItem icon="bell" @clicked="handleClick('Notifications')">Notifications</CoarMenuItem>
       </CoarMenu>
     </CoarSubmenuItem>
     <CoarSubmenuItem label="Reports" icon="chart-bar">
       <CoarMenu>
-        <CoarMenuItem @click="handleClick('Sales')">Sales</CoarMenuItem>
-        <CoarMenuItem @click="handleClick('Traffic')">Traffic</CoarMenuItem>
+        <CoarMenuItem @clicked="handleClick('Sales')">Sales</CoarMenuItem>
+        <CoarMenuItem @clicked="handleClick('Traffic')">Traffic</CoarMenuItem>
       </CoarMenu>
     </CoarSubmenuItem>
     <CoarMenuDivider />
-    <CoarMenuItem icon="log-out" variant="danger" @click="handleClick('Logout')">Logout</CoarMenuItem>
+    <CoarMenuItem icon="log-out" @clicked="handleClick('Logout')">Logout</CoarMenuItem>
   </CoarMenu>
 </template>
 

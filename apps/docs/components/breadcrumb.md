@@ -36,9 +36,12 @@ Here are several breadcrumb paths you might encounter in a real application -- f
 
 ## API
 
-### CoarBreadcrumb
+### CoarBreadcrumb Props
 
-Container component. No props.
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `separator` | `string` | `'/'` | Separator character between items |
+| `ariaLabel` | `string` | `'Breadcrumb'` | Accessible label for the nav landmark |
 
 ### CoarBreadcrumbItem Props
 

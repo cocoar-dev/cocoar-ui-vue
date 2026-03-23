@@ -6,21 +6,21 @@ When users must pick exactly one option from a small set of mutually exclusive c
 import { CoarRadioGroup, CoarRadioButton } from '@cocoar/vue-ui';
 ```
 
-## Horizontal (Default)
+## Horizontal
 
-The default horizontal layout keeps options side by side -- works best when labels are short and there are only a few choices.
+Switch to `orientation="horizontal"` when labels are short and there are only a few choices.
 
 <preview path="./radio-group/demos/RadioGroupHorizontal.vue" />
 
-## Vertical
+## Vertical (Default)
 
-Switch to `orientation="vertical"` when labels are longer or you have more options. The stacked layout is easier to scan.
+The default vertical layout stacks options for easy scanning -- works well with longer labels or more than 4 choices.
 
 <preview path="./radio-group/demos/RadioGroupVertical.vue" />
 
 ## States
 
-Mark the group as `required` to show an asterisk, and pass an `error` string to display validation feedback.
+Mark the group as `required` to show an asterisk. Wrap in `CoarFormField` to display validation messages.
 
 <preview path="./radio-group/demos/RadioGroupStates.vue" />
 
@@ -65,11 +65,13 @@ Only one radio button in a group receives tab focus. Arrow keys move selection b
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `v-model` | `unknown` | `undefined` | Currently selected value |
-| `label` | `string` | `''` | Group label |
-| `orientation` | `'horizontal' \| 'vertical'` | `'horizontal'` | Layout direction |
+| `name` | `string` | — | **Required.** HTML name for the radio inputs |
+| `label` | `string` | `''` | Group accessible label |
+| `orientation` | `'horizontal' \| 'vertical'` | `'vertical'` | Layout direction |
 | `size` | `'s' \| 'm' \| 'l'` | `'m'` | Radio button size |
+| `disabled` | `boolean` | `false` | Disable all radio buttons |
 | `required` | `boolean` | `false` | Mark as required |
-| `error` | `string` | `''` | Error message |
+| `error` | `boolean` | `false` | Error state (auto-injected from `CoarFormField`) |
 
 ### CoarRadioButton Props
 

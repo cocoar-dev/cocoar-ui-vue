@@ -1,6 +1,6 @@
 <template>
   <div style="display: flex; flex-direction: column; gap: 12px;">
-    <CoarRadioGroup v-model="color" label="Preferred Color" orientation="vertical">
+    <CoarRadioGroup v-model="color" name="preferred-color" label="Preferred Color">
       <CoarRadioButton value="red">Red — Passionate and energetic</CoarRadioButton>
       <CoarRadioButton value="blue">Blue — Calm and trustworthy</CoarRadioButton>
       <CoarRadioButton value="green">Green — Fresh and natural</CoarRadioButton>

@@ -1,16 +1,16 @@
 <template>
-  <CoarCodeBlock :code="code" language="bash" :show-line-numbers="false" :collapsible="false" />
+  <CoarCodeBlock :code="code" language="typescript" :show-line-numbers="true" :collapsible="false" />
 </template>
 
 <script setup lang="ts">
 import { CoarCodeBlock } from '@cocoar/vue-ui';
 
-const code = `# Install dependencies
-pnpm install
+const code = `import { ref, computed } from 'vue';
 
-# Start development server
-pnpm dev
+const count = ref(0);
+const doubled = computed(() => count.value * 2);
 
-# Build for production
-pnpm build`;
+function increment() {
+  count.value++;
+}`;
 </script>

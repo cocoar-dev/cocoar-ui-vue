@@ -8,13 +8,13 @@ import { CoarNote } from '@cocoar/vue-ui';
 
 ## Color Variants
 
-Six semantic variants communicate intent at a glance: `info` for tips, `success` for confirmations, `warning` for cautions, `error` for critical issues, `neutral` for general remarks, and `brand` for product-specific callouts.
+Six semantic variants communicate intent at a glance: `info` for tips, `success` for confirmations, `warning` for cautions, `error` for critical issues, `neutral` for general remarks, and `accent` for brand-specific callouts.
 
 <preview path="./note/demos/NoteVariants.vue" />
 
 ## Padding Sizes
 
-Use `m` (the default) for standalone callouts and `s` when the note sits inside a compact layout like a card or sidebar.
+Use `m` (the default) for standalone callouts, `s` inside compact layouts like cards or sidebars, and `l` for more prominent call-to-action notes.
 
 <preview path="./note/demos/NotePadding.vue" />
 
@@ -30,8 +30,8 @@ The default slot accepts any HTML, so you can include links, bold text, inline c
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `variant` | `'neutral' \| 'info' \| 'success' \| 'warning' \| 'error' \| 'brand'` | `'neutral'` | Note color variant |
-| `padding` | `'s' \| 'm'` | `'m'` | Internal padding size |
+| `variant` | `'neutral' \| 'info' \| 'success' \| 'warning' \| 'error' \| 'accent'` | `'neutral'` | Note color variant |
+| `padding` | `'s' \| 'm' \| 'l'` | `'m'` | Internal padding size |
 
 ### Slots
 

@@ -22,13 +22,13 @@ Keep long snippets from dominating the page. Start them collapsed so users can e
 
 ## Variants
 
-The default variant uses a dark background for standalone code. The `info` variant has a lighter background that blends into documentation callouts and instructional content.
+The default `neutral` variant uses a neutral background. Other variants color the header area to match semantic context — `info`, `success`, `warning`, `error`, or `accent`.
 
 <preview path="./code-block/demos/CodeBlockVariants.vue" />
 
-## Without Line Numbers
+## With Line Numbers
 
-Turn off line numbers for short, inline examples where a cleaner look is preferred.
+Enable line numbers for larger code blocks where users need to reference specific lines.
 
 <preview path="./code-block/demos/CodeBlockNoLineNumbers.vue" />
 
@@ -39,9 +39,13 @@ Turn off line numbers for short, inline examples where a cleaner look is preferr
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `code` | `string` | `''` | The source code to display |
-| `language` | `string` | `'typescript'` | Syntax highlighting language |
-| `variant` | `'default' \| 'info'` | `'default'` | Background style variant |
+| `language` | `string` | `'html'` | Syntax highlighting language |
+| `variant` | `'neutral' \| 'info' \| 'success' \| 'warning' \| 'error' \| 'accent'` | `'neutral'` | Header color variant |
+| `title` | `string` | `''` | Optional title/filename label |
 | `collapsible` | `boolean` | `true` | Show collapse/expand toggle |
 | `collapsed` | `boolean` | `false` | Start in collapsed state |
-| `showLineNumbers` | `boolean` | `true` | Show line numbers |
+| `showLineNumbers` | `boolean` | `false` | Show line numbers |
+| `showCopy` | `boolean` | `true` | Show copy-to-clipboard button |
+| `maxHeight` | `number` | `0` | Maximum height in px before scrolling (0 = no limit) |
+| `borderless` | `boolean` | `false` | Hide border and border-radius |
 | `elevated` | `boolean` | `false` | Add box shadow |

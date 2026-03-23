@@ -14,7 +14,7 @@ Works just like a text input, but the value is masked. Click the eye icon to pee
 
 ## With Validation
 
-Combine `required`, `hint`, and `error` props to build real-time password validation -- strength checks, confirmation matching, or whatever rules your app needs.
+Wrap in `CoarFormField` to add labels, hints, and error messages. The component reads the error state from the field context automatically.
 
 <preview path="./password-input/demos/PasswordInputValidation.vue" />
 
@@ -57,11 +57,10 @@ The visibility toggle button has an accessible label that updates based on the c
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `v-model` | `string` | `''` | Password value |
-| `label` | `string` | `''` | Label text |
 | `placeholder` | `string` | `''` | Placeholder text |
-| `hint` | `string` | `''` | Hint text |
-| `error` | `string` | `''` | Error message |
+| `error` | `boolean` | `false` | Error state (auto-injected from `CoarFormField`) |
 | `size` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Input size |
 | `disabled` | `boolean` | `false` | Disable the input |
 | `readonly` | `boolean` | `false` | Make read-only |
 | `required` | `boolean` | `false` | Mark as required |
+| `clearable` | `boolean` | `true` | Show clear button when input has value |

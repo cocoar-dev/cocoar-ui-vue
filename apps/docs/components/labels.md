@@ -1,6 +1,6 @@
 # Labels
 
-Standalone form labels with an optional required asterisk and hint text. Most Cocoar inputs render their own label automatically, but `CoarLabel` is available when you need to pair a label with a native `<input>`, a third-party control, or a custom layout.
+Standalone form labels with an optional required asterisk and hint text. Most Cocoar inputs manage their own label via `CoarFormField`, but `CoarLabel` is available when you need to pair a label with a native `<input>`, a third-party control, or a custom layout.
 
 ```ts
 import { CoarLabel } from '@cocoar/vue-ui';
@@ -18,15 +18,9 @@ Set `required` to append a red asterisk, visually signaling that the field must 
 
 <preview path="./labels/demos/LabelRequired.vue" />
 
-## With Hint
-
-The `hint` prop adds a secondary line of guidance beneath the label -- helpful for formatting rules, character limits, or field-specific instructions.
-
-<preview path="./labels/demos/LabelHint.vue" />
-
 ## Sizes
 
-Three sizes so labels scale with whatever form density you are designing for.
+Four sizes so labels scale with whatever form density you are designing for.
 
 <preview path="./labels/demos/LabelSizes.vue" />
 
@@ -46,7 +40,6 @@ Labels use the native `<label>` element with the `for` attribute when provided, 
 
 - Label text announces when the associated input receives focus
 - Required asterisk is properly announced
-- Hint text accessible as supplementary information
 
 ## API
 
@@ -54,8 +47,13 @@ Labels use the native `<label>` element with the `for` attribute when provided, 
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `text` | `string` | `''` | Label text |
-| `for` | `string` | `''` | Associated input's id |
-| `hint` | `string` | `''` | Hint text below the label |
+| `text` | `string` | `undefined` | Label text (alternative to default slot) |
+| `for` | `string` | `undefined` | Associated input's `id` |
 | `required` | `boolean` | `false` | Show required asterisk |
-| `size` | `'s' \| 'm' \| 'l'` | `'m'` | Label size |
+| `size` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Label size |
+
+### Slots
+
+| Slot | Description |
+|------|-------------|
+| `default` | Label content (used when `text` prop is not set) |

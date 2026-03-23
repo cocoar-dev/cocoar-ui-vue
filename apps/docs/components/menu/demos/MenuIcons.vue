@@ -5,7 +5,7 @@
     <CoarMenuItem icon="clipboard">Paste</CoarMenuItem>
     <CoarMenuDivider />
     <CoarMenuItem icon="settings">Settings</CoarMenuItem>
-    <CoarMenuItem icon="trash-2" variant="danger">Delete</CoarMenuItem>
+    <CoarMenuItem icon="trash-2">Delete</CoarMenuItem>
   </CoarMenu>
 </template>
 

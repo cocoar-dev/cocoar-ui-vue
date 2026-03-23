@@ -20,7 +20,7 @@ When you can't predict how long an operation will take -- network requests, serv
 
 ## Color Variants
 
-Match the bar color to its context: `success` for completed uploads, `warning` for approaching limits, `error` for failed operations.
+Match the bar color to its context: `accent` (default) for standard progress, `success` for completed uploads, `warning` for approaching limits, `error` for failed operations.
 
 <preview path="./progress-bar/demos/ProgressBarVariants.vue" />
 
@@ -42,7 +42,10 @@ A continuously animating example that shows how the bar transitions smoothly as 
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `value` | `number` | `0` | Progress value (0-100) |
+| `value` | `number` | `0` | Current progress value |
+| `max` | `number` | `100` | Maximum progress value |
 | `indeterminate` | `boolean` | `false` | Show animated indeterminate state |
-| `variant` | `'default' \| 'info' \| 'success' \| 'warning' \| 'error'` | `'default'` | Color variant |
+| `variant` | `'accent' \| 'success' \| 'warning' \| 'error'` | `'accent'` | Color variant |
 | `size` | `'s' \| 'm' \| 'l'` | `'m'` | Bar height |
+| `label` | `string` | `''` | Accessible label for screen readers |
+| `showValue` | `boolean` | `false` | Display the percentage value next to the bar |

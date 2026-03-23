@@ -1,6 +1,6 @@
 <template>
   <div style="display: flex; flex-direction: column; gap: 12px;">
-    <CoarRadioGroup v-model="size" label="Button Size">
+    <CoarRadioGroup v-model="size" name="button-size" label="Button Size" orientation="horizontal">
       <CoarRadioButton value="xs">XS</CoarRadioButton>
       <CoarRadioButton value="s">S</CoarRadioButton>
       <CoarRadioButton value="m">M</CoarRadioButton>

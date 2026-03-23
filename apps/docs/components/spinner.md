@@ -14,15 +14,9 @@ Drop in a spinner wherever content is still loading. It animates continuously un
 
 ## Sizes
 
-Five sizes to fit any context -- `xs` for inline loading indicators next to text, up to `xl` for full-page or overlay states.
+Four sizes to fit any context -- `xs` for inline loading indicators next to text, up to `l` for full-page or overlay states.
 
 <preview path="./spinner/demos/SpinnerSizes.vue" />
-
-## Colors
-
-By default the spinner inherits the current text color. Override it with the `color` prop to use semantic tokens or any CSS color value.
-
-<preview path="./spinner/demos/SpinnerColors.vue" />
 
 ## With Loading Text
 
@@ -42,5 +36,5 @@ Center a spinner in a container overlay to block interaction while critical data
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `size` | `'xs' \| 's' \| 'm' \| 'l' \| 'xl'` | `'m'` | Spinner size |
-| `color` | `string` | `'currentColor'` | Spinner color (any CSS color value) |
+| `size` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Spinner size |
+| `label` | `string` | `'Loading'` | Accessible label for screen readers |

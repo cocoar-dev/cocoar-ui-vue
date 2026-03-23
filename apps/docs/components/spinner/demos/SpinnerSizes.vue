@@ -16,10 +16,6 @@
       <CoarSpinner size="l" />
       <span style="font-size: 11px; color: #64748b; font-family: monospace;">l</span>
     </div>
-    <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
-      <CoarSpinner size="xl" />
-      <span style="font-size: 11px; color: #64748b; font-family: monospace;">xl</span>
-    </div>
   </div>
 </template>
 

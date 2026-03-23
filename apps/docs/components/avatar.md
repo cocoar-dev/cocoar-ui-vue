@@ -20,7 +20,7 @@ Provide a `src` URL to show a profile photo. If the image fails to load, the ava
 
 ## Sizes
 
-Five sizes let you match the avatar to its context -- use `xs` in dense tables or chat lists, and `xl` for profile headers.
+Six sizes let you match the avatar to its context -- use `xs` in dense tables or chat lists, and `xxl` for prominent profile headers.
 
 <preview path="./avatar/demos/AvatarSizes.vue" />
 
@@ -44,5 +44,7 @@ Stack avatars with negative margins to show team members or participants at a gl
 |------|------|---------|-------------|
 | `name` | `string` | `''` | User's name (used for initials fallback) |
 | `src` | `string` | `undefined` | Image URL |
-| `size` | `'xs' \| 's' \| 'm' \| 'l' \| 'xl'` | `'m'` | Avatar size |
+| `size` | `'xs' \| 's' \| 'm' \| 'l' \| 'xl' \| 'xxl'` | `'m'` | Avatar size |
 | `shape` | `'circle' \| 'square'` | `'circle'` | Avatar shape |
+| `initials` | `string` | `''` | Custom initials override |
+| `clickable` | `boolean` | `false` | Make avatar interactive (button role) |

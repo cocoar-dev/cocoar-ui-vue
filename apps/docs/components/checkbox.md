@@ -26,13 +26,13 @@ The indeterminate state shows a dash instead of a checkmark -- handy for "select
 
 ## Sizes
 
-Three sizes to match different information densities, from compact data tables to spacious settings pages.
+Four sizes to match different information densities, from compact data tables to spacious settings pages.
 
 <preview path="./checkbox/demos/CheckboxSizes.vue" />
 
 ## Hint Text
 
-Add a `hint` to give users extra context without cluttering the label itself.
+Wrap in `CoarFormField` with a `hint` prop to give users extra context without cluttering the label itself.
 
 <preview path="./checkbox/demos/CheckboxHint.vue" />
 
@@ -70,9 +70,8 @@ The indeterminate state is visual only. Clicking an indeterminate checkbox toggl
 |------|------|---------|-------------|
 | `v-model` | `boolean` | `false` | Checked state |
 | `label` | `string` | `''` | Label text |
-| `hint` | `string` | `''` | Hint text below label |
-| `error` | `string` | `''` | Error message |
-| `size` | `'s' \| 'm' \| 'l'` | `'m'` | Checkbox size |
+| `error` | `boolean` | `false` | Error state (auto-injected from `CoarFormField`) |
+| `size` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Checkbox size |
 | `indeterminate` | `boolean` | `false` | Show indeterminate (dash) state |
 | `disabled` | `boolean` | `false` | Disable the checkbox |
 | `required` | `boolean` | `false` | Mark as required |

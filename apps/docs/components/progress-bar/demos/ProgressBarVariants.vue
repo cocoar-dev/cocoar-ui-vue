@@ -1,12 +1,8 @@
 <template>
   <div style="display: flex; flex-direction: column; gap: 12px;">
     <div>
-      <span style="font-size: 13px; color: #64748b;">Default</span>
+      <span style="font-size: 13px; color: #64748b;">Accent (default)</span>
       <CoarProgressBar :value="75" />
-    </div>
-    <div>
-      <span style="font-size: 13px; color: #64748b;">Info</span>
-      <CoarProgressBar :value="75" variant="info" />
     </div>
     <div>
       <span style="font-size: 13px; color: #64748b;">Success</span>

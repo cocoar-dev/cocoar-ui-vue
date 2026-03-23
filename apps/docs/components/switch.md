@@ -14,7 +14,7 @@ Bind a boolean with `v-model` and provide a `label`. The switch flips on click o
 
 ## With Hint Text
 
-Use the `hint` prop to add a brief explanation beneath the label, helping users understand the consequence of toggling.
+Wrap in `CoarFormField` with a `hint` prop to add a brief explanation, helping users understand the consequence of toggling.
 
 <preview path="./switch/demos/SwitchHint.vue" />
 
@@ -65,8 +65,7 @@ Switches use `role="switch"` with `aria-checked` to properly communicate state t
 |------|------|---------|-------------|
 | `v-model` | `boolean` | `false` | Switch on/off state |
 | `label` | `string` | `''` | Label text |
-| `hint` | `string` | `''` | Additional description |
-| `error` | `string` | `''` | Error message |
+| `error` | `boolean` | `false` | Error state (auto-injected from `CoarFormField`) |
 | `size` | `'s' \| 'm' \| 'l'` | `'m'` | Switch size |
 | `disabled` | `boolean` | `false` | Disable the switch |
-| `required` | `boolean` | `false` | Mark as required |
+| `labelPosition` | `'before' \| 'after'` | `'after'` | Label position relative to the switch |

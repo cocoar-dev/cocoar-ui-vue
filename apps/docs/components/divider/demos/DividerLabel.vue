@@ -1,8 +1,8 @@
 <template>
   <div style="display: flex; flex-direction: column; gap: 12px;">
-    <CoarDivider label="Or continue with" />
-    <CoarDivider label="Section Title" />
-    <CoarDivider label="More options" />
+    <CoarDivider>Or continue with</CoarDivider>
+    <CoarDivider>Section Title</CoarDivider>
+    <CoarDivider>More options</CoarDivider>
   </div>
 </template>
 

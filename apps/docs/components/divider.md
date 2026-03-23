@@ -12,21 +12,21 @@ A clean horizontal line that separates content blocks. Drop it between any two s
 
 <preview path="./divider/demos/DividerBasic.vue" />
 
-## With Label
+## With Content
 
-Embed a text label directly in the divider line to describe what follows -- common in forms ("or continue with") and settings pages.
+Embed text directly in the divider line via the default slot -- common in forms ("or continue with") and settings pages.
 
 <preview path="./divider/demos/DividerLabel.vue" />
 
 ## Alignment
 
-Position the label at the start, center, or end of the line to match your layout's reading flow.
+Position the content to the `left`, `center`, or `right` of the line to match your layout's reading flow.
 
 <preview path="./divider/demos/DividerAlignment.vue" />
 
 ## Variants
 
-Choose from three visual weights: `default` for standard sections, `subtle` for light separation within a card, and `bold` for strong visual breaks.
+Two visual weights: `subtle` (the default) for light separation within a card, and `strong` for more prominent visual breaks.
 
 <preview path="./divider/demos/DividerVariants.vue" />
 
@@ -42,6 +42,14 @@ A classic login form pattern where a labeled divider separates OAuth sign-in but
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `label` | `string` | `undefined` | Text label in the divider |
-| `align` | `'start' \| 'center' \| 'end'` | `'center'` | Label alignment |
-| `variant` | `'default' \| 'subtle' \| 'bold'` | `'default'` | Line style variant |
+| `align` | `'left' \| 'center' \| 'right'` | `'center'` | Content alignment |
+| `variant` | `'subtle' \| 'strong'` | `'subtle'` | Line visual weight |
+| `width` | `number` | `90` | Divider width as a percentage (0–100) |
+| `spacingTop` | `number` | `0` | Top spacing in pixels |
+| `spacingBottom` | `number` | `0` | Bottom spacing in pixels |
+
+### Slots
+
+| Slot | Description |
+|------|-------------|
+| `default` | Optional content displayed centered on the line |

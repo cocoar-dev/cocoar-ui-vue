@@ -20,7 +20,7 @@ Use `CoarMenuHeading` to organize a longer menu into labeled sections. This help
 
 ## With Icons
 
-Leading icons give each item a visual anchor, making menus faster to scan. Use the `danger` variant on destructive actions like "Delete" so they stand out clearly.
+Leading icons give each item a visual anchor, making menus faster to scan. Use a trash icon on destructive actions like "Delete" to signal their intent.
 
 <preview path="./menu/demos/MenuIcons.vue" />
 
@@ -65,12 +65,25 @@ Pass the `borderless` prop when embedding a menu inside a sidebar, panel, or car
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
+| `label` | `string` | `undefined` | Item label text (alternative to default slot) |
 | `icon` | `string` | `undefined` | Leading icon name |
-| `variant` | `'default' \| 'danger'` | `'default'` | Item color variant |
 | `disabled` | `boolean` | `false` | Disable the item |
+
+### CoarMenuItem Slots
+
+| Slot | Description |
+|------|-------------|
+| `default` | Item label content |
 
 ### CoarMenuItem Events
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `click` | `MouseEvent` | Emitted when item is clicked |
+| `clicked` | `MenuItemClickEvent` | Emitted when item is clicked |
+
+```ts
+interface MenuItemClickEvent {
+  event: MouseEvent;
+  keepMenuOpen(): void; // Call to prevent auto-close of the menu tree
+}
+```

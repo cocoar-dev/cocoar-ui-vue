@@ -2,7 +2,7 @@
   <div style="display: flex; flex-direction: column; gap: 8px; max-width: 360px;">
     <button class="oauth-btn">Continue with Google</button>
     <button class="oauth-btn">Continue with GitHub</button>
-    <CoarDivider label="or sign in with email" />
+    <CoarDivider>or sign in with email</CoarDivider>
     <div style="display: flex; flex-direction: column; gap: 4px;">
       <label style="font-size: 14px;">Email</label>
       <input type="email" placeholder="you@example.com" class="native-input" />

@@ -37,5 +37,14 @@ The most common real-world pattern: pair pagination with a data table. A summary
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `v-model` | `number` | `1` | Current active page (1-indexed) |
-| `totalItems` | `number` | `0` | Total number of items |
+| `totalItems` | `number` | — | Total number of items (**required**) |
 | `pageSize` | `number` | `10` | Items per page |
+| `maxVisiblePages` | `number` | `5` | Maximum visible page buttons |
+| `showFirstLast` | `boolean` | `true` | Show first/last page nav buttons |
+| `disabled` | `boolean` | `false` | Disable the pagination control |
+
+### Events
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `pageChanged` | `number` | Emitted when the page changes |

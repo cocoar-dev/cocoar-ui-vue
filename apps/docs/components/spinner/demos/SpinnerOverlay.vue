@@ -1,6 +1,6 @@
 <template>
   <div class="loading-overlay">
-    <CoarSpinner size="xl" />
+    <CoarSpinner size="l" />
     <span style="font-size: 14px;">Loading application...</span>
   </div>
 </template>

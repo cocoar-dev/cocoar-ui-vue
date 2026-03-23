@@ -20,6 +20,14 @@ For larger applications, organize navigation into labeled sections with `CoarMen
 
 ## API
 
+### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `position` | `'left' \| 'right'` | `'left'` | Sidebar position |
+| `collapsed` | `boolean` | `false` | Narrow/icon-only collapsed state |
+| `ariaLabel` | `string` | `'Sidebar'` | Accessible label for the nav landmark |
+
 ### Slots
 
 | Slot | Description |

@@ -1,17 +1,17 @@
 <template>
   <CoarMenu>
-    <CoarMenuItem @click="handleClick('Dashboard')">Dashboard</CoarMenuItem>
+    <CoarMenuItem @clicked="handleClick('Dashboard')">Dashboard</CoarMenuItem>
     <CoarSubExpand label="Settings">
-      <CoarMenuItem @click="handleClick('Profile')">Profile</CoarMenuItem>
-      <CoarMenuItem @click="handleClick('Security')">Security</CoarMenuItem>
-      <CoarMenuItem @click="handleClick('Notifications')">Notifications</CoarMenuItem>
+      <CoarMenuItem @clicked="handleClick('Profile')">Profile</CoarMenuItem>
+      <CoarMenuItem @clicked="handleClick('Security')">Security</CoarMenuItem>
+      <CoarMenuItem @clicked="handleClick('Notifications')">Notifications</CoarMenuItem>
     </CoarSubExpand>
     <CoarSubExpand label="Reports">
-      <CoarMenuItem @click="handleClick('Sales')">Sales</CoarMenuItem>
-      <CoarMenuItem @click="handleClick('Traffic')">Traffic</CoarMenuItem>
+      <CoarMenuItem @clicked="handleClick('Sales')">Sales</CoarMenuItem>
+      <CoarMenuItem @clicked="handleClick('Traffic')">Traffic</CoarMenuItem>
     </CoarSubExpand>
     <CoarMenuDivider />
-    <CoarMenuItem @click="handleClick('Logout')">Logout</CoarMenuItem>
+    <CoarMenuItem @clicked="handleClick('Logout')">Logout</CoarMenuItem>
   </CoarMenu>
 </template>
 

@@ -20,7 +20,7 @@ Set boundaries with `min` and `max`, and control the increment size with `step`.
 
 ## Stepper Buttons
 
-Place increment/decrement buttons at the `'start'`, `'end'`, `'both'` sides, or hide them with `'none'`. Useful for quantity selectors, rating inputs, and anywhere precision matters.
+Show `'increment'`, `'decrement'`, or `'both'` stepper buttons, or hide them with `'none'` (the default). Useful for quantity selectors, rating inputs, and anywhere precision matters.
 
 <preview path="./number-input/demos/NumberInputStepper.vue" />
 
@@ -64,15 +64,17 @@ Stepper buttons are keyboard accessible. Min/max bounds are enforced on blur and
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `v-model` | `number \| null` | `null` | Current numeric value |
-| `label` | `string` | `''` | Label text |
 | `placeholder` | `string` | `''` | Placeholder text |
-| `min` | `number` | `-Infinity` | Minimum allowed value |
-| `max` | `number` | `Infinity` | Maximum allowed value |
+| `min` | `number` | `undefined` | Minimum allowed value |
+| `max` | `number` | `undefined` | Maximum allowed value |
 | `step` | `number` | `1` | Step increment |
+| `decimals` | `number` | `0` | Number of decimal places |
+| `prefix` | `string` | `''` | Prefix text |
 | `suffix` | `string` | `''` | Suffix text (e.g. '%', 'EUR') |
-| `stepperButtons` | `'start' \| 'end' \| 'both' \| 'none'` | `'none'` | Show stepper buttons |
+| `stepperButtons` | `'none' \| 'increment' \| 'decrement' \| 'both'` | `'none'` | Stepper button mode |
+| `clearable` | `boolean` | `true` | Show clear button when input has value |
 | `size` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Input size |
 | `disabled` | `boolean` | `false` | Disable the input |
 | `readonly` | `boolean` | `false` | Make read-only |
 | `required` | `boolean` | `false` | Mark as required |
-| `error` | `string` | `''` | Error message |
+| `error` | `boolean` | `false` | Error state (auto-injected from `CoarFormField`) |

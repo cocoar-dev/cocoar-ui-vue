@@ -82,6 +82,7 @@ Labels are automatically associated with their inputs. The required asterisk is 
 | `size` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Input size |
 | `rows` | `number` | `1` | Rows >= 2 enables textarea mode |
 | `clearable` | `boolean` | `true` | Show clear button when input has value |
+| `error` | `boolean` | `false` | Error state (auto-injected from `CoarFormField`) |
 | `disabled` | `boolean` | `false` | Disable the input |
 | `readonly` | `boolean` | `false` | Make read-only |
 | `required` | `boolean` | `false` | HTML required attribute |

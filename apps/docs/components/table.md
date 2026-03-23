@@ -20,7 +20,7 @@ Table cells aren't limited to plain text. Embed avatars, tags, badges, and other
 
 ## Variants
 
-The default striped style works well for most tables. Switch to `bordered` when you need explicit cell boundaries -- useful for dense data or comparison tables.
+The default striped style works well for most tables. Switch to `plain` for a minimal look, or `bordered` when you need explicit cell boundaries -- useful for dense data or comparison tables.
 
 <preview path="./table/demos/TableVariants.vue" />
 
@@ -30,7 +30,9 @@ The default striped style works well for most tables. Switch to `bordered` when 
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `variant` | `'default' \| 'bordered'` | `'default'` | Table style variant |
+| `variant` | `'default' \| 'plain' \| 'bordered'` | `'default'` | Table style variant |
+| `compact` | `boolean` | `false` | Use compact cell padding |
+| `hover` | `boolean` | `true` | Highlight rows on hover |
 
 ### Slots
 
