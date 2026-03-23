@@ -48,3 +48,11 @@ Stack avatars with negative margins to show team members or participants at a gl
 | `shape` | `'circle' \| 'square'` | `'circle'` | Avatar shape |
 | `initials` | `string` | `''` | Custom initials override |
 | `clickable` | `boolean` | `false` | Make avatar interactive (button role) |
+
+## i18n Keys
+
+These keys can be translated via [`@cocoar/vue-localization`](/guide/i18n).
+
+| Key | Default (English) | Used as |
+|-----|-------------------|---------|
+| `coar.ui.avatar.avatar` | `'Avatar'` | `aria-label` and `alt` text fallback when no `name` prop is set |

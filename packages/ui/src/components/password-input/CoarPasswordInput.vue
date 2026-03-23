@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, inject, useTemplateRef } from 'vue';
+import { useI18n } from '@cocoar/vue-localization';
 import { CoarIcon } from '../icon';
 import { FORM_FIELD_INJECTION_KEY } from '../form-field/constants';
 
@@ -55,6 +56,8 @@ const emit = defineEmits<{
 const formField = inject(FORM_FIELD_INJECTION_KEY, undefined);
 
 const isFocused = ref(false);
+const { t } = useI18n();
+
 const showPassword = ref(false);
 const inputElement = useTemplateRef<HTMLInputElement>('inputElement');
 
@@ -63,7 +66,11 @@ const inputId = computed(() => props.id || formField?.inputId.value || autoId);
 
 const inputType = computed(() => (showPassword.value ? 'text' : 'password'));
 const toggleIcon = computed(() => (showPassword.value ? 'eye' : 'eye-off'));
-const toggleAriaLabel = computed(() => (showPassword.value ? 'Hide password' : 'Show password'));
+const toggleAriaLabel = computed(() =>
+  showPassword.value
+    ? t('coar.ui.passwordInput.hidePassword', undefined, 'Hide password')
+    : t('coar.ui.passwordInput.showPassword', undefined, 'Show password'),
+);
 
 const hasError = computed(() => props.error || (formField?.hasError.value ?? false));
 const describedBy = computed(() => formField?.messageId.value || undefined);
@@ -147,7 +154,7 @@ function togglePasswordVisibility() {
           type="button"
           class="coar-password-input-clear"
           tabindex="-1"
-          aria-label="Clear"
+          :aria-label="t('coar.ui.passwordInput.clear', undefined, 'Clear')"
           @click="onClear"
         >
           <CoarIcon name="x" source="coar-builtin" size="auto" />

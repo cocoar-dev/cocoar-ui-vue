@@ -57,3 +57,16 @@ const options: CoarSelectOption<string>[] = [
 | `disabled` | `boolean` | `false` | Disable the select |
 | `required` | `boolean` | `false` | Mark as required |
 | `error` | `boolean` | `false` | Error state (auto-injected from `CoarFormField`) |
+
+## i18n Keys
+
+These keys can be translated via [`@cocoar/vue-localization`](/guide/i18n).
+
+These keys apply to `CoarSelect`, `CoarMultiSelect`, and `CoarTagSelect`.
+
+| Key | Default (English) | Used as |
+|-----|-------------------|---------|
+| `coar.ui.select.clearSelection` | `'Clear selection'` | Clear button `aria-label` |
+| `coar.ui.select.options` | `'Options'` | Options listbox `aria-label` |
+| `coar.ui.select.noResults` | `'No results found'` | Empty state text when search returns no matches |
+| `coar.ui.select.noOptions` | `'No options available'` | Empty state text when options list is empty |

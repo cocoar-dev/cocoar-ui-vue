@@ -49,3 +49,15 @@ Enable line numbers for larger code blocks where users need to reference specifi
 | `maxHeight` | `number` | `0` | Maximum height in px before scrolling (0 = no limit) |
 | `borderless` | `boolean` | `false` | Hide border and border-radius |
 | `elevated` | `boolean` | `false` | Add box shadow |
+
+## i18n Keys
+
+These keys can be translated via [`@cocoar/vue-localization`](/guide/i18n).
+
+| Key | Default (English) | Used as |
+|-----|-------------------|---------|
+| `coar.ui.codeBlock.copy` | `'Copy'` | Copy button text |
+| `coar.ui.codeBlock.copied` | `'Copied!'` | Copy button text (after success) |
+| `coar.ui.codeBlock.failed` | `'Failed'` | Copy button text (after error) |
+| `coar.ui.codeBlock.copyLabel` | `'Copy code'` | Copy button `aria-label` |
+| `coar.ui.codeBlock.toggleVisibility` | `'Toggle code visibility'` | Collapse/expand button `aria-label` |

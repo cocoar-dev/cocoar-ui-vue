@@ -51,3 +51,11 @@ Cluster related tags together to label content. This pattern works well for arti
 | Event | Payload | Description |
 |-------|---------|-------------|
 | `closed` | — | Emitted when the close button is clicked |
+
+## i18n Keys
+
+These keys can be translated via [`@cocoar/vue-localization`](/guide/i18n).
+
+| Key | Default (English) | Used as |
+|-----|-------------------|---------|
+| `coar.ui.tag.remove` | `'Remove tag'` | Close button `aria-label` (when `closable` is true) |

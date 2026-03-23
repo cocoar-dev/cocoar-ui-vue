@@ -67,3 +67,11 @@ See badges in action -- increment and reset a notification counter to observe li
 | `max` | `number` | `null` | Cap numeric content (e.g. 100 becomes "99+") |
 | `pulse` | `boolean` | `false` | Add pulse animation |
 | `bordered` | `boolean` | `false` | Add white border ring |
+
+## i18n Keys
+
+These keys can be translated via [`@cocoar/vue-localization`](/guide/i18n).
+
+| Key | Default (English) | Used as |
+|-----|-------------------|---------|
+| `coar.ui.badge.notificationIndicator` | `'Notification indicator'` | `aria-label` for dot badges (when no `content` value is set) |

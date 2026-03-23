@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useI18n } from '@cocoar/vue-localization';
 import CoarIcon from '../icon/CoarIcon.vue';
 
 export type PaginationPageItem = { type: 'page'; page: number } | { type: 'ellipsis' };
@@ -24,6 +25,8 @@ const props = withDefaults(
     disabled: false,
   },
 );
+
+const { t } = useI18n();
 
 const currentPage = defineModel<number>({ default: 1 });
 
@@ -103,7 +106,7 @@ function trackByItem(index: number, item: PaginationPageItem): string {
         type="button"
         class="coar-pagination-button coar-pagination-button--nav"
         :disabled="disabled || !canGoPrev"
-        aria-label="Go to first page"
+        :aria-label="t('coar.ui.pagination.firstPage', undefined, 'Go to first page')"
         @click="goToPage(1)"
       >
         <CoarIcon name="chevrons-left" size="s" />
@@ -113,14 +116,14 @@ function trackByItem(index: number, item: PaginationPageItem): string {
         type="button"
         class="coar-pagination-button coar-pagination-button--nav"
         :disabled="disabled || !canGoPrev"
-        aria-label="Go to previous page"
+        :aria-label="t('coar.ui.pagination.previousPage', undefined, 'Go to previous page')"
         @click="goToPage(currentPage - 1)"
       >
         <CoarIcon name="chevron-left" size="s" />
       </button>
 
       <template v-for="(item, index) in visiblePages" :key="trackByItem(index, item)">
-        <span v-if="item.type === 'ellipsis'" class="coar-pagination-ellipsis" role="separator" aria-label="More pages">...</span>
+        <span v-if="item.type === 'ellipsis'" class="coar-pagination-ellipsis" role="separator" :aria-label="t('coar.ui.pagination.morePage', undefined, 'More pages')">...</span>
         <button
           v-else
           type="button"
@@ -128,7 +131,7 @@ function trackByItem(index: number, item: PaginationPageItem): string {
           :class="{ 'coar-pagination-button--active': item.page === currentPage }"
           :disabled="disabled"
           :aria-current="item.page === currentPage ? 'page' : undefined"
-          :aria-label="'Go to page ' + item.page"
+          :aria-label="t('coar.ui.pagination.goToPage', { page: item.page }, 'Go to page ' + item.page)"
           @click="goToPage(item.page)"
         >
           {{ item.page }}
@@ -139,7 +142,7 @@ function trackByItem(index: number, item: PaginationPageItem): string {
         type="button"
         class="coar-pagination-button coar-pagination-button--nav"
         :disabled="disabled || !canGoNext"
-        aria-label="Go to next page"
+        :aria-label="t('coar.ui.pagination.nextPage', undefined, 'Go to next page')"
         @click="goToPage(currentPage + 1)"
       >
         <CoarIcon name="chevron-right" size="s" />
@@ -150,7 +153,7 @@ function trackByItem(index: number, item: PaginationPageItem): string {
         type="button"
         class="coar-pagination-button coar-pagination-button--nav"
         :disabled="disabled || !canGoNext"
-        aria-label="Go to last page"
+        :aria-label="t('coar.ui.pagination.lastPage', undefined, 'Go to last page')"
         @click="goToPage(totalPages)"
       >
         <CoarIcon name="chevrons-right" size="s" />

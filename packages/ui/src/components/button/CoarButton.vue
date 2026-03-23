@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useI18n } from '@cocoar/vue-localization';
 import CoarIcon from '../icon/CoarIcon.vue';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'tertiary' | 'danger' | 'ghost';
@@ -42,6 +43,8 @@ const emit = defineEmits<{
   click: [event: MouseEvent];
 }>();
 
+const { t } = useI18n();
+
 const buttonClasses= computed(() => [
   'coar-button',
   `coar-button--${props.variant}`,
@@ -77,7 +80,7 @@ function handleClick(event: MouseEvent) {
       class="coar-button__sr-status"
       role="status"
       aria-live="polite"
-    >Loading</span>
+    >{{ t('coar.ui.button.loading', undefined, 'Loading') }}</span>
 
     <!-- Loading Spinner: Centered overlay when no icons -->
     <span

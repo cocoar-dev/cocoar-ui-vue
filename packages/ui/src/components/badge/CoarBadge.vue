@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useI18n } from '@cocoar/vue-localization';
 
 export type BadgeVariant = 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info';
 export type BadgeSize = 'xs' | 's' | 'm' | 'l' | 'xl';
@@ -34,6 +35,8 @@ const props = withDefaults(defineProps<CoarBadgeProps>(), {
   bordered: false,
 });
 
+const { t } = useI18n();
+
 const displayValue = computed(() => {
   if (props.dot) return '';
 
@@ -67,7 +70,7 @@ const badgeClasses = computed(() => [
 
 <template>
   <span :class="hostClasses">
-    <span :class="badgeClasses" role="status" :aria-label="displayValue || (dot ? 'Notification indicator' : undefined)">
+    <span :class="badgeClasses" role="status" :aria-label="displayValue || (dot ? t('coar.ui.badge.notificationIndicator', undefined, 'Notification indicator') : undefined)">
       <span v-if="!dot && displayValue" class="coar-badge__content">{{ displayValue }}</span>
     </span>
   </span>

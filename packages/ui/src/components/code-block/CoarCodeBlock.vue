@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue';
+import { useI18n } from '@cocoar/vue-localization';
 import Prism from 'prismjs';
 
 import 'prismjs/components/prism-typescript';
@@ -74,6 +75,8 @@ function escapeHtml(text: string): string {
     .replace(/'/g, '&#039;');
 }
 
+const { t } = useI18n();
+
 const isCollapsed = ref(false);
 const copyFeedback = ref<'idle' | 'copied' | 'error'>('idle');
 
@@ -138,7 +141,7 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
             type="button"
             class="coar-code-toggle"
             :aria-expanded="!isCollapsed"
-            aria-label="Toggle code visibility"
+            :aria-label="t('coar.ui.codeBlock.toggleVisibility', undefined, 'Toggle code visibility')"
             @click="toggleCollapsed"
           >
             <svg
@@ -169,15 +172,19 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
             class="coar-code-copy-btn"
             :aria-label="
               copyFeedback === 'copied'
-                ? 'Copied!'
+                ? t('coar.ui.codeBlock.copied', undefined, 'Copied!')
                 : copyFeedback === 'error'
-                  ? 'Failed'
-                  : 'Copy code'
+                  ? t('coar.ui.codeBlock.failed', undefined, 'Failed')
+                  : t('coar.ui.codeBlock.copyLabel', undefined, 'Copy code')
             "
             @click="copyCode"
           >
             {{
-              copyFeedback === 'copied' ? 'Copied!' : copyFeedback === 'error' ? 'Failed' : 'Copy'
+              copyFeedback === 'copied'
+                ? t('coar.ui.codeBlock.copied', undefined, 'Copied!')
+                : copyFeedback === 'error'
+                  ? t('coar.ui.codeBlock.failed', undefined, 'Failed')
+                  : t('coar.ui.codeBlock.copy', undefined, 'Copy')
             }}
           </button>
         </div>

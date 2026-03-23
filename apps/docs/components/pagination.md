@@ -48,3 +48,16 @@ The most common real-world pattern: pair pagination with a data table. A summary
 | Event | Payload | Description |
 |-------|---------|-------------|
 | `pageChanged` | `number` | Emitted when the page changes |
+
+## i18n Keys
+
+These keys can be translated via [`@cocoar/vue-localization`](/guide/i18n).
+
+| Key | Default (English) | Used as |
+|-----|-------------------|---------|
+| `coar.ui.pagination.firstPage` | `'Go to first page'` | First page button `aria-label` |
+| `coar.ui.pagination.previousPage` | `'Go to previous page'` | Previous page button `aria-label` |
+| `coar.ui.pagination.nextPage` | `'Go to next page'` | Next page button `aria-label` |
+| `coar.ui.pagination.lastPage` | `'Go to last page'` | Last page button `aria-label` |
+| `coar.ui.pagination.morePage` | `'More pages'` | Ellipsis separator `aria-label` |
+| `coar.ui.pagination.goToPage` | `'Go to page {page}'` | Page number button `aria-label` — `{page}` is replaced with the page number |

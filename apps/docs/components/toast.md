@@ -70,3 +70,11 @@ Then add the toast container to your `App.vue`:
 | `dismissible` | `boolean` | `true` | Show close button |
 | `showProgress` | `boolean` | `true` | Show progress bar |
 | `action` | `{ label: string; callback: () => void }` | `undefined` | Optional action button |
+
+## i18n Keys
+
+These keys can be translated via [`@cocoar/vue-localization`](/guide/i18n).
+
+| Key | Default (English) | Used as |
+|-----|-------------------|---------|
+| `coar.ui.toast.dismiss` | `'Dismiss notification'` | Dismiss button `aria-label` |

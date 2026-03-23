@@ -90,3 +90,11 @@ Labels are automatically associated with their inputs. The required asterisk is 
 ::: tip
 Label, hint, and error are provided by [`CoarFormField`](/components/form-field). Wrap inputs in a `CoarFormField` to add these features.
 :::
+
+## i18n Keys
+
+These keys can be translated via [`@cocoar/vue-localization`](/guide/i18n).
+
+| Key | Default (English) | Used as |
+|-----|-------------------|---------|
+| `coar.ui.textInput.clear` | `'Clear'` | Clear button `aria-label` |

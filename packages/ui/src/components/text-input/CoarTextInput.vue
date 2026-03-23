@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, inject, useTemplateRef } from 'vue';
+import { useI18n } from '@cocoar/vue-localization';
 import { CoarIcon } from '../icon';
 import { FORM_FIELD_INJECTION_KEY } from '../form-field/constants';
 
@@ -52,6 +53,8 @@ const props = withDefaults(defineProps<CoarTextInputProps>(), {
   autocomplete: '',
   maxlength: undefined,
 });
+
+const { t } = useI18n();
 
 const model = defineModel<string>({ default: '' });
 
@@ -182,7 +185,7 @@ function onClear() {
           class="coar-text-input-clear"
           :class="{ 'coar-text-input-clear--multiline': isMultiline }"
           tabindex="-1"
-          aria-label="Clear"
+          :aria-label="t('coar.ui.textInput.clear', undefined, 'Clear')"
           @click="onClear"
         >
           <CoarIcon name="x" source="coar-builtin" size="auto" />

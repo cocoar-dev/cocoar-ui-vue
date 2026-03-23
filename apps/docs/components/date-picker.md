@@ -74,3 +74,14 @@ Four sizes to stay consistent with other form controls across your layout.
 | `readonly` | `boolean` | `false` | Make read-only |
 | `required` | `boolean` | `false` | Mark as required |
 | `error` | `string` | `''` | Error message |
+
+## i18n Keys
+
+These keys can be translated via [`@cocoar/vue-localization`](/guide/i18n).
+
+| Key | Default (English) | Used as |
+|-----|-------------------|---------|
+| `coar.ui.datePicker.previousYear` | `'Previous year'` | Previous year button `aria-label` |
+| `coar.ui.datePicker.nextYear` | `'Next year'` | Next year button `aria-label` |
+| `coar.ui.datePicker.jumpToToday` | `'Jump to today\'s month'` | Scroll-to-today button `aria-label` |
+| `coar.ui.datePicker.months` | `'Months'` | Month grid `aria-label` |

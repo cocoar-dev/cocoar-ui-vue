@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onBeforeUnmount, ref, nextTick, type Component, h } from 'vue';
+import { useI18n } from '@cocoar/vue-localization';
 import type { DialogSize } from './dialog-types';
 import CoarIcon from '../icon/CoarIcon.vue';
 import CoarButton from '../button/CoarButton.vue';
@@ -24,6 +25,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   close: [result?: unknown];
 }>();
+
+const { t } = useI18n();
 
 const dialogRef = ref<HTMLElement | null>(null);
 
@@ -152,7 +155,7 @@ const BodyRenderer = computed(() => {
         v-if="showCloseButton"
         type="button"
         class="coar-dialog-close"
-        aria-label="Close dialog"
+        :aria-label="t('coar.ui.dialog.close', undefined, 'Close dialog')"
         @click="onClose()"
       >
         <CoarIcon name="x" size="s" />

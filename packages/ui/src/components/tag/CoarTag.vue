@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useI18n } from '@cocoar/vue-localization';
 
 export type TagVariant = 'neutral' | 'success' | 'warning' | 'error' | 'info' | 'accent';
 export type TagSize = 's' | 'm' | 'l';
@@ -29,6 +30,8 @@ const emit = defineEmits<{
   closed: [];
 }>();
 
+const { t } = useI18n();
+
 const hostClasses = computed(() => [
   'coar-tag',
   `coar-tag--${props.variant}`,
@@ -54,7 +57,7 @@ function onClose(event: MouseEvent): void {
       v-if="closable"
       type="button"
       class="coar-tag__close"
-      aria-label="Remove tag"
+      :aria-label="t('coar.ui.tag.remove', undefined, 'Remove tag')"
       @click="onClose"
     >
       <svg class="coar-tag__close-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">

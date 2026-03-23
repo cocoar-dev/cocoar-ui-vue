@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { useI18n } from '@cocoar/vue-localization';
 
 export type AvatarSize = 'xs' | 's' | 'm' | 'l' | 'xl' | 'xxl';
 export type AvatarShape = 'circle' | 'square';
@@ -33,6 +34,8 @@ const props = withDefaults(defineProps<CoarAvatarProps>(), {
   maxLength: 3,
   bgColor: '',
 });
+
+const { t } = useI18n();
 
 const imageError = ref(false);
 
@@ -96,7 +99,7 @@ defineExpose({ showInitials, displayInitials, computedBgColor });
         v-if="showInitials"
         class="coar-avatar__initials"
         :style="{ backgroundColor: computedBgColor }"
-        :aria-label="name || 'Avatar'"
+        :aria-label="name || t('coar.ui.avatar.avatar', undefined, 'Avatar')"
       >
         {{ displayInitials }}
       </span>
@@ -104,7 +107,7 @@ defineExpose({ showInitials, displayInitials, computedBgColor });
         v-else
         class="coar-avatar__image"
         :src="src"
-        :alt="name || 'Avatar'"
+        :alt="name || t('coar.ui.avatar.avatar', undefined, 'Avatar')"
         @error="onImageError"
         @load="onImageLoad"
       />

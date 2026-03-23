@@ -93,3 +93,11 @@ Disabled and loading buttons cannot be activated via keyboard.
 | Event | Payload | Description |
 |-------|---------|-------------|
 | `click` | `MouseEvent` | Emitted when clicked (not when disabled/loading) |
+
+## i18n Keys
+
+These keys can be translated via [`@cocoar/vue-localization`](/guide/i18n).
+
+| Key | Default (English) | Used as |
+|-----|-------------------|---------|
+| `coar.ui.button.loading` | `'Loading'` | Screen reader announcement when `loading` is true |

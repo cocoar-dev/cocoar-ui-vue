@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useI18n } from '@cocoar/vue-localization';
 
 import { Temporal } from '@js-temporal/polyfill';
 
@@ -25,6 +26,8 @@ const props = defineProps<{
   onNextYear: () => void;
   onScrollToTodayMonth: () => void;
 }>();
+
+const { t } = useI18n();
 
 // Month list
 const currentYear = computed(() => props.activeMonth.year);
@@ -99,7 +102,7 @@ const selectedDateMarkers = computed((): CoarDateMarker[] => {
         v-if="showTodayFab"
         type="button"
         class="coar-plain-date-picker-today-fab"
-        aria-label="Jump to today's month"
+        :aria-label="t('coar.ui.datePicker.jumpToToday', undefined, 'Jump to today\'s month')"
         @click="onScrollToTodayMonth"
       >
         <CoarIcon :name="todayMonthDirection === 'up' ? 'chevron-up' : 'chevron-down'" size="xs" />
@@ -114,7 +117,7 @@ const selectedDateMarkers = computed((): CoarDateMarker[] => {
           type="button"
           class="coar-plain-date-picker-year-btn"
           :disabled="isPrevYearDisabled"
-          aria-label="Previous year"
+          :aria-label="t('coar.ui.datePicker.previousYear', undefined, 'Previous year')"
           @click="onPreviousYear"
         >
           <CoarIcon name="chevron-left" size="s" />
@@ -124,7 +127,7 @@ const selectedDateMarkers = computed((): CoarDateMarker[] => {
           type="button"
           class="coar-plain-date-picker-year-btn"
           :disabled="isNextYearDisabled"
-          aria-label="Next year"
+          :aria-label="t('coar.ui.datePicker.nextYear', undefined, 'Next year')"
           @click="onNextYear"
         >
           <CoarIcon name="chevron-right" size="s" />
@@ -133,7 +136,7 @@ const selectedDateMarkers = computed((): CoarDateMarker[] => {
 
       <!-- Month Grid (4-col) -->
       <div class="coar-plain-date-picker-month-list-wrapper">
-        <div class="coar-plain-date-picker-month-list" role="listbox" aria-label="Months">
+        <div class="coar-plain-date-picker-month-list" role="listbox" :aria-label="t('coar.ui.datePicker.months', undefined, 'Months')">
           <div class="coar-plain-date-picker-month-list-content">
             <button
               v-for="item in monthItems"

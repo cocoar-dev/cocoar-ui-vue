@@ -1,5 +1,6 @@
 <script setup lang="ts" generic="T">
 import { computed, inject, toRef, onMounted, onBeforeUnmount, useTemplateRef, nextTick } from 'vue';
+import { useI18n } from '@cocoar/vue-localization';
 import { CoarIcon } from '../icon';
 import { useSelectBase, type CoarSelectSize, type CoarSelectAppearance } from './useSelectBase';
 import { useSelectDropdown } from './useSelectDropdown';
@@ -62,6 +63,8 @@ const props = withDefaults(defineProps<CoarMultiSelectProps<T>>(), {
 });
 
 const model = defineModel<T[]>({ default: () => [] });
+
+const { t } = useI18n();
 
 const formField = inject(FORM_FIELD_INJECTION_KEY, undefined);
 
@@ -263,7 +266,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
             type="button"
             class="coar-select-clear"
             tabindex="-1"
-            aria-label="Clear selection"
+            :aria-label="t('coar.ui.select.clearSelection', undefined, 'Clear selection')"
             @click="clearSelection"
           >
             <CoarIcon name="x" source="coar-builtin" size="auto" />
@@ -339,7 +342,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
             class="coar-select-options"
             role="listbox"
             aria-multiselectable="true"
-            aria-label="Options"
+            :aria-label="t('coar.ui.select.options', undefined, 'Options')"
           >
             <div
               v-for="(option, i) in filteredOptions"
@@ -367,7 +370,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
               <span class="coar-select-option-label">{{ option.label }}</span>
             </div>
             <div v-if="filteredOptions.length === 0" class="coar-select-empty">
-              {{ searchQuery ? 'No results found' : 'No options available' }}
+              {{ searchQuery ? t('coar.ui.select.noResults', undefined, 'No results found') : t('coar.ui.select.noOptions', undefined, 'No options available') }}
             </div>
           </div>
         </div>

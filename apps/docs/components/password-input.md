@@ -64,3 +64,13 @@ The visibility toggle button has an accessible label that updates based on the c
 | `readonly` | `boolean` | `false` | Make read-only |
 | `required` | `boolean` | `false` | Mark as required |
 | `clearable` | `boolean` | `true` | Show clear button when input has value |
+
+## i18n Keys
+
+These keys can be translated via [`@cocoar/vue-localization`](/guide/i18n).
+
+| Key | Default (English) | Used as |
+|-----|-------------------|---------|
+| `coar.ui.passwordInput.showPassword` | `'Show password'` | Toggle visibility button `aria-label` |
+| `coar.ui.passwordInput.hidePassword` | `'Hide password'` | Toggle visibility button `aria-label` (when visible) |
+| `coar.ui.passwordInput.clear` | `'Clear'` | Clear button `aria-label` |

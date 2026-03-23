@@ -62,3 +62,11 @@ Use **Dialog** for modal confirmations that block the entire UI. Use **Popconfir
 |----------|------|-------------|
 | `result` | `Promise<T \| undefined>` | Resolves when the dialog closes |
 | `close(result?)` | `(val?: T) => void` | Programmatically close the dialog |
+
+## i18n Keys
+
+These keys can be translated via [`@cocoar/vue-localization`](/guide/i18n).
+
+| Key | Default (English) | Used as |
+|-----|-------------------|---------|
+| `coar.ui.dialog.close` | `'Close dialog'` | Close button `aria-label` |

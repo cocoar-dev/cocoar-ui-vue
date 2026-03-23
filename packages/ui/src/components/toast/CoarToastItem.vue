@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onBeforeUnmount, computed } from 'vue';
+import { useI18n } from '@cocoar/vue-localization';
 import type { ToastVariant } from './toast-types';
 import CoarIcon from '../icon/CoarIcon.vue';
 
@@ -62,6 +63,8 @@ function onMouseLeave() {
   }
 }
 
+const { t } = useI18n();
+
 function onDismiss() {
   clearTimer();
   emit('dismissed');
@@ -112,7 +115,7 @@ defineExpose({ startAutoClose });
       <button
         v-if="dismissible"
         class="coar-toast-close"
-        aria-label="Dismiss notification"
+        :aria-label="t('coar.ui.toast.dismiss', undefined, 'Dismiss notification')"
         @click="onDismiss"
       >
         <CoarIcon name="x" size="xs" />
