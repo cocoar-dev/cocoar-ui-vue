@@ -7,6 +7,14 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 1.0.1
+
+### Fixed
+
+- **Temporal polyfill**: Moved `@js-temporal/polyfill` from optional peer dependency to regular dependency — fixes `Could not resolve "@js-temporal/polyfill"` errors in consuming apps using Vite
+
+---
+
 ## 1.0.0
 
 Initial release of the Cocoar Design System for Vue 3.
@@ -76,4 +84,4 @@ Initial release of the Cocoar Design System for Vue 3.
 
 - `@cocoar/vue-ui`: 378 KB JS (86 KB gzip), 167 KB CSS (17 KB gzip)
 - Tree-shakeable: all dependencies externalized
-- `@js-temporal/polyfill` optional peer dependency
+- `@js-temporal/polyfill` included as dependency (Temporal API for date/time components)

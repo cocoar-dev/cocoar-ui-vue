@@ -69,15 +69,7 @@ And add the overlay host to your root layout:
 
 ## Date/Time Components
 
-The date and time pickers use the [Temporal API](https://tc39.es/proposal-temporal/docs/). Modern browsers (Chrome 144+, Firefox 139+, Edge 144+) support it natively. For Safari or older browsers, install the polyfill:
-
-```bash
-pnpm add @js-temporal/polyfill
-```
-
-::: info Not using date pickers?
-If you don't use `CoarPlainDatePicker`, `CoarPlainDateTimePicker`, or `CoarZonedDateTimePicker`, you don't need the polyfill at all.
-:::
+The date and time pickers use the [Temporal API](https://tc39.es/proposal-temporal/docs/) via `@js-temporal/polyfill`, which is included as a dependency of `@cocoar/vue-ui`. No extra install needed. When native Temporal support reaches all browsers, the polyfill can be dropped in a future major release.
 
 ## Additional Packages
 

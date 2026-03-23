@@ -1,4 +1,4 @@
-name: Deploy Docs
+name: CD - Documentation
 
 on:
   workflow_dispatch:
@@ -45,6 +45,7 @@ jobs:
       - name: Upload to Shelf
         env:
           KEY: ${{ secrets.SHELF_API_KEY }}
+          URL: ${{ secrets.SHELF_BASE_URL }}
           VER: ${{ inputs.version }}
         run: |
           echo "Deploying cocoar-ui-vue docs $VER"
@@ -52,7 +53,7 @@ jobs:
             -H "Authorization: Bearer $KEY" \
             -H "Content-Type: application/zip" \
             --data-binary @$GITHUB_WORKSPACE/docs.zip \
-            "https://docs.cocoar.dev/_api/products/cocoar-ui-vue/versions/${VER}"
+            "${URL}/_api/products/cocoar-ui-vue/versions/${VER}"
 
       - name: Deployment summary
         run: |

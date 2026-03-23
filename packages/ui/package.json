@@ -42,19 +42,14 @@
     "@cocoar/vue-localization": "workspace:*",
     "@fontsource/inter": "^5.2.8",
     "@fontsource/poppins": "^5.2.7",
+    "@js-temporal/polyfill": "^0.5.0",
     "@maskito/core": "^5.1.1",
     "@maskito/kit": "^5.1.1",
     "@maskito/vue": "^5.1.1",
     "prismjs": "^1.30.0"
   },
   "peerDependencies": {
-    "@js-temporal/polyfill": "^0.5.0",
     "vue": "^3.5.0"
-  },
-  "peerDependenciesMeta": {
-    "@js-temporal/polyfill": {
-      "optional": true
-    }
   },
   "devDependencies": {
     "@types/prismjs": "^1.26.6",
