@@ -122,6 +122,7 @@ export default defineConfig({
     nav: [
       { text: 'Guide', link: '/guide/getting-started', activeMatch: '/guide/|/foundations/' },
       { text: 'Components', link: '/components/button', activeMatch: '/components/' },
+      { text: 'Kitchen Sink', link: '/foundations/kitchen-sink' },
       { text: 'LLM Docs', link: '/llms-full.txt', target: '_blank' },
     ],
 

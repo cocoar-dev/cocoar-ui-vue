@@ -73,21 +73,21 @@
      THEMING: Override --coar-color-accent-* primitives to change these
      ========================================================================== */
 
-  /* Background */
-  --coar-background-accent-primary: var(--coar-color-accent-700);
-  --coar-background-accent-secondary: var(--coar-color-accent-200);
+  /* Background — accent-500 = exact brand color */
+  --coar-background-accent-primary: var(--coar-color-accent-500);
+  --coar-background-accent-secondary: var(--coar-color-accent-100);
   --coar-background-accent-tertiary: var(--coar-color-accent-50);
-  --coar-background-accent-hover: var(--coar-color-accent-800);
-  --coar-background-accent-active: var(--coar-color-accent-900);
-  --coar-background-accent-tertiary-active: var(--coar-color-accent-300);
+  --coar-background-accent-hover: var(--coar-color-accent-600);
+  --coar-background-accent-active: var(--coar-color-accent-700);
+  --coar-background-accent-tertiary-active: var(--coar-color-accent-200);
 
   /* Text */
-  --coar-text-accent-primary: var(--coar-color-accent-700);
-  --coar-text-accent-secondary: var(--coar-color-accent-600);
+  --coar-text-accent-primary: var(--coar-color-accent-600);
+  --coar-text-accent-secondary: var(--coar-color-accent-500);
 
   /* Border */
   --coar-border-accent-primary: var(--coar-color-accent-500);
-  --coar-border-accent-secondary: var(--coar-color-accent-400);
+  --coar-border-accent-secondary: var(--coar-color-accent-300);
 
   /* Surface */
   --coar-surface-accent-secondary: var(--coar-color-accent-100);
@@ -208,17 +208,17 @@
      ACCENT - Lighter values for visibility on dark backgrounds
      ========================================================================== */
 
-  /* Background */
+  /* Background — accent-500 = exact brand color (same in both modes) */
   --coar-background-accent-primary: var(--coar-color-accent-500);
-  --coar-background-accent-secondary: var(--coar-color-accent-300);
+  --coar-background-accent-secondary: var(--coar-color-accent-200);
   --coar-background-accent-tertiary: var(--coar-color-accent-100);
   --coar-background-accent-hover: var(--coar-color-accent-400);
   --coar-background-accent-active: var(--coar-color-accent-300);
-  --coar-background-accent-tertiary-active: var(--coar-color-accent-400);
+  --coar-background-accent-tertiary-active: var(--coar-color-accent-300);
 
   /* Text */
-  --coar-text-accent-primary: var(--coar-color-accent-500);
-  --coar-text-accent-secondary: var(--coar-color-accent-400);
+  --coar-text-accent-primary: var(--coar-color-accent-600);
+  --coar-text-accent-secondary: var(--coar-color-accent-500);
 
   /* Surface */
   --coar-surface-accent-secondary: var(--coar-color-accent-200);

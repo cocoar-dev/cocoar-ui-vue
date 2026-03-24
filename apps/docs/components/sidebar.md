@@ -12,6 +12,12 @@ A typical sidebar layout with a brand logo in the header, a flat list of nav ite
 
 <preview path="./sidebar/demos/SidebarBasic.vue" />
 
+## Appearance
+
+Use `variant`, `elevated`, and `borderless` to control the sidebar's visual style. Try the controls below to preview different combinations.
+
+<preview path="./sidebar/demos/SidebarAppearance.vue" />
+
 ## With Sections & Submenus
 
 For larger applications, organize navigation into labeled sections with `CoarMenuHeading` and nest related pages under expandable `CoarSubExpand` groups. This keeps a complex information architecture browsable without overwhelming the user.
@@ -26,6 +32,9 @@ For larger applications, organize navigation into labeled sections with `CoarMen
 |------|------|---------|-------------|
 | `position` | `'left' \| 'right'` | `'left'` | Sidebar position |
 | `collapsed` | `boolean` | `false` | Narrow/icon-only collapsed state |
+| `variant` | `'primary' \| 'secondary'` | `'primary'` | Background color variant |
+| `elevated` | `boolean` | `false` | Show elevation shadow |
+| `borderless` | `boolean` | `false` | Hide the border |
 | `ariaLabel` | `string` | `'Sidebar'` | Accessible label for the nav landmark |
 
 ### Slots

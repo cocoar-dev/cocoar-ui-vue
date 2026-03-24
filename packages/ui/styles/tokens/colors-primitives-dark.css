@@ -21,64 +21,65 @@
   --coar-color-gray-800: #f4f4f5;
   --coar-color-gray-900: #fafafa;
 
-  /* Slate for brand/accent areas in dark mode */
-  --coar-color-slate-50: #0f172a;
-  --coar-color-slate-100: #1e293b;
-  --coar-color-slate-200: #334155;
-  --coar-color-slate-300: #475569;
-  --coar-color-slate-400: #64748b;
-  --coar-color-slate-500: #94a3b8;
-  --coar-color-slate-600: #b8c5d6;
-  --coar-color-slate-700: #cbd5e1;
-  --coar-color-slate-800: #e2e8f0;
-  --coar-color-slate-900: #f1f5f9;
+  /* Info (slate) — inherits --coar-info from :root */
+  --coar-color-slate-50:  oklch(from var(--coar-info) 0.18 0.012 h);
+  --coar-color-slate-100: oklch(from var(--coar-info) 0.23 0.018 h);
+  --coar-color-slate-200: oklch(from var(--coar-info) 0.30 0.022 h);
+  --coar-color-slate-300: oklch(from var(--coar-info) 0.40 0.025 h);
+  --coar-color-slate-400: oklch(from var(--coar-info) 0.50 0.03  h);
+  --coar-color-slate-500: var(--coar-info);
+  --coar-color-slate-600: oklch(from var(--coar-info) 0.70 0.025 h);
+  --coar-color-slate-700: oklch(from var(--coar-info) 0.78 0.018 h);
+  --coar-color-slate-800: oklch(from var(--coar-info) 0.86 0.012 h);
+  --coar-color-slate-900: oklch(from var(--coar-info) 0.93 0.006 h);
 
-  /* Accent Colors - Primary brand accent for dark mode
-     THEMING: Override these to customize the primary accent color */
-  --coar-color-accent-50: #0a487a;
-  --coar-color-accent-100: #0f5a99;
-  --coar-color-accent-200: #156db7;
-  --coar-color-accent-300: #1e80d1;
-  --coar-color-accent-400: #278fe4;
-  --coar-color-accent-500: #459fea;
-  --coar-color-accent-600: #6eb4ef;
-  --coar-color-accent-700: #9fcdf5;
-  --coar-color-accent-800: #cde6fa;
-  --coar-color-accent-900: #e8f4fc;
+  /* Accent Colors - auto-generated from --coar-accent via oklch
+     Designed for dark backgrounds: vibrant mid-range, rich dark tints.
+     Inherits --coar-accent from :root, no need to re-declare. */
+  --coar-color-accent-50:  oklch(from var(--coar-accent) 0.20 0.045 h);
+  --coar-color-accent-100: oklch(from var(--coar-accent) 0.25 0.065 h);
+  --coar-color-accent-200: oklch(from var(--coar-accent) 0.32 0.095 h);
+  --coar-color-accent-300: oklch(from var(--coar-accent) 0.42 0.13  h);
+  --coar-color-accent-400: oklch(from var(--coar-accent) 0.52 0.155 h);
+  --coar-color-accent-500: var(--coar-accent);
+  --coar-color-accent-600: oklch(from var(--coar-accent) 0.68 0.14  h);
+  --coar-color-accent-700: oklch(from var(--coar-accent) 0.76 0.11  h);
+  --coar-color-accent-800: oklch(from var(--coar-accent) 0.85 0.07  h);
+  --coar-color-accent-900: oklch(from var(--coar-accent) 0.93 0.035 h);
 
-  /* Green - success colors for dark mode */
-  --coar-color-green-50: #0e3a1f;
-  --coar-color-green-100: #134f2b;
-  --coar-color-green-200: #186f39;
-  --coar-color-green-300: #1e8f48;
-  --coar-color-green-400: #25b95a;
-  --coar-color-green-500: #4ac771;
-  --coar-color-green-600: #76d591;
-  --coar-color-green-700: #a4e3b5;
-  --coar-color-green-800: #d2f1da;
-  --coar-color-green-900: #e8f9ed;
+  /* Success (green) — inherits --coar-success from :root */
+  --coar-color-green-50:  oklch(from var(--coar-success) 0.20 0.035 h);
+  --coar-color-green-100: oklch(from var(--coar-success) 0.25 0.055 h);
+  --coar-color-green-200: oklch(from var(--coar-success) 0.32 0.08  h);
+  --coar-color-green-300: oklch(from var(--coar-success) 0.42 0.11  h);
+  --coar-color-green-400: oklch(from var(--coar-success) 0.52 0.13  h);
+  --coar-color-green-500: var(--coar-success);
+  --coar-color-green-600: oklch(from var(--coar-success) 0.68 0.12  h);
+  --coar-color-green-700: oklch(from var(--coar-success) 0.76 0.09  h);
+  --coar-color-green-800: oklch(from var(--coar-success) 0.85 0.06  h);
+  --coar-color-green-900: oklch(from var(--coar-success) 0.93 0.03  h);
 
-  /* Red - error colors for dark mode */
-  --coar-color-red-50: #4d1414;
-  --coar-color-red-100: #6f1d1d;
-  --coar-color-red-200: #922626;
-  --coar-color-red-300: #b52f2f;
-  --coar-color-red-400: #d63b3b;
-  --coar-color-red-500: #e45555;
-  --coar-color-red-600: #ec7c7c;
-  --coar-color-red-700: #f3a8a8;
-  --coar-color-red-800: #f9d3d3;
-  --coar-color-red-900: #fdecec;
+  /* Error (red) — inherits --coar-error from :root */
+  --coar-color-red-50:  oklch(from var(--coar-error) 0.20 0.04  h);
+  --coar-color-red-100: oklch(from var(--coar-error) 0.25 0.06  h);
+  --coar-color-red-200: oklch(from var(--coar-error) 0.32 0.09  h);
+  --coar-color-red-300: oklch(from var(--coar-error) 0.42 0.12  h);
+  --coar-color-red-400: oklch(from var(--coar-error) 0.52 0.145 h);
+  --coar-color-red-500: var(--coar-error);
+  --coar-color-red-600: oklch(from var(--coar-error) 0.68 0.12  h);
+  --coar-color-red-700: oklch(from var(--coar-error) 0.76 0.09  h);
+  --coar-color-red-800: oklch(from var(--coar-error) 0.85 0.06  h);
+  --coar-color-red-900: oklch(from var(--coar-error) 0.93 0.03  h);
 
-  /* Yellow - warning colors for dark mode */
-  --coar-color-amber-50: #402908;
-  --coar-color-amber-100: #66430f;
-  --coar-color-amber-200: #996217;
-  --coar-color-amber-300: #cc821f;
-  --coar-color-amber-400: #ffa326;
-  --coar-color-amber-500: #ffba4d;
-  --coar-color-amber-600: #ffce78;
-  --coar-color-amber-700: #ffdfa0;
-  --coar-color-amber-800: #ffeec2;
-  --coar-color-amber-900: #fff8e6;
+  /* Warning (amber) — inherits --coar-warning from :root */
+  --coar-color-amber-50:  oklch(from var(--coar-warning) 0.22 0.04  h);
+  --coar-color-amber-100: oklch(from var(--coar-warning) 0.27 0.06  h);
+  --coar-color-amber-200: oklch(from var(--coar-warning) 0.34 0.09  h);
+  --coar-color-amber-300: oklch(from var(--coar-warning) 0.44 0.12  h);
+  --coar-color-amber-400: oklch(from var(--coar-warning) 0.54 0.14  h);
+  --coar-color-amber-500: var(--coar-warning);
+  --coar-color-amber-600: oklch(from var(--coar-warning) 0.70 0.12  h);
+  --coar-color-amber-700: oklch(from var(--coar-warning) 0.78 0.09  h);
+  --coar-color-amber-800: oklch(from var(--coar-warning) 0.86 0.06  h);
+  --coar-color-amber-900: oklch(from var(--coar-warning) 0.93 0.03  h);
 }
