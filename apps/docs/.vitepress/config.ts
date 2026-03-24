@@ -133,7 +133,8 @@ export default defineConfig({
           items: [
             { text: 'Getting Started', link: '/guide/getting-started' },
             { text: 'Error Handling', link: '/guide/error-handling' },
-            { text: 'i18n / Component Strings', link: '/guide/i18n' },
+            { text: 'Theming', link: '/guide/theming' },
+            { text: 'Changelog', link: '/guide/changelog' },
           ],
         },
         {
@@ -145,7 +146,16 @@ export default defineConfig({
             { text: 'Spacing & Effects', link: '/foundations/spacing' },
             { text: 'Icons', link: '/foundations/icons' },
             { text: 'Motion', link: '/foundations/motion' },
-            { text: 'Localization', link: '/foundations/localization' },
+            {
+              text: 'Localization',
+              collapsed: false,
+              items: [
+                { text: 'Setup', link: '/foundations/localization/setup' },
+                { text: 'Formatting', link: '/foundations/localization/formatting' },
+                { text: 'Translations', link: '/foundations/localization/translations' },
+                { text: 'Timezones', link: '/foundations/localization/timezones' },
+              ],
+            },
           ],
         },
       ],
@@ -155,7 +165,8 @@ export default defineConfig({
           items: [
             { text: 'Getting Started', link: '/guide/getting-started' },
             { text: 'Error Handling', link: '/guide/error-handling' },
-            { text: 'i18n / Component Strings', link: '/guide/i18n' },
+            { text: 'Theming', link: '/guide/theming' },
+            { text: 'Changelog', link: '/guide/changelog' },
           ],
         },
         {
@@ -167,7 +178,16 @@ export default defineConfig({
             { text: 'Spacing & Effects', link: '/foundations/spacing' },
             { text: 'Icons', link: '/foundations/icons' },
             { text: 'Motion', link: '/foundations/motion' },
-            { text: 'Localization', link: '/foundations/localization' },
+            {
+              text: 'Localization',
+              collapsed: false,
+              items: [
+                { text: 'Setup', link: '/foundations/localization/setup' },
+                { text: 'Formatting', link: '/foundations/localization/formatting' },
+                { text: 'Translations', link: '/foundations/localization/translations' },
+                { text: 'Timezones', link: '/foundations/localization/timezones' },
+              ],
+            },
           ],
         },
       ],
