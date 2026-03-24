@@ -16,9 +16,13 @@ export default defineConfig({
   },
   build: {
     lib: {
-      entry: resolve(__dirname, 'src/index.ts'),
+      entry: {
+        index: resolve(__dirname, 'src/index.ts'),
+        fonts: resolve(__dirname, 'src/fonts.ts'),
+      },
       formats: ['es'],
-      fileName: 'index',
+      cssFileName: 'index',
+      fileName: (_format, entryName) => `${entryName}.js`,
     },
     rollupOptions: {
       external: [
@@ -30,6 +34,7 @@ export default defineConfig({
         '@maskito/kit',
         '@maskito/vue',
         'prismjs',
+        /^@fontsource\//,
       ],
       output: {
         globals: {

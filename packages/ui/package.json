@@ -10,11 +10,19 @@
   },
   "homepage": "https://docs.cocoar.dev/cocoar-ui-vue/",
   "bugs": "https://github.com/cocoar-dev/cocoar-ui-vue/issues",
-  "keywords": ["vue", "vue3", "component-library", "design-system", "ui", "accessible", "typescript"],
+  "keywords": [
+    "vue",
+    "vue3",
+    "component-library",
+    "design-system",
+    "ui",
+    "accessible",
+    "typescript"
+  ],
   "type": "module",
   "sideEffects": [
     "*.css",
-    "./src/fonts.ts"
+    "./dist/fonts.js"
   ],
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -26,7 +34,11 @@
       "types": "./dist/index.d.ts"
     },
     "./styles": "./styles/bundle.css",
-    "./fonts": "./src/fonts.ts"
+    "./fonts": {
+      "source": "./src/fonts.ts",
+      "import": "./dist/fonts.js",
+      "types": "./dist/fonts.d.ts"
+    }
   },
   "files": [
     "dist",
