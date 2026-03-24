@@ -188,9 +188,6 @@ importers:
       '@maskito/vue':
         specifier: ^5.1.1
         version: 5.1.1(@maskito/core@5.1.1)(vue@3.5.28(typescript@5.9.3))
-      overlayscrollbars:
-        specifier: ^2.14.0
-        version: 2.14.0
       prismjs:
         specifier: ^1.30.0
         version: 1.30.0
@@ -198,6 +195,9 @@ importers:
       '@types/prismjs':
         specifier: ^1.26.6
         version: 1.26.6
+      overlayscrollbars:
+        specifier: ^2.14.0
+        version: 2.14.0
       vue:
         specifier: ^3.5.0
         version: 3.5.28(typescript@5.9.3)
