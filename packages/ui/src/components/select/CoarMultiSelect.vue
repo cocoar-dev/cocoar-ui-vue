@@ -462,7 +462,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
   white-space: nowrap;
 }
 
-.coar-select-placeholder { color: var(--coar-text-neutral-tertiary); }
+.coar-select-placeholder { color: var(--coar-text-placeholder); }
 
 /* Actions */
 .coar-select-actions {
@@ -583,7 +583,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
   transition: border-color var(--coar-duration-fast) var(--coar-ease-out), box-shadow var(--coar-duration-fast) var(--coar-ease-out);
 }
 
-.coar-select-search-input::placeholder { color: var(--coar-text-neutral-tertiary); }
+.coar-select-search-input::placeholder { color: var(--coar-text-placeholder); }
 
 .coar-select-search-input:focus {
   border-color: var(--coar-focus-color);

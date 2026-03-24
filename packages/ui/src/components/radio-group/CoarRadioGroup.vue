@@ -15,6 +15,8 @@ export interface CoarRadioGroupProps {
   orientation?: RadioGroupOrientation;
   /** Size of radio buttons */
   size?: RadioGroupSize;
+  /** Label position relative to the radio control */
+  labelPosition?: 'before' | 'after';
   /** Disables all radio buttons */
   disabled?: boolean;
   /** Marks the group as required */
@@ -36,6 +38,7 @@ const props = withDefaults(defineProps<CoarRadioGroupProps>(), {
   label: '',
   orientation: 'vertical',
   size: 'm',
+  labelPosition: 'after',
   disabled: false,
   required: false,
   error: false,
@@ -69,6 +72,7 @@ provide(RADIO_GROUP_INJECTION_KEY, {
   size: computed(() => props.size),
   disabled: computed(() => props.disabled),
   hasError,
+  labelPosition: computed(() => props.labelPosition),
   modelValue: computed(() => model.value),
   selectValue,
 });

@@ -328,7 +328,7 @@ function onClear() {
 }
 
 .coar-text-input-field::placeholder {
-  color: var(--coar-text-neutral-tertiary);
+  color: var(--coar-text-placeholder);
 }
 
 .coar-text-input-field:disabled {

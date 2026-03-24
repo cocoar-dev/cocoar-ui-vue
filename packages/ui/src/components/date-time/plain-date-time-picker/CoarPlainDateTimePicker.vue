@@ -700,7 +700,7 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
 }
 
 .coar-pdtp-input::placeholder {
-  color: var(--coar-text-neutral-tertiary);
+  color: var(--coar-text-placeholder);
 }
 .coar-pdtp-input:disabled {
   cursor: not-allowed;

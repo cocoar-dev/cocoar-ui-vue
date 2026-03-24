@@ -443,7 +443,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
   outline: none;
 }
 
-.coar-tag-select-input::placeholder { color: var(--coar-text-neutral-tertiary); }
+.coar-tag-select-input::placeholder { color: var(--coar-text-placeholder); }
 
 /* Dropdown */
 .coar-select-dropdown {

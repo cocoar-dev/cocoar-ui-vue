@@ -24,6 +24,12 @@ Mark the group as `required` to show an asterisk. Wrap in `CoarFormField` to dis
 
 <preview path="./radio-group/demos/RadioGroupStates.vue" />
 
+## Label Position
+
+Place the label text before or after the radio control with the `labelPosition` prop on the group. All radio buttons inherit the setting.
+
+<preview path="./radio-group/demos/RadioGroupLabelPosition.vue" />
+
 ## Disabled Buttons
 
 Individual `CoarRadioButton` options can be disabled while the rest of the group stays interactive -- useful for temporarily unavailable plans or tiers.
@@ -69,6 +75,7 @@ Only one radio button in a group receives tab focus. Arrow keys move selection b
 | `label` | `string` | `''` | Group accessible label |
 | `orientation` | `'horizontal' \| 'vertical'` | `'vertical'` | Layout direction |
 | `size` | `'s' \| 'm' \| 'l'` | `'m'` | Radio button size |
+| `labelPosition` | `'before' \| 'after'` | `'after'` | Label position for all radio buttons |
 | `disabled` | `boolean` | `false` | Disable all radio buttons |
 | `required` | `boolean` | `false` | Mark as required |
 | `error` | `boolean` | `false` | Error state (auto-injected from `CoarFormField`) |

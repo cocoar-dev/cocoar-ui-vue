@@ -36,6 +36,12 @@ Wrap in `CoarFormField` with a `hint` prop to give users extra context without c
 
 <preview path="./checkbox/demos/CheckboxHint.vue" />
 
+## Label Position
+
+Place the label before or after the checkbox with the `labelPosition` prop. Defaults to `'after'`.
+
+<preview path="./checkbox/demos/CheckboxLabelPosition.vue" />
+
 ## Without Label
 
 For table rows or tight custom layouts you can omit the visible label -- just make sure to pass an `aria-label` so the checkbox remains accessible.
@@ -72,6 +78,7 @@ The indeterminate state is visual only. Clicking an indeterminate checkbox toggl
 | `label` | `string` | `''` | Label text |
 | `error` | `boolean` | `false` | Error state (auto-injected from `CoarFormField`) |
 | `size` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Checkbox size |
+| `labelPosition` | `'before' \| 'after'` | `'after'` | Label position relative to the checkbox |
 | `indeterminate` | `boolean` | `false` | Show indeterminate (dash) state |
 | `disabled` | `boolean` | `false` | Disable the checkbox |
 | `required` | `boolean` | `false` | Mark as required |

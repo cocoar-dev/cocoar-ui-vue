@@ -19,6 +19,8 @@ export interface CoarCheckboxProps {
   error?: boolean;
   /** Checkbox size */
   size?: CoarCheckboxSize;
+  /** Label position relative to the checkbox */
+  labelPosition?: 'before' | 'after';
   /** HTML id attribute */
   id?: string;
   /** HTML name attribute */
@@ -35,6 +37,7 @@ const props = withDefaults(defineProps<CoarCheckboxProps>(), {
   required: false,
   error: false,
   size: 'm',
+  labelPosition: 'after',
   id: '',
   name: '',
   value: '',
@@ -102,6 +105,12 @@ function onBlur() {
 <template>
   <div :class="hostClasses">
     <label class="coar-checkbox-wrapper" :class="{ 'coar-checkbox-focused': isFocused }">
+      <!-- Label before -->
+      <span v-if="labelPosition === 'before' && label" class="coar-checkbox-label">
+        {{ label }}
+        <span v-if="required" class="coar-checkbox-required">*</span>
+      </span>
+
       <!-- Hidden native checkbox -->
       <input
         :id="inputId"
@@ -134,8 +143,8 @@ function onBlur() {
         </svg>
       </span>
 
-      <!-- Label text -->
-      <span v-if="label" class="coar-checkbox-label">
+      <!-- Label after -->
+      <span v-if="labelPosition === 'after' && label" class="coar-checkbox-label">
         {{ label }}
         <span v-if="required" class="coar-checkbox-required">*</span>
       </span>

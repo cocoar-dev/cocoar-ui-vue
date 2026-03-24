@@ -557,7 +557,7 @@ function onInputBlur() {
 }
 
 .coar-plain-date-picker-input::placeholder {
-  color: var(--coar-text-neutral-tertiary);
+  color: var(--coar-text-placeholder);
 }
 
 .coar-plain-date-picker-input:disabled {

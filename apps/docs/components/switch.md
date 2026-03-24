@@ -30,6 +30,12 @@ Three sizes so the switch fits naturally alongside other controls at any density
 
 <preview path="./switch/demos/SwitchSizes.vue" />
 
+## Label Position
+
+Place the label before or after the switch with the `labelPosition` prop. Defaults to `'after'`.
+
+<preview path="./switch/demos/SwitchLabelPosition.vue" />
+
 ## Settings Panel Example
 
 Switches shine in settings panels where each row controls an independent feature. Here is a typical layout pattern.

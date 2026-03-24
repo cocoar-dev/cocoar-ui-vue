@@ -399,7 +399,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
   white-space: nowrap;
 }
 
-.coar-select-placeholder { color: var(--coar-text-neutral-tertiary); }
+.coar-select-placeholder { color: var(--coar-text-placeholder); }
 
 .coar-select--xs .coar-select-value { font-size: var(--coar-component-xs-font-size); }
 .coar-select--s .coar-select-value { font-size: var(--coar-component-s-font-size); }
@@ -488,7 +488,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
 }
 
 .coar-select-search-input::placeholder {
-  color: var(--coar-text-neutral-tertiary);
+  color: var(--coar-text-placeholder);
 }
 
 .coar-select-search-input:focus {

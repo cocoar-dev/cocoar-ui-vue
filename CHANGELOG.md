@@ -7,6 +7,24 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 1.3.0
+
+### Added
+
+- **Label position**: `CoarCheckbox` and `CoarRadioGroup` now support `labelPosition="before" | "after"` — place the label text before or after the control, matching the existing `CoarSwitch` API
+- **Placeholder token**: New `--coar-text-placeholder` design token for consistent, clearly distinguishable placeholder styling across all input components
+
+### Fixed
+
+- **Placeholder color**: Placeholder text in all input components (TextInput, PasswordInput, NumberInput, Select, MultiSelect, TagSelect, PlainDatePicker, PlainDateTimePicker) was too dark and looked like actual input — now uses `--coar-text-placeholder` (`gray-400`) instead of `--coar-text-neutral-tertiary` (`gray-700`)
+
+### Docs
+
+- **Label Position demos**: New interactive examples for Checkbox, RadioGroup, and Switch showing `labelPosition="before"` vs `"after"`
+- **API tables**: Updated props documentation for Checkbox and RadioGroup with the new `labelPosition` prop
+
+---
+
 ## 1.2.0
 
 ### Added

@@ -489,7 +489,7 @@ function decrement() {
 }
 
 .coar-number-input-field::placeholder {
-  color: var(--coar-text-neutral-tertiary);
+  color: var(--coar-text-placeholder);
   text-align: right;
 }
 

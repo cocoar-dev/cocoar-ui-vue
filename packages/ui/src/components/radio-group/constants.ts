@@ -6,6 +6,7 @@ export interface RadioGroupProvided {
   size: ComputedRef<RadioGroupContext['size']>;
   disabled: ComputedRef<boolean>;
   hasError: ComputedRef<boolean>;
+  labelPosition: ComputedRef<'before' | 'after'>;
   modelValue: ComputedRef<unknown>;
   selectValue: (value: unknown) => void;
 }

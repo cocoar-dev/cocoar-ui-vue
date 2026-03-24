@@ -22,6 +22,7 @@ const isChecked = computed(() => group?.modelValue.value === props.value);
 const isDisabled = computed(() => props.disabled || (group?.disabled.value ?? false));
 const groupSize = computed(() => group?.size.value ?? 'm');
 const groupHasError = computed(() => group?.hasError.value ?? false);
+const labelPosition = computed(() => group?.labelPosition.value ?? 'after');
 const radioName = computed(() => group?.name.value ?? '');
 
 const hostClasses = computed(() => [
@@ -59,6 +60,9 @@ function onBlur() { isFocused.value = false; }
 <template>
   <div :class="hostClasses" @click="onClick">
     <label class="coar-radio__label" :for="autoId">
+      <span v-if="labelPosition === 'before'" class="coar-radio__text">
+        <slot />
+      </span>
       <input
         :id="autoId"
         type="radio"
@@ -73,7 +77,7 @@ function onBlur() { isFocused.value = false; }
       <span class="coar-radio__control">
         <span class="coar-radio__dot" />
       </span>
-      <span class="coar-radio__text">
+      <span v-if="labelPosition === 'after'" class="coar-radio__text">
         <slot />
       </span>
     </label>

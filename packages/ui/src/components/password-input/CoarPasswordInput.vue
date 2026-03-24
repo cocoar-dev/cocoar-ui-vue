@@ -268,7 +268,7 @@ function togglePasswordVisibility() {
   color: var(--coar-text-neutral-primary);
 }
 
-.coar-password-input-field::placeholder { color: var(--coar-text-neutral-tertiary); }
+.coar-password-input-field::placeholder { color: var(--coar-text-placeholder); }
 .coar-password-input-field:disabled { color: var(--coar-text-neutral-disabled); cursor: not-allowed; }
 .coar-password-input-field:read-only { cursor: default; }
 
