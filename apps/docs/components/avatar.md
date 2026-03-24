@@ -51,7 +51,7 @@ Stack avatars with negative margins to show team members or participants at a gl
 
 ## i18n Keys
 
-These keys can be translated via [`@cocoar/vue-localization`](/guide/i18n).
+These keys can be translated via [`@cocoar/vue-localization`](/foundations/localization/translations).
 
 | Key | Default (English) | Used as |
 |-----|-------------------|---------|

@@ -54,7 +54,7 @@ Cluster related tags together to label content. This pattern works well for arti
 
 ## i18n Keys
 
-These keys can be translated via [`@cocoar/vue-localization`](/guide/i18n).
+These keys can be translated via [`@cocoar/vue-localization`](/foundations/localization/translations).
 
 | Key | Default (English) | Used as |
 |-----|-------------------|---------|

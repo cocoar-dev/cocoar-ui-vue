@@ -67,7 +67,7 @@ The visibility toggle button has an accessible label that updates based on the c
 
 ## i18n Keys
 
-These keys can be translated via [`@cocoar/vue-localization`](/guide/i18n).
+These keys can be translated via [`@cocoar/vue-localization`](/foundations/localization/translations).
 
 | Key | Default (English) | Used as |
 |-----|-------------------|---------|

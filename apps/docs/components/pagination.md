@@ -51,7 +51,7 @@ The most common real-world pattern: pair pagination with a data table. A summary
 
 ## i18n Keys
 
-These keys can be translated via [`@cocoar/vue-localization`](/guide/i18n).
+These keys can be translated via [`@cocoar/vue-localization`](/foundations/localization/translations).
 
 | Key | Default (English) | Used as |
 |-----|-------------------|---------|

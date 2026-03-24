@@ -93,7 +93,7 @@ Label, hint, and error are provided by [`CoarFormField`](/components/form-field)
 
 ## i18n Keys
 
-These keys can be translated via [`@cocoar/vue-localization`](/guide/i18n).
+These keys can be translated via [`@cocoar/vue-localization`](/foundations/localization/translations).
 
 | Key | Default (English) | Used as |
 |-----|-------------------|---------|
