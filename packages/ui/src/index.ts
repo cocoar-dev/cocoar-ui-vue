@@ -107,13 +107,15 @@ export {
   CoarMenuHeading,
   CoarSubExpand,
   CoarSubmenuItem,
+  CoarContextMenu,
+  useContextMenu,
   MenuCascade,
   provideMenuCascade,
   useMenuCascade,
   provideMenuClose,
   useMenuClose,
 } from './components/menu';
-export type { MenuItemClickEvent, MenuAimPoint, MenuAimDirection, MenuAimConfig } from './components/menu';
+export type { MenuItemClickEvent, MenuAimPoint, MenuAimDirection, MenuAimConfig, ContextMenuContext } from './components/menu';
 
 // Tabs
 export { CoarTabGroup, CoarTab } from './components/tabs';

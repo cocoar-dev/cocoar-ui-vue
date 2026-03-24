@@ -230,6 +230,7 @@ export default defineConfig({
           text: 'Navigation',
           items: [
             { text: 'Menu', link: '/components/menu' },
+            { text: 'Context Menu', link: '/components/context-menu' },
             { text: 'Sidebar', link: '/components/sidebar' },
             { text: 'Navbar', link: '/components/navbar' },
             { text: 'Tabs', link: '/components/tabs' },
