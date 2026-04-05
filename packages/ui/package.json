@@ -50,7 +50,6 @@
     "lint": "eslint src/"
   },
   "dependencies": {
-    "@cocoar/vue-fragment-parser": "workspace:*",
     "@cocoar/vue-localization": "workspace:*",
     "@fontsource/inter": "^5.2.8",
     "@fontsource/poppins": "^5.2.7",

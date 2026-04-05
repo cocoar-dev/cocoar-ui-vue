@@ -17,6 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      TURBO_TELEMETRY_DISABLED: 1
 
     steps:
       - name: Checkout code

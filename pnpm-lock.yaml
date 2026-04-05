@@ -205,9 +205,6 @@ importers:
 
   packages/ui:
     dependencies:
-      '@cocoar/vue-fragment-parser':
-        specifier: workspace:*
-        version: link:../fragment-parser
       '@cocoar/vue-localization':
         specifier: workspace:*
         version: link:../localization
