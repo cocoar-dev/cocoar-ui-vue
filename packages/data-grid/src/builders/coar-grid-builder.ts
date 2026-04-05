@@ -16,9 +16,12 @@ import type {
   CellContextMenuEvent,
   ColumnState,
   PostSortRowsParams,
+  RowDragEndEvent,
+  RowDragMoveEvent,
 } from 'ag-grid-community';
 
-import { CoarGridColumnBuilder } from './coar-grid-column-builder';
+import { CoarGridColumnBuilder, COAR_QUICK_FILTER_KEY } from './coar-grid-column-builder';
+import type { QuickFilterConfig } from './coar-grid-column-builder';
 import { CoarGridColumnFactory } from './coar-grid-column-factory';
 
 type ColumnBuilderLike<TData> = {
@@ -29,6 +32,39 @@ type ColumnBuilderLike<TData> = {
 export type ColumnDefinition<TData> =
   | ColumnBuilderLike<TData>
   | ((factory: CoarGridColumnFactory<TData>) => ColumnBuilderLike<TData>);
+
+/** Configuration for tree (hierarchical) data */
+export interface TreeDataConfig<TData> {
+  /** Extract children from a row. Return empty array for leaf nodes. */
+  children: (row: TData) => TData[];
+  /** Extract a unique ID from a row. Used for tracking expanded state. */
+  rowId: (row: TData) => string;
+}
+
+/** Metadata about a tree node, available to cell renderers via AG Grid context */
+export interface TreeNodeMeta {
+  /** Nesting depth (0 = root) */
+  depth: number;
+  /** Whether this node has children */
+  hasChildren: boolean;
+  /** Whether this node is currently expanded */
+  isExpanded: boolean;
+  /** Number of direct children */
+  childCount: number;
+}
+
+/** Tree context available on AG Grid's `context.coarTree` */
+export interface CoarTreeContext<TData = unknown> {
+  meta: Map<string, TreeNodeMeta>;
+  toggleRow: (id: string) => void;
+  getRowId: (row: TData) => string;
+}
+
+/** Options for row drag highlight */
+export interface RowDragHighlightOptions<TData> {
+  /** Validate if dragged row can be dropped on target. Return `false` to show "not allowed" feedback. */
+  canDrop?: (draggedData: TData, targetData: TData) => boolean;
+}
 
 /** Options for row selection */
 export interface RowSelectionOptions {
@@ -58,6 +94,7 @@ export interface RowSelectionOptions {
  */
 export class CoarGridBuilder<TData = unknown> {
   #gridApi: GridApi<TData> | undefined;
+  #gridElement?: HTMLElement;
   #gridReady = ref(false);
   #cleanupFns: Array<() => void> = [];
 
@@ -71,6 +108,21 @@ export class CoarGridBuilder<TData = unknown> {
   #openRows?: Ref<string[]>;
   #sortFilterTriggers: WatchSource[] = [];
   #externalFilterTriggers: WatchSource[] = [];
+
+  // Quick filter
+  #quickFilterTextRef?: Ref<string>;
+  #quickFilterFn?: (searchValue: string, data: TData) => boolean;
+
+  // Search highlight
+  #searchHighlightEnabled = false;
+
+  // Tree data
+  #treeConfig?: TreeDataConfig<TData>;
+  #treeContext: CoarTreeContext<TData> = {
+    meta: new Map(),
+    toggleRow: () => {},
+    getRowId: () => '',
+  };
 
   // Viewport event handlers (wired by wrapper component)
   #viewportClickHandler?: ($event: MouseEvent, api: GridApi<TData>) => void;
@@ -273,6 +325,40 @@ export class CoarGridBuilder<TData = unknown> {
   // Tree / Group Data
   // ============================================================
 
+  /**
+   * Enable tree data mode with nested children.
+   *
+   * The builder flattens the tree before passing it to AG Grid,
+   * respecting `openRows()` for expand/collapse. When a quick filter
+   * is active, matching branches are automatically expanded.
+   *
+   * @example
+   * ```ts
+   * builder.treeData({
+   *   children: (row) => row.children ?? [],
+   *   rowId: (row) => row.id,
+   * })
+   * ```
+   */
+  treeData(config: TreeDataConfig<TData>): this {
+    this.#treeConfig = config;
+    this.#treeContext.getRowId = config.rowId;
+    this.#treeContext.toggleRow = (id: string) => {
+      if (!this.#openRows) return;
+      const rows = this.#openRows.value;
+      if (rows.includes(id)) {
+        this.#openRows.value = rows.filter((r) => r !== id);
+      } else {
+        this.#openRows.value = [...rows, id];
+      }
+    };
+    // Set AG Grid's getRowId to match our tree row IDs
+    this.#gridOptions.getRowId = (params) => config.rowId(params.data);
+    // Pass tree context through AG Grid context
+    this.#gridOptions.context = { ...this.#gridOptions.context, coarTree: this.#treeContext };
+    return this;
+  }
+
   /** Set which parent rows are expanded (reactive ref of row IDs) */
   openRows(openRows: Ref<string[]>): this {
     this.#openRows = openRows;
@@ -303,6 +389,118 @@ export class CoarGridBuilder<TData = unknown> {
   shiftResizeMode(value = true): this {
     this.#mergeOptions({ colResizeDefault: value ? 'shift' : undefined });
     return this;
+  }
+
+  // ============================================================
+  // Row Drag & Drop
+  // ============================================================
+
+  /**
+   * Enable managed row drag & drop reordering.
+   * AG Grid handles the visual reorder. Dragging is automatically
+   * disabled when a column sort is active.
+   *
+   * Use `onRowDragEnd()` to persist the new order.
+   * Use `.rowDrag()` on a column to show the drag handle.
+   *
+   * @example
+   * ```ts
+   * builder
+   *   .columns([col => col.field('name').rowDrag().flex(1)])
+   *   .rowDragManaged()
+   *   .onRowDragEnd(() => {
+   *     const newOrder = builder.getDisplayedRowData();
+   *     store.updateOrder(newOrder);
+   *   });
+   * ```
+   */
+  rowDragManaged(value = true): this {
+    this.#mergeOptions({ rowDragManaged: value });
+    return this;
+  }
+
+  /**
+   * Handle row drag end event. Fires after a row has been dropped.
+   * Use `getDisplayedRowData()` to read the new order.
+   *
+   * For tree data, use `event.node.data` (dragged) and `event.overNode?.data` (target).
+   */
+  onRowDragEnd(handler: (event: RowDragEndEvent<TData>) => void): this {
+    this.#gridOptions.onRowDragEnd = this.#composeHandler(
+      this.#gridOptions.onRowDragEnd,
+      handler,
+    );
+    return this;
+  }
+
+  /**
+   * Enable drop target highlighting during row drag.
+   * Shows visual feedback on the target row:
+   * - `.coar-drop-target` (blue outline) for valid targets
+   * - `.coar-drop-target--invalid` (red dashed) for invalid targets
+   *
+   * @param options - Pass `canDrop` to validate drop targets
+   *
+   * @example
+   * ```ts
+   * builder.rowDragHighlight({
+   *   canDrop: (dragged, target) => dragged.id !== target.id,
+   * })
+   * ```
+   */
+  rowDragHighlight(options?: RowDragHighlightOptions<TData> | boolean): this {
+    if (options === false) return this;
+    const config = typeof options === 'object' ? options : {};
+
+    this.#gridOptions.onRowDragMove = this.#composeHandler(
+      this.#gridOptions.onRowDragMove as ((event: RowDragMoveEvent<TData>) => void) | undefined,
+      (event: RowDragMoveEvent<TData>) => {
+        this.#clearDropTargetHighlight();
+        const overNode = event.overNode;
+
+        if (!overNode || !overNode.data || !event.node.data) {
+          // Over empty area → show root drop zone
+          this.#gridElement?.classList.add('coar-drop-target-root');
+          return;
+        }
+        if (overNode === event.node) return;
+
+        const rowEl = this.#getRowElement(overNode.id ?? String(overNode.rowIndex));
+        if (!rowEl) return;
+
+        const canDrop = !config.canDrop || config.canDrop(event.node.data, overNode.data);
+        rowEl.classList.add(canDrop ? 'coar-drop-target' : 'coar-drop-target--invalid');
+      },
+    );
+    this.#gridOptions.onRowDragLeave = this.#composeHandler(
+      this.#gridOptions.onRowDragLeave as (() => void) | undefined,
+      () => { this.#clearDropTargetHighlight(); },
+    );
+    this.#gridOptions.onRowDragEnd = this.#composeHandler(
+      this.#gridOptions.onRowDragEnd,
+      () => { this.#clearDropTargetHighlight(); },
+    );
+    return this;
+  }
+
+  /**
+   * Get tree node metadata (depth, hasChildren, isExpanded, childCount) for a given row ID.
+   * Requires `treeData()` to be configured. Returns `undefined` if not found.
+   */
+  getTreeMeta(rowId: string): TreeNodeMeta | undefined {
+    return this.#treeContext.meta.get(rowId);
+  }
+
+  /**
+   * Get all row data in the current display order.
+   * Useful after drag & drop to persist the new order.
+   */
+  getDisplayedRowData(): TData[] {
+    const result: TData[] = [];
+    this.#gridApi?.forEachNodeAfterFilterAndSort((node) => {
+      if (node.data) result.push(node.data);
+    });
+    return result;
   }
 
   // ============================================================
@@ -401,6 +599,62 @@ export class CoarGridBuilder<TData = unknown> {
   }
 
   // ============================================================
+  // Quick Filter (Search)
+  // ============================================================
+
+  /**
+   * Set the quick filter search text (reactive ref).
+   * When set, row data is filtered before being passed to AG Grid.
+   *
+   * @example
+   * ```ts
+   * const search = ref('');
+   * builder.quickFilterText(search);
+   * ```
+   */
+  quickFilterText(source: Ref<string>): this {
+    this.#quickFilterTextRef = source;
+    return this;
+  }
+
+  /**
+   * Set a custom quick filter function. Overrides the default per-column matching.
+   *
+   * @param fn - Receives the normalized (lowercased, trimmed) search value and row data.
+   *             Return `true` to keep the row visible.
+   *
+   * @example
+   * ```ts
+   * builder.quickFilterFn((search, data) => {
+   *   return data.name.toLowerCase().includes(search)
+   *     || data.email.toLowerCase().includes(search);
+   * });
+   * ```
+   */
+  quickFilterFn(fn: (searchValue: string, data: TData) => boolean): this {
+    this.#quickFilterFn = fn;
+    return this;
+  }
+
+  /**
+   * Enable search text highlighting using the CSS Custom Highlight API.
+   * Matching text in grid cells is highlighted without modifying the DOM.
+   *
+   * Requires `quickFilterText()` to be set.
+   *
+   * @example
+   * ```ts
+   * builder
+   *   .quickFilterText(searchRef)
+   *   .searchHighlight()
+   * ```
+   */
+  searchHighlight(value = true): this {
+    this.#searchHighlightEnabled = value;
+    return this;
+  }
+
+  // ============================================================
   // Grid Options
   // ============================================================
 
@@ -426,23 +680,253 @@ export class CoarGridBuilder<TData = unknown> {
   // Internal - Used by wrapper component
   // ============================================================
 
+  // ============================================================
+  // Private - Search Highlight Helpers
+  // ============================================================
+
+  #applySearchHighlight(searchText?: string): void {
+    // CSS Custom Highlight API
+    if (typeof CSS === 'undefined' || !('highlights' in CSS)) return;
+    const highlights = CSS.highlights as Map<string, Highlight>;
+
+    highlights.delete('coar-search');
+
+    const normalized = searchText?.trim().toLowerCase();
+    if (!normalized || !this.#gridElement) return;
+
+    const viewport = this.#gridElement.querySelector('.ag-body-viewport');
+    if (!viewport) return;
+
+    const ranges: Range[] = [];
+    const walker = document.createTreeWalker(viewport, NodeFilter.SHOW_TEXT);
+    let textNode: Text | null;
+    while ((textNode = walker.nextNode() as Text | null)) {
+      const text = textNode.textContent?.toLowerCase() ?? '';
+      let startIndex = 0;
+      while (startIndex < text.length) {
+        const idx = text.indexOf(normalized, startIndex);
+        if (idx === -1) break;
+        const range = new Range();
+        range.setStart(textNode, idx);
+        range.setEnd(textNode, idx + normalized.length);
+        ranges.push(range);
+        startIndex = idx + normalized.length;
+      }
+    }
+
+    if (ranges.length > 0) {
+      highlights.set('coar-search', new Highlight(...ranges));
+    }
+  }
+
+  #scheduleSearchHighlight(searchText?: string): void {
+    if (!this.#searchHighlightEnabled) return;
+    // Wait one frame for AG Grid to render the new rows
+    requestAnimationFrame(() => {
+      this.#applySearchHighlight(searchText);
+    });
+  }
+
+  // ============================================================
+  // Private - Row Drag Helpers
+  // ============================================================
+
+  #clearDropTargetHighlight(): void {
+    const container = this.#gridElement ?? document;
+    container.querySelectorAll('.coar-drop-target, .coar-drop-target--invalid').forEach((el) => {
+      el.classList.remove('coar-drop-target', 'coar-drop-target--invalid');
+    });
+    this.#gridElement?.classList.remove('coar-drop-target-root');
+  }
+
+  #getRowElement(rowId: string): HTMLElement | null {
+    const container = this.#gridElement ?? document;
+    return container.querySelector(`.ag-row[row-id="${rowId}"]`);
+  }
+
+  // ============================================================
+  // Private - Tree Data Helpers
+  // ============================================================
+
+  /**
+   * Flatten a nested tree into a display list.
+   * When searchText is provided, only matching branches are included (all expanded).
+   * Otherwise, openRows controls which parents are expanded.
+   */
+  #flattenTree(
+    rows: TData[],
+    depth: number,
+    searchText: string | null,
+    result: TData[],
+    metaMap: Map<string, TreeNodeMeta>,
+  ): boolean {
+    let anyMatch = false;
+    const config = this.#treeConfig!;
+    const openRowIds = this.#openRows?.value ?? [];
+
+    for (const row of rows) {
+      const id = config.rowId(row);
+      const children = config.children(row);
+      const hasChildren = children.length > 0;
+
+      if (searchText) {
+        // Search mode: include row if it or any descendant matches
+        const selfMatches = this.#rowMatchesQuickFilter(row, searchText);
+        const childResult: TData[] = [];
+        const childMeta = new Map<string, TreeNodeMeta>();
+        const childrenMatch = hasChildren
+          ? this.#flattenTree(children, depth + 1, searchText, childResult, childMeta)
+          : false;
+
+        if (selfMatches || childrenMatch) {
+          result.push(row);
+          metaMap.set(id, { depth, hasChildren, isExpanded: childrenMatch, childCount: children.length });
+          if (childrenMatch) {
+            for (const [k, v] of childMeta) metaMap.set(k, v);
+            result.push(...childResult);
+          }
+          anyMatch = true;
+        }
+      } else {
+        // Normal mode: respect openRows
+        const isExpanded = hasChildren && openRowIds.includes(id);
+        result.push(row);
+        metaMap.set(id, { depth, hasChildren, isExpanded, childCount: children.length });
+
+        if (isExpanded) {
+          this.#flattenTree(children, depth + 1, null, result, metaMap);
+        }
+        anyMatch = true;
+      }
+    }
+
+    return anyMatch;
+  }
+
+  #setTreeRowDataOnGrid(api: GridApi<TData>, data: TData[] | null | undefined, searchText?: string): void {
+    if (data === null || data === undefined) {
+      api.setGridOption('rowData', []);
+      api.setGridOption('loading', true);
+      return;
+    }
+
+    const normalized = searchText?.trim().toLowerCase() || null;
+    const result: TData[] = [];
+    const metaMap = new Map<string, TreeNodeMeta>();
+    this.#flattenTree(data, 0, normalized, result, metaMap);
+
+    // Update tree context meta (cell renderers read from this)
+    this.#treeContext.meta = metaMap;
+    api.setGridOption('rowData', result);
+    api.setGridOption('loading', false);
+    // Force cell renderers to re-render (meta changed but row data objects are the same)
+    api.refreshCells({ force: true });
+    this.#scheduleSearchHighlight(searchText);
+  }
+
+  /**
+   * Check if a single row matches the quick filter (used by both flat and tree modes).
+   */
+  #rowMatchesQuickFilter(row: TData, searchText: string): boolean {
+    if (this.#quickFilterFn) {
+      return this.#quickFilterFn(searchText, row);
+    }
+    return this.#defaultQuickFilterMatch(row, searchText);
+  }
+
+  // ============================================================
+  // Private - Quick Filter Helpers
+  // ============================================================
+
+  #applyQuickFilter(data: TData[], searchText?: string): TData[] {
+    const normalized = searchText?.trim().toLowerCase();
+    if (!normalized) return data;
+
+    if (this.#quickFilterFn) {
+      return data.filter((row) => this.#quickFilterFn!(normalized, row));
+    }
+
+    return data.filter((row) => this.#defaultQuickFilterMatch(row, normalized));
+  }
+
+  #defaultQuickFilterMatch(row: TData, searchText: string): boolean {
+    for (const colDef of this.#columnDefs) {
+      if (colDef.hide) continue;
+      if (!colDef.field) continue;
+
+      const qfConfig = (colDef as Record<string, unknown>)[COAR_QUICK_FILTER_KEY] as
+        | QuickFilterConfig<TData>
+        | undefined;
+      if (qfConfig === false) continue;
+
+      const value = (row as Record<string, unknown>)[colDef.field];
+
+      let text: string;
+      if (typeof qfConfig === 'function') {
+        text = (qfConfig as (value: unknown, data: TData) => string)(value, row);
+      } else {
+        text = value != null ? String(value) : '';
+      }
+
+      if (text.toLowerCase().includes(searchText)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  #setRowDataOnGrid(api: GridApi<TData>, data: TData[] | null | undefined, searchText?: string): void {
+    if (data === null || data === undefined) {
+      api.setGridOption('rowData', []);
+      api.setGridOption('loading', true);
+      return;
+    }
+
+    const filtered = this.#applyQuickFilter(data, searchText);
+    api.setGridOption('rowData', filtered);
+    api.setGridOption('loading', false);
+    this.#scheduleSearchHighlight(searchText);
+  }
+
   /** @internal Called by the wrapper component to bind to AG Grid */
-  _bind(api: GridApi<TData>): void {
+  _bind(api: GridApi<TData>, gridElement?: HTMLElement): void {
     this.#gridApi = api;
+    this.#gridElement = gridElement;
     this.#gridReady.value = true;
 
-    // Watch reactive row data if provided
-    if (this.#reactiveRowData) {
+    // ---- Row data pipeline ----
+    if (this.#treeConfig) {
+      // Tree data mode: flatten tree, handle search + openRows in one pipeline
+      const dataSource = this.#reactiveRowData ?? ref(this.#rowData) as Ref<TData[] | null>;
+      const sources: Ref[] = [dataSource];
+      if (this.#quickFilterTextRef) sources.push(this.#quickFilterTextRef);
+      if (this.#openRows) sources.push(this.#openRows);
+
+      const stopWatch = watch(
+        sources,
+        () => {
+          this.#setTreeRowDataOnGrid(api, dataSource.value, this.#quickFilterTextRef?.value);
+        },
+        { immediate: true, deep: false }
+      );
+      this.#cleanupFns.push(stopWatch);
+    } else if (this.#quickFilterTextRef) {
+      // Quick filter active: manage row data through filtered pipeline
+      const dataSource = this.#reactiveRowData ?? ref(this.#rowData) as Ref<TData[] | null>;
+      const stopWatch = watch(
+        [dataSource, this.#quickFilterTextRef] as const,
+        ([data, searchText]) => {
+          this.#setRowDataOnGrid(api, data, searchText);
+        },
+        { immediate: true }
+      );
+      this.#cleanupFns.push(stopWatch);
+    } else if (this.#reactiveRowData) {
+      // Reactive data without quick filter
       const stopWatch = watch(
         this.#reactiveRowData,
         (data) => {
-          if (data === null || data === undefined) {
-            api.setGridOption('rowData', []);
-            api.setGridOption('loading', true);
-          } else {
-            api.setGridOption('rowData', data);
-            api.setGridOption('loading', false);
-          }
+          this.#setRowDataOnGrid(api, data);
         },
         { immediate: true }
       );
@@ -484,8 +968,18 @@ export class CoarGridBuilder<TData = unknown> {
       this.#cleanupFns.push(stopWatch);
     }
 
-    // Watch open rows
-    if (this.#openRows) {
+    // Re-apply search highlight on scroll (AG Grid virtualizes rows)
+    if (this.#searchHighlightEnabled && this.#quickFilterTextRef) {
+      const scrollHandler = () => {
+        this.#applySearchHighlight(this.#quickFilterTextRef?.value);
+      };
+      const viewport = this.#gridElement?.querySelector('.ag-body-viewport');
+      viewport?.addEventListener('scroll', scrollHandler);
+      this.#cleanupFns.push(() => viewport?.removeEventListener('scroll', scrollHandler));
+    }
+
+    // Watch open rows (only for non-tree AG Grid grouping/master-detail)
+    if (this.#openRows && !this.#treeConfig) {
       const stopWatch = watch(
         this.#openRows,
         (openRowIds) => {
@@ -511,7 +1005,11 @@ export class CoarGridBuilder<TData = unknown> {
     }
     this.#cleanupFns = [];
     this.#gridApi = undefined;
+    this.#gridElement = undefined;
     this.#gridReady.value = false;
+    if (typeof CSS !== 'undefined' && 'highlights' in CSS) {
+      (CSS.highlights as Map<string, Highlight>).delete('coar-search');
+    }
   }
 
   /** @internal Get viewport click handler (for wrapper component) */
@@ -543,6 +1041,8 @@ export class CoarGridBuilder<TData = unknown> {
 
   /** Get static row data (for wrapper component) */
   _getRowData(): TData[] | null {
+    // When quick filter or tree data is active, row data is managed via _bind()
+    if (this.#quickFilterTextRef || this.#treeConfig) return null;
     return this.#rowData;
   }
 }

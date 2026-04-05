@@ -237,4 +237,37 @@
   .ag-overlay-no-rows-wrapper {
     color: var(--ag-secondary-foreground-color);
   }
+
+  /* Drop target highlight for row drag & drop */
+  .ag-row.coar-drop-target {
+    background-color: var(--coar-surface-accent-subtle, rgba(0, 102, 204, 0.1)) !important;
+    outline: 2px solid var(--coar-border-accent, #0066cc);
+    outline-offset: -2px;
+    border-radius: var(--coar-radius-s, 6px);
+  }
+
+  /* Root drop zone — shown when dragging over empty grid area */
+  &.coar-drop-target-root {
+    outline: 2px dashed var(--coar-border-accent, #0066cc);
+    outline-offset: -2px;
+    border-radius: var(--coar-radius-s, 6px);
+  }
+
+  .ag-row.coar-drop-target--invalid {
+    background-color: var(--coar-surface-semantic-error-subtle, rgba(204, 0, 0, 0.06)) !important;
+    outline: 2px dashed var(--coar-border-semantic-error, rgba(204, 0, 0, 0.4));
+    outline-offset: -2px;
+    border-radius: var(--coar-radius-s, 6px);
+    cursor: not-allowed;
+  }
+}
+
+/* Search highlight using CSS Custom Highlight API */
+::highlight(coar-search) {
+  text-decoration: underline;
+  text-decoration-color: var(--coar-border-accent, #0066cc);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+  background-color: transparent;
+  color: inherit;
 }

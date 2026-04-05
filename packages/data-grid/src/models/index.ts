@@ -23,4 +23,5 @@ export type {
   PostSortRowsParams,
   GetQuickFilterTextParams,
   RowDragCallback,
+  RowDragEndEvent,
 } from 'ag-grid-community';

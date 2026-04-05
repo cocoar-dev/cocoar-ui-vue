@@ -1,11 +1,11 @@
 // Builders
-export { CoarGridBuilder, type ColumnDefinition } from './builders';
+export { CoarGridBuilder, type ColumnDefinition, type TreeDataConfig, type TreeNodeMeta, type CoarTreeContext } from './builders';
 export { CoarGridColumnBuilder } from './builders';
 export { CoarGridColumnFactory } from './builders';
 
 // Cell Renderers
-export { TagCellRenderer, IconCellRenderer, DateCellRenderer } from './cell-renderers';
-export type { TagCellRendererConfig, IconCellRendererConfig, DateCellRendererConfig } from './cell-renderers';
+export { TagCellRenderer, IconCellRenderer, DateCellRenderer, TreeCellRenderer } from './cell-renderers';
+export type { TagCellRendererConfig, IconCellRendererConfig, DateCellRendererConfig, TreeCellRendererConfig } from './cell-renderers';
 
 // Theme
 export { cocoarTheme, createCocoarTheme } from './theme';
@@ -33,8 +33,11 @@ export type {
   PostSortRowsParams,
   GetQuickFilterTextParams,
   RowDragCallback,
+  RowDragEndEvent,
 } from './models';
 
-// Component & Composable
+// Components & Composable
 export { default as CoarDataGrid } from './CoarDataGrid.vue';
+export { default as CoarDataGridSearch } from './CoarDataGridSearch.vue';
+export { default as CoarDataGridPanel } from './CoarDataGridPanel.vue';
 export { useDataGrid } from './useDataGrid';

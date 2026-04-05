@@ -2,9 +2,11 @@ import { CoarGridColumnBuilder } from './coar-grid-column-builder';
 import TagCellRenderer from '../cell-renderers/TagCellRenderer.vue';
 import IconCellRenderer from '../cell-renderers/IconCellRenderer.vue';
 import DateCellRenderer from '../cell-renderers/DateCellRenderer.vue';
+import TreeCellRenderer from '../cell-renderers/TreeCellRenderer.vue';
 import type { TagCellRendererConfig } from '../cell-renderers/tag-cell-renderer.models';
 import type { IconCellRendererConfig } from '../cell-renderers/icon-cell-renderer.models';
 import type { DateCellRendererConfig } from '../cell-renderers/date-cell-renderer.models';
+import type { TreeCellRendererConfig } from '../cell-renderers/tree-cell-renderer.models';
 
 /**
  * Factory for creating typed column builders.
@@ -209,6 +211,29 @@ export class CoarGridColumnFactory<TData = unknown> {
     const builder = new CoarGridColumnBuilder<TData, Date | string>(fieldName);
     builder.cellRendererConfig(DateCellRenderer, config ?? {});
     builder.sortable();
+    return builder;
+  }
+
+  /**
+   * Create a tree column with expand/collapse toggle, indentation, and optional child count.
+   *
+   * Requires `builder.treeData()` and `builder.openRows()` to be configured.
+   *
+   * @param config - Tree cell renderer configuration
+   *
+   * @example
+   * ```ts
+   * .columns([
+   *   col => col.tree('name').header('Name').flex(1),
+   * ])
+   * ```
+   */
+  tree<TValue = unknown>(
+    fieldName: keyof TData | string,
+    config?: TreeCellRendererConfig
+  ): CoarGridColumnBuilder<TData, TValue> {
+    const builder = new CoarGridColumnBuilder<TData, TValue>(fieldName);
+    builder.cellRendererConfig(TreeCellRenderer, config ?? {});
     return builder;
   }
 }

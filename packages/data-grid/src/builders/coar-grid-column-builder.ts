@@ -7,10 +7,21 @@ import type {
   ValueGetterFunc,
   CellDoubleClickedEvent,
   ITooltipParams,
-  GetQuickFilterTextParams,
   RowDragCallback,
   IRowNode,
 } from 'ag-grid-community';
+
+/**
+ * Key used to store custom quick filter configuration on ColDef.
+ * @internal
+ */
+export const COAR_QUICK_FILTER_KEY = '__coarQuickFilter';
+
+/** Quick filter configuration for a column */
+export type QuickFilterConfig<TData = unknown, TValue = unknown> =
+  | false
+  | true
+  | ((value: TValue, data: TData) => string);
 
 /**
  * Fluent builder for AG Grid column definitions.
@@ -240,15 +251,24 @@ export class CoarGridColumnBuilder<TData = unknown, TValue = unknown> {
   // Quick Filter
   // ============================================================
 
-  /** Set quick filter text extractor or disable quick filtering for this column */
-  quickFilter(
-    fn: boolean | ((params: GetQuickFilterTextParams<TData, TValue>) => string)
-  ): this {
-    if (typeof fn === 'boolean') {
-      this.#colDef.getQuickFilterText = fn ? undefined : () => '';
-    } else {
-      this.#colDef.getQuickFilterText = fn;
-    }
+  /**
+   * Configure how this column participates in quick filtering.
+   *
+   * - `true` — include column, use `String(value)` for matching (default behavior)
+   * - `false` — exclude column from quick filter
+   * - `(value, data) => string` — custom text extractor for matching
+   *
+   * @example
+   * ```ts
+   * // Exclude from search
+   * col.field('id').quickFilter(false)
+   *
+   * // Custom text for tags
+   * col.field('tags').quickFilter((tags, row) => tags.map(t => t.label).join(' '))
+   * ```
+   */
+  quickFilter(fn: boolean | ((value: TValue, data: TData) => string)): this {
+    (this.#colDef as Record<string, unknown>)[COAR_QUICK_FILTER_KEY] = fn;
     return this;
   }
 

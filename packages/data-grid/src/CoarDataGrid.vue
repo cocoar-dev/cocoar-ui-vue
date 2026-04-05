@@ -1,5 +1,5 @@
 <script setup lang="ts" generic="TData = unknown">
-import { onBeforeUnmount, computed } from 'vue';
+import { onBeforeUnmount, computed, ref } from 'vue';
 import { AgGridVue } from 'ag-grid-vue3';
 import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 import type { GridReadyEvent, Theme } from 'ag-grid-community';
@@ -8,6 +8,8 @@ import { cocoarTheme } from './theme';
 import './theme/ag-theme-cocoar.css';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
+
+const wrapperRef = ref<HTMLElement>();
 
 const VIEWPORT_CLASSES = ['ag-body-viewport', 'ag-center-cols-viewport'];
 
@@ -39,7 +41,7 @@ const columnDefs = computed(() => props.builder._getColumnDefs());
 const rowData = computed(() => props.builder._getRowData());
 
 function onGridReady(event: GridReadyEvent<TData>) {
-  props.builder._bind(event.api);
+  props.builder._bind(event.api, wrapperRef.value);
 }
 
 function onClick(event: MouseEvent) {
@@ -74,6 +76,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div
+    ref="wrapperRef"
     class="ag-theme-cocoar"
     :class="props.class"
     :style="props.style ?? 'display: flex; flex-direction: column; flex: 1 1 auto; height: 100%;'"
