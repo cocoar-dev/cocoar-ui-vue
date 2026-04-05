@@ -1062,4 +1062,9 @@ export class CoarGridBuilder<TData = unknown> {
     if (this.#quickFilterTextRef || this.#treeConfig) return null;
     return this.#rowData;
   }
+
+  /** @internal Whether data is loaded asynchronously (rowDataRef or tree/filter pipeline) */
+  _isAsyncData(): boolean {
+    return !!(this.#reactiveRowData || this.#quickFilterTextRef || this.#treeConfig);
+  }
 }

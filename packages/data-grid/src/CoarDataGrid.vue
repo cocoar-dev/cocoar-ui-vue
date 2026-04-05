@@ -10,6 +10,7 @@ import './theme/ag-theme-cocoar.css';
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 const wrapperRef = ref<HTMLElement>();
+const isReady = ref(false);
 
 const VIEWPORT_CLASSES = ['ag-body-viewport', 'ag-center-cols-viewport'];
 
@@ -42,6 +43,17 @@ const rowData = computed(() => props.builder._getRowData());
 
 function onGridReady(event: GridReadyEvent<TData>) {
   props.builder._bind(event.api, wrapperRef.value);
+  // Static/empty grid: show immediately. Async grid: wait for firstDataRendered.
+  if (!props.builder._isAsyncData()) {
+    requestAnimationFrame(() => { isReady.value = true; });
+  }
+}
+
+function onFirstDataRendered() {
+  // Async data arrived and first rows are painted — safe to show
+  if (!isReady.value) {
+    requestAnimationFrame(() => { isReady.value = true; });
+  }
 }
 
 function onClick(event: MouseEvent) {
@@ -78,7 +90,7 @@ onBeforeUnmount(() => {
   <div
     ref="wrapperRef"
     class="ag-theme-cocoar"
-    :class="props.class"
+    :class="[props.class, { 'ag-theme-cocoar--ready': isReady }]"
     :style="props.style ?? 'display: flex; flex-direction: column; flex: 1 1 auto; height: 100%;'"
     @click="onClick"
     @contextmenu="onContextMenu"
@@ -90,6 +102,7 @@ onBeforeUnmount(() => {
       :column-defs="columnDefs"
       :row-data="rowData"
       @grid-ready="onGridReady"
+      @first-data-rendered="onFirstDataRendered"
     />
   </div>
 </template>

@@ -7,6 +7,16 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 1.4.1
+
+### Fixed
+
+- **Grid initial render flicker**: Grid no longer visually "expands from left to right" on initial render. The grid starts invisible and fades in once data is painted (`firstDataRendered`). Static or empty grids show immediately, async grids (`rowDataRef`) wait for data to arrive. No configuration needed.
+- **Cyclic dependency**: Removed unused `@cocoar/vue-fragment-parser` dependency from `@cocoar/vue-ui` that caused a build cycle with the new composables
+- **Turbo telemetry**: Disabled Turborepo telemetry in all CI workflows via `TURBO_TELEMETRY_DISABLED`
+
+---
+
 ## 1.4.0
 
 ### Added
