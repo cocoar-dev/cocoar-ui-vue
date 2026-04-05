@@ -17,6 +17,12 @@ import type {
  */
 export const COAR_QUICK_FILTER_KEY = '__coarQuickFilter';
 
+/**
+ * Key used to store i18n header key on ColDef.
+ * @internal
+ */
+export const COAR_HEADER_I18N_KEY = '__coarHeaderI18nKey';
+
 /** Quick filter configuration for a column */
 export type QuickFilterConfig<TData = unknown, TValue = unknown> =
   | false
@@ -58,9 +64,25 @@ export class CoarGridColumnBuilder<TData = unknown, TValue = unknown> {
     return this;
   }
 
-  /** Set the column header text */
-  header(value: string): this {
+  /**
+   * Set the column header text.
+   *
+   * @param value - Display text (used as-is, or as fallback when i18nKey is set)
+   * @param i18nKey - Optional translation key. Requires `@cocoar/vue-localization`.
+   *                  If the package is not installed or the key has no translation,
+   *                  `value` is shown as fallback.
+   *
+   * @example
+   * ```ts
+   * col.header('Name')                              // static text
+   * col.header('Name', 'todo.grid.header.title')    // i18n with fallback
+   * ```
+   */
+  header(value: string, i18nKey?: string): this {
     this.#colDef.headerName = value;
+    if (i18nKey) {
+      (this.#colDef as Record<string, unknown>)[COAR_HEADER_I18N_KEY] = i18nKey;
+    }
     return this;
   }
 

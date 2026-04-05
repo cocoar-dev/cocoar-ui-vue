@@ -86,6 +86,53 @@ builder.quickFilterFn((searchValue, data) => {
 });
 ```
 
+### Search Highlighting
+
+Enable text highlighting in grid cells using the CSS Custom Highlight API. Matching text is underlined without modifying the DOM.
+
+```ts
+builder
+  .quickFilterText(searchRef)
+  .searchHighlight()
+```
+
+The highlight style can be customized via CSS:
+
+```css
+::highlight(coar-search) {
+  text-decoration: underline;
+  text-decoration-color: #0066cc;
+}
+```
+
+## I18n Headers
+
+Column headers support runtime language switching via `@cocoar/vue-localization`. Pass a fallback text and an optional translation key:
+
+```ts
+builder.columns([
+  // Static header
+  (col) => col.field('name').header('Name'),
+
+  // With i18n — falls back to 'Name' if no translation found
+  (col) => col.field('name').header('Name', 'todo.grid.header.title'),
+])
+```
+
+If `@cocoar/vue-localization` is not installed, the fallback text is always shown. Headers update automatically when the language changes at runtime.
+
+## Auto Size
+
+Control how columns are sized initially:
+
+```ts
+// Columns fill the grid width (most common)
+builder.autoSize('fitGridWidth')
+
+// Columns fit their content
+builder.autoSize('fitCellContents')
+```
+
 ## Tree Drag & Drop
 
 Move rows between parents via drag & drop. Use `.rowDrag()` on the tree column, `.rowDragHighlight()` for visual feedback, and `.onRowDragEnd()` to handle the reparenting.
@@ -215,6 +262,7 @@ const builder = CoarGridBuilder.create<Row>()
 | `.getTreeMeta(rowId)` | `string` | Get tree node depth, children info |
 | `.treeData(config)` | `TreeDataConfig<T>` | Enable tree mode with nested children |
 | `.openRows(ref)` | `Ref<string[]>` | Reactive ref of expanded row IDs |
+| `.autoSize(strategy)` | `'fitGridWidth' \| 'fitCellContents'` | Column auto-sizing strategy |
 | `.rowSelection(mode, opts?)` | `'single' \| 'multiple'` | Enable row selection |
 | `.defaultSort(field, dir)` | `string, 'asc' \| 'desc'` | Set default sort column |
 | `.rowClassRules(rules)` | `RowClassRules<T>` | Conditional row CSS classes |
@@ -224,7 +272,7 @@ const builder = CoarGridBuilder.create<Row>()
 | Method | Parameters | Description |
 |--------|-----------|-------------|
 | `.field(name)` | `keyof T` | Set column data field |
-| `.header(text)` | `string` | Set column header text |
+| `.header(text, i18nKey?)` | `string, string?` | Set header text with optional i18n key |
 | `.flex(value)` | `number` | Flexible column width |
 | `.width(px)` | `number` | Fixed column width |
 | `.fixedWidth(px)` | `number` | Non-resizable fixed width |

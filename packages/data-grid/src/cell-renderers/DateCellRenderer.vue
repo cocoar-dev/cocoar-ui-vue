@@ -27,7 +27,7 @@ const formattedDate = computed<string>(() => {
   <div class="coar-date-cell-renderer">{{ formattedDate }}</div>
 </template>
 
-<style scoped>
+<style>
 .coar-date-cell-renderer {
   display: flex;
   align-items: center;

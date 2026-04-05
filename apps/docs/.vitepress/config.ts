@@ -252,6 +252,13 @@ export default defineConfig({
           text: 'Utilities',
           items: [
             { text: 'Transitions', link: '/components/transitions' },
+            { text: 'Fragment Parser', link: '/components/fragment-parser' },
+          ],
+        },
+        {
+          text: 'Content',
+          items: [
+            { text: 'Markdown', link: '/components/markdown' },
           ],
         },
         {

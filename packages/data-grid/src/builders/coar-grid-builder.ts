@@ -23,6 +23,7 @@ import type {
 import { CoarGridColumnBuilder, COAR_QUICK_FILTER_KEY } from './coar-grid-column-builder';
 import type { QuickFilterConfig } from './coar-grid-column-builder';
 import { CoarGridColumnFactory } from './coar-grid-column-factory';
+import CoarGridHeader from '../header/CoarGridHeader.vue';
 
 type ColumnBuilderLike<TData> = {
   build(): ColDef<TData>;
@@ -153,6 +154,9 @@ export class CoarGridBuilder<TData = unknown> {
     return {
       animateRows: true,
       rowSelection: undefined,
+      defaultColDef: {
+        headerComponent: CoarGridHeader,
+      },
     };
   }
 
@@ -193,12 +197,10 @@ export class CoarGridBuilder<TData = unknown> {
       | Partial<ColDef<TData>>
       | ((builder: CoarGridColumnBuilder<TData>) => CoarGridColumnBuilder<TData>)
   ): this {
-    if (typeof definition === 'function') {
-      const builder = new CoarGridColumnBuilder<TData>();
-      this.#gridOptions.defaultColDef = definition(builder).build();
-    } else {
-      this.#gridOptions.defaultColDef = definition;
-    }
+    const colDef = typeof definition === 'function'
+      ? definition(new CoarGridColumnBuilder<TData>()).build()
+      : definition;
+    this.#gridOptions.defaultColDef = { ...this.#gridOptions.defaultColDef, ...colDef };
     return this;
   }
 
@@ -388,6 +390,21 @@ export class CoarGridBuilder<TData = unknown> {
   /** Enable shift-key column resize mode */
   shiftResizeMode(value = true): this {
     this.#mergeOptions({ colResizeDefault: value ? 'shift' : undefined });
+    return this;
+  }
+
+  /**
+   * Set the column auto-size strategy.
+   *
+   * @param strategy - `'fitGridWidth'` (columns fill the grid) or `'fitCellContents'` (columns fit their content)
+   *
+   * @example
+   * ```ts
+   * builder.autoSize('fitGridWidth')
+   * ```
+   */
+  autoSize(strategy: 'fitGridWidth' | 'fitCellContents'): this {
+    this.#mergeOptions({ autoSizeStrategy: { type: strategy } });
     return this;
   }
 

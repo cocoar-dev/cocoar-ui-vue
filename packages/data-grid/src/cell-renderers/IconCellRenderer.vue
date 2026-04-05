@@ -37,7 +37,7 @@ function handleClick(): void {
   </div>
 </template>
 
-<style scoped>
+<style>
 .coar-icon-cell-renderer {
   display: flex;
   align-items: center;

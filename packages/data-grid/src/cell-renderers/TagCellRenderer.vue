@@ -80,7 +80,7 @@ function resolveVariant(label: string, cfg: TagCellRendererConfig): TagVariant {
   </div>
 </template>
 
-<style scoped>
+<style>
 .coar-tag-cell-renderer {
   display: flex;
   align-items: center;
