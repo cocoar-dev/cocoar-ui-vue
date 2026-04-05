@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "jsx": "preserve",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "paths": {
+      "@cocoar/vue-ui": ["../../packages/ui/src/index.ts"],
+      "@cocoar/vue-data-grid": ["../../packages/data-grid/src/index.ts"],
+      "@cocoar/vue-localization": ["../../packages/localization/src/index.ts"],
+      "@cocoar/vue-fragment-parser": ["../../packages/fragment-parser/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.vue"]
+}

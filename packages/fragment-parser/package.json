@@ -31,5 +31,19 @@
   },
   "dependencies": {
     "path-to-regexp": "^8.3.0"
+  },
+  "peerDependencies": {
+    "vue": "^3.5.0",
+    "vue-router": "^4.5.0",
+    "@cocoar/vue-ui": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "vue-router": { "optional": true },
+    "@cocoar/vue-ui": { "optional": true }
+  },
+  "devDependencies": {
+    "vue": "^3.5.0",
+    "vue-router": "^4.5.0",
+    "@cocoar/vue-ui": "workspace:*"
   }
 }

@@ -350,15 +350,21 @@ describe('CoarGridColumnBuilder', () => {
     it('should disable quick filter', () => {
       const colDef = new CoarGridColumnBuilder<TestRow>('name').quickFilter(false).build();
 
-      expect(typeof colDef.getQuickFilterText).toBe('function');
-      expect((colDef.getQuickFilterText as () => string)()).toBe('');
+      expect((colDef as Record<string, unknown>)['__coarQuickFilter']).toBe(false);
     });
 
     it('should set custom quick filter function', () => {
-      const fn = () => 'custom';
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const fn = (value: unknown, data: TestRow) => 'custom';
       const colDef = new CoarGridColumnBuilder<TestRow>('name').quickFilter(fn).build();
 
-      expect(colDef.getQuickFilterText).toBe(fn);
+      expect((colDef as Record<string, unknown>)['__coarQuickFilter']).toBe(fn);
+    });
+
+    it('should enable quick filter with true', () => {
+      const colDef = new CoarGridColumnBuilder<TestRow>('name').quickFilter(true).build();
+
+      expect((colDef as Record<string, unknown>)['__coarQuickFilter']).toBe(true);
     });
   });
 

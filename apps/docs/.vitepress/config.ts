@@ -252,7 +252,7 @@ export default defineConfig({
           text: 'Utilities',
           items: [
             { text: 'Transitions', link: '/components/transitions' },
-            { text: 'Fragment Parser', link: '/components/fragment-parser' },
+            { text: 'Fragment Parser & Modal Routing', link: '/components/fragment-parser' },
           ],
         },
         {
