@@ -27,23 +27,20 @@
 */
 
 /* ============================================================================
-   GRID READY TRANSITION - Prevents visual "expansion" flicker on initial render
-   ============================================================================ */
-
-.ag-theme-cocoar {
-  opacity: 0;
-}
-
-.ag-theme-cocoar--ready {
-  opacity: 1;
-  transition: opacity 0.15s ease;
-}
-
-/* ============================================================================
    COCOAR THEME - Maps AG Grid variables to Cocoar tokens
    ============================================================================ */
 
 .ag-theme-cocoar {
+  /* ==========================================================================
+     Column Animation Fix
+     AG Grid animates the `left` CSS property when positioning cells,
+     which causes a visible "expand from left" Layout Shift on first render.
+     ========================================================================== */
+  .ag-header-cell,
+  .ag-cell {
+    transition: none !important;
+  }
+
   /* ==========================================================================
      Typography
      ========================================================================== */

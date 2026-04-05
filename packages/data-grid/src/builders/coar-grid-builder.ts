@@ -153,6 +153,7 @@ export class CoarGridBuilder<TData = unknown> {
   #createDefaultOptions(): GridOptions<TData> {
     return {
       animateRows: true,
+      suppressColumnMoveAnimation: true,
       rowSelection: undefined,
       defaultColDef: {
         headerComponent: CoarGridHeader,
@@ -902,6 +903,13 @@ export class CoarGridBuilder<TData = unknown> {
     const filtered = this.#applyQuickFilter(data, searchText);
     api.setGridOption('rowData', filtered);
     api.setGridOption('loading', false);
+
+    // AG Grid skips flex calculation when rowData is set via setGridOption.
+    // Re-applying columnDefs forces a fresh flex layout pass.
+    if (this.#columnDefs.some((c) => c.flex)) {
+      api.setGridOption('columnDefs', this.#columnDefs);
+    }
+
     this.#scheduleSearchHighlight(searchText);
   }
 
@@ -913,7 +921,6 @@ export class CoarGridBuilder<TData = unknown> {
 
     // ---- Row data pipeline ----
     if (this.#treeConfig) {
-      // Tree data mode: flatten tree, handle search + openRows in one pipeline
       const dataSource = this.#reactiveRowData ?? ref(this.#rowData) as Ref<TData[] | null>;
       const sources: Ref[] = [dataSource];
       if (this.#quickFilterTextRef) sources.push(this.#quickFilterTextRef);
@@ -928,7 +935,6 @@ export class CoarGridBuilder<TData = unknown> {
       );
       this.#cleanupFns.push(stopWatch);
     } else if (this.#quickFilterTextRef) {
-      // Quick filter active: manage row data through filtered pipeline
       const dataSource = this.#reactiveRowData ?? ref(this.#rowData) as Ref<TData[] | null>;
       const stopWatch = watch(
         [dataSource, this.#quickFilterTextRef] as const,
@@ -939,7 +945,6 @@ export class CoarGridBuilder<TData = unknown> {
       );
       this.#cleanupFns.push(stopWatch);
     } else if (this.#reactiveRowData) {
-      // Reactive data without quick filter
       const stopWatch = watch(
         this.#reactiveRowData,
         (data) => {

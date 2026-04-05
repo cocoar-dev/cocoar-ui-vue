@@ -7,25 +7,7 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
-## 1.4.2
-
-### Fixed
-
-- **Flex columns with `rowDataRef`**: Fixed `flex()` and `autoSize('fitGridWidth')` columns not filling available width when using `rowDataRef()`. Root cause: AG Grid received `null` rowData via the template binding AND later the real data via `setGridOption`, causing it to skip flex recalculation. Fix ensures reactive data is exclusively managed through `_bind()`.
-
----
-
-## 1.4.1
-
-### Fixed
-
-- **Grid initial render flicker**: Grid no longer visually "expands from left to right" on initial render. The grid starts invisible and fades in once data is painted (`firstDataRendered`). Static or empty grids show immediately, async grids (`rowDataRef`) wait for data to arrive. No configuration needed.
-- **Cyclic dependency**: Removed unused `@cocoar/vue-fragment-parser` dependency from `@cocoar/vue-ui` that caused a build cycle with the new composables
-- **Turbo telemetry**: Disabled Turborepo telemetry in all CI workflows via `TURBO_TELEMETRY_DISABLED`
-
----
-
-## 1.4.0
+## 1.5.0
 
 ### Added
 
@@ -41,7 +23,11 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ### Fixed
 
+- **Grid render flicker**: Fixed visible Layout Shift where columns animated from left to right on initial render. Root cause: AG Grid animates the `left` CSS property when positioning cells. Fix: `suppressColumnMoveAnimation` and `transition: none` on cells
+- **Flex columns with `rowDataRef`**: Fixed `flex()` and `autoSize('fitGridWidth')` not filling available width when using `rowDataRef()`. Column definitions are re-applied after data arrives to force a fresh flex layout pass
 - **Cell renderer scoped CSS**: Removed `scoped` from all AG Grid cell renderers (Tag, Icon, Date, Tree) — AG Grid doesn't apply Vue's `data-v-*` attributes, so scoped styles never matched
+- **Cyclic dependency**: Removed unused `@cocoar/vue-fragment-parser` dependency from `@cocoar/vue-ui`
+- **Turbo telemetry**: Disabled Turborepo telemetry in all CI workflows
 
 ### Docs
 
