@@ -16,7 +16,7 @@ export default defineConfig({
       fileName: 'index',
     },
     rollupOptions: {
-      external: ['path-to-regexp'],
+      external: ['vue', 'vue-router', '@cocoar/vue-ui', 'path-to-regexp'],
     },
   },
   test: {
