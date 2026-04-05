@@ -1058,8 +1058,10 @@ export class CoarGridBuilder<TData = unknown> {
 
   /** Get static row data (for wrapper component) */
   _getRowData(): TData[] | null {
-    // When quick filter or tree data is active, row data is managed via _bind()
-    if (this.#quickFilterTextRef || this.#treeConfig) return null;
+    // When data is managed reactively via _bind(), return null so AG Grid
+    // doesn't receive initial data through the template binding.
+    // This ensures flex columns are calculated when data arrives via setGridOption.
+    if (this.#reactiveRowData || this.#quickFilterTextRef || this.#treeConfig) return null;
     return this.#rowData;
   }
 

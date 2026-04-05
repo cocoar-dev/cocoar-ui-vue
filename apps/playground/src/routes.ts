@@ -7,6 +7,10 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('./views/HomeView.vue'),
   },
   {
+    path: '/flex-debug',
+    component: () => import('./views/FlexDebugView.vue'),
+  },
+  {
     path: '/todos',
     component: () => import('./views/TodoListView.vue'),
     meta: {

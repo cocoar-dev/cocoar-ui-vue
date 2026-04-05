@@ -7,6 +7,7 @@ import { CoarOverlayHost } from '@cocoar/vue-ui';
     <nav class="app-nav">
       <router-link to="/">Home</router-link>
       <router-link to="/todos">Todos</router-link>
+      <router-link to="/flex-debug">Flex Debug</router-link>
     </nav>
     <main class="app-main">
       <router-view />

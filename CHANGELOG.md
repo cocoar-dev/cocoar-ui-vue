@@ -7,6 +7,14 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 1.4.2
+
+### Fixed
+
+- **Flex columns with `rowDataRef`**: Fixed `flex()` and `autoSize('fitGridWidth')` columns not filling available width when using `rowDataRef()`. Root cause: AG Grid received `null` rowData via the template binding AND later the real data via `setGridOption`, causing it to skip flex recalculation. Fix ensures reactive data is exclusively managed through `_bind()`.
+
+---
+
 ## 1.4.1
 
 ### Fixed
