@@ -1,19 +1,20 @@
 <template>
   <div style="height: 400px;">
-    <CoarDataGridPanel
+    <CoarDataGrid
       :builder="builder"
+      show-search
       search-placeholder="Search users..."
     >
-      <template #actions>
+      <template #toolbar-right>
         <CoarButton size="s" variant="secondary" @click="addUser">Add User</CoarButton>
       </template>
-    </CoarDataGridPanel>
+    </CoarDataGrid>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { CoarDataGridPanel, CoarGridBuilder } from '@cocoar/vue-data-grid';
+import { CoarDataGrid, CoarGridBuilder } from '@cocoar/vue-data-grid';
 import { CoarButton } from '@cocoar/vue-ui';
 
 interface User {

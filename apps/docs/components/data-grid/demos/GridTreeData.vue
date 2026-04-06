@@ -1,7 +1,8 @@
 <template>
   <div style="height: 450px;">
-    <CoarDataGridPanel
+    <CoarDataGrid
       :builder="builder"
+      show-search
       search-placeholder="Search files..."
     />
   </div>
@@ -9,7 +10,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { CoarDataGridPanel, CoarGridBuilder } from '@cocoar/vue-data-grid';
+import { CoarDataGrid, CoarGridBuilder } from '@cocoar/vue-data-grid';
 
 interface FileNode {
   id: string;

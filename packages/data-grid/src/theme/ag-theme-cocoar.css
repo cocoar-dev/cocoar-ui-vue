@@ -263,6 +263,20 @@
     border-radius: var(--coar-radius-s, 6px);
   }
 
+  /* Bordered variant */
+  &.ag-theme-cocoar--bordered {
+    border: 1px solid var(--coar-border-neutral);
+    border-radius: var(--coar-radius-s);
+    overflow: hidden;
+  }
+
+  /* Elevated variant */
+  &.ag-theme-cocoar--elevated {
+    box-shadow: var(--coar-elevation-medium);
+    border-radius: var(--coar-radius-s);
+    overflow: hidden;
+  }
+
   .ag-row.coar-drop-target--invalid {
     background-color: var(--coar-surface-semantic-error-subtle, rgba(204, 0, 0, 0.06)) !important;
     outline: 2px dashed var(--coar-border-semantic-error, rgba(204, 0, 0, 0.4));

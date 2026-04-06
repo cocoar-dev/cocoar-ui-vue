@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { CoarDataGridPanel, CoarGridBuilder } from '@cocoar/vue-data-grid';
+import { CoarDataGrid, CoarGridBuilder } from '@cocoar/vue-data-grid';
 
 interface UserListItem {
   id: string;
@@ -51,7 +51,7 @@ const builder = computed(() =>
     <h2>Flex Debug (Confighub Clone)</h2>
     <div v-if="loading">Loading users...</div>
     <template v-else>
-      <CoarDataGridPanel :builder="builder" search-placeholder="Search users..." />
+      <CoarDataGrid :builder="builder" show-search search-placeholder="Search users..." />
     </template>
   </div>
 </template>

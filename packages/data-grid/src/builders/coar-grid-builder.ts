@@ -533,25 +533,25 @@ export class CoarGridBuilder<TData = unknown> {
 
   /** Handle row click */
   onRowClicked(handler: (event: RowClickedEvent<TData>) => void): this {
-    this.#mergeOptions({ onRowClicked: handler });
+    this.#gridOptions.onRowClicked = this.#composeHandler(this.#gridOptions.onRowClicked, handler);
     return this;
   }
 
   /** Handle row double-click */
   onRowDoubleClicked(handler: (event: RowDoubleClickedEvent<TData>) => void): this {
-    this.#mergeOptions({ onRowDoubleClicked: handler });
+    this.#gridOptions.onRowDoubleClicked = this.#composeHandler(this.#gridOptions.onRowDoubleClicked, handler);
     return this;
   }
 
   /** Handle cell click */
   onCellClicked(handler: (event: CellClickedEvent<TData>) => void): this {
-    this.#mergeOptions({ onCellClicked: handler });
+    this.#gridOptions.onCellClicked = this.#composeHandler(this.#gridOptions.onCellClicked, handler);
     return this;
   }
 
   /** Handle cell double-click */
   onCellDoubleClicked(handler: (event: CellDoubleClickedEvent<TData>) => void): this {
-    this.#mergeOptions({ onCellDoubleClicked: handler });
+    this.#gridOptions.onCellDoubleClicked = this.#composeHandler(this.#gridOptions.onCellDoubleClicked, handler);
     return this;
   }
 

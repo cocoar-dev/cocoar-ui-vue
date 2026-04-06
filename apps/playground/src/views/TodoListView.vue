@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { CoarDataGridPanel, CoarGridBuilder } from '@cocoar/vue-data-grid';
+import { CoarDataGrid, CoarGridBuilder } from '@cocoar/vue-data-grid';
 import { CoarButton } from '@cocoar/vue-ui';
 import { useFragmentNavigation, useRoutedModals } from '@cocoar/vue-fragment-parser';
 
@@ -70,6 +70,6 @@ function openAsModal() {
         Open as Modal
       </CoarButton>
     </div>
-    <CoarDataGridPanel :builder="builder" search-placeholder="Search todos..." />
+    <CoarDataGrid :builder="builder" show-search search-placeholder="Search todos..." />
   </div>
 </template>

@@ -19,6 +19,12 @@ Define columns with `.field()`, `.header()`, and `.flex()` / `.width()`. Pass ro
 
 <preview path="./data-grid/demos/GridBasic.vue" />
 
+## Appearance
+
+Add a border or elevation shadow to the grid. Toggle the checkboxes to see the effect.
+
+<preview path="./data-grid/demos/GridAppearance.vue" />
+
 ## Column Types
 
 Built-in renderers for dates, numbers, tags, and icons — no custom cell components needed.
@@ -47,7 +53,7 @@ Bind a `ref` with `.rowDataRef()` and the grid updates automatically when your d
 
 ## Search (Quick Filter)
 
-Add a search bar above the grid with `CoarDataGridPanel`. It wires search input to the builder's quick filter automatically.
+Enable the built-in search bar with `show-search`. It wires the search input to the builder's quick filter automatically.
 
 <preview path="./data-grid/demos/GridSearchPanel.vue" />
 
@@ -214,36 +220,40 @@ const builder = CoarGridBuilder.create<Row>()
 |------|------|---------|-------------|
 | `builder` | `CoarGridBuilder<T>` | — | Grid configuration builder (required) |
 | `theme` | `Theme` | `cocoarTheme` | AG Grid theme override |
-
-### CoarDataGridPanel Props
-
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `builder` | `CoarGridBuilder<T>` | — | Grid configuration builder (required) |
-| `theme` | `Theme` | `cocoarTheme` | AG Grid theme override |
-| `search` | `string` | `''` | Search text (v-model:search) |
-| `searchPlaceholder` | `string` | `'Search...'` | Placeholder for search input |
+| `showSearch` | `boolean` | `false` | Show the search bar in the toolbar |
+| `searchPlaceholder` | `string` | `'Search...'` | Placeholder for the search input |
 | `searchSize` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Search input size |
+| `search` | `string` | `''` | Search text (`v-model:search`) |
+| `bordered` | `boolean` | `false` | Show a border around the grid |
+| `elevated` | `boolean` | `false` | Add elevation shadow |
 
-### CoarDataGridPanel Slots
-
-| Slot | Description |
-|------|-------------|
-| `actions` | Content placed to the right of the search input (buttons, checkboxes, etc.) |
-
-### CoarDataGridSearch Props
-
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `modelValue` | `string` | `''` | Search text (v-model) |
-| `placeholder` | `string` | `'Search...'` | Placeholder text |
-| `size` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Input size |
-
-### CoarDataGridSearch Slots
+### CoarDataGrid Slots
 
 | Slot | Description |
 |------|-------------|
-| `default` | Content placed to the right of the search input |
+| `toolbar-left` | Content on the left side of the toolbar (e.g., title, icon) |
+| `toolbar-right` | Content on the right side of the toolbar (e.g., buttons, actions) |
+
+The toolbar appears automatically when `showSearch` is enabled or any `toolbar-*` slot is used. The search input fills available space (`flex: 1`). When search is disabled, a spacer pushes `toolbar-right` to the far right.
+
+```vue
+<!-- Search + actions -->
+<CoarDataGrid :builder="builder" show-search bordered>
+  <template #toolbar-left>
+    <span style="font-weight: 600;">Users</span>
+  </template>
+  <template #toolbar-right>
+    <CoarButton size="s">Add User</CoarButton>
+  </template>
+</CoarDataGrid>
+
+<!-- Only toolbar actions, no search -->
+<CoarDataGrid :builder="builder">
+  <template #toolbar-right>
+    <CoarButton size="s">Export</CoarButton>
+  </template>
+</CoarDataGrid>
+```
 
 ### CoarGridBuilder Methods
 

@@ -2,16 +2,22 @@
 import { CoarTextInput, CoarIcon } from '@cocoar/vue-ui';
 import type { CoarTextInputSize } from '@cocoar/vue-ui';
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     /** Placeholder text for the search input */
     placeholder?: string;
     /** Input size variant */
     size?: CoarTextInputSize;
+    /** Show a border around the search bar */
+    bordered?: boolean;
+    /** Add elevation shadow */
+    elevated?: boolean;
   }>(),
   {
     placeholder: 'Search...',
     size: 'm',
+    bordered: false,
+    elevated: false,
   },
 );
 
@@ -19,7 +25,10 @@ const searchText = defineModel<string>({ default: '' });
 </script>
 
 <template>
-  <div class="coar-data-grid-search">
+  <div
+    class="coar-data-grid-search"
+    :class="{ 'coar-data-grid-search--bordered': props.bordered, 'coar-data-grid-search--elevated': props.elevated }"
+  >
     <CoarTextInput
       v-model="searchText"
       :placeholder="placeholder"
@@ -41,7 +50,19 @@ const searchText = defineModel<string>({ default: '' });
 .coar-data-grid-search {
   display: flex;
   align-items: center;
-  gap: var(--coar-spacing-s, 8px);
+  gap: var(--coar-spacing-s);
+}
+
+.coar-data-grid-search--bordered {
+  border: 1px solid var(--coar-border-neutral);
+  border-radius: var(--coar-radius-s);
+  padding: var(--coar-spacing-s);
+}
+
+.coar-data-grid-search--elevated {
+  box-shadow: var(--coar-elevation-medium);
+  border-radius: var(--coar-radius-s);
+  padding: var(--coar-spacing-s);
 }
 
 .coar-data-grid-search__input {
@@ -52,7 +73,7 @@ const searchText = defineModel<string>({ default: '' });
 .coar-data-grid-search__actions {
   display: flex;
   align-items: center;
-  gap: var(--coar-spacing-xs, 4px);
+  gap: var(--coar-spacing-xs);
   flex-shrink: 0;
 }
 </style>
