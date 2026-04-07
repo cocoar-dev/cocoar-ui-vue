@@ -4,7 +4,9 @@ export type { MenuItemClickEvent } from './CoarMenuItem.vue';
 export { default as CoarMenuDivider } from './CoarMenuDivider.vue';
 export { default as CoarMenuHeading } from './CoarMenuHeading.vue';
 export { default as CoarSubExpand } from './CoarSubExpand.vue';
-export { default as CoarSubmenuItem } from './CoarSubmenuItem.vue';
+export { default as CoarSubFlyout } from './CoarSubFlyout.vue';
+/** @deprecated Use `CoarSubFlyout` instead */
+export { default as CoarSubmenuItem } from './CoarSubFlyout.vue';
 export { default as CoarContextMenu } from './CoarContextMenu.vue';
 export { useContextMenu } from './useContextMenu';
 export type { ContextMenuContext } from './useContextMenu';

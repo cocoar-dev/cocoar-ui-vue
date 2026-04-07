@@ -201,11 +201,10 @@
     padding-right: var(--coar-spacing-m, 16px);
   }
 
-  /* Cell styling */
-  .ag-cell {
-    display: flex;
-    align-items: center;
-  }
+  /* Cell styling — do NOT use display:flex on ag-cell.
+     Flex containers don't clip plain text children with overflow:hidden,
+     causing text to bleed into adjacent cells. AG Grid handles vertical
+     centering via line-height internally. */
 
   /* Cell focus border - use accent color for visible focus indicator */
   .ag-cell-focus {

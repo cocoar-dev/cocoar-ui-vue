@@ -114,6 +114,9 @@ export class CoarGridBuilder<TData = unknown> {
   #quickFilterTextRef?: Ref<string>;
   #quickFilterFn?: (searchValue: string, data: TData) => boolean;
 
+  // Tracks whether flex columns have been recalculated after first data
+  #flexApplied = false;
+
   // Search highlight
   #searchHighlightEnabled = false;
 
@@ -223,7 +226,11 @@ export class CoarGridBuilder<TData = unknown> {
     return this;
   }
 
-  /** Set row ID getter for immutable data updates */
+  /**
+   * Set row ID getter for immutable data updates.
+   * When set, AG Grid uses delta updates instead of replacing all rows,
+   * which preserves scroll position and improves performance.
+   */
   rowId(getRowId: GetRowIdFunc<TData>): this {
     this.#gridOptions.getRowId = getRowId;
     return this;
@@ -904,9 +911,10 @@ export class CoarGridBuilder<TData = unknown> {
     api.setGridOption('rowData', filtered);
     api.setGridOption('loading', false);
 
-    // AG Grid skips flex calculation when rowData is set via setGridOption.
-    // Re-applying columnDefs forces a fresh flex layout pass.
-    if (this.#columnDefs.some((c) => c.flex)) {
+    // AG Grid skips flex calculation when rowData is first set via setGridOption.
+    // Re-applying columnDefs once forces a fresh flex layout pass.
+    if (!this.#flexApplied && this.#columnDefs.some((c) => c.flex)) {
+      this.#flexApplied = true;
       api.setGridOption('columnDefs', this.#columnDefs);
     }
 
@@ -1029,6 +1037,7 @@ export class CoarGridBuilder<TData = unknown> {
     this.#gridApi = undefined;
     this.#gridElement = undefined;
     this.#gridReady.value = false;
+    this.#flexApplied = false;
     if (typeof CSS !== 'undefined' && 'highlights' in CSS) {
       (CSS.highlights as Map<string, Highlight>).delete('coar-search');
     }

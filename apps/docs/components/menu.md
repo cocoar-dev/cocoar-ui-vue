@@ -3,7 +3,7 @@
 Build context menus, action lists, and navigation panels with full keyboard support. Menus group related actions together, making them easy to discover and interact with. They support nested submenus, icons, section headings, and danger variants for destructive actions.
 
 ```ts
-import { CoarMenu, CoarMenuItem, CoarMenuDivider, CoarMenuHeading, CoarSubExpand, CoarSubmenuItem } from '@cocoar/vue-ui';
+import { CoarMenu, CoarMenuItem, CoarMenuDivider, CoarMenuHeading, CoarSubExpand, CoarSubFlyout } from '@cocoar/vue-ui';
 ```
 
 ## Basic Menu
@@ -32,7 +32,7 @@ When a menu item leads to a group of related options, wrap them in `CoarSubExpan
 
 ## Flyout Submenus
 
-Use `CoarSubmenuItem` when the submenu should appear as a floating panel beside the trigger instead of expanding inline. The `label` prop sets the visible text; child items go in the default slot and render inside the flyout.
+Use `CoarSubFlyout` when the submenu should appear as a floating panel beside the trigger instead of expanding inline. The `label` prop sets the visible text; child items go in the default slot and render inside the flyout.
 
 <preview path="./menu/demos/MenuFlyout.vue" />
 
@@ -41,6 +41,12 @@ Use `CoarSubmenuItem` when the submenu should appear as a floating panel beside 
 Pass the `borderless` prop when embedding a menu inside a sidebar, panel, or card. This removes the outer border and background so the menu blends into its container.
 
 <preview path="./menu/demos/MenuBorderless.vue" />
+
+## Scrollable Menu
+
+When a menu has many items, it scrolls automatically using overlay scrollbars. Set a fixed height on the menu or its container.
+
+<preview path="./menu/demos/MenuScrollable.vue" />
 
 ## Accessibility
 

@@ -30,7 +30,11 @@ function clampToViewport(x: number, y: number, el: HTMLElement) {
 
 function onPointerDown(event: PointerEvent) {
   if (!props.menu.isOpen.value) return;
-  if (hostRef.value?.contains(event.target as Node)) return;
+  const target = event.target as Node;
+  // Check if click is inside the context menu host
+  if (hostRef.value?.contains(target)) return;
+  // Check if click is inside a teleported submenu panel
+  if ((target as Element).closest?.('.coar-submenu-panel')) return;
   props.menu.close();
 }
 

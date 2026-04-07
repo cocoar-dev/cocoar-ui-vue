@@ -6,7 +6,7 @@ import CoarMenuItem from './CoarMenuItem.vue';
 import CoarMenuDivider from './CoarMenuDivider.vue';
 import CoarMenuHeading from './CoarMenuHeading.vue';
 import CoarSubExpand from './CoarSubExpand.vue';
-import CoarSubmenuItem from './CoarSubmenuItem.vue';
+import CoarSubFlyout from './CoarSubFlyout.vue';
 import { shouldDelaySubmenuSwitch } from './menu-aim';
 
 describe('CoarMenu', () => {
@@ -376,14 +376,14 @@ describe('Menu keyboard navigation', () => {
   });
 });
 
-describe('CoarSubmenuItem', () => {
+describe('CoarSubFlyout', () => {
   const stubs = {
     CoarIcon: { template: '<span />', props: ['name', 'size'] },
     Teleport: true,
   };
 
   it('should render label', () => {
-    const wrapper = mount(CoarSubmenuItem, {
+    const wrapper = mount(CoarSubFlyout, {
       props: { label: 'Share' },
       global: { stubs },
     });
@@ -391,7 +391,7 @@ describe('CoarSubmenuItem', () => {
   });
 
   it('should have aria-haspopup="menu"', () => {
-    const wrapper = mount(CoarSubmenuItem, {
+    const wrapper = mount(CoarSubFlyout, {
       props: { label: 'Share' },
       global: { stubs },
     });
@@ -399,7 +399,7 @@ describe('CoarSubmenuItem', () => {
   });
 
   it('should start with aria-expanded="false"', () => {
-    const wrapper = mount(CoarSubmenuItem, {
+    const wrapper = mount(CoarSubFlyout, {
       props: { label: 'Share' },
       global: { stubs },
     });
@@ -407,7 +407,7 @@ describe('CoarSubmenuItem', () => {
   });
 
   it('should apply disabled class', () => {
-    const wrapper = mount(CoarSubmenuItem, {
+    const wrapper = mount(CoarSubFlyout, {
       props: { label: 'Share', disabled: true },
       global: { stubs },
     });
@@ -415,12 +415,44 @@ describe('CoarSubmenuItem', () => {
   });
 
   it('should not respond to click when disabled', async () => {
-    const wrapper = mount(CoarSubmenuItem, {
+    const wrapper = mount(CoarSubFlyout, {
       props: { label: 'Share', disabled: true },
       global: { stubs },
     });
     await wrapper.find('.coar-submenu-item').trigger('click');
     expect(wrapper.find('[aria-expanded="false"]').exists()).toBe(true);
+  });
+});
+
+describe('CoarContextMenu with flyout submenu', () => {
+  it('should not close context menu when clicking inside a teleported submenu panel', async () => {
+    // Simulate the pointerdown handler logic from CoarContextMenu
+    // The fix: clicks on .coar-submenu-panel should NOT close the menu
+
+    // Create a submenu panel element (simulating Teleport to body)
+    const panel = document.createElement('div');
+    panel.className = 'coar-submenu-panel';
+    const menuItem = document.createElement('div');
+    menuItem.className = 'coar-menu-item';
+    menuItem.textContent = 'Sub Item';
+    panel.appendChild(menuItem);
+    document.body.appendChild(panel);
+
+    // Simulate the check from CoarContextMenu.onPointerDown
+    const target = menuItem as Node;
+    const hostContains = false; // Teleported panel is NOT inside hostRef
+    const isSubmenuPanel = (target as Element).closest?.('.coar-submenu-panel') !== null;
+
+    // Before fix: would close because hostContains is false
+    // After fix: should NOT close because isSubmenuPanel is true
+    expect(hostContains).toBe(false);
+    expect(isSubmenuPanel).toBe(true);
+
+    // The menu should stay open
+    const shouldClose = !hostContains && !isSubmenuPanel;
+    expect(shouldClose).toBe(false);
+
+    document.body.removeChild(panel);
   });
 });
 

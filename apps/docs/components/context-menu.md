@@ -18,6 +18,12 @@ All standard menu features work inside context menus — headings, dividers, ico
 
 <preview path="./context-menu/demos/ContextMenuSubmenus.vue" />
 
+## Flyout Submenus
+
+Use `CoarSubFlyout` inside a context menu for nested flyout panels — useful for status changes, priority selectors, etc.
+
+<preview path="./context-menu/demos/ContextMenuFlyout.vue" />
+
 ## Data Grid Integration
 
 Use separate `useContextMenu()` instances for cell and viewport right-clicks. The data grid builder provides `onCellContextMenu` and `onViewportContextMenu` handlers that give you the mouse event to pass into `menu.open()`.

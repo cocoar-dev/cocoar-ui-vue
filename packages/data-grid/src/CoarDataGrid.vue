@@ -160,7 +160,13 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: var(--coar-spacing-s);
-  padding: var(--coar-spacing-s);
+  margin-bottom: var(--coar-spacing-s);
+}
+
+/* Padding only when bordered or elevated */
+:is(.ag-theme-cocoar--bordered, .ag-theme-cocoar--elevated) > .coar-grid-toolbar {
+  padding: var(--coar-spacing-s) var(--coar-spacing-s) 0;
+  margin-bottom: var(--coar-spacing-s);
 }
 
 .coar-grid-toolbar:has(> :only-child.coar-grid-toolbar__spacer) {

@@ -106,7 +106,8 @@ export {
   CoarMenuDivider,
   CoarMenuHeading,
   CoarSubExpand,
-  CoarSubmenuItem,
+  CoarSubFlyout,
+  CoarSubmenuItem, // deprecated alias
   CoarContextMenu,
   useContextMenu,
   MenuCascade,

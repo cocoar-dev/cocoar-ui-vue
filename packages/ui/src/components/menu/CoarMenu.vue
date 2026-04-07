@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref, provide, nextTick } from 'vue';
 import { MenuCascade, provideMenuCascade, useMenuCascade, MENU_NAV_KEY, type MenuNavigationItem } from './menu-cascade';
+import { vScrollbar } from '../scrollbar/vScrollbar';
 
 const props = withDefaults(
   defineProps<{
@@ -116,6 +117,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div
+    v-scrollbar="{ overflowX: 'hidden', overflowY: 'scroll', autoHide: 'leave' }"
     role="menu"
     class="coar-menu"
     :class="{ 'coar-menu--borderless': props.borderless }"

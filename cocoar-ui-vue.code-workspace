@@ -6,7 +6,7 @@
   ],
   "settings": {
     "npm.packageManager": "pnpm",
-    "npm.exclude": ["**/apps/**", "**/packages/**"],
+    "npm.exclude": ["**/packages/**"],
     "git.ignoreWindowsGit27Warning": true,
     "diffEditor.ignoreTrimWhitespace": false,
 
