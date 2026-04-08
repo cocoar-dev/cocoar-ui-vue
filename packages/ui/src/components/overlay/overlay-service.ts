@@ -306,6 +306,21 @@ export function createOverlayService() {
 
   function installRepositionTriggers(instance: OverlayInstance, hostEl: HTMLElement): void {
     const strategy = instance.spec.scroll.strategy;
+
+    // Always reposition on window resize and overlay content resize,
+    // regardless of scroll strategy. This ensures modals/dialogs stay
+    // centered when their content grows after initial render (e.g. async data).
+    const onResize = () => repositionInstance(instance, hostEl);
+
+    window.addEventListener('resize', onResize, { passive: true });
+    instance.cleanups.push(() => window.removeEventListener('resize', onResize));
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver(() => repositionInstance(instance, hostEl));
+      ro.observe(hostEl);
+      instance.resizeObserver = ro;
+    }
+
     if (strategy === 'noop') return;
 
     const scrollParents =
@@ -313,20 +328,10 @@ export function createOverlayService() {
 
     if (strategy === 'reposition') {
       const onScroll = () => repositionInstance(instance, hostEl);
-      const onResize = () => repositionInstance(instance, hostEl);
 
       for (const parent of scrollParents) {
         parent.addEventListener('scroll', onScroll, { passive: true });
         instance.cleanups.push(() => parent.removeEventListener('scroll', onScroll));
-      }
-
-      window.addEventListener('resize', onResize, { passive: true });
-      instance.cleanups.push(() => window.removeEventListener('resize', onResize));
-
-      if (typeof ResizeObserver !== 'undefined') {
-        const ro = new ResizeObserver(() => repositionInstance(instance, hostEl));
-        ro.observe(hostEl);
-        instance.resizeObserver = ro;
       }
     } else if (strategy === 'close') {
       const onScroll = (e: Event) => {
