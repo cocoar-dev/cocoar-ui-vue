@@ -61,6 +61,7 @@ function onSortClick(event: MouseEvent) {
   height: 100%;
   gap: 4px;
   overflow: hidden;
+  color: var(--ag-header-foreground-color, inherit);
 }
 
 .coar-grid-header--sortable {

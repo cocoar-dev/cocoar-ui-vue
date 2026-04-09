@@ -7,6 +7,14 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 1.6.1
+
+### Fixed
+
+- **Data Grid dark mode**: Custom grid header (`CoarGridHeader`) now inherits `--ag-header-foreground-color` so text and sort icons render correctly in dark mode instead of staying black.
+
+---
+
 ## 1.6.0
 
 ### Added

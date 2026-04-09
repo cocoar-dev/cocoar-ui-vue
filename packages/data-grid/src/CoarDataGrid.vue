@@ -57,14 +57,22 @@ const props = withDefaults(
 const searchText = defineModel<string>('search', { default: '' });
 
 // Toolbar visibility: show when search is enabled or any toolbar slot is used
-const showToolbar = computed(() =>
-  props.showSearch || !!slots['toolbar-left'] || !!slots['toolbar-right'],
+const showToolbar = computed(
+  () => props.showSearch || !!slots['toolbar-left'] || !!slots['toolbar-right'],
 );
 
 // Internal search ref wired to builder's quick filter
 const internalSearch = ref('');
-watch(searchText, (v) => { internalSearch.value = v; }, { immediate: true });
-watch(internalSearch, (v) => { searchText.value = v; });
+watch(
+  searchText,
+  (v) => {
+    internalSearch.value = v;
+  },
+  { immediate: true },
+);
+watch(internalSearch, (v) => {
+  searchText.value = v;
+});
 
 watch(
   () => props.builder,
@@ -123,16 +131,20 @@ onBeforeUnmount(() => {
   <div
     ref="wrapperRef"
     class="ag-theme-cocoar"
-    :class="[props.class, {
-      'ag-theme-cocoar--bordered': props.bordered,
-      'ag-theme-cocoar--elevated': props.elevated,
-      'ag-theme-cocoar--has-toolbar': showToolbar,
-    }]"
+    :class="[
+      props.class,
+      {
+        'ag-theme-cocoar--bordered': props.bordered,
+        'ag-theme-cocoar--elevated': props.elevated,
+        'ag-theme-cocoar--has-toolbar': showToolbar,
+      },
+    ]"
     :style="props.style ?? 'display: flex; flex-direction: column; flex: 1 1 auto; height: 100%;'"
     @click="onClick"
     @contextmenu="onContextMenu"
   >
     <div v-if="showToolbar" ref="toolbarRef" class="coar-grid-toolbar">
+      test
       <slot name="toolbar-left" />
       <CoarDataGridSearch
         v-if="showSearch"
@@ -146,6 +158,7 @@ onBeforeUnmount(() => {
     </div>
     <ag-grid-vue
       style="width: 100%; height: 100%"
+      class="ag-grid-vue-container"
       v-bind="gridOptions"
       :theme="props.theme"
       :column-defs="columnDefs"
@@ -171,6 +184,10 @@ onBeforeUnmount(() => {
 
 .coar-grid-toolbar:has(> :only-child.coar-grid-toolbar__spacer) {
   display: none;
+}
+
+.ag-theme-cocoar--has-toolbar > .ag-grid-vue-container {
+  border-top: 1px solid var(--coar-border-neutral);
 }
 
 .coar-grid-toolbar__search {
