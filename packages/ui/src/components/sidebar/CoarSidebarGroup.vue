@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, inject, nextTick, onBeforeUnmount, provide, ref, useId, watch } from 'vue';
+import { computed, inject, nextTick, onBeforeUnmount, ref, useId, watch } from 'vue';
 import CoarIcon from '../icon/CoarIcon.vue';
 import type { CoarIconSize } from '../icon/icon-service';
 import { vTooltip } from '../tooltip/vTooltip';
@@ -248,9 +248,12 @@ onBeforeUnmount(() => {
       <span class="coar-sidebar-group__icon" aria-hidden="true">
         <CoarIcon :name="props.icon || 'square-dashed'" :size="sidebarIconSize" />
         <span class="coar-sidebar-group__caret">
-          <CoarIcon :name="isFlyout
-            ? ((flyoutOpen ? 'chevron-down' : 'chevron-right'))
-            : ((isOpen ? 'minus' : 'plus'))" size="xs" />
+          <CoarIcon
+            :name="isFlyout
+              ? (flyoutOpen ? 'chevron-down' : 'chevron-right')
+              : (isOpen ? 'minus' : 'plus')"
+            size="xs"
+          />
         </span>
       </span>
       <span class="coar-sidebar-group__label">{{ props.label }}</span>
@@ -282,8 +285,8 @@ onBeforeUnmount(() => {
     <Teleport to="body">
       <SidebarFlyoutProvider v-if="isFlyout && flyoutOpen" :icon-only="resolvedIconOnly" :parent-control="selfControl">
         <div
-          ref="flyoutRef"
           :id="panelId"
+          ref="flyoutRef"
           class="coar-sidebar-flyout"
           :class="{ 'coar-sidebar-flyout--icons': isIconsMode }"
           role="menu"
