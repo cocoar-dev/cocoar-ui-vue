@@ -144,7 +144,6 @@ onBeforeUnmount(() => {
     @contextmenu="onContextMenu"
   >
     <div v-if="showToolbar" ref="toolbarRef" class="coar-grid-toolbar">
-      test
       <slot name="toolbar-left" />
       <CoarDataGridSearch
         v-if="showSearch"
