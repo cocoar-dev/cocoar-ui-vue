@@ -41,8 +41,22 @@
   --coar-sidebar-content-padding: 0;
 
   /* Footer section */
-  --coar-sidebar-footer-padding: var(--coar-spacing-m);
+  --coar-sidebar-footer-padding: 0;
   --coar-sidebar-footer-border: 1px solid var(--coar-border-neutral-tertiary);
+
+  /* ========================================
+     Sidebar Item Styling
+     ======================================== */
+
+  --coar-sidebar-icon-size: 20px;
+  --coar-sidebar-item-padding: 0.5rem 0.75rem;
+  --coar-sidebar-item-gap: 0.75rem;
+  --coar-sidebar-item-margin: 2px 0;
+  --coar-sidebar-item-radius: var(--coar-radius-xxs);
+  --coar-sidebar-item-hover: var(--coar-background-neutral-tertiary);
+  --coar-sidebar-item-active-color: var(--coar-text-accent-primary);
+  --coar-sidebar-item-active-bg: var(--coar-background-accent-tertiary);
+  --coar-sidebar-group-indent: 16px;
 
   /* ========================================
      Scrollbar Styling

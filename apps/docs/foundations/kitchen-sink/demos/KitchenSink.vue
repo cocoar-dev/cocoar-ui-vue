@@ -2,24 +2,63 @@
   <div class="ks">
     <!-- App Shell: Sidebar + Content -->
     <div class="ks-app-shell">
-      <CoarSidebar elevated borderless>
-        <template #header>
+      <CoarSidebar v-model:collapsed="sidebarCollapsed" elevated borderless>
+        <template #header="{ collapsed: isCollapsed }">
           <div style="display: flex; align-items: center; gap: 8px; padding: 4px;">
-            <div class="ks-logo">C</div>
-            <strong>cocoar</strong>
+            <div class="ks-logo" @click="sidebarCollapsed = !sidebarCollapsed" style="cursor: pointer;">C</div>
+            <strong v-if="!isCollapsed" style="white-space: nowrap;">cocoar</strong>
           </div>
         </template>
-        <CoarMenu borderless>
-          <CoarMenuItem icon="home">Dashboard</CoarMenuItem>
-          <CoarMenuItem icon="user">Users</CoarMenuItem>
-          <CoarMenuItem icon="list">Projects</CoarMenuItem>
-          <CoarMenuItem icon="settings">Settings</CoarMenuItem>
-        </CoarMenu>
+        <CoarSidebarItem icon="home" label="Dashboard" active />
+        <CoarSidebarItem icon="user" label="Profile" />
+        <CoarSidebarItem icon="list" label="Projects" />
+
+        <CoarSidebarHeading label="Management" />
+        <CoarSidebarGroup icon="users" label="Users" v-model:open="usersOpen">
+          <CoarSidebarItem icon="user-plus" label="All Users" />
+          <CoarSidebarItem icon="shield" label="Roles" />
+          <CoarSidebarItem icon="lock" label="Permissions" />
+        </CoarSidebarGroup>
+        <CoarSidebarGroup icon="list" label="Reports" mode="flyout" open-on-hover>
+          <CoarSidebarItem icon="globe" label="Sales" />
+          <CoarSidebarItem icon="bell" label="Alerts" />
+          <CoarSidebarGroup icon="settings" label="Nested flyout" mode="flyout">
+            <CoarSidebarItem icon="lock" label="Audit Log" />
+            <CoarSidebarItem icon="shield" label="Compliance" />
+          </CoarSidebarGroup>
+          <CoarSidebarGroup icon="list" label="Nested expand" v-model:open="reportsExpandOpen">
+            <CoarSidebarItem icon="user-plus" label="Create" />
+            <CoarSidebarItem icon="settings" label="Configure" />
+          </CoarSidebarGroup>
+        </CoarSidebarGroup>
+        <CoarSidebarGroup icon="settings" label="Quick Actions" mode="flyout" :icon-only="sidebarCollapsed">
+          <CoarSidebarItem icon="user-plus" label="Add User" />
+          <CoarSidebarItem icon="lock" label="Lock" />
+          <CoarSidebarGroup icon="bell" label="Notifications" mode="flyout">
+            <CoarSidebarItem icon="bell" label="Alerts" />
+            <CoarSidebarItem icon="settings" label="Preferences" />
+          </CoarSidebarGroup>
+          <CoarSidebarGroup icon="list" label="More" v-model:open="quickExpandOpen">
+            <CoarSidebarItem icon="globe" label="Export" />
+            <CoarSidebarItem icon="shield" label="Security" />
+          </CoarSidebarGroup>
+        </CoarSidebarGroup>
+
+        <CoarSidebarHeading label="System" />
+        <CoarSidebarItem icon="settings" label="Settings" />
+        <CoarSidebarItem icon="globe" label="Localization" />
+
         <template #footer>
-          <CoarMenu borderless>
-            <CoarMenuDivider />
-            <CoarMenuItem icon="log-out">Logout</CoarMenuItem>
-          </CoarMenu>
+          <CoarSidebarDivider />
+          <CoarSidebarItem icon="log-out" label="Logout" />
+          <CoarSidebarSpacer grow />
+          <CoarSidebarDivider />
+          <CoarSidebarItem
+            :icon="sidebarCollapsed ? 'chevron-right' : 'chevron-left'"
+            :label="sidebarCollapsed ? 'Expand' : 'Collapse'"
+            @click="sidebarCollapsed = !sidebarCollapsed"
+          />
+          <CoarSidebarSpacer height="4px" />
         </template>
       </CoarSidebar>
 
@@ -213,7 +252,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import {
-  CoarSidebar, CoarMenu, CoarMenuItem, CoarMenuDivider,
+  CoarSidebar, CoarSidebarItem, CoarSidebarGroup, CoarSidebarHeading, CoarSidebarDivider, CoarSidebarSpacer,
   CoarNavbar, CoarBreadcrumb, CoarBreadcrumbItem,
   CoarButton, CoarCard, CoarNote, CoarTag, CoarBadge, CoarAvatar,
   CoarTextInput, CoarSelect, CoarCheckbox, CoarSwitch, CoarRadioGroup,
@@ -222,6 +261,11 @@ import {
 } from '@cocoar/vue-ui';
 import type { CoarSelectOption } from '@cocoar/vue-ui';
 
+const sidebarCollapsed = ref(false);
+const usersOpen = ref(false);
+const notificationsOpen = ref(false);
+const reportsExpandOpen = ref(false);
+const quickExpandOpen = ref(false);
 const checked = ref(true);
 const switched = ref(false);
 const radio = ref('medium');
@@ -254,7 +298,7 @@ const tabs = [
 
 .ks-app-shell {
   display: flex;
-  height: 1200px;
+  height: 800px;
   border: 1px solid var(--coar-border-neutral-tertiary);
   border-radius: 8px;
   overflow: hidden;

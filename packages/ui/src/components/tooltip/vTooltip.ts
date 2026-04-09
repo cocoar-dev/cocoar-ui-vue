@@ -76,7 +76,7 @@ function createTooltipEl(content: string, tooltipId: string): HTMLElement {
   el.setAttribute('role', 'tooltip');
   el.innerHTML = `<span class="coar-tooltip-text">${escapeHtml(content)}</span>`;
   el.style.cssText =
-    'position:fixed;top:0;left:0;z-index:var(--coar-z-overlay,1000);pointer-events:none;opacity:0;';
+    'position:fixed;top:0;left:0;z-index:calc(var(--coar-z-overlay,1000) + 1);pointer-events:none;opacity:0;';
   return el;
 }
 
@@ -272,7 +272,7 @@ export const vTooltip: Directive<HTMLElement, string | TooltipOptions> = {
       cleanup: null,
       opts: getOptions(binding),
       onMouseEnter: () => {
-        if (state.opts.disabled) return;
+        if (state.opts.disabled || !state.opts.content) return;
         if (state.closeTimerId != null) {
           window.clearTimeout(state.closeTimerId);
           state.closeTimerId = null;
@@ -283,7 +283,7 @@ export const vTooltip: Directive<HTMLElement, string | TooltipOptions> = {
         scheduleClose(state, state.opts, 'hover');
       },
       onFocusIn: () => {
-        if (state.opts.disabled) return;
+        if (state.opts.disabled || !state.opts.content) return;
         if (state.closeTimerId != null) {
           window.clearTimeout(state.closeTimerId);
           state.closeTimerId = null;
@@ -308,10 +308,18 @@ export const vTooltip: Directive<HTMLElement, string | TooltipOptions> = {
   updated(el, binding) {
     const state = stateMap.get(el);
     if (!state) return;
+
+    // Falsy binding (false, null, '', undefined) → disable & close
+    if (!binding.value) {
+      state.opts = { content: '', disabled: true };
+      closeTooltip(state);
+      return;
+    }
+
     const opts = getOptions(binding);
     state.opts = opts;
 
-    if (opts.disabled) {
+    if (opts.disabled || !opts.content) {
       closeTooltip(state);
       return;
     }

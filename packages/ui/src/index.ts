@@ -129,7 +129,16 @@ export { CoarPagination } from './components/pagination';
 export type { PaginationPageItem } from './components/pagination';
 
 // Sidebar
-export { CoarSidebar } from './components/sidebar';
+export {
+  CoarSidebar,
+  CoarSidebarItem,
+  CoarSidebarGroup,
+  CoarSidebarHeading,
+  CoarSidebarDivider,
+  CoarSidebarSpacer,
+  SIDEBAR_COLLAPSED_KEY,
+  SIDEBAR_ICON_SIZE_KEY,
+} from './components/sidebar';
 
 // Navbar
 export { CoarNavbar } from './components/navbar';

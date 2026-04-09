@@ -7,6 +7,41 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 1.6.0
+
+### Added
+
+- **Sidebar navigation components**: New dedicated components for sidebar navigation, replacing the pattern of using `CoarMenu`/`CoarMenuItem` inside `CoarSidebar`:
+  - **`CoarSidebarItem`**: Navigation item with `icon`, `label`, `active` state, and automatic tooltip in collapsed mode. No menu cascade/close logic — designed purely for persistent navigation.
+  - **`CoarSidebarGroup`**: Expandable/flyout section with two modes:
+    - `mode="expand"` (default): Animated inline panel (grid-based 0fr→1fr). Plus/minus icon indicator.
+    - `mode="flyout"`: Floating panel positioned next to the sidebar via `Teleport`. Chevron icon indicator. Supports nested flyouts with parent-child cascade (hovering child keeps parent open).
+  - **`CoarSidebarHeading`**: Section title that becomes a small spacer when collapsed (visual separation preserved without text).
+  - **`CoarSidebarDivider`**: Simple visual separator line.
+  - **`CoarSidebarSpacer`**: Vertical spacing component with `height` and `grow` props.
+- **Flyout mode** (`mode="flyout"`) on `CoarSidebarGroup`: Opens a floating panel next to the sidebar instead of expanding inline. Flyout panels are teleported to `<body>` and positioned via `computeOverlayCoordinates`. Click-to-open by default, with optional `open-on-hover` prop for hover-triggered opening (200ms delay). Close-on-leave has a 300ms grace period so users can move to the panel without it closing.
+- **Icon-only flyout** (`icon-only` prop on `CoarSidebarGroup`): Flyout items show as a vertical column of icons without labels, with tooltips on hover. Useful for compact action palettes. Nested flyout and expand groups inside icon-only flyouts automatically inherit the icon-only display.
+- **Open on hover** (`open-on-hover` prop on `CoarSidebarGroup`): Opt-in hover-to-open behavior for flyout groups. Opens after 200ms hover delay, closes after 300ms leave delay. Touch-friendly default remains click-to-open.
+- **Nested flyouts**: Flyout groups can be nested inside other flyouts. Parent-child cascade via `provide`/`inject` keeps parent panels open while interacting with children. Click-outside detection checks all flyout panels to prevent premature closing.
+- **Expand in flyout**: Expand groups work inside flyout panels, including icon-only flyouts where children render as centered icons without labels or indentation.
+- **Sidebar `size` prop**: Controls icon size — `'s'` (16px), `'m'` (20px, default), `'l'` (24px). Propagated to children via injection.
+- **Sidebar collapsed UX**: `CoarSidebar` now provides its collapsed state to children via `inject`. Sidebar items automatically show right-aligned tooltips when collapsed. Smooth width transition on collapse/expand. Group triggers show icon badge (plus for expand, chevron for flyout) in collapsed mode.
+- **Sidebar scoped slots**: `#header`, `#footer`, and the default slot now receive `{ collapsed }` so parent components can adapt their content (e.g. full logo vs. icon-only).
+- **Sidebar CSS tokens**: New design tokens for sidebar items — `--coar-sidebar-item-padding`, `--coar-sidebar-item-hover`, `--coar-sidebar-item-active-color`, `--coar-sidebar-item-active-bg`, `--coar-sidebar-group-indent`, etc.
+- **Force expand tree** (Data Grid): New `builder.forceExpanded(ref)` method. When the ref is `true`, all tree parents are expanded and chevron toggle is disabled. When it switches back to `false`, the previous open-state is restored.
+
+### Changed
+
+- **`CoarSidebar` collapsed prop**: Now emits `update:collapsed` for optional `v-model:collapsed` two-way binding. One-way `collapsed` prop still works as before.
+- **Sidebar footer padding**: `--coar-sidebar-footer-padding` changed from `var(--coar-spacing-m)` to `0` so footer items stretch to full width like content items.
+
+### Fixed
+
+- **Tooltip empty rectangle**: `vTooltip` directive's `updated` hook now handles falsy values (`false`, `''`). Previously, switching tooltip config from an object to `false` left a visible empty rectangle.
+- **Tooltip z-index**: Tooltip z-index increased to `calc(var(--coar-z-overlay,1000) + 1)` so tooltips render above flyout panels.
+
+---
+
 ## 1.5.5
 
 ### Added

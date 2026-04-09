@@ -107,6 +107,8 @@ export class CoarGridBuilder<TData = unknown> {
   // Deferred state (applied after grid ready)
   #columnState?: ColumnState[] | Ref<ColumnState[] | undefined>;
   #openRows?: Ref<string[]>;
+  #forceExpandedRef?: Ref<boolean>;
+  #openRowsSnapshot?: string[];
   #sortFilterTriggers: WatchSource[] = [];
   #externalFilterTriggers: WatchSource[] = [];
   #dataPipelineTriggers: WatchSource[] = [];
@@ -356,7 +358,7 @@ export class CoarGridBuilder<TData = unknown> {
     this.#treeConfig = config;
     this.#treeContext.getRowId = config.rowId;
     this.#treeContext.toggleRow = (id: string) => {
-      if (!this.#openRows) return;
+      if (!this.#openRows || this.#forceExpandedRef?.value) return;
       const rows = this.#openRows.value;
       if (rows.includes(id)) {
         this.#openRows.value = rows.filter((r) => r !== id);
@@ -374,6 +376,27 @@ export class CoarGridBuilder<TData = unknown> {
   /** Set which parent rows are expanded (reactive ref of row IDs) */
   openRows(openRows: Ref<string[]>): this {
     this.#openRows = openRows;
+    return this;
+  }
+
+  /**
+   * Force all tree parents to be expanded while the ref is `true`.
+   *
+   * When switching to `true`, the current open-state is saved. All parents
+   * are shown expanded and chevron toggle is disabled.
+   * When switching back to `false`, the saved open-state is restored.
+   *
+   * @example
+   * ```ts
+   * const forceExpanded = computed(() => showSubTodos.value && !!search.value)
+   * builder
+   *   .treeData({ children: row => row.children, rowId: row => row.id })
+   *   .openRows(openRows)
+   *   .forceExpanded(forceExpanded)
+   * ```
+   */
+  forceExpanded(source: Ref<boolean>): this {
+    this.#forceExpandedRef = source;
     return this;
   }
 
@@ -864,8 +887,8 @@ export class CoarGridBuilder<TData = unknown> {
           anyMatch = true;
         }
       } else {
-        // Normal mode: respect openRows
-        const isExpanded = hasChildren && openRowIds.includes(id);
+        // Normal mode: respect openRows (or force-expand all)
+        const isExpanded = hasChildren && (this.#forceExpandedRef?.value || openRowIds.includes(id));
         result.push(row);
         metaMap.set(id, { depth, hasChildren, isExpanded, childCount: children.length });
 
@@ -994,7 +1017,21 @@ export class CoarGridBuilder<TData = unknown> {
       const sources: WatchSource[] = [dataSource];
       if (this.#quickFilterTextRef) sources.push(this.#quickFilterTextRef);
       if (this.#openRows) sources.push(this.#openRows);
+      if (this.#forceExpandedRef) sources.push(this.#forceExpandedRef);
       sources.push(...this.#dataPipelineTriggers);
+
+      // Save/restore open-rows when forceExpanded toggles
+      if (this.#forceExpandedRef && this.#openRows) {
+        const stopForceWatch = watch(this.#forceExpandedRef, (forced) => {
+          if (forced) {
+            this.#openRowsSnapshot = [...this.#openRows!.value];
+          } else if (this.#openRowsSnapshot) {
+            this.#openRows!.value = this.#openRowsSnapshot;
+            this.#openRowsSnapshot = undefined;
+          }
+        });
+        this.#cleanupFns.push(stopForceWatch);
+      }
 
       const stopWatch = watch(
         sources,
