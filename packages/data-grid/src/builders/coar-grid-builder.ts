@@ -109,10 +109,12 @@ export class CoarGridBuilder<TData = unknown> {
   #openRows?: Ref<string[]>;
   #sortFilterTriggers: WatchSource[] = [];
   #externalFilterTriggers: WatchSource[] = [];
+  #dataPipelineTriggers: WatchSource[] = [];
 
   // Quick filter
   #quickFilterTextRef?: Ref<string>;
   #quickFilterFn?: (searchValue: string, data: TData) => boolean;
+  #customFilterFn?: (data: TData[], searchText: string) => TData[] | null;
 
   // Tracks whether flex columns have been recalculated after first data
   #flexApplied = false;
@@ -662,6 +664,55 @@ export class CoarGridBuilder<TData = unknown> {
   }
 
   /**
+   * Set a custom filter function that operates on the entire data array.
+   * When set, AG Grid's per-row quick filter is bypassed — the data is filtered
+   * by this function before being passed to AG Grid.
+   *
+   * This is useful for tree data where you need sibling-aware filtering
+   * (e.g. keeping all children of a parent when any child matches).
+   *
+   * @param fn - Receives the full data array and the current search text.
+   *             Return the filtered array, or `null` to fall back to the
+   *             default quick filter for that evaluation.
+   *
+   * @example
+   * ```ts
+   * builder
+   *   .treeData({ children: row => row.children, rowId: row => row.id })
+   *   .customFilter((items, search) => {
+   *     if (!showGroupFilter.value) return null; // fall back to quickFilter
+   *     if (!search.trim()) return items;
+   *     const q = search.toLowerCase();
+   *     return items.filter(parent =>
+   *       parent.name.toLowerCase().includes(q) ||
+   *       parent.children.some(c => c.name.toLowerCase().includes(q))
+   *     );
+   *   })
+   * ```
+   */
+  customFilter(fn: (data: TData[], searchText: string) => TData[] | null): this {
+    this.#customFilterFn = fn;
+    return this;
+  }
+
+  /**
+   * Re-run the data pipeline when the given watch sources change.
+   * Use this when `customFilter` or `quickFilterFn` depends on external reactive state.
+   *
+   * @example
+   * ```ts
+   * const showSubTodos = ref(false);
+   * builder
+   *   .customFilter((todos, search) => { ... })
+   *   .updateOn(showSubTodos)
+   * ```
+   */
+  updateOn(...sources: WatchSource[]): this {
+    this.#dataPipelineTriggers.push(...sources);
+    return this;
+  }
+
+  /**
    * Enable search text highlighting using the CSS Custom Highlight API.
    * Matching text in grid cells is highlighted without modifying the DOM.
    *
@@ -835,10 +886,17 @@ export class CoarGridBuilder<TData = unknown> {
       return;
     }
 
-    const normalized = searchText?.trim().toLowerCase() || null;
+    // When customFilter returns an array, use it and flatten without search-based expansion.
+    // When it returns null (or is not set), fall back to default quick filter in flattenTree.
+    const customResult = this.#customFilterFn?.(data, searchText ?? '') ?? null;
+    const sourceData = customResult !== null ? customResult : data;
+    const normalized = customResult !== null
+      ? null
+      : (searchText?.trim().toLowerCase() || null);
+
     const result: TData[] = [];
     const metaMap = new Map<string, TreeNodeMeta>();
-    this.#flattenTree(data, 0, normalized, result, metaMap);
+    this.#flattenTree(sourceData, 0, normalized, result, metaMap);
 
     // Update tree context meta (cell renderers read from this)
     this.#treeContext.meta = metaMap;
@@ -907,7 +965,10 @@ export class CoarGridBuilder<TData = unknown> {
       return;
     }
 
-    const filtered = this.#applyQuickFilter(data, searchText);
+    const customResult = this.#customFilterFn?.(data, searchText ?? '') ?? null;
+    const filtered = customResult !== null
+      ? customResult
+      : this.#applyQuickFilter(data, searchText);
     api.setGridOption('rowData', filtered);
     api.setGridOption('loading', false);
 
@@ -930,9 +991,10 @@ export class CoarGridBuilder<TData = unknown> {
     // ---- Row data pipeline ----
     if (this.#treeConfig) {
       const dataSource = this.#reactiveRowData ?? ref(this.#rowData) as Ref<TData[] | null>;
-      const sources: Ref[] = [dataSource];
+      const sources: WatchSource[] = [dataSource];
       if (this.#quickFilterTextRef) sources.push(this.#quickFilterTextRef);
       if (this.#openRows) sources.push(this.#openRows);
+      sources.push(...this.#dataPipelineTriggers);
 
       const stopWatch = watch(
         sources,
@@ -942,21 +1004,27 @@ export class CoarGridBuilder<TData = unknown> {
         { immediate: true, deep: false }
       );
       this.#cleanupFns.push(stopWatch);
-    } else if (this.#quickFilterTextRef) {
+    } else if (this.#quickFilterTextRef || this.#customFilterFn) {
       const dataSource = this.#reactiveRowData ?? ref(this.#rowData) as Ref<TData[] | null>;
+      const sources: WatchSource[] = [dataSource];
+      if (this.#quickFilterTextRef) sources.push(this.#quickFilterTextRef);
+      sources.push(...this.#dataPipelineTriggers);
+
       const stopWatch = watch(
-        [dataSource, this.#quickFilterTextRef] as const,
-        ([data, searchText]) => {
-          this.#setRowDataOnGrid(api, data, searchText);
+        sources,
+        () => {
+          this.#setRowDataOnGrid(api, dataSource.value, this.#quickFilterTextRef?.value);
         },
         { immediate: true }
       );
       this.#cleanupFns.push(stopWatch);
     } else if (this.#reactiveRowData) {
+      const sources: WatchSource[] = [this.#reactiveRowData, ...this.#dataPipelineTriggers];
+
       const stopWatch = watch(
-        this.#reactiveRowData,
-        (data) => {
-          this.#setRowDataOnGrid(api, data);
+        sources,
+        () => {
+          this.#setRowDataOnGrid(api, this.#reactiveRowData!.value);
         },
         { immediate: true }
       );
@@ -1075,12 +1143,12 @@ export class CoarGridBuilder<TData = unknown> {
     // When data is managed reactively via _bind(), return null so AG Grid
     // doesn't receive initial data through the template binding.
     // This ensures flex columns are calculated when data arrives via setGridOption.
-    if (this.#reactiveRowData || this.#quickFilterTextRef || this.#treeConfig) return null;
+    if (this.#reactiveRowData || this.#quickFilterTextRef || this.#treeConfig || this.#customFilterFn) return null;
     return this.#rowData;
   }
 
   /** @internal Whether data is loaded asynchronously (rowDataRef or tree/filter pipeline) */
   _isAsyncData(): boolean {
-    return !!(this.#reactiveRowData || this.#quickFilterTextRef || this.#treeConfig);
+    return !!(this.#reactiveRowData || this.#quickFilterTextRef || this.#treeConfig || this.#customFilterFn);
   }
 }
