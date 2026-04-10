@@ -4,11 +4,14 @@ import type { ICellRendererParams } from 'ag-grid-community';
 import { CoarTag } from '@cocoar/vue-ui';
 import type { TagVariant, TagSize } from '@cocoar/vue-ui';
 import { useI18n } from '@cocoar/vue-localization';
-import type { TagCellRendererConfig } from './tag-cell-renderer.models';
+import type { TagCellRendererConfig, TagColor } from './tag-cell-renderer.models';
+
+const TAG_VARIANTS: ReadonlySet<string> = new Set(['neutral', 'success', 'warning', 'error', 'info', 'accent']);
 
 interface TagItem {
   label: string;
   variant: TagVariant;
+  style?: Record<string, string>;
 }
 
 const props = defineProps<{
@@ -27,10 +30,15 @@ const tags = computed<TagItem[]>(() => {
     resolveValueForLabels(props.params.value, props.params.valueFormatted),
     cfg,
   );
-  return rawLabels.map((rawLabel, i) => ({
-    label: translateLabel(displayLabels[i] ?? rawLabel, cfg),
-    variant: resolveVariant(rawLabel, cfg),
-  }));
+  return rawLabels
+    .filter((rawLabel, i) => !!(displayLabels[i] ?? rawLabel))
+    .map((rawLabel, i) => {
+      const appearance = resolveAppearance(rawLabel, cfg);
+      return {
+        label: translateLabel(displayLabels[i] ?? rawLabel, cfg),
+        ...appearance,
+      };
+    });
 });
 
 function resolveValueForLabels(value: unknown, valueFormatted: string | null | undefined): unknown {
@@ -66,8 +74,46 @@ function translateLabel(label: string, cfg: TagCellRendererConfig): string {
   return label;
 }
 
-function resolveVariant(label: string, cfg: TagCellRendererConfig): TagVariant {
-  return cfg.variantMap?.[label] ?? cfg.variant ?? 'neutral';
+function resolveAppearance(value: string, cfg: TagCellRendererConfig): { variant: TagVariant; style?: Record<string, string> } {
+  // 1. variantFn takes precedence
+  const fnResult = cfg.variantFn?.(value);
+  if (fnResult != null) {
+    return toAppearance(fnResult);
+  }
+  // 2. variantMap
+  const mapResult = cfg.variantMap?.[value];
+  if (mapResult != null) {
+    return { variant: mapResult };
+  }
+  // 3. default
+  return { variant: cfg.variant ?? 'neutral' };
+}
+
+function toAppearance(value: TagVariant | TagColor | string): { variant: TagVariant; style?: Record<string, string> } {
+  // Object → full custom colors
+  if (typeof value === 'object') {
+    return {
+      variant: 'neutral',
+      style: {
+        '--coar-tag-bg': value.bg,
+        '--coar-tag-border-color': value.border ?? value.bg,
+        ...(value.text ? { color: value.text } : {}),
+      },
+    };
+  }
+  // Known variant name
+  if (TAG_VARIANTS.has(value)) {
+    return { variant: value as TagVariant };
+  }
+  // CSS color → text+border from color, bg auto-calculated via color-mix
+  return {
+    variant: 'neutral',
+    style: {
+      '--coar-tag-bg': `color-mix(in oklch, ${value} 15%, transparent)`,
+      '--coar-tag-border-color': value,
+      'color': value,
+    },
+  };
 }
 </script>
 
@@ -78,6 +124,7 @@ function resolveVariant(label: string, cfg: TagCellRendererConfig): TagVariant {
       :key="tag.label"
       :variant="tag.variant"
       :size="size"
+      :style="tag.style"
     >
       {{ tag.label }}
     </CoarTag>

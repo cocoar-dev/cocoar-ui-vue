@@ -7,6 +7,22 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 1.6.3
+
+### Added
+
+- **Tag custom colors** (`variantFn`): New `variantFn` option on `TagCellRendererConfig` for dynamic tag styling. The function receives the raw cell value and can return:
+  - A `TagVariant` string (`'success'`, `'error'`, …) for predefined variants
+  - A CSS color string (`'#dc2626'`) — used as text+border color, background auto-calculated via `color-mix(in oklch)` for consistent light/dark mode appearance
+  - A `TagColor` object (`{ bg, border?, text? }`) for full control
+  - `undefined` to fall back to `variantMap`
+
+### Fixed
+
+- **Empty tag rendering**: `TagCellRenderer` no longer renders empty tags when a label is `""`, `undefined`, or `null`.
+
+---
+
 ## 1.6.2
 
 ### Added

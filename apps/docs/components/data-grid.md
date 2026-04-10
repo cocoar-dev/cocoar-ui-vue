@@ -37,7 +37,7 @@ Built-in renderers for dates, numbers, currency, tags, and icons — no custom c
 | `.date(field, config?)` | Locale-aware date display |
 | `.number(field, config?)` | Locale-aware number display |
 | `.currency(field, config?)` | Locale-aware currency display |
-| `.tag(field, config)` | Renders a `CoarTag` with variant mapping |
+| `.tag(field, config)` | Renders a `CoarTag` with variant mapping or custom colors |
 | `.icon(field, config?)` | Renders a `CoarIcon` |
 
 ## Row Selection
