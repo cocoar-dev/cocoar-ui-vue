@@ -27,6 +27,7 @@ export function createCoarLocalization(config: CoarLocalizationConfig = {}): Plu
     service,
     install(app: App) {
       app.provide(COAR_LOCALIZATION_KEY, service);
+      service.setLanguage(service.getDefaultLanguage());
     },
   };
 

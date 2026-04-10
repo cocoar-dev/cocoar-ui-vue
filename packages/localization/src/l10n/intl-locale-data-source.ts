@@ -47,8 +47,8 @@ function extractDateData(locale: string): CoarDateFormatData {
     dayNamesShort.push(dayShort.format(date));
   }
 
-  // Detect date pattern
-  const pattern = detectDatePattern(locale);
+  // Detect date pattern and zero-padding
+  const { pattern, zeroPad } = detectDateFormat(locale);
 
   // Detect first day of week
   const firstDayOfWeek = detectFirstDayOfWeek(locale);
@@ -64,27 +64,41 @@ function extractDateData(locale: string): CoarDateFormatData {
     dayNames,
     dayNamesShort,
     amPm,
+    zeroPad,
   };
 }
 
-function detectDatePattern(locale: string): CoarDateFormatData['pattern'] {
-  const fmt = new Intl.DateTimeFormat(locale, {
+function detectDateFormat(locale: string): { pattern: CoarDateFormatData['pattern']; zeroPad: boolean } {
+  // Use 2-digit to reliably detect field order
+  const fmt2 = new Intl.DateTimeFormat(locale, {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
   });
-  // Format a known date to detect order
-  const parts = fmt.formatToParts(new Date(2024, 11, 25)); // Dec 25, 2024
+  const parts = fmt2.formatToParts(new Date(2024, 11, 25)); // Dec 25, 2024
   const order = parts
     .filter((p) => p.type === 'month' || p.type === 'day' || p.type === 'year')
     .map((p) => p.type);
 
   const sep = parts.find((p) => p.type === 'literal')?.value ?? '/';
 
-  if (order[0] === 'year') return 'yyyy-mm-dd';
-  if (order[0] === 'month') return 'mm/dd/yyyy';
-  if (sep === '.') return 'dd.mm.yyyy';
-  return 'dd/mm/yyyy';
+  let pattern: CoarDateFormatData['pattern'];
+  if (order[0] === 'year') pattern = sep === '-' ? 'yyyy-mm-dd' : 'yyyy/mm/dd';
+  else if (order[0] === 'month') pattern = 'mm/dd/yyyy';
+  else if (sep === '.') pattern = 'dd.mm.yyyy';
+  else pattern = 'dd/mm/yyyy';
+
+  // Detect zero-padding: format a single-digit day/month with default options
+  const fmtDefault = new Intl.DateTimeFormat(locale, {
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+  });
+  const defaultParts = fmtDefault.formatToParts(new Date(2024, 2, 5)); // Mar 5
+  const dayPart = defaultParts.find((p) => p.type === 'day');
+  const zeroPad = dayPart?.value === '05';
+
+  return { pattern, zeroPad };
 }
 
 function detectFirstDayOfWeek(locale: string): number {

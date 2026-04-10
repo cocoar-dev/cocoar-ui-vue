@@ -76,8 +76,8 @@ describe('formatCurrency', () => {
     expect(formatCurrency(99.99, makeEnData(), 'EUR')).toBe('€99.99');
   });
 
-  it('falls back to code when no symbol', () => {
-    expect(formatCurrency(10, makeEnData(), 'GBP')).toBe('GBP10.00');
+  it('resolves symbol via Intl when not in symbols map', () => {
+    expect(formatCurrency(10, makeEnData(), 'GBP')).toBe('£10.00');
   });
 });
 

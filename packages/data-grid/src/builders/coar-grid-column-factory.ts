@@ -2,10 +2,14 @@ import { CoarGridColumnBuilder } from './coar-grid-column-builder';
 import TagCellRenderer from '../cell-renderers/TagCellRenderer.vue';
 import IconCellRenderer from '../cell-renderers/IconCellRenderer.vue';
 import DateCellRenderer from '../cell-renderers/DateCellRenderer.vue';
+import NumberCellRenderer from '../cell-renderers/NumberCellRenderer.vue';
+import CurrencyCellRenderer from '../cell-renderers/CurrencyCellRenderer.vue';
 import TreeCellRenderer from '../cell-renderers/TreeCellRenderer.vue';
 import type { TagCellRendererConfig } from '../cell-renderers/tag-cell-renderer.models';
 import type { IconCellRendererConfig } from '../cell-renderers/icon-cell-renderer.models';
 import type { DateCellRendererConfig } from '../cell-renderers/date-cell-renderer.models';
+import type { NumberCellRendererConfig } from '../cell-renderers/number-cell-renderer.models';
+import type { CurrencyCellRendererConfig } from '../cell-renderers/currency-cell-renderer.models';
 import type { TreeCellRendererConfig } from '../cell-renderers/tree-cell-renderer.models';
 
 /**
@@ -33,95 +37,56 @@ export class CoarGridColumnFactory<TData = unknown> {
   }
 
   /**
-   * Create a date column with standard or custom formatting.
+   * Create a date column with locale-aware rendering.
    *
-   * @param format - Preset name ('short' | 'long' | 'datetime'), Intl options object, or custom formatter function
+   * Uses the localization system (`useL10n().fmtDate()`) for formatting,
+   * so the display updates reactively on language change.
+   *
+   * @param config - Optional configuration (e.g. `{ includeTime: true }`)
    */
   date(
     fieldName: keyof TData | string,
-    format: string | Intl.DateTimeFormatOptions | ((date: Date) => string) = 'short'
+    config?: DateCellRendererConfig
   ): CoarGridColumnBuilder<TData, Date | string> {
     const builder = new CoarGridColumnBuilder<TData, Date | string>(fieldName);
-
-    builder.valueFormatter((params) => {
-      const value = params.value;
-      if (!value) return '';
-
-      const date = value instanceof Date ? value : new Date(value);
-      if (isNaN(date.getTime())) return String(value);
-
-      // Custom formatter function
-      if (typeof format === 'function') {
-        return format(date);
-      }
-
-      // Intl options object
-      if (typeof format === 'object') {
-        return new Intl.DateTimeFormat(undefined, format).format(date);
-      }
-
-      // Preset string
-      switch (format) {
-        case 'short':
-          return date.toLocaleDateString();
-        case 'long':
-          return date.toLocaleDateString(undefined, {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          });
-        case 'datetime':
-          return date.toLocaleString();
-        default:
-          return date.toLocaleDateString();
-      }
-    });
-
+    builder.cellRendererConfig(DateCellRenderer, config ?? {});
+    builder.sortable();
     return builder;
   }
 
   /**
-   * Create a number column with standard formatting
+   * Create a number column with locale-aware rendering.
+   *
+   * Uses the localization system (`useL10n().fmtNumber()`) for formatting,
+   * so the display updates reactively on locale change.
+   *
+   * @param config - Optional configuration (e.g. `{ decimals: 2 }`)
    */
-  number(fieldName: keyof TData | string, decimals = 0): CoarGridColumnBuilder<TData, number> {
+  number(
+    fieldName: keyof TData | string,
+    config?: NumberCellRendererConfig
+  ): CoarGridColumnBuilder<TData, number> {
     const builder = new CoarGridColumnBuilder<TData, number>(fieldName);
-
-    builder.valueFormatter((params) => {
-      const value = params.value;
-      if (value === null || value === undefined) return '';
-      return value.toLocaleString(undefined, {
-        minimumFractionDigits: decimals,
-        maximumFractionDigits: decimals,
-      });
-    });
-
-    // Right-align numbers
-    builder.cellClass('text-right');
-
+    builder.cellRendererConfig(NumberCellRenderer, config ?? {});
+    builder.sortable();
     return builder;
   }
 
   /**
-   * Create a currency column
+   * Create a currency column with locale-aware rendering.
+   *
+   * Uses the localization system (`useL10n().fmtCurrency()`) for formatting,
+   * so the display updates reactively on locale change.
+   *
+   * @param config - Optional configuration (e.g. `{ currencyCode: 'EUR' }`)
    */
   currency(
     fieldName: keyof TData | string,
-    currency = 'USD'
+    config?: CurrencyCellRendererConfig
   ): CoarGridColumnBuilder<TData, number> {
     const builder = new CoarGridColumnBuilder<TData, number>(fieldName);
-
-    builder.valueFormatter((params) => {
-      const value = params.value;
-      if (value === null || value === undefined) return '';
-      return value.toLocaleString(undefined, {
-        style: 'currency',
-        currency,
-      });
-    });
-
-    // Right-align currency
-    builder.cellClass('text-right');
-
+    builder.cellRendererConfig(CurrencyCellRenderer, config ?? {});
+    builder.sortable();
     return builder;
   }
 
@@ -197,22 +162,6 @@ export class CoarGridColumnFactory<TData = unknown> {
     return builder;
   }
 
-  /**
-   * Create a date column with locale-aware rendering via a cell renderer component.
-   *
-   * Unlike `date()`, this uses a cell renderer component for full locale integration.
-   *
-   * @param config - Date rendering configuration (showSeconds, customFormat)
-   */
-  localDate(
-    fieldName: keyof TData | string,
-    config?: DateCellRendererConfig
-  ): CoarGridColumnBuilder<TData, Date | string> {
-    const builder = new CoarGridColumnBuilder<TData, Date | string>(fieldName);
-    builder.cellRendererConfig(DateCellRenderer, config ?? {});
-    builder.sortable();
-    return builder;
-  }
 
   /**
    * Create a tree column with expand/collapse toggle, indentation, and optional child count.

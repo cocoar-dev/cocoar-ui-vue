@@ -3,7 +3,7 @@
  */
 export interface CoarDateFormatData {
   /** Date pattern, e.g. 'dd.mm.yyyy', 'mm/dd/yyyy' */
-  pattern: 'dd.mm.yyyy' | 'dd/mm/yyyy' | 'mm/dd/yyyy' | 'yyyy-mm-dd';
+  pattern: 'dd.mm.yyyy' | 'dd/mm/yyyy' | 'mm/dd/yyyy' | 'yyyy-mm-dd' | 'yyyy/mm/dd';
   /** First day of week: 0=Sunday, 1=Monday, ..., 6=Saturday */
   firstDayOfWeek: number;
   /** Full month names, e.g. ['January', 'February', ...] */
@@ -16,6 +16,8 @@ export interface CoarDateFormatData {
   dayNamesShort: string[];
   /** AM/PM labels */
   amPm: [string, string];
+  /** Whether day and month are zero-padded (e.g. '03' vs '3'). Default: true */
+  zeroPad?: boolean;
 }
 
 /**

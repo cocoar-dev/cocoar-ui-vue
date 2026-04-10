@@ -10,7 +10,7 @@ const props = defineProps<{
 }>();
 
 const config = computed<IconCellRendererConfig>(() => props.params.colDef?.cellRendererParams?.config ?? {});
-const iconName = computed<string>(() => props.params.value ?? '');
+const iconName = computed<string>(() => props.params.valueFormatted ?? props.params.value ?? '');
 const size = computed<CoarIconSize>(() => config.value.size ?? 's');
 const source = computed<string | undefined>(() => config.value.source);
 const color = computed<string>(() => config.value.color ?? 'inherit');

@@ -1,6 +1,4 @@
 export interface DateCellRendererConfig {
-  /** Include seconds in time display */
-  showSeconds?: boolean;
-  /** Custom date format string */
-  customFormat?: string;
+  /** Include time in the formatted output (default: false) */
+  includeTime?: boolean;
 }

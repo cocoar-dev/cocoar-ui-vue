@@ -4,6 +4,8 @@ import { CoarGridColumnBuilder } from './coar-grid-column-builder';
 import TagCellRenderer from '../cell-renderers/TagCellRenderer.vue';
 import IconCellRenderer from '../cell-renderers/IconCellRenderer.vue';
 import DateCellRenderer from '../cell-renderers/DateCellRenderer.vue';
+import NumberCellRenderer from '../cell-renderers/NumberCellRenderer.vue';
+import CurrencyCellRenderer from '../cell-renderers/CurrencyCellRenderer.vue';
 
 interface TestRow {
   id: number;
@@ -34,183 +36,137 @@ describe('CoarGridColumnFactory', () => {
   });
 
   describe('date', () => {
-    it('should create a date column', () => {
+    it('should create a date column builder', () => {
       const factory = new CoarGridColumnFactory<TestRow>();
       const builder = factory.date('date');
 
       expect(builder).toBeInstanceOf(CoarGridColumnBuilder);
     });
 
-    it('should create a date column with formatter', () => {
+    it('should set the correct field', () => {
       const factory = new CoarGridColumnFactory<TestRow>();
       const colDef = factory.date('date').build();
 
       expect(colDef.field).toBe('date');
-      expect(colDef.valueFormatter).toBeDefined();
     });
 
-    it('should format date value correctly with short format', () => {
-      const factory = new CoarGridColumnFactory<TestRow>();
-      const colDef = factory.date('date', 'short').build();
-      const formatter = colDef.valueFormatter as (params: { value: string }) => string;
-
-      const result = formatter({ value: '2024-01-15' });
-      expect(result).toBeTruthy();
-    });
-
-    it('should format date value correctly with long format', () => {
-      const factory = new CoarGridColumnFactory<TestRow>();
-      const colDef = factory.date('date', 'long').build();
-      const formatter = colDef.valueFormatter as (params: { value: string }) => string;
-
-      const result = formatter({ value: '2024-01-15' });
-      expect(result).toBeTruthy();
-    });
-
-    it('should format date value correctly with datetime format', () => {
-      const factory = new CoarGridColumnFactory<TestRow>();
-      const colDef = factory.date('date', 'datetime').build();
-      const formatter = colDef.valueFormatter as (params: { value: string }) => string;
-
-      const result = formatter({ value: '2024-01-15T10:30:00' });
-      expect(result).toBeTruthy();
-    });
-
-    it('should accept custom formatter function', () => {
-      const factory = new CoarGridColumnFactory<TestRow>();
-      const colDef = factory.date('date', (d) => `Year: ${d.getFullYear()}`).build();
-      const formatter = colDef.valueFormatter as (params: { value: string }) => string;
-
-      const result = formatter({ value: '2024-01-15' });
-      expect(result).toBe('Year: 2024');
-    });
-
-    it('should accept Intl.DateTimeFormatOptions', () => {
-      const factory = new CoarGridColumnFactory<TestRow>();
-      const colDef = factory.date('date', { year: 'numeric' }).build();
-      const formatter = colDef.valueFormatter as (params: { value: string }) => string;
-
-      const result = formatter({ value: '2024-01-15' });
-      expect(result).toContain('2024');
-    });
-
-    it('should handle empty date value', () => {
+    it('should configure the date cell renderer component', () => {
       const factory = new CoarGridColumnFactory<TestRow>();
       const colDef = factory.date('date').build();
-      const formatter = colDef.valueFormatter as (params: { value: string }) => string;
 
-      const result = formatter({ value: '' });
-      expect(result).toBe('');
+      expect(colDef.cellRenderer).toBe(DateCellRenderer);
     });
 
-    it('should handle invalid date value', () => {
+    it('should enable sorting by default', () => {
       const factory = new CoarGridColumnFactory<TestRow>();
       const colDef = factory.date('date').build();
-      const formatter = colDef.valueFormatter as (params: { value: string }) => string;
 
-      const result = formatter({ value: 'not-a-date' });
-      expect(result).toBe('not-a-date');
+      expect(colDef.sortable).toBe(true);
     });
 
-    it('should handle Date object value', () => {
+    it('should pass config via cellRendererParams', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const config = { includeTime: true };
+      const colDef = factory.date('date', config).build();
+
+      expect(colDef.cellRendererParams?.config).toEqual(config);
+    });
+
+    it('should use empty config when none provided', () => {
       const factory = new CoarGridColumnFactory<TestRow>();
       const colDef = factory.date('date').build();
-      const formatter = colDef.valueFormatter as (params: { value: Date }) => string;
 
-      const result = formatter({ value: new Date('2024-01-15') });
-      expect(result).toBeTruthy();
+      expect(colDef.cellRendererParams?.config).toEqual({});
     });
   });
 
   describe('number', () => {
-    it('should create a number column', () => {
+    it('should create a number column builder', () => {
       const factory = new CoarGridColumnFactory<TestRow>();
       const builder = factory.number('amount');
 
       expect(builder).toBeInstanceOf(CoarGridColumnBuilder);
     });
 
-    it('should create a number column with formatter', () => {
+    it('should set the correct field', () => {
       const factory = new CoarGridColumnFactory<TestRow>();
       const colDef = factory.number('amount').build();
 
       expect(colDef.field).toBe('amount');
-      expect(colDef.valueFormatter).toBeDefined();
     });
 
-    it('should format number value correctly', () => {
-      const factory = new CoarGridColumnFactory<TestRow>();
-      const colDef = factory.number('amount').build();
-      const formatter = colDef.valueFormatter as (params: { value: number }) => string;
-
-      const result = formatter({ value: 1234 });
-      expect(result).toContain('1');
-      expect(result).toContain('234');
-    });
-
-    it('should format number with decimals', () => {
-      const factory = new CoarGridColumnFactory<TestRow>();
-      const colDef = factory.number('amount', 2).build();
-      const formatter = colDef.valueFormatter as (params: { value: number }) => string;
-
-      const result = formatter({ value: 1234.5 });
-      expect(result).toContain('50');
-    });
-
-    it('should handle null number value', () => {
-      const factory = new CoarGridColumnFactory<TestRow>();
-      const colDef = factory.number('amount').build();
-      const formatter = colDef.valueFormatter as (params: { value: number | null }) => string;
-
-      expect(formatter({ value: null })).toBe('');
-    });
-
-    it('should handle undefined number value', () => {
-      const factory = new CoarGridColumnFactory<TestRow>();
-      const colDef = factory.number('amount').build();
-      const formatter = colDef.valueFormatter as (params: { value: number | undefined }) => string;
-
-      expect(formatter({ value: undefined })).toBe('');
-    });
-
-    it('should right-align numbers', () => {
+    it('should configure the number cell renderer component', () => {
       const factory = new CoarGridColumnFactory<TestRow>();
       const colDef = factory.number('amount').build();
 
-      expect(colDef.cellClass).toBe('text-right');
+      expect(colDef.cellRenderer).toBe(NumberCellRenderer);
+    });
+
+    it('should enable sorting by default', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.number('amount').build();
+
+      expect(colDef.sortable).toBe(true);
+    });
+
+    it('should pass config via cellRendererParams', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const config = { decimals: 2 };
+      const colDef = factory.number('amount', config).build();
+
+      expect(colDef.cellRendererParams?.config).toEqual(config);
+    });
+
+    it('should use empty config when none provided', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.number('amount').build();
+
+      expect(colDef.cellRendererParams?.config).toEqual({});
     });
   });
 
   describe('currency', () => {
-    it('should create a currency column', () => {
+    it('should create a currency column builder', () => {
       const factory = new CoarGridColumnFactory<TestRow>();
       const builder = factory.currency('amount');
 
       expect(builder).toBeInstanceOf(CoarGridColumnBuilder);
     });
 
-    it('should format currency value correctly', () => {
-      const factory = new CoarGridColumnFactory<TestRow>();
-      const colDef = factory.currency('amount', 'USD').build();
-      const formatter = colDef.valueFormatter as (params: { value: number }) => string;
-
-      const result = formatter({ value: 1234.56 });
-      expect(result).toMatch(/\$|USD/);
-    });
-
-    it('should handle null currency value', () => {
-      const factory = new CoarGridColumnFactory<TestRow>();
-      const colDef = factory.currency('amount').build();
-      const formatter = colDef.valueFormatter as (params: { value: number | null }) => string;
-
-      expect(formatter({ value: null })).toBe('');
-    });
-
-    it('should right-align currency', () => {
+    it('should set the correct field', () => {
       const factory = new CoarGridColumnFactory<TestRow>();
       const colDef = factory.currency('amount').build();
 
-      expect(colDef.cellClass).toBe('text-right');
+      expect(colDef.field).toBe('amount');
+    });
+
+    it('should configure the currency cell renderer component', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.currency('amount').build();
+
+      expect(colDef.cellRenderer).toBe(CurrencyCellRenderer);
+    });
+
+    it('should enable sorting by default', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.currency('amount').build();
+
+      expect(colDef.sortable).toBe(true);
+    });
+
+    it('should pass config via cellRendererParams', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const config = { currencyCode: 'EUR' };
+      const colDef = factory.currency('amount', config).build();
+
+      expect(colDef.cellRendererParams?.config).toEqual(config);
+    });
+
+    it('should use empty config when none provided', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.currency('amount').build();
+
+      expect(colDef.cellRendererParams?.config).toEqual({});
     });
   });
 
@@ -374,48 +330,4 @@ describe('CoarGridColumnFactory', () => {
     });
   });
 
-  describe('localDate', () => {
-    it('should create a localDate column builder', () => {
-      const factory = new CoarGridColumnFactory<TestRow>();
-      const builder = factory.localDate('date');
-
-      expect(builder).toBeInstanceOf(CoarGridColumnBuilder);
-    });
-
-    it('should set the correct field', () => {
-      const factory = new CoarGridColumnFactory<TestRow>();
-      const colDef = factory.localDate('date').build();
-
-      expect(colDef.field).toBe('date');
-    });
-
-    it('should configure the date cell renderer component', () => {
-      const factory = new CoarGridColumnFactory<TestRow>();
-      const colDef = factory.localDate('date').build();
-
-      expect(colDef.cellRenderer).toBe(DateCellRenderer);
-    });
-
-    it('should enable sorting by default', () => {
-      const factory = new CoarGridColumnFactory<TestRow>();
-      const colDef = factory.localDate('date').build();
-
-      expect(colDef.sortable).toBe(true);
-    });
-
-    it('should pass config via cellRendererParams', () => {
-      const factory = new CoarGridColumnFactory<TestRow>();
-      const config = { showSeconds: true };
-      const colDef = factory.localDate('date', config).build();
-
-      expect(colDef.cellRendererParams?.config).toEqual(config);
-    });
-
-    it('should use empty config when none provided', () => {
-      const factory = new CoarGridColumnFactory<TestRow>();
-      const colDef = factory.localDate('date').build();
-
-      expect(colDef.cellRendererParams?.config).toEqual({});
-    });
-  });
 });

@@ -2,12 +2,15 @@
 import { computed } from 'vue';
 import type { ICellRendererParams } from 'ag-grid-community';
 import { useL10n } from '@cocoar/vue-localization';
+import type { DateCellRendererConfig } from './date-cell-renderer.models';
 
 const props = defineProps<{
   params: ICellRendererParams;
 }>();
 
 const { fmtDate } = useL10n();
+
+const config = computed<DateCellRendererConfig>(() => props.params.colDef?.cellRendererParams?.config ?? {});
 
 const dateValue = computed<Date | string | null>(() => {
   const value = props.params.value;
@@ -19,7 +22,7 @@ const dateValue = computed<Date | string | null>(() => {
 
 const formattedDate = computed<string>(() => {
   if (dateValue.value == null) return '';
-  return fmtDate(dateValue.value);
+  return fmtDate(dateValue.value, config.value.includeTime ?? false);
 });
 </script>
 

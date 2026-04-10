@@ -13,8 +13,9 @@ import { CoarOverlayPlugin, CoarOverlayHost } from '@cocoar/vue-ui';
 import { createCoarLocalization } from '@cocoar/vue-localization';
 
 import DemoPreview from './DemoPreview.vue';
+import LocaleSwitcher from './LocaleSwitcher.vue';
 
-const localization = createCoarLocalization({ defaultLanguage: 'en' });
+const localization = createCoarLocalization({ defaultLanguage: 'en-US' });
 
 const DarkModeSync = {
   setup() {
@@ -32,6 +33,7 @@ const theme: Theme = {
   extends: DefaultTheme,
   Layout() {
     return h(DefaultTheme.Layout, null, {
+      'nav-bar-content-after': () => h(LocaleSwitcher),
       'layout-bottom': () => [h(CoarOverlayHost), h(DarkModeSync)],
     });
   },

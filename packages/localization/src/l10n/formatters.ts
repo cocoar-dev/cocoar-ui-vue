@@ -44,7 +44,7 @@ export function formatCurrency(
 ): string {
   const currency = data.currency;
   const code = currencyCode ?? currency.default;
-  const symbol = currency.symbols[code] ?? code;
+  const symbol = currency.symbols[code] ?? resolveCurrencySymbol(data.code, code);
   const formatted = formatNumber(value, data.number, currency.decimals);
 
   const space = currency.spacing ? '\u00A0' : '';
@@ -52,6 +52,22 @@ export function formatCurrency(
     return `${symbol}${space}${formatted}`;
   }
   return `${formatted}${space}${symbol}`;
+}
+
+const symbolCache = new Map<string, string>();
+
+function resolveCurrencySymbol(locale: string, currencyCode: string): string {
+  const key = `${locale}:${currencyCode}`;
+  let symbol = symbolCache.get(key);
+  if (symbol != null) return symbol;
+  try {
+    const parts = new Intl.NumberFormat(locale, { style: 'currency', currency: currencyCode }).formatToParts(0);
+    symbol = parts.find((p) => p.type === 'currency')?.value ?? currencyCode;
+  } catch {
+    symbol = currencyCode;
+  }
+  symbolCache.set(key, symbol);
+  return symbol;
 }
 
 /**
@@ -81,8 +97,9 @@ export function formatDate(
   const date = typeof value === 'string' ? new Date(value) : value;
   if (isNaN(date.getTime())) return String(value);
 
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const pad = data.zeroPad !== false;
+  const day = pad ? String(date.getDate()).padStart(2, '0') : String(date.getDate());
+  const month = pad ? String(date.getMonth() + 1).padStart(2, '0') : String(date.getMonth() + 1);
   const year = String(date.getFullYear());
 
   let result: string;
@@ -92,6 +109,9 @@ export function formatDate(
       break;
     case 'yyyy-mm-dd':
       result = `${year}-${month}-${day}`;
+      break;
+    case 'yyyy/mm/dd':
+      result = `${year}/${month}/${day}`;
       break;
     case 'dd/mm/yyyy':
       result = `${day}/${month}/${year}`;

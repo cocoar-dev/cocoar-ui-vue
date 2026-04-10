@@ -7,6 +7,32 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 1.6.2
+
+### Added
+
+- **Locale-aware column renderers**: `date()`, `number()`, and `currency()` column factory methods now use cell renderer components with the localization system (`useL10n()`), updating reactively on locale change. Replaces the previous `valueFormatter`-based approach.
+  - `date(field, config?)` — formats via `fmtDate()`, supports `{ includeTime: true }`
+  - `number(field, config?)` — formats via `fmtNumber()`, supports `{ decimals: number }`
+  - `currency(field, config?)` — formats via `fmtCurrency()`, supports `{ currencyCode: string }`
+- **Locale switcher in docs**: VitePress nav bar now includes a `CoarSelect`-based locale switcher (`en-US`, `en-GB`, `de-DE`, `de-AT`, `fr-FR`, `ja-JP`) for live-testing locale-dependent rendering.
+
+### Changed
+
+- **`date()` replaces `localDate()`**: The `date()` factory method now uses the `DateCellRenderer` component (previously only available via `localDate()`). `localDate()` has been removed.
+- **`number()` signature**: Changed from `number(field, decimals)` to `number(field, config?)` with `NumberCellRendererConfig`.
+- **`currency()` signature**: Changed from `currency(field, currencyCode)` to `currency(field, config?)` with `CurrencyCellRendererConfig`.
+
+### Fixed
+
+- **TagCellRenderer variant matching**: `variantMap` now matches against the raw cell value instead of the formatted value, so `valueFormatter` no longer breaks variant resolution.
+- **IconCellRenderer valueFormatter support**: Icon name now uses `valueFormatted` when available, keeping the raw value for sorting/filtering.
+- **Currency symbol resolution**: `formatCurrency()` now resolves unknown currency symbols via `Intl.NumberFormat` instead of falling back to the raw currency code (e.g. `€` instead of `EUR`).
+- **ja-JP date format**: Added `yyyy/mm/dd` date pattern and `zeroPad` flag to `CoarDateFormatData`. Japanese dates now correctly render as `2022/3/15` instead of `2022-03-15`.
+- **Localization plugin init**: `setLanguage()` is now called on plugin install, so locale data is available immediately without requiring a manual language switch.
+
+---
+
 ## 1.6.1
 
 ### Fixed

@@ -27,15 +27,16 @@ Add a border or elevation shadow to the grid. Toggle the checkboxes to see the e
 
 ## Column Types
 
-Built-in renderers for dates, numbers, tags, and icons — no custom cell components needed.
+Built-in renderers for dates, numbers, currency, tags, and icons — no custom cell components needed. Date, number, and currency columns are locale-aware and update reactively when the locale changes. Try the locale switcher in the nav bar.
 
 <preview path="./data-grid/demos/GridColumnTypes.vue" />
 
 | Method | Description |
 |--------|-------------|
 | `.field(name)` | Plain text column |
-| `.date(field, format?)` | Formatted date display |
-| `.number(field)` | Numeric formatting |
+| `.date(field, config?)` | Locale-aware date display |
+| `.number(field, config?)` | Locale-aware number display |
+| `.currency(field, config?)` | Locale-aware currency display |
 | `.tag(field, config)` | Renders a `CoarTag` with variant mapping |
 | `.icon(field, config?)` | Renders a `CoarIcon` |
 
@@ -288,8 +289,9 @@ The toolbar appears automatically when `showSearch` is enabled or any `toolbar-*
 | `.fixedWidth(px)` | `number` | Non-resizable fixed width |
 | `.sortable()` | — | Enable column sorting |
 | `.quickFilter(fn)` | `boolean \| (value, data) => string` | Configure quick filter for column |
-| `.date(field, format?)` | `keyof T, string?` | Date cell renderer |
-| `.number(field)` | `keyof T` | Number cell renderer |
+| `.date(field, config?)` | `keyof T, DateCellRendererConfig?` | Locale-aware date cell renderer |
+| `.number(field, config?)` | `keyof T, NumberCellRendererConfig?` | Locale-aware number cell renderer |
+| `.currency(field, config?)` | `keyof T, CurrencyCellRendererConfig?` | Locale-aware currency cell renderer |
 | `.tag(field, config)` | `keyof T, TagConfig` | Tag cell renderer |
 | `.icon(field, config?)` | `keyof T, IconConfig?` | Icon cell renderer |
 | `.tree(field, config?)` | `keyof T, TreeCellRendererConfig?` | Tree column with expand/collapse |

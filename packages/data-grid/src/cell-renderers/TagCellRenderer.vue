@@ -22,10 +22,14 @@ const size = computed<TagSize>(() => config.value.size ?? 's');
 
 const tags = computed<TagItem[]>(() => {
   const cfg = config.value;
-  const rawLabels = extractLabels(resolveValueForLabels(props.params.value, props.params.valueFormatted), cfg);
-  return rawLabels.map((label) => ({
-    label: translateLabel(label, cfg),
-    variant: resolveVariant(label, cfg),
+  const rawLabels = extractLabels(props.params.value, cfg);
+  const displayLabels = extractLabels(
+    resolveValueForLabels(props.params.value, props.params.valueFormatted),
+    cfg,
+  );
+  return rawLabels.map((rawLabel, i) => ({
+    label: translateLabel(displayLabels[i] ?? rawLabel, cfg),
+    variant: resolveVariant(rawLabel, cfg),
   }));
 });
 
