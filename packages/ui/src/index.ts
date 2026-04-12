@@ -14,9 +14,6 @@ export { CoarIcon } from './components/icon';
 export type { CoarIconProps, CoarIconSize, CoarIconSource, CoarIconSourceEntry, CoarIconRegisteredSource, CoarIconPluginOptions, CoreIconName } from './components/icon';
 export { CoarIconService, CoarIconMapSource, CoarHttpIconSource, COAR_ICON_SERVICE_KEY, COAR_BUILTIN_ICON_SOURCE_KEY, PRESET_SIZES, CoarIconPlugin, createCoarIconService, CORE_ICONS } from './components/icon';
 
-export { CoarLabel } from './components/label';
-export type { CoarLabelProps, CoarLabelSize } from './components/label';
-
 export { CoarDivider } from './components/divider';
 export type { CoarDividerProps, DividerAlign, DividerVariant } from './components/divider';
 

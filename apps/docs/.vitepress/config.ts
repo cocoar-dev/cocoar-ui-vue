@@ -204,7 +204,6 @@ export default defineConfig({
             { text: 'Checkbox', link: '/components/checkbox' },
             { text: 'Radio Group', link: '/components/radio-group' },
             { text: 'Switch', link: '/components/switch' },
-            { text: 'Labels', link: '/components/labels' },
             { text: 'Date Picker', link: '/components/date-picker' },
             { text: 'DateTime Picker', link: '/components/date-time-picker' },
             { text: 'Zoned DateTime', link: '/components/zoned-date-time-picker' },

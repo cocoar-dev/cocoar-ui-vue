@@ -43,12 +43,7 @@ provide(FORM_FIELD_INJECTION_KEY, {
 
 <template>
   <div class="coar-form-field" :class="{ 'coar-form-field--disabled': disabled }">
-    <label
-      v-if="label"
-      :id="labelId"
-      :for="inputId"
-      class="coar-form-field__label"
-    >
+    <label v-if="label" :id="labelId" :for="inputId" class="coar-form-field__label">
       {{ label }}
       <span v-if="required" class="coar-form-field__required" aria-hidden="true">*</span>
     </label>
@@ -80,10 +75,9 @@ provide(FORM_FIELD_INJECTION_KEY, {
 /* Label */
 .coar-form-field__label {
   display: block;
-  margin-bottom: var(--coar-component-m-label-margin);
-  font-family: var(--coar-body-small-bold-family);
-  font-size: var(--coar-component-m-label-font-size);
-  font-weight: var(--coar-body-small-bold-weight);
+  font-family: var(--coar-body-caption-family);
+  font-size: var(--coar-body-caption-size);
+  font-weight: var(--coar-body-caption-weight);
   color: var(--coar-text-neutral-primary);
   cursor: pointer;
   user-select: none;

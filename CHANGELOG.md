@@ -7,6 +7,23 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 1.6.4
+
+### Changed
+
+- **Form field label styling**: Labels now use `body-caption` tokens (`family`, `size`, `weight`) instead of `body-small-bold` / `component-m-label-font-size` for a more compact, consistent appearance across all form controls.
+- **Tab padding**: Reduced tab button padding from `spacing-m / spacing-l` to `spacing-s / spacing-m` for tighter layout.
+
+### Fixed
+
+- **Date picker height mismatch**: `CoarPlainDatePicker`, `CoarPlainDateTimePicker`, and `CoarZonedDateTimePicker` reserved space for the hint/error message even when none was set, making them taller than other form controls (e.g. `CoarTextInput`). The message element is now conditionally rendered via `v-if`, and the fixed `height` / `min-height` + `visibility: hidden` workaround has been removed.
+
+### Removed
+
+- **`CoarLabel` component**: Removed the standalone `CoarLabel` component, its tests, exports, and documentation page. The component was unused by any input control or consumer app — labels are rendered directly by `CoarFormField` and the individual picker components.
+
+---
+
 ## 1.6.3
 
 ### Added

@@ -941,8 +941,7 @@ const tzIndicatorIcon = computed(() => {
   font-family: var(--coar-body-caption-family);
   font-size: var(--coar-body-caption-size);
   color: var(--coar-text-neutral-secondary);
-  min-height: 1.2em;
 }
-.coar-form-field-message:empty { visibility: hidden; }
+
 .coar-form-field-message--error { color: var(--coar-text-semantic-error-bold); }
 </style>

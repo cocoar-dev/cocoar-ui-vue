@@ -226,7 +226,7 @@ function onKeydown(event: KeyboardEvent) {
   display: inline-flex;
   align-items: center;
   gap: var(--coar-spacing-s);
-  padding: var(--coar-spacing-m) var(--coar-spacing-l);
+  padding: var(--coar-spacing-s) var(--coar-spacing-m);
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;

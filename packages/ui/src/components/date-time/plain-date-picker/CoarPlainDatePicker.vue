@@ -409,10 +409,11 @@ function onInputBlur() {
 
     <!-- Hint/Error Message -->
     <div
+      v-if="displayMessage"
       :id="messageId"
       class="coar-form-field-message"
       :class="{ 'coar-form-field-message--error': hasError }"
-      :title="displayMessage || undefined"
+      :title="displayMessage"
     >
       {{ displayMessage }}
     </div>
@@ -669,7 +670,6 @@ function onInputBlur() {
 .coar-form-field-message {
   display: block;
   margin-top: var(--coar-spacing-xs);
-  height: calc(var(--coar-body-caption-size) * 1.4);
   font-family: var(--coar-body-caption-family);
   font-size: var(--coar-body-caption-size);
   font-weight: var(--coar-body-caption-weight);
@@ -678,10 +678,6 @@ function onInputBlur() {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.coar-form-field-message:empty {
-  visibility: hidden;
 }
 
 .coar-form-field-message--error {
