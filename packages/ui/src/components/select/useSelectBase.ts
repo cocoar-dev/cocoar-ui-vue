@@ -27,8 +27,18 @@ export function useSelectBase<T = unknown>(opts: UseSelectBaseOptions<T>) {
 
   const filteredOptions = computed(() => {
     const query = searchQuery.value.toLowerCase().trim();
-    if (!query) return opts.options.value;
-    return opts.options.value.filter((o) => o.label.toLowerCase().includes(query));
+    const list = query
+      ? opts.options.value.filter((o) => o.label.toLowerCase().includes(query))
+      : opts.options.value;
+    // Sort by group so grouped options are adjacent (ungrouped first)
+    const hasGroups = list.some((o) => o.group);
+    if (!hasGroups) return list;
+    return [...list].sort((a, b) => {
+      if (!a.group && !b.group) return 0;
+      if (!a.group) return -1;
+      if (!b.group) return 1;
+      return a.group.localeCompare(b.group);
+    });
   });
 
   // Reset highlighted index when filtered options change
@@ -148,12 +158,23 @@ export function useSelectBase<T = unknown>(opts: UseSelectBaseOptions<T>) {
     event: KeyboardEvent,
     selectHighlighted: () => void,
     triggerEl?: HTMLElement,
+    isSearchActive = false,
   ) {
     if (opts.disabled.value || opts.readonly.value) return;
 
     switch (event.key) {
       case 'Enter':
+        if (!isOpen.value) {
+          event.preventDefault();
+          openDropdown(triggerEl);
+          highlightFirstOption();
+        } else if (highlightedIndex.value >= 0) {
+          event.preventDefault();
+          selectHighlighted();
+        }
+        break;
       case ' ':
+        if (isSearchActive) break;
         if (!isOpen.value) {
           event.preventDefault();
           openDropdown(triggerEl);
@@ -188,13 +209,13 @@ export function useSelectBase<T = unknown>(opts: UseSelectBaseOptions<T>) {
         }
         break;
       case 'Home':
-        if (isOpen.value) {
+        if (isOpen.value && !isSearchActive) {
           event.preventDefault();
           highlightFirstOption();
         }
         break;
       case 'End':
-        if (isOpen.value) {
+        if (isOpen.value && !isSearchActive) {
           event.preventDefault();
           highlightLastOption();
         }

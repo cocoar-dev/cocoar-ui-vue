@@ -7,6 +7,33 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 1.7.0
+
+### Added
+
+- **CoarSelect / CoarMultiSelect — inline search**: When `searchable` is set, the trigger becomes an inline text input while the dropdown is open. Type to filter options in real-time. Space, Home, and End keys work correctly inside the search field.
+- **CoarMultiSelect — selection tooltip**: When 2+ values are selected, hovering the trigger shows a tooltip listing all selected labels.
+- **Select option grouping**: Options with a `group` property are now rendered under sticky group headers. Groups are sorted alphabetically; ungrouped options appear first. Works in all three variants (CoarSelect, CoarMultiSelect, CoarTagSelect).
+- **CoarMenu — `#header` / `#footer` slots**: Fixed header and footer areas that stay in place while the menu content scrolls. Render only when the slot is provided.
+- **CoarMenuHeading — `sticky` prop**: Opt-in sticky positioning so section headings stay visible while scrolling through long menus.
+
+### Fixed
+
+- **Tooltip not closing in collapsed sidebar**: Pointer-initiated focus (click/tap) no longer pins tooltips open via the `focus` reason. Only keyboard focus (Tab) keeps tooltips open until focus moves away. This fixes tooltips staying visible in the collapsed sidebar until clicking elsewhere.
+- **CoarTagSelect — Space key in search**: Space now types a space character in the tag input instead of triggering option selection.
+
+### Changed
+
+- **Select search UX**: Replaced the dropdown search box with an inline search input in the trigger for CoarSelect and CoarMultiSelect, matching the pattern already used by CoarTagSelect. All three variants now use a consistent search approach.
+
+### Docs
+
+- **Select playground demos**: Interactive playgrounds for CoarSelect, CoarMultiSelect, and CoarTagSelect with toggleable props (searchable, clearable, grouped, disabled, readonly, error, size, appearance).
+- **Select API table**: Documented missing props (searchable, clearable, readonly, appearance, compareWith, dropdownPosition).
+- **Menu scrollable demo**: Updated with header (filter input), footer ("New project" action), and sticky headings toggle.
+
+---
+
 ## 1.6.6
 
 ### Changed

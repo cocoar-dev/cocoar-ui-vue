@@ -89,9 +89,9 @@ describe('CoarSelect', () => {
   it('filters options when searchable', async () => {
     const w = mount(CoarSelect, { ...globalStubs, props: { searchable: true, options: baseOptions } });
     await w.find('.coar-select-trigger').trigger('click');
-    expect(w.find('.coar-select-search-input').exists()).toBe(true);
-    await w.find('.coar-select-search-input').setValue('ban');
-    await w.find('.coar-select-search-input').trigger('input');
+    expect(w.find('.coar-select-inline-search').exists()).toBe(true);
+    await w.find('.coar-select-inline-search').setValue('ban');
+    await w.find('.coar-select-inline-search').trigger('input');
     // After filtering, only Banana should match
     const options = w.findAll('.coar-select-option');
     expect(options.length).toBe(1);

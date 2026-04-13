@@ -63,8 +63,7 @@ describe('vTooltip', () => {
       await btn.trigger('mouseenter');
       expect(getTooltipEl()).not.toBeNull();
       await btn.trigger('mouseleave');
-      // Close happens via pointermove tracking, but mouseleave should schedule close with 0 delay
-      // Since openReason check may prevent immediate close, let's verify via focus cycle instead
+      expect(getTooltipEl()).toBeNull();
       wrapper.unmount();
     });
 
@@ -101,6 +100,54 @@ describe('vTooltip', () => {
       const btn = wrapper.find('button');
       await btn.trigger('focusin');
       expect(getTooltipEl()).not.toBeNull();
+      await btn.trigger('focusout');
+      expect(getTooltipEl()).toBeNull();
+      wrapper.unmount();
+    });
+  });
+
+  describe('hover + focus interaction', () => {
+    it('should close tooltip when mouseleave fires after focusin', async () => {
+      const wrapper = createWrapper('<button v-tooltip="\'Tip\'">Btn</button>');
+      const btn = wrapper.find('button');
+      // Hover opens tooltip
+      await btn.trigger('mouseenter');
+      expect(getTooltipEl()).not.toBeNull();
+      // Click gives focus — adds 'focus' reason
+      await btn.trigger('focusin');
+      expect(getTooltipEl()).not.toBeNull();
+      // Mouse leaves — should still close (not get stuck)
+      await btn.trigger('mouseleave');
+      await btn.trigger('focusout');
+      expect(getTooltipEl()).toBeNull();
+      wrapper.unmount();
+    });
+
+    it('should not pin tooltip on pointer-initiated focus', async () => {
+      const wrapper = createWrapper('<button v-tooltip="\'Tip\'">Btn</button>');
+      const btn = wrapper.find('button');
+      // Hover opens tooltip
+      await btn.trigger('mouseenter');
+      expect(getTooltipEl()).not.toBeNull();
+      // Pointer click gives focus — should NOT add 'focus' reason
+      await btn.trigger('pointerdown');
+      await btn.trigger('focusin');
+      // Mouse leaves — tooltip should close (not get stuck)
+      await btn.trigger('mouseleave');
+      expect(getTooltipEl()).toBeNull();
+      wrapper.unmount();
+    });
+
+    it('should keep tooltip open while at least one reason remains', async () => {
+      const wrapper = createWrapper('<button v-tooltip="\'Tip\'">Btn</button>');
+      const btn = wrapper.find('button');
+      await btn.trigger('mouseenter');
+      await btn.trigger('focusin');
+      expect(getTooltipEl()).not.toBeNull();
+      // Mouse leaves but focus remains
+      await btn.trigger('mouseleave');
+      expect(getTooltipEl()).not.toBeNull();
+      // Focus leaves too — now it should close
       await btn.trigger('focusout');
       expect(getTooltipEl()).toBeNull();
       wrapper.unmount();

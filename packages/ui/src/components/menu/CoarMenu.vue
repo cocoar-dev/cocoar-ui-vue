@@ -117,7 +117,6 @@ onBeforeUnmount(() => {
 
 <template>
   <div
-    v-scrollbar="{ overflowX: 'hidden', overflowY: 'scroll', autoHide: 'leave' }"
     role="menu"
     class="coar-menu"
     :class="{ 'coar-menu--borderless': props.borderless }"
@@ -127,7 +126,20 @@ onBeforeUnmount(() => {
     }"
     @keydown="onMenuKeydown"
   >
-    <slot />
+    <div v-if="$slots.header" class="coar-menu__header">
+      <slot name="header" />
+    </div>
+
+    <div
+      v-scrollbar="{ overflowX: 'hidden', overflowY: 'scroll', autoHide: 'leave' }"
+      class="coar-menu__content"
+    >
+      <slot />
+    </div>
+
+    <div v-if="$slots.footer" class="coar-menu__footer">
+      <slot name="footer" />
+    </div>
   </div>
 </template>
 
@@ -145,6 +157,16 @@ onBeforeUnmount(() => {
   box-shadow: var(--coar-shadow-s);
 }
 
+.coar-menu__header,
+.coar-menu__footer {
+  flex-shrink: 0;
+}
+
+.coar-menu__content {
+  flex: 1;
+  overflow: hidden;
+}
+
 .coar-menu--borderless {
   background: transparent;
   border: none;
@@ -153,4 +175,5 @@ onBeforeUnmount(() => {
   min-width: unset;
   max-width: unset;
 }
+
 </style>

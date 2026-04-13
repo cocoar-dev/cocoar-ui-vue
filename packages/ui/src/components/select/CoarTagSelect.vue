@@ -178,7 +178,7 @@ function onTagKeyDown(event: KeyboardEvent) {
     return;
   }
 
-  onKeyDown(event, selectHighlighted, triggerRef.value ?? undefined);
+  onKeyDown(event, selectHighlighted, triggerRef.value ?? undefined, true);
 }
 
 function onTriggerClick() {
@@ -294,24 +294,31 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
             role="listbox"
             :aria-label="t('coar.ui.tagSelect.options', undefined, 'Options')"
           >
-            <div
-              v-for="(option, i) in filteredOptions"
-              :id="`${inputId}-option-${i}`"
-              :key="String(option.value)"
-              class="coar-select-option"
-              :class="{
-                'coar-select-option--highlighted': highlightedIndex === i,
-                'coar-select-option--disabled': option.disabled,
-              }"
-              :aria-disabled="option.disabled ? 'true' : undefined"
-              tabindex="-1"
-              role="option"
-              @click="selectOption(option)"
-              @mouseenter="highlightedIndex = i"
-            >
-              <CoarIcon v-if="option.icon" :name="option.icon" size="s" class="coar-select-option-icon" />
-              <span class="coar-select-option-label">{{ option.label }}</span>
-            </div>
+            <template v-for="(option, i) in filteredOptions" :key="String(option.value)">
+              <div
+                v-if="option.group && (i === 0 || filteredOptions[i - 1]?.group !== option.group)"
+                class="coar-select-group-header"
+                role="presentation"
+              >
+                {{ option.group }}
+              </div>
+              <div
+                :id="`${inputId}-option-${i}`"
+                class="coar-select-option"
+                :class="{
+                  'coar-select-option--highlighted': highlightedIndex === i,
+                  'coar-select-option--disabled': option.disabled,
+                }"
+                :aria-disabled="option.disabled ? 'true' : undefined"
+                tabindex="-1"
+                role="option"
+                @click="selectOption(option)"
+                @mouseenter="highlightedIndex = i"
+              >
+                <CoarIcon v-if="option.icon" :name="option.icon" size="s" class="coar-select-option-icon" />
+                <span class="coar-select-option-label">{{ option.label }}</span>
+              </div>
+            </template>
           </div>
         </div>
       </Teleport>
@@ -488,6 +495,37 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Group header */
+.coar-select-group-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: var(--coar-spacing-s) var(--coar-spacing-s) var(--coar-spacing-xs);
+  border-top: 1px solid transparent;
+  background: var(--coar-background-neutral-primary);
+  font-family: var(--coar-body-small-base-family);
+  font-size: var(--coar-body-caption-size);
+  font-weight: var(--coar-font-weight-semibold);
+  color: var(--coar-text-neutral-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  user-select: none;
+}
+
+.coar-select-group-header::before {
+  content: '';
+  position: absolute;
+  top: calc(-1 * var(--coar-spacing-xs) - 1px);
+  left: 0;
+  right: 0;
+  height: calc(var(--coar-spacing-xs) + 1px);
+  background: inherit;
+}
+
+.coar-select-group-header:not(:first-child) {
+  border-top-color: var(--coar-border-neutral-tertiary);
 }
 
 @media (prefers-reduced-motion: reduce) {

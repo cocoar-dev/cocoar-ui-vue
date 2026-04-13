@@ -44,7 +44,7 @@ Pass the `borderless` prop when embedding a menu inside a sidebar, panel, or car
 
 ## Scrollable Menu
 
-When a menu has many items, it scrolls automatically using overlay scrollbars. Set a fixed height on the menu or its container.
+When a menu has many items, it scrolls automatically. Use `#header` and `#footer` slots for fixed content above and below the scrollable area. `CoarMenuHeading` supports a `sticky` prop to keep section headers visible while scrolling.
 
 <preview path="./menu/demos/MenuScrollable.vue" />
 
@@ -65,7 +65,23 @@ When a menu has many items, it scrolls automatically using overlay scrollbars. S
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
+| `showIconColumn` | `boolean` | `true` | Reserve icon column to prevent layout shift |
 | `borderless` | `boolean` | `false` | Remove outer border/background |
+
+### CoarMenu Slots
+
+| Slot | Description |
+|------|-------------|
+| `default` | Menu items (scrollable area) |
+| `header` | Fixed content above the scrollable area |
+| `footer` | Fixed content below the scrollable area |
+
+### CoarMenuHeading Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `label` | `string` | `undefined` | Heading text (alternative to default slot) |
+| `sticky` | `boolean` | `false` | Stick to top of scroll container |
 
 ### CoarMenuItem Props
 

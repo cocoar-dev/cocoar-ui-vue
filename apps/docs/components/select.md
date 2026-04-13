@@ -9,21 +9,21 @@ import type { CoarSelectOption } from '@cocoar/vue-ui';
 
 ## Single Select
 
-Select a single option from a dropdown list.
+Select a single option from a dropdown list. Toggle props to explore all options.
 
-<preview path="./select/demos/BasicSelect.vue" />
+<preview path="./select/demos/SelectPlayground.vue" />
 
-## States
+## Multi Select
 
-Disabled, required, and error states.
+Select multiple values with checkmarks. Toggle props to explore options.
 
-<preview path="./select/demos/SelectStates.vue" />
+<preview path="./select/demos/MultiSelectPlayground.vue" />
 
-## Multi Select & Tag Select
+## Tag Select
 
-Select multiple values from a dropdown. Multi Select shows checkmarks, Tag Select shows removable tags inline.
+Select multiple values as removable tags. Search is always active — type to filter or create new tags.
 
-<preview path="./select/demos/MultiSelect.vue" />
+<preview path="./select/demos/TagSelectPlayground.vue" />
 
 ## Options Format
 
@@ -39,8 +39,9 @@ interface CoarSelectOption<T> {
 }
 
 const options: CoarSelectOption<string>[] = [
-  { value: 'apple', label: 'Apple' },
-  { value: 'banana', label: 'Banana', disabled: true },
+  { value: 'apple', label: 'Apple', group: 'Fruits' },
+  { value: 'banana', label: 'Banana', group: 'Fruits', disabled: true },
+  { value: 'carrot', label: 'Carrot', group: 'Vegetables' },
 ];
 ```
 
@@ -54,9 +55,14 @@ const options: CoarSelectOption<string>[] = [
 | `options` | `CoarSelectOption<T>[]` | `[]` | Array of `{ value, label }` option objects |
 | `placeholder` | `string` | `''` | Placeholder when empty |
 | `size` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Input size |
+| `searchable` | `boolean` | `false` | Enable inline search to filter options by typing |
+| `clearable` | `boolean` | `false` | Show a clear button when a value is selected |
 | `disabled` | `boolean` | `false` | Disable the select |
-| `required` | `boolean` | `false` | Mark as required |
+| `readonly` | `boolean` | `false` | Read-only state |
 | `error` | `boolean` | `false` | Error state (auto-injected from `CoarFormField`) |
+| `appearance` | `'outline' \| 'inline'` | `'outline'` | Visual appearance variant |
+| `compareWith` | `(a: T, b: T) => boolean` | `===` | Custom comparison function for matching values |
+| `dropdownPosition` | `'auto' \| 'top' \| 'bottom'` | `'auto'` | Dropdown position preference |
 
 ## i18n Keys
 

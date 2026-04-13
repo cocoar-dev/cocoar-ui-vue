@@ -30,14 +30,18 @@ export interface TooltipOptions {
   closeDelay?: number;
 }
 
+type OpenReason = 'hover' | 'focus';
+
 interface TooltipState {
   tooltipEl: HTMLElement | null;
   openTimerId: number | null;
   closeTimerId: number | null;
-  openReason: 'hover' | 'focus' | null;
+  openReasons: Set<OpenReason>;
+  lastPointerDown: number;
   tooltipId: string;
   cleanup: (() => void) | null;
   opts: TooltipOptions;
+  onPointerDown: () => void;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
   onFocusIn: () => void;
@@ -116,7 +120,7 @@ function positionTooltip(tooltipEl: HTMLElement, trigger: HTMLElement, placement
   tooltipEl.style.opacity = '1';
 }
 
-function openTooltip(el: HTMLElement, state: TooltipState, opts: TooltipOptions, reason: 'hover' | 'focus'): void {
+function openTooltip(el: HTMLElement, state: TooltipState, opts: TooltipOptions, reason: OpenReason): void {
   if (opts.disabled || !opts.content) return;
 
   // Close any other active tooltip
@@ -124,7 +128,7 @@ function openTooltip(el: HTMLElement, state: TooltipState, opts: TooltipOptions,
     closeTooltip(activeState);
   }
 
-  state.openReason = reason;
+  state.openReasons.add(reason);
   activeState = state;
 
   if (state.tooltipEl) {
@@ -153,7 +157,7 @@ function openTooltip(el: HTMLElement, state: TooltipState, opts: TooltipOptions,
 }
 
 function closeTooltip(state: TooltipState): void {
-  state.openReason = null;
+  state.openReasons.clear();
   clearTimers(state);
 
   if (state.tooltipEl) {
@@ -180,7 +184,7 @@ function clearTimers(state: TooltipState): void {
   }
 }
 
-function scheduleOpen(el: HTMLElement, state: TooltipState, opts: TooltipOptions, reason: 'hover' | 'focus'): void {
+function scheduleOpen(el: HTMLElement, state: TooltipState, opts: TooltipOptions, reason: OpenReason): void {
   clearTimers(state);
   const delay = Math.max(0, opts.openDelay ?? 0);
   if (delay === 0) {
@@ -193,12 +197,14 @@ function scheduleOpen(el: HTMLElement, state: TooltipState, opts: TooltipOptions
   }, delay);
 }
 
-function scheduleClose(state: TooltipState, opts: TooltipOptions, reason: 'hover' | 'focus'): void {
+function scheduleClose(state: TooltipState, opts: TooltipOptions, reason: OpenReason): void {
   if (state.openTimerId != null) {
     window.clearTimeout(state.openTimerId);
     state.openTimerId = null;
   }
-  if (state.openReason !== reason) return;
+
+  state.openReasons.delete(reason);
+  if (state.openReasons.size > 0) return;
 
   const delay = Math.max(0, opts.closeDelay ?? 0);
   if (delay === 0) {
@@ -217,7 +223,7 @@ function startPointerTracking(trigger: HTMLElement, state: TooltipState): void {
 
   const onPointerMove = (event: PointerEvent | MouseEvent): void => {
     if (!state.tooltipEl) return;
-    if (state.openReason !== 'hover') return;
+    if (!state.openReasons.has('hover')) return;
 
     const el = document.elementFromPoint(event.clientX, event.clientY);
     if (el && trigger.contains(el)) return;
@@ -225,13 +231,13 @@ function startPointerTracking(trigger: HTMLElement, state: TooltipState): void {
   };
 
   const onScroll = (): void => {
-    if (state.openReason === 'hover') closeTooltip(state);
+    if (state.openReasons.has('hover')) closeTooltip(state);
   };
   const onBlur = (): void => {
-    if (state.openReason === 'hover') closeTooltip(state);
+    if (state.openReasons.has('hover')) closeTooltip(state);
   };
   const onVisibility = (): void => {
-    if (document.hidden && state.openReason === 'hover') closeTooltip(state);
+    if (document.hidden && state.openReasons.has('hover')) closeTooltip(state);
   };
 
   document.addEventListener('pointermove', onPointerMove, { capture: true, passive: true });
@@ -267,10 +273,14 @@ export const vTooltip: Directive<HTMLElement, string | TooltipOptions> = {
       tooltipEl: null,
       openTimerId: null,
       closeTimerId: null,
-      openReason: null,
+      openReasons: new Set(),
+      lastPointerDown: 0,
       tooltipId,
       cleanup: null,
       opts: getOptions(binding),
+      onPointerDown: () => {
+        state.lastPointerDown = Date.now();
+      },
       onMouseEnter: () => {
         if (state.opts.disabled || !state.opts.content) return;
         if (state.closeTimerId != null) {
@@ -284,6 +294,9 @@ export const vTooltip: Directive<HTMLElement, string | TooltipOptions> = {
       },
       onFocusIn: () => {
         if (state.opts.disabled || !state.opts.content) return;
+        // Pointer-initiated focus (click/tap) should not pin the tooltip open;
+        // let hover tracking handle the lifecycle instead.
+        if (Date.now() - state.lastPointerDown < 200) return;
         if (state.closeTimerId != null) {
           window.clearTimeout(state.closeTimerId);
           state.closeTimerId = null;
@@ -299,6 +312,7 @@ export const vTooltip: Directive<HTMLElement, string | TooltipOptions> = {
 
     stateMap.set(el, state);
 
+    el.addEventListener('pointerdown', state.onPointerDown);
     el.addEventListener('mouseenter', state.onMouseEnter);
     el.addEventListener('mouseleave', state.onMouseLeave);
     el.addEventListener('focusin', state.onFocusIn);
@@ -339,6 +353,7 @@ export const vTooltip: Directive<HTMLElement, string | TooltipOptions> = {
     if (!state) return;
 
     closeTooltip(state);
+    el.removeEventListener('pointerdown', state.onPointerDown);
     el.removeEventListener('mouseenter', state.onMouseEnter);
     el.removeEventListener('mouseleave', state.onMouseLeave);
     el.removeEventListener('focusin', state.onFocusIn);

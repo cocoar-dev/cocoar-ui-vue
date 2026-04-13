@@ -129,6 +129,7 @@ function selectOption(option: CoarSelectOption<T>) {
   if (option.disabled || props.disabled || props.readonly) return;
   model.value = option.value;
   closeDropdown();
+  nextTick(() => triggerRef.value?.focus());
 }
 
 function selectHighlighted() {
@@ -158,10 +159,21 @@ function onTriggerClick(event: Event) {
 }
 
 function handleKeyDown(event: KeyboardEvent) {
-  onKeyDown(event, selectHighlighted, triggerRef.value ?? undefined);
+  const wasOpen = isOpen.value;
+  const isSearchFocused = searchInputRef.value != null && event.target === searchInputRef.value;
+  onKeyDown(event, selectHighlighted, triggerRef.value ?? undefined, isSearchFocused);
   if (isOpen.value && props.searchable && event.key !== 'Escape' && event.key !== 'Tab') {
     nextTick(() => searchInputRef.value?.focus());
   }
+  if (wasOpen && !isOpen.value && event.key === 'Escape') {
+    nextTick(() => triggerRef.value?.focus());
+  }
+}
+
+function handleBlur(event: FocusEvent) {
+  const related = event.relatedTarget as Node | null;
+  if (related && hostRef.value?.contains(related)) return;
+  onBlur();
 }
 
 // Outside click — use mousedown so it fires before stopPropagation on trigger click
@@ -204,10 +216,23 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
         @click="onTriggerClick"
         @keydown="handleKeyDown"
         @focus="onFocus"
-        @blur="onBlur"
+        @blur="handleBlur"
       >
+        <!-- Inline search (shown when open + searchable) -->
+        <input
+          v-if="isOpen && searchable"
+          ref="searchInputRef"
+          type="text"
+          class="coar-select-inline-search"
+          :placeholder="selectedOption?.label || placeholder"
+          :value="searchQuery"
+          autocomplete="off"
+          @input="onSearchInput"
+          @keydown="handleKeyDown"
+          @click.stop
+        />
         <!-- Selected Value or Placeholder -->
-        <span class="coar-select-value" :class="{ 'coar-select-placeholder': !selectedOption }">
+        <span v-else class="coar-select-value" :class="{ 'coar-select-placeholder': !selectedOption }">
           <template v-if="selectedOption">
             <CoarIcon v-if="selectedOption.icon" :name="selectedOption.icon" size="s" class="coar-select-value-icon" />
             {{ selectedOption.label }}
@@ -254,19 +279,6 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
             zIndex: 'calc(var(--coar-z-overlay, 1000) + 50)',
           }"
         >
-          <!-- Search -->
-          <div v-if="searchable" class="coar-select-search">
-            <input
-              ref="searchInputRef"
-              type="text"
-              class="coar-select-search-input"
-              :placeholder="searchPlaceholder"
-              :value="searchQuery"
-              @input="onSearchInput"
-              @keydown="handleKeyDown"
-            />
-          </div>
-
           <!-- Options List -->
           <div
             :id="listboxId"
@@ -275,27 +287,34 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
             role="listbox"
             :aria-label="t('coar.ui.select.options', undefined, 'Options')"
           >
-            <div
-              v-for="(option, i) in filteredOptions"
-              :id="`${inputId}-option-${i}`"
-              :key="String(option.value)"
-              class="coar-select-option"
-              :class="{
-                'coar-select-option--selected': isSelected(option),
-                'coar-select-option--highlighted': highlightedIndex === i,
-                'coar-select-option--disabled': option.disabled,
-              }"
-              :aria-selected="isSelected(option)"
-              :aria-disabled="option.disabled ? 'true' : undefined"
-              tabindex="-1"
-              role="option"
-              @click="selectOption(option)"
-              @mouseenter="highlightedIndex = i"
-            >
+            <template v-for="(option, i) in filteredOptions" :key="String(option.value)">
+              <div
+                v-if="option.group && (i === 0 || filteredOptions[i - 1]?.group !== option.group)"
+                class="coar-select-group-header"
+                role="presentation"
+              >
+                {{ option.group }}
+              </div>
+              <div
+                :id="`${inputId}-option-${i}`"
+                class="coar-select-option"
+                :class="{
+                  'coar-select-option--selected': isSelected(option),
+                  'coar-select-option--highlighted': highlightedIndex === i,
+                  'coar-select-option--disabled': option.disabled,
+                }"
+                :aria-selected="isSelected(option)"
+                :aria-disabled="option.disabled ? 'true' : undefined"
+                tabindex="-1"
+                role="option"
+                @click="selectOption(option)"
+                @mouseenter="highlightedIndex = i"
+              >
               <CoarIcon v-if="option.icon" :name="option.icon" size="s" class="coar-select-option-icon" />
               <span class="coar-select-option-label">{{ option.label }}</span>
               <CoarIcon v-if="isSelected(option)" name="check" source="coar-builtin" size="s" class="coar-select-option-check" />
-            </div>
+              </div>
+            </template>
             <div v-if="filteredOptions.length === 0" class="coar-select-empty">
               {{ searchQuery ? t('coar.ui.select.noResults', undefined, 'No results found') : t('coar.ui.select.noOptions', undefined, 'No options available') }}
             </div>
@@ -343,7 +362,8 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
   border-color: var(--coar-border-input-hover);
 }
 
-.coar-select-trigger--focused:not(.coar-select-trigger--error) {
+.coar-select-trigger--focused:not(.coar-select-trigger--error),
+.coar-select-trigger--open:not(.coar-select-trigger--error) {
   border-color: var(--coar-focus-color);
   box-shadow: inset 0 0 0 1px var(--coar-focus-color);
 }
@@ -466,35 +486,28 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
   flex-direction: column;
 }
 
-/* Search */
-.coar-select-search {
-  padding: var(--coar-spacing-s);
-  border-bottom: 1px solid var(--coar-border-neutral);
-}
-
-.coar-select-search-input {
-  box-sizing: border-box;
-  width: 100%;
-  height: var(--coar-select-search-height);
-  padding: 0 var(--coar-spacing-s);
-  border: 1px solid var(--coar-border-input);
-  border-radius: var(--coar-radius-xs);
-  background: var(--coar-surface-input);
+/* Inline search */
+.coar-select-inline-search {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
   font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-select-option-font-size);
+  font-size: var(--coar-body-small-base-size);
+  font-weight: var(--coar-body-small-base-weight);
   color: var(--coar-text-neutral-primary);
   outline: none;
-  transition: border-color var(--coar-duration-fast) var(--coar-ease-out), box-shadow var(--coar-duration-fast) var(--coar-ease-out);
 }
 
-.coar-select-search-input::placeholder {
+.coar-select-inline-search::placeholder {
   color: var(--coar-text-placeholder);
 }
 
-.coar-select-search-input:focus {
-  border-color: var(--coar-focus-color);
-  box-shadow: inset 0 0 0 1px var(--coar-focus-color);
-}
+.coar-select--xs .coar-select-inline-search { font-size: var(--coar-component-xs-font-size); }
+.coar-select--s .coar-select-inline-search { font-size: var(--coar-component-s-font-size); }
+.coar-select--l .coar-select-inline-search { font-size: var(--coar-component-l-font-size); }
 
 /* Options */
 .coar-select-options {
@@ -550,6 +563,38 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
   color: var(--coar-icon-accent-primary);
 }
 
+/* Group header */
+.coar-select-group-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: var(--coar-spacing-s) var(--coar-spacing-s) var(--coar-spacing-xs);
+  border-top: 1px solid transparent;
+  background: var(--coar-background-neutral-primary);
+  font-family: var(--coar-body-small-base-family);
+  font-size: var(--coar-body-caption-size);
+  font-weight: var(--coar-font-weight-semibold);
+  color: var(--coar-text-neutral-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  user-select: none;
+}
+
+/* Extend background upward to cover scroll container padding gap */
+.coar-select-group-header::before {
+  content: '';
+  position: absolute;
+  top: calc(-1 * var(--coar-spacing-xs) - 1px);
+  left: 0;
+  right: 0;
+  height: calc(var(--coar-spacing-xs) + 1px);
+  background: inherit;
+}
+
+.coar-select-group-header:not(:first-child) {
+  border-top-color: var(--coar-border-neutral-tertiary);
+}
+
 /* Empty */
 .coar-select-empty {
   padding: var(--coar-select-option-padding);
@@ -564,7 +609,6 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
   .coar-select-trigger,
   .coar-select-clear,
   .coar-select-arrow,
-  .coar-select-search-input,
   .coar-select-option {
     transition: none;
   }

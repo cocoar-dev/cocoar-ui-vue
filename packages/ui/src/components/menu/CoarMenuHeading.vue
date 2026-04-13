@@ -2,11 +2,13 @@
 const props = defineProps<{
   /** Optional explicit label text (alternative to default slot) */
   label?: string;
+  /** Stick to top of scroll container */
+  sticky?: boolean;
 }>();
 </script>
 
 <template>
-  <div class="coar-menu-heading" role="heading" aria-level="3">
+  <div class="coar-menu-heading" :class="{ 'coar-menu-heading--sticky': props.sticky }" role="heading" aria-level="3">
     <template v-if="props.label">{{ props.label }}</template>
     <slot v-else />
   </div>
@@ -19,6 +21,7 @@ const props = defineProps<{
   width: 100%;
   box-sizing: border-box;
   padding: var(--coar-menu-heading-padding);
+  background: var(--coar-background-neutral-primary);
   font-family: var(--coar-menu-heading-font-family);
   font-size: var(--coar-menu-heading-font-size);
   font-weight: var(--coar-menu-heading-font-weight);
@@ -30,8 +33,10 @@ const props = defineProps<{
   user-select: none;
 }
 
-/* Spacing above headings except first */
-.coar-menu-heading:not(:first-child) {
-  margin-top: 0.2rem;
+.coar-menu-heading--sticky {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--coar-background-neutral-primary);
 }
 </style>
