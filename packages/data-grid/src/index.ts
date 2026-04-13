@@ -1,5 +1,5 @@
 // Builders
-export { CoarGridBuilder, type ColumnDefinition, type TreeDataConfig, type TreeNodeMeta, type CoarTreeContext } from './builders';
+export { CoarGridBuilder, type ColumnDefinition, type ColumnPersistenceOptions, type TreeDataConfig, type TreeNodeMeta, type CoarTreeContext, cleanupColumnStates } from './builders';
 export { CoarGridColumnBuilder } from './builders';
 export { CoarGridColumnFactory } from './builders';
 

@@ -213,6 +213,41 @@ const builder = CoarGridBuilder.create<Row>()
   .defaultSort('name', 'asc');
 ```
 
+## Column Persistence
+
+Persist column widths, order, visibility, and sort in IndexedDB with `.persistColumnState(key)`.
+
+**Width buckets:** The grid container width is rounded to buckets (default: 100px). Each bucket gets its own saved column layout, so different container sizes — switching monitors, collapsing a sidebar — each keep their own column widths. When no exact bucket exists, the nearest saved state is applied.
+
+**Live sync:** Multiple grids with the same key synchronize column changes instantly. Resize, reorder, or hide a column in one grid and all others update immediately. Useful for comparison views with different filters on the same data structure.
+
+Try it below — resize a column in Team A and watch Team B follow.
+
+<preview path="./data-grid/demos/GridPersistence.vue" />
+
+```ts
+const builder = CoarGridBuilder.create<User>()
+  .persistColumnState('my-users-grid')
+  .columns([...])
+
+// Optional: custom bucket size and debounce
+.persistColumnState('my-grid', { bucketSize: 200, debounceMs: 1000 })
+
+// Reset saved state
+builder.resetPersistedState()
+```
+
+### Cleanup
+
+Persisted entries are timestamped on every read and write. Call `cleanupColumnStates()` once at application startup to remove stale entries and prevent unbounded growth:
+
+```ts
+// main.ts
+import { cleanupColumnStates } from '@cocoar/vue-data-grid';
+
+cleanupColumnStates(180); // Remove entries older than 6 months
+```
+
 ## API
 
 ### CoarDataGrid Props
@@ -276,7 +311,15 @@ The toolbar appears automatically when `showSearch` is enabled or any `toolbar-*
 | `.autoSize(strategy)` | `'fitGridWidth' \| 'fitCellContents'` | Column auto-sizing strategy |
 | `.rowSelection(mode, opts?)` | `'single' \| 'multiple'` | Enable row selection |
 | `.defaultSort(field, dir)` | `string, 'asc' \| 'desc'` | Set default sort column |
+| `.persistColumnState(key, opts?)` | `string, ColumnPersistenceOptions?` | Persist column state in IndexedDB with width-based buckets |
+| `.resetPersistedState()` | — | Clear all saved column states and restore defaults |
 | `.rowClassRules(rules)` | `RowClassRules<T>` | Conditional row CSS classes |
+
+### Standalone Functions
+
+| Function | Parameters | Description |
+|----------|-----------|-------------|
+| `cleanupColumnStates(maxAgeDays)` | `number` | Remove persisted column states older than `maxAgeDays`. Call at app startup. |
 
 ### CoarGridColumnBuilder Methods
 

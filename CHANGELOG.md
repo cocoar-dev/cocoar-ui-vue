@@ -7,6 +7,21 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 1.6.5
+
+### Added
+
+- **Column state persistence** (`persistColumnState`): New builder method to persist column widths, order, visibility, and sort in IndexedDB. Grid width is rounded to configurable buckets (default: 100px) so different container sizes (monitor switch, sidebar collapse) each keep their own column layout. When no exact bucket exists, the nearest saved state is applied.
+- **Live column sync**: Multiple grids sharing the same persistence key synchronize column changes instantly — resize, reorder, or hide a column in one grid and all others update immediately. Useful for comparison views with different filters on the same data structure.
+- **`resetPersistedState()`**: Clears all saved column states for a grid and restores AG Grid defaults.
+- **`cleanupColumnStates(maxAgeDays)`**: Removes stale column state entries from IndexedDB that haven't been read or written within the specified number of days. Call once at application startup to prevent unbounded growth of persisted data.
+
+### Changed
+
+- **Dependency upgrades**: Vite 7→8, vue 3.5.32, vue-router 4→5, vitest 4.1, lucide-static 0.x→1.x, @vitejs/plugin-vue 6.0.5, eslint 10.2, typescript-eslint 8.58, maskito 5.2, turbo 2.9, overlayscrollbars 2.15, happy-dom 20.8, prettier 3.8.2, vitepress 1.6.4, mermaid 11.14, @js-temporal/polyfill 0.5.1, path-to-regexp 8.4.
+
+---
+
 ## 1.6.4
 
 ### Changed

@@ -10,7 +10,15 @@
   },
   "homepage": "https://docs.cocoar.dev/cocoar-ui-vue/",
   "bugs": "https://github.com/cocoar-dev/cocoar-ui-vue/issues",
-  "keywords": ["vue", "vue3", "localization", "i18n", "l10n", "timezone", "intl"],
+  "keywords": [
+    "vue",
+    "vue3",
+    "localization",
+    "i18n",
+    "l10n",
+    "timezone",
+    "intl"
+  ],
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -35,6 +43,6 @@
     "vue": "^3.5.0"
   },
   "devDependencies": {
-    "vue": "^3.5.0"
+    "vue": "^3.5.32"
   }
 }

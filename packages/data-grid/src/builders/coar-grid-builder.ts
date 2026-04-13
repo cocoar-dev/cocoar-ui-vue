@@ -24,6 +24,17 @@ import { CoarGridColumnBuilder, COAR_QUICK_FILTER_KEY } from './coar-grid-column
 import type { QuickFilterConfig } from './coar-grid-column-builder';
 import { CoarGridColumnFactory } from './coar-grid-column-factory';
 import CoarGridHeader from '../header/CoarGridHeader.vue';
+import {
+  loadColumnState,
+  saveColumnState,
+  getSavedBuckets,
+  deleteAllColumnStates,
+  toBucket,
+  findNearestBucket,
+  createPersistenceInstanceId,
+  onColumnStateChanged,
+  broadcastColumnState,
+} from './column-state-storage';
 
 type ColumnBuilderLike<TData> = {
   build(): ColDef<TData>;
@@ -65,6 +76,14 @@ export interface CoarTreeContext<TData = unknown> {
 export interface RowDragHighlightOptions<TData> {
   /** Validate if dragged row can be dropped on target. Return `false` to show "not allowed" feedback. */
   canDrop?: (draggedData: TData, targetData: TData) => boolean;
+}
+
+/** Options for column state persistence */
+export interface ColumnPersistenceOptions {
+  /** Bucket size in pixels. Grid width is rounded to the nearest bucket. Default: 100 */
+  bucketSize?: number;
+  /** Debounce delay in ms for saving column state. Default: 500 */
+  debounceMs?: number;
 }
 
 /** Options for row selection */
@@ -131,6 +150,15 @@ export class CoarGridBuilder<TData = unknown> {
     toggleRow: () => {},
     getRowId: () => '',
   };
+
+  // Column state persistence
+  #persistKey?: string;
+  #persistInstanceId = 0;
+  #persistOptions?: ColumnPersistenceOptions;
+  #persistBucket = 0;
+  #persistResizeObserver?: ResizeObserver;
+  #persistDebounceTimer?: ReturnType<typeof setTimeout>;
+  #persistSuppressSave = false;
 
   // Viewport event handlers (wired by wrapper component)
   #viewportClickHandler?: ($event: MouseEvent, api: GridApi<TData>) => void;
@@ -439,6 +467,62 @@ export class CoarGridBuilder<TData = unknown> {
   autoSize(strategy: 'fitGridWidth' | 'fitCellContents'): this {
     this.#mergeOptions({ autoSizeStrategy: { type: strategy } });
     return this;
+  }
+
+  // ============================================================
+  // Column State Persistence
+  // ============================================================
+
+  /**
+   * Persist column state (widths, order, visibility, sort) in IndexedDB.
+   *
+   * The grid container width is rounded to the nearest bucket (default: 100px).
+   * Each bucket gets its own saved column state, so different container
+   * widths (monitor switch, sidebar collapse) each keep their own layout.
+   * When no exact bucket exists, the nearest saved state is applied.
+   *
+   * **Live sync:** Multiple grids with the same `gridKey` synchronize
+   * column changes instantly. Resizing a column in one grid updates all
+   * others immediately. The IndexedDB write is debounced (default: 500ms)
+   * but the cross-grid broadcast is instant.
+   *
+   * @param gridKey - Unique key for this grid (e.g. `'todo-list'`, `'admin-users'`).
+   *   Grids with the same key share persisted state and sync live.
+   * @param options - Optional bucket size and debounce configuration
+   *
+   * @example
+   * ```ts
+   * // Basic usage
+   * const builder = CoarGridBuilder.create<User>()
+   *   .persistColumnState('admin-users')
+   *   .columns([...])
+   *
+   * // Two grids with the same key sync column changes live
+   * const gridA = CoarGridBuilder.create<User>()
+   *   .persistColumnState('users')
+   *   .columns(sharedColumns)
+   *   .rowData(teamA);
+   *
+   * const gridB = CoarGridBuilder.create<User>()
+   *   .persistColumnState('users')
+   *   .columns(sharedColumns)
+   *   .rowData(teamB);
+   * ```
+   */
+  persistColumnState(gridKey: string, options?: ColumnPersistenceOptions): this {
+    this.#persistKey = gridKey;
+    this.#persistOptions = options;
+    return this;
+  }
+
+  /**
+   * Reset all persisted column states for this grid and restore AG Grid defaults.
+   * Only has effect when `persistColumnState()` is configured.
+   */
+  async resetPersistedState(): Promise<void> {
+    if (!this.#persistKey) return;
+    await deleteAllColumnStates(this.#persistKey);
+    this.#gridApi?.resetColumnState();
   }
 
   // ============================================================
@@ -844,6 +928,129 @@ export class CoarGridBuilder<TData = unknown> {
   }
 
   // ============================================================
+  // Private - Column Persistence Helpers
+  // ============================================================
+
+  #persistSaveCurrentState(): void {
+    if (this.#persistSuppressSave || !this.#persistBucket || !this.#persistKey) return;
+    const state = this.#gridApi?.getColumnState();
+    if (state) {
+      saveColumnState(this.#persistKey, this.#persistBucket, state);
+    }
+  }
+
+  #persistBroadcastAndSave(): void {
+    if (this.#persistSuppressSave || !this.#persistKey) return;
+    const state = this.#gridApi?.getColumnState();
+    if (!state) return;
+
+    // Broadcast to other grids immediately
+    broadcastColumnState(this.#persistKey, this.#persistInstanceId, state);
+
+    // Debounce the IndexedDB write
+    if (this.#persistDebounceTimer) clearTimeout(this.#persistDebounceTimer);
+    const delay = this.#persistOptions?.debounceMs ?? 500;
+    this.#persistDebounceTimer = setTimeout(() => {
+      if (this.#persistBucket && this.#persistKey) {
+        saveColumnState(this.#persistKey, this.#persistBucket, state);
+      }
+    }, delay);
+  }
+
+  async #persistApplyStateForBucket(bucket: number): Promise<void> {
+    if (!this.#persistKey) return;
+
+    let state = await loadColumnState(this.#persistKey, bucket);
+
+    if (!state) {
+      const nearest = findNearestBucket(bucket, await getSavedBuckets(this.#persistKey));
+      if (nearest !== null) {
+        state = await loadColumnState(this.#persistKey, nearest);
+      }
+    }
+
+    if (state) {
+      this.#persistSuppressSave = true;
+      this.#gridApi?.applyColumnState({ state: state as ColumnState[], applyOrder: true });
+      setTimeout(() => { this.#persistSuppressSave = false; }, 100);
+    }
+  }
+
+  async #persistOnWidthChanged(width: number): Promise<void> {
+    const bucketSize = this.#persistOptions?.bucketSize ?? 100;
+    const newBucket = toBucket(width, bucketSize);
+    const oldBucket = this.#persistBucket;
+    if (oldBucket === newBucket) return;
+
+    if (oldBucket) {
+      this.#persistSaveCurrentState();
+    }
+
+    this.#persistBucket = newBucket;
+    await this.#persistApplyStateForBucket(newBucket);
+  }
+
+  #persistSetup(): void {
+    if (!this.#persistKey) return;
+    const bucketSize = this.#persistOptions?.bucketSize ?? 100;
+
+    this.#persistInstanceId = createPersistenceInstanceId();
+
+    const gridElement = this.#gridElement?.querySelector('.ag-root-wrapper') as HTMLElement
+      ?? this.#gridElement;
+
+    if (!gridElement) return;
+
+    const initialBucket = toBucket(gridElement.clientWidth, bucketSize);
+    this.#persistBucket = initialBucket;
+    this.#persistApplyStateForBucket(initialBucket);
+
+    this.#persistResizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        this.#persistOnWidthChanged(entry.contentRect.width);
+      }
+    });
+    this.#persistResizeObserver.observe(gridElement);
+
+    // Listen for column changes from other grids with the same key
+    const unsubscribe = onColumnStateChanged(this.#persistKey, this.#persistInstanceId, (state) => {
+      this.#persistSuppressSave = true;
+      this.#gridApi?.applyColumnState({ state: state as ColumnState[], applyOrder: true });
+      setTimeout(() => { this.#persistSuppressSave = false; }, 100);
+    });
+    this.#cleanupFns.push(unsubscribe);
+
+    // Listen for column changes via AG Grid API events (gridOptions already consumed at this point)
+    const api = this.#gridApi!;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- AG Grid addEventListener uses broad overloads
+    const onResized = (event: any) => { if (event.finished) this.#persistBroadcastAndSave(); };
+    const onMoved = () => this.#persistBroadcastAndSave();
+    const onVisible = () => this.#persistBroadcastAndSave();
+    const onSorted = () => this.#persistBroadcastAndSave();
+
+    api.addEventListener('columnResized', onResized);
+    api.addEventListener('columnMoved', onMoved);
+    api.addEventListener('columnVisible', onVisible);
+    api.addEventListener('sortChanged', onSorted);
+
+    this.#cleanupFns.push(() => {
+      api.removeEventListener('columnResized', onResized);
+      api.removeEventListener('columnMoved', onMoved);
+      api.removeEventListener('columnVisible', onVisible);
+      api.removeEventListener('sortChanged', onSorted);
+    });
+  }
+
+  #persistCleanup(): void {
+    this.#persistSaveCurrentState();
+    if (this.#persistDebounceTimer) clearTimeout(this.#persistDebounceTimer);
+    this.#persistResizeObserver?.disconnect();
+    this.#persistResizeObserver = undefined;
+    this.#persistBucket = 0;
+    this.#persistSuppressSave = false;
+  }
+
+  // ============================================================
   // Private - Tree Data Helpers
   // ============================================================
 
@@ -1084,6 +1291,12 @@ export class CoarGridBuilder<TData = unknown> {
       } else {
         api.applyColumnState({ state: this.#columnState, applyOrder: true });
       }
+    }
+
+    // Column state persistence (IndexedDB + width buckets)
+    if (this.#persistKey) {
+      this.#persistSetup();
+      this.#cleanupFns.push(() => this.#persistCleanup());
     }
 
     // Watch sort/filter triggers

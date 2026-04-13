@@ -53,10 +53,10 @@
     "@cocoar/vue-localization": "workspace:*",
     "@fontsource/inter": "^5.2.8",
     "@fontsource/poppins": "^5.2.7",
-    "@js-temporal/polyfill": "^0.5.0",
-    "@maskito/core": "^5.1.1",
-    "@maskito/kit": "^5.1.1",
-    "@maskito/vue": "^5.1.1",
+    "@js-temporal/polyfill": "^0.5.1",
+    "@maskito/core": "^5.2.2",
+    "@maskito/kit": "^5.2.2",
+    "@maskito/vue": "^5.2.2",
     "prismjs": "^1.30.0"
   },
   "peerDependencies": {
@@ -64,7 +64,7 @@
   },
   "devDependencies": {
     "@types/prismjs": "^1.26.6",
-    "overlayscrollbars": "^2.14.0",
-    "vue": "^3.5.0"
+    "overlayscrollbars": "^2.15.1",
+    "vue": "^3.5.32"
   }
 }

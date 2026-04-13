@@ -10,7 +10,12 @@
   },
   "homepage": "https://docs.cocoar.dev/cocoar-ui-vue/",
   "bugs": "https://github.com/cocoar-dev/cocoar-ui-vue/issues",
-  "keywords": ["vue", "vue3", "markdown", "viewer"],
+  "keywords": [
+    "vue",
+    "vue3",
+    "markdown",
+    "viewer"
+  ],
   "type": "module",
   "sideEffects": [
     "*.css"
@@ -42,6 +47,6 @@
   },
   "devDependencies": {
     "@cocoar/vue-ui": "workspace:*",
-    "vue": "^3.5.0"
+    "vue": "^3.5.32"
   }
 }

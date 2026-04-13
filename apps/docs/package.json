@@ -17,9 +17,9 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@vitepress-demo-preview/plugin": "^1.2.3",
-    "mermaid": "^11.13.0",
-    "vitepress": "^1.6.3",
+    "@vitepress-demo-preview/plugin": "^1.4.1",
+    "mermaid": "^11.14.0",
+    "vitepress": "^1.6.4",
     "vitepress-plugin-llms": "latest",
     "vitepress-plugin-mermaid": "^2.0.17"
   }
