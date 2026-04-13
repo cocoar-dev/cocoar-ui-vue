@@ -7,13 +7,21 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 1.6.6
+
+### Changed
+
+- **`resetPersistedState(bucket?)`**: Now accepts an optional bucket parameter to reset only a specific width bucket (defaults to the current bucket). Previously reset all buckets.
+- **`resetPersistedStates()`**: New method that resets all persisted column states across all buckets for a grid (the previous `resetPersistedState()` behavior).
+
+---
+
 ## 1.6.5
 
 ### Added
 
 - **Column state persistence** (`persistColumnState`): New builder method to persist column widths, order, visibility, and sort in IndexedDB. Grid width is rounded to configurable buckets (default: 100px) so different container sizes (monitor switch, sidebar collapse) each keep their own column layout. When no exact bucket exists, the nearest saved state is applied.
 - **Live column sync**: Multiple grids sharing the same persistence key synchronize column changes instantly — resize, reorder, or hide a column in one grid and all others update immediately. Useful for comparison views with different filters on the same data structure.
-- **`resetPersistedState()`**: Clears all saved column states for a grid and restores AG Grid defaults.
 - **`cleanupColumnStates(maxAgeDays)`**: Removes stale column state entries from IndexedDB that haven't been read or written within the specified number of days. Call once at application startup to prevent unbounded growth of persisted data.
 
 ### Changed

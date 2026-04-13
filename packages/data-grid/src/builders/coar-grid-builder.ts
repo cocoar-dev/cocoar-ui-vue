@@ -28,6 +28,7 @@ import {
   loadColumnState,
   saveColumnState,
   getSavedBuckets,
+  deleteColumnState,
   deleteAllColumnStates,
   toBucket,
   findNearestBucket,
@@ -516,10 +517,39 @@ export class CoarGridBuilder<TData = unknown> {
   }
 
   /**
-   * Reset all persisted column states for this grid and restore AG Grid defaults.
-   * Only has effect when `persistColumnState()` is configured.
+   * Reset the persisted column state for a specific bucket and restore AG Grid defaults.
+   * If no bucket is specified, the current width bucket is used.
+   *
+   * @param bucket - Width bucket to reset (e.g. `800`, `1200`). Defaults to the current bucket.
+   *
+   * @example
+   * ```ts
+   * // Reset current bucket
+   * builder.resetPersistedState()
+   *
+   * // Reset a specific bucket
+   * builder.resetPersistedState(1200)
+   * ```
    */
-  async resetPersistedState(): Promise<void> {
+  async resetPersistedState(bucket?: number): Promise<void> {
+    if (!this.#persistKey) return;
+    const target = bucket ?? this.#persistBucket;
+    if (target) {
+      await deleteColumnState(this.#persistKey, target);
+    }
+    this.#gridApi?.resetColumnState();
+  }
+
+  /**
+   * Reset all persisted column states for this grid (all buckets)
+   * and restore AG Grid defaults.
+   *
+   * @example
+   * ```ts
+   * builder.resetPersistedStates()
+   * ```
+   */
+  async resetPersistedStates(): Promise<void> {
     if (!this.#persistKey) return;
     await deleteAllColumnStates(this.#persistKey);
     this.#gridApi?.resetColumnState();

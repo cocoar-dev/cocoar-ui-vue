@@ -233,8 +233,11 @@ const builder = CoarGridBuilder.create<User>()
 // Optional: custom bucket size and debounce
 .persistColumnState('my-grid', { bucketSize: 200, debounceMs: 1000 })
 
-// Reset saved state
+// Reset current bucket
 builder.resetPersistedState()
+
+// Reset all buckets
+builder.resetPersistedStates()
 ```
 
 ### Cleanup
@@ -312,7 +315,8 @@ The toolbar appears automatically when `showSearch` is enabled or any `toolbar-*
 | `.rowSelection(mode, opts?)` | `'single' \| 'multiple'` | Enable row selection |
 | `.defaultSort(field, dir)` | `string, 'asc' \| 'desc'` | Set default sort column |
 | `.persistColumnState(key, opts?)` | `string, ColumnPersistenceOptions?` | Persist column state in IndexedDB with width-based buckets |
-| `.resetPersistedState()` | — | Clear all saved column states and restore defaults |
+| `.resetPersistedState(bucket?)` | `number?` | Reset persisted state for a specific bucket (defaults to current) |
+| `.resetPersistedStates()` | — | Reset all persisted column states (all buckets) |
 | `.rowClassRules(rules)` | `RowClassRules<T>` | Conditional row CSS classes |
 
 ### Standalone Functions

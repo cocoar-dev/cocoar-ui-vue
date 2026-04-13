@@ -105,6 +105,16 @@ export async function getSavedBuckets(gridKey: string): Promise<number[]> {
   }
 }
 
+export async function deleteColumnState(gridKey: string, bucket: number): Promise<void> {
+  try {
+    const db = await openDb();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    tx.objectStore(STORE_NAME).delete(storeKey(gridKey, bucket));
+  } catch {
+    // silently ignore
+  }
+}
+
 export async function deleteAllColumnStates(gridKey: string): Promise<void> {
   try {
     const buckets = await getSavedBuckets(gridKey);

@@ -1,7 +1,7 @@
 <template>
   <div style="display: flex; flex-direction: column; gap: 16px;">
     <div>
-      <CoarButton size="s" @click="builder.resetPersistedState()">Reset columns</CoarButton>
+      <CoarButton size="s" @click="builder.resetPersistedStates()">Reset columns</CoarButton>
     </div>
 
     <div style="height: 250px;">
