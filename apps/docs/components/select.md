@@ -45,6 +45,21 @@ const options: CoarSelectOption<string>[] = [
 ];
 ```
 
+## Sorting
+
+Control the order of groups and options via `sortGroups` and `sortOptions`. Both accept preset strings or a custom comparator function.
+
+<preview path="./select/demos/SortingDemo.vue" />
+
+- `sortOptions` works **with and without groups** — it sorts all options, or within each group respectively
+- `sortGroups` only applies when options have a `group` property
+- `'none'` preserves the order as passed — giving you full control from the consumer side
+- Pass a custom comparator `(a, b) => number` for special sorting (e.g. by priority, numeric values)
+
+```ts
+import type { CoarSelectSortGroups, CoarSelectSortOptions } from '@cocoar/vue-ui';
+```
+
 ## API
 
 ### Props
@@ -63,6 +78,8 @@ const options: CoarSelectOption<string>[] = [
 | `appearance` | `'outline' \| 'inline'` | `'outline'` | Visual appearance variant |
 | `compareWith` | `(a: T, b: T) => boolean` | `===` | Custom comparison function for matching values |
 | `dropdownPosition` | `'auto' \| 'top' \| 'bottom'` | `'auto'` | Dropdown position preference |
+| `sortGroups` | `'asc' \| 'desc' \| 'none' \| (a, b) => number` | `'asc'` | Sort order for groups |
+| `sortOptions` | `'asc' \| 'desc' \| 'none' \| (a, b) => number` | `'none'` | Sort order for options (within each group, or all if ungrouped) |
 
 ## i18n Keys
 

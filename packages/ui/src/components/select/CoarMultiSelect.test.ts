@@ -159,4 +159,27 @@ describe('CoarMultiSelect', () => {
     await w.find('.coar-select-trigger').trigger('click');
     expect(w.find('[role="listbox"]').attributes('aria-multiselectable')).toBe('true');
   });
+
+  it('sorts options ascending when sortOptions is asc', async () => {
+    const opts: CoarSelectOption[] = [
+      { value: 'c', label: 'Cherry' },
+      { value: 'a', label: 'Apple' },
+      { value: 'b', label: 'Banana' },
+    ];
+    const w = mount(CoarMultiSelect, { ...globalStubs, props: { options: opts, sortOptions: 'asc' } });
+    await w.find('.coar-select-trigger').trigger('click');
+    const labels = w.findAll('.coar-select-option-label').map((el) => el.text());
+    expect(labels).toEqual(['Apple', 'Banana', 'Cherry']);
+  });
+
+  it('sorts groups descending when sortGroups is desc', async () => {
+    const opts: CoarSelectOption[] = [
+      { value: 1, label: 'A', group: 'Alpha' },
+      { value: 2, label: 'B', group: 'Beta' },
+    ];
+    const w = mount(CoarMultiSelect, { ...globalStubs, props: { options: opts, sortGroups: 'desc' } });
+    await w.find('.coar-select-trigger').trigger('click');
+    const headers = w.findAll('.coar-select-group-header').map((el) => el.text());
+    expect(headers).toEqual(['Beta', 'Alpha']);
+  });
 });

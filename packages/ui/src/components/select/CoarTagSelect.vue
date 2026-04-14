@@ -5,7 +5,7 @@ import { CoarIcon } from '../icon';
 import { useSelectBase, type CoarSelectSize, type CoarSelectAppearance } from './useSelectBase';
 import { useSelectDropdown } from './useSelectDropdown';
 import { vScrollbar } from '../scrollbar/vScrollbar';
-import type { CoarSelectOption } from './types';
+import type { CoarSelectOption, CoarSelectSortGroups, CoarSelectSortOptions } from './types';
 import { FORM_FIELD_INJECTION_KEY } from '../form-field/constants';
 
 export interface CoarTagSelectProps<T = unknown> {
@@ -35,6 +35,10 @@ export interface CoarTagSelectProps<T = unknown> {
   compareWith?: (a: T, b: T) => boolean;
   /** Dropdown position */
   dropdownPosition?: 'auto' | 'top' | 'bottom';
+  /** Sort order for groups. Default: 'asc' */
+  sortGroups?: CoarSelectSortGroups;
+  /** Sort order for options (within each group, or all if ungrouped). Default: 'none' */
+  sortOptions?: CoarSelectSortOptions<T>;
 }
 
 const props = withDefaults(defineProps<CoarTagSelectProps<T>>(), {
@@ -51,6 +55,8 @@ const props = withDefaults(defineProps<CoarTagSelectProps<T>>(), {
   allowCreate: false,
   compareWith: undefined,
   dropdownPosition: 'auto',
+  sortGroups: 'asc',
+  sortOptions: 'none',
 });
 
 const { t } = useI18n();
@@ -92,6 +98,8 @@ const {
   readonly: toRef(props, 'readonly'),
   id: toRef(props, 'id'),
   dropdownPositionPreference: toRef(props, 'dropdownPosition'),
+  sortGroups: toRef(props, 'sortGroups'),
+  sortOptions: toRef(props, 'sortOptions'),
 });
 
 const inputId = computed(() => props.id || formField?.inputId.value || baseInputId.value);

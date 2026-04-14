@@ -1,5 +1,5 @@
 import { ref, computed, watch, type Ref } from 'vue';
-import type { CoarSelectOption } from './types';
+import type { CoarSelectOption, CoarSelectSortGroups, CoarSelectSortOptions } from './types';
 
 export type CoarSelectSize = 'xs' | 's' | 'm' | 'l';
 export type CoarSelectAppearance = 'outline' | 'inline';
@@ -11,6 +11,8 @@ export interface UseSelectBaseOptions<T = unknown> {
   readonly: Ref<boolean>;
   id: Ref<string>;
   dropdownPositionPreference: Ref<'auto' | 'top' | 'bottom'>;
+  sortGroups: Ref<CoarSelectSortGroups>;
+  sortOptions: Ref<CoarSelectSortOptions<T>>;
 }
 
 export function useSelectBase<T = unknown>(opts: UseSelectBaseOptions<T>) {
@@ -30,15 +32,65 @@ export function useSelectBase<T = unknown>(opts: UseSelectBaseOptions<T>) {
     const list = query
       ? opts.options.value.filter((o) => o.label.toLowerCase().includes(query))
       : opts.options.value;
-    // Sort by group so grouped options are adjacent (ungrouped first)
+
+    const sortOpt = opts.sortOptions.value;
+    const sortGrp = opts.sortGroups.value;
     const hasGroups = list.some((o) => o.group);
-    if (!hasGroups) return list;
-    return [...list].sort((a, b) => {
-      if (!a.group && !b.group) return 0;
-      if (!a.group) return -1;
-      if (!b.group) return 1;
-      return a.group.localeCompare(b.group);
-    });
+
+    // Build option comparator
+    const optionCmp: ((a: CoarSelectOption<T>, b: CoarSelectOption<T>) => number) | null =
+      typeof sortOpt === 'function'
+        ? sortOpt
+        : sortOpt === 'asc'
+          ? (a, b) => a.label.localeCompare(b.label)
+          : sortOpt === 'desc'
+            ? (a, b) => b.label.localeCompare(a.label)
+            : null; // 'none'
+
+    if (!hasGroups) {
+      return optionCmp ? [...list].sort(optionCmp) : list;
+    }
+
+    // Build group comparator
+    const groupCmp: ((a: string, b: string) => number) | null =
+      typeof sortGrp === 'function'
+        ? sortGrp
+        : sortGrp === 'asc'
+          ? (a, b) => a.localeCompare(b)
+          : sortGrp === 'desc'
+            ? (a, b) => b.localeCompare(a)
+            : null; // 'none'
+
+    // Collect groups in order of first appearance
+    const groupOrder: string[] = [];
+    const grouped = new Map<string, CoarSelectOption<T>[]>();
+    const ungrouped: CoarSelectOption<T>[] = [];
+
+    for (const o of list) {
+      if (o.group) {
+        if (!grouped.has(o.group)) {
+          groupOrder.push(o.group);
+          grouped.set(o.group, []);
+        }
+        grouped.get(o.group)!.push(o);
+      } else {
+        ungrouped.push(o);
+      }
+    }
+
+    // Sort groups
+    if (groupCmp) groupOrder.sort(groupCmp);
+
+    // Sort options within each group (and ungrouped)
+    if (optionCmp) {
+      ungrouped.sort(optionCmp);
+      for (const items of grouped.values()) items.sort(optionCmp);
+    }
+
+    // Assemble: ungrouped first, then groups
+    const result: CoarSelectOption<T>[] = [...ungrouped];
+    for (const g of groupOrder) result.push(...grouped.get(g)!);
+    return result;
   });
 
   // Reset highlighted index when filtered options change

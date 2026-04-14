@@ -122,4 +122,21 @@ describe('CoarTagSelect', () => {
     const w = mount(CoarTagSelect, { ...globalStubs, props: { size: 's', options: baseOptions } });
     expect(w.find('.coar-select--s').exists()).toBe(true);
   });
+
+  it('sorts options ascending when sortOptions is asc', async () => {
+    const opts: CoarSelectOption[] = [
+      { value: 'svelte', label: 'Svelte' },
+      { value: 'angular', label: 'Angular' },
+      { value: 'vue', label: 'Vue' },
+    ];
+    const w = mount(CoarTagSelect, {
+      ...globalStubs,
+      props: { modelValue: [], options: opts, sortOptions: 'asc' },
+      attachTo: document.body,
+    });
+    await w.find('.coar-tag-select-input').trigger('focus');
+    const labels = w.findAll('.coar-select-option-label').map((el) => el.text());
+    expect(labels).toEqual(['Angular', 'Svelte', 'Vue']);
+    w.unmount();
+  });
 });

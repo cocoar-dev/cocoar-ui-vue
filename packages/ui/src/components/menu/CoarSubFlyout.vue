@@ -5,6 +5,7 @@ import { computeOverlayCoordinates } from '../overlay/overlay-position';
 import {
   MenuCascade,
   useMenuCascade,
+  useMenuClose,
   provideMenuCascade,
   provideMenuClose,
   MENU_NAV_KEY,
@@ -62,9 +63,13 @@ let closeTimer: ReturnType<typeof setTimeout> | null = null;
 // Allow child submenus to cancel our close timer via cascade
 cascade.onChildPanelEnter = () => cancelCloseTimer();
 
+// Inject the parent's close before we override — so we can chain up to the root
+const parentCloseMenu = useMenuClose();
+
 // Provide close function so nested menu items can close the entire tree
 provideMenuClose(() => {
   closeSubmenu();
+  parentCloseMenu?.();
 });
 
 function openSubmenu(anchorEl: HTMLElement) {

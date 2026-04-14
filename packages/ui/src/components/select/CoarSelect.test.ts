@@ -153,4 +153,126 @@ describe('CoarSelect', () => {
     expect(trigger.attributes('aria-expanded')).toBe('false');
     expect(trigger.attributes('aria-invalid')).toBe('true');
   });
+
+  describe('sortOptions', () => {
+    it('sorts options ascending by label when sortOptions is asc', async () => {
+      const opts: CoarSelectOption[] = [
+        { value: 'c', label: 'Cherry' },
+        { value: 'a', label: 'Apple' },
+        { value: 'b', label: 'Banana' },
+      ];
+      const w = mount(CoarSelect, { ...globalStubs, props: { options: opts, sortOptions: 'asc' } });
+      await w.find('.coar-select-trigger').trigger('click');
+      const labels = w.findAll('.coar-select-option-label').map((el) => el.text());
+      expect(labels).toEqual(['Apple', 'Banana', 'Cherry']);
+    });
+
+    it('sorts options descending by label when sortOptions is desc', async () => {
+      const opts: CoarSelectOption[] = [
+        { value: 'a', label: 'Apple' },
+        { value: 'b', label: 'Banana' },
+        { value: 'c', label: 'Cherry' },
+      ];
+      const w = mount(CoarSelect, { ...globalStubs, props: { options: opts, sortOptions: 'desc' } });
+      await w.find('.coar-select-trigger').trigger('click');
+      const labels = w.findAll('.coar-select-option-label').map((el) => el.text());
+      expect(labels).toEqual(['Cherry', 'Banana', 'Apple']);
+    });
+
+    it('preserves input order when sortOptions is none (default)', async () => {
+      const opts: CoarSelectOption[] = [
+        { value: 'c', label: 'Cherry' },
+        { value: 'a', label: 'Apple' },
+        { value: 'b', label: 'Banana' },
+      ];
+      const w = mount(CoarSelect, { ...globalStubs, props: { options: opts } });
+      await w.find('.coar-select-trigger').trigger('click');
+      const labels = w.findAll('.coar-select-option-label').map((el) => el.text());
+      expect(labels).toEqual(['Cherry', 'Apple', 'Banana']);
+    });
+
+    it('accepts a custom comparator for sortOptions', async () => {
+      const opts: CoarSelectOption[] = [
+        { value: 'b', label: 'Banana' },
+        { value: 'c', label: 'Cherry' },
+        { value: 'a', label: 'Apple' },
+      ];
+      // Sort by value string
+      const w = mount(CoarSelect, {
+        ...globalStubs,
+        props: { options: opts, sortOptions: (a: CoarSelectOption, b: CoarSelectOption) => String(a.value).localeCompare(String(b.value)) },
+      });
+      await w.find('.coar-select-trigger').trigger('click');
+      const labels = w.findAll('.coar-select-option-label').map((el) => el.text());
+      expect(labels).toEqual(['Apple', 'Banana', 'Cherry']);
+    });
+  });
+
+  describe('sortGroups', () => {
+    const groupedOptions: CoarSelectOption[] = [
+      { value: 1, label: 'Carrot', group: 'Vegetables' },
+      { value: 2, label: 'Apple', group: 'Fruits' },
+      { value: 3, label: 'Banana', group: 'Fruits' },
+      { value: 4, label: 'Broccoli', group: 'Vegetables' },
+      { value: 5, label: 'Milk' }, // ungrouped
+    ];
+
+    it('sorts groups ascending by default', async () => {
+      const w = mount(CoarSelect, { ...globalStubs, props: { options: groupedOptions } });
+      await w.find('.coar-select-trigger').trigger('click');
+      const headers = w.findAll('.coar-select-group-header').map((el) => el.text());
+      expect(headers).toEqual(['Fruits', 'Vegetables']);
+    });
+
+    it('sorts groups descending when sortGroups is desc', async () => {
+      const w = mount(CoarSelect, { ...globalStubs, props: { options: groupedOptions, sortGroups: 'desc' } });
+      await w.find('.coar-select-trigger').trigger('click');
+      const headers = w.findAll('.coar-select-group-header').map((el) => el.text());
+      expect(headers).toEqual(['Vegetables', 'Fruits']);
+    });
+
+    it('preserves group input order when sortGroups is none', async () => {
+      const w = mount(CoarSelect, { ...globalStubs, props: { options: groupedOptions, sortGroups: 'none' } });
+      await w.find('.coar-select-trigger').trigger('click');
+      const headers = w.findAll('.coar-select-group-header').map((el) => el.text());
+      // First group encountered is Vegetables, then Fruits
+      expect(headers).toEqual(['Vegetables', 'Fruits']);
+    });
+
+    it('ungrouped options always appear first', async () => {
+      const w = mount(CoarSelect, { ...globalStubs, props: { options: groupedOptions } });
+      await w.find('.coar-select-trigger').trigger('click');
+      const labels = w.findAll('.coar-select-option-label').map((el) => el.text());
+      expect(labels[0]).toBe('Milk');
+    });
+
+    it('sorts options within groups when sortOptions is asc', async () => {
+      const opts: CoarSelectOption[] = [
+        { value: 1, label: 'Banana', group: 'Fruits' },
+        { value: 2, label: 'Apple', group: 'Fruits' },
+        { value: 3, label: 'Broccoli', group: 'Vegetables' },
+        { value: 4, label: 'Artichoke', group: 'Vegetables' },
+      ];
+      const w = mount(CoarSelect, { ...globalStubs, props: { options: opts, sortOptions: 'asc' } });
+      await w.find('.coar-select-trigger').trigger('click');
+      const labels = w.findAll('.coar-select-option-label').map((el) => el.text());
+      // Fruits group (asc): Apple, Banana; Vegetables group (asc): Artichoke, Broccoli
+      expect(labels).toEqual(['Apple', 'Banana', 'Artichoke', 'Broccoli']);
+    });
+
+    it('accepts a custom group comparator', async () => {
+      const opts: CoarSelectOption[] = [
+        { value: 1, label: 'A', group: 'Zzz' },
+        { value: 2, label: 'B', group: 'Aaa' },
+      ];
+      // Reverse alphabetical
+      const w = mount(CoarSelect, {
+        ...globalStubs,
+        props: { options: opts, sortGroups: (a: string, b: string) => b.localeCompare(a) },
+      });
+      await w.find('.coar-select-trigger').trigger('click');
+      const headers = w.findAll('.coar-select-group-header').map((el) => el.text());
+      expect(headers).toEqual(['Zzz', 'Aaa']);
+    });
+  });
 });

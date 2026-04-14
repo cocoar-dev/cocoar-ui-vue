@@ -10,6 +10,8 @@
       <CoarSelect v-model="size" :options="sizeOptions" :searchable="false" size="s" style="width: 90px;" />
       <CoarSelect v-model="appearance" :options="appearanceOptions" :searchable="false" size="s" style="width: 120px;" />
       <CoarSelect v-model="position" :options="positionOptions" :searchable="false" size="s" style="width: 110px;" />
+      <CoarSelect v-model="sortGroups" :options="sortPresetOptions" :searchable="false" size="s" style="width: 160px;" placeholder="sortGroups" />
+      <CoarSelect v-model="sortOptions" :options="sortPresetOptions" :searchable="false" size="s" style="width: 160px;" placeholder="sortOptions" />
     </div>
 
     <div style="max-width: 320px;">
@@ -25,6 +27,8 @@
           :size="size"
           :appearance="appearance"
           :dropdown-position="position"
+          :sort-groups="sortGroups"
+          :sort-options="sortOptions"
           placeholder="Select a country..."
         />
       </CoarFormField>
@@ -38,7 +42,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { CoarSelect, CoarCheckbox, CoarFormField } from '@cocoar/vue-ui';
-import type { CoarSelectOption } from '@cocoar/vue-ui';
+import type { CoarSelectOption, CoarSelectSortGroups, CoarSelectSortOptions } from '@cocoar/vue-ui';
 
 const value = ref<string | null>(null);
 const grouped = ref(true);
@@ -50,6 +54,8 @@ const error = ref(false);
 const size = ref<'xs' | 's' | 'm' | 'l'>('m');
 const appearance = ref<'outline' | 'inline'>('outline');
 const position = ref<'auto' | 'top' | 'bottom'>('auto');
+const sortGroups = ref<CoarSelectSortGroups>('asc');
+const sortOptions = ref<CoarSelectSortOptions>('none');
 
 const groupedOptions: CoarSelectOption<string>[] = [
   { value: 'at', label: 'Austria', group: 'Central Europe' },
@@ -86,5 +92,11 @@ const positionOptions: CoarSelectOption<string>[] = [
   { value: 'auto', label: 'auto' },
   { value: 'top', label: 'top' },
   { value: 'bottom', label: 'bottom' },
+];
+
+const sortPresetOptions: CoarSelectOption<string>[] = [
+  { value: 'asc', label: 'asc' },
+  { value: 'desc', label: 'desc' },
+  { value: 'none', label: 'none' },
 ];
 </script>

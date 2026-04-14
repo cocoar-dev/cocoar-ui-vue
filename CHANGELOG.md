@@ -7,6 +7,22 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 1.8.0
+
+### Added
+
+- **Select sorting** (`sortGroups`, `sortOptions`): Two new props on `CoarSelect`, `CoarMultiSelect`, and `CoarTagSelect` to control the display order of groups and options. Both accept presets (`'asc'`, `'desc'`, `'none'`) or a custom comparator function. `sortOptions` works with and without groups — it sorts all options when ungrouped, or within each group when grouped. Defaults are backwards-compatible: `sortGroups='asc'` (alphabetical, as before), `sortOptions='none'` (input order, as before). New types: `CoarSelectSortGroups`, `CoarSelectSortOptions<T>`.
+
+### Fixed
+
+- **SubFlyout menu close chain**: Clicking a `CoarMenuItem` inside a `CoarSubFlyout` now closes the entire menu hierarchy (submenu + parent context menu). Previously, only the immediate submenu panel closed — the root `CoarContextMenu` stayed open, requiring consumers to manually call `menu.close()` in every handler.
+
+### Docs
+
+- **Select sorting section**: New "Sorting" section on the Select docs page with interactive `SortingDemo` (side-by-side grouped vs. ungrouped). All three playground demos (Select, MultiSelect, TagSelect) now include `sortGroups` and `sortOptions` controls. Props table updated with the new props.
+
+---
+
 ## 1.7.0
 
 ### Added
