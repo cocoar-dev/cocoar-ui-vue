@@ -92,7 +92,7 @@ describe('DiagnosticsFilter — integration with marker registry', () => {
   });
 
   it('ignores marker-change events for other models', () => {
-    const { editor, model } = makeEditor('x // @locked', 'file:///ours.ts');
+    const { editor } = makeEditor('x // @locked', 'file:///ours.ts');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     new DiagnosticsFilter(editor as any, () => false);
 

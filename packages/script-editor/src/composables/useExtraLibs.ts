@@ -39,7 +39,6 @@ export function useExtraLibs(options: UseExtraLibsOptions): void {
     if (language === 'json') {
       if (options.libs().length > 0 && !warnedJson) {
         warnedJson = true;
-        // eslint-disable-next-line no-console
         console.warn(
           `[coar-script-editor] extraLibs has entries but language is 'json' — ` +
             `extraLibs are ignored for JSON. Use monaco.languages.json.jsonDefaults.setDiagnosticsOptions ` +
@@ -59,7 +58,6 @@ export function useExtraLibs(options: UseExtraLibsOptions): void {
       // notoriously hard to debug. Surface it once per path at registration.
       if (!lib.filePath.startsWith('file:///') && !warnedPaths.has(lib.filePath)) {
         warnedPaths.add(lib.filePath);
-        // eslint-disable-next-line no-console
         console.warn(
           `[coar-script-editor] extraLib filePath '${lib.filePath}' does not start with ` +
             `'file:///' — Monaco will register it but IntelliSense may not pick it up. ` +

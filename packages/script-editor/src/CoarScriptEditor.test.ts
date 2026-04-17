@@ -1,3 +1,6 @@
+// Test file defines small inline Vue harnesses next to the describe blocks that use
+// them (FormField provider, ref harness). Extracting them adds noise without value.
+/* eslint-disable vue/one-component-per-file */
 import { mount } from '@vue/test-utils';
 import { computed, defineComponent, h, nextTick, provide, ref } from 'vue';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

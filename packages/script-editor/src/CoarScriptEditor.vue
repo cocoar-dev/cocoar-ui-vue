@@ -206,8 +206,8 @@ defineExpose({
 
 <template>
   <div
-    ref="host"
     :id="inputId"
+    ref="host"
     :class="rootClass"
     :style="rootStyle"
     :aria-invalid="hasError ? 'true' : undefined"
