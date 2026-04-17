@@ -11,3 +11,8 @@ coverage
 # VitePress docs
 apps/docs/.vitepress/cache/
 apps/docs/.vitepress/dist/
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/

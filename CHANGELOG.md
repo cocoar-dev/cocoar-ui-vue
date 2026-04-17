@@ -7,6 +7,35 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 1.9.0
+
+### Added
+
+- **`@cocoar/vue-script-editor` — new package**: Monaco-based code editor for Vue 3 with TypeScript, JavaScript, and JSON support. Peer-deps on `monaco-editor`. `v-model` is the persistence format, `extraLibs` for TypeScript type injection (IntelliSense on domain types), Cocoar light/dark Monaco themes with reactive `auto` detection that tracks `.dark-mode` class on `<html>`/`<body>` (Cocoar convention), `data-theme` attribute, or OS `prefers-color-scheme`. `getEditor()` / `getModel()` escape hatches for Monaco APIs not covered by props.
+- **Constrained mode (`// @locked` line protection)**: any line of the source containing `// @locked` is protected against edits, deletion, and line-merging. Users can't touch the marker or its line; everything else is freely editable — including the file top, so TypeScript's Auto-Import quickfix works naturally. Markers stay in `v-model`, so the editor value round-trips through persistence with no extra schema. Powered by `ChangeGuard` (inclusive overlap check + multi-cursor atomic rollback via `editor.trigger('undo')`), `CursorGuard` (snap away from locked interiors), `DiagnosticsFilter` (hides TS error markers that fall on locked lines caused by in-progress bodies), and per-mount auto-feature policy (`formatOnType`, `formatOnPaste`, `linkedEditing` disabled to prevent cross-boundary reformats).
+- **Authoring mode (`authoring` prop)**: suspends enforcement so template authors can edit locked lines and markers themselves. Markers render at full size with a warm accent colour to signal enforcement is off. Toggle back to resume enforcement with the current marker state.
+- **`@reject` event**: emits `{ reason, range? }` when a guard rolls back an illegal edit — hookable for toast / shake / line-highlight feedback.
+- **Pure helpers** (no editor mount required): `scanLockedLines`, `computeProtectedRanges`, `hasLockedMarkers`, `getEditableSegments`, `editIsProtected`, `snapOffsetAwayFromLocked`, `countLockedLines`, `isEverySegmentNonEmpty`, `validateSource`. Use for submit-gating, server-side validation, or tests.
+- **Form integration (`CoarFormField`)**: `CoarScriptEditor` now auto-inherits `id`, `error`, `describedBy`, and `disabled` from `CoarFormField` the same way `CoarTextInput` does. New props: `disabled`, `error`, `placeholder`, `required`, `autofocus`, `id`, `name`, `height` (CSS string or number). New events: `focused`, `blurred`. New exposed method: `focus()`.
+- **`variant: 'editor' \| 'inline'`**: compact form-field preset that turns off line numbers, gutter, folding, glyph margin, and context menu, and switches to tight padding + word-wrap + hover/focus ring matching `CoarTextInput`. `'editor'` (default) keeps the existing full-chrome IDE look.
+- **`scriptMode: boolean`**: suppresses the diagnostic codes Monaco emits for "script body" code — top-level `return`/`await`/`export`, implicit any on injected globals, and unreachable-code warnings. Global side-effect on `typescriptDefaults`/`javascriptDefaults`; documented in the form-integration section of the Script Editor docs.
+- **`preamble: string`**: hidden + auto-locked prefix providing per-editor type context (e.g. `"declare const query: TodoQuery;"`). Rendered invisibly above the user script via `setHiddenAreas`, protected from cursor/paste/edit by an internal preamble guard, and stripped from the emitted `modelValue` so it never round-trips through persistence.
+
+### Docs
+
+- **New "Script Editor" component page**: full guide with 6 live demos (basic TS, extraLibs, JSON, read-only + minimap, constrained mode with authoring toggle, and a form-integration demo with `CoarFormField` + preamble + extraLibs). Covers worker setup for SPA and SSR (VitePress / Nuxt / Astro), `theme="auto"` signal priority, JSON-schema configuration via Monaco escape hatch, security notes on untrusted `extraLibs.content`, and the full API reference with events and exposed methods.
+- **Form-integration section** in the Script Editor page: explains `preamble` vs `extraLibs` with a decision table, documents the diagnostic codes `scriptMode` suppresses, and walks through the `variant="inline"` form-field look.
+
+### Fixed
+
+- **Overlay system — fixed-positioned descendants inside modals**: the `.coar-overlay-host` positioned itself via `transform: translate3d(...)`, which CSS spec-wise creates a containing block for every `position: fixed` descendant. Any component inside a dialog/menu/popover that relies on `position: fixed` for its own popups (Monaco's IntelliSense, floating tooltips, portal-style widgets) rendered at the overlay's offset instead of the viewport. Switched overlay positioning to plain `top`/`left` — stacking isolation is still provided by `position: fixed` + numeric `z-index`, and fixed descendants now resolve against the viewport as expected. Transparent to all existing Cocoar components.
+
+### Internal
+
+- **Playwright E2E infrastructure**: first end-to-end test suite in the repo, wired into `apps/playground`. Covers constrained-mode guards (`executeEdits` + keyboard flows), undo/redo granularity, paste-across-boundary, multi-cursor mixed-zone edits, authoring toggle, diagnostics filter, language switching, and editor-in-modal IntelliSense positioning. 54 unit tests + 31 E2E tests total for the new package.
+
+---
+
 ## 1.8.0
 
 ### Added

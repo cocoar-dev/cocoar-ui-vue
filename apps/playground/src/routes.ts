@@ -11,6 +11,18 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('./views/FlexDebugView.vue'),
   },
   {
+    path: '/script-editor',
+    component: () => import('./views/ScriptEditorView.vue'),
+  },
+  {
+    path: '/constrained-editor',
+    component: () => import('./views/ConstrainedEditorView.vue'),
+  },
+  {
+    path: '/editor-in-modal',
+    component: () => import('./views/ScriptEditorInModalView.vue'),
+  },
+  {
     path: '/todos',
     component: () => import('./views/TodoListView.vue'),
     meta: {

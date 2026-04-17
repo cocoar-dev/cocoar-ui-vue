@@ -68,14 +68,20 @@ function getA11yAttrs(): Record<string, string | undefined> {
       :style="{
         position: 'fixed',
         inset: 'unset',
-        top: '0px',
-        left: '0px',
+        // Position via `top`/`left` (not `transform: translate3d`). A `transform` value
+        // other than `none` makes the element a containing block for any `position: fixed`
+        // descendants (CSS spec), which breaks popup widgets inside overlays — Monaco's
+        // IntelliSense, tooltips anchored to body, etc. land relative to the overlay
+        // instead of the viewport. `top`/`left` positioning doesn't have that side effect.
+        // The compositor-acceleration benefit of translate3d is marginal for mount-time
+        // positioning, which is what overlays do.
+        left: `${instance.left}px`,
+        top: `${instance.top}px`,
         margin: '0',
         border: 'none',
         padding: '0',
         background: 'transparent',
         overflow: 'visible',
-        transform: `translate3d(${instance.left}px, ${instance.top}px, 0px)`,
         zIndex: `calc(var(--coar-z-overlay, 1000) + ${instance.id * 2})`,
         opacity: instance.presented ? '1' : '0',
         pointerEvents: instance.presented ? 'auto' : 'none',
