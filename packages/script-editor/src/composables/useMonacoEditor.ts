@@ -42,20 +42,39 @@ const LANGUAGE_EXTENSIONS: Record<CoarScriptEditorLanguage, string> = {
 const SCRIPT_MODE_DIAGNOSTIC_CODES: readonly number[] = [1375, 2695, 1108, 7027, 2304, 1208];
 
 /**
+ * Font settings mirrored from `CoarCodeBlock`'s `.coar-code` rule so code rendered in
+ * either component has the same typographic feel. Keep in sync with
+ * `packages/ui/src/components/code-block/CoarCodeBlock.vue` — if the design token
+ * `--coar-component-s-font-size` or the code font stack changes, update both places.
+ * Monaco does not read CSS vars from the host, so the values are passed as plain JS.
+ *
+ * Cascadia Code is bundled via `@cocoar/vue-ui/fonts`. Consumers that import the Cocoar
+ * font stylesheet get the ligature-enabled version automatically; otherwise Monaco falls
+ * back to Consolas / Monaco / Courier New.
+ */
+const COAR_EDITOR_FONT_FAMILY =
+  "'Cascadia Code', 'Consolas', 'Monaco', 'Courier New', monospace";
+const COAR_EDITOR_FONT_SIZE = 13;
+const COAR_EDITOR_LINE_HEIGHT = 1.5;
+const COAR_EDITOR_FONT_LIGATURES = true;
+
+/**
  * Per-variant Monaco option presets. Both presets set the same keys so switching between
  * them via `updateOptions` restores each option's intended value instead of leaving stale
  * state from the previous variant.
+ *
+ * `lineNumbers`, `lineNumbersMinChars`, and `lineDecorationsWidth` are intentionally NOT
+ * part of this preset — they're resolved together by `resolveLineNumbersOptions` so the
+ * `lineNumbers` prop (when set) can override the variant default without the preset
+ * clobbering it back.
  */
 const VARIANT_OPTIONS: Record<
   CoarScriptEditorVariant,
   monaco.editor.IEditorOptions & monaco.editor.IGlobalEditorOptions
 > = {
   editor: {
-    lineNumbers: 'on',
     glyphMargin: true,
     folding: true,
-    lineDecorationsWidth: 10,
-    lineNumbersMinChars: 3,
     renderLineHighlight: 'line',
     contextmenu: true,
     overviewRulerLanes: 3,
@@ -66,11 +85,8 @@ const VARIANT_OPTIONS: Record<
     wordWrap: 'off',
   },
   inline: {
-    lineNumbers: 'off',
     glyphMargin: false,
     folding: false,
-    lineDecorationsWidth: 0,
-    lineNumbersMinChars: 0,
     renderLineHighlight: 'none',
     contextmenu: false,
     overviewRulerLanes: 0,
@@ -82,6 +98,29 @@ const VARIANT_OPTIONS: Record<
   },
 };
 
+/**
+ * Resolve line-numbers state and the adjacent space so "line numbers off" does NOT glue
+ * the text to the left border. Monaco's `lineDecorationsWidth` reserves a pixel column
+ * for decorations (breakpoints, folding icons) — it stays visible even with no decorations
+ * present, so we repurpose it as the left-padding when line numbers are hidden. When line
+ * numbers are visible the column still renders, separating the gutter from the text.
+ *
+ * `props.lineNumbers === undefined` (the default) defers to the variant: line numbers on
+ * for `'editor'`, off for `'inline'`.
+ */
+function resolveLineNumbersOptions(
+  variant: CoarScriptEditorVariant,
+  lineNumbers: boolean | undefined,
+): Pick<
+  monaco.editor.IEditorOptions,
+  'lineNumbers' | 'lineNumbersMinChars' | 'lineDecorationsWidth'
+> {
+  const enabled = lineNumbers ?? variant === 'editor';
+  return enabled
+    ? { lineNumbers: 'on', lineNumbersMinChars: 3, lineDecorationsWidth: 10 }
+    : { lineNumbers: 'off', lineNumbersMinChars: 0, lineDecorationsWidth: 12 };
+}
+
 export interface UseMonacoEditorOptions {
   host: Ref<HTMLElement | null>;
   initialValue: () => string;
@@ -90,6 +129,12 @@ export interface UseMonacoEditorOptions {
   minimap: () => boolean;
   theme: () => CoarScriptEditorTheme;
   variant?: () => CoarScriptEditorVariant;
+  /**
+   * Explicitly toggle line numbers. When undefined, defers to the variant default
+   * (`'editor'` → on, `'inline'` → off). When line numbers are off, a small decoration
+   * column still renders as a visual left-margin so the text does not touch the border.
+   */
+  lineNumbers?: () => boolean | undefined;
   /**
    * Hidden + locked prefix prepended to the model content for per-editor type context.
    * `setHiddenAreas` hides it from view, and an internal guard rejects any edit whose
@@ -245,10 +290,14 @@ export function useMonacoEditor(options: UseMonacoEditorOptions): UseMonacoEdito
       minimap: { enabled: options.minimap() },
       automaticLayout: true,
       scrollBeyondLastLine: false,
-      fontSize: 13,
+      fontFamily: COAR_EDITOR_FONT_FAMILY,
+      fontSize: COAR_EDITOR_FONT_SIZE,
+      lineHeight: COAR_EDITOR_LINE_HEIGHT,
+      fontLigatures: COAR_EDITOR_FONT_LIGATURES,
       tabSize: 2,
       fixedOverflowWidgets: true,
       ...VARIANT_OPTIONS[resolveVariant()],
+      ...resolveLineNumbersOptions(resolveVariant(), options.lineNumbers?.()),
       ...(overflowHost ? { overflowWidgetsDomNode: overflowHost } : {}),
     });
     editorRef.value = editor;
@@ -382,7 +431,19 @@ export function useMonacoEditor(options: UseMonacoEditorOptions): UseMonacoEdito
   if (options.variant) {
     watch(
       () => resolveVariant(),
-      (variant) => editorRef.value?.updateOptions(VARIANT_OPTIONS[variant]),
+      (variant) =>
+        editorRef.value?.updateOptions({
+          ...VARIANT_OPTIONS[variant],
+          ...resolveLineNumbersOptions(variant, options.lineNumbers?.()),
+        }),
+    );
+  }
+
+  if (options.lineNumbers) {
+    watch(
+      () => options.lineNumbers!(),
+      (ln) =>
+        editorRef.value?.updateOptions(resolveLineNumbersOptions(resolveVariant(), ln)),
     );
   }
 

@@ -401,11 +401,14 @@ import {
   scanLockedLines,
   computeProtectedRanges,
   getEditableSegments,
+  getSlots,
+  getSlot,
   editIsProtected,
   snapOffsetAwayFromLocked,
   countLockedLines,
   isEverySegmentNonEmpty,
   validateSource,
+  SLOT_MARKER_PATTERN,
 } from '@cocoar/vue-script-editor';
 
 // Structural queries
@@ -416,6 +419,10 @@ const ranges = computeProtectedRanges(lines);   // merged blocks for overlap/sna
 
 // Segmentation
 const segments = getEditableSegments(source);   // stretches between locks
+
+// Named slots (per-region access by name; see the Named slots section)
+const allSlots = getSlots(source);              // { slotName: bodyContent }
+const fn2Body = getSlot(source, 'fn2');         // string | undefined
 
 // Submit-gating
 if (isEverySegmentNonEmpty(source)) {
@@ -448,6 +455,7 @@ interface LockedLine {
   protectedEnd: number;     // inclusive end (covers the `\n`)
   snapBefore: number | null; // cursor-snap target before, null for first line
   snapAfter: number | null;  // cursor-snap target after, null for last line
+  slotName?: string;        // name parsed from @slot:NAME on this locked line
 }
 
 interface ProtectedRange {
@@ -457,6 +465,168 @@ interface ProtectedRange {
   snapAfter: number | null;
 }
 ```
+
+### Named slots (`@slot:NAME`)
+
+Templates with multiple fillable regions — e.g. an event-handler script with three function bodies the user may or may not fill in — need a way to identify *which* body belongs to *which* function in the persisted source. Line-based locking alone tells you "this stretch is editable" but not "this is the body of `onLoad`".
+
+The `@slot:NAME` attribute solves it. Placed on a `// @locked` line, it **names the editable segment that follows** (up to the next locked line or EOF):
+
+```ts
+function fn1(input) { // @locked @slot:fn1
+} // @locked
+
+function fn2(input) { // @locked @slot:fn2
+} // @locked
+
+function fn3(input) { // @locked @slot:fn3
+  return input * 2;
+} // @locked
+```
+
+Because the marker sits on a **locked line**, the user cannot delete or move it — the slot anchor survives whatever edits the user makes to the bodies. Auto-Import inserts at the file top shift all slot markers down with the rest of the text; the scanner re-derives positions on each call.
+
+#### Reading slot content
+
+Two helpers, both pure functions over the source string:
+
+```ts
+import { getSlots, getSlot } from '@cocoar/vue-script-editor';
+
+// All slots as a dictionary, slot name → body content
+const slots = getSlots(code.value);
+// { fn1: '', fn2: '', fn3: '  return input * 2;' }
+
+// A single slot, or `undefined` if the template does not declare it
+const fn2Body = getSlot(code.value, 'fn2');
+// '' — declared but not filled in
+
+const missing = getSlot(code.value, 'fn4');
+// undefined — template does not have this slot
+```
+
+- **Empty string** (`''`) = slot exists but body is whitespace-only (user skipped it). Check with `content.trim().length === 0`.
+- **`undefined`** = slot not declared in the template. Lets callers distinguish "not part of the template" from "part of the template but empty".
+- **First-wins on duplicates** — if two locked lines declare the same slot name, the first one's segment is returned. `validateSource()` warns on duplicates during template authoring.
+- **Content trim rule**: leading and trailing blank lines are stripped; indentation of the remaining content is preserved, so multi-line bodies keep their shape.
+
+#### Submit-gating by slot
+
+```ts
+const slots = getSlots(code.value);
+const filled = Object.entries(slots)
+  .filter(([, body]) => body.trim().length > 0)
+  .map(([name]) => name);
+
+if (filled.length === 0) {
+  // Block save — user hasn't filled in anything.
+}
+```
+
+#### Symmetric parsing on the server
+
+The slot format is regex-matchable, so consumers running the saved script server-side (e.g. a C# Jint host) can extract the same info without shipping JS. The regex is exported as `SLOT_MARKER_PATTERN`:
+
+```ts
+import { SLOT_MARKER_PATTERN } from '@cocoar/vue-script-editor';
+// '\/\/\s*@locked\b[^\n]*?@slot:([A-Za-z_][A-Za-z0-9_-]*)'
+```
+
+Drop the helper below into your backend project as-is. It matches the JS implementation one-to-one: same regexes, same first-wins rule on duplicates, same CRLF normalization, same blank-line trimming:
+
+```csharp
+using System.Text.RegularExpressions;
+
+public static class ScriptSlots
+{
+    private static readonly Regex LockedMarker =
+        new(@"//\s*@locked\b", RegexOptions.Compiled);
+
+    private static readonly Regex SlotMarker =
+        new(@"//\s*@locked\b[^\n]*?@slot:([A-Za-z_][A-Za-z0-9_-]*)", RegexOptions.Compiled);
+
+    /// <summary>
+    /// All named slots in the source keyed by slot name.
+    /// Empty string = slot exists but body is whitespace-only.
+    /// First-wins on duplicates.
+    /// </summary>
+    public static Dictionary<string, string> GetSlots(string source)
+    {
+        // Normalize CRLF so Windows-saved sources parse identically.
+        var lines = source.Replace("\r\n", "\n").Split('\n');
+        var result = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        for (int i = 0; i < lines.Length; i++)
+        {
+            var match = SlotMarker.Match(lines[i]);
+            if (!match.Success) continue;
+
+            var name = match.Groups[1].Value;
+            if (result.ContainsKey(name)) continue; // first-wins
+
+            // Find the next locked line (or EOF).
+            int end = i + 1;
+            while (end < lines.Length && !LockedMarker.IsMatch(lines[end])) end++;
+
+            var bodyLines = lines.Skip(i + 1).Take(end - i - 1);
+            result[name] = TrimBlankLines(string.Join("\n", bodyLines));
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Content of a single slot. Returns null when no locked line declares that name.
+    /// Returns "" when the slot exists but its body is empty — callers distinguish
+    /// "not declared" from "declared but empty".
+    /// </summary>
+    public static string? GetSlot(string source, string name)
+        => GetSlots(source).TryGetValue(name, out var v) ? v : null;
+
+    private static string TrimBlankLines(string raw)
+    {
+        var lines = raw.Split('\n');
+        int start = 0, end = lines.Length;
+        while (start < end && string.IsNullOrWhiteSpace(lines[start])) start++;
+        while (end > start && string.IsNullOrWhiteSpace(lines[end - 1])) end--;
+        return string.Join("\n", lines.Skip(start).Take(end - start));
+    }
+}
+```
+
+With this helper, the Jint host can decide per-function whether to invoke it:
+
+```csharp
+var source = await dbContext.Scripts
+    .Where(s => s.Id == id)
+    .Select(s => s.SourceCode)
+    .FirstAsync();
+
+var slots = ScriptSlots.GetSlots(source);
+var engine = new Engine().Execute(source);
+
+foreach (var (name, body) in slots)
+{
+    if (!string.IsNullOrWhiteSpace(body))
+        engine.Invoke(name, input);
+}
+```
+
+Or pull a single handler directly:
+
+```csharp
+var onSave = ScriptSlots.GetSlot(source, "onSave");
+if (!string.IsNullOrWhiteSpace(onSave))
+    engine.Invoke("onSave", input);
+```
+
+The C# port mirrors the JS behaviour exactly, so you can reuse the 13 slot-related test cases from `LockedLineScanner.test.ts` as a parity check — same input strings must produce the same outputs.
+
+#### Slot name rules
+
+- Must match `[A-Za-z_][A-Za-z0-9_-]*` — starts with a letter or underscore, then letters / digits / underscores / hyphens.
+- Names that don't match (e.g. `@slot:1bad`) are ignored silently — the locked line still locks, but no slot is registered.
+- Must sit on a `// @locked` line. A lone `// @slot:X` on a free line is not recognised, because the user could delete it.
 
 ### Limitations (v1)
 
@@ -484,6 +654,7 @@ interface ProtectedRange {
 | `name`         | `string`                                | `''`           | Informational. Emitted as `data-name` (the editor is not a native form control).          |
 | `height`       | `string \| number`                      | `undefined`    | Explicit height — CSS string (`"160px"`, `"40%"`) or pixels as number.                    |
 | `variant`      | `'editor' \| 'inline'`                  | `'editor'`     | UI preset. `'editor'` = full IDE chrome. `'inline'` = compact form-field look.             |
+| `lineNumbers`  | `boolean`                               | `undefined`    | Explicit line-numbers toggle. Overrides the variant default. Off-state keeps a small left margin so text doesn't hit the border. |
 | `scriptMode`   | `boolean`                               | `false`        | Suppresses TS/JS diagnostics for "script body" code. Global side-effect — see Form Integration. |
 | `preamble`     | `string`                                | `''`           | Hidden + locked prefix providing per-editor type context. Does not round-trip through `modelValue`. |
 | `minimap`      | `boolean`                               | `false`        | Show the Monaco minimap gutter.                                                          |
@@ -573,3 +744,25 @@ The editor container surfaces these CSS custom properties:
 ```
 
 To register your own Monaco theme, call `monaco.editor.defineTheme('my-theme', {...})` anywhere in your app and pass it via the underlying editor instance (`editorRef.value?.getEditor().updateOptions({ theme: 'my-theme' })`).
+
+### Font
+
+The editor renders code in **Cascadia Code** (Microsoft's ligature-enabled coding font) with `Consolas`, `Monaco`, `Courier New` as fallback. Ligatures are enabled by default, so `!=`, `=>`, `===`, and `&&` render as combined glyphs. This matches `CoarCodeBlock` — both components share the same font stack.
+
+Cascadia Code is bundled via `@cocoar/vue-ui/fonts` (weights 400 / 600 / 700). If your app imports that stylesheet — the standard Cocoar setup — the font loads automatically:
+
+```ts
+import '@cocoar/vue-ui/fonts'
+import '@cocoar/vue-ui/styles'
+```
+
+If you don't import `@cocoar/vue-ui/fonts` (e.g. an app that only uses the script editor), Monaco falls back to Consolas/Monaco/Courier New. The editor keeps working; you just don't get the Cascadia Code glyphs or ligatures.
+
+To override the font — e.g. to a custom corporate monospace — use the `getEditor()` escape hatch:
+
+```ts
+editorRef.value?.getEditor()?.updateOptions({
+  fontFamily: "'JetBrains Mono', monospace",
+  fontLigatures: true,
+});
+```

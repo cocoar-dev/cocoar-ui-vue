@@ -232,6 +232,9 @@ importers:
       '@cocoar/vue-localization':
         specifier: workspace:*
         version: link:../localization
+      '@fontsource/cascadia-code':
+        specifier: ^5.2.3
+        version: 5.2.3
       '@fontsource/inter':
         specifier: ^5.2.8
         version: 5.2.8
@@ -754,6 +757,9 @@ packages:
 
   '@flypeng/tool@5.7.5':
     resolution: {integrity: sha512-3/TMouPSQiKcvV4sL/Jog20codkmEObYr0Pn4xJl6J+XEyb1rN/HqaQve2Kv5GhsbBC4s7YSlGcmOCC9CgH9aA==}
+
+  '@fontsource/cascadia-code@5.2.3':
+    resolution: {integrity: sha512-jnKfdZ+0UL25XUqYV7iq9gDlaUMWXxZNA7KnYzO4v8De6jBJmTkLHxDXs+1iZwl/8w7eKlDrTJWcyalOHdE2eg==}
 
   '@fontsource/inter@5.2.8':
     resolution: {integrity: sha512-P6r5WnJoKiNVV+zvW2xM13gNdFhAEpQ9dQJHt3naLvfg+LkF2ldgSLiF4T41lf1SQCM9QmkqPTn4TH568IRagg==}
@@ -3844,6 +3850,8 @@ snapshots:
       dayjs: 1.11.20
       html-to-image: 1.11.13
       lodash: 4.18.1
+
+  '@fontsource/cascadia-code@5.2.3': {}
 
   '@fontsource/inter@5.2.8': {}
 

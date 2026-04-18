@@ -63,6 +63,12 @@ export interface CoarScriptEditorProps {
    */
   variant?: CoarScriptEditorVariant;
   /**
+   * Explicitly toggle line numbers, overriding the variant default (`'editor'` → on,
+   * `'inline'` → off). Leave undefined to inherit from the variant. When off, a small
+   * decoration column keeps the text from touching the left border.
+   */
+  lineNumbers?: boolean;
+  /**
    * When true, suppresses diagnostic codes that flag "script body" constructs in TS/JS
    * (top-level return/await/export, implicit any, etc). **Global side-effect** — affects
    * all TS/JS editors on the page. No-op for JSON.
@@ -104,6 +110,7 @@ const props = withDefaults(defineProps<CoarScriptEditorProps>(), {
   name: '',
   height: undefined,
   variant: 'editor',
+  lineNumbers: undefined,
   scriptMode: false,
   preamble: '',
   minimap: false,
@@ -157,6 +164,7 @@ const { editor, model, setValue } = useMonacoEditor({
   minimap: () => props.minimap,
   theme: () => props.theme,
   variant: () => props.variant,
+  lineNumbers: () => props.lineNumbers,
   preamble: () => props.preamble,
   scriptMode: () => props.scriptMode,
   autofocus: () => props.autofocus,

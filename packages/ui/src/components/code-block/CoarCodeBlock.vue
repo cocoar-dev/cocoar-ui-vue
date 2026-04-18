@@ -288,7 +288,7 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
 }
 
 .coar-code-language {
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: 'Cascadia Code', 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: var(--coar-component-xs-font-size);
   font-weight: var(--coar-font-weight-medium);
   color: var(--coar-code-block-text-muted);
@@ -330,7 +330,7 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
 .coar-code-lines-grid {
   display: grid;
   gap: 0;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: 'Cascadia Code', 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: var(--coar-component-s-font-size);
   line-height: var(--coar-line-height-relaxed);
   color: var(--coar-code-block-text);
@@ -360,7 +360,7 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
 }
 
 .coar-code {
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: 'Cascadia Code', 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: var(--coar-component-s-font-size);
   line-height: var(--coar-line-height-relaxed);
   color: var(--coar-code-block-text);

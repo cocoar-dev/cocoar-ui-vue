@@ -169,9 +169,12 @@ For server-side validation, submit-gating, or tests:
 import {
   hasLockedMarkers,
   getEditableSegments,
+  getSlots,
+  getSlot,
   isEverySegmentNonEmpty,
   validateSource,
   countLockedLines,
+  SLOT_MARKER_PATTERN,
 } from '@cocoar/vue-script-editor';
 
 if (isEverySegmentNonEmpty(code)) submit(code);
@@ -179,6 +182,24 @@ if (isEverySegmentNonEmpty(code)) submit(code);
 const v = validateSource(code);
 // v.ok, v.lockedLineCount, v.segmentCount, v.warnings: string[]
 ```
+
+### Named slots
+
+Mark an editable region with `@slot:NAME` on a `// @locked` line to name it. `getSlots(source)` returns a `{ slotName: bodyContent }` dictionary; `getSlot(source, name)` returns a single body (or `undefined` if the slot is not declared). The slot marker sits on a locked line so the user cannot delete it.
+
+```ts
+const template = `function fn1(x) { // @locked @slot:fn1
+  return x + 1;
+} // @locked
+
+function fn2(x) { // @locked @slot:fn2
+} // @locked`;
+
+const slots = getSlots(template);
+// { fn1: '  return x + 1;', fn2: '' }
+```
+
+Empty string = slot exists but body is whitespace-only. Server-side parsers (e.g. a C# Jint host) can mirror the same regex via `SLOT_MARKER_PATTERN`. See the [full docs](https://docs.cocoar.dev/cocoar-ui-vue/components/script-editor) for the C# port.
 
 See the full docs page for the deeper helpers (`scanLockedLines`, `computeProtectedRanges`,
 `editIsProtected`, `snapOffsetAwayFromLocked`).
@@ -200,6 +221,7 @@ See the full docs page for the deeper helpers (`scanLockedLines`, `computeProtec
 | `name`         | `string`                                  | `''`           | Informational `data-name` (the editor is not a native form control).        |
 | `height`       | `string \| number`                        | `undefined`    | CSS string (`"160px"`, `"40vh"`) or pixels as number.                       |
 | `variant`      | `'editor' \| 'inline'`                    | `'editor'`     | UI preset: full chrome vs compact form-field look.                         |
+| `lineNumbers`  | `boolean`                                 | `undefined`    | Explicit toggle for the line-number gutter. Overrides the variant default.  |
 | `scriptMode`   | `boolean`                                 | `false`        | Suppress TS/JS diagnostics for script-body code. **Global side-effect**.    |
 | `preamble`     | `string`                                  | `''`           | Hidden + locked per-editor type context (not in `modelValue`).              |
 | `minimap`      | `boolean`                                 | `false`        | Show the Monaco minimap gutter.                                            |

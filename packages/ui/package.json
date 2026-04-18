@@ -51,6 +51,7 @@
   },
   "dependencies": {
     "@cocoar/vue-localization": "workspace:*",
+    "@fontsource/cascadia-code": "^5.2.3",
     "@fontsource/inter": "^5.2.8",
     "@fontsource/poppins": "^5.2.7",
     "@js-temporal/polyfill": "^0.5.1",
