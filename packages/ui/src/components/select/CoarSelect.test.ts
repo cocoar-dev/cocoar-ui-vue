@@ -1,10 +1,40 @@
-import { describe, it, expect } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { mount, type VueWrapper } from '@vue/test-utils';
+import { defineComponent, h, reactive } from 'vue';
 import CoarSelect from './CoarSelect.vue';
-import type { CoarSelectOption } from './types';
+import type { CoarSelectOption, CoarSelectSortGroups, CoarSelectSortOptions } from './types';
+import { CoarOverlayPlugin, _resetOverlayServiceForTests } from '../overlay/useOverlay';
+import CoarOverlayHost from '../overlay/CoarOverlayHost.vue';
 
-// Stub Teleport so dropdown renders inline in tests
-const globalStubs = { global: { stubs: { Teleport: true } } };
+/**
+ * Each test mounts a thin wrapper that nests `CoarSelect` beside a `CoarOverlayHost`,
+ * so the service-mounted dropdown actually renders into the DOM. `Teleport` is stubbed
+ * so the host's outlet renders inline (query-able via the wrapper) instead of body.
+ * State is held in a `reactive` object so tests can read the current model value back
+ * without plumbing `setProps` through the wrapper.
+ */
+function mountSelect(initial: Record<string, unknown> = {}): { wrapper: VueWrapper; state: Record<string, unknown> } {
+  const state = reactive({ ...initial }) as Record<string, unknown>;
+  const Wrapper = defineComponent({
+    setup() {
+      return () => h('div', null, [
+        h(CoarSelect, {
+          ...state,
+          'onUpdate:modelValue': (v: unknown) => { state.modelValue = v; },
+        }),
+        h(CoarOverlayHost),
+      ]);
+    },
+  });
+  const wrapper = mount(Wrapper, {
+    global: {
+      plugins: [CoarOverlayPlugin],
+      stubs: { Teleport: true },
+    },
+    attachTo: document.body,
+  });
+  return { wrapper, state };
+}
 
 const baseOptions: CoarSelectOption[] = [
   { value: 'a', label: 'Apple' },
@@ -14,80 +44,89 @@ const baseOptions: CoarSelectOption[] = [
 ];
 
 describe('CoarSelect', () => {
+  beforeEach(() => {
+    _resetOverlayServiceForTests();
+  });
+
+  afterEach(() => {
+    _resetOverlayServiceForTests();
+    document.body.innerHTML = '';
+  });
+
   it('renders with placeholder when no value', () => {
-    const w = mount(CoarSelect, { ...globalStubs, props: { options: baseOptions } });
+    const { wrapper: w } = mountSelect({ options: baseOptions });
     expect(w.text()).toContain('Select an option...');
   });
 
   it('shows selected option label', () => {
-    const w = mount(CoarSelect, { ...globalStubs, props: { modelValue: 'b', options: baseOptions } });
+    const { wrapper: w } = mountSelect({ modelValue: 'b', options: baseOptions });
     expect(w.find('.coar-select-value').text()).toBe('Banana');
   });
 
   it('opens dropdown on click', async () => {
-    const w = mount(CoarSelect, { ...globalStubs, props: { options: baseOptions } });
+    const { wrapper: w } = mountSelect({ options: baseOptions });
     await w.find('.coar-select-trigger').trigger('click');
     expect(w.find('.coar-select-dropdown').exists()).toBe(true);
     expect(w.findAll('.coar-select-option')).toHaveLength(4);
   });
 
   it('selects option on click', async () => {
-    const w = mount(CoarSelect, { ...globalStubs, props: { modelValue: null, 'onUpdate:modelValue': (v: unknown) => w.setProps({ modelValue: v }), options: baseOptions } });
+    const { wrapper: w, state } = mountSelect({ modelValue: null, options: baseOptions });
     await w.find('.coar-select-trigger').trigger('click');
     await w.findAll('.coar-select-option')[1].trigger('click');
-    expect(w.props('modelValue')).toBe('b');
+    expect(state.modelValue).toBe('b');
   });
 
   it('does not select disabled option', async () => {
-    const w = mount(CoarSelect, { ...globalStubs, props: { modelValue: null, 'onUpdate:modelValue': (v: unknown) => w.setProps({ modelValue: v }), options: baseOptions } });
+    const { wrapper: w, state } = mountSelect({ modelValue: null, options: baseOptions });
     await w.find('.coar-select-trigger').trigger('click');
     await w.findAll('.coar-select-option')[3].trigger('click');
-    expect(w.props('modelValue')).toBeNull();
+    expect(state.modelValue).toBeNull();
   });
 
   it('closes dropdown after selection', async () => {
-    const w = mount(CoarSelect, { ...globalStubs, props: { modelValue: null, 'onUpdate:modelValue': (v: unknown) => w.setProps({ modelValue: v }), options: baseOptions } });
+    const { wrapper: w } = mountSelect({ modelValue: null, options: baseOptions });
     await w.find('.coar-select-trigger').trigger('click');
     await w.findAll('.coar-select-option')[0].trigger('click');
     expect(w.find('.coar-select-dropdown').exists()).toBe(false);
   });
 
   it('does not open when disabled', async () => {
-    const w = mount(CoarSelect, { ...globalStubs, props: { disabled: true, options: baseOptions } });
+    const { wrapper: w } = mountSelect({ disabled: true, options: baseOptions });
     await w.find('.coar-select-trigger').trigger('click');
     expect(w.find('.coar-select-dropdown').exists()).toBe(false);
   });
 
   it('does not open when readonly', async () => {
-    const w = mount(CoarSelect, { ...globalStubs, props: { readonly: true, options: baseOptions } });
+    const { wrapper: w } = mountSelect({ readonly: true, options: baseOptions });
     await w.find('.coar-select-trigger').trigger('click');
     expect(w.find('.coar-select-dropdown').exists()).toBe(false);
   });
 
   it('applies size class', () => {
-    const w = mount(CoarSelect, { ...globalStubs, props: { size: 'l', options: baseOptions } });
+    const { wrapper: w } = mountSelect({ size: 'l', options: baseOptions });
     expect(w.find('.coar-select--l').exists()).toBe(true);
   });
 
   it('applies inline appearance', () => {
-    const w = mount(CoarSelect, { ...globalStubs, props: { appearance: 'inline', options: baseOptions } });
+    const { wrapper: w } = mountSelect({ appearance: 'inline', options: baseOptions });
     expect(w.find('.coar-select--inline').exists()).toBe(true);
   });
 
   it('shows clear button when clearable and has value', async () => {
-    const w = mount(CoarSelect, { ...globalStubs, props: { modelValue: 'a', clearable: true, 'onUpdate:modelValue': (v: unknown) => w.setProps({ modelValue: v }), options: baseOptions } });
+    const { wrapper: w, state } = mountSelect({ modelValue: 'a', clearable: true, options: baseOptions });
     expect(w.find('.coar-select-clear').exists()).toBe(true);
     await w.find('.coar-select-clear').trigger('click');
-    expect(w.props('modelValue')).toBeNull();
+    expect(state.modelValue).toBeNull();
   });
 
   it('does not show clear button when no value', () => {
-    const w = mount(CoarSelect, { ...globalStubs, props: { clearable: true, options: baseOptions } });
+    const { wrapper: w } = mountSelect({ clearable: true, options: baseOptions });
     expect(w.find('.coar-select-clear').exists()).toBe(false);
   });
 
   it('filters options when searchable', async () => {
-    const w = mount(CoarSelect, { ...globalStubs, props: { searchable: true, options: baseOptions } });
+    const { wrapper: w } = mountSelect({ searchable: true, options: baseOptions });
     await w.find('.coar-select-trigger').trigger('click');
     expect(w.find('.coar-select-inline-search').exists()).toBe(true);
     await w.find('.coar-select-inline-search').setValue('ban');
@@ -99,17 +138,17 @@ describe('CoarSelect', () => {
   });
 
   it('navigates with keyboard ArrowDown/Enter', async () => {
-    const w = mount(CoarSelect, { ...globalStubs, props: { modelValue: null, 'onUpdate:modelValue': (v: unknown) => w.setProps({ modelValue: v }), options: baseOptions } });
+    const { wrapper: w, state } = mountSelect({ modelValue: null, options: baseOptions });
     const trigger = w.find('.coar-select-trigger');
     await trigger.trigger('keydown', { key: 'ArrowDown' });
     expect(w.find('.coar-select-dropdown').exists()).toBe(true);
     await trigger.trigger('keydown', { key: 'ArrowDown' });
     await trigger.trigger('keydown', { key: 'Enter' });
-    expect(w.props('modelValue')).toBe('b');
+    expect(state.modelValue).toBe('b');
   });
 
   it('closes with Escape', async () => {
-    const w = mount(CoarSelect, { ...globalStubs, props: { options: baseOptions } });
+    const { wrapper: w } = mountSelect({ options: baseOptions });
     await w.find('.coar-select-trigger').trigger('click');
     expect(w.find('.coar-select-dropdown').exists()).toBe(true);
     await w.find('.coar-select-trigger').trigger('keydown', { key: 'Escape' });
@@ -121,32 +160,29 @@ describe('CoarSelect', () => {
       { value: { id: 1 }, label: 'One' },
       { value: { id: 2 }, label: 'Two' },
     ];
-    const w = mount(CoarSelect, {
-      ...globalStubs,
-      props: {
-        modelValue: { id: 2 },
-        options: opts,
-        compareWith: (a: unknown, b: unknown) => (a as { id: number }).id === (b as { id: number }).id,
-      },
+    const { wrapper: w } = mountSelect({
+      modelValue: { id: 2 },
+      options: opts,
+      compareWith: (a: unknown, b: unknown) => (a as { id: number }).id === (b as { id: number }).id,
     });
     expect(w.find('.coar-select-value').text()).toBe('Two');
   });
 
   it('marks selected option with checkmark', async () => {
-    const w = mount(CoarSelect, { ...globalStubs, props: { modelValue: 'a', options: baseOptions } });
+    const { wrapper: w } = mountSelect({ modelValue: 'a', options: baseOptions });
     await w.find('.coar-select-trigger').trigger('click');
     expect(w.findAll('.coar-select-option')[0].find('.coar-select-option-check').exists()).toBe(true);
     expect(w.findAll('.coar-select-option')[1].find('.coar-select-option-check').exists()).toBe(false);
   });
 
   it('shows empty state', async () => {
-    const w = mount(CoarSelect, { ...globalStubs, props: { options: [] } });
+    const { wrapper: w } = mountSelect({ options: [] });
     await w.find('.coar-select-trigger').trigger('click');
     expect(w.find('.coar-select-empty').text()).toBe('No options available');
   });
 
   it('has correct ARIA attributes', () => {
-    const w = mount(CoarSelect, { ...globalStubs, props: { error: true, options: baseOptions } });
+    const { wrapper: w } = mountSelect({ error: true, options: baseOptions });
     const trigger = w.find('.coar-select-trigger');
     expect(trigger.attributes('role')).toBe('combobox');
     expect(trigger.attributes('aria-haspopup')).toBe('listbox');
@@ -161,7 +197,7 @@ describe('CoarSelect', () => {
         { value: 'a', label: 'Apple' },
         { value: 'b', label: 'Banana' },
       ];
-      const w = mount(CoarSelect, { ...globalStubs, props: { options: opts, sortOptions: 'asc' } });
+      const { wrapper: w } = mountSelect({ options: opts, sortOptions: 'asc' as CoarSelectSortOptions });
       await w.find('.coar-select-trigger').trigger('click');
       const labels = w.findAll('.coar-select-option-label').map((el) => el.text());
       expect(labels).toEqual(['Apple', 'Banana', 'Cherry']);
@@ -173,7 +209,7 @@ describe('CoarSelect', () => {
         { value: 'b', label: 'Banana' },
         { value: 'c', label: 'Cherry' },
       ];
-      const w = mount(CoarSelect, { ...globalStubs, props: { options: opts, sortOptions: 'desc' } });
+      const { wrapper: w } = mountSelect({ options: opts, sortOptions: 'desc' as CoarSelectSortOptions });
       await w.find('.coar-select-trigger').trigger('click');
       const labels = w.findAll('.coar-select-option-label').map((el) => el.text());
       expect(labels).toEqual(['Cherry', 'Banana', 'Apple']);
@@ -185,7 +221,7 @@ describe('CoarSelect', () => {
         { value: 'a', label: 'Apple' },
         { value: 'b', label: 'Banana' },
       ];
-      const w = mount(CoarSelect, { ...globalStubs, props: { options: opts } });
+      const { wrapper: w } = mountSelect({ options: opts });
       await w.find('.coar-select-trigger').trigger('click');
       const labels = w.findAll('.coar-select-option-label').map((el) => el.text());
       expect(labels).toEqual(['Cherry', 'Apple', 'Banana']);
@@ -197,10 +233,10 @@ describe('CoarSelect', () => {
         { value: 'c', label: 'Cherry' },
         { value: 'a', label: 'Apple' },
       ];
-      // Sort by value string
-      const w = mount(CoarSelect, {
-        ...globalStubs,
-        props: { options: opts, sortOptions: (a: CoarSelectOption, b: CoarSelectOption) => String(a.value).localeCompare(String(b.value)) },
+      const { wrapper: w } = mountSelect({
+        options: opts,
+        sortOptions: ((a: CoarSelectOption, b: CoarSelectOption) =>
+          String(a.value).localeCompare(String(b.value))) as CoarSelectSortOptions,
       });
       await w.find('.coar-select-trigger').trigger('click');
       const labels = w.findAll('.coar-select-option-label').map((el) => el.text());
@@ -218,29 +254,28 @@ describe('CoarSelect', () => {
     ];
 
     it('sorts groups ascending by default', async () => {
-      const w = mount(CoarSelect, { ...globalStubs, props: { options: groupedOptions } });
+      const { wrapper: w } = mountSelect({ options: groupedOptions });
       await w.find('.coar-select-trigger').trigger('click');
       const headers = w.findAll('.coar-select-group-header').map((el) => el.text());
       expect(headers).toEqual(['Fruits', 'Vegetables']);
     });
 
     it('sorts groups descending when sortGroups is desc', async () => {
-      const w = mount(CoarSelect, { ...globalStubs, props: { options: groupedOptions, sortGroups: 'desc' } });
+      const { wrapper: w } = mountSelect({ options: groupedOptions, sortGroups: 'desc' as CoarSelectSortGroups });
       await w.find('.coar-select-trigger').trigger('click');
       const headers = w.findAll('.coar-select-group-header').map((el) => el.text());
       expect(headers).toEqual(['Vegetables', 'Fruits']);
     });
 
     it('preserves group input order when sortGroups is none', async () => {
-      const w = mount(CoarSelect, { ...globalStubs, props: { options: groupedOptions, sortGroups: 'none' } });
+      const { wrapper: w } = mountSelect({ options: groupedOptions, sortGroups: 'none' as CoarSelectSortGroups });
       await w.find('.coar-select-trigger').trigger('click');
       const headers = w.findAll('.coar-select-group-header').map((el) => el.text());
-      // First group encountered is Vegetables, then Fruits
       expect(headers).toEqual(['Vegetables', 'Fruits']);
     });
 
     it('ungrouped options always appear first', async () => {
-      const w = mount(CoarSelect, { ...globalStubs, props: { options: groupedOptions } });
+      const { wrapper: w } = mountSelect({ options: groupedOptions });
       await w.find('.coar-select-trigger').trigger('click');
       const labels = w.findAll('.coar-select-option-label').map((el) => el.text());
       expect(labels[0]).toBe('Milk');
@@ -253,10 +288,9 @@ describe('CoarSelect', () => {
         { value: 3, label: 'Broccoli', group: 'Vegetables' },
         { value: 4, label: 'Artichoke', group: 'Vegetables' },
       ];
-      const w = mount(CoarSelect, { ...globalStubs, props: { options: opts, sortOptions: 'asc' } });
+      const { wrapper: w } = mountSelect({ options: opts, sortOptions: 'asc' as CoarSelectSortOptions });
       await w.find('.coar-select-trigger').trigger('click');
       const labels = w.findAll('.coar-select-option-label').map((el) => el.text());
-      // Fruits group (asc): Apple, Banana; Vegetables group (asc): Artichoke, Broccoli
       expect(labels).toEqual(['Apple', 'Banana', 'Artichoke', 'Broccoli']);
     });
 
@@ -265,10 +299,9 @@ describe('CoarSelect', () => {
         { value: 1, label: 'A', group: 'Zzz' },
         { value: 2, label: 'B', group: 'Aaa' },
       ];
-      // Reverse alphabetical
-      const w = mount(CoarSelect, {
-        ...globalStubs,
-        props: { options: opts, sortGroups: (a: string, b: string) => b.localeCompare(a) },
+      const { wrapper: w } = mountSelect({
+        options: opts,
+        sortGroups: ((a: string, b: string) => b.localeCompare(a)) as CoarSelectSortGroups,
       });
       await w.find('.coar-select-trigger').trigger('click');
       const headers = w.findAll('.coar-select-group-header').map((el) => el.text());

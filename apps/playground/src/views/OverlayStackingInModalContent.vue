@@ -16,6 +16,12 @@ import {
   CoarMenuItem,
   CoarContextMenu,
   CoarSubFlyout,
+  CoarSelect,
+  CoarMultiSelect,
+  CoarTagSelect,
+  CoarSidebar,
+  CoarSidebarGroup,
+  CoarSidebarItem,
   useContextMenu,
   vTooltip,
 } from '@cocoar/vue-ui';
@@ -23,6 +29,17 @@ import {
 const contextMenu = useContextMenu();
 const lastPopoverAction = ref<string>('—');
 const lastMenuAction = ref<string>('—');
+
+const selectOptions = [
+  { value: 'a', label: 'Apple' },
+  { value: 'b', label: 'Banana' },
+  { value: 'c', label: 'Cherry' },
+  { value: 'd', label: 'Date' },
+  { value: 'e', label: 'Elderberry' },
+];
+const singleValue = ref<string | null>(null);
+const multiValue = ref<string[]>([]);
+const tagValue = ref<string[]>([]);
 </script>
 
 <template>
@@ -130,6 +147,79 @@ const lastMenuAction = ref<string>('—');
       </CoarPopover>
     </section>
 
+    <section>
+      <h3>7. Selects (single / multi / tag) inside dialog</h3>
+      <p>
+        Each select teleports its dropdown via the overlay-service. The dropdown must
+        stack above the dialog, match the trigger width, and clicking outside (on the
+        dialog body) must close only the dropdown — not the dialog.
+      </p>
+      <div class="select-grid">
+        <label>
+          <span class="select-label">Single</span>
+          <CoarSelect v-model="singleValue" :options="selectOptions" placeholder="Pick a fruit" />
+        </label>
+        <label>
+          <span class="select-label">Multi (show select all)</span>
+          <CoarMultiSelect
+            v-model="multiValue"
+            :options="selectOptions"
+            show-select-all
+            clearable
+            placeholder="Pick fruits"
+          />
+        </label>
+        <label>
+          <span class="select-label">Tag (allowCreate)</span>
+          <CoarTagSelect
+            v-model="tagValue"
+            :options="selectOptions"
+            allow-create
+            placeholder="Type to tag"
+          />
+        </label>
+      </div>
+      <p style="margin-top: 8px; font-size: 12px; color: #666;">
+        Single: <strong>{{ singleValue ?? '—' }}</strong> |
+        Multi: <strong>{{ multiValue.join(', ') || '—' }}</strong> |
+        Tags: <strong>{{ tagValue.join(', ') || '—' }}</strong>
+      </p>
+    </section>
+
+    <section>
+      <h3>8. Sidebar flyout groups inside dialog</h3>
+      <p>
+        Collapsed sidebar with <code>mode="flyout"</code> groups. The flyout panels are
+        rendered by the overlay-service — they must stack above the dialog, and clicking
+        an item must close only the flyout (not the dialog). Nested flyouts (group inside
+        flyout) should cascade — hovering the child keeps the parent open.
+      </p>
+      <div class="sidebar-demo">
+        <CoarSidebar collapsed :aria-label="'Sidebar demo'" borderless>
+          <CoarSidebarItem label="Home" icon="square-dashed" @click="lastMenuAction = 'SB Home'" />
+          <CoarSidebarItem label="Inbox" icon="square-dashed" @click="lastMenuAction = 'SB Inbox'" />
+          <CoarSidebarGroup label="Files" icon="square-dashed" mode="flyout">
+            <CoarSidebarItem label="Recent" icon="square-dashed" @click="lastMenuAction = 'SB Recent'" />
+            <CoarSidebarItem label="Starred" icon="square-dashed" @click="lastMenuAction = 'SB Starred'" />
+            <CoarSidebarGroup label="Archive" icon="square-dashed" mode="flyout">
+              <CoarSidebarItem label="2024" icon="square-dashed" @click="lastMenuAction = 'SB 2024'" />
+              <CoarSidebarItem label="2023" icon="square-dashed" @click="lastMenuAction = 'SB 2023'" />
+            </CoarSidebarGroup>
+          </CoarSidebarGroup>
+          <CoarSidebarGroup label="Settings" icon="square-dashed" mode="flyout" open-on-hover>
+            <CoarSidebarItem label="Profile" icon="square-dashed" @click="lastMenuAction = 'SB Profile'" />
+            <CoarSidebarItem label="Preferences" icon="square-dashed" @click="lastMenuAction = 'SB Preferences'" />
+          </CoarSidebarGroup>
+          <CoarSidebarItem label="Trash" icon="square-dashed" @click="lastMenuAction = 'SB Trash'" />
+        </CoarSidebar>
+        <div class="sidebar-demo__hint">
+          Click the "Files" or "Settings" icons on the left ("Settings" opens on hover).
+          The flyout panel must render above the dialog backdrop. Nested flyout (Files →
+          Archive) exercises the parent-child cascade.
+        </div>
+      </div>
+    </section>
+
     <CoarContextMenu :menu="contextMenu">
       <CoarMenuItem @click="lastMenuAction = 'Ctx Copy'">Copy</CoarMenuItem>
       <CoarMenuItem @click="lastMenuAction = 'Ctx Paste'">Paste</CoarMenuItem>
@@ -162,5 +252,51 @@ section p {
   margin: 0 0 12px;
   font-size: 13px;
   color: #444;
+}
+
+.select-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.select-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: #444;
+}
+
+.select-label {
+  font-weight: 600;
+}
+
+.sidebar-demo {
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+  min-height: 260px;
+  border: 1px solid var(--coar-border-neutral-tertiary, #e5e7eb);
+  border-radius: 6px;
+  padding: 12px;
+  background: var(--coar-background-neutral-primary, #fff);
+}
+
+.sidebar-demo > :deep(.coar-sidebar) {
+  /* Give the sidebar a consistent vertical footprint so the demo reads as a real sidebar
+     column rather than a row of three icons. */
+  align-self: stretch;
+  border: 1px solid var(--coar-border-neutral-tertiary, #e5e7eb);
+  border-radius: 4px;
+  background: var(--coar-background-neutral-secondary, #f7f7f7);
+}
+
+.sidebar-demo__hint {
+  flex: 1;
+  font-size: 12px;
+  color: #555;
+  line-height: 1.4;
+  padding-top: 8px;
 }
 </style>

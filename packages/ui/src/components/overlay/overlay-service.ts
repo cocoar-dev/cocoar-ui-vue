@@ -72,8 +72,13 @@ export interface OverlayOpenOptions {
   content: OverlayContent;
   /** Props/inputs to pass to the content component */
   inputs?: Record<string, unknown>;
-  /** Parent overlay (for child/submenu overlays) */
-  parent?: OverlayRef;
+  /**
+   * Parent overlay (for child/submenu overlays). Accepts either the `OverlayRef`
+   * returned from a previous `open()` call or the `OverlayInstance` provided under
+   * `OVERLAY_PARENT_KEY` by `CoarOverlayOutlet` — the latter is what
+   * `useOverlayParent()` returns, so descendants can pass it straight through.
+   */
+  parent?: OverlayRef | OverlayInstance;
 }
 
 /**
@@ -128,7 +133,7 @@ export function createOverlayService() {
 
     // Parent-child linking
     if (options.parent) {
-      const parentInstance = findInstanceByRef(options.parent);
+      const parentInstance = findInstanceByRefOrInstance(options.parent);
       if (parentInstance) {
         instance.parent = parentInstance;
         parentInstance.children.add(instance);
@@ -424,8 +429,11 @@ export function createOverlayService() {
     if (hostEl?.contains(target)) return true;
     // Check anchor
     if (instance.anchorEl?.contains(target)) return true;
-    // Check teleported companion dropdowns (e.g. CoarSelect dropdown opened from inside this overlay).
-    // The target might be inside a body-teleported dropdown whose trigger lives inside our panel.
+    // Legacy companion-dropdown hook: a body-teleported element can opt into being
+    // treated as part of `triggerEl`'s overlay by setting `data-coar-overlay-companion`
+    // to the trigger's id. Previously used by `CoarSelect`/`CoarMultiSelect`/
+    // `CoarTagSelect` before they were migrated to the overlay-service; kept in place
+    // for any third-party / legacy caller still relying on the pattern.
     if (target instanceof Element) {
       const dropdown = target.closest('[data-coar-overlay-companion]');
       if (dropdown) {
@@ -503,8 +511,19 @@ export function createOverlayService() {
     globalListenersInstalled = false;
   }
 
-  function findInstanceByRef(ref: OverlayRef): OverlayInstance | undefined {
-    const id = (ref as OverlayRefWithId).__instanceId;
+  /**
+   * Resolve the internal instance behind either shape we accept for `parent`:
+   * an `OverlayRef` (which carries `__instanceId` attached in `createOverlayRef`) or
+   * an `OverlayInstance` directly (whose `id` is the authoritative key). `useOverlayParent()`
+   * returns an instance, so descendants that forward it must resolve via this path.
+   */
+  function findInstanceByRefOrInstance(
+    ref: OverlayRef | OverlayInstance,
+  ): OverlayInstance | undefined {
+    const maybeRefId = (ref as Partial<OverlayRefWithId>).__instanceId;
+    const maybeInstanceId = (ref as Partial<OverlayInstance>).id;
+    const id = maybeRefId ?? maybeInstanceId;
+    if (typeof id !== 'number') return undefined;
     return instances.value.find((i) => i.id === id);
   }
 

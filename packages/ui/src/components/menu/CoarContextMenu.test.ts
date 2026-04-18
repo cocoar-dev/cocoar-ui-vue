@@ -1,10 +1,12 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { ref, readonly, defineComponent, h } from 'vue';
 import CoarContextMenu from './CoarContextMenu.vue';
 import CoarMenuItem from './CoarMenuItem.vue';
 import CoarSubFlyout from './CoarSubFlyout.vue';
 import type { ContextMenuContext } from './useContextMenu';
+import { CoarOverlayPlugin, _resetOverlayServiceForTests } from '../overlay/useOverlay';
+import CoarOverlayHost from '../overlay/CoarOverlayHost.vue';
 
 function createMenuContext(): ContextMenuContext {
   const isOpen = ref(false);
@@ -17,28 +19,48 @@ function createMenuContext(): ContextMenuContext {
   };
 }
 
-const globalStubs = { global: { stubs: { Teleport: true } } };
+/**
+ * Stub `Teleport` so the service-mounted submenu panel renders inline (query-able
+ * via the wrapper), and mount a `CoarOverlayHost` as a sibling so `overlay.open()`
+ * actually results in a rendered panel. Plugin provides the service singleton.
+ */
+const mountOpts = {
+  global: {
+    plugins: [CoarOverlayPlugin],
+    stubs: { Teleport: true },
+  },
+};
 
 describe('CoarContextMenu', () => {
+  beforeEach(() => {
+    _resetOverlayServiceForTests();
+  });
+
+  afterEach(() => {
+    _resetOverlayServiceForTests();
+  });
+
   it('closes the entire menu chain when a CoarMenuItem inside a CoarSubFlyout is clicked', async () => {
     const menu = createMenuContext();
-    menu.open({ clientX: 100, clientY: 100 });
+    menu.open();
 
-    // Create a wrapper component that nests MenuItem inside SubFlyout inside ContextMenu
     const Wrapper = defineComponent({
       setup() {
         return () =>
-          h(CoarContextMenu, { menu }, {
-            default: () => [
-              h(CoarSubFlyout, { label: 'Status' }, {
-                default: () => h(CoarMenuItem, { label: 'In Bearbeitung' }),
-              }),
-            ],
-          });
+          h('div', null, [
+            h(CoarContextMenu, { menu }, {
+              default: () => [
+                h(CoarSubFlyout, { label: 'Status' }, {
+                  default: () => h(CoarMenuItem, { label: 'In Bearbeitung' }),
+                }),
+              ],
+            }),
+            h(CoarOverlayHost),
+          ]);
       },
     });
 
-    const w = mount(Wrapper, globalStubs);
+    const w = mount(Wrapper, mountOpts);
 
     // Open the submenu by clicking the sub-flyout trigger
     const submenuTrigger = w.find('.coar-submenu-item');
@@ -62,18 +84,21 @@ describe('CoarContextMenu', () => {
 
   it('closes the context menu when a direct CoarMenuItem is clicked', async () => {
     const menu = createMenuContext();
-    menu.open({ clientX: 100, clientY: 100 });
+    menu.open();
 
     const Wrapper = defineComponent({
       setup() {
         return () =>
-          h(CoarContextMenu, { menu }, {
-            default: () => h(CoarMenuItem, { label: 'Delete' }),
-          });
+          h('div', null, [
+            h(CoarContextMenu, { menu }, {
+              default: () => h(CoarMenuItem, { label: 'Delete' }),
+            }),
+            h(CoarOverlayHost),
+          ]);
       },
     });
 
-    const w = mount(Wrapper, globalStubs);
+    const w = mount(Wrapper, mountOpts);
 
     const menuItem = w.find('.coar-menu-item');
     await menuItem.trigger('click');

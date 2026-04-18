@@ -1,113 +1,88 @@
 <script setup lang="ts">
-import { ref, watch, nextTick, onBeforeUnmount, useTemplateRef } from 'vue';
+/**
+ * Right-click / programmatic context-menu trigger. Watches the controller returned from
+ * `useContextMenu()` and opens an overlay via the overlay-service each time `isOpen`
+ * flips true. The menu is anchored at the recorded cursor position.
+ *
+ * The component itself is renderless — all visual markup lives in `CoarContextMenuPanel`,
+ * which the service mounts under `CoarOverlayOutlet`. This gives us z-index stacking,
+ * scroll-close, escape, and tree-aware outside-click for free. When this context menu is
+ * opened from inside another overlay (dialog, popover, etc.), `useOverlayParent()` picks
+ * up the parent instance and the service stacks above it and treats clicks inside the
+ * context menu as clicks inside the parent tree.
+ */
+import { watch, useSlots, markRaw, onBeforeUnmount, type VNode } from 'vue';
+import { getOverlayService, useOverlayParent } from '../overlay/useOverlay';
+import { contextMenuPreset } from '../overlay/overlay-presets';
+import type { OverlayRef } from '../overlay/overlay-types';
 import type { ContextMenuContext } from './useContextMenu';
-import { provideMenuClose } from './menu-cascade';
-import CoarMenu from './CoarMenu.vue';
+import CoarContextMenuPanel from './CoarContextMenuPanel.vue';
 
 const props = defineProps<{
   /** Context menu controller returned by useContextMenu() */
   menu: ContextMenuContext;
 }>();
 
-const hostRef = useTemplateRef<HTMLElement>('hostRef');
-const left = ref(0);
-const top = ref(0);
+const slots = useSlots();
+const parentOverlay = useOverlayParent();
 
-// Provide close callback so CoarMenuItem auto-closes the context menu on click
-provideMenuClose(() => props.menu.close());
+let overlayRef: OverlayRef | null = null;
 
-function clampToViewport(x: number, y: number, el: HTMLElement) {
-  const rect = el.getBoundingClientRect();
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-  const pad = 4;
-
-  return {
-    left: x + rect.width > vw - pad ? Math.max(pad, vw - rect.width - pad) : x,
-    top: y + rect.height > vh - pad ? Math.max(pad, vh - rect.height - pad) : y,
-  };
+function renderContent(): VNode[] | undefined {
+  return slots.default?.();
 }
 
-function onPointerDown(event: PointerEvent) {
-  if (!props.menu.isOpen.value) return;
-  const target = event.target as Node;
-  // Check if click is inside the context menu host
-  if (hostRef.value?.contains(target)) return;
-  // Check if click is inside a teleported submenu panel
-  if ((target as Element).closest?.('.coar-submenu-panel')) return;
-  props.menu.close();
+function openOverlay() {
+  if (overlayRef && !overlayRef.isClosed) return;
+
+  const pos = props.menu.position.value;
+
+  const ref = getOverlayService().open({
+    spec: {
+      ...contextMenuPreset,
+      anchor: { kind: 'point', x: pos.x, y: pos.y },
+    },
+    content: { kind: 'component', component: markRaw(CoarContextMenuPanel) },
+    inputs: {
+      renderContent,
+      closeMenu: () => props.menu.close(),
+    },
+    parent: parentOverlay,
+  });
+  overlayRef = ref;
+
+  // Sync controller state when the service closes the overlay externally — otherwise
+  // `menu.isOpen.value` would stay true and the next right-click would no-op on the
+  // `overlayRef && !overlayRef.isClosed` guard above.
+  ref.afterClosed.then(() => {
+    if (overlayRef === ref) overlayRef = null;
+    if (props.menu.isOpen.value) props.menu.close();
+  });
 }
 
-function onKeyDown(event: KeyboardEvent) {
-  if (event.key === 'Escape' && props.menu.isOpen.value) {
-    event.preventDefault();
-    event.stopPropagation();
-    props.menu.close();
-  }
-}
-
-function onScroll(event: Event) {
-  if (!props.menu.isOpen.value) return;
-  if (event.target instanceof Node && hostRef.value?.contains(event.target)) return;
-  props.menu.close();
-}
-
-function installListeners() {
-  document.addEventListener('pointerdown', onPointerDown, { capture: true });
-  document.addEventListener('keydown', onKeyDown, { capture: true });
-  document.addEventListener('scroll', onScroll, { passive: true, capture: true });
-}
-
-function removeListeners() {
-  document.removeEventListener('pointerdown', onPointerDown, { capture: true });
-  document.removeEventListener('keydown', onKeyDown, { capture: true });
-  document.removeEventListener('scroll', onScroll, { capture: true });
+function closeOverlay() {
+  const ref = overlayRef;
+  overlayRef = null;
+  if (ref && !ref.isClosed) ref.close();
 }
 
 watch(
   () => props.menu.isOpen.value,
-  async (open) => {
-    if (open) {
-      left.value = props.menu.position.value.x;
-      top.value = props.menu.position.value.y;
-      installListeners();
-      await nextTick();
-      if (hostRef.value) {
-        const clamped = clampToViewport(
-          props.menu.position.value.x,
-          props.menu.position.value.y,
-          hostRef.value,
-        );
-        left.value = clamped.left;
-        top.value = clamped.top;
-      }
-    } else {
-      removeListeners();
-    }
+  (open) => {
+    if (open) openOverlay();
+    else closeOverlay();
   },
+  { immediate: true },
 );
 
 onBeforeUnmount(() => {
-  removeListeners();
+  closeOverlay();
 });
 </script>
 
-<template>
-  <Teleport to="body">
-    <div
-      v-if="menu.isOpen.value"
-      ref="hostRef"
-      class="coar-context-menu"
-      :style="{
-        position: 'fixed',
-        left: `${left}px`,
-        top: `${top}px`,
-        zIndex: 'var(--coar-z-overlay, 1000)',
-      }"
-    >
-      <CoarMenu>
-        <slot />
-      </CoarMenu>
-    </div>
-  </Teleport>
-</template>
+<script lang="ts">
+// Renderless — the context menu is fully service-rendered via CoarOverlayOutlet.
+// Declare an explicit empty render function so the SFC has a valid render target
+// without forcing an invisible DOM node into every caller's tree.
+export default { render: () => null };
+</script>

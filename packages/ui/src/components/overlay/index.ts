@@ -46,4 +46,4 @@ export { default as CoarOverlayHost } from './CoarOverlayHost.vue';
 export { default as CoarOverlayOutlet } from './CoarOverlayOutlet.vue';
 
 // Presets
-export { tooltipPreset, modalPreset, menuPreset, selectPreset, hoverMenuPreset, dialogPreset, popconfirmPreset, popoverPreset, datepickerPreset } from './overlay-presets';
+export { tooltipPreset, modalPreset, menuPreset, selectPreset, hoverMenuPreset, dialogPreset, popconfirmPreset, popoverPreset, datepickerPreset, subFlyoutPreset, contextMenuPreset, sidebarFlyoutPreset } from './overlay-presets';
