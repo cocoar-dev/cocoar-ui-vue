@@ -4,11 +4,14 @@ import {
   countLockedLines,
   editIsProtected,
   getEditableSegments,
+  getSlot,
+  getSlots,
   hasLockedMarkers,
   isEverySegmentNonEmpty,
   overlapsProtectedRange,
   scanLockedLines,
   snapOffsetAwayFromLocked,
+  SLOT_MARKER_PATTERN,
   validateSource,
 } from './LockedLineScanner';
 
@@ -251,5 +254,110 @@ describe('getEditableSegments', () => {
     expect(segs[0]).toContain('import foo;');
     expect(segs.some((s) => s.includes('return 1'))).toBe(true);
     expect(segs.some((s) => s.includes('return 2'))).toBe(true);
+  });
+});
+
+describe('slot markers — scanner', () => {
+  it('parses slotName from a locked line carrying @slot:NAME', () => {
+    const src = 'function fn1(x) { // @locked @slot:fn1\n} // @locked';
+    const locked = scanLockedLines(src);
+    expect(locked[0].slotName).toBe('fn1');
+    expect(locked[1].slotName).toBeUndefined();
+  });
+
+  it('accepts identifier chars, digits, hyphens, underscores in names', () => {
+    const src =
+      'a // @locked @slot:handler_1\n' +
+      'b\n' +
+      'c // @locked @slot:on-load-2';
+    const locked = scanLockedLines(src);
+    expect(locked[0].slotName).toBe('handler_1');
+    expect(locked[1].slotName).toBe('on-load-2');
+  });
+
+  it('rejects names that do not start with a letter or underscore', () => {
+    const src = 'a // @locked @slot:1bad';
+    const locked = scanLockedLines(src);
+    expect(locked[0].slotName).toBeUndefined();
+  });
+
+  it('requires the slot marker to sit on a locked line', () => {
+    // A `@slot:...` marker on a free line is not a slot — the line isn't locked, so the
+    // slot anchor itself could be deleted by the user. Only locked-line anchors count.
+    const src = '// @slot:nope\nfunction a() { // @locked\n} // @locked';
+    const locked = scanLockedLines(src);
+    expect(locked.every((l) => l.slotName === undefined)).toBe(true);
+  });
+});
+
+describe('getSlots', () => {
+  const src =
+    'function fn1(x) { // @locked @slot:fn1\n' +
+    '  return x + 1;\n' +
+    '} // @locked\n' +
+    '\n' +
+    'function fn2(x) { // @locked @slot:fn2\n' +
+    '} // @locked\n' +
+    '\n' +
+    'function fn3(x) { // @locked @slot:fn3\n' +
+    '  // user body\n' +
+    '  return x * 2;\n' +
+    '} // @locked\n';
+
+  it('returns a dictionary keyed by slot name with trimmed content', () => {
+    const slots = getSlots(src);
+    expect(Object.keys(slots).sort()).toEqual(['fn1', 'fn2', 'fn3']);
+    expect(slots.fn1).toBe('  return x + 1;');
+    expect(slots.fn3).toBe('  // user body\n  return x * 2;');
+  });
+
+  it('emits empty string for slots whose body is empty or whitespace-only', () => {
+    const slots = getSlots(src);
+    expect(slots.fn2).toBe('');
+    expect(slots.fn2.trim().length).toBe(0);
+  });
+
+  it('first-wins on duplicate slot names', () => {
+    const dup =
+      'a // @locked @slot:x\nfirst\nb // @locked\nc // @locked @slot:x\nsecond\nd // @locked';
+    const slots = getSlots(dup);
+    expect(slots.x).toBe('first');
+  });
+
+  it('returns an empty dictionary for source with no slot markers', () => {
+    expect(getSlots('')).toEqual({});
+    expect(getSlots('const x = 1;')).toEqual({});
+    expect(getSlots('a // @locked\nb\nc // @locked')).toEqual({});
+  });
+
+  it('slot at EOF with no following lines yields empty content', () => {
+    const src = 'a // @locked @slot:last';
+    expect(getSlots(src)).toEqual({ last: '' });
+  });
+});
+
+describe('getSlot', () => {
+  const src = 'a // @locked @slot:one\nbody\nb // @locked';
+
+  it('returns the content when the slot exists', () => {
+    expect(getSlot(src, 'one')).toBe('body');
+  });
+
+  it('returns undefined when no locked line declares that name', () => {
+    expect(getSlot(src, 'missing')).toBeUndefined();
+  });
+
+  it('returns empty string (not undefined) when slot exists but body is empty', () => {
+    const emptyBody = 'a // @locked @slot:empty\nb // @locked';
+    expect(getSlot(emptyBody, 'empty')).toBe('');
+  });
+});
+
+describe('SLOT_MARKER_PATTERN', () => {
+  it('is a regex source string that matches the same positions as the internal regex', () => {
+    const re = new RegExp(SLOT_MARKER_PATTERN);
+    expect('function f() { // @locked @slot:fn1'.match(re)?.[1]).toBe('fn1');
+    expect('// @locked @slot:foo-bar_2'.match(re)?.[1]).toBe('foo-bar_2');
+    expect('// @slot:no-lock-marker'.match(re)).toBeNull();
   });
 });

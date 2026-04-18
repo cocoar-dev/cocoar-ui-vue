@@ -15,7 +15,21 @@
 
 const LOCKED_MARKER = /\/\/\s*@locked\b/;
 
+/**
+ * Slot marker — names the editable segment that follows a locked line. The marker must
+ * appear on a locked line (after `// @locked`) so it is itself protected from deletion.
+ *
+ *   function fn1(x) { // @locked @slot:fn1
+ *     // user body
+ *   } // @locked
+ *
+ * Exported as a plain string so consumers can mirror the same regex server-side — e.g. a
+ * C# template-runner using the saved source directly, without parsing JS.
+ */
+const SLOT_MARKER = /\/\/\s*@locked\b[^\n]*?@slot:([A-Za-z_][A-Za-z0-9_-]*)/;
+
 export const LOCKED_MARKER_TEXT = '// @locked';
+export const SLOT_MARKER_PATTERN = SLOT_MARKER.source;
 
 export interface LockedLine {
   /** 0-based line index within the source. */
@@ -43,6 +57,12 @@ export interface LockedLine {
   snapBefore: number | null;
   /** Valid snap target after the locked line (start of the next line), or null if this is the last line with no trailing `\n`. */
   snapAfter: number | null;
+  /**
+   * Name parsed from an `@slot:NAME` attribute on this locked line. When present, the
+   * editable segment immediately following this line (up to the next locked line or EOF)
+   * is a named slot whose content can be retrieved via `getSlot(source, name)`.
+   */
+  slotName?: string;
 }
 
 /** Contiguous protected range, produced by merging adjacent locked lines. */
@@ -74,6 +94,7 @@ export function scanLockedLines(source: string): LockedLine[] {
       const contentEnd = lineEnd > lineStart && source[lineEnd - 1] === '\r' ? lineEnd - 1 : lineEnd;
       const line = source.slice(lineStart, contentEnd);
       if (LOCKED_MARKER.test(line)) {
+        const slotMatch = line.match(SLOT_MARKER);
         result.push({
           lineIndex,
           lineStart,
@@ -82,6 +103,7 @@ export function scanLockedLines(source: string): LockedLine[] {
           protectedEnd: lineEnd,
           snapBefore: lineStart === 0 ? null : lineStart - 1,
           snapAfter: lineEnd >= length ? null : lineEnd + 1,
+          ...(slotMatch ? { slotName: slotMatch[1] } : {}),
         });
       }
       lineStart = i + 1;
@@ -219,6 +241,64 @@ export function validateSource(source: string): SourceValidation {
     segmentCount: segments.length,
     warnings,
   };
+}
+
+/**
+ * Strip leading and trailing lines that contain only whitespace. Preserves the indentation
+ * of the remaining content, so multi-line slot bodies keep their shape.
+ */
+function trimBlankLines(raw: string): string {
+  const lines = raw.split('\n');
+  let start = 0;
+  let end = lines.length;
+  while (start < end && lines[start].trim() === '') start++;
+  while (end > start && lines[end - 1].trim() === '') end--;
+  return lines.slice(start, end).join('\n');
+}
+
+/**
+ * Return every named slot as a dictionary keyed by slot name. Slot content is the text of
+ * the editable segment immediately following the locked line that carries the
+ * `@slot:NAME` attribute, with leading and trailing blank lines stripped.
+ *
+ * A slot's content is `''` when the segment is empty or contains only whitespace — a
+ * consumer can gate "was this body filled in?" on `slots[name].trim().length > 0`.
+ *
+ * Duplicate slot names: first occurrence wins. Later duplicates are silently ignored so
+ * the dictionary key maps deterministically to one piece of source — surface duplicates
+ * via `validateSource()` during template authoring if you want to catch them.
+ */
+export function getSlots(source: string): Record<string, string> {
+  const locked = scanLockedLines(source);
+  if (locked.length === 0) return {};
+
+  const allLines = source.split('\n');
+  const result: Record<string, string> = {};
+
+  for (let i = 0; i < locked.length; i++) {
+    const ll = locked[i];
+    if (!ll.slotName) continue;
+    if (Object.prototype.hasOwnProperty.call(result, ll.slotName)) continue; // first-wins
+
+    // Segment spans the lines AFTER this locked line up to the next locked line (or EOF).
+    const startIdx = ll.lineIndex + 1;
+    const next = locked[i + 1];
+    const endIdx = next ? next.lineIndex : allLines.length;
+    const content = allLines.slice(startIdx, endIdx).join('\n');
+    result[ll.slotName] = trimBlankLines(content);
+  }
+
+  return result;
+}
+
+/**
+ * Content of a single named slot, or `undefined` if no locked line in the source declares
+ * that slot name. `undefined` deliberately distinguishes "slot not declared" from "slot
+ * declared but empty" (returns `''`).
+ */
+export function getSlot(source: string, name: string): string | undefined {
+  const slots = getSlots(source);
+  return Object.prototype.hasOwnProperty.call(slots, name) ? slots[name] : undefined;
 }
 
 /**
