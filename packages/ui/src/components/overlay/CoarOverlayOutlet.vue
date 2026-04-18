@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { onMounted, useTemplateRef, inject } from 'vue';
-import { OVERLAY_SERVICE_KEY } from './useOverlay';
+import { onMounted, provide, useTemplateRef, inject } from 'vue';
+import { OVERLAY_PARENT_KEY, OVERLAY_SERVICE_KEY } from './useOverlay';
 import type { OverlayInstance } from './overlay-service';
 
 const props = defineProps<{
@@ -11,6 +11,12 @@ const hostRef = useTemplateRef<HTMLElement>('hostRef');
 const panelRef = useTemplateRef<HTMLElement>('panelRef');
 
 const service = inject(OVERLAY_SERVICE_KEY)!;
+
+// Expose this overlay as the parent-context for any descendant that opens its own overlay
+// (popover, tooltip, sub-menu). Descendants call `useOverlayParent()` and pass the result
+// to `overlay.open({ parent })`, which wires up z-index stacking, click-outside awareness,
+// and close-propagation. See `OVERLAY_PARENT_KEY` docs in useOverlay.ts.
+provide(OVERLAY_PARENT_KEY, props.instance);
 
 onMounted(() => {
   const hostEl = hostRef.value;
@@ -90,7 +96,11 @@ function getA11yAttrs(): Record<string, string | undefined> {
       v-bind="getA11yAttrs()"
     >
       <!-- Panel -->
-      <div ref="panelRef" :class="getPanelClasses()">
+      <div
+        :id="`coar-overlay-panel-${instance.id}`"
+        ref="panelRef"
+        :class="getPanelClasses()"
+      >
         <!-- Component content -->
         <component
           :is="instance.content.component"

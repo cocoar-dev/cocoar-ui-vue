@@ -126,6 +126,27 @@ export const datepickerPreset: OverlaySpec = {
   attachment: { strategy: 'body' },
 };
 
+/**
+ * Preset for `CoarPopover` — anchor-relative, reposition on scroll, escape dismiss.
+ * `outsideClick` defaults to true so clicking outside the pinned popover closes it, but
+ * callers in hover-only mode typically override it to false because the component drives
+ * close via hover-out timers instead.
+ */
+export const popoverPreset: OverlaySpec = {
+  position: {
+    placement: ['bottom', 'top', 'right', 'left'],
+    offset: 6,
+    flip: false,
+    shift: true,
+  },
+  backdrop: { kind: 'none' },
+  scroll: { strategy: 'reposition' },
+  dismiss: { outsideClick: true, escapeKey: true },
+  focus: { trap: false, restore: false },
+  a11y: { role: 'dialog' },
+  attachment: { strategy: 'body' },
+};
+
 export const popconfirmPreset: OverlaySpec = {
   position: {
     placement: ['top', 'bottom', 'left', 'right'],

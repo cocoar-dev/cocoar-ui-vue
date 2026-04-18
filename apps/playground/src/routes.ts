@@ -23,6 +23,10 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('./views/ScriptEditorInModalView.vue'),
   },
   {
+    path: '/overlay-stacking',
+    component: () => import('./views/OverlayStackingView.vue'),
+  },
+  {
     path: '/todos',
     component: () => import('./views/TodoListView.vue'),
     meta: {

@@ -95,7 +95,7 @@ export { CoarDualListbox } from './components/dual-listbox';
 export type { CoarDualListboxProps } from './components/dual-listbox';
 
 // Overlay System
-export { CoarOverlayHost, CoarOverlayOutlet, CoarOverlayPlugin, useOverlay, getOverlayService, OVERLAY_SERVICE_KEY, createOverlayService } from './components/overlay';
+export { CoarOverlayHost, CoarOverlayOutlet, CoarOverlayPlugin, useOverlay, useOverlayParent, getOverlayService, OVERLAY_SERVICE_KEY, OVERLAY_PARENT_KEY, createOverlayService } from './components/overlay';
 export { tooltipPreset, modalPreset, menuPreset, selectPreset, hoverMenuPreset, dialogPreset, popconfirmPreset, OVERLAY_DEFAULTS, resolveOverlaySpec } from './components/overlay';
 export { computeOverlayCoordinates, getViewportRect, getAnchorRect, getContainerRect, getScrollParents } from './components/overlay';
 export type { Placement, OverlaySpec, OverlayRef, OverlayService, OverlayInstance, OverlayContent, OverlayOpenOptions } from './components/overlay';

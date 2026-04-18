@@ -1,6 +1,9 @@
-import type { Directive, DirectiveBinding } from 'vue';
-import { computeOverlayCoordinates } from '../overlay/overlay-position';
-import type { Placement } from '../overlay/overlay-types';
+import { markRaw, type ComponentInternalInstance, type Directive, type DirectiveBinding } from 'vue';
+import { getOverlayService, OVERLAY_PARENT_KEY } from '../overlay/useOverlay';
+import { tooltipPreset } from '../overlay/overlay-presets';
+import type { OverlayInstance } from '../overlay/overlay-service';
+import type { OverlayRef, Placement } from '../overlay/overlay-types';
+import CoarTooltipPanel from './CoarTooltipPanel.vue';
 
 export type TooltipPlacement =
   | 'auto'
@@ -33,7 +36,7 @@ export interface TooltipOptions {
 type OpenReason = 'hover' | 'focus';
 
 interface TooltipState {
-  tooltipEl: HTMLElement | null;
+  overlayRef: OverlayRef | null;
   openTimerId: number | null;
   closeTimerId: number | null;
   openReasons: Set<OpenReason>;
@@ -41,6 +44,8 @@ interface TooltipState {
   tooltipId: string;
   cleanup: (() => void) | null;
   opts: TooltipOptions;
+  /** Resolved at `mounted` from the host component's provides chain; `undefined` = root overlay. */
+  parentOverlay: OverlayInstance | undefined;
   onPointerDown: () => void;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
@@ -48,82 +53,46 @@ interface TooltipState {
   onFocusOut: (e: FocusEvent) => void;
 }
 
-// Global: only one tooltip visible at a time
+// Global: only one tooltip visible at a time.
 let activeState: TooltipState | null = null;
-
 let nextId = 0;
 
 function getOptions(binding: DirectiveBinding<string | TooltipOptions>): TooltipOptions {
   const val = binding.value;
-  if (typeof val === 'string') {
-    return { content: val };
-  }
+  if (typeof val === 'string') return { content: val };
   return val;
 }
 
-function getPlacementConfig(placement: TooltipPlacement = 'top'): {
-  placements: readonly Placement[];
-  offset: number;
-  flip: boolean;
-  shift: boolean;
-} {
-  if (placement === 'auto') {
-    return { placements: ['top', 'bottom', 'left', 'right'] as const, offset: 6, flip: false, shift: true };
-  }
-  return { placements: [placement as Placement], offset: 6, flip: true, shift: true };
+function resolvePlacements(placement: TooltipPlacement = 'top'): readonly Placement[] {
+  if (placement === 'auto') return ['top', 'bottom', 'left', 'right'] as const;
+  return [placement as Placement];
 }
 
-function createTooltipEl(content: string, tooltipId: string): HTMLElement {
-  const el = document.createElement('div');
-  el.id = tooltipId;
-  el.className = 'coar-tooltip';
-  el.setAttribute('role', 'tooltip');
-  el.innerHTML = `<span class="coar-tooltip-text">${escapeHtml(content)}</span>`;
-  el.style.cssText =
-    'position:fixed;top:0;left:0;z-index:calc(var(--coar-z-overlay,1000) + 1);pointer-events:none;opacity:0;';
-  return el;
+/**
+ * Walk the component instance's provides chain for a value injected under `key`.
+ * Directives have no setup context, so the normal `inject()` helper is unavailable —
+ * but Vue stores provides on each instance with prototype-chain inheritance, so a
+ * plain property lookup on `instance.provides` resolves through all ancestors. This
+ * is the same mechanism `inject()` uses internally.
+ */
+function readInjection<T>(
+  instance: ComponentInternalInstance | null | undefined,
+  key: symbol,
+): T | undefined {
+  if (!instance) return undefined;
+  const provides = (instance as { provides?: Record<symbol, unknown> }).provides;
+  return provides ? (provides[key] as T | undefined) : undefined;
 }
 
-function escapeHtml(str: string): string {
-  const div = document.createElement('div');
-  div.appendChild(document.createTextNode(str));
-  return div.innerHTML;
-}
-
-function positionTooltip(tooltipEl: HTMLElement, trigger: HTMLElement, placement: TooltipPlacement = 'top'): void {
-  const config = getPlacementConfig(placement);
-  const anchorRect = trigger.getBoundingClientRect();
-  const tooltipRect = tooltipEl.getBoundingClientRect();
-
-  const viewport = {
-    width: window.innerWidth || 800,
-    height: window.innerHeight || 600,
-    scrollX: window.scrollX || 0,
-    scrollY: window.scrollY || 0,
-  };
-
-  const positionSpec = {
-    placement: config.placements.length === 1 ? config.placements[0] : config.placements,
-    offset: config.offset,
-    flip: config.flip,
-    shift: config.shift,
-  };
-
-  const coords = computeOverlayCoordinates(
-    anchorRect,
-    { width: tooltipRect.width || 1, height: tooltipRect.height || 1 },
-    positionSpec,
-    viewport,
-  );
-
-  tooltipEl.style.transform = `translate3d(${coords.left}px, ${coords.top}px, 0)`;
-  tooltipEl.style.opacity = '1';
-}
-
-function openTooltip(el: HTMLElement, state: TooltipState, opts: TooltipOptions, reason: OpenReason): void {
+function openTooltip(
+  trigger: HTMLElement,
+  state: TooltipState,
+  opts: TooltipOptions,
+  reason: OpenReason,
+): void {
   if (opts.disabled || !opts.content) return;
 
-  // Close any other active tooltip
+  // Close any other active tooltip — tooltips are singleton.
   if (activeState && activeState !== state) {
     closeTooltip(activeState);
   }
@@ -131,46 +100,65 @@ function openTooltip(el: HTMLElement, state: TooltipState, opts: TooltipOptions,
   state.openReasons.add(reason);
   activeState = state;
 
-  if (state.tooltipEl) {
-    // Already open — just reposition
-    positionTooltip(state.tooltipEl, el, opts.placement);
+  if (state.overlayRef && !state.overlayRef.isClosed) {
+    // Already open — service handles repositioning on scroll/resize.
+    state.overlayRef.updatePosition();
     return;
   }
 
-  const tooltipEl = createTooltipEl(opts.content, state.tooltipId);
-  document.body.appendChild(tooltipEl);
-  state.tooltipEl = tooltipEl;
-
-  // Position after append so tooltip has layout dimensions
-  requestAnimationFrame(() => {
-    if (state.tooltipEl === tooltipEl) {
-      positionTooltip(tooltipEl, el, opts.placement);
-    }
+  state.overlayRef = getOverlayService().open({
+    spec: {
+      ...tooltipPreset,
+      anchor: { kind: 'element', element: trigger },
+      position: {
+        placement: resolvePlacements(opts.placement),
+        offset: 6,
+        flip: opts.placement !== 'auto',
+        shift: true,
+      },
+      a11y: { role: 'tooltip' },
+    },
+    content: { kind: 'component', component: markRaw(CoarTooltipPanel) },
+    inputs: { content: opts.content, id: state.tooltipId },
+    parent: state.parentOverlay,
   });
 
-  el.setAttribute('aria-describedby', state.tooltipId);
+  trigger.setAttribute('aria-describedby', state.tooltipId);
 
-  // Set up global tracking for hover
+  // Set up pointer tracking for hover-only closes (covers the case where the pointer
+  // leaves the trigger without crossing the mouseleave boundary — e.g. scrolling the
+  // wheel or keyboard-focusing another element).
   if (reason === 'hover') {
-    startPointerTracking(el, state);
+    startPointerTracking(trigger, state);
   }
+
+  // Sync local state when the service closes the overlay externally (another tooltip
+  // stealing singleton-active, overlay tree teardown, etc.).
+  state.overlayRef.afterClosed.then(() => {
+    if (state.overlayRef?.isClosed) {
+      state.overlayRef = null;
+      trigger.removeAttribute('aria-describedby');
+      state.openReasons.clear();
+      state.cleanup?.();
+      state.cleanup = null;
+      if (activeState === state) activeState = null;
+    }
+  });
 }
 
 function closeTooltip(state: TooltipState): void {
   state.openReasons.clear();
   clearTimers(state);
 
-  if (state.tooltipEl) {
-    state.tooltipEl.remove();
-    state.tooltipEl = null;
+  if (state.overlayRef && !state.overlayRef.isClosed) {
+    state.overlayRef.close();
   }
+  state.overlayRef = null;
 
   state.cleanup?.();
   state.cleanup = null;
 
-  if (activeState === state) {
-    activeState = null;
-  }
+  if (activeState === state) activeState = null;
 }
 
 function clearTimers(state: TooltipState): void {
@@ -184,16 +172,21 @@ function clearTimers(state: TooltipState): void {
   }
 }
 
-function scheduleOpen(el: HTMLElement, state: TooltipState, opts: TooltipOptions, reason: OpenReason): void {
+function scheduleOpen(
+  trigger: HTMLElement,
+  state: TooltipState,
+  opts: TooltipOptions,
+  reason: OpenReason,
+): void {
   clearTimers(state);
   const delay = Math.max(0, opts.openDelay ?? 0);
   if (delay === 0) {
-    openTooltip(el, state, opts, reason);
+    openTooltip(trigger, state, opts, reason);
     return;
   }
   state.openTimerId = window.setTimeout(() => {
     state.openTimerId = null;
-    openTooltip(el, state, opts, reason);
+    openTooltip(trigger, state, opts, reason);
   }, delay);
 }
 
@@ -222,7 +215,7 @@ function startPointerTracking(trigger: HTMLElement, state: TooltipState): void {
   if (state.cleanup) return;
 
   const onPointerMove = (event: PointerEvent | MouseEvent): void => {
-    if (!state.tooltipEl) return;
+    if (!state.overlayRef || state.overlayRef.isClosed) return;
     if (!state.openReasons.has('hover')) return;
 
     const el = document.elementFromPoint(event.clientX, event.clientY);
@@ -269,8 +262,15 @@ export const vTooltip: Directive<HTMLElement, string | TooltipOptions> = {
   mounted(el, binding) {
     const tooltipId = `coar-tooltip-${nextId++}`;
 
+    // Resolve the nearest ancestor overlay from the host component's provides chain.
+    // When the tooltip trigger is rendered inside a dialog / popover / menu, we inherit
+    // the parent `OverlayInstance` here and pass it to `overlay.open({ parent })` so
+    // the service stacks and click-outside-aware-binds the tooltip correctly.
+    const hostInstance = (binding.instance as { $?: ComponentInternalInstance } | null)?.$;
+    const parentOverlay = readInjection<OverlayInstance>(hostInstance, OVERLAY_PARENT_KEY);
+
     const state: TooltipState = {
-      tooltipEl: null,
+      overlayRef: null,
       openTimerId: null,
       closeTimerId: null,
       openReasons: new Set(),
@@ -278,6 +278,7 @@ export const vTooltip: Directive<HTMLElement, string | TooltipOptions> = {
       tooltipId,
       cleanup: null,
       opts: getOptions(binding),
+      parentOverlay,
       onPointerDown: () => {
         state.lastPointerDown = Date.now();
       },
@@ -338,13 +339,16 @@ export const vTooltip: Directive<HTMLElement, string | TooltipOptions> = {
       return;
     }
 
-    // If open, update content and reposition
-    if (state.tooltipEl) {
-      const textSpan = state.tooltipEl.querySelector('.coar-tooltip-text');
-      if (textSpan) {
-        textSpan.textContent = opts.content;
-      }
-      positionTooltip(state.tooltipEl, el, opts.placement);
+    // If open, close and reopen with the new content. The service does not expose an
+    // imperative "update inputs" API on the ref, so a clean re-open is the simplest way
+    // to swap the rendered text — and tooltip content rarely changes while visible.
+    if (state.overlayRef && !state.overlayRef.isClosed) {
+      const triggerEl = el;
+      const reasons = new Set(state.openReasons);
+      closeTooltip(state);
+      // Reopen immediately with the new opts. Use the first reason that was active.
+      const firstReason = reasons.values().next().value as OpenReason | undefined;
+      if (firstReason) openTooltip(triggerEl, state, opts, firstReason);
     }
   },
 
