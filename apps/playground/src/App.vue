@@ -8,6 +8,9 @@ import { CoarOverlayHost } from '@cocoar/vue-ui';
       <router-link to="/">Home</router-link>
       <router-link to="/todos">Todos</router-link>
       <router-link to="/flex-debug">Flex Debug</router-link>
+      <router-link to="/script-editor">Script Editor</router-link>
+      <router-link to="/constrained-editor">Constrained Editor</router-link>
+      <router-link to="/editor-in-modal">Editor in Modal</router-link>
     </nav>
     <main class="app-main">
       <router-view />

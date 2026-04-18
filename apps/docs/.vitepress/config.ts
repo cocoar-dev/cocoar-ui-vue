@@ -81,6 +81,13 @@ export default defineConfig({
             '../../../packages/data-grid/src/index.ts',
           ),
         },
+        {
+          find: /^@cocoar\/vue-script-editor$/,
+          replacement: resolve(
+            __dirname,
+            '../../../packages/script-editor/src/index.ts',
+          ),
+        },
       ],
     },
     plugins: [
@@ -102,6 +109,10 @@ export default defineConfig({
         '@maskito/vue',
         'prismjs',
       ],
+      // Monaco is browser-only (canvas, workers, DOM). The demo dynamically imports
+      // the editor inside onMounted so this list does not need `@cocoar/vue-script-editor`,
+      // but we exclude `monaco-editor` from SSR just to make sure SSR never touches it.
+      external: ['monaco-editor'],
     },
   },
 
@@ -258,6 +269,7 @@ export default defineConfig({
           text: 'Content',
           items: [
             { text: 'Markdown', link: '/components/markdown' },
+            { text: 'Script Editor', link: '/components/script-editor' },
           ],
         },
         {

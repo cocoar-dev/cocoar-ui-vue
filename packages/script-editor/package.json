@@ -1,0 +1,51 @@
+{
+  "name": "@cocoar/vue-script-editor",
+  "version": "0.0.1",
+  "description": "Monaco-based script editor component for Vue 3 with Cocoar Design System styling",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cocoar-dev/cocoar-ui-vue.git",
+    "directory": "packages/script-editor"
+  },
+  "homepage": "https://docs.cocoar.dev/cocoar-ui-vue/",
+  "bugs": "https://github.com/cocoar-dev/cocoar-ui-vue/issues",
+  "keywords": [
+    "vue",
+    "vue3",
+    "monaco",
+    "editor",
+    "typescript",
+    "javascript"
+  ],
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "vite build",
+    "test": "vitest run",
+    "lint": "eslint src/"
+  },
+  "peerDependencies": {
+    "monaco-editor": "^0.54.0",
+    "vue": "^3.5.0"
+  },
+  "devDependencies": {
+    "monaco-editor": "^0.54.0",
+    "vue": "^3.5.32"
+  }
+}
