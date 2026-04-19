@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { defineComponent, nextTick } from 'vue';
+import { nextTick } from 'vue';
 import { mount } from '@vue/test-utils';
 import CoarDualListbox from './CoarDualListbox.vue';
 import CoarListbox from '../listbox/CoarListbox.vue';

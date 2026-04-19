@@ -77,7 +77,7 @@ export interface UseDragDropReturn<T> {
    */
   startDrag(event: DragEvent, items: readonly T[]): boolean;
   /** Call from a `@dragend` handler on the draggable element. Cleans up the session. */
-  endDrag(event: DragEvent): void;
+  endDrag(): void;
 
   // Target — wire to the drop container's events.
   /** Call from the drop container's `@dragover`. */
@@ -177,7 +177,7 @@ export function useDragDrop<T>(opts: UseDragDropOptions<T> = {}): UseDragDropRet
     return true;
   }
 
-  function endDrag(_event: DragEvent): void {
+  function endDrag(): void {
     const id = currentDragId.value;
     if (!id) return;
     const entry = getDrag<T>(id);

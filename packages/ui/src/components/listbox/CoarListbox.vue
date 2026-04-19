@@ -12,7 +12,7 @@ import type {
   CoarListboxSearchField,
 } from './types';
 import { useVirtualList } from '../../composables/useVirtualList';
-import { useDragDrop, type DropPayload } from '../../composables/useDragDrop';
+import { useDragDrop } from '../../composables/useDragDrop';
 
 export interface CoarListboxProps<T = unknown> {
   /** Items to render. */
@@ -524,7 +524,7 @@ function onItemDragStart(event: DragEvent, item: CoarListboxOption<T>) {
   }
 }
 
-function onItemDragEnd(event: DragEvent) { dnd.endDrag(event); }
+function onItemDragEnd() { dnd.endDrag(); }
 function onListDragOver(event: DragEvent) {
   if (!props.droppable) return;
   dnd.onDragOver(event);
@@ -634,7 +634,7 @@ const hostClasses = computed(() => [
               @click="handleItemClick(entry.item, $event)"
               @dblclick="handleItemDoubleClick(entry.item, $event)"
               @dragstart="draggable ? onItemDragStart($event, entry.item) : undefined"
-              @dragend="draggable ? onItemDragEnd($event) : undefined"
+              @dragend="draggable ? onItemDragEnd() : undefined"
               @drop.stop="droppable ? onListDrop($event, entry.item) : undefined"
             >
               <component
@@ -705,7 +705,7 @@ const hostClasses = computed(() => [
             @click="handleItemClick(item, $event)"
             @dblclick="handleItemDoubleClick(item, $event)"
             @dragstart="draggable ? onItemDragStart($event, item) : undefined"
-            @dragend="draggable ? onItemDragEnd($event) : undefined"
+            @dragend="draggable ? onItemDragEnd() : undefined"
             @drop.stop="droppable ? onListDrop($event, item) : undefined"
           >
             <component

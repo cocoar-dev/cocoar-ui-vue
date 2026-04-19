@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { defineComponent, h, ref, nextTick, type Ref } from 'vue';
 import { mount } from '@vue/test-utils';
 import { useVirtualList, type UseVirtualListReturn } from './useVirtualList';

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { defineComponent, h, ref } from 'vue';
+import { defineComponent, ref } from 'vue';
 import { mount } from '@vue/test-utils';
 import { useDragDrop } from './useDragDrop';
 
