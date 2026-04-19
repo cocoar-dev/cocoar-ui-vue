@@ -42,6 +42,47 @@ const LANGUAGE_EXTENSIONS: Record<CoarScriptEditorLanguage, string> = {
 const SCRIPT_MODE_DIAGNOSTIC_CODES: readonly number[] = [1375, 2695, 1108, 7027, 2304, 1208];
 
 /**
+ * Monaco's default lib set is `es5 + dom + webworker.importscripts + scripthost` —
+ * surfacing ~5500 browser APIs in IntelliSense that don't exist in Cocoar's script runtime
+ * (a .NET Jint engine with no DOM, no Web Workers, no WSH). Autocompleting `document.*`,
+ * `fetch`, `localStorage`, `WScript`, etc. would lure users into writing code that crashes
+ * at execution time.
+ *
+ * We force Monaco's TS/JS defaults to `lib: ['es2024']` so only APIs that Jint actually
+ * provides show up. Project-specific globals (e.g. host-provided `fetch`, `require`,
+ * `exit`, `NewObject`) are layered on top via `useExtraLibs` / `addExtraLib` by the
+ * consumer — opt-in and explicit.
+ *
+ * Applied once per page (Monaco's options are module-global); subsequent calls are no-ops.
+ * Consumers who want different libs can call `monaco.languages.typescript.*Defaults.
+ * setCompilerOptions(...)` themselves before mounting an editor — their override then wins.
+ */
+const COAR_MONACO_LIB: readonly string[] = ['es2024'];
+let compilerLibsConfigured = false;
+
+function configureCompilerLibs(): void {
+  if (compilerLibsConfigured) return;
+  compilerLibsConfigured = true;
+  const target = monaco.languages.typescript.ScriptTarget.ES2020;
+  // `ES2024` is the semantic target, but Monaco's bundled TS lib may not expose that
+  // enum value depending on version — fall back to the highest available.
+  const ts = monaco.languages.typescript.typescriptDefaults;
+  const js = monaco.languages.typescript.javascriptDefaults;
+  const scriptTarget = monaco.languages.typescript.ScriptTarget as unknown as Record<string, number>;
+  const resolvedTarget =
+    scriptTarget.ES2024 ?? scriptTarget.ES2023 ?? scriptTarget.ES2022
+      ?? scriptTarget.ES2021 ?? scriptTarget.ES2020 ?? target;
+  const options = {
+    target: resolvedTarget,
+    lib: [...COAR_MONACO_LIB],
+    allowNonTsExtensions: true,
+    noResolve: true,
+  };
+  ts.setCompilerOptions(options);
+  js.setCompilerOptions(options);
+}
+
+/**
  * Font settings mirrored from `CoarCodeBlock`'s `.coar-code` rule so code rendered in
  * either component has the same typographic feel. Keep in sync with
  * `packages/ui/src/components/code-block/CoarCodeBlock.vue` — if the design token
@@ -233,6 +274,7 @@ function applyScriptMode(language: CoarScriptEditorLanguage, enabled: boolean): 
 }
 
 export function useMonacoEditor(options: UseMonacoEditorOptions): UseMonacoEditorResult {
+  configureCompilerLibs();
   const editorRef = shallowRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const modelRef = shallowRef<monaco.editor.ITextModel | null>(null);
   let suppressChange = false;

@@ -7,6 +7,36 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 1.11.0
+
+### Added
+
+- **`CoarListbox` — new component**: single-column list primitive with multi-select highlight (Ctrl/Shift/Keyboard), search (three layers of control — `searchFields`, `searchBy`, `filterWith`), grouping with sticky or non-sticky headings, custom item rendering via `itemComponents` (kind → component) or `#item` / `#item-<kind>` slots, per-item imperative API for inline actions, `displayOnly` mode for static rosters with ARIA `role="list"`, and both native keyboard nav (arrows, `Home`/`End`, `Space`, `Ctrl+A`, `Enter`) and `item-click` / `item-dblclick` / `item-activate` events. Fully generic over `T` (`CoarListboxOption<T>`); ships its own Kitchen-Sink-grade prop/event/slot surface.
+- **`CoarDualListbox` — new component**: composes two `CoarListbox` instances + move buttons for the classic "available ↔ selected" pattern. Manages `v-model: T[]` (right column), forwards search / sort / grouping / custom-render / drag-drop / virtual props to both sides, exposes `moveRight` / `moveLeft` / `moveAllRight` / `moveAllLeft` / `clearHighlight` via template ref, and bubbles `item-remove` / `item-action` from custom renderers with a `side: 'available' \| 'selected'` annotation. Drag-drop between the two columns via one prop (`drag-drop`).
+- **`CoarListboxItemApi<T>` — imperative handle for custom item renderers**: every component registered via `itemComponents` and every `#item` / `#item-<kind>` slot now receives an `api` prop with `highlight()` / `unhighlight()` / `toggleHighlight()` / `activate()` / `remove()` / `action(name, payload?)`. `remove` and `action` bubble up as `item-remove` and `item-action` events on the listbox — consumers update their own `options` array. Powers inline trash buttons, ×-to-remove in the selected column of a DualListbox, per-row context-menu actions.
+- **Drag & drop — first-class feature** on `CoarListbox` and `CoarDualListbox`. Three layers of permission: `drag-group` (coarse name matching), `drag-id` + `drag-accept` (directional whitelists for asymmetric flows like box1→box2→box3 with no back-edges), and `can-drag` / `can-drop` callbacks for per-item source control and runtime target validation. Selection-aware: dragging a highlighted item carries the whole highlighted set. Visual feedback via `isDragOver` with `dropEffect='none'` cursor when a drop is refused. `items-add` / `items-remove` events fire synchronously on drop so there's no "duplicated items" frame between source and target re-renders. `CoarDualListbox` auto-wires an internal drag group when `drag-drop` is set.
+- **Virtual scrolling** on `CoarListbox` and `CoarDualListbox` (`virtual` prop): renders only the rows inside the viewport + overscan. Supports mixed per-row heights (items vs. group headings), search/filter, custom components, drag-drop, and keyboard nav (`scrollToIndex` follows the focus). Tested with a 10,000-entry IPrincipal directory demo.
+- **`useVirtualList` — new exported composable** (`@cocoar/vue-ui`): the framework-agnostic primitive behind virtual mode. Fixed or per-index `itemSize`, configurable `overscan`, `scrollToIndex(i, align?)`. Cumulative-offset table (O(log n) per scroll), reactive on count / size changes, `ResizeObserver` fallback for environments without one. Usable standalone in any Vue component that scrolls — not tied to the listbox.
+- **`useDragDrop` — new exported composable** (`@cocoar/vue-ui`): the generic primitive behind listbox drag-drop. Same group / accept / canDrop / canDrag semantics, same cross-surface registry that carries live object identity through DataTransfer. Ships a module-level registry (`registerDrag` / `getDrag` / `getActiveDrag` / `deleteDrag` + `DRAG_MIME` constant) for advanced integrations. Reach for it when building any other Vue component that needs the same drag semantics — no need to reimplement.
+- **Boolean-prop convention**: `displayOnly`, `hideSearch`, `hideMoveAll`, `hideCounts`, `sortSelectedBySource` — all new boolean props default `false`, matching the library-wide "features are opt-in" rule. Where a feature should feel on-by-default (e.g. search on `CoarDualListbox`), the prop name is inverted so the default can stay `false`.
+
+### Fixed
+
+- **Monaco `lib` configuration for Jint-backed runtimes** (`@cocoar/vue-script-editor`): `useMonacoEditor` now calls `setCompilerOptions({ lib: ['es2024'], target: ES2024, allowNonTsExtensions: true, noResolve: true })` on both TS and JS defaults on first mount. Previously Monaco fell back to its default `lib = ['es5', 'dom', 'webworker.importscripts', 'scripthost']`, autocompleting ~5485 browser / WSH / WebWorker APIs that don't exist in Jint — `fetch`, `document`, `localStorage`, `WScript`, `importScripts`, etc. — luring users into code that crashes at runtime. After the fix IntelliSense only surfaces standard ECMAScript APIs Jint actually runs; host-specific globals are layered back in explicitly via `extraLibs`. The enum value for the script target is resolved with fallback (`ES2024 ?? ES2023 ?? … ?? ES2020`) so the fix works across Monaco versions.
+
+### Docs
+
+- **New component pages**: Listbox, Dual Listbox — each with 5–7 live demos (basic, display-only, grouped, custom item component, directional DnD, virtual 10k, inline remove button, drag-drop columns) plus full API tables for props, events, slots, exposed methods.
+- **New Utilities pages**: `useVirtualList` (with a standalone 50k-log-line demo built from plain `<div>`s — no listbox in sight) and `useDragDrop` (with a 3-column custom Kanban board, no listbox). Cross-linked from the component pages so consumers can discover the primitives.
+- **Script Editor — "Runtime lib configuration" section**: explains the default Monaco lib set vs. what Jint provides, documents the applied override, and explains how to provide a different lib set for non-Jint scenarios.
+
+### Internal
+
+- **`@cocoar/vue-ui/composables` module**: new home for reusable composables. Currently `useVirtualList`, `useDragDrop`, and the `dragRegistry` primitives; wired into `CoarListbox` internally so there is one source of truth for virtual-scrolling math and DnD semantics across the library.
+- **Test coverage**: +79 unit tests for the new surface (CoarListbox: 38, CoarDualListbox: 17, useVirtualList: 13, useDragDrop: 10, CoarScriptEditor: 1 for the Monaco fix). Full UI suite 1142/1142; script-editor 92/92.
+
+---
+
 ## 1.9.0
 
 ### Added

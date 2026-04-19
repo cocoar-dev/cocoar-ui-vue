@@ -207,6 +207,16 @@ const code = ref(`const ctx = getContext();\nconsole.log(ctx.user.name);\n`);
 
 Each entry maps to `monaco.languages.typescript.typescriptDefaults.addExtraLib(...)` (or `javascriptDefaults` in JS mode). Use a stable, unique `filePath` per lib — Monaco keys its entries on the path.
 
+## Runtime lib configuration
+
+Monaco ships with a default lib set of `es5 + dom + webworker.importscripts + scripthost` — surfacing thousands of browser APIs (`document.*`, `fetch`, `localStorage`, `WScript`, …) in IntelliSense. For script editors backed by a non-browser runtime (e.g. Jint/Edge.js in a .NET host), autocompleting those APIs would lure users into writing code that crashes at execution time.
+
+`CoarScriptEditor` therefore forces Monaco to `lib: ['es2024']` the first time it's mounted, dropping the browser-specific libs and keeping only the standard ECMAScript surface. It also applies to both TS and JS defaults and sets `target: ES2024`, `allowNonTsExtensions: true`, `noResolve: true`.
+
+Host-specific globals (e.g. your runtime's `fetch`, `require`, `exit`) should be layered on top via `extraLibs` — opt-in and explicit, so what Monaco shows matches what Jint can run.
+
+If you need a different lib set for non-Jint scenarios, call `monaco.languages.typescript.typescriptDefaults.setCompilerOptions(...)` yourself **after** the first `CoarScriptEditor` has mounted — `setCompilerOptions` is a module-global last-writer-wins, so your override takes effect immediately for every editor on the page.
+
 ::: warning `filePath` must start with `file:///`
 Monaco's TypeScript service silently ignores declarations registered under any other URI scheme, so a value like `'types/foo.d.ts'` will compile without error but produce no IntelliSense. In development mode the component emits a `console.warn` when it detects this, but there's no runtime error — it's easy to miss in production. Always prefix with `file:///`.
 :::

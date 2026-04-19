@@ -35,6 +35,36 @@ function makeFormFieldHarness(
   });
 }
 
+// This describe must run FIRST in the file — `configureCompilerLibs()` is a module-level
+// one-shot (as required by Monaco's global `setCompilerOptions` API), and `vi.clearAllMocks()`
+// in later blocks wipes the call history. Placing the check before any other mount lets us
+// assert on the actual call the first editor triggered.
+describe('CoarScriptEditor — compiler libs', () => {
+  it('restricts Monaco to ECMAScript libs on first mount', async () => {
+    const tsFn = monacoMock.languages.typescript.typescriptDefaults.setCompilerOptions as ReturnType<
+      typeof vi.fn
+    >;
+    const jsFn = monacoMock.languages.typescript.javascriptDefaults.setCompilerOptions as ReturnType<
+      typeof vi.fn
+    >;
+
+    const wrapper = mount(CoarScriptEditor, { attachTo: document.body });
+    await nextTick();
+
+    const assertLibs = (fn: ReturnType<typeof vi.fn>) => {
+      expect(fn.mock.calls.length).toBeGreaterThan(0);
+      const latest = fn.mock.calls.at(-1)![0];
+      expect(latest.lib).toEqual(['es2024']);
+      expect(latest.allowNonTsExtensions).toBe(true);
+      expect(latest.noResolve).toBe(true);
+      expect(typeof latest.target).toBe('number');
+    };
+    assertLibs(tsFn);
+    assertLibs(jsFn);
+    wrapper.unmount();
+  });
+});
+
 describe('CoarScriptEditor — basic wiring', () => {
   it('renders the editor host element', () => {
     const wrapper = mount(CoarScriptEditor, {

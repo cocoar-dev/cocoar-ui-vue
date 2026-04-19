@@ -1,3 +1,14 @@
+// Composables
+export { useVirtualList, useDragDrop } from './composables';
+export type {
+  UseVirtualListOptions,
+  UseVirtualListReturn,
+  VirtualRow,
+  UseDragDropOptions,
+  UseDragDropReturn,
+  DropPayload,
+} from './composables';
+
 // Layout
 export { CoarFormField } from './components/form-field';
 export type { CoarFormFieldProps, FormFieldProvided } from './components/form-field';
@@ -65,6 +76,23 @@ export type { CoarSwitchProps, CoarSwitchSize } from './components/switch';
 
 export { CoarSelect, CoarMultiSelect, CoarTagSelect } from './components/select';
 export type { CoarSelectOption, CoarSelectSize, CoarSelectAppearance } from './components/select';
+
+export { CoarListbox } from './components/listbox';
+export type {
+  CoarListboxProps,
+  CoarListboxOption,
+  CoarListboxSide,
+  CoarListboxItemComponents,
+  CoarListboxItemComponentProps,
+  CoarListboxItemApi,
+  CoarListboxSortGroups,
+  CoarListboxSortOptions,
+  CoarListboxSearchField,
+  CoarListboxExposed,
+} from './components/listbox';
+
+export { CoarDualListbox } from './components/dual-listbox';
+export type { CoarDualListboxProps } from './components/dual-listbox';
 
 // Overlay System
 export { CoarOverlayHost, CoarOverlayOutlet, CoarOverlayPlugin, useOverlay, getOverlayService, OVERLAY_SERVICE_KEY, createOverlayService } from './components/overlay';

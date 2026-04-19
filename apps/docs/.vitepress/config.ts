@@ -212,6 +212,8 @@ export default defineConfig({
             { text: 'Number Input', link: '/components/number-input' },
             { text: 'Password Input', link: '/components/password-input' },
             { text: 'Select', link: '/components/select' },
+            { text: 'Listbox', link: '/components/listbox' },
+            { text: 'Dual Listbox', link: '/components/dual-listbox' },
             { text: 'Checkbox', link: '/components/checkbox' },
             { text: 'Radio Group', link: '/components/radio-group' },
             { text: 'Switch', link: '/components/switch' },
@@ -262,6 +264,8 @@ export default defineConfig({
           text: 'Utilities',
           items: [
             { text: 'Transitions', link: '/components/transitions' },
+            { text: 'Virtual List', link: '/components/virtual-list' },
+            { text: 'Drag & Drop', link: '/components/drag-drop' },
             { text: 'Fragment Parser & Modal Routing', link: '/components/fragment-parser' },
           ],
         },
