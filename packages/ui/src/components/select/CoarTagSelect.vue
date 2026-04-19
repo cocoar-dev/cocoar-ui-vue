@@ -1,12 +1,24 @@
 <script setup lang="ts" generic="T">
-import { computed, inject, ref, toRef, onMounted, onBeforeUnmount, useTemplateRef, nextTick } from 'vue';
+/**
+ * Tag-style multi-select. Selected values render as removable tags inside the trigger
+ * itself; the dropdown shows only not-yet-selected options. Same service-routed
+ * pattern as `CoarSelect` and `CoarMultiSelect` — the dropdown is opened via
+ * `overlay.open()` when `isOpen && filteredOptions.length > 0` (the legacy component
+ * never rendered the panel when there was nothing to show, and we preserve that to
+ * avoid a visible empty dropdown flash while typing).
+ */
+import {
+  computed, inject, ref, toRef, watch, onBeforeUnmount, useTemplateRef, nextTick, markRaw,
+} from 'vue';
 import { useI18n } from '@cocoar/vue-localization';
 import { CoarIcon } from '../icon';
 import { useSelectBase, type CoarSelectSize, type CoarSelectAppearance } from './useSelectBase';
-import { useSelectDropdown } from './useSelectDropdown';
-import { vScrollbar } from '../scrollbar/vScrollbar';
+import { getOverlayService, useOverlayParent } from '../overlay/useOverlay';
+import { selectPreset } from '../overlay/overlay-presets';
+import type { OverlayRef } from '../overlay/overlay-types';
 import type { CoarSelectOption, CoarSelectSortGroups, CoarSelectSortOptions } from './types';
 import { FORM_FIELD_INJECTION_KEY } from '../form-field/constants';
+import CoarTagSelectDropdownPanel from './CoarTagSelectDropdownPanel.vue';
 
 export interface CoarTagSelectProps<T = unknown> {
   /** Placeholder text */
@@ -67,7 +79,6 @@ const formField = inject(FORM_FIELD_INJECTION_KEY, undefined);
 const hostRef = useTemplateRef<HTMLElement>('hostRef');
 const triggerRef = useTemplateRef<HTMLElement>('triggerRef');
 const tagInputRef = useTemplateRef<HTMLInputElement>('tagInputRef');
-const dropdownRef = useTemplateRef<HTMLElement>('dropdownRef');
 
 const hasError = computed(() => props.error || (formField?.hasError.value ?? false));
 const tagInputValue = ref('');
@@ -104,12 +115,6 @@ const {
 
 const inputId = computed(() => props.id || formField?.inputId.value || baseInputId.value);
 const describedBy = computed(() => formField?.messageId.value || undefined);
-
-const { left: ddLeft, top: ddTop, minWidth: ddMinWidth } = useSelectDropdown({
-  isOpen,
-  triggerEl: triggerRef,
-  dropdownEl: dropdownRef,
-});
 
 const selectedTags = computed(() =>
   model.value.map((v) => {
@@ -208,16 +213,61 @@ function onInputBlur() {
   isFocused.value = false;
 }
 
-function onDocumentMouseDown(event: MouseEvent) {
-  if (!isOpen.value) return;
-  const target = event.target as Node;
-  if (hostRef.value?.contains(target)) return;
-  if (dropdownRef.value?.contains(target)) return;
-  closeDropdown();
+// --- overlay-service wiring ---
+//
+// The legacy TagSelect hid the dropdown whenever `filteredOptions.length === 0` so
+// an "empty state" never flashed on-screen between keystrokes. Mirror that here by
+// closing the overlay when options drop to zero and re-opening when they return.
+
+const parentOverlay = useOverlayParent();
+let overlayRef: OverlayRef | null = null;
+
+const shouldShowOverlay = computed(() => isOpen.value && filteredOptions.value.length > 0);
+
+function openOverlay() {
+  const trigger = triggerRef.value;
+  if (!trigger || overlayRef) return;
+
+  const ref = getOverlayService().open({
+    spec: {
+      ...selectPreset,
+      anchor: { kind: 'element', element: trigger },
+    },
+    content: { kind: 'component', component: markRaw(CoarTagSelectDropdownPanel) },
+    inputs: {
+      filteredOptions,
+      highlightedIndex,
+      listboxId: listboxId.value,
+      optionIdPrefix: inputId.value,
+      size: props.size,
+      onOptionClick: (opt: CoarSelectOption<T>) => selectOption(opt),
+      onHighlight: (i: number) => { highlightedIndex.value = i; },
+    },
+    parent: parentOverlay,
+  });
+  overlayRef = ref;
+
+  ref.afterClosed.then(() => {
+    if (overlayRef !== ref) return;
+    overlayRef = null;
+    if (isOpen.value) closeDropdown();
+  });
 }
 
-onMounted(() => document.addEventListener('mousedown', onDocumentMouseDown));
-onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseDown));
+function closeOverlay() {
+  const ref = overlayRef;
+  overlayRef = null;
+  if (ref && !ref.isClosed) ref.close();
+}
+
+watch(shouldShowOverlay, (show) => {
+  if (show) openOverlay();
+  else closeOverlay();
+});
+
+onBeforeUnmount(() => {
+  closeOverlay();
+});
 </script>
 
 <template>
@@ -277,60 +327,6 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
           />
         </div>
       </div>
-
-      <!-- Dropdown (teleported to body for proper stacking) -->
-      <Teleport to="body">
-        <div
-          v-if="isOpen && filteredOptions.length > 0"
-          ref="dropdownRef"
-          :class="['coar-select-dropdown', `coar-select-dropdown--${props.size}`]"
-          role="presentation"
-          :data-coar-overlay-companion="inputId"
-          :style="{
-            position: 'fixed',
-            top: '0px',
-            left: '0px',
-            transform: `translate3d(${ddLeft}px, ${ddTop}px, 0)`,
-            minWidth: `${ddMinWidth}px`,
-            zIndex: 'calc(var(--coar-z-overlay, 1000) + 50)',
-          }"
-        >
-          <div
-            :id="listboxId"
-            v-scrollbar="{ overflowX: 'hidden', defer: false }"
-            class="coar-select-options"
-            role="listbox"
-            :aria-label="t('coar.ui.tagSelect.options', undefined, 'Options')"
-          >
-            <template v-for="(option, i) in filteredOptions" :key="String(option.value)">
-              <div
-                v-if="option.group && (i === 0 || filteredOptions[i - 1]?.group !== option.group)"
-                class="coar-select-group-header"
-                role="presentation"
-              >
-                {{ option.group }}
-              </div>
-              <div
-                :id="`${inputId}-option-${i}`"
-                class="coar-select-option"
-                :class="{
-                  'coar-select-option--highlighted': highlightedIndex === i,
-                  'coar-select-option--disabled': option.disabled,
-                }"
-                :aria-disabled="option.disabled ? 'true' : undefined"
-                tabindex="-1"
-                role="option"
-                @click="selectOption(option)"
-                @mouseenter="highlightedIndex = i"
-              >
-                <CoarIcon v-if="option.icon" :name="option.icon" size="s" class="coar-select-option-icon" />
-                <span class="coar-select-option-label">{{ option.label }}</span>
-              </div>
-            </template>
-          </div>
-        </div>
-      </Teleport>
-
     </div>
   </div>
 </template>
@@ -460,86 +456,9 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
 
 .coar-tag-select-input::placeholder { color: var(--coar-text-placeholder); }
 
-/* Dropdown */
-.coar-select-dropdown {
-  background: var(--coar-background-neutral-primary);
-  border: 1px solid var(--coar-border-neutral);
-  border-radius: var(--coar-radius-s);
-  box-shadow: var(--coar-shadow-m);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Options */
-.coar-select-options {
-  max-height: 240px;
-  overflow: hidden;
-  padding: var(--coar-spacing-xs) 0;
-}
-
-.coar-select-option {
-  display: flex;
-  align-items: center;
-  gap: var(--coar-select-option-gap);
-  padding: var(--coar-select-option-padding);
-  font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-select-option-font-size);
-  color: var(--coar-text-neutral-primary);
-  cursor: pointer;
-  transition: background-color var(--coar-duration-fast) var(--coar-ease-out);
-}
-
-.coar-select-option:hover:not(.coar-select-option--disabled),
-.coar-select-option--highlighted:not(.coar-select-option--disabled) {
-  background: var(--coar-background-neutral-tertiary);
-}
-
-.coar-select-option--disabled { color: var(--coar-text-neutral-disabled); cursor: not-allowed; }
-.coar-select-option-icon { flex-shrink: 0; color: inherit; }
-.coar-select-option-label {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Group header */
-.coar-select-group-header {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  padding: var(--coar-spacing-s) var(--coar-spacing-s) var(--coar-spacing-xs);
-  border-top: 1px solid transparent;
-  background: var(--coar-background-neutral-primary);
-  font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-body-caption-size);
-  font-weight: var(--coar-font-weight-semibold);
-  color: var(--coar-text-neutral-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  user-select: none;
-}
-
-.coar-select-group-header::before {
-  content: '';
-  position: absolute;
-  top: calc(-1 * var(--coar-spacing-xs) - 1px);
-  left: 0;
-  right: 0;
-  height: calc(var(--coar-spacing-xs) + 1px);
-  background: inherit;
-}
-
-.coar-select-group-header:not(:first-child) {
-  border-top-color: var(--coar-border-neutral-tertiary);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .coar-tag-select-trigger,
-  .coar-tag-select-tag-remove,
-  .coar-select-option {
+  .coar-tag-select-tag-remove {
     transition: none;
   }
 }

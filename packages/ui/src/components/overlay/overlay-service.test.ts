@@ -155,7 +155,9 @@ describe('overlay-presets', () => {
   });
 
   it('selectPreset has correct config', () => {
-    expect(selectPreset.a11y?.role).toBe('listbox');
+    // role intentionally unset — the select panels render their own inner `role="listbox"`
+    // element; adding it on the host would duplicate and misplace aria-multiselectable.
+    expect(selectPreset.a11y?.role).toBeUndefined();
     expect(selectPreset.size?.minWidth).toBe('anchor');
     expect(selectPreset.dismiss?.escapeKey).toBe(true);
   });

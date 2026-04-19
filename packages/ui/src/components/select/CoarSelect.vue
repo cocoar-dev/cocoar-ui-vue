@@ -1,12 +1,30 @@
 <script setup lang="ts" generic="T">
-import { computed, inject, toRef, onMounted, onBeforeUnmount, useTemplateRef, nextTick } from 'vue';
+/**
+ * Single-select combobox. The trigger lives in this component's template; the dropdown
+ * is rendered by the overlay-service (see `CoarSelectDropdownPanel`). Delegating to the
+ * service gives us:
+ *
+ *  - tree-aware outside-click (a click inside an ancestor dialog closes the dropdown but
+ *    keeps the dialog open, via `useOverlayParent()`)
+ *  - correct z-index stacking inside any overlay (no more dropdown-behind-dialog)
+ *  - anchor-width sizing via `size.minWidth: 'anchor'` — the dropdown matches the
+ *    trigger width while long option labels can extend it
+ *  - reposition on scroll (`scroll.strategy: 'reposition'`), no transform-translate3d
+ *    trap that used to make fixed-positioned descendants render relative to the dropdown
+ *    instead of the viewport
+ */
+import {
+  computed, inject, toRef, watch, onBeforeUnmount, useTemplateRef, nextTick, markRaw,
+} from 'vue';
 import { useI18n } from '@cocoar/vue-localization';
 import { CoarIcon } from '../icon';
 import { useSelectBase, type CoarSelectSize, type CoarSelectAppearance } from './useSelectBase';
-import { useSelectDropdown } from './useSelectDropdown';
-import { vScrollbar } from '../scrollbar/vScrollbar';
+import { getOverlayService, useOverlayParent } from '../overlay/useOverlay';
+import { selectPreset } from '../overlay/overlay-presets';
+import type { OverlayRef } from '../overlay/overlay-types';
 import type { CoarSelectOption, CoarSelectSortGroups, CoarSelectSortOptions } from './types';
 import { FORM_FIELD_INJECTION_KEY } from '../form-field/constants';
+import CoarSelectDropdownPanel from './CoarSelectDropdownPanel.vue';
 
 export interface CoarSelectProps<T = unknown> {
   /** Placeholder text */
@@ -71,7 +89,6 @@ const formField = inject(FORM_FIELD_INJECTION_KEY, undefined);
 const hostRef = useTemplateRef<HTMLElement>('hostRef');
 const triggerRef = useTemplateRef<HTMLElement>('triggerRef');
 const searchInputRef = useTemplateRef<HTMLInputElement>('searchInputRef');
-const dropdownRef = useTemplateRef<HTMLElement>('dropdownRef');
 
 const hasError = computed(() => props.error || (formField?.hasError.value ?? false));
 
@@ -104,12 +121,6 @@ const {
 const inputId = computed(() => props.id || formField?.inputId.value || baseInputId.value);
 const describedBy = computed(() => formField?.messageId.value || undefined);
 
-const { left: ddLeft, top: ddTop, minWidth: ddMinWidth } = useSelectDropdown({
-  isOpen,
-  triggerEl: triggerRef,
-  dropdownEl: dropdownRef,
-});
-
 const compare = computed(() => props.compareWith ?? ((a: T, b: T) => a === b));
 
 const selectedOption = computed(() => {
@@ -133,6 +144,11 @@ const hostClasses = computed(() => [
   },
 ]);
 
+function isSelected(option: CoarSelectOption<T>): boolean {
+  if (model.value === null || model.value === undefined) return false;
+  return compare.value(model.value as T, option.value);
+}
+
 function selectOption(option: CoarSelectOption<T>) {
   if (option.disabled || props.disabled || props.readonly) return;
   model.value = option.value;
@@ -151,11 +167,6 @@ function selectHighlighted() {
 function clearSelection(event: Event) {
   event.stopPropagation();
   model.value = null;
-}
-
-function isSelected(option: CoarSelectOption<T>): boolean {
-  if (model.value === null || model.value === undefined) return false;
-  return compare.value(model.value as T, option.value);
 }
 
 function onTriggerClick(event: Event) {
@@ -184,17 +195,60 @@ function handleBlur(event: FocusEvent) {
   onBlur();
 }
 
-// Outside click — use mousedown so it fires before stopPropagation on trigger click
-function onDocumentMouseDown(event: MouseEvent) {
-  if (!isOpen.value) return;
-  const target = event.target as Node;
-  if (hostRef.value?.contains(target)) return;
-  if (dropdownRef.value?.contains(target)) return;
-  closeDropdown();
+// --- overlay-service wiring ---
+
+const parentOverlay = useOverlayParent();
+let overlayRef: OverlayRef | null = null;
+
+function openOverlay() {
+  const trigger = triggerRef.value;
+  if (!trigger || overlayRef) return;
+
+  const ref = getOverlayService().open({
+    spec: {
+      ...selectPreset,
+      anchor: { kind: 'element', element: trigger },
+    },
+    content: { kind: 'component', component: markRaw(CoarSelectDropdownPanel) },
+    inputs: {
+      filteredOptions,
+      highlightedIndex,
+      searchQuery,
+      listboxId: listboxId.value,
+      optionIdPrefix: inputId.value,
+      size: props.size,
+      isSelected,
+      onOptionClick: (opt: CoarSelectOption<T>) => selectOption(opt),
+      onHighlight: (i: number) => { highlightedIndex.value = i; },
+    },
+    parent: parentOverlay,
+  });
+  overlayRef = ref;
+
+  // Sync local state if the service closes the overlay externally (outside click,
+  // escape, scroll-close). `closeDropdown()` sets `isOpen=false` which the watcher
+  // below sees and no-ops since `overlayRef` is already cleared here.
+  ref.afterClosed.then(() => {
+    if (overlayRef !== ref) return;
+    overlayRef = null;
+    if (isOpen.value) closeDropdown();
+  });
 }
 
-onMounted(() => document.addEventListener('mousedown', onDocumentMouseDown));
-onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseDown));
+function closeOverlay() {
+  const ref = overlayRef;
+  overlayRef = null;
+  if (ref && !ref.isClosed) ref.close();
+}
+
+watch(isOpen, (open) => {
+  if (open) openOverlay();
+  else closeOverlay();
+});
+
+onBeforeUnmount(() => {
+  closeOverlay();
+});
 </script>
 
 <template>
@@ -269,67 +323,6 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
           />
         </span>
       </div>
-
-      <!-- Dropdown (teleported to body for proper stacking) -->
-      <Teleport to="body">
-        <div
-          v-if="isOpen"
-          ref="dropdownRef"
-          :class="['coar-select-dropdown', `coar-select-dropdown--${props.size}`]"
-          role="presentation"
-          :data-coar-overlay-companion="inputId"
-          :style="{
-            position: 'fixed',
-            top: '0px',
-            left: '0px',
-            transform: `translate3d(${ddLeft}px, ${ddTop}px, 0)`,
-            minWidth: `${ddMinWidth}px`,
-            zIndex: 'calc(var(--coar-z-overlay, 1000) + 50)',
-          }"
-        >
-          <!-- Options List -->
-          <div
-            :id="listboxId"
-            v-scrollbar="{ overflowX: 'hidden', defer: false }"
-            class="coar-select-options"
-            role="listbox"
-            :aria-label="t('coar.ui.select.options', undefined, 'Options')"
-          >
-            <template v-for="(option, i) in filteredOptions" :key="String(option.value)">
-              <div
-                v-if="option.group && (i === 0 || filteredOptions[i - 1]?.group !== option.group)"
-                class="coar-select-group-header"
-                role="presentation"
-              >
-                {{ option.group }}
-              </div>
-              <div
-                :id="`${inputId}-option-${i}`"
-                class="coar-select-option"
-                :class="{
-                  'coar-select-option--selected': isSelected(option),
-                  'coar-select-option--highlighted': highlightedIndex === i,
-                  'coar-select-option--disabled': option.disabled,
-                }"
-                :aria-selected="isSelected(option)"
-                :aria-disabled="option.disabled ? 'true' : undefined"
-                tabindex="-1"
-                role="option"
-                @click="selectOption(option)"
-                @mouseenter="highlightedIndex = i"
-              >
-              <CoarIcon v-if="option.icon" :name="option.icon" size="s" class="coar-select-option-icon" />
-              <span class="coar-select-option-label">{{ option.label }}</span>
-              <CoarIcon v-if="isSelected(option)" name="check" source="coar-builtin" size="s" class="coar-select-option-check" />
-              </div>
-            </template>
-            <div v-if="filteredOptions.length === 0" class="coar-select-empty">
-              {{ searchQuery ? t('coar.ui.select.noResults', undefined, 'No results found') : t('coar.ui.select.noOptions', undefined, 'No options available') }}
-            </div>
-          </div>
-        </div>
-      </Teleport>
-
     </div>
   </div>
 </template>
@@ -483,17 +476,6 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
   transform: rotate(-90deg);
 }
 
-/* Dropdown */
-.coar-select-dropdown {
-  background: var(--coar-background-neutral-primary);
-  border: 1px solid var(--coar-border-neutral);
-  border-radius: var(--coar-radius-s);
-  box-shadow: var(--coar-shadow-m);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
 /* Inline search */
 .coar-select-inline-search {
   flex: 1;
@@ -517,107 +499,11 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
 .coar-select--s .coar-select-inline-search { font-size: var(--coar-component-s-font-size); }
 .coar-select--l .coar-select-inline-search { font-size: var(--coar-component-l-font-size); }
 
-/* Options */
-.coar-select-options {
-  max-height: 240px;
-  overflow: hidden;
-  padding: var(--coar-spacing-xs) 0;
-}
-
-.coar-select-option {
-  display: flex;
-  align-items: center;
-  gap: var(--coar-select-option-gap);
-  padding: var(--coar-select-option-padding);
-  font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-select-option-font-size);
-  color: var(--coar-text-neutral-primary);
-  cursor: pointer;
-  transition: background-color 0.1s ease;
-}
-
-.coar-select-option:hover:not(.coar-select-option--disabled),
-.coar-select-option--highlighted:not(.coar-select-option--disabled) {
-  background: var(--coar-background-neutral-tertiary);
-}
-
-.coar-select-option--selected {
-  background: var(--coar-background-accent-secondary);
-  color: var(--coar-text-accent-primary);
-}
-
-.coar-select-option--selected:hover,
-.coar-select-option--selected.coar-select-option--highlighted {
-  background: var(--coar-background-accent-secondary);
-}
-
-.coar-select-option--disabled {
-  color: var(--coar-text-neutral-disabled);
-  cursor: not-allowed;
-}
-
-.coar-select-option-icon { flex-shrink: 0; color: inherit; }
-
-.coar-select-option-label {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.coar-select-option-check {
-  flex-shrink: 0;
-  color: var(--coar-icon-accent-primary);
-}
-
-/* Group header */
-.coar-select-group-header {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  padding: var(--coar-spacing-s) var(--coar-spacing-s) var(--coar-spacing-xs);
-  border-top: 1px solid transparent;
-  background: var(--coar-background-neutral-primary);
-  font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-body-caption-size);
-  font-weight: var(--coar-font-weight-semibold);
-  color: var(--coar-text-neutral-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  user-select: none;
-}
-
-/* Extend background upward to cover scroll container padding gap */
-.coar-select-group-header::before {
-  content: '';
-  position: absolute;
-  top: calc(-1 * var(--coar-spacing-xs) - 1px);
-  left: 0;
-  right: 0;
-  height: calc(var(--coar-spacing-xs) + 1px);
-  background: inherit;
-}
-
-.coar-select-group-header:not(:first-child) {
-  border-top-color: var(--coar-border-neutral-tertiary);
-}
-
-/* Empty */
-.coar-select-empty {
-  padding: var(--coar-select-option-padding);
-  text-align: center;
-  font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-select-option-font-size);
-  color: var(--coar-text-neutral-tertiary);
-}
-
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .coar-select-trigger,
   .coar-select-clear,
-  .coar-select-arrow,
-  .coar-select-option {
+  .coar-select-arrow {
     transition: none;
   }
 }

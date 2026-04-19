@@ -1,9 +1,14 @@
 <script setup lang="ts">
-import { computed, inject, nextTick, onBeforeUnmount, ref, useId, watch } from 'vue';
+import {
+  computed, inject, onBeforeUnmount, ref, useId, useSlots, watch, markRaw,
+  type VNode,
+} from 'vue';
 import CoarIcon from '../icon/CoarIcon.vue';
 import type { CoarIconSize } from '../icon/icon-service';
 import { vTooltip } from '../tooltip/vTooltip';
-import { computeOverlayCoordinates } from '../overlay/overlay-position';
+import { getOverlayService, useOverlayParent } from '../overlay/useOverlay';
+import { sidebarFlyoutPreset } from '../overlay/overlay-presets';
+import type { OverlayRef } from '../overlay/overlay-types';
 import {
   SIDEBAR_COLLAPSED_KEY,
   SIDEBAR_ICON_SIZE_KEY,
@@ -11,7 +16,7 @@ import {
   SIDEBAR_FLYOUT_PARENT_KEY,
 } from './sidebar-context';
 import type { SidebarFlyoutParent } from './sidebar-context';
-import SidebarFlyoutProvider from './SidebarFlyoutProvider.vue';
+import CoarSidebarFlyoutPanel from './CoarSidebarFlyoutPanel.vue';
 
 const panelId = `coar-sidebar-group-${useId()}`;
 
@@ -43,28 +48,29 @@ const resolvedIconOnly = computed(() => props.iconOnly ?? parentIconOnly.value);
 
 const isOpen = computed(() => open.value);
 const isFlyout = computed(() => props.mode === 'flyout');
-const isIconsMode = computed(() => resolvedIconOnly.value);
+
+const slots = useSlots();
 
 // Flyout state
 const flyoutOpen = ref(false);
 const triggerRef = ref<HTMLElement | null>(null);
-const flyoutRef = ref<HTMLElement | null>(null);
-const flyoutStyle = ref<{ left: string; top: string }>({ left: '0px', top: '0px' });
 let closeTimer: ReturnType<typeof setTimeout> | null = null;
 let openTimer: ReturnType<typeof setTimeout> | null = null;
+let overlayRef: OverlayRef | null = null;
 
 // Parent-child flyout cascade: inject parent's close control, provide our own for children
 const parentFlyout = inject(SIDEBAR_FLYOUT_PARENT_KEY, null);
 
-// This flyout's control — passed to children via SidebarFlyoutProvider
+// This flyout's control — passed to children via SidebarFlyoutProvider inside the panel.
+// `cancelClose`/`scheduleClose` cascade up so hovering a child flyout keeps ancestors open.
 const selfControl: SidebarFlyoutParent = {
   cancelClose: () => {
     cancelClose();
-    parentFlyout?.cancelClose(); // cascade up
+    parentFlyout?.cancelClose();
   },
   scheduleClose: () => {
     scheduleClose();
-    parentFlyout?.scheduleClose(); // cascade up
+    parentFlyout?.scheduleClose();
   },
 };
 
@@ -72,7 +78,6 @@ const selfControl: SidebarFlyoutParent = {
 const renderIconOnly = computed(() => parentIconOnly.value && !sidebarCollapsed.value);
 
 const tooltipConfig = computed(() => {
-  // Show tooltip when icon-only (collapsed or inside icon-only flyout)
   if (renderIconOnly.value) {
     if (isFlyout.value && flyoutOpen.value) return false;
     if (!isFlyout.value && isOpen.value) return false;
@@ -91,60 +96,89 @@ function toggle(event: Event) {
   }
 
   if (isFlyout.value) {
-    if (flyoutOpen.value) {
-      closeFlyout();
-    } else {
-      openFlyout();
-    }
+    if (flyoutOpen.value) closeFlyout();
+    else openFlyout();
     return;
   }
 
   open.value = !open.value;
 }
 
-// ── Flyout positioning ──────────────────────────────────────
+// --- overlay-service wiring ---
 
-function positionFlyout() {
-  if (!triggerRef.value || !flyoutRef.value) return;
+const parentOverlay = useOverlayParent();
 
-  const trigger = triggerRef.value.getBoundingClientRect();
-  const panel = flyoutRef.value;
-  const overlaySize = { width: panel.offsetWidth, height: panel.offsetHeight };
-
-  // Use sidebar or parent flyout edge for horizontal positioning so overlap is consistent
-  // regardless of trigger width (collapsed icon vs full-width row)
-  const container = triggerRef.value.closest('.coar-sidebar') || triggerRef.value.closest('.coar-sidebar-flyout');
-  const containerRect = container?.getBoundingClientRect();
-  const anchorRect = containerRect
-    ? { left: containerRect.left, top: trigger.top, right: containerRect.right, bottom: trigger.bottom, width: containerRect.width, height: trigger.height }
-    : { left: trigger.left, top: trigger.top, right: trigger.right, bottom: trigger.bottom, width: trigger.width, height: trigger.height };
-
-  const coords = computeOverlayCoordinates(
-    anchorRect,
-    overlaySize,
-    { placement: ['right-start', 'left-start'], offset: -4, flip: true, shift: true },
-    { width: window.innerWidth, height: window.innerHeight },
-  );
-
-  flyoutStyle.value = { left: `${coords.left}px`, top: `${coords.top}px` };
+function renderContent(): VNode[] | undefined {
+  return slots.default?.();
 }
 
 function openFlyout() {
+  if (!triggerRef.value || overlayRef) return;
   cancelClose();
-  parentFlyout?.cancelClose(); // keep parent open while child opens
+  parentFlyout?.cancelClose(); // keep ancestor open while we open
   flyoutOpen.value = true;
-  nextTick(() => {
-    positionFlyout();
-    document.addEventListener('mousedown', onClickOutside, true);
-    document.addEventListener('keydown', onEscape, true);
+
+  // Anchor is the trigger element, but the legacy positioning pinned the flyout's
+  // horizontal edge to the *sidebar container*'s edge so the flyout lines up with the
+  // sidebar rail (not the narrow icon trigger inside it). Collapsed sidebars typically
+  // center a 36 px icon inside a 64 px rail — a trigger-anchored flyout would land
+  // 14 px inside the rail on each side. Compensate by folding that gap into the offset:
+  // right-start with `offset = baseOffset + gap` puts the flyout's left edge at
+  // `trigger.right + (gap - 4)` = `container.right - 4`, matching the legacy visual.
+  // For full-width triggers the gap is 0, so the offset stays -4 as the preset defined.
+  const trigger = triggerRef.value;
+  const triggerRect = trigger.getBoundingClientRect();
+  const railEl = trigger.closest('.coar-sidebar') ?? trigger.closest('.coar-sidebar-flyout');
+  const railRect = railEl?.getBoundingClientRect();
+  const horizontalGap = railRect ? railRect.right - triggerRect.right : 0;
+  const BASE_OFFSET = -4;
+
+  const ref = getOverlayService().open({
+    spec: {
+      ...sidebarFlyoutPreset,
+      anchor: { kind: 'element', element: trigger },
+      position: {
+        placement: ['right-start', 'left-start'],
+        offset: BASE_OFFSET + horizontalGap,
+        flip: true,
+        shift: true,
+      },
+    },
+    content: { kind: 'component', component: markRaw(CoarSidebarFlyoutPanel) },
+    inputs: {
+      id: panelId,
+      label: props.label,
+      iconOnly: resolvedIconOnly.value,
+      parentControl: selfControl,
+      renderContent,
+      onFlyoutEnter: () => {
+        cancelClose();
+        parentFlyout?.cancelClose();
+      },
+      onFlyoutLeave: () => scheduleClose(),
+    },
+    parent: parentOverlay,
+  });
+  overlayRef = ref;
+
+  // Sync local state if the service closes externally (outside click, escape, parent
+  // tree teardown). Skipped when our own `closeFlyout` already ran since it clears
+  // `overlayRef` before calling `ref.close()`.
+  ref.afterClosed.then(() => {
+    if (overlayRef !== ref) return;
+    overlayRef = null;
+    flyoutOpen.value = false;
+    cancelClose();
+    cancelOpen();
   });
 }
 
 function closeFlyout() {
   cancelClose();
   flyoutOpen.value = false;
-  document.removeEventListener('mousedown', onClickOutside, true);
-  document.removeEventListener('keydown', onEscape, true);
+  const ref = overlayRef;
+  overlayRef = null;
+  if (ref && !ref.isClosed) ref.close();
 }
 
 function scheduleClose() {
@@ -174,39 +208,12 @@ function cancelOpen() {
 function onTriggerEnter() {
   if (flyoutOpen.value) cancelClose();
   else if (isFlyout.value && props.openOnHover) scheduleOpen();
-  parentFlyout?.cancelClose(); // keep parent open when hovering trigger
+  parentFlyout?.cancelClose(); // keep ancestor open when hovering our trigger
 }
 
 function onTriggerLeave() {
   cancelOpen();
   if (flyoutOpen.value) scheduleClose();
-}
-
-function onFlyoutEnter() {
-  cancelClose();
-  parentFlyout?.cancelClose(); // keep parent open when hovering child panel
-}
-
-function onFlyoutLeave() {
-  scheduleClose();
-}
-
-function onClickOutside(event: MouseEvent) {
-  const target = event.target as Node;
-  if (triggerRef.value?.contains(target) || flyoutRef.value?.contains(target)) return;
-  // Don't close if click is inside any descendant flyout panel
-  const flyoutPanels = document.querySelectorAll('.coar-sidebar-flyout');
-  for (const panel of flyoutPanels) {
-    if (panel.contains(target)) return;
-  }
-  closeFlyout();
-}
-
-function onEscape(event: KeyboardEvent) {
-  if (event.key === 'Escape') {
-    closeFlyout();
-    triggerRef.value?.focus();
-  }
 }
 
 // Close flyout when sidebar collapsed state changes
@@ -217,13 +224,19 @@ watch(sidebarCollapsed, () => {
 onBeforeUnmount(() => {
   cancelClose();
   cancelOpen();
-  document.removeEventListener('mousedown', onClickOutside, true);
-  document.removeEventListener('keydown', onEscape, true);
+  if (overlayRef && !overlayRef.isClosed) overlayRef.close();
+  overlayRef = null;
 });
 </script>
 
 <template>
-  <div class="coar-sidebar-group" :class="{ 'coar-sidebar-group--collapsed': sidebarCollapsed, 'coar-sidebar-group--icon-only': renderIconOnly }">
+  <div
+    class="coar-sidebar-group"
+    :class="{
+      'coar-sidebar-group--collapsed': sidebarCollapsed,
+      'coar-sidebar-group--icon-only': renderIconOnly,
+    }"
+  >
     <!-- Trigger -->
     <div
       ref="triggerRef"
@@ -280,27 +293,6 @@ onBeforeUnmount(() => {
         <slot />
       </div>
     </div>
-
-    <!-- Flyout panel (mode="flyout") -->
-    <Teleport to="body">
-      <SidebarFlyoutProvider v-if="isFlyout && flyoutOpen" :icon-only="resolvedIconOnly" :parent-control="selfControl">
-        <div
-          :id="panelId"
-          ref="flyoutRef"
-          class="coar-sidebar-flyout"
-          :class="{ 'coar-sidebar-flyout--icons': isIconsMode }"
-          role="menu"
-          :style="flyoutStyle"
-          @mouseenter="onFlyoutEnter"
-          @mouseleave="onFlyoutLeave"
-        >
-          <div v-if="!isIconsMode" class="coar-sidebar-flyout__header">{{ props.label }}</div>
-          <div class="coar-sidebar-flyout__items">
-            <slot />
-          </div>
-        </div>
-      </SidebarFlyoutProvider>
-    </Teleport>
   </div>
 </template>
 
@@ -435,7 +427,6 @@ onBeforeUnmount(() => {
    Collapsed mode
    ======================================== */
 
-/* Trigger: square icon button, centered */
 .coar-sidebar-group--collapsed .coar-sidebar-group__trigger {
   width: fit-content;
   margin-left: auto;
@@ -457,7 +448,6 @@ onBeforeUnmount(() => {
   display: none;
 }
 
-/* Panel: no indent, children centered under parent */
 .coar-sidebar-group--collapsed .coar-sidebar-group__panel {
   --coar-sidebar-group-indent: 0;
 }
@@ -473,14 +463,12 @@ onBeforeUnmount(() => {
   opacity: 0.65;
 }
 
-/* Spacing after collapsed group to separate from next sibling */
 .coar-sidebar-group--collapsed {
   margin-bottom: 0.25rem;
 }
 
 /* ========================================
    Icon-only mode (nested in icon-only flyout)
-   Mirrors collapsed styles so trigger shows icon + caret
    ======================================== */
 
 .coar-sidebar-group--icon-only .coar-sidebar-group__trigger {
@@ -514,11 +502,9 @@ onBeforeUnmount(() => {
 }
 </style>
 
-<!-- Flyout panel is teleported to body, so styles must be unscoped -->
+<!-- Flyout panel is service-mounted outside this component's scope, so styles are unscoped. -->
 <style>
 .coar-sidebar-flyout {
-  position: fixed;
-  z-index: var(--coar-z-overlay, 1000);
   min-width: 180px;
   max-width: 260px;
   padding: 0.375rem;
@@ -543,7 +529,7 @@ onBeforeUnmount(() => {
   flex-direction: column;
 }
 
-/* Icons mode: grid layout */
+/* Icons mode: narrow layout */
 .coar-sidebar-flyout--icons {
   min-width: auto;
   max-width: none;
@@ -566,7 +552,6 @@ onBeforeUnmount(() => {
   display: none;
 }
 
-/* Icon-only flyout: nested group triggers should look like icon buttons */
 .coar-sidebar-flyout--icons .coar-sidebar-flyout__items .coar-sidebar-group--icon-only .coar-sidebar-group__trigger {
   width: fit-content;
   margin: 0 auto;
@@ -575,7 +560,6 @@ onBeforeUnmount(() => {
   justify-content: center;
 }
 
-/* Icon-only flyout: expand panel — no indent, children centered as icons */
 .coar-sidebar-flyout--icons .coar-sidebar-group--icon-only .coar-sidebar-group__panel {
   --coar-sidebar-group-indent: 0;
 }
@@ -592,7 +576,7 @@ onBeforeUnmount(() => {
   display: none;
 }
 
-/* Labels mode: override collapsed styles if children are in collapsed state */
+/* Labels mode: override collapsed styles inside the flyout */
 .coar-sidebar-flyout:not(.coar-sidebar-flyout--icons) .coar-sidebar-flyout__items .coar-sidebar-item--collapsed {
   width: 100%;
   margin-left: 0;
@@ -606,7 +590,6 @@ onBeforeUnmount(() => {
   display: inline;
 }
 
-/* Labels mode: override collapsed styles for nested group triggers */
 .coar-sidebar-flyout:not(.coar-sidebar-flyout--icons) .coar-sidebar-flyout__items .coar-sidebar-group--collapsed .coar-sidebar-group__trigger {
   width: 100%;
   margin-left: 0;

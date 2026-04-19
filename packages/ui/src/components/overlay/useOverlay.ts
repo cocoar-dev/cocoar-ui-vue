@@ -1,11 +1,41 @@
 import { type InjectionKey, inject, type Plugin } from 'vue';
-import { createOverlayService, type OverlayService } from './overlay-service';
+import { createOverlayService, type OverlayService, type OverlayInstance } from './overlay-service';
 import { createToastService, registerToastService, TOAST_SERVICE_KEY } from '../toast/toast-service';
 
 /**
  * Injection key for the overlay service singleton.
  */
 export const OVERLAY_SERVICE_KEY: InjectionKey<OverlayService> = Symbol('CoarOverlayService');
+
+/**
+ * Injection key for the **nearest ancestor overlay**. Every `CoarOverlayOutlet` provides
+ * its own `OverlayInstance` under this key, so any descendant component that opens its
+ * own overlay (popover, tooltip, sub-menu, etc.) can read the nearest parent and pass it
+ * to `overlay.open({ parent })`. The service then:
+ *
+ *  - stacks the child above the parent (each new `instance.id` is larger, so
+ *    `calc(var(--coar-z-overlay) + id*2)` gives higher z-index automatically)
+ *  - treats clicks inside the child as clicks inside the parent (parent does not close
+ *    when the user interacts with a popover that was opened from inside it)
+ *  - propagates close-on-parent-close so orphaned children don't linger
+ *
+ * Components outside any overlay get `undefined` on inject and open as root overlays.
+ * Mirrors Angular's `@Optional() @SkipSelf() parentOverlay?: OverlayInstance` pattern.
+ */
+export const OVERLAY_PARENT_KEY: InjectionKey<OverlayInstance> = Symbol('CoarOverlayParent');
+
+/**
+ * Convenience composable — reads the nearest ancestor overlay instance, or `undefined`
+ * if the component is outside any overlay (top-level of the app).
+ *
+ * ```ts
+ * const parent = useOverlayParent();
+ * overlay.open({ spec, content, parent });
+ * ```
+ */
+export function useOverlayParent(): OverlayInstance | undefined {
+  return inject(OVERLAY_PARENT_KEY, undefined);
+}
 
 /**
  * Module-level service capture so useDialog/useToast work outside setup().

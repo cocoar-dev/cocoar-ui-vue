@@ -1,15 +1,31 @@
 <script setup lang="ts">
+/**
+ * Anchored popover with hover / click / both trigger modes.
+ *
+ * Delegates panel mount, positioning, teleport, z-index stacking, click-outside, and
+ * escape dismissal to the overlay-service. The component itself only tracks trigger
+ * state (hover vs. click-pinned) and the hover-out grace timer — everything below the
+ * `useOverlay().open()` call is handled by the service.
+ *
+ * When mounted inside another overlay (dialog, menu, etc.), `useOverlayParent()` returns
+ * the parent `OverlayInstance` and is passed to `open({ parent })`. The service then
+ * stacks this popover above the parent (each new `instance.id` is larger → higher
+ * z-index) and treats clicks inside it as clicks inside the parent so the parent does
+ * not close when the user interacts with the popover.
+ */
 import {
   ref,
-  nextTick,
-  onMounted,
   onBeforeUnmount,
+  useSlots,
   watch,
+  markRaw,
   type PropType,
+  type VNode,
 } from 'vue';
-import { computeOverlayCoordinates } from '../overlay/overlay-position';
-import type { Placement } from '../overlay/overlay-types';
-import { vScrollbar } from '../scrollbar/vScrollbar';
+import { getOverlayService, useOverlayParent } from '../overlay/useOverlay';
+import { popoverPreset } from '../overlay/overlay-presets';
+import type { OverlayRef } from '../overlay/overlay-types';
+import CoarPopoverPanel from './CoarPopoverPanel.vue';
 
 export type PopoverMode = 'hover' | 'click' | 'both';
 
@@ -26,84 +42,36 @@ const props = defineProps({
 
 const panelId = `coar-popover-${Math.random().toString(36).slice(2, 9)}`;
 
+const triggerRef = ref<HTMLElement | null>(null);
 const isOpen = ref(false);
 const pinnedByClick = ref(false);
-const triggerRef = ref<HTMLElement | null>(null);
-const panelRef = ref<HTMLElement | null>(null);
 
-const panelStyle = ref<Record<string, string>>({
-  position: 'fixed',
-  top: '0px',
-  left: '0px',
-  opacity: '0',
-});
-const currentPlacement = ref<Placement>('bottom');
-
+let overlayRef: OverlayRef | null = null;
 let hoveringTrigger = false;
 let hoveringPanel = false;
 let closeTimer: ReturnType<typeof setTimeout> | null = null;
-let scrollParents: Element[] = [];
-let resizeObserver: ResizeObserver | null = null;
 
 const HOVER_CLOSE_DELAY = 80;
 
-const FALLBACKS: readonly Placement[] = ['bottom', 'top', 'right', 'left'];
+const slots = useSlots();
+const parentOverlay = useOverlayParent();
+
+/** Closure into this component's own slot scope — captured here, invoked later by the
+ * panel component via `<component :is="{ render: renderContent }" />`. Without this
+ * indirection the panel (mounted by the service under a different v-node parent) would
+ * have no way to reach the popover's `content` slot VNodes. */
+function renderContent(): VNode[] | undefined {
+  return slots.content?.();
+}
 
 // --- helpers ---
 
-function position() {
-  const trigger = triggerRef.value;
-  const panel = panelRef.value;
-  if (!trigger || !panel) return;
-
-  const anchorRect = trigger.getBoundingClientRect();
-  const overlaySize = { width: panel.offsetWidth, height: panel.offsetHeight };
-  const viewport = { width: window.innerWidth, height: window.innerHeight };
-
-  const result = computeOverlayCoordinates(
-    anchorRect,
-    overlaySize,
-    { placement: FALLBACKS, offset: props.offset, flip: false, shift: true },
-    viewport,
-  );
-
-  currentPlacement.value = result.placement;
-  panelStyle.value = {
-    position: 'fixed',
-    top: `${result.top}px`,
-    left: `${result.left}px`,
-    opacity: '1',
-  };
+function canHover() {
+  return props.mode === 'hover' || props.mode === 'both';
 }
 
-function open(source: 'hover' | 'click') {
-  if (props.disabled) return;
-  if (isOpen.value) {
-    if (source === 'click') pinnedByClick.value = true;
-    return;
-  }
-
-  if (source === 'click') {
-    pinnedByClick.value = true;
-  } else {
-    pinnedByClick.value = false;
-  }
-
-  isOpen.value = true;
-
-  nextTick(() => {
-    position();
-    addScrollListeners();
-  });
-}
-
-function close() {
-  if (!isOpen.value) return;
-  isOpen.value = false;
-  pinnedByClick.value = false;
-  clearCloseTimer();
-  removeScrollListeners();
-  panelStyle.value = { ...panelStyle.value, opacity: '0' };
+function canClick() {
+  return props.mode === 'click' || props.mode === 'both';
 }
 
 function clearCloseTimer() {
@@ -122,54 +90,94 @@ function scheduleHoverClose() {
   }, HOVER_CLOSE_DELAY);
 }
 
-// --- scroll/resize repositioning ---
+function open(source: 'hover' | 'click') {
+  if (props.disabled) return;
+  if (isOpen.value) {
+    if (source === 'click') pinnedByClick.value = true;
+    return;
+  }
 
-function onReposition() {
-  if (isOpen.value) position();
-}
-
-function addScrollListeners() {
   const trigger = triggerRef.value;
   if (!trigger) return;
 
-  let el: Element | null = trigger;
-  while (el) {
-    if (
-      el.scrollHeight > el.clientHeight ||
-      el.scrollWidth > el.clientWidth
-    ) {
-      scrollParents.push(el);
-      el.addEventListener('scroll', onReposition, { passive: true });
+  pinnedByClick.value = source === 'click';
+  isOpen.value = true;
+
+  overlayRef = getOverlayService().open({
+    spec: {
+      ...popoverPreset,
+      anchor: { kind: 'element', element: trigger },
+      position: {
+        placement: popoverPreset.position?.placement ?? ['bottom', 'top', 'right', 'left'],
+        offset: props.offset,
+        flip: false,
+        shift: true,
+      },
+      // Hover-only popovers close via the hover-out timer below; suppress the service's
+      // outsideClick to avoid races between the timer and a stray document click.
+      // Click-mode popovers rely on the service's outsideClick to close when pinned.
+      dismiss: {
+        outsideClick: canClick(),
+        escapeKey: true,
+      },
+      a11y: {
+        role: props.interactive ? 'dialog' : 'tooltip',
+      },
+    },
+    content: { kind: 'component', component: markRaw(CoarPopoverPanel) },
+    inputs: {
+      interactive: props.interactive,
+      renderContent,
+      onPanelEnter: () => {
+        if (!canHover()) return;
+        hoveringPanel = true;
+        clearCloseTimer();
+      },
+      onPanelLeave: () => {
+        if (!canHover()) return;
+        if (pinnedByClick.value) return;
+        hoveringPanel = false;
+        scheduleHoverClose();
+      },
+      onPanelFocusOut: (event: FocusEvent) => {
+        if (pinnedByClick.value) return;
+        const next = event.relatedTarget as Node | null;
+        if (next && triggerRef.value?.contains(next)) return;
+        // The panel's own DOM is inside the overlay-host; the service's focus logic keeps
+        // focus within the overlay tree, so a focusout with no target inside trigger/panel
+        // means the user tabbed away deliberately. Close.
+        close();
+      },
+    },
+    parent: parentOverlay,
+  });
+
+  // If the service closes the overlay externally (outside click, escape) our local state
+  // must follow so the next hover/click reopens it instead of no-opping on isOpen.value.
+  overlayRef.afterClosed.then(() => {
+    if (overlayRef?.isClosed) {
+      overlayRef = null;
+      isOpen.value = false;
+      pinnedByClick.value = false;
+      hoveringPanel = false;
+      clearCloseTimer();
     }
-    el = el.parentElement;
+  });
+}
+
+function close() {
+  if (!isOpen.value) return;
+  clearCloseTimer();
+  if (overlayRef && !overlayRef.isClosed) {
+    overlayRef.close();
   }
-  window.addEventListener('scroll', onReposition, { passive: true });
-  window.addEventListener('resize', onReposition, { passive: true });
-
-  resizeObserver = new ResizeObserver(onReposition);
-  if (panelRef.value) resizeObserver.observe(panelRef.value);
+  overlayRef = null;
+  isOpen.value = false;
+  pinnedByClick.value = false;
+  hoveringPanel = false;
 }
 
-function removeScrollListeners() {
-  for (const el of scrollParents) {
-    el.removeEventListener('scroll', onReposition);
-  }
-  scrollParents = [];
-  window.removeEventListener('scroll', onReposition);
-  window.removeEventListener('resize', onReposition);
-  resizeObserver?.disconnect();
-  resizeObserver = null;
-}
-
-// --- event handlers ---
-
-function canHover() {
-  return props.mode === 'hover' || props.mode === 'both';
-}
-
-function canClick() {
-  return props.mode === 'click' || props.mode === 'both';
-}
+// --- trigger event handlers ---
 
 function onTriggerMouseEnter() {
   if (!canHover()) return;
@@ -185,30 +193,9 @@ function onTriggerMouseLeave() {
   scheduleHoverClose();
 }
 
-function onPanelMouseEnter() {
-  if (!canHover()) return;
-  hoveringPanel = true;
-  clearCloseTimer();
-}
-
-function onPanelMouseLeave() {
-  if (!canHover()) return;
-  if (pinnedByClick.value) return;
-  hoveringPanel = false;
-  scheduleHoverClose();
-}
-
 function onTriggerFocusIn() {
   if (!canHover()) return;
   open('hover');
-}
-
-function onFocusOut(event: FocusEvent) {
-  if (pinnedByClick.value) return;
-  const next = event.relatedTarget as Node | null;
-  if (next && triggerRef.value?.contains(next)) return;
-  if (next && panelRef.value?.contains(next)) return;
-  close();
 }
 
 function onTriggerClick(event: MouseEvent) {
@@ -229,28 +216,6 @@ function onTriggerClick(event: MouseEvent) {
   close();
 }
 
-// --- global listeners ---
-
-function onDocumentClick(event: MouseEvent) {
-  if (!isOpen.value || !pinnedByClick.value) return;
-  const target = event.target as Node | null;
-  if (!target) return;
-  if (triggerRef.value?.contains(target)) return;
-  if (panelRef.value?.contains(target)) return;
-  close();
-}
-
-function onKeydown(event: KeyboardEvent) {
-  if (event.key === 'Escape' && isOpen.value) {
-    close();
-  }
-}
-
-onMounted(() => {
-  document.addEventListener('click', onDocumentClick);
-  document.addEventListener('keydown', onKeydown);
-});
-
 watch(
   () => props.disabled,
   (disabled) => {
@@ -260,8 +225,11 @@ watch(
 
 onBeforeUnmount(() => {
   close();
-  document.removeEventListener('click', onDocumentClick);
-  document.removeEventListener('keydown', onKeydown);
+});
+
+// Expose for tests / advanced consumers that want to query open state.
+defineExpose({
+  isOpen,
 });
 </script>
 
@@ -271,7 +239,6 @@ onBeforeUnmount(() => {
     @mouseenter="onTriggerMouseEnter"
     @mouseleave="onTriggerMouseLeave"
     @focusin="onTriggerFocusIn"
-    @focusout="onFocusOut"
   >
     <span
       ref="triggerRef"
@@ -283,27 +250,6 @@ onBeforeUnmount(() => {
     >
       <slot />
     </span>
-
-    <Teleport to="body">
-      <div
-        v-if="isOpen"
-        :id="panelId"
-        ref="panelRef"
-        class="coar-popover-panel"
-        :style="panelStyle"
-        :data-placement="currentPlacement"
-        :role="interactive ? 'dialog' : 'tooltip'"
-        :class="{ 'coar-popover-panel--non-interactive': !interactive }"
-        @mouseenter="onPanelMouseEnter"
-        @mouseleave="onPanelMouseLeave"
-        @focusin="onPanelMouseEnter"
-        @focusout="onFocusOut"
-      >
-        <div v-scrollbar="{ overflowX: 'hidden', defer: false }" class="coar-popover-content">
-          <slot name="content" />
-        </div>
-      </div>
-    </Teleport>
   </div>
 </template>
 
@@ -315,34 +261,5 @@ onBeforeUnmount(() => {
 .coar-popover-trigger {
   display: inline-block;
   cursor: pointer;
-}
-
-.coar-popover-panel {
-  z-index: var(--coar-z-overlay);
-  padding: var(--coar-spacing-s);
-  background: var(--coar-background-neutral-primary);
-  border: 1px solid var(--coar-border-neutral);
-  border-radius: var(--coar-radius-s);
-  box-shadow: var(--coar-shadow-m);
-  min-width: var(--coar-popover-min-width);
-  max-width: var(--coar-popover-max-width);
-  pointer-events: auto;
-  transition: opacity var(--coar-duration-fast) var(--coar-ease-out);
-}
-
-.coar-popover-panel--non-interactive {
-  pointer-events: none;
-}
-
-.coar-popover-content {
-  max-height: var(--coar-popover-max-height);
-  overflow: hidden;
-}
-
-/* Reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  .coar-popover-panel {
-    transition: none;
-  }
 }
 </style>

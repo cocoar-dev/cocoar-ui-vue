@@ -1,7 +1,36 @@
 <script setup lang="ts">
-import { ref, watch, computed, inject, onMounted, onBeforeUnmount, nextTick, useId } from 'vue';
+/**
+ * Cascading submenu trigger. Opens a child overlay via the overlay-service, which means:
+ *
+ *  - **Stacks correctly** inside a dialog/popover/context-menu: `useOverlayParent()` picks
+ *    up the nearest ancestor overlay and passes it to `open({ parent })`; the service then
+ *    computes z-index as `--coar-z-overlay + id*2`, guaranteeing the submenu sits above
+ *    the parent.
+ *  - **Click-outside awareness** is tree-aware: a click inside the submenu is treated as
+ *    a click inside the parent, so the parent overlay does not close when the user clicks
+ *    a submenu item. Clicking outside the whole overlay tree closes the root.
+ *
+ * The component keeps its own menu-cascade / menu-aim / hover-close-timer logic because
+ * those behaviors are richer than what `dismiss.hoverTree` models today. The service only
+ * replaces teleport / positioning / z-index / document click-outside.
+ */
+import {
+  ref,
+  watch,
+  computed,
+  inject,
+  onMounted,
+  onBeforeUnmount,
+  nextTick,
+  useId,
+  useSlots,
+  markRaw,
+  type VNode,
+} from 'vue';
 import CoarIcon from '../icon/CoarIcon.vue';
-import { computeOverlayCoordinates } from '../overlay/overlay-position';
+import { getOverlayService, useOverlayParent } from '../overlay/useOverlay';
+import { subFlyoutPreset } from '../overlay/overlay-presets';
+import type { OverlayRef } from '../overlay/overlay-types';
 import {
   MenuCascade,
   useMenuCascade,
@@ -10,6 +39,7 @@ import {
   provideMenuClose,
   MENU_NAV_KEY,
 } from './menu-cascade';
+import CoarSubFlyoutPanel from './CoarSubFlyoutPanel.vue';
 
 const props = withDefaults(
   defineProps<{
@@ -23,16 +53,19 @@ const props = withDefaults(
   { icon: undefined, disabled: false },
 );
 
+const slots = useSlots();
 const submenuPanelId = `coar-submenu-panel-${useId()}`;
+
 const parentCascade = useMenuCascade();
 const cascade = new MenuCascade(parentCascade ?? null);
 provideMenuCascade(cascade);
 
 const menuNav = inject(MENU_NAV_KEY, undefined);
+const parentOverlay = useOverlayParent();
 
 const isOpen = ref(false);
-const panelRef = ref<HTMLElement | null>(null);
 const itemRef = ref<HTMLElement | null>(null);
+let overlayRef: OverlayRef | null = null;
 
 // --- Roving tabindex registration ---
 let unregister: (() => void) | null = null;
@@ -60,71 +93,88 @@ const itemTabindex = computed(() => {
 
 let closeTimer: ReturnType<typeof setTimeout> | null = null;
 
-// Allow child submenus to cancel our close timer via cascade
 cascade.onChildPanelEnter = () => cancelCloseTimer();
 
-// Inject the parent's close before we override — so we can chain up to the root
 const parentCloseMenu = useMenuClose();
 
-// Provide close function so nested menu items can close the entire tree
-provideMenuClose(() => {
+function closeTree() {
   closeSubmenu();
   parentCloseMenu?.();
-});
+}
+
+provideMenuClose(closeTree);
+
+function renderContent(): VNode[] | undefined {
+  return slots.default?.();
+}
 
 function openSubmenu(anchorEl: HTMLElement) {
   if (isOpen.value) return;
 
-  // Close siblings
   cascade.closeSiblings();
-
   isOpen.value = true;
 
-  nextTick(() => {
-    positionPanel(anchorEl);
+  const ref = getOverlayService().open({
+    spec: {
+      ...subFlyoutPreset,
+      anchor: { kind: 'element', element: anchorEl },
+    },
+    content: { kind: 'component', component: markRaw(CoarSubFlyoutPanel) },
+    inputs: {
+      id: submenuPanelId,
+      renderContent,
+      cascade,
+      closeTree,
+      onPanelEnter: () => {
+        cancelCloseTimer();
+        // A child panel being hovered means the pointer reached us — cancel any
+        // ancestor close timers that tracked the transition from their panel into
+        // a region the DOM doesn't treat as a descendant (teleported into body).
+        parentCascade?.cancelAncestorCloseTimers();
+      },
+      onPanelLeave: () => startCloseTimer(),
+    },
+    parent: parentOverlay,
+  });
+  overlayRef = ref;
 
-    // Register with cascade
+  // Register the mounted panel with the cascade tree so menu-aim can measure it.
+  // `panelElement` is `null` until the service has mounted the outlet (one tick).
+  nextTick(() => {
+    if (overlayRef !== ref || ref.isClosed) return;
     cascade.overlayRef = {
-      panelEl: panelRef.value,
+      panelEl: ref.panelElement,
       close: () => closeSubmenu(),
     };
     parentCascade?.notifyChildOpened();
+  });
+
+  // Sync local state if the service closes the overlay externally (outside click,
+  // escape, parent tree teardown). Local `closeSubmenu()` nulls `overlayRef` first,
+  // so the guard below skips cleanup it has already performed.
+  ref.afterClosed.then(() => {
+    if (!isOpen.value) return;
+    if (overlayRef !== ref) return;
+    overlayRef = null;
+    isOpen.value = false;
+    cascade.overlayRef = null;
+    cancelCloseTimer();
+    parentCascade?.notifyChildClosed(cascade);
   });
 }
 
 function closeSubmenu() {
   if (!isOpen.value) return;
   isOpen.value = false;
-
-  if (cascade.overlayRef) {
-    cascade.overlayRef = null;
-  }
+  cascade.overlayRef = null;
+  cancelCloseTimer();
   parentCascade?.notifyChildClosed(cascade);
-}
 
-function positionPanel(anchorEl: HTMLElement) {
-  const panel = panelRef.value;
-  if (!panel) return;
-
-  const ar = anchorEl.getBoundingClientRect();
-  const pr = panel.getBoundingClientRect();
-
-  const coords = computeOverlayCoordinates(
-    {
-      left: ar.left,
-      top: ar.top,
-      right: ar.right,
-      bottom: ar.bottom,
-      width: ar.width,
-      height: ar.height,
-    },
-    { width: pr.width || 200, height: pr.height || 100 },
-    { placement: ['right-start', 'left-start'], offset: -4, flip: false, shift: true },
-    { width: window.innerWidth, height: window.innerHeight },
-  );
-
-  panel.style.left = `${coords.left}px`;
-  panel.style.top = `${coords.top}px`;
+  const ref = overlayRef;
+  overlayRef = null;
+  if (ref && !ref.isClosed) {
+    ref.close();
+  }
 }
 
 function onMouseEnter(event: MouseEvent) {
@@ -145,17 +195,6 @@ function onMouseEnter(event: MouseEvent) {
 
 function onMouseLeave() {
   if (props.disabled) return;
-  startCloseTimer();
-}
-
-function onPanelMouseEnter() {
-  cancelCloseTimer();
-  // Cancel close timers on parent submenus (their panel mouseleave fired
-  // because this teleported panel is not a DOM descendant)
-  parentCascade?.cancelAncestorCloseTimers();
-}
-
-function onPanelMouseLeave() {
   startCloseTimer();
 }
 
@@ -201,16 +240,16 @@ function onKeydown(event: KeyboardEvent) {
     return;
   }
 
-  // ArrowRight: open submenu and focus first item inside
   if (event.key === 'ArrowRight') {
     event.preventDefault();
     event.stopPropagation();
     if (!isOpen.value) {
       openSubmenu(itemRef.value!);
     }
-    // Focus the first focusable menuitem in the submenu panel
+    // Focus the first enabled menuitem inside the submenu panel. `panelElement` lands
+    // after the service mounts the outlet — one nextTick is enough.
     nextTick(() => {
-      const firstItem = panelRef.value?.querySelector<HTMLElement>(
+      const firstItem = overlayRef?.panelElement?.querySelector<HTMLElement>(
         '[role="menuitem"]:not([aria-disabled="true"])',
       );
       firstItem?.focus();
@@ -218,7 +257,6 @@ function onKeydown(event: KeyboardEvent) {
     return;
   }
 
-  // ArrowLeft: close submenu and return focus to this item
   if (event.key === 'ArrowLeft') {
     if (isOpen.value) {
       event.preventDefault();
@@ -230,51 +268,21 @@ function onKeydown(event: KeyboardEvent) {
   }
 }
 
-// Click-outside handler
-// Track the click event that opened the menu to avoid immediately closing
-let openingEvent: MouseEvent | null = null;
-
-function onDocumentClick(event: MouseEvent) {
-  if (!isOpen.value) return;
-  // Ignore the click that opened the menu
-  if (event === openingEvent) {
-    openingEvent = null;
-    return;
-  }
-  openingEvent = null;
-  const target = event.target as Node;
-  if (itemRef.value?.contains(target)) return;
-  if (panelRef.value?.contains(target)) return;
-  closeSubmenu();
-}
-
-let documentListenerAdded = false;
-
-function addDocumentListener() {
-  if (documentListenerAdded) return;
-  document.addEventListener('click', onDocumentClick);
-  documentListenerAdded = true;
-}
-
-function removeDocumentListener() {
-  document.removeEventListener('click', onDocumentClick);
-  documentListenerAdded = false;
-}
-
-// Watch open state to manage document listener
-watch(isOpen, (val) => {
-  if (val) {
-    // Defer adding listener so it doesn't catch the current click
-    requestAnimationFrame(() => addDocumentListener());
-  } else {
-    removeDocumentListener();
-  }
-});
+watch(
+  () => props.disabled,
+  (disabled) => {
+    if (disabled) closeSubmenu();
+  },
+);
 
 onBeforeUnmount(() => {
   unregister?.();
   cancelCloseTimer();
-  removeDocumentListener();
+  // Close via the service so the panel is removed from the DOM cleanly.
+  if (overlayRef && !overlayRef.isClosed) {
+    overlayRef.close();
+  }
+  overlayRef = null;
   cascade.destroy();
 });
 </script>
@@ -310,19 +318,6 @@ onBeforeUnmount(() => {
         aria-hidden="true"
       />
     </div>
-
-    <Teleport to="body">
-      <div
-        v-if="isOpen"
-        :id="submenuPanelId"
-        ref="panelRef"
-        class="coar-submenu-panel"
-        @mouseenter="onPanelMouseEnter"
-        @mouseleave="onPanelMouseLeave"
-      >
-        <slot />
-      </div>
-    </Teleport>
   </div>
 </template>
 
@@ -398,13 +393,5 @@ onBeforeUnmount(() => {
 
 .coar-submenu-item:hover:not(.coar-submenu-item--disabled) .coar-submenu-item__arrow {
   opacity: 1;
-}
-</style>
-
-<style>
-/* Unscoped: teleported panel */
-.coar-submenu-panel {
-  position: fixed;
-  z-index: var(--coar-z-overlay);
 }
 </style>

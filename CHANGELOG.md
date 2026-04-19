@@ -7,6 +7,29 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 1.12.0
+
+### Fixed
+
+- **Overlay widgets inside modals — stacking + tree-aware dismissal**: `CoarSubFlyout`, `CoarContextMenu`, the Select family (`CoarSelect` / `CoarMultiSelect` / `CoarTagSelect`), and `CoarSidebarGroup` (in `mode="flyout"`) used to mount their panels via their own `<Teleport to="body">` with a hardcoded `z-index: var(--coar-z-overlay)` = 1000. Inside a dialog rendered through the overlay-service at `z-index: 1002`, those panels landed behind the dialog and clicks on them were treated as outside-the-dialog → the dialog closed. Each widget now opens its panel via `overlay.open({ parent: useOverlayParent() })`, so the service stacks it above the ancestor dialog (`1000 + instance.id * 2`) and treats clicks inside it as clicks inside the parent tree. All public APIs are unchanged — the migration is purely internal.
+- **Overlay-service parent linking was a no-op when called from a descendant overlay**: `useOverlayParent()` returned an `OverlayInstance`, but `OverlayOpenOptions.parent` was typed `OverlayRef`; the service looked up `__instanceId` only, silently failing for every instance-shaped value. The widened lookup now resolves either shape. Before the fix, `instance.parent` stayed `null` and the tree-aware click-outside never closed child branches — clicks outside a popover in a dialog used to leave the popover lingering until a hover-out timer fired. After the fix, one outside click cascades through the entire branch.
+- **Select dropdown `transform: translate3d()` containing-block trap**: the dropdowns used to position themselves with a transform, which CSS-spec-wise creates a containing block for every `position: fixed` descendant. Floating widgets rendered from inside a dropdown landed at the dropdown's offset instead of the viewport. The service's overlay host uses plain `top`/`left`, so the trap is no longer reachable through a select.
+- **Select dropdown scroll behavior**: `selectPreset.scroll.strategy` changed from `'close'` to `'reposition'` — dropdowns now follow the trigger on scroll instead of closing abruptly, matching the pre-migration (`useSelectDropdown`) behavior.
+
+### Changed
+
+- **Overlay service — parent type widened**: `OverlayOpenOptions.parent` now accepts `OverlayRef | OverlayInstance`. Existing callers that passed an `OverlayRef` continue to work; descendants using `useOverlayParent()` no longer have to cast.
+- **`selectPreset.a11y` dropped** (was `{ role: 'listbox' }`): the select panels already render an inner `role="listbox"` element that carries the referenced id and `aria-multiselectable`. Declaring the role on the outlet host duplicated the semantic element and misplaced the aria attribute.
+
+### Internal
+
+- **6 new panel components**: `CoarPopoverPanel` (pre-existing), `CoarTooltipPanel` (pre-existing), `CoarSubFlyoutPanel`, `CoarContextMenuPanel`, `CoarSelectDropdownPanel`, `CoarMultiSelectDropdownPanel`, `CoarTagSelectDropdownPanel`, `CoarSidebarFlyoutPanel`. Each is the lean visual shell the overlay-service mounts; the owning component keeps its state machine (hover/click/keyboard/cascade) and forwards reactive state via props or closures.
+- **3 new overlay presets**: `subFlyoutPreset`, `contextMenuPreset`, `sidebarFlyoutPreset`.
+- **Legacy helper removed**: `packages/ui/src/components/select/useSelectDropdown.ts` (dead after all three select variants migrated).
+- **Playground diagnostic view extended**: `/overlay-stacking` now covers 8 scenarios (popover, tooltip, submenu, context menu, nested popover→tooltip, nested popover→popover, all three selects, sidebar flyout with nested groups). Used for chrome-devtools-driven verification of every migration.
+
+---
+
 ## 1.11.0
 
 ### Added
