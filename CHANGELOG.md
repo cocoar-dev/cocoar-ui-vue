@@ -7,6 +7,14 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 1.12.1
+
+### Fixed
+
+- **`CoarDataGrid` — flex columns collapsed to ~36px when tree-mode grid started with empty `rowData`**: the flex-recalc workaround that re-applies `columnDefs` after first data arrives (introduced in 1.5.3 for the flat-data codepath) was missing from `#setTreeRowDataOnGrid`, and the one-shot flag `#flexApplied` was consumed prematurely in both codepaths by the initial empty set that Vue's `{ immediate: true }` watcher fires on mount. Net effect: a `treeDataRef(ref([]))` grid mounted with zero rows, and by the time real rows arrived the workaround had already fired (against an empty grid) and no further re-flex ever happened. Flex columns kept whatever width AG Grid had assigned at mount — in narrow-at-mount scenarios that bottoms out around 36px, clipping cell content and breaking Playwright `toBeVisible()` checks. The workaround is now applied in the tree codepath too, and the flag only flips once `result.length > 0`, so the one-shot is reserved for the actual 0→N transition. Consumers with `treeData(...)` + `flex(1)` columns + initially-empty row refs get the correct flex layout without a manual resize.
+
+---
+
 ## 1.12.0
 
 ### Fixed

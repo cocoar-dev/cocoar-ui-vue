@@ -11,6 +11,14 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('./views/FlexDebugView.vue'),
   },
   {
+    path: '/empty-to-first-row',
+    component: () => import('./views/EmptyToFirstRowView.vue'),
+  },
+  {
+    path: '/empty-tree-to-first-row',
+    component: () => import('./views/EmptyTreeToFirstRowView.vue'),
+  },
+  {
     path: '/script-editor',
     component: () => import('./views/ScriptEditorView.vue'),
   },

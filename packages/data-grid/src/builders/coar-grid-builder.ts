@@ -1162,6 +1162,16 @@ export class CoarGridBuilder<TData = unknown> {
     this.#treeContext.meta = metaMap;
     api.setGridOption('rowData', result);
     api.setGridOption('loading', false);
+
+    // AG Grid skips flex calculation when rowData is first set via setGridOption.
+    // Re-applying columnDefs once forces a fresh flex layout pass.
+    // Gate on result.length so the flag only flips after real rows arrive — initial
+    // empty sets (common in tree mode) must not consume the one-shot workaround.
+    if (!this.#flexApplied && result.length > 0 && this.#columnDefs.some((c) => c.flex)) {
+      this.#flexApplied = true;
+      api.setGridOption('columnDefs', this.#columnDefs);
+    }
+
     // Force cell renderers to re-render (meta changed but row data objects are the same)
     api.refreshCells({ force: true });
     this.#scheduleSearchHighlight(searchText);
@@ -1234,7 +1244,9 @@ export class CoarGridBuilder<TData = unknown> {
 
     // AG Grid skips flex calculation when rowData is first set via setGridOption.
     // Re-applying columnDefs once forces a fresh flex layout pass.
-    if (!this.#flexApplied && this.#columnDefs.some((c) => c.flex)) {
+    // Gate on filtered.length so the flag only flips after real rows arrive — initial
+    // empty sets must not consume the one-shot workaround (consumers commonly start with []).
+    if (!this.#flexApplied && filtered.length > 0 && this.#columnDefs.some((c) => c.flex)) {
       this.#flexApplied = true;
       api.setGridOption('columnDefs', this.#columnDefs);
     }
