@@ -34,12 +34,14 @@ const LANGUAGE_EXTENSIONS: Record<CoarScriptEditorLanguage, string> = {
 };
 
 /**
- * Diagnostic codes suppressed when `scriptMode` is true. These are the TS errors that
- * fire when a .ts file is not a full program but a "script body" — top-level return,
- * await, export-in-non-module, implicit any, etc. Matches the set used by the
- * in-house script editor prototypes.
+ * Diagnostic codes suppressed when `scriptMode` is true. These are structural wrapper
+ * artefacts — errors that fire because a script body is not a full module/program
+ * (top-level return/await, isolatedModules complaint, unreachable-after-return, unused
+ * comma-LHS). Name-resolution errors like 2304 `Cannot find name` are deliberately NOT
+ * in this set: they are legitimate semantic errors that must stay visible so undeclared
+ * identifiers surface as squiggles instead of silently falling back to `any`.
  */
-const SCRIPT_MODE_DIAGNOSTIC_CODES: readonly number[] = [1375, 2695, 1108, 7027, 2304, 1208];
+const SCRIPT_MODE_DIAGNOSTIC_CODES: readonly number[] = [1375, 2695, 1108, 7027, 1208];
 
 /**
  * Monaco's default lib set is `es5 + dom + webworker.importscripts + scripthost` —
@@ -76,7 +78,6 @@ function configureCompilerLibs(): void {
     target: resolvedTarget,
     lib: [...COAR_MONACO_LIB],
     allowNonTsExtensions: true,
-    noResolve: true,
   };
   ts.setCompilerOptions(options);
   js.setCompilerOptions(options);

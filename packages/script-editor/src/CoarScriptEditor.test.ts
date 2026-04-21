@@ -56,7 +56,9 @@ describe('CoarScriptEditor — compiler libs', () => {
       const latest = fn.mock.calls.at(-1)![0];
       expect(latest.lib).toEqual(['es2024']);
       expect(latest.allowNonTsExtensions).toBe(true);
-      expect(latest.noResolve).toBe(true);
+      // `noResolve` must NOT be set: it prevents the TS worker from pulling `addExtraLib`
+      // declarations into compilation, which silently falls back to `any` on hover.
+      expect(latest.noResolve).toBeFalsy();
       expect(typeof latest.target).toBe('number');
     };
     assertLibs(tsFn);
@@ -280,10 +282,13 @@ describe('CoarScriptEditor — scriptMode', () => {
     ).mock.calls;
     expect(calls.length).toBeGreaterThan(0);
     const passedCodes: number[] = calls[calls.length - 1][0].diagnosticCodesToIgnore;
-    // Script-mode codes: top-level return/await/export, script-host implicit-any, etc.
-    for (const code of [1375, 2695, 1108, 7027, 2304, 1208]) {
+    // Structural wrapper artefacts only: top-level return/await/export, unreachable,
+    // unused comma-LHS, isolatedModules. `2304` (Cannot find name) is intentionally
+    // absent so undeclared identifiers still surface instead of silently being `any`.
+    for (const code of [1375, 2695, 1108, 7027, 1208]) {
       expect(passedCodes).toContain(code);
     }
+    expect(passedCodes).not.toContain(2304);
     wrapper.unmount();
   });
 

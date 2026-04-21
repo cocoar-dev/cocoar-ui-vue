@@ -7,6 +7,15 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 1.12.2
+
+### Fixed
+
+- **`@cocoar/vue-script-editor` — `extraLibs` were invisible to the TypeScript worker, silently resolving to `any` on hover**: `useMonacoEditor` configured the shared TS/JS compiler options with `noResolve: true` (added in 1.11.0 alongside the `lib: ['es2024']` fix). With `noResolve` set, the TS language worker skips pulling `addExtraLib`-registered `.d.ts` files into compilation — so an identifier declared exclusively in an extraLib was accepted syntactically but resolved to `any`. `noResolve` is now removed from the shared options; library targeting stays constrained to `['es2024']`, so the original reason for the flag (keep the default DOM / WebWorker / WSH libs out of IntelliSense) is unaffected. Consumers using `extraLibs` immediately see correct hover types and IntelliSense with no code change.
+- **`@cocoar/vue-script-editor` — `script-mode` swallowed legitimate `Cannot find name` errors**: `SCRIPT_MODE_DIAGNOSTIC_CODES` added TS code `2304` to Monaco's `diagnosticCodesToIgnore` alongside the structural wrapper artefacts (`1375` top-level await, `2695` unused comma-LHS, `1108` top-level return, `7027` unreachable code, `1208` isolatedModules). `2304` is a genuine semantic error — not a wrapper artefact — and suppressing it masked the `noResolve` bug above: undeclared identifiers rendered as `any` with no squiggle. Code `2304` is now removed from the suppression set; the other five codes remain. **Possible visible change for consumers:** code that previously compiled silently under `script-mode` with unresolved identifiers now shows red squiggles. Register the missing names via `extraLibs`, or extend `diagnosticCodesToIgnore` directly on `monaco.languages.typescript.*Defaults` to restore the old behavior.
+
+---
+
 ## 1.12.1
 
 ### Fixed
