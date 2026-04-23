@@ -88,6 +88,13 @@ export default defineConfig({
             '../../../packages/script-editor/src/index.ts',
           ),
         },
+        {
+          find: /^@cocoar\/vue-markdown-editor$/,
+          replacement: resolve(
+            __dirname,
+            '../../../packages/markdown-editor/src/index.ts',
+          ),
+        },
       ],
     },
     plugins: [
@@ -102,6 +109,7 @@ export default defineConfig({
         '@cocoar/vue-localization',
         '@cocoar/vue-fragment-parser',
         '@cocoar/vue-data-grid',
+        '@cocoar/vue-markdown-editor',
         'ag-grid-community',
         'ag-grid-vue3',
         '@maskito/core',
@@ -273,6 +281,7 @@ export default defineConfig({
           text: 'Content',
           items: [
             { text: 'Markdown', link: '/components/markdown' },
+            { text: 'Markdown Editor', link: '/components/markdown-editor' },
             { text: 'Script Editor', link: '/components/script-editor' },
           ],
         },

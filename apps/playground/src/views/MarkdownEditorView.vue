@@ -1,0 +1,242 @@
+<script setup lang="ts">
+import { computed, onMounted, ref } from 'vue';
+import { CoarMarkdownEditor, type CoarMarkdownEditorTool } from '@cocoar/vue-markdown-editor';
+
+const containerSize = ref<'full' | 'medium' | 'small' | 'modal'>('full');
+const toolbarMode = ref<'floating' | 'fixed' | 'both'>('floating');
+const toolbarPosition = ref<'left' | 'right'>('left');
+const readonly = ref(false);
+const toolsPreset = ref<'all' | 'minimal' | 'no-tables'>('all');
+
+const tools = computed<CoarMarkdownEditorTool[] | undefined>(() => {
+  if (toolsPreset.value === 'all') return undefined;
+  if (toolsPreset.value === 'minimal') {
+    return ['bold', 'italic', 'bulletList', 'orderedList', 'outdent', 'indent', 'clearFormatting'];
+  }
+  // no-tables
+  return ['bold', 'italic', 'strikethrough', 'inlineCode', 'headings',
+    'bulletList', 'orderedList', 'taskList', 'outdent', 'indent',
+    'blockquote', 'horizontalRule', 'codeBlock', 'clearFormatting',
+    'undo', 'redo'];
+});
+
+const value = ref(`# Hello CoarMarkdownEditor
+
+This page renders the **packaged** \`<CoarMarkdownEditor>\` component (extracted from the prototype).
+
+## Features
+
+- **Bold**, *italic*, ~~strikethrough~~
+- Lists (ordered and unordered)
+- [Links](https://example.com)
+- \`inline code\`
+
+## GFM Table
+
+| Feature | Status |
+|---------|--------|
+| Tables | Works |
+| Task lists | Works |
+| Strikethrough | Works |
+
+## Task List
+
+- [x] Install Milkdown
+- [x] Create prototype
+- [x] Extract to package
+- [ ] Add link dialog, image upload, edge handles
+
+> Try the \`v-model\` round-trip — the markdown below updates as you type.
+
+\`\`\`typescript
+import { CoarMarkdownEditor } from '@cocoar/vue-markdown-editor';
+
+const value = ref('# Hello');
+
+function greet(name: string): string {
+  return \`Hello \${name}\`;
+}
+\`\`\`
+`);
+
+const containerStyles: Record<string, Record<string, string>> = {
+  full: { width: '100%', height: '100%' },
+  medium: { width: '600px', height: '400px' },
+  small: { width: '360px', height: '300px' },
+  modal: { width: '480px', height: '260px' },
+};
+
+// Test hooks — exposed on window for the Playwright suite. Lets specs read/write
+// the markdown without scraping the details `<pre>` and toggle UI state without
+// hunting for buttons by text.
+export interface MarkdownPlaygroundHooks {
+  getMarkdown(): string;
+  setMarkdown(md: string): void;
+  setToolbarMode(m: 'floating' | 'fixed' | 'both'): void;
+  setToolsPreset(p: 'all' | 'minimal' | 'no-tables'): void;
+  setReadonly(r: boolean): void;
+}
+
+onMounted(() => {
+  (window as unknown as { __playground: MarkdownPlaygroundHooks }).__playground = {
+    getMarkdown: () => value.value,
+    setMarkdown: (md) => { value.value = md; },
+    setToolbarMode: (m) => { toolbarMode.value = m; },
+    setToolsPreset: (p) => { toolsPreset.value = p; },
+    setReadonly: (r) => { readonly.value = r; },
+  };
+});
+</script>
+
+<template>
+  <div class="md-playground">
+    <!-- Controls -->
+    <div class="md-controls">
+      <span class="md-controls__label">Container:</span>
+      <button
+        v-for="size in (['full', 'medium', 'small', 'modal'] as const)"
+        :key="size"
+        :class="['md-controls__btn', { 'md-controls__btn--active': containerSize === size }]"
+        @click="containerSize = size"
+      >
+        {{ size }}
+      </button>
+
+      <span class="md-controls__label">Toolbar:</span>
+      <button
+        v-for="mode in (['floating', 'fixed', 'both'] as const)"
+        :key="mode"
+        :class="['md-controls__btn', { 'md-controls__btn--active': toolbarMode === mode }]"
+        @click="toolbarMode = mode"
+      >
+        {{ mode }}
+      </button>
+
+      <template v-if="toolbarMode !== 'floating'">
+        <span class="md-controls__label">Position:</span>
+        <button
+          v-for="pos in (['left', 'right'] as const)"
+          :key="pos"
+          :class="['md-controls__btn', { 'md-controls__btn--active': toolbarPosition === pos }]"
+          @click="toolbarPosition = pos"
+        >
+          {{ pos }}
+        </button>
+      </template>
+
+      <label class="md-controls__readonly">
+        <input v-model="readonly" type="checkbox" />
+        readonly
+      </label>
+
+      <span class="md-controls__label">Tools:</span>
+      <button
+        v-for="preset in (['all', 'minimal', 'no-tables'] as const)"
+        :key="preset"
+        :class="['md-controls__btn', { 'md-controls__btn--active': toolsPreset === preset }]"
+        @click="toolsPreset = preset"
+      >
+        {{ preset }}
+      </button>
+    </div>
+
+    <!-- Editor -->
+    <div class="md-editor-frame" :style="containerStyles[containerSize]">
+      <CoarMarkdownEditor
+        v-model="value"
+        :readonly="readonly"
+        :toolbar-mode="toolbarMode"
+        :toolbar-position="toolbarPosition"
+        :tools="tools"
+      />
+    </div>
+
+    <!-- Markdown Output -->
+    <details class="md-output">
+      <summary class="md-output__summary">Raw Markdown Output (v-model)</summary>
+      <pre class="md-output__pre">{{ value }}</pre>
+    </details>
+  </div>
+</template>
+
+<style scoped>
+.md-playground {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 12px;
+  padding: 16px;
+}
+
+.md-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.md-controls__label {
+  font-size: 13px;
+  font-weight: 600;
+  margin-left: 12px;
+}
+.md-controls__label:first-child { margin-left: 0; }
+
+.md-controls__btn {
+  padding: 4px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--coar-border-neutral);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 13px;
+}
+.md-controls__btn--active {
+  background: var(--coar-background-accent-primary);
+  color: white;
+}
+
+.md-controls__readonly {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.md-editor-frame {
+  border: 1px solid var(--coar-border-neutral);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  min-height: 0;
+}
+.md-editor-frame:has(+ .md-output) { /* keep frame from collapsing in 'full' mode */ }
+
+/* When container is 'full', let it grow */
+.md-playground > .md-editor-frame[style*="100%"] { flex-shrink: 1; }
+
+.md-output { flex-shrink: 0; }
+
+.md-output__summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.md-output__pre {
+  margin-top: 8px;
+  padding: 12px;
+  background: var(--coar-background-neutral-secondary);
+  border-radius: 6px;
+  font-size: 12px;
+  max-height: 200px;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+</style>

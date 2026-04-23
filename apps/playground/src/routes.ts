@@ -35,6 +35,10 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('./views/OverlayStackingView.vue'),
   },
   {
+    path: '/markdown-editor',
+    component: () => import('./views/MarkdownEditorView.vue'),
+  },
+  {
     path: '/todos',
     component: () => import('./views/TodoListView.vue'),
     meta: {
