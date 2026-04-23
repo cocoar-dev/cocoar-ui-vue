@@ -1,5 +1,10 @@
 // Composables
-export { useVirtualList, useDragDrop } from './composables';
+export {
+  useVirtualList,
+  useDragDrop,
+  setCoarDragImageFromElement,
+  setCoarDragImageFromHtml,
+} from './composables';
 export type {
   UseVirtualListOptions,
   UseVirtualListReturn,
@@ -7,6 +12,7 @@ export type {
   UseDragDropOptions,
   UseDragDropReturn,
   DropPayload,
+  CoarDragImageOptions,
 } from './composables';
 
 // Layout

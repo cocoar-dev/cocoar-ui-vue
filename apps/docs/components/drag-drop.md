@@ -112,3 +112,54 @@ useDragDrop({
 ```
 
 **Integration with existing components** — `CoarListbox` uses this composable internally. If you're building a new component that needs the same drag semantics, reach for `useDragDrop` rather than reimplementing the registry.
+
+## Custom drag ghosts
+
+The browser's default drag image is a semi-transparent snapshot of the dragged element. That looks fine for small items but turns into a giant faded blob for a large card or a nested tree node. Two tiny helpers attached to the same package give you a styled ghost next to the cursor without the boilerplate of cloning, off-screen mounting, and cleanup.
+
+```ts
+import {
+  setCoarDragImageFromElement,
+  setCoarDragImageFromHtml,
+} from '@cocoar/vue-ui';
+
+function onDragStart(event: DragEvent) {
+  setCoarDragImageFromElement(event, event.currentTarget as HTMLElement);
+}
+```
+
+The helper clones the source element, sizes the clone to match the source's bounding box, mounts it off-screen (horizontally, because Chromium skips rendering elements that are entirely outside the viewport — and an unrendered ghost captures as an empty bitmap), calls `dataTransfer.setDragImage`, and removes the clone on the next macrotask so the browser has time to rasterise it.
+
+For a free-form ghost that doesn't mirror an existing element, use the HTML variant:
+
+```ts
+setCoarDragImageFromHtml(event, `
+  <div style="padding: 6px 10px; font-size: 12px;">
+    Moving 3 items
+  </div>
+`);
+```
+
+### API
+
+#### `setCoarDragImageFromElement(event, source, options?)`
+
+| Argument | Type | Description |
+|---|---|---|
+| `event` | `DragEvent` | The `dragstart` event. Called synchronously inside the handler. |
+| `source` | `HTMLElement` | Element to clone as the ghost. The live element is not visually disturbed. |
+| `options` | `CoarDragImageOptions` | Optional styling overrides. See below. |
+
+#### `setCoarDragImageFromHtml(event, html, options?)`
+
+Same contract, but builds the ghost from a raw HTML string instead of cloning an element. Useful for "drag summary" previews (e.g. "Moving 3 items") that don't correspond to a single DOM node.
+
+#### `CoarDragImageOptions`
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `offsetX` | `number` | `12` | Cursor offset within the ghost, in px. |
+| `offsetY` | `number` | `12` | Cursor offset within the ghost, in px. |
+| `className` | `string` | — | CSS class applied to the generated wrapper so consumers can theme the ghost. |
+| `style` | `Partial<CSSStyleDeclaration>` | — | Inline styles merged onto the wrapper. Prefer `className` when possible. |
+| `applyDefaultStyle` | `boolean` | `true` | Apply the default rounded-corner, drop-shadow, 0.9 opacity treatment. Set to `false` when the caller handles all styling via `className`. |

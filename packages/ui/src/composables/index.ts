@@ -13,6 +13,12 @@ export type {
 } from './useDragDrop';
 
 export {
+  setCoarDragImageFromElement,
+  setCoarDragImageFromHtml,
+} from './useDragImage';
+export type { CoarDragImageOptions } from './useDragImage';
+
+export {
   DRAG_MIME,
   registerDrag,
   getDrag,
