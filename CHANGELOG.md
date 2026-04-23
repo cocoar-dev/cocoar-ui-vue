@@ -7,6 +7,29 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 1.13.0
+
+### Added
+
+- **`@cocoar/vue-markdown-editor` — new package**: WYSIWYG Markdown editor for Vue 3 based on Milkdown (Kit approach), styled with the Cocoar Design System. Markdown-first round-trip (lossless) — `v-model` is the persistence format, no JSON intermediate. Shares the same remark stack as `@cocoar/vue-markdown-core` and `<CoarMarkdown>`. Three toolbar modes: `floating` (default, appears on text selection, teleported to `<body>`), `fixed` (`CoarSidebar` collapsed strip with flyout submenus), and `both`. `toolbarPosition` (`'left'` | `'right'`) controls sidebar side. Reactive active-state highlights on every button (Bold lights up when the cursor is in `**bold**`, Bullet List when inside a list, etc.) — driven by Milkdown's `selectionUpdated` plugin hook with a `queueMicrotask` defer so the listener reads the freshly-committed `view.state` instead of the pre-apply snapshot.
+- **`@cocoar/vue-markdown-editor` — 18 toolbar tools, configurable via `tools` whitelist**: `bold`, `italic`, `strikethrough`, `inlineCode`, `headings` (flyout H1–H6 + paragraph), `bulletList`, `orderedList`, `taskList`, `indent`, `outdent`, `blockquote`, `horizontalRule`, `codeBlock`, `table`, `tableOps`, `clearFormatting`, `undo`, `redo`. `tools` undefined → all 18 render; `tools` set → only the listed in canonical order, with auto-cleanup of orphan dividers. Constant `COAR_MARKDOWN_EDITOR_ALL_TOOLS` exported for consumer-side filtering. Migration mapping from richtext editors that exposed `font-size` / `align` / `font` / `color` / `underline` is documented in the docs page (those have no Markdown representation and are intentionally not exposed; `font-size` maps to `headings` for typographic hierarchy).
+- **`@cocoar/vue-markdown-editor` — list & task semantics**: list-toggle button cycles "in same → lift / in other → switch / outside → wrap" (clicking Bullet inside a Bullet item un-lists it; clicking Ordered inside a Bullet swaps the type). Task list items render with proper checkboxes via CSS `::before` (filled accent + strikethrough text when checked, hollow box when open); clicking the checkbox toggles the `checked` attribute round-tripping through Markdown as `- [x]` / `- [ ]`. Indent (`sinkListItem`) is disabled outside any list; Outdent (`liftListItem`) is disabled at the top list level — leaving the list is the list-button's job.
+- **`@cocoar/vue-markdown-editor` — sidebar context-aware table operations**: when the cursor lands inside a table cell, the sidebar grows by 5 items (Insert Row Above/Below, Insert Column Left/Right, Delete Cell). Lets users edit table structure in `fixed` toolbar mode without falling back to the floating toolbar.
+- **`@cocoar/vue-markdown-editor` — `CoarFormField` integration**: `disabled`, `error`, `id`, `aria-describedby` propagate automatically when the editor is wrapped in `<CoarFormField>` (same `FORM_FIELD_INJECTION_KEY` injection used by `CoarTextInput` / `CoarScriptEditor`). Direct props win over the injected context. Editor wrapper carries `aria-invalid`, `aria-disabled`, `aria-readonly`, `aria-required`, `data-name` so screen readers and form tooling see the right state.
+- **`@cocoar/vue-markdown-editor` — `./styles` subpath export** (mirrors `@cocoar/vue-data-grid`): consumers `@import "@cocoar/vue-markdown-editor/styles"` to pull the bundled CSS. Same fix applied to **`@cocoar/vue-script-editor`**, which was missing the subpath export since 1.9.0.
+- **17 new Lucide icons in the core registry**: `bold`, `italic`, `strikethrough`, `heading`, `pilcrow`, `list-ordered`, `text-quote`, `square-code`, `table`, `table-cells-merge`, `table-cells-split`, `columns`, `rows`, `between-horizontal-start`, `between-horizontal-end`, `between-vertical-start`, `between-vertical-end`, `indent-increase`, `indent-decrease`, `eraser`. Available to all consumers via the standard icon name lookup.
+
+### Docs
+
+- **New "Markdown Editor" component page** with three live demos (basic `v-model`, sidebar mode, in-form integration with `CoarFormField`), Architecture Notes section explaining why Milkdown over TipTap/Crepe and why `@milkdown/components/table-block` is intentionally not used (CellSelection is ProseMirror-internal and doesn't fire `selectionchange`), Restricting the Toolbar section with the migration mapping table, full Props/Events reference, and a TODO list for the deferred work (link-insert UI, image upload, placeholder, custom table edge-handles).
+
+### Internal
+
+- **`@cocoar/vue-markdown-editor` test coverage**: 12 Vitest unit tests for the pure helpers (`isToolEnabled`, `decideListToggleAction`) extracted to `toolbar-helpers.ts`, plus 19 Playwright E2E tests against the playground covering mounting, floating-toolbar visibility, mark commands via sidebar, full-set / minimal / no-tables tool whitelisting, indent + outdent (including the disabled-state gating), bullet-list wrap on plain text, clear-formatting (mark stripping + heading→paragraph), task-checkbox toggle in both directions, and readonly mode (contenteditable=false + floating-toolbar suppression).
+- **Dependabot — 13 alerts cleared** (9 high, 4 moderate). All flagged versions were transitive in the dev tooling (`vite`, `happy-dom`, `flatted`, `picomatch`, `minimatch`, `brace-expansion`) — no production runtime impact for consumers. Resolution: `pnpm update` + `pnpm dedupe` consolidated the bulk; a single `pnpm.overrides` entry forcing `vite ^8.0.10` covers vitepress 1.6.4's `vite 5` peer (vitepress 2.x is alpha-only; the vite 8 override works in practice — verified via the docs build).
+
+---
+
 ## 1.12.2
 
 ### Fixed
