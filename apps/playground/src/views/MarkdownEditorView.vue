@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue';
 import { CoarMarkdownEditor, type CoarMarkdownEditorTool } from '@cocoar/vue-markdown-editor';
 
 const containerSize = ref<'full' | 'medium' | 'small' | 'modal'>('full');
@@ -7,6 +7,16 @@ const toolbarMode = ref<'floating' | 'fixed' | 'both'>('floating');
 const toolbarPosition = ref<'left' | 'right'>('left');
 const readonly = ref(false);
 const toolsPreset = ref<'all' | 'minimal' | 'no-tables'>('all');
+const darkMode = ref(false);
+
+// Mirrors the script-editor playground: toggle `.dark-mode` on <html> so the
+// Cocoar token override kicks in. Reset on unmount so other routes start light.
+watch(darkMode, (v) => {
+  document.documentElement.classList.toggle('dark-mode', v);
+}, { immediate: true });
+onBeforeUnmount(() => {
+  document.documentElement.classList.remove('dark-mode');
+});
 
 const tools = computed<CoarMarkdownEditorTool[] | undefined>(() => {
   if (toolsPreset.value === 'all') return undefined;
@@ -127,6 +137,11 @@ onMounted(() => {
       <label class="md-controls__readonly">
         <input v-model="readonly" type="checkbox" />
         readonly
+      </label>
+
+      <label class="md-controls__readonly">
+        <input v-model="darkMode" type="checkbox" />
+        dark-mode
       </label>
 
       <span class="md-controls__label">Tools:</span>

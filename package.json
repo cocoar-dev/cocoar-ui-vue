@@ -18,11 +18,6 @@
     "pnpm": "10.13.1"
   },
   "packageManager": "pnpm@10.13.1",
-  "pnpm": {
-    "overrides": {
-      "vite": "^8.0.10"
-    }
-  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@vitejs/plugin-vue": "^6.0.6",

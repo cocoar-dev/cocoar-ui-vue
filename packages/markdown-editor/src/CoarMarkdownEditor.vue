@@ -702,7 +702,10 @@ const Toolbar = defineComponent({
           collapsed: true,
           position: props.toolbarPosition,
           size: 's',
-          variant: 'secondary',
+          // 'primary' = light grey background (--coar-background-neutral-secondary).
+          // 'secondary' is plain white. We want the toolbar to read as a distinct
+          // surface separate from the editor's writing area.
+          variant: 'primary',
           borderless: true,
         }, {
           default: () => items,
@@ -981,6 +984,11 @@ export default defineComponent({
 .coar-md-sidebar-wrap {
   flex-shrink: 0;
   border-right: 1px solid var(--coar-border-neutral);
+  /* CoarSidebar's default collapsed width (4rem) is meant for navigation
+     contexts. For an icon-only formatting toolbar, ~36px is enough — the
+     sidebar's own paddings still leave breathing room around each icon. */
+  --coar-sidebar-collapsed-width: 2.25rem;
+  --coar-sidebar-item-padding: 0.25rem 0.375rem;
 }
 
 .coar-md-root > .coar-md-area ~ .coar-md-sidebar-wrap {
