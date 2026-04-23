@@ -24,6 +24,12 @@ Disable individual tabs to prevent access to sections that are not yet available
 
 <preview path="./tabs/demos/TabsDisabled.vue" />
 
+## Actions in the Tab Bar
+
+Use the `#actions` slot to put right-aligned controls on the same row as the tab labels — typical uses include undo/redo buttons, a refresh icon, filter toggles, or an overflow menu. The slot stays out of the way when unused: consumers that never populate it get the exact same layout as before.
+
+<preview path="./tabs/demos/TabsWithActions.vue" />
+
 ## Accessibility
 
 ### Keyboard Navigation
@@ -42,6 +48,13 @@ Disable individual tabs to prevent access to sections that are not yet available
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `v-model` | `string` | first tab id | ID of the active tab |
+
+### CoarTabGroup Slots
+
+| Slot | Description |
+|------|-------------|
+| `default` | Contains one or more `CoarTab` children defining tabs and their panels. |
+| `actions` | Optional right-aligned controls in the tab-list row. Rendered only when populated; empty-slot consumers see the standard layout. |
 
 ### CoarTab Props
 

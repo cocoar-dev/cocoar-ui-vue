@@ -16,6 +16,12 @@ const emit = defineEmits<{
 
 const slots = defineSlots<{
   default?(): VNode[];
+  /**
+   * Optional right-aligned action area that sits on the same row as the tab
+   * labels — useful for "undo/redo", "overflow menu", "filter toggles" etc.
+   * Rendered only when populated, so untouched consumers see the old layout.
+   */
+  actions?(): VNode[];
 }>();
 
 interface TabDef {
@@ -189,6 +195,10 @@ function onKeydown(event: KeyboardEvent) {
           <component :is="() => tab.labelSlot" />
         </span>
       </button>
+
+      <div v-if="slots.actions" class="coar-tab-list-actions">
+        <slot name="actions" />
+      </div>
     </div>
 
     <div class="coar-tab-content">
@@ -220,6 +230,17 @@ function onKeydown(event: KeyboardEvent) {
   display: flex;
   gap: 0;
   border-bottom: 1px solid var(--coar-border-neutral-tertiary);
+}
+
+/* Actions slot is pushed to the right edge of the tab-list row via margin-left:
+   auto, so consumers don't have to think about flex math. Vertically centred to
+   the tab buttons. */
+.coar-tab-list-actions {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--coar-spacing-xs);
+  padding: 0 var(--coar-spacing-s);
 }
 
 .coar-tab-button {

@@ -271,4 +271,37 @@ describe('CoarTabGroup', () => {
       expect(wrapper.find('.panel-t2').exists()).toBe(true);
     });
   });
+
+  describe('actions slot', () => {
+    it('renders #actions content in the tab-list row', () => {
+      const Wrapper = defineComponent({
+        components: { CoarTabGroup, CoarTab },
+        template: `
+          <CoarTabGroup>
+            <CoarTab id="a">
+              <template #default>A</template>
+              <template #content>content A</template>
+            </CoarTab>
+            <template #actions>
+              <button class="undo-btn">Undo</button>
+              <button class="redo-btn">Redo</button>
+            </template>
+          </CoarTabGroup>
+        `,
+      });
+      const wrapper = mount(Wrapper);
+      const tabList = wrapper.find('[role="tablist"]');
+      expect(tabList.exists()).toBe(true);
+      // The actions wrapper lives inside tab-list, next to the tab button(s).
+      const actions = tabList.find('.coar-tab-list-actions');
+      expect(actions.exists()).toBe(true);
+      expect(actions.find('.undo-btn').exists()).toBe(true);
+      expect(actions.find('.redo-btn').exists()).toBe(true);
+    });
+
+    it('does not render the actions wrapper when the slot is empty', () => {
+      const wrapper = createTabGroup({ tabs: defaultTabs });
+      expect(wrapper.find('.coar-tab-list-actions').exists()).toBe(false);
+    });
+  });
 });
