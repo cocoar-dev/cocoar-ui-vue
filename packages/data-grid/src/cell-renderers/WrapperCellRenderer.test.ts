@@ -259,6 +259,30 @@ describe('WrapperCellRenderer', () => {
     expect(bubbled).not.toHaveBeenCalled();
   });
 
+  it('inner renderer sees its own cellRendererParams via params.colDef (not the wrapper config)', () => {
+    const seen: unknown[] = [];
+    const InnerProbe = defineComponent({
+      props: { params: { type: Object, required: true } },
+      setup(p) {
+        // Replicate how factory-created renderers (tag, tree, date, …) read their config.
+        seen.push((p.params as ICellRendererParams).colDef?.cellRendererParams?.config);
+        return () => h('span', 'inner');
+      },
+    });
+
+    mount(WrapperCellRenderer, {
+      props: {
+        params: createParams(baseRow, {
+          innerRenderer: InnerProbe,
+          innerRendererParams: { config: { variantMap: { open: 'success' } } },
+          left: { icon: 'star' },
+        }),
+      },
+    });
+
+    expect(seen[0]).toEqual({ variantMap: { open: 'success' } });
+  });
+
   it('respects per-item show() inside an array', () => {
     const wrapper = mount(WrapperCellRenderer, {
       props: {

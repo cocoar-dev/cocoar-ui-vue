@@ -49,9 +49,21 @@ const rightItems = computed(() =>
 
 const innerRenderer = computed(() => config.value.innerRenderer ?? null);
 
+// Rebuild the params for the inner renderer so that factory-created renderers
+// (tag, tree, date, number, currency, icon) — which read their own config via
+// `params.colDef.cellRendererParams.config` — see their *own* cellRendererParams
+// instead of the wrapper's config. AG Grid passes the outer (wrapped) colDef to
+// us, so we override its `cellRendererParams` with the inner's original values.
 const innerParams = computed<ICellRendererParams>(() => {
   const innerExtra = config.value.innerRendererParams ?? {};
-  return { ...props.params, ...innerExtra } as ICellRendererParams;
+  return {
+    ...props.params,
+    colDef: {
+      ...(props.params.colDef ?? {}),
+      cellRendererParams: innerExtra,
+    },
+    ...innerExtra,
+  } as ICellRendererParams;
 });
 
 const fallbackText = computed<string>(() => {
