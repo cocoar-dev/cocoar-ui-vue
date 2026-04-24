@@ -292,3 +292,64 @@ test.describe('Markdown editor — readonly mode', () => {
     await expect(page.locator('.coar-md-floating-toolbar')).toHaveCount(0);
   });
 });
+
+test.describe('Markdown editor — code-block view/edit toggle', () => {
+  // The seed markdown contains a fenced ```typescript ...``` block. The NodeView
+  // renders it as `CoarCodeBlock` (Prism-highlighted) when the cursor sits
+  // elsewhere, and swaps to a plain editable view + language selector when the
+  // cursor lands inside.
+  test.beforeEach(async ({ page }) => {
+    await gotoMarkdownEditor(page);
+    await setMarkdown(page, '# Heading\n\n```typescript\nconst x = 1;\n```\n');
+    // Wait for the code-block NodeView to mount.
+    await page.locator('.coar-md-code-host').waitFor();
+    // After `replaceAll`, PM may leave the cursor inside the new code block,
+    // which would put us in edit mode immediately. Click the heading to move
+    // the selection out so each test starts in render mode.
+    await page.locator('.coar-md-area .ProseMirror h1').click();
+    await page.waitForTimeout(50);
+  });
+
+  test('starts in render mode (CoarCodeBlock visible, edit chrome hidden)', async ({ page }) => {
+    const host = page.locator('.coar-md-code-host');
+    await expect(host).not.toHaveClass(/coar-md-code-host--editing/);
+    // CoarCodeBlock always renders a `.coar-code-block-host` wrapper.
+    await expect(host.locator('.coar-code-block-host')).toBeVisible();
+    // Edit chrome (language select) should be display:none.
+    await expect(host.locator('.coar-md-code-edit')).toBeHidden();
+  });
+
+  test('clicking the Edit button switches to edit mode', async ({ page }) => {
+    const host = page.locator('.coar-md-code-host');
+    // Hover-revealed Edit button — `force: true` because Playwright stability
+    // checks struggle with opacity transitions on hover-only buttons.
+    await host.locator('.coar-md-code-edit-btn').click({ force: true });
+    await expect(host).toHaveClass(/coar-md-code-host--editing/);
+    await expect(host.locator('.coar-md-code-edit')).toBeVisible();
+    await expect(host.locator('.coar-md-code-render')).toBeHidden();
+  });
+
+  test('clicking outside the code block switches back to render mode', async ({ page }) => {
+    // Enter edit mode first
+    const host = page.locator('.coar-md-code-host');
+    await host.locator('.coar-md-code-edit-btn').click({ force: true });
+    await expect(host).toHaveClass(/coar-md-code-host--editing/);
+
+    // Click the heading above to move PM selection out of the code block.
+    await page.locator('.coar-md-area .ProseMirror h1').click();
+    await expect(host).not.toHaveClass(/coar-md-code-host--editing/);
+  });
+
+  test('language selector updates the markdown source', async ({ page }) => {
+    const host = page.locator('.coar-md-code-host');
+    await host.locator('.coar-md-code-edit-btn').click({ force: true });
+    await expect(host).toHaveClass(/coar-md-code-host--editing/);
+
+    // Open the CoarSelect and pick "JSON".
+    await host.locator('.coar-md-code-lang-row [role="combobox"]').click();
+    await page.locator('[role="option"]', { hasText: 'JSON' }).click();
+
+    // The persisted markdown's fence info-string should now read `json`.
+    await expect.poll(() => getMarkdown(page)).toMatch(/```json\n/);
+  });
+});

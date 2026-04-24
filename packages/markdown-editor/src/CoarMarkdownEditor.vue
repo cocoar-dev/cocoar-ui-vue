@@ -11,6 +11,7 @@ import type { $Command } from '@milkdown/utils';
 import { Milkdown, MilkdownProvider, useEditor, useInstance } from '@milkdown/vue';
 import { FORM_FIELD_INJECTION_KEY } from '@cocoar/vue-ui';
 import { decideListToggleAction, isToolEnabled } from './toolbar-helpers';
+import { codeBlockNodeView } from './code-block-view';
 import {
   commonmark,
   toggleStrongCommand, toggleEmphasisCommand, toggleInlineCodeCommand,
@@ -164,7 +165,10 @@ const EditorImpl = defineComponent({
         .use(gfm)
         .use(history)
         .use(clipboard)
-        .use(listener),
+        .use(listener)
+        // Custom NodeView for `code_block` — Prism-rendered when not focused,
+        // editable + language selector when the cursor is inside.
+        .use(codeBlockNodeView),
     );
 
     const [, getInstance] = useInstance();
@@ -874,9 +878,14 @@ const Toolbar = defineComponent({
       // and Milkdown gets remounted (losing PM listeners + the active-state hook).
       const children: VNodeArrayChildren = [];
       if (showFixed && props.toolbarPosition === 'left') children.push(renderSidebar());
+      // The `coar-markdown` class scopes the shared `--coar-markdown-*` token
+      // overrides + baseline rules from `@cocoar/vue-markdown/styles`,
+      // so the editor inherits the same typography/colour palette as the viewer.
+      // Editor-specific compactness lives in deeper `.coar-md-area .milkdown`
+      // selectors and wins via specificity.
       children.push(h('div', {
         key: 'area',
-        class: 'coar-md-area',
+        class: ['coar-md-area', 'coar-markdown'],
         onMousedown: onAreaMouseDown,
       }, [h(Milkdown)]));
       if (showFixed && props.toolbarPosition === 'right') children.push(renderSidebar());
@@ -959,6 +968,10 @@ export default defineComponent({
 </script>
 
 <style>
+/* Shared markdown-block stylesheet — same source as the viewer (`CoarMarkdown`).
+   Editor-specific compactness rules below win via deeper-selector specificity. */
+@import "@cocoar/vue-markdown/styles";
+
 .coar-md-root {
   display: flex;
   flex-direction: row;

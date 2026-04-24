@@ -1,0 +1,276 @@
+/*
+ * Shared Markdown block + inline styling for `@cocoar/vue-markdown` (viewer)
+ * and `@cocoar/vue-markdown-editor`. Defines `.coar-markdown-*` classes that
+ * both packages emit so the same Markdown source looks identical when
+ * read vs. written.
+ *
+ * Outer container class: `.coar-markdown` — both viewer and editor wrap their
+ * content in a div carrying this class. The class establishes the
+ * `--coar-markdown-*` design-token scope used by all child rules.
+ *
+ * Code blocks (CoarCodeBlock) and tables (CoarTable) bring their own styling
+ * via the underlying Cocoar UI components. The rules here target the *plain*
+ * fallbacks and the surrounding margins / typography only.
+ *
+ * Import once at app entry:
+ *
+ *   @import "@cocoar/vue-markdown/styles";
+ */
+
+.coar-markdown {
+  display: block;
+
+  /* Component-level theme hooks — derived from Cocoar tokens. */
+  --coar-markdown-text: var(--coar-text-neutral-primary);
+  --coar-markdown-link: var(--coar-text-brand-primary, var(--coar-text-neutral-primary));
+  --coar-markdown-muted-text: var(--coar-text-neutral-tertiary);
+  --coar-markdown-border: var(--coar-border-neutral-tertiary);
+  --coar-markdown-surface: var(--coar-background-neutral-primary);
+  --coar-markdown-surface-muted: var(
+    --coar-background-neutral-tertiary,
+    var(--coar-background-neutral-primary)
+  );
+  --coar-markdown-radius: var(--coar-radius-xs);
+  --coar-markdown-space-1: var(--coar-spacing-s, 0.5rem);
+  --coar-markdown-space-2: var(--coar-spacing-m, 1rem);
+  --coar-markdown-heading-block-start: var(--coar-spacing-xxxl, 4rem);
+
+  color: var(--coar-markdown-text);
+}
+
+.coar-markdown :where(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--coar-font-family-title, inherit);
+  color: var(--coar-markdown-text);
+}
+
+.coar-markdown h1 {
+  font-size: var(--coar-font-size-xl);
+  font-weight: var(--coar-font-weight-bold);
+  line-height: var(--coar-line-height-tight);
+}
+
+.coar-markdown h2 {
+  font-size: var(--coar-font-size-l);
+  font-weight: var(--coar-font-weight-bold);
+  line-height: 1.25;
+}
+
+.coar-markdown h3 {
+  font-size: var(--coar-font-size-m);
+  font-weight: var(--coar-font-weight-semi-bold);
+  line-height: var(--coar-line-height-snug);
+}
+
+.coar-markdown h4 {
+  font-size: var(--coar-font-size-s);
+  font-weight: var(--coar-font-weight-semi-bold);
+  line-height: 1.35;
+}
+
+.coar-markdown h5 {
+  font-size: var(--coar-font-size-xs);
+  font-weight: var(--coar-font-weight-semi-bold);
+  line-height: var(--coar-line-height-normal);
+}
+
+.coar-markdown h6 {
+  font-size: var(--coar-font-size-xxs);
+  font-weight: var(--coar-font-weight-medium);
+  line-height: 1.45;
+}
+
+.coar-markdown-heading,
+.coar-markdown-paragraph,
+.coar-markdown-blockquote,
+.coar-markdown-list,
+.coar-markdown-code-block,
+.coar-markdown-table,
+.coar-markdown-hr {
+  margin: 0;
+}
+
+.coar-markdown
+  > :where(
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    p,
+    blockquote,
+    ul,
+    ol,
+    pre,
+    table,
+    hr,
+    .coar-code-block-host,
+    .coar-table-host
+  ) {
+  margin-block: 0 var(--coar-markdown-space-2);
+}
+
+.coar-markdown > :where(h1, h2, h3, h4, h5, h6) {
+  margin-block-start: var(--coar-markdown-heading-block-start);
+}
+
+/* Large section spacing is great, but keep heading hierarchies tight (e.g. h2 -> h3). */
+.coar-markdown > :where(h1, h2, h3, h4, h5, h6) + :where(h1, h2, h3, h4, h5, h6) {
+  margin-block-start: var(--coar-markdown-space-1);
+}
+
+.coar-markdown > :where(h1, h2, h3, h4, h5, h6):first-child {
+  margin-block-start: 0;
+}
+
+.coar-markdown-blockquote {
+  padding-inline: var(--coar-markdown-space-2);
+  border-left: 2px solid var(--coar-markdown-border);
+}
+
+.coar-markdown-list {
+  padding-inline-start: var(--coar-spacing-l, 1.5rem);
+  list-style-position: outside;
+}
+
+.coar-markdown-list--unordered {
+  list-style-type: disc;
+}
+
+.coar-markdown-list--ordered {
+  list-style-type: decimal;
+}
+
+.coar-markdown-list-item {
+  display: list-item;
+  margin-block: 0.25em;
+}
+
+.coar-markdown-list-item--task {
+  list-style: none;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--coar-spacing-s, 0.5rem);
+}
+
+.coar-markdown-list-item-content {
+  min-width: 0;
+}
+
+.coar-markdown-task-checkbox {
+  margin-top: 0.15em;
+}
+
+.coar-markdown-code-block {
+  display: block;
+}
+
+.coar-markdown-code {
+  display: block;
+}
+
+.coar-markdown-inline-code {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--coar-text-accent-secondary, var(--coar-markdown-link));
+}
+
+.coar-markdown-link {
+  text-decoration: underline;
+  color: var(--coar-markdown-link);
+}
+
+.coar-markdown-image {
+  max-width: 100%;
+  height: auto;
+  vertical-align: middle;
+}
+
+/* Tables — applies to both the viewer's named `.coar-markdown-table` and any
+   bare `<table>` rendered inside `.coar-markdown` (e.g. the editor's PM-
+   managed table). Rules use `:where()` so consumers can override without
+   specificity wars. The visual matches `CoarTable` (zebra rows, header
+   surface, generous padding) so editor and viewer read the same. */
+.coar-markdown :where(table),
+.coar-markdown-table {
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  font-size: var(--coar-body-small-base-size, 0.9rem);
+  line-height: var(--coar-line-height-relaxed, 1.5);
+}
+
+.coar-markdown :where(table thead),
+.coar-markdown-table > thead {
+  background: var(--coar-markdown-surface-muted);
+}
+
+.coar-markdown :where(table th),
+.coar-markdown-table > thead th {
+  padding: 0.625rem var(--coar-markdown-space-2);
+  text-align: left;
+  vertical-align: top;
+  font-weight: var(--coar-font-weight-semi-bold, 600);
+  font-size: var(--coar-component-s-font-size, 0.85em);
+  color: var(--coar-markdown-text);
+  border-bottom: 1px solid var(--coar-markdown-border);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.coar-markdown :where(table td),
+.coar-markdown-table > tbody td {
+  padding: 0.625rem var(--coar-markdown-space-2);
+  text-align: left;
+  vertical-align: top;
+  color: var(--coar-text-neutral-secondary, var(--coar-markdown-text));
+  border-bottom: 1px solid var(--coar-markdown-border);
+}
+
+/* Zebra stripes — odd rows on the primary surface, even rows on the muted
+   surface — same pattern CoarTable uses by default. */
+.coar-markdown :where(table tbody tr:nth-child(odd)),
+.coar-markdown-table > tbody tr:nth-child(odd) {
+  background: var(--coar-markdown-surface);
+}
+.coar-markdown :where(table tbody tr:nth-child(even)),
+.coar-markdown-table > tbody tr:nth-child(even) {
+  background: var(--coar-markdown-surface-muted);
+}
+
+/* Last row drops its bottom border so it doesn't double-up with any wrapping
+   container's border. */
+.coar-markdown :where(table tbody tr:last-child td),
+.coar-markdown-table > tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/* Standalone tableCell fallback — kept for the rare case where the parser
+   emits a tableCell without a containing table tree. */
+.coar-markdown-table-cell {
+  padding: var(--coar-markdown-space-1);
+  vertical-align: top;
+  border-right: 1px solid var(--coar-markdown-border);
+  border-bottom: 1px solid var(--coar-markdown-border);
+}
+
+.coar-markdown-hr {
+  border: 0;
+  border-top: 1px solid var(--coar-markdown-border);
+}
+
+.coar-markdown-unsupported,
+.coar-markdown-unsupported-inline {
+  font-style: italic;
+  color: var(--coar-markdown-muted-text);
+}
+
+.coar-markdown-unsupported {
+  padding: var(--coar-markdown-space-1);
+  border: 1px dashed var(--coar-markdown-border);
+  border-radius: var(--coar-markdown-radius);
+  background: var(--coar-markdown-surface);
+}

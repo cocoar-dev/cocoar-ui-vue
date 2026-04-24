@@ -6,6 +6,16 @@ Render markdown content with Cocoar Design System styling. The system is split i
 ```bash
 pnpm add @cocoar/vue-markdown @cocoar/vue-markdown-core
 ```
+
+Then load the shared block stylesheet **once** at app entry, alongside `@cocoar/vue-ui/styles`:
+
+```css
+/* app/main.css */
+@import "@cocoar/vue-ui/styles";
+@import "@cocoar/vue-markdown/styles";
+```
+
+The same stylesheet is consumed by `@cocoar/vue-markdown-editor` — viewer and editor render identical output for every node type.
 :::
 
 ## Quick Start
@@ -86,6 +96,62 @@ const doc = transform(parse(markdown), addPrefix);
 | Prop | Type | Description |
 |------|------|-------------|
 | `doc` | `MarkdownDocument` | Pre-parsed markdown document |
+| `renderers` | `MarkdownViewerRenderers` | _(optional)_ Per-instance renderer override. See [Custom renderers](#custom-renderers-registry) below. |
+
+### Custom renderers (registry)
+
+Every node type — headings, paragraphs, code blocks, tables, lists, even inline marks like `<em>` — is rendered by a swappable Vue component. The package exports the full default registry so you can override **just one slot** while keeping the rest of the Cocoar look:
+
+```vue
+<script setup lang="ts">
+import { CoarMarkdown, defaultMarkdownRenderers } from '@cocoar/vue-markdown';
+import MyHighlightedCodeBlock from './MyHighlightedCodeBlock.vue';
+
+const renderers = {
+  ...defaultMarkdownRenderers,
+  codeBlock: MyHighlightedCodeBlock,  // Swap just the code-block slot
+};
+</script>
+
+<template>
+  <CoarMarkdown :doc="doc" :renderers="renderers" />
+</template>
+```
+
+For app-wide overrides, `provide` the registry once at startup:
+
+```ts
+import { MARKDOWN_RENDERERS_KEY, defaultMarkdownRenderers } from '@cocoar/vue-markdown';
+app.provide(MARKDOWN_RENDERERS_KEY, {
+  ...defaultMarkdownRenderers,
+  codeBlock: MyHighlightedCodeBlock,
+});
+```
+
+Resolution order: per-instance prop → app-level inject → built-in defaults.
+
+#### Renderer contract
+
+Each renderer receives:
+
+```ts
+interface MarkdownRendererProps {
+  /** The AST node currently being rendered. */
+  node: MarkdownNode;
+  /** Recursive child renderer — call to render `node.children`. */
+  renderChildren: () => VNode[];
+  /** Render an arbitrary list of nodes through the registry. Used by `DefaultTable`
+   *  to render each cell's inline content while keeping the `<thead>/<tbody>` shape
+   *  under the renderer's control. */
+  renderNodes: (nodes: readonly MarkdownNode[]) => VNode[];
+}
+```
+
+A custom renderer is a regular Vue component that emits the right semantic HTML for its node type. Use `renderChildren()` for the typical "wrap children in a tag" case; reach for `renderNodes(...)` only when the rendered structure isn't a flat children list (the GFM table is the canonical example).
+
+#### Why the registry matters
+
+The same registry is consumed by `@cocoar/vue-markdown-editor`. Overriding `codeBlock` in your app's `provide` flips the rendering both in the viewer **and** in the editor's render mode (the cursor-out state of the in-editor code block). Output stays in sync without any duplicated wiring.
 
 ### Supported Elements
 

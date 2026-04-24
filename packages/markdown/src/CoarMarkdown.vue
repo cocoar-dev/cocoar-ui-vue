@@ -1,10 +1,37 @@
 <script setup lang="ts">
+/**
+ * Markdown viewer.
+ *
+ * Walks the parsed `MarkdownDocument` and renders it through the shared
+ * rendering registry exported from this same package. Output and styling
+ * are identical to what `@cocoar/vue-markdown-editor` produces from the
+ * same source — both consume the same registry + the same stylesheet.
+ *
+ * Override behaviour:
+ * - `renderers` prop — per-instance override (e.g. swap the code block
+ *   for a custom highlighter on this viewer only).
+ * - `app.provide(MARKDOWN_RENDERERS_KEY, ...)` — app-wide override.
+ * - Default: `defaultMarkdownRenderers` (Cocoar UI components).
+ *
+ * The shared CSS is imported via `<style>` here so consumers don't have to
+ * remember a separate stylesheet import. Bundlers split it out into the
+ * package's `dist/index.css`, also reachable via `@import
+ * "@cocoar/vue-markdown/styles"`.
+ */
 import type { MarkdownDocument } from '@cocoar/vue-markdown-core';
-import MarkdownBlockNode from './MarkdownBlockNode.vue';
+import { RenderNode } from './RenderNode';
+import type { MarkdownViewerRenderers } from './registry';
 
 export interface CoarMarkdownProps {
   /** The parsed markdown document to render. */
   doc: MarkdownDocument;
+  /**
+   * Per-instance renderer override. When omitted the viewer uses the
+   * `provide`d registry (if any) or the built-in Cocoar defaults.
+   * Spread the defaults to override only specific node types:
+   * `{ ...defaultMarkdownRenderers, codeBlock: MyCustomCodeBlock }`.
+   */
+  renderers?: MarkdownViewerRenderers;
 }
 
 defineProps<CoarMarkdownProps>();
@@ -12,226 +39,15 @@ defineProps<CoarMarkdownProps>();
 
 <template>
   <div class="coar-markdown">
-    <MarkdownBlockNode :nodes="doc.nodes" />
+    <RenderNode
+      v-for="node in doc.nodes"
+      :key="node.id"
+      :node="node"
+      :renderers="renderers"
+    />
   </div>
 </template>
 
 <style>
-.coar-markdown {
-  display: block;
-
-  /* Component-level theme hooks */
-  --coar-markdown-text: var(--coar-text-neutral-primary);
-  --coar-markdown-link: var(--coar-text-brand-primary, var(--coar-text-neutral-primary));
-  --coar-markdown-muted-text: var(--coar-text-neutral-tertiary);
-  --coar-markdown-border: var(--coar-border-neutral-tertiary);
-  --coar-markdown-surface: var(--coar-background-neutral-primary);
-  --coar-markdown-surface-muted: var(
-    --coar-background-neutral-tertiary,
-    var(--coar-background-neutral-primary)
-  );
-  --coar-markdown-radius: var(--coar-radius-xs);
-  --coar-markdown-space-1: var(--coar-spacing-s, 0.5rem);
-  --coar-markdown-space-2: var(--coar-spacing-m, 1rem);
-  --coar-markdown-heading-block-start: var(--coar-spacing-xxxl, 4rem);
-
-  color: var(--coar-markdown-text);
-}
-
-.coar-markdown :where(h1, h2, h3, h4, h5, h6) {
-  font-family: var(--coar-font-family-title, inherit);
-  color: var(--coar-markdown-text);
-}
-
-.coar-markdown h1 {
-  font-size: var(--coar-font-size-xl);
-  font-weight: var(--coar-font-weight-bold);
-  line-height: var(--coar-line-height-tight);
-}
-
-.coar-markdown h2 {
-  font-size: var(--coar-font-size-l);
-  font-weight: var(--coar-font-weight-bold);
-  line-height: 1.25;
-}
-
-.coar-markdown h3 {
-  font-size: var(--coar-font-size-m);
-  font-weight: var(--coar-font-weight-semi-bold);
-  line-height: var(--coar-line-height-snug);
-}
-
-.coar-markdown h4 {
-  font-size: var(--coar-font-size-s);
-  font-weight: var(--coar-font-weight-semi-bold);
-  line-height: 1.35;
-}
-
-.coar-markdown h5 {
-  font-size: var(--coar-font-size-xs);
-  font-weight: var(--coar-font-weight-semi-bold);
-  line-height: var(--coar-line-height-normal);
-}
-
-.coar-markdown h6 {
-  font-size: var(--coar-font-size-xxs);
-  font-weight: var(--coar-font-weight-medium);
-  line-height: 1.45;
-}
-
-.coar-markdown-heading,
-.coar-markdown-paragraph,
-.coar-markdown-blockquote,
-.coar-markdown-list,
-.coar-markdown-code-block,
-.coar-markdown-table,
-.coar-markdown-hr {
-  margin: 0;
-}
-
-.coar-markdown
-  > :where(
-    h1,
-    h2,
-    h3,
-    h4,
-    h5,
-    h6,
-    p,
-    blockquote,
-    ul,
-    ol,
-    pre,
-    table,
-    hr,
-    .coar-code-block-host,
-    .coar-table-host
-  ) {
-  margin-block: 0 var(--coar-markdown-space-2);
-}
-
-.coar-markdown > :where(h1, h2, h3, h4, h5, h6) {
-  margin-block-start: var(--coar-markdown-heading-block-start);
-}
-
-/* Large section spacing is great, but keep heading hierarchies tight (e.g. h2 -> h3). */
-.coar-markdown > :where(h1, h2, h3, h4, h5, h6) + :where(h1, h2, h3, h4, h5, h6) {
-  margin-block-start: var(--coar-markdown-space-1);
-}
-
-.coar-markdown > :where(h1, h2, h3, h4, h5, h6):first-child {
-  margin-block-start: 0;
-}
-
-.coar-markdown-blockquote {
-  padding-inline: var(--coar-markdown-space-2);
-  border-left: 2px solid var(--coar-markdown-border);
-}
-
-.coar-markdown-list {
-  padding-inline-start: var(--coar-spacing-l, 1.5rem);
-  list-style-position: outside;
-}
-
-.coar-markdown-list--unordered {
-  list-style-type: disc;
-}
-
-.coar-markdown-list--ordered {
-  list-style-type: decimal;
-}
-
-.coar-markdown-list-item {
-  display: list-item;
-  margin-block: 0.25em;
-}
-
-.coar-markdown-list-item--task {
-  list-style: none;
-  display: flex;
-  align-items: flex-start;
-  gap: var(--coar-spacing-s, 0.5rem);
-}
-
-.coar-markdown-list-item-content {
-  min-width: 0;
-}
-
-.coar-markdown-task-checkbox {
-  margin-top: 0.15em;
-}
-
-.coar-markdown-code-block {
-  display: block;
-}
-
-.coar-markdown-code {
-  display: block;
-}
-
-.coar-markdown-inline-code {
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  color: var(--coar-text-accent-secondary, var(--coar-markdown-link));
-}
-
-.coar-markdown-link {
-  text-decoration: underline;
-  color: var(--coar-markdown-link);
-}
-
-.coar-markdown-image {
-  max-width: 100%;
-  height: auto;
-  vertical-align: middle;
-}
-
-.coar-markdown-table {
-  width: 100%;
-  border: 1px solid var(--coar-markdown-border);
-  border-radius: var(--coar-markdown-radius);
-  border-collapse: separate;
-  border-spacing: 0;
-  overflow: hidden;
-}
-
-.coar-markdown-table-cell {
-  padding: var(--coar-markdown-space-1);
-  vertical-align: top;
-  border-right: 1px solid var(--coar-markdown-border);
-  border-bottom: 1px solid var(--coar-markdown-border);
-}
-
-.coar-markdown-table :where(tr) .coar-markdown-table-cell:last-child {
-  border-right: 0;
-}
-
-.coar-markdown-table :where(tbody) tr:last-child .coar-markdown-table-cell {
-  border-bottom: 0;
-}
-
-.coar-markdown-table :where(thead) .coar-markdown-table-cell {
-  background: var(--coar-markdown-surface-muted);
-  font-weight: 600;
-}
-
-.coar-markdown-hr {
-  border: 0;
-  border-top: 1px solid var(--coar-markdown-border);
-}
-
-.coar-markdown-unsupported,
-.coar-markdown-unsupported-inline {
-  font-style: italic;
-  color: var(--coar-markdown-muted-text);
-}
-
-.coar-markdown-unsupported {
-  padding: var(--coar-markdown-space-1);
-  border: 1px dashed var(--coar-markdown-border);
-  border-radius: var(--coar-markdown-radius);
-  background: var(--coar-markdown-surface);
-}
+@import "../styles/markdown-blocks.css";
 </style>

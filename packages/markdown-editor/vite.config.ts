@@ -24,6 +24,7 @@ export default defineConfig({
       external: [
         'vue',
         '@cocoar/vue-ui',
+        '@cocoar/vue-markdown',
         /^@milkdown\//,
       ],
       output: {

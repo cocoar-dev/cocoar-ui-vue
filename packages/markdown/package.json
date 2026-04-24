@@ -1,7 +1,7 @@
 {
   "name": "@cocoar/vue-markdown",
   "version": "0.0.1",
-  "description": "Markdown viewer component for Vue 3 with Cocoar Design System styling",
+  "description": "Markdown viewer + shared rendering registry for Vue 3. The viewer (`<CoarMarkdown>`) and the editor (`@cocoar/vue-markdown-editor`) consume the same component map so a code block, table, etc. looks identical in both contexts.",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -14,7 +14,9 @@
     "vue",
     "vue3",
     "markdown",
-    "viewer"
+    "viewer",
+    "renderer",
+    "registry"
   ],
   "type": "module",
   "sideEffects": [
@@ -28,10 +30,12 @@
       "source": "./src/index.ts",
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
-    }
+    },
+    "./styles": "./styles/markdown-blocks.css"
   },
   "files": [
-    "dist"
+    "dist",
+    "styles"
   ],
   "scripts": {
     "build": "vite build",

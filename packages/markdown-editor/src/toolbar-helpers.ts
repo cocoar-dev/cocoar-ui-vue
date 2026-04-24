@@ -22,8 +22,13 @@ export function isToolEnabled(
   whitelist: ReadonlySet<CoarMarkdownEditorTool> | readonly CoarMarkdownEditorTool[] | undefined,
 ): boolean {
   if (whitelist === undefined) return true;
-  if (whitelist instanceof Set) return whitelist.has(tool);
-  return whitelist.includes(tool);
+  // Duck-type via the presence of `.has` — works for both `Set` and
+  // `ReadonlySet` without TypeScript narrowing quirks (`Array.isArray`
+  // doesn't narrow `ReadonlyArray<T>` cleanly out of a union with
+  // `ReadonlySet<T>`, and `instanceof Set` doesn't either).
+  return 'has' in whitelist
+    ? whitelist.has(tool)
+    : whitelist.includes(tool);
 }
 
 /**

@@ -160,3 +160,60 @@ describe('CoarMarkdown', () => {
     expect(tds[1].classes()).toContain('text-right');
   });
 });
+
+// Spread the Cocoar defaults so unrelated nodes (text, paragraph, etc.) keep
+// rendering normally — we only swap one slot at a time.
+import { defineComponent, h } from 'vue';
+import { defaultMarkdownRenderers, type MarkdownViewerRenderers } from './index';
+
+describe('CoarMarkdown — renderers prop override', () => {
+  const tinyDoc = {
+    nodes: [
+      {
+        id: 'h',
+        type: 'heading',
+        attrs: { depth: 2 },
+        children: [{ id: 't', type: 'text', text: 'Title' }],
+      },
+      {
+        id: 'p',
+        type: 'paragraph',
+        children: [{ id: 'pt', type: 'text', text: 'Body' }],
+      },
+    ],
+  };
+
+  it('uses the override component for matching node types', () => {
+    // Custom paragraph that wraps the content in a marked div so the test
+    // can assert the override actually fired.
+    const CustomParagraph = defineComponent({
+      name: 'CustomParagraph',
+      props: { node: { type: Object, required: true }, renderChildren: { type: Function, required: true }, renderNodes: { type: Function, required: true } },
+      setup(props) {
+        return () =>
+          h('div', { 'data-testid': 'custom-paragraph' }, props.renderChildren());
+      },
+    });
+    const renderers: MarkdownViewerRenderers = {
+      ...defaultMarkdownRenderers,
+      paragraph: CustomParagraph,
+    };
+
+    const wrapper = mount(CoarMarkdown, {
+      props: { doc: tinyDoc, renderers },
+    });
+
+    const custom = wrapper.find('[data-testid="custom-paragraph"]');
+    expect(custom.exists()).toBe(true);
+    expect(custom.text()).toBe('Body');
+    // Heading isn't overridden — still renders as <h2>.
+    expect(wrapper.find('h2').text()).toBe('Title');
+  });
+
+  it('renders defaults when no override is provided', () => {
+    const wrapper = mount(CoarMarkdown, { props: { doc: tinyDoc } });
+    // No override — default paragraph renderer wraps in <p>.
+    expect(wrapper.find('p').text()).toBe('Body');
+    expect(wrapper.find('[data-testid="custom-paragraph"]').exists()).toBe(false);
+  });
+});

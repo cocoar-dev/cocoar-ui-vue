@@ -1,24 +1,27 @@
-# Markdown Editor
+# Markdown Editor <Badge type="warning" text="Preview" />
 
-WYSIWYG Markdown editor for Vue 3 based on [Milkdown](https://milkdown.dev/) (Kit approach), styled with the Cocoar Design System. Markdown-first: lossless round-trip between text and editor state. Shares the same remark stack as `@cocoar/vue-markdown-core` and `<CoarMarkdown>`.
+WYSIWYG Markdown editor for Vue 3 based on [Milkdown](https://milkdown.dev/) (Kit approach), styled with the Cocoar Design System. Markdown-first: lossless round-trip between text and editor state. Shares the same remark stack — and the same render registry — as `@cocoar/vue-markdown-core` and `<CoarMarkdown>`.
 
 ::: info Separate Package
 ```bash
-pnpm add @cocoar/vue-markdown-editor @cocoar/vue-ui
+pnpm add @cocoar/vue-markdown-editor @cocoar/vue-markdown @cocoar/vue-ui
 ```
-`@cocoar/vue-ui` and `vue` are peer dependencies. Milkdown is bundled as a regular dependency — no extra setup required.
+`@cocoar/vue-markdown`, `@cocoar/vue-ui` and `vue` are peer dependencies. Milkdown is bundled as a regular dependency — no extra setup required. The peer-dep on `@cocoar/vue-markdown` is what makes the **shared rendering registry** work — code blocks, tables, etc. look identical here and in `<CoarMarkdown>`.
 
-Import the stylesheet once at your app's entry — same pattern as `@cocoar/vue-ui` and `@cocoar/vue-data-grid`:
+Import the stylesheets once at your app's entry — same pattern as `@cocoar/vue-ui`:
 
 ```css
 /* app/main.css */
 @import "@cocoar/vue-ui/styles";
-@import "@cocoar/vue-markdown-editor/styles";
+@import "@cocoar/vue-markdown/styles";        /* ← shared block styles */
+@import "@cocoar/vue-markdown-editor/styles"; /* ← editor-specific chrome */
 ```
 :::
 
-::: warning Early version
-The `0.0.x` series is the first extraction from the prototype. The render layer, v-model contract, and toolbar API are stable; **table edge handles, link/image dialogs, and a placeholder are not yet implemented**. See [TODO](#todo) below.
+::: warning Preview release
+The package is on the `0.0.x` line. The render layer, `v-model` contract, toolbar API, form-field integration, and code-block view/edit toggle are **stable enough to ship in internal Cocoar apps** — the source format is plain Markdown, so any content written today round-trips through future API changes.
+
+Still missing for a `1.0`: link insertion dialog, image upload, placeholder text, and custom table edge-handles. See [TODO](#todo) below.
 :::
 
 ## Basic Usage
@@ -73,6 +76,25 @@ When `toolbarMode` is `'fixed'` or `'both'`, `toolbarPosition` (`'left'` or `'ri
 ```
 
 In `readonly` mode the editor accepts no input, the floating toolbar is suppressed, and the sidebar buttons are inert. The fixed toolbar still renders so the layout stays stable when toggling between view and edit.
+
+## Code blocks — view / edit toggle
+
+Code blocks have a richer UX than the rest of the editor. When the cursor is **outside** a code block it renders as `CoarCodeBlock` with full Prism syntax highlighting — same component, same look as `<CoarMarkdown>` produces in the viewer. When the cursor moves **inside** the block it switches to plain editable mode plus a language selector at the top.
+
+| State | What renders | Why |
+|---|---|---|
+| Cursor **outside** | `CoarCodeBlock` (Prism-highlighted, copy button, language label) | Read-mode aesthetic — matches the viewer |
+| Cursor **inside** | Plain editable text + `CoarSelect` for the language | Editing on top of Prism-highlighted DOM is fragile (cursor jumps, IME issues). Plain text avoids that. |
+
+Switching directions:
+- **Render → edit**: hover the code block to reveal a small **Edit** button (top-right), or simply click into the text via PM's natural cursor placement
+- **Edit → render**: click anywhere outside the code block. PM's selection moves out → the NodeView swaps back automatically
+
+Supported languages match what `CoarCodeBlock` ships with: `typescript`, `javascript`, `json`, `css`, `scss`, `html`, `bash`, plus `''` (Plain text — no highlighting). The language string is persisted exactly as picked into the markdown fence (` ```json `).
+
+::: tip Custom code-block renderer
+The render-mode component is the registry's `codeBlock` slot. Override it in `provide(MARKDOWN_RENDERERS_KEY, { ...defaults, codeBlock: MyCustom })` and the editor's render mode picks up the same custom component without any extra wiring.
+:::
 
 ## Form Integration
 

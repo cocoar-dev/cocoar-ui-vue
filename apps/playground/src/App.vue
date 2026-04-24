@@ -24,7 +24,12 @@ import { CoarOverlayHost } from '@cocoar/vue-ui';
   display: flex;
   flex-direction: column;
   height: 100vh;
-  font-family: var(--coar-font-family, sans-serif);
+  /* Inherit the body font (Poppins) from `@cocoar/vue-ui/styles`. The
+     previous `var(--coar-font-family, sans-serif)` referenced a token that
+     doesn't exist in the design system, so it always fell back to the bare
+     `sans-serif` and broke Poppins inheritance for everything inside the
+     app — including the markdown editor's body text. */
+  font-family: var(--coar-body-base-family);
 }
 
 .app-nav {
