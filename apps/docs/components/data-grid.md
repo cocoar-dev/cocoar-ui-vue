@@ -39,6 +39,69 @@ Built-in renderers for dates, numbers, currency, tags, and icons — no custom c
 | `.currency(field, config?)` | Locale-aware currency display |
 | `.tag(field, config)` | Renders a `CoarTag` with variant mapping or custom colors |
 | `.icon(field, config?)` | Renders a `CoarIcon` |
+| `.wrap(inner)` | Wraps any column builder with left/right decoration slots |
+
+## Wrapper Column
+
+Decorate any column with left and/or right slots — perfect for status indicators, action icons, or inline badges. The inner column keeps all its behavior (sort, filter, edit, `valueFormatter`, custom `cellRenderer`, …); only rendering gets an extra frame around it.
+
+<preview path="./data-grid/demos/GridWrapperColumn.vue" />
+
+Each slot accepts one of three shapes:
+
+```ts
+// 1) Icon shorthand
+.left({
+  icon: (row) => row.starred ? 'star' : 'star-outline',
+  color: (row) => row.starred ? '#f5a623' : '#ccc',
+  tooltip: (row) => row.starred ? 'Unstar' : 'Star',
+  onClick: (row, event) => toggleStar(row),
+  show: (row) => row.visible,            // optional v-if gate
+})
+
+// 2) Any Vue component
+// The component automatically receives `row: TData` as a prop —
+// use `params(row)` to add or override props.
+.right({
+  component: CoarBadge,
+  params: (row) => ({ content: String(row.unread) }),
+  show: (row) => row.unread > 0,
+})
+
+// 3) Plain text
+.right({ text: (row) => row.suffix })
+```
+
+### Multiple items per slot
+
+Pass an array to stack several items in the same slot — each with its own `show()` gate, `onClick`, and tooltip. Items are rendered in order with a small gap.
+
+```ts
+.right([
+  { icon: 'circle-alert',   color: '#dc2626', show: (r) => r.isCritical },
+  { icon: 'message-circle', color: '#3b82f6', show: (r) => r.awaitingFeedback },
+  { component: PriorityIndicator },  // receives `row` automatically
+])
+```
+
+### Row-aware components
+
+Every component slot automatically receives `row: TData` as a prop. This lets a single component decide what to render — icon, tag, or nothing — based on the full row:
+
+```ts
+const PriorityIndicator = defineComponent({
+  props: { row: { type: Object as () => Message, required: true } },
+  setup(props) {
+    return () => {
+      if (props.row.priority === 'high') return h(CoarTag, { variant: 'error' }, () => 'HIGH');
+      if (props.row.priority === 'low')  return h(CoarIcon, { name: 'arrow-down' });
+      return null;
+    };
+  },
+});
+```
+
+Slot `onClick` handlers automatically call `event.stopPropagation()` so they don't trigger row-click or cell-click events on the grid.
 
 ## Row Selection
 

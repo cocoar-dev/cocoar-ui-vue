@@ -5,6 +5,7 @@ export { default as DateCellRenderer } from './DateCellRenderer.vue';
 export { default as NumberCellRenderer } from './NumberCellRenderer.vue';
 export { default as CurrencyCellRenderer } from './CurrencyCellRenderer.vue';
 export { default as TreeCellRenderer } from './TreeCellRenderer.vue';
+export { default as WrapperCellRenderer } from './WrapperCellRenderer.vue';
 
 // Config interfaces (public API)
 export type { TagCellRendererConfig } from './tag-cell-renderer.models';
@@ -13,3 +14,12 @@ export type { DateCellRendererConfig } from './date-cell-renderer.models';
 export type { NumberCellRendererConfig } from './number-cell-renderer.models';
 export type { CurrencyCellRendererConfig } from './currency-cell-renderer.models';
 export type { TreeCellRendererConfig } from './tree-cell-renderer.models';
+export type {
+  WrapperSlotConfig,
+  WrapperSlotItem,
+  WrapperIconSlotConfig,
+  WrapperComponentSlotConfig,
+  WrapperTextSlotConfig,
+  WrapperCellRendererConfig,
+  WrapperSlotAccessor,
+} from './wrapper-cell-renderer.models';

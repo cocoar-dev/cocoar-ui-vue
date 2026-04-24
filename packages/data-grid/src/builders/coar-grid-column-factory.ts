@@ -1,4 +1,5 @@
 import { CoarGridColumnBuilder } from './coar-grid-column-builder';
+import { CoarGridWrapperColumnBuilder } from './coar-grid-wrapper-column-builder';
 import TagCellRenderer from '../cell-renderers/TagCellRenderer.vue';
 import IconCellRenderer from '../cell-renderers/IconCellRenderer.vue';
 import DateCellRenderer from '../cell-renderers/DateCellRenderer.vue';
@@ -184,5 +185,29 @@ export class CoarGridColumnFactory<TData = unknown> {
     const builder = new CoarGridColumnBuilder<TData, TValue>(fieldName);
     builder.cellRendererConfig(TreeCellRenderer, config ?? {});
     return builder;
+  }
+
+  /**
+   * Wrap an existing column builder with left/right decoration slots.
+   *
+   * The inner builder's ColDef is preserved in full — sort, filter, edit,
+   * valueFormatter, comparator, quickFilter, cellRenderer etc. all continue
+   * to work. Only the `cellRenderer` is replaced by a wrapper that renders
+   * `left` slot → inner renderer → `right` slot in a flex row.
+   *
+   * Slot click handlers call `event.stopPropagation()` automatically so they
+   * don't trigger row-click / cell-click events on the grid.
+   *
+   * @example
+   * ```ts
+   * col.wrap(col.field('name').header('Name').flex(1).sortable())
+   *    .left({ icon: (r) => r.starred ? 'star-filled' : 'star-outline' })
+   *    .right({ component: UnreadBadge, params: (r) => ({ count: r.unread }) })
+   * ```
+   */
+  wrap<TValue = unknown>(
+    inner: CoarGridColumnBuilder<TData, TValue>,
+  ): CoarGridWrapperColumnBuilder<TData, TValue> {
+    return new CoarGridWrapperColumnBuilder<TData, TValue>(inner);
   }
 }

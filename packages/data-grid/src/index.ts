@@ -2,10 +2,20 @@
 export { CoarGridBuilder, type ColumnDefinition, type ColumnPersistenceOptions, type TreeDataConfig, type TreeNodeMeta, type CoarTreeContext, cleanupColumnStates } from './builders';
 export { CoarGridColumnBuilder } from './builders';
 export { CoarGridColumnFactory } from './builders';
+export { CoarGridWrapperColumnBuilder } from './builders';
 
 // Cell Renderers
-export { TagCellRenderer, IconCellRenderer, DateCellRenderer, TreeCellRenderer } from './cell-renderers';
+export { TagCellRenderer, IconCellRenderer, DateCellRenderer, TreeCellRenderer, WrapperCellRenderer } from './cell-renderers';
 export type { TagCellRendererConfig, IconCellRendererConfig, DateCellRendererConfig, TreeCellRendererConfig } from './cell-renderers';
+export type {
+  WrapperSlotConfig,
+  WrapperSlotItem,
+  WrapperIconSlotConfig,
+  WrapperComponentSlotConfig,
+  WrapperTextSlotConfig,
+  WrapperCellRendererConfig,
+  WrapperSlotAccessor,
+} from './cell-renderers';
 
 // Theme
 export { cocoarTheme, createCocoarTheme } from './theme';
