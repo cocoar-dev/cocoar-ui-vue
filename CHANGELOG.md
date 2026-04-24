@@ -7,35 +7,6 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
-## 1.14.0
-
-### Added
-
-- **`@cocoar/vue-markdown` — shared rendering registry**: the viewer (`<CoarMarkdown>`) and the editor (`@cocoar/vue-markdown-editor`) now consume the **same** Vue component map for every node type, so a code block, table, blockquote, etc. looks identical whether the user is reading or writing. The registry is exposed as `MarkdownViewerRenderers` (a typed map of `MarkdownNodeType → Component`), with the Cocoar defaults available as `defaultMarkdownRenderers`. Apps override slots per-instance via `<CoarMarkdown :renderers="{...}" />` or app-wide via `app.provide(MARKDOWN_RENDERERS_KEY, ...)`. Resolution order: prop > inject > default. The recursive `<RenderNode>` dispatcher and the `renderMarkdownNodes` helper are exported for consumers writing custom complex renderers.
-- **`@cocoar/vue-markdown` — shared block stylesheet** at `@cocoar/vue-markdown/styles`. Headings, paragraphs, lists, blockquotes, tables, inline code, links, etc. all live in one CSS file that both the viewer and the editor pull in via the `coar-markdown` outer class. The editor adds a deeper-specificity layer for compactness (smaller heading sizes for an editing surface) on top of the shared baseline.
-- **`@cocoar/vue-markdown-editor` — code-block view/edit toggle (NodeView)**: code blocks render as `CoarCodeBlock` (Prism-highlighted, language label, same look as the viewer) when the cursor sits elsewhere; switching to plain editable mode + `CoarSelect` for the language when the cursor moves inside. Toggle is driven by a custom ProseMirror NodeView + a small companion plugin that watches `selectionUpdated` so `TextSelection` (the natural cursor placement) flips the mode — PM's own `selectNode`/`deselectNode` only fire for `NodeSelection`. Header dimensions / background / border-radius mirror `CoarCodeBlock` so the toggle is visually flush.
-- **`@cocoar/vue-markdown-editor` — table NodeView styling alignment**: Markdown tables in the editor inherit the same shared stylesheet rules as the viewer's `CoarTable`-rendered tables — zebra rows, header surface, padding, border. The viewer's `DefaultTable` no longer wraps in `<CoarTable>` (was relying on `:deep()` scoped CSS that wouldn't reach the editor's contenteditable); both viewer and editor now emit a plain `<table class="coar-markdown-table">` that the shared stylesheet drives. Visual parity without a NodeView wrapper for tables.
-
-### Fixed
-
-- **Playground — markdown editor body font fell back to bare `sans-serif`**: `App.vue` referenced a non-existent design token `var(--coar-font-family, sans-serif)` (the actual token is `--coar-body-base-family`). The fallback chain bottomed out at the bare keyword for everything inside the playground's `.app` wrapper, including the markdown editor's body text. Updated to use the correct token; Poppins now inherits cleanly through the editor area.
-
-### Changed
-
-- **`@cocoar/vue-markdown` package surface**: the viewer is no longer a thin wrapper. The package now hosts the registry, the default renderers, the recursive dispatcher, the helpers, and the shared CSS — all next to `<CoarMarkdown>`. Consumer-facing imports are unchanged (`CoarMarkdown` is still the top-level export); new exports (`defaultMarkdownRenderers`, `MARKDOWN_RENDERERS_KEY`, `MarkdownViewerRenderers`, `RenderNode`, …) sit alongside it. Internal-only `MarkdownBlockNode.vue` / `MarkdownInlineNode.vue` / `helpers.ts` were removed — their logic moved into the per-type default renderers in `default-renderers.ts`.
-
-### Internal
-
-- **Test coverage**: 9 viewer unit tests (7 existing + 2 new for the `renderers` prop override path), 23 editor Playwright e2e tests (19 existing + 4 new for the code-block view/edit toggle including language-selector → markdown-source round-trip).
-
-### Docs
-
-- **`/components/markdown` — Custom renderers section** with worked examples (per-instance override, app-wide `provide`, registry contract, why the registry matters cross-package).
-- **`/components/markdown-editor` — Code blocks section** documenting the view/edit toggle UX, supported languages, and how to override the rendered component via the registry.
-- **Markdown Editor page marked as Preview** with a clearer warning about the still-missing pieces for a `1.0` (link insert, image upload, placeholder, table edge-handles).
-
----
-
 ## 1.13.0
 
 ### Added
@@ -45,16 +16,30 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 - **`@cocoar/vue-markdown-editor` — list & task semantics**: list-toggle button cycles "in same → lift / in other → switch / outside → wrap" (clicking Bullet inside a Bullet item un-lists it; clicking Ordered inside a Bullet swaps the type). Task list items render with proper checkboxes via CSS `::before` (filled accent + strikethrough text when checked, hollow box when open); clicking the checkbox toggles the `checked` attribute round-tripping through Markdown as `- [x]` / `- [ ]`. Indent (`sinkListItem`) is disabled outside any list; Outdent (`liftListItem`) is disabled at the top list level — leaving the list is the list-button's job.
 - **`@cocoar/vue-markdown-editor` — sidebar context-aware table operations**: when the cursor lands inside a table cell, the sidebar grows by 5 items (Insert Row Above/Below, Insert Column Left/Right, Delete Cell). Lets users edit table structure in `fixed` toolbar mode without falling back to the floating toolbar.
 - **`@cocoar/vue-markdown-editor` — `CoarFormField` integration**: `disabled`, `error`, `id`, `aria-describedby` propagate automatically when the editor is wrapped in `<CoarFormField>` (same `FORM_FIELD_INJECTION_KEY` injection used by `CoarTextInput` / `CoarScriptEditor`). Direct props win over the injected context. Editor wrapper carries `aria-invalid`, `aria-disabled`, `aria-readonly`, `aria-required`, `data-name` so screen readers and form tooling see the right state.
+- **`@cocoar/vue-markdown-editor` — code-block view/edit toggle (NodeView)**: code blocks render as `CoarCodeBlock` (Prism-highlighted, language label, same look as the viewer) when the cursor sits elsewhere; switching to plain editable mode + `CoarSelect` for the language when the cursor moves inside. Toggle is driven by a custom ProseMirror NodeView + a small companion plugin that watches `selectionUpdated` so `TextSelection` (the natural cursor placement) flips the mode — PM's own `selectNode`/`deselectNode` only fire for `NodeSelection`. Header dimensions / background / border-radius mirror `CoarCodeBlock` so the toggle is visually flush.
 - **`@cocoar/vue-markdown-editor` — `./styles` subpath export** (mirrors `@cocoar/vue-data-grid`): consumers `@import "@cocoar/vue-markdown-editor/styles"` to pull the bundled CSS. Same fix applied to **`@cocoar/vue-script-editor`**, which was missing the subpath export since 1.9.0.
+- **`@cocoar/vue-markdown` — shared rendering registry**: the viewer (`<CoarMarkdown>`) and the editor (`@cocoar/vue-markdown-editor`) consume the **same** Vue component map for every node type, so a code block, table, blockquote, etc. looks identical whether the user is reading or writing. The registry is exposed as `MarkdownViewerRenderers` (a typed map of `MarkdownNodeType → Component`), with the Cocoar defaults available as `defaultMarkdownRenderers`. Apps override slots per-instance via `<CoarMarkdown :renderers="{...}" />` or app-wide via `app.provide(MARKDOWN_RENDERERS_KEY, ...)`. Resolution order: prop > inject > default. The recursive `<RenderNode>` dispatcher and the `renderMarkdownNodes` helper are exported for consumers writing custom complex renderers.
+- **`@cocoar/vue-markdown` — shared block stylesheet** at `@cocoar/vue-markdown/styles`. Headings, paragraphs, lists, blockquotes, tables, inline code, links, etc. all live in one CSS file that both the viewer and the editor pull in via the `coar-markdown` outer class. The editor adds a deeper-specificity layer for compactness (smaller heading sizes for an editing surface) on top of the shared baseline.
+- **Markdown table styling alignment**: Markdown tables in the editor inherit the same shared stylesheet rules as the viewer's tables — zebra rows, header surface, padding, border. The viewer's `DefaultTable` no longer wraps in `<CoarTable>` (was relying on `:deep()` scoped CSS that wouldn't reach the editor's contenteditable); both viewer and editor now emit a plain `<table class="coar-markdown-table">` that the shared stylesheet drives. Visual parity without a NodeView wrapper for tables.
 - **17 new Lucide icons in the core registry**: `bold`, `italic`, `strikethrough`, `heading`, `pilcrow`, `list-ordered`, `text-quote`, `square-code`, `table`, `table-cells-merge`, `table-cells-split`, `columns`, `rows`, `between-horizontal-start`, `between-horizontal-end`, `between-vertical-start`, `between-vertical-end`, `indent-increase`, `indent-decrease`, `eraser`. Available to all consumers via the standard icon name lookup.
+
+### Changed
+
+- **`@cocoar/vue-markdown` package surface**: the viewer is no longer a thin wrapper. The package now hosts the registry, the default renderers, the recursive dispatcher, the helpers, and the shared CSS — all next to `<CoarMarkdown>`. Consumer-facing imports are unchanged (`CoarMarkdown` is still the top-level export); new exports (`defaultMarkdownRenderers`, `MARKDOWN_RENDERERS_KEY`, `MarkdownViewerRenderers`, `RenderNode`, …) sit alongside it. Internal-only `MarkdownBlockNode.vue` / `MarkdownInlineNode.vue` / `helpers.ts` were removed — their logic moved into the per-type default renderers in `default-renderers.ts`.
+
+### Fixed
+
+- **Playground — markdown editor body font fell back to bare `sans-serif`**: `App.vue` referenced a non-existent design token `var(--coar-font-family, sans-serif)` (the actual token is `--coar-body-base-family`). The fallback chain bottomed out at the bare keyword for everything inside the playground's `.app` wrapper, including the markdown editor's body text. Updated to use the correct token; Poppins now inherits cleanly through the editor area.
 
 ### Docs
 
-- **New "Markdown Editor" component page** with three live demos (basic `v-model`, sidebar mode, in-form integration with `CoarFormField`), Architecture Notes section explaining why Milkdown over TipTap/Crepe and why `@milkdown/components/table-block` is intentionally not used (CellSelection is ProseMirror-internal and doesn't fire `selectionchange`), Restricting the Toolbar section with the migration mapping table, full Props/Events reference, and a TODO list for the deferred work (link-insert UI, image upload, placeholder, custom table edge-handles).
+- **New "Markdown Editor" component page** marked as **Preview**, with three live demos (basic `v-model`, sidebar mode, in-form integration with `CoarFormField`), Architecture Notes section explaining why Milkdown over TipTap/Crepe and why `@milkdown/components/table-block` is intentionally not used (CellSelection is ProseMirror-internal and doesn't fire `selectionchange`), Restricting the Toolbar section with the migration mapping table, "Code blocks — view / edit toggle" section documenting the toggle UX and supported languages, full Props/Events reference, and a TODO list for the deferred work (link-insert UI, image upload, placeholder, custom table edge-handles).
+- **`/components/markdown` — Custom renderers section** with worked examples (per-instance override, app-wide `provide`, registry contract, why the registry matters cross-package).
 
 ### Internal
 
-- **`@cocoar/vue-markdown-editor` test coverage**: 12 Vitest unit tests for the pure helpers (`isToolEnabled`, `decideListToggleAction`) extracted to `toolbar-helpers.ts`, plus 19 Playwright E2E tests against the playground covering mounting, floating-toolbar visibility, mark commands via sidebar, full-set / minimal / no-tables tool whitelisting, indent + outdent (including the disabled-state gating), bullet-list wrap on plain text, clear-formatting (mark stripping + heading→paragraph), task-checkbox toggle in both directions, and readonly mode (contenteditable=false + floating-toolbar suppression).
+- **`@cocoar/vue-markdown-editor` test coverage**: 12 Vitest unit tests for the pure helpers (`isToolEnabled`, `decideListToggleAction`) extracted to `toolbar-helpers.ts`, plus 23 Playwright E2E tests against the playground covering mounting, floating-toolbar visibility, mark commands via sidebar, full-set / minimal / no-tables tool whitelisting, indent + outdent (including the disabled-state gating), bullet-list wrap on plain text, clear-formatting (mark stripping + heading→paragraph), task-checkbox toggle in both directions, readonly mode, and the code-block view/edit toggle including language-selector → markdown-source round-trip.
+- **`@cocoar/vue-markdown` test coverage**: 9 viewer unit tests (7 existing for rendering + 2 new for the `renderers` prop override path).
 - **Dependabot — 10 of 13 alerts cleared**. `pnpm update` + `pnpm dedupe` lifted `happy-dom`, `flatted`, `picomatch`, `minimatch`, and `brace-expansion` to patched versions. The remaining 3 alerts are `vite 5` issues that come in transitively via `vitepress 1.6.4` (which pins `vite 5` as a peer). An attempt to globally override `vite` to `^8` was reverted because vitepress 1 is incompatible with rolldown-vite (the engine vite 8 ships with). The remaining alerts are dev-tooling only — no production runtime impact for consumers — and will close out when vitepress 2 (currently alpha-only) ships stable.
 
 ---
