@@ -7,6 +7,14 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 1.13.1
+
+### Fixed
+
+- **`@cocoar/vue-data-grid` — wrapper column inner renderer config was shadowed by the wrapper config**: factory-created column renderers (`col.tag()`, `col.tree()`, `col.date()`, `col.number()`, `col.currency()`, `col.icon()`) all read their own configuration via `params.colDef.cellRendererParams.config`, but AG Grid hands the *outer* (wrapped) colDef to the renderer — so wrapped inner renderers were receiving the wrapper's config instead of their own, dropping `variantMap`, `showChildCount`, `decimals`, `currencyCode`, `includeTime`, and every other inner-renderer option. Tree columns stayed mostly functional (expand/collapse + indentation come from `grid.context.coarTree`, not `cellRendererParams`), but `showChildCount` was lost; tag, date, number, currency, and icon columns fell back to their defaults entirely when wrapped. `WrapperCellRenderer` now rebuilds the inner's `params.colDef.cellRendererParams` so nested factory columns see exactly what they would see unwrapped. New probe test replicates the factory renderers' read path to prevent regression.
+
+---
+
 ## 1.13.0
 
 ### Added
