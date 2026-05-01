@@ -60,6 +60,9 @@
     "@cocoar/vue-localization": "workspace:*",
     "@cocoar/vue-ui": "workspace:*",
     "fast-check": "^4.7.0",
+    "rrule": "~2.8.1",
+    "rrule-rust": "~3.1.1",
+    "rrule-temporal": "~1.5.3",
     "vue": "^3.5.32"
   }
 }

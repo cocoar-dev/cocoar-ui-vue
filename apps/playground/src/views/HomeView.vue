@@ -9,6 +9,7 @@
       <li><router-link to="/calendar-virtual-surface">Calendar — Virtual Surface stress, fixed (Phase 0)</router-link></li>
       <li><router-link to="/calendar-virtual-surface-variable">Calendar — Virtual Surface stress, variable (Phase 0)</router-link></li>
       <li><router-link to="/calendar-virtual-surface-2d">Calendar — Virtual Surface stress, 2D 1k×1k (Phase 0)</router-link></li>
+      <li><router-link to="/calendar-rrule-bakeoff">Calendar — RRULE engine bake-off (Phase 0)</router-link></li>
     </ul>
   </div>
 </template>
