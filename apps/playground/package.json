@@ -11,6 +11,7 @@
     "test:debug": "playwright test --debug"
   },
   "dependencies": {
+    "@cocoar/vue-calendar": "workspace:*",
     "@cocoar/vue-data-grid": "workspace:*",
     "@cocoar/vue-fragment-parser": "workspace:*",
     "@cocoar/vue-localization": "workspace:*",

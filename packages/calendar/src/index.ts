@@ -1,11 +1,15 @@
 /**
  * `@cocoar/vue-calendar` — public surface.
  *
- * Phase 0 (current): the package is an empty skeleton. Components and
- * composables land in Phase 1+. The `core/` submodule is the
- * framework-agnostic layer (pure TypeScript, no Vue imports) and is also
- * exposed via the `./core` subpath export.
+ * Phase 0 (current): the package exposes the `VirtualizedSurface1DY`
+ * component (Spike A) and the `core/` math kernel. Calendar views
+ * (`<CoarCalendar>`, MonthView, WeekView, etc.) land in Phase 1+.
+ *
+ * The `core/` submodule is the framework-agnostic layer (pure
+ * TypeScript, no Vue imports) and is also exposed via the `./core`
+ * subpath export for advanced consumers needing only the math.
  *
  * See `.local/cocoar-vue-calendar-v0.2.md` for the design document.
  */
+export { default as VirtualizedSurface1DY } from './components/VirtualizedSurface1DY.vue';
 export * from './core/index';

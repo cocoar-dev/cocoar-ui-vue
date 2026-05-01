@@ -15,6 +15,8 @@ export default defineConfig({
       { find: /^@cocoar\/vue-data-grid$/, replacement: resolve(__dirname, '../../packages/data-grid/src/index.ts') },
       { find: /^@cocoar\/vue-script-editor$/, replacement: resolve(__dirname, '../../packages/script-editor/src/index.ts') },
       { find: /^@cocoar\/vue-markdown-editor$/, replacement: resolve(__dirname, '../../packages/markdown-editor/src/index.ts') },
+      { find: /^@cocoar\/vue-calendar$/, replacement: resolve(__dirname, '../../packages/calendar/src/index.ts') },
+      { find: /^@cocoar\/vue-calendar\/core$/, replacement: resolve(__dirname, '../../packages/calendar/src/core/index.ts') },
     ],
   },
 });

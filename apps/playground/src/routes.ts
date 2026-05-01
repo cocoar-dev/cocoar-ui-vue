@@ -39,6 +39,10 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('./views/MarkdownEditorView.vue'),
   },
   {
+    path: '/calendar-virtual-surface',
+    component: () => import('./views/CalendarVirtualSurfaceView.vue'),
+  },
+  {
     path: '/todos',
     component: () => import('./views/TodoListView.vue'),
     meta: {
