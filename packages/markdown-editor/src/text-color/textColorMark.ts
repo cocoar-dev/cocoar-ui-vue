@@ -32,6 +32,7 @@
  * malformed value in any one path fails closed instead of leaking inline
  * style.
  */
+import type { MilkdownPlugin } from '@milkdown/ctx';
 import type { Mark, MarkType } from '@milkdown/prose/model';
 import { $markSchema, $remark } from '@milkdown/utils';
 import {
@@ -247,4 +248,6 @@ const textColorSchema = () => ({
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const textColorMark = $markSchema('text_color', textColorSchema as any);
 
-export const textColor = [textColorRemark, textColorMark].flat();
+// Explicit annotation: without it, the inferred type would reference the
+// pnpm-virtualised path of `@milkdown/ctx`, which trips dts portability.
+export const textColor: MilkdownPlugin[] = [textColorRemark, textColorMark].flat();

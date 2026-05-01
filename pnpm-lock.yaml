@@ -68,6 +68,15 @@ importers:
       '@cocoar/vue-localization':
         specifier: workspace:*
         version: link:../../packages/localization
+      '@cocoar/vue-markdown':
+        specifier: workspace:*
+        version: link:../../packages/markdown
+      '@cocoar/vue-markdown-core':
+        specifier: workspace:*
+        version: link:../../packages/markdown-core
+      '@cocoar/vue-markdown-editor':
+        specifier: workspace:*
+        version: link:../../packages/markdown-editor
       '@cocoar/vue-script-editor':
         specifier: workspace:*
         version: link:../../packages/script-editor
