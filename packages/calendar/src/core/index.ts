@@ -52,6 +52,21 @@ export {
   navigateCursor,
   type ViewWindowOptions,
 } from './viewWindow';
+export {
+  EventIndex,
+  type EventIndexOptions,
+  type IndexInvalidation,
+  type IndexListener,
+} from './eventIndex';
+// NOTE: recurrence engine exports live behind a subpath
+// (`@cocoar/vue-calendar/recurrence`) rather than the main core
+// barrel. The worker file uses Vite's `?worker` syntax which has
+// top-level await; bundling it through the package's lib-mode IIFE
+// build fails. The subpath keeps the worker chunk separate and only
+// pulled in by consumers that actually use recurrence.
+//
+// See packages/calendar/package.json `exports['./recurrence']` and
+// the playground's vite.config alias.
 export { MeasurementCache } from './measurementCache';
 export {
   getVisibleRange1D,

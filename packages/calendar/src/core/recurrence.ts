@@ -156,3 +156,80 @@ export function shutdownRecurrenceWorker(): void {
   for (const [, req] of pending) req.reject(new Error('Worker terminated'));
   pending.clear();
 }
+
+// ─── Engine abstraction ─────────────────────────────────────────────
+//
+// `RecurrenceEngine` decouples the calendar from the specific
+// expansion implementation. Phase 0 Spike B locked rrule-rust as
+// the default; Phase 0 Spike E locked auto-dispatch at 200 rules.
+//
+// Consumers can:
+//   - Use the default `DefaultRecurrenceEngine` (rrule-rust + auto-
+//     dispatch) — the right answer for ~ 100% of apps.
+//   - Inject a `SyncOnlyEngine` for tests / SSR (no worker).
+//   - Implement their own `RecurrenceEngine` to swap to
+//     rrule-temporal for smaller bundle, mock for tests, etc.
+//
+// The interface accepts a batch (multiple rules) per call. Even at
+// 100 ops/sec call volume, each call going through to the worker
+// would saturate postMessage. Batching lets the calendar collect
+// "all rules visible in this window" and dispatch once.
+
+export interface RecurrenceEngine {
+  /**
+   * Expand a batch of recurring rules over a window. The engine
+   * decides whether to run sync (in-thread) or async (worker)
+   * per-call; consumers always await regardless.
+   */
+  expand(request: RecurrenceRequest): Promise<RecurrenceResponse>;
+}
+
+export interface DefaultRecurrenceEngineOptions {
+  /**
+   * Auto-dispatch threshold. Rules >= threshold → worker. Default
+   * 200, locked empirically in Phase 0 Spike E (W1 sync stays
+   * under one frame, W2+ blocks UI).
+   */
+  threshold?: number;
+}
+
+/**
+ * Default engine: rrule-rust with auto-dispatch at the locked
+ * threshold (200 rules by default, configurable).
+ */
+export class DefaultRecurrenceEngine implements RecurrenceEngine {
+  private threshold: number;
+
+  constructor(opts: DefaultRecurrenceEngineOptions = {}) {
+    this.threshold = opts.threshold ?? 200;
+  }
+
+  async expand(request: RecurrenceRequest): Promise<RecurrenceResponse> {
+    if (request.rules.length >= this.threshold) {
+      return expandAsync(request);
+    }
+    return expandSync(request);
+  }
+}
+
+/**
+ * Forces every expansion through the synchronous in-thread path.
+ * Useful for tests (no worker setup) and SSR (no Worker API).
+ */
+export class SyncOnlyRecurrenceEngine implements RecurrenceEngine {
+  async expand(request: RecurrenceRequest): Promise<RecurrenceResponse> {
+    return expandSync(request);
+  }
+}
+
+/**
+ * Forces every expansion through the worker. Useful for diagnostic
+ * purposes — never blocks the main thread, even for tiny inputs.
+ * Production consumers should prefer `DefaultRecurrenceEngine` so
+ * the small-batch fast path stays sync.
+ */
+export class WorkerOnlyRecurrenceEngine implements RecurrenceEngine {
+  async expand(request: RecurrenceRequest): Promise<RecurrenceResponse> {
+    return expandAsync(request);
+  }
+}
