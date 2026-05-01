@@ -15,6 +15,7 @@
  */
 
 import { computed, useTemplateRef, watch } from 'vue';
+import { useLocalization } from '@cocoar/vue-localization';
 import { CoarButton, CoarSegmentedControl } from '@cocoar/vue-ui';
 import CoarDayView from './CoarDayView.vue';
 import CoarWeekView from './CoarWeekView.vue';
@@ -36,6 +37,12 @@ import {
 interface Props {
   events?: ReadonlyArray<CalendarEvent>;
   availableViews?: ReadonlyArray<CalendarView>;
+  /**
+   * BCP-47 language tag. When omitted, the calendar follows the
+   * shared `@cocoar/vue-localization` service (set via the locale
+   * switcher in the host app); falls back to `'en-US'` if no
+   * service is provided.
+   */
   locale?: string;
   timezone?: string;
   firstDayOfWeek?: DayOfWeek;
@@ -55,7 +62,9 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   events: () => [],
   availableViews: () => ['month', 'week', 'day', 'agenda'] as const,
-  locale: 'en-US',
+  // Sentinel — `undefined` means "follow the localization service or
+  // fall back to 'en-US'". `effectiveLocale` below resolves it.
+  locale: undefined,
   timezone: () => detectBrowserTimezone(),
   firstDayOfWeek: undefined,
   timeRange: () => [0, 24],
@@ -66,6 +75,16 @@ const props = withDefaults(defineProps<Props>(), {
   showEmptyDays: false,
   density: 'comfortable',
 });
+
+// Resolve the effective locale. Order of precedence:
+//   1. Explicit `locale` prop set by the consumer.
+//   2. The shared `@cocoar/vue-localization` service's current
+//      language (so a host app's locale switcher just works).
+//   3. 'en-US' as a final fallback when neither is available.
+const localization = useLocalization();
+const effectiveLocale = computed<string>(
+  () => props.locale ?? localization?.language.value ?? 'en-US',
+);
 
 const view = defineModel<CalendarView>('view', { default: 'week' });
 const date = defineModel<string>('date', {
@@ -126,7 +145,7 @@ const cursor = computed<Temporal.PlainDate>(() => {
 });
 
 const resolvedFirstDayOfWeek = computed<DayOfWeek>(() =>
-  props.firstDayOfWeek ?? detectFirstDayOfWeekFromLocale(props.locale),
+  props.firstDayOfWeek ?? detectFirstDayOfWeekFromLocale(effectiveLocale.value),
 );
 
 const window = computed<ViewWindow>(() =>
@@ -162,7 +181,7 @@ const rangeLabel = computed<string>(() => {
   const start = Temporal.PlainDate.from(w.start);
   // window.end is exclusive; the visible end is end-1
   const lastVisible = Temporal.PlainDate.from(w.end).subtract({ days: 1 });
-  const locale = props.locale;
+  const locale = effectiveLocale.value;
   switch (view.value) {
     case 'day': {
       return new Intl.DateTimeFormat(locale, {
@@ -360,7 +379,7 @@ defineExpose({
         :slot-duration="slotDuration"
         :pixels-per-hour="pixelsPerHour"
         :timezone="timezone"
-        :locale="locale"
+        :locale="effectiveLocale"
         :density="density"
         @event-click="emit('event-click', $event)"
         @date-click="emit('date-click', $event)"
@@ -387,7 +406,7 @@ defineExpose({
         :slot-duration="slotDuration"
         :pixels-per-hour="pixelsPerHour"
         :timezone="timezone"
-        :locale="locale"
+        :locale="effectiveLocale"
         :density="density"
         @event-click="emit('event-click', $event)"
         @date-click="emit('date-click', $event)"
@@ -412,7 +431,7 @@ defineExpose({
         :first-day-of-week="resolvedFirstDayOfWeek"
         :max-events-per-cell="maxEventsPerCell"
         :timezone="timezone"
-        :locale="locale"
+        :locale="effectiveLocale"
         :density="density"
         @event-click="emit('event-click', $event)"
         @date-click="emit('date-click', $event)"
@@ -434,7 +453,7 @@ defineExpose({
         :events="events"
         :show-empty-days="showEmptyDays"
         :timezone="timezone"
-        :locale="locale"
+        :locale="effectiveLocale"
         :density="density"
         @event-click="emit('event-click', $event)"
         @date-click="emit('date-click', $event)"
