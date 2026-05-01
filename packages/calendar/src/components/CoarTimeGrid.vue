@@ -314,7 +314,7 @@ void dateKey;
     <div
       v-if="allDayLaneCount > 0"
       class="coar-time-grid__all-day-band"
-      :style="{ height: allDayBandHeight + 'px' }"
+      :style="{ minHeight: allDayBandHeight + 'px' }"
     >
       <div class="coar-time-grid__all-day-axis">all-day</div>
       <div class="coar-time-grid__all-day-columns">
@@ -555,18 +555,15 @@ void dateKey;
   color: var(--coar-text-subtle, #6c7280);
   padding: 4px 6px;
   /*
-   * Lock to a single line and clip with ellipsis if the column is
-   * ever too narrow for the localized text. Without this, the
-   * default `white-space: normal` lets "ALL-DAY" wrap to two lines
-   * (the hyphen is a soft break point), pushing the band's grid
-   * track to ~56 px — which then overflows the band's
-   * inline-styled `height: 34px` and lets weekend cell backgrounds
-   * paint over the band's border-bottom.
+   * Allow the localized label to wrap. The band uses `min-height`
+   * (set inline based on lane count), not a fixed height — so when
+   * wrapping makes the row taller, the cells grow with it and the
+   * border-bottom stays correctly anchored.
+   * `--coar-time-grid-axis-width: 80 px` is a comfortable default
+   * for English / German; longer locales just take an extra line.
    */
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  align-self: center;
+  align-self: start;
+  line-height: 1.2;
 }
 .coar-time-grid__all-day-columns {
   position: relative;

@@ -40,6 +40,12 @@ const events = ref<CalendarEvent[]>([
     meta: { title: 'DevConf — Vienna', color: '#7c3aed' },
   },
   {
+    id: 'sven-ooo',
+    start: '2026-04-14',
+    end: '2026-04-17',
+    meta: { title: 'Sven — OOO', color: '#9ca3af' },
+  },
+  {
     id: 'lunch',
     start: '2026-04-16T12:00:00Z',
     end: '2026-04-16T13:00:00Z',
