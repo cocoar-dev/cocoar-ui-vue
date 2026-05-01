@@ -32,7 +32,6 @@
  * malformed value in any one path fails closed instead of leaking inline
  * style.
  */
-import type { Ctx } from '@milkdown/ctx';
 import type { Mark, MarkType } from '@milkdown/prose/model';
 import { $markSchema, $remark } from '@milkdown/utils';
 import {
@@ -157,7 +156,7 @@ export const textColorRemark = $remark('textColor', () => textColorRemarkPlugin)
 // cast at the `$markSchema` call site instead of importing the type so dts
 // generation doesn't have to traverse the pnpm-virtualized
 // `@milkdown/transformer` path.
-const textColorSchema = (_ctx: Ctx) => ({
+const textColorSchema = () => ({
   attrs: { color: { default: '' } },
   inclusive: true,
   parseDOM: [
