@@ -16,6 +16,7 @@ export { default as VirtualizedSurface2D } from './components/VirtualizedSurface
 export { default as CoarTimeGrid } from './components/CoarTimeGrid.vue';
 export { default as CoarDayView } from './components/CoarDayView.vue';
 export { default as CoarWeekView } from './components/CoarWeekView.vue';
+export { default as CoarMonthView } from './components/CoarMonthView.vue';
 export {
   useCoarDrag,
   type DragContext,

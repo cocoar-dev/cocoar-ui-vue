@@ -14,7 +14,8 @@
       <li><router-link to="/calendar-drag">Calendar — DnD + auto-scroll (Phase 0)</router-link></li>
       <li><router-link to="/calendar-recurrence-worker">Calendar — Recurrence worker bench (Phase 0)</router-link></li>
       <li><router-link to="/calendar-day-view">Calendar — Day View (Phase 2.1)</router-link></li>
-      <li><router-link to="/calendar-week-view"><strong>Calendar — Week View (Phase 2.2) ←</strong></router-link></li>
+      <li><router-link to="/calendar-week-view">Calendar — Week View (Phase 2.2)</router-link></li>
+      <li><router-link to="/calendar-month-view"><strong>Calendar — Month View (Phase 2.3) ←</strong></router-link></li>
     </ul>
   </div>
 </template>
