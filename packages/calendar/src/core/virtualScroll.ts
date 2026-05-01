@@ -98,6 +98,49 @@ export function getVisibleRange1D(
 }
 
 /**
+ * 2D visible range — produced by composing two 1D ranges, one per axis.
+ *
+ * 2D virtualization is, at the math layer, nothing more than two
+ * independent 1D ranges side-by-side. There is no shared state between
+ * the axes; this `Range2D` type is just the natural pair shape returned
+ * by `getVisibleRange2D` for consumers that want both ranges at once.
+ *
+ * The Vue 2D surface component (`<VirtualizedSurface2D>`) renders the
+ * Cartesian product of `x` and `y` as absolutely-positioned cells.
+ */
+export interface Range2D {
+  x: Range1D;
+  y: Range1D;
+}
+
+/**
+ * Compose two `getVisibleRange1D` calls into a 2D range.
+ *
+ * The 2D surface's responsibility is just to render the Cartesian
+ * product of `[x.startIndex, x.endIndex)` × `[y.startIndex, y.endIndex)`
+ * with each cell positioned at `(prefixSum_x(cx), prefixSum_y(cy))`.
+ *
+ * Provided as a thin convenience so the 2D component doesn't need to
+ * manage two separate range computations directly. Same overscan, same
+ * input validation rules as the 1D function, applied per axis.
+ */
+export function getVisibleRange2D(
+  measurementsX: MeasurementCache,
+  measurementsY: MeasurementCache,
+  scrollX: number,
+  scrollY: number,
+  viewportWidth: number,
+  viewportHeight: number,
+  overscanX = 3,
+  overscanY = 3,
+): Range2D {
+  return {
+    x: getVisibleRange1D(measurementsX, scrollX, viewportWidth, overscanX),
+    y: getVisibleRange1D(measurementsY, scrollY, viewportHeight, overscanY),
+  };
+}
+
+/**
  * When item sizes change (new measurements, items inserted/removed above
  * the viewport), the scroll offset must be adjusted so the user-visible
  * content stays where it is. This function returns the **delta** to add

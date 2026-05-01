@@ -10,7 +10,7 @@
 import { describe, it, expect } from 'vitest';
 import * as fc from 'fast-check';
 import { MeasurementCache } from '../measurementCache';
-import { getVisibleRange1D, computeAnchorAdjustment } from '../virtualScroll';
+import { getVisibleRange1D, getVisibleRange2D, computeAnchorAdjustment } from '../virtualScroll';
 
 // ─── getVisibleRange1D — specific tests ──────────────────────────────────
 
@@ -274,6 +274,60 @@ describe('computeAnchorAdjustment — specific cases', () => {
     // Anchor = 999 → both prefixSums clamp to itemCount, so we get
     // totalSize(b) - totalSize(a) = +120
     expect(computeAnchorAdjustment(a, b, 999)).toBe(120);
+  });
+});
+
+// ─── getVisibleRange2D ───────────────────────────────────────────────────
+
+describe('getVisibleRange2D — composition', () => {
+  it('is exactly two independent 1D calls (no cross-axis coupling)', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 1, max: 100 }),
+        fc.integer({ min: 1, max: 100 }),
+        fc.integer({ min: 1, max: 100 }),
+        fc.integer({ min: 1, max: 100 }),
+        fc.integer({ min: 0, max: 50_000 }),
+        fc.integer({ min: 0, max: 50_000 }),
+        fc.integer({ min: 0, max: 2000 }),
+        fc.integer({ min: 0, max: 2000 }),
+        fc.integer({ min: 0, max: 5 }),
+        fc.integer({ min: 0, max: 5 }),
+        (
+          countX,
+          estimateX,
+          countY,
+          estimateY,
+          scrollX,
+          scrollY,
+          viewW,
+          viewH,
+          overX,
+          overY,
+        ) => {
+          const cx = new MeasurementCache(countX, estimateX);
+          const cy = new MeasurementCache(countY, estimateY);
+
+          const r2 = getVisibleRange2D(
+            cx, cy, scrollX, scrollY, viewW, viewH, overX, overY,
+          );
+          const rx = getVisibleRange1D(cx, scrollX, viewW, overX);
+          const ry = getVisibleRange1D(cy, scrollY, viewH, overY);
+
+          expect(r2.x).toEqual(rx);
+          expect(r2.y).toEqual(ry);
+        },
+      ),
+      { numRuns: 200 },
+    );
+  });
+
+  it('handles empty axes', () => {
+    const cx = new MeasurementCache(0, 80);
+    const cy = new MeasurementCache(10, 80);
+    const r = getVisibleRange2D(cx, cy, 0, 0, 600, 600, 3, 3);
+    expect(r.x).toEqual({ startIndex: 0, endIndex: 0, offset: 0, totalSize: 0 });
+    expect(r.y.endIndex).toBeGreaterThan(0);
   });
 });
 

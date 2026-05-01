@@ -12,4 +12,5 @@
  * See `.local/cocoar-vue-calendar-v0.2.md` for the design document.
  */
 export { default as VirtualizedSurface1DY } from './components/VirtualizedSurface1DY.vue';
+export { default as VirtualizedSurface2D } from './components/VirtualizedSurface2D.vue';
 export * from './core/index';

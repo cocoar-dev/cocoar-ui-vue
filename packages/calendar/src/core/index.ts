@@ -20,6 +20,8 @@
 export { MeasurementCache } from './measurementCache';
 export {
   getVisibleRange1D,
+  getVisibleRange2D,
   computeAnchorAdjustment,
   type Range1D,
+  type Range2D,
 } from './virtualScroll';
