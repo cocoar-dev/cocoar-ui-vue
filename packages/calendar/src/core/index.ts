@@ -17,6 +17,41 @@
  *   - worker/recurrenceWorker.ts — off-main-thread expansion
  */
 
+export type {
+  CalendarEvent,
+  CalendarView,
+  ViewWindow,
+  ResolvedLocale,
+} from './types';
+export {
+  Temporal,
+  type DayOfWeek,
+  detectFirstDayOfWeekFromLocale,
+  detectHour12FromLocale,
+  detectBrowserTimezone,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
+  isoWeekNumber,
+  weekDates,
+  monthGridDates,
+  localizedWeekdayNames,
+  dateKey,
+  isDateOnlyIsoString,
+  parseEventInstant,
+  eventStartDateInZone,
+  todayInZone,
+  nowInZone,
+} from './temporal';
+export {
+  computeViewWindow,
+  daysInWindow,
+  windowDayCount,
+  windowContainsDate,
+  navigateCursor,
+  type ViewWindowOptions,
+} from './viewWindow';
 export { MeasurementCache } from './measurementCache';
 export {
   getVisibleRange1D,
