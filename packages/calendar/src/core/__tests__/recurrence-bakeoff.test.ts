@@ -24,6 +24,13 @@ import { verifyAgreement } from './recurrence-adapters';
 const WINDOW_START = new Date('2024-01-01T00:00:00Z');
 const WINDOW_END = new Date('2025-12-31T23:59:59Z');
 
+// `rrule-rust` is a WASM module — cold-start on CI runners is
+// notably slower than on a local dev machine. Vitest's 5 s default
+// is fine for the small smoke test but tight for the full corpus
+// pass. Bump to 30 s; locally it still completes in well under a
+// second.
+const CORPUS_TIMEOUT_MS = 30_000;
+
 describe('Spike B — engine agreement on corpus (1 year window)', () => {
   it('runs without crashing', () => {
     // Smoke test that all three engines load + parse + expand at
@@ -35,7 +42,7 @@ describe('Spike B — engine agreement on corpus (1 year window)', () => {
     expect(results.length).toBe(sample.length);
   });
 
-  it('reports per-fixture agreement (and dumps disagreements)', () => {
+  it('reports per-fixture agreement (and dumps disagreements)', { timeout: CORPUS_TIMEOUT_MS }, () => {
     const results = verifyAgreement(corpus, WINDOW_START, WINDOW_END);
     const disagreements = results.filter((r) => !r.agree || r.errors.length > 0);
 
