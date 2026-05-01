@@ -125,6 +125,45 @@ onBeforeUnmount(() => {
   loafObserver?.disconnect();
 });
 
+// ─── Mouse-pan-to-scroll (demo-only) ──────────────────────────────────
+//
+// Pan-to-scroll is a consumer concern, not a Surface responsibility.
+// The demo wires it up so the user can validate diagonal-scroll
+// smoothness with a regular mouse, no touchpad / shift+wheel needed.
+
+const isPanning = ref(false);
+let panStartX = 0;
+let panStartY = 0;
+let panStartScrollX = 0;
+let panStartScrollY = 0;
+let panEl: HTMLElement | null = null;
+
+function onPanStart(e: PointerEvent) {
+  const el = (e.currentTarget as HTMLElement).querySelector(
+    '.coar-virtualized-surface-2d',
+  ) as HTMLElement | null;
+  if (!el || e.button !== 0) return;
+  panEl = el;
+  panStartX = e.clientX;
+  panStartY = e.clientY;
+  panStartScrollX = el.scrollLeft;
+  panStartScrollY = el.scrollTop;
+  isPanning.value = true;
+  (e.target as HTMLElement)?.setPointerCapture?.(e.pointerId);
+  e.preventDefault();
+}
+function onPanMove(e: PointerEvent) {
+  if (!isPanning.value || !panEl) return;
+  panEl.scrollLeft = panStartScrollX - (e.clientX - panStartX);
+  panEl.scrollTop = panStartScrollY - (e.clientY - panStartY);
+}
+function onPanEnd(e: PointerEvent) {
+  if (!isPanning.value) return;
+  isPanning.value = false;
+  panEl = null;
+  (e.target as HTMLElement)?.releasePointerCapture?.(e.pointerId);
+}
+
 // ─── Controls ──────────────────────────────────────────────────────────
 
 function jumpTopLeft() { surfaceRef.value?.scrollToCell({ x: 0, y: 0 }); }
@@ -212,23 +251,39 @@ function cellLabel(x: number, y: number): string {
       <button class="stress-demo__btn" @click="jumpSmoothCenter">Smooth → center</button>
     </div>
 
-    <VirtualizedSurface2D
-      ref="surface"
-      :item-count-x="COLS"
-      :item-count-y="ROWS"
-      :cell-width="CELL_W"
-      :cell-height="CELL_H"
-      :overscan-x="3"
-      :overscan-y="3"
-      class="stress-demo__surface"
-      @range-change="onRangeChange"
+    <p class="stress-demo__pan-help">
+      <strong>Pan test:</strong> click and drag anywhere on the grid in
+      any direction (X, Y, or diagonal). Touchpad two-finger pan and
+      shift + wheel also work. ⚖ Long frames should stay at 0
+      throughout.
+    </p>
+
+    <div
+      class="stress-demo__pan-host"
+      :class="{ 'stress-demo__pan-host--panning': isPanning }"
+      @pointerdown="onPanStart"
+      @pointermove="onPanMove"
+      @pointerup="onPanEnd"
+      @pointercancel="onPanEnd"
     >
-      <template #cell="{ x, y }">
-        <div class="stress-demo__cell" :style="{ background: cellTone(x, y) }">
-          {{ cellLabel(x, y) }}
-        </div>
-      </template>
-    </VirtualizedSurface2D>
+      <VirtualizedSurface2D
+        ref="surface"
+        :item-count-x="COLS"
+        :item-count-y="ROWS"
+        :cell-width="CELL_W"
+        :cell-height="CELL_H"
+        :overscan-x="3"
+        :overscan-y="3"
+        class="stress-demo__surface"
+        @range-change="onRangeChange"
+      >
+        <template #cell="{ x, y }">
+          <div class="stress-demo__cell" :style="{ background: cellTone(x, y) }">
+            {{ cellLabel(x, y) }}
+          </div>
+        </template>
+      </VirtualizedSurface2D>
+    </div>
 
     <p class="stress-demo__note">
       <strong>1 million cells total, ~ 350 in the DOM at any time.</strong>
@@ -307,6 +362,22 @@ function cellLabel(x: number, y: number): string {
   border: 1px solid var(--coar-border-base, #d1d5db);
   border-radius: var(--coar-radius-md, 8px);
   background: var(--coar-surface-base, #fff);
+}
+
+.stress-demo__pan-host {
+  cursor: grab;
+  user-select: none;
+}
+.stress-demo__pan-host--panning { cursor: grabbing; }
+
+.stress-demo__pan-help {
+  font-size: var(--coar-font-size-sm, 13px);
+  color: var(--coar-text-subtle, #6c7280);
+  background: rgba(37, 99, 235, 0.04);
+  border-left: 3px solid var(--coar-color-accent, #2563eb);
+  padding: 8px 12px;
+  margin: 0;
+  line-height: 1.55;
 }
 
 .stress-demo__cell {

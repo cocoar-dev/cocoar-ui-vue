@@ -132,6 +132,54 @@ onBeforeUnmount(() => {
   loafObserver?.disconnect();
 });
 
+// ─── Mouse-pan-to-scroll (demo-only) ──────────────────────────────────
+//
+// The component itself does not implement pan-to-scroll — that's a
+// consumer concern. Here in the demo we wire it up so the user can
+// validate diagonal-scroll smoothness without needing a touchpad or
+// shift+wheel gymnastics. Pointer Events; transforms only via the
+// container's native scroll, no extra paints.
+
+const isPanning = ref(false);
+let panStartX = 0;
+let panStartY = 0;
+let panStartScrollX = 0;
+let panStartScrollY = 0;
+let panEl: HTMLElement | null = null;
+
+function getScrollEl(): HTMLElement | null {
+  return document.querySelector('.coar-virtualized-surface-2d') as HTMLElement | null;
+}
+
+function onPanStart(e: PointerEvent) {
+  // Skip if the click landed on the scrollbar gutter.
+  const el = getScrollEl();
+  if (!el) return;
+  if (e.button !== 0) return; // left button only
+  panEl = el;
+  panStartX = e.clientX;
+  panStartY = e.clientY;
+  panStartScrollX = el.scrollLeft;
+  panStartScrollY = el.scrollTop;
+  isPanning.value = true;
+  (e.target as HTMLElement)?.setPointerCapture?.(e.pointerId);
+  e.preventDefault();
+}
+function onPanMove(e: PointerEvent) {
+  if (!isPanning.value || !panEl) return;
+  // Drag in any direction translates 1:1 to scroll in the OPPOSITE
+  // direction (grab + drag = pan). Native scroll handles the rest;
+  // the surface's existing rAF-throttled scroll handler picks it up.
+  panEl.scrollLeft = panStartScrollX - (e.clientX - panStartX);
+  panEl.scrollTop = panStartScrollY - (e.clientY - panStartY);
+}
+function onPanEnd(e: PointerEvent) {
+  if (!isPanning.value) return;
+  isPanning.value = false;
+  panEl = null;
+  (e.target as HTMLElement)?.releasePointerCapture?.(e.pointerId);
+}
+
 // ─── Controls ──────────────────────────────────────────────────────────
 
 function jumpTopLeft() { surfaceRef.value?.scrollToCell({ x: 0, y: 0 }); }
@@ -231,6 +279,13 @@ function cellLabel(x: number, y: number): string {
       <button class="btn" @click="jumpSmoothCenter">Smooth → center</button>
     </div>
 
+    <p class="anchor-help">
+      <strong>Pan test:</strong> click and drag anywhere on the grid in
+      any direction (X, Y, or diagonal). The surface should scroll
+      smoothly; ⚖ Long frames stays at 0. Two-finger touchpad pan and
+      shift + wheel work too.
+    </p>
+
     <VirtualizedSurface2D
       ref="surface"
       :item-count-x="COLS"
@@ -240,8 +295,13 @@ function cellLabel(x: number, y: number): string {
       :overscan-x="3"
       :overscan-y="3"
       class="surface"
+      :class="{ 'surface--panning': isPanning }"
       @range-change="onRangeChange"
       @scroll="onScroll"
+      @pointerdown="onPanStart"
+      @pointermove="onPanMove"
+      @pointerup="onPanEnd"
+      @pointercancel="onPanEnd"
     >
       <template #cell="{ x, y }">
         <div
@@ -326,6 +386,21 @@ function cellLabel(x: number, y: number): string {
   border: 1px solid #d1d5db;
   border-radius: 8px;
   background: #fff;
+  cursor: grab;
+  user-select: none;
+}
+.surface--panning {
+  cursor: grabbing;
+}
+
+.anchor-help {
+  font-size: 13px;
+  color: #6c7280;
+  background: rgba(37, 99, 235, 0.04);
+  border-left: 3px solid #2563eb;
+  padding: 8px 12px;
+  margin: 0;
+  line-height: 1.55;
 }
 
 .cell {
