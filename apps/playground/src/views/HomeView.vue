@@ -6,7 +6,8 @@
       <li><router-link to="/todos">Todos</router-link></li>
       <li><router-link to="/flex-debug">Flex Debug</router-link></li>
       <li><router-link to="/markdown-editor">Markdown Editor (Milkdown Prototype)</router-link></li>
-      <li><router-link to="/calendar-virtual-surface">Calendar — Virtual Surface stress (Phase 0)</router-link></li>
+      <li><router-link to="/calendar-virtual-surface">Calendar — Virtual Surface stress, fixed (Phase 0)</router-link></li>
+      <li><router-link to="/calendar-virtual-surface-variable">Calendar — Virtual Surface stress, variable (Phase 0)</router-link></li>
     </ul>
   </div>
 </template>

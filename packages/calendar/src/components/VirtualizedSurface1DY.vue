@@ -235,7 +235,6 @@ const measureCtx = new WeakMap<Element, MeasureCtx>();
 
 const pendingMeasurements = new Map<number, number>();
 let flushScheduled = false;
-const anchorIndexRef = ref<number | null>(null);
 
 let resizeObserver: ResizeObserver | null = null;
 
@@ -268,11 +267,6 @@ const vMeasure: Directive<HTMLElement, number> = {
     if (!resizeObserver) return;
     measureCtx.set(el, { index: binding.value });
     resizeObserver.observe(el);
-    // Anchor on first visible item so future resizes above it don't
-    // push the user-visible content around.
-    if (props.anchor === 'auto' && anchorIndexRef.value === null) {
-      anchorIndexRef.value = binding.value;
-    }
   },
   updated(el, binding) {
     // Bound value (= itemIndex) only changes if the same DOM is reused
@@ -288,6 +282,37 @@ const vMeasure: Directive<HTMLElement, number> = {
   },
 };
 
+/**
+ * Resolve the anchor item index for the given cache state.
+ *
+ * `'auto'` (default) → the first VISIBLE item (the item containing the
+ * pixel at the current scrollTop). NOT `range.startIndex`, which would
+ * include overscan above the viewport — toggling a size in overscan
+ * would then pass through with delta=0 even though the visible content
+ * does shift.
+ *
+ * `null` → no anchor; size changes propagate without scroll
+ * compensation.
+ *
+ * `number` → the consumer's explicit choice; we trust it.
+ *
+ * Computed against an explicit cache snapshot (rather than reading
+ * Vue reactivity) so the flush can capture the BEFORE state and use
+ * it for the delta math against the AFTER state.
+ */
+function resolveAnchorIndex(snapshot: MeasurementCache): number | null {
+  if (props.anchor === null) return null;
+  if (typeof props.anchor === 'number') return props.anchor;
+  // auto
+  if (props.itemCount === 0) return null;
+  if (isFixed.value) {
+    const size = props.fixedItemSize as number;
+    if (size <= 0) return 0;
+    return Math.min(props.itemCount - 1, Math.floor(scrollTop.value / size));
+  }
+  return snapshot.indexAtOffset(scrollTop.value);
+}
+
 function scheduleFlush() {
   if (flushScheduled) return;
   flushScheduled = true;
@@ -299,8 +324,11 @@ function flushMeasurements() {
   if (pendingMeasurements.size === 0) return;
 
   const c = ensureCache();
-  // Snapshot for anchor-adjustment math.
+  // Snapshot of the BEFORE state — required for anchor delta math.
   const snapshot = cloneCache(c);
+
+  // Capture anchor BEFORE we mutate the cache, against the snapshot.
+  const anchor = resolveAnchorIndex(snapshot);
 
   for (const [idx, size] of pendingMeasurements) {
     if (idx >= 0 && idx < c.itemCount) c.set(idx, size);
@@ -308,16 +336,10 @@ function flushMeasurements() {
   pendingMeasurements.clear();
   cacheVersion.value++;
 
-  // Anchor adjustment — compute against the snapshot.
-  const desiredAnchor =
-    props.anchor === 'auto'
-      ? anchorIndexRef.value
-      : props.anchor === null
-        ? null
-        : (props.anchor as number);
-
-  if (desiredAnchor !== null && containerRef.value) {
-    const delta = computeAnchorAdjustment(snapshot, c, desiredAnchor);
+  // Anchor adjustment — keep the anchor item at its prior screen
+  // y-coordinate. delta = newPrefixSum(anchor) - oldPrefixSum(anchor).
+  if (anchor !== null && containerRef.value) {
+    const delta = computeAnchorAdjustment(snapshot, c, anchor);
     if (delta !== 0) {
       const el = containerRef.value;
       el.scrollTop = el.scrollTop + delta;
@@ -360,21 +382,6 @@ watch(
   },
 );
 
-watch(
-  () => range.value.startIndex,
-  (startIndex) => {
-    if (props.anchor === 'auto') anchorIndexRef.value = startIndex;
-  },
-);
-watch(
-  () => props.anchor,
-  (a) => {
-    if (a === null) anchorIndexRef.value = null;
-    else if (typeof a === 'number') anchorIndexRef.value = a;
-    else anchorIndexRef.value = range.value.startIndex;
-  },
-);
-
 // ─── Lifecycle ─────────────────────────────────────────────────────────
 
 let viewportObserver: ResizeObserver | null = null;
@@ -403,8 +410,25 @@ onBeforeUnmount(() => {
 // ─── Imperative API ────────────────────────────────────────────────────
 
 defineExpose({
-  /** Current visible range (a snapshot of `range.value`). */
+  /** Current rendered range (a snapshot of `range.value`). Includes overscan. */
   getRange: () => range.value,
+  /**
+   * Index of the topmost item whose top edge is at or above the
+   * current scrollTop — i.e. the first item the user actually sees.
+   * Different from `getRange().startIndex`, which includes overscan
+   * above the viewport.
+   */
+  getFirstVisibleIndex(): number {
+    if (props.itemCount === 0) return 0;
+    if (isFixed.value) {
+      const size = props.fixedItemSize as number;
+      if (size <= 0) return 0;
+      return Math.min(props.itemCount - 1, Math.floor(scrollTop.value / size));
+    }
+    return cache.value
+      ? cache.value.indexAtOffset(scrollTop.value)
+      : Math.floor(scrollTop.value / props.estimatedItemSize);
+  },
   /** Scroll the surface so item `index` is at the top of the viewport. */
   scrollToIndex(index: number, behavior: ScrollBehavior = 'auto') {
     const el = containerRef.value;
