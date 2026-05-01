@@ -20,6 +20,12 @@ const date = ref('2026-04-15');
 const locale = ref('en-US');
 const density = ref<'comfortable' | 'compact'>('comfortable');
 
+// Time-range demo toggle: full 24h vs. 8 AM – 6 PM working hours.
+const workingHoursOnly = ref(false);
+const timeRange = computed<[number, number]>(() =>
+  workingHoursOnly.value ? [8, 18] : [0, 24],
+);
+
 // Sample event set across April 2026: timed, all-day, multi-day,
 // daily standups Mon-Fri.
 const events = computed<CalendarEvent[]>(() => {
@@ -124,6 +130,10 @@ function onRangeChange(w: ViewWindow) {
           <option value="compact">compact</option>
         </select>
       </label>
+      <label>
+        <input v-model="workingHoursOnly" type="checkbox" />
+        Working hours only (8 AM – 6 PM)
+      </label>
       <span class="muted" v-if="visibleRange">
         Visible: <code>{{ visibleRange.start }}</code> →
         <code>{{ visibleRange.end }}</code>
@@ -137,6 +147,7 @@ function onRangeChange(w: ViewWindow) {
         :events="events"
         :locale="locale"
         :density="density"
+        :time-range="timeRange"
         timezone="UTC"
         @event-click="onEventClick"
         @date-click="onDateClick"

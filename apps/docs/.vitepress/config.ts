@@ -146,6 +146,10 @@ export default defineConfig({
     },
   },
 
+  // Spike pages link to live playground demos at localhost:5188; the
+  // VitePress dead-link checker can't reach them at build time.
+  ignoreDeadLinks: [/^https?:\/\/localhost(:\d+)?\//],
+
   themeConfig: {
     logo: {
       light: '/logo_light.svg',
@@ -270,6 +274,7 @@ export default defineConfig({
             { text: 'Sidebar', link: '/components/sidebar' },
             { text: 'Navbar', link: '/components/navbar' },
             { text: 'Tabs', link: '/components/tabs' },
+            { text: 'Segmented Control', link: '/components/segmented-control' },
             { text: 'Breadcrumb', link: '/components/breadcrumb' },
             { text: 'Pagination', link: '/components/pagination' },
           ],
@@ -305,6 +310,7 @@ export default defineConfig({
           text: 'Data',
           items: [
             { text: 'Data Grid', link: '/components/data-grid' },
+            { text: 'Calendar', link: '/components/calendar' },
           ],
         },
       ],

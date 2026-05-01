@@ -338,8 +338,19 @@ defineExpose({
       </header>
     </slot>
 
-    <!-- ── Body: dispatch to the active view ───────────────────── -->
-    <div class="coar-calendar__body">
+    <!--
+      Body: dispatch to the active view.
+      Day / Week views rely on the consumer to provide vertical
+      scroll (CoarTimeGrid renders its full hour-range as natural
+      flow with sticky header + all-day band). Month / Agenda manage
+      their own height (Month is fixed-grid; Agenda is virtualized
+      internally), so the body must NOT scroll there or we'd get a
+      double scrollbar / collapsed agenda.
+    -->
+    <div
+      class="coar-calendar__body"
+      :class="`coar-calendar__body--${view}`"
+    >
       <CoarDayView
         v-if="view === 'day'"
         ref="dayView"
@@ -479,6 +490,17 @@ defineExpose({
 .coar-calendar__body {
   flex: 1 1 auto;
   min-height: 0; /* allow children's overflow:auto to work */
+}
+.coar-calendar__body--day,
+.coar-calendar__body--week {
+  /* Time-grid views scroll vertically through the hour range. */
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.coar-calendar__body--month,
+.coar-calendar__body--agenda {
+  /* Month is a fixed 6×7 grid; Agenda is internally virtualized.
+     Hide overflow so neither produces a second scrollbar. */
   overflow: hidden;
 }
 </style>
