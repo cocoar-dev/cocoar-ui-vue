@@ -21,8 +21,9 @@
  * default that reads `meta.title` / `meta.color`.
  */
 
-import { computed, onBeforeUnmount, onMounted, ref, watchEffect } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef, watchEffect } from 'vue';
 import { useI18n } from '@cocoar/vue-localization';
+import { useCalendarDnd } from '../composables/useCalendarDnd';
 import {
   Temporal,
   dateKey,
@@ -75,6 +76,47 @@ defineSlots<{
 
 const { t } = useI18n();
 
+// ─── Drag & Drop ──────────────────────────────────────────────────────
+
+const columnsRef = useTemplateRef<HTMLElement>('columns');
+
+/**
+ * Find the nearest scrollable ancestor of the columns container.
+ * `<CoarCalendar>` uses `.coar-calendar__body` as the scroll
+ * surface; standalone callers may wrap us in their own `overflow:
+ * auto` container. Walk up until we find one — or fall back to
+ * `null` to disable auto-scroll.
+ */
+const surfaceRef = computed<HTMLElement | null>(() => {
+  let el: HTMLElement | null = columnsRef.value;
+  while (el && el !== document.body) {
+    const overflowY = window.getComputedStyle(el).overflowY;
+    if (overflowY === 'auto' || overflowY === 'scroll') return el;
+    el = el.parentElement;
+  }
+  return null;
+});
+
+const daysRef = computed(() => props.days);
+const timeRangeRef = computed(() => props.timeRange);
+const pixelsPerHourRef = computed(() => props.pixelsPerHour);
+const slotDurationRef = computed(() => props.slotDuration);
+
+const dnd = useCalendarDnd({
+  surfaceRef,
+  columnsRef,
+  days: daysRef,
+  timeRange: timeRangeRef,
+  pixelsPerHour: pixelsPerHourRef,
+  slotDuration: slotDurationRef,
+  onEventClick: (event, native) => {
+    if (native) emit('event-click', { event, native });
+  },
+  onEventDrop: (payload) => {
+    emit('event-drop', payload);
+  },
+});
+
 const emit = defineEmits<{
   /** User clicked an empty time slot. */
   'time-click': [{ date: Temporal.PlainDate; time: Temporal.PlainTime; native: PointerEvent }];
@@ -82,6 +124,18 @@ const emit = defineEmits<{
   'date-click': [{ date: Temporal.PlainDate; native: PointerEvent }];
   /** User clicked an event (timed or all-day). */
   'event-click': [{ event: CalendarEvent; native: PointerEvent }];
+  /**
+   * User dropped a timed event after dragging it. Consumer applies
+   * `next` to its data store; the calendar does not mutate `events`
+   * directly. `target` is the snapped slot the pointer landed on.
+   */
+  'event-drop': [{
+    event: CalendarEvent;
+    original: { start: string; end?: string };
+    next: { start: string; end?: string };
+    target: { date: string; minutes: number };
+    native: PointerEvent | null;
+  }];
 }>();
 
 // ─── Geometry ─────────────────────────────────────────────────────────
@@ -394,7 +448,7 @@ void dateKey;
       </div>
 
       <!-- Day columns -->
-      <div class="coar-time-grid__columns">
+      <div ref="columns" class="coar-time-grid__columns">
         <div
           v-for="layout in dayLayouts"
           :key="layout.date.toString()"
@@ -434,6 +488,8 @@ void dateKey;
             :class="{
               'coar-time-grid__event--clipped-top': positioned.clippedTop,
               'coar-time-grid__event--clipped-bottom': positioned.clippedBottom,
+              'coar-time-grid__event--dragging':
+                dnd.isDragging.value && dnd.draggedEvent.value?.id === positioned.event.id,
             }"
             :style="{
               top: minutesToPx(positioned.startMinutes) + 'px',
@@ -448,7 +504,7 @@ void dateKey;
               background: eventBgFor(positioned.event),
               borderLeft: `3px solid ${eventBorderFor(positioned.event)}`,
             }"
-            @pointerdown="onEventClick($event, positioned.event)"
+            @pointerdown="dnd.startDrag(positioned.event)($event)"
           >
             <slot name="event" :event="positioned.event" :layout="positioned">
               <div class="coar-time-grid__event-default">
@@ -469,6 +525,23 @@ void dateKey;
             <span class="coar-time-grid__now-dot" />
             <span class="coar-time-grid__now-line" />
           </div>
+
+          <!-- Drop indicator: thin line at the snapped target slot
+               on the matching day-column. Rendered while dragging. -->
+          <div
+            v-if="
+              dnd.isDragging.value
+                && dnd.dropTarget.value?.date === layout.date.toString()
+            "
+            class="coar-time-grid__drop-indicator"
+            :style="{
+              top:
+                minutesToPx(
+                  (dnd.dropTarget.value!.minutes - timeRange[0] * 60),
+                ) + 'px',
+            }"
+            aria-hidden="true"
+          />
         </div>
       </div>
     </div>
@@ -666,6 +739,29 @@ void dateKey;
 }
 .coar-time-grid__event--clipped-top { border-top: 0; }
 .coar-time-grid__event--clipped-bottom { border-bottom: 0; }
+.coar-time-grid__event--dragging {
+  /* Dimmed while user is dragging this event so it visually anchors
+     the drop indicator without competing for attention. */
+  opacity: 0.4;
+  cursor: grabbing;
+}
+
+/*
+ * Drop indicator: a 2 px accent line at the snapped target slot
+ * inside the matching day-column. `pointer-events: none` so it
+ * never steals events from the column underneath.
+ */
+.coar-time-grid__drop-indicator {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  height: 2px;
+  background: var(--coar-background-accent-primary, #2563eb);
+  border-radius: 1px;
+  pointer-events: none;
+  z-index: 100;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
 
 .coar-time-grid__event-default {
   display: flex;

@@ -25,4 +25,10 @@ export {
   type UseCoarDragOptions,
   type UseCoarDragReturn,
 } from './composables/useCoarDrag';
+export {
+  useCalendarDnd,
+  type CalendarDropTarget,
+  type UseCalendarDndOptions,
+  type UseCalendarDndReturn,
+} from './composables/useCalendarDnd';
 export * from './core/index';

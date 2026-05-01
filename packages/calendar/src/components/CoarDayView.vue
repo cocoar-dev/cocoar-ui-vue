@@ -48,6 +48,13 @@ defineSlots<{
 const emit = defineEmits<{
   'time-click': [{ date: Temporal.PlainDate; time: Temporal.PlainTime; native: PointerEvent }];
   'event-click': [{ event: CalendarEvent; native: PointerEvent }];
+  'event-drop': [{
+    event: CalendarEvent;
+    original: { start: string; end?: string };
+    next: { start: string; end?: string };
+    target: { date: string; minutes: number };
+    native: PointerEvent | null;
+  }];
 }>();
 
 const days = computed<Temporal.PlainDate[]>(() => [
@@ -81,6 +88,7 @@ defineExpose({
       :density="density"
       @time-click="emit('time-click', $event)"
       @event-click="emit('event-click', $event)"
+      @event-drop="emit('event-drop', $event)"
     >
       <template #event="slotProps">
         <slot name="event" v-bind="slotProps" />

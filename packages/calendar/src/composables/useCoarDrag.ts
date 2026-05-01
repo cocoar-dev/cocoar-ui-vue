@@ -57,6 +57,14 @@ export interface DragContext<T> {
   scroll: { left: number; top: number };
   /** Pointer's offset from drag-start INCLUDING auto-scroll motion. */
   totalDelta: { x: number; y: number };
+  /**
+   * `true` once the pointer has moved past `dragThreshold`. With the
+   * default `dragThreshold: 0`, this is `true` from the very first
+   * move. Read it in `onDragEnd` to disambiguate "drop" from "click"
+   * — when it stays `false`, the user just pressed-and-released
+   * without any meaningful movement.
+   */
+  crossedThreshold: boolean;
 }
 
 export interface UseCoarDragOptions<T> {
@@ -73,6 +81,19 @@ export interface UseCoarDragOptions<T> {
    * 30 px hot zone, 24 px/frame max velocity, linear curve.
    */
   autoScroll?: AutoScrollOptions | null;
+  /**
+   * Distance in pixels (Manhattan-style: max of |dx|, |dy|) the
+   * pointer must travel before the drag is considered "active".
+   * Below this, `onDragMove` is suppressed and `isDragging` stays
+   * `false`. On `onDragEnd`, `ctx.crossedThreshold` tells the
+   * consumer whether a real drop happened or it was just a click.
+   *
+   * Default `0` keeps the legacy behaviour: every drag is active
+   * from pointerdown. Set to e.g. `5` to get standard click-vs-drag
+   * disambiguation (typical for direct-manipulation UIs like a
+   * calendar event card you can both click AND drag).
+   */
+  dragThreshold?: number;
   /**
    * Called once on pointerdown that becomes a drag. Return `false`
    * to cancel the drag (no callbacks fire afterwards).
@@ -103,7 +124,17 @@ export interface UseCoarDragReturn<T> {
 
 export function useCoarDrag<T>(opts: UseCoarDragOptions<T>): UseCoarDragReturn<T> {
   const draggedData = shallowRef<T | null>(null);
-  const isDragging = computed(() => draggedData.value !== null);
+  /**
+   * "Has the pointer travelled past `dragThreshold` since the
+   * pointerdown?". With `dragThreshold: 0` (the default) this flips
+   * to `true` on the very first move, so `isDragging` matches the
+   * legacy "true since pointerdown" semantics. With a non-zero
+   * threshold, consumers get the standard click-vs-drag split.
+   */
+  const crossedThreshold = shallowRef(false);
+  const isDragging = computed(
+    () => draggedData.value !== null && crossedThreshold.value,
+  );
 
   // Per-drag state (kept as plain locals — non-reactive to avoid
   // overhead in the rAF hot path).
@@ -150,15 +181,32 @@ export function useCoarDrag<T>(opts: UseCoarDragOptions<T>): UseCoarDragReturn<T
         x: lastPointerX - startX + (scroll.left - startScrollLeft),
         y: lastPointerY - startY + (scroll.top - startScrollTop),
       },
+      crossedThreshold: crossedThreshold.value,
     };
   }
 
   function tick(): void {
     rafHandle = 0;
-    if (!isDragging.value) return;
+    // We tick whenever a drag is being TRACKED (data is set), even
+    // before the threshold is crossed — auto-scroll and threshold
+    // detection still need to run. `onDragMove` is only called once
+    // we're past the threshold.
+    if (draggedData.value === null) return;
     applyAutoScroll();
     pendingMove = false;
-    opts.onDragMove?.(buildContext());
+    if (!crossedThreshold.value) {
+      const threshold = opts.dragThreshold ?? 0;
+      const dx = lastPointerX - startX + (opts.surfaceRef.value
+        ? opts.surfaceRef.value.scrollLeft - startScrollLeft : 0);
+      const dy = lastPointerY - startY + (opts.surfaceRef.value
+        ? opts.surfaceRef.value.scrollTop - startScrollTop : 0);
+      if (Math.abs(dx) > threshold || Math.abs(dy) > threshold) {
+        crossedThreshold.value = true;
+      }
+    }
+    if (crossedThreshold.value) {
+      opts.onDragMove?.(buildContext());
+    }
     // Auto-scroll keeps producing pointer-doesn't-move-but-content-does
     // updates; schedule the next tick if still dragging and any axis
     // is in the hot zone.
@@ -191,7 +239,7 @@ export function useCoarDrag<T>(opts: UseCoarDragOptions<T>): UseCoarDragReturn<T
   }
 
   function endDrag(reason: 'drop' | 'cancel'): void {
-    if (!isDragging.value) return;
+    if (draggedData.value === null) return;
     if (rafHandle !== 0) {
       cancelAnimationFrame(rafHandle);
       rafHandle = 0;
@@ -236,6 +284,7 @@ export function useCoarDrag<T>(opts: UseCoarDragOptions<T>): UseCoarDragReturn<T
     downTarget = null;
     pendingMove = false;
     draggedData.value = null;
+    crossedThreshold.value = false;
     dragId++;
   }
 
@@ -243,8 +292,8 @@ export function useCoarDrag<T>(opts: UseCoarDragOptions<T>): UseCoarDragReturn<T
     return (event: PointerEvent) => {
       // Only initiate on primary button.
       if (event.button !== 0) return;
-      // Already dragging? Ignore.
-      if (isDragging.value) return;
+      // Already tracking a drag? Ignore.
+      if (draggedData.value !== null) return;
       // Optional pre-flight veto.
       const allowed = opts.onDragStart?.({ event, data });
       if (allowed === false) return;
@@ -260,6 +309,12 @@ export function useCoarDrag<T>(opts: UseCoarDragOptions<T>): UseCoarDragReturn<T
       startScrollLeft = surface ? surface.scrollLeft : 0;
       startScrollTop = surface ? surface.scrollTop : 0;
       draggedData.value = data;
+      // With `dragThreshold: 0` (the default), no movement is
+      // required to be "active" — `isDragging` flips immediately on
+      // pointerdown, matching the legacy semantics. Otherwise the
+      // tick loop will set this to true once the pointer travels
+      // past the threshold.
+      crossedThreshold.value = (opts.dragThreshold ?? 0) === 0;
 
       try {
         (target as Element & { setPointerCapture?: (id: number) => void })

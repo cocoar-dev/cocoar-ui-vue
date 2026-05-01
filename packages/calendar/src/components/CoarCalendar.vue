@@ -119,6 +119,13 @@ const emit = defineEmits<{
   'date-click': [{ date: Temporal.PlainDate; native: PointerEvent }];
   'time-click': [{ date: Temporal.PlainDate; time: Temporal.PlainTime; native: PointerEvent }];
   'more-click': [{ date: Temporal.PlainDate; events: CalendarEvent[]; native: PointerEvent }];
+  'event-drop': [{
+    event: CalendarEvent;
+    original: { start: string; end?: string };
+    next: { start: string; end?: string };
+    target: { date: string; minutes: number };
+    native: PointerEvent | null;
+  }];
 }>();
 
 interface HeaderSlotScope {
@@ -385,6 +392,7 @@ defineExpose({
         @event-click="emit('event-click', $event)"
         @date-click="emit('date-click', $event)"
         @time-click="emit('time-click', $event)"
+        @event-drop="emit('event-drop', $event)"
       >
         <template v-if="$slots.event" #event="slotProps">
           <slot name="event" v-bind="slotProps" :view="view" />
@@ -412,6 +420,7 @@ defineExpose({
         @event-click="emit('event-click', $event)"
         @date-click="emit('date-click', $event)"
         @time-click="emit('time-click', $event)"
+        @event-drop="emit('event-drop', $event)"
       >
         <template v-if="$slots.event" #event="slotProps">
           <slot name="event" v-bind="slotProps" :view="view" />

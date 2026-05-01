@@ -28,7 +28,10 @@ const timeRange = computed<[number, number]>(() =>
 
 // Sample event set across April 2026: timed, all-day, multi-day,
 // daily standups Mon-Fri.
-const events = computed<CalendarEvent[]>(() => {
+// Mutable ref so DnD drops can replace start/end in place.
+const events = ref<CalendarEvent[]>(buildInitialEvents());
+
+function buildInitialEvents(): CalendarEvent[] {
   const out: CalendarEvent[] = [];
 
   // Daily standups Mon-Fri across April.
@@ -77,7 +80,7 @@ const events = computed<CalendarEvent[]>(() => {
   }
 
   return out;
-});
+}
 
 // Click log to demonstrate event forwarding.
 const log = ref<{ kind: string; label: string; when: string }[]>([]);
@@ -94,6 +97,29 @@ function onDateClick(p: { date: { toString(): string } }) {
 }
 function onTimeClick(p: { date: { toString(): string }; time: { toString(): string } }) {
   pushLog('time', `${p.date.toString()} ${p.time.toString()}`);
+}
+function onEventDrop(p: {
+  event: CalendarEvent;
+  next: { start: string; end?: string };
+  target: { date: string; minutes: number };
+}) {
+  const idx = events.value.findIndex((e) => e.id === p.event.id);
+  if (idx < 0) return;
+  // Replace the event's start/end in place. Cloning the array
+  // makes Vue's reactivity emit a fresh reference for downstream
+  // computeds (event index, layout, etc.).
+  const updated: CalendarEvent = {
+    ...p.event,
+    start: p.next.start,
+    end: p.next.end,
+  };
+  events.value = [
+    ...events.value.slice(0, idx),
+    updated,
+    ...events.value.slice(idx + 1),
+  ];
+  const title = (p.event.meta as { title?: string } | undefined)?.title ?? p.event.id;
+  pushLog('drop', `${title} → ${p.target.date} ${String(Math.floor(p.target.minutes / 60)).padStart(2, '0')}:${String(p.target.minutes % 60).padStart(2, '0')}`);
 }
 const visibleRange = ref<ViewWindow | null>(null);
 function onRangeChange(w: ViewWindow) {
@@ -152,6 +178,7 @@ function onRangeChange(w: ViewWindow) {
         @event-click="onEventClick"
         @date-click="onDateClick"
         @time-click="onTimeClick"
+        @event-drop="onEventDrop"
         @range-change="onRangeChange"
       />
     </div>
