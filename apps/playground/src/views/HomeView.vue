@@ -16,7 +16,8 @@
       <li><router-link to="/calendar-day-view">Calendar — Day View (Phase 2.1)</router-link></li>
       <li><router-link to="/calendar-week-view">Calendar — Week View (Phase 2.2)</router-link></li>
       <li><router-link to="/calendar-month-view">Calendar — Month View (Phase 2.3)</router-link></li>
-      <li><router-link to="/calendar-agenda-view"><strong>Calendar — Agenda View (Phase 2.4) ←</strong></router-link></li>
+      <li><router-link to="/calendar-agenda-view">Calendar — Agenda View (Phase 2.4)</router-link></li>
+      <li><router-link to="/calendar-shell"><strong>Calendar — &lt;CoarCalendar&gt; shell (Phase 2.5) ←</strong></router-link></li>
     </ul>
   </div>
 </template>
