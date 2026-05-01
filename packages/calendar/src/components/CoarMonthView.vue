@@ -375,6 +375,11 @@ defineExpose({
 
 .coar-month-view__cell {
   position: relative;
+  /* Grid items default to `min-width: auto` which lets long pill
+     content (event titles) blow up the column. Lock to 0 so the
+     `1fr` track sizing actually distributes equally regardless of
+     what's inside. */
+  min-width: 0;
   border-left: 1px solid var(--coar-calendar-border, #d1d5db);
   cursor: pointer;
   display: flex;

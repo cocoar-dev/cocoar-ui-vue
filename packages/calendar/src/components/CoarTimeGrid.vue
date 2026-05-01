@@ -272,6 +272,17 @@ void dateKey;
       `coar-time-grid--density-${density}`,
     ]"
   >
+    <!--
+      Sticky-top wrapper. Holds both the day-of-week header AND the
+      all-day band so they pin together at the top of the scroll
+      container regardless of either one's actual height. The
+      previous "two independent stickies with a fixed
+      `--coar-time-grid-header-height: 36px` offset" approach broke
+      whenever the day-header wrapped to two lines (e.g. narrow
+      column widths), because the all-day band's `top: 36px` didn't
+      match the header's actual rendered height.
+    -->
+    <div class="coar-time-grid__sticky-top">
     <!-- Header row: blank cell over hour labels + one cell per day -->
     <div class="coar-time-grid__header">
       <div class="coar-time-grid__corner" aria-hidden="true" />
@@ -354,6 +365,8 @@ void dateKey;
         </div>
       </div>
     </div>
+    </div>
+    <!-- /sticky-top wrapper -->
 
     <!-- Grid body: hour labels + day columns -->
     <div
@@ -482,13 +495,23 @@ void dateKey;
   --coar-time-grid-header-height: 36px;
 }
 
+/*
+ * The day-of-week header and the all-day band share a single
+ * sticky parent (`.coar-time-grid__sticky-top`). Inside it, both
+ * are normal-flow children — their actual rendered heights stack
+ * naturally without anyone having to know an offset in advance.
+ */
+.coar-time-grid__sticky-top {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--coar-calendar-bg, #fff);
+}
+
 .coar-time-grid__header {
   display: grid;
   grid-template-columns: 64px 1fr;
   border-bottom: 1px solid var(--coar-calendar-border, #d1d5db);
-  position: sticky;
-  top: 0;
-  z-index: 20;
   background: var(--coar-calendar-bg, #fff);
   min-height: var(--coar-time-grid-header-height);
 }
@@ -517,9 +540,6 @@ void dateKey;
   display: grid;
   grid-template-columns: 64px 1fr;
   border-bottom: 1px solid var(--coar-calendar-border, #d1d5db);
-  position: sticky;
-  top: var(--coar-time-grid-header-height);
-  z-index: 19;
   background: var(--coar-calendar-bg, #fff);
   font-size: var(--coar-font-size-xs, 11px);
 }
