@@ -33,7 +33,11 @@
   --coar-markdown-radius: var(--coar-radius-xs);
   --coar-markdown-space-1: var(--coar-spacing-s, 0.5rem);
   --coar-markdown-space-2: var(--coar-spacing-m, 1rem);
-  --coar-markdown-heading-block-start: var(--coar-spacing-xxxl, 4rem);
+  /* Block-start margin before top-level headings. Override on `.coar-markdown`
+     itself for per-instance tuning. The default sits at `xl` (~32px) — large
+     enough to mark sections, small enough that an editor's heading doesn't
+     push four lines of whitespace into view. */
+  --coar-markdown-heading-block-start: var(--coar-spacing-xl, 2rem);
 
   color: var(--coar-markdown-text);
 }
@@ -79,71 +83,152 @@
   line-height: 1.45;
 }
 
+/* Zero out user-agent margins on every block we render. The bare-element
+   `:where(blockquote, ul, ol, table)` half is essential for the editor's
+   PM-managed DOM (no `coar-markdown-*` classes), where the browser's
+   default `<blockquote>` `margin: 1em 40px` would otherwise indent the
+   block far more than the viewer's class-based reset. Vertical rhythm
+   then comes solely from the explicit block-spacing rules below. */
 .coar-markdown-heading,
 .coar-markdown-paragraph,
 .coar-markdown-blockquote,
 .coar-markdown-list,
 .coar-markdown-code-block,
 .coar-markdown-table,
-.coar-markdown-hr {
+.coar-markdown-hr,
+.coar-markdown :where(p, blockquote, ul, ol, pre, table, hr) {
   margin: 0;
 }
 
+/* Block-spacing rules apply at the document's *top level*. Two selector
+   shapes:
+   - `.coar-markdown > :where(...)` — the viewer's direct-child layout.
+   - `.coar-markdown .ProseMirror > :where(...)` — the editor's PM-managed
+     contenteditable. PM inserts a `.milkdown` and a `.ProseMirror` div
+     between `.coar-markdown` and the actual blocks, so the viewer's
+     `>`-combinator never matched in the editor. Mirroring the rules here
+     lets editor and viewer share the same vertical rhythm. */
 .coar-markdown
   > :where(
-    h1,
-    h2,
-    h3,
-    h4,
-    h5,
-    h6,
-    p,
-    blockquote,
-    ul,
-    ol,
-    pre,
-    table,
-    hr,
-    .coar-code-block-host,
-    .coar-table-host
+    h1, h2, h3, h4, h5, h6, p, blockquote, ul, ol, pre, table, hr,
+    .coar-code-block-host, .coar-table-host
+  ),
+.coar-markdown .ProseMirror
+  > :where(
+    h1, h2, h3, h4, h5, h6, p, blockquote, ul, ol, pre, table, hr,
+    .coar-code-block-host, .coar-table-host
   ) {
   margin-block: 0 var(--coar-markdown-space-2);
 }
 
-.coar-markdown > :where(h1, h2, h3, h4, h5, h6) {
+.coar-markdown > :where(h1, h2, h3, h4, h5, h6),
+.coar-markdown .ProseMirror > :where(h1, h2, h3, h4, h5, h6) {
   margin-block-start: var(--coar-markdown-heading-block-start);
 }
 
 /* Large section spacing is great, but keep heading hierarchies tight (e.g. h2 -> h3). */
-.coar-markdown > :where(h1, h2, h3, h4, h5, h6) + :where(h1, h2, h3, h4, h5, h6) {
+.coar-markdown > :where(h1, h2, h3, h4, h5, h6) + :where(h1, h2, h3, h4, h5, h6),
+.coar-markdown .ProseMirror > :where(h1, h2, h3, h4, h5, h6) + :where(h1, h2, h3, h4, h5, h6) {
   margin-block-start: var(--coar-markdown-space-1);
 }
 
-.coar-markdown > :where(h1, h2, h3, h4, h5, h6):first-child {
+.coar-markdown > :where(h1, h2, h3, h4, h5, h6):first-child,
+.coar-markdown .ProseMirror > :where(h1, h2, h3, h4, h5, h6):first-child {
   margin-block-start: 0;
 }
 
+/* Bare-element fallbacks (`.coar-markdown :where(blockquote)` etc.) are
+   important for parity with the editor's PM-managed DOM, where the
+   blocks have no `coar-markdown-*` class — only the surrounding
+   `.coar-markdown` wrapper carries one. */
+.coar-markdown :where(blockquote),
 .coar-markdown-blockquote {
   padding-inline: var(--coar-markdown-space-2);
   border-left: 2px solid var(--coar-markdown-border);
+  color: var(--coar-text-neutral-secondary);
 }
 
+.coar-markdown :where(ul, ol),
 .coar-markdown-list {
   padding-inline-start: var(--coar-spacing-l, 1.5rem);
   list-style-position: outside;
 }
 
+.coar-markdown :where(ul),
 .coar-markdown-list--unordered {
   list-style-type: disc;
 }
 
+.coar-markdown :where(ol),
 .coar-markdown-list--ordered {
   list-style-type: decimal;
 }
 
+.coar-markdown :where(li),
 .coar-markdown-list-item {
   display: list-item;
   margin-block: 0.25em;
+}
+
+/* Strip the user-agent `<p>` margin when ProseMirror wraps cell/list content
+   in a paragraph node (the editor's case). The viewer renders cell/list
+   text directly, so it isn't affected. Without this, every editor list
+   item or table cell is visually one line taller than its viewer pendant
+   because the inner `<p>` adds `1em` top + `1em` bottom margin. */
+.coar-markdown :where(li, td, th) > :where(p) {
+  margin-block: 0;
+}
+
+/* ── GFM task list items ──
+   Both the viewer's `DefaultListItem` and the editor's PM-managed list
+   render the same DOM shape: `<li data-item-type="task" data-checked="…">`.
+   The visual checkbox is a `::before` pseudo-element on the `<li>` (no
+   `<input>` involved) so editor and viewer look pixel-identical, and
+   completed items get a strikethrough + muted color. */
+.coar-markdown :where(li[data-item-type="task"]) {
+  list-style: none;
+  margin-left: -1.25em;
+  padding-left: 1.5em;
+  position: relative;
+}
+.coar-markdown :where(li[data-item-type="task"])::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.45em;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--coar-border-neutral-secondary, var(--coar-border-neutral));
+  border-radius: var(--coar-radius-xs, 2px);
+  background: var(--coar-background-neutral-primary);
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: background-color 0.1s, border-color 0.1s;
+}
+.coar-markdown :where(li[data-item-type="task"][data-checked="true"])::before {
+  background: var(--coar-background-accent-primary);
+  border-color: var(--coar-background-accent-primary);
+}
+.coar-markdown :where(li[data-item-type="task"][data-checked="true"])::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: calc(0.45em + 2px);
+  width: 8px;
+  height: 5px;
+  border-left: 2px solid var(--coar-text-on-bold, #fff);
+  border-bottom: 2px solid var(--coar-text-on-bold, #fff);
+  transform: rotate(-45deg);
+  pointer-events: none;
+}
+.coar-markdown :where(li[data-item-type="task"][data-checked="true"]) > :where(p) {
+  color: var(--coar-text-neutral-tertiary);
+  text-decoration: line-through;
+}
+/* Hide any native input the schema or renderer may emit — visual is the
+   pseudo-element above. */
+.coar-markdown :where(li[data-item-type="task"]) input[type="checkbox"] {
+  display: none;
 }
 
 .coar-markdown-list-item--task {
@@ -169,6 +254,10 @@
   display: block;
 }
 
+/* Inline code — also targets bare `<code>` (i.e. not inside a `<pre>`) so
+   the editor's PM-rendered `<code>` matches the viewer's
+   `.coar-markdown-inline-code` without a custom mark schema. */
+.coar-markdown :where(:not(pre) > code),
 .coar-markdown-inline-code {
   padding: 0;
   border: 0;
@@ -177,6 +266,9 @@
   color: var(--coar-text-accent-secondary, var(--coar-markdown-link));
 }
 
+/* Links — same fallback pattern: bare `<a>` inside `.coar-markdown` picks
+   up the same color/underline as the viewer's `.coar-markdown-link`. */
+.coar-markdown :where(a),
 .coar-markdown-link {
   text-decoration: underline;
   color: var(--coar-markdown-link);
@@ -188,11 +280,12 @@
   vertical-align: middle;
 }
 
-/* Tables — applies to both the viewer's named `.coar-markdown-table` and any
-   bare `<table>` rendered inside `.coar-markdown` (e.g. the editor's PM-
-   managed table). Rules use `:where()` so consumers can override without
-   specificity wars. The visual matches `CoarTable` (zebra rows, header
-   surface, generous padding) so editor and viewer read the same. */
+/* Tables — applies to both the viewer's named `.coar-markdown-table` (with
+   explicit `<thead>`/`<tbody>` wrappers) and the editor's PM-managed table
+   (flat `<table><tr data-is-header><th>...</tr><tr><td>...`, no thead/tbody).
+   Rules use `:where()` so consumers can override without specificity wars.
+   The visual matches `CoarTable` (zebra rows, header surface, generous
+   padding) so editor and viewer read the same. */
 .coar-markdown :where(table),
 .coar-markdown-table {
   display: table;
@@ -203,7 +296,9 @@
   line-height: var(--coar-line-height-relaxed, 1.5);
 }
 
-.coar-markdown :where(table thead),
+/* Header row background — covers the viewer's `<thead>` *and* the editor's
+   `<tr data-is-header>` Milkdown emits. */
+.coar-markdown :where(table thead, table tr[data-is-header]),
 .coar-markdown-table > thead {
   background: var(--coar-markdown-surface-muted);
 }
@@ -230,21 +325,22 @@
   border-bottom: 1px solid var(--coar-markdown-border);
 }
 
-/* Zebra stripes — odd rows on the primary surface, even rows on the muted
-   surface — same pattern CoarTable uses by default. */
-.coar-markdown :where(table tbody tr:nth-child(odd)),
-.coar-markdown-table > tbody tr:nth-child(odd) {
+/* Zebra stripes — `:nth-child(<n> of <selector>)` excludes the editor's
+   `<tr data-is-header>` from the alternation index so the first data row
+   is "1st" → odd → primary surface in both panes. (Milkdown wraps even
+   the header row in `<tbody>`, so we can't rely on tbody-vs-thead alone.) */
+.coar-markdown-table > tbody tr:nth-child(odd of :not([data-is-header])),
+.coar-markdown :where(table > tbody tr:nth-child(odd of :not([data-is-header]))) {
   background: var(--coar-markdown-surface);
 }
-.coar-markdown :where(table tbody tr:nth-child(even)),
-.coar-markdown-table > tbody tr:nth-child(even) {
+.coar-markdown-table > tbody tr:nth-child(even of :not([data-is-header])),
+.coar-markdown :where(table > tbody tr:nth-child(even of :not([data-is-header]))) {
   background: var(--coar-markdown-surface-muted);
 }
 
-/* Last row drops its bottom border so it doesn't double-up with any wrapping
-   container's border. */
-.coar-markdown :where(table tbody tr:last-child td),
-.coar-markdown-table > tbody tr:last-child td {
+/* Last data row drops its bottom border. */
+.coar-markdown-table > tbody tr:last-child td,
+.coar-markdown :where(table > tbody tr:last-child:not([data-is-header]) td) {
   border-bottom: 0;
 }
 

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue';
 import { CoarMarkdownEditor, type CoarMarkdownEditorTool } from '@cocoar/vue-markdown-editor';
+import { CoarMarkdown } from '@cocoar/vue-markdown';
+import { parse } from '@cocoar/vue-markdown-core';
 
 const containerSize = ref<'full' | 'medium' | 'small' | 'modal'>('full');
 const toolbarMode = ref<'floating' | 'fixed' | 'both'>('floating');
@@ -8,6 +10,7 @@ const toolbarPosition = ref<'left' | 'right'>('left');
 const readonly = ref(false);
 const toolsPreset = ref<'all' | 'minimal' | 'no-tables'>('all');
 const darkMode = ref(false);
+const showViewer = ref(true);
 
 // Mirrors the script-editor playground: toggle `.dark-mode` on <html> so the
 // Cocoar token override kicks in. Reset on unmount so other routes start light.
@@ -37,6 +40,7 @@ This page renders the **packaged** \`<CoarMarkdownEditor>\` component (extracted
 ## Features
 
 - **Bold**, *italic*, ~~strikethrough~~
+- <span style="color: #dc2626">Text color</span> via the palette button — try <span style="color: #2563eb">a swatch</span> or <span style="color: rgb(22, 163, 74)">custom hex/rgb</span>
 - Lists (ordered and unordered)
 - [Links](https://example.com)
 - \`inline code\`
@@ -75,6 +79,11 @@ const containerStyles: Record<string, Record<string, string>> = {
   small: { width: '360px', height: '300px' },
   modal: { width: '480px', height: '260px' },
 };
+
+// Live-render the editor's markdown through the standalone viewer so the
+// editor↔viewer parity is verifiable side-by-side. `parse` is pure and
+// quick — fine to recompute on every keystroke for the playground.
+const viewerDoc = computed(() => parse(value.value));
 
 // Test hooks — exposed on window for the Playwright suite. Lets specs read/write
 // the markdown without scraping the details `<pre>` and toggle UI state without
@@ -144,6 +153,11 @@ onMounted(() => {
         dark-mode
       </label>
 
+      <label class="md-controls__readonly">
+        <input v-model="showViewer" type="checkbox" />
+        viewer pane
+      </label>
+
       <span class="md-controls__label">Tools:</span>
       <button
         v-for="preset in (['all', 'minimal', 'no-tables'] as const)"
@@ -155,15 +169,26 @@ onMounted(() => {
       </button>
     </div>
 
-    <!-- Editor -->
-    <div class="md-editor-frame" :style="containerStyles[containerSize]">
-      <CoarMarkdownEditor
-        v-model="value"
-        :readonly="readonly"
-        :toolbar-mode="toolbarMode"
-        :toolbar-position="toolbarPosition"
-        :tools="tools"
-      />
+    <!-- Editor + Viewer (side-by-side when viewer pane is enabled) -->
+    <div :class="['md-split', { 'md-split--single': !showViewer }]">
+      <div class="md-pane">
+        <div class="md-pane__label">Editor</div>
+        <div class="md-editor-frame" :style="containerStyles[containerSize]">
+          <CoarMarkdownEditor
+            v-model="value"
+            :readonly="readonly"
+            :toolbar-mode="toolbarMode"
+            :toolbar-position="toolbarPosition"
+            :tools="tools"
+          />
+        </div>
+      </div>
+      <div v-if="showViewer" class="md-pane">
+        <div class="md-pane__label">Viewer (<code>&lt;CoarMarkdown&gt;</code>)</div>
+        <div class="md-viewer-frame" :style="containerStyles[containerSize]">
+          <CoarMarkdown :doc="viewerDoc" />
+        </div>
+      </div>
     </div>
 
     <!-- Markdown Output -->
@@ -222,7 +247,40 @@ onMounted(() => {
   cursor: pointer;
 }
 
-.md-editor-frame {
+.md-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.md-split--single { grid-template-columns: 1fr; }
+
+.md-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  gap: 6px;
+}
+
+.md-pane__label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--coar-text-neutral-tertiary);
+}
+.md-pane__label code {
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--coar-background-neutral-secondary);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.md-editor-frame,
+.md-viewer-frame {
   border: 1px solid var(--coar-border-neutral);
   border-radius: 8px;
   overflow: hidden;
@@ -231,10 +289,18 @@ onMounted(() => {
   flex-shrink: 0;
   min-height: 0;
 }
-.md-editor-frame:has(+ .md-output) { /* keep frame from collapsing in 'full' mode */ }
+.md-viewer-frame {
+  overflow: auto;
+  padding: 12px 16px;
+  background: var(--coar-background-neutral-primary);
+}
 
-/* When container is 'full', let it grow */
-.md-playground > .md-editor-frame[style*="100%"] { flex-shrink: 1; }
+/* When container is 'full', let frames grow within their pane */
+.md-pane .md-editor-frame[style*="100%"],
+.md-pane .md-viewer-frame[style*="100%"] {
+  flex-shrink: 1;
+  flex: 1 1 auto;
+}
 
 .md-output { flex-shrink: 0; }
 

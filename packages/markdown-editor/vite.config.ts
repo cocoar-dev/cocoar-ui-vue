@@ -23,8 +23,10 @@ export default defineConfig({
     rollupOptions: {
       external: [
         'vue',
+        'unified',
         '@cocoar/vue-ui',
         '@cocoar/vue-markdown',
+        '@cocoar/vue-markdown-core',
         /^@milkdown\//,
       ],
       output: {

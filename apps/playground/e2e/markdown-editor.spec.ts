@@ -140,11 +140,12 @@ test.describe('Markdown editor — sidebar toolbar', () => {
     await setToolbarMode(page, 'fixed');
   });
 
-  test('shows the full set of 17 buttons by default', async ({ page }) => {
+  test('shows the full set of 18 buttons by default', async ({ page }) => {
     const labels = await page.locator('.coar-md-sidebar-wrap [role="menuitem"]').allTextContents();
     const trimmed = labels.map((l) => l.trim());
     expect(trimmed).toEqual([
       'Bold', 'Italic', 'Strikethrough', 'Inline Code',
+      'Text Color',
       'Headings',
       'Bullet List', 'Ordered List', 'Task List',
       'Outdent', 'Indent',

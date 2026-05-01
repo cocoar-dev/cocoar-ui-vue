@@ -23,6 +23,7 @@ import { CoarCodeBlock } from '@cocoar/vue-ui';
 
 import {
   codeBlockLanguage,
+  colorSpanColor,
   headingAnchor,
   headingDepth,
   imageAlt,
@@ -116,25 +117,11 @@ export const DefaultListItem = defineComponent({
     return () => {
       const task = isTaskListItem(props.node);
       const checked = task && taskChecked(props.node);
-      // Task-list items get a checkbox affordance + wrap content in a sibling
-      // div so the checkbox aligns next to inline content rather than above
-      // the first block child.
-      const children: VNode[] = [];
-      if (task) {
-        children.push(
-          h('input', {
-            class: 'coar-markdown-task-checkbox',
-            type: 'checkbox',
-            checked,
-            disabled: true,
-            'aria-hidden': 'true',
-            tabindex: -1,
-          }),
-        );
-      }
-      children.push(
-        h('div', { class: 'coar-markdown-list-item-content' }, props.renderChildren()),
-      );
+      // Mirror the editor's PM-emitted attributes so the shared task-list CSS
+      // (pseudo-element checkbox + checked-state strikethrough) lights up the
+      // same way in viewer and editor. We deliberately do *not* render an
+      // `<input>` — the visual checkbox is the `::before` pseudo-element on
+      // the `<li>` itself, just like in the editor.
       return h(
         'li',
         {
@@ -142,8 +129,10 @@ export const DefaultListItem = defineComponent({
             'coar-markdown-list-item',
             task ? 'coar-markdown-list-item--task' : null,
           ],
+          'data-item-type': task ? 'task' : undefined,
+          'data-checked': task ? (checked ? 'true' : 'false') : undefined,
         },
-        children,
+        props.renderChildren(),
       );
     };
   },
@@ -358,6 +347,30 @@ export const DefaultLineBreak = defineComponent({
 });
 
 /**
+ * Inline color mark — renders children inside a `<span>` with a single
+ * sanitized `color: …` inline style. The color is re-validated through
+ * `sanitizeColor` here so a malformed attr can't slip an arbitrary style
+ * through the renderer.
+ */
+export const DefaultColorSpan = defineComponent({
+  name: 'DefaultColorSpan',
+  props: rendererProps,
+  setup(props) {
+    return () => {
+      const color = colorSpanColor(props.node);
+      return h(
+        'span',
+        {
+          class: 'coar-markdown-color',
+          style: color ? { color } : undefined,
+        },
+        props.renderChildren(),
+      );
+    };
+  },
+});
+
+/**
  * Block-style fallback for unknown node types. Most "unsupported" nodes that
  * reach the registry are block-level (custom remark plugins emitting embeds,
  * directives, etc.), so we default to the block presentation. Consumers who
@@ -401,5 +414,6 @@ export const defaultMarkdownRenderers: MarkdownViewerRenderers = {
   link: DefaultLink,
   image: DefaultImage,
   lineBreak: DefaultLineBreak,
+  colorSpan: DefaultColorSpan,
   unsupported: DefaultUnsupported,
 };

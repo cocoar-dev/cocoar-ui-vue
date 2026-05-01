@@ -44,10 +44,12 @@
   },
   "peerDependencies": {
     "@cocoar/vue-markdown": "workspace:*",
+    "@cocoar/vue-markdown-core": "workspace:*",
     "@cocoar/vue-ui": "workspace:*",
     "vue": "^3.5.0"
   },
   "dependencies": {
+    "unified": "^11.0.5",
     "@milkdown/core": "^7.20.0",
     "@milkdown/ctx": "^7.20.0",
     "@milkdown/kit": "^7.20.0",
@@ -62,7 +64,9 @@
   },
   "devDependencies": {
     "@cocoar/vue-markdown": "workspace:*",
+    "@cocoar/vue-markdown-core": "workspace:*",
     "@cocoar/vue-ui": "workspace:*",
+    "@types/mdast": "^4.0.4",
     "vue": "^3.5.32"
   }
 }

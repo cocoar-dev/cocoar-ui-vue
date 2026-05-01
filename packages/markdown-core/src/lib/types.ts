@@ -24,6 +24,7 @@ export type MarkdownNodeType =
   | 'inlineCode'
   | 'link'
   | 'image'
+  | 'colorSpan'
   | 'unsupported';
 
 export interface MarkdownNode {

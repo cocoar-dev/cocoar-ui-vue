@@ -216,4 +216,60 @@ describe('CoarMarkdown — renderers prop override', () => {
     expect(wrapper.find('p').text()).toBe('Body');
     expect(wrapper.find('[data-testid="custom-paragraph"]').exists()).toBe(false);
   });
+
+  it('renders colorSpan as <span> with sanitized inline color', () => {
+    const wrapper = mount(CoarMarkdown, {
+      props: {
+        doc: {
+          nodes: [
+            {
+              id: 'p',
+              type: 'paragraph',
+              children: [
+                { id: 't1', type: 'text', text: 'before ' },
+                {
+                  id: 'cs1',
+                  type: 'colorSpan',
+                  attrs: { color: '#ff0000' },
+                  children: [{ id: 't2', type: 'text', text: 'red' }],
+                },
+                { id: 't3', type: 'text', text: ' after' },
+              ],
+            },
+          ],
+        },
+      },
+    });
+    const span = wrapper.find('span.coar-markdown-color');
+    expect(span.exists()).toBe(true);
+    expect(span.text()).toBe('red');
+    expect(span.attributes('style') ?? '').toContain('color');
+    expect(span.attributes('style') ?? '').toContain('#ff0000');
+  });
+
+  it('strips a colorSpan style when the color attr fails sanitization', () => {
+    const wrapper = mount(CoarMarkdown, {
+      props: {
+        doc: {
+          nodes: [
+            {
+              id: 'p',
+              type: 'paragraph',
+              children: [
+                {
+                  id: 'cs',
+                  type: 'colorSpan',
+                  attrs: { color: 'url(http://evil)' },
+                  children: [{ id: 't', type: 'text', text: 'bad' }],
+                },
+              ],
+            },
+          ],
+        },
+      },
+    });
+    const span = wrapper.find('span.coar-markdown-color');
+    expect(span.exists()).toBe(true);
+    expect(span.attributes('style')).toBeFalsy();
+  });
 });

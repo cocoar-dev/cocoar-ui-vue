@@ -33,6 +33,7 @@ export {
   defaultMarkdownRenderers,
   DefaultBlockquote,
   DefaultCodeBlock,
+  DefaultColorSpan,
   DefaultEmphasis,
   DefaultHeading,
   DefaultImage,
