@@ -12,6 +12,7 @@
       <li><router-link to="/calendar-rrule-bakeoff">Calendar — RRULE engine bake-off (Phase 0)</router-link></li>
       <li><router-link to="/calendar-overlap-layout">Calendar — Multi-day-bar layout (Phase 0)</router-link></li>
       <li><router-link to="/calendar-drag">Calendar — DnD + auto-scroll (Phase 0)</router-link></li>
+      <li><router-link to="/calendar-recurrence-worker">Calendar — Recurrence worker bench (Phase 0)</router-link></li>
     </ul>
   </div>
 </template>

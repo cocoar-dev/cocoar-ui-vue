@@ -63,6 +63,10 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('./views/CalendarDragView.vue'),
   },
   {
+    path: '/calendar-recurrence-worker',
+    component: () => import('./views/CalendarRecurrenceWorkerBenchView.vue'),
+  },
+  {
     path: '/todos',
     component: () => import('./views/TodoListView.vue'),
     meta: {

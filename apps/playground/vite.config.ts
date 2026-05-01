@@ -17,6 +17,7 @@ export default defineConfig({
       { find: /^@cocoar\/vue-markdown-editor$/, replacement: resolve(__dirname, '../../packages/markdown-editor/src/index.ts') },
       { find: /^@cocoar\/vue-calendar$/, replacement: resolve(__dirname, '../../packages/calendar/src/index.ts') },
       { find: /^@cocoar\/vue-calendar\/core$/, replacement: resolve(__dirname, '../../packages/calendar/src/core/index.ts') },
+      { find: /^@cocoar\/vue-calendar\/recurrence$/, replacement: resolve(__dirname, '../../packages/calendar/src/core/recurrence.ts') },
     ],
   },
 });
