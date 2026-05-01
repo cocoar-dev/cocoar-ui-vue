@@ -58,6 +58,11 @@ export {
   type IndexInvalidation,
   type IndexListener,
 } from './eventIndex';
+export {
+  layoutDayEvents,
+  type DayLayoutOptions,
+  type PositionedEvent,
+} from './timeGridLayout';
 // NOTE: recurrence engine exports live behind a subpath
 // (`@cocoar/vue-calendar/recurrence`) rather than the main core
 // barrel. The worker file uses Vite's `?worker` syntax which has
