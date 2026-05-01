@@ -6,9 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "preview": "vite preview --strictPort --port 4188",
+    "build:preview": "vite build && vite preview --strictPort --port 4188",
     "test": "playwright test",
     "test:headed": "playwright test --headed",
-    "test:debug": "playwright test --debug"
+    "test:debug": "playwright test --debug",
+    "test:perf": "playwright test --config playwright.perf.config.ts"
   },
   "dependencies": {
     "@cocoar/vue-calendar": "workspace:*",
