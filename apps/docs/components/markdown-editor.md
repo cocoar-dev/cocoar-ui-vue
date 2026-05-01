@@ -54,10 +54,10 @@ The editor fills its parent container. Wrap it in a parent with explicit height 
 | Value | Description |
 |---|---|
 | `'floating'` (default) | Appears on text selection, teleported to `<body>`, context-aware (text vs. table) |
-| `'fixed'` | `CoarSidebar` collapsed with icon buttons and flyout submenus, persistent |
+| `'fixed'` | `CoarSidebar` collapsed with icon buttons and flyout submenus, persistent. Sits on any of the four edges — see `toolbarPosition` |
 | `'both'` | Both active simultaneously |
 
-When `toolbarMode` is `'fixed'` or `'both'`, `toolbarPosition` (`'left'` or `'right'`) controls the sidebar side.
+When `toolbarMode` is `'fixed'` or `'both'`, `toolbarPosition` controls which edge the toolbar attaches to. All four edges are supported — `'left'` and `'right'` give a vertical icon column, `'top'` and `'bottom'` switch to a horizontal toolbar above or below the editor area. Flyout submenus open in the corresponding direction (right for `left`, downward for `top`, etc.).
 
 <preview path="./markdown-editor/demos/MarkdownEditorSidebar.vue" />
 
@@ -65,7 +65,7 @@ When `toolbarMode` is `'fixed'` or `'both'`, `toolbarPosition` (`'left'` or `'ri
 <CoarMarkdownEditor
   v-model="value"
   toolbar-mode="fixed"
-  toolbar-position="left"
+  toolbar-position="top"
 />
 ```
 
@@ -190,7 +190,7 @@ When migrating from a richtext editor that exposed those tools, the closest Mark
 | `name` | `string` | _undefined_ | Reflected as `data-name` for form-submission tooling |
 | `required` | `boolean` | `false` | Sets `aria-required="true"` |
 | `toolbarMode` | `'floating' \| 'fixed' \| 'both'` | `'floating'` | Toolbar layout |
-| `toolbarPosition` | `'left' \| 'right'` | `'left'` | Sidebar position when `toolbarMode` is `'fixed'` or `'both'` |
+| `toolbarPosition` | `'left' \| 'right' \| 'top' \| 'bottom'` | `'left'` | Toolbar edge when `toolbarMode` is `'fixed'` or `'both'`. `top`/`bottom` render a horizontal toolbar; flyouts open along the perpendicular axis. |
 | `tools` | `CoarMarkdownEditorTool[]` | _all_ | Whitelist of toolbar tools. See [Restricting the Toolbar](#restricting-the-toolbar) |
 
 ## Events

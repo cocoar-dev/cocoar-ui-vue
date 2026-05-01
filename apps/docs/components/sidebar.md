@@ -21,6 +21,14 @@ Toggle `collapsed` for icon-only mode with automatic tooltips. Groups support tw
 
 <preview path="./sidebar/demos/SidebarItems.vue" />
 
+## Side / Orientation
+
+The `side` prop attaches the sidebar to any of the four edges. `left` and `right` give a vertical column (the classic navigation rail); `top` and `bottom` switch the layout to a horizontal toolbar. Tooltip placement, flyout direction, the active-state indicator border, and the collapsed dimension (width vs. height) all adapt automatically.
+
+Use the `side` selector below to flip between all four orientations on the same content.
+
+<preview path="./sidebar/demos/SidebarSides.vue" />
+
 ## Migrating from Menu-based Sidebar
 
 If you are using `CoarMenu` and `CoarMenuItem` inside `CoarSidebar`, we recommend migrating to the new sidebar-specific components. The new components support collapsed mode with automatic tooltips, flyout panels, icon-only mode, and nested groups — none of which work with the menu-based approach.
@@ -68,8 +76,9 @@ If you are using `CoarMenu` and `CoarMenuItem` inside `CoarSidebar`, we recommen
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `position` | `'left' \| 'right'` | `'left'` | Sidebar position |
-| `collapsed` | `boolean` | `false` | Narrow/icon-only collapsed state. Supports `v-model:collapsed`. |
+| `side` | `'left' \| 'right' \| 'top' \| 'bottom'` | `'left'` | Which edge the sidebar attaches to. `top`/`bottom` switch the layout to horizontal (items in a row, scrolls horizontally). Flyout submenus and tooltip placements adapt automatically. |
+| `position` | `'left' \| 'right'` | — | **Deprecated.** Use `side` instead. Still accepted as an alias for backwards compatibility. |
+| `collapsed` | `boolean` | `false` | Narrow/icon-only collapsed state. Supports `v-model:collapsed`. In horizontal sidebars this collapses height instead of width. |
 | `size` | `'s' \| 'm' \| 'l'` | `'m'` | Icon size: s (16px), m (20px), l (24px) |
 | `variant` | `'primary' \| 'secondary'` | `'primary'` | Background color variant |
 | `elevated` | `boolean` | `false` | Show elevation shadow |
@@ -82,9 +91,9 @@ All slots receive `{ collapsed: boolean }` as scoped slot props.
 
 | Slot | Description |
 |------|-------------|
-| `#header` | Top section — logo, brand, workspace switcher |
-| `default` | Scrollable content area — sidebar items |
-| `#footer` | Bottom section — user profile, logout, secondary actions |
+| `#header` | Start of the main axis — top in vertical sidebars, left in horizontal. Use for logo, brand, workspace switcher |
+| `default` | Scrollable content area — sidebar items. Scrolls vertically in vertical sidebars, horizontally in horizontal ones |
+| `#footer` | End of the main axis — bottom in vertical sidebars, right in horizontal. Use for user profile, logout, secondary actions |
 
 ### CoarSidebarItem
 
@@ -130,11 +139,14 @@ No props. Renders a horizontal separator line.
 
 | Token | Default | Description |
 |-------|---------|-------------|
-| `--coar-sidebar-width` | `16rem` | Default sidebar width |
-| `--coar-sidebar-collapsed-width` | `4rem` | Width in collapsed mode |
+| `--coar-sidebar-width` | `16rem` | Default width (vertical sidebars) |
+| `--coar-sidebar-collapsed-width` | *size-aware* — s: `2.25rem`, m: `2.75rem`, l: `3.25rem` | Width in collapsed mode. Auto-scales with `size`; set this token to override. |
+| `--coar-sidebar-height` | `auto` | Default height (horizontal sidebars) |
+| `--coar-sidebar-collapsed-height` | *size-aware* — same scale as collapsed-width | Height in collapsed mode. Auto-scales with `size`; set this token to override. |
 | `--coar-sidebar-item-padding` | `0.5rem 0.75rem` | Item padding |
 | `--coar-sidebar-item-gap` | `0.75rem` | Gap between icon and label |
+| `--coar-sidebar-item-margin-horizontal` | `0 2px` | Item margin in horizontal sidebars |
 | `--coar-sidebar-item-hover` | neutral tertiary | Hover background |
 | `--coar-sidebar-item-active-color` | accent primary | Active text color |
 | `--coar-sidebar-item-active-bg` | accent tertiary | Active background |
-| `--coar-sidebar-group-indent` | `16px` | Child indent (6px when collapsed) |
+| `--coar-sidebar-group-indent` | `16px` | Child indent for `mode="expand"` (vertical only) |

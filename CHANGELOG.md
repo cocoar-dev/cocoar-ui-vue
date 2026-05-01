@@ -7,6 +7,21 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 1.14.0
+
+### Added
+
+- **`@cocoar/vue-ui` — `CoarSidebar` supports all four edges**: new `side` prop accepts `'left' | 'right' | 'top' | 'bottom'` (default `'left'`); `top` / `bottom` switch the layout to a horizontal toolbar (items in a row, scrolls horizontally) while `left` / `right` keep the classic vertical column. Tooltip placement, flyout direction, the active-state indicator border edge, and the collapsed dimension (width vs. height) all derive from `side` automatically. `CoarSidebarItem` and `CoarSidebarGroup` inject the side via a new `SIDEBAR_SIDE_KEY` to adapt their own internals — child group flyouts open right (left side), left (right), down (top), or up (bottom). Items inside a horizontal sidebar are `flex-shrink: 0` so the row genuinely overflows rather than squishing, which is what triggers the OverlayScrollbars horizontal scrollbar. The deprecated `position` prop still works for backwards compatibility but maps internally to `side`.
+- **`@cocoar/vue-ui` — collapsed sidebar dimensions auto-scale with `size`**: previous `4rem` default for `--coar-sidebar-collapsed-width` was generous for nav rails but too wide for icon-only formatting toolbars. Per-size fallbacks now resolve to `2.25rem` (s), `2.75rem` (m), `3.25rem` (l) for both the collapsed width (vertical) and the new collapsed height (horizontal). Setting `--coar-sidebar-collapsed-width` / `--coar-sidebar-collapsed-height` explicitly still overrides the fallback — the variable becomes defined in the cascade and `var()` returns the inherited value instead of the per-size literal, so app-level / wrapper-level overrides keep working unchanged (the `@cocoar/vue-markdown-editor` wrapper relied on this and continues to win at `2.25rem`).
+- **`@cocoar/vue-ui` — expanded-group children render as visually nested**: items inside a `<CoarSidebarGroup>`'s expand panel get tighter padding, smaller font, a `scale(0.85)` icon with reduced opacity, and an explicit opacity fade on the label. Rule applies in **all four** orientation × collapsed combinations, so children read as nested whether the sidebar is vertical or horizontal, collapsed or expanded — important for horizontal expand mode where children sit inline with their parents on the same row and indent alone is no longer a cue. Hover background stays at full strength because the opacity is on the icon and label individually, not the item.
+- **`@cocoar/vue-markdown-editor` — `toolbarPosition` extended to all four edges**: type widened from `'left' | 'right'` to `'left' | 'right' | 'top' | 'bottom'`, so the formatting toolbar can sit above or below the editor as a horizontal strip. Editor root's `flex-direction` flips between `row` (left/right) and `column` (top/bottom), and the toolbar/editor border edge follows the chosen side. The wrap now sets both `--coar-sidebar-collapsed-width` and `--coar-sidebar-collapsed-height` so the toolbar stays at `2.25rem` in either orientation. Existing `'left'` / `'right'` consumers are unaffected — same default, same visuals.
+
+### Fixed
+
+- **`@cocoar/vue-ui` — `vTooltip` directive value type now allows `false` / `null` / `undefined`**: every collapsed-aware component (`CoarSidebarItem`, `CoarSidebarGroup`, `CoarMultiSelect`, …) returned a falsy value from its `tooltipConfig` computed to mean "do not render a tooltip" — which the directive's runtime already handled correctly but its TypeScript signature did not (`string | TooltipOptions` only). `vue-tsc` flagged the call sites, even though the runtime was fine. Type widened to `string | TooltipOptions | false | null | undefined` and `getOptions` now returns `{ content: '', disabled: true }` for falsy bindings instead of casting `false` to `TooltipOptions` (was a latent runtime smell — primitive-boolean property reads happened to return `undefined`, but `state.opts` was lying about its type).
+
+---
+
 ## 1.13.1
 
 ### Fixed
