@@ -15,7 +15,7 @@
  */
 
 import { computed, useTemplateRef, watch } from 'vue';
-import { useLocalization } from '@cocoar/vue-localization';
+import { useI18n, useLocalization } from '@cocoar/vue-localization';
 import { CoarButton, CoarSegmentedControl } from '@cocoar/vue-ui';
 import CoarDayView from './CoarDayView.vue';
 import CoarWeekView from './CoarWeekView.vue';
@@ -82,6 +82,7 @@ const props = withDefaults(defineProps<Props>(), {
 //      language (so a host app's locale switcher just works).
 //   3. 'en-US' as a final fallback when neither is available.
 const localization = useLocalization();
+const { t } = useI18n();
 const effectiveLocale = computed<string>(
   () => props.locale ?? localization?.language.value ?? 'en-US',
 );
@@ -236,17 +237,17 @@ function toDate(d: Temporal.PlainDate): Date {
 
 // ─── View-switcher labels ────────────────────────────────────────
 
-const viewLabels: Record<CalendarView, string> = {
-  day: 'Day',
-  week: 'Week',
-  month: 'Month',
-  agenda: 'Agenda',
-  timeline: 'Timeline',
-  year: 'Year',
-};
+const viewLabels = computed<Record<CalendarView, string>>(() => ({
+  day: t('coar.calendar.view.day', undefined, 'Day'),
+  week: t('coar.calendar.view.week', undefined, 'Week'),
+  month: t('coar.calendar.view.month', undefined, 'Month'),
+  agenda: t('coar.calendar.view.agenda', undefined, 'Agenda'),
+  timeline: t('coar.calendar.view.timeline', undefined, 'Timeline'),
+  year: t('coar.calendar.view.year', undefined, 'Year'),
+}));
 
 const viewSwitcherOptions = computed(() =>
-  props.availableViews.map((v) => ({ value: v, label: viewLabels[v] })),
+  props.availableViews.map((v) => ({ value: v, label: viewLabels.value[v] })),
 );
 
 // ─── Header controls bag (passed to slots) ───────────────────────
@@ -324,17 +325,17 @@ defineExpose({
             variant="secondary"
             size="s"
             icon-start="chevron-left"
-            aria-label="Previous"
+            :aria-label="t('coar.calendar.nav.previous', undefined, 'Previous')"
             @click="prev"
           />
           <CoarButton variant="secondary" size="s" @click="goToToday">
-            Today
+            {{ t('coar.calendar.nav.today', undefined, 'Today') }}
           </CoarButton>
           <CoarButton
             variant="secondary"
             size="s"
             icon-start="chevron-right"
-            aria-label="Next"
+            :aria-label="t('coar.calendar.nav.next', undefined, 'Next')"
             @click="next"
           />
         </div>
@@ -350,7 +351,7 @@ defineExpose({
             v-model="view"
             :options="viewSwitcherOptions"
             size="s"
-            aria-label="Change view"
+            :aria-label="t('coar.calendar.viewSwitcher.label', undefined, 'Change view')"
           />
         </slot>
         <slot name="headerEnd" :controls="headerControls" />

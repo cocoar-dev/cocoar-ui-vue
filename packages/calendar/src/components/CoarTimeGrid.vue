@@ -22,6 +22,7 @@
  */
 
 import { computed, onBeforeUnmount, onMounted, ref, watchEffect } from 'vue';
+import { useI18n } from '@cocoar/vue-localization';
 import {
   Temporal,
   dateKey,
@@ -71,6 +72,8 @@ defineSlots<{
   /** Custom day header (overrides default). */
   dayHeader(props: { date: Temporal.PlainDate; isToday: boolean; isWeekend: boolean }): unknown;
 }>();
+
+const { t } = useI18n();
 
 const emit = defineEmits<{
   /** User clicked an empty time slot. */
@@ -316,7 +319,7 @@ void dateKey;
       class="coar-time-grid__all-day-band"
       :style="{ minHeight: allDayBandHeight + 'px' }"
     >
-      <div class="coar-time-grid__all-day-axis">all-day</div>
+      <div class="coar-time-grid__all-day-axis">{{ t('coar.calendar.timegrid.allDay', undefined, 'all-day') }}</div>
       <div class="coar-time-grid__all-day-columns">
         <!-- Background day cells (clickable for date-click) -->
         <div

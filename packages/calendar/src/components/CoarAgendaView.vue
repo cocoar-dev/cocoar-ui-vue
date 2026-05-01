@@ -26,6 +26,7 @@
  */
 
 import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef, watchEffect } from 'vue';
+import { useI18n } from '@cocoar/vue-localization';
 import VirtualizedSurface1DY from './VirtualizedSurface1DY.vue';
 import {
   Temporal,
@@ -71,6 +72,8 @@ defineSlots<{
   /** Render an empty-day placeholder (when showEmptyDays). */
   emptyDay(props: { date: Temporal.PlainDate }): unknown;
 }>();
+
+const { t } = useI18n();
 
 const emit = defineEmits<{
   'event-click': [{ event: CalendarEvent; native: PointerEvent }];
@@ -130,7 +133,7 @@ function formatHeaderDate(iso: string): string {
 function formatEventTime(event: CalendarEvent): string {
   // All-day events: don't show a time.
   const allDay = event.allDay === true || !event.start.includes('T');
-  if (allDay) return 'All day';
+  if (allDay) return t('coar.calendar.agenda.allDay', undefined, 'All day');
   // Use Intl on a Date constructed from the start; works for Z and
   // offset-bearing strings. For unanchored datetimes we treat as
   // wall-clock UTC for the bench formatter.
@@ -320,7 +323,7 @@ defineExpose({
         <span
           v-if="isToday(Temporal.PlainDate.from(floatingHeader.date))"
           class="coar-agenda-view__header-today"
-        >today</span>
+        >{{ t('coar.calendar.agenda.todayBadge', undefined, 'today') }}</span>
       </slot>
     </div>
 
@@ -361,7 +364,7 @@ defineExpose({
             <span
               v-if="isToday(Temporal.PlainDate.from((items[y] as AgendaHeaderItem).date))"
               class="coar-agenda-view__header-today"
-            >today</span>
+            >{{ t('coar.calendar.agenda.todayBadge', undefined, 'today') }}</span>
           </slot>
         </div>
       </template>
@@ -399,7 +402,7 @@ defineExpose({
                 <span
                   v-if="(items[y] as AgendaEventItem).isContinuation"
                   class="coar-agenda-view__row-continuation-tag"
-                >(cont.)</span>
+                >{{ t('coar.calendar.agenda.continuationTag', undefined, '(cont.)') }}</span>
               </span>
             </div>
           </slot>
