@@ -50,14 +50,32 @@ describe('CoarSidebar', () => {
     expect(wrapper.find('.coar-sidebar__footer').exists()).toBe(false);
   });
 
-  it('defaults to left position', () => {
+  it('defaults to left side', () => {
     const wrapper = mountSidebar();
-    expect(wrapper.find('.coar-sidebar--position-right').exists()).toBe(false);
+    expect(wrapper.find('.coar-sidebar--side-left').exists()).toBe(true);
+    expect(wrapper.find('.coar-sidebar--vertical').exists()).toBe(true);
   });
 
-  it('applies right position class', () => {
+  it('applies right side class (modern prop)', () => {
+    const wrapper = mountSidebar({ side: 'right' });
+    expect(wrapper.find('.coar-sidebar--side-right').exists()).toBe(true);
+  });
+
+  it('still accepts the deprecated `position` prop', () => {
     const wrapper = mountSidebar({ position: 'right' });
-    expect(wrapper.find('.coar-sidebar--position-right').exists()).toBe(true);
+    expect(wrapper.find('.coar-sidebar--side-right').exists()).toBe(true);
+  });
+
+  it('applies horizontal layout for top side', () => {
+    const wrapper = mountSidebar({ side: 'top' });
+    expect(wrapper.find('.coar-sidebar--side-top').exists()).toBe(true);
+    expect(wrapper.find('.coar-sidebar--horizontal').exists()).toBe(true);
+  });
+
+  it('applies horizontal layout for bottom side', () => {
+    const wrapper = mountSidebar({ side: 'bottom' });
+    expect(wrapper.find('.coar-sidebar--side-bottom').exists()).toBe(true);
+    expect(wrapper.find('.coar-sidebar--horizontal').exists()).toBe(true);
   });
 
   it('applies collapsed class', () => {

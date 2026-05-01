@@ -1,26 +1,48 @@
 <template>
   <ClientOnly>
-    <div class="md-frame">
-      <component
-        :is="Editor"
-        v-if="Editor"
-        v-model="value"
-        toolbar-mode="fixed"
-        toolbar-position="left"
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <CoarSelect
+        v-model="position"
+        :options="positionOptions"
+        label="toolbar-position"
+        size="s"
+        style="width: 200px;"
       />
-      <div v-else class="md-frame__loading">Loading editor…</div>
+      <div class="md-frame">
+        <component
+          :is="Editor"
+          v-if="Editor"
+          v-model="value"
+          toolbar-mode="fixed"
+          :toolbar-position="position"
+        />
+        <div v-else class="md-frame__loading">Loading editor…</div>
+      </div>
     </div>
   </ClientOnly>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref, shallowRef, type Component } from 'vue';
+import { CoarSelect } from '@cocoar/vue-ui';
+import type { CoarSelectOption } from '@cocoar/vue-ui';
+
+type Position = 'left' | 'right' | 'top' | 'bottom';
 
 const value = ref(`# Sidebar toolbar
 
-Use the icon strip on the left for persistent access to formatting commands.
-Hover **Headings** to open the flyout.
+Use the icon strip on any of the four edges for persistent access to formatting
+commands. Hover **Headings** to open the flyout.
 `);
+
+const position = ref<Position>('left');
+
+const positionOptions: CoarSelectOption<Position>[] = [
+  { value: 'left', label: 'left' },
+  { value: 'right', label: 'right' },
+  { value: 'top', label: 'top' },
+  { value: 'bottom', label: 'bottom' },
+];
 
 const Editor = shallowRef<Component | null>(null);
 

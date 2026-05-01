@@ -14,6 +14,9 @@ import {
   SIDEBAR_ICON_SIZE_KEY,
   SIDEBAR_FLYOUT_ICON_ONLY_KEY,
   SIDEBAR_FLYOUT_PARENT_KEY,
+  SIDEBAR_SIDE_KEY,
+  orientationOf,
+  type SidebarSide,
 } from './sidebar-context';
 import type { SidebarFlyoutParent } from './sidebar-context';
 import CoarSidebarFlyoutPanel from './CoarSidebarFlyoutPanel.vue';
@@ -41,6 +44,8 @@ const props = withDefaults(
 const open = defineModel<boolean>('open', { default: false });
 const sidebarCollapsed = inject(SIDEBAR_COLLAPSED_KEY, ref(false));
 const sidebarIconSize = inject(SIDEBAR_ICON_SIZE_KEY, ref<CoarIconSize>('m'));
+const sidebarSide = inject(SIDEBAR_SIDE_KEY, ref<SidebarSide>('left'));
+const orientation = computed(() => orientationOf(sidebarSide.value));
 
 // Inherit iconOnly from parent flyout if not explicitly set
 const parentIconOnly = inject(SIDEBAR_FLYOUT_ICON_ONLY_KEY, ref(false));
@@ -58,11 +63,8 @@ let closeTimer: ReturnType<typeof setTimeout> | null = null;
 let openTimer: ReturnType<typeof setTimeout> | null = null;
 let overlayRef: OverlayRef | null = null;
 
-// Parent-child flyout cascade: inject parent's close control, provide our own for children
 const parentFlyout = inject(SIDEBAR_FLYOUT_PARENT_KEY, null);
 
-// This flyout's control — passed to children via SidebarFlyoutProvider inside the panel.
-// `cancelClose`/`scheduleClose` cascade up so hovering a child flyout keeps ancestors open.
 const selfControl: SidebarFlyoutParent = {
   cancelClose: () => {
     cancelClose();
@@ -74,18 +76,46 @@ const selfControl: SidebarFlyoutParent = {
   },
 };
 
-// Nested flyout triggers inside icon-only parent should render as icon-only too
 const renderIconOnly = computed(() => parentIconOnly.value && !sidebarCollapsed.value);
+
+const tooltipPlacement = computed<'left' | 'right' | 'top' | 'bottom'>(() => {
+  switch (sidebarSide.value) {
+    case 'right': return 'left';
+    case 'top': return 'bottom';
+    case 'bottom': return 'top';
+    default: return 'right';
+  }
+});
 
 const tooltipConfig = computed(() => {
   if (renderIconOnly.value) {
     if (isFlyout.value && flyoutOpen.value) return false;
     if (!isFlyout.value && isOpen.value) return false;
-    return { content: props.label, placement: 'right' as const, openDelay: 100 };
+    return { content: props.label, placement: tooltipPlacement.value, openDelay: 100 };
   }
   if (!sidebarCollapsed.value) return false;
   if (isFlyout.value && flyoutOpen.value) return false;
-  return { content: props.label, placement: 'right' as const, openDelay: 200 };
+  return { content: props.label, placement: tooltipPlacement.value, openDelay: 200 };
+});
+
+// Indicator chevrons rotate with the side so closed-state always points toward
+// the direction the panel will open in.
+const closedChevron = computed(() => {
+  switch (sidebarSide.value) {
+    case 'right': return 'chevron-left';
+    case 'top': return 'chevron-down';
+    case 'bottom': return 'chevron-up';
+    default: return 'chevron-right';
+  }
+});
+
+const openChevron = computed(() => {
+  // For horizontal sidebars, opposite-direction chevron makes "collapse" intuitive.
+  // For vertical sidebars we keep the legacy chevron-down (familiar pattern).
+  if (orientation.value === 'horizontal') {
+    return sidebarSide.value === 'top' ? 'chevron-up' : 'chevron-down';
+  }
+  return 'chevron-down';
 });
 
 function toggle(event: Event) {
@@ -112,25 +142,46 @@ function renderContent(): VNode[] | undefined {
   return slots.default?.();
 }
 
+// Pair of placements (primary + flip) keyed by side. The overlay engine's `flip`
+// already handles viewport edges; we still pre-seed the alternative so a left-side
+// flyout near the right viewport edge prefers the equally-valid 'left-start'.
+const flyoutPlacement = computed<[string, string]>(() => {
+  switch (sidebarSide.value) {
+    case 'right': return ['left-start', 'right-start'];
+    case 'top': return ['bottom-start', 'top-start'];
+    case 'bottom': return ['top-start', 'bottom-start'];
+    default: return ['right-start', 'left-start'];
+  }
+});
+
+/**
+ * Cross-axis gap between the trigger and the rail's outer edge along the axis the
+ * flyout opens. Collapsed sidebars typically center a 36 px icon trigger inside a
+ * 64 px rail — without this compensation, a trigger-anchored flyout would land
+ * inside the rail. We add the gap to the offset so the flyout's leading edge lines
+ * up with the rail's outer edge instead of the trigger's edge.
+ */
+function computeRailGap(trigger: HTMLElement): number {
+  const triggerRect = trigger.getBoundingClientRect();
+  const railEl = trigger.closest('.coar-sidebar') ?? trigger.closest('.coar-sidebar-flyout');
+  if (!railEl) return 0;
+  const railRect = railEl.getBoundingClientRect();
+  switch (sidebarSide.value) {
+    case 'right': return triggerRect.left - railRect.left;
+    case 'top': return railRect.bottom - triggerRect.bottom;
+    case 'bottom': return triggerRect.top - railRect.top;
+    default: return railRect.right - triggerRect.right;
+  }
+}
+
 function openFlyout() {
   if (!triggerRef.value || overlayRef) return;
   cancelClose();
-  parentFlyout?.cancelClose(); // keep ancestor open while we open
+  parentFlyout?.cancelClose();
   flyoutOpen.value = true;
 
-  // Anchor is the trigger element, but the legacy positioning pinned the flyout's
-  // horizontal edge to the *sidebar container*'s edge so the flyout lines up with the
-  // sidebar rail (not the narrow icon trigger inside it). Collapsed sidebars typically
-  // center a 36 px icon inside a 64 px rail — a trigger-anchored flyout would land
-  // 14 px inside the rail on each side. Compensate by folding that gap into the offset:
-  // right-start with `offset = baseOffset + gap` puts the flyout's left edge at
-  // `trigger.right + (gap - 4)` = `container.right - 4`, matching the legacy visual.
-  // For full-width triggers the gap is 0, so the offset stays -4 as the preset defined.
   const trigger = triggerRef.value;
-  const triggerRect = trigger.getBoundingClientRect();
-  const railEl = trigger.closest('.coar-sidebar') ?? trigger.closest('.coar-sidebar-flyout');
-  const railRect = railEl?.getBoundingClientRect();
-  const horizontalGap = railRect ? railRect.right - triggerRect.right : 0;
+  const railGap = computeRailGap(trigger);
   const BASE_OFFSET = -4;
 
   const ref = getOverlayService().open({
@@ -138,8 +189,8 @@ function openFlyout() {
       ...sidebarFlyoutPreset,
       anchor: { kind: 'element', element: trigger },
       position: {
-        placement: ['right-start', 'left-start'],
-        offset: BASE_OFFSET + horizontalGap,
+        placement: flyoutPlacement.value as never,
+        offset: BASE_OFFSET + railGap,
         flip: true,
         shift: true,
       },
@@ -161,9 +212,6 @@ function openFlyout() {
   });
   overlayRef = ref;
 
-  // Sync local state if the service closes externally (outside click, escape, parent
-  // tree teardown). Skipped when our own `closeFlyout` already ran since it clears
-  // `overlayRef` before calling `ref.close()`.
   ref.afterClosed.then(() => {
     if (overlayRef !== ref) return;
     overlayRef = null;
@@ -208,7 +256,7 @@ function cancelOpen() {
 function onTriggerEnter() {
   if (flyoutOpen.value) cancelClose();
   else if (isFlyout.value && props.openOnHover) scheduleOpen();
-  parentFlyout?.cancelClose(); // keep ancestor open when hovering our trigger
+  parentFlyout?.cancelClose();
 }
 
 function onTriggerLeave() {
@@ -216,7 +264,6 @@ function onTriggerLeave() {
   if (flyoutOpen.value) scheduleClose();
 }
 
-// Close flyout when sidebar collapsed state changes
 watch(sidebarCollapsed, () => {
   if (flyoutOpen.value) closeFlyout();
 });
@@ -232,10 +279,13 @@ onBeforeUnmount(() => {
 <template>
   <div
     class="coar-sidebar-group"
-    :class="{
-      'coar-sidebar-group--collapsed': sidebarCollapsed,
-      'coar-sidebar-group--icon-only': renderIconOnly,
-    }"
+    :class="[
+      `coar-sidebar-group--${orientation}`,
+      {
+        'coar-sidebar-group--collapsed': sidebarCollapsed,
+        'coar-sidebar-group--icon-only': renderIconOnly,
+      },
+    ]"
   >
     <!-- Trigger -->
     <div
@@ -263,7 +313,7 @@ onBeforeUnmount(() => {
         <span class="coar-sidebar-group__caret">
           <CoarIcon
             :name="isFlyout
-              ? (flyoutOpen ? 'chevron-down' : 'chevron-right')
+              ? (flyoutOpen ? openChevron : closedChevron)
               : (isOpen ? 'minus' : 'plus')"
             size="xs"
           />
@@ -272,7 +322,7 @@ onBeforeUnmount(() => {
       <span class="coar-sidebar-group__label">{{ props.label }}</span>
       <CoarIcon
         :name="isFlyout
-          ? (flyoutOpen ? 'chevron-down' : 'chevron-right')
+          ? (flyoutOpen ? openChevron : closedChevron)
           : (isOpen ? 'minus' : 'plus')"
         size="xs"
         class="coar-sidebar-group__chevron"
@@ -297,6 +347,19 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+.coar-sidebar-group {
+  display: flex;
+}
+
+.coar-sidebar-group--vertical {
+  flex-direction: column;
+}
+
+.coar-sidebar-group--horizontal {
+  flex-direction: row;
+  align-items: center;
+}
+
 .coar-sidebar-group__trigger {
   display: flex;
   align-items: center;
@@ -318,6 +381,18 @@ onBeforeUnmount(() => {
   white-space: nowrap;
   overflow: hidden;
   transition: background var(--coar-duration-fast) var(--coar-ease-out);
+}
+
+.coar-sidebar-group--horizontal .coar-sidebar-group__trigger {
+  width: auto;
+  margin: var(--coar-sidebar-item-margin-horizontal, 0 2px);
+  flex-shrink: 0;
+}
+
+/* The whole group (trigger + expand panel) must not shrink either, otherwise
+   neighbours along the main axis would compress before the row overflows. */
+.coar-sidebar-group--horizontal {
+  flex-shrink: 0;
 }
 
 .coar-sidebar-group__trigger:hover:not(.coar-sidebar-group__trigger--disabled) {
@@ -394,8 +469,12 @@ onBeforeUnmount(() => {
   opacity: 1;
 }
 
-/* Expandable panel with grid animation */
-.coar-sidebar-group__panel {
+
+/* ========================================
+   Expandable panel — vertical (animates height)
+   ======================================== */
+
+.coar-sidebar-group--vertical .coar-sidebar-group__panel {
   box-sizing: border-box;
   padding-left: var(--coar-sidebar-group-indent, 16px);
   display: grid;
@@ -404,11 +483,11 @@ onBeforeUnmount(() => {
   transition: grid-template-rows var(--coar-duration-normal) var(--coar-ease-out);
 }
 
-.coar-sidebar-group__panel--open {
+.coar-sidebar-group--vertical .coar-sidebar-group__panel--open {
   grid-template-rows: 1fr;
 }
 
-.coar-sidebar-group__panel-inner {
+.coar-sidebar-group--vertical .coar-sidebar-group__panel-inner {
   overflow: hidden;
   min-height: 0;
   opacity: 0;
@@ -418,16 +497,77 @@ onBeforeUnmount(() => {
     transform var(--coar-duration-fast) var(--coar-ease-out);
 }
 
-.coar-sidebar-group__panel--open > .coar-sidebar-group__panel-inner {
+.coar-sidebar-group--vertical .coar-sidebar-group__panel--open > .coar-sidebar-group__panel-inner {
   opacity: 1;
   transform: translateY(0);
 }
 
 /* ========================================
-   Collapsed mode
+   Expandable panel — horizontal (animates width)
    ======================================== */
 
-.coar-sidebar-group--collapsed .coar-sidebar-group__trigger {
+.coar-sidebar-group--horizontal .coar-sidebar-group__panel {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 0fr;
+  overflow: hidden;
+  transition: grid-template-columns var(--coar-duration-normal) var(--coar-ease-out);
+}
+
+.coar-sidebar-group--horizontal .coar-sidebar-group__panel--open {
+  grid-template-columns: 1fr;
+}
+
+.coar-sidebar-group--horizontal .coar-sidebar-group__panel-inner {
+  overflow: hidden;
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  opacity: 0;
+  transform: translateX(-2px);
+  transition:
+    opacity var(--coar-duration-fast) var(--coar-ease-out),
+    transform var(--coar-duration-fast) var(--coar-ease-out);
+}
+
+.coar-sidebar-group--horizontal
+  .coar-sidebar-group__panel--open
+  > .coar-sidebar-group__panel-inner {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* ========================================
+   Nested visual hierarchy — always on
+   ========================================
+   Children of an expanded group read as nested regardless of orientation or
+   collapsed state: the icon shrinks and dims, and item padding tightens. The
+   collapsed-rail rules below override these with stronger values where the
+   item becomes an icon-only button. */
+
+.coar-sidebar-group__panel :deep(.coar-sidebar-item) {
+  padding: 0.375rem 0.625rem;
+  font-size: var(--coar-component-s-font-size);
+}
+
+/* Apply opacity to the icon and label individually rather than the whole item,
+   so the hover/focus background stays at full strength when the user points at
+   a child. The visible fade is what makes children read as nested. */
+.coar-sidebar-group__panel :deep(.coar-sidebar-item__icon) {
+  transform: scale(0.85);
+  opacity: 0.55;
+}
+
+.coar-sidebar-group__panel :deep(.coar-sidebar-item__label) {
+  opacity: 0.65;
+}
+
+/* ========================================
+   Collapsed mode (vertical sidebar)
+   ======================================== */
+
+.coar-sidebar-group--vertical.coar-sidebar-group--collapsed .coar-sidebar-group__trigger {
   width: fit-content;
   margin-left: auto;
   margin-right: auto;
@@ -436,35 +576,83 @@ onBeforeUnmount(() => {
   border-radius: var(--coar-radius-s);
 }
 
-.coar-sidebar-group--collapsed .coar-sidebar-group__label {
+.coar-sidebar-group--vertical.coar-sidebar-group--collapsed .coar-sidebar-group__label {
   display: none;
 }
 
-.coar-sidebar-group--collapsed .coar-sidebar-group__caret {
+.coar-sidebar-group--vertical.coar-sidebar-group--collapsed .coar-sidebar-group__caret {
   display: flex;
 }
 
-.coar-sidebar-group--collapsed .coar-sidebar-group__chevron {
+.coar-sidebar-group--vertical.coar-sidebar-group--collapsed .coar-sidebar-group__chevron {
   display: none;
 }
 
-.coar-sidebar-group--collapsed .coar-sidebar-group__panel {
+.coar-sidebar-group--vertical.coar-sidebar-group--collapsed .coar-sidebar-group__panel {
   --coar-sidebar-group-indent: 0;
 }
 
-.coar-sidebar-group--collapsed .coar-sidebar-group__panel :deep(.coar-sidebar-item) {
+.coar-sidebar-group--vertical.coar-sidebar-group--collapsed
+  .coar-sidebar-group__panel
+  :deep(.coar-sidebar-item) {
   padding: 0.25rem 0.375rem;
   margin-left: auto;
   margin-right: auto;
 }
 
-.coar-sidebar-group--collapsed .coar-sidebar-group__panel :deep(.coar-sidebar-item__icon) {
+/* Stronger shrink than the always-on rule — fits the icon-only button. */
+.coar-sidebar-group--vertical.coar-sidebar-group--collapsed
+  .coar-sidebar-group__panel
+  :deep(.coar-sidebar-item__icon) {
   transform: scale(0.75);
-  opacity: 0.65;
 }
 
-.coar-sidebar-group--collapsed {
+.coar-sidebar-group--vertical.coar-sidebar-group--collapsed {
   margin-bottom: 0.25rem;
+}
+
+/* ========================================
+   Collapsed mode (horizontal sidebar)
+   ======================================== */
+
+.coar-sidebar-group--horizontal.coar-sidebar-group--collapsed .coar-sidebar-group__trigger {
+  height: fit-content;
+  margin-top: auto;
+  margin-bottom: auto;
+  justify-content: center;
+  padding: 0.5rem;
+  border-radius: var(--coar-radius-s);
+}
+
+.coar-sidebar-group--horizontal.coar-sidebar-group--collapsed .coar-sidebar-group__label {
+  display: none;
+}
+
+.coar-sidebar-group--horizontal.coar-sidebar-group--collapsed .coar-sidebar-group__caret {
+  display: flex;
+}
+
+.coar-sidebar-group--horizontal.coar-sidebar-group--collapsed .coar-sidebar-group__chevron {
+  display: none;
+}
+
+/* Mirror the vertical collapsed-rail visual hierarchy: child items inside an
+   expanded group render smaller and dimmed so they read as nested. The vertical
+   rules use auto-margins on the cross axis for centering — flip those to the
+   horizontal cross axis here. */
+.coar-sidebar-group--horizontal.coar-sidebar-group--collapsed
+  .coar-sidebar-group__panel
+  :deep(.coar-sidebar-item) {
+  padding: 0.25rem 0.375rem;
+  margin-top: auto;
+  margin-bottom: auto;
+}
+
+/* Stronger shrink than the always-on rule — fits the icon-only button. */
+.coar-sidebar-group--horizontal.coar-sidebar-group--collapsed
+  .coar-sidebar-group__panel
+  :deep(.coar-sidebar-item__icon) {
+  transform: scale(0.75);
 }
 
 /* ========================================

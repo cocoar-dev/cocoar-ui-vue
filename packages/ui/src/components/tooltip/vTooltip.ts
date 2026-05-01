@@ -57,8 +57,17 @@ interface TooltipState {
 let activeState: TooltipState | null = null;
 let nextId = 0;
 
-function getOptions(binding: DirectiveBinding<string | TooltipOptions>): TooltipOptions {
+/**
+ * Falsy binding values (`false`, `null`, `undefined`, `''`) are a documented
+ * convention for "do not show a tooltip" — call sites use them to suppress the
+ * tooltip dynamically without removing the directive. We coerce them to a
+ * disabled `TooltipOptions` so downstream code can rely on the return shape.
+ */
+type TooltipBindingValue = string | TooltipOptions | false | null | undefined;
+
+function getOptions(binding: DirectiveBinding<TooltipBindingValue>): TooltipOptions {
   const val = binding.value;
+  if (!val) return { content: '', disabled: true };
   if (typeof val === 'string') return { content: val };
   return val;
 }
@@ -258,7 +267,7 @@ export function _resetActiveState(): void {
   nextId = 0;
 }
 
-export const vTooltip: Directive<HTMLElement, string | TooltipOptions> = {
+export const vTooltip: Directive<HTMLElement, TooltipBindingValue> = {
   mounted(el, binding) {
     const tooltipId = `coar-tooltip-${nextId++}`;
 

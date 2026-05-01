@@ -3,7 +3,14 @@ import { computed, inject, ref } from 'vue';
 import CoarIcon from '../icon/CoarIcon.vue';
 import type { CoarIconSize } from '../icon/icon-service';
 import { vTooltip } from '../tooltip/vTooltip';
-import { SIDEBAR_COLLAPSED_KEY, SIDEBAR_ICON_SIZE_KEY, SIDEBAR_FLYOUT_ICON_ONLY_KEY } from './sidebar-context';
+import {
+  SIDEBAR_COLLAPSED_KEY,
+  SIDEBAR_ICON_SIZE_KEY,
+  SIDEBAR_FLYOUT_ICON_ONLY_KEY,
+  SIDEBAR_SIDE_KEY,
+  orientationOf,
+  type SidebarSide,
+} from './sidebar-context';
 
 const props = withDefaults(
   defineProps<{
@@ -25,13 +32,25 @@ const emit = defineEmits<{
 
 const sidebarCollapsed = inject(SIDEBAR_COLLAPSED_KEY, ref(false));
 const sidebarIconSize = inject(SIDEBAR_ICON_SIZE_KEY, ref<CoarIconSize>('m'));
+const sidebarSide = inject(SIDEBAR_SIDE_KEY, ref<SidebarSide>('left'));
 const isIconOnly = inject(SIDEBAR_FLYOUT_ICON_ONLY_KEY, ref(false));
 
-const tooltipConfig = computed(() => {
-  if (isIconOnly.value) return { content: props.label, placement: 'right' as const, openDelay: 100 };
-  if (!sidebarCollapsed.value) return false;
-  return { content: props.label, placement: 'right' as const, openDelay: 200 };
+const tooltipPlacement = computed<'left' | 'right' | 'top' | 'bottom'>(() => {
+  switch (sidebarSide.value) {
+    case 'right': return 'left';
+    case 'top': return 'bottom';
+    case 'bottom': return 'top';
+    default: return 'right';
+  }
 });
+
+const tooltipConfig = computed(() => {
+  if (isIconOnly.value) return { content: props.label, placement: tooltipPlacement.value, openDelay: 100 };
+  if (!sidebarCollapsed.value) return false;
+  return { content: props.label, placement: tooltipPlacement.value, openDelay: 200 };
+});
+
+const orientation = computed(() => orientationOf(sidebarSide.value));
 
 function handleClick(event: MouseEvent) {
   if (props.disabled) {
@@ -54,11 +73,15 @@ function handleKeydown(event: KeyboardEvent) {
     v-tooltip="tooltipConfig"
     role="menuitem"
     class="coar-sidebar-item"
-    :class="{
-      'coar-sidebar-item--active': props.active,
-      'coar-sidebar-item--disabled': props.disabled,
-      'coar-sidebar-item--collapsed': sidebarCollapsed,
-    }"
+    :class="[
+      `coar-sidebar-item--side-${sidebarSide}`,
+      `coar-sidebar-item--${orientation}`,
+      {
+        'coar-sidebar-item--active': props.active,
+        'coar-sidebar-item--disabled': props.disabled,
+        'coar-sidebar-item--collapsed': sidebarCollapsed,
+      },
+    ]"
     :aria-disabled="props.disabled || undefined"
     :aria-current="props.active ? 'page' : undefined"
     :tabindex="props.disabled ? -1 : 0"
@@ -97,6 +120,16 @@ function handleKeydown(event: KeyboardEvent) {
   transition: background var(--coar-duration-fast) var(--coar-ease-out);
 }
 
+/* In horizontal sidebars, items default to a more compact, in-row footprint.
+   `flex-shrink: 0` keeps each item at its content width so the row overflows
+   when there isn't enough space — that overflow is what makes the
+   OverlayScrollbars horizontal scrollbar appear. Without this, flex's default
+   shrinking would squish items to fit and no scroll would ever trigger. */
+.coar-sidebar-item--horizontal {
+  margin: var(--coar-sidebar-item-margin-horizontal, 0 2px);
+  flex-shrink: 0;
+}
+
 .coar-sidebar-item:hover:not(.coar-sidebar-item--disabled) {
   background: var(--coar-sidebar-item-hover, var(--coar-background-neutral-tertiary));
 }
@@ -107,18 +140,37 @@ function handleKeydown(event: KeyboardEvent) {
   outline-offset: -2px;
 }
 
-/* Active state */
+/* Active state — indicator border lives on the same edge as the sidebar side. */
 .coar-sidebar-item--active {
   color: var(--coar-sidebar-item-active-color, var(--coar-text-accent-primary));
   background: var(--coar-sidebar-item-active-bg, var(--coar-background-accent-tertiary));
   font-weight: var(--coar-font-weight-medium);
+}
+
+.coar-sidebar-item--active.coar-sidebar-item--side-left {
   border-left: 3px solid currentColor;
   padding-left: calc(0.75rem - 3px);
 }
 
+.coar-sidebar-item--active.coar-sidebar-item--side-right {
+  border-right: 3px solid currentColor;
+  padding-right: calc(0.75rem - 3px);
+}
+
+.coar-sidebar-item--active.coar-sidebar-item--side-top {
+  border-top: 3px solid currentColor;
+  padding-top: calc(0.5rem - 3px);
+}
+
+.coar-sidebar-item--active.coar-sidebar-item--side-bottom {
+  border-bottom: 3px solid currentColor;
+  padding-bottom: calc(0.5rem - 3px);
+}
+
+/* Collapsed (icon-only) drops the indicator border and re-pads symmetrically. */
 .coar-sidebar-item--active.coar-sidebar-item--collapsed {
-  border-left: none;
-  padding-left: 0.5rem;
+  border: none;
+  padding: 0.5rem;
 }
 
 .coar-sidebar-item--active:hover {
@@ -151,14 +203,23 @@ function handleKeydown(event: KeyboardEvent) {
   text-overflow: ellipsis;
 }
 
-/* Collapsed mode: square icon button, centered */
+/* Collapsed: square icon button. Centred on the cross-axis of the sidebar. */
 .coar-sidebar-item--collapsed {
-  width: fit-content;
-  margin-left: auto;
-  margin-right: auto;
   justify-content: center;
   padding: 0.5rem;
   border-radius: var(--coar-radius-s);
+}
+
+.coar-sidebar-item--collapsed.coar-sidebar-item--vertical {
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.coar-sidebar-item--collapsed.coar-sidebar-item--horizontal {
+  height: fit-content;
+  margin-top: auto;
+  margin-bottom: auto;
 }
 
 .coar-sidebar-item--collapsed .coar-sidebar-item__label {

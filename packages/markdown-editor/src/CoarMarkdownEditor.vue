@@ -34,7 +34,7 @@ import {
 } from '@cocoar/vue-ui';
 
 export type CoarMarkdownEditorToolbarMode = 'floating' | 'fixed' | 'both';
-export type CoarMarkdownEditorToolbarPosition = 'left' | 'right';
+export type CoarMarkdownEditorToolbarPosition = 'left' | 'right' | 'top' | 'bottom';
 
 /**
  * Toolbar tool identifiers — pass an array of these to the `tools` prop to
@@ -704,7 +704,9 @@ const Toolbar = defineComponent({
       }, [
         h(CoarSidebar, {
           collapsed: true,
-          position: props.toolbarPosition,
+          // CoarSidebar's `side` accepts all four edges; the deprecated
+          // `position` only handles left/right, so use `side` directly.
+          side: props.toolbarPosition,
           size: 's',
           // 'primary' = light grey background (--coar-background-neutral-secondary).
           // 'secondary' is plain white. We want the toolbar to read as a distinct
@@ -877,7 +879,12 @@ const Toolbar = defineComponent({
       // the editor div's position in the children list, Vue re-creates the DOM,
       // and Milkdown gets remounted (losing PM listeners + the active-state hook).
       const children: VNodeArrayChildren = [];
-      if (showFixed && props.toolbarPosition === 'left') children.push(renderSidebar());
+      // Sidebar appears before the editor for 'left' / 'top' (start of main axis)
+      // and after for 'right' / 'bottom' (end of main axis). The actual axis
+      // (row / column) is selected by a class on the root element below.
+      const sidebarFirst = props.toolbarPosition === 'left' || props.toolbarPosition === 'top';
+      const sidebarLast = props.toolbarPosition === 'right' || props.toolbarPosition === 'bottom';
+      if (showFixed && sidebarFirst) children.push(renderSidebar());
       // The `coar-markdown` class scopes the shared `--coar-markdown-*` token
       // overrides + baseline rules from `@cocoar/vue-markdown/styles`,
       // so the editor inherits the same typography/colour palette as the viewer.
@@ -888,11 +895,12 @@ const Toolbar = defineComponent({
         class: ['coar-md-area', 'coar-markdown'],
         onMousedown: onAreaMouseDown,
       }, [h(Milkdown)]));
-      if (showFixed && props.toolbarPosition === 'right') children.push(renderSidebar());
+      if (showFixed && sidebarLast) children.push(renderSidebar());
       if (floatingVisible.value && showFloat) children.push(renderFloating());
 
       const rootClass = {
         'coar-md-root': true,
+        [`coar-md-root--toolbar-${props.toolbarPosition}`]: true,
         'coar-md-root--disabled': props.disabled,
         'coar-md-root--readonly': props.readonly && !props.disabled,
         'coar-md-root--error': props.hasError,
@@ -981,6 +989,13 @@ export default defineComponent({
   color: var(--coar-text-neutral-primary);
 }
 
+/* Toolbar on top / bottom switches the root to a column layout so the sidebar
+   sits as a horizontal toolbar above (or below) the editor area. */
+.coar-md-root--toolbar-top,
+.coar-md-root--toolbar-bottom {
+  flex-direction: column;
+}
+
 .coar-md-root--disabled {
   opacity: 0.55;
   cursor: not-allowed;
@@ -996,17 +1011,33 @@ export default defineComponent({
 
 .coar-md-sidebar-wrap {
   flex-shrink: 0;
-  border-right: 1px solid var(--coar-border-neutral);
-  /* CoarSidebar's default collapsed width (4rem) is meant for navigation
-     contexts. For an icon-only formatting toolbar, ~36px is enough — the
-     sidebar's own paddings still leave breathing room around each icon. */
+  /* CoarSidebar's default collapsed dimensions are sized for navigation
+     contexts. For an icon-only formatting toolbar, ~36px is enough on both
+     axes — the sidebar's own paddings still leave breathing room around each
+     icon. We override both width and height tokens here so a single rule
+     covers all four toolbar positions. */
   --coar-sidebar-collapsed-width: 2.25rem;
+  --coar-sidebar-collapsed-height: 2.25rem;
   --coar-sidebar-item-padding: 0.25rem 0.375rem;
 }
 
-.coar-md-root > .coar-md-area ~ .coar-md-sidebar-wrap {
-  border-right: none;
+/* Border lives on the edge between the toolbar and the editor area, so it
+   flips depending on toolbarPosition. The selectors target the wrap based on
+   its sibling order relative to the editor area. */
+.coar-md-root--toolbar-left .coar-md-sidebar-wrap {
+  border-right: 1px solid var(--coar-border-neutral);
+}
+
+.coar-md-root--toolbar-right .coar-md-sidebar-wrap {
   border-left: 1px solid var(--coar-border-neutral);
+}
+
+.coar-md-root--toolbar-top .coar-md-sidebar-wrap {
+  border-bottom: 1px solid var(--coar-border-neutral);
+}
+
+.coar-md-root--toolbar-bottom .coar-md-sidebar-wrap {
+  border-top: 1px solid var(--coar-border-neutral);
 }
 
 .coar-md-area {

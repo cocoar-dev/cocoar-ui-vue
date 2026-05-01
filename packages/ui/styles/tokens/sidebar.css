@@ -15,8 +15,18 @@
   --coar-sidebar-min-width: 12rem;
   --coar-sidebar-max-width: 20rem;
 
-  /* Collapsed (icon-only) width */
-  --coar-sidebar-collapsed-width: 4rem;
+  /* Collapsed (icon-only) dimensions are size-aware by default — the component
+     resolves them from the `size` prop ('s' | 'm' | 'l'). Set
+     `--coar-sidebar-collapsed-width` / `--coar-sidebar-collapsed-height`
+     explicitly here (or on a wrapper) to override the auto-sizing. */
+
+  /* Horizontal-orientation dimensions (used when side="top" | "bottom") */
+  --coar-sidebar-height: auto;
+  --coar-sidebar-min-height: auto;
+  --coar-sidebar-max-height: none;
+
+  /* Optional override for item margins in horizontal layouts (default: 0 horizontal). */
+  --coar-sidebar-item-margin-horizontal: 0 2px;
 
   /* ========================================
      Visual Styling
