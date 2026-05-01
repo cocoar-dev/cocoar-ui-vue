@@ -28,9 +28,11 @@ import {
   todayInZone,
   nowInZone,
   layoutDayEvents,
+  layoutAllDayBand,
   type DayOfWeek,
   type CalendarEvent,
   type PositionedEvent,
+  type AllDayBar,
 } from '../core';
 
 interface Props {
@@ -64,6 +66,8 @@ const props = withDefaults(defineProps<Props>(), {
 defineSlots<{
   /** Render an event card. Receives the event + its layout. */
   event(props: { event: CalendarEvent; layout: PositionedEvent }): unknown;
+  /** Render an all-day bar (overrides default). */
+  allDayEvent(props: { event: CalendarEvent; layout: AllDayBar }): unknown;
   /** Custom day header (overrides default). */
   dayHeader(props: { date: Temporal.PlainDate; isToday: boolean; isWeekend: boolean }): unknown;
 }>();
@@ -71,7 +75,9 @@ defineSlots<{
 const emit = defineEmits<{
   /** User clicked an empty time slot. */
   'time-click': [{ date: Temporal.PlainDate; time: Temporal.PlainTime; native: PointerEvent }];
-  /** User clicked an event. */
+  /** User clicked an empty all-day band day cell. */
+  'date-click': [{ date: Temporal.PlainDate; native: PointerEvent }];
+  /** User clicked an event (timed or all-day). */
   'event-click': [{ event: CalendarEvent; native: PointerEvent }];
 }>();
 
@@ -114,6 +120,27 @@ const dayLayouts = computed<DayLayout[]>(() => {
       timezone: props.timezone,
     }),
   }));
+});
+
+// All-day band: filtered to all-day + multi-day-all-day events,
+// laid out across the visible day columns. Empty when no all-day
+// events match — band hides itself.
+const allDayBars = computed<AllDayBar[]>(() => {
+  return layoutAllDayBand(props.events, {
+    days: props.days,
+    timezone: props.timezone,
+  });
+});
+
+const allDayLaneCount = computed(() =>
+  allDayBars.value.length === 0 ? 0 : allDayBars.value[0].laneCount,
+);
+
+const ALL_DAY_LANE_HEIGHT = 24;
+const ALL_DAY_LANE_GAP = 2;
+const allDayBandHeight = computed(() => {
+  if (allDayLaneCount.value === 0) return 0;
+  return allDayLaneCount.value * (ALL_DAY_LANE_HEIGHT + ALL_DAY_LANE_GAP) + 8;
 });
 
 // Convert minutes-from-day-start to pixels.
@@ -197,6 +224,10 @@ function onColumnPointerDown(e: PointerEvent, date: Temporal.PlainDate) {
   });
 }
 
+function onAllDayCellPointerDown(e: PointerEvent, date: Temporal.PlainDate) {
+  emit('date-click', { date, native: e });
+}
+
 function onEventClick(e: PointerEvent, event: CalendarEvent) {
   e.stopPropagation();
   emit('event-click', { event, native: e });
@@ -244,25 +275,78 @@ void dateKey;
     <!-- Header row: blank cell over hour labels + one cell per day -->
     <div class="coar-time-grid__header">
       <div class="coar-time-grid__corner" aria-hidden="true" />
-      <div
-        v-for="day in days"
-        :key="day.toString()"
-        class="coar-time-grid__day-header"
-        :class="{
-          'coar-time-grid__day-header--today': isTodayColumn(day),
-          'coar-time-grid__day-header--weekend': isWeekend(day),
-        }"
-      >
-        <slot
-          name="dayHeader"
-          :date="day"
-          :is-today="isTodayColumn(day)"
-          :is-weekend="isWeekend(day)"
+      <div class="coar-time-grid__day-headers">
+        <div
+          v-for="day in days"
+          :key="day.toString()"
+          class="coar-time-grid__day-header"
+          :class="{
+            'coar-time-grid__day-header--today': isTodayColumn(day),
+            'coar-time-grid__day-header--weekend': isWeekend(day),
+          }"
         >
-          <span class="coar-time-grid__day-header-label">
-            {{ formatDayHeader(day) }}
-          </span>
-        </slot>
+          <slot
+            name="dayHeader"
+            :date="day"
+            :is-today="isTodayColumn(day)"
+            :is-weekend="isWeekend(day)"
+          >
+            <span class="coar-time-grid__day-header-label">
+              {{ formatDayHeader(day) }}
+            </span>
+          </slot>
+        </div>
+      </div>
+    </div>
+
+    <!-- All-day band (between header and body, only if there are any) -->
+    <div
+      v-if="allDayLaneCount > 0"
+      class="coar-time-grid__all-day-band"
+      :style="{ height: allDayBandHeight + 'px' }"
+    >
+      <div class="coar-time-grid__all-day-axis">all-day</div>
+      <div class="coar-time-grid__all-day-columns">
+        <!-- Background day cells (clickable for date-click) -->
+        <div
+          v-for="(day, i) in days"
+          :key="day.toString()"
+          class="coar-time-grid__all-day-cell"
+          :class="{
+            'coar-time-grid__all-day-cell--today': isTodayColumn(day),
+            'coar-time-grid__all-day-cell--weekend': isWeekend(day),
+          }"
+          :style="{ gridColumn: i + 1 }"
+          @pointerdown="onAllDayCellPointerDown($event, day)"
+        />
+        <!-- Bars on top (absolute-positioned within the columns container) -->
+        <div
+          v-for="bar in allDayBars"
+          :key="bar.event.id"
+          class="coar-time-grid__all-day-bar"
+          :class="{
+            'coar-time-grid__all-day-bar--clipped-start': bar.clippedStart,
+            'coar-time-grid__all-day-bar--clipped-end': bar.clippedEnd,
+          }"
+          :style="{
+            top: 4 + bar.lane * (ALL_DAY_LANE_HEIGHT + ALL_DAY_LANE_GAP) + 'px',
+            left: (bar.startCol / days.length) * 100 + '%',
+            width:
+              ((bar.endCol - bar.startCol + 1) / days.length) * 100 + '%',
+            height: ALL_DAY_LANE_HEIGHT + 'px',
+            background: eventBgFor(bar.event),
+            borderLeft: bar.clippedStart
+              ? 'none'
+              : `3px solid ${eventBorderFor(bar.event)}`,
+          }"
+          @pointerdown="onEventClick($event, bar.event)"
+        >
+          <slot name="allDayEvent" :event="bar.event" :layout="bar">
+            <span class="coar-time-grid__all-day-bar-title">
+              {{ eventTitle(bar.event) }}
+            </span>
+          </slot>
+        </div>
       </div>
     </div>
 
@@ -372,16 +456,17 @@ void dateKey;
   border-bottom: 1px solid var(--coar-calendar-border, #d1d5db);
 }
 .coar-time-grid__corner { /* empty top-left cell */ }
+.coar-time-grid__day-headers {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+}
 .coar-time-grid__day-header {
   padding: 8px 12px;
   border-left: 1px solid var(--coar-calendar-border, #d1d5db);
   font-size: var(--coar-font-size-sm, 13px);
   font-weight: 600;
   color: var(--coar-text-base, #1a1c1f);
-  display: grid;
-  grid-template-columns: 1fr;
-  grid-auto-flow: column;
-  grid-template-rows: 1fr;
   background: var(--coar-calendar-bg, #fff);
 }
 .coar-time-grid__day-header--today {
@@ -390,6 +475,60 @@ void dateKey;
 .coar-time-grid__day-header--weekend {
   background: var(--coar-calendar-bg-weekend, #f6f7f9);
 }
+
+.coar-time-grid__all-day-band {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  border-bottom: 1px solid var(--coar-calendar-border, #d1d5db);
+  position: relative;
+  background: var(--coar-calendar-bg, #fff);
+  font-size: var(--coar-font-size-xs, 11px);
+}
+.coar-time-grid__all-day-axis {
+  border-right: 1px solid var(--coar-calendar-border, #d1d5db);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--coar-text-subtle, #6c7280);
+  padding: 4px 8px;
+  align-self: flex-start;
+}
+.coar-time-grid__all-day-columns {
+  position: relative;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+}
+.coar-time-grid__all-day-cell {
+  border-left: 1px solid var(--coar-calendar-border, #d1d5db);
+  cursor: pointer;
+}
+.coar-time-grid__all-day-cell--weekend {
+  background: var(--coar-calendar-bg-weekend, #f6f7f9);
+}
+.coar-time-grid__all-day-cell--today {
+  background: var(--coar-calendar-bg-today, rgba(37, 99, 235, 0.04));
+}
+.coar-time-grid__all-day-bar {
+  position: absolute;
+  margin: 0 2px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  contain: layout paint;
+}
+.coar-time-grid__all-day-bar-title {
+  font-weight: 600;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  color: var(--coar-text-base, #1a1c1f);
+}
+.coar-time-grid__all-day-bar--clipped-start { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.coar-time-grid__all-day-bar--clipped-end   { border-top-right-radius: 0; border-bottom-right-radius: 0; }
 
 .coar-time-grid__body {
   display: grid;

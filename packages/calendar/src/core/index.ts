@@ -60,8 +60,11 @@ export {
 } from './eventIndex';
 export {
   layoutDayEvents,
+  layoutAllDayBand,
   type DayLayoutOptions,
+  type AllDayBandOptions,
   type PositionedEvent,
+  type AllDayBar,
 } from './timeGridLayout';
 // NOTE: recurrence engine exports live behind a subpath
 // (`@cocoar/vue-calendar/recurrence`) rather than the main core

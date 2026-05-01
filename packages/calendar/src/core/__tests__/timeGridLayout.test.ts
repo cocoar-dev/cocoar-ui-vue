@@ -13,7 +13,7 @@
 import { describe, it, expect } from 'vitest';
 import * as fc from 'fast-check';
 import { Temporal } from '../temporal';
-import { layoutDayEvents } from '../timeGridLayout';
+import { layoutDayEvents, layoutAllDayBand } from '../timeGridLayout';
 import type { CalendarEvent } from '../types';
 
 const DAY = Temporal.PlainDate.from('2026-04-15');
@@ -278,6 +278,202 @@ describe('layoutDayEvents — properties', () => {
         for (const p of r) expect(p.startMinutes).toBeLessThan(p.endMinutes);
       }),
       { numRuns: 100 },
+    );
+  });
+});
+
+// ─── layoutAllDayBand ───────────────────────────────────────────────
+
+const WEEK_DAYS = [
+  Temporal.PlainDate.from('2026-04-13'), // Mon
+  Temporal.PlainDate.from('2026-04-14'),
+  Temporal.PlainDate.from('2026-04-15'),
+  Temporal.PlainDate.from('2026-04-16'),
+  Temporal.PlainDate.from('2026-04-17'),
+  Temporal.PlainDate.from('2026-04-18'),
+  Temporal.PlainDate.from('2026-04-19'), // Sun
+];
+
+describe('layoutAllDayBand — basics', () => {
+  it('empty input → empty output', () => {
+    const r = layoutAllDayBand([], { days: WEEK_DAYS, timezone: 'UTC' });
+    expect(r).toEqual([]);
+  });
+
+  it('single date-only event lands on its column', () => {
+    const r = layoutAllDayBand(
+      [{ id: 'a', start: '2026-04-15' }],
+      { days: WEEK_DAYS, timezone: 'UTC' },
+    );
+    expect(r.length).toBe(1);
+    expect(r[0].startCol).toBe(2); // 2026-04-15 is the 3rd day (index 2)
+    expect(r[0].endCol).toBe(2);
+    expect(r[0].lane).toBe(0);
+  });
+
+  it('multi-day all-day event spans multiple columns', () => {
+    // Mon-Wed conference: end 2026-04-16 (exclusive) = inclusive Wed.
+    // Wait: end exclusive 2026-04-16 means inclusive last day 2026-04-15 (Wed).
+    // For Mon-Wed inclusive we need end '2026-04-16' (Tue exclusive).
+    // Let me use end '2026-04-16' which means [Mon Apr 13, Apr 16) → Mon, Tue, Wed.
+    const r = layoutAllDayBand(
+      [{ id: 'conf', start: '2026-04-13', end: '2026-04-16' }],
+      { days: WEEK_DAYS, timezone: 'UTC' },
+    );
+    expect(r.length).toBe(1);
+    expect(r[0].startCol).toBe(0); // Mon
+    expect(r[0].endCol).toBe(2); // Wed (inclusive)
+  });
+
+  it('event entirely before the visible week is excluded', () => {
+    const r = layoutAllDayBand(
+      [{ id: 'past', start: '2026-04-01', end: '2026-04-05' }],
+      { days: WEEK_DAYS, timezone: 'UTC' },
+    );
+    expect(r).toEqual([]);
+  });
+
+  it('event entirely after the visible week is excluded', () => {
+    const r = layoutAllDayBand(
+      [{ id: 'future', start: '2026-04-25' }],
+      { days: WEEK_DAYS, timezone: 'UTC' },
+    );
+    expect(r).toEqual([]);
+  });
+
+  it('event overlapping the start of the week is clipped', () => {
+    // Apr 11 (Sat before) → Apr 14 (Tue, exclusive) = Sat, Sun, Mon inclusive.
+    const r = layoutAllDayBand(
+      [{ id: 'spans-in', start: '2026-04-11', end: '2026-04-14' }],
+      { days: WEEK_DAYS, timezone: 'UTC' },
+    );
+    expect(r.length).toBe(1);
+    expect(r[0].startCol).toBe(0); // clipped to Mon
+    expect(r[0].endCol).toBe(0); // last visible day was Apr 13 (Mon)
+    expect(r[0].clippedStart).toBe(true);
+    expect(r[0].clippedEnd).toBe(false);
+  });
+
+  it('event overlapping the end of the week is clipped', () => {
+    // Apr 18 → Apr 25 (exclusive) = Apr 18-24 inclusive. Visible: 18, 19.
+    const r = layoutAllDayBand(
+      [{ id: 'spans-out', start: '2026-04-18', end: '2026-04-25' }],
+      { days: WEEK_DAYS, timezone: 'UTC' },
+    );
+    expect(r.length).toBe(1);
+    expect(r[0].startCol).toBe(5); // Sat
+    expect(r[0].endCol).toBe(6); // Sun (last visible)
+    expect(r[0].clippedStart).toBe(false);
+    expect(r[0].clippedEnd).toBe(true);
+  });
+
+  it('event with allDay=true on a timed start is treated as all-day', () => {
+    const r = layoutAllDayBand(
+      [
+        { id: 'a', start: '2026-04-15T09:00:00Z', allDay: true, end: '2026-04-16T17:00:00Z' },
+      ],
+      { days: WEEK_DAYS, timezone: 'UTC' },
+    );
+    expect(r.length).toBe(1);
+  });
+
+  it('timed events without allDay are excluded', () => {
+    const r = layoutAllDayBand(
+      [{ id: 'meeting', start: '2026-04-15T09:00:00Z', end: '2026-04-15T10:00:00Z' }],
+      { days: WEEK_DAYS, timezone: 'UTC' },
+    );
+    expect(r).toEqual([]);
+  });
+});
+
+describe('layoutAllDayBand — overlap & lanes', () => {
+  it('non-overlapping all-day events get lane 0', () => {
+    const r = layoutAllDayBand(
+      [
+        { id: 'a', start: '2026-04-13' },
+        { id: 'b', start: '2026-04-15' },
+        { id: 'c', start: '2026-04-17' },
+      ],
+      { days: WEEK_DAYS, timezone: 'UTC' },
+    );
+    expect(r.every((b) => b.lane === 0)).toBe(true);
+  });
+
+  it('two events on the same day get separate lanes', () => {
+    const r = layoutAllDayBand(
+      [
+        { id: 'a', start: '2026-04-15' },
+        { id: 'b', start: '2026-04-15' },
+      ],
+      { days: WEEK_DAYS, timezone: 'UTC' },
+    );
+    expect(r.length).toBe(2);
+    const lanes = new Set(r.map((b) => b.lane));
+    expect(lanes.size).toBe(2);
+    expect(r[0].laneCount).toBe(2);
+  });
+
+  it('multi-day overlap gets proper lanes', () => {
+    const r = layoutAllDayBand(
+      [
+        { id: 'mon-wed', start: '2026-04-13', end: '2026-04-16' },
+        { id: 'tue-fri', start: '2026-04-14', end: '2026-04-18' },
+      ],
+      { days: WEEK_DAYS, timezone: 'UTC' },
+    );
+    expect(r.length).toBe(2);
+    const lanes = new Set(r.map((b) => b.lane));
+    expect(lanes.size).toBe(2); // overlap on Tue, Wed
+  });
+});
+
+describe('layoutAllDayBand — properties', () => {
+  const eventArb = fc
+    .tuple(fc.integer({ min: 0, max: 20 }), fc.integer({ min: 0, max: 20 }), fc.integer({ min: 0, max: 1_000_000 }))
+    .map(([a, b, n]): CalendarEvent => {
+      const startN = Math.min(a, b);
+      const endN = Math.max(a, b) + 1; // exclusive end
+      const epoch = new Date('2026-04-10T00:00:00Z');
+      const startDate = new Date(epoch.getTime() + startN * 86400_000);
+      const endDate = new Date(epoch.getTime() + endN * 86400_000);
+      return {
+        id: `e-${n}`,
+        start: startDate.toISOString().slice(0, 10),
+        end: endDate.toISOString().slice(0, 10),
+      };
+    });
+
+  it('every output has startCol <= endCol within [0, days.length)', () => {
+    fc.assert(
+      fc.property(fc.array(eventArb, { maxLength: 20 }), (events) => {
+        const r = layoutAllDayBand(events, { days: WEEK_DAYS, timezone: 'UTC' });
+        for (const bar of r) {
+          expect(bar.startCol).toBeGreaterThanOrEqual(0);
+          expect(bar.startCol).toBeLessThanOrEqual(bar.endCol);
+          expect(bar.endCol).toBeLessThan(WEEK_DAYS.length);
+        }
+      }),
+      { numRuns: 200 },
+    );
+  });
+
+  it('no two bars share a (lane, column) cell', () => {
+    fc.assert(
+      fc.property(fc.array(eventArb, { maxLength: 30 }), (events) => {
+        const byId = new Map<string, CalendarEvent>();
+        for (const e of events) byId.set(e.id, e);
+        const r = layoutAllDayBand([...byId.values()], { days: WEEK_DAYS, timezone: 'UTC' });
+        for (let i = 0; i < r.length; i++) {
+          for (let j = i + 1; j < r.length; j++) {
+            const a = r[i];
+            const b = r[j];
+            if (a.lane !== b.lane) continue;
+            const overlap = a.startCol <= b.endCol && b.startCol <= a.endCol;
+            expect(overlap).toBe(false);
+          }
+        }
+      }),
+      { numRuns: 200 },
     );
   });
 });

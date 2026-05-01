@@ -38,6 +38,8 @@ import {
   Temporal,
   parseEventInstant,
   isDateOnlyIsoString,
+  dateKey,
+  eventStartDateInZone,
 } from './temporal';
 
 export interface PositionedEvent<TMeta extends Record<string, unknown> = Record<string, unknown>> {
@@ -195,6 +197,168 @@ export function layoutDayEvents<TMeta extends Record<string, unknown> = Record<s
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────
+
+// ─── All-day band layout ─────────────────────────────────────────────
+
+/**
+ * An all-day event positioned within a visible-day-range. Used by
+ * the time grid's all-day band (above the hour grid) to render
+ * multi-day events as horizontal bars spanning multiple day-columns.
+ */
+export interface AllDayBar<TMeta extends Record<string, unknown> = Record<string, unknown>> {
+  event: CalendarEvent<TMeta>;
+  /** Lane (vertical row inside the band). 0 = topmost. */
+  lane: number;
+  /** Total lanes used. Caller picks the band height from this. */
+  laneCount: number;
+  /** First column the bar covers, 0-indexed. Inclusive. */
+  startCol: number;
+  /** Last column the bar covers, 0-indexed. Inclusive. */
+  endCol: number;
+  /** True when the event extends earlier than `days[0]`. */
+  clippedStart: boolean;
+  /** True when the event extends later than `days[days.length-1]`. */
+  clippedEnd: boolean;
+}
+
+export interface AllDayBandOptions {
+  /** Days to render (one column each). Length = number of columns. */
+  days: ReadonlyArray<Temporal.PlainDate>;
+  /**
+   * Timezone used to bucket date-time events by local day. Date-only
+   * events are timezone-independent.
+   */
+  timezone: string;
+}
+
+/**
+ * Lay out all-day + multi-day events for a week / day view's
+ * all-day band.
+ *
+ * Includes:
+ *   - Events with `allDay: true`
+ *   - Events with date-only `start` (no time component)
+ *
+ * Excludes (these go in the time grid):
+ *   - Timed events that start AND end within a single visible day
+ *   - Timed events with end-after-midnight (handled per-column by
+ *     the time grid via clipping)
+ *
+ * For each included event, computes `[startCol, endCol]` clipped to
+ * the visible day range, runs `layoutOverlappingIntervals`, returns
+ * one `AllDayBar` per event.
+ */
+export function layoutAllDayBand<TMeta extends Record<string, unknown> = Record<string, unknown>>(
+  events: ReadonlyArray<CalendarEvent<TMeta>>,
+  opts: AllDayBandOptions,
+): AllDayBar<TMeta>[] {
+  const { days } = opts;
+  // `timezone` is reserved for future use when timed-multi-day events
+  // get bucketed by local day; for now all-day events are date-only
+  // and timezone-independent.
+  void opts.timezone;
+  if (days.length === 0) return [];
+
+  // Map each visible day to its column index for O(1) lookup.
+  const dayToCol = new Map<string, number>();
+  for (let i = 0; i < days.length; i++) {
+    dayToCol.set(dateKey(days[i]), i);
+  }
+  const lastDayKey = dateKey(days[days.length - 1]);
+
+  type Projection<M extends Record<string, unknown>> = {
+    event: CalendarEvent<M>;
+    startCol: number;
+    endCol: number;
+    clippedStart: boolean;
+    clippedEnd: boolean;
+  };
+  const projections: Projection<TMeta>[] = [];
+  const seenIds = new Set<string>();
+
+  for (const event of events) {
+    if (seenIds.has(event.id)) continue;
+    seenIds.add(event.id);
+
+    const isAllDay =
+      event.allDay === true || isDateOnlyIsoString(event.start);
+    if (!isAllDay) continue;
+
+    // Compute the event's first-day and last-day-inclusive in
+    // calendar-day terms.
+    const firstDay = parsePlainDateLoose(event.start);
+    let lastDayInclusive: Temporal.PlainDate;
+    if (event.end) {
+      // RFC 5545: end is exclusive for date-only events.
+      const endExcl = parsePlainDateLoose(event.end);
+      lastDayInclusive = endExcl.subtract({ days: 1 });
+      if (Temporal.PlainDate.compare(lastDayInclusive, firstDay) < 0) {
+        lastDayInclusive = firstDay;
+      }
+    } else {
+      lastDayInclusive = firstDay;
+    }
+
+    // Intersect with the visible window.
+    const firstVisible = days[0];
+    const lastVisible = days[days.length - 1];
+    if (
+      Temporal.PlainDate.compare(lastDayInclusive, firstVisible) < 0 ||
+      Temporal.PlainDate.compare(firstDay, lastVisible) > 0
+    ) {
+      continue; // entirely outside the visible week
+    }
+
+    const visibleStart = Temporal.PlainDate.compare(firstDay, firstVisible) < 0 ? firstVisible : firstDay;
+    const visibleEnd = Temporal.PlainDate.compare(lastDayInclusive, lastVisible) > 0 ? lastVisible : lastDayInclusive;
+
+    const startCol = dayToCol.get(dateKey(visibleStart));
+    const endCol = dayToCol.get(dateKey(visibleEnd));
+    if (startCol === undefined || endCol === undefined) continue;
+
+    projections.push({
+      event,
+      startCol,
+      endCol,
+      clippedStart: Temporal.PlainDate.compare(firstDay, firstVisible) < 0,
+      clippedEnd: Temporal.PlainDate.compare(lastDayInclusive, lastVisible) > 0,
+    });
+  }
+
+  if (projections.length === 0) return [];
+
+  const intervals: IntervalInput[] = projections.map((p) => ({
+    id: p.event.id,
+    start: p.startCol,
+    end: p.endCol,
+  }));
+  const layoutResult = layoutOverlappingIntervals(intervals);
+
+  const laneById = new Map<string, number>();
+  for (const bar of layoutResult.bars) laneById.set(bar.id, bar.lane);
+
+  // Use lastDayKey to silence unused-var lint (it's referenced below
+  // semantically but no direct read).
+  void lastDayKey;
+
+  return projections.map((p) => ({
+    event: p.event,
+    lane: laneById.get(p.event.id) ?? 0,
+    laneCount: layoutResult.laneCount,
+    startCol: p.startCol,
+    endCol: p.endCol,
+    clippedStart: p.clippedStart,
+    clippedEnd: p.clippedEnd,
+  }));
+}
+
+/** Loose plain-date parse: accepts 'YYYY-MM-DD' or a datetime string. */
+function parsePlainDateLoose(iso: string): Temporal.PlainDate {
+  if (isDateOnlyIsoString(iso)) return Temporal.PlainDate.from(iso);
+  return eventStartDateInZone(iso, 'UTC');
+}
+
+// ─── Internal helper for time-grid (existing) ────────────────────────
 
 /**
  * Project an ISO date/datetime string to a minute-of-day for a
