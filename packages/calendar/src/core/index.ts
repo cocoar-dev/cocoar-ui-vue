@@ -25,3 +25,9 @@ export {
   type Range1D,
   type Range2D,
 } from './virtualScroll';
+export {
+  layoutOverlappingIntervals,
+  type IntervalInput,
+  type IntervalLayout,
+  type LayoutResult,
+} from './overlapLayout';

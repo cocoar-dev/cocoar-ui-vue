@@ -55,6 +55,10 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('./views/CalendarRRuleBakeoffView.vue'),
   },
   {
+    path: '/calendar-overlap-layout',
+    component: () => import('./views/CalendarOverlapLayoutView.vue'),
+  },
+  {
     path: '/todos',
     component: () => import('./views/TodoListView.vue'),
     meta: {
