@@ -493,6 +493,11 @@ void dateKey;
    * events, now-marker) scrolls naturally underneath.
    */
   --coar-time-grid-header-height: 36px;
+  /* Width of the left axis column (hour labels + "all-day" label).
+     Wide enough that the localized all-day label ("ALL-DAY",
+     "GANZTAGS", …) fits on one line at 11 px uppercase + 0.04 em
+     letter-spacing, with a comfortable breathing margin. */
+  --coar-time-grid-axis-width: 80px;
 }
 
 /*
@@ -510,7 +515,7 @@ void dateKey;
 
 .coar-time-grid__header {
   display: grid;
-  grid-template-columns: 64px 1fr;
+  grid-template-columns: var(--coar-time-grid-axis-width) 1fr;
   border-bottom: 1px solid var(--coar-calendar-border, #d1d5db);
   background: var(--coar-calendar-bg, #fff);
   min-height: var(--coar-time-grid-header-height);
@@ -538,7 +543,7 @@ void dateKey;
 
 .coar-time-grid__all-day-band {
   display: grid;
-  grid-template-columns: 64px 1fr;
+  grid-template-columns: var(--coar-time-grid-axis-width) 1fr;
   border-bottom: 1px solid var(--coar-calendar-border, #d1d5db);
   background: var(--coar-calendar-bg, #fff);
   font-size: var(--coar-font-size-xs, 11px);
@@ -548,8 +553,20 @@ void dateKey;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--coar-text-subtle, #6c7280);
-  padding: 4px 8px;
-  align-self: flex-start;
+  padding: 4px 6px;
+  /*
+   * Lock to a single line and clip with ellipsis if the column is
+   * ever too narrow for the localized text. Without this, the
+   * default `white-space: normal` lets "ALL-DAY" wrap to two lines
+   * (the hyphen is a soft break point), pushing the band's grid
+   * track to ~56 px — which then overflows the band's
+   * inline-styled `height: 34px` and lets weekend cell backgrounds
+   * paint over the band's border-bottom.
+   */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  align-self: center;
 }
 .coar-time-grid__all-day-columns {
   position: relative;
@@ -593,7 +610,7 @@ void dateKey;
 
 .coar-time-grid__body {
   display: grid;
-  grid-template-columns: 64px 1fr;
+  grid-template-columns: var(--coar-time-grid-axis-width) 1fr;
   position: relative;
   overflow: hidden;
 }
