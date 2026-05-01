@@ -466,12 +466,31 @@ void dateKey;
   font-family: var(--coar-body-base-family, system-ui, sans-serif);
   font-variant-numeric: tabular-nums;
   background: var(--coar-calendar-bg, #fff);
+  /*
+   * Sticky-header stack:
+   *   --header-height: top sticky band (day-of-week labels)
+   *   --all-day-stick-top: where the all-day band starts sticking
+   *
+   * `position: sticky` resolves against the nearest scroll
+   * ancestor — typically the consumer's outer container with
+   * `overflow-y: auto`. The header floats over the time-grid body
+   * as the user scrolls down through the hours; the all-day band
+   * floats just below the header so multi-day events stay visible
+   * the whole time. Everything inside the body (hour labels,
+   * events, now-marker) scrolls naturally underneath.
+   */
+  --coar-time-grid-header-height: 36px;
 }
 
 .coar-time-grid__header {
   display: grid;
   grid-template-columns: 64px 1fr;
   border-bottom: 1px solid var(--coar-calendar-border, #d1d5db);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--coar-calendar-bg, #fff);
+  min-height: var(--coar-time-grid-header-height);
 }
 .coar-time-grid__corner { /* empty top-left cell */ }
 .coar-time-grid__day-headers {
@@ -498,7 +517,9 @@ void dateKey;
   display: grid;
   grid-template-columns: 64px 1fr;
   border-bottom: 1px solid var(--coar-calendar-border, #d1d5db);
-  position: relative;
+  position: sticky;
+  top: var(--coar-time-grid-header-height);
+  z-index: 19;
   background: var(--coar-calendar-bg, #fff);
   font-size: var(--coar-font-size-xs, 11px);
 }
