@@ -319,7 +319,13 @@ void dateKey;
           :style="{ gridColumn: i + 1 }"
           @pointerdown="onAllDayCellPointerDown($event, day)"
         />
-        <!-- Bars on top (absolute-positioned within the columns container) -->
+        <!--
+          All-day bars on top of the day-cell background.
+          Same calc()-based inset as timed events: 2 px gap left and
+          right, box-sizing: border-box (in scoped CSS), so the
+          rightmost bar's right edge sits exactly inside the band —
+          no overflow, no overlap with adjacent bars.
+        -->
         <div
           v-for="bar in allDayBars"
           :key="bar.event.id"
@@ -330,9 +336,8 @@ void dateKey;
           }"
           :style="{
             top: 4 + bar.lane * (ALL_DAY_LANE_HEIGHT + ALL_DAY_LANE_GAP) + 'px',
-            left: (bar.startCol / days.length) * 100 + '%',
-            width:
-              ((bar.endCol - bar.startCol + 1) / days.length) * 100 + '%',
+            left: `calc(${(bar.startCol / days.length) * 100}% + 2px)`,
+            width: `calc(${((bar.endCol - bar.startCol + 1) / days.length) * 100}% - 4px)`,
             height: ALL_DAY_LANE_HEIGHT + 'px',
             background: eventBgFor(bar.event),
             borderLeft: bar.clippedStart
@@ -393,7 +398,19 @@ void dateKey;
           }"
           @pointerdown="onColumnPointerDown($event, layout.date)"
         >
-          <!-- Events -->
+          <!--
+            Events.
+            Lane-aware horizontal positioning uses calc() with pixel
+            gaps inside the percentage so the right edge of the
+            rightmost lane sits exactly INSIDE the column — not 4 px
+            past it like with margin-based offsets. With box-sizing:
+            border-box (in scoped CSS) the 3 px left-border lives
+            inside the box.
+            z-index = lane + 1: lane 0 in back, higher lanes in
+            front, matching Google / Outlook conventions ("rightmost
+            lane is on top"). Without it, DOM order (= input event
+            order) decides who covers whom, which is unpredictable.
+          -->
           <div
             v-for="positioned in layout.positioned"
             :key="positioned.event.id"
@@ -409,8 +426,9 @@ void dateKey;
                   16,
                   minutesToPx(positioned.endMinutes - positioned.startMinutes),
                 ) + 'px',
-              left: (positioned.lane / positioned.laneCount) * 100 + '%',
-              width: 100 / positioned.laneCount + '%',
+              left: `calc(${(positioned.lane / positioned.laneCount) * 100}% + 2px)`,
+              width: `calc(${100 / positioned.laneCount}% - 4px)`,
+              zIndex: positioned.lane + 1,
               background: eventBgFor(positioned.event),
               borderLeft: `3px solid ${eventBorderFor(positioned.event)}`,
             }"
@@ -510,7 +528,9 @@ void dateKey;
 }
 .coar-time-grid__all-day-bar {
   position: absolute;
-  margin: 0 2px;
+  /* Same box-sizing rule as timed events — calc()-based left+width
+     in the inline style sets the visual inset. */
+  box-sizing: border-box;
   padding: 2px 6px;
   border-radius: 3px;
   overflow: hidden;
@@ -573,7 +593,10 @@ void dateKey;
 
 .coar-time-grid__event {
   position: absolute;
-  margin: 1px 2px;
+  /* `box-sizing: border-box` so the calc()-based width/left in
+     the inline style includes the 3 px left-border without bleeding
+     past the column. */
+  box-sizing: border-box;
   padding: 2px 6px;
   border-radius: 3px;
   font-size: var(--coar-font-size-sm, 13px);
