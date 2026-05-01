@@ -15,6 +15,7 @@ import type {
 
 import type { MarkdownDocument, MarkdownNode, MarkdownPosition } from './types';
 import { createNodeId } from './id';
+import { isColorSpanClose, parseColorSpanOpen } from './color-span';
 
 export interface ParseMarkdownOptions {
   readonly gfm?: boolean;
@@ -34,10 +35,125 @@ export function parse(markdown: string, options: ParseMarkdownOptions = {}): Mar
 function fromMdastRoot(root: Root): MarkdownDocument {
   const headingSlugger = createHeadingSlugger();
   const definitions = collectDefinitions(root);
-  const nodes = root.children
+  const rawNodes = root.children
     .map((child, index) => fromMdastNode(child, undefined, index, headingSlugger, definitions))
     .filter(isMarkdownNode);
-  return { nodes };
+  return { nodes: foldColorSpansTree(rawNodes) };
+}
+
+/**
+ * Walk the tree depth-first and fold matched `<span style="color: …">` …
+ * `</span>` pairs (currently parsed as adjacent `unsupported{html}` nodes)
+ * into a single `colorSpan` node. Runs after the mdast → MarkdownNode map so
+ * we can use the existing `unsupported{html}` representation as our marker.
+ *
+ * Unmatched opens / orphan closes stay as `unsupported` nodes — the viewer
+ * surfaces them so authors notice unbalanced markup instead of silently
+ * dropping content.
+ */
+function foldColorSpansTree(nodes: readonly MarkdownNode[]): MarkdownNode[] {
+  // Recurse first so inner spans are folded before their enclosing scan.
+  const recursed = nodes.map((node) => {
+    if (!node.children) return node;
+    const folded = foldColorSpansTree(node.children);
+    return foldedAreEqual(node.children, folded) ? node : { ...node, children: folded };
+  });
+  return foldColorSpansLevel(recursed);
+}
+
+function foldedAreEqual(
+  a: readonly MarkdownNode[],
+  b: readonly MarkdownNode[],
+): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
+function isHtmlNode(node: MarkdownNode): node is MarkdownNode & { text: string } {
+  return (
+    node.type === 'unsupported' &&
+    node.attrs?.['originalType'] === 'html' &&
+    typeof node.text === 'string'
+  );
+}
+
+function foldColorSpansLevel(nodes: readonly MarkdownNode[]): MarkdownNode[] {
+  const out: MarkdownNode[] = [];
+  let i = 0;
+
+  while (i < nodes.length) {
+    const node = nodes[i]!;
+
+    if (isHtmlNode(node)) {
+      const open = parseColorSpanOpen(node.text);
+      if (open) {
+        const matchEnd = findMatchingColorSpanClose(nodes, i);
+        if (matchEnd !== null) {
+          const innerRaw = nodes.slice(i + 1, matchEnd);
+          const inner = foldColorSpansLevel(innerRaw);
+          const closePos = nodes[matchEnd]?.position;
+
+          const startPos = node.position?.start;
+          const endPos = closePos?.end;
+          const position: MarkdownPosition | undefined =
+            typeof startPos === 'number' &&
+            typeof endPos === 'number' &&
+            node.position &&
+            closePos
+              ? {
+                  start: startPos,
+                  end: endPos,
+                  line: node.position.line,
+                  column: node.position.column,
+                }
+              : undefined;
+
+          out.push({
+            id: createNodeId(`colorSpan|${node.id}`),
+            type: 'colorSpan',
+            position,
+            attrs: { color: open.color },
+            children: inner,
+          });
+          i = matchEnd + 1;
+          continue;
+        }
+      }
+    }
+
+    out.push(node);
+    i++;
+  }
+
+  return out;
+}
+
+/**
+ * Find the index of the `</span>` that matches the open `<span>` at `openIdx`.
+ * Returns `null` when no match exists. Counts nested spans so an inner
+ * unmatched-pair doesn't steal our close.
+ */
+function findMatchingColorSpanClose(
+  nodes: readonly MarkdownNode[],
+  openIdx: number,
+): number | null {
+  let depth = 1;
+  for (let j = openIdx + 1; j < nodes.length; j++) {
+    const candidate = nodes[j]!;
+    if (!isHtmlNode(candidate)) continue;
+    if (parseColorSpanOpen(candidate.text)) {
+      depth++;
+      continue;
+    }
+    if (isColorSpanClose(candidate.text)) {
+      depth--;
+      if (depth === 0) return j;
+    }
+  }
+  return null;
 }
 
 type LinkDefinition = {

@@ -130,6 +130,52 @@ What gets auto-wired from the surrounding `<CoarFormField>`:
 
 You can also pass these props directly without `CoarFormField` (`error`, `disabled`, `id`) — direct props win over the injected context.
 
+## Text Color
+
+Apply inline color to a selection. Click the **palette** button in the floating toolbar (or the sidebar item in fixed mode) to open the picker — pick a swatch from the 8-color palette or use the native browser color input for a custom hex value. The color persists to markdown as plain inline HTML so the document stays readable in any standard renderer:
+
+```markdown
+The quick <span style="color: #dc2626">red</span> fox.
+```
+
+<preview path="./markdown-editor/demos/MarkdownEditorTextColor.vue" />
+
+The picker is rendered through the same overlay primitive (`menuPreset`) that powers menus, popovers, and sidebar flyouts: anchor-relative positioning, viewport flipping, scroll-reposition, plus outside-click and `Escape` dismissal — no bespoke layout or click-handling logic in the editor.
+
+::: info Why a whitelist?
+The viewer (`@cocoar/vue-markdown` and `@cocoar/vue-markdown-core`) and the editor share a single `sanitizeColor` helper that accepts only:
+
+- Hex (`#rgb`, `#rrggbb`, with optional alpha)
+- `rgb()` / `rgba()` and the modern space-separated form
+- `hsl()` / `hsla()` and the modern space-separated form
+- A small set of named CSS colors (`red`, `blue`, …, `transparent`, `currentcolor`)
+
+Anything else — `var(--token)`, `url(...)`, `expression(...)`, multi-declaration styles, foreign attributes — is rejected. A failed sanitization falls through to plain text in the viewer and keeps the surrounding content intact in the editor. There's no way for a hostile markdown payload to leak inline style beyond a single `color` declaration.
+
+The picker palette (`COAR_TEXT_COLOR_PALETTE`) is exported so consumers can mirror it in custom UI.
+:::
+
+## Editor ↔ Viewer Parity
+
+`<CoarMarkdownEditor>` and `<CoarMarkdown>` (the viewer) read the **same shared stylesheet** (`@cocoar/vue-markdown/styles`) so a markdown document looks pixel-identical whether you're editing it or rendering it for display. The two render through different DOM shapes — the editor's PM-managed contenteditable emits bare `<li>` / `<td>` / `<blockquote>` nodes inside a `.ProseMirror` wrapper, while the viewer emits class-tagged elements (`.coar-markdown-list-item`, etc.) — and the shared stylesheet covers both via parallel `:where(…)` selectors:
+
+| Concern | Note |
+|---|---|
+| Vertical rhythm | Block margins apply to direct children of `.coar-markdown` (viewer) **and** `.coar-markdown .ProseMirror` (editor). |
+| Typography | Heading sizes, blockquote inset, list indentation, `<strong>` weight (700), inline-code color, link underline — all defined once. |
+| Tables | Zebra alternation uses `:nth-child(<n> of :not([data-is-header]))` to handle Milkdown's `<tr data-is-header>`-inside-`<tbody>` shape and the viewer's classic `<thead>` / `<tbody>` split with one rule. |
+| Task lists | `<li data-item-type="task" data-checked="true">` in both panes; the visual checkbox is a `::before` pseudo-element (no native `<input>`). Completed items get the muted-color strikethrough. |
+| Cell padding | `<p>` user-agent margin reset to `0` inside `<li>` / `<td>` / `<th>` — without the reset PM's auto-wrapped paragraph would add ~1em of vertical whitespace per row. |
+
+If you embed the editor next to a viewer pane (the playground's "viewer pane" toggle does exactly this), the two should render the same source identically. Differences narrow down to design tokens you can override globally:
+
+| Variable | Default | Effect |
+|---|---|---|
+| `--coar-markdown-heading-block-start` | `var(--coar-spacing-xl, 2rem)` | Extra space above every top-level heading. Lower for tighter docs, raise for more whitespace. |
+| `--coar-markdown-space-2` | `var(--coar-spacing-m, 1rem)` | Default block-end margin. Drives paragraph / list / table / blockquote spacing. |
+| `--coar-markdown-link` | `var(--coar-text-brand-primary)` | Link color (also applied to inline code). |
+| `--coar-markdown-border` | `var(--coar-border-neutral-tertiary)` | Used by tables, blockquote, `<hr>`. |
+
 ## Restricting the Toolbar
 
 Pass a `tools` array to limit which buttons the toolbar exposes. When omitted, all tools are shown. Order does not matter — the canonical order is preserved.
@@ -154,6 +200,7 @@ const tools = COAR_MARKDOWN_EDITOR_ALL_TOOLS.filter(t => t !== 'table' && t !== 
 | Tool | Description |
 |---|---|
 | `bold` `italic` `strikethrough` `inlineCode` | Inline marks |
+| `textColor` | Text color picker — see [Text Color](#text-color) |
 | `headings` | Heading flyout (H1–H6 + paragraph) |
 | `bulletList` `orderedList` `taskList` | List variants |
 | `indent` `outdent` | List nesting controls |
@@ -164,7 +211,7 @@ const tools = COAR_MARKDOWN_EDITOR_ALL_TOOLS.filter(t => t !== 'table' && t !== 
 | `undo` `redo` | History |
 
 ::: info Markdown-only formatting
-Only formatting that round-trips through Markdown is exposed. There is intentionally **no underline, font-family, font-size, text color, or alignment** — these have no Markdown representation and would silently break round-trip persistence.
+Only formatting that round-trips through Markdown is exposed. There is intentionally **no underline, font-family, font-size, or alignment** — these have no Markdown representation and would silently break round-trip persistence. **Text color** is the one exception: it round-trips as plain inline HTML through a strict whitelist sanitizer (see [Text Color](#text-color)).
 
 When migrating from a richtext editor that exposed those tools, the closest Markdown-native substitutes are:
 

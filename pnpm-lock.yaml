@@ -114,6 +114,12 @@ importers:
       '@cocoar/vue-localization':
         specifier: workspace:*
         version: link:../../packages/localization
+      '@cocoar/vue-markdown':
+        specifier: workspace:*
+        version: link:../../packages/markdown
+      '@cocoar/vue-markdown-core':
+        specifier: workspace:*
+        version: link:../../packages/markdown-core
       '@cocoar/vue-markdown-editor':
         specifier: workspace:*
         version: link:../../packages/markdown-editor
@@ -256,13 +262,22 @@ importers:
       '@milkdown/vue':
         specifier: ^7.20.0
         version: 7.20.0(@codemirror/language@6.12.3)(@codemirror/state@6.6.0)(@codemirror/view@6.41.0)(prosemirror-model@1.25.4)(prosemirror-state@1.4.4)(prosemirror-view@1.41.8)(typescript@5.9.3)(vue@3.5.33(typescript@5.9.3))
+      unified:
+        specifier: ^11.0.5
+        version: 11.0.5
     devDependencies:
       '@cocoar/vue-markdown':
         specifier: workspace:*
         version: link:../markdown
+      '@cocoar/vue-markdown-core':
+        specifier: workspace:*
+        version: link:../markdown-core
       '@cocoar/vue-ui':
         specifier: workspace:*
         version: link:../ui
+      '@types/mdast':
+        specifier: ^4.0.4
+        version: 4.0.4
       vue:
         specifier: ^3.5.32
         version: 3.5.33(typescript@5.9.3)

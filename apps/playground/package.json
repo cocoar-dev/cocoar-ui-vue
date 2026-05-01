@@ -14,6 +14,8 @@
     "@cocoar/vue-data-grid": "workspace:*",
     "@cocoar/vue-fragment-parser": "workspace:*",
     "@cocoar/vue-localization": "workspace:*",
+    "@cocoar/vue-markdown": "workspace:*",
+    "@cocoar/vue-markdown-core": "workspace:*",
     "@cocoar/vue-markdown-editor": "workspace:*",
     "@cocoar/vue-script-editor": "workspace:*",
     "@cocoar/vue-ui": "workspace:*",

@@ -7,6 +7,28 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 1.15.0
+
+### Added
+
+- **`@cocoar/vue-markdown-editor` — text color**: new `textColor` tool exposes a palette + native color-input picker in the floating toolbar and the sidebar (fixed mode). Selection-based `text_color` ProseMirror mark, full markdown round-trip as `<span style="color: …">…</span>`. Picker uses the shared overlay service (`menuPreset`): anchor-relative positioning, viewport flip, scroll-reposition, outside-click + escape dismissal — no bespoke layout. Active color shows as a thin indicator bar under the trigger icon. New exports: `COAR_TEXT_COLOR_PALETTE` (8 swatches), `textColor` plugin bundle, `textColorMark` and `textColorRemark` for advanced setups.
+- **`@cocoar/vue-markdown-core` — color-span sanitizer + parser fold**: shared `sanitizeColor` / `sanitizeColorStyle` / `parseColorSpanOpen` / `isColorSpanClose` / `serializeColorSpanOpen` / `serializeColorSpanClose` helpers. Whitelist accepts hex (`#rgb`/`#rrggbb`/+alpha), `rgb()` / `rgba()` / `hsl()` / `hsla()` (legacy + modern syntax), and a small set of named CSS colors (`red`, `blue`, …, `transparent`, `currentcolor`); rejects `var(--token)`, `url(…)`, `expression(…)`, multi-declaration styles, foreign attributes, control characters. New `colorSpan` `MarkdownNodeType` with `attrs.color`; the parser folds matched `<span>` open/close pairs in inline children into a single node (depth-aware nesting). Serializer flat-maps colorSpan back to `html` opener + children + closer.
+- **`@cocoar/vue-markdown` — `colorSpan` renderer**: `DefaultColorSpan` registered in `defaultMarkdownRenderers`. Re-validates the color attribute via `sanitizeColor` at render time (defence in depth) — invalid values strip the inline style and fall through to plain text. New `colorSpanColor` helper exported from `helpers.ts`.
+
+### Changed
+
+- **`@cocoar/vue-markdown` shared stylesheet — editor↔viewer parity**: rendering rules now cover both the viewer's class-based DOM (`<div class="coar-markdown-list-item">…`) *and* the editor's PM-managed bare-element DOM (`<li>` no class). Block-spacing and typography selectors extended with `.coar-markdown .ProseMirror > :where(…)` so the editor's `.ProseMirror`-wrapped blocks pick up the same vertical rhythm. New bare-element fallbacks for `:where(blockquote, ul, ol, li, code:not(pre code), a)`. User-agent margin on `<p>` inside `<li>` / `<td>` / `<th>` zeroed (PM wraps cell/list content in `<p>` — without the reset every editor row was one line taller than its viewer pendant). Table zebra rule rewritten with `:nth-child(<n> of :not([data-is-header]))` so Milkdown's `tr[data-is-header]` (which lives inside `<tbody>`, unlike the viewer's `<thead>`) is excluded from the alternation index — the first data row reads as "row 1" in both panes. Bare `<blockquote>` margin reset to `0` so the browser's user-agent `40px` margin doesn't indent editor blockquotes deeper than viewer blockquotes.
+- **`@cocoar/vue-markdown` task-list rendering**: `DefaultListItem` no longer emits a native `<input type="checkbox">` + wrapping `<div class="coar-markdown-list-item-content">`. It now mirrors the editor's PM-emitted attributes — `data-item-type="task"` + `data-checked="true|false"` on the `<li>` directly — and the visual checkbox is a `::before` pseudo-element on the `<li>` (cocoar-style filled square + check). Strikethrough on completed items moved to the shared stylesheet so editor and viewer render identically.
+- **`@cocoar/vue-markdown` shared stylesheet — `--coar-markdown-heading-block-start`** lowered from `var(--coar-spacing-xxxl, 4rem)` to `var(--coar-spacing-xl, 2rem)`. The previous 4rem/64px gap before every heading read as "blank lines" in both viewer and editor; 2rem/32px still marks sections clearly without pushing four lines of whitespace into view.
+- **`@cocoar/vue-markdown-editor` styles trimmed**: deleted local typography overrides (`h1` / `h2` / `h3` / `p` / `ul` / `ol` / `li` / `blockquote` / `code` / `table` / `th` / `td` / `a` / `strong`) plus the task-list checkbox CSS — all now live in `@cocoar/vue-markdown/styles` and apply uniformly. Editor `<strong>` was rendering at `font-weight: 600` while the viewer used the browser's `bolder` (700); both now read 700.
+
+### Fixed
+
+- **`@cocoar/vue-markdown-editor` — color picker no longer flashes at (0,0)**: the previous manual `Teleport` + `getBoundingClientRect` positioning rendered the popover at the initial `{ left: '0px', top: '0px' }` style ref before reactivity flushed the measured anchor coordinates. Replaced with `useOverlay().open({ spec: menuPreset, anchor: { kind: 'element', element: trigger } })` so the overlay service measures + positions atomically before paint.
+- **`@cocoar/vue-markdown-editor` — color picker now closes on outside click**: the previous custom `mousedown` handler exempted only `.coar-md-color-picker`, so clicks anywhere on the page outside that selector closed the picker via the floating-toolbar hide path — but the picker had no escape-key dismissal, no scroll-close, and was inconsistent with other Cocoar overlays. Now driven by `menuPreset` which gives `outsideClick: true` + `escapeKey: true` + `scroll.strategy: 'close'` for free.
+
+---
+
 ## 1.14.0
 
 ### Added

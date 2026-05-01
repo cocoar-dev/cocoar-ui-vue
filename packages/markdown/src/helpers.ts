@@ -1,4 +1,4 @@
-import type { MarkdownNode } from '@cocoar/vue-markdown-core';
+import { sanitizeColor, type MarkdownNode } from '@cocoar/vue-markdown-core';
 
 export function headingDepth(node: MarkdownNode): 1 | 2 | 3 | 4 | 5 | 6 {
   const depth = node.attrs?.['depth'];
@@ -93,6 +93,19 @@ export function isTableColumnCenterAligned(tableNode: MarkdownNode, columnIndex:
 export function unsupportedType(node: MarkdownNode): string {
   const originalType = node.attrs?.['originalType'];
   return typeof originalType === 'string' ? originalType : String(node.type);
+}
+
+/**
+ * Read a colorSpan node's color attribute and re-validate it through the
+ * sanitizer. Defence in depth — a custom transform could in principle inject
+ * a malformed color, so we never trust the attr directly. Returns `null` when
+ * the value isn't a known-safe CSS color, in which case the renderer should
+ * skip the inline style.
+ */
+export function colorSpanColor(node: MarkdownNode): string | null {
+  const color = node.attrs?.['color'];
+  if (typeof color !== 'string') return null;
+  return sanitizeColor(color);
 }
 
 function getTableColumnAlign(

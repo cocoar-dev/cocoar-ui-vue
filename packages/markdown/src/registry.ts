@@ -59,6 +59,7 @@ export interface MarkdownViewerRenderers {
   link: Component<MarkdownRendererProps>;
   image: Component<MarkdownRendererProps>;
   lineBreak: Component<MarkdownRendererProps>;
+  colorSpan: Component<MarkdownRendererProps>;
   // Fallback
   unsupported: Component<MarkdownRendererProps>;
 }
@@ -86,6 +87,7 @@ const DEFAULT_NODE_TYPES: Record<MarkdownRendererName, true> = {
   thematicBreak: true,
   text: true, emphasis: true, strong: true, strikethrough: true,
   inlineCode: true, link: true, image: true, lineBreak: true,
+  colorSpan: true,
   unsupported: true,
 };
 

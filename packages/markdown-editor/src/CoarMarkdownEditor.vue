@@ -1,6 +1,6 @@
 <script lang="ts">
 import {
-  defineComponent, h, ref, shallowRef, computed, watch, inject, useId,
+  defineComponent, h, ref, shallowRef, computed, watch, inject, useId, markRaw,
   onMounted, onBeforeUnmount, Teleport,
   type PropType, type VNodeArrayChildren,
 } from 'vue';
@@ -9,9 +9,13 @@ import {
 } from '@milkdown/core';
 import type { $Command } from '@milkdown/utils';
 import { Milkdown, MilkdownProvider, useEditor, useInstance } from '@milkdown/vue';
-import { FORM_FIELD_INJECTION_KEY } from '@cocoar/vue-ui';
+import { FORM_FIELD_INJECTION_KEY, menuPreset, useOverlay } from '@cocoar/vue-ui';
+import type { OverlayRef } from '@cocoar/vue-ui';
 import { decideListToggleAction, isToolEnabled } from './toolbar-helpers';
 import { codeBlockNodeView } from './code-block-view';
+import { textColor } from './text-color';
+import ColorPickerPanel from './text-color/ColorPickerPanel.vue';
+import { sanitizeColor } from '@cocoar/vue-markdown-core';
 import {
   commonmark,
   toggleStrongCommand, toggleEmphasisCommand, toggleInlineCodeCommand,
@@ -42,6 +46,7 @@ export type CoarMarkdownEditorToolbarPosition = 'left' | 'right' | 'top' | 'bott
  */
 export type CoarMarkdownEditorTool =
   | 'bold' | 'italic' | 'strikethrough' | 'inlineCode'
+  | 'textColor'
   | 'headings'
   | 'bulletList' | 'orderedList' | 'taskList'
   | 'indent' | 'outdent'
@@ -54,6 +59,7 @@ export type CoarMarkdownEditorTool =
  *  custom subsets (e.g. `tools: COAR_MARKDOWN_EDITOR_ALL_TOOLS.filter(...)`). */
 export const COAR_MARKDOWN_EDITOR_ALL_TOOLS: readonly CoarMarkdownEditorTool[] = [
   'bold', 'italic', 'strikethrough', 'inlineCode',
+  'textColor',
   'headings',
   'bulletList', 'orderedList', 'taskList',
   'indent', 'outdent',
@@ -166,6 +172,8 @@ const EditorImpl = defineComponent({
         .use(history)
         .use(clipboard)
         .use(listener)
+        // Inline color mark + raw-HTML span round-trip plugin pair.
+        .use(textColor)
         // Custom NodeView for `code_block` — Prism-rendered when not focused,
         // editable + language selector when the cursor is inside.
         .use(codeBlockNodeView),
@@ -239,6 +247,10 @@ const Toolbar = defineComponent({
       emphasis: boolean;
       strike_through: boolean;
       inlineCode: boolean;
+      /** Active text-color value (sanitized) at the selection, or `null`
+       *  when no color mark covers the range. Used by the picker to render
+       *  its swatches with an "active" indicator. */
+      text_color: string | null;
       bullet_list: boolean;
       ordered_list: boolean;
       task_list: boolean;
@@ -252,9 +264,16 @@ const Toolbar = defineComponent({
     }
     const emptyActive: ActiveState = {
       strong: false, emphasis: false, strike_through: false, inlineCode: false,
+      text_color: null,
       bullet_list: false, ordered_list: false, task_list: false, blockquote: false,
       heading: null, table: false, code_block: false, list_item_depth: 0,
     };
+    // Overlay-driven color picker: positioning, viewport flipping, and
+    // outside-click + escape dismissal are owned by the shared overlay
+    // service (same primitive that powers menus, popovers, and sidebar
+    // flyouts). The editor only opens/closes; everything else is handled.
+    const overlay = useOverlay();
+    let colorPickerRef: OverlayRef | null = null;
     const active = ref<ActiveState>({ ...emptyActive });
 
     function call<T>(cmd: CmdDef<T>) {
@@ -296,6 +315,76 @@ const Toolbar = defineComponent({
     );
     function enabled(tool: CoarMarkdownEditorTool): boolean {
       return isToolEnabled(tool, enabledSet.value);
+    }
+
+    /**
+     * Apply (or remove) the text-color mark on the current selection.
+     *
+     * - `null` removes any existing color mark.
+     * - A string is run through `sanitizeColor` first; an unsafe value is
+     *   treated as "remove" rather than silently writing it through.
+     *
+     * Collapsed cursor: we toggle stored marks so the next typed character
+     * picks up the chosen color. Range: addMark/removeMark on the range.
+     */
+    function applyTextColor(rawColor: string | null) {
+      if (props.readonly) return;
+      const editor = getInstance();
+      if (!editor) return;
+      const safeColor = rawColor === null ? null : sanitizeColor(rawColor);
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        const { state } = view;
+        const markType = state.schema.marks['text_color'];
+        if (!markType) return;
+        const { from, to, empty } = state.selection;
+        if (empty) {
+          const current = state.storedMarks ?? state.selection.$from.marks();
+          const filtered = current.filter((m) => m.type !== markType);
+          const next = safeColor ? [...filtered, markType.create({ color: safeColor })] : filtered;
+          view.dispatch(state.tr.setStoredMarks(next));
+        } else {
+          let tr = state.tr.removeMark(from, to, markType);
+          if (safeColor) tr = tr.addMark(from, to, markType.create({ color: safeColor }));
+          view.dispatch(tr);
+        }
+      });
+      closeColorPicker();
+      updateActiveState();
+    }
+
+    function toggleColorPicker(triggerEl: HTMLElement | null) {
+      if (!triggerEl) return;
+      // Re-clicking the trigger while the picker is open closes it. The
+      // overlay service's outside-click handles every other dismissal path.
+      if (colorPickerRef && !colorPickerRef.isClosed) {
+        closeColorPicker();
+        return;
+      }
+      colorPickerRef = overlay.open({
+        spec: {
+          ...menuPreset,
+          anchor: { kind: 'element', element: triggerEl },
+        },
+        content: { kind: 'component', component: markRaw(ColorPickerPanel) },
+        inputs: {
+          currentColor: active.value.text_color,
+          pick: (color: string | null) => applyTextColor(color),
+        },
+      });
+      colorPickerRef.afterClosed.then(() => {
+        // Keep our local handle in sync when the service closes the picker
+        // (outside click, escape, scroll-close-strategy, etc.) so the next
+        // trigger click reopens instead of trying to close a stale ref.
+        if (colorPickerRef?.isClosed) colorPickerRef = null;
+      });
+    }
+
+    function closeColorPicker() {
+      if (colorPickerRef && !colorPickerRef.isClosed) {
+        colorPickerRef.close();
+      }
+      colorPickerRef = null;
     }
 
     // Clear all inline marks on the current selection AND turn the active
@@ -392,6 +481,34 @@ const Toolbar = defineComponent({
           next.emphasis = checkMark('emphasis');
           next.strike_through = checkMark('strike_through');
           next.inlineCode = checkMark('inlineCode');
+
+          // Read the text-color mark's color attr from the cursor (collapsed)
+          // or from the first occurrence in the range. We don't try to detect
+          // mixed colors — the picker's "active" indicator just shows the
+          // color the user would replace with another click.
+          const colorType = state.schema.marks['text_color'];
+          if (colorType) {
+            const findColor = (): string | null => {
+              if (empty) {
+                const marks = storedMarks ?? $from.marks();
+                const m = marks.find((mk) => mk.type === colorType);
+                const c = typeof m?.attrs['color'] === 'string' ? m.attrs['color'] : null;
+                return c ? sanitizeColor(c) : null;
+              }
+              let found: string | null = null;
+              state.doc.nodesBetween(from, to, (node) => {
+                if (found) return false;
+                const m = node.marks.find((mk) => mk.type === colorType);
+                if (m) {
+                  const c = typeof m.attrs['color'] === 'string' ? m.attrs['color'] : null;
+                  found = c ? sanitizeColor(c) : null;
+                }
+                return found === null;
+              });
+              return found;
+            };
+            next.text_color = findColor();
+          }
 
           // Walk ancestors for block-level node detection
           for (let d = $from.depth; d > 0; d--) {
@@ -532,6 +649,11 @@ const Toolbar = defineComponent({
     function onDocMouseDown(e: MouseEvent) {
       const target = e.target as HTMLElement;
       if (target.closest('.coar-md-floating-toolbar') || target.closest('.coar-md-float-submenu')) return;
+      // The color picker lives in an overlay outlet (Teleport-to-body via the
+      // overlay service); it has its own outside-click handler and must be
+      // exempt here so a click inside the picker doesn't bleed through to
+      // the floating toolbar's hide logic.
+      if (target.closest('.coar-md-color-picker') || target.closest('.coar-overlay-outlet')) return;
       if (!rootEl.value || !rootEl.value.contains(target)) {
         floatingVisible.value = false;
         headingSubmenuOpen.value = false;
@@ -591,6 +713,7 @@ const Toolbar = defineComponent({
       document.removeEventListener('selectionchange', onSelectionChange);
       document.removeEventListener('mousedown', onDocMouseDown, true);
       unregisterPmListener();
+      closeColorPicker();
     });
 
     function sidebarItem<T>(
@@ -634,6 +757,22 @@ const Toolbar = defineComponent({
       pushIf(items, 'italic', sidebarItem('italic', 'Italic', cmds.italic, { active: a.emphasis }));
       pushIf(items, 'strikethrough', sidebarItem('strikethrough', 'Strikethrough', cmds.strike, { active: a.strike_through }));
       pushIf(items, 'inlineCode', sidebarItem('code', 'Inline Code', cmds.code, { active: a.inlineCode }));
+      // Text color trigger — opens the same Teleported swatch popover used by
+      // the floating toolbar, anchored to the sidebar item so positioning
+      // stays correct when the sidebar lives on the right edge etc.
+      pushIf(items, 'textColor', h(CoarSidebarItem, {
+        icon: 'palette',
+        label: 'Text Color',
+        active: a.text_color !== null,
+        onClick: (e: MouseEvent) => {
+          // CoarSidebarItem's keyboard activation synthesises a MouseEvent
+          // without a currentTarget; fall back to the click target so the
+          // overlay still has a valid anchor element to position against.
+          const triggerEl = (e.currentTarget as HTMLElement | null) ??
+            (e.target as HTMLElement | null);
+          toggleColorPicker(triggerEl);
+        },
+      }));
       pushIf(items, 'headings', h(CoarSidebarGroup, {
         icon: 'hash',
         label: isHeadingActive ? `Heading ${a.heading}` : 'Headings',
@@ -761,6 +900,25 @@ const Toolbar = defineComponent({
       pushFb(textToolbar, 'italic', fb('italic', 'Italic', cmds.italic, { isActive: a.emphasis }));
       pushFb(textToolbar, 'strikethrough', fb('strikethrough', 'Strikethrough', cmds.strike, { isActive: a.strike_through }));
       pushFb(textToolbar, 'inlineCode', fb('code', 'Inline Code', cmds.code, { isActive: a.inlineCode }));
+
+      if (enabled('textColor')) {
+        const colorActive = a.text_color !== null;
+        textToolbar.push(
+          h('button', {
+            class: [
+              'coar-md-float-btn',
+              colorActive ? 'coar-md-float-btn--active' : '',
+            ],
+            type: 'button',
+            title: colorActive ? `Text Color (${a.text_color})` : 'Text Color',
+            style: colorActive ? `--coar-md-color-indicator: ${a.text_color};` : undefined,
+            onMousedown: (e: MouseEvent) => {
+              e.preventDefault();
+              toggleColorPicker(e.currentTarget as HTMLElement);
+            },
+          }, [h(CoarIcon, { name: 'palette', size: 's' })]),
+        );
+      }
 
       if (enabled('headings')) {
         pushSep(textToolbar);
@@ -1057,28 +1215,12 @@ export default defineComponent({
   outline: none;
 }
 
-/* ── Typography inside the editor ── */
-.coar-md-area .milkdown h1 { font-size: 1.75em; font-weight: 700; margin: 0.5em 0 0.3em; line-height: 1.2; }
-.coar-md-area .milkdown h2 { font-size: 1.35em; font-weight: 600; margin: 0.5em 0 0.3em; line-height: 1.3; }
-.coar-md-area .milkdown h3 { font-size: 1.1em; font-weight: 600; margin: 0.4em 0 0.2em; }
-.coar-md-area .milkdown p { margin: 0.4em 0; line-height: 1.5; }
-.coar-md-area .milkdown ul,
-.coar-md-area .milkdown ol { margin: 0.4em 0; padding-left: 1.5em; }
-.coar-md-area .milkdown li { margin: 0.15em 0; }
-
-.coar-md-area .milkdown blockquote {
-  margin: 0.5em 0;
-  padding: 0.25em var(--coar-spacing-m);
-  border-left: 3px solid var(--coar-border-neutral);
-  color: var(--coar-text-neutral-secondary);
-}
-
-.coar-md-area .milkdown code {
-  background: var(--coar-background-neutral-secondary);
-  padding: 0.15em 0.4em;
-  border-radius: var(--coar-radius-s);
-  font-size: 0.9em;
-}
+/* Typography (heading sizes, paragraph spacing, list indentation, blockquote,
+   inline-code, link, table) all live in `@cocoar/vue-markdown/styles` —
+   the shared block stylesheet. The selectors there cover both the viewer's
+   direct-child layout *and* the editor's PM-managed `.ProseMirror > …`
+   structure, so editor and viewer render identically. Adding deeper-
+   selector overrides here breaks that parity. */
 
 .coar-md-area .milkdown pre {
   background: var(--coar-background-neutral-secondary);
@@ -1089,80 +1231,17 @@ export default defineComponent({
 }
 .coar-md-area .milkdown pre code { background: none; padding: 0; }
 
-.coar-md-area .milkdown table { border-collapse: collapse; width: 100%; margin: 0.5em 0; }
-.coar-md-area .milkdown th,
-.coar-md-area .milkdown td {
-  border: 1px solid var(--coar-border-neutral);
-  padding: var(--coar-spacing-xs) var(--coar-spacing-s);
-  text-align: left;
-}
-.coar-md-area .milkdown th {
-  background: var(--coar-background-neutral-secondary);
-  font-weight: 600;
-}
-
 .coar-md-area .milkdown hr {
   border: none;
   border-top: 1px solid var(--coar-border-neutral);
   margin: 1em 0;
 }
-.coar-md-area .milkdown a {
-  color: var(--coar-text-accent-primary);
-  text-decoration: underline;
-}
-.coar-md-area .milkdown strong { font-weight: 600; }
-.coar-md-area .milkdown del { text-decoration: line-through; }
+/* `strong` and `del` intentionally NOT styled here — browser defaults
+   (bold = 700, line-through) match the viewer. The previous `font-weight:
+   600` override caused editor strong to render lighter than viewer strong. */
 
-/* ── GFM task list items ── */
-.coar-md-area .milkdown li[data-item-type="task"] {
-  list-style: none;
-  margin-left: -1.25em;
-  padding-left: 1.5em;
-  position: relative;
-}
-
-.coar-md-area .milkdown li[data-item-type="task"]::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0.45em;
-  width: 14px;
-  height: 14px;
-  border: 1.5px solid var(--coar-border-neutral-secondary, var(--coar-border-neutral));
-  border-radius: var(--coar-radius-xs, 2px);
-  background: var(--coar-background-neutral-primary);
-  cursor: pointer;
-  box-sizing: border-box;
-  transition: background-color 0.1s, border-color 0.1s;
-}
-
-.coar-md-area .milkdown li[data-item-type="task"][data-checked="true"]::before {
-  background: var(--coar-background-accent-primary);
-  border-color: var(--coar-background-accent-primary);
-}
-
-.coar-md-area .milkdown li[data-item-type="task"][data-checked="true"]::after {
-  content: '';
-  position: absolute;
-  left: 3px;
-  top: calc(0.45em + 2px);
-  width: 8px;
-  height: 5px;
-  border-left: 2px solid var(--coar-text-on-bold, #fff);
-  border-bottom: 2px solid var(--coar-text-on-bold, #fff);
-  transform: rotate(-45deg);
-  pointer-events: none;
-}
-
-.coar-md-area .milkdown li[data-item-type="task"][data-checked="true"] > p {
-  color: var(--coar-text-neutral-tertiary);
-  text-decoration: line-through;
-}
-
-/* Hide any native input that the schema may inject */
-.coar-md-area .milkdown li[data-item-type="task"] input[type="checkbox"] {
-  display: none;
-}
+/* GFM task-list checkbox styling lives in `@cocoar/vue-markdown/styles` so
+   editor and viewer render the cocoar-style checkbox identically. */
 
 /* ── Floating toolbar ── */
 .coar-md-floating-toolbar {
@@ -1270,5 +1349,25 @@ export default defineComponent({
 @keyframes coar-md-float-in {
   from { opacity: 0; transform: translate(-50%, -100%) translateY(4px); }
   to { opacity: 1; transform: translate(-50%, -100%) translateY(0); }
+}
+
+/* ── Text-color trigger ── */
+/* The active-color indicator on the floating-toolbar trigger is a thin bar
+   under the icon; the value comes from --coar-md-color-indicator set inline
+   when an active color is detected at the selection. The picker panel
+   itself lives in `ColorPickerPanel.vue` (rendered via the overlay
+   service), with global styles colocated there. */
+.coar-md-float-btn[style*='--coar-md-color-indicator']::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 3px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--coar-md-color-indicator);
+}
+.coar-md-float-btn[style*='--coar-md-color-indicator'] {
+  position: relative;
 }
 </style>

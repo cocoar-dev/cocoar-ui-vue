@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm';
 import type { Root, RootContent, Table } from 'mdast';
 
 import type { MarkdownDocument, MarkdownNode } from './types';
+import { serializeColorSpanClose, serializeColorSpanOpen } from './color-span';
 
 export interface SerializeMarkdownOptions {
   readonly gfm?: boolean;
@@ -23,8 +24,32 @@ export function serialize(doc: MarkdownDocument, options: SerializeMarkdownOptio
 function toMdastRoot(doc: MarkdownDocument): Root {
   return {
     type: 'root',
-    children: doc.nodes.map((n) => toMdastNode(n) as RootContent),
+    children: doc.nodes.flatMap((n) => toMdastNodes(n) as RootContent[]),
   };
+}
+
+/**
+ * Most node types map 1:1 to a single mdast node. `colorSpan` is the
+ * exception — it expands to three siblings (`html` open, …children, `html`
+ * close) so they can sit inline alongside text/emphasis/etc. inside a
+ * paragraph. Callers always flatMap over the result to keep that flat-array
+ * model uniform.
+ */
+function toMdastNodes(node: MarkdownNode): unknown[] {
+  if (node.type === 'colorSpan') {
+    const color = typeof node.attrs?.['color'] === 'string' ? node.attrs['color'] : null;
+    if (!color) {
+      // Defensive: a colorSpan without a color attr can't round-trip; emit
+      // the children only so content isn't lost.
+      return (node.children ?? []).flatMap(toMdastNodes);
+    }
+    return [
+      { type: 'html', value: serializeColorSpanOpen(color) },
+      ...(node.children ?? []).flatMap(toMdastNodes),
+      { type: 'html', value: serializeColorSpanClose() },
+    ];
+  }
+  return [toMdastNode(node)];
 }
 
 function toMdastNode(node: MarkdownNode): unknown {
@@ -33,17 +58,17 @@ function toMdastNode(node: MarkdownNode): unknown {
       return {
         type: 'heading',
         depth: clampHeadingDepth(node.attrs?.['depth']),
-        children: (node.children ?? []).map(toMdastNode),
+        children: (node.children ?? []).flatMap(toMdastNodes),
       };
     case 'paragraph':
       return {
         type: 'paragraph',
-        children: (node.children ?? []).map(toMdastNode),
+        children: (node.children ?? []).flatMap(toMdastNodes),
       };
     case 'blockquote':
       return {
         type: 'blockquote',
-        children: (node.children ?? []).map(toMdastNode),
+        children: (node.children ?? []).flatMap(toMdastNodes),
       };
     case 'list':
       return {
@@ -51,14 +76,14 @@ function toMdastNode(node: MarkdownNode): unknown {
         ordered: Boolean(node.attrs?.['ordered']),
         start: typeof node.attrs?.['start'] === 'number' ? node.attrs['start'] : undefined,
         spread: typeof node.attrs?.['spread'] === 'boolean' ? node.attrs['spread'] : undefined,
-        children: (node.children ?? []).map(toMdastNode),
+        children: (node.children ?? []).flatMap(toMdastNodes),
       };
     case 'listItem':
       return {
         type: 'listItem',
         checked: typeof node.attrs?.['checked'] === 'boolean' ? node.attrs['checked'] : null,
         spread: typeof node.attrs?.['spread'] === 'boolean' ? node.attrs['spread'] : undefined,
-        children: (node.children ?? []).map(toMdastNode),
+        children: (node.children ?? []).flatMap(toMdastNodes),
       };
     case 'codeBlock':
       return {
@@ -80,24 +105,24 @@ function toMdastNode(node: MarkdownNode): unknown {
     case 'emphasis':
       return {
         type: 'emphasis',
-        children: (node.children ?? []).map(toMdastNode),
+        children: (node.children ?? []).flatMap(toMdastNodes),
       };
     case 'strong':
       return {
         type: 'strong',
-        children: (node.children ?? []).map(toMdastNode),
+        children: (node.children ?? []).flatMap(toMdastNodes),
       };
     case 'strikethrough':
       return {
         type: 'delete',
-        children: (node.children ?? []).map(toMdastNode),
+        children: (node.children ?? []).flatMap(toMdastNodes),
       };
     case 'link':
       return {
         type: 'link',
         url: typeof node.attrs?.['url'] === 'string' ? node.attrs['url'] : '',
         title: typeof node.attrs?.['title'] === 'string' ? node.attrs['title'] : null,
-        children: (node.children ?? []).map(toMdastNode),
+        children: (node.children ?? []).flatMap(toMdastNodes),
       };
     case 'image':
       return {
@@ -118,17 +143,17 @@ function toMdastNode(node: MarkdownNode): unknown {
       return {
         type: 'table',
         align: Array.isArray(node.attrs?.['align']) ? (node.attrs['align'] as Table['align']) : undefined,
-        children: (node.children ?? []).map(toMdastNode),
+        children: (node.children ?? []).flatMap(toMdastNodes),
       };
     case 'tableRow':
       return {
         type: 'tableRow',
-        children: (node.children ?? []).map(toMdastNode),
+        children: (node.children ?? []).flatMap(toMdastNodes),
       };
     case 'tableCell':
       return {
         type: 'tableCell',
-        children: (node.children ?? []).map(toMdastNode),
+        children: (node.children ?? []).flatMap(toMdastNodes),
       };
     case 'unsupported':
       return {
