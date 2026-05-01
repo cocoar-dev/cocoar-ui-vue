@@ -410,6 +410,15 @@ onBeforeUnmount(() => {
 // ─── Imperative API ────────────────────────────────────────────────────
 
 defineExpose({
+  /**
+   * The actual scroll container element (the `<div>` with
+   * `overflow-y: auto` and `class="coar-virtualized-surface-1dy"`).
+   * Consumers passing this ref into `useCoarDrag` get auto-scroll
+   * for free without having to re-query the DOM.
+   *
+   * Returns `null` before mount.
+   */
+  getContainerElement: () => containerRef.value,
   /** Current rendered range (a snapshot of `range.value`). Includes overscan. */
   getRange: () => range.value,
   /**
@@ -436,8 +445,30 @@ defineExpose({
     const offset = offsetForItem(index);
     el.scrollTo({ top: offset, behavior });
   },
-  /** Direct access to the underlying cache (variable-size mode). */
-  getCache: () => cache.value,
+  /**
+   * Direct access to the underlying measurement cache. In variable-
+   * size mode this is the live cache that fills as items are
+   * measured; in fixed-size mode it's a synthetic cache backed by
+   * the fixed size, lazily created on first access.
+   *
+   * Either way, `cache.indexAtOffset` and `cache.prefixSum` give
+   * correct answers — useful for hit-testing (`hitTestVerticalSurface`)
+   * and other consumer-side virtualization math.
+   */
+  getCache: (): MeasurementCache => {
+    if (cache.value) return cache.value;
+    if (isFixed.value) {
+      // Synthetic cache: every item is the fixed size. We bypass
+      // `ensureCache` (which uses `estimatedItemSize`) and create a
+      // cache with the fixed size as its estimate. No items need
+      // explicit `set()` calls — the estimate IS the truth in this
+      // mode.
+      cache.value = new MeasurementCache(props.itemCount, props.fixedItemSize as number);
+      return cache.value;
+    }
+    // Variable mode without measurements yet — create with estimate.
+    return ensureCache();
+  },
 });
 </script>
 

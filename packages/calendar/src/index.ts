@@ -13,4 +13,10 @@
  */
 export { default as VirtualizedSurface1DY } from './components/VirtualizedSurface1DY.vue';
 export { default as VirtualizedSurface2D } from './components/VirtualizedSurface2D.vue';
+export {
+  useCoarDrag,
+  type DragContext,
+  type UseCoarDragOptions,
+  type UseCoarDragReturn,
+} from './composables/useCoarDrag';
 export * from './core/index';

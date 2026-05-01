@@ -31,3 +31,10 @@ export {
   type IntervalLayout,
   type LayoutResult,
 } from './overlapLayout';
+export {
+  hitTestVerticalSurface,
+  computeAutoScrollVelocity,
+  type VerticalHit,
+  type AutoScrollOptions,
+  type AutoScrollResult,
+} from './dragHitTest';
