@@ -74,6 +74,13 @@ export {
   type MonthMultiDayBar,
   type MonthCellPill,
 } from './monthGridLayout';
+export {
+  buildAgendaItems,
+  type AgendaItem,
+  type AgendaHeaderItem,
+  type AgendaEventItem,
+  type AgendaLayoutOptions,
+} from './agendaLayout';
 // NOTE: recurrence engine exports live behind a subpath
 // (`@cocoar/vue-calendar/recurrence`) rather than the main core
 // barrel. The worker file uses Vite's `?worker` syntax which has

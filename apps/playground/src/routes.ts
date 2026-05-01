@@ -79,6 +79,10 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('./views/CalendarMonthViewDemo.vue'),
   },
   {
+    path: '/calendar-agenda-view',
+    component: () => import('./views/CalendarAgendaViewDemo.vue'),
+  },
+  {
     path: '/todos',
     component: () => import('./views/TodoListView.vue'),
     meta: {

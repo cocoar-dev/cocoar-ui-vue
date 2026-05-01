@@ -17,6 +17,7 @@ export { default as CoarTimeGrid } from './components/CoarTimeGrid.vue';
 export { default as CoarDayView } from './components/CoarDayView.vue';
 export { default as CoarWeekView } from './components/CoarWeekView.vue';
 export { default as CoarMonthView } from './components/CoarMonthView.vue';
+export { default as CoarAgendaView } from './components/CoarAgendaView.vue';
 export {
   useCoarDrag,
   type DragContext,
