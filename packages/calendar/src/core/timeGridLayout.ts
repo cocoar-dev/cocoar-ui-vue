@@ -171,29 +171,74 @@ export function layoutDayEvents<TMeta extends Record<string, unknown> = Record<s
 
   if (projections.length === 0) return [];
 
-  // Run overlap layout on minute intervals. `overlapLayout` uses
-  // INCLUSIVE-end columns; for time-grid we want HALF-OPEN (an
-  // event ending at 09:30 doesn't conflict with one starting at
-  // 09:30). Use `endMinutes - 1` as the inclusive-end index.
-  const intervals: IntervalInput[] = projections.map((p) => ({
-    id: p.event.id,
-    start: p.startMinutes,
-    end: Math.max(p.startMinutes, p.endMinutes - 1),
-  }));
-  const layoutResult = layoutOverlappingIntervals(intervals);
+  // Group events into connected overlap components. An event that
+  // doesn't transitively overlap with any other event ends up in
+  // its own component → full width (laneCount 1). A 3-deep overlap
+  // cluster gets laneCount 3 only for the events INSIDE it; events
+  // earlier or later in the day stay full-width.
+  //
+  // This matches Google / Outlook behaviour: width is local to the
+  // overlap, not global to the day.
+  //
+  // Algorithm: sort by start, walk forward. A new component starts
+  // when the next event's start is at or past the running max-end
+  // of the current component. We use `>=` (not `>`) because events
+  // touching at a shared boundary (a.end === b.start) do NOT
+  // overlap and should land in different components.
+  const sorted = projections
+    .map((p, idx) => ({ ...p, idx }))
+    .sort((a, b) => {
+      if (a.startMinutes !== b.startMinutes) return a.startMinutes - b.startMinutes;
+      // Tie-break by end DESC (matches the lane-coloring sort, keeps
+      // long events visually anchored).
+      return b.endMinutes - a.endMinutes;
+    });
 
-  const laneById = new Map<string, number>();
-  for (const bar of layoutResult.bars) laneById.set(bar.id, bar.lane);
+  type Component = typeof sorted;
+  const components: Component[] = [];
+  let current: Component = [];
+  let maxEnd = -Infinity;
+  for (const p of sorted) {
+    if (p.startMinutes >= maxEnd) {
+      if (current.length > 0) components.push(current);
+      current = [p];
+      maxEnd = p.endMinutes;
+    } else {
+      current.push(p);
+      if (p.endMinutes > maxEnd) maxEnd = p.endMinutes;
+    }
+  }
+  if (current.length > 0) components.push(current);
 
-  return projections.map((p) => ({
-    event: p.event,
-    lane: laneById.get(p.event.id) ?? 0,
-    laneCount: layoutResult.laneCount,
-    startMinutes: p.startMinutes,
-    endMinutes: p.endMinutes,
-    clippedTop: p.clippedTop,
-    clippedBottom: p.clippedBottom,
-  }));
+  // Run overlap layout per component. `overlapLayout` uses
+  // INCLUSIVE-end columns; for the time grid we want HALF-OPEN
+  // (an event ending at 09:30 doesn't conflict with one starting
+  // at 09:30). Use `endMinutes - 1` as the inclusive end.
+  const laneById = new Map<string, { lane: number; laneCount: number }>();
+  for (const comp of components) {
+    const intervals: IntervalInput[] = comp.map((p) => ({
+      id: p.event.id,
+      start: p.startMinutes,
+      end: Math.max(p.startMinutes, p.endMinutes - 1),
+    }));
+    const result = layoutOverlappingIntervals(intervals);
+    for (const bar of result.bars) {
+      laneById.set(bar.id, { lane: bar.lane, laneCount: result.laneCount });
+    }
+  }
+
+  return projections.map((p) => {
+    const placement = laneById.get(p.event.id) ?? { lane: 0, laneCount: 1 };
+    return {
+      event: p.event,
+      lane: placement.lane,
+      laneCount: placement.laneCount,
+      startMinutes: p.startMinutes,
+      endMinutes: p.endMinutes,
+      clippedTop: p.clippedTop,
+      clippedBottom: p.clippedBottom,
+    };
+  });
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────

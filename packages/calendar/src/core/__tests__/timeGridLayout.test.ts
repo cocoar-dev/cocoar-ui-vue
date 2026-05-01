@@ -188,6 +188,60 @@ describe('layoutDayEvents — overlap & lanes', () => {
     expect(lanes.size).toBe(3);
     expect(r[0].laneCount).toBe(3);
   });
+
+  it('an isolated event in a day with overlap elsewhere keeps full width', () => {
+    // Solo standup at 09:00, then 3-deep overlap at 11-13. The
+    // standup must NOT inherit the cluster's laneCount.
+    const r = layoutDayEvents(
+      [
+        ev('standup', '2026-04-15T09:00:00Z', '2026-04-15T09:30:00Z'),
+        ev('a', '2026-04-15T11:00:00Z', '2026-04-15T12:30:00Z'),
+        ev('b', '2026-04-15T11:30:00Z', '2026-04-15T13:00:00Z'),
+        ev('c', '2026-04-15T12:00:00Z', '2026-04-15T13:00:00Z'),
+      ],
+      { day: DAY, timeRange: RANGE_FULL, timezone: 'UTC' },
+    );
+    const standup = r.find((p) => p.event.id === 'standup')!;
+    expect(standup.lane).toBe(0);
+    expect(standup.laneCount).toBe(1); // full width
+    const cluster = r.filter((p) => p.event.id !== 'standup');
+    for (const ev of cluster) expect(ev.laneCount).toBe(3);
+  });
+
+  it('two non-overlapping events are both full-width', () => {
+    const r = layoutDayEvents(
+      [
+        ev('morning', '2026-04-15T09:00:00Z', '2026-04-15T10:00:00Z'),
+        ev('afternoon', '2026-04-15T14:00:00Z', '2026-04-15T15:00:00Z'),
+      ],
+      { day: DAY, timeRange: RANGE_FULL, timezone: 'UTC' },
+    );
+    expect(r.every((p) => p.laneCount === 1 && p.lane === 0)).toBe(true);
+  });
+
+  it('two isolated overlap clusters layout independently', () => {
+    // Morning cluster: 2-deep. Afternoon cluster: 3-deep. A solo
+    // event between them. Each cluster sized only by its own
+    // overlap depth.
+    const r = layoutDayEvents(
+      [
+        ev('m1', '2026-04-15T09:00:00Z', '2026-04-15T10:00:00Z'),
+        ev('m2', '2026-04-15T09:30:00Z', '2026-04-15T10:30:00Z'),
+        ev('solo', '2026-04-15T12:00:00Z', '2026-04-15T13:00:00Z'),
+        ev('a1', '2026-04-15T14:00:00Z', '2026-04-15T15:30:00Z'),
+        ev('a2', '2026-04-15T14:30:00Z', '2026-04-15T15:00:00Z'),
+        ev('a3', '2026-04-15T14:45:00Z', '2026-04-15T15:30:00Z'),
+      ],
+      { day: DAY, timeRange: RANGE_FULL, timezone: 'UTC' },
+    );
+    const byId = new Map(r.map((p) => [p.event.id, p]));
+    expect(byId.get('m1')!.laneCount).toBe(2);
+    expect(byId.get('m2')!.laneCount).toBe(2);
+    expect(byId.get('solo')!.laneCount).toBe(1);
+    expect(byId.get('a1')!.laneCount).toBe(3);
+    expect(byId.get('a2')!.laneCount).toBe(3);
+    expect(byId.get('a3')!.laneCount).toBe(3);
+  });
 });
 
 // ─── Property tests ────────────────────────────────────────────────
