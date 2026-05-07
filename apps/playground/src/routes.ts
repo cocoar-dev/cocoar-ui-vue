@@ -38,6 +38,39 @@ export const routes: RouteRecordRaw[] = [
     path: '/markdown-editor',
     component: () => import('./views/MarkdownEditorView.vue'),
   },
+  // ─── @cocoar/vue-calendar demos ────────────────────────────
+  {
+    path: '/calendar-basic',
+    component: () => import('./views/CalendarBasicDemo.vue'),
+  },
+  {
+    path: '/calendar-cross-zone',
+    component: () => import('./views/CalendarCrossZoneDemo.vue'),
+  },
+  {
+    path: '/calendar-events-loader',
+    component: () => import('./views/CalendarEventsLoaderDemo.vue'),
+  },
+  {
+    path: '/calendar-dst-policy',
+    component: () => import('./views/CalendarDstPolicyDemo.vue'),
+  },
+  {
+    path: '/calendar-wire-helpers',
+    component: () => import('./views/CalendarWireHelpersDemo.vue'),
+  },
+  {
+    path: '/calendar-standalone',
+    component: () => import('./views/CalendarStandaloneDemo.vue'),
+  },
+  {
+    path: '/calendar-shell',
+    component: () => import('./views/CalendarShellDemo.vue'),
+  },
+  {
+    path: '/calendar-perf-bench',
+    component: () => import('./views/CalendarPerfBenchDemo.vue'),
+  },
   {
     path: '/todos',
     component: () => import('./views/TodoListView.vue'),

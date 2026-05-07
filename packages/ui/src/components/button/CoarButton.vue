@@ -311,6 +311,18 @@ function handleClick(event: MouseEvent) {
   margin: 0;
 }
 
+/*
+ * Hide the empty content span entirely in icon-only mode. Without
+ * this, the empty span still counts as a flex item — the parent
+ * `gap` between icon and content shifts the icon left by `gap/2`,
+ * leaving the icon visually off-center inside an aspect-1 button.
+ * `:empty` only matches when the slot rendered nothing, so this
+ * doesn't affect buttons with text content.
+ */
+.coar-button .coar-button__content:empty {
+  display: none;
+}
+
 /* ========================================
    INNER ELEMENTS
    ======================================== */

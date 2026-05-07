@@ -493,13 +493,13 @@ function onInputBlur() {
 
 .coar-plain-date-picker-trigger:focus-within {
   outline: none;
-  border-color: var(--coar-border-accent-primary);
-  box-shadow: inset 0 0 0 1px var(--coar-border-accent-primary);
+  border-color: var(--coar-focus-color);
+  box-shadow: inset 0 0 0 1px var(--coar-focus-color);
 }
 
 .coar-plain-date-picker-trigger--open:not(.coar-plain-date-picker-trigger--error) {
-  border-color: var(--coar-border-accent-primary);
-  box-shadow: inset 0 0 0 1px var(--coar-border-accent-primary);
+  border-color: var(--coar-focus-color);
+  box-shadow: inset 0 0 0 1px var(--coar-focus-color);
 }
 
 .coar-plain-date-picker-trigger--disabled {
@@ -551,6 +551,7 @@ function onInputBlur() {
   background: transparent;
   font-family: var(--coar-body-small-base-family);
   font-size: var(--coar-body-small-base-size);
+  font-weight: var(--coar-body-small-base-weight);
   color: var(--coar-text-neutral-primary);
   outline: none;
   cursor: text;

@@ -435,13 +435,14 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
 }
 
-/* Clear */
+/* Clear — sized by intrinsic icon dimensions like the other input
+ * controls (TextInput / NumberInput / DatePickers). Hardcoded 16×16
+ * here used to make the button visually fatter than its peers. */
 .coar-select-clear {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  flex-shrink: 0;
   padding: 0;
   border: none;
   background: transparent;

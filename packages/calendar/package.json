@@ -1,0 +1,70 @@
+{
+  "name": "@cocoar/vue-calendar",
+  "version": "0.0.1",
+  "description": "Vue 3 calendar component — Temporal-only public surface, single drop pipeline, per-endpoint source-zone preservation, explicit DST policy. Built on the principles laid out in the Time in Software, Done Right article series.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cocoar-dev/cocoar-ui-vue.git",
+    "directory": "packages/calendar"
+  },
+  "homepage": "https://docs.cocoar.dev/cocoar-ui-vue/",
+  "bugs": "https://github.com/cocoar-dev/cocoar-ui-vue/issues",
+  "keywords": [
+    "vue",
+    "vue3",
+    "calendar",
+    "scheduler",
+    "agenda",
+    "events",
+    "recurrence",
+    "rrule",
+    "virtualization",
+    "temporal"
+  ],
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./core": {
+      "source": "./src/core/index.ts",
+      "import": "./dist/core.js",
+      "types": "./dist/core.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "vite build",
+    "test": "vitest run",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "@js-temporal/polyfill": "^0.5.1",
+    "@napi-rs/wasm-runtime": "^1.1.4",
+    "rrule-rust": "~3.1.1"
+  },
+  "peerDependencies": {
+    "@cocoar/vue-localization": "workspace:*",
+    "@cocoar/vue-ui": "workspace:*",
+    "vue": "^3.5.0"
+  },
+  "devDependencies": {
+    "@cocoar/vue-localization": "workspace:*",
+    "@cocoar/vue-ui": "workspace:*",
+    "fast-check": "^4.7.0",
+    "rrule": "~2.8.1",
+    "rrule-temporal": "~1.5.3",
+    "vue": "^3.5.32"
+  }
+}

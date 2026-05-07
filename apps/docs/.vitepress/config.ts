@@ -95,6 +95,20 @@ export default defineConfig({
             '../../../packages/markdown-editor/src/index.ts',
           ),
         },
+        {
+          find: /^@cocoar\/vue-calendar$/,
+          replacement: resolve(
+            __dirname,
+            '../../../packages/calendar/src/index.ts',
+          ),
+        },
+        {
+          find: /^@cocoar\/vue-calendar\/core$/,
+          replacement: resolve(
+            __dirname,
+            '../../../packages/calendar/src/core/index.ts',
+          ),
+        },
       ],
     },
     plugins: [
@@ -110,6 +124,7 @@ export default defineConfig({
         '@cocoar/vue-fragment-parser',
         '@cocoar/vue-data-grid',
         '@cocoar/vue-markdown-editor',
+        '@cocoar/vue-calendar',
         'ag-grid-community',
         'ag-grid-vue3',
         '@maskito/core',
@@ -130,6 +145,10 @@ export default defineConfig({
       md.use(componentPreview);
     },
   },
+
+  // Spike pages link to live playground demos at localhost:5188; the
+  // VitePress dead-link checker can't reach them at build time.
+  ignoreDeadLinks: [/^https?:\/\/localhost(:\d+)?\//],
 
   themeConfig: {
     logo: {
@@ -254,6 +273,7 @@ export default defineConfig({
             { text: 'Sidebar', link: '/components/sidebar' },
             { text: 'Navbar', link: '/components/navbar' },
             { text: 'Tabs', link: '/components/tabs' },
+            { text: 'Segmented Control', link: '/components/segmented-control' },
             { text: 'Breadcrumb', link: '/components/breadcrumb' },
             { text: 'Pagination', link: '/components/pagination' },
           ],
@@ -289,6 +309,18 @@ export default defineConfig({
           text: 'Data',
           items: [
             { text: 'Data Grid', link: '/components/data-grid' },
+          ],
+        },
+        {
+          text: 'Calendar',
+          items: [
+            { text: 'Overview', link: '/components/calendar/' },
+            { text: 'CoarCalendar (composer)', link: '/components/calendar/coar-calendar' },
+            { text: 'Day View', link: '/components/calendar/day-view' },
+            { text: 'Week View', link: '/components/calendar/week-view' },
+            { text: 'Month View', link: '/components/calendar/month-view' },
+            { text: 'Agenda View', link: '/components/calendar/agenda-view' },
+            { text: 'Performance baseline', link: '/components/calendar/performance' },
           ],
         },
       ],
