@@ -71,6 +71,25 @@ You're building your own header / chrome, embedding the calendar in a larger lay
 
 The standalone composables and the shell composer share the same universal config surface (events / locale / timezone / density / handlers / renderers), so a renderer or handler written once works in either context. The flat `CalendarBuilder` carries every view's config — there are no per-view sub-builders to reach into.
 
+## Architecture invariants (C1–C8) {#invariants}
+
+Eight non-negotiable invariants drawn from the ["Time in Software, Done Right"][articles] article series. They're enforced **structurally** — by the type surface, by the test suite, by the single drop pipeline — not by convention. Other docs pages reference them by id (e.g. "Article 3 / C5"); this is the canonical reference.
+
+[articles]: https://dev.to/bwi/why-a-date-is-not-a-point-in-time-ad8
+
+| Article | Invariant | What it means |
+|---|---|---|
+| 1, 2, 4, 8 | **C1** Temporal-only public surface | Strings, `Date`, `PlainDateTime`, `Instant` rejected at the events-watcher boundary by `validateCalendarEvent`. Only `Temporal.ZonedDateTime` (timed) or `Temporal.PlainDate` (all-day) cross the wire. |
+| 4, 5 | **C2** Single drop pipeline | Exactly one function (`applyMoveToEvent`) converts a UI drop → new endpoints. Mouse, keyboard, touch all reach it once — same code path, same DST resolution, same payload shape. |
+| 4 | **C3** Source zone preserved per-endpoint | Cross-zone events are first-class. A Tokyo→Vienna flight keeps both endpoints in their source zones across every drag mode; the library never collapses both ends to one zone. |
+| 5 | **C4** DST disambiguation explicit | `DstPolicy` (`'compatible' \| 'reject' \| 'earlier' \| 'later'`) is a **required** parameter of every wall-time → instant conversion. No silent default — gap / overlap behaviour is always opted into. |
+| 3, 4 | **C5** Display zone vs source zone separated | `EventDropPayload.target.displayZone` (the zone the user's eyes saw) and `next.start.timeZoneId` (where the event actually lives) are distinct fields. Switching display zone never destroys event intent. |
+| 9 | **C6** Three independent display decisions | `locale`, `dateStyle`, `timeStyle`, `hour12` are independent setters, none derived from another. `buildFormatOptions(base, overrides)` is the only `Intl.DateTimeFormat` merge point. |
+| spirit | **C7** Reactivity by reads, not setup-captures | Every consumer function (`canDrop`, `eventsLoader`, `eventRenderer`, `dayHeaderRenderer`) is read on every invocation — never captured at setup. Mutating the builder mid-session always takes effect on the next call. |
+| 5 | **C8** Recurrence is a first-class type | `RecurringSeries` lives separately from `CalendarEvent`. `expandSeries(...)` ships as a typed throwing stub today — the engine wires up post-launch, but the contract is stable now so consumers can build against it. |
+
+The conformance test suite at `src/core/__tests__/timezone/` pins every invariant; CI fails if any of them slips.
+
 ## CalendarEvent shape
 
 The library reads the layout-relevant fields (`start`, `end`, `id`); anything you put in `meta` is opaque to the engine and forwarded back to your renderer / slot. Use the generic `CalendarEvent<TMeta>` to keep your meta strongly typed.
