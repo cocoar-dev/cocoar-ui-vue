@@ -6,11 +6,15 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "preview": "vite preview --strictPort --port 4188",
+    "build:preview": "vite build && vite preview --strictPort --port 4188",
     "test": "playwright test",
     "test:headed": "playwright test --headed",
-    "test:debug": "playwright test --debug"
+    "test:debug": "playwright test --debug",
+    "test:perf": "playwright test --config playwright.perf.config.ts"
   },
   "dependencies": {
+    "@cocoar/vue-calendar": "workspace:*",
     "@cocoar/vue-data-grid": "workspace:*",
     "@cocoar/vue-fragment-parser": "workspace:*",
     "@cocoar/vue-localization": "workspace:*",
@@ -26,6 +30,9 @@
   "devDependencies": {
     "@playwright/test": "^1.59.1",
     "@vitejs/plugin-vue": "^6.0.5",
+    "rrule": "~2.8.1",
+    "rrule-rust": "~3.1.1",
+    "rrule-temporal": "~1.5.3",
     "typescript": "^5.8.0",
     "vite": "^8.0.8"
   }

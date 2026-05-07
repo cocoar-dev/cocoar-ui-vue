@@ -506,9 +506,9 @@ const sizeClass = computed(
   border: 1px solid var(--coar-border-input);
   border-radius: var(--coar-radius-xs);
   background: var(--coar-surface-input);
-  font-family: var(--coar-body-base-family);
-  font-size: var(--coar-body-base-size);
-  font-weight: var(--coar-body-base-weight);
+  font-family: var(--coar-body-small-base-family);
+  font-size: var(--coar-body-small-base-size);
+  font-weight: var(--coar-body-small-base-weight);
   font-variant-numeric: tabular-nums;
   color: var(--coar-text-neutral-primary);
   cursor: default;
@@ -520,8 +520,8 @@ const sizeClass = computed(
 
 .coar-time-picker__value:focus {
   outline: none;
-  border-color: var(--coar-border-accent-primary);
-  box-shadow: inset 0 0 0 1px var(--coar-border-accent-primary);
+  border-color: var(--coar-focus-color);
+  box-shadow: inset 0 0 0 1px var(--coar-focus-color);
 }
 
 /* ========================================

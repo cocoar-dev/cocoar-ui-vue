@@ -66,3 +66,10 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      # Tier B perf gate for @cocoar/vue-calendar (Spike A onwards).
+      # Production build of the playground, real-input scroll regimens,
+      # Long-Animation-Frame-based assertions. Calibrated for GHA's
+      # ubuntu-latest runner; tightens over time.
+      - name: Calendar perf gate (Tier B)
+        run: pnpm --filter @cocoar/playground test:perf

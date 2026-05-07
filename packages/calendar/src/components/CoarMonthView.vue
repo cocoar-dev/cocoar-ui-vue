@@ -1,0 +1,733 @@
+<script setup lang="ts" generic="TMeta extends Record<string, unknown> = Record<string, unknown>">
+/**
+ * `<CoarMonthView>` — month grid (6 × 7), pagination mode.
+ *
+ * Public surface: ONE prop, `:builder`. All config and handlers
+ * are routed through the builder — events, locale, timezone,
+ * density, canDrop, renderers, etc. The builder also owns the
+ * cursor (via `_dateRef()`), which lets `<CoarCalendar>` and the
+ * standalone `useMonthView()` share the same wiring.
+ *
+ * Internal pieces:
+ *   - `<CoarMonthGrid>` — sticky weekday header + rows container
+ *   - `<CoarMonthRow>` — one week row (7-col grid + bars overlay)
+ *   - `<CoarMonthCell>` — day-cell wrapper + kebab + pills slot
+ *   - `<CoarMonthPill>` / `<CoarMonthBar>` — event visuals
+ *   - `useMonthDnd` — drag/drop glue (preview + ghost + keyboard)
+ *   - `useMonthExpansion` — row expand/collapse + overflow detection
+ *
+ * Slot priority for events:
+ *   template slot (#pill / #multiDayBar / #event)
+ *     → variant-specific renderer (state.pillRenderer / barRenderer)
+ *     → universal `state.eventRenderer`
+ *     → built-in default (title text on the variant background)
+ */
+
+import { computed, ref, toValue, watch } from 'vue';
+import { useI18n, useLocalization } from '@cocoar/vue-localization';
+import {
+  CoarContextMenu,
+  CoarMenuItem,
+  useContextMenu,
+} from '@cocoar/vue-ui';
+import {
+  useMonthDnd,
+  type MonthEventDropPayload,
+} from '../composables/useMonthDnd';
+import { useA11yAnnouncer } from '../composables/useA11yAnnouncer';
+import { useMonthExpansion } from '../composables/useMonthExpansion';
+import { useViewWindow } from '../composables/useViewWindow';
+import {
+  Temporal,
+  monthGridDates,
+  layoutMonthGrid,
+  localizedWeekdayNames,
+  todayInZone,
+  dateKey,
+  detectFirstDayOfWeekFromLocale,
+  isAllDayEvent,
+  buildFormatOptions,
+  type CalendarEvent,
+  type MonthMultiDayBar,
+  type MonthCellPill,
+  type MonthLayout,
+} from '../core';
+import { CalendarBuilder } from '../builders/calendar-builder';
+import { RenderEvent } from '../builders/render-helpers';
+import CoarMonthPill from './internal/month/CoarMonthPill.vue';
+import CoarMonthBar from './internal/month/CoarMonthBar.vue';
+import CoarMonthCell from './internal/month/CoarMonthCell.vue';
+import CoarMonthRow from './internal/month/CoarMonthRow.vue';
+import CoarMonthGrid from './internal/month/CoarMonthGrid.vue';
+
+interface Props {
+  builder: CalendarBuilder<TMeta>;
+}
+
+const props = defineProps<Props>();
+const { t } = useI18n();
+
+defineSlots<{
+  /** Render a single-day pill. Falls back through the builder
+   *  renderers to a bare title rendering. */
+  pill(props: { event: CalendarEvent<TMeta>; pill: MonthCellPill<TMeta> }): unknown;
+  /** Render a multi-day bar. Falls back through the builder
+   *  renderers to a bare title rendering. */
+  multiDayBar(props: {
+    event: CalendarEvent<TMeta>;
+    bar: MonthMultiDayBar<TMeta>;
+  }): unknown;
+}>();
+
+// ─── Builder bindings ────────────────────────────────────────────────
+// Snapshot adapter — resolves every `MaybeRefOrGetter` field through
+// `toValue` per Vue tick so templates can read `state.value.X` directly.
+const state = computed(() => {
+  const s = props.builder.state;
+  return {
+    events: s.events ? toValue(s.events) : [],
+    timezone: toValue(s.timezone),
+    locale: toValue(s.locale),
+    firstDayOfWeek: toValue(s.firstDayOfWeek),
+    density: toValue(s.density),
+    dateStyle: toValue(s.dateStyle),
+    timeStyle: toValue(s.timeStyle),
+    hour12: toValue(s.hour12),
+    dstPolicy: toValue(s.dstPolicy),
+    canDrop: s.canDrop,
+    eventRenderer: s.eventRenderer,
+    maxEventsPerCell: toValue(s.maxEventsPerCell),
+  };
+});
+const cursor = computed(() => props.builder.state.date.value);
+// Article 9: locale priority — explicit builder.locale() wins, then
+// the host app's @cocoar/vue-localization service (so a global
+// locale toggle reaches sub-views in standalone usage), finally
+// 'en-US' as the last-ditch default.
+const localization = useLocalization();
+const effectiveLocale = computed<string>(
+  () => state.value.locale ?? localization?.language.value ?? 'en-US',
+);
+const effectiveTimezone = computed(() => state.value.timezone);
+const effectiveFirstDayOfWeek = computed(
+  () =>
+    state.value.firstDayOfWeek ??
+    detectFirstDayOfWeekFromLocale(effectiveLocale.value),
+);
+
+// ─── Visible-range pipeline ──────────────────────────────────────────
+// Push the visible window into the builder so loaders / onRangeChange /
+// api.getVisibleRange() see a non-null window in standalone usage.
+// The composer (`<CoarCalendar>`) does this inline; sub-views go
+// through this composable so loader-mode works identically whether
+// embedded or standalone.
+useViewWindow(props.builder, { view: 'month' });
+
+// ─── Grid + layout ───────────────────────────────────────────────────
+
+const yearMonth = computed(() => {
+  const cur = Temporal.PlainDate.from(cursor.value);
+  return Temporal.PlainYearMonth.from({ year: cur.year, month: cur.month });
+});
+
+const gridDates = computed(() =>
+  monthGridDates(yearMonth.value, effectiveFirstDayOfWeek.value),
+);
+
+const weekdayHeaders = computed(() =>
+  localizedWeekdayNames(
+    effectiveLocale.value,
+    effectiveFirstDayOfWeek.value,
+    'short',
+  ),
+);
+
+// ─── Drag & Drop ─────────────────────────────────────────────────────
+
+const gridRef = ref<HTMLElement | null>(null);
+function setGridEl(el: HTMLElement | null) {
+  gridRef.value = el;
+}
+
+const {
+  dnd,
+  workingEvents,
+  dragSourceSnapshot,
+  invalidMonthGhost,
+  isPreviewId,
+  isInvalidPillTarget,
+  onMonthEventPointerdown,
+  onMonthEventKeydown,
+  keyboardDrag,
+} = useMonthDnd({
+  events: () => state.value.events,
+  gridDates,
+  gridRef,
+  timezone: () => effectiveTimezone.value,
+  // Article 5: forward dstPolicy (was a documented no-op at the
+  // view layer until Phase 8.14-D1).
+  dstPolicy: () => state.value.dstPolicy,
+  canDrop: state.value.canDrop,
+  onEventClick: (event, native) => {
+    if (native) props.builder.state.onEventClick?.({ event, native });
+  },
+  onEventDrop: (payload) => props.builder.state.onEventDrop?.(payload),
+  onAnnounce: (kind, payload) => onA11yAnnounce(kind, payload),
+});
+
+// ─── A11y live-region ────────────────────────────────────────────────
+
+const a11y = useA11yAnnouncer();
+
+/**
+ * Aria-label for the preview-ghost variant during a keyboard
+ * drag — tells the SR user the keys they have. Without this,
+ * the focused ghost would carry the pre-drag aria-label and
+ * the user wouldn't know they're in staging mode.
+ */
+function kbdPreviewAriaLabel(event: CalendarEvent<TMeta>): string {
+  const meta = event.meta as { title?: unknown } | undefined;
+  const rawTitle = typeof meta?.title === 'string' ? meta.title : undefined;
+  const title = rawTitle ?? t('coar.calendar.a11y.unnamedEvent', undefined, 'Event');
+  return t(
+    'coar.calendar.a11y.kbdPreviewLabel',
+    { title },
+    `${title} preview — Arrow keys to move, Enter to commit, Escape to cancel`,
+  );
+}
+
+function eventTitleSafe(event: CalendarEvent<TMeta>): string {
+  const meta = event.meta as { title?: unknown } | undefined;
+  return typeof meta?.title === 'string'
+    ? meta.title
+    : t('coar.calendar.a11y.unnamedEvent', undefined, 'Event');
+}
+
+function formatAnnouncementWhen(payload: MonthEventDropPayload): string {
+  try {
+    const fmt = new Intl.DateTimeFormat(
+      effectiveLocale.value,
+      buildFormatOptions(
+        { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' },
+        {
+          dateStyle: state.value.dateStyle,
+          hour12: state.value.hour12,
+        },
+      ),
+    );
+    const d = new Date(payload.target.date + 'T00:00:00Z');
+    return fmt.format(d);
+  } catch {
+    return payload.target.date;
+  }
+}
+
+function onA11yAnnounce(
+  kind: 'committed' | 'cancelled',
+  payload?: MonthEventDropPayload,
+): void {
+  if (kind === 'cancelled') {
+    a11y.announce(
+      t('coar.calendar.a11y.moveCancelled', undefined, 'Move cancelled'),
+    );
+    return;
+  }
+  if (!payload) return;
+  const title = eventTitleSafe(payload.event);
+  const when = formatAnnouncementWhen(payload);
+  a11y.announce(
+    t(
+      'coar.calendar.a11y.eventMovedTo',
+      { title, when },
+      `${title} moved to ${when}`,
+    ),
+  );
+}
+
+const layout = computed<MonthLayout<TMeta>>(() =>
+  layoutMonthGrid(workingEvents.value, {
+    gridDates: gridDates.value,
+    timezone: effectiveTimezone.value,
+  }),
+);
+
+// ─── Decoration ──────────────────────────────────────────────────────
+
+const today = ref<Temporal.PlainDate>(todayInZone(effectiveTimezone.value));
+
+function isToday(d: Temporal.PlainDate): boolean {
+  return Temporal.PlainDate.compare(d, today.value) === 0;
+}
+function isOtherMonth(d: Temporal.PlainDate): boolean {
+  return d.year !== yearMonth.value.year || d.month !== yearMonth.value.month;
+}
+function isWeekend(d: Temporal.PlainDate): boolean {
+  // Temporal: 1..7 = Mon..Sun
+  return d.dayOfWeek === 6 || d.dayOfWeek === 7;
+}
+
+// ─── Row expansion + overflow ────────────────────────────────────────
+
+const {
+  BAR_HEIGHT,
+  DAY_NUMBER_HEIGHT,
+  barTopPx,
+  rowBarHeightsPx,
+  rowHeightPx,
+  expandedRows,
+  expandRow,
+  collapseRow,
+} = useMonthExpansion({
+  layout,
+  gridRef,
+  resetToken: yearMonth,
+});
+
+// ─── Cell menu ───────────────────────────────────────────────────────
+
+const cellMenuCtl = useContextMenu();
+const cellMenuRowIdx = ref<number | null>(null);
+const cellMenuDayKey = ref<string | null>(null);
+/** `true` only when the menu was opened by clicking the kebab.
+ *  Used to avoid highlighting the kebab on right-click /
+ *  long-press (where the menu appears at the cursor). */
+const cellMenuFromKebab = ref(false);
+
+function openCellMenuFromKebab(
+  e: MouseEvent,
+  rowIdx: number,
+  day: Temporal.PlainDate,
+): void {
+  const btn = e.currentTarget as HTMLElement | null;
+  if (!btn) return;
+  const r = btn.getBoundingClientRect();
+  cellMenuRowIdx.value = rowIdx;
+  cellMenuDayKey.value = dateKey(day);
+  cellMenuFromKebab.value = true;
+  cellMenuCtl.open({ clientX: r.left, clientY: r.bottom + 4 });
+}
+function openCellMenuFromContext(
+  e: MouseEvent,
+  rowIdx: number,
+  day: Temporal.PlainDate,
+): void {
+  cellMenuRowIdx.value = rowIdx;
+  cellMenuDayKey.value = dateKey(day);
+  cellMenuFromKebab.value = false;
+  cellMenuCtl.open(e);
+}
+watch(() => cellMenuCtl.isOpen.value, (open) => {
+  if (!open) cellMenuFromKebab.value = false;
+});
+watch(yearMonth, () => {
+  cellMenuCtl.close();
+  cellMenuRowIdx.value = null;
+  cellMenuDayKey.value = null;
+  cellMenuFromKebab.value = false;
+});
+
+// ─── Pill / event helpers ────────────────────────────────────────────
+
+const pillsByDayKey = computed<Map<string, ReadonlyArray<MonthCellPill<TMeta>>>>(
+  () => {
+    const out = new Map<string, ReadonlyArray<MonthCellPill<TMeta>>>();
+    for (const row of layout.value.weekRows) {
+      for (const day of row.days) {
+        const key = dateKey(day);
+        out.set(key, row.cellPills.get(key) ?? []);
+      }
+    }
+    return out;
+  },
+);
+
+function pillsFor(day: Temporal.PlainDate): ReadonlyArray<MonthCellPill<TMeta>> {
+  return pillsByDayKey.value.get(dateKey(day)) ?? [];
+}
+
+function eventTitle(event: CalendarEvent<TMeta>): string {
+  const meta = event.meta as { title?: unknown } | undefined;
+  return typeof meta?.title === 'string' ? meta.title : '(untitled)';
+}
+function eventColor(event: CalendarEvent<TMeta>): string | undefined {
+  const meta = event.meta as { color?: unknown } | undefined;
+  return typeof meta?.color === 'string' ? meta.color : undefined;
+}
+function eventBgFor(event: CalendarEvent<TMeta>): string {
+  return eventColor(event) ?? 'var(--coar-color-accent-soft, #93c5fd)';
+}
+function eventBorderFor(event: CalendarEvent<TMeta>): string {
+  return eventColor(event) ?? 'var(--coar-color-accent, #2563eb)';
+}
+
+/**
+ * Locale-formatted screen-reader label for one grid cell.
+ * Example: "Wednesday, April 15, 2026". The cell carries it as
+ * `aria-label` on its `role="gridcell"` element.
+ */
+const cellAriaFormatter = computed(
+  () =>
+    new Intl.DateTimeFormat(
+      effectiveLocale.value,
+      buildFormatOptions(
+        {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+          timeZone: 'UTC',
+        },
+        {
+          dateStyle: state.value.dateStyle,
+          hour12: state.value.hour12,
+        },
+      ),
+    ),
+);
+function formatCellAriaLabel(day: Temporal.PlainDate): string {
+  return cellAriaFormatter.value.format(
+    new Date(Date.UTC(day.year, day.month - 1, day.day)),
+  );
+}
+
+/** Screen-reader label for an event in the month grid. */
+function eventAriaLabel(event: CalendarEvent<TMeta>): string {
+  const title = eventTitle(event);
+  const overrides = {
+    dateStyle: state.value.dateStyle,
+    timeStyle: state.value.timeStyle,
+    hour12: state.value.hour12,
+  };
+  try {
+    if (isAllDayEvent(event)) {
+      const fmt = new Intl.DateTimeFormat(
+        effectiveLocale.value,
+        buildFormatOptions(
+          { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' },
+          overrides,
+        ),
+      );
+      const s = event.start;
+      const startD = new Date(Date.UTC(s.year, s.month - 1, s.day));
+      const e = event.end ?? s;
+      const endD = new Date(Date.UTC(e.year, e.month - 1, e.day));
+      return `${title}, ${fmt.format(startD)} – ${fmt.format(endD)}`;
+    }
+    const fmt = new Intl.DateTimeFormat(
+      effectiveLocale.value,
+      buildFormatOptions(
+        {
+          weekday: 'short',
+          day: 'numeric',
+          month: 'short',
+          hour: 'numeric',
+          minute: '2-digit',
+          timeZone: effectiveTimezone.value,
+        },
+        overrides,
+      ),
+    );
+    return `${title}, ${fmt.format(new Date(event.start.epochMilliseconds))}`;
+  } catch {
+    return title;
+  }
+}
+
+// ─── Click handlers ──────────────────────────────────────────────────
+
+function onCellClick(e: PointerEvent, date: Temporal.PlainDate) {
+  props.builder.state.onDateClick?.({ date, native: e });
+}
+
+// ─── Phantom stubs for non-interactive pill / bar variants ──────────
+
+const phantomPillStub: MonthCellPill<TMeta> = {
+  event: { id: '__phantom__', start: '1970-01-01' } as CalendarEvent<TMeta>,
+  order: 0,
+};
+const phantomBarStub: MonthMultiDayBar<TMeta> = {
+  event: { id: '__phantom__', start: '1970-01-01' } as CalendarEvent<TMeta>,
+  lane: 0,
+  laneCount: 1,
+  startCol: 0,
+  endCol: 0,
+  clippedStart: false,
+  clippedEnd: false,
+};
+
+// ─── Public surface for tests ────────────────────────────────────────
+
+defineExpose({
+  /** Snapshot of the current layout — useful for tests. */
+  getLayout: () => layout.value,
+});
+</script>
+
+<template>
+  <div
+    class="coar-month-view"
+    :class="[`coar-month-view--density-${state.density}`]"
+    role="grid"
+    :aria-label="t('coar.calendar.month.gridLabel', undefined, 'Month grid')"
+    :aria-rowcount="layout.weekRows.length + 1"
+    :aria-colcount="7"
+  >
+    <div
+      class="coar-month-view__a11y-live"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    >{{ a11y.message.value }}</div>
+    <CoarMonthGrid :weekday-headers="weekdayHeaders" :set-rows-el="setGridEl">
+      <CoarMonthRow
+        v-for="(row, rowIndex) in layout.weekRows"
+        :key="row.weekStart.toString()"
+        :height-px="rowHeightPx[rowIndex]"
+        :density="state.density"
+      >
+        <CoarMonthCell
+          v-for="(day, colIndex) in row.days"
+          :key="day.toString()"
+          :day="day"
+          :day-key="dateKey(day)"
+          :is-today="isToday(day)"
+          :is-other-month="isOtherMonth(day)"
+          :is-weekend="isWeekend(day)"
+          :pills-margin-top-px="rowBarHeightsPx[rowIndex] - DAY_NUMBER_HEIGHT"
+          :menu-open-for-this-cell="
+            cellMenuCtl.isOpen.value
+              && cellMenuFromKebab
+              && cellMenuDayKey === dateKey(day)
+          "
+          :kebab-aria-label="t('coar.calendar.month.cellMenu', undefined, 'Day actions')"
+          :density="state.density"
+          :aria-row-index="rowIndex + 2"
+          :aria-col-index="colIndex + 1"
+          :aria-label="formatCellAriaLabel(day)"
+          @cell-pointerdown="(e) => onCellClick(e, day)"
+          @cell-contextmenu="(e) => openCellMenuFromContext(e, rowIndex, day)"
+          @kebab-click="(e) => openCellMenuFromKebab(e, rowIndex, day)"
+        >
+          <CoarMonthPill
+            v-for="pill in pillsFor(day)"
+            :key="pill.event.id"
+            :event="pill.event"
+            :pill="pill"
+            :variant="isPreviewId(pill.event.id) ? 'preview' : 'live'"
+            :kbd-active="keyboardDrag !== null"
+            :bg="eventBgFor(pill.event)"
+            :border="eventBorderFor(pill.event)"
+            :title="eventTitle(pill.event)"
+            :display-zone="effectiveTimezone"
+            :aria-label="
+              isPreviewId(pill.event.id) && keyboardDrag
+                ? kbdPreviewAriaLabel(pill.event)
+                : eventAriaLabel(pill.event)
+            "
+            :density="state.density"
+            @pointerdown="onMonthEventPointerdown($event, pill.event)"
+            @keydown="onMonthEventKeydown($event, pill.event)"
+            @dblclick="props.builder.state.onEventDoubleClick?.({ event: pill.event, native: $event })"
+          >
+            <template #default="{ event: e, pill: p }">
+              <slot
+                v-if="$slots.pill"
+                name="pill"
+                :event="e"
+                :pill="p"
+              />
+              <RenderEvent
+                v-else-if="state.pillRenderer ?? state.eventRenderer"
+                :renderer="(state.pillRenderer ?? state.eventRenderer)!"
+                :ctx="{ event: e, view: 'month', layout: { kind: 'monthPill', layout: p } }"
+              />
+              <span v-else class="coar-month-view__pill-title">{{ eventTitle(e) }}</span>
+            </template>
+          </CoarMonthPill>
+          <!-- Source phantom for a dragged single-day pill. -->
+          <CoarMonthPill
+            v-if="
+              dragSourceSnapshot
+                && dragSourceSnapshot.bars.length === 0
+                && dragSourceSnapshot.pillCells.includes(dateKey(day))
+            "
+            variant="phantom"
+            :event="dragSourceSnapshot.event"
+            :pill="phantomPillStub"
+            :bg="eventBgFor(dragSourceSnapshot.event)"
+            :border="eventBorderFor(dragSourceSnapshot.event)"
+            :title="eventTitle(dragSourceSnapshot.event)"
+            :display-zone="effectiveTimezone"
+            :density="state.density"
+          />
+          <!-- Invalid ghost — flows inline so the dashed outline
+               stays inside the cell box at the rightmost column. -->
+          <CoarMonthPill
+            v-if="isInvalidPillTarget(day) && dnd.draggedEvent.value"
+            variant="invalid"
+            :event="dnd.draggedEvent.value!"
+            :pill="phantomPillStub"
+            :bg="eventBgFor(dnd.draggedEvent.value!)"
+            :border="eventBorderFor(dnd.draggedEvent.value!)"
+            :title="eventTitle(dnd.draggedEvent.value!)"
+            :display-zone="effectiveTimezone"
+            :snapping-back="dnd.snappingBack.value"
+            :density="state.density"
+          />
+        </CoarMonthCell>
+
+        <!-- Multi-day bars overlay -->
+        <CoarMonthBar
+          v-for="bar in row.multiDayBars"
+          :key="bar.event.id"
+          :event="bar.event"
+          :bar="bar"
+          :variant="isPreviewId(bar.event.id) ? 'preview' : 'live'"
+          :kbd-active="keyboardDrag !== null"
+          :bg="eventBgFor(bar.event)"
+          :border="eventBorderFor(bar.event)"
+          :title="eventTitle(bar.event)"
+          :display-zone="effectiveTimezone"
+          :aria-label="
+            isPreviewId(bar.event.id) && keyboardDrag
+              ? kbdPreviewAriaLabel(bar.event)
+              : eventAriaLabel(bar.event)
+          "
+          :density="state.density"
+          :top="barTopPx(bar.lane)"
+          :left="`calc(${(bar.startCol / 7) * 100}% + 2px)`"
+          :width="`calc(${((bar.endCol - bar.startCol + 1) / 7) * 100}% - 4px)`"
+          :height="BAR_HEIGHT"
+          :z-index="isPreviewId(bar.event.id) ? 100 : bar.lane + 1"
+          :clipped-start="bar.clippedStart"
+          :clipped-end="bar.clippedEnd"
+          @pointerdown="onMonthEventPointerdown($event, bar.event)"
+          @keydown="onMonthEventKeydown($event, bar.event)"
+          @dblclick="props.builder.state.onEventDoubleClick?.({ event: bar.event, native: $event })"
+          @start-resize="dnd.startMonthResizeStart(bar.event)($event)"
+          @end-resize="dnd.startMonthResizeEnd(bar.event)($event)"
+        >
+          <template #default="{ event: e, bar: b }">
+            <slot
+              v-if="$slots.multiDayBar"
+              name="multiDayBar"
+              :event="e"
+              :bar="b"
+            />
+            <RenderEvent
+              v-else-if="state.barRenderer ?? state.eventRenderer"
+              :renderer="(state.barRenderer ?? state.eventRenderer)!"
+              :ctx="{ event: e, view: 'month', layout: { kind: 'monthBar', layout: b } }"
+            />
+            <span v-else class="coar-month-view__bar-title">{{ eventTitle(e) }}</span>
+          </template>
+        </CoarMonthBar>
+
+        <!-- Source phantom for a dragged multi-day bar. -->
+        <CoarMonthBar
+          v-for="snapBar in (
+            dragSourceSnapshot && dragSourceSnapshot.bars.length > 0
+              ? dragSourceSnapshot.bars.filter((b) => b.rowIndex === rowIndex)
+              : []
+          )"
+          :key="`phantom-${snapBar.startCol}-${snapBar.endCol}`"
+          variant="phantom"
+          :event="dragSourceSnapshot!.event"
+          :bar="phantomBarStub"
+          :bg="eventBgFor(dragSourceSnapshot!.event)"
+          :border="eventBorderFor(dragSourceSnapshot!.event)"
+          :title="eventTitle(dragSourceSnapshot!.event)"
+          :display-zone="effectiveTimezone"
+          :density="state.density"
+          :top="barTopPx(snapBar.lane)"
+          :left="`calc(${(snapBar.startCol / 7) * 100}% + 2px)`"
+          :width="`calc(${((snapBar.endCol - snapBar.startCol + 1) / 7) * 100}% - 4px)`"
+          :height="BAR_HEIGHT"
+          :z-index="snapBar.lane + 1"
+          :clipped-start="snapBar.clippedStart"
+          :clipped-end="snapBar.clippedEnd"
+        />
+
+        <!-- Invalid bar overlay -->
+        <CoarMonthBar
+          v-if="invalidMonthGhost && invalidMonthGhost.rowIndex === rowIndex && invalidMonthGhost.isBar && dnd.draggedEvent.value"
+          variant="invalid"
+          :event="dnd.draggedEvent.value!"
+          :bar="phantomBarStub"
+          :bg="eventBgFor(dnd.draggedEvent.value!)"
+          :border="eventBorderFor(dnd.draggedEvent.value!)"
+          :title="eventTitle(dnd.draggedEvent.value!)"
+          :display-zone="effectiveTimezone"
+          :snapping-back="dnd.snappingBack.value"
+          :density="state.density"
+          :top="barTopPx(0)"
+          :left="`calc(${(invalidMonthGhost.startCol / 7) * 100}% + 2px)`"
+          :width="`calc(${((invalidMonthGhost.endCol - invalidMonthGhost.startCol + 1) / 7) * 100}% - 4px)`"
+          :height="BAR_HEIGHT"
+          :z-index="100"
+        />
+      </CoarMonthRow>
+    </CoarMonthGrid>
+
+    <!-- Cell action menu -->
+    <CoarContextMenu :menu="cellMenuCtl">
+      <CoarMenuItem
+        v-if="cellMenuRowIdx !== null && !expandedRows.has(cellMenuRowIdx)"
+        :label="t('coar.calendar.month.expandRow', undefined, 'Show more events')"
+        @click="cellMenuRowIdx !== null && expandRow(cellMenuRowIdx)"
+      />
+      <CoarMenuItem
+        v-if="cellMenuRowIdx !== null && expandedRows.has(cellMenuRowIdx)"
+        :label="t('coar.calendar.month.collapseRow', undefined, 'Show fewer events')"
+        @click="cellMenuRowIdx !== null && collapseRow(cellMenuRowIdx)"
+      />
+    </CoarContextMenu>
+  </div>
+</template>
+
+<style scoped>
+/* Visually-hidden live-region — see CoarTimeGrid for the same
+   pattern. Read out by assistive tech only. */
+.coar-month-view__a11y-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.coar-month-view {
+  display: flex;
+  flex-direction: column;
+  background: var(--coar-calendar-bg, #fff);
+  /* No outer border / radius — the cell grid already paints its own
+     edges. A wrapper "card" frame is the consumer's call: free-floating
+     embeds can add `border + border-radius` on the parent; layout-flush
+     embeds (most apps) keep the surface flush with their pane edges. */
+  /* No `overflow: hidden` here — it would create an inner scroll
+     container and capture the weekday-row's sticky positioning,
+     stopping it from sticking to the calendar body's actual
+     scroll surface. The body (`.coar-calendar__body--month`)
+     handles vertical scroll for expanded rows. */
+  font-family: var(--coar-body-base-family, system-ui, sans-serif);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Slot-fallback text spans (used when consumers don't override
+   the `pill` / `multiDayBar` slots and the builder hasn't set a
+   pillRenderer / barRenderer / eventRenderer). */
+.coar-month-view__pill-title {
+  color: var(--coar-text-base, #1a1c1f);
+  font-weight: 600;
+}
+.coar-month-view__bar-title {
+  color: var(--coar-text-base, #1a1c1f);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+</style>

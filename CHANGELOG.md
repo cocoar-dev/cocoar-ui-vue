@@ -7,6 +7,25 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 1.16.0
+
+### Added
+
+- **`@cocoar/vue-calendar` — new package**: Vue 3 calendar component built around `Temporal`. Day / Week / Month / Agenda views, a top-level `<CoarCalendar>` shell with prev / today / next navigation and a segmented-control view switcher, and standalone composables (`useDayView()` / `useWeekView()` / `useMonthView()` / `useAgendaView()`) for embedding a single view without the shell. Public surface is `Temporal.ZonedDateTime` (timed events) or `Temporal.PlainDate` (all-day events) — never strings, `Date`, `PlainDateTime`, or `Instant`. Eight architecture invariants (C1–C8) drawn from the ["Time in Software, Done Right" article series](https://dev.to/bwi/why-a-date-is-not-a-point-in-time-ad8) are enforced structurally: Temporal-only public surface (C1), single drop pipeline through `applyMoveToEvent` (C2), per-endpoint source zones preserved across every drag mode including cross-zone events (C3), explicit `DstPolicy` argument on every wall-time → instant conversion (C4), display zone vs source zone surfaced separately on drop payloads (C5), independent `locale` / `dateStyle` / `timeStyle` / `hour12` decisions merged through a single `buildFormatOptions` (C6), reactivity-by-reads not setup-capture (C7), and `RecurringSeries` as a first-class type with a typed throwing-stub `expandSeries` until the recurrence engine lands (C8). Flat `CalendarBuilder` — every setter (`timeRange`, `slotDuration`, `maxEventsPerCell`, `agendaLengthDays`, …) lives on the same builder. Universal `eventRenderer((ctx) => ...)` with `ctx.layout.kind` discriminator (`'positioned' | 'allDayBar' | 'monthPill' | 'monthBar'`) covers every variant. Drag-and-drop with mouse / touch / keyboard, cluster-aware lane sizing, virtualized agenda surface, multi-day bars across month rows, "+ N more" overflow expansion via per-cell kebab menu. Wire helpers `parseScheduledTime` / `formatScheduledTime` / `parsePlainDate` mirror the Article-8 `{ local, timeZoneId }` shape that .NET / NodaTime backends and PostgreSQL `local_start text + time_zone_id text` storage natively speak.
+- **`@cocoar/vue-calendar` — `Temporal` re-export**: `import { Temporal } from '@cocoar/vue-calendar'` for consumers that don't want a direct `@js-temporal/polyfill` dependency.
+- **`@cocoar/vue-calendar` — default event renderers surface C3 / C5 zone semantics**: a shared decoration layer (`<CoarEventDecorations>`, internal) inserts a small globe icon + tooltip + sr-only announcement on the default time-grid event card, month pill, month multi-day bar, and agenda event row. Two semantics, mutually exclusive: (1) `start.timeZoneId === 'UTC'` → globe + tooltip "Global event — same instant worldwide" (Article 5 — UTC-anchored events render the same instant for everyone, regardless of display zone); (2) `start.timeZoneId !== displayZone` (and is not UTC) → globe + accent dot + tooltip "Source zone: \<iana>" (Article 3 — render the user's clock without hiding the source). Suppressed on multi-day bars when `clippedStart` so only the visible head decorates. The same logic ships as a public helper `getEventZoneHints(event, displayZone) → { isUtcAnchored, sourceZone }` for custom renderers. Three i18n keys: `coar.calendar.event.utcLabel`, `coar.calendar.event.utcGlobalHint`, `coar.calendar.event.crossZoneHint`.
+- **`<CoarDisplayZoneSwitcher>` — drop-in display-zone selector** exported from `@cocoar/vue-calendar`: wraps `<CoarSelect>` with a curated 7-zone default list (Vienna / Berlin / London / New York / Los Angeles / Tokyo / UTC), automatically prepends the browser-detected zone if it isn't in the list, accepts an `:options` override for full IANA / domain-specific lists. `v-model` is the IANA id string the consumer passes into `builder.timezone(tz)`. Two i18n keys: `coar.calendar.zoneSwitcher.label`, `coar.calendar.zoneSwitcher.browserSuffix`.
+
+### Internal
+
+- **`@cocoar/vue-calendar` — 602 unit tests across 43 files**: timezone conformance suite at `src/core/__tests__/timezone/` pins every C1–C8 invariant; component tests cover the shell + each sub-view + the drop pipeline integration; `useViewWindow` tests pin the C5 single-writer invariant; zone-hint helper covered by 7 dedicated tests.
+
+### Docs
+
+- **New "Calendar" sidebar group** under Components — overview page, `<CoarCalendar>` (composer) reference with full builder API, per-view pages (Day, Week, Month, Agenda) with standalone-usage examples, and a manual performance bench in the playground (`/calendar-perf-bench`) for eyeballing wheel-scroll smoothness, view-switch latency, and drag-frame stability against documented Tier-A targets.
+
+---
+
 ## 1.15.0
 
 ### Added

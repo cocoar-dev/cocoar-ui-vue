@@ -152,6 +152,14 @@ export type { MenuItemClickEvent, MenuAimPoint, MenuAimDirection, MenuAimConfig,
 // Tabs
 export { CoarTabGroup, CoarTab } from './components/tabs';
 
+// Segmented Control
+export { CoarSegmentedControl } from './components/segmented-control';
+export type {
+  CoarSegmentedControlOption,
+  CoarSegmentedControlProps,
+  SegmentedControlSize,
+} from './components/segmented-control';
+
 // Breadcrumb
 export { CoarBreadcrumb, CoarBreadcrumbItem } from './components/breadcrumb';
 

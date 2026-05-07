@@ -645,13 +645,13 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
 
 .coar-pdtp-trigger:focus-within {
   outline: none;
-  border-color: var(--coar-border-accent-primary);
-  box-shadow: inset 0 0 0 1px var(--coar-border-accent-primary);
+  border-color: var(--coar-focus-color);
+  box-shadow: inset 0 0 0 1px var(--coar-focus-color);
 }
 
 .coar-pdtp-trigger--open:not(.coar-pdtp-trigger--error) {
-  border-color: var(--coar-border-accent-primary);
-  box-shadow: inset 0 0 0 1px var(--coar-border-accent-primary);
+  border-color: var(--coar-focus-color);
+  box-shadow: inset 0 0 0 1px var(--coar-focus-color);
 }
 
 .coar-pdtp-trigger--disabled {
@@ -694,6 +694,7 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
   background: transparent;
   font-family: var(--coar-body-small-base-family);
   font-size: var(--coar-body-small-base-size);
+  font-weight: var(--coar-body-small-base-weight);
   color: var(--coar-text-neutral-primary);
   outline: none;
   cursor: text;

@@ -67,6 +67,10 @@ jobs:
       - name: Build packages
         run: pnpm build
 
+      # Tier B perf gate for @cocoar/vue-calendar (Spike A onwards).
+      - name: Calendar perf gate (Tier B)
+        run: pnpm --filter @cocoar/playground test:perf
+
       - name: Ensure jq is available
         run: |
           if ! command -v jq >/dev/null 2>&1; then

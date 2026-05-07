@@ -639,7 +639,7 @@ const tzIndicatorIcon = computed(() => {
         :disabled="isDisabled"
         @click="clearValue"
       >
-        <CoarIcon name="x" size="xs" />
+        <CoarIcon name="x" size="auto" />
       </button>
 
       <!-- Input -->
@@ -767,8 +767,8 @@ const tzIndicatorIcon = computed(() => {
 }
 
 .coar-zdtp-trigger--open:not(.coar-zdtp-trigger--error) {
-  border-color: var(--coar-border-accent-primary);
-  box-shadow: 0 0 0 1px var(--coar-border-accent-primary);
+  border-color: var(--coar-focus-color);
+  box-shadow: inset 0 0 0 1px var(--coar-focus-color);
 }
 
 .coar-zdtp-trigger--error {
@@ -794,8 +794,6 @@ const tzIndicatorIcon = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 100%;
   flex-shrink: 0;
   background: none;
   border: none;
@@ -809,8 +807,19 @@ const tzIndicatorIcon = computed(() => {
   opacity: 0.4;
 }
 
-.coar-zdtp-clear:hover { opacity: 1; color: var(--coar-icon-neutral-primary); }
-.coar-zdtp-clear--hidden { opacity: 0; pointer-events: none; }
+.coar-zdtp-clear--hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.coar-zdtp-trigger:hover .coar-zdtp-clear:not(.coar-zdtp-clear--hidden) {
+  opacity: 1;
+  color: var(--coar-icon-neutral-tertiary);
+}
+
+.coar-zdtp-clear:hover {
+  color: var(--coar-icon-neutral-primary);
+}
 
 /* ========================================
    INPUT
@@ -824,14 +833,15 @@ const tzIndicatorIcon = computed(() => {
   background: transparent;
   outline: none;
   padding: 0 var(--coar-spacing-s);
-  font-family: var(--coar-body-base-family);
-  font-size: var(--coar-body-base-size);
+  font-family: var(--coar-body-small-base-family);
+  font-size: var(--coar-body-small-base-size);
+  font-weight: var(--coar-body-small-base-weight);
   color: var(--coar-text-neutral-primary);
   text-align: right;
 }
 
 .coar-zdtp-input::placeholder {
-  color: var(--coar-text-neutral-disabled);
+  color: var(--coar-text-placeholder);
 }
 
 /* ========================================
@@ -926,11 +936,12 @@ const tzIndicatorIcon = computed(() => {
 
 .coar-zdtp--s .coar-zdtp-trigger { height: var(--coar-component-s-height); }
 .coar-zdtp--s .coar-zdtp-btn { width: var(--coar-component-s-height); }
-.coar-zdtp--s .coar-zdtp-input { font-size: var(--coar-body-small-base-size); }
+.coar-zdtp--s .coar-zdtp-input { font-size: var(--coar-component-s-font-size); }
 .coar-zdtp--s .coar-zdtp-tz-inline { right: var(--coar-component-s-height); }
 
 .coar-zdtp--l .coar-zdtp-trigger { height: var(--coar-component-l-height); }
 .coar-zdtp--l .coar-zdtp-btn { width: var(--coar-component-l-height); }
+.coar-zdtp--l .coar-zdtp-input { font-size: var(--coar-component-l-font-size); }
 .coar-zdtp--l .coar-zdtp-tz-inline { right: var(--coar-component-l-height); }
 
 /* ========================================
