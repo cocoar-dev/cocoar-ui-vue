@@ -180,6 +180,7 @@ export function validateCalendarEvent(event: CalendarEvent): void {
         `[CalendarEvent ${id}] start.timeZoneId='${zone}' is not a recognised ` +
           `IANA zone (Temporal threw '${(e as Error).message}'). ` +
           "Use a real IANA name like 'Europe/Vienna' / 'America/Los_Angeles'.",
+        { cause: e },
       );
     }
   }
@@ -258,27 +259,6 @@ export function validateCalendarEvent(event: CalendarEvent): void {
 }
 
 const _warnedRecurrenceIds = new Set<string>();
-function _devWarn(message: string): void {
-  let isDev = false;
-  try {
-    const env = (import.meta as { env?: { DEV?: boolean } }).env;
-    isDev = env?.DEV === true;
-  } catch {
-    /* import.meta unavailable */
-  }
-  if (!isDev) {
-    try {
-      isDev =
-        typeof process !== 'undefined' &&
-        process.env?.NODE_ENV !== 'production';
-    } catch {
-      /* process unavailable */
-    }
-  }
-  if (isDev && typeof console !== 'undefined') {
-    console.warn(`[@cocoar/vue-calendar] ${message}`);
-  }
-}
 
 // ─── Views ─────────────────────────────────────────────────────────────
 

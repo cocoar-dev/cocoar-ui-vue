@@ -456,6 +456,7 @@ export function parseScheduledTime(
   } catch (e) {
     throw new RangeError(
       `[parseScheduledTime] local='${local}' is not a parseable ISO-8601 datetime (${(e as Error).message}). Expected format: 'YYYY-MM-DDTHH:MM[:SS]'.`,
+      { cause: e },
     );
   }
   let zdt: Temporal.ZonedDateTime;
@@ -469,10 +470,12 @@ export function parseScheduledTime(
     if (dstPolicy === 'reject') {
       throw new TypeError(
         `[parseScheduledTime] local='${local}' in '${timeZoneId}' could not be resolved (${msg}). Likely cause: dstPolicy='reject' on a DST gap (e.g. 02:30 on the spring-forward day). Use 'earlier' / 'later' / 'compatible' if you want the engine to resolve, or pick a different time.`,
+        { cause: e },
       );
     }
     throw new TypeError(
       `[parseScheduledTime] timeZoneId='${timeZoneId}' is not a recognised IANA zone (${msg}). Use a real name like 'Europe/Vienna' / 'America/Los_Angeles' — abbreviations like 'CET' / 'EST' are ambiguous and intentionally rejected.`,
+      { cause: e },
     );
   }
   return zdt;
@@ -496,6 +499,7 @@ export function parsePlainDate(iso: string): Temporal.PlainDate {
   } catch (e) {
     throw new RangeError(
       `[parsePlainDate] iso='${iso}' is not a parseable ISO-8601 date (${(e as Error).message}). Expected format: 'YYYY-MM-DD'.`,
+      { cause: e },
     );
   }
 }

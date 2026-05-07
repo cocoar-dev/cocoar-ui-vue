@@ -33,7 +33,7 @@ interface Props {
   transform?: string;
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   isToday: false,
   floating: false,
   transform: 'none',

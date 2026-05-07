@@ -28,7 +28,7 @@
  */
 
 import { describe, expect, it, vi } from 'vitest';
-import { nextTick, ref, toValue } from 'vue';
+import { ref, toValue } from 'vue';
 
 /** Drain N microtasks so Promise.then().then().finally() chains complete. */
 async function drainMicrotasks(n = 4): Promise<void> {

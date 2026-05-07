@@ -8,7 +8,7 @@
  * pins the wiring against future regressions.
  */
 
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { defineComponent, h, ref, nextTick, computed, type Ref } from 'vue';
 import { mount } from '@vue/test-utils';
 import { Temporal } from '@js-temporal/polyfill';

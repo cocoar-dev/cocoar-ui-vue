@@ -147,7 +147,7 @@ describe('validateCalendarEvent — accepted shapes', () => {
 });
 
 describe('validateCalendarEvent — eager IANA zone validation (Phase 8.12-BG)', () => {
-  it('rejects ZonedDateTime with bogus timeZoneId — at construction OR at validation', () => {
+  it('rejects ZonedDateTime with bogus timeZoneId — at construction OR at validation', async () => {
     // Two acceptable behaviours: (a) the polyfill rejects 'Europe/Wien'
     // at `Temporal.ZonedDateTime.from(...)` — most current polyfills
     // do, and the test is satisfied. (b) The polyfill is lenient and
@@ -169,7 +169,7 @@ describe('validateCalendarEvent — eager IANA zone validation (Phase 8.12-BG)',
       return;
     }
     // Polyfill let it through → validation must throw.
-    const { validateCalendarEvent } = require('../../types') as typeof import('../../types');
+    const { validateCalendarEvent } = await import('../../types');
     expect(() =>
       validateCalendarEvent({ id: 'bad-tz', start: badZdt as Temporal.ZonedDateTime }),
     ).toThrow(/bad-tz|Europe\/Wien|IANA/);

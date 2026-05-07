@@ -26,8 +26,12 @@ useViewWindow(props.builder, { view: 'day' });
 
 // Standalone usage: ensure builder.state.view reflects what we are
 // (caller may have used `useDayView()` that doesn't set it).
+// Mutating a property of the builder ref by design — `view` is a
+// writable Ref the builder exposes specifically so `api.next/prev/setView`
+// (and standalone sub-views) can pin it.
 onMounted(() => {
   if (props.builder.state.view.value !== 'day') {
+    // eslint-disable-next-line vue/no-mutating-props
     props.builder.state.view.value = 'day';
   }
 });

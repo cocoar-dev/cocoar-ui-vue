@@ -433,7 +433,7 @@ describe('Article 9 — Format / language / region are independent', () => {
       // Skip — document the unverifiable state, don't pretend it passed.
       // (vitest's `skipIf` is at describe level, not it; manual return
       // with a console marker so CI logs surface the runtime drift.)
-      // eslint-disable-next-line no-console
+       
       console.warn(
         `[article-conformance] de-AT vs de-DE Jänner check skipped — ` +
           `this runtime's CLDR returns '${deAT}' for both. Lib code is ` +

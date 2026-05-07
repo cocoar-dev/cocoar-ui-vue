@@ -31,7 +31,6 @@ import {
   type CalendarDragMode,
   type CalendarDropTarget,
   type DstPolicy,
-  type EventDropPayload,
   type MoveResult,
 } from '../core/dnd/move-math';
 export type { DstPolicy } from '../core/dnd/move-math';

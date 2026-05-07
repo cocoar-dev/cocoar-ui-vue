@@ -42,8 +42,6 @@ import {
   type UseCalendarDndReturn,
 } from './useCalendarDnd';
 import {
-  buildDropPayload,
-  DstResolutionError,
   type DstPolicy,
   type EventDropPayload,
   type MoveResult,

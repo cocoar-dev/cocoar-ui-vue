@@ -6,7 +6,7 @@
  *   - BL: detectFirstDayOfWeekFromLocale catch branch warns
  */
 
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { Temporal } from '@js-temporal/polyfill';
 import { EventIndex } from '../../eventIndex';
 import {

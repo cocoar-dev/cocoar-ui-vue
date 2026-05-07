@@ -33,8 +33,12 @@ const props = defineProps<Props>();
 // onRangeChange / api.getVisibleRange() work standalone.
 useViewWindow(props.builder, { view: 'week' });
 
+// Mutating a property of the builder ref by design — `view` is a
+// writable Ref the builder exposes specifically so `api.next/prev/setView`
+// (and standalone sub-views) can pin it.
 onMounted(() => {
   if (props.builder.state.view.value !== 'week') {
+    // eslint-disable-next-line vue/no-mutating-props
     props.builder.state.view.value = 'week';
   }
 });

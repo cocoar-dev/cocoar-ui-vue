@@ -72,8 +72,11 @@ const PHASE_4_MESSAGE =
 export function expandSeries<
   TMeta extends Record<string, unknown> = Record<string, unknown>,
 >(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _series: RecurringSeries<TMeta>,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _window: RecurrenceExpansionWindow,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _dstPolicy: DstPolicy,
 ): CalendarEvent<TMeta>[] {
   throw new TypeError(PHASE_4_MESSAGE);

@@ -35,7 +35,6 @@ import {
   layoutDayEvents,
   layoutAllDayBand,
   isAllDayEvent,
-  isTimedEvent,
   buildFormatOptions,
   type CalendarEvent,
   type PositionedEvent,
@@ -53,10 +52,8 @@ import CoarTimeGridColumn from './internal/time-grid/CoarTimeGridColumn.vue';
 interface Props {
   builder: CalendarBuilder<TMeta>;
   /** One date per day-column to render. The wrapper (Day/Week
-   *  view) computes this from the builder's date + firstDayOfWeek.
-   *  Accepted under both `dates` and `days` — same shape, two aliases. */
+   *  view) computes this from the builder's date + firstDayOfWeek. */
   dates?: ReadonlyArray<Temporal.PlainDate>;
-  days?: ReadonlyArray<Temporal.PlainDate>;
 }
 
 const props = defineProps<Props>();
@@ -112,12 +109,10 @@ const locale = computed<string>(
 const density = computed(() => state.value.density);
 const canDrop = computed(() => state.value.canDrop);
 
-// `days` prop alias: accept either `dates` or `days` (same shape).
-// Aliased back to `days` (script-local const) so template references
-// stay terse.
+// Script-local alias for the `dates` prop so the template / drop-pipeline
+// reads stay terse.
 const visibleDays = computed<ReadonlyArray<Temporal.PlainDate>>(
-  () => (props.dates as ReadonlyArray<Temporal.PlainDate> | undefined) ??
-    (props.days as ReadonlyArray<Temporal.PlainDate> | undefined) ?? [],
+  () => (props.dates as ReadonlyArray<Temporal.PlainDate> | undefined) ?? [],
 );
 const days = visibleDays;
 

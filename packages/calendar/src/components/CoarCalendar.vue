@@ -29,7 +29,7 @@
  * into those props.
  */
 
-import { computed, onBeforeUnmount, onMounted, ref, toValue, useTemplateRef, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, toValue, useTemplateRef } from 'vue';
 import { useI18n, useLocalization } from '@cocoar/vue-localization';
 import { CoarButton, CoarSegmentedControl } from '@cocoar/vue-ui';
 import CoarDayView from './CoarDayView.vue';
@@ -39,7 +39,6 @@ import CoarAgendaView from './CoarAgendaView.vue';
 import {
   Temporal,
   computeViewWindow,
-  todayInZone,
   detectFirstDayOfWeekFromLocale,
   buildFormatOptions,
   type CalendarEvent,
@@ -52,8 +51,6 @@ import {
   type AgendaEventItem,
 } from '../core';
 import { CalendarBuilder } from '../builders/calendar-builder';
-import type { EventDropPayload } from '../builders/types';
-import { RenderEvent, RenderDayHeader } from '../builders/render-helpers';
 
 interface Props {
   builder: CalendarBuilder<Record<string, unknown>>;
@@ -293,114 +290,9 @@ const headerControls = computed<HeaderControls>(() => ({
   available: state.value.availableViews,
 }));
 
-// ─── A11y live-region announcement on event-drop ─────────────────
-/**
- * Updated each time an `event-drop` flows through (mouse, touch, or
- * keyboard) so non-sighted users know the move took. Empty between
- * drops so the live region doesn't re-announce stale content on
- * locale / view changes.
- */
-const announcement = ref('');
-function announceDrop(payload: {
-  event: CalendarEvent;
-  next: {
-    start: Temporal.ZonedDateTime | Temporal.PlainDate;
-    end?: Temporal.ZonedDateTime | Temporal.PlainDate;
-  };
-}): void {
-  const title =
-    (payload.event.meta as { title?: string } | undefined)?.title ??
-    payload.event.id;
-  const isAllDay = payload.next.start instanceof Temporal.PlainDate;
-  let when: string;
-  try {
-    const fmtOverrides = {
-      dateStyle: state.value.dateStyle,
-      timeStyle: state.value.timeStyle,
-      hour12: state.value.hour12,
-    };
-    if (isAllDay) {
-      const pd = payload.next.start as Temporal.PlainDate;
-      const fmt = new Intl.DateTimeFormat(
-        effectiveLocale.value,
-        buildFormatOptions(
-          { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' },
-          fmtOverrides,
-        ),
-      );
-      when = fmt.format(
-        new Date(Date.UTC(pd.year, pd.month - 1, pd.day)),
-      );
-    } else {
-      const zdt = (payload.next.start as Temporal.ZonedDateTime).withTimeZone(
-        state.value.timezone,
-      );
-      const fmt = new Intl.DateTimeFormat(
-        effectiveLocale.value,
-        buildFormatOptions(
-          {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long',
-            hour: 'numeric',
-            minute: '2-digit',
-            timeZone: state.value.timezone,
-          },
-          fmtOverrides,
-        ),
-      );
-      when = fmt.format(new Date(zdt.epochMilliseconds));
-    }
-  } catch {
-    when = payload.next.start.toString();
-  }
-  announcement.value = t(
-    'coar.calendar.aria.movedTo',
-    { title, when },
-    `${title} moved to ${when}`,
-  );
-  // Clear after enough time for the screen reader to pick it up,
-  // so a second drop with the same target re-announces.
-  setTimeout(() => {
-    if (announcement.value.includes(when)) {
-      announcement.value = '';
-    }
-  }, 2000);
-}
-
-// ─── Sub-view event forwarding ───────────────────────────────────
-
-interface EventClickPayload {
-  event: CalendarEvent;
-  native: PointerEvent;
-}
-interface EventDoubleClickPayload {
-  event: CalendarEvent;
-  native: MouseEvent;
-}
-// EventDropPayload imported from `../builders/types` — single source of
-// truth (Temporal-typed start/end + target.{displayZone, disambiguation}).
-
-// Handlers are read fresh per call (C7) directly from `state.onX`.
-function onEventClick(p: EventClickPayload) {
-  props.builder.state.onEventClick?.(p);
-}
-function onEventDoubleClick(p: EventDoubleClickPayload) {
-  props.builder.state.onEventDoubleClick?.(p);
-}
-function onDateClick(p: { date: Temporal.PlainDate; native: PointerEvent }) {
-  props.builder.state.onDateClick?.(p);
-}
-function onTimeClick(p: { date: Temporal.PlainDate; time: Temporal.PlainTime; native: PointerEvent }) {
-  props.builder.state.onTimeClick?.(p);
-}
-function onMoreClick(p: { date: Temporal.PlainDate; events: CalendarEvent[]; native: PointerEvent }) {
-  props.builder.state.onMoreClick?.(p);
-}
-function onEventDrop(p: EventDropPayload) {
-  announceDrop(p);
-  props.builder.state.onEventDrop?.(p);
-}
+// Sub-views read `state.onEventClick` / `state.onEventDrop` etc.
+// directly per-call (C7), so the shell doesn't forward events through
+// any local handlers — consumers wire callbacks via `builder.onEventX(...)`.
 
 // ─── Imperative scroll delegation ────────────────────────────────
 // Day / Week views render a CoarTimeGrid whose sticky day-header
@@ -429,7 +321,7 @@ const agendaRef = useTemplateRef<InstanceType<typeof CoarAgendaView>>('agendaVie
 const SCROLL_ANIM_MS = 100;
 let scrollAnimToken = 0;
 function smoothScrollBodyTo(body: HTMLElement, target: number): void {
-  const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  const reduced = window.value.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   if (reduced) {
     body.scrollTop = target;
     return;
@@ -496,19 +388,6 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="coar-calendar" :class="[`coar-calendar--density-${state.density}`]">
-    <!--
-      Live region for screen readers — announces every event-drop
-      (mouse, touch, or keyboard) so non-sighted users know the
-      move took. Visually hidden but reachable by assistive tech.
-    -->
-    <div
-      class="coar-calendar__sr-announce"
-      role="status"
-      aria-live="polite"
-      aria-atomic="true"
-    >
-      {{ announcement }}
-    </div>
     <!-- ── Header ──────────────────────────────────────────────── -->
     <slot name="header" :view="view" :cursor="cursor" :range="window" :controls="headerControls">
       <header class="coar-calendar__header">
@@ -641,23 +520,6 @@ onBeforeUnmount(() => {
   background: var(--coar-background-neutral-primary);
   font-family: var(--coar-body-base-family);
   color: var(--coar-text-neutral-primary);
-}
-
-/*
- * Visually-hidden live region. Standard "sr-only" pattern: take
- * out of layout flow without `display: none` (which would also
- * hide it from screen readers).
- */
-.coar-calendar__sr-announce {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
 }
 
 .coar-calendar__header {
