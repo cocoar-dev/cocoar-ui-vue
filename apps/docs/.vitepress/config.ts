@@ -161,7 +161,6 @@ export default defineConfig({
       { text: 'Guide', link: '/guide/getting-started', activeMatch: '/guide/|/foundations/' },
       { text: 'Components', link: '/components/button', activeMatch: '/components/' },
       { text: 'Kitchen Sink', link: '/foundations/kitchen-sink' },
-      { text: 'Calendar Spike', link: '/calendar-spike/', activeMatch: '/calendar-spike/' },
       { text: 'LLM Docs', link: '/llms-full.txt', target: '_blank' },
     ],
 
@@ -321,51 +320,7 @@ export default defineConfig({
             { text: 'Week View', link: '/components/calendar/week-view' },
             { text: 'Month View', link: '/components/calendar/month-view' },
             { text: 'Agenda View', link: '/components/calendar/agenda-view' },
-          ],
-        },
-      ],
-      '/calendar-spike/': [
-        {
-          text: 'Calendar Spike (Phase 0)',
-          items: [
-            { text: 'Overview', link: '/calendar-spike/' },
-          ],
-        },
-        {
-          text: 'Spike A — Virtual Surface',
-          collapsed: false,
-          items: [
-            { text: '10k fixed-size items', link: '/calendar-spike/virtual-surface/10k-fixed' },
-            { text: '10k variable-size items', link: '/calendar-spike/virtual-surface/10k-variable' },
-            { text: '1Mx1M 2D grid', link: '/calendar-spike/virtual-surface/10k-2d' },
-          ],
-        },
-        {
-          text: 'Spike B — RRULE Bake-off',
-          collapsed: false,
-          items: [
-            { text: 'Engine benchmarks', link: '/calendar-spike/rrule-bakeoff/' },
-          ],
-        },
-        {
-          text: 'Spike C — Multi-Day-Bar Layout',
-          collapsed: false,
-          items: [
-            { text: 'Interval-graph coloring', link: '/calendar-spike/multi-day-bar/' },
-          ],
-        },
-        {
-          text: 'Spike D — DnD + Auto-Scroll',
-          collapsed: false,
-          items: [
-            { text: '200 events drag harness', link: '/calendar-spike/dnd-autoscroll/' },
-          ],
-        },
-        {
-          text: 'Spike E — Worker Recurrence',
-          collapsed: false,
-          items: [
-            { text: 'Worker round-trip benchmark', link: '/calendar-spike/worker-recurrence/' },
+            { text: 'Performance baseline', link: '/components/calendar/performance' },
           ],
         },
       ],
