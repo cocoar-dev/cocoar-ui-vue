@@ -15,8 +15,10 @@
  *
  * Kept as render-function components (`defineComponent({ render })`) instead
  * of SFCs — the logic is tiny and a single TS file keeps the full default
- * registry in one place, easy to skim when debugging.
+ * registry in one place, easy to skim when debugging. The
+ * `vue/one-component-per-file` lint is therefore disabled for this file.
  */
+/* eslint-disable vue/one-component-per-file */
 import { defineComponent, h, type PropType, type VNode } from 'vue';
 import type { MarkdownNode } from '@cocoar/vue-markdown-core';
 import { CoarCodeBlock } from '@cocoar/vue-ui';

@@ -1,4 +1,12 @@
 <script lang="ts">
+/* eslint-disable vue/one-component-per-file --
+   Three components share this file by design: the outer `CoarMarkdownEditor`
+   (public API + CoarFormField wiring), the inner `EditorImpl` that mounts
+   inside `<MilkdownProvider>` (needs the provider's `useEditor` / `useInstance`
+   in scope), and the `Toolbar` that talks to the same `useInstance()` to
+   issue commands. Splitting them across files would force the shared
+   provider context to flow through prop drilling and break the
+   `useInstance()` access pattern. */
 import {
   defineComponent, h, ref, shallowRef, computed, watch, inject, useId, markRaw,
   onMounted, onBeforeUnmount, Teleport,

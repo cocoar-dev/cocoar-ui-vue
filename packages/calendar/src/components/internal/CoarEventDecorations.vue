@@ -30,7 +30,10 @@ interface Props {
   /** Visual size of the icon. `xs` for pills/bars, `s` for cards/agenda rows. */
   size?: 'xs' | 's';
 }
-const props = withDefaults(defineProps<Props>(), { size: 'xs' });
+const props = withDefaults(defineProps<Props>(), {
+  size: 'xs',
+  displayZone: undefined,
+});
 
 const localization = useLocalization();
 const t = localization?.t ?? ((_k: string, _p?: unknown, fb?: string) => fb ?? '');
