@@ -18,7 +18,7 @@
     "@cocoar/vue-script-editor": "workspace:*",
     "@cocoar/vue-ui": "workspace:*",
     "@vee-validate/zod": "^4.15.1",
-    "monaco-editor": "^0.54.0",
+    "monaco-editor": "^0.55.1",
     "vee-validate": "^4.15.1",
     "zod": "^3.25.76"
   },

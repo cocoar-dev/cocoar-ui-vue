@@ -7,6 +7,20 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 1.16.1
+
+### Fixed
+
+- **`@cocoar/vue-fragment-parser` — `vue-router` peer range widened to `^4.5.0 || ^5.0.0`**: consumer apps already on `vue-router@5.x` got a peer-dependency warning because the published range was still capped at `^4.5.0`. The package only uses `useRoute` / `useRouter` — both stable across vue-router 4 and 5 — so widening is safe. The monorepo itself runs on 5.x (playground + fragment-parser dev dep), the peer range was just lagging behind.
+- **`@cocoar/vue-markdown-editor` — external `v-model` updates no longer dropped during Milkdown init**: a parent that initialised `v-model` synchronously to a placeholder and then assigned the real value asynchronously inside `onMounted` (typical store-load pattern) saw the editor stay locked on the placeholder. The watcher in `EditorImpl` bailed silently when `getInstance()` returned `null` during Milkdown's async init window, and the missed update was never replayed — so saving without further edits round-tripped the placeholder back to the API and overwrote the real document body. The watcher now buffers the latest external value while the editor isn't ready and a second watcher on Milkdown's `loading` ref flushes it via `replaceAll` once init completes. Found while migrating `cocoar-policy` knowledge docs to event sourcing.
+
+### Internal
+
+- **`@cocoar/vue-markdown-editor` — first component-level test**: `CoarMarkdownEditor.test.ts` mounts the editor with `@vue/test-utils` + happy-dom + `CoarOverlayPlugin` and pins both the bug-1 race (external update before Milkdown ready) and the post-init external-update path. Test 1 fails deterministically without the fix.
+- **`monaco-editor` deduplicated to `^0.55.1` across the workspace**: `apps/docs` and `apps/playground` were still on `^0.54.0` while `@cocoar/vue-script-editor`'s peer-range demanded `^0.55.1` — for `0.x` versions a caret pins the minor, so the two ranges did not overlap and the lockfile carried both `monaco-editor@0.54.0` and `@0.55.1` side-by-side. Apps bumped to `^0.55.1`; the duplicate is gone.
+
+---
+
 ## 1.16.0
 
 ### Added

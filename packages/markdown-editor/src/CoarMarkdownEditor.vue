@@ -179,16 +179,40 @@ const EditorImpl = defineComponent({
         .use(codeBlockNodeView),
     );
 
-    const [, getInstance] = useInstance();
+    const [loading, getInstance] = useInstance();
 
-    // Sync external value → editor when parent updates modelValue
+    // Sync external value → editor when parent updates modelValue.
+    // Milkdown initialises asynchronously: until `loading` flips to false,
+    // `getInstance()` returns undefined. Without buffering, an external update
+    // arriving in that window would be silently dropped — the editor would
+    // stay on `defaultValueCtx` (= initialValue captured at setup) and a
+    // subsequent save would round-trip the placeholder back to the consumer.
+    const pendingExternal = ref<string | null>(null);
+
     watch(() => props.externalValue.value, (next) => {
       if (next === lastEmitted.value) return;
       const editor = getInstance();
-      if (!editor) return;
+      if (!editor) {
+        pendingExternal.value = next;
+        return;
+      }
+      pendingExternal.value = null;
       lastEmitted.value = next;
       editor.action(replaceAll(next));
     });
+
+    // Flush a buffered external update once Milkdown finishes init.
+    watch(loading, (isLoading) => {
+      if (isLoading) return;
+      if (pendingExternal.value === null) return;
+      const editor = getInstance();
+      if (!editor) return;
+      const next = pendingExternal.value;
+      pendingExternal.value = null;
+      if (next === lastEmitted.value) return;
+      lastEmitted.value = next;
+      editor.action(replaceAll(next));
+    }, { immediate: true });
 
     // Sync readonly → editor view
     watch(() => props.readonly, () => {
