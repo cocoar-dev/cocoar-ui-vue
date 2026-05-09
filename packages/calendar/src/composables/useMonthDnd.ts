@@ -50,6 +50,7 @@ import {
   type EventDropPayload,
   type MoveResult,
 } from '../core/dnd/move-math';
+import type { CanDropTarget } from '../builders/types';
 import {
   Temporal,
   layoutMonthGrid,
@@ -63,9 +64,10 @@ import {
  * shape from core/dnd/move-math. Kept for backward-compatible import
  * paths; new code should use `EventDropPayload` directly.
  */
-export type MonthEventDropPayload = EventDropPayload;
+export type MonthEventDropPayload<TMeta extends Record<string, unknown> = Record<string, unknown>> =
+  EventDropPayload<TMeta>;
 
-export interface MonthDragSourceSnapshot {
+export interface MonthDragSourceSnapshot<TMeta extends Record<string, unknown> = Record<string, unknown>> {
   /** Pill ranges per cell-day-key the dragged event occupied. */
   pillCells: ReadonlyArray<string>;
   /** Multi-day bar ranges per row, if applicable. */
@@ -77,7 +79,7 @@ export interface MonthDragSourceSnapshot {
     clippedStart: boolean;
     clippedEnd: boolean;
   }>;
-  event: CalendarEvent;
+  event: CalendarEvent<TMeta>;
 }
 
 export interface InvalidMonthGhost {
@@ -87,9 +89,9 @@ export interface InvalidMonthGhost {
   isBar: boolean;
 }
 
-export interface UseMonthDndOptions {
+export interface UseMonthDndOptions<TMeta extends Record<string, unknown> = Record<string, unknown>> {
   /** Source events. */
-  events: MaybeRefOrGetter<ReadonlyArray<CalendarEvent>>;
+  events: MaybeRefOrGetter<ReadonlyArray<CalendarEvent<TMeta>>>;
   /** 42 dates for the visible month grid (6×7, top-left first). */
   gridDates:
     | ComputedRef<ReadonlyArray<Temporal.PlainDate>>
@@ -102,13 +104,13 @@ export interface UseMonthDndOptions {
   dstPolicy?: MaybeRefOrGetter<DstPolicy>;
   /** Drop validator. Returning false marks the target invalid. */
   canDrop?: (
-    event: CalendarEvent,
-    target: { date: string; minutes: number | null },
+    event: CalendarEvent<TMeta>,
+    target: CanDropTarget,
   ) => boolean;
   /** User clicked an event without crossing the drag threshold. */
-  onEventClick?: (event: CalendarEvent, native: PointerEvent | null) => void;
+  onEventClick?: (event: CalendarEvent<TMeta>, native: PointerEvent | null) => void;
   /** A drag completed (or a keyboard move fired). */
-  onEventDrop?: (payload: MonthEventDropPayload) => void;
+  onEventDrop?: (payload: MonthEventDropPayload<TMeta>) => void;
   /**
    * Optional screen-reader announcer hook. Called after every
    * commit (mouse drop OR keyboard Enter) and after every cancel
@@ -116,7 +118,7 @@ export interface UseMonthDndOptions {
    */
   onAnnounce?: (
     kind: 'committed' | 'cancelled',
-    payload?: MonthEventDropPayload,
+    payload?: MonthEventDropPayload<TMeta>,
   ) => void;
 }
 
@@ -126,8 +128,8 @@ export interface UseMonthDndOptions {
  * drag — the visuals don't care which input modality started
  * the drag.
  */
-export interface KeyboardDragState {
-  event: CalendarEvent;
+export interface KeyboardDragState<TMeta extends Record<string, unknown> = Record<string, unknown>> {
+  event: CalendarEvent<TMeta>;
   /** Working start/end after applying the arrow-key moves so far. */
   next: MoveResult;
   mode: CalendarDragMode;
@@ -139,21 +141,23 @@ export interface KeyboardDragState {
   originalEnd?: Temporal.ZonedDateTime | Temporal.PlainDate;
 }
 
-export interface UseMonthDndReturn {
-  dnd: UseCalendarDndReturn;
-  workingEvents: ComputedRef<ReadonlyArray<CalendarEvent>>;
-  dragSourceSnapshot: Ref<MonthDragSourceSnapshot | null>;
+export interface UseMonthDndReturn<TMeta extends Record<string, unknown> = Record<string, unknown>> {
+  dnd: UseCalendarDndReturn<TMeta>;
+  workingEvents: ComputedRef<ReadonlyArray<CalendarEvent<TMeta>>>;
+  dragSourceSnapshot: Ref<MonthDragSourceSnapshot<TMeta> | null>;
   invalidMonthGhost: ComputedRef<InvalidMonthGhost | null>;
   isPreviewId: (id: string) => boolean;
   isInvalidPillTarget: (day: Temporal.PlainDate) => boolean;
-  onMonthEventPointerdown: (e: PointerEvent, event: CalendarEvent) => void;
-  onMonthEventKeydown: (e: KeyboardEvent, event: CalendarEvent) => void;
+  onMonthEventPointerdown: (e: PointerEvent, event: CalendarEvent<TMeta>) => void;
+  onMonthEventKeydown: (e: KeyboardEvent, event: CalendarEvent<TMeta>) => void;
   /** Active keyboard-drag state, or `null` when no kbd-drag is in flight. */
-  keyboardDrag: Ref<KeyboardDragState | null>;
+  keyboardDrag: Ref<KeyboardDragState<TMeta> | null>;
 }
 
-export function useMonthDnd(opts: UseMonthDndOptions): UseMonthDndReturn {
-  const dnd = useCalendarDnd({
+export function useMonthDnd<TMeta extends Record<string, unknown> = Record<string, unknown>>(
+  opts: UseMonthDndOptions<TMeta>,
+): UseMonthDndReturn<TMeta> {
+  const dnd = useCalendarDnd<TMeta>({
     surfaceRef: opts.gridRef,
     monthGridRef: opts.gridRef,
     monthGridDates: opts.gridDates,
@@ -163,14 +167,18 @@ export function useMonthDnd(opts: UseMonthDndOptions): UseMonthDndReturn {
       : undefined,
     canDrop: opts.canDrop
       ? (event, target) =>
-          opts.canDrop!(event, { date: target.date, minutes: target.minutes })
+          opts.canDrop!(event, {
+            date: target.date,
+            minutes: target.minutes,
+            displayZone: target.displayZone,
+          })
       : undefined,
     onEventClick: (event, native) => {
       opts.onEventClick?.(event, native);
     },
     onEventDrop: (payload) => {
-      opts.onEventDrop?.(payload as MonthEventDropPayload);
-      opts.onAnnounce?.('committed', payload as MonthEventDropPayload);
+      opts.onEventDrop?.(payload);
+      opts.onAnnounce?.('committed', payload);
     },
   });
 
@@ -181,7 +189,7 @@ export function useMonthDnd(opts: UseMonthDndOptions): UseMonthDndReturn {
    * a focused event; cleared on `Enter` (commit) / `Escape`
    * (cancel).
    */
-  const keyboardDrag = ref<KeyboardDragState | null>(null);
+  const keyboardDrag = ref<KeyboardDragState<TMeta> | null>(null);
 
   /**
    * Events list with the dragged event replaced by a synthetic
@@ -191,7 +199,7 @@ export function useMonthDnd(opts: UseMonthDndOptions): UseMonthDndReturn {
    * reflows as if the event were already gone (the original
    * visual is preserved separately via `dragSourceSnapshot`).
    */
-  const workingEvents = computed<ReadonlyArray<CalendarEvent>>(() => {
+  const workingEvents = computed<ReadonlyArray<CalendarEvent<TMeta>>>(() => {
     const events = toValue(opts.events);
 
     // Pointer drag wins if both are somehow active.
@@ -214,8 +222,8 @@ export function useMonthDnd(opts: UseMonthDndOptions): UseMonthDndReturn {
       // instant matches the eventual commit on DST gaps / overlaps.
       const policy = opts.dstPolicy ? toValue(opts.dstPolicy) : 'compatible';
       const next = applyMoveToEvent(dragged, target, mode, policy);
-      const preview: CalendarEvent = {
-        ...dragged,
+      const preview: CalendarEvent<TMeta> = {
+        ...(dragged as CalendarEvent<TMeta>),
         id: `${dragged.id}__preview`,
         start: next.start,
         end: next.end,
@@ -229,12 +237,12 @@ export function useMonthDnd(opts: UseMonthDndOptions): UseMonthDndReturn {
     // take them.
     const kbd = keyboardDrag.value;
     if (kbd) {
-      const preview: CalendarEvent = {
+      const preview = {
         ...kbd.event,
         id: `${kbd.event.id}__preview`,
         start: kbd.next.start,
         end: kbd.next.end,
-      };
+      } as CalendarEvent<TMeta>;
       return [...events.filter((e) => e.id !== kbd.event.id), preview];
     }
 
@@ -254,7 +262,7 @@ export function useMonthDnd(opts: UseMonthDndOptions): UseMonthDndReturn {
    * can keep showing a dimmed phantom while the live layout (run
    * with the proposed move) no longer carries an entry there.
    */
-  const dragSourceSnapshot = ref<MonthDragSourceSnapshot | null>(null);
+  const dragSourceSnapshot = ref<MonthDragSourceSnapshot<TMeta> | null>(null);
 
   // Capture on `isDragging` (post-threshold), not `draggedEvent`
   // (set on pointerdown). Otherwise a plain click on an event
@@ -399,7 +407,7 @@ export function useMonthDnd(opts: UseMonthDndOptions): UseMonthDndReturn {
    */
   function onMonthEventPointerdown(
     e: PointerEvent,
-    event: CalendarEvent,
+    event: CalendarEvent<TMeta>,
   ): void {
     const el = e.currentTarget;
     if (el instanceof HTMLElement) el.focus({ preventScroll: true });
@@ -442,7 +450,7 @@ export function useMonthDnd(opts: UseMonthDndOptions): UseMonthDndReturn {
    */
   function deriveNextFromArrow(
     base: MoveResult,
-    event: CalendarEvent,
+    event: CalendarEvent<TMeta>,
     e: KeyboardEvent,
   ): { next: MoveResult; mode: CalendarDragMode } | null {
     const displayZone = toValue(opts.timezone);
@@ -458,11 +466,11 @@ export function useMonthDnd(opts: UseMonthDndOptions): UseMonthDndReturn {
             ? 7
             : -7;
 
-    const workingEvent: CalendarEvent = {
+    const workingEvent: CalendarEvent<TMeta> = {
       id: event.id,
       start: base.start,
       ...(base.end ? { end: base.end } : {}),
-    } as CalendarEvent;
+    } as CalendarEvent<TMeta>;
 
     if (isAllDayEvent(event)) {
       const baseStart = base.start as Temporal.PlainDate;
@@ -519,7 +527,10 @@ export function useMonthDnd(opts: UseMonthDndOptions): UseMonthDndReturn {
   }
 
   function commitKeyboardDrag(): void {
-    const kbd = keyboardDrag.value;
+    // Vue's reactive ref-unwrap loses the generic TMeta when reading from a
+    // ref<KeyboardDragState<TMeta> | null>; cast back so kbd.event is
+    // CalendarEvent<TMeta> at the canDrop / payload sites below.
+    const kbd = keyboardDrag.value as KeyboardDragState<TMeta> | null;
     if (!kbd) return;
     const tz = toValue(opts.timezone);
     if (opts.canDrop) {
@@ -533,7 +544,7 @@ export function useMonthDnd(opts: UseMonthDndOptions): UseMonthDndReturn {
     // C2 — kbd.next produced by applyMoveToEvent on each arrow press
     // (fresh policy read each time). Fire ONCE per commit; payload
     // shape matches buildDropPayload's output.
-    const payload: MonthEventDropPayload = {
+    const payload: MonthEventDropPayload<TMeta> = {
       event: kbd.event,
       original: {
         start: kbd.originalStart,
@@ -570,7 +581,7 @@ export function useMonthDnd(opts: UseMonthDndOptions): UseMonthDndReturn {
    * day. Shift + Arrow grows / shrinks the end date for multi-day
    * all-day events.
    */
-  function onMonthEventKeydown(e: KeyboardEvent, event: CalendarEvent): void {
+  function onMonthEventKeydown(e: KeyboardEvent, event: CalendarEvent<TMeta>): void {
     // Esc cancels an in-flight kbd drag, otherwise blurs.
     if (e.key === 'Escape') {
       if (keyboardDrag.value) {
@@ -642,12 +653,16 @@ export function useMonthDnd(opts: UseMonthDndOptions): UseMonthDndReturn {
   return {
     dnd,
     workingEvents,
-    dragSourceSnapshot,
+    // Vue 3.5's Ref<T> includes a second generic for the writable type that
+    // the inferred-from-initial-value `ref(null)` doesn't match through
+    // generic boundaries — cast at the return so the public `Ref<TMeta>`
+    // type comes through cleanly.
+    dragSourceSnapshot: dragSourceSnapshot as Ref<MonthDragSourceSnapshot<TMeta> | null>,
     invalidMonthGhost,
     isPreviewId,
     isInvalidPillTarget,
     onMonthEventPointerdown,
     onMonthEventKeydown,
-    keyboardDrag,
+    keyboardDrag: keyboardDrag as Ref<KeyboardDragState<TMeta> | null>,
   };
 }

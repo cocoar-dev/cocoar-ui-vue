@@ -9,7 +9,7 @@
  * Public surface: ONE prop, `:builder: CalendarBuilder`.
  */
 
-import { computed, onMounted, toValue } from 'vue';
+import { computed, toValue } from 'vue';
 import { useLocalization } from '@cocoar/vue-localization';
 import CoarTimeGrid from './CoarTimeGrid.vue';
 import {
@@ -23,30 +23,20 @@ import {
 import { CalendarBuilder } from '../builders/calendar-builder';
 import { useViewWindow } from '../composables/useViewWindow';
 
-interface Props {
-  builder: CalendarBuilder<TMeta>;
-}
-
-const props = defineProps<Props>();
+// Inlined defineProps argument to avoid vue-tsc TS4025 — see note in
+// CoarMonthView.vue.
+const props = defineProps<{ builder: CalendarBuilder<TMeta> }>();
 
 // Push the visible window through the builder so loaders /
 // onRangeChange / api.getVisibleRange() work standalone.
+// `view: 'week'` also pins builder.state.view so a builder composed via
+// `useWeekView()` (which does not set the view) renders correctly here.
 useViewWindow(props.builder, { view: 'week' });
 
-// Mutating a property of the builder ref by design — `view` is a
-// writable Ref the builder exposes specifically so `api.next/prev/setView`
-// (and standalone sub-views) can pin it.
-onMounted(() => {
-  if (props.builder.state.view.value !== 'week') {
-    // eslint-disable-next-line vue/no-mutating-props
-    props.builder.state.view.value = 'week';
-  }
-});
-
 defineSlots<{
-  event(props: { event: CalendarEvent<TMeta>; layout: PositionedEvent<TMeta> }): unknown;
-  allDayEvent(props: { event: CalendarEvent<TMeta>; layout: AllDayBar<TMeta> }): unknown;
-  dayHeader(props: {
+  event?(props: { event: CalendarEvent<TMeta>; layout: PositionedEvent<TMeta> }): unknown;
+  allDayEvent?(props: { event: CalendarEvent<TMeta>; layout: AllDayBar<TMeta> }): unknown;
+  dayHeader?(props: {
     date: Temporal.PlainDate;
     isToday: boolean;
     isWeekend: boolean;

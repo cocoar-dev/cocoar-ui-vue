@@ -50,8 +50,8 @@ export function useExtraLibs(options: UseExtraLibsOptions): void {
 
     const defaults =
       language === 'javascript'
-        ? monaco.languages.typescript.javascriptDefaults
-        : monaco.languages.typescript.typescriptDefaults;
+        ? monaco.typescript.javascriptDefaults
+        : monaco.typescript.typescriptDefaults;
     for (const lib of options.libs()) {
       // Dev-mode warning: Monaco silently ignores extraLibs whose path doesn't use the
       // `file:///` scheme, and the result is "no compile error, no IntelliSense either" —

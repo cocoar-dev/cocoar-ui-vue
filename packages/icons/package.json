@@ -11,12 +11,18 @@
   },
   "homepage": "https://docs.cocoar.dev/cocoar-ui-vue/",
   "bugs": "https://github.com/cocoar-dev/cocoar-ui-vue/issues",
-  "keywords": ["icons", "cli", "lucide", "svg"],
+  "keywords": [
+    "icons",
+    "cli",
+    "lucide",
+    "svg"
+  ],
   "bin": {
     "cocoar-icons": "./bin/cocoar-icons.mjs"
   },
   "files": [
     "bin",
     "lib"
-  ]
+  ],
+  "scripts": {}
 }

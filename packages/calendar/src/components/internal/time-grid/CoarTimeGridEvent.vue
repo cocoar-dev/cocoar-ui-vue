@@ -22,56 +22,59 @@ import { computed } from 'vue';
 import type { CalendarEvent, PositionedEvent } from '../../../core';
 import CoarEventDecorations from '../CoarEventDecorations.vue';
 
-interface Props {
-  event: CalendarEvent<TMeta>;
-  positioned: PositionedEvent<TMeta>;
-  variant?: 'live' | 'preview' | 'phantom' | 'invalid';
-  bg: string;
-  border: string;
-  title: string;
-  /** Display zone — surfaced on the default decoration layer (C3/C5 hints). */
-  displayZone?: string;
-  ariaLabel?: string;
-  snappingBack?: boolean;
-  density?: 'comfortable' | 'compact';
+// Inlined defineProps argument to avoid vue-tsc TS4025 — see note in
+// CoarMonthView.vue.
+const props = withDefaults(
+  defineProps<{
+    event: CalendarEvent<TMeta>;
+    positioned: PositionedEvent<TMeta>;
+    variant?: 'live' | 'preview' | 'phantom' | 'invalid';
+    bg: string;
+    border: string;
+    title: string;
+    /** Display zone — surfaced on the default decoration layer (C3/C5 hints). */
+    displayZone?: string;
+    ariaLabel?: string;
+    snappingBack?: boolean;
+    density?: 'comfortable' | 'compact' | 'spacious';
 
-  /** Pixel offset from the column's top edge. */
-  top: number;
-  /** Pixel height of the card. */
-  height: number;
-  /** CSS `left` (typically a `calc()` percentage expression). */
-  left: string;
-  /** CSS `width` (typically a `calc()` percentage expression). */
-  width: string;
-  /** Stacking order; preview gets bumped to 100 by the parent. */
-  zIndex: number;
+    /** Pixel offset from the column's top edge. */
+    top: number;
+    /** Pixel height of the card. */
+    height: number;
+    /** CSS `left` (typically a `calc()` percentage expression). */
+    left: string;
+    /** CSS `width` (typically a `calc()` percentage expression). */
+    width: string;
+    /** Stacking order; preview gets bumped to 100 by the parent. */
+    zIndex: number;
 
-  clippedTop?: boolean;
-  clippedBottom?: boolean;
+    clippedTop?: boolean;
+    clippedBottom?: boolean;
 
-  /**
-   * `true` when the `preview` variant is being driven by an
-   * IN-FLIGHT keyboard drag. Promotes the ghost from a passive
-   * visual to a focusable interactive element so subsequent
-   * arrow keystrokes keep landing on `keydown` (without this,
-   * focus falls to `<body>` after the original event card
-   * unmounts and the next arrow is dropped on the floor).
-   *
-   * No effect when variant is anything other than `preview`.
-   */
-  kbdActive?: boolean;
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  variant: 'live',
-  displayZone: undefined,
-  ariaLabel: undefined,
-  snappingBack: false,
-  density: 'comfortable',
-  clippedTop: false,
-  clippedBottom: false,
-  kbdActive: false,
-});
+    /**
+     * `true` when the `preview` variant is being driven by an
+     * IN-FLIGHT keyboard drag. Promotes the ghost from a passive
+     * visual to a focusable interactive element so subsequent
+     * arrow keystrokes keep landing on `keydown` (without this,
+     * focus falls to `<body>` after the original event card
+     * unmounts and the next arrow is dropped on the floor).
+     *
+     * No effect when variant is anything other than `preview`.
+     */
+    kbdActive?: boolean;
+  }>(),
+  {
+    variant: 'live',
+    displayZone: undefined,
+    ariaLabel: undefined,
+    snappingBack: false,
+    density: 'comfortable',
+    clippedTop: false,
+    clippedBottom: false,
+    kbdActive: false,
+  },
+);
 
 const emit = defineEmits<{
   pointerdown: [native: PointerEvent];

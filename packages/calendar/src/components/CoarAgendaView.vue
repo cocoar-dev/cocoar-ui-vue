@@ -32,6 +32,7 @@ import {
   buildAgendaItems,
   todayInZone,
   isAllDayEvent,
+  isTimedEvent,
   buildFormatOptions,
   type AgendaItem,
   type AgendaEventItem,
@@ -43,24 +44,27 @@ import CoarAgendaDayHeader from './internal/agenda/CoarAgendaDayHeader.vue';
 import CoarAgendaEvent from './internal/agenda/CoarAgendaEvent.vue';
 import { useViewWindow } from '../composables/useViewWindow';
 
-interface Props {
-  builder: CalendarBuilder<TMeta>;
-  /** Estimate for variable-size virtualization. Default 64 px. */
-  estimatedItemSize?: number;
-  /** Items beyond the viewport rendered each direction. Default 5. */
-  overscan?: number;
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  estimatedItemSize: 64,
-  overscan: 5,
-});
+// Inlined defineProps argument to avoid vue-tsc TS4025 — see note in
+// CoarMonthView.vue.
+const props = withDefaults(
+  defineProps<{
+    builder: CalendarBuilder<TMeta>;
+    /** Estimate for variable-size virtualization. Default 64 px. */
+    estimatedItemSize?: number;
+    /** Items beyond the viewport rendered each direction. Default 5. */
+    overscan?: number;
+  }>(),
+  {
+    estimatedItemSize: 64,
+    overscan: 5,
+  },
+);
 
 const { t } = useI18n();
 
 defineSlots<{
-  event(props: { event: CalendarEvent<TMeta>; item: AgendaEventItem<TMeta> }): unknown;
-  dayGroupHeader(props: {
+  event?(props: { event: CalendarEvent<TMeta>; item: AgendaEventItem<TMeta> }): unknown;
+  dayGroupHeader?(props: {
     date: Temporal.PlainDate;
     item: AgendaHeaderItem;
     isToday: boolean;
@@ -106,14 +110,10 @@ useViewWindow(props.builder, { view: 'agenda' });
  * exclusive on the end day, mirroring the standalone-prop API
  * the view used to take.
  */
-// Normalize cursor to the date portion in case the consumer bound
-// `date` to a value with a time component — `buildAgendaItems`
-// needs `'YYYY-MM-DD'` on `rangeStart`.
-const cursorDate = computed(() =>
-  Temporal.PlainDate.from(
-    cursor.value.length >= 10 ? cursor.value.slice(0, 10) : cursor.value,
-  ),
-);
+// Builder state.date is already a Temporal.PlainDate (Article 4) — no
+// normalization needed; expose it under the existing name so the rest
+// of the file keeps working.
+const cursorDate = computed(() => cursor.value);
 const rangeStart = computed(() => cursorDate.value.toString());
 const rangeEnd = computed(() =>
   cursorDate.value.add({ days: agendaLengthDays.value }).toString(),
@@ -190,6 +190,7 @@ function formatEventTime(event: CalendarEvent<TMeta>): string {
   if (isAllDayEvent(event)) {
     return t('coar.calendar.agenda.allDay', undefined, 'All day');
   }
+  if (!isTimedEvent(event)) return '';
   return timeFormatter.value.format(new Date(event.start.epochMilliseconds));
 }
 
@@ -349,11 +350,10 @@ defineExpose({
       @pointerdown="onHeaderClick($event, floatingHeader.date)"
     >
       <template
-        v-if="$slots.dayGroupHeader || state.dayHeaderRenderer"
+        v-if="$slots.dayGroupHeader"
         #default="slotProps"
       >
-        <slot v-if="$slots.dayGroupHeader" name="dayGroupHeader" v-bind="slotProps" />
-        <!-- builder.dayHeaderRenderer would render here later if needed -->
+        <slot name="dayGroupHeader" v-bind="slotProps" />
       </template>
     </CoarAgendaDayHeader>
 

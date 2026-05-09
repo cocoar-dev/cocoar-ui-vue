@@ -7,6 +7,7 @@
   "scripts": {
     "build": "turbo run build",
     "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
     "docs": "turbo run dev --filter @cocoar/docs",
     "build:icons": "node scripts/icons/build-frontend-icons.mjs",
@@ -35,6 +36,7 @@
     "vite-plugin-dts": "^4.5.4",
     "vitest": "^4.1.5",
     "vue": "^3.5.33",
-    "vue-eslint-parser": "^10.4.0"
+    "vue-eslint-parser": "^10.4.0",
+    "vue-tsc": "^3.2.8"
   }
 }

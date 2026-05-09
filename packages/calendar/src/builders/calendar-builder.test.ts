@@ -135,11 +135,11 @@ describe('D4 — canDrop reads fresh state on every invocation', () => {
   it('replacing canDrop mid-flight takes effect immediately', () => {
     const b = CalendarBuilder.create();
     b.canDrop(() => true);
-    expect(b.state.canDrop?.(evt('a'), { date: '2026-06-05', minutes: 600 })).toBe(true);
+    expect(b.state.canDrop?.(evt('a'), { date: '2026-06-05', minutes: 600, displayZone: 'UTC' })).toBe(true);
     // Replace and re-invoke through the same state slot — composables
     // do exactly this via `state.value.canDrop?.(...)` per hit-test.
     b.canDrop(() => false);
-    expect(b.state.canDrop?.(evt('a'), { date: '2026-06-05', minutes: 600 })).toBe(false);
+    expect(b.state.canDrop?.(evt('a'), { date: '2026-06-05', minutes: 600, displayZone: 'UTC' })).toBe(false);
   });
 });
 

@@ -42,7 +42,7 @@ describe('CoarContextMenu', () => {
 
   it('closes the entire menu chain when a CoarMenuItem inside a CoarSubFlyout is clicked', async () => {
     const menu = createMenuContext();
-    menu.open();
+    menu.open({ clientX: 0, clientY: 0 });
 
     const Wrapper = defineComponent({
       setup() {
@@ -76,7 +76,7 @@ describe('CoarContextMenu', () => {
     await menuItem.trigger('click');
 
     // Wait for the queueMicrotask in CoarMenuItem's handleClick
-    await new Promise((r) => queueMicrotask(r));
+    await new Promise<void>((r) => queueMicrotask(() => r()));
 
     // The root context menu should be closed
     expect(menu.isOpen.value).toBe(false);
@@ -84,7 +84,7 @@ describe('CoarContextMenu', () => {
 
   it('closes the context menu when a direct CoarMenuItem is clicked', async () => {
     const menu = createMenuContext();
-    menu.open();
+    menu.open({ clientX: 0, clientY: 0 });
 
     const Wrapper = defineComponent({
       setup() {
@@ -102,7 +102,7 @@ describe('CoarContextMenu', () => {
 
     const menuItem = w.find('.coar-menu-item');
     await menuItem.trigger('click');
-    await new Promise((r) => queueMicrotask(r));
+    await new Promise<void>((r) => queueMicrotask(() => r()));
 
     expect(menu.isOpen.value).toBe(false);
   });

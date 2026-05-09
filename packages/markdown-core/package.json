@@ -10,7 +10,10 @@
   },
   "homepage": "https://docs.cocoar.dev/cocoar-ui-vue/",
   "bugs": "https://github.com/cocoar-dev/cocoar-ui-vue/issues",
-  "keywords": ["markdown", "parser"],
+  "keywords": [
+    "markdown",
+    "parser"
+  ],
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -23,11 +26,14 @@
       "types": "./dist/index.d.ts"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "vite build",
     "test": "vitest run",
-    "lint": "eslint src/"
+    "lint": "eslint src/",
+    "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
     "unified": "^11.0.5",

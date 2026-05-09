@@ -40,7 +40,7 @@ interface Props {
   menuOpenForThisCell?: boolean;
   /** Localised kebab `aria-label`. Parent supplies the i18n string. */
   kebabAriaLabel: string;
-  density?: 'comfortable' | 'compact';
+  density?: 'comfortable' | 'compact' | 'spacious';
   /**
    * `aria-rowindex` for the cell — counts from 1, with row 1 being
    * the weekday-header row, so week rows start at 2.

@@ -71,7 +71,7 @@ export interface DayLayoutOptions {
   /** The day this layout is for. */
   day: Temporal.PlainDate;
   /** Visible hour range. `[6, 22]` = 6 AM to 10 PM. */
-  timeRange: [number, number];
+  timeRange: readonly [number, number];
   /** IANA timezone for resolving timed events. */
   timezone: string;
   /**

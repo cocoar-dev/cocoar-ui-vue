@@ -1,3 +1,4 @@
+/// <reference lib="webworker" />
 /**
  * Recurrence expansion worker — runs `rrule-rust` off the main
  * thread. Imported via Vite's `?worker` syntax; only this file

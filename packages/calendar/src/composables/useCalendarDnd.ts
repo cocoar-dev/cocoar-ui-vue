@@ -31,9 +31,9 @@ import {
   type CalendarDragMode,
   type CalendarDropTarget,
   type DstPolicy,
-  type MoveResult,
+  type EventDropPayload,
 } from '../core/dnd/move-math';
-export type { DstPolicy } from '../core/dnd/move-math';
+export type { DstPolicy, DstDisambiguation } from '../core/dnd/move-math';
 export { buildDropPayload } from '../core/dnd/move-math';
 import { useCoarDrag } from './useCoarDrag';
 
@@ -101,7 +101,7 @@ function cursorForMode(mode: CalendarDragMode | null): string | null {
  */
 export type { CalendarDropTarget };
 
-export interface UseCalendarDndOptions {
+export interface UseCalendarDndOptions<TMeta extends Record<string, unknown> = Record<string, unknown>> {
   /** Scrollable surface element (for auto-scroll). */
   surfaceRef: Ref<HTMLElement | null>;
   /**
@@ -186,29 +186,17 @@ export interface UseCalendarDndOptions {
    * Use this for business rules like "daily standups can't move to
    * a weekend" or "blocked hours can't accept events".
    */
-  canDrop?: (event: CalendarEvent, target: CalendarDropTarget) => boolean;
+  canDrop?: (event: CalendarEvent<TMeta>, target: CalendarDropTarget) => boolean;
   /**
    * Called once the pointer crossed the drag threshold AND the user
    * released over a valid slot. Consumer applies `next` to its data.
    */
-  onEventDrop?: (payload: {
-    event: CalendarEvent;
-    original: {
-      start: Temporal.ZonedDateTime | Temporal.PlainDate;
-      end?: Temporal.ZonedDateTime | Temporal.PlainDate;
-      displayZone: string;
-    };
-    next: MoveResult;
-    target: CalendarDropTarget & {
-      disambiguation: null | 'gap' | 'overlap';
-    };
-    native: PointerEvent | null;
-  }) => void;
+  onEventDrop?: (payload: EventDropPayload<TMeta>) => void;
   /**
    * Called when pointer-down → up happened without crossing the
    * drag threshold. Lets the consumer keep its `event-click` UX.
    */
-  onEventClick?: (event: CalendarEvent, native: PointerEvent | null) => void;
+  onEventClick?: (event: CalendarEvent<TMeta>, native: PointerEvent | null) => void;
 }
 
 /**
@@ -229,11 +217,11 @@ export interface UseCalendarDndOptions {
  */
 export type { CalendarDragMode };
 
-export interface UseCalendarDndReturn {
+export interface UseCalendarDndReturn<TMeta extends Record<string, unknown> = Record<string, unknown>> {
   /** True only once the pointer has crossed the drag threshold. */
   isDragging: ComputedRef<boolean>;
   /** The event currently being dragged (or null when idle). */
-  draggedEvent: ComputedRef<CalendarEvent | null>;
+  draggedEvent: ComputedRef<CalendarEvent<TMeta> | null>;
   /** Drag mode of the in-flight drag, or `null` when idle. */
   dragMode: ComputedRef<CalendarDragMode | null>;
   /** Current drop slot (or null when off-grid / idle). */
@@ -251,22 +239,22 @@ export interface UseCalendarDndReturn {
    * Pointerdown handler for a TIMED event card. Resolves to a
    * `{ date, minutes }` slot via the time-grid hit-test.
    */
-  startDrag: (event: CalendarEvent) => (e: PointerEvent) => void;
+  startDrag: (event: CalendarEvent<TMeta>) => (e: PointerEvent) => void;
   /** Top-edge handle: only the start moves, end stays anchored. */
-  startTimedResizeStart: (event: CalendarEvent) => (e: PointerEvent) => void;
+  startTimedResizeStart: (event: CalendarEvent<TMeta>) => (e: PointerEvent) => void;
   /** Bottom-edge handle: only the end moves, start stays anchored. */
-  startTimedResizeEnd: (event: CalendarEvent) => (e: PointerEvent) => void;
+  startTimedResizeEnd: (event: CalendarEvent<TMeta>) => (e: PointerEvent) => void;
   /**
    * Pointerdown handler for an ALL-DAY bar. Resolves to a
    * `{ date, minutes: null }` slot via the all-day-band hit-test
    * (X-only — the vertical position inside the band doesn't carry
    * any meaning for an all-day event).
    */
-  startAllDayDrag: (event: CalendarEvent) => (e: PointerEvent) => void;
+  startAllDayDrag: (event: CalendarEvent<TMeta>) => (e: PointerEvent) => void;
   /** Left-edge handle on a multi-day all-day bar: start moves only. */
-  startAllDayResizeStart: (event: CalendarEvent) => (e: PointerEvent) => void;
+  startAllDayResizeStart: (event: CalendarEvent<TMeta>) => (e: PointerEvent) => void;
   /** Right-edge handle on a multi-day all-day bar: end moves only. */
-  startAllDayResizeEnd: (event: CalendarEvent) => (e: PointerEvent) => void;
+  startAllDayResizeEnd: (event: CalendarEvent<TMeta>) => (e: PointerEvent) => void;
   /**
    * Pointerdown handler for a MONTH-view event (pill or multi-day
    * bar). Resolves to a `{ date, minutes: null }` slot via the
@@ -274,14 +262,16 @@ export interface UseCalendarDndReturn {
    * (timed events) or shifts the all-day span (date-only events)
    * by the original-vs-target date delta.
    */
-  startMonthDrag: (event: CalendarEvent) => (e: PointerEvent) => void;
+  startMonthDrag: (event: CalendarEvent<TMeta>) => (e: PointerEvent) => void;
   /** Left-edge handle on a multi-day month bar: start moves only. */
-  startMonthResizeStart: (event: CalendarEvent) => (e: PointerEvent) => void;
+  startMonthResizeStart: (event: CalendarEvent<TMeta>) => (e: PointerEvent) => void;
   /** Right-edge handle on a multi-day month bar: end moves only. */
-  startMonthResizeEnd: (event: CalendarEvent) => (e: PointerEvent) => void;
+  startMonthResizeEnd: (event: CalendarEvent<TMeta>) => (e: PointerEvent) => void;
 }
 
-export function useCalendarDnd(opts: UseCalendarDndOptions): UseCalendarDndReturn {
+export function useCalendarDnd<TMeta extends Record<string, unknown> = Record<string, unknown>>(
+  opts: UseCalendarDndOptions<TMeta>,
+): UseCalendarDndReturn<TMeta> {
   const dropTarget = ref<CalendarDropTarget | null>(null);
   const snapBackUntil = ref(0);
   const snappingBack = computed(() => snapBackUntil.value > 0);
@@ -476,7 +466,7 @@ export function useCalendarDnd(opts: UseCalendarDndOptions): UseCalendarDndRetur
    * returns false.
    */
   function validateTarget(
-    event: CalendarEvent,
+    event: CalendarEvent<TMeta>,
     target: CalendarDropTarget | null,
   ): CalendarDropTarget | null {
     if (target === null) return target;
@@ -522,7 +512,7 @@ export function useCalendarDnd(opts: UseCalendarDndOptions): UseCalendarDndRetur
   let dragStartOriginalEnd: Temporal.ZonedDateTime | Temporal.PlainDate | undefined =
     undefined;
 
-  const drag = useCoarDrag<CalendarEvent>({
+  const drag = useCoarDrag<CalendarEvent<TMeta>>({
     surfaceRef: opts.surfaceRef,
     dragThreshold: opts.dragThreshold ?? 5,
     onDragStart: ({ event, data }) => {
@@ -620,7 +610,7 @@ export function useCalendarDnd(opts: UseCalendarDndOptions): UseCalendarDndRetur
     },
   });
 
-  function startTimedDrag(event: CalendarEvent): (e: PointerEvent) => void {
+  function startTimedDrag(event: CalendarEvent<TMeta>): (e: PointerEvent) => void {
     const inner = drag.startDrag(event);
     return (e) => {
       dragMode.value = 'timed';
@@ -641,7 +631,7 @@ export function useCalendarDnd(opts: UseCalendarDndOptions): UseCalendarDndRetur
       inner(e);
     };
   }
-  function startAllDayDrag(event: CalendarEvent): (e: PointerEvent) => void {
+  function startAllDayDrag(event: CalendarEvent<TMeta>): (e: PointerEvent) => void {
     const inner = drag.startDrag(event);
     return (e) => {
       dragMode.value = 'allDay';
@@ -669,7 +659,7 @@ export function useCalendarDnd(opts: UseCalendarDndOptions): UseCalendarDndRetur
       inner(e);
     };
   }
-  function startMonthDrag(event: CalendarEvent): (e: PointerEvent) => void {
+  function startMonthDrag(event: CalendarEvent<TMeta>): (e: PointerEvent) => void {
     const inner = drag.startDrag(event);
     return (e) => {
       dragMode.value = 'month';
@@ -706,7 +696,7 @@ export function useCalendarDnd(opts: UseCalendarDndOptions): UseCalendarDndRetur
    * `event.start` shifts. No grab-offset to preserve — the user's
    * pointer IS the new start position, snapped to slot.
    */
-  function startTimedResizeStart(event: CalendarEvent): (e: PointerEvent) => void {
+  function startTimedResizeStart(event: CalendarEvent<TMeta>): (e: PointerEvent) => void {
     const inner = drag.startDrag(event);
     return (e) => {
       dragMode.value = 'timed-resize-start';
@@ -716,7 +706,7 @@ export function useCalendarDnd(opts: UseCalendarDndOptions): UseCalendarDndRetur
       inner(e);
     };
   }
-  function startTimedResizeEnd(event: CalendarEvent): (e: PointerEvent) => void {
+  function startTimedResizeEnd(event: CalendarEvent<TMeta>): (e: PointerEvent) => void {
     const inner = drag.startDrag(event);
     return (e) => {
       dragMode.value = 'timed-resize-end';
@@ -726,7 +716,7 @@ export function useCalendarDnd(opts: UseCalendarDndOptions): UseCalendarDndRetur
       inner(e);
     };
   }
-  function startAllDayResizeStart(event: CalendarEvent): (e: PointerEvent) => void {
+  function startAllDayResizeStart(event: CalendarEvent<TMeta>): (e: PointerEvent) => void {
     const inner = drag.startDrag(event);
     return (e) => {
       dragMode.value = 'allDay-resize-start';
@@ -736,7 +726,7 @@ export function useCalendarDnd(opts: UseCalendarDndOptions): UseCalendarDndRetur
       inner(e);
     };
   }
-  function startAllDayResizeEnd(event: CalendarEvent): (e: PointerEvent) => void {
+  function startAllDayResizeEnd(event: CalendarEvent<TMeta>): (e: PointerEvent) => void {
     const inner = drag.startDrag(event);
     return (e) => {
       dragMode.value = 'allDay-resize-end';
@@ -746,7 +736,7 @@ export function useCalendarDnd(opts: UseCalendarDndOptions): UseCalendarDndRetur
       inner(e);
     };
   }
-  function startMonthResizeStart(event: CalendarEvent): (e: PointerEvent) => void {
+  function startMonthResizeStart(event: CalendarEvent<TMeta>): (e: PointerEvent) => void {
     const inner = drag.startDrag(event);
     return (e) => {
       dragMode.value = 'month-resize-start';
@@ -756,7 +746,7 @@ export function useCalendarDnd(opts: UseCalendarDndOptions): UseCalendarDndRetur
       inner(e);
     };
   }
-  function startMonthResizeEnd(event: CalendarEvent): (e: PointerEvent) => void {
+  function startMonthResizeEnd(event: CalendarEvent<TMeta>): (e: PointerEvent) => void {
     const inner = drag.startDrag(event);
     return (e) => {
       dragMode.value = 'month-resize-end';

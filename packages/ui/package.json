@@ -47,7 +47,8 @@
   "scripts": {
     "build": "vite build",
     "test": "vitest run",
-    "lint": "eslint src/"
+    "lint": "eslint src/",
+    "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
     "@cocoar/vue-localization": "workspace:*",

@@ -2,6 +2,7 @@
 import {
   computed, inject, onBeforeUnmount, ref, useId, useSlots, watch, markRaw,
   type VNode,
+  type Slots,
 } from 'vue';
 import CoarIcon from '../icon/CoarIcon.vue';
 import type { CoarIconSize } from '../icon/icon-service';
@@ -54,7 +55,7 @@ const resolvedIconOnly = computed(() => props.iconOnly ?? parentIconOnly.value);
 const isOpen = computed(() => open.value);
 const isFlyout = computed(() => props.mode === 'flyout');
 
-const slots = useSlots();
+const slots: Slots = useSlots();
 
 // Flyout state
 const flyoutOpen = ref(false);

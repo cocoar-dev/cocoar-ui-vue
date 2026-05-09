@@ -71,7 +71,7 @@ describe('CoarListbox', () => {
     const w = mount(CoarListbox, {
       props: {
         modelValue: ['a'],
-        'onUpdate:modelValue': (v: unknown) => w.setProps({ modelValue: v }),
+        'onUpdate:modelValue': (v: unknown[]) => w.setProps({ modelValue: v }),
         options: baseOptions,
       },
     });
@@ -86,7 +86,7 @@ describe('CoarListbox', () => {
     const w = mount(CoarListbox, {
       props: {
         modelValue: [],
-        'onUpdate:modelValue': (v: unknown) => w.setProps({ modelValue: v }),
+        'onUpdate:modelValue': (v: unknown[]) => w.setProps({ modelValue: v }),
         options: baseOptions,
       },
     });
@@ -170,7 +170,7 @@ describe('CoarListbox', () => {
       props: {
         options: users,
         searchable: true,
-        searchBy: (i: CoarListboxOption<User>) => `${i.label} ${i.value.email}`,
+        searchBy: (i: CoarListboxOption<unknown>) => `${i.label} ${(i.value as User).email}`,
       },
     });
     await w.find('input').setValue('bob@');
@@ -182,7 +182,7 @@ describe('CoarListbox', () => {
       props: {
         options: baseOptions,
         searchable: true,
-        filterWith: (i: CoarListboxOption<string>, q: string) => i.value === q,
+        filterWith: (i: CoarListboxOption<unknown>, q: string) => i.value === q,
       },
     });
     await w.find('input').setValue('c');
@@ -261,7 +261,7 @@ describe('CoarListbox', () => {
     const w = mount(CoarListbox, {
       props: {
         modelValue: ['a'],
-        'onUpdate:modelValue': (v: unknown) => w.setProps({ modelValue: v }),
+        'onUpdate:modelValue': (v: unknown[]) => w.setProps({ modelValue: v }),
         options: baseOptions,
       },
     });
@@ -284,7 +284,7 @@ describe('CoarListbox', () => {
     const w = mount(CoarListbox, {
       props: {
         options: opts,
-        kindBy: (i: CoarListboxOption<Row>) => i.value.type,
+        kindBy: (i: CoarListboxOption<unknown>) => (i.value as Row).type,
       },
       slots: {
         'item-user': `<template #item-user="{ item }"><span class="k-user">{{ item.label }}</span></template>`,
@@ -405,7 +405,7 @@ describe('CoarListbox', () => {
     const w = mount(CoarListbox, {
       props: {
         modelValue: [],
-        'onUpdate:modelValue': (v: unknown) => w.setProps({ modelValue: v }),
+        'onUpdate:modelValue': (v: unknown[]) => w.setProps({ modelValue: v }),
         options: opts,
         itemComponents: { row: RowWithRemove },
       },
@@ -609,7 +609,7 @@ describe('CoarListbox', () => {
     const w = mount(CoarListbox, {
       props: {
         modelValue: [],
-        'onUpdate:modelValue': (v: unknown) => w.setProps({ modelValue: v }),
+        'onUpdate:modelValue': (v: unknown[]) => w.setProps({ modelValue: v }),
         options: many,
         virtual: true,
         itemHeight: 30,
@@ -633,7 +633,7 @@ describe('CoarListbox', () => {
       props: {
         options: opts,
         draggable: true,
-        canDrag: (i: CoarListboxOption<string>) => i.value !== 'b',
+        canDrag: (i: CoarListboxOption<unknown>) => i.value !== 'b',
       },
     });
     const items = w.findAll('.coar-listbox-item');

@@ -235,7 +235,7 @@ describe('CoarGridColumnBuilder', () => {
 
   describe('valueFormatter', () => {
     it('should set value formatter function', () => {
-      const formatter = (params: { value: string }) => params.value.toUpperCase();
+      const formatter = (params: { value: unknown }) => String(params.value).toUpperCase();
       const colDef = new CoarGridColumnBuilder<TestRow>('name').valueFormatter(formatter).build();
 
       expect(colDef.valueFormatter).toBe(formatter);

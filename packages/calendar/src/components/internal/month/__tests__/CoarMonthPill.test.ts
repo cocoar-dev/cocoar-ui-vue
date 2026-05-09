@@ -114,7 +114,6 @@ describe('<CoarMonthPill>', () => {
 
     it('still respects the user slot (parent custom rendering)', () => {
       const Renderer = defineComponent({
-        components: { CoarMonthPill },
         setup() {
           return () =>
             h(
@@ -150,7 +149,6 @@ describe('<CoarMonthPill>', () => {
 
     it('falls back to bare title (custom slot ignored)', () => {
       const Renderer = defineComponent({
-        components: { CoarMonthPill },
         setup() {
           return () =>
             h(

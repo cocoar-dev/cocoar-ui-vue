@@ -20,7 +20,7 @@ interface Props {
   isWeekend: (day: Temporal.PlainDate) => boolean;
   /** Locale-aware label for a day-header. */
   formatLabel: (day: Temporal.PlainDate) => string;
-  density?: 'comfortable' | 'compact';
+  density?: 'comfortable' | 'compact' | 'spacious';
 }
 
 withDefaults(defineProps<Props>(), { density: 'comfortable' });

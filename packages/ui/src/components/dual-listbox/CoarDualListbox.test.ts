@@ -46,7 +46,7 @@ describe('CoarDualListbox', () => {
     const w = mount(CoarDualListbox, {
       props: {
         modelValue: [],
-        'onUpdate:modelValue': (v: unknown) => w.setProps({ modelValue: v }),
+        'onUpdate:modelValue': (v: unknown[]) => w.setProps({ modelValue: v }),
         options,
       },
     });
@@ -63,7 +63,7 @@ describe('CoarDualListbox', () => {
     const w = mount(CoarDualListbox, {
       props: {
         modelValue: [],
-        'onUpdate:modelValue': (v: unknown) => w.setProps({ modelValue: v }),
+        'onUpdate:modelValue': (v: unknown[]) => w.setProps({ modelValue: v }),
         options,
       },
     });
@@ -77,7 +77,7 @@ describe('CoarDualListbox', () => {
     const w = mount(CoarDualListbox, {
       props: {
         modelValue: ['a', 'b'],
-        'onUpdate:modelValue': (v: unknown) => w.setProps({ modelValue: v }),
+        'onUpdate:modelValue': (v: unknown[]) => w.setProps({ modelValue: v }),
         options,
       },
     });
@@ -92,7 +92,7 @@ describe('CoarDualListbox', () => {
     const w = mount(CoarDualListbox, {
       props: {
         modelValue: [],
-        'onUpdate:modelValue': (v: unknown) => w.setProps({ modelValue: v }),
+        'onUpdate:modelValue': (v: unknown[]) => w.setProps({ modelValue: v }),
         options,
       },
     });
@@ -105,7 +105,7 @@ describe('CoarDualListbox', () => {
     const w = mount(CoarDualListbox, {
       props: {
         modelValue: [],
-        'onUpdate:modelValue': (v: unknown) => w.setProps({ modelValue: v }),
+        'onUpdate:modelValue': (v: unknown[]) => w.setProps({ modelValue: v }),
         options,
       },
     });
@@ -149,7 +149,7 @@ describe('CoarDualListbox', () => {
     const w = mount(CoarDualListbox, {
       props: {
         modelValue: [],
-        'onUpdate:modelValue': (v: unknown) => w.setProps({ modelValue: v }),
+        'onUpdate:modelValue': (v: unknown[]) => w.setProps({ modelValue: v }),
         options,
       },
     });
@@ -166,7 +166,7 @@ describe('CoarDualListbox', () => {
     const w = mount(CoarDualListbox, {
       props: {
         modelValue: [],
-        'onUpdate:modelValue': (v: unknown) => w.setProps({ modelValue: v }),
+        'onUpdate:modelValue': (v: unknown[]) => w.setProps({ modelValue: v }),
         options,
         sortSelectedBySource: true,
       },
@@ -191,7 +191,7 @@ describe('CoarDualListbox', () => {
     const w = mount(CoarDualListbox, {
       props: {
         modelValue: [],
-        'onUpdate:modelValue': (v: unknown) => w.setProps({ modelValue: v }),
+        'onUpdate:modelValue': (v: unknown[]) => w.setProps({ modelValue: v }),
         options,
         dragDrop: true,
       },
@@ -215,7 +215,7 @@ describe('CoarDualListbox', () => {
     const w = mount(CoarDualListbox, {
       props: {
         modelValue: ['a', 'b'],
-        'onUpdate:modelValue': (v: unknown) => w.setProps({ modelValue: v }),
+        'onUpdate:modelValue': (v: unknown[]) => w.setProps({ modelValue: v }),
         options,
         dragDrop: true,
       },
@@ -267,7 +267,7 @@ describe('CoarDualListbox', () => {
     const w = mount(CoarDualListbox, {
       props: {
         modelValue: [],
-        'onUpdate:modelValue': (v: unknown) => w.setProps({ modelValue: v }),
+        'onUpdate:modelValue': (v: unknown[]) => w.setProps({ modelValue: v }),
         options,
       },
     });

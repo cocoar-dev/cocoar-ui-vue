@@ -43,12 +43,23 @@ import {
   watch,
 } from 'vue';
 import {
+  type CalendarView,
   type ViewWindow,
   computeViewWindow,
   detectFirstDayOfWeekFromLocale,
 } from '../core';
 import { CalendarBuilder } from '../builders/calendar-builder';
 import { SET_VISIBLE_RANGE } from '../builders/calendar-builder-internals';
+
+export interface UseViewWindowOptions {
+  /**
+   * Pin the builder's view to this value on mount. Used by standalone
+   * sub-views (`<CoarMonthView />`, `<CoarDayView />`, …) so callers
+   * who composed the builder via `useDayView()` etc. don't have to
+   * separately remember to set `builder.state.view`.
+   */
+  view?: CalendarView;
+}
 
 /**
  * Track of the builders that already have an active `useViewWindow`.
@@ -68,7 +79,16 @@ interface UseViewWindowReturn {
 
 export function useViewWindow<TMeta extends Record<string, unknown> = Record<string, unknown>>(
   builder: CalendarBuilder<TMeta>,
+  options?: UseViewWindowOptions,
 ): UseViewWindowReturn {
+  // Standalone sub-view path (C8): pin builder.state.view to what the
+  // sub-view renders, so window computation + api.getVisibleRange() see
+  // the correct view even when the consumer composed the builder via a
+  // sub-view-specific factory (`useDayView()` etc.) that does not.
+  if (options?.view && builder.state.view.value !== options.view) {
+    builder.state.view.value = options.view;
+  }
+
   if (_activeBuilders.has(builder as CalendarBuilder)) {
     // C5 single-writer invariant — second concurrent mount is a misuse:
     // duplicate writers compute identical windows from the same state,

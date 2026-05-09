@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="TMeta extends Record<string, unknown> = Record<string, unknown>">
 /**
  * `<CoarMonthBar>` — internal presentational component for a
  * multi-day bar in the month grid.
@@ -26,51 +26,54 @@ import { computed } from 'vue';
 import type { CalendarEvent, MonthMultiDayBar } from '../../../core';
 import CoarEventDecorations from '../CoarEventDecorations.vue';
 
-interface Props {
-  event: CalendarEvent;
-  bar: MonthMultiDayBar;
-  variant?: 'live' | 'preview' | 'phantom' | 'invalid';
-  bg: string;
-  border: string;
-  title: string;
-  /** Display zone — surfaced on the default decoration layer (C3/C5 hints). */
-  displayZone?: string;
-  ariaLabel?: string;
-  snappingBack?: boolean;
-  density?: 'comfortable' | 'compact';
+// Inlined defineProps argument to avoid vue-tsc TS4025 — see note in
+// CoarMonthView.vue.
+const props = withDefaults(
+  defineProps<{
+    event: CalendarEvent<TMeta>;
+    bar: MonthMultiDayBar<TMeta>;
+    variant?: 'live' | 'preview' | 'phantom' | 'invalid';
+    bg: string;
+    border: string;
+    title: string;
+    /** Display zone — surfaced on the default decoration layer (C3/C5 hints). */
+    displayZone?: string;
+    ariaLabel?: string;
+    snappingBack?: boolean;
+    density?: 'comfortable' | 'compact' | 'spacious';
 
-  /** Pixel offset from the row's top edge. */
-  top: number;
-  /** CSS `left` (typically a `calc(...)` percentage expression). */
-  left: string;
-  /** CSS `width` (typically a `calc(...)` percentage expression). */
-  width: string;
-  /** Pixel height. */
-  height: number;
-  /** Stacking order; preview gets bumped to 100 by the parent. */
-  zIndex: number;
+    /** Pixel offset from the row's top edge. */
+    top: number;
+    /** CSS `left` (typically a `calc(...)` percentage expression). */
+    left: string;
+    /** CSS `width` (typically a `calc(...)` percentage expression). */
+    width: string;
+    /** Pixel height. */
+    height: number;
+    /** Stacking order; preview gets bumped to 100 by the parent. */
+    zIndex: number;
 
-  /** Bar is clipped at the start (off-month or at the row edge). */
-  clippedStart?: boolean;
-  /** Bar is clipped at the end (off-month or at the row edge). */
-  clippedEnd?: boolean;
-  /**
-   * `true` when the `preview` variant is being driven by an
-   * in-flight keyboard drag.
-   */
-  kbdActive?: boolean;
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  variant: 'live',
-  displayZone: undefined,
-  ariaLabel: undefined,
-  snappingBack: false,
-  density: 'comfortable',
-  clippedStart: false,
-  clippedEnd: false,
-  kbdActive: false,
-});
+    /** Bar is clipped at the start (off-month or at the row edge). */
+    clippedStart?: boolean;
+    /** Bar is clipped at the end (off-month or at the row edge). */
+    clippedEnd?: boolean;
+    /**
+     * `true` when the `preview` variant is being driven by an
+     * in-flight keyboard drag.
+     */
+    kbdActive?: boolean;
+  }>(),
+  {
+    variant: 'live',
+    displayZone: undefined,
+    ariaLabel: undefined,
+    snappingBack: false,
+    density: 'comfortable',
+    clippedStart: false,
+    clippedEnd: false,
+    kbdActive: false,
+  },
+);
 
 const emit = defineEmits<{
   /** Pointer-down on the bar body (live only). Parent starts the move drag. */
@@ -84,7 +87,7 @@ const emit = defineEmits<{
 }>();
 
 defineSlots<{
-  default(props: { event: CalendarEvent; bar: MonthMultiDayBar }): unknown;
+  default(props: { event: CalendarEvent<TMeta>; bar: MonthMultiDayBar<TMeta> }): unknown;
 }>();
 
 const isInteractive = computed(

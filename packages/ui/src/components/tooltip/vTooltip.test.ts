@@ -189,7 +189,7 @@ describe('vTooltip', () => {
       await wrapper.find('button').trigger('mouseenter');
       expect(getTooltipEl()).not.toBeNull();
       // Disable
-      (wrapper.vm as Record<string, unknown>).d = true;
+      (wrapper.vm as unknown as Record<string, unknown>).d = true;
       await nextTick();
       expect(getTooltipEl()).toBeNull();
       wrapper.unmount();
@@ -234,7 +234,7 @@ describe('vTooltip', () => {
       );
       await wrapper.find('button').trigger('mouseenter');
       expect(getTooltipEl()!.textContent).toBe('First');
-      (wrapper.vm as Record<string, unknown>).text = 'Second';
+      (wrapper.vm as unknown as Record<string, unknown>).text = 'Second';
       await nextTick();
       expect(getTooltipEl()!.textContent).toBe('Second');
       wrapper.unmount();

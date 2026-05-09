@@ -46,7 +46,7 @@ describe('IntlTranslationSource', () => {
   it('capitalizes first letter of month/weekday names', async () => {
     const data = await source.load('en');
     for (let i = 1; i <= 12; i++) {
-      const name = data![`common.month.${i}`];
+      const name = data![`common.month.${i}`] as string;
       expect(name[0]).toBe(name[0].toUpperCase());
     }
   });

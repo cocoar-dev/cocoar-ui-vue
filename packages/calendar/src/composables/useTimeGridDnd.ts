@@ -46,6 +46,7 @@ import {
   type EventDropPayload,
   type MoveResult,
 } from '../core/dnd/move-math';
+import type { CanDropTarget } from '../builders/types';
 import {
   Temporal,
   layoutDayEvents,
@@ -61,25 +62,26 @@ import {
  * `EventDropPayload` from `core/dnd/move-math`. Re-exported under this
  * name as a convenience for time-grid-specific call sites.
  */
-export type TimeGridEventDropPayload = EventDropPayload;
+export type TimeGridEventDropPayload<TMeta extends Record<string, unknown> = Record<string, unknown>> =
+  EventDropPayload<TMeta>;
 
-export interface TimedDragSourceSnapshot {
+export interface TimedDragSourceSnapshot<TMeta extends Record<string, unknown> = Record<string, unknown>> {
   dayKey: string;
   lane: number;
   laneCount: number;
   startMinutes: number;
   endMinutes: number;
-  event: CalendarEvent;
+  event: CalendarEvent<TMeta>;
 }
 
-export interface AllDayDragSourceSnapshot {
+export interface AllDayDragSourceSnapshot<TMeta extends Record<string, unknown> = Record<string, unknown>> {
   startCol: number;
   endCol: number;
   lane: number;
   laneCount: number;
   clippedStart: boolean;
   clippedEnd: boolean;
-  event: CalendarEvent;
+  event: CalendarEvent<TMeta>;
 }
 
 export interface InvalidTimedGhost {
@@ -93,8 +95,8 @@ export interface InvalidAllDayGhost {
   endCol: number;
 }
 
-export interface UseTimeGridDndOptions {
-  events: MaybeRefOrGetter<ReadonlyArray<CalendarEvent>>;
+export interface UseTimeGridDndOptions<TMeta extends Record<string, unknown> = Record<string, unknown>> {
+  events: MaybeRefOrGetter<ReadonlyArray<CalendarEvent<TMeta>>>;
   days:
     | ComputedRef<ReadonlyArray<Temporal.PlainDate>>
     | Ref<ReadonlyArray<Temporal.PlainDate>>;
@@ -114,11 +116,11 @@ export interface UseTimeGridDndOptions {
   topBufferMinutes: ComputedRef<number> | Ref<number>;
 
   canDrop?: (
-    event: CalendarEvent,
-    target: { date: string; minutes: number | null },
+    event: CalendarEvent<TMeta>,
+    target: CanDropTarget,
   ) => boolean;
-  onEventClick?: (event: CalendarEvent, native: PointerEvent | null) => void;
-  onEventDrop?: (payload: TimeGridEventDropPayload) => void;
+  onEventClick?: (event: CalendarEvent<TMeta>, native: PointerEvent | null) => void;
+  onEventDrop?: (payload: TimeGridEventDropPayload<TMeta>) => void;
   /**
    * Optional screen-reader announcer hook. Called after every
    * commit (mouse drop OR keyboard Enter) and after every cancel
@@ -128,7 +130,7 @@ export interface UseTimeGridDndOptions {
    */
   onAnnounce?: (
     kind: 'committed' | 'cancelled',
-    payload?: TimeGridEventDropPayload,
+    payload?: TimeGridEventDropPayload<TMeta>,
   ) => void;
 }
 
@@ -138,8 +140,8 @@ export interface UseTimeGridDndOptions {
  * drag (the visuals don't care which input modality started the
  * drag).
  */
-export interface KeyboardDragState {
-  event: CalendarEvent;
+export interface KeyboardDragState<TMeta extends Record<string, unknown> = Record<string, unknown>> {
+  event: CalendarEvent<TMeta>;
   /** Working start/end after applying the arrow-key moves so far. */
   next: MoveResult;
   mode: CalendarDragMode;
@@ -156,29 +158,29 @@ export interface KeyboardDragState {
   originalEnd?: Temporal.ZonedDateTime | Temporal.PlainDate;
 }
 
-export interface UseTimeGridDndReturn {
-  dnd: UseCalendarDndReturn;
-  workingEvents: ComputedRef<ReadonlyArray<CalendarEvent>>;
-  dragSourceSnapshot: Ref<TimedDragSourceSnapshot | null>;
-  dragAllDaySourceSnapshot: Ref<AllDayDragSourceSnapshot | null>;
+export interface UseTimeGridDndReturn<TMeta extends Record<string, unknown> = Record<string, unknown>> {
+  dnd: UseCalendarDndReturn<TMeta>;
+  workingEvents: ComputedRef<ReadonlyArray<CalendarEvent<TMeta>>>;
+  dragSourceSnapshot: Ref<TimedDragSourceSnapshot<TMeta> | null>;
+  dragAllDaySourceSnapshot: Ref<AllDayDragSourceSnapshot<TMeta> | null>;
   invalidTimedGhost: ComputedRef<InvalidTimedGhost | null>;
   invalidAllDayGhost: ComputedRef<InvalidAllDayGhost | null>;
   isPreviewEvent: (id: string) => boolean;
   onEventPointerdown: (
     e: PointerEvent,
-    event: CalendarEvent,
-    start: (data: CalendarEvent) => (e: PointerEvent) => void,
+    event: CalendarEvent<TMeta>,
+    start: (data: CalendarEvent<TMeta>) => (e: PointerEvent) => void,
   ) => void;
-  onEventKeydown: (e: KeyboardEvent, event: CalendarEvent) => void;
+  onEventKeydown: (e: KeyboardEvent, event: CalendarEvent<TMeta>) => void;
   draggedDurationMinutes: ComputedRef<number | null>;
   /** Active keyboard-drag state, or `null` when no kbd-drag is in flight. */
-  keyboardDrag: Ref<KeyboardDragState | null>;
+  keyboardDrag: Ref<KeyboardDragState<TMeta> | null>;
 }
 
-export function useTimeGridDnd(
-  opts: UseTimeGridDndOptions,
-): UseTimeGridDndReturn {
-  const dnd = useCalendarDnd({
+export function useTimeGridDnd<TMeta extends Record<string, unknown> = Record<string, unknown>>(
+  opts: UseTimeGridDndOptions<TMeta>,
+): UseTimeGridDndReturn<TMeta> {
+  const dnd = useCalendarDnd<TMeta>({
     surfaceRef: opts.surfaceRef,
     columnsRef: opts.columnsRef,
     allDayColumnsRef: opts.allDayColumnsRef,
@@ -193,14 +195,18 @@ export function useTimeGridDnd(
     timeGridTopBufferMinutes: opts.topBufferMinutes,
     canDrop: opts.canDrop
       ? (event, target) =>
-          opts.canDrop!(event, { date: target.date, minutes: target.minutes })
+          opts.canDrop!(event, {
+            date: target.date,
+            minutes: target.minutes,
+            displayZone: target.displayZone,
+          })
       : undefined,
     onEventClick: (event, native) => {
       opts.onEventClick?.(event, native);
     },
     onEventDrop: (payload) => {
-      opts.onEventDrop?.(payload as TimeGridEventDropPayload);
-      opts.onAnnounce?.('committed', payload as TimeGridEventDropPayload);
+      opts.onEventDrop?.(payload);
+      opts.onAnnounce?.('committed', payload);
     },
   });
 
@@ -212,9 +218,9 @@ export function useTimeGridDnd(
    * keystroke on a focused event; cleared on `Enter` (commit) /
    * `Escape` (cancel).
    */
-  const keyboardDrag = ref<KeyboardDragState | null>(null);
+  const keyboardDrag = ref<KeyboardDragState<TMeta> | null>(null);
 
-  const workingEvents = computed<ReadonlyArray<CalendarEvent>>(() => {
+  const workingEvents = computed<ReadonlyArray<CalendarEvent<TMeta>>>(() => {
     const events = toValue(opts.events);
 
     // Pointer drag wins if both are somehow active (shouldn't
@@ -236,8 +242,8 @@ export function useTimeGridDnd(
       // overlap would silently lie to the user).
       const policy = opts.dstPolicy ? toValue(opts.dstPolicy) : 'compatible';
       const next = applyMoveToEvent(dragged, target, mode, policy);
-      const previewEvent: CalendarEvent = {
-        ...dragged,
+      const previewEvent: CalendarEvent<TMeta> = {
+        ...(dragged as CalendarEvent<TMeta>),
         id: `${dragged.id}__preview`,
         start: next.start,
         end: next.end,
@@ -252,12 +258,12 @@ export function useTimeGridDnd(
     // keys take them.
     const kbd = keyboardDrag.value;
     if (kbd) {
-      const previewEvent: CalendarEvent = {
+      const previewEvent = {
         ...kbd.event,
         id: `${kbd.event.id}__preview`,
         start: kbd.next.start,
         end: kbd.next.end,
-      };
+      } as CalendarEvent<TMeta>;
       return [...events.filter((e) => e.id !== kbd.event.id), previewEvent];
     }
 
@@ -272,8 +278,8 @@ export function useTimeGridDnd(
     return false;
   }
 
-  const dragSourceSnapshot = ref<TimedDragSourceSnapshot | null>(null);
-  const dragAllDaySourceSnapshot = ref<AllDayDragSourceSnapshot | null>(null);
+  const dragSourceSnapshot = ref<TimedDragSourceSnapshot<TMeta> | null>(null);
+  const dragAllDaySourceSnapshot = ref<AllDayDragSourceSnapshot<TMeta> | null>(null);
 
   // Capture on `isDragging` (post-threshold), not `draggedEvent`
   // (set on pointerdown). Otherwise a plain click on an event would
@@ -441,8 +447,8 @@ export function useTimeGridDnd(
 
   function onEventPointerdown(
     e: PointerEvent,
-    event: CalendarEvent,
-    start: (data: CalendarEvent) => (e: PointerEvent) => void,
+    event: CalendarEvent<TMeta>,
+    start: (data: CalendarEvent<TMeta>) => (e: PointerEvent) => void,
   ): void {
     const el = e.currentTarget;
     if (el instanceof HTMLElement) el.focus({ preventScroll: true });
@@ -505,7 +511,7 @@ export function useTimeGridDnd(
    */
   function deriveNextFromArrow(
     base: MoveResult,
-    event: CalendarEvent,
+    event: CalendarEvent<TMeta>,
     e: KeyboardEvent,
     slotMin: number,
   ): { next: MoveResult; mode: CalendarDragMode } | null {
@@ -518,11 +524,11 @@ export function useTimeGridDnd(
     // (the kbd-drag's accumulated `base`). applyMoveToEvent reads the
     // event's source zone(s) from this — so the synthetic carries the
     // ORIGINAL event's source zones via base.start/end.
-    const workingEvent: CalendarEvent = {
+    const workingEvent: CalendarEvent<TMeta> = {
       id: event.id,
       start: base.start,
       ...(base.end ? { end: base.end } : {}),
-    } as CalendarEvent;
+    } as CalendarEvent<TMeta>;
 
     // Shift+ArrowUp/Down on a timed event: resize the END side.
     if (e.shiftKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown') && isTimed) {
@@ -635,7 +641,10 @@ export function useTimeGridDnd(
   }
 
   function commitKeyboardDrag(): void {
-    const kbd = keyboardDrag.value;
+    // Vue's reactive ref-unwrap loses the generic TMeta when reading from a
+    // ref<KeyboardDragState<TMeta> | null>; cast back so kbd.event is
+    // CalendarEvent<TMeta> at the canDrop / payload sites below.
+    const kbd = keyboardDrag.value as KeyboardDragState<TMeta> | null;
     if (!kbd) return;
     const tz = toValue(opts.timezone);
     if (opts.canDrop) {
@@ -652,7 +661,7 @@ export function useTimeGridDnd(
     // — the math entry is still applyMoveToEvent, just on a different
     // call site than the mouse path. This is C2-equivalent because the
     // payload shape and disambiguation surface match buildDropPayload.
-    const payload: TimeGridEventDropPayload = {
+    const payload: TimeGridEventDropPayload<TMeta> = {
       event: kbd.event,
       original: {
         start: kbd.originalStart,
@@ -679,7 +688,7 @@ export function useTimeGridDnd(
     });
   }
 
-  function onEventKeydown(e: KeyboardEvent, event: CalendarEvent): void {
+  function onEventKeydown(e: KeyboardEvent, event: CalendarEvent<TMeta>): void {
     // Esc cancels an in-flight keyboard drag (without committing)
     // and otherwise blurs the focused event so arrow keys go back
     // to scrolling the page / surface.
@@ -770,14 +779,18 @@ export function useTimeGridDnd(
   return {
     dnd,
     workingEvents,
-    dragSourceSnapshot,
-    dragAllDaySourceSnapshot,
+    // Vue 3.5's Ref<T> includes a second generic for the writable type that
+    // the inferred-from-initial-value `ref(null)` doesn't match through
+    // generic boundaries — cast at the return so the public `Ref<TMeta>`
+    // type comes through cleanly.
+    dragSourceSnapshot: dragSourceSnapshot as Ref<TimedDragSourceSnapshot<TMeta> | null>,
+    dragAllDaySourceSnapshot: dragAllDaySourceSnapshot as Ref<AllDayDragSourceSnapshot<TMeta> | null>,
     invalidTimedGhost,
     invalidAllDayGhost,
     isPreviewEvent,
     onEventPointerdown,
     onEventKeydown,
     draggedDurationMinutes,
-    keyboardDrag,
+    keyboardDrag: keyboardDrag as Ref<KeyboardDragState<TMeta> | null>,
   };
 }

@@ -147,7 +147,8 @@ describe('Cross-zone DnD — source zone preservation', () => {
     expect(end.timeZoneId).toBe('Europe/Vienna');
     // Duration preserved exactly (article 4: derive math from intent).
     const oldDurMs =
-      ev.end.epochMilliseconds - ev.start.epochMilliseconds;
+      (ev.end as Temporal.ZonedDateTime).epochMilliseconds
+      - (ev.start as Temporal.ZonedDateTime).epochMilliseconds;
     const newDurMs = end.epochMilliseconds - start.epochMilliseconds;
     expect(newDurMs).toBe(oldDurMs);
   });

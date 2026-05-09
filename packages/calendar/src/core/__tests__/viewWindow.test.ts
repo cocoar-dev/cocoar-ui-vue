@@ -113,6 +113,7 @@ describe('computeViewWindow — properties', () => {
           view,
           cursor,
           firstDayOfWeek: fdow as DayOfWeek,
+          timezone: 'UTC',
         });
         expect(windowContainsDate(w, cursor)).toBe(true);
       }),
@@ -127,6 +128,7 @@ describe('computeViewWindow — properties', () => {
           view,
           cursor,
           firstDayOfWeek: fdow as DayOfWeek,
+          timezone: 'UTC',
         });
         expect(
           Temporal.PlainDate.compare(
@@ -146,6 +148,7 @@ describe('computeViewWindow — properties', () => {
           view: 'week',
           cursor,
           firstDayOfWeek: fdow as DayOfWeek,
+          timezone: 'UTC',
         });
         const start = Temporal.PlainDate.from(w.start);
         expect(temporalDowToCalendarDow(start.dayOfWeek)).toBe(fdow);
@@ -161,6 +164,7 @@ describe('computeViewWindow — properties', () => {
           view: 'month',
           cursor,
           firstDayOfWeek: fdow as DayOfWeek,
+          timezone: 'UTC',
         });
         const start = Temporal.PlainDate.from(w.start);
         expect(temporalDowToCalendarDow(start.dayOfWeek)).toBe(fdow);
@@ -176,6 +180,7 @@ describe('computeViewWindow — properties', () => {
           view: 'month',
           cursor,
           firstDayOfWeek: fdow as DayOfWeek,
+          timezone: 'UTC',
         });
         expect(windowDayCount(w)).toBe(42);
       }),
@@ -190,6 +195,7 @@ describe('computeViewWindow — properties', () => {
           view: 'week',
           cursor,
           firstDayOfWeek: fdow as DayOfWeek,
+          timezone: 'UTC',
         });
         expect(windowDayCount(w)).toBe(7);
       }),
@@ -204,6 +210,7 @@ describe('computeViewWindow — properties', () => {
           view: 'day',
           cursor,
           firstDayOfWeek: fdow as DayOfWeek,
+          timezone: 'UTC',
         });
         expect(windowDayCount(w)).toBe(1);
       }),
@@ -218,6 +225,7 @@ describe('computeViewWindow — properties', () => {
           view: 'month',
           cursor,
           firstDayOfWeek: fdow as DayOfWeek,
+          timezone: 'UTC',
         });
         const ym = Temporal.PlainYearMonth.from({
           year: cursor.year,
@@ -252,6 +260,7 @@ describe('daysInWindow', () => {
           view,
           cursor,
           firstDayOfWeek: fdow as DayOfWeek,
+          timezone: 'UTC',
         });
         expect([...daysInWindow(w)].length).toBe(windowDayCount(w));
       }),

@@ -112,36 +112,44 @@ export const editor = {
   setModelMarkers: setModelMarkersImpl,
 };
 
-export const languages = {
-  typescript: {
-    ScriptTarget: {
-      ES3: 0,
-      ES5: 1,
-      ES2015: 2,
-      ES2016: 3,
-      ES2017: 4,
-      ES2018: 5,
-      ES2019: 6,
-      ES2020: 7,
-      ES2021: 8,
-      ES2022: 9,
-      ES2023: 10,
-      ES2024: 11,
-      ESNext: 99,
-    },
-    typescriptDefaults: {
-      addExtraLib: vi.fn(() => ({ dispose: vi.fn() })),
-      setDiagnosticsOptions: vi.fn(),
-      getDiagnosticsOptions: vi.fn(() => ({ diagnosticCodesToIgnore: [] })),
-      setCompilerOptions: vi.fn(),
-    },
-    javascriptDefaults: {
-      addExtraLib: vi.fn(() => ({ dispose: vi.fn() })),
-      setDiagnosticsOptions: vi.fn(),
-      getDiagnosticsOptions: vi.fn(() => ({ diagnosticCodesToIgnore: [] })),
-      setCompilerOptions: vi.fn(),
-    },
+// Monaco 0.55 promoted `typescript` to a top-level namespace (the old
+// `languages.typescript` is still exported for back-compat — both point at
+// the same object). The mock mirrors that: one underlying object exposed
+// through both surfaces, so tests asserting on either path see the same fns.
+const typescriptNs = {
+  ScriptTarget: {
+    ES3: 0,
+    ES5: 1,
+    ES2015: 2,
+    ES2016: 3,
+    ES2017: 4,
+    ES2018: 5,
+    ES2019: 6,
+    ES2020: 7,
+    ES2021: 8,
+    ES2022: 9,
+    ES2023: 10,
+    ES2024: 11,
+    ESNext: 99,
   },
+  typescriptDefaults: {
+    addExtraLib: vi.fn(() => ({ dispose: vi.fn() })),
+    setDiagnosticsOptions: vi.fn(),
+    getDiagnosticsOptions: vi.fn(() => ({ diagnosticCodesToIgnore: [] })),
+    setCompilerOptions: vi.fn(),
+  },
+  javascriptDefaults: {
+    addExtraLib: vi.fn(() => ({ dispose: vi.fn() })),
+    setDiagnosticsOptions: vi.fn(),
+    getDiagnosticsOptions: vi.fn(() => ({ diagnosticCodesToIgnore: [] })),
+    setCompilerOptions: vi.fn(),
+  },
+};
+
+export const typescript = typescriptNs;
+
+export const languages = {
+  typescript: typescriptNs,
 };
 
 export const Uri = {

@@ -403,7 +403,7 @@ describe('Article 8 — No silent UTC for human-meaningful times', () => {
     expect(start.withTimeZone('Europe/Vienna').hour).toBe(10);
     expect(start.withTimeZone('Europe/Vienna').day).toBe(29);
     // Instant differs by 23h, not 24h, because the day "lost" an hour.
-    const oldInstNs = ev.start.toInstant().epochNanoseconds;
+    const oldInstNs = (ev.start as Temporal.ZonedDateTime).toInstant().epochNanoseconds;
     const newInstNs = start.toInstant().epochNanoseconds;
     expect(Number(newInstNs - oldInstNs)).toBe(23 * 60 * 60 * 1e9);
   });

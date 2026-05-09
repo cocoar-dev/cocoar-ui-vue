@@ -26,6 +26,7 @@ import {
   useSlots,
   markRaw,
   type VNode,
+  type Slots,
 } from 'vue';
 import CoarIcon from '../icon/CoarIcon.vue';
 import { getOverlayService, useOverlayParent } from '../overlay/useOverlay';
@@ -53,7 +54,7 @@ const props = withDefaults(
   { icon: undefined, disabled: false },
 );
 
-const slots = useSlots();
+const slots: Slots = useSlots();
 const submenuPanelId = `coar-submenu-panel-${useId()}`;
 
 const parentCascade = useMenuCascade();

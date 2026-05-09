@@ -59,13 +59,13 @@ const props = defineProps<Props>();
 
 defineSlots<{
   /** Replace the entire header bar. Overrides headerStart/End/viewSwitcher. */
-  header(props: HeaderSlotScope): unknown;
+  header?(props: HeaderSlotScope): unknown;
   /** Prepend before the prev/today/next buttons. */
-  headerStart(props: { controls: HeaderControls }): unknown;
+  headerStart?(props: { controls: HeaderControls }): unknown;
   /** Append after the view-switcher. */
-  headerEnd(props: { controls: HeaderControls }): unknown;
+  headerEnd?(props: { controls: HeaderControls }): unknown;
   /** Replace just the view-switcher. */
-  viewSwitcher(props: {
+  viewSwitcher?(props: {
     view: CalendarView;
     available: ReadonlyArray<CalendarView>;
     setView: (v: CalendarView) => void;
@@ -74,7 +74,7 @@ defineSlots<{
    *  This is the universal event slot; on month view it falls back
    *  to `pill` / `multiDayBar` for cell entries that have a more-
    *  specific renderer. */
-  event(props: {
+  event?(props: {
     event: CalendarEvent;
     view: CalendarView;
     layout?: PositionedEvent | AllDayBar | MonthCellPill | MonthMultiDayBar;
@@ -82,15 +82,15 @@ defineSlots<{
   }): unknown;
   /** All-day-band renderer (week / day). Falls back to `event` if
    *  not provided. */
-  allDayEvent(props: { event: CalendarEvent; layout: AllDayBar }): unknown;
+  allDayEvent?(props: { event: CalendarEvent; layout: AllDayBar }): unknown;
   /** Single-day month-cell pill renderer. Falls back to `event` if
    *  not provided. */
-  pill(props: { event: CalendarEvent; pill: MonthCellPill }): unknown;
+  pill?(props: { event: CalendarEvent; pill: MonthCellPill }): unknown;
   /** Multi-day month-cell bar renderer. Falls back to `event` if not
    *  provided. */
-  multiDayBar(props: { event: CalendarEvent; bar: MonthMultiDayBar }): unknown;
+  multiDayBar?(props: { event: CalendarEvent; bar: MonthMultiDayBar }): unknown;
   /** Per-day-column header (week / month). */
-  dayHeader(props: { date: Temporal.PlainDate; isToday: boolean; isWeekend: boolean }): unknown;
+  dayHeader?(props: { date: Temporal.PlainDate; isToday: boolean; isWeekend: boolean }): unknown;
 }>();
 
 interface HeaderSlotScope {
@@ -306,7 +306,11 @@ const headerControls = computed<HeaderControls>(() => ({
 // sub-view since it owns its own virtualized scroll surface.
 
 const bodyEl = useTemplateRef<HTMLElement>('bodyEl');
-const agendaRef = useTemplateRef<InstanceType<typeof CoarAgendaView>>('agendaView');
+// `CoarAgendaView` is a generic SFC; `InstanceType<typeof CoarAgendaView>`
+// trips vue-tsc because the generic constructor signature doesn't satisfy
+// `abstract new (...args: any) => any`. We only call `scrollToDate` on the
+// instance, so a structural type is enough.
+const agendaRef = useTemplateRef<{ scrollToDate?: (d: Temporal.PlainDate) => void } | null>('agendaView');
 
 /**
  * Smooth-scroll the calendar body from its current `scrollTop` to
@@ -321,7 +325,9 @@ const agendaRef = useTemplateRef<InstanceType<typeof CoarAgendaView>>('agendaVie
 const SCROLL_ANIM_MS = 100;
 let scrollAnimToken = 0;
 function smoothScrollBodyTo(body: HTMLElement, target: number): void {
-  const reduced = window.value.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  // Local `window` is a `ViewWindow` computed that shadows the global —
+  // reach the browser one explicitly via globalThis.
+  const reduced = (globalThis as unknown as Window).matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   if (reduced) {
     body.scrollTop = target;
     return;

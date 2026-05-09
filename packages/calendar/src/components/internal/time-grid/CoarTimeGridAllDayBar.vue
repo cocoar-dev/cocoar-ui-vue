@@ -13,41 +13,44 @@
 import { computed } from 'vue';
 import type { CalendarEvent, AllDayBar } from '../../../core';
 
-interface Props {
-  event: CalendarEvent<TMeta>;
-  bar: AllDayBar<TMeta>;
-  variant?: 'live' | 'preview' | 'phantom' | 'invalid';
-  bg: string;
-  border: string;
-  title: string;
-  ariaLabel?: string;
-  snappingBack?: boolean;
-  density?: 'comfortable' | 'compact';
+// Inlined defineProps argument to avoid vue-tsc TS4025 — see note in
+// CoarMonthView.vue.
+const props = withDefaults(
+  defineProps<{
+    event: CalendarEvent<TMeta>;
+    bar: AllDayBar<TMeta>;
+    variant?: 'live' | 'preview' | 'phantom' | 'invalid';
+    bg: string;
+    border: string;
+    title: string;
+    ariaLabel?: string;
+    snappingBack?: boolean;
+    density?: 'comfortable' | 'compact' | 'spacious';
 
-  top: number;
-  left: string;
-  width: string;
-  height: number;
-  zIndex: number;
+    top: number;
+    left: string;
+    width: string;
+    height: number;
+    zIndex: number;
 
-  clippedStart?: boolean;
-  clippedEnd?: boolean;
-  /**
-   * `true` when the `preview` variant is being driven by an
-   * in-flight keyboard drag. See `CoarTimeGridEvent` for rationale.
-   */
-  kbdActive?: boolean;
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  variant: 'live',
-  ariaLabel: undefined,
-  snappingBack: false,
-  density: 'comfortable',
-  clippedStart: false,
-  clippedEnd: false,
-  kbdActive: false,
-});
+    clippedStart?: boolean;
+    clippedEnd?: boolean;
+    /**
+     * `true` when the `preview` variant is being driven by an
+     * in-flight keyboard drag. See `CoarTimeGridEvent` for rationale.
+     */
+    kbdActive?: boolean;
+  }>(),
+  {
+    variant: 'live',
+    ariaLabel: undefined,
+    snappingBack: false,
+    density: 'comfortable',
+    clippedStart: false,
+    clippedEnd: false,
+    kbdActive: false,
+  },
+);
 
 const emit = defineEmits<{
   pointerdown: [native: PointerEvent];

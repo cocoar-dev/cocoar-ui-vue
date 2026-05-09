@@ -112,20 +112,21 @@ function ensureWorker(): Worker {
   // Vite-specific `?worker` import: returns a Worker constructor that
   // wraps the bundled module-mode worker. More robust than the
   // `new URL(...)` form when import.meta.url goes through aliases.
-  workerInstance = new RecurrenceWorker();
-  workerInstance.onmessage = (event: MessageEvent<WorkerMessage>) => {
+  const w: Worker = new RecurrenceWorker();
+  w.onmessage = (event: MessageEvent<WorkerMessage>) => {
     const { id, ...rest } = event.data;
     const req = pending.get(id);
     if (!req) return;
     pending.delete(id);
     req.resolve(rest);
   };
-  workerInstance.onerror = (event) => {
+  w.onerror = (event) => {
     // Reject all pending requests on a worker-level error.
     for (const [, req] of pending) req.reject(event.error ?? new Error(event.message));
     pending.clear();
   };
-  return workerInstance;
+  workerInstance = w;
+  return w;
 }
 
 /**

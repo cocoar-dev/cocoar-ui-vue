@@ -57,9 +57,11 @@ export function useDatePickerBase(props: {
   const effectiveDateFormat = computed<DateFormatConfig>(() => {
     if (props.dateFormat?.value) return props.dateFormat.value;
 
-    // Try from l10n store
+    // Try from l10n store. The l10n type allows `'yyyy/mm/dd'` which the picker
+    // doesn't render — fall through to Intl detection if we hit it, rather than
+    // adding a fifth pattern (would cascade through Maskito map + date-helpers).
     const localeData = l10n.localeData.value;
-    if (localeData?.date) {
+    if (localeData?.date && localeData.date.pattern !== 'yyyy/mm/dd') {
       return {
         pattern: localeData.date.pattern,
         firstDayOfWeek: localeData.date.firstDayOfWeek === 0 ? 7 : localeData.date.firstDayOfWeek as 1 | 7,

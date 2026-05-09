@@ -117,9 +117,9 @@ describe('Audit #2 — privileged methods are symbol-keyed (unforgeable)', () =>
     // A consumer who tries to call `builder._setVisibleRange(...)`
     // gets a `is not a function` TypeError — the C5 single-writer
     // invariant is now structurally enforced.
-    expect((b as Record<string, unknown>)._setVisibleRange).toBeUndefined();
+    expect((b as unknown as Record<string, unknown>)._setVisibleRange).toBeUndefined();
     expect(
-      (b as Record<string, unknown>)._invalidateLoaderCache,
+      (b as unknown as Record<string, unknown>)._invalidateLoaderCache,
     ).toBeUndefined();
   });
 
@@ -201,7 +201,7 @@ describe('Audit #8 — canDrop validator receives target.displayZone', () => {
       { date: '2026-06-05', minutes: 600, displayZone: 'Europe/Vienna' },
     );
     expect(captured).not.toBeNull();
-    expect((captured as { displayZone: string }).displayZone).toBe('Europe/Vienna');
+    expect((captured as unknown as { displayZone: string }).displayZone).toBe('Europe/Vienna');
   });
 });
 

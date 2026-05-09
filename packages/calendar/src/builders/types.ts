@@ -59,12 +59,16 @@ export type EventsLoader<
 
 // ─── Renderers ────────────────────────────────────────────────────
 
-/** Layout payload passed to a renderer alongside the event itself. */
-export type EventLayoutCtx =
-  | { kind: 'timed'; layout: PositionedEvent }
-  | { kind: 'allDay'; layout: AllDayBar }
-  | { kind: 'monthBar'; layout: MonthMultiDayBar }
-  | { kind: 'monthPill'; layout: MonthCellPill };
+/** Layout payload passed to a renderer alongside the event itself.
+ *  C8 variant discriminators match the layout-class names used by
+ *  the views: `positioned` (time-grid timed event), `allDayBar`
+ *  (time-grid all-day strip), `monthPill` (single-day month cell),
+ *  `monthBar` (multi-day month bar). */
+export type EventLayoutCtx<TMeta extends Record<string, unknown> = Record<string, unknown>> =
+  | { kind: 'positioned'; layout: PositionedEvent<TMeta> }
+  | { kind: 'allDayBar'; layout: AllDayBar<TMeta> }
+  | { kind: 'monthBar'; layout: MonthMultiDayBar<TMeta> }
+  | { kind: 'monthPill'; layout: MonthCellPill<TMeta> };
 
 export interface EventRendererCtx<
   TMeta extends Record<string, unknown> = Record<string, unknown>,
@@ -73,7 +77,7 @@ export interface EventRendererCtx<
   view: CalendarView;
   /** Present for variant-specific layouts; absent for the universal
    *  `eventRenderer` fallback that fires across all views. */
-  layout?: EventLayoutCtx;
+  layout?: EventLayoutCtx<TMeta>;
 }
 
 /**

@@ -196,7 +196,9 @@ describe('CoarMarkdown — renderers prop override', () => {
     });
     const renderers: MarkdownViewerRenderers = {
       ...defaultMarkdownRenderers,
-      paragraph: CustomParagraph,
+      // Generic Vue Component type inferred from defineComponent doesn't
+      // structurally match MarkdownRenderer<MarkdownNode> — cast through.
+      paragraph: CustomParagraph as unknown as MarkdownViewerRenderers['paragraph'],
     };
 
     const wrapper = mount(CoarMarkdown, {

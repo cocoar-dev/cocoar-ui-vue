@@ -49,20 +49,20 @@ import CoarTimeGridHeader from './internal/time-grid/CoarTimeGridHeader.vue';
 import CoarTimeGridAllDayBand from './internal/time-grid/CoarTimeGridAllDayBand.vue';
 import CoarTimeGridColumn from './internal/time-grid/CoarTimeGridColumn.vue';
 
-interface Props {
+// Inlined defineProps argument to avoid vue-tsc TS4025 — see note in
+// CoarMonthView.vue.
+const props = defineProps<{
   builder: CalendarBuilder<TMeta>;
   /** One date per day-column to render. The wrapper (Day/Week
    *  view) computes this from the builder's date + firstDayOfWeek. */
   dates?: ReadonlyArray<Temporal.PlainDate>;
-}
-
-const props = defineProps<Props>();
+}>();
 const { t } = useI18n();
 
 defineSlots<{
-  event(props: { event: CalendarEvent<TMeta>; layout: PositionedEvent<TMeta> }): unknown;
-  allDayEvent(props: { event: CalendarEvent<TMeta>; layout: AllDayBar<TMeta> }): unknown;
-  dayHeader(props: { date: Temporal.PlainDate; isToday: boolean; isWeekend: boolean }): unknown;
+  event?(props: { event: CalendarEvent<TMeta>; layout: PositionedEvent<TMeta> }): unknown;
+  allDayEvent?(props: { event: CalendarEvent<TMeta>; layout: AllDayBar<TMeta> }): unknown;
+  dayHeader?(props: { date: Temporal.PlainDate; isToday: boolean; isWeekend: boolean }): unknown;
 }>();
 
 // ─── Builder bindings ────────────────────────────────────────────────
@@ -122,8 +122,11 @@ const days = visibleDays;
  * `<CoarTimeGridAllDayBar>`. Those variants don't invoke the
  * slot — the prop is plumbing only, never observed.
  */
-const phantomPositionedStub: PositionedEvent = {
-  event: { id: '__phantom__', start: '1970-01-01T00:00:00Z' },
+const phantomPositionedStub: PositionedEvent<TMeta> = {
+  event: {
+    id: '__phantom__',
+    start: Temporal.ZonedDateTime.from('1970-01-01T00:00:00+00:00[UTC]'),
+  } as CalendarEvent<TMeta>,
   startMinutes: 0,
   endMinutes: 0,
   lane: 0,
@@ -131,8 +134,11 @@ const phantomPositionedStub: PositionedEvent = {
   clippedTop: false,
   clippedBottom: false,
 };
-const phantomAllDayBarStub: AllDayBar = {
-  event: { id: '__phantom__', start: '1970-01-01' },
+const phantomAllDayBarStub: AllDayBar<TMeta> = {
+  event: {
+    id: '__phantom__',
+    start: Temporal.PlainDate.from('1970-01-01'),
+  } as CalendarEvent<TMeta>,
   lane: 0,
   laneCount: 1,
   startCol: 0,
@@ -197,7 +203,7 @@ const {
   columnsRef,
   allDayColumnsRef,
   topBufferMinutes: renderBufferMinutesRef,
-  canDrop: canDrop.value,
+  canDrop: canDrop.value ?? undefined,
   onEventClick: (event, native) => {
     if (native) props.builder.state.onEventClick?.({ event, native });
   },
@@ -209,7 +215,7 @@ const {
 
 const a11y = useA11yAnnouncer();
 
-function formatAnnouncementWhen(payload: TimeGridEventDropPayload): string {
+function formatAnnouncementWhen(payload: TimeGridEventDropPayload<TMeta>): string {
   const isAllDay = payload.next.start instanceof Temporal.PlainDate;
   const overrides = {
     dateStyle: state.value.dateStyle,
@@ -264,14 +270,14 @@ function kbdPreviewAriaLabel(event: CalendarEvent<TMeta>): string {
   );
 }
 
-function eventTitleSafe(p: TimeGridEventDropPayload): string {
+function eventTitleSafe(p: TimeGridEventDropPayload<TMeta>): string {
   const meta = p.event.meta as { title?: unknown } | undefined;
   return typeof meta?.title === 'string' ? meta.title : t('coar.calendar.a11y.unnamedEvent', undefined, 'Event');
 }
 
 function onA11yAnnounce(
   kind: 'committed' | 'cancelled',
-  payload?: TimeGridEventDropPayload,
+  payload?: TimeGridEventDropPayload<TMeta>,
 ): void {
   if (kind === 'cancelled') {
     a11y.announce(
@@ -350,12 +356,10 @@ const hourLabels = computed(() => {
 
 // ─── Per-day event layout ─────────────────────────────────────────────
 
-interface DayLayout {
+const dayLayouts = computed<{
   date: Temporal.PlainDate;
-  positioned: PositionedEvent[];
-}
-
-const dayLayouts = computed<DayLayout[]>(() => {
+  positioned: PositionedEvent<TMeta>[];
+}[]>(() => {
   // While dragging, anchor the preview event to the rightmost lane
   // within its overlap component. Without this, the greedy lane
   // assignment can flip the ghost between left/right lanes as the
@@ -388,7 +392,7 @@ const dayLayouts = computed<DayLayout[]>(() => {
 // All-day band: filtered to all-day + multi-day-all-day events,
 // laid out across the visible day columns. Empty when no all-day
 // events match — band hides itself.
-const allDayBars = computed<AllDayBar[]>(() => {
+const allDayBars = computed<AllDayBar<TMeta>[]>(() => {
   return layoutAllDayBand(workingEvents.value, {
     days: visibleDays.value,
     timezone: timezone.value,
@@ -512,7 +516,7 @@ function onAllDayCellPointerDown(e: PointerEvent, date: Temporal.PlainDate) {
 // Reads `meta.title` / `meta.color` if present. Consumers needing
 // more replace via the `#event` slot.
 
-function eventTitle(event: CalendarEvent): string {
+function eventTitle(event: CalendarEvent<TMeta>): string {
   const meta = event.meta as { title?: unknown } | undefined;
   return typeof meta?.title === 'string' ? meta.title : '(untitled)';
 }
@@ -522,7 +526,7 @@ function eventTitle(event: CalendarEvent): string {
  * title and a short start–end summary so users without sight know
  * what the focused event is. Locale-aware via `locale.value`.
  */
-function eventAriaLabel(event: CalendarEvent): string {
+function eventAriaLabel(event: CalendarEvent<TMeta>): string {
   const title = eventTitle(event);
   if (isAllDayEvent(event)) {
     return `${title} (${t('coar.calendar.timegrid.allDay', undefined, 'all-day')})`;
@@ -549,8 +553,11 @@ function eventAriaLabel(event: CalendarEvent): string {
     const range = (fmt as Intl.DateTimeFormat & {
       formatRange?: (a: Date, b: Date) => string;
     }).formatRange;
+    if (event.start instanceof Temporal.PlainDate) return title;
     const startD = new Date(event.start.epochMilliseconds);
-    const endD = event.end ? new Date(event.end.epochMilliseconds) : startD;
+    const endD = event.end && !(event.end instanceof Temporal.PlainDate)
+      ? new Date(event.end.epochMilliseconds)
+      : startD;
     return range
       ? `${title}, ${range.call(fmt, startD, endD)}`
       : `${title}, ${fmt.format(startD)} – ${fmt.format(endD)}`;
@@ -558,15 +565,15 @@ function eventAriaLabel(event: CalendarEvent): string {
     return title;
   }
 }
-function eventColor(event: CalendarEvent): string | undefined {
+function eventColor(event: CalendarEvent<TMeta>): string | undefined {
   const meta = event.meta as { color?: unknown } | undefined;
   return typeof meta?.color === 'string' ? meta.color : undefined;
 }
-function eventBgFor(event: CalendarEvent): string {
+function eventBgFor(event: CalendarEvent<TMeta>): string {
   const c = eventColor(event);
   return c ?? 'var(--coar-color-accent-soft, #93c5fd)';
 }
-function eventBorderFor(event: CalendarEvent): string {
+function eventBorderFor(event: CalendarEvent<TMeta>): string {
   const c = eventColor(event);
   return c ?? 'var(--coar-color-accent, #2563eb)';
 }
@@ -591,7 +598,7 @@ onBeforeUnmount(() => {
 
 defineExpose({
   /** Layout snapshot per day — useful for tests. */
-  getLayout: (): readonly DayLayout[] => dayLayouts.value,
+  getLayout: () => dayLayouts.value,
   scrollToTime,
 });
 </script>
@@ -705,8 +712,8 @@ defineExpose({
               :layout="b"
             />
             <RenderEvent
-              v-else-if="state.allDayEventRenderer ?? state.eventRenderer"
-              :renderer="(state.allDayEventRenderer ?? state.eventRenderer)!"
+              v-else-if="state.eventRenderer"
+              :renderer="state.eventRenderer"
               :ctx="{ event: e, view: 'week', layout: { kind: 'allDayBar', layout: b } }"
             />
             <span v-else class="coar-time-grid__all-day-bar-title">

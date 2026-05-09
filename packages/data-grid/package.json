@@ -35,7 +35,8 @@
   "scripts": {
     "build": "vite build",
     "test": "vitest run",
-    "lint": "eslint src/"
+    "lint": "eslint src/",
+    "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
     "ag-grid-community": "35.0.0",

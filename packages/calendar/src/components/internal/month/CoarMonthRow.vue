@@ -26,7 +26,7 @@ interface Props {
    * Vue's scoped CSS won't let a parent descendant selector reach
    * into the child's scope.
    */
-  density?: 'comfortable' | 'compact';
+  density?: 'comfortable' | 'compact' | 'spacious';
 }
 
 withDefaults(defineProps<Props>(), { density: 'comfortable' });

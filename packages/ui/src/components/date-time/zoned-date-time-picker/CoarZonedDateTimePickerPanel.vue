@@ -345,7 +345,7 @@ function cancelEditValueTimezone() {
             searchable
             :search-placeholder="t('coar.ui.zonedDateTimePicker.searchTimezone', undefined, 'Search timezone...')"
             class="coar-zdtp-footer-tz-select"
-            @update:model-value="(v: string) => changeValueTimezone(v)"
+            @update:model-value="(v: string | null) => { if (v !== null) changeValueTimezone(v); }"
           />
           <button
             type="button"

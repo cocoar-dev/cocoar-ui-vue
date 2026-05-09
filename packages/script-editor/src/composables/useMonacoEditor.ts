@@ -65,12 +65,12 @@ let compilerLibsConfigured = false;
 function configureCompilerLibs(): void {
   if (compilerLibsConfigured) return;
   compilerLibsConfigured = true;
-  const target = monaco.languages.typescript.ScriptTarget.ES2020;
+  const target = monaco.typescript.ScriptTarget.ES2020;
   // `ES2024` is the semantic target, but Monaco's bundled TS lib may not expose that
   // enum value depending on version — fall back to the highest available.
-  const ts = monaco.languages.typescript.typescriptDefaults;
-  const js = monaco.languages.typescript.javascriptDefaults;
-  const scriptTarget = monaco.languages.typescript.ScriptTarget as unknown as Record<string, number>;
+  const ts = monaco.typescript.typescriptDefaults;
+  const js = monaco.typescript.javascriptDefaults;
+  const scriptTarget = monaco.typescript.ScriptTarget as unknown as Record<string, number>;
   const resolvedTarget =
     scriptTarget.ES2024 ?? scriptTarget.ES2023 ?? scriptTarget.ES2022
       ?? scriptTarget.ES2021 ?? scriptTarget.ES2020 ?? target;
@@ -258,8 +258,8 @@ function applyScriptMode(language: CoarScriptEditorLanguage, enabled: boolean): 
   if (language !== 'typescript' && language !== 'javascript') return;
   const defaults =
     language === 'javascript'
-      ? monaco.languages.typescript.javascriptDefaults
-      : monaco.languages.typescript.typescriptDefaults;
+      ? monaco.typescript.javascriptDefaults
+      : monaco.typescript.typescriptDefaults;
   const current =
     typeof (defaults as { getDiagnosticsOptions?: () => { diagnosticCodesToIgnore?: number[] } })
       .getDiagnosticsOptions === 'function'

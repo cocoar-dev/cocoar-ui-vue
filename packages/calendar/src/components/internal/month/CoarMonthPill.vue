@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="TMeta extends Record<string, unknown> = Record<string, unknown>">
 /**
  * `<CoarMonthPill>` — internal presentational component for a
  * single-day pill in the month grid.
@@ -23,42 +23,45 @@ import { computed } from 'vue';
 import type { CalendarEvent, MonthCellPill } from '../../../core';
 import CoarEventDecorations from '../CoarEventDecorations.vue';
 
-interface Props {
-  event: CalendarEvent;
-  pill: MonthCellPill;
-  variant?: 'live' | 'preview' | 'phantom' | 'invalid';
-  bg: string;
-  border: string;
-  title: string;
-  /** Display zone — surfaced on the default decoration layer (C3/C5 hints). */
-  displayZone?: string;
-  /** Required for `live`; ignored otherwise. */
-  ariaLabel?: string;
-  /** Apply the snap-back exit animation (invalid variant only). */
-  snappingBack?: boolean;
-  /**
-   * Visual density. The compact rule has to live HERE (not on the
-   * parent month-view) — Vue's scoped CSS won't let a parent
-   * descendant selector reach into the child's scope.
-   */
-  density?: 'comfortable' | 'compact';
-  /**
-   * `true` when the `preview` variant is being driven by an
-   * in-flight keyboard drag. Promotes the ghost from a passive
-   * visual to a focusable interactive element so subsequent
-   * arrow keystrokes keep landing on `keydown`.
-   */
-  kbdActive?: boolean;
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  variant: 'live',
-  displayZone: undefined,
-  ariaLabel: undefined,
-  snappingBack: false,
-  density: 'comfortable',
-  kbdActive: false,
-});
+// Inlined defineProps argument to avoid vue-tsc TS4025 — see note in
+// CoarMonthView.vue.
+const props = withDefaults(
+  defineProps<{
+    event: CalendarEvent<TMeta>;
+    pill: MonthCellPill<TMeta>;
+    variant?: 'live' | 'preview' | 'phantom' | 'invalid';
+    bg: string;
+    border: string;
+    title: string;
+    /** Display zone — surfaced on the default decoration layer (C3/C5 hints). */
+    displayZone?: string;
+    /** Required for `live`; ignored otherwise. */
+    ariaLabel?: string;
+    /** Apply the snap-back exit animation (invalid variant only). */
+    snappingBack?: boolean;
+    /**
+     * Visual density. The compact rule has to live HERE (not on the
+     * parent month-view) — Vue's scoped CSS won't let a parent
+     * descendant selector reach into the child's scope.
+     */
+    density?: 'comfortable' | 'compact' | 'spacious';
+    /**
+     * `true` when the `preview` variant is being driven by an
+     * in-flight keyboard drag. Promotes the ghost from a passive
+     * visual to a focusable interactive element so subsequent
+     * arrow keystrokes keep landing on `keydown`.
+     */
+    kbdActive?: boolean;
+  }>(),
+  {
+    variant: 'live',
+    displayZone: undefined,
+    ariaLabel: undefined,
+    snappingBack: false,
+    density: 'comfortable',
+    kbdActive: false,
+  },
+);
 
 const emit = defineEmits<{
   /** Pointer-down on the pill body (live only). Parent starts the drag. */
@@ -77,7 +80,7 @@ defineSlots<{
    * for `live` and `preview` — phantom / invalid use the bare
    * title to keep their visuals consistent across consumers.
    */
-  default(props: { event: CalendarEvent; pill: MonthCellPill }): unknown;
+  default(props: { event: CalendarEvent<TMeta>; pill: MonthCellPill<TMeta> }): unknown;
 }>();
 
 const isInteractive = computed(

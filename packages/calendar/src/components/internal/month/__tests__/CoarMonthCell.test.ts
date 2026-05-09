@@ -18,6 +18,9 @@ const baseProps = {
   dayKey: '2026-05-04',
   pillsMarginTopPx: 24,
   kebabAriaLabel: 'Day actions',
+  ariaRowIndex: 2,
+  ariaColIndex: 1,
+  ariaLabel: 'Monday, May 4, 2026',
 } as const;
 
 function mountCell(propsOverride: Record<string, unknown> = {}) {

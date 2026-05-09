@@ -1,5 +1,5 @@
 <script setup lang="ts" generic="T">
-import { computed, shallowRef, useSlots, useTemplateRef } from 'vue';
+import { computed, shallowRef, useSlots, useTemplateRef, type Slots } from 'vue';
 import { CoarIcon } from '../icon';
 import CoarListbox from '../listbox/CoarListbox.vue';
 import type {
@@ -294,8 +294,8 @@ const SIDE_SPECIFIC_SLOTS = new Set([
   'empty-selected',
   'actions',
 ]);
-const slots = useSlots();
-const sharedSlotNames = computed(() =>
+const slots: Slots = useSlots();
+const sharedSlotNames = computed<string[]>(() =>
   Object.keys(slots).filter((n) => !SIDE_SPECIFIC_SLOTS.has(n)),
 );
 </script>

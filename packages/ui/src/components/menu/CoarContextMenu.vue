@@ -11,7 +11,7 @@
  * up the parent instance and the service stacks above it and treats clicks inside the
  * context menu as clicks inside the parent tree.
  */
-import { watch, useSlots, markRaw, onBeforeUnmount, type VNode } from 'vue';
+import { watch, useSlots, markRaw, onBeforeUnmount, type VNode, type Slots } from 'vue';
 import { getOverlayService, useOverlayParent } from '../overlay/useOverlay';
 import { contextMenuPreset } from '../overlay/overlay-presets';
 import type { OverlayRef } from '../overlay/overlay-types';
@@ -23,7 +23,7 @@ const props = defineProps<{
   menu: ContextMenuContext;
 }>();
 
-const slots = useSlots();
+const slots: Slots = useSlots();
 const parentOverlay = useOverlayParent();
 
 let overlayRef: OverlayRef | null = null;

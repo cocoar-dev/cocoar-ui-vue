@@ -168,7 +168,7 @@ describe('CoarDialogShell', () => {
       );
       await nextTick();
       await nextTick();
-      const focusableEls = wrapper.element.querySelectorAll<HTMLElement>(
+      const focusableEls = (wrapper.element as Element).querySelectorAll<HTMLElement>(
         'button:not(:disabled), [tabindex]:not([tabindex="-1"])',
       );
       const lastEl = focusableEls[focusableEls.length - 1];
@@ -187,7 +187,7 @@ describe('CoarDialogShell', () => {
       );
       await nextTick();
       await nextTick();
-      const focusableEls = wrapper.element.querySelectorAll<HTMLElement>(
+      const focusableEls = (wrapper.element as Element).querySelectorAll<HTMLElement>(
         'button:not(:disabled), [tabindex]:not([tabindex="-1"])',
       );
       const firstEl = focusableEls[0];

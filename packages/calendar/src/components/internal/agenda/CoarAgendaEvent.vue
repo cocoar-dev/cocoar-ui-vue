@@ -14,7 +14,9 @@
 import type { CalendarEvent, AgendaEventItem } from '../../../core';
 import CoarEventDecorations from '../CoarEventDecorations.vue';
 
-interface Props {
+// Inlined defineProps argument to avoid vue-tsc TS4025 — see note in
+// CoarMonthView.vue.
+defineProps<{
   event: CalendarEvent<TMeta>;
   item: AgendaEventItem<TMeta>;
   /** Time string formatted by the parent (locale-aware). */
@@ -27,9 +29,7 @@ interface Props {
   continuationTag: string;
   /** Display zone — surfaced on the default decoration layer (C3/C5 hints). */
   displayZone?: string;
-}
-
-defineProps<Props>();
+}>();
 
 const emit = defineEmits<{
   pointerdown: [native: PointerEvent];

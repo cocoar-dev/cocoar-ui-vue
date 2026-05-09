@@ -21,6 +21,7 @@ import {
   markRaw,
   type PropType,
   type VNode,
+  type Slots,
 } from 'vue';
 import { getOverlayService, useOverlayParent } from '../overlay/useOverlay';
 import { popoverPreset } from '../overlay/overlay-presets';
@@ -53,7 +54,7 @@ let closeTimer: ReturnType<typeof setTimeout> | null = null;
 
 const HOVER_CLOSE_DELAY = 80;
 
-const slots = useSlots();
+const slots: Slots = useSlots();
 const parentOverlay = useOverlayParent();
 
 /** Closure into this component's own slot scope — captured here, invoked later by the

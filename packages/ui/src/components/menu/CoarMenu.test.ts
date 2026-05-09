@@ -253,12 +253,11 @@ describe('Menu keyboard navigation', () => {
 
   function mountMenu(template: string) {
     return mount(CoarMenu, {
-      slots: {
-        default: {
-          components: { CoarMenuItem },
-          template,
-        },
-      },
+      // Test-utils 2.x narrowed the slot type and no longer accepts the
+      // `{ components, template }` Options-API form inline — we still pass
+      // it (runtime accepts it) and cast through.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      slots: { default: { components: { CoarMenuItem }, template } } as any,
       global: { stubs },
       attachTo: document.body,
     });

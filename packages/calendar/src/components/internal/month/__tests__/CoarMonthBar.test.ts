@@ -163,7 +163,6 @@ describe('<CoarMonthBar>', () => {
   describe('slot', () => {
     it('forwards event + bar to the default slot for live + preview', () => {
       const Renderer = defineComponent({
-        components: { CoarMonthBar },
         setup() {
           return () =>
             h(

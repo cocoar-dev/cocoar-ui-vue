@@ -41,9 +41,9 @@ export function resolveUniversalEventRenderer<TMeta extends Record<string, unkno
   if (typeof renderer === 'function') {
     const result = (renderer as (c: EventRendererCtx<TMeta>) => Component | VNode)(ctx);
     if (isVNode(result)) return result;
-    return h(result as Component, ctx as Record<string, unknown>);
+    return h(result as Component, ctx as unknown as Record<string, unknown>);
   }
-  return h(renderer as Component, ctx as Record<string, unknown>);
+  return h(renderer as Component, ctx as unknown as Record<string, unknown>);
 }
 
 /**

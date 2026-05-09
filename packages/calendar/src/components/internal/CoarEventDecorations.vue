@@ -58,7 +58,7 @@ const sourceZoneTooltip = computed<string>(() => {
   );
 });
 
-const iconPx = computed(() => (props.size === 's' ? 14 : 12));
+const iconPx = computed(() => (props.size === 's' ? '14px' : '12px'));
 </script>
 
 <template>
