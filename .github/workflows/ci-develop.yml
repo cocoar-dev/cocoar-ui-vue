@@ -3,6 +3,11 @@ name: CI - Build & Test
 on:
   push:
     branches: [develop]
+    paths-ignore:
+      # Root-level docs (README, CHANGELOG, etc.) — no code impact.
+      - '*.md'
+      # VitePress site — built by `cd-deploy-docs.yml` (manual), not by CI.
+      - 'apps/docs/**'
 
 jobs:
   build-and-pack-alpha:
