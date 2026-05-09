@@ -1,4 +1,4 @@
-# `<CoarMonthView>` — Month View
+# `<CoarMonthView>` — Month View <Badge type="warning" text="Preview" />
 
 6×7 grid showing the full calendar month plus leading / trailing days for context. Multi-day events render as continuous **bars** across the rows they touch; single-day events render as **pills** inside cells. Cells with overflow scroll internally; per-cell expansion via the kebab menu replaces the older "+ N more" popover.
 

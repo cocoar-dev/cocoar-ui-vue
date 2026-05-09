@@ -312,7 +312,7 @@ export default defineConfig({
           ],
         },
         {
-          text: 'Calendar',
+          text: 'Calendar (Preview)',
           items: [
             { text: 'Overview', link: '/components/calendar/' },
             { text: 'CoarCalendar (composer)', link: '/components/calendar/coar-calendar' },

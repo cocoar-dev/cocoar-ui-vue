@@ -1,4 +1,4 @@
-# Calendar
+# Calendar <Badge type="warning" text="Preview" />
 
 A Vue 3 calendar built around four views — **Day**, **Week**, **Month**, **Agenda** — and a top-level [`<CoarCalendar>`](/components/calendar/coar-calendar) shell that wires them together with prev / today / next navigation and a view switcher.
 

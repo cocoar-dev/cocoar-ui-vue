@@ -1,4 +1,4 @@
-# `<CoarCalendar>` — Composer
+# `<CoarCalendar>` — Composer <Badge type="warning" text="Preview" />
 
 `<CoarCalendar>` is the top-level shell that wires all four views (Day / Week / Month / Agenda) together with prev / today / next navigation and a view switcher. It's driven by the **builder** returned from `useCalendar()` — a single chainable surface that owns events, configuration, handlers, renderers, and an imperative `api` object.
 

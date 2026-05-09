@@ -1,4 +1,4 @@
-# `<CoarWeekView>` — Week View
+# `<CoarWeekView>` — Week View <Badge type="warning" text="Preview" />
 
 7-day time-grid view — one hour-axis on the left, seven day columns on the right, all-day band pinned under the day-of-week header. The week's first day is locale-aware (`en-US` / `ja-JP` start on Sunday, `de-AT` / `fr-FR` start on Monday) but can be overridden via `firstDayOfWeek()`.
 

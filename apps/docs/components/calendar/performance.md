@@ -1,4 +1,4 @@
-# Performance baseline
+# Performance baseline <Badge type="warning" text="Preview" />
 
 The calendar's hot paths — virtualization, drag-and-drop with auto-scroll,
 2D scrolling — were instrumented via the [Long Animation Frame API][loaf]
