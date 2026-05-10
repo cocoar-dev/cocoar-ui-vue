@@ -10,6 +10,8 @@ import CoarCheckboxCellRenderer from '../cell-renderers/CoarCheckboxCellRenderer
 import CoarCheckboxCellEditor from '../cell-renderers/CoarCheckboxCellEditor.vue';
 import CoarTextCellEditor from '../cell-renderers/CoarTextCellEditor.vue';
 import CoarNumberCellEditor from '../cell-renderers/CoarNumberCellEditor.vue';
+import CoarSelectCellRenderer from '../cell-renderers/CoarSelectCellRenderer.vue';
+import CoarSelectCellEditor from '../cell-renderers/CoarSelectCellEditor.vue';
 import type { TagCellRendererConfig } from '../cell-renderers/tag-cell-renderer.models';
 import type { IconCellRendererConfig } from '../cell-renderers/icon-cell-renderer.models';
 import type { DateCellRendererConfig } from '../cell-renderers/date-cell-renderer.models';
@@ -19,6 +21,7 @@ import type { TreeCellRendererConfig } from '../cell-renderers/tree-cell-rendere
 import { CheckboxColumnConfigurator } from '../configurators/CheckboxColumnConfigurator';
 import { TextColumnConfigurator } from '../configurators/TextColumnConfigurator';
 import { NumberColumnConfigurator } from '../configurators/NumberColumnConfigurator';
+import { SelectColumnConfigurator } from '../configurators/SelectColumnConfigurator';
 
 /**
  * Factory for creating typed column builders.
@@ -163,6 +166,49 @@ export class CoarGridColumnFactory<TData = unknown> {
       return params.value ? trueValue : falseValue;
     });
 
+    return builder;
+  }
+
+  /**
+   * Create a select column.
+   *
+   * Renderer displays the LABEL of the option matching the cell value (falls
+   * back to the raw value if no option matches). Editor opens a `<CoarSelect>`
+   * dropdown on double-click / Enter / F2 — selecting an option auto-commits
+   * via `cellValueChanged` and exits edit-mode.
+   *
+   * Whether the column is editable is gated by the column-level `editable()`
+   * chain — same pattern as text/number/checkbox.
+   *
+   * @example
+   * ```ts
+   * const ROLES = [
+   *   { value: 'eng', label: 'Engineer' },
+   *   { value: 'des', label: 'Designer' },
+   *   { value: 'mgr', label: 'Manager' },
+   * ];
+   *
+   * col.select('role', s => s.options(ROLES)).editable(true)
+   *
+   * // dynamic options
+   * col.select('parent', s => s.options(row => allowedParents(row))).editable(true)
+   *
+   * // searchable + clearable
+   * col.select('country', s => s.options(COUNTRIES).searchable().clearable())
+   *    .editable(true)
+   * ```
+   */
+  select<T = unknown>(
+    fieldName: keyof TData | string,
+    configurator: (
+      s: SelectColumnConfigurator<TData, T>,
+    ) => SelectColumnConfigurator<TData, T>,
+  ): CoarGridColumnBuilder<TData, T> {
+    const config = configurator(new SelectColumnConfigurator<TData, T>()).build();
+    const builder = new CoarGridColumnBuilder<TData, T>(fieldName);
+    builder.cellRendererConfig(CoarSelectCellRenderer, config);
+    builder.cellEditorConfig(CoarSelectCellEditor, config);
+    builder.sortable();
     return builder;
   }
 

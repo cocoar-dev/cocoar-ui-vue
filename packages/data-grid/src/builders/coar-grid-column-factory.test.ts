@@ -10,6 +10,8 @@ import CoarCheckboxCellRenderer from '../cell-renderers/CoarCheckboxCellRenderer
 import CoarCheckboxCellEditor from '../cell-renderers/CoarCheckboxCellEditor.vue';
 import CoarTextCellEditor from '../cell-renderers/CoarTextCellEditor.vue';
 import CoarNumberCellEditor from '../cell-renderers/CoarNumberCellEditor.vue';
+import CoarSelectCellRenderer from '../cell-renderers/CoarSelectCellRenderer.vue';
+import CoarSelectCellEditor from '../cell-renderers/CoarSelectCellEditor.vue';
 
 interface TestRow {
   id: number;
@@ -230,6 +232,86 @@ describe('CoarGridColumnFactory', () => {
 
       expect(colDef.cellEditor).toBe(CoarTextCellEditor);
       expect(colDef.editable).toBe(true);
+    });
+  });
+
+  describe('select', () => {
+    const ROLES = [
+      { value: 'eng', label: 'Engineer' },
+      { value: 'des', label: 'Designer' },
+      { value: 'mgr', label: 'Manager' },
+    ];
+
+    it('should create a select column builder', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const builder = factory.select('status', (s) => s.options([]));
+
+      expect(builder).toBeInstanceOf(CoarGridColumnBuilder);
+    });
+
+    it('should bundle CoarSelectCellRenderer + CoarSelectCellEditor', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.select('status', (s) => s.options(ROLES)).build();
+
+      expect(colDef.cellRenderer).toBe(CoarSelectCellRenderer);
+      expect(colDef.cellEditor).toBe(CoarSelectCellEditor);
+    });
+
+    it('should pass the same config to both renderer and editor', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory
+        .select('status', (s) => s.options(ROLES).clearable().searchable().placeholder('Pick…'))
+        .build();
+
+      expect(colDef.cellRendererParams?.config).toEqual({
+        options: ROLES,
+        clearable: true,
+        searchable: true,
+        placeholder: 'Pick…',
+      });
+      expect(colDef.cellEditorParams?.config).toEqual({
+        options: ROLES,
+        clearable: true,
+        searchable: true,
+        placeholder: 'Pick…',
+      });
+    });
+
+    it('should accept a row-aware options function', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const fn = (row: TestRow) => (row.status === 'active' ? ROLES : []);
+      const colDef = factory.select('status', (s) => s.options(fn)).build();
+
+      expect((colDef.cellEditorParams?.config as { options: unknown }).options).toBe(fn);
+    });
+
+    it('should enable sorting by default', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.select('status', (s) => s.options(ROLES)).build();
+
+      expect(colDef.sortable).toBe(true);
+    });
+
+    it('should compose with .editable() on the outer chain', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.select('status', (s) => s.options(ROLES)).editable(true).build();
+
+      expect(colDef.cellEditor).toBe(CoarSelectCellEditor);
+      expect(colDef.editable).toBe(true);
+    });
+
+    it('should allow override of the editor via cellEditorConfig (escape-hatch)', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const customEditor = {} as unknown as Parameters<
+        CoarGridColumnBuilder<TestRow>['cellEditorConfig']
+      >[0];
+      const colDef = factory
+        .select('status', (s) => s.options(ROLES))
+        .cellEditorConfig(customEditor, { foo: 'bar' })
+        .build();
+
+      expect(colDef.cellEditor).toBe(customEditor);
+      expect(colDef.cellEditorParams).toEqual({ config: { foo: 'bar' } });
     });
   });
 
