@@ -413,6 +413,64 @@ describe('CoarGridColumnBuilder', () => {
     });
   });
 
+  describe('editable', () => {
+    it('should set static boolean true', () => {
+      const colDef = new CoarGridColumnBuilder<TestRow>('name').editable(true).build();
+
+      expect(colDef.editable).toBe(true);
+    });
+
+    it('should set static boolean false', () => {
+      const colDef = new CoarGridColumnBuilder<TestRow>('name').editable(false).build();
+
+      expect(colDef.editable).toBe(false);
+    });
+
+    it('should wrap a row predicate so it receives row data', () => {
+      const predicate = vi.fn((row: TestRow) => row.status === 'active');
+      const colDef = new CoarGridColumnBuilder<TestRow>('name').editable(predicate).build();
+
+      expect(typeof colDef.editable).toBe('function');
+
+      const fn = colDef.editable as (params: { data?: TestRow }) => boolean;
+      const row: TestRow = { id: 1, name: 'A', amount: 10, status: 'active' };
+
+      expect(fn({ data: row })).toBe(true);
+      expect(predicate).toHaveBeenCalledWith(row);
+    });
+
+    it('should return false from wrapped predicate when row data is missing', () => {
+      const predicate = vi.fn(() => true);
+      const colDef = new CoarGridColumnBuilder<TestRow>('name').editable(predicate).build();
+      const fn = colDef.editable as (params: { data?: TestRow }) => boolean;
+
+      expect(fn({ data: undefined })).toBe(false);
+      expect(predicate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('cellEditorConfig', () => {
+    it('should set cell editor and wrap config under params.config', () => {
+      const editor = {} as Component;
+      const config = { placeholder: 'Type…' };
+      const colDef = new CoarGridColumnBuilder<TestRow>('name')
+        .cellEditorConfig(editor, config)
+        .build();
+
+      expect(colDef.cellEditor).toBe(editor);
+      expect(colDef.cellEditorParams).toEqual({ config });
+    });
+
+    it('should merge into existing cellEditorParams', () => {
+      const editor = {} as Component;
+      const builder = new CoarGridColumnBuilder<TestRow>('name');
+      builder.option('cellEditorParams', { extra: 1 });
+      const colDef = builder.cellEditorConfig(editor, { foo: 'bar' }).build();
+
+      expect(colDef.cellEditorParams).toEqual({ extra: 1, config: { foo: 'bar' } });
+    });
+  });
+
   describe('customize', () => {
     it('should apply custom modifications', () => {
       const colDef = new CoarGridColumnBuilder<TestRow>('name')

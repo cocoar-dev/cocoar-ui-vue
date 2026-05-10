@@ -334,6 +334,43 @@ export class CoarGridColumnBuilder<TData = unknown, TValue = unknown> {
   }
 
   // ============================================================
+  // Editing
+  // ============================================================
+
+  /**
+   * Make this column editable. Accepts a static boolean or a row predicate.
+   *
+   * Without `cellEditorConfig()`, AG Grid uses its default text editor.
+   * Use together with `gridBuilder.onCellValueChanged()` to react to commits.
+   *
+   * @example
+   * ```ts
+   * column.field('name').editable(true)
+   * column.field('price').editable(row => !row.locked)
+   * ```
+   */
+  editable(value: boolean | ((row: TData) => boolean)): this {
+    if (typeof value === 'function') {
+      this.#colDef.editable = (params) => (params.data ? value(params.data) : false);
+    } else {
+      this.#colDef.editable = value;
+    }
+    return this;
+  }
+
+  /**
+   * Set a custom cell editor with a config object (params wrapped in `config` key).
+   * Mirrors `cellRendererConfig`. The component must expose `getValue()` per AG Grid contract.
+   *
+   * Note: orthogonal to `editable()` — set both, otherwise the editor never opens.
+   */
+  cellEditorConfig(component: Component, config: Record<string, unknown> | object): this {
+    this.#colDef.cellEditor = component;
+    this.#colDef.cellEditorParams = { ...this.#colDef.cellEditorParams, config };
+    return this;
+  }
+
+  // ============================================================
   // Advanced Options
   // ============================================================
 

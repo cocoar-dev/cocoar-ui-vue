@@ -8,6 +8,7 @@ import type {
   RowDoubleClickedEvent,
   CellClickedEvent,
   CellDoubleClickedEvent,
+  CellValueChangedEvent,
   GetRowIdFunc,
   RowClassParams,
   IRowNode,
@@ -698,6 +699,18 @@ export class CoarGridBuilder<TData = unknown> {
   /** Handle cell double-click */
   onCellDoubleClicked(handler: (event: CellDoubleClickedEvent<TData>) => void): this {
     this.#gridOptions.onCellDoubleClicked = this.#composeHandler(this.#gridOptions.onCellDoubleClicked, handler);
+    return this;
+  }
+
+  /**
+   * Handle cell value change after an in-cell edit is committed.
+   * Fires once per cell commit. Use together with column-level `editable()` and (optionally) `cellEditorConfig()`.
+   */
+  onCellValueChanged(handler: (event: CellValueChangedEvent<TData>) => void): this {
+    this.#gridOptions.onCellValueChanged = this.#composeHandler(
+      this.#gridOptions.onCellValueChanged,
+      handler
+    );
     return this;
   }
 

@@ -194,6 +194,14 @@ describe('CoarGridBuilder', () => {
       expect(options.onCellDoubleClicked).toBe(handler);
     });
 
+    it('should set onCellValueChanged handler', () => {
+      const handler = vi.fn();
+      const builder = CoarGridBuilder.create<TestRow>().onCellValueChanged(handler);
+      const options = builder._getGridOptions();
+
+      expect(options.onCellValueChanged).toBe(handler);
+    });
+
     it('should set viewport click handler', () => {
       const handler = vi.fn();
       const builder = CoarGridBuilder.create<TestRow>().onViewportClick(handler);

@@ -6,6 +6,9 @@ export { default as NumberCellRenderer } from './NumberCellRenderer.vue';
 export { default as CurrencyCellRenderer } from './CurrencyCellRenderer.vue';
 export { default as TreeCellRenderer } from './TreeCellRenderer.vue';
 export { default as WrapperCellRenderer } from './WrapperCellRenderer.vue';
+export { default as CoarCheckboxCellRenderer } from './CoarCheckboxCellRenderer.vue';
+export { default as CoarTextCellEditor } from './CoarTextCellEditor.vue';
+export { default as CoarNumberCellEditor } from './CoarNumberCellEditor.vue';
 
 // Config interfaces (public API)
 export type { TagCellRendererConfig } from './tag-cell-renderer.models';
@@ -14,6 +17,9 @@ export type { DateCellRendererConfig } from './date-cell-renderer.models';
 export type { NumberCellRendererConfig } from './number-cell-renderer.models';
 export type { CurrencyCellRendererConfig } from './currency-cell-renderer.models';
 export type { TreeCellRendererConfig } from './tree-cell-renderer.models';
+export type { CheckboxCellRendererConfig } from './checkbox-cell-renderer.models';
+export type { TextCellEditorConfig } from './text-cell-editor.models';
+export type { NumberCellEditorConfig } from './number-cell-editor.models';
 export type {
   WrapperSlotConfig,
   WrapperSlotItem,

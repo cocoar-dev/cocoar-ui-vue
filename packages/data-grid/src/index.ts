@@ -5,8 +5,14 @@ export { CoarGridColumnFactory } from './builders';
 export { CoarGridWrapperColumnBuilder } from './builders';
 
 // Cell Renderers
-export { TagCellRenderer, IconCellRenderer, DateCellRenderer, TreeCellRenderer, WrapperCellRenderer } from './cell-renderers';
-export type { TagCellRendererConfig, IconCellRendererConfig, DateCellRendererConfig, TreeCellRendererConfig } from './cell-renderers';
+export {
+  TagCellRenderer, IconCellRenderer, DateCellRenderer, TreeCellRenderer, WrapperCellRenderer,
+  CoarCheckboxCellRenderer, CoarTextCellEditor, CoarNumberCellEditor,
+} from './cell-renderers';
+export type {
+  TagCellRendererConfig, IconCellRendererConfig, DateCellRendererConfig, TreeCellRendererConfig,
+  CheckboxCellRendererConfig, TextCellEditorConfig, NumberCellEditorConfig,
+} from './cell-renderers';
 export type {
   WrapperSlotConfig,
   WrapperSlotItem,
@@ -16,6 +22,9 @@ export type {
   WrapperCellRendererConfig,
   WrapperSlotAccessor,
 } from './cell-renderers';
+
+// Configurators
+export { CheckboxColumnConfigurator, TextColumnConfigurator, NumberColumnConfigurator } from './configurators';
 
 // Theme
 export { cocoarTheme, createCocoarTheme } from './theme';

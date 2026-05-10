@@ -6,6 +6,10 @@ import IconCellRenderer from '../cell-renderers/IconCellRenderer.vue';
 import DateCellRenderer from '../cell-renderers/DateCellRenderer.vue';
 import NumberCellRenderer from '../cell-renderers/NumberCellRenderer.vue';
 import CurrencyCellRenderer from '../cell-renderers/CurrencyCellRenderer.vue';
+import CoarCheckboxCellRenderer from '../cell-renderers/CoarCheckboxCellRenderer.vue';
+import CoarCheckboxCellEditor from '../cell-renderers/CoarCheckboxCellEditor.vue';
+import CoarTextCellEditor from '../cell-renderers/CoarTextCellEditor.vue';
+import CoarNumberCellEditor from '../cell-renderers/CoarNumberCellEditor.vue';
 
 interface TestRow {
   id: number;
@@ -122,6 +126,234 @@ describe('CoarGridColumnFactory', () => {
       const colDef = factory.number('amount').build();
 
       expect(colDef.cellRendererParams?.config).toEqual({});
+    });
+
+    it('should NOT bundle the editor for legacy config-object form', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.number('amount', { decimals: 2 }).build();
+
+      expect(colDef.cellEditor).toBeUndefined();
+      expect(colDef.cellRendererParams?.config).toEqual({ decimals: 2 });
+    });
+
+    it('should bundle the editor when called with a configurator callback', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.number('amount', (n) => n.decimals(2).min(0).max(100)).build();
+
+      expect(colDef.cellRenderer).toBe(NumberCellRenderer);
+      expect(colDef.cellEditor).toBe(CoarNumberCellEditor);
+      // Both renderer and editor receive the same config
+      expect(colDef.cellRendererParams?.config).toEqual({ decimals: 2, min: 0, max: 100 });
+      expect(colDef.cellEditorParams?.config).toEqual({ decimals: 2, min: 0, max: 100 });
+    });
+
+    it('should accept all NumberColumnConfigurator chains', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory
+        .number('amount', (n) =>
+          n.decimals(2).min(0).max(100).step(0.5).stepperButtons('both').placeholder('—').size('s'),
+        )
+        .build();
+
+      expect(colDef.cellEditorParams?.config).toEqual({
+        decimals: 2, min: 0, max: 100, step: 0.5, stepperButtons: 'both', placeholder: '—', size: 's',
+      });
+    });
+  });
+
+  describe('text', () => {
+    it('should create a text column builder', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const builder = factory.text('name');
+
+      expect(builder).toBeInstanceOf(CoarGridColumnBuilder);
+    });
+
+    it('should set the correct field', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.text('name').build();
+
+      expect(colDef.field).toBe('name');
+    });
+
+    it('should bundle CoarTextCellEditor', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.text('name').build();
+
+      expect(colDef.cellEditor).toBe(CoarTextCellEditor);
+    });
+
+    it('should NOT set a custom renderer (uses AG Grid default)', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.text('name').build();
+
+      expect(colDef.cellRenderer).toBeUndefined();
+    });
+
+    it('should enable sorting by default', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.text('name').build();
+
+      expect(colDef.sortable).toBe(true);
+    });
+
+    it('should use empty config when no configurator provided', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.text('name').build();
+
+      expect(colDef.cellEditorParams?.config).toEqual({});
+    });
+
+    it('should pass placeholder + maxLength + size through configurator', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory
+        .text('name', (t) => t.placeholder('Type a name').maxLength(80).size('s'))
+        .build();
+
+      expect(colDef.cellEditorParams?.config).toEqual({
+        placeholder: 'Type a name',
+        maxLength: 80,
+        size: 's',
+      });
+    });
+
+    it('should accept prefix + suffix through configurator', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.text('name', (t) => t.prefix('@').suffix('.com')).build();
+
+      expect(colDef.cellEditorParams?.config).toEqual({ prefix: '@', suffix: '.com' });
+    });
+
+    it('should compose with .editable() on the outer chain', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.text('name').editable(true).build();
+
+      expect(colDef.cellEditor).toBe(CoarTextCellEditor);
+      expect(colDef.editable).toBe(true);
+    });
+  });
+
+  describe('checkbox', () => {
+    it('should create a checkbox column builder', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const builder = factory.checkbox('isEnabled');
+
+      expect(builder).toBeInstanceOf(CoarGridColumnBuilder);
+    });
+
+    it('should set the correct field', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.checkbox('isEnabled').build();
+
+      expect(colDef.field).toBe('isEnabled');
+    });
+
+    it('should configure the CoarCheckboxCellRenderer', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.checkbox('isEnabled').build();
+
+      expect(colDef.cellRenderer).toBe(CoarCheckboxCellRenderer);
+    });
+
+    it('should disable AG Grid auto-checkbox via cellDataType: false', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.checkbox('isEnabled').build();
+
+      expect(colDef.cellDataType).toBe(false);
+    });
+
+    it('should bundle CoarCheckboxCellEditor for interactive edit-mode', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.checkbox('isEnabled').build();
+
+      expect(colDef.cellEditor).toBe(CoarCheckboxCellEditor);
+    });
+
+    it('should pass the same config to both renderer and editor', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory
+        .checkbox('isEnabled', (c) => c.label('Enabled').size('s'))
+        .build();
+
+      expect(colDef.cellRendererParams?.config).toEqual({ label: 'Enabled', size: 's' });
+      expect(colDef.cellEditorParams?.config).toEqual({ label: 'Enabled', size: 's' });
+    });
+
+    it('should allow override of the cellEditor via cellEditorConfig (escape-hatch)', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const customEditor = {} as unknown as Parameters<
+        CoarGridColumnBuilder<TestRow>['cellEditorConfig']
+      >[0];
+      const colDef = factory
+        .checkbox('isEnabled')
+        .cellEditorConfig(customEditor, { foo: 'bar' })
+        .build();
+
+      expect(colDef.cellEditor).toBe(customEditor);
+      expect(colDef.cellEditor).not.toBe(CoarCheckboxCellEditor);
+      expect(colDef.cellEditorParams).toEqual({ config: { foo: 'bar' } });
+    });
+
+    it('should enable sorting by default', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.checkbox('isEnabled').build();
+
+      expect(colDef.sortable).toBe(true);
+    });
+
+    it('should use empty config when no configurator provided', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.checkbox('isEnabled').build();
+
+      expect(colDef.cellRendererParams?.config).toEqual({});
+    });
+
+    it('should pass label config through configurator', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.checkbox('isEnabled', (c) => c.label('Enabled')).build();
+
+      expect(colDef.cellRendererParams?.config).toEqual({ label: 'Enabled' });
+    });
+
+    it('should pass size config through configurator', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.checkbox('isEnabled', (c) => c.size('s')).build();
+
+      expect(colDef.cellRendererParams?.config).toEqual({ size: 's' });
+    });
+
+    it('should pass indeterminate predicate through configurator', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const fn = (row: TestRow) => row.amount > 0;
+      const colDef = factory.checkbox('isEnabled', (c) => c.indeterminate(fn)).build();
+
+      expect(
+        (colDef.cellRendererParams?.config as { indeterminate: typeof fn }).indeterminate,
+      ).toBe(fn);
+    });
+
+    it('should chain multiple configurator calls', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory
+        .checkbox('isEnabled', (c) => c.label('Enabled').size('s'))
+        .build();
+
+      expect(colDef.cellRendererParams?.config).toEqual({ label: 'Enabled', size: 's' });
+    });
+
+    it('should not set editable by default (read-only checkbox)', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.checkbox('isEnabled').build();
+
+      expect(colDef.editable).toBeUndefined();
+    });
+
+    it('should compose with .editable() on the outer chain', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.checkbox('isEnabled').editable(true).build();
+
+      expect(colDef.cellRenderer).toBe(CoarCheckboxCellRenderer);
+      expect(colDef.editable).toBe(true);
     });
   });
 

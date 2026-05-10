@@ -6,12 +6,19 @@ import DateCellRenderer from '../cell-renderers/DateCellRenderer.vue';
 import NumberCellRenderer from '../cell-renderers/NumberCellRenderer.vue';
 import CurrencyCellRenderer from '../cell-renderers/CurrencyCellRenderer.vue';
 import TreeCellRenderer from '../cell-renderers/TreeCellRenderer.vue';
+import CoarCheckboxCellRenderer from '../cell-renderers/CoarCheckboxCellRenderer.vue';
+import CoarCheckboxCellEditor from '../cell-renderers/CoarCheckboxCellEditor.vue';
+import CoarTextCellEditor from '../cell-renderers/CoarTextCellEditor.vue';
+import CoarNumberCellEditor from '../cell-renderers/CoarNumberCellEditor.vue';
 import type { TagCellRendererConfig } from '../cell-renderers/tag-cell-renderer.models';
 import type { IconCellRendererConfig } from '../cell-renderers/icon-cell-renderer.models';
 import type { DateCellRendererConfig } from '../cell-renderers/date-cell-renderer.models';
 import type { NumberCellRendererConfig } from '../cell-renderers/number-cell-renderer.models';
 import type { CurrencyCellRendererConfig } from '../cell-renderers/currency-cell-renderer.models';
 import type { TreeCellRendererConfig } from '../cell-renderers/tree-cell-renderer.models';
+import { CheckboxColumnConfigurator } from '../configurators/CheckboxColumnConfigurator';
+import { TextColumnConfigurator } from '../configurators/TextColumnConfigurator';
+import { NumberColumnConfigurator } from '../configurators/NumberColumnConfigurator';
 
 /**
  * Factory for creating typed column builders.
@@ -61,14 +68,60 @@ export class CoarGridColumnFactory<TData = unknown> {
    * Uses the localization system (`useL10n().fmtNumber()`) for formatting,
    * so the display updates reactively on locale change.
    *
-   * @param config - Optional configuration (e.g. `{ decimals: 2 }`)
+   * Two forms — both work, no breaking change:
+   * - **Config-object** (legacy): `col.number('amount', { decimals: 2 })`
+   * - **Configurator callback** (new): `col.number('amount', n => n.decimals(2).min(0).max(100))`
+   *
+   * The callback form bundles `CoarNumberCellEditor` automatically, so adding
+   * `.editable(true)` on the outer chain enables Coar-styled in-cell editing.
+   * The config-object form keeps current behavior (renderer only).
+   *
+   * @param configOrCallback - Plain config object or a configurator callback
    */
   number(
     fieldName: keyof TData | string,
-    config?: NumberCellRendererConfig
+    configOrCallback?: NumberCellRendererConfig | ((n: NumberColumnConfigurator) => NumberColumnConfigurator),
   ): CoarGridColumnBuilder<TData, number> {
     const builder = new CoarGridColumnBuilder<TData, number>(fieldName);
-    builder.cellRendererConfig(NumberCellRenderer, config ?? {});
+    if (typeof configOrCallback === 'function') {
+      const config = configOrCallback(new NumberColumnConfigurator()).build();
+      builder.cellRendererConfig(NumberCellRenderer, config);
+      builder.cellEditorConfig(CoarNumberCellEditor, config);
+    } else {
+      builder.cellRendererConfig(NumberCellRenderer, configOrCallback ?? {});
+    }
+    builder.sortable();
+    return builder;
+  }
+
+  /**
+   * Create a text column.
+   *
+   * Uses AG Grid's default text rendering for display. When chained with
+   * `.editable(true)` (or a row-predicate), opens `CoarTextCellEditor` on
+   * double-click / Enter / F2 — visual consistency with form text inputs,
+   * plus AG Grid's standard Tab-through-edit-mode navigation.
+   *
+   * @example
+   * ```ts
+   * // simple editable text column
+   * col.text('name').editable(true)
+   *
+   * // with editor config
+   * col.text('email', t => t.placeholder('user@example.com').maxLength(120))
+   *    .editable(true)
+   *
+   * // gated by row state
+   * col.text('comment', t => t.maxLength(500)).editable(row => !row.locked)
+   * ```
+   */
+  text(
+    fieldName: keyof TData | string,
+    configurator?: (t: TextColumnConfigurator) => TextColumnConfigurator,
+  ): CoarGridColumnBuilder<TData, string> {
+    const config = configurator ? configurator(new TextColumnConfigurator()).build() : {};
+    const builder = new CoarGridColumnBuilder<TData, string>(fieldName);
+    builder.cellEditorConfig(CoarTextCellEditor, config);
     builder.sortable();
     return builder;
   }
@@ -110,6 +163,54 @@ export class CoarGridColumnFactory<TData = unknown> {
       return params.value ? trueValue : falseValue;
     });
 
+    return builder;
+  }
+
+  /**
+   * Create a checkbox column.
+   *
+   * The renderer is **always read-only** (`<CoarCheckbox>` with pointer-events
+   * disabled) — the same pattern as text/number/select columns. To allow editing,
+   * chain `.editable(true)` or `.editable(row => …)` on the outer column builder.
+   * AG Grid then opens `<CoarCheckboxCellEditor>` on double-click / Enter / F2.
+   * Inside edit-mode, Space toggles, Tab commits and moves to the next editable
+   * cell (opening its editor), Enter commits, Escape cancels — standard AG Grid
+   * keyboard navigation.
+   *
+   * Toggles fire `cellValueChanged` like any other editor commit, so a single
+   * `gridBuilder.onCellValueChanged()` handler covers all column types.
+   *
+   * @example
+   * ```ts
+   * // readonly indicator
+   * col.checkbox('done')
+   *
+   * // interactive (double-click → toggle → Tab to next editable cell)
+   * col.checkbox('done').editable(true)
+   *
+   * // gated by row state
+   * col.checkbox('done').editable(row => !row.locked)
+   *
+   * // with configurator (label / indeterminate / size)
+   * col.checkbox('done', c => c.label('Done').size('s')).editable(true)
+   * ```
+   */
+  checkbox(
+    fieldName: keyof TData | string,
+    configurator?: (c: CheckboxColumnConfigurator<TData>) => CheckboxColumnConfigurator<TData>,
+  ): CoarGridColumnBuilder<TData, boolean> {
+    const config = configurator
+      ? configurator(new CheckboxColumnConfigurator<TData>()).build()
+      : {};
+    const builder = new CoarGridColumnBuilder<TData, boolean>(fieldName);
+    // AG Grid auto-renders booleans as a native checkbox via cellDataType inference.
+    // Disable that so our renderer + editor are the sole authority on display + edit.
+    builder.option('cellDataType', false);
+    builder.cellRendererConfig(CoarCheckboxCellRenderer, config);
+    // Bundle the editor — only instantiated when AG Grid enters edit-mode (i.e. when
+    // the user chained .editable(...)). Override via .cellEditorConfig(...) if needed.
+    builder.cellEditorConfig(CoarCheckboxCellEditor, config);
+    builder.sortable();
     return builder;
   }
 
