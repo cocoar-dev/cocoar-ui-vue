@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, useTemplateRef, watch } from 'vue';
+import { ref, useTemplateRef, watch, onMounted, onBeforeUnmount } from 'vue';
 import type { ICellEditorParams } from 'ag-grid-community';
 import { CoarSelect } from '@cocoar/vue-ui';
 import type { CoarSelectOption } from '@cocoar/vue-ui';
@@ -38,6 +38,34 @@ watch(value, (next, prev) => {
   Promise.resolve().then(() => {
     if (props.params.stopEditing) props.params.stopEditing();
   });
+});
+
+/*
+ * Prevent AG Grid's `stopEditingWhenCellsLoseFocus` from firing prematurely
+ * when the user clicks an option in the body-teleported dropdown.
+ *
+ * Without this: mousedown on an option shifts focus away from the editor →
+ * AG Grid sees blur and immediately commits via getValue() with the OLD
+ * value. The CoarSelect option-click handler runs *after* commit → too late.
+ *
+ * Solution: capture-phase mousedown listener while the editor is mounted.
+ * If the click target is inside a Coar overlay-host (the dropdown), we
+ * preventDefault so the browser doesn't shift focus. The click event still
+ * fires, CoarSelect updates the model, our watch picks it up and triggers
+ * stopEditing — at which point getValue() returns the NEW value.
+ */
+function preserveFocusInDropdown(e: MouseEvent) {
+  const target = e.target as HTMLElement | null;
+  if (target?.closest('.coar-overlay-host')) {
+    e.preventDefault();
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('mousedown', preserveFocusInDropdown, true);
+});
+onBeforeUnmount(() => {
+  document.removeEventListener('mousedown', preserveFocusInDropdown, true);
 });
 
 defineExpose({
