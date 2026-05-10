@@ -7,6 +7,31 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 1.18.0
+
+### Added
+
+- **`@cocoar/vue-data-grid` — cell-editing primitives**: three new chainable methods on the column / grid builders form the foundation for in-cell editing. `column.editable(value | row-predicate)` gates whether a cell enters edit-mode (boolean or `(row) => boolean`; predicate auto-handles missing row data). `column.cellEditorConfig(component, config)` mirrors the existing `cellRendererConfig` for swapping in custom editors — the config is wrapped under `cellEditorParams.config` so every editor gets the same access shape. `gridBuilder.onCellValueChanged(handler)` provides a single grid-level commit hook fired for both editor commits and renderer-driven mutations (e.g. checkbox toggles via `node.setDataValue`). New "Editing" doc page documents the AG-Grid edit-mode flow + Tab-through-edit-mode navigation.
+- **`@cocoar/vue-data-grid` — `col.text(field, t => …)`**: text column whose editor is `<CoarTextInput>`, fitted into the cell with form chrome stripped (no nested border, no extra focus ring — the AG Grid cell is the edit-mode frame). Replace-on-type via AG Grid's `eventKey` (printable key seeds the input), value pre-selected via `afterGuiAttached` so typing replaces. Configurator: `placeholder`, `maxLength`, `size`, `prefix`, `suffix`. Renderer uses AG Grid's default text rendering.
+- **`@cocoar/vue-data-grid` — `col.number(field, n => …)`** *(overload)*: existing `col.number(field, config?)` keeps the legacy config-object form (renderer only). New callback form bundles `CoarNumberCellEditor` automatically — Maskito-driven locale-aware parsing means `1.234,56` in `de-AT` and `1,234.56` in `en-US` both yield the same numeric value. Configurator: `decimals` (renderer + editor), `min`/`max`/`step`/`stepperButtons`/`placeholder`/`size` (editor). Replace-on-type seeded via the digit / `.` / `,` / `-` key that started the edit.
+- **`@cocoar/vue-data-grid` — `col.select(field, s => …)`**: select column with two cooperating components — `CoarSelectCellRenderer` (label-lookup; displays the label of the option matching the cell value) and `CoarSelectCellEditor` (auto-opens the dropdown via `afterGuiAttached`). Selection auto-commits — picking an option *is* the edit, no separate Tab/Enter needed. Configurator: `options` (static array OR `(row) => CoarSelectOption<T>[]` for row-aware menus), `clearable`, `searchable`, `placeholder`, `searchPlaceholder`, `size`. Dropdown teleports to `<body>` via Coar's overlay-host so it can extend past cell / grid boundaries without clipping.
+- **`@cocoar/vue-data-grid` — `col.checkbox(field, c => …)`**: checkbox column with a read-only `<CoarCheckbox>` renderer + interactive `<CoarCheckboxCellEditor>`. Renderer is always read-only by design (matches text/number/select); interactivity comes from edit-mode entered via double-click / Enter / F2, exactly like other editable column types. Inside edit-mode Space toggles, Tab commits and moves to the next editable cell (AG Grid's standard keyboard navigation), Escape cancels. Configurator: `label` (static or per-row), `indeterminate` (per-row tri-state), `size`. Vertical-centering CSS shim corrects CoarCheckbox's form-context layout (`align-items: flex-start`, fixed `min-height`, `margin-top` hack) inside the grid cell.
+- **Configurator-callback pattern**: new `CheckboxColumnConfigurator`, `TextColumnConfigurator`, `NumberColumnConfigurator`, `SelectColumnConfigurator` classes provide the `s => s.options(...).clearable()`-style fluent API. Layered overrides via `.cellRenderer(MyOwn)` / `.cellEditorConfig(MyEditor, …)` continue to work as escape hatches (last-write-wins on the chain).
+
+### Fixed
+
+- **`@cocoar/vue-ui` — `CoarNumberInput` clear button no longer surfaces on focus when `clearable={false}`**: the `.coar-number-input-clear--hidden` modifier (`opacity: 0`) was outranked by the focused / hover overrides (`opacity: 1`, same selector specificity but defined later in the cascade), so the X appeared even on focused inputs explicitly opted out of clearing. Fix scopes the focused / hover rules with `:not(.coar-number-input-clear--hidden)` so they explicitly skip hidden buttons. Keeps the opacity-based hiding strategy (rather than switching to `v-if` like `CoarTextInput`) because the clear button sits to the LEFT of the input — a `display: none` hide would shift the input on appear/disappear, hurting layout stability.
+- **`@cocoar/vue-data-grid` — `CoarSelectCellEditor` commits the selected option** (was: silently dropped under real user clicks): mousedown on a body-teleported dropdown option shifted focus away from the editor → AG Grid's `stopEditingWhenCellsLoseFocus` fired *before* CoarSelect's option-click handler could update the model → `getValue()` returned the OLD value. Caught by the user during hand-testing; the original verification used synthetic `HTMLElement.click()` which bypasses focus/blur flow. Fix is a capture-phase document `mousedown` listener installed while the editor is mounted: when the click target sits inside a Coar `overlay-host`, `preventDefault()` blocks the focus shift. The click event still fires, CoarSelect updates the model, the watch picks it up and triggers `stopEditing` — `getValue()` then returns the new value. Outside-clicks (everywhere else) still cause focus loss → AG Grid commits/cancels normally.
+
+### Internal
+
+- **`@cocoar/vue-data-grid` — new `configurators/` directory**: holds the per-column-type fluent configurator classes. Re-exported from the package root for consumers writing custom helpers.
+- **Docs reorganisation**: dedicated "Data Grid" sidebar section replaces the single-item "Data" section. Currently five sub-pages (Overview, Editing, Text Column, Number Column, Select Column, Checkbox Column) with one live demo per page.
+- **`docs(calendar)`**: marked the Calendar package as **Preview** in the sidebar to set expectations until v1.0 of `@cocoar/vue-calendar`.
+- **`ci`**: docs-only changes now skip the full CI matrix (`paths-ignore` filter on `apps/docs/**` and `**/*.md`). Saves ~3 min per docs-only PR; full CI still runs whenever non-docs files are touched.
+
+---
+
 ## 1.17.0
 
 ### Added
