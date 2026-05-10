@@ -565,12 +565,19 @@ function decrement() {
   opacity: 0.4;
 }
 
-.coar-number-input-focused .coar-number-input-clear {
+/*
+ * `:not(--hidden)` is required: the clear button uses opacity-based hiding
+ * (NOT `display: none`) to keep the layout stable on appear/disappear, since
+ * the X sits to the LEFT of the input. Without `:not`, the focused/hover
+ * `opacity: 1` override outranks `.coar-number-input-clear--hidden { opacity: 0 }`
+ * (same specificity, defined later) and the X surfaces even with `clearable: false`.
+ */
+.coar-number-input-focused .coar-number-input-clear:not(.coar-number-input-clear--hidden) {
   opacity: 1;
   color: var(--coar-icon-neutral-tertiary);
 }
 
-.coar-number-input-container:hover .coar-number-input-clear {
+.coar-number-input-container:hover .coar-number-input-clear:not(.coar-number-input-clear--hidden) {
   opacity: 1;
   color: var(--coar-icon-neutral-tertiary);
 }
