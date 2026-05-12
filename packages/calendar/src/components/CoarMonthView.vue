@@ -535,6 +535,8 @@ defineExpose({
             @pointerdown="onMonthEventPointerdown($event, pill.event)"
             @keydown="onMonthEventKeydown($event, pill.event)"
             @dblclick="props.builder.state.onEventDoubleClick?.({ event: pill.event, native: $event })"
+            @pointerenter="props.builder.state.onEventHover?.({ event: pill.event, native: $event })"
+            @pointerleave="props.builder.state.onEventHoverLeave?.({ event: pill.event, native: $event })"
           >
             <template #default="{ event: e, pill: p }">
               <slot
@@ -611,6 +613,8 @@ defineExpose({
           @pointerdown="onMonthEventPointerdown($event, bar.event)"
           @keydown="onMonthEventKeydown($event, bar.event)"
           @dblclick="props.builder.state.onEventDoubleClick?.({ event: bar.event, native: $event })"
+          @pointerenter="props.builder.state.onEventHover?.({ event: bar.event, native: $event })"
+          @pointerleave="props.builder.state.onEventHoverLeave?.({ event: bar.event, native: $event })"
           @start-resize="dnd.startMonthResizeStart(bar.event)($event)"
           @end-resize="dnd.startMonthResizeEnd(bar.event)($event)"
         >

@@ -438,7 +438,10 @@ The builder is **flat** — every setter lives directly on it. There are no sub-
 | `canDrop(fn)` | `(event, target) => boolean` | Drop-target validator. Read refs inside the function for reactive policies. |
 | `eventRenderer(r)` | `EventRenderer<TMeta>` | Universal event renderer. Branch on `ctx.layout?.kind` (`'positioned'` / `'allDayBar'` / `'monthPill'` / `'monthBar'`) to render per layout variant. See "Custom event rendering" above. |
 | `dayHeaderRenderer(r)` | `DayHeaderRenderer` | Day column header. |
-| `onEventClick(fn)` | `(payload) => void` | |
+| `onEventClick(fn)` | `(payload: { event, native: PointerEvent }) => void` | |
+| `onEventDoubleClick(fn)` | `(payload: { event, native: MouseEvent }) => void` | |
+| `onEventHover(fn)` | `(payload: { event, native: PointerEvent }) => void` | Pair with `useOverlay()` for popovers / tooltips. `native.currentTarget` is the anchor element. No hover delay applied — wrap with `setTimeout(..., 200)` if needed. |
+| `onEventHoverLeave(fn)` | `(payload: { event, native: PointerEvent }) => void` | Companion close-trigger for the popover the hover handler opened. |
 | `onEventDoubleClick(fn)` | `(payload) => void` | Common: open an edit dialog. |
 | `onEventDrop(fn)` | `(payload) => void` | Drag-and-drop / keyboard / touch all flow through this. |
 | `onDateClick(fn)` | `(payload) => void` | Empty cell / day-header clicked. |

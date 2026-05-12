@@ -78,6 +78,8 @@ import type {
   EventClickHandler,
   EventDoubleClickHandler,
   EventDropHandler,
+  EventHoverHandler,
+  EventHoverLeaveHandler,
   EventRenderer,
   EventsLoader,
   MoreClickHandler,
@@ -283,6 +285,8 @@ export interface CalendarBuilderState<
   // ── Handlers ──────────────────────────────────────────────────
   onEventClick: EventClickHandler<TMeta> | null;
   onEventDoubleClick: EventDoubleClickHandler<TMeta> | null;
+  onEventHover: EventHoverHandler<TMeta> | null;
+  onEventHoverLeave: EventHoverLeaveHandler<TMeta> | null;
   onEventDrop: EventDropHandler<TMeta> | null;
   onDateClick: DateClickHandler | null;
   onTimeClick: TimeClickHandler | null;
@@ -482,6 +486,8 @@ export class CalendarBuilder<
       dayHeaderRenderer: null,
       onEventClick: null,
       onEventDoubleClick: null,
+      onEventHover: null,
+      onEventHoverLeave: null,
       onEventDrop: null,
       onDateClick: null,
       onTimeClick: null,
@@ -927,6 +933,24 @@ export class CalendarBuilder<
 
   onEventDoubleClick(h: EventDoubleClickHandler<TMeta>): this {
     this.state.onEventDoubleClick = h;
+    return this;
+  }
+
+  /**
+   * Fires on `pointerenter` over an event element in any view.
+   * Pair with `useOverlay()` (from `@cocoar/vue-ui`) to anchor a
+   * popover at `payload.native.currentTarget`. The library does
+   * NOT apply hover delay — consumer wraps the handler if a delay
+   * is wanted.
+   */
+  onEventHover(h: EventHoverHandler<TMeta>): this {
+    this.state.onEventHover = h;
+    return this;
+  }
+
+  /** Companion to `onEventHover` — fires on `pointerleave`. */
+  onEventHoverLeave(h: EventHoverLeaveHandler<TMeta>): this {
+    this.state.onEventHoverLeave = h;
     return this;
   }
 

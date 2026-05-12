@@ -396,6 +396,8 @@ defineExpose({
             :display-zone="timezone"
             @pointerdown="onEventClick($event, (items[y] as AgendaEventItem<TMeta>).event)"
             @dblclick="props.builder.state.onEventDoubleClick?.({ event: (items[y] as AgendaEventItem<TMeta>).event, native: $event })"
+            @pointerenter="props.builder.state.onEventHover?.({ event: (items[y] as AgendaEventItem<TMeta>).event, native: $event })"
+            @pointerleave="props.builder.state.onEventHoverLeave?.({ event: (items[y] as AgendaEventItem<TMeta>).event, native: $event })"
           >
             <template v-if="$slots.event" #default="slotProps">
               <slot name="event" v-bind="slotProps" />

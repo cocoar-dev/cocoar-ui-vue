@@ -140,6 +140,32 @@ export type EventDoubleClickHandler<
 > = (payload: { event: CalendarEvent<TMeta>; native: MouseEvent }) => void;
 
 /**
+ * Fired on `pointerenter` over an event element in any view.
+ *
+ * The classic use is wiring `useOverlay()` (from `@cocoar/vue-ui`)
+ * to show a popover anchored at the event's DOM element —
+ * `native.currentTarget` is the event-element node and can be passed
+ * directly as the overlay anchor. The library deliberately does NOT
+ * apply hover delay / debouncing; consumers wanting a "hover for
+ * 200 ms before opening" pattern wrap the handler themselves.
+ *
+ * For touch / pen pointers, `pointerenter` fires on the press, not
+ * on a sustained hover — so this handler doubles as a long-press
+ * surface on tablets if paired with a delay.
+ */
+export type EventHoverHandler<
+  TMeta extends Record<string, unknown> = Record<string, unknown>,
+> = (payload: { event: CalendarEvent<TMeta>; native: PointerEvent }) => void;
+
+/**
+ * Fired on `pointerleave` from an event element. Companion to
+ * `EventHoverHandler` — consumers typically close their popover here.
+ */
+export type EventHoverLeaveHandler<
+  TMeta extends Record<string, unknown> = Record<string, unknown>,
+> = (payload: { event: CalendarEvent<TMeta>; native: PointerEvent }) => void;
+
+/**
  * Drop payload — the result of a successful drag/resize/keyboard
  * operation, after `applyMoveToEvent` resolved the new endpoints
  * against the active `DstPolicy`.

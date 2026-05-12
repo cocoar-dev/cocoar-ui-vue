@@ -30,6 +30,8 @@ export type {
   EventClickHandler,
   EventDoubleClickHandler,
   EventDropHandler,
+  EventHoverHandler,
+  EventHoverLeaveHandler,
   EventDropPayload,
   EventLayoutCtx,
   EventRenderer,

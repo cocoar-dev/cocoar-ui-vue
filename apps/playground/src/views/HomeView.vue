@@ -19,6 +19,7 @@
       <li><router-link to="/calendar-perf-bench">Calendar — Performance bench (1 000+ events)</router-link></li>
       <li><router-link to="/calendar-timeline-perf"><strong>Calendar — Timeline performance (1 000+ tasks) ←</strong></router-link></li>
       <li><router-link to="/calendar-recurrence"><strong>Calendar — Recurrence (Phase 4) ←</strong></router-link></li>
+      <li><router-link to="/calendar-popover"><strong>Calendar — Popover on hover ←</strong></router-link></li>
     </ul>
   </div>
 </template>

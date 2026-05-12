@@ -159,6 +159,27 @@ function onEventClick(event: CalendarEvent<TMeta>, native: PointerEvent): void {
   if (handler) handler({ event, native });
 }
 
+function onEventHover(event: CalendarEvent<TMeta>, native: PointerEvent): void {
+  const handler = props.builder.state.onEventHover;
+  if (handler) handler({ event, native });
+}
+
+function onEventHoverLeave(
+  event: CalendarEvent<TMeta>,
+  native: PointerEvent,
+): void {
+  const handler = props.builder.state.onEventHoverLeave;
+  if (handler) handler({ event, native });
+}
+
+function onEventDoubleClick(
+  event: CalendarEvent<TMeta>,
+  native: MouseEvent,
+): void {
+  const handler = props.builder.state.onEventDoubleClick;
+  if (handler) handler({ event, native });
+}
+
 // ─── Pan mode (click + drag to scroll) ───────────────────────────
 // Drag anywhere on the timeline EXCEPT on a bar (which has its own
 // click handler) to scroll both axes. Mirrors the Excel / Gantt /
@@ -439,6 +460,9 @@ defineExpose({
             }"
             :aria-label="eventTitle(bar.event)"
             @click="onEventClick(bar.event, $event)"
+            @dblclick="onEventDoubleClick(bar.event, $event)"
+            @pointerenter="onEventHover(bar.event, $event)"
+            @pointerleave="onEventHoverLeave(bar.event, $event)"
           >
             <!-- Default bar renders as a coloured rectangle only — the row
                  label on the left already names the event. The aria-label

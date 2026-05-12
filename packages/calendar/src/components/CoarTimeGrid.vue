@@ -704,6 +704,8 @@ defineExpose({
           @pointerdown="onEventPointerdown($event, bar.event, dnd.startAllDayDrag)"
           @keydown="onEventKeydown($event, bar.event)"
           @dblclick="props.builder.state.onEventDoubleClick?.({ event: bar.event, native: $event })"
+          @pointerenter="props.builder.state.onEventHover?.({ event: bar.event, native: $event })"
+          @pointerleave="props.builder.state.onEventHoverLeave?.({ event: bar.event, native: $event })"
           @start-resize="dnd.startAllDayResizeStart(bar.event)($event)"
           @end-resize="dnd.startAllDayResizeEnd(bar.event)($event)"
         >
@@ -844,6 +846,8 @@ defineExpose({
             @pointerdown="onEventPointerdown($event, positioned.event, dnd.startDrag)"
             @keydown="onEventKeydown($event, positioned.event)"
             @dblclick="props.builder.state.onEventDoubleClick?.({ event: positioned.event, native: $event })"
+            @pointerenter="props.builder.state.onEventHover?.({ event: positioned.event, native: $event })"
+            @pointerleave="props.builder.state.onEventHoverLeave?.({ event: positioned.event, native: $event })"
             @start-resize="dnd.startTimedResizeStart(positioned.event)($event)"
             @end-resize="dnd.startTimedResizeEnd(positioned.event)($event)"
           >
