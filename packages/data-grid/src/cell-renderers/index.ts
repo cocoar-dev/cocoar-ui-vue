@@ -11,6 +11,9 @@ export { default as CoarTextCellEditor } from './CoarTextCellEditor.vue';
 export { default as CoarNumberCellEditor } from './CoarNumberCellEditor.vue';
 export { default as CoarSelectCellRenderer } from './CoarSelectCellRenderer.vue';
 export { default as CoarSelectCellEditor } from './CoarSelectCellEditor.vue';
+export { default as CoarMultiSelectCellRenderer } from './CoarMultiSelectCellRenderer.vue';
+export { default as CoarMultiSelectCellEditor } from './CoarMultiSelectCellEditor.vue';
+export { default as CoarTagSelectCellEditor } from './CoarTagSelectCellEditor.vue';
 
 // Config interfaces (public API)
 export type { TagCellRendererConfig } from './tag-cell-renderer.models';
@@ -23,6 +26,7 @@ export type { CheckboxCellRendererConfig } from './checkbox-cell-renderer.models
 export type { TextCellEditorConfig } from './text-cell-editor.models';
 export type { NumberCellEditorConfig } from './number-cell-editor.models';
 export type { SelectCellEditorConfig } from './select-cell-editor.models';
+export type { MultiSelectCellEditorConfig } from './multi-select-cell-editor.models';
 export type {
   WrapperSlotConfig,
   WrapperSlotItem,

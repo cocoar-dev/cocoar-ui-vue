@@ -9,10 +9,12 @@ export {
   TagCellRenderer, IconCellRenderer, DateCellRenderer, TreeCellRenderer, WrapperCellRenderer,
   CoarCheckboxCellRenderer, CoarTextCellEditor, CoarNumberCellEditor,
   CoarSelectCellRenderer, CoarSelectCellEditor,
+  CoarMultiSelectCellRenderer, CoarMultiSelectCellEditor, CoarTagSelectCellEditor,
 } from './cell-renderers';
 export type {
   TagCellRendererConfig, IconCellRendererConfig, DateCellRendererConfig, TreeCellRendererConfig,
   CheckboxCellRendererConfig, TextCellEditorConfig, NumberCellEditorConfig, SelectCellEditorConfig,
+  MultiSelectCellEditorConfig,
 } from './cell-renderers';
 export type {
   WrapperSlotConfig,
@@ -28,6 +30,7 @@ export type {
 export {
   CheckboxColumnConfigurator, TextColumnConfigurator, NumberColumnConfigurator,
   SelectColumnConfigurator,
+  MultiSelectColumnConfigurator, TagSelectColumnConfigurator,
 } from './configurators';
 
 // Theme

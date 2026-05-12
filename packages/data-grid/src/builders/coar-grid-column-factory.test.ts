@@ -12,6 +12,9 @@ import CoarTextCellEditor from '../cell-renderers/CoarTextCellEditor.vue';
 import CoarNumberCellEditor from '../cell-renderers/CoarNumberCellEditor.vue';
 import CoarSelectCellRenderer from '../cell-renderers/CoarSelectCellRenderer.vue';
 import CoarSelectCellEditor from '../cell-renderers/CoarSelectCellEditor.vue';
+import CoarMultiSelectCellRenderer from '../cell-renderers/CoarMultiSelectCellRenderer.vue';
+import CoarMultiSelectCellEditor from '../cell-renderers/CoarMultiSelectCellEditor.vue';
+import CoarTagSelectCellEditor from '../cell-renderers/CoarTagSelectCellEditor.vue';
 
 interface TestRow {
   id: number;
@@ -312,6 +315,108 @@ describe('CoarGridColumnFactory', () => {
 
       expect(colDef.cellEditor).toBe(customEditor);
       expect(colDef.cellEditorParams).toEqual({ config: { foo: 'bar' } });
+    });
+  });
+
+  describe('multiSelect', () => {
+    const TAGS = [
+      { value: 'a', label: 'Alpha' },
+      { value: 'b', label: 'Beta' },
+      { value: 'c', label: 'Gamma' },
+    ];
+
+    it('should create a multiSelect column builder', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const builder = factory.multiSelect('tags', (s) => s.options(TAGS));
+
+      expect(builder).toBeInstanceOf(CoarGridColumnBuilder);
+    });
+
+    it('should bundle CoarMultiSelectCellRenderer + CoarMultiSelectCellEditor', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.multiSelect('tags', (s) => s.options(TAGS)).build();
+
+      expect(colDef.cellRenderer).toBe(CoarMultiSelectCellRenderer);
+      expect(colDef.cellEditor).toBe(CoarMultiSelectCellEditor);
+    });
+
+    it('should pass full config (options + flags + display) to both renderer and editor', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory
+        .multiSelect('tags', (s) =>
+          s.options(TAGS).searchable().showSelectAll().clearable().display('chips'),
+        )
+        .build();
+
+      const expected = {
+        options: TAGS,
+        searchable: true,
+        showSelectAll: true,
+        clearable: true,
+        display: 'chips' as const,
+      };
+      expect(colDef.cellRendererParams?.config).toEqual(expected);
+      expect(colDef.cellEditorParams?.config).toEqual(expected);
+    });
+
+    it('should accept a row-aware options function', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const fn = (row: TestRow) => (row.status === 'active' ? TAGS : []);
+      const colDef = factory.multiSelect('tags', (s) => s.options(fn)).build();
+
+      expect((colDef.cellEditorParams?.config as { options: unknown }).options).toBe(fn);
+    });
+
+    it('should compose with .editable() on the outer chain', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.multiSelect('tags', (s) => s.options(TAGS)).editable(true).build();
+
+      expect(colDef.cellEditor).toBe(CoarMultiSelectCellEditor);
+      expect(colDef.editable).toBe(true);
+    });
+  });
+
+  describe('tagSelect', () => {
+    const SKILLS = [
+      { value: 'ts', label: 'TypeScript' },
+      { value: 'go', label: 'Go' },
+    ];
+
+    it('should create a tagSelect column builder', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const builder = factory.tagSelect('tags', (s) => s.options(SKILLS));
+
+      expect(builder).toBeInstanceOf(CoarGridColumnBuilder);
+    });
+
+    it('should bundle CoarMultiSelectCellRenderer + CoarTagSelectCellEditor', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.tagSelect('tags', (s) => s.options(SKILLS)).build();
+
+      // Renderer is shared with multiSelect; editor is the tag-style variant.
+      expect(colDef.cellRenderer).toBe(CoarMultiSelectCellRenderer);
+      expect(colDef.cellEditor).toBe(CoarTagSelectCellEditor);
+    });
+
+    it('should pass allowCreate + display through the config', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory
+        .tagSelect('tags', (s) => s.options(SKILLS).allowCreate().display('chips'))
+        .build();
+
+      expect(colDef.cellEditorParams?.config).toEqual({
+        options: SKILLS,
+        allowCreate: true,
+        display: 'chips',
+      });
+    });
+
+    it('should compose with .editable() on the outer chain', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.tagSelect('tags', (s) => s.options(SKILLS)).editable(true).build();
+
+      expect(colDef.cellEditor).toBe(CoarTagSelectCellEditor);
+      expect(colDef.editable).toBe(true);
     });
   });
 

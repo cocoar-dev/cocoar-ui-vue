@@ -12,6 +12,9 @@ import CoarTextCellEditor from '../cell-renderers/CoarTextCellEditor.vue';
 import CoarNumberCellEditor from '../cell-renderers/CoarNumberCellEditor.vue';
 import CoarSelectCellRenderer from '../cell-renderers/CoarSelectCellRenderer.vue';
 import CoarSelectCellEditor from '../cell-renderers/CoarSelectCellEditor.vue';
+import CoarMultiSelectCellRenderer from '../cell-renderers/CoarMultiSelectCellRenderer.vue';
+import CoarMultiSelectCellEditor from '../cell-renderers/CoarMultiSelectCellEditor.vue';
+import CoarTagSelectCellEditor from '../cell-renderers/CoarTagSelectCellEditor.vue';
 import type { TagCellRendererConfig } from '../cell-renderers/tag-cell-renderer.models';
 import type { IconCellRendererConfig } from '../cell-renderers/icon-cell-renderer.models';
 import type { DateCellRendererConfig } from '../cell-renderers/date-cell-renderer.models';
@@ -22,6 +25,8 @@ import { CheckboxColumnConfigurator } from '../configurators/CheckboxColumnConfi
 import { TextColumnConfigurator } from '../configurators/TextColumnConfigurator';
 import { NumberColumnConfigurator } from '../configurators/NumberColumnConfigurator';
 import { SelectColumnConfigurator } from '../configurators/SelectColumnConfigurator';
+import { MultiSelectColumnConfigurator } from '../configurators/MultiSelectColumnConfigurator';
+import { TagSelectColumnConfigurator } from '../configurators/TagSelectColumnConfigurator';
 
 /**
  * Factory for creating typed column builders.
@@ -208,6 +213,82 @@ export class CoarGridColumnFactory<TData = unknown> {
     const builder = new CoarGridColumnBuilder<TData, T>(fieldName);
     builder.cellRendererConfig(CoarSelectCellRenderer, config);
     builder.cellEditorConfig(CoarSelectCellEditor, config);
+    builder.sortable();
+    return builder;
+  }
+
+  /**
+   * Create a multi-select column with a checkbox-list dropdown editor.
+   *
+   * Cell value is `T[]`. The renderer looks up labels from `options` and shows
+   * them comma-separated by default; opt into chips via `.display('chips')`.
+   * The editor opens a `<CoarMultiSelect>` dropdown that stays open while the
+   * user toggles checkboxes — focus-preservation prevents AG Grid from
+   * committing prematurely. Commit happens via the standard focus-loss path
+   * (click outside / Tab / Enter), AG Grid pulls the final array via
+   * `getValue()`.
+   *
+   * Whether the column is editable is gated by the column-level `.editable()`
+   * chain — same pattern as text/number/select/checkbox.
+   *
+   * @example
+   * ```ts
+   * col.multiSelect('tags', s => s
+   *   .options([{ value: 'a', label: 'Alpha' }, { value: 'b', label: 'Beta' }])
+   *   .searchable()
+   *   .showSelectAll()
+   *   .display('chips')
+   * ).editable(true)
+   *
+   * // row-aware options
+   * col.multiSelect('perms', s => s.options(row => permsFor(row.role)))
+   *    .editable(true)
+   * ```
+   */
+  multiSelect<T = unknown>(
+    fieldName: keyof TData | string,
+    configurator: (
+      s: MultiSelectColumnConfigurator<TData, T>,
+    ) => MultiSelectColumnConfigurator<TData, T>,
+  ): CoarGridColumnBuilder<TData, T[]> {
+    const config = configurator(new MultiSelectColumnConfigurator<TData, T>()).build();
+    const builder = new CoarGridColumnBuilder<TData, T[]>(fieldName);
+    builder.cellRendererConfig(CoarMultiSelectCellRenderer, config);
+    builder.cellEditorConfig(CoarMultiSelectCellEditor, config);
+    builder.sortable();
+    return builder;
+  }
+
+  /**
+   * Create a tag-style multi-select column. Cell value is `T[]`.
+   *
+   * Same renderer as `col.multiSelect()` (comma-separated by default,
+   * chips opt-in). The editor uses `<CoarTagSelect>` — selected values render
+   * as removable chips inside the trigger, and the dropdown only lists
+   * not-yet-selected options. With `.allowCreate()`, the user can type
+   * free-form values that aren't in `options`; those round-trip into the cell
+   * array verbatim, and the renderer falls back to `String(value)` for
+   * unknown labels.
+   *
+   * @example
+   * ```ts
+   * col.tagSelect('skills', s => s
+   *   .options([{ value: 'ts', label: 'TypeScript' }, { value: 'go', label: 'Go' }])
+   *   .allowCreate()
+   *   .display('chips')
+   * ).editable(true)
+   * ```
+   */
+  tagSelect<T = unknown>(
+    fieldName: keyof TData | string,
+    configurator: (
+      s: TagSelectColumnConfigurator<TData, T>,
+    ) => TagSelectColumnConfigurator<TData, T>,
+  ): CoarGridColumnBuilder<TData, T[]> {
+    const config = configurator(new TagSelectColumnConfigurator<TData, T>()).build();
+    const builder = new CoarGridColumnBuilder<TData, T[]>(fieldName);
+    builder.cellRendererConfig(CoarMultiSelectCellRenderer, config);
+    builder.cellEditorConfig(CoarTagSelectCellEditor, config);
     builder.sortable();
     return builder;
   }
