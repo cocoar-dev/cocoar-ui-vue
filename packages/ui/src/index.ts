@@ -102,7 +102,22 @@ export type { CoarDualListboxProps } from './components/dual-listbox';
 
 // Overlay System
 export { CoarOverlayHost, CoarOverlayOutlet, CoarOverlayPlugin, useOverlay, useOverlayParent, getOverlayService, OVERLAY_SERVICE_KEY, OVERLAY_PARENT_KEY, createOverlayService } from './components/overlay';
-export { tooltipPreset, modalPreset, menuPreset, selectPreset, hoverMenuPreset, dialogPreset, popconfirmPreset, OVERLAY_DEFAULTS, resolveOverlaySpec } from './components/overlay';
+export {
+  tooltipPreset,
+  modalPreset,
+  menuPreset,
+  selectPreset,
+  hoverMenuPreset,
+  dialogPreset,
+  popconfirmPreset,
+  popoverPreset,
+  datepickerPreset,
+  subFlyoutPreset,
+  contextMenuPreset,
+  sidebarFlyoutPreset,
+  OVERLAY_DEFAULTS,
+  resolveOverlaySpec,
+} from './components/overlay';
 export { computeOverlayCoordinates, getViewportRect, getAnchorRect, getContainerRect, getScrollParents } from './components/overlay';
 export type { Placement, OverlaySpec, OverlayRef, OverlayService, OverlayInstance, OverlayContent, OverlayOpenOptions } from './components/overlay';
 export type { AnchorSpec, PositionSpec, SizeSpec, BackdropSpec, ScrollSpec, DismissSpec, FocusSpec, A11ySpec, AttachmentSpec, ResolvedOverlaySpec } from './components/overlay';
