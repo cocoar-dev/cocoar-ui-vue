@@ -174,8 +174,18 @@
 
 /* --- Badge tweaks ------------------------------------------ */
 
+/*
+ * VitePress's default `.tip` Badge uses three CSS variables for text /
+ * background / border. Overriding only `background-color` (to solid brand-1)
+ * left the default tip-text-color unchanged — which in the brand-blue cascade
+ * resolved to ALSO brand-blue, producing unreadable blue-on-blue badges.
+ * Set all three so the override is complete and stays consistent if VitePress
+ * changes how Badge derives its colors.
+ */
 .VPBadge.tip {
   background-color: var(--vp-c-brand-1);
+  color: #fff;
+  border-color: var(--vp-c-brand-1);
 }
 
 /* --- Mermaid diagrams -------------------------------------- */
