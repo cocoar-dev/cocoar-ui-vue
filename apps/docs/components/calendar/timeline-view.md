@@ -12,6 +12,12 @@ Gantt-lite layout: **one row per logical event**, horizontal time-axis. The left
 This view covers the **timeline-of-events** half of project planning: bars on a time-axis, sorted, with window-clamping and continues-indicators. It does **not** yet include the rest of a full Gantt: task hierarchy (parent / sub-task collapse), dependencies (arrows between bars), critical-path computation, milestones, or resource lanes. Those land in a separate `@cocoar/vue-gantt` package later, building on this view's primitives.
 :::
 
+## Live example
+
+<preview path="./demos/CalendarTimeline.vue" />
+
+The demo above mixes four one-off project-milestone events (design / build / QA / launch / retro) with one recurring "Daily standup" series. The recurring occurrences collapse into a single row labelled "Daily standup ×N" with one coloured bar per occurrence; the one-off milestones each get their own row. Drag empty space to pan; the view-switcher button bar at the top lets you flip between Timeline and the other views to see the same data rendered differently.
+
 ## Standalone usage
 
 ```ts

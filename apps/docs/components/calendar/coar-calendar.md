@@ -368,6 +368,40 @@ Engine-swap invariance is enforced by the library: every occurrence is re-resolv
 
 <preview path="./demos/CalendarRecurrence.vue" />
 
+## Popovers and tooltips
+
+The library deliberately doesn't ship a built-in popover — every app wants different content (title-only tooltip vs full action menu vs edit-in-place panel). What it does ship are two handlers that surface the timing + anchor element so consumer code can wire `useOverlay()` (from `@cocoar/vue-ui`) into events:
+
+```ts
+import { useOverlay, popoverPreset, type OverlayRef } from '@cocoar/vue-ui';
+
+const overlay = useOverlay();
+const activeOverlay = ref<OverlayRef | null>(null);
+
+builder
+  .onEventHover(({ event, native }) => {
+    activeOverlay.value?.close();          // close previous first
+    activeOverlay.value = overlay.open({
+      spec: {
+        ...popoverPreset,
+        anchor: { kind: 'element', element: native.currentTarget as Element },
+      },
+      content: { kind: 'component', component: MyEventPopover },
+      inputs: { event },
+    });
+  })
+  .onEventHoverLeave(() => {
+    activeOverlay.value?.close();
+    activeOverlay.value = null;
+  });
+```
+
+`native.currentTarget` is the event-element DOM node — pass it straight to the overlay's anchor spec. The same pattern works for click-driven popovers (use `onEventClick`) and double-click triggers (`onEventDoubleClick`). No hover delay is applied; wrap the open in `setTimeout(..., 200)` if you want one. For touch / pen pointers, `pointerenter` fires on press — handler doubles as a long-press surface on tablets when paired with a delay.
+
+Handlers fire across all five views (day / week / workWeek / month / agenda / timeline) at the same DOM elements that handle click. The library never opens an overlay itself — the entire interaction lifecycle (open / close / outside-click / escape / scroll-strategy) lives in consumer code via the overlay spec.
+
+<preview path="./demos/CalendarPopover.vue" />
+
 ## Imperative API
 
 The builder exposes an `api` object — same shape regardless of whether the calendar component has mounted yet. Stash it from `useCalendar()` and call methods directly:
