@@ -246,6 +246,31 @@ export interface CalendarBuilderState<
   maxEventsPerCell: MaybeRefOrGetter<number>;
   agendaLengthDays: MaybeRefOrGetter<number>;
   showEmptyDays: MaybeRefOrGetter<boolean>;
+  /**
+   * Number of days the `'timeline'` view spans starting from the
+   * cursor. Default 60 (~two months — fits sprint-planning horizons
+   * without overwhelming the horizontal scroll).
+   */
+  timelineRangeDays: MaybeRefOrGetter<number>;
+  /**
+   * Horizontal pixel density of the `'timeline'` view's time axis.
+   * Default 56 — a localized "DD. Mon" label (e.g. "15. Juni") fits
+   * on one line at the default font size. Bump to 80 for hour-
+   * granularity layout, drop to 24 for quarter-zoomed sprint
+   * overviews.
+   */
+  timelinePixelsPerDay: MaybeRefOrGetter<number>;
+  /**
+   * Height of each event row in the `'timeline'` view, in pixels.
+   * Default 32 — matches the default density's pill height.
+   */
+  timelineRowHeight: MaybeRefOrGetter<number>;
+  /**
+   * Width of the left label-pane in the `'timeline'` view, in pixels.
+   * Default 200 — wide enough for most event titles without
+   * crowding the time-grid.
+   */
+  timelineLabelWidth: MaybeRefOrGetter<number>;
   // ── Navigation state (writable Refs) ──────────────────────────
   /** Active view. Held as Ref so api.setView can write back. */
   view: Ref<CalendarView>;
@@ -436,7 +461,7 @@ export class CalendarBuilder<
       // Phase 4 §A8 — defer to lazy default rrule-temporal until
       // consumer explicitly picks a different engine.
       recurrenceEngine: null,
-      availableViews: ['month', 'week', 'workWeek', 'day', 'agenda'],
+      availableViews: ['month', 'week', 'workWeek', 'day', 'agenda', 'timeline'],
       timeRange: { startMinutes: 0, endMinutes: 24 * 60 - 1 },
       slotDuration: 30,
       // Default of 60. Time-grid columns end up 1440 px tall
@@ -446,6 +471,10 @@ export class CalendarBuilder<
       maxEventsPerCell: 3,
       agendaLengthDays: 30,
       showEmptyDays: false,
+      timelineRangeDays: 60,
+      timelinePixelsPerDay: 56,
+      timelineRowHeight: 32,
+      timelineLabelWidth: 200,
       view: internalView,
       date: internalDate,
       canDrop: null,
@@ -832,6 +861,30 @@ export class CalendarBuilder<
     return this;
   }
 
+  /** Days the `'timeline'` view spans starting from the cursor. Default 60. */
+  timelineRangeDays(n: MaybeRefOrGetter<number>): this {
+    this.state.timelineRangeDays = n;
+    return this;
+  }
+
+  /** Horizontal pixel density of the `'timeline'` view (pixels per day). Default 56. */
+  timelinePixelsPerDay(p: MaybeRefOrGetter<number>): this {
+    this.state.timelinePixelsPerDay = p;
+    return this;
+  }
+
+  /** Event-row height in the `'timeline'` view, in pixels. Default 32. */
+  timelineRowHeight(h: MaybeRefOrGetter<number>): this {
+    this.state.timelineRowHeight = h;
+    return this;
+  }
+
+  /** Left-pane label width in the `'timeline'` view, in pixels. Default 200. */
+  timelineLabelWidth(w: MaybeRefOrGetter<number>): this {
+    this.state.timelineLabelWidth = w;
+    return this;
+  }
+
   // ─── Reactive functions (C7) ───────────────────────────────
 
   /**
@@ -933,11 +986,13 @@ export class CalendarBuilder<
     const view = this.state.view.value;
     const cursor = this.state.date.value;
     const agendaDays = toValue(this.state.agendaLengthDays);
+    const timelineDays = toValue(this.state.timelineRangeDays);
     this.state.date.value = navigateCursor(
       view,
       cursor,
       direction === 1 ? 'next' : 'prev',
       agendaDays,
+      timelineDays,
     );
   }
 

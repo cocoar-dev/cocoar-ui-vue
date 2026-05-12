@@ -37,6 +37,7 @@ import CoarWeekView from './CoarWeekView.vue';
 import CoarWorkWeekView from './CoarWorkWeekView.vue';
 import CoarMonthView from './CoarMonthView.vue';
 import CoarAgendaView from './CoarAgendaView.vue';
+import CoarTimelineView from './CoarTimelineView.vue';
 import {
   Temporal,
   computeViewWindow,
@@ -141,6 +142,7 @@ const state = computed(() => {
     slotDuration: toValue(s.slotDuration),
     pixelsPerHour: toValue(s.pixelsPerHour),
     agendaLengthDays: toValue(s.agendaLengthDays),
+    timelineRangeDays: toValue(s.timelineRangeDays),
     showEmptyDays: toValue(s.showEmptyDays),
     maxEventsPerCell: toValue(s.maxEventsPerCell),
     dstPolicy: toValue(s.dstPolicy),
@@ -184,6 +186,7 @@ const window = computed<ViewWindow>(() =>
     cursor: cursor.value,
     firstDayOfWeek: resolvedFirstDayOfWeek.value,
     agendaLengthDays: state.value.agendaLengthDays,
+    timelineRangeDays: state.value.timelineRangeDays,
     timezone: state.value.timezone,
   }),
 );
@@ -247,7 +250,11 @@ const rangeLabel = computed<string>(() => {
         ),
       ).format(toDate(cursor.value));
     }
-    case 'agenda': {
+    case 'agenda':
+    case 'timeline': {
+      // Both views span a configurable range of days; the label is
+      // the formatted date-range bounds, same as agenda's existing
+      // shape.
       const fmt = new Intl.DateTimeFormat(
         locale,
         buildFormatOptions(
@@ -532,6 +539,21 @@ onBeforeUnmount(() => {
           <slot name="event" v-bind="slotProps" :view="view" />
         </template>
       </CoarAgendaView>
+
+      <CoarTimelineView v-else-if="view === 'timeline'" :builder="props.builder">
+        <template v-if="$slots.event" #bar="slotProps">
+          <!-- Timeline-specific layout context — not a Day/Week/Month
+               variant, so we forward only `event` + `view` to the
+               universal slot. Consumers wanting timeline-row geometry
+               use the dedicated `#bar` slot on `<CoarTimelineView>`
+               directly. -->
+          <slot
+            name="event"
+            :event="slotProps.event"
+            :view="view"
+          />
+        </template>
+      </CoarTimelineView>
     </div>
   </div>
 </template>

@@ -47,6 +47,11 @@ export interface ViewWindowOptions {
    */
   agendaLengthDays?: number;
   /**
+   * Timeline-view length in days. Default 60.
+   * Ignored for non-timeline views.
+   */
+  timelineRangeDays?: number;
+  /**
    * IANA display timezone — written through to `ViewWindow.timezone`
    * so loaders can derive the correct instant range.
    */
@@ -126,7 +131,16 @@ export function computeViewWindow(opts: ViewWindowOptions): ViewWindow {
       };
     }
 
-    case 'timeline':
+    case 'timeline': {
+      const length = opts.timelineRangeDays ?? 60;
+      return {
+        view,
+        start: cursor.toString(),
+        end: cursor.add({ days: length }).toString(),
+        timezone,
+      };
+    }
+
     case 'year': {
       return {
         view,
@@ -198,6 +212,7 @@ export function navigateCursor(
   cursor: Temporal.PlainDate,
   direction: 'prev' | 'next',
   agendaLengthDays = 30,
+  timelineRangeDays = 60,
 ): Temporal.PlainDate {
   const sign = direction === 'next' ? 1 : -1;
   switch (view) {
@@ -215,13 +230,9 @@ export function navigateCursor(
     case 'agenda':
       return cursor.add({ days: agendaLengthDays * sign });
     case 'timeline':
+      return cursor.add({ days: timelineRangeDays * sign });
     case 'year':
-      // Placeholder navigation for the reserved view ids: `year`
-      // steps month-by-month, `timeline` steps day-by-day. Replaced
-      // when the actual views ship.
-      return view === 'year'
-        ? cursor.add({ months: 1 * sign })
-        : cursor.add({ days: 1 * sign });
+      return cursor.add({ months: 1 * sign });
     default: {
       const _exhaustive: never = view;
       void _exhaustive;

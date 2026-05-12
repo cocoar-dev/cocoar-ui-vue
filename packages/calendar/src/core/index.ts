@@ -101,6 +101,13 @@ export {
   type AgendaEventItem,
   type AgendaLayoutOptions,
 } from './agendaLayout';
+export {
+  layoutTimeline,
+  type TimelineLayout,
+  type TimelineLayoutOptions,
+  type TimelineRow,
+  type TimelineBar,
+} from './timelineLayout';
 // The bundled recurrence engine adapter lives at the
 // `recurrence-rrule-temporal` subpath. Consumer-defined custom
 // engines implement the `RecurrenceEngine` interface and register

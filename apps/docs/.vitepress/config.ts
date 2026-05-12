@@ -326,6 +326,7 @@ export default defineConfig({
             { text: 'Work Week View', link: '/components/calendar/work-week-view' },
             { text: 'Month View', link: '/components/calendar/month-view' },
             { text: 'Agenda View', link: '/components/calendar/agenda-view' },
+            { text: 'Timeline View', link: '/components/calendar/timeline-view' },
             { text: 'Performance baseline', link: '/components/calendar/performance' },
           ],
         },

@@ -117,6 +117,7 @@ export function useViewWindow<TMeta extends Record<string, unknown> = Record<str
       cursor: builder.state.date.value,
       firstDayOfWeek: fdow,
       agendaLengthDays: toValue(builder.state.agendaLengthDays),
+      timelineRangeDays: toValue(builder.state.timelineRangeDays),
       timezone: toValue(builder.state.timezone),
     });
   });
