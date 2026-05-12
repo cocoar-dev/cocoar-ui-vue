@@ -40,4 +40,13 @@ export interface ZonedDateTimeCellEditorConfig<TData = unknown> {
    * — passes through to `CoarZonedDateTimePicker`'s `timezoneFilter` prop.
    */
   timezoneFilter?: string[];
+  /**
+   * Renderer-only: IANA zone to project every cell value into for display.
+   * When omitted (the default), each cell renders in its own value's zone —
+   * a Tokyo event renders Tokyo wallclock, a Vienna event renders Vienna
+   * wallclock, etc. Set this to project all cells into a single zone (e.g.
+   * `'Europe/Vienna'` to render every row in Vienna time for cross-zone
+   * coordination views).
+   */
+  displayTimeZone?: string;
 }

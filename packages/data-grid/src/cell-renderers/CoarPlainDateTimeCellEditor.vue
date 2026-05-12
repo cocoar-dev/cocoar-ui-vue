@@ -10,10 +10,15 @@
  */
 import { ref, useTemplateRef, onMounted, onBeforeUnmount } from 'vue';
 import type { ICellEditorParams } from 'ag-grid-community';
-import { Temporal } from '@js-temporal/polyfill';
+import type { Temporal } from '@js-temporal/polyfill';
 import { CoarPlainDateTimePicker } from '@cocoar/vue-ui';
 import type { CoarDateMarker } from './plain-date-cell-editor.models';
 import type { PlainDateTimeCellEditorConfig } from './plain-date-time-cell-editor.models';
+
+function isPlainDateTime(v: unknown): v is Temporal.PlainDateTime {
+  return v != null && typeof v === 'object'
+    && Object.prototype.toString.call(v) === '[object Temporal.PlainDateTime]';
+}
 
 const props = defineProps<{
   params: ICellEditorParams<unknown, Temporal.PlainDateTime | null> & {
@@ -33,7 +38,7 @@ function resolveMarkers(): CoarDateMarker[] {
 }
 
 const value = ref<Temporal.PlainDateTime | null>(
-  props.params.value instanceof Temporal.PlainDateTime ? props.params.value : null,
+  isPlainDateTime(props.params.value) ? props.params.value : null,
 );
 const rootRef = useTemplateRef<HTMLDivElement>('rootRef');
 

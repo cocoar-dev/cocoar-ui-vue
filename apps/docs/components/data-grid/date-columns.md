@@ -79,6 +79,7 @@ Use this when the time-of-day matters but the event has no fixed zone (calendar-
 | `.locale(value)` | `string` | Locale override |
 | `.timeZone(value)` | `string` | **Default IANA zone** for newly-created values (cell was empty before the edit). Existing values keep their own zone. |
 | `.timezoneFilter(value)` | `string[]` | Wildcard filter patterns for the zone selector (e.g. `['Europe/*', 'America/*']`) |
+| `.displayTimeZone(value)` | `string` | **Renderer-only.** Project every row's instant into this zone for display (e.g. `'Europe/Vienna'` to render every event in Vienna time for cross-zone coordination views). When omitted, each row renders in its own value's zone. |
 
 The renderer formats each cell in its own zone — a row whose value lives in `America/New_York` displays the New York wallclock + a `GMT-5` (or `GMT-4` in summer) suffix, regardless of the user's browser zone. Cross-zone columns stay unambiguous at a glance.
 

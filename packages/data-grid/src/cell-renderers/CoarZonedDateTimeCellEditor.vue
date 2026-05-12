@@ -13,10 +13,15 @@
  */
 import { ref, useTemplateRef, onMounted, onBeforeUnmount } from 'vue';
 import type { ICellEditorParams } from 'ag-grid-community';
-import { Temporal } from '@js-temporal/polyfill';
+import type { Temporal } from '@js-temporal/polyfill';
 import { CoarZonedDateTimePicker } from '@cocoar/vue-ui';
 import type { CoarDateMarker } from './plain-date-cell-editor.models';
 import type { ZonedDateTimeCellEditorConfig } from './zoned-date-time-cell-editor.models';
+
+function isZonedDateTime(v: unknown): v is Temporal.ZonedDateTime {
+  return v != null && typeof v === 'object'
+    && Object.prototype.toString.call(v) === '[object Temporal.ZonedDateTime]';
+}
 
 const props = defineProps<{
   params: ICellEditorParams<unknown, Temporal.ZonedDateTime | null> & {
@@ -36,7 +41,7 @@ function resolveMarkers(): CoarDateMarker[] {
 }
 
 const value = ref<Temporal.ZonedDateTime | null>(
-  props.params.value instanceof Temporal.ZonedDateTime ? props.params.value : null,
+  isZonedDateTime(props.params.value) ? props.params.value : null,
 );
 const rootRef = useTemplateRef<HTMLDivElement>('rootRef');
 

@@ -15,9 +15,21 @@
  */
 import { ref, useTemplateRef, onMounted, onBeforeUnmount } from 'vue';
 import type { ICellEditorParams } from 'ag-grid-community';
-import { Temporal } from '@js-temporal/polyfill';
+import type { Temporal } from '@js-temporal/polyfill';
 import { CoarPlainDatePicker } from '@cocoar/vue-ui';
 import type { CoarDateMarker, PlainDateCellEditorConfig } from './plain-date-cell-editor.models';
+
+/**
+ * Cross-realm-safe Temporal type check. `instanceof Temporal.PlainDate` fails
+ * when the picker (in @cocoar/vue-ui) constructs values against a different
+ * polyfill copy than this package resolves under pnpm's isolated trees. The
+ * `Symbol.toStringTag` is part of the Temporal spec and identical across
+ * copies, so this check is robust.
+ */
+function isPlainDate(v: unknown): v is Temporal.PlainDate {
+  return v != null && typeof v === 'object'
+    && Object.prototype.toString.call(v) === '[object Temporal.PlainDate]';
+}
 
 const props = defineProps<{
   params: ICellEditorParams<unknown, Temporal.PlainDate | null> & {
@@ -37,7 +49,7 @@ function resolveMarkers(): CoarDateMarker[] {
 }
 
 const value = ref<Temporal.PlainDate | null>(
-  props.params.value instanceof Temporal.PlainDate ? props.params.value : null,
+  isPlainDate(props.params.value) ? props.params.value : null,
 );
 const rootRef = useTemplateRef<HTMLDivElement>('rootRef');
 

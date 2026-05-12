@@ -84,6 +84,15 @@ export class ZonedDateTimeColumnConfigurator<TData = unknown> {
     return this;
   }
 
+  /**
+   * Project every cell value into this zone for display (renderer-only). When
+   * omitted, each cell renders in its own value's zone.
+   */
+  displayTimeZone(value: string): this {
+    this.#config.displayTimeZone = value;
+    return this;
+  }
+
   /** @internal */
   build(): ZonedDateTimeCellEditorConfig<TData> {
     return { ...this.#config };

@@ -214,6 +214,12 @@ export { CoarPlainDateTimePicker } from './components/date-time/plain-date-time-
 export type { CoarPlainDateTimePickerSize } from './components/date-time/plain-date-time-picker';
 export { CoarZonedDateTimePicker } from './components/date-time/zoned-date-time-picker';
 export type { CoarZonedDateTimePickerSize } from './components/date-time/zoned-date-time-picker';
+export { CoarPlainDateView } from './components/date-time/plain-date-view';
+export type { CoarPlainDateViewProps, CoarPlainDateViewSize } from './components/date-time/plain-date-view';
+export { CoarPlainDateTimeView } from './components/date-time/plain-date-time-view';
+export type { CoarPlainDateTimeViewProps, CoarPlainDateTimeViewSize } from './components/date-time/plain-date-time-view';
+export { CoarZonedDateTimeView } from './components/date-time/zoned-date-time-view';
+export type { CoarZonedDateTimeViewProps, CoarZonedDateTimeViewSize } from './components/date-time/zoned-date-time-view';
 export type {
   DateFormatConfig,
   CoarDateMarker,

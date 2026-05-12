@@ -2,39 +2,29 @@
 /**
  * Read-only renderer for `col.plainDate()` columns.
  *
- * Cell value is `Temporal.PlainDate | null`. Locale comes from the consumer
- * app via `useL10n()` (reactive — display updates on language change), or
- * from the per-column `config.locale` override.
- *
- * Strict typing: non-PlainDate values render as empty string. Consumers
- * convert ISO strings / native `Date` at the data layer.
+ * Thin wrapper around `<CoarPlainDateView>` from `@cocoar/vue-ui` —
+ * formatting logic, locale reactivity, and cross-realm-safe type-checks all
+ * live there. This file only adapts the AG Grid cell-renderer interface
+ * (`ICellRendererParams.value` + per-column config) to the view's props.
  */
 import { computed } from 'vue';
 import type { ICellRendererParams } from 'ag-grid-community';
-import { Temporal } from '@js-temporal/polyfill';
-import { useL10n } from '@cocoar/vue-localization';
+import { CoarPlainDateView } from '@cocoar/vue-ui';
 import type { PlainDateCellEditorConfig } from './plain-date-cell-editor.models';
 
 const props = defineProps<{
   params: ICellRendererParams;
 }>();
 
-const { language } = useL10n();
-
 const config = computed<PlainDateCellEditorConfig>(
   () => props.params.colDef?.cellRendererParams?.config ?? {},
 );
-
-const formatted = computed(() => {
-  const v = props.params.value;
-  if (v == null) return '';
-  if (!(v instanceof Temporal.PlainDate)) return '';
-  return v.toLocaleString(config.value.locale ?? language.value, { dateStyle: 'medium' });
-});
 </script>
 
 <template>
-  <div class="coar-plain-date-cell-renderer">{{ formatted }}</div>
+  <div class="coar-plain-date-cell-renderer">
+    <CoarPlainDateView :value="params.value" :locale="config.locale" />
+  </div>
 </template>
 
 <style>
@@ -42,6 +32,5 @@ const formatted = computed(() => {
   display: flex;
   align-items: center;
   height: 100%;
-  font-variant-numeric: tabular-nums;
 }
 </style>
