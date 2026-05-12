@@ -13,11 +13,12 @@
  * value through `getValue()` on Tab / Enter (after selection) / click
  * outside.
  */
-import { ref, useTemplateRef, onMounted, onBeforeUnmount } from 'vue';
+import { ref, useTemplateRef } from 'vue';
 import type { ICellEditorParams } from 'ag-grid-community';
 import type { Temporal } from '@js-temporal/polyfill';
 import { CoarPlainDatePicker } from '@cocoar/vue-ui';
 import type { CoarDateMarker, PlainDateCellEditorConfig } from './plain-date-cell-editor.models';
+import { usePopupEditorFocusGuard } from './use-popup-editor-focus-guard';
 
 /**
  * Cross-realm-safe Temporal type check. `instanceof Temporal.PlainDate` fails
@@ -53,19 +54,7 @@ const value = ref<Temporal.PlainDate | null>(
 );
 const rootRef = useTemplateRef<HTMLDivElement>('rootRef');
 
-function preserveFocusInOverlay(e: MouseEvent) {
-  const target = e.target as HTMLElement | null;
-  if (target?.closest('.coar-overlay-host')) {
-    e.preventDefault();
-  }
-}
-
-onMounted(() => {
-  document.addEventListener('mousedown', preserveFocusInOverlay, true);
-});
-onBeforeUnmount(() => {
-  document.removeEventListener('mousedown', preserveFocusInOverlay, true);
-});
+usePopupEditorFocusGuard(rootRef);
 
 defineExpose({
   getValue: () => value.value,

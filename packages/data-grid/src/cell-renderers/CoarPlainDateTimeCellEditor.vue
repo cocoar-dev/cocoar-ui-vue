@@ -8,12 +8,13 @@
  * mount, focus-preservation in the overlay, AG Grid commits via `getValue()`
  * on focus-loss / Tab / Enter.
  */
-import { ref, useTemplateRef, onMounted, onBeforeUnmount } from 'vue';
+import { ref, useTemplateRef } from 'vue';
 import type { ICellEditorParams } from 'ag-grid-community';
 import type { Temporal } from '@js-temporal/polyfill';
 import { CoarPlainDateTimePicker } from '@cocoar/vue-ui';
 import type { CoarDateMarker } from './plain-date-cell-editor.models';
 import type { PlainDateTimeCellEditorConfig } from './plain-date-time-cell-editor.models';
+import { usePopupEditorFocusGuard } from './use-popup-editor-focus-guard';
 
 function isPlainDateTime(v: unknown): v is Temporal.PlainDateTime {
   return v != null && typeof v === 'object'
@@ -42,19 +43,7 @@ const value = ref<Temporal.PlainDateTime | null>(
 );
 const rootRef = useTemplateRef<HTMLDivElement>('rootRef');
 
-function preserveFocusInOverlay(e: MouseEvent) {
-  const target = e.target as HTMLElement | null;
-  if (target?.closest('.coar-overlay-host')) {
-    e.preventDefault();
-  }
-}
-
-onMounted(() => {
-  document.addEventListener('mousedown', preserveFocusInOverlay, true);
-});
-onBeforeUnmount(() => {
-  document.removeEventListener('mousedown', preserveFocusInOverlay, true);
-});
+usePopupEditorFocusGuard(rootRef);
 
 defineExpose({
   getValue: () => value.value,

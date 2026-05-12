@@ -18,11 +18,12 @@
  *   - Commit happens when the user finishes (Tab / Enter / click outside the
  *     dropdown). AG Grid pulls the final array via `getValue()`.
  */
-import { useTemplateRef, onMounted, onBeforeUnmount, ref } from 'vue';
+import { useTemplateRef, ref } from 'vue';
 import type { ICellEditorParams } from 'ag-grid-community';
 import { CoarMultiSelect } from '@cocoar/vue-ui';
 import type { CoarSelectOption } from '@cocoar/vue-ui';
 import type { MultiSelectCellEditorConfig } from './multi-select-cell-editor.models';
+import { usePopupEditorFocusGuard } from './use-popup-editor-focus-guard';
 
 const props = defineProps<{
   params: ICellEditorParams<unknown, unknown[]> & {
@@ -51,19 +52,7 @@ function toArray(v: unknown): unknown[] {
 const value = ref<unknown[]>(toArray(props.params.value));
 const rootRef = useTemplateRef<HTMLDivElement>('rootRef');
 
-function preserveFocusInDropdown(e: MouseEvent) {
-  const target = e.target as HTMLElement | null;
-  if (target?.closest('.coar-overlay-host')) {
-    e.preventDefault();
-  }
-}
-
-onMounted(() => {
-  document.addEventListener('mousedown', preserveFocusInDropdown, true);
-});
-onBeforeUnmount(() => {
-  document.removeEventListener('mousedown', preserveFocusInDropdown, true);
-});
+usePopupEditorFocusGuard(rootRef);
 
 defineExpose({
   getValue: () => value.value,
