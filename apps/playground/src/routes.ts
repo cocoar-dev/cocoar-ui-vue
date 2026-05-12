@@ -72,6 +72,10 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('./views/CalendarPerfBenchDemo.vue'),
   },
   {
+    path: '/calendar-timeline-perf',
+    component: () => import('./views/CalendarTimelinePerfDemo.vue'),
+  },
+  {
     path: '/calendar-recurrence',
     component: () => import('./views/CalendarRecurrenceDemo.vue'),
   },

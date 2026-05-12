@@ -22,7 +22,7 @@
  * Public surface: ONE prop, `:builder: CalendarBuilder`.
  */
 
-import { computed, ref, toValue } from 'vue';
+import { computed, onMounted, onUnmounted, ref, toValue, watch } from 'vue';
 import { useLocalization } from '@cocoar/vue-localization';
 import {
   Temporal,
@@ -222,6 +222,85 @@ function endPan(e: PointerEvent): void {
   isPanning.value = false;
 }
 
+// ─── Row virtualization ───────────────────────────────────────────
+// Uniform rowHeight makes the math trivial: visibleRange = scrollTop
+// / rowHeight plus a small buffer. Renders ~25-40 rows for a typical
+// viewport regardless of the total event count — 1000-task project
+// plans don't pay 1000-DOM-node cost.
+
+const scrollTop = ref(0);
+const viewportHeight = ref(0);
+const VIRTUALIZATION_BUFFER_ROWS = 8;
+
+function onScroll(): void {
+  if (!scrollEl.value) return;
+  scrollTop.value = scrollEl.value.scrollTop;
+}
+
+let resizeObserver: ResizeObserver | null = null;
+
+onMounted(() => {
+  if (!scrollEl.value) return;
+  scrollEl.value.addEventListener('scroll', onScroll, { passive: true });
+  if (typeof ResizeObserver !== 'undefined') {
+    resizeObserver = new ResizeObserver(() => {
+      if (scrollEl.value) viewportHeight.value = scrollEl.value.clientHeight;
+    });
+    resizeObserver.observe(scrollEl.value);
+  }
+  viewportHeight.value = scrollEl.value.clientHeight;
+});
+
+onUnmounted(() => {
+  scrollEl.value?.removeEventListener('scroll', onScroll);
+  resizeObserver?.disconnect();
+  resizeObserver = null;
+});
+
+// When the layout's row count changes (e.g. new series added), the
+// scrollTop may now point past the end of the content. The browser
+// clamps automatically on scroll, but our `scrollTop.value` ref
+// stays stale until the next scroll event fires. Force-sync after a
+// layout change so the visibleRows slice doesn't render a blank
+// region.
+watch(
+  () => layout.value.totalHeight,
+  () => {
+    if (scrollEl.value) scrollTop.value = scrollEl.value.scrollTop;
+  },
+);
+
+/**
+ * Subset of `layout.rows` currently inside the viewport (plus buffer).
+ *
+ * Coordinate space: the grid has `gridTemplateRows: ${rowHeight}px 1fr`
+ * (one header row + body). The body rows start at `top = rowHeight`
+ * in the grid's own coordinates, and scrollTop measures from the
+ * grid's top. So row at index `i` is at `rowHeight + i × rowHeight`
+ * in grid-space.
+ */
+const visibleRows = computed(() => {
+  const rows = layout.value.rows;
+  const rh = state.value.rowHeight;
+  if (rh <= 0 || rows.length === 0) return rows;
+  // If we haven't measured the viewport yet (SSR / pre-mount), render
+  // all rows — they'll virtualize on the next paint.
+  if (viewportHeight.value <= 0) return rows;
+  const headerH = rh;
+  const startScroll = scrollTop.value - headerH;
+  const endScroll = scrollTop.value + viewportHeight.value - headerH;
+  const firstIdx = Math.max(
+    0,
+    Math.floor(startScroll / rh) - VIRTUALIZATION_BUFFER_ROWS,
+  );
+  const lastIdx = Math.min(
+    rows.length - 1,
+    Math.ceil(endScroll / rh) + VIRTUALIZATION_BUFFER_ROWS,
+  );
+  if (firstIdx > lastIdx) return [];
+  return rows.slice(firstIdx, lastIdx + 1);
+});
+
 // Inline style for the outer grid — drives the frozen-pane layout.
 const gridStyle = computed(() => ({
   // Total content size = labels + bars (horizontal), header + rows (vertical).
@@ -280,28 +359,39 @@ defineExpose({
         </div>
       </div>
 
-      <!-- Label column: sticky left, scrolls vertically with rows -->
+      <!-- Label column: sticky left, scrolls vertically with rows.
+           Inner div is `position: relative` so virtualized labels
+           can absolutely-position to `row.top` without losing the
+           total-height contribution to the scroll-extent. -->
       <div class="coar-timeline-view__label-column">
         <div
-          v-for="row in layout.rows"
-          :key="row.id"
-          class="coar-timeline-view__label-row"
-          :class="{ 'coar-timeline-view__label-row--recurring': row.isRecurring }"
-          :style="{ height: `${row.height}px`, minHeight: `${row.height}px` }"
+          class="coar-timeline-view__label-inner"
+          :style="{ height: `${Math.max(layout.totalHeight, state.rowHeight)}px` }"
         >
-          <slot v-if="$slots.label" name="label" :row="row" :event="row.bars[0].event" />
-          <template v-else>
-            <span class="coar-timeline-view__label-text" :title="eventTitle(row.bars[0].event)">
-              {{ eventTitle(row.bars[0].event) }}
-            </span>
-            <span
-              v-if="row.isRecurring"
-              class="coar-timeline-view__label-count"
-              :title="`${row.bars.length} occurrences`"
-            >
-              ×{{ row.bars.length }}
-            </span>
-          </template>
+          <div
+            v-for="row in visibleRows"
+            :key="row.id"
+            class="coar-timeline-view__label-row"
+            :class="{ 'coar-timeline-view__label-row--recurring': row.isRecurring }"
+            :style="{
+              top: `${row.top}px`,
+              height: `${row.height}px`,
+            }"
+          >
+            <slot v-if="$slots.label" name="label" :row="row" :event="row.bars[0].event" />
+            <template v-else>
+              <span class="coar-timeline-view__label-text" :title="eventTitle(row.bars[0].event)">
+                {{ eventTitle(row.bars[0].event) }}
+              </span>
+              <span
+                v-if="row.isRecurring"
+                class="coar-timeline-view__label-count"
+                :title="`${row.bars.length} occurrences`"
+              >
+                ×{{ row.bars.length }}
+              </span>
+            </template>
+          </div>
         </div>
       </div>
 
@@ -321,8 +411,10 @@ defineExpose({
           />
         </div>
 
-        <!-- Event bars — one row may have N bars (recurring series). -->
-        <template v-for="row in layout.rows" :key="row.id">
+        <!-- Event bars — one row may have N bars (recurring series).
+             Iterates the virtualized row slice so off-screen rows
+             don't add DOM nodes. -->
+        <template v-for="row in visibleRows" :key="row.id">
           <button
             v-for="bar in row.bars"
             :key="bar.event.id"
@@ -476,13 +568,22 @@ defineExpose({
   border-right: 1px solid var(--coar-border-neutral-tertiary);
 }
 
+.coar-timeline-view__label-inner {
+  position: relative;
+  width: 100%;
+}
+
 .coar-timeline-view__label-row {
+  position: absolute;
+  left: 0;
+  right: 0;
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 0 var(--coar-spacing-s, 8px);
   border-bottom: 1px solid var(--coar-border-neutral-tertiary);
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .coar-timeline-view__label-text {

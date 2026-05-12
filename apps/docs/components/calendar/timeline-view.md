@@ -81,6 +81,14 @@ The visible window is `[cursor, cursor + timelineRangeDays)`. Events that fall o
 </template>
 ```
 
+## Performance — row virtualization
+
+The label column and bar area are vertically virtualized: only rows inside the viewport (plus a small buffer of 8 rows on each side) render to DOM. A 1000-task project plan still costs ~30-40 DOM rows worth of nodes regardless of total count; scroll and pan stay at ~constant frame cost.
+
+Virtualization is automatic — no opt-in flag. The `rowHeight` setter controls the math: a uniform row height makes the visible-range computation `O(1)` (`floor(scrollTop / rowHeight)`), no per-row measurement required. Slot renderers (`label`, `bar`) only fire for visible rows, so expensive markup inside slots doesn't get instantiated for off-screen tasks.
+
+See the [/calendar-timeline-perf](http://localhost:5188/calendar-timeline-perf) playground page for an interactive bench at 100 / 500 / 1 000 / 2 500 tasks.
+
 ## Panning
 
 Click-and-drag anywhere on the timeline (empty grid cells, the date axis, label column, or row whitespace — anything that isn't an interactive child like an event bar) to pan both axes at once. The cursor switches to `grab` over empty areas and to `grabbing` during the active pan. Pointer-capture keeps the pan alive even when the cursor leaves the timeline element (e.g. drags up into the page chrome).
