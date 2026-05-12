@@ -426,9 +426,15 @@ defineExpose({
             }"
             :style="{
               left: `${bar.left}px`,
-              top: `${row.top + 4}px`,
+              /* Bar occupies the centre half of the row vertically —
+                 50% height with 25% padding above and below. Standard
+                 Gantt proportion; the surrounding space lets the day-
+                 grid background read through and makes overlapping
+                 future bars on the same row easier to scan. Scales
+                 with `timelineRowHeight`. */
+              top: `${row.top + row.height * 0.25}px`,
               width: `${bar.width}px`,
-              height: `${row.height - 8}px`,
+              height: `${row.height * 0.5}px`,
               background: eventColor(bar.event) ?? 'var(--coar-color-accent, #2563eb)',
             }"
             :aria-label="eventTitle(bar.event)"
