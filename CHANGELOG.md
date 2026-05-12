@@ -7,7 +7,9 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
-## 1.19.0
+## 2.0.0
+
+This release lands the calendar package's largest feature push since it shipped in 1.16.0 — the C8 recurrence pipeline is wired end-to-end, three previously-reserved or missing view IDs (`workWeek`, `timeline`) become real working components, and the event-interaction surface picks up hover handlers so consumers can wire their own popovers / tooltips via `@cocoar/vue-ui`'s overlay system. None of the changes are strictly breaking — the new shapes are additive — but the surface delta is large enough that a major bump is the honest signal. `@cocoar/vue-data-grid`, `@cocoar/vue-script-editor`, `@cocoar/vue-markdown-editor`, `@cocoar/vue-fragment-parser`, and `@cocoar/vue-ui` ride along on the same monorepo cadence; only one user-visible UI fix in this release (popover-preset export gap).
 
 ### Added
 
