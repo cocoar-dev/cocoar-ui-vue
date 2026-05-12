@@ -72,10 +72,15 @@ defineExpose({
   // Mandatory — AG Grid commit hook
   getValue: () => value.value,
   // Open the dropdown immediately on entering edit-mode. We click the trigger
-  // since CoarSelect doesn't expose a programmatic open() method yet.
+  // since CoarSelect doesn't expose a programmatic open() method yet — and
+  // then focus it. Without the focus call, AG Grid keeps focus on the cell
+  // wrapper, so the trigger's @keydown (ArrowUp/ArrowDown navigation, Enter
+  // commit) never fires — arrow keys bubble to the document and scroll the
+  // page instead. tabindex="0" on the trigger makes .focus() valid.
   afterGuiAttached: () => {
     const trigger = rootRef.value?.querySelector<HTMLElement>('.coar-select-trigger');
     trigger?.click();
+    trigger?.focus();
   },
 });
 </script>
