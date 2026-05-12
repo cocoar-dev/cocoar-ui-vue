@@ -238,6 +238,7 @@ export default defineConfig({
             { text: 'Text Input', link: '/components/text-input' },
             { text: 'Number Input', link: '/components/number-input' },
             { text: 'Password Input', link: '/components/password-input' },
+            { text: 'OTP Input', link: '/components/otp-input' },
             { text: 'Select', link: '/components/select' },
             { text: 'Listbox', link: '/components/listbox' },
             { text: 'Dual Listbox', link: '/components/dual-listbox' },
