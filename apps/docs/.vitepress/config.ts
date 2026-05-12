@@ -248,6 +248,7 @@ export default defineConfig({
             { text: 'Date Picker', link: '/components/date-picker' },
             { text: 'DateTime Picker', link: '/components/date-time-picker' },
             { text: 'Zoned DateTime', link: '/components/zoned-date-time-picker' },
+            { text: 'Date Views', link: '/components/date-views' },
           ],
         },
         {
