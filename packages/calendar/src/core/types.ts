@@ -267,6 +267,7 @@ const _warnedRecurrenceIds = new Set<string>();
 export type CalendarView =
   | 'month'
   | 'week'
+  | 'workWeek'
   | 'day'
   | 'agenda'
   // Reserved view ids — declared up-front for type stability so future

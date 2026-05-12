@@ -57,6 +57,29 @@ export type EventsLoader<
   | CalendarEvent<TMeta>[]
   | Promise<CalendarEvent<TMeta>[]>;
 
+// ─── Recurring series loader ──────────────────────────────────────
+
+import type { RecurringSeries } from '../core/types';
+
+/**
+ * Calendar-managed recurring-series loader. Called whenever the
+ * visible window changes; results are expanded by the configured
+ * recurrence engine and cached per-window. Apps that fetch series
+ * from a backend per-range use this; apps with a fixed-in-memory
+ * series array use `builder.series(...)` instead.
+ *
+ * Mutually exclusive with `series()`: setting one drops the other.
+ *
+ * Composes with `events()` / `eventsLoader()` — the calendar merges
+ * non-recurring events with the expanded recurring occurrences in
+ * `getVisibleEvents()`.
+ */
+export type SeriesLoader<
+  TMeta extends Record<string, unknown> = Record<string, unknown>,
+> = (window: ViewWindow) =>
+  | RecurringSeries<TMeta>[]
+  | Promise<RecurringSeries<TMeta>[]>;
+
 // ─── Renderers ────────────────────────────────────────────────────
 
 /** Layout payload passed to a renderer alongside the event itself.

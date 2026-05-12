@@ -39,6 +39,16 @@
       "source": "./src/core/index.ts",
       "import": "./dist/core.js",
       "types": "./dist/core.d.ts"
+    },
+    "./recurrence": {
+      "source": "./src/recurrence/index.ts",
+      "import": "./dist/recurrence.js",
+      "types": "./dist/recurrence.d.ts"
+    },
+    "./recurrence-rrule-temporal": {
+      "source": "./src/recurrence-rrule-temporal/index.ts",
+      "import": "./dist/recurrence-rrule-temporal.js",
+      "types": "./dist/recurrence-rrule-temporal.d.ts"
     }
   },
   "files": [
@@ -52,8 +62,7 @@
   },
   "dependencies": {
     "@js-temporal/polyfill": "^0.5.1",
-    "@napi-rs/wasm-runtime": "^1.1.4",
-    "rrule-rust": "~3.1.1"
+    "rrule-temporal": "~1.5.3"
   },
   "peerDependencies": {
     "@cocoar/vue-localization": "workspace:*",
@@ -64,8 +73,6 @@
     "@cocoar/vue-localization": "workspace:*",
     "@cocoar/vue-ui": "workspace:*",
     "fast-check": "^4.7.0",
-    "rrule": "~2.8.1",
-    "rrule-temporal": "~1.5.3",
     "vue": "^3.5.32"
   }
 }

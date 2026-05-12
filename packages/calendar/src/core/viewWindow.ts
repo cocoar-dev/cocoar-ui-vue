@@ -30,6 +30,9 @@ import {
   startOfWeek,
   monthGridDates,
 } from './temporal';
+
+/** Default `workDays` — Mon–Fri using the 0=Sun..6=Sat convention. */
+export const DEFAULT_WORK_DAYS: readonly DayOfWeek[] = [1, 2, 3, 4, 5];
 import type { CalendarView, ViewWindow } from './types';
 
 export interface ViewWindowOptions {
@@ -70,6 +73,26 @@ export function computeViewWindow(opts: ViewWindowOptions): ViewWindow {
     }
 
     case 'week': {
+      const weekStart = startOfWeek(cursor, firstDayOfWeek);
+      return {
+        view,
+        start: weekStart.toString(),
+        end: weekStart.add({ days: 7 }).toString(),
+        timezone,
+      };
+    }
+
+    case 'workWeek': {
+      // The visible-window bounds cover the full Mon–Sun span the
+      // work-week is anchored in, NOT just the workday columns
+      // that render. Two reasons: (1) `eventsLoader(window)` callbacks
+      // should see weekend events too — consumers may filter them
+      // out in their data layer or rely on the view to suppress
+      // weekend columns; the loader doesn't need to know the column
+      // set. (2) `windowContainsDate` over a workWeek window stays
+      // intuitive (Saturday IS in the rendered week, just not
+      // displayed). The view component itself filters the date
+      // array via `workWeekDates(...)`.
       const weekStart = startOfWeek(cursor, firstDayOfWeek);
       return {
         view,
@@ -181,6 +204,11 @@ export function navigateCursor(
     case 'day':
       return cursor.add({ days: 1 * sign });
     case 'week':
+    case 'workWeek':
+      // workWeek navigates by full week (7 days) — the workday
+      // filter is purely a render concern, not a navigation one.
+      // Stepping by 5 would leave the cursor on a weekend on every
+      // other prev/next click.
       return cursor.add({ days: 7 * sign });
     case 'month':
       return cursor.add({ months: 1 * sign });

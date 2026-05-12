@@ -57,7 +57,9 @@ import {
   type CalendarEvent,
   type CalendarView,
   type DayOfWeek,
+  type RecurringSeries,
   type ViewWindow,
+  DEFAULT_WORK_DAYS,
   Temporal,
   detectBrowserTimezone,
   navigateCursor,
@@ -80,9 +82,11 @@ import type {
   EventsLoader,
   MoreClickHandler,
   RangeChangeHandler,
+  SeriesLoader,
   TimeClickHandler,
   TimeRange,
 } from './types';
+import type { RecurrenceEngine } from '../recurrence/types';
 
 /** Debounce window for `eventsLoader` invocations. */
 const LOADER_DEBOUNCE_MS = 50;
@@ -120,6 +124,36 @@ function windowsEqual(a: ViewWindow | null, b: ViewWindow | null): boolean {
 }
 
 /**
+ * Convert a `ViewWindow` (display-zone anchored, ISO-string bounds)
+ * to a `RecurrenceExpansionWindow` (Temporal ZDT bounds).
+ *
+ * `start`/`end` may be either an ISO date (`'YYYY-MM-DD'`) for date-
+ * granular views (month/week/day/agenda) or an ISO datetime
+ * (`'YYYY-MM-DDTHH:MM:SS'`) for sub-hour time-grid views. Both are
+ * anchored in `window.timezone`.
+ */
+function viewWindowToExpansionWindow(window: ViewWindow): {
+  start: Temporal.ZonedDateTime;
+  end: Temporal.ZonedDateTime;
+} {
+  return {
+    start: parseWindowBound(window.start, window.timezone),
+    end: parseWindowBound(window.end, window.timezone),
+  };
+}
+
+function parseWindowBound(iso: string, timezone: string): Temporal.ZonedDateTime {
+  // ISO datetime form (`YYYY-MM-DDTHH:MM:SS`) — has 'T' separator.
+  if (iso.includes('T')) {
+    return Temporal.PlainDateTime.from(iso).toZonedDateTime(timezone, {
+      disambiguation: 'compatible',
+    });
+  }
+  // ISO date form (`YYYY-MM-DD`) — anchor at midnight in the zone.
+  return Temporal.PlainDate.from(iso).toZonedDateTime(timezone);
+}
+
+/**
  * Wrap a plain value or `Ref<T>` into a `Ref<T>`. Throws on getters
  * (functions) — navigation state must be writable, getters are
  * read-only.
@@ -148,11 +182,35 @@ export interface CalendarBuilderState<
   // ── Universal config (read-only, MaybeRefOrGetter) ─────────────
   events: MaybeRefOrGetter<CalendarEvent<TMeta>[]> | null;
   eventsLoader: EventsLoader<TMeta> | null;
+  /**
+   * Recurring-series source (Phase 4). Reactive — expansion re-runs
+   * when the source changes or the visible range changes.
+   * Mutually exclusive with `seriesLoader`.
+   */
+  series: MaybeRefOrGetter<RecurringSeries<TMeta>[]> | null;
+  /**
+   * Calendar-managed recurring-series loader (Phase 4). Called per
+   * visible-range change; results are expanded by the configured
+   * engine and cached per-window key. Mutually exclusive with `series`.
+   */
+  seriesLoader: SeriesLoader<TMeta> | null;
   /** Display zone (C5). Defaults to the browser's IANA zone. */
   timezone: MaybeRefOrGetter<string>;
   locale: MaybeRefOrGetter<string>;
   /** Locale-derived when undefined (Article 9 — defaults are not decisions). */
   firstDayOfWeek: MaybeRefOrGetter<DayOfWeek | undefined>;
+  /**
+   * Days that count as "working days" for the `'workWeek'` view.
+   * 0 = Sun … 6 = Sat. Default is Mon–Fri (`[1, 2, 3, 4, 5]`).
+   * Empty array yields an empty workWeek (rendered as "no working
+   * days configured" — UI concern, not a runtime error).
+   *
+   * Article 9: this is an explicit decision — the locale gets a
+   * vote on `firstDayOfWeek` but NOT on which weekdays are
+   * working days (varies by country/industry independently of
+   * BCP-47).
+   */
+  workDays: MaybeRefOrGetter<readonly DayOfWeek[]>;
   density: MaybeRefOrGetter<CalendarDensity>;
   /** Intl date style (C6 — independent of timeStyle / hour12).
    *  Locale-derived when undefined (Article 9). */
@@ -164,6 +222,21 @@ export interface CalendarBuilderState<
   hour12: MaybeRefOrGetter<boolean | undefined>;
   /** DST disambiguation policy (C4). Default `'compatible'`. */
   dstPolicy: MaybeRefOrGetter<DstPolicy>;
+  /**
+   * Recurrence engine (Phase 4 §A8). One of:
+   *   - `RecurrenceEngine` instance — eager.
+   *   - `() => RecurrenceEngine` factory — SSR-friendly lazy.
+   *   - `null` — defer to the lazy default (rrule-temporal adapter
+   *     loaded via dynamic import on first `expandSeries` call).
+   *
+   * Intentionally NOT `MaybeRefOrGetter`: mid-session swap has no
+   * sensible semantics (in-flight requests, worker lifecycle). Set
+   * once at construction.
+   */
+  recurrenceEngine:
+    | RecurrenceEngine
+    | (() => RecurrenceEngine)
+    | null;
   /** Subset of CalendarView the view-switcher offers. */
   availableViews: MaybeRefOrGetter<readonly CalendarView[]>;
   // ── View-specific (flat — D2 / handoff trade-off) ──────────────
@@ -269,6 +342,31 @@ export class CalendarBuilder<
    */
   private _generation = 0;
 
+  // ── Recurring-series cache + flight tracking (Phase 4) ─────────
+  /** Map<windowKey, expanded events>. Same key shape as _loaderCache.
+   *  Holds occurrences expanded from `state.series` / `state.seriesLoader`. */
+  private readonly _seriesCache = shallowRef(
+    new Map<string, CalendarEvent<TMeta>[]>(),
+  );
+  /** Bumped on series invalidation. Independent of `_generation` so
+   *  series and events caches don't fight over the same counter. */
+  private _seriesGeneration = 0;
+  /** Resolved engine instance (lazy-constructed from
+   *  `state.recurrenceEngine`). `null` means "use the lazy default
+   *  inside expandSeries". */
+  private _resolvedEngine: RecurrenceEngine | null = null;
+  /** Window keys with a pending series expansion. Prevents duplicate
+   *  dispatches when series-watcher and [SET_VISIBLE_RANGE] both fire
+   *  for the same window in close succession. */
+  private readonly _inFlightSeriesKeys = new Set<string>();
+  /** Memoized lazy import of `expandSeries`. Dynamic-import keeps
+   *  the recurrence runtime out of the main bundle for apps that
+   *  don't use series — the chunk only loads on first
+   *  `_runSeriesExpansion` call. Per Phase 4 §A1 topology rule. */
+  private _expandSeriesFnPromise:
+    | Promise<typeof import('../recurrence/index').expandSeries>
+    | null = null;
+
   /** Effect scope for builder-owned watchers (audit fix #1 — events
    *  source watcher). Cleaned up if/when a `.dispose()` is added in
    *  Phase 4+; currently builders live for the page lifetime. */
@@ -312,6 +410,8 @@ export class CalendarBuilder<
     this.state = shallowReactive<CalendarBuilderState<TMeta>>({
       events: null,
       eventsLoader: null,
+      series: null,
+      seriesLoader: null,
       // C5 default. Consumers SHOULD call `.timezone(...)` explicitly
       // to make the choice visible at the call site (Article 9).
       timezone: detectedZone,
@@ -319,6 +419,10 @@ export class CalendarBuilder<
       // Article 9 — `undefined` so detectFirstDayOfWeekFromLocale(locale)
       // resolves at the view layer. Avoid baking implicit decisions.
       firstDayOfWeek: undefined,
+      // Mon–Fri default for the workWeek view; consumers running 6-day
+      // (Mon–Sat) or 4-day (Mon–Thu) operations override via
+      // `builder.workDays(...)`.
+      workDays: DEFAULT_WORK_DAYS,
       density: 'comfortable',
       // Article 9 defaults — undefined lets Intl pick locale-appropriate.
       dateStyle: undefined,
@@ -329,7 +433,10 @@ export class CalendarBuilder<
       // C4 default: matches Temporal's. Explicit so views never
       // silently fall back.
       dstPolicy: 'compatible',
-      availableViews: ['month', 'week', 'day', 'agenda'],
+      // Phase 4 §A8 — defer to lazy default rrule-temporal until
+      // consumer explicitly picks a different engine.
+      recurrenceEngine: null,
+      availableViews: ['month', 'week', 'workWeek', 'day', 'agenda'],
       timeRange: { startMinutes: 0, endMinutes: 24 * 60 - 1 },
       slotDuration: 30,
       // Default of 60. Time-grid columns end up 1440 px tall
@@ -412,6 +519,49 @@ export class CalendarBuilder<
         },
         { immediate: false, flush: 'post' },
       );
+
+      // Phase 4 — reactive series source watcher. Mutating the source
+      // ref (or replacing the array) bumps the series generation +
+      // invalidates the cache so the next visible-range read sees
+      // fresh expansion. We do NOT auto-trigger expansion here:
+      // visible-range is the canonical trigger (no point re-expanding
+      // for a window we're not rendering). When _visibleRange is
+      // already set, kick off expansion immediately so reactive UIs
+      // see the change without needing to navigate.
+      // Initial-set guard: when state.series transitions from null
+      // to a value, do NOT trigger from the watcher — the consumer's
+      // `[SET_VISIBLE_RANGE]` call (driven by `useViewWindow`) is the
+      // single shot that handles the initial expansion. Without this
+      // guard, the initial set races SET_VISIBLE_RANGE and leaks an
+      // in-flight chain.
+      watch(
+        () => (this.state.series ? toValue(this.state.series) : null),
+        (next, prev) => {
+          if (next === null) return;
+          if (prev === null) return;
+          this._seriesCache.value = new Map();
+          this._seriesGeneration += 1;
+          this._inFlightSeriesKeys.clear();
+          const w = this._visibleRange.value;
+          if (w) this._runSeriesExpansion(w);
+        },
+        { immediate: false, flush: 'post' },
+      );
+
+      // Phase 4 — reactive dstPolicy watcher. Different policy can
+      // produce different expansion results (e.g. 'reject' throws);
+      // invalidate cache so the next read re-runs through dst-resolve.
+      watch(
+        () => toValue(this.state.dstPolicy),
+        () => {
+          this._seriesCache.value = new Map();
+          this._seriesGeneration += 1;
+    this._inFlightSeriesKeys.clear();
+          const w = this._visibleRange.value;
+          if (w) this._runSeriesExpansion(w);
+        },
+        { immediate: false, flush: 'post' },
+      );
     });
   }
 
@@ -467,6 +617,53 @@ export class CalendarBuilder<
     return this;
   }
 
+  /**
+   * Phase 4 — bind a recurring-series source. Reactive: expansion
+   * re-runs whenever the source changes or the visible range changes.
+   *
+   * Composes with `events()` / `eventsLoader()`; `getVisibleEvents()`
+   * returns the merged set. Mutually exclusive with `seriesLoader()`
+   * (one or the other, not both).
+   *
+   * Expansion uses the engine from `recurrenceEngine()` if set, else
+   * the lazy default rrule-temporal adapter. DST policy from
+   * `dstPolicy()` applies uniformly to every expanded occurrence.
+   */
+  series(source: MaybeRefOrGetter<RecurringSeries<TMeta>[]>): this {
+    this.state.series = source;
+    if (this.state.seriesLoader !== null) {
+      this.state.seriesLoader = null;
+    }
+    this._seriesCache.value = new Map();
+    this._seriesGeneration += 1;
+    this._inFlightSeriesKeys.clear();
+    // The reactive series watcher (set up in the constructor) fires
+    // post-flush and triggers expansion. We deliberately do NOT call
+    // `_runSeriesExpansion` here to avoid double-firing — the watcher
+    // is the single trigger point for series-source-induced
+    // expansion.
+    return this;
+  }
+
+  /**
+   * Phase 4 — bind a calendar-managed recurring-series loader.
+   * Called per visible-range change; results expanded by the
+   * configured engine and cached per-window. Mutually exclusive with
+   * `series()`.
+   */
+  seriesLoader(loader: SeriesLoader<TMeta>): this {
+    this.state.seriesLoader = loader;
+    if (this.state.series !== null) {
+      this.state.series = null;
+    }
+    this._seriesCache.value = new Map();
+    this._seriesGeneration += 1;
+    this._inFlightSeriesKeys.clear();
+    const w = this._visibleRange.value;
+    if (w) this._runSeriesExpansion(w);
+    return this;
+  }
+
   /** C5 — Display zone (IANA). Source zones on individual events
    *  remain independent and per-endpoint preserved (C3). */
   timezone(tz: MaybeRefOrGetter<string>): this {
@@ -481,6 +678,16 @@ export class CalendarBuilder<
 
   firstDayOfWeek(d: MaybeRefOrGetter<DayOfWeek>): this {
     this.state.firstDayOfWeek = d;
+    return this;
+  }
+
+  /**
+   * Working-day set for the `'workWeek'` view. 0 = Sun … 6 = Sat.
+   * Default is Mon–Fri. Reactive — changing it while a workWeek
+   * view is active reflows the rendered columns.
+   */
+  workDays(d: MaybeRefOrGetter<readonly DayOfWeek[]>): this {
+    this.state.workDays = d;
     return this;
   }
 
@@ -516,6 +723,46 @@ export class CalendarBuilder<
    */
   dstPolicy(p: MaybeRefOrGetter<DstPolicy>): this {
     this.state.dstPolicy = p;
+    return this;
+  }
+
+  /**
+   * Phase 4 §A8 — recurrence engine.
+   *
+   * Bind a specific engine for `expandSeries` calls associated with
+   * this builder. Without this call, the lazy default
+   * (rrule-temporal adapter) is used.
+   *
+   * The factory form is the SSR escape: pass
+   * `() => new SyncOnlyRecurrenceEngine()` so the engine is
+   * constructed only when actually needed (SSR with non-recurring
+   * events doesn't trigger construction).
+   *
+   * Use cases:
+   *   - Custom engines: implement the `RecurrenceEngine` interface
+   *     in consumer code (e.g. server-side pre-expansion, alternate
+   *     RRULE parser, mock for tests).
+   *   - SSR: pass a factory form to defer engine construction to
+   *     the first client-side call.
+   *   - Tests: pass a mock engine for deterministic output.
+   *
+   * **Set once at construction.** Mid-session swap has no sensible
+   * semantics (in-flight requests, worker lifecycle, cache coherency)
+   * — calling this method after a series expansion has been
+   * dispatched does NOT cancel or re-route in-flight calls.
+   */
+  recurrenceEngine(
+    engineOrFactory: RecurrenceEngine | (() => RecurrenceEngine),
+  ): this {
+    this.state.recurrenceEngine = engineOrFactory;
+    // Bust the resolved-engine cache + invalidate series cache so a
+    // subsequent visible-range change re-expands with the new engine.
+    this._resolvedEngine = null;
+    this._seriesCache.value = new Map();
+    this._seriesGeneration += 1;
+    this._inFlightSeriesKeys.clear();
+    const w = this._visibleRange.value;
+    if (w) this._runSeriesExpansion(w);
     return this;
   }
 
@@ -744,6 +991,9 @@ export class CalendarBuilder<
         }
       }
       this._maybeScheduleLoad(window);
+      // Phase 4 — trigger recurring-series expansion for the new
+      // window if a source is configured.
+      this._runSeriesExpansion(window);
     }
   }
 
@@ -757,6 +1007,13 @@ export class CalendarBuilder<
   [INVALIDATE_LOADER_CACHE](): void {
     this._loaderCache.value = new Map();
     this._generation += 1;
+    // Phase 4 — invalidate recurring-series cache too so refresh()
+    // re-fetches both pipelines uniformly.
+    this._seriesCache.value = new Map();
+    this._seriesGeneration += 1;
+    this._inFlightSeriesKeys.clear();
+    const w = this._visibleRange.value;
+    if (w) this._runSeriesExpansion(w);
   }
 
   // ─── Internal: loader pipeline ─────────────────────────────
@@ -881,11 +1138,35 @@ export class CalendarBuilder<
       this._loaderCache.value = next;
       this._generation += 1;
     }
+    // Phase 4 — same intersection invalidation for the series cache.
+    const nextSeries = new Map<string, CalendarEvent<TMeta>[]>();
+    let seriesDirty = false;
+    for (const [key, events] of this._seriesCache.value.entries()) {
+      const [v, tz, start, end] = key.split('|');
+      const intersects =
+        v === window.view &&
+        tz === window.timezone &&
+        start < window.end &&
+        end > window.start;
+      if (intersects) {
+        seriesDirty = true;
+        continue;
+      }
+      nextSeries.set(key, events);
+    }
+    if (seriesDirty) {
+      this._seriesCache.value = nextSeries;
+      this._seriesGeneration += 1;
+    this._inFlightSeriesKeys.clear();
+    }
     const current = this._visibleRange.value;
     if (current) {
       const cur = windowKey(current);
       if (!this._loaderCache.value.has(cur)) {
         this._maybeScheduleLoad(current);
+      }
+      if (!this._seriesCache.value.has(cur)) {
+        this._runSeriesExpansion(current);
       }
     }
   }
@@ -893,9 +1174,17 @@ export class CalendarBuilder<
   // ─── Internal: events accessor ─────────────────────────────
 
   private _getVisibleEvents(): CalendarEvent<TMeta>[] {
-    // Mode 1: events() source — return the full source array. The
-    // VIEW filters by visible-range; the api consumer can do the
-    // same with getVisibleRange().
+    // Non-recurring events first.
+    const nonRecurring = this._getNonRecurringEvents();
+    // Then recurring events expanded for the current window.
+    const recurring = this._getRecurringEvents();
+    if (recurring.length === 0) return nonRecurring;
+    if (nonRecurring.length === 0) return recurring;
+    return nonRecurring.concat(recurring);
+  }
+
+  private _getNonRecurringEvents(): CalendarEvent<TMeta>[] {
+    // Mode 1: events() source — return the full source array.
     const source = this.state.events;
     if (source !== null) {
       const list = toValue(source) ?? [];
@@ -908,6 +1197,133 @@ export class CalendarBuilder<
     if (window) {
       const cached = this._loaderCache.value.get(windowKey(window));
       if (cached) return cached;
+    }
+    return [];
+  }
+
+  private _getRecurringEvents(): CalendarEvent<TMeta>[] {
+    const window = this._visibleRange.value;
+    if (!window) return [];
+    const cached = this._seriesCache.value.get(windowKey(window));
+    return cached ?? [];
+  }
+
+  // ─── Internal: recurring-series expansion (Phase 4) ────────────
+
+  /**
+   * Resolve the configured engine, lazy-constructing factory form
+   * once. Returns `undefined` when no engine is configured —
+   * `expandSeries` falls back to its own lazy default
+   * (rrule-temporal) in that case.
+   */
+  private _resolveEngine(): RecurrenceEngine | undefined {
+    if (this._resolvedEngine) return this._resolvedEngine;
+    const setting = this.state.recurrenceEngine;
+    if (typeof setting === 'function') {
+      this._resolvedEngine = setting();
+      return this._resolvedEngine;
+    }
+    if (setting) {
+      this._resolvedEngine = setting;
+      return this._resolvedEngine;
+    }
+    return undefined;
+  }
+
+  /**
+   * Trigger a recurring-series expansion for `window`. No-op if no
+   * series source is configured. Cache hit short-circuits.
+   *
+   * Async by design (the engine interface is async). Result lands in
+   * `_seriesCache` on success; consumers read via
+   * `getVisibleEvents()` which reactively re-renders when the cache
+   * shallowRef updates.
+   *
+   * Generation-guarded: a result that arrives after `refresh()` /
+   * source-replacement is discarded so it doesn't poison fresh data.
+   */
+  private _runSeriesExpansion(window: ViewWindow): void {
+    if (this.state.series === null && this.state.seriesLoader === null) {
+      // No source — nothing to expand.
+      return;
+    }
+    const key = windowKey(window);
+    if (this._seriesCache.value.has(key)) return; // cache hit
+    // Race-safety: if another expansion for the same window is
+    // already in flight, no-op. Avoids double-fire when
+    // [SET_VISIBLE_RANGE] and the series-watcher both trigger for
+    // the same window in close succession.
+    if (this._inFlightSeriesKeys.has(key)) return;
+    this._inFlightSeriesKeys.add(key);
+    const generation = this._seriesGeneration;
+    this._inFlight += 1;
+    this._loading.value = true;
+
+    Promise.resolve()
+      .then(() => this._readSeriesForWindow(window))
+      .then(async (series) => {
+        if (generation !== this._seriesGeneration) return;
+        if (series.length === 0) {
+          // Cache empty result so we don't re-attempt for this window.
+          const next = new Map(this._seriesCache.value);
+          next.set(key, []);
+          this._seriesCache.value = next;
+          return;
+        }
+        const expansionWindow = viewWindowToExpansionWindow(window);
+        const dstPolicy = toValue(this.state.dstPolicy);
+        const engine = this._resolveEngine();
+        const expandFn = await this._loadExpandSeries();
+        const expanded = await Promise.all(
+          series.map((s) =>
+            expandFn(s, expansionWindow, dstPolicy, engine),
+          ),
+        );
+        if (generation !== this._seriesGeneration) return;
+        const all = expanded.flat();
+        // Validate each expanded event so consumer renderers don't
+        // see invalid shapes (engine bug containment).
+        this._validateEvents(all);
+        const next = new Map(this._seriesCache.value);
+        next.set(key, all);
+        this._seriesCache.value = next;
+      })
+      .catch((e) => {
+        console.error(
+          `[CalendarBuilder] recurring-series expansion failed for window ${key}:`,
+          e,
+        );
+        // Not cached on error — next visible-range change re-attempts.
+      })
+      .finally(() => {
+        this._inFlightSeriesKeys.delete(key);
+        this._inFlight -= 1;
+        if (this._inFlight <= 0) {
+          this._inFlight = 0;
+          this._loading.value = false;
+        }
+      });
+  }
+
+  private async _loadExpandSeries(): Promise<
+    typeof import('../recurrence/index').expandSeries
+  > {
+    if (this._expandSeriesFnPromise) return this._expandSeriesFnPromise;
+    this._expandSeriesFnPromise = import('../recurrence/index').then(
+      (mod) => mod.expandSeries,
+    );
+    return this._expandSeriesFnPromise;
+  }
+
+  private async _readSeriesForWindow(
+    window: ViewWindow,
+  ): Promise<RecurringSeries<TMeta>[]> {
+    if (this.state.series !== null) {
+      return toValue(this.state.series) ?? [];
+    }
+    if (this.state.seriesLoader !== null) {
+      const result = this.state.seriesLoader(window);
+      return Promise.resolve(result);
     }
     return [];
   }

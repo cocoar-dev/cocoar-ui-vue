@@ -323,6 +323,7 @@ export default defineConfig({
             { text: 'CoarCalendar (composer)', link: '/components/calendar/coar-calendar' },
             { text: 'Day View', link: '/components/calendar/day-view' },
             { text: 'Week View', link: '/components/calendar/week-view' },
+            { text: 'Work Week View', link: '/components/calendar/work-week-view' },
             { text: 'Month View', link: '/components/calendar/month-view' },
             { text: 'Agenda View', link: '/components/calendar/agenda-view' },
             { text: 'Performance baseline', link: '/components/calendar/performance' },

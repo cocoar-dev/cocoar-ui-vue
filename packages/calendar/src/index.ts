@@ -37,6 +37,7 @@ export type {
   EventsLoader,
   MoreClickHandler,
   RangeChangeHandler,
+  SeriesLoader,
   TimeClickHandler,
   TimeRange,
 } from './builders/types';
@@ -79,6 +80,7 @@ export {
 
 export { useDayView } from './useDayView';
 export { useWeekView } from './useWeekView';
+export { useWorkWeekView } from './useWorkWeekView';
 export { useMonthView } from './useMonthView';
 export { useAgendaView } from './useAgendaView';
 
@@ -87,6 +89,7 @@ export { useAgendaView } from './useAgendaView';
 export { default as CoarCalendar } from './components/CoarCalendar.vue';
 export { default as CoarDayView } from './components/CoarDayView.vue';
 export { default as CoarWeekView } from './components/CoarWeekView.vue';
+export { default as CoarWorkWeekView } from './components/CoarWorkWeekView.vue';
 export { default as CoarTimeGrid } from './components/CoarTimeGrid.vue';
 export { default as CoarMonthView } from './components/CoarMonthView.vue';
 export { default as CoarAgendaView } from './components/CoarAgendaView.vue';
@@ -101,8 +104,12 @@ export { default as VirtualizedSurface2D } from './components/VirtualizedSurface
 //   - CalendarEvent / RecurringSeries / RecurrenceExpansionWindow types
 //   - validateCalendarEvent (C1 boundary enforcer)
 //   - parseScheduledTime / parsePlainDate / formatScheduledTime (D3)
-//   - expandSeries (C8 throwing stub until Phase 4)
 //   - viewWindow / overlap / timeGrid / monthGrid / agenda layouts
 //   - measurementCache + virtualScroll (Spike A kernel)
+//
+// Recurrence runtime (`expandSeries`) lives at the
+// `@cocoar/vue-calendar/recurrence` subpath, not on this barrel —
+// keeps engine bundles out of apps that don't use recurrence. See
+// `.local/PHASE-4-RECURRENCE.md` §A1.
 
 export * from './core/index';

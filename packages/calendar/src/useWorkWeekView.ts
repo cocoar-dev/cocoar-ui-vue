@@ -1,0 +1,21 @@
+/**
+ * `useWorkWeekView` — convenience composable that pre-locks the
+ * active view to `'workWeek'`. See `useDayView.ts` for the
+ * rationale.
+ */
+
+import { ref } from 'vue';
+import { useCalendar } from './useCalendar';
+import type { CalendarBuilder, CalendarApi } from './builders/calendar-builder';
+
+export function useWorkWeekView<
+  TMeta extends Record<string, unknown> = Record<string, unknown>,
+>(): {
+  builder: CalendarBuilder<TMeta>;
+  api: CalendarApi<TMeta>;
+} {
+  const { builder, api } = useCalendar<TMeta>();
+  builder.view(ref('workWeek'));
+  builder.availableViews(['workWeek']);
+  return { builder, api };
+}

@@ -17,6 +17,7 @@
       <li><router-link to="/calendar-wire-helpers">Calendar — Wire helpers (Article 8)</router-link></li>
       <li><router-link to="/calendar-standalone">Calendar — Standalone sub-views</router-link></li>
       <li><router-link to="/calendar-perf-bench">Calendar — Performance bench (1 000+ events)</router-link></li>
+      <li><router-link to="/calendar-recurrence"><strong>Calendar — Recurrence (Phase 4) ←</strong></router-link></li>
     </ul>
   </div>
 </template>

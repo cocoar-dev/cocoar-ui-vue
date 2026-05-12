@@ -280,6 +280,31 @@ export function weekDates(
 }
 
 /**
+ * The subset of `weekDates(date, firstDayOfWeek)` whose day-of-week
+ * is in `workDays` (0 = Sun … 6 = Sat). Preserves the visual order
+ * of the underlying week — a Mon–Fri set rendered in a Sunday-first
+ * locale starts on Monday in the resulting array because the
+ * weekend bookends are filtered out.
+ *
+ * Returns 1–7 dates depending on the workDays set. Empty arrays are
+ * not produced for the standard Mon–Fri / Mon–Sat shapes; callers
+ * passing an empty `workDays` set get an empty array and should
+ * special-case the "no work days configured" state at the UI layer.
+ */
+export function workWeekDates(
+  date: Temporal.PlainDate,
+  firstDayOfWeek: DayOfWeek,
+  workDays: readonly DayOfWeek[],
+): Temporal.PlainDate[] {
+  if (workDays.length === 0) return [];
+  const workSet = new Set(workDays);
+  // Reuse weekDates so layout / DnD stay byte-identical to the full
+  // week view for the days that survive the filter.
+  const week = weekDates(date, firstDayOfWeek);
+  return week.filter((d) => workSet.has(temporalDowToCalendarDow(d.dayOfWeek)));
+}
+
+/**
  * Fixed 6 × 7 = 42-cell month grid: leading days from the previous
  * month + the month's days + trailing days from the next month.
  *

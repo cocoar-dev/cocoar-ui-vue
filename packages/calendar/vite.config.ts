@@ -19,6 +19,11 @@ export default defineConfig({
       entry: {
         index: resolve(__dirname, 'src/index.ts'),
         core: resolve(__dirname, 'src/core/index.ts'),
+        recurrence: resolve(__dirname, 'src/recurrence/index.ts'),
+        'recurrence-rrule-temporal': resolve(
+          __dirname,
+          'src/recurrence-rrule-temporal/index.ts',
+        ),
       },
       formats: ['es'],
     },
@@ -28,6 +33,11 @@ export default defineConfig({
         '@cocoar/vue-ui',
         '@cocoar/vue-localization',
         '@js-temporal/polyfill',
+        // The recurrence engine adapter is externalized so the
+        // `recurrence-rrule-temporal` chunk doesn't bundle
+        // rrule-temporal itself — apps pull it in via their own
+        // dependency graph (it's a regular dep of @cocoar/vue-calendar).
+        'rrule-temporal',
       ],
       output: {
         globals: {

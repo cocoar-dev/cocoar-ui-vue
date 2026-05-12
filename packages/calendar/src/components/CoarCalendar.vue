@@ -34,6 +34,7 @@ import { useI18n, useLocalization } from '@cocoar/vue-localization';
 import { CoarButton, CoarSegmentedControl } from '@cocoar/vue-ui';
 import CoarDayView from './CoarDayView.vue';
 import CoarWeekView from './CoarWeekView.vue';
+import CoarWorkWeekView from './CoarWorkWeekView.vue';
 import CoarMonthView from './CoarMonthView.vue';
 import CoarAgendaView from './CoarAgendaView.vue';
 import {
@@ -223,7 +224,11 @@ const rangeLabel = computed<string>(() => {
         ),
       ).format(toDate(cursor.value));
     }
-    case 'week': {
+    case 'week':
+    case 'workWeek': {
+      // The window is the full Mon–Sun span for workWeek too; the
+      // label reflects that span (not the filtered render set) so
+      // navigation reads consistently with week view.
       const fmt = new Intl.DateTimeFormat(
         locale,
         buildFormatOptions(
@@ -268,6 +273,7 @@ function toDate(d: Temporal.PlainDate): Date {
 const viewLabels = computed<Record<CalendarView, string>>(() => ({
   day: t('coar.calendar.view.day', undefined, 'Day'),
   week: t('coar.calendar.view.week', undefined, 'Week'),
+  workWeek: t('coar.calendar.view.workWeek', undefined, 'Work week'),
   month: t('coar.calendar.view.month', undefined, 'Month'),
   agenda: t('coar.calendar.view.agenda', undefined, 'Agenda'),
   timeline: t('coar.calendar.view.timeline', undefined, 'Timeline'),
@@ -470,6 +476,18 @@ onBeforeUnmount(() => {
           <slot name="dayHeader" v-bind="slotProps" />
         </template>
       </CoarWeekView>
+
+      <CoarWorkWeekView v-else-if="view === 'workWeek'" :builder="props.builder">
+        <template v-if="$slots.event" #event="slotProps">
+          <slot name="event" v-bind="slotProps" :view="view" />
+        </template>
+        <template v-if="$slots.allDayEvent" #allDayEvent="slotProps">
+          <slot name="allDayEvent" v-bind="slotProps" />
+        </template>
+        <template v-if="$slots.dayHeader" #dayHeader="slotProps">
+          <slot name="dayHeader" v-bind="slotProps" />
+        </template>
+      </CoarWorkWeekView>
 
       <CoarMonthView
         v-else-if="view === 'month'"

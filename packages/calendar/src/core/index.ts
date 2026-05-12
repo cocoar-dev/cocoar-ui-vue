@@ -4,17 +4,10 @@
  * Files in this directory must NOT import from `../components/` or
  * `../composables/`. The lint rule in the repo root enforces this.
  *
- * Phase 0 contents:
- *   - measurementCache.ts  — Fenwick-tree-backed variable-size cache
- *   - virtualScroll.ts     — pure range math + anchor adjustment
- *
- * Phase 1 will add:
- *   - temporal.ts          — Temporal helpers (lifted from @cocoar/vue-ui)
- *   - eventIndex.ts        — Map<dateKey, Event[]> with granular invalidation
- *   - viewWindow.ts        — week/month/agenda window math
- *   - overlapLayout.ts     — multi-day-bar interval-graph coloring
- *   - recurrence.ts        — engine abstraction (rrule-rust + rrule.js)
- *   - worker/recurrenceWorker.ts — off-main-thread expansion
+ * Recurrence types (`RecurringSeries`, `RecurrenceExpansionWindow`)
+ * live here; the runtime `expandSeries` lives at the
+ * `@cocoar/vue-calendar/recurrence` subpath so apps that don't use
+ * recurring series don't pull the engine into the main bundle.
  */
 
 export type {
@@ -44,6 +37,7 @@ export {
   endOfMonth,
   isoWeekNumber,
   weekDates,
+  workWeekDates,
   monthGridDates,
   localizedWeekdayNames,
   dateKey,
@@ -59,17 +53,18 @@ export {
   type ScheduledTimeWire,
   type DstPolicy,
 } from './temporal';
-// C8 — public expansion entry point (throwing stub until Phase 4)
-export {
-  expandSeries,
-  EXPAND_SERIES_NOT_IMPLEMENTED_MESSAGE,
-} from './recurrence-public';
+// C8 — public expansion entry point lives at the
+// `@cocoar/vue-calendar/recurrence` subpath, NOT on the main barrel.
+// The subpath keeps engine-bundle bytes out of apps that don't use
+// recurrence. See `.local/PHASE-4-RECURRENCE.md` §A1.
+//   import { expandSeries } from '@cocoar/vue-calendar/recurrence';
 export {
   computeViewWindow,
   daysInWindow,
   windowDayCount,
   windowContainsDate,
   navigateCursor,
+  DEFAULT_WORK_DAYS,
   type ViewWindowOptions,
 } from './viewWindow';
 // EventIndex is intentionally NOT re-exported. It exists for tests
@@ -106,15 +101,10 @@ export {
   type AgendaEventItem,
   type AgendaLayoutOptions,
 } from './agendaLayout';
-// NOTE: recurrence engine exports live behind a subpath
-// (`@cocoar/vue-calendar/recurrence`) rather than the main core
-// barrel. The worker file uses Vite's `?worker` syntax which has
-// top-level await; bundling it through the package's lib-mode IIFE
-// build fails. The subpath keeps the worker chunk separate and only
-// pulled in by consumers that actually use recurrence.
-//
-// See packages/calendar/package.json `exports['./recurrence']` and
-// the playground's vite.config alias.
+// The bundled recurrence engine adapter lives at the
+// `recurrence-rrule-temporal` subpath. Consumer-defined custom
+// engines implement the `RecurrenceEngine` interface and register
+// via `builder.recurrenceEngine(custom)`.
 export { MeasurementCache } from './measurementCache';
 export {
   getVisibleRange1D,
@@ -145,6 +135,7 @@ export {
 export {
   applyMoveToEvent,
   buildDropPayload,
+  detectDstSituation,
   DstResolutionError,
   MIN_RESIZE_MINUTES,
   type CalendarDragMode,

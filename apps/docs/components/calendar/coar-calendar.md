@@ -248,6 +248,126 @@ The calendar:
 
 <preview path="./demos/CalendarEventsLoader.vue" />
 
+## Recurring events
+
+`@cocoar/vue-calendar` expands recurring series at the visible-window boundary — the engine never sees occurrences outside the current view, so a series with `RRULE:FREQ=DAILY` from year 2000 doesn't pay 25 years of expansion cost when you mount the calendar today. Two source modes mirror non-recurring events:
+
+```ts
+import { Temporal } from '@js-temporal/polyfill';
+import type { RecurringSeries } from '@cocoar/vue-calendar';
+
+const series = ref<RecurringSeries[]>([
+  {
+    id: 'standup',
+    rrule: 'FREQ=WEEKLY;BYDAY=MO,WE,FR',
+    dtstart: Temporal.ZonedDateTime.from('2026-06-01T09:00:00[Europe/Vienna]'),
+    duration: { minutes: 30 },
+    meta: { title: 'Standup', color: '#4f46e5' },
+  },
+  {
+    id: 'public-holiday',
+    rrule: 'FREQ=YEARLY;BYMONTH=8;BYMONTHDAY=15',
+    // All-day series — `dtstart` is a `PlainDate`, not a `ZonedDateTime`.
+    dtstart: Temporal.PlainDate.from('2026-08-15'),
+    meta: { title: 'Mariä Himmelfahrt' },
+  },
+]);
+
+builder.series(series); // reactive; mutating the ref re-expands
+```
+
+For backend-managed series, use the loader form — the calendar fetches once per visible window, results cached the same way as `eventsLoader`:
+
+```ts
+builder.seriesLoader(async (window) => {
+  const res = await fetch(`/api/series?from=${window.start}&to=${window.end}`);
+  return res.json();
+});
+```
+
+`series()` and `seriesLoader()` are mutually exclusive but both compose with `events()` / `eventsLoader()` — `getVisibleEvents()` returns the merged set.
+
+### What ships in the wire
+
+`RecurringSeries` is the public type (in `@cocoar/vue-calendar`):
+
+```ts
+interface RecurringSeries<TMeta = Record<string, unknown>> {
+  id: string;                // stable series identifier
+  rrule: string;             // RFC 5545 RRULE, e.g. 'FREQ=WEEKLY;BYDAY=MO'
+  dtstart:
+    | Temporal.ZonedDateTime // timed series — local + IANA zone
+    | Temporal.PlainDate;    // all-day series
+  duration?: { minutes?: number; hours?: number; days?: number };
+  rdate?: ReadonlyArray<Temporal.ZonedDateTime | Temporal.PlainDate>;
+  exdate?: ReadonlyArray<Temporal.ZonedDateTime | Temporal.PlainDate>;
+  meta?: TMeta;
+}
+```
+
+The Temporal-typed `dtstart` is a non-negotiable: ISO strings, native `Date`, and floating `Temporal.PlainDateTime` are rejected at the boundary. Article 4 — store intent (local time + IANA zone), derive instants. The same rule applies to `rdate` and `exdate`: every entry's `timeZoneId` is preserved to the output, so a series in Tokyo with an RDATE in Vienna keeps both zones.
+
+Each expanded `CalendarEvent` carries provenance under `meta.__recurrence`:
+
+```ts
+import { getRecurrenceMeta } from '@cocoar/vue-calendar/recurrence';
+
+builder.onEventClick(({ event }) => {
+  const meta = getRecurrenceMeta(event);
+  if (meta) {
+    console.log(meta.seriesId);     // 'standup'
+    console.log(meta.recurrenceId); // ZonedDateTime — the original wall-time slot
+    console.log(meta.source);       // 'rrule' | 'rdate'
+  }
+});
+```
+
+`event.id` is a unique synthetic value of shape `${seriesId}__${recurrenceId}` — the layout pipeline dedupes by id, so series identity lives in the provenance accessor, not on the event id directly. `recurrenceId` matches RFC 5545 RECURRENCE-ID semantics (the original slot), enabling future single-instance edits without data-shape changes.
+
+### Standalone expansion
+
+`expandSeries(...)` is exported from a subpath so apps that don't use the builder still avoid pulling the engine into their main bundle:
+
+```ts
+import { expandSeries } from '@cocoar/vue-calendar/recurrence';
+import { Temporal } from '@js-temporal/polyfill';
+
+const occurrences = await expandSeries(
+  series,
+  {
+    start: Temporal.ZonedDateTime.from('2026-06-01T00:00:00[Europe/Vienna]'),
+    end:   Temporal.ZonedDateTime.from('2026-07-01T00:00:00[Europe/Vienna]'),
+  },
+  'compatible',          // DstPolicy — same union as builder.dstPolicy(...)
+  /* engine? optional */ // defaults to lazy-loaded rrule-temporal adapter
+);
+```
+
+### Custom engines
+
+The calendar ships one bundled engine — a `rrule-temporal` adapter at the `@cocoar/vue-calendar/recurrence-rrule-temporal` subpath, lazy-loaded on first call. Apps with extreme volume or specialized needs (server-side pre-expansion, alternative parsers) implement the `RecurrenceEngine` interface in their own code:
+
+```ts
+import type { RecurrenceEngine } from '@cocoar/vue-calendar/recurrence';
+
+const myEngine: RecurrenceEngine = {
+  async expand(request) {
+    // request.window.{startMs, endMs}
+    // request.series — the typed wire shape (no string roundtrips)
+    // …
+    return { results, errors };
+  },
+};
+
+builder.recurrenceEngine(myEngine);
+// or, SSR-friendly factory form:
+builder.recurrenceEngine(() => new MyEngine());
+```
+
+Engine-swap invariance is enforced by the library: every occurrence is re-resolved from intended wallclock + source zone + `DstPolicy` after the engine returns, so observable output depends only on the contract inputs, never on which engine ran underneath.
+
+<preview path="./demos/CalendarRecurrence.vue" />
+
 ## Imperative API
 
 The builder exposes an `api` object — same shape regardless of whether the calendar component has mounted yet. Stash it from `useCalendar()` and call methods directly:
@@ -294,11 +414,15 @@ The builder is **flat** — every setter lives directly on it. There are no sub-
 |--------|----------|-------|
 | `events(source)` | `MaybeRefOrGetter<readonly CalendarEvent<TMeta>[]>` | Consumer-managed event array. |
 | `eventsLoader(loader)` | `(window: ViewWindow) => CalendarEvent[] \| Promise<CalendarEvent[]>` | Calendar-managed async loader (cached, debounced). Mutually exclusive with `events`. |
+| `series(source)` | `MaybeRefOrGetter<readonly RecurringSeries<TMeta>[]>` | Recurring series — expanded per visible window. Reactive. Composes with `events` / `eventsLoader`. |
+| `seriesLoader(loader)` | `(window: ViewWindow) => RecurringSeries[] \| Promise<RecurringSeries[]>` | Calendar-managed series loader (cached). Mutually exclusive with `series`. |
+| `recurrenceEngine(engineOrFactory)` | `RecurrenceEngine \| (() => RecurrenceEngine)` | Override the bundled rrule-temporal engine. Factory form is the SSR escape. |
 | `view(model)` | `Ref<CalendarView>` | Bind a caller-owned view ref. |
 | `date(model)` | `Ref<Temporal.PlainDate>` | Bind a caller-owned date ref. |
 | `timezone(tz)` | `MaybeRefOrGetter<string>` | IANA display timezone. |
 | `locale(loc)` | `MaybeRefOrGetter<string \| undefined>` | BCP-47 locale. |
 | `firstDayOfWeek(d)` | `MaybeRefOrGetter<0..6 \| undefined>` | Override the locale-detected default. |
+| `workDays(d)` | `MaybeRefOrGetter<readonly DayOfWeek[]>` | Days to render in the `'workWeek'` view (0 = Sun … 6 = Sat). Default `[1,2,3,4,5]` (Mon–Fri). |
 | `timeRange(r)` | `MaybeRefOrGetter<{ startMinutes: number; endMinutes: number }>` | Day / week visible hour range, in minutes from midnight. |
 | `slotDuration(d)` | `MaybeRefOrGetter<number>` | Time-grid slot subdivision (minutes). Default `30`. |
 | `pixelsPerHour(p)` | `MaybeRefOrGetter<number>` | Time-grid row height. Default `60`. |

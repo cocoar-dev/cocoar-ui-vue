@@ -76,7 +76,10 @@ defineSlots<{
 const state = computed(() => {
   const s = props.builder.state;
   return {
-    events: s.events ? toValue(s.events) : [],
+    // Phase 4: read via api.getVisibleEvents() so events from
+    // `events()` / `eventsLoader()` AND expanded occurrences from
+    // `series()` / `seriesLoader()` all reach the layout.
+    events: props.builder.api.getVisibleEvents(),
     timezone: toValue(s.timezone),
     locale: toValue(s.locale),
     density: toValue(s.density),

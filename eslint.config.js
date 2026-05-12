@@ -77,4 +77,39 @@ export default [
       ],
     },
   },
+  // ───────────────────────────────────────────────────────────────────────
+  // @cocoar/vue-calendar: recurrence engine topology (Phase 4 §A1).
+  //
+  // The bundled engine adapter lives at
+  // `src/recurrence-rrule-temporal/`. Only that directory may import
+  // `rrule-temporal`. Custom engines (consumer-provided via
+  // `builder.recurrenceEngine(...)`) implement the `RecurrenceEngine`
+  // interface from `recurrence/types.ts`; they live in consumer code
+  // and bypass this rule.
+  //
+  // Tests are exempt.
+  // ───────────────────────────────────────────────────────────────────────
+  {
+    files: ['packages/calendar/src/**/*.{ts,vue}'],
+    ignores: [
+      'packages/calendar/src/recurrence-rrule-temporal/**',
+      'packages/calendar/src/**/__tests__/**',
+      'packages/calendar/src/**/*.test.ts',
+      'packages/calendar/src/**/*.bench.ts',
+    ],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['rrule-temporal', 'rrule-temporal/*'],
+              message:
+                '`rrule-temporal` is only allowed inside `packages/calendar/src/recurrence-rrule-temporal/`. The recurrence engine topology keeps engine code out of the main bundle — see .local/PHASE-4-RECURRENCE.md §A1.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 ];

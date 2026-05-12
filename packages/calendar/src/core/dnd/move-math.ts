@@ -153,8 +153,13 @@ export type MoveResult =
  * — that throws iff the wall-time doesn't exist (gap). For overlap,
  * compare the offset of the `'earlier'` and `'later'` resolutions:
  * different offsets ⇒ overlap.
+ *
+ * **Exported.** Reused by the recurrence engine's Phase-4 DST
+ * post-processing layer (`src/recurrence/internal/dst-resolve.ts`)
+ * so the drag pipeline and the recurrence pipeline produce identical
+ * DST semantics from a single source.
  */
-function detectDstSituation(
+export function detectDstSituation(
   zone: string,
   parts: {
     year: number;
