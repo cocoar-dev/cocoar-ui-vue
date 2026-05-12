@@ -15,6 +15,13 @@ import CoarSelectCellEditor from '../cell-renderers/CoarSelectCellEditor.vue';
 import CoarMultiSelectCellRenderer from '../cell-renderers/CoarMultiSelectCellRenderer.vue';
 import CoarMultiSelectCellEditor from '../cell-renderers/CoarMultiSelectCellEditor.vue';
 import CoarTagSelectCellEditor from '../cell-renderers/CoarTagSelectCellEditor.vue';
+import CoarPlainDateCellRenderer from '../cell-renderers/CoarPlainDateCellRenderer.vue';
+import CoarPlainDateCellEditor from '../cell-renderers/CoarPlainDateCellEditor.vue';
+import CoarPlainDateTimeCellRenderer from '../cell-renderers/CoarPlainDateTimeCellRenderer.vue';
+import CoarPlainDateTimeCellEditor from '../cell-renderers/CoarPlainDateTimeCellEditor.vue';
+import CoarZonedDateTimeCellRenderer from '../cell-renderers/CoarZonedDateTimeCellRenderer.vue';
+import CoarZonedDateTimeCellEditor from '../cell-renderers/CoarZonedDateTimeCellEditor.vue';
+import { Temporal } from '@js-temporal/polyfill';
 
 interface TestRow {
   id: number;
@@ -416,6 +423,111 @@ describe('CoarGridColumnFactory', () => {
       const colDef = factory.tagSelect('tags', (s) => s.options(SKILLS)).editable(true).build();
 
       expect(colDef.cellEditor).toBe(CoarTagSelectCellEditor);
+      expect(colDef.editable).toBe(true);
+    });
+  });
+
+  describe('plainDate', () => {
+    it('should create a plainDate column builder', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const builder = factory.plainDate('date');
+
+      expect(builder).toBeInstanceOf(CoarGridColumnBuilder);
+    });
+
+    it('should bundle CoarPlainDateCellRenderer + CoarPlainDateCellEditor', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.plainDate('date').build();
+
+      expect(colDef.cellRenderer).toBe(CoarPlainDateCellRenderer);
+      expect(colDef.cellEditor).toBe(CoarPlainDateCellEditor);
+    });
+
+    it('should pass configurator output to both renderer and editor', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const min = Temporal.PlainDate.from('2026-01-01');
+      const colDef = factory
+        .plainDate('date', (d) => d.size('s').min(min).highlightWeekends())
+        .build();
+
+      const expected = { size: 's' as const, min, highlightWeekends: true };
+      expect(colDef.cellRendererParams?.config).toEqual(expected);
+      expect(colDef.cellEditorParams?.config).toEqual(expected);
+    });
+
+    it('should work without a configurator (empty config)', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.plainDate('date').build();
+
+      expect(colDef.cellRendererParams?.config).toEqual({});
+      expect(colDef.cellEditorParams?.config).toEqual({});
+    });
+
+    it('should compose with .editable() on the outer chain', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.plainDate('date').editable(true).build();
+
+      expect(colDef.cellEditor).toBe(CoarPlainDateCellEditor);
+      expect(colDef.editable).toBe(true);
+    });
+  });
+
+  describe('plainDateTime', () => {
+    it('should bundle CoarPlainDateTimeCellRenderer + CoarPlainDateTimeCellEditor', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.plainDateTime('date').build();
+
+      expect(colDef.cellRenderer).toBe(CoarPlainDateTimeCellRenderer);
+      expect(colDef.cellEditor).toBe(CoarPlainDateTimeCellEditor);
+    });
+
+    it('should pass configurator output to both renderer and editor', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const max = Temporal.PlainDateTime.from('2026-12-31T23:59:59');
+      const colDef = factory
+        .plainDateTime('date', (d) => d.size('s').max(max).showWeekNumbers())
+        .build();
+
+      const expected = { size: 's' as const, max, showWeekNumbers: true };
+      expect(colDef.cellRendererParams?.config).toEqual(expected);
+      expect(colDef.cellEditorParams?.config).toEqual(expected);
+    });
+
+    it('should compose with .editable() on the outer chain', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.plainDateTime('date').editable(true).build();
+
+      expect(colDef.editable).toBe(true);
+    });
+  });
+
+  describe('zonedDateTime', () => {
+    it('should bundle CoarZonedDateTimeCellRenderer + CoarZonedDateTimeCellEditor', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.zonedDateTime('date').build();
+
+      expect(colDef.cellRenderer).toBe(CoarZonedDateTimeCellRenderer);
+      expect(colDef.cellEditor).toBe(CoarZonedDateTimeCellEditor);
+    });
+
+    it('should pass timeZone + timezoneFilter through the config', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory
+        .zonedDateTime('date', (d) =>
+          d.timeZone('Europe/Vienna').timezoneFilter(['Europe/*', 'America/*']),
+        )
+        .build();
+
+      expect(colDef.cellEditorParams?.config).toEqual({
+        timeZone: 'Europe/Vienna',
+        timezoneFilter: ['Europe/*', 'America/*'],
+      });
+    });
+
+    it('should compose with .editable() on the outer chain', () => {
+      const factory = new CoarGridColumnFactory<TestRow>();
+      const colDef = factory.zonedDateTime('date').editable(true).build();
+
       expect(colDef.editable).toBe(true);
     });
   });

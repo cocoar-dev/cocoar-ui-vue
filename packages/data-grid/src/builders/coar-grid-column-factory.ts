@@ -15,6 +15,12 @@ import CoarSelectCellEditor from '../cell-renderers/CoarSelectCellEditor.vue';
 import CoarMultiSelectCellRenderer from '../cell-renderers/CoarMultiSelectCellRenderer.vue';
 import CoarMultiSelectCellEditor from '../cell-renderers/CoarMultiSelectCellEditor.vue';
 import CoarTagSelectCellEditor from '../cell-renderers/CoarTagSelectCellEditor.vue';
+import CoarPlainDateCellRenderer from '../cell-renderers/CoarPlainDateCellRenderer.vue';
+import CoarPlainDateCellEditor from '../cell-renderers/CoarPlainDateCellEditor.vue';
+import CoarPlainDateTimeCellRenderer from '../cell-renderers/CoarPlainDateTimeCellRenderer.vue';
+import CoarPlainDateTimeCellEditor from '../cell-renderers/CoarPlainDateTimeCellEditor.vue';
+import CoarZonedDateTimeCellRenderer from '../cell-renderers/CoarZonedDateTimeCellRenderer.vue';
+import CoarZonedDateTimeCellEditor from '../cell-renderers/CoarZonedDateTimeCellEditor.vue';
 import type { TagCellRendererConfig } from '../cell-renderers/tag-cell-renderer.models';
 import type { IconCellRendererConfig } from '../cell-renderers/icon-cell-renderer.models';
 import type { DateCellRendererConfig } from '../cell-renderers/date-cell-renderer.models';
@@ -27,6 +33,10 @@ import { NumberColumnConfigurator } from '../configurators/NumberColumnConfigura
 import { SelectColumnConfigurator } from '../configurators/SelectColumnConfigurator';
 import { MultiSelectColumnConfigurator } from '../configurators/MultiSelectColumnConfigurator';
 import { TagSelectColumnConfigurator } from '../configurators/TagSelectColumnConfigurator';
+import { PlainDateColumnConfigurator } from '../configurators/PlainDateColumnConfigurator';
+import { PlainDateTimeColumnConfigurator } from '../configurators/PlainDateTimeColumnConfigurator';
+import { ZonedDateTimeColumnConfigurator } from '../configurators/ZonedDateTimeColumnConfigurator';
+import type { Temporal } from '@js-temporal/polyfill';
 
 /**
  * Factory for creating typed column builders.
@@ -289,6 +299,99 @@ export class CoarGridColumnFactory<TData = unknown> {
     const builder = new CoarGridColumnBuilder<TData, T[]>(fieldName);
     builder.cellRendererConfig(CoarMultiSelectCellRenderer, config);
     builder.cellEditorConfig(CoarTagSelectCellEditor, config);
+    builder.sortable();
+    return builder;
+  }
+
+  /**
+   * Create a column for `Temporal.PlainDate` values (calendar date, no time).
+   *
+   * Renderer formats via `toLocaleString` (date-style: medium); editor wraps
+   * `<CoarPlainDatePicker>`. Cell value MUST be `Temporal.PlainDate | null` —
+   * consumers convert ISO strings / native `Date` at the data layer (the
+   * Temporal-only contract matches the calendar package).
+   *
+   * The legacy `col.date()` shortcut (Date | string display-only, no editor)
+   * remains unchanged for back-compat with existing consumer code.
+   *
+   * @example
+   * ```ts
+   * col.plainDate('startsOn', d => d.size('s').highlightWeekends())
+   *    .editable(true)
+   * ```
+   */
+  plainDate(
+    fieldName: keyof TData | string,
+    configurator?: (d: PlainDateColumnConfigurator<TData>) => PlainDateColumnConfigurator<TData>,
+  ): CoarGridColumnBuilder<TData, Temporal.PlainDate | null> {
+    const config = configurator
+      ? configurator(new PlainDateColumnConfigurator<TData>()).build()
+      : {};
+    const builder = new CoarGridColumnBuilder<TData, Temporal.PlainDate | null>(fieldName);
+    builder.cellRendererConfig(CoarPlainDateCellRenderer, config);
+    builder.cellEditorConfig(CoarPlainDateCellEditor, config);
+    builder.sortable();
+    return builder;
+  }
+
+  /**
+   * Create a column for `Temporal.PlainDateTime` values (floating wallclock).
+   *
+   * Renderer formats with date-style: medium + time-style: short. Editor
+   * wraps `<CoarPlainDateTimePicker>`.
+   *
+   * Use `col.zonedDateTime()` when the event lives in a specific IANA zone
+   * (cross-zone tools, calendar integration, etc.).
+   *
+   * @example
+   * ```ts
+   * col.plainDateTime('localizedAt', d => d.size('s')).editable(true)
+   * ```
+   */
+  plainDateTime(
+    fieldName: keyof TData | string,
+    configurator?: (
+      d: PlainDateTimeColumnConfigurator<TData>,
+    ) => PlainDateTimeColumnConfigurator<TData>,
+  ): CoarGridColumnBuilder<TData, Temporal.PlainDateTime | null> {
+    const config = configurator
+      ? configurator(new PlainDateTimeColumnConfigurator<TData>()).build()
+      : {};
+    const builder = new CoarGridColumnBuilder<TData, Temporal.PlainDateTime | null>(fieldName);
+    builder.cellRendererConfig(CoarPlainDateTimeCellRenderer, config);
+    builder.cellEditorConfig(CoarPlainDateTimeCellEditor, config);
+    builder.sortable();
+    return builder;
+  }
+
+  /**
+   * Create a column for `Temporal.ZonedDateTime` values (date+time+zone).
+   *
+   * Renderer formats with date-style: medium + time-style: short + a short
+   * zone-name suffix so cross-zone columns stay unambiguous at a glance.
+   * Editor wraps `<CoarZonedDateTimePicker>`, which surfaces its own zone
+   * selector.
+   *
+   * @example
+   * ```ts
+   * col.zonedDateTime('eventAt', d => d
+   *   .timeZone('Europe/Vienna')
+   *   .timezoneFilter(['Europe/*', 'America/*'])
+   * ).editable(true)
+   * ```
+   */
+  zonedDateTime(
+    fieldName: keyof TData | string,
+    configurator?: (
+      d: ZonedDateTimeColumnConfigurator<TData>,
+    ) => ZonedDateTimeColumnConfigurator<TData>,
+  ): CoarGridColumnBuilder<TData, Temporal.ZonedDateTime | null> {
+    const config = configurator
+      ? configurator(new ZonedDateTimeColumnConfigurator<TData>()).build()
+      : {};
+    const builder = new CoarGridColumnBuilder<TData, Temporal.ZonedDateTime | null>(fieldName);
+    builder.cellRendererConfig(CoarZonedDateTimeCellRenderer, config);
+    builder.cellEditorConfig(CoarZonedDateTimeCellEditor, config);
     builder.sortable();
     return builder;
   }

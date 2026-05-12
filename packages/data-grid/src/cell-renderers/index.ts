@@ -14,6 +14,12 @@ export { default as CoarSelectCellEditor } from './CoarSelectCellEditor.vue';
 export { default as CoarMultiSelectCellRenderer } from './CoarMultiSelectCellRenderer.vue';
 export { default as CoarMultiSelectCellEditor } from './CoarMultiSelectCellEditor.vue';
 export { default as CoarTagSelectCellEditor } from './CoarTagSelectCellEditor.vue';
+export { default as CoarPlainDateCellRenderer } from './CoarPlainDateCellRenderer.vue';
+export { default as CoarPlainDateCellEditor } from './CoarPlainDateCellEditor.vue';
+export { default as CoarPlainDateTimeCellRenderer } from './CoarPlainDateTimeCellRenderer.vue';
+export { default as CoarPlainDateTimeCellEditor } from './CoarPlainDateTimeCellEditor.vue';
+export { default as CoarZonedDateTimeCellRenderer } from './CoarZonedDateTimeCellRenderer.vue';
+export { default as CoarZonedDateTimeCellEditor } from './CoarZonedDateTimeCellEditor.vue';
 
 // Config interfaces (public API)
 export type { TagCellRendererConfig } from './tag-cell-renderer.models';
@@ -27,6 +33,9 @@ export type { TextCellEditorConfig } from './text-cell-editor.models';
 export type { NumberCellEditorConfig } from './number-cell-editor.models';
 export type { SelectCellEditorConfig } from './select-cell-editor.models';
 export type { MultiSelectCellEditorConfig } from './multi-select-cell-editor.models';
+export type { PlainDateCellEditorConfig, CoarDateMarker } from './plain-date-cell-editor.models';
+export type { PlainDateTimeCellEditorConfig } from './plain-date-time-cell-editor.models';
+export type { ZonedDateTimeCellEditorConfig } from './zoned-date-time-cell-editor.models';
 export type {
   WrapperSlotConfig,
   WrapperSlotItem,

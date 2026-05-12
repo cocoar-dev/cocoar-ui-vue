@@ -10,11 +10,16 @@ export {
   CoarCheckboxCellRenderer, CoarTextCellEditor, CoarNumberCellEditor,
   CoarSelectCellRenderer, CoarSelectCellEditor,
   CoarMultiSelectCellRenderer, CoarMultiSelectCellEditor, CoarTagSelectCellEditor,
+  CoarPlainDateCellRenderer, CoarPlainDateCellEditor,
+  CoarPlainDateTimeCellRenderer, CoarPlainDateTimeCellEditor,
+  CoarZonedDateTimeCellRenderer, CoarZonedDateTimeCellEditor,
 } from './cell-renderers';
 export type {
   TagCellRendererConfig, IconCellRendererConfig, DateCellRendererConfig, TreeCellRendererConfig,
   CheckboxCellRendererConfig, TextCellEditorConfig, NumberCellEditorConfig, SelectCellEditorConfig,
   MultiSelectCellEditorConfig,
+  PlainDateCellEditorConfig, PlainDateTimeCellEditorConfig, ZonedDateTimeCellEditorConfig,
+  CoarDateMarker,
 } from './cell-renderers';
 export type {
   WrapperSlotConfig,
@@ -31,6 +36,7 @@ export {
   CheckboxColumnConfigurator, TextColumnConfigurator, NumberColumnConfigurator,
   SelectColumnConfigurator,
   MultiSelectColumnConfigurator, TagSelectColumnConfigurator,
+  PlainDateColumnConfigurator, PlainDateTimeColumnConfigurator, ZonedDateTimeColumnConfigurator,
 } from './configurators';
 
 // Theme

@@ -216,6 +216,9 @@ importers:
       '@cocoar/vue-ui':
         specifier: workspace:*
         version: link:../ui
+      '@js-temporal/polyfill':
+        specifier: ^0.5.1
+        version: 0.5.1
       vue:
         specifier: ^3.5.32
         version: 3.5.33(typescript@5.9.3)

@@ -315,6 +315,7 @@ export default defineConfig({
             { text: 'Number Column', link: '/components/data-grid/number' },
             { text: 'Select Column', link: '/components/data-grid/select' },
             { text: 'Multi-Select Column', link: '/components/data-grid/multi-select' },
+            { text: 'Date Columns', link: '/components/data-grid/date-columns' },
             { text: 'Checkbox Column', link: '/components/data-grid/checkbox' },
           ],
         },

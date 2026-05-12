@@ -4,3 +4,6 @@ export { NumberColumnConfigurator, type NumberColumnConfig } from './NumberColum
 export { SelectColumnConfigurator } from './SelectColumnConfigurator';
 export { MultiSelectColumnConfigurator } from './MultiSelectColumnConfigurator';
 export { TagSelectColumnConfigurator } from './TagSelectColumnConfigurator';
+export { PlainDateColumnConfigurator } from './PlainDateColumnConfigurator';
+export { PlainDateTimeColumnConfigurator } from './PlainDateTimeColumnConfigurator';
+export { ZonedDateTimeColumnConfigurator } from './ZonedDateTimeColumnConfigurator';

@@ -45,11 +45,13 @@
   "peerDependencies": {
     "@cocoar/vue-localization": "workspace:*",
     "@cocoar/vue-ui": "workspace:*",
+    "@js-temporal/polyfill": "^0.5.1",
     "vue": "^3.5.0"
   },
   "devDependencies": {
     "@cocoar/vue-localization": "workspace:*",
     "@cocoar/vue-ui": "workspace:*",
+    "@js-temporal/polyfill": "^0.5.1",
     "vue": "^3.5.32"
   }
 }
