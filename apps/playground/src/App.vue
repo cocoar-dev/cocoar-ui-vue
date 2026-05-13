@@ -11,6 +11,7 @@ import { CoarOverlayHost } from '@cocoar/vue-ui';
       <router-link to="/script-editor">Script Editor</router-link>
       <router-link to="/constrained-editor">Constrained Editor</router-link>
       <router-link to="/editor-in-modal">Editor in Modal</router-link>
+      <router-link to="/page-builder">Page Builder</router-link>
     </nav>
     <main class="app-main">
       <router-view />

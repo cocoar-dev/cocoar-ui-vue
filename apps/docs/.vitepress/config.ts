@@ -321,6 +321,14 @@ export default defineConfig({
           ],
         },
         {
+          text: 'Page Builder (Preview)',
+          items: [
+            { text: 'Overview', link: '/components/page-builder/' },
+            { text: 'CoarPageBuilder', link: '/components/page-builder/coar-page-builder' },
+            { text: 'CoarPageRenderer', link: '/components/page-builder/coar-page-renderer' },
+          ],
+        },
+        {
           text: 'Calendar (Preview)',
           items: [
             { text: 'Overview', link: '/components/calendar/' },

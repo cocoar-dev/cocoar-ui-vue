@@ -1,0 +1,696 @@
+<script setup lang="ts">
+import { computed, provide, ref, watch } from 'vue';
+import { CoarIcon, CoarTabGroup, CoarTab } from '@cocoar/vue-ui';
+import type { PageNode, PageConfig } from './schema';
+import { usePageBuilder } from './builder/usePageBuilder';
+import { useSchemaValidation } from './builder/useSchemaValidation';
+import {
+  BUILDER_API,
+  BUILDER_CONFIG,
+  BUILDER_VALIDATION,
+} from './builder/builderContext';
+import BuilderOutline from './builder/BuilderOutline.vue';
+import BuilderCanvas from './builder/BuilderCanvas.vue';
+import BuilderPropsPanel from './builder/BuilderPropsPanel.vue';
+import CoarPageRenderer from './CoarPageRenderer.vue';
+
+const model = defineModel<PageNode>({ required: false });
+
+const props = defineProps<{
+  /**
+   * Security/allowlist config. The SAME config must also be passed to
+   * `<CoarPageRenderer>` so disallowed elements are filtered both during
+   * authoring (palette + add-child menu) and at render time (security boundary).
+   */
+  config?: PageConfig
+}>();
+
+const builder = usePageBuilder({
+  schema: model.value !== undefined ? model : undefined,
+  initial: { id: 'root', type: 'page', style: { gap: '16px', padding: '24px' }, children: [] },
+});
+
+const configRef = computed(() => props.config);
+const validation = useSchemaValidation(builder.schema, configRef);
+
+provide(BUILDER_API, builder);
+provide(BUILDER_CONFIG, configRef);
+provide(BUILDER_VALIDATION, validation);
+
+// ── Tab ───────────────────────────────────────────────────────────────────────
+const activeTab = ref<string>('editor');
+
+// ── Responsive preview ───────────────────────────────────────────────────────
+type PreviewWidth = 'full' | 'tablet' | 'mobile';
+const previewWidth = ref<PreviewWidth>('full');
+
+const PREVIEW_WIDTHS: Record<Exclude<PreviewWidth, 'full'>, number> = {
+  tablet: 768,
+  mobile: 375,
+};
+
+const previewFrameStyle = computed(() => {
+  if (previewWidth.value === 'full') return {};
+  const w = PREVIEW_WIDTHS[previewWidth.value];
+  return { maxWidth: `${w}px`, width: '100%', margin: '0 auto' };
+});
+
+// ── Panel widths + collapse ────────────────────────────────────────────────────
+const OUTLINE_DEFAULT = 260;
+const OUTLINE_MIN = 180;
+const PROPS_DEFAULT = 280;
+const PROPS_MIN = 220;
+const MIDDLE_MIN = 360;
+const RAIL_WIDTH = 36;
+
+const outlineWidth = ref(OUTLINE_DEFAULT);
+const propsWidth = ref(PROPS_DEFAULT);
+const outlineCollapsed = ref(false);
+const propsCollapsed = ref(false);
+const resizing = ref<null | 'outline' | 'props'>(null);
+
+const outlineCol = ref(`${OUTLINE_DEFAULT}px`);
+const propsCol = ref(`${PROPS_DEFAULT}px`);
+
+watch([outlineCollapsed, outlineWidth], () => {
+  outlineCol.value = outlineCollapsed.value ? `${RAIL_WIDTH}px` : `${outlineWidth.value}px`;
+});
+watch([propsCollapsed, propsWidth], () => {
+  propsCol.value = propsCollapsed.value ? `${RAIL_WIDTH}px` : `${propsWidth.value}px`;
+});
+
+// ── Splitter drag ─────────────────────────────────────────────────────────────
+const rootRef = ref<HTMLElement | null>(null);
+
+function startResize(target: 'outline' | 'props', event: PointerEvent) {
+  if ((target === 'outline' && outlineCollapsed.value) || (target === 'props' && propsCollapsed.value)) return;
+  event.preventDefault();
+  resizing.value = target;
+  const startX = event.clientX;
+  const startOutline = outlineWidth.value;
+  const startProps = propsWidth.value;
+
+  function onMove(ev: PointerEvent) {
+    const w = rootRef.value?.getBoundingClientRect().width ?? 0;
+    if (!w) return;
+    const other = target === 'outline'
+      ? (propsCollapsed.value ? RAIL_WIDTH : propsWidth.value)
+      : (outlineCollapsed.value ? RAIL_WIDTH : outlineWidth.value);
+    const available = w - other - MIDDLE_MIN - 2;
+    const delta = ev.clientX - startX;
+    if (target === 'outline') {
+      outlineWidth.value = Math.min(Math.max(startOutline + delta, OUTLINE_MIN), Math.max(OUTLINE_MIN, available));
+    } else {
+      propsWidth.value = Math.min(Math.max(startProps - delta, PROPS_MIN), Math.max(PROPS_MIN, available));
+    }
+  }
+  function onUp() {
+    resizing.value = null;
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    window.removeEventListener('pointercancel', onUp);
+  }
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp);
+  window.addEventListener('pointercancel', onUp);
+}
+
+// ── JSON tab ──────────────────────────────────────────────────────────────────
+const jsonText = ref(JSON.stringify(builder.schema.value, null, 2));
+const jsonError = ref('');
+let userEditing = false;
+
+watch(builder.schema, (s) => {
+  if (!userEditing) jsonText.value = JSON.stringify(s, null, 2);
+}, { deep: false });
+
+function onJsonInput(e: Event) {
+  userEditing = true;
+  jsonText.value = (e.target as HTMLTextAreaElement).value;
+  try { JSON.parse(jsonText.value); jsonError.value = ''; }
+  catch { jsonError.value = 'Invalid JSON'; }
+}
+function onJsonBlur() { userEditing = false; }
+/**
+ * Recursively migrate legacy node types so pasted JSON from earlier versions
+ * (or hand-written copies) still works:
+ *   - `column` → `stack` (direction = 'column')
+ *   - `row`    → `stack` (direction = 'row')
+ */
+function migrateLegacyTypes(node: any): any {
+  if (!node || typeof node !== 'object') return node;
+  const children = Array.isArray(node.children)
+    ? node.children.map(migrateLegacyTypes)
+    : node.children;
+  if (node.type === 'column') {
+    return { ...node, type: 'stack', direction: 'column', children };
+  }
+  if (node.type === 'row') {
+    return { ...node, type: 'stack', direction: 'row', children };
+  }
+  if (children === node.children) return node;
+  return { ...node, children };
+}
+
+function normalizeRoot(node: PageNode): PageNode {
+  const migrated = migrateLegacyTypes(node) as PageNode;
+  if (migrated.type === 'page') return migrated;
+  // Any non-page root (stack, card, …) → wrap in a page so the builder always
+  // has a page root. Style stays on the wrapped child; the page wrapper is bare.
+  return {
+    id: 'root',
+    type: 'page',
+    style: { gap: '16px', padding: '24px' },
+    children: [migrated],
+  } as PageNode;
+}
+
+function applyJson() {
+  try {
+    const parsed = JSON.parse(jsonText.value) as PageNode;
+    builder.replaceSchema(normalizeRoot(parsed));
+    jsonError.value = '';
+    activeTab.value = 'editor';
+  } catch (e: any) {
+    jsonError.value = e.message ?? 'Invalid JSON';
+  }
+}
+</script>
+
+<template>
+  <div
+    ref="rootRef"
+    class="pb-builder"
+    :class="{
+      'pb-builder--outline-collapsed': outlineCollapsed,
+      'pb-builder--props-collapsed': propsCollapsed,
+      'pb-builder--resizing': resizing !== null,
+    }"
+  >
+    <!-- ── Outline pane ── -->
+    <section
+      class="pb-builder__pane pb-builder__pane--tree"
+      :class="{ 'pb-builder__pane--rail': outlineCollapsed }"
+    >
+      <template v-if="!outlineCollapsed">
+        <header class="pb-builder__pane-header">
+          <CoarIcon name="list" size="s" />
+          <span class="pb-builder__pane-title">Outline</span>
+          <button type="button" class="pb-builder__icon-btn" title="Collapse outline" @click="outlineCollapsed = true">
+            <CoarIcon name="chevrons-left" size="s" />
+          </button>
+        </header>
+        <div class="pb-builder__tree-scroll">
+          <BuilderOutline />
+        </div>
+      </template>
+      <button v-else type="button" class="pb-builder__rail-btn" title="Expand outline" @click="outlineCollapsed = false">
+        <CoarIcon name="chevrons-right" size="s" />
+      </button>
+    </section>
+
+    <!-- ── Left divider ── -->
+    <div
+      class="pb-builder__divider"
+      :class="{ 'pb-builder__divider--inert': outlineCollapsed }"
+      role="separator"
+      @pointerdown="startResize('outline', $event)"
+    />
+
+    <!-- ── Center pane ── -->
+    <section class="pb-builder__pane pb-builder__pane--center">
+      <CoarTabGroup v-model="activeTab" class="pb-builder__tabs">
+        <template #actions>
+          <button type="button" class="pb-builder__icon-btn" :disabled="!builder.canUndo.value" title="Undo (Ctrl+Z)" @click="builder.undo()">
+            <CoarIcon name="undo-2" size="s" />
+          </button>
+          <button type="button" class="pb-builder__icon-btn" :disabled="!builder.canRedo.value" title="Redo (Ctrl+Y)" @click="builder.redo()">
+            <CoarIcon name="redo-2" size="s" />
+          </button>
+        </template>
+
+        <CoarTab id="editor">
+          <template #default>
+            <span class="pb-builder__tab-label">
+              <CoarIcon name="pencil" size="s" />
+              Editor
+            </span>
+          </template>
+          <template #content>
+            <BuilderCanvas />
+          </template>
+        </CoarTab>
+
+        <CoarTab id="preview">
+          <template #default>
+            <span class="pb-builder__tab-label">
+              <CoarIcon name="eye" size="s" />
+              Preview
+            </span>
+          </template>
+          <template #content>
+            <div class="pb-builder__preview-pane">
+              <!-- Responsive width toggle -->
+              <div class="pb-builder__preview-toolbar">
+                <div class="pb-builder__seg" role="radiogroup" aria-label="Preview width">
+                  <button
+                    type="button"
+                    class="pb-builder__seg-btn"
+                    :class="{ 'pb-builder__seg-btn--active': previewWidth === 'full' }"
+                    role="radio"
+                    :aria-checked="previewWidth === 'full'"
+                    title="Full width"
+                    @click="previewWidth = 'full'"
+                  >
+                    Desktop
+                  </button>
+                  <button
+                    type="button"
+                    class="pb-builder__seg-btn"
+                    :class="{ 'pb-builder__seg-btn--active': previewWidth === 'tablet' }"
+                    role="radio"
+                    :aria-checked="previewWidth === 'tablet'"
+                    title="768px"
+                    @click="previewWidth = 'tablet'"
+                  >
+                    Tablet · 768
+                  </button>
+                  <button
+                    type="button"
+                    class="pb-builder__seg-btn"
+                    :class="{ 'pb-builder__seg-btn--active': previewWidth === 'mobile' }"
+                    role="radio"
+                    :aria-checked="previewWidth === 'mobile'"
+                    title="375px"
+                    @click="previewWidth = 'mobile'"
+                  >
+                    Mobile · 375
+                  </button>
+                </div>
+              </div>
+              <div class="pb-builder__preview">
+                <div class="pb-builder__preview-frame" :style="previewFrameStyle">
+                  <CoarPageRenderer
+                    :schema="builder.schema.value"
+                    :config="config"
+                    :asset-resolver="config?.assetResolver"
+                  />
+                </div>
+              </div>
+            </div>
+          </template>
+        </CoarTab>
+
+        <CoarTab id="json">
+          <template #default>
+            <span class="pb-builder__tab-label">
+              <CoarIcon name="code" size="s" />
+              JSON
+            </span>
+          </template>
+          <template #content>
+            <div class="pb-builder__json-pane">
+              <div class="pb-builder__json-toolbar">
+                <span class="pb-builder__json-hint">Paste or edit JSON, then click Apply</span>
+                <span v-if="jsonError" class="pb-builder__json-error">{{ jsonError }}</span>
+                <button class="pb-builder__json-apply" :disabled="!!jsonError" @click="applyJson">
+                  Apply →
+                </button>
+              </div>
+              <textarea
+                class="pb-builder__json-editor"
+                :value="jsonText"
+                spellcheck="false"
+                @input="onJsonInput"
+                @blur="onJsonBlur"
+              />
+            </div>
+          </template>
+        </CoarTab>
+      </CoarTabGroup>
+    </section>
+
+    <!-- ── Right divider ── -->
+    <div
+      class="pb-builder__divider"
+      :class="{ 'pb-builder__divider--inert': propsCollapsed }"
+      role="separator"
+      @pointerdown="startResize('props', $event)"
+    />
+
+    <!-- ── Properties pane ── -->
+    <section
+      class="pb-builder__pane pb-builder__pane--props"
+      :class="{ 'pb-builder__pane--rail': propsCollapsed }"
+    >
+      <template v-if="!propsCollapsed">
+        <button type="button" class="pb-builder__icon-btn pb-builder__icon-btn--corner" title="Collapse properties" @click="propsCollapsed = true">
+          <CoarIcon name="chevrons-right" size="s" />
+        </button>
+        <BuilderPropsPanel class="pb-builder__pane-inner" />
+      </template>
+      <button v-else type="button" class="pb-builder__rail-btn" title="Expand properties" @click="propsCollapsed = false">
+        <CoarIcon name="chevrons-left" size="s" />
+      </button>
+    </section>
+  </div>
+</template>
+
+<style scoped>
+.pb-builder {
+  display: grid;
+  grid-template-columns:
+    v-bind(outlineCol) 1px minmax(360px, 1fr) 1px v-bind(propsCol);
+  height: 100%;
+  min-height: 520px;
+  background: var(--coar-surface-default, #fff);
+  border: 1px solid var(--coar-border-neutral, #e2e2e6);
+  border-radius: 8px;
+  overflow: hidden;
+  font-family: var(--coar-body-base-family, sans-serif);
+  transition: grid-template-columns 0.18s ease-out;
+}
+
+.pb-builder--resizing {
+  transition: none;
+  user-select: none;
+  cursor: col-resize;
+}
+
+/* ── Panes ── */
+.pb-builder__pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--coar-surface-default, #fff);
+  position: relative;
+}
+
+.pb-builder__pane--rail {
+  align-items: center;
+  justify-content: flex-start;
+  padding: 8px 0;
+}
+
+/* ── Panel header (outline pane) ── */
+.pb-builder__pane-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  height: 44px;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--coar-border-neutral, #e2e2e6);
+  color: var(--coar-text-neutral-secondary, #5a5a60);
+  flex-shrink: 0;
+}
+
+.pb-builder__pane-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--coar-text-neutral-secondary, #5a5a60);
+  flex: 1;
+}
+
+/* Align the tab list, props header to the same 44px height */
+.pb-builder :deep(.coar-tab-list) {
+  min-height: 44px;
+  box-sizing: border-box;
+  align-items: stretch;
+}
+.pb-builder :deep(.coar-tab-button) {
+  padding-top: 0;
+  padding-bottom: 0;
+  display: inline-flex;
+  align-items: center;
+}
+.pb-builder :deep(.pb-props__header) {
+  height: 44px;
+  padding: 0 14px;
+  box-sizing: border-box;
+}
+
+/* Make the tab content area fill remaining pane height */
+.pb-builder :deep(.coar-tab-content) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+.pb-builder :deep(.coar-tab-panel) {
+  display: none;
+}
+.pb-builder :deep(.coar-tab-panel.active) {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pb-builder__tree-scroll {
+  flex: 1;
+  overflow: auto;
+  padding: 6px 6px 12px;
+}
+
+.pb-builder__pane-inner {
+  flex: 1;
+  min-height: 0;
+  border: none;
+  border-radius: 0;
+}
+
+/* ── Dividers ── */
+.pb-builder__divider {
+  background: var(--coar-border-neutral, #e2e2e6);
+  cursor: col-resize;
+  position: relative;
+  z-index: 1;
+  transition: background-color 0.12s ease-out;
+}
+.pb-builder__divider::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -3px;
+  right: -3px;
+  cursor: inherit;
+}
+.pb-builder__divider:hover,
+.pb-builder--resizing .pb-builder__divider {
+  background: var(--coar-background-accent-primary, #1666cc);
+}
+.pb-builder__divider--inert {
+  cursor: default;
+  pointer-events: none;
+}
+.pb-builder__divider--inert::after { pointer-events: none; }
+
+/* ── Icon buttons ── */
+.pb-builder__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--coar-icon-neutral-secondary, #5a5a60);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.12s, color 0.12s, border-color 0.12s;
+}
+.pb-builder__icon-btn:hover:not(:disabled) {
+  background: var(--coar-surface-neutral-subtle, #f0f0f2);
+  border-color: var(--coar-border-neutral, #dcdce0);
+  color: var(--coar-icon-neutral-primary, #111);
+}
+.pb-builder__icon-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.pb-builder__icon-btn--corner {
+  position: absolute;
+  top: 9px;
+  right: 10px;
+  z-index: 2;
+}
+
+.pb-builder__rail-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--coar-icon-neutral-secondary, #5a5a60);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.12s, border-color 0.12s, color 0.12s;
+}
+.pb-builder__rail-btn:hover {
+  background: var(--coar-surface-neutral-subtle, #f0f0f2);
+  border-color: var(--coar-border-neutral, #dcdce0);
+  color: var(--coar-icon-neutral-primary, #111);
+}
+
+/* ── Center pane ── */
+.pb-builder__pane--center { padding: 0; }
+
+.pb-builder__tabs {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.pb-builder__tab-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pb-builder__preview-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pb-builder__preview-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--coar-border-neutral, #e2e2e6);
+  background: var(--coar-surface-neutral-subtle, #f7f7f9);
+  flex-shrink: 0;
+}
+
+.pb-builder__seg {
+  display: inline-flex;
+  border: 1px solid var(--coar-border-neutral, #d0d0d0);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--coar-surface-base, #fff);
+}
+
+.pb-builder__seg-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border: none;
+  background: transparent;
+  color: var(--coar-text-neutral-secondary, #555);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.12s, color 0.12s;
+}
+
+.pb-builder__seg-btn + .pb-builder__seg-btn {
+  border-left: 1px solid var(--coar-border-neutral, #d0d0d0);
+}
+
+.pb-builder__seg-btn:hover:not(.pb-builder__seg-btn--active) {
+  background: var(--coar-surface-neutral-subtle, #f0f0f2);
+}
+
+.pb-builder__seg-btn--active {
+  background: var(--coar-surface-accent-subtle, #e6eefa);
+  color: var(--coar-text-accent, #1666cc);
+  font-weight: 600;
+}
+
+.pb-builder__preview {
+  padding: 20px 24px;
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+  box-sizing: border-box;
+  background:
+    repeating-linear-gradient(
+      45deg,
+      rgba(0, 0, 0, 0.015) 0px,
+      rgba(0, 0, 0, 0.015) 6px,
+      transparent 6px,
+      transparent 12px
+    );
+}
+
+.pb-builder__preview-frame {
+  background: var(--coar-surface-default, #fff);
+  border: 1px solid var(--coar-border-neutral, #e2e2e6);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: max-width 0.18s ease-out, width 0.18s ease-out;
+}
+
+/* ── JSON pane ── */
+.pb-builder__json-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pb-builder__json-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--coar-border-neutral, #e2e2e6);
+  background: var(--coar-surface-neutral-subtle, #f7f7f9);
+  flex-shrink: 0;
+}
+
+.pb-builder__json-hint {
+  font-size: 12px;
+  color: var(--coar-text-neutral-secondary, #888);
+  flex: 1;
+}
+
+.pb-builder__json-error {
+  font-size: 12px;
+  color: var(--coar-text-semantic-error-bold, #c0392b);
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+
+.pb-builder__json-apply {
+  padding: 4px 14px;
+  border-radius: 4px;
+  border: none;
+  background: var(--coar-background-accent-primary, #1666cc);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.pb-builder__json-apply:disabled { opacity: 0.4; cursor: default; }
+.pb-builder__json-apply:not(:disabled):hover { filter: brightness(0.92); }
+
+.pb-builder__json-editor {
+  flex: 1;
+  resize: none;
+  border: none;
+  outline: none;
+  padding: 16px;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: var(--coar-text-neutral-primary, #111);
+  background: var(--coar-surface-neutral-subtle, #f7f7f9);
+  line-height: 1.55;
+}
+</style>
