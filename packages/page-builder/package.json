@@ -1,0 +1,38 @@
+{
+  "name": "@cocoar/vue-page-builder",
+  "version": "0.0.1",
+  "description": "Generic headless visual page builder and renderer for Vue 3 built on the Cocoar Design System",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cocoar-dev/cocoar-ui-vue.git",
+    "directory": "packages/page-builder"
+  },
+  "keywords": ["vue", "vue3", "page-builder", "low-code", "visual-editor"],
+  "type": "module",
+  "sideEffects": ["*.css"],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "vite build",
+    "test": "vitest run --passWithNoTests",
+    "lint": "eslint src/"
+  },
+  "peerDependencies": {
+    "@cocoar/vue-ui": "workspace:*",
+    "vue": "^3.5.0"
+  },
+  "devDependencies": {
+    "@cocoar/vue-ui": "workspace:*",
+    "vue": "^3.5.32"
+  }
+}

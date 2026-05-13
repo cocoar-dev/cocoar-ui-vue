@@ -144,6 +144,9 @@ importers:
       '@cocoar/vue-markdown-editor':
         specifier: workspace:*
         version: link:../../packages/markdown-editor
+      '@cocoar/vue-page-builder':
+        specifier: workspace:*
+        version: link:../../packages/page-builder
       '@cocoar/vue-script-editor':
         specifier: workspace:*
         version: link:../../packages/script-editor
@@ -333,6 +336,15 @@ importers:
       '@types/mdast':
         specifier: ^4.0.4
         version: 4.0.4
+      vue:
+        specifier: ^3.5.32
+        version: 3.5.33(typescript@5.9.3)
+
+  packages/page-builder:
+    devDependencies:
+      '@cocoar/vue-ui':
+        specifier: workspace:*
+        version: link:../ui
       vue:
         specifier: ^3.5.32
         version: 3.5.33(typescript@5.9.3)

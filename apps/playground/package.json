@@ -15,6 +15,7 @@
   "dependencies": {
     "@cocoar/vue-calendar": "workspace:*",
     "@cocoar/vue-data-grid": "workspace:*",
+    "@cocoar/vue-page-builder": "workspace:*",
     "@cocoar/vue-fragment-parser": "workspace:*",
     "@cocoar/vue-localization": "workspace:*",
     "@cocoar/vue-markdown": "workspace:*",

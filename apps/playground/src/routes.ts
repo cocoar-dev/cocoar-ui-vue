@@ -35,6 +35,10 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('./views/OverlayStackingView.vue'),
   },
   {
+    path: '/page-builder',
+    component: () => import('./views/PageBuilderView.vue'),
+  },
+  {
     path: '/markdown-editor',
     component: () => import('./views/MarkdownEditorView.vue'),
   },
