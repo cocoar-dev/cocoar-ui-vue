@@ -58,18 +58,18 @@ const typeIcon: Record<ElementType, CoreIconName> = {
 };
 
 const nodeLabel = computed(() => {
-  const n = props.node;
+  const n = props.node as PageNode & { text?: string; label?: string; title?: string };
   if (n.type === 'page') return 'Page';
-  if (n.type === 'stack') return n.direction === 'row' ? 'Row' : 'Column';
-  if ('text' in n && n.text) return String(n.text);
-  if ('label' in n && (n as any).label) return String((n as any).label);
-  if ('title' in n && (n as any).title) return String((n as any).title);
+  if (n.type === 'stack') return (n as PageNode & { direction?: string }).direction === 'row' ? 'Row' : 'Column';
+  if (n.text) return String(n.text);
+  if (n.label) return String(n.label);
+  if (n.title) return String(n.title);
   return n.type;
 });
 
 const nodeSubLabel = computed(() => {
-  const n = props.node;
-  return 'name' in n && (n as any).name ? String((n as any).name) : undefined;
+  const n = props.node as PageNode & { name?: string };
+  return n.name ? String(n.name) : undefined;
 });
 
 // ── Add-child dropdown ────────────────────────────────────────────────────────
@@ -139,9 +139,9 @@ function canMoveDown(): boolean {
   let parent: PageNode = builder.schema.value;
   for (const p of parentPath) {
     if (!isContainerNode(parent)) return false;
-    parent = (parent as any).children[p];
+    parent = parent.children[p];
   }
-  return isContainerNode(parent) && idx < (parent as any).children.length - 1;
+  return isContainerNode(parent) && idx < parent.children.length - 1;
 }
 </script>
 

@@ -137,19 +137,20 @@ function onJsonBlur() { userEditing = false; }
  *   - `column` → `stack` (direction = 'column')
  *   - `row`    → `stack` (direction = 'row')
  */
-function migrateLegacyTypes(node: any): any {
+function migrateLegacyTypes(node: unknown): unknown {
   if (!node || typeof node !== 'object') return node;
-  const children = Array.isArray(node.children)
-    ? node.children.map(migrateLegacyTypes)
-    : node.children;
-  if (node.type === 'column') {
-    return { ...node, type: 'stack', direction: 'column', children };
+  const n = node as { type?: string; children?: unknown[] };
+  const children = Array.isArray(n.children)
+    ? n.children.map(migrateLegacyTypes)
+    : n.children;
+  if (n.type === 'column') {
+    return { ...n, type: 'stack', direction: 'column', children };
   }
-  if (node.type === 'row') {
-    return { ...node, type: 'stack', direction: 'row', children };
+  if (n.type === 'row') {
+    return { ...n, type: 'stack', direction: 'row', children };
   }
-  if (children === node.children) return node;
-  return { ...node, children };
+  if (children === n.children) return node;
+  return { ...n, children };
 }
 
 function normalizeRoot(node: PageNode): PageNode {
@@ -171,8 +172,8 @@ function applyJson() {
     builder.replaceSchema(normalizeRoot(parsed));
     jsonError.value = '';
     activeTab.value = 'editor';
-  } catch (e: any) {
-    jsonError.value = e.message ?? 'Invalid JSON';
+  } catch (e: unknown) {
+    jsonError.value = e instanceof Error ? e.message : 'Invalid JSON';
   }
 }
 </script>

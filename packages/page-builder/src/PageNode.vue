@@ -11,7 +11,7 @@ import {
   CoarTextInput,
   type CoarSelectOption,
 } from '@cocoar/vue-ui';
-import { isContainerNode, isElementAllowed, type PageNode, type NodeStyle } from './schema';
+import { isElementAllowed, type PageNode, type NodeStyle } from './schema';
 import { PAGE_RENDERER_KEY } from './context';
 
 defineOptions({ name: 'PageNode' });

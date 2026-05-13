@@ -24,7 +24,7 @@
   "files": ["dist"],
   "scripts": {
     "build": "vite build",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "lint": "eslint src/"
   },
   "peerDependencies": {

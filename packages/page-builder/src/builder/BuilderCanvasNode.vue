@@ -69,11 +69,11 @@ const typeIcon: Record<ElementType, CoreIconName> = {
 };
 
 const typeLabel = computed(() => {
-  const n = props.node;
-  if ('text' in n && n.text) return `${n.type} · ${String(n.text).slice(0, 24)}`;
-  if ('label' in n && (n as any).label) return `${n.type} · ${String((n as any).label).slice(0, 24)}`;
-  if ('title' in n && (n as any).title) return `${n.type} · ${String((n as any).title).slice(0, 24)}`;
-  if ('name' in n && (n as any).name) return `${n.type} · ${String((n as any).name)}`;
+  const n = props.node as PageNode & { text?: string; label?: string; title?: string; name?: string };
+  if (n.text) return `${n.type} · ${String(n.text).slice(0, 24)}`;
+  if (n.label) return `${n.type} · ${String(n.label).slice(0, 24)}`;
+  if (n.title) return `${n.type} · ${String(n.title).slice(0, 24)}`;
+  if (n.name) return `${n.type} · ${String(n.name)}`;
   return n.type;
 });
 
