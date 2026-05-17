@@ -1,6 +1,10 @@
 <template>
   <div style="display: flex; flex-direction: column; gap: 8px;">
-    <div><a class="coar-link" href="javascript:void(0)">Active link</a></div>
-    <div><a class="coar-link coar-link--disabled" href="javascript:void(0)" aria-disabled="true">Disabled link</a></div>
+    <div><CoarLink to="/getting-started">Active link</CoarLink></div>
+    <div><CoarLink to="/components/button" disabled>Disabled link</CoarLink></div>
   </div>
 </template>
+
+<script setup lang="ts">
+import { CoarLink } from '@cocoar/vue-ui';
+</script>

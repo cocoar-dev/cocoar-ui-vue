@@ -60,6 +60,20 @@
   text-decoration: none;
 }
 
+/* `<button class="coar-link coar-link--as-button">` — emitted by the
+   `<CoarLink>` SFC when neither `to` nor `href` is provided (a "fake link"
+   that triggers a callback rather than navigating). Reset the native
+   button chrome so it visually matches the `<a class="coar-link">` siblings. */
+.coar-link--as-button {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  line-height: inherit;
+  text-align: inherit;
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .coar-link {

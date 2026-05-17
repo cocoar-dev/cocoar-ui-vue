@@ -1,10 +1,14 @@
 <template>
   <p style="margin: 0; font-size: 14px; line-height: 1.6;">
     The COAR Design System is built on top of
-    <a class="coar-link" href="javascript:void(0)">Vue 3</a> and uses the
-    <a class="coar-link" href="javascript:void(0)">Temporal API</a> for date/time handling.
-    See the <a class="coar-link" href="javascript:void(0)">Getting Started guide</a> or
-    browse the <a class="coar-link coar-link--subtle" href="javascript:void(0)">full component reference</a>
+    <CoarLink href="https://vuejs.org" target="_blank">Vue 3</CoarLink> and uses the
+    <CoarLink href="https://tc39.es/proposal-temporal/docs/" target="_blank">Temporal API</CoarLink> for date/time handling.
+    See the <CoarLink to="/getting-started">Getting Started guide</CoarLink> or
+    browse the <CoarLink to="/components/button" variant="subtle">full component reference</CoarLink>
     for more details.
   </p>
 </template>
+
+<script setup lang="ts">
+import { CoarLink } from '@cocoar/vue-ui';
+</script>

@@ -1,8 +1,8 @@
 <template>
   <CoarBreadcrumb>
-    <CoarBreadcrumbItem><a href="javascript:void(0)">Home</a></CoarBreadcrumbItem>
-    <CoarBreadcrumbItem><a href="javascript:void(0)">Users</a></CoarBreadcrumbItem>
-    <CoarBreadcrumbItem :active="true">John Doe</CoarBreadcrumbItem>
+    <CoarBreadcrumbItem to="/admin" icon="home">Home</CoarBreadcrumbItem>
+    <CoarBreadcrumbItem to="/admin/users" icon="users">Users</CoarBreadcrumbItem>
+    <CoarBreadcrumbItem active>John Doe</CoarBreadcrumbItem>
   </CoarBreadcrumb>
 </template>
 

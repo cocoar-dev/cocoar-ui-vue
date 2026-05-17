@@ -1,7 +1,14 @@
 <script setup lang="ts">
-import { computed, inject, ref } from 'vue';
+import { computed, inject, ref, watch } from 'vue';
+// Type-only import — erased at runtime, no bundling impact, no hard
+// `vue-router` dependency. Apps without a router still type-check fine
+// because `RouteLocationRaw` resolves to `string | RouteLocationAsPath
+// | RouteLocationAsRelative | RouteLocationAsString` — all structural
+// shapes a consumer might want to pass.
+import type { RouteLocationRaw } from 'vue-router';
 import CoarIcon from '../icon/CoarIcon.vue';
 import type { CoarIconSize } from '../icon/icon-service';
+import { useRouterLink } from '../_internal/use-router-link';
 import { vTooltip } from '../tooltip/vTooltip';
 import {
   SIDEBAR_COLLAPSED_KEY,
@@ -18,12 +25,38 @@ const props = withDefaults(
     label: string;
     /** Icon name (required for collapsed mode) */
     icon?: string;
-    /** Whether this item is currently active (e.g. current route) */
+    /**
+     * Optional Vue Router target. Accepts anything `RouterLink.to` accepts
+     * (string path, named-route object, etc.). When set the item renders as a
+     * real `<a href>` so:
+     *  - middle-click + ctrl/cmd-click open in a new tab (browser default)
+     *  - right-click shows "Open in new tab" / "Copy link address"
+     *  - screenreaders announce "link" instead of "menuitem"
+     * Routing is delegated to `RouterLink` when `vue-router` is installed and
+     * its plugin registered globally; otherwise we degrade to a plain anchor
+     * that uses the browser's native navigation (works for absolute URLs).
+     * `vue-router` is an optional `peerDependenciesMeta` entry — apps without
+     * a router still use this component for click-emit items (logout, toggles).
+     *
+     * A11y note: the `<a>` branch intentionally drops `role="menuitem"`. The
+     * surrounding `<CoarSidebar>` is `role="navigation"`, where a native link
+     * is semantically complete on its own — adding `role="menuitem"` would
+     * require a `role="menu"` parent per WAI-ARIA and would mislead AT
+     * announcements. The legacy `<div>` branch (no `to`) keeps the role for
+     * back-compat with the original API.
+     */
+    to?: RouteLocationRaw | string;
+    /**
+     * Whether this item is currently active (e.g. current route).
+     * If `to` is set and `active` is left undefined, the active state is
+     * inferred from `RouterLink`'s `isActive`. Setting `active` explicitly
+     * always wins (use for non-route active states, e.g. drawer-open).
+     */
     active?: boolean;
     /** Disabled state */
     disabled?: boolean;
   }>(),
-  { icon: undefined, active: false, disabled: false },
+  { icon: undefined, to: undefined, active: undefined, disabled: false },
 );
 
 const emit = defineEmits<{
@@ -34,6 +67,16 @@ const sidebarCollapsed = inject(SIDEBAR_COLLAPSED_KEY, ref(false));
 const sidebarIconSize = inject(SIDEBAR_ICON_SIZE_KEY, ref<CoarIconSize>('m'));
 const sidebarSide = inject(SIDEBAR_SIDE_KEY, ref<SidebarSide>('left'));
 const isIconOnly = inject(SIDEBAR_FLYOUT_ICON_ONLY_KEY, ref(false));
+
+// Soft Vue Router integration via shared helper (see use-router-link.ts).
+// Centralises the resolveDynamicComponent pattern AND the DEV warning for
+// non-string `to` without a router.
+const { RouterLink, hasRouterLink, warnIfMisconfigured } = useRouterLink();
+watch(
+  () => props.to,
+  (to) => warnIfMisconfigured(to, 'CoarSidebarItem'),
+  { immediate: true },
+);
 
 const tooltipPlacement = computed<'left' | 'right' | 'top' | 'bottom'>(() => {
   switch (sidebarSide.value) {
@@ -52,12 +95,56 @@ const tooltipConfig = computed(() => {
 
 const orientation = computed(() => orientationOf(sidebarSide.value));
 
+const hasTo = computed(() => props.to !== undefined && props.to !== null);
+
+function classesFor(isRouterActive: boolean): unknown[] {
+  const isActive = props.active ?? isRouterActive;
+  return [
+    `coar-sidebar-item--side-${sidebarSide.value}`,
+    `coar-sidebar-item--${orientation.value}`,
+    {
+      'coar-sidebar-item--active': isActive,
+      'coar-sidebar-item--disabled': props.disabled,
+      'coar-sidebar-item--collapsed': sidebarCollapsed.value,
+    },
+  ];
+}
+
+function ariaCurrentFor(isRouterActive: boolean): 'page' | undefined {
+  const isActive = props.active ?? isRouterActive;
+  return isActive ? 'page' : undefined;
+}
+
 function handleClick(event: MouseEvent) {
   if (props.disabled) {
     event.preventDefault();
     return;
   }
   emit('click', event);
+}
+
+// For anchor variants: when disabled, prevent navigation entirely. Otherwise
+// emit `click` for consumer side-effects (telemetry, drawer-toggle on small
+// screens, etc.), then hand off to RouterLink's `navigate`.
+//
+// `navigate` is RouterLink's slot-exposed function. It runs an internal
+// `guardEvent` check that no-ops on modifier-clicks (Ctrl/Cmd/Shift/Alt or
+// non-left button) and on already-preventDefaulted events, then calls
+// preventDefault + router.push. We must NOT call preventDefault ourselves
+// before navigate or guardEvent bails out and SPA routing breaks.
+function handleAnchorClick(
+  event: MouseEvent,
+  navigate?: (e?: MouseEvent) => Promise<unknown>,
+) {
+  if (props.disabled) {
+    event.preventDefault();
+    event.stopPropagation();
+    return;
+  }
+  emit('click', event);
+  if (navigate) {
+    void navigate(event);
+  }
 }
 
 function handleKeydown(event: KeyboardEvent) {
@@ -69,21 +156,67 @@ function handleKeydown(event: KeyboardEvent) {
 </script>
 
 <template>
+  <!-- `to` + vue-router available: use RouterLink in custom mode so we render
+       the <a> ourselves and keep full control of class/aria/tooltip/icon. -->
+  <component
+    :is="RouterLink"
+    v-if="hasTo && hasRouterLink"
+    :to="to"
+    custom
+  >
+    <template #default="{ href, isActive, navigate }">
+      <a
+        v-tooltip="tooltipConfig"
+        :href="href"
+        class="coar-sidebar-item"
+        :class="classesFor(isActive)"
+        :aria-disabled="props.disabled || undefined"
+        :aria-current="ariaCurrentFor(isActive)"
+        :tabindex="props.disabled ? -1 : undefined"
+        @click="(e) => handleAnchorClick(e, navigate)"
+      >
+        <span class="coar-sidebar-item__icon" aria-hidden="true">
+          <CoarIcon :name="props.icon || 'square-dashed'" :size="sidebarIconSize" />
+        </span>
+        <span class="coar-sidebar-item__label">
+          {{ props.label }}
+        </span>
+      </a>
+    </template>
+  </component>
+
+  <!-- `to` set but no router installed: plain <a href>. Works for absolute
+       URLs and degrades reasonably for relative paths (full page reload). -->
+  <a
+    v-else-if="hasTo"
+    v-tooltip="tooltipConfig"
+    :href="String(to)"
+    class="coar-sidebar-item"
+    :class="classesFor(false)"
+    :aria-disabled="props.disabled || undefined"
+    :aria-current="ariaCurrentFor(false)"
+    :tabindex="props.disabled ? -1 : undefined"
+    @click="handleAnchorClick"
+  >
+    <span class="coar-sidebar-item__icon" aria-hidden="true">
+      <CoarIcon :name="props.icon || 'square-dashed'" :size="sidebarIconSize" />
+    </span>
+    <span class="coar-sidebar-item__label">
+      {{ props.label }}
+    </span>
+  </a>
+
+  <!-- No `to`: original <div role="menuitem"> path for action items
+       (logout, collapse-toggle, custom @click handlers). Behaviour pinned
+       to the pre-`to`-prop version — emits `click` on Enter/Space too. -->
   <div
+    v-else
     v-tooltip="tooltipConfig"
     role="menuitem"
     class="coar-sidebar-item"
-    :class="[
-      `coar-sidebar-item--side-${sidebarSide}`,
-      `coar-sidebar-item--${orientation}`,
-      {
-        'coar-sidebar-item--active': props.active,
-        'coar-sidebar-item--disabled': props.disabled,
-        'coar-sidebar-item--collapsed': sidebarCollapsed,
-      },
-    ]"
+    :class="classesFor(false)"
     :aria-disabled="props.disabled || undefined"
-    :aria-current="props.active ? 'page' : undefined"
+    :aria-current="ariaCurrentFor(false)"
     :tabindex="props.disabled ? -1 : 0"
     @click="handleClick"
     @keydown="handleKeydown"
@@ -118,6 +251,8 @@ function handleKeydown(event: KeyboardEvent) {
   white-space: nowrap;
   overflow: hidden;
   transition: background var(--coar-duration-fast) var(--coar-ease-out);
+  /* Reset native <a> defaults so the link variant looks identical to <div>. */
+  text-decoration: none;
 }
 
 /* In horizontal sidebars, items default to a more compact, in-row footprint.

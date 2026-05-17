@@ -62,11 +62,18 @@
     "prismjs": "^1.30.0"
   },
   "peerDependencies": {
-    "vue": "^3.5.0"
+    "vue": "^3.5.0",
+    "vue-router": "^4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "vue-router": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/prismjs": "^1.26.6",
     "overlayscrollbars": "^2.15.1",
-    "vue": "^3.5.32"
+    "vue": "^3.5.32",
+    "vue-router": "^4.6.4"
   }
 }

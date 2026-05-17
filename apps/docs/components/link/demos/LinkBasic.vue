@@ -1,3 +1,7 @@
 <template>
-  <a class="coar-link" href="javascript:void(0)">Default link</a>
+  <CoarLink to="/getting-started">Default link</CoarLink>
 </template>
+
+<script setup lang="ts">
+import { CoarLink } from '@cocoar/vue-ui';
+</script>

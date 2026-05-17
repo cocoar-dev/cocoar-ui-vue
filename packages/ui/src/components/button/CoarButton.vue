@@ -1,7 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import { useI18n } from '@cocoar/vue-localization';
+// Type-only import — erased at runtime, no bundling impact. See
+// `CoarSidebarItem.vue` for the full soft-router-dep rationale.
+import type { RouteLocationRaw } from 'vue-router';
 import CoarIcon from '../icon/CoarIcon.vue';
+import { useRouterLink } from '../_internal/use-router-link';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'tertiary' | 'danger' | 'ghost';
 export type ButtonSize = 'xs' | 's' | 'm' | 'l';
@@ -15,7 +19,7 @@ export interface CoarButtonProps {
   disabled?: boolean;
   /** Whether the button is in loading state */
   loading?: boolean;
-  /** Button type attribute */
+  /** Button type attribute (only applied when rendering as <button>). */
   type?: 'button' | 'submit' | 'reset';
   /** Icon name to display before the label */
   iconStart?: string;
@@ -25,6 +29,20 @@ export interface CoarButtonProps {
   fullWidth?: boolean;
   /** Optional aria-label for the underlying button */
   ariaLabel?: string;
+  /**
+   * Optional Vue Router target. Accepts anything `RouterLink.to` accepts
+   * (string path, named-route object, etc.). When set the button renders as
+   * an `<a href>` (via `RouterLink` if `vue-router` is installed, otherwise
+   * a plain anchor) so middle-click / ctrl-click open a new tab, right-click
+   * exposes "Open in new tab" / "Copy link address", and screenreaders
+   * announce "link" instead of "button". `vue-router` is intentionally NOT a
+   * peerDependency — apps without a router can still use buttons normally.
+   *
+   * `type` and the native `disabled` attribute are dropped on the link path
+   * (invalid on `<a>`); disabled/loading state is enforced via
+   * `aria-disabled`, `tabindex=-1`, and `pointer-events: none` from CSS.
+   */
+  to?: RouteLocationRaw | string;
 }
 
 const props = withDefaults(defineProps<CoarButtonProps>(), {
@@ -37,6 +55,7 @@ const props = withDefaults(defineProps<CoarButtonProps>(), {
   iconEnd: undefined,
   fullWidth: false,
   ariaLabel: undefined,
+  to: undefined,
 });
 
 const emit = defineEmits<{
@@ -45,7 +64,41 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
-const buttonClasses= computed(() => [
+// Soft Vue Router integration — see use-router-link.ts.
+const { RouterLink, hasRouterLink, warnIfMisconfigured } = useRouterLink();
+watch(
+  () => props.to,
+  (to) => warnIfMisconfigured(to, 'CoarButton'),
+  { immediate: true },
+);
+const hasTo = computed(() => props.to !== undefined && props.to !== null);
+
+// We use RouterLink in NON-custom mode here (unlike Sidebar/Menu). The button
+// has no `active` prop and no aria-current concerns, so we don't need slot
+// access to `isActive` / `navigate`. RouterLink's internal click handler
+// already runs guardEvent + push/replace for us, including modifier-click
+// pass-through (Ctrl/Cmd/Middle → browser opens new tab natively).
+const rootIs = computed(() => {
+  if (hasTo.value) return hasRouterLink ? RouterLink : 'a';
+  return 'button';
+});
+
+// Attribute set varies per render branch — `type` and `disabled` are valid
+// only on `<button>`, `to` only on RouterLink, `href` only on plain `<a>`.
+// Computing once keeps the template free of branching v-bind expressions.
+const rootBindings = computed<Record<string, unknown>>(() => {
+  if (hasTo.value) {
+    return hasRouterLink ? { to: props.to } : { href: String(props.to) };
+  }
+  return {
+    type: props.type,
+    disabled: props.disabled || props.loading,
+  };
+});
+
+const isLink = computed(() => hasTo.value);
+
+const buttonClasses = computed(() => [
   'coar-button',
   `coar-button--${props.variant}`,
   `coar-button--${props.size}`,
@@ -58,21 +111,37 @@ const buttonClasses= computed(() => [
 ]);
 
 function handleClick(event: MouseEvent) {
-  if (!props.disabled && !props.loading) {
-    emit('click', event);
+  // On the link branches, native <a disabled> is not a thing — we have to
+  // intercept and preventDefault ourselves. The `@click.capture` binding in
+  // the template guarantees this handler runs BEFORE RouterLink's internal
+  // bubble-phase `onClick`, so `preventDefault` here makes RouterLink's
+  // `guardEvent` bail out (it checks `defaultPrevented`). `stopPropagation`
+  // also blocks bubble-phase delegation listeners further up the tree; we
+  // intentionally do NOT use `stopImmediatePropagation`, which would also
+  // kill capture-phase listeners on the same element (e.g. a `v-tooltip`
+  // directive or a consumer-attached analytics handler) — overkill for the
+  // intent here.
+  if (props.disabled || props.loading) {
+    if (isLink.value) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    return;
   }
+  emit('click', event);
 }
 </script>
 
 <template>
-  <button
+  <component
+    :is="rootIs"
     :class="buttonClasses"
-    :type="type"
-    :disabled="disabled || loading"
+    v-bind="rootBindings"
     :aria-disabled="disabled || loading ? 'true' : undefined"
     :aria-busy="loading || undefined"
     :aria-label="ariaLabel"
-    @click="handleClick"
+    :tabindex="isLink && (disabled || loading) ? -1 : undefined"
+    @click.capture="handleClick"
   >
     <!-- Screen reader loading announcement -->
     <span
@@ -127,7 +196,7 @@ function handleClick(event: MouseEvent) {
     >
       <CoarIcon :name="iconEnd" size="auto" />
     </span>
-  </button>
+  </component>
 </template>
 
 <style scoped>

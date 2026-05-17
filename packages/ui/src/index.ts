@@ -27,6 +27,9 @@ export { CoarFade, CoarSlide, CoarScale, CoarCollapse } from './components/trans
 export { CoarButton } from './components/button';
 export type { CoarButtonProps, ButtonVariant, ButtonSize } from './components/button';
 
+export { CoarLink } from './components/link';
+export type { CoarLinkProps, CoarLinkSize, CoarLinkVariant } from './components/link';
+
 export { CoarIcon } from './components/icon';
 export type { CoarIconProps, CoarIconSize, CoarIconSource, CoarIconSourceEntry, CoarIconRegisteredSource, CoarIconPluginOptions, CoreIconName } from './components/icon';
 export { CoarIconService, CoarIconMapSource, CoarHttpIconSource, COAR_ICON_SERVICE_KEY, COAR_BUILTIN_ICON_SOURCE_KEY, PRESET_SIZES, CoarIconPlugin, createCoarIconService, CORE_ICONS } from './components/icon';

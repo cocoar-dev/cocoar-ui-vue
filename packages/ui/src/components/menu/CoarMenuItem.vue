@@ -1,5 +1,19 @@
 <script setup lang="ts">
-import { ref, inject, computed, onMounted, onBeforeUnmount, watch } from 'vue';
+import {
+  computed,
+  inject,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from 'vue';
+import { useRouterLink } from '../_internal/use-router-link';
+// Type-only import — erased at runtime, no bundling impact. `vue-router` is
+// an optional `peerDependenciesMeta` entry so consumers without a router can
+// still use `CoarMenuItem` with `@clicked` only (no `to`). Modern tsconfigs
+// with `skipLibCheck: true` (the default in vue-tsc) avoid type-resolution
+// errors for non-router consumers reading our emitted `.d.ts`.
+import type { RouteLocationRaw } from 'vue-router';
 import CoarIcon from '../icon/CoarIcon.vue';
 import { useMenuClose, MENU_NAV_KEY } from './menu-cascade';
 
@@ -16,10 +30,27 @@ const props = withDefaults(
     label?: string;
     /** Optional icon name */
     icon?: string;
+    /**
+     * Optional Vue Router target. Accepts anything `RouterLink.to` accepts
+     * (string path, named-route object, etc.). When set the item renders as a
+     * real `<a href>` so middle-click / ctrl-click open a new tab, right-click
+     * exposes "Open in new tab" / "Copy link address", and screenreaders
+     * announce "link to {label}" instead of just "menuitem". Routing is
+     * delegated to `RouterLink` when `vue-router` is installed; otherwise a
+     * plain `<a>` is rendered (works for absolute URLs via the browser's
+     * native navigation). `vue-router` is intentionally NOT a peerDependency.
+     *
+     * `clicked` is still emitted on plain-click after navigation kicks off,
+     * so `keepMenuOpen()` and other consumer side-effects continue to work.
+     * On modifier-click (Ctrl/Cmd/Middle = new tab) the click event is
+     * suppressed by the browser default — the menu does NOT auto-close so
+     * the user can fire several link items in a row.
+     */
+    to?: RouteLocationRaw | string;
     /** Disabled state */
     disabled?: boolean;
   }>(),
-  { label: undefined, icon: undefined, disabled: false },
+  { label: undefined, icon: undefined, to: undefined, disabled: false },
 );
 
 const emit = defineEmits<{
@@ -30,7 +61,21 @@ const closeMenu = useMenuClose();
 const menuNav = inject(MENU_NAV_KEY, undefined);
 const itemRef = ref<HTMLElement | null>(null);
 
+// Soft Vue Router integration — see use-router-link.ts.
+const { RouterLink, hasRouterLink, warnIfMisconfigured } = useRouterLink();
+watch(
+  () => props.to,
+  (to) => warnIfMisconfigured(to, 'CoarMenuItem'),
+  { immediate: true },
+);
+const hasTo = computed(() => props.to !== undefined && props.to !== null);
+
 // --- Roving tabindex registration ---
+// Required even on the <a>-link branch: arrow-key navigation inside the menu
+// switches focus between siblings, and the active item must have tabindex=0
+// while the rest have tabindex=-1. Native <a> tabbability alone is not enough
+// — without roving control, Tab would land on every item and arrow keys
+// wouldn't move focus.
 let unregister: (() => void) | null = null;
 
 onMounted(() => {
@@ -38,7 +83,6 @@ onMounted(() => {
     const navItem = { el: itemRef.value, disabled: props.disabled };
     unregister = menuNav.register(navItem);
 
-    // Keep disabled state in sync
     watch(
       () => props.disabled,
       (val) => {
@@ -59,6 +103,27 @@ const itemTabindex = computed(() => {
   return idx === menuNav.activeIndex.value ? 0 : -1;
 });
 
+// Modifier-click detection mirrors the browser's "open in new tab" criteria.
+// On a modifier-click the browser handles the link (new tab) without firing
+// SPA navigation — and we treat the menu as "user is opening a new tab, keep
+// menu open in case they want to open another sibling too". This matches what
+// macOS Finder / Chrome bookmarks bar do.
+function isModifierClick(event: MouseEvent): boolean {
+  return event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0;
+}
+
+function emitClicked(event: MouseEvent): { shouldClose: boolean } {
+  let shouldClose = true;
+  const clickEvent: MenuItemClickEvent = {
+    event,
+    keepMenuOpen: () => {
+      shouldClose = false;
+    },
+  };
+  emit('clicked', clickEvent);
+  return { shouldClose };
+}
+
 function handleClick(event: MouseEvent) {
   if (props.disabled) {
     event.preventDefault();
@@ -67,17 +132,46 @@ function handleClick(event: MouseEvent) {
   }
   event.stopPropagation();
 
-  let shouldClose = true;
-  const clickEvent: MenuItemClickEvent = {
-    event,
-    keepMenuOpen: () => {
-      shouldClose = false;
-    },
-  };
-
-  emit('clicked', clickEvent);
+  const { shouldClose } = emitClicked(event);
 
   if (shouldClose && closeMenu) {
+    queueMicrotask(() => closeMenu());
+  }
+}
+
+function handleAnchorClick(
+  event: MouseEvent,
+  navigate?: (e?: MouseEvent) => Promise<unknown>,
+) {
+  if (props.disabled) {
+    event.preventDefault();
+    event.stopPropagation();
+    return;
+  }
+
+  // Three orthogonal decisions, kept explicit instead of conflated in a
+  // single early-return so future edits don't accidentally couple them:
+  //   1. emit `clicked` — always, so consumers see every interaction
+  //      (including modifier-clicks for telemetry).
+  //   2. navigate via SPA router — only on plain-click; modifier-clicks
+  //      stay with the browser's native new-tab path. navigate() would
+  //      no-op anyway via RouterLink.guardEvent, but skipping it is cleaner.
+  //   3. close the menu — auto-close on plain-click only. Modifier-click
+  //      keeps the menu open so the user can fire several link items in a
+  //      row (matches macOS Finder / Chrome bookmarks bar pattern).
+  //      `keepMenuOpen()` in the consumer's handler suppresses close on
+  //      either path.
+  const isModifier = isModifierClick(event);
+  const { shouldClose } = emitClicked(event);
+
+  if (!isModifier && navigate) {
+    // Custom-slot mode: RouterLink does NOT wire its own click handler, so
+    // we hand off explicitly. Do NOT preventDefault first — guardEvent
+    // inside navigate() bails if the event is already prevented.
+    void navigate(event);
+  }
+
+  if (shouldClose && closeMenu && !isModifier) {
     queueMicrotask(() => closeMenu());
   }
 }
@@ -85,17 +179,32 @@ function handleClick(event: MouseEvent) {
 function handleKeydown(event: KeyboardEvent) {
   if (event.key !== 'Enter' && event.key !== ' ') return;
   if (props.disabled) return;
+
+  // For anchor links, Enter natively triggers a click on the underlying
+  // `<a>` — that path goes through handleAnchorClick and does the right
+  // thing (emit + navigate + close). We must NOT call emitClicked/closeMenu
+  // here because that would double-fire (once from keydown, once from the
+  // browser-synthesized click that follows).
+  if (hasTo.value && event.key === 'Enter') {
+    return;
+  }
+
   event.preventDefault();
 
-  let shouldClose = true;
-  const clickEvent: MenuItemClickEvent = {
-    event: new MouseEvent('click'),
-    keepMenuOpen: () => {
-      shouldClose = false;
-    },
-  };
+  // Space on an `<a>` does NOT trigger a native click in any browser, so for
+  // link-rendered items we synthesize a click on the element itself. That
+  // routes through handleAnchorClick and unifies the Space path with the
+  // mouse-click path (RouterLink navigation, modifier handling, emit, close
+  // — all in one place). Without this, Space on a link-menu-item would emit
+  // + close the menu but NEVER navigate, a silent UX bug.
+  if (hasTo.value && itemRef.value) {
+    itemRef.value.click();
+    return;
+  }
 
-  emit('clicked', clickEvent);
+  // No-`to` branch: original click-emit-only behaviour.
+  const synthetic = new MouseEvent('click');
+  const { shouldClose } = emitClicked(synthetic);
 
   if (shouldClose && closeMenu) {
     queueMicrotask(() => closeMenu());
@@ -104,7 +213,61 @@ function handleKeydown(event: KeyboardEvent) {
 </script>
 
 <template>
+  <!-- `to` + router available: RouterLink in custom mode, anchor rendered by us. -->
+  <component
+    :is="RouterLink"
+    v-if="hasTo && hasRouterLink"
+    :to="to"
+    custom
+  >
+    <template #default="{ href, navigate }">
+      <a
+        ref="itemRef"
+        role="menuitem"
+        :href="href"
+        class="coar-menu-item"
+        :class="{ 'coar-menu-item--disabled': props.disabled }"
+        :aria-disabled="props.disabled || undefined"
+        :tabindex="itemTabindex"
+        @click="(e) => handleAnchorClick(e, navigate)"
+        @keydown="handleKeydown"
+      >
+        <span class="coar-menu-item__icon" aria-hidden="true">
+          <CoarIcon :name="props.icon || 'square-dashed'" size="s" />
+        </span>
+        <span class="coar-menu-item__label">
+          <template v-if="props.label">{{ props.label }}</template>
+          <slot v-else />
+        </span>
+      </a>
+    </template>
+  </component>
+
+  <!-- `to` set, no router: plain <a> fallback. -->
+  <a
+    v-else-if="hasTo"
+    ref="itemRef"
+    role="menuitem"
+    :href="String(to)"
+    class="coar-menu-item"
+    :class="{ 'coar-menu-item--disabled': props.disabled }"
+    :aria-disabled="props.disabled || undefined"
+    :tabindex="itemTabindex"
+    @click="handleAnchorClick"
+    @keydown="handleKeydown"
+  >
+    <span class="coar-menu-item__icon" aria-hidden="true">
+      <CoarIcon :name="props.icon || 'square-dashed'" size="s" />
+    </span>
+    <span class="coar-menu-item__label">
+      <template v-if="props.label">{{ props.label }}</template>
+      <slot v-else />
+    </span>
+  </a>
+
+  <!-- No `to`: original <div role="menuitem"> path for action items. -->
   <div
+    v-else
     ref="itemRef"
     role="menuitem"
     class="coar-menu-item"
@@ -141,6 +304,8 @@ function handleKeydown(event: KeyboardEvent) {
   user-select: none;
   transition: background var(--coar-duration-fast) var(--coar-ease-out);
   outline: none;
+  /* Reset native <a> defaults so the link variant looks identical to <div>. */
+  text-decoration: none;
 }
 
 .coar-menu-item:hover:not(.coar-menu-item--disabled) {

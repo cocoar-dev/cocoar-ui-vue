@@ -1,10 +1,10 @@
 <template>
   <CoarBreadcrumb>
-    <CoarBreadcrumbItem><a href="javascript:void(0)">Home</a></CoarBreadcrumbItem>
-    <CoarBreadcrumbItem><a href="javascript:void(0)">Products</a></CoarBreadcrumbItem>
-    <CoarBreadcrumbItem><a href="javascript:void(0)">Electronics</a></CoarBreadcrumbItem>
-    <CoarBreadcrumbItem><a href="javascript:void(0)">Laptops</a></CoarBreadcrumbItem>
-    <CoarBreadcrumbItem :active="true">MacBook Pro 16"</CoarBreadcrumbItem>
+    <CoarBreadcrumbItem to="/shop" icon="home">Home</CoarBreadcrumbItem>
+    <CoarBreadcrumbItem to="/shop/products" icon="folder">Products</CoarBreadcrumbItem>
+    <CoarBreadcrumbItem to="/shop/products/electronics" icon="layout-grid">Electronics</CoarBreadcrumbItem>
+    <CoarBreadcrumbItem to="/shop/products/electronics/laptops" icon="file-text">Laptops</CoarBreadcrumbItem>
+    <CoarBreadcrumbItem active>MacBook Pro 16"</CoarBreadcrumbItem>
   </CoarBreadcrumb>
 </template>
 

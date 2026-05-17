@@ -42,6 +42,39 @@ Pass the `borderless` prop when embedding a menu inside a sidebar, panel, or car
 
 <preview path="./menu/demos/MenuBorderless.vue" />
 
+## Router-aware items
+
+Pass `to` to `CoarMenuItem` to render it as a real `<a href>` link instead of `<div role="menuitem">`. Same payoff as on the sidebar: middle-click and Ctrl/Cmd-click open the destination in a new tab via the browser's native handling, right-click exposes "Open in new tab" / "Copy link address", and screenreaders announce "link to {label}". `role="menuitem"` is preserved on the `<a>` branch (the parent `CoarMenu` is `role="menu"`, so the role pairing is WAI-ARIA-correct).
+
+```vue
+<CoarMenu>
+  <CoarMenuItem icon="user" label="Profile" to="/profile" />
+  <CoarMenuItem icon="settings" label="Settings" to="/settings" />
+  <CoarMenuDivider />
+  <CoarMenuItem icon="log-out" label="Logout" @clicked="auth.signOut()" />
+</CoarMenu>
+```
+
+**Modifier-clicks do NOT auto-close the menu.** When the user Ctrl/Cmd/Middle-clicks a link item the browser opens a new tab natively and the menu stays open — matches the macOS Finder / Chrome bookmarks bar pattern, lets the user fire several link items in a row without re-opening the menu. Plain click still triggers SPA navigation and auto-closes the menu (subject to `keepMenuOpen()` in your `@clicked` handler).
+
+::: info
+`vue-router` is declared as an **optional `peerDependenciesMeta`** entry of `@cocoar/vue-ui` — install it for SPA routing, omit it for click-emit-only use. Items without `to` keep the original `<div role="menuitem">` rendering and the `@clicked` event pathway exactly as before.
+:::
+
+::: warning Object `to` without router
+Passing an object literal (`:to="{ name: 'profile' }"`) when no router is installed falls back to `String(to)`, producing `href="[object Object]"` — a broken link. The component logs a DEV-only `console.warn` once per component instance to make this loud at dev-time. Pass a string path for the no-router case.
+:::
+
+### Keyboard support on link items
+
+When `to` is set the menu item renders as `<a href>`, so the keyboard pathway differs slightly from action items:
+
+- **Enter** — delegated to the browser, which fires a native click on the `<a>`. RouterLink navigation runs, the menu auto-closes.
+- **Space** — synthesizes a click on the underlying anchor element (Space does not natively activate `<a>` in any browser). Same outcome as Enter / mouse click: navigation + auto-close.
+- **Modifier+Enter** — browser opens a new tab natively; the menu stays open so the user can fire additional link items.
+
+`@clicked` fires for all three pathways. `keepMenuOpen()` still suppresses auto-close on the link path.
+
 ## Scrollable Menu
 
 When a menu has many items, it scrolls automatically. Use `#header` and `#footer` slots for fixed content above and below the scrollable area. `CoarMenuHeading` supports a `sticky` prop to keep section headers visible while scrolling.
@@ -89,6 +122,7 @@ When a menu has many items, it scrolls automatically. Use `#header` and `#footer
 |------|------|---------|-------------|
 | `label` | `string` | `undefined` | Item label text (alternative to default slot) |
 | `icon` | `string` | `undefined` | Leading icon name |
+| `to` | `RouteLocationRaw \| string` | `undefined` | Vue Router target. When set, renders as `<a href>` via `<RouterLink>` (or plain `<a>` if no router is installed). Modifier-clicks open a new tab without closing the menu. See [Router-aware items](#router-aware-items). |
 | `disabled` | `boolean` | `false` | Disable the item |
 
 ### CoarMenuItem Slots

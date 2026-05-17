@@ -133,5 +133,13 @@ function getA11yAttrs(): Record<string, string | undefined> {
 .coar-overlay-panel {
   box-sizing: border-box;
   display: flex;
+  /* Panel is a flex child of `.coar-overlay-host`. Without `flex: 1` it would
+     shrink to its content's intrinsic width and ignore the host width set by
+     `applySize` in overlay-service. `min-width: 0` overrides the default
+     `min-width: auto` for flex children so content can be narrower than the
+     panel's min-content (otherwise long unbreakable strings push the panel
+     past the host's configured width). */
+  flex: 1;
+  min-width: 0;
 }
 </style>
