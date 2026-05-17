@@ -7,6 +7,16 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 2.2.1
+
+Closes an inconsistency in the v2.2.0 router-link rollout: `CoarMenuItem` shipped without an `active` prop or `RouterLink.isActive` wiring, while `CoarSidebarItem` had both. Consumers who wanted to mark a menu item as "currently selected" (view-mode toggles, settings sub-menus with a ✓ marker, sort-direction indicators) had no built-in way to do so. This release mirrors the sidebar's pattern onto the menu so both components have parity.
+
+### Added
+
+- **`@cocoar/vue-ui` — `CoarMenuItem.active` prop**: typed `boolean | undefined`. Marks the item as the current selection — applies the `coar-menu-item--active` class and `aria-current="page"` attribute. When `to` is set and `active` is omitted, the state follows `<RouterLink>`'s `isActive` slot prop automatically, so consumer-computed `route.path === '/x'` checks aren't needed. Explicit `active` wins over the router-derived value, for non-route selections (e.g. "current view mode is List" — not a route, just app state). The menu still auto-closes when an active item is clicked: the active styling is meaningful while the menu is open (user sees "✓ List view"), then the menu closes and reopens later with the new selection active. Mirrors the `CoarSidebarItem.active` implementation exactly — same `props.active ?? routerIsActive` resolution, same precedence rules, same CSS-token shape. New CSS tokens `--coar-menu-item-active-color` (default `var(--coar-text-accent-primary)`) and `--coar-menu-item-active-bg` (default `var(--coar-background-accent-tertiary)`) match the sidebar's accent-treatment palette so visually the two components stay in sync. 7 new tests across the three render branches (router-installed auto-active, explicit overrides, active-still-closes-menu, no-router explicit-only, `<div>` non-route selection state). Total `CoarMenuItem.test.ts` suite: 28 (was 21).
+
+---
+
 ## 2.2.0
 
 This release closes a long-standing usability gap reported from the `cocoarappbase` (Multi-Tenant ASP.NET + Vue + Marten) template: the three component families that consumers most often wire to Vue Router (sidebar navigation, dropdown menu items, and call-to-action buttons) all rendered as `<div role="menuitem">` or `<button>`, so right-click → "Open in new tab", middle-click, and Ctrl/Cmd-click all silently did nothing. Apps had to fall back to `@click="router.push(...)"` and lose every native browser-link affordance. This release adds an optional `to: RouteLocationRaw | string` prop to all three families AND a new `<CoarLink>` SFC wrapper that brings the same router-aware behaviour to inline links, on top of the long-standing CSS-only `.coar-link` pattern. `vue-router` is declared as an **optional `peerDependenciesMeta`** entry — install it for SPA routing, omit it for click-emit-only / external-URL use, and the type-only import keeps consumer apps without a router type-checking cleanly under `skipLibCheck: true` (vue-tsc default). Also lands a 3-line overlay panel CSS fix that closes an `<application-base>` workaround where modals opened with `size: { width: '42rem' }` rendered ~12% narrower than configured.

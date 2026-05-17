@@ -65,6 +65,23 @@ Pass `to` to `CoarMenuItem` to render it as a real `<a href>` link instead of `<
 Passing an object literal (`:to="{ name: 'profile' }"`) when no router is installed falls back to `String(to)`, producing `href="[object Object]"` — a broken link. The component logs a DEV-only `console.warn` once per component instance to make this loud at dev-time. Pass a string path for the no-router case.
 :::
 
+## Active state
+
+Use `active` to mark a menu item as the current selection — view-mode toggles, settings checkmarks, sort-direction indicators. The library renders the `coar-menu-item--active` class + `aria-current="page"`. When `to` is set and `active` is omitted, the state follows `<RouterLink>`'s `isActive` automatically.
+
+```vue
+<CoarMenu>
+  <CoarMenuItem icon="list" :active="view === 'list'" @clicked="view = 'list'">
+    List view
+  </CoarMenuItem>
+  <CoarMenuItem icon="grid" :active="view === 'grid'" @clicked="view = 'grid'">
+    Grid view
+  </CoarMenuItem>
+</CoarMenu>
+```
+
+The menu still auto-closes on click — active styling is meaningful while the menu is open (the user sees what's currently selected), then the menu closes and reopens later showing the new selection as active.
+
 ### Keyboard support on link items
 
 When `to` is set the menu item renders as `<a href>`, so the keyboard pathway differs slightly from action items:
@@ -123,6 +140,7 @@ When a menu has many items, it scrolls automatically. Use `#header` and `#footer
 | `label` | `string` | `undefined` | Item label text (alternative to default slot) |
 | `icon` | `string` | `undefined` | Leading icon name |
 | `to` | `RouteLocationRaw \| string` | `undefined` | Vue Router target. When set, renders as `<a href>` via `<RouterLink>` (or plain `<a>` if no router is installed). Modifier-clicks open a new tab without closing the menu. See [Router-aware items](#router-aware-items). |
+| `active` | `boolean` | `undefined` | Mark the item as the current selection (view-mode toggle, settings checkmark, sort indicator). Renders `coar-menu-item--active` + `aria-current="page"`. Defaults to `<RouterLink>`'s `isActive` when `to` is set; explicit value always wins. The menu still auto-closes on click — active state is meaningful WHILE the menu is open. |
 | `disabled` | `boolean` | `false` | Disable the item |
 
 ### CoarMenuItem Slots

@@ -47,10 +47,25 @@ const props = withDefaults(
      * the user can fire several link items in a row.
      */
     to?: RouteLocationRaw | string;
+    /**
+     * Whether this item is currently active. Used for menu items that
+     * represent a current selection (e.g. view-mode toggle: "✓ List view",
+     * settings sub-menu: "✓ Light theme", context-menu sort indicators).
+     *
+     * If `to` is set and `active` is left undefined, the active state is
+     * inferred from `RouterLink`'s `isActive` — drift between consumer-
+     * computed `route.path === '/x'` and the router's own matching is
+     * eliminated. Setting `active` explicitly always wins (use for non-route
+     * active states like "current selection").
+     *
+     * The menu still auto-closes when an active item is clicked (the active
+     * state is visible WHILE the menu is open — that's when it matters).
+     */
+    active?: boolean;
     /** Disabled state */
     disabled?: boolean;
   }>(),
-  { label: undefined, icon: undefined, to: undefined, disabled: false },
+  { label: undefined, icon: undefined, to: undefined, active: undefined, disabled: false },
 );
 
 const emit = defineEmits<{
@@ -69,6 +84,24 @@ watch(
   { immediate: true },
 );
 const hasTo = computed(() => props.to !== undefined && props.to !== null);
+
+// Active-state computation, mirroring CoarSidebarItem. RouterLink's `isActive`
+// is read inline from the slot scope (Branch 1) and fed in via `classesFor` /
+// `ariaCurrentFor`; the other branches pass `false` since there is no router
+// match to compute. `props.active ?? routerIsActive` lets consumer overrides
+// win over auto-detection (use for non-route "selected" states).
+function classesFor(routerIsActive: boolean): Record<string, boolean> {
+  const isActive = props.active ?? routerIsActive;
+  return {
+    'coar-menu-item--active': isActive,
+    'coar-menu-item--disabled': props.disabled,
+  };
+}
+
+function ariaCurrentFor(routerIsActive: boolean): 'page' | undefined {
+  const isActive = props.active ?? routerIsActive;
+  return isActive ? 'page' : undefined;
+}
 
 // --- Roving tabindex registration ---
 // Required even on the <a>-link branch: arrow-key navigation inside the menu
@@ -220,14 +253,15 @@ function handleKeydown(event: KeyboardEvent) {
     :to="to"
     custom
   >
-    <template #default="{ href, navigate }">
+    <template #default="{ href, isActive, navigate }">
       <a
         ref="itemRef"
         role="menuitem"
         :href="href"
         class="coar-menu-item"
-        :class="{ 'coar-menu-item--disabled': props.disabled }"
+        :class="classesFor(isActive)"
         :aria-disabled="props.disabled || undefined"
+        :aria-current="ariaCurrentFor(isActive)"
         :tabindex="itemTabindex"
         @click="(e) => handleAnchorClick(e, navigate)"
         @keydown="handleKeydown"
@@ -250,8 +284,9 @@ function handleKeydown(event: KeyboardEvent) {
     role="menuitem"
     :href="String(to)"
     class="coar-menu-item"
-    :class="{ 'coar-menu-item--disabled': props.disabled }"
+    :class="classesFor(false)"
     :aria-disabled="props.disabled || undefined"
+    :aria-current="ariaCurrentFor(false)"
     :tabindex="itemTabindex"
     @click="handleAnchorClick"
     @keydown="handleKeydown"
@@ -271,8 +306,9 @@ function handleKeydown(event: KeyboardEvent) {
     ref="itemRef"
     role="menuitem"
     class="coar-menu-item"
-    :class="{ 'coar-menu-item--disabled': props.disabled }"
+    :class="classesFor(false)"
     :aria-disabled="props.disabled || undefined"
+    :aria-current="ariaCurrentFor(false)"
     :tabindex="itemTabindex"
     @click="handleClick"
     @keydown="handleKeydown"
@@ -322,6 +358,20 @@ function handleKeydown(event: KeyboardEvent) {
   color: var(--coar-text-neutral-disabled);
   cursor: not-allowed;
   opacity: 0.5;
+}
+
+/* Active state — used for menu items representing a current selection
+   (view-mode toggle, settings sub-menu, sort-direction indicator). Tokens
+   match the sidebar/menu accent treatment so visually the two stay in
+   sync without copy-pasting per-component palette overrides. */
+.coar-menu-item--active {
+  color: var(--coar-menu-item-active-color, var(--coar-text-accent-primary));
+  background: var(--coar-menu-item-active-bg, var(--coar-background-accent-tertiary));
+  font-weight: var(--coar-font-weight-medium);
+}
+
+.coar-menu-item--active:hover:not(.coar-menu-item--disabled) {
+  background: var(--coar-menu-item-active-bg, var(--coar-background-accent-tertiary));
 }
 
 .coar-menu-item__icon {

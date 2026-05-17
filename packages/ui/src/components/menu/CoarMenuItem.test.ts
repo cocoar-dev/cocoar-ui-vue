@@ -125,6 +125,59 @@ describe('CoarMenuItem — link variants', () => {
       expect(router.currentRoute.value.path).toBe('/');
     });
 
+    it('reflects RouterLink isActive in --active class + aria-current=page', async () => {
+      // v2.2.1 — mirrors CoarSidebarItem behaviour. When `active` is omitted
+      // and `to` matches current route, library reads RouterLink's isActive
+      // slot prop to flip the --active styling and aria-current attribute.
+      await router.push('/profile');
+      await router.isReady();
+      const item = await mountItem({ to: '/profile' });
+      await nextTick();
+      expect(item.classes()).toContain('coar-menu-item--active');
+      expect(item.attributes('aria-current')).toBe('page');
+    });
+
+    it('is not active when current route differs', async () => {
+      await router.push('/');
+      await router.isReady();
+      const item = await mountItem({ to: '/profile' });
+      await nextTick();
+      expect(item.classes()).not.toContain('coar-menu-item--active');
+      expect(item.attributes('aria-current')).toBeUndefined();
+    });
+
+    it('explicit active=true overrides RouterLink isActive=false', async () => {
+      await router.push('/');
+      await router.isReady();
+      const item = await mountItem({ to: '/profile', active: true });
+      await nextTick();
+      expect(item.classes()).toContain('coar-menu-item--active');
+      expect(item.attributes('aria-current')).toBe('page');
+    });
+
+    it('explicit active=false overrides RouterLink isActive=true', async () => {
+      await router.push('/profile');
+      await router.isReady();
+      const item = await mountItem({ to: '/profile', active: false });
+      await nextTick();
+      expect(item.classes()).not.toContain('coar-menu-item--active');
+      expect(item.attributes('aria-current')).toBeUndefined();
+    });
+
+    it('active item still closes the menu on click (active is visible WHILE menu is open)', async () => {
+      // Critical semantic: marking an item as the current selection should
+      // NOT change menu-close behaviour. The active state is meaningful
+      // during menu-open (user sees "✓ List view"); after click the menu
+      // closes regardless, and reopens later with the new selection active.
+      await router.push('/profile');
+      await router.isReady();
+      const item = await mountItem({ to: '/profile' });
+      await item.trigger('click');
+      await flushPromises();
+      await flushPromises();
+      expect(closeMenu).toHaveBeenCalledTimes(1);
+    });
+
     it('disabled link: aria-disabled, click suppressed, no navigation, no close', async () => {
       const item = await mountItem({ to: '/profile', disabled: true });
       expect(item.attributes('aria-disabled')).toBe('true');
@@ -207,6 +260,14 @@ describe('CoarMenuItem — link variants', () => {
       await flushPromises();
       expect(closeMenu).not.toHaveBeenCalled();
     });
+
+    it('explicit active=true applies --active even without router', async () => {
+      // Branch 2 has no RouterLink to read isActive from, so the only way
+      // to mark a fallback-anchor item as active is the explicit prop.
+      const item = await mountItem({ to: '/x', active: true });
+      expect(item.classes()).toContain('coar-menu-item--active');
+      expect(item.attributes('aria-current')).toBe('page');
+    });
   });
 
   describe('Branch 3: no `to` (regression suite for click-emit-only API)', () => {
@@ -271,6 +332,15 @@ describe('CoarMenuItem — link variants', () => {
       await item.trigger('click');
       expect(wrapper.emitted('clicked')).toBeUndefined();
       expect(closeMenu).not.toHaveBeenCalled();
+    });
+
+    it('active=true applies --active class + aria-current=page on <div> branch', async () => {
+      // Branch 3 = action items (logout, "Reload data", etc.). The `active`
+      // prop here represents non-route selection state — e.g. a settings
+      // menu where one item is "currently selected" with a ✓ icon.
+      const item = await mountItem({ active: true });
+      expect(item.classes()).toContain('coar-menu-item--active');
+      expect(item.attributes('aria-current')).toBe('page');
     });
 
     it('label slot still works when no label prop is set', async () => {
