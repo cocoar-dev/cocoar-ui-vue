@@ -39,6 +39,10 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('./views/PageBuilderView.vue'),
   },
   {
+    path: '/pdf-viewer',
+    component: () => import('./views/PdfViewerView.vue'),
+  },
+  {
     path: '/markdown-editor',
     component: () => import('./views/MarkdownEditorView.vue'),
   },

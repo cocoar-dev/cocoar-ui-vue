@@ -38,9 +38,42 @@ const props = withDefaults(
     iconOnly?: boolean;
     /** Open flyout on hover instead of click. Only applies to mode="flyout". */
     openOnHover?: boolean;
+    /**
+     * Split-trigger mode: clicking the trigger emits `triggerClick` instead
+     * of toggling the panel. The flyout opens only via hover (`openOnHover`)
+     * or programmatically via `v-model:open`. Use when the trigger represents
+     * a primary action (e.g. "activate marker tool") and the panel offers
+     * secondary configuration (stroke width, color). Only meaningful with
+     * `mode="flyout"`; ignored for `mode="expand"`.
+     */
+    splitTrigger?: boolean;
+    /**
+     * Visual "selected" state for the trigger — matches `CoarSidebarItem`'s
+     * `active` prop styling. Typically driven by the consumer to indicate
+     * that the tool this group represents is currently the active one.
+     */
+    active?: boolean;
   }>(),
-  { icon: undefined, disabled: false, mode: 'expand', iconOnly: undefined, openOnHover: false },
+  {
+    icon: undefined,
+    disabled: false,
+    mode: 'expand',
+    iconOnly: undefined,
+    openOnHover: false,
+    splitTrigger: false,
+    active: false,
+  },
 );
+
+const emit = defineEmits<{
+  /**
+   * Trigger-area click in split-trigger mode. Only fires when
+   * `splitTrigger` is true; consumers wire it to the primary action that
+   * the trigger represents (e.g. activate the tool whose config the flyout
+   * exposes).
+   */
+  triggerClick: [event: MouseEvent];
+}>();
 
 const open = defineModel<boolean>('open', { default: false });
 const sidebarCollapsed = inject(SIDEBAR_COLLAPSED_KEY, ref(false));
@@ -123,6 +156,13 @@ function toggle(event: Event) {
   if (props.disabled) {
     event.preventDefault();
     event.stopPropagation();
+    return;
+  }
+
+  // Split-trigger: clicking the trigger area fires the primary action; the
+  // flyout stays hover-controlled. Only relevant for `mode="flyout"`.
+  if (props.splitTrigger && isFlyout.value) {
+    emit('triggerClick', event as MouseEvent);
     return;
   }
 
@@ -282,9 +322,11 @@ onBeforeUnmount(() => {
     class="coar-sidebar-group"
     :class="[
       `coar-sidebar-group--${orientation}`,
+      `coar-sidebar-group--side-${sidebarSide}`,
       {
         'coar-sidebar-group--collapsed': sidebarCollapsed,
         'coar-sidebar-group--icon-only': renderIconOnly,
+        'coar-sidebar-group--active': props.active,
       },
     ]"
   >
@@ -296,6 +338,7 @@ onBeforeUnmount(() => {
       :class="{
         'coar-sidebar-group__trigger--disabled': props.disabled,
         'coar-sidebar-group__trigger--open': isFlyout ? flyoutOpen : isOpen,
+        'coar-sidebar-group__trigger--active': props.active,
       }"
       role="menuitem"
       aria-haspopup="menu"
@@ -410,6 +453,45 @@ onBeforeUnmount(() => {
   color: var(--coar-text-neutral-disabled);
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+/* Active — mirrors CoarSidebarItem's `--active` styling so a group used as
+   a primary tool toggle (`splitTrigger` + `active`) reads identically to a
+   regular sidebar item in the selected state. The side-keyed indicator
+   border matches the same pattern.
+
+   `!important` not needed here because the group's own styling is the only
+   competing source; for CoarSidebarItem we needed it (consumer's child CSS
+   outranked our parent override). */
+.coar-sidebar-group__trigger--active {
+  color: var(--coar-sidebar-item-active-color, var(--coar-text-accent-primary));
+  background: var(--coar-sidebar-item-active-bg, var(--coar-background-accent-tertiary));
+  font-weight: var(--coar-font-weight-medium);
+}
+.coar-sidebar-group__trigger--active:hover {
+  background: var(--coar-sidebar-item-active-bg, var(--coar-background-accent-tertiary));
+}
+.coar-sidebar-group--side-left .coar-sidebar-group__trigger--active {
+  border-left: 3px solid currentColor;
+  padding-left: calc(0.75rem - 3px);
+}
+.coar-sidebar-group--side-right .coar-sidebar-group__trigger--active {
+  border-right: 3px solid currentColor;
+  padding-right: calc(0.75rem - 3px);
+}
+.coar-sidebar-group--side-top .coar-sidebar-group__trigger--active {
+  border-top: 3px solid currentColor;
+  padding-top: calc(0.5rem - 3px);
+}
+.coar-sidebar-group--side-bottom .coar-sidebar-group__trigger--active {
+  border-bottom: 3px solid currentColor;
+  padding-bottom: calc(0.5rem - 3px);
+}
+/* Collapsed (icon-only) drops the indicator border and re-pads symmetrically. */
+.coar-sidebar-group--collapsed .coar-sidebar-group__trigger--active,
+.coar-sidebar-group--icon-only .coar-sidebar-group__trigger--active {
+  border: none;
+  padding: 0.5rem;
 }
 
 /* Icon */

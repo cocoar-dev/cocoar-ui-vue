@@ -16,6 +16,8 @@
     "@cocoar/vue-calendar": "workspace:*",
     "@cocoar/vue-data-grid": "workspace:*",
     "@cocoar/vue-page-builder": "workspace:*",
+    "@cocoar/vue-document-viewer": "workspace:*",
+    "pdfjs-dist": "^5.7.0",
     "@cocoar/vue-fragment-parser": "workspace:*",
     "@cocoar/vue-localization": "workspace:*",
     "@cocoar/vue-markdown": "workspace:*",

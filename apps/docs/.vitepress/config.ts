@@ -109,6 +109,39 @@ export default defineConfig({
             '../../../packages/calendar/src/core/index.ts',
           ),
         },
+        {
+          find: /^@cocoar\/vue-document-viewer$/,
+          replacement: resolve(
+            __dirname,
+            '../../../packages/document-viewer/src/index.ts',
+          ),
+        },
+        {
+          find: /^@cocoar\/vue-document-viewer\/pdf$/,
+          replacement: resolve(
+            __dirname,
+            '../../../packages/document-viewer/src/sources/pdf.ts',
+          ),
+        },
+        {
+          // Docs demos use the built CSS path. The library's CSS is the
+          // collected styles of every SFC — only available after `pnpm build`.
+          // Map the styles import to a dev-time barrel so demos work without a
+          // prior build step.
+          find: /^@cocoar\/vue-document-viewer\/styles$/,
+          replacement: resolve(
+            __dirname,
+            '../../../packages/document-viewer/dist/vue-document-viewer.css',
+          ),
+        },
+        {
+          // pdfjs-dist references DOMMatrix at module eval — explodes during
+          // VitePress SSR. None of the docs demos render real PDFs (those live
+          // in the playground), so stub the module with no-op classes.
+          // See ./pdfjs-stub.ts for the rationale.
+          find: /^pdfjs-dist$/,
+          replacement: resolve(__dirname, './pdfjs-stub.ts'),
+        },
       ],
     },
     plugins: [
@@ -125,6 +158,7 @@ export default defineConfig({
         '@cocoar/vue-data-grid',
         '@cocoar/vue-markdown-editor',
         '@cocoar/vue-calendar',
+        '@cocoar/vue-document-viewer',
         'ag-grid-community',
         'ag-grid-vue3',
         '@maskito/core',
@@ -326,6 +360,15 @@ export default defineConfig({
             { text: 'Overview', link: '/components/page-builder/' },
             { text: 'CoarPageBuilder', link: '/components/page-builder/coar-page-builder' },
             { text: 'CoarPageRenderer', link: '/components/page-builder/coar-page-renderer' },
+          ],
+        },
+        {
+          text: 'Document Viewer (Preview)',
+          items: [
+            { text: 'Overview', link: '/components/document-viewer/' },
+            { text: 'CoarDocumentViewer', link: '/components/document-viewer/coar-document-viewer' },
+            { text: 'Toolbar customization', link: '/components/document-viewer/toolbar' },
+            { text: 'Annotations', link: '/components/document-viewer/annotations' },
           ],
         },
         {

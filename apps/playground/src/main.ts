@@ -6,6 +6,13 @@ import * as monacoNs from 'monaco-editor';
 import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
 import TsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker';
 import JsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
+import * as pdfjs from 'pdfjs-dist';
+import PdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?worker';
+
+// One-time pdfjs worker registration — pdfSource() (from
+// @cocoar/vue-document-viewer/pdf) expects this to be set before any viewer
+// instance mounts a PDF source.
+pdfjs.GlobalWorkerOptions.workerPort = new PdfWorker();
 
 // Expose on window so e2e tests can read Monaco markers directly. Playground is a dev tool;
 // never bundled into consumer apps.

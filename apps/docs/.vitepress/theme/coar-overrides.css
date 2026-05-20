@@ -79,3 +79,44 @@
   font-weight: 600;
   font-size: var(--coar-body-small-bold-size, 14px);
 }
+
+/* --- Wider doc layout ---------------------------------------------------- */
+/*
+ * VitePress defaults the inner `.content-container` to ~688px so prose lines
+ * stay short. Our docs lean code-heavy (long type signatures, wide tables,
+ * 1200×800 demo previews), so the default feels cramped.
+ *
+ * Bumped the outer layout max-width from 1440 to 1600 and let the content
+ * container fill the available space inside it. The right outline stays put.
+ */
+
+:root {
+  /* VitePress caps the doc layout at `--vp-layout-max-width` (default 1440) and
+   * centers it. On wide monitors that leaves a lot of empty side gutter. Bump
+   * way up so big screens actually fill — small screens are unaffected, the
+   * cap only kicks in once viewport > 1440 anyway. */
+  --vp-layout-max-width: 2200px;
+}
+
+/* `!important` because VitePress's stylesheet loads AFTER our theme overrides
+ * and uses the same single-class specificity for this selector, so the cascade
+ * would otherwise pick VitePress's 688px back up. */
+.VPDoc.has-aside .content-container {
+  max-width: 100% !important;
+}
+
+/* Same reason — VitePress's `.VPDoc:not(.has-sidebar) .content { max-width: 752px }`
+ * would otherwise constrain pages that don't have a sidebar (e.g. /index, /llms-full). */
+.VPDoc:not(.has-sidebar) .content {
+  max-width: 100% !important;
+}
+
+/* On wide screens, also widen the home (hero/features) layout — without this
+ * the landing page looks awkwardly narrow next to the bumped doc width. */
+@media (min-width: 1440px) {
+  .VPHome .container,
+  .VPHero .container,
+  .VPFeatures .container {
+    max-width: 1408px;
+  }
+}

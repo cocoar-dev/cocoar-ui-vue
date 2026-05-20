@@ -17,7 +17,7 @@ import KitchenSink from './kitchen-sink/demos/KitchenSink.vue'
 
 <style>
 .ks-page {
-  max-width: 1376px;
+  max-width: var(--vp-layout-max-width, 1376px);
   margin: 0 auto;
   padding: 24px 32px;
 }
