@@ -12,13 +12,7 @@ on:
 jobs:
   build-and-pack-alpha:
     name: Lint, Test, Build & Pack Alpha
-    # Pinned to ubuntu-22.04 — ubuntu-24.04 (the current `ubuntu-latest`)
-    # exhibits a hang during Playwright's chromium archive extract step.
-    # Download completes in ~1 s (170 MiB), `extract-zip` then stalls
-    # silently for 5+ min until our step timeout fires. Same workflow on
-    # 22.04 worked at v2.3.0. Revisit when Playwright > 1.59.1 ships with
-    # the issue fixed.
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
       contents: read
@@ -60,28 +54,34 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Cache key includes a version suffix that can be bumped to bust a
-      # corrupt or partially-written cache (which manifests as
-      # `playwright install` downloading the browser successfully but then
-      # hanging silently during the post-download unzip/verify step).
-      - name: Cache Playwright browsers
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-v2-${{ hashFiles('**/pnpm-lock.yaml') }}
-
-      # `--with-deps` was dropped previously (it apt-installed Chromium
-      # system libs; ubuntu-latest already has them). Subsequent runs still
-      # hang silently AFTER the 170 MiB chromium archive downloads in ~1s —
-      # nothing in stdout for 5 minutes until the timeout fires. To make the
-      # hang visible, run with Playwright's DEBUG channels enabled so any
-      # next failure shows the actual blocked syscall instead of stalling
-      # at "100% downloaded".
-      - name: Install Playwright browsers
+      # Caching disabled — multiple attempts showed Playwright's
+      # `extract-zip` hangs silently for 5+ min after the 1-second download
+      # completes, regardless of cache hit/miss/OS. Workaround below uses
+      # the system `unzip` (a few seconds for 170 MiB) instead of
+      # Playwright's internal extract, then writes the marker file so
+      # `playwright install` detects "already installed" and skips its own
+      # extract. URL + revision are pinned to Playwright 1.59.1 — bump both
+      # when the package upgrades.
+      - name: Install Playwright browsers (system-unzip workaround)
         timeout-minutes: 5
-        env:
-          DEBUG: pw:install,pw:download
-        run: pnpm --filter @cocoar/playground exec playwright install chromium
+        run: |
+          set -euo pipefail
+          BROWSERS_DIR="$HOME/.cache/ms-playwright/chromium-1217"
+          URL="https://cdn.playwright.dev/builds/cft/147.0.7727.15/linux64/chrome-linux64.zip"
+          mkdir -p "$BROWSERS_DIR"
+          echo "Downloading $URL"
+          curl -fsSL --retry 3 "$URL" -o /tmp/chromium.zip
+          echo "Extracting via system unzip"
+          unzip -q /tmp/chromium.zip -d "$BROWSERS_DIR"
+          rm /tmp/chromium.zip
+          # Marker tells `playwright install` the browser is ready; without
+          # it, Playwright re-triggers its own extract (which is what hangs).
+          touch "$BROWSERS_DIR/INSTALLATION_COMPLETE"
+          "$BROWSERS_DIR/chrome-linux64/chrome" --version
+          # Run playwright install for any auxiliary setup (creates symlinks,
+          # registers the install). With INSTALLATION_COMPLETE present, this
+          # should be a no-op skip and not re-extract.
+          pnpm --filter @cocoar/playground exec playwright install chromium
 
       - name: Lint
         run: pnpm lint
