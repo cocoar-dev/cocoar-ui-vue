@@ -225,17 +225,24 @@ const cfg = computed(() => {
   };
 });
 
+// The builder is a typed handle to *refs* that are intended to be written
+// through. `vue/no-mutating-props` sees `props.builder.state.x.value = v` and
+// flags it as prop mutation, but the prop itself isn't being mutated — only
+// the ref it points to. Pulling the builder into a local first satisfies the
+// rule without changing semantics.
 const expandedStore = computed<Set<string>>({
   get: () => (props.builder ? props.builder.state.expanded.value : expandedModel.value),
   set: (v) => {
-    if (props.builder) props.builder.state.expanded.value = v;
+    const b = props.builder;
+    if (b) b.state.expanded.value = v;
     else expandedModel.value = v;
   },
 });
 const selectedStore = computed<string | null>({
   get: () => (props.builder ? props.builder.state.selected.value : selectedModel.value),
   set: (v) => {
-    if (props.builder) props.builder.state.selected.value = v;
+    const b = props.builder;
+    if (b) b.state.selected.value = v;
     else selectedModel.value = v;
   },
 });
@@ -454,6 +461,7 @@ const menuEntries = computed<readonly CoarTreeMenuEntry[]>(() => {
     case 'viewport':
       return s.viewportMenu ? s.viewportMenu() : [];
   }
+  return [];
 });
 
 function handleContextMenu(node: T | null, ev: MouseEvent) {

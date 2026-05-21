@@ -1,18 +1,22 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
-import { defineComponent, h, nextTick, ref } from 'vue';
-import CoarTree from './CoarTree.vue';
+import { defineComponent, h, nextTick, ref, type Component } from 'vue';
+import CoarTreeRaw from './CoarTree.vue';
 import CoarOverlayHost from '../overlay/CoarOverlayHost.vue';
 import { CoarOverlayPlugin, _resetOverlayServiceForTests } from '../overlay/useOverlay';
 import { useTree } from './useTree';
-import type { CoarTreeNodeMoveEvent } from './tree-types';
+
+// See CoarTree.test.ts for why we cast: `defineSlots` on CoarTree gives
+// vue-tsc strict slot-shape expectations that `h(...)` can't satisfy through
+// the runtime API.
+const CoarTree = CoarTreeRaw as Component;
 
 /**
  * Tests that exercise the internal `<CoarContextMenu>` need the overlay
  * service. Install the plugin globally for each mount and reset the service
  * between tests so the singleton doesn't leak state.
  */
-const mountOpts = { global: { plugins: [CoarOverlayPlugin] } } as const;
+const mountOpts = { global: { plugins: [CoarOverlayPlugin] } };
 
 interface DemoNode {
   id: string;
@@ -232,19 +236,24 @@ describe('TreeBuilder + useTree', () => {
 
   describe('back-compat with props mode', () => {
     it('renders without a builder using bare props', () => {
+      const expanded = ref(new Set<string>(['a']));
       const Wrapper = defineComponent({
-        components: { CoarTree },
-        setup: () => ({
-          tree: demoTree,
-          getId: (n: DemoNode) => n.id,
-          getChildren: (n: DemoNode) => n.children,
-          expanded: ref(new Set<string>(['a'])),
-        }),
-        template: `
-          <CoarTree :nodes="tree" :get-id="getId" :get-children="getChildren" v-model:expanded="expanded">
-            <template #default="{ node }"><span>{{ node.name }}</span></template>
-          </CoarTree>
-        `,
+        setup: () => () =>
+          h('div', null, [
+            h(
+              CoarTree,
+              {
+                nodes: demoTree,
+                getId: (n: DemoNode) => n.id,
+                getChildren: (n: DemoNode) => n.children,
+                expanded: expanded.value,
+                'onUpdate:expanded': (v: Set<string>) => (expanded.value = v),
+              },
+              {
+                default: ({ node }: { node: DemoNode }) => h('span', null, node.name),
+              },
+            ),
+          ]),
       });
       const wrapper = mount(Wrapper, { attachTo: document.body, ...mountOpts });
       expect(wrapper.findAll('.coar-tree-node__row').length).toBe(4);

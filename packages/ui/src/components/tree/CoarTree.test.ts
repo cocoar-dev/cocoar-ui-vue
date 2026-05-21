@@ -1,8 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
-import { defineComponent, nextTick, ref } from 'vue';
-import CoarTree from './CoarTree.vue';
+import { defineComponent, h, nextTick, ref, type Component } from 'vue';
+import CoarTreeRaw from './CoarTree.vue';
 import type { CoarTreeNodeMoveEvent } from './tree-types';
+
+// `defineSlots<{default(...); empty()}>` on CoarTree gives vue-tsc strict
+// `__VLS_Slots` shape expectations that `h(CoarTree, props, slots)` can't
+// satisfy through the runtime API. Cast to a plain Component for the test
+// wrapper so the typecheck passes; runtime behavior is unchanged.
+const CoarTree = CoarTreeRaw as Component;
 
 interface DemoNode {
   id: string;
@@ -42,54 +48,42 @@ function makeWrapper(opts: {
   const filesDrop = ref<{ count: number; targetId: string | null } | null>(null);
 
   const Wrapper = defineComponent({
-    components: { CoarTree },
-    setup() {
-      return {
-        nodes: opts.nodes ?? demoTree,
-        expanded: expandedRef,
-        selected: selectedRef,
-        getId: (n: DemoNode) => n.id,
-        getChildren: (n: DemoNode) => n.children,
-        getLabel: (n: DemoNode) => n.name,
-        isExpandable: (n: DemoNode) => !!n.children,
-        draggable: opts.draggable ?? false,
-        acceptsFiles: opts.acceptsFiles ?? false,
-        onActivate: (n: DemoNode) => {
-          activate.value = n;
-        },
-        onContextMenu: (n: DemoNode | null) => {
-          contextMenu.value = { node: n };
-        },
-        onNodeMove: (e: CoarTreeNodeMoveEvent<DemoNode>) => {
-          nodeMove.value = e;
-        },
-        onFilesDrop: (e: { files: FileList; target: DemoNode | null }) => {
-          filesDrop.value = { count: e.files.length, targetId: e.target?.id ?? null };
-        },
-      };
-    },
-    template: `
-      <CoarTree
-        :nodes="nodes"
-        :get-id="getId"
-        :get-children="getChildren"
-        :get-label="getLabel"
-        :is-expandable="isExpandable"
-        v-model:expanded="expanded"
-        v-model:selected="selected"
-        :draggable="draggable"
-        :accepts-files="acceptsFiles"
-        @activate="onActivate"
-        @context-menu="onContextMenu"
-        @node-move="onNodeMove"
-        @files-drop="onFilesDrop"
-      >
-        <template #default="{ node, depth }">
-          <span class="row" :data-depth="depth">{{ node.name }}</span>
-        </template>
-        <template #empty>EMPTY</template>
-      </CoarTree>
-    `,
+    setup: () => () =>
+      h('div', null, [
+        h(
+          CoarTree,
+          {
+            nodes: opts.nodes ?? demoTree,
+            getId: (n: DemoNode) => n.id,
+            getChildren: (n: DemoNode) => n.children,
+            getLabel: (n: DemoNode) => n.name,
+            isExpandable: (n: DemoNode) => !!n.children,
+            draggable: opts.draggable ?? false,
+            acceptsFiles: opts.acceptsFiles ?? false,
+            expanded: expandedRef.value,
+            'onUpdate:expanded': (v: Set<string>) => (expandedRef.value = v),
+            selected: selectedRef.value,
+            'onUpdate:selected': (v: string | null) => (selectedRef.value = v),
+            onActivate: (n: DemoNode) => {
+              activate.value = n;
+            },
+            onContextMenu: (n: DemoNode | null) => {
+              contextMenu.value = { node: n };
+            },
+            onNodeMove: (e: CoarTreeNodeMoveEvent<DemoNode>) => {
+              nodeMove.value = e;
+            },
+            onFilesDrop: (e: { files: FileList; target: DemoNode | null }) => {
+              filesDrop.value = { count: e.files.length, targetId: e.target?.id ?? null };
+            },
+          },
+          {
+            default: ({ node, depth }: { node: DemoNode; depth: number }) =>
+              h('span', { class: 'row', 'data-depth': depth }, node.name),
+            empty: () => 'EMPTY',
+          },
+        ),
+      ]),
   });
 
   const wrapper = mount(Wrapper, { attachTo: document.body });

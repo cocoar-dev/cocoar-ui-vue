@@ -54,7 +54,7 @@ if (rename && rowId) {
 
 <template>
   <input
-    v-if="isRenaming"
+    v-if="rename && isRenaming"
     ref="inputEl"
     v-model="rename.buffer.value"
     class="coar-tree-node-label__input"
@@ -62,10 +62,10 @@ if (rename && rowId) {
     @click.stop
     @dblclick.stop
     @keydown.stop
-    @keydown.enter.prevent="rename?.commit()"
-    @keydown.escape.prevent="rename?.cancel()"
-    @focus="rename?.onFocus()"
-    @blur="rename?.onBlur()"
+    @keydown.enter.prevent="rename.commit()"
+    @keydown.escape.prevent="rename.cancel()"
+    @focus="rename.onFocus()"
+    @blur="rename.onBlur()"
   />
   <span v-else class="coar-tree-node-label__text">{{ label }}</span>
 </template>
