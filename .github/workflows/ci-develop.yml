@@ -12,7 +12,13 @@ on:
 jobs:
   build-and-pack-alpha:
     name: Lint, Test, Build & Pack Alpha
-    runs-on: ubuntu-latest
+    # Pinned to ubuntu-22.04 — ubuntu-24.04 (the current `ubuntu-latest`)
+    # exhibits a hang during Playwright's chromium archive extract step.
+    # Download completes in ~1 s (170 MiB), `extract-zip` then stalls
+    # silently for 5+ min until our step timeout fires. Same workflow on
+    # 22.04 worked at v2.3.0. Revisit when Playwright > 1.59.1 ships with
+    # the issue fixed.
+    runs-on: ubuntu-22.04
     timeout-minutes: 30
     permissions:
       contents: read
