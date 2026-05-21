@@ -54,49 +54,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Caching disabled — multiple attempts showed Playwright's
-      # `extract-zip` hangs silently for 5+ min after the 1-second download
-      # completes, regardless of cache hit/miss/OS. Workaround below uses
-      # the system `unzip` (a few seconds for 170 MiB) instead of
-      # Playwright's internal extract, then writes the marker file so
-      # `playwright install` detects "already installed" and skips its own
-      # extract. URL + revision are pinned to Playwright 1.59.1 — bump both
-      # when the package upgrades.
-      - name: Install Playwright browsers (system-unzip workaround)
-        timeout-minutes: 5
-        run: |
-          set -euo pipefail
-          # Pre-install Chromium AND FFmpeg via curl+unzip — Playwright's
-          # internal extract hangs silently on this runner combo (confirmed
-          # for both chromium and ffmpeg archives). With both INSTALLATION_-
-          # COMPLETE markers present, `playwright install chromium` becomes
-          # a no-op skip. URLs + revisions pinned to Playwright 1.59.1.
-          install_archive() {
-            local label="$1" url="$2" target="$3"
-            mkdir -p "$target"
-            echo "[$label] downloading $url"
-            curl -fsSL --retry 3 "$url" -o /tmp/playwright-archive.zip
-            echo "[$label] extracting via system unzip into $target"
-            unzip -q /tmp/playwright-archive.zip -d "$target"
-            rm /tmp/playwright-archive.zip
-            touch "$target/INSTALLATION_COMPLETE"
-          }
-          install_archive \
-            chromium \
-            https://cdn.playwright.dev/builds/cft/147.0.7727.15/linux64/chrome-linux64.zip \
-            "$HOME/.cache/ms-playwright/chromium-1217"
-          install_archive \
-            chromium-headless-shell \
-            https://cdn.playwright.dev/builds/cft/147.0.7727.15/linux64/chrome-headless-shell-linux64.zip \
-            "$HOME/.cache/ms-playwright/chromium-headless-shell-1217"
-          install_archive \
-            ffmpeg \
-            https://cdn.playwright.dev/dbazure/download/playwright/builds/ffmpeg/1011/ffmpeg-linux.zip \
-            "$HOME/.cache/ms-playwright/ffmpeg-1011"
-          "$HOME/.cache/ms-playwright/chromium-1217/chrome-linux64/chrome" --version
-          # Run playwright install so it records the install metadata. With
-          # both markers present this should be a no-op skip.
-          pnpm --filter @cocoar/playground exec playwright install chromium
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @cocoar/playground exec playwright install --with-deps chromium
 
       - name: Lint
         run: pnpm lint
