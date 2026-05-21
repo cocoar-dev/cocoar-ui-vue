@@ -66,21 +66,32 @@ jobs:
         timeout-minutes: 5
         run: |
           set -euo pipefail
-          BROWSERS_DIR="$HOME/.cache/ms-playwright/chromium-1217"
-          URL="https://cdn.playwright.dev/builds/cft/147.0.7727.15/linux64/chrome-linux64.zip"
-          mkdir -p "$BROWSERS_DIR"
-          echo "Downloading $URL"
-          curl -fsSL --retry 3 "$URL" -o /tmp/chromium.zip
-          echo "Extracting via system unzip"
-          unzip -q /tmp/chromium.zip -d "$BROWSERS_DIR"
-          rm /tmp/chromium.zip
-          # Marker tells `playwright install` the browser is ready; without
-          # it, Playwright re-triggers its own extract (which is what hangs).
-          touch "$BROWSERS_DIR/INSTALLATION_COMPLETE"
-          "$BROWSERS_DIR/chrome-linux64/chrome" --version
-          # Run playwright install for any auxiliary setup (creates symlinks,
-          # registers the install). With INSTALLATION_COMPLETE present, this
-          # should be a no-op skip and not re-extract.
+          # Pre-install Chromium AND FFmpeg via curl+unzip — Playwright's
+          # internal extract hangs silently on this runner combo (confirmed
+          # for both chromium and ffmpeg archives). With both INSTALLATION_-
+          # COMPLETE markers present, `playwright install chromium` becomes
+          # a no-op skip. URLs + revisions pinned to Playwright 1.59.1.
+          install_archive() {
+            local label="$1" url="$2" target="$3"
+            mkdir -p "$target"
+            echo "[$label] downloading $url"
+            curl -fsSL --retry 3 "$url" -o /tmp/playwright-archive.zip
+            echo "[$label] extracting via system unzip into $target"
+            unzip -q /tmp/playwright-archive.zip -d "$target"
+            rm /tmp/playwright-archive.zip
+            touch "$target/INSTALLATION_COMPLETE"
+          }
+          install_archive \
+            chromium \
+            https://cdn.playwright.dev/builds/cft/147.0.7727.15/linux64/chrome-linux64.zip \
+            "$HOME/.cache/ms-playwright/chromium-1217"
+          install_archive \
+            ffmpeg \
+            https://cdn.playwright.dev/dbazure/download/playwright/builds/ffmpeg/1011/ffmpeg-linux.zip \
+            "$HOME/.cache/ms-playwright/ffmpeg-1011"
+          "$HOME/.cache/ms-playwright/chromium-1217/chrome-linux64/chrome" --version
+          # Run playwright install so it records the install metadata. With
+          # both markers present this should be a no-op skip.
           pnpm --filter @cocoar/playground exec playwright install chromium
 
       - name: Lint
