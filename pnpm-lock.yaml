@@ -132,6 +132,9 @@ importers:
       '@cocoar/vue-document-viewer':
         specifier: workspace:*
         version: link:../../packages/document-viewer
+      '@cocoar/vue-file-explorer':
+        specifier: workspace:*
+        version: link:../../packages/file-explorer
       '@cocoar/vue-fragment-parser':
         specifier: workspace:*
         version: link:../../packages/fragment-parser
@@ -243,6 +246,18 @@ importers:
       pdfjs-dist:
         specifier: ^5.7.0
         version: 5.7.284
+      vue:
+        specifier: ^3.5.32
+        version: 3.5.33(typescript@5.9.3)
+
+  packages/file-explorer:
+    devDependencies:
+      '@cocoar/vue-script-editor':
+        specifier: workspace:*
+        version: link:../script-editor
+      '@cocoar/vue-ui':
+        specifier: workspace:*
+        version: link:../ui
       vue:
         specifier: ^3.5.32
         version: 3.5.33(typescript@5.9.3)

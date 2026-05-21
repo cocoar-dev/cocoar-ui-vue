@@ -31,6 +31,21 @@ export interface TooltipOptions {
   openDelay?: number;
   /** Close delay in ms. Default: 0 */
   closeDelay?: number;
+  /**
+   * Only show the tooltip when text is actually truncated.
+   *
+   * - `true` — check the trigger element itself
+   *   (`el.scrollWidth > el.clientWidth`).
+   * - `string` — treat as a CSS selector on the trigger element and check
+   *   that descendant's overflow instead. Use this when the tooltip is on a
+   *   wrapper (so the hover area covers the whole row, including icons) but
+   *   only the label inside is what gets truncated.
+   * - `function` — custom predicate, called with the trigger element on
+   *   every hover/focus, returning `true` if the tooltip should show.
+   *
+   * Checked lazily — no `ResizeObserver` overhead. Default: false.
+   */
+  onlyOnOverflow?: boolean | string | ((triggerEl: HTMLElement) => boolean);
 }
 
 type OpenReason = 'hover' | 'focus';
@@ -64,6 +79,28 @@ let nextId = 0;
  * disabled `TooltipOptions` so downstream code can rely on the return shape.
  */
 type TooltipBindingValue = string | TooltipOptions | false | null | undefined;
+
+/**
+ * Resolve whether the tooltip should be suppressed by the `onlyOnOverflow`
+ * gate. Returns `true` if the tooltip should be suppressed (i.e. nothing is
+ * overflowing). Inputs:
+ *
+ * - `false` / `undefined` — gate is off, never suppress.
+ * - `true` — measure the trigger element itself.
+ * - `string` — query the trigger for a descendant; measure that. If the
+ *   selector doesn't match, treat as no-overflow (= suppress) to fail safe
+ *   instead of spamming an unintended tooltip.
+ * - `function` — caller decides; we treat a truthy return value as
+ *   "overflowing" (= do NOT suppress).
+ */
+function isOverflowSuppressed(el: HTMLElement, opts: TooltipOptions): boolean {
+  const gate = opts.onlyOnOverflow;
+  if (!gate) return false;
+  if (typeof gate === 'function') return !gate(el);
+  const target = typeof gate === 'string' ? el.querySelector<HTMLElement>(gate) : el;
+  if (!target) return true;
+  return target.scrollWidth <= target.clientWidth;
+}
 
 function getOptions(binding: DirectiveBinding<TooltipBindingValue>): TooltipOptions {
   const val = binding.value;
@@ -293,6 +330,10 @@ export const vTooltip: Directive<HTMLElement, TooltipBindingValue> = {
       },
       onMouseEnter: () => {
         if (state.opts.disabled || !state.opts.content) return;
+        // Truncation gate — when `onlyOnOverflow` is set, suppress the tooltip
+        // if the text fits its container. Evaluated on enter so dynamic label /
+        // size changes between hovers always reflect current layout.
+        if (isOverflowSuppressed(el, state.opts)) return;
         if (state.closeTimerId != null) {
           window.clearTimeout(state.closeTimerId);
           state.closeTimerId = null;
@@ -304,6 +345,9 @@ export const vTooltip: Directive<HTMLElement, TooltipBindingValue> = {
       },
       onFocusIn: () => {
         if (state.opts.disabled || !state.opts.content) return;
+        // Same truncation gate as the hover path — keyboard focus also
+        // suppresses the tooltip when the gated descendant fits.
+        if (isOverflowSuppressed(el, state.opts)) return;
         // Pointer-initiated focus (click/tap) should not pin the tooltip open;
         // let hover tracking handle the lifecycle instead.
         if (Date.now() - state.lastPointerDown < 200) return;

@@ -249,6 +249,20 @@ const emit = defineEmits<{
   (e: 'error', payload: CoarDocumentViewerErrorEvent): void;
 }>();
 
+/**
+ * Panel state — `v-model:sidebar-open` (left rail: thumbnails / outline) and
+ * `v-model:annotations-panel-open` (right rail). Both default to `false`.
+ *
+ * Bind these if you want the panel state to **persist across file changes**
+ * (e.g. inside a file-explorer shell where the user opens the left rail once
+ * and expects it to stay open when they click another file): hold the refs
+ * outside the v-if branch that mounts CoarDocumentViewer and pass them in.
+ * Without v-model, the state is internal and resets every time the component
+ * remounts.
+ */
+const sidebarOpen = defineModel<boolean>('sidebarOpen', { default: false });
+const annotationsPanelOpen = defineModel<boolean>('annotationsPanelOpen', { default: false });
+
 defineSlots<{
   loading(): unknown;
   error(props: { error: unknown; retry: () => void }): unknown;
@@ -513,19 +527,12 @@ const searchOpen = ref(false);
 const search = usePdfSearch({ doc: pdfDoc });
 
 /* ---- Sidebar (thumbnails + outline) -------------------------------- */
-
-/** Whether the left rail is showing. Opens automatically when the user clicks
- *  the toolbar's thumbnails button. */
-const sidebarOpen = ref(false);
+/* Sidebar and annotations panel open state are defineModel'd above so
+ * consumers can persist them across file swaps. */
 
 function toggleSidebar() {
   sidebarOpen.value = !sidebarOpen.value;
 }
-
-/* ---- Annotation panel (right rail) -------------------------------- */
-
-/** Whether the right-side annotations list panel is showing. */
-const annotationsPanelOpen = ref(false);
 
 function toggleAnnotationsPanel() {
   annotationsPanelOpen.value = !annotationsPanelOpen.value;

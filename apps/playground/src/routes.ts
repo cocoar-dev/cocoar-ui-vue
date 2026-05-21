@@ -46,6 +46,10 @@ export const routes: RouteRecordRaw[] = [
     path: '/markdown-editor',
     component: () => import('./views/MarkdownEditorView.vue'),
   },
+  {
+    path: '/file-explorer-poc',
+    component: () => import('./views/FileExplorerPocView.vue'),
+  },
   // ─── @cocoar/vue-calendar demos ────────────────────────────
   {
     path: '/calendar-basic',

@@ -1,0 +1,55 @@
+{
+  "name": "@cocoar/vue-file-explorer",
+  "version": "0.0.1",
+  "description": "VSCode-style file/asset explorer for Vue 3 — composable + types over a pluggable AssetStore<T> backend.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cocoar-dev/cocoar-ui-vue.git",
+    "directory": "packages/file-explorer"
+  },
+  "homepage": "https://docs.cocoar.dev/cocoar-ui-vue/",
+  "bugs": "https://github.com/cocoar-dev/cocoar-ui-vue/issues",
+  "keywords": [
+    "vue",
+    "vue3",
+    "file-explorer",
+    "asset-store",
+    "tree"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "vite build",
+    "test": "vitest run --passWithNoTests",
+    "lint": "eslint src/",
+    "typecheck": "vue-tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@cocoar/vue-script-editor": "workspace:*",
+    "@cocoar/vue-ui": "workspace:*",
+    "vue": "^3.5.0"
+  },
+  "peerDependenciesMeta": {
+    "@cocoar/vue-script-editor": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@cocoar/vue-script-editor": "workspace:*",
+    "@cocoar/vue-ui": "workspace:*",
+    "vue": "^3.5.32"
+  }
+}

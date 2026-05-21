@@ -130,6 +130,28 @@ describe('CoarBreadcrumb', () => {
     expect(wrapper.find('nav').attributes('aria-label')).toBe('Standort');
   });
 
+  describe('size', () => {
+    it('defaults to size m', () => {
+      const wrapper = createBreadcrumb({ items: [{ label: 'Home' }] });
+      const nav = wrapper.find('nav');
+      expect(nav.classes()).toContain('coar-breadcrumb--m');
+      expect(nav.classes()).not.toContain('coar-breadcrumb--s');
+    });
+
+    it('applies size=s modifier class', () => {
+      const wrapper = mount(
+        {
+          components: { CoarBreadcrumb, CoarBreadcrumbItem },
+          template: `<CoarBreadcrumb size="s"><CoarBreadcrumbItem>Home</CoarBreadcrumbItem></CoarBreadcrumb>`,
+        },
+        { attachTo: document.body },
+      );
+      const nav = wrapper.find('nav');
+      expect(nav.classes()).toContain('coar-breadcrumb--s');
+      expect(nav.classes()).not.toContain('coar-breadcrumb--m');
+    });
+  });
+
   describe('separator rendering', () => {
     it('renders separator CSS variable between items', () => {
       const wrapper = createBreadcrumb({

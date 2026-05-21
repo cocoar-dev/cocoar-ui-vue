@@ -24,14 +24,106 @@ function randomId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-export type CoarScriptEditorLanguage = 'typescript' | 'javascript' | 'json';
+/**
+ * Languages the editor recognises. Three groups:
+ *
+ *   - **TS/JS/JSON** — full language-service treatment: type checking,
+ *     IntelliSense, `extraLibs` for ambient declarations, script-mode
+ *     diagnostic suppression, JSON schema hooks.
+ *   - **Markup / config / shell** (yaml, css, html, xml, sql, shell,
+ *     dockerfile, ini, plaintext) — Monaco's built-in tokenizers; bracket
+ *     matching + find/replace + multi-cursor without a language service.
+ *   - **Other source code** (csharp, cpp, java, python, go, rust, …) —
+ *     same as markup: syntax-highlighting only via Monaco's bundled
+ *     grammars. No language service — `extraLibs` is ignored.
+ *
+ * Adding more languages from Monaco's bundle: extend the union, add a file
+ * extension to `LANGUAGE_EXTENSIONS` (or omit — the lookup falls back to
+ * the language name as the extension).
+ */
+export type CoarScriptEditorLanguage =
+  // TS / JS / JSON (with language service)
+  | 'typescript'
+  | 'javascript'
+  | 'json'
+  // Plain + markup + config + shell (tokenizer-only)
+  | 'plaintext'
+  | 'yaml'
+  | 'css'
+  | 'html'
+  | 'xml'
+  | 'sql'
+  | 'shell'
+  | 'dockerfile'
+  | 'ini'
+  | 'markdown'
+  // Source code (tokenizer-only)
+  | 'csharp'
+  | 'cpp'
+  | 'c'
+  | 'java'
+  | 'python'
+  | 'go'
+  | 'rust'
+  | 'ruby'
+  | 'php'
+  | 'swift'
+  | 'kotlin'
+  | 'scala'
+  | 'lua'
+  | 'perl'
+  | 'dart'
+  | 'fsharp'
+  | 'vb'
+  | 'r'
+  | 'powershell'
+  | 'objective-c'
+  | 'solidity'
+  | 'protobuf'
+  | 'graphql'
+  // Templating
+  | 'razor'
+  | 'pug'
+  | 'handlebars'
+  | 'twig';
 export type CoarScriptEditorVariant = 'editor' | 'inline';
 
-const LANGUAGE_EXTENSIONS: Record<CoarScriptEditorLanguage, string> = {
+/**
+ * Filename extension used when constructing the Monaco model URI. Monaco
+ * picks up file-based heuristics from the URI even when we explicitly set
+ * `language`, so a `.ts` URI keeps TS path-mapping etc. working. For
+ * languages without a meaningful extension difference (or none distinct
+ * from the language name) the lookup falls back to the language name.
+ */
+const LANGUAGE_EXTENSIONS: Partial<Record<CoarScriptEditorLanguage, string>> = {
   typescript: 'ts',
   javascript: 'js',
   json: 'json',
+  plaintext: 'txt',
+  yaml: 'yaml',
+  shell: 'sh',
+  markdown: 'md',
+  csharp: 'cs',
+  cpp: 'cpp',
+  c: 'c',
+  python: 'py',
+  ruby: 'rb',
+  rust: 'rs',
+  kotlin: 'kt',
+  fsharp: 'fs',
+  powershell: 'ps1',
+  'objective-c': 'm',
+  solidity: 'sol',
+  protobuf: 'proto',
+  graphql: 'graphql',
+  dockerfile: 'dockerfile',
+  // Remaining languages (css, html, xml, sql, java, go, swift, scala, lua,
+  // perl, dart, vb, r, php, ini, razor, pug, handlebars, twig) fall back
+  // to the language name — Monaco accepts that as the extension.
 };
+function extensionFor(lang: CoarScriptEditorLanguage): string {
+  return LANGUAGE_EXTENSIONS[lang] ?? lang;
+}
 
 /**
  * Diagnostic codes suppressed when `scriptMode` is true. These are structural wrapper
@@ -315,7 +407,7 @@ export function useMonacoEditor(options: UseMonacoEditorOptions): UseMonacoEdito
       prependPreamble(options.initialValue(), preamble),
       language,
       monaco.Uri.parse(
-        `file:///coar-script-editor/${randomId()}.${LANGUAGE_EXTENSIONS[language]}`,
+        `file:///coar-script-editor/${randomId()}.${extensionFor(language)}`,
       ),
     );
     modelRef.value = model;

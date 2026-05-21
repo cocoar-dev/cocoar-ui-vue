@@ -110,6 +110,13 @@ export default defineConfig({
           ),
         },
         {
+          find: /^@cocoar\/vue-file-explorer$/,
+          replacement: resolve(
+            __dirname,
+            '../../../packages/file-explorer/src/index.ts',
+          ),
+        },
+        {
           find: /^@cocoar\/vue-document-viewer$/,
           replacement: resolve(
             __dirname,
@@ -159,6 +166,7 @@ export default defineConfig({
         '@cocoar/vue-markdown-editor',
         '@cocoar/vue-calendar',
         '@cocoar/vue-document-viewer',
+        '@cocoar/vue-file-explorer',
         'ag-grid-community',
         'ag-grid-vue3',
         '@maskito/core',
@@ -309,6 +317,7 @@ export default defineConfig({
             { text: 'Sidebar', link: '/components/sidebar' },
             { text: 'Navbar', link: '/components/navbar' },
             { text: 'Tabs', link: '/components/tabs' },
+            { text: 'Tree', link: '/components/tree' },
             { text: 'Segmented Control', link: '/components/segmented-control' },
             { text: 'Breadcrumb', link: '/components/breadcrumb' },
             { text: 'Pagination', link: '/components/pagination' },
@@ -369,6 +378,15 @@ export default defineConfig({
             { text: 'CoarDocumentViewer', link: '/components/document-viewer/coar-document-viewer' },
             { text: 'Toolbar customization', link: '/components/document-viewer/toolbar' },
             { text: 'Annotations', link: '/components/document-viewer/annotations' },
+          ],
+        },
+        {
+          text: 'File Explorer (Preview)',
+          items: [
+            { text: 'Overview', link: '/components/file-explorer/' },
+            { text: 'useFileExplorer', link: '/components/file-explorer/use-file-explorer' },
+            { text: 'AssetStore contract', link: '/components/file-explorer/asset-store' },
+            { text: 'In-memory store', link: '/components/file-explorer/in-memory-store' },
           ],
         },
         {

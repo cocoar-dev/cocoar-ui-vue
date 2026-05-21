@@ -176,6 +176,29 @@ export type { MenuItemClickEvent, MenuAimPoint, MenuAimDirection, MenuAimConfig,
 // Tabs
 export { CoarTabGroup, CoarTab } from './components/tabs';
 
+// Tree
+export {
+  CoarTree,
+  CoarTreeNodeLabel,
+  COAR_TREE_DRAG_MIME,
+  COAR_TREE_RENAME_KEY,
+  COAR_TREE_ROW_ID_KEY,
+  useTree,
+  TreeBuilder,
+} from './components/tree';
+export type {
+  CoarTreeDropPosition,
+  CoarTreeFilesDropEvent,
+  CoarTreeNodeMoveEvent,
+  CoarTreeNodeSlotProps,
+  CoarTreeRenameContext,
+  CoarTreeRenameEvent,
+  CoarTreeMenuItem,
+  CoarTreeMenuEntry,
+  TreeApi,
+  TreeBuilderState,
+} from './components/tree';
+
 // Segmented Control
 export { CoarSegmentedControl } from './components/segmented-control';
 export type {
@@ -186,6 +209,7 @@ export type {
 
 // Breadcrumb
 export { CoarBreadcrumb, CoarBreadcrumbItem } from './components/breadcrumb';
+export type { CoarBreadcrumbSize } from './components/breadcrumb';
 
 // Pagination
 export { CoarPagination } from './components/pagination';

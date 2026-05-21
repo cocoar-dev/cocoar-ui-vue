@@ -53,6 +53,35 @@ Switching the `source` keeps the surrounding chrome mounted; only the inner page
 
 Two convenience props — `showThumbnails || showOutline` controls the left-rail toggle button; `showAnnotationsPanel` controls the right-rail toggle. The user can collapse either rail from inside the viewer; these props gate whether the toggle is even present in the toolbar.
 
+#### Panel open state (`v-model`)
+
+By default, the left and right rails start closed and their open/closed state lives inside the component — fine for stand-alone viewers. If you embed the viewer inside a parent that mounts/unmounts it (e.g. a tab bar in a file explorer where the user switches between a Markdown file and a PDF and back), use `v-model` to hold the state on the parent so it **persists across remounts**.
+
+| Prop / Event | Type | Notes |
+|---|---|---|
+| `:sidebar-open` + `@update:sidebar-open` (`v-model:sidebar-open`) | `boolean` | Left rail (thumbnails / outline). Default `false`. |
+| `:annotations-panel-open` + `@update:annotations-panel-open` (`v-model:annotations-panel-open`) | `boolean` | Right rail (info section + annotations list). Default `false`. |
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+const sidebarOpen = ref(false);
+const panelOpen = ref(false);
+</script>
+
+<template>
+  <CoarDocumentViewer
+    :source="source"
+    :show-thumbnails="true"
+    :show-annotations-panel="true"
+    v-model:sidebar-open="sidebarOpen"
+    v-model:annotations-panel-open="panelOpen"
+  />
+</template>
+```
+
+Without `v-model`, the state is purely internal — same behavior as before, no breaking change.
+
 ### Position memory
 
 ```ts
@@ -190,6 +219,8 @@ English defaults are baked in. Pass any subset to override individual strings �
 |---|---|---|
 | `update:position` | `CoarDocumentViewerPosition` | Page / scroll / zoom / rotation change. Used for `v-model:position`. |
 | `update:annotationMode` | `CoarPdfAnnotationMode` | User picks a different mode in the toolbar. Used for `v-model:annotation-mode`. |
+| `update:sidebarOpen` | `boolean` | User toggles the left rail (thumbnails / outline). Used for `v-model:sidebar-open`. |
+| `update:annotationsPanelOpen` | `boolean` | User toggles the right rail (annotations panel). Used for `v-model:annotations-panel-open`. |
 | `annotation:create` | `CoarPdfAnnotationCreatePayload` | New annotation drawn. Consumer assigns id + timestamp. |
 | `annotation:update` | `{ id, patch }` | Existing annotation edited (color / comment / position). |
 | `annotation:delete` | `string` (id) | Existing annotation removed (via panel menu or eraser tool). |

@@ -120,6 +120,23 @@ When `to` is set and `vue-router` is registered (`app.use(router)`), the item re
 Passing an object literal (`:to="{ name: 'projects' }"`) when no router is installed falls back to `String(to)`, producing `href="[object Object]"` — a broken link. The component logs a DEV-only `console.warn` once per component instance. Pass a string path for the no-router case.
 :::
 
+## Sizes
+
+Two sizes:
+
+- **`m`** (default, 14 px) — primary navigation. Sits at the top of a page above the page title.
+- **`s`** (13 px) — secondary chrome. File-explorer paths, settings trails, address-bar style indicators sitting above other content.
+
+```vue
+<CoarBreadcrumb separator="›" size="s" aria-label="File path">
+  <CoarBreadcrumbItem>src</CoarBreadcrumbItem>
+  <CoarBreadcrumbItem>components</CoarBreadcrumbItem>
+  <CoarBreadcrumbItem active>Button.tsx</CoarBreadcrumbItem>
+</CoarBreadcrumb>
+```
+
+Pass items without `to` / `href` to render as plain text (the slot-only escape hatch) — useful for path indicators where the segments aren't independently navigable.
+
 ## Accessibility
 
 ### Keyboard Navigation
@@ -138,6 +155,7 @@ Passing an object literal (`:to="{ name: 'projects' }"`) when no router is insta
 |------|------|---------|-------------|
 | `separator` | `string` | `'/'` | Separator character between items |
 | `ariaLabel` | `string` | `'Breadcrumb'` | Accessible label for the nav landmark |
+| `size` | `'m' \| 's'` | `'m'` | Visual density. `'s'` (13 px) for secondary chrome — file-explorer paths, settings trails, etc. Drives only the font-size token; spacing + colors stay identical to `'m'` so both sizes look consistent in the same UI. |
 
 ### CoarBreadcrumbItem Props
 

@@ -196,6 +196,82 @@ describe('vTooltip', () => {
     });
   });
 
+  describe('onlyOnOverflow', () => {
+    it('should NOT show tooltip when text fits its container', async () => {
+      // 200px-wide button with short text — scrollWidth <= clientWidth.
+      const wrapper = createWrapper(
+        '<button style="width: 200px;" v-tooltip="{ content: \'Short\', onlyOnOverflow: true }">Hi</button>',
+      );
+      // jsdom defaults `scrollWidth` and `clientWidth` to 0; both equal → no overflow.
+      const btn = wrapper.find('button').element as HTMLElement;
+      Object.defineProperty(btn, 'scrollWidth', { value: 50, configurable: true });
+      Object.defineProperty(btn, 'clientWidth', { value: 200, configurable: true });
+      await wrapper.find('button').trigger('mouseenter');
+      expect(getTooltipEl()).toBeNull();
+      wrapper.unmount();
+    });
+
+    it('should show tooltip when text is truncated', async () => {
+      const wrapper = createWrapper(
+        '<button style="width: 50px; white-space: nowrap; overflow: hidden;" v-tooltip="{ content: \'A very long label that does not fit\', onlyOnOverflow: true }">Long</button>',
+      );
+      const btn = wrapper.find('button').element as HTMLElement;
+      Object.defineProperty(btn, 'scrollWidth', { value: 300, configurable: true });
+      Object.defineProperty(btn, 'clientWidth', { value: 50, configurable: true });
+      await wrapper.find('button').trigger('mouseenter');
+      expect(getTooltipEl()).not.toBeNull();
+      wrapper.unmount();
+    });
+
+    it('should check overflow on a child selector when given a string', async () => {
+      const wrapper = createWrapper(
+        '<div class="row" v-tooltip="{ content: \'Full name\', onlyOnOverflow: \'.label\' }"><span class="icon"></span><span class="label">Truncated</span></div>',
+      );
+      const row = wrapper.find('.row').element as HTMLElement;
+      const label = wrapper.find('.label').element as HTMLElement;
+      // The row itself fits (no own overflow), but the inner .label is clipped.
+      Object.defineProperty(row, 'scrollWidth', { value: 200, configurable: true });
+      Object.defineProperty(row, 'clientWidth', { value: 200, configurable: true });
+      Object.defineProperty(label, 'scrollWidth', { value: 180, configurable: true });
+      Object.defineProperty(label, 'clientWidth', { value: 30, configurable: true });
+      await wrapper.find('.row').trigger('mouseenter');
+      expect(getTooltipEl()).not.toBeNull();
+      wrapper.unmount();
+    });
+
+    it('should suppress tooltip when child selector reports no overflow', async () => {
+      const wrapper = createWrapper(
+        '<div class="row" v-tooltip="{ content: \'Full name\', onlyOnOverflow: \'.label\' }"><span class="label">OK</span></div>',
+      );
+      const label = wrapper.find('.label').element as HTMLElement;
+      Object.defineProperty(label, 'scrollWidth', { value: 30, configurable: true });
+      Object.defineProperty(label, 'clientWidth', { value: 100, configurable: true });
+      await wrapper.find('.row').trigger('mouseenter');
+      expect(getTooltipEl()).toBeNull();
+      wrapper.unmount();
+    });
+
+    it('should accept a custom predicate function', async () => {
+      const wrapper = createWrapper(
+        '<button v-tooltip="{ content: \'X\', onlyOnOverflow: predicate }">Btn</button>',
+        () => ({ predicate: () => true }),
+      );
+      await wrapper.find('button').trigger('mouseenter');
+      expect(getTooltipEl()).not.toBeNull();
+      wrapper.unmount();
+    });
+
+    it('should suppress when predicate returns false', async () => {
+      const wrapper = createWrapper(
+        '<button v-tooltip="{ content: \'X\', onlyOnOverflow: predicate }">Btn</button>',
+        () => ({ predicate: () => false }),
+      );
+      await wrapper.find('button').trigger('mouseenter');
+      expect(getTooltipEl()).toBeNull();
+      wrapper.unmount();
+    });
+  });
+
   describe('content', () => {
     it('should support string shorthand', async () => {
       const wrapper = createWrapper('<button v-tooltip="\'Short\'">Btn</button>');

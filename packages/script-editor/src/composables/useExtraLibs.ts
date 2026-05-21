@@ -25,7 +25,7 @@ export function useExtraLibs(options: UseExtraLibsOptions): void {
   const disposables: monaco.IDisposable[] = [];
 
   const warnedPaths = new Set<string>();
-  let warnedJson = false;
+  const warnedNonTs = new Set<string>();
 
   function apply() {
     while (disposables.length) {
@@ -33,16 +33,20 @@ export function useExtraLibs(options: UseExtraLibsOptions): void {
     }
     const language = options.language();
 
-    // `extraLibs` targets Monaco's TypeScript/JavaScript services only — it has no JSON
-    // equivalent. For JSON, consumers should use `monaco.languages.json.jsonDefaults.setDiagnosticsOptions({ schemas })`
-    // directly via the `getEditor()` escape hatch.
-    if (language === 'json') {
-      if (options.libs().length > 0 && !warnedJson) {
-        warnedJson = true;
+    // `extraLibs` targets Monaco's TypeScript/JavaScript services only —
+    // nothing in Monaco's other language APIs (JSON, YAML, CSS, HTML, XML,
+    // SQL, shell, plaintext) consumes them. We bail early and surface a
+    // one-shot warning per language so consumers passing libs to a non-TS
+    // editor find out before debugging silently-missing IntelliSense.
+    if (language !== 'typescript' && language !== 'javascript') {
+      if (options.libs().length > 0 && !warnedNonTs.has(language)) {
+        warnedNonTs.add(language);
+        const hint =
+          language === 'json'
+            ? 'Use monaco.languages.json.jsonDefaults.setDiagnosticsOptions for JSON schema configuration.'
+            : `Monaco has no extra-libs concept for '${language}'. Remove the libs prop or switch to a TS/JS-backed editor.`;
         console.warn(
-          `[coar-script-editor] extraLibs has entries but language is 'json' — ` +
-            `extraLibs are ignored for JSON. Use monaco.languages.json.jsonDefaults.setDiagnosticsOptions ` +
-            `for JSON schema configuration.`,
+          `[coar-script-editor] extraLibs has entries but language is '${language}' — extraLibs are ignored. ${hint}`,
         );
       }
       return;
