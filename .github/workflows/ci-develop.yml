@@ -86,6 +86,10 @@ jobs:
             https://cdn.playwright.dev/builds/cft/147.0.7727.15/linux64/chrome-linux64.zip \
             "$HOME/.cache/ms-playwright/chromium-1217"
           install_archive \
+            chromium-headless-shell \
+            https://cdn.playwright.dev/builds/cft/147.0.7727.15/linux64/chrome-headless-shell-linux64.zip \
+            "$HOME/.cache/ms-playwright/chromium-headless-shell-1217"
+          install_archive \
             ffmpeg \
             https://cdn.playwright.dev/dbazure/download/playwright/builds/ffmpeg/1011/ffmpeg-linux.zip \
             "$HOME/.cache/ms-playwright/ffmpeg-1011"
