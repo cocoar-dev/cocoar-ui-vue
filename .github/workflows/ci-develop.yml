@@ -64,13 +64,17 @@ jobs:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-v2-${{ hashFiles('**/pnpm-lock.yaml') }}
 
-      # `--with-deps` triggers `sudo apt-get install` for missing Chromium
-      # system libraries. On ubuntu-latest most are pre-installed, and the
-      # apt step has hung indefinitely in past runs (>28 min, eating the whole
-      # job timeout). Install just the browser binary — fast, cacheable —
-      # under a 5-minute hard timeout so a future hang fails loud, not silent.
+      # `--with-deps` was dropped previously (it apt-installed Chromium
+      # system libs; ubuntu-latest already has them). Subsequent runs still
+      # hang silently AFTER the 170 MiB chromium archive downloads in ~1s —
+      # nothing in stdout for 5 minutes until the timeout fires. To make the
+      # hang visible, run with Playwright's DEBUG channels enabled so any
+      # next failure shows the actual blocked syscall instead of stalling
+      # at "100% downloaded".
       - name: Install Playwright browsers
         timeout-minutes: 5
+        env:
+          DEBUG: pw:install,pw:download
         run: pnpm --filter @cocoar/playground exec playwright install chromium
 
       - name: Lint
