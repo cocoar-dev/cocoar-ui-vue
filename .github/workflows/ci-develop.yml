@@ -24,12 +24,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Setup Volta (Node + pnpm)
-        uses: volta-cli/action@v4
+        uses: volta-cli/action@v5
         with:
           package-json-path: ./package.json
 
@@ -40,22 +40,22 @@ jobs:
         run: volta install pnpm
 
       - name: Install GitVersion
-        uses: gittools/actions/gitversion/setup@v3
+        uses: gittools/actions/gitversion/setup@v4
         with:
           versionSpec: '6.x'
 
       - name: Calculate version
         id: gv
-        uses: gittools/actions/gitversion/execute@v3
+        uses: gittools/actions/gitversion/execute@v4
 
       - name: Log calculated version
-        run: echo "GitVersion calculated version ${{ steps.gv.outputs.SemVer }}"
+        run: echo "GitVersion calculated version ${{ steps.gv.outputs.semVer }}"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Cache Playwright browsers
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ hashFiles('**/pnpm-lock.yaml') }}
@@ -84,7 +84,7 @@ jobs:
 
       - name: Stamp package versions
         run: |
-          VERSION="${{ steps.gv.outputs.SemVer }}"
+          VERSION="${{ steps.gv.outputs.semVer }}"
           echo "Setting package versions to: $VERSION"
 
           shopt -s nullglob
@@ -122,8 +122,8 @@ jobs:
           done
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: prerelease-${{ steps.gv.outputs.SemVer }}
+          name: prerelease-${{ steps.gv.outputs.semVer }}
           path: artifacts
           retention-days: 7

@@ -22,14 +22,14 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.ref }}
           fetch-depth: 0
           fetch-tags: true
 
       - name: Setup Volta (Node + pnpm)
-        uses: volta-cli/action@v4
+        uses: volta-cli/action@v5
         with:
           package-json-path: ./package.json
 
@@ -40,19 +40,19 @@ jobs:
         run: volta install pnpm
 
       - name: Install GitVersion
-        uses: gittools/actions/gitversion/setup@v3
+        uses: gittools/actions/gitversion/setup@v4
         with:
           versionSpec: '6.x'
 
       - name: Calculate version
         id: gv
-        uses: gittools/actions/gitversion/execute@v3
+        uses: gittools/actions/gitversion/execute@v4
 
       - name: Build prerelease version string
         id: prerelease
         run: |
-          BASE="${{ steps.gv.outputs.MajorMinorPatch }}-${{ steps.gv.outputs.PreReleaseLabel }}"
-          N="${{ steps.gv.outputs.CommitsSinceVersionSource }}"
+          BASE="${{ steps.gv.outputs.majorMinorPatch }}-${{ steps.gv.outputs.preReleaseLabel }}"
+          N="${{ steps.gv.outputs.commitsSinceVersionSource }}"
           VERSION="$BASE.$N"
           echo "PACKAGE_VERSION=$VERSION" >> $GITHUB_ENV
           echo "PACKAGE_VERSION=$VERSION" >> $GITHUB_OUTPUT
@@ -60,14 +60,14 @@ jobs:
 
       - name: Log calculated version
         run: |
-          echo "GitVersion SemVer (original): ${{ steps.gv.outputs.SemVer }}"
+          echo "GitVersion SemVer (original): ${{ steps.gv.outputs.semVer }}"
           echo "Using PACKAGE_VERSION:        $PACKAGE_VERSION"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Cache Playwright browsers
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ hashFiles('**/pnpm-lock.yaml') }}
@@ -130,7 +130,7 @@ jobs:
           done
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: prerelease-packages-${{ steps.prerelease.outputs.PACKAGE_VERSION }}
           path: artifacts
