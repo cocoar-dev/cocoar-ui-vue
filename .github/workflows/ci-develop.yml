@@ -54,11 +54,15 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Cache key includes a version suffix that can be bumped to bust a
+      # corrupt or partially-written cache (which manifests as
+      # `playwright install` downloading the browser successfully but then
+      # hanging silently during the post-download unzip/verify step).
       - name: Cache Playwright browsers
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('**/pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-playwright-v2-${{ hashFiles('**/pnpm-lock.yaml') }}
 
       # `--with-deps` triggers `sudo apt-get install` for missing Chromium
       # system libraries. On ubuntu-latest most are pre-installed, and the
