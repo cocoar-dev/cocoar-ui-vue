@@ -103,8 +103,25 @@ export function defaultFileMetaFromName(name: string): FileMeta | null {
  * 3-stage fallback: `asset.editor` wins → then `config.getFileMeta(asset)`
  * → then `defaultFileMetaFromName(asset.name)`. Returns `null` if all three
  * decline (consumer override returned null + name is unrecognised).
+ *
+ * `language` is normalized to `'plaintext'` whenever the resolved editor is
+ * `'script'` but no language was supplied. Saves every consumer the
+ * `?? 'plaintext'` dance when binding to `<CoarScriptEditor :language>`;
+ * matches Monaco's own fallback for unrecognized files.
  */
 export function resolveFileMeta<T>(
+  asset: Asset<T>,
+  config?: Pick<AssetStoreConfig<T>, 'getFileMeta'>,
+): FileMeta | null {
+  const resolved = resolveRaw(asset, config);
+  if (!resolved) return null;
+  if (resolved.editor === 'script' && !resolved.language) {
+    return { ...resolved, language: 'plaintext' };
+  }
+  return resolved;
+}
+
+function resolveRaw<T>(
   asset: Asset<T>,
   config?: Pick<AssetStoreConfig<T>, 'getFileMeta'>,
 ): FileMeta | null {

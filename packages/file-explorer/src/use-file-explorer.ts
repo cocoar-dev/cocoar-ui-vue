@@ -4,8 +4,12 @@
  * package.
  *
  * Owns:
- *   - the data plane (`store._assets` projection, CRUD ops, error funnel,
- *     loading / saving Sets, file-meta resolution)
+ *   - the data plane: calls `store.loadTree()` on mount + `loadChildren()`
+ *     on lazy expansion, patches an internal projection after each
+ *     successful CRUD op. Stores that surface a reactive `_assets` ref
+ *     (the in-memory reference impl) bypass the projection — their ref IS
+ *     the source. CRUD ops, error funnel, loading / saving Sets, file-meta
+ *     resolution all live here.
  *   - the tree state (`selectedId`, `expanded`)
  *   - the tab state machine (`openTabs`, `activeId`, dirty tracking,
  *     pinned/preview, auto-pin on edit, content load placeholder)
@@ -109,6 +113,13 @@ export interface UseFileExplorerReturn<T = unknown> {
   readonly reorderable: Readonly<Ref<boolean>>;
 
   // ── async state ────────────────────────────────────────────────────────
+  /**
+   * `true` during the initial `store.loadTree()` call. Stays `false` for
+   * stores that surface their own reactive `_assets` (they own their load
+   * lifecycle). Per-folder lazy loads + per-file content loads live on
+   * `loadingNodes` instead — `loading` is strictly the initial-load signal.
+   */
+  readonly loading: Readonly<Ref<boolean>>;
   /** Files whose content is being loaded via `store.loadContent`. */
   readonly loadingNodes: Readonly<Ref<ReadonlySet<string>>>;
   /** Assets with an in-flight save/rename/delete/move. */
@@ -134,6 +145,13 @@ export interface UseFileExplorerReturn<T = unknown> {
   /** Translates CoarTree's drop event → `store.move(id, parentId, position?)`. */
   moveNode: (e: CoarTreeNodeMoveEvent<Asset<T>>) => Promise<void>;
   rename: (id: string, newName: string) => Promise<void>;
+  /**
+   * Re-fetch the tree (or one folder's children) from the store. No-op for
+   * stores that surface a reactive `_assets` directly — they're already
+   * live. Pass a `folderId` to refresh just that folder in lazy mode;
+   * `undefined` / `null` runs a full `loadTree()`.
+   */
+  refresh: (folderId?: string | null) => Promise<void>;
 
   // ── tab ops ────────────────────────────────────────────────────────────
   openFile: (asset: Asset<T>, opts?: { pinned: boolean }) => Promise<void>;
@@ -185,12 +203,49 @@ export function useFileExplorer<T = unknown>(
   };
 
   // ── state: tree projection ────────────────────────────────────────────
-  // `_assets` is the InMemoryAssetStore escape hatch. A real-backend store
-  // would surface its own reactive list (e.g. via `loadTree()` on mount)
-  // and the composable would mirror it locally. For now we read directly.
-  const fallback = ref<Asset<T>[]>([]) as Ref<Asset<T>[]>;
-  const assets: Ref<Asset<T>[]> =
-    (store as { _assets?: Ref<Asset<T>[]> })._assets ?? fallback;
+  // Two paths:
+  //   - `store._assets` present (in-memory reference impl): use it directly —
+  //     mutations the store applies to its own ref drive reactivity for free.
+  //   - `store._assets` absent (HTTP/IndexedDB/any-real-backend store
+  //     conforming to the typed `AssetStore<T>` contract): we maintain
+  //     `internal`, seed it with `store.loadTree()` on mount, and patch it
+  //     after each successful CRUD op. `refresh()` re-fetches.
+  const internal = ref<Asset<T>[]>([]) as Ref<Asset<T>[]>;
+  const storeAssetsRef = (store as { _assets?: Ref<Asset<T>[]> })._assets;
+  const usesStoreRef = storeAssetsRef !== undefined;
+  const assets: Ref<Asset<T>[]> = storeAssetsRef ?? internal;
+
+  // True only during the initial `loadTree()`. Per-folder lazy loads + per-file
+  // content loads live on `loadingNodes` instead. Stays `false` for stores
+  // that surface `_assets` (they own their load state).
+  const loading = ref(false);
+
+  /**
+   * Merge fresh assets into `internal` by id — preserves order for existing
+   * entries, appends new ones at the end. No-op when the store provides its
+   * own reactive `_assets` (the store's own mutations are the source).
+   */
+  const mergeAssets = (fresh: readonly Asset<T>[]): void => {
+    if (usesStoreRef || fresh.length === 0) return;
+    const byId = new Map<string, Asset<T>>();
+    for (const a of internal.value) byId.set(a.id, a);
+    for (const a of fresh) byId.set(a.id, a);
+    internal.value = Array.from(byId.values());
+  };
+  const replaceAssets = (fresh: readonly Asset<T>[]): void => {
+    if (usesStoreRef) return;
+    internal.value = [...fresh];
+  };
+  const removeAssets = (ids: ReadonlySet<string>): void => {
+    if (usesStoreRef || ids.size === 0) return;
+    internal.value = internal.value.filter((a) => !ids.has(a.id));
+  };
+  const patchAsset = (id: string, patch: Partial<Asset<T>>): void => {
+    if (usesStoreRef) return;
+    internal.value = internal.value.map((a) =>
+      a.id === id ? { ...a, ...patch } : a,
+    );
+  };
 
   // ── sort mode resolution ──────────────────────────────────────────────
   // `folders-first` matches VSCode + Windows Explorer; `alphabetical` is the
@@ -324,6 +379,7 @@ export function useFileExplorer<T = unknown>(
   ): Promise<Asset<T> | null> => {
     try {
       const created = await store.createFolder(parentId, name);
+      mergeAssets([created]);
       if (parentId) expanded.value = new Set(expanded.value).add(parentId);
       return created;
     } catch (e) {
@@ -348,6 +404,7 @@ export function useFileExplorer<T = unknown>(
         reportError('uploadFile', e, { parentId, file });
         continue;
       }
+      mergeAssets([asset]);
       setBusy(savingNodes, asset.id, true);
       try {
         await store.save(asset.id, read.content);
@@ -383,6 +440,7 @@ export function useFileExplorer<T = unknown>(
     setBusy(savingNodes, node.id, true);
     try {
       await store.delete(node.id);
+      removeAssets(doomed);
     } catch (e) {
       reportError('delete', e, { id: node.id, name: node.name });
     } finally {
@@ -405,17 +463,20 @@ export function useFileExplorer<T = unknown>(
     try {
       if (!target) {
         await store.move(source.id, null);
+        patchAsset(source.id, { parentId: null });
         return;
       }
       if (position === 'inside') {
         if (target.kind !== 'folder') return;
         await store.move(source.id, target.id);
+        patchAsset(source.id, { parentId: target.id });
         expanded.value = new Set(expanded.value).add(target.id);
         return;
       }
       // 'before' / 'after' — only compute an explicit position when manual.
       if (!honorPosition) {
         await store.move(source.id, target.parentId);
+        patchAsset(source.id, { parentId: target.parentId });
         return;
       }
       const siblings = assets.value.filter(
@@ -424,6 +485,12 @@ export function useFileExplorer<T = unknown>(
       const targetIdx = siblings.findIndex((a) => a.id === target.id);
       const insertAt = position === 'before' ? targetIdx : targetIdx + 1;
       await store.move(source.id, target.parentId, insertAt);
+      // Manual sort: re-fetch authoritative order from the backend. The local
+      // patchAsset above would mark parentId correctly but not the new
+      // sibling order, which is the whole point of manual mode.
+      if (!usesStoreRef) {
+        await reloadTree();
+      }
     } catch (err) {
       reportError('move', err, { id: source.id, name: source.name });
     } finally {
@@ -437,6 +504,7 @@ export function useFileExplorer<T = unknown>(
     setBusy(savingNodes, id, true);
     try {
       await store.rename(id, newName);
+      patchAsset(id, { name: newName });
     } catch (e) {
       reportError('rename', e, { id, name: newName });
       return;
@@ -730,7 +798,8 @@ export function useFileExplorer<T = unknown>(
           if (loadedFolderIds.value.has(id)) continue;
           setBusy(loadingNodes, id, true);
           try {
-            await store.loadChildren!(id);
+            const kids = await store.loadChildren!(id);
+            mergeAssets(kids);
             loadedFolderIds.value = new Set(loadedFolderIds.value).add(id);
           } catch (e) {
             reportError('loadChildren', e, { id });
@@ -744,6 +813,82 @@ export function useFileExplorer<T = unknown>(
       { deep: true, immediate: true },
     );
   }
+
+  // ── initial load + refresh ────────────────────────────────────────────
+  /**
+   * Re-fetch via `store.loadTree()` and replace the internal projection.
+   * No-op when the store provides its own reactive `_assets` — those stores
+   * are expected to keep their ref live themselves. The first call (on mount)
+   * also seeds `expanded` with top-level folders when the consumer didn't
+   * pass an explicit `initialExpandedIds` — same opt-in welcome behaviour
+   * the in-memory path has always had.
+   */
+  let initialLoadDone = false;
+  const reloadTree = async (): Promise<void> => {
+    if (usesStoreRef) return;
+    loading.value = !initialLoadDone;
+    try {
+      const tree = await store.loadTree();
+      replaceAssets(tree);
+      if (!initialLoadDone) {
+        initialLoadDone = true;
+        // Auto-expand root folders on first load when consumer didn't override
+        // (matches the in-memory eager path). Lazy mode opts out — its UX is
+        // click-to-expand.
+        if (options.initialExpandedIds === undefined && !storeIsLazy) {
+          const rootFolderIds = tree
+            .filter((a) => a.parentId === null && a.kind === 'folder')
+            .map((a) => a.id);
+          if (rootFolderIds.length > 0) {
+            expanded.value = new Set([...expanded.value, ...rootFolderIds]);
+          }
+        }
+      }
+    } catch (e) {
+      reportError('loadTree', e, {});
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  /**
+   * Public re-fetch. Without args (or `null`), refreshes the whole tree via
+   * `loadTree()`. With a folder id, refreshes just that folder via
+   * `loadChildren(id)` if the store opted into lazy mode — otherwise falls
+   * back to a full `loadTree()`.
+   *
+   * Use this when upstream state can change out-of-band (server push,
+   * another tab uploads a file, retention sweep). For stores that surface
+   * `_assets` directly, this is a no-op: they're already reactive.
+   */
+  const refresh = async (folderId?: string | null): Promise<void> => {
+    if (usesStoreRef) return;
+    if (folderId == null) return reloadTree();
+    if (storeIsLazy) {
+      setBusy(loadingNodes, folderId, true);
+      try {
+        const kids = await store.loadChildren!(folderId);
+        // Drop existing children of folderId, replace with fresh. Descendants
+        // beyond one level stay until that level is itself refreshed.
+        internal.value = [
+          ...internal.value.filter((a) => a.parentId !== folderId),
+          ...kids,
+        ];
+        loadedFolderIds.value = new Set(loadedFolderIds.value).add(folderId);
+      } catch (e) {
+        reportError('loadChildren', e, { id: folderId });
+      } finally {
+        setBusy(loadingNodes, folderId, false);
+      }
+      return;
+    }
+    return reloadTree();
+  };
+
+  // Kick off the initial load. We don't await — the composable returns its
+  // surface synchronously, and `loading: Ref<boolean>` is the consumer's
+  // signal that the tree is being populated.
+  void reloadTree();
 
   // ── beforeunload warning while any tab is dirty ───────────────────────
   const onBeforeUnload = (e: BeforeUnloadEvent): void => {
@@ -775,6 +920,7 @@ export function useFileExplorer<T = unknown>(
     isExpandable,
     reorderable,
     // async state
+    loading,
     loadingNodes,
     savingNodes,
     // tabs
@@ -790,6 +936,7 @@ export function useFileExplorer<T = unknown>(
     deleteNode,
     moveNode,
     rename,
+    refresh,
     // tab ops
     openFile,
     activateNode,

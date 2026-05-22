@@ -6,8 +6,21 @@ const props = withDefaults(
   defineProps<{
     /** Currently active tab id (controlled mode) */
     modelValue?: string;
+    /**
+     * Make the active tab panel fill the remaining vertical space below the
+     * tab bar. Default `false` keeps the panel content-sized — correct for
+     * form-tabs / settings-tabs that shouldn't auto-balloon. Set `true` for
+     * editor / viewer / file-explorer tabs whose content is expected to
+     * stretch (Monaco, PDF viewer, anything VSCode-shaped).
+     *
+     * The consumer is still responsible for sizing the tab-group root
+     * itself — typically `flex: 1; min-height: 0` from its grid / flex
+     * parent. `fill` only flips the panel + content wrapper from `block`
+     * to `flex: 1; min-height: 0`, propagating the height through.
+     */
+    fill?: boolean;
   }>(),
-  { modelValue: undefined },
+  { modelValue: undefined, fill: false },
 );
 
 const emit = defineEmits<{
@@ -170,7 +183,7 @@ function onKeydown(event: KeyboardEvent) {
 </script>
 
 <template>
-  <div class="coar-tab-group">
+  <div class="coar-tab-group" :class="{ 'coar-tab-group--fill': fill }">
     <div class="coar-tab-list" role="tablist">
       <button
         v-for="tab in tabs"
@@ -293,6 +306,28 @@ function onKeydown(event: KeyboardEvent) {
 
 .coar-tab-panel.active {
   display: block;
+}
+
+/* Fill mode — opt-in via the `fill` prop. Propagates the root's height
+   down through `.coar-tab-content` → `.coar-tab-panel.active` so content
+   children get a real flex parent to size against. Without this, the two
+   block-wrappers collapse to content height and break the layout chain for
+   anything that wants to fill (Monaco, PDF viewer, file explorer, …).
+   The root itself stays untouched — the consumer's parent layout (flex /
+   grid / explicit height) decides whether the tab-group stretches.
+   `fill` strictly propagates fill DOWN from a root that's already sized. */
+.coar-tab-group--fill .coar-tab-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.coar-tab-group--fill .coar-tab-panel.active {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 @media (prefers-reduced-motion: reduce) {

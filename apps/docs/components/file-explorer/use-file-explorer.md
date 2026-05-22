@@ -44,6 +44,7 @@ readonly assets: Readonly<Ref<readonly Asset<T>[]>>;
 readonly rootNodes: Readonly<Ref<readonly Asset<T>[]>>;
 selectedId: Ref<string | null>;
 expanded: Ref<Set<string>>;
+readonly loading: Readonly<Ref<boolean>>;
 readonly loadingNodes: Readonly<Ref<ReadonlySet<string>>>;
 readonly savingNodes: Readonly<Ref<ReadonlySet<string>>>;
 readonly reorderable: Readonly<Ref<boolean>>;
@@ -55,6 +56,7 @@ readonly reorderable: Readonly<Ref<boolean>>;
 | `rootNodes` | Already filtered + sorted children of `null`. Pass directly to `<CoarTree :nodes>`. |
 | `selectedId` | Two-way. Single-click on a row sets this; a watcher then opens the file as a preview tab. |
 | `expanded` | Two-way `Set<string>` of expanded folder ids. In lazy mode, newly-added ids trigger `store.loadChildren()`. |
+| `loading` | `true` during the **initial** `store.loadTree()` call only. Per-folder lazy loads + per-file content loads live on `loadingNodes`. Stays `false` for stores that surface their own reactive `_assets`. |
 | `loadingNodes` | Per-id Set: files being `loadContent`-fetched + folders being lazy-loaded. Bind to row-icon → spinner swap. |
 | `savingNodes` | Per-id Set: any in-flight save / rename / delete / move. Same spinner channel as `loadingNodes`. |
 | `reorderable` | `true` when `sortMode === 'manual'`. Reactive — read it in your CoarTree wiring to gate drop-between-siblings. |
@@ -129,6 +131,7 @@ addFiles(parentId: string | null, files: FileList | readonly File[]): Promise<vo
 deleteNode(asset: Asset<T>): Promise<void>;
 moveNode(e: CoarTreeNodeMoveEvent<Asset<T>>): Promise<void>;
 rename(id: string, newName: string): Promise<void>;
+refresh(folderId?: string | null): Promise<void>;
 
 // Tab ops
 openFile(asset: Asset<T>, opts?: { pinned: boolean }): Promise<void>;
@@ -151,6 +154,7 @@ Notes on the trickier ones:
 - **`openFile`** is the placeholder-then-fill flow. The placeholder tab is pushed + activated immediately; on `loadContent` rejection the placeholder rolls back so the user isn't stranded.
 - **`activateNode`** is meant for `<CoarTree @activate>`. Files open pinned; folders are a no-op (CoarTree itself toggles expansion).
 - **`reorderTab`** is for drag-to-reorder. No-op on self-drop or unknown ids; pinned status is preserved on the moved tab.
+- **`refresh()`** re-runs `store.loadTree()` (or `store.loadChildren(folderId)` in lazy mode when given a folder id). Use it when upstream state can change out-of-band — a SignalR push from the backend, another tab uploading a file, a server-side retention sweep. No-op for stores that surface a reactive `_assets` directly: those are already live.
 
 ### Navigation
 

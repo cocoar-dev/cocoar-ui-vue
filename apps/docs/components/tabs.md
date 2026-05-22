@@ -30,6 +30,43 @@ Use the `#actions` slot to put right-aligned controls on the same row as the tab
 
 <preview path="./tabs/demos/TabsWithActions.vue" />
 
+## Fill-Height Tabs
+
+By default `CoarTabGroup` is content-sized — the panel grows to fit whatever you put inside it. Settings panes, form sections, anything documentation-shaped wants that. For **editor / viewer / file-explorer** tabs, where the content is expected to stretch (Monaco, PDF viewer, anything VSCode-shaped), opt in with the `fill` prop.
+
+<preview path="./tabs/demos/TabsFill.vue" />
+
+The consumer is still responsible for sizing the tab-group root — `fill` only propagates the height **down** through the internal wrappers. Typical wiring:
+
+```vue
+<!-- Your view -->
+<div class="my-view">
+  <CoarTabGroup fill>
+    <CoarTab id="editor">
+      <template #content>
+        <MonacoEditor />          <!-- now sees a flex parent that fills -->
+      </template>
+    </CoarTab>
+  </CoarTabGroup>
+</div>
+
+<style scoped>
+.my-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.my-view :deep(.coar-tab-group) {
+  flex: 1;
+  min-height: 0;
+}
+</style>
+```
+
+::: tip Why opt-in?
+Without `fill`, the content wrapper is `display: block` — the active panel sizes to its children. That's the right default for the common case (form tabs, settings). Auto-fill would silently break every existing consumer whose tabs sit inside a taller container. Flipping it via a typed prop keeps the change additive and discoverable.
+:::
+
 ## Accessibility
 
 ### Keyboard Navigation
@@ -48,6 +85,7 @@ Use the `#actions` slot to put right-aligned controls on the same row as the tab
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `v-model` | `string` | first tab id | ID of the active tab |
+| `fill` | `boolean` | `false` | Make the active panel fill the remaining vertical space below the tab bar. Opt-in for editor / viewer / file-explorer tabs. See [Fill-Height Tabs](#fill-height-tabs). |
 
 ### CoarTabGroup Slots
 

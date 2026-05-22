@@ -56,7 +56,9 @@ The hierarchy is flat with a `parentId` link, **not** nested with embedded `chil
 
 ### `loadTree(): Promise<Asset<T>[]>`
 
-Called once on mount. Two contracts depending on whether `loadChildren` is present:
+**Called once on mount** by `useFileExplorer`. The composable holds the returned array as its internal projection and patches it after each successful CRUD op (`createFolder`, `createFile`, `uploadFile`, `delete`, `rename`, `move`). Call [`api.refresh()`](./use-file-explorer#imperative-ops) to re-fetch when upstream state changes out-of-band.
+
+Two contracts depending on whether `loadChildren` is present:
 
 | `loadChildren` | What `loadTree` returns |
 |---|---|
@@ -246,3 +248,74 @@ const store = createAssetStore<MyAsset>({
 ```
 
 That's the entire seam. Hand `store` to `useFileExplorer({store})` and the UX is identical to the in-memory demo — lazy / sort / conflict behaviors are all driven from the composable + store config.
+
+## Reacting to out-of-band updates
+
+For backends with server push (WebSocket / SignalR / SSE) or multi-tab consistency requirements, you have two patterns. Pick whichever fits your store's data flow.
+
+### Pattern A — call `api.refresh()` on the signal
+
+The pragmatic default. Subscribe to your push channel in the consumer; call `api.refresh()` to re-pull the tree (or `api.refresh(folderId)` for one branch in lazy mode). Open tabs + selection + expansion state survive — only the underlying asset list re-loads.
+
+```ts
+import { onMounted, onUnmounted } from 'vue';
+import { useFileExplorer } from '@cocoar/vue-file-explorer';
+
+const fe = useFileExplorer({ store: myHttpStore });
+
+let unsub: (() => void) | undefined;
+onMounted(() => {
+  unsub = signalrClient.on('assets-changed', (msg) => {
+    if (msg.folderId) void fe.refresh(msg.folderId);
+    else void fe.refresh();
+  });
+});
+onUnmounted(() => unsub?.());
+```
+
+### Pattern B — surface a reactive `_assets` ref directly
+
+When your store is already backed by a reactive source (a Pinia store fed by SignalR, an `IndexedDB` query reactive ref, a derived `computed`), expose it as `_assets: Ref<Asset<T>[]>` on the store object. The composable picks it up and skips its internal projection entirely — every upstream mutation reflects in the tree on the next tick, no `refresh()` call required.
+
+```ts
+import { computed, type Ref } from 'vue';
+import {
+  type Asset,
+  type AssetStore,
+  useFileExplorer,
+} from '@cocoar/vue-file-explorer';
+import { useKnowledgeAssetStore } from '@/composables/useKnowledgeAssetStore';
+
+interface MyAsset { mimeType: string }
+
+function createReactiveHttpStore(): AssetStore<MyAsset> & { _assets: Ref<Asset<MyAsset>[]> } {
+  const pinia = useKnowledgeAssetStore();
+
+  return {
+    // Reactive escape hatch — composable reads from here, no `loadTree()` ever.
+    _assets: computed(() => pinia.assets) as unknown as Ref<Asset<MyAsset>[]>,
+
+    // `loadTree` is still required by the type; it can be a no-op or
+    // trigger an initial pinia.refresh() if the consumer hasn't already.
+    async loadTree() {
+      await pinia.refreshIfStale();
+      return pinia.assets;
+    },
+
+    async loadContent(id) { return await pinia.loadContent(id); },
+    async createFolder(parentId, name) { return await pinia.createFolder(parentId, name); },
+    async createFile(parentId, name) { return await pinia.createFile(parentId, name); },
+    async uploadFile(parentId, file) { return await pinia.uploadFile(parentId, file); },
+    async save(id, content) { await pinia.save(id, content); },
+    async rename(id, newName) { await pinia.rename(id, newName); },
+    async delete(id) { await pinia.delete(id); },
+    async move(id, parentId, position) { await pinia.move(id, parentId, position); },
+  };
+}
+
+const fe = useFileExplorer({ store: createReactiveHttpStore() });
+```
+
+::: info When to pick which pattern
+**A** is the right default — works with any `AssetStore<T>`, no extra machinery. Reach for **B** when you're already pushing reactivity through the layers (Pinia / live-query stores) and want zero round-trips between push and tree update. `_assets` is also how [`createInMemoryAssetStore`](./in-memory-store) opts into instant reactivity for its mutations — same mechanism, different motivation.
+:::

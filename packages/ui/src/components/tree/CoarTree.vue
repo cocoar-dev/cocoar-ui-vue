@@ -225,6 +225,46 @@ const cfg = computed(() => {
   };
 });
 
+// DEV-only nag: rendering a tree with zero rows + no `#empty` slot ships a
+// silent blank pane to the user. The 500-ms grace lets async loaders (a
+// store's `loadTree()`) populate before the warn fires — only consumers
+// that genuinely persist in the empty-with-no-slot state get nagged. Warns
+// once per mount. Production builds drop the whole block (Vite statically
+// replaces `import.meta.env.DEV`).
+if (import.meta.env?.DEV) {
+  let warned = false;
+  let pendingWarn: ReturnType<typeof setTimeout> | null = null;
+  watch(
+    () => ({ count: cfg.value.nodes.length, hasEmptySlot: !!slots.empty }),
+    ({ count, hasEmptySlot }) => {
+      if (warned) return;
+      if (count > 0 || hasEmptySlot) {
+        if (pendingWarn) {
+          clearTimeout(pendingWarn);
+          pendingWarn = null;
+        }
+        return;
+      }
+      if (pendingWarn) return;
+      pendingWarn = setTimeout(() => {
+        pendingWarn = null;
+        if (warned) return;
+        if (cfg.value.nodes.length === 0 && !slots.empty) {
+          // eslint-disable-next-line no-console -- dev diagnostic.
+          console.warn(
+            '[CoarTree] Rendered with zero nodes and no `#empty` slot. The tree will appear as a blank pane. Provide a `<template #empty>` with an empty-state message, or confirm this is intentional.',
+          );
+          warned = true;
+        }
+      }, 500);
+    },
+    { immediate: true },
+  );
+  onBeforeUnmount(() => {
+    if (pendingWarn) clearTimeout(pendingWarn);
+  });
+}
+
 // The builder is a typed handle to *refs* that are intended to be written
 // through. `vue/no-mutating-props` sees `props.builder.state.x.value = v` and
 // flags it as prop mutation, but the prop itself isn't being mutated — only

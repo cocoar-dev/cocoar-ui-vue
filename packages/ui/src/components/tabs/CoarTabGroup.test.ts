@@ -304,4 +304,31 @@ describe('CoarTabGroup', () => {
       expect(wrapper.find('.coar-tab-list-actions').exists()).toBe(false);
     });
   });
+
+  describe('fill mode', () => {
+    // JSDOM has no layout engine, so we can't assert the panel actually
+    // fills its parent — but the class is what the CSS rules hang off, so
+    // the class wiring IS the contract. Visual regression for the layout
+    // itself is a Playwright concern (not yet set up for CoarTabGroup).
+    it('does not set the fill class by default', () => {
+      const wrapper = createTabGroup({ tabs: defaultTabs });
+      expect(wrapper.find('.coar-tab-group').classes()).not.toContain('coar-tab-group--fill');
+    });
+
+    it('sets the fill class when `fill` is true', () => {
+      const Wrapper = defineComponent({
+        components: { CoarTabGroup, CoarTab },
+        template: `
+          <CoarTabGroup fill>
+            <CoarTab id="a">
+              <template #default>A</template>
+              <template #content>content A</template>
+            </CoarTab>
+          </CoarTabGroup>
+        `,
+      });
+      const wrapper = mount(Wrapper);
+      expect(wrapper.find('.coar-tab-group').classes()).toContain('coar-tab-group--fill');
+    });
+  });
 });
