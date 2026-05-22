@@ -17,7 +17,13 @@ export type {
 
 // Layout
 export { CoarFormField } from './components/form-field';
-export type { CoarFormFieldProps, FormFieldProvided } from './components/form-field';
+export type {
+  CoarFormFieldProps,
+  CoarFormFieldRule,
+  CoarFormFieldRulePassMode,
+  CoarFormFieldRuleFailMode,
+  FormFieldProvided,
+} from './components/form-field';
 export { FORM_FIELD_INJECTION_KEY } from './components/form-field';
 
 // Transitions

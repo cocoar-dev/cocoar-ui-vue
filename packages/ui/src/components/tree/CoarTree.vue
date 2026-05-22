@@ -250,7 +250,6 @@ if (import.meta.env?.DEV) {
         pendingWarn = null;
         if (warned) return;
         if (cfg.value.nodes.length === 0 && !slots.empty) {
-          // eslint-disable-next-line no-console -- dev diagnostic.
           console.warn(
             '[CoarTree] Rendered with zero nodes and no `#empty` slot. The tree will appear as a blank pane. Provide a `<template #empty>` with an empty-state message, or confirm this is intentional.',
           );

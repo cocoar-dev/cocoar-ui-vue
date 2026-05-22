@@ -109,6 +109,10 @@ const props = withDefaults(defineProps<CoarOtpInputProps>(), {
   id: '',
   name: '',
   autocomplete: 'one-time-code',
+  // Hooks default to undefined — both are optional escape hatches; absence is
+  // the common case. Declared explicitly to satisfy `vue/require-default-prop`.
+  transform: undefined,
+  accept: undefined,
 });
 
 const model = defineModel<string>({ default: '' });

@@ -360,7 +360,6 @@ export function useFileExplorer<T = unknown>(
       { getFileMeta },
     );
     if (!meta) {
-      // eslint-disable-next-line no-console -- surface unsupported drops to the dev.
       console.warn(`[file-explorer] Unsupported file type: ${file.name}`);
       return null;
     }
@@ -595,7 +594,6 @@ export function useFileExplorer<T = unknown>(
     }
     const meta = resolveFileMeta(file, { getFileMeta });
     if (!meta) {
-      // eslint-disable-next-line no-console -- dev signal for unsupported file.
       console.warn(`[file-explorer] No editor available for ${file.name}`);
       return;
     }
