@@ -7,6 +7,16 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 2.5.1
+
+Patch release that fixes a pdf.js styling leak in `@cocoar/vue-document-viewer`. `pdfjs-dist` appends an internal working canvas (`canvas.hiddenCanvasElement`) directly to `<body>` and relies on its own `pdf_viewer.css` to keep it invisible. The viewer didn't ship that stylesheet, so the canvas surfaced as a 300×150 black rectangle and inflated `document.body.scrollHeight` by 150 px the moment any PDF source mounted in a non-modal layout. Modal contexts hid the symptom (overlay above, `overflow: hidden` chrome) but full-routed views surfaced it immediately. Reported from Finoxl's BookingView; same pattern would hit any consumer embedding the viewer in a full-page layout. Fix inlines the minimum subset of pdf.js's body-level rules into the viewer's own stylesheet — `import '@cocoar/vue-document-viewer/styles'` stays the complete styling import.
+
+### Fixed
+
+- **`@cocoar/vue-document-viewer` — body-level `.hiddenCanvasElement` + `#hiddenCopyElement`** now hidden via the package's own CSS. Adds an unscoped global rule (`position: absolute; top: 0; left: 0; width: 0; height: 0; visibility: hidden; overflow: hidden`) to `vue-document-viewer.css`, mirroring the minimum subset of `pdfjs-dist/web/pdf_viewer.css` needed for the body-mounted helpers. No API change, no consumer action needed. The block sits next to the existing pdfjs textLayer subset already mirrored in `CoarDocumentViewer.vue` for the same reason.
+
+---
+
 ## 2.5.0
 
 Polish release that lands integration-feedback from the first wave of consumers using `@cocoar/vue-file-explorer` v2.4.0 (Atlas — backend-backed Knowledge editor) and Finoxl (Booking modal — `CoarFormField`), and reworks `CoarFormField` from a label-plus-message-row wrapper into a per-field status indicator with a popover-driven severity model that handles hints, warnings, errors, live-validation rules, and X-of-Y aggregate constraints with a single mechanism. Most of the file-explorer changes fix a contract gap where the documented `loadTree()` method was never actually called by the composable — only the in-memory store's undocumented `_assets` ref was. Now both paths work: composables that supply a reactive `_assets` get the zero-overhead live-mirror as before; composables that only implement the typed `AssetStore<T>` get an internal projection seeded by `loadTree()` on mount and patched after every CRUD op. `CoarTabGroup` gains a `fill` opt-in so editor / viewer / file-explorer tabs no longer need `:deep()` workarounds to propagate height. `CoarTree` warns in dev when rendered empty without an `#empty` slot. `CoarFormField` is a meaningful visual change for every consumer: the message-below-input row is gone, replaced by an icon in the label row with a popover that groups everything by severity section (hint → checklist → errors → warnings); form-labels bumped from 12 px to 14 px (caption-size to medium-input-label-size — the caption token kept its 12 px for tags / badges / dropdowns). No breaking API changes — `error: string` stays valid (now sugar for a one-item array), `hint` keeps the same prop shape (only its render location moved).

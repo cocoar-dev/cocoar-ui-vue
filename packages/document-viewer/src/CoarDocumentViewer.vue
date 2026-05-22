@@ -1820,3 +1820,24 @@ defineExpose({
   background: var(--coar-color-surface-3, #ececec);
 }
 </style>
+
+<!-- Global (unscoped) styles for pdf.js internals that mount outside this
+     component's scope tree. pdf.js appends a working canvas + copy element
+     directly to <body> and relies on its own pdf_viewer.css to keep them
+     invisible. We don't ship pdf_viewer.css, so without these rules the
+     hidden canvas surfaces as a 300x150 black rectangle and inflates
+     document.body.scrollHeight. Mirrors the minimum subset of pdfjs's
+     pdf_viewer.css needed for the body-level helpers. -->
+<style>
+.hiddenCanvasElement,
+#hiddenCopyElement {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  display: block;
+  visibility: hidden;
+  overflow: hidden;
+}
+</style>
