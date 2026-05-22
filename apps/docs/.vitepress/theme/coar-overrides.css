@@ -90,12 +90,34 @@
  * container fill the available space inside it. The right outline stays put.
  */
 
-:root {
-  /* VitePress caps the doc layout at `--vp-layout-max-width` (default 1440) and
-   * centers it. On wide monitors that leaves a lot of empty side gutter. Bump
-   * way up so big screens actually fill — small screens are unaffected, the
-   * cap only kicks in once viewport > 1440 anyway. */
-  --vp-layout-max-width: 2200px;
+/* VitePress caps the doc layout at `--vp-layout-max-width` (default 1440)
+ * and centers it. On wide monitors that leaves a lot of empty side gutter.
+ * Step the cap up at progressively wider viewports so big screens fill out.
+ *
+ * IMPORTANT: never set `--vp-layout-max-width` above the current viewport.
+ * VitePress's `.VPSidebar` rule under `@media (min-width: 1440px)` reads:
+ *
+ *   width: calc((100% - (var(--vp-layout-max-width) - 64px)) / 2
+ *           + var(--vp-sidebar-width) - 32px);
+ *
+ * If `--vp-layout-max-width > viewport`, that calc goes negative and the
+ * sidebar collapses to a 64-px padding-only strip. Hence the stepped media
+ * queries: each value kicks in only at the viewport width it expects.
+ */
+@media (min-width: 1600px) {
+  :root {
+    --vp-layout-max-width: 1600px;
+  }
+}
+@media (min-width: 1920px) {
+  :root {
+    --vp-layout-max-width: 1920px;
+  }
+}
+@media (min-width: 2200px) {
+  :root {
+    --vp-layout-max-width: 2200px;
+  }
 }
 
 /* `!important` because VitePress's stylesheet loads AFTER our theme overrides
