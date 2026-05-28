@@ -7,6 +7,14 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## Unreleased
+
+### Fixed
+
+- **`@cocoar/vue-ui` — `vue-router` peer range widened to `^4.5.0 || ^5.0.0`** (was `^4.0.0`). Consumers on `vue-router@5` got an "unmet peer dependency" warning on install even though the integration is runtime-detected and optional. Aligns the range with `@cocoar/vue-fragment-parser`, which already accepted v5. No runtime change — `vue-router` stays an optional peer.
+
+---
+
 ## 2.5.2
 
 Patch release that fixes an outside-click dismissal bug in the `@cocoar/vue-ui` overlay-service: an anchored panel (date picker, select, popover, menu) opened from inside a modal/dialog would not close when the user clicked elsewhere in the dialog body — it only closed when its own trigger was clicked again. Outside a modal the same panels dismissed correctly, so the bug only surfaced for overlays stacked above another containing overlay. Root cause: `onDocumentPointerDown` treated "click landed inside overlay X" as "collapse X's tree-children and stop", which silently ignored unrelated dismissable overlays stacked above X. A picker opened via the overlay-service is teleported to `<body>` and stacked above the dialog but is not a tree-child of it, so it was skipped. Reported against the date pickers, but the same code path affects every anchored overlay (all three date pickers, `CoarSelect` / `CoarMultiSelect` / `CoarTagSelect`, `CoarPopover`, menus) when used inside a modal.
