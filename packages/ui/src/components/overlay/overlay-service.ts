@@ -365,13 +365,24 @@ export function createOverlayService() {
 
     const target = event.target;
 
-    // Find topmost overlay containing the target
+    // Find topmost overlay containing the target.
     for (let i = openInstances.length - 1; i >= 0; i--) {
       const inst = openInstances[i];
       if (containsTarget(inst, target)) {
-        // Close children of this overlay
-        for (const child of Array.from(inst.children)) {
-          closeInstance(child);
+        // The click landed inside `inst`, so `inst` (and everything stacked below
+        // it) stays open. But any dismissable overlay stacked ABOVE it whose own
+        // subtree doesn't contain the target is "outside" and must close. This
+        // covers two cases with one pass: collapsing open child sub-menus, and —
+        // critically — dismissing an unrelated anchored panel (date picker,
+        // select, …) that was opened from inside a modal. Such a panel is teleported
+        // to the body and stacked above the modal but is not a tree-child of it, so
+        // the old "close inst.children only" path left it stuck open until the
+        // trigger icon was clicked again.
+        for (let j = openInstances.length - 1; j > i; j--) {
+          const above = openInstances[j];
+          if (above.spec.dismiss.outsideClick !== false && !containsTarget(above, target)) {
+            closeInstance(above);
+          }
         }
         return;
       }

@@ -116,6 +116,42 @@ describe('overlay-service', () => {
     expect(ref.isClosed).toBe(true);
   });
 
+  it('outside-click dismisses an anchored panel stacked above a modal', () => {
+    const service = createOverlayService();
+
+    // Modal-like overlay whose content the user will click inside.
+    const modalHost = document.createElement('div');
+    const modalPanel = document.createElement('div');
+    modalHost.appendChild(modalPanel);
+    document.body.appendChild(modalHost);
+    const modal = service.open({ spec: modalPreset, content: { kind: 'slot' } });
+    service.onPanelMounted(service.instances.value[0], modalPanel, modalHost);
+
+    // Anchored panel (e.g. date picker) opened from inside the modal — teleported
+    // to body, stacked above the modal, NOT a tree-child of it.
+    const pickerHost = document.createElement('div');
+    const pickerPanel = document.createElement('div');
+    pickerHost.appendChild(pickerPanel);
+    document.body.appendChild(pickerHost);
+    const picker = service.open({ spec: selectPreset, content: { kind: 'slot' } });
+    service.onPanelMounted(service.instances.value[1], pickerPanel, pickerHost);
+
+    expect(service.instances.value).toHaveLength(2);
+
+    // Click inside the modal content but outside the picker panel.
+    const clickTarget = document.createElement('button');
+    modalPanel.appendChild(clickTarget);
+    clickTarget.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+
+    // Picker dismisses; modal stays open.
+    expect(picker.isClosed).toBe(true);
+    expect(modal.isClosed).toBe(false);
+
+    service.closeAll();
+    document.body.removeChild(modalHost);
+    document.body.removeChild(pickerHost);
+  });
+
   it('parent-child overlay tree', () => {
     const service = createOverlayService();
     const parent = service.open({

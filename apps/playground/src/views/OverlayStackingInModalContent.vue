@@ -9,6 +9,7 @@
  *   3. Confirm clicking inside the popup does not close the modal
  */
 import { ref } from 'vue';
+import { Temporal } from '@js-temporal/polyfill';
 import {
   CoarPopover,
   CoarButton,
@@ -22,6 +23,9 @@ import {
   CoarSidebar,
   CoarSidebarGroup,
   CoarSidebarItem,
+  CoarPlainDatePicker,
+  CoarPlainDateTimePicker,
+  CoarZonedDateTimePicker,
   useContextMenu,
   vTooltip,
 } from '@cocoar/vue-ui';
@@ -40,6 +44,10 @@ const selectOptions = [
 const singleValue = ref<string | null>(null);
 const multiValue = ref<string[]>([]);
 const tagValue = ref<string[]>([]);
+
+const plainDate = ref<Temporal.PlainDate | null>(null);
+const plainDateTime = ref<Temporal.PlainDateTime | null>(null);
+const zonedDateTime = ref<Temporal.ZonedDateTime | null>(null);
 </script>
 
 <template>
@@ -218,6 +226,35 @@ const tagValue = ref<string[]>([]);
           Archive) exercises the parent-child cascade.
         </div>
       </div>
+    </section>
+
+    <section>
+      <h3>9. Date pickers inside dialog (outside-click repro)</h3>
+      <p>
+        Open any picker's calendar panel, then click somewhere on the dialog body (outside
+        the panel). The panel must close — exactly like the selects in section 7 — without
+        closing the dialog. This is the bug: before the overlay-service fix the panel only
+        closed when the calendar icon was clicked again.
+      </p>
+      <div class="select-grid">
+        <label>
+          <span class="select-label">PlainDate</span>
+          <CoarPlainDatePicker v-model="plainDate" />
+        </label>
+        <label>
+          <span class="select-label">PlainDateTime</span>
+          <CoarPlainDateTimePicker v-model="plainDateTime" />
+        </label>
+        <label>
+          <span class="select-label">ZonedDateTime</span>
+          <CoarZonedDateTimePicker v-model="zonedDateTime" />
+        </label>
+      </div>
+      <p style="margin-top: 8px; font-size: 12px; color: #666;">
+        Date: <strong>{{ plainDate?.toString() ?? '—' }}</strong> |
+        DateTime: <strong>{{ plainDateTime?.toString() ?? '—' }}</strong> |
+        Zoned: <strong>{{ zonedDateTime?.toString() ?? '—' }}</strong>
+      </p>
     </section>
 
     <CoarContextMenu :menu="contextMenu">

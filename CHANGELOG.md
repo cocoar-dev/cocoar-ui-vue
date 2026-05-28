@@ -7,6 +7,16 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 2.5.2
+
+Patch release that fixes an outside-click dismissal bug in the `@cocoar/vue-ui` overlay-service: an anchored panel (date picker, select, popover, menu) opened from inside a modal/dialog would not close when the user clicked elsewhere in the dialog body — it only closed when its own trigger was clicked again. Outside a modal the same panels dismissed correctly, so the bug only surfaced for overlays stacked above another containing overlay. Root cause: `onDocumentPointerDown` treated "click landed inside overlay X" as "collapse X's tree-children and stop", which silently ignored unrelated dismissable overlays stacked above X. A picker opened via the overlay-service is teleported to `<body>` and stacked above the dialog but is not a tree-child of it, so it was skipped. Reported against the date pickers, but the same code path affects every anchored overlay (all three date pickers, `CoarSelect` / `CoarMultiSelect` / `CoarTagSelect`, `CoarPopover`, menus) when used inside a modal.
+
+### Fixed
+
+- **`@cocoar/vue-ui` — overlay-service outside-click dismissal inside modals.** When a click lands inside an overlay, `onDocumentPointerDown` now also closes any dismissable overlay stacked _above_ it whose own subtree doesn't contain the click — instead of only collapsing the clicked overlay's tree-children. Fixes anchored panels (date pickers, selects, popovers, menus) staying open after an outside click when opened from inside a `useDialog()` / modal overlay; previously they only closed when the trigger was re-clicked. Sub-menu collapse and modal backdrop behaviour are unchanged.
+
+---
+
 ## 2.5.1
 
 Patch release that fixes a pdf.js styling leak in `@cocoar/vue-document-viewer`. `pdfjs-dist` appends an internal working canvas (`canvas.hiddenCanvasElement`) directly to `<body>` and relies on its own `pdf_viewer.css` to keep it invisible. The viewer didn't ship that stylesheet, so the canvas surfaced as a 300×150 black rectangle and inflated `document.body.scrollHeight` by 150 px the moment any PDF source mounted in a non-modal layout. Modal contexts hid the symptom (overlay above, `overflow: hidden` chrome) but full-routed views surfaced it immediately. Reported from Finoxl's BookingView; same pattern would hit any consumer embedding the viewer in a full-page layout. Fix inlines the minimum subset of pdf.js's body-level rules into the viewer's own stylesheet — `import '@cocoar/vue-document-viewer/styles'` stays the complete styling import.

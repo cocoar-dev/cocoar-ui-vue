@@ -8,6 +8,7 @@
       <li><router-link to="/markdown-editor">Markdown Editor (Milkdown Prototype)</router-link></li>
       <li><router-link to="/pdf-viewer"><strong>PDF Viewer (Phase A — rendering only)</strong></router-link></li>
       <li><router-link to="/file-explorer-poc"><strong>File Explorer POC (VSCode-like tree + tabs + editors)</strong></router-link></li>
+      <li><router-link to="/overlay-stacking"><strong>Overlay stacking in modal (select + date-picker outside-click repro)</strong></router-link></li>
     </ul>
     <h2 style="margin-top: 16px">@cocoar/vue-calendar demos</h2>
     <ul>
