@@ -1,5 +1,18 @@
+<script lang="ts">
+import type { InjectionKey, ComputedRef } from 'vue';
+import type { FlexDirection } from './styleMapping';
+
+/**
+ * Direction of the nearest flex container, provided down the recursive tree so a
+ * node can map `size: 'fill'` to the correct axis (grow in a row, full-width in
+ * a column). Module-scoped so every PageNode instance shares the same key.
+ */
+const PB_PARENT_DIRECTION: InjectionKey<ComputedRef<FlexDirection>> =
+  Symbol('pb-parent-direction');
+</script>
+
 <script setup lang="ts">
-import { computed, inject } from 'vue';
+import { computed, inject, provide } from 'vue';
 import {
   CoarButton,
   CoarCard,
@@ -37,7 +50,17 @@ const allowed = computed(() => {
 // Mapping lives in styleMapping.ts (pure, unit-tested). `wrapperStyle` is the
 // node's own outer style; `containerLayoutStyle` arranges a container's children.
 
-const wrapperStyle = computed(() => selfStyle(props.node.style));
+// Direction-aware sizing: read the parent container's direction, and tell our
+// own children what direction WE impose on them.
+const parentDirection = inject(PB_PARENT_DIRECTION, undefined);
+const ownDirection = computed<FlexDirection>(() =>
+  props.node.type === 'stack' ? (props.node.direction ?? 'column') : 'column',
+);
+provide(PB_PARENT_DIRECTION, ownDirection);
+
+const wrapperStyle = computed(() =>
+  selfStyle(props.node.style, parentDirection?.value ?? 'column'),
+);
 
 function containerLayoutStyle(node: PageNode) {
   return layoutStyleFromStyle(node.style);

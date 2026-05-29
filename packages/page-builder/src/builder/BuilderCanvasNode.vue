@@ -1,5 +1,18 @@
+<script lang="ts">
+import type { InjectionKey, ComputedRef } from 'vue';
+import type { FlexDirection } from '../styleMapping';
+
+/**
+ * Nearest flex-container direction, provided down the canvas tree so a node can
+ * map `size: 'fill'` to the right axis — mirrors the renderer (PageNode.vue) so
+ * Editor and Preview agree. Module-scoped: all instances share the key.
+ */
+const CANVAS_PARENT_DIRECTION: InjectionKey<ComputedRef<FlexDirection>> =
+  Symbol('canvas-parent-direction');
+</script>
+
 <script setup lang="ts">
-import { computed, inject, type CSSProperties } from 'vue';
+import { computed, inject, provide, type CSSProperties } from 'vue';
 import {
   CoarIcon,
   CoarButton,
@@ -81,11 +94,16 @@ const typeLabel = computed(() => {
 const colorFamily = computed<'container' | 'element'>(() => isContainerNode(props.node) ? 'container' : 'element');
 
 /** Direction of this container — drives dropzone axis + child flex behavior. */
-const containerDirection = computed<'column' | 'row'>(() => {
+const containerDirection = computed<FlexDirection>(() => {
   const n = props.node;
   if (n.type === 'stack') return n.direction ?? 'column';
   return 'column';
 });
+
+// Direction-aware sizing (mirrors PageNode.vue): read the parent's direction,
+// provide our own to children.
+const parentDirection = inject(CANVAS_PARENT_DIRECTION, undefined);
+provide(CANVAS_PARENT_DIRECTION, containerDirection);
 
 // ── Layout (shares styleMapping.ts with the real renderer, so Editor ≈ Preview) ─
 
@@ -109,7 +127,9 @@ const layoutStyle = computed<CSSProperties>(() => {
  * self-alignment (`align-self`) and sizing (`size`/`width`) belong here — same
  * mapping the real renderer applies to the node element itself.
  */
-const wrapperStyle = computed<CSSProperties>(() => selfLayoutStyle(props.node.style));
+const wrapperStyle = computed<CSSProperties>(() =>
+  selfLayoutStyle(props.node.style, parentDirection?.value ?? 'column'),
+);
 
 // ── Select options ────────────────────────────────────────────────────────────
 

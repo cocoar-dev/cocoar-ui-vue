@@ -7,19 +7,41 @@ describe('selfLayoutStyle', () => {
     expect(selfLayoutStyle({})).toEqual({});
   });
 
-  it('maps align-self and the flex sizing model', () => {
+  it('maps align-self', () => {
     expect(selfLayoutStyle({ alignSelf: 'center' })).toEqual({ alignSelf: 'center' });
-    expect(selfLayoutStyle({ size: 'fill' })).toEqual({ flex: '1 1 0%' });
-    expect(selfLayoutStyle({ size: 'fixed', width: '200px' })).toEqual({
+  });
+
+  it('size:fill grows along the main axis in a row parent', () => {
+    expect(selfLayoutStyle({ size: 'fill' }, 'row')).toEqual({ flex: '1 1 0%' });
+  });
+
+  it('size:fill becomes full width (not vertical grow) in a column parent', () => {
+    // flex-grow in a column would zero the height basis and squash the box.
+    expect(selfLayoutStyle({ size: 'fill' })).toEqual({ width: '100%' });
+    expect(selfLayoutStyle({ size: 'fill' }, 'column')).toEqual({ width: '100%' });
+  });
+
+  it('size:fixed applies the width and disables grow/shrink (direction-independent)', () => {
+    expect(selfLayoutStyle({ size: 'fixed', width: '200px' }, 'row')).toEqual({
+      flex: '0 0 auto',
+      width: '200px',
+    });
+    expect(selfLayoutStyle({ size: 'fixed', width: '200px' }, 'column')).toEqual({
       flex: '0 0 auto',
       width: '200px',
     });
   });
 
+  it('size:fit is content-sized with no grow/shrink', () => {
+    expect(selfLayoutStyle({ size: 'fit' })).toEqual({ flex: '0 0 auto' });
+  });
+
+  it('treats a width without an explicit size as fixed (back-compat)', () => {
+    expect(selfLayoutStyle({ width: '50%' })).toEqual({ flex: '0 0 auto', width: '50%' });
+  });
+
   it('excludes padding (inner-box concern handled by selfStyle)', () => {
-    expect(selfLayoutStyle({ padding: '16px', alignSelf: 'center' })).toEqual({
-      alignSelf: 'center',
-    });
+    expect(selfLayoutStyle({ padding: '16px', alignSelf: 'center' })).toEqual({ alignSelf: 'center' });
   });
 
   it('maps min-height (so Editor and Preview size the box alike)', () => {
@@ -40,12 +62,14 @@ describe('selfStyle', () => {
     });
   });
 
-  it('size:fill grows to fill the main axis', () => {
-    expect(selfStyle({ size: 'fill' })).toEqual({ flex: '1 1 0%' });
+  it('size:fill is direction-aware (row grows, column full-width)', () => {
+    expect(selfStyle({ size: 'fill' }, 'row')).toEqual({ flex: '1 1 0%' });
+    expect(selfStyle({ size: 'fill' })).toEqual({ width: '100%' });
   });
 
-  it('size:fit is content-sized with no grow/shrink', () => {
-    expect(selfStyle({ size: 'fit' })).toEqual({ flex: '0 0 auto' });
+  it('size:fill ignores any width', () => {
+    expect(selfStyle({ size: 'fill', width: '380px' }, 'row')).toEqual({ flex: '1 1 0%' });
+    expect(selfStyle({ size: 'fill', width: '380px' })).toEqual({ width: '100%' });
   });
 
   it('size:fixed applies the width and disables grow/shrink', () => {
@@ -53,14 +77,6 @@ describe('selfStyle', () => {
       flex: '0 0 auto',
       width: '380px',
     });
-  });
-
-  it('size:fixed without a width still disables grow/shrink', () => {
-    expect(selfStyle({ size: 'fixed' })).toEqual({ flex: '0 0 auto' });
-  });
-
-  it('size:fill ignores any width', () => {
-    expect(selfStyle({ size: 'fill', width: '380px' })).toEqual({ flex: '1 1 0%' });
   });
 
   it('treats a width without an explicit size as fixed (back-compat)', () => {
@@ -102,9 +118,15 @@ describe('containerLayoutStyle', () => {
     });
   });
 
-  it('ignores self-only fields (padding, alignSelf, size, width)', () => {
+  it('ignores self-only fields (padding, alignSelf, size, width, minHeight)', () => {
     expect(
-      containerLayoutStyle({ alignSelf: 'center', size: 'fill', width: '10px', padding: '4px' }),
+      containerLayoutStyle({
+        alignSelf: 'center',
+        size: 'fill',
+        width: '10px',
+        padding: '4px',
+        minHeight: '100vh',
+      }),
     ).toEqual({});
   });
 });
