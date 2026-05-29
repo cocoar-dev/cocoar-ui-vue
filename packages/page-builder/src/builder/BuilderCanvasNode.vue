@@ -131,6 +131,19 @@ const wrapperStyle = computed<CSSProperties>(() =>
   selfLayoutStyle(props.node.style, parentDirection?.value ?? 'column'),
 );
 
+/**
+ * Inline-natured leaf previews (button / link / image) are content-width by
+ * default. When the node is sized (fill / fixed / explicit width) the rendered
+ * element fills its box, so the preview should too — `width: 100%` fills the
+ * chrome wrapper's content area (no overflow from the wrapper's own padding).
+ * Block leaves (text, headings, form fields) already fill their wrapper.
+ */
+const leafSizeStyle = computed<CSSProperties>(() => {
+  const s = props.node.style;
+  const sized = !!s && (s.size === 'fill' || s.size === 'fixed' || (!s.size && !!s.width));
+  return sized ? { width: '100%' } : {};
+});
+
 // ── Select options ────────────────────────────────────────────────────────────
 
 function toSelectOptions(options?: { value: string; label: string }[]): CoarSelectOption<string>[] {
@@ -353,13 +366,13 @@ function onZoneDrop(e: DragEvent, index: number) {
         v-else-if="node.type === 'button'"
         :variant="(node as any).variant ?? 'primary'"
         :size="(node as any).size"
-        :style="(node as any).style?.width ? { width: (node as any).style.width } : {}"
+        :style="leafSizeStyle"
         disabled
       >
         {{ (node as any).label || 'Button' }}
       </CoarButton>
 
-      <button v-else-if="node.type === 'link'" class="canvas-node__link" type="button">
+      <button v-else-if="node.type === 'link'" class="canvas-node__link" type="button" :style="leafSizeStyle">
         {{ (node as any).label || 'Link' }}
       </button>
 
@@ -369,6 +382,7 @@ function onZoneDrop(e: DragEvent, index: number) {
           :src="resolveAsset((node as any).assetId)"
           :alt="(node as any).alt ?? ''"
           class="canvas-node__image-preview"
+          :style="leafSizeStyle"
         />
         <div v-else class="canvas-node__image-placeholder">
           <CoarIcon name="image" size="m" />
