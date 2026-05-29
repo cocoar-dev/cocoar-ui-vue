@@ -80,6 +80,13 @@ const showClearButton = computed(() =>
   props.clearable && model.value.length > 0 && !props.disabled && !props.readonly
 );
 
+// The clear button keeps its layout slot whenever clearing is possible, and is
+// only visually hidden while empty — so the field doesn't resize on first
+// keystroke when the button would otherwise appear.
+const clearSlotActive = computed(() =>
+  props.clearable && !props.disabled && !props.readonly
+);
+
 const hostClasses = computed(() => [
   'coar-text-input-host',
   `coar-text-input--${props.size}`,
@@ -180,11 +187,15 @@ function onClear() {
 
         <!-- Clear button -->
         <button
-          v-if="showClearButton"
+          v-if="clearSlotActive"
           type="button"
           class="coar-text-input-clear"
-          :class="{ 'coar-text-input-clear--multiline': isMultiline }"
+          :class="{
+            'coar-text-input-clear--multiline': isMultiline,
+            'coar-text-input-clear--hidden': !showClearButton,
+          }"
           tabindex="-1"
+          :aria-hidden="!showClearButton || undefined"
           :aria-label="t('coar.ui.textInput.clear', undefined, 'Clear')"
           @click="onClear"
         >
@@ -404,6 +415,12 @@ function onClear() {
     opacity var(--coar-duration-fast) var(--coar-ease-out);
   flex-shrink: 0;
   opacity: 0.4;
+}
+
+/* Empty state — keep the slot (no resize on first keystroke), just hide it. */
+.coar-text-input-clear--hidden {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .coar-text-input-focused .coar-text-input-clear {
