@@ -79,6 +79,12 @@ const showClearButton = computed(() =>
   props.clearable && model.value.length > 0 && !props.disabled && !props.readonly
 );
 
+// Keep the clear button's layout slot whenever clearing is possible; only hide
+// it visually while empty, so the field doesn't resize on first keystroke.
+const clearSlotActive = computed(() =>
+  props.clearable && !props.disabled && !props.readonly
+);
+
 const hostClasses = computed(() => [
   'coar-password-input-host',
   `coar-password-input--${props.size}`,
@@ -150,10 +156,12 @@ function togglePasswordVisibility() {
 
         <!-- Clear button -->
         <button
-          v-if="showClearButton"
+          v-if="clearSlotActive"
           type="button"
           class="coar-password-input-clear"
+          :class="{ 'coar-password-input-clear--hidden': !showClearButton }"
           tabindex="-1"
+          :aria-hidden="!showClearButton || undefined"
           :aria-label="t('coar.ui.passwordInput.clear', undefined, 'Clear')"
           @click="onClear"
         >
@@ -291,6 +299,12 @@ function togglePasswordVisibility() {
     opacity var(--coar-duration-fast) var(--coar-ease-out);
   flex-shrink: 0;
   opacity: 0.4;
+}
+
+/* Empty state — keep the slot (no resize on first keystroke), just hide it. */
+.coar-password-input-clear--hidden {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .coar-password-input-focused .coar-password-input-clear {

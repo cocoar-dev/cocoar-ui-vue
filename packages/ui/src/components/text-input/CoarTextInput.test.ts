@@ -55,11 +55,20 @@ describe('CoarTextInput', () => {
 
   it('shows clear button when clearable and has value', async () => {
     const wrapper = mountInput({ modelValue: 'text', clearable: true });
-    expect(wrapper.find('.coar-text-input-clear').exists()).toBe(true);
+    const clear = wrapper.find('.coar-text-input-clear');
+    expect(clear.exists()).toBe(true);
+    expect(clear.classes()).not.toContain('coar-text-input-clear--hidden');
   });
 
-  it('hides clear button when empty', () => {
+  it('keeps the clear-button slot but hides it when empty (no resize on first keystroke)', () => {
     const wrapper = mountInput({ modelValue: '', clearable: true });
+    const clear = wrapper.find('.coar-text-input-clear');
+    expect(clear.exists()).toBe(true);
+    expect(clear.classes()).toContain('coar-text-input-clear--hidden');
+  });
+
+  it('renders no clear-button slot when not clearable', () => {
+    const wrapper = mountInput({ modelValue: 'text', clearable: false });
     expect(wrapper.find('.coar-text-input-clear').exists()).toBe(false);
   });
 
