@@ -18,6 +18,7 @@ All three panels are resizable via drag handles and collapsible.
 - **Canvas** — real component previews with dashed selection borders. Switches to live preview in the **Preview** tab and to a paste-and-apply JSON editor in the **JSON** tab.
 - **Properties panel** — per-element configuration. Each element type ships its own props component. Validation issues for the selected node are surfaced at the top with colored banners.
 - **Stack direction toggle** — change a stack from column to row direction without re-creating it. Children stay put.
+- **Layout controls** — every node's Style section exposes the flex model: container `Justify` (main axis) + `Align items` (cross axis), and per-node `Align self`, `Size` (Fit / Fill / Fixed → Width) and `Min height`. Center a single element, distribute a row, or build a full-screen centered page — and the Editor canvas mirrors the result 1:1 with the Preview.
 - **Asset picker entry point** — when `config.pickAsset` is set, the image element shows a thumbnail + "Choose…" button that defers to your own picker UI.
 - **Responsive preview** — Desktop · Tablet · 768 · Mobile · 375 segmented toggle in the Preview tab. The render area is capped and centered so you can verify the design at common breakpoints.
 - **Undo / redo** — `Ctrl+Z` / `Ctrl+Y` (or `Cmd+Z` / `Cmd+Shift+Z`), also via toolbar buttons.
@@ -55,7 +56,7 @@ packages/page-builder/src/builder/props/
 ├── ButtonProps.vue
 ├── ImageProps.vue
 ├── …
-└── StyleProps.vue     ← universal Gap/Padding/Width/Align
+└── StyleProps.vue     ← universal Gap/Justify/Align/Align-self/Size/Min-height/Padding
 ```
 
 The main `BuilderPropsPanel.vue` is a thin shell that resolves the registry entry and renders `<component :is="entry.component" :node :patch />`. Adding a new element type requires creating one new `<Type>Props.vue` file and adding one line to the registry — no central files are touched.

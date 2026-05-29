@@ -1,5 +1,18 @@
+<script lang="ts">
+import type { InjectionKey, ComputedRef } from 'vue';
+import type { FlexDirection } from './styleMapping';
+
+/**
+ * Direction of the nearest flex container, provided down the recursive tree so a
+ * node can map `size: 'fill'` to the correct axis (grow in a row, full-width in
+ * a column). Module-scoped so every PageNode instance shares the same key.
+ */
+const PB_PARENT_DIRECTION: InjectionKey<ComputedRef<FlexDirection>> =
+  Symbol('pb-parent-direction');
+</script>
+
 <script setup lang="ts">
-import { computed, inject, type CSSProperties } from 'vue';
+import { computed, inject, provide } from 'vue';
 import {
   CoarButton,
   CoarCard,
@@ -11,7 +24,8 @@ import {
   CoarTextInput,
   type CoarSelectOption,
 } from '@cocoar/vue-ui';
-import { isElementAllowed, type PageNode, type NodeStyle } from './schema';
+import { isElementAllowed, type PageNode } from './schema';
+import { selfStyle, containerLayoutStyle as layoutStyleFromStyle } from './styleMapping';
 import { PAGE_RENDERER_KEY } from './context';
 
 defineOptions({ name: 'PageNode' });
@@ -33,29 +47,33 @@ const allowed = computed(() => {
 });
 
 // ─── Style helpers ────────────────────────────────────────────────────────────
+// Mapping lives in styleMapping.ts (pure, unit-tested). `wrapperStyle` is the
+// node's own outer style; `containerLayoutStyle` arranges a container's children.
 
-function styleFromNode(style?: NodeStyle): CSSProperties {
-  if (!style) return {};
-  const css: CSSProperties = {};
-  if (style.padding) css.padding = style.padding;
-  if (style.width) css.width = style.width;
-  return css;
+// Direction-aware sizing: read the parent container's direction, and tell our
+// own children what direction WE impose on them.
+const parentDirection = inject(PB_PARENT_DIRECTION, undefined);
+const ownDirection = computed<FlexDirection>(() =>
+  props.node.type === 'stack' ? (props.node.direction ?? 'column') : 'column',
+);
+provide(PB_PARENT_DIRECTION, ownDirection);
+
+const wrapperStyle = computed(() =>
+  selfStyle(props.node.style, parentDirection?.value ?? 'column'),
+);
+
+function containerLayoutStyle(node: PageNode) {
+  return layoutStyleFromStyle(node.style);
 }
-
-function containerLayoutStyle(node: PageNode & { style?: NodeStyle }): CSSProperties {
-  const gap = node.style?.gap;
-  const align = node.style?.align;
-  const css: CSSProperties = {};
-  if (gap) css.gap = gap;
-  if (align) css.alignItems = align;
-  return css;
-}
-
-const wrapperStyle = computed<CSSProperties>(() => styleFromNode(props.node.style));
 
 // ─── Narrowed typed views (templates can't narrow discriminated unions) ────────
 
 const n = computed(() => props.node);
+
+// Field name for named inputs as a plain `string | undefined`. Using this in
+// handlers avoids vue-tsc losing the discriminated-union narrowing of `n` inside
+// nested arrow/`&&` expressions (which surfaced as spurious "Property 'name'…").
+const nodeName = computed(() => ('name' in props.node ? props.node.name : undefined));
 
 // ─── Action wiring ────────────────────────────────────────────────────────────
 
@@ -160,37 +178,37 @@ function toSelectOptions(
     v-else-if="n.type === 'text-input'"
     :label="n.label"
     :required="n.validation?.required"
-    :error="n.name ? ctx.getError(n.name) : ''"
+    :error="nodeName ? ctx.getError(nodeName) : ''"
     :disabled="n.disabled"
     :style="wrapperStyle"
   >
     <CoarPasswordInput
       v-if="n.inputType === 'password'"
-      :model-value="n.name ? (ctx.getValue(n.name) as string ?? '') : ''"
+      :model-value="nodeName ? (ctx.getValue(nodeName) as string ?? '') : ''"
       :placeholder="n.placeholder"
       :disabled="n.disabled"
-      @update:model-value="(v) => n.name && ctx.setValue(n.name, v)"
-      @blurred="n.name && ctx.markTouched(n.name)"
+      @update:model-value="(v) => nodeName && ctx.setValue(nodeName, v)"
+      @blurred="nodeName && ctx.markTouched(nodeName)"
     />
     <CoarTextInput
       v-else
-      :model-value="n.name ? (ctx.getValue(n.name) as string ?? '') : ''"
+      :model-value="nodeName ? (ctx.getValue(nodeName) as string ?? '') : ''"
       :placeholder="n.placeholder"
       :disabled="n.disabled"
-      @update:model-value="(v) => n.name && ctx.setValue(n.name, v)"
-      @blurred="n.name && ctx.markTouched(n.name)"
+      @update:model-value="(v) => nodeName && ctx.setValue(nodeName, v)"
+      @blurred="nodeName && ctx.markTouched(nodeName)"
     />
   </CoarFormField>
 
   <!-- ── checkbox ─────────────────────────────────────────────────────────── -->
   <CoarCheckbox
     v-else-if="n.type === 'checkbox'"
-    :model-value="n.name ? (ctx.getValue(n.name) as boolean ?? false) : false"
+    :model-value="nodeName ? (ctx.getValue(nodeName) as boolean ?? false) : false"
     :label="n.label"
     :required="n.validation?.required"
     :disabled="n.disabled"
     :style="wrapperStyle"
-    @update:model-value="(v) => n.name && ctx.setValue(n.name, v)"
+    @update:model-value="(v) => nodeName && ctx.setValue(nodeName, v)"
   />
 
   <!-- ── select ───────────────────────────────────────────────────────────── -->
@@ -198,16 +216,16 @@ function toSelectOptions(
     v-else-if="n.type === 'select'"
     :label="n.label"
     :required="n.validation?.required"
-    :error="n.name ? ctx.getError(n.name) : ''"
+    :error="nodeName ? ctx.getError(nodeName) : ''"
     :disabled="n.disabled"
     :style="wrapperStyle"
   >
     <CoarSelect
-      :model-value="n.name ? (ctx.getValue(n.name) as string ?? null) : null"
+      :model-value="nodeName ? (ctx.getValue(nodeName) as string ?? null) : null"
       :options="toSelectOptions(n.options)"
       :placeholder="n.placeholder"
       :disabled="n.disabled"
-      @update:model-value="(v) => n.name && ctx.setValue(n.name, v)"
+      @update:model-value="(v) => nodeName && ctx.setValue(nodeName, v)"
     />
   </CoarFormField>
 
@@ -257,9 +275,13 @@ function toSelectOptions(
   flex-direction: row;
 }
 
+/*
+ * Allow row children to shrink below their content size (prevents overflow of
+ * long labels). Children are natural-width by default; growing to fill is opt-in
+ * via the node's `size: 'fill'` (see styleMapping.ts), not forced here.
+ */
 .pb-stack--row > * {
   min-width: 0;
-  flex: 1;
 }
 
 .pb-stack--wrap {

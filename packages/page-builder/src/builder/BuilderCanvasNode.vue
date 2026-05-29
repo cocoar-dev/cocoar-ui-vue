@@ -1,5 +1,18 @@
+<script lang="ts">
+import type { InjectionKey, ComputedRef } from 'vue';
+import type { FlexDirection } from '../styleMapping';
+
+/**
+ * Nearest flex-container direction, provided down the canvas tree so a node can
+ * map `size: 'fill'` to the right axis — mirrors the renderer (PageNode.vue) so
+ * Editor and Preview agree. Module-scoped: all instances share the key.
+ */
+const CANVAS_PARENT_DIRECTION: InjectionKey<ComputedRef<FlexDirection>> =
+  Symbol('canvas-parent-direction');
+</script>
+
 <script setup lang="ts">
-import { computed, inject, type CSSProperties } from 'vue';
+import { computed, inject, provide, type CSSProperties } from 'vue';
 import {
   CoarIcon,
   CoarButton,
@@ -14,6 +27,7 @@ import {
   type CoarSelectOption,
 } from '@cocoar/vue-ui';
 import { isContainerNode, type PageNode, type ElementType } from '../schema';
+import { selfLayoutStyle, containerLayoutStyle } from '../styleMapping';
 import { BUILDER_API, BUILDER_CONFIG } from './builderContext';
 import { useBuilderDnd } from './useBuilderDnd';
 import type { NodePath } from './operations';
@@ -80,54 +94,54 @@ const typeLabel = computed(() => {
 const colorFamily = computed<'container' | 'element'>(() => isContainerNode(props.node) ? 'container' : 'element');
 
 /** Direction of this container — drives dropzone axis + child flex behavior. */
-const containerDirection = computed<'column' | 'row'>(() => {
+const containerDirection = computed<FlexDirection>(() => {
   const n = props.node;
   if (n.type === 'stack') return n.direction ?? 'column';
   return 'column';
 });
 
-// ── Container layout (mirrors PageNode.vue) ───────────────────────────────────
+// Direction-aware sizing (mirrors PageNode.vue): read the parent's direction,
+// provide our own to children.
+const parentDirection = inject(CANVAS_PARENT_DIRECTION, undefined);
+provide(CANVAS_PARENT_DIRECTION, containerDirection);
 
+// ── Layout (shares styleMapping.ts with the real renderer, so Editor ≈ Preview) ─
+
+/** Inner layout of a container: gap + justify-content + align-items (+ flex box). */
 const layoutStyle = computed<CSSProperties>(() => {
   const n = props.node;
   if (!isContainerNode(n)) return {};
-  const gap = n.style?.gap;
-  const align = n.style?.align;
-  const padding = n.style?.padding;
-  switch (n.type) {
-    case 'page':
-    case 'section':
-      return {
-        display: 'flex', flexDirection: 'column',
-        ...(gap && { gap }),
-        ...(align && { alignItems: align }),
-        ...(padding && { padding }),
-      };
-    case 'stack': {
-      const direction = n.direction ?? 'column';
-      return {
-        display: 'flex', flexDirection: direction,
-        ...(gap && { gap }),
-        ...(align && { alignItems: align }),
-        ...(padding && { padding }),
-      };
-    }
-    case 'card':
-      return {
-        display: 'flex', flexDirection: 'column',
-        ...(gap && { gap }),
-        ...(align && { alignItems: align }),
-      };
-    default: return {};
-  }
+  const direction = n.type === 'stack' ? (n.direction ?? 'column') : 'column';
+  const css: CSSProperties = {
+    display: 'flex',
+    flexDirection: direction,
+    ...containerLayoutStyle(n.style),
+  };
+  // page/section/stack apply the node's padding here; card uses its own chrome.
+  if (n.type !== 'card' && n.style?.padding) css.padding = n.style.padding;
+  return css;
 });
 
-const wrapperStyle = computed<CSSProperties>(() => {
-  const style = props.node.style;
-  if (!style) return {};
-  const css: CSSProperties = {};
-  if (style.width) css.width = style.width;
-  return css;
+/**
+ * The chrome wrapper IS the flex child of the parent container, so the node's
+ * self-alignment (`align-self`) and sizing (`size`/`width`) belong here — same
+ * mapping the real renderer applies to the node element itself.
+ */
+const wrapperStyle = computed<CSSProperties>(() =>
+  selfLayoutStyle(props.node.style, parentDirection?.value ?? 'column'),
+);
+
+/**
+ * Inline-natured leaf previews (button / link / image) are content-width by
+ * default. When the node is sized (fill / fixed / explicit width) the rendered
+ * element fills its box, so the preview should too — `width: 100%` fills the
+ * chrome wrapper's content area (no overflow from the wrapper's own padding).
+ * Block leaves (text, headings, form fields) already fill their wrapper.
+ */
+const leafSizeStyle = computed<CSSProperties>(() => {
+  const s = props.node.style;
+  const sized = !!s && (s.size === 'fill' || s.size === 'fixed' || (!s.size && !!s.width));
+  return sized ? { width: '100%' } : {};
 });
 
 // ── Select options ────────────────────────────────────────────────────────────
@@ -352,13 +366,13 @@ function onZoneDrop(e: DragEvent, index: number) {
         v-else-if="node.type === 'button'"
         :variant="(node as any).variant ?? 'primary'"
         :size="(node as any).size"
-        :style="(node as any).style?.width ? { width: (node as any).style.width } : {}"
+        :style="leafSizeStyle"
         disabled
       >
         {{ (node as any).label || 'Button' }}
       </CoarButton>
 
-      <button v-else-if="node.type === 'link'" class="canvas-node__link" type="button">
+      <button v-else-if="node.type === 'link'" class="canvas-node__link" type="button" :style="leafSizeStyle">
         {{ (node as any).label || 'Link' }}
       </button>
 
@@ -368,6 +382,7 @@ function onZoneDrop(e: DragEvent, index: number) {
           :src="resolveAsset((node as any).assetId)"
           :alt="(node as any).alt ?? ''"
           class="canvas-node__image-preview"
+          :style="leafSizeStyle"
         />
         <div v-else class="canvas-node__image-placeholder">
           <CoarIcon name="image" size="m" />
@@ -402,6 +417,7 @@ function onZoneDrop(e: DragEvent, index: number) {
 /* ── Base wrapper ─────────────────────────────────────────────────────────── */
 .canvas-node {
   position: relative;
+  box-sizing: border-box;
   border: 1px dashed var(--canvas-border);
   border-radius: 6px;
   padding: 16px 10px 10px;
@@ -496,8 +512,12 @@ function onZoneDrop(e: DragEvent, index: number) {
 /* ── Container body ───────────────────────────────────────────────────────── */
 .canvas-node__body { min-height: 24px; }
 
+/*
+ * Row children are natural-width by default and may shrink below content
+ * (prevents overflow). Growing to fill is opt-in via `size: 'fill'`, applied as
+ * an inline flex on the wrapper (see styleMapping.ts) — not forced here.
+ */
 .canvas-node__body--dir-row > .canvas-node {
-  flex: 1;
   min-width: 0;
 }
 

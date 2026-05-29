@@ -1,14 +1,36 @@
 // ─── Style ────────────────────────────────────────────────────────────────────
 
 export interface NodeStyle {
-  /** CSS gap value, e.g. '8px', '1rem'. Applied to container's inner layout. */
+  // ── Container layout: how this node arranges its children ──
+  /** CSS gap between children, e.g. '8px', '1rem'. Applied to inner layout. */
   gap?: string
-  /** CSS padding value. */
+  /** CSS padding inside this node. */
   padding?: string
-  /** CSS width value or flex share (number string like '2'). */
-  width?: string
-  /** Align children (flex align-items) or self inside a row. */
+  /** justify-content — distribution of children along the main axis. */
+  justify?: 'start' | 'center' | 'end' | 'space-between' | 'space-around' | 'space-evenly'
+  /** align-items — alignment of children along the cross axis. */
   align?: 'start' | 'center' | 'end' | 'stretch'
+
+  // ── Self: how this node sits inside its parent ──
+  /** align-self — overrides the parent's `align` for just this node. */
+  alignSelf?: 'start' | 'center' | 'end' | 'stretch'
+  /**
+   * Sizing along the parent's main axis:
+   * - `fit`   — natural content size (no grow / no shrink)
+   * - `fill`  — grow to fill the available space
+   * - `fixed` — exact `width`
+   */
+  size?: 'fit' | 'fill' | 'fixed'
+  /** CSS width. Applied when `size` is `fixed` (or when set without a `size`). */
+  width?: string
+  /**
+   * CSS min-height of this node's box, e.g. '100vh', '400px'. On the `page`
+   * root this makes the page fill the viewport so `justify` (vertical) +
+   * `align` (horizontal) can center content — e.g. a login card centered on a
+   * full-screen page. The host element provides the width; min-height lets the
+   * page own its vertical extent without depending on host CSS.
+   */
+  minHeight?: string
 }
 
 // ─── Base ─────────────────────────────────────────────────────────────────────

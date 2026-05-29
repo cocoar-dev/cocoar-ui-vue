@@ -348,6 +348,7 @@ const actions: Record<string, (v: ActionValues) => void> = {
 - **Schema migration** — JSON pasted into the builder is normalised (`column`/`row` → `stack`, non-`page` roots get wrapped in a `page`). Schemas loaded from your backend that pre-date these types still work — the renderer accepts them implicitly because the builder migrates on paste, but if you have old saved schemas you should run the same migration server-side before storing the new shape.
 - **Validation** — the builder warns about missing actions, duplicate field names, and missing asset IDs, but lets the tenant save anyway. If you want hard server-side validation before persisting, walk the tree and reject (e.g., reject if any `image.assetId === ''`).
 - **CSP** — image URLs come from `assetResolver`, so your CDN domain needs to be in `img-src`. Action IDs and labels are plain strings — nothing executable lives in the schema.
+- **Full-screen / centering** — the renderer is `display: contents`, so the `page` fills the host element's width. To center a login card on a full-height screen, set the `page` node's `minHeight: '100vh'` + `justify: 'center'` + `align: 'center'` — no host CSS needed. See [Sizing and alignment](./coar-page-renderer#sizing-and-alignment).
 - **Per-tenant theming** — the renderer uses the Cocoar Design System tokens; override CSS variables on a wrapping container for tenant brand colors.
 
 ## Implementation Roadmap
@@ -358,5 +359,6 @@ const actions: Record<string, (v: ActionValues) => void> = {
 | **2 — Builder shell** | Canvas + palette · Outline · Props panel · DnD · Undo/redo · JSON tab | ✅ Done |
 | **3 — Config + safety** | `page` root · `stack` (direction toggle) · `:config.allowedElements` · `:config.availableActions` | ✅ Done |
 | **4 — Asset callbacks + polish** | `:config.pickAsset` + `:config.assetResolver` · builder validation · responsive preview | ✅ Done |
-| **5 — Style editor** | Visual sliders for gap/padding/width; colour pickers | Planned |
+| **5 — Layout & sizing** | Flex model — `justify` / `align` / `alignSelf` / `size` (fit · fill · fixed) / `minHeight`; guided Style-panel controls; Editor matches Preview | ✅ Done |
+| **5b — Style editor (visual)** | Spacing sliders + colour pickers (rolls into the tenant theming track) | Planned |
 | **6+ — Schema versioning** | Formal `version` field + migration framework | Planned |
