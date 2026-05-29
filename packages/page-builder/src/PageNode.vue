@@ -70,6 +70,11 @@ function containerLayoutStyle(node: PageNode) {
 
 const n = computed(() => props.node);
 
+// Field name for named inputs as a plain `string | undefined`. Using this in
+// handlers avoids vue-tsc losing the discriminated-union narrowing of `n` inside
+// nested arrow/`&&` expressions (which surfaced as spurious "Property 'name'…").
+const nodeName = computed(() => ('name' in props.node ? props.node.name : undefined));
+
 // ─── Action wiring ────────────────────────────────────────────────────────────
 
 function callAction(id?: string, validates?: boolean) {
@@ -173,37 +178,37 @@ function toSelectOptions(
     v-else-if="n.type === 'text-input'"
     :label="n.label"
     :required="n.validation?.required"
-    :error="n.name ? ctx.getError(n.name) : ''"
+    :error="nodeName ? ctx.getError(nodeName) : ''"
     :disabled="n.disabled"
     :style="wrapperStyle"
   >
     <CoarPasswordInput
       v-if="n.inputType === 'password'"
-      :model-value="n.name ? (ctx.getValue(n.name) as string ?? '') : ''"
+      :model-value="nodeName ? (ctx.getValue(nodeName) as string ?? '') : ''"
       :placeholder="n.placeholder"
       :disabled="n.disabled"
-      @update:model-value="(v) => n.name && ctx.setValue(n.name, v)"
-      @blurred="n.name && ctx.markTouched(n.name)"
+      @update:model-value="(v) => nodeName && ctx.setValue(nodeName, v)"
+      @blurred="nodeName && ctx.markTouched(nodeName)"
     />
     <CoarTextInput
       v-else
-      :model-value="n.name ? (ctx.getValue(n.name) as string ?? '') : ''"
+      :model-value="nodeName ? (ctx.getValue(nodeName) as string ?? '') : ''"
       :placeholder="n.placeholder"
       :disabled="n.disabled"
-      @update:model-value="(v) => n.name && ctx.setValue(n.name, v)"
-      @blurred="n.name && ctx.markTouched(n.name)"
+      @update:model-value="(v) => nodeName && ctx.setValue(nodeName, v)"
+      @blurred="nodeName && ctx.markTouched(nodeName)"
     />
   </CoarFormField>
 
   <!-- ── checkbox ─────────────────────────────────────────────────────────── -->
   <CoarCheckbox
     v-else-if="n.type === 'checkbox'"
-    :model-value="n.name ? (ctx.getValue(n.name) as boolean ?? false) : false"
+    :model-value="nodeName ? (ctx.getValue(nodeName) as boolean ?? false) : false"
     :label="n.label"
     :required="n.validation?.required"
     :disabled="n.disabled"
     :style="wrapperStyle"
-    @update:model-value="(v) => n.name && ctx.setValue(n.name, v)"
+    @update:model-value="(v) => nodeName && ctx.setValue(nodeName, v)"
   />
 
   <!-- ── select ───────────────────────────────────────────────────────────── -->
@@ -211,16 +216,16 @@ function toSelectOptions(
     v-else-if="n.type === 'select'"
     :label="n.label"
     :required="n.validation?.required"
-    :error="n.name ? ctx.getError(n.name) : ''"
+    :error="nodeName ? ctx.getError(nodeName) : ''"
     :disabled="n.disabled"
     :style="wrapperStyle"
   >
     <CoarSelect
-      :model-value="n.name ? (ctx.getValue(n.name) as string ?? null) : null"
+      :model-value="nodeName ? (ctx.getValue(nodeName) as string ?? null) : null"
       :options="toSelectOptions(n.options)"
       :placeholder="n.placeholder"
       :disabled="n.disabled"
-      @update:model-value="(v) => n.name && ctx.setValue(n.name, v)"
+      @update:model-value="(v) => nodeName && ctx.setValue(nodeName, v)"
     />
   </CoarFormField>
 
