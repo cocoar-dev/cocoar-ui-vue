@@ -14,6 +14,7 @@ import {
   type CoarSelectOption,
 } from '@cocoar/vue-ui';
 import { isContainerNode, type PageNode, type ElementType } from '../schema';
+import { selfLayoutStyle, containerLayoutStyle } from '../styleMapping';
 import { BUILDER_API, BUILDER_CONFIG } from './builderContext';
 import { useBuilderDnd } from './useBuilderDnd';
 import type { NodePath } from './operations';
@@ -86,49 +87,29 @@ const containerDirection = computed<'column' | 'row'>(() => {
   return 'column';
 });
 
-// ── Container layout (mirrors PageNode.vue) ───────────────────────────────────
+// ── Layout (shares styleMapping.ts with the real renderer, so Editor ≈ Preview) ─
 
+/** Inner layout of a container: gap + justify-content + align-items (+ flex box). */
 const layoutStyle = computed<CSSProperties>(() => {
   const n = props.node;
   if (!isContainerNode(n)) return {};
-  const gap = n.style?.gap;
-  const align = n.style?.align;
-  const padding = n.style?.padding;
-  switch (n.type) {
-    case 'page':
-    case 'section':
-      return {
-        display: 'flex', flexDirection: 'column',
-        ...(gap && { gap }),
-        ...(align && { alignItems: align }),
-        ...(padding && { padding }),
-      };
-    case 'stack': {
-      const direction = n.direction ?? 'column';
-      return {
-        display: 'flex', flexDirection: direction,
-        ...(gap && { gap }),
-        ...(align && { alignItems: align }),
-        ...(padding && { padding }),
-      };
-    }
-    case 'card':
-      return {
-        display: 'flex', flexDirection: 'column',
-        ...(gap && { gap }),
-        ...(align && { alignItems: align }),
-      };
-    default: return {};
-  }
-});
-
-const wrapperStyle = computed<CSSProperties>(() => {
-  const style = props.node.style;
-  if (!style) return {};
-  const css: CSSProperties = {};
-  if (style.width) css.width = style.width;
+  const direction = n.type === 'stack' ? (n.direction ?? 'column') : 'column';
+  const css: CSSProperties = {
+    display: 'flex',
+    flexDirection: direction,
+    ...containerLayoutStyle(n.style),
+  };
+  // page/section/stack apply the node's padding here; card uses its own chrome.
+  if (n.type !== 'card' && n.style?.padding) css.padding = n.style.padding;
   return css;
 });
+
+/**
+ * The chrome wrapper IS the flex child of the parent container, so the node's
+ * self-alignment (`align-self`) and sizing (`size`/`width`) belong here — same
+ * mapping the real renderer applies to the node element itself.
+ */
+const wrapperStyle = computed<CSSProperties>(() => selfLayoutStyle(props.node.style));
 
 // ── Select options ────────────────────────────────────────────────────────────
 
@@ -496,8 +477,12 @@ function onZoneDrop(e: DragEvent, index: number) {
 /* ── Container body ───────────────────────────────────────────────────────── */
 .canvas-node__body { min-height: 24px; }
 
+/*
+ * Row children are natural-width by default and may shrink below content
+ * (prevents overflow). Growing to fill is opt-in via `size: 'fill'`, applied as
+ * an inline flex on the wrapper (see styleMapping.ts) — not forced here.
+ */
 .canvas-node__body--dir-row > .canvas-node {
-  flex: 1;
   min-width: 0;
 }
 

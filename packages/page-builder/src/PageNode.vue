@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, inject, type CSSProperties } from 'vue';
+import { computed, inject } from 'vue';
 import {
   CoarButton,
   CoarCard,
@@ -11,7 +11,8 @@ import {
   CoarTextInput,
   type CoarSelectOption,
 } from '@cocoar/vue-ui';
-import { isElementAllowed, type PageNode, type NodeStyle } from './schema';
+import { isElementAllowed, type PageNode } from './schema';
+import { selfStyle, containerLayoutStyle as layoutStyleFromStyle } from './styleMapping';
 import { PAGE_RENDERER_KEY } from './context';
 
 defineOptions({ name: 'PageNode' });
@@ -33,25 +34,14 @@ const allowed = computed(() => {
 });
 
 // ─── Style helpers ────────────────────────────────────────────────────────────
+// Mapping lives in styleMapping.ts (pure, unit-tested). `wrapperStyle` is the
+// node's own outer style; `containerLayoutStyle` arranges a container's children.
 
-function styleFromNode(style?: NodeStyle): CSSProperties {
-  if (!style) return {};
-  const css: CSSProperties = {};
-  if (style.padding) css.padding = style.padding;
-  if (style.width) css.width = style.width;
-  return css;
+const wrapperStyle = computed(() => selfStyle(props.node.style));
+
+function containerLayoutStyle(node: PageNode) {
+  return layoutStyleFromStyle(node.style);
 }
-
-function containerLayoutStyle(node: PageNode & { style?: NodeStyle }): CSSProperties {
-  const gap = node.style?.gap;
-  const align = node.style?.align;
-  const css: CSSProperties = {};
-  if (gap) css.gap = gap;
-  if (align) css.alignItems = align;
-  return css;
-}
-
-const wrapperStyle = computed<CSSProperties>(() => styleFromNode(props.node.style));
 
 // ─── Narrowed typed views (templates can't narrow discriminated unions) ────────
 
@@ -257,9 +247,13 @@ function toSelectOptions(
   flex-direction: row;
 }
 
+/*
+ * Allow row children to shrink below their content size (prevents overflow of
+ * long labels). Children are natural-width by default; growing to fill is opt-in
+ * via the node's `size: 'fill'` (see styleMapping.ts), not forced here.
+ */
 .pb-stack--row > * {
   min-width: 0;
-  flex: 1;
 }
 
 .pb-stack--wrap {
