@@ -417,6 +417,7 @@ function onZoneDrop(e: DragEvent, index: number) {
 /* ── Base wrapper ─────────────────────────────────────────────────────────── */
 .canvas-node {
   position: relative;
+  box-sizing: border-box;
   border: 1px dashed var(--canvas-border);
   border-radius: 6px;
   padding: 16px 10px 10px;
