@@ -50,6 +50,10 @@ export const routes: RouteRecordRaw[] = [
     path: '/file-explorer-poc',
     component: () => import('./views/FileExplorerPocView.vue'),
   },
+  {
+    path: '/panel-layout',
+    component: () => import('./views/PanelLayoutPocView.vue'),
+  },
   // ─── @cocoar/vue-calendar demos ────────────────────────────
   {
     path: '/calendar-basic',

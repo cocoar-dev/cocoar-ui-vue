@@ -6,7 +6,7 @@ import {
   useFileExplorer,
   type Asset,
   type SortMode,
-} from '@cocoar/vue-file-explorer';
+} from '@cocoar/vue-file-explorer-core';
 
 const initialTree: Asset[] = [
   { id: 'docs',   name: 'docs',     kind: 'folder', parentId: null },

@@ -1,6 +1,6 @@
 /**
  * `useFileExplorer<T>(options)` — the medium-scope composable that powers
- * the file-explorer POC and (post-extraction) the `@cocoar/vue-file-explorer`
+ * the file-explorer POC and (post-extraction) the `@cocoar/vue-file-explorer-core`
  * package.
  *
  * Owns:
@@ -50,6 +50,7 @@ import type {
   SortMode,
 } from './asset-store';
 import { resolveFileMeta } from './file-meta';
+import { buildAssetProperties, type AssetProperty } from './describe-asset';
 
 /**
  * A tab open in the editor area. Held in `shallowRef` so swaps trigger
@@ -97,6 +98,12 @@ export interface UseFileExplorerReturn<T = unknown> {
   /** Root-level slice — pass directly to `<CoarTree :nodes>`. */
   readonly rootNodes: Readonly<Ref<readonly Asset<T>[]>>;
   selectedId: Ref<string | null>;
+  /**
+   * The asset currently selected in the tree, resolved from `selectedId`.
+   * `null` when nothing is selected or the id no longer exists. Drives
+   * details / info panels — pair with `describeAsset`.
+   */
+  readonly selectedAsset: Readonly<Ref<Asset<T> | null>>;
   expanded: Ref<Set<string>>;
 
   // ── CoarTree wiring helpers ────────────────────────────────────────────
@@ -187,6 +194,13 @@ export interface UseFileExplorerReturn<T = unknown> {
 
   // ── meta ───────────────────────────────────────────────────────────────
   fileMeta: (asset: Asset<T>) => FileMeta | null;
+  /**
+   * Framework-known property rows for an asset — Name, Type, Language
+   * (script files), Extension, and Path — ready to render in a details /
+   * info panel. Returns a fresh array each call. Domain fields that live in
+   * `payload` are the consumer's to append.
+   */
+  describeAsset: (asset: Asset<T>) => AssetProperty[];
 }
 
 /**
@@ -328,6 +342,11 @@ export function useFileExplorer<T = unknown>(
   const findAsset = (id: string): Asset<T> | null =>
     assets.value.find((a) => a.id === id) ?? null;
 
+  /** Reactive resolution of `selectedId` → the selected asset (or null). */
+  const selectedAsset = computed<Asset<T> | null>(() =>
+    selectedId.value ? findAsset(selectedId.value) : null,
+  );
+
   /** BFS descendants of `rootId`, inclusive. */
   const descendantIds = (rootId: string): Set<string> => {
     const out = new Set<string>([rootId]);
@@ -346,6 +365,13 @@ export function useFileExplorer<T = unknown>(
 
   const fileMeta = (asset: Asset<T>): FileMeta | null =>
     resolveFileMeta(asset, { getFileMeta });
+
+  const describeAsset = (asset: Asset<T>): AssetProperty[] =>
+    buildAssetProperties(asset, {
+      // Folders never carry a meaningful editor — only resolve for files.
+      meta: asset.kind === 'file' ? fileMeta(asset) : null,
+      path: pathOf(asset.id),
+    });
 
   // ── owned blob-URL leases ─────────────────────────────────────────────
   // OS-file uploads get a Blob URL (so PDF/image editors can fetch them).
@@ -910,6 +936,7 @@ export function useFileExplorer<T = unknown>(
     assets,
     rootNodes,
     selectedId,
+    selectedAsset,
     expanded,
     // CoarTree helpers
     getId,
@@ -953,5 +980,6 @@ export function useFileExplorer<T = unknown>(
     pathOf,
     // meta
     fileMeta,
+    describeAsset,
   };
 }

@@ -1,8 +1,8 @@
 /**
- * @cocoar/vue-file-explorer — `AssetStore<T>` design sketch.
+ * @cocoar/vue-file-explorer-core — `AssetStore<T>` design sketch.
  *
  * Types only. No logic. Pre-package draft: lives in the playground until the
- * interface settles, then lifts into `packages/file-explorer/` unchanged.
+ * interface settles, then lifts into `packages/file-explorer-core/` unchanged.
  *
  * Settled decisions (Session 2, 2026-05-21):
  *

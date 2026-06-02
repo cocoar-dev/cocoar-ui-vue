@@ -1,9 +1,9 @@
 # File Explorer <Badge type="warning" text="Preview" />
 
-`@cocoar/vue-file-explorer` is a VSCode-style file/asset explorer for Vue 3. **No wrapper component** — a single composable, `useFileExplorer({store})`, drives a pluggable `AssetStore<T>` backend and returns every ref + op a shell needs. You compose the chrome (tree, tabs, editor area) yourself; the composable owns the tricky parts (tab state machine, async loading, blob-URL leases, dirty tracking, conflict resolution).
+`@cocoar/vue-file-explorer-core` is the **headless engine** for a VSCode-style file/asset explorer in Vue 3 — the **data + coordination**, not a finished UI. A single composable, `useFileExplorer({store})`, drives a pluggable `AssetStore<T>` backend and returns every ref + op a file explorer needs (tree + tab state machine, selection, async loading, blob-URL leases, dirty tracking, conflict resolution). It ships **no layout** — you compose the chrome with [`@cocoar/vue-ui`](/components/panel-layout) (`CoarPanelLayout`, `CoarSplitPane`, `CoarTree`, …). A batteries-included, layouted `<CoarFileExplorer>` component — under the bare `@cocoar/vue-file-explorer` name — is planned on top.
 
-::: tip Mental model — what's in vs. out of the composable
-This is **composable-only for v1**. `useFileExplorer` does NOT render editors, tabs, or breadcrumbs — your shell (a single Vue SFC, ~150 LoC for the full kitchen-sink case) renders all of that, calling `fe.*` for state and ops. The full-dispatch demo below IS the shell — copy + adapt it. A `<CoarFileExplorer>` wrapper component is a v2 candidate; today consumers want to own tab bar styling, editor dispatch, simulator panels, and context-menu shape themselves, which is why v1 hands them the lego pieces instead of a finished product.
+::: tip Mental model — engine, not UI
+`useFileExplorer` is **headless**: it renders no editors, tabs, breadcrumbs, or layout — it returns reactive state + ops, and your view binds to `fe.*`. The composable IS the bus that wires the panels together: select in the tree → a tab opens → the editor and details panels react, all through one shared `fe.*` instance. For the **layout**, reach for the [panel-layout](/components/panel-layout) primitives; the demos below are worked examples to copy. A batteries-included `<CoarFileExplorer>` component is planned — it'll sit on exactly these pieces.
 :::
 
 ```ts
@@ -11,7 +11,7 @@ import {
   useFileExplorer,
   createInMemoryAssetStore,
   type Asset,
-} from '@cocoar/vue-file-explorer';
+} from '@cocoar/vue-file-explorer-core';
 ```
 
 The required peer is [`@cocoar/vue-ui`](/components/tree) for `CoarTree` + `CoarTreeNodeLabel`. `@cocoar/vue-script-editor` is **optional** — only pulled in if you want the Monaco-typed `language` field on the file-meta resolver.
@@ -46,8 +46,36 @@ Same composable, no heavy editors — useful as a starting point or for plain-te
 
 The composable returns refs (`rootNodes`, `selectedId`, `expanded`, `openTabs`, `activeTab`, `loadingNodes`, `savingNodes`, `breadcrumbPath`) and ops (`openFile`, `saveTab`, `closeTab`, `addFolder`, `addFiles`, `deleteNode`, `moveNode`, `rename`, `reorderTab`, …). Wire whichever you need into your shell.
 
-::: tip Why no `<CoarFileExplorer>` component?
-The shell — tab bar styling, editor dispatch, simulator panels, context-menu shape — is the part consumers actually want to own. The library owns the bits that are hard to get right (placeholder-then-fill open, optimistic rollback, blob-URL lifecycle, beforeunload warning, drag-to-reorder tabs). A wrapper component is on the roadmap once the composable surface settles in real consumer apps.
+::: tip Where's the `<CoarFileExplorer>` component?
+Planned — and reserved under the bare `@cocoar/vue-file-explorer` name. It'll be built on these exact pieces: `useFileExplorer` + the [panel-layout](/components/panel-layout) primitives + `CoarTree`. The engine ships first because the **layout** is the part consumers most want to own (sidebar arrangement, tab bar styling, editor dispatch, context-menu shape); the hard-to-get-right bits (placeholder-then-fill open, optimistic rollback, blob-URL lifecycle, beforeunload warning, drag-to-reorder tabs) already live in the engine.
+:::
+
+## Details panel
+
+The explorer hands you the **data** for a details / info panel; **where** it renders is your layout's call. `useFileExplorer` exposes **`selectedAsset`** (the selected node, resolved reactively from `selectedId`) and **`describeAsset(asset)`** (its framework-known property rows). Drop the panel below the tree, into a [`CoarPanelLayout`](/components/panel-layout) region — wherever.
+
+<preview path="./demos/InfoPanel.vue" />
+
+`describeAsset` returns only what the framework can know from the `Asset` shape + resolved file-meta — **Name, Type, Language** (script files), **Extension**, and **Path**:
+
+```ts
+const fe = useFileExplorer({ store });
+// fe.selectedAsset: Readonly<Ref<Asset<T> | null>>
+// fe.describeAsset(asset) → [{ key, label, value }, …]
+```
+
+```vue
+<dl v-if="fe.selectedAsset.value">
+  <div v-for="p in fe.describeAsset(fe.selectedAsset.value)" :key="p.key">
+    <dt>{{ p.label }}</dt><dd>{{ p.value }}</dd>
+  </div>
+</dl>
+```
+
+Domain fields (size, modified date, author, …) live in your generic `payload<T>` — the framework can't know them, so **append your own rows**: `[...fe.describeAsset(asset), ...myPayloadRows(asset)]`. Need full control? Skip `describeAsset` and build the panel straight off `selectedAsset`.
+
+::: tip Resizable tree-over-details sidebar
+Want the tree stacked above the details panel with a draggable divider (VS-Code style)? Nest a [`CoarSplitPane`](/components/panel-layout) in your sidebar — tree in `#first`, the `selectedAsset` / `describeAsset` panel in `#second`. See the [panel layout](/components/panel-layout) docs.
 :::
 
 ## Lazy mode

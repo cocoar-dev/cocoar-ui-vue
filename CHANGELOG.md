@@ -7,7 +7,16 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
-## Unreleased
+## 2.6.0
+
+### Added
+
+- **`@cocoar/vue-ui` — `CoarSplitPane` + `CoarPanelLayout` (resizable panel layout).** A VS-Code-style workbench primitive: `CoarPanelLayout` arranges `top` / `left` / content / `right` / `bottom` / `status` regions (an empty slot renders no region), each sidebar/panel resizable by drag or arrow keys and collapsible via `*-open` props; sizes are two-way (`v-model:left-width` …) for easy persistence. `CoarSplitPane` is the nestable two-pane primitive underneath (`direction`, `side`, `v-model:size`, `min`/`max`) — nest it to stack views inside a region (e.g. a tree above a details panel). Dividers are focusable `role="separator"` window-splitters (Arrow / Home / End). The content region has a guaranteed minimum (`contentMinWidth` / `contentMinHeight`, default 120 × 80) so sidebars/panels can never be dragged — or squeezed by a shrinking window — to crush it to 0. Drag-to-rearrange / docking is intentionally out of scope.
+- **`@cocoar/vue-file-explorer-core` — `selectedAsset` + `describeAsset()`.** `useFileExplorer` now exposes the selected node (resolved reactively from `selectedId`) and its framework-known property rows — Name / Type / Language (script files) / Extension / Path — for details panels. The pure helper `buildAssetProperties` (+ `AssetProperty` / `DescribeAssetContext` types) is exported too. Append your own `payload`-derived rows; render the panel wherever your layout puts it (e.g. a nested `CoarSplitPane`).
+
+### Changed
+
+- **Renamed `@cocoar/vue-file-explorer` → `@cocoar/vue-file-explorer-core`** (folder `packages/file-explorer-core/`). It is the headless data + coordination engine (composable + `AssetStore<T>` contract, no layout); the bare `@cocoar/vue-file-explorer` name is now reserved for a future batteries-included, layouted component built on `-core` + the panel-layout primitives. Pre-release (`0.0.1`, Preview) — no published consumers are affected.
 
 ### Fixed
 

@@ -1,4 +1,4 @@
-# @cocoar/vue-file-explorer
+# @cocoar/vue-file-explorer-core
 
 VSCode-style file/asset explorer for Vue 3 — a single composable + a pluggable `AssetStore<T>` contract that decouples the UX from your backend (HTTP, IndexedDB, in-memory, whatever).
 
@@ -7,7 +7,7 @@ VSCode-style file/asset explorer for Vue 3 — a single composable + a pluggable
 ## Install
 
 ```bash
-pnpm add @cocoar/vue-file-explorer @cocoar/vue-ui
+pnpm add @cocoar/vue-file-explorer-core @cocoar/vue-ui
 ```
 
 `@cocoar/vue-ui` (for `CoarTree` + `CoarTreeNodeLabel`) is the only required peer. `@cocoar/vue-script-editor` is optional — it's only pulled if you want the resolver's Monaco-language-typed `language` field on `FileMeta`.
@@ -28,7 +28,7 @@ import {
   createInMemoryAssetStore,
   useFileExplorer,
   type Asset,
-} from '@cocoar/vue-file-explorer';
+} from '@cocoar/vue-file-explorer-core';
 
 const seed: Asset[] = [
   { id: 'src',     name: 'src',     kind: 'folder', parentId: null  },
@@ -81,7 +81,7 @@ The composable also returns `openTabs`, `activeTab`, `breadcrumbPath`, `loadingN
 Implement the `AssetStore<T>` methods — `createAssetStore(config)` returns the typed store:
 
 ```ts
-import { createAssetStore, type AssetStore } from '@cocoar/vue-file-explorer';
+import { createAssetStore, type AssetStore } from '@cocoar/vue-file-explorer-core';
 
 interface MyAsset { mimeType: string; size: number }
 

@@ -13,6 +13,7 @@ import { CoarOverlayHost } from '@cocoar/vue-ui';
       <router-link to="/editor-in-modal">Editor in Modal</router-link>
       <router-link to="/page-builder">Page Builder</router-link>
       <router-link to="/file-explorer-poc">File Explorer POC</router-link>
+      <router-link to="/panel-layout">Panel Layout</router-link>
     </nav>
     <main class="app-main">
       <router-view />

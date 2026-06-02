@@ -110,10 +110,10 @@ export default defineConfig({
           ),
         },
         {
-          find: /^@cocoar\/vue-file-explorer$/,
+          find: /^@cocoar\/vue-file-explorer-core$/,
           replacement: resolve(
             __dirname,
-            '../../../packages/file-explorer/src/index.ts',
+            '../../../packages/file-explorer-core/src/index.ts',
           ),
         },
         {
@@ -166,7 +166,7 @@ export default defineConfig({
         '@cocoar/vue-markdown-editor',
         '@cocoar/vue-calendar',
         '@cocoar/vue-document-viewer',
-        '@cocoar/vue-file-explorer',
+        '@cocoar/vue-file-explorer-core',
         'ag-grid-community',
         'ag-grid-vue3',
         '@maskito/core',
@@ -321,6 +321,12 @@ export default defineConfig({
             { text: 'Segmented Control', link: '/components/segmented-control' },
             { text: 'Breadcrumb', link: '/components/breadcrumb' },
             { text: 'Pagination', link: '/components/pagination' },
+          ],
+        },
+        {
+          text: 'Layout',
+          items: [
+            { text: 'Panel Layout (Preview)', link: '/components/panel-layout' },
           ],
         },
         {

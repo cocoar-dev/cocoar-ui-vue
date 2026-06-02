@@ -8,7 +8,7 @@ import {
   type AssetStore,
   type AssetStoreConfig,
   type Asset,
-} from '@cocoar/vue-file-explorer';
+} from '@cocoar/vue-file-explorer-core';
 ```
 
 ## The shape
@@ -202,7 +202,7 @@ interface FileMeta {
 ## Wiring a real backend
 
 ```ts
-import { createAssetStore, type Asset } from '@cocoar/vue-file-explorer';
+import { createAssetStore, type Asset } from '@cocoar/vue-file-explorer-core';
 
 interface MyAsset { mimeType: string; size: number }
 
@@ -259,7 +259,7 @@ The pragmatic default. Subscribe to your push channel in the consumer; call `api
 
 ```ts
 import { onMounted, onUnmounted } from 'vue';
-import { useFileExplorer } from '@cocoar/vue-file-explorer';
+import { useFileExplorer } from '@cocoar/vue-file-explorer-core';
 
 const fe = useFileExplorer({ store: myHttpStore });
 
@@ -283,7 +283,7 @@ import {
   type Asset,
   type AssetStore,
   useFileExplorer,
-} from '@cocoar/vue-file-explorer';
+} from '@cocoar/vue-file-explorer-core';
 import { useKnowledgeAssetStore } from '@/composables/useKnowledgeAssetStore';
 
 interface MyAsset { mimeType: string }

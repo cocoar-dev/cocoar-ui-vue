@@ -132,9 +132,9 @@ importers:
       '@cocoar/vue-document-viewer':
         specifier: workspace:*
         version: link:../../packages/document-viewer
-      '@cocoar/vue-file-explorer':
+      '@cocoar/vue-file-explorer-core':
         specifier: workspace:*
-        version: link:../../packages/file-explorer
+        version: link:../../packages/file-explorer-core
       '@cocoar/vue-fragment-parser':
         specifier: workspace:*
         version: link:../../packages/fragment-parser
@@ -250,7 +250,7 @@ importers:
         specifier: ^3.5.32
         version: 3.5.33(typescript@5.9.3)
 
-  packages/file-explorer:
+  packages/file-explorer-core:
     devDependencies:
       '@cocoar/vue-script-editor':
         specifier: workspace:*

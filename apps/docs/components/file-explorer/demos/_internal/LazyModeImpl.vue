@@ -5,7 +5,7 @@ import {
   createInMemoryAssetStore,
   useFileExplorer,
   type Asset,
-} from '@cocoar/vue-file-explorer';
+} from '@cocoar/vue-file-explorer-core';
 
 const initialTree: Asset[] = [
   { id: 'src', name: 'src', kind: 'folder', parentId: null },
