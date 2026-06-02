@@ -6,7 +6,7 @@ import {
   useFileExplorer,
   type Asset,
   type ConflictPolicy,
-} from '@cocoar/vue-file-explorer';
+} from '@cocoar/vue-file-explorer-core';
 
 const initialTree: Asset[] = [
   { id: 'root', name: 'uploads', kind: 'folder', parentId: null },

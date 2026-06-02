@@ -8,7 +8,7 @@ import {
   type UseFileExplorerOptions,
   type UseFileExplorerReturn,
   type OpenTab,
-} from '@cocoar/vue-file-explorer';
+} from '@cocoar/vue-file-explorer-core';
 ```
 
 ## Options
@@ -43,6 +43,7 @@ The return is organized into four groups: tree state, tab state, ops, navigation
 readonly assets: Readonly<Ref<readonly Asset<T>[]>>;
 readonly rootNodes: Readonly<Ref<readonly Asset<T>[]>>;
 selectedId: Ref<string | null>;
+readonly selectedAsset: Readonly<Ref<Asset<T> | null>>;
 expanded: Ref<Set<string>>;
 readonly loading: Readonly<Ref<boolean>>;
 readonly loadingNodes: Readonly<Ref<ReadonlySet<string>>>;
@@ -55,6 +56,7 @@ readonly reorderable: Readonly<Ref<boolean>>;
 | `assets` | Flat reactive list — the store's underlying projection. Read-only from the consumer's perspective. |
 | `rootNodes` | Already filtered + sorted children of `null`. Pass directly to `<CoarTree :nodes>`. |
 | `selectedId` | Two-way. Single-click on a row sets this; a watcher then opens the file as a preview tab. |
+| `selectedAsset` | Read-only. `selectedId` resolved to the `Asset` (or `null`). Pair with `describeAsset` for a [details panel](./#details-panel). |
 | `expanded` | Two-way `Set<string>` of expanded folder ids. In lazy mode, newly-added ids trigger `store.loadChildren()`. |
 | `loading` | `true` during the **initial** `store.loadTree()` call only. Per-folder lazy loads + per-file content loads live on `loadingNodes`. Stays `false` for stores that surface their own reactive `_assets`. |
 | `loadingNodes` | Per-id Set: files being `loadContent`-fetched + folders being lazy-loaded. Bind to row-icon → spinner swap. |
@@ -163,6 +165,7 @@ revealInTree(id: string, focusNode?: (id: string) => void): void;
 readonly breadcrumbPath: Readonly<Ref<readonly string[]>>;
 pathOf(id: string): string[];
 fileMeta(asset: Asset<T>): FileMeta | null;
+describeAsset(asset: Asset<T>): AssetProperty[]; // { key, label, value }
 ```
 
 | Helper | Notes |
@@ -171,6 +174,7 @@ fileMeta(asset: Asset<T>): FileMeta | null;
 | `breadcrumbPath` | Name-path of the **active tab**. Drives the editor-area breadcrumb. |
 | `pathOf(id)` | Name-path of any asset. Used for quick-open / recent-files matchers. |
 | `fileMeta(asset)` | Runs the 3-stage fallback. Returns `null` for unrecognised binary types — caller skips with a warning. |
+| `describeAsset(asset)` | Framework-known property rows (Name, Type, Language, Extension, Path) for a [details panel](./#details-panel). Append your own `payload`-derived rows. Pure helper also exported as `buildAssetProperties`. |
 
 ## Persistent viewer config across file swaps
 
@@ -229,7 +233,7 @@ import {
   createInMemoryAssetStore,
   useFileExplorer,
   type Asset,
-} from '@cocoar/vue-file-explorer';
+} from '@cocoar/vue-file-explorer-core';
 import { CoarTree, CoarTreeNodeLabel, CoarBreadcrumb, CoarBreadcrumbItem } from '@cocoar/vue-ui';
 
 const seed: Asset[] = [

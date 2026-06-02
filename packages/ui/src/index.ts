@@ -205,6 +205,10 @@ export type {
   TreeBuilderState,
 } from './components/tree';
 
+// Panel Layout (resizable workbench + split-pane primitive)
+export { CoarSplitPane, CoarPanelLayout } from './components/panel-layout';
+export type { SplitDirection, SplitSide } from './components/panel-layout';
+
 // Segmented Control
 export { CoarSegmentedControl } from './components/segmented-control';
 export type {

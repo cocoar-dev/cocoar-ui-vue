@@ -34,7 +34,7 @@ import {
   type FileEditor,
   type OpenTab,
   type SortMode,
-} from '@cocoar/vue-file-explorer';
+} from '@cocoar/vue-file-explorer-core';
 
 // ─── domain ────────────────────────────────────────────────────────────────
 // Tree state is now a flat `Asset<unknown>[]` owned by the AssetStore. The

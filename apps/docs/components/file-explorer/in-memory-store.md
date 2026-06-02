@@ -8,7 +8,7 @@
 - **exercising your UX under degraded conditions** — the latency / failure / lazy / conflict knobs are reactive, so a toolbar can dial them at runtime
 
 ```ts
-import { createInMemoryAssetStore } from '@cocoar/vue-file-explorer';
+import { createInMemoryAssetStore } from '@cocoar/vue-file-explorer-core';
 ```
 
 ## Quick start
@@ -142,7 +142,7 @@ import {
   useFileExplorer,
   type ConflictPolicy,
   type SortMode,
-} from '@cocoar/vue-file-explorer';
+} from '@cocoar/vue-file-explorer-core';
 
 const latency = ref<number>(0);
 const failure = ref<number>(0);

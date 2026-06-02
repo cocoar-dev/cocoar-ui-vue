@@ -1,5 +1,5 @@
 /**
- * `@cocoar/vue-file-explorer` — VSCode-style file/asset explorer composable
+ * `@cocoar/vue-file-explorer-core` — VSCode-style file/asset explorer composable
  * over a pluggable `AssetStore<T>` backend.
  *
  * Three layers:
@@ -48,6 +48,12 @@ export {
   defaultFileMetaFromName,
   resolveFileMeta,
 } from './file-meta';
+
+export {
+  buildAssetProperties,
+  type AssetProperty,
+  type DescribeAssetContext,
+} from './describe-asset';
 
 export {
   useFileExplorer,
