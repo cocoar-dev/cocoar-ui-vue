@@ -195,6 +195,7 @@ export {
 export type {
   CoarTreeDropPosition,
   CoarTreeFilesDropEvent,
+  CoarTreeLoadErrorEvent,
   CoarTreeNodeMoveEvent,
   CoarTreeNodeSlotProps,
   CoarTreeRenameContext,

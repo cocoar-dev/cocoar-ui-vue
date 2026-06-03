@@ -24,6 +24,7 @@ import {
 import type {
   CoarTreeDropPosition,
   CoarTreeFilesDropEvent,
+  CoarTreeLoadErrorEvent,
   CoarTreeMenuEntry,
   CoarTreeNodeMoveEvent,
   CoarTreeVirtualizeProp,
@@ -53,6 +54,10 @@ export interface TreeBuilderState<T> {
   onNodeMove?: (e: CoarTreeNodeMoveEvent<T>) => void;
   onFilesDrop?: (e: CoarTreeFilesDropEvent<T>) => void;
 
+  /** Lazily fetch a node's children when it's expanded (see `loadChildren` setter). */
+  loadChildren?: (node: T) => void | Promise<void>;
+  onLoadError?: (e: CoarTreeLoadErrorEvent<T>) => void;
+
   /** Declarative menus — `<CoarTree>` renders the menu itself when these are set. */
   folderMenu?: (folder: T) => readonly CoarTreeMenuEntry[];
   leafMenu?: (leaf: T) => readonly CoarTreeMenuEntry[];
@@ -74,6 +79,11 @@ export interface TreeBuilderState<T> {
 export interface TreeApi {
   /** Programmatically move focus + selection to a node. No-op until `<CoarTree>` is mounted. */
   focusNode(id: string): void;
+  /**
+   * Force `loadChildren` to (re)run for a node — for a retry after a load error
+   * or to refresh an already-loaded folder. No-op until `<CoarTree>` is mounted.
+   */
+  reloadChildren(id: string): void;
   /** Selected node id (read-only). */
   readonly selectedId: Ref<string | null>;
   /** Currently expanded ids (read-only). */
@@ -85,6 +95,7 @@ export class TreeBuilder<T> {
   readonly api: TreeApi;
 
   private _focusNodeImpl: ((id: string) => void) | null = null;
+  private _reloadChildrenImpl: ((id: string) => void) | null = null;
 
   private constructor(state: TreeBuilderState<T>) {
     this.state = state;
@@ -97,6 +108,14 @@ export class TreeBuilder<T> {
           // during setup get a useful warning instead of silent dead code.
           console.warn(
             '[TreeBuilder.api.focusNode] called before <CoarTree> mounted. The call was a no-op; move it into onMounted / a user-triggered handler.',
+          );
+        }
+      },
+      reloadChildren: (id) => {
+        if (this._reloadChildrenImpl) this._reloadChildrenImpl(id);
+        else if (typeof console !== 'undefined') {
+          console.warn(
+            '[TreeBuilder.api.reloadChildren] called before <CoarTree> mounted. The call was a no-op; move it into onMounted / a user-triggered handler.',
           );
         }
       },
@@ -125,6 +144,8 @@ export class TreeBuilder<T> {
       onActivate: undefined,
       onNodeMove: undefined,
       onFilesDrop: undefined,
+      loadChildren: undefined,
+      onLoadError: undefined,
       folderMenu: undefined,
       leafMenu: undefined,
       viewportMenu: undefined,
@@ -166,6 +187,19 @@ export class TreeBuilder<T> {
    */
   isExpandable(fn: (n: T) => boolean): this {
     this.state.isExpandable = fn;
+    return this;
+  }
+
+  /**
+   * Lazily fetch a node's children the first time it's expanded while it has no
+   * loaded children yet. Return a `Promise` and the tree shows a spinner on the
+   * row until it settles; on rejection the row flips to an error state and
+   * `onLoadError` fires. Pair with `.isExpandable(() => true)` (or per-node) so
+   * folders render expandable BEFORE their children exist — the consumer mutates
+   * its own `nodes` data to attach the fetched children.
+   */
+  loadChildren(fn: (node: T) => void | Promise<void>): this {
+    this.state.loadChildren = fn;
     return this;
   }
 
@@ -255,6 +289,12 @@ export class TreeBuilder<T> {
     return this;
   }
 
+  /** Fires when a lazy `loadChildren` promise rejects. */
+  onLoadError(h: (e: CoarTreeLoadErrorEvent<T>) => void): this {
+    this.state.onLoadError = h;
+    return this;
+  }
+
   // ─── Declarative context menus ───────────────────────────────────────────
 
   /**
@@ -314,5 +354,10 @@ export class TreeBuilder<T> {
   /** @internal — `<CoarTree>` registers its focus impl on mount. */
   _setFocusNodeImpl(fn: ((id: string) => void) | null): void {
     this._focusNodeImpl = fn;
+  }
+
+  /** @internal — `<CoarTree>` registers its reload-children impl on mount. */
+  _setReloadChildrenImpl(fn: ((id: string) => void) | null): void {
+    this._reloadChildrenImpl = fn;
   }
 }

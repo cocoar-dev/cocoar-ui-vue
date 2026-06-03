@@ -51,12 +51,32 @@ export interface CoarTreeNodeSlotProps<T> {
    * while the user is typing the new name.
    */
   isRenaming: boolean;
+  /**
+   * True while this node's children are being lazily fetched via `loadChildren`
+   * (the tree shows a spinner in the chevron slot by default). Use it to gate
+   * hover actions or render your own loading affordance.
+   */
+  isLoading: boolean;
+  /**
+   * True if the most recent lazy `loadChildren` for this node rejected. The tree
+   * has no default error visual — render a retry affordance and call
+   * `api.reloadChildren(id)` (or collapse + re-expand) to try again.
+   */
+  hasError: boolean;
 }
 
 /** Payload for {@link CoarTreeEmits.rename}. */
 export interface CoarTreeRenameEvent<T> {
   node: T;
   newName: string;
+}
+
+/** Payload for {@link CoarTreeEmits.load-error}. */
+export interface CoarTreeLoadErrorEvent<T> {
+  /** The node whose lazy children failed to load. */
+  node: T;
+  /** Whatever the `loadChildren` promise rejected with. */
+  error: unknown;
 }
 
 /**
@@ -101,6 +121,8 @@ export interface CoarTreeRowState {
   dropTargetId: Readonly<Ref<string | null>>;
   dropPosition: Readonly<Ref<CoarTreeDropPosition | null>>;
   fileDropTargetId: Readonly<Ref<string | null>>;
+  loadingIds: Readonly<Ref<Set<string>>>;
+  erroredIds: Readonly<Ref<Set<string>>>;
 }
 
 export const COAR_TREE_ROW_STATE_KEY: InjectionKey<CoarTreeRowState> =

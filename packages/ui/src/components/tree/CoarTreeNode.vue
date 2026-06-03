@@ -11,6 +11,7 @@
  */
 import { computed, inject, provide, ref } from 'vue';
 import CoarIcon from '../icon/CoarIcon.vue';
+import CoarSpinner from '../spinner/CoarSpinner.vue';
 import {
   COAR_TREE_NODE_SLOT_KEY,
   COAR_TREE_ROW_ID_KEY,
@@ -51,6 +52,8 @@ const dropIndicator = computed<CoarTreeDropPosition | null>(() =>
   rowState.dropTargetId.value === props.nodeId ? rowState.dropPosition.value : null,
 );
 const fileDropActive = computed(() => rowState.fileDropTargetId.value === props.nodeId);
+const isLoading = computed(() => rowState.loadingIds.value.has(props.nodeId));
+const hasError = computed(() => rowState.erroredIds.value.has(props.nodeId));
 
 const emit = defineEmits<{
   (e: 'row-click', node: T, ev: MouseEvent): void;
@@ -82,6 +85,8 @@ const slotProps = computed<CoarTreeNodeSlotProps<T>>(() => ({
   isFocused: isFocused.value,
   isExpandable: props.isExpandable,
   isRenaming: isRenaming.value,
+  isLoading: isLoading.value,
+  hasError: hasError.value,
 }));
 
 function renderRow() {
@@ -140,7 +145,8 @@ function onChevron(e: MouseEvent) {
       :aria-label="isExpanded ? 'Collapse' : 'Expand'"
       @click="onChevron"
     >
-      <CoarIcon :name="isExpanded ? 'chevron-down' : 'chevron-right'" size="xs" />
+      <CoarSpinner v-if="isLoading" size="xs" label="Loading children" />
+      <CoarIcon v-else :name="isExpanded ? 'chevron-down' : 'chevron-right'" size="xs" />
     </button>
     <span v-else class="coar-tree-node__chevron-spacer" aria-hidden="true" />
 

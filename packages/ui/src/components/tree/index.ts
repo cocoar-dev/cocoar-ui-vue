@@ -3,6 +3,7 @@ export { default as CoarTreeNodeLabel } from './CoarTreeNodeLabel.vue';
 export type {
   CoarTreeDropPosition,
   CoarTreeFilesDropEvent,
+  CoarTreeLoadErrorEvent,
   CoarTreeNodeMoveEvent,
   CoarTreeNodeSlotProps,
   CoarTreeRenameContext,

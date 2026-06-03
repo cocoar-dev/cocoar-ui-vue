@@ -47,6 +47,7 @@ import {
   COAR_TREE_ROW_STATE_KEY,
   type CoarTreeDropPosition,
   type CoarTreeFilesDropEvent,
+  type CoarTreeLoadErrorEvent,
   type CoarTreeMenuEntry,
   type CoarTreeNodeMoveEvent,
   type CoarTreeNodeSlotProps,
@@ -67,6 +68,8 @@ const props = withDefaults(
     getChildren?: (node: T) => readonly T[] | null | undefined;
     getLabel?: (node: T) => string;
     isExpandable?: (node: T) => boolean;
+    /** Lazily fetch a node's children on first expand. See the builder's `loadChildren`. */
+    loadChildren?: (node: T) => void | Promise<void>;
     draggable?: boolean | ((node: T) => boolean);
     canDrop?: (source: T, target: T | null, position: CoarTreeDropPosition) => boolean;
     acceptsFiles?: boolean;
@@ -87,6 +90,7 @@ const props = withDefaults(
     getChildren: undefined,
     getLabel: undefined,
     isExpandable: undefined,
+    loadChildren: undefined,
     draggable: false,
     canDrop: undefined,
     acceptsFiles: false,
@@ -106,6 +110,7 @@ const emit = defineEmits<{
   (e: 'node-move', payload: CoarTreeNodeMoveEvent<T>): void;
   (e: 'rename', payload: CoarTreeRenameEvent<T>): void;
   (e: 'rename-cancel', node: T): void;
+  (e: 'load-error', payload: CoarTreeLoadErrorEvent<T>): void;
 }>();
 
 const slots = defineSlots<{
@@ -203,6 +208,7 @@ const cfg = computed(() => {
       getChildren: s.getChildren,
       getLabel: s.getLabel,
       isExpandable: s.isExpandable,
+      loadChildren: s.loadChildren,
       draggable: toValue(s.draggable),
       canDrop: s.canDrop,
       acceptsFiles: toValue(s.acceptsFiles),
@@ -218,6 +224,7 @@ const cfg = computed(() => {
     getChildren: props.getChildren,
     getLabel: props.getLabel,
     isExpandable: props.isExpandable,
+    loadChildren: props.loadChildren,
     draggable: props.draggable,
     canDrop: props.canDrop,
     acceptsFiles: props.acceptsFiles,
@@ -488,15 +495,89 @@ function focusRow(id: string | null) {
   });
 }
 
+// ─── lazy children loading ────────────────────────────────────────────────
+/**
+ * When `loadChildren` is set, an expanded node with no loaded children
+ * (`getChildren` returns null/undefined) triggers a fetch. We track loading /
+ * errored ids so each row can show a spinner or a retry; the consumer attaches
+ * fetched children to its own `nodes`, and the watcher below stops re-loading
+ * once `getChildren` returns an array (`[]` counts as loaded-but-empty).
+ */
+const loadingIds = ref<Set<string>>(new Set());
+const erroredIds = ref<Set<string>>(new Set());
+
+function childrenLoaded(node: T): boolean {
+  return Array.isArray(getChildrenOf(node));
+}
+function clearLoading(id: string) {
+  if (!loadingIds.value.has(id)) return;
+  const next = new Set(loadingIds.value);
+  next.delete(id);
+  loadingIds.value = next;
+}
+function runLoad(node: T, force = false) {
+  const loader = cfg.value.loadChildren;
+  if (!loader) return;
+  const id = cfg.value.getId(node);
+  if (loadingIds.value.has(id)) return; // already in flight
+  if (!force && childrenLoaded(node)) return; // already have data
+  loadingIds.value = new Set(loadingIds.value).add(id);
+  if (erroredIds.value.has(id)) {
+    const e = new Set(erroredIds.value);
+    e.delete(id);
+    erroredIds.value = e;
+  }
+  // `Promise.resolve().then(...)` so a synchronous throw in `loader` is caught too.
+  Promise.resolve()
+    .then(() => loader(node))
+    .then(
+      () => clearLoading(id),
+      (error) => {
+        clearLoading(id);
+        erroredIds.value = new Set(erroredIds.value).add(id);
+        const payload: CoarTreeLoadErrorEvent<T> = { node, error };
+        emit('load-error', payload);
+        props.builder?.state.onLoadError?.(payload);
+      },
+    );
+}
+function reloadChildren(id: string) {
+  const node = findNodeById(id);
+  if (node) runLoad(node, true);
+}
+
+// Trigger loads for every expanded-but-unloaded expandable row — one path covers
+// chevron, keyboard, auto-expand-on-drag, the api, and initial `expanded`.
+// O(visible) per expand / data change; the early-out makes it free when unused.
+watch(
+  [expandedStore, () => cfg.value.nodes],
+  () => {
+    if (!cfg.value.loadChildren) return;
+    for (const row of visibleRows.value) {
+      if (
+        row.isExpandable &&
+        expandedStore.value.has(row.id) &&
+        !loadingIds.value.has(row.id) &&
+        !childrenLoaded(row.node)
+      ) {
+        runLoad(row.node);
+      }
+    }
+  },
+  { immediate: true },
+);
+
 // ─── builder ↔ component wiring ───────────────────────────────────────────
 onMounted(() => {
   props.builder?._setFocusNodeImpl((id) => {
     const node = findNodeById(id);
     if (node) selectNode(node);
   });
+  props.builder?._setReloadChildrenImpl(reloadChildren);
 });
 onBeforeUnmount(() => {
   props.builder?._setFocusNodeImpl(null);
+  props.builder?._setReloadChildrenImpl(null);
 });
 
 // ─── selection / activation ───────────────────────────────────────────────
@@ -739,6 +820,8 @@ provide(COAR_TREE_ROW_STATE_KEY, {
   dropTargetId,
   dropPosition,
   fileDropTargetId,
+  loadingIds,
+  erroredIds,
 });
 
 let autoExpandTimer: number | null = null;
@@ -964,6 +1047,12 @@ defineExpose({
   focusNode(id: string) {
     focusRow(id);
   },
+  /**
+   * Force `loadChildren` to (re)run for `id` — retry after an error or refresh
+   * an already-loaded folder. No-op if `loadChildren` isn't set or `id` isn't
+   * in the tree.
+   */
+  reloadChildren,
   /**
    * Enter inline-rename mode on `id`. No-op if `:renamable` isn't set or
    * the id isn't in the visible-row list. Use from context menu items,

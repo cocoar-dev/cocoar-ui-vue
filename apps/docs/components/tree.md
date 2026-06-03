@@ -114,8 +114,45 @@ api.selectedId   // Ref<string | null>
 api.expandedIds  // Ref<Set<string>>
 
 // imperative
-api.focusNode('some-id')   // selects + focuses the node; warns until mounted
+api.focusNode('some-id')        // selects + focuses the node; warns until mounted
+api.reloadChildren('some-id')   // re-run loadChildren for a node (retry / refresh)
 ```
+
+## Lazy loading (async children)
+
+Fetch a node's children the first time it's expanded — for trees backed by an API where loading everything up front isn't an option. Two pieces:
+
+- **`isExpandable`** must return `true` for a folder *before* its children exist (otherwise there's no chevron to expand). Derive it from the node's own "is a folder" flag, not from `getChildren`.
+- **`loadChildren(node)`** fires on first expand of an unloaded folder. Return a `Promise` and the tree shows a spinner in the chevron until it settles; on rejection the row flips to an error state and `@load-error` fires. Your handler attaches the fetched children to your own `nodes` data — the tree re-renders and stops asking (a node counts as loaded once `getChildren` returns an array; `[]` is loaded-but-empty).
+
+<preview path="./tree/demos/TreeLazyLoad.vue" />
+
+```ts
+const { builder, api } = useTree<FsNode>();
+builder
+  .nodes(tree)
+  .getId(n => n.id)
+  .getChildren(n => n.children)            // undefined until loaded; [] = loaded-but-empty
+  .isExpandable(n => n.kind === 'folder')  // expandable BEFORE children exist
+  .loadChildren(async (node) => {
+    const kids = await myApi.fetchChildren(node.id);
+    attachChildren(node.id, kids);         // mutate your own `nodes` data
+  })
+  .onLoadError(({ node, error }) => toast.error(`Couldn't open ${node.name}`));
+```
+
+The `default` slot exposes `isLoading` and `hasError` per row, and `api.reloadChildren(id)` forces a re-fetch — wire it to a retry button (or a "refresh folder" action):
+
+```vue
+<template #default="{ node, hasError }">
+  <FileRow :node="node" />
+  <button v-if="hasError" @click.stop="api.reloadChildren(node.id)">Retry</button>
+</template>
+```
+
+::: tip
+The chevron spinner is the only default loading visual; there is no default **error** visual — render your own from `hasError` (a retry button, an alert icon). Collapsing then re-expanding an errored folder also retries.
+:::
 
 ## Virtualization
 
@@ -169,7 +206,7 @@ builder.virtualize({ itemSize: 28, overscan: 10 });            // larger scroll 
 - Root has `role="tree"`
 - Each row has `role="treeitem"` with `aria-level`, `aria-posinset`, `aria-setsize`
 - Folder rows expose `aria-expanded`; selected rows expose `aria-selected="true"`
-- Nested `<ul role="group">` wraps each branch's children
+- **Flat rendering** — rows are a single DFS list, not nested `<ul role="group">`. Hierarchy is conveyed by `aria-level` (WAI-ARIA permits this and it's what enables flat virtualization; see [Virtualization](#virtualization))
 
 ## Recipes
 
@@ -249,6 +286,7 @@ Two `<CoarTree>` instances on the same page can exchange nodes via the shared `a
 | `getChildren` | `(node: T) => readonly T[] \| null \| undefined` | `undefined` | Returns the children of a node — return `undefined` or `null` for leaves. Without it, the tree is a flat list |
 | `getLabel` | `(node: T) => string` | `undefined` | Used by type-ahead navigation. Optional but recommended for keyboard UX |
 | `isExpandable` | `(node: T) => boolean` | derived from `getChildren` | Override branch detection — useful when a folder should always render as expandable even if its children are lazy-loaded |
+| `loadChildren` | `(node: T) => void \| Promise<void>` | `undefined` | Lazily fetch a node's children on first expand. Pair with `isExpandable`. The tree shows a chevron spinner while pending and an error state on rejection. See [Lazy loading](#lazy-loading-async-children) |
 | `draggable` | `boolean \| ((n: T) => boolean)` | `false` | Allow internal drag-to-reorder. Pass a function to enable per-node |
 | `canDrop` | `(source: T, target: T \| null, position: 'before' \| 'inside' \| 'after') => boolean` | `undefined` | Custom validation on top of the built-in self-into-descendant guard |
 | `acceptsFiles` | `boolean` | `false` | Accept OS file drops onto folder rows / the background |
@@ -265,6 +303,7 @@ Two `<CoarTree>` instances on the same page can exchange nodes via the shared `a
 | `context-menu` | `(node: T \| null, ev: MouseEvent)` | Right-click on a row (`node` set) or background (`node` is `null`). The default action is suppressed automatically by `useContextMenu().open(ev)` |
 | `files-drop` | `({ files: FileList, target: T \| null })` | OS files dropped on a folder (`target` set) or empty background (`target` is `null`). Only fires when `accepts-files` is `true` |
 | `node-move` | `({ source: T, target: T \| null, position })` | Internal drag-drop. `position` is `'before'`, `'inside'`, or `'after'`. `target: null` + `'inside'` means "move to root". Only fires when `draggable` is truthy |
+| `load-error` | `({ node: T, error: unknown })` | A lazy `loadChildren` promise rejected. Only fires when `loadChildren` is set |
 | `update:expanded` | `(Set<string>)` | Folder expanded / collapsed |
 | `update:selected` | `(string \| null)` | Selection changed |
 
@@ -272,7 +311,7 @@ Two `<CoarTree>` instances on the same page can exchange nodes via the shared `a
 
 | Slot | Props | Description |
 |------|-------|-------------|
-| `default` | `{ node, depth, isExpanded, isSelected, isFocused, isExpandable }` | Row body. The tree renders indentation, chevron, focus ring and drop indicators; you render the icon, label, inline action buttons, dirty markers, etc. |
+| `default` | `{ node, depth, isExpanded, isSelected, isFocused, isExpandable, isRenaming, isLoading, hasError }` | Row body. The tree renders indentation, chevron, focus ring and drop indicators; you render the icon, label, inline action buttons, dirty markers, etc. `isLoading` / `hasError` reflect lazy [`loadChildren`](#lazy-loading-async-children) state |
 | `empty` | — | Shown when `nodes` is empty. Defaults to nothing — provide your own empty-state copy |
 
 ### Exposed methods
@@ -280,6 +319,7 @@ Two `<CoarTree>` instances on the same page can exchange nodes via the shared `a
 | Method | Description |
 |--------|-------------|
 | `focusNode(id)` | Programmatically move focus to a node (call via template ref) |
+| `reloadChildren(id)` | Force `loadChildren` to (re)run for a node — retry after an error or refresh an already-loaded folder |
 
 ### Constants
 

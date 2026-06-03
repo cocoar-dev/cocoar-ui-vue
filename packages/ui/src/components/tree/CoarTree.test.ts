@@ -401,4 +401,144 @@ describe('CoarTree', () => {
       expect(renders.a2).toBeUndefined();
     });
   });
+
+  describe('lazy children loading', () => {
+    const flushMicrotasks = () => new Promise((r) => setTimeout(r, 0));
+
+    it('loads children on expand, shows a spinner, then renders them', async () => {
+      const nodes = ref<DemoNode[]>([{ id: 'r', name: 'Root' }]); // no children yet
+      const expanded = ref(new Set<string>());
+      let resolveLoad!: () => void;
+      const loadChildren = vi.fn(
+        () =>
+          new Promise<void>((res) => {
+            resolveLoad = () => {
+              nodes.value = [{ id: 'r', name: 'Root', children: [{ id: 'r1', name: 'Child 1' }] }];
+              res();
+            };
+          }),
+      );
+      const Wrapper = defineComponent({
+        setup: () => () =>
+          h(
+            CoarTree,
+            {
+              nodes: nodes.value,
+              getId: (n: DemoNode) => n.id,
+              getChildren: (n: DemoNode) => n.children,
+              isExpandable: () => true,
+              loadChildren,
+              expanded: expanded.value,
+              'onUpdate:expanded': (v: Set<string>) => (expanded.value = v),
+            },
+            { default: ({ node }: { node: DemoNode }) => h('span', null, node.name) },
+          ),
+      });
+      const wrapper = mount(Wrapper, { attachTo: document.body });
+      await nextTick();
+      await wrapper.find('[data-node-id="r"] .coar-tree-node__chevron').trigger('click');
+      await nextTick();
+      expect(loadChildren).toHaveBeenCalledTimes(1);
+      expect(wrapper.find('.coar-spinner').exists()).toBe(true);
+
+      resolveLoad();
+      await flushMicrotasks();
+      await nextTick();
+      expect(wrapper.find('.coar-spinner').exists()).toBe(false);
+      expect(wrapper.text()).toContain('Child 1');
+    });
+
+    it('flips to an error state and emits load-error when the promise rejects', async () => {
+      const nodes = ref<DemoNode[]>([{ id: 'r', name: 'Root' }]);
+      const expanded = ref(new Set<string>());
+      const onLoadError = vi.fn();
+      let rejectLoad!: (e: unknown) => void;
+      const loadChildren = vi.fn(
+        () =>
+          new Promise<void>((_res, rej) => {
+            rejectLoad = rej;
+          }),
+      );
+      const Wrapper = defineComponent({
+        setup: () => () =>
+          h(
+            CoarTree,
+            {
+              nodes: nodes.value,
+              getId: (n: DemoNode) => n.id,
+              getChildren: (n: DemoNode) => n.children,
+              isExpandable: () => true,
+              loadChildren,
+              expanded: expanded.value,
+              'onUpdate:expanded': (v: Set<string>) => (expanded.value = v),
+              onLoadError,
+            },
+            {
+              default: ({ node, hasError }: { node: DemoNode; hasError: boolean }) =>
+                h('span', { 'data-error': String(hasError) }, node.name),
+            },
+          ),
+      });
+      const wrapper = mount(Wrapper, { attachTo: document.body });
+      await nextTick();
+      await wrapper.find('[data-node-id="r"] .coar-tree-node__chevron').trigger('click');
+      await nextTick();
+      expect(wrapper.find('.coar-spinner').exists()).toBe(true);
+
+      rejectLoad(new Error('boom'));
+      await flushMicrotasks();
+      await nextTick();
+      expect(wrapper.find('.coar-spinner').exists()).toBe(false);
+      expect(wrapper.find('[data-node-id="r"] [data-error="true"]').exists()).toBe(true);
+      expect(onLoadError).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not call loadChildren for an already-loaded folder', async () => {
+      const nodes = [{ id: 'r', name: 'Root', children: [{ id: 'r1', name: 'C' }] }];
+      const expanded = ref(new Set<string>());
+      const loadChildren = vi.fn(() => Promise.resolve());
+      const Wrapper = defineComponent({
+        setup: () => () =>
+          h(
+            CoarTree,
+            {
+              nodes,
+              getId: (n: DemoNode) => n.id,
+              getChildren: (n: DemoNode) => n.children,
+              isExpandable: () => true,
+              loadChildren,
+              expanded: expanded.value,
+              'onUpdate:expanded': (v: Set<string>) => (expanded.value = v),
+            },
+            { default: ({ node }: { node: DemoNode }) => h('span', null, node.name) },
+          ),
+      });
+      const wrapper = mount(Wrapper, { attachTo: document.body });
+      await nextTick();
+      await wrapper.find('[data-node-id="r"] .coar-tree-node__chevron').trigger('click');
+      await nextTick();
+      expect(loadChildren).not.toHaveBeenCalled();
+    });
+
+    it('exposed reloadChildren forces a reload of an already-loaded folder', async () => {
+      const nodes = [{ id: 'r', name: 'Root', children: [{ id: 'r1', name: 'C' }] }];
+      const loadChildren = vi.fn(() => Promise.resolve());
+      const wrapper = mount(CoarTree, {
+        attachTo: document.body,
+        props: {
+          nodes,
+          getId: (n: DemoNode) => n.id,
+          getChildren: (n: DemoNode) => n.children,
+          isExpandable: () => true,
+          loadChildren,
+          expanded: new Set<string>(['r']),
+        },
+      });
+      await nextTick();
+      expect(loadChildren).not.toHaveBeenCalled(); // already loaded → watcher skips
+      (wrapper.vm as unknown as { reloadChildren: (id: string) => void }).reloadChildren('r');
+      await nextTick();
+      expect(loadChildren).toHaveBeenCalledTimes(1);
+    });
+  });
 });
