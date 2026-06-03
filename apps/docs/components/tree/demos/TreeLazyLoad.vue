@@ -212,25 +212,22 @@ function reset() {
      container does. Without this, expanded rows overflow the frame. */
   overflow: auto;
 }
-/* Ring spinner with one accent segment (clearly reads as "spinning"). */
+/* The exact border-ring spinner from the file-explorer demo. No
+   prefers-reduced-motion guard on purpose — a frozen loading indicator reads as
+   "stuck", and this matches the file-explorer POC's spinner 1:1. */
 .lz__spinner {
   display: inline-block;
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  border: 2px solid var(--coar-border-neutral-secondary, #cbd5e1);
-  border-top-color: var(--coar-border-accent-primary, #2563eb);
-  animation: lz-spin 0.7s linear infinite;
-  box-sizing: border-box;
+  border: 1.5px solid var(--coar-border-neutral-tertiary);
+  border-top-color: var(--coar-text-accent-primary);
+  animation: lz-spin 700ms linear infinite;
+  flex-shrink: 0;
 }
 @keyframes lz-spin {
   to {
     transform: rotate(360deg);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .lz__spinner {
-    animation: none;
   }
 }
 .lz__row {
