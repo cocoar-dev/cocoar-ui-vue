@@ -328,4 +328,77 @@ describe('CoarTree', () => {
       warn.mockRestore();
     });
   });
+
+  describe('virtualization (per-index height)', () => {
+    it('virtualizes with a per-index itemSize function without a NaN spacer', async () => {
+      const big = Array.from({ length: 60 }, (_, i) => ({ id: `n${i}`, name: `Node ${i}` }));
+      const Wrapper = defineComponent({
+        setup: () => () =>
+          h(
+            CoarTree,
+            {
+              nodes: big,
+              getId: (n: DemoNode) => n.id,
+              getLabel: (n: DemoNode) => n.name,
+              virtualize: { itemSize: (i: number) => 24 + (i % 3) * 6 },
+            },
+            { default: ({ node }: { node: DemoNode }) => h('span', null, node.name) },
+          ),
+      });
+      const wrapper = mount(Wrapper, { attachTo: document.body });
+      await nextTick();
+      const style = wrapper.find('.coar-tree__inner').attributes('style') ?? '';
+      expect(style).not.toContain('NaN');
+      // sum of (24 + (i%3)*6) over i=0..59 = 60*24 + 6*(20*(0+1+2)) = 1440 + 360 = 1800
+      const m = style.match(/height:\s*([\d.]+)px/);
+      expect(m).toBeTruthy();
+      expect(Number(m![1])).toBe(1800);
+    });
+  });
+
+  describe('render granularity', () => {
+    it('a selection change does not re-render unrelated rows', async () => {
+      // Tier-2 invariant: each row derives its own selected/focused flags from
+      // injected state, so moving selection must not cascade a re-render to
+      // unrelated rows. (Full parent-render isolation is browser-verified at
+      // scale; this locks the row-level no-cascade guarantee against, e.g., a
+      // future change that makes a row depend on whole-list state.)
+      const renders: Record<string, number> = {};
+      const selectedRef = ref<string | null>(null);
+      const expandedRef = ref(new Set<string>(['a', 'b']));
+      const Wrapper = defineComponent({
+        setup: () => () =>
+          h(
+            CoarTree,
+            {
+              nodes: demoTree,
+              getId: (n: DemoNode) => n.id,
+              getChildren: (n: DemoNode) => n.children,
+              getLabel: (n: DemoNode) => n.name,
+              isExpandable: (n: DemoNode) => !!n.children,
+              expanded: expandedRef.value,
+              'onUpdate:expanded': (v: Set<string>) => (expandedRef.value = v),
+              selected: selectedRef.value,
+              'onUpdate:selected': (v: string | null) => (selectedRef.value = v),
+            },
+            {
+              default: ({ node }: { node: DemoNode }) => {
+                renders[node.id] = (renders[node.id] ?? 0) + 1;
+                return h('span', null, node.name);
+              },
+            },
+          ),
+      });
+      mount(Wrapper, { attachTo: document.body });
+      await nextTick();
+      for (const k of Object.keys(renders)) delete renders[k]; // reset after initial render
+      selectedRef.value = 'a1';
+      await nextTick();
+      expect(renders.a1).toBeGreaterThan(0); // the newly-selected row re-rendered
+      expect(renders.b).toBeUndefined(); // unrelated rows did not
+      expect(renders.b1).toBeUndefined();
+      expect(renders.c).toBeUndefined();
+      expect(renders.a2).toBeUndefined();
+    });
+  });
 });

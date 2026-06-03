@@ -44,6 +44,7 @@ import {
   COAR_TREE_DRAG_MIME,
   COAR_TREE_NODE_SLOT_KEY,
   COAR_TREE_RENAME_KEY,
+  COAR_TREE_ROW_STATE_KEY,
   type CoarTreeDropPosition,
   type CoarTreeFilesDropEvent,
   type CoarTreeMenuEntry,
@@ -311,21 +312,37 @@ function getChildrenOf(node: T): readonly T[] | null | undefined {
  */
 interface VisibleRow {
   node: T;
+  /** `getId(node)`, resolved once here so render + lookups never re-call it. */
+  id: string;
   depth: number;
   parentId: string | null;
   posInSet: number;
   setSize: number;
+  /** Resolved once during the walk — used by the template and to skip re-derivation per render. */
+  isExpandable: boolean;
+  draggable: boolean;
 }
 const visibleRows = computed<VisibleRow[]>(() => {
   const out: VisibleRow[] = [];
   const walk = (list: readonly T[], depth: number, parentId: string | null) => {
     for (let i = 0; i < list.length; i++) {
       const n = list[i];
-      out.push({ node: n, depth, parentId, posInSet: i + 1, setSize: list.length });
-      if (!isExpandableOf(n)) continue;
-      if (!expandedStore.value.has(cfg.value.getId(n))) continue;
+      const id = cfg.value.getId(n);
+      const expandable = isExpandableOf(n);
+      out.push({
+        node: n,
+        id,
+        depth,
+        parentId,
+        posInSet: i + 1,
+        setSize: list.length,
+        isExpandable: expandable,
+        draggable: isDraggableOf(n),
+      });
+      if (!expandable) continue;
+      if (!expandedStore.value.has(id)) continue;
       const kids = getChildrenOf(n);
-      if (kids && kids.length) walk(kids, depth + 1, cfg.value.getId(n));
+      if (kids && kids.length) walk(kids, depth + 1, id);
     }
   };
   walk(cfg.value.nodes, 0, null);
@@ -346,7 +363,7 @@ const idToIndex = computed(() => {
   // First-wins on duplicate ids, matching the old find/findIndex semantics
   // (duplicate ids are unsupported anyway — they break Vue's `:key` uniqueness).
   for (let i = 0; i < list.length; i++) {
-    const id = cfg.value.getId(list[i].node);
+    const id = list[i].id;
     if (!m.has(id)) m.set(id, i);
   }
   return m;
@@ -367,7 +384,7 @@ watch(
       focusedId.value = selectedStore.value;
       return;
     }
-    focusedId.value = cfg.value.getId(list[0].node);
+    focusedId.value = list[0].id;
   },
   { immediate: true, flush: 'post' },
 );
@@ -419,12 +436,12 @@ const rootEl = useTemplateRef<HTMLDivElement>('rootEl');
 // stay at safe defaults (count: 0 → empty virtualRows, totalSize: 0).
 const virtualizer = useVirtualList({
   count: () => (isVirtual.value ? visibleRows.value.length : 0),
-  itemSize: (index: number) => {
-    const opts = virtualOpts.value;
-    if (!opts) return 0;
-    const size = opts.itemSize;
-    return typeof size === 'function' ? size(index) : size;
-  },
+  // Pass the raw size THROUGH as a getter: a number takes useVirtualList's O(1)
+  // constant fastpath; a per-index `(i) => number` takes its offset-table path.
+  // Returning the value (not calling it per-index here) is what lets the
+  // per-index form actually reach the table path instead of being read once
+  // with no index — which would collapse it to a single (wrong) size.
+  itemSize: () => virtualOpts.value?.itemSize ?? 28,
   overscan: () => virtualOpts.value?.overscan ?? 5,
   scrollElement: scrollEl,
 });
@@ -470,10 +487,6 @@ function focusRow(id: string | null) {
     }
   });
 }
-
-const isExpandedOf = (id: string) => expandedStore.value.has(id);
-const isSelectedOf = (id: string) => selectedStore.value === id;
-const isFocusedOf = (id: string) => focusedId.value === id;
 
 // ─── builder ↔ component wiring ───────────────────────────────────────────
 onMounted(() => {
@@ -631,7 +644,7 @@ function onRootKeydown(ev: KeyboardEvent) {
     const tgt = ev.target as HTMLElement | null;
     if (tgt && tgt.tagName !== 'INPUT' && tgt.tagName !== 'TEXTAREA') {
       ev.preventDefault();
-      startRename(cfg.value.getId(current.node));
+      startRename(current.id);
       return;
     }
   }
@@ -640,19 +653,19 @@ function onRootKeydown(ev: KeyboardEvent) {
     case 'ArrowDown': {
       ev.preventDefault();
       const next = list[Math.min(list.length - 1, currentIdx + 1)] ?? list[0];
-      focusRow(cfg.value.getId(next.node));
+      focusRow(next.id);
       return;
     }
     case 'ArrowUp': {
       ev.preventDefault();
       const next = list[Math.max(0, currentIdx - 1)] ?? list[0];
-      focusRow(cfg.value.getId(next.node));
+      focusRow(next.id);
       return;
     }
     case 'ArrowRight': {
       if (!current) return;
       ev.preventDefault();
-      if (isExpandableOf(current.node) && !expandedStore.value.has(cfg.value.getId(current.node))) {
+      if (current.isExpandable && !expandedStore.value.has(current.id)) {
         expandNode(current.node);
       } else {
         const kids = getChildrenOf(current.node);
@@ -663,7 +676,7 @@ function onRootKeydown(ev: KeyboardEvent) {
     case 'ArrowLeft': {
       if (!current) return;
       ev.preventDefault();
-      if (isExpandableOf(current.node) && expandedStore.value.has(cfg.value.getId(current.node))) {
+      if (current.isExpandable && expandedStore.value.has(current.id)) {
         toggleExpand(current.node);
       } else if (current.parentId) {
         // Data-model lookup, not DOM walk — works identically in flat and
@@ -674,11 +687,11 @@ function onRootKeydown(ev: KeyboardEvent) {
     }
     case 'Home':
       ev.preventDefault();
-      focusRow(cfg.value.getId(list[0].node));
+      focusRow(list[0].id);
       return;
     case 'End':
       ev.preventDefault();
-      focusRow(cfg.value.getId(list[list.length - 1].node));
+      focusRow(list[list.length - 1].id);
       return;
     case 'Enter':
       if (current) {
@@ -713,6 +726,20 @@ const dropTargetId = ref<string | null>(null);
 const dropPosition = ref<CoarTreeDropPosition | null>(null);
 const fileDropTargetId = ref<string | null>(null);
 const rootFileDragDepth = ref(0);
+
+// Per-row reactive state, provided to every <CoarTreeNode> so each derives its
+// own selected/focused/expanded/renaming/drop flags from its id. The parent
+// template therefore never reads these refs, so a selection / focus / drag-over
+// change re-renders only the rows whose flag actually flips — not the whole list.
+provide(COAR_TREE_ROW_STATE_KEY, {
+  selectedId: selectedStore,
+  focusedId,
+  expandedIds: expandedStore,
+  renamingId,
+  dropTargetId,
+  dropPosition,
+  fileDropTargetId,
+});
 
 let autoExpandTimer: number | null = null;
 let autoExpandFor: string | null = null;
@@ -948,6 +975,14 @@ defineExpose({
 </script>
 
 <template>
+  <!--
+    The root reads `fileDropTargetId` for the whole-tree file-drop outline — the
+    one row-state ref the parent still depends on. It changes only on OS
+    file-drag folder hover (rare, pointer-throttled), so the parent re-render it
+    triggers is acceptable; selection / focus / internal-drag never dirty the
+    parent (each row derives those from injected state). Don't "optimize" this
+    read away without moving the outline off the root, or the drop hint breaks.
+  -->
   <div
     ref="rootEl"
     class="coar-tree"
@@ -979,20 +1014,14 @@ defineExpose({
       >
         <CoarTreeNode
           v-for="entry in renderRows"
-          :key="cfg.getId(entry.row.node)"
+          :key="entry.row.id"
           :node="entry.row.node"
-          :node-id="cfg.getId(entry.row.node)"
+          :node-id="entry.row.id"
           :depth="entry.row.depth"
-          :is-expandable="isExpandableOf(entry.row.node)"
-          :is-expanded="isExpandedOf(cfg.getId(entry.row.node))"
-          :is-selected="isSelectedOf(cfg.getId(entry.row.node))"
-          :is-focused="isFocusedOf(cfg.getId(entry.row.node))"
-          :is-renaming="renamingId === cfg.getId(entry.row.node)"
-          :draggable="isDraggableOf(entry.row.node)"
+          :is-expandable="entry.row.isExpandable"
+          :draggable="entry.row.draggable"
           :pos-in-set="entry.row.posInSet"
           :set-size="entry.row.setSize"
-          :drop-indicator="dropTargetId === cfg.getId(entry.row.node) ? dropPosition : null"
-          :file-drop-active="fileDropTargetId === cfg.getId(entry.row.node)"
           :style="
             entry.virtual
               ? { position: 'absolute', top: `${entry.virtual.start}px`, left: 0, right: 0, height: `${entry.virtual.size}px` }

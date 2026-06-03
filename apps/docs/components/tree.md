@@ -123,6 +123,12 @@ For trees with hundreds or thousands of visible rows, enable virtualization to m
 
 <preview path="./tree/demos/TreeVirtualization.vue" />
 
+### Scale (50 000 nodes)
+
+Virtualization plus the flat-render pipeline scales to tens of thousands of nodes. Hit **Expand all** to flatten ~51 200 rows into the visible list — only ~30 row components stay mounted, and selecting / arrow-keying / dragging stays smooth. Expand-all is O(1) in the virtualizer for the constant row height, and a selection or drag-over re-renders only the rows that actually change.
+
+<preview path="./tree/demos/TreeStress.vue" />
+
 **Configuration:**
 
 ```ts

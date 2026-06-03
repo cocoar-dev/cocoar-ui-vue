@@ -183,4 +183,23 @@ describe('useVirtualList', () => {
     await nextTick();
     expect(api().totalSize.value).toBe(500);
   });
+
+  it('constant-size fastpath matches the per-index path for a uniform size', async () => {
+    // The constant path skips the cumulative offset array; assert it produces
+    // identical results to the array path for integer / CSS-pixel sizes. (They
+    // can diverge by ±1 index only for fractional sizes, from float
+    // accumulation in the array path — no consumer passes fractional sizes.)
+    const constH = harness({ count: ref(1000), itemSize: ref(30), overscan: ref(3), viewportHeight: 120 });
+    const fnH = harness({ count: ref(1000), itemSize: ref(() => 30), overscan: ref(3), viewportHeight: 120 });
+    await nextTick();
+    for (const el of [constH.scrollEl, fnH.scrollEl]) {
+      el.scrollTop = 9000;
+      el.dispatchEvent(new Event('scroll'));
+    }
+    await nextTick();
+    expect(constH.api().totalSize.value).toBe(30000);
+    expect(constH.api().totalSize.value).toBe(fnH.api().totalSize.value);
+    expect(constH.api().offsetFor(500)).toBe(fnH.api().offsetFor(500));
+    expect(constH.api().virtualRows.value).toEqual(fnH.api().virtualRows.value);
+  });
 });

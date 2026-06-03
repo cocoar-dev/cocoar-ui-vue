@@ -14,6 +14,7 @@ import CoarIcon from '../icon/CoarIcon.vue';
 import {
   COAR_TREE_NODE_SLOT_KEY,
   COAR_TREE_ROW_ID_KEY,
+  COAR_TREE_ROW_STATE_KEY,
   type CoarTreeDropPosition,
   type CoarTreeNodeSlotProps,
 } from './tree-types';
@@ -23,23 +24,33 @@ const props = defineProps<{
   nodeId: string;
   depth: number;
   isExpandable: boolean;
-  isExpanded: boolean;
-  isSelected: boolean;
-  isFocused: boolean;
-  isRenaming: boolean;
   draggable: boolean;
   posInSet: number;
   setSize: number;
-  /** Drop-position indicator when an internal drag is over this row. */
-  dropIndicator: CoarTreeDropPosition | null;
-  /** Whole-row highlight when an OS file drag is over this folder. */
-  fileDropActive: boolean;
 }>();
 
 // Provide our row id so descendant row-helpers (e.g. CoarTreeNodeLabel)
 // know which node they belong to without explicit prop-wiring from the
 // consumer's default slot.
 provide(COAR_TREE_ROW_ID_KEY, props.nodeId);
+
+// Selection / focus / expand / rename / drop state is derived HERE from the
+// shared reactive refs <CoarTree> provides, keyed by this row's id — instead of
+// being passed down as props. A change to any of them re-renders only the rows
+// whose derived flag actually flips (Vue caches the computed and skips
+// dependents when its value is unchanged), not the whole list.
+const rowState = inject(COAR_TREE_ROW_STATE_KEY);
+if (!rowState) {
+  throw new Error('CoarTreeNode must be rendered inside a CoarTree.');
+}
+const isExpanded = computed(() => rowState.expandedIds.value.has(props.nodeId));
+const isSelected = computed(() => rowState.selectedId.value === props.nodeId);
+const isFocused = computed(() => rowState.focusedId.value === props.nodeId);
+const isRenaming = computed(() => rowState.renamingId.value === props.nodeId);
+const dropIndicator = computed<CoarTreeDropPosition | null>(() =>
+  rowState.dropTargetId.value === props.nodeId ? rowState.dropPosition.value : null,
+);
+const fileDropActive = computed(() => rowState.fileDropTargetId.value === props.nodeId);
 
 const emit = defineEmits<{
   (e: 'row-click', node: T, ev: MouseEvent): void;
@@ -66,11 +77,11 @@ if (!renderNode) {
 const slotProps = computed<CoarTreeNodeSlotProps<T>>(() => ({
   node: props.node,
   depth: props.depth,
-  isExpanded: props.isExpanded,
-  isSelected: props.isSelected,
-  isFocused: props.isFocused,
+  isExpanded: isExpanded.value,
+  isSelected: isSelected.value,
+  isFocused: isFocused.value,
   isExpandable: props.isExpandable,
-  isRenaming: props.isRenaming,
+  isRenaming: isRenaming.value,
 }));
 
 function renderRow() {

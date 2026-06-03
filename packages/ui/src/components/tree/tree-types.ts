@@ -86,6 +86,27 @@ export const COAR_TREE_NODE_SLOT_KEY: InjectionKey<Slot<CoarTreeNodeSlotProps<an
 export const COAR_TREE_ROW_ID_KEY: InjectionKey<string> = Symbol('coar-tree-row-id');
 
 /**
+ * Reactive row-state `<CoarTree>` provides so each `<CoarTreeNode>` can derive
+ * its own selected / focused / expanded / renaming / drop flags from its id,
+ * instead of the parent passing them down as props. This keeps a
+ * selection / focus / drag-over change from re-rendering the whole list: only
+ * the rows whose derived flag actually flips re-render (Vue caches the computed
+ * and skips dependents when the value is unchanged).
+ */
+export interface CoarTreeRowState {
+  selectedId: Readonly<Ref<string | null>>;
+  focusedId: Readonly<Ref<string | null>>;
+  expandedIds: Readonly<Ref<Set<string>>>;
+  renamingId: Readonly<Ref<string | null>>;
+  dropTargetId: Readonly<Ref<string | null>>;
+  dropPosition: Readonly<Ref<CoarTreeDropPosition | null>>;
+  fileDropTargetId: Readonly<Ref<string | null>>;
+}
+
+export const COAR_TREE_ROW_STATE_KEY: InjectionKey<CoarTreeRowState> =
+  Symbol('coar-tree-row-state');
+
+/**
  * The rename machinery `<CoarTree :renamable>` provides to descendants.
  * `<CoarTreeNodeLabel>` consumes this; consumers normally never see it
  * directly — they just drop `<CoarTreeNodeLabel :node :label>` into the

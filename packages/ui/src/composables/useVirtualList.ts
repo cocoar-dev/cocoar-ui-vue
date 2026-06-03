@@ -78,20 +78,32 @@ export function useVirtualList(opts: UseVirtualListOptions): UseVirtualListRetur
   const scrollTop = ref(0);
   const viewportHeight = ref(0);
 
-  // Cumulative offsets: offsets[i] = sum of heights of items [0..i-1]. Length = count + 1.
-  const offsets = computed<number[]>(() => {
-    const n = getCount();
+  // Cumulative offset table — only materialized for the per-index (function)
+  // size path. For a constant item size we skip the O(n) array entirely and
+  // derive offsets analytically (offset(i) = i * size), so a count change
+  // (expand/collapse) stays O(1) instead of rebuilding an n-length array.
+  const offsets = computed<number[] | null>(() => {
     const sizeRaw = getSize();
-    const sizeFn = typeof sizeRaw === 'function' ? sizeRaw : () => sizeRaw;
+    if (typeof sizeRaw !== 'function') return null;
+    const n = getCount();
     const arr: number[] = new Array(n + 1);
     arr[0] = 0;
-    for (let i = 0; i < n; i++) arr[i + 1] = arr[i] + sizeFn(i);
+    for (let i = 0; i < n; i++) arr[i + 1] = arr[i] + sizeRaw(i);
     return arr;
   });
 
+  /** Cumulative pixel offset at index `i`, clamped to [0, count]. O(1). */
+  function offsetAt(i: number): number {
+    const arr = offsets.value;
+    if (arr) return arr[Math.max(0, Math.min(i, arr.length - 1))] ?? 0;
+    const size = getSize() as number;
+    return Math.max(0, Math.min(i, getCount())) * size;
+  }
+
   const totalSize = computed(() => {
     const arr = offsets.value;
-    return arr.length > 0 ? arr[arr.length - 1] : 0;
+    if (arr) return arr.length > 0 ? arr[arr.length - 1] : 0;
+    return getCount() * (getSize() as number);
   });
 
   /**
@@ -100,7 +112,14 @@ export function useVirtualList(opts: UseVirtualListOptions): UseVirtualListRetur
    * as its start ≤ top.)
    */
   function firstVisibleIndex(top: number): number {
+    const n = getCount();
+    if (n === 0) return 0;
     const arr = offsets.value;
+    if (!arr) {
+      const size = getSize() as number;
+      if (!(size > 0)) return 0; // also rejects NaN / negative
+      return Math.max(0, Math.min(n - 1, Math.floor(top / size)));
+    }
     if (arr.length <= 1) return 0;
     let lo = 0;
     let hi = arr.length - 1;
@@ -118,7 +137,15 @@ export function useVirtualList(opts: UseVirtualListOptions): UseVirtualListRetur
    * starting exactly at the bottom edge isn't rendered.)
    */
   function lastVisibleIndex(bot: number): number {
+    const n = getCount();
+    if (n === 0) return 0;
     const arr = offsets.value;
+    if (!arr) {
+      const size = getSize() as number;
+      if (!(size > 0)) return 0; // also rejects NaN / negative
+      // largest i with i*size < bot  ==  ceil(bot/size) - 1
+      return Math.max(0, Math.min(n - 1, Math.ceil(bot / size) - 1));
+    }
     if (arr.length <= 1) return 0;
     let lo = 0;
     let hi = arr.length - 1;
@@ -134,7 +161,6 @@ export function useVirtualList(opts: UseVirtualListOptions): UseVirtualListRetur
     const n = getCount();
     if (n === 0) return [];
     const overscan = Math.max(0, getOverscan() | 0);
-    const arr = offsets.value;
 
     const top = scrollTop.value;
     const bottom = top + viewportHeight.value;
@@ -147,7 +173,8 @@ export function useVirtualList(opts: UseVirtualListOptions): UseVirtualListRetur
 
     const rows: VirtualRow[] = [];
     for (let i = start; i <= end; i++) {
-      rows.push({ index: i, start: arr[i], size: arr[i + 1] - arr[i] });
+      const startPx = offsetAt(i);
+      rows.push({ index: i, start: startPx, size: offsetAt(i + 1) - startPx });
     }
     return rows;
   });
@@ -161,9 +188,8 @@ export function useVirtualList(opts: UseVirtualListOptions): UseVirtualListRetur
     const n = getCount();
     if (n === 0) return;
     const i = Math.max(0, Math.min(n - 1, index | 0));
-    const arr = offsets.value;
-    const target = arr[i];
-    const targetEnd = arr[i + 1];
+    const target = offsetAt(i);
+    const targetEnd = offsetAt(i + 1);
     const viewport = el.clientHeight;
     const currentTop = el.scrollTop;
     const currentBottom = currentTop + viewport;
@@ -238,6 +264,6 @@ export function useVirtualList(opts: UseVirtualListOptions): UseVirtualListRetur
     virtualRows,
     totalSize,
     scrollToIndex,
-    offsetFor: (i: number) => offsets.value[Math.max(0, Math.min(i, offsets.value.length - 1))] ?? 0,
+    offsetFor: (i: number) => offsetAt(i),
   };
 }
