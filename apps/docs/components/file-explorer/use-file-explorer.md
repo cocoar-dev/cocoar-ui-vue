@@ -57,9 +57,9 @@ readonly reorderable: Readonly<Ref<boolean>>;
 | `rootNodes` | Already filtered + sorted children of `null`. Pass directly to `<CoarTree :nodes>`. |
 | `selectedId` | Two-way. Single-click on a row sets this; a watcher then opens the file as a preview tab. |
 | `selectedAsset` | Read-only. `selectedId` resolved to the `Asset` (or `null`). Pair with `describeAsset` for a [details panel](./#details-panel). |
-| `expanded` | Two-way `Set<string>` of expanded folder ids. In lazy mode, newly-added ids trigger `store.loadChildren()`. |
-| `loading` | `true` during the **initial** `store.loadTree()` call only. Per-folder lazy loads + per-file content loads live on `loadingNodes`. Stays `false` for stores that surface their own reactive `_assets`. |
-| `loadingNodes` | Per-id Set: files being `loadContent`-fetched + folders being lazy-loaded. Bind to row-icon → spinner swap. |
+| `expanded` | Two-way `Set<string>` of expanded folder ids. Lazy loading is driven by CoarTree's `loadChildren` hook (bind `:load-children="fe.loadChildren"`) — the tree fires the fetch on first expand. |
+| `loading` | `true` during the **initial** `store.loadTree()` call only. Per-file content loads live on `loadingNodes`; per-folder lazy loads are owned by the tree (`isLoading` slot prop). Stays `false` for stores that surface their own reactive `_assets`. |
+| `loadingNodes` | Per-id Set of files being `loadContent`-fetched. (Folder lazy-loads moved to CoarTree's per-row `isLoading` slot prop.) Bind to row-icon → spinner swap. |
 | `savingNodes` | Per-id Set: any in-flight save / rename / delete / move. Same spinner channel as `loadingNodes`. |
 | `reorderable` | `true` when `sortMode === 'manual'`. Reactive — read it in your CoarTree wiring to gate drop-between-siblings. |
 
@@ -70,6 +70,7 @@ getId: (a: Asset<T>) => string;
 getChildren: (a: Asset<T>) => readonly Asset<T>[] | undefined;
 getLabel: (a: Asset<T>) => string;
 isExpandable: (a: Asset<T>) => boolean;
+loadChildren?: (node: Asset<T>) => Promise<void>; // lazy stores only — bind to <CoarTree :load-children>
 ```
 
 These mirror `<CoarTree>`'s prop signatures so you can pass them straight through:
@@ -81,6 +82,7 @@ These mirror `<CoarTree>`'s prop signatures so you can pass them straight throug
   :get-children="fe.getChildren"
   :get-label="fe.getLabel"
   :is-expandable="fe.isExpandable"
+  :load-children="fe.loadChildren"
   v-model:expanded="fe.expanded.value"
   v-model:selected="fe.selectedId.value"
   draggable
@@ -92,6 +94,8 @@ These mirror `<CoarTree>`'s prop signatures so you can pass them straight throug
 ```
 
 `isExpandable` returns `false` for folders the store reports as `hasChildren: false` — keeps the chevron off known-empty folders in lazy mode.
+
+For **lazy stores**, bind `:load-children="fe.loadChildren"` (`undefined` for eager stores, so the binding is a no-op there). CoarTree calls it on first expand of an unloaded folder and owns the loading state (`isLoading` slot prop), the error state (`hasError` + `@load-error`) and retry (`api.reloadChildren`); the composable just supplies the fetch body and caches loaded folders so re-expand never re-fetches. Render the spinner where you like from `isLoading` (e.g. swap the row icon) and pass `hide-loading-spinner` to drop the tree's built-in chevron spinner. See the [tree lazy-loading docs](/components/tree#lazy-loading-async-children). Lazy-load failures reach **both** `onError('loadChildren', …)` (log/toast) and the tree's `@load-error` / `hasError` (row UX) — pick one channel for user-facing messaging to avoid duplicates.
 
 ### Tab state
 
@@ -218,7 +222,7 @@ This works for every editor: hold a Monaco view-state ref outside the `v-if` and
 
 ## Lifecycle
 
-- **Mount** — In lazy mode, the composable watches `expanded` with `immediate: true` so any seeded ids in `initialExpandedIds` pre-load their children.
+- **Mount** — Lazy loading is driven by CoarTree's `loadChildren` hook (bind `:load-children="fe.loadChildren"`): the tree fires the fetch on first expand and on mount for any seeded `initialExpandedIds` (cascading as parents publish). The composable supplies only the fetch body and caches loaded folders so re-expand never re-fetches.
 - **Eager open** — Single-click `selectedId` change is watched; file selections fire `openFile(file, { pinned: false })`.
 - **Unmount** — `onScopeDispose` removes the `beforeunload` listener and revokes every blob URL the composable owns. Consumer doesn't need to clean up.
 - **`beforeunload`** — Active while `anyDirty.value` is true. Browser shows its native "leave site?" prompt.
@@ -259,6 +263,7 @@ const fe = useFileExplorer({
         :get-children="fe.getChildren"
         :get-label="fe.getLabel"
         :is-expandable="fe.isExpandable"
+        :load-children="fe.loadChildren"
         v-model:expanded="fe.expanded.value"
         v-model:selected="fe.selectedId.value"
         renamable

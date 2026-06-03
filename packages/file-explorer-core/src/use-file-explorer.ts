@@ -135,7 +135,11 @@ export interface UseFileExplorerReturn<T = unknown> {
    * `loadingNodes` instead — `loading` is strictly the initial-load signal.
    */
   readonly loading: Readonly<Ref<boolean>>;
-  /** Files whose content is being loaded via `store.loadContent`. */
+  /**
+   * Files whose content is being loaded via `store.loadContent`. Folder
+   * lazy-loads are owned by CoarTree now (read its `isLoading` slot prop), so
+   * this no longer carries folder ids during expand.
+   */
   readonly loadingNodes: Readonly<Ref<ReadonlySet<string>>>;
   /** Assets with an in-flight save/rename/delete/move. */
   readonly savingNodes: Readonly<Ref<ReadonlySet<string>>>;
@@ -485,6 +489,14 @@ export function useFileExplorer<T = unknown>(
     try {
       await store.delete(node.id);
       removeAssets(doomed);
+      // Drop the loaded-folder markers for everything deleted, so a re-created
+      // id (custom non-UUID idFactory — e.g. path-based) reads as unloaded again
+      // and the tree re-fetches instead of showing the stale/empty cached array.
+      if (storeIsLazy && doomed.size > 0) {
+        loadedFolderIds.value = new Set(
+          [...loadedFolderIds.value].filter((id) => !doomed.has(id)),
+        );
+      }
     } catch (e) {
       reportError('delete', e, { id: node.id, name: node.name });
     } finally {
@@ -890,7 +902,11 @@ export function useFileExplorer<T = unknown>(
    *
    * Use this when upstream state can change out-of-band (server push,
    * another tab uploads a file, retention sweep). For stores that surface
-   * `_assets` directly, this is a no-op: they're already reactive.
+   * `_assets` directly, this is a no-op: they're already reactive — so the
+   * per-`folderId` form does nothing for the in-memory store. For a
+   * tree-integrated per-folder refresh (spinner + clears any error state),
+   * call `api.reloadChildren(folderId)` on the CoarTree instead — it routes
+   * back through the `loadChildren` hook.
    */
   const refresh = async (folderId?: string | null): Promise<void> => {
     if (usesStoreRef) return;
