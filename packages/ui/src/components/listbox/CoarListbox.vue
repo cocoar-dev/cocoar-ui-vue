@@ -184,7 +184,11 @@ const listRef = useTemplateRef<HTMLElement>('listRef');
 // safe to read (they hold empty/zero values until the scroll element mounts).
 const virtualizer = useVirtualList({
   count: () => (props.virtual ? flatEntries.value.length : 0),
-  itemSize: (index: number) => {
+  // Per-index sizer, wrapped in a getter so `useVirtualList` receives the
+  // FUNCTION (its size-getter is invoked with no args) and applies it per index.
+  // A bare function was instead read ONCE with index=undefined, collapsing every
+  // row — group headings included — to `itemHeight` and ignoring `groupHeadingHeight`.
+  itemSize: () => (index: number) => {
     const entry = flatEntries.value[index];
     if (!entry) return props.itemHeight;
     return entry.kind === 'heading' ? props.groupHeadingHeight : props.itemHeight;
