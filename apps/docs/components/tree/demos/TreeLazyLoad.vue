@@ -11,7 +11,7 @@
  * `api.reloadChildren`.
  */
 import { ref } from 'vue';
-import { CoarTree, CoarIcon, CoarSpinner, CoarSegmentedControl, useTree } from '@cocoar/vue-ui';
+import { CoarTree, CoarIcon, CoarSegmentedControl, useTree } from '@cocoar/vue-ui';
 
 interface Node {
   id: string;
@@ -128,7 +128,7 @@ function reset() {
       <CoarTree :builder="builder">
         <template #default="{ node, isLoading, hasError }">
           <span class="lz__row">
-            <CoarSpinner v-if="isLoading" size="xs" class="lz__icon" />
+            <span v-if="isLoading" class="lz__spinner lz__icon" aria-hidden="true" />
             <CoarIcon
               v-else
               :name="node.kind === 'folder' ? 'folder' : 'file-text'"
@@ -208,7 +208,30 @@ function reset() {
   border-radius: 8px;
   max-width: 400px;
   height: 300px;
-  display: flex;
+  /* Non-virtualized trees don't own a scroll viewport — the consumer's
+     container does. Without this, expanded rows overflow the frame. */
+  overflow: auto;
+}
+/* Ring spinner with one accent segment (clearly reads as "spinning"). */
+.lz__spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--coar-border-neutral-secondary, #cbd5e1);
+  border-top-color: var(--coar-border-accent-primary, #2563eb);
+  animation: lz-spin 0.7s linear infinite;
+  box-sizing: border-box;
+}
+@keyframes lz-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lz__spinner {
+    animation: none;
+  }
 }
 .lz__row {
   display: flex;
