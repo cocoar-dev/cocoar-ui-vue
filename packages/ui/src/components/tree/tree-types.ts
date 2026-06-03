@@ -127,6 +127,8 @@ export interface CoarTreeRowState {
   fileDropTargetId: Readonly<Ref<string | null>>;
   loadingIds: Readonly<Ref<ReadonlySet<string>>>;
   erroredIds: Readonly<Ref<ReadonlySet<string>>>;
+  /** When true, the built-in chevron loading spinner is suppressed (consumer renders its own from `isLoading`). */
+  hideLoadingSpinner: Readonly<Ref<boolean>>;
 }
 
 export const COAR_TREE_ROW_STATE_KEY: InjectionKey<CoarTreeRowState> =

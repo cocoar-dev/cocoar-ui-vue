@@ -629,5 +629,39 @@ describe('CoarTree', () => {
       await nextTick();
       expect(loadChildren).toHaveBeenCalledTimes(2);
     });
+
+    it('suppresses the built-in chevron spinner with hideLoadingSpinner (isLoading slot prop stays true)', async () => {
+      const nodes = ref<DemoNode[]>([{ id: 'r', name: 'Root' }]);
+      const expanded = ref(new Set<string>());
+      const loadChildren = vi.fn(() => new Promise<void>(() => {})); // never settles → stays loading
+      const Wrapper = defineComponent({
+        setup: () => () =>
+          h(
+            CoarTree,
+            {
+              nodes: nodes.value,
+              getId: (n: DemoNode) => n.id,
+              getChildren: (n: DemoNode) => n.children,
+              isExpandable: () => true,
+              loadChildren,
+              hideLoadingSpinner: true,
+              expanded: expanded.value,
+              'onUpdate:expanded': (v: Set<string>) => (expanded.value = v),
+            },
+            {
+              default: ({ node, isLoading }: { node: DemoNode; isLoading: boolean }) =>
+                h('span', { 'data-loading': String(isLoading) }, node.name),
+            },
+          ),
+      });
+      const wrapper = mount(Wrapper, { attachTo: document.body });
+      await nextTick();
+      await wrapper.find('[data-node-id="r"] .coar-tree-node__chevron').trigger('click');
+      await nextTick();
+      // No built-in spinner...
+      expect(wrapper.find('.coar-spinner').exists()).toBe(false);
+      // ...but isLoading is true so the consumer can render its own.
+      expect(wrapper.find('[data-node-id="r"] [data-loading="true"]').exists()).toBe(true);
+    });
   });
 });

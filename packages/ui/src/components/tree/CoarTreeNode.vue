@@ -54,6 +54,8 @@ const dropIndicator = computed<CoarTreeDropPosition | null>(() =>
 const fileDropActive = computed(() => rowState.fileDropTargetId.value === props.nodeId);
 const isLoading = computed(() => rowState.loadingIds.value.has(props.nodeId));
 const hasError = computed(() => rowState.erroredIds.value.has(props.nodeId));
+// Built-in chevron spinner is suppressed when the consumer renders its own from `isLoading`.
+const showChevronSpinner = computed(() => isLoading.value && !rowState.hideLoadingSpinner.value);
 
 const emit = defineEmits<{
   (e: 'row-click', node: T, ev: MouseEvent): void;
@@ -146,7 +148,7 @@ function onChevron(e: MouseEvent) {
       :aria-label="isExpanded ? 'Collapse' : 'Expand'"
       @click="onChevron"
     >
-      <CoarSpinner v-if="isLoading" size="xs" label="Loading children" />
+      <CoarSpinner v-if="showChevronSpinner" size="xs" label="Loading children" />
       <CoarIcon v-else :name="isExpanded ? 'chevron-down' : 'chevron-right'" size="xs" />
     </button>
     <span v-else class="coar-tree-node__chevron-spacer" aria-hidden="true" />

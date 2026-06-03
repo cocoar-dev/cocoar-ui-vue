@@ -83,6 +83,13 @@ const props = withDefaults(
      * label component stays a plain `<span>` (back-compat for existing consumers).
      */
     renamable?: boolean;
+    /**
+     * Suppress the built-in spinner the tree shows in the chevron while a node's
+     * children lazily load (see `loadChildren`). Set this when you render your
+     * own loading indicator from the `isLoading` slot prop — e.g. replacing the
+     * row icon with a spinner.
+     */
+    hideLoadingSpinner?: boolean;
   }>(),
   {
     builder: undefined,
@@ -98,6 +105,7 @@ const props = withDefaults(
     autoExpandDelay: 700,
     virtualize: false,
     renamable: false,
+    hideLoadingSpinner: false,
   },
 );
 
@@ -215,6 +223,7 @@ const cfg = computed(() => {
       acceptsFiles: toValue(s.acceptsFiles),
       autoExpandDelay: toValue(s.autoExpandDelay),
       virtualize: toValue(s.virtualize),
+      hideLoadingSpinner: toValue(s.hideLoadingSpinner),
     };
   }
   return {
@@ -231,6 +240,7 @@ const cfg = computed(() => {
     acceptsFiles: props.acceptsFiles,
     autoExpandDelay: props.autoExpandDelay,
     virtualize: props.virtualize,
+    hideLoadingSpinner: props.hideLoadingSpinner,
   };
 });
 
@@ -854,6 +864,7 @@ const rootFileDragDepth = ref(0);
 // own selected/focused/expanded/renaming/drop flags from its id. The parent
 // template therefore never reads these refs, so a selection / focus / drag-over
 // change re-renders only the rows whose flag actually flips — not the whole list.
+const hideLoadingSpinnerRef = computed(() => !!cfg.value.hideLoadingSpinner);
 provide(COAR_TREE_ROW_STATE_KEY, {
   selectedId: selectedStore,
   focusedId,
@@ -864,6 +875,7 @@ provide(COAR_TREE_ROW_STATE_KEY, {
   fileDropTargetId,
   loadingIds,
   erroredIds,
+  hideLoadingSpinner: hideLoadingSpinnerRef,
 });
 
 let autoExpandTimer: number | null = null;

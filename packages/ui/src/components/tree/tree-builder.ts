@@ -46,6 +46,7 @@ export interface TreeBuilderState<T> {
   acceptsFiles: MaybeRefOrGetter<boolean>;
   autoExpandDelay: MaybeRefOrGetter<number>;
   virtualize: MaybeRefOrGetter<CoarTreeVirtualizeProp>;
+  hideLoadingSpinner: MaybeRefOrGetter<boolean>;
 
   expanded: Ref<Set<string>>;
   selected: Ref<string | null>;
@@ -139,6 +140,7 @@ export class TreeBuilder<T> {
       acceptsFiles: false,
       autoExpandDelay: 700,
       virtualize: false,
+      hideLoadingSpinner: false,
       expanded: ref(new Set<string>()),
       selected: ref<string | null>(null),
       onActivate: undefined,
@@ -240,6 +242,16 @@ export class TreeBuilder<T> {
    */
   virtualize(v: MaybeRefOrGetter<CoarTreeVirtualizeProp>): this {
     this.state.virtualize = v;
+    return this;
+  }
+
+  /**
+   * Suppress the built-in spinner the tree shows in the chevron while a node's
+   * children lazily load. Set this when you render your own loading indicator
+   * from the `isLoading` slot prop (e.g. replacing the row icon).
+   */
+  hideLoadingSpinner(b: MaybeRefOrGetter<boolean>): this {
+    this.state.hideLoadingSpinner = b;
     return this;
   }
 

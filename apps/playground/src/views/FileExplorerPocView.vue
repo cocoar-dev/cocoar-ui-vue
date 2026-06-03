@@ -167,6 +167,7 @@ const {
   getChildren,
   getLabel,
   isExpandable,
+  loadChildren,
   // async state
   loadingNodes,
   savingNodes,
@@ -623,31 +624,39 @@ function fileIcon(
           :get-children="getChildren"
           :get-label="getLabel"
           :is-expandable="isExpandable"
+          :load-children="loadChildren"
           v-model:expanded="expanded"
           v-model:selected="selectedId"
           draggable
           accepts-files
           renamable
+          hide-loading-spinner
           @activate="activateNode"
           @context-menu="openContextMenu"
           @files-drop="({ files, target }) => addFiles(target?.id ?? null, files)"
           @node-move="moveNode"
           @rename="onTreeRename"
         >
-          <template #default="{ node }">
+          <template #default="{ node, isLoading }">
             <!--
               Tooltip lives on the icon+name wrapper, NOT the name span alone.
               When the row gets so narrow that the name collapses to 0 px (e.g.
               deep nesting in a slim sidebar), the icon still has a hit area —
               hovering it shows the tooltip. The `.fe-row__name` selector tells
               the tooltip to gate on the label's overflow, not the wrapper's.
+
+              `isLoading` (lazy folder children load) comes from CoarTree's
+              `loadChildren` hook; `loadingNodes` covers file-content loads and
+              `savingNodes` saves. We render ONE icon-position spinner for all
+              three (and pass `hide-loading-spinner` so the tree's own chevron
+              spinner doesn't double up).
             -->
             <span
               v-tooltip="{ content: node.name, onlyOnOverflow: '.coar-tree-node-label__text' }"
               class="fe-row__main"
             >
               <span
-                v-if="loadingNodes.has(node.id) || savingNodes.has(node.id)"
+                v-if="isLoading || loadingNodes.has(node.id) || savingNodes.has(node.id)"
                 class="fe-spinner fe-row__icon"
                 aria-hidden="true"
               />

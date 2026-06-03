@@ -154,6 +154,20 @@ The `default` slot exposes `isLoading` and `hasError` per row, and `api.reloadCh
 The chevron spinner is the only default loading visual; there is no default **error** visual — render your own from `hasError` (a retry button, an alert icon). Collapsing then re-expanding an errored folder also retries.
 :::
 
+::: tip Render your own loading indicator
+Prefer a spinner that replaces the row icon (or anything else)? Set `hide-loading-spinner` to suppress the built-in chevron spinner and render your own from the `isLoading` slot prop — the tree still owns the *when* (expand-trigger, dedupe, error state), you own the *look*:
+
+```vue
+<CoarTree :builder="builder" hide-loading-spinner>
+  <template #default="{ node, isLoading }">
+    <Spinner v-if="isLoading" />
+    <Icon v-else :name="node.icon" />
+    <span>{{ node.label }}</span>
+  </template>
+</CoarTree>
+```
+:::
+
 ## Virtualization
 
 For trees with hundreds or thousands of visible rows, enable virtualization to mount only the rows actually inside the viewport. The component is built on `useVirtualList` — fixed-known-size virtualizer, no DOM auto-measure — so you declare the row height once.
@@ -287,6 +301,7 @@ Two `<CoarTree>` instances on the same page can exchange nodes via the shared `a
 | `getLabel` | `(node: T) => string` | `undefined` | Used by type-ahead navigation. Optional but recommended for keyboard UX |
 | `isExpandable` | `(node: T) => boolean` | derived from `getChildren` | Override branch detection — useful when a folder should always render as expandable even if its children are lazy-loaded |
 | `loadChildren` | `(node: T) => void \| Promise<void>` | `undefined` | Lazily fetch a node's children on first expand. Pair with `isExpandable`. The tree shows a chevron spinner while pending and an error state on rejection. See [Lazy loading](#lazy-loading-async-children) |
+| `hideLoadingSpinner` | `boolean` | `false` | Suppress the built-in chevron loading spinner. Set it when you render your own indicator from the `isLoading` slot prop (e.g. replacing the row icon) |
 | `draggable` | `boolean \| ((n: T) => boolean)` | `false` | Allow internal drag-to-reorder. Pass a function to enable per-node |
 | `canDrop` | `(source: T, target: T \| null, position: 'before' \| 'inside' \| 'after') => boolean` | `undefined` | Custom validation on top of the built-in self-into-descendant guard |
 | `acceptsFiles` | `boolean` | `false` | Accept OS file drops onto folder rows / the background |
