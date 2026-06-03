@@ -12,7 +12,12 @@ export type CoarTreeDropPosition = 'before' | 'inside' | 'after';
 
 /** Payload for {@link CoarTreeEmits.node-move}. */
 export interface CoarTreeNodeMoveEvent<T> {
-  /** Node being moved. */
+  /**
+   * Node being moved. Re-resolved from the live tree at drop time, so it
+   * reflects the latest data even if `nodes` changed during the drag. Treat
+   * `source`'s id as the source of truth: if your handler does async work,
+   * re-resolve the node by id rather than holding onto this object.
+   */
   source: T;
   /**
    * Sibling / parent the drop is relative to. `null` means the drop landed on

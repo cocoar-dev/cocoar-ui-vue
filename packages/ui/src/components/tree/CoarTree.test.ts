@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { defineComponent, h, nextTick, ref, type Component } from 'vue';
 import CoarTreeRaw from './CoarTree.vue';
@@ -194,6 +194,138 @@ describe('CoarTree', () => {
       // No directly observable side-effect here without focus-DOM helpers; the
       // smoke test is that it didn't throw and the tree is still mounted.
       expect(wrapper.findAll('.coar-tree-node__row').length).toBe(6);
+    });
+  });
+
+  describe('drag and drop', () => {
+    // Minimal DataTransfer stub — jsdom ships none. `setData` records types so
+    // the component's `dt.types.includes(COAR_TREE_DRAG_MIME)` checks pass after
+    // a dragstart, exactly as a real browser would.
+    function makeDataTransfer(): DataTransfer {
+      const store: Record<string, string> = {};
+      return {
+        types: [] as string[],
+        files: [] as unknown as FileList,
+        dropEffect: 'none',
+        effectAllowed: 'all',
+        setData(type: string, val: string) {
+          store[type] = val;
+          if (!(this as { types: string[] }).types.includes(type)) {
+            (this as { types: string[] }).types.push(type);
+          }
+        },
+        getData(type: string) {
+          return store[type] ?? '';
+        },
+        setDragImage() {},
+      } as unknown as DataTransfer;
+    }
+
+    it('moves a node onto a valid target (source re-resolved live at drop)', async () => {
+      const { wrapper, nodeMove } = makeWrapper({ draggable: true });
+      const dt = makeDataTransfer();
+      await wrapper.find('[data-node-id="c"]').trigger('dragstart', { dataTransfer: dt });
+      await wrapper.find('[data-node-id="a1"]').trigger('dragover', { dataTransfer: dt });
+      await wrapper.find('[data-node-id="a1"]').trigger('drop', { dataTransfer: dt });
+      expect(nodeMove.value?.source.id).toBe('c');
+      expect(nodeMove.value?.target?.id).toBe('a1');
+    });
+
+    it("rejects a drop into the dragged node's own subtree (live parent-chain cycle guard)", async () => {
+      const { wrapper, nodeMove } = makeWrapper({ draggable: true });
+      const dt = makeDataTransfer();
+      // Drag folder 'a'; 'a1' is its child → dropping there would create a cycle.
+      await wrapper.find('[data-node-id="a"]').trigger('dragstart', { dataTransfer: dt });
+      await wrapper.find('[data-node-id="a1"]').trigger('dragover', { dataTransfer: dt });
+      await wrapper.find('[data-node-id="a1"]').trigger('drop', { dataTransfer: dt });
+      expect(nodeMove.value).toBeNull();
+    });
+
+    it('suppresses the move when the dragged node is removed mid-drag (no phantom source)', async () => {
+      // The source is re-resolved from the LIVE tree at drop, so a node deleted
+      // between dragstart and drop yields no move (not a detached phantom).
+      const nodes = ref<DemoNode[]>([
+        { id: 'x', name: 'X' },
+        { id: 'y', name: 'Y' },
+      ]);
+      const nodeMove = ref<CoarTreeNodeMoveEvent<DemoNode> | null>(null);
+      const Wrapper = defineComponent({
+        setup: () => () =>
+          h(
+            CoarTree,
+            {
+              nodes: nodes.value,
+              getId: (n: DemoNode) => n.id,
+              getLabel: (n: DemoNode) => n.name,
+              draggable: true,
+              onNodeMove: (e: CoarTreeNodeMoveEvent<DemoNode>) => {
+                nodeMove.value = e;
+              },
+            },
+            { default: ({ node }: { node: DemoNode }) => h('span', null, node.name) },
+          ),
+      });
+      const wrapper = mount(Wrapper, { attachTo: document.body });
+      const dt = makeDataTransfer();
+      await wrapper.find('[data-node-id="x"]').trigger('dragstart', { dataTransfer: dt });
+      await wrapper.find('[data-node-id="y"]').trigger('dragover', { dataTransfer: dt });
+      // Source 'x' deleted mid-drag (async refresh / external delete).
+      nodes.value = [{ id: 'y', name: 'Y' }];
+      await nextTick();
+      await wrapper.find('[data-node-id="y"]').trigger('drop', { dataTransfer: dt });
+      expect(nodeMove.value).toBeNull();
+    });
+
+    it('rejects a drop when a mid-drag mutation turns the target into a descendant of the source (authoritative drop-time cycle guard)', async () => {
+      // Worst case: the mutation lands BETWEEN the last dragover and the drop,
+      // so the (now-stale) dragover already marked the target droppable. The
+      // drop-time re-check against the LIVE parent chain must still reject it.
+      const nodes = ref<DemoNode[]>([
+        { id: 'a', name: 'A', children: [] },
+        { id: 'b', name: 'B' },
+      ]);
+      const expandedRef = ref(new Set<string>(['a']));
+      const nodeMove = ref<CoarTreeNodeMoveEvent<DemoNode> | null>(null);
+      const Wrapper = defineComponent({
+        setup: () => () =>
+          h(
+            CoarTree,
+            {
+              nodes: nodes.value,
+              getId: (n: DemoNode) => n.id,
+              getChildren: (n: DemoNode) => n.children,
+              getLabel: (n: DemoNode) => n.name,
+              isExpandable: (n: DemoNode) => !!n.children,
+              draggable: true,
+              expanded: expandedRef.value,
+              'onUpdate:expanded': (v: Set<string>) => (expandedRef.value = v),
+              onNodeMove: (e: CoarTreeNodeMoveEvent<DemoNode>) => {
+                nodeMove.value = e;
+              },
+            },
+            { default: ({ node }: { node: DemoNode }) => h('span', null, node.name) },
+          ),
+      });
+      const wrapper = mount(Wrapper, { attachTo: document.body });
+      const dt = makeDataTransfer();
+      // At dragover time 'b' is a sibling of the dragged 'a' → a valid target.
+      await wrapper.find('[data-node-id="a"]').trigger('dragstart', { dataTransfer: dt });
+      await wrapper.find('[data-node-id="b"]').trigger('dragover', { dataTransfer: dt });
+      // Now 'b' becomes a child of 'a' — dropping 'a' there would be a cycle.
+      nodes.value = [{ id: 'a', name: 'A', children: [{ id: 'b', name: 'B' }] }];
+      await nextTick();
+      await wrapper.find('[data-node-id="b"]').trigger('drop', { dataTransfer: dt });
+      expect(nodeMove.value).toBeNull();
+    });
+  });
+
+  describe('virtualization nudge', () => {
+    it('warns in DEV when a large tree renders without virtualization', () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const big = Array.from({ length: 400 }, (_, i) => ({ id: `n${i}`, name: `Node ${i}` }));
+      makeWrapper({ nodes: big, expanded: new Set() });
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('without virtualization'));
+      warn.mockRestore();
     });
   });
 });

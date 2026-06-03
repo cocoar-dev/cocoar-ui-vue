@@ -137,8 +137,8 @@ let renameFocusTime = 0;
 
 function findRenamingNode(): T | null {
   if (!renamingId.value) return null;
-  const row = visibleRows.value.find((r) => cfg.value.getId(r.node) === renamingId.value);
-  return row?.node ?? null;
+  const idx = idToIndex.value.get(renamingId.value);
+  return idx === undefined ? null : (visibleRows.value[idx]?.node ?? null);
 }
 
 function commitRename() {
@@ -332,6 +332,26 @@ const visibleRows = computed<VisibleRow[]>(() => {
   return out;
 });
 
+/**
+ * `id → index into visibleRows`, rebuilt only when the visible-row list
+ * changes (same trigger as the structural DFS). Turns every "where is this id?"
+ * lookup — keyboard nav, type-ahead start, focusRow's scroll target, rename
+ * lookup, focus validation — from an O(n) `findIndex`/`find` into an O(1) Map
+ * read. At 100k visible rows that's millions of comparisons per keystroke vs.
+ * a single hash lookup.
+ */
+const idToIndex = computed(() => {
+  const m = new Map<string, number>();
+  const list = visibleRows.value;
+  // First-wins on duplicate ids, matching the old find/findIndex semantics
+  // (duplicate ids are unsupported anyway — they break Vue's `:key` uniqueness).
+  for (let i = 0; i < list.length; i++) {
+    const id = cfg.value.getId(list[i].node);
+    if (!m.has(id)) m.set(id, i);
+  }
+  return m;
+});
+
 const focusedId = ref<string | null>(null);
 
 watch(
@@ -341,7 +361,7 @@ watch(
       focusedId.value = null;
       return;
     }
-    const ids = new Set(list.map((r) => cfg.value.getId(r.node)));
+    const ids = idToIndex.value;
     if (focusedId.value && ids.has(focusedId.value)) return;
     if (selectedStore.value && ids.has(selectedStore.value)) {
       focusedId.value = selectedStore.value;
@@ -370,6 +390,26 @@ const virtualOpts = computed<Required<CoarTreeVirtualOptions> | null>(() => {
   };
 });
 const isVirtual = computed(() => virtualOpts.value !== null);
+
+// DEV-only: warn when a large tree renders WITHOUT virtualization. The naive
+// path mounts one full component per visible row, so an un-virtualized tree
+// past a few hundred rows janks or freezes on render and on expand.
+// Virtualization is opt-in (it needs a bounded-height scroll container), so we
+// nudge rather than auto-enable. Warns once per mount; stripped from prod.
+if (import.meta.env?.DEV) {
+  let warnedVirtual = false;
+  watch(
+    () => (isVirtual.value ? 0 : visibleRows.value.length),
+    (count) => {
+      if (warnedVirtual || isVirtual.value || count <= 300) return;
+      warnedVirtual = true;
+      console.warn(
+        `[CoarTree] Rendering ${count} rows without virtualization. Each row mounts a full component, so large trees jank or freeze on render and expand. Enable it — \`builder.virtualize({ itemSize: 28 })\` or \`:virtualize="{ itemSize: 28 }"\` — inside a bounded-height container. (Shown once; DEV only.)`,
+      );
+    },
+    { immediate: true },
+  );
+}
 
 const scrollEl = useTemplateRef<HTMLElement>('scrollEl');
 const rootEl = useTemplateRef<HTMLDivElement>('rootEl');
@@ -422,7 +462,7 @@ function focusRow(id: string | null) {
     // In virtual mode the row might be outside the rendered window — scroll
     // it into view first, THEN focus after the next tick.
     if (isVirtual.value) {
-      const idx = visibleRows.value.findIndex((r) => cfg.value.getId(r.node) === id);
+      const idx = idToIndex.value.get(id) ?? -1;
       if (idx >= 0) virtualizer.scrollToIndex(idx, 'auto');
       nextTick(() => rowElById(id)?.focus());
     } else {
@@ -569,9 +609,7 @@ function findByTypeAhead(): T | null {
   const getLabel = cfg.value.getLabel;
   if (!getLabel || !typeBuffer.value) return null;
   const list = visibleRows.value;
-  const startIdx = focusedId.value
-    ? list.findIndex((r) => cfg.value.getId(r.node) === focusedId.value)
-    : -1;
+  const startIdx = focusedId.value ? (idToIndex.value.get(focusedId.value) ?? -1) : -1;
   for (let i = 1; i <= list.length; i++) {
     const candidate = list[(startIdx + i) % list.length].node;
     const label = getLabel(candidate).toLowerCase();
@@ -583,9 +621,7 @@ function findByTypeAhead(): T | null {
 function onRootKeydown(ev: KeyboardEvent) {
   const list = visibleRows.value;
   if (!list.length) return;
-  const currentIdx = focusedId.value
-    ? list.findIndex((r) => cfg.value.getId(r.node) === focusedId.value)
-    : -1;
+  const currentIdx = focusedId.value ? (idToIndex.value.get(focusedId.value) ?? -1) : -1;
   const current = currentIdx >= 0 ? list[currentIdx] : null;
 
   // F2 starts rename on the focused row — but only when the focus is on a
@@ -669,6 +705,10 @@ function onRootKeydown(ev: KeyboardEvent) {
 
 // ─── DnD state ────────────────────────────────────────────────────────────
 const dragSourceId = ref<string | null>(null);
+// The dragged node, snapshotted at dragstart. Used only for the advisory
+// `canDrop` gate during `dragover` (keeps it O(1) — no per-event tree walk).
+// The authoritative source emitted on drop is re-resolved live via `findNodeById`.
+const dragSourceNode = shallowRef<T | null>(null);
 const dropTargetId = ref<string | null>(null);
 const dropPosition = ref<CoarTreeDropPosition | null>(null);
 const fileDropTargetId = ref<string | null>(null);
@@ -691,11 +731,23 @@ function scheduleAutoExpand(node: T) {
   }, cfg.value.autoExpandDelay);
 }
 
-function isInSubtree(root: T, targetId: string): boolean {
-  if (cfg.value.getId(root) === targetId) return true;
-  const kids = getChildrenOf(root);
-  if (!kids) return false;
-  for (const k of kids) if (isInSubtree(k, targetId)) return true;
+// Would dropping the dragged source onto `targetId` create a cycle — i.e. is
+// `targetId` the source itself or somewhere inside its subtree? Walks UP the
+// precomputed `parentId` chain from the target: O(depth) (≤ the tree's nesting
+// depth), read from the LIVE `visibleRows`, so it stays correct even if `nodes`
+// mutates mid-drag. Cheaper and fresher than the old walk-DOWN `isInSubtree`
+// (O(subtree), and it needed the source node resolved via an O(n) `findNodeById`
+// on every `dragover`).
+function isDescendantOfSource(targetId: string, sourceId: string): boolean {
+  const map = idToIndex.value;
+  const rows = visibleRows.value;
+  let cur: string | null = targetId;
+  while (cur !== null) {
+    if (cur === sourceId) return true;
+    const idx = map.get(cur);
+    if (idx === undefined) return false;
+    cur = rows[idx].parentId;
+  }
   return false;
 }
 function findNodeById(id: string, list: readonly T[] = cfg.value.nodes): T | null {
@@ -712,6 +764,7 @@ function findNodeById(id: string, list: readonly T[] = cfg.value.nodes): T | nul
 
 function clearDragState() {
   dragSourceId.value = null;
+  dragSourceNode.value = null;
   dropTargetId.value = null;
   dropPosition.value = null;
   fileDropTargetId.value = null;
@@ -733,9 +786,11 @@ function onRowDragStart(node: T, ev: DragEvent) {
     ev.preventDefault();
     return;
   }
-  dragSourceId.value = cfg.value.getId(node);
-  ev.dataTransfer?.setData(COAR_TREE_DRAG_MIME, cfg.value.getId(node));
-  ev.dataTransfer?.setData('text/plain', cfg.value.getLabel?.(node) ?? cfg.value.getId(node));
+  const id = cfg.value.getId(node);
+  dragSourceId.value = id;
+  dragSourceNode.value = node;
+  ev.dataTransfer?.setData(COAR_TREE_DRAG_MIME, id);
+  ev.dataTransfer?.setData('text/plain', cfg.value.getLabel?.(node) ?? id);
   if (ev.dataTransfer) ev.dataTransfer.effectAllowed = 'move';
 }
 function onRowDragEnd() {
@@ -758,13 +813,14 @@ function onRowDragOver(node: T, el: HTMLElement, ev: DragEvent) {
   }
   if (!dt.types.includes(COAR_TREE_DRAG_MIME)) return;
   if (!dragSourceId.value || dragSourceId.value === cfg.value.getId(node)) return;
-  const source = findNodeById(dragSourceId.value);
-  if (!source) return;
-  if (isInSubtree(source, cfg.value.getId(node))) return;
+  // Cursor over the dragged node's own subtree → not a valid drop target.
+  // Live O(depth) walk up the parent chain — no per-event tree walk.
+  if (isDescendantOfSource(cfg.value.getId(node), dragSourceId.value)) return;
 
   const rect = el.getBoundingClientRect();
   const pos = computeDropPosition(ev, rect, { expandable: isExpandableOf(node) });
-  if (cfg.value.canDrop && !cfg.value.canDrop(source, node, pos)) return;
+  const source = dragSourceNode.value;
+  if (cfg.value.canDrop && source && !cfg.value.canDrop(source, node, pos)) return;
 
   ev.preventDefault();
   dt.dropEffect = 'move';
@@ -800,8 +856,12 @@ function onRowDrop(node: T, _el: HTMLElement, ev: DragEvent) {
     return;
   }
   if (dragSourceId.value && dropTargetId.value === cfg.value.getId(node) && dropPosition.value) {
+    // Drop is one-shot, so re-resolve the source from the LIVE tree and re-run
+    // the cycle check here — the O(depth) dragover guard can't see mutations
+    // that landed between the last dragover and the drop. Suppresses phantom
+    // moves when the source was deleted mid-drag.
     const source = findNodeById(dragSourceId.value);
-    if (source) {
+    if (source && !isDescendantOfSource(cfg.value.getId(node), dragSourceId.value)) {
       ev.preventDefault();
       ev.stopPropagation();
       fireNodeMove({ source, target: node, position: dropPosition.value });
@@ -859,7 +919,8 @@ onBeforeUnmount(() => {
 
 function startRename(id: string) {
   if (!props.renamable) return;
-  const row = visibleRows.value.find((r) => cfg.value.getId(r.node) === id);
+  const idx = idToIndex.value.get(id);
+  const row = idx === undefined ? undefined : visibleRows.value[idx];
   if (!row) return;
   const initialName = cfg.value.getLabel ? cfg.value.getLabel(row.node) : '';
   // rAF so the input renders + focuses AFTER any open context-menu overlay
