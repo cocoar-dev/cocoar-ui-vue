@@ -222,8 +222,12 @@ function reset() {
   border-radius: 50%;
   border: 1.5px solid var(--coar-border-neutral-tertiary);
   border-top-color: var(--coar-text-accent-primary);
-  animation: lz-spin 700ms linear infinite;
   flex-shrink: 0;
+  /* `!important` overrides VitePress's global prefers-reduced-motion reset
+     (`*, ::before, ::after { animation-duration: 1ms !important }`), which would
+     otherwise freeze this spinner into a static ring for reduced-motion users.
+     A loading indicator that doesn't move reads as "stuck" — keep it spinning. */
+  animation: lz-spin 700ms linear infinite !important;
 }
 @keyframes lz-spin {
   to {
