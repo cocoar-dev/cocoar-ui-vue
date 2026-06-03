@@ -1,47 +1,62 @@
 <script setup lang="ts">
 /**
- * Lazy / async children. Folders render expandable before their children exist
- * (`isExpandable(() => folder)`), and `loadChildren` fetches them on first
- * expand. The tree shows a spinner in the chevron while the promise is pending,
- * flips the row to an error state if it rejects, and exposes
- * `api.reloadChildren(id)` for a retry. The consumer owns the data — it just
- * attaches the fetched children to its own `nodes`.
+ * Interactive lazy-loading demo. Folders fetch their children on first expand
+ * via `loadChildren`. The simulator dials in latency + a failure rate so you can
+ * actually SEE the loading spinner, the error + Retry path, and the
+ * load-once-then-cache behaviour (collapse + re-expand never re-fetches).
  *
- * The "Broken folder" always fails so you can see the error + Retry path.
+ * The spinner here replaces the row ICON (not the chevron): `hide-loading-spinner`
+ * turns off the tree's built-in chevron spinner, and we render our own from the
+ * `isLoading` slot prop. `hasError` drives the inline Retry button via
+ * `api.reloadChildren`.
  */
 import { ref } from 'vue';
-import { CoarTree, CoarIcon, useTree } from '@cocoar/vue-ui';
+import { CoarTree, CoarIcon, CoarSpinner, CoarSegmentedControl, useTree } from '@cocoar/vue-ui';
 
-interface FsNode {
+interface Node {
   id: string;
   name: string;
   kind: 'folder' | 'file';
-  children?: FsNode[];
+  children?: Node[];
 }
 
-const tree = ref<FsNode[]>([
-  { id: 'documents', name: 'Documents', kind: 'folder' },
-  { id: 'pictures', name: 'Pictures', kind: 'folder' },
-  { id: 'broken', name: 'Broken folder', kind: 'folder' },
-]);
+const roots = (): Node[] => [
+  { id: 'src', name: 'src', kind: 'folder' },
+  { id: 'docs', name: 'docs', kind: 'folder' },
+  { id: 'assets', name: 'assets', kind: 'folder' },
+];
 
+const tree = ref<Node[]>(roots());
 const expanded = ref(new Set<string>());
+
+// ─── simulator knobs ───
+const latency = ref(700);
+const failurePct = ref(0);
+const fetches = ref(0);
 
 const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-// Simulated "fetch" — returns a fresh set of children for any folder.
-function makeChildren(node: FsNode): FsNode[] {
+// Deterministic children for any folder — folders for the first two levels, then
+// files, so you can drill in and watch each level lazy-load on its own.
+function childrenFor(node: Node): Node[] {
+  const depth = node.id.split('/').length;
+  if (depth >= 3) {
+    return [
+      { id: `${node.id}/index.ts`, name: 'index.ts', kind: 'file' },
+      { id: `${node.id}/styles.css`, name: 'styles.css', kind: 'file' },
+    ];
+  }
   return [
-    { id: `${node.id}/team`, name: 'Team', kind: 'folder' },
-    { id: `${node.id}/archive`, name: 'Archive', kind: 'folder' },
-    { id: `${node.id}/overview.md`, name: 'overview.md', kind: 'file' },
-    { id: `${node.id}/budget.xlsx`, name: 'budget.xlsx', kind: 'file' },
+    { id: `${node.id}/components`, name: 'components', kind: 'folder' },
+    { id: `${node.id}/lib`, name: 'lib', kind: 'folder' },
+    { id: `${node.id}/index.ts`, name: 'index.ts', kind: 'file' },
+    { id: `${node.id}/README.md`, name: 'README.md', kind: 'file' },
   ];
 }
 
-// Attach children to the node with `id`, deep in the tree (reactive via the ref).
-function setChildren(id: string, kids: FsNode[]) {
-  const visit = (list: FsNode[]): boolean => {
+// Attach fetched children to the node, deep in the tree (reactive via the ref).
+function attach(id: string, kids: Node[]) {
+  const visit = (list: Node[]): boolean => {
     for (const n of list) {
       if (n.id === id) {
         n.children = kids;
@@ -55,81 +70,171 @@ function setChildren(id: string, kids: FsNode[]) {
   tree.value = [...tree.value];
 }
 
-const { builder, api } = useTree<FsNode>();
+const { builder, api } = useTree<Node>();
 builder
   .nodes(tree)
   .getId((n) => n.id)
   .getChildren((n) => n.children)
   .getLabel((n) => n.name)
-  // Folders are expandable even before their children are fetched.
   .isExpandable((n) => n.kind === 'folder')
   .expanded(expanded)
+  .hideLoadingSpinner(true) // we render our own icon-position spinner from `isLoading`
   .loadChildren(async (node) => {
-    await delay(700); // simulate the network
-    if (node.id.endsWith('broken')) throw new Error('Network error');
-    setChildren(node.id, makeChildren(node));
-  })
-  .onLoadError(({ node, error }) => {
-    // eslint-disable-next-line no-console -- demo only
-    console.warn('Failed to load', node.name, error);
+    fetches.value += 1;
+    await delay(latency.value);
+    if (Math.random() * 100 < failurePct.value) throw new Error('Simulated network error');
+    attach(node.id, childrenFor(node));
   });
+
+function reset() {
+  expanded.value = new Set();
+  tree.value = roots();
+  fetches.value = 0;
+}
 </script>
 
 <template>
-  <div class="lazy-frame">
-    <CoarTree :builder="builder">
-      <template #default="{ node, hasError }">
-        <span class="lazy-row">
-          <CoarIcon
-            :name="node.kind === 'folder' ? 'folder' : 'file-text'"
-            size="xs"
-            class="lazy-icon"
-          />
-          <span class="lazy-label">{{ node.name }}</span>
-          <button
-            v-if="hasError"
-            type="button"
-            class="lazy-retry"
-            @click.stop="api.reloadChildren(node.id)"
-          >
-            Retry
-          </button>
-        </span>
-      </template>
-    </CoarTree>
+  <div class="lz">
+    <div class="lz__bar">
+      <label class="lz__knob">
+        <span class="lz__knob-label">Latency</span>
+        <CoarSegmentedControl
+          v-model="latency"
+          size="xs"
+          :options="[
+            { value: 0, label: 'Instant' },
+            { value: 700, label: '700ms' },
+            { value: 1800, label: 'Slow' },
+          ]"
+        />
+      </label>
+      <label class="lz__knob">
+        <span class="lz__knob-label">Failure</span>
+        <CoarSegmentedControl
+          v-model="failurePct"
+          size="xs"
+          :options="[
+            { value: 0, label: '0%' },
+            { value: 30, label: '30%' },
+            { value: 100, label: 'Always' },
+          ]"
+        />
+      </label>
+      <button type="button" class="lz__reset" @click="reset">Reset</button>
+      <span class="lz__stat">{{ fetches }} fetch{{ fetches === 1 ? '' : 'es' }}</span>
+    </div>
+
+    <div class="lz__frame">
+      <CoarTree :builder="builder">
+        <template #default="{ node, isLoading, hasError }">
+          <span class="lz__row">
+            <CoarSpinner v-if="isLoading" size="xs" class="lz__icon" />
+            <CoarIcon
+              v-else
+              :name="node.kind === 'folder' ? 'folder' : 'file-text'"
+              size="xs"
+              class="lz__icon"
+              :class="{ 'lz__icon--error': hasError }"
+            />
+            <span class="lz__label" :class="{ 'lz__label--error': hasError }">{{ node.name }}</span>
+            <button
+              v-if="hasError"
+              type="button"
+              class="lz__retry"
+              @click.stop="api.reloadChildren(node.id)"
+            >
+              Retry
+            </button>
+          </span>
+        </template>
+      </CoarTree>
+    </div>
+
+    <p class="hint">
+      Expand a folder → it fetches its children. Try <strong>Slow</strong> to watch the spinner, bump
+      <strong>Failure</strong> and hit <strong>Retry</strong> on the red row, and drill in to see each
+      level load on its own. Loaded folders cache — collapse + re-expand never re-fetches;
+      <strong>Reset</strong> clears everything.
+    </p>
   </div>
-  <p class="hint">
-    Expand a folder → spinner → children load after ~700&nbsp;ms. Drill into <em>Team</em> /
-    <em>Archive</em> to load deeper levels. <em>Broken folder</em> fails — click <strong>Retry</strong>.
-  </p>
 </template>
 
 <style scoped>
-.lazy-frame {
+.lz {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.lz__bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.lz__knob {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.lz__knob-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--coar-text-neutral-tertiary);
+}
+.lz__reset {
+  border: 1px solid var(--coar-border-neutral-secondary);
+  background: transparent;
+  color: var(--coar-text-neutral-secondary);
+  border-radius: var(--coar-radius-xs, 3px);
+  font: inherit;
+  font-size: 12px;
+  padding: 2px 10px;
+  cursor: pointer;
+}
+.lz__reset:hover {
+  background: var(--coar-background-neutral-tertiary);
+  color: var(--coar-text-neutral-primary);
+}
+.lz__stat {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--coar-text-neutral-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.lz__frame {
   border: 1px solid var(--coar-border-neutral-secondary);
   border-radius: 8px;
-  max-width: 360px;
-  padding: 4px 0;
+  max-width: 400px;
+  height: 300px;
+  display: flex;
 }
-.lazy-row {
+.lz__row {
   display: flex;
   align-items: center;
   gap: 6px;
   flex: 1;
   min-width: 0;
 }
-.lazy-icon {
+.lz__icon {
   color: var(--coar-text-neutral-tertiary);
   flex-shrink: 0;
 }
-.lazy-label {
+.lz__icon--error {
+  color: var(--coar-text-semantic-error-bold, #dc2626);
+}
+.lz__label {
   flex: 1;
   min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.lazy-retry {
+.lz__label--error {
+  color: var(--coar-text-semantic-error-bold, #dc2626);
+}
+.lz__retry {
   flex-shrink: 0;
   border: 1px solid var(--coar-border-semantic-error, #dc2626);
   color: var(--coar-text-semantic-error-bold, #dc2626);
@@ -140,7 +245,7 @@ builder
   cursor: pointer;
 }
 .hint {
-  margin-top: 12px;
+  margin: 0;
   font-size: 12px;
   color: var(--coar-text-neutral-tertiary);
 }

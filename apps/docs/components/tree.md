@@ -125,6 +125,8 @@ Fetch a node's children the first time it's expanded — for trees backed by an 
 - **`isExpandable`** must return `true` for a folder *before* its children exist (otherwise there's no chevron to expand). Derive it from the node's own "is a folder" flag, not from `getChildren`.
 - **`loadChildren(node)`** fires on first expand of an unloaded folder. Return a `Promise` and the tree shows a spinner in the chevron until it settles; on rejection the row flips to an error state and `@load-error` fires. Your handler attaches the fetched children to your own `nodes` data — the tree re-renders and stops asking (a node counts as loaded once `getChildren` returns an array; `[]` is loaded-but-empty). Attach so `nodes` updates reactively — produce a **new root `nodes` reference** (`nodes.value = [...]`) or keep `nodes` deeply reactive; a pure in-place mutation on a shallow source leaves the spinner spinning. An unrelated `nodes` change never re-fires a node that already attempted-and-settled — retry is explicit (`api.reloadChildren(id)` or collapse + re-expand).
 
+The demo below is interactive — dial in **latency** and a **failure rate** to watch the loading spinner, the error + **Retry** path, and the load-once-then-cache behaviour, then drill in to see each level load on its own. It renders the spinner at the row-icon position (the `hide-loading-spinner` + `isLoading` pattern below) rather than the built-in chevron spinner.
+
 <preview path="./tree/demos/TreeLazyLoad.vue" />
 
 ```ts
