@@ -195,8 +195,12 @@ export class TreeBuilder<T> {
    * loaded children yet. Return a `Promise` and the tree shows a spinner on the
    * row until it settles; on rejection the row flips to an error state and
    * `onLoadError` fires. Pair with `.isExpandable(() => true)` (or per-node) so
-   * folders render expandable BEFORE their children exist — the consumer mutates
-   * its own `nodes` data to attach the fetched children.
+   * folders render expandable BEFORE their children exist — the consumer attaches
+   * the fetched children to its own `nodes`.
+   *
+   * Attach so `nodes` updates reactively: produce a NEW root reference
+   * (`nodes.value = [...]`) or keep `nodes` deeply reactive. A pure in-place
+   * mutation on a shallow source won't re-render the row (the spinner persists).
    */
   loadChildren(fn: (node: T) => void | Promise<void>): this {
     this.state.loadChildren = fn;

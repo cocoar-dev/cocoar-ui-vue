@@ -116,6 +116,7 @@ function onChevron(e: MouseEvent) {
     :aria-level="depth + 1"
     :aria-posinset="posInSet"
     :aria-setsize="setSize"
+    :aria-busy="isLoading ? 'true' : undefined"
     :tabindex="isFocused ? 0 : -1"
     :draggable="draggable"
     :data-node-id="nodeId"

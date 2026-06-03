@@ -30,6 +30,7 @@ import {
   toValue,
   useTemplateRef,
   watch,
+  type Ref,
   type VNode,
 } from 'vue';
 import CoarTreeNode from './CoarTreeNode.vue';
@@ -498,22 +499,33 @@ function focusRow(id: string | null) {
 // ─── lazy children loading ────────────────────────────────────────────────
 /**
  * When `loadChildren` is set, an expanded node with no loaded children
- * (`getChildren` returns null/undefined) triggers a fetch. We track loading /
- * errored ids so each row can show a spinner or a retry; the consumer attaches
- * fetched children to its own `nodes`, and the watcher below stops re-loading
- * once `getChildren` returns an array (`[]` counts as loaded-but-empty).
+ * (`getChildren` returns null/undefined) triggers a fetch ONCE. We track which
+ * nodes are loading / errored / already-attempted so each row can show a spinner
+ * or a retry and so a node is never auto-loaded twice. The consumer attaches the
+ * fetched children to its own `nodes` (a NEW root reference, or a deeply-reactive
+ * `nodes`); the tree stops asking once `getChildren` returns an array
+ * (`[]` counts as loaded-but-empty).
  */
 const loadingIds = ref<Set<string>>(new Set());
 const erroredIds = ref<Set<string>>(new Set());
+// Nodes a load has been *started* for since they were last expanded. Gates the
+// structural watcher so an unrelated `nodes` change can't auto-retry a node that
+// already attempted-and-settled — retry stays explicit (`reloadChildren`) or via
+// collapse → re-expand (which drops the marker in `pruneTracking`).
+const attemptedIds = ref<Set<string>>(new Set());
 
 function childrenLoaded(node: T): boolean {
   return Array.isArray(getChildrenOf(node));
 }
-function clearLoading(id: string) {
-  if (!loadingIds.value.has(id)) return;
-  const next = new Set(loadingIds.value);
+function removeFromSet(set: Ref<Set<string>>, id: string) {
+  if (!set.value.has(id)) return;
+  const next = new Set(set.value);
   next.delete(id);
-  loadingIds.value = next;
+  set.value = next;
+}
+function fireLoadError(payload: CoarTreeLoadErrorEvent<T>) {
+  emit('load-error', payload);
+  props.builder?.state.onLoadError?.(payload);
 }
 function runLoad(node: T, force = false) {
   const loader = cfg.value.loadChildren;
@@ -522,22 +534,17 @@ function runLoad(node: T, force = false) {
   if (loadingIds.value.has(id)) return; // already in flight
   if (!force && childrenLoaded(node)) return; // already have data
   loadingIds.value = new Set(loadingIds.value).add(id);
-  if (erroredIds.value.has(id)) {
-    const e = new Set(erroredIds.value);
-    e.delete(id);
-    erroredIds.value = e;
-  }
+  attemptedIds.value = new Set(attemptedIds.value).add(id);
+  removeFromSet(erroredIds, id);
   // `Promise.resolve().then(...)` so a synchronous throw in `loader` is caught too.
   Promise.resolve()
     .then(() => loader(node))
     .then(
-      () => clearLoading(id),
+      () => removeFromSet(loadingIds, id),
       (error) => {
-        clearLoading(id);
+        removeFromSet(loadingIds, id);
         erroredIds.value = new Set(erroredIds.value).add(id);
-        const payload: CoarTreeLoadErrorEvent<T> = { node, error };
-        emit('load-error', payload);
-        props.builder?.state.onLoadError?.(payload);
+        fireLoadError({ node, error });
       },
     );
 }
@@ -546,18 +553,53 @@ function reloadChildren(id: string) {
   if (node) runLoad(node, true);
 }
 
-// Trigger loads for every expanded-but-unloaded expandable row — one path covers
-// chevron, keyboard, auto-expand-on-drag, the api, and initial `expanded`.
-// O(visible) per expand / data change; the early-out makes it free when unused.
+/**
+ * Housekeeping run before each load scan: drop `attempted` markers for collapsed
+ * nodes (so collapse → re-expand retries) and loading/errored ids for nodes that
+ * have left the tree (prevents an unbounded Set leak + a phantom spinner/error if
+ * the same id is later re-added). O(tracked); the gone-check only walks when a
+ * set is non-empty, which it usually isn't.
+ */
+function pruneTracking() {
+  if (attemptedIds.value.size) {
+    let changed = false;
+    const next = new Set(attemptedIds.value);
+    for (const id of next) {
+      if (!expandedStore.value.has(id)) {
+        next.delete(id);
+        changed = true;
+      }
+    }
+    if (changed) attemptedIds.value = next;
+  }
+  for (const set of [loadingIds, erroredIds]) {
+    if (!set.value.size) continue;
+    let changed = false;
+    const next = new Set(set.value);
+    for (const id of next) {
+      if (!findNodeById(id)) {
+        next.delete(id);
+        changed = true;
+      }
+    }
+    if (changed) set.value = next;
+  }
+}
+
+// Trigger loads for every expanded-but-unloaded-and-not-yet-attempted expandable
+// row — one path covers chevron, keyboard, auto-expand-on-drag, the api, and
+// initial `expanded`. O(visible) per expand / data change; free when unused.
 watch(
   [expandedStore, () => cfg.value.nodes],
   () => {
     if (!cfg.value.loadChildren) return;
+    pruneTracking();
     for (const row of visibleRows.value) {
       if (
         row.isExpandable &&
         expandedStore.value.has(row.id) &&
         !loadingIds.value.has(row.id) &&
+        !attemptedIds.value.has(row.id) &&
         !childrenLoaded(row.node)
       ) {
         runLoad(row.node);

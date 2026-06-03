@@ -73,7 +73,11 @@ export interface CoarTreeRenameEvent<T> {
 
 /** Payload for {@link CoarTreeEmits.load-error}. */
 export interface CoarTreeLoadErrorEvent<T> {
-  /** The node whose lazy children failed to load. */
+  /**
+   * The node whose lazy children failed to load — snapshotted when the load
+   * started. If your handler runs async work, re-resolve by `id` rather than
+   * holding this object (the consumer may have replaced it during the load).
+   */
   node: T;
   /** Whatever the `loadChildren` promise rejected with. */
   error: unknown;
@@ -121,8 +125,8 @@ export interface CoarTreeRowState {
   dropTargetId: Readonly<Ref<string | null>>;
   dropPosition: Readonly<Ref<CoarTreeDropPosition | null>>;
   fileDropTargetId: Readonly<Ref<string | null>>;
-  loadingIds: Readonly<Ref<Set<string>>>;
-  erroredIds: Readonly<Ref<Set<string>>>;
+  loadingIds: Readonly<Ref<ReadonlySet<string>>>;
+  erroredIds: Readonly<Ref<ReadonlySet<string>>>;
 }
 
 export const COAR_TREE_ROW_STATE_KEY: InjectionKey<CoarTreeRowState> =

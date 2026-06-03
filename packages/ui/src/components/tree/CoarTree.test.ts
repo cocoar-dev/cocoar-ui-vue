@@ -540,5 +540,94 @@ describe('CoarTree', () => {
       await nextTick();
       expect(loadChildren).toHaveBeenCalledTimes(1);
     });
+
+    it('does not auto-retry an errored node when unrelated data changes', async () => {
+      const nodes = ref<DemoNode[]>([
+        { id: 'r', name: 'Root' },
+        { id: 's', name: 'Sibling' },
+      ]);
+      const expanded = ref(new Set<string>());
+      let rejectLoad!: (e: unknown) => void;
+      const loadChildren = vi.fn(
+        () =>
+          new Promise<void>((_res, rej) => {
+            rejectLoad = rej;
+          }),
+      );
+      const Wrapper = defineComponent({
+        setup: () => () =>
+          h(
+            CoarTree,
+            {
+              nodes: nodes.value,
+              getId: (n: DemoNode) => n.id,
+              getChildren: (n: DemoNode) => n.children,
+              isExpandable: () => true,
+              loadChildren,
+              expanded: expanded.value,
+              'onUpdate:expanded': (v: Set<string>) => (expanded.value = v),
+            },
+            { default: ({ node }: { node: DemoNode }) => h('span', null, node.name) },
+          ),
+      });
+      const wrapper = mount(Wrapper, { attachTo: document.body });
+      await nextTick();
+      await wrapper.find('[data-node-id="r"] .coar-tree-node__chevron').trigger('click');
+      await nextTick();
+      expect(loadChildren).toHaveBeenCalledTimes(1);
+      rejectLoad(new Error('boom'));
+      await flushMicrotasks();
+      await nextTick();
+      // Unrelated data change (a sibling gains children) must NOT re-fire the
+      // loader on the still-expanded, errored 'r' — retry is explicit only.
+      nodes.value = [
+        { id: 'r', name: 'Root' },
+        { id: 's', name: 'Sibling', children: [] },
+      ];
+      await nextTick();
+      expect(loadChildren).toHaveBeenCalledTimes(1);
+    });
+
+    it('retries via collapse then re-expand after a load error', async () => {
+      const nodes = ref<DemoNode[]>([{ id: 'r', name: 'Root' }]);
+      const expanded = ref(new Set<string>());
+      let rejectLoad!: (e: unknown) => void;
+      const loadChildren = vi.fn(
+        () =>
+          new Promise<void>((_res, rej) => {
+            rejectLoad = rej;
+          }),
+      );
+      const Wrapper = defineComponent({
+        setup: () => () =>
+          h(
+            CoarTree,
+            {
+              nodes: nodes.value,
+              getId: (n: DemoNode) => n.id,
+              getChildren: (n: DemoNode) => n.children,
+              isExpandable: () => true,
+              loadChildren,
+              expanded: expanded.value,
+              'onUpdate:expanded': (v: Set<string>) => (expanded.value = v),
+            },
+            { default: ({ node }: { node: DemoNode }) => h('span', null, node.name) },
+          ),
+      });
+      const wrapper = mount(Wrapper, { attachTo: document.body });
+      await nextTick();
+      const chevron = () => wrapper.find('[data-node-id="r"] .coar-tree-node__chevron');
+      await chevron().trigger('click'); // expand → load #1
+      await nextTick();
+      expect(loadChildren).toHaveBeenCalledTimes(1);
+      rejectLoad(new Error('boom'));
+      await flushMicrotasks();
+      await nextTick();
+      await chevron().trigger('click'); // collapse (drops the attempted marker)
+      await nextTick();
+      await chevron().trigger('click'); // re-expand → retry → load #2
+      await nextTick();
+      expect(loadChildren).toHaveBeenCalledTimes(2);
+    });
   });
 });
