@@ -296,7 +296,12 @@ const treeRef = ref<{
   border: 1px solid var(--coar-border-neutral-secondary);
   border-radius: 8px;
   height: 300px;
+  /* `display: flex` gives the tree a definite height so the *virtualized* mode's
+     scroll viewport works; `overflow: auto` scrolls the *non-virtualized* mode
+     (which doesn't own a scroll viewport) instead of letting expanded rows
+     spill out of the frame. */
   display: flex;
+  overflow: auto;
 }
 .pg__icon {
   color: var(--coar-text-neutral-tertiary);
