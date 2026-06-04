@@ -127,9 +127,15 @@ const props = withDefaults(
     /**
      * Search-hit ids. The tree exposes `isMatch` / `isMatchAncestor` to the slot
      * (for highlighting) and auto-expands the ancestors of every match so hits
-     * are visible. Filtering the node set itself stays the consumer's job.
+     * are visible.
      */
     matchedIds?: Set<string>;
+    /**
+     * With `matchedIds` set, hide everything that isn't a match, an ancestor of a
+     * match ("virtual parents" — kept for context, flagged `isMatchAncestor`), or
+     * a descendant of a match. Off by default (highlight-only).
+     */
+    filter?: boolean;
     /**
      * Opt into the built-in inline rename UI. With this on, `api.startRename(id)`
      * + `@rename` work and `<CoarTreeNodeLabel>` swaps to an `<input>` while the
@@ -169,6 +175,7 @@ const props = withDefaults(
     ariaLabelledby: undefined,
     labels: undefined,
     matchedIds: undefined,
+    filter: false,
     renamable: false,
     hideLoadingSpinner: false,
   },
@@ -309,6 +316,7 @@ const cfg = computed(() => {
       ariaLabelledby: toValue(s.ariaLabelledby),
       labels: toValue(s.labels),
       matchedIds: toValue(s.matchedIds),
+      filter: toValue(s.filter),
     };
   }
   return {
@@ -338,6 +346,7 @@ const cfg = computed(() => {
     ariaLabelledby: props.ariaLabelledby,
     labels: props.labels,
     matchedIds: props.matchedIds,
+    filter: props.filter,
   };
 });
 
@@ -475,19 +484,48 @@ const matchAncestorIds = computed<ReadonlySet<string>>(() =>
       )
     : EMPTY_SET,
 );
-// Auto-expand the ancestors of every match so hits are visible. Only ADDS to the
-// expanded set (never collapses), so a consumer's manual collapses survive.
-watch(matchedIdsSet, (matched) => {
+// Filter mode (opt-in): hide everything that isn't a match, an ancestor of a
+// match (the "virtual parents" / path), or a descendant of a match.
+const filterActive = computed(() => !!cfg.value.filter && matchedIdsSet.value.size > 0);
+/** match ∪ ancestors-of-match ∪ descendants-of-match — the rows to keep when filtering. */
+function buildKeepSet(matched: ReadonlySet<string>): Set<string> {
+  const keep = new Set<string>();
+  // returns whether this node or a descendant matched
+  const visit = (node: T, ancestorMatched: boolean): boolean => {
+    const id = cfg.value.getId(node);
+    const selfMatch = matched.has(id);
+    let descMatch = false;
+    const kids = getChildrenOf(node);
+    if (kids && kids.length) {
+      for (const k of kids) if (visit(k, ancestorMatched || selfMatch)) descMatch = true;
+    }
+    if (selfMatch || descMatch || ancestorMatched) keep.add(id);
+    return selfMatch || descMatch;
+  };
+  for (const n of cfg.value.nodes) visit(n, false);
+  return keep;
+}
+const keepSet = computed<Set<string> | null>(() =>
+  filterActive.value ? buildKeepSet(matchedIdsSet.value) : null,
+);
+
+// Reveal matches: highlight mode expands ancestors of matches; filter mode expands
+// the whole kept structure. Add-only (never collapses), so manual collapses survive.
+watch([matchedIdsSet, filterActive], () => {
+  const matched = matchedIdsSet.value;
   if (!matched.size) return;
   const next = new Set(expandedStore.value);
   let changed = false;
-  for (const id of matched) {
-    for (const a of ancestorPath(id)) {
-      if (!next.has(a)) {
-        next.add(a);
-        changed = true;
-      }
+  const add = (id: string) => {
+    if (!next.has(id)) {
+      next.add(id);
+      changed = true;
     }
+  };
+  if (filterActive.value && keepSet.value) {
+    for (const id of keepSet.value) add(id); // kept folders → fully revealed (leaves are no-ops)
+  } else {
+    for (const id of matched) for (const a of ancestorPath(id)) add(a);
   }
   if (changed) expandedStore.value = next;
 }, { immediate: true });
@@ -542,9 +580,13 @@ interface VisibleRow {
 }
 const visibleRows = computed<VisibleRow[]>(() => {
   const out: VisibleRow[] = [];
+  const keep = keepSet.value; // non-null only in filter mode
   const walk = (list: readonly T[], depth: number, parentId: string | null) => {
-    for (let i = 0; i < list.length; i++) {
-      const n = list[i];
+    // When filtering, only kept siblings are visible — so posInSet / setSize
+    // (ARIA) must count the kept siblings, not the full list.
+    const rows = keep ? list.filter((n) => keep.has(cfg.value.getId(n))) : list;
+    for (let i = 0; i < rows.length; i++) {
+      const n = rows[i];
       const id = cfg.value.getId(n);
       const expandable = isExpandableOf(n);
       out.push({
@@ -553,7 +595,7 @@ const visibleRows = computed<VisibleRow[]>(() => {
         depth,
         parentId,
         posInSet: i + 1,
-        setSize: list.length,
+        setSize: rows.length,
         isExpandable: expandable,
         draggable: isDraggableOf(n),
       });

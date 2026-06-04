@@ -69,6 +69,8 @@ export interface TreeBuilderState<T> {
   labels: MaybeRefOrGetter<Partial<CoarTreeLabels> | undefined>;
   /** Search-hit ids — drives `isMatch`/`isMatchAncestor` + auto-expand-to-match. */
   matchedIds: MaybeRefOrGetter<Set<string> | undefined>;
+  /** With `matchedIds`, hide non-matches (keep matches + ancestors + descendants). */
+  filter: MaybeRefOrGetter<boolean>;
 
   expanded: Ref<Set<string>>;
   /** Single-mode highlight selection. */
@@ -242,6 +244,7 @@ export class TreeBuilder<T> {
       ariaLabelledby: undefined,
       labels: undefined,
       matchedIds: undefined,
+      filter: false,
       expanded: ref(new Set<string>()),
       selected: ref<string | null>(null),
       selectedIds: ref(new Set<string>()),
@@ -463,6 +466,16 @@ export class TreeBuilder<T> {
    */
   matchedIds(ids: MaybeRefOrGetter<Set<string> | undefined>): this {
     this.state.matchedIds = ids;
+    return this;
+  }
+
+  /**
+   * With `matchedIds` set, hide everything that isn't a match, an ancestor of a
+   * match (kept as a "virtual parent" for context), or a descendant of a match.
+   * Default false (highlight-only).
+   */
+  filter(b: MaybeRefOrGetter<boolean>): this {
+    this.state.filter = b;
     return this;
   }
 

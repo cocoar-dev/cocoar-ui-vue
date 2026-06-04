@@ -312,11 +312,26 @@ builder.isDisabled(n => n.readonly)
 
 ## Search / filter
 
-The tree doesn't filter your data (you own `nodes` — pass a computed filtered list to `.nodes()`), but it makes the *result* easy to surface. Pass the matching ids as `matchedIds`: the tree exposes `isMatch` / `isMatchAncestor` slot props for highlighting and auto-expands the ancestors of every match so deep hits are revealed (add-only — your manual collapses survive).
+Pass the matching ids as `matchedIds` and the tree handles the rest. Two modes:
+
+- **Highlight (default):** every row stays visible; the slot gets `isMatch` / `isMatchAncestor` for styling, and the ancestors of each match auto-expand so deep hits are revealed (add-only — your manual collapses survive).
+- **Filter** (`filter` prop / `.filter()`): non-matches are hidden — but the **ancestor path of each match stays visible as "virtual parents"** (flagged `isMatchAncestor`, so you can de-emphasize them), and the descendants of a matched folder are kept too. The tree never collapses into a contextless flat list; you always see *where* a hit lives. Computing `matchedIds` itself stays yours (any fuzzy / regex / field match you like).
 
 ```vue
-<template #default="{ node, isMatch, isMatchAncestor }">
-  <span :class="{ hit: isMatch, 'has-hit': isMatchAncestor }">{{ node.name }}</span>
+<script setup>
+const matchedIds = computed(() => {
+  const q = query.value.toLowerCase()
+  if (!q) return undefined
+  return new Set(allNodes.value.filter(n => n.name.toLowerCase().includes(q)).map(n => n.id))
+})
+</script>
+
+<template>
+  <CoarTree :builder="builder" :matched-ids="matchedIds" :filter="hideNonMatches">
+    <template #default="{ node, isMatch, isMatchAncestor }">
+      <span :class="{ hit: isMatch, 'virtual-parent': isMatchAncestor }">{{ node.name }}</span>
+    </template>
+  </CoarTree>
 </template>
 ```
 
@@ -456,6 +471,7 @@ Two `<CoarTree>` instances on the same page can exchange nodes via the shared `a
 | `ariaLabelledby` | `string` | `undefined` | Id of an external label element for the `role="tree"` element |
 | `labels` | `Partial<CoarTreeLabels>` | English defaults | Override built-in / screen-reader strings (chevron, spinner, retry, announcements) for i18n |
 | `matchedIds` | `Set<string>` | `undefined` | Search hits — drives `isMatch` / `isMatchAncestor` slot props + auto-expand-to-match. See [Search / filter](#search-filter) |
+| `filter` | `boolean` | `false` | With `matchedIds`, hide non-matches but keep the matches, their ancestor path ("virtual parents"), and their descendants. See [Search / filter](#search-filter) |
 | `v-model:expanded` | `Set<string>` | empty `Set` | Ids of expanded folders. Replaced with a fresh `Set` on each change to trigger reactivity |
 | `v-model:selected` | `string \| null` | `null` | Selected row id (**single** mode) |
 | `v-model:selectedIds` | `Set<string>` | empty `Set` | Highlight selection (**multiple** / **checkbox** modes) |

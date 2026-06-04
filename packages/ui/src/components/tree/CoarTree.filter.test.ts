@@ -15,7 +15,7 @@ const deepTree: DemoNode[] = [
   { id: 'r2', name: 'R2' },
 ];
 
-function makeWrapper(matched: Set<string>) {
+function makeWrapper(matched: Set<string>, filter = false) {
   const expanded = ref(new Set<string>());
   const matchedIds = ref(matched);
   const Wrapper = defineComponent({
@@ -29,6 +29,7 @@ function makeWrapper(matched: Set<string>) {
           getLabel: (n: DemoNode) => n.name,
           isExpandable: (n: DemoNode) => !!n.children,
           matchedIds: matchedIds.value,
+          filter,
           expanded: expanded.value,
           'onUpdate:expanded': (v: Set<string>) => (expanded.value = v),
         },
@@ -60,5 +61,43 @@ describe('CoarTree search / filter helpers', () => {
     // a non-matching, non-ancestor row has neither
     expect(wrapper.find('[data-node-id="r2"] .is-match').exists()).toBe(false);
     expect(wrapper.find('[data-node-id="r2"] .is-anc').exists()).toBe(false);
+  });
+
+  describe('filter mode (filter=true)', () => {
+    const visibleIds = (wrapper: ReturnType<typeof makeWrapper>['wrapper']) =>
+      wrapper.findAll('[role="treeitem"]').map((r) => r.attributes('data-node-id'));
+
+    it('hides non-matches but keeps the match + its ancestor path (virtual parents)', async () => {
+      const { wrapper } = makeWrapper(new Set(['leaf1']), true);
+      await nextTick();
+      await nextTick();
+      const ids = visibleIds(wrapper);
+      expect(ids).toEqual(['r1', 'c1', 'leaf1']); // r2 (irrelevant) hidden; ancestors kept
+      expect(wrapper.find('[data-node-id="r2"]').exists()).toBe(false);
+      // the kept ancestors are flagged as virtual parents
+      expect(wrapper.find('[data-node-id="r1"] .is-anc').exists()).toBe(true);
+    });
+
+    it('keeps descendants of a matched folder', async () => {
+      const { wrapper } = makeWrapper(new Set(['c1']), true); // c1 is a folder (matched)
+      await nextTick();
+      await nextTick();
+      const ids = visibleIds(wrapper);
+      expect(ids).toEqual(['r1', 'c1', 'leaf1']); // ancestor r1 + match c1 + descendant leaf1
+    });
+
+    it('corrects aria-setsize to the kept siblings', async () => {
+      const { wrapper } = makeWrapper(new Set(['leaf1']), true);
+      await nextTick();
+      await nextTick();
+      // only r1 survives at the root level → setsize 1 (not 2)
+      expect(wrapper.find('[data-node-id="r1"]').attributes('aria-setsize')).toBe('1');
+    });
+
+    it('shows everything again when the filter clears (empty matchedIds)', async () => {
+      const { wrapper } = makeWrapper(new Set(), true); // filter on but no matches
+      await nextTick();
+      expect(visibleIds(wrapper)).toContain('r2'); // no filtering applied
+    });
   });
 });

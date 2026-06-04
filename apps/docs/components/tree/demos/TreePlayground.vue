@@ -75,6 +75,7 @@ const virtualize = ref(false);
 const checkStrictly = ref(false);
 const disableSome = ref(false);
 const search = ref('');
+const filter = ref(false);
 
 const modeOptions = (['single', 'multiple', 'checkbox'] as const).map((v) => ({ value: v, label: v }));
 const densityOptions = (['xs', 's', 'm', 'l'] as const).map((v) => ({ value: v, label: v }));
@@ -195,7 +196,10 @@ const treeRef = ref<{
       </div>
       <label class="pg__field pg__field--grow">
         <span class="pg__label">Filter</span>
-        <CoarTextInput v-model="search" placeholder="type to highlight + reveal…" size="s" />
+        <div class="pg__filter-row">
+          <CoarTextInput v-model="search" placeholder="type to highlight + reveal…" size="s" />
+          <CoarSwitch v-model="filter" label="hide non-matches" size="s" />
+        </div>
       </label>
       <div class="pg__buttons">
         <CoarButton size="xs" variant="secondary" @click="treeRef?.expandAll()">Expand all</CoarButton>
@@ -223,6 +227,7 @@ const treeRef = ref<{
         :activate-on-click="activateOnClick"
         :virtualize="virtualize ? { itemSize: vItemSize } : false"
         :matched-ids="matchedIds"
+        :filter="filter"
         aria-label="Playground tree"
         v-model:expanded="expanded"
         v-model:selected="selected"
@@ -273,6 +278,14 @@ const treeRef = ref<{
 .pg__field--grow {
   flex: 1;
   min-width: 200px;
+}
+.pg__filter-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.pg__filter-row > :first-child {
+  flex: 1;
 }
 .pg__label {
   font-size: 11px;
