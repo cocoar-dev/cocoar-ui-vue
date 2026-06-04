@@ -51,6 +51,7 @@ import {
   type CoarTreeDensity,
   type CoarTreeDropPosition,
   type CoarTreeFilesDropEvent,
+  type CoarTreeFilterMode,
   type CoarTreeLabels,
   type CoarTreeLoadChildrenContext,
   type CoarTreeLoadErrorEvent,
@@ -131,11 +132,17 @@ const props = withDefaults(
      */
     matchedIds?: Set<string>;
     /**
-     * With `matchedIds` set, hide everything that isn't a match, an ancestor of a
-     * match ("virtual parents" — kept for context, flagged `isMatchAncestor`), or
-     * a descendant of a match. Off by default (highlight-only).
+     * With `matchedIds` set, hide non-matches (off by default = highlight-only).
+     * What's kept around a match is controlled by `filterMode`.
      */
     filter?: boolean;
+    /**
+     * How `filter` prunes (mirrors PrimeVue). `'strict'` (default) = matches +
+     * their ancestor path only (a matched folder's non-matching children stay
+     * hidden — the VS Code / react-arborist convention). `'lenient'` = a matched
+     * folder reveals its whole subtree. See {@link CoarTreeFilterMode}.
+     */
+    filterMode?: CoarTreeFilterMode;
     /**
      * Opt into the built-in inline rename UI. With this on, `api.startRename(id)`
      * + `@rename` work and `<CoarTreeNodeLabel>` swaps to an `<input>` while the
@@ -176,6 +183,7 @@ const props = withDefaults(
     labels: undefined,
     matchedIds: undefined,
     filter: false,
+    filterMode: 'strict',
     renamable: false,
     hideLoadingSpinner: false,
   },
@@ -317,6 +325,7 @@ const cfg = computed(() => {
       labels: toValue(s.labels),
       matchedIds: toValue(s.matchedIds),
       filter: toValue(s.filter),
+      filterMode: toValue(s.filterMode),
     };
   }
   return {
@@ -347,6 +356,7 @@ const cfg = computed(() => {
     labels: props.labels,
     matchedIds: props.matchedIds,
     filter: props.filter,
+    filterMode: props.filterMode,
   };
 });
 
@@ -484,34 +494,50 @@ const matchAncestorIds = computed<ReadonlySet<string>>(() =>
       )
     : EMPTY_SET,
 );
-// Filter mode (opt-in): hide everything that isn't a match, an ancestor of a
-// match (the "virtual parents" / path), or a descendant of a match.
+// Filter mode (opt-in): hide non-matches. `filterMode` decides what's kept around
+// a match — 'strict' (default) = match + ancestor path only; 'lenient' = the
+// matched node's whole subtree too.
 const filterActive = computed(() => !!cfg.value.filter && matchedIdsSet.value.size > 0);
-/** match ∪ ancestors-of-match ∪ descendants-of-match — the rows to keep when filtering. */
-function buildKeepSet(matched: ReadonlySet<string>): Set<string> {
+const lenientFilter = computed(() => cfg.value.filterMode === 'lenient');
+/**
+ * Compute the rows to KEEP and the folders to EXPAND when filtering.
+ * - `keep`: strict → match ∪ ancestors-of-match; lenient → also descendants-of-match.
+ * - `expand`: kept folders that have a kept child (so the path/subtree is revealed,
+ *   without leaving a matched leaf-folder showing a misleading expanded chevron).
+ */
+function buildFilterSets(matched: ReadonlySet<string>, lenient: boolean) {
   const keep = new Set<string>();
-  // returns whether this node or a descendant matched
-  const visit = (node: T, ancestorMatched: boolean): boolean => {
+  const expand = new Set<string>();
+  // Single post-order pass. Returns { matchedHere: self-or-descendant matched, kept }.
+  const visit = (node: T, ancestorMatched: boolean): { matchedHere: boolean; kept: boolean } => {
     const id = cfg.value.getId(node);
     const selfMatch = matched.has(id);
-    let descMatch = false;
+    let descMatched = false;
+    let hasKeptChild = false;
     const kids = getChildrenOf(node);
     if (kids && kids.length) {
-      for (const k of kids) if (visit(k, ancestorMatched || selfMatch)) descMatch = true;
+      for (const k of kids) {
+        const r = visit(k, ancestorMatched || selfMatch);
+        if (r.matchedHere) descMatched = true;
+        if (r.kept) hasKeptChild = true;
+      }
     }
-    if (selfMatch || descMatch || ancestorMatched) keep.add(id);
-    return selfMatch || descMatch;
+    const kept = selfMatch || descMatched || (lenient && ancestorMatched);
+    if (kept) keep.add(id);
+    if (kept && hasKeptChild) expand.add(id);
+    return { matchedHere: selfMatch || descMatched, kept };
   };
   for (const n of cfg.value.nodes) visit(n, false);
-  return keep;
+  return { keep, expand };
 }
-const keepSet = computed<Set<string> | null>(() =>
-  filterActive.value ? buildKeepSet(matchedIdsSet.value) : null,
+const filterSets = computed<{ keep: Set<string>; expand: Set<string> } | null>(() =>
+  filterActive.value ? buildFilterSets(matchedIdsSet.value, lenientFilter.value) : null,
 );
+const keepSet = computed<Set<string> | null>(() => filterSets.value?.keep ?? null);
 
-// Reveal matches: highlight mode expands ancestors of matches; filter mode expands
-// the whole kept structure. Add-only (never collapses), so manual collapses survive.
-watch([matchedIdsSet, filterActive], () => {
+// Reveal matches: filter mode expands the kept structure; highlight mode expands
+// ancestors of matches. Add-only (never collapses), so manual collapses survive.
+watch([matchedIdsSet, filterActive, lenientFilter], () => {
   const matched = matchedIdsSet.value;
   if (!matched.size) return;
   const next = new Set(expandedStore.value);
@@ -522,8 +548,8 @@ watch([matchedIdsSet, filterActive], () => {
       changed = true;
     }
   };
-  if (filterActive.value && keepSet.value) {
-    for (const id of keepSet.value) add(id); // kept folders → fully revealed (leaves are no-ops)
+  if (filterActive.value && filterSets.value) {
+    for (const id of filterSets.value.expand) add(id);
   } else {
     for (const id of matched) for (const a of ancestorPath(id)) add(a);
   }

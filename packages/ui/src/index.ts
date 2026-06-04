@@ -197,6 +197,7 @@ export type {
   CoarTreeDensity,
   CoarTreeDropPosition,
   CoarTreeFilesDropEvent,
+  CoarTreeFilterMode,
   CoarTreeLabels,
   CoarTreeLoadChildrenContext,
   CoarTreeLoadErrorEvent,

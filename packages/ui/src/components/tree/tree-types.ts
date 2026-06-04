@@ -11,6 +11,16 @@
 export type CoarTreeDropPosition = 'before' | 'inside' | 'after';
 
 /**
+ * How `filter` prunes around a match (mirrors PrimeVue's `filterMode`):
+ * - `'strict'` (default): keep matches + the ancestor path to them only — a
+ *   matched folder's non-matching children stay hidden. Matches the VS Code /
+ *   react-arborist "filter down to what I searched for" convention.
+ * - `'lenient'`: once a node matches, include its ENTIRE subtree (a matched
+ *   folder reveals all its descendants).
+ */
+export type CoarTreeFilterMode = 'strict' | 'lenient';
+
+/**
  * Row density. Sets the `--coar-tree-row-pad-y`, `--coar-tree-indent` and
  * `--coar-tree-row-font` CSS variables; `'m'` (default) is the historical
  * ~28px row. When virtualizing, set `virtualize.itemSize` to match the chosen

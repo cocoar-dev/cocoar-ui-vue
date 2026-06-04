@@ -315,7 +315,11 @@ builder.isDisabled(n => n.readonly)
 Pass the matching ids as `matchedIds` and the tree handles the rest. Two modes:
 
 - **Highlight (default):** every row stays visible; the slot gets `isMatch` / `isMatchAncestor` for styling, and the ancestors of each match auto-expand so deep hits are revealed (add-only — your manual collapses survive).
-- **Filter** (`filter` prop / `.filter()`): non-matches are hidden — but the **ancestor path of each match stays visible as "virtual parents"** (flagged `isMatchAncestor`, so you can de-emphasize them), and the descendants of a matched folder are kept too. The tree never collapses into a contextless flat list; you always see *where* a hit lives. Computing `matchedIds` itself stays yours (any fuzzy / regex / field match you like).
+- **Filter** (`filter` prop / `.filter()`): non-matches are hidden — but the **ancestor path of each match stays visible as "virtual parents"** (flagged `isMatchAncestor`, so you can de-emphasize them). The tree never collapses into a contextless flat list; you always see *where* a hit lives. Computing `matchedIds` itself stays yours (any fuzzy / regex / field match you like).
+
+  `filterMode` (mirrors PrimeVue) decides what a matched **folder** keeps:
+  - **`'strict'`** (default) — matches + ancestor path only; a matched folder's non-matching children stay hidden. This is the VS Code / react-arborist "filter down to what I searched for" convention.
+  - **`'lenient'`** — a matched folder reveals its whole subtree.
 
 ```vue
 <script setup>
@@ -471,7 +475,8 @@ Two `<CoarTree>` instances on the same page can exchange nodes via the shared `a
 | `ariaLabelledby` | `string` | `undefined` | Id of an external label element for the `role="tree"` element |
 | `labels` | `Partial<CoarTreeLabels>` | English defaults | Override built-in / screen-reader strings (chevron, spinner, retry, announcements) for i18n |
 | `matchedIds` | `Set<string>` | `undefined` | Search hits — drives `isMatch` / `isMatchAncestor` slot props + auto-expand-to-match. See [Search / filter](#search-filter) |
-| `filter` | `boolean` | `false` | With `matchedIds`, hide non-matches but keep the matches, their ancestor path ("virtual parents"), and their descendants. See [Search / filter](#search-filter) |
+| `filter` | `boolean` | `false` | With `matchedIds`, hide non-matches but keep the matches + their ancestor path ("virtual parents"). See [Search / filter](#search-filter) |
+| `filterMode` | `'strict' \| 'lenient'` | `'strict'` | What a matched **folder** keeps when filtering. `strict` = matches + path only; `lenient` = the matched folder's whole subtree. See [Search / filter](#search-filter) |
 | `v-model:expanded` | `Set<string>` | empty `Set` | Ids of expanded folders. Replaced with a fresh `Set` on each change to trigger reactivity |
 | `v-model:selected` | `string \| null` | `null` | Selected row id (**single** mode) |
 | `v-model:selectedIds` | `Set<string>` | empty `Set` | Highlight selection (**multiple** / **checkbox** modes) |

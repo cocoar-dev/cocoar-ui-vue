@@ -15,7 +15,7 @@ const deepTree: DemoNode[] = [
   { id: 'r2', name: 'R2' },
 ];
 
-function makeWrapper(matched: Set<string>, filter = false) {
+function makeWrapper(matched: Set<string>, filter = false, filterMode: 'strict' | 'lenient' = 'strict') {
   const expanded = ref(new Set<string>());
   const matchedIds = ref(matched);
   const Wrapper = defineComponent({
@@ -30,6 +30,7 @@ function makeWrapper(matched: Set<string>, filter = false) {
           isExpandable: (n: DemoNode) => !!n.children,
           matchedIds: matchedIds.value,
           filter,
+          filterMode,
           expanded: expanded.value,
           'onUpdate:expanded': (v: Set<string>) => (expanded.value = v),
         },
@@ -78,12 +79,20 @@ describe('CoarTree search / filter helpers', () => {
       expect(wrapper.find('[data-node-id="r1"] .is-anc').exists()).toBe(true);
     });
 
-    it('keeps descendants of a matched folder', async () => {
-      const { wrapper } = makeWrapper(new Set(['c1']), true); // c1 is a folder (matched)
+    it('strict (default): a matched folder does NOT reveal its non-matching descendants', async () => {
+      const { wrapper } = makeWrapper(new Set(['c1']), true); // c1 folder matches; default strict
       await nextTick();
       await nextTick();
       const ids = visibleIds(wrapper);
-      expect(ids).toEqual(['r1', 'c1', 'leaf1']); // ancestor r1 + match c1 + descendant leaf1
+      expect(ids).toEqual(['r1', 'c1']); // ancestor r1 + match c1; leaf1 (non-matching child) hidden
+    });
+
+    it('lenient: a matched folder DOES reveal its whole subtree', async () => {
+      const { wrapper } = makeWrapper(new Set(['c1']), true, 'lenient');
+      await nextTick();
+      await nextTick();
+      const ids = visibleIds(wrapper);
+      expect(ids).toEqual(['r1', 'c1', 'leaf1']); // ancestor + match + descendant
     });
 
     it('corrects aria-setsize to the kept siblings', async () => {

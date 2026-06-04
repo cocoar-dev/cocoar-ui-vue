@@ -76,6 +76,8 @@ const checkStrictly = ref(false);
 const disableSome = ref(false);
 const search = ref('');
 const filter = ref(false);
+const filterMode = ref<'strict' | 'lenient'>('strict');
+const filterModeOptions = (['strict', 'lenient'] as const).map((v) => ({ value: v, label: v }));
 
 const modeOptions = (['single', 'multiple', 'checkbox'] as const).map((v) => ({ value: v, label: v }));
 const densityOptions = (['xs', 's', 'm', 'l'] as const).map((v) => ({ value: v, label: v }));
@@ -199,6 +201,7 @@ const treeRef = ref<{
         <div class="pg__filter-row">
           <CoarTextInput v-model="search" placeholder="type to highlight + reveal…" size="s" />
           <CoarSwitch v-model="filter" label="hide non-matches" size="s" />
+          <CoarSegmentedControl v-if="filter" v-model="filterMode" :options="filterModeOptions" size="s" />
         </div>
       </label>
       <div class="pg__buttons">
@@ -228,6 +231,7 @@ const treeRef = ref<{
         :virtualize="virtualize ? { itemSize: vItemSize } : false"
         :matched-ids="matchedIds"
         :filter="filter"
+        :filter-mode="filterMode"
         aria-label="Playground tree"
         v-model:expanded="expanded"
         v-model:selected="selected"

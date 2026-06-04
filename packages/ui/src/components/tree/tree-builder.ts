@@ -25,6 +25,7 @@ import type {
   CoarTreeDensity,
   CoarTreeDropPosition,
   CoarTreeFilesDropEvent,
+  CoarTreeFilterMode,
   CoarTreeLabels,
   CoarTreeLoadChildrenContext,
   CoarTreeLoadErrorEvent,
@@ -69,8 +70,9 @@ export interface TreeBuilderState<T> {
   labels: MaybeRefOrGetter<Partial<CoarTreeLabels> | undefined>;
   /** Search-hit ids — drives `isMatch`/`isMatchAncestor` + auto-expand-to-match. */
   matchedIds: MaybeRefOrGetter<Set<string> | undefined>;
-  /** With `matchedIds`, hide non-matches (keep matches + ancestors + descendants). */
+  /** With `matchedIds`, hide non-matches. `filterMode` controls what's kept around a match. */
   filter: MaybeRefOrGetter<boolean>;
+  filterMode: MaybeRefOrGetter<CoarTreeFilterMode>;
 
   expanded: Ref<Set<string>>;
   /** Single-mode highlight selection. */
@@ -245,6 +247,7 @@ export class TreeBuilder<T> {
       labels: undefined,
       matchedIds: undefined,
       filter: false,
+      filterMode: 'strict',
       expanded: ref(new Set<string>()),
       selected: ref<string | null>(null),
       selectedIds: ref(new Set<string>()),
@@ -476,6 +479,15 @@ export class TreeBuilder<T> {
    */
   filter(b: MaybeRefOrGetter<boolean>): this {
     this.state.filter = b;
+    return this;
+  }
+
+  /**
+   * How `filter` prunes: `'strict'` (default) = matches + ancestor path only;
+   * `'lenient'` = a matched folder reveals its whole subtree. See {@link CoarTreeFilterMode}.
+   */
+  filterMode(m: MaybeRefOrGetter<CoarTreeFilterMode>): this {
+    this.state.filterMode = m;
     return this;
   }
 
