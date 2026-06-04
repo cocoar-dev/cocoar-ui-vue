@@ -810,6 +810,7 @@ onMounted(() => {
     expandTo,
     revealNode,
     getNode: (id) => findNodeById(id),
+    moveNode,
   });
 });
 onBeforeUnmount(() => {
@@ -1140,6 +1141,34 @@ function onRootKeydown(ev: KeyboardEvent) {
     return;
   }
 
+  // Accessible keyboard move: Ctrl/Cmd+X grab, Ctrl/Cmd+V drop, Escape cancel.
+  if ((ev.ctrlKey || ev.metaKey) && (ev.key === 'x' || ev.key === 'X') && current && isDraggableOf(current.node)) {
+    ev.preventDefault();
+    grabbedId.value = current.id;
+    announce(`Picked up ${labelOf(current.node)}. Move to a row, then Ctrl+V to drop or Escape to cancel.`);
+    return;
+  }
+  if ((ev.ctrlKey || ev.metaKey) && (ev.key === 'v' || ev.key === 'V') && grabbedId.value && current) {
+    ev.preventDefault();
+    const grabbed = findNodeById(grabbedId.value);
+    const movedLabel = grabbed ? labelOf(grabbed) : 'item';
+    const pos: CoarTreeDropPosition = current.isExpandable ? 'inside' : 'after';
+    const ok = moveNode(grabbedId.value, current.id, pos);
+    announce(
+      ok
+        ? `Moved ${movedLabel} ${pos === 'inside' ? 'into' : 'after'} ${labelOf(current.node)}.`
+        : `Can't drop ${movedLabel} there.`,
+    );
+    grabbedId.value = null;
+    return;
+  }
+  if (ev.key === 'Escape' && grabbedId.value) {
+    ev.preventDefault();
+    grabbedId.value = null;
+    announce('Move cancelled.');
+    return;
+  }
+
   switch (ev.key) {
     case 'ArrowDown': {
       ev.preventDefault();
@@ -1310,6 +1339,44 @@ function fireNodeMove(payload: CoarTreeNodeMoveEvent<T>) {
   emit('node-move', payload);
   props.builder?.state.onNodeMove?.(payload);
 }
+
+// ─── accessible move (keyboard + imperative) ──────────────────────────────
+/** Node "grabbed" for a keyboard cut/paste move (Ctrl+X … Ctrl+V). */
+const grabbedId = ref<string | null>(null);
+/** Polite screen-reader announcer for drag/move state — kept off-screen in the template. */
+const liveMessage = ref('');
+function announce(msg: string) {
+  // Clear then set on the next tick so re-announcing the same text still fires.
+  liveMessage.value = '';
+  void nextTick(() => {
+    liveMessage.value = msg;
+  });
+}
+function labelOf(node: T): string {
+  return cfg.value.getLabel ? cfg.value.getLabel(node) : cfg.value.getId(node);
+}
+
+/**
+ * Programmatic / keyboard move. Resolves the source live, runs the SAME cycle +
+ * `canDrop` guards as a drop, and fires `node-move`. Returns whether it emitted.
+ */
+function moveNode(
+  sourceId: string,
+  targetId: string | null,
+  position: CoarTreeDropPosition,
+): boolean {
+  const source = findNodeById(sourceId);
+  if (!source) return false;
+  if (targetId !== null) {
+    if (sourceId === targetId) return false;
+    if (isDescendantOfSource(targetId, sourceId)) return false; // cycle
+  }
+  const target = targetId !== null ? findNodeById(targetId) : null;
+  if (targetId !== null && !target) return false;
+  if (cfg.value.canDrop && !cfg.value.canDrop(source, target, position)) return false;
+  fireNodeMove({ source, target, position });
+  return true;
+}
 function fireFilesDrop(payload: CoarTreeFilesDropEvent<T>) {
   emit('files-drop', payload);
   props.builder?.state.onFilesDrop?.(payload);
@@ -1326,6 +1393,7 @@ function onRowDragStart(node: T, ev: DragEvent) {
   ev.dataTransfer?.setData(COAR_TREE_DRAG_MIME, id);
   ev.dataTransfer?.setData('text/plain', cfg.value.getLabel?.(node) ?? id);
   if (ev.dataTransfer) ev.dataTransfer.effectAllowed = 'move';
+  announce(`Picked up ${labelOf(node)}.`);
 }
 function onRowDragEnd() {
   clearDragState();
@@ -1399,6 +1467,7 @@ function onRowDrop(node: T, _el: HTMLElement, ev: DragEvent) {
       ev.preventDefault();
       ev.stopPropagation();
       fireNodeMove({ source, target: node, position: dropPosition.value });
+      announce(`Moved ${labelOf(source)} ${dropPosition.value === 'inside' ? 'into' : dropPosition.value} ${labelOf(node)}.`);
     }
   }
   clearDragState();
@@ -1499,6 +1568,8 @@ defineExpose({
   revealNode,
   /** Resolve a node by id from the loaded tree, or `null`. */
   getNode: (id: string) => findNodeById(id),
+  /** Move a node (keyboard / a11y equivalent of drag-drop); runs cycle + canDrop guards. */
+  moveNode,
 });
 </script>
 
@@ -1526,6 +1597,8 @@ defineExpose({
     @dragleave="onRootDragLeave"
     @drop="onRootDrop"
   >
+    <!-- Polite SR announcer for drag / keyboard-move state (pick-up, dropped, cancelled). -->
+    <div class="coar-tree__sr-live" role="status" aria-live="polite">{{ liveMessage }}</div>
     <!-- The role="tree" container holds the rows; in virtualized mode the
          spacer is the tree container, otherwise the outer scroll-or-static
          div carries it. Either way the children are role="treeitem". -->
@@ -1629,6 +1702,19 @@ defineExpose({
    absolutely-positioned children stack correctly inside the spacer. */
 .coar-tree__inner {
   padding: var(--coar-spacing-xs, 4px) 0;
+}
+
+/* Visually hidden, still announced by screen readers. */
+.coar-tree__sr-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .coar-tree__empty {

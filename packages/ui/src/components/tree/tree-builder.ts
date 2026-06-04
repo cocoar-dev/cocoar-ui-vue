@@ -106,6 +106,7 @@ export interface TreeApiImpls<T> {
   expandTo(id: string): void;
   revealNode(id: string): void;
   getNode(id: string): T | null;
+  moveNode(sourceId: string, targetId: string | null, position: CoarTreeDropPosition): boolean;
 }
 
 /**
@@ -135,6 +136,12 @@ export interface TreeApi<T> {
   revealNode(id: string): void;
   /** Resolve a node by id from the loaded tree, or `null` (also `null` before mount). */
   getNode(id: string): T | null;
+  /**
+   * Programmatically move a node — the keyboard / a11y-accessible equivalent of a
+   * drag-drop. Runs the same cycle + `canDrop` guards and fires `node-move`.
+   * Returns `true` if the move was emitted, `false` if rejected (or before mount).
+   */
+  moveNode(sourceId: string, targetId: string | null, position: CoarTreeDropPosition): boolean;
   /** Selected node id (read-only, single mode). */
   readonly selectedId: Ref<string | null>;
   /** Highlight-selected ids (read-only, multiple/checkbox mode). */
@@ -184,6 +191,11 @@ export class TreeBuilder<T> {
       expandAll: act0('expandAll'),
       collapseAll: act0('collapseAll'),
       getNode: (id) => this._impls?.getNode(id) ?? null,
+      moveNode: (sourceId, targetId, position) => {
+        if (this._impls) return this._impls.moveNode(sourceId, targetId, position);
+        this._warnUnmounted('moveNode');
+        return false;
+      },
       selectedId: state.selected,
       selectedIds: state.selectedIds,
       checkedIds: state.checkedIds,
