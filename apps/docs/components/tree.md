@@ -24,6 +24,12 @@ The two compose — but pick one per `<CoarTree>` instance; mixing props and bui
 `<CoarTree>` is an explicit exception to the library's tablet-first principle. Right-click context menus and hover-revealed UI on rows (⋮ buttons, inline actions) are part of the intended UX. The component still works on touch devices but isn't tuned for them — use it for power-user surfaces (file managers, settings explorers, asset trees) rather than mobile navigation.
 :::
 
+## Playground
+
+Flip every option on or off, switch density, filter, drag-reorder, rename, drive the imperative `api`, and watch the event log — the whole feature surface in one sandbox.
+
+<preview path="./tree/demos/TreePlayground.vue" />
+
 ## Basic Tree
 
 Pass a list of root nodes and four extractors: `getId`, `getChildren`, `getLabel`, and optionally `isExpandable`. Render the row body via the default slot. Two `v-model`s — `expanded` (a `Set<string>` of node ids) and `selected` (a single id or `null`) — let the consumer control state.
