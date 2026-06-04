@@ -8,6 +8,8 @@ export type {
   CoarTreeNodeSlotProps,
   CoarTreeRenameContext,
   CoarTreeRenameEvent,
+  CoarTreeSelectEvent,
+  CoarTreeSelectionMode,
   CoarTreeMenuItem,
   CoarTreeMenuEntry,
 } from './tree-types';

@@ -27,6 +27,7 @@ import type {
   CoarTreeLoadErrorEvent,
   CoarTreeMenuEntry,
   CoarTreeNodeMoveEvent,
+  CoarTreeSelectEvent,
   CoarTreeSelectionMode,
   CoarTreeVirtualizeProp,
 } from './tree-types';
@@ -62,6 +63,7 @@ export interface TreeBuilderState<T> {
   checkedIds: Ref<Set<string>>;
 
   onActivate?: (node: T) => void;
+  onSelect?: (e: CoarTreeSelectEvent<T>) => void;
   onNodeMove?: (e: CoarTreeNodeMoveEvent<T>) => void;
   onFilesDrop?: (e: CoarTreeFilesDropEvent<T>) => void;
 
@@ -81,20 +83,50 @@ export interface TreeBuilderState<T> {
 }
 
 /**
- * Public, narrow imperative interface returned by `useTree().api`. Keeps
- * component refs out of consumer code: you call `api.focusNode('x')` instead
- * of digging into a template ref. Readonly refs (`selectedId`, `expandedIds`)
- * mirror the builder state so consumers can `watch()` them without owning
- * the writable refs themselves.
+ * The imperative operations `<CoarTree>` registers on mount. The {@link TreeApi}
+ * delegates to these; before mount they're absent, so action methods warn +
+ * no-op and `getNode` returns `null`.
+ * @internal
  */
-export interface TreeApi {
-  /** Programmatically move focus + selection to a node. No-op until `<CoarTree>` is mounted. */
+export interface TreeApiImpls<T> {
   focusNode(id: string): void;
-  /**
-   * Force `loadChildren` to (re)run for a node — for a retry after a load error
-   * or to refresh an already-loaded folder. No-op until `<CoarTree>` is mounted.
-   */
+  selectNode(id: string): void;
   reloadChildren(id: string): void;
+  startRename(id: string): void;
+  expandAll(): void;
+  collapseAll(): void;
+  expandTo(id: string): void;
+  revealNode(id: string): void;
+  getNode(id: string): T | null;
+}
+
+/**
+ * Public, narrow imperative interface returned by `useTree().api`. Keeps
+ * component refs out of consumer code: you call `api.selectNode('x')` instead
+ * of digging into a template ref. Readonly refs (`selectedId`, `expandedIds`, …)
+ * mirror the builder state so consumers can `watch()` them without owning
+ * the writable refs themselves. Action methods are no-ops (with a DEV warning)
+ * until `<CoarTree>` mounts.
+ */
+export interface TreeApi<T> {
+  /** Move keyboard focus to a node WITHOUT changing selection. */
+  focusNode(id: string): void;
+  /** Highlight-select AND focus a node (the "reveal & select" action). */
+  selectNode(id: string): void;
+  /** Force `loadChildren` to (re)run for a node — retry after error / refresh. */
+  reloadChildren(id: string): void;
+  /** Enter inline-rename mode on a node (requires `renamable`). */
+  startRename(id: string): void;
+  /** Expand every expandable, currently-loaded node. */
+  expandAll(): void;
+  /** Collapse everything. */
+  collapseAll(): void;
+  /** Expand all loaded ancestors of `id` so its row becomes visible. */
+  expandTo(id: string): void;
+  /** Scroll a node into view without changing focus or selection (expands ancestors first). */
+  revealNode(id: string): void;
+  /** Resolve a node by id from the loaded tree, or `null` (also `null` before mount). */
+  getNode(id: string): T | null;
   /** Selected node id (read-only, single mode). */
   readonly selectedId: Ref<string | null>;
   /** Highlight-selected ids (read-only, multiple/checkbox mode). */
@@ -107,33 +139,43 @@ export interface TreeApi {
 
 export class TreeBuilder<T> {
   readonly state: TreeBuilderState<T>;
-  readonly api: TreeApi;
+  readonly api: TreeApi<T>;
 
-  private _focusNodeImpl: ((id: string) => void) | null = null;
-  private _reloadChildrenImpl: ((id: string) => void) | null = null;
+  private _impls: TreeApiImpls<T> | null = null;
+
+  private _warnUnmounted(method: string): void {
+    if (typeof console !== 'undefined') {
+      console.warn(
+        `[TreeBuilder.api.${method}] called before <CoarTree> mounted. The call was a no-op; move it into onMounted / a user-triggered handler.`,
+      );
+    }
+  }
 
   private constructor(state: TreeBuilderState<T>) {
     this.state = state;
+    // Curried delegators: action methods warn + no-op until the component binds.
+    const act =
+      (name: keyof TreeApiImpls<T>) =>
+      (id: string): void => {
+        const impls = this._impls;
+        if (impls) (impls[name] as (id: string) => void)(id);
+        else this._warnUnmounted(name);
+      };
+    const act0 = (name: 'expandAll' | 'collapseAll') => (): void => {
+      const impls = this._impls;
+      if (impls) impls[name]();
+      else this._warnUnmounted(name);
+    };
     this.api = {
-      focusNode: (id) => {
-        if (this._focusNodeImpl) this._focusNodeImpl(id);
-        else if (typeof console !== 'undefined') {
-          // Until `<CoarTree>` mounts and registers its focus impl, the call
-          // is a no-op — surface that so consumers calling api.focusNode()
-          // during setup get a useful warning instead of silent dead code.
-          console.warn(
-            '[TreeBuilder.api.focusNode] called before <CoarTree> mounted. The call was a no-op; move it into onMounted / a user-triggered handler.',
-          );
-        }
-      },
-      reloadChildren: (id) => {
-        if (this._reloadChildrenImpl) this._reloadChildrenImpl(id);
-        else if (typeof console !== 'undefined') {
-          console.warn(
-            '[TreeBuilder.api.reloadChildren] called before <CoarTree> mounted. The call was a no-op; move it into onMounted / a user-triggered handler.',
-          );
-        }
-      },
+      focusNode: act('focusNode'),
+      selectNode: act('selectNode'),
+      reloadChildren: act('reloadChildren'),
+      startRename: act('startRename'),
+      expandTo: act('expandTo'),
+      revealNode: act('revealNode'),
+      expandAll: act0('expandAll'),
+      collapseAll: act0('collapseAll'),
+      getNode: (id) => this._impls?.getNode(id) ?? null,
       selectedId: state.selected,
       selectedIds: state.selectedIds,
       checkedIds: state.checkedIds,
@@ -165,6 +207,7 @@ export class TreeBuilder<T> {
       selectedIds: ref(new Set<string>()),
       checkedIds: ref(new Set<string>()),
       onActivate: undefined,
+      onSelect: undefined,
       onNodeMove: undefined,
       onFilesDrop: undefined,
       loadChildren: undefined,
@@ -374,6 +417,15 @@ export class TreeBuilder<T> {
     return this;
   }
 
+  /**
+   * Fires whenever the highlight selection changes, with the primary node, the
+   * full selected-id set, and whether it was a user gesture or an `api` call.
+   */
+  onSelect(h: (e: CoarTreeSelectEvent<T>) => void): this {
+    this.state.onSelect = h;
+    return this;
+  }
+
   /** Fires after an internal drag-drop completes. The consumer mutates the tree. */
   onNodeMove(h: (e: CoarTreeNodeMoveEvent<T>) => void): this {
     this.state.onNodeMove = h;
@@ -448,13 +500,8 @@ export class TreeBuilder<T> {
 
   // ─── Internal: component wiring ──────────────────────────────────────────
 
-  /** @internal — `<CoarTree>` registers its focus impl on mount. */
-  _setFocusNodeImpl(fn: ((id: string) => void) | null): void {
-    this._focusNodeImpl = fn;
-  }
-
-  /** @internal — `<CoarTree>` registers its reload-children impl on mount. */
-  _setReloadChildrenImpl(fn: ((id: string) => void) | null): void {
-    this._reloadChildrenImpl = fn;
+  /** @internal — `<CoarTree>` registers its imperative impls on mount, clears (null) on unmount. */
+  _bindImpls(impls: TreeApiImpls<T> | null): void {
+    this._impls = impls;
   }
 }

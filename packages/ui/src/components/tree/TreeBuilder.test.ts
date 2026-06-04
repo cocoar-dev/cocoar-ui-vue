@@ -203,23 +203,47 @@ describe('TreeBuilder + useTree', () => {
     });
   });
 
-  describe('api.focusNode', () => {
+  describe('api.focusNode / api.selectNode', () => {
     it('warns when called before mount', () => {
       const { api } = useTree<DemoNode>();
       const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      api.focusNode('whatever');
+      api.selectNode('whatever');
       expect(warn).toHaveBeenCalled();
       warn.mockRestore();
     });
 
-    it('selects the node after mount', async () => {
+    it('selectNode selects + focuses; focusNode only focuses', async () => {
       const selected = ref<string | null>(null);
       const expanded = ref(new Set<string>(['a']));
       const { api } = makeWrapper((b) => b.expanded(expanded).selected(selected));
       await nextTick();
-      api.focusNode('a2');
+      api.selectNode('a2');
       await nextTick();
       expect(selected.value).toBe('a2');
+      // focusNode does NOT mutate selection
+      api.focusNode('a1');
+      await nextTick();
+      expect(selected.value).toBe('a2');
+    });
+  });
+
+  describe('api imperative helpers', () => {
+    it('expandAll / collapseAll / expandTo drive the expanded set; getNode resolves', async () => {
+      const selected = ref<string | null>(null);
+      const expanded = ref(new Set<string>());
+      const { api } = makeWrapper((b) => b.expanded(expanded).selected(selected));
+      await nextTick();
+      api.expandAll();
+      await nextTick();
+      expect(expanded.value.has('a')).toBe(true); // only folder in this fixture
+      api.collapseAll();
+      await nextTick();
+      expect(expanded.value.size).toBe(0);
+      api.expandTo('a1'); // a1 is a child of a → a must expand
+      await nextTick();
+      expect(expanded.value.has('a')).toBe(true);
+      expect(api.getNode('a1')?.id).toBe('a1');
+      expect(api.getNode('nope')).toBeNull();
     });
   });
 

@@ -100,6 +100,16 @@ export interface CoarTreeRenameEvent<T> {
   newName: string;
 }
 
+/** Payload for the `select` event / builder `onSelect`. */
+export interface CoarTreeSelectEvent<T> {
+  /** The node the change centered on (the clicked / activated row), or `null` when the selection was cleared. */
+  node: T | null;
+  /** The full highlight selection AFTER the change (ids). */
+  ids: readonly string[];
+  /** `'user'` for a click / keyboard gesture, `'api'` for a programmatic `api.selectNode` call. */
+  via: 'user' | 'api';
+}
+
 /** Payload for {@link CoarTreeEmits.load-error}. */
 export interface CoarTreeLoadErrorEvent<T> {
   /**

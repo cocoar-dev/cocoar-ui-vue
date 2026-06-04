@@ -54,6 +54,7 @@ import {
   type CoarTreeNodeSlotProps,
   type CoarTreeRenameContext,
   type CoarTreeRenameEvent,
+  type CoarTreeSelectEvent,
   type CoarTreeSelectionMode,
   type CoarTreeVirtualOptions,
   type CoarTreeVirtualizeProp,
@@ -139,6 +140,7 @@ const checkedIdsModel = defineModel<Set<string>>('checkedIds', { default: () => 
 
 const emit = defineEmits<{
   (e: 'activate', node: T): void;
+  (e: 'select', payload: CoarTreeSelectEvent<T>): void;
   (e: 'context-menu', node: T | null, ev: MouseEvent): void;
   (e: 'files-drop', payload: CoarTreeFilesDropEvent<T>): void;
   (e: 'node-move', payload: CoarTreeNodeMoveEvent<T>): void;
@@ -717,15 +719,20 @@ watch(
 
 // ─── builder ↔ component wiring ───────────────────────────────────────────
 onMounted(() => {
-  props.builder?._setFocusNodeImpl((id) => {
-    const node = findNodeById(id);
-    if (node) selectNode(node);
+  props.builder?._bindImpls({
+    focusNode: (id) => focusRow(id),
+    selectNode: (id) => selectNode(findNodeById(id), 'api'),
+    reloadChildren,
+    startRename,
+    expandAll,
+    collapseAll,
+    expandTo,
+    revealNode,
+    getNode: (id) => findNodeById(id),
   });
-  props.builder?._setReloadChildrenImpl(reloadChildren);
 });
 onBeforeUnmount(() => {
-  props.builder?._setFocusNodeImpl(null);
-  props.builder?._setReloadChildrenImpl(null);
+  props.builder?._bindImpls(null);
 });
 
 // ─── selection / activation ───────────────────────────────────────────────
@@ -733,17 +740,29 @@ onBeforeUnmount(() => {
 const selectionAnchorId = ref<string | null>(null);
 
 /**
+ * Emit `select` + builder `onSelect`. `ids` is the just-computed selection set —
+ * passed in rather than re-read, since the v-model round-trip hasn't flushed yet.
+ */
+function fireSelect(primaryId: string | null, ids: Iterable<string>, via: 'user' | 'api') {
+  const node = primaryId ? findNodeById(primaryId) : null;
+  const payload: CoarTreeSelectEvent<T> = { node, ids: [...ids], via };
+  emit('select', payload);
+  props.builder?.state.onSelect?.(payload);
+}
+
+/**
  * Replace the highlight selection with a single node (Enter, programmatic
- * `focusNode`, plain click in single mode). Mode-aware: writes `selected` in
+ * `selectNode`, plain click in single mode). Mode-aware: writes `selected` in
  * single mode, `selectedIds` otherwise.
  */
-function selectNode(node: T | null) {
+function selectNode(node: T | null, via: 'user' | 'api' = 'user') {
   if (!node || isDisabledOf(node)) return;
   const id = cfg.value.getId(node);
   if (selMode.value === 'single') selectedStore.value = id;
   else selectedIdsStore.value = new Set([id]);
   selectionAnchorId.value = id;
   focusRow(id);
+  fireSelect(id, [id], via);
 }
 
 /** Click-driven selection honoring Ctrl/Cmd-toggle and Shift-range in multi modes. */
@@ -765,6 +784,7 @@ function handleRowSelect(node: T, ev: MouseEvent) {
     for (let i = lo; i <= hi; i++) range.add(list[i].id);
     selectedIdsStore.value = range;
     focusRow(id); // anchor unchanged across a Shift-range
+    fireSelect(id, range, 'user');
     return;
   }
   if (additive) {
@@ -774,11 +794,14 @@ function handleRowSelect(node: T, ev: MouseEvent) {
     selectedIdsStore.value = next;
     selectionAnchorId.value = id;
     focusRow(id);
+    fireSelect(id, next, 'user');
     return;
   }
-  selectedIdsStore.value = new Set([id]);
+  const single = new Set([id]);
+  selectedIdsStore.value = single;
   selectionAnchorId.value = id;
   focusRow(id);
+  fireSelect(id, single, 'user');
 }
 
 /** Extend the highlight selection to `id` (Shift+Arrow). Keeps the anchor. */
@@ -787,6 +810,7 @@ function extendSelectionTo(id: string) {
   if (focusedId.value) next.add(focusedId.value);
   next.add(id);
   selectedIdsStore.value = next;
+  fireSelect(id, next, 'user');
 }
 
 /** Toggle a row's checkbox (checkbox mode). Cascades unless `checkStrictly`. */
@@ -820,6 +844,62 @@ function expandNode(node: T) {
   const next = new Set(expandedStore.value);
   next.add(id);
   expandedStore.value = next;
+}
+
+// ─── imperative convenience (api + template ref) ──────────────────────────
+/** Expand every expandable, currently-loaded node. Lazy folders not yet loaded stay collapsed. */
+function expandAll() {
+  const next = new Set(expandedStore.value);
+  const walk = (list: readonly T[]) => {
+    for (const n of list) {
+      if (isExpandableOf(n)) next.add(cfg.value.getId(n));
+      const kids = getChildrenOf(n);
+      if (kids && kids.length) walk(kids);
+    }
+  };
+  walk(cfg.value.nodes);
+  expandedStore.value = next;
+}
+function collapseAll() {
+  expandedStore.value = new Set();
+}
+/** Root→parent ancestor ids of `id` from the loaded tree (empty if root or not found). */
+function ancestorPath(id: string): string[] {
+  const path: string[] = [];
+  const search = (list: readonly T[], acc: string[]): boolean => {
+    for (const n of list) {
+      const nid = cfg.value.getId(n);
+      if (nid === id) {
+        path.push(...acc);
+        return true;
+      }
+      const kids = getChildrenOf(n);
+      if (kids && kids.length && search(kids, [...acc, nid])) return true;
+    }
+    return false;
+  };
+  search(cfg.value.nodes, []);
+  return path;
+}
+/** Expand all loaded ancestors of `id` so its row becomes visible. */
+function expandTo(id: string) {
+  const anc = ancestorPath(id);
+  if (!anc.length) return;
+  const next = new Set(expandedStore.value);
+  for (const a of anc) next.add(a);
+  expandedStore.value = next;
+}
+/** Scroll a node into view without touching focus or selection. */
+function revealNode(id: string) {
+  expandTo(id);
+  void nextTick(() => {
+    if (isVirtual.value) {
+      const idx = idToIndex.value.get(id) ?? -1;
+      if (idx >= 0) virtualizer.scrollToIndex(idx, 'auto');
+    } else {
+      rowElById(id)?.scrollIntoView({ block: 'nearest' });
+    }
+  });
 }
 
 function onRowClick(node: T, ev: MouseEvent) {
@@ -973,7 +1053,9 @@ function onRootKeydown(ev: KeyboardEvent) {
   // Ctrl/Cmd+A → select every visible row (multiple / checkbox highlight).
   if ((ev.ctrlKey || ev.metaKey) && (ev.key === 'a' || ev.key === 'A') && multiSelect.value) {
     ev.preventDefault();
-    selectedIdsStore.value = new Set(list.filter((r) => !isDisabledOf(r.node)).map((r) => r.id));
+    const all = new Set(list.filter((r) => !isDisabledOf(r.node)).map((r) => r.id));
+    selectedIdsStore.value = all;
+    fireSelect(focusedId.value, all, 'user');
     return;
   }
 
@@ -1305,8 +1387,13 @@ function startRename(id: string) {
 }
 
 defineExpose({
+  /** Move keyboard focus to a node WITHOUT changing selection. */
   focusNode(id: string) {
     focusRow(id);
+  },
+  /** Highlight-select AND focus a node (the "reveal & select" action). */
+  selectNode(id: string) {
+    selectNode(findNodeById(id), 'api');
   },
   /**
    * Force `loadChildren` to (re)run for `id` — retry after an error or refresh
@@ -1321,6 +1408,16 @@ defineExpose({
    * the next frame.
    */
   startRename,
+  /** Expand every expandable, currently-loaded node. */
+  expandAll,
+  /** Collapse everything. */
+  collapseAll,
+  /** Expand all loaded ancestors of `id` so its row becomes visible. */
+  expandTo,
+  /** Scroll a node into view without changing focus or selection. */
+  revealNode,
+  /** Resolve a node by id from the loaded tree, or `null`. */
+  getNode: (id: string) => findNodeById(id),
 });
 </script>
 

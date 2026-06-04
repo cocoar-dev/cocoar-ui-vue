@@ -30,6 +30,7 @@ function makeWrapper(opts: {
   const selectedIdsRef = ref(opts.selectedIds ?? new Set<string>());
   const checkedIdsRef = ref(opts.checkedIds ?? new Set<string>());
   const selectedRef = ref<string | null>(null);
+  const selectEvents: { node: DemoNode | null; ids: readonly string[]; via: string }[] = [];
 
   const Wrapper = defineComponent({
     setup: () => () =>
@@ -52,6 +53,8 @@ function makeWrapper(opts: {
           'onUpdate:selectedIds': (v: Set<string>) => (selectedIdsRef.value = v),
           checkedIds: checkedIdsRef.value,
           'onUpdate:checkedIds': (v: Set<string>) => (checkedIdsRef.value = v),
+          onSelect: (p: { node: DemoNode | null; ids: readonly string[]; via: string }) =>
+            selectEvents.push(p),
         },
         { default: ({ node }: { node: DemoNode }) => h('span', { class: 'row' }, node.name) },
       ),
@@ -64,7 +67,17 @@ function makeWrapper(opts: {
     wrapper.find(`[data-node-id="${id}"] .coar-tree-node__checkbox`).trigger('click');
   const keydown = (init: Partial<KeyboardEvent>) =>
     wrapper.find('.coar-tree').trigger('keydown', init);
-  return { wrapper, expandedRef, selectedIdsRef, checkedIdsRef, selectedRef, clickRow, clickCheckbox, keydown };
+  return {
+    wrapper,
+    expandedRef,
+    selectedIdsRef,
+    checkedIdsRef,
+    selectedRef,
+    selectEvents,
+    clickRow,
+    clickCheckbox,
+    keydown,
+  };
 }
 
 describe('CoarTree selection', () => {
@@ -161,6 +174,18 @@ describe('CoarTree selection', () => {
       await nextTick();
       expect(checkedIdsRef.value.has('c')).toBe(true);
       expect(wrapper.find('[data-node-id="c"]').attributes('aria-checked')).toBe('true');
+    });
+  });
+
+  describe('@select event', () => {
+    it('fires with the primary node, the full id set, and via="user"', async () => {
+      const { selectEvents, clickRow } = makeWrapper({ selectionMode: 'multiple' });
+      await clickRow('a1');
+      await clickRow('b1', { ctrlKey: true });
+      const last = selectEvents.at(-1);
+      expect(last?.node?.id).toBe('b1');
+      expect([...(last?.ids ?? [])].sort()).toEqual(['a1', 'b1']);
+      expect(last?.via).toBe('user');
     });
   });
 
