@@ -258,6 +258,60 @@ describe('TreeBuilder + useTree', () => {
     });
   });
 
+  describe('builder drives every feature (no prop-only escape hatch)', () => {
+    it('configures selection / density / a11y / disabled / rename / search through the builder alone', async () => {
+      const { builder, api } = useTree<DemoNode>();
+      const expanded = ref(new Set<string>(['a']));
+      const selectedIds = ref(new Set<string>());
+      const checkedIds = ref(new Set<string>());
+      const chain = builder
+        .nodes(demoTree)
+        .getId((n) => n.id)
+        .getChildren((n) => n.children)
+        .getLabel((n) => n.name)
+        .isExpandable((n) => !!n.children)
+        .isDisabled((n) => n.id === 'a2')
+        .selectionMode('checkbox')
+        .checkStrictly(false)
+        .density('s')
+        .ariaLabel('Files')
+        .labels({ expand: 'Auf', collapse: 'Zu' })
+        .renamable(true)
+        .activateOnClick(true)
+        .maxConcurrentLoads(4)
+        .matchedIds(ref(new Set(['a1'])))
+        .expanded(expanded)
+        .selectedIds(selectedIds)
+        .checkedIds(checkedIds)
+        .onSelect(() => {})
+        .onRename(() => {})
+        .onRenameCancel(() => {});
+      expect(chain).toBe(builder); // every setter is chainable
+
+      const Wrapper = defineComponent({
+        setup: () => () =>
+          h(CoarTree, { builder }, { default: ({ node }: { node: DemoNode }) => h('span', null, node.name) }),
+      });
+      const wrapper = mount(Wrapper, { attachTo: document.body, ...mountOpts });
+      await nextTick();
+
+      // selectionMode=checkbox → aria-multiselectable + per-row checkbox glyph
+      expect(wrapper.find('[role="tree"]').attributes('aria-multiselectable')).toBe('true');
+      expect(wrapper.find('.coar-tree-node__checkbox').exists()).toBe(true);
+      // density → root class
+      expect(wrapper.find('.coar-tree').classes()).toContain('coar-tree--density-s');
+      // ariaLabel → role=tree
+      expect(wrapper.find('[role="tree"]').attributes('aria-label')).toBe('Files');
+      // labels → chevron aria-label
+      expect(wrapper.find('[data-node-id="a"] .coar-tree-node__chevron').attributes('aria-label')).toBe('Zu');
+      // isDisabled → aria-disabled
+      expect(wrapper.find('[data-node-id="a2"]').attributes('aria-disabled')).toBe('true');
+      // imperative api wired from the builder
+      expect(typeof api.expandAll).toBe('function');
+      expect(api.getNode('a1')?.id).toBe('a1');
+    });
+  });
+
   describe('back-compat with props mode', () => {
     it('renders without a builder using bare props', () => {
       const expanded = ref(new Set<string>(['a']));
