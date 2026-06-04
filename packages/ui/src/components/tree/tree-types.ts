@@ -10,6 +10,17 @@
 /** Where a drop lands relative to a target node. */
 export type CoarTreeDropPosition = 'before' | 'inside' | 'after';
 
+/**
+ * How rows respond to clicks / keyboard.
+ * - `'single'` (default): one highlighted row at a time, bound to `v-model:selected`.
+ * - `'multiple'`: many highlighted rows (Ctrl/Cmd-toggle, Shift-range, Ctrl+A),
+ *   bound to `v-model:selectedIds`.
+ * - `'checkbox'`: a per-row checkbox with tri-state parent/child cascade, bound to
+ *   `v-model:checkedIds` — independent of the highlight selection (`selectedIds`),
+ *   which still works exactly like `'multiple'`.
+ */
+export type CoarTreeSelectionMode = 'single' | 'multiple' | 'checkbox';
+
 /** Payload for {@link CoarTreeEmits.node-move}. */
 export interface CoarTreeNodeMoveEvent<T> {
   /**
@@ -42,7 +53,18 @@ export interface CoarTreeNodeSlotProps<T> {
   /** Nesting depth — 0 for root nodes. */
   depth: number;
   isExpanded: boolean;
+  /** True if this row is part of the highlight selection (`selected` / `selectedIds`). */
   isSelected: boolean;
+  /**
+   * True if this row's checkbox is fully checked (`selectionMode="checkbox"` only).
+   * Always `false` in single / multiple modes.
+   */
+  isChecked: boolean;
+  /**
+   * True if this row's checkbox is in the indeterminate / "mixed" state — some but
+   * not all loaded descendants are checked (`selectionMode="checkbox"` only).
+   */
+  isIndeterminate: boolean;
   isFocused: boolean;
   isExpandable: boolean;
   /**
@@ -118,7 +140,16 @@ export const COAR_TREE_ROW_ID_KEY: InjectionKey<string> = Symbol('coar-tree-row-
  * and skips dependents when the value is unchanged).
  */
 export interface CoarTreeRowState {
-  selectedId: Readonly<Ref<string | null>>;
+  /** Highlight-selected ids (single mode = 0-or-1 entry, multiple/checkbox = N). */
+  selectedIds: Readonly<Ref<ReadonlySet<string>>>;
+  /** Fully-checked ids (checkbox mode only; empty otherwise). */
+  checkedIds: Readonly<Ref<ReadonlySet<string>>>;
+  /** Indeterminate ids — some but not all descendants checked (checkbox mode only). */
+  indeterminateIds: Readonly<Ref<ReadonlySet<string>>>;
+  /** True when `selectionMode === 'checkbox'`, so rows render their checkbox affordance. */
+  checkboxMode: Readonly<Ref<boolean>>;
+  /** Ids whose interaction is disabled (`isDisabled` extractor). */
+  disabledIds: Readonly<Ref<ReadonlySet<string>>>;
   focusedId: Readonly<Ref<string | null>>;
   expandedIds: Readonly<Ref<Set<string>>>;
   renamingId: Readonly<Ref<string | null>>;

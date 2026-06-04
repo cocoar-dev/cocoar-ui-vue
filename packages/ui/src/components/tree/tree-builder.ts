@@ -27,6 +27,7 @@ import type {
   CoarTreeLoadErrorEvent,
   CoarTreeMenuEntry,
   CoarTreeNodeMoveEvent,
+  CoarTreeSelectionMode,
   CoarTreeVirtualizeProp,
 } from './tree-types';
 
@@ -47,9 +48,17 @@ export interface TreeBuilderState<T> {
   autoExpandDelay: MaybeRefOrGetter<number>;
   virtualize: MaybeRefOrGetter<CoarTreeVirtualizeProp>;
   hideLoadingSpinner: MaybeRefOrGetter<boolean>;
+  selectionMode: MaybeRefOrGetter<CoarTreeSelectionMode>;
+  /** Checkbox-mode only: independent parent/child checks, no cascade / indeterminate. */
+  checkStrictly: MaybeRefOrGetter<boolean>;
 
   expanded: Ref<Set<string>>;
+  /** Single-mode highlight selection. */
   selected: Ref<string | null>;
+  /** Multiple/checkbox-mode highlight selection. */
+  selectedIds: Ref<Set<string>>;
+  /** Checkbox-mode checked set (fully-checked nodes; indeterminate is derived). */
+  checkedIds: Ref<Set<string>>;
 
   onActivate?: (node: T) => void;
   onNodeMove?: (e: CoarTreeNodeMoveEvent<T>) => void;
@@ -85,8 +94,12 @@ export interface TreeApi {
    * or to refresh an already-loaded folder. No-op until `<CoarTree>` is mounted.
    */
   reloadChildren(id: string): void;
-  /** Selected node id (read-only). */
+  /** Selected node id (read-only, single mode). */
   readonly selectedId: Ref<string | null>;
+  /** Highlight-selected ids (read-only, multiple/checkbox mode). */
+  readonly selectedIds: Ref<Set<string>>;
+  /** Checked ids (read-only, checkbox mode). */
+  readonly checkedIds: Ref<Set<string>>;
   /** Currently expanded ids (read-only). */
   readonly expandedIds: Ref<Set<string>>;
 }
@@ -121,6 +134,8 @@ export class TreeBuilder<T> {
         }
       },
       selectedId: state.selected,
+      selectedIds: state.selectedIds,
+      checkedIds: state.checkedIds,
       expandedIds: state.expanded,
     };
   }
@@ -141,8 +156,12 @@ export class TreeBuilder<T> {
       autoExpandDelay: 700,
       virtualize: false,
       hideLoadingSpinner: false,
+      selectionMode: 'single',
+      checkStrictly: false,
       expanded: ref(new Set<string>()),
       selected: ref<string | null>(null),
+      selectedIds: ref(new Set<string>()),
+      checkedIds: ref(new Set<string>()),
       onActivate: undefined,
       onNodeMove: undefined,
       onFilesDrop: undefined,
@@ -255,6 +274,26 @@ export class TreeBuilder<T> {
     return this;
   }
 
+  /**
+   * Selection behavior: `'single'` (default), `'multiple'` (Ctrl/Shift/Ctrl+A on
+   * `selectedIds`), or `'checkbox'` (per-row tri-state checkbox on `checkedIds`,
+   * independent of the highlight selection). See {@link CoarTreeSelectionMode}.
+   */
+  selectionMode(m: MaybeRefOrGetter<CoarTreeSelectionMode>): this {
+    this.state.selectionMode = m;
+    return this;
+  }
+
+  /**
+   * Checkbox mode only: when `true`, checking a node does NOT cascade to its
+   * parent/children and no node is ever indeterminate. Default `false`
+   * (cascade + tri-state, the file-tree convention).
+   */
+  checkStrictly(b: MaybeRefOrGetter<boolean>): this {
+    this.state.checkStrictly = b;
+    return this;
+  }
+
   // ─── State (writable refs) ───────────────────────────────────────────────
 
   /**
@@ -273,7 +312,7 @@ export class TreeBuilder<T> {
     return this;
   }
 
-  /** Bind the selected-node id. Must be a writable `Ref<string | null>`. */
+  /** Bind the selected-node id (single mode). Must be a writable `Ref<string | null>`. */
   selected(r: Ref<string | null>): this {
     if (!isRef(r)) {
       throw new Error(
@@ -282,6 +321,36 @@ export class TreeBuilder<T> {
     }
     this.state.selected = r;
     (this.api as { selectedId: Ref<string | null> }).selectedId = r;
+    return this;
+  }
+
+  /**
+   * Bind the highlight-selection set (multiple / checkbox modes). Must be a
+   * writable `Ref<Set<string>>` — Ctrl/Shift/Ctrl+A and `api` write back.
+   */
+  selectedIds(r: Ref<Set<string>>): this {
+    if (!isRef(r)) {
+      throw new Error(
+        '[TreeBuilder.selectedIds] requires a Ref<Set<string>>. Pass `ref(new Set<string>())`, not a plain Set or a getter.',
+      );
+    }
+    this.state.selectedIds = r;
+    (this.api as { selectedIds: Ref<Set<string>> }).selectedIds = r;
+    return this;
+  }
+
+  /**
+   * Bind the checked set (checkbox mode). Must be a writable `Ref<Set<string>>`.
+   * Holds every fully-checked node; the indeterminate set is derived internally.
+   */
+  checkedIds(r: Ref<Set<string>>): this {
+    if (!isRef(r)) {
+      throw new Error(
+        '[TreeBuilder.checkedIds] requires a Ref<Set<string>>. Pass `ref(new Set<string>())`, not a plain Set or a getter.',
+      );
+    }
+    this.state.checkedIds = r;
+    (this.api as { checkedIds: Ref<Set<string>> }).checkedIds = r;
     return this;
   }
 

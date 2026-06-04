@@ -45,7 +45,10 @@ if (!rowState) {
   throw new Error('CoarTreeNode must be rendered inside a CoarTree.');
 }
 const isExpanded = computed(() => rowState.expandedIds.value.has(props.nodeId));
-const isSelected = computed(() => rowState.selectedId.value === props.nodeId);
+const isSelected = computed(() => rowState.selectedIds.value.has(props.nodeId));
+const isChecked = computed(() => rowState.checkedIds.value.has(props.nodeId));
+const isIndeterminate = computed(() => rowState.indeterminateIds.value.has(props.nodeId));
+const checkboxMode = computed(() => rowState.checkboxMode.value);
 const isFocused = computed(() => rowState.focusedId.value === props.nodeId);
 const isRenaming = computed(() => rowState.renamingId.value === props.nodeId);
 const dropIndicator = computed<CoarTreeDropPosition | null>(() =>
@@ -61,6 +64,7 @@ const emit = defineEmits<{
   (e: 'row-click', node: T, ev: MouseEvent): void;
   (e: 'row-dblclick', node: T, ev: MouseEvent): void;
   (e: 'row-context-menu', node: T, ev: MouseEvent): void;
+  (e: 'row-check-toggle', node: T): void;
   (e: 'chevron-click', node: T): void;
   (e: 'row-dragstart', node: T, ev: DragEvent): void;
   (e: 'row-dragend', node: T): void;
@@ -84,6 +88,8 @@ const slotProps = computed<CoarTreeNodeSlotProps<T>>(() => ({
   depth: props.depth,
   isExpanded: isExpanded.value,
   isSelected: isSelected.value,
+  isChecked: isChecked.value,
+  isIndeterminate: isIndeterminate.value,
   isFocused: isFocused.value,
   isExpandable: props.isExpandable,
   isRenaming: isRenaming.value,
@@ -115,6 +121,7 @@ function onChevron(e: MouseEvent) {
     role="treeitem"
     :aria-expanded="isExpandable ? isExpanded : undefined"
     :aria-selected="isSelected"
+    :aria-checked="checkboxMode ? (isIndeterminate ? 'mixed' : isChecked) : undefined"
     :aria-level="depth + 1"
     :aria-posinset="posInSet"
     :aria-setsize="setSize"
@@ -152,6 +159,27 @@ function onChevron(e: MouseEvent) {
       <CoarIcon v-else :name="isExpanded ? 'chevron-down' : 'chevron-right'" size="xs" />
     </button>
     <span v-else class="coar-tree-node__chevron-spacer" aria-hidden="true" />
+
+    <!-- Checkbox affordance. Decorative (aria-hidden) — semantics live on the
+         treeitem's aria-checked so we never nest a focusable widget in a row. -->
+    <span
+      v-if="checkboxMode"
+      class="coar-tree-node__checkbox"
+      :class="{
+        'coar-tree-node__checkbox--checked': isChecked,
+        'coar-tree-node__checkbox--indeterminate': isIndeterminate,
+      }"
+      aria-hidden="true"
+      @click.stop="emit('row-check-toggle', node)"
+      @dblclick.stop
+    >
+      <svg class="coar-tree-node__check" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M13.5 4.5L6.5 11.5L3 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <svg class="coar-tree-node__minus" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 8H12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </svg>
+    </span>
 
     <component :is="renderRow" />
   </div>
@@ -228,5 +256,41 @@ function onChevron(e: MouseEvent) {
   display: inline-block;
   width: 16px;
   flex-shrink: 0;
+}
+
+/* Decorative checkbox glyph (semantics live on the treeitem's aria-checked). */
+.coar-tree-node__checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border: 1px solid var(--coar-border-input, #cbd5e1);
+  border-radius: var(--coar-radius-xs, 2px);
+  background: var(--coar-surface-input, #fff);
+  cursor: pointer;
+  box-sizing: border-box;
+}
+.coar-tree-node__checkbox--checked,
+.coar-tree-node__checkbox--indeterminate {
+  background: var(--coar-background-accent-primary, #2563eb);
+  border-color: var(--coar-background-accent-primary, #2563eb);
+}
+.coar-tree-node__checkbox:hover:not(.coar-tree-node__checkbox--checked):not(.coar-tree-node__checkbox--indeterminate) {
+  border-color: var(--coar-border-input-hover, #94a3b8);
+}
+.coar-tree-node__check,
+.coar-tree-node__minus {
+  width: 12px;
+  height: 12px;
+  color: var(--coar-text-on-bold, #fff);
+  opacity: 0;
+}
+.coar-tree-node__checkbox--checked:not(.coar-tree-node__checkbox--indeterminate) .coar-tree-node__check {
+  opacity: 1;
+}
+.coar-tree-node__checkbox--indeterminate .coar-tree-node__minus {
+  opacity: 1;
 }
 </style>

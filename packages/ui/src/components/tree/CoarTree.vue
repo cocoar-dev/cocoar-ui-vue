@@ -54,9 +54,16 @@ import {
   type CoarTreeNodeSlotProps,
   type CoarTreeRenameContext,
   type CoarTreeRenameEvent,
+  type CoarTreeSelectionMode,
   type CoarTreeVirtualOptions,
   type CoarTreeVirtualizeProp,
 } from './tree-types';
+import {
+  applyCheckToggle,
+  computeIndeterminate,
+  indexTree,
+  reconcileChecked,
+} from './internal/selection';
 import type { TreeBuilder } from './tree-builder';
 
 const props = withDefaults(
@@ -76,6 +83,17 @@ const props = withDefaults(
     acceptsFiles?: boolean;
     autoExpandDelay?: number;
     virtualize?: CoarTreeVirtualizeProp;
+    /**
+     * Selection behavior: `'single'` (default, `v-model:selected`), `'multiple'`
+     * (`v-model:selectedIds`, Ctrl/Shift/Ctrl+A), or `'checkbox'` (per-row
+     * tri-state checkbox, `v-model:checkedIds`, independent of the highlight).
+     */
+    selectionMode?: CoarTreeSelectionMode;
+    /**
+     * Checkbox mode only: when `true`, checks don't cascade to parent/children and
+     * nothing is ever indeterminate. Default `false` (cascade + tri-state).
+     */
+    checkStrictly?: boolean;
     /**
      * Opt into the built-in inline rename UI. With this on, `api.startRename(id)`
      * + `@rename` work and `<CoarTreeNodeLabel>` swaps to an `<input>` while the
@@ -104,6 +122,8 @@ const props = withDefaults(
     acceptsFiles: false,
     autoExpandDelay: 700,
     virtualize: false,
+    selectionMode: 'single',
+    checkStrictly: false,
     renamable: false,
     hideLoadingSpinner: false,
   },
@@ -111,6 +131,8 @@ const props = withDefaults(
 
 const expandedModel = defineModel<Set<string>>('expanded', { default: () => new Set<string>() });
 const selectedModel = defineModel<string | null>('selected', { default: null });
+const selectedIdsModel = defineModel<Set<string>>('selectedIds', { default: () => new Set<string>() });
+const checkedIdsModel = defineModel<Set<string>>('checkedIds', { default: () => new Set<string>() });
 
 const emit = defineEmits<{
   (e: 'activate', node: T): void;
@@ -224,6 +246,8 @@ const cfg = computed(() => {
       autoExpandDelay: toValue(s.autoExpandDelay),
       virtualize: toValue(s.virtualize),
       hideLoadingSpinner: toValue(s.hideLoadingSpinner),
+      selectionMode: toValue(s.selectionMode),
+      checkStrictly: toValue(s.checkStrictly),
     };
   }
   return {
@@ -241,6 +265,8 @@ const cfg = computed(() => {
     autoExpandDelay: props.autoExpandDelay,
     virtualize: props.virtualize,
     hideLoadingSpinner: props.hideLoadingSpinner,
+    selectionMode: props.selectionMode,
+    checkStrictly: props.checkStrictly,
   };
 });
 
@@ -303,6 +329,63 @@ const selectedStore = computed<string | null>({
     if (b) b.state.selected.value = v;
     else selectedModel.value = v;
   },
+});
+const selectedIdsStore = computed<Set<string>>({
+  get: () => (props.builder ? props.builder.state.selectedIds.value : selectedIdsModel.value),
+  set: (v) => {
+    const b = props.builder;
+    if (b) b.state.selectedIds.value = v;
+    else selectedIdsModel.value = v;
+  },
+});
+const checkedStore = computed<Set<string>>({
+  get: () => (props.builder ? props.builder.state.checkedIds.value : checkedIdsModel.value),
+  set: (v) => {
+    const b = props.builder;
+    if (b) b.state.checkedIds.value = v;
+    else checkedIdsModel.value = v;
+  },
+});
+
+// ─── selection mode ────────────────────────────────────────────────────────
+const EMPTY_SET: ReadonlySet<string> = new Set();
+const selMode = computed<CoarTreeSelectionMode>(() => cfg.value.selectionMode ?? 'single');
+const checkboxMode = computed(() => selMode.value === 'checkbox');
+const multiSelect = computed(
+  () => selMode.value === 'multiple' || selMode.value === 'checkbox',
+);
+const strictCheck = computed(() => !!cfg.value.checkStrictly);
+
+// Unified highlight set: single mirrors `selected`, multiple/checkbox use `selectedIds`.
+const highlightedIds = computed<ReadonlySet<string>>(() =>
+  selMode.value === 'single'
+    ? selectedStore.value
+      ? new Set([selectedStore.value])
+      : EMPTY_SET
+    : selectedIdsStore.value,
+);
+
+// Full loaded-tree index — cascade must see collapsed-but-loaded subtrees, so it
+// can't reuse `visibleRows`. Built only in checkbox mode; null is pure overhead.
+const loadedIndex = computed(() =>
+  checkboxMode.value ? indexTree(cfg.value.nodes, cfg.value.getId, getChildrenOf) : null,
+);
+const indeterminateIds = computed<ReadonlySet<string>>(() =>
+  checkboxMode.value && !strictCheck.value && loadedIndex.value
+    ? computeIndeterminate(checkedStore.value, loadedIndex.value)
+    : EMPTY_SET,
+);
+// Disabled-node set is wired in a later batch; an empty set keeps the row-state
+// contract stable until then.
+const disabledIds = computed<ReadonlySet<string>>(() => EMPTY_SET);
+
+// Lazy inheritance: when children load under a checked folder, propagate the check
+// down to them. `reconcileChecked` only ADDS inherited descendants, so it's safe to
+// run on any tree change. Checkbox + cascade only.
+watch(loadedIndex, (ix) => {
+  if (!ix || strictCheck.value) return;
+  const next = reconcileChecked(checkedStore.value, ix);
+  if (next !== checkedStore.value) checkedStore.value = next;
 });
 
 // ─── identity helpers ─────────────────────────────────────────────────────
@@ -633,11 +716,80 @@ onBeforeUnmount(() => {
 });
 
 // ─── selection / activation ───────────────────────────────────────────────
+// Anchor for Shift-range selection — the last row clicked/selected without Shift.
+const selectionAnchorId = ref<string | null>(null);
+
+/**
+ * Replace the highlight selection with a single node (Enter, programmatic
+ * `focusNode`, plain click in single mode). Mode-aware: writes `selected` in
+ * single mode, `selectedIds` otherwise.
+ */
 function selectNode(node: T | null) {
   if (!node) return;
   const id = cfg.value.getId(node);
-  selectedStore.value = id;
+  if (selMode.value === 'single') selectedStore.value = id;
+  else selectedIdsStore.value = new Set([id]);
+  selectionAnchorId.value = id;
   focusRow(id);
+}
+
+/** Click-driven selection honoring Ctrl/Cmd-toggle and Shift-range in multi modes. */
+function handleRowSelect(node: T, ev: MouseEvent) {
+  const id = cfg.value.getId(node);
+  if (!multiSelect.value) {
+    selectNode(node);
+    return;
+  }
+  const additive = ev.ctrlKey || ev.metaKey;
+  const map = idToIndex.value;
+  const list = visibleRows.value;
+  if (ev.shiftKey && selectionAnchorId.value && map.has(selectionAnchorId.value)) {
+    const from = map.get(selectionAnchorId.value) as number;
+    const to = map.get(id) ?? from;
+    const [lo, hi] = from <= to ? [from, to] : [to, from];
+    const range = new Set<string>(additive ? selectedIdsStore.value : []);
+    for (let i = lo; i <= hi; i++) range.add(list[i].id);
+    selectedIdsStore.value = range;
+    focusRow(id); // anchor unchanged across a Shift-range
+    return;
+  }
+  if (additive) {
+    const next = new Set(selectedIdsStore.value);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    selectedIdsStore.value = next;
+    selectionAnchorId.value = id;
+    focusRow(id);
+    return;
+  }
+  selectedIdsStore.value = new Set([id]);
+  selectionAnchorId.value = id;
+  focusRow(id);
+}
+
+/** Extend the highlight selection to `id` (Shift+Arrow). Keeps the anchor. */
+function extendSelectionTo(id: string) {
+  const next = new Set(selectedIdsStore.value);
+  if (focusedId.value) next.add(focusedId.value);
+  next.add(id);
+  selectedIdsStore.value = next;
+}
+
+/** Toggle a row's checkbox (checkbox mode). Cascades unless `checkStrictly`. */
+function toggleCheck(node: T, value?: boolean) {
+  if (!checkboxMode.value) return;
+  const id = cfg.value.getId(node);
+  const target = value ?? !checkedStore.value.has(id);
+  if (strictCheck.value) {
+    const next = new Set(checkedStore.value);
+    if (target) next.add(id);
+    else next.delete(id);
+    checkedStore.value = next;
+    return;
+  }
+  const ix = loadedIndex.value;
+  if (!ix) return;
+  checkedStore.value = applyCheckToggle(checkedStore.value, id, target, ix);
 }
 function toggleExpand(node: T) {
   if (!isExpandableOf(node)) return;
@@ -657,7 +809,10 @@ function expandNode(node: T) {
 }
 
 function onRowClick(node: T, ev: MouseEvent) {
-  if (ev.button === 0) selectNode(node);
+  if (ev.button === 0) handleRowSelect(node, ev);
+}
+function onRowCheckToggle(node: T) {
+  toggleCheck(node);
 }
 function onRowDblClick(node: T) {
   fireActivate(node);
@@ -782,16 +937,25 @@ function onRootKeydown(ev: KeyboardEvent) {
     }
   }
 
+  // Ctrl/Cmd+A → select every visible row (multiple / checkbox highlight).
+  if ((ev.ctrlKey || ev.metaKey) && (ev.key === 'a' || ev.key === 'A') && multiSelect.value) {
+    ev.preventDefault();
+    selectedIdsStore.value = new Set(list.map((r) => r.id));
+    return;
+  }
+
   switch (ev.key) {
     case 'ArrowDown': {
       ev.preventDefault();
       const next = list[Math.min(list.length - 1, currentIdx + 1)] ?? list[0];
+      if (ev.shiftKey && multiSelect.value) extendSelectionTo(next.id);
       focusRow(next.id);
       return;
     }
     case 'ArrowUp': {
       ev.preventDefault();
       const next = list[Math.max(0, currentIdx - 1)] ?? list[0];
+      if (ev.shiftKey && multiSelect.value) extendSelectionTo(next.id);
       focusRow(next.id);
       return;
     }
@@ -836,7 +1000,8 @@ function onRootKeydown(ev: KeyboardEvent) {
     case ' ':
       if (current) {
         ev.preventDefault();
-        if (isExpandableOf(current.node)) toggleExpand(current.node);
+        if (checkboxMode.value) toggleCheck(current.node);
+        else if (isExpandableOf(current.node)) toggleExpand(current.node);
         else selectNode(current.node);
       }
       return;
@@ -866,7 +1031,11 @@ const rootFileDragDepth = ref(0);
 // change re-renders only the rows whose flag actually flips — not the whole list.
 const hideLoadingSpinnerRef = computed(() => !!cfg.value.hideLoadingSpinner);
 provide(COAR_TREE_ROW_STATE_KEY, {
-  selectedId: selectedStore,
+  selectedIds: highlightedIds,
+  checkedIds: checkedStore,
+  indeterminateIds,
+  checkboxMode,
+  disabledIds,
   focusedId,
   expandedIds: expandedStore,
   renamingId,
@@ -1153,6 +1322,7 @@ defineExpose({
       <div
         class="coar-tree__inner"
         role="tree"
+        :aria-multiselectable="multiSelect ? 'true' : undefined"
         :style="isVirtual ? { height: `${virtualizer.totalSize.value}px`, position: 'relative' } : undefined"
       >
         <CoarTreeNode
@@ -1173,6 +1343,7 @@ defineExpose({
           @row-click="onRowClick"
           @row-dblclick="onRowDblClick"
           @row-context-menu="onRowContextMenu"
+          @row-check-toggle="onRowCheckToggle"
           @chevron-click="onChevron"
           @row-dragstart="onRowDragStart"
           @row-dragend="onRowDragEnd"
