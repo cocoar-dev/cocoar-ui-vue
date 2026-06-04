@@ -968,7 +968,9 @@ onBeforeUnmount(() => {
 // ─── builder ↔ component wiring ───────────────────────────────────────────
 onMounted(() => {
   props.builder?._bindImpls({
-    focusNode: (id) => focusRow(id),
+    // Back-compat: the builder `api.focusNode` has selected + focused since 2.4.0.
+    // Kept as-is to avoid a breaking change; `selectNode` is the clearer alias.
+    focusNode: (id) => selectNode(findNodeById(id), 'api'),
     selectNode: (id) => selectNode(findNodeById(id), 'api'),
     reloadChildren,
     startRename,
@@ -1762,7 +1764,11 @@ function startRename(id: string) {
 }
 
 defineExpose({
-  /** Move keyboard focus to a node WITHOUT changing selection. */
+  /**
+   * Move keyboard focus to a node. The template-ref form has been focus-only
+   * since 2.4.0 (note: the builder `api.focusNode` selects + focuses). Prefer
+   * `selectNode` / `revealNode` for explicit intent.
+   */
   focusNode(id: string) {
     focusRow(id);
   },

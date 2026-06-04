@@ -212,7 +212,7 @@ describe('TreeBuilder + useTree', () => {
       warn.mockRestore();
     });
 
-    it('selectNode selects + focuses; focusNode only focuses', async () => {
+    it('selectNode and (back-compat) focusNode both select + focus', async () => {
       const selected = ref<string | null>(null);
       const expanded = ref(new Set<string>(['a']));
       const { api } = makeWrapper((b) => b.expanded(expanded).selected(selected));
@@ -220,10 +220,10 @@ describe('TreeBuilder + useTree', () => {
       api.selectNode('a2');
       await nextTick();
       expect(selected.value).toBe('a2');
-      // focusNode does NOT mutate selection
+      // focusNode is the back-compat alias — it selects too (released behavior since 2.4.0)
       api.focusNode('a1');
       await nextTick();
-      expect(selected.value).toBe('a2');
+      expect(selected.value).toBe('a1');
     });
   });
 

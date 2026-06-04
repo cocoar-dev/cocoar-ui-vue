@@ -131,11 +131,11 @@ export interface TreeApiImpls<T> {
  * the writable refs themselves. Action methods are no-ops (with a DEV warning)
  * until `<CoarTree>` mounts.
  */
-export interface TreeApi<T> {
-  /** Move keyboard focus to a node WITHOUT changing selection. */
-  focusNode(id: string): void;
-  /** Highlight-select AND focus a node (the "reveal & select" action). */
+export interface TreeApi<T = unknown> {
+  /** Highlight-select AND focus a node (the "reveal & select" action). Preferred over `focusNode`. */
   selectNode(id: string): void;
+  /** Alias of {@link selectNode} (selects + focuses) — retained for back-compat since 2.4.0. */
+  focusNode(id: string): void;
   /** Force `loadChildren` to (re)run for a node — retry after error / refresh. */
   reloadChildren(id: string): void;
   /** Enter inline-rename mode on a node (requires `renamable`). */

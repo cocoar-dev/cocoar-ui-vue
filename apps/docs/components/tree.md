@@ -154,8 +154,8 @@ api.selectedIds  // Ref<Set<string>>
 api.checkedIds   // Ref<Set<string>>
 
 // imperative (warn until mounted)
-api.selectNode('some-id')       // highlight-select + focus
-api.focusNode('some-id')        // focus only, no selection change
+api.selectNode('some-id')       // highlight-select + focus (preferred)
+api.focusNode('some-id')        // alias of selectNode (back-compat since 2.4.0)
 api.expandTo('some-id')         // reveal a deep node
 api.revealNode('some-id')       // scroll into view without stealing focus
 api.moveNode('a', 'b', 'after') // accessible/programmatic move
@@ -523,8 +523,8 @@ Available on both the **template ref** and the builder **`api`** (the `api` warn
 
 | Method | Description |
 |--------|-------------|
-| `focusNode(id)` | Move keyboard focus to a node **without** changing selection |
-| `selectNode(id)` | Highlight-select **and** focus a node (the "reveal & select" action) |
+| `selectNode(id)` | Highlight-select **and** focus a node (the "reveal & select" action) — preferred |
+| `focusNode(id)` | Builder `api`: alias of `selectNode` (selects + focuses, back-compat since 2.4.0). Template ref: focus-only. Prefer `selectNode` / `revealNode` for explicit intent |
 | `expandAll()` / `collapseAll()` | Expand every loaded, expandable node / collapse everything |
 | `expandTo(id)` | Expand all loaded ancestors of `id` so its row becomes visible |
 | `revealNode(id)` | Scroll a node into view **without** stealing focus (expands ancestors first) |
