@@ -317,6 +317,108 @@ describe('CoarTree', () => {
       await wrapper.find('[data-node-id="b"]').trigger('drop', { dataTransfer: dt });
       expect(nodeMove.value).toBeNull();
     });
+
+    // OS file-drag stub: `types: ['Files']` is what `isFileDrag` reads, plus a
+    // real `files` list so the drop handler's `dt.files.length` guard passes.
+    function makeFileTransfer(count = 1): DataTransfer {
+      const files = Array.from({ length: count }, (_, i) => new File(['x'], `f${i}.txt`));
+      const fileList = Object.assign(files.slice(), { item: (i: number) => files[i] }) as unknown as FileList;
+      return {
+        types: ['Files'],
+        files: fileList,
+        dropEffect: 'none',
+        effectAllowed: 'all',
+        setData() {},
+        getData() {
+          return '';
+        },
+        setDragImage() {},
+      } as unknown as DataTransfer;
+    }
+
+    it('emits files-drop onto a folder', async () => {
+      const { wrapper, filesDrop } = makeWrapper({ acceptsFiles: true });
+      const dt = makeFileTransfer(2);
+      await wrapper.find('[data-node-id="a"]').trigger('dragover', { dataTransfer: dt });
+      await wrapper.find('[data-node-id="a"]').trigger('drop', { dataTransfer: dt });
+      expect(filesDrop.value).toEqual({ count: 2, targetId: 'a' });
+    });
+
+    it('emits files-drop on the empty background (root)', async () => {
+      const { wrapper, filesDrop } = makeWrapper({ acceptsFiles: true });
+      const dt = makeFileTransfer(1);
+      await wrapper.find('.coar-tree').trigger('dragover', { dataTransfer: dt });
+      await wrapper.find('.coar-tree').trigger('drop', { dataTransfer: dt });
+      expect(filesDrop.value).toEqual({ count: 1, targetId: null });
+    });
+
+    it('honors canDrop: a false verdict rejects the move and receives (source,target,position)', async () => {
+      const canDrop = vi.fn((_s: DemoNode, _t: DemoNode | null, _p: string) => false);
+      const nodeMove = ref<CoarTreeNodeMoveEvent<DemoNode> | null>(null);
+      const expandedRef = ref(new Set<string>(['a']));
+      const Wrapper = defineComponent({
+        setup: () => () =>
+          h(
+            CoarTree,
+            {
+              nodes: demoTree,
+              getId: (n: DemoNode) => n.id,
+              getChildren: (n: DemoNode) => n.children,
+              getLabel: (n: DemoNode) => n.name,
+              isExpandable: (n: DemoNode) => !!n.children,
+              draggable: true,
+              canDrop,
+              expanded: expandedRef.value,
+              'onUpdate:expanded': (v: Set<string>) => (expandedRef.value = v),
+              onNodeMove: (e: CoarTreeNodeMoveEvent<DemoNode>) => (nodeMove.value = e),
+            },
+            { default: ({ node }: { node: DemoNode }) => h('span', null, node.name) },
+          ),
+      });
+      const wrapper = mount(Wrapper, { attachTo: document.body });
+      const dt = makeDataTransfer();
+      await wrapper.find('[data-node-id="c"]').trigger('dragstart', { dataTransfer: dt });
+      await wrapper.find('[data-node-id="a1"]').trigger('dragover', { dataTransfer: dt });
+      await wrapper.find('[data-node-id="a1"]').trigger('drop', { dataTransfer: dt });
+      expect(canDrop).toHaveBeenCalled();
+      expect(canDrop.mock.calls[0][0]).toMatchObject({ id: 'c' }); // source
+      expect(canDrop.mock.calls[0][1]).toMatchObject({ id: 'a1' }); // target
+      expect(nodeMove.value).toBeNull(); // rejected
+    });
+
+    it('auto-expands a folder after hovering it during a drag', async () => {
+      vi.useFakeTimers();
+      const expandedRef = ref(new Set<string>()); // 'a' starts collapsed
+      const Wrapper = defineComponent({
+        setup: () => () =>
+          h(
+            CoarTree,
+            {
+              nodes: demoTree,
+              getId: (n: DemoNode) => n.id,
+              getChildren: (n: DemoNode) => n.children,
+              getLabel: (n: DemoNode) => n.name,
+              isExpandable: (n: DemoNode) => !!n.children,
+              draggable: true,
+              autoExpandDelay: 500,
+              expanded: expandedRef.value,
+              'onUpdate:expanded': (v: Set<string>) => (expandedRef.value = v),
+            },
+            { default: ({ node }: { node: DemoNode }) => h('span', null, node.name) },
+          ),
+      });
+      const wrapper = mount(Wrapper, { attachTo: document.body });
+      const dt = makeDataTransfer();
+      await wrapper.find('[data-node-id="c"]').trigger('dragstart', { dataTransfer: dt });
+      // hover the MIDDLE of folder 'a' → 'inside' → schedules auto-expand
+      const aEl = wrapper.find('[data-node-id="a"]').element as HTMLElement;
+      aEl.getBoundingClientRect = () => ({ top: 0, height: 100, bottom: 100, left: 0, right: 0, width: 0, x: 0, y: 0, toJSON() {} });
+      await wrapper.find('[data-node-id="a"]').trigger('dragover', { dataTransfer: dt, clientY: 50 });
+      expect(expandedRef.value.has('a')).toBe(false); // not yet
+      vi.advanceTimersByTime(500);
+      expect(expandedRef.value.has('a')).toBe(true); // fired
+      vi.useRealTimers();
+    });
   });
 
   describe('virtualization nudge', () => {
@@ -662,6 +764,63 @@ describe('CoarTree', () => {
       expect(wrapper.find('.coar-spinner').exists()).toBe(false);
       // ...but isLoading is true so the consumer can render its own.
       expect(wrapper.find('[data-node-id="r"] [data-loading="true"]').exists()).toBe(true);
+    });
+  });
+
+  describe('ARIA attributes', () => {
+    it('stamps aria-level / posinset / setsize from the DFS metadata', () => {
+      const { wrapper } = makeWrapper(); // a,a1,a2,b,b1,c (a,b expanded)
+      const a = wrapper.find('[data-node-id="a"]');
+      expect(a.attributes('aria-level')).toBe('1');
+      expect(a.attributes('aria-posinset')).toBe('1');
+      expect(a.attributes('aria-setsize')).toBe('3'); // a, b, c at root
+      const a1 = wrapper.find('[data-node-id="a1"]');
+      expect(a1.attributes('aria-level')).toBe('2');
+      expect(a1.attributes('aria-posinset')).toBe('1');
+      expect(a1.attributes('aria-setsize')).toBe('2'); // a1, a2
+      expect(wrapper.find('[data-node-id="c"]').attributes('aria-posinset')).toBe('3');
+    });
+
+    it('keeps exactly one row in the Tab order (roving tabindex)', () => {
+      const { wrapper } = makeWrapper();
+      const roving = wrapper
+        .findAll('[role="treeitem"]')
+        .filter((n) => n.attributes('tabindex') === '0');
+      expect(roving).toHaveLength(1);
+    });
+  });
+
+  describe('keyboard navigation matrix', () => {
+    const tree = (w: ReturnType<typeof makeWrapper>['wrapper']) => w.find('.coar-tree');
+
+    it('ArrowDown / ArrowUp move the roving focus', async () => {
+      const { wrapper } = makeWrapper(); // focus seeds to 'a'
+      await tree(wrapper).trigger('keydown', { key: 'ArrowDown' });
+      expect(wrapper.find('[data-node-id="a1"]').attributes('tabindex')).toBe('0');
+      await tree(wrapper).trigger('keydown', { key: 'ArrowUp' });
+      expect(wrapper.find('[data-node-id="a"]').attributes('tabindex')).toBe('0');
+    });
+
+    it('ArrowRight expands a collapsed folder; ArrowLeft collapses it', async () => {
+      const { wrapper, expandedRef } = makeWrapper({ expanded: new Set() }); // focus 'a'
+      await tree(wrapper).trigger('keydown', { key: 'ArrowRight' });
+      expect(expandedRef.value.has('a')).toBe(true);
+      await tree(wrapper).trigger('keydown', { key: 'ArrowLeft' });
+      expect(expandedRef.value.has('a')).toBe(false);
+    });
+
+    it('Home / End jump to the first / last visible row', async () => {
+      const { wrapper } = makeWrapper();
+      await tree(wrapper).trigger('keydown', { key: 'End' });
+      expect(wrapper.find('[data-node-id="c"]').attributes('tabindex')).toBe('0');
+      await tree(wrapper).trigger('keydown', { key: 'Home' });
+      expect(wrapper.find('[data-node-id="a"]').attributes('tabindex')).toBe('0');
+    });
+
+    it('type-ahead focuses the next row whose label matches', async () => {
+      const { wrapper } = makeWrapper(); // Alpha, Alpha-1/2, Bravo, Bravo-1, Charlie
+      await tree(wrapper).trigger('keydown', { key: 'c' });
+      expect(wrapper.find('[data-node-id="c"]').attributes('tabindex')).toBe('0');
     });
   });
 });
