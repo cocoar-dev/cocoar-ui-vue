@@ -293,11 +293,13 @@ function onChevron(e: MouseEvent) {
   flex-shrink: 0;
 }
 
-/* Decorative checkbox glyph (semantics live on the treeitem's aria-checked). */
+/* Decorative checkbox glyph — visually matches CoarCheckbox (same tokens + check
+   path), but semantics live on the treeitem's aria-checked so no focusable input
+   is nested in a row. The two icons are absolutely positioned (overlaid), NOT
+   flex siblings, so the checkmark keeps its 1:1 aspect instead of being squished. */
 .coar-tree-node__checkbox {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  position: relative;
+  display: inline-block;
   width: 16px;
   height: 16px;
   flex-shrink: 0;
@@ -306,6 +308,9 @@ function onChevron(e: MouseEvent) {
   background: var(--coar-surface-input, #fff);
   cursor: pointer;
   box-sizing: border-box;
+  transition:
+    border-color var(--coar-duration-fast, 120ms) var(--coar-ease-out, ease),
+    background-color var(--coar-duration-fast, 120ms) var(--coar-ease-out, ease);
 }
 .coar-tree-node__checkbox--checked,
 .coar-tree-node__checkbox--indeterminate {
@@ -315,8 +320,16 @@ function onChevron(e: MouseEvent) {
 .coar-tree-node__checkbox:hover:not(.coar-tree-node__checkbox--checked):not(.coar-tree-node__checkbox--indeterminate) {
   border-color: var(--coar-border-input-hover, #94a3b8);
 }
+.coar-tree-node__checkbox:hover.coar-tree-node__checkbox--checked,
+.coar-tree-node__checkbox:hover.coar-tree-node__checkbox--indeterminate {
+  background: var(--coar-background-accent-hover, #1d4ed8);
+  border-color: var(--coar-background-accent-hover, #1d4ed8);
+}
 .coar-tree-node__check,
 .coar-tree-node__minus {
+  position: absolute;
+  inset: 0;
+  margin: auto;
   width: 12px;
   height: 12px;
   color: var(--coar-text-on-bold, #fff);
@@ -327,5 +340,10 @@ function onChevron(e: MouseEvent) {
 }
 .coar-tree-node__checkbox--indeterminate .coar-tree-node__minus {
   opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .coar-tree-node__checkbox {
+    transition: none;
+  }
 }
 </style>
