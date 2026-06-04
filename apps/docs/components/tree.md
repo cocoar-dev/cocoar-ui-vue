@@ -316,7 +316,7 @@ The tree doesn't filter your data (you own `nodes` — pass a computed filtered 
 
 ## Density & theming
 
-`density` (`xs` / `s` / `m` / `l`, default `m`) sets the row spacing. Under the hood it sets CSS variables you can also override directly to retheme without forking:
+`density` (`xs` / `s` / `m` / `l`, default `m`) scales the **whole** row — font, padding, indent, **and** the built-in chevron + checkbox (box and glyph) together. Under the hood it sets CSS variables you can also override directly to retheme without forking:
 
 | Variable | Default (`m`) | Controls |
 |----------|---------------|----------|
@@ -324,6 +324,17 @@ The tree doesn't filter your data (you own `nodes` — pass a computed filtered 
 | `--coar-tree-indent-base` | `8px` | Base (level-0) indent |
 | `--coar-tree-row-pad-y` / `-x` | `3px` / `4px` | Row padding |
 | `--coar-tree-row-font` | inherits body-small | Row font size |
+| `--coar-tree-control-size` | `16px` | Chevron + checkbox box size |
+| `--coar-tree-icon-size` | `12px` | Glyph inside (checkmark / dash / chevron) |
+
+The icons **you** render in the slot are still yours to size — but `--coar-tree-icon-size` cascades into the slot, so you can scale them with the tree:
+
+```vue
+<template #default="{ node }">
+  <CoarIcon :name="node.children ? 'folder' : 'file'" size="var(--coar-tree-icon-size)" />
+  <span>{{ node.name }}</span>
+</template>
+```
 
 ::: warning
 When virtualizing, set `virtualize.itemSize` to match your density's row height — the virtualizer is fixed-size and doesn't auto-measure.

@@ -1836,12 +1836,17 @@ defineExpose({
 
 <style scoped>
 .coar-tree {
-  /* Spacing tokens — override these to retheme density/indent without forking.
+  /* Sizing tokens — override these to retheme density without forking.
      `density` presets just set them; consumers can set them inline too. */
   --coar-tree-indent: 14px;
   --coar-tree-indent-base: 8px;
   --coar-tree-row-pad-y: 3px;
   --coar-tree-row-pad-x: 4px;
+  /* Built-in controls (chevron + checkbox box) and the glyph inside them.
+     `--coar-tree-icon-size` also cascades into the row slot, so a consumer can
+     size their own icons with it: `<CoarIcon size="var(--coar-tree-icon-size)">`. */
+  --coar-tree-control-size: 16px;
+  --coar-tree-icon-size: 12px;
   position: relative;
   outline: none;
   display: flex;
@@ -1863,21 +1868,28 @@ defineExpose({
   box-sizing: border-box;
 }
 
-/* Density presets — set the spacing vars; `m` keeps the historical ~28px row. */
+/* Density presets — set the sizing vars; `m` keeps the historical ~28px row.
+   Each preset scales font, padding, indent AND the built-in chevron/checkbox. */
 .coar-tree--density-xs {
   --coar-tree-indent: 12px;
   --coar-tree-row-pad-y: 1px;
   --coar-tree-row-font: 12px;
+  --coar-tree-control-size: 14px;
+  --coar-tree-icon-size: 10px;
 }
 .coar-tree--density-s {
   --coar-tree-indent: 12px;
   --coar-tree-row-pad-y: 2px;
   --coar-tree-row-font: 12px;
+  --coar-tree-control-size: 15px;
+  --coar-tree-icon-size: 11px;
 }
 .coar-tree--density-l {
   --coar-tree-indent: 16px;
   --coar-tree-row-pad-y: 6px;
   --coar-tree-row-font: 14px;
+  --coar-tree-control-size: 20px;
+  --coar-tree-icon-size: 15px;
 }
 
 .coar-tree__scroll {

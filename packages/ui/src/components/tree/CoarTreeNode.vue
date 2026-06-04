@@ -83,6 +83,10 @@ const emit = defineEmits<{
 
 const rowEl = ref<HTMLDivElement | null>(null);
 
+// Chevron / retry icon size tracks the density var (CoarIcon accepts a raw CSS
+// length, so the glyph scales with the row's controls). Fallback = the m default.
+const ICON_SIZE_VAR = 'var(--coar-tree-icon-size, 12px)';
+
 // The default-slot of `<CoarTree>` reaches us through injection — generic
 // `Slot<T>` doesn't compose cleanly with prop drilling in generic SFCs, and
 // injection has the same effect with cleaner types.
@@ -179,8 +183,8 @@ function onChevron(e: MouseEvent) {
       @click="onChevron"
     >
       <CoarSpinner v-if="showChevronSpinner" size="xs" :label="rowState.labels.value.loading" />
-      <CoarIcon v-else-if="showChevronError" name="rotate-ccw" size="xs" />
-      <CoarIcon v-else :name="isExpanded ? 'chevron-down' : 'chevron-right'" size="xs" />
+      <CoarIcon v-else-if="showChevronError" name="rotate-ccw" :size="ICON_SIZE_VAR" />
+      <CoarIcon v-else :name="isExpanded ? 'chevron-down' : 'chevron-right'" :size="ICON_SIZE_VAR" />
     </button>
     <span v-else class="coar-tree-node__chevron-spacer" aria-hidden="true" />
 
@@ -271,8 +275,8 @@ function onChevron(e: MouseEvent) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: var(--coar-tree-control-size, 16px);
+  height: var(--coar-tree-control-size, 16px);
   flex-shrink: 0;
   background: transparent;
   border: none;
@@ -289,7 +293,7 @@ function onChevron(e: MouseEvent) {
 }
 .coar-tree-node__chevron-spacer {
   display: inline-block;
-  width: 16px;
+  width: var(--coar-tree-control-size, 16px);
   flex-shrink: 0;
 }
 
@@ -300,8 +304,8 @@ function onChevron(e: MouseEvent) {
 .coar-tree-node__checkbox {
   position: relative;
   display: inline-block;
-  width: 16px;
-  height: 16px;
+  width: var(--coar-tree-control-size, 16px);
+  height: var(--coar-tree-control-size, 16px);
   flex-shrink: 0;
   border: 1px solid var(--coar-border-input, #cbd5e1);
   border-radius: var(--coar-radius-xs, 2px);
@@ -330,8 +334,8 @@ function onChevron(e: MouseEvent) {
   position: absolute;
   inset: 0;
   margin: auto;
-  width: 12px;
-  height: 12px;
+  width: var(--coar-tree-icon-size, 12px);
+  height: var(--coar-tree-icon-size, 12px);
   color: var(--coar-text-on-bold, #fff);
   opacity: 0;
 }
