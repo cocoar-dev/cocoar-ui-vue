@@ -193,16 +193,21 @@ function commitRename() {
   if (!node) return;
   if (!newName) {
     emit('rename-cancel', node);
+    props.builder?.state.onRenameCancel?.(node);
     return;
   }
   emit('rename', { node, newName });
+  props.builder?.state.onRename?.({ node, newName });
 }
 
 function cancelRename() {
   const node = findRenamingNode();
   renamingId.value = null;
   renameBuffer.value = '';
-  if (node) emit('rename-cancel', node);
+  if (node) {
+    emit('rename-cancel', node);
+    props.builder?.state.onRenameCancel?.(node);
+  }
 }
 
 const renameContext: CoarTreeRenameContext = {
@@ -252,6 +257,7 @@ const cfg = computed(() => {
       autoExpandDelay: toValue(s.autoExpandDelay),
       virtualize: toValue(s.virtualize),
       hideLoadingSpinner: toValue(s.hideLoadingSpinner),
+      renamable: toValue(s.renamable),
       selectionMode: toValue(s.selectionMode),
       checkStrictly: toValue(s.checkStrictly),
     };
@@ -272,10 +278,14 @@ const cfg = computed(() => {
     autoExpandDelay: props.autoExpandDelay,
     virtualize: props.virtualize,
     hideLoadingSpinner: props.hideLoadingSpinner,
+    renamable: props.renamable,
     selectionMode: props.selectionMode,
     checkStrictly: props.checkStrictly,
   };
 });
+
+/** Effective rename-enabled flag (builder OR prop). */
+const renamableOn = computed(() => !!cfg.value.renamable);
 
 // DEV-only nag: rendering a tree with zero rows + no `#empty` slot ships a
 // silent blank pane to the user. The 500-ms grace lets async loaders (a
@@ -1041,7 +1051,7 @@ function onRootKeydown(ev: KeyboardEvent) {
   // F2 starts rename on the focused row — but only when the focus is on a
   // tree row (not inside the rename input itself, which gets its own Enter /
   // Escape handlers). `props.renamable` gates the whole feature.
-  if (ev.key === 'F2' && props.renamable && current && !renamingId.value) {
+  if (ev.key === 'F2' && renamableOn.value && current && !renamingId.value) {
     const tgt = ev.target as HTMLElement | null;
     if (tgt && tgt.tagName !== 'INPUT' && tgt.tagName !== 'TEXTAREA') {
       ev.preventDefault();
@@ -1371,7 +1381,7 @@ onBeforeUnmount(() => {
 });
 
 function startRename(id: string) {
-  if (!props.renamable) return;
+  if (!renamableOn.value) return;
   const idx = idToIndex.value.get(id);
   const row = idx === undefined ? undefined : visibleRows.value[idx];
   if (!row) return;

@@ -27,6 +27,7 @@ import type {
   CoarTreeLoadErrorEvent,
   CoarTreeMenuEntry,
   CoarTreeNodeMoveEvent,
+  CoarTreeRenameEvent,
   CoarTreeSelectEvent,
   CoarTreeSelectionMode,
   CoarTreeVirtualizeProp,
@@ -50,6 +51,10 @@ export interface TreeBuilderState<T> {
   autoExpandDelay: MaybeRefOrGetter<number>;
   virtualize: MaybeRefOrGetter<CoarTreeVirtualizeProp>;
   hideLoadingSpinner: MaybeRefOrGetter<boolean>;
+  /** Opt into the built-in inline-rename UI (see `renamable` setter). */
+  renamable: MaybeRefOrGetter<boolean>;
+  onRename?: (e: CoarTreeRenameEvent<T>) => void;
+  onRenameCancel?: (node: T) => void;
   selectionMode: MaybeRefOrGetter<CoarTreeSelectionMode>;
   /** Checkbox-mode only: independent parent/child checks, no cascade / indeterminate. */
   checkStrictly: MaybeRefOrGetter<boolean>;
@@ -200,6 +205,9 @@ export class TreeBuilder<T> {
       autoExpandDelay: 700,
       virtualize: false,
       hideLoadingSpinner: false,
+      renamable: false,
+      onRename: undefined,
+      onRenameCancel: undefined,
       selectionMode: 'single',
       checkStrictly: false,
       expanded: ref(new Set<string>()),
@@ -330,6 +338,16 @@ export class TreeBuilder<T> {
   }
 
   /**
+   * Enable the built-in inline-rename UI. With it on, `api.startRename(id)` and
+   * F2 on the focused row swap `<CoarTreeNodeLabel>` to an `<input>`; commit on
+   * Enter / blur fires `onRename`, Escape / empty fires `onRenameCancel`.
+   */
+  renamable(b: MaybeRefOrGetter<boolean>): this {
+    this.state.renamable = b;
+    return this;
+  }
+
+  /**
    * Selection behavior: `'single'` (default), `'multiple'` (Ctrl/Shift/Ctrl+A on
    * `selectedIds`), or `'checkbox'` (per-row tri-state checkbox on `checkedIds`,
    * independent of the highlight selection). See {@link CoarTreeSelectionMode}.
@@ -435,6 +453,18 @@ export class TreeBuilder<T> {
   /** Fires when OS files are dropped onto a folder or the empty background. */
   onFilesDrop(h: (e: CoarTreeFilesDropEvent<T>) => void): this {
     this.state.onFilesDrop = h;
+    return this;
+  }
+
+  /** Fires when an inline rename is committed (Enter / blur with a non-empty name). */
+  onRename(h: (e: CoarTreeRenameEvent<T>) => void): this {
+    this.state.onRename = h;
+    return this;
+  }
+
+  /** Fires when an inline rename is cancelled (Escape, or committed empty). */
+  onRenameCancel(h: (node: T) => void): this {
+    this.state.onRenameCancel = h;
     return this;
   }
 
