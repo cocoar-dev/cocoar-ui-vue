@@ -102,4 +102,29 @@ describe('CoarTree a11y / i18n', () => {
     const empty = wrapper.find('.coar-tree__empty');
     expect(empty.attributes('tabindex')).toBe('0');
   });
+
+  it('applies the density class to the root', () => {
+    const W = defineComponent({
+      setup: () => () =>
+        h(
+          CoarTree,
+          { nodes: [{ id: 'x', name: 'X' }], getId: (n: DemoNode) => n.id, density: 's' },
+          { default: ({ node }: { node: DemoNode }) => h('span', null, node.name) },
+        ),
+    });
+    const wrapper = mount(W, { attachTo: document.body });
+    expect(wrapper.find('.coar-tree').classes()).toContain('coar-tree--density-s');
+    // default is 'm'
+    const W2 = defineComponent({
+      setup: () => () =>
+        h(
+          CoarTree,
+          { nodes: [{ id: 'x', name: 'X' }], getId: (n: DemoNode) => n.id },
+          { default: ({ node }: { node: DemoNode }) => h('span', null, node.name) },
+        ),
+    });
+    expect(mount(W2, { attachTo: document.body }).find('.coar-tree').classes()).toContain(
+      'coar-tree--density-m',
+    );
+  });
 });

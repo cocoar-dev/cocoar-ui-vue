@@ -47,6 +47,7 @@ import {
   COAR_TREE_RENAME_KEY,
   COAR_TREE_ROW_STATE_KEY,
   DEFAULT_TREE_LABELS,
+  type CoarTreeDensity,
   type CoarTreeDropPosition,
   type CoarTreeFilesDropEvent,
   type CoarTreeLabels,
@@ -110,6 +111,8 @@ const props = withDefaults(
      * nothing is ever indeterminate. Default `false` (cascade + tri-state).
      */
     checkStrictly?: boolean;
+    /** Row density (`xs`/`s`/`m`/`l`, default `m`). Sets the spacing CSS variables. */
+    density?: CoarTreeDensity;
     /** Accessible name for the tree (`aria-label` on the `role="tree"` element). */
     ariaLabel?: string;
     /** Id of an external label element (`aria-labelledby` on the `role="tree"` element). */
@@ -154,6 +157,7 @@ const props = withDefaults(
     virtualize: false,
     selectionMode: 'single',
     checkStrictly: false,
+    density: 'm',
     ariaLabel: undefined,
     ariaLabelledby: undefined,
     labels: undefined,
@@ -291,6 +295,7 @@ const cfg = computed(() => {
       renamable: toValue(s.renamable),
       selectionMode: toValue(s.selectionMode),
       checkStrictly: toValue(s.checkStrictly),
+      density: toValue(s.density),
       ariaLabel: toValue(s.ariaLabel),
       ariaLabelledby: toValue(s.ariaLabelledby),
       labels: toValue(s.labels),
@@ -317,6 +322,7 @@ const cfg = computed(() => {
     renamable: props.renamable,
     selectionMode: props.selectionMode,
     checkStrictly: props.checkStrictly,
+    density: props.density,
     ariaLabel: props.ariaLabel,
     ariaLabelledby: props.ariaLabelledby,
     labels: props.labels,
@@ -1716,10 +1722,13 @@ defineExpose({
   <div
     ref="rootEl"
     class="coar-tree"
-    :class="{
-      'coar-tree--file-drop': rootFileDragDepth > 0 && !fileDropTargetId,
-      'coar-tree--virtual': isVirtual,
-    }"
+    :class="[
+      `coar-tree--density-${cfg.density ?? 'm'}`,
+      {
+        'coar-tree--file-drop': rootFileDragDepth > 0 && !fileDropTargetId,
+        'coar-tree--virtual': isVirtual,
+      },
+    ]"
     tabindex="-1"
     @keydown="onRootKeydown"
     @contextmenu="onBackgroundContextMenu"
@@ -1806,6 +1815,12 @@ defineExpose({
 
 <style scoped>
 .coar-tree {
+  /* Spacing tokens — override these to retheme density/indent without forking.
+     `density` presets just set them; consumers can set them inline too. */
+  --coar-tree-indent: 14px;
+  --coar-tree-indent-base: 8px;
+  --coar-tree-row-pad-y: 3px;
+  --coar-tree-row-pad-x: 4px;
   position: relative;
   outline: none;
   display: flex;
@@ -1825,6 +1840,23 @@ defineExpose({
      wrapper. */
   min-height: 100%;
   box-sizing: border-box;
+}
+
+/* Density presets — set the spacing vars; `m` keeps the historical ~28px row. */
+.coar-tree--density-xs {
+  --coar-tree-indent: 12px;
+  --coar-tree-row-pad-y: 1px;
+  --coar-tree-row-font: 12px;
+}
+.coar-tree--density-s {
+  --coar-tree-indent: 12px;
+  --coar-tree-row-pad-y: 2px;
+  --coar-tree-row-font: 12px;
+}
+.coar-tree--density-l {
+  --coar-tree-indent: 16px;
+  --coar-tree-row-pad-y: 6px;
+  --coar-tree-row-font: 14px;
 }
 
 .coar-tree__scroll {

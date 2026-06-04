@@ -22,6 +22,7 @@ import {
   shallowReactive,
 } from 'vue';
 import type {
+  CoarTreeDensity,
   CoarTreeDropPosition,
   CoarTreeFilesDropEvent,
   CoarTreeLabels,
@@ -60,6 +61,7 @@ export interface TreeBuilderState<T> {
   selectionMode: MaybeRefOrGetter<CoarTreeSelectionMode>;
   /** Checkbox-mode only: independent parent/child checks, no cascade / indeterminate. */
   checkStrictly: MaybeRefOrGetter<boolean>;
+  density: MaybeRefOrGetter<CoarTreeDensity>;
   ariaLabel: MaybeRefOrGetter<string | undefined>;
   ariaLabelledby: MaybeRefOrGetter<string | undefined>;
   labels: MaybeRefOrGetter<Partial<CoarTreeLabels> | undefined>;
@@ -231,6 +233,7 @@ export class TreeBuilder<T> {
       onRenameCancel: undefined,
       selectionMode: 'single',
       checkStrictly: false,
+      density: 'm',
       ariaLabel: undefined,
       ariaLabelledby: undefined,
       labels: undefined,
@@ -403,6 +406,12 @@ export class TreeBuilder<T> {
    */
   checkStrictly(b: MaybeRefOrGetter<boolean>): this {
     this.state.checkStrictly = b;
+    return this;
+  }
+
+  /** Row density (`xs`/`s`/`m`/`l`, default `m`). Sets the spacing CSS variables. */
+  density(d: MaybeRefOrGetter<CoarTreeDensity>): this {
+    this.state.density = d;
     return this;
   }
 

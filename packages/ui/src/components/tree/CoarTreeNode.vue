@@ -124,7 +124,9 @@ function onChevron(e: MouseEvent) {
       'coar-tree-node__row--drop-inside': dropIndicator === 'inside',
       'coar-tree-node__row--file-drop': fileDropActive,
     }"
-    :style="{ paddingLeft: `${depth * 14 + 8}px` }"
+    :style="{
+      paddingLeft: `calc(var(--coar-tree-indent-base, 8px) + ${depth} * var(--coar-tree-indent, 14px))`,
+    }"
     role="treeitem"
     :aria-expanded="isExpandable ? isExpanded : undefined"
     :aria-selected="isSelected"
@@ -198,8 +200,9 @@ function onChevron(e: MouseEvent) {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 4px 3px 0;
-  font-size: var(--coar-body-small-base-size, 13px);
+  padding: var(--coar-tree-row-pad-y, 3px) var(--coar-tree-row-pad-x, 4px)
+    var(--coar-tree-row-pad-y, 3px) 0;
+  font-size: var(--coar-tree-row-font, var(--coar-body-small-base-size, 13px));
   cursor: pointer;
   user-select: none;
   outline: none;

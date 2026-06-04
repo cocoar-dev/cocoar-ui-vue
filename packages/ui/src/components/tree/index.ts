@@ -1,6 +1,7 @@
 export { default as CoarTree } from './CoarTree.vue';
 export { default as CoarTreeNodeLabel } from './CoarTreeNodeLabel.vue';
 export type {
+  CoarTreeDensity,
   CoarTreeDropPosition,
   CoarTreeFilesDropEvent,
   CoarTreeLabels,

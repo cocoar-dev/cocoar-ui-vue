@@ -11,6 +11,14 @@
 export type CoarTreeDropPosition = 'before' | 'inside' | 'after';
 
 /**
+ * Row density. Sets the `--coar-tree-row-pad-y`, `--coar-tree-indent` and
+ * `--coar-tree-row-font` CSS variables; `'m'` (default) is the historical
+ * ~28px row. When virtualizing, set `virtualize.itemSize` to match the chosen
+ * density's row height.
+ */
+export type CoarTreeDensity = 'xs' | 's' | 'm' | 'l';
+
+/**
  * Overridable UI / screen-reader strings, for i18n. All optional in the `labels`
  * prop — unset fields fall back to the English defaults. Static fields
  * (`expand`/`collapse`/`loading`) label always-rendered controls; the function
