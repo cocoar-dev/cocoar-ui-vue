@@ -353,7 +353,7 @@ describe('CoarTree', () => {
     });
 
     it('honors canDrop: a false verdict rejects the move and receives (source,target,position)', async () => {
-      const canDrop = vi.fn((_s: DemoNode, _t: DemoNode | null, _p: string) => false);
+      const canDrop = vi.fn(() => false);
       const nodeMove = ref<CoarTreeNodeMoveEvent<DemoNode> | null>(null);
       const expandedRef = ref(new Set<string>(['a']));
       const Wrapper = defineComponent({
@@ -380,9 +380,11 @@ describe('CoarTree', () => {
       await wrapper.find('[data-node-id="c"]').trigger('dragstart', { dataTransfer: dt });
       await wrapper.find('[data-node-id="a1"]').trigger('dragover', { dataTransfer: dt });
       await wrapper.find('[data-node-id="a1"]').trigger('drop', { dataTransfer: dt });
-      expect(canDrop).toHaveBeenCalled();
-      expect(canDrop.mock.calls[0][0]).toMatchObject({ id: 'c' }); // source
-      expect(canDrop.mock.calls[0][1]).toMatchObject({ id: 'a1' }); // target
+      expect(canDrop).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'c' }), // source
+        expect.objectContaining({ id: 'a1' }), // target
+        expect.any(String), // position
+      );
       expect(nodeMove.value).toBeNull(); // rejected
     });
 
