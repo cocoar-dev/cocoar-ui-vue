@@ -68,6 +68,13 @@ export interface CoarTreeNodeSlotProps<T> {
   isFocused: boolean;
   isExpandable: boolean;
   /**
+   * True if `isDisabled(node)` returned true — the row is non-interactive
+   * (no select / activate / direct check-toggle, skipped by keyboard focus and
+   * type-ahead) and rendered `aria-disabled`. Cascade from a checked ancestor
+   * still flows through it.
+   */
+  isDisabled: boolean;
+  /**
    * True while THIS row is in inline-rename mode (only meaningful when
    * `<CoarTree :renamable>` is on). Useful for hiding hover-actions etc.
    * while the user is typing the new name.

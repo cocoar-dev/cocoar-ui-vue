@@ -76,6 +76,8 @@ const props = withDefaults(
     getChildren?: (node: T) => readonly T[] | null | undefined;
     getLabel?: (node: T) => string;
     isExpandable?: (node: T) => boolean;
+    /** Mark nodes non-interactive (no select/activate/check/keyboard-focus; `aria-disabled`). */
+    isDisabled?: (node: T) => boolean;
     /** Lazily fetch a node's children on first expand. See the builder's `loadChildren`. */
     loadChildren?: (node: T) => void | Promise<void>;
     draggable?: boolean | ((node: T) => boolean);
@@ -116,6 +118,7 @@ const props = withDefaults(
     getChildren: undefined,
     getLabel: undefined,
     isExpandable: undefined,
+    isDisabled: undefined,
     loadChildren: undefined,
     draggable: false,
     canDrop: undefined,
@@ -239,6 +242,7 @@ const cfg = computed(() => {
       getChildren: s.getChildren,
       getLabel: s.getLabel,
       isExpandable: s.isExpandable,
+      isDisabled: s.isDisabled,
       loadChildren: s.loadChildren,
       draggable: toValue(s.draggable),
       canDrop: s.canDrop,
@@ -258,6 +262,7 @@ const cfg = computed(() => {
     getChildren: props.getChildren,
     getLabel: props.getLabel,
     isExpandable: props.isExpandable,
+    isDisabled: props.isDisabled,
     loadChildren: props.loadChildren,
     draggable: props.draggable,
     canDrop: props.canDrop,
@@ -375,9 +380,13 @@ const indeterminateIds = computed<ReadonlySet<string>>(() =>
     ? computeIndeterminate(checkedStore.value, loadedIndex.value)
     : EMPTY_SET,
 );
-// Disabled-node set is wired in a later batch; an empty set keeps the row-state
-// contract stable until then.
-const disabledIds = computed<ReadonlySet<string>>(() => EMPTY_SET);
+// Disabled ids among the visible rows (only visible rows render / take focus).
+const disabledIds = computed<ReadonlySet<string>>(() => {
+  if (!cfg.value.isDisabled) return EMPTY_SET;
+  const s = new Set<string>();
+  for (const row of visibleRows.value) if (isDisabledOf(row.node)) s.add(row.id);
+  return s;
+});
 
 // Lazy inheritance: when children load under a checked folder, propagate the check
 // down to them. `reconcileChecked` only ADDS inherited descendants, so it's safe to
@@ -397,12 +406,16 @@ function isExpandableOf(node: T): boolean {
   return Array.isArray(getChildren(node));
 }
 function isDraggableOf(node: T): boolean {
+  if (isDisabledOf(node)) return false;
   const d = cfg.value.draggable;
   if (typeof d === 'function') return d(node);
   return !!d;
 }
 function getChildrenOf(node: T): readonly T[] | null | undefined {
   return cfg.value.getChildren ? cfg.value.getChildren(node) : undefined;
+}
+function isDisabledOf(node: T): boolean {
+  return cfg.value.isDisabled ? cfg.value.isDisabled(node) : false;
 }
 
 // ─── flat visible-row list ─────────────────────────────────────────────────
@@ -725,7 +738,7 @@ const selectionAnchorId = ref<string | null>(null);
  * single mode, `selectedIds` otherwise.
  */
 function selectNode(node: T | null) {
-  if (!node) return;
+  if (!node || isDisabledOf(node)) return;
   const id = cfg.value.getId(node);
   if (selMode.value === 'single') selectedStore.value = id;
   else selectedIdsStore.value = new Set([id]);
@@ -735,6 +748,7 @@ function selectNode(node: T | null) {
 
 /** Click-driven selection honoring Ctrl/Cmd-toggle and Shift-range in multi modes. */
 function handleRowSelect(node: T, ev: MouseEvent) {
+  if (isDisabledOf(node)) return;
   const id = cfg.value.getId(node);
   if (!multiSelect.value) {
     selectNode(node);
@@ -777,7 +791,7 @@ function extendSelectionTo(id: string) {
 
 /** Toggle a row's checkbox (checkbox mode). Cascades unless `checkStrictly`. */
 function toggleCheck(node: T, value?: boolean) {
-  if (!checkboxMode.value) return;
+  if (!checkboxMode.value || isDisabledOf(node)) return;
   const id = cfg.value.getId(node);
   const target = value ?? !checkedStore.value.has(id);
   if (strictCheck.value) {
@@ -821,6 +835,7 @@ function onChevron(node: T) {
   toggleExpand(node);
 }
 function fireActivate(node: T) {
+  if (isDisabledOf(node)) return;
   emit('activate', node);
   props.builder?.state.onActivate?.(node);
 }
@@ -913,10 +928,28 @@ function findByTypeAhead(): T | null {
   const startIdx = focusedId.value ? (idToIndex.value.get(focusedId.value) ?? -1) : -1;
   for (let i = 1; i <= list.length; i++) {
     const candidate = list[(startIdx + i) % list.length].node;
+    if (isDisabledOf(candidate)) continue;
     const label = getLabel(candidate).toLowerCase();
     if (label.startsWith(typeBuffer.value)) return candidate;
   }
   return null;
+}
+
+/** Nearest enabled row index from `from` walking in `dir`, or `from` if none. */
+function nextEnabledIndex(from: number, dir: 1 | -1): number {
+  const list = visibleRows.value;
+  for (let i = from + dir; i >= 0 && i < list.length; i += dir) {
+    if (!isDisabledOf(list[i].node)) return i;
+  }
+  return from;
+}
+/** First (dir 1) or last (dir -1) enabled row index, or -1 if all disabled. */
+function edgeEnabledIndex(dir: 1 | -1): number {
+  const list = visibleRows.value;
+  for (let i = dir === 1 ? 0 : list.length - 1; i >= 0 && i < list.length; i += dir) {
+    if (!isDisabledOf(list[i].node)) return i;
+  }
+  return -1;
 }
 
 function onRootKeydown(ev: KeyboardEvent) {
@@ -940,21 +973,22 @@ function onRootKeydown(ev: KeyboardEvent) {
   // Ctrl/Cmd+A → select every visible row (multiple / checkbox highlight).
   if ((ev.ctrlKey || ev.metaKey) && (ev.key === 'a' || ev.key === 'A') && multiSelect.value) {
     ev.preventDefault();
-    selectedIdsStore.value = new Set(list.map((r) => r.id));
+    selectedIdsStore.value = new Set(list.filter((r) => !isDisabledOf(r.node)).map((r) => r.id));
     return;
   }
 
   switch (ev.key) {
     case 'ArrowDown': {
       ev.preventDefault();
-      const next = list[Math.min(list.length - 1, currentIdx + 1)] ?? list[0];
+      const next = list[nextEnabledIndex(currentIdx, 1)] ?? list[currentIdx] ?? list[0];
       if (ev.shiftKey && multiSelect.value) extendSelectionTo(next.id);
       focusRow(next.id);
       return;
     }
     case 'ArrowUp': {
       ev.preventDefault();
-      const next = list[Math.max(0, currentIdx - 1)] ?? list[0];
+      const from = currentIdx < 0 ? list.length : currentIdx;
+      const next = list[nextEnabledIndex(from, -1)] ?? list[currentIdx] ?? list[0];
       if (ev.shiftKey && multiSelect.value) extendSelectionTo(next.id);
       focusRow(next.id);
       return;
@@ -982,14 +1016,18 @@ function onRootKeydown(ev: KeyboardEvent) {
       }
       return;
     }
-    case 'Home':
+    case 'Home': {
       ev.preventDefault();
-      focusRow(list[0].id);
+      const i = edgeEnabledIndex(1);
+      if (i >= 0) focusRow(list[i].id);
       return;
-    case 'End':
+    }
+    case 'End': {
       ev.preventDefault();
-      focusRow(list[list.length - 1].id);
+      const i = edgeEnabledIndex(-1);
+      if (i >= 0) focusRow(list[i].id);
       return;
+    }
     case 'Enter':
       if (current) {
         ev.preventDefault();

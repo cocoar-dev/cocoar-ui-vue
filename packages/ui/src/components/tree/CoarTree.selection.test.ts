@@ -24,6 +24,7 @@ function makeWrapper(opts: {
   checkStrictly?: boolean;
   selectedIds?: Set<string>;
   checkedIds?: Set<string>;
+  isDisabled?: (n: DemoNode) => boolean;
 } = {}) {
   const expandedRef = ref(new Set<string>(['a', 'b']));
   const selectedIdsRef = ref(opts.selectedIds ?? new Set<string>());
@@ -40,6 +41,7 @@ function makeWrapper(opts: {
           getChildren: (n: DemoNode) => n.children,
           getLabel: (n: DemoNode) => n.name,
           isExpandable: (n: DemoNode) => !!n.children,
+          isDisabled: opts.isDisabled,
           selectionMode: opts.selectionMode ?? 'single',
           checkStrictly: opts.checkStrictly ?? false,
           expanded: expandedRef.value,
@@ -159,6 +161,43 @@ describe('CoarTree selection', () => {
       await nextTick();
       expect(checkedIdsRef.value.has('c')).toBe(true);
       expect(wrapper.find('[data-node-id="c"]').attributes('aria-checked')).toBe('true');
+    });
+  });
+
+  describe('disabled nodes', () => {
+    const disable = (ids: string[]) => (n: DemoNode) => ids.includes(n.id);
+
+    it('renders aria-disabled and ignores clicks on a disabled row', async () => {
+      const { wrapper, selectedRef, clickRow } = makeWrapper({ isDisabled: disable(['a1']) });
+      expect(wrapper.find('[data-node-id="a1"]').attributes('aria-disabled')).toBe('true');
+      await clickRow('a1');
+      expect(selectedRef.value).toBeNull();
+    });
+
+    it('skips a disabled row during keyboard navigation', async () => {
+      const { wrapper, clickRow, keydown } = makeWrapper({ isDisabled: disable(['a1']) });
+      await clickRow('a'); // focus a (visible order a,a1,a2,b,b1,c)
+      await keydown({ key: 'ArrowDown' }); // a1 disabled → lands on a2
+      expect(wrapper.find('[data-node-id="a2"]').attributes('tabindex')).toBe('0');
+    });
+
+    it('omits a disabled row from Ctrl+A', async () => {
+      const { selectedIdsRef, keydown } = makeWrapper({
+        selectionMode: 'multiple',
+        isDisabled: disable(['a1']),
+      });
+      await keydown({ key: 'a', ctrlKey: true });
+      expect(selectedIdsRef.value.has('a1')).toBe(false);
+      expect(selectedIdsRef.value.has('a2')).toBe(true);
+    });
+
+    it('does not check a disabled row directly', async () => {
+      const { checkedIdsRef, clickCheckbox } = makeWrapper({
+        selectionMode: 'checkbox',
+        isDisabled: disable(['a1']),
+      });
+      await clickCheckbox('a1');
+      expect(checkedIdsRef.value.size).toBe(0);
     });
   });
 });

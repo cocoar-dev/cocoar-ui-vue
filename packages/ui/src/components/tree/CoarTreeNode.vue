@@ -49,6 +49,7 @@ const isSelected = computed(() => rowState.selectedIds.value.has(props.nodeId));
 const isChecked = computed(() => rowState.checkedIds.value.has(props.nodeId));
 const isIndeterminate = computed(() => rowState.indeterminateIds.value.has(props.nodeId));
 const checkboxMode = computed(() => rowState.checkboxMode.value);
+const isDisabled = computed(() => rowState.disabledIds.value.has(props.nodeId));
 const isFocused = computed(() => rowState.focusedId.value === props.nodeId);
 const isRenaming = computed(() => rowState.renamingId.value === props.nodeId);
 const dropIndicator = computed<CoarTreeDropPosition | null>(() =>
@@ -92,6 +93,7 @@ const slotProps = computed<CoarTreeNodeSlotProps<T>>(() => ({
   isIndeterminate: isIndeterminate.value,
   isFocused: isFocused.value,
   isExpandable: props.isExpandable,
+  isDisabled: isDisabled.value,
   isRenaming: isRenaming.value,
   isLoading: isLoading.value,
   hasError: hasError.value,
@@ -114,6 +116,7 @@ function onChevron(e: MouseEvent) {
     :class="{
       'coar-tree-node__row--selected': isSelected,
       'coar-tree-node__row--focused': isFocused,
+      'coar-tree-node__row--disabled': isDisabled,
       'coar-tree-node__row--drop-inside': dropIndicator === 'inside',
       'coar-tree-node__row--file-drop': fileDropActive,
     }"
@@ -121,6 +124,7 @@ function onChevron(e: MouseEvent) {
     role="treeitem"
     :aria-expanded="isExpandable ? isExpanded : undefined"
     :aria-selected="isSelected"
+    :aria-disabled="isDisabled ? 'true' : undefined"
     :aria-checked="checkboxMode ? (isIndeterminate ? 'mixed' : isChecked) : undefined"
     :aria-level="depth + 1"
     :aria-posinset="posInSet"
@@ -215,6 +219,13 @@ function onChevron(e: MouseEvent) {
 .coar-tree-node__row--focused {
   /* Visual focus uses focus-visible above; the class is held for future
      keyboard-focus-without-:focus-visible UX (e.g. type-ahead). */
+}
+.coar-tree-node__row--disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.coar-tree-node__row--disabled:hover {
+  background: transparent;
 }
 .coar-tree-node__row--drop-inside,
 .coar-tree-node__row--file-drop {

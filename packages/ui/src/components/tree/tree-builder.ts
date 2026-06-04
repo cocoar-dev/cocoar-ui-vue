@@ -42,6 +42,7 @@ export interface TreeBuilderState<T> {
   getChildren?: (n: T) => readonly T[] | null | undefined;
   getLabel?: (n: T) => string;
   isExpandable?: (n: T) => boolean;
+  isDisabled?: (n: T) => boolean;
   draggable: MaybeRefOrGetter<boolean | ((n: T) => boolean)>;
   canDrop?: (s: T, t: T | null, p: CoarTreeDropPosition) => boolean;
   acceptsFiles: MaybeRefOrGetter<boolean>;
@@ -150,6 +151,7 @@ export class TreeBuilder<T> {
       getChildren: undefined,
       getLabel: undefined,
       isExpandable: undefined,
+      isDisabled: undefined,
       draggable: false,
       canDrop: undefined,
       acceptsFiles: false,
@@ -208,6 +210,16 @@ export class TreeBuilder<T> {
    */
   isExpandable(fn: (n: T) => boolean): this {
     this.state.isExpandable = fn;
+    return this;
+  }
+
+  /**
+   * Mark nodes as non-interactive: disabled rows can't be selected, activated,
+   * directly checked, focused by keyboard, or matched by type-ahead, and render
+   * `aria-disabled`. (Cascade from a checked ancestor still includes them.)
+   */
+  isDisabled(fn: (n: T) => boolean): this {
+    this.state.isDisabled = fn;
     return this;
   }
 
