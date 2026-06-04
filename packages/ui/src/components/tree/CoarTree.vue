@@ -40,6 +40,7 @@ import CoarMenuDivider from '../menu/CoarMenuDivider.vue';
 import CoarContextMenu from '../menu/CoarContextMenu.vue';
 import { useContextMenu } from '../menu/useContextMenu';
 import { useVirtualList } from '../../composables/useVirtualList';
+import { setCoarDragImageFromElement, setCoarDragImageFromHtml } from '../../composables/useDragImage';
 import { computeDropPosition, isFileDrag } from './tree-dnd';
 import {
   COAR_TREE_DRAG_MIME,
@@ -97,6 +98,10 @@ const props = withDefaults(
     maxConcurrentLoads?: number;
     draggable?: boolean | ((node: T) => boolean);
     canDrop?: (source: T, target: T | null, position: CoarTreeDropPosition) => boolean;
+    /** Custom drag ghost for a node: return an `HTMLElement` or an HTML string (else the default row image). */
+    getDragImage?: (node: T) => HTMLElement | string | null | undefined;
+    /** Fire `activate` on a single click too (not only double-click / Enter). Default false. */
+    activateOnClick?: boolean;
     acceptsFiles?: boolean;
     autoExpandDelay?: number;
     virtualize?: CoarTreeVirtualizeProp;
@@ -152,6 +157,8 @@ const props = withDefaults(
     maxConcurrentLoads: 0,
     draggable: false,
     canDrop: undefined,
+    getDragImage: undefined,
+    activateOnClick: false,
     acceptsFiles: false,
     autoExpandDelay: 700,
     virtualize: false,
@@ -288,6 +295,8 @@ const cfg = computed(() => {
       maxConcurrentLoads: toValue(s.maxConcurrentLoads),
       draggable: toValue(s.draggable),
       canDrop: s.canDrop,
+      getDragImage: s.getDragImage,
+      activateOnClick: toValue(s.activateOnClick),
       acceptsFiles: toValue(s.acceptsFiles),
       autoExpandDelay: toValue(s.autoExpandDelay),
       virtualize: toValue(s.virtualize),
@@ -315,6 +324,8 @@ const cfg = computed(() => {
     maxConcurrentLoads: props.maxConcurrentLoads,
     draggable: props.draggable,
     canDrop: props.canDrop,
+    getDragImage: props.getDragImage,
+    activateOnClick: props.activateOnClick,
     acceptsFiles: props.acceptsFiles,
     autoExpandDelay: props.autoExpandDelay,
     virtualize: props.virtualize,
@@ -1073,10 +1084,16 @@ function revealNode(id: string) {
 }
 
 function onRowClick(node: T, ev: MouseEvent) {
-  if (ev.button === 0) handleRowSelect(node, ev);
+  if (ev.button !== 0) return;
+  handleRowSelect(node, ev);
+  // Opt-in single-click activation (no modifier — Ctrl/Shift are multi-select gestures).
+  if (cfg.value.activateOnClick && !ev.ctrlKey && !ev.metaKey && !ev.shiftKey) fireActivate(node);
 }
 function onRowCheckToggle(node: T) {
   toggleCheck(node);
+}
+function onRowRetry(node: T) {
+  reloadChildren(cfg.value.getId(node));
 }
 function onRowDblClick(node: T) {
   fireActivate(node);
@@ -1530,6 +1547,9 @@ function onRowDragStart(node: T, ev: DragEvent) {
   ev.dataTransfer?.setData(COAR_TREE_DRAG_MIME, id);
   ev.dataTransfer?.setData('text/plain', cfg.value.getLabel?.(node) ?? id);
   if (ev.dataTransfer) ev.dataTransfer.effectAllowed = 'move';
+  const ghost = cfg.value.getDragImage?.(node);
+  if (ghost instanceof HTMLElement) setCoarDragImageFromElement(ev, ghost);
+  else if (typeof ghost === 'string') setCoarDragImageFromHtml(ev, ghost);
   announce(resolvedLabels.value.pickedUp(labelOf(node)));
 }
 function onRowDragEnd() {
@@ -1775,6 +1795,7 @@ defineExpose({
           @row-dblclick="onRowDblClick"
           @row-context-menu="onRowContextMenu"
           @row-check-toggle="onRowCheckToggle"
+          @row-retry="onRowRetry"
           @chevron-click="onChevron"
           @row-dragstart="onRowDragStart"
           @row-dragend="onRowDragEnd"

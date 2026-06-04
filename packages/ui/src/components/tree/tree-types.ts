@@ -31,6 +31,8 @@ export interface CoarTreeLabels {
   collapse: string;
   /** Spinner label while a node's children load. Default `'Loading children'`. */
   loading: string;
+  /** Retry button label on a node whose lazy load failed. Default `'Retry'`. */
+  retry: string;
   /** Announced when a lazy load starts. */
   loadingNode: (label: string) => string;
   /** Announced when a lazy load fails. */
@@ -50,6 +52,7 @@ export const DEFAULT_TREE_LABELS: CoarTreeLabels = {
   expand: 'Expand',
   collapse: 'Collapse',
   loading: 'Loading children',
+  retry: 'Retry',
   loadingNode: (l) => `Loading ${l}…`,
   loadError: (l) => `Failed to load ${l}.`,
   pickedUp: (l) => `Picked up ${l}. Move to a row, then Ctrl+V to drop or Escape to cancel.`,

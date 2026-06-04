@@ -106,4 +106,19 @@ describe('CoarTree lazy hardening', () => {
     await flushPromises();
     expect(errors).toEqual(['f1']);
   });
+
+  it('shows a built-in retry affordance on error and reloads when clicked', async () => {
+    const { wrapper, expanded, calls } = makeWrapper();
+    expanded.value = new Set(['f1']);
+    await nextTick();
+    calls[0].deferred.reject(new Error('boom'));
+    await flushPromises();
+    await nextTick();
+    const chevron = wrapper.find('[data-node-id="f1"] .coar-tree-node__chevron');
+    expect(chevron.classes()).toContain('coar-tree-node__chevron--error');
+    expect(chevron.attributes('aria-label')).toBe('Retry');
+    await chevron.trigger('click');
+    await nextTick();
+    expect(calls).toHaveLength(2); // reload triggered
+  });
 });

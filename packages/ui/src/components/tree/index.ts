@@ -15,6 +15,8 @@ export type {
   CoarTreeSelectionMode,
   CoarTreeMenuItem,
   CoarTreeMenuEntry,
+  CoarTreeVirtualizeProp,
+  CoarTreeVirtualOptions,
 } from './tree-types';
 export {
   COAR_TREE_DRAG_MIME,

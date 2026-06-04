@@ -50,6 +50,8 @@ export interface TreeBuilderState<T> {
   isDisabled?: (n: T) => boolean;
   draggable: MaybeRefOrGetter<boolean | ((n: T) => boolean)>;
   canDrop?: (s: T, t: T | null, p: CoarTreeDropPosition) => boolean;
+  getDragImage?: (n: T) => HTMLElement | string | null | undefined;
+  activateOnClick: MaybeRefOrGetter<boolean>;
   acceptsFiles: MaybeRefOrGetter<boolean>;
   autoExpandDelay: MaybeRefOrGetter<number>;
   virtualize: MaybeRefOrGetter<CoarTreeVirtualizeProp>;
@@ -224,6 +226,8 @@ export class TreeBuilder<T> {
       isDisabled: undefined,
       draggable: false,
       canDrop: undefined,
+      getDragImage: undefined,
+      activateOnClick: false,
       acceptsFiles: false,
       autoExpandDelay: 700,
       virtualize: false,
@@ -341,8 +345,27 @@ export class TreeBuilder<T> {
     return this;
   }
 
+  /**
+   * Veto drops. Return `false` to disallow dropping `source` at `position`
+   * relative to `target` (`null` target = the root background). Advisory: `source`
+   * is the dragstart snapshot (not re-resolved per `dragover`), so read identity,
+   * not mutable fields. Integrity (no node into its own descendant) is always
+   * guaranteed by the built-in cycle guard regardless of what `canDrop` returns.
+   */
   canDrop(fn: (source: T, target: T | null, position: CoarTreeDropPosition) => boolean): this {
     this.state.canDrop = fn;
+    return this;
+  }
+
+  /** Custom drag ghost for a node: return an `HTMLElement` or HTML string (else the default row image). */
+  getDragImage(fn: (n: T) => HTMLElement | string | null | undefined): this {
+    this.state.getDragImage = fn;
+    return this;
+  }
+
+  /** Fire `onActivate` on a single click too (not only double-click / Enter). Default false. */
+  activateOnClick(b: MaybeRefOrGetter<boolean>): this {
+    this.state.activateOnClick = b;
     return this;
   }
 

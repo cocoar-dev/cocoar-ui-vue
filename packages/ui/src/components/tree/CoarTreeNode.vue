@@ -60,14 +60,19 @@ const dropIndicator = computed<CoarTreeDropPosition | null>(() =>
 const fileDropActive = computed(() => rowState.fileDropTargetId.value === props.nodeId);
 const isLoading = computed(() => rowState.loadingIds.value.has(props.nodeId));
 const hasError = computed(() => rowState.erroredIds.value.has(props.nodeId));
-// Built-in chevron spinner is suppressed when the consumer renders its own from `isLoading`.
+// Built-in chevron spinner / error-retry are suppressed when the consumer renders
+// its own affordances (from `isLoading` / `hasError`) via `hideLoadingSpinner`.
 const showChevronSpinner = computed(() => isLoading.value && !rowState.hideLoadingSpinner.value);
+const showChevronError = computed(
+  () => hasError.value && !isLoading.value && !rowState.hideLoadingSpinner.value,
+);
 
 const emit = defineEmits<{
   (e: 'row-click', node: T, ev: MouseEvent): void;
   (e: 'row-dblclick', node: T, ev: MouseEvent): void;
   (e: 'row-context-menu', node: T, ev: MouseEvent): void;
   (e: 'row-check-toggle', node: T): void;
+  (e: 'row-retry', node: T): void;
   (e: 'chevron-click', node: T): void;
   (e: 'row-dragstart', node: T, ev: DragEvent): void;
   (e: 'row-dragend', node: T): void;
@@ -109,7 +114,8 @@ function renderRow() {
 
 function onChevron(e: MouseEvent) {
   e.stopPropagation();
-  emit('chevron-click', props.node);
+  if (showChevronError.value) emit('row-retry', props.node);
+  else emit('chevron-click', props.node);
 }
 </script>
 
@@ -161,11 +167,19 @@ function onChevron(e: MouseEvent) {
       v-if="isExpandable"
       type="button"
       class="coar-tree-node__chevron"
+      :class="{ 'coar-tree-node__chevron--error': showChevronError }"
       tabindex="-1"
-      :aria-label="isExpanded ? rowState.labels.value.collapse : rowState.labels.value.expand"
+      :aria-label="
+        showChevronError
+          ? rowState.labels.value.retry
+          : isExpanded
+            ? rowState.labels.value.collapse
+            : rowState.labels.value.expand
+      "
       @click="onChevron"
     >
       <CoarSpinner v-if="showChevronSpinner" size="xs" :label="rowState.labels.value.loading" />
+      <CoarIcon v-else-if="showChevronError" name="rotate-ccw" size="xs" />
       <CoarIcon v-else :name="isExpanded ? 'chevron-down' : 'chevron-right'" size="xs" />
     </button>
     <span v-else class="coar-tree-node__chevron-spacer" aria-hidden="true" />
@@ -269,6 +283,9 @@ function onChevron(e: MouseEvent) {
 }
 .coar-tree-node__chevron:hover {
   color: var(--coar-text-neutral-primary);
+}
+.coar-tree-node__chevron--error {
+  color: var(--coar-text-semantic-error-bold, #dc2626);
 }
 .coar-tree-node__chevron-spacer {
   display: inline-block;
