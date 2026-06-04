@@ -11,9 +11,11 @@
  */
 import { computed, inject, provide, ref } from 'vue';
 import CoarIcon from '../icon/CoarIcon.vue';
+import CoarSpinner from '../spinner/CoarSpinner.vue';
 import {
   COAR_TREE_NODE_SLOT_KEY,
   COAR_TREE_ROW_ID_KEY,
+  COAR_TREE_ROW_STATE_KEY,
   type CoarTreeDropPosition,
   type CoarTreeNodeSlotProps,
 } from './tree-types';
@@ -23,17 +25,9 @@ const props = defineProps<{
   nodeId: string;
   depth: number;
   isExpandable: boolean;
-  isExpanded: boolean;
-  isSelected: boolean;
-  isFocused: boolean;
-  isRenaming: boolean;
   draggable: boolean;
   posInSet: number;
   setSize: number;
-  /** Drop-position indicator when an internal drag is over this row. */
-  dropIndicator: CoarTreeDropPosition | null;
-  /** Whole-row highlight when an OS file drag is over this folder. */
-  fileDropActive: boolean;
 }>();
 
 // Provide our row id so descendant row-helpers (e.g. CoarTreeNodeLabel)
@@ -41,10 +35,44 @@ const props = defineProps<{
 // consumer's default slot.
 provide(COAR_TREE_ROW_ID_KEY, props.nodeId);
 
+// Selection / focus / expand / rename / drop state is derived HERE from the
+// shared reactive refs <CoarTree> provides, keyed by this row's id — instead of
+// being passed down as props. A change to any of them re-renders only the rows
+// whose derived flag actually flips (Vue caches the computed and skips
+// dependents when its value is unchanged), not the whole list.
+const rowState = inject(COAR_TREE_ROW_STATE_KEY);
+if (!rowState) {
+  throw new Error('CoarTreeNode must be rendered inside a CoarTree.');
+}
+const isExpanded = computed(() => rowState.expandedIds.value.has(props.nodeId));
+const isSelected = computed(() => rowState.selectedIds.value.has(props.nodeId));
+const isChecked = computed(() => rowState.checkedIds.value.has(props.nodeId));
+const isIndeterminate = computed(() => rowState.indeterminateIds.value.has(props.nodeId));
+const checkboxMode = computed(() => rowState.checkboxMode.value);
+const isMatch = computed(() => rowState.matchedIds.value.has(props.nodeId));
+const isMatchAncestor = computed(() => rowState.matchAncestorIds.value.has(props.nodeId));
+const isDisabled = computed(() => rowState.disabledIds.value.has(props.nodeId));
+const isFocused = computed(() => rowState.focusedId.value === props.nodeId);
+const isRenaming = computed(() => rowState.renamingId.value === props.nodeId);
+const dropIndicator = computed<CoarTreeDropPosition | null>(() =>
+  rowState.dropTargetId.value === props.nodeId ? rowState.dropPosition.value : null,
+);
+const fileDropActive = computed(() => rowState.fileDropTargetId.value === props.nodeId);
+const isLoading = computed(() => rowState.loadingIds.value.has(props.nodeId));
+const hasError = computed(() => rowState.erroredIds.value.has(props.nodeId));
+// Built-in chevron spinner / error-retry are suppressed when the consumer renders
+// its own affordances (from `isLoading` / `hasError`) via `hideLoadingSpinner`.
+const showChevronSpinner = computed(() => isLoading.value && !rowState.hideLoadingSpinner.value);
+const showChevronError = computed(
+  () => hasError.value && !isLoading.value && !rowState.hideLoadingSpinner.value,
+);
+
 const emit = defineEmits<{
   (e: 'row-click', node: T, ev: MouseEvent): void;
   (e: 'row-dblclick', node: T, ev: MouseEvent): void;
   (e: 'row-context-menu', node: T, ev: MouseEvent): void;
+  (e: 'row-check-toggle', node: T): void;
+  (e: 'row-retry', node: T): void;
   (e: 'chevron-click', node: T): void;
   (e: 'row-dragstart', node: T, ev: DragEvent): void;
   (e: 'row-dragend', node: T): void;
@@ -54,6 +82,10 @@ const emit = defineEmits<{
 }>();
 
 const rowEl = ref<HTMLDivElement | null>(null);
+
+// Chevron / retry icon size tracks the density var (CoarIcon accepts a raw CSS
+// length, so the glyph scales with the row's controls). Fallback = the m default.
+const ICON_SIZE_VAR = 'var(--coar-tree-icon-size, 12px)';
 
 // The default-slot of `<CoarTree>` reaches us through injection — generic
 // `Slot<T>` doesn't compose cleanly with prop drilling in generic SFCs, and
@@ -66,11 +98,18 @@ if (!renderNode) {
 const slotProps = computed<CoarTreeNodeSlotProps<T>>(() => ({
   node: props.node,
   depth: props.depth,
-  isExpanded: props.isExpanded,
-  isSelected: props.isSelected,
-  isFocused: props.isFocused,
+  isExpanded: isExpanded.value,
+  isSelected: isSelected.value,
+  isChecked: isChecked.value,
+  isIndeterminate: isIndeterminate.value,
+  isFocused: isFocused.value,
   isExpandable: props.isExpandable,
-  isRenaming: props.isRenaming,
+  isMatch: isMatch.value,
+  isMatchAncestor: isMatchAncestor.value,
+  isDisabled: isDisabled.value,
+  isRenaming: isRenaming.value,
+  isLoading: isLoading.value,
+  hasError: hasError.value,
 }));
 
 function renderRow() {
@@ -79,7 +118,8 @@ function renderRow() {
 
 function onChevron(e: MouseEvent) {
   e.stopPropagation();
-  emit('chevron-click', props.node);
+  if (showChevronError.value) emit('row-retry', props.node);
+  else emit('chevron-click', props.node);
 }
 </script>
 
@@ -90,16 +130,22 @@ function onChevron(e: MouseEvent) {
     :class="{
       'coar-tree-node__row--selected': isSelected,
       'coar-tree-node__row--focused': isFocused,
+      'coar-tree-node__row--disabled': isDisabled,
       'coar-tree-node__row--drop-inside': dropIndicator === 'inside',
       'coar-tree-node__row--file-drop': fileDropActive,
     }"
-    :style="{ paddingLeft: `${depth * 14 + 8}px` }"
+    :style="{
+      paddingLeft: `calc(var(--coar-tree-indent-base, 8px) + ${depth} * var(--coar-tree-indent, 14px))`,
+    }"
     role="treeitem"
     :aria-expanded="isExpandable ? isExpanded : undefined"
     :aria-selected="isSelected"
+    :aria-disabled="isDisabled ? 'true' : undefined"
+    :aria-checked="checkboxMode ? (isIndeterminate ? 'mixed' : isChecked) : undefined"
     :aria-level="depth + 1"
     :aria-posinset="posInSet"
     :aria-setsize="setSize"
+    :aria-busy="isLoading ? 'true' : undefined"
     :tabindex="isFocused ? 0 : -1"
     :draggable="draggable"
     :data-node-id="nodeId"
@@ -125,13 +171,43 @@ function onChevron(e: MouseEvent) {
       v-if="isExpandable"
       type="button"
       class="coar-tree-node__chevron"
+      :class="{ 'coar-tree-node__chevron--error': showChevronError }"
       tabindex="-1"
-      :aria-label="isExpanded ? 'Collapse' : 'Expand'"
+      :aria-label="
+        showChevronError
+          ? rowState.labels.value.retry
+          : isExpanded
+            ? rowState.labels.value.collapse
+            : rowState.labels.value.expand
+      "
       @click="onChevron"
     >
-      <CoarIcon :name="isExpanded ? 'chevron-down' : 'chevron-right'" size="xs" />
+      <CoarSpinner v-if="showChevronSpinner" size="xs" :label="rowState.labels.value.loading" />
+      <CoarIcon v-else-if="showChevronError" name="rotate-ccw" :size="ICON_SIZE_VAR" />
+      <CoarIcon v-else :name="isExpanded ? 'chevron-down' : 'chevron-right'" :size="ICON_SIZE_VAR" />
     </button>
     <span v-else class="coar-tree-node__chevron-spacer" aria-hidden="true" />
+
+    <!-- Checkbox affordance. Decorative (aria-hidden) — semantics live on the
+         treeitem's aria-checked so we never nest a focusable widget in a row. -->
+    <span
+      v-if="checkboxMode"
+      class="coar-tree-node__checkbox"
+      :class="{
+        'coar-tree-node__checkbox--checked': isChecked,
+        'coar-tree-node__checkbox--indeterminate': isIndeterminate,
+      }"
+      aria-hidden="true"
+      @click.stop="emit('row-check-toggle', node)"
+      @dblclick.stop
+    >
+      <svg class="coar-tree-node__check" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M13.5 4.5L6.5 11.5L3 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <svg class="coar-tree-node__minus" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 8H12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </svg>
+    </span>
 
     <component :is="renderRow" />
   </div>
@@ -142,8 +218,9 @@ function onChevron(e: MouseEvent) {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 4px 3px 0;
-  font-size: var(--coar-body-small-base-size, 13px);
+  padding: var(--coar-tree-row-pad-y, 3px) var(--coar-tree-row-pad-x, 4px)
+    var(--coar-tree-row-pad-y, 3px) 0;
+  font-size: var(--coar-tree-row-font, var(--coar-body-small-base-size, 13px));
   cursor: pointer;
   user-select: none;
   outline: none;
@@ -168,6 +245,13 @@ function onChevron(e: MouseEvent) {
   /* Visual focus uses focus-visible above; the class is held for future
      keyboard-focus-without-:focus-visible UX (e.g. type-ahead). */
 }
+.coar-tree-node__row--disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.coar-tree-node__row--disabled:hover {
+  background: transparent;
+}
 .coar-tree-node__row--drop-inside,
 .coar-tree-node__row--file-drop {
   background: var(--coar-background-accent-tertiary, #dbeafe);
@@ -191,8 +275,8 @@ function onChevron(e: MouseEvent) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: var(--coar-tree-control-size, 16px);
+  height: var(--coar-tree-control-size, 16px);
   flex-shrink: 0;
   background: transparent;
   border: none;
@@ -204,9 +288,66 @@ function onChevron(e: MouseEvent) {
 .coar-tree-node__chevron:hover {
   color: var(--coar-text-neutral-primary);
 }
+.coar-tree-node__chevron--error {
+  color: var(--coar-text-semantic-error-bold, #dc2626);
+}
 .coar-tree-node__chevron-spacer {
   display: inline-block;
-  width: 16px;
+  width: var(--coar-tree-control-size, 16px);
   flex-shrink: 0;
+}
+
+/* Decorative checkbox glyph — visually matches CoarCheckbox (same tokens + check
+   path), but semantics live on the treeitem's aria-checked so no focusable input
+   is nested in a row. The two icons are absolutely positioned (overlaid), NOT
+   flex siblings, so the checkmark keeps its 1:1 aspect instead of being squished. */
+.coar-tree-node__checkbox {
+  position: relative;
+  display: inline-block;
+  width: var(--coar-tree-control-size, 16px);
+  height: var(--coar-tree-control-size, 16px);
+  flex-shrink: 0;
+  border: 1px solid var(--coar-border-input, #cbd5e1);
+  border-radius: var(--coar-radius-xs, 2px);
+  background: var(--coar-surface-input, #fff);
+  cursor: pointer;
+  box-sizing: border-box;
+  transition:
+    border-color var(--coar-duration-fast, 120ms) var(--coar-ease-out, ease),
+    background-color var(--coar-duration-fast, 120ms) var(--coar-ease-out, ease);
+}
+.coar-tree-node__checkbox--checked,
+.coar-tree-node__checkbox--indeterminate {
+  background: var(--coar-background-accent-primary, #2563eb);
+  border-color: var(--coar-background-accent-primary, #2563eb);
+}
+.coar-tree-node__checkbox:hover:not(.coar-tree-node__checkbox--checked):not(.coar-tree-node__checkbox--indeterminate) {
+  border-color: var(--coar-border-input-hover, #94a3b8);
+}
+.coar-tree-node__checkbox:hover.coar-tree-node__checkbox--checked,
+.coar-tree-node__checkbox:hover.coar-tree-node__checkbox--indeterminate {
+  background: var(--coar-background-accent-hover, #1d4ed8);
+  border-color: var(--coar-background-accent-hover, #1d4ed8);
+}
+.coar-tree-node__check,
+.coar-tree-node__minus {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: var(--coar-tree-icon-size, 12px);
+  height: var(--coar-tree-icon-size, 12px);
+  color: var(--coar-text-on-bold, #fff);
+  opacity: 0;
+}
+.coar-tree-node__checkbox--checked:not(.coar-tree-node__checkbox--indeterminate) .coar-tree-node__check {
+  opacity: 1;
+}
+.coar-tree-node__checkbox--indeterminate .coar-tree-node__minus {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .coar-tree-node__checkbox {
+    transition: none;
+  }
 }
 </style>

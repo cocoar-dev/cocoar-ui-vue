@@ -495,6 +495,25 @@ describe('CoarListbox', () => {
     expect(spacer.style.height).toBe(`${1000 * 32}px`);
   });
 
+  it('sizes group headings at groupHeadingHeight (not itemHeight) in virtual mode', async () => {
+    const w = mount(CoarListbox, {
+      props: { options: groupedOptions, virtual: true, itemHeight: 32, groupHeadingHeight: 28 },
+      attachTo: document.body,
+    });
+    const listEl = w.find('.coar-listbox-list').element as HTMLElement;
+    Object.defineProperty(listEl, 'clientHeight', { configurable: true, get: () => 300 });
+    listEl.dispatchEvent(new Event('scroll'));
+    await nextTick();
+    // flatEntries = [Fruit heading, ap, ba, Vegetable heading, ca].
+    // 2 headings × 28 + 3 items × 32 = 56 + 96 = 152. (Was 160 when the per-index
+    // sizer never saw a real index and every row collapsed to itemHeight.)
+    const spacer = w.find('.coar-listbox-virtual-spacer').element as HTMLElement;
+    expect(spacer.style.height).toBe('152px');
+    // The rendered heading box uses the heading height too.
+    const heading = w.find('.coar-listbox-group-heading--virtual').element as HTMLElement;
+    expect(heading.style.height).toBe('28px');
+  });
+
   it('drag & drop works when the source listbox is in virtual mode', async () => {
     const many: CoarListboxOption<string>[] = Array.from({ length: 500 }, (_, i) => ({
       value: `v${i}`,

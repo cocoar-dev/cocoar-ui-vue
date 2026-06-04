@@ -10,9 +10,86 @@
 /** Where a drop lands relative to a target node. */
 export type CoarTreeDropPosition = 'before' | 'inside' | 'after';
 
+/**
+ * How `filter` prunes around a match (mirrors PrimeVue's `filterMode`):
+ * - `'strict'` (default): keep matches + the ancestor path to them only — a
+ *   matched folder's non-matching children stay hidden. Matches the VS Code /
+ *   react-arborist "filter down to what I searched for" convention.
+ * - `'lenient'`: once a node matches, include its ENTIRE subtree (a matched
+ *   folder reveals all its descendants).
+ */
+export type CoarTreeFilterMode = 'strict' | 'lenient';
+
+/**
+ * Row density. Sets the `--coar-tree-row-pad-y`, `--coar-tree-indent` and
+ * `--coar-tree-row-font` CSS variables; `'m'` (default) is the historical
+ * ~28px row. When virtualizing, set `virtualize.itemSize` to match the chosen
+ * density's row height.
+ */
+export type CoarTreeDensity = 'xs' | 's' | 'm' | 'l';
+
+/**
+ * Overridable UI / screen-reader strings, for i18n. All optional in the `labels`
+ * prop — unset fields fall back to the English defaults. Static fields
+ * (`expand`/`collapse`/`loading`) label always-rendered controls; the function
+ * fields build the polite drag/move/load announcements.
+ */
+export interface CoarTreeLabels {
+  /** Chevron aria-label when collapsed. Default `'Expand'`. */
+  expand: string;
+  /** Chevron aria-label when expanded. Default `'Collapse'`. */
+  collapse: string;
+  /** Spinner label while a node's children load. Default `'Loading children'`. */
+  loading: string;
+  /** Retry button label on a node whose lazy load failed. Default `'Retry'`. */
+  retry: string;
+  /** Announced when a lazy load starts. */
+  loadingNode: (label: string) => string;
+  /** Announced when a lazy load fails. */
+  loadError: (label: string) => string;
+  /** Announced when a node is grabbed for a keyboard move. */
+  pickedUp: (label: string) => string;
+  /** Announced after a successful move. `position` is `'inside' | 'before' | 'after'`. */
+  moved: (label: string, target: string, position: string) => string;
+  /** Announced when a move is rejected (cycle / canDrop). */
+  moveBlocked: (label: string) => string;
+  /** Announced when a grab is cancelled (Escape). */
+  moveCancelled: string;
+}
+
+/** English defaults, merged under a consumer's `labels` override. */
+export const DEFAULT_TREE_LABELS: CoarTreeLabels = {
+  expand: 'Expand',
+  collapse: 'Collapse',
+  loading: 'Loading children',
+  retry: 'Retry',
+  loadingNode: (l) => `Loading ${l}…`,
+  loadError: (l) => `Failed to load ${l}.`,
+  pickedUp: (l) => `Picked up ${l}. Move to a row, then Ctrl+V to drop or Escape to cancel.`,
+  moved: (l, t, position) => `Moved ${l} ${position === 'inside' ? 'into' : position} ${t}.`,
+  moveBlocked: (l) => `Can't drop ${l} there.`,
+  moveCancelled: 'Move cancelled.',
+};
+
+/**
+ * How rows respond to clicks / keyboard.
+ * - `'single'` (default): one highlighted row at a time, bound to `v-model:selected`.
+ * - `'multiple'`: many highlighted rows (Ctrl/Cmd-toggle, Shift-range, Ctrl+A),
+ *   bound to `v-model:selectedIds`.
+ * - `'checkbox'`: a per-row checkbox with tri-state parent/child cascade, bound to
+ *   `v-model:checkedIds` — independent of the highlight selection (`selectedIds`),
+ *   which still works exactly like `'multiple'`.
+ */
+export type CoarTreeSelectionMode = 'single' | 'multiple' | 'checkbox';
+
 /** Payload for {@link CoarTreeEmits.node-move}. */
 export interface CoarTreeNodeMoveEvent<T> {
-  /** Node being moved. */
+  /**
+   * Node being moved. Re-resolved from the live tree at drop time, so it
+   * reflects the latest data even if `nodes` changed during the drag. Treat
+   * `source`'s id as the source of truth: if your handler does async work,
+   * re-resolve the node by id rather than holding onto this object.
+   */
   source: T;
   /**
    * Sibling / parent the drop is relative to. `null` means the drop landed on
@@ -37,21 +114,86 @@ export interface CoarTreeNodeSlotProps<T> {
   /** Nesting depth — 0 for root nodes. */
   depth: number;
   isExpanded: boolean;
+  /** True if this row is part of the highlight selection (`selected` / `selectedIds`). */
   isSelected: boolean;
+  /**
+   * True if this row's checkbox is fully checked (`selectionMode="checkbox"` only).
+   * Always `false` in single / multiple modes.
+   */
+  isChecked: boolean;
+  /**
+   * True if this row's checkbox is in the indeterminate / "mixed" state — some but
+   * not all loaded descendants are checked (`selectionMode="checkbox"` only).
+   */
+  isIndeterminate: boolean;
   isFocused: boolean;
   isExpandable: boolean;
+  /** True if this row's id is in `matchedIds` — use it to highlight search hits. */
+  isMatch: boolean;
+  /** True if this row is NOT itself a match but has a matched descendant (a hit lives below). */
+  isMatchAncestor: boolean;
+  /**
+   * True if `isDisabled(node)` returned true — the row is non-interactive
+   * (no select / activate / direct check-toggle, skipped by keyboard focus and
+   * type-ahead) and rendered `aria-disabled`. Cascade from a checked ancestor
+   * still flows through it.
+   */
+  isDisabled: boolean;
   /**
    * True while THIS row is in inline-rename mode (only meaningful when
    * `<CoarTree :renamable>` is on). Useful for hiding hover-actions etc.
    * while the user is typing the new name.
    */
   isRenaming: boolean;
+  /**
+   * True while this node's children are being lazily fetched via `loadChildren`
+   * (the tree shows a spinner in the chevron slot by default). Use it to gate
+   * hover actions or render your own loading affordance.
+   */
+  isLoading: boolean;
+  /**
+   * True if the most recent lazy `loadChildren` for this node rejected. The tree
+   * has no default error visual — render a retry affordance and call
+   * `api.reloadChildren(id)` (or collapse + re-expand) to try again.
+   */
+  hasError: boolean;
 }
 
 /** Payload for {@link CoarTreeEmits.rename}. */
 export interface CoarTreeRenameEvent<T> {
   node: T;
   newName: string;
+}
+
+/** Payload for the `select` event / builder `onSelect`. */
+export interface CoarTreeSelectEvent<T> {
+  /** The node the change centered on (the clicked / activated row), or `null` when the selection was cleared. */
+  node: T | null;
+  /** The full highlight selection AFTER the change (ids). */
+  ids: readonly string[];
+  /** `'user'` for a click / keyboard gesture, `'api'` for a programmatic `api.selectNode` call. */
+  via: 'user' | 'api';
+}
+
+/**
+ * Second argument to `loadChildren`. The `signal` aborts when the folder is
+ * collapsed or leaves the tree mid-flight — forward it to `fetch` (or check
+ * `signal.aborted`) so a cancelled load doesn't waste work or race a later one.
+ */
+export interface CoarTreeLoadChildrenContext {
+  signal: AbortSignal;
+}
+
+/** Payload for {@link CoarTreeEmits.load-error}. */
+export interface CoarTreeLoadErrorEvent<T> {
+  /**
+   * The node whose lazy children failed to load — snapshotted when the load
+   * started. If your handler runs async work, re-resolve by `id` rather than
+   * holding this object (the consumer may have replaced it during the load).
+   */
+  node: T;
+  /** Whatever the `loadChildren` promise rejected with. */
+  error: unknown;
 }
 
 /**
@@ -79,6 +221,46 @@ export const COAR_TREE_NODE_SLOT_KEY: InjectionKey<Slot<CoarTreeNodeSlotProps<an
  * without explicit prop wiring from the consumer.
  */
 export const COAR_TREE_ROW_ID_KEY: InjectionKey<string> = Symbol('coar-tree-row-id');
+
+/**
+ * Reactive row-state `<CoarTree>` provides so each `<CoarTreeNode>` can derive
+ * its own selected / focused / expanded / renaming / drop flags from its id,
+ * instead of the parent passing them down as props. This keeps a
+ * selection / focus / drag-over change from re-rendering the whole list: only
+ * the rows whose derived flag actually flips re-render (Vue caches the computed
+ * and skips dependents when the value is unchanged).
+ */
+export interface CoarTreeRowState {
+  /** Highlight-selected ids (single mode = 0-or-1 entry, multiple/checkbox = N). */
+  selectedIds: Readonly<Ref<ReadonlySet<string>>>;
+  /** Fully-checked ids (checkbox mode only; empty otherwise). */
+  checkedIds: Readonly<Ref<ReadonlySet<string>>>;
+  /** Indeterminate ids — some but not all descendants checked (checkbox mode only). */
+  indeterminateIds: Readonly<Ref<ReadonlySet<string>>>;
+  /** True when `selectionMode === 'checkbox'`, so rows render their checkbox affordance. */
+  checkboxMode: Readonly<Ref<boolean>>;
+  /** Search-hit ids (`matchedIds`); empty when no filter is active. */
+  matchedIds: Readonly<Ref<ReadonlySet<string>>>;
+  /** Ids that aren't matches themselves but have a matched descendant. */
+  matchAncestorIds: Readonly<Ref<ReadonlySet<string>>>;
+  /** Ids whose interaction is disabled (`isDisabled` extractor). */
+  disabledIds: Readonly<Ref<ReadonlySet<string>>>;
+  focusedId: Readonly<Ref<string | null>>;
+  expandedIds: Readonly<Ref<Set<string>>>;
+  renamingId: Readonly<Ref<string | null>>;
+  dropTargetId: Readonly<Ref<string | null>>;
+  dropPosition: Readonly<Ref<CoarTreeDropPosition | null>>;
+  fileDropTargetId: Readonly<Ref<string | null>>;
+  loadingIds: Readonly<Ref<ReadonlySet<string>>>;
+  erroredIds: Readonly<Ref<ReadonlySet<string>>>;
+  /** When true, the built-in chevron loading spinner is suppressed (consumer renders its own from `isLoading`). */
+  hideLoadingSpinner: Readonly<Ref<boolean>>;
+  /** Resolved (default-merged) i18n labels — chevron + spinner read `expand`/`collapse`/`loading`. */
+  labels: Readonly<Ref<CoarTreeLabels>>;
+}
+
+export const COAR_TREE_ROW_STATE_KEY: InjectionKey<CoarTreeRowState> =
+  Symbol('coar-tree-row-state');
 
 /**
  * The rename machinery `<CoarTree :renamable>` provides to descendants.

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { defineComponent, h, nextTick, ref, type Component } from 'vue';
 import CoarTreeRaw from './CoarTree.vue';
@@ -194,6 +194,635 @@ describe('CoarTree', () => {
       // No directly observable side-effect here without focus-DOM helpers; the
       // smoke test is that it didn't throw and the tree is still mounted.
       expect(wrapper.findAll('.coar-tree-node__row').length).toBe(6);
+    });
+  });
+
+  describe('drag and drop', () => {
+    // Minimal DataTransfer stub — jsdom ships none. `setData` records types so
+    // the component's `dt.types.includes(COAR_TREE_DRAG_MIME)` checks pass after
+    // a dragstart, exactly as a real browser would.
+    function makeDataTransfer(): DataTransfer {
+      const store: Record<string, string> = {};
+      return {
+        types: [] as string[],
+        files: [] as unknown as FileList,
+        dropEffect: 'none',
+        effectAllowed: 'all',
+        setData(type: string, val: string) {
+          store[type] = val;
+          if (!(this as { types: string[] }).types.includes(type)) {
+            (this as { types: string[] }).types.push(type);
+          }
+        },
+        getData(type: string) {
+          return store[type] ?? '';
+        },
+        setDragImage() {},
+      } as unknown as DataTransfer;
+    }
+
+    it('moves a node onto a valid target (source re-resolved live at drop)', async () => {
+      const { wrapper, nodeMove } = makeWrapper({ draggable: true });
+      const dt = makeDataTransfer();
+      await wrapper.find('[data-node-id="c"]').trigger('dragstart', { dataTransfer: dt });
+      await wrapper.find('[data-node-id="a1"]').trigger('dragover', { dataTransfer: dt });
+      await wrapper.find('[data-node-id="a1"]').trigger('drop', { dataTransfer: dt });
+      expect(nodeMove.value?.source.id).toBe('c');
+      expect(nodeMove.value?.target?.id).toBe('a1');
+    });
+
+    it("rejects a drop into the dragged node's own subtree (live parent-chain cycle guard)", async () => {
+      const { wrapper, nodeMove } = makeWrapper({ draggable: true });
+      const dt = makeDataTransfer();
+      // Drag folder 'a'; 'a1' is its child → dropping there would create a cycle.
+      await wrapper.find('[data-node-id="a"]').trigger('dragstart', { dataTransfer: dt });
+      await wrapper.find('[data-node-id="a1"]').trigger('dragover', { dataTransfer: dt });
+      await wrapper.find('[data-node-id="a1"]').trigger('drop', { dataTransfer: dt });
+      expect(nodeMove.value).toBeNull();
+    });
+
+    it('suppresses the move when the dragged node is removed mid-drag (no phantom source)', async () => {
+      // The source is re-resolved from the LIVE tree at drop, so a node deleted
+      // between dragstart and drop yields no move (not a detached phantom).
+      const nodes = ref<DemoNode[]>([
+        { id: 'x', name: 'X' },
+        { id: 'y', name: 'Y' },
+      ]);
+      const nodeMove = ref<CoarTreeNodeMoveEvent<DemoNode> | null>(null);
+      const Wrapper = defineComponent({
+        setup: () => () =>
+          h(
+            CoarTree,
+            {
+              nodes: nodes.value,
+              getId: (n: DemoNode) => n.id,
+              getLabel: (n: DemoNode) => n.name,
+              draggable: true,
+              onNodeMove: (e: CoarTreeNodeMoveEvent<DemoNode>) => {
+                nodeMove.value = e;
+              },
+            },
+            { default: ({ node }: { node: DemoNode }) => h('span', null, node.name) },
+          ),
+      });
+      const wrapper = mount(Wrapper, { attachTo: document.body });
+      const dt = makeDataTransfer();
+      await wrapper.find('[data-node-id="x"]').trigger('dragstart', { dataTransfer: dt });
+      await wrapper.find('[data-node-id="y"]').trigger('dragover', { dataTransfer: dt });
+      // Source 'x' deleted mid-drag (async refresh / external delete).
+      nodes.value = [{ id: 'y', name: 'Y' }];
+      await nextTick();
+      await wrapper.find('[data-node-id="y"]').trigger('drop', { dataTransfer: dt });
+      expect(nodeMove.value).toBeNull();
+    });
+
+    it('rejects a drop when a mid-drag mutation turns the target into a descendant of the source (authoritative drop-time cycle guard)', async () => {
+      // Worst case: the mutation lands BETWEEN the last dragover and the drop,
+      // so the (now-stale) dragover already marked the target droppable. The
+      // drop-time re-check against the LIVE parent chain must still reject it.
+      const nodes = ref<DemoNode[]>([
+        { id: 'a', name: 'A', children: [] },
+        { id: 'b', name: 'B' },
+      ]);
+      const expandedRef = ref(new Set<string>(['a']));
+      const nodeMove = ref<CoarTreeNodeMoveEvent<DemoNode> | null>(null);
+      const Wrapper = defineComponent({
+        setup: () => () =>
+          h(
+            CoarTree,
+            {
+              nodes: nodes.value,
+              getId: (n: DemoNode) => n.id,
+              getChildren: (n: DemoNode) => n.children,
+              getLabel: (n: DemoNode) => n.name,
+              isExpandable: (n: DemoNode) => !!n.children,
+              draggable: true,
+              expanded: expandedRef.value,
+              'onUpdate:expanded': (v: Set<string>) => (expandedRef.value = v),
+              onNodeMove: (e: CoarTreeNodeMoveEvent<DemoNode>) => {
+                nodeMove.value = e;
+              },
+            },
+            { default: ({ node }: { node: DemoNode }) => h('span', null, node.name) },
+          ),
+      });
+      const wrapper = mount(Wrapper, { attachTo: document.body });
+      const dt = makeDataTransfer();
+      // At dragover time 'b' is a sibling of the dragged 'a' → a valid target.
+      await wrapper.find('[data-node-id="a"]').trigger('dragstart', { dataTransfer: dt });
+      await wrapper.find('[data-node-id="b"]').trigger('dragover', { dataTransfer: dt });
+      // Now 'b' becomes a child of 'a' — dropping 'a' there would be a cycle.
+      nodes.value = [{ id: 'a', name: 'A', children: [{ id: 'b', name: 'B' }] }];
+      await nextTick();
+      await wrapper.find('[data-node-id="b"]').trigger('drop', { dataTransfer: dt });
+      expect(nodeMove.value).toBeNull();
+    });
+
+    // OS file-drag stub: `types: ['Files']` is what `isFileDrag` reads, plus a
+    // real `files` list so the drop handler's `dt.files.length` guard passes.
+    function makeFileTransfer(count = 1): DataTransfer {
+      const files = Array.from({ length: count }, (_, i) => new File(['x'], `f${i}.txt`));
+      const fileList = Object.assign(files.slice(), { item: (i: number) => files[i] }) as unknown as FileList;
+      return {
+        types: ['Files'],
+        files: fileList,
+        dropEffect: 'none',
+        effectAllowed: 'all',
+        setData() {},
+        getData() {
+          return '';
+        },
+        setDragImage() {},
+      } as unknown as DataTransfer;
+    }
+
+    it('emits files-drop onto a folder', async () => {
+      const { wrapper, filesDrop } = makeWrapper({ acceptsFiles: true });
+      const dt = makeFileTransfer(2);
+      await wrapper.find('[data-node-id="a"]').trigger('dragover', { dataTransfer: dt });
+      await wrapper.find('[data-node-id="a"]').trigger('drop', { dataTransfer: dt });
+      expect(filesDrop.value).toEqual({ count: 2, targetId: 'a' });
+    });
+
+    it('emits files-drop on the empty background (root)', async () => {
+      const { wrapper, filesDrop } = makeWrapper({ acceptsFiles: true });
+      const dt = makeFileTransfer(1);
+      await wrapper.find('.coar-tree').trigger('dragover', { dataTransfer: dt });
+      await wrapper.find('.coar-tree').trigger('drop', { dataTransfer: dt });
+      expect(filesDrop.value).toEqual({ count: 1, targetId: null });
+    });
+
+    it('honors canDrop: a false verdict rejects the move and receives (source,target,position)', async () => {
+      const canDrop = vi.fn(() => false);
+      const nodeMove = ref<CoarTreeNodeMoveEvent<DemoNode> | null>(null);
+      const expandedRef = ref(new Set<string>(['a']));
+      const Wrapper = defineComponent({
+        setup: () => () =>
+          h(
+            CoarTree,
+            {
+              nodes: demoTree,
+              getId: (n: DemoNode) => n.id,
+              getChildren: (n: DemoNode) => n.children,
+              getLabel: (n: DemoNode) => n.name,
+              isExpandable: (n: DemoNode) => !!n.children,
+              draggable: true,
+              canDrop,
+              expanded: expandedRef.value,
+              'onUpdate:expanded': (v: Set<string>) => (expandedRef.value = v),
+              onNodeMove: (e: CoarTreeNodeMoveEvent<DemoNode>) => (nodeMove.value = e),
+            },
+            { default: ({ node }: { node: DemoNode }) => h('span', null, node.name) },
+          ),
+      });
+      const wrapper = mount(Wrapper, { attachTo: document.body });
+      const dt = makeDataTransfer();
+      await wrapper.find('[data-node-id="c"]').trigger('dragstart', { dataTransfer: dt });
+      await wrapper.find('[data-node-id="a1"]').trigger('dragover', { dataTransfer: dt });
+      await wrapper.find('[data-node-id="a1"]').trigger('drop', { dataTransfer: dt });
+      expect(canDrop).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'c' }), // source
+        expect.objectContaining({ id: 'a1' }), // target
+        expect.any(String), // position
+      );
+      expect(nodeMove.value).toBeNull(); // rejected
+    });
+
+    it('auto-expands a folder after hovering it during a drag', async () => {
+      vi.useFakeTimers();
+      const expandedRef = ref(new Set<string>()); // 'a' starts collapsed
+      const Wrapper = defineComponent({
+        setup: () => () =>
+          h(
+            CoarTree,
+            {
+              nodes: demoTree,
+              getId: (n: DemoNode) => n.id,
+              getChildren: (n: DemoNode) => n.children,
+              getLabel: (n: DemoNode) => n.name,
+              isExpandable: (n: DemoNode) => !!n.children,
+              draggable: true,
+              autoExpandDelay: 500,
+              expanded: expandedRef.value,
+              'onUpdate:expanded': (v: Set<string>) => (expandedRef.value = v),
+            },
+            { default: ({ node }: { node: DemoNode }) => h('span', null, node.name) },
+          ),
+      });
+      const wrapper = mount(Wrapper, { attachTo: document.body });
+      const dt = makeDataTransfer();
+      await wrapper.find('[data-node-id="c"]').trigger('dragstart', { dataTransfer: dt });
+      // hover the MIDDLE of folder 'a' → 'inside' → schedules auto-expand
+      const aEl = wrapper.find('[data-node-id="a"]').element as HTMLElement;
+      aEl.getBoundingClientRect = () => ({ top: 0, height: 100, bottom: 100, left: 0, right: 0, width: 0, x: 0, y: 0, toJSON() {} });
+      await wrapper.find('[data-node-id="a"]').trigger('dragover', { dataTransfer: dt, clientY: 50 });
+      expect(expandedRef.value.has('a')).toBe(false); // not yet
+      vi.advanceTimersByTime(500);
+      expect(expandedRef.value.has('a')).toBe(true); // fired
+      vi.useRealTimers();
+    });
+  });
+
+  describe('virtualization nudge', () => {
+    it('warns in DEV when a large tree renders without virtualization', () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const big = Array.from({ length: 400 }, (_, i) => ({ id: `n${i}`, name: `Node ${i}` }));
+      makeWrapper({ nodes: big, expanded: new Set() });
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('without virtualization'));
+      warn.mockRestore();
+    });
+  });
+
+  describe('virtualization (per-index height)', () => {
+    it('virtualizes with a per-index itemSize function without a NaN spacer', async () => {
+      const big = Array.from({ length: 60 }, (_, i) => ({ id: `n${i}`, name: `Node ${i}` }));
+      const Wrapper = defineComponent({
+        setup: () => () =>
+          h(
+            CoarTree,
+            {
+              nodes: big,
+              getId: (n: DemoNode) => n.id,
+              getLabel: (n: DemoNode) => n.name,
+              virtualize: { itemSize: (i: number) => 24 + (i % 3) * 6 },
+            },
+            { default: ({ node }: { node: DemoNode }) => h('span', null, node.name) },
+          ),
+      });
+      const wrapper = mount(Wrapper, { attachTo: document.body });
+      await nextTick();
+      const style = wrapper.find('.coar-tree__inner').attributes('style') ?? '';
+      expect(style).not.toContain('NaN');
+      // sum of (24 + (i%3)*6) over i=0..59 = 60*24 + 6*(20*(0+1+2)) = 1440 + 360 = 1800
+      const m = style.match(/height:\s*([\d.]+)px/);
+      expect(m).toBeTruthy();
+      expect(Number(m![1])).toBe(1800);
+    });
+  });
+
+  describe('render granularity', () => {
+    it('a selection change does not re-render unrelated rows', async () => {
+      // Tier-2 invariant: each row derives its own selected/focused flags from
+      // injected state, so moving selection must not cascade a re-render to
+      // unrelated rows. (Full parent-render isolation is browser-verified at
+      // scale; this locks the row-level no-cascade guarantee against, e.g., a
+      // future change that makes a row depend on whole-list state.)
+      const renders: Record<string, number> = {};
+      const selectedRef = ref<string | null>(null);
+      const expandedRef = ref(new Set<string>(['a', 'b']));
+      const Wrapper = defineComponent({
+        setup: () => () =>
+          h(
+            CoarTree,
+            {
+              nodes: demoTree,
+              getId: (n: DemoNode) => n.id,
+              getChildren: (n: DemoNode) => n.children,
+              getLabel: (n: DemoNode) => n.name,
+              isExpandable: (n: DemoNode) => !!n.children,
+              expanded: expandedRef.value,
+              'onUpdate:expanded': (v: Set<string>) => (expandedRef.value = v),
+              selected: selectedRef.value,
+              'onUpdate:selected': (v: string | null) => (selectedRef.value = v),
+            },
+            {
+              default: ({ node }: { node: DemoNode }) => {
+                renders[node.id] = (renders[node.id] ?? 0) + 1;
+                return h('span', null, node.name);
+              },
+            },
+          ),
+      });
+      mount(Wrapper, { attachTo: document.body });
+      await nextTick();
+      for (const k of Object.keys(renders)) delete renders[k]; // reset after initial render
+      selectedRef.value = 'a1';
+      await nextTick();
+      expect(renders.a1).toBeGreaterThan(0); // the newly-selected row re-rendered
+      expect(renders.b).toBeUndefined(); // unrelated rows did not
+      expect(renders.b1).toBeUndefined();
+      expect(renders.c).toBeUndefined();
+      expect(renders.a2).toBeUndefined();
+    });
+  });
+
+  describe('lazy children loading', () => {
+    const flushMicrotasks = () => new Promise((r) => setTimeout(r, 0));
+
+    it('loads children on expand, shows a spinner, then renders them', async () => {
+      const nodes = ref<DemoNode[]>([{ id: 'r', name: 'Root' }]); // no children yet
+      const expanded = ref(new Set<string>());
+      let resolveLoad!: () => void;
+      const loadChildren = vi.fn(
+        () =>
+          new Promise<void>((res) => {
+            resolveLoad = () => {
+              nodes.value = [{ id: 'r', name: 'Root', children: [{ id: 'r1', name: 'Child 1' }] }];
+              res();
+            };
+          }),
+      );
+      const Wrapper = defineComponent({
+        setup: () => () =>
+          h(
+            CoarTree,
+            {
+              nodes: nodes.value,
+              getId: (n: DemoNode) => n.id,
+              getChildren: (n: DemoNode) => n.children,
+              isExpandable: () => true,
+              loadChildren,
+              expanded: expanded.value,
+              'onUpdate:expanded': (v: Set<string>) => (expanded.value = v),
+            },
+            { default: ({ node }: { node: DemoNode }) => h('span', null, node.name) },
+          ),
+      });
+      const wrapper = mount(Wrapper, { attachTo: document.body });
+      await nextTick();
+      await wrapper.find('[data-node-id="r"] .coar-tree-node__chevron').trigger('click');
+      await nextTick();
+      expect(loadChildren).toHaveBeenCalledTimes(1);
+      expect(wrapper.find('.coar-spinner').exists()).toBe(true);
+
+      resolveLoad();
+      await flushMicrotasks();
+      await nextTick();
+      expect(wrapper.find('.coar-spinner').exists()).toBe(false);
+      expect(wrapper.text()).toContain('Child 1');
+    });
+
+    it('flips to an error state and emits load-error when the promise rejects', async () => {
+      const nodes = ref<DemoNode[]>([{ id: 'r', name: 'Root' }]);
+      const expanded = ref(new Set<string>());
+      const onLoadError = vi.fn();
+      let rejectLoad!: (e: unknown) => void;
+      const loadChildren = vi.fn(
+        () =>
+          new Promise<void>((_res, rej) => {
+            rejectLoad = rej;
+          }),
+      );
+      const Wrapper = defineComponent({
+        setup: () => () =>
+          h(
+            CoarTree,
+            {
+              nodes: nodes.value,
+              getId: (n: DemoNode) => n.id,
+              getChildren: (n: DemoNode) => n.children,
+              isExpandable: () => true,
+              loadChildren,
+              expanded: expanded.value,
+              'onUpdate:expanded': (v: Set<string>) => (expanded.value = v),
+              onLoadError,
+            },
+            {
+              default: ({ node, hasError }: { node: DemoNode; hasError: boolean }) =>
+                h('span', { 'data-error': String(hasError) }, node.name),
+            },
+          ),
+      });
+      const wrapper = mount(Wrapper, { attachTo: document.body });
+      await nextTick();
+      await wrapper.find('[data-node-id="r"] .coar-tree-node__chevron').trigger('click');
+      await nextTick();
+      expect(wrapper.find('.coar-spinner').exists()).toBe(true);
+
+      rejectLoad(new Error('boom'));
+      await flushMicrotasks();
+      await nextTick();
+      expect(wrapper.find('.coar-spinner').exists()).toBe(false);
+      expect(wrapper.find('[data-node-id="r"] [data-error="true"]').exists()).toBe(true);
+      expect(onLoadError).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not call loadChildren for an already-loaded folder', async () => {
+      const nodes = [{ id: 'r', name: 'Root', children: [{ id: 'r1', name: 'C' }] }];
+      const expanded = ref(new Set<string>());
+      const loadChildren = vi.fn(() => Promise.resolve());
+      const Wrapper = defineComponent({
+        setup: () => () =>
+          h(
+            CoarTree,
+            {
+              nodes,
+              getId: (n: DemoNode) => n.id,
+              getChildren: (n: DemoNode) => n.children,
+              isExpandable: () => true,
+              loadChildren,
+              expanded: expanded.value,
+              'onUpdate:expanded': (v: Set<string>) => (expanded.value = v),
+            },
+            { default: ({ node }: { node: DemoNode }) => h('span', null, node.name) },
+          ),
+      });
+      const wrapper = mount(Wrapper, { attachTo: document.body });
+      await nextTick();
+      await wrapper.find('[data-node-id="r"] .coar-tree-node__chevron').trigger('click');
+      await nextTick();
+      expect(loadChildren).not.toHaveBeenCalled();
+    });
+
+    it('exposed reloadChildren forces a reload of an already-loaded folder', async () => {
+      const nodes = [{ id: 'r', name: 'Root', children: [{ id: 'r1', name: 'C' }] }];
+      const loadChildren = vi.fn(() => Promise.resolve());
+      const wrapper = mount(CoarTree, {
+        attachTo: document.body,
+        props: {
+          nodes,
+          getId: (n: DemoNode) => n.id,
+          getChildren: (n: DemoNode) => n.children,
+          isExpandable: () => true,
+          loadChildren,
+          expanded: new Set<string>(['r']),
+        },
+      });
+      await nextTick();
+      expect(loadChildren).not.toHaveBeenCalled(); // already loaded → watcher skips
+      (wrapper.vm as unknown as { reloadChildren: (id: string) => void }).reloadChildren('r');
+      await nextTick();
+      expect(loadChildren).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not auto-retry an errored node when unrelated data changes', async () => {
+      const nodes = ref<DemoNode[]>([
+        { id: 'r', name: 'Root' },
+        { id: 's', name: 'Sibling' },
+      ]);
+      const expanded = ref(new Set<string>());
+      let rejectLoad!: (e: unknown) => void;
+      const loadChildren = vi.fn(
+        () =>
+          new Promise<void>((_res, rej) => {
+            rejectLoad = rej;
+          }),
+      );
+      const Wrapper = defineComponent({
+        setup: () => () =>
+          h(
+            CoarTree,
+            {
+              nodes: nodes.value,
+              getId: (n: DemoNode) => n.id,
+              getChildren: (n: DemoNode) => n.children,
+              isExpandable: () => true,
+              loadChildren,
+              expanded: expanded.value,
+              'onUpdate:expanded': (v: Set<string>) => (expanded.value = v),
+            },
+            { default: ({ node }: { node: DemoNode }) => h('span', null, node.name) },
+          ),
+      });
+      const wrapper = mount(Wrapper, { attachTo: document.body });
+      await nextTick();
+      await wrapper.find('[data-node-id="r"] .coar-tree-node__chevron').trigger('click');
+      await nextTick();
+      expect(loadChildren).toHaveBeenCalledTimes(1);
+      rejectLoad(new Error('boom'));
+      await flushMicrotasks();
+      await nextTick();
+      // Unrelated data change (a sibling gains children) must NOT re-fire the
+      // loader on the still-expanded, errored 'r' — retry is explicit only.
+      nodes.value = [
+        { id: 'r', name: 'Root' },
+        { id: 's', name: 'Sibling', children: [] },
+      ];
+      await nextTick();
+      expect(loadChildren).toHaveBeenCalledTimes(1);
+    });
+
+    it('retries via collapse then re-expand after a load error', async () => {
+      const nodes = ref<DemoNode[]>([{ id: 'r', name: 'Root' }]);
+      const expanded = ref(new Set<string>());
+      let rejectLoad!: (e: unknown) => void;
+      const loadChildren = vi.fn(
+        () =>
+          new Promise<void>((_res, rej) => {
+            rejectLoad = rej;
+          }),
+      );
+      const Wrapper = defineComponent({
+        setup: () => () =>
+          h(
+            CoarTree,
+            {
+              nodes: nodes.value,
+              getId: (n: DemoNode) => n.id,
+              getChildren: (n: DemoNode) => n.children,
+              isExpandable: () => true,
+              loadChildren,
+              expanded: expanded.value,
+              'onUpdate:expanded': (v: Set<string>) => (expanded.value = v),
+            },
+            { default: ({ node }: { node: DemoNode }) => h('span', null, node.name) },
+          ),
+      });
+      const wrapper = mount(Wrapper, { attachTo: document.body });
+      await nextTick();
+      const chevron = () => wrapper.find('[data-node-id="r"] .coar-tree-node__chevron');
+      await chevron().trigger('click'); // expand → load #1
+      await nextTick();
+      expect(loadChildren).toHaveBeenCalledTimes(1);
+      rejectLoad(new Error('boom'));
+      await flushMicrotasks();
+      await nextTick();
+      await chevron().trigger('click'); // collapse (drops the attempted marker)
+      await nextTick();
+      await chevron().trigger('click'); // re-expand → retry → load #2
+      await nextTick();
+      expect(loadChildren).toHaveBeenCalledTimes(2);
+    });
+
+    it('suppresses the built-in chevron spinner with hideLoadingSpinner (isLoading slot prop stays true)', async () => {
+      const nodes = ref<DemoNode[]>([{ id: 'r', name: 'Root' }]);
+      const expanded = ref(new Set<string>());
+      const loadChildren = vi.fn(() => new Promise<void>(() => {})); // never settles → stays loading
+      const Wrapper = defineComponent({
+        setup: () => () =>
+          h(
+            CoarTree,
+            {
+              nodes: nodes.value,
+              getId: (n: DemoNode) => n.id,
+              getChildren: (n: DemoNode) => n.children,
+              isExpandable: () => true,
+              loadChildren,
+              hideLoadingSpinner: true,
+              expanded: expanded.value,
+              'onUpdate:expanded': (v: Set<string>) => (expanded.value = v),
+            },
+            {
+              default: ({ node, isLoading }: { node: DemoNode; isLoading: boolean }) =>
+                h('span', { 'data-loading': String(isLoading) }, node.name),
+            },
+          ),
+      });
+      const wrapper = mount(Wrapper, { attachTo: document.body });
+      await nextTick();
+      await wrapper.find('[data-node-id="r"] .coar-tree-node__chevron').trigger('click');
+      await nextTick();
+      // No built-in spinner...
+      expect(wrapper.find('.coar-spinner').exists()).toBe(false);
+      // ...but isLoading is true so the consumer can render its own.
+      expect(wrapper.find('[data-node-id="r"] [data-loading="true"]').exists()).toBe(true);
+    });
+  });
+
+  describe('ARIA attributes', () => {
+    it('stamps aria-level / posinset / setsize from the DFS metadata', () => {
+      const { wrapper } = makeWrapper(); // a,a1,a2,b,b1,c (a,b expanded)
+      const a = wrapper.find('[data-node-id="a"]');
+      expect(a.attributes('aria-level')).toBe('1');
+      expect(a.attributes('aria-posinset')).toBe('1');
+      expect(a.attributes('aria-setsize')).toBe('3'); // a, b, c at root
+      const a1 = wrapper.find('[data-node-id="a1"]');
+      expect(a1.attributes('aria-level')).toBe('2');
+      expect(a1.attributes('aria-posinset')).toBe('1');
+      expect(a1.attributes('aria-setsize')).toBe('2'); // a1, a2
+      expect(wrapper.find('[data-node-id="c"]').attributes('aria-posinset')).toBe('3');
+    });
+
+    it('keeps exactly one row in the Tab order (roving tabindex)', () => {
+      const { wrapper } = makeWrapper();
+      const roving = wrapper
+        .findAll('[role="treeitem"]')
+        .filter((n) => n.attributes('tabindex') === '0');
+      expect(roving).toHaveLength(1);
+    });
+  });
+
+  describe('keyboard navigation matrix', () => {
+    const tree = (w: ReturnType<typeof makeWrapper>['wrapper']) => w.find('.coar-tree');
+
+    it('ArrowDown / ArrowUp move the roving focus', async () => {
+      const { wrapper } = makeWrapper(); // focus seeds to 'a'
+      await tree(wrapper).trigger('keydown', { key: 'ArrowDown' });
+      expect(wrapper.find('[data-node-id="a1"]').attributes('tabindex')).toBe('0');
+      await tree(wrapper).trigger('keydown', { key: 'ArrowUp' });
+      expect(wrapper.find('[data-node-id="a"]').attributes('tabindex')).toBe('0');
+    });
+
+    it('ArrowRight expands a collapsed folder; ArrowLeft collapses it', async () => {
+      const { wrapper, expandedRef } = makeWrapper({ expanded: new Set() }); // focus 'a'
+      await tree(wrapper).trigger('keydown', { key: 'ArrowRight' });
+      expect(expandedRef.value.has('a')).toBe(true);
+      await tree(wrapper).trigger('keydown', { key: 'ArrowLeft' });
+      expect(expandedRef.value.has('a')).toBe(false);
+    });
+
+    it('Home / End jump to the first / last visible row', async () => {
+      const { wrapper } = makeWrapper();
+      await tree(wrapper).trigger('keydown', { key: 'End' });
+      expect(wrapper.find('[data-node-id="c"]').attributes('tabindex')).toBe('0');
+      await tree(wrapper).trigger('keydown', { key: 'Home' });
+      expect(wrapper.find('[data-node-id="a"]').attributes('tabindex')).toBe('0');
+    });
+
+    it('type-ahead focuses the next row whose label matches', async () => {
+      const { wrapper } = makeWrapper(); // Alpha, Alpha-1/2, Bravo, Bravo-1, Charlie
+      await tree(wrapper).trigger('keydown', { key: 'c' });
+      expect(wrapper.find('[data-node-id="c"]').attributes('tabindex')).toBe('0');
     });
   });
 });

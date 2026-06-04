@@ -50,7 +50,7 @@ import { TreeBuilder, type TreeApi } from './tree-builder';
 
 export function useTree<T>(): {
   builder: TreeBuilder<T>;
-  api: TreeApi;
+  api: TreeApi<T>;
 } {
   const builder = TreeBuilder.create<T>();
   return { builder, api: builder.api };

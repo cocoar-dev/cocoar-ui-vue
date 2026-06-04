@@ -111,6 +111,14 @@ export interface UseFileExplorerReturn<T = unknown> {
   getChildren: (a: Asset<T>) => readonly Asset<T>[] | undefined;
   getLabel: (a: Asset<T>) => string;
   isExpandable: (a: Asset<T>) => boolean;
+  /**
+   * Lazy children loader for `<CoarTree :load-children>`. `undefined` for eager
+   * stores (everything is already visible). When set, the tree calls it on first
+   * expand of an unloaded folder, owns the per-node loading/error state, and the
+   * consumer renders the spinner from the `isLoading` slot prop. Re-throws so the
+   * tree flips the row to its error state + emits `@load-error`.
+   */
+  loadChildren?: (node: Asset<T>) => Promise<void>;
 
   /**
    * `true` when `sortMode === 'manual'`. Reactive so a sort-mode toolbar
@@ -127,7 +135,11 @@ export interface UseFileExplorerReturn<T = unknown> {
    * `loadingNodes` instead — `loading` is strictly the initial-load signal.
    */
   readonly loading: Readonly<Ref<boolean>>;
-  /** Files whose content is being loaded via `store.loadContent`. */
+  /**
+   * Files whose content is being loaded via `store.loadContent`. Folder
+   * lazy-loads are owned by CoarTree now (read its `isLoading` slot prop), so
+   * this no longer carries folder ids during expand.
+   */
   readonly loadingNodes: Readonly<Ref<ReadonlySet<string>>>;
   /** Assets with an in-flight save/rename/delete/move. */
   readonly savingNodes: Readonly<Ref<ReadonlySet<string>>>;
@@ -293,9 +305,21 @@ export function useFileExplorer<T = unknown>(
 
   const rootNodes = computed(() => childrenOf(null));
 
+  // Lazy capability probe — eager stores leave `loadChildren` undefined.
+  const storeIsLazy = 'loadChildren' in store && typeof store.loadChildren === 'function';
+  // Folders whose children have been fetched. Gates `getChildren` so an unloaded
+  // lazy folder reads as `undefined` (the tree's `loadChildren` hook fires once)
+  // and a loaded one reads as its array (so it never re-fetches on re-expand).
+  const loadedFolderIds = ref<Set<string>>(new Set());
+
   const getId = (a: Asset<T>) => a.id;
-  const getChildren = (a: Asset<T>): readonly Asset<T>[] | undefined =>
-    a.kind === 'folder' ? childrenOf(a.id) : undefined;
+  const getChildren = (a: Asset<T>): readonly Asset<T>[] | undefined => {
+    if (a.kind !== 'folder') return undefined;
+    // Lazy: undefined until this folder's children are fetched, so the tree's
+    // `loadChildren` hook fires exactly once on first expand.
+    if (storeIsLazy && !loadedFolderIds.value.has(a.id)) return undefined;
+    return childrenOf(a.id);
+  };
   const getLabel = (a: Asset<T>) => a.name;
   /**
    * Folders are expandable unless their `hasChildren` hint says otherwise.
@@ -310,7 +334,6 @@ export function useFileExplorer<T = unknown>(
   // user with content showing), nothing in lazy mode (otherwise every page
   // load would fire a flurry of loadChildren and the user wouldn't get the
   // canonical click-to-expand lazy UX).
-  const storeIsLazy = 'loadChildren' in store && typeof store.loadChildren === 'function';
   const initialExpandedIds =
     options.initialExpandedIds ??
     (storeIsLazy
@@ -466,6 +489,14 @@ export function useFileExplorer<T = unknown>(
     try {
       await store.delete(node.id);
       removeAssets(doomed);
+      // Drop the loaded-folder markers for everything deleted, so a re-created
+      // id (custom non-UUID idFactory — e.g. path-based) reads as unloaded again
+      // and the tree re-fetches instead of showing the stale/empty cached array.
+      if (storeIsLazy && doomed.size > 0) {
+        loadedFolderIds.value = new Set(
+          [...loadedFolderIds.value].filter((id) => !doomed.has(id)),
+        );
+      }
     } catch (e) {
       reportError('delete', e, { id: node.id, name: node.name });
     } finally {
@@ -803,40 +834,28 @@ export function useFileExplorer<T = unknown>(
   });
 
   // ── lazy mode: fetch children on first expand ─────────────────────────
-  // Capability probe — eager stores leave `loadChildren` undefined and this
-  // watcher is dead code. With `loadChildren` present, every new entry in
-  // `expanded` triggers a fetch (idempotent — already-loaded folders cache
-  // in `loadedFolderIds` so re-expanding a previously-collapsed folder
-  // doesn't re-hit the backend).
-  const loadedFolderIds = ref<Set<string>>(new Set());
-
-  if (storeIsLazy) {
-    watch(
-      expanded,
-      async (next, prev) => {
-        const newlyExpanded: string[] = [];
-        next.forEach((id) => {
-          if (!prev?.has(id)) newlyExpanded.push(id);
-        });
-        for (const id of newlyExpanded) {
-          if (loadedFolderIds.value.has(id)) continue;
-          setBusy(loadingNodes, id, true);
-          try {
-            const kids = await store.loadChildren!(id);
-            mergeAssets(kids);
-            loadedFolderIds.value = new Set(loadedFolderIds.value).add(id);
-          } catch (e) {
-            reportError('loadChildren', e, { id });
-          } finally {
-            setBusy(loadingNodes, id, false);
-          }
+  // Orchestration (WHEN to load, dedupe, loading/error state, spinner) lives in
+  // `<CoarTree :load-children>` now — this is just the fetch body it calls. The
+  // tree fires it once per unloaded folder on expand (incl. initial-expanded,
+  // which cascades as parents publish), dedupes via its own `attemptedIds`, and
+  // skips re-fetch on re-expand because `getChildren` returns the loaded array
+  // once `loadedFolderIds` has the id. Re-throws so the tree shows the row's
+  // error state + emits `@load-error`. `undefined` for eager stores.
+  const loadChildren = storeIsLazy
+    ? async (node: Asset<T>): Promise<void> => {
+        try {
+          const kids = await store.loadChildren!(node.id);
+          mergeAssets(kids);
+          loadedFolderIds.value = new Set(loadedFolderIds.value).add(node.id);
+        } catch (e) {
+          // Funnel through the composable's `onError` (so existing consumers
+          // keep their toast) AND rethrow so the tree flips the row to its
+          // error state + offers retry via `reloadChildren`.
+          reportError('loadChildren', e, { id: node.id });
+          throw e;
         }
-      },
-      // Fire on mount too — if the consumer supplied a non-empty
-      // `initialExpandedIds`, those folders should pre-load their kids.
-      { deep: true, immediate: true },
-    );
-  }
+      }
+    : undefined;
 
   // ── initial load + refresh ────────────────────────────────────────────
   /**
@@ -883,7 +902,11 @@ export function useFileExplorer<T = unknown>(
    *
    * Use this when upstream state can change out-of-band (server push,
    * another tab uploads a file, retention sweep). For stores that surface
-   * `_assets` directly, this is a no-op: they're already reactive.
+   * `_assets` directly, this is a no-op: they're already reactive — so the
+   * per-`folderId` form does nothing for the in-memory store. For a
+   * tree-integrated per-folder refresh (spinner + clears any error state),
+   * call `api.reloadChildren(folderId)` on the CoarTree instead — it routes
+   * back through the `loadChildren` hook.
    */
   const refresh = async (folderId?: string | null): Promise<void> => {
     if (usesStoreRef) return;
@@ -943,6 +966,7 @@ export function useFileExplorer<T = unknown>(
     getChildren,
     getLabel,
     isExpandable,
+    loadChildren,
     reorderable,
     // async state
     loading,
