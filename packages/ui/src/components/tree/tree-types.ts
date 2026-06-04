@@ -107,6 +107,10 @@ export interface CoarTreeNodeSlotProps<T> {
   isIndeterminate: boolean;
   isFocused: boolean;
   isExpandable: boolean;
+  /** True if this row's id is in `matchedIds` — use it to highlight search hits. */
+  isMatch: boolean;
+  /** True if this row is NOT itself a match but has a matched descendant (a hit lives below). */
+  isMatchAncestor: boolean;
   /**
    * True if `isDisabled(node)` returned true — the row is non-interactive
    * (no select / activate / direct check-toggle, skipped by keyboard focus and
@@ -214,6 +218,10 @@ export interface CoarTreeRowState {
   indeterminateIds: Readonly<Ref<ReadonlySet<string>>>;
   /** True when `selectionMode === 'checkbox'`, so rows render their checkbox affordance. */
   checkboxMode: Readonly<Ref<boolean>>;
+  /** Search-hit ids (`matchedIds`); empty when no filter is active. */
+  matchedIds: Readonly<Ref<ReadonlySet<string>>>;
+  /** Ids that aren't matches themselves but have a matched descendant. */
+  matchAncestorIds: Readonly<Ref<ReadonlySet<string>>>;
   /** Ids whose interaction is disabled (`isDisabled` extractor). */
   disabledIds: Readonly<Ref<ReadonlySet<string>>>;
   focusedId: Readonly<Ref<string | null>>;

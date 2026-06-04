@@ -49,6 +49,8 @@ const isSelected = computed(() => rowState.selectedIds.value.has(props.nodeId));
 const isChecked = computed(() => rowState.checkedIds.value.has(props.nodeId));
 const isIndeterminate = computed(() => rowState.indeterminateIds.value.has(props.nodeId));
 const checkboxMode = computed(() => rowState.checkboxMode.value);
+const isMatch = computed(() => rowState.matchedIds.value.has(props.nodeId));
+const isMatchAncestor = computed(() => rowState.matchAncestorIds.value.has(props.nodeId));
 const isDisabled = computed(() => rowState.disabledIds.value.has(props.nodeId));
 const isFocused = computed(() => rowState.focusedId.value === props.nodeId);
 const isRenaming = computed(() => rowState.renamingId.value === props.nodeId);
@@ -93,6 +95,8 @@ const slotProps = computed<CoarTreeNodeSlotProps<T>>(() => ({
   isIndeterminate: isIndeterminate.value,
   isFocused: isFocused.value,
   isExpandable: props.isExpandable,
+  isMatch: isMatch.value,
+  isMatchAncestor: isMatchAncestor.value,
   isDisabled: isDisabled.value,
   isRenaming: isRenaming.value,
   isLoading: isLoading.value,

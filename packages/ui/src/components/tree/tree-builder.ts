@@ -63,6 +63,8 @@ export interface TreeBuilderState<T> {
   ariaLabel: MaybeRefOrGetter<string | undefined>;
   ariaLabelledby: MaybeRefOrGetter<string | undefined>;
   labels: MaybeRefOrGetter<Partial<CoarTreeLabels> | undefined>;
+  /** Search-hit ids — drives `isMatch`/`isMatchAncestor` + auto-expand-to-match. */
+  matchedIds: MaybeRefOrGetter<Set<string> | undefined>;
 
   expanded: Ref<Set<string>>;
   /** Single-mode highlight selection. */
@@ -232,6 +234,7 @@ export class TreeBuilder<T> {
       ariaLabel: undefined,
       ariaLabelledby: undefined,
       labels: undefined,
+      matchedIds: undefined,
       expanded: ref(new Set<string>()),
       selected: ref<string | null>(null),
       selectedIds: ref(new Set<string>()),
@@ -418,6 +421,16 @@ export class TreeBuilder<T> {
   /** Override built-in UI / screen-reader strings for i18n (unset fields use English defaults). */
   labels(l: MaybeRefOrGetter<Partial<CoarTreeLabels> | undefined>): this {
     this.state.labels = l;
+    return this;
+  }
+
+  /**
+   * Search-hit ids. Drives `isMatch` / `isMatchAncestor` slot props and
+   * auto-expands the ancestors of every match. Filtering the node set is still
+   * the consumer's job (e.g. a computed passed to `.nodes()`).
+   */
+  matchedIds(ids: MaybeRefOrGetter<Set<string> | undefined>): this {
+    this.state.matchedIds = ids;
     return this;
   }
 

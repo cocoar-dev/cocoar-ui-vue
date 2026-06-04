@@ -117,6 +117,12 @@ const props = withDefaults(
     /** Override built-in UI / screen-reader strings for i18n. Unset fields use English defaults. */
     labels?: Partial<CoarTreeLabels>;
     /**
+     * Search-hit ids. The tree exposes `isMatch` / `isMatchAncestor` to the slot
+     * (for highlighting) and auto-expands the ancestors of every match so hits
+     * are visible. Filtering the node set itself stays the consumer's job.
+     */
+    matchedIds?: Set<string>;
+    /**
      * Opt into the built-in inline rename UI. With this on, `api.startRename(id)`
      * + `@rename` work and `<CoarTreeNodeLabel>` swaps to an `<input>` while the
      * row is renaming. Without it the rename context isn't provided and the
@@ -151,6 +157,7 @@ const props = withDefaults(
     ariaLabel: undefined,
     ariaLabelledby: undefined,
     labels: undefined,
+    matchedIds: undefined,
     renamable: false,
     hideLoadingSpinner: false,
   },
@@ -287,6 +294,7 @@ const cfg = computed(() => {
       ariaLabel: toValue(s.ariaLabel),
       ariaLabelledby: toValue(s.ariaLabelledby),
       labels: toValue(s.labels),
+      matchedIds: toValue(s.matchedIds),
     };
   }
   return {
@@ -312,6 +320,7 @@ const cfg = computed(() => {
     ariaLabel: props.ariaLabel,
     ariaLabelledby: props.ariaLabelledby,
     labels: props.labels,
+    matchedIds: props.matchedIds,
   };
 });
 
@@ -436,6 +445,35 @@ const disabledIds = computed<ReadonlySet<string>>(() => {
   for (const row of visibleRows.value) if (isDisabledOf(row.node)) s.add(row.id);
   return s;
 });
+
+// ─── search / filter ──────────────────────────────────────────────────────
+const matchedIdsSet = computed<ReadonlySet<string>>(() => cfg.value.matchedIds ?? EMPTY_SET);
+// Ancestors-of-matches = not-matched nodes with a matched descendant — same shape
+// as the indeterminate computation, reused here over the loaded tree.
+const matchAncestorIds = computed<ReadonlySet<string>>(() =>
+  matchedIdsSet.value.size
+    ? computeIndeterminate(
+        matchedIdsSet.value,
+        indexTree(cfg.value.nodes, cfg.value.getId, getChildrenOf),
+      )
+    : EMPTY_SET,
+);
+// Auto-expand the ancestors of every match so hits are visible. Only ADDS to the
+// expanded set (never collapses), so a consumer's manual collapses survive.
+watch(matchedIdsSet, (matched) => {
+  if (!matched.size) return;
+  const next = new Set(expandedStore.value);
+  let changed = false;
+  for (const id of matched) {
+    for (const a of ancestorPath(id)) {
+      if (!next.has(a)) {
+        next.add(a);
+        changed = true;
+      }
+    }
+  }
+  if (changed) expandedStore.value = next;
+}, { immediate: true });
 
 // Lazy inheritance: when children load under a checked folder, propagate the check
 // down to them. `reconcileChecked` only ADDS inherited descendants, so it's safe to
@@ -1355,6 +1393,8 @@ provide(COAR_TREE_ROW_STATE_KEY, {
   checkedIds: checkedStore,
   indeterminateIds,
   checkboxMode,
+  matchedIds: matchedIdsSet,
+  matchAncestorIds,
   disabledIds,
   focusedId,
   expandedIds: expandedStore,
