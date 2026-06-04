@@ -110,6 +110,15 @@ export interface CoarTreeSelectEvent<T> {
   via: 'user' | 'api';
 }
 
+/**
+ * Second argument to `loadChildren`. The `signal` aborts when the folder is
+ * collapsed or leaves the tree mid-flight — forward it to `fetch` (or check
+ * `signal.aborted`) so a cancelled load doesn't waste work or race a later one.
+ */
+export interface CoarTreeLoadChildrenContext {
+  signal: AbortSignal;
+}
+
 /** Payload for {@link CoarTreeEmits.load-error}. */
 export interface CoarTreeLoadErrorEvent<T> {
   /**

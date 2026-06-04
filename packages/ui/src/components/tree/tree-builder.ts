@@ -24,6 +24,7 @@ import {
 import type {
   CoarTreeDropPosition,
   CoarTreeFilesDropEvent,
+  CoarTreeLoadChildrenContext,
   CoarTreeLoadErrorEvent,
   CoarTreeMenuEntry,
   CoarTreeNodeMoveEvent,
@@ -73,7 +74,9 @@ export interface TreeBuilderState<T> {
   onFilesDrop?: (e: CoarTreeFilesDropEvent<T>) => void;
 
   /** Lazily fetch a node's children when it's expanded (see `loadChildren` setter). */
-  loadChildren?: (node: T) => void | Promise<void>;
+  loadChildren?: (node: T, ctx: CoarTreeLoadChildrenContext) => void | Promise<void>;
+  /** Max simultaneous in-flight loads; extra ones queue. 0/undefined = unlimited. */
+  maxConcurrentLoads: MaybeRefOrGetter<number>;
   onLoadError?: (e: CoarTreeLoadErrorEvent<T>) => void;
 
   /** Declarative menus — `<CoarTree>` renders the menu itself when these are set. */
@@ -219,6 +222,7 @@ export class TreeBuilder<T> {
       onNodeMove: undefined,
       onFilesDrop: undefined,
       loadChildren: undefined,
+      maxConcurrentLoads: 0,
       onLoadError: undefined,
       folderMenu: undefined,
       leafMenu: undefined,
@@ -285,9 +289,22 @@ export class TreeBuilder<T> {
    * Attach so `nodes` updates reactively: produce a NEW root reference
    * (`nodes.value = [...]`) or keep `nodes` deeply reactive. A pure in-place
    * mutation on a shallow source won't re-render the row (the spinner persists).
+   *
+   * The 2nd arg carries an `AbortSignal` that fires if the folder collapses or
+   * leaves the tree mid-flight — forward it to `fetch` so a cancelled load
+   * doesn't waste work or race a later reopen.
    */
-  loadChildren(fn: (node: T) => void | Promise<void>): this {
+  loadChildren(fn: (node: T, ctx: CoarTreeLoadChildrenContext) => void | Promise<void>): this {
     this.state.loadChildren = fn;
+    return this;
+  }
+
+  /**
+   * Cap simultaneous in-flight `loadChildren` calls; extra ones queue. `0`
+   * (default) = unlimited. Set a small number (e.g. 6) for rate-limited backends.
+   */
+  maxConcurrentLoads(n: MaybeRefOrGetter<number>): this {
+    this.state.maxConcurrentLoads = n;
     return this;
   }
 

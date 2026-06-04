@@ -48,6 +48,7 @@ import {
   COAR_TREE_ROW_STATE_KEY,
   type CoarTreeDropPosition,
   type CoarTreeFilesDropEvent,
+  type CoarTreeLoadChildrenContext,
   type CoarTreeLoadErrorEvent,
   type CoarTreeMenuEntry,
   type CoarTreeNodeMoveEvent,
@@ -79,8 +80,18 @@ const props = withDefaults(
     isExpandable?: (node: T) => boolean;
     /** Mark nodes non-interactive (no select/activate/check/keyboard-focus; `aria-disabled`). */
     isDisabled?: (node: T) => boolean;
-    /** Lazily fetch a node's children on first expand. See the builder's `loadChildren`. */
-    loadChildren?: (node: T) => void | Promise<void>;
+    /**
+     * Lazily fetch a node's children on first expand. The 2nd arg carries an
+     * `AbortSignal` that fires if the folder collapses / leaves the tree. See
+     * the builder's `loadChildren`.
+     */
+    loadChildren?: (node: T, ctx: CoarTreeLoadChildrenContext) => void | Promise<void>;
+    /**
+     * Max simultaneous in-flight `loadChildren` calls; extra ones queue. `0`
+     * (default) = unlimited. Set a small number (e.g. 6) for rate-limited
+     * backends so an expand-all / state-restore can't fan out unbounded.
+     */
+    maxConcurrentLoads?: number;
     draggable?: boolean | ((node: T) => boolean);
     canDrop?: (source: T, target: T | null, position: CoarTreeDropPosition) => boolean;
     acceptsFiles?: boolean;
@@ -121,6 +132,7 @@ const props = withDefaults(
     isExpandable: undefined,
     isDisabled: undefined,
     loadChildren: undefined,
+    maxConcurrentLoads: 0,
     draggable: false,
     canDrop: undefined,
     acceptsFiles: false,
@@ -251,6 +263,7 @@ const cfg = computed(() => {
       isExpandable: s.isExpandable,
       isDisabled: s.isDisabled,
       loadChildren: s.loadChildren,
+      maxConcurrentLoads: toValue(s.maxConcurrentLoads),
       draggable: toValue(s.draggable),
       canDrop: s.canDrop,
       acceptsFiles: toValue(s.acceptsFiles),
@@ -272,6 +285,7 @@ const cfg = computed(() => {
     isExpandable: props.isExpandable,
     isDisabled: props.isDisabled,
     loadChildren: props.loadChildren,
+    maxConcurrentLoads: props.maxConcurrentLoads,
     draggable: props.draggable,
     canDrop: props.canDrop,
     acceptsFiles: props.acceptsFiles,
@@ -645,30 +659,74 @@ function fireLoadError(payload: CoarTreeLoadErrorEvent<T>) {
   emit('load-error', payload);
   props.builder?.state.onLoadError?.(payload);
 }
-function runLoad(node: T, force = false) {
+// Concurrency-bounded loader with cancellation. Each in-flight load owns an
+// AbortController; collapsing a folder or removing it from the tree aborts the
+// signal (so a consumer's fetch can bail) and suppresses the settle so a
+// no-longer-relevant load can't flip the row to loaded/errored.
+const loadControllers = new Map<string, AbortController>();
+const loadQueue: { node: T; force: boolean }[] = [];
+const maxConcurrent = computed(() => {
+  const n = cfg.value.maxConcurrentLoads;
+  return n && n > 0 ? n : Infinity;
+});
+
+function pumpQueue() {
+  while (loadQueue.length && loadControllers.size < maxConcurrent.value) {
+    const next = loadQueue.shift() as { node: T; force: boolean };
+    startLoad(next.node, next.force);
+  }
+}
+function settleLoad(id: string, error: unknown, controller: AbortController) {
+  loadControllers.delete(id);
+  // Aborted (folder collapsed / node gone) → leave tracking to abortLoad, stay silent.
+  if (!controller.signal.aborted) {
+    removeFromSet(loadingIds, id);
+    if (error !== undefined) {
+      erroredIds.value = new Set(erroredIds.value).add(id);
+      const node = findNodeById(id);
+      if (node) fireLoadError({ node, error });
+    }
+  }
+  pumpQueue();
+}
+function startLoad(node: T, force = false) {
   const loader = cfg.value.loadChildren;
   if (!loader) return;
   const id = cfg.value.getId(node);
-  if (loadingIds.value.has(id)) return; // already in flight
+  if (loadingIds.value.has(id) || loadControllers.has(id)) return; // in flight
   if (!force && childrenLoaded(node)) return; // already have data
+  if (loadQueue.some((q) => cfg.value.getId(q.node) === id)) return; // already queued
+  if (loadControllers.size >= maxConcurrent.value) {
+    loadQueue.push({ node, force }); // over the concurrency cap — wait our turn
+    return;
+  }
+  const controller = new AbortController();
+  loadControllers.set(id, controller);
   loadingIds.value = new Set(loadingIds.value).add(id);
   attemptedIds.value = new Set(attemptedIds.value).add(id);
   removeFromSet(erroredIds, id);
   // `Promise.resolve().then(...)` so a synchronous throw in `loader` is caught too.
   Promise.resolve()
-    .then(() => loader(node))
+    .then(() => loader(node, { signal: controller.signal }))
     .then(
-      () => removeFromSet(loadingIds, id),
-      (error) => {
-        removeFromSet(loadingIds, id);
-        erroredIds.value = new Set(erroredIds.value).add(id);
-        fireLoadError({ node, error });
-      },
+      () => settleLoad(id, undefined, controller),
+      (error) => settleLoad(id, error ?? new Error('loadChildren rejected'), controller),
     );
+}
+function abortLoad(id: string) {
+  const c = loadControllers.get(id);
+  if (c) {
+    c.abort();
+    loadControllers.delete(id);
+  }
+  removeFromSet(loadingIds, id);
+  const qi = loadQueue.findIndex((q) => cfg.value.getId(q.node) === id);
+  if (qi >= 0) loadQueue.splice(qi, 1);
+  pumpQueue();
 }
 function reloadChildren(id: string) {
   const node = findNodeById(id);
-  if (node) runLoad(node, true);
+  if (node) startLoad(node, true);
 }
 
 /**
@@ -710,6 +768,12 @@ function pruneTracking() {
 watch(
   [expandedStore, () => cfg.value.nodes],
   () => {
+    // Abort loads whose folder collapsed or left the tree (before scanning for new ones).
+    if (loadControllers.size) {
+      for (const id of [...loadControllers.keys()]) {
+        if (!expandedStore.value.has(id) || !findNodeById(id)) abortLoad(id);
+      }
+    }
     if (!cfg.value.loadChildren) return;
     pruneTracking();
     for (const row of visibleRows.value) {
@@ -720,12 +784,19 @@ watch(
         !attemptedIds.value.has(row.id) &&
         !childrenLoaded(row.node)
       ) {
-        runLoad(row.node);
+        startLoad(row.node);
       }
     }
   },
   { immediate: true },
 );
+
+// Cancel everything still in flight when the tree unmounts.
+onBeforeUnmount(() => {
+  for (const c of loadControllers.values()) c.abort();
+  loadControllers.clear();
+  loadQueue.length = 0;
+});
 
 // ─── builder ↔ component wiring ───────────────────────────────────────────
 onMounted(() => {
