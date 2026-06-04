@@ -24,6 +24,7 @@ import {
 import type {
   CoarTreeDropPosition,
   CoarTreeFilesDropEvent,
+  CoarTreeLabels,
   CoarTreeLoadChildrenContext,
   CoarTreeLoadErrorEvent,
   CoarTreeMenuEntry,
@@ -59,6 +60,9 @@ export interface TreeBuilderState<T> {
   selectionMode: MaybeRefOrGetter<CoarTreeSelectionMode>;
   /** Checkbox-mode only: independent parent/child checks, no cascade / indeterminate. */
   checkStrictly: MaybeRefOrGetter<boolean>;
+  ariaLabel: MaybeRefOrGetter<string | undefined>;
+  ariaLabelledby: MaybeRefOrGetter<string | undefined>;
+  labels: MaybeRefOrGetter<Partial<CoarTreeLabels> | undefined>;
 
   expanded: Ref<Set<string>>;
   /** Single-mode highlight selection. */
@@ -225,6 +229,9 @@ export class TreeBuilder<T> {
       onRenameCancel: undefined,
       selectionMode: 'single',
       checkStrictly: false,
+      ariaLabel: undefined,
+      ariaLabelledby: undefined,
+      labels: undefined,
       expanded: ref(new Set<string>()),
       selected: ref<string | null>(null),
       selectedIds: ref(new Set<string>()),
@@ -393,6 +400,24 @@ export class TreeBuilder<T> {
    */
   checkStrictly(b: MaybeRefOrGetter<boolean>): this {
     this.state.checkStrictly = b;
+    return this;
+  }
+
+  /** Accessible name for the tree (`aria-label` on the `role="tree"` element). */
+  ariaLabel(label: MaybeRefOrGetter<string | undefined>): this {
+    this.state.ariaLabel = label;
+    return this;
+  }
+
+  /** Id of an external label element (`aria-labelledby` on the `role="tree"` element). */
+  ariaLabelledby(id: MaybeRefOrGetter<string | undefined>): this {
+    this.state.ariaLabelledby = id;
+    return this;
+  }
+
+  /** Override built-in UI / screen-reader strings for i18n (unset fields use English defaults). */
+  labels(l: MaybeRefOrGetter<Partial<CoarTreeLabels> | undefined>): this {
+    this.state.labels = l;
     return this;
   }
 

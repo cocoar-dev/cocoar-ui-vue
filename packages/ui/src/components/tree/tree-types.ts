@@ -11,6 +11,46 @@
 export type CoarTreeDropPosition = 'before' | 'inside' | 'after';
 
 /**
+ * Overridable UI / screen-reader strings, for i18n. All optional in the `labels`
+ * prop — unset fields fall back to the English defaults. Static fields
+ * (`expand`/`collapse`/`loading`) label always-rendered controls; the function
+ * fields build the polite drag/move/load announcements.
+ */
+export interface CoarTreeLabels {
+  /** Chevron aria-label when collapsed. Default `'Expand'`. */
+  expand: string;
+  /** Chevron aria-label when expanded. Default `'Collapse'`. */
+  collapse: string;
+  /** Spinner label while a node's children load. Default `'Loading children'`. */
+  loading: string;
+  /** Announced when a lazy load starts. */
+  loadingNode: (label: string) => string;
+  /** Announced when a lazy load fails. */
+  loadError: (label: string) => string;
+  /** Announced when a node is grabbed for a keyboard move. */
+  pickedUp: (label: string) => string;
+  /** Announced after a successful move. `position` is `'inside' | 'before' | 'after'`. */
+  moved: (label: string, target: string, position: string) => string;
+  /** Announced when a move is rejected (cycle / canDrop). */
+  moveBlocked: (label: string) => string;
+  /** Announced when a grab is cancelled (Escape). */
+  moveCancelled: string;
+}
+
+/** English defaults, merged under a consumer's `labels` override. */
+export const DEFAULT_TREE_LABELS: CoarTreeLabels = {
+  expand: 'Expand',
+  collapse: 'Collapse',
+  loading: 'Loading children',
+  loadingNode: (l) => `Loading ${l}…`,
+  loadError: (l) => `Failed to load ${l}.`,
+  pickedUp: (l) => `Picked up ${l}. Move to a row, then Ctrl+V to drop or Escape to cancel.`,
+  moved: (l, t, position) => `Moved ${l} ${position === 'inside' ? 'into' : position} ${t}.`,
+  moveBlocked: (l) => `Can't drop ${l} there.`,
+  moveCancelled: 'Move cancelled.',
+};
+
+/**
  * How rows respond to clicks / keyboard.
  * - `'single'` (default): one highlighted row at a time, bound to `v-model:selected`.
  * - `'multiple'`: many highlighted rows (Ctrl/Cmd-toggle, Shift-range, Ctrl+A),
@@ -186,6 +226,8 @@ export interface CoarTreeRowState {
   erroredIds: Readonly<Ref<ReadonlySet<string>>>;
   /** When true, the built-in chevron loading spinner is suppressed (consumer renders its own from `isLoading`). */
   hideLoadingSpinner: Readonly<Ref<boolean>>;
+  /** Resolved (default-merged) i18n labels — chevron + spinner read `expand`/`collapse`/`loading`. */
+  labels: Readonly<Ref<CoarTreeLabels>>;
 }
 
 export const COAR_TREE_ROW_STATE_KEY: InjectionKey<CoarTreeRowState> =

@@ -46,8 +46,10 @@ import {
   COAR_TREE_NODE_SLOT_KEY,
   COAR_TREE_RENAME_KEY,
   COAR_TREE_ROW_STATE_KEY,
+  DEFAULT_TREE_LABELS,
   type CoarTreeDropPosition,
   type CoarTreeFilesDropEvent,
+  type CoarTreeLabels,
   type CoarTreeLoadChildrenContext,
   type CoarTreeLoadErrorEvent,
   type CoarTreeMenuEntry,
@@ -108,6 +110,12 @@ const props = withDefaults(
      * nothing is ever indeterminate. Default `false` (cascade + tri-state).
      */
     checkStrictly?: boolean;
+    /** Accessible name for the tree (`aria-label` on the `role="tree"` element). */
+    ariaLabel?: string;
+    /** Id of an external label element (`aria-labelledby` on the `role="tree"` element). */
+    ariaLabelledby?: string;
+    /** Override built-in UI / screen-reader strings for i18n. Unset fields use English defaults. */
+    labels?: Partial<CoarTreeLabels>;
     /**
      * Opt into the built-in inline rename UI. With this on, `api.startRename(id)`
      * + `@rename` work and `<CoarTreeNodeLabel>` swaps to an `<input>` while the
@@ -140,6 +148,9 @@ const props = withDefaults(
     virtualize: false,
     selectionMode: 'single',
     checkStrictly: false,
+    ariaLabel: undefined,
+    ariaLabelledby: undefined,
+    labels: undefined,
     renamable: false,
     hideLoadingSpinner: false,
   },
@@ -273,6 +284,9 @@ const cfg = computed(() => {
       renamable: toValue(s.renamable),
       selectionMode: toValue(s.selectionMode),
       checkStrictly: toValue(s.checkStrictly),
+      ariaLabel: toValue(s.ariaLabel),
+      ariaLabelledby: toValue(s.ariaLabelledby),
+      labels: toValue(s.labels),
     };
   }
   return {
@@ -295,11 +309,20 @@ const cfg = computed(() => {
     renamable: props.renamable,
     selectionMode: props.selectionMode,
     checkStrictly: props.checkStrictly,
+    ariaLabel: props.ariaLabel,
+    ariaLabelledby: props.ariaLabelledby,
+    labels: props.labels,
   };
 });
 
 /** Effective rename-enabled flag (builder OR prop). */
 const renamableOn = computed(() => !!cfg.value.renamable);
+
+/** Default-merged i18n labels (chevron / spinner / announcer strings). */
+const resolvedLabels = computed<CoarTreeLabels>(() => ({
+  ...DEFAULT_TREE_LABELS,
+  ...(cfg.value.labels ?? {}),
+}));
 
 // DEV-only nag: rendering a tree with zero rows + no `#empty` slot ships a
 // silent blank pane to the user. The 500-ms grace lets async loaders (a
@@ -513,13 +536,31 @@ const focusedId = ref<string | null>(null);
 
 watch(
   visibleRows,
-  (list) => {
+  (list, prev) => {
     if (!list.length) {
       focusedId.value = null;
       return;
     }
     const ids = idToIndex.value;
     if (focusedId.value && ids.has(focusedId.value)) return;
+    // Focused row was removed (e.g. delete): move to the row now occupying its
+    // old slot (its next sibling), else the previous one, else a parent — NOT
+    // back to the top, which is jarring when deleting deep in a long tree.
+    if (focusedId.value && prev) {
+      const oldIdx = prev.findIndex((r) => r.id === focusedId.value);
+      if (oldIdx >= 0) {
+        const oldParent = prev[oldIdx].parentId;
+        const at = list[Math.min(oldIdx, list.length - 1)];
+        if (at && !isDisabledOf(at.node)) {
+          focusedId.value = at.id;
+          return;
+        }
+        if (oldParent && ids.has(oldParent)) {
+          focusedId.value = oldParent;
+          return;
+        }
+      }
+    }
     if (selectedStore.value && ids.has(selectedStore.value)) {
       focusedId.value = selectedStore.value;
       return;
@@ -684,7 +725,10 @@ function settleLoad(id: string, error: unknown, controller: AbortController) {
     if (error !== undefined) {
       erroredIds.value = new Set(erroredIds.value).add(id);
       const node = findNodeById(id);
-      if (node) fireLoadError({ node, error });
+      if (node) {
+        fireLoadError({ node, error });
+        announce(resolvedLabels.value.loadError(labelOf(node)));
+      }
     }
   }
   pumpQueue();
@@ -1113,6 +1157,35 @@ function edgeEnabledIndex(dir: 1 | -1): number {
   }
   return -1;
 }
+/** True when the tree renders right-to-left (inverts the expand/collapse arrows). */
+function isRtl(): boolean {
+  const el = rootEl.value;
+  return !!el && typeof getComputedStyle === 'function' && getComputedStyle(el).direction === 'rtl';
+}
+/** Rows per PageUp/PageDown step — from the viewport height, or a fixed fallback. */
+function pageSize(): number {
+  const el = scrollEl.value;
+  const rowH = (typeof virtualOpts.value?.itemSize === 'number' ? virtualOpts.value.itemSize : 28) || 28;
+  if (el && el.clientHeight) return Math.max(1, Math.floor(el.clientHeight / rowH));
+  return 10;
+}
+/** ArrowRight (LTR): expand a collapsed folder, else descend to the first child. */
+function arrowExpandOrInto(cur: VisibleRow) {
+  if (cur.isExpandable && !expandedStore.value.has(cur.id)) {
+    expandNode(cur.node);
+  } else {
+    const kids = getChildrenOf(cur.node);
+    if (kids && kids.length) focusRow(cfg.value.getId(kids[0]));
+  }
+}
+/** ArrowLeft (LTR): collapse an expanded folder, else move focus to the parent. */
+function arrowCollapseOrOut(cur: VisibleRow) {
+  if (cur.isExpandable && expandedStore.value.has(cur.id)) {
+    toggleExpand(cur.node);
+  } else if (cur.parentId) {
+    focusRow(cur.parentId);
+  }
+}
 
 function onRootKeydown(ev: KeyboardEvent) {
   const list = visibleRows.value;
@@ -1145,7 +1218,7 @@ function onRootKeydown(ev: KeyboardEvent) {
   if ((ev.ctrlKey || ev.metaKey) && (ev.key === 'x' || ev.key === 'X') && current && isDraggableOf(current.node)) {
     ev.preventDefault();
     grabbedId.value = current.id;
-    announce(`Picked up ${labelOf(current.node)}. Move to a row, then Ctrl+V to drop or Escape to cancel.`);
+    announce(resolvedLabels.value.pickedUp(labelOf(current.node)));
     return;
   }
   if ((ev.ctrlKey || ev.metaKey) && (ev.key === 'v' || ev.key === 'V') && grabbedId.value && current) {
@@ -1156,8 +1229,8 @@ function onRootKeydown(ev: KeyboardEvent) {
     const ok = moveNode(grabbedId.value, current.id, pos);
     announce(
       ok
-        ? `Moved ${movedLabel} ${pos === 'inside' ? 'into' : 'after'} ${labelOf(current.node)}.`
-        : `Can't drop ${movedLabel} there.`,
+        ? resolvedLabels.value.moved(movedLabel, labelOf(current.node), pos)
+        : resolvedLabels.value.moveBlocked(movedLabel),
     );
     grabbedId.value = null;
     return;
@@ -1165,7 +1238,7 @@ function onRootKeydown(ev: KeyboardEvent) {
   if (ev.key === 'Escape' && grabbedId.value) {
     ev.preventDefault();
     grabbedId.value = null;
-    announce('Move cancelled.');
+    announce(resolvedLabels.value.moveCancelled);
     return;
   }
 
@@ -1188,23 +1261,40 @@ function onRootKeydown(ev: KeyboardEvent) {
     case 'ArrowRight': {
       if (!current) return;
       ev.preventDefault();
-      if (current.isExpandable && !expandedStore.value.has(current.id)) {
-        expandNode(current.node);
-      } else {
-        const kids = getChildrenOf(current.node);
-        if (kids && kids.length) focusRow(cfg.value.getId(kids[0]));
-      }
+      // RTL inverts: ArrowRight collapses / moves out. Data-model walk, so it
+      // works identically in flat and virtualized mode.
+      (isRtl() ? arrowCollapseOrOut : arrowExpandOrInto)(current);
       return;
     }
     case 'ArrowLeft': {
       if (!current) return;
       ev.preventDefault();
-      if (current.isExpandable && expandedStore.value.has(current.id)) {
-        toggleExpand(current.node);
-      } else if (current.parentId) {
-        // Data-model lookup, not DOM walk — works identically in flat and
-        // virtualized mode.
-        focusRow(current.parentId);
+      (isRtl() ? arrowExpandOrInto : arrowCollapseOrOut)(current);
+      return;
+    }
+    case 'PageDown': {
+      ev.preventDefault();
+      let idx = Math.min(list.length - 1, (currentIdx < 0 ? 0 : currentIdx) + pageSize());
+      if (isDisabledOf(list[idx].node)) idx = nextEnabledIndex(idx, -1);
+      if (idx >= 0 && list[idx]) focusRow(list[idx].id);
+      return;
+    }
+    case 'PageUp': {
+      ev.preventDefault();
+      let idx = Math.max(0, (currentIdx < 0 ? 0 : currentIdx) - pageSize());
+      if (isDisabledOf(list[idx].node)) idx = nextEnabledIndex(idx, 1);
+      if (idx >= 0 && list[idx]) focusRow(list[idx].id);
+      return;
+    }
+    case '*': {
+      // Expand every expandable sibling at the focused row's level (APG).
+      ev.preventDefault();
+      if (current) {
+        const next = new Set(expandedStore.value);
+        for (const row of list) {
+          if (row.parentId === current.parentId && row.isExpandable) next.add(row.id);
+        }
+        expandedStore.value = next;
       }
       return;
     }
@@ -1275,6 +1365,7 @@ provide(COAR_TREE_ROW_STATE_KEY, {
   loadingIds,
   erroredIds,
   hideLoadingSpinner: hideLoadingSpinnerRef,
+  labels: resolvedLabels,
 });
 
 let autoExpandTimer: number | null = null;
@@ -1393,7 +1484,7 @@ function onRowDragStart(node: T, ev: DragEvent) {
   ev.dataTransfer?.setData(COAR_TREE_DRAG_MIME, id);
   ev.dataTransfer?.setData('text/plain', cfg.value.getLabel?.(node) ?? id);
   if (ev.dataTransfer) ev.dataTransfer.effectAllowed = 'move';
-  announce(`Picked up ${labelOf(node)}.`);
+  announce(resolvedLabels.value.pickedUp(labelOf(node)));
 }
 function onRowDragEnd() {
   clearDragState();
@@ -1467,7 +1558,7 @@ function onRowDrop(node: T, _el: HTMLElement, ev: DragEvent) {
       ev.preventDefault();
       ev.stopPropagation();
       fireNodeMove({ source, target: node, position: dropPosition.value });
-      announce(`Moved ${labelOf(source)} ${dropPosition.value === 'inside' ? 'into' : dropPosition.value} ${labelOf(node)}.`);
+      announce(resolvedLabels.value.moved(labelOf(source), labelOf(node), dropPosition.value));
     }
   }
   clearDragState();
@@ -1611,6 +1702,8 @@ defineExpose({
       <div
         class="coar-tree__inner"
         role="tree"
+        :aria-label="cfg.ariaLabel"
+        :aria-labelledby="cfg.ariaLabelledby"
         :aria-multiselectable="multiSelect ? 'true' : undefined"
         :style="isVirtual ? { height: `${virtualizer.totalSize.value}px`, position: 'relative' } : undefined"
       >
@@ -1642,7 +1735,13 @@ defineExpose({
         />
       </div>
     </div>
-    <div v-else class="coar-tree__empty">
+    <div
+      v-else
+      class="coar-tree__empty"
+      tabindex="0"
+      role="status"
+      :aria-label="cfg.ariaLabel"
+    >
       <slot name="empty" />
     </div>
 

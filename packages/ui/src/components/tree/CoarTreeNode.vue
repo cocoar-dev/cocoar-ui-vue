@@ -156,10 +156,10 @@ function onChevron(e: MouseEvent) {
       type="button"
       class="coar-tree-node__chevron"
       tabindex="-1"
-      :aria-label="isExpanded ? 'Collapse' : 'Expand'"
+      :aria-label="isExpanded ? rowState.labels.value.collapse : rowState.labels.value.expand"
       @click="onChevron"
     >
-      <CoarSpinner v-if="showChevronSpinner" size="xs" label="Loading children" />
+      <CoarSpinner v-if="showChevronSpinner" size="xs" :label="rowState.labels.value.loading" />
       <CoarIcon v-else :name="isExpanded ? 'chevron-down' : 'chevron-right'" size="xs" />
     </button>
     <span v-else class="coar-tree-node__chevron-spacer" aria-hidden="true" />
