@@ -301,6 +301,9 @@ importers:
 
   packages/markdown-core:
     dependencies:
+      remark-frontmatter:
+        specifier: ^5.0.0
+        version: 5.0.0
       remark-gfm:
         specifier: ^4.0.1
         version: 4.0.1
@@ -313,6 +316,9 @@ importers:
       unified:
         specifier: ^11.0.5
         version: 11.0.5
+      yaml:
+        specifier: ^2.8.0
+        version: 2.8.3
     devDependencies:
       '@types/mdast':
         specifier: ^4.0.4
@@ -353,6 +359,9 @@ importers:
       '@milkdown/vue':
         specifier: ^7.20.0
         version: 7.20.0(@codemirror/language@6.12.3)(@codemirror/state@6.6.0)(@codemirror/view@6.41.0)(prosemirror-model@1.25.4)(prosemirror-state@1.4.4)(prosemirror-view@1.41.8)(typescript@5.9.3)(vue@3.5.33(typescript@5.9.3))
+      remark-frontmatter:
+        specifier: ^5.0.0
+        version: 5.0.0
       unified:
         specifier: ^11.0.5
         version: 11.0.5

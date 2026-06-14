@@ -111,12 +111,12 @@
 .coar-markdown
   > :where(
     h1, h2, h3, h4, h5, h6, p, blockquote, ul, ol, pre, table, hr,
-    .coar-code-block-host, .coar-table-host
+    .coar-code-block-host, .coar-table-host, .coar-markdown-frontmatter
   ),
 .coar-markdown .ProseMirror
   > :where(
     h1, h2, h3, h4, h5, h6, p, blockquote, ul, ol, pre, table, hr,
-    .coar-code-block-host, .coar-table-host
+    .coar-code-block-host, .coar-table-host, .coar-markdown-frontmatter
   ) {
   margin-block: 0 var(--coar-markdown-space-2);
 }
@@ -369,4 +369,29 @@
   border: 1px dashed var(--coar-markdown-border);
   border-radius: var(--coar-markdown-radius);
   background: var(--coar-markdown-surface);
+}
+
+/* Frontmatter — the `---\n…\n---` YAML block at the top of a document. Rendered
+   as plain text (no card), but muted grey (disabled-like) and italic so it reads
+   as document metadata rather than body content. The same markup is emitted by
+   the viewer's `DefaultFrontmatter` renderer and the editor's frontmatter
+   NodeView so both surfaces match. */
+.coar-markdown-frontmatter {
+  color: var(--coar-color-gray-400, #c0c0c0);
+  font-style: italic;
+}
+
+/* One `key: value` per line. Keys and values share the muted/italic look. */
+.coar-markdown-frontmatter__entry {
+  overflow-wrap: anywhere;
+}
+
+/* Malformed YAML fallback — show the raw text readably, same muted style. */
+.coar-markdown-frontmatter__raw {
+  margin: 0;
+  font: inherit;
+  font-style: italic;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: inherit;
 }

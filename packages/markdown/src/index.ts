@@ -35,6 +35,7 @@ export {
   DefaultCodeBlock,
   DefaultColorSpan,
   DefaultEmphasis,
+  DefaultFrontmatter,
   DefaultHeading,
   DefaultImage,
   DefaultInlineCode,

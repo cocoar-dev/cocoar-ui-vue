@@ -22,6 +22,8 @@ import type { OverlayRef } from '@cocoar/vue-ui';
 import { decideListToggleAction, isToolEnabled } from './toolbar-helpers';
 import { codeBlockNodeView } from './code-block-view';
 import { textColor } from './text-color';
+import { PlaceholderOverlay } from './placeholder';
+import { frontmatter } from './frontmatter';
 import ColorPickerPanel from './text-color/ColorPickerPanel.vue';
 import { sanitizeColor } from '@cocoar/vue-markdown-core';
 import {
@@ -90,6 +92,18 @@ export interface CoarMarkdownEditorProps {
   name?: string;
   /** Marks the editor as required for assistive tech. */
   required?: boolean;
+  /**
+   * Placeholder text shown while the editor is empty. Rendered as a visual
+   * decoration only — it is NOT written to `modelValue`, so an untouched
+   * editor still emits an empty string (unlike pre-filling the value).
+   */
+  placeholder?: string;
+  /**
+   * Show a **Rendered ↔ Source** toggle. In Source mode the entire Markdown
+   * document (including the frontmatter YAML) is editable as raw text in a
+   * `<textarea>`; switching back re-renders it. Defaults to false.
+   */
+  sourceToggle?: boolean;
   toolbarMode?: CoarMarkdownEditorToolbarMode;
   toolbarPosition?: CoarMarkdownEditorToolbarPosition;
   /**
@@ -153,12 +167,21 @@ const EditorImpl = defineComponent({
     describedBy: { type: String, default: undefined },
     name: { type: String, default: undefined },
     required: { type: Boolean, required: true },
+    placeholder: { type: String, default: '' },
+    sourceToggle: { type: Boolean, default: false },
     onMarkdownChange: { type: Function as PropType<(md: string) => void>, required: true },
   },
   setup(props) {
     // Track last value emitted from inside the editor — so external watch
-    // doesn't loop when the parent echoes our own update back.
+    // doesn't loop when the parent echoes our own update back. `lastEmitted`
+    // is the single source of truth for the current markdown: it feeds the
+    // Source-mode textarea and re-seeds Milkdown when switching back.
     const lastEmitted = ref(props.initialValue);
+
+    // Rendered (WYSIWYG) ↔ Source (raw markdown) view mode. Milkdown stays
+    // mounted in Source mode (just hidden) so the toolbar — and its toggle —
+    // stay put; the writing area shows a textarea instead.
+    const viewMode = ref<'rendered' | 'source'>('rendered');
 
     useEditor((root) =>
       Editor.make()
@@ -177,6 +200,9 @@ const EditorImpl = defineComponent({
         })
         .use(commonmark)
         .use(gfm)
+        // Frontmatter: parse a leading `---…---` YAML block as an atomic node
+        // rendered as a metadata card (instead of a collapsed setext heading).
+        .use(frontmatter)
         .use(history)
         .use(clipboard)
         .use(listener)
@@ -199,6 +225,12 @@ const EditorImpl = defineComponent({
 
     watch(() => props.externalValue.value, (next) => {
       if (next === lastEmitted.value) return;
+      // In Source mode Milkdown is hidden; just track the value (the textarea
+      // shows it) and re-sync the hidden editor when we switch back to Rendered.
+      if (viewMode.value === 'source') {
+        lastEmitted.value = next;
+        return;
+      }
       const editor = getInstance();
       if (!editor) {
         pendingExternal.value = next;
@@ -207,6 +239,15 @@ const EditorImpl = defineComponent({
       pendingExternal.value = null;
       lastEmitted.value = next;
       editor.action(replaceAll(next));
+    });
+
+    // Re-seed Milkdown with the current markdown when returning to Rendered, so
+    // any edits made in Source mode (incl. the frontmatter YAML) are re-parsed.
+    watch(viewMode, (mode) => {
+      if (mode !== 'rendered') return;
+      const editor = getInstance();
+      if (!editor) return;
+      editor.action(replaceAll(lastEmitted.value));
     });
 
     // Flush a buffered external update once Milkdown finishes init.
@@ -236,6 +277,12 @@ const EditorImpl = defineComponent({
       });
     });
 
+    // The placeholder is shown by the Toolbar (which owns the writing-area
+    // DOM) as a muted overlay of the shared markdown viewer. It must appear
+    // only while the document is empty. `lastEmitted` already tracks the
+    // current markdown (updated by the markdownUpdated listener and the
+    // external-sync watch), so emptiness is a pure read of it — reading it
+    // here makes this render reactive to every content change.
     return () => h(Toolbar, {
       readonly: props.readonly,
       disabled: props.disabled,
@@ -247,6 +294,17 @@ const EditorImpl = defineComponent({
       describedBy: props.describedBy,
       name: props.name,
       required: props.required,
+      placeholder: props.placeholder,
+      isEmpty: lastEmitted.value.trim() === '',
+      sourceToggle: props.sourceToggle,
+      viewMode: viewMode.value,
+      sourceValue: lastEmitted.value,
+      onToggleView: (mode: 'rendered' | 'source') => { viewMode.value = mode; },
+      onSourceInput: (md: string) => {
+        if (md === lastEmitted.value) return;
+        lastEmitted.value = md;
+        props.onMarkdownChange(md);
+      },
     });
   },
 });
@@ -263,6 +321,13 @@ const Toolbar = defineComponent({
     describedBy: { type: String, default: undefined },
     name: { type: String, default: undefined },
     required: { type: Boolean, required: true },
+    placeholder: { type: String, default: '' },
+    isEmpty: { type: Boolean, default: false },
+    sourceToggle: { type: Boolean, default: false },
+    viewMode: { type: String as PropType<'rendered' | 'source'>, default: 'rendered' },
+    sourceValue: { type: String, default: '' },
+    onToggleView: { type: Function as PropType<(mode: 'rendered' | 'source') => void>, default: undefined },
+    onSourceInput: { type: Function as PropType<(md: string) => void>, default: undefined },
   },
   setup(props) {
     const [, getInstance] = useInstance();
@@ -785,6 +850,22 @@ const Toolbar = defineComponent({
       }
 
       const items: VNodeArrayChildren = [];
+
+      // Source toggle — pinned at the top when `sourceToggle` is on. In Source
+      // mode it's the *only* item: the formatting commands act on the hidden
+      // rich editor, so showing them would be confusing.
+      if (props.sourceToggle) {
+        const isSource = props.viewMode === 'source';
+        items.push(h(CoarSidebarItem, {
+          icon: isSource ? 'eye' : 'code',
+          label: isSource ? 'Rendered' : 'Source',
+          active: isSource,
+          onClick: () => props.onToggleView?.(isSource ? 'rendered' : 'source'),
+        }));
+        if (isSource) return renderSidebarHost(items);
+        sectionDivider(items);
+      }
+
       pushIf(items, 'bold', sidebarItem('bold', 'Bold', cmds.bold, { active: a.strong }));
       pushIf(items, 'italic', sidebarItem('italic', 'Italic', cmds.italic, { active: a.emphasis }));
       pushIf(items, 'strikethrough', sidebarItem('strikethrough', 'Strikethrough', cmds.strike, { active: a.strike_through }));
@@ -867,6 +948,12 @@ const Toolbar = defineComponent({
       const last = items[items.length - 1] as { type?: unknown } | undefined;
       if (last?.type === CoarSidebarDivider) items.pop();
 
+      return renderSidebarHost(items);
+    }
+
+    // Wraps a built item list in the collapsed CoarSidebar host. Shared by the
+    // normal sidebar and the Source-mode (toggle-only) variant.
+    function renderSidebarHost(items: VNodeArrayChildren) {
       return h('div', {
         key: 'sidebar',
         class: 'coar-md-sidebar-wrap',
@@ -1062,7 +1149,8 @@ const Toolbar = defineComponent({
 
     return () => {
       const showFixed = props.toolbarMode === 'fixed' || props.toolbarMode === 'both';
-      const showFloat = !props.readonly
+      const isSource = props.sourceToggle && props.viewMode === 'source';
+      const showFloat = !props.readonly && !isSource
         && (props.toolbarMode === 'floating' || props.toolbarMode === 'both');
 
       // Stable keys are critical: without them, switching toolbar mode shifts
@@ -1080,11 +1168,48 @@ const Toolbar = defineComponent({
       // so the editor inherits the same typography/colour palette as the viewer.
       // Editor-specific compactness lives in deeper `.coar-md-area .milkdown`
       // selectors and wins via specificity.
+      // The placeholder overlay is a muted, click-through render of the shared
+      // markdown viewer, shown only while the document is empty. It sits on top
+      // of the (empty) ProseMirror doc without affecting layout or the caret.
+      const showPlaceholder = props.isEmpty && props.placeholder.length > 0 && !isSource;
+      // Milkdown stays mounted in Source mode (hidden via the `--source` class);
+      // the raw textarea takes over the writing area. When there is no fixed
+      // sidebar to host the toggle (floating mode), a small corner button does.
       children.push(h('div', {
         key: 'area',
-        class: ['coar-md-area', 'coar-markdown'],
-        onMousedown: onAreaMouseDown,
-      }, [h(Milkdown)]));
+        class: ['coar-md-area', 'coar-markdown', { 'coar-md-area--source': isSource }],
+        onMousedown: isSource ? undefined : onAreaMouseDown,
+      }, [
+        h(Milkdown),
+        showPlaceholder
+          ? h(PlaceholderOverlay, { key: 'placeholder', source: props.placeholder })
+          : null,
+        isSource
+          ? h('textarea', {
+              key: 'source',
+              class: 'coar-md-source-area',
+              value: props.sourceValue,
+              readonly: props.readonly || undefined,
+              disabled: props.disabled || undefined,
+              spellcheck: 'false',
+              placeholder: props.placeholder || undefined,
+              onInput: (e: Event) => props.onSourceInput?.((e.target as HTMLTextAreaElement).value),
+            })
+          : null,
+        props.sourceToggle && !showFixed
+          ? h('button', {
+              key: 'source-corner',
+              class: 'coar-md-source-corner',
+              type: 'button',
+              title: isSource ? 'Show rendered' : 'Edit source',
+              'aria-label': isSource ? 'Show rendered' : 'Edit source',
+              onMousedown: (e: MouseEvent) => {
+                e.preventDefault();
+                props.onToggleView?.(isSource ? 'rendered' : 'source');
+              },
+            }, [h(CoarIcon, { name: isSource ? 'eye' : 'code', size: 's' })])
+          : null,
+      ]));
       if (showFixed && sidebarLast) children.push(renderSidebar());
       if (floatingVisible.value && showFloat) children.push(renderFloating());
 
@@ -1121,14 +1246,15 @@ export default defineComponent({
     id: { type: String, default: undefined },
     name: { type: String, default: undefined },
     required: { type: Boolean, default: false },
+    placeholder: { type: String, default: '' },
+    sourceToggle: { type: Boolean, default: false },
     toolbarMode: { type: String as PropType<CoarMarkdownEditorToolbarMode>, default: 'floating' },
     toolbarPosition: { type: String as PropType<CoarMarkdownEditorToolbarPosition>, default: 'left' },
     tools: { type: Array as PropType<CoarMarkdownEditorTool[]>, default: undefined },
   },
   emits: ['update:modelValue'],
   setup(props, { emit }) {
-    // Capture the initial value in a non-reactive ref so reconfiguring the
-    // editor doesn't blow it away. External updates flow through externalValue.
+    // Capture the initial value once; external updates flow through externalValue.
     const initialValue = props.modelValue;
     const externalValue = shallowRef({ value: props.modelValue });
     watch(() => props.modelValue, (next) => {
@@ -1150,6 +1276,7 @@ export default defineComponent({
         externalValue: externalValue.value,
         readonly: effectiveReadonly.value,
         disabled: isDisabled.value,
+        sourceToggle: props.sourceToggle,
         toolbarMode: props.toolbarMode,
         toolbarPosition: props.toolbarPosition,
         tools: props.tools,
@@ -1158,6 +1285,7 @@ export default defineComponent({
         describedBy: describedBy.value,
         name: props.name,
         required: props.required,
+        placeholder: props.placeholder,
         onMarkdownChange: (md: string) => emit('update:modelValue', md),
       }),
     );
@@ -1199,6 +1327,59 @@ export default defineComponent({
   outline-offset: -1px;
 }
 
+/* ── Source view (raw markdown) ── */
+/* In Source mode Milkdown stays mounted but hidden; a full-bleed textarea
+   covers the writing area. The toggle that drives this lives in the sidebar
+   (fixed/both) or, with no sidebar, as the corner button below. */
+.coar-md-area--source .milkdown {
+  display: none;
+}
+.coar-md-source-area {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border: none;
+  outline: none;
+  resize: none;
+  padding: var(--coar-spacing-s) var(--coar-spacing-m);
+  font-family: var(--coar-font-family-mono, monospace);
+  font-size: var(--coar-font-size-s, 0.875rem);
+  line-height: 1.6;
+  tab-size: 2;
+  background: var(--coar-background-neutral-primary);
+  color: var(--coar-text-neutral-primary);
+}
+.coar-md-source-area:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Floating-mode fallback toggle (no sidebar to host it). */
+.coar-md-source-corner {
+  position: absolute;
+  top: var(--coar-spacing-xs);
+  right: var(--coar-spacing-xs);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--coar-border-neutral);
+  border-radius: var(--coar-radius-s);
+  background: var(--coar-background-neutral-primary);
+  color: var(--coar-text-neutral-secondary);
+  cursor: pointer;
+}
+.coar-md-source-corner:hover {
+  background: var(--coar-background-neutral-tertiary);
+  color: var(--coar-text-neutral-primary);
+}
+
 .coar-md-sidebar-wrap {
   flex-shrink: 0;
   /* CoarSidebar's default collapsed dimensions are sized for navigation
@@ -1236,6 +1417,8 @@ export default defineComponent({
   padding: var(--coar-spacing-s) var(--coar-spacing-m);
   /* Padding clicks land here and focus the editor (see onAreaMouseDown). */
   cursor: text;
+  /* Containing block for the absolutely-positioned placeholder overlay. */
+  position: relative;
 }
 
 /* Suppress the browser's default focus ring on the contenteditable region.
@@ -1274,6 +1457,34 @@ export default defineComponent({
 
 /* GFM task-list checkbox styling lives in `@cocoar/vue-markdown/styles` so
    editor and viewer render the cocoar-style checkbox identically. */
+
+/* ── Empty-state placeholder ── */
+/* A muted, click-through overlay of the shared markdown viewer (rendered by
+   `PlaceholderOverlay.vue`), shown only while the document is empty. Because
+   it's a real `<CoarMarkdown>` render, the placeholder may itself be Markdown
+   (**bold**, lists, headings) and matches the editor's own typography. It is
+   never document content, so an untouched editor still serialises to '' .
+   The overlay shares `.coar-md-area`'s padding so its first line aligns with
+   the caret; `pointer-events:none` lets clicks fall through to focus the editor. */
+.coar-md-placeholder {
+  position: absolute;
+  inset: 0;
+  padding: var(--coar-spacing-s) var(--coar-spacing-m);
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+/* Mute every rendered node to the placeholder colour. The `.coar-md-placeholder`
+   class out-specifies the viewer's `:where(...)` token colours (0,1,0 > 0,0,0). */
+.coar-md-placeholder,
+.coar-md-placeholder * {
+  color: var(--coar-text-placeholder);
+}
+/* The viewer gives its first block a top margin (esp. headings); the editor's
+   empty paragraph has none, so strip it to keep the hint aligned with the caret. */
+.coar-md-placeholder .coar-markdown > :first-child {
+  margin-top: 0;
+}
 
 /* ── Floating toolbar ── */
 .coar-md-floating-toolbar {

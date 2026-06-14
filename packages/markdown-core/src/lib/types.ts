@@ -6,6 +6,7 @@ export interface MarkdownPosition {
 }
 
 export type MarkdownNodeType =
+  | 'frontmatter'
   | 'heading'
   | 'paragraph'
   | 'blockquote'

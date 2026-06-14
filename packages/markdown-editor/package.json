@@ -59,6 +59,7 @@
     "@milkdown/plugin-listener": "^7.20.0",
     "@milkdown/preset-commonmark": "^7.20.0",
     "@milkdown/preset-gfm": "^7.20.0",
+    "remark-frontmatter": "^5.0.0",
     "@milkdown/prose": "^7.20.0",
     "@milkdown/utils": "^7.20.0",
     "@milkdown/vue": "^7.20.0"

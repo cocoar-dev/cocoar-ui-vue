@@ -177,10 +177,38 @@ Links are handled intelligently:
 - **Hash anchors** (`#section`): Resolved relative to current page
 - **Relative paths** (`./page`): Local navigation
 
+## Frontmatter
+
+A leading YAML frontmatter block (`---` … `---`) is parsed into a single `frontmatter` node and rendered as muted, italic `key: value` lines (styled like disabled text, so it reads as metadata rather than body content). Without this, CommonMark mis-reads the block as a thematic break followed by a setext heading, collapsing the entire YAML onto one line.
+
+```ts
+import { parse } from '@cocoar/vue-markdown-core';
+
+const doc = parse(`---
+title: Release notes
+tags:
+  - editor
+  - markdown
+---
+
+# Heading
+`);
+
+doc.nodes[0].type;          // 'frontmatter'
+doc.nodes[0].attrs.data;    // { title: 'Release notes', tags: ['editor', 'markdown'] }
+doc.nodes[0].attrs.entries; // [{ key: 'title', value: 'Release notes' }, { key: 'tags', value: 'editor, markdown' }]
+doc.nodes[0].attrs.raw;     // the original YAML text (used for round-trip via serialize())
+```
+
+The node carries three attrs: `raw` (verbatim YAML, the round-trip source), `data` (the parsed object, or `null` for non-map/invalid YAML), and `entries` (flattened, display-ready key/value rows). The default `DefaultFrontmatter` renderer reads `entries`; on a parse failure it falls back to the raw text so nothing is hidden. Override it like any other slot via `MARKDOWN_RENDERERS_KEY` (key: `frontmatter`).
+
+`@cocoar/vue-markdown-editor` renders it the **same** way and round-trips the block on save — see the [editor's Frontmatter section](/components/markdown-editor#frontmatter).
+
 ## Node Types
 
 ```ts
 type MarkdownNodeType =
+  | 'frontmatter'
   | 'heading' | 'paragraph' | 'blockquote'
   | 'list' | 'listItem'
   | 'codeBlock' | 'table' | 'tableRow' | 'tableCell'

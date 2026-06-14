@@ -275,3 +275,36 @@ describe('CoarMarkdown — renderers prop override', () => {
     expect(span.attributes('style')).toBeFalsy();
   });
 });
+
+import { parse } from '@cocoar/vue-markdown-core';
+
+describe('CoarMarkdown — frontmatter', () => {
+  it('renders a YAML frontmatter block as a metadata card (key/value rows)', () => {
+    const doc = parse('---\nname: handoff\ndescription: Do a thing\n---\n\n# Heading\n');
+    const wrapper = mount(CoarMarkdown, { props: { doc } });
+
+    const card = wrapper.find('.coar-markdown-frontmatter');
+    expect(card.exists()).toBe(true);
+
+    const keys = wrapper.findAll('.coar-markdown-frontmatter__key').map((n) => n.text());
+    const values = wrapper.findAll('.coar-markdown-frontmatter__value').map((n) => n.text());
+    expect(keys).toEqual(['name', 'description']);
+    expect(values).toEqual(['handoff', 'Do a thing']);
+
+    // The real heading still renders as a normal <h1> — the frontmatter did NOT
+    // swallow the document into one giant heading.
+    expect(wrapper.find('h1').text()).toBe('Heading');
+    // And the whole YAML is NOT dumped as one collapsed line of text.
+    expect(card.text()).not.toContain('--- name: handoff');
+  });
+
+  it('falls back to raw text for unparseable YAML instead of collapsing', () => {
+    const wrapper = mount(CoarMarkdown, {
+      props: {
+        doc: { nodes: [{ id: 'fm', type: 'frontmatter', attrs: { raw: 'broken: : :', data: null, entries: [] } }] },
+      },
+    });
+    expect(wrapper.find('.coar-markdown-frontmatter__list').exists()).toBe(false);
+    expect(wrapper.find('.coar-markdown-frontmatter__raw').text()).toContain('broken: : :');
+  });
+});
