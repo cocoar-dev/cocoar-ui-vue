@@ -227,6 +227,14 @@ export type {
   SegmentedControlSize,
 } from './components/segmented-control';
 
+// Wizard
+export { CoarWizard } from './components/wizard';
+export type {
+  CoarWizardProps,
+  CoarWizardStep,
+  WizardIndicatorPosition,
+} from './components/wizard';
+
 // Breadcrumb
 export { CoarBreadcrumb, CoarBreadcrumbItem } from './components/breadcrumb';
 export type { CoarBreadcrumbSize } from './components/breadcrumb';

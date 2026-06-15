@@ -327,6 +327,7 @@ export default defineConfig({
           text: 'Layout',
           items: [
             { text: 'Panel Layout (Preview)', link: '/components/panel-layout' },
+            { text: 'Wizard (Preview)', link: '/components/wizard' },
           ],
         },
         {
