@@ -40,6 +40,7 @@ export interface MarkdownRendererProps<TNode extends MarkdownNode = MarkdownNode
  */
 export interface MarkdownViewerRenderers {
   // Block-level
+  frontmatter: Component<MarkdownRendererProps>;
   heading: Component<MarkdownRendererProps>;
   paragraph: Component<MarkdownRendererProps>;
   blockquote: Component<MarkdownRendererProps>;
@@ -81,6 +82,7 @@ export function rendererNameFor(type: MarkdownNodeType | string): MarkdownRender
 }
 
 const DEFAULT_NODE_TYPES: Record<MarkdownRendererName, true> = {
+  frontmatter: true,
   heading: true, paragraph: true, blockquote: true,
   list: true, listItem: true, codeBlock: true,
   table: true, tableRow: true, tableCell: true,

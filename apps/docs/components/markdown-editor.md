@@ -21,7 +21,7 @@ Import the stylesheets once at your app's entry — same pattern as `@cocoar/vue
 ::: warning Preview release
 The package is on the `0.0.x` line. The render layer, `v-model` contract, toolbar API, form-field integration, and code-block view/edit toggle are **stable enough to ship in internal Cocoar apps** — the source format is plain Markdown, so any content written today round-trips through future API changes.
 
-Still missing for a `1.0`: link insertion dialog, image upload, placeholder text, and custom table edge-handles. See [TODO](#todo) below.
+Still missing for a `1.0`: link insertion dialog, image upload, and custom table edge-handles. See [TODO](#todo) below.
 :::
 
 ## Basic Usage
@@ -76,6 +76,62 @@ When `toolbarMode` is `'fixed'` or `'both'`, `toolbarPosition` controls which ed
 ```
 
 In `readonly` mode the editor accepts no input, the floating toolbar is suppressed, and the sidebar buttons are inert. The fixed toolbar still renders so the layout stays stable when toggling between view and edit.
+
+## Placeholder
+
+Pass a `placeholder` string to show a hint while the editor is empty. The
+placeholder **is itself Markdown** — it renders through the same viewer the
+editor uses for content, so `**bold**`, lists, and headings all work and match
+the editor's typography.
+
+```vue
+<CoarMarkdownEditor
+  v-model="value"
+  :placeholder="'**Describe the change…**\n\n- What changed?\n- Why?'"
+/>
+```
+
+<preview path="./markdown-editor/demos/MarkdownEditorPlaceholder.vue" />
+
+::: tip Never persisted — unlike pre-filling the value
+The placeholder is a muted, click-through **overlay** of the `<CoarMarkdown>` viewer, shown only while the document is empty. It never enters `modelValue`. An untouched editor therefore still emits an empty string — so you can leave the field genuinely blank.
+
+Do **not** work around a missing placeholder by writing the hint into `v-model`: that turns the hint into real content, which then gets saved even when the user meant to leave the field empty.
+:::
+
+The hint disappears the moment the document has any content and reappears if it's emptied again. It tracks the live `placeholder` prop, so you can swap it at runtime. Because it's a real Markdown render, the placeholder also picks up [custom renderers](#code-blocks-view-edit-toggle) you provide via `MARKDOWN_RENDERERS_KEY`.
+
+## Frontmatter
+
+A leading YAML frontmatter block (`---` … `---`) is recognised and shown as muted, italic `key: value` lines instead of being mis-parsed as a thematic break + setext heading (which collapses the whole block onto one line). It renders the same way in the [viewer](/components/markdown#frontmatter), so editing and reading look identical.
+
+<preview path="./markdown-editor/demos/MarkdownEditorFrontmatter.vue" />
+
+The frontmatter is an **atomic block**: display-only in the rendered editor (muted + italic, like disabled text), selectable/deletable as a unit, and — crucially — it **round-trips**. The raw YAML is preserved verbatim, so `v-model` keeps emitting the `---` … `---` block untouched while you edit the body. To **edit** the YAML values, switch to [Source view](#source-view-raw-markdown).
+
+::: info Parsing & nesting
+Detection is powered by [`remark-frontmatter`](https://github.com/remarkjs/remark-frontmatter) on Milkdown's shared remark instance (and the matching parse path in `@cocoar/vue-markdown-core`). Only a YAML block at the very **top** of the document is treated as frontmatter — a `---` in the middle stays a horizontal rule. Malformed YAML falls back to showing the raw text in the card rather than collapsing.
+:::
+
+## Source view (raw Markdown)
+
+Set `source-toggle` to add a **Rendered ↔ Source** switch. In Source mode the entire document — body **and** the frontmatter YAML — is editable as raw Markdown in a `<textarea>`; switching back re-parses and re-renders it.
+
+```vue
+<CoarMarkdownEditor v-model="value" source-toggle toolbar-mode="fixed" />
+```
+
+<preview path="./markdown-editor/demos/MarkdownEditorSourceToggle.vue" />
+
+This is the way to hand-edit frontmatter, fix up exact Markdown, or paste raw content. The toggle is **off by default** — without `source-toggle` the editor is WYSIWYG-only with no extra chrome.
+
+::: info Where the toggle lives
+With a **fixed** sidebar toolbar (`toolbar-mode` `'fixed'` / `'both'`) the toggle is the **first item in the sidebar** — and in Source mode the sidebar collapses to just that toggle (the formatting buttons act on the hidden rich editor, so they're hidden). With the default **floating** toolbar there's no persistent toolbar, so a small toggle button appears in the editor's top-right corner instead.
+:::
+
+::: info Behaviour
+The rich editor stays mounted in Source mode (just hidden), so switching is cheap and the toolbar stays put. `readonly` / `disabled` and the `CoarFormField` wiring carry over to the Source `<textarea>`. Switching back re-seeds the rich editor from the current value, so raw edits (incl. frontmatter) are picked up — the rich editor's undo history resets across a mode switch.
+:::
 
 ## Code blocks — view / edit toggle
 
@@ -236,6 +292,8 @@ When migrating from a richtext editor that exposed those tools, the closest Mark
 | `id` | `string` | _(auto)_ | HTML id. Auto-generated if omitted; `CoarFormField`'s id takes precedence |
 | `name` | `string` | _undefined_ | Reflected as `data-name` for form-submission tooling |
 | `required` | `boolean` | `false` | Sets `aria-required="true"` |
+| `placeholder` | `string` | `''` | Markdown hint shown while the editor is empty. Overlay-only — never written to `modelValue`. See [Placeholder](#placeholder) |
+| `sourceToggle` | `boolean` | `false` | Show a Rendered ↔ Source toggle for editing the raw Markdown. See [Source view](#source-view-raw-markdown) |
 | `toolbarMode` | `'floating' \| 'fixed' \| 'both'` | `'floating'` | Toolbar layout |
 | `toolbarPosition` | `'left' \| 'right' \| 'top' \| 'bottom'` | `'left'` | Toolbar edge when `toolbarMode` is `'fixed'` or `'both'`. `top`/`bottom` render a horizontal toolbar; flyouts open along the perpendicular axis. |
 | `tools` | `CoarMarkdownEditorTool[]` | _all_ | Whitelist of toolbar tools. See [Restricting the Toolbar](#restricting-the-toolbar) |
@@ -287,7 +345,6 @@ Table operations are instead exposed via the floating toolbar (when the cursor i
 - [ ] Custom table edge-handles (column/row selection + dedicated toolbars)
 - [ ] Link insert/edit dialog
 - [ ] Image upload support
-- [ ] Placeholder text
 - [ ] Task list checkbox rendering and toggling
 - [ ] Use `computeOverlayCoordinates` for floating toolbar positioning instead of viewport clamping
 - [ ] Slash commands for block insertions

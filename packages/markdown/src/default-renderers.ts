@@ -26,6 +26,8 @@ import { CoarCodeBlock } from '@cocoar/vue-ui';
 import {
   codeBlockLanguage,
   colorSpanColor,
+  frontmatterEntries,
+  frontmatterRaw,
   headingAnchor,
   headingDepth,
   imageAlt,
@@ -56,6 +58,41 @@ const rendererProps = {
     required: true as const,
   },
 };
+
+/**
+ * Frontmatter renderer — the leading `---\n…\n---` YAML block. Rendered as plain
+ * `key: value` lines (no card chrome), styled muted + italic via CSS so it reads
+ * as document metadata. The YAML is parsed at parse-time (markdown-core), so this
+ * renderer just reads the flattened `entries`. When the YAML couldn't be parsed
+ * into a map, it falls back to the raw text so nothing is hidden.
+ */
+export const DefaultFrontmatter = defineComponent({
+  name: 'DefaultFrontmatter',
+  props: rendererProps,
+  setup(props) {
+    return () => {
+      const entries = frontmatterEntries(props.node);
+      if (entries.length === 0) {
+        return h(
+          'div',
+          { class: 'coar-markdown-frontmatter', 'aria-label': 'Document metadata' },
+          [h('pre', { class: 'coar-markdown-frontmatter__raw' }, frontmatterRaw(props.node))],
+        );
+      }
+      return h(
+        'div',
+        { class: 'coar-markdown-frontmatter', role: 'group', 'aria-label': 'Document metadata' },
+        entries.map((entry) =>
+          h('div', { key: entry.key, class: 'coar-markdown-frontmatter__entry' }, [
+            h('span', { class: 'coar-markdown-frontmatter__key' }, entry.key),
+            ': ',
+            h('span', { class: 'coar-markdown-frontmatter__value' }, entry.value),
+          ]),
+        ),
+      );
+    };
+  },
+});
 
 export const DefaultHeading = defineComponent({
   name: 'DefaultHeading',
@@ -398,6 +435,7 @@ export const DefaultUnsupported = defineComponent({
  * provide/inject override or prop override has been set.
  */
 export const defaultMarkdownRenderers: MarkdownViewerRenderers = {
+  frontmatter: DefaultFrontmatter,
   heading: DefaultHeading,
   paragraph: DefaultParagraph,
   blockquote: DefaultBlockquote,

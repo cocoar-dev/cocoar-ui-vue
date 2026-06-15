@@ -62,6 +62,7 @@ const value = ref('# Hello\n\nStart typing **markdown**.');
 |---|---|---|---|
 | `modelValue` | `string` | `''` | Markdown content (use with `v-model`) |
 | `readonly` | `boolean` | `false` | Disable editing |
+| `placeholder` | `string` | `''` | Markdown hint shown while empty. Overlay-only — never written to `modelValue` |
 | `toolbarMode` | `'floating' \| 'fixed' \| 'both'` | `'floating'` | Toolbar layout |
 | `toolbarPosition` | `'left' \| 'right'` | `'left'` | Sidebar position when `toolbarMode` is `'fixed'` or `'both'` |
 

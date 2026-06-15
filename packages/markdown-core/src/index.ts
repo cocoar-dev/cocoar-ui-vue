@@ -1,4 +1,5 @@
 export * from './lib/types';
+export * from './lib/frontmatter';
 export * from './lib/parse';
 export * from './lib/serialize';
 export * from './lib/transform';

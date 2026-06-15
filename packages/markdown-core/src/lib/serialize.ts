@@ -1,6 +1,7 @@
 import { unified } from 'unified';
 import remarkStringify from 'remark-stringify';
 import remarkGfm from 'remark-gfm';
+import remarkFrontmatter from 'remark-frontmatter';
 import type { Root, RootContent, Table } from 'mdast';
 
 import type { MarkdownDocument, MarkdownNode } from './types';
@@ -17,6 +18,10 @@ export function serialize(doc: MarkdownDocument, options: SerializeMarkdownOptio
   if (options.gfm ?? true) {
     processor.use(remarkGfm);
   }
+
+  // Matches the parse side so a `frontmatter` node round-trips back to a
+  // `---\n…\n---` block instead of an unhandled/`html` fallback.
+  processor.use(remarkFrontmatter, ['yaml']);
 
   return String(processor.stringify(mdast));
 }
@@ -54,6 +59,11 @@ function toMdastNodes(node: MarkdownNode): unknown[] {
 
 function toMdastNode(node: MarkdownNode): unknown {
   switch (node.type) {
+    case 'frontmatter':
+      return {
+        type: 'yaml',
+        value: typeof node.attrs?.['raw'] === 'string' ? node.attrs['raw'] : '',
+      };
     case 'heading':
       return {
         type: 'heading',

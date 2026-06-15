@@ -1,4 +1,4 @@
-import { sanitizeColor, type MarkdownNode } from '@cocoar/vue-markdown-core';
+import { sanitizeColor, type FrontmatterEntry, type MarkdownNode } from '@cocoar/vue-markdown-core';
 
 export function headingDepth(node: MarkdownNode): 1 | 2 | 3 | 4 | 5 | 6 {
   const depth = node.attrs?.['depth'];
@@ -93,6 +93,29 @@ export function isTableColumnCenterAligned(tableNode: MarkdownNode, columnIndex:
 export function unsupportedType(node: MarkdownNode): string {
   const originalType = node.attrs?.['originalType'];
   return typeof originalType === 'string' ? originalType : String(node.type);
+}
+
+/**
+ * Display-ready key/value rows of a `frontmatter` node, pre-flattened at parse
+ * time (see markdown-core's `parseFrontmatter`). Empty when the YAML was a
+ * scalar/array or failed to parse — the renderer then falls back to the raw text.
+ */
+export function frontmatterEntries(node: MarkdownNode): FrontmatterEntry[] {
+  const entries = node.attrs?.['entries'];
+  if (!Array.isArray(entries)) return [];
+  return entries.filter(
+    (e): e is FrontmatterEntry =>
+      !!e &&
+      typeof e === 'object' &&
+      typeof (e as { key?: unknown }).key === 'string' &&
+      typeof (e as { value?: unknown }).value === 'string',
+  );
+}
+
+/** The original YAML text of a `frontmatter` node (round-trip source / fallback). */
+export function frontmatterRaw(node: MarkdownNode): string {
+  const raw = node.attrs?.['raw'];
+  return typeof raw === 'string' ? raw : '';
 }
 
 /**

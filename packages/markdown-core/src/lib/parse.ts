@@ -1,6 +1,7 @@
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
 import remarkGfm from 'remark-gfm';
+import remarkFrontmatter from 'remark-frontmatter';
 import type {
   Content,
   Heading,
@@ -16,6 +17,7 @@ import type {
 import type { MarkdownDocument, MarkdownNode, MarkdownPosition } from './types';
 import { createNodeId } from './id';
 import { isColorSpanClose, parseColorSpanOpen } from './color-span';
+import { parseFrontmatter } from './frontmatter';
 
 export interface ParseMarkdownOptions {
   readonly gfm?: boolean;
@@ -27,6 +29,11 @@ export function parse(markdown: string, options: ParseMarkdownOptions = {}): Mar
   if (options.gfm ?? true) {
     processor.use(remarkGfm);
   }
+
+  // Recognise a leading `---\n…\n---` YAML block as a single `yaml` node instead
+  // of mis-parsing it as a thematic break + setext heading (which collapses the
+  // whole block onto one line). We only enable the `yaml` flavour, not `toml`.
+  processor.use(remarkFrontmatter, ['yaml']);
 
   const root = processor.parse(markdown) as Root;
   return fromMdastRoot(root);
@@ -195,6 +202,22 @@ function fromMdastNode(
   const position = toPosition(node.position);
   const idSeed = `${node.type}|${position?.start ?? 'na'}-${position?.end ?? 'na'}|${parentId ?? 'root'}|${indexInParent}`;
   const id = createNodeId(idSeed);
+
+  // Frontmatter: remark-frontmatter emits a `yaml` node (not in mdast's core
+  // `Content` union, hence the cast). Parse the YAML once here so the viewer
+  // can render a metadata card from `attrs` without re-parsing.
+  if ((node.type as string) === 'yaml') {
+    const raw = typeof (node as { value?: unknown }).value === 'string'
+      ? (node as { value: string }).value
+      : '';
+    const { data, entries } = parseFrontmatter(raw);
+    return {
+      id,
+      type: 'frontmatter',
+      position,
+      attrs: { raw, data, entries },
+    };
+  }
 
   switch (node.type) {
     case 'heading':
