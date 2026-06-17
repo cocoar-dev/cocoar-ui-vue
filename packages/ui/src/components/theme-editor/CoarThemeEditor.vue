@@ -19,6 +19,13 @@ const DEFAULTS = {
   danger:  '#d63b3b',
   warning: '#cc821f',
   info:    '#5e6b84',
+  // Radius primitive scale
+  radiusXxs: 1,
+  radiusXs:  2,
+  radiusS:   3,
+  radiusM:   4,
+  radiusL:   5,
+  radiusXl:  6,
   // Density
   density: 1,
   // Radius (CSS token values, not px numbers — we set the token directly)
@@ -52,7 +59,14 @@ const errorColor     = ref(DEFAULTS.error);
 const dangerColor    = ref(DEFAULTS.danger);
 const warning        = ref(DEFAULTS.warning);
 const info           = ref(DEFAULTS.info);
+const radiusXxs      = ref(DEFAULTS.radiusXxs);
+const radiusXs       = ref(DEFAULTS.radiusXs);
+const radiusS        = ref(DEFAULTS.radiusS);
+const radiusM        = ref(DEFAULTS.radiusM);
+const radiusL        = ref(DEFAULTS.radiusL);
+const radiusXl       = ref(DEFAULTS.radiusXl);
 const density        = ref(DEFAULTS.density);
+const showAdvanced   = ref(false);
 const buttonRadius   = ref(DEFAULTS.buttonRadius);
 const inputRadius    = ref(DEFAULTS.inputRadius);
 const tagRadius      = ref(DEFAULTS.tagRadius);
@@ -148,15 +162,7 @@ const PRESETS = [
     description: 'Sharp corners, no shadows, maximum density.',
     values: {
       ...DEFAULTS,
-      buttonRadius:   '0px',
-      inputRadius:    '0px',
-      tagRadius:      '0px',
-      cardRadius:     '0px',
-      menuRadius:     '0px',
-      popoverRadius:  '0px',
-      dropdownRadius: '0px',
-      dialogRadius:   '0px',
-      toastRadius:    '0px',
+      radiusXxs: 0, radiusXs: 0, radiusS: 0, radiusM: 0, radiusL: 0, radiusXl: 0,
       cardShadow:     'none',
       menuShadow:     'none',
       popoverShadow:  'none',
@@ -172,6 +178,12 @@ function applyPreset(preset: typeof PRESETS[number]) {
   success.value        = v.success as string;
   errorColor.value     = v.error as string;
   dangerColor.value    = v.error as string;
+  radiusXxs.value      = v.radiusXxs as number;
+  radiusXs.value       = v.radiusXs  as number;
+  radiusS.value        = v.radiusS   as number;
+  radiusM.value        = v.radiusM   as number;
+  radiusL.value        = v.radiusL   as number;
+  radiusXl.value       = v.radiusXl  as number;
   warning.value        = v.warning as string;
   info.value           = v.info as string;
   buttonRadius.value   = v.buttonRadius as string;
@@ -215,7 +227,14 @@ function applyTokens() {
   r.style.setProperty('--coar-info',    info.value);
   // Density
   r.style.setProperty('--coar-component-density', String(density.value));
-  // Radius
+  // Radius scale (primitives)
+  r.style.setProperty('--coar-radius-xxs', `${radiusXxs.value}px`);
+  r.style.setProperty('--coar-radius-xs',  `${radiusXs.value}px`);
+  r.style.setProperty('--coar-radius-s',   `${radiusS.value}px`);
+  r.style.setProperty('--coar-radius-m',   `${radiusM.value}px`);
+  r.style.setProperty('--coar-radius-l',   `${radiusL.value}px`);
+  r.style.setProperty('--coar-radius-xl',  `${radiusXl.value}px`);
+  // Radius component overrides (fine-tune)
   r.style.setProperty('--coar-button-radius',    buttonRadius.value);
   r.style.setProperty('--coar-input-radius',     inputRadius.value);
   r.style.setProperty('--coar-tag-radius',       tagRadius.value);
@@ -249,7 +268,9 @@ function applyTokens() {
 }
 
 watch(
-  [accent, success, errorColor, dangerColor, warning, info, density,
+  [accent, success, errorColor, dangerColor, warning, info,
+   radiusXxs, radiusXs, radiusS, radiusM, radiusL, radiusXl,
+   density,
    buttonRadius, inputRadius, tagRadius, badgeRadius, cardRadius,
    menuRadius, popoverRadius, dropdownRadius, dialogRadius, toastRadius,
    cardShadow, menuShadow, popoverShadow, dropdownShadow, dialogShadow, toastShadow,
@@ -266,9 +287,16 @@ function reset() {
   }
   const r = document.documentElement;
   dangerColor.value = DEFAULTS.danger;
+  radiusXxs.value   = DEFAULTS.radiusXxs;
+  radiusXs.value    = DEFAULTS.radiusXs;
+  radiusS.value     = DEFAULTS.radiusS;
+  radiusM.value     = DEFAULTS.radiusM;
+  radiusL.value     = DEFAULTS.radiusL;
+  radiusXl.value    = DEFAULTS.radiusXl;
   density.value     = DEFAULTS.density;
   for (const key of [
     '--coar-accent','--coar-success','--coar-error','--coar-button-danger-bg','--coar-warning','--coar-info',
+    '--coar-radius-xxs','--coar-radius-xs','--coar-radius-s','--coar-radius-m','--coar-radius-l','--coar-radius-xl',
     '--coar-component-density',
     '--coar-button-radius','--coar-input-radius','--coar-tag-radius','--coar-badge-radius',
     '--coar-card-radius','--coar-menu-radius','--coar-popover-radius','--coar-dropdown-radius',
@@ -288,6 +316,12 @@ const hasChanges = computed(() =>
   dangerColor.value    !== DEFAULTS.danger         ||
   warning.value        !== DEFAULTS.warning        ||
   info.value           !== DEFAULTS.info           ||
+  radiusXxs.value      !== DEFAULTS.radiusXxs      ||
+  radiusXs.value       !== DEFAULTS.radiusXs       ||
+  radiusS.value        !== DEFAULTS.radiusS        ||
+  radiusM.value        !== DEFAULTS.radiusM        ||
+  radiusL.value        !== DEFAULTS.radiusL        ||
+  radiusXl.value       !== DEFAULTS.radiusXl       ||
   density.value        !== DEFAULTS.density        ||
   buttonRadius.value   !== DEFAULTS.buttonRadius   ||
   inputRadius.value    !== DEFAULTS.inputRadius    ||
@@ -321,6 +355,12 @@ function downloadCSS() {
   add('--coar-error',   errorColor.value, DEFAULTS.error);
   add('--coar-button-danger-bg', dangerColor.value, DEFAULTS.danger);
   add('--coar-warning', warning.value, DEFAULTS.warning);
+  if (radiusXxs.value !== DEFAULTS.radiusXxs) lines.push(`  --coar-radius-xxs: ${radiusXxs.value}px;`);
+  if (radiusXs.value  !== DEFAULTS.radiusXs)  lines.push(`  --coar-radius-xs: ${radiusXs.value}px;`);
+  if (radiusS.value   !== DEFAULTS.radiusS)   lines.push(`  --coar-radius-s: ${radiusS.value}px;`);
+  if (radiusM.value   !== DEFAULTS.radiusM)   lines.push(`  --coar-radius-m: ${radiusM.value}px;`);
+  if (radiusL.value   !== DEFAULTS.radiusL)   lines.push(`  --coar-radius-l: ${radiusL.value}px;`);
+  if (radiusXl.value  !== DEFAULTS.radiusXl)  lines.push(`  --coar-radius-xl: ${radiusXl.value}px;`);
   add('--coar-info',    info.value,    DEFAULTS.info);
   if (density.value !== DEFAULTS.density)
     lines.push(`  --coar-component-density: ${density.value};`);
@@ -489,6 +529,49 @@ const DENSITY_OPTIONS = [
 
           <!-- CORNERS -->
           <div v-if="activeTab === 'corners'">
+
+            <!-- Primitive scale -->
+            <div class="te-section">
+              <div class="te-section-label">Radius scale</div>
+              <div class="te-scale-row">
+                <span class="te-scale-name">XXS</span>
+                <input type="range" class="te-slider te-slider--scale" min="0" max="20" v-model.number="radiusXxs" />
+                <span class="te-scale-val">{{ radiusXxs }}px</span>
+              </div>
+              <div class="te-scale-row">
+                <span class="te-scale-name">XS</span>
+                <input type="range" class="te-slider te-slider--scale" min="0" max="20" v-model.number="radiusXs" />
+                <span class="te-scale-val">{{ radiusXs }}px</span>
+              </div>
+              <div class="te-scale-row">
+                <span class="te-scale-name">S</span>
+                <input type="range" class="te-slider te-slider--scale" min="0" max="32" v-model.number="radiusS" />
+                <span class="te-scale-val">{{ radiusS }}px</span>
+              </div>
+              <div class="te-scale-row">
+                <span class="te-scale-name">M</span>
+                <input type="range" class="te-slider te-slider--scale" min="0" max="32" v-model.number="radiusM" />
+                <span class="te-scale-val">{{ radiusM }}px</span>
+              </div>
+              <div class="te-scale-row">
+                <span class="te-scale-name">L</span>
+                <input type="range" class="te-slider te-slider--scale" min="0" max="64" v-model.number="radiusL" />
+                <span class="te-scale-val">{{ radiusL }}px</span>
+              </div>
+              <div class="te-scale-row">
+                <span class="te-scale-name">XL</span>
+                <input type="range" class="te-slider te-slider--scale" min="0" max="64" v-model.number="radiusXl" />
+                <span class="te-scale-val">{{ radiusXl }}px</span>
+              </div>
+            </div>
+
+            <!-- Advanced toggle -->
+            <button class="te-advanced-toggle" @click="showAdvanced = !showAdvanced">
+              <span>Advanced — per component</span>
+              <span class="te-advanced-arrow" :class="{ 'te-advanced-arrow--open': showAdvanced }">›</span>
+            </button>
+
+            <div v-if="showAdvanced">
             <div class="te-section">
               <div class="te-section-label">Controls & Inputs</div>
               <div class="te-radius-row">
@@ -584,6 +667,7 @@ const DENSITY_OPTIONS = [
                 </div>
               </div>
             </div>
+            </div> <!-- /showAdvanced -->
           </div>
 
           <!-- TYPE -->
@@ -858,6 +942,37 @@ const DENSITY_OPTIONS = [
 .te-select:focus { border-color: var(--coar-accent, #1183CD); }
 .te-font-preview { margin: 8px 0 0; font-size: 12px; color: var(--coar-text-neutral-secondary, #555); line-height: 1.5; }
 .te-font-preview--title { font-size: 16px; font-weight: 600; margin-top: 6px; }
+
+/* ── Radius scale rows ───────────────────────────── */
+.te-scale-row {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+}
+.te-scale-row:last-child { margin-bottom: 0; }
+.te-scale-name {
+  width: 28px; flex-shrink: 0;
+  font-size: 11px; font-weight: 600; color: var(--coar-text-neutral-tertiary, #888);
+  text-transform: uppercase; letter-spacing: .04em;
+}
+.te-scale-val {
+  width: 32px; flex-shrink: 0; text-align: right;
+  font-size: 11px; font-family: ui-monospace, monospace;
+  color: var(--coar-text-neutral-secondary, #666);
+}
+.te-slider--scale { accent-color: var(--coar-accent, #1183CD); }
+
+/* ── Advanced toggle ─────────────────────────────── */
+.te-advanced-toggle {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; padding: 10px 16px; border: none;
+  background: var(--coar-background-neutral-secondary, #f5f5f5);
+  color: var(--coar-text-neutral-secondary, #666);
+  font-size: 12px; font-weight: 500; cursor: pointer;
+  border-top: 1px solid var(--coar-border-neutral-primary, #e0e0e0);
+  border-bottom: 1px solid var(--coar-border-neutral-primary, #e0e0e0);
+}
+.te-advanced-toggle:hover { color: var(--coar-text-neutral-primary, #333); }
+.te-advanced-arrow { font-size: 16px; transition: transform 0.2s; display: inline-block; }
+.te-advanced-arrow--open { transform: rotate(90deg); }
 
 /* ── Hint text ───────────────────────────────────── */
 .te-hint {
