@@ -8,7 +8,7 @@ const props = withDefaults(defineProps<{ hideDarkToggle?: boolean }>(), {
 // ── State ────────────────────────────────────────────────
 const isOpen  = ref(false);
 const isDark  = ref(false);
-const activeTab = ref<'presets' | 'brand' | 'shape' | 'type' | 'depth' | 'motion'>('presets');
+const activeTab = ref<'presets' | 'brand' | 'corners' | 'type' | 'spacing' | 'depth' | 'motion'>('presets');
 
 // ── Defaults ─────────────────────────────────────────────
 const DEFAULTS = {
@@ -16,8 +16,11 @@ const DEFAULTS = {
   accent:  '#1183CD',
   success: '#1e8f48',
   error:   '#d63b3b',
+  danger:  '#d63b3b',
   warning: '#cc821f',
   info:    '#5e6b84',
+  // Density
+  density: 1,
   // Radius (CSS token values, not px numbers — we set the token directly)
   buttonRadius:   'var(--coar-radius-xs)',
   inputRadius:    'var(--coar-radius-xs)',
@@ -46,8 +49,10 @@ const DEFAULTS = {
 const accent         = ref(DEFAULTS.accent);
 const success        = ref(DEFAULTS.success);
 const errorColor     = ref(DEFAULTS.error);
+const dangerColor    = ref(DEFAULTS.danger);
 const warning        = ref(DEFAULTS.warning);
 const info           = ref(DEFAULTS.info);
+const density        = ref(DEFAULTS.density);
 const buttonRadius   = ref(DEFAULTS.buttonRadius);
 const inputRadius    = ref(DEFAULTS.inputRadius);
 const tagRadius      = ref(DEFAULTS.tagRadius);
@@ -166,6 +171,7 @@ function applyPreset(preset: typeof PRESETS[number]) {
   accent.value         = v.accent as string;
   success.value        = v.success as string;
   errorColor.value     = v.error as string;
+  dangerColor.value    = v.error as string;
   warning.value        = v.warning as string;
   info.value           = v.info as string;
   buttonRadius.value   = v.buttonRadius as string;
@@ -204,8 +210,11 @@ function applyTokens() {
   r.style.setProperty('--coar-accent',  accent.value);
   r.style.setProperty('--coar-success', success.value);
   r.style.setProperty('--coar-error',   errorColor.value);
+  r.style.setProperty('--coar-button-danger-bg', dangerColor.value);
   r.style.setProperty('--coar-warning', warning.value);
   r.style.setProperty('--coar-info',    info.value);
+  // Density
+  r.style.setProperty('--coar-component-density', String(density.value));
   // Radius
   r.style.setProperty('--coar-button-radius',    buttonRadius.value);
   r.style.setProperty('--coar-input-radius',     inputRadius.value);
@@ -240,7 +249,7 @@ function applyTokens() {
 }
 
 watch(
-  [accent, success, errorColor, warning, info,
+  [accent, success, errorColor, dangerColor, warning, info, density,
    buttonRadius, inputRadius, tagRadius, badgeRadius, cardRadius,
    menuRadius, popoverRadius, dropdownRadius, dialogRadius, toastRadius,
    cardShadow, menuShadow, popoverShadow, dropdownShadow, dialogShadow, toastShadow,
@@ -256,8 +265,11 @@ function reset() {
     document.documentElement.classList.remove('dark-mode');
   }
   const r = document.documentElement;
+  dangerColor.value = DEFAULTS.danger;
+  density.value     = DEFAULTS.density;
   for (const key of [
-    '--coar-accent','--coar-success','--coar-error','--coar-warning','--coar-info',
+    '--coar-accent','--coar-success','--coar-error','--coar-button-danger-bg','--coar-warning','--coar-info',
+    '--coar-component-density',
     '--coar-button-radius','--coar-input-radius','--coar-tag-radius','--coar-badge-radius',
     '--coar-card-radius','--coar-menu-radius','--coar-popover-radius','--coar-dropdown-radius',
     '--coar-dialog-border-radius','--coar-toast-border-radius',
@@ -273,8 +285,10 @@ const hasChanges = computed(() =>
   accent.value         !== DEFAULTS.accent         ||
   success.value        !== DEFAULTS.success        ||
   errorColor.value     !== DEFAULTS.error          ||
+  dangerColor.value    !== DEFAULTS.danger         ||
   warning.value        !== DEFAULTS.warning        ||
   info.value           !== DEFAULTS.info           ||
+  density.value        !== DEFAULTS.density        ||
   buttonRadius.value   !== DEFAULTS.buttonRadius   ||
   inputRadius.value    !== DEFAULTS.inputRadius    ||
   tagRadius.value      !== DEFAULTS.tagRadius      ||
@@ -305,8 +319,11 @@ function downloadCSS() {
   add('--coar-accent',  accent.value,  DEFAULTS.accent);
   add('--coar-success', success.value, DEFAULTS.success);
   add('--coar-error',   errorColor.value, DEFAULTS.error);
+  add('--coar-button-danger-bg', dangerColor.value, DEFAULTS.danger);
   add('--coar-warning', warning.value, DEFAULTS.warning);
   add('--coar-info',    info.value,    DEFAULTS.info);
+  if (density.value !== DEFAULTS.density)
+    lines.push(`  --coar-component-density: ${density.value};`);
   add('--coar-button-radius',    buttonRadius.value,   DEFAULTS.buttonRadius);
   add('--coar-input-radius',     inputRadius.value,    DEFAULTS.inputRadius);
   add('--coar-tag-radius',       tagRadius.value,      DEFAULTS.tagRadius);
@@ -342,13 +359,20 @@ function downloadCSS() {
 }
 
 const TABS = [
-  { id: 'presets', label: 'Presets' },
-  { id: 'brand',   label: 'Brand'   },
-  { id: 'shape',   label: 'Shape'   },
-  { id: 'type',    label: 'Type'    },
-  { id: 'depth',   label: 'Depth'   },
-  { id: 'motion',  label: 'Motion'  },
+  { id: 'presets',  label: 'Presets'  },
+  { id: 'brand',    label: 'Brand'    },
+  { id: 'corners',  label: 'Corners'  },
+  { id: 'type',     label: 'Type'     },
+  { id: 'spacing',  label: 'Spacing'  },
+  { id: 'depth',    label: 'Depth'    },
+  { id: 'motion',   label: 'Motion'   },
 ] as const;
+
+const DENSITY_OPTIONS = [
+  { label: 'Compact',      value: 0.75 },
+  { label: 'Default',      value: 1    },
+  { label: 'Comfortable',  value: 1.33 },
+];
 </script>
 
 <template>
@@ -451,10 +475,20 @@ const TABS = [
                 <code class="te-color-value">{{ info }}</code>
               </div>
             </div>
+
+            <div class="te-section">
+              <div class="te-section-label">Components</div>
+              <div class="te-color-row">
+                <input type="color" class="te-color-swatch" v-model="dangerColor" />
+                <span class="te-color-name">Danger button</span>
+                <code class="te-color-value">{{ dangerColor }}</code>
+              </div>
+              <p class="te-hint">Independent of Error — set a vivid red without affecting form validation colours.</p>
+            </div>
           </div>
 
-          <!-- SHAPE -->
-          <div v-if="activeTab === 'shape'">
+          <!-- CORNERS -->
+          <div v-if="activeTab === 'corners'">
             <div class="te-section">
               <div class="te-section-label">Controls & Inputs</div>
               <div class="te-radius-row">
@@ -572,6 +606,24 @@ const TABS = [
             </p>
             <p class="te-font-preview te-font-preview--title" :style="{ fontFamily: fontTitle + ', sans-serif' }">
               Heading Preview
+            </p>
+          </div>
+
+          <!-- SPACING -->
+          <div v-if="activeTab === 'spacing'" class="te-section">
+            <div class="te-section-label">Component density</div>
+            <div class="te-chip-group te-chip-group--lg">
+              <button
+                v-for="o in DENSITY_OPTIONS"
+                :key="o.value"
+                class="te-chip"
+                :class="{ active: density === o.value }"
+                @click="density = o.value"
+              >{{ o.label }}</button>
+            </div>
+            <p class="te-hint">
+              Scales horizontal padding inside buttons and inputs proportionally across all sizes.
+              Affects <code>--coar-component-density</code>.
             </p>
           </div>
 
@@ -703,15 +755,19 @@ const TABS = [
 .te-tabs {
   display: flex; flex-shrink: 0;
   border-bottom: 1px solid var(--coar-border-neutral-primary, #e0e0e0);
-  overflow-x: auto; scrollbar-width: none;
+  overflow-x: auto; scrollbar-width: thin;
+  scrollbar-color: var(--coar-border-neutral-primary, #e0e0e0) transparent;
 }
-.te-tabs::-webkit-scrollbar { display: none; }
+.te-tabs::-webkit-scrollbar { height: 3px; }
+.te-tabs::-webkit-scrollbar-thumb { background: var(--coar-border-neutral-primary, #e0e0e0); border-radius: 2px; }
+.te-tabs::-webkit-scrollbar-track { background: transparent; }
 .te-tab {
-  flex-shrink: 0; padding: 8px 12px; border: none; background: transparent;
+  flex-shrink: 0; padding: 8px 8px; border: none; background: transparent;
   font-size: 12px; font-weight: 500; cursor: pointer;
   color: var(--coar-text-neutral-secondary, #666);
   border-bottom: 2px solid transparent; margin-bottom: -1px;
   transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
 }
 .te-tab:hover    { color: var(--coar-text-neutral-primary, #333); }
 .te-tab--active  { color: var(--coar-accent, #1183CD); border-bottom-color: var(--coar-accent, #1183CD); font-weight: 600; }
@@ -802,6 +858,16 @@ const TABS = [
 .te-select:focus { border-color: var(--coar-accent, #1183CD); }
 .te-font-preview { margin: 8px 0 0; font-size: 12px; color: var(--coar-text-neutral-secondary, #555); line-height: 1.5; }
 .te-font-preview--title { font-size: 16px; font-weight: 600; margin-top: 6px; }
+
+/* ── Hint text ───────────────────────────────────── */
+.te-hint {
+  margin: 8px 0 0; font-size: 11px; color: var(--coar-text-neutral-tertiary, #999);
+  line-height: 1.4;
+}
+.te-hint code { font-family: ui-monospace, monospace; font-size: 10px; }
+
+/* ── Density chip group ──────────────────────────── */
+.te-chip-group--lg .te-chip { padding: 6px 16px; font-size: 12px; }
 
 /* ── Motion ──────────────────────────────────────── */
 .te-slider-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
