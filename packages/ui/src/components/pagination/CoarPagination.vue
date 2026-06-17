@@ -184,7 +184,7 @@ function trackByItem(index: number, item: PaginationPageItem): string {
   font-family: inherit;
   line-height: var(--coar-line-height-none);
   border: 1px solid transparent;
-  border-radius: var(--coar-radius-xs);
+  border-radius: var(--coar-button-radius);
   background: transparent;
   color: var(--coar-text-neutral-primary);
   cursor: pointer;

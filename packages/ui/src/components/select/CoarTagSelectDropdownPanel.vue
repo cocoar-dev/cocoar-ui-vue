@@ -80,8 +80,8 @@ const highlightedIndex = props.highlightedIndex;
 .coar-select-dropdown {
   background: var(--coar-background-neutral-primary);
   border: 1px solid var(--coar-border-neutral);
-  border-radius: var(--coar-radius-s);
-  box-shadow: var(--coar-shadow-m);
+  border-radius: var(--coar-dropdown-radius);
+  box-shadow: var(--coar-dropdown-shadow);
   overflow: hidden;
   display: flex;
   flex-direction: column;

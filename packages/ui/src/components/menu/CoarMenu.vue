@@ -152,9 +152,9 @@ onBeforeUnmount(() => {
   gap: 0;
   background: var(--coar-background-neutral-primary);
   border: 1px solid var(--coar-border-neutral-tertiary);
-  border-radius: var(--coar-radius-s);
+  border-radius: var(--coar-menu-radius);
   overflow: hidden;
-  box-shadow: var(--coar-shadow-s);
+  box-shadow: var(--coar-menu-shadow);
 }
 
 .coar-menu__header,

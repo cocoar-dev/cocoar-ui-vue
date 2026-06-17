@@ -139,7 +139,7 @@ defineExpose({ startAutoClose });
   padding: var(--coar-toast-padding);
   background: var(--coar-toast-background);
   border-radius: var(--coar-toast-border-radius);
-  box-shadow: var(--coar-shadow-l);
+  box-shadow: var(--coar-toast-shadow);
   border: 1px solid var(--coar-border-neutral);
   border-left: var(--coar-toast-border-width) solid transparent;
   position: relative;

@@ -126,6 +126,28 @@
   --coar-popover-max-height: 240px;
 
   /* ==========================================================================
+     COMPONENT SEMANTIC TOKENS — override these to theme individual components
+     ========================================================================== */
+
+  /* Radius — per component group */
+  --coar-button-radius:    var(--coar-radius-xs);   /* CoarButton, CoarSegmentedControl, CoarPagination */
+  --coar-input-radius:     var(--coar-radius-xs);   /* all text/number/otp/password/select inputs */
+  --coar-tag-radius:       var(--coar-radius-xs);   /* CoarTag + inline chips inside multi-selects */
+  --coar-badge-radius:     var(--coar-radius-full); /* CoarBadge */
+  --coar-card-radius:      var(--coar-radius-s);    /* CoarCard */
+  --coar-menu-radius:      var(--coar-radius-s);    /* CoarMenu */
+  --coar-popover-radius:   var(--coar-radius-s);    /* CoarPopover, CoarPopconfirm */
+  --coar-dropdown-radius:  var(--coar-radius-s);    /* select/multi/tag dropdown panels */
+
+  /* Shadow — per component group */
+  --coar-card-shadow:      var(--coar-elevation-medium);
+  --coar-menu-shadow:      var(--coar-shadow-s);
+  --coar-popover-shadow:   var(--coar-shadow-m);
+  --coar-dropdown-shadow:  var(--coar-shadow-m);
+  --coar-dialog-shadow:    var(--coar-shadow-xl);
+  --coar-toast-shadow:     var(--coar-shadow-l);
+
+  /* ==========================================================================
      CARD
      ========================================================================== */
 

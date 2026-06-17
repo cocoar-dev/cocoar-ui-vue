@@ -110,7 +110,7 @@ const hostClasses = computed(() => [
   display: inline-flex;
   background: var(--coar-background-neutral-primary, #fff);
   border: 1px solid var(--coar-border-neutral-tertiary);
-  border-radius: var(--coar-radius-xs);
+  border-radius: var(--coar-button-radius);
   overflow: hidden;
   font-family: var(--coar-body-base-family);
   font-weight: var(--coar-body-base-weight);

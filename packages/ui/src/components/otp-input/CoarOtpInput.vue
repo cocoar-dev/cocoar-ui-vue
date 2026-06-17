@@ -459,7 +459,7 @@ const pattern = computed(() =>
   height: var(--coar-component-m-height);
   padding: 0;
   border: 1px solid var(--coar-border-input);
-  border-radius: var(--coar-radius-xs);
+  border-radius: var(--coar-input-radius);
   background: var(--coar-surface-input);
   color: var(--coar-text-neutral-primary);
   font-family: var(--coar-mono-base-family, ui-monospace, SFMono-Regular, Menlo, monospace);

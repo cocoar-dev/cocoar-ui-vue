@@ -73,7 +73,7 @@ function onClose(event: MouseEvent): void {
   align-items: center;
   gap: var(--coar-spacing-xxs);
   padding: var(--coar-spacing-xs) var(--coar-spacing-s);
-  border-radius: var(--coar-radius-xs);
+  border-radius: var(--coar-tag-radius);
   background-color: var(--coar-tag-bg);
   border: 1px solid var(--coar-tag-border-color);
   font-family: var(--coar-body-small-base-family);

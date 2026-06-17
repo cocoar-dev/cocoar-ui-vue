@@ -50,8 +50,8 @@ const emit = defineEmits<{
   padding: var(--coar-spacing-s);
   background: var(--coar-background-neutral-primary);
   border: 1px solid var(--coar-border-neutral);
-  border-radius: var(--coar-radius-s);
-  box-shadow: var(--coar-shadow-m);
+  border-radius: var(--coar-popover-radius);
+  box-shadow: var(--coar-popover-shadow);
   min-width: var(--coar-popover-min-width);
   max-width: var(--coar-popover-max-width);
   pointer-events: auto;

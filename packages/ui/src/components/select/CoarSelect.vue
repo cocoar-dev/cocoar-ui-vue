@@ -348,7 +348,7 @@ onBeforeUnmount(() => {
   height: var(--coar-component-m-height);
   padding: 0 var(--coar-spacing-s);
   border: 1px solid var(--coar-border-input);
-  border-radius: var(--coar-radius-xs);
+  border-radius: var(--coar-input-radius);
   background: var(--coar-surface-input);
   cursor: pointer;
   transition: border-color var(--coar-duration-fast) var(--coar-ease-out), box-shadow var(--coar-duration-fast) var(--coar-ease-out);

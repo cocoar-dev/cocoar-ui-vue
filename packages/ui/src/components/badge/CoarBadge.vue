@@ -90,7 +90,7 @@ const badgeClasses = computed(() => [
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--coar-radius-full);
+  border-radius: var(--coar-badge-radius);
   font-family: var(--coar-body-small-bold-family);
   font-weight: var(--coar-body-small-bold-weight);
   white-space: nowrap;
