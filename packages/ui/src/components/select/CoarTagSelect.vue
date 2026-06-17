@@ -350,7 +350,7 @@ onBeforeUnmount(() => {
   min-height: var(--coar-component-m-height);
   padding: var(--coar-spacing-xs) var(--coar-spacing-s);
   border: 1px solid var(--coar-border-input);
-  border-radius: var(--coar-radius-xs);
+  border-radius: var(--coar-input-radius);
   background: var(--coar-surface-input);
   cursor: text;
   transition: border-color var(--coar-duration-fast) var(--coar-ease-out), box-shadow var(--coar-duration-fast) var(--coar-ease-out);
@@ -406,7 +406,7 @@ onBeforeUnmount(() => {
   gap: 2px;
   height: 24px;
   padding: 0 var(--coar-spacing-xs) 0 var(--coar-spacing-s);
-  border-radius: var(--coar-radius-xs);
+  border-radius: var(--coar-tag-radius);
   background: var(--coar-background-neutral-secondary);
   border: 1px solid var(--coar-border-neutral-tertiary);
   color: var(--coar-text-neutral-primary);
@@ -433,7 +433,7 @@ onBeforeUnmount(() => {
   background: transparent;
   color: var(--coar-icon-neutral-secondary);
   cursor: pointer;
-  border-radius: 2px;
+  border-radius: var(--coar-radius-xxs);
   opacity: 0.6;
   transition: opacity var(--coar-duration-fast) var(--coar-ease-out);
 }

@@ -398,7 +398,7 @@ function decrement() {
   align-items: center;
   height: var(--coar-component-m-height);
   border: 1px solid var(--coar-border-input);
-  border-radius: var(--coar-radius-xs);
+  border-radius: var(--coar-input-radius);
   background: var(--coar-surface-input);
   transition:
     border-color var(--coar-duration-fast) var(--coar-ease-out),

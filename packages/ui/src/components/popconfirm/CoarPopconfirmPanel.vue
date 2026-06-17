@@ -39,7 +39,7 @@ defineProps<{
   padding: 0.75rem;
   background: var(--coar-background-neutral-primary);
   border: 1px solid var(--coar-border-neutral-tertiary);
-  border-radius: var(--coar-radius-s);
+  border-radius: var(--coar-popover-radius);
   max-width: 280px;
   font-family: var(--coar-body-base-family);
   box-sizing: border-box;

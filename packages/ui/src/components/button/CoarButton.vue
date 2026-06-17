@@ -210,7 +210,7 @@ function handleClick(event: MouseEvent) {
   justify-content: center;
   gap: var(--coar-spacing-s);
   border: none;
-  border-radius: var(--coar-radius-xs);
+  border-radius: var(--coar-button-radius);
   font-family: var(--coar-body-base-family);
   font-weight: var(--coar-body-base-weight);
   cursor: pointer;

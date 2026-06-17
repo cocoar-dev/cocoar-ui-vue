@@ -53,14 +53,14 @@ const hostClasses = computed(() => [
 <style scoped>
 .coar-card {
   display: block;
-  border-radius: var(--coar-radius-s);
+  border-radius: var(--coar-card-radius);
   border: 1px solid transparent;
   transition: background-color var(--coar-duration-normal) var(--coar-ease-out), border-color var(--coar-duration-normal) var(--coar-ease-out), box-shadow var(--coar-duration-normal) var(--coar-ease-out);
 }
 
 /* Elevated */
 .coar-card--elevated {
-  box-shadow: var(--coar-elevation-medium);
+  box-shadow: var(--coar-card-shadow);
 }
 
 /* Variants */

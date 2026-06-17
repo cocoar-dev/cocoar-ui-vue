@@ -183,7 +183,7 @@ const BodyRenderer = computed(() => {
 .coar-dialog {
   background: var(--coar-dialog-background);
   border-radius: var(--coar-dialog-border-radius);
-  box-shadow: var(--coar-shadow-xl);
+  box-shadow: var(--coar-dialog-shadow);
   display: flex;
   flex-direction: column;
   max-height: 85vh;
