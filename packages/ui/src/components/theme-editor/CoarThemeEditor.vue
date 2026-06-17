@@ -16,9 +16,11 @@ const DEFAULTS = {
   accent:  '#1183CD',
   success: '#1e8f48',
   error:   '#d63b3b',
-  danger:  '#d63b3b',
   warning: '#cc821f',
   info:    '#5e6b84',
+  // Danger button formula params
+  dangerL: 0.47,
+  dangerC: 0.13,
   // Radius primitive scale
   radiusXxs: 1,
   radiusXs:  2,
@@ -55,9 +57,12 @@ const DEFAULTS = {
 
 const accent         = ref(DEFAULTS.accent);
 const success        = ref(DEFAULTS.success);
-const errorColor     = ref(DEFAULTS.error);
-const dangerColor    = ref(DEFAULTS.danger);
-const warning        = ref(DEFAULTS.warning);
+const errorColor          = ref(DEFAULTS.error);
+const dangerL             = ref(DEFAULTS.dangerL);
+const dangerC             = ref(DEFAULTS.dangerC);
+const dangerCustomEnabled = ref(false);
+const dangerCustomColor   = ref('#d63b3b');
+const warning             = ref(DEFAULTS.warning);
 const info           = ref(DEFAULTS.info);
 const radiusXxs      = ref(DEFAULTS.radiusXxs);
 const radiusXs       = ref(DEFAULTS.radiusXs);
@@ -177,7 +182,7 @@ function applyPreset(preset: typeof PRESETS[number]) {
   accent.value         = v.accent as string;
   success.value        = v.success as string;
   errorColor.value     = v.error as string;
-  dangerColor.value    = v.error as string;
+  dangerCustomEnabled.value = false;
   radiusXxs.value      = v.radiusXxs as number;
   radiusXs.value       = v.radiusXs  as number;
   radiusS.value        = v.radiusS   as number;
@@ -222,7 +227,15 @@ function applyTokens() {
   r.style.setProperty('--coar-accent',  accent.value);
   r.style.setProperty('--coar-success', success.value);
   r.style.setProperty('--coar-error',   errorColor.value);
-  r.style.setProperty('--coar-button-danger-bg', dangerColor.value);
+  if (dangerCustomEnabled.value) {
+    r.style.setProperty('--coar-button-danger-bg', dangerCustomColor.value);
+    r.style.removeProperty('--coar-button-danger-l');
+    r.style.removeProperty('--coar-button-danger-c');
+  } else {
+    r.style.removeProperty('--coar-button-danger-bg');
+    r.style.setProperty('--coar-button-danger-l', String(dangerL.value));
+    r.style.setProperty('--coar-button-danger-c', String(dangerC.value));
+  }
   r.style.setProperty('--coar-warning', warning.value);
   r.style.setProperty('--coar-info',    info.value);
   // Density
@@ -268,7 +281,7 @@ function applyTokens() {
 }
 
 watch(
-  [accent, success, errorColor, dangerColor, warning, info,
+  [accent, success, errorColor, dangerL, dangerC, dangerCustomEnabled, dangerCustomColor, warning, info,
    radiusXxs, radiusXs, radiusS, radiusM, radiusL, radiusXl,
    density,
    buttonRadius, inputRadius, tagRadius, badgeRadius, cardRadius,
@@ -286,7 +299,10 @@ function reset() {
     document.documentElement.classList.remove('dark-mode');
   }
   const r = document.documentElement;
-  dangerColor.value = DEFAULTS.danger;
+  dangerL.value             = DEFAULTS.dangerL;
+  dangerC.value             = DEFAULTS.dangerC;
+  dangerCustomEnabled.value = false;
+  dangerCustomColor.value   = '#d63b3b';
   radiusXxs.value   = DEFAULTS.radiusXxs;
   radiusXs.value    = DEFAULTS.radiusXs;
   radiusS.value     = DEFAULTS.radiusS;
@@ -295,7 +311,9 @@ function reset() {
   radiusXl.value    = DEFAULTS.radiusXl;
   density.value     = DEFAULTS.density;
   for (const key of [
-    '--coar-accent','--coar-success','--coar-error','--coar-button-danger-bg','--coar-warning','--coar-info',
+    '--coar-accent','--coar-success','--coar-error',
+    '--coar-button-danger-l','--coar-button-danger-c','--coar-button-danger-bg',
+    '--coar-warning','--coar-info',
     '--coar-radius-xxs','--coar-radius-xs','--coar-radius-s','--coar-radius-m','--coar-radius-l','--coar-radius-xl',
     '--coar-component-density',
     '--coar-button-radius','--coar-input-radius','--coar-tag-radius','--coar-badge-radius',
@@ -313,7 +331,9 @@ const hasChanges = computed(() =>
   accent.value         !== DEFAULTS.accent         ||
   success.value        !== DEFAULTS.success        ||
   errorColor.value     !== DEFAULTS.error          ||
-  dangerColor.value    !== DEFAULTS.danger         ||
+  dangerL.value             !== DEFAULTS.dangerL    ||
+  dangerC.value             !== DEFAULTS.dangerC    ||
+  dangerCustomEnabled.value                         ||
   warning.value        !== DEFAULTS.warning        ||
   info.value           !== DEFAULTS.info           ||
   radiusXxs.value      !== DEFAULTS.radiusXxs      ||
@@ -353,7 +373,12 @@ function downloadCSS() {
   add('--coar-accent',  accent.value,  DEFAULTS.accent);
   add('--coar-success', success.value, DEFAULTS.success);
   add('--coar-error',   errorColor.value, DEFAULTS.error);
-  add('--coar-button-danger-bg', dangerColor.value, DEFAULTS.danger);
+  if (dangerCustomEnabled.value) {
+    lines.push(`  --coar-button-danger-bg: ${dangerCustomColor.value};`);
+  } else {
+    if (dangerL.value !== DEFAULTS.dangerL) lines.push(`  --coar-button-danger-l: ${dangerL.value};`);
+    if (dangerC.value !== DEFAULTS.dangerC) lines.push(`  --coar-button-danger-c: ${dangerC.value};`);
+  }
   add('--coar-warning', warning.value, DEFAULTS.warning);
   if (radiusXxs.value !== DEFAULTS.radiusXxs) lines.push(`  --coar-radius-xxs: ${radiusXxs.value}px;`);
   if (radiusXs.value  !== DEFAULTS.radiusXs)  lines.push(`  --coar-radius-xs: ${radiusXs.value}px;`);
@@ -517,13 +542,44 @@ const DENSITY_OPTIONS = [
             </div>
 
             <div class="te-section">
-              <div class="te-section-label">Components</div>
-              <div class="te-color-row">
-                <input type="color" class="te-color-swatch" v-model="dangerColor" />
-                <span class="te-color-name">Danger button</span>
-                <code class="te-color-value">{{ dangerColor }}</code>
+              <div class="te-section-label">
+                Danger button
+                <button
+                  class="te-mode-pill"
+                  :class="{ 'te-mode-pill--active': dangerCustomEnabled }"
+                  @click="dangerCustomEnabled = !dangerCustomEnabled"
+                  :title="dangerCustomEnabled ? 'Switch to formula mode' : 'Switch to custom color'"
+                >{{ dangerCustomEnabled ? 'Custom' : 'Formula' }}</button>
               </div>
-              <p class="te-hint">Independent of Error — set a vivid red without affecting form validation colours.</p>
+
+              <!-- Formula mode -->
+              <template v-if="!dangerCustomEnabled">
+                <p class="te-formula-hint"><code>oklch(from --coar-error, L, C, hue)</code></p>
+                <div class="te-scale-row">
+                  <span class="te-scale-name">L</span>
+                  <input type="range" class="te-slider te-slider--scale" min="0" max="1" step="0.01" v-model.number="dangerL" />
+                  <span class="te-scale-val">{{ dangerL }}</span>
+                  <button class="te-reset-btn" :class="{ 'te-reset-btn--changed': dangerL !== DEFAULTS.dangerL }" @click="dangerL = DEFAULTS.dangerL" title="Reset">↺</button>
+                </div>
+                <div class="te-scale-row">
+                  <span class="te-scale-name">C</span>
+                  <input type="range" class="te-slider te-slider--scale" min="0" max="0.4" step="0.005" v-model.number="dangerC" />
+                  <span class="te-scale-val">{{ dangerC }}</span>
+                  <button class="te-reset-btn" :class="{ 'te-reset-btn--changed': dangerC !== DEFAULTS.dangerC }" @click="dangerC = DEFAULTS.dangerC" title="Reset">↺</button>
+                </div>
+                <p class="te-hint">L = lightness (0–1), C = chroma/saturation (0–0.4). Hue always follows --coar-error.</p>
+              </template>
+
+              <!-- Custom color override -->
+              <template v-else>
+                <div class="te-color-row">
+                  <input type="color" class="te-color-swatch" v-model="dangerCustomColor" />
+                  <span class="te-color-name">Custom color</span>
+                  <code class="te-color-value">{{ dangerCustomColor }}</code>
+                  <button class="te-reset-btn te-reset-btn--changed" @click="dangerCustomEnabled = false" title="Back to formula">↺</button>
+                </div>
+                <p class="te-hint">Overrides the formula entirely. Download emits <code>--coar-button-danger-bg</code> directly.</p>
+              </template>
             </div>
           </div>
 
@@ -537,31 +593,37 @@ const DENSITY_OPTIONS = [
                 <span class="te-scale-name">XXS</span>
                 <input type="range" class="te-slider te-slider--scale" min="0" max="20" v-model.number="radiusXxs" />
                 <span class="te-scale-val">{{ radiusXxs }}px</span>
+                <button class="te-reset-btn" :class="{ 'te-reset-btn--changed': radiusXxs !== DEFAULTS.radiusXxs }" @click="radiusXxs = DEFAULTS.radiusXxs" title="Reset">↺</button>
               </div>
               <div class="te-scale-row">
                 <span class="te-scale-name">XS</span>
                 <input type="range" class="te-slider te-slider--scale" min="0" max="20" v-model.number="radiusXs" />
                 <span class="te-scale-val">{{ radiusXs }}px</span>
+                <button class="te-reset-btn" :class="{ 'te-reset-btn--changed': radiusXs !== DEFAULTS.radiusXs }" @click="radiusXs = DEFAULTS.radiusXs" title="Reset">↺</button>
               </div>
               <div class="te-scale-row">
                 <span class="te-scale-name">S</span>
                 <input type="range" class="te-slider te-slider--scale" min="0" max="32" v-model.number="radiusS" />
                 <span class="te-scale-val">{{ radiusS }}px</span>
+                <button class="te-reset-btn" :class="{ 'te-reset-btn--changed': radiusS !== DEFAULTS.radiusS }" @click="radiusS = DEFAULTS.radiusS" title="Reset">↺</button>
               </div>
               <div class="te-scale-row">
                 <span class="te-scale-name">M</span>
                 <input type="range" class="te-slider te-slider--scale" min="0" max="32" v-model.number="radiusM" />
                 <span class="te-scale-val">{{ radiusM }}px</span>
+                <button class="te-reset-btn" :class="{ 'te-reset-btn--changed': radiusM !== DEFAULTS.radiusM }" @click="radiusM = DEFAULTS.radiusM" title="Reset">↺</button>
               </div>
               <div class="te-scale-row">
                 <span class="te-scale-name">L</span>
                 <input type="range" class="te-slider te-slider--scale" min="0" max="64" v-model.number="radiusL" />
                 <span class="te-scale-val">{{ radiusL }}px</span>
+                <button class="te-reset-btn" :class="{ 'te-reset-btn--changed': radiusL !== DEFAULTS.radiusL }" @click="radiusL = DEFAULTS.radiusL" title="Reset">↺</button>
               </div>
               <div class="te-scale-row">
                 <span class="te-scale-name">XL</span>
                 <input type="range" class="te-slider te-slider--scale" min="0" max="64" v-model.number="radiusXl" />
                 <span class="te-scale-val">{{ radiusXl }}px</span>
+                <button class="te-reset-btn" :class="{ 'te-reset-btn--changed': radiusXl !== DEFAULTS.radiusXl }" @click="radiusXl = DEFAULTS.radiusXl" title="Reset">↺</button>
               </div>
             </div>
 
@@ -959,6 +1021,36 @@ const DENSITY_OPTIONS = [
   color: var(--coar-text-neutral-secondary, #666);
 }
 .te-slider--scale { accent-color: var(--coar-accent, #1183CD); }
+
+/* ── Reset button ────────────────────────────────── */
+.te-reset-btn {
+  width: 20px; height: 20px; border: none; background: transparent;
+  color: var(--coar-border-neutral-primary, #d0d0d0);
+  font-size: 13px; cursor: pointer; border-radius: 3px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0; line-height: 1; transition: color 0.15s, background 0.15s;
+}
+.te-reset-btn:hover { color: var(--coar-text-neutral-primary, #333); background: var(--coar-background-neutral-secondary, #f0f0f0); }
+.te-reset-btn--changed { color: var(--coar-accent, #1183CD); }
+.te-reset-btn--changed:hover { color: var(--coar-text-neutral-primary, #333); }
+
+/* ── Mode pill (Formula/Custom toggle) ───────────── */
+.te-mode-pill {
+  margin-left: auto; padding: 2px 8px; border-radius: 99px; border: 1px solid currentColor;
+  background: transparent; font-size: 10px; font-weight: 500; cursor: pointer;
+  color: var(--coar-text-neutral-tertiary, #999); text-transform: uppercase; letter-spacing: .04em;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+.te-mode-pill:hover { color: var(--coar-accent, #1183CD); border-color: var(--coar-accent, #1183CD); }
+.te-mode-pill--active { color: var(--coar-accent, #1183CD); border-color: var(--coar-accent, #1183CD); background: var(--coar-background-accent-subtle, #e8f1fb); }
+
+/* ── Formula hint ────────────────────────────────── */
+.te-formula-hint {
+  margin: 0 0 8px; font-size: 11px; color: var(--coar-text-neutral-tertiary, #999);
+  background: var(--coar-background-neutral-secondary, #f5f5f5);
+  border-radius: 4px; padding: 4px 8px;
+}
+.te-formula-hint code { font-family: ui-monospace, monospace; font-size: 10px; color: var(--coar-text-neutral-secondary, #666); }
 
 /* ── Advanced toggle ─────────────────────────────── */
 .te-advanced-toggle {
