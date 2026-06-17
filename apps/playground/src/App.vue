@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { CoarOverlayHost } from '@cocoar/vue-ui';
+import CoarThemeEditor from './components/theme-editor/CoarThemeEditor.vue';
 </script>
 
 <template>
@@ -19,6 +20,7 @@ import { CoarOverlayHost } from '@cocoar/vue-ui';
       <router-view />
     </main>
     <CoarOverlayHost />
+    <CoarThemeEditor />
   </div>
 </template>
 
