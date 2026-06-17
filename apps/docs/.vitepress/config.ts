@@ -54,6 +54,13 @@ export default defineConfig({
           ),
         },
         {
+          find: /^@cocoar\/vue-ui\/theme-editor$/,
+          replacement: resolve(
+            __dirname,
+            '../../../packages/ui/src/components/theme-editor/CoarThemeEditor.vue',
+          ),
+        },
+        {
           find: /^@cocoar\/vue-ui\/styles$/,
           replacement: resolve(
             __dirname,
