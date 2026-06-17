@@ -10,6 +10,7 @@ import './custom.css';
 import './coar-overrides.css';
 
 import { CoarOverlayPlugin, CoarOverlayHost } from '@cocoar/vue-ui';
+import CoarThemeEditor from '@cocoar/vue-ui/theme-editor';
 import { createCoarLocalization } from '@cocoar/vue-localization';
 
 import DemoPreview from './DemoPreview.vue';
@@ -34,7 +35,7 @@ const theme: Theme = {
   Layout() {
     return h(DefaultTheme.Layout, null, {
       'nav-bar-content-after': () => h(LocaleSwitcher),
-      'layout-bottom': () => [h(CoarOverlayHost), h(DarkModeSync)],
+      'layout-bottom': () => [h(CoarOverlayHost), h(DarkModeSync), h(CoarThemeEditor, { hideDarkToggle: true })],
     });
   },
   enhanceApp({ app }) {
