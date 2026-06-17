@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed, reactive } from 'vue';
+import CoarPaletteEditor, { type StepDef, type StepOverride } from './CoarPaletteEditor.vue';
 
 const props = withDefaults(defineProps<{ hideDarkToggle?: boolean }>(), {
   hideDarkToggle: false,
@@ -278,6 +279,24 @@ function applyTokens() {
     if (isDark.value) r.classList.add('dark-mode');
     else              r.classList.remove('dark-mode');
   }
+  // Palette step overrides
+  const baseColors: Record<PaletteKey, string> = {
+    accent: accent.value, error: errorColor.value,
+    success: success.value, warning: warning.value, info: info.value,
+  };
+  for (const key of Object.keys(paletteOverrides) as PaletteKey[]) {
+    const prefix = PALETTE_CSS_TOKEN[key];
+    const base   = baseColors[key];
+    for (const step of PALETTE_STEPS[key]) {
+      if (step.defL === null) continue;
+      const ov = paletteOverrides[key][step.step];
+      if (ov) {
+        r.style.setProperty(`${prefix}-${step.step}`, `oklch(from ${base} ${ov.l} ${ov.c} h)`);
+      } else {
+        r.style.removeProperty(`${prefix}-${step.step}`);
+      }
+    }
+  }
 }
 
 watch(
@@ -324,6 +343,14 @@ function reset() {
     '--coar-font-family-body','--coar-font-family-title',
     ...Object.keys(BASE_DURATIONS).map(k => `--coar-duration-${k}`),
   ]) r.style.removeProperty(key);
+  // Clear palette overrides
+  for (const key of Object.keys(paletteOverrides) as PaletteKey[]) {
+    for (const step of PALETTE_STEPS[key]) {
+      if (step.defL !== null) r.style.removeProperty(`${PALETTE_CSS_TOKEN[key]}-${step.step}`);
+    }
+    paletteOverrides[key] = {};
+  }
+  activePalette.value = null;
 }
 
 // ── Changed detection ─────────────────────────────────────
@@ -361,7 +388,8 @@ const hasChanges = computed(() =>
   toastShadow.value    !== DEFAULTS.toastShadow    ||
   fontBody.value       !== DEFAULTS.fontBody       ||
   fontTitle.value      !== DEFAULTS.fontTitle      ||
-  motionScale.value    !== DEFAULTS.motionScale,
+  motionScale.value    !== DEFAULTS.motionScale    ||
+  Object.values(paletteOverrides).some(ov => Object.keys(ov).length > 0),
 );
 
 // ── Download ──────────────────────────────────────────────
@@ -414,6 +442,16 @@ function downloadCSS() {
       lines.push(`  --coar-duration-${key}: ${Math.round(base * motionScale.value)}ms;`);
     }
   }
+  // Palette step overrides
+  for (const key of Object.keys(paletteOverrides) as PaletteKey[]) {
+    const prefix  = PALETTE_CSS_TOKEN[key];
+    const baseVar = PALETTE_BASE_VAR[key];
+    for (const step of PALETTE_STEPS[key]) {
+      if (step.defL === null) continue;
+      const ov = paletteOverrides[key][step.step];
+      if (ov) lines.push(`  ${prefix}-${step.step}: oklch(from var(${baseVar}) ${ov.l} ${ov.c} h);`);
+    }
+  }
   lines.push('}');
   const blob = new Blob([lines.join('\n')], { type: 'text/css' });
   const a = document.createElement('a');
@@ -432,6 +470,95 @@ const TABS = [
   { id: 'depth',    label: 'Depth'    },
   { id: 'motion',   label: 'Motion'   },
 ] as const;
+
+// ── Palette editor ────────────────────────────────────────────
+type PaletteKey = 'accent' | 'error' | 'success' | 'warning' | 'info';
+
+const activePalette = ref<PaletteKey | null>(null);
+
+const paletteOverrides = reactive<Record<PaletteKey, Record<number, StepOverride>>>({
+  accent: {}, error: {}, success: {}, warning: {}, info: {},
+});
+watch(paletteOverrides, applyTokens, { deep: true });
+
+const PALETTE_CSS_TOKEN: Record<PaletteKey, string> = {
+  accent:  '--coar-color-accent',
+  error:   '--coar-color-red',
+  success: '--coar-color-green',
+  warning: '--coar-color-amber',
+  info:    '--coar-color-slate',
+};
+
+const PALETTE_BASE_VAR: Record<PaletteKey, string> = {
+  accent:  '--coar-accent',
+  error:   '--coar-error',
+  success: '--coar-success',
+  warning: '--coar-warning',
+  info:    '--coar-info',
+};
+
+const PALETTE_STEPS: Record<PaletteKey, StepDef[]> = {
+  accent: [
+    { step:  50, defL: 0.97,  defC: 0.012  },
+    { step: 100, defL: 0.92,  defC: 0.035  },
+    { step: 200, defL: 0.84,  defC: 0.075  },
+    { step: 300, defL: 0.74,  defC: 0.115  },
+    { step: 400, defL: 0.66,  defC: 0.145  },
+    { step: 500, defL: null,  defC: null   },
+    { step: 600, defL: 0.53,  defC: 0.15   },
+    { step: 700, defL: 0.47,  defC: 0.14   },
+    { step: 800, defL: 0.39,  defC: 0.12   },
+    { step: 900, defL: 0.31,  defC: 0.095  },
+  ],
+  error: [
+    { step:  50, defL: 0.97,  defC: 0.012  },
+    { step: 100, defL: 0.92,  defC: 0.035  },
+    { step: 200, defL: 0.84,  defC: 0.07   },
+    { step: 300, defL: 0.74,  defC: 0.11   },
+    { step: 400, defL: 0.66,  defC: 0.145  },
+    { step: 500, defL: null,  defC: null   },
+    { step: 600, defL: 0.47,  defC: 0.13   },
+    { step: 700, defL: 0.40,  defC: 0.11   },
+    { step: 800, defL: 0.33,  defC: 0.09   },
+    { step: 900, defL: 0.26,  defC: 0.07   },
+  ],
+  success: [
+    { step:  50, defL: 0.97,  defC: 0.012  },
+    { step: 100, defL: 0.92,  defC: 0.035  },
+    { step: 200, defL: 0.84,  defC: 0.065  },
+    { step: 300, defL: 0.74,  defC: 0.10   },
+    { step: 400, defL: 0.66,  defC: 0.13   },
+    { step: 500, defL: null,  defC: null   },
+    { step: 600, defL: 0.47,  defC: 0.12   },
+    { step: 700, defL: 0.40,  defC: 0.10   },
+    { step: 800, defL: 0.33,  defC: 0.08   },
+    { step: 900, defL: 0.26,  defC: 0.06   },
+  ],
+  warning: [
+    { step:  50, defL: 0.97,  defC: 0.015  },
+    { step: 100, defL: 0.92,  defC: 0.04   },
+    { step: 200, defL: 0.86,  defC: 0.08   },
+    { step: 300, defL: 0.78,  defC: 0.12   },
+    { step: 400, defL: 0.72,  defC: 0.14   },
+    { step: 500, defL: null,  defC: null   },
+    { step: 600, defL: 0.50,  defC: 0.12   },
+    { step: 700, defL: 0.43,  defC: 0.10   },
+    { step: 800, defL: 0.36,  defC: 0.08   },
+    { step: 900, defL: 0.29,  defC: 0.06   },
+  ],
+  info: [
+    { step:  50, defL: 0.97,  defC: 0.006  },
+    { step: 100, defL: 0.92,  defC: 0.012  },
+    { step: 200, defL: 0.84,  defC: 0.02   },
+    { step: 300, defL: 0.74,  defC: 0.03   },
+    { step: 400, defL: 0.66,  defC: 0.035  },
+    { step: 500, defL: null,  defC: null   },
+    { step: 600, defL: 0.47,  defC: 0.03   },
+    { step: 700, defL: 0.40,  defC: 0.025  },
+    { step: 800, defL: 0.35,  defC: 0.02   },
+    { step: 900, defL: 0.30,  defC: 0.02   },
+  ],
+};
 
 const DENSITY_OPTIONS = [
   { label: 'Compact',      value: 0.75 },
@@ -514,6 +641,7 @@ const DENSITY_OPTIONS = [
                 <input type="color" class="te-color-swatch" v-model="accent" />
                 <span class="te-color-name">Brand</span>
                 <code class="te-color-value">{{ accent }}</code>
+                <button class="te-palette-btn" :class="{ 'te-palette-btn--active': activePalette === 'accent' }" @click="activePalette = activePalette === 'accent' ? null : 'accent'" title="Edit color palette">⊞</button>
               </div>
             </div>
 
@@ -523,21 +651,25 @@ const DENSITY_OPTIONS = [
                 <input type="color" class="te-color-swatch" v-model="success" />
                 <span class="te-color-name">Success</span>
                 <code class="te-color-value">{{ success }}</code>
+                <button class="te-palette-btn" :class="{ 'te-palette-btn--active': activePalette === 'success' }" @click="activePalette = activePalette === 'success' ? null : 'success'" title="Edit color palette">⊞</button>
               </div>
               <div class="te-color-row">
                 <input type="color" class="te-color-swatch" v-model="errorColor" />
                 <span class="te-color-name">Error</span>
                 <code class="te-color-value">{{ errorColor }}</code>
+                <button class="te-palette-btn" :class="{ 'te-palette-btn--active': activePalette === 'error' }" @click="activePalette = activePalette === 'error' ? null : 'error'" title="Edit color palette">⊞</button>
               </div>
               <div class="te-color-row">
                 <input type="color" class="te-color-swatch" v-model="warning" />
                 <span class="te-color-name">Warning</span>
                 <code class="te-color-value">{{ warning }}</code>
+                <button class="te-palette-btn" :class="{ 'te-palette-btn--active': activePalette === 'warning' }" @click="activePalette = activePalette === 'warning' ? null : 'warning'" title="Edit color palette">⊞</button>
               </div>
               <div class="te-color-row">
                 <input type="color" class="te-color-swatch" v-model="info" />
                 <span class="te-color-name">Info</span>
                 <code class="te-color-value">{{ info }}</code>
+                <button class="te-palette-btn" :class="{ 'te-palette-btn--active': activePalette === 'info' }" @click="activePalette = activePalette === 'info' ? null : 'info'" title="Edit color palette">⊞</button>
               </div>
             </div>
 
@@ -859,6 +991,53 @@ const DENSITY_OPTIONS = [
 
       </aside>
     </Transition>
+
+    <!-- Palette editor modals — each teleports to body from inside CoarPaletteEditor -->
+    <CoarPaletteEditor
+      v-if="activePalette === 'accent'"
+      label="Accent" css-family="accent"
+      :base-color="accent"
+      :steps="PALETTE_STEPS.accent"
+      :model-value="paletteOverrides.accent"
+      @update:model-value="paletteOverrides.accent = $event"
+      @close="activePalette = null"
+    />
+    <CoarPaletteEditor
+      v-if="activePalette === 'error'"
+      label="Error (red)" css-family="red"
+      :base-color="errorColor"
+      :steps="PALETTE_STEPS.error"
+      :model-value="paletteOverrides.error"
+      @update:model-value="paletteOverrides.error = $event"
+      @close="activePalette = null"
+    />
+    <CoarPaletteEditor
+      v-if="activePalette === 'success'"
+      label="Success (green)" css-family="green"
+      :base-color="success"
+      :steps="PALETTE_STEPS.success"
+      :model-value="paletteOverrides.success"
+      @update:model-value="paletteOverrides.success = $event"
+      @close="activePalette = null"
+    />
+    <CoarPaletteEditor
+      v-if="activePalette === 'warning'"
+      label="Warning (amber)" css-family="amber"
+      :base-color="warning"
+      :steps="PALETTE_STEPS.warning"
+      :model-value="paletteOverrides.warning"
+      @update:model-value="paletteOverrides.warning = $event"
+      @close="activePalette = null"
+    />
+    <CoarPaletteEditor
+      v-if="activePalette === 'info'"
+      label="Info (slate)" css-family="slate"
+      :base-color="info"
+      :steps="PALETTE_STEPS.info"
+      :model-value="paletteOverrides.info"
+      @update:model-value="paletteOverrides.info = $event"
+      @close="activePalette = null"
+    />
   </Teleport>
 </template>
 
@@ -972,6 +1151,20 @@ const DENSITY_OPTIONS = [
 .te-color-swatch::-webkit-color-swatch         { border: none; border-radius: 4px; }
 .te-color-name  { flex: 1; color: var(--coar-text-neutral-primary, #333); }
 .te-color-value { font-size: 11px; color: var(--coar-text-neutral-tertiary, #888); font-family: ui-monospace, monospace; }
+
+/* ── Palette button ──────────────────────────────── */
+.te-palette-btn {
+  width: 22px; height: 22px; border: 1px solid var(--coar-border-neutral-primary, #e0e0e0);
+  background: transparent; border-radius: 4px; font-size: 13px;
+  color: var(--coar-text-neutral-tertiary, #bbb); cursor: pointer; padding: 0; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.te-palette-btn:hover { color: var(--coar-accent, #1183CD); border-color: var(--coar-accent, #1183CD); }
+.te-palette-btn--active {
+  color: var(--coar-accent, #1183CD); border-color: var(--coar-accent, #1183CD);
+  background: var(--coar-background-accent-subtle, #e8f1fb);
+}
 
 /* ── Radius rows ─────────────────────────────────── */
 .te-radius-row { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
