@@ -234,27 +234,27 @@ function handleClick(event: MouseEvent) {
 
 .coar-button--xs {
   height: var(--coar-component-xs-height);
-  padding: 0 10px; /* 10px is off the spacing grid — between s(8px) and m(16px) */
+  padding: 0 calc(10px * var(--coar-component-density, 1));
   font-size: var(--coar-component-xs-font-size);
   gap: 0.375rem;
 }
 
 .coar-button--s {
   height: var(--coar-component-s-height);
-  padding: 0 12px; /* 12px is off the spacing grid — between s(8px) and m(16px) */
+  padding: 0 calc(12px * var(--coar-component-density, 1));
   font-size: var(--coar-component-s-font-size);
   gap: 0.375rem;
 }
 
 .coar-button--m {
   height: var(--coar-component-m-height);
-  padding: 0 var(--coar-spacing-m);
+  padding: 0 calc(var(--coar-spacing-m) * var(--coar-component-density, 1));
   font-size: var(--coar-component-m-font-size);
 }
 
 .coar-button--l {
   height: var(--coar-component-l-height);
-  padding: 0 var(--coar-spacing-l);
+  padding: 0 calc(var(--coar-spacing-l) * var(--coar-component-density, 1));
   font-size: var(--coar-component-l-font-size);
   gap: 0.625rem;
 }
@@ -308,16 +308,16 @@ function handleClick(event: MouseEvent) {
 
 /* Danger */
 .coar-button--danger {
-  background: var(--coar-background-semantic-error-bold);
+  background: var(--coar-button-danger-bg);
   color: var(--coar-text-on-bold);
 }
 
 .coar-button--danger:hover:not(:disabled) {
-  background: var(--coar-background-semantic-error-hover);
+  background: var(--coar-button-danger-bg-hover);
 }
 
 .coar-button--danger:active:not(:disabled) {
-  background: var(--coar-background-semantic-error-active);
+  background: var(--coar-button-danger-bg-active);
 }
 
 /* Ghost */

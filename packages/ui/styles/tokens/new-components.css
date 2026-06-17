@@ -129,6 +129,16 @@
      COMPONENT SEMANTIC TOKENS — override these to theme individual components
      ========================================================================== */
 
+  /* Component density — scales horizontal padding of interactive components */
+  /* 0.75 = compact, 1 = default, 1.33 = comfortable */
+  --coar-component-density: 1;
+
+  /* Danger button — independent of --coar-error so vivid reds are possible.
+     Hover/active auto-derive from the base so only --coar-button-danger-bg needs overriding. */
+  --coar-button-danger-bg:        var(--coar-background-semantic-error-bold);
+  --coar-button-danger-bg-hover:  color-mix(in srgb, var(--coar-button-danger-bg) 85%, black);
+  --coar-button-danger-bg-active: color-mix(in srgb, var(--coar-button-danger-bg) 75%, black);
+
   /* Radius — per component group */
   --coar-button-radius:    var(--coar-radius-xs);   /* CoarButton, CoarSegmentedControl, CoarPagination */
   --coar-input-radius:     var(--coar-radius-xs);   /* all text/number/otp/password/select inputs */
