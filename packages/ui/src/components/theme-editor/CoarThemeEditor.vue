@@ -81,7 +81,8 @@ const spacingXxl     = ref(DEFAULTS.spacingXxl);
 const density        = ref(DEFAULTS.density);
 const buttonRadius   = ref(DEFAULTS.buttonRadius);
 const inputRadius    = ref(DEFAULTS.inputRadius);
-const inputPaddingX  = ref(DEFAULTS.inputPaddingX);
+const inputPaddingX        = ref(DEFAULTS.inputPaddingX);
+const inputPaddingXEnabled = ref(false);
 const tagRadius      = ref(DEFAULTS.tagRadius);
 const badgeRadius    = ref(DEFAULTS.badgeRadius);
 const cardRadius     = ref(DEFAULTS.cardRadius);
@@ -211,7 +212,8 @@ function applyPreset(preset: typeof PRESETS[number]) {
   info.value           = v.info as string;
   buttonRadius.value   = v.buttonRadius as string;
   inputRadius.value    = v.inputRadius as string;
-  inputPaddingX.value  = v.inputPaddingX as number;
+  inputPaddingX.value        = v.inputPaddingX as number;
+  inputPaddingXEnabled.value = (v.inputPaddingX as number) !== DEFAULTS.inputPaddingX;
   tagRadius.value      = v.tagRadius as string;
   badgeRadius.value    = v.badgeRadius as string;
   cardRadius.value     = v.cardRadius as string;
@@ -266,7 +268,7 @@ function applyTokens() {
   add('--coar-spacing-xxl', `${spacingXxl.value}px`);
   // Component tokens
   add('--coar-component-density',    String(density.value));
-  add('--coar-input-padding-x',      `${inputPaddingX.value}px`);
+  if (inputPaddingXEnabled.value) add('--coar-input-padding-x', `${inputPaddingX.value}px`);
   add('--coar-button-radius',        buttonRadius.value);
   add('--coar-input-radius',         inputRadius.value);
   add('--coar-tag-radius',           tagRadius.value);
@@ -354,6 +356,7 @@ onMounted(() => {
   const density_ = parseFloat(get('--coar-component-density'));
   if (!isNaN(density_)) density.value = density_;
   inputPaddingX.value = px('--coar-input-padding-x', DEFAULTS.inputPaddingX);
+  inputPaddingXEnabled.value = inputPaddingX.value !== DEFAULTS.inputPaddingX;
   str('--coar-button-radius',        buttonRadius);
   str('--coar-input-radius',         inputRadius);
   str('--coar-tag-radius',           tagRadius);
@@ -391,7 +394,7 @@ watch(
   [accent, success, errorColor, warning, info,
    radiusXxs, radiusXs, radiusS, radiusM, radiusL, radiusXl,
    spacingXs, spacingS, spacingM, spacingL, spacingXl, spacingXxl,
-   density, inputPaddingX,
+   density, inputPaddingX, inputPaddingXEnabled,
    buttonRadius, inputRadius, tagRadius, badgeRadius, cardRadius,
    menuRadius, popoverRadius, dropdownRadius, dialogRadius, toastRadius,
    cardShadow, menuShadow, popoverShadow, dropdownShadow, dialogShadow, toastShadow,
@@ -418,7 +421,8 @@ function reset() {
   spacingXl.value  = DEFAULTS.spacingXl;
   spacingXxl.value = DEFAULTS.spacingXxl;
   density.value       = DEFAULTS.density;
-  inputPaddingX.value = DEFAULTS.inputPaddingX;
+  inputPaddingX.value        = DEFAULTS.inputPaddingX;
+  inputPaddingXEnabled.value = false;
   for (const key of Object.keys(paletteOverrides) as PaletteKey[]) {
     paletteOverrides[key] = {};
   }
@@ -449,7 +453,7 @@ const hasChanges = computed(() =>
   spacingXl.value      !== DEFAULTS.spacingXl      ||
   spacingXxl.value     !== DEFAULTS.spacingXxl     ||
   density.value        !== DEFAULTS.density        ||
-  inputPaddingX.value  !== DEFAULTS.inputPaddingX  ||
+  inputPaddingXEnabled.value                        ||
   buttonRadius.value   !== DEFAULTS.buttonRadius   ||
   inputRadius.value    !== DEFAULTS.inputRadius    ||
   tagRadius.value      !== DEFAULTS.tagRadius      ||
@@ -499,7 +503,7 @@ function downloadCSS() {
   if (spacingXxl.value !== DEFAULTS.spacingXxl) lines.push(`  --coar-spacing-xxl: ${spacingXxl.value}px;`);
   if (density.value !== DEFAULTS.density)
     lines.push(`  --coar-component-density: ${density.value};`);
-  if (inputPaddingX.value !== DEFAULTS.inputPaddingX)
+  if (inputPaddingXEnabled.value)
     lines.push(`  --coar-input-padding-x: ${inputPaddingX.value}px;`);
   add('--coar-button-radius',        buttonRadius.value,   DEFAULTS.buttonRadius);
   add('--coar-input-radius',         inputRadius.value,    DEFAULTS.inputRadius);
@@ -1076,13 +1080,22 @@ const DENSITY_OPTIONS = [
                 </div>
               </div>
               <div class="te-section">
-                <div class="te-section-label">Horizontal padding</div>
-                <div class="te-scale-row">
-                  <input type="range" class="te-slider" min="4" max="32" step="1" v-model.number="inputPaddingX" />
-                  <span class="te-scale-val">{{ inputPaddingX }}px</span>
-                  <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': inputPaddingX !== DEFAULTS.inputPaddingX }" :disabled="inputPaddingX === DEFAULTS.inputPaddingX" @click="inputPaddingX = DEFAULTS.inputPaddingX" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
+                <div class="te-section-label">
+                  Horizontal padding
+                  <label class="te-override-label">
+                    <input type="checkbox" class="te-override-check" v-model="inputPaddingXEnabled" />
+                    Override
+                  </label>
                 </div>
-                <p class="te-hint">Increase for pill-shaped inputs so text doesn't hug the edge.</p>
+                <div class="te-scale-row" :class="{ 'te-scale-row--disabled': !inputPaddingXEnabled }">
+                  <input type="range" class="te-slider" min="4" max="32" step="1" v-model.number="inputPaddingX" :disabled="!inputPaddingXEnabled" />
+                  <span class="te-scale-val">{{ inputPaddingXEnabled ? inputPaddingX + 'px' : 'auto' }}</span>
+                  <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': inputPaddingXEnabled }" :disabled="!inputPaddingXEnabled" @click="inputPaddingXEnabled = false; inputPaddingX = DEFAULTS.inputPaddingX" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
+                </div>
+                <p class="te-hint">
+                  <template v-if="inputPaddingXEnabled">Fixed override — CSS default ignored.</template>
+                  <template v-else">Auto: <code>calc(spacing-s + spacing-xs)</code></template>
+                </p>
               </div>
             </div>
           </details>
@@ -1498,6 +1511,19 @@ const DENSITY_OPTIONS = [
 /* ── Hint text ───────────────────────────────────── */
 .te-hint { font-size: 11px; color: var(--coar-text-neutral-tertiary, #8c8c8c); line-height: 1.45; margin: 0; }
 .te-hint code { font-family: ui-monospace, monospace; font-size: 10px; }
+
+/* ── Override toggle ─────────────────────────────── */
+.te-override-label {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 500; text-transform: none; letter-spacing: 0;
+  color: var(--coar-text-neutral-tertiary, #8c8c8c); cursor: pointer;
+  margin-left: auto;
+}
+.te-override-check { cursor: pointer; accent-color: var(--coar-background-accent-primary, #1183CD); width: 12px; height: 12px; }
+.te-override-label:has(.te-override-check:checked) { color: var(--coar-background-accent-primary, #1183CD); }
+
+/* ── Disabled scale row ──────────────────────────── */
+.te-scale-row--disabled { opacity: 0.4; pointer-events: none; }
 
 /* ── Semantic rows ───────────────────────────────── */
 .te-sem-row { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
