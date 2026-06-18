@@ -319,6 +319,18 @@ function onClear() {
   color: var(--coar-text-neutral-primary);
 }
 
+/* When prefix has content it provides the outer left edge — field left padding becomes an inner gap */
+.coar-text-input-container:has(.coar-text-input-prefix:not(:empty)) .coar-text-input-field {
+  padding-left: var(--coar-spacing-s);
+}
+
+/* When clear / suffix / suffix-actions follow, they provide the outer right edge — field right padding becomes an inner gap */
+.coar-text-input-container:has(.coar-text-input-clear) .coar-text-input-field,
+.coar-text-input-container:has(.coar-text-input-suffix:not(:empty)) .coar-text-input-field,
+.coar-text-input-container:has(.coar-text-input-suffix-actions:not(:empty)) .coar-text-input-field {
+  padding-right: var(--coar-spacing-s);
+}
+
 /* Textarea specific */
 .coar-text-input-textarea {
   padding: var(--coar-spacing-s);
@@ -371,7 +383,7 @@ function onClear() {
 .coar-text-input-suffix {
   display: inline-flex;
   align-items: center;
-  padding-right: var(--coar-input-padding-x);
+  padding-right: var(--coar-spacing-s);
   color: var(--coar-icon-neutral-secondary);
   font-size: var(--coar-body-small-base-size);
   white-space: nowrap;
