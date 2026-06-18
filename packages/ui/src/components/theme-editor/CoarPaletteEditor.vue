@@ -93,12 +93,14 @@ function isChanged(s: StepDef) {
     >
       <!-- ── Title bar (drag handle) ── -->
       <div class="cpe-titlebar" @mousedown="startDrag">
-        <span class="cpe-drag-icon">⠿</span>
+        <svg class="cpe-drag-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>
         <span class="cpe-title">{{ label }}</span>
-        <span class="cpe-subtitle">palette · oklch hue from {{ cssFamily }}</span>
+        <span class="cpe-subtitle">50–900 · oklch hue</span>
         <div class="cpe-titlebar-actions">
           <button v-if="hasAnyOverride" class="cpe-reset-all" @click="resetAll">Reset all</button>
-          <button class="cpe-close" @click="$emit('close')" aria-label="Close">✕</button>
+          <button class="cpe-close" @click="$emit('close')" aria-label="Close">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
         </div>
       </div>
 
@@ -159,7 +161,9 @@ function isChanged(s: StepDef) {
               :disabled="!isChanged(s)"
               title="Reset this step"
               @click="resetStep(s)"
-            >↺</button>
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            </button>
           </template>
         </div>
       </div>
@@ -172,15 +176,17 @@ function isChanged(s: StepDef) {
 .cpe-modal {
   position: fixed;
   z-index: 9999;
-  width: 420px;
-  background: var(--coar-surface-default, #fff);
-  border: 1px solid var(--coar-border-neutral-primary, #e0e0e0);
+  width: 400px;
+  background: var(--coar-background-neutral-primary, #fff);
+  border: 1px solid var(--coar-border-neutral-tertiary, #e8e8e8);
   border-radius: 10px;
-  box-shadow: 0 8px 32px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.10);
+  box-shadow: 0 8px 32px rgba(0,0,0,.14), 0 2px 6px rgba(0,0,0,.08);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   user-select: none;
+  font-family: var(--coar-body-base-family, Poppins, sans-serif);
+  font-size: 13px;
 }
 .cpe-modal--dragging { cursor: grabbing; }
 
@@ -188,38 +194,42 @@ function isChanged(s: StepDef) {
 .cpe-titlebar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  background: var(--coar-background-neutral-secondary, #f5f5f5);
-  border-bottom: 1px solid var(--coar-border-neutral-primary, #e0e0e0);
+  gap: 7px;
+  padding: 9px 10px 9px 12px;
+  background: var(--coar-background-neutral-secondary, #f8f8f8);
+  border-bottom: 1px solid var(--coar-border-neutral-tertiary, #e8e8e8);
   cursor: grab;
 }
 .cpe-modal--dragging .cpe-titlebar { cursor: grabbing; }
 
-.cpe-drag-icon { color: var(--coar-text-neutral-tertiary, #bbb); font-size: 14px; flex-shrink: 0; }
-.cpe-title { font-size: 13px; font-weight: 600; color: var(--coar-text-neutral-primary, #222); }
-.cpe-subtitle { font-size: 11px; color: var(--coar-text-neutral-tertiary, #999); }
-.cpe-titlebar-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.cpe-drag-icon { color: var(--coar-text-neutral-tertiary, #ccc); flex-shrink: 0; }
+.cpe-title { font-size: 13px; font-weight: 600; color: var(--coar-text-neutral-primary, #1a1a1a); }
+.cpe-subtitle { font-size: 10px; color: var(--coar-text-neutral-tertiary, #8c8c8c); }
+.cpe-titlebar-actions { margin-left: auto; display: flex; align-items: center; gap: 6px; }
 
 .cpe-reset-all {
-  font-size: 11px; color: var(--coar-accent, #1183CD); border: none; background: transparent;
-  cursor: pointer; padding: 0; line-height: 1;
+  font-size: 11px; color: var(--coar-background-accent-primary, #1183CD);
+  border: none; background: transparent; cursor: pointer; padding: 0; font-family: inherit;
 }
 .cpe-reset-all:hover { text-decoration: underline; }
 
 .cpe-close {
-  width: 22px; height: 22px; border: none; background: transparent;
-  color: var(--coar-text-neutral-tertiary, #aaa); font-size: 12px;
-  cursor: pointer; border-radius: 4px; padding: 0;
+  width: 24px; height: 24px; border: none; background: transparent;
+  color: var(--coar-text-neutral-tertiary, #8c8c8c);
+  cursor: pointer; border-radius: 5px; padding: 0;
   display: flex; align-items: center; justify-content: center;
+  transition: background 0.12s, color 0.12s;
 }
-.cpe-close:hover { background: var(--coar-background-neutral-tertiary, #e8e8e8); color: var(--coar-text-neutral-primary, #333); }
+.cpe-close:hover {
+  background: var(--coar-background-neutral-tertiary, #ebebeb);
+  color: var(--coar-text-neutral-primary, #1a1a1a);
+}
 
 /* ── Swatch strip ── */
 .cpe-strip {
   display: flex;
-  height: 36px;
-  border-bottom: 1px solid var(--coar-border-neutral-primary, #e0e0e0);
+  height: 32px;
+  border-bottom: 1px solid var(--coar-border-neutral-tertiary, #e8e8e8);
 }
 .cpe-strip-swatch {
   flex: 1;
@@ -230,50 +240,54 @@ function isChanged(s: StepDef) {
   padding-bottom: 3px;
 }
 .cpe-strip-label {
-  font-size: 8px;
-  font-weight: 600;
-  color: rgba(255,255,255,.7);
+  font-size: 7px;
+  font-weight: 700;
+  color: rgba(255,255,255,.75);
   text-shadow: 0 1px 2px rgba(0,0,0,.4);
   line-height: 1;
 }
 .cpe-strip-swatch--changed::after {
   content: '';
   position: absolute;
-  top: 4px; left: 50%;
+  top: 5px; left: 50%;
   transform: translateX(-50%);
   width: 4px; height: 4px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.85);
+  background: rgba(255,255,255,0.9);
+  box-shadow: 0 0 2px rgba(0,0,0,.3);
 }
 
 /* ── Rows ── */
 .cpe-rows {
   overflow-y: auto;
-  max-height: 480px;
+  max-height: 460px;
 }
 .cpe-row {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 5px 12px;
-  border-bottom: 1px solid var(--coar-border-neutral-primary, #e5e5e5);
+  border-bottom: 1px solid var(--coar-border-neutral-tertiary, #f0f0f0);
   transition: background 0.1s;
 }
 .cpe-row:last-child { border-bottom: none; }
 .cpe-row:hover { background: var(--coar-background-neutral-secondary, #fafafa); }
-.cpe-row--changed { background: color-mix(in srgb, var(--coar-accent, #1183CD) 4%, transparent); }
+.cpe-row--changed {
+  background: color-mix(in srgb, var(--coar-background-accent-primary, #1183CD) 5%, transparent);
+}
 
 .cpe-row-swatch {
-  width: 20px; height: 20px; border-radius: 4px; flex-shrink: 0;
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,.08);
+  width: 18px; height: 18px; border-radius: 4px; flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.07);
 }
 .cpe-row-step {
   width: 30px; flex-shrink: 0;
   font-size: 11px; font-weight: 700;
-  color: var(--coar-text-neutral-tertiary, #999);
+  color: var(--coar-text-neutral-tertiary, #8c8c8c);
 }
 .cpe-row-base {
-  flex: 1; font-size: 11px; color: var(--coar-text-neutral-tertiary, #aaa); font-style: italic;
+  flex: 1; font-size: 11px;
+  color: var(--coar-text-neutral-tertiary, #8c8c8c); font-style: italic;
 }
 
 /* ── Sliders ── */
@@ -284,26 +298,27 @@ function isChanged(s: StepDef) {
   color: var(--coar-text-neutral-tertiary, #bbb); flex-shrink: 0;
 }
 .cpe-slider-row input[type="range"] {
-  flex: 1; accent-color: var(--coar-accent, #1183CD);
-  height: 14px; cursor: pointer;
+  flex: 1; accent-color: var(--coar-background-accent-primary, #1183CD);
+  height: 14px; cursor: pointer; border: none; outline: none; background: transparent;
 }
 .cpe-val {
   width: 36px; text-align: right; flex-shrink: 0;
   font-size: 10px; font-family: ui-monospace, monospace;
-  color: var(--coar-text-neutral-secondary, #666);
+  color: var(--coar-text-neutral-secondary, #595959);
 }
 
 /* ── Reset button ── */
 .cpe-reset-btn {
   width: 22px; height: 22px; border: none; background: transparent;
-  color: var(--coar-border-neutral-primary, #ddd); font-size: 14px;
+  color: var(--coar-border-neutral-tertiary, #ddd);
   cursor: pointer; border-radius: 4px; padding: 0; flex-shrink: 0;
   display: inline-flex; align-items: center; justify-content: center;
+  transition: background 0.12s, color 0.12s;
 }
 .cpe-reset-btn:disabled { cursor: default; }
-.cpe-reset-btn--on { color: var(--coar-accent, #1183CD); }
+.cpe-reset-btn--on { color: var(--coar-background-accent-primary, #1183CD); }
 .cpe-reset-btn:not(:disabled):hover {
   background: var(--coar-background-neutral-secondary, #f0f0f0);
-  color: var(--coar-text-neutral-primary, #333);
+  color: var(--coar-text-neutral-secondary, #595959);
 }
 </style>
