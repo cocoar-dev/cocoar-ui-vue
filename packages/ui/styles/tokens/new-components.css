@@ -143,6 +143,7 @@
   /* Radius — per component group */
   --coar-button-radius:    var(--coar-radius-xs);   /* CoarButton, CoarSegmentedControl, CoarPagination */
   --coar-input-radius:     var(--coar-radius-xs);   /* all text/number/otp/password/select inputs */
+  --coar-input-padding-x:  calc(var(--coar-spacing-s) + var(--coar-spacing-xs)); /* horizontal padding of text inputs — increase for pill-shaped inputs */
   --coar-tag-radius:       var(--coar-radius-xs);   /* CoarTag + inline chips inside multi-selects */
   --coar-badge-radius:     var(--coar-radius-full); /* CoarBadge */
   --coar-card-radius:      var(--coar-radius-s);    /* CoarCard */

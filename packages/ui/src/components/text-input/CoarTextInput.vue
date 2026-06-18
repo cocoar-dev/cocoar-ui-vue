@@ -309,7 +309,7 @@ function onClear() {
   flex: 1;
   min-width: 0;
   height: 100%;
-  padding: 0 calc((var(--coar-spacing-s) + var(--coar-spacing-xs)) * var(--coar-component-density, 1));
+  padding: 0 calc(var(--coar-input-padding-x) * var(--coar-component-density, 1));
   border: none;
   outline: none;
   background: transparent;

@@ -36,8 +36,9 @@ const DEFAULTS = {
   // Density
   density: 1,
   // Radius per component (CSS token values, not px numbers)
-  buttonRadius:   'var(--coar-radius-xs)',
-  inputRadius:    'var(--coar-radius-xs)',
+  buttonRadius:    'var(--coar-radius-xs)',
+  inputRadius:     'var(--coar-radius-xs)',
+  inputPaddingX:   12,
   tagRadius:      'var(--coar-radius-xs)',
   badgeRadius:    'var(--coar-radius-full)',
   cardRadius:     'var(--coar-radius-s)',
@@ -80,6 +81,7 @@ const spacingXxl     = ref(DEFAULTS.spacingXxl);
 const density        = ref(DEFAULTS.density);
 const buttonRadius   = ref(DEFAULTS.buttonRadius);
 const inputRadius    = ref(DEFAULTS.inputRadius);
+const inputPaddingX  = ref(DEFAULTS.inputPaddingX);
 const tagRadius      = ref(DEFAULTS.tagRadius);
 const badgeRadius    = ref(DEFAULTS.badgeRadius);
 const cardRadius     = ref(DEFAULTS.cardRadius);
@@ -159,6 +161,7 @@ const PRESETS = [
       spacingS:       12,
       spacingM:       20,
       spacingL:       28,
+      inputPaddingX:  20,
       buttonRadius:   'var(--coar-radius-full)',
       inputRadius:    'var(--coar-radius-l)',
       tagRadius:      'var(--coar-radius-full)',
@@ -208,6 +211,7 @@ function applyPreset(preset: typeof PRESETS[number]) {
   info.value           = v.info as string;
   buttonRadius.value   = v.buttonRadius as string;
   inputRadius.value    = v.inputRadius as string;
+  inputPaddingX.value  = v.inputPaddingX as number;
   tagRadius.value      = v.tagRadius as string;
   badgeRadius.value    = v.badgeRadius as string;
   cardRadius.value     = v.cardRadius as string;
@@ -262,6 +266,7 @@ function applyTokens() {
   add('--coar-spacing-xxl', `${spacingXxl.value}px`);
   // Component tokens
   add('--coar-component-density',    String(density.value));
+  add('--coar-input-padding-x',      `${inputPaddingX.value}px`);
   add('--coar-button-radius',        buttonRadius.value);
   add('--coar-input-radius',         inputRadius.value);
   add('--coar-tag-radius',           tagRadius.value);
@@ -348,6 +353,7 @@ onMounted(() => {
 
   const density_ = parseFloat(get('--coar-component-density'));
   if (!isNaN(density_)) density.value = density_;
+  inputPaddingX.value = px('--coar-input-padding-x', DEFAULTS.inputPaddingX);
   str('--coar-button-radius',        buttonRadius);
   str('--coar-input-radius',         inputRadius);
   str('--coar-tag-radius',           tagRadius);
@@ -385,7 +391,7 @@ watch(
   [accent, success, errorColor, warning, info,
    radiusXxs, radiusXs, radiusS, radiusM, radiusL, radiusXl,
    spacingXs, spacingS, spacingM, spacingL, spacingXl, spacingXxl,
-   density,
+   density, inputPaddingX,
    buttonRadius, inputRadius, tagRadius, badgeRadius, cardRadius,
    menuRadius, popoverRadius, dropdownRadius, dialogRadius, toastRadius,
    cardShadow, menuShadow, popoverShadow, dropdownShadow, dialogShadow, toastShadow,
@@ -411,7 +417,8 @@ function reset() {
   spacingL.value   = DEFAULTS.spacingL;
   spacingXl.value  = DEFAULTS.spacingXl;
   spacingXxl.value = DEFAULTS.spacingXxl;
-  density.value    = DEFAULTS.density;
+  density.value       = DEFAULTS.density;
+  inputPaddingX.value = DEFAULTS.inputPaddingX;
   for (const key of Object.keys(paletteOverrides) as PaletteKey[]) {
     paletteOverrides[key] = {};
   }
@@ -442,6 +449,7 @@ const hasChanges = computed(() =>
   spacingXl.value      !== DEFAULTS.spacingXl      ||
   spacingXxl.value     !== DEFAULTS.spacingXxl     ||
   density.value        !== DEFAULTS.density        ||
+  inputPaddingX.value  !== DEFAULTS.inputPaddingX  ||
   buttonRadius.value   !== DEFAULTS.buttonRadius   ||
   inputRadius.value    !== DEFAULTS.inputRadius    ||
   tagRadius.value      !== DEFAULTS.tagRadius      ||
@@ -491,6 +499,8 @@ function downloadCSS() {
   if (spacingXxl.value !== DEFAULTS.spacingXxl) lines.push(`  --coar-spacing-xxl: ${spacingXxl.value}px;`);
   if (density.value !== DEFAULTS.density)
     lines.push(`  --coar-component-density: ${density.value};`);
+  if (inputPaddingX.value !== DEFAULTS.inputPaddingX)
+    lines.push(`  --coar-input-padding-x: ${inputPaddingX.value}px;`);
   add('--coar-button-radius',        buttonRadius.value,   DEFAULTS.buttonRadius);
   add('--coar-input-radius',         inputRadius.value,    DEFAULTS.inputRadius);
   add('--coar-tag-radius',           tagRadius.value,      DEFAULTS.tagRadius);
@@ -1064,6 +1074,15 @@ const DENSITY_OPTIONS = [
                 <div class="te-chip-group">
                   <button v-for="o in RADIUS_OPTIONS" :key="o.value" class="te-chip" :class="{ active: inputRadius === o.value }" @click="inputRadius = o.value">{{ o.label }}</button>
                 </div>
+              </div>
+              <div class="te-section">
+                <div class="te-section-label">Horizontal padding</div>
+                <div class="te-scale-row">
+                  <input type="range" class="te-slider" min="4" max="32" step="1" v-model.number="inputPaddingX" />
+                  <span class="te-scale-val">{{ inputPaddingX }}px</span>
+                  <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': inputPaddingX !== DEFAULTS.inputPaddingX }" :disabled="inputPaddingX === DEFAULTS.inputPaddingX" @click="inputPaddingX = DEFAULTS.inputPaddingX" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
+                </div>
+                <p class="te-hint">Increase for pill-shaped inputs so text doesn't hug the edge.</p>
               </div>
             </div>
           </details>
