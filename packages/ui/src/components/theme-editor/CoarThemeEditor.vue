@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, computed, reactive, onUnmounted } from 'vue';
+import { ref, watch, computed, reactive, onMounted, onUnmounted } from 'vue';
 import CoarPaletteEditor, { type StepDef, type StepOverride } from './CoarPaletteEditor.vue';
 
 const props = withDefaults(defineProps<{ hideDarkToggle?: boolean }>(), {
@@ -291,6 +291,62 @@ function applyTokens() {
   tag.textContent = `.coar-theme-editor {\n${lines.join('\n')}\n}`;
   document.documentElement.classList.add('coar-theme-editor');
 }
+
+onMounted(() => {
+  const cs = getComputedStyle(document.documentElement);
+  const get  = (t: string) => cs.getPropertyValue(t).trim();
+  const px   = (t: string, def: number) => { const v = parseFloat(get(t)); return isNaN(v) ? def : v; };
+  const str  = (t: string, ref_: typeof accent) => { const v = get(t); if (v) ref_.value = v; };
+  const font1 = (t: string) => get(t).split(',')[0].trim().replace(/['"]/g, '');
+
+  // Brand
+  str('--coar-accent',  accent);
+  str('--coar-success', success);
+  str('--coar-error',   errorColor);
+  str('--coar-warning', warning);
+  str('--coar-info',    info);
+
+  // Radius scale
+  radiusXxs.value = px('--coar-radius-xxs', DEFAULTS.radiusXxs);
+  radiusXs.value  = px('--coar-radius-xs',  DEFAULTS.radiusXs);
+  radiusS.value   = px('--coar-radius-s',   DEFAULTS.radiusS);
+  radiusM.value   = px('--coar-radius-m',   DEFAULTS.radiusM);
+  radiusL.value   = px('--coar-radius-l',   DEFAULTS.radiusL);
+  radiusXl.value  = px('--coar-radius-xl',  DEFAULTS.radiusXl);
+
+  // Component tokens (raw CSS value, may be var() reference)
+  const density_ = parseFloat(get('--coar-component-density'));
+  if (!isNaN(density_)) density.value = density_;
+  str('--coar-button-radius',        buttonRadius);
+  str('--coar-input-radius',         inputRadius);
+  str('--coar-tag-radius',           tagRadius);
+  str('--coar-badge-radius',         badgeRadius);
+  str('--coar-card-radius',          cardRadius);
+  str('--coar-menu-radius',          menuRadius);
+  str('--coar-popover-radius',       popoverRadius);
+  str('--coar-dropdown-radius',      dropdownRadius);
+  str('--coar-dialog-border-radius', dialogRadius);
+  str('--coar-toast-border-radius',  toastRadius);
+  str('--coar-card-shadow',          cardShadow);
+  str('--coar-menu-shadow',          menuShadow);
+  str('--coar-popover-shadow',       popoverShadow);
+  str('--coar-dropdown-shadow',      dropdownShadow);
+  str('--coar-dialog-shadow',        dialogShadow);
+  str('--coar-toast-shadow',         toastShadow);
+
+  // Font (extract first family name)
+  const fb = font1('--coar-font-family-body');
+  if (fb) fontBody.value = fb;
+  const ft = font1('--coar-font-family-title');
+  if (ft) fontTitle.value = ft;
+
+  // Motion scale (infer from --coar-duration-fast)
+  const fast = parseFloat(get('--coar-duration-fast'));
+  if (!isNaN(fast) && BASE_DURATIONS.fast > 0) motionScale.value = fast / BASE_DURATIONS.fast;
+
+  // Dark mode
+  if (!props.hideDarkToggle) isDark.value = document.documentElement.classList.contains('dark-mode');
+});
 
 onUnmounted(() => {
   document.getElementById('coar-theme-editor')?.remove();
