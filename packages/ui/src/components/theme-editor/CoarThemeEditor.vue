@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { ref, watch, computed, reactive, onMounted, onUnmounted } from 'vue';
 import CoarPaletteEditor, { type StepDef, type StepOverride } from './CoarPaletteEditor.vue';
+import CoarButton from '../button/CoarButton.vue';
+import CoarSelect from '../select/CoarSelect.vue';
+import type { CoarSelectOption } from '../select';
+import CoarSwitch from '../switch/CoarSwitch.vue';
+import CoarSegmentedControl from '../segmented-control/CoarSegmentedControl.vue';
 
 const props = withDefaults(defineProps<{ hideDarkToggle?: boolean }>(), {
   hideDarkToggle: false,
@@ -125,6 +130,11 @@ const SHADOW_OPTIONS = [
 
 const FONT_OPTIONS_BODY  = ['Poppins', 'Inter', 'DM Sans', 'Nunito', 'Geist', 'system-ui'];
 const FONT_OPTIONS_TITLE = ['Inter', 'Poppins', 'DM Sans', 'Nunito', 'Geist', 'system-ui'];
+
+const FONT_OPTIONS_BODY_SELECT  = computed<CoarSelectOption<string>[]>(() => FONT_OPTIONS_BODY.map(f => ({ value: f, label: f })));
+const FONT_OPTIONS_TITLE_SELECT = computed<CoarSelectOption<string>[]>(() => FONT_OPTIONS_TITLE.map(f => ({ value: f, label: f })));
+const SEMANTIC_PAL_OPTIONS      = computed<CoarSelectOption<string>[]>(() => SEMANTIC_PALETTES.map(p => ({ value: p, label: SEMANTIC_PALETTE_LABELS[p] })));
+const SEMANTIC_STEP_OPTIONS     = computed<CoarSelectOption<number>[]>(() => SEMANTIC_STEPS.map(s => ({ value: s, label: String(s) })));
 
 // ── Presets ───────────────────────────────────────────────
 const PRESETS = [
@@ -809,16 +819,12 @@ const DENSITY_OPTIONS = [
 
               <div v-if="!hideDarkToggle" class="te-section">
                 <div class="te-section-label">Appearance</div>
-                <div class="te-seg">
-                  <button class="te-seg-btn" :class="{ 'te-seg-btn--active': !isDark }" @click="isDark = false">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
-                    Light
-                  </button>
-                  <button class="te-seg-btn" :class="{ 'te-seg-btn--active': isDark }" @click="isDark = true">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
-                    Dark
-                  </button>
-                </div>
+                <CoarSegmentedControl
+                  v-model="isDark"
+                  :options="[{ value: false, label: 'Light' }, { value: true, label: 'Dark' }]"
+                  size="s"
+                  full-width
+                />
               </div>
 
               <div class="te-section">
@@ -885,20 +891,20 @@ const DENSITY_OPTIONS = [
                 <div v-for="entry in group.entries" :key="entry.token" class="te-sem-row">
                   <span class="te-sem-swatch" :style="{ background: `var(${entry.token})` }"></span>
                   <span class="te-sem-label">{{ entry.label }}</span>
-                  <select
-                    class="te-sem-select"
-                    :value="semanticOverrides[entry.token]?.palette ?? entry.defaultPalette"
-                    @change="setSemantic(entry, 'palette', ($event.target as HTMLSelectElement).value)"
-                  >
-                    <option v-for="pal in SEMANTIC_PALETTES" :key="pal" :value="pal">{{ SEMANTIC_PALETTE_LABELS[pal] }}</option>
-                  </select>
-                  <select
-                    class="te-sem-select te-sem-select--step"
-                    :value="semanticOverrides[entry.token]?.step ?? entry.defaultStep"
-                    @change="setSemantic(entry, 'step', +($event.target as HTMLSelectElement).value)"
-                  >
-                    <option v-for="step in SEMANTIC_STEPS" :key="step" :value="step">{{ step }}</option>
-                  </select>
+                  <CoarSelect
+                    :model-value="semanticOverrides[entry.token]?.palette ?? entry.defaultPalette"
+                    @update:model-value="setSemantic(entry, 'palette', $event as string)"
+                    :options="SEMANTIC_PAL_OPTIONS"
+                    size="xs"
+                    style="width:80px;flex-shrink:0"
+                  />
+                  <CoarSelect
+                    :model-value="semanticOverrides[entry.token]?.step ?? entry.defaultStep"
+                    @update:model-value="setSemantic(entry, 'step', $event as number)"
+                    :options="SEMANTIC_STEP_OPTIONS"
+                    size="xs"
+                    style="width:58px;flex-shrink:0"
+                  />
                   <button
                     class="te-icon-btn te-icon-btn--reset"
                     :class="{ 'te-icon-btn--changed': !!semanticOverrides[entry.token] }"
@@ -924,15 +930,11 @@ const DENSITY_OPTIONS = [
                 <div class="te-section-label">Font families</div>
                 <div class="te-font-row">
                   <span class="te-font-label">Body</span>
-                  <select class="te-select" v-model="fontBody">
-                    <option v-for="f in FONT_OPTIONS_BODY" :key="f" :value="f">{{ f }}</option>
-                  </select>
+                  <CoarSelect v-model="fontBody" :options="FONT_OPTIONS_BODY_SELECT" size="s" style="flex:1" />
                 </div>
                 <div class="te-font-row">
                   <span class="te-font-label">Title</span>
-                  <select class="te-select" v-model="fontTitle">
-                    <option v-for="f in FONT_OPTIONS_TITLE" :key="f" :value="f">{{ f }}</option>
-                  </select>
+                  <CoarSelect v-model="fontTitle" :options="FONT_OPTIONS_TITLE_SELECT" size="s" style="flex:1" />
                 </div>
                 <p class="te-font-preview" :style="{ fontFamily: fontBody + ', sans-serif' }">
                   The quick brown fox jumps over the lazy dog.
@@ -1039,9 +1041,7 @@ const DENSITY_OPTIONS = [
               </div>
               <div class="te-section">
                 <div class="te-section-label">Component density</div>
-                <div class="te-seg">
-                  <button v-for="o in DENSITY_OPTIONS" :key="o.value" class="te-seg-btn" :class="{ 'te-seg-btn--active': density === o.value }" @click="density = o.value">{{ o.label }}</button>
-                </div>
+                <CoarSegmentedControl v-model="density" :options="DENSITY_OPTIONS" size="s" full-width />
               </div>
             </div>
           </details>
@@ -1080,17 +1080,12 @@ const DENSITY_OPTIONS = [
             <div class="te-accordion-body">
               <div class="te-section">
                 <div class="te-section-label">Corner radius</div>
-                <select class="te-select" v-model="inputRadius">
-                  <option v-for="o in RADIUS_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
-                </select>
+                <CoarSelect v-model="inputRadius" :options="RADIUS_OPTIONS" size="s" />
               </div>
               <div class="te-section">
                 <div class="te-section-label">
                   Horizontal padding
-                  <label class="te-override-label">
-                    <input type="checkbox" class="te-override-check" v-model="inputPaddingXEnabled" />
-                    Override
-                  </label>
+                  <CoarSwitch v-model="inputPaddingXEnabled" label="Override" size="xs" style="margin-left:auto" />
                 </div>
                 <div class="te-scale-row" :class="{ 'te-scale-row--disabled': !inputPaddingXEnabled }">
                   <input type="range" class="te-slider" min="4" max="32" step="1" v-model.number="inputPaddingX" :disabled="!inputPaddingXEnabled" />
@@ -1114,9 +1109,7 @@ const DENSITY_OPTIONS = [
             <div class="te-accordion-body">
               <div class="te-section">
                 <div class="te-section-label">Corner radius</div>
-                <select class="te-select" v-model="buttonRadius">
-                  <option v-for="o in RADIUS_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
-                </select>
+                <CoarSelect v-model="buttonRadius" :options="RADIUS_OPTIONS" size="s" />
               </div>
             </div>
           </details>
@@ -1132,15 +1125,11 @@ const DENSITY_OPTIONS = [
                 <div class="te-section-label">Corner radius</div>
                 <div class="te-radius-row">
                   <span class="te-radius-label">Tag</span>
-                  <select class="te-select" v-model="tagRadius">
-                    <option v-for="o in RADIUS_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
-                  </select>
+                  <CoarSelect v-model="tagRadius" :options="RADIUS_OPTIONS" size="s" style="flex:1" />
                 </div>
                 <div class="te-radius-row" style="margin-top:8px">
                   <span class="te-radius-label">Badge</span>
-                  <select class="te-select" v-model="badgeRadius">
-                    <option v-for="o in RADIUS_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
-                  </select>
+                  <CoarSelect v-model="badgeRadius" :options="RADIUS_OPTIONS" size="s" style="flex:1" />
                 </div>
               </div>
             </div>
@@ -1155,15 +1144,11 @@ const DENSITY_OPTIONS = [
             <div class="te-accordion-body">
               <div class="te-section">
                 <div class="te-section-label">Corner radius</div>
-                <select class="te-select" v-model="cardRadius">
-                  <option v-for="o in RADIUS_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
-                </select>
+                <CoarSelect v-model="cardRadius" :options="RADIUS_OPTIONS" size="s" />
               </div>
               <div class="te-section">
                 <div class="te-section-label">Shadow</div>
-                <select class="te-select" v-model="cardShadow">
-                  <option v-for="o in SHADOW_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
-                </select>
+                <CoarSelect v-model="cardShadow" :options="SHADOW_OPTIONS" size="s" />
               </div>
             </div>
           </details>
@@ -1179,18 +1164,14 @@ const DENSITY_OPTIONS = [
                 <div class="te-section-label">Corner radius</div>
                 <div v-for="row in [{ label:'Menu', v: menuRadius, set:(v:string)=>menuRadius=v }, { label:'Popover', v: popoverRadius, set:(v:string)=>popoverRadius=v }, { label:'Dropdown', v: dropdownRadius, set:(v:string)=>dropdownRadius=v }]" :key="row.label" class="te-radius-row">
                   <span class="te-radius-label">{{ row.label }}</span>
-                  <select class="te-select" :value="row.v" @change="row.set(($event.target as HTMLSelectElement).value)">
-                    <option v-for="o in RADIUS_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
-                  </select>
+                  <CoarSelect :model-value="row.v" @update:model-value="row.set($event as string)" :options="RADIUS_OPTIONS" size="s" style="flex:1" />
                 </div>
               </div>
               <div class="te-section">
                 <div class="te-section-label">Shadow</div>
                 <div v-for="row in [{ label:'Menu', v: menuShadow, set:(v:string)=>menuShadow=v }, { label:'Popover', v: popoverShadow, set:(v:string)=>popoverShadow=v }, { label:'Dropdown', v: dropdownShadow, set:(v:string)=>dropdownShadow=v }]" :key="row.label" class="te-radius-row">
                   <span class="te-radius-label">{{ row.label }}</span>
-                  <select class="te-select" :value="row.v" @change="row.set(($event.target as HTMLSelectElement).value)">
-                    <option v-for="o in SHADOW_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
-                  </select>
+                  <CoarSelect :model-value="row.v" @update:model-value="row.set($event as string)" :options="SHADOW_OPTIONS" size="s" style="flex:1" />
                 </div>
               </div>
             </div>
@@ -1207,18 +1188,14 @@ const DENSITY_OPTIONS = [
                 <div class="te-section-label">Corner radius</div>
                 <div v-for="row in [{ label:'Dialog', v: dialogRadius, set:(v:string)=>dialogRadius=v }, { label:'Toast', v: toastRadius, set:(v:string)=>toastRadius=v }]" :key="row.label" class="te-radius-row">
                   <span class="te-radius-label">{{ row.label }}</span>
-                  <select class="te-select" :value="row.v" @change="row.set(($event.target as HTMLSelectElement).value)">
-                    <option v-for="o in RADIUS_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
-                  </select>
+                  <CoarSelect :model-value="row.v" @update:model-value="row.set($event as string)" :options="RADIUS_OPTIONS" size="s" style="flex:1" />
                 </div>
               </div>
               <div class="te-section">
                 <div class="te-section-label">Shadow</div>
                 <div v-for="row in [{ label:'Dialog', v: dialogShadow, set:(v:string)=>dialogShadow=v }, { label:'Toast', v: toastShadow, set:(v:string)=>toastShadow=v }]" :key="row.label" class="te-radius-row">
                   <span class="te-radius-label">{{ row.label }}</span>
-                  <select class="te-select" :value="row.v" @change="row.set(($event.target as HTMLSelectElement).value)">
-                    <option v-for="o in SHADOW_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
-                  </select>
+                  <CoarSelect :model-value="row.v" @update:model-value="row.set($event as string)" :options="SHADOW_OPTIONS" size="s" style="flex:1" />
                 </div>
               </div>
             </div>
@@ -1396,32 +1373,6 @@ const DENSITY_OPTIONS = [
 .te-preset-name { font-size: 13px; font-weight: 600; color: var(--coar-text-neutral-primary, #1a1a1a); }
 .te-preset-desc { font-size: 11px; color: var(--coar-text-neutral-tertiary, #8c8c8c); }
 
-/* ── Segmented control ───────────────────────────── */
-.te-seg {
-  display: flex;
-  border: 1px solid var(--coar-border-neutral-tertiary, #e0e0e0);
-  border-radius: 8px; overflow: hidden;
-  background: var(--coar-background-neutral-secondary, #f5f5f5);
-  padding: 3px;
-}
-.te-seg-btn {
-  flex: 1; border: none;
-  background: transparent;
-  padding: 5px 10px; font-size: 12px; font-weight: 500; cursor: pointer;
-  color: var(--coar-text-neutral-secondary, #595959);
-  border-radius: 5px;
-  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
-  transition: background 0.12s, color 0.12s;
-  font-family: inherit;
-}
-.te-seg-btn:hover { color: var(--coar-text-neutral-primary, #1a1a1a); }
-.te-seg-btn--active {
-  background: var(--coar-background-neutral-primary, #fff);
-  color: var(--coar-text-neutral-primary, #1a1a1a);
-  font-weight: 600;
-  box-shadow: 0 1px 3px rgba(0,0,0,.10);
-}
-
 /* ── Color rows ──────────────────────────────────── */
 .te-color-row { display: flex; align-items: center; gap: 9px; margin-bottom: 7px; }
 .te-color-row:last-child { margin-bottom: 0; }
@@ -1463,35 +1414,9 @@ const DENSITY_OPTIONS = [
 .te-radius-row:last-child { margin-bottom: 0; }
 .te-radius-label { width: 56px; flex-shrink: 0; font-size: 12px; color: var(--coar-text-neutral-secondary, #595959); }
 
-/* ── Select ──────────────────────────────────────── */
-.te-select {
-  appearance: none;
-  background: var(--coar-background-neutral-secondary, #f5f5f5)
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23595959' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
-    no-repeat right 7px center;
-  border: 1px solid var(--coar-border-neutral-tertiary, #e0e0e0);
-  border-radius: 5px;
-  padding: 4px 24px 4px 8px;
-  font-size: 11px; font-family: inherit;
-  color: var(--coar-text-neutral-primary, #1a1a1a);
-  cursor: pointer; flex: 1;
-  transition: border-color 0.12s;
-}
-.te-select:hover { border-color: var(--coar-border-neutral-secondary, #c8c8c8); }
-.te-select:focus { outline: none; border-color: var(--coar-background-accent-primary, #1183CD); }
-
 /* ── Typography ──────────────────────────────────── */
 .te-font-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 .te-font-label { width: 36px; flex-shrink: 0; font-size: 12px; color: var(--coar-text-neutral-secondary, #595959); }
-.te-select {
-  flex: 1; padding: 6px 8px; appearance: auto;
-  border: 1px solid var(--coar-border-neutral-tertiary, #e0e0e0);
-  border-radius: 6px;
-  background: var(--coar-background-neutral-primary, #fff);
-  color: var(--coar-text-neutral-primary, #1a1a1a); font-size: 12px; cursor: pointer;
-  outline: none; font-family: inherit;
-}
-.te-select:focus { border-color: var(--coar-background-accent-primary, #1183CD); }
 .te-font-preview { margin: 10px 0 0; font-size: 12px; color: var(--coar-text-neutral-secondary, #595959); line-height: 1.5; }
 .te-font-preview--title { font-size: 15px; font-weight: 700; margin-top: 4px; color: var(--coar-text-neutral-primary, #1a1a1a); }
 
@@ -1517,16 +1442,6 @@ const DENSITY_OPTIONS = [
 .te-hint { font-size: 11px; color: var(--coar-text-neutral-tertiary, #8c8c8c); line-height: 1.45; margin: 0; }
 .te-hint code { font-family: ui-monospace, monospace; font-size: 10px; }
 
-/* ── Override toggle ─────────────────────────────── */
-.te-override-label {
-  display: inline-flex; align-items: center; gap: 4px;
-  font-size: 10px; font-weight: 500; text-transform: none; letter-spacing: 0;
-  color: var(--coar-text-neutral-tertiary, #8c8c8c); cursor: pointer;
-  margin-left: auto;
-}
-.te-override-check { cursor: pointer; accent-color: var(--coar-background-accent-primary, #1183CD); width: 12px; height: 12px; }
-.te-override-label:has(.te-override-check:checked) { color: var(--coar-background-accent-primary, #1183CD); }
-
 /* ── Disabled scale row ──────────────────────────── */
 .te-scale-row--disabled { opacity: 0.4; pointer-events: none; }
 
@@ -1535,15 +1450,6 @@ const DENSITY_OPTIONS = [
 .te-sem-row:last-child { margin-bottom: 0; }
 .te-sem-swatch { width: 18px; height: 18px; border-radius: 4px; flex-shrink: 0; box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
 .te-sem-label { flex: 1; font-size: 12px; color: var(--coar-text-neutral-primary, #1a1a1a); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.te-sem-select {
-  padding: 3px 4px; font-size: 11px; font-family: inherit; cursor: pointer;
-  border: 1px solid var(--coar-border-neutral-tertiary, #e0e0e0);
-  border-radius: 5px; background: var(--coar-background-neutral-primary, #fff);
-  color: var(--coar-text-neutral-primary, #1a1a1a);
-  outline: none; appearance: auto;
-}
-.te-sem-select:focus { border-color: var(--coar-background-accent-primary, #1183CD); }
-.te-sem-select--step { width: 52px; }
 
 /* ── Footer ──────────────────────────────────────── */
 .te-theme-name-row {
