@@ -133,14 +133,12 @@
   /* 0.75 = compact, 1 = default, 1.33 = comfortable */
   --coar-component-density: 1;
 
-  /* Danger button — formula parameters are overridable independently of --coar-error.
-     Change --coar-button-danger-l (lightness 0-1) and --coar-button-danger-c (chroma 0-0.4)
-     to tune the shade, or override --coar-button-danger-bg entirely for a custom color. */
-  --coar-button-danger-l:  0.47;
-  --coar-button-danger-c:  0.13;
-  --coar-button-danger-bg:        oklch(from var(--coar-error) var(--coar-button-danger-l) var(--coar-button-danger-c) h);
-  --coar-button-danger-bg-hover:  color-mix(in srgb, var(--coar-button-danger-bg) 85%, black);
-  --coar-button-danger-bg-active: color-mix(in srgb, var(--coar-button-danger-bg) 75%, black);
+  /* Danger button — follows the semantic error token layer.
+     Override --coar-background-semantic-error-bold (and -hover/-active) in the semantic
+     layer to change the danger button appearance. */
+  --coar-button-danger-bg:        var(--coar-background-semantic-error-bold);
+  --coar-button-danger-bg-hover:  var(--coar-background-semantic-error-hover);
+  --coar-button-danger-bg-active: var(--coar-background-semantic-error-active);
 
   /* Radius — per component group */
   --coar-button-radius:    var(--coar-radius-xs);   /* CoarButton, CoarSegmentedControl, CoarPagination */

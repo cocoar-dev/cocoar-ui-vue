@@ -9,7 +9,7 @@ const props = withDefaults(defineProps<{ hideDarkToggle?: boolean }>(), {
 // ── State ────────────────────────────────────────────────
 const isOpen  = ref(false);
 const isDark  = ref(false);
-const activeTab = ref<'presets' | 'brand' | 'corners' | 'type' | 'spacing' | 'depth' | 'motion'>('presets');
+const activeTab = ref<'presets' | 'brand' | 'semantic' | 'corners' | 'type' | 'spacing' | 'depth' | 'motion'>('presets');
 
 // ── Defaults ─────────────────────────────────────────────
 const DEFAULTS = {
@@ -19,9 +19,6 @@ const DEFAULTS = {
   error:   '#d63b3b',
   warning: '#cc821f',
   info:    '#5e6b84',
-  // Danger button formula params
-  dangerL: 0.47,
-  dangerC: 0.13,
   // Radius primitive scale
   radiusXxs: 1,
   radiusXs:  2,
@@ -58,12 +55,8 @@ const DEFAULTS = {
 
 const accent         = ref(DEFAULTS.accent);
 const success        = ref(DEFAULTS.success);
-const errorColor          = ref(DEFAULTS.error);
-const dangerL             = ref(DEFAULTS.dangerL);
-const dangerC             = ref(DEFAULTS.dangerC);
-const dangerCustomEnabled = ref(false);
-const dangerCustomColor   = ref('#d63b3b');
-const warning             = ref(DEFAULTS.warning);
+const errorColor     = ref(DEFAULTS.error);
+const warning        = ref(DEFAULTS.warning);
 const info           = ref(DEFAULTS.info);
 const radiusXxs      = ref(DEFAULTS.radiusXxs);
 const radiusXs       = ref(DEFAULTS.radiusXs);
@@ -183,7 +176,6 @@ function applyPreset(preset: typeof PRESETS[number]) {
   accent.value         = v.accent as string;
   success.value        = v.success as string;
   errorColor.value     = v.error as string;
-  dangerCustomEnabled.value = false;
   radiusXxs.value      = v.radiusXxs as number;
   radiusXs.value       = v.radiusXs  as number;
   radiusS.value        = v.radiusS   as number;
@@ -228,17 +220,19 @@ function applyTokens() {
   r.style.setProperty('--coar-accent',  accent.value);
   r.style.setProperty('--coar-success', success.value);
   r.style.setProperty('--coar-error',   errorColor.value);
-  if (dangerCustomEnabled.value) {
-    r.style.setProperty('--coar-button-danger-bg', dangerCustomColor.value);
-    r.style.removeProperty('--coar-button-danger-l');
-    r.style.removeProperty('--coar-button-danger-c');
-  } else {
-    r.style.removeProperty('--coar-button-danger-bg');
-    r.style.setProperty('--coar-button-danger-l', String(dangerL.value));
-    r.style.setProperty('--coar-button-danger-c', String(dangerC.value));
-  }
   r.style.setProperty('--coar-warning', warning.value);
   r.style.setProperty('--coar-info',    info.value);
+  // Semantic layer overrides — clear all first, then re-apply
+  for (const group of SEMANTIC_GROUPS) {
+    for (const entry of group.entries) {
+      if (semanticOverrides[entry.token]) {
+        const prefix = SEMANTIC_PALETTE_CSS[semanticOverrides[entry.token].palette];
+        r.style.setProperty(entry.token, `var(${prefix}-${semanticOverrides[entry.token].step})`);
+      } else {
+        r.style.removeProperty(entry.token);
+      }
+    }
+  }
   // Density
   r.style.setProperty('--coar-component-density', String(density.value));
   // Radius scale (primitives)
@@ -300,7 +294,7 @@ function applyTokens() {
 }
 
 watch(
-  [accent, success, errorColor, dangerL, dangerC, dangerCustomEnabled, dangerCustomColor, warning, info,
+  [accent, success, errorColor, warning, info,
    radiusXxs, radiusXs, radiusS, radiusM, radiusL, radiusXl,
    density,
    buttonRadius, inputRadius, tagRadius, badgeRadius, cardRadius,
@@ -318,10 +312,6 @@ function reset() {
     document.documentElement.classList.remove('dark-mode');
   }
   const r = document.documentElement;
-  dangerL.value             = DEFAULTS.dangerL;
-  dangerC.value             = DEFAULTS.dangerC;
-  dangerCustomEnabled.value = false;
-  dangerCustomColor.value   = '#d63b3b';
   radiusXxs.value   = DEFAULTS.radiusXxs;
   radiusXs.value    = DEFAULTS.radiusXs;
   radiusS.value     = DEFAULTS.radiusS;
@@ -330,9 +320,7 @@ function reset() {
   radiusXl.value    = DEFAULTS.radiusXl;
   density.value     = DEFAULTS.density;
   for (const key of [
-    '--coar-accent','--coar-success','--coar-error',
-    '--coar-button-danger-l','--coar-button-danger-c','--coar-button-danger-bg',
-    '--coar-warning','--coar-info',
+    '--coar-accent','--coar-success','--coar-error','--coar-warning','--coar-info',
     '--coar-radius-xxs','--coar-radius-xs','--coar-radius-s','--coar-radius-m','--coar-radius-l','--coar-radius-xl',
     '--coar-component-density',
     '--coar-button-radius','--coar-input-radius','--coar-tag-radius','--coar-badge-radius',
@@ -351,6 +339,12 @@ function reset() {
     paletteOverrides[key] = {};
   }
   activePalette.value = null;
+  // Clear semantic overrides
+  for (const group of SEMANTIC_GROUPS) {
+    for (const entry of group.entries) {
+      delete semanticOverrides[entry.token];
+    }
+  }
 }
 
 // ── Changed detection ─────────────────────────────────────
@@ -358,9 +352,6 @@ const hasChanges = computed(() =>
   accent.value         !== DEFAULTS.accent         ||
   success.value        !== DEFAULTS.success        ||
   errorColor.value     !== DEFAULTS.error          ||
-  dangerL.value             !== DEFAULTS.dangerL    ||
-  dangerC.value             !== DEFAULTS.dangerC    ||
-  dangerCustomEnabled.value                         ||
   warning.value        !== DEFAULTS.warning        ||
   info.value           !== DEFAULTS.info           ||
   radiusXxs.value      !== DEFAULTS.radiusXxs      ||
@@ -389,7 +380,8 @@ const hasChanges = computed(() =>
   fontBody.value       !== DEFAULTS.fontBody       ||
   fontTitle.value      !== DEFAULTS.fontTitle      ||
   motionScale.value    !== DEFAULTS.motionScale    ||
-  Object.values(paletteOverrides).some(ov => Object.keys(ov).length > 0),
+  Object.values(paletteOverrides).some(ov => Object.keys(ov).length > 0) ||
+  Object.keys(semanticOverrides).length > 0,
 );
 
 // ── Download ──────────────────────────────────────────────
@@ -401,12 +393,6 @@ function downloadCSS() {
   add('--coar-accent',  accent.value,  DEFAULTS.accent);
   add('--coar-success', success.value, DEFAULTS.success);
   add('--coar-error',   errorColor.value, DEFAULTS.error);
-  if (dangerCustomEnabled.value) {
-    lines.push(`  --coar-button-danger-bg: ${dangerCustomColor.value};`);
-  } else {
-    if (dangerL.value !== DEFAULTS.dangerL) lines.push(`  --coar-button-danger-l: ${dangerL.value};`);
-    if (dangerC.value !== DEFAULTS.dangerC) lines.push(`  --coar-button-danger-c: ${dangerC.value};`);
-  }
   add('--coar-warning', warning.value, DEFAULTS.warning);
   if (radiusXxs.value !== DEFAULTS.radiusXxs) lines.push(`  --coar-radius-xxs: ${radiusXxs.value}px;`);
   if (radiusXs.value  !== DEFAULTS.radiusXs)  lines.push(`  --coar-radius-xs: ${radiusXs.value}px;`);
@@ -452,6 +438,11 @@ function downloadCSS() {
       if (ov) lines.push(`  ${prefix}-${step.step}: oklch(from var(${baseVar}) ${ov.l} ${ov.c} h);`);
     }
   }
+  // Semantic layer overrides
+  for (const [token, override] of Object.entries(semanticOverrides)) {
+    const prefix = SEMANTIC_PALETTE_CSS[override.palette as SemanticPalette];
+    lines.push(`  ${token}: var(${prefix}-${override.step});`);
+  }
   lines.push('}');
   const blob = new Blob([lines.join('\n')], { type: 'text/css' });
   const a = document.createElement('a');
@@ -462,13 +453,14 @@ function downloadCSS() {
 }
 
 const TABS = [
-  { id: 'presets',  label: 'Presets'  },
-  { id: 'brand',    label: 'Brand'    },
-  { id: 'corners',  label: 'Corners'  },
-  { id: 'type',     label: 'Type'     },
-  { id: 'spacing',  label: 'Spacing'  },
-  { id: 'depth',    label: 'Depth'    },
-  { id: 'motion',   label: 'Motion'   },
+  { id: 'presets',   label: 'Presets'   },
+  { id: 'brand',     label: 'Brand'     },
+  { id: 'semantic',  label: 'Semantic'  },
+  { id: 'corners',   label: 'Corners'   },
+  { id: 'type',      label: 'Type'      },
+  { id: 'spacing',   label: 'Spacing'   },
+  { id: 'depth',     label: 'Depth'     },
+  { id: 'motion',    label: 'Motion'    },
 ] as const;
 
 // ── Palette editor ────────────────────────────────────────────
@@ -560,6 +552,91 @@ const PALETTE_STEPS: Record<PaletteKey, StepDef[]> = {
   ],
 };
 
+// ── Semantic layer ────────────────────────────────────────────
+type SemanticPalette = 'accent' | 'red' | 'green' | 'amber' | 'slate';
+interface SemanticEntry { token: string; label: string; defaultPalette: SemanticPalette; defaultStep: number; }
+interface SemanticGroup { label: string; entries: SemanticEntry[]; }
+interface SemanticOverride { palette: SemanticPalette; step: number; }
+
+const SEMANTIC_PALETTE_CSS: Record<SemanticPalette, string> = {
+  accent: '--coar-color-accent',
+  red:    '--coar-color-red',
+  green:  '--coar-color-green',
+  amber:  '--coar-color-amber',
+  slate:  '--coar-color-slate',
+};
+
+const SEMANTIC_PALETTE_LABELS: Record<SemanticPalette, string> = {
+  accent: 'Accent', red: 'Red', green: 'Green', amber: 'Amber', slate: 'Slate',
+};
+
+const SEMANTIC_PALETTES: SemanticPalette[] = ['accent', 'red', 'green', 'amber', 'slate'];
+const SEMANTIC_STEPS = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900];
+
+const SEMANTIC_GROUPS: SemanticGroup[] = [
+  {
+    label: 'Accent',
+    entries: [
+      { token: '--coar-background-accent-primary',  label: 'Primary background',   defaultPalette: 'accent', defaultStep: 500 },
+      { token: '--coar-background-accent-hover',    label: 'Hover background',     defaultPalette: 'accent', defaultStep: 600 },
+      { token: '--coar-background-accent-active',   label: 'Active background',    defaultPalette: 'accent', defaultStep: 700 },
+      { token: '--coar-background-accent-secondary',label: 'Secondary background', defaultPalette: 'accent', defaultStep: 100 },
+      { token: '--coar-text-accent-primary',        label: 'Primary text',         defaultPalette: 'accent', defaultStep: 600 },
+      { token: '--coar-border-accent-primary',      label: 'Primary border',       defaultPalette: 'accent', defaultStep: 500 },
+    ],
+  },
+  {
+    label: 'Error',
+    entries: [
+      { token: '--coar-background-semantic-error-bold',   label: 'Bold background',   defaultPalette: 'red', defaultStep: 600 },
+      { token: '--coar-background-semantic-error-hover',  label: 'Hover background',  defaultPalette: 'red', defaultStep: 700 },
+      { token: '--coar-background-semantic-error-active', label: 'Active background', defaultPalette: 'red', defaultStep: 800 },
+      { token: '--coar-background-semantic-error-subtle', label: 'Subtle background', defaultPalette: 'red', defaultStep: 100 },
+      { token: '--coar-border-semantic-error-bold',       label: 'Bold border',       defaultPalette: 'red', defaultStep: 800 },
+      { token: '--coar-border-semantic-error',            label: 'Border',            defaultPalette: 'red', defaultStep: 600 },
+    ],
+  },
+  {
+    label: 'Success',
+    entries: [
+      { token: '--coar-background-semantic-success-bold',   label: 'Bold background',   defaultPalette: 'green', defaultStep: 600 },
+      { token: '--coar-background-semantic-success-subtle', label: 'Subtle background', defaultPalette: 'green', defaultStep: 100 },
+      { token: '--coar-border-semantic-success-bold',       label: 'Bold border',       defaultPalette: 'green', defaultStep: 800 },
+      { token: '--coar-text-semantic-success-bold',         label: 'Bold text',         defaultPalette: 'green', defaultStep: 800 },
+    ],
+  },
+  {
+    label: 'Warning',
+    entries: [
+      { token: '--coar-background-semantic-warning-bold',   label: 'Bold background',   defaultPalette: 'amber', defaultStep: 600 },
+      { token: '--coar-background-semantic-warning-subtle', label: 'Subtle background', defaultPalette: 'amber', defaultStep: 100 },
+      { token: '--coar-border-semantic-warning-bold',       label: 'Bold border',       defaultPalette: 'amber', defaultStep: 900 },
+      { token: '--coar-text-semantic-warning-bold',         label: 'Bold text',         defaultPalette: 'amber', defaultStep: 900 },
+    ],
+  },
+  {
+    label: 'Info',
+    entries: [
+      { token: '--coar-background-semantic-info-bold',   label: 'Bold background',   defaultPalette: 'slate', defaultStep: 700 },
+      { token: '--coar-background-semantic-info-subtle', label: 'Subtle background', defaultPalette: 'slate', defaultStep: 100 },
+      { token: '--coar-border-semantic-info-bold',       label: 'Bold border',       defaultPalette: 'slate', defaultStep: 900 },
+    ],
+  },
+];
+
+const semanticOverrides = reactive<Record<string, SemanticOverride>>({});
+watch(semanticOverrides, applyTokens, { deep: true });
+
+function setSemantic(entry: SemanticEntry, field: 'palette' | 'step', value: string | number) {
+  const cur = semanticOverrides[entry.token] ?? { palette: entry.defaultPalette, step: entry.defaultStep };
+  semanticOverrides[entry.token] = { ...cur, [field]: value } as SemanticOverride;
+}
+
+function resetSemantic(token: string) {
+  delete semanticOverrides[token];
+  applyTokens();
+}
+
 const DENSITY_OPTIONS = [
   { label: 'Compact',      value: 0.75 },
   { label: 'Default',      value: 1    },
@@ -576,10 +653,13 @@ const DENSITY_OPTIONS = [
       :title="isOpen ? 'Close theme editor' : 'Open theme editor'"
       @click="isOpen = !isOpen"
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg v-if="!isOpen" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/>
         <circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/>
         <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+      </svg>
+      <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
       </svg>
     </button>
 
@@ -589,10 +669,20 @@ const DENSITY_OPTIONS = [
 
         <!-- Header -->
         <header class="te-header">
+          <svg class="te-header-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/>
+            <circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/>
+            <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+          </svg>
           <span class="te-header-title">Theme Editor</span>
           <div class="te-header-actions">
-            <button v-if="hasChanges" class="te-btn te-btn--ghost te-btn--sm" @click="reset">Reset</button>
-            <button class="te-btn te-btn--ghost te-btn--sm" @click="isOpen = false">✕</button>
+            <button v-if="hasChanges" class="te-icon-btn te-icon-btn--labeled" @click="reset" title="Reset all changes">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+              Reset
+            </button>
+            <button class="te-icon-btn" @click="isOpen = false" title="Close">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
           </div>
         </header>
 
@@ -628,245 +718,193 @@ const DENSITY_OPTIONS = [
           <!-- BRAND -->
           <div v-if="activeTab === 'brand'">
             <div v-if="!hideDarkToggle" class="te-section">
-              <div class="te-section-label">Mode</div>
-              <div class="te-mode-toggle">
-                <button class="te-mode-btn" :class="{ active: !isDark }" @click="isDark = false">☀ Light</button>
-                <button class="te-mode-btn" :class="{ active: isDark  }" @click="isDark = true">☾ Dark</button>
+              <div class="te-section-label">Appearance</div>
+              <div class="te-seg">
+                <button class="te-seg-btn" :class="{ 'te-seg-btn--active': !isDark }" @click="isDark = false">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+                  Light
+                </button>
+                <button class="te-seg-btn" :class="{ 'te-seg-btn--active': isDark }" @click="isDark = true">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                  Dark
+                </button>
               </div>
             </div>
 
             <div class="te-section">
-              <div class="te-section-label">Accent</div>
+              <div class="te-section-label">Brand color</div>
               <div class="te-color-row">
                 <input type="color" class="te-color-swatch" v-model="accent" />
-                <span class="te-color-name">Brand</span>
-                <code class="te-color-value">{{ accent }}</code>
-                <button class="te-palette-btn" :class="{ 'te-palette-btn--active': activePalette === 'accent' }" @click="activePalette = activePalette === 'accent' ? null : 'accent'" title="Edit color palette">⊞</button>
+                <span class="te-color-name">Accent</span>
+                <code class="te-color-hex">{{ accent }}</code>
+                <button class="te-palette-btn" :class="{ 'te-palette-btn--active': activePalette === 'accent' }" @click="activePalette = activePalette === 'accent' ? null : 'accent'" title="Edit 50–900 palette">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+                </button>
               </div>
             </div>
 
             <div class="te-section">
-              <div class="te-section-label">Status</div>
+              <div class="te-section-label">Status colors</div>
               <div class="te-color-row">
                 <input type="color" class="te-color-swatch" v-model="success" />
                 <span class="te-color-name">Success</span>
-                <code class="te-color-value">{{ success }}</code>
-                <button class="te-palette-btn" :class="{ 'te-palette-btn--active': activePalette === 'success' }" @click="activePalette = activePalette === 'success' ? null : 'success'" title="Edit color palette">⊞</button>
+                <code class="te-color-hex">{{ success }}</code>
+                <button class="te-palette-btn" :class="{ 'te-palette-btn--active': activePalette === 'success' }" @click="activePalette = activePalette === 'success' ? null : 'success'" title="Edit 50–900 palette">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+                </button>
               </div>
               <div class="te-color-row">
                 <input type="color" class="te-color-swatch" v-model="errorColor" />
                 <span class="te-color-name">Error</span>
-                <code class="te-color-value">{{ errorColor }}</code>
-                <button class="te-palette-btn" :class="{ 'te-palette-btn--active': activePalette === 'error' }" @click="activePalette = activePalette === 'error' ? null : 'error'" title="Edit color palette">⊞</button>
+                <code class="te-color-hex">{{ errorColor }}</code>
+                <button class="te-palette-btn" :class="{ 'te-palette-btn--active': activePalette === 'error' }" @click="activePalette = activePalette === 'error' ? null : 'error'" title="Edit 50–900 palette">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+                </button>
               </div>
               <div class="te-color-row">
                 <input type="color" class="te-color-swatch" v-model="warning" />
                 <span class="te-color-name">Warning</span>
-                <code class="te-color-value">{{ warning }}</code>
-                <button class="te-palette-btn" :class="{ 'te-palette-btn--active': activePalette === 'warning' }" @click="activePalette = activePalette === 'warning' ? null : 'warning'" title="Edit color palette">⊞</button>
+                <code class="te-color-hex">{{ warning }}</code>
+                <button class="te-palette-btn" :class="{ 'te-palette-btn--active': activePalette === 'warning' }" @click="activePalette = activePalette === 'warning' ? null : 'warning'" title="Edit 50–900 palette">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+                </button>
               </div>
               <div class="te-color-row">
                 <input type="color" class="te-color-swatch" v-model="info" />
                 <span class="te-color-name">Info</span>
-                <code class="te-color-value">{{ info }}</code>
-                <button class="te-palette-btn" :class="{ 'te-palette-btn--active': activePalette === 'info' }" @click="activePalette = activePalette === 'info' ? null : 'info'" title="Edit color palette">⊞</button>
+                <code class="te-color-hex">{{ info }}</code>
+                <button class="te-palette-btn" :class="{ 'te-palette-btn--active': activePalette === 'info' }" @click="activePalette = activePalette === 'info' ? null : 'info'" title="Edit 50–900 palette">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+                </button>
               </div>
             </div>
 
-            <div class="te-section">
-              <div class="te-section-label">
-                Danger button
+          </div>
+
+          <!-- SEMANTIC -->
+          <div v-if="activeTab === 'semantic'">
+            <div v-for="group in SEMANTIC_GROUPS" :key="group.label" class="te-section">
+              <div class="te-section-label">{{ group.label }}</div>
+              <div v-for="entry in group.entries" :key="entry.token" class="te-sem-row">
+                <span class="te-sem-swatch" :style="{ background: `var(${entry.token})` }"></span>
+                <span class="te-sem-label">{{ entry.label }}</span>
+                <select
+                  class="te-sem-select"
+                  :value="semanticOverrides[entry.token]?.palette ?? entry.defaultPalette"
+                  @change="setSemantic(entry, 'palette', ($event.target as HTMLSelectElement).value)"
+                >
+                  <option v-for="pal in SEMANTIC_PALETTES" :key="pal" :value="pal">{{ SEMANTIC_PALETTE_LABELS[pal] }}</option>
+                </select>
+                <select
+                  class="te-sem-select te-sem-select--step"
+                  :value="semanticOverrides[entry.token]?.step ?? entry.defaultStep"
+                  @change="setSemantic(entry, 'step', +($event.target as HTMLSelectElement).value)"
+                >
+                  <option v-for="step in SEMANTIC_STEPS" :key="step" :value="step">{{ step }}</option>
+                </select>
                 <button
-                  class="te-mode-pill"
-                  :class="{ 'te-mode-pill--active': dangerCustomEnabled }"
-                  @click="dangerCustomEnabled = !dangerCustomEnabled"
-                  :title="dangerCustomEnabled ? 'Switch to formula mode' : 'Switch to custom color'"
-                >{{ dangerCustomEnabled ? 'Custom' : 'Formula' }}</button>
+                  class="te-icon-btn te-icon-btn--reset"
+                  :class="{ 'te-icon-btn--changed': !!semanticOverrides[entry.token] }"
+                  :disabled="!semanticOverrides[entry.token]"
+                  @click="resetSemantic(entry.token)"
+                  title="Reset"
+                >
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                </button>
               </div>
-
-              <!-- Formula mode -->
-              <template v-if="!dangerCustomEnabled">
-                <p class="te-formula-hint"><code>oklch(from --coar-error, L, C, hue)</code></p>
-                <div class="te-scale-row">
-                  <span class="te-scale-name">L</span>
-                  <input type="range" class="te-slider te-slider--scale" min="0" max="1" step="0.01" v-model.number="dangerL" />
-                  <span class="te-scale-val">{{ dangerL }}</span>
-                  <button class="te-reset-btn" :class="{ 'te-reset-btn--changed': dangerL !== DEFAULTS.dangerL }" @click="dangerL = DEFAULTS.dangerL" title="Reset">↺</button>
-                </div>
-                <div class="te-scale-row">
-                  <span class="te-scale-name">C</span>
-                  <input type="range" class="te-slider te-slider--scale" min="0" max="0.4" step="0.005" v-model.number="dangerC" />
-                  <span class="te-scale-val">{{ dangerC }}</span>
-                  <button class="te-reset-btn" :class="{ 'te-reset-btn--changed': dangerC !== DEFAULTS.dangerC }" @click="dangerC = DEFAULTS.dangerC" title="Reset">↺</button>
-                </div>
-                <p class="te-hint">L = lightness (0–1), C = chroma/saturation (0–0.4). Hue always follows --coar-error.</p>
-              </template>
-
-              <!-- Custom color override -->
-              <template v-else>
-                <div class="te-color-row">
-                  <input type="color" class="te-color-swatch" v-model="dangerCustomColor" />
-                  <span class="te-color-name">Custom color</span>
-                  <code class="te-color-value">{{ dangerCustomColor }}</code>
-                  <button class="te-reset-btn te-reset-btn--changed" @click="dangerCustomEnabled = false" title="Back to formula">↺</button>
-                </div>
-                <p class="te-hint">Overrides the formula entirely. Download emits <code>--coar-button-danger-bg</code> directly.</p>
-              </template>
             </div>
           </div>
 
           <!-- CORNERS -->
           <div v-if="activeTab === 'corners'">
-
-            <!-- Primitive scale -->
             <div class="te-section">
               <div class="te-section-label">Radius scale</div>
               <div class="te-scale-row">
                 <span class="te-scale-name">XXS</span>
-                <input type="range" class="te-slider te-slider--scale" min="0" max="20" v-model.number="radiusXxs" />
+                <input type="range" class="te-slider" min="0" max="20" v-model.number="radiusXxs" />
                 <span class="te-scale-val">{{ radiusXxs }}px</span>
-                <button class="te-reset-btn" :class="{ 'te-reset-btn--changed': radiusXxs !== DEFAULTS.radiusXxs }" @click="radiusXxs = DEFAULTS.radiusXxs" title="Reset">↺</button>
+                <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': radiusXxs !== DEFAULTS.radiusXxs }" :disabled="radiusXxs === DEFAULTS.radiusXxs" @click="radiusXxs = DEFAULTS.radiusXxs" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
               </div>
               <div class="te-scale-row">
                 <span class="te-scale-name">XS</span>
-                <input type="range" class="te-slider te-slider--scale" min="0" max="20" v-model.number="radiusXs" />
+                <input type="range" class="te-slider" min="0" max="20" v-model.number="radiusXs" />
                 <span class="te-scale-val">{{ radiusXs }}px</span>
-                <button class="te-reset-btn" :class="{ 'te-reset-btn--changed': radiusXs !== DEFAULTS.radiusXs }" @click="radiusXs = DEFAULTS.radiusXs" title="Reset">↺</button>
+                <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': radiusXs !== DEFAULTS.radiusXs }" :disabled="radiusXs === DEFAULTS.radiusXs" @click="radiusXs = DEFAULTS.radiusXs" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
               </div>
               <div class="te-scale-row">
                 <span class="te-scale-name">S</span>
-                <input type="range" class="te-slider te-slider--scale" min="0" max="32" v-model.number="radiusS" />
+                <input type="range" class="te-slider" min="0" max="32" v-model.number="radiusS" />
                 <span class="te-scale-val">{{ radiusS }}px</span>
-                <button class="te-reset-btn" :class="{ 'te-reset-btn--changed': radiusS !== DEFAULTS.radiusS }" @click="radiusS = DEFAULTS.radiusS" title="Reset">↺</button>
+                <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': radiusS !== DEFAULTS.radiusS }" :disabled="radiusS === DEFAULTS.radiusS" @click="radiusS = DEFAULTS.radiusS" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
               </div>
               <div class="te-scale-row">
                 <span class="te-scale-name">M</span>
-                <input type="range" class="te-slider te-slider--scale" min="0" max="32" v-model.number="radiusM" />
+                <input type="range" class="te-slider" min="0" max="32" v-model.number="radiusM" />
                 <span class="te-scale-val">{{ radiusM }}px</span>
-                <button class="te-reset-btn" :class="{ 'te-reset-btn--changed': radiusM !== DEFAULTS.radiusM }" @click="radiusM = DEFAULTS.radiusM" title="Reset">↺</button>
+                <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': radiusM !== DEFAULTS.radiusM }" :disabled="radiusM === DEFAULTS.radiusM" @click="radiusM = DEFAULTS.radiusM" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
               </div>
               <div class="te-scale-row">
                 <span class="te-scale-name">L</span>
-                <input type="range" class="te-slider te-slider--scale" min="0" max="64" v-model.number="radiusL" />
+                <input type="range" class="te-slider" min="0" max="64" v-model.number="radiusL" />
                 <span class="te-scale-val">{{ radiusL }}px</span>
-                <button class="te-reset-btn" :class="{ 'te-reset-btn--changed': radiusL !== DEFAULTS.radiusL }" @click="radiusL = DEFAULTS.radiusL" title="Reset">↺</button>
+                <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': radiusL !== DEFAULTS.radiusL }" :disabled="radiusL === DEFAULTS.radiusL" @click="radiusL = DEFAULTS.radiusL" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
               </div>
               <div class="te-scale-row">
                 <span class="te-scale-name">XL</span>
-                <input type="range" class="te-slider te-slider--scale" min="0" max="64" v-model.number="radiusXl" />
+                <input type="range" class="te-slider" min="0" max="64" v-model.number="radiusXl" />
                 <span class="te-scale-val">{{ radiusXl }}px</span>
-                <button class="te-reset-btn" :class="{ 'te-reset-btn--changed': radiusXl !== DEFAULTS.radiusXl }" @click="radiusXl = DEFAULTS.radiusXl" title="Reset">↺</button>
+                <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': radiusXl !== DEFAULTS.radiusXl }" :disabled="radiusXl === DEFAULTS.radiusXl" @click="radiusXl = DEFAULTS.radiusXl" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
               </div>
             </div>
 
-            <!-- Advanced toggle -->
             <button class="te-advanced-toggle" @click="showAdvanced = !showAdvanced">
-              <span>Advanced — per component</span>
-              <span class="te-advanced-arrow" :class="{ 'te-advanced-arrow--open': showAdvanced }">›</span>
+              <span>Per-component overrides</span>
+              <svg class="te-adv-arrow" :class="{ 'te-adv-arrow--open': showAdvanced }" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
             </button>
 
             <div v-if="showAdvanced">
-            <div class="te-section">
-              <div class="te-section-label">Controls & Inputs</div>
-              <div class="te-radius-row">
-                <span class="te-radius-label">Button</span>
-                <div class="te-chip-group">
-                  <button v-for="o in RADIUS_OPTIONS" :key="o.value"
-                    class="te-chip" :class="{ active: buttonRadius === o.value }"
-                    @click="buttonRadius = o.value">{{ o.label }}</button>
+              <div class="te-section">
+                <div class="te-section-label">Controls</div>
+                <div v-for="row in [{ label:'Button', v: buttonRadius, set: (v:string)=>buttonRadius=v }, { label:'Input', v: inputRadius, set: (v:string)=>inputRadius=v }]" :key="row.label" class="te-radius-row">
+                  <span class="te-radius-label">{{ row.label }}</span>
+                  <div class="te-chip-group">
+                    <button v-for="o in RADIUS_OPTIONS" :key="o.value" class="te-chip" :class="{ active: row.v === o.value }" @click="row.set(o.value)">{{ o.label }}</button>
+                  </div>
                 </div>
               </div>
-              <div class="te-radius-row">
-                <span class="te-radius-label">Input</span>
-                <div class="te-chip-group">
-                  <button v-for="o in RADIUS_OPTIONS" :key="o.value"
-                    class="te-chip" :class="{ active: inputRadius === o.value }"
-                    @click="inputRadius = o.value">{{ o.label }}</button>
+              <div class="te-section">
+                <div class="te-section-label">Inline elements</div>
+                <div v-for="row in [{ label:'Tag', v: tagRadius, set: (v:string)=>tagRadius=v }, { label:'Badge', v: badgeRadius, set: (v:string)=>badgeRadius=v }]" :key="row.label" class="te-radius-row">
+                  <span class="te-radius-label">{{ row.label }}</span>
+                  <div class="te-chip-group">
+                    <button v-for="o in RADIUS_OPTIONS" :key="o.value" class="te-chip" :class="{ active: row.v === o.value }" @click="row.set(o.value)">{{ o.label }}</button>
+                  </div>
                 </div>
               </div>
-            </div>
-
-            <div class="te-section">
-              <div class="te-section-label">Tags & Badges</div>
-              <div class="te-radius-row">
-                <span class="te-radius-label">Tag</span>
-                <div class="te-chip-group">
-                  <button v-for="o in RADIUS_OPTIONS" :key="o.value"
-                    class="te-chip" :class="{ active: tagRadius === o.value }"
-                    @click="tagRadius = o.value">{{ o.label }}</button>
+              <div class="te-section">
+                <div class="te-section-label">Containers</div>
+                <div v-for="row in [{ label:'Card', v: cardRadius, set: (v:string)=>cardRadius=v }, { label:'Dialog', v: dialogRadius, set: (v:string)=>dialogRadius=v }, { label:'Toast', v: toastRadius, set: (v:string)=>toastRadius=v }]" :key="row.label" class="te-radius-row">
+                  <span class="te-radius-label">{{ row.label }}</span>
+                  <div class="te-chip-group">
+                    <button v-for="o in RADIUS_OPTIONS" :key="o.value" class="te-chip" :class="{ active: row.v === o.value }" @click="row.set(o.value)">{{ o.label }}</button>
+                  </div>
                 </div>
               </div>
-              <div class="te-radius-row">
-                <span class="te-radius-label">Badge</span>
-                <div class="te-chip-group">
-                  <button v-for="o in RADIUS_OPTIONS" :key="o.value"
-                    class="te-chip" :class="{ active: badgeRadius === o.value }"
-                    @click="badgeRadius = o.value">{{ o.label }}</button>
-                </div>
-              </div>
-            </div>
-
-            <div class="te-section">
-              <div class="te-section-label">Containers</div>
-              <div class="te-radius-row">
-                <span class="te-radius-label">Card</span>
-                <div class="te-chip-group">
-                  <button v-for="o in RADIUS_OPTIONS" :key="o.value"
-                    class="te-chip" :class="{ active: cardRadius === o.value }"
-                    @click="cardRadius = o.value">{{ o.label }}</button>
-                </div>
-              </div>
-              <div class="te-radius-row">
-                <span class="te-radius-label">Dialog</span>
-                <div class="te-chip-group">
-                  <button v-for="o in RADIUS_OPTIONS" :key="o.value"
-                    class="te-chip" :class="{ active: dialogRadius === o.value }"
-                    @click="dialogRadius = o.value">{{ o.label }}</button>
-                </div>
-              </div>
-              <div class="te-radius-row">
-                <span class="te-radius-label">Toast</span>
-                <div class="te-chip-group">
-                  <button v-for="o in RADIUS_OPTIONS" :key="o.value"
-                    class="te-chip" :class="{ active: toastRadius === o.value }"
-                    @click="toastRadius = o.value">{{ o.label }}</button>
+              <div class="te-section">
+                <div class="te-section-label">Overlays</div>
+                <div v-for="row in [{ label:'Menu', v: menuRadius, set: (v:string)=>menuRadius=v }, { label:'Popover', v: popoverRadius, set: (v:string)=>popoverRadius=v }, { label:'Dropdown', v: dropdownRadius, set: (v:string)=>dropdownRadius=v }]" :key="row.label" class="te-radius-row">
+                  <span class="te-radius-label">{{ row.label }}</span>
+                  <div class="te-chip-group">
+                    <button v-for="o in RADIUS_OPTIONS" :key="o.value" class="te-chip" :class="{ active: row.v === o.value }" @click="row.set(o.value)">{{ o.label }}</button>
+                  </div>
                 </div>
               </div>
             </div>
-
-            <div class="te-section">
-              <div class="te-section-label">Overlays</div>
-              <div class="te-radius-row">
-                <span class="te-radius-label">Menu</span>
-                <div class="te-chip-group">
-                  <button v-for="o in RADIUS_OPTIONS" :key="o.value"
-                    class="te-chip" :class="{ active: menuRadius === o.value }"
-                    @click="menuRadius = o.value">{{ o.label }}</button>
-                </div>
-              </div>
-              <div class="te-radius-row">
-                <span class="te-radius-label">Popover</span>
-                <div class="te-chip-group">
-                  <button v-for="o in RADIUS_OPTIONS" :key="o.value"
-                    class="te-chip" :class="{ active: popoverRadius === o.value }"
-                    @click="popoverRadius = o.value">{{ o.label }}</button>
-                </div>
-              </div>
-              <div class="te-radius-row">
-                <span class="te-radius-label">Dropdown</span>
-                <div class="te-chip-group">
-                  <button v-for="o in RADIUS_OPTIONS" :key="o.value"
-                    class="te-chip" :class="{ active: dropdownRadius === o.value }"
-                    @click="dropdownRadius = o.value">{{ o.label }}</button>
-                </div>
-              </div>
-            </div>
-            </div> <!-- /showAdvanced -->
           </div>
 
           <!-- TYPE -->
           <div v-if="activeTab === 'type'" class="te-section">
-            <div class="te-section-label">Font Families</div>
+            <div class="te-section-label">Font families</div>
             <div class="te-font-row">
               <span class="te-font-label">Body</span>
               <select class="te-select" v-model="fontBody">
@@ -890,18 +928,11 @@ const DENSITY_OPTIONS = [
           <!-- SPACING -->
           <div v-if="activeTab === 'spacing'" class="te-section">
             <div class="te-section-label">Component density</div>
-            <div class="te-chip-group te-chip-group--lg">
-              <button
-                v-for="o in DENSITY_OPTIONS"
-                :key="o.value"
-                class="te-chip"
-                :class="{ active: density === o.value }"
-                @click="density = o.value"
-              >{{ o.label }}</button>
+            <div class="te-seg">
+              <button v-for="o in DENSITY_OPTIONS" :key="o.value" class="te-seg-btn" :class="{ 'te-seg-btn--active': density === o.value }" @click="density = o.value">{{ o.label }}</button>
             </div>
-            <p class="te-hint">
-              Scales horizontal padding inside buttons and inputs proportionally across all sizes.
-              Affects <code>--coar-component-density</code>.
+            <p class="te-hint" style="margin-top:10px">
+              Scales horizontal padding proportionally across all component sizes via <code>--coar-component-density</code>.
             </p>
           </div>
 
@@ -909,56 +940,16 @@ const DENSITY_OPTIONS = [
           <div v-if="activeTab === 'depth'">
             <div class="te-section">
               <div class="te-section-label">Containers</div>
-              <div class="te-radius-row">
-                <span class="te-radius-label">Card</span>
-                <div class="te-chip-group">
-                  <button v-for="o in SHADOW_OPTIONS" :key="o.value"
-                    class="te-chip" :class="{ active: cardShadow === o.value }"
-                    @click="cardShadow = o.value">{{ o.label }}</button>
-                </div>
-              </div>
-              <div class="te-radius-row">
-                <span class="te-radius-label">Dialog</span>
-                <div class="te-chip-group">
-                  <button v-for="o in SHADOW_OPTIONS" :key="o.value"
-                    class="te-chip" :class="{ active: dialogShadow === o.value }"
-                    @click="dialogShadow = o.value">{{ o.label }}</button>
-                </div>
-              </div>
-              <div class="te-radius-row">
-                <span class="te-radius-label">Toast</span>
-                <div class="te-chip-group">
-                  <button v-for="o in SHADOW_OPTIONS" :key="o.value"
-                    class="te-chip" :class="{ active: toastShadow === o.value }"
-                    @click="toastShadow = o.value">{{ o.label }}</button>
-                </div>
+              <div v-for="row in [{ label:'Card', v: cardShadow, set:(v:string)=>cardShadow=v },{ label:'Dialog', v: dialogShadow, set:(v:string)=>dialogShadow=v },{ label:'Toast', v: toastShadow, set:(v:string)=>toastShadow=v }]" :key="row.label" class="te-radius-row">
+                <span class="te-radius-label">{{ row.label }}</span>
+                <div class="te-chip-group"><button v-for="o in SHADOW_OPTIONS" :key="o.value" class="te-chip" :class="{ active: row.v === o.value }" @click="row.set(o.value)">{{ o.label }}</button></div>
               </div>
             </div>
             <div class="te-section">
               <div class="te-section-label">Overlays</div>
-              <div class="te-radius-row">
-                <span class="te-radius-label">Menu</span>
-                <div class="te-chip-group">
-                  <button v-for="o in SHADOW_OPTIONS" :key="o.value"
-                    class="te-chip" :class="{ active: menuShadow === o.value }"
-                    @click="menuShadow = o.value">{{ o.label }}</button>
-                </div>
-              </div>
-              <div class="te-radius-row">
-                <span class="te-radius-label">Popover</span>
-                <div class="te-chip-group">
-                  <button v-for="o in SHADOW_OPTIONS" :key="o.value"
-                    class="te-chip" :class="{ active: popoverShadow === o.value }"
-                    @click="popoverShadow = o.value">{{ o.label }}</button>
-                </div>
-              </div>
-              <div class="te-radius-row">
-                <span class="te-radius-label">Dropdown</span>
-                <div class="te-chip-group">
-                  <button v-for="o in SHADOW_OPTIONS" :key="o.value"
-                    class="te-chip" :class="{ active: dropdownShadow === o.value }"
-                    @click="dropdownShadow = o.value">{{ o.label }}</button>
-                </div>
+              <div v-for="row in [{ label:'Menu', v: menuShadow, set:(v:string)=>menuShadow=v },{ label:'Popover', v: popoverShadow, set:(v:string)=>popoverShadow=v },{ label:'Dropdown', v: dropdownShadow, set:(v:string)=>dropdownShadow=v }]" :key="row.label" class="te-radius-row">
+                <span class="te-radius-label">{{ row.label }}</span>
+                <div class="te-chip-group"><button v-for="o in SHADOW_OPTIONS" :key="o.value" class="te-chip" :class="{ active: row.v === o.value }" @click="row.set(o.value)">{{ o.label }}</button></div>
               </div>
             </div>
           </div>
@@ -967,23 +958,22 @@ const DENSITY_OPTIONS = [
           <div v-if="activeTab === 'motion'" class="te-section">
             <div class="te-section-label">
               Animation speed
-              <span class="te-section-badge">{{ motionLabel(motionScale) }}</span>
+              <span class="te-badge">{{ motionLabel(motionScale) }}</span>
             </div>
-            <div class="te-slider-row">
-              <span class="te-slider-end">⚡</span>
+            <div class="te-scale-row" style="margin-top:4px">
+              <span class="te-scale-name" style="font-size:14px;width:20px">⚡</span>
               <input type="range" class="te-slider" min="0" max="3" step="0.25" v-model.number="motionScale" />
-              <span class="te-slider-end">🐢</span>
+              <span class="te-scale-name" style="font-size:14px;width:20px;text-align:right">🐢</span>
             </div>
-            <p class="te-motion-hint">
-              Scales all <code>--coar-duration-*</code> tokens proportionally (0 = instant, 3 = 3× slower).
-            </p>
+            <p class="te-hint" style="margin-top:8px">Scales all <code>--coar-duration-*</code> tokens (0 = instant, 3 = very slow).</p>
           </div>
 
         </div>
 
         <!-- Footer -->
         <footer class="te-footer">
-          <button class="te-btn te-btn--primary te-btn--full" :disabled="!hasChanges" @click="downloadCSS">
+          <button class="te-download-btn" :disabled="!hasChanges" @click="downloadCSS">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
             Download coar-theme.css
           </button>
           <p class="te-footer-hint">Import after <code>@cocoar/vue-ui/styles</code> in your app entry.</p>
@@ -992,52 +982,12 @@ const DENSITY_OPTIONS = [
       </aside>
     </Transition>
 
-    <!-- Palette editor modals — each teleports to body from inside CoarPaletteEditor -->
-    <CoarPaletteEditor
-      v-if="activePalette === 'accent'"
-      label="Accent" css-family="accent"
-      :base-color="accent"
-      :steps="PALETTE_STEPS.accent"
-      :model-value="paletteOverrides.accent"
-      @update:model-value="paletteOverrides.accent = $event"
-      @close="activePalette = null"
-    />
-    <CoarPaletteEditor
-      v-if="activePalette === 'error'"
-      label="Error (red)" css-family="red"
-      :base-color="errorColor"
-      :steps="PALETTE_STEPS.error"
-      :model-value="paletteOverrides.error"
-      @update:model-value="paletteOverrides.error = $event"
-      @close="activePalette = null"
-    />
-    <CoarPaletteEditor
-      v-if="activePalette === 'success'"
-      label="Success (green)" css-family="green"
-      :base-color="success"
-      :steps="PALETTE_STEPS.success"
-      :model-value="paletteOverrides.success"
-      @update:model-value="paletteOverrides.success = $event"
-      @close="activePalette = null"
-    />
-    <CoarPaletteEditor
-      v-if="activePalette === 'warning'"
-      label="Warning (amber)" css-family="amber"
-      :base-color="warning"
-      :steps="PALETTE_STEPS.warning"
-      :model-value="paletteOverrides.warning"
-      @update:model-value="paletteOverrides.warning = $event"
-      @close="activePalette = null"
-    />
-    <CoarPaletteEditor
-      v-if="activePalette === 'info'"
-      label="Info (slate)" css-family="slate"
-      :base-color="info"
-      :steps="PALETTE_STEPS.info"
-      :model-value="paletteOverrides.info"
-      @update:model-value="paletteOverrides.info = $event"
-      @close="activePalette = null"
-    />
+    <!-- Palette editor modals -->
+    <CoarPaletteEditor v-if="activePalette === 'accent'" label="Accent" css-family="accent" :base-color="accent" :steps="PALETTE_STEPS.accent" :model-value="paletteOverrides.accent" @update:model-value="paletteOverrides.accent = $event" @close="activePalette = null" />
+    <CoarPaletteEditor v-if="activePalette === 'error'" label="Error (red)" css-family="red" :base-color="errorColor" :steps="PALETTE_STEPS.error" :model-value="paletteOverrides.error" @update:model-value="paletteOverrides.error = $event" @close="activePalette = null" />
+    <CoarPaletteEditor v-if="activePalette === 'success'" label="Success (green)" css-family="green" :base-color="success" :steps="PALETTE_STEPS.success" :model-value="paletteOverrides.success" @update:model-value="paletteOverrides.success = $event" @close="activePalette = null" />
+    <CoarPaletteEditor v-if="activePalette === 'warning'" label="Warning (amber)" css-family="amber" :base-color="warning" :steps="PALETTE_STEPS.warning" :model-value="paletteOverrides.warning" @update:model-value="paletteOverrides.warning = $event" @close="activePalette = null" />
+    <CoarPaletteEditor v-if="activePalette === 'info'" label="Info (slate)" css-family="slate" :base-color="info" :steps="PALETTE_STEPS.info" :model-value="paletteOverrides.info" @update:model-value="paletteOverrides.info = $event" @close="activePalette = null" />
   </Teleport>
 </template>
 
@@ -1045,256 +995,312 @@ const DENSITY_OPTIONS = [
 /* ── FAB ─────────────────────────────────────────── */
 .te-fab {
   position: fixed; bottom: 24px; right: 24px; z-index: 9999;
-  width: 48px; height: 48px; border-radius: 50%; border: none;
-  background: var(--coar-accent, #1183CD); color: #fff;
+  width: 44px; height: 44px; border-radius: 12px; border: none;
+  background: var(--coar-background-accent-primary, #1183CD); color: #fff;
   cursor: pointer; display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 4px 16px rgba(0,0,0,.25);
-  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 16px rgba(17,131,205,.40), 0 1px 3px rgba(0,0,0,.12);
+  transition: box-shadow 0.2s, background 0.15s;
 }
-.te-fab:hover    { transform: scale(1.08); box-shadow: 0 6px 20px rgba(0,0,0,.32); }
-.te-fab--open    { transform: rotate(15deg); }
+.te-fab:hover    { background: var(--coar-background-accent-hover, #0d6fad); box-shadow: 0 6px 20px rgba(17,131,205,.45); }
+.te-fab--open    { background: var(--coar-background-neutral-primary, #fff); color: var(--coar-text-neutral-primary, #333); box-shadow: 0 2px 8px rgba(0,0,0,.14); }
 
 /* ── Panel ───────────────────────────────────────── */
 .te-panel {
   position: fixed; top: 0; right: 0; bottom: 0; z-index: 9998;
-  width: 320px; display: flex; flex-direction: column;
-  background: var(--coar-surface-default, #fff);
-  border-left: 1px solid var(--coar-border-neutral-primary, #e0e0e0);
-  box-shadow: -4px 0 24px rgba(0,0,0,.12);
-  font-family: var(--coar-font-family-body, Poppins, sans-serif);
-  font-size: 13px;
+  width: 316px; display: flex; flex-direction: column;
+  background: var(--coar-background-neutral-primary, #fff);
+  border-left: 1px solid var(--coar-border-neutral-tertiary, #e8e8e8);
+  box-shadow: -2px 0 16px rgba(0,0,0,.08);
+  font-family: var(--coar-body-base-family, Poppins, sans-serif);
+  font-size: 13px; color: var(--coar-text-neutral-primary, #1a1a1a);
 }
-.te-slide-enter-active, .te-slide-leave-active { transition: transform 0.25s cubic-bezier(.4,0,.2,1); }
+.te-slide-enter-active, .te-slide-leave-active { transition: transform 0.22s cubic-bezier(.4,0,.2,1); }
 .te-slide-enter-from,  .te-slide-leave-to      { transform: translateX(100%); }
 
 /* ── Header ──────────────────────────────────────── */
 .te-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 16px; border-bottom: 1px solid var(--coar-border-neutral-primary, #e0e0e0);
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 12px 0 16px; height: 52px;
+  border-bottom: 1px solid var(--coar-border-neutral-tertiary, #e8e8e8);
   flex-shrink: 0;
+  background: var(--coar-background-neutral-primary, #fff);
 }
-.te-header-title { font-weight: 600; font-size: 14px; color: var(--coar-text-neutral-primary, #333); }
-.te-header-actions { display: flex; gap: 4px; }
+.te-header-icon { color: var(--coar-background-accent-primary, #1183CD); flex-shrink: 0; }
+.te-header-title {
+  flex: 1; font-weight: 600; font-size: 13px;
+  color: var(--coar-text-neutral-primary, #1a1a1a);
+}
+.te-header-actions { display: flex; align-items: center; gap: 2px; }
+
+/* ── Icon buttons (header + reset) ──────────────── */
+.te-icon-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  border: none; background: transparent; cursor: pointer;
+  color: var(--coar-text-neutral-tertiary, #8c8c8c);
+  border-radius: 6px; padding: 0; width: 28px; height: 28px;
+  font-size: 12px; font-weight: 500;
+  transition: background 0.12s, color 0.12s;
+}
+.te-icon-btn:hover { background: var(--coar-background-neutral-secondary, #f5f5f5); color: var(--coar-text-neutral-primary, #1a1a1a); }
+.te-icon-btn--labeled { width: auto; padding: 0 8px; color: var(--coar-text-neutral-secondary, #595959); }
+.te-icon-btn--reset { width: 22px; height: 22px; flex-shrink: 0; color: var(--coar-border-neutral-tertiary, #ccc); }
+.te-icon-btn--reset:disabled { cursor: default; }
+.te-icon-btn--reset:not(:disabled):hover { background: var(--coar-background-neutral-secondary, #f0f0f0); color: var(--coar-text-neutral-secondary, #555); }
+.te-icon-btn--changed { color: var(--coar-background-accent-primary, #1183CD) !important; }
 
 /* ── Tabs ────────────────────────────────────────── */
 .te-tabs {
   display: flex; flex-shrink: 0;
-  border-bottom: 1px solid var(--coar-border-neutral-primary, #e0e0e0);
-  overflow-x: auto; scrollbar-width: thin;
-  scrollbar-color: var(--coar-border-neutral-primary, #e0e0e0) transparent;
+  border-bottom: 1px solid var(--coar-border-neutral-tertiary, #e8e8e8);
+  overflow-x: auto; scrollbar-width: none;
 }
-.te-tabs::-webkit-scrollbar { height: 3px; }
-.te-tabs::-webkit-scrollbar-thumb { background: var(--coar-border-neutral-primary, #e0e0e0); border-radius: 2px; }
-.te-tabs::-webkit-scrollbar-track { background: transparent; }
+.te-tabs::-webkit-scrollbar { display: none; }
 .te-tab {
-  flex-shrink: 0; padding: 8px 8px; border: none; background: transparent;
+  flex-shrink: 0; padding: 0 10px; height: 38px; border: none; background: transparent;
   font-size: 12px; font-weight: 500; cursor: pointer;
-  color: var(--coar-text-neutral-secondary, #666);
+  color: var(--coar-text-neutral-secondary, #595959);
   border-bottom: 2px solid transparent; margin-bottom: -1px;
   transition: color 0.15s, border-color 0.15s;
-  white-space: nowrap;
+  white-space: nowrap; font-family: inherit;
 }
-.te-tab:hover    { color: var(--coar-text-neutral-primary, #333); }
-.te-tab--active  { color: var(--coar-accent, #1183CD); border-bottom-color: var(--coar-accent, #1183CD); font-weight: 600; }
+.te-tab:hover    { color: var(--coar-text-neutral-primary, #1a1a1a); }
+.te-tab--active  { color: var(--coar-background-accent-primary, #1183CD); border-bottom-color: var(--coar-background-accent-primary, #1183CD); font-weight: 600; }
 
 /* ── Body ────────────────────────────────────────── */
 .te-body { flex: 1; overflow-y: auto; }
 
 /* ── Section ─────────────────────────────────────── */
-.te-section { padding: 14px 16px; border-bottom: 1px solid var(--coar-border-neutral-primary, #e0e0e0); }
+.te-section {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--coar-border-neutral-tertiary, #e8e8e8);
+}
 .te-section:last-child { border-bottom: none; }
 .te-section-label {
   display: flex; align-items: center; gap: 6px;
-  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em;
-  color: var(--coar-text-neutral-tertiary, #888); margin-bottom: 10px;
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--coar-text-neutral-tertiary, #8c8c8c); margin-bottom: 10px;
 }
-.te-section-badge {
+.te-badge {
   text-transform: none; letter-spacing: 0; font-weight: 500; font-size: 10px;
   background: var(--coar-background-neutral-secondary, #f0f0f0);
-  color: var(--coar-text-neutral-secondary, #555);
-  padding: 1px 6px; border-radius: 99px;
+  color: var(--coar-text-neutral-secondary, #595959);
+  padding: 1px 7px; border-radius: 99px;
 }
 
 /* ── Presets ─────────────────────────────────────── */
-.te-preset-grid { display: flex; flex-direction: column; gap: 8px; }
+.te-preset-grid { display: flex; flex-direction: column; gap: 6px; }
 .te-preset-card {
-  display: flex; flex-direction: column; gap: 3px; text-align: left;
-  padding: 10px 12px; border-radius: 6px; border: 1px solid var(--coar-border-neutral-primary, #e0e0e0);
+  display: flex; flex-direction: column; gap: 2px; text-align: left;
+  padding: 10px 12px; border-radius: 8px;
+  border: 1px solid var(--coar-border-neutral-tertiary, #e8e8e8);
   background: var(--coar-background-neutral-secondary, #fafafa);
   cursor: pointer; transition: border-color 0.15s, background 0.15s;
+  font-family: inherit;
 }
-.te-preset-card:hover { border-color: var(--coar-accent, #1183CD); background: var(--coar-background-accent-subtle, #e8f1fb); }
-.te-preset-name { font-size: 13px; font-weight: 600; color: var(--coar-text-neutral-primary, #333); }
-.te-preset-desc { font-size: 11px; color: var(--coar-text-neutral-tertiary, #888); }
+.te-preset-card:hover {
+  border-color: var(--coar-background-accent-primary, #1183CD);
+  background: color-mix(in srgb, var(--coar-background-accent-primary, #1183CD) 6%, transparent);
+}
+.te-preset-name { font-size: 13px; font-weight: 600; color: var(--coar-text-neutral-primary, #1a1a1a); }
+.te-preset-desc { font-size: 11px; color: var(--coar-text-neutral-tertiary, #8c8c8c); }
 
-/* ── Mode toggle ─────────────────────────────────── */
-.te-mode-toggle {
-  display: flex; border: 1px solid var(--coar-border-neutral-primary, #e0e0e0);
-  border-radius: 6px; overflow: hidden;
+/* ── Segmented control ───────────────────────────── */
+.te-seg {
+  display: flex;
+  border: 1px solid var(--coar-border-neutral-tertiary, #e0e0e0);
+  border-radius: 8px; overflow: hidden; gap: 0;
+  background: var(--coar-background-neutral-secondary, #f5f5f5);
+  padding: 3px;
 }
-.te-mode-btn {
-  flex: 1; border: none; background: transparent; padding: 6px 0;
-  font-size: 13px; cursor: pointer; color: var(--coar-text-neutral-secondary, #666);
-  transition: background 0.15s, color 0.15s;
+.te-seg--sm { border-radius: 6px; padding: 2px; }
+.te-seg-btn {
+  flex: 1; border: none;
+  background: transparent;
+  padding: 5px 10px; font-size: 12px; font-weight: 500; cursor: pointer;
+  color: var(--coar-text-neutral-secondary, #595959);
+  border-radius: 5px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  transition: background 0.12s, color 0.12s;
+  font-family: inherit;
 }
-.te-mode-btn.active { background: var(--coar-accent, #1183CD); color: #fff; font-weight: 500; }
+.te-seg--sm .te-seg-btn { padding: 3px 10px; font-size: 11px; }
+.te-seg-btn:hover { color: var(--coar-text-neutral-primary, #1a1a1a); }
+.te-seg-btn--active {
+  background: var(--coar-background-neutral-primary, #fff);
+  color: var(--coar-text-neutral-primary, #1a1a1a);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0,0,0,.10);
+}
 
 /* ── Color rows ──────────────────────────────────── */
-.te-color-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.te-color-row { display: flex; align-items: center; gap: 9px; margin-bottom: 7px; }
 .te-color-row:last-child { margin-bottom: 0; }
 .te-color-swatch {
-  width: 28px; height: 28px; border-radius: 6px;
-  border: 2px solid var(--coar-border-neutral-primary, #e0e0e0);
+  width: 26px; height: 26px; border-radius: 6px;
+  border: 1px solid var(--coar-border-neutral-tertiary, #e0e0e0);
   padding: 0; cursor: pointer; flex-shrink: 0; overflow: hidden;
+  outline: none;
 }
 .te-color-swatch::-webkit-color-swatch-wrapper { padding: 0; }
-.te-color-swatch::-webkit-color-swatch         { border: none; border-radius: 4px; }
-.te-color-name  { flex: 1; color: var(--coar-text-neutral-primary, #333); }
-.te-color-value { font-size: 11px; color: var(--coar-text-neutral-tertiary, #888); font-family: ui-monospace, monospace; }
+.te-color-swatch::-webkit-color-swatch { border: none; }
+.te-color-name { flex: 1; font-size: 13px; color: var(--coar-text-neutral-primary, #1a1a1a); }
+.te-color-hex {
+  font-size: 10px; font-family: ui-monospace, monospace;
+  color: var(--coar-text-neutral-tertiary, #8c8c8c);
+  background: var(--coar-background-neutral-secondary, #f5f5f5);
+  padding: 1px 5px; border-radius: 3px;
+}
 
 /* ── Palette button ──────────────────────────────── */
 .te-palette-btn {
-  width: 22px; height: 22px; border: 1px solid var(--coar-border-neutral-primary, #e0e0e0);
-  background: transparent; border-radius: 4px; font-size: 13px;
+  width: 26px; height: 26px;
+  border: 1px solid var(--coar-border-neutral-tertiary, #e0e0e0);
+  background: var(--coar-background-neutral-primary, #fff);
+  border-radius: 6px;
   color: var(--coar-text-neutral-tertiary, #bbb); cursor: pointer; padding: 0; flex-shrink: 0;
   display: inline-flex; align-items: center; justify-content: center;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
 }
-.te-palette-btn:hover { color: var(--coar-accent, #1183CD); border-color: var(--coar-accent, #1183CD); }
+.te-palette-btn:hover {
+  color: var(--coar-background-accent-primary, #1183CD);
+  border-color: var(--coar-background-accent-primary, #1183CD);
+}
 .te-palette-btn--active {
-  color: var(--coar-accent, #1183CD); border-color: var(--coar-accent, #1183CD);
-  background: var(--coar-background-accent-subtle, #e8f1fb);
+  color: var(--coar-background-accent-primary, #1183CD);
+  border-color: var(--coar-background-accent-primary, #1183CD);
+  background: color-mix(in srgb, var(--coar-background-accent-primary, #1183CD) 8%, transparent);
 }
 
+/* ── Code block (formula display) ───────────────── */
+.te-codeblock {
+  padding: 8px 10px; border-radius: 6px; margin-bottom: 10px;
+  background: var(--coar-background-neutral-secondary, #f5f5f5);
+  font-family: ui-monospace, monospace; font-size: 10.5px;
+  color: var(--coar-text-neutral-secondary, #595959); line-height: 1.5;
+}
+.te-codeblock em { font-style: normal; color: var(--coar-background-accent-primary, #1183CD); font-weight: 600; }
+
 /* ── Radius rows ─────────────────────────────────── */
-.te-radius-row { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+.te-radius-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .te-radius-row:last-child { margin-bottom: 0; }
-.te-radius-label { font-size: 12px; color: var(--coar-text-neutral-secondary, #555); font-weight: 500; }
+.te-radius-label { width: 56px; flex-shrink: 0; font-size: 12px; color: var(--coar-text-neutral-secondary, #595959); }
 
 /* ── Chip group ──────────────────────────────────── */
 .te-chip-group { display: flex; flex-wrap: wrap; gap: 4px; }
 .te-chip {
-  padding: 3px 8px; border-radius: 4px; border: 1px solid var(--coar-border-neutral-primary, #e0e0e0);
-  background: transparent; font-size: 11px; cursor: pointer;
-  color: var(--coar-text-neutral-secondary, #666);
+  padding: 3px 9px; border-radius: 5px;
+  border: 1px solid var(--coar-border-neutral-tertiary, #e0e0e0);
+  background: var(--coar-background-neutral-primary, #fff);
+  font-size: 11px; cursor: pointer; font-family: inherit;
+  color: var(--coar-text-neutral-secondary, #595959);
   transition: background 0.12s, border-color 0.12s, color 0.12s;
 }
-.te-chip:hover { border-color: var(--coar-accent, #1183CD); color: var(--coar-accent, #1183CD); }
+.te-chip:hover {
+  border-color: var(--coar-background-accent-primary, #1183CD);
+  color: var(--coar-background-accent-primary, #1183CD);
+}
 .te-chip.active {
-  background: var(--coar-accent, #1183CD); border-color: var(--coar-accent, #1183CD);
+  background: var(--coar-background-accent-primary, #1183CD);
+  border-color: var(--coar-background-accent-primary, #1183CD);
   color: #fff; font-weight: 500;
 }
 
 /* ── Typography ──────────────────────────────────── */
 .te-font-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-.te-font-label { width: 36px; flex-shrink: 0; font-size: 11px; color: var(--coar-text-neutral-tertiary, #888); }
+.te-font-label { width: 36px; flex-shrink: 0; font-size: 12px; color: var(--coar-text-neutral-secondary, #595959); }
 .te-select {
-  flex: 1; padding: 5px 8px;
-  border: 1px solid var(--coar-border-neutral-primary, #e0e0e0);
-  border-radius: 5px; background: var(--coar-surface-default, #fff);
-  color: var(--coar-text-neutral-primary, #333); font-size: 13px; cursor: pointer; outline: none;
+  flex: 1; padding: 6px 8px; appearance: auto;
+  border: 1px solid var(--coar-border-neutral-tertiary, #e0e0e0);
+  border-radius: 6px;
+  background: var(--coar-background-neutral-primary, #fff);
+  color: var(--coar-text-neutral-primary, #1a1a1a); font-size: 12px; cursor: pointer;
+  outline: none; font-family: inherit;
 }
-.te-select:focus { border-color: var(--coar-accent, #1183CD); }
-.te-font-preview { margin: 8px 0 0; font-size: 12px; color: var(--coar-text-neutral-secondary, #555); line-height: 1.5; }
-.te-font-preview--title { font-size: 16px; font-weight: 600; margin-top: 6px; }
+.te-select:focus { border-color: var(--coar-background-accent-primary, #1183CD); outline: none; }
+.te-font-preview { margin: 10px 0 0; font-size: 12px; color: var(--coar-text-neutral-secondary, #595959); line-height: 1.5; }
+.te-font-preview--title { font-size: 15px; font-weight: 700; margin-top: 4px; color: var(--coar-text-neutral-primary, #1a1a1a); }
 
-/* ── Radius scale rows ───────────────────────────── */
+/* ── Scale rows (sliders) ────────────────────────── */
 .te-scale-row {
-  display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+  display: flex; align-items: center; gap: 8px; margin-bottom: 5px;
 }
 .te-scale-row:last-child { margin-bottom: 0; }
 .te-scale-name {
-  width: 28px; flex-shrink: 0;
-  font-size: 11px; font-weight: 600; color: var(--coar-text-neutral-tertiary, #888);
-  text-transform: uppercase; letter-spacing: .04em;
+  width: 26px; flex-shrink: 0;
+  font-size: 11px; font-weight: 600; color: var(--coar-text-neutral-tertiary, #8c8c8c);
+  text-transform: uppercase; letter-spacing: .03em;
 }
 .te-scale-val {
-  width: 32px; flex-shrink: 0; text-align: right;
-  font-size: 11px; font-family: ui-monospace, monospace;
-  color: var(--coar-text-neutral-secondary, #666);
+  width: 34px; flex-shrink: 0; text-align: right;
+  font-size: 10px; font-family: ui-monospace, monospace;
+  color: var(--coar-text-neutral-secondary, #595959);
 }
-.te-slider--scale { accent-color: var(--coar-accent, #1183CD); }
-
-/* ── Reset button ────────────────────────────────── */
-.te-reset-btn {
-  width: 20px; height: 20px; border: none; background: transparent;
-  color: var(--coar-border-neutral-primary, #d0d0d0);
-  font-size: 13px; cursor: pointer; border-radius: 3px; padding: 0;
-  display: inline-flex; align-items: center; justify-content: center;
-  flex-shrink: 0; line-height: 1; transition: color 0.15s, background 0.15s;
+.te-slider {
+  flex: 1; accent-color: var(--coar-background-accent-primary, #1183CD);
+  cursor: pointer; height: 16px; border: none; background: transparent; outline: none;
 }
-.te-reset-btn:hover { color: var(--coar-text-neutral-primary, #333); background: var(--coar-background-neutral-secondary, #f0f0f0); }
-.te-reset-btn--changed { color: var(--coar-accent, #1183CD); }
-.te-reset-btn--changed:hover { color: var(--coar-text-neutral-primary, #333); }
-
-/* ── Mode pill (Formula/Custom toggle) ───────────── */
-.te-mode-pill {
-  margin-left: auto; padding: 2px 8px; border-radius: 99px; border: 1px solid currentColor;
-  background: transparent; font-size: 10px; font-weight: 500; cursor: pointer;
-  color: var(--coar-text-neutral-tertiary, #999); text-transform: uppercase; letter-spacing: .04em;
-  transition: color 0.15s, background 0.15s, border-color 0.15s;
-}
-.te-mode-pill:hover { color: var(--coar-accent, #1183CD); border-color: var(--coar-accent, #1183CD); }
-.te-mode-pill--active { color: var(--coar-accent, #1183CD); border-color: var(--coar-accent, #1183CD); background: var(--coar-background-accent-subtle, #e8f1fb); }
-
-/* ── Formula hint ────────────────────────────────── */
-.te-formula-hint {
-  margin: 0 0 8px; font-size: 11px; color: var(--coar-text-neutral-tertiary, #999);
-  background: var(--coar-background-neutral-secondary, #f5f5f5);
-  border-radius: 4px; padding: 4px 8px;
-}
-.te-formula-hint code { font-family: ui-monospace, monospace; font-size: 10px; color: var(--coar-text-neutral-secondary, #666); }
 
 /* ── Advanced toggle ─────────────────────────────── */
 .te-advanced-toggle {
   display: flex; align-items: center; justify-content: space-between;
   width: 100%; padding: 10px 16px; border: none;
-  background: var(--coar-background-neutral-secondary, #f5f5f5);
-  color: var(--coar-text-neutral-secondary, #666);
-  font-size: 12px; font-weight: 500; cursor: pointer;
-  border-top: 1px solid var(--coar-border-neutral-primary, #e0e0e0);
-  border-bottom: 1px solid var(--coar-border-neutral-primary, #e0e0e0);
+  background: var(--coar-background-neutral-secondary, #f8f8f8);
+  color: var(--coar-text-neutral-secondary, #595959);
+  font-size: 12px; font-weight: 500; cursor: pointer; font-family: inherit;
+  border-top: 1px solid var(--coar-border-neutral-tertiary, #e8e8e8);
+  border-bottom: 1px solid var(--coar-border-neutral-tertiary, #e8e8e8);
+  transition: color 0.12s;
 }
-.te-advanced-toggle:hover { color: var(--coar-text-neutral-primary, #333); }
-.te-advanced-arrow { font-size: 16px; transition: transform 0.2s; display: inline-block; }
-.te-advanced-arrow--open { transform: rotate(90deg); }
+.te-advanced-toggle:hover { color: var(--coar-text-neutral-primary, #1a1a1a); }
+.te-adv-arrow { flex-shrink: 0; transition: transform 0.2s; }
+.te-adv-arrow--open { transform: rotate(90deg); }
 
 /* ── Hint text ───────────────────────────────────── */
 .te-hint {
-  margin: 8px 0 0; font-size: 11px; color: var(--coar-text-neutral-tertiary, #999);
-  line-height: 1.4;
+  font-size: 11px; color: var(--coar-text-neutral-tertiary, #8c8c8c);
+  line-height: 1.45; margin: 0;
 }
 .te-hint code { font-family: ui-monospace, monospace; font-size: 10px; }
 
-/* ── Density chip group ──────────────────────────── */
-.te-chip-group--lg .te-chip { padding: 6px 16px; font-size: 12px; }
-
-/* ── Motion ──────────────────────────────────────── */
-.te-slider-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-.te-slider-end { font-size: 14px; flex-shrink: 0; }
-.te-slider { flex: 1; accent-color: var(--coar-accent, #1183CD); cursor: pointer; }
-.te-motion-hint { font-size: 11px; color: var(--coar-text-neutral-tertiary, #999); line-height: 1.4; margin: 0; }
-.te-motion-hint code { font-family: ui-monospace, monospace; font-size: 10px; }
+/* ── Semantic rows ───────────────────────────────── */
+.te-sem-row {
+  display: flex; align-items: center; gap: 7px; margin-bottom: 6px;
+}
+.te-sem-row:last-child { margin-bottom: 0; }
+.te-sem-swatch {
+  width: 18px; height: 18px; border-radius: 4px; flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.08);
+}
+.te-sem-label {
+  flex: 1; font-size: 12px; color: var(--coar-text-neutral-primary, #1a1a1a);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.te-sem-select {
+  padding: 3px 4px; font-size: 11px; font-family: inherit; cursor: pointer;
+  border: 1px solid var(--coar-border-neutral-tertiary, #e0e0e0);
+  border-radius: 5px; background: var(--coar-background-neutral-primary, #fff);
+  color: var(--coar-text-neutral-primary, #1a1a1a);
+  outline: none; appearance: auto;
+}
+.te-sem-select:focus { border-color: var(--coar-background-accent-primary, #1183CD); }
+.te-sem-select--step { width: 52px; }
 
 /* ── Footer ──────────────────────────────────────── */
 .te-footer {
-  padding: 14px 16px; border-top: 1px solid var(--coar-border-neutral-primary, #e0e0e0);
+  padding: 14px 16px;
+  border-top: 1px solid var(--coar-border-neutral-tertiary, #e8e8e8);
   flex-shrink: 0;
+  background: var(--coar-background-neutral-primary, #fff);
 }
-.te-footer-hint { margin: 8px 0 0; font-size: 11px; color: var(--coar-text-neutral-tertiary, #999); line-height: 1.4; }
+.te-download-btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  width: 100%; padding: 9px 16px; border: none; border-radius: 8px;
+  background: var(--coar-background-accent-primary, #1183CD); color: #fff;
+  font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+  transition: background 0.15s;
+}
+.te-download-btn:hover:not(:disabled) { background: var(--coar-background-accent-hover, #0d6fad); }
+.te-download-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.te-footer-hint { margin: 8px 0 0; font-size: 11px; color: var(--coar-text-neutral-tertiary, #8c8c8c); line-height: 1.4; }
 .te-footer-hint code { font-family: ui-monospace, monospace; font-size: 10px; }
-
-/* ── Shared buttons ──────────────────────────────── */
-.te-btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  border: none; border-radius: 6px; font-size: 12px; font-weight: 500;
-  cursor: pointer; transition: background 0.15s; padding: 5px 10px;
-}
-.te-btn--sm      { padding: 3px 8px; font-size: 11px; }
-.te-btn--full    { width: 100%; padding: 9px; font-size: 13px; }
-.te-btn--ghost   { background: transparent; color: var(--coar-text-neutral-secondary, #666); }
-.te-btn--ghost:hover { background: var(--coar-background-neutral-secondary, #f0f0f0); }
-.te-btn--primary { background: var(--coar-accent, #1183CD); color: #fff; }
-.te-btn--primary:hover:not(:disabled) { filter: brightness(0.92); }
-.te-btn--primary:disabled { opacity: 0.4; cursor: not-allowed; }
 </style>
