@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import CoarPaletteEditor from './CoarPaletteEditor.vue';
+import CoarButton from '../button/CoarButton.vue';
 import CoarSelect from '../select/CoarSelect.vue';
 import CoarSwitch from '../switch/CoarSwitch.vue';
 import CoarSegmentedControl from '../segmented-control/CoarSegmentedControl.vue';
@@ -33,10 +34,10 @@ const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
       </svg>
       <span class="te-header-title">Theme Editor</span>
       <div class="te-header-actions">
-        <button v-if="hasChanges" class="te-icon-btn te-icon-btn--labeled" @click="reset" title="Reset all changes">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        <CoarButton v-if="hasChanges" variant="ghost" size="xs" @click="reset" title="Reset all changes">
+          <template #prefix><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></template>
           Reset
-        </button>
+        </CoarButton>
         <button class="te-icon-btn" @click="props.onClose?.()" title="Close">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
         </button>
@@ -469,10 +470,10 @@ const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
           aria-label="Theme class name"
         />
       </div>
-      <button class="te-download-btn" :disabled="!hasChanges" @click="downloadCSS">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+      <CoarButton variant="primary" size="m" full-width :disabled="!hasChanges" @click="downloadCSS">
+        <template #prefix><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></template>
         Download CSS
-      </button>
+      </CoarButton>
       <p class="te-footer-hint">Apply with <code>&lt;html class="coar-theme--{{ themeName || 'custom' }}"&gt;</code></p>
     </footer>
 
@@ -521,7 +522,6 @@ const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
   transition: background 0.12s, color 0.12s;
 }
 .te-icon-btn:hover { background: var(--coar-background-neutral-secondary, #f5f5f5); color: var(--coar-text-neutral-primary, #1a1a1a); }
-.te-icon-btn--labeled { width: auto; padding: 0 8px; color: var(--coar-text-neutral-secondary, #595959); }
 .te-icon-btn--reset { width: 22px; height: 22px; flex-shrink: 0; color: var(--coar-border-neutral-tertiary, #ccc); }
 .te-icon-btn--reset:disabled { cursor: default; }
 .te-icon-btn--reset:not(:disabled):hover { background: var(--coar-background-neutral-secondary, #f0f0f0); color: var(--coar-text-neutral-secondary, #555); }
@@ -598,7 +598,7 @@ const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
 .te-preset-grid { display: flex; flex-direction: column; gap: 6px; }
 .te-preset-card {
   display: flex; flex-direction: column; gap: 2px; text-align: left;
-  padding: 10px 12px; border-radius: 8px;
+  padding: 10px 12px; border-radius: var(--coar-card-radius, 6px);
   border: 1px solid var(--coar-border-neutral-tertiary, #e8e8e8);
   background: var(--coar-background-neutral-secondary, #fafafa);
   cursor: pointer; transition: border-color 0.15s, background 0.15s;
@@ -716,15 +716,6 @@ const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
   flex-shrink: 0;
   background: var(--coar-background-neutral-primary, #fff);
 }
-.te-download-btn {
-  display: flex; align-items: center; justify-content: center; gap: 6px;
-  width: 100%; padding: 9px 16px; border: none; border-radius: 8px;
-  background: var(--coar-background-accent-primary, #1183CD); color: #fff;
-  font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
-  transition: background 0.15s;
-}
-.te-download-btn:hover:not(:disabled) { background: var(--coar-background-accent-hover, #0d6fad); }
-.te-download-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .te-footer-hint { margin: 8px 0 0; font-size: 11px; color: var(--coar-text-neutral-tertiary, #8c8c8c); line-height: 1.4; }
 .te-footer-hint code { font-family: ui-monospace, monospace; font-size: 10px; }
 </style>
