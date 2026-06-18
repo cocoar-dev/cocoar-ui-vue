@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, computed, reactive } from 'vue';
+import { ref, watch, computed, reactive, onUnmounted } from 'vue';
 import CoarPaletteEditor, { type StepDef, type StepOverride } from './CoarPaletteEditor.vue';
 
 const props = withDefaults(defineProps<{ hideDarkToggle?: boolean }>(), {
@@ -7,8 +7,9 @@ const props = withDefaults(defineProps<{ hideDarkToggle?: boolean }>(), {
 });
 
 // ── State ────────────────────────────────────────────────
-const isOpen  = ref(false);
-const isDark  = ref(false);
+const isOpen     = ref(false);
+const isDark     = ref(false);
+const themeName  = ref('custom');
 const activeTab = ref<'presets' | 'brand' | 'semantic' | 'corners' | 'type' | 'spacing' | 'depth' | 'motion'>('presets');
 
 // ── Defaults ─────────────────────────────────────────────
@@ -215,83 +216,86 @@ const motionLabel = (v: number) =>
 
 // ── Apply to DOM ─────────────────────────────────────────
 function applyTokens() {
-  const r = document.documentElement;
-  // Brand
-  r.style.setProperty('--coar-accent',  accent.value);
-  r.style.setProperty('--coar-success', success.value);
-  r.style.setProperty('--coar-error',   errorColor.value);
-  r.style.setProperty('--coar-warning', warning.value);
-  r.style.setProperty('--coar-info',    info.value);
-  // Semantic layer overrides — clear all first, then re-apply
-  for (const group of SEMANTIC_GROUPS) {
-    for (const entry of group.entries) {
-      if (semanticOverrides[entry.token]) {
-        const prefix = SEMANTIC_PALETTE_CSS[semanticOverrides[entry.token].palette];
-        r.style.setProperty(entry.token, `var(${prefix}-${semanticOverrides[entry.token].step})`);
-      } else {
-        r.style.removeProperty(entry.token);
-      }
-    }
-  }
-  // Density
-  r.style.setProperty('--coar-component-density', String(density.value));
-  // Radius scale (primitives)
-  r.style.setProperty('--coar-radius-xxs', `${radiusXxs.value}px`);
-  r.style.setProperty('--coar-radius-xs',  `${radiusXs.value}px`);
-  r.style.setProperty('--coar-radius-s',   `${radiusS.value}px`);
-  r.style.setProperty('--coar-radius-m',   `${radiusM.value}px`);
-  r.style.setProperty('--coar-radius-l',   `${radiusL.value}px`);
-  r.style.setProperty('--coar-radius-xl',  `${radiusXl.value}px`);
-  // Radius component overrides (fine-tune)
-  r.style.setProperty('--coar-button-radius',    buttonRadius.value);
-  r.style.setProperty('--coar-input-radius',     inputRadius.value);
-  r.style.setProperty('--coar-tag-radius',       tagRadius.value);
-  r.style.setProperty('--coar-badge-radius',     badgeRadius.value);
-  r.style.setProperty('--coar-card-radius',      cardRadius.value);
-  r.style.setProperty('--coar-menu-radius',      menuRadius.value);
-  r.style.setProperty('--coar-popover-radius',   popoverRadius.value);
-  r.style.setProperty('--coar-dropdown-radius',  dropdownRadius.value);
-  r.style.setProperty('--coar-dialog-border-radius', dialogRadius.value);
-  r.style.setProperty('--coar-toast-border-radius',  toastRadius.value);
-  // Shadow
-  r.style.setProperty('--coar-card-shadow',      cardShadow.value);
-  r.style.setProperty('--coar-menu-shadow',      menuShadow.value);
-  r.style.setProperty('--coar-popover-shadow',   popoverShadow.value);
-  r.style.setProperty('--coar-dropdown-shadow',  dropdownShadow.value);
-  r.style.setProperty('--coar-dialog-shadow',    dialogShadow.value);
-  r.style.setProperty('--coar-toast-shadow',     toastShadow.value);
-  // Typography
-  r.style.setProperty('--coar-font-family-body',  `${fontBody.value}, ui-sans-serif, system-ui, sans-serif`);
-  r.style.setProperty('--coar-font-family-title', `${fontTitle.value}, ui-sans-serif, system-ui, sans-serif`);
-  // Motion
+  const lines: string[] = [];
+  const add = (token: string, val: string) => lines.push(`  ${token}: ${val};`);
+
+  // Brand — always (presets set non-default values)
+  add('--coar-accent',  accent.value);
+  add('--coar-success', success.value);
+  add('--coar-error',   errorColor.value);
+  add('--coar-warning', warning.value);
+  add('--coar-info',    info.value);
+  // Radius scale — always
+  add('--coar-radius-xxs', `${radiusXxs.value}px`);
+  add('--coar-radius-xs',  `${radiusXs.value}px`);
+  add('--coar-radius-s',   `${radiusS.value}px`);
+  add('--coar-radius-m',   `${radiusM.value}px`);
+  add('--coar-radius-l',   `${radiusL.value}px`);
+  add('--coar-radius-xl',  `${radiusXl.value}px`);
+  // Component tokens — always (presets change these)
+  add('--coar-component-density',    String(density.value));
+  add('--coar-button-radius',        buttonRadius.value);
+  add('--coar-input-radius',         inputRadius.value);
+  add('--coar-tag-radius',           tagRadius.value);
+  add('--coar-badge-radius',         badgeRadius.value);
+  add('--coar-card-radius',          cardRadius.value);
+  add('--coar-menu-radius',          menuRadius.value);
+  add('--coar-popover-radius',       popoverRadius.value);
+  add('--coar-dropdown-radius',      dropdownRadius.value);
+  add('--coar-dialog-border-radius', dialogRadius.value);
+  add('--coar-toast-border-radius',  toastRadius.value);
+  add('--coar-card-shadow',          cardShadow.value);
+  add('--coar-menu-shadow',          menuShadow.value);
+  add('--coar-popover-shadow',       popoverShadow.value);
+  add('--coar-dropdown-shadow',      dropdownShadow.value);
+  add('--coar-dialog-shadow',        dialogShadow.value);
+  add('--coar-toast-shadow',         toastShadow.value);
+  add('--coar-font-family-body',  `${fontBody.value}, ui-sans-serif, system-ui, sans-serif`);
+  add('--coar-font-family-title', `${fontTitle.value}, ui-sans-serif, system-ui, sans-serif`);
   const s = motionScale.value;
   for (const [key, base] of Object.entries(BASE_DURATIONS)) {
-    r.style.setProperty(`--coar-duration-${key}`, `${Math.round(base * s)}ms`);
+    add(`--coar-duration-${key}`, `${Math.round(base * s)}ms`);
   }
-  // Dark mode
-  if (!props.hideDarkToggle) {
-    if (isDark.value) r.classList.add('dark-mode');
-    else              r.classList.remove('dark-mode');
-  }
-  // Palette step overrides
-  const baseColors: Record<PaletteKey, string> = {
-    accent: accent.value, error: errorColor.value,
-    success: success.value, warning: warning.value, info: info.value,
-  };
+  // Palette step overrides (only changed)
   for (const key of Object.keys(paletteOverrides) as PaletteKey[]) {
-    const prefix = PALETTE_CSS_TOKEN[key];
-    const base   = baseColors[key];
+    const prefix  = PALETTE_CSS_TOKEN[key];
+    const baseVar = PALETTE_BASE_VAR[key];
     for (const step of PALETTE_STEPS[key]) {
       if (step.defL === null) continue;
       const ov = paletteOverrides[key][step.step];
+      if (ov) add(`${prefix}-${step.step}`, `oklch(from var(${baseVar}) ${ov.l} ${ov.c} h)`);
+    }
+  }
+  // Semantic overrides (only changed)
+  for (const group of SEMANTIC_GROUPS) {
+    for (const entry of group.entries) {
+      const ov = semanticOverrides[entry.token];
       if (ov) {
-        r.style.setProperty(`${prefix}-${step.step}`, `oklch(from ${base} ${ov.l} ${ov.c} h)`);
-      } else {
-        r.style.removeProperty(`${prefix}-${step.step}`);
+        const prefix = SEMANTIC_PALETTE_CSS[ov.palette];
+        add(entry.token, `var(${prefix}-${ov.step})`);
       }
     }
   }
+  // Dark mode — separate class, not in .coar-theme-editor
+  if (!props.hideDarkToggle) {
+    if (isDark.value) document.documentElement.classList.add('dark-mode');
+    else              document.documentElement.classList.remove('dark-mode');
+  }
+  // Inject / update <style id="coar-theme-editor">
+  let tag = document.getElementById('coar-theme-editor') as HTMLStyleElement | null;
+  if (!tag) {
+    tag = document.createElement('style');
+    tag.id = 'coar-theme-editor';
+    document.head.appendChild(tag);
+  }
+  tag.textContent = `.coar-theme-editor {\n${lines.join('\n')}\n}`;
+  document.documentElement.classList.add('coar-theme-editor');
 }
+
+onUnmounted(() => {
+  document.getElementById('coar-theme-editor')?.remove();
+  document.documentElement.classList.remove('coar-theme-editor');
+});
 
 watch(
   [accent, success, errorColor, warning, info,
@@ -311,7 +315,6 @@ function reset() {
     isDark.value = false;
     document.documentElement.classList.remove('dark-mode');
   }
-  const r = document.documentElement;
   radiusXxs.value   = DEFAULTS.radiusXxs;
   radiusXs.value    = DEFAULTS.radiusXs;
   radiusS.value     = DEFAULTS.radiusS;
@@ -319,23 +322,8 @@ function reset() {
   radiusL.value     = DEFAULTS.radiusL;
   radiusXl.value    = DEFAULTS.radiusXl;
   density.value     = DEFAULTS.density;
-  for (const key of [
-    '--coar-accent','--coar-success','--coar-error','--coar-warning','--coar-info',
-    '--coar-radius-xxs','--coar-radius-xs','--coar-radius-s','--coar-radius-m','--coar-radius-l','--coar-radius-xl',
-    '--coar-component-density',
-    '--coar-button-radius','--coar-input-radius','--coar-tag-radius','--coar-badge-radius',
-    '--coar-card-radius','--coar-menu-radius','--coar-popover-radius','--coar-dropdown-radius',
-    '--coar-dialog-border-radius','--coar-toast-border-radius',
-    '--coar-card-shadow','--coar-menu-shadow','--coar-popover-shadow',
-    '--coar-dropdown-shadow','--coar-dialog-shadow','--coar-toast-shadow',
-    '--coar-font-family-body','--coar-font-family-title',
-    ...Object.keys(BASE_DURATIONS).map(k => `--coar-duration-${k}`),
-  ]) r.style.removeProperty(key);
   // Clear palette overrides
   for (const key of Object.keys(paletteOverrides) as PaletteKey[]) {
-    for (const step of PALETTE_STEPS[key]) {
-      if (step.defL !== null) r.style.removeProperty(`${PALETTE_CSS_TOKEN[key]}-${step.step}`);
-    }
     paletteOverrides[key] = {};
   }
   activePalette.value = null;
@@ -386,7 +374,9 @@ const hasChanges = computed(() =>
 
 // ── Download ──────────────────────────────────────────────
 function downloadCSS() {
-  const lines: string[] = [':root {'];
+  const name = themeName.value.trim().toLowerCase()
+    .replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'custom';
+  const lines: string[] = [`.coar-theme--${name} {`];
   const add = (token: string, val: string, def: string) => {
     if (val !== def) lines.push(`  ${token}: ${val};`);
   };
@@ -447,7 +437,7 @@ function downloadCSS() {
   const blob = new Blob([lines.join('\n')], { type: 'text/css' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'coar-theme.css';
+  a.download = `coar-theme--${name}.css`;
   a.click();
   URL.revokeObjectURL(a.href);
 }
@@ -972,11 +962,22 @@ const DENSITY_OPTIONS = [
 
         <!-- Footer -->
         <footer class="te-footer">
+          <div class="te-theme-name-row">
+            <span class="te-theme-name-prefix">.coar-theme--</span>
+            <input
+              v-model="themeName"
+              class="te-theme-name-input"
+              placeholder="custom"
+              maxlength="40"
+              spellcheck="false"
+              aria-label="Theme class name"
+            />
+          </div>
           <button class="te-download-btn" :disabled="!hasChanges" @click="downloadCSS">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-            Download coar-theme.css
+            Download CSS
           </button>
-          <p class="te-footer-hint">Import after <code>@cocoar/vue-ui/styles</code> in your app entry.</p>
+          <p class="te-footer-hint">Apply with <code>&lt;html class="coar-theme--{{ themeName || 'custom' }}"&gt;</code></p>
         </footer>
 
       </aside>
@@ -1286,6 +1287,38 @@ const DENSITY_OPTIONS = [
 .te-sem-select--step { width: 52px; }
 
 /* ── Footer ──────────────────────────────────────── */
+.te-theme-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: var(--coar-background-neutral-secondary, #f5f5f5);
+  border: 1px solid var(--coar-border-neutral-tertiary, #e0e0e0);
+  border-radius: 6px;
+  overflow: hidden;
+  font-size: 11px;
+  font-family: ui-monospace, monospace;
+  margin-bottom: 8px;
+}
+.te-theme-name-prefix {
+  padding: 5px 6px;
+  color: var(--coar-text-neutral-tertiary, #8c8c8c);
+  white-space: nowrap;
+  user-select: none;
+  border-right: 1px solid var(--coar-border-neutral-tertiary, #e0e0e0);
+  background: var(--coar-background-neutral-tertiary, #ebebeb);
+}
+.te-theme-name-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 5px 6px;
+  font-size: 11px;
+  font-family: ui-monospace, monospace;
+  color: var(--coar-text-neutral-primary, #1a1a1a);
+  min-width: 0;
+}
+.te-theme-name-input::placeholder { color: var(--coar-text-neutral-tertiary, #8c8c8c); }
 .te-footer {
   padding: 14px 16px;
   border-top: 1px solid var(--coar-border-neutral-tertiary, #e8e8e8);
