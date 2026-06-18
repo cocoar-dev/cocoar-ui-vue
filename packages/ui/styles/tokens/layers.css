@@ -10,8 +10,8 @@
 
 :root {
   /* Overlay hosts (menus, tooltips, dialogs, etc.) */
-  --coar-z-overlay: 10000;
+  --coar-z-overlay: 1000;
 
   /* Modal backdrop behind overlays */
-  --coar-z-overlay-backdrop: 9999;
+  --coar-z-overlay-backdrop: 999;
 }
