@@ -355,7 +355,7 @@ function onClear() {
 .coar-text-input-prefix {
   display: inline-flex;
   align-items: center;
-  padding-left: var(--coar-spacing-s);
+  padding-left: var(--coar-input-padding-x);
   color: var(--coar-icon-neutral-secondary);
   font-size: var(--coar-body-small-base-size);
   white-space: nowrap;
@@ -371,7 +371,7 @@ function onClear() {
 .coar-text-input-suffix {
   display: inline-flex;
   align-items: center;
-  padding-right: var(--coar-spacing-s);
+  padding-right: var(--coar-input-padding-x);
   color: var(--coar-icon-neutral-secondary);
   font-size: var(--coar-body-small-base-size);
   white-space: nowrap;
@@ -388,7 +388,7 @@ function onClear() {
   display: flex;
   align-items: center;
   gap: var(--coar-spacing-xs);
-  padding-right: var(--coar-spacing-s);
+  padding-right: var(--coar-input-padding-x);
   flex-shrink: 0;
 }
 
@@ -403,7 +403,7 @@ function onClear() {
   justify-content: center;
   width: auto;
   height: auto;
-  margin-right: var(--coar-spacing-s);
+  margin-right: var(--coar-input-padding-x);
   padding: 0;
   border: none;
   background: transparent;
@@ -441,7 +441,7 @@ function onClear() {
 .coar-text-input-clear--multiline {
   position: absolute;
   top: var(--coar-spacing-s);
-  right: var(--coar-spacing-s);
+  right: var(--coar-input-padding-x);
   margin-right: 0;
 }
 
