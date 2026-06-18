@@ -29,7 +29,10 @@
 @import './layers.css';
 @import './focus.css';
 
-/* 6. Shared Component Tokens */
+/* 6. Theme reset class */
+@import './theme-none.css';
+
+/* 7. Shared Component Tokens */
 @import './components-shared.css';
 @import './code-block.css';
 @import './menu.css';

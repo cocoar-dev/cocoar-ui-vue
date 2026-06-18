@@ -88,27 +88,51 @@ A single duration multiplier that scales all `--coar-duration-*` tokens proporti
 
 ## Exporting
 
-Click **Download coar-theme.css** to get a `:root { … }` block containing only the tokens you changed — nothing more. Drop it into your app after the Cocoar stylesheet:
+Type a class name into the name field at the bottom of the editor (default: `custom`), then click **Download CSS** to get a scoped block containing only the tokens you changed:
+
+```css
+/* coar-theme--myapp.css */
+.coar-theme--myapp {
+  --coar-accent: #7C3AED;
+  --coar-button-radius: var(--coar-radius-m);
+  --coar-input-radius: var(--coar-radius-m);
+}
+```
+
+Drop it into your app after the Cocoar stylesheet and apply the class to your root element:
 
 ```html
 <!-- index.html -->
-<link rel="stylesheet" href="@cocoar/vue-ui/styles" />
-<link rel="stylesheet" href="/coar-theme.css" />   <!-- your overrides -->
+<html class="coar-theme--myapp">
+<head>
+  <link rel="stylesheet" href="@cocoar/vue-ui/styles" />
+  <link rel="stylesheet" href="/coar-theme--myapp.css" />
+</head>
 ```
 
 Or import in your entry file:
 
 ```ts
 import '@cocoar/vue-ui/styles';
-import './coar-theme.css';
+import './coar-theme--myapp.css';
 ```
 
-The exported file is minimal — if you only changed the accent color and rounded the corners, that is all you will see:
+Because themes are classes, you can apply different themes to different subtrees:
 
-```css
-:root {
-  --coar-accent: #7C3AED;
-  --coar-button-radius: var(--coar-radius-m);
-  --coar-input-radius: var(--coar-radius-m);
-}
+```html
+<html class="coar-theme--myapp">
+  <!-- most of the app uses the custom theme -->
+
+  <div class="coar-theme--compact">
+    <!-- this section uses a separate theme -->
+  </div>
+
+  <div class="coar-theme-none">
+    <!-- this section always uses library defaults -->
+  </div>
+</html>
 ```
+
+### `.coar-theme-none`
+
+The library ships a built-in reset class. Apply `.coar-theme-none` to any element to restore all themeable tokens to their library defaults inside that subtree, regardless of what theme class is set on an ancestor. Useful for "always default" widgets like admin panels or embedded forms.
