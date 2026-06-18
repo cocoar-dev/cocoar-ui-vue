@@ -246,50 +246,53 @@ function applyTokens() {
   const lines: string[] = [];
   const add = (token: string, val: string) => lines.push(`  ${token}: ${val};`);
 
-  // Brand
-  add('--coar-accent',  accent.value);
-  add('--coar-success', success.value);
-  add('--coar-error',   errorColor.value);
-  add('--coar-warning', warning.value);
-  add('--coar-info',    info.value);
+  const D = DEFAULTS;
+  // Brand — only write if overridden from default
+  if (accent.value     !== D.accent)     add('--coar-accent',  accent.value);
+  if (success.value    !== D.success)    add('--coar-success', success.value);
+  if (errorColor.value !== D.error)      add('--coar-error',   errorColor.value);
+  if (warning.value    !== D.warning)    add('--coar-warning', warning.value);
+  if (info.value       !== D.info)       add('--coar-info',    info.value);
   // Radius scale
-  add('--coar-radius-xxs', `${radiusXxs.value}px`);
-  add('--coar-radius-xs',  `${radiusXs.value}px`);
-  add('--coar-radius-s',   `${radiusS.value}px`);
-  add('--coar-radius-m',   `${radiusM.value}px`);
-  add('--coar-radius-l',   `${radiusL.value}px`);
-  add('--coar-radius-xl',  `${radiusXl.value}px`);
+  if (radiusXxs.value !== D.radiusXxs) add('--coar-radius-xxs', `${radiusXxs.value}px`);
+  if (radiusXs.value  !== D.radiusXs)  add('--coar-radius-xs',  `${radiusXs.value}px`);
+  if (radiusS.value   !== D.radiusS)   add('--coar-radius-s',   `${radiusS.value}px`);
+  if (radiusM.value   !== D.radiusM)   add('--coar-radius-m',   `${radiusM.value}px`);
+  if (radiusL.value   !== D.radiusL)   add('--coar-radius-l',   `${radiusL.value}px`);
+  if (radiusXl.value  !== D.radiusXl)  add('--coar-radius-xl',  `${radiusXl.value}px`);
   // Spacing scale
-  add('--coar-spacing-xs',  `${spacingXs.value}px`);
-  add('--coar-spacing-s',   `${spacingS.value}px`);
-  add('--coar-spacing-m',   `${spacingM.value}px`);
-  add('--coar-spacing-l',   `${spacingL.value}px`);
-  add('--coar-spacing-xl',  `${spacingXl.value}px`);
-  add('--coar-spacing-xxl', `${spacingXxl.value}px`);
+  if (spacingXs.value  !== D.spacingXs)  add('--coar-spacing-xs',  `${spacingXs.value}px`);
+  if (spacingS.value   !== D.spacingS)   add('--coar-spacing-s',   `${spacingS.value}px`);
+  if (spacingM.value   !== D.spacingM)   add('--coar-spacing-m',   `${spacingM.value}px`);
+  if (spacingL.value   !== D.spacingL)   add('--coar-spacing-l',   `${spacingL.value}px`);
+  if (spacingXl.value  !== D.spacingXl)  add('--coar-spacing-xl',  `${spacingXl.value}px`);
+  if (spacingXxl.value !== D.spacingXxl) add('--coar-spacing-xxl', `${spacingXxl.value}px`);
   // Component tokens
-  add('--coar-component-density',    String(density.value));
-  if (inputPaddingXEnabled.value) add('--coar-input-padding-x', `${inputPaddingX.value}px`);
-  add('--coar-button-radius',        buttonRadius.value);
-  add('--coar-input-radius',         inputRadius.value);
-  add('--coar-tag-radius',           tagRadius.value);
-  add('--coar-badge-radius',         badgeRadius.value);
-  add('--coar-card-radius',          cardRadius.value);
-  add('--coar-menu-radius',          menuRadius.value);
-  add('--coar-popover-radius',       popoverRadius.value);
-  add('--coar-dropdown-radius',      dropdownRadius.value);
-  add('--coar-dialog-border-radius', dialogRadius.value);
-  add('--coar-toast-border-radius',  toastRadius.value);
-  add('--coar-card-shadow',          cardShadow.value);
-  add('--coar-menu-shadow',          menuShadow.value);
-  add('--coar-popover-shadow',       popoverShadow.value);
-  add('--coar-dropdown-shadow',      dropdownShadow.value);
-  add('--coar-dialog-shadow',        dialogShadow.value);
-  add('--coar-toast-shadow',         toastShadow.value);
-  add('--coar-font-family-body',  `${fontBody.value}, ui-sans-serif, system-ui, sans-serif`);
-  add('--coar-font-family-title', `${fontTitle.value}, ui-sans-serif, system-ui, sans-serif`);
-  const s = motionScale.value;
-  for (const [key, base] of Object.entries(BASE_DURATIONS)) {
-    add(`--coar-duration-${key}`, `${Math.round(base * s)}ms`);
+  if (density.value !== D.density) add('--coar-component-density', String(density.value));
+  if (inputPaddingXEnabled.value)  add('--coar-input-padding-x',   `${inputPaddingX.value}px`);
+  if (buttonRadius.value   !== D.buttonRadius)   add('--coar-button-radius',        buttonRadius.value);
+  if (inputRadius.value    !== D.inputRadius)    add('--coar-input-radius',         inputRadius.value);
+  if (tagRadius.value      !== D.tagRadius)      add('--coar-tag-radius',           tagRadius.value);
+  if (badgeRadius.value    !== D.badgeRadius)    add('--coar-badge-radius',         badgeRadius.value);
+  if (cardRadius.value     !== D.cardRadius)     add('--coar-card-radius',          cardRadius.value);
+  if (menuRadius.value     !== D.menuRadius)     add('--coar-menu-radius',          menuRadius.value);
+  if (popoverRadius.value  !== D.popoverRadius)  add('--coar-popover-radius',       popoverRadius.value);
+  if (dropdownRadius.value !== D.dropdownRadius) add('--coar-dropdown-radius',      dropdownRadius.value);
+  if (dialogRadius.value   !== D.dialogRadius)   add('--coar-dialog-border-radius', dialogRadius.value);
+  if (toastRadius.value    !== D.toastRadius)    add('--coar-toast-border-radius',  toastRadius.value);
+  if (cardShadow.value     !== D.cardShadow)     add('--coar-card-shadow',          cardShadow.value);
+  if (menuShadow.value     !== D.menuShadow)     add('--coar-menu-shadow',          menuShadow.value);
+  if (popoverShadow.value  !== D.popoverShadow)  add('--coar-popover-shadow',       popoverShadow.value);
+  if (dropdownShadow.value !== D.dropdownShadow) add('--coar-dropdown-shadow',      dropdownShadow.value);
+  if (dialogShadow.value   !== D.dialogShadow)   add('--coar-dialog-shadow',        dialogShadow.value);
+  if (toastShadow.value    !== D.toastShadow)    add('--coar-toast-shadow',         toastShadow.value);
+  if (fontBody.value  !== D.fontBody)  add('--coar-font-family-body',  `${fontBody.value}, ui-sans-serif, system-ui, sans-serif`);
+  if (fontTitle.value !== D.fontTitle) add('--coar-font-family-title', `${fontTitle.value}, ui-sans-serif, system-ui, sans-serif`);
+  if (motionScale.value !== D.motionScale) {
+    const s = motionScale.value;
+    for (const [key, base] of Object.entries(BASE_DURATIONS)) {
+      add(`--coar-duration-${key}`, `${Math.round(base * s)}ms`);
+    }
   }
   // Palette step overrides
   for (const key of Object.keys(paletteOverrides) as PaletteKey[]) {
@@ -331,6 +334,8 @@ onMounted(() => {
   const get  = (t: string) => cs.getPropertyValue(t).trim();
   const px   = (t: string, def: number) => { const v = parseFloat(get(t)); return isNaN(v) ? def : v; };
   const str  = (t: string, ref_: typeof accent) => { const v = get(t); if (v) ref_.value = v; };
+  // Only restore if the stored value is a recognised option (guards against stale concrete-px values from old sessions)
+  const strOpt = (t: string, ref_: Ref<string>, opts: { value: string }[]) => { const v = get(t); if (v && opts.some(o => o.value === v)) ref_.value = v; };
   const font1 = (t: string) => get(t).split(',')[0].trim().replace(/['"]/g, '');
 
   str('--coar-accent',  accent);
@@ -357,22 +362,22 @@ onMounted(() => {
   if (!isNaN(density_)) density.value = density_;
   inputPaddingX.value = px('--coar-input-padding-x', DEFAULTS.inputPaddingX);
   inputPaddingXEnabled.value = inputPaddingX.value !== DEFAULTS.inputPaddingX;
-  str('--coar-button-radius',        buttonRadius);
-  str('--coar-input-radius',         inputRadius);
-  str('--coar-tag-radius',           tagRadius);
-  str('--coar-badge-radius',         badgeRadius);
-  str('--coar-card-radius',          cardRadius);
-  str('--coar-menu-radius',          menuRadius);
-  str('--coar-popover-radius',       popoverRadius);
-  str('--coar-dropdown-radius',      dropdownRadius);
-  str('--coar-dialog-border-radius', dialogRadius);
-  str('--coar-toast-border-radius',  toastRadius);
-  str('--coar-card-shadow',          cardShadow);
-  str('--coar-menu-shadow',          menuShadow);
-  str('--coar-popover-shadow',       popoverShadow);
-  str('--coar-dropdown-shadow',      dropdownShadow);
-  str('--coar-dialog-shadow',        dialogShadow);
-  str('--coar-toast-shadow',         toastShadow);
+  strOpt('--coar-button-radius',        buttonRadius,   RADIUS_OPTIONS);
+  strOpt('--coar-input-radius',         inputRadius,    RADIUS_OPTIONS);
+  strOpt('--coar-tag-radius',           tagRadius,      RADIUS_OPTIONS);
+  strOpt('--coar-badge-radius',         badgeRadius,    RADIUS_OPTIONS);
+  strOpt('--coar-card-radius',          cardRadius,     RADIUS_OPTIONS);
+  strOpt('--coar-menu-radius',          menuRadius,     RADIUS_OPTIONS);
+  strOpt('--coar-popover-radius',       popoverRadius,  RADIUS_OPTIONS);
+  strOpt('--coar-dropdown-radius',      dropdownRadius, RADIUS_OPTIONS);
+  strOpt('--coar-dialog-border-radius', dialogRadius,   RADIUS_OPTIONS);
+  strOpt('--coar-toast-border-radius',  toastRadius,    RADIUS_OPTIONS);
+  strOpt('--coar-card-shadow',          cardShadow,     SHADOW_OPTIONS);
+  strOpt('--coar-menu-shadow',          menuShadow,     SHADOW_OPTIONS);
+  strOpt('--coar-popover-shadow',       popoverShadow,  SHADOW_OPTIONS);
+  strOpt('--coar-dropdown-shadow',      dropdownShadow, SHADOW_OPTIONS);
+  strOpt('--coar-dialog-shadow',        dialogShadow,   SHADOW_OPTIONS);
+  strOpt('--coar-toast-shadow',         toastShadow,    SHADOW_OPTIONS);
 
   const fb = font1('--coar-font-family-body');
   if (fb) fontBody.value = fb;
@@ -1075,9 +1080,9 @@ const DENSITY_OPTIONS = [
             <div class="te-accordion-body">
               <div class="te-section">
                 <div class="te-section-label">Corner radius</div>
-                <div class="te-chip-group">
-                  <button v-for="o in RADIUS_OPTIONS" :key="o.value" class="te-chip" :class="{ active: inputRadius === o.value }" @click="inputRadius = o.value">{{ o.label }}</button>
-                </div>
+                <select class="te-select" v-model="inputRadius">
+                  <option v-for="o in RADIUS_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
+                </select>
               </div>
               <div class="te-section">
                 <div class="te-section-label">
@@ -1109,9 +1114,9 @@ const DENSITY_OPTIONS = [
             <div class="te-accordion-body">
               <div class="te-section">
                 <div class="te-section-label">Corner radius</div>
-                <div class="te-chip-group">
-                  <button v-for="o in RADIUS_OPTIONS" :key="o.value" class="te-chip" :class="{ active: buttonRadius === o.value }" @click="buttonRadius = o.value">{{ o.label }}</button>
-                </div>
+                <select class="te-select" v-model="buttonRadius">
+                  <option v-for="o in RADIUS_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
+                </select>
               </div>
             </div>
           </details>
@@ -1127,15 +1132,15 @@ const DENSITY_OPTIONS = [
                 <div class="te-section-label">Corner radius</div>
                 <div class="te-radius-row">
                   <span class="te-radius-label">Tag</span>
-                  <div class="te-chip-group">
-                    <button v-for="o in RADIUS_OPTIONS" :key="o.value" class="te-chip" :class="{ active: tagRadius === o.value }" @click="tagRadius = o.value">{{ o.label }}</button>
-                  </div>
+                  <select class="te-select" v-model="tagRadius">
+                    <option v-for="o in RADIUS_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
+                  </select>
                 </div>
                 <div class="te-radius-row" style="margin-top:8px">
                   <span class="te-radius-label">Badge</span>
-                  <div class="te-chip-group">
-                    <button v-for="o in RADIUS_OPTIONS" :key="o.value" class="te-chip" :class="{ active: badgeRadius === o.value }" @click="badgeRadius = o.value">{{ o.label }}</button>
-                  </div>
+                  <select class="te-select" v-model="badgeRadius">
+                    <option v-for="o in RADIUS_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
+                  </select>
                 </div>
               </div>
             </div>
@@ -1150,15 +1155,15 @@ const DENSITY_OPTIONS = [
             <div class="te-accordion-body">
               <div class="te-section">
                 <div class="te-section-label">Corner radius</div>
-                <div class="te-chip-group">
-                  <button v-for="o in RADIUS_OPTIONS" :key="o.value" class="te-chip" :class="{ active: cardRadius === o.value }" @click="cardRadius = o.value">{{ o.label }}</button>
-                </div>
+                <select class="te-select" v-model="cardRadius">
+                  <option v-for="o in RADIUS_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
+                </select>
               </div>
               <div class="te-section">
                 <div class="te-section-label">Shadow</div>
-                <div class="te-chip-group">
-                  <button v-for="o in SHADOW_OPTIONS" :key="o.value" class="te-chip" :class="{ active: cardShadow === o.value }" @click="cardShadow = o.value">{{ o.label }}</button>
-                </div>
+                <select class="te-select" v-model="cardShadow">
+                  <option v-for="o in SHADOW_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
+                </select>
               </div>
             </div>
           </details>
@@ -1174,18 +1179,18 @@ const DENSITY_OPTIONS = [
                 <div class="te-section-label">Corner radius</div>
                 <div v-for="row in [{ label:'Menu', v: menuRadius, set:(v:string)=>menuRadius=v }, { label:'Popover', v: popoverRadius, set:(v:string)=>popoverRadius=v }, { label:'Dropdown', v: dropdownRadius, set:(v:string)=>dropdownRadius=v }]" :key="row.label" class="te-radius-row">
                   <span class="te-radius-label">{{ row.label }}</span>
-                  <div class="te-chip-group">
-                    <button v-for="o in RADIUS_OPTIONS" :key="o.value" class="te-chip" :class="{ active: row.v === o.value }" @click="row.set(o.value)">{{ o.label }}</button>
-                  </div>
+                  <select class="te-select" :value="row.v" @change="row.set(($event.target as HTMLSelectElement).value)">
+                    <option v-for="o in RADIUS_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
+                  </select>
                 </div>
               </div>
               <div class="te-section">
                 <div class="te-section-label">Shadow</div>
                 <div v-for="row in [{ label:'Menu', v: menuShadow, set:(v:string)=>menuShadow=v }, { label:'Popover', v: popoverShadow, set:(v:string)=>popoverShadow=v }, { label:'Dropdown', v: dropdownShadow, set:(v:string)=>dropdownShadow=v }]" :key="row.label" class="te-radius-row">
                   <span class="te-radius-label">{{ row.label }}</span>
-                  <div class="te-chip-group">
-                    <button v-for="o in SHADOW_OPTIONS" :key="o.value" class="te-chip" :class="{ active: row.v === o.value }" @click="row.set(o.value)">{{ o.label }}</button>
-                  </div>
+                  <select class="te-select" :value="row.v" @change="row.set(($event.target as HTMLSelectElement).value)">
+                    <option v-for="o in SHADOW_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
+                  </select>
                 </div>
               </div>
             </div>
@@ -1202,18 +1207,18 @@ const DENSITY_OPTIONS = [
                 <div class="te-section-label">Corner radius</div>
                 <div v-for="row in [{ label:'Dialog', v: dialogRadius, set:(v:string)=>dialogRadius=v }, { label:'Toast', v: toastRadius, set:(v:string)=>toastRadius=v }]" :key="row.label" class="te-radius-row">
                   <span class="te-radius-label">{{ row.label }}</span>
-                  <div class="te-chip-group">
-                    <button v-for="o in RADIUS_OPTIONS" :key="o.value" class="te-chip" :class="{ active: row.v === o.value }" @click="row.set(o.value)">{{ o.label }}</button>
-                  </div>
+                  <select class="te-select" :value="row.v" @change="row.set(($event.target as HTMLSelectElement).value)">
+                    <option v-for="o in RADIUS_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
+                  </select>
                 </div>
               </div>
               <div class="te-section">
                 <div class="te-section-label">Shadow</div>
                 <div v-for="row in [{ label:'Dialog', v: dialogShadow, set:(v:string)=>dialogShadow=v }, { label:'Toast', v: toastShadow, set:(v:string)=>toastShadow=v }]" :key="row.label" class="te-radius-row">
                   <span class="te-radius-label">{{ row.label }}</span>
-                  <div class="te-chip-group">
-                    <button v-for="o in SHADOW_OPTIONS" :key="o.value" class="te-chip" :class="{ active: row.v === o.value }" @click="row.set(o.value)">{{ o.label }}</button>
-                  </div>
+                  <select class="te-select" :value="row.v" @change="row.set(($event.target as HTMLSelectElement).value)">
+                    <option v-for="o in SHADOW_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
+                  </select>
                 </div>
               </div>
             </div>
@@ -1458,22 +1463,22 @@ const DENSITY_OPTIONS = [
 .te-radius-row:last-child { margin-bottom: 0; }
 .te-radius-label { width: 56px; flex-shrink: 0; font-size: 12px; color: var(--coar-text-neutral-secondary, #595959); }
 
-/* ── Chip group ──────────────────────────────────── */
-.te-chip-group { display: flex; flex-wrap: wrap; gap: 4px; }
-.te-chip {
-  padding: 3px 9px; border-radius: 5px;
+/* ── Select ──────────────────────────────────────── */
+.te-select {
+  appearance: none;
+  background: var(--coar-background-neutral-secondary, #f5f5f5)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23595959' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+    no-repeat right 7px center;
   border: 1px solid var(--coar-border-neutral-tertiary, #e0e0e0);
-  background: var(--coar-background-neutral-primary, #fff);
-  font-size: 11px; cursor: pointer; font-family: inherit;
-  color: var(--coar-text-neutral-secondary, #595959);
-  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  border-radius: 5px;
+  padding: 4px 24px 4px 8px;
+  font-size: 11px; font-family: inherit;
+  color: var(--coar-text-neutral-primary, #1a1a1a);
+  cursor: pointer; flex: 1;
+  transition: border-color 0.12s;
 }
-.te-chip:hover { border-color: var(--coar-background-accent-primary, #1183CD); color: var(--coar-background-accent-primary, #1183CD); }
-.te-chip.active {
-  background: var(--coar-background-accent-primary, #1183CD);
-  border-color: var(--coar-background-accent-primary, #1183CD);
-  color: #fff; font-weight: 500;
-}
+.te-select:hover { border-color: var(--coar-border-neutral-secondary, #c8c8c8); }
+.te-select:focus { outline: none; border-color: var(--coar-background-accent-primary, #1183CD); }
 
 /* ── Typography ──────────────────────────────────── */
 .te-font-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
