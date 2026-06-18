@@ -233,6 +233,7 @@ export default defineConfig({
             { text: 'Spacing & Effects', link: '/foundations/spacing' },
             { text: 'Icons', link: '/foundations/icons' },
             { text: 'Motion', link: '/foundations/motion' },
+            { text: 'Theme Editor', link: '/foundations/theming' },
             {
               text: 'Localization',
               collapsed: false,
@@ -265,6 +266,7 @@ export default defineConfig({
             { text: 'Spacing & Effects', link: '/foundations/spacing' },
             { text: 'Icons', link: '/foundations/icons' },
             { text: 'Motion', link: '/foundations/motion' },
+            { text: 'Theme Editor', link: '/foundations/theming' },
             {
               text: 'Localization',
               collapsed: false,
