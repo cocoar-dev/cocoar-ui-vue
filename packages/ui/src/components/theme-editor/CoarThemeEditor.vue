@@ -1238,7 +1238,7 @@ const DENSITY_OPTIONS = [
 <style scoped>
 /* ── FAB ─────────────────────────────────────────── */
 .te-fab {
-  position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+  position: fixed; bottom: 24px; right: 24px; z-index: 200;
   width: 44px; height: 44px; border-radius: 12px; border: none;
   background: var(--coar-background-accent-primary, #1183CD); color: #fff;
   cursor: pointer; display: flex; align-items: center; justify-content: center;
@@ -1250,7 +1250,7 @@ const DENSITY_OPTIONS = [
 
 /* ── Panel ───────────────────────────────────────── */
 .te-panel {
-  position: fixed; top: 0; right: 0; bottom: 0; z-index: 9998;
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 199;
   width: 316px; display: flex; flex-direction: column;
   background: var(--coar-background-neutral-primary, #fff);
   border-left: 1px solid var(--coar-border-neutral-tertiary, #e8e8e8);
