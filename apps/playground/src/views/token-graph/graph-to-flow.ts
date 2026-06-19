@@ -19,6 +19,10 @@ import { familyOf, familyMembers } from
   '../../../../../packages/ui/src/components/theme-editor/internal/token-graph';
 import type { TokenGraph, TokenLayer, TokenNode } from
   '../../../../../packages/ui/src/components/theme-editor/internal/token-graph';
+import { previewFor } from './preview-registry';
+
+/** Concrete leaf types whose value can be edited inline (no var() chain). */
+const EDITABLE_TYPES = new Set(['color', 'dimension', 'duration', 'number']);
 
 export interface FlowNodeData {
   short: string;
@@ -32,6 +36,12 @@ export interface FlowNodeData {
   isGroup?: boolean;
   count?: number;
   collapsed?: boolean;
+  /** Token-node: value is a concrete literal → editable inline. */
+  editable?: boolean;
+  /** Consumer-node: has a registered live preview. */
+  hasPreview?: boolean;
+  /** This node is the selected/open one (shows editor / preview). */
+  active?: boolean;
 }
 
 const NODE_W = 230;
@@ -39,11 +49,17 @@ const NODE_H = 46;
 const PAD = 12;
 const HEADER_H = 34;
 const CHILD_GAP = 8;
+const PREVIEW_W = 280;
+const PREVIEW_H = 132;
 
 export interface GraphToFlowOpts {
   rankdir?: 'LR' | 'TB';
   /** Family keys to show expanded (members nested in the box). */
   expanded?: Set<string>;
+  /** Open nodes — each shows its editor (token) or live preview (consumer). */
+  activeNodes?: Set<string>;
+  /** User-resized node sizes, by name (persists across rebuilds). */
+  sizes?: Record<string, { w: number; h: number }>;
 }
 
 export function graphToFlow(
@@ -51,7 +67,17 @@ export function graphToFlow(
   names: Set<string>,
   opts: GraphToFlowOpts = {},
 ): { nodes: Node<FlowNodeData>[]; edges: Edge[] } {
-  const { rankdir = 'LR', expanded = new Set<string>() } = opts;
+  const { rankdir = 'LR', expanded = new Set<string>(), activeNodes = new Set<string>(), sizes = {} } = opts;
+
+  // A standalone node's box: an open consumer shows its live preview (bigger,
+  // honouring any user resize); everything else is the default size.
+  const standaloneSize = (name: string) => {
+    const n = graph.nodes.get(name)!;
+    if (n.layer === 'consumer' && activeNodes.has(name) && previewFor(name)) {
+      return sizes[name] ?? { w: PREVIEW_W, h: PREVIEW_H };
+    }
+    return { w: NODE_W, h: NODE_H };
+  };
 
   // Families with ≥2 members in this view.
   const families = familyMembers(names);
@@ -88,7 +114,10 @@ export function graphToFlow(
   const g = new dagre.graphlib.Graph();
   g.setGraph({ rankdir, nodesep: 18, ranksep: 90, marginx: 20, marginy: 20 });
   g.setDefaultEdgeLabel(() => ({}));
-  for (const name of standalone) g.setNode(name, { width: NODE_W, height: NODE_H });
+  for (const name of standalone) {
+    const s = standaloneSize(name);
+    g.setNode(name, { width: s.w, height: s.h });
+  }
   for (const key of members.keys()) {
     const s = groupSize(key);
     g.setNode(key, { width: s.w, height: s.h });
@@ -111,8 +140,25 @@ export function graphToFlow(
   // ── build nodes (parents before their children) ──
   const nodes: Node<FlowNodeData>[] = [];
   for (const name of standalone) {
+    const n = graph.nodes.get(name)!;
+    const s = standaloneSize(name);
     const p = g.node(name);
-    nodes.push(tokenNode(name, graph.nodes.get(name)!, { x: p.x - NODE_W / 2, y: p.y - NODE_H / 2 }, rankdir));
+    const position = { x: p.x - s.w / 2, y: p.y - s.h / 2 };
+    if (n.layer === 'consumer') {
+      nodes.push({
+        id: name, type: 'consumer', position,
+        style: { width: `${s.w}px`, height: `${s.h}px` },
+        dragHandle: '.tg-drag',
+        sourcePosition: rankdir === 'LR' ? Position.Right : Position.Bottom,
+        targetPosition: rankdir === 'LR' ? Position.Left : Position.Top,
+        data: {
+          short: name, full: name, layer: n.layer, type: 'component', value: '',
+          hasPreview: !!previewFor(name), active: activeNodes.has(name),
+        },
+      });
+    } else {
+      nodes.push(tokenNode(name, n, position, rankdir, activeNodes.has(name)));
+    }
   }
   for (const [key, mem] of members) {
     const p = g.node(key);
@@ -123,6 +169,7 @@ export function graphToFlow(
       type: 'tokengroup',
       position: { x: p.x - s.w / 2, y: p.y - s.h / 2 },
       style: { width: `${s.w}px`, height: `${s.h}px` },
+      dragHandle: '.tg-drag',
       data: {
         short: key.replace(/^--coar-/, ''), full: key, layer: rep.layer, type: rep.type,
         value: '', isGroup: true, count: mem.length, collapsed: collapsed(key),
@@ -131,7 +178,7 @@ export function graphToFlow(
     if (!collapsed(key)) {
       mem.forEach((m, i) => {
         nodes.push({
-          ...tokenNode(m, graph.nodes.get(m)!, { x: PAD, y: HEADER_H + i * (NODE_H + CHILD_GAP) }, rankdir),
+          ...tokenNode(m, graph.nodes.get(m)!, { x: PAD, y: HEADER_H + i * (NODE_H + CHILD_GAP) }, rankdir, activeNodes.has(m)),
           parentNode: key,
           extent: 'parent',
         });
@@ -163,11 +210,13 @@ function tokenNode(
   n: TokenNode,
   position: { x: number; y: number },
   rankdir: 'LR' | 'TB',
+  active: boolean,
 ): Node<FlowNodeData> {
   return {
     id: name,
     type: 'token',
     position,
+    dragHandle: '.tg-drag',
     sourcePosition: rankdir === 'LR' ? Position.Right : Position.Bottom,
     targetPosition: rankdir === 'LR' ? Position.Left : Position.Top,
     data: {
@@ -177,6 +226,8 @@ function tokenNode(
       type: n.layer === 'consumer' ? 'component' : n.type,
       value: n.value,
       swatch: n.type === 'color' ? `var(${name})` : undefined,
+      editable: EDITABLE_TYPES.has(n.type),
+      active,
     },
   };
 }
