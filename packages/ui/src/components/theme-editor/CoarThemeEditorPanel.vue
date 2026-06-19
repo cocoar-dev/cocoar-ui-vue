@@ -4,6 +4,7 @@ import CoarButton from '../button/CoarButton.vue';
 import CoarSelect from '../select/CoarSelect.vue';
 import CoarSwitch from '../switch/CoarSwitch.vue';
 import CoarSegmentedControl from '../segmented-control/CoarSegmentedControl.vue';
+import CoarFormField from '../form-field/CoarFormField.vue';
 import {
   DEFAULTS, RADIUS_OPTIONS, SHADOW_OPTIONS, FONT_OPTIONS_BODY_SELECT, FONT_OPTIONS_TITLE_SELECT,
   DENSITY_OPTIONS, PRESETS, PALETTE_STEPS, SEMANTIC_GROUPS, SEMANTIC_PAL_OPTIONS, SEMANTIC_STEP_OPTIONS,
@@ -210,13 +211,13 @@ const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
           <div class="te-section">
             <div class="te-scale-row">
               <span class="te-scale-name">XXS</span>
-              <input type="range" class="te-slider" min="0" max="20" v-model.number="radiusXxs" />
+              <input type="range" class="te-slider" min="0" max="32" v-model.number="radiusXxs" />
               <span class="te-scale-val">{{ radiusXxs }}px</span>
               <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': radiusXxs !== DEFAULTS.radiusXxs }" :disabled="radiusXxs === DEFAULTS.radiusXxs" @click="radiusXxs = DEFAULTS.radiusXxs" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
             </div>
             <div class="te-scale-row">
               <span class="te-scale-name">XS</span>
-              <input type="range" class="te-slider" min="0" max="20" v-model.number="radiusXs" />
+              <input type="range" class="te-slider" min="0" max="32" v-model.number="radiusXs" />
               <span class="te-scale-val">{{ radiusXs }}px</span>
               <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': radiusXs !== DEFAULTS.radiusXs }" :disabled="radiusXs === DEFAULTS.radiusXs" @click="radiusXs = DEFAULTS.radiusXs" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
             </div>
@@ -234,13 +235,13 @@ const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
             </div>
             <div class="te-scale-row">
               <span class="te-scale-name">L</span>
-              <input type="range" class="te-slider" min="0" max="64" v-model.number="radiusL" />
+              <input type="range" class="te-slider" min="0" max="32" v-model.number="radiusL" />
               <span class="te-scale-val">{{ radiusL }}px</span>
               <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': radiusL !== DEFAULTS.radiusL }" :disabled="radiusL === DEFAULTS.radiusL" @click="radiusL = DEFAULTS.radiusL" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
             </div>
             <div class="te-scale-row">
               <span class="te-scale-name">XL</span>
-              <input type="range" class="te-slider" min="0" max="64" v-model.number="radiusXl" />
+              <input type="range" class="te-slider" min="0" max="32" v-model.number="radiusXl" />
               <span class="te-scale-val">{{ radiusXl }}px</span>
               <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': radiusXl !== DEFAULTS.radiusXl }" :disabled="radiusXl === DEFAULTS.radiusXl" @click="radiusXl = DEFAULTS.radiusXl" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
             </div>
@@ -258,37 +259,37 @@ const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
           <div class="te-section">
             <div class="te-scale-row">
               <span class="te-scale-name">XS</span>
-              <input type="range" class="te-slider" min="0" max="16" v-model.number="spacingXs" />
+              <input type="range" class="te-slider" min="0" max="96" v-model.number="spacingXs" />
               <span class="te-scale-val">{{ spacingXs }}px</span>
               <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': spacingXs !== DEFAULTS.spacingXs }" :disabled="spacingXs === DEFAULTS.spacingXs" @click="spacingXs = DEFAULTS.spacingXs" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
             </div>
             <div class="te-scale-row">
               <span class="te-scale-name">S</span>
-              <input type="range" class="te-slider" min="0" max="24" v-model.number="spacingS" />
+              <input type="range" class="te-slider" min="0" max="96" v-model.number="spacingS" />
               <span class="te-scale-val">{{ spacingS }}px</span>
               <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': spacingS !== DEFAULTS.spacingS }" :disabled="spacingS === DEFAULTS.spacingS" @click="spacingS = DEFAULTS.spacingS" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
             </div>
             <div class="te-scale-row">
               <span class="te-scale-name">M</span>
-              <input type="range" class="te-slider" min="4" max="40" step="2" v-model.number="spacingM" />
+              <input type="range" class="te-slider" min="0" max="96" v-model.number="spacingM" />
               <span class="te-scale-val">{{ spacingM }}px</span>
               <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': spacingM !== DEFAULTS.spacingM }" :disabled="spacingM === DEFAULTS.spacingM" @click="spacingM = DEFAULTS.spacingM" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
             </div>
             <div class="te-scale-row">
               <span class="te-scale-name">L</span>
-              <input type="range" class="te-slider" min="8" max="48" step="2" v-model.number="spacingL" />
+              <input type="range" class="te-slider" min="0" max="96" v-model.number="spacingL" />
               <span class="te-scale-val">{{ spacingL }}px</span>
               <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': spacingL !== DEFAULTS.spacingL }" :disabled="spacingL === DEFAULTS.spacingL" @click="spacingL = DEFAULTS.spacingL" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
             </div>
             <div class="te-scale-row">
               <span class="te-scale-name">XL</span>
-              <input type="range" class="te-slider" min="8" max="64" step="4" v-model.number="spacingXl" />
+              <input type="range" class="te-slider" min="0" max="96" v-model.number="spacingXl" />
               <span class="te-scale-val">{{ spacingXl }}px</span>
               <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': spacingXl !== DEFAULTS.spacingXl }" :disabled="spacingXl === DEFAULTS.spacingXl" @click="spacingXl = DEFAULTS.spacingXl" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
             </div>
             <div class="te-scale-row">
               <span class="te-scale-name">XXL</span>
-              <input type="range" class="te-slider" min="16" max="96" step="4" v-model.number="spacingXxl" />
+              <input type="range" class="te-slider" min="0" max="96" v-model.number="spacingXxl" />
               <span class="te-scale-val">{{ spacingXxl }}px</span>
               <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': spacingXxl !== DEFAULTS.spacingXxl }" :disabled="spacingXxl === DEFAULTS.spacingXxl" @click="spacingXxl = DEFAULTS.spacingXxl" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
             </div>
@@ -333,13 +334,14 @@ const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
         </summary>
         <div class="te-accordion-body">
           <div class="te-section">
-            <div class="te-section-label">Corner radius</div>
-            <CoarSelect v-model="inputRadius" :options="RADIUS_OPTIONS" size="s" />
+            <CoarFormField label="Corner radius" class="te-field">
+              <CoarSelect v-model="inputRadius" :options="RADIUS_OPTIONS" size="s" />
+            </CoarFormField>
           </div>
           <div class="te-section">
             <div class="te-section-label">
               Horizontal padding
-              <CoarSwitch v-model="inputPaddingXEnabled" label="Override" size="xs" style="margin-left:auto" />
+              <CoarSwitch v-model="inputPaddingXEnabled" label="Override" size="s" style="margin-left:auto" />
             </div>
             <div class="te-scale-row" :class="{ 'te-scale-row--disabled': !inputPaddingXEnabled }">
               <input type="range" class="te-slider" min="4" max="32" step="1" v-model.number="inputPaddingX" :disabled="!inputPaddingXEnabled" />
@@ -362,8 +364,9 @@ const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
         </summary>
         <div class="te-accordion-body">
           <div class="te-section">
-            <div class="te-section-label">Corner radius</div>
-            <CoarSelect v-model="buttonRadius" :options="RADIUS_OPTIONS" size="s" />
+            <CoarFormField label="Corner radius" class="te-field">
+              <CoarSelect v-model="buttonRadius" :options="RADIUS_OPTIONS" size="s" />
+            </CoarFormField>
           </div>
         </div>
       </details>
@@ -397,12 +400,14 @@ const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
         </summary>
         <div class="te-accordion-body">
           <div class="te-section">
-            <div class="te-section-label">Corner radius</div>
-            <CoarSelect v-model="cardRadius" :options="RADIUS_OPTIONS" size="s" />
+            <CoarFormField label="Corner radius" class="te-field">
+              <CoarSelect v-model="cardRadius" :options="RADIUS_OPTIONS" size="s" />
+            </CoarFormField>
           </div>
           <div class="te-section">
-            <div class="te-section-label">Shadow</div>
-            <CoarSelect v-model="cardShadow" :options="SHADOW_OPTIONS" size="s" />
+            <CoarFormField label="Shadow" class="te-field">
+              <CoarSelect v-model="cardShadow" :options="SHADOW_OPTIONS" size="s" />
+            </CoarFormField>
           </div>
         </div>
       </details>
@@ -586,6 +591,13 @@ const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
   display: flex; align-items: center; gap: 6px;
   font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em;
   color: var(--coar-text-neutral-tertiary, #8c8c8c); margin-bottom: 10px;
+}
+
+/* CoarFormField used as a single-field label for the radius/shadow selects.
+   The primitive doesn't add its own label→control gap, so restore the
+   standard one here (same token the date-time pickers use). */
+.te-field :deep(.coar-form-field__label) {
+  margin-bottom: var(--coar-component-s-label-margin, 6px);
 }
 .te-badge {
   text-transform: none; letter-spacing: 0; font-weight: 500; font-size: 10px;
