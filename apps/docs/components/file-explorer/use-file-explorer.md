@@ -225,7 +225,8 @@ This works for every editor: hold a Monaco view-state ref outside the `v-if` and
 
 ## Lifecycle
 
-- **Mount** — Lazy loading is driven by CoarTree's `loadChildren` hook (bind `:load-children="fe.loadChildren"`): the tree fires the fetch on first expand and on mount for any seeded `initialExpandedIds` (cascading as parents publish). The composable supplies only the fetch body and caches loaded folders so re-expand never re-fetches.
+- **Mount — the tree loads itself.** `useFileExplorer` calls `store.loadTree()` automatically on mount (it kicks off the fetch synchronously during setup; `loading` is your "populating" signal). **You don't need a manual `fe.refresh()` in `onMounted`** — that would be a redundant second fetch. Reserve `refresh()` for out-of-band changes (server push, another tab mutating, retention sweep). Stores that surface their own reactive `_assets` (the in-memory impl) are live from creation, so the auto-load is a no-op for them.
+- **Lazy children** — Lazy loading is driven by CoarTree's `loadChildren` hook (bind `:load-children="fe.loadChildren"`): the tree fires the fetch on first expand and on mount for any seeded `initialExpandedIds` (cascading as parents publish). The composable supplies only the fetch body and caches loaded folders so re-expand never re-fetches.
 - **Eager open** — Single-click `selectedId` change is watched; file selections fire `openFile(file, { pinned: false })`.
 - **Unmount** — `onScopeDispose` removes the `beforeunload` listener and revokes every blob URL the composable owns. Consumer doesn't need to clean up.
 - **`beforeunload`** — Active while `anyDirty.value` is true. Browser shows its native "leave site?" prompt.
