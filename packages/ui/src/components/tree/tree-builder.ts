@@ -22,6 +22,7 @@ import {
   shallowReactive,
 } from 'vue';
 import type {
+  CoarTreeCreateEvent,
   CoarTreeDensity,
   CoarTreeDropPosition,
   CoarTreeFilesDropEvent,
@@ -34,6 +35,7 @@ import type {
   CoarTreeRenameEvent,
   CoarTreeSelectEvent,
   CoarTreeSelectionMode,
+  CoarTreeStartCreateOptions,
   CoarTreeVirtualizeProp,
 } from './tree-types';
 
@@ -61,6 +63,10 @@ export interface TreeBuilderState<T> {
   renamable: MaybeRefOrGetter<boolean>;
   onRename?: (e: CoarTreeRenameEvent<T>) => void;
   onRenameCancel?: (node: T) => void;
+  /** Opt into the built-in inline-create UI (see `creatable` setter). */
+  creatable: MaybeRefOrGetter<boolean>;
+  onCreate?: (e: CoarTreeCreateEvent) => void;
+  onCreateCancel?: () => void;
   selectionMode: MaybeRefOrGetter<CoarTreeSelectionMode>;
   /** Checkbox-mode only: independent parent/child checks, no cascade / indeterminate. */
   checkStrictly: MaybeRefOrGetter<boolean>;
@@ -115,6 +121,7 @@ export interface TreeApiImpls<T> {
   selectNode(id: string): void;
   reloadChildren(id: string): void;
   startRename(id: string): void;
+  startCreate(parentId: string | null, opts?: CoarTreeStartCreateOptions): void;
   expandAll(): void;
   collapseAll(): void;
   expandTo(id: string): void;
@@ -140,6 +147,11 @@ export interface TreeApi<T = unknown> {
   reloadChildren(id: string): void;
   /** Enter inline-rename mode on a node (requires `renamable`). */
   startRename(id: string): void;
+  /**
+   * Open an inline-create draft under `parentId` (`null` = root); requires
+   * `creatable`. Commits via the `onCreate` handler / `@create` event.
+   */
+  startCreate(parentId: string | null, opts?: CoarTreeStartCreateOptions): void;
   /** Expand every expandable, currently-loaded node. */
   expandAll(): void;
   /** Collapse everything. */
@@ -200,6 +212,11 @@ export class TreeBuilder<T> {
       selectNode: act('selectNode'),
       reloadChildren: act('reloadChildren'),
       startRename: act('startRename'),
+      startCreate: (parentId, opts) => {
+        const impls = this._impls;
+        if (impls) impls.startCreate(parentId, opts);
+        else this._warnUnmounted('startCreate');
+      },
       expandTo: act('expandTo'),
       revealNode: act('revealNode'),
       expandAll: act0('expandAll'),
@@ -239,6 +256,9 @@ export class TreeBuilder<T> {
       renamable: false,
       onRename: undefined,
       onRenameCancel: undefined,
+      creatable: false,
+      onCreate: undefined,
+      onCreateCancel: undefined,
       selectionMode: 'single',
       checkStrictly: false,
       density: 'm',
@@ -419,6 +439,18 @@ export class TreeBuilder<T> {
   }
 
   /**
+   * Enable the built-in inline-create UI. With it on, `api.startCreate(parentId, opts?)`
+   * inserts a focused draft `<input>` row at its target position (auto-expanding
+   * the parent); commit fires `onCreate` with `{ parentId, name, kind }`, an empty
+   * name or Escape fires `onCreateCancel`. The draft is transient — persist the
+   * node in `onCreate` and supply the real one via `.nodes(...)`.
+   */
+  creatable(b: MaybeRefOrGetter<boolean>): this {
+    this.state.creatable = b;
+    return this;
+  }
+
+  /**
    * Selection behavior: `'single'` (default), `'multiple'` (Ctrl/Shift/Ctrl+A on
    * `selectedIds`), or `'checkbox'` (per-row tri-state checkbox on `checkedIds`,
    * independent of the highlight selection). See {@link CoarTreeSelectionMode}.
@@ -589,6 +621,18 @@ export class TreeBuilder<T> {
   /** Fires when an inline rename is cancelled (Escape, or committed empty). */
   onRenameCancel(h: (node: T) => void): this {
     this.state.onRenameCancel = h;
+    return this;
+  }
+
+  /** Fires when an inline create is committed (Enter / blur with a non-empty name). */
+  onCreate(h: (e: CoarTreeCreateEvent) => void): this {
+    this.state.onCreate = h;
+    return this;
+  }
+
+  /** Fires when an inline create is cancelled (Escape, or committed empty). */
+  onCreateCancel(h: () => void): this {
+    this.state.onCreateCancel = h;
     return this;
   }
 

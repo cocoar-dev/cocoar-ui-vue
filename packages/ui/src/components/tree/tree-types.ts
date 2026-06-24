@@ -165,6 +165,35 @@ export interface CoarTreeRenameEvent<T> {
   newName: string;
 }
 
+/** Which kind of draft row inline-create renders (icon + emitted `kind`). */
+export type CoarTreeCreateKind = 'folder' | 'leaf';
+
+/** Options for `api.startCreate(parentId, opts?)`. */
+export interface CoarTreeStartCreateOptions {
+  /** Icon/slot rendered for the draft + the `kind` echoed back on `@create`. Default `'folder'`. */
+  kind?: CoarTreeCreateKind;
+  /** Prefill the draft input (default `''`). */
+  initialName?: string;
+  /** Where the draft sits among the parent's children. Default `'last'`. */
+  position?: 'first' | 'last';
+}
+
+/** Payload for {@link CoarTreeEmits.create}. */
+export interface CoarTreeCreateEvent {
+  /** Parent the new node belongs under, or `null` for the root. */
+  parentId: string | null;
+  /** Trimmed name the user typed. Never empty (an empty commit fires `create-cancel`). */
+  name: string;
+  /** The `kind` passed to `startCreate` (default `'folder'`). */
+  kind: CoarTreeCreateKind;
+}
+
+/** Props exposed to the optional `#draft` slot (overrides the built-in draft icon). */
+export interface CoarTreeDraftSlotProps {
+  kind: CoarTreeCreateKind;
+  depth: number;
+}
+
 /** Payload for the `select` event / builder `onSelect`. */
 export interface CoarTreeSelectEvent<T> {
   /** The node the change centered on (the clicked / activated row), or `null` when the selection was cleared. */
