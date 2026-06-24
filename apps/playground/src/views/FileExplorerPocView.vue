@@ -197,9 +197,14 @@ const {
 } = fe;
 
 // ─── POC-side wrappers for the few ops that need UI interaction ──────────
+// New folder is now an INLINE create (CoarTree `:creatable` + `startCreate`) —
+// a focused draft row appears in place, no `window.prompt`. The tree emits
+// `@create` on commit, which we route to the composable's optimistic addFolder.
 function addFolder(parentId: string | null) {
-  const name = window.prompt('Folder name?')?.trim();
-  if (!name) return;
+  treeRef.value?.startCreate(parentId, { kind: 'folder' });
+}
+
+function onTreeCreate({ parentId, name }: { parentId: string | null; name: string }) {
   void addFolderViaStore(parentId, name);
 }
 
@@ -396,6 +401,7 @@ const tabMenuTarget = computed(() =>
 const treeRef = useTemplateRef<{
   focusNode: (id: string) => void;
   startRename: (id: string) => void;
+  startCreate: (parentId: string | null, opts?: { kind?: 'folder' | 'leaf' }) => void;
 }>('treeRef');
 
 function revealInTree(id: string) {
@@ -630,12 +636,14 @@ function fileIcon(
           draggable
           accepts-files
           renamable
+          creatable
           hide-loading-spinner
           @activate="activateNode"
           @context-menu="openContextMenu"
           @files-drop="({ files, target }) => addFiles(target?.id ?? null, files)"
           @node-move="moveNode"
           @rename="onTreeRename"
+          @create="onTreeCreate"
         >
           <template #default="{ node, isLoading }">
             <!--
