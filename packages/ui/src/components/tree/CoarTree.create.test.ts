@@ -4,7 +4,7 @@ import { defineComponent, h, nextTick, ref, type Component } from 'vue';
 import CoarTreeRaw from './CoarTree.vue';
 import CoarTreeNodeLabel from './CoarTreeNodeLabel.vue';
 import { useTree } from './useTree';
-import type { CoarTreeCreateEvent } from './tree-types';
+import type { CoarTreeCreateEvent, CoarTreeLabels } from './tree-types';
 
 const CoarTree = CoarTreeRaw as Component;
 
@@ -29,7 +29,9 @@ afterEach(() => {
   for (const w of mounted.splice(0)) w.unmount();
 });
 
-function makeWrapper(opts: { onCreate?: (e: CoarTreeCreateEvent) => unknown } = {}) {
+function makeWrapper(
+  opts: { onCreate?: (e: CoarTreeCreateEvent) => unknown; labels?: Partial<CoarTreeLabels> } = {},
+) {
   const { builder, api } = useTree<DemoNode>();
   const created: CoarTreeCreateEvent[] = [];
   let cancelled = 0;
@@ -41,6 +43,7 @@ function makeWrapper(opts: { onCreate?: (e: CoarTreeCreateEvent) => unknown } = 
     .getLabel((n) => n.name)
     .expanded(expanded)
     .creatable(true)
+    .labels(opts.labels ?? {})
     .onCreate((e) => {
       created.push(e);
       return opts.onCreate?.(e);
@@ -97,6 +100,38 @@ describe('CoarTree inline create', () => {
     await input().trigger('keydown', { key: 'Enter' });
     expect(created).toHaveLength(0);
     expect(getCancelled()).toBe(1);
+  });
+
+  it('draft input aria-label defaults to English and respects kind', async () => {
+    const { api, input } = makeWrapper();
+    await nextTick();
+    api.startCreate('a', { kind: 'folder' });
+    await rafFlush();
+    await nextTick();
+    expect(input().attributes('aria-label')).toBe('New folder name');
+    await input().trigger('keydown', { key: 'Escape' });
+    await nextTick();
+    api.startCreate('a', { kind: 'file' });
+    await rafFlush();
+    await nextTick();
+    expect(input().attributes('aria-label')).toBe('New file name');
+  });
+
+  it('draft input aria-label is localizable via labels', async () => {
+    const { api, input } = makeWrapper({
+      labels: { draftFolderName: 'Name des neuen Ordners', draftFileName: 'Name der neuen Datei' },
+    });
+    await nextTick();
+    api.startCreate('a', { kind: 'folder' });
+    await rafFlush();
+    await nextTick();
+    expect(input().attributes('aria-label')).toBe('Name des neuen Ordners');
+    await input().trigger('keydown', { key: 'Escape' });
+    await nextTick();
+    api.startCreate('a', { kind: 'file' });
+    await rafFlush();
+    await nextTick();
+    expect(input().attributes('aria-label')).toBe('Name der neuen Datei');
   });
 
   it('startCreate auto-expands the parent so the draft renders nested', async () => {
