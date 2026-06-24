@@ -150,6 +150,35 @@ treeBuilder
 function start1a() {
   treeApi.startCreate('root', { kind: 'folder' });
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// #Drag — app-internal drag (grid card) dropped onto a tree folder (reply Q2b)
+// ─────────────────────────────────────────────────────────────────────────
+const DRAG_MIME = 'application/x-citydiary-asset';
+const dnodes = ref<FNode[]>([
+  { id: 'inbox', name: 'Inbox', children: [] },
+  { id: 'archive', name: 'Archive', children: [] },
+]);
+const { builder: dragTree } = useTree<FNode>();
+dragTree
+  .nodes(dnodes)
+  .getId((n) => n.id)
+  .getChildren((n) => n.children)
+  .getLabel((n) => n.name)
+  .isExpandable(() => true)
+  .acceptsData([DRAG_MIME])
+  .onDataDrop(({ node, dataTransfer }) => {
+    dropResult.value = {
+      folder: node?.name ?? '(root)',
+      asset: dataTransfer.getData(DRAG_MIME) || '(empty)',
+    };
+  });
+const dropResult = ref<{ folder: string; asset: string } | null>(null);
+function onCardDragStart(e: DragEvent) {
+  e.dataTransfer?.setData(DRAG_MIME, 'photo-123');
+  if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+}
+const dragPass = computed(() => dropResult.value?.asset === 'photo-123');
 </script>
 
 <template>
@@ -220,6 +249,34 @@ function start1a() {
       </div>
     </section>
 
+    <!-- #Drag -->
+    <section class="frv__panel" data-testid="panel-drag">
+      <h3>#Drag · app-internal drag (grid card) → tree folder</h3>
+      <p>Drag the card onto Inbox or Archive → <code>@data-drop</code> with the asset id.</p>
+      <div
+        class="frv__card"
+        draggable="true"
+        data-testid="drag-card"
+        @dragstart="onCardDragStart"
+      >
+        📷 photo-123 (drag me)
+      </div>
+      <div class="frv__tree" data-testid="tree-drag">
+        <CoarTree :builder="dragTree">
+          <template #default="{ node }">
+            <CoarTreeNodeLabel :label="node.name" />
+          </template>
+        </CoarTree>
+      </div>
+      <p>
+        last drop →
+        <strong data-testid="drop-result">{{ dropResult ? `${dropResult.asset} onto ${dropResult.folder}` : '—' }}</strong>
+      </p>
+      <span data-testid="result-drag" :class="['frv__badge', dragPass ? 'pass' : 'fail']">
+        {{ dragPass ? 'PASS — data-drop fired' : 'drop the card onto a folder' }}
+      </span>
+    </section>
+
     <!-- The component under test for #2: rendered WITHOUT :service on purpose. -->
     <CoarToastContainer />
   </div>
@@ -273,5 +330,15 @@ function start1a() {
   border-radius: 6px;
   margin-top: 8px;
   overflow: auto;
+}
+.frv__card {
+  display: inline-block;
+  padding: 10px 14px;
+  margin: 4px 0;
+  border: 1px dashed #94a3b8;
+  border-radius: 6px;
+  background: #f8fafc;
+  cursor: grab;
+  user-select: none;
 }
 </style>
