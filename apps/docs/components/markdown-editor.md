@@ -21,7 +21,7 @@ Import the stylesheets once at your app's entry — same pattern as `@cocoar/vue
 ::: warning Preview release
 The package is on the `0.0.x` line. The render layer, `v-model` contract, toolbar API, form-field integration, and code-block view/edit toggle are **stable enough to ship in internal Cocoar apps** — the source format is plain Markdown, so any content written today round-trips through future API changes.
 
-Still missing for a `1.0`: link insertion dialog, image upload, and custom table edge-handles. See [TODO](#todo) below.
+Still missing for a `1.0`: a link insertion dialog and hover-based table edge-handles (row/column selection). See [TODO](#todo) below.
 :::
 
 ## Basic Usage
@@ -215,6 +215,23 @@ function openGallery(ctx) {
 
 ::: info Resize / alignment / captions
 Width, alignment, and captions aren't part of standard Markdown, so they're not supported yet — a richer image block (a separate slice) is planned. Today an image is the plain `![alt](url "title")`.
+:::
+
+## Tables
+
+GFM tables are portable (they render on GitHub, in `swift-markdown-ui`, etc.), so they're available in the `'gfm'` and `'cocoar'` [flavors](#flavors-portability). The editor offers a full set of table operations:
+
+**Create** — two ways:
+- The **Insert Table** sidebar button opens a small **grid size picker** — hover (or tap) to choose `cols × rows`, then click to insert.
+- Type **`|3x4|`** followed by a space anywhere — a GFM input rule turns it into a 3-column × 4-row table. This needs no toolbar, so it's the way to create a table in the default `floating` mode.
+
+**Edit** — with the cursor inside a cell, the in-table toolbar (floating, and the sidebar in `fixed`/`both` mode) offers:
+- Insert row above / below, insert column left / right
+- **Column alignment** — left / center / right, applied to the whole column (round-trips as GFM `:--` / `:-:` / `--:`); the active alignment is highlighted
+- **Delete cell** and **Delete table**
+
+::: info Hover edge-handles
+Selecting a whole row/column by pointing at its border (Notion/Word-style) isn't built yet — it needs pointer/hover detection rather than ProseMirror's `CellSelection` (which doesn't fire `selectionchange`). It's prototyped in the playground table testbed.
 :::
 
 ## Code blocks — view / edit toggle
@@ -429,9 +446,10 @@ Table operations are instead exposed via the floating toolbar (when the cursor i
 
 ## TODO
 
-- [ ] Custom table edge-handles (column/row selection + dedicated toolbars)
+- [ ] Hover-based table edge-handles (point at a row/column border to select it)
 - [ ] Link insert/edit dialog
-- [ ] Image upload support
+- [x] Image support (insert by URL, paste / drag-drop upload, custom `pickImage`)
+- [x] Table create (size picker + `|CxR|`), column alignment, delete table
 - [ ] Task list checkbox rendering and toggling
 - [ ] Use `computeOverlayCoordinates` for floating toolbar positioning instead of viewport clamping
 - [ ] Slash commands for block insertions

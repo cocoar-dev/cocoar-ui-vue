@@ -99,8 +99,8 @@ onMounted(() => {
     </div>
 
     <div class="tbl-checklist">
-      <strong>Table status</strong> — ✅ create (sidebar) · ✅ add/remove row+col · ❌ column align ·
-      ❌ delete whole table · ❌ hover edge-handles (row/col select) · ⚠️ create unreachable in floating mode<br />
+      <strong>Table status</strong> — ✅ create (size picker + type <code>|3x4|</code>+space) · ✅ add/remove row+col ·
+      ✅ column align L/C/R · ✅ delete whole table · ❌ hover edge-handles (row/col select)<br />
       <strong>Flavor</strong> — <code>commonmark</code> hides tables/strike/tasks/color (and won't parse them);
       <code>gfm</code> adds GFM; <code>cocoar</code> adds text color. Try switching with a table in the doc.
     </div>

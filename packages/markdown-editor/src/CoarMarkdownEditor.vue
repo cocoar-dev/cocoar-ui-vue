@@ -26,6 +26,7 @@ import { textColor } from './text-color';
 import { PlaceholderOverlay } from './placeholder';
 import { frontmatter } from './frontmatter';
 import ColorPickerPanel from './text-color/ColorPickerPanel.vue';
+import TableSizePicker from './table/TableSizePicker.vue';
 import ImageInsertDialog, { type ImageInsertResult } from './image/ImageInsertDialog.vue';
 import { imageUpload, type ImageUploader } from './image/imageUpload';
 import type { ImagePicker } from './image/pickImage';
@@ -40,7 +41,7 @@ import {
 import {
   gfm, toggleStrikethroughCommand, insertTableCommand,
   addRowBeforeCommand, addRowAfterCommand, addColBeforeCommand, addColAfterCommand,
-  deleteSelectedCellsCommand,
+  deleteSelectedCellsCommand, selectTableCommand,
 } from '@milkdown/preset-gfm';
 import { history, undoCommand, redoCommand } from '@milkdown/plugin-history';
 import { clipboard } from '@milkdown/plugin-clipboard';
@@ -415,6 +416,9 @@ const Toolbar = defineComponent({
       blockquote: boolean;
       heading: number | null; // level, or null
       table: boolean;
+      /** Alignment of the table column the cursor is in, or null when not in a
+       *  table cell. Drives the active state of the align L/C/R buttons. */
+      cell_alignment: 'left' | 'center' | 'right' | null;
       code_block: boolean;
       /** How many `list_item` ancestors the cursor sits in. 0 = not in any
        *  list, 1 = top-level item, 2+ = nested. Drives indent/outdent enablement. */
@@ -424,7 +428,7 @@ const Toolbar = defineComponent({
       strong: false, emphasis: false, strike_through: false, inlineCode: false,
       text_color: null,
       bullet_list: false, ordered_list: false, task_list: false, blockquote: false,
-      heading: null, table: false, code_block: false, list_item_depth: 0,
+      heading: null, table: false, cell_alignment: null, code_block: false, list_item_depth: 0,
     };
     // Overlay-driven color picker: positioning, viewport flipping, and
     // outside-click + escape dismissal are owned by the shared overlay
@@ -433,6 +437,7 @@ const Toolbar = defineComponent({
     const overlay = useOverlay();
     const dialog = useDialog();
     let colorPickerRef: OverlayRef | null = null;
+    let tablePickerRef: OverlayRef | null = null;
     const active = ref<ActiveState>({ ...emptyActive });
 
     function call<T>(cmd: CmdDef<T>) {
@@ -443,6 +448,65 @@ const Toolbar = defineComponent({
         ctx.get(commandsCtx).call(cmd.command.key, cmd.payload);
       });
       // Re-read active state after the command runs (toggles flip immediately).
+      updateActiveState();
+    }
+
+    // Set the alignment of the WHOLE column the cursor is in. Milkdown's
+    // `setAlignCommand` only touches the current cell, but GFM serializes a
+    // column's alignment from its *header* cell — so aligning from a body cell
+    // would be a no-op in the markdown. We set every cell in the column instead
+    // (header included), so the editor shows it AND it round-trips.
+    function setColumnAlignment(align: 'left' | 'center' | 'right') {
+      if (props.readonly) return;
+      const editor = getInstance();
+      if (!editor) return;
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        const { state } = view;
+        const { $from } = state.selection;
+
+        // Locate the enclosing table + the depth of the cell we're in.
+        let tablePos = -1;
+        let tableNode: ReturnType<typeof $from.node> | null = null;
+        let cellDepth = -1;
+        for (let d = $from.depth; d > 0; d--) {
+          const node = $from.node(d);
+          if (node.type.name === 'table') { tableNode = node; tablePos = $from.before(d); }
+          if ((node.type.name === 'table_cell' || node.type.name === 'table_header') && cellDepth < 0) {
+            cellDepth = d;
+          }
+        }
+        if (!tableNode || cellDepth < 0) return;
+
+        // Column index = the cell's index within its row.
+        const colIndex = $from.index(cellDepth - 1);
+
+        // setNodeMarkup keeps node sizes, so positions stay valid across edits
+        // in the same transaction — compute from the original doc and apply.
+        let tr = state.tr;
+        tableNode.forEach((row, rowOffset) => {
+          row.forEach((cell, cellOffset, cellIndex) => {
+            if (cellIndex !== colIndex) return;
+            const cellPos = tablePos + 1 + rowOffset + 1 + cellOffset;
+            tr = tr.setNodeMarkup(cellPos, undefined, { ...cell.attrs, alignment: align });
+          });
+        });
+        if (tr.docChanged) view.dispatch(tr);
+      });
+      updateActiveState();
+    }
+
+    // Delete the whole table: select every cell, then delete the selection —
+    // ProseMirror removes the now-empty table node. Two commands in one action.
+    function deleteTable() {
+      if (props.readonly) return;
+      const editor = getInstance();
+      if (!editor) return;
+      editor.action((ctx) => {
+        const commands = ctx.get(commandsCtx);
+        commands.call(selectTableCommand.key);
+        commands.call(deleteSelectedCellsCommand.key);
+      });
       updateActiveState();
     }
 
@@ -549,6 +613,44 @@ const Toolbar = defineComponent({
         colorPickerRef.close();
       }
       colorPickerRef = null;
+    }
+
+    // Insert a table of the chosen size at the cursor. `insertTableCommand`
+    // takes total rows (incl. the header) and columns.
+    function insertTableSized(rows: number, cols: number) {
+      closeTablePicker();
+      if (props.readonly) return;
+      const editor = getInstance();
+      if (!editor) return;
+      editor.action((ctx) => {
+        ctx.get(commandsCtx).call(insertTableCommand.key, { row: rows, col: cols });
+      });
+      updateActiveState();
+    }
+
+    // Insert Table button → grid size picker (Teleported overlay anchored to the
+    // trigger), instead of a fixed-size insert. Re-clicking the trigger closes it.
+    function openTablePicker(triggerEl: HTMLElement | null) {
+      if (!triggerEl || props.readonly) return;
+      if (tablePickerRef && !tablePickerRef.isClosed) {
+        closeTablePicker();
+        return;
+      }
+      tablePickerRef = overlay.open({
+        spec: { ...menuPreset, anchor: { kind: 'element', element: triggerEl } },
+        content: { kind: 'component', component: markRaw(TableSizePicker) },
+        inputs: { pick: (rows: number, cols: number) => insertTableSized(rows, cols) },
+      });
+      tablePickerRef.afterClosed.then(() => {
+        if (tablePickerRef?.isClosed) tablePickerRef = null;
+      });
+    }
+
+    function closeTablePicker() {
+      if (tablePickerRef && !tablePickerRef.isClosed) {
+        tablePickerRef.close();
+      }
+      tablePickerRef = null;
     }
 
     // Dispatch commonmark's `insertImageCommand` at the editor's stored
@@ -733,6 +835,13 @@ const Toolbar = defineComponent({
             else if (name === 'blockquote') next.blockquote = true;
             else if (name === 'heading') next.heading = (node.attrs.level as number) ?? null;
             else if (name === 'table') next.table = true;
+            else if (name === 'table_cell' || name === 'table_header') {
+              // GFM stores per-column alignment on the cell's `alignment` attr.
+              const align = node.attrs.alignment;
+              if (align === 'left' || align === 'center' || align === 'right') {
+                next.cell_alignment = align;
+              }
+            }
             else if (name === 'code_block') next.code_block = true;
             else if (name === 'list_item') {
               next.list_item_depth += 1;
@@ -1038,7 +1147,15 @@ const Toolbar = defineComponent({
 
       sectionDivider(items);
       pushIf(items, 'codeBlock', sidebarItem('square-code', 'Code Block', cmds.codeBlock, { active: a.code_block }));
-      pushIf(items, 'table', sidebarItem('table', 'Insert Table', cmds.table, { active: a.table }));
+      pushIf(items, 'table', h(CoarSidebarItem, {
+        icon: 'table',
+        label: 'Insert Table',
+        active: a.table,
+        onClick: (e: MouseEvent) => {
+          const triggerEl = (e.currentTarget as HTMLElement | null) ?? (e.target as HTMLElement | null);
+          openTablePicker(triggerEl);
+        },
+      }));
       pushIf(items, 'image', sidebarItem('image', 'Insert Image', cmds.bold, { onClick: handleInsertImageClick }));
 
       // When the cursor is inside a table, surface the table operations in the
@@ -1050,7 +1167,11 @@ const Toolbar = defineComponent({
         items.push(sidebarItem('between-vertical-end', 'Insert Row Below', cmds.addRowAfter));
         items.push(sidebarItem('between-horizontal-start', 'Insert Column Left', cmds.addColBefore));
         items.push(sidebarItem('between-horizontal-end', 'Insert Column Right', cmds.addColAfter));
+        items.push(sidebarItem('align-left', 'Align Left', cmds.deleteCell, { active: a.cell_alignment === 'left', onClick: () => setColumnAlignment('left') }));
+        items.push(sidebarItem('align-center', 'Align Center', cmds.deleteCell, { active: a.cell_alignment === 'center', onClick: () => setColumnAlignment('center') }));
+        items.push(sidebarItem('align-right', 'Align Right', cmds.deleteCell, { active: a.cell_alignment === 'right', onClick: () => setColumnAlignment('right') }));
         items.push(sidebarItem('trash-2', 'Delete Cell', cmds.deleteCell));
+        items.push(sidebarItem('table', 'Delete Table', cmds.deleteCell, { onClick: deleteTable }));
       }
 
       if (enabled('clearFormatting')) {
@@ -1229,7 +1350,12 @@ const Toolbar = defineComponent({
         fb('between-horizontal-start', 'Insert Column Left', cmds.addColBefore),
         fb('between-horizontal-end', 'Insert Column Right', cmds.addColAfter),
         sep(),
-        fb('trash-2', 'Delete', cmds.deleteCell),
+        fb('align-left', 'Align Left', cmds.deleteCell, { isActive: a.cell_alignment === 'left', onClick: () => setColumnAlignment('left') }),
+        fb('align-center', 'Align Center', cmds.deleteCell, { isActive: a.cell_alignment === 'center', onClick: () => setColumnAlignment('center') }),
+        fb('align-right', 'Align Right', cmds.deleteCell, { isActive: a.cell_alignment === 'right', onClick: () => setColumnAlignment('right') }),
+        sep(),
+        fb('trash-2', 'Delete Cell', cmds.deleteCell),
+        fb('table', 'Delete Table', cmds.deleteCell, { onClick: deleteTable }),
         ...(enabled('bold') || enabled('italic') || enabled('inlineCode') ? [sep()] : []),
         ...(enabled('bold') ? [fb('bold', 'Bold', cmds.bold)] : []),
         ...(enabled('italic') ? [fb('italic', 'Italic', cmds.italic)] : []),
