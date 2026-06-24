@@ -201,8 +201,13 @@ export interface AssetStore<T = unknown> {
    *   - `pdf` / `image`       → `string` (URL) OR `Blob`
    *
    * Composable caches the result; subsequent opens hit cache until invalidated.
+   *
+   * **Optional (browse-only mode).** Omit it when the consumer never opens
+   * files in editor tabs (e.g. an image library that only edits metadata). The
+   * composable then treats `openFile` as a no-op instead of forcing a stub that
+   * throws — see also {@link save}.
    */
-  loadContent(id: string): Promise<string | Blob>;
+  loadContent?(id: string): Promise<string | Blob>;
 
   // — write —
 
@@ -212,8 +217,12 @@ export interface AssetStore<T = unknown> {
    * Create a new empty file. The editor + language are derived from `name`
    * via the standard fallback chain (or carried on the returned `Asset` if
    * the backend wants explicit control).
+   *
+   * **Optional.** The composable never calls this itself (it uploads via
+   * `uploadFile`); it exists for consumers that wire a "new file" action.
+   * Browse-only stores can omit it.
    */
-  createFile(parentId: string | null, name: string): Promise<Asset<T>>;
+  createFile?(parentId: string | null, name: string): Promise<Asset<T>>;
 
   /**
    * Upload an OS File (from drop or `<input type=file>`). Distinct from
@@ -221,8 +230,16 @@ export interface AssetStore<T = unknown> {
    */
   uploadFile(parentId: string | null, file: File): Promise<Asset<T>>;
 
-  /** Persist new file content. Composable calls this on Ctrl+S. */
-  save(id: string, content: string | Blob): Promise<void>;
+  /**
+   * Persist new file content. Composable calls this on Ctrl+S and once after
+   * each `uploadFile` to seed the uploaded bytes.
+   *
+   * **Optional (browse-only mode).** Omit it when uploads already persist their
+   * own bytes (multipart `uploadFile`) and the consumer never edits file
+   * content. The composable then skips the post-upload save — which previously
+   * surfaced a spurious "saving not supported" error toast through `onError`.
+   */
+  save?(id: string, content: string | Blob): Promise<void>;
 
   rename(id: string, newName: string): Promise<void>;
 
@@ -251,11 +268,14 @@ export interface AssetStore<T = unknown> {
 export interface AssetStoreConfig<T = unknown> {
   loadTree: AssetStore<T>['loadTree'];
   loadChildren?: AssetStore<T>['loadChildren'];
-  loadContent: AssetStore<T>['loadContent'];
+  /** Optional — omit for browse-only consumers (no editor tabs). See {@link AssetStore.loadContent}. */
+  loadContent?: AssetStore<T>['loadContent'];
   createFolder: AssetStore<T>['createFolder'];
-  createFile: AssetStore<T>['createFile'];
+  /** Optional — the composable never calls this itself. See {@link AssetStore.createFile}. */
+  createFile?: AssetStore<T>['createFile'];
   uploadFile: AssetStore<T>['uploadFile'];
-  save: AssetStore<T>['save'];
+  /** Optional — omit when uploads self-persist and content is never edited. See {@link AssetStore.save}. */
+  save?: AssetStore<T>['save'];
   rename: AssetStore<T>['rename'];
   delete: AssetStore<T>['delete'];
   move: AssetStore<T>['move'];
