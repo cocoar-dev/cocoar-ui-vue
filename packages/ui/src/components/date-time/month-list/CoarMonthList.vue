@@ -255,7 +255,7 @@ onMounted(() => {
 .coar-month-list__months {
   display: flex;
   flex-direction: column;
-  gap: var(--coar-spacing-2xs);
+  gap: var(--coar-spacing-xxs);
   flex: 1;
   overflow-y: auto;
   min-height: 0;

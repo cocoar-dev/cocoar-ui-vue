@@ -444,7 +444,7 @@ const sizeClass = computed(
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--coar-spacing-2xs);
+  gap: var(--coar-spacing-xxs);
 }
 
 /* Up/Down Buttons */
