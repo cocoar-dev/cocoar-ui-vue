@@ -51,6 +51,7 @@ import {
   DEFAULT_TREE_LABELS,
   type CoarTreeCreateEvent,
   type CoarTreeCreateKind,
+  type CoarTreeDataDropEvent,
   type CoarTreeDensity,
   type CoarTreeDraftSlotProps,
   type CoarTreeDropPosition,
@@ -109,6 +110,14 @@ const props = withDefaults(
     /** Fire `activate` on a single click too (not only double-click / Enter). Default false. */
     activateOnClick?: boolean;
     acceptsFiles?: boolean;
+    /**
+     * MIME type(s) of **app-internal** drags the tree should accept as a drop
+     * (e.g. a card dragged out of a grid that did
+     * `dataTransfer.setData('application/x-foo', id)`). A drop carrying any of
+     * these fires `@data-drop` with the target row + position. Distinct from
+     * `acceptsFiles` (OS files) and internal node drags. Default: none.
+     */
+    acceptsData?: string[];
     autoExpandDelay?: number;
     virtualize?: CoarTreeVirtualizeProp;
     /**
@@ -187,6 +196,7 @@ const props = withDefaults(
     getDragImage: undefined,
     activateOnClick: false,
     acceptsFiles: false,
+    acceptsData: undefined,
     autoExpandDelay: 700,
     virtualize: false,
     selectionMode: 'single',
@@ -214,6 +224,7 @@ const emit = defineEmits<{
   (e: 'select', payload: CoarTreeSelectEvent<T>): void;
   (e: 'context-menu', node: T | null, ev: MouseEvent): void;
   (e: 'files-drop', payload: CoarTreeFilesDropEvent<T>): void;
+  (e: 'data-drop', payload: CoarTreeDataDropEvent<T>): void;
   (e: 'node-move', payload: CoarTreeNodeMoveEvent<T>): void;
   (e: 'rename', payload: CoarTreeRenameEvent<T>): void;
   (e: 'rename-cancel', node: T): void;
@@ -434,6 +445,7 @@ const cfg = computed(() => {
       getDragImage: s.getDragImage,
       activateOnClick: toValue(s.activateOnClick),
       acceptsFiles: toValue(s.acceptsFiles),
+      acceptsData: toValue(s.acceptsData),
       autoExpandDelay: toValue(s.autoExpandDelay),
       virtualize: toValue(s.virtualize),
       hideLoadingSpinner: toValue(s.hideLoadingSpinner),
@@ -466,6 +478,7 @@ const cfg = computed(() => {
     getDragImage: props.getDragImage,
     activateOnClick: props.activateOnClick,
     acceptsFiles: props.acceptsFiles,
+    acceptsData: props.acceptsData,
     autoExpandDelay: props.autoExpandDelay,
     virtualize: props.virtualize,
     hideLoadingSpinner: props.hideLoadingSpinner,
@@ -1793,6 +1806,23 @@ function fireFilesDrop(payload: CoarTreeFilesDropEvent<T>) {
   props.builder?.state.onFilesDrop?.(payload);
 }
 
+/**
+ * First accepted app-data MIME present on the drag, or `null`. Internal node
+ * drags are excluded (they own the `node-move` path), so a consumer can't
+ * accidentally re-handle one as a data drop.
+ */
+function acceptedDataMime(dt: DataTransfer): string | null {
+  const accepts = cfg.value.acceptsData;
+  if (!accepts || !accepts.length) return null;
+  if (dt.types.includes(COAR_TREE_DRAG_MIME)) return null;
+  for (const mime of accepts) if (dt.types.includes(mime)) return mime;
+  return null;
+}
+function fireDataDrop(payload: CoarTreeDataDropEvent<T>) {
+  emit('data-drop', payload);
+  props.builder?.state.onDataDrop?.(payload);
+}
+
 function onRowDragStart(node: T, ev: DragEvent) {
   if (!isDraggableOf(node)) {
     ev.preventDefault();
@@ -1825,6 +1855,20 @@ function onRowDragOver(node: T, el: HTMLElement, ev: DragEvent) {
       dropPosition.value = null;
       scheduleAutoExpand(node);
     }
+    return;
+  }
+  // App-internal data drag (consumer MIME) — reuses the drop-target highlight
+  // + auto-expand; before the node-move check, which needs COAR_TREE_DRAG_MIME.
+  if (acceptedDataMime(dt)) {
+    const rect = el.getBoundingClientRect();
+    const pos = computeDropPosition(ev, rect, { expandable: isExpandableOf(node) });
+    ev.preventDefault();
+    dt.dropEffect = 'move';
+    dropTargetId.value = cfg.value.getId(node);
+    dropPosition.value = pos;
+    fileDropTargetId.value = null;
+    if (pos === 'inside') scheduleAutoExpand(node);
+    else clearAutoExpand();
     return;
   }
   if (!dt.types.includes(COAR_TREE_DRAG_MIME)) return;
@@ -1871,6 +1915,15 @@ function onRowDrop(node: T, _el: HTMLElement, ev: DragEvent) {
     clearDragState();
     return;
   }
+  if (acceptedDataMime(dt)) {
+    ev.preventDefault();
+    ev.stopPropagation();
+    const position =
+      dropTargetId.value === cfg.value.getId(node) ? dropPosition.value ?? 'inside' : 'inside';
+    fireDataDrop({ node, position, dataTransfer: dt });
+    clearDragState();
+    return;
+  }
   if (dragSourceId.value && dropTargetId.value === cfg.value.getId(node) && dropPosition.value) {
     // Drop is one-shot, so re-resolve the source from the LIVE tree and re-run
     // the cycle check here — the O(depth) dragover guard can't see mutations
@@ -1901,6 +1954,11 @@ function onRootDragOver(ev: DragEvent) {
     dt.dropEffect = 'copy';
     return;
   }
+  if (acceptedDataMime(dt)) {
+    ev.preventDefault();
+    dt.dropEffect = 'move';
+    return;
+  }
   if (dt.types.includes(COAR_TREE_DRAG_MIME) && dragSourceId.value) {
     ev.preventDefault();
     dt.dropEffect = 'move';
@@ -1916,6 +1974,12 @@ function onRootDrop(ev: DragEvent) {
   if (isFileDrag(dt) && cfg.value.acceptsFiles && dt.files.length) {
     ev.preventDefault();
     fireFilesDrop({ files: dt.files, target: null });
+    clearDragState();
+    return;
+  }
+  if (acceptedDataMime(dt)) {
+    ev.preventDefault();
+    fireDataDrop({ node: null, position: 'inside', dataTransfer: dt });
     clearDragState();
     return;
   }

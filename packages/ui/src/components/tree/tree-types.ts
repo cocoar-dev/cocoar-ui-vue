@@ -108,6 +108,25 @@ export interface CoarTreeFilesDropEvent<T> {
   target: T | null;
 }
 
+/**
+ * Payload for {@link CoarTreeEmits.data-drop} — an **app-internal** drag (one
+ * carrying a consumer MIME from `acceptsData`, e.g. a card dragged out of a
+ * grid) dropped onto a tree row or the background. Distinct from `files-drop`
+ * (OS files) and `node-move` (a row dragged within this tree).
+ */
+export interface CoarTreeDataDropEvent<T> {
+  /** Row the drop landed on, or `null` for the tree background (root). */
+  node: T | null;
+  /** Where the drop landed relative to `node` (`'inside'` for the background). */
+  position: CoarTreeDropPosition;
+  /**
+   * The drop's `DataTransfer`. `getData(mime)` is available here (drop time), so
+   * read your payload off the MIME you registered in `acceptsData`. Don't retain
+   * it past the handler — the browser neuters it after the event.
+   */
+  dataTransfer: DataTransfer;
+}
+
 /** Context exposed to the default slot for rendering a row body. */
 export interface CoarTreeNodeSlotProps<T> {
   node: T;

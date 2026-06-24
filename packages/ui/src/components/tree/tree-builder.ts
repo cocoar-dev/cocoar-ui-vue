@@ -23,6 +23,7 @@ import {
 } from 'vue';
 import type {
   CoarTreeCreateEvent,
+  CoarTreeDataDropEvent,
   CoarTreeDensity,
   CoarTreeDropPosition,
   CoarTreeFilesDropEvent,
@@ -56,6 +57,8 @@ export interface TreeBuilderState<T> {
   getDragImage?: (n: T) => HTMLElement | string | null | undefined;
   activateOnClick: MaybeRefOrGetter<boolean>;
   acceptsFiles: MaybeRefOrGetter<boolean>;
+  /** MIME type(s) of app-internal drags accepted as a drop (see `acceptsData` setter). */
+  acceptsData: MaybeRefOrGetter<string[] | undefined>;
   autoExpandDelay: MaybeRefOrGetter<number>;
   virtualize: MaybeRefOrGetter<CoarTreeVirtualizeProp>;
   hideLoadingSpinner: MaybeRefOrGetter<boolean>;
@@ -92,6 +95,7 @@ export interface TreeBuilderState<T> {
   onSelect?: (e: CoarTreeSelectEvent<T>) => void;
   onNodeMove?: (e: CoarTreeNodeMoveEvent<T>) => void;
   onFilesDrop?: (e: CoarTreeFilesDropEvent<T>) => void;
+  onDataDrop?: (e: CoarTreeDataDropEvent<T>) => void;
 
   /** Lazily fetch a node's children when it's expanded (see `loadChildren` setter). */
   loadChildren?: (node: T, ctx: CoarTreeLoadChildrenContext) => void | Promise<void>;
@@ -250,6 +254,7 @@ export class TreeBuilder<T> {
       getDragImage: undefined,
       activateOnClick: false,
       acceptsFiles: false,
+      acceptsData: undefined,
       autoExpandDelay: 700,
       virtualize: false,
       hideLoadingSpinner: false,
@@ -276,6 +281,7 @@ export class TreeBuilder<T> {
       onSelect: undefined,
       onNodeMove: undefined,
       onFilesDrop: undefined,
+      onDataDrop: undefined,
       loadChildren: undefined,
       maxConcurrentLoads: 0,
       onLoadError: undefined,
@@ -397,6 +403,17 @@ export class TreeBuilder<T> {
 
   acceptsFiles(b: MaybeRefOrGetter<boolean>): this {
     this.state.acceptsFiles = b;
+    return this;
+  }
+
+  /**
+   * Accept app-internal drags carrying any of these MIME types (e.g. a card
+   * dragged out of a grid that did `dataTransfer.setData('application/x-foo', id)`).
+   * A drop fires `onDataDrop` with the target row + position. Distinct from
+   * `acceptsFiles` (OS files) and internal node drags.
+   */
+  acceptsData(mimes: MaybeRefOrGetter<string[] | undefined>): this {
+    this.state.acceptsData = mimes;
     return this;
   }
 
@@ -609,6 +626,12 @@ export class TreeBuilder<T> {
   /** Fires when OS files are dropped onto a folder or the empty background. */
   onFilesDrop(h: (e: CoarTreeFilesDropEvent<T>) => void): this {
     this.state.onFilesDrop = h;
+    return this;
+  }
+
+  /** Fires when an app-internal drag (an `acceptsData` MIME) is dropped on a row or the background. */
+  onDataDrop(h: (e: CoarTreeDataDropEvent<T>) => void): this {
+    this.state.onDataDrop = h;
     return this;
   }
 

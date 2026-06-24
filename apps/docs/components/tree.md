@@ -80,6 +80,32 @@ Set `accepts-files` to receive operating-system file drops onto folder rows or t
 
 <preview path="./tree/demos/TreeFileDrop.vue" />
 
+## App-internal drops (drag something onto a node)
+
+`accepts-files` is for **OS** files. For an **in-app** drag — a card dragged out of your grid, a chip from a palette — set `accepts-data` to the MIME type(s) your source registered, and handle `@data-drop`. The tree reuses the same drop highlight, auto-expand-on-hover, and `before`/`inside`/`after` position as node reordering, but emits a generic event so your handler decides what the drop means (move the asset into the folder, link it, etc.).
+
+```vue
+<!-- your grid card -->
+<div draggable="true" @dragstart="e => e.dataTransfer.setData('application/x-myapp-asset', asset.id)">…</div>
+
+<!-- the tree -->
+<CoarTree
+  :builder="builder"
+  :accepts-data="['application/x-myapp-asset']"
+  @data-drop="onDataDrop"
+/>
+```
+
+```ts
+function onDataDrop({ node, position, dataTransfer }) {
+  const assetId = dataTransfer.getData('application/x-myapp-asset') // read at drop time
+  const targetFolderId = node?.id ?? null                          // null = dropped on the background
+  moveAssetToFolder(assetId, targetFolderId)
+}
+```
+
+Internal node drags (`@node-move`) are never delivered as `@data-drop` even when `accepts-data` is set — the two channels don't cross. The `DataTransfer` is only valid inside the handler (the browser neuters it afterwards), so read your payload synchronously.
+
 ## Context Menu + ⋮ Button
 
 `@context-menu` fires on right-click of any row and on background right-click (`node` is `null`). Wire it to a single `useContextMenu()` controller — the menu's contents adapt to whether a folder, file, or background was hit. The same controller doubles as the click handler for a hover-revealed `⋮` button per row, giving keyboard / left-click users equal access.
@@ -535,6 +561,7 @@ Two `<CoarTree>` instances on the same page can exchange nodes via the shared `a
 | `renamable` | `boolean` | `false` | Opt into built-in inline rename (`api.startRename` / F2 / `@rename`). See [Inline rename](#inline-rename) |
 | `creatable` | `boolean` | `false` | Opt into built-in inline create (`api.startCreate` / `@create`). See [Inline create](#inline-create) |
 | `acceptsFiles` | `boolean` | `false` | Accept OS file drops onto folder rows / the background |
+| `acceptsData` | `string[]` | `undefined` | MIME type(s) of app-internal drags to accept as a drop (e.g. a card from a grid). Fires `@data-drop`. See [App-internal drops](#app-internal-drops-drag-something-onto-a-node) |
 | `autoExpandDelay` | `number` | `700` | Milliseconds the cursor must hover before a collapsed folder auto-expands during a drag |
 | `virtualize` | `boolean \| { itemSize?, overscan? }` | `false` | Enable row virtualization. `true` uses defaults (28-px rows, 5-row overscan); pass an object to customize |
 | `density` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Row spacing preset (sets the spacing CSS vars). With virtualization, match `virtualize.itemSize` to the density's row height |
@@ -557,6 +584,7 @@ Two `<CoarTree>` instances on the same page can exchange nodes via the shared `a
 | `select` | `({ node: T \| null, ids: readonly string[], via: 'user' \| 'api' })` | The highlight selection changed. `node` = the row acted on, `ids` = the full selection after, `via` = user gesture vs `api` call |
 | `context-menu` | `(node: T \| null, ev: MouseEvent)` | Right-click on a row (`node` set) or background (`node` is `null`). The default action is suppressed automatically by `useContextMenu().open(ev)` |
 | `files-drop` | `({ files: FileList, target: T \| null })` | OS files dropped on a folder (`target` set) or empty background (`target` is `null`). Only fires when `accepts-files` is `true` |
+| `data-drop` | `({ node: T \| null, position, dataTransfer: DataTransfer })` | An app-internal drag (an `accepts-data` MIME) dropped on a row (`node` set) or background (`node` is `null`). Read your payload via `dataTransfer.getData(mime)` in the handler |
 | `node-move` | `({ source: T, target: T \| null, position })` | Internal drag-drop OR keyboard move / `api.moveNode`. `position` is `'before'`, `'inside'`, or `'after'`. `target: null` + `'inside'` means "move to root" |
 | `rename` | `({ node: T, newName: string })` | An inline rename committed (Enter / blur, non-empty). Needs `renamable`. See [Inline rename](#inline-rename) |
 | `rename-cancel` | `(node: T)` | An inline rename cancelled (Escape, or committed empty) |
