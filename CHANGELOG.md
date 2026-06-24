@@ -9,7 +9,7 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ## 2.10.0
 
-A batch of fixes from the Tellify (CityDiary) media-library build — completing `CoarTree` and `@cocoar/vue-file-explorer-core` for browse-only, non-tab, non-drag consumers so they can drop their workarounds. Everything is additive and opt-in.
+A batch of improvements from the Tellify (CityDiary) media-library build — inline node **creation** and an app-internal **drop target** for `CoarTree`, plus a programmatic **move**, optimistic **create**, and a **browse-only** mode for `@cocoar/vue-file-explorer-core` — so consumers can drop the workarounds they had built around the gaps. Everything is additive and opt-in.
 
 ### Added
 
