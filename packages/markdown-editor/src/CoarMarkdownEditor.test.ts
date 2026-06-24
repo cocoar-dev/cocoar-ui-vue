@@ -250,3 +250,99 @@ describe('CoarMarkdownEditor — source toggle', () => {
     expect(readEditorMarkdown(wrapper.element as HTMLElement)).toContain('Edited heading');
   });
 });
+
+describe('CoarMarkdownEditor — image insert', () => {
+  function insertImageItem(wrapper: ReturnType<typeof mount>) {
+    return wrapper.findAll('.coar-sidebar-item').find((i) => i.text() === 'Insert Image');
+  }
+
+  it('renders the Insert Image button in a sidebar toolbar', async () => {
+    const wrapper = mount(CoarMarkdownEditor, {
+      props: { modelValue: '# Hi', toolbarMode: 'fixed' },
+      global: globalConfig,
+      attachTo: document.body,
+    });
+    await waitForEditorReady();
+    expect(insertImageItem(wrapper)).toBeTruthy();
+    wrapper.unmount();
+  });
+
+  it('calls pickImage with an insert-context instead of the dialog', async () => {
+    const calls: Array<{ insertImage: unknown; selectedText: unknown }> = [];
+    const pickImage = (ctx: { insertImage: unknown; selectedText: unknown }) => calls.push(ctx);
+    const wrapper = mount(CoarMarkdownEditor, {
+      props: { modelValue: '# Hi', toolbarMode: 'fixed', pickImage },
+      global: globalConfig,
+      attachTo: document.body,
+    });
+    await waitForEditorReady();
+
+    await insertImageItem(wrapper)!.trigger('click');
+    await nextTick();
+
+    // The picker ran; the built-in dialog did NOT open.
+    expect(document.querySelector('.coar-md-image-dialog')).toBeNull();
+    expect(calls).toHaveLength(1);
+    expect(typeof calls[0]!.insertImage).toBe('function');
+    expect(typeof calls[0]!.selectedText).toBe('string');
+
+    // The bound insertImage is safe to call and reaches the editor.
+    expect(() => (calls[0]!.insertImage as (i: { url: string }) => void)({ url: 'https://x.test/a.png' })).not.toThrow();
+    wrapper.unmount();
+  });
+});
+
+describe('CoarMarkdownEditor — flavor (portability gate)', () => {
+  function sidebarLabels(wrapper: ReturnType<typeof mount>): string[] {
+    return wrapper.findAll('.coar-sidebar-item__label').map((l) => l.text());
+  }
+
+  async function mountWithFlavor(flavor: unknown) {
+    const wrapper = mount(CoarMarkdownEditor, {
+      props: { modelValue: '# Hi', toolbarMode: 'fixed', flavor },
+      global: globalConfig,
+      attachTo: document.body,
+    });
+    await waitForEditorReady();
+    return wrapper;
+  }
+
+  it("commonmark hides GFM + color tools", async () => {
+    const wrapper = await mountWithFlavor('commonmark');
+    const labels = sidebarLabels(wrapper);
+    expect(labels).not.toContain('Insert Table');
+    expect(labels).not.toContain('Strikethrough');
+    expect(labels).not.toContain('Task List');
+    expect(labels).not.toContain('Text Color');
+    // Portable basics remain.
+    expect(labels).toContain('Bold');
+    expect(labels).toContain('Insert Image');
+    wrapper.unmount();
+  });
+
+  it('gfm shows tables/strike/tasks but still hides color', async () => {
+    const wrapper = await mountWithFlavor('gfm');
+    const labels = sidebarLabels(wrapper);
+    expect(labels).toContain('Insert Table');
+    expect(labels).toContain('Strikethrough');
+    expect(labels).toContain('Task List');
+    expect(labels).not.toContain('Text Color');
+    wrapper.unmount();
+  });
+
+  it('default (cocoar) shows everything', async () => {
+    const wrapper = await mountWithFlavor(undefined);
+    const labels = sidebarLabels(wrapper);
+    expect(labels).toContain('Insert Table');
+    expect(labels).toContain('Text Color');
+    wrapper.unmount();
+  });
+
+  it('accepts a capability object', async () => {
+    const wrapper = await mountWithFlavor({ gfm: true, textColor: false });
+    const labels = sidebarLabels(wrapper);
+    expect(labels).toContain('Insert Table');
+    expect(labels).not.toContain('Text Color');
+    wrapper.unmount();
+  });
+});

@@ -7,6 +7,35 @@
  */
 
 import type { CoarMarkdownEditorTool } from './CoarMarkdownEditor.vue';
+import type { CoarMarkdownCapabilities } from './flavor';
+
+/**
+ * Whether a toolbar tool is permitted by the resolved flavor capabilities.
+ *
+ * This is the **hard** gate: a tool whose underlying construct isn't part of
+ * the flavor is never shown (and its plugin isn't even registered, so it can't
+ * be created another way). Tools not listed here are always allowed — they map
+ * to portable CommonMark basics.
+ *
+ * - GFM tools (`table`, `tableOps`, `taskList`, `strikethrough`) require `gfm`.
+ * - `textColor` requires `textColor`.
+ */
+export function isToolAllowedByCapabilities(
+  tool: CoarMarkdownEditorTool,
+  caps: CoarMarkdownCapabilities,
+): boolean {
+  switch (tool) {
+    case 'table':
+    case 'tableOps':
+    case 'taskList':
+    case 'strikethrough':
+      return caps.gfm;
+    case 'textColor':
+      return caps.textColor;
+    default:
+      return true;
+  }
+}
 
 /**
  * Decide whether a given tool should appear in the toolbar.

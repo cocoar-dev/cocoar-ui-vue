@@ -6,3 +6,8 @@ export type {
   CoarMarkdownEditorToolbarPosition,
   CoarMarkdownEditorTool,
 } from './CoarMarkdownEditor.vue';
+export type { ImageUploader, ImageUploadOptions } from './image/imageUpload';
+export type { ImageInsertResult } from './image/ImageInsertDialog.vue';
+export type { ImagePicker, ImagePickContext, ImageDescriptor } from './image/pickImage';
+export { resolveCapabilities } from './flavor';
+export type { CoarMarkdownFlavor, CoarMarkdownFlavorInput, CoarMarkdownCapabilities } from './flavor';

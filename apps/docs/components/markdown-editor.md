@@ -21,7 +21,7 @@ Import the stylesheets once at your app's entry — same pattern as `@cocoar/vue
 ::: warning Preview release
 The package is on the `0.0.x` line. The render layer, `v-model` contract, toolbar API, form-field integration, and code-block view/edit toggle are **stable enough to ship in internal Cocoar apps** — the source format is plain Markdown, so any content written today round-trips through future API changes.
 
-Still missing for a `1.0`: link insertion dialog, image upload, and custom table edge-handles. See [TODO](#todo) below.
+Still missing for a `1.0`: a link insertion dialog and hover-based table edge-handles (row/column selection). See [TODO](#todo) below.
 :::
 
 ## Basic Usage
@@ -68,6 +68,36 @@ When `toolbarMode` is `'fixed'` or `'both'`, `toolbarPosition` controls which ed
   toolbar-position="top"
 />
 ```
+
+## Flavors (portability)
+
+The **`flavor`** prop is a portability contract: it picks which features the editor offers and **hard-enforces** them — it only registers the matching Milkdown plugins, so a non-flavor construct can't be typed *or pasted* (it degrades to plain text), and its toolbar buttons are hidden.
+
+This matters when the same Markdown is rendered somewhere stricter than the web — e.g. a **native SwiftUI Markdown view** that only understands CommonMark, or CommonMark+GFM. Pick the flavor that matches your strictest renderer and authors physically can't produce content it won't render.
+
+| Flavor | Adds on top of CommonMark | Renders in |
+|---|---|---|
+| `'commonmark'` | _(nothing — the portable floor)_ headings, bold/italic, lists, links, images, code, blockquote, hr | **any** Markdown renderer |
+| `'gfm'` | tables, task lists, strikethrough | GFM-capable renderers (GitHub, swift-markdown-ui, …) |
+| `'cocoar'` _(default)_ | inline **text color** (non-portable raw HTML) | the Cocoar viewer / your own renderer |
+
+```vue
+<!-- Strict: only portable CommonMark can be authored -->
+<CoarMarkdownEditor v-model="value" flavor="commonmark" toolbar-mode="both" />
+
+<!-- Fine control: GFM tables etc. but no color, via a capability object -->
+<CoarMarkdownEditor v-model="value" :flavor="{ gfm: true, textColor: false }" />
+```
+
+A capability object (`{ gfm?, textColor? }`) is **opt-in** — unspecified capabilities are off, so `{}` ≡ `'commonmark'`. The default is `'cocoar'`, so existing editors are unchanged.
+
+::: tip flavor vs. tools
+`flavor` is the **hard format contract** (what can exist in the document). The [`tools`](#restricting-the-toolbar) whitelist is **soft toolbar curation** (which buttons show) *within* the flavor — e.g. keep GFM parsing but hide the table button. They compose.
+:::
+
+::: warning Changing flavor at runtime
+Plugin registration happens once at mount. To switch `flavor` on a live editor, **re-key** the component (`:key="flavor"`) so it remounts and re-registers — otherwise only the toolbar updates, not the parser. Switching to a stricter flavor degrades unsupported constructs already in the document (a table becomes its literal `| … |` text). The standalone `<CoarMarkdown>` viewer has its own parse options and is not affected by the editor's flavor.
+:::
 
 ## Readonly
 
@@ -131,6 +161,77 @@ With a **fixed** sidebar toolbar (`toolbar-mode` `'fixed'` / `'both'`) the toggl
 
 ::: info Behaviour
 The rich editor stays mounted in Source mode (just hidden), so switching is cheap and the toolbar stays put. `readonly` / `disabled` and the `CoarFormField` wiring carry over to the Source `<textarea>`. Switching back re-seeds the rich editor from the current value, so raw edits (incl. frontmatter) are picked up — the rich editor's undo history resets across a mode switch.
+:::
+
+## Images
+
+Images round-trip as standard Markdown — `![alt](url "title")` — so anything you paste from another CMS (a WordPress export, say) renders as-is in both the editor and `<CoarMarkdown>`.
+
+There are three ways to add one:
+
+- **Insert by URL** — the **Insert Image** button in the sidebar opens a small dialog for `url` / `alt` / `title`. (Like the table and code-block buttons, it lives in the **sidebar**, so use `toolbar-mode="fixed"` or `"both"`.)
+- **Paste** an image from the clipboard (e.g. a screenshot).
+- **Drag & drop** an image file into the writing area.
+
+Paste and drop require an `upload-image` callback. It receives the dropped/pasted `File`, stores it wherever you like, and resolves with the resulting `url` (plus optional `alt`). A spinner placeholder is shown at the insertion point until it resolves, then is replaced by the image. Without the callback, image files fall through to the browser's default handling.
+
+```vue
+<CoarMarkdownEditor
+  v-model="value"
+  toolbar-mode="both"
+  :upload-image="uploadImage"
+/>
+
+<script setup lang="ts">
+async function uploadImage(file: File) {
+  const url = await myAssetService.upload(file) // your storage
+  return { url, alt: file.name }
+}
+</script>
+```
+
+<preview path="./markdown-editor/demos/MarkdownEditorImages.vue" />
+
+### Custom image source (`pickImage`)
+
+To wire the **Insert Image** button to your own asset library or gallery, pass a `pickImage` callback. When set, it **replaces** the built-in URL dialog: clicking the button calls your callback with a context bound to the cursor position — `insertImage(...)` plus the `selectedText` (a handy default for `alt`). Open your own modal, then call `ctx.insertImage(...)` for each chosen image. The modal can stay open and insert several; the editor keeps ownership of cursor handling and the Markdown round-trip, so you never touch ProseMirror.
+
+```vue
+<CoarMarkdownEditor v-model="value" toolbar-mode="both" :pick-image="openGallery" />
+
+<script setup lang="ts">
+function openGallery(ctx) {
+  myGalleryModal.open({
+    defaultAlt: ctx.selectedText,
+    onPick: (asset) => ctx.insertImage({ url: asset.url, alt: asset.title }),
+  })
+}
+</script>
+```
+
+`pickImage` (button → your picker) and `uploadImage` (paste / drop) are orthogonal and compose — wire both for a full gallery-plus-paste experience.
+
+<preview path="./markdown-editor/demos/MarkdownEditorImageGallery.vue" />
+
+::: info Resize / alignment / captions
+Width, alignment, and captions aren't part of standard Markdown, so they're not supported yet — a richer image block (a separate slice) is planned. Today an image is the plain `![alt](url "title")`.
+:::
+
+## Tables
+
+GFM tables are portable (they render on GitHub, in `swift-markdown-ui`, etc.), so they're available in the `'gfm'` and `'cocoar'` [flavors](#flavors-portability). The editor offers a full set of table operations:
+
+**Create** — two ways:
+- The **Insert Table** sidebar button opens a small **grid size picker** — hover (or tap) to choose `cols × rows`, then click to insert.
+- Type **`|3x4|`** followed by a space anywhere — a GFM input rule turns it into a 3-column × 4-row table. This needs no toolbar, so it's the way to create a table in the default `floating` mode.
+
+**Edit** — two ways:
+
+- **Hover edge-handles** (Notion/Word-style) — point at any edge of a table and grips appear along all four sides (a segment per column on top & bottom, per row on left & right). Hovering a grip highlights the whole column/row; **clicking** it opens a menu to **insert before / after** or **delete**, and **dragging** it **reorders** the column/row (with a live drop indicator).
+- **In-cell toolbar** — with the cursor inside a cell, the floating toolbar (and the sidebar in `fixed`/`both` mode) offers insert row/column, **column alignment** (left / center / right, applied to the whole column — round-trips as GFM `:--` / `:-:` / `--:`, active alignment highlighted), **delete cell** and **delete table**.
+
+::: info How the handles work
+The handles are geometry-driven — they measure the hovered table's cell rectangles and render fixed-position grips, rather than reacting to ProseMirror's `CellSelection` (which doesn't fire `selectionchange`). Clicking a grip targets that column/row by position, so it works on any table without needing a cursor inside it first.
 :::
 
 ## Code blocks — view / edit toggle
@@ -261,7 +362,7 @@ const tools = COAR_MARKDOWN_EDITOR_ALL_TOOLS.filter(t => t !== 'table' && t !== 
 | `bulletList` `orderedList` `taskList` | List variants |
 | `indent` `outdent` | List nesting controls |
 | `blockquote` `horizontalRule` | Block elements |
-| `codeBlock` `table` | Insert blocks |
+| `codeBlock` `table` `image` | Insert blocks (sidebar only) |
 | `tableOps` | Insert/Delete row/col, shown contextually when cursor is inside a table |
 | `clearFormatting` | Strip all marks + reset block to paragraph |
 | `undo` `redo` | History |
@@ -297,6 +398,9 @@ When migrating from a richtext editor that exposed those tools, the closest Mark
 | `toolbarMode` | `'floating' \| 'fixed' \| 'both'` | `'floating'` | Toolbar layout |
 | `toolbarPosition` | `'left' \| 'right' \| 'top' \| 'bottom'` | `'left'` | Toolbar edge when `toolbarMode` is `'fixed'` or `'both'`. `top`/`bottom` render a horizontal toolbar; flyouts open along the perpendicular axis. |
 | `tools` | `CoarMarkdownEditorTool[]` | _all_ | Whitelist of toolbar tools. See [Restricting the Toolbar](#restricting-the-toolbar) |
+| `flavor` | `'commonmark' \| 'gfm' \| 'cocoar' \| { gfm?, textColor? }` | `'cocoar'` | Portability contract — hard-enforces which features can be authored. See [Flavors](#flavors-portability) |
+| `uploadImage` | `(file: File) => Promise<{ url: string; alt?: string }>` | _undefined_ | Enables paste / drag-drop image upload. Returns the stored image's URL. See [Images](#images) |
+| `pickImage` | `(ctx: ImagePickContext) => void` | _undefined_ | Override the Insert Image button with your own asset picker. See [Custom image source](#custom-image-source-pickimage) |
 
 ## Events
 
@@ -342,9 +446,10 @@ Table operations are instead exposed via the floating toolbar (when the cursor i
 
 ## TODO
 
-- [ ] Custom table edge-handles (column/row selection + dedicated toolbars)
 - [ ] Link insert/edit dialog
-- [ ] Image upload support
+- [x] Image support (insert by URL, paste / drag-drop upload, custom `pickImage`)
+- [x] Table create (size picker + `|CxR|`), column alignment, delete table
+- [x] Hover edge-handles (row/column grips on all four edges → insert / delete menu)
 - [ ] Task list checkbox rendering and toggling
 - [ ] Use `computeOverlayCoordinates` for floating toolbar positioning instead of viewport clamping
 - [ ] Slash commands for block insertions

@@ -17,26 +17,32 @@ import {
 } from '@milkdown/core';
 import type { $Command } from '@milkdown/utils';
 import { Milkdown, MilkdownProvider, useEditor, useInstance } from '@milkdown/vue';
-import { FORM_FIELD_INJECTION_KEY, menuPreset, useOverlay } from '@cocoar/vue-ui';
+import { FORM_FIELD_INJECTION_KEY, menuPreset, useOverlay, useDialog } from '@cocoar/vue-ui';
 import type { OverlayRef } from '@cocoar/vue-ui';
-import { decideListToggleAction, isToolEnabled } from './toolbar-helpers';
+import { decideListToggleAction, isToolEnabled, isToolAllowedByCapabilities } from './toolbar-helpers';
+import { resolveCapabilities, type CoarMarkdownFlavorInput, type CoarMarkdownCapabilities } from './flavor';
 import { codeBlockNodeView } from './code-block-view';
 import { textColor } from './text-color';
 import { PlaceholderOverlay } from './placeholder';
 import { frontmatter } from './frontmatter';
 import ColorPickerPanel from './text-color/ColorPickerPanel.vue';
+import TableSizePicker from './table/TableSizePicker.vue';
+import TableHandles from './table/TableHandles.vue';
+import ImageInsertDialog, { type ImageInsertResult } from './image/ImageInsertDialog.vue';
+import { imageUpload, type ImageUploader } from './image/imageUpload';
+import type { ImagePicker } from './image/pickImage';
 import { sanitizeColor } from '@cocoar/vue-markdown-core';
 import {
   commonmark,
   toggleStrongCommand, toggleEmphasisCommand, toggleInlineCodeCommand,
   wrapInBlockquoteCommand, wrapInBulletListCommand, wrapInOrderedListCommand,
   wrapInHeadingCommand, turnIntoTextCommand, insertHrCommand, createCodeBlockCommand,
-  liftListItemCommand, sinkListItemCommand,
+  liftListItemCommand, sinkListItemCommand, insertImageCommand,
 } from '@milkdown/preset-commonmark';
 import {
   gfm, toggleStrikethroughCommand, insertTableCommand,
   addRowBeforeCommand, addRowAfterCommand, addColBeforeCommand, addColAfterCommand,
-  deleteSelectedCellsCommand,
+  deleteSelectedCellsCommand, selectTableCommand,
 } from '@milkdown/preset-gfm';
 import { history, undoCommand, redoCommand } from '@milkdown/plugin-history';
 import { clipboard } from '@milkdown/plugin-clipboard';
@@ -62,6 +68,7 @@ export type CoarMarkdownEditorTool =
   | 'indent' | 'outdent'
   | 'blockquote' | 'horizontalRule'
   | 'codeBlock' | 'table' | 'tableOps'
+  | 'image'
   | 'clearFormatting'
   | 'undo' | 'redo';
 
@@ -75,6 +82,7 @@ export const COAR_MARKDOWN_EDITOR_ALL_TOOLS: readonly CoarMarkdownEditorTool[] =
   'indent', 'outdent',
   'blockquote', 'horizontalRule',
   'codeBlock', 'table', 'tableOps',
+  'image',
   'clearFormatting',
   'undo', 'redo',
 ];
@@ -112,6 +120,40 @@ export interface CoarMarkdownEditorProps {
    * does not influence button order).
    */
   tools?: CoarMarkdownEditorTool[];
+  /**
+   * Markdown **flavor** — the portability contract, hard-enforced. Picks which
+   * features are available: the editor only registers the matching plugins (so
+   * non-flavor constructs can't be typed/pasted — they degrade to plain text)
+   * and hides their toolbar buttons.
+   *
+   * - `'commonmark'` — portable floor: headings, bold/italic, lists, links,
+   *   images, code, blockquote, hr. Renders in any Markdown renderer.
+   * - `'gfm'` — + tables, task lists, strikethrough (GFM).
+   * - `'cocoar'` (default) — + inline text color (non-portable raw HTML).
+   *
+   * Or pass a partial capability object `{ gfm?, textColor? }` (unspecified =
+   * off). Defaults to `'cocoar'` so existing editors are unchanged. Use the
+   * separate `tools` prop for soft toolbar curation within a flavor.
+   */
+  flavor?: CoarMarkdownFlavorInput;
+  /**
+   * Enables pasting and dragging image files into the editor. The callback
+   * receives the dropped/pasted `File`, stores it wherever the consumer wants
+   * (CDN, asset service, data-URL, …) and resolves with the resulting `url`
+   * (plus optional `alt`). A spinner placeholder is shown until it resolves,
+   * then replaced by a standard Markdown image. When omitted, image files fall
+   * through to the browser's default handling.
+   */
+  uploadImage?: ImageUploader;
+  /**
+   * Override the **Insert Image** toolbar button. When set, clicking it calls
+   * this callback (instead of the built-in URL dialog) with an
+   * `insertImage(...)` function bound to the cursor position plus the selected
+   * text. Open your own asset / gallery modal and call `ctx.insertImage(...)`.
+   * Pairs naturally with `uploadImage` (paste / drop). Requires a sidebar
+   * toolbar (`toolbarMode` `'fixed'` or `'both'`), like the other insert buttons.
+   */
+  pickImage?: ImagePicker;
 }
 
 // `$Command<T>` is invariant in T, so a heterogeneous record of commands (some
@@ -162,6 +204,7 @@ const EditorImpl = defineComponent({
     toolbarMode: { type: String as PropType<CoarMarkdownEditorToolbarMode>, required: true },
     toolbarPosition: { type: String as PropType<CoarMarkdownEditorToolbarPosition>, required: true },
     tools: { type: Array as PropType<CoarMarkdownEditorTool[] | undefined>, default: undefined },
+    flavor: { type: [String, Object] as PropType<CoarMarkdownFlavorInput>, default: undefined },
     inputId: { type: String, required: true },
     hasError: { type: Boolean, required: true },
     describedBy: { type: String, default: undefined },
@@ -169,6 +212,8 @@ const EditorImpl = defineComponent({
     required: { type: Boolean, required: true },
     placeholder: { type: String, default: '' },
     sourceToggle: { type: Boolean, default: false },
+    uploadImage: { type: Function as PropType<ImageUploader | undefined>, default: undefined },
+    pickImage: { type: Function as PropType<ImagePicker | undefined>, default: undefined },
     onMarkdownChange: { type: Function as PropType<(md: string) => void>, required: true },
   },
   setup(props) {
@@ -183,8 +228,14 @@ const EditorImpl = defineComponent({
     // stay put; the writing area shows a textarea instead.
     const viewMode = ref<'rendered' | 'source'>('rendered');
 
-    useEditor((root) =>
-      Editor.make()
+    // Resolve the flavor once at mount — plugin registration is a creation-time
+    // decision (the hard part of the contract: a disabled plugin means the
+    // construct can't be typed or pasted). Changing `flavor` at runtime needs a
+    // remount (re-key the component); the toolbar gate below is reactive.
+    const capabilities = resolveCapabilities(props.flavor);
+
+    useEditor((root) => {
+      const editor = Editor.make()
         .config((ctx) => {
           ctx.set(rootCtx, root);
           ctx.set(defaultValueCtx, props.initialValue);
@@ -198,20 +249,28 @@ const EditorImpl = defineComponent({
             props.onMarkdownChange(md);
           });
         })
-        .use(commonmark)
-        .use(gfm)
+        .use(commonmark);
+      // GFM (tables + task lists + strikethrough) — only when the flavor allows
+      // it, so e.g. a pasted `| a | b |` stays literal text in a commonmark flavor.
+      if (capabilities.gfm) editor.use(gfm);
+      editor
         // Frontmatter: parse a leading `---…---` YAML block as an atomic node
         // rendered as a metadata card (instead of a collapsed setext heading).
         .use(frontmatter)
         .use(history)
         .use(clipboard)
-        .use(listener)
-        // Inline color mark + raw-HTML span round-trip plugin pair.
-        .use(textColor)
+        .use(listener);
+      // Inline color mark + raw-HTML span round-trip — non-portable, so gated.
+      if (capabilities.textColor) editor.use(textColor);
+      editor
         // Custom NodeView for `code_block` — Prism-rendered when not focused,
         // editable + language selector when the cursor is inside.
-        .use(codeBlockNodeView),
-    );
+        .use(codeBlockNodeView)
+        // Paste / drag-drop image upload. Inert unless `uploadImage` is set;
+        // reads the callback lazily so a changed prop is always honoured.
+        .use(imageUpload({ getUploader: () => props.uploadImage }));
+      return editor;
+    });
 
     const [loading, getInstance] = useInstance();
 
@@ -295,6 +354,8 @@ const EditorImpl = defineComponent({
       name: props.name,
       required: props.required,
       placeholder: props.placeholder,
+      pickImage: props.pickImage,
+      flavor: props.flavor,
       isEmpty: lastEmitted.value.trim() === '',
       sourceToggle: props.sourceToggle,
       viewMode: viewMode.value,
@@ -316,12 +377,14 @@ const Toolbar = defineComponent({
     toolbarMode: { type: String as PropType<CoarMarkdownEditorToolbarMode>, required: true },
     toolbarPosition: { type: String as PropType<CoarMarkdownEditorToolbarPosition>, required: true },
     tools: { type: Array as PropType<CoarMarkdownEditorTool[] | undefined>, default: undefined },
+    flavor: { type: [String, Object] as PropType<CoarMarkdownFlavorInput>, default: undefined },
     inputId: { type: String, required: true },
     hasError: { type: Boolean, required: true },
     describedBy: { type: String, default: undefined },
     name: { type: String, default: undefined },
     required: { type: Boolean, required: true },
     placeholder: { type: String, default: '' },
+    pickImage: { type: Function as PropType<ImagePicker | undefined>, default: undefined },
     isEmpty: { type: Boolean, default: false },
     sourceToggle: { type: Boolean, default: false },
     viewMode: { type: String as PropType<'rendered' | 'source'>, default: 'rendered' },
@@ -332,7 +395,11 @@ const Toolbar = defineComponent({
   setup(props) {
     const [, getInstance] = useInstance();
     const rootEl = ref<HTMLElement | null>(null);
+    const areaEl = ref<HTMLElement | null>(null);
     const floatingVisible = ref(false);
+    // Set while a table-handle action menu is open — suppresses the floating
+    // toolbar so the two don't overlap (the handle menu has the table actions).
+    const tableHandleMenuOpen = ref(false);
     const floatingStyle = ref({ left: '0px', top: '0px' });
     const floatingContext = ref<EditorContext>('text');
     const headingSubmenuOpen = ref(false);
@@ -354,6 +421,9 @@ const Toolbar = defineComponent({
       blockquote: boolean;
       heading: number | null; // level, or null
       table: boolean;
+      /** Alignment of the table column the cursor is in, or null when not in a
+       *  table cell. Drives the active state of the align L/C/R buttons. */
+      cell_alignment: 'left' | 'center' | 'right' | null;
       code_block: boolean;
       /** How many `list_item` ancestors the cursor sits in. 0 = not in any
        *  list, 1 = top-level item, 2+ = nested. Drives indent/outdent enablement. */
@@ -363,14 +433,16 @@ const Toolbar = defineComponent({
       strong: false, emphasis: false, strike_through: false, inlineCode: false,
       text_color: null,
       bullet_list: false, ordered_list: false, task_list: false, blockquote: false,
-      heading: null, table: false, code_block: false, list_item_depth: 0,
+      heading: null, table: false, cell_alignment: null, code_block: false, list_item_depth: 0,
     };
     // Overlay-driven color picker: positioning, viewport flipping, and
     // outside-click + escape dismissal are owned by the shared overlay
     // service (same primitive that powers menus, popovers, and sidebar
     // flyouts). The editor only opens/closes; everything else is handled.
     const overlay = useOverlay();
+    const dialog = useDialog();
     let colorPickerRef: OverlayRef | null = null;
+    let tablePickerRef: OverlayRef | null = null;
     const active = ref<ActiveState>({ ...emptyActive });
 
     function call<T>(cmd: CmdDef<T>) {
@@ -381,6 +453,65 @@ const Toolbar = defineComponent({
         ctx.get(commandsCtx).call(cmd.command.key, cmd.payload);
       });
       // Re-read active state after the command runs (toggles flip immediately).
+      updateActiveState();
+    }
+
+    // Set the alignment of the WHOLE column the cursor is in. Milkdown's
+    // `setAlignCommand` only touches the current cell, but GFM serializes a
+    // column's alignment from its *header* cell — so aligning from a body cell
+    // would be a no-op in the markdown. We set every cell in the column instead
+    // (header included), so the editor shows it AND it round-trips.
+    function setColumnAlignment(align: 'left' | 'center' | 'right') {
+      if (props.readonly) return;
+      const editor = getInstance();
+      if (!editor) return;
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        const { state } = view;
+        const { $from } = state.selection;
+
+        // Locate the enclosing table + the depth of the cell we're in.
+        let tablePos = -1;
+        let tableNode: ReturnType<typeof $from.node> | null = null;
+        let cellDepth = -1;
+        for (let d = $from.depth; d > 0; d--) {
+          const node = $from.node(d);
+          if (node.type.name === 'table') { tableNode = node; tablePos = $from.before(d); }
+          if ((node.type.name === 'table_cell' || node.type.name === 'table_header') && cellDepth < 0) {
+            cellDepth = d;
+          }
+        }
+        if (!tableNode || cellDepth < 0) return;
+
+        // Column index = the cell's index within its row.
+        const colIndex = $from.index(cellDepth - 1);
+
+        // setNodeMarkup keeps node sizes, so positions stay valid across edits
+        // in the same transaction — compute from the original doc and apply.
+        let tr = state.tr;
+        tableNode.forEach((row, rowOffset) => {
+          row.forEach((cell, cellOffset, cellIndex) => {
+            if (cellIndex !== colIndex) return;
+            const cellPos = tablePos + 1 + rowOffset + 1 + cellOffset;
+            tr = tr.setNodeMarkup(cellPos, undefined, { ...cell.attrs, alignment: align });
+          });
+        });
+        if (tr.docChanged) view.dispatch(tr);
+      });
+      updateActiveState();
+    }
+
+    // Delete the whole table: select every cell, then delete the selection —
+    // ProseMirror removes the now-empty table node. Two commands in one action.
+    function deleteTable() {
+      if (props.readonly) return;
+      const editor = getInstance();
+      if (!editor) return;
+      editor.action((ctx) => {
+        const commands = ctx.get(commandsCtx);
+        commands.call(selectTableCommand.key);
+        commands.call(deleteSelectedCellsCommand.key);
+      });
       updateActiveState();
     }
 
@@ -410,7 +541,12 @@ const Toolbar = defineComponent({
     const enabledSet = computed<ReadonlySet<CoarMarkdownEditorTool> | undefined>(() =>
       props.tools ? new Set(props.tools) : undefined,
     );
+    // Resolved flavor capabilities (reactive so the toolbar tracks a changed
+    // `flavor` prop). Drives the hard capability gate in `enabled()`.
+    const capabilities = computed<CoarMarkdownCapabilities>(() => resolveCapabilities(props.flavor));
     function enabled(tool: CoarMarkdownEditorTool): boolean {
+      // Capability gate first: a tool the flavor forbids is never shown.
+      if (!isToolAllowedByCapabilities(tool, capabilities.value)) return false;
       return isToolEnabled(tool, enabledSet.value);
     }
 
@@ -482,6 +618,94 @@ const Toolbar = defineComponent({
         colorPickerRef.close();
       }
       colorPickerRef = null;
+    }
+
+    // Insert a table of the chosen size at the cursor. `insertTableCommand`
+    // takes total rows (incl. the header) and columns.
+    function insertTableSized(rows: number, cols: number) {
+      closeTablePicker();
+      if (props.readonly) return;
+      const editor = getInstance();
+      if (!editor) return;
+      editor.action((ctx) => {
+        ctx.get(commandsCtx).call(insertTableCommand.key, { row: rows, col: cols });
+      });
+      updateActiveState();
+    }
+
+    // Insert Table button → grid size picker (Teleported overlay anchored to the
+    // trigger), instead of a fixed-size insert. Re-clicking the trigger closes it.
+    function openTablePicker(triggerEl: HTMLElement | null) {
+      if (!triggerEl || props.readonly) return;
+      if (tablePickerRef && !tablePickerRef.isClosed) {
+        closeTablePicker();
+        return;
+      }
+      tablePickerRef = overlay.open({
+        spec: { ...menuPreset, anchor: { kind: 'element', element: triggerEl } },
+        content: { kind: 'component', component: markRaw(TableSizePicker) },
+        inputs: { pick: (rows: number, cols: number) => insertTableSized(rows, cols) },
+      });
+      tablePickerRef.afterClosed.then(() => {
+        if (tablePickerRef?.isClosed) tablePickerRef = null;
+      });
+    }
+
+    function closeTablePicker() {
+      if (tablePickerRef && !tablePickerRef.isClosed) {
+        tablePickerRef.close();
+      }
+      tablePickerRef = null;
+    }
+
+    // Dispatch commonmark's `insertImageCommand` at the editor's stored
+    // selection (ProseMirror keeps the selection while the editor is blurred,
+    // so the image lands where the cursor was). Markdown round-trips as the
+    // standard `![alt](url "title")`. Shared by the URL dialog and the
+    // consumer `pickImage` hook.
+    function doInsertImage(image: { url: string; alt?: string; title?: string }) {
+      if (props.readonly || !image.url) return;
+      const editor = getInstance();
+      if (!editor) return;
+      editor.action((ctx) => {
+        ctx.get(commandsCtx).call(insertImageCommand.key, {
+          src: image.url,
+          alt: image.alt || undefined,
+          title: image.title || undefined,
+        });
+      });
+    }
+
+    // Read the text covered by the current selection (empty if collapsed) —
+    // handed to `pickImage` as a default-alt hint.
+    function getSelectedText(): string {
+      const editor = getInstance();
+      if (!editor) return '';
+      let text = '';
+      editor.action((ctx) => {
+        const { state } = ctx.get(editorViewCtx);
+        const { from, to } = state.selection;
+        text = state.doc.textBetween(from, to, ' ');
+      });
+      return text;
+    }
+
+    // Insert Image button handler. With a consumer `pickImage` hook, hand off
+    // to it (bound `insertImage` + selected text); otherwise open the built-in
+    // URL dialog.
+    function handleInsertImageClick() {
+      if (props.readonly) return;
+      const picker = props.pickImage;
+      if (picker) {
+        picker({ insertImage: doInsertImage, selectedText: getSelectedText() });
+        return;
+      }
+      dialog
+        .open(ImageInsertDialog, { title: 'Insert image', size: 's' })
+        .result.then((result) => {
+          const value = result as ImageInsertResult | undefined;
+          if (value?.url) doInsertImage(value);
+        });
     }
 
     // Clear all inline marks on the current selection AND turn the active
@@ -616,6 +840,13 @@ const Toolbar = defineComponent({
             else if (name === 'blockquote') next.blockquote = true;
             else if (name === 'heading') next.heading = (node.attrs.level as number) ?? null;
             else if (name === 'table') next.table = true;
+            else if (name === 'table_cell' || name === 'table_header') {
+              // GFM stores per-column alignment on the cell's `alignment` attr.
+              const align = node.attrs.alignment;
+              if (align === 'left' || align === 'center' || align === 'right') {
+                next.cell_alignment = align;
+              }
+            }
             else if (name === 'code_block') next.code_block = true;
             else if (name === 'list_item') {
               next.list_item_depth += 1;
@@ -921,18 +1152,31 @@ const Toolbar = defineComponent({
 
       sectionDivider(items);
       pushIf(items, 'codeBlock', sidebarItem('square-code', 'Code Block', cmds.codeBlock, { active: a.code_block }));
-      pushIf(items, 'table', sidebarItem('table', 'Insert Table', cmds.table, { active: a.table }));
+      pushIf(items, 'table', h(CoarSidebarItem, {
+        icon: 'table',
+        label: 'Insert Table',
+        active: a.table,
+        onClick: (e: MouseEvent) => {
+          const triggerEl = (e.currentTarget as HTMLElement | null) ?? (e.target as HTMLElement | null);
+          openTablePicker(triggerEl);
+        },
+      }));
+      pushIf(items, 'image', sidebarItem('image', 'Insert Image', cmds.bold, { onClick: handleInsertImageClick }));
 
       // When the cursor is inside a table, surface the table operations in the
       // sidebar so users in `fixed`/`both` toolbar mode can edit table structure
       // without relying on the floating toolbar (which can be disabled).
       if (a.table && enabled('tableOps')) {
         sectionDivider(items);
-        items.push(sidebarItem('between-vertical-start', 'Insert Row Above', cmds.addRowBefore));
-        items.push(sidebarItem('between-vertical-end', 'Insert Row Below', cmds.addRowAfter));
-        items.push(sidebarItem('between-horizontal-start', 'Insert Column Left', cmds.addColBefore));
-        items.push(sidebarItem('between-horizontal-end', 'Insert Column Right', cmds.addColAfter));
+        items.push(sidebarItem('table-row-plus-above', 'Insert Row Above', cmds.addRowBefore));
+        items.push(sidebarItem('table-row-plus-below', 'Insert Row Below', cmds.addRowAfter));
+        items.push(sidebarItem('table-column-plus-left', 'Insert Column Left', cmds.addColBefore));
+        items.push(sidebarItem('table-column-plus-right', 'Insert Column Right', cmds.addColAfter));
+        items.push(sidebarItem('align-left', 'Align Left', cmds.deleteCell, { active: a.cell_alignment === 'left', onClick: () => setColumnAlignment('left') }));
+        items.push(sidebarItem('align-center', 'Align Center', cmds.deleteCell, { active: a.cell_alignment === 'center', onClick: () => setColumnAlignment('center') }));
+        items.push(sidebarItem('align-right', 'Align Right', cmds.deleteCell, { active: a.cell_alignment === 'right', onClick: () => setColumnAlignment('right') }));
         items.push(sidebarItem('trash-2', 'Delete Cell', cmds.deleteCell));
+        items.push(sidebarItem('table', 'Delete Table', cmds.deleteCell, { onClick: deleteTable }));
       }
 
       if (enabled('clearFormatting')) {
@@ -1105,13 +1349,18 @@ const Toolbar = defineComponent({
       if (last?.props?.class === 'coar-md-float-sep') textToolbar.pop();
 
       const tableCursorToolbar: VNodeArrayChildren = enabled('tableOps') ? [
-        fb('between-vertical-start', 'Insert Row Above', cmds.addRowBefore),
-        fb('between-vertical-end', 'Insert Row Below', cmds.addRowAfter),
+        fb('table-row-plus-above', 'Insert Row Above', cmds.addRowBefore),
+        fb('table-row-plus-below', 'Insert Row Below', cmds.addRowAfter),
         sep(),
-        fb('between-horizontal-start', 'Insert Column Left', cmds.addColBefore),
-        fb('between-horizontal-end', 'Insert Column Right', cmds.addColAfter),
+        fb('table-column-plus-left', 'Insert Column Left', cmds.addColBefore),
+        fb('table-column-plus-right', 'Insert Column Right', cmds.addColAfter),
         sep(),
-        fb('trash-2', 'Delete', cmds.deleteCell),
+        fb('align-left', 'Align Left', cmds.deleteCell, { isActive: a.cell_alignment === 'left', onClick: () => setColumnAlignment('left') }),
+        fb('align-center', 'Align Center', cmds.deleteCell, { isActive: a.cell_alignment === 'center', onClick: () => setColumnAlignment('center') }),
+        fb('align-right', 'Align Right', cmds.deleteCell, { isActive: a.cell_alignment === 'right', onClick: () => setColumnAlignment('right') }),
+        sep(),
+        fb('trash-2', 'Delete Cell', cmds.deleteCell),
+        fb('table', 'Delete Table', cmds.deleteCell, { onClick: deleteTable }),
         ...(enabled('bold') || enabled('italic') || enabled('inlineCode') ? [sep()] : []),
         ...(enabled('bold') ? [fb('bold', 'Bold', cmds.bold)] : []),
         ...(enabled('italic') ? [fb('italic', 'Italic', cmds.italic)] : []),
@@ -1119,15 +1368,15 @@ const Toolbar = defineComponent({
       ] : textToolbar;
 
       const colToolbar: VNodeArrayChildren = enabled('tableOps') ? [
-        fb('between-horizontal-start', 'Insert Column Left', cmds.addColBefore),
-        fb('between-horizontal-end', 'Insert Column Right', cmds.addColAfter),
+        fb('table-column-plus-left', 'Insert Column Left', cmds.addColBefore),
+        fb('table-column-plus-right', 'Insert Column Right', cmds.addColAfter),
         sep(),
         fb('trash-2', 'Delete Column', cmds.deleteCell),
       ] : textToolbar;
 
       const rowToolbar: VNodeArrayChildren = enabled('tableOps') ? [
-        fb('between-vertical-start', 'Insert Row Above', cmds.addRowBefore),
-        fb('between-vertical-end', 'Insert Row Below', cmds.addRowAfter),
+        fb('table-row-plus-above', 'Insert Row Above', cmds.addRowBefore),
+        fb('table-row-plus-below', 'Insert Row Below', cmds.addRowAfter),
         sep(),
         fb('trash-2', 'Delete Row', cmds.deleteCell),
       ] : textToolbar;
@@ -1177,12 +1426,22 @@ const Toolbar = defineComponent({
       // sidebar to host the toggle (floating mode), a small corner button does.
       children.push(h('div', {
         key: 'area',
+        ref: areaEl,
         class: ['coar-md-area', 'coar-markdown', { 'coar-md-area--source': isSource }],
         onMousedown: isSource ? undefined : onAreaMouseDown,
       }, [
         h(Milkdown),
         showPlaceholder
           ? h(PlaceholderOverlay, { key: 'placeholder', source: props.placeholder })
+          : null,
+        // Hover edge-handles for tables — only when tables are possible (gfm)
+        // and the doc is editable. Reads the area element as its hover scope.
+        (!props.readonly && !isSource && capabilities.value.gfm)
+          ? h(TableHandles, {
+              key: 'table-handles',
+              area: areaEl.value,
+              onMenuToggle: (open: boolean) => { tableHandleMenuOpen.value = open; },
+            })
           : null,
         isSource
           ? h('textarea', {
@@ -1211,7 +1470,7 @@ const Toolbar = defineComponent({
           : null,
       ]));
       if (showFixed && sidebarLast) children.push(renderSidebar());
-      if (floatingVisible.value && showFloat) children.push(renderFloating());
+      if (floatingVisible.value && showFloat && !tableHandleMenuOpen.value) children.push(renderFloating());
 
       const rootClass = {
         'coar-md-root': true,
@@ -1251,6 +1510,9 @@ export default defineComponent({
     toolbarMode: { type: String as PropType<CoarMarkdownEditorToolbarMode>, default: 'floating' },
     toolbarPosition: { type: String as PropType<CoarMarkdownEditorToolbarPosition>, default: 'left' },
     tools: { type: Array as PropType<CoarMarkdownEditorTool[]>, default: undefined },
+    flavor: { type: [String, Object] as PropType<CoarMarkdownFlavorInput>, default: undefined },
+    uploadImage: { type: Function as PropType<ImageUploader | undefined>, default: undefined },
+    pickImage: { type: Function as PropType<ImagePicker | undefined>, default: undefined },
   },
   emits: ['update:modelValue'],
   setup(props, { emit }) {
@@ -1280,12 +1542,15 @@ export default defineComponent({
         toolbarMode: props.toolbarMode,
         toolbarPosition: props.toolbarPosition,
         tools: props.tools,
+        flavor: props.flavor,
         inputId: inputId.value,
         hasError: hasError.value,
         describedBy: describedBy.value,
         name: props.name,
         required: props.required,
         placeholder: props.placeholder,
+        uploadImage: props.uploadImage,
+        pickImage: props.pickImage,
         onMarkdownChange: (md: string) => emit('update:modelValue', md),
       }),
     );
@@ -1450,6 +1715,31 @@ export default defineComponent({
   border: none;
   border-top: 1px solid var(--coar-border-neutral);
   margin: 1em 0;
+}
+
+/* Inline images keep within the writing column instead of overflowing. The
+   viewer styles `.coar-markdown-image`; Milkdown emits a bare `<img>`, so we
+   match it here for editor/viewer parity on width. */
+.coar-md-area .milkdown img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ── Upload placeholder (paste / drop) ── */
+/* A small inline spinner shown at the insertion point while `uploadImage`
+   is in flight, then replaced by the real image node. */
+.coar-md-image-uploading {
+  display: inline-block;
+  width: 1.25em;
+  height: 1.25em;
+  vertical-align: text-bottom;
+  border: 2px solid var(--coar-border-neutral);
+  border-top-color: var(--coar-text-neutral-secondary, currentColor);
+  border-radius: 50%;
+  animation: coar-md-image-spin 0.7s linear infinite;
+}
+@keyframes coar-md-image-spin {
+  to { transform: rotate(360deg); }
 }
 /* `strong` and `del` intentionally NOT styled here — browser defaults
    (bold = 700, line-through) match the viewer. The previous `font-weight:

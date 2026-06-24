@@ -47,6 +47,10 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('./views/MarkdownEditorView.vue'),
   },
   {
+    path: '/markdown-tables',
+    component: () => import('./views/MarkdownTablesView.vue'),
+  },
+  {
     path: '/file-explorer-poc',
     component: () => import('./views/FileExplorerPocView.vue'),
   },
