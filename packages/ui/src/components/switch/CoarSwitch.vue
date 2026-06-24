@@ -109,6 +109,12 @@ function onBlur() { isFocused.value = false; }
 <style scoped>
 .coar-switch-host {
   display: inline-block;
+  /* Establish a containing block for the visually-hidden, position:absolute
+     .coar-switch-input. Without this the input's containing block bubbles up
+     to the nearest positioned ancestor, so its static-position flow box
+     inflates that ancestor's scrollHeight (phantom outer scrollbar when a
+     switch sits inside a statically-positioned scroll container). */
+  position: relative;
 }
 
 /* Track sizes */
