@@ -45,7 +45,7 @@ export interface CoarTreeLabels {
   retry: string;
   /** aria-label for the inline-create input when `kind` is `'folder'`. Default `'New folder name'`. */
   draftFolderName: string;
-  /** aria-label for the inline-create input when `kind` is `'file'`. Default `'New file name'`. */
+  /** aria-label for the inline-create input when `kind` is `'leaf'`. Default `'New file name'`. */
   draftFileName: string;
   /** Announced when a lazy load starts. */
   loadingNode: (label: string) => string;

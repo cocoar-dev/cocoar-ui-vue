@@ -111,7 +111,7 @@ describe('CoarTree inline create', () => {
     expect(input().attributes('aria-label')).toBe('New folder name');
     await input().trigger('keydown', { key: 'Escape' });
     await nextTick();
-    api.startCreate('a', { kind: 'file' });
+    api.startCreate('a', { kind: 'leaf' });
     await rafFlush();
     await nextTick();
     expect(input().attributes('aria-label')).toBe('New file name');
@@ -128,7 +128,7 @@ describe('CoarTree inline create', () => {
     expect(input().attributes('aria-label')).toBe('Name des neuen Ordners');
     await input().trigger('keydown', { key: 'Escape' });
     await nextTick();
-    api.startCreate('a', { kind: 'file' });
+    api.startCreate('a', { kind: 'leaf' });
     await rafFlush();
     await nextTick();
     expect(input().attributes('aria-label')).toBe('Name der neuen Datei');
