@@ -51,6 +51,10 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('./views/FileExplorerPocView.vue'),
   },
   {
+    path: '/feature-requests-verify',
+    component: () => import('./views/FeatureRequestsVerifyView.vue'),
+  },
+  {
     path: '/panel-layout',
     component: () => import('./views/PanelLayoutPocView.vue'),
   },
