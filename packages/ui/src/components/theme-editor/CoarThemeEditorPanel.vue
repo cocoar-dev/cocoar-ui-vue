@@ -5,6 +5,7 @@ import CoarSelect from '../select/CoarSelect.vue';
 import CoarSwitch from '../switch/CoarSwitch.vue';
 import CoarSegmentedControl from '../segmented-control/CoarSegmentedControl.vue';
 import CoarFormField from '../form-field/CoarFormField.vue';
+import TokenScaleEditor from './TokenScaleEditor.vue';
 import {
   DEFAULTS, RADIUS_OPTIONS, SHADOW_OPTIONS, FONT_OPTIONS_BODY_SELECT, FONT_OPTIONS_TITLE_SELECT,
   DENSITY_OPTIONS, PRESETS, PALETTE_STEPS, SEMANTIC_GROUPS, SEMANTIC_PAL_OPTIONS, SEMANTIC_STEP_OPTIONS,
@@ -335,7 +336,7 @@ const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
         <div class="te-accordion-body">
           <div class="te-section">
             <CoarFormField label="Corner radius" class="te-field">
-              <CoarSelect v-model="inputRadius" :options="RADIUS_OPTIONS" size="s" />
+              <TokenScaleEditor v-model="inputRadius" category="radius" />
             </CoarFormField>
           </div>
           <div class="te-section">
