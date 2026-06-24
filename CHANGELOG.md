@@ -7,6 +7,24 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 2.10.0
+
+A batch of fixes from the Tellify (CityDiary) media-library build — completing `CoarTree` and `@cocoar/vue-file-explorer-core` for browse-only, non-tab, non-drag consumers so they can drop their workarounds. Everything is additive and opt-in.
+
+### Added
+
+- **`@cocoar/vue-ui` — `CoarTree` inline node creation.** Opt in with `creatable` (mirrors `renamable`) and call `api.startCreate(parentId, { kind?, initialName?, position? })` to insert a transient, focused **draft row** at its target position — `parentId: null` for the root, otherwise the parent auto-expands and the draft renders nested under it. Commit (Enter / blur) fires `@create` with `{ parentId, name, kind }`; Escape or an empty name fires `@create-cancel`. Same input + 200 ms blur-grace timer as inline rename, so it survives the context-menu-close focus race. The draft lives outside the visible-row model (selection / keyboard / DnD never see it) and works virtualized and at the empty-tree root. Optional `#draft` slot overrides the default folder/file icon. Removes the consumer workaround of a floating `<input>` rendered outside the tree.
+- **`@cocoar/vue-file-explorer-core` — programmatic `move(id, newParentId, position?)`.** `useFileExplorer` now exposes a plain move (same optimistic-update + rollback as a tree drag) for sources that aren't a `CoarTreeNodeMoveEvent` — a "move to folder" `<select>`, a grid card dropped on a folder row, an undo command. `newParentId: null` moves to the root; `position` is honored only in `'manual'` sort mode. `moveNode` (the tree-drag translator) now delegates to it.
+- **`@cocoar/vue-file-explorer-core` — optimistic `addFolder`.** A temp node is inserted immediately and reconciled to the backend's real id on resolve (rolled back on error), so an inline-create flow has no round-trip lag. Pairs with `CoarTree`'s `startCreate` for a flicker-free draft → real-node handoff. Stores that surface their own reactive `_assets` skip the temp node (their own mutation is the source).
+- **`@cocoar/vue-file-explorer-core` — browse-only stores.** `loadContent`, `save` and `createFile` are now **optional** on `AssetStore<T>` / `AssetStoreConfig<T>`. A consumer that only browses + edits metadata (e.g. an image library) can omit them: the composable skips the post-upload `save`, treats `openFile` as a no-op (no editor tabs, no single-click-preview), and `saveTab` reports failure cleanly — instead of forcing dead stub methods that throw a spurious "saving not supported" error toast. `createAssetStore` attaches optional methods only when supplied, so `'save' in store`-style capability probes stay reliable.
+
+### Fixed
+
+- **`@cocoar/vue-ui` — `CoarToastContainer` no longer crashes without `:service`.** The `service` prop now defaults to the `getToastService()` singleton that `CoarOverlayPlugin` registers (the same one `useToast()` wraps), so `<CoarToastContainer />` is zero-config. Previously, rendering it without `:service` threw `Cannot read properties of undefined (reading 'position')` on every render — which stalled the reactive flush and silently broke unrelated reactive UI on the page (and meant toasts were never shown in apps that followed the service-less example). An explicit `:service` still wins; a missing plugin now throws a clear "install `CoarOverlayPlugin`" error instead of the cryptic undefined read.
+- **`@cocoar/vue-file-explorer-core` — uploads are stamped with the target `parentId`.** After `addFiles(parentId, …)` the merged node now carries the target `parentId` even when the store's returned asset omits it, so a parent-filtered consumer (e.g. a folder-scoped thumbnail grid) shows the new item immediately without a full `refresh()`.
+
+---
+
 ## 2.9.0
 
 A fully redesigned **Theme Editor** with a three-layer semantic token system.
