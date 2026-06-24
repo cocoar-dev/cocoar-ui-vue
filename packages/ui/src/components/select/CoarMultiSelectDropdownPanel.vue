@@ -9,6 +9,7 @@ import { type PropType, type Ref } from 'vue';
 import { useI18n } from '@cocoar/vue-localization';
 import { CoarIcon } from '../icon';
 import { vScrollbar } from '../scrollbar/vScrollbar';
+import { vTooltip } from '../tooltip/vTooltip';
 import type { CoarSelectOption } from './types';
 import type { CoarSelectSize } from './useSelectBase';
 
@@ -107,6 +108,7 @@ const someSelected = props.someSelected;
           :aria-disabled="option.disabled ? 'true' : undefined"
           tabindex="-1"
           role="option"
+          v-tooltip="{ content: option.label, onlyOnOverflow: '.coar-select-option-label', placement: 'top', openDelay: 300 }"
           @click="onOptionClick(option)"
           @mouseenter="onHighlight(i)"
         >
@@ -128,6 +130,10 @@ const someSelected = props.someSelected;
 
 <style scoped>
 .coar-select-dropdown {
+  /* Fill the overlay panel (sized to `minWidth: 'anchor'`) so no empty strip
+     inside the panel swallows clicks. See CoarSelectDropdownPanel for detail. */
+  width: 100%;
+  box-sizing: border-box;
   background: var(--coar-background-neutral-primary);
   border: 1px solid var(--coar-border-neutral);
   border-radius: var(--coar-dropdown-radius);
