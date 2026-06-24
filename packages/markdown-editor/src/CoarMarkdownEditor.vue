@@ -1163,10 +1163,10 @@ const Toolbar = defineComponent({
       // without relying on the floating toolbar (which can be disabled).
       if (a.table && enabled('tableOps')) {
         sectionDivider(items);
-        items.push(sidebarItem('between-vertical-start', 'Insert Row Above', cmds.addRowBefore));
-        items.push(sidebarItem('between-vertical-end', 'Insert Row Below', cmds.addRowAfter));
-        items.push(sidebarItem('between-horizontal-start', 'Insert Column Left', cmds.addColBefore));
-        items.push(sidebarItem('between-horizontal-end', 'Insert Column Right', cmds.addColAfter));
+        items.push(sidebarItem('table-row-plus-above', 'Insert Row Above', cmds.addRowBefore));
+        items.push(sidebarItem('table-row-plus-below', 'Insert Row Below', cmds.addRowAfter));
+        items.push(sidebarItem('table-column-plus-left', 'Insert Column Left', cmds.addColBefore));
+        items.push(sidebarItem('table-column-plus-right', 'Insert Column Right', cmds.addColAfter));
         items.push(sidebarItem('align-left', 'Align Left', cmds.deleteCell, { active: a.cell_alignment === 'left', onClick: () => setColumnAlignment('left') }));
         items.push(sidebarItem('align-center', 'Align Center', cmds.deleteCell, { active: a.cell_alignment === 'center', onClick: () => setColumnAlignment('center') }));
         items.push(sidebarItem('align-right', 'Align Right', cmds.deleteCell, { active: a.cell_alignment === 'right', onClick: () => setColumnAlignment('right') }));
@@ -1344,11 +1344,11 @@ const Toolbar = defineComponent({
       if (last?.props?.class === 'coar-md-float-sep') textToolbar.pop();
 
       const tableCursorToolbar: VNodeArrayChildren = enabled('tableOps') ? [
-        fb('between-vertical-start', 'Insert Row Above', cmds.addRowBefore),
-        fb('between-vertical-end', 'Insert Row Below', cmds.addRowAfter),
+        fb('table-row-plus-above', 'Insert Row Above', cmds.addRowBefore),
+        fb('table-row-plus-below', 'Insert Row Below', cmds.addRowAfter),
         sep(),
-        fb('between-horizontal-start', 'Insert Column Left', cmds.addColBefore),
-        fb('between-horizontal-end', 'Insert Column Right', cmds.addColAfter),
+        fb('table-column-plus-left', 'Insert Column Left', cmds.addColBefore),
+        fb('table-column-plus-right', 'Insert Column Right', cmds.addColAfter),
         sep(),
         fb('align-left', 'Align Left', cmds.deleteCell, { isActive: a.cell_alignment === 'left', onClick: () => setColumnAlignment('left') }),
         fb('align-center', 'Align Center', cmds.deleteCell, { isActive: a.cell_alignment === 'center', onClick: () => setColumnAlignment('center') }),
@@ -1363,15 +1363,15 @@ const Toolbar = defineComponent({
       ] : textToolbar;
 
       const colToolbar: VNodeArrayChildren = enabled('tableOps') ? [
-        fb('between-horizontal-start', 'Insert Column Left', cmds.addColBefore),
-        fb('between-horizontal-end', 'Insert Column Right', cmds.addColAfter),
+        fb('table-column-plus-left', 'Insert Column Left', cmds.addColBefore),
+        fb('table-column-plus-right', 'Insert Column Right', cmds.addColAfter),
         sep(),
         fb('trash-2', 'Delete Column', cmds.deleteCell),
       ] : textToolbar;
 
       const rowToolbar: VNodeArrayChildren = enabled('tableOps') ? [
-        fb('between-vertical-start', 'Insert Row Above', cmds.addRowBefore),
-        fb('between-vertical-end', 'Insert Row Below', cmds.addRowAfter),
+        fb('table-row-plus-above', 'Insert Row Above', cmds.addRowBefore),
+        fb('table-row-plus-below', 'Insert Row Below', cmds.addRowAfter),
         sep(),
         fb('trash-2', 'Delete Row', cmds.deleteCell),
       ] : textToolbar;
