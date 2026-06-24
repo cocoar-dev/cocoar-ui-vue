@@ -27,6 +27,7 @@ import { PlaceholderOverlay } from './placeholder';
 import { frontmatter } from './frontmatter';
 import ColorPickerPanel from './text-color/ColorPickerPanel.vue';
 import TableSizePicker from './table/TableSizePicker.vue';
+import TableHandles from './table/TableHandles.vue';
 import ImageInsertDialog, { type ImageInsertResult } from './image/ImageInsertDialog.vue';
 import { imageUpload, type ImageUploader } from './image/imageUpload';
 import type { ImagePicker } from './image/pickImage';
@@ -394,7 +395,11 @@ const Toolbar = defineComponent({
   setup(props) {
     const [, getInstance] = useInstance();
     const rootEl = ref<HTMLElement | null>(null);
+    const areaEl = ref<HTMLElement | null>(null);
     const floatingVisible = ref(false);
+    // Set while a table-handle action menu is open — suppresses the floating
+    // toolbar so the two don't overlap (the handle menu has the table actions).
+    const tableHandleMenuOpen = ref(false);
     const floatingStyle = ref({ left: '0px', top: '0px' });
     const floatingContext = ref<EditorContext>('text');
     const headingSubmenuOpen = ref(false);
@@ -1421,12 +1426,22 @@ const Toolbar = defineComponent({
       // sidebar to host the toggle (floating mode), a small corner button does.
       children.push(h('div', {
         key: 'area',
+        ref: areaEl,
         class: ['coar-md-area', 'coar-markdown', { 'coar-md-area--source': isSource }],
         onMousedown: isSource ? undefined : onAreaMouseDown,
       }, [
         h(Milkdown),
         showPlaceholder
           ? h(PlaceholderOverlay, { key: 'placeholder', source: props.placeholder })
+          : null,
+        // Hover edge-handles for tables — only when tables are possible (gfm)
+        // and the doc is editable. Reads the area element as its hover scope.
+        (!props.readonly && !isSource && capabilities.value.gfm)
+          ? h(TableHandles, {
+              key: 'table-handles',
+              area: areaEl.value,
+              onMenuToggle: (open: boolean) => { tableHandleMenuOpen.value = open; },
+            })
           : null,
         isSource
           ? h('textarea', {
@@ -1455,7 +1470,7 @@ const Toolbar = defineComponent({
           : null,
       ]));
       if (showFixed && sidebarLast) children.push(renderSidebar());
-      if (floatingVisible.value && showFloat) children.push(renderFloating());
+      if (floatingVisible.value && showFloat && !tableHandleMenuOpen.value) children.push(renderFloating());
 
       const rootClass = {
         'coar-md-root': true,

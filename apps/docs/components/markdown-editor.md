@@ -225,13 +225,13 @@ GFM tables are portable (they render on GitHub, in `swift-markdown-ui`, etc.), s
 - The **Insert Table** sidebar button opens a small **grid size picker** — hover (or tap) to choose `cols × rows`, then click to insert.
 - Type **`|3x4|`** followed by a space anywhere — a GFM input rule turns it into a 3-column × 4-row table. This needs no toolbar, so it's the way to create a table in the default `floating` mode.
 
-**Edit** — with the cursor inside a cell, the in-table toolbar (floating, and the sidebar in `fixed`/`both` mode) offers:
-- Insert row above / below, insert column left / right
-- **Column alignment** — left / center / right, applied to the whole column (round-trips as GFM `:--` / `:-:` / `--:`); the active alignment is highlighted
-- **Delete cell** and **Delete table**
+**Edit** — two ways:
 
-::: info Hover edge-handles
-Selecting a whole row/column by pointing at its border (Notion/Word-style) isn't built yet — it needs pointer/hover detection rather than ProseMirror's `CellSelection` (which doesn't fire `selectionchange`). It's prototyped in the playground table testbed.
+- **Hover edge-handles** (Notion/Word-style) — point at any edge of a table and grips appear along all four sides (a segment per column on top & bottom, per row on left & right). Hovering a grip highlights the whole column/row; clicking it opens a menu to **insert before / after** or **delete** that column/row.
+- **In-cell toolbar** — with the cursor inside a cell, the floating toolbar (and the sidebar in `fixed`/`both` mode) offers insert row/column, **column alignment** (left / center / right, applied to the whole column — round-trips as GFM `:--` / `:-:` / `--:`, active alignment highlighted), **delete cell** and **delete table**.
+
+::: info How the handles work
+The handles are geometry-driven — they measure the hovered table's cell rectangles and render fixed-position grips, rather than reacting to ProseMirror's `CellSelection` (which doesn't fire `selectionchange`). Clicking a grip targets that column/row by position, so it works on any table without needing a cursor inside it first.
 :::
 
 ## Code blocks — view / edit toggle
@@ -446,10 +446,10 @@ Table operations are instead exposed via the floating toolbar (when the cursor i
 
 ## TODO
 
-- [ ] Hover-based table edge-handles (point at a row/column border to select it)
 - [ ] Link insert/edit dialog
 - [x] Image support (insert by URL, paste / drag-drop upload, custom `pickImage`)
 - [x] Table create (size picker + `|CxR|`), column alignment, delete table
+- [x] Hover edge-handles (row/column grips on all four edges → insert / delete menu)
 - [ ] Task list checkbox rendering and toggling
 - [ ] Use `computeOverlayCoordinates` for floating toolbar positioning instead of viewport clamping
 - [ ] Slash commands for block insertions
