@@ -194,7 +194,11 @@ export {
   TreeBuilder,
 } from './components/tree';
 export type {
+  CoarTreeCreateEvent,
+  CoarTreeCreateKind,
+  CoarTreeDataDropEvent,
   CoarTreeDensity,
+  CoarTreeDraftSlotProps,
   CoarTreeDropPosition,
   CoarTreeFilesDropEvent,
   CoarTreeFilterMode,
@@ -207,6 +211,7 @@ export type {
   CoarTreeRenameEvent,
   CoarTreeSelectEvent,
   CoarTreeSelectionMode,
+  CoarTreeStartCreateOptions,
   CoarTreeMenuItem,
   CoarTreeMenuEntry,
   CoarTreeVirtualizeProp,

@@ -2158,7 +2158,7 @@ defineExpose({
               v-model="draftBuffer"
               class="coar-tree__draft-input"
               data-draft-input
-              :aria-label="entry.draft.kind === 'folder' ? 'New folder name' : 'New file name'"
+              :aria-label="entry.draft.kind === 'folder' ? resolvedLabels.draftFolderName : resolvedLabels.draftFileName"
               @click.stop
               @dblclick.stop
               @keydown.stop

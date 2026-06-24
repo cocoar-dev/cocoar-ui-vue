@@ -458,7 +458,7 @@ When virtualizing, set `virtualize.itemSize` to match your density's row height 
 
 ## i18n / labels {#i18n-labels}
 
-Every built-in string (chevron Expand / Collapse, the loading spinner, the retry button, and all the polite drag / move / load-error announcements) is overridable via `labels` for localization. Unset fields fall back to the English `DEFAULT_TREE_LABELS`.
+Every built-in string (chevron Expand / Collapse, the loading spinner, the retry button, the inline-create input's `aria-label`, and all the polite drag / move / load-error announcements) is overridable via `labels` for localization. Unset fields fall back to the English `DEFAULT_TREE_LABELS`.
 
 ```ts
 builder.labels({
@@ -466,6 +466,8 @@ builder.labels({
   collapse: 'Zuklappen',
   loading: 'Lädt …',
   retry: 'Erneut',
+  draftFolderName: 'Name des neuen Ordners',
+  draftFileName: 'Name der neuen Datei',
   moveCancelled: 'Verschieben abgebrochen.',
 })
 ```

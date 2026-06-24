@@ -43,6 +43,10 @@ export interface CoarTreeLabels {
   loading: string;
   /** Retry button label on a node whose lazy load failed. Default `'Retry'`. */
   retry: string;
+  /** aria-label for the inline-create input when `kind` is `'folder'`. Default `'New folder name'`. */
+  draftFolderName: string;
+  /** aria-label for the inline-create input when `kind` is `'file'`. Default `'New file name'`. */
+  draftFileName: string;
   /** Announced when a lazy load starts. */
   loadingNode: (label: string) => string;
   /** Announced when a lazy load fails. */
@@ -63,6 +67,8 @@ export const DEFAULT_TREE_LABELS: CoarTreeLabels = {
   collapse: 'Collapse',
   loading: 'Loading children',
   retry: 'Retry',
+  draftFolderName: 'New folder name',
+  draftFileName: 'New file name',
   loadingNode: (l) => `Loading ${l}…`,
   loadError: (l) => `Failed to load ${l}.`,
   pickedUp: (l) => `Picked up ${l}. Move to a row, then Ctrl+V to drop or Escape to cancel.`,
