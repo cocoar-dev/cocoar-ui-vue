@@ -17,7 +17,7 @@ import {
 } from '@milkdown/core';
 import type { $Command } from '@milkdown/utils';
 import { Milkdown, MilkdownProvider, useEditor, useInstance } from '@milkdown/vue';
-import { FORM_FIELD_INJECTION_KEY, menuPreset, useOverlay } from '@cocoar/vue-ui';
+import { FORM_FIELD_INJECTION_KEY, menuPreset, useOverlay, useDialog } from '@cocoar/vue-ui';
 import type { OverlayRef } from '@cocoar/vue-ui';
 import { decideListToggleAction, isToolEnabled } from './toolbar-helpers';
 import { codeBlockNodeView } from './code-block-view';
@@ -25,13 +25,15 @@ import { textColor } from './text-color';
 import { PlaceholderOverlay } from './placeholder';
 import { frontmatter } from './frontmatter';
 import ColorPickerPanel from './text-color/ColorPickerPanel.vue';
+import ImageInsertDialog, { type ImageInsertResult } from './image/ImageInsertDialog.vue';
+import { imageUpload, type ImageUploader } from './image/imageUpload';
 import { sanitizeColor } from '@cocoar/vue-markdown-core';
 import {
   commonmark,
   toggleStrongCommand, toggleEmphasisCommand, toggleInlineCodeCommand,
   wrapInBlockquoteCommand, wrapInBulletListCommand, wrapInOrderedListCommand,
   wrapInHeadingCommand, turnIntoTextCommand, insertHrCommand, createCodeBlockCommand,
-  liftListItemCommand, sinkListItemCommand,
+  liftListItemCommand, sinkListItemCommand, insertImageCommand,
 } from '@milkdown/preset-commonmark';
 import {
   gfm, toggleStrikethroughCommand, insertTableCommand,
@@ -62,6 +64,7 @@ export type CoarMarkdownEditorTool =
   | 'indent' | 'outdent'
   | 'blockquote' | 'horizontalRule'
   | 'codeBlock' | 'table' | 'tableOps'
+  | 'image'
   | 'clearFormatting'
   | 'undo' | 'redo';
 
@@ -75,6 +78,7 @@ export const COAR_MARKDOWN_EDITOR_ALL_TOOLS: readonly CoarMarkdownEditorTool[] =
   'indent', 'outdent',
   'blockquote', 'horizontalRule',
   'codeBlock', 'table', 'tableOps',
+  'image',
   'clearFormatting',
   'undo', 'redo',
 ];
@@ -112,6 +116,15 @@ export interface CoarMarkdownEditorProps {
    * does not influence button order).
    */
   tools?: CoarMarkdownEditorTool[];
+  /**
+   * Enables pasting and dragging image files into the editor. The callback
+   * receives the dropped/pasted `File`, stores it wherever the consumer wants
+   * (CDN, asset service, data-URL, …) and resolves with the resulting `url`
+   * (plus optional `alt`). A spinner placeholder is shown until it resolves,
+   * then replaced by a standard Markdown image. When omitted, image files fall
+   * through to the browser's default handling.
+   */
+  uploadImage?: ImageUploader;
 }
 
 // `$Command<T>` is invariant in T, so a heterogeneous record of commands (some
@@ -169,6 +182,7 @@ const EditorImpl = defineComponent({
     required: { type: Boolean, required: true },
     placeholder: { type: String, default: '' },
     sourceToggle: { type: Boolean, default: false },
+    uploadImage: { type: Function as PropType<ImageUploader | undefined>, default: undefined },
     onMarkdownChange: { type: Function as PropType<(md: string) => void>, required: true },
   },
   setup(props) {
@@ -210,7 +224,10 @@ const EditorImpl = defineComponent({
         .use(textColor)
         // Custom NodeView for `code_block` — Prism-rendered when not focused,
         // editable + language selector when the cursor is inside.
-        .use(codeBlockNodeView),
+        .use(codeBlockNodeView)
+        // Paste / drag-drop image upload. Inert unless `uploadImage` is set;
+        // reads the callback lazily so a changed prop is always honoured.
+        .use(imageUpload({ getUploader: () => props.uploadImage })),
     );
 
     const [loading, getInstance] = useInstance();
@@ -370,6 +387,7 @@ const Toolbar = defineComponent({
     // service (same primitive that powers menus, popovers, and sidebar
     // flyouts). The editor only opens/closes; everything else is handled.
     const overlay = useOverlay();
+    const dialog = useDialog();
     let colorPickerRef: OverlayRef | null = null;
     const active = ref<ActiveState>({ ...emptyActive });
 
@@ -482,6 +500,30 @@ const Toolbar = defineComponent({
         colorPickerRef.close();
       }
       colorPickerRef = null;
+    }
+
+    // Insert an image by URL. Opens a modal dialog to collect url/alt/title,
+    // then dispatches commonmark's `insertImageCommand` at the editor's stored
+    // selection (ProseMirror keeps the selection while the editor is blurred,
+    // so the image lands where the cursor was). Markdown round-trips as the
+    // standard `![alt](url "title")`.
+    function insertImage() {
+      if (props.readonly) return;
+      dialog
+        .open(ImageInsertDialog, { title: 'Insert image', size: 's' })
+        .result.then((result) => {
+          const value = result as ImageInsertResult | undefined;
+          if (!value?.url) return;
+          const editor = getInstance();
+          if (!editor) return;
+          editor.action((ctx) => {
+            ctx.get(commandsCtx).call(insertImageCommand.key, {
+              src: value.url,
+              alt: value.alt || undefined,
+              title: value.title || undefined,
+            });
+          });
+        });
     }
 
     // Clear all inline marks on the current selection AND turn the active
@@ -922,6 +964,7 @@ const Toolbar = defineComponent({
       sectionDivider(items);
       pushIf(items, 'codeBlock', sidebarItem('square-code', 'Code Block', cmds.codeBlock, { active: a.code_block }));
       pushIf(items, 'table', sidebarItem('table', 'Insert Table', cmds.table, { active: a.table }));
+      pushIf(items, 'image', sidebarItem('image', 'Insert Image', cmds.bold, { onClick: insertImage }));
 
       // When the cursor is inside a table, surface the table operations in the
       // sidebar so users in `fixed`/`both` toolbar mode can edit table structure
@@ -1251,6 +1294,7 @@ export default defineComponent({
     toolbarMode: { type: String as PropType<CoarMarkdownEditorToolbarMode>, default: 'floating' },
     toolbarPosition: { type: String as PropType<CoarMarkdownEditorToolbarPosition>, default: 'left' },
     tools: { type: Array as PropType<CoarMarkdownEditorTool[]>, default: undefined },
+    uploadImage: { type: Function as PropType<ImageUploader | undefined>, default: undefined },
   },
   emits: ['update:modelValue'],
   setup(props, { emit }) {
@@ -1286,6 +1330,7 @@ export default defineComponent({
         name: props.name,
         required: props.required,
         placeholder: props.placeholder,
+        uploadImage: props.uploadImage,
         onMarkdownChange: (md: string) => emit('update:modelValue', md),
       }),
     );
@@ -1450,6 +1495,31 @@ export default defineComponent({
   border: none;
   border-top: 1px solid var(--coar-border-neutral);
   margin: 1em 0;
+}
+
+/* Inline images keep within the writing column instead of overflowing. The
+   viewer styles `.coar-markdown-image`; Milkdown emits a bare `<img>`, so we
+   match it here for editor/viewer parity on width. */
+.coar-md-area .milkdown img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ── Upload placeholder (paste / drop) ── */
+/* A small inline spinner shown at the insertion point while `uploadImage`
+   is in flight, then replaced by the real image node. */
+.coar-md-image-uploading {
+  display: inline-block;
+  width: 1.25em;
+  height: 1.25em;
+  vertical-align: text-bottom;
+  border: 2px solid var(--coar-border-neutral);
+  border-top-color: var(--coar-text-neutral-secondary, currentColor);
+  border-radius: 50%;
+  animation: coar-md-image-spin 0.7s linear infinite;
+}
+@keyframes coar-md-image-spin {
+  to { transform: rotate(360deg); }
 }
 /* `strong` and `del` intentionally NOT styled here — browser defaults
    (bold = 700, line-through) match the viewer. The previous `font-weight:

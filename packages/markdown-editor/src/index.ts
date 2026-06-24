@@ -6,3 +6,5 @@ export type {
   CoarMarkdownEditorToolbarPosition,
   CoarMarkdownEditorTool,
 } from './CoarMarkdownEditor.vue';
+export type { ImageUploader, ImageUploadOptions } from './image/imageUpload';
+export type { ImageInsertResult } from './image/ImageInsertDialog.vue';

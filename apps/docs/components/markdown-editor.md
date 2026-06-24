@@ -133,6 +133,39 @@ With a **fixed** sidebar toolbar (`toolbar-mode` `'fixed'` / `'both'`) the toggl
 The rich editor stays mounted in Source mode (just hidden), so switching is cheap and the toolbar stays put. `readonly` / `disabled` and the `CoarFormField` wiring carry over to the Source `<textarea>`. Switching back re-seeds the rich editor from the current value, so raw edits (incl. frontmatter) are picked up — the rich editor's undo history resets across a mode switch.
 :::
 
+## Images
+
+Images round-trip as standard Markdown — `![alt](url "title")` — so anything you paste from another CMS (a WordPress export, say) renders as-is in both the editor and `<CoarMarkdown>`.
+
+There are three ways to add one:
+
+- **Insert by URL** — the **Insert Image** button in the sidebar opens a small dialog for `url` / `alt` / `title`. (Like the table and code-block buttons, it lives in the **sidebar**, so use `toolbar-mode="fixed"` or `"both"`.)
+- **Paste** an image from the clipboard (e.g. a screenshot).
+- **Drag & drop** an image file into the writing area.
+
+Paste and drop require an `upload-image` callback. It receives the dropped/pasted `File`, stores it wherever you like, and resolves with the resulting `url` (plus optional `alt`). A spinner placeholder is shown at the insertion point until it resolves, then is replaced by the image. Without the callback, image files fall through to the browser's default handling.
+
+```vue
+<CoarMarkdownEditor
+  v-model="value"
+  toolbar-mode="both"
+  :upload-image="uploadImage"
+/>
+
+<script setup lang="ts">
+async function uploadImage(file: File) {
+  const url = await myAssetService.upload(file) // your storage
+  return { url, alt: file.name }
+}
+</script>
+```
+
+<preview path="./markdown-editor/demos/MarkdownEditorImages.vue" />
+
+::: info Resize / alignment / captions
+Width, alignment, and captions aren't part of standard Markdown, so they're not supported yet — a richer image block (a separate slice) is planned. Today an image is the plain `![alt](url "title")`.
+:::
+
 ## Code blocks — view / edit toggle
 
 Code blocks have a richer UX than the rest of the editor. When the cursor is **outside** a code block it renders as `CoarCodeBlock` with full Prism syntax highlighting — same component, same look as `<CoarMarkdown>` produces in the viewer. When the cursor moves **inside** the block it switches to plain editable mode plus a language selector at the top.
@@ -261,7 +294,7 @@ const tools = COAR_MARKDOWN_EDITOR_ALL_TOOLS.filter(t => t !== 'table' && t !== 
 | `bulletList` `orderedList` `taskList` | List variants |
 | `indent` `outdent` | List nesting controls |
 | `blockquote` `horizontalRule` | Block elements |
-| `codeBlock` `table` | Insert blocks |
+| `codeBlock` `table` `image` | Insert blocks (sidebar only) |
 | `tableOps` | Insert/Delete row/col, shown contextually when cursor is inside a table |
 | `clearFormatting` | Strip all marks + reset block to paragraph |
 | `undo` `redo` | History |
@@ -297,6 +330,7 @@ When migrating from a richtext editor that exposed those tools, the closest Mark
 | `toolbarMode` | `'floating' \| 'fixed' \| 'both'` | `'floating'` | Toolbar layout |
 | `toolbarPosition` | `'left' \| 'right' \| 'top' \| 'bottom'` | `'left'` | Toolbar edge when `toolbarMode` is `'fixed'` or `'both'`. `top`/`bottom` render a horizontal toolbar; flyouts open along the perpendicular axis. |
 | `tools` | `CoarMarkdownEditorTool[]` | _all_ | Whitelist of toolbar tools. See [Restricting the Toolbar](#restricting-the-toolbar) |
+| `uploadImage` | `(file: File) => Promise<{ url: string; alt?: string }>` | _undefined_ | Enables paste / drag-drop image upload. Returns the stored image's URL. See [Images](#images) |
 
 ## Events
 

@@ -65,6 +65,30 @@ const value = ref('# Hello\n\nStart typing **markdown**.');
 | `placeholder` | `string` | `''` | Markdown hint shown while empty. Overlay-only — never written to `modelValue` |
 | `toolbarMode` | `'floating' \| 'fixed' \| 'both'` | `'floating'` | Toolbar layout |
 | `toolbarPosition` | `'left' \| 'right'` | `'left'` | Sidebar position when `toolbarMode` is `'fixed'` or `'both'` |
+| `uploadImage` | `(file: File) => Promise<{ url: string; alt?: string }>` | _undefined_ | Enables paste / drag-drop image upload (see [Images](#images)) |
+
+## Images
+
+Images round-trip as standard Markdown — `![alt](url "title")`. Three ways to add one:
+
+- **Insert by URL** — the **Insert Image** sidebar button opens a dialog for `url` / `alt` / `title`. Like the table/code-block buttons it lives in the sidebar, so use `toolbar-mode="fixed"` or `"both"`.
+- **Paste** an image from the clipboard (e.g. a screenshot).
+- **Drag & drop** an image file into the writing area.
+
+Paste and drop require an `upload-image` callback — it receives the `File`, stores it, and resolves with the resulting `url`. A spinner placeholder shows at the insertion point until it resolves, then is replaced by the image. Without the callback, image files fall through to the browser's default handling.
+
+```vue
+<CoarMarkdownEditor v-model="value" toolbar-mode="both" :upload-image="uploadImage" />
+
+<script setup lang="ts">
+async function uploadImage(file: File) {
+  const url = await myAssetService.upload(file)
+  return { url, alt: file.name }
+}
+</script>
+```
+
+> Resize / alignment / captions aren't part of standard Markdown and aren't supported yet — a richer image block is planned as a separate slice.
 
 ## Events
 
