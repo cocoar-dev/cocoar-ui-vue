@@ -6,7 +6,7 @@
  * separately in the File Explorer POC (inline create).
  */
 import { computed, ref, onBeforeUnmount } from 'vue';
-import { CoarToastContainer, useToast } from '@cocoar/vue-ui';
+import { CoarToastContainer, CoarTree, CoarTreeNodeLabel, useTree, useToast } from '@cocoar/vue-ui';
 import {
   createAssetStore,
   createInMemoryAssetStore,
@@ -115,6 +115,41 @@ async function run6() {
 const browse6Pass = computed(
   () => ran6.value && !sawSaveError.value && tabsAfterOpen.value === 0,
 );
+
+// ─────────────────────────────────────────────────────────────────────────
+// #1A — async onCreate keep-open / reopen-on-reject (Tellify reply #A)
+// A builder onCreate that REJECTS the name "dup" (simulated 409) and resolves
+// anything else. On reject the draft must stay open + focused; on success it drops.
+// ─────────────────────────────────────────────────────────────────────────
+interface FNode {
+  id: string;
+  name: string;
+  children?: FNode[];
+}
+const fnodes = ref<FNode[]>([{ id: 'root', name: 'root', children: [] }]);
+const { builder: treeBuilder, api: treeApi } = useTree<FNode>();
+let createSeq = 0;
+treeBuilder
+  .nodes(fnodes)
+  .getId((n) => n.id)
+  .getChildren((n) => n.children)
+  .getLabel((n) => n.name)
+  .expanded(ref(new Set(['root'])))
+  .creatable(true)
+  .onCreate(async ({ name }) => {
+    // Simulate an async backend that 409s on the literal name "dup".
+    await new Promise((r) => setTimeout(r, 30));
+    if (name === 'dup') throw new Error('duplicate name (simulated 409)');
+    fnodes.value = [
+      {
+        ...fnodes.value[0],
+        children: [...(fnodes.value[0].children ?? []), { id: `n${createSeq++}`, name }],
+      },
+    ];
+  });
+function start1a() {
+  treeApi.startCreate('root', { kind: 'folder' });
+}
 </script>
 
 <template>
@@ -168,6 +203,23 @@ const browse6Pass = computed(
       </span>
     </section>
 
+    <!-- #1A -->
+    <section class="frv__panel" data-testid="panel-1a">
+      <h3>#1A · async onCreate keep-open / reopen-on-reject</h3>
+      <p>
+        Type <code>dup</code> + Enter → simulated 409 → draft stays open (retry).
+        Any other name → draft drops + node added.
+      </p>
+      <button data-testid="start-1a" @click="start1a">New folder under root</button>
+      <div class="frv__tree" data-testid="tree-1a">
+        <CoarTree :builder="treeBuilder">
+          <template #default="{ node }">
+            <CoarTreeNodeLabel :label="node.name" />
+          </template>
+        </CoarTree>
+      </div>
+    </section>
+
     <!-- The component under test for #2: rendered WITHOUT :service on purpose. -->
     <CoarToastContainer />
   </div>
@@ -214,5 +266,12 @@ const browse6Pass = computed(
 .frv__badge.fail {
   background: #fef9c3;
   color: #854d0e;
+}
+.frv__tree {
+  height: 160px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  margin-top: 8px;
+  overflow: auto;
 }
 </style>
