@@ -393,6 +393,8 @@ function decrement() {
 
 /* Input Container */
 .coar-number-input-container {
+  /* Effective field padding = base × per-size scale × density (see CoarTextInput). */
+  --coar-field-pad: calc(var(--coar-field-padding-x) * var(--coar-component-scale, 1) * var(--coar-component-density, 1));
   position: relative;
   display: flex;
   align-items: center;
@@ -409,12 +411,15 @@ function decrement() {
 /* Size variants */
 .coar-number-input--xs .coar-number-input-container {
   height: var(--coar-component-xs-height);
+  --coar-component-scale: var(--coar-component-xs-scale);
 }
 .coar-number-input--s .coar-number-input-container {
   height: var(--coar-component-s-height);
+  --coar-component-scale: var(--coar-component-s-scale);
 }
 .coar-number-input--l .coar-number-input-container {
   height: var(--coar-component-l-height);
+  --coar-component-scale: var(--coar-component-l-scale);
 }
 
 /* Size-specific typography */
@@ -476,7 +481,7 @@ function decrement() {
   flex: 1;
   min-width: 0;
   height: 100%;
-  padding: 0 var(--coar-spacing-s);
+  padding: 0 var(--coar-field-pad);
   border: none;
   outline: none;
   background: transparent;

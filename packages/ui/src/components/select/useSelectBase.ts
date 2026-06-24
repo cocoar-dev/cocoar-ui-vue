@@ -1,8 +1,25 @@
 import { ref, computed, watch, type Ref } from 'vue';
 import type { CoarSelectOption, CoarSelectSortGroups, CoarSelectSortOptions } from './types';
+import type { SizeSpec } from '../overlay/overlay-types';
 
 export type CoarSelectSize = 'xs' | 's' | 'm' | 'l';
 export type CoarSelectAppearance = 'outline' | 'inline';
+
+/**
+ * Width sizing for a select's dropdown overlay panel, shared by CoarSelect,
+ * CoarMultiSelect and CoarTagSelect.
+ *
+ * - `undefined` (default) → the panel is fixed to the trigger width
+ *   (`width: 'anchor'`). Option labels wider than the trigger truncate with an
+ *   ellipsis and reveal the full text via an on-overflow tooltip. This keeps
+ *   the panel perfectly aligned with the control and never wider.
+ * - `number | string` → the panel grows from the trigger width up to this cap
+ *   (`minWidth: 'anchor'` + `maxWidth`), then truncates beyond it. A number is
+ *   treated as pixels; a string is used verbatim (e.g. `'32rem'`, `'50vw'`).
+ */
+export function resolveDropdownSize(maxWidth?: number | string): SizeSpec {
+  return maxWidth == null ? { width: 'anchor' } : { minWidth: 'anchor', maxWidth };
+}
 
 export interface UseSelectBaseOptions<T = unknown> {
   options: Ref<CoarSelectOption<T>[]>;

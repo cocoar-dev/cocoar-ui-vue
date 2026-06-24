@@ -11,8 +11,8 @@ import {
   DENSITY_OPTIONS, PRESETS, PALETTE_STEPS, SEMANTIC_GROUPS, SEMANTIC_PAL_OPTIONS, SEMANTIC_STEP_OPTIONS,
   accent, success, errorColor, warning, info,
   radiusXxs, radiusXs, radiusS, radiusM, radiusL, radiusXl,
-  spacingXs, spacingS, spacingM, spacingL, spacingXl, spacingXxl,
-  density, buttonRadius, inputRadius, inputPaddingX, inputPaddingXEnabled,
+  spacingXs, spacingS, spacingM, spacingL, spacingXl,
+  density, buttonRadius, inputRadius, fieldPaddingX, fieldPaddingXEnabled,
   tagRadius, badgeRadius, cardRadius, menuRadius, popoverRadius, dropdownRadius, dialogRadius, toastRadius,
   cardShadow, menuShadow, popoverShadow, dropdownShadow, dialogShadow, toastShadow,
   fontBody, fontTitle, motionScale, motionLabel,
@@ -288,12 +288,6 @@ const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
               <span class="te-scale-val">{{ spacingXl }}px</span>
               <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': spacingXl !== DEFAULTS.spacingXl }" :disabled="spacingXl === DEFAULTS.spacingXl" @click="spacingXl = DEFAULTS.spacingXl" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
             </div>
-            <div class="te-scale-row">
-              <span class="te-scale-name">XXL</span>
-              <input type="range" class="te-slider" min="0" max="96" v-model.number="spacingXxl" />
-              <span class="te-scale-val">{{ spacingXxl }}px</span>
-              <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': spacingXxl !== DEFAULTS.spacingXxl }" :disabled="spacingXxl === DEFAULTS.spacingXxl" @click="spacingXxl = DEFAULTS.spacingXxl" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
-            </div>
           </div>
           <div class="te-section">
             <div class="te-section-label">Component density</div>
@@ -341,17 +335,17 @@ const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
           </div>
           <div class="te-section">
             <div class="te-section-label">
-              Horizontal padding
-              <CoarSwitch v-model="inputPaddingXEnabled" label="Override" size="s" style="margin-left:auto" />
+              Field padding
+              <CoarSwitch v-model="fieldPaddingXEnabled" label="Override" size="s" style="margin-left:auto" />
             </div>
-            <div class="te-scale-row" :class="{ 'te-scale-row--disabled': !inputPaddingXEnabled }">
-              <input type="range" class="te-slider" min="4" max="32" step="1" v-model.number="inputPaddingX" :disabled="!inputPaddingXEnabled" />
-              <span class="te-scale-val">{{ inputPaddingXEnabled ? inputPaddingX + 'px' : 'auto' }}</span>
-              <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': inputPaddingXEnabled }" :disabled="!inputPaddingXEnabled" @click="inputPaddingXEnabled = false; inputPaddingX = DEFAULTS.inputPaddingX" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
+            <div class="te-scale-row" :class="{ 'te-scale-row--disabled': !fieldPaddingXEnabled }">
+              <input type="range" class="te-slider" min="4" max="32" step="1" v-model.number="fieldPaddingX" :disabled="!fieldPaddingXEnabled" />
+              <span class="te-scale-val">{{ fieldPaddingXEnabled ? fieldPaddingX + 'px' : `${DEFAULTS.fieldPaddingX}px` }}</span>
+              <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': fieldPaddingXEnabled }" :disabled="!fieldPaddingXEnabled" @click="fieldPaddingXEnabled = false; fieldPaddingX = DEFAULTS.fieldPaddingX" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
             </div>
             <p class="te-hint">
-              <template v-if="inputPaddingXEnabled">Fixed override — CSS default ignored.</template>
-              <template v-else>Auto: <code>calc(spacing-s + spacing-xs)</code></template>
+              <template v-if="fieldPaddingXEnabled">Fixed override — <code>--coar-field-padding-x</code> ignored.</template>
+              <template v-else>Shared by text/password/number/select fields. Tight affixes use half this value.</template>
             </p>
           </div>
         </div>
@@ -534,7 +528,11 @@ const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
 .te-icon-btn--changed { color: var(--coar-background-accent-primary, #1183CD) !important; }
 
 /* ── Body ────────────────────────────────────────────── */
-.te-body { flex: 1; overflow-y: auto; }
+/* position: relative makes te-body the containing block for any absolutely
+   positioned descendant (e.g. a control's visually-hidden input), so its own
+   overflow clip applies to them — otherwise such elements escape to a higher
+   positioned ancestor and inflate the outer panel's scrollHeight. */
+.te-body { flex: 1; overflow-y: auto; position: relative; }
 
 /* ── Presets section ─────────────────────────────────── */
 .te-presets-section {

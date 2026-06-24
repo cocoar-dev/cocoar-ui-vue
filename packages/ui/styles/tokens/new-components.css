@@ -143,7 +143,12 @@
   /* Radius — per component group */
   --coar-button-radius:    var(--coar-radius-xs);   /* CoarButton, CoarSegmentedControl, CoarPagination */
   --coar-input-radius:     var(--coar-radius-xs);   /* all text/number/otp/password/select inputs */
-  --coar-input-padding-x:  calc(var(--coar-spacing-s) + var(--coar-spacing-xs)); /* horizontal padding of text inputs — increase for pill-shaped inputs */
+
+  /* Field horizontal padding — a dedicated component token, intentionally NOT on
+     the spacing scale (12px sits in the scale's 8→16 gap). Single source of truth
+     for text/password/number/select fields; the consumer multiplies by density. */
+  --coar-field-padding-x:       12px;                                  /* canonical field padding */
+  --coar-field-padding-x-tight: calc(var(--coar-field-padding-x) / 2); /* tighter inset for affixes/toggles inside a field */
   --coar-tag-radius:       var(--coar-radius-xs);   /* CoarTag + inline chips inside multi-selects */
   --coar-badge-radius:     var(--coar-radius-full); /* CoarBadge */
   --coar-card-radius:      var(--coar-radius-s);    /* CoarCard */

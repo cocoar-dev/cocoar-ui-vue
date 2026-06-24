@@ -201,6 +201,8 @@ function togglePasswordVisibility() {
   display: flex;
   align-items: center;
   height: var(--coar-component-m-height);
+  /* Effective field padding = base × per-size scale × density (see CoarTextInput). */
+  --coar-field-pad: calc(var(--coar-field-padding-x) * var(--coar-component-scale, 1) * var(--coar-component-density, 1));
   border: 1px solid var(--coar-border-input);
   border-radius: var(--coar-input-radius);
   background: var(--coar-surface-input);
@@ -211,9 +213,9 @@ function togglePasswordVisibility() {
 }
 
 /* Size variants */
-.coar-password-input--xs .coar-password-input-container { height: var(--coar-component-xs-height); }
-.coar-password-input--s .coar-password-input-container { height: var(--coar-component-s-height); }
-.coar-password-input--l .coar-password-input-container { height: var(--coar-component-l-height); }
+.coar-password-input--xs .coar-password-input-container { height: var(--coar-component-xs-height); --coar-component-scale: var(--coar-component-xs-scale); }
+.coar-password-input--s .coar-password-input-container { height: var(--coar-component-s-height); --coar-component-scale: var(--coar-component-s-scale); }
+.coar-password-input--l .coar-password-input-container { height: var(--coar-component-l-height); --coar-component-scale: var(--coar-component-l-scale); }
 
 /* Size-specific typography */
 .coar-password-input--xs .coar-password-input-field { font-size: var(--coar-component-xs-font-size); }
@@ -266,7 +268,7 @@ function togglePasswordVisibility() {
   flex: 1;
   min-width: 0;
   height: 100%;
-  padding: 0 calc(var(--coar-spacing-s) + var(--coar-spacing-xs));
+  padding: 0 var(--coar-field-pad);
   border: none;
   outline: none;
   background: transparent;
@@ -342,17 +344,17 @@ function togglePasswordVisibility() {
 
 .coar-password-input--xs .coar-password-input-toggle {
   font-size: var(--coar-component-xs-font-size);
-  padding: var(--coar-spacing-xxs) calc(var(--coar-spacing-xs) + var(--coar-spacing-xxs));
+  padding: var(--coar-spacing-xxs) var(--coar-field-padding-x-tight);
 }
 
 .coar-password-input--s .coar-password-input-toggle {
   font-size: var(--coar-component-s-font-size);
-  padding: var(--coar-spacing-xxs) calc(var(--coar-spacing-s) - var(--coar-spacing-xxs));
+  padding: var(--coar-spacing-xxs) var(--coar-field-padding-x-tight);
 }
 
 .coar-password-input--l .coar-password-input-toggle {
   font-size: var(--coar-component-l-font-size);
-  padding: var(--coar-spacing-xs) calc(var(--coar-spacing-s) + var(--coar-spacing-xs));
+  padding: var(--coar-spacing-xs) var(--coar-field-pad);
 }
 
 .coar-password-input-toggle:hover { color: var(--coar-icon-neutral-primary); }

@@ -7,18 +7,18 @@ const CSS = `
   :root {
     --coar-radius-m: 4px;
     --coar-input-radius: var(--coar-radius-m);
-    --coar-input-padding-x: 12px;
+    --coar-field-padding-x: 12px;
   }
 `;
 
 describe('extractConsumers', () => {
   it('pulls var() usage out of SFC text and drops token-free components', () => {
     const consumers = extractConsumers([
-      { name: 'CoarTextInput', source: '<style>.x{ border-radius: var(--coar-input-radius); padding: 0 var(--coar-input-padding-x); }</style>' },
+      { name: 'CoarTextInput', source: '<style>.x{ border-radius: var(--coar-input-radius); padding: 0 var(--coar-field-padding-x); }</style>' },
       { name: 'CoarPlain', source: '<style>.x{ color: red; }</style>' },
     ]);
     expect(consumers).toEqual([
-      { name: 'CoarTextInput', tokens: ['--coar-input-radius', '--coar-input-padding-x'] },
+      { name: 'CoarTextInput', tokens: ['--coar-input-radius', '--coar-field-padding-x'] },
     ]);
   });
 });
@@ -27,11 +27,11 @@ describe('addConsumerNodes', () => {
   it('adds a consumer node wired to the tokens it uses, in both directions', () => {
     const graph = buildTokenGraph(parseTokenDeclarations(CSS));
     addConsumerNodes(graph, [
-      { name: 'CoarTextInput', tokens: ['--coar-input-radius', '--coar-input-padding-x'] },
+      { name: 'CoarTextInput', tokens: ['--coar-input-radius', '--coar-field-padding-x'] },
     ]);
     const consumer = graph.nodes.get('CoarTextInput')!;
     expect(consumer.layer).toBe('consumer');
-    expect(consumer.references).toEqual(['--coar-input-radius', '--coar-input-padding-x']);
+    expect(consumer.references).toEqual(['--coar-input-radius', '--coar-field-padding-x']);
     // reverse edge: the token now knows the component depends on it (impact)
     expect(graph.nodes.get('--coar-input-radius')!.dependents).toContain('CoarTextInput');
   });

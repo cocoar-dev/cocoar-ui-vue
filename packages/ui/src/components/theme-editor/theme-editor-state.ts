@@ -36,13 +36,12 @@ export const DEFAULTS = {
   spacingM:   16,
   spacingL:   24,
   spacingXl:  32,
-  spacingXxl: 48,
   // Density
   density: 1,
   // Radius per component (CSS token values, not px numbers)
   buttonRadius:    'var(--coar-radius-xs)',
   inputRadius:     'var(--coar-radius-xs)',
-  inputPaddingX:   12,
+  fieldPaddingX:   12,
   tagRadius:      'var(--coar-radius-xs)',
   badgeRadius:    'var(--coar-radius-full)',
   cardRadius:     'var(--coar-radius-s)',
@@ -85,12 +84,11 @@ export const spacingS       = ref(DEFAULTS.spacingS);
 export const spacingM       = ref(DEFAULTS.spacingM);
 export const spacingL       = ref(DEFAULTS.spacingL);
 export const spacingXl      = ref(DEFAULTS.spacingXl);
-export const spacingXxl     = ref(DEFAULTS.spacingXxl);
 export const density        = ref(DEFAULTS.density);
 export const buttonRadius   = ref(DEFAULTS.buttonRadius);
 export const inputRadius    = ref(DEFAULTS.inputRadius);
-export const inputPaddingX        = ref(DEFAULTS.inputPaddingX);
-export const inputPaddingXEnabled = ref(false);
+export const fieldPaddingX        = ref(DEFAULTS.fieldPaddingX);
+export const fieldPaddingXEnabled = ref(false);
 export const tagRadius      = ref(DEFAULTS.tagRadius);
 export const badgeRadius    = ref(DEFAULTS.badgeRadius);
 export const cardRadius     = ref(DEFAULTS.cardRadius);
@@ -176,7 +174,7 @@ export const PRESETS = [
       spacingS:       12,
       spacingM:       20,
       spacingL:       28,
-      inputPaddingX:  20,
+      fieldPaddingX:  20,
       buttonRadius:   'var(--coar-radius-full)',
       inputRadius:    'var(--coar-radius-l)',
       tagRadius:      'var(--coar-radius-full)',
@@ -391,9 +389,8 @@ export const hasChanges = computed(() =>
   spacingM.value       !== DEFAULTS.spacingM       ||
   spacingL.value       !== DEFAULTS.spacingL       ||
   spacingXl.value      !== DEFAULTS.spacingXl      ||
-  spacingXxl.value     !== DEFAULTS.spacingXxl     ||
   density.value        !== DEFAULTS.density        ||
-  inputPaddingXEnabled.value                        ||
+  fieldPaddingXEnabled.value                        ||
   buttonRadius.value   !== DEFAULTS.buttonRadius   ||
   inputRadius.value    !== DEFAULTS.inputRadius    ||
   tagRadius.value      !== DEFAULTS.tagRadius      ||
@@ -434,13 +431,12 @@ export function applyPreset(preset: typeof PRESETS[number]) {
   spacingM.value       = v.spacingM   as number;
   spacingL.value       = v.spacingL   as number;
   spacingXl.value      = v.spacingXl  as number;
-  spacingXxl.value     = v.spacingXxl as number;
   warning.value        = v.warning as string;
   info.value           = v.info as string;
   buttonRadius.value   = v.buttonRadius as string;
   inputRadius.value    = v.inputRadius as string;
-  inputPaddingX.value        = v.inputPaddingX as number;
-  inputPaddingXEnabled.value = (v.inputPaddingX as number) !== DEFAULTS.inputPaddingX;
+  fieldPaddingX.value        = v.fieldPaddingX as number;
+  fieldPaddingXEnabled.value = (v.fieldPaddingX as number) !== DEFAULTS.fieldPaddingX;
   tagRadius.value      = v.tagRadius as string;
   badgeRadius.value    = v.badgeRadius as string;
   cardRadius.value     = v.cardRadius as string;
@@ -483,9 +479,8 @@ export function applyTokens() {
   if (spacingM.value   !== D.spacingM)   add('--coar-spacing-m',   `${spacingM.value}px`);
   if (spacingL.value   !== D.spacingL)   add('--coar-spacing-l',   `${spacingL.value}px`);
   if (spacingXl.value  !== D.spacingXl)  add('--coar-spacing-xl',  `${spacingXl.value}px`);
-  if (spacingXxl.value !== D.spacingXxl) add('--coar-spacing-xxl', `${spacingXxl.value}px`);
   if (density.value !== D.density) add('--coar-component-density', String(density.value));
-  if (inputPaddingXEnabled.value)  add('--coar-input-padding-x',   `${inputPaddingX.value}px`);
+  if (fieldPaddingXEnabled.value)  add('--coar-field-padding-x',   `${fieldPaddingX.value}px`);
   if (buttonRadius.value   !== D.buttonRadius)   add('--coar-button-radius',        buttonRadius.value);
   if (inputRadius.value    !== D.inputRadius)    add('--coar-input-radius',         inputRadius.value);
   if (tagRadius.value      !== D.tagRadius)      add('--coar-tag-radius',           tagRadius.value);
@@ -560,10 +555,9 @@ export function reset() {
   spacingM.value   = DEFAULTS.spacingM;
   spacingL.value   = DEFAULTS.spacingL;
   spacingXl.value  = DEFAULTS.spacingXl;
-  spacingXxl.value = DEFAULTS.spacingXxl;
   density.value       = DEFAULTS.density;
-  inputPaddingX.value        = DEFAULTS.inputPaddingX;
-  inputPaddingXEnabled.value = false;
+  fieldPaddingX.value        = DEFAULTS.fieldPaddingX;
+  fieldPaddingXEnabled.value = false;
   for (const key of Object.keys(paletteOverrides) as PaletteKey[]) {
     paletteOverrides[key] = {};
   }
@@ -599,11 +593,10 @@ export function downloadCSS() {
   if (spacingM.value   !== DEFAULTS.spacingM)   lines.push(`  --coar-spacing-m: ${spacingM.value}px;`);
   if (spacingL.value   !== DEFAULTS.spacingL)   lines.push(`  --coar-spacing-l: ${spacingL.value}px;`);
   if (spacingXl.value  !== DEFAULTS.spacingXl)  lines.push(`  --coar-spacing-xl: ${spacingXl.value}px;`);
-  if (spacingXxl.value !== DEFAULTS.spacingXxl) lines.push(`  --coar-spacing-xxl: ${spacingXxl.value}px;`);
   if (density.value !== DEFAULTS.density)
     lines.push(`  --coar-component-density: ${density.value};`);
-  if (inputPaddingXEnabled.value)
-    lines.push(`  --coar-input-padding-x: ${inputPaddingX.value}px;`);
+  if (fieldPaddingXEnabled.value)
+    lines.push(`  --coar-field-padding-x: ${fieldPaddingX.value}px;`);
   add('--coar-button-radius',        buttonRadius.value,   DEFAULTS.buttonRadius);
   add('--coar-input-radius',         inputRadius.value,    DEFAULTS.inputRadius);
   add('--coar-tag-radius',           tagRadius.value,      DEFAULTS.tagRadius);
@@ -697,12 +690,11 @@ export function initThemeEditorState(hideDarkToggle: boolean) {
   spacingM.value   = px('--coar-spacing-m',   DEFAULTS.spacingM);
   spacingL.value   = px('--coar-spacing-l',   DEFAULTS.spacingL);
   spacingXl.value  = px('--coar-spacing-xl',  DEFAULTS.spacingXl);
-  spacingXxl.value = px('--coar-spacing-xxl', DEFAULTS.spacingXxl);
 
   const density_ = parseFloat(get('--coar-component-density'));
   if (!isNaN(density_)) density.value = density_;
-  inputPaddingX.value = px('--coar-input-padding-x', DEFAULTS.inputPaddingX);
-  inputPaddingXEnabled.value = inputPaddingX.value !== DEFAULTS.inputPaddingX;
+  fieldPaddingX.value = px('--coar-field-padding-x', DEFAULTS.fieldPaddingX);
+  fieldPaddingXEnabled.value = fieldPaddingX.value !== DEFAULTS.fieldPaddingX;
   strOpt('--coar-button-radius',        buttonRadius,   RADIUS_OPTIONS);
   strOpt('--coar-input-radius',         inputRadius,    RADIUS_OPTIONS);
   strOpt('--coar-tag-radius',           tagRadius,      RADIUS_OPTIONS);
@@ -734,8 +726,8 @@ export function initThemeEditorState(hideDarkToggle: boolean) {
   _stopRefsWatch = watch(
     [accent, success, errorColor, warning, info,
      radiusXxs, radiusXs, radiusS, radiusM, radiusL, radiusXl,
-     spacingXs, spacingS, spacingM, spacingL, spacingXl, spacingXxl,
-     density, inputPaddingX, inputPaddingXEnabled,
+     spacingXs, spacingS, spacingM, spacingL, spacingXl,
+     density, fieldPaddingX, fieldPaddingXEnabled,
      buttonRadius, inputRadius, tagRadius, badgeRadius, cardRadius,
      menuRadius, popoverRadius, dropdownRadius, dialogRadius, toastRadius,
      cardShadow, menuShadow, popoverShadow, dropdownShadow, dialogShadow, toastShadow,

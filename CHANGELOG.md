@@ -7,6 +7,27 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## Unreleased
+
+Spacing-scale cleanup and a dedicated field-padding token. The spacing scale had drifted: two dead steps, a duplicate, and an off-scale value (`12px`) faked with `calc(--spacing-s + --spacing-xs)` — which implicitly coupled input padding to two scale steps, so tuning `--coar-spacing-s` silently shifted every text field. A usage census (workhorses `s`/`xs` ≈ 70% of all references; `xxl`/`xxxl` unused; `2xs` a duplicate of `xxs`) drove the change.
+
+### Removed
+
+- **`@cocoar/vue-ui` — dead / duplicate spacing tokens (breaking).** `--coar-spacing-2xs` (a duplicate of `--coar-spacing-xxs`, both `2px`), `--coar-spacing-xxl` (`48px`) and `--coar-spacing-xxxl` (`64px`) are removed — the latter two had zero usages across the library. The scale is now `3xs 1 · xxs 2 · xs 4 · s 8 · m 16 · l 24 · xl 32`. Consumers referencing the removed tokens should switch `2xs → xxs` and pick a remaining step for `xxl`/`xxxl`.
+- **`@cocoar/vue-ui` — `--coar-input-padding-x` (breaking, renamed).** Replaced by `--coar-field-padding-x` (see below).
+
+### Added
+
+- **`@cocoar/vue-ui` — `--coar-field-padding-x` (`12px`) + `--coar-field-padding-x-tight` (`calc(--coar-field-padding-x / 2)`).** A dedicated component token for form-field horizontal padding, intentionally **off** the spacing scale (`12px` sits in the scale's `8→16` gap) and **decoupled** from it — tuning `--coar-spacing-*` no longer moves field padding. Single source of truth for text / password / number / select fields (the consumer multiplies by `--coar-component-density`). The Theme Editor's "Inputs → Field padding" control (with its opt-in override switch) now drives this token.
+
+### Changed
+
+- **`@cocoar/vue-ui` — `CoarTextInput` / `CoarPasswordInput` field padding.** Now read `--coar-field-padding-x` (value unchanged at `12px`). `CoarPasswordInput` no longer re-derives the same value inline with `calc(--spacing-s + --spacing-xs)` (which had drifted from the shared token) and its size-variant toggle paddings use `--coar-field-padding-x` / `-tight` instead of off-scale `calc()` sums.
+- **`@cocoar/vue-ui` — field horizontal padding now scales per control size.** The whole field family (text / password / number / select / multi-select / tag-select) derives its horizontal padding as `--coar-field-padding-x × per-size-scale × density`, so xs/s/m/l no longer share a single flat value (e.g. at base `12px`: xs `8.1` · s `9.6` · m `12` · l `14.4`). You still tune **one** knob (`--coar-field-padding-x`, the `m` base) and every size scales proportionally — e.g. bump it for pill-shaped inputs and the smaller sizes follow. Adds `--coar-component-{xs,s,m,l}-scale` (unitless, height-derived: `0.675 / 0.8 / 1 / 1.2`) as a reusable per-size multiplier. Also unifies select/number field padding onto `--coar-field-padding-x` (they previously used a flat `--coar-spacing-s`, so the Theme Editor's Field-padding control now affects them too).
+- **`@cocoar/vue-ui` — Theme Editor.** Dropped the dead `XXL` spacing slider; renamed the "Horizontal padding" control to "Field padding" (writes `--coar-field-padding-x`).
+
+---
+
 ## 2.10.0
 
 A batch of improvements from the Tellify (CityDiary) build. For the media-library: inline node **creation** and an app-internal **drop target** for `CoarTree`, plus a programmatic **move**, optimistic **create**, and a **browse-only** mode for `@cocoar/vue-file-explorer-core` — so consumers can drop the workarounds they had built around the gaps. For the blog editor: `@cocoar/vue-markdown-editor` gains real **image** support (URL / paste / drag-drop upload / custom picker), full **table** editing (create, align, delete, and Notion-style hover handles with **drag-to-reorder**), and a **`flavor`** portability switch. Everything is additive and opt-in.

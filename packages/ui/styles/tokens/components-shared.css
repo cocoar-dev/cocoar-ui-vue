@@ -28,6 +28,16 @@
   --coar-component-m-font-size: 14px;
   --coar-component-l-font-size: 16px;
 
+  /* Component Size Scale — per-size, unitless multiplier for size-derived
+     dimensions (e.g. field padding). Derived from the height ratio (÷ m), so a
+     size's padding tracks its height. m is the 1.0 base; a component reads this
+     into --coar-component-scale on its size modifier. Fixed design constants —
+     the editable knob is the base value (e.g. --coar-field-padding-x). */
+  --coar-component-xs-scale: 0.675; /* 27 / 40 */
+  --coar-component-s-scale:  0.8;   /* 32 / 40 */
+  --coar-component-m-scale:  1;     /* 40 / 40 — base */
+  --coar-component-l-scale:  1.2;   /* 48 / 40 */
+
   /* Component Label Font Sizes (slightly smaller for labels) */
   --coar-component-xs-label-font-size: 11px;
   --coar-component-s-label-font-size: 13px;

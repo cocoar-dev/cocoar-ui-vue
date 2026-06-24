@@ -12,7 +12,7 @@ import {
 } from 'vue';
 import { useI18n } from '@cocoar/vue-localization';
 import { CoarIcon } from '../icon';
-import { useSelectBase, type CoarSelectSize, type CoarSelectAppearance } from './useSelectBase';
+import { useSelectBase, resolveDropdownSize, type CoarSelectSize, type CoarSelectAppearance } from './useSelectBase';
 import { getOverlayService, useOverlayParent } from '../overlay/useOverlay';
 import { selectPreset } from '../overlay/overlay-presets';
 import type { OverlayRef } from '../overlay/overlay-types';
@@ -47,6 +47,12 @@ export interface CoarTagSelectProps<T = unknown> {
   compareWith?: (a: T, b: T) => boolean;
   /** Dropdown position */
   dropdownPosition?: 'auto' | 'top' | 'bottom';
+  /**
+   * Max width of the dropdown panel. Omitted (default) → fixed to the trigger
+   * width with ellipsis + tooltip for long labels. Set a number (px) or CSS
+   * length → the panel may grow from the trigger width up to this cap.
+   */
+  dropdownMaxWidth?: number | string;
   /** Sort order for groups. Default: 'asc' */
   sortGroups?: CoarSelectSortGroups;
   /** Sort order for options (within each group, or all if ungrouped). Default: 'none' */
@@ -232,6 +238,7 @@ function openOverlay() {
     spec: {
       ...selectPreset,
       anchor: { kind: 'element', element: trigger },
+      size: resolveDropdownSize(props.dropdownMaxWidth),
     },
     content: { kind: 'component', component: markRaw(CoarTagSelectDropdownPanel) },
     inputs: {
@@ -348,7 +355,8 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   min-height: var(--coar-component-m-height);
-  padding: var(--coar-spacing-xs) var(--coar-spacing-s);
+  --coar-field-pad: calc(var(--coar-field-padding-x) * var(--coar-component-scale, 1) * var(--coar-component-density, 1));
+  padding: var(--coar-spacing-xs) var(--coar-field-pad);
   border: 1px solid var(--coar-border-input);
   border-radius: var(--coar-input-radius);
   background: var(--coar-surface-input);
@@ -356,9 +364,9 @@ onBeforeUnmount(() => {
   transition: border-color var(--coar-duration-fast) var(--coar-ease-out), box-shadow var(--coar-duration-fast) var(--coar-ease-out);
 }
 
-.coar-select--xs .coar-tag-select-trigger { min-height: var(--coar-component-xs-height); }
-.coar-select--s .coar-tag-select-trigger { min-height: var(--coar-component-s-height); }
-.coar-select--l .coar-tag-select-trigger { min-height: var(--coar-component-l-height); }
+.coar-select--xs .coar-tag-select-trigger { min-height: var(--coar-component-xs-height); --coar-component-scale: var(--coar-component-xs-scale); }
+.coar-select--s .coar-tag-select-trigger { min-height: var(--coar-component-s-height); --coar-component-scale: var(--coar-component-s-scale); }
+.coar-select--l .coar-tag-select-trigger { min-height: var(--coar-component-l-height); --coar-component-scale: var(--coar-component-l-scale); }
 
 .coar-tag-select-trigger:hover:not(.coar-tag-select-trigger--disabled):not(.coar-tag-select-trigger--readonly):not(.coar-tag-select-trigger--error):not(.coar-tag-select-trigger--focused) {
   border-color: var(--coar-border-input-hover);

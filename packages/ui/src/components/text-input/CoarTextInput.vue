@@ -229,6 +229,9 @@ function onClear() {
   display: flex;
   align-items: center;
   height: var(--coar-component-m-height);
+  /* Effective field padding = base token × per-size scale × density. The size
+     modifiers below set --coar-component-scale; m (default) resolves to 1. */
+  --coar-field-pad: calc(var(--coar-field-padding-x) * var(--coar-component-scale, 1) * var(--coar-component-density, 1));
   border: 1px solid var(--coar-border-input);
   border-radius: var(--coar-input-radius);
   background: var(--coar-surface-input);
@@ -245,10 +248,11 @@ function onClear() {
   align-items: flex-start;
 }
 
-/* Size variants */
-.coar-text-input--xs .coar-text-input-container { height: var(--coar-component-xs-height); }
-.coar-text-input--s .coar-text-input-container { height: var(--coar-component-s-height); }
-.coar-text-input--l .coar-text-input-container { height: var(--coar-component-l-height); }
+/* Size variants — height + the per-size scale factor (drives field padding).
+   m is the default (scale 1), so it needs no rule. */
+.coar-text-input--xs .coar-text-input-container { height: var(--coar-component-xs-height); --coar-component-scale: var(--coar-component-xs-scale); }
+.coar-text-input--s .coar-text-input-container { height: var(--coar-component-s-height); --coar-component-scale: var(--coar-component-s-scale); }
+.coar-text-input--l .coar-text-input-container { height: var(--coar-component-l-height); --coar-component-scale: var(--coar-component-l-scale); }
 
 /* Multiline overrides for sizes */
 .coar-text-input--multiline.coar-text-input--xs .coar-text-input-container,
@@ -309,7 +313,7 @@ function onClear() {
   flex: 1;
   min-width: 0;
   height: 100%;
-  padding: 0 calc(var(--coar-input-padding-x) * var(--coar-component-density, 1));
+  padding: 0 var(--coar-field-pad);
   border: none;
   outline: none;
   background: transparent;
@@ -367,7 +371,7 @@ function onClear() {
 .coar-text-input-prefix {
   display: inline-flex;
   align-items: center;
-  padding-left: var(--coar-input-padding-x);
+  padding-left: var(--coar-field-pad);
   color: var(--coar-icon-neutral-secondary);
   font-size: var(--coar-body-small-base-size);
   white-space: nowrap;
@@ -400,7 +404,7 @@ function onClear() {
   display: flex;
   align-items: center;
   gap: var(--coar-spacing-xs);
-  padding-right: var(--coar-input-padding-x);
+  padding-right: var(--coar-field-pad);
   flex-shrink: 0;
 }
 
@@ -415,7 +419,7 @@ function onClear() {
   justify-content: center;
   width: auto;
   height: auto;
-  margin-right: var(--coar-input-padding-x);
+  margin-right: var(--coar-field-pad);
   padding: 0;
   border: none;
   background: transparent;
@@ -453,7 +457,7 @@ function onClear() {
 .coar-text-input-clear--multiline {
   position: absolute;
   top: var(--coar-spacing-s);
-  right: var(--coar-input-padding-x);
+  right: var(--coar-field-pad);
   margin-right: 0;
 }
 
