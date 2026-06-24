@@ -250,3 +250,44 @@ describe('CoarMarkdownEditor — source toggle', () => {
     expect(readEditorMarkdown(wrapper.element as HTMLElement)).toContain('Edited heading');
   });
 });
+
+describe('CoarMarkdownEditor — image insert', () => {
+  function insertImageItem(wrapper: ReturnType<typeof mount>) {
+    return wrapper.findAll('.coar-sidebar-item').find((i) => i.text() === 'Insert Image');
+  }
+
+  it('renders the Insert Image button in a sidebar toolbar', async () => {
+    const wrapper = mount(CoarMarkdownEditor, {
+      props: { modelValue: '# Hi', toolbarMode: 'fixed' },
+      global: globalConfig,
+      attachTo: document.body,
+    });
+    await waitForEditorReady();
+    expect(insertImageItem(wrapper)).toBeTruthy();
+    wrapper.unmount();
+  });
+
+  it('calls pickImage with an insert-context instead of the dialog', async () => {
+    const calls: Array<{ insertImage: unknown; selectedText: unknown }> = [];
+    const pickImage = (ctx: { insertImage: unknown; selectedText: unknown }) => calls.push(ctx);
+    const wrapper = mount(CoarMarkdownEditor, {
+      props: { modelValue: '# Hi', toolbarMode: 'fixed', pickImage },
+      global: globalConfig,
+      attachTo: document.body,
+    });
+    await waitForEditorReady();
+
+    await insertImageItem(wrapper)!.trigger('click');
+    await nextTick();
+
+    // The picker ran; the built-in dialog did NOT open.
+    expect(document.querySelector('.coar-md-image-dialog')).toBeNull();
+    expect(calls).toHaveLength(1);
+    expect(typeof calls[0]!.insertImage).toBe('function');
+    expect(typeof calls[0]!.selectedText).toBe('string');
+
+    // The bound insertImage is safe to call and reaches the editor.
+    expect(() => (calls[0]!.insertImage as (i: { url: string }) => void)({ url: 'https://x.test/a.png' })).not.toThrow();
+    wrapper.unmount();
+  });
+});

@@ -8,3 +8,4 @@ export type {
 } from './CoarMarkdownEditor.vue';
 export type { ImageUploader, ImageUploadOptions } from './image/imageUpload';
 export type { ImageInsertResult } from './image/ImageInsertDialog.vue';
+export type { ImagePicker, ImagePickContext, ImageDescriptor } from './image/pickImage';

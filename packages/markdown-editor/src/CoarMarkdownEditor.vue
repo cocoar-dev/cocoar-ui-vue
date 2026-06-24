@@ -27,6 +27,7 @@ import { frontmatter } from './frontmatter';
 import ColorPickerPanel from './text-color/ColorPickerPanel.vue';
 import ImageInsertDialog, { type ImageInsertResult } from './image/ImageInsertDialog.vue';
 import { imageUpload, type ImageUploader } from './image/imageUpload';
+import type { ImagePicker } from './image/pickImage';
 import { sanitizeColor } from '@cocoar/vue-markdown-core';
 import {
   commonmark,
@@ -125,6 +126,15 @@ export interface CoarMarkdownEditorProps {
    * through to the browser's default handling.
    */
   uploadImage?: ImageUploader;
+  /**
+   * Override the **Insert Image** toolbar button. When set, clicking it calls
+   * this callback (instead of the built-in URL dialog) with an
+   * `insertImage(...)` function bound to the cursor position plus the selected
+   * text. Open your own asset / gallery modal and call `ctx.insertImage(...)`.
+   * Pairs naturally with `uploadImage` (paste / drop). Requires a sidebar
+   * toolbar (`toolbarMode` `'fixed'` or `'both'`), like the other insert buttons.
+   */
+  pickImage?: ImagePicker;
 }
 
 // `$Command<T>` is invariant in T, so a heterogeneous record of commands (some
@@ -183,6 +193,7 @@ const EditorImpl = defineComponent({
     placeholder: { type: String, default: '' },
     sourceToggle: { type: Boolean, default: false },
     uploadImage: { type: Function as PropType<ImageUploader | undefined>, default: undefined },
+    pickImage: { type: Function as PropType<ImagePicker | undefined>, default: undefined },
     onMarkdownChange: { type: Function as PropType<(md: string) => void>, required: true },
   },
   setup(props) {
@@ -312,6 +323,7 @@ const EditorImpl = defineComponent({
       name: props.name,
       required: props.required,
       placeholder: props.placeholder,
+      pickImage: props.pickImage,
       isEmpty: lastEmitted.value.trim() === '',
       sourceToggle: props.sourceToggle,
       viewMode: viewMode.value,
@@ -339,6 +351,7 @@ const Toolbar = defineComponent({
     name: { type: String, default: undefined },
     required: { type: Boolean, required: true },
     placeholder: { type: String, default: '' },
+    pickImage: { type: Function as PropType<ImagePicker | undefined>, default: undefined },
     isEmpty: { type: Boolean, default: false },
     sourceToggle: { type: Boolean, default: false },
     viewMode: { type: String as PropType<'rendered' | 'source'>, default: 'rendered' },
@@ -502,27 +515,53 @@ const Toolbar = defineComponent({
       colorPickerRef = null;
     }
 
-    // Insert an image by URL. Opens a modal dialog to collect url/alt/title,
-    // then dispatches commonmark's `insertImageCommand` at the editor's stored
+    // Dispatch commonmark's `insertImageCommand` at the editor's stored
     // selection (ProseMirror keeps the selection while the editor is blurred,
     // so the image lands where the cursor was). Markdown round-trips as the
-    // standard `![alt](url "title")`.
-    function insertImage() {
+    // standard `![alt](url "title")`. Shared by the URL dialog and the
+    // consumer `pickImage` hook.
+    function doInsertImage(image: { url: string; alt?: string; title?: string }) {
+      if (props.readonly || !image.url) return;
+      const editor = getInstance();
+      if (!editor) return;
+      editor.action((ctx) => {
+        ctx.get(commandsCtx).call(insertImageCommand.key, {
+          src: image.url,
+          alt: image.alt || undefined,
+          title: image.title || undefined,
+        });
+      });
+    }
+
+    // Read the text covered by the current selection (empty if collapsed) —
+    // handed to `pickImage` as a default-alt hint.
+    function getSelectedText(): string {
+      const editor = getInstance();
+      if (!editor) return '';
+      let text = '';
+      editor.action((ctx) => {
+        const { state } = ctx.get(editorViewCtx);
+        const { from, to } = state.selection;
+        text = state.doc.textBetween(from, to, ' ');
+      });
+      return text;
+    }
+
+    // Insert Image button handler. With a consumer `pickImage` hook, hand off
+    // to it (bound `insertImage` + selected text); otherwise open the built-in
+    // URL dialog.
+    function handleInsertImageClick() {
       if (props.readonly) return;
+      const picker = props.pickImage;
+      if (picker) {
+        picker({ insertImage: doInsertImage, selectedText: getSelectedText() });
+        return;
+      }
       dialog
         .open(ImageInsertDialog, { title: 'Insert image', size: 's' })
         .result.then((result) => {
           const value = result as ImageInsertResult | undefined;
-          if (!value?.url) return;
-          const editor = getInstance();
-          if (!editor) return;
-          editor.action((ctx) => {
-            ctx.get(commandsCtx).call(insertImageCommand.key, {
-              src: value.url,
-              alt: value.alt || undefined,
-              title: value.title || undefined,
-            });
-          });
+          if (value?.url) doInsertImage(value);
         });
     }
 
@@ -964,7 +1003,7 @@ const Toolbar = defineComponent({
       sectionDivider(items);
       pushIf(items, 'codeBlock', sidebarItem('square-code', 'Code Block', cmds.codeBlock, { active: a.code_block }));
       pushIf(items, 'table', sidebarItem('table', 'Insert Table', cmds.table, { active: a.table }));
-      pushIf(items, 'image', sidebarItem('image', 'Insert Image', cmds.bold, { onClick: insertImage }));
+      pushIf(items, 'image', sidebarItem('image', 'Insert Image', cmds.bold, { onClick: handleInsertImageClick }));
 
       // When the cursor is inside a table, surface the table operations in the
       // sidebar so users in `fixed`/`both` toolbar mode can edit table structure
@@ -1295,6 +1334,7 @@ export default defineComponent({
     toolbarPosition: { type: String as PropType<CoarMarkdownEditorToolbarPosition>, default: 'left' },
     tools: { type: Array as PropType<CoarMarkdownEditorTool[]>, default: undefined },
     uploadImage: { type: Function as PropType<ImageUploader | undefined>, default: undefined },
+    pickImage: { type: Function as PropType<ImagePicker | undefined>, default: undefined },
   },
   emits: ['update:modelValue'],
   setup(props, { emit }) {
@@ -1331,6 +1371,7 @@ export default defineComponent({
         required: props.required,
         placeholder: props.placeholder,
         uploadImage: props.uploadImage,
+        pickImage: props.pickImage,
         onMarkdownChange: (md: string) => emit('update:modelValue', md),
       }),
     );

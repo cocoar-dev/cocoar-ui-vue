@@ -66,6 +66,7 @@ const value = ref('# Hello\n\nStart typing **markdown**.');
 | `toolbarMode` | `'floating' \| 'fixed' \| 'both'` | `'floating'` | Toolbar layout |
 | `toolbarPosition` | `'left' \| 'right'` | `'left'` | Sidebar position when `toolbarMode` is `'fixed'` or `'both'` |
 | `uploadImage` | `(file: File) => Promise<{ url: string; alt?: string }>` | _undefined_ | Enables paste / drag-drop image upload (see [Images](#images)) |
+| `pickImage` | `(ctx: ImagePickContext) => void` | _undefined_ | Override the Insert Image button with your own asset picker (see [Custom image source](#custom-image-source-pickimage)) |
 
 ## Images
 
@@ -87,6 +88,25 @@ async function uploadImage(file: File) {
 }
 </script>
 ```
+
+### Custom image source (`pickImage`)
+
+Wire the **Insert Image** button to your own asset library / gallery with `pickImage`. When set it **replaces** the URL dialog — clicking the button calls it with a context bound to the cursor: `insertImage(...)` plus `selectedText` (a default for `alt`). Open your own modal and call `ctx.insertImage(...)` for each chosen image (it can stay open and insert several). The editor keeps all ProseMirror handling, so you never touch the selection.
+
+```vue
+<CoarMarkdownEditor v-model="value" toolbar-mode="both" :pick-image="openGallery" />
+
+<script setup lang="ts">
+function openGallery(ctx) {
+  myGalleryModal.open({
+    defaultAlt: ctx.selectedText,
+    onPick: (asset) => ctx.insertImage({ url: asset.url, alt: asset.title }),
+  })
+}
+</script>
+```
+
+`pickImage` (button) and `uploadImage` (paste / drop) are orthogonal and compose.
 
 > Resize / alignment / captions aren't part of standard Markdown and aren't supported yet — a richer image block is planned as a separate slice.
 

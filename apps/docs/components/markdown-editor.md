@@ -162,6 +162,27 @@ async function uploadImage(file: File) {
 
 <preview path="./markdown-editor/demos/MarkdownEditorImages.vue" />
 
+### Custom image source (`pickImage`)
+
+To wire the **Insert Image** button to your own asset library or gallery, pass a `pickImage` callback. When set, it **replaces** the built-in URL dialog: clicking the button calls your callback with a context bound to the cursor position — `insertImage(...)` plus the `selectedText` (a handy default for `alt`). Open your own modal, then call `ctx.insertImage(...)` for each chosen image. The modal can stay open and insert several; the editor keeps ownership of cursor handling and the Markdown round-trip, so you never touch ProseMirror.
+
+```vue
+<CoarMarkdownEditor v-model="value" toolbar-mode="both" :pick-image="openGallery" />
+
+<script setup lang="ts">
+function openGallery(ctx) {
+  myGalleryModal.open({
+    defaultAlt: ctx.selectedText,
+    onPick: (asset) => ctx.insertImage({ url: asset.url, alt: asset.title }),
+  })
+}
+</script>
+```
+
+`pickImage` (button → your picker) and `uploadImage` (paste / drop) are orthogonal and compose — wire both for a full gallery-plus-paste experience.
+
+<preview path="./markdown-editor/demos/MarkdownEditorImageGallery.vue" />
+
 ::: info Resize / alignment / captions
 Width, alignment, and captions aren't part of standard Markdown, so they're not supported yet — a richer image block (a separate slice) is planned. Today an image is the plain `![alt](url "title")`.
 :::
@@ -331,6 +352,7 @@ When migrating from a richtext editor that exposed those tools, the closest Mark
 | `toolbarPosition` | `'left' \| 'right' \| 'top' \| 'bottom'` | `'left'` | Toolbar edge when `toolbarMode` is `'fixed'` or `'both'`. `top`/`bottom` render a horizontal toolbar; flyouts open along the perpendicular axis. |
 | `tools` | `CoarMarkdownEditorTool[]` | _all_ | Whitelist of toolbar tools. See [Restricting the Toolbar](#restricting-the-toolbar) |
 | `uploadImage` | `(file: File) => Promise<{ url: string; alt?: string }>` | _undefined_ | Enables paste / drag-drop image upload. Returns the stored image's URL. See [Images](#images) |
+| `pickImage` | `(ctx: ImagePickContext) => void` | _undefined_ | Override the Insert Image button with your own asset picker. See [Custom image source](#custom-image-source-pickimage) |
 
 ## Events
 
