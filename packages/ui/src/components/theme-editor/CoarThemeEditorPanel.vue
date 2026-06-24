@@ -339,7 +339,7 @@ const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
           <div class="te-section">
             <div class="te-section-label">
               Horizontal padding
-              <CoarSwitch v-model="inputPaddingXEnabled" label="Override" size="xs" style="margin-left:auto" />
+              <CoarSwitch v-model="inputPaddingXEnabled" label="Override" size="s" style="margin-left:auto" />
             </div>
             <div class="te-scale-row" :class="{ 'te-scale-row--disabled': !inputPaddingXEnabled }">
               <input type="range" class="te-slider" min="4" max="32" step="1" v-model.number="inputPaddingX" :disabled="!inputPaddingXEnabled" />
