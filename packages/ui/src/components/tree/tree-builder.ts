@@ -22,6 +22,8 @@ import {
   shallowReactive,
 } from 'vue';
 import type {
+  CoarTreeCreateEvent,
+  CoarTreeDataDropEvent,
   CoarTreeDensity,
   CoarTreeDropPosition,
   CoarTreeFilesDropEvent,
@@ -34,6 +36,7 @@ import type {
   CoarTreeRenameEvent,
   CoarTreeSelectEvent,
   CoarTreeSelectionMode,
+  CoarTreeStartCreateOptions,
   CoarTreeVirtualizeProp,
 } from './tree-types';
 
@@ -54,6 +57,8 @@ export interface TreeBuilderState<T> {
   getDragImage?: (n: T) => HTMLElement | string | null | undefined;
   activateOnClick: MaybeRefOrGetter<boolean>;
   acceptsFiles: MaybeRefOrGetter<boolean>;
+  /** MIME type(s) of app-internal drags accepted as a drop (see `acceptsData` setter). */
+  acceptsData: MaybeRefOrGetter<string[] | undefined>;
   autoExpandDelay: MaybeRefOrGetter<number>;
   virtualize: MaybeRefOrGetter<CoarTreeVirtualizeProp>;
   hideLoadingSpinner: MaybeRefOrGetter<boolean>;
@@ -61,6 +66,10 @@ export interface TreeBuilderState<T> {
   renamable: MaybeRefOrGetter<boolean>;
   onRename?: (e: CoarTreeRenameEvent<T>) => void;
   onRenameCancel?: (node: T) => void;
+  /** Opt into the built-in inline-create UI (see `creatable` setter). */
+  creatable: MaybeRefOrGetter<boolean>;
+  onCreate?: (e: CoarTreeCreateEvent) => void;
+  onCreateCancel?: () => void;
   selectionMode: MaybeRefOrGetter<CoarTreeSelectionMode>;
   /** Checkbox-mode only: independent parent/child checks, no cascade / indeterminate. */
   checkStrictly: MaybeRefOrGetter<boolean>;
@@ -86,6 +95,7 @@ export interface TreeBuilderState<T> {
   onSelect?: (e: CoarTreeSelectEvent<T>) => void;
   onNodeMove?: (e: CoarTreeNodeMoveEvent<T>) => void;
   onFilesDrop?: (e: CoarTreeFilesDropEvent<T>) => void;
+  onDataDrop?: (e: CoarTreeDataDropEvent<T>) => void;
 
   /** Lazily fetch a node's children when it's expanded (see `loadChildren` setter). */
   loadChildren?: (node: T, ctx: CoarTreeLoadChildrenContext) => void | Promise<void>;
@@ -115,6 +125,7 @@ export interface TreeApiImpls<T> {
   selectNode(id: string): void;
   reloadChildren(id: string): void;
   startRename(id: string): void;
+  startCreate(parentId: string | null, opts?: CoarTreeStartCreateOptions): void;
   expandAll(): void;
   collapseAll(): void;
   expandTo(id: string): void;
@@ -140,6 +151,11 @@ export interface TreeApi<T = unknown> {
   reloadChildren(id: string): void;
   /** Enter inline-rename mode on a node (requires `renamable`). */
   startRename(id: string): void;
+  /**
+   * Open an inline-create draft under `parentId` (`null` = root); requires
+   * `creatable`. Commits via the `onCreate` handler / `@create` event.
+   */
+  startCreate(parentId: string | null, opts?: CoarTreeStartCreateOptions): void;
   /** Expand every expandable, currently-loaded node. */
   expandAll(): void;
   /** Collapse everything. */
@@ -200,6 +216,11 @@ export class TreeBuilder<T> {
       selectNode: act('selectNode'),
       reloadChildren: act('reloadChildren'),
       startRename: act('startRename'),
+      startCreate: (parentId, opts) => {
+        const impls = this._impls;
+        if (impls) impls.startCreate(parentId, opts);
+        else this._warnUnmounted('startCreate');
+      },
       expandTo: act('expandTo'),
       revealNode: act('revealNode'),
       expandAll: act0('expandAll'),
@@ -233,12 +254,16 @@ export class TreeBuilder<T> {
       getDragImage: undefined,
       activateOnClick: false,
       acceptsFiles: false,
+      acceptsData: undefined,
       autoExpandDelay: 700,
       virtualize: false,
       hideLoadingSpinner: false,
       renamable: false,
       onRename: undefined,
       onRenameCancel: undefined,
+      creatable: false,
+      onCreate: undefined,
+      onCreateCancel: undefined,
       selectionMode: 'single',
       checkStrictly: false,
       density: 'm',
@@ -256,6 +281,7 @@ export class TreeBuilder<T> {
       onSelect: undefined,
       onNodeMove: undefined,
       onFilesDrop: undefined,
+      onDataDrop: undefined,
       loadChildren: undefined,
       maxConcurrentLoads: 0,
       onLoadError: undefined,
@@ -380,6 +406,17 @@ export class TreeBuilder<T> {
     return this;
   }
 
+  /**
+   * Accept app-internal drags carrying any of these MIME types (e.g. a card
+   * dragged out of a grid that did `dataTransfer.setData('application/x-foo', id)`).
+   * A drop fires `onDataDrop` with the target row + position. Distinct from
+   * `acceptsFiles` (OS files) and internal node drags.
+   */
+  acceptsData(mimes: MaybeRefOrGetter<string[] | undefined>): this {
+    this.state.acceptsData = mimes;
+    return this;
+  }
+
   autoExpandDelay(ms: MaybeRefOrGetter<number>): this {
     this.state.autoExpandDelay = ms;
     return this;
@@ -415,6 +452,18 @@ export class TreeBuilder<T> {
    */
   renamable(b: MaybeRefOrGetter<boolean>): this {
     this.state.renamable = b;
+    return this;
+  }
+
+  /**
+   * Enable the built-in inline-create UI. With it on, `api.startCreate(parentId, opts?)`
+   * inserts a focused draft `<input>` row at its target position (auto-expanding
+   * the parent); commit fires `onCreate` with `{ parentId, name, kind }`, an empty
+   * name or Escape fires `onCreateCancel`. The draft is transient — persist the
+   * node in `onCreate` and supply the real one via `.nodes(...)`.
+   */
+  creatable(b: MaybeRefOrGetter<boolean>): this {
+    this.state.creatable = b;
     return this;
   }
 
@@ -580,6 +629,12 @@ export class TreeBuilder<T> {
     return this;
   }
 
+  /** Fires when an app-internal drag (an `acceptsData` MIME) is dropped on a row or the background. */
+  onDataDrop(h: (e: CoarTreeDataDropEvent<T>) => void): this {
+    this.state.onDataDrop = h;
+    return this;
+  }
+
   /** Fires when an inline rename is committed (Enter / blur with a non-empty name). */
   onRename(h: (e: CoarTreeRenameEvent<T>) => void): this {
     this.state.onRename = h;
@@ -589,6 +644,18 @@ export class TreeBuilder<T> {
   /** Fires when an inline rename is cancelled (Escape, or committed empty). */
   onRenameCancel(h: (node: T) => void): this {
     this.state.onRenameCancel = h;
+    return this;
+  }
+
+  /** Fires when an inline create is committed (Enter / blur with a non-empty name). */
+  onCreate(h: (e: CoarTreeCreateEvent) => void): this {
+    this.state.onCreate = h;
+    return this;
+  }
+
+  /** Fires when an inline create is cancelled (Escape, or committed empty). */
+  onCreateCancel(h: () => void): this {
+    this.state.onCreateCancel = h;
     return this;
   }
 

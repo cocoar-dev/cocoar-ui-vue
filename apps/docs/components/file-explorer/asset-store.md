@@ -18,18 +18,22 @@ interface AssetStore<T = unknown> {
   // read
   loadTree(): Promise<Asset<T>[]>;
   loadChildren?(parentId: string): Promise<Asset<T>[]>;   // optional — opts into lazy mode
-  loadContent(id: string): Promise<string | Blob>;
+  loadContent?(id: string): Promise<string | Blob>;       // optional — omit for browse-only
 
   // write
   createFolder(parentId: string | null, name: string): Promise<Asset<T>>;
-  createFile(parentId: string | null, name: string): Promise<Asset<T>>;
+  createFile?(parentId: string | null, name: string): Promise<Asset<T>>; // optional — composable never calls it
   uploadFile(parentId: string | null, file: File): Promise<Asset<T>>;
-  save(id: string, content: string | Blob): Promise<void>;
+  save?(id: string, content: string | Blob): Promise<void>;  // optional — omit for browse-only
   rename(id: string, newName: string): Promise<void>;
   delete(id: string): Promise<void>;
   move(id: string, newParentId: string | null, position?: number): Promise<void>;
 }
 ```
+
+::: tip Browse-only stores
+`loadContent`, `save` and `createFile` are **optional**. A consumer that only browses + edits metadata (e.g. an image library) can omit all three: the composable then skips the post-upload `save` (no spurious "saving not supported" error), treats `openFile` as a no-op (no editor tabs), and `saveTab` reports failure cleanly. `createAssetStore` attaches optional methods only when you supply them, so `'save' in store`-style capability probes stay reliable.
+:::
 
 ::: tip Throw on failure
 The composable funnels every store rejection through `onError(op, err, ctx)` and rolls back the optimistic local mutation before the callback fires. Throw — don't return a tagged error object. The composable interprets a resolved promise as success.

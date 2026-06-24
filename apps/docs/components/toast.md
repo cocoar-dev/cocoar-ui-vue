@@ -46,6 +46,8 @@ Then add the toast container to your `App.vue`:
 </template>
 ```
 
+`<CoarToastContainer />` needs no props — its `service` defaults to the `getToastService()` singleton that `CoarOverlayPlugin` registers (the same one `useToast()` wraps). Pass an explicit `:service` only for a non-singleton instance (e.g. an isolated test harness). If the plugin isn't installed it throws a clear "install `CoarOverlayPlugin`" error rather than rendering nothing.
+
 ## API
 
 ### `useToast()` Methods

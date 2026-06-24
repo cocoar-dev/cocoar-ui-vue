@@ -74,7 +74,9 @@ Then bind into `<CoarTree>` and your own tab bar + editor dispatch:
 </CoarTree>
 ```
 
-The composable also returns `openTabs`, `activeTab`, `breadcrumbPath`, `loadingNodes`, `savingNodes`, `pathOf`, plus imperative ops `openFile` / `saveTab` / `closeTab` / `pinTab` / `unpinTab` / `reorderTab` / `addFolder` / `addFiles` / `deleteNode` / `setContent` / `refresh`.
+The composable also returns `openTabs`, `activeTab`, `breadcrumbPath`, `loadingNodes`, `savingNodes`, `pathOf`, plus imperative ops `openFile` / `saveTab` / `closeTab` / `pinTab` / `unpinTab` / `reorderTab` / `addFolder` / `addFiles` / `deleteNode` / `move` / `moveNode` / `rename` / `setContent` / `refresh`.
+
+`move(id, newParentId, position?)` is the programmatic move (optimistic + rollback) for sources that aren't a tree drag — a "move to folder" select, a grid card dropped on a folder, undo. `loadContent` / `save` / `createFile` are **optional** on the store: omit them for browse-only consumers (no editor tabs) and the composable skips the content/tab machinery + post-upload save.
 
 ## Wiring your own backend
 

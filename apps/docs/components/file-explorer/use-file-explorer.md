@@ -135,6 +135,7 @@ The tab state machine implements the VSCode pattern:
 addFolder(parentId: string | null, name: string): Promise<Asset<T> | null>;
 addFiles(parentId: string | null, files: FileList | readonly File[]): Promise<void>;
 deleteNode(asset: Asset<T>): Promise<void>;
+move(id: string, newParentId: string | null, position?: number): Promise<void>;
 moveNode(e: CoarTreeNodeMoveEvent<Asset<T>>): Promise<void>;
 rename(id: string, newName: string): Promise<void>;
 refresh(folderId?: string | null): Promise<void>;
@@ -155,9 +156,11 @@ reorderTab(sourceId: string, targetId: string, position: 'before' | 'after'): vo
 
 Notes on the trickier ones:
 
-- **`addFiles`** is the OS-drop entry point. The composable derives content per file (text or `URL.createObjectURL` for PDF / image), calls `store.uploadFile()`, then `store.save(id, content)`. Blob URLs are tracked and revoked on delete + unmount.
-- **`moveNode`** consumes `<CoarTree>`'s `CoarTreeNodeMoveEvent`. For `position: 'inside'`, it auto-expands the target folder. For `'before' / 'after'`, it forwards `position?` only when `reorderable.value`.
-- **`openFile`** is the placeholder-then-fill flow. The placeholder tab is pushed + activated immediately; on `loadContent` rejection the placeholder rolls back so the user isn't stranded.
+- **`addFolder`** is **optimistic**: a temp node is inserted immediately, then reconciled to the backend's real id on resolve (rolled back on error). Pairs with [`<CoarTree>`'s `startCreate`](../tree#inline-create) so the draft → real-node handoff has no flicker. (Stores that surface their own reactive `_assets` skip the temp node — their own mutation is the source.)
+- **`addFiles`** is the OS-drop entry point. The composable derives content per file (text or `URL.createObjectURL` for PDF / image), calls `store.uploadFile()`, then `store.save(id, content)` **if the store has `save`**. The merged node is stamped with the target `parentId`, so a folder-filtered grid shows it immediately even if the store's returned asset omitted it. Blob URLs are tracked and revoked on delete + unmount.
+- **`move`** is the plain programmatic move (optimistic + rollback) for sources that aren't a tree drag — a "move to folder" `<select>`, a grid card dropped on a folder row, an undo command. `newParentId: null` moves to the root; `position` (an index within the new parent's children) is honored only in `'manual'` sort mode. **`moveNode`** delegates to it.
+- **`moveNode`** consumes `<CoarTree>`'s `CoarTreeNodeMoveEvent`. For `position: 'inside'`, it auto-expands the target folder. For `'before' / 'after'`, it forwards a computed index only when `reorderable.value`.
+- **`openFile`** is the placeholder-then-fill flow. The placeholder tab is pushed + activated immediately; on `loadContent` rejection the placeholder rolls back so the user isn't stranded. **Browse-only stores** (no `loadContent`) make this a no-op — no editor tabs open, and the single-click-preview watcher stays quiet.
 - **`activateNode`** is meant for `<CoarTree @activate>`. Files open pinned; folders are a no-op (CoarTree itself toggles expansion).
 - **`reorderTab`** is for drag-to-reorder. No-op on self-drop or unknown ids; pinned status is preserved on the moved tab.
 - **`refresh()`** re-runs `store.loadTree()` (or `store.loadChildren(folderId)` in lazy mode when given a folder id). Use it when upstream state can change out-of-band — a SignalR push from the backend, another tab uploading a file, a server-side retention sweep. No-op for stores that surface a reactive `_assets` directly: those are already live.
@@ -222,7 +225,8 @@ This works for every editor: hold a Monaco view-state ref outside the `v-if` and
 
 ## Lifecycle
 
-- **Mount** — Lazy loading is driven by CoarTree's `loadChildren` hook (bind `:load-children="fe.loadChildren"`): the tree fires the fetch on first expand and on mount for any seeded `initialExpandedIds` (cascading as parents publish). The composable supplies only the fetch body and caches loaded folders so re-expand never re-fetches.
+- **Mount — the tree loads itself.** `useFileExplorer` calls `store.loadTree()` automatically on mount (it kicks off the fetch synchronously during setup; `loading` is your "populating" signal). **You don't need a manual `fe.refresh()` in `onMounted`** — that would be a redundant second fetch. Reserve `refresh()` for out-of-band changes (server push, another tab mutating, retention sweep). Stores that surface their own reactive `_assets` (the in-memory impl) are live from creation, so the auto-load is a no-op for them.
+- **Lazy children** — Lazy loading is driven by CoarTree's `loadChildren` hook (bind `:load-children="fe.loadChildren"`): the tree fires the fetch on first expand and on mount for any seeded `initialExpandedIds` (cascading as parents publish). The composable supplies only the fetch body and caches loaded folders so re-expand never re-fetches.
 - **Eager open** — Single-click `selectedId` change is watched; file selections fire `openFile(file, { pinned: false })`.
 - **Unmount** — `onScopeDispose` removes the `beforeunload` listener and revokes every blob URL the composable owns. Consumer doesn't need to clean up.
 - **`beforeunload`** — Active while `anyDirty.value` is true. Browser shows its native "leave site?" prompt.

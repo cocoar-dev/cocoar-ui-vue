@@ -20,18 +20,19 @@ import type { Asset, AssetStore, AssetStoreConfig, ConflictPolicy, ConflictResol
 export function createAssetStore<T = unknown>(config: AssetStoreConfig<T>): AssetStore<T> {
   const store: AssetStore<T> = {
     loadTree: config.loadTree,
-    loadContent: config.loadContent,
     createFolder: config.createFolder,
-    createFile: config.createFile,
     uploadFile: config.uploadFile,
-    save: config.save,
     rename: config.rename,
     delete: config.delete,
     move: config.move,
   };
-  // Lazy mode is opt-in: only attach `loadChildren` when the consumer supplied
-  // one, so `'loadChildren' in store` stays a reliable capability probe.
+  // Optional capabilities are attached only when supplied, so `'x' in store` /
+  // `store.x` stay reliable capability probes (the composable reads them to
+  // decide whether to run lazy loading, content/tab machinery, post-upload save).
   if (config.loadChildren) store.loadChildren = config.loadChildren;
+  if (config.loadContent) store.loadContent = config.loadContent;
+  if (config.createFile) store.createFile = config.createFile;
+  if (config.save) store.save = config.save;
   return store;
 }
 

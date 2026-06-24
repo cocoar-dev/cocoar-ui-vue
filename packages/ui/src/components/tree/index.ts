@@ -1,7 +1,11 @@
 export { default as CoarTree } from './CoarTree.vue';
 export { default as CoarTreeNodeLabel } from './CoarTreeNodeLabel.vue';
 export type {
+  CoarTreeCreateEvent,
+  CoarTreeCreateKind,
+  CoarTreeDataDropEvent,
   CoarTreeDensity,
+  CoarTreeDraftSlotProps,
   CoarTreeDropPosition,
   CoarTreeFilesDropEvent,
   CoarTreeFilterMode,
@@ -14,6 +18,7 @@ export type {
   CoarTreeRenameEvent,
   CoarTreeSelectEvent,
   CoarTreeSelectionMode,
+  CoarTreeStartCreateOptions,
   CoarTreeMenuItem,
   CoarTreeMenuEntry,
   CoarTreeVirtualizeProp,

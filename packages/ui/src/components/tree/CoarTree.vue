@@ -34,6 +34,7 @@ import {
   type VNode,
 } from 'vue';
 import CoarTreeNode from './CoarTreeNode.vue';
+import CoarIcon from '../icon/CoarIcon.vue';
 import CoarMenu from '../menu/CoarMenu.vue';
 import CoarMenuItem from '../menu/CoarMenuItem.vue';
 import CoarMenuDivider from '../menu/CoarMenuDivider.vue';
@@ -48,7 +49,11 @@ import {
   COAR_TREE_RENAME_KEY,
   COAR_TREE_ROW_STATE_KEY,
   DEFAULT_TREE_LABELS,
+  type CoarTreeCreateEvent,
+  type CoarTreeCreateKind,
+  type CoarTreeDataDropEvent,
   type CoarTreeDensity,
+  type CoarTreeDraftSlotProps,
   type CoarTreeDropPosition,
   type CoarTreeFilesDropEvent,
   type CoarTreeFilterMode,
@@ -60,6 +65,7 @@ import {
   type CoarTreeNodeSlotProps,
   type CoarTreeRenameContext,
   type CoarTreeRenameEvent,
+  type CoarTreeStartCreateOptions,
   type CoarTreeSelectEvent,
   type CoarTreeSelectionMode,
   type CoarTreeVirtualOptions,
@@ -104,6 +110,14 @@ const props = withDefaults(
     /** Fire `activate` on a single click too (not only double-click / Enter). Default false. */
     activateOnClick?: boolean;
     acceptsFiles?: boolean;
+    /**
+     * MIME type(s) of **app-internal** drags the tree should accept as a drop
+     * (e.g. a card dragged out of a grid that did
+     * `dataTransfer.setData('application/x-foo', id)`). A drop carrying any of
+     * these fires `@data-drop` with the target row + position. Distinct from
+     * `acceptsFiles` (OS files) and internal node drags. Default: none.
+     */
+    acceptsData?: string[];
     autoExpandDelay?: number;
     virtualize?: CoarTreeVirtualizeProp;
     /**
@@ -151,6 +165,15 @@ const props = withDefaults(
      */
     renamable?: boolean;
     /**
+     * Opt into the built-in inline-create UI. With this on, `api.startCreate(parentId, opts?)`
+     * inserts a transient draft row at its target position (auto-expanding the
+     * parent), renders the focused edit `<input>`, and emits `@create` on commit
+     * / `@create-cancel` on Esc or an empty name. Mirrors `renamable` — same
+     * input, same blur-grace timer. The draft is purely transient: the consumer
+     * persists the new node and supplies the real one via the normal data source.
+     */
+    creatable?: boolean;
+    /**
      * Suppress the built-in spinner the tree shows in the chevron while a node's
      * children lazily load (see `loadChildren`). Set this when you render your
      * own loading indicator from the `isLoading` slot prop — e.g. replacing the
@@ -173,6 +196,7 @@ const props = withDefaults(
     getDragImage: undefined,
     activateOnClick: false,
     acceptsFiles: false,
+    acceptsData: undefined,
     autoExpandDelay: 700,
     virtualize: false,
     selectionMode: 'single',
@@ -185,6 +209,7 @@ const props = withDefaults(
     filter: false,
     filterMode: 'strict',
     renamable: false,
+    creatable: false,
     hideLoadingSpinner: false,
   },
 );
@@ -199,15 +224,20 @@ const emit = defineEmits<{
   (e: 'select', payload: CoarTreeSelectEvent<T>): void;
   (e: 'context-menu', node: T | null, ev: MouseEvent): void;
   (e: 'files-drop', payload: CoarTreeFilesDropEvent<T>): void;
+  (e: 'data-drop', payload: CoarTreeDataDropEvent<T>): void;
   (e: 'node-move', payload: CoarTreeNodeMoveEvent<T>): void;
   (e: 'rename', payload: CoarTreeRenameEvent<T>): void;
   (e: 'rename-cancel', node: T): void;
+  (e: 'create', payload: CoarTreeCreateEvent): void;
+  (e: 'create-cancel'): void;
   (e: 'load-error', payload: CoarTreeLoadErrorEvent<T>): void;
 }>();
 
 const slots = defineSlots<{
   default(props: CoarTreeNodeSlotProps<T>): unknown;
   empty(): unknown;
+  /** Leading content (icon) for the inline-create draft row. Defaults to a folder/file icon. */
+  draft(props: CoarTreeDraftSlotProps): unknown;
 }>();
 
 provide(COAR_TREE_NODE_SLOT_KEY, (slotProps) => (slots.default?.(slotProps) ?? []) as VNode[]);
@@ -295,6 +325,108 @@ const renameContext: CoarTreeRenameContext = {
 
 provide(COAR_TREE_RENAME_KEY, renameContext);
 
+// ─── inline create (draft row) — owned by the tree, opt-in via `:creatable` ──
+/**
+ * The transient create draft. `null` when not creating; otherwise it's a single
+ * synthetic row (NOT a `T` — the tree can't construct the consumer's node type)
+ * rendered at its target position with the inline-edit input. It lives outside
+ * `visibleRows` so none of the selection / keyboard / DnD logic ever sees it;
+ * only the render layer + the virtualizer's row count splice it in. Commit emits
+ * `@create`; the consumer persists and feeds the real node back via the data
+ * source, at which point the draft is already gone.
+ */
+interface DraftState {
+  parentId: string | null;
+  kind: CoarTreeCreateKind;
+  position: 'first' | 'last';
+}
+const draft = ref<DraftState | null>(null);
+const draftBuffer = ref('');
+let draftFocusTime = 0;
+/**
+ * True while an async builder `onCreate` is in flight. The draft stays mounted
+ * + focused (the typed name intact) so a server-side rejection — e.g. a
+ * duplicate-name 409 — can reopen for another try instead of losing the input.
+ * Guards re-entrant commit (double Enter / blur-during-commit).
+ */
+const draftCommitting = ref(false);
+
+/** Effective create-enabled flag (builder OR prop). Defined after `cfg` below. */
+
+function commitCreate() {
+  if (draftCommitting.value) return; // a previous async commit is still settling
+  const d = draft.value;
+  const name = draftBuffer.value.trim();
+  if (!d) return;
+  if (!name) {
+    draft.value = null;
+    draftBuffer.value = '';
+    emit('create-cancel');
+    props.builder?.state.onCreateCancel?.();
+    return;
+  }
+  const payload: CoarTreeCreateEvent = { parentId: d.parentId, name, kind: d.kind };
+  // A builder `onCreate` may return a Promise: keep the draft open + focused
+  // until it settles — drop it on success, reopen (name intact) on reject — so
+  // async validation (duplicate names, etc.) doesn't discard the user's input.
+  // Event-form (`@create`) consumers get the same retry by re-calling
+  // `startCreate(parentId, { initialName })` from their catch (emit can't return
+  // a value, so the imperative reopen is the supported pattern there).
+  const result = props.builder?.state.onCreate?.(payload);
+  emit('create', payload);
+  if (result && typeof (result as { then?: unknown }).then === 'function') {
+    draftCommitting.value = true;
+    Promise.resolve(result).then(
+      () => {
+        draftCommitting.value = false;
+        draft.value = null;
+        draftBuffer.value = '';
+      },
+      () => {
+        // Keep the draft + typed name; just re-focus so the user can retry.
+        draftCommitting.value = false;
+        void nextTick(() => focusDraftInput());
+      },
+    );
+    return;
+  }
+  draft.value = null;
+  draftBuffer.value = '';
+}
+
+function cancelCreate() {
+  const had = draft.value !== null;
+  draft.value = null;
+  draftBuffer.value = '';
+  draftCommitting.value = false;
+  if (had) {
+    emit('create-cancel');
+    props.builder?.state.onCreateCancel?.();
+  }
+}
+
+function onDraftFocus() {
+  draftFocusTime = Date.now();
+}
+function onDraftBlur() {
+  // Don't auto-commit while an async commit is already settling.
+  if (draftCommitting.value) return;
+  // Same blur-grace as rename: a context-menu overlay closing restores focus to
+  // its trigger and spuriously blurs the just-mounted input — re-grab + ignore.
+  if (Date.now() - draftFocusTime < 200) {
+    void nextTick(() => focusDraftInput());
+    return;
+  }
+  commitCreate();
+}
+
+function focusDraftInput() {
+  const root = scrollEl.value ?? rootEl.value;
+  const input = root?.querySelector<HTMLInputElement>('[data-draft-input]');
+  input?.focus();
+  input?.select();
+}
+
 // ─── effective config (dispatch between props and builder) ─────────────────
 const cfg = computed(() => {
   if (props.builder) {
@@ -313,10 +445,12 @@ const cfg = computed(() => {
       getDragImage: s.getDragImage,
       activateOnClick: toValue(s.activateOnClick),
       acceptsFiles: toValue(s.acceptsFiles),
+      acceptsData: toValue(s.acceptsData),
       autoExpandDelay: toValue(s.autoExpandDelay),
       virtualize: toValue(s.virtualize),
       hideLoadingSpinner: toValue(s.hideLoadingSpinner),
       renamable: toValue(s.renamable),
+      creatable: toValue(s.creatable),
       selectionMode: toValue(s.selectionMode),
       checkStrictly: toValue(s.checkStrictly),
       density: toValue(s.density),
@@ -344,10 +478,12 @@ const cfg = computed(() => {
     getDragImage: props.getDragImage,
     activateOnClick: props.activateOnClick,
     acceptsFiles: props.acceptsFiles,
+    acceptsData: props.acceptsData,
     autoExpandDelay: props.autoExpandDelay,
     virtualize: props.virtualize,
     hideLoadingSpinner: props.hideLoadingSpinner,
     renamable: props.renamable,
+    creatable: props.creatable,
     selectionMode: props.selectionMode,
     checkStrictly: props.checkStrictly,
     density: props.density,
@@ -362,6 +498,8 @@ const cfg = computed(() => {
 
 /** Effective rename-enabled flag (builder OR prop). */
 const renamableOn = computed(() => !!cfg.value.renamable);
+/** Effective create-enabled flag (builder OR prop). */
+const creatableOn = computed(() => !!cfg.value.creatable);
 
 /** Default-merged i18n labels (chevron / spinner / announcer strings). */
 const resolvedLabels = computed<CoarTreeLabels>(() => ({
@@ -655,6 +793,43 @@ const idToIndex = computed(() => {
   return m;
 });
 
+/**
+ * Where the create draft splices into the rendered row list, and at what depth.
+ * `index` is a position in the COMBINED list (visible rows + the draft), so the
+ * draft pushes everything at/after it down by one. `null` when not creating.
+ *   - root parent  → first/last among the root subtrees (index 0 / end).
+ *   - nested parent (already expanded by `startCreate`) → first = right after the
+ *     parent row; last = after the parent's last visible descendant.
+ */
+const draftPlacement = computed<{ index: number; depth: number; kind: CoarTreeCreateKind } | null>(() => {
+  const d = draft.value;
+  if (!d) return null;
+  const rows = visibleRows.value;
+  if (d.parentId === null) {
+    return { index: d.position === 'first' ? 0 : rows.length, depth: 0, kind: d.kind };
+  }
+  const xi = idToIndex.value.get(d.parentId);
+  // Parent not visible (shouldn't happen — startCreate expands it). Fall back
+  // to the end at root depth rather than dropping the draft entirely.
+  if (xi === undefined) return { index: rows.length, depth: 0, kind: d.kind };
+  const parentDepth = rows[xi].depth;
+  if (d.position === 'first') return { index: xi + 1, depth: parentDepth + 1, kind: d.kind };
+  let j = xi + 1;
+  while (j < rows.length && rows[j].depth > parentDepth) j++;
+  return { index: j, depth: parentDepth + 1, kind: d.kind };
+});
+
+// Auto-focus + select the draft input the moment a draft appears (mirrors the
+// rename input's focus-on-enter). `flush: 'post'` so the DOM row exists first.
+watch(
+  draft,
+  (d) => {
+    if (!d) return;
+    void nextTick(() => focusDraftInput());
+  },
+  { flush: 'post' },
+);
+
 const focusedId = ref<string | null>(null);
 
 watch(
@@ -739,7 +914,8 @@ const rootEl = useTemplateRef<HTMLDivElement>('rootEl');
 // and tracks the scroll element. When non-virtualized, the returned refs
 // stay at safe defaults (count: 0 → empty virtualRows, totalSize: 0).
 const virtualizer = useVirtualList({
-  count: () => (isVirtual.value ? visibleRows.value.length : 0),
+  // +1 for the inline-create draft row (it occupies a real slot in the list).
+  count: () => (isVirtual.value ? visibleRows.value.length + (draft.value ? 1 : 0) : 0),
   // Pass the raw size THROUGH as a getter: a number takes useVirtualList's O(1)
   // constant fastpath; a per-index `(i) => number` takes its offset-table path.
   // Returning the value (not calling it per-index here) is what lets the
@@ -755,16 +931,39 @@ const virtualizer = useVirtualList({
  * underlying row metadata. Falls back to the full list in non-virtualized
  * mode — keeps a single template.
  */
-const renderRows = computed(() => {
+type RenderVirtual = null | { start: number; size: number };
+interface RenderEntry {
+  /** The data row to render, or `null` when this entry is the create draft. */
+  row: VisibleRow | null;
+  /** Non-null only for the transient create-draft row. */
+  draft: { depth: number; kind: CoarTreeCreateKind } | null;
+  virtual: RenderVirtual;
+}
+const renderRows = computed<RenderEntry[]>(() => {
+  const place = draftPlacement.value;
   if (!isVirtual.value) {
-    return visibleRows.value.map((row) => ({ row, virtual: null as null | { start: number; size: number } }));
+    const out: RenderEntry[] = visibleRows.value.map((row) => ({ row, draft: null, virtual: null }));
+    if (place) {
+      out.splice(place.index, 0, { row: null, draft: { depth: place.depth, kind: place.kind }, virtual: null });
+    }
+    return out;
   }
-  const rows = virtualizer.virtualRows.value;
   const flat = visibleRows.value;
-  const out: { row: VisibleRow; virtual: { start: number; size: number } }[] = [];
-  for (const v of rows) {
-    const row = flat[v.index];
-    if (row) out.push({ row, virtual: { start: v.start, size: v.size } });
+  const draftIndex = place ? place.index : -1;
+  const out: RenderEntry[] = [];
+  for (const v of virtualizer.virtualRows.value) {
+    if (place && v.index === draftIndex) {
+      out.push({
+        row: null,
+        draft: { depth: place.depth, kind: place.kind },
+        virtual: { start: v.start, size: v.size },
+      });
+      continue;
+    }
+    // A draft before this index shifted the data rows down by one.
+    const flatIdx = place && v.index > draftIndex ? v.index - 1 : v.index;
+    const row = flat[flatIdx];
+    if (row) out.push({ row, draft: null, virtual: { start: v.start, size: v.size } });
   }
   return out;
 });
@@ -974,6 +1173,7 @@ onMounted(() => {
     selectNode: (id) => selectNode(findNodeById(id), 'api'),
     reloadChildren,
     startRename,
+    startCreate,
     expandAll,
     collapseAll,
     expandTo,
@@ -1606,6 +1806,23 @@ function fireFilesDrop(payload: CoarTreeFilesDropEvent<T>) {
   props.builder?.state.onFilesDrop?.(payload);
 }
 
+/**
+ * First accepted app-data MIME present on the drag, or `null`. Internal node
+ * drags are excluded (they own the `node-move` path), so a consumer can't
+ * accidentally re-handle one as a data drop.
+ */
+function acceptedDataMime(dt: DataTransfer): string | null {
+  const accepts = cfg.value.acceptsData;
+  if (!accepts || !accepts.length) return null;
+  if (dt.types.includes(COAR_TREE_DRAG_MIME)) return null;
+  for (const mime of accepts) if (dt.types.includes(mime)) return mime;
+  return null;
+}
+function fireDataDrop(payload: CoarTreeDataDropEvent<T>) {
+  emit('data-drop', payload);
+  props.builder?.state.onDataDrop?.(payload);
+}
+
 function onRowDragStart(node: T, ev: DragEvent) {
   if (!isDraggableOf(node)) {
     ev.preventDefault();
@@ -1638,6 +1855,20 @@ function onRowDragOver(node: T, el: HTMLElement, ev: DragEvent) {
       dropPosition.value = null;
       scheduleAutoExpand(node);
     }
+    return;
+  }
+  // App-internal data drag (consumer MIME) — reuses the drop-target highlight
+  // + auto-expand; before the node-move check, which needs COAR_TREE_DRAG_MIME.
+  if (acceptedDataMime(dt)) {
+    const rect = el.getBoundingClientRect();
+    const pos = computeDropPosition(ev, rect, { expandable: isExpandableOf(node) });
+    ev.preventDefault();
+    dt.dropEffect = 'move';
+    dropTargetId.value = cfg.value.getId(node);
+    dropPosition.value = pos;
+    fileDropTargetId.value = null;
+    if (pos === 'inside') scheduleAutoExpand(node);
+    else clearAutoExpand();
     return;
   }
   if (!dt.types.includes(COAR_TREE_DRAG_MIME)) return;
@@ -1684,6 +1915,15 @@ function onRowDrop(node: T, _el: HTMLElement, ev: DragEvent) {
     clearDragState();
     return;
   }
+  if (acceptedDataMime(dt)) {
+    ev.preventDefault();
+    ev.stopPropagation();
+    const position =
+      dropTargetId.value === cfg.value.getId(node) ? dropPosition.value ?? 'inside' : 'inside';
+    fireDataDrop({ node, position, dataTransfer: dt });
+    clearDragState();
+    return;
+  }
   if (dragSourceId.value && dropTargetId.value === cfg.value.getId(node) && dropPosition.value) {
     // Drop is one-shot, so re-resolve the source from the LIVE tree and re-run
     // the cycle check here — the O(depth) dragover guard can't see mutations
@@ -1714,6 +1954,11 @@ function onRootDragOver(ev: DragEvent) {
     dt.dropEffect = 'copy';
     return;
   }
+  if (acceptedDataMime(dt)) {
+    ev.preventDefault();
+    dt.dropEffect = 'move';
+    return;
+  }
   if (dt.types.includes(COAR_TREE_DRAG_MIME) && dragSourceId.value) {
     ev.preventDefault();
     dt.dropEffect = 'move';
@@ -1729,6 +1974,12 @@ function onRootDrop(ev: DragEvent) {
   if (isFileDrag(dt) && cfg.value.acceptsFiles && dt.files.length) {
     ev.preventDefault();
     fireFilesDrop({ files: dt.files, target: null });
+    clearDragState();
+    return;
+  }
+  if (acceptedDataMime(dt)) {
+    ev.preventDefault();
+    fireDataDrop({ node: null, position: 'inside', dataTransfer: dt });
     clearDragState();
     return;
   }
@@ -1763,6 +2014,33 @@ function startRename(id: string) {
   });
 }
 
+/**
+ * Open an inline-create draft under `parentId` (or the root for `null`). Expands
+ * the parent (and its ancestors) so the draft is visible, then mounts the focused
+ * edit input on the next frame. No-op unless `:creatable` is on. Commit fires
+ * `@create`, an empty / Escape fires `@create-cancel`.
+ */
+function startCreate(parentId: string | null, opts: CoarTreeStartCreateOptions = {}) {
+  if (!creatableOn.value) return;
+  if (parentId) {
+    const next = new Set(expandedStore.value);
+    next.add(parentId);
+    for (const a of ancestorPath(parentId)) next.add(a);
+    expandedStore.value = next;
+  }
+  const kind: CoarTreeCreateKind = opts.kind ?? 'folder';
+  const position = opts.position ?? 'last';
+  // Clear any settling commit so a reopen-on-error retry (re-calling startCreate
+  // from a rejected `@create` with `initialName`) lands cleanly.
+  draftCommitting.value = false;
+  // rAF so the input mounts AFTER any open context-menu overlay finishes its
+  // close + focus-restore — same race the rename path guards against.
+  requestAnimationFrame(() => {
+    draft.value = { parentId, kind, position };
+    draftBuffer.value = opts.initialName ?? '';
+  });
+}
+
 defineExpose({
   /**
    * Move keyboard focus to a node. The template-ref form has been focus-only
@@ -1789,6 +2067,11 @@ defineExpose({
    * the next frame.
    */
   startRename,
+  /**
+   * Open an inline-create draft row under `parentId` (`null` = root). No-op
+   * unless `:creatable` is set. The draft auto-focuses and commits via `@create`.
+   */
+  startCreate,
   /** Expand every expandable, currently-loaded node. */
   expandAll,
   /** Collapse everything. */
@@ -1837,7 +2120,7 @@ defineExpose({
          spacer is the tree container, otherwise the outer scroll-or-static
          div carries it. Either way the children are role="treeitem". -->
     <div
-      v-if="cfg.nodes.length"
+      v-if="cfg.nodes.length || draft"
       ref="scrollEl"
       class="coar-tree__scroll"
       :class="{ 'coar-tree__scroll--virtual': isVirtual }"
@@ -1850,33 +2133,68 @@ defineExpose({
         :aria-multiselectable="multiSelect ? 'true' : undefined"
         :style="isVirtual ? { height: `${virtualizer.totalSize.value}px`, position: 'relative' } : undefined"
       >
-        <CoarTreeNode
-          v-for="entry in renderRows"
-          :key="entry.row.id"
-          :node="entry.row.node"
-          :node-id="entry.row.id"
-          :depth="entry.row.depth"
-          :is-expandable="entry.row.isExpandable"
-          :draggable="entry.row.draggable"
-          :pos-in-set="entry.row.posInSet"
-          :set-size="entry.row.setSize"
-          :style="
-            entry.virtual
-              ? { position: 'absolute', top: `${entry.virtual.start}px`, left: 0, right: 0, height: `${entry.virtual.size}px` }
-              : undefined
-          "
-          @row-click="onRowClick"
-          @row-dblclick="onRowDblClick"
-          @row-context-menu="onRowContextMenu"
-          @row-check-toggle="onRowCheckToggle"
-          @row-retry="onRowRetry"
-          @chevron-click="onChevron"
-          @row-dragstart="onRowDragStart"
-          @row-dragend="onRowDragEnd"
-          @row-dragover="onRowDragOver"
-          @row-dragleave="onRowDragLeave"
-          @row-drop="onRowDrop"
-        />
+        <template v-for="entry in renderRows" :key="entry.draft ? '__coar-tree-draft__' : entry.row!.id">
+          <!-- Transient inline-create draft row (not a real node). -->
+          <div
+            v-if="entry.draft"
+            class="coar-tree__draft-row"
+            :style="[
+              { paddingLeft: `calc(var(--coar-tree-indent-base, 8px) + ${entry.draft.depth} * var(--coar-tree-indent, 14px))` },
+              entry.virtual
+                ? { position: 'absolute', top: `${entry.virtual.start}px`, left: 0, right: 0, height: `${entry.virtual.size}px` }
+                : {},
+            ]"
+          >
+            <span class="coar-tree__draft-spacer" aria-hidden="true" />
+            <span class="coar-tree__draft-icon" aria-hidden="true">
+              <slot name="draft" :kind="entry.draft.kind" :depth="entry.draft.depth">
+                <CoarIcon
+                  :name="entry.draft.kind === 'folder' ? 'folder' : 'file'"
+                  size="var(--coar-tree-icon-size, 12px)"
+                />
+              </slot>
+            </span>
+            <input
+              v-model="draftBuffer"
+              class="coar-tree__draft-input"
+              data-draft-input
+              :aria-label="entry.draft.kind === 'folder' ? 'New folder name' : 'New file name'"
+              @click.stop
+              @dblclick.stop
+              @keydown.stop
+              @keydown.enter.prevent="commitCreate()"
+              @keydown.escape.prevent="cancelCreate()"
+              @focus="onDraftFocus()"
+              @blur="onDraftBlur()"
+            />
+          </div>
+          <CoarTreeNode
+            v-else
+            :node="entry.row!.node"
+            :node-id="entry.row!.id"
+            :depth="entry.row!.depth"
+            :is-expandable="entry.row!.isExpandable"
+            :draggable="entry.row!.draggable"
+            :pos-in-set="entry.row!.posInSet"
+            :set-size="entry.row!.setSize"
+            :style="
+              entry.virtual
+                ? { position: 'absolute', top: `${entry.virtual.start}px`, left: 0, right: 0, height: `${entry.virtual.size}px` }
+                : undefined
+            "
+            @row-click="onRowClick"
+            @row-dblclick="onRowDblClick"
+            @row-context-menu="onRowContextMenu"
+            @row-check-toggle="onRowCheckToggle"
+            @row-retry="onRowRetry"
+            @chevron-click="onChevron"
+            @row-dragstart="onRowDragStart"
+            @row-dragend="onRowDragEnd"
+            @row-dragover="onRowDragOver"
+            @row-dragleave="onRowDragLeave"
+            @row-drop="onRowDrop"
+          />
+        </template>
       </div>
     </div>
     <div
@@ -2000,6 +2318,42 @@ defineExpose({
   color: var(--coar-text-neutral-tertiary);
   font-size: var(--coar-body-small-base-size, 13px);
   text-align: center;
+}
+
+/* Inline-create draft row — mirrors `.coar-tree-node__row`'s flex layout +
+   padding so its height matches data rows (keeps virtualization itemSize valid).
+   The leading chevron-spacer aligns the icon with sibling rows. */
+.coar-tree__draft-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--coar-tree-row-pad-y, 3px) var(--coar-tree-row-pad-x, 4px)
+    var(--coar-tree-row-pad-y, 3px) 0;
+  font-size: var(--coar-tree-row-font, var(--coar-body-small-base-size, 13px));
+  box-sizing: border-box;
+}
+.coar-tree__draft-spacer {
+  display: inline-block;
+  width: var(--coar-tree-control-size, 16px);
+  flex-shrink: 0;
+}
+.coar-tree__draft-icon {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--coar-text-neutral-tertiary);
+}
+.coar-tree__draft-input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  color: inherit;
+  background: var(--coar-background-neutral-primary);
+  border: 1px solid var(--coar-border-accent-primary);
+  border-radius: var(--coar-radius-xs, 2px);
+  padding: 1px 4px;
+  margin: -2px 0;
+  outline: none;
 }
 
 .coar-tree--file-drop::after {

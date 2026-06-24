@@ -161,7 +161,15 @@ export interface UseFileExplorerReturn<T = unknown> {
   addFolder: (parentId: string | null, name: string) => Promise<Asset<T> | null>;
   addFiles: (parentId: string | null, files: FileList | readonly File[]) => Promise<void>;
   deleteNode: (asset: Asset<T>) => Promise<void>;
-  /** Translates CoarTree's drop event → `store.move(id, parentId, position?)`. */
+  /**
+   * Programmatic move (optimistic + rollback) for sources that AREN'T a tree
+   * drag — a "move to folder" select, a grid card dropped on a folder, undo,
+   * etc. `position` (index within `newParentId`'s children) is honored only in
+   * `'manual'` sort mode, silently dropped otherwise. `newParentId === null`
+   * moves to the root.
+   */
+  move: (id: string, newParentId: string | null, position?: number) => Promise<void>;
+  /** Translates CoarTree's drop event → `move(...)`. */
   moveNode: (e: CoarTreeNodeMoveEvent<Asset<T>>) => Promise<void>;
   rename: (id: string, newName: string) => Promise<void>;
   /**
@@ -271,6 +279,15 @@ export function useFileExplorer<T = unknown>(
     internal.value = internal.value.map((a) =>
       a.id === id ? { ...a, ...patch } : a,
     );
+  };
+  /**
+   * Replace an optimistic temp node (by `tempId`) with the authoritative one
+   * the backend returned, in place — the real node may carry a different id.
+   * No-op when the store owns its own ref.
+   */
+  const reconcileOptimistic = (tempId: string, real: Asset<T>): void => {
+    if (usesStoreRef) return;
+    internal.value = internal.value.map((a) => (a.id === tempId ? real : a));
   };
 
   // ── sort mode resolution ──────────────────────────────────────────────
@@ -420,17 +437,36 @@ export function useFileExplorer<T = unknown>(
     return { content: await file.text(), editor: meta.editor };
   };
 
+  // Monotonic counter for optimistic temp ids — collision-free without RNG.
+  let optimisticSeq = 0;
+
   // ── CRUD ──────────────────────────────────────────────────────────────
+  /**
+   * Create a folder optimistically: a temp node is inserted IMMEDIATELY (so an
+   * inline-create flow can show it without waiting for the round-trip), then
+   * reconciled with the backend's real node on resolve, or rolled back on
+   * error (#4). Pairs with CoarTree's `startCreate` / `@create` — the consumer
+   * persists on commit and the temp node bridges the gap until the real one
+   * arrives. Stores that surface their own reactive `_assets` skip the temp
+   * node (their own mutation is the source of truth) — `mergeAssets` /
+   * `reconcileOptimistic` are no-ops there.
+   */
   const addFolder = async (
     parentId: string | null,
     name: string,
   ): Promise<Asset<T> | null> => {
+    const tempId = `__coar-optimistic-${optimisticSeq++}__`;
+    const optimistic = { id: tempId, name, kind: 'folder', parentId } as Asset<T>;
+    mergeAssets([optimistic]);
+    if (parentId) expanded.value = new Set(expanded.value).add(parentId);
     try {
       const created = await store.createFolder(parentId, name);
-      mergeAssets([created]);
-      if (parentId) expanded.value = new Set(expanded.value).add(parentId);
+      // Swap the temp node for the authoritative one (real id), preserving its
+      // slot. No-op for store-ref stores — they already hold `created`.
+      reconcileOptimistic(tempId, created);
       return created;
     } catch (e) {
+      removeAssets(new Set([tempId])); // roll the optimistic node back
       reportError('createFolder', e, { parentId, name });
       return null;
     }
@@ -443,8 +479,15 @@ export function useFileExplorer<T = unknown>(
     const list = Array.from(files);
     let created = false;
     for (const file of list) {
-      const read = await readFileContent(file);
-      if (!read) continue;
+      // Only pre-read + type-gate when we'll persist bytes via `save`. Browse-
+      // only stores (no `save`) persist inside `uploadFile` itself — reading
+      // here would mint an unused blob URL and reject "unsupported" files we
+      // should still upload (#6).
+      let read: { content: string; editor: FileEditor } | null = null;
+      if (store.save) {
+        read = await readFileContent(file);
+        if (!read) continue;
+      }
       let asset: Asset<T>;
       try {
         asset = await store.uploadFile(parentId, file);
@@ -452,15 +495,23 @@ export function useFileExplorer<T = unknown>(
         reportError('uploadFile', e, { parentId, file });
         continue;
       }
-      mergeAssets([asset]);
-      setBusy(savingNodes, asset.id, true);
-      try {
-        await store.save(asset.id, read.content);
-        created = true;
-      } catch (e) {
-        reportError('save', e, { id: asset.id, name: asset.name });
-      } finally {
-        setBusy(savingNodes, asset.id, false);
+      // Stamp the target `parentId` so a parent-filtered consumer (e.g. a grid
+      // scoped to one folder) shows the new node immediately, even if the
+      // store's returned asset left `parentId` unset (#5).
+      mergeAssets([{ ...asset, parentId: asset.parentId ?? parentId }]);
+      created = true;
+      // Seed the uploaded bytes via `save` — but only if the store supports it.
+      // Browse-only stores omit `save`; calling a missing one previously
+      // surfaced a spurious "saving not supported" error toast through `onError` (#6).
+      if (store.save && read) {
+        setBusy(savingNodes, asset.id, true);
+        try {
+          await store.save(asset.id, read.content);
+        } catch (e) {
+          reportError('save', e, { id: asset.id, name: asset.name });
+        } finally {
+          setBusy(savingNodes, asset.id, false);
+        }
       }
     }
     if (created && parentId) {
@@ -504,54 +555,62 @@ export function useFileExplorer<T = unknown>(
     }
   };
 
+  /**
+   * Programmatic move with the same optimistic-update + rollback as a tree
+   * drag. Use it for moves that DON'T originate from a `CoarTreeNodeMoveEvent`
+   * — a "move to folder" `<select>`, a grid card dropped on a folder row, an
+   * undo command, etc. `moveNode` (the tree-drag translator) delegates here.
+   *
+   * `position` (the destination index inside `newParentId`'s children) is
+   * honored only in `'manual'` sort mode; in any comparator-driven mode it's
+   * silently dropped — the comparator decides the final slot.
+   */
+  const move = async (
+    id: string,
+    newParentId: string | null,
+    position?: number,
+  ): Promise<void> => {
+    const honorPosition = reorderable.value && position !== undefined;
+    setBusy(savingNodes, id, true);
+    try {
+      await store.move(id, newParentId, honorPosition ? position : undefined);
+      patchAsset(id, { parentId: newParentId });
+      if (newParentId) expanded.value = new Set(expanded.value).add(newParentId);
+      // Manual sort with an explicit slot: re-fetch authoritative order from
+      // the backend. The local patchAsset above fixes parentId but not the new
+      // sibling order, which is the whole point of manual mode. Store-ref
+      // stores keep their own ref live, so they need no reload.
+      if (honorPosition && !usesStoreRef) {
+        await reloadTree();
+      }
+    } catch (err) {
+      reportError('move', err, { id, name: findAsset(id)?.name });
+    } finally {
+      setBusy(savingNodes, id, false);
+    }
+  };
+
   const moveNode = async (
     e: CoarTreeNodeMoveEvent<Asset<T>>,
   ): Promise<void> => {
     const { source, target, position } = e;
-    // In non-manual sort modes `position` is silently dropped — the
-    // comparator decides where the moved node lands. The drop-between-
-    // siblings affordance is still active at the tree level (CoarTree
-    // doesn't currently expose a flag to disable it), so a drop "before
-    // foo.txt" in folders-first mode just means "move into foo.txt's
-    // parent" and the sort handles the rest.
-    const honorPosition = reorderable.value;
-    setBusy(savingNodes, source.id, true);
-    try {
-      if (!target) {
-        await store.move(source.id, null);
-        patchAsset(source.id, { parentId: null });
-        return;
-      }
-      if (position === 'inside') {
-        if (target.kind !== 'folder') return;
-        await store.move(source.id, target.id);
-        patchAsset(source.id, { parentId: target.id });
-        expanded.value = new Set(expanded.value).add(target.id);
-        return;
-      }
-      // 'before' / 'after' — only compute an explicit position when manual.
-      if (!honorPosition) {
-        await store.move(source.id, target.parentId);
-        patchAsset(source.id, { parentId: target.parentId });
-        return;
-      }
-      const siblings = assets.value.filter(
-        (a) => a.parentId === target.parentId && a.id !== source.id,
-      );
-      const targetIdx = siblings.findIndex((a) => a.id === target.id);
-      const insertAt = position === 'before' ? targetIdx : targetIdx + 1;
-      await store.move(source.id, target.parentId, insertAt);
-      // Manual sort: re-fetch authoritative order from the backend. The local
-      // patchAsset above would mark parentId correctly but not the new
-      // sibling order, which is the whole point of manual mode.
-      if (!usesStoreRef) {
-        await reloadTree();
-      }
-    } catch (err) {
-      reportError('move', err, { id: source.id, name: source.name });
-    } finally {
-      setBusy(savingNodes, source.id, false);
+    // Drop on the empty background → move to root.
+    if (!target) return move(source.id, null);
+    if (position === 'inside') {
+      if (target.kind !== 'folder') return;
+      return move(source.id, target.id);
     }
+    // 'before' / 'after' — in non-manual sort modes `position` is silently
+    // dropped (the comparator decides where the node lands), so a drop "before
+    // foo.txt" just means "move into foo.txt's parent". Only compute an
+    // explicit sibling index when manual reordering is active.
+    if (!reorderable.value) return move(source.id, target.parentId);
+    const siblings = assets.value.filter(
+      (a) => a.parentId === target.parentId && a.id !== source.id,
+    );
+    const targetIdx = siblings.findIndex((a) => a.id === target.id);
+    const insertAt = position === 'before' ? targetIdx : targetIdx + 1;
+    return move(source.id, target.parentId, insertAt);
   };
 
   const rename = async (id: string, newName: string): Promise<void> => {
@@ -643,6 +702,12 @@ export function useFileExplorer<T = unknown>(
     file: Asset<T>,
     opts: { pinned: boolean } = { pinned: false },
   ): Promise<void> => {
+    // Browse-only stores have no `loadContent` → no editor tabs. Opening one
+    // would strand the user on an empty editor for content that never loads,
+    // so the whole tab path (incl. the single-click-preview watcher) no-ops (#6).
+    // Captured so the narrowing survives the `await` below.
+    const loadContent = store.loadContent;
+    if (!loadContent) return;
     const existingIdx = openTabs.value.findIndex((t) => t.id === file.id);
     if (existingIdx >= 0) {
       if (opts.pinned && !openTabs.value[existingIdx]!.pinned) pinTab(file.id);
@@ -681,7 +746,7 @@ export function useFileExplorer<T = unknown>(
     let content: string | Blob;
     setBusy(loadingNodes, file.id, true);
     try {
-      content = await store.loadContent(file.id);
+      content = await loadContent(file.id);
     } catch (e) {
       reportError('loadContent', e, { id: file.id, name: file.name });
       // Roll the placeholder back so the user isn't stranded on an empty
@@ -713,9 +778,13 @@ export function useFileExplorer<T = unknown>(
     if (idx < 0) return false;
     const tab = openTabs.value[idx]!;
     if (!isDirty(tab)) return true;
+    // Browse-only store (no `save`) → nothing to persist; report failure so
+    // callers (Ctrl+S, close-with-confirm) don't treat it as saved (#6).
+    const save = store.save;
+    if (!save) return false;
     setBusy(savingNodes, id, true);
     try {
-      await store.save(tab.id, tab.content);
+      await save(tab.id, tab.content);
     } catch (e) {
       reportError('save', e, { id, name: tab.name });
       return false;
@@ -983,6 +1052,7 @@ export function useFileExplorer<T = unknown>(
     addFolder,
     addFiles,
     deleteNode,
+    move,
     moveNode,
     rename,
     refresh,

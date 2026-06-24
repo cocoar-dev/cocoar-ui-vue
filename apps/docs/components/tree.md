@@ -80,6 +80,32 @@ Set `accepts-files` to receive operating-system file drops onto folder rows or t
 
 <preview path="./tree/demos/TreeFileDrop.vue" />
 
+## App-internal drops (drag something onto a node)
+
+`accepts-files` is for **OS** files. For an **in-app** drag — a card dragged out of your grid, a chip from a palette — set `accepts-data` to the MIME type(s) your source registered, and handle `@data-drop`. The tree reuses the same drop highlight, auto-expand-on-hover, and `before`/`inside`/`after` position as node reordering, but emits a generic event so your handler decides what the drop means (move the asset into the folder, link it, etc.).
+
+```vue
+<!-- your grid card -->
+<div draggable="true" @dragstart="e => e.dataTransfer.setData('application/x-myapp-asset', asset.id)">…</div>
+
+<!-- the tree -->
+<CoarTree
+  :builder="builder"
+  :accepts-data="['application/x-myapp-asset']"
+  @data-drop="onDataDrop"
+/>
+```
+
+```ts
+function onDataDrop({ node, position, dataTransfer }) {
+  const assetId = dataTransfer.getData('application/x-myapp-asset') // read at drop time
+  const targetFolderId = node?.id ?? null                          // null = dropped on the background
+  moveAssetToFolder(assetId, targetFolderId)
+}
+```
+
+Internal node drags (`@node-move`) are never delivered as `@data-drop` even when `accepts-data` is set — the two channels don't cross. The `DataTransfer` is only valid inside the handler (the browser neuters it afterwards), so read your payload synchronously.
+
 ## Context Menu + ⋮ Button
 
 `@context-menu` fires on right-click of any row and on background right-click (`node` is `null`). Wire it to a single `useContextMenu()` controller — the menu's contents adapt to whether a folder, file, or background was hit. The same controller doubles as the click handler for a hover-revealed `⋮` button per row, giving keyboard / left-click users equal access.
@@ -162,6 +188,7 @@ api.moveNode('a', 'b', 'after') // accessible/programmatic move
 api.getNode('some-id')          // resolve node by id, or null
 api.reloadChildren('some-id')   // re-run loadChildren (retry / refresh)
 api.startRename('some-id')      // enter inline-rename (needs `renamable`)
+api.startCreate('some-id')      // open inline-create draft under a parent (needs `creatable`)
 ```
 
 ## Lazy loading (async children)
@@ -301,6 +328,70 @@ builder
   </CoarTree>
 </template>
 ```
+
+## Inline create
+
+The counterpart to inline rename. Set `creatable` and call `api.startCreate(parentId, opts?)` to insert a **transient draft row** at its target position — `parentId: null` creates at the root, otherwise the parent auto-expands and the draft renders nested under it. The draft shows a focused `<input>` with the same blur-grace timer as rename; **Enter / blur** commits and fires `@create` with `{ parentId, name, kind }`, while **Escape** or an empty name fires `@create-cancel`. The draft is purely transient: persist the node in your `@create` handler and feed the real one back via your data source — the tree drops the draft on commit.
+
+`opts`: `kind` (`'folder'` \| `'leaf'`, default `'folder'` — picks the default icon and is echoed back on `@create`), `initialName` (prefill, default `''`), `position` (`'first'` \| `'last'` within the parent, default `'last'`). Override the default draft icon with the optional `#draft` slot (`{ kind, depth }`).
+
+```vue
+<script setup lang="ts">
+import { CoarTree, CoarTreeNodeLabel, useTree } from '@cocoar/vue-ui'
+const { builder, api } = useTree<FsNode>()
+builder
+  .nodes(tree).getId(n => n.id).getChildren(n => n.children).getLabel(n => n.name)
+  .creatable(true)
+  .onCreate(({ parentId, name, kind }) => createNode(parentId, name, kind))
+  .folderMenu(folder => [
+    { label: 'New folder', icon: 'folder-plus', onClick: () => api.startCreate(folder.id, { kind: 'folder' }) },
+  ])
+  .viewportMenu(() => [
+    { label: 'New folder', icon: 'folder-plus', onClick: () => api.startCreate(null) },
+  ])
+</script>
+
+<template>
+  <CoarTree :builder="builder">
+    <template #default="{ node }">
+      <CoarIcon :name="node.children ? 'folder' : 'file'" size="xs" />
+      <CoarTreeNodeLabel :label="node.name" />
+    </template>
+    <!-- optional: custom draft icon -->
+    <template #draft="{ kind }">
+      <CoarIcon :name="kind === 'folder' ? 'folder' : 'file'" size="xs" />
+    </template>
+  </CoarTree>
+</template>
+```
+
+Pairs with `@cocoar/vue-file-explorer-core`'s optimistic `addFolder` so the draft → real-node handoff has no flicker.
+
+### Async validation — keep the draft open on rejection
+
+If creation can fail server-side (a duplicate-name 409, a permission check), you don't want the user's typed name discarded. Two paths, depending on which API form you use:
+
+- **Builder form** — return a `Promise` from `onCreate`. The tree keeps the draft mounted + focused (name intact) until it settles: it drops the draft on resolve and **reopens it on reject** so the user can fix the name and retry.
+
+  ```ts
+  builder.creatable(true).onCreate(async ({ parentId, name }) => {
+    await api.createFolder(parentId, name) // throws on 409 → draft stays open
+  })
+  ```
+
+- **Prop / event form** — Vue's `emit` can't return a value, so reopen imperatively: on a rejected `@create`, re-call `startCreate` with `initialName` to restore the draft with the typed text.
+
+  ```ts
+  async function onCreate({ parentId, name }) {
+    try {
+      await createFolder(parentId, name)
+    } catch {
+      treeRef.value?.startCreate(parentId, { initialName: name }) // reopen, name preserved
+    }
+  }
+  ```
+
+> Both `creatable` / `@create` / `@create-cancel` and `api.startCreate` work in **prop-mode** too (without `useTree()`): `startCreate` is on the component's template ref alongside `startRename`.
 
 ## Disabled nodes
 
@@ -467,7 +558,10 @@ Two `<CoarTree>` instances on the same page can exchange nodes via the shared `a
 | `canDrop` | `(source: T, target: T \| null, position: 'before' \| 'inside' \| 'after') => boolean` | `undefined` | Veto drops on top of the built-in cycle guard. Advisory — `source` is the dragstart snapshot; integrity is guaranteed regardless |
 | `getDragImage` | `(node: T) => HTMLElement \| string \| null \| undefined` | `undefined` | Custom drag ghost (element or HTML string); falls back to the default row image |
 | `activateOnClick` | `boolean` | `false` | Fire `activate` on a single click too (not only double-click / Enter) |
+| `renamable` | `boolean` | `false` | Opt into built-in inline rename (`api.startRename` / F2 / `@rename`). See [Inline rename](#inline-rename) |
+| `creatable` | `boolean` | `false` | Opt into built-in inline create (`api.startCreate` / `@create`). See [Inline create](#inline-create) |
 | `acceptsFiles` | `boolean` | `false` | Accept OS file drops onto folder rows / the background |
+| `acceptsData` | `string[]` | `undefined` | MIME type(s) of app-internal drags to accept as a drop (e.g. a card from a grid). Fires `@data-drop`. See [App-internal drops](#app-internal-drops-drag-something-onto-a-node) |
 | `autoExpandDelay` | `number` | `700` | Milliseconds the cursor must hover before a collapsed folder auto-expands during a drag |
 | `virtualize` | `boolean \| { itemSize?, overscan? }` | `false` | Enable row virtualization. `true` uses defaults (28-px rows, 5-row overscan); pass an object to customize |
 | `density` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Row spacing preset (sets the spacing CSS vars). With virtualization, match `virtualize.itemSize` to the density's row height |
@@ -490,9 +584,12 @@ Two `<CoarTree>` instances on the same page can exchange nodes via the shared `a
 | `select` | `({ node: T \| null, ids: readonly string[], via: 'user' \| 'api' })` | The highlight selection changed. `node` = the row acted on, `ids` = the full selection after, `via` = user gesture vs `api` call |
 | `context-menu` | `(node: T \| null, ev: MouseEvent)` | Right-click on a row (`node` set) or background (`node` is `null`). The default action is suppressed automatically by `useContextMenu().open(ev)` |
 | `files-drop` | `({ files: FileList, target: T \| null })` | OS files dropped on a folder (`target` set) or empty background (`target` is `null`). Only fires when `accepts-files` is `true` |
+| `data-drop` | `({ node: T \| null, position, dataTransfer: DataTransfer })` | An app-internal drag (an `accepts-data` MIME) dropped on a row (`node` set) or background (`node` is `null`). Read your payload via `dataTransfer.getData(mime)` in the handler |
 | `node-move` | `({ source: T, target: T \| null, position })` | Internal drag-drop OR keyboard move / `api.moveNode`. `position` is `'before'`, `'inside'`, or `'after'`. `target: null` + `'inside'` means "move to root" |
 | `rename` | `({ node: T, newName: string })` | An inline rename committed (Enter / blur, non-empty). Needs `renamable`. See [Inline rename](#inline-rename) |
 | `rename-cancel` | `(node: T)` | An inline rename cancelled (Escape, or committed empty) |
+| `create` | `({ parentId: string \| null, name: string, kind: 'folder' \| 'leaf' })` | An inline create committed (Enter / blur, non-empty). Needs `creatable`. See [Inline create](#inline-create) |
+| `create-cancel` | — | An inline create cancelled (Escape, or committed empty) |
 | `load-error` | `({ node: T, error: unknown })` | A lazy `loadChildren` promise rejected. Only fires when `loadChildren` is set |
 | `update:expanded` | `(Set<string>)` | Folder expanded / collapsed |
 | `update:selected` | `(string \| null)` | Selection changed (single mode) |
@@ -505,6 +602,7 @@ Two `<CoarTree>` instances on the same page can exchange nodes via the shared `a
 |------|-------|-------------|
 | `default` | `{ node, depth, isExpanded, isSelected, isChecked, isIndeterminate, isFocused, isExpandable, isMatch, isMatchAncestor, isDisabled, isRenaming, isLoading, hasError }` | Row body. The tree renders indentation, chevron, checkbox (checkbox mode), focus ring and drop indicators; you render the icon, label, inline action buttons, dirty markers, etc. |
 | `empty` | — | Shown when `nodes` is empty. Defaults to nothing — provide your own empty-state copy |
+| `draft` | `{ kind: 'folder' \| 'leaf', depth }` | Leading content (icon) for the inline-create draft row. Defaults to a folder/file icon. Needs `creatable`. See [Inline create](#inline-create) |
 
 The `default` slot props in full:
 
@@ -532,6 +630,7 @@ Available on both the **template ref** and the builder **`api`** (the `api` warn
 | `moveNode(sourceId, targetId, position)` | Move a node (keyboard / a11y equivalent of a drop); runs the cycle + `canDrop` guards; returns whether it emitted |
 | `reloadChildren(id)` | Force `loadChildren` to (re)run — retry after an error or refresh a loaded folder |
 | `startRename(id)` | Enter inline-rename mode on a node (needs `renamable`) |
+| `startCreate(parentId, opts?)` | Open an inline-create draft under `parentId` (`null` = root); needs `creatable`. `opts`: `{ kind?, initialName?, position? }` |
 
 ### Constants
 
