@@ -332,29 +332,62 @@ interface DraftState {
 const draft = ref<DraftState | null>(null);
 const draftBuffer = ref('');
 let draftFocusTime = 0;
+/**
+ * True while an async builder `onCreate` is in flight. The draft stays mounted
+ * + focused (the typed name intact) so a server-side rejection — e.g. a
+ * duplicate-name 409 — can reopen for another try instead of losing the input.
+ * Guards re-entrant commit (double Enter / blur-during-commit).
+ */
+const draftCommitting = ref(false);
 
 /** Effective create-enabled flag (builder OR prop). Defined after `cfg` below. */
 
 function commitCreate() {
+  if (draftCommitting.value) return; // a previous async commit is still settling
   const d = draft.value;
   const name = draftBuffer.value.trim();
-  draft.value = null;
-  draftBuffer.value = '';
   if (!d) return;
   if (!name) {
+    draft.value = null;
+    draftBuffer.value = '';
     emit('create-cancel');
     props.builder?.state.onCreateCancel?.();
     return;
   }
   const payload: CoarTreeCreateEvent = { parentId: d.parentId, name, kind: d.kind };
+  // A builder `onCreate` may return a Promise: keep the draft open + focused
+  // until it settles — drop it on success, reopen (name intact) on reject — so
+  // async validation (duplicate names, etc.) doesn't discard the user's input.
+  // Event-form (`@create`) consumers get the same retry by re-calling
+  // `startCreate(parentId, { initialName })` from their catch (emit can't return
+  // a value, so the imperative reopen is the supported pattern there).
+  const result = props.builder?.state.onCreate?.(payload);
   emit('create', payload);
-  props.builder?.state.onCreate?.(payload);
+  if (result && typeof (result as { then?: unknown }).then === 'function') {
+    draftCommitting.value = true;
+    Promise.resolve(result).then(
+      () => {
+        draftCommitting.value = false;
+        draft.value = null;
+        draftBuffer.value = '';
+      },
+      () => {
+        // Keep the draft + typed name; just re-focus so the user can retry.
+        draftCommitting.value = false;
+        void nextTick(() => focusDraftInput());
+      },
+    );
+    return;
+  }
+  draft.value = null;
+  draftBuffer.value = '';
 }
 
 function cancelCreate() {
   const had = draft.value !== null;
   draft.value = null;
   draftBuffer.value = '';
+  draftCommitting.value = false;
   if (had) {
     emit('create-cancel');
     props.builder?.state.onCreateCancel?.();
@@ -365,6 +398,8 @@ function onDraftFocus() {
   draftFocusTime = Date.now();
 }
 function onDraftBlur() {
+  // Don't auto-commit while an async commit is already settling.
+  if (draftCommitting.value) return;
   // Same blur-grace as rename: a context-menu overlay closing restores focus to
   // its trigger and spuriously blurs the just-mounted input — re-grab + ignore.
   if (Date.now() - draftFocusTime < 200) {
@@ -1931,6 +1966,9 @@ function startCreate(parentId: string | null, opts: CoarTreeStartCreateOptions =
   }
   const kind: CoarTreeCreateKind = opts.kind ?? 'folder';
   const position = opts.position ?? 'last';
+  // Clear any settling commit so a reopen-on-error retry (re-calling startCreate
+  // from a rejected `@create` with `initialName`) lands cleanly.
+  draftCommitting.value = false;
   // rAF so the input mounts AFTER any open context-menu overlay finishes its
   // close + focus-restore — same race the rename path guards against.
   requestAnimationFrame(() => {

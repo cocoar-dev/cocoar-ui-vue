@@ -341,6 +341,32 @@ builder
 
 Pairs with `@cocoar/vue-file-explorer-core`'s optimistic `addFolder` so the draft → real-node handoff has no flicker.
 
+### Async validation — keep the draft open on rejection
+
+If creation can fail server-side (a duplicate-name 409, a permission check), you don't want the user's typed name discarded. Two paths, depending on which API form you use:
+
+- **Builder form** — return a `Promise` from `onCreate`. The tree keeps the draft mounted + focused (name intact) until it settles: it drops the draft on resolve and **reopens it on reject** so the user can fix the name and retry.
+
+  ```ts
+  builder.creatable(true).onCreate(async ({ parentId, name }) => {
+    await api.createFolder(parentId, name) // throws on 409 → draft stays open
+  })
+  ```
+
+- **Prop / event form** — Vue's `emit` can't return a value, so reopen imperatively: on a rejected `@create`, re-call `startCreate` with `initialName` to restore the draft with the typed text.
+
+  ```ts
+  async function onCreate({ parentId, name }) {
+    try {
+      await createFolder(parentId, name)
+    } catch {
+      treeRef.value?.startCreate(parentId, { initialName: name }) // reopen, name preserved
+    }
+  }
+  ```
+
+> Both `creatable` / `@create` / `@create-cancel` and `api.startCreate` work in **prop-mode** too (without `useTree()`): `startCreate` is on the component's template ref alongside `startRename`.
+
 ## Disabled nodes
 
 `isDisabled(node)` marks rows non-interactive: they can't be selected, activated, directly checked, focused by keyboard, matched by type-ahead, or dragged, and they render `aria-disabled` + dimmed. The `isDisabled` slot prop lets you adjust your own row content. Cascade from a *checked ancestor* still flows through a disabled descendant — disabled blocks **direct** interaction, not bulk parent operations.
