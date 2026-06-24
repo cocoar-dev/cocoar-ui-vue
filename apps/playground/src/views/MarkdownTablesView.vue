@@ -8,12 +8,13 @@
  * mode so the sidebar **Insert Table** button is always reachable.
  */
 import { computed, onMounted, ref } from 'vue';
-import { CoarMarkdownEditor } from '@cocoar/vue-markdown-editor';
+import { CoarMarkdownEditor, type CoarMarkdownFlavor } from '@cocoar/vue-markdown-editor';
 import { CoarMarkdown } from '@cocoar/vue-markdown';
 import { parse } from '@cocoar/vue-markdown-core';
 
 const toolbarMode = ref<'floating' | 'fixed' | 'both'>('both');
 const toolbarPosition = ref<'left' | 'right'>('left');
+const flavor = ref<CoarMarkdownFlavor>('cocoar');
 const showViewer = ref(true);
 
 const value = ref(`# Table testbed
@@ -81,6 +82,16 @@ onMounted(() => {
         </button>
       </template>
 
+      <span class="tbl-controls__label">Flavor:</span>
+      <button
+        v-for="f in (['commonmark', 'gfm', 'cocoar'] as const)"
+        :key="f"
+        :class="['tbl-controls__btn', { 'tbl-controls__btn--active': flavor === f }]"
+        @click="flavor = f"
+      >
+        {{ f }}
+      </button>
+
       <label class="tbl-controls__check">
         <input v-model="showViewer" type="checkbox" />
         viewer pane
@@ -89,15 +100,21 @@ onMounted(() => {
 
     <div class="tbl-checklist">
       <strong>Table status</strong> — ✅ create (sidebar) · ✅ add/remove row+col · ❌ column align ·
-      ❌ delete whole table · ❌ hover edge-handles (row/col select) · ⚠️ create unreachable in floating mode
+      ❌ delete whole table · ❌ hover edge-handles (row/col select) · ⚠️ create unreachable in floating mode<br />
+      <strong>Flavor</strong> — <code>commonmark</code> hides tables/strike/tasks/color (and won't parse them);
+      <code>gfm</code> adds GFM; <code>cocoar</code> adds text color. Try switching with a table in the doc.
     </div>
 
     <div :class="['tbl-split', { 'tbl-split--single': !showViewer }]">
       <div class="tbl-pane">
         <div class="tbl-pane__label">Editor</div>
         <div class="tbl-editor-frame">
+          <!-- `:key="flavor"` remounts on flavor change so the plugin set
+               (the hard part of the contract) re-registers — see flavor docs. -->
           <CoarMarkdownEditor
+            :key="flavor"
             v-model="value"
+            :flavor="flavor"
             :toolbar-mode="toolbarMode"
             :toolbar-position="toolbarPosition"
           />

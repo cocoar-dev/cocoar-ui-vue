@@ -291,3 +291,58 @@ describe('CoarMarkdownEditor — image insert', () => {
     wrapper.unmount();
   });
 });
+
+describe('CoarMarkdownEditor — flavor (portability gate)', () => {
+  function sidebarLabels(wrapper: ReturnType<typeof mount>): string[] {
+    return wrapper.findAll('.coar-sidebar-item__label').map((l) => l.text());
+  }
+
+  async function mountWithFlavor(flavor: unknown) {
+    const wrapper = mount(CoarMarkdownEditor, {
+      props: { modelValue: '# Hi', toolbarMode: 'fixed', flavor },
+      global: globalConfig,
+      attachTo: document.body,
+    });
+    await waitForEditorReady();
+    return wrapper;
+  }
+
+  it("commonmark hides GFM + color tools", async () => {
+    const wrapper = await mountWithFlavor('commonmark');
+    const labels = sidebarLabels(wrapper);
+    expect(labels).not.toContain('Insert Table');
+    expect(labels).not.toContain('Strikethrough');
+    expect(labels).not.toContain('Task List');
+    expect(labels).not.toContain('Text Color');
+    // Portable basics remain.
+    expect(labels).toContain('Bold');
+    expect(labels).toContain('Insert Image');
+    wrapper.unmount();
+  });
+
+  it('gfm shows tables/strike/tasks but still hides color', async () => {
+    const wrapper = await mountWithFlavor('gfm');
+    const labels = sidebarLabels(wrapper);
+    expect(labels).toContain('Insert Table');
+    expect(labels).toContain('Strikethrough');
+    expect(labels).toContain('Task List');
+    expect(labels).not.toContain('Text Color');
+    wrapper.unmount();
+  });
+
+  it('default (cocoar) shows everything', async () => {
+    const wrapper = await mountWithFlavor(undefined);
+    const labels = sidebarLabels(wrapper);
+    expect(labels).toContain('Insert Table');
+    expect(labels).toContain('Text Color');
+    wrapper.unmount();
+  });
+
+  it('accepts a capability object', async () => {
+    const wrapper = await mountWithFlavor({ gfm: true, textColor: false });
+    const labels = sidebarLabels(wrapper);
+    expect(labels).toContain('Insert Table');
+    expect(labels).not.toContain('Text Color');
+    wrapper.unmount();
+  });
+});

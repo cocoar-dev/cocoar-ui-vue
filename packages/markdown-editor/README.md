@@ -65,8 +65,27 @@ const value = ref('# Hello\n\nStart typing **markdown**.');
 | `placeholder` | `string` | `''` | Markdown hint shown while empty. Overlay-only — never written to `modelValue` |
 | `toolbarMode` | `'floating' \| 'fixed' \| 'both'` | `'floating'` | Toolbar layout |
 | `toolbarPosition` | `'left' \| 'right'` | `'left'` | Sidebar position when `toolbarMode` is `'fixed'` or `'both'` |
+| `flavor` | `'commonmark' \| 'gfm' \| 'cocoar' \| { gfm?, textColor? }` | `'cocoar'` | Portability contract — hard-enforces which features can be authored (see [Flavors](#flavors-portability)) |
 | `uploadImage` | `(file: File) => Promise<{ url: string; alt?: string }>` | _undefined_ | Enables paste / drag-drop image upload (see [Images](#images)) |
 | `pickImage` | `(ctx: ImagePickContext) => void` | _undefined_ | Override the Insert Image button with your own asset picker (see [Custom image source](#custom-image-source-pickimage)) |
+
+## Flavors (portability)
+
+The `flavor` prop is a portability contract — it picks which features the editor offers and **hard-enforces** them (only the matching plugins are registered, so non-flavor constructs can't be typed or pasted; they degrade to plain text).
+
+| Flavor | Adds on top of CommonMark | Renders in |
+|---|---|---|
+| `'commonmark'` | _(nothing — the portable floor)_ | any Markdown renderer (incl. minimal SwiftUI) |
+| `'gfm'` | tables, task lists, strikethrough | GFM-capable renderers |
+| `'cocoar'` _(default)_ | inline text color (non-portable HTML) | the Cocoar viewer / your own renderer |
+
+```vue
+<CoarMarkdownEditor v-model="value" flavor="commonmark" />
+<!-- or fine control -->
+<CoarMarkdownEditor v-model="value" :flavor="{ gfm: true, textColor: false }" />
+```
+
+Pick the flavor that matches your strictest downstream renderer (e.g. a native SwiftUI Markdown view) and authors can't produce content it won't render. `flavor` is the hard format contract; the `tools` whitelist is soft toolbar curation within it. To change `flavor` on a live editor, re-key it (`:key="flavor"`) so the plugin set re-registers.
 
 ## Images
 

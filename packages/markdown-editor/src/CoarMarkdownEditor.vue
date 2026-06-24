@@ -19,7 +19,8 @@ import type { $Command } from '@milkdown/utils';
 import { Milkdown, MilkdownProvider, useEditor, useInstance } from '@milkdown/vue';
 import { FORM_FIELD_INJECTION_KEY, menuPreset, useOverlay, useDialog } from '@cocoar/vue-ui';
 import type { OverlayRef } from '@cocoar/vue-ui';
-import { decideListToggleAction, isToolEnabled } from './toolbar-helpers';
+import { decideListToggleAction, isToolEnabled, isToolAllowedByCapabilities } from './toolbar-helpers';
+import { resolveCapabilities, type CoarMarkdownFlavorInput, type CoarMarkdownCapabilities } from './flavor';
 import { codeBlockNodeView } from './code-block-view';
 import { textColor } from './text-color';
 import { PlaceholderOverlay } from './placeholder';
@@ -118,6 +119,22 @@ export interface CoarMarkdownEditorProps {
    */
   tools?: CoarMarkdownEditorTool[];
   /**
+   * Markdown **flavor** — the portability contract, hard-enforced. Picks which
+   * features are available: the editor only registers the matching plugins (so
+   * non-flavor constructs can't be typed/pasted — they degrade to plain text)
+   * and hides their toolbar buttons.
+   *
+   * - `'commonmark'` — portable floor: headings, bold/italic, lists, links,
+   *   images, code, blockquote, hr. Renders in any Markdown renderer.
+   * - `'gfm'` — + tables, task lists, strikethrough (GFM).
+   * - `'cocoar'` (default) — + inline text color (non-portable raw HTML).
+   *
+   * Or pass a partial capability object `{ gfm?, textColor? }` (unspecified =
+   * off). Defaults to `'cocoar'` so existing editors are unchanged. Use the
+   * separate `tools` prop for soft toolbar curation within a flavor.
+   */
+  flavor?: CoarMarkdownFlavorInput;
+  /**
    * Enables pasting and dragging image files into the editor. The callback
    * receives the dropped/pasted `File`, stores it wherever the consumer wants
    * (CDN, asset service, data-URL, …) and resolves with the resulting `url`
@@ -185,6 +202,7 @@ const EditorImpl = defineComponent({
     toolbarMode: { type: String as PropType<CoarMarkdownEditorToolbarMode>, required: true },
     toolbarPosition: { type: String as PropType<CoarMarkdownEditorToolbarPosition>, required: true },
     tools: { type: Array as PropType<CoarMarkdownEditorTool[] | undefined>, default: undefined },
+    flavor: { type: [String, Object] as PropType<CoarMarkdownFlavorInput>, default: undefined },
     inputId: { type: String, required: true },
     hasError: { type: Boolean, required: true },
     describedBy: { type: String, default: undefined },
@@ -208,8 +226,14 @@ const EditorImpl = defineComponent({
     // stay put; the writing area shows a textarea instead.
     const viewMode = ref<'rendered' | 'source'>('rendered');
 
-    useEditor((root) =>
-      Editor.make()
+    // Resolve the flavor once at mount — plugin registration is a creation-time
+    // decision (the hard part of the contract: a disabled plugin means the
+    // construct can't be typed or pasted). Changing `flavor` at runtime needs a
+    // remount (re-key the component); the toolbar gate below is reactive.
+    const capabilities = resolveCapabilities(props.flavor);
+
+    useEditor((root) => {
+      const editor = Editor.make()
         .config((ctx) => {
           ctx.set(rootCtx, root);
           ctx.set(defaultValueCtx, props.initialValue);
@@ -223,23 +247,28 @@ const EditorImpl = defineComponent({
             props.onMarkdownChange(md);
           });
         })
-        .use(commonmark)
-        .use(gfm)
+        .use(commonmark);
+      // GFM (tables + task lists + strikethrough) — only when the flavor allows
+      // it, so e.g. a pasted `| a | b |` stays literal text in a commonmark flavor.
+      if (capabilities.gfm) editor.use(gfm);
+      editor
         // Frontmatter: parse a leading `---…---` YAML block as an atomic node
         // rendered as a metadata card (instead of a collapsed setext heading).
         .use(frontmatter)
         .use(history)
         .use(clipboard)
-        .use(listener)
-        // Inline color mark + raw-HTML span round-trip plugin pair.
-        .use(textColor)
+        .use(listener);
+      // Inline color mark + raw-HTML span round-trip — non-portable, so gated.
+      if (capabilities.textColor) editor.use(textColor);
+      editor
         // Custom NodeView for `code_block` — Prism-rendered when not focused,
         // editable + language selector when the cursor is inside.
         .use(codeBlockNodeView)
         // Paste / drag-drop image upload. Inert unless `uploadImage` is set;
         // reads the callback lazily so a changed prop is always honoured.
-        .use(imageUpload({ getUploader: () => props.uploadImage })),
-    );
+        .use(imageUpload({ getUploader: () => props.uploadImage }));
+      return editor;
+    });
 
     const [loading, getInstance] = useInstance();
 
@@ -324,6 +353,7 @@ const EditorImpl = defineComponent({
       required: props.required,
       placeholder: props.placeholder,
       pickImage: props.pickImage,
+      flavor: props.flavor,
       isEmpty: lastEmitted.value.trim() === '',
       sourceToggle: props.sourceToggle,
       viewMode: viewMode.value,
@@ -345,6 +375,7 @@ const Toolbar = defineComponent({
     toolbarMode: { type: String as PropType<CoarMarkdownEditorToolbarMode>, required: true },
     toolbarPosition: { type: String as PropType<CoarMarkdownEditorToolbarPosition>, required: true },
     tools: { type: Array as PropType<CoarMarkdownEditorTool[] | undefined>, default: undefined },
+    flavor: { type: [String, Object] as PropType<CoarMarkdownFlavorInput>, default: undefined },
     inputId: { type: String, required: true },
     hasError: { type: Boolean, required: true },
     describedBy: { type: String, default: undefined },
@@ -441,7 +472,12 @@ const Toolbar = defineComponent({
     const enabledSet = computed<ReadonlySet<CoarMarkdownEditorTool> | undefined>(() =>
       props.tools ? new Set(props.tools) : undefined,
     );
+    // Resolved flavor capabilities (reactive so the toolbar tracks a changed
+    // `flavor` prop). Drives the hard capability gate in `enabled()`.
+    const capabilities = computed<CoarMarkdownCapabilities>(() => resolveCapabilities(props.flavor));
     function enabled(tool: CoarMarkdownEditorTool): boolean {
+      // Capability gate first: a tool the flavor forbids is never shown.
+      if (!isToolAllowedByCapabilities(tool, capabilities.value)) return false;
       return isToolEnabled(tool, enabledSet.value);
     }
 
@@ -1333,6 +1369,7 @@ export default defineComponent({
     toolbarMode: { type: String as PropType<CoarMarkdownEditorToolbarMode>, default: 'floating' },
     toolbarPosition: { type: String as PropType<CoarMarkdownEditorToolbarPosition>, default: 'left' },
     tools: { type: Array as PropType<CoarMarkdownEditorTool[]>, default: undefined },
+    flavor: { type: [String, Object] as PropType<CoarMarkdownFlavorInput>, default: undefined },
     uploadImage: { type: Function as PropType<ImageUploader | undefined>, default: undefined },
     pickImage: { type: Function as PropType<ImagePicker | undefined>, default: undefined },
   },
@@ -1364,6 +1401,7 @@ export default defineComponent({
         toolbarMode: props.toolbarMode,
         toolbarPosition: props.toolbarPosition,
         tools: props.tools,
+        flavor: props.flavor,
         inputId: inputId.value,
         hasError: hasError.value,
         describedBy: describedBy.value,

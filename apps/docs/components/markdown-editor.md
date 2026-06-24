@@ -69,6 +69,36 @@ When `toolbarMode` is `'fixed'` or `'both'`, `toolbarPosition` controls which ed
 />
 ```
 
+## Flavors (portability)
+
+The **`flavor`** prop is a portability contract: it picks which features the editor offers and **hard-enforces** them — it only registers the matching Milkdown plugins, so a non-flavor construct can't be typed *or pasted* (it degrades to plain text), and its toolbar buttons are hidden.
+
+This matters when the same Markdown is rendered somewhere stricter than the web — e.g. a **native SwiftUI Markdown view** that only understands CommonMark, or CommonMark+GFM. Pick the flavor that matches your strictest renderer and authors physically can't produce content it won't render.
+
+| Flavor | Adds on top of CommonMark | Renders in |
+|---|---|---|
+| `'commonmark'` | _(nothing — the portable floor)_ headings, bold/italic, lists, links, images, code, blockquote, hr | **any** Markdown renderer |
+| `'gfm'` | tables, task lists, strikethrough | GFM-capable renderers (GitHub, swift-markdown-ui, …) |
+| `'cocoar'` _(default)_ | inline **text color** (non-portable raw HTML) | the Cocoar viewer / your own renderer |
+
+```vue
+<!-- Strict: only portable CommonMark can be authored -->
+<CoarMarkdownEditor v-model="value" flavor="commonmark" toolbar-mode="both" />
+
+<!-- Fine control: GFM tables etc. but no color, via a capability object -->
+<CoarMarkdownEditor v-model="value" :flavor="{ gfm: true, textColor: false }" />
+```
+
+A capability object (`{ gfm?, textColor? }`) is **opt-in** — unspecified capabilities are off, so `{}` ≡ `'commonmark'`. The default is `'cocoar'`, so existing editors are unchanged.
+
+::: tip flavor vs. tools
+`flavor` is the **hard format contract** (what can exist in the document). The [`tools`](#restricting-the-toolbar) whitelist is **soft toolbar curation** (which buttons show) *within* the flavor — e.g. keep GFM parsing but hide the table button. They compose.
+:::
+
+::: warning Changing flavor at runtime
+Plugin registration happens once at mount. To switch `flavor` on a live editor, **re-key** the component (`:key="flavor"`) so it remounts and re-registers — otherwise only the toolbar updates, not the parser. Switching to a stricter flavor degrades unsupported constructs already in the document (a table becomes its literal `| … |` text). The standalone `<CoarMarkdown>` viewer has its own parse options and is not affected by the editor's flavor.
+:::
+
 ## Readonly
 
 ```vue
@@ -351,6 +381,7 @@ When migrating from a richtext editor that exposed those tools, the closest Mark
 | `toolbarMode` | `'floating' \| 'fixed' \| 'both'` | `'floating'` | Toolbar layout |
 | `toolbarPosition` | `'left' \| 'right' \| 'top' \| 'bottom'` | `'left'` | Toolbar edge when `toolbarMode` is `'fixed'` or `'both'`. `top`/`bottom` render a horizontal toolbar; flyouts open along the perpendicular axis. |
 | `tools` | `CoarMarkdownEditorTool[]` | _all_ | Whitelist of toolbar tools. See [Restricting the Toolbar](#restricting-the-toolbar) |
+| `flavor` | `'commonmark' \| 'gfm' \| 'cocoar' \| { gfm?, textColor? }` | `'cocoar'` | Portability contract — hard-enforces which features can be authored. See [Flavors](#flavors-portability) |
 | `uploadImage` | `(file: File) => Promise<{ url: string; alt?: string }>` | _undefined_ | Enables paste / drag-drop image upload. Returns the stored image's URL. See [Images](#images) |
 | `pickImage` | `(ctx: ImagePickContext) => void` | _undefined_ | Override the Insert Image button with your own asset picker. See [Custom image source](#custom-image-source-pickimage) |
 
