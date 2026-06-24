@@ -227,7 +227,7 @@ GFM tables are portable (they render on GitHub, in `swift-markdown-ui`, etc.), s
 
 **Edit** — two ways:
 
-- **Hover edge-handles** (Notion/Word-style) — point at any edge of a table and grips appear along all four sides (a segment per column on top & bottom, per row on left & right). Hovering a grip highlights the whole column/row; clicking it opens a menu to **insert before / after** or **delete** that column/row.
+- **Hover edge-handles** (Notion/Word-style) — point at any edge of a table and grips appear along all four sides (a segment per column on top & bottom, per row on left & right). Hovering a grip highlights the whole column/row; **clicking** it opens a menu to **insert before / after** or **delete**, and **dragging** it **reorders** the column/row (with a live drop indicator).
 - **In-cell toolbar** — with the cursor inside a cell, the floating toolbar (and the sidebar in `fixed`/`both` mode) offers insert row/column, **column alignment** (left / center / right, applied to the whole column — round-trips as GFM `:--` / `:-:` / `--:`, active alignment highlighted), **delete cell** and **delete table**.
 
 ::: info How the handles work

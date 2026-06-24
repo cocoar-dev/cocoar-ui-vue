@@ -18,10 +18,12 @@
 import { ref, shallowRef, onMounted, onBeforeUnmount, computed, watch } from 'vue';
 import { useInstance } from '@milkdown/vue';
 import { editorViewCtx, commandsCtx } from '@milkdown/core';
+import { TextSelection } from '@milkdown/prose/state';
 import type { $Command } from '@milkdown/utils';
 import {
   selectColCommand, selectRowCommand, deleteSelectedCellsCommand,
   addColBeforeCommand, addColAfterCommand, addRowBeforeCommand, addRowAfterCommand,
+  moveColCommand, moveRowCommand,
 } from '@milkdown/preset-gfm';
 import { CoarContextMenu, CoarMenuItem, CoarMenuDivider, useContextMenu } from '@cocoar/vue-ui';
 
@@ -52,6 +54,8 @@ const geo = shallowRef<Geometry | null>(null);
 const hover = ref<{ kind: 'col' | 'row'; index: number } | null>(null);
 /** Which column/row the open action menu targets (drives highlight + actions). */
 const menu = ref<{ kind: 'col' | 'row'; index: number } | null>(null);
+/** Active drag-to-reorder: source index + the index it would drop at. */
+const drag = ref<{ kind: 'col' | 'row'; from: number; target: number } | null>(null);
 const ctxMenu = useContextMenu();
 
 // When the menu closes (item click, outside-click, escape), drop the pinned
@@ -114,7 +118,7 @@ function tableNear(x: number, y: number): HTMLTableElement | null {
 }
 
 function onPointerMove(e: MouseEvent) {
-  if (menu.value) return; // pinned while the action menu is open
+  if (menu.value || pendingDrag || drag.value) return; // pinned while menu open / dragging
   if (rafPending) return;
   rafPending = true;
   requestAnimationFrame(() => {
@@ -150,6 +154,8 @@ onMounted(() => {
 });
 onBeforeUnmount(() => {
   document.removeEventListener('mousemove', onPointerMove, true);
+  document.removeEventListener('mousemove', onDragMove, true);
+  document.removeEventListener('mouseup', onGripUp, true);
   window.removeEventListener('scroll', remeasure, true);
   window.removeEventListener('resize', remeasure);
 });
@@ -202,13 +208,89 @@ function doInsertAfter() {
 }
 
 // ── Interaction ─────────────────────────────────────────────────────
-/** A grip is highlighted when it's hovered OR it's the open menu's target, so
- *  the clicked grip stays visibly selected while the menu is open. */
+/** A grip is highlighted when it's hovered, the open menu's target, or the one
+ *  being dragged — so it stays visibly selected throughout the interaction. */
 function gripActive(kind: 'col' | 'row', index: number): boolean {
   return (
     (hover.value?.kind === kind && hover.value.index === index) ||
-    (menu.value?.kind === kind && menu.value.index === index)
+    (menu.value?.kind === kind && menu.value.index === index) ||
+    (drag.value?.kind === kind && drag.value.from === index)
   );
+}
+
+// ── Drag to reorder ─────────────────────────────────────────────────
+// Press a grip and move past a small threshold to drag the column/row; release
+// over another to reorder via `moveCol/RowCommand`. A press with no movement
+// falls through to opening the action menu (see `onGripUp`).
+const DRAG_THRESHOLD = 4;
+let pendingDrag: { kind: 'col' | 'row'; from: number; x: number; y: number; ev: MouseEvent } | null = null;
+
+function move(kind: 'col' | 'row', from: number, to: number) {
+  const editor = getInstance();
+  const pos = posInside(kind, from);
+  if (!editor || pos == null || from === to) return;
+  const selectCmd = kind === 'col' ? selectColCommand : selectRowCommand;
+  const moveCmd = kind === 'col' ? moveColCommand : moveRowCommand;
+  editor.action((ctx) => {
+    const commands = ctx.get(commandsCtx);
+    // `moveColumn/Row` reads the source/target ranges from the selection, so we
+    // must put a CellSelection in this table first. The table is replaced
+    // immediately by the move, so this selection never shows to the user.
+    commands.call(selectCmd.key, { index: from, pos });
+    commands.call(moveCmd.key, { from, to, pos });
+    // The move leaves the moved column/row CellSelection-selected; collapse it
+    // to a plain cursor so no cells stay highlighted after the drop.
+    const view = ctx.get(editorViewCtx);
+    const { state } = view;
+    if (!state.selection.empty) {
+      view.dispatch(state.tr.setSelection(TextSelection.create(state.doc, state.selection.from)));
+    }
+  });
+  geo.value = null;
+  hover.value = null;
+}
+
+/** Map a pointer coordinate to the column/row index under it. */
+function indexAt(kind: 'col' | 'row', x: number, y: number): number {
+  const g = geo.value;
+  if (!g) return 0;
+  if (kind === 'col') {
+    const i = g.cols.findIndex((c) => x < c.left + c.width);
+    return i === -1 ? g.cols.length - 1 : i;
+  }
+  const j = g.rows.findIndex((r) => y < r.top + r.height);
+  return j === -1 ? g.rows.length - 1 : j;
+}
+
+function onGripDown(kind: 'col' | 'row', index: number, e: MouseEvent) {
+  e.preventDefault();
+  e.stopPropagation();
+  pendingDrag = { kind, from: index, x: e.clientX, y: e.clientY, ev: e };
+  document.addEventListener('mousemove', onDragMove, true);
+  document.addEventListener('mouseup', onGripUp, true);
+}
+
+function onDragMove(e: MouseEvent) {
+  if (!pendingDrag) return;
+  if (!drag.value) {
+    if (Math.hypot(e.clientX - pendingDrag.x, e.clientY - pendingDrag.y) < DRAG_THRESHOLD) return;
+    drag.value = { kind: pendingDrag.kind, from: pendingDrag.from, target: pendingDrag.from };
+  }
+  drag.value = { ...drag.value, target: indexAt(drag.value.kind, e.clientX, e.clientY) };
+}
+
+function onGripUp() {
+  document.removeEventListener('mousemove', onDragMove, true);
+  document.removeEventListener('mouseup', onGripUp, true);
+  if (drag.value) {
+    const { kind, from, target } = drag.value;
+    drag.value = null;
+    move(kind, from, target);
+  } else if (pendingDrag) {
+    // No movement — treat as a click and open the action menu.
+    openMenu(pendingDrag.kind, pendingDrag.from, pendingDrag.ev);
+  }
+  pendingDrag = null;
 }
 
 function openMenu(kind: 'col' | 'row', index: number, e: MouseEvent) {
@@ -247,9 +329,9 @@ const rowBars = computed(() => {
 });
 const highlightStyle = computed(() => {
   const g = geo.value;
-  // Highlight the hovered grip, or — while the menu is open — its target, so
-  // you keep seeing exactly which column/row you're editing.
-  const h = hover.value ?? menu.value;
+  // Highlight the hovered grip, the open menu's target, or the dragged
+  // column/row — so you keep seeing exactly which one you're acting on.
+  const h = hover.value ?? menu.value ?? (drag.value ? { kind: drag.value.kind, index: drag.value.from } : null);
   if (!g || !h) return null;
   if (h.kind === 'col') {
     const c = g.cols[h.index];
@@ -258,6 +340,21 @@ const highlightStyle = computed(() => {
   const r = g.rows[h.index];
   return r && { left: `${g.rect.left}px`, top: `${r.top}px`, width: `${g.rect.width}px`, height: `${r.height}px` };
 });
+
+/** The blue drop-indicator line at the edge of the column/row the drag lands on. */
+const dropStyle = computed(() => {
+  const g = geo.value, d = drag.value;
+  if (!g || !d) return null;
+  if (d.kind === 'col') {
+    const c = g.cols[d.target];
+    // line on the leading edge of the target column
+    const left = d.target >= d.from ? c.left + c.width : c.left;
+    return c && { left: `${left}px`, top: `${g.rect.top}px`, width: '2px', height: `${g.rect.height}px` };
+  }
+  const r = g.rows[d.target];
+  const top = d.target >= d.from ? r.top + r.height : r.top;
+  return r && { left: `${g.rect.left}px`, top: `${top}px`, width: `${g.rect.width}px`, height: '2px' };
+});
 </script>
 
 <template>
@@ -265,6 +362,8 @@ const highlightStyle = computed(() => {
     <div v-if="geo" class="coar-md-th">
       <!-- column/row highlight -->
       <div v-if="highlightStyle" class="coar-md-th__hl" :style="highlightStyle" />
+      <!-- drop indicator while dragging to reorder -->
+      <div v-if="dropStyle" class="coar-md-th__drop" :style="dropStyle" />
 
       <!-- column handle bars (top + bottom) -->
       <div
@@ -283,7 +382,7 @@ const highlightStyle = computed(() => {
           :aria-label="`Column ${i + 1} options`"
           @mouseenter="hover = { kind: 'col', index: i }"
           @mouseleave="hover = null"
-          @mousedown="openMenu('col', i, $event)"
+          @mousedown="onGripDown('col', i, $event)"
         />
       </div>
 
@@ -304,7 +403,7 @@ const highlightStyle = computed(() => {
           :aria-label="`Row ${j + 1} options`"
           @mouseenter="hover = { kind: 'row', index: j }"
           @mouseleave="hover = null"
-          @mousedown="openMenu('row', j, $event)"
+          @mousedown="onGripDown('row', j, $event)"
         />
       </div>
     </div>
@@ -356,5 +455,13 @@ const highlightStyle = computed(() => {
 .coar-md-th__grip:hover,
 .coar-md-th__grip--active {
   background: var(--coar-background-accent-primary, #2563eb);
+}
+
+/* Drop indicator while dragging a column/row to reorder. */
+.coar-md-th__drop {
+  position: fixed;
+  background: var(--coar-background-accent-primary, #2563eb);
+  border-radius: 1px;
+  pointer-events: none;
 }
 </style>
