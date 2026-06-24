@@ -1,12 +1,29 @@
 <script setup lang="ts">
 import { ref, nextTick, type ComponentPublicInstance } from 'vue';
 import { useI18n } from '@cocoar/vue-localization';
-import type { ToastService } from './toast-service';
+import { getToastService, type ToastService } from './toast-service';
 import CoarToastItem from './CoarToastItem.vue';
 
-const props = defineProps<{
-  service: ToastService;
-}>();
+const props = withDefaults(
+  defineProps<{
+    /**
+     * The toast service backing this container. Defaults to the
+     * `getToastService()` singleton (the same one `useToast()` wraps), so
+     * `<CoarToastContainer />` is zero-config once `CoarOverlayPlugin` is
+     * installed. Pass an explicit service only when you run a non-singleton
+     * instance (e.g. an isolated test harness).
+     */
+    service?: ToastService;
+  }>(),
+  {
+    // Lazy default: resolved per-instance at render so it picks up the
+    // plugin-registered singleton. Throws a clear "install CoarOverlayPlugin"
+    // error if the plugin is missing — far better than the previous silent
+    // `Cannot read properties of undefined (reading 'position')` crash that
+    // stalled the reactive flush and broke unrelated UI on the page.
+    service: () => getToastService(),
+  },
+);
 
 const { t } = useI18n();
 
