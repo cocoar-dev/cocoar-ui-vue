@@ -66,6 +66,10 @@ export const routes: RouteRecordRaw[] = [
     path: '/token-graph',
     component: () => import('./views/TokenGraphView.vue'),
   },
+  {
+    path: '/input-frame',
+    component: () => import('./views/InputFrameDemoView.vue'),
+  },
   // ─── @cocoar/vue-calendar demos ────────────────────────────
   {
     path: '/calendar-basic',
