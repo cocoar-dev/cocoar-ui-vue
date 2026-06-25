@@ -198,6 +198,12 @@ const hasActions = computed(() => !!slots.actions);
   height: auto;
   min-height: var(--coar-component-m-height);
   align-items: stretch;
+  /* Cap the radius at the single-row pill (half the min-height) instead of letting
+     the browser cap it at half the GROWN height — otherwise a tall wrapped box
+     turns into a stadium with huge round ends. --coar-input-corner already is
+     min(radius, min-height/2), so a wrapped box stays a rounded rectangle whose
+     corners match a single-row pill. */
+  border-radius: var(--coar-input-corner);
 }
 .coar-input-frame--multiline.coar-input-frame--xs {
   height: auto;
