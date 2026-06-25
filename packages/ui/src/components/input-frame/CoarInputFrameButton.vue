@@ -2,9 +2,10 @@
 /**
  * CoarInputFrameButton — a Type-B "edge button" for CoarInputFrame's #actions slot
  * (calendar / dropdown / search / stepper trigger). Fills the field height with its
- * own background + a left separator; its ICON is inset by --coar-field-pad so it
- * clears the (rounded) outer edge. The frame clips the outer corner to
- * --coar-input-radius via overflow:hidden, so this button needs no own radius.
+ * own background + a left separator. The icon's separator-side (left) inset is a
+ * fixed spacing token; its OUTER (right) inset is max(--coar-field-pad, corner) so
+ * it clears the rounded cap and tracks the field-padding knob. The frame clips the
+ * outer corner to --coar-input-radius via overflow:hidden, so it needs no own radius.
  *
  * Internal — used by the Coar input components, not exported.
  */
@@ -40,12 +41,14 @@ withDefaults(
   justify-content: center;
   flex-shrink: 0;
   height: 100%;
-  /* Icon inset: field-pad on the separator (left) side; on the OUTER (right) side
-     it clears the actual rounded cap, so use max(field-pad, corner). At default
-     radius corner ≤ field-pad → unchanged; at full/pill radius the icon steps in
-     to sit clear of the curve, matching how the floating Type-A affixes read.
-     (This button is the rightmost #actions child — the side that meets the curve.) */
-  padding-left: var(--coar-field-pad);
+  /* Icon insets follow the frame contract: --coar-field-pad is the clearance to the
+     OUTER (rounded) border only; internal boundaries use a fixed spacing token.
+     - left  = the SEPARATOR side (internal) → fixed --coar-spacing-s, so the field-
+       padding knob does NOT shift the icon away from the separator.
+     - right = the OUTER side that meets the rounded cap → max(field-pad, corner),
+       so the icon clears the curve at full/pill radius and tracks the padding knob
+       (matching every other rightmost icon: clear / eye / chevron). */
+  padding-left: var(--coar-spacing-s);
   padding-right: max(var(--coar-field-pad), var(--coar-input-corner, 0px));
   border: none;
   border-left: 1px solid var(--coar-border-input);
