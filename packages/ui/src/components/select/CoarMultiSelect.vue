@@ -417,6 +417,11 @@ onBeforeUnmount(() => {
 .coar-select--s .coar-select-trigger { height: var(--coar-component-s-height); --coar-component-scale: var(--coar-component-s-scale); }
 .coar-select--l .coar-select-trigger { height: var(--coar-component-l-height); --coar-component-scale: var(--coar-component-l-scale); }
 
+/* Per-size value text (was constant — only single-select scaled it) */
+.coar-select--xs .coar-select-value { font-size: var(--coar-component-xs-font-size); }
+.coar-select--s .coar-select-value { font-size: var(--coar-component-s-font-size); }
+.coar-select--l .coar-select-value { font-size: var(--coar-component-l-font-size); }
+
 .coar-select-trigger:hover:not(.coar-select-trigger--disabled):not(.coar-select-trigger--readonly):not(.coar-select-trigger--error):not(.coar-select-trigger--focused) {
   border-color: var(--coar-border-input-hover);
 }

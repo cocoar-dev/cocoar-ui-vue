@@ -368,6 +368,11 @@ onBeforeUnmount(() => {
 .coar-select--s .coar-tag-select-trigger { min-height: var(--coar-component-s-height); --coar-component-scale: var(--coar-component-s-scale); }
 .coar-select--l .coar-tag-select-trigger { min-height: var(--coar-component-l-height); --coar-component-scale: var(--coar-component-l-scale); }
 
+/* Per-size input text (was constant 14px regardless of size) */
+.coar-select--xs .coar-tag-select-input { font-size: var(--coar-component-xs-font-size); }
+.coar-select--s .coar-tag-select-input { font-size: var(--coar-component-s-font-size); }
+.coar-select--l .coar-tag-select-input { font-size: var(--coar-component-l-font-size); }
+
 .coar-tag-select-trigger:hover:not(.coar-tag-select-trigger--disabled):not(.coar-tag-select-trigger--readonly):not(.coar-tag-select-trigger--error):not(.coar-tag-select-trigger--focused) {
   border-color: var(--coar-border-input-hover);
 }
@@ -412,14 +417,16 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  height: 24px;
+  /* Scale chip height + font with the control size so an xs trigger isn't
+     forced taller by a fixed 24px chip (see --coar-component-scale). */
+  height: calc(24px * var(--coar-component-scale, 1));
   padding: 0 var(--coar-spacing-xs) 0 var(--coar-spacing-s);
   border-radius: var(--coar-tag-radius);
   background: var(--coar-background-neutral-secondary);
   border: 1px solid var(--coar-border-neutral-tertiary);
   color: var(--coar-text-neutral-primary);
   font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-body-caption-size);
+  font-size: calc(var(--coar-body-caption-size) * var(--coar-component-scale, 1));
   font-weight: var(--coar-body-small-bold-weight);
   white-space: nowrap;
   max-width: 160px;
@@ -452,7 +459,7 @@ onBeforeUnmount(() => {
 .coar-tag-select-input {
   flex: 1;
   min-width: 60px;
-  height: 24px;
+  height: calc(24px * var(--coar-component-scale, 1));
   padding: 0;
   border: none;
   background: transparent;
