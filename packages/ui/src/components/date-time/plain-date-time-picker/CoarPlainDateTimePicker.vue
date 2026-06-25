@@ -7,6 +7,8 @@ import { Maskito } from '@maskito/core';
 import { useI18n } from '@cocoar/vue-localization';
 
 import CoarIcon from '../../icon/CoarIcon.vue';
+import CoarInputFrame from '../../input-frame/CoarInputFrame.vue';
+import CoarInputFrameButton from '../../input-frame/CoarInputFrameButton.vue';
 import { getOverlayService } from '../../overlay/useOverlay';
 import { datepickerPreset } from '../../overlay/overlay-presets';
 import type { OverlayRef } from '../../overlay/overlay-types';
@@ -107,8 +109,9 @@ const inputId = `${uid}-input`;
 const panelId = `${uid}-panel`;
 const messageId = `${uid}-message`;
 
-// Refs
-const triggerRef = ref<HTMLElement | null>(null);
+// Refs — the trigger IS the CoarInputFrame root; reach its DOM node via $el.
+const triggerRef = ref<{ $el?: HTMLElement } | null>(null);
+const triggerEl = (): HTMLElement | undefined => triggerRef.value?.$el ?? undefined;
 const dateInputRef = ref<HTMLInputElement | null>(null);
 
 // Overlay
@@ -233,7 +236,7 @@ function openPanel() {
   if (isDisabled.value || props.readonly || pickerBase.isOpen.value) return;
   if (modelValue.value) activeMonth.value = modelValue.value.toPlainDate().toPlainYearMonth();
 
-  const trigger = triggerRef.value;
+  const trigger = triggerEl();
   if (!trigger) return;
 
   const panelInputs = reactive({
@@ -515,31 +518,34 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
       <span v-if="required" class="coar-pdtp-required" aria-hidden="true">*</span>
     </span>
 
-    <!-- Trigger -->
-    <div
+    <!-- Trigger = the shared input shell. combobox role/aria fall through to its
+         root; focus lives on the inner input (frame styles via :focus-within). -->
+    <CoarInputFrame
       ref="triggerRef"
       class="coar-pdtp-trigger"
-      :class="{
-        'coar-pdtp-trigger--disabled': isDisabled,
-        'coar-pdtp-trigger--readonly': readonly,
-        'coar-pdtp-trigger--error': hasError,
-        'coar-pdtp-trigger--open': pickerBase.isOpen.value,
-      }"
+      :size="size"
+      :error="hasError"
+      :disabled="isDisabled"
+      :readonly="readonly"
+      :active="pickerBase.isOpen.value"
       :aria-expanded="pickerBase.isOpen.value"
       aria-haspopup="dialog"
       :aria-controls="pickerBase.isOpen.value ? panelId : undefined"
       role="combobox"
     >
-      <button
-        type="button"
-        class="coar-pdtp-clear"
-        :class="{ 'coar-pdtp-clear--hidden': !showClearButton }"
-        tabindex="-1"
-        :aria-label="t('coar.ui.dateTimePicker.clearDate', undefined, 'Clear date')"
-        @click="clearValue($event)"
-      >
-        <CoarIcon name="x" size="auto" />
-      </button>
+      <!-- Clear → leading affix -->
+      <template #leading>
+        <button
+          type="button"
+          class="coar-pdtp-clear"
+          :class="{ 'coar-pdtp-clear--hidden': !showClearButton }"
+          tabindex="-1"
+          :aria-label="t('coar.ui.dateTimePicker.clearDate', undefined, 'Clear date')"
+          @click="clearValue($event)"
+        >
+          <CoarIcon name="x" size="auto" />
+        </button>
+      </template>
 
       <input
         :id="inputId"
@@ -559,17 +565,18 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
         @keydown="onKeydown"
       />
 
-      <button
-        type="button"
-        class="coar-pdtp-btn"
-        tabindex="-1"
-        :aria-label="t('coar.ui.dateTimePicker.openPicker', undefined, 'Open picker')"
-        :disabled="isDisabled || readonly"
-        @click="togglePanel"
-      >
-        <CoarIcon name="calendar" size="s" />
-      </button>
-    </div>
+      <!-- Calendar trigger → Type-B edge button (#actions) -->
+      <template #actions>
+        <CoarInputFrameButton
+          class="coar-pdtp-btn"
+          :aria-label="t('coar.ui.dateTimePicker.openPicker', undefined, 'Open picker')"
+          :disabled="isDisabled || readonly"
+          @click="togglePanel"
+        >
+          <CoarIcon name="calendar" size="s" />
+        </CoarInputFrameButton>
+      </template>
+    </CoarInputFrame>
 
     <!-- Message -->
     <div
@@ -621,71 +628,10 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
   margin-bottom: var(--coar-component-l-label-margin);
 }
 
-/* Trigger */
-.coar-pdtp-trigger {
-  display: flex;
-  align-items: center;
-  gap: var(--coar-spacing-s);
-  height: var(--coar-component-m-height);
-  /* Field contract: horizontal padding = base × per-size scale × density. */
-  /* field-pad applied to the inner input (right-aligned date → padding-right is
-     the visible text↔button gap); trigger stays flush for the edge button. */
-  --coar-field-pad: calc(var(--coar-field-padding-x) * var(--coar-component-scale, 1) * var(--coar-component-density, 1));
-  padding: 0;
-  border: 1px solid var(--coar-border-input);
-  border-radius: var(--coar-input-radius);
-  background: var(--coar-surface-input);
+/* Box / radius / size / states are owned by CoarInputFrame; only the pointer
+   affordance lives here (calendar segment + clear come via slots). */
+.coar-pdtp-trigger:not(.coar-input-frame--disabled):not(.coar-input-frame--readonly) {
   cursor: pointer;
-  transition:
-    border-color var(--coar-duration-fast) var(--coar-ease-out),
-    box-shadow var(--coar-duration-fast) var(--coar-ease-out);
-}
-
-.coar-pdtp-trigger:hover:not(.coar-pdtp-trigger--disabled):not(.coar-pdtp-trigger--readonly):not(
-    .coar-pdtp-trigger--error
-  ) {
-  border-color: var(--coar-border-input-hover);
-}
-
-.coar-pdtp-trigger:focus-within {
-  outline: none;
-  border-color: var(--coar-focus-color);
-  box-shadow: inset 0 0 0 1px var(--coar-focus-color);
-}
-
-.coar-pdtp-trigger--open:not(.coar-pdtp-trigger--error) {
-  border-color: var(--coar-focus-color);
-  box-shadow: inset 0 0 0 1px var(--coar-focus-color);
-}
-
-.coar-pdtp-trigger--disabled {
-  background: var(--coar-surface-input-disabled);
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-.coar-pdtp-trigger--readonly {
-  cursor: default;
-}
-.coar-pdtp-trigger--error {
-  border-color: var(--coar-border-semantic-error-bold);
-}
-.coar-pdtp-trigger--error:focus-within,
-.coar-pdtp-trigger--error.coar-pdtp-trigger--open {
-  box-shadow: inset 0 0 0 1px var(--coar-border-semantic-error-bold);
-}
-
-.coar-pdtp--xs .coar-pdtp-trigger {
-  height: var(--coar-component-xs-height);
-  gap: var(--coar-spacing-xs);
-  --coar-component-scale: var(--coar-component-xs-scale);
-}
-.coar-pdtp--s .coar-pdtp-trigger {
-  height: var(--coar-component-s-height);
-  --coar-component-scale: var(--coar-component-s-scale);
-}
-.coar-pdtp--l .coar-pdtp-trigger {
-  height: var(--coar-component-l-height);
-  --coar-component-scale: var(--coar-component-l-scale);
 }
 
 /* Input */
@@ -693,7 +639,7 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
   flex: 1;
   min-width: 0;
   height: 100%;
-  padding: 0 var(--coar-field-pad);
+  padding: 0;
   border: none;
   background: transparent;
   font-family: var(--coar-body-small-base-family);
@@ -735,7 +681,6 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
   background: none;
   border: none;
   padding: 0;
-  margin-left: var(--coar-spacing-s);
   color: var(--coar-icon-neutral-disabled);
   cursor: pointer;
   transition:
@@ -756,45 +701,8 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
   color: var(--coar-icon-neutral-primary);
 }
 
-/* Calendar button */
-.coar-pdtp-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: var(--coar-component-m-height);
-  height: 100%;
-  padding: 0;
-  margin: 0;
-  border: none;
-  border-left: 1px solid var(--coar-border-input);
-  border-radius: 0 var(--coar-input-radius) var(--coar-input-radius) 0;
-  background: var(--coar-background-neutral-secondary);
-  color: var(--coar-icon-neutral-secondary);
-  cursor: pointer;
-  transition:
-    background-color var(--coar-duration-fast) var(--coar-ease-out),
-    color var(--coar-duration-fast) var(--coar-ease-out);
-}
-
-.coar-pdtp-btn:hover:not(:disabled) {
-  background: var(--coar-background-neutral-tertiary);
-  color: var(--coar-icon-neutral-primary);
-}
-.coar-pdtp-btn:disabled {
-  cursor: not-allowed;
-  color: var(--coar-icon-neutral-disabled);
-}
-
-.coar-pdtp--xs .coar-pdtp-btn {
-  width: var(--coar-component-xs-height);
-}
-.coar-pdtp--s .coar-pdtp-btn {
-  width: var(--coar-component-s-height);
-}
-.coar-pdtp--l .coar-pdtp-btn {
-  width: var(--coar-component-l-height);
-}
+/* The calendar segment button is a CoarInputFrameButton (Type-B edge button);
+   its surface / separator / icon inset / corner clipping are owned there. */
 
 /* Message */
 .coar-form-field-message {
