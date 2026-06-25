@@ -29,8 +29,15 @@ withDefaults(
     readonly?: boolean;
     /** Visual open/active state (e.g. a picker panel is open) — mirrors focus styling. */
     active?: boolean;
+    /**
+     * Borderless ("inline") variant: no border / surface / focus ring. Keeps the
+     * box model (a transparent 1px border) and radius so an inline control aligns
+     * with its bordered siblings; the consumer supplies any hover/active fill.
+     * Used by the selects' `appearance="inline"`.
+     */
+    borderless?: boolean;
   }>(),
-  { size: 'm', error: false, disabled: false, readonly: false, active: false },
+  { size: 'm', error: false, disabled: false, readonly: false, active: false, borderless: false },
 );
 
 const slots = useSlots();
@@ -49,6 +56,7 @@ const hasActions = computed(() => !!slots.actions);
         'coar-input-frame--disabled': disabled,
         'coar-input-frame--readonly': readonly,
         'coar-input-frame--active': active,
+        'coar-input-frame--borderless': borderless,
         'coar-input-frame--has-leading': hasLeading,
         'coar-input-frame--has-trailing': hasTrailing,
         'coar-input-frame--has-actions': hasActions,
@@ -129,12 +137,31 @@ const hasActions = computed(() => !!slots.actions);
 }
 .coar-input-frame--error:focus-within,
 .coar-input-frame--error.coar-input-frame--active {
+  /* Keep the error border on focus/active — must re-assert border-color, else the
+     generic :focus-within rule (same specificity) wins and the border turns blue. */
+  border-color: var(--coar-border-semantic-error-bold);
   box-shadow: inset 0 0 0 1px var(--coar-border-semantic-error-bold);
 }
 .coar-input-frame--disabled {
   background: var(--coar-surface-input-disabled);
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+/* ── Borderless / inline variant ────────────────────────────────── */
+/* Transparent border keeps the box model identical to bordered siblings; the
+   consumer paints any hover/active fill. Focus ring + border are suppressed. */
+.coar-input-frame--borderless {
+  border-color: transparent;
+  background: transparent;
+}
+.coar-input-frame--borderless:hover:not(.coar-input-frame--disabled):not(.coar-input-frame--readonly):not(
+    .coar-input-frame--error
+  ),
+.coar-input-frame--borderless:focus-within,
+.coar-input-frame--borderless.coar-input-frame--active {
+  border-color: transparent;
+  box-shadow: none;
 }
 
 /* ── Field (the input / value) ──────────────────────────────────── */
