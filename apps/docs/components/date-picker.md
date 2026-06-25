@@ -65,7 +65,6 @@ Four sizes to stay consistent with other form controls across your layout.
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `v-model` | `Temporal.PlainDate \| null` | `null` | Selected date |
-| `label` | `string` | `''` | Label text |
 | `placeholder` | `string` | `''` | Placeholder text |
 | `min` | `Temporal.PlainDate` | `undefined` | Minimum selectable date |
 | `max` | `Temporal.PlainDate` | `undefined` | Maximum selectable date |
@@ -73,7 +72,10 @@ Four sizes to stay consistent with other form controls across your layout.
 | `disabled` | `boolean` | `false` | Disable the picker |
 | `readonly` | `boolean` | `false` | Make read-only |
 | `required` | `boolean` | `false` | Mark as required |
-| `error` | `string` | `''` | Error message |
+| `error` | `boolean` | `false` | Error state (red border + `aria-invalid`). Auto-injected from a wrapping [`CoarFormField`](/components/form-field). |
+| `id` | `string` | `''` | Explicit input id (else taken from `CoarFormField`, else auto). |
+
+> **Label, hint, error message and the status icon live on the wrapping [`CoarFormField`](/components/form-field)** — not on the picker. Wrap the picker in a `CoarFormField` to get a label, the required asterisk, validation messages and the inline status indicator. The picker auto-adopts the field's id, error state and `aria-describedby` via injection.
 
 ## i18n Keys
 

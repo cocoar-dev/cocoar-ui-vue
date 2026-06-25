@@ -106,21 +106,21 @@ const sizeSingle = ref<string | null>('a');
           <th>PlainDatePicker</th>
           <td><CoarPlainDatePicker /></td>
           <td><CoarPlainDatePicker /></td>
-          <td><CoarPlainDatePicker error="Required" /></td>
+          <td><CoarPlainDatePicker error /></td>
           <td><CoarPlainDatePicker disabled /></td>
         </tr>
         <tr>
           <th>PlainDateTimePicker</th>
           <td><CoarPlainDateTimePicker /></td>
           <td><CoarPlainDateTimePicker /></td>
-          <td><CoarPlainDateTimePicker error="Required" /></td>
+          <td><CoarPlainDateTimePicker error /></td>
           <td><CoarPlainDateTimePicker disabled /></td>
         </tr>
         <tr>
           <th>ZonedDateTimePicker</th>
           <td><CoarZonedDateTimePicker /></td>
           <td><CoarZonedDateTimePicker /></td>
-          <td><CoarZonedDateTimePicker error="Required" /></td>
+          <td><CoarZonedDateTimePicker error /></td>
           <td><CoarZonedDateTimePicker disabled /></td>
         </tr>
       </tbody>

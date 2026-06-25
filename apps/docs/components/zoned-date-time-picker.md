@@ -91,10 +91,12 @@ These keys can be translated via [`@cocoar/vue-localization`](/foundations/local
 |------|------|---------|-------------|
 | `v-model` | `Temporal.ZonedDateTime \| null` | `null` | Selected zoned datetime |
 | `timezone` | `string` | user's timezone | IANA timezone ID (e.g. `'Europe/Berlin'`) |
-| `label` | `string` | `''` | Label text |
 | `placeholder` | `string` | `''` | Placeholder text |
 | `size` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Input size |
 | `disabled` | `boolean` | `false` | Disable the picker |
 | `readonly` | `boolean` | `false` | Make read-only |
 | `required` | `boolean` | `false` | Mark as required |
-| `error` | `string` | `''` | Error message |
+| `error` | `boolean` | `false` | Error state (red border + `aria-invalid`). Auto-injected from a wrapping [`CoarFormField`](/components/form-field). |
+| `id` | `string` | `''` | Explicit input id (else taken from `CoarFormField`, else auto). |
+
+> **Label, hint, error message and the status icon live on the wrapping [`CoarFormField`](/components/form-field)** — not on the picker. Wrap the picker in a `CoarFormField` for a label, the required asterisk, validation messages and the inline status indicator; the picker auto-adopts the field's id, error state and `aria-describedby` via injection.

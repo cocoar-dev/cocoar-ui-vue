@@ -1,10 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
-import { nextTick } from 'vue';
+import { computed, nextTick } from 'vue';
 
 import { Temporal } from '@js-temporal/polyfill';
 
 import CoarPlainDatePicker from '../CoarPlainDatePicker.vue';
+import { FORM_FIELD_INJECTION_KEY } from '../../../form-field/constants';
 
 // Stub dependencies
 vi.mock('../../../../scrollbar', () => ({
@@ -74,14 +75,10 @@ describe('CoarPlainDatePicker', () => {
       expect(w.find('.coar-plain-date-picker-btn').exists()).toBe(true);
     });
 
-    it('renders label when provided', () => {
-      const w = mountPicker({ label: 'Date of Birth' });
-      expect(w.find('.coar-plain-date-picker-label').text()).toContain('Date of Birth');
-    });
-
-    it('renders required indicator', () => {
-      const w = mountPicker({ label: 'Date', required: true });
-      expect(w.find('.coar-plain-date-picker-required').exists()).toBe(true);
+    it('marks the input required (label + * live on CoarFormField)', () => {
+      const w = mountPicker({ required: true });
+      const input = w.find('.coar-plain-date-picker-input');
+      expect((input.element as HTMLInputElement).required).toBe(true);
     });
 
     it('shows placeholder from format pattern', () => {
@@ -164,26 +161,14 @@ describe('CoarPlainDatePicker', () => {
   });
 
   describe('error state', () => {
-    it('applies error state to trigger', () => {
-      const w = mountPicker({ error: 'Required field' });
+    it('applies error state to trigger from the boolean prop', () => {
+      const w = mountPicker({ error: true });
       expect(w.find('.coar-plain-date-picker-trigger.coar-input-frame--error').exists()).toBe(true);
     });
 
-    it('shows error message', () => {
-      const w = mountPicker({ error: 'Required field' });
-      expect(w.find('.coar-form-field-message--error').text()).toBe('Required field');
-    });
-  });
-
-  describe('hint', () => {
-    it('shows hint text', () => {
-      const w = mountPicker({ hint: 'Select your birthday' });
-      expect(w.find('.coar-form-field-message').text()).toBe('Select your birthday');
-    });
-
-    it('error takes priority over hint', () => {
-      const w = mountPicker({ hint: 'Pick a date', error: 'Required' });
-      expect(w.find('.coar-form-field-message').text()).toBe('Required');
+    it('does not render an own message element (owned by CoarFormField)', () => {
+      const w = mountPicker({ error: true });
+      expect(w.find('.coar-form-field-message').exists()).toBe(false);
     });
   });
 
@@ -211,16 +196,54 @@ describe('CoarPlainDatePicker', () => {
     });
 
     it('has aria-invalid when error', () => {
-      const w = mountPicker({ error: 'bad' });
+      const w = mountPicker({ error: true });
       const input = w.find('.coar-plain-date-picker-input');
       expect(input.attributes('aria-invalid')).toBe('true');
     });
+  });
 
-    it('links label to input via aria-labelledby', () => {
-      const w = mountPicker({ label: 'My Date' });
-      const label = w.find('.coar-plain-date-picker-label');
-      const input = w.find('.coar-plain-date-picker-input');
-      expect(input.attributes('aria-labelledby')).toBe(label.attributes('id'));
+  describe('CoarFormField integration', () => {
+    function mountWithField(provided: Record<string, unknown>) {
+      return mount(CoarPlainDatePicker, {
+        global: {
+          provide: {
+            'coar-l10n': undefined,
+            [FORM_FIELD_INJECTION_KEY as symbol]: provided,
+          },
+        },
+        attachTo: document.body,
+      });
+    }
+
+    it('adopts the injected input id', () => {
+      const w = mountWithField({
+        inputId: computed(() => 'field-1'),
+        messageId: computed(() => ''),
+        hasError: computed(() => false),
+        disabled: computed(() => false),
+      });
+      expect(w.find('.coar-plain-date-picker-input').attributes('id')).toBe('field-1');
+    });
+
+    it('reflects injected error on the trigger + aria-invalid', () => {
+      const w = mountWithField({
+        inputId: computed(() => 'f'),
+        messageId: computed(() => ''),
+        hasError: computed(() => true),
+        disabled: computed(() => false),
+      });
+      expect(w.find('.coar-plain-date-picker-trigger.coar-input-frame--error').exists()).toBe(true);
+      expect(w.find('.coar-plain-date-picker-input').attributes('aria-invalid')).toBe('true');
+    });
+
+    it('wires aria-describedby from the field messageId', () => {
+      const w = mountWithField({
+        inputId: computed(() => 'f'),
+        messageId: computed(() => 'f-err'),
+        hasError: computed(() => true),
+        disabled: computed(() => false),
+      });
+      expect(w.find('.coar-plain-date-picker-input').attributes('aria-describedby')).toBe('f-err');
     });
   });
 

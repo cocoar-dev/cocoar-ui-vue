@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch, markRaw } from 'vue';
+import { computed, inject, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch, markRaw } from 'vue';
 
 import { Temporal } from '@js-temporal/polyfill';
 import { Maskito } from '@maskito/core';
@@ -30,19 +30,24 @@ import {
   coarFormatTimezoneLabel,
 } from '../_shared/timezone-helpers';
 import CoarZonedDateTimePickerPanel from './CoarZonedDateTimePickerPanel.vue';
+import { FORM_FIELD_INJECTION_KEY } from '../../form-field/constants';
 
 export type CoarZonedDateTimePickerSize = 'xs' | 's' | 'm' | 'l';
 
 const props = withDefaults(
   defineProps<{
-    label?: string;
     placeholder?: string;
     size?: CoarZonedDateTimePickerSize;
     disabled?: boolean;
     readonly?: boolean;
     required?: boolean;
-    error?: string;
-    hint?: string;
+    /**
+     * Error state (boolean for standalone use; auto-injected from CoarFormField).
+     * Message + status icon live on the wrapping CoarFormField.
+     */
+    error?: boolean;
+    /** Explicit input id (else taken from CoarFormField, else auto). */
+    id?: string;
     clearable?: boolean;
     showWeekNumbers?: boolean;
     highlightWeekends?: boolean;
@@ -66,14 +71,13 @@ const props = withDefaults(
     timezoneFilter?: string[];
   }>(),
   {
-    label: '',
     placeholder: '',
     size: 'm',
     disabled: false,
     readonly: false,
     required: false,
-    error: '',
-    hint: '',
+    error: false,
+    id: '',
     clearable: true,
     showWeekNumbers: false,
     highlightWeekends: false,
@@ -120,12 +124,14 @@ const pendingTime = ref<CoarTimeValue | null>(null);
 // Timezone state
 const displayTimeZone = ref<string | null>(null);
 
+// Form-field integration: label + status icon + message live on the wrapping
+// CoarFormField. We only consume its id / error / describedby contract.
+const formField = inject(FORM_FIELD_INJECTION_KEY, undefined);
+
 // IDs
 const uid = `coar-zdtp-${crypto.randomUUID?.() ?? Date.now().toString(16)}`;
-const labelId = `${uid}-label`;
-const inputId = `${uid}-input`;
+const inputId = computed(() => props.id || formField?.inputId.value || `${uid}-input`);
 const panelId = `${uid}-panel`;
-const messageId = `${uid}-message`;
 
 // Refs
 // The trigger IS the CoarInputFrame root; reach its DOM node via $el.
@@ -297,8 +303,8 @@ onBeforeUnmount(() => {
 // Computed helpers
 // ============================================================
 
-const hasError = computed(() => props.error.length > 0);
-const displayMessage = computed(() => props.error || props.hint);
+const hasError = computed(() => props.error || (formField?.hasError.value ?? false));
+const describedBy = computed(() => formField?.messageId.value || undefined);
 const isDisabled = computed(() => props.disabled);
 const showClearButton = computed(
   () => props.clearable && modelValue.value !== null && !isDisabled.value && !props.readonly,
@@ -604,17 +610,6 @@ const tzIndicatorIcon = computed(() => {
     class="coar-zdtp"
     :class="[`coar-zdtp--${size}`]"
   >
-    <!-- Label -->
-    <label
-      v-if="label"
-      :id="labelId"
-      class="coar-zdtp-label"
-      :for="inputId"
-    >
-      {{ label }}
-      <span v-if="required" class="coar-zdtp-required" aria-hidden="true">*</span>
-    </label>
-
     <!-- Trigger = the shared input shell. combobox role/aria fall through to its
          root; focus lives on the inner input (frame styles via :focus-within). -->
     <CoarInputFrame
@@ -623,7 +618,6 @@ const tzIndicatorIcon = computed(() => {
       :aria-expanded="pickerBase.isOpen.value"
       aria-haspopup="dialog"
       :aria-controls="pickerBase.isOpen.value ? panelId : undefined"
-      :aria-labelledby="label ? labelId : undefined"
       :aria-invalid="hasError || undefined"
       class="coar-zdtp-trigger"
       :size="size"
@@ -658,7 +652,8 @@ const tzIndicatorIcon = computed(() => {
         :value="displayValue"
         :disabled="isDisabled"
         :readonly="readonly"
-        :aria-describedby="displayMessage ? messageId : undefined"
+        :required="required"
+        :aria-describedby="describedBy"
         autocomplete="off"
         @input="onInputChange"
         @blur="onInputBlur"
@@ -705,17 +700,6 @@ const tzIndicatorIcon = computed(() => {
         </span>
       </template>
     </CoarInputFrame>
-
-    <!-- Messages -->
-    <div
-      v-if="displayMessage"
-      :id="messageId"
-      class="coar-form-field-message"
-      :class="{ 'coar-form-field-message--error': hasError }"
-      aria-live="polite"
-    >
-      {{ displayMessage }}
-    </div>
   </div>
 </template>
 
@@ -731,22 +715,7 @@ const tzIndicatorIcon = computed(() => {
   width: 100%;
 }
 
-/* ========================================
-   LABEL
-   ======================================== */
-
-.coar-zdtp-label {
-  font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-body-small-base-size);
-  font-weight: var(--coar-body-small-bold-weight);
-  color: var(--coar-text-neutral-primary);
-  cursor: pointer;
-}
-
-.coar-zdtp-required {
-  color: var(--coar-text-semantic-error-bold);
-  margin-left: 2px;
-}
+/* Label + status icon + message are owned by the wrapping CoarFormField. */
 
 /* ========================================
    TRIGGER
@@ -884,16 +853,4 @@ const tzIndicatorIcon = computed(() => {
 .coar-zdtp--xs .coar-zdtp-input { font-size: var(--coar-component-xs-font-size); }
 .coar-zdtp--s .coar-zdtp-input { font-size: var(--coar-component-s-font-size); }
 .coar-zdtp--l .coar-zdtp-input { font-size: var(--coar-component-l-font-size); }
-
-/* ========================================
-   FORM FIELD MESSAGE
-   ======================================== */
-
-.coar-form-field-message {
-  font-family: var(--coar-body-caption-family);
-  font-size: var(--coar-body-caption-size);
-  color: var(--coar-text-neutral-secondary);
-}
-
-.coar-form-field-message--error { color: var(--coar-text-semantic-error-bold); }
 </style>

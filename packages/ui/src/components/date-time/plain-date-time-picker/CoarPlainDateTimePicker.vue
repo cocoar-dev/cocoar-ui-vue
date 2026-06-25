@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch, markRaw } from 'vue';
+import { computed, inject, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch, markRaw } from 'vue';
 
 import { Temporal } from '@js-temporal/polyfill';
 import { Maskito } from '@maskito/core';
@@ -23,19 +23,24 @@ import {
 import { coarCreateDateTimeMask } from '../_shared/maskito-config';
 import type { DateFormatConfig, CoarDateMarker, CoarTimeValue } from '../_shared/types';
 import CoarPlainDateTimePickerPanel from './CoarPlainDateTimePickerPanel.vue';
+import { FORM_FIELD_INJECTION_KEY } from '../../form-field/constants';
 
 export type CoarPlainDateTimePickerSize = 'xs' | 's' | 'm' | 'l';
 
 const props = withDefaults(
   defineProps<{
-    label?: string;
     placeholder?: string;
     size?: CoarPlainDateTimePickerSize;
     disabled?: boolean;
     readonly?: boolean;
     required?: boolean;
-    error?: string;
-    hint?: string;
+    /**
+     * Error state (boolean for standalone use; auto-injected from CoarFormField).
+     * Message + status icon live on the wrapping CoarFormField.
+     */
+    error?: boolean;
+    /** Explicit input id (else taken from CoarFormField, else auto). */
+    id?: string;
     clearable?: boolean;
     showWeekNumbers?: boolean;
     highlightWeekends?: boolean;
@@ -55,14 +60,13 @@ const props = withDefaults(
     showTodayMonthButton?: boolean;
   }>(),
   {
-    label: '',
     placeholder: '',
     size: 'm',
     disabled: false,
     readonly: false,
     required: false,
-    error: '',
-    hint: '',
+    error: false,
+    id: '',
     clearable: true,
     showWeekNumbers: false,
     highlightWeekends: false,
@@ -102,12 +106,14 @@ const activeMonth = ref<Temporal.PlainYearMonth>(
 // Pending time (stored until a date is selected)
 const pendingTime = ref<CoarTimeValue | null>(null);
 
+// Form-field integration: label + status icon + message live on the wrapping
+// CoarFormField. We only consume its id / error / describedby contract.
+const formField = inject(FORM_FIELD_INJECTION_KEY, undefined);
+
 // IDs
 const uid = `coar-plain-dt-picker-${crypto.randomUUID?.() ?? Date.now().toString(16)}`;
-const labelId = `${uid}-label`;
-const inputId = `${uid}-input`;
+const inputId = computed(() => props.id || formField?.inputId.value || `${uid}-input`);
 const panelId = `${uid}-panel`;
-const messageId = `${uid}-message`;
 
 // Refs — the trigger IS the CoarInputFrame root; reach its DOM node via $el.
 const triggerRef = ref<{ $el?: HTMLElement } | null>(null);
@@ -172,8 +178,8 @@ onBeforeUnmount(() => {
 });
 
 // Computed
-const hasError = computed(() => props.error.length > 0);
-const displayMessage = computed(() => props.error || props.hint);
+const hasError = computed(() => props.error || (formField?.hasError.value ?? false));
+const describedBy = computed(() => formField?.messageId.value || undefined);
 const isDisabled = computed(() => props.disabled);
 const showClearButton = computed(
   () => props.clearable && modelValue.value !== null && !isDisabled.value && !props.readonly,
@@ -512,12 +518,6 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
       },
     ]"
   >
-    <!-- Label -->
-    <span v-if="label" :id="labelId" class="coar-pdtp-label">
-      {{ label }}
-      <span v-if="required" class="coar-pdtp-required" aria-hidden="true">*</span>
-    </span>
-
     <!-- Trigger = the shared input shell. combobox role/aria fall through to its
          root; focus lives on the inner input (frame styles via :focus-within). -->
     <CoarInputFrame
@@ -556,9 +556,9 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
         :placeholder="inputPlaceholder"
         :disabled="isDisabled"
         :readonly="readonly"
-        :aria-labelledby="label ? labelId : undefined"
+        :required="required"
         :aria-invalid="hasError"
-        :aria-describedby="displayMessage ? messageId : undefined"
+        :aria-describedby="describedBy"
         autocomplete="off"
         @input="onInputChange"
         @blur="onInputBlur"
@@ -577,17 +577,6 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
         </CoarInputFrameButton>
       </template>
     </CoarInputFrame>
-
-    <!-- Message -->
-    <div
-      v-if="displayMessage"
-      :id="messageId"
-      class="coar-form-field-message"
-      :class="{ 'coar-form-field-message--error': hasError }"
-      :title="displayMessage"
-    >
-      {{ displayMessage }}
-    </div>
   </div>
 </template>
 
@@ -598,35 +587,7 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
   width: 100%;
 }
 
-/* Label */
-.coar-pdtp-label {
-  display: block;
-  margin-bottom: var(--coar-component-m-label-margin);
-  font-family: var(--coar-body-small-bold-family);
-  font-size: var(--coar-component-m-label-font-size);
-  font-weight: var(--coar-body-small-bold-weight);
-  color: var(--coar-text-neutral-primary);
-  cursor: pointer;
-  user-select: none;
-}
-
-.coar-pdtp-required {
-  color: var(--coar-text-semantic-error-bold);
-  margin-left: var(--coar-spacing-xs);
-}
-
-.coar-pdtp--xs .coar-pdtp-label {
-  font-size: var(--coar-component-xs-label-font-size);
-  margin-bottom: var(--coar-component-xs-label-margin);
-}
-.coar-pdtp--s .coar-pdtp-label {
-  font-size: var(--coar-component-s-label-font-size);
-  margin-bottom: var(--coar-component-s-label-margin);
-}
-.coar-pdtp--l .coar-pdtp-label {
-  font-size: var(--coar-component-l-label-font-size);
-  margin-bottom: var(--coar-component-l-label-margin);
-}
+/* Label + status icon + message are owned by the wrapping CoarFormField. */
 
 /* Box / radius / size / states are owned by CoarInputFrame; only the pointer
    affordance lives here (calendar segment + clear come via slots). */
@@ -703,24 +664,6 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
 
 /* The calendar segment button is a CoarInputFrameButton (Type-B edge button);
    its surface / separator / icon inset / corner clipping are owned there. */
-
-/* Message */
-.coar-form-field-message {
-  display: block;
-  margin-top: var(--coar-spacing-xs);
-  font-family: var(--coar-body-caption-family);
-  font-size: var(--coar-body-caption-size);
-  font-weight: var(--coar-body-caption-weight);
-  line-height: var(--coar-line-height-normal);
-  color: var(--coar-text-neutral-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.coar-form-field-message--error {
-  color: var(--coar-text-semantic-error-bold);
-}
 
 @media (prefers-reduced-motion: reduce) {
   .coar-pdtp-trigger,

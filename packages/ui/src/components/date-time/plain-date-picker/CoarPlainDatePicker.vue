@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   computed,
+  inject,
   nextTick,
   onBeforeUnmount,
   onMounted,
@@ -29,13 +30,12 @@ import {
 import { coarCreateDateMask } from '../_shared/maskito-config';
 import type { DateFormatConfig, CoarDateMarker } from '../_shared/types';
 import CoarPlainDatePickerPanel from './CoarPlainDatePickerPanel.vue';
+import { FORM_FIELD_INJECTION_KEY } from '../../form-field/constants';
 
 export type CoarPlainDatePickerSize = 'xs' | 's' | 'm' | 'l';
 
 const props = withDefaults(
   defineProps<{
-    /** Label text above the input */
-    label?: string;
     /** Placeholder (defaults to format pattern) */
     placeholder?: string;
     /** Size variant */
@@ -46,10 +46,14 @@ const props = withDefaults(
     readonly?: boolean;
     /** Required state */
     required?: boolean;
-    /** Error message */
-    error?: string;
-    /** Hint text */
-    hint?: string;
+    /**
+     * Error state (boolean for standalone use; auto-injected from CoarFormField).
+     * The error/hint/warning message + status icon live on the wrapping
+     * CoarFormField — this only flips the red border + aria-invalid.
+     */
+    error?: boolean;
+    /** Explicit input id (else taken from CoarFormField, else auto). */
+    id?: string;
     /** Whether the clear button is shown */
     clearable?: boolean;
     /** Whether to close the panel after date selection */
@@ -72,14 +76,13 @@ const props = withDefaults(
     showTodayMonthButton?: boolean;
   }>(),
   {
-    label: '',
     placeholder: '',
     size: 'm',
     disabled: false,
     readonly: false,
     required: false,
-    error: '',
-    hint: '',
+    error: false,
+    id: '',
     clearable: true,
     closeOnSelect: false,
     showWeekNumbers: false,
@@ -113,12 +116,14 @@ const activeMonth = ref<Temporal.PlainYearMonth>(
   modelValue.value?.toPlainYearMonth() ?? Temporal.Now.plainDateISO().toPlainYearMonth(),
 );
 
+// Form-field integration: label + status icon + message live on the wrapping
+// CoarFormField. We only consume its id / error / describedby contract.
+const formField = inject(FORM_FIELD_INJECTION_KEY, undefined);
+
 // IDs
 const uid = `coar-plain-date-picker-${crypto.randomUUID?.() ?? Date.now().toString(16)}`;
-const labelId = `${uid}-label`;
-const inputId = `${uid}-input`;
+const inputId = computed(() => props.id || formField?.inputId.value || `${uid}-input`);
 const panelId = `${uid}-panel`;
-const messageId = `${uid}-message`;
 
 // Refs — the trigger IS the CoarInputFrame root; reach its DOM node via $el for
 // overlay anchoring.
@@ -172,8 +177,8 @@ onBeforeUnmount(() => {
 });
 
 // Computed
-const hasError = computed(() => props.error.length > 0);
-const displayMessage = computed(() => props.error || props.hint);
+const hasError = computed(() => props.error || (formField?.hasError.value ?? false));
+const describedBy = computed(() => formField?.messageId.value || undefined);
 const isDisabled = computed(() => props.disabled);
 const showClearButton = computed(
   () => props.clearable && modelValue.value !== null && !isDisabled.value && !props.readonly,
@@ -346,12 +351,6 @@ function onInputBlur() {
       },
     ]"
   >
-    <!-- Label -->
-    <span v-if="label" :id="labelId" class="coar-plain-date-picker-label">
-      {{ label }}
-      <span v-if="required" class="coar-plain-date-picker-required" aria-hidden="true">*</span>
-    </span>
-
     <!-- Trigger = the shared input shell. combobox role/aria fall through to its
          root; focus lives on the inner input (frame styles via :focus-within). -->
     <CoarInputFrame
@@ -391,9 +390,9 @@ function onInputBlur() {
         :placeholder="inputPlaceholder"
         :disabled="isDisabled"
         :readonly="readonly"
-        :aria-labelledby="label ? labelId : undefined"
+        :required="required"
         :aria-invalid="hasError"
-        :aria-describedby="displayMessage ? messageId : undefined"
+        :aria-describedby="describedBy"
         autocomplete="off"
         @input="onInputChange"
         @blur="onInputBlur"
@@ -412,17 +411,6 @@ function onInputBlur() {
         </CoarInputFrameButton>
       </template>
     </CoarInputFrame>
-
-    <!-- Hint/Error Message -->
-    <div
-      v-if="displayMessage"
-      :id="messageId"
-      class="coar-form-field-message"
-      :class="{ 'coar-form-field-message--error': hasError }"
-      :title="displayMessage"
-    >
-      {{ displayMessage }}
-    </div>
   </div>
 </template>
 
@@ -433,40 +421,7 @@ function onInputBlur() {
   width: 100%;
 }
 
-/* ========================================
-   LABEL
-   ======================================== */
-
-.coar-plain-date-picker-label {
-  display: block;
-  margin-bottom: var(--coar-component-m-label-margin);
-  font-family: var(--coar-body-small-bold-family);
-  font-size: var(--coar-component-m-label-font-size);
-  font-weight: var(--coar-body-small-bold-weight);
-  color: var(--coar-text-neutral-primary);
-  cursor: pointer;
-  user-select: none;
-}
-
-.coar-plain-date-picker-required {
-  color: var(--coar-text-semantic-error-bold);
-  margin-left: var(--coar-spacing-xs);
-}
-
-.coar-plain-date-picker--xs .coar-plain-date-picker-label {
-  font-size: var(--coar-component-xs-label-font-size);
-  margin-bottom: var(--coar-component-xs-label-margin);
-}
-
-.coar-plain-date-picker--s .coar-plain-date-picker-label {
-  font-size: var(--coar-component-s-label-font-size);
-  margin-bottom: var(--coar-component-s-label-margin);
-}
-
-.coar-plain-date-picker--l .coar-plain-date-picker-label {
-  font-size: var(--coar-component-l-label-font-size);
-  margin-bottom: var(--coar-component-l-label-margin);
-}
+/* Label + status icon + message are owned by the wrapping CoarFormField. */
 
 /* ========================================
    TRIGGER
@@ -560,27 +515,6 @@ function onInputBlur() {
 /* The calendar segment button is a CoarInputFrameButton (Type-B edge button);
    its appearance — separator, surface, icon inset by --coar-field-pad, corner
    clipped to the frame radius — is owned by that primitive. */
-
-/* ========================================
-   MESSAGE
-   ======================================== */
-
-.coar-form-field-message {
-  display: block;
-  margin-top: var(--coar-spacing-xs);
-  font-family: var(--coar-body-caption-family);
-  font-size: var(--coar-body-caption-size);
-  font-weight: var(--coar-body-caption-weight);
-  line-height: var(--coar-line-height-normal);
-  color: var(--coar-text-neutral-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.coar-form-field-message--error {
-  color: var(--coar-text-semantic-error-bold);
-}
 
 @media (prefers-reduced-motion: reduce) {
   .coar-plain-date-picker-trigger,
