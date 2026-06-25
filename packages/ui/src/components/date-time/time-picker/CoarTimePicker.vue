@@ -504,10 +504,12 @@ const sizeClass = computed(
   height: var(--coar-component-m-height);
   padding: 0 var(--coar-spacing-s);
   border: 1px solid var(--coar-border-input);
-  border-radius: var(--coar-radius-xs);
+  /* Follow the themeable field radius (not a hardcoded step) so the spinner cells
+     track --coar-input-radius like the rest of the input family. */
+  border-radius: var(--coar-input-radius);
   background: var(--coar-surface-input);
   font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-body-small-base-size);
+  font-size: var(--coar-component-m-font-size);
   font-weight: var(--coar-body-small-base-weight);
   font-variant-numeric: tabular-nums;
   color: var(--coar-text-neutral-primary);
@@ -516,6 +518,15 @@ const sizeClass = computed(
   transition:
     border-color var(--coar-duration-fast) var(--coar-ease-out),
     box-shadow var(--coar-duration-fast) var(--coar-ease-out);
+}
+
+.coar-time-picker__value:hover {
+  border-color: var(--coar-border-input-hover);
+}
+
+.coar-time-picker--disabled .coar-time-picker__value:hover,
+.coar-time-picker--readonly .coar-time-picker__value:hover {
+  border-color: var(--coar-border-input);
 }
 
 .coar-time-picker__value:focus {
