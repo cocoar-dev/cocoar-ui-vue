@@ -628,8 +628,10 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
   gap: var(--coar-spacing-s);
   height: var(--coar-component-m-height);
   /* Field contract: horizontal padding = base × per-size scale × density. */
+  /* field-pad applied to the inner input (right-aligned date → padding-right is
+     the visible text↔button gap); trigger stays flush for the edge button. */
   --coar-field-pad: calc(var(--coar-field-padding-x) * var(--coar-component-scale, 1) * var(--coar-component-density, 1));
-  padding: 0 var(--coar-field-pad);
+  padding: 0;
   border: 1px solid var(--coar-border-input);
   border-radius: var(--coar-input-radius);
   background: var(--coar-surface-input);
@@ -691,7 +693,7 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
   flex: 1;
   min-width: 0;
   height: 100%;
-  padding: 0;
+  padding: 0 var(--coar-field-pad);
   border: none;
   background: transparent;
   font-family: var(--coar-body-small-base-family);
@@ -763,9 +765,7 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
   width: var(--coar-component-m-height);
   height: 100%;
   padding: 0;
-  /* Cancel the trigger's right padding so the segment button stays flush; its
-     right corners follow --coar-input-radius (clean split at full radius). */
-  margin: 0 calc(-1 * var(--coar-field-pad)) 0 0;
+  margin: 0;
   border: none;
   border-left: 1px solid var(--coar-border-input);
   border-radius: 0 var(--coar-input-radius) var(--coar-input-radius) 0;

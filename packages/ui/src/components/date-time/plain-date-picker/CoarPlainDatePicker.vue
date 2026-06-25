@@ -471,10 +471,12 @@ function onInputBlur() {
   align-items: center;
   gap: var(--coar-spacing-s);
   height: var(--coar-component-m-height);
-  /* Field contract: horizontal padding = base × per-size scale × density (see
-     packages/ui — text-input). Fixes the m trigger having had 0 padding. */
+  /* Field contract: --coar-field-pad = base × per-size scale × density. Applied
+     to the inner input (the date is right-aligned, so padding-right is the
+     visible text↔button gap); the trigger itself stays flush so the calendar
+     segment-button fills the edge. */
   --coar-field-pad: calc(var(--coar-field-padding-x) * var(--coar-component-scale, 1) * var(--coar-component-density, 1));
-  padding: 0 var(--coar-field-pad);
+  padding: 0;
   border: 1px solid var(--coar-border-input);
   border-radius: var(--coar-input-radius);
   background: var(--coar-surface-input);
@@ -549,7 +551,7 @@ function onInputBlur() {
   flex: 1;
   min-width: 0;
   height: 100%;
-  padding: 0;
+  padding: 0 var(--coar-field-pad);
   border: none;
   background: transparent;
   font-family: var(--coar-body-small-base-family);
@@ -633,9 +635,7 @@ function onInputBlur() {
   width: var(--coar-component-m-height);
   height: 100%;
   padding: 0;
-  /* Cancel the trigger's right padding so the segment button stays flush to the
-     edge; its right corners follow --coar-input-radius (clean split at full radius). */
-  margin: 0 calc(-1 * var(--coar-field-pad)) 0 0;
+  margin: 0;
   border: none;
   border-left: 1px solid var(--coar-border-input);
   border-radius: 0 var(--coar-input-radius) var(--coar-input-radius) 0;
