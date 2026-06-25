@@ -88,6 +88,12 @@ const hasActions = computed(() => !!slots.actions);
   --coar-field-pad: calc(
     var(--coar-field-padding-x) * var(--coar-component-scale, 1) * var(--coar-component-density, 1)
   );
+  /* Effective corner radius the edge-buttons' outer side actually follows: the
+     radius token, capped at half the height (a pill can't curve more than that).
+     Edge-buttons (Type B) inset their icon by max(field-pad, corner) so it clears
+     the rounded cap at full radius — affixes (Type A) float, so they stay on
+     field-pad. m base; per-size overrides re-derive it from their own height. */
+  --coar-input-corner: min(var(--coar-input-radius), calc(var(--coar-component-m-height) / 2));
   display: flex;
   align-items: center;
   height: var(--coar-component-m-height);
@@ -105,11 +111,13 @@ const hasActions = computed(() => !!slots.actions);
 .coar-input-frame--xs {
   height: var(--coar-component-xs-height);
   --coar-component-scale: var(--coar-component-xs-scale);
+  --coar-input-corner: min(var(--coar-input-radius), calc(var(--coar-component-xs-height) / 2));
   font-size: var(--coar-component-xs-font-size);
 }
 .coar-input-frame--s {
   height: var(--coar-component-s-height);
   --coar-component-scale: var(--coar-component-s-scale);
+  --coar-input-corner: min(var(--coar-input-radius), calc(var(--coar-component-s-height) / 2));
   font-size: var(--coar-component-s-font-size);
 }
 .coar-input-frame--m {
@@ -118,6 +126,7 @@ const hasActions = computed(() => !!slots.actions);
 .coar-input-frame--l {
   height: var(--coar-component-l-height);
   --coar-component-scale: var(--coar-component-l-scale);
+  --coar-input-corner: min(var(--coar-input-radius), calc(var(--coar-component-l-height) / 2));
   font-size: var(--coar-component-l-font-size);
 }
 

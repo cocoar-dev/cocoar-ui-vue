@@ -540,10 +540,14 @@ function decrement() {
 }
 
 .coar-number-input-button {
+  --coar-number-btn-w: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
+  /* content-box so the last button's corner padding GROWS the box (pushes the icon
+     clear of the rounded cap) instead of squeezing the centred icon inward. */
+  box-sizing: content-box;
+  width: var(--coar-number-btn-w);
   height: 100%;
   padding: 0;
   border: none;
@@ -556,13 +560,22 @@ function decrement() {
 }
 
 .coar-number-input--xs .coar-number-input-button {
-  width: 20px;
+  --coar-number-btn-w: 20px;
 }
 .coar-number-input--s .coar-number-input-button {
-  width: 24px;
+  --coar-number-btn-w: 24px;
 }
 .coar-number-input--l .coar-number-input-button {
-  width: 32px;
+  --coar-number-btn-w: 32px;
+}
+
+/* The outer (last) stepper button meets the frame's rounded cap. Mirror the
+   CoarInputFrameButton rule: its icon-to-edge clearance must reach the corner
+   radius at full/pill radius. The icon is centred in the base width (→ w/2 from
+   the right), so add only the shortfall. At default radius (corner ≤ w/2) this is
+   0 → unchanged compact pair. */
+.coar-number-input-buttons .coar-number-input-button:last-child {
+  padding-right: max(0px, calc(var(--coar-input-corner, 0px) - var(--coar-number-btn-w) / 2));
 }
 
 .coar-number-input-button:hover:not(:disabled) {

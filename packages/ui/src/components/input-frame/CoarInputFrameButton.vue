@@ -40,9 +40,13 @@ withDefaults(
   justify-content: center;
   flex-shrink: 0;
   height: 100%;
-  /* Icon inset from each side = field padding → the icon clears the rounded edge.
-     Width follows the icon + this padding, so the token controls the inset. */
-  padding: 0 var(--coar-field-pad);
+  /* Icon inset: field-pad on the separator (left) side; on the OUTER (right) side
+     it clears the actual rounded cap, so use max(field-pad, corner). At default
+     radius corner ≤ field-pad → unchanged; at full/pill radius the icon steps in
+     to sit clear of the curve, matching how the floating Type-A affixes read.
+     (This button is the rightmost #actions child — the side that meets the curve.) */
+  padding-left: var(--coar-field-pad);
+  padding-right: max(var(--coar-field-pad), var(--coar-input-corner, 0px));
   border: none;
   border-left: 1px solid var(--coar-border-input);
   background: var(--coar-background-neutral-secondary);
