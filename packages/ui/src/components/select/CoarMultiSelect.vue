@@ -17,6 +17,7 @@ import type { OverlayRef } from '../overlay/overlay-types';
 import { vTooltip } from '../tooltip/vTooltip';
 import type { CoarSelectOption, CoarSelectSortGroups, CoarSelectSortOptions } from './types';
 import { FORM_FIELD_INJECTION_KEY } from '../form-field/constants';
+import CoarInputFrame from '../input-frame/CoarInputFrame.vue';
 import CoarMultiSelectDropdownPanel from './CoarMultiSelectDropdownPanel.vue';
 
 export interface CoarMultiSelectProps<T = unknown> {
@@ -92,14 +93,16 @@ const { t } = useI18n();
 const formField = inject(FORM_FIELD_INJECTION_KEY, undefined);
 
 const hostRef = useTemplateRef<HTMLElement>('hostRef');
-const triggerRef = useTemplateRef<HTMLElement>('triggerRef');
+// Trigger IS the CoarInputFrame root; reach its DOM node via $el for overlay/focus.
+const triggerRef = useTemplateRef('triggerRef');
+const triggerEl = (): HTMLElement | undefined =>
+  (triggerRef.value as unknown as { $el?: HTMLElement } | null)?.$el ?? undefined;
 const searchInputRef = useTemplateRef<HTMLInputElement>('searchInputRef');
 
 const hasError = computed(() => props.error || (formField?.hasError.value ?? false));
 
 const {
   isOpen,
-  isFocused,
   searchQuery,
   highlightedIndex,
   inputId: baseInputId,
@@ -230,7 +233,7 @@ function clearSelection(event: Event) {
 
 function onTriggerClick(event: Event) {
   event.stopPropagation();
-  toggleDropdown(triggerRef.value ?? undefined);
+  toggleDropdown(triggerEl());
   if (isOpen.value && props.searchable) {
     nextTick(() => searchInputRef.value?.focus());
   }
@@ -238,12 +241,12 @@ function onTriggerClick(event: Event) {
 
 function handleKeyDown(event: KeyboardEvent) {
   const isSearchFocused = searchInputRef.value != null && event.target === searchInputRef.value;
-  onKeyDown(event, selectHighlighted, triggerRef.value ?? undefined, isSearchFocused);
+  onKeyDown(event, selectHighlighted, triggerEl(), isSearchFocused);
   if (isOpen.value && props.searchable && event.key !== 'Escape' && event.key !== 'Tab') {
     nextTick(() => searchInputRef.value?.focus());
   }
   if (!isOpen.value && event.key === 'Escape') {
-    nextTick(() => triggerRef.value?.focus());
+    nextTick(() => triggerEl()?.focus());
   }
 }
 
@@ -259,7 +262,7 @@ const parentOverlay = useOverlayParent();
 let overlayRef: OverlayRef | null = null;
 
 function openOverlay() {
-  const trigger = triggerRef.value;
+  const trigger = triggerEl();
   if (!trigger || overlayRef) return;
 
   const ref = getOverlayService().open({
@@ -315,19 +318,19 @@ onBeforeUnmount(() => {
 <template>
   <div ref="hostRef" :class="hostClasses">
     <div class="coar-select-wrapper">
-      <!-- Trigger -->
-      <div
+      <!-- Trigger = the shared input shell (combobox role/aria/handlers fall through
+           to its root). Outline → bordered frame; inline → borderless frame. -->
+      <CoarInputFrame
         :id="inputId"
         ref="triggerRef"
         v-tooltip="tooltipConfig"
-        class="coar-select-trigger"
-        :class="{
-          'coar-select-trigger--focused': isFocused,
-          'coar-select-trigger--disabled': disabled,
-          'coar-select-trigger--readonly': readonly,
-          'coar-select-trigger--error': hasError,
-          'coar-select-trigger--open': isOpen,
-        }"
+        class="coar-select-trigger coar-select-frame"
+        :size="size"
+        :error="hasError"
+        :disabled="disabled"
+        :readonly="readonly"
+        :active="isOpen"
+        :borderless="appearance === 'inline'"
         :aria-expanded="isOpen"
         aria-haspopup="listbox"
         :aria-controls="listboxId"
@@ -359,7 +362,8 @@ onBeforeUnmount(() => {
           {{ selectedCount > 0 ? displayText : placeholder }}
         </span>
 
-        <span class="coar-select-actions">
+        <!-- Count badge + clear + chevron → trailing affixes -->
+        <template #trailing>
           <span v-if="selectedCount > 0" class="coar-multi-select-badge">{{ selectedCount }}</span>
           <button
             v-if="showClearButton"
@@ -378,8 +382,8 @@ onBeforeUnmount(() => {
             class="coar-select-arrow"
             :class="{ 'coar-select-arrow--open': isOpen }"
           />
-        </span>
-      </div>
+        </template>
+      </CoarInputFrame>
     </div>
   </div>
 </template>
@@ -396,65 +400,23 @@ onBeforeUnmount(() => {
   width: 100%;
 }
 
-/* Trigger */
-.coar-select-trigger {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: var(--coar-component-m-height);
-  --coar-field-pad: calc(var(--coar-field-padding-x) * var(--coar-component-scale, 1) * var(--coar-component-density, 1));
-  padding: 0 var(--coar-field-pad);
-  border: 1px solid var(--coar-border-input);
-  border-radius: var(--coar-input-radius);
-  background: var(--coar-surface-input);
+/* Trigger — box / radius / size / states owned by CoarInputFrame. Only the pointer
+   affordance and the inline (borderless) fill live here. */
+.coar-select-trigger:not(.coar-input-frame--disabled):not(.coar-input-frame--readonly) {
   cursor: pointer;
-  transition: border-color var(--coar-duration-fast) var(--coar-ease-out), box-shadow var(--coar-duration-fast) var(--coar-ease-out);
-  outline: none;
 }
 
-.coar-select--xs .coar-select-trigger { height: var(--coar-component-xs-height); --coar-component-scale: var(--coar-component-xs-scale); }
-.coar-select--s .coar-select-trigger { height: var(--coar-component-s-height); --coar-component-scale: var(--coar-component-s-scale); }
-.coar-select--l .coar-select-trigger { height: var(--coar-component-l-height); --coar-component-scale: var(--coar-component-l-scale); }
+/* Inline appearance: borderless frame + a neutral fill on hover / focus / open. */
+.coar-select--inline .coar-select-frame:hover:not(.coar-input-frame--disabled):not(.coar-input-frame--readonly),
+.coar-select--inline .coar-select-frame:focus-within:not(.coar-input-frame--disabled),
+.coar-select--inline .coar-select-frame.coar-input-frame--active {
+  background: var(--coar-background-neutral-tertiary);
+}
 
 /* Per-size value text (was constant — only single-select scaled it) */
 .coar-select--xs .coar-select-value { font-size: var(--coar-component-xs-font-size); }
 .coar-select--s .coar-select-value { font-size: var(--coar-component-s-font-size); }
 .coar-select--l .coar-select-value { font-size: var(--coar-component-l-font-size); }
-
-.coar-select-trigger:hover:not(.coar-select-trigger--disabled):not(.coar-select-trigger--readonly):not(.coar-select-trigger--error):not(.coar-select-trigger--focused) {
-  border-color: var(--coar-border-input-hover);
-}
-
-.coar-select-trigger--focused:not(.coar-select-trigger--error),
-.coar-select-trigger--open:not(.coar-select-trigger--error) {
-  border-color: var(--coar-focus-color);
-  box-shadow: inset 0 0 0 1px var(--coar-focus-color);
-}
-
-.coar-select-trigger--disabled {
-  background: var(--coar-surface-input-disabled);
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.coar-select-trigger--readonly { cursor: default; }
-
-.coar-select-trigger--error { border-color: var(--coar-border-semantic-error-bold); }
-
-.coar-select-trigger--error.coar-select-trigger--focused {
-  box-shadow: inset 0 0 0 1px var(--coar-border-semantic-error-bold);
-}
-
-.coar-select--inline .coar-select-trigger {
-  border: none;
-  background: transparent;
-  box-shadow: none;
-}
-
-.coar-select--inline .coar-select-trigger:hover:not(.coar-select-trigger--disabled):not(.coar-select-trigger--readonly) {
-  background: var(--coar-background-neutral-tertiary);
-}
 
 /* Value */
 .coar-select-value {
@@ -473,15 +435,6 @@ onBeforeUnmount(() => {
 }
 
 .coar-select-placeholder { color: var(--coar-text-placeholder); }
-
-/* Actions */
-.coar-select-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--coar-spacing-xs);
-  margin-left: var(--coar-spacing-xs);
-  flex-shrink: 0;
-}
 
 /* Badge */
 .coar-multi-select-badge {
