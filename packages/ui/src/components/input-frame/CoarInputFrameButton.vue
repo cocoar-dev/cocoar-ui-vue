@@ -43,12 +43,13 @@ withDefaults(
   height: 100%;
   /* Icon insets follow the frame contract: --coar-field-pad is the clearance to the
      OUTER (rounded) border only; internal boundaries use a fixed spacing token.
-     - left  = the SEPARATOR side (internal) → fixed --coar-spacing-s, so the field-
-       padding knob does NOT shift the icon away from the separator.
+     - left  = the SEPARATOR side (internal) → spacing-s scaled by the per-size
+       --coar-component-scale (inherited from the frame), so it grows with the
+       control like field-pad does but stays independent of the field-padding knob.
      - right = the OUTER side that meets the rounded cap → max(field-pad, corner),
        so the icon clears the curve at full/pill radius and tracks the padding knob
        (matching every other rightmost icon: clear / eye / chevron). */
-  padding-left: var(--coar-spacing-s);
+  padding-left: calc(var(--coar-spacing-s) * var(--coar-component-scale, 1));
   padding-right: max(var(--coar-field-pad), var(--coar-input-corner, 0px));
   border: none;
   border-left: 1px solid var(--coar-border-input);
