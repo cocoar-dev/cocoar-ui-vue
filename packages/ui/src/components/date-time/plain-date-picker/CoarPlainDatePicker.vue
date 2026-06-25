@@ -476,7 +476,7 @@ function onInputBlur() {
   --coar-field-pad: calc(var(--coar-field-padding-x) * var(--coar-component-scale, 1) * var(--coar-component-density, 1));
   padding: 0 var(--coar-field-pad);
   border: 1px solid var(--coar-border-input);
-  border-radius: var(--coar-radius-xs);
+  border-radius: var(--coar-input-radius);
   background: var(--coar-surface-input);
   cursor: pointer;
   transition:
@@ -633,10 +633,12 @@ function onInputBlur() {
   width: var(--coar-component-m-height);
   height: 100%;
   padding: 0;
-  margin: 0;
+  /* Cancel the trigger's right padding so the segment button stays flush to the
+     edge; its right corners follow --coar-input-radius (clean split at full radius). */
+  margin: 0 calc(-1 * var(--coar-field-pad)) 0 0;
   border: none;
   border-left: 1px solid var(--coar-border-input);
-  border-radius: 0 var(--coar-radius-xs) var(--coar-radius-xs) 0;
+  border-radius: 0 var(--coar-input-radius) var(--coar-input-radius) 0;
   background: var(--coar-background-neutral-secondary);
   color: var(--coar-icon-neutral-secondary);
   cursor: pointer;

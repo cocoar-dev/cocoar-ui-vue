@@ -750,7 +750,7 @@ const tzIndicatorIcon = computed(() => {
   /* Field contract: horizontal padding = base × per-size scale × density. */
   --coar-field-pad: calc(var(--coar-field-padding-x) * var(--coar-component-scale, 1) * var(--coar-component-density, 1));
   border: 1px solid var(--coar-border-input);
-  border-radius: var(--coar-radius-xs);
+  border-radius: var(--coar-input-radius);
   background: var(--coar-surface-input);
   cursor: pointer;
   transition:
@@ -908,7 +908,7 @@ const tzIndicatorIcon = computed(() => {
   flex-shrink: 0;
   border: none;
   border-left: 1px solid var(--coar-border-input);
-  border-radius: 0 var(--coar-radius-xs) var(--coar-radius-xs) 0;
+  border-radius: 0 var(--coar-input-radius) var(--coar-input-radius) 0;
   background: var(--coar-background-neutral-secondary);
   color: var(--coar-icon-neutral-secondary);
   cursor: pointer;
