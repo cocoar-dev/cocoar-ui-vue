@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, ref, inject, useTemplateRef } from 'vue';
+import { computed, ref, inject, useTemplateRef, useSlots } from 'vue';
 import { useI18n } from '@cocoar/vue-localization';
 import { CoarIcon } from '../icon';
+import CoarInputFrame from '../input-frame/CoarInputFrame.vue';
 import { FORM_FIELD_INJECTION_KEY } from '../form-field/constants';
 
 export type CoarTextInputSize = 'xs' | 's' | 'm' | 'l';
@@ -55,6 +56,7 @@ const props = withDefaults(defineProps<CoarTextInputProps>(), {
 });
 
 const { t } = useI18n();
+const slots = useSlots();
 
 const model = defineModel<string>({ default: '' });
 
@@ -85,6 +87,13 @@ const showClearButton = computed(() =>
 // keystroke when the button would otherwise appear.
 const clearSlotActive = computed(() =>
   props.clearable && !props.disabled && !props.readonly
+);
+
+// Frame slot presence — only provide #leading / #trailing when there's real
+// content, so CoarInputFrame's has-leading / has-trailing padding logic is right.
+const hasPrefix = computed(() => !!props.prefix || !!slots.prefix);
+const hasTrailing = computed(
+  () => !!props.suffix || !!slots.suffix || clearSlotActive.value || !!slots.suffixAction,
 );
 
 const hostClasses = computed(() => [
@@ -128,17 +137,25 @@ function onClear() {
 <template>
   <div :class="hostClasses">
     <div class="coar-text-input-wrapper">
-      <!-- Input Container -->
-      <div :class="containerClasses">
-        <!-- Prefix (single-line only) -->
-        <span v-if="!isMultiline" class="coar-text-input-prefix">
-          <template v-if="prefix">{{ prefix }}</template>
-          <slot name="prefix" />
-        </span>
+      <!-- Single-line: the shared input shell owns box / radius / padding / states -->
+      <CoarInputFrame
+        v-if="!isMultiline"
+        class="coar-text-input-frame"
+        :size="size"
+        :error="hasError"
+        :disabled="disabled"
+        :readonly="readonly"
+      >
+        <!-- Prefix → leading affix -->
+        <template v-if="hasPrefix" #leading>
+          <span class="coar-text-input-prefix">
+            <template v-if="prefix">{{ prefix }}</template>
+            <slot name="prefix" />
+          </span>
+        </template>
 
-        <!-- Input Element (single-line) -->
+        <!-- Input Element -->
         <input
-          v-if="!isMultiline"
           :id="inputId"
           ref="inputElement"
           :name="name"
@@ -158,9 +175,35 @@ function onClear() {
           @blur="onBlur"
         />
 
-        <!-- Textarea (multiline) -->
+        <!-- Suffix + clear + suffix-actions → trailing affix -->
+        <template v-if="hasTrailing" #trailing>
+          <span v-if="suffix || $slots.suffix" class="coar-text-input-suffix">
+            <template v-if="suffix">{{ suffix }}</template>
+            <slot name="suffix" />
+          </span>
+
+          <button
+            v-if="clearSlotActive"
+            type="button"
+            class="coar-text-input-clear"
+            :class="{ 'coar-text-input-clear--hidden': !showClearButton }"
+            tabindex="-1"
+            :aria-hidden="!showClearButton || undefined"
+            :aria-label="t('coar.ui.textInput.clear', undefined, 'Clear')"
+            @click="onClear"
+          >
+            <CoarIcon name="x" source="coar-builtin" size="auto" />
+          </button>
+
+          <span v-if="$slots.suffixAction" class="coar-text-input-suffix-actions">
+            <slot name="suffixAction" />
+          </span>
+        </template>
+      </CoarInputFrame>
+
+      <!-- Multiline: dedicated textarea container (explicit special case — NOT the frame) -->
+      <div v-else :class="containerClasses">
         <textarea
-          v-else
           :id="inputId"
           ref="inputElement"
           :name="name"
@@ -179,21 +222,11 @@ function onClear() {
           @blur="onBlur"
         />
 
-        <!-- Suffix (single-line only) -->
-        <span v-if="!isMultiline" class="coar-text-input-suffix">
-          <template v-if="suffix">{{ suffix }}</template>
-          <slot name="suffix" />
-        </span>
-
-        <!-- Clear button -->
         <button
           v-if="clearSlotActive"
           type="button"
-          class="coar-text-input-clear"
-          :class="{
-            'coar-text-input-clear--multiline': isMultiline,
-            'coar-text-input-clear--hidden': !showClearButton,
-          }"
+          class="coar-text-input-clear coar-text-input-clear--multiline"
+          :class="{ 'coar-text-input-clear--hidden': !showClearButton }"
           tabindex="-1"
           :aria-hidden="!showClearButton || undefined"
           :aria-label="t('coar.ui.textInput.clear', undefined, 'Clear')"
@@ -201,11 +234,6 @@ function onClear() {
         >
           <CoarIcon name="x" source="coar-builtin" size="auto" />
         </button>
-
-        <!-- Suffix Actions (single-line only) -->
-        <span v-if="!isMultiline" class="coar-text-input-suffix-actions">
-          <slot name="suffixAction" />
-        </span>
       </div>
     </div>
   </div>
@@ -223,7 +251,8 @@ function onClear() {
   width: 100%;
 }
 
-/* Input Container */
+/* Input Container — multiline (textarea) shell only. Single-line inputs render
+   CoarInputFrame instead, which owns box / radius / states / field padding. */
 .coar-text-input-container {
   position: relative;
   display: flex;
@@ -308,12 +337,13 @@ function onClear() {
   border-color: var(--coar-border-semantic-error-bold);
 }
 
-/* Input Field */
+/* Input Field — horizontal padding is owned by CoarInputFrame (single-line) or
+   by the textarea rule below (multiline); the field itself stays flush. */
 .coar-text-input-field {
   flex: 1;
   min-width: 0;
   height: 100%;
-  padding: 0 var(--coar-field-pad);
+  padding: 0;
   border: none;
   outline: none;
   background: transparent;
@@ -321,18 +351,6 @@ function onClear() {
   font-size: var(--coar-body-small-base-size);
   font-weight: var(--coar-body-small-base-weight);
   color: var(--coar-text-neutral-primary);
-}
-
-/* When prefix has content it provides the outer left edge — field left padding becomes an inner gap */
-.coar-text-input-container:has(.coar-text-input-prefix:not(:empty)) .coar-text-input-field {
-  padding-left: var(--coar-spacing-s);
-}
-
-/* When clear / suffix / suffix-actions follow, they provide the outer right edge — field right padding becomes an inner gap */
-.coar-text-input-container:has(.coar-text-input-clear) .coar-text-input-field,
-.coar-text-input-container:has(.coar-text-input-suffix:not(:empty)) .coar-text-input-field,
-.coar-text-input-container:has(.coar-text-input-suffix-actions:not(:empty)) .coar-text-input-field {
-  padding-right: var(--coar-spacing-s);
 }
 
 /* Textarea specific */
@@ -367,36 +385,24 @@ function onClear() {
   cursor: default;
 }
 
-/* Prefix */
+/* Prefix / Suffix — outer field-pad is owned by the frame's leading/trailing
+   affix wrappers; these just lay out the text/icon content. */
 .coar-text-input-prefix {
   display: inline-flex;
   align-items: center;
-  padding-left: var(--coar-field-pad);
   color: var(--coar-icon-neutral-secondary);
   font-size: var(--coar-body-small-base-size);
   white-space: nowrap;
   flex-shrink: 0;
 }
 
-.coar-text-input-prefix:empty {
-  padding-left: 0;
-  flex-basis: 0;
-}
-
-/* Suffix */
 .coar-text-input-suffix {
   display: inline-flex;
   align-items: center;
-  padding-right: var(--coar-spacing-s);
   color: var(--coar-icon-neutral-secondary);
   font-size: var(--coar-body-small-base-size);
   white-space: nowrap;
   flex-shrink: 0;
-}
-
-.coar-text-input-suffix:empty {
-  padding-right: 0;
-  flex-basis: 0;
 }
 
 /* Suffix Actions */
@@ -404,12 +410,7 @@ function onClear() {
   display: flex;
   align-items: center;
   gap: var(--coar-spacing-xs);
-  padding-right: var(--coar-field-pad);
   flex-shrink: 0;
-}
-
-.coar-text-input-suffix-actions:empty {
-  display: none;
 }
 
 /* Clear Button */
@@ -419,7 +420,6 @@ function onClear() {
   justify-content: center;
   width: auto;
   height: auto;
-  margin-right: var(--coar-field-pad);
   padding: 0;
   border: none;
   background: transparent;
@@ -439,11 +439,12 @@ function onClear() {
   pointer-events: none;
 }
 
-.coar-text-input-focused .coar-text-input-clear {
-  opacity: 1;
-  color: var(--coar-icon-neutral-tertiary);
-}
-
+/* Reveal the clear button on field hover / focus. The frame root carries this
+   component's scope (class fallthrough), so :hover / :focus-within reach it for
+   single-line; the container variants cover multiline. */
+.coar-text-input-frame:hover .coar-text-input-clear,
+.coar-text-input-frame:focus-within .coar-text-input-clear,
+.coar-text-input-focused .coar-text-input-clear,
 .coar-text-input-container:hover .coar-text-input-clear {
   opacity: 1;
   color: var(--coar-icon-neutral-tertiary);
