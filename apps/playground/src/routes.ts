@@ -70,6 +70,10 @@ export const routes: RouteRecordRaw[] = [
     path: '/input-frame',
     component: () => import('./views/InputFrameDemoView.vue'),
   },
+  {
+    path: '/input-showcase',
+    component: () => import('./views/InputShowcaseView.vue'),
+  },
   // ─── @cocoar/vue-calendar demos ────────────────────────────
   {
     path: '/calendar-basic',
