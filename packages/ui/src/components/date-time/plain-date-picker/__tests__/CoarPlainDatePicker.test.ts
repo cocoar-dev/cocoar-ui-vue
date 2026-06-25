@@ -138,9 +138,9 @@ describe('CoarPlainDatePicker', () => {
   });
 
   describe('disabled state', () => {
-    it('applies disabled class to trigger', () => {
+    it('applies disabled state to trigger', () => {
       const w = mountPicker({ disabled: true });
-      expect(w.find('.coar-plain-date-picker-trigger--disabled').exists()).toBe(true);
+      expect(w.find('.coar-plain-date-picker-trigger.coar-input-frame--disabled').exists()).toBe(true);
     });
 
     it('disables the input', () => {
@@ -157,16 +157,16 @@ describe('CoarPlainDatePicker', () => {
   });
 
   describe('readonly state', () => {
-    it('applies readonly class to trigger', () => {
+    it('applies readonly state to trigger', () => {
       const w = mountPicker({ readonly: true });
-      expect(w.find('.coar-plain-date-picker-trigger--readonly').exists()).toBe(true);
+      expect(w.find('.coar-plain-date-picker-trigger.coar-input-frame--readonly').exists()).toBe(true);
     });
   });
 
   describe('error state', () => {
-    it('applies error class to trigger', () => {
+    it('applies error state to trigger', () => {
       const w = mountPicker({ error: 'Required field' });
-      expect(w.find('.coar-plain-date-picker-trigger--error').exists()).toBe(true);
+      expect(w.find('.coar-plain-date-picker-trigger.coar-input-frame--error').exists()).toBe(true);
     });
 
     it('shows error message', () => {
