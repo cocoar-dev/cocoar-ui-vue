@@ -677,29 +677,31 @@ const tzIndicatorIcon = computed(() => {
         </button>
       </template>
 
-      <!-- Calendar trigger → Type-B edge button (#actions). The TZ label floats on
-           the bottom border just left of the button (anchored via right:100%, so it
-           tracks the button width at any radius / field padding). -->
+      <!-- Calendar trigger → Type-B edge button (#actions). -->
       <template #actions>
-        <span class="coar-zdtp-actions">
-          <span
-            v-if="modelValue"
-            class="coar-zdtp-tz-inline"
-            :title="currentTimeZoneDisplayName"
-          >
-            {{ currentTimeZoneDisplayName }}
-          </span>
-          <CoarInputFrameButton
-            class="coar-zdtp-btn"
-            :disabled="isDisabled"
-            :aria-label="t('coar.ui.zonedDateTimePicker.openPicker', undefined, 'Open date and time picker')"
-            @click.stop="togglePanel"
-          >
-            <CoarIcon name="calendar" size="s" />
-          </CoarInputFrameButton>
-        </span>
+        <CoarInputFrameButton
+          class="coar-zdtp-btn"
+          :disabled="isDisabled"
+          :aria-label="t('coar.ui.zonedDateTimePicker.openPicker', undefined, 'Open date and time picker')"
+          @click.stop="togglePanel"
+        >
+          <CoarIcon name="calendar" size="s" />
+        </CoarInputFrameButton>
       </template>
     </CoarInputFrame>
+
+    <!-- TZ caption floats on the bottom border, just left of the calendar button.
+         It lives OUTSIDE the frame: the frame's overflow:hidden (which clips the
+         edge-button corners to the radius) would otherwise cut the half that
+         straddles below the border. Anchored from the wrapper's right edge by the
+         calendar button's token-derived width so it tracks radius + field padding. -->
+    <span
+      v-if="modelValue"
+      class="coar-zdtp-tz-inline"
+      :title="currentTimeZoneDisplayName"
+    >
+      {{ currentTimeZoneDisplayName }}
+    </span>
   </div>
 </template>
 
@@ -709,6 +711,13 @@ const tzIndicatorIcon = computed(() => {
    ======================================== */
 
 .coar-zdtp {
+  /* positioning context for the floating TZ caption, which sits OUTSIDE the frame
+     (see .coar-zdtp-tz-inline). Per-size helpers re-derive the calendar button's
+     metrics so the caption can anchor to its left edge without inheriting the
+     frame's private vars. */
+  --coar-zdtp-scale: 1;
+  --coar-zdtp-height: var(--coar-component-m-height);
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--coar-spacing-xs);
@@ -788,20 +797,24 @@ const tzIndicatorIcon = computed(() => {
    TIMEZONE INLINE LABEL (on trigger border)
    ======================================== */
 
-/* #actions wrapper: positioning context for the floating TZ label so it can sit
-   exactly at the calendar button's left edge regardless of the button width. */
-.coar-zdtp-actions {
-  position: relative;
-  display: flex;
-  align-self: stretch;
-}
-
 .coar-zdtp-tz-inline {
   position: absolute;
   bottom: 0;
-  /* right:100% anchors the label's right edge to the calendar button's left edge,
-     so it tracks the (now token-driven) button width — no hardcoded offset. */
-  right: 100%;
+  /* Anchor the caption's right edge to the calendar button's left edge. The button
+     lives in the frame (overflow:hidden), so the caption can't anchor off it via
+     right:100% anymore — re-derive its outer width from the same tokens the button
+     uses (CoarInputFrameButton: spacing-s×scale left pad + icon + max(field-pad,
+     corner) right pad + 1px separator) plus the frame's 1px right border. Tracks
+     radius + field padding without inheriting the frame's private vars. */
+  right: calc(
+    var(--coar-spacing-s) * var(--coar-zdtp-scale)
+    + 16px
+    + max(
+      calc(var(--coar-field-padding-x) * var(--coar-zdtp-scale) * var(--coar-component-density, 1)),
+      min(var(--coar-input-radius), calc(var(--coar-zdtp-height) / 2))
+    )
+    + 2px
+  );
   transform: translateY(50%);
   padding: 0 var(--coar-spacing-xs);
   font-family: var(--coar-body-caption-family);
@@ -853,4 +866,9 @@ const tzIndicatorIcon = computed(() => {
 .coar-zdtp--xs .coar-zdtp-input { font-size: var(--coar-component-xs-font-size); }
 .coar-zdtp--s .coar-zdtp-input { font-size: var(--coar-component-s-font-size); }
 .coar-zdtp--l .coar-zdtp-input { font-size: var(--coar-component-l-font-size); }
+
+/* Per-size calendar-button metrics for the TZ-caption anchor (mirrors the frame). */
+.coar-zdtp--xs { --coar-zdtp-scale: var(--coar-component-xs-scale); --coar-zdtp-height: var(--coar-component-xs-height); }
+.coar-zdtp--s { --coar-zdtp-scale: var(--coar-component-s-scale); --coar-zdtp-height: var(--coar-component-s-height); }
+.coar-zdtp--l { --coar-zdtp-scale: var(--coar-component-l-scale); --coar-zdtp-height: var(--coar-component-l-height); }
 </style>

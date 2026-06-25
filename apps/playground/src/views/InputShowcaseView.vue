@@ -6,6 +6,7 @@
  * radius drive every control from one place.
  */
 import { ref } from 'vue';
+import { Temporal } from '@js-temporal/polyfill';
 import {
   CoarTextInput,
   CoarPasswordInput,
@@ -39,6 +40,10 @@ const options: CoarSelectOption<string>[] = [
 const sizeText = ref('Value');
 const sizeNum = ref<number | null>(7);
 const sizeSingle = ref<string | null>('a');
+// zoned value so the floating TZ caption on the bottom border is visible
+const zoned = ref<Temporal.ZonedDateTime | null>(
+  Temporal.ZonedDateTime.from('2026-06-25T14:30[Europe/Vienna]'),
+);
 </script>
 
 <template>
@@ -119,9 +124,9 @@ const sizeSingle = ref<string | null>('a');
         <tr>
           <th>ZonedDateTimePicker</th>
           <td><CoarZonedDateTimePicker /></td>
-          <td><CoarZonedDateTimePicker /></td>
-          <td><CoarZonedDateTimePicker error /></td>
-          <td><CoarZonedDateTimePicker disabled /></td>
+          <td><CoarZonedDateTimePicker v-model="zoned" /></td>
+          <td><CoarZonedDateTimePicker v-model="zoned" error /></td>
+          <td><CoarZonedDateTimePicker v-model="zoned" disabled /></td>
         </tr>
       </tbody>
     </table>
