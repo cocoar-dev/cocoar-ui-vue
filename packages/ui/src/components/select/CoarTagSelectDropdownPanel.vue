@@ -101,7 +101,8 @@ const highlightedIndex = props.highlightedIndex;
 .coar-select-options {
   max-height: 240px;
   overflow: hidden;
-  padding: var(--coar-spacing-xs) 0;
+  /* No top/bottom padding — first/last option flush; see CoarSelectDropdownPanel. */
+  padding: 0;
 }
 
 .coar-select-option {

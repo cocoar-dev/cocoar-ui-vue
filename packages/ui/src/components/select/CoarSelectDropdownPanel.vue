@@ -133,7 +133,10 @@ const searchQuery = props.searchQuery;
 .coar-select-options {
   max-height: 240px;
   overflow: hidden;
-  padding: var(--coar-spacing-xs) 0;
+  /* No top/bottom padding: the first option sits flush at the top and the last
+     flush at the bottom. The panel's overflow:hidden + radius clips the first/last
+     row highlight to the rounded corners. */
+  padding: 0;
 }
 
 .coar-select-option {
