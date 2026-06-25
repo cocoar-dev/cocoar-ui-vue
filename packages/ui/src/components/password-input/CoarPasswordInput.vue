@@ -2,6 +2,7 @@
 import { computed, ref, inject, useTemplateRef } from 'vue';
 import { useI18n } from '@cocoar/vue-localization';
 import { CoarIcon } from '../icon';
+import CoarInputFrame from '../input-frame/CoarInputFrame.vue';
 import { FORM_FIELD_INJECTION_KEY } from '../form-field/constants';
 
 export type CoarPasswordInputSize = 'xs' | 's' | 'm' | 'l';
@@ -55,7 +56,6 @@ const emit = defineEmits<{
 
 const formField = inject(FORM_FIELD_INJECTION_KEY, undefined);
 
-const isFocused = ref(false);
 const { t } = useI18n();
 
 const showPassword = ref(false);
@@ -90,28 +90,16 @@ const hostClasses = computed(() => [
   `coar-password-input--${props.size}`,
 ]);
 
-const containerClasses = computed(() => [
-  'coar-password-input-container',
-  {
-    'coar-password-input-focused': isFocused.value,
-    'coar-password-input-disabled': props.disabled,
-    'coar-password-input-readonly': props.readonly,
-    'coar-password-input-error': hasError.value,
-  },
-]);
-
 function onInput(event: Event) {
   const target = event.target as HTMLInputElement;
   model.value = target.value;
 }
 
 function onFocus(event: FocusEvent) {
-  isFocused.value = true;
   emit('focused', event);
 }
 
 function onBlur(event: FocusEvent) {
-  isFocused.value = false;
   emit('blurred', event);
 }
 
@@ -131,8 +119,14 @@ function togglePasswordVisibility() {
 <template>
   <div :class="hostClasses">
     <div class="coar-password-input-wrapper">
-      <!-- Input Container -->
-      <div :class="containerClasses">
+      <!-- Single-line input shell owns box / radius / padding / states -->
+      <CoarInputFrame
+        class="coar-password-input-frame"
+        :size="size"
+        :error="hasError"
+        :disabled="disabled"
+        :readonly="readonly"
+      >
         <!-- Input Element -->
         <input
           :id="inputId"
@@ -154,32 +148,33 @@ function togglePasswordVisibility() {
           @blur="onBlur"
         />
 
-        <!-- Clear button -->
-        <button
-          v-if="clearSlotActive"
-          type="button"
-          class="coar-password-input-clear"
-          :class="{ 'coar-password-input-clear--hidden': !showClearButton }"
-          tabindex="-1"
-          :aria-hidden="!showClearButton || undefined"
-          :aria-label="t('coar.ui.passwordInput.clear', undefined, 'Clear')"
-          @click="onClear"
-        >
-          <CoarIcon name="x" source="coar-builtin" size="auto" />
-        </button>
+        <!-- Clear + visibility toggle → trailing affixes (both Type A) -->
+        <template #trailing>
+          <button
+            v-if="clearSlotActive"
+            type="button"
+            class="coar-password-input-clear"
+            :class="{ 'coar-password-input-clear--hidden': !showClearButton }"
+            tabindex="-1"
+            :aria-hidden="!showClearButton || undefined"
+            :aria-label="t('coar.ui.passwordInput.clear', undefined, 'Clear')"
+            @click="onClear"
+          >
+            <CoarIcon name="x" source="coar-builtin" size="auto" />
+          </button>
 
-        <!-- Toggle Visibility -->
-        <button
-          type="button"
-          class="coar-password-input-toggle"
-          tabindex="-1"
-          :aria-label="toggleAriaLabel"
-          :aria-controls="inputId"
-          @click="togglePasswordVisibility"
-        >
-          <CoarIcon :name="toggleIcon" source="coar-builtin" size="auto" />
-        </button>
-      </div>
+          <button
+            type="button"
+            class="coar-password-input-toggle"
+            tabindex="-1"
+            :aria-label="toggleAriaLabel"
+            :aria-controls="inputId"
+            @click="togglePasswordVisibility"
+          >
+            <CoarIcon :name="toggleIcon" source="coar-builtin" size="auto" />
+          </button>
+        </template>
+      </CoarInputFrame>
     </div>
   </div>
 </template>
@@ -195,80 +190,19 @@ function togglePasswordVisibility() {
   width: 100%;
 }
 
-/* Input Container */
-.coar-password-input-container {
-  position: relative;
-  display: flex;
-  align-items: center;
-  height: var(--coar-component-m-height);
-  /* Effective field padding = base × per-size scale × density (see CoarTextInput). */
-  --coar-field-pad: calc(var(--coar-field-padding-x) * var(--coar-component-scale, 1) * var(--coar-component-density, 1));
-  border: 1px solid var(--coar-border-input);
-  border-radius: var(--coar-input-radius);
-  background: var(--coar-surface-input);
-  transition:
-    border-color var(--coar-duration-fast) var(--coar-ease-out),
-    box-shadow var(--coar-duration-fast) var(--coar-ease-out);
-  overflow: hidden;
-}
-
-/* Size variants */
-.coar-password-input--xs .coar-password-input-container { height: var(--coar-component-xs-height); --coar-component-scale: var(--coar-component-xs-scale); }
-.coar-password-input--s .coar-password-input-container { height: var(--coar-component-s-height); --coar-component-scale: var(--coar-component-s-scale); }
-.coar-password-input--l .coar-password-input-container { height: var(--coar-component-l-height); --coar-component-scale: var(--coar-component-l-scale); }
+/* Box / radius / size / states owned by CoarInputFrame. */
 
 /* Size-specific typography */
 .coar-password-input--xs .coar-password-input-field { font-size: var(--coar-component-xs-font-size); }
 .coar-password-input--s .coar-password-input-field { font-size: var(--coar-component-s-font-size); }
 .coar-password-input--l .coar-password-input-field { font-size: var(--coar-component-l-font-size); }
 
-.coar-password-input-container:hover:not(.coar-password-input-disabled):not(
-    .coar-password-input-readonly
-  ):not(.coar-password-input-error):not(.coar-password-input-focused) {
-  border-color: var(--coar-border-input-hover);
-}
-
-/* Focus state */
-.coar-password-input-container.coar-password-input-focused:not(.coar-password-input-error) {
-  border-color: var(--coar-focus-color);
-  box-shadow: inset 0 0 0 1px var(--coar-focus-color);
-  outline: none;
-}
-
-.coar-password-input-container.coar-password-input-disabled {
-  background: var(--coar-surface-input-disabled);
-  border-color: var(--coar-border-input);
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.coar-password-input-container.coar-password-input-readonly {
-  background: var(--coar-surface-input);
-  border-color: var(--coar-border-input);
-  cursor: default;
-}
-
-/* Error state */
-.coar-password-input-container.coar-password-input-error {
-  border-color: var(--coar-border-semantic-error-bold);
-}
-
-.coar-password-input-container.coar-password-input-error.coar-password-input-focused {
-  border-color: var(--coar-border-semantic-error-bold);
-  box-shadow: inset 0 0 0 1px var(--coar-border-semantic-error-bold);
-  outline: none;
-}
-
-.coar-password-input-container.coar-password-input-error:hover:not(.coar-password-input-disabled) {
-  border-color: var(--coar-border-semantic-error-bold);
-}
-
-/* Input Field */
+/* Input Field — horizontal padding owned by the frame. */
 .coar-password-input-field {
   flex: 1;
   min-width: 0;
   height: 100%;
-  padding: 0 var(--coar-field-pad);
+  padding: 0;
   border: none;
   outline: none;
   background: transparent;
@@ -289,7 +223,6 @@ function togglePasswordVisibility() {
   justify-content: center;
   width: auto;
   height: auto;
-  margin-right: var(--coar-spacing-s);
   padding: 0;
   border: none;
   background: transparent;
@@ -309,12 +242,8 @@ function togglePasswordVisibility() {
   pointer-events: none;
 }
 
-.coar-password-input-focused .coar-password-input-clear {
-  opacity: 1;
-  color: var(--coar-icon-neutral-tertiary);
-}
-
-.coar-password-input-container:hover .coar-password-input-clear {
+.coar-password-input-frame:focus-within .coar-password-input-clear,
+.coar-password-input-frame:hover .coar-password-input-clear {
   opacity: 1;
   color: var(--coar-icon-neutral-tertiary);
 }
@@ -327,12 +256,13 @@ function togglePasswordVisibility() {
 .coar-password-input-clear:focus { outline: none; }
 .coar-password-input-clear:focus-visible { color: var(--coar-icon-neutral-primary); }
 
-/* Toggle Visibility Button */
+/* Toggle Visibility Button — a Type-A icon affix; the frame's trailing wrapper
+   provides the outer field-pad, so the button itself stays flush. */
 .coar-password-input-toggle {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--coar-spacing-xs) var(--coar-spacing-s);
+  padding: 0;
   border: none;
   background: transparent;
   color: var(--coar-icon-neutral-secondary);
@@ -342,20 +272,9 @@ function togglePasswordVisibility() {
   flex-shrink: 0;
 }
 
-.coar-password-input--xs .coar-password-input-toggle {
-  font-size: var(--coar-component-xs-font-size);
-  padding: var(--coar-spacing-xxs) var(--coar-field-padding-x-tight);
-}
-
-.coar-password-input--s .coar-password-input-toggle {
-  font-size: var(--coar-component-s-font-size);
-  padding: var(--coar-spacing-xxs) var(--coar-field-padding-x-tight);
-}
-
-.coar-password-input--l .coar-password-input-toggle {
-  font-size: var(--coar-component-l-font-size);
-  padding: var(--coar-spacing-xs) var(--coar-field-pad);
-}
+.coar-password-input--xs .coar-password-input-toggle { font-size: var(--coar-component-xs-font-size); }
+.coar-password-input--s .coar-password-input-toggle { font-size: var(--coar-component-s-font-size); }
+.coar-password-input--l .coar-password-input-toggle { font-size: var(--coar-component-l-font-size); }
 
 .coar-password-input-toggle:hover { color: var(--coar-icon-neutral-primary); }
 .coar-password-input-toggle:focus { outline: none; }
@@ -370,8 +289,8 @@ function togglePasswordVisibility() {
   transition: background-color 5000s ease-in-out 0s;
 }
 
-.coar-password-input-disabled .coar-password-input-toggle,
-.coar-password-input-readonly .coar-password-input-toggle {
+.coar-input-frame--disabled .coar-password-input-toggle,
+.coar-input-frame--readonly .coar-password-input-toggle {
   cursor: not-allowed;
   opacity: 0.5;
   pointer-events: none;
@@ -380,7 +299,7 @@ function togglePasswordVisibility() {
 /* Message styles are in shared/form-field-message.css */
 
 @media (prefers-reduced-motion: reduce) {
-  .coar-password-input-container,
+  .coar-password-input-frame,
   .coar-password-input-clear,
   .coar-password-input-toggle {
     transition-duration: 0s;
