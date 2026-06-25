@@ -108,7 +108,7 @@ const hostClasses = computed(() => [
 <style scoped>
 .coar-segmented-control {
   display: inline-flex;
-  background: var(--coar-background-neutral-primary, #fff);
+  background: var(--coar-background-neutral-primary);
   border: 1px solid var(--coar-border-neutral-tertiary);
   border-radius: var(--coar-button-radius);
   overflow: hidden;

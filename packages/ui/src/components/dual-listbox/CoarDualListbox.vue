@@ -1,6 +1,6 @@
 <script setup lang="ts" generic="T">
 import { computed, shallowRef, useSlots, useTemplateRef, type Slots } from 'vue';
-import { CoarIcon } from '../icon';
+import CoarButton from '../button/CoarButton.vue';
 import CoarListbox from '../listbox/CoarListbox.vue';
 import type {
   CoarListboxOption,
@@ -365,44 +365,40 @@ const sharedSlotNames = computed<string[]>(() =>
         :can-move-all-right="canMoveAllRight"
         :can-move-all-left="canMoveAllLeft"
       >
-        <button
+        <CoarButton
           v-if="!hideMoveAll"
-          type="button"
-          class="coar-dual-listbox-action"
-          :disabled="!canMoveAllRight"
+          variant="secondary"
+          size="s"
+          icon-start="chevrons-right"
           aria-label="Move all to selected"
+          :disabled="!canMoveAllRight"
           @click="moveAllRight"
-        >
-          <CoarIcon name="chevrons-right" size="s" />
-        </button>
-        <button
-          type="button"
-          class="coar-dual-listbox-action"
-          :disabled="!canMoveRight"
+        />
+        <CoarButton
+          variant="secondary"
+          size="s"
+          icon-start="chevron-right"
           aria-label="Move to selected"
+          :disabled="!canMoveRight"
           @click="moveRight"
-        >
-          <CoarIcon name="chevron-right" size="s" />
-        </button>
-        <button
-          type="button"
-          class="coar-dual-listbox-action"
-          :disabled="!canMoveLeft"
+        />
+        <CoarButton
+          variant="secondary"
+          size="s"
+          icon-start="chevron-left"
           aria-label="Move to available"
+          :disabled="!canMoveLeft"
           @click="moveLeft"
-        >
-          <CoarIcon name="chevron-left" size="s" />
-        </button>
-        <button
+        />
+        <CoarButton
           v-if="!hideMoveAll"
-          type="button"
-          class="coar-dual-listbox-action"
-          :disabled="!canMoveAllLeft"
+          variant="secondary"
+          size="s"
+          icon-start="chevrons-left"
           aria-label="Move all to available"
+          :disabled="!canMoveAllLeft"
           @click="moveAllLeft"
-        >
-          <CoarIcon name="chevrons-left" size="s" />
-        </button>
+        />
       </slot>
     </div>
 
@@ -485,39 +481,5 @@ const sharedSlotNames = computed<string[]>(() =>
   flex-direction: column;
   justify-content: center;
   gap: var(--coar-spacing-xxs);
-}
-
-.coar-dual-listbox-action {
-  width: 32px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--coar-border-neutral);
-  background: var(--coar-surface-input);
-  border-radius: var(--coar-radius-xs);
-  color: var(--coar-icon-neutral-secondary);
-  cursor: pointer;
-  transition: background-color var(--coar-duration-fast) var(--coar-ease-out),
-    color var(--coar-duration-fast) var(--coar-ease-out);
-}
-
-.coar-dual-listbox-action:hover:not(:disabled) {
-  background: var(--coar-background-neutral-tertiary);
-  color: var(--coar-icon-neutral-primary);
-}
-
-.coar-dual-listbox-action:focus-visible {
-  outline: 1px solid var(--coar-focus-color);
-  outline-offset: 1px;
-}
-
-.coar-dual-listbox-action:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .coar-dual-listbox-action { transition: none; }
 }
 </style>
