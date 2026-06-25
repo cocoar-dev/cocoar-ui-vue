@@ -83,7 +83,7 @@ const props = withDefaults(
     required: false,
     error: false,
     id: '',
-    clearable: true,
+    clearable: false,
     closeOnSelect: false,
     showWeekNumbers: false,
     highlightWeekends: false,
@@ -182,6 +182,12 @@ const describedBy = computed(() => formField?.messageId.value || undefined);
 const isDisabled = computed(() => props.disabled);
 const showClearButton = computed(
   () => props.clearable && modelValue.value !== null && !isDisabled.value && !props.readonly,
+);
+// Render (and reserve the leading slot for) the clear button only when clearable —
+// hidden-not-removed while empty so the field doesn't resize. Not clearable → no
+// button and no reserved left gap.
+const clearSlotActive = computed(
+  () => props.clearable && !isDisabled.value && !props.readonly,
 );
 const inputPlaceholder = computed(
   () => props.placeholder || pickerBase.effectiveDateFormat.value.pattern.toUpperCase(),
@@ -366,8 +372,8 @@ function onInputBlur() {
       :aria-controls="pickerBase.isOpen.value ? panelId : undefined"
       role="combobox"
     >
-      <!-- Clear Button → leading affix -->
-      <template #leading>
+      <!-- Clear Button → leading affix (only when clearable) -->
+      <template v-if="clearSlotActive" #leading>
         <button
           type="button"
           class="coar-plain-date-picker-clear"

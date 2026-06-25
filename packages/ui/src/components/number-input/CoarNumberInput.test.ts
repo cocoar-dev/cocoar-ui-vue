@@ -30,18 +30,23 @@ describe('CoarNumberInput', () => {
   });
 
   it('shows clear button when has value', () => {
-    const wrapper = mountInput({ modelValue: 42 });
+    const wrapper = mountInput({ modelValue: 42, clearable: true });
     expect(wrapper.find('.coar-number-input-clear').exists()).toBe(true);
     expect(wrapper.find('.coar-number-input-clear--hidden').exists()).toBe(false);
   });
 
   it('hides clear button when null', () => {
-    const wrapper = mountInput({ modelValue: null });
+    const wrapper = mountInput({ modelValue: null, clearable: true });
     expect(wrapper.find('.coar-number-input-clear--hidden').exists()).toBe(true);
   });
 
-  it('clears value when clear button clicked', async () => {
+  it('does not render the clear button when not clearable (default)', () => {
     const wrapper = mountInput({ modelValue: 42 });
+    expect(wrapper.find('.coar-number-input-clear').exists()).toBe(false);
+  });
+
+  it('clears value when clear button clicked', async () => {
+    const wrapper = mountInput({ modelValue: 42, clearable: true });
     const clearBtn = wrapper.find('.coar-number-input-clear:not(.coar-number-input-clear--hidden)');
     await clearBtn.trigger('click');
     expect(wrapper.emitted('update:modelValue')?.[0]).toEqual([null]);

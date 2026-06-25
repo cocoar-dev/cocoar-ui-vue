@@ -46,7 +46,7 @@ const props = withDefaults(defineProps<CoarTextInputProps>(), {
   readonly: false,
   required: false,
   error: false,
-  clearable: true,
+  clearable: false,
   prefix: '',
   suffix: '',
   id: '',

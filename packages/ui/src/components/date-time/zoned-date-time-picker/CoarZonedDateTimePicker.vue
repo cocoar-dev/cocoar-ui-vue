@@ -78,7 +78,7 @@ const props = withDefaults(
     required: false,
     error: false,
     id: '',
-    clearable: true,
+    clearable: false,
     showWeekNumbers: false,
     highlightWeekends: false,
     markers: () => [],
@@ -308,6 +308,11 @@ const describedBy = computed(() => formField?.messageId.value || undefined);
 const isDisabled = computed(() => props.disabled);
 const showClearButton = computed(
   () => props.clearable && modelValue.value !== null && !isDisabled.value && !props.readonly,
+);
+// Reserve the leading slot for the clear button only when clearable (hidden-not-
+// removed while empty so the field doesn't resize); not clearable → no left gap.
+const clearSlotActive = computed(
+  () => props.clearable && !isDisabled.value && !props.readonly,
 );
 const inputPlaceholder = computed(() => {
   if (props.placeholder) return props.placeholder;
@@ -627,8 +632,8 @@ const tzIndicatorIcon = computed(() => {
       :active="pickerBase.isOpen.value"
       @keydown="onKeydown"
     >
-      <!-- Clear button → leading affix -->
-      <template #leading>
+      <!-- Clear button → leading affix (only when clearable) -->
+      <template v-if="clearSlotActive" #leading>
         <button
           type="button"
           class="coar-zdtp-clear"

@@ -70,21 +70,21 @@ const zoned = ref<Temporal.ZonedDateTime | null>(
         <tr>
           <th>TextInput</th>
           <td><CoarTextInput placeholder="Type…" /></td>
-          <td><CoarTextInput v-model="text" /></td>
+          <td><CoarTextInput v-model="text" clearable /></td>
           <td><CoarTextInput v-model="text" error /></td>
           <td><CoarTextInput v-model="text" disabled /></td>
         </tr>
         <tr>
           <th>PasswordInput</th>
           <td><CoarPasswordInput placeholder="Password…" /></td>
-          <td><CoarPasswordInput v-model="pwd" /></td>
+          <td><CoarPasswordInput v-model="pwd" clearable /></td>
           <td><CoarPasswordInput v-model="pwd" error /></td>
           <td><CoarPasswordInput v-model="pwd" disabled /></td>
         </tr>
         <tr>
           <th>NumberInput</th>
           <td><CoarNumberInput placeholder="0" stepper-buttons="both" /></td>
-          <td><CoarNumberInput v-model="num" suffix="€" stepper-buttons="both" /></td>
+          <td><CoarNumberInput v-model="num" suffix="€" stepper-buttons="both" clearable /></td>
           <td><CoarNumberInput v-model="num" error stepper-buttons="both" /></td>
           <td><CoarNumberInput v-model="num" disabled stepper-buttons="both" /></td>
         </tr>
@@ -126,7 +126,7 @@ const zoned = ref<Temporal.ZonedDateTime | null>(
         <tr>
           <th>ZonedDateTimePicker</th>
           <td><CoarZonedDateTimePicker /></td>
-          <td><CoarZonedDateTimePicker v-model="zoned" /></td>
+          <td><CoarZonedDateTimePicker v-model="zoned" clearable /></td>
           <td><CoarZonedDateTimePicker v-model="zoned" error /></td>
           <td><CoarZonedDateTimePicker v-model="zoned" disabled /></td>
         </tr>

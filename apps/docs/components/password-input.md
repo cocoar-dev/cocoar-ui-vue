@@ -63,7 +63,7 @@ The visibility toggle button has an accessible label that updates based on the c
 | `disabled` | `boolean` | `false` | Disable the input |
 | `readonly` | `boolean` | `false` | Make read-only |
 | `required` | `boolean` | `false` | Mark as required |
-| `clearable` | `boolean` | `true` | Show clear button when input has value |
+| `clearable` | `boolean` | `false` | Show clear button when input has value |
 
 ## i18n Keys
 

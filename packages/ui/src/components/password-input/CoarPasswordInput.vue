@@ -39,7 +39,7 @@ const props = withDefaults(defineProps<CoarPasswordInputProps>(), {
   readonly: false,
   required: false,
   error: false,
-  clearable: true,
+  clearable: false,
   id: '',
   name: '',
   autocomplete: 'current-password',

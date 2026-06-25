@@ -66,7 +66,7 @@ const props = withDefaults(defineProps<CoarNumberInputProps>(), {
   readonly: false,
   required: false,
   error: false,
-  clearable: true,
+  clearable: false,
   stepperButtons: 'none',
   prefix: '',
   suffix: '',
@@ -100,6 +100,12 @@ const describedBy = computed(() => formField?.messageId.value || undefined);
 
 const showClearButton = computed(
   () => props.clearable && model.value !== null && !props.disabled && !props.readonly,
+);
+// Render (and reserve the layout slot for) the clear button only when clearable —
+// it's then hidden-not-removed while empty so the field doesn't resize on the first
+// keystroke. When not clearable, no button and no reserved gap.
+const clearSlotActive = computed(
+  () => props.clearable && !props.disabled && !props.readonly,
 );
 
 const showIncrementButton = computed(
@@ -296,9 +302,11 @@ function decrement() {
         :disabled="disabled"
         :readonly="readonly"
       >
-        <!-- Clear (left) + prefix → leading affix -->
-        <template #leading>
+        <!-- Clear (left) + prefix → leading affix (only when there's real content,
+             so the frame's has-leading padding logic stays correct) -->
+        <template v-if="clearSlotActive || prefix || $slots.prefix" #leading>
           <button
+            v-if="clearSlotActive"
             type="button"
             class="coar-number-input-clear"
             :class="{ 'coar-number-input-clear--hidden': !showClearButton }"
@@ -308,7 +316,7 @@ function decrement() {
           >
             <CoarIcon name="x" source="coar-builtin" size="auto" />
           </button>
-          <span class="coar-number-input-prefix">
+          <span v-if="prefix || $slots.prefix" class="coar-number-input-prefix">
             <template v-if="prefix">{{ prefix }}</template>
             <slot name="prefix" />
           </span>
@@ -338,8 +346,8 @@ function decrement() {
           @keydown="onKeyDown"
         />
 
-        <!-- Suffix → trailing affix -->
-        <template #trailing>
+        <!-- Suffix → trailing affix (only when present) -->
+        <template v-if="suffix || $slots.suffix" #trailing>
           <span class="coar-number-input-suffix">
             <template v-if="suffix">{{ suffix }}</template>
             <slot name="suffix" />

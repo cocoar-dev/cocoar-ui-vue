@@ -82,7 +82,7 @@ These keys can be translated via [`@cocoar/vue-localization`](/foundations/local
 | `prefix` | `string` | `''` | Prefix text |
 | `suffix` | `string` | `''` | Suffix text (e.g. '%', 'EUR') |
 | `stepperButtons` | `'none' \| 'increment' \| 'decrement' \| 'both'` | `'none'` | Stepper button mode |
-| `clearable` | `boolean` | `true` | Show clear button when input has value |
+| `clearable` | `boolean` | `false` | Show clear button when input has value |
 | `size` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Input size |
 | `disabled` | `boolean` | `false` | Disable the input |
 | `readonly` | `boolean` | `false` | Make read-only |
