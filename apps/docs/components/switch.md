@@ -26,7 +26,7 @@ Supports `disabled` (both on and off), `required`, and `error` states for comple
 
 ## Sizes
 
-Three sizes so the switch fits naturally alongside other controls at any density.
+Four sizes so the switch fits naturally alongside other controls at any density.
 
 <preview path="./switch/demos/SwitchSizes.vue" />
 
@@ -72,6 +72,6 @@ Switches use `role="switch"` with `aria-checked` to properly communicate state t
 | `v-model` | `boolean` | `false` | Switch on/off state |
 | `label` | `string` | `''` | Label text |
 | `error` | `boolean` | `false` | Error state (auto-injected from `CoarFormField`) |
-| `size` | `'s' \| 'm' \| 'l'` | `'m'` | Switch size |
+| `size` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Switch size |
 | `disabled` | `boolean` | `false` | Disable the switch |
 | `labelPosition` | `'before' \| 'after'` | `'after'` | Label position relative to the switch |

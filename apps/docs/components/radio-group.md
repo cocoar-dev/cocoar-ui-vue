@@ -74,7 +74,7 @@ Only one radio button in a group receives tab focus. Arrow keys move selection b
 | `name` | `string` | — | **Required.** HTML name for the radio inputs |
 | `label` | `string` | `''` | Group accessible label |
 | `orientation` | `'horizontal' \| 'vertical'` | `'vertical'` | Layout direction |
-| `size` | `'s' \| 'm' \| 'l'` | `'m'` | Radio button size |
+| `size` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Radio button size |
 | `labelPosition` | `'before' \| 'after'` | `'after'` | Label position for all radio buttons |
 | `disabled` | `boolean` | `false` | Disable all radio buttons |
 | `required` | `boolean` | `false` | Mark as required |

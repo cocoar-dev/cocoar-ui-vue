@@ -2,7 +2,7 @@
 import { computed, ref, inject } from 'vue';
 import { FORM_FIELD_INJECTION_KEY } from '../form-field/constants';
 
-export type CoarSwitchSize = 's' | 'm' | 'l';
+export type CoarSwitchSize = 'xs' | 's' | 'm' | 'l';
 
 export interface CoarSwitchProps {
   /** Label text displayed next to the switch */
@@ -118,6 +118,12 @@ function onBlur() { isFocused.value = false; }
 }
 
 /* Track sizes */
+.coar-switch--xs {
+  --coar-switch-track-width: var(--coar-switch-xs-track-width);
+  --coar-switch-track-height: var(--coar-switch-xs-track-height);
+  --coar-switch-thumb-size: var(--coar-switch-xs-thumb-size);
+}
+
 .coar-switch--s {
   --coar-switch-track-width: var(--coar-switch-s-track-width);
   --coar-switch-track-height: var(--coar-switch-s-track-height);
@@ -254,12 +260,12 @@ function onBlur() { isFocused.value = false; }
 
 /* Error state */
 .coar-switch--error .coar-switch-track {
-  border-color: var(--coar-text-semantic-error-bold);
+  border-color: var(--coar-border-semantic-error-bold);
 }
 
 .coar-switch--error .coar-switch-track--checked {
-  background: var(--coar-text-semantic-error-bold);
-  border-color: var(--coar-text-semantic-error-bold);
+  background: var(--coar-background-semantic-error-bold);
+  border-color: var(--coar-border-semantic-error-bold);
 }
 
 /* Label */
@@ -268,6 +274,10 @@ function onBlur() { isFocused.value = false; }
   font-size: var(--coar-component-m-font-size);
   font-weight: var(--coar-body-small-base-weight);
   color: var(--coar-text-neutral-primary);
+}
+
+.coar-switch--xs .coar-switch-label {
+  font-size: var(--coar-component-xs-font-size);
 }
 
 .coar-switch--s .coar-switch-label {

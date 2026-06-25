@@ -9,6 +9,8 @@
      ========================================================================== */
 
   /* Track dimensions */
+  --coar-switch-xs-track-width: 24px;
+  --coar-switch-xs-track-height: 14px;
   --coar-switch-s-track-width: 32px;
   --coar-switch-s-track-height: 18px;
   --coar-switch-m-track-width: 40px;
@@ -17,6 +19,7 @@
   --coar-switch-l-track-height: 26px;
 
   /* Thumb dimensions (circle inside track) */
+  --coar-switch-xs-thumb-size: 10px;
   --coar-switch-s-thumb-size: 14px;
   --coar-switch-m-thumb-size: 18px;
   --coar-switch-l-thumb-size: 22px;
