@@ -540,13 +540,14 @@ function decrement() {
 }
 
 .coar-number-input-button {
+  /* base cell width + the natural icon-edge↔cell-edge gap (= (w − iconW) / 2,
+     measured per size: 4/6/6/6 for xs/s/m/l). The outer button reuses that gap as
+     its compact (separator-side) inset so the +/− icons keep an even rhythm. */
   --coar-number-btn-w: 28px;
+  --coar-number-btn-inner: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  /* content-box so the last button's corner padding GROWS the box (pushes the icon
-     clear of the rounded cap) instead of squeezing the centred icon inward. */
-  box-sizing: content-box;
   width: var(--coar-number-btn-w);
   height: 100%;
   padding: 0;
@@ -561,6 +562,7 @@ function decrement() {
 
 .coar-number-input--xs .coar-number-input-button {
   --coar-number-btn-w: 20px;
+  --coar-number-btn-inner: 4px;
 }
 .coar-number-input--s .coar-number-input-button {
   --coar-number-btn-w: 24px;
@@ -569,13 +571,20 @@ function decrement() {
   --coar-number-btn-w: 32px;
 }
 
-/* The outer (last) stepper button meets the frame's rounded cap. Mirror the
-   CoarInputFrameButton rule: its icon-to-edge clearance must reach the corner
-   radius at full/pill radius. The icon is centred in the base width (→ w/2 from
-   the right), so add only the shortfall. At default radius (corner ≤ w/2) this is
-   0 → unchanged compact pair. */
+/* The outer (last) stepper button meets the frame's rounded cap, so it must follow
+   the SAME rule as CoarInputFrameButton: its icon's outer edge lands at
+   max(field-pad, corner) from the frame edge — identical to the clear / eye /
+   chevron / calendar icons. Switch this one cell from fixed-width-centred to the
+   padding model: a compact inner (separator-side) inset, and an outer inset that
+   tracks BOTH the padding token and the radius. Inner buttons stay fixed-width. */
 .coar-number-input-buttons .coar-number-input-button:last-child {
-  padding-right: max(0px, calc(var(--coar-input-corner, 0px) - var(--coar-number-btn-w) / 2));
+  width: auto;
+  padding-left: var(--coar-number-btn-inner);
+  padding-right: max(
+    var(--coar-number-btn-inner),
+    var(--coar-field-pad),
+    var(--coar-input-corner, 0px)
+  );
 }
 
 .coar-number-input-button:hover:not(:disabled) {
