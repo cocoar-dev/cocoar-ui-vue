@@ -7,7 +7,7 @@ import CoarSegmentedControl from '../segmented-control/CoarSegmentedControl.vue'
 import CoarFormField from '../form-field/CoarFormField.vue';
 import TokenScaleEditor from './TokenScaleEditor.vue';
 import {
-  DEFAULTS, RADIUS_OPTIONS, SHADOW_OPTIONS, FONT_OPTIONS_BODY_SELECT, FONT_OPTIONS_TITLE_SELECT,
+  DEFAULTS, RADIUS_OPTIONS, DROPDOWN_RADIUS_OPTIONS, SHADOW_OPTIONS, FONT_OPTIONS_BODY_SELECT, FONT_OPTIONS_TITLE_SELECT,
   DENSITY_OPTIONS, PRESETS, PALETTE_STEPS, SEMANTIC_GROUPS, SEMANTIC_PAL_OPTIONS, SEMANTIC_STEP_OPTIONS,
   accent, success, errorColor, warning, info,
   radiusXxs, radiusXs, radiusS, radiusM, radiusL, radiusXl,
@@ -416,9 +416,9 @@ const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
         <div class="te-accordion-body">
           <div class="te-section">
             <div class="te-section-label">Corner radius</div>
-            <div v-for="row in [{ label:'Menu', v: menuRadius, set:(v:string)=>menuRadius=v }, { label:'Popover', v: popoverRadius, set:(v:string)=>popoverRadius=v }, { label:'Dropdown', v: dropdownRadius, set:(v:string)=>dropdownRadius=v }]" :key="row.label" class="te-radius-row">
+            <div v-for="row in [{ label:'Menu', v: menuRadius, set:(v:string)=>menuRadius=v, opts: RADIUS_OPTIONS }, { label:'Popover', v: popoverRadius, set:(v:string)=>popoverRadius=v, opts: RADIUS_OPTIONS }, { label:'Dropdown', v: dropdownRadius, set:(v:string)=>dropdownRadius=v, opts: DROPDOWN_RADIUS_OPTIONS }]" :key="row.label" class="te-radius-row">
               <span class="te-radius-label">{{ row.label }}</span>
-              <CoarSelect :model-value="row.v" @update:model-value="row.set($event as string)" :options="RADIUS_OPTIONS" size="s" style="flex:1" />
+              <CoarSelect :model-value="row.v" @update:model-value="row.set($event as string)" :options="row.opts" size="s" style="flex:1" />
             </div>
           </div>
           <div class="te-section">

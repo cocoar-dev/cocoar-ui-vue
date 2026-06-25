@@ -113,14 +113,22 @@ const searchQuery = props.searchQuery;
      closing the overlay. */
   width: 100%;
   box-sizing: border-box;
+  /* Match the trigger's effective corner: --coar-dropdown-radius tracks the input
+     radius, capped at half the trigger height so a full/pill input radius rounds
+     the panel like the input's pill end instead of ballooning into a stadium.
+     Mirrors CoarInputFrame's --coar-input-corner, re-derived per size below. */
+  --coar-dropdown-corner: min(var(--coar-dropdown-radius), calc(var(--coar-component-m-height) / 2));
   background: var(--coar-background-neutral-primary);
   border: 1px solid var(--coar-border-neutral);
-  border-radius: var(--coar-dropdown-radius);
+  border-radius: var(--coar-dropdown-corner);
   box-shadow: var(--coar-dropdown-shadow);
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
+.coar-select-dropdown--xs { --coar-dropdown-corner: min(var(--coar-dropdown-radius), calc(var(--coar-component-xs-height) / 2)); }
+.coar-select-dropdown--s  { --coar-dropdown-corner: min(var(--coar-dropdown-radius), calc(var(--coar-component-s-height) / 2)); }
+.coar-select-dropdown--l  { --coar-dropdown-corner: min(var(--coar-dropdown-radius), calc(var(--coar-component-l-height) / 2)); }
 
 .coar-select-options {
   max-height: 240px;

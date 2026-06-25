@@ -154,7 +154,7 @@
   --coar-card-radius:      var(--coar-radius-s);    /* CoarCard */
   --coar-menu-radius:      var(--coar-radius-s);    /* CoarMenu */
   --coar-popover-radius:   var(--coar-radius-s);    /* CoarPopover, CoarPopconfirm */
-  --coar-dropdown-radius:  var(--coar-radius-s);    /* select/multi/tag dropdown panels */
+  --coar-dropdown-radius:  var(--coar-input-radius); /* select/multi/tag dropdown panels — track the input radius (the panel is part of the field); the panel CSS caps it per size at the trigger's pill end */
 
   /* Shadow — per component group */
   --coar-card-shadow:      var(--coar-elevation-medium);

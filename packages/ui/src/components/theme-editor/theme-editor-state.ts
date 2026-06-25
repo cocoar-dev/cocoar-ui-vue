@@ -47,7 +47,7 @@ export const DEFAULTS = {
   cardRadius:     'var(--coar-radius-s)',
   menuRadius:     'var(--coar-radius-s)',
   popoverRadius:  'var(--coar-radius-s)',
-  dropdownRadius: 'var(--coar-radius-s)',
+  dropdownRadius: 'var(--coar-input-radius)', // select dropdown follows the input radius by default
   dialogRadius:   'var(--coar-radius-l)',
   toastRadius:    'var(--coar-radius-m)',
   // Shadow per component
@@ -119,6 +119,14 @@ export const RADIUS_OPTIONS = [
   { label: 'Full', value: 'var(--coar-radius-full)' },
 ];
 
+// The select dropdown panel is part of the field, so its default tracks the input
+// radius. Offer that as a first-class choice (alongside the fixed steps) so the
+// control reflects the coupling instead of showing a blank for `var(--coar-input-radius)`.
+export const DROPDOWN_RADIUS_OPTIONS = [
+  { label: 'Match input', value: 'var(--coar-input-radius)' },
+  ...RADIUS_OPTIONS,
+];
+
 export const SHADOW_OPTIONS = [
   { label: 'None',  value: 'none' },
   { label: 'XS',    value: 'var(--coar-shadow-xs)' },
@@ -158,7 +166,7 @@ export const PRESETS = [
       cardRadius:     'var(--coar-radius-l)',
       menuRadius:     'var(--coar-radius-l)',
       popoverRadius:  'var(--coar-radius-l)',
-      dropdownRadius: 'var(--coar-radius-l)',
+      dropdownRadius: 'var(--coar-input-radius)', // follows the (rounder) input
       dialogRadius:   'var(--coar-radius-xl)',
       toastRadius:    'var(--coar-radius-l)',
     },
@@ -182,7 +190,7 @@ export const PRESETS = [
       cardRadius:     'var(--coar-radius-xl)',
       menuRadius:     'var(--coar-radius-xl)',
       popoverRadius:  'var(--coar-radius-xl)',
-      dropdownRadius: 'var(--coar-radius-xl)',
+      dropdownRadius: 'var(--coar-input-radius)', // follows the (rounder) input
       dialogRadius:   'var(--coar-radius-xl)',
       toastRadius:    'var(--coar-radius-xl)',
     },
@@ -702,7 +710,7 @@ export function initThemeEditorState(hideDarkToggle: boolean) {
   strOpt('--coar-card-radius',          cardRadius,     RADIUS_OPTIONS);
   strOpt('--coar-menu-radius',          menuRadius,     RADIUS_OPTIONS);
   strOpt('--coar-popover-radius',       popoverRadius,  RADIUS_OPTIONS);
-  strOpt('--coar-dropdown-radius',      dropdownRadius, RADIUS_OPTIONS);
+  strOpt('--coar-dropdown-radius',      dropdownRadius, DROPDOWN_RADIUS_OPTIONS);
   strOpt('--coar-dialog-border-radius', dialogRadius,   RADIUS_OPTIONS);
   strOpt('--coar-toast-border-radius',  toastRadius,    RADIUS_OPTIONS);
   strOpt('--coar-card-shadow',          cardShadow,     SHADOW_OPTIONS);
