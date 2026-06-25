@@ -41,6 +41,7 @@ const options: CoarSelectOption<string>[] = [
 const sizeText = ref('Value');
 const sizeNum = ref<number | null>(7);
 const sizeSingle = ref<string | null>('a');
+const sizeTags = ref<string[]>(['a', 'b']);
 // zoned value so the floating TZ caption on the bottom border is visible
 const zoned = ref<Temporal.ZonedDateTime | null>(
   Temporal.ZonedDateTime.from('2026-06-25T14:30[Europe/Vienna]'),
@@ -154,6 +155,10 @@ const zoned = ref<Temporal.ZonedDateTime | null>(
         <tr>
           <th>Select</th>
           <td v-for="s in sizes" :key="s"><CoarSelect v-model="sizeSingle" :options="options" :size="s" clearable /></td>
+        </tr>
+        <tr>
+          <th>TagSelect</th>
+          <td v-for="s in sizes" :key="s"><CoarTagSelect v-model="sizeTags" :options="options" :size="s" /></td>
         </tr>
         <tr>
           <th>PlainDatePicker</th>
