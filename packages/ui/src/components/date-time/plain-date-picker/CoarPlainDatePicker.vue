@@ -471,7 +471,10 @@ function onInputBlur() {
   align-items: center;
   gap: var(--coar-spacing-s);
   height: var(--coar-component-m-height);
-  padding: 0;
+  /* Field contract: horizontal padding = base × per-size scale × density (see
+     packages/ui — text-input). Fixes the m trigger having had 0 padding. */
+  --coar-field-pad: calc(var(--coar-field-padding-x) * var(--coar-component-scale, 1) * var(--coar-component-density, 1));
+  padding: 0 var(--coar-field-pad);
   border: 1px solid var(--coar-border-input);
   border-radius: var(--coar-radius-xs);
   background: var(--coar-surface-input);
@@ -524,18 +527,18 @@ function onInputBlur() {
 /* Size variants */
 .coar-plain-date-picker--xs .coar-plain-date-picker-trigger {
   height: var(--coar-component-xs-height);
-  padding: 0 var(--coar-spacing-s);
   gap: var(--coar-spacing-xs);
+  --coar-component-scale: var(--coar-component-xs-scale);
 }
 
 .coar-plain-date-picker--s .coar-plain-date-picker-trigger {
   height: var(--coar-component-s-height);
-  padding: 0 var(--coar-spacing-s);
+  --coar-component-scale: var(--coar-component-s-scale);
 }
 
 .coar-plain-date-picker--l .coar-plain-date-picker-trigger {
   height: var(--coar-component-l-height);
-  padding: 0 var(--coar-spacing-l);
+  --coar-component-scale: var(--coar-component-l-scale);
 }
 
 /* ========================================

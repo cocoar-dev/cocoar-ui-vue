@@ -627,7 +627,9 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
   align-items: center;
   gap: var(--coar-spacing-s);
   height: var(--coar-component-m-height);
-  padding: 0;
+  /* Field contract: horizontal padding = base × per-size scale × density. */
+  --coar-field-pad: calc(var(--coar-field-padding-x) * var(--coar-component-scale, 1) * var(--coar-component-density, 1));
+  padding: 0 var(--coar-field-pad);
   border: 1px solid var(--coar-border-input);
   border-radius: var(--coar-radius-xs);
   background: var(--coar-surface-input);
@@ -672,16 +674,16 @@ function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
 
 .coar-pdtp--xs .coar-pdtp-trigger {
   height: var(--coar-component-xs-height);
-  padding: 0 var(--coar-spacing-s);
   gap: var(--coar-spacing-xs);
+  --coar-component-scale: var(--coar-component-xs-scale);
 }
 .coar-pdtp--s .coar-pdtp-trigger {
   height: var(--coar-component-s-height);
-  padding: 0 var(--coar-spacing-s);
+  --coar-component-scale: var(--coar-component-s-scale);
 }
 .coar-pdtp--l .coar-pdtp-trigger {
   height: var(--coar-component-l-height);
-  padding: 0 var(--coar-spacing-l);
+  --coar-component-scale: var(--coar-component-l-scale);
 }
 
 /* Input */

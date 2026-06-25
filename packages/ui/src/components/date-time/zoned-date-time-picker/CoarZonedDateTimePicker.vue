@@ -747,6 +747,8 @@ const tzIndicatorIcon = computed(() => {
   align-items: center;
   position: relative;
   height: var(--coar-component-m-height);
+  /* Field contract: horizontal padding = base × per-size scale × density. */
+  --coar-field-pad: calc(var(--coar-field-padding-x) * var(--coar-component-scale, 1) * var(--coar-component-density, 1));
   border: 1px solid var(--coar-border-input);
   border-radius: var(--coar-radius-xs);
   background: var(--coar-surface-input);
@@ -832,7 +834,7 @@ const tzIndicatorIcon = computed(() => {
   border: none;
   background: transparent;
   outline: none;
-  padding: 0 var(--coar-spacing-s);
+  padding: 0 var(--coar-field-pad);
   font-family: var(--coar-body-small-base-family);
   font-size: var(--coar-body-small-base-size);
   font-weight: var(--coar-body-small-base-weight);
@@ -929,17 +931,17 @@ const tzIndicatorIcon = computed(() => {
    SIZE VARIANTS
    ======================================== */
 
-.coar-zdtp--xs .coar-zdtp-trigger { height: var(--coar-component-xs-height); }
+.coar-zdtp--xs .coar-zdtp-trigger { height: var(--coar-component-xs-height); --coar-component-scale: var(--coar-component-xs-scale); }
 .coar-zdtp--xs .coar-zdtp-btn { width: var(--coar-component-xs-height); }
 .coar-zdtp--xs .coar-zdtp-input { font-size: var(--coar-component-xs-font-size); }
 .coar-zdtp--xs .coar-zdtp-tz-inline { right: var(--coar-component-xs-height); }
 
-.coar-zdtp--s .coar-zdtp-trigger { height: var(--coar-component-s-height); }
+.coar-zdtp--s .coar-zdtp-trigger { height: var(--coar-component-s-height); --coar-component-scale: var(--coar-component-s-scale); }
 .coar-zdtp--s .coar-zdtp-btn { width: var(--coar-component-s-height); }
 .coar-zdtp--s .coar-zdtp-input { font-size: var(--coar-component-s-font-size); }
 .coar-zdtp--s .coar-zdtp-tz-inline { right: var(--coar-component-s-height); }
 
-.coar-zdtp--l .coar-zdtp-trigger { height: var(--coar-component-l-height); }
+.coar-zdtp--l .coar-zdtp-trigger { height: var(--coar-component-l-height); --coar-component-scale: var(--coar-component-l-scale); }
 .coar-zdtp--l .coar-zdtp-btn { width: var(--coar-component-l-height); }
 .coar-zdtp--l .coar-zdtp-input { font-size: var(--coar-component-l-font-size); }
 .coar-zdtp--l .coar-zdtp-tz-inline { right: var(--coar-component-l-height); }
