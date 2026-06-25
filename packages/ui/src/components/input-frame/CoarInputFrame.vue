@@ -36,8 +36,23 @@ withDefaults(
      * Used by the selects' `appearance="inline"`.
      */
     borderless?: boolean;
+    /**
+     * Auto-height variant for content that wraps onto multiple rows (tag-select,
+     * future textarea). The per-size `height` becomes a `min-height` floor and the
+     * field gains vertical padding, so a single row matches the fixed-height
+     * siblings while extra rows grow the box downward.
+     */
+    multiline?: boolean;
   }>(),
-  { size: 'm', error: false, disabled: false, readonly: false, active: false, borderless: false },
+  {
+    size: 'm',
+    error: false,
+    disabled: false,
+    readonly: false,
+    active: false,
+    borderless: false,
+    multiline: false,
+  },
 );
 
 const slots = useSlots();
@@ -57,6 +72,7 @@ const hasActions = computed(() => !!slots.actions);
         'coar-input-frame--readonly': readonly,
         'coar-input-frame--active': active,
         'coar-input-frame--borderless': borderless,
+        'coar-input-frame--multiline': multiline,
         'coar-input-frame--has-leading': hasLeading,
         'coar-input-frame--has-trailing': hasTrailing,
         'coar-input-frame--has-actions': hasActions,
@@ -171,6 +187,35 @@ const hasActions = computed(() => !!slots.actions);
 .coar-input-frame--borderless.coar-input-frame--active {
   border-color: transparent;
   box-shadow: none;
+}
+
+/* ── Multiline / auto-height variant ────────────────────────────── */
+/* The fixed `height` becomes a `min-height` floor (compound selectors override the
+   per-size `height` above), so one row matches the fixed-height siblings and extra
+   rows grow the box. The field drops its 100% height and gains vertical padding so
+   wrapped rows keep clear of the rounded border. */
+.coar-input-frame--multiline {
+  height: auto;
+  min-height: var(--coar-component-m-height);
+  align-items: stretch;
+}
+.coar-input-frame--multiline.coar-input-frame--xs {
+  height: auto;
+  min-height: var(--coar-component-xs-height);
+}
+.coar-input-frame--multiline.coar-input-frame--s {
+  height: auto;
+  min-height: var(--coar-component-s-height);
+}
+.coar-input-frame--multiline.coar-input-frame--l {
+  height: auto;
+  min-height: var(--coar-component-l-height);
+}
+.coar-input-frame--multiline .coar-input-frame__field {
+  height: auto;
+  flex-wrap: wrap;
+  padding-top: var(--coar-spacing-xs);
+  padding-bottom: var(--coar-spacing-xs);
 }
 
 /* ── Field (the input / value) ──────────────────────────────────── */

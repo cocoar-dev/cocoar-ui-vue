@@ -18,6 +18,7 @@ import { selectPreset } from '../overlay/overlay-presets';
 import type { OverlayRef } from '../overlay/overlay-types';
 import type { CoarSelectOption, CoarSelectSortGroups, CoarSelectSortOptions } from './types';
 import { FORM_FIELD_INJECTION_KEY } from '../form-field/constants';
+import CoarInputFrame from '../input-frame/CoarInputFrame.vue';
 import CoarTagSelectDropdownPanel from './CoarTagSelectDropdownPanel.vue';
 
 export interface CoarTagSelectProps<T = unknown> {
@@ -83,7 +84,11 @@ const model = defineModel<T[]>({ default: () => [] });
 const formField = inject(FORM_FIELD_INJECTION_KEY, undefined);
 
 const hostRef = useTemplateRef<HTMLElement>('hostRef');
-const triggerRef = useTemplateRef<HTMLElement>('triggerRef');
+// The trigger IS the CoarInputFrame root; reach its DOM node via $el for the
+// overlay anchor + keyboard helpers.
+const triggerRef = useTemplateRef('triggerRef');
+const triggerEl = (): HTMLElement | undefined =>
+  (triggerRef.value as unknown as { $el?: HTMLElement } | null)?.$el ?? undefined;
 const tagInputRef = useTemplateRef<HTMLInputElement>('tagInputRef');
 
 const hasError = computed(() => props.error || (formField?.hasError.value ?? false));
@@ -168,7 +173,7 @@ function onTagInput(event: Event) {
   tagInputValue.value = value;
   searchQuery.value = value;
   if (value && !isOpen.value) {
-    openDropdown(triggerRef.value ?? undefined);
+    openDropdown(triggerEl());
   }
 }
 
@@ -197,21 +202,21 @@ function onTagKeyDown(event: KeyboardEvent) {
     return;
   }
 
-  onKeyDown(event, selectHighlighted, triggerRef.value ?? undefined, true);
+  onKeyDown(event, selectHighlighted, triggerEl(), true);
 }
 
 function onTriggerClick() {
   if (props.disabled || props.readonly) return;
   tagInputRef.value?.focus();
   if (!isOpen.value && availableOptions.value.length > 0) {
-    openDropdown(triggerRef.value ?? undefined);
+    openDropdown(triggerEl());
   }
 }
 
 function onInputFocus() {
   isFocused.value = true;
   if (availableOptions.value.length > 0) {
-    openDropdown(triggerRef.value ?? undefined);
+    openDropdown(triggerEl());
   }
 }
 
@@ -231,7 +236,7 @@ let overlayRef: OverlayRef | null = null;
 const shouldShowOverlay = computed(() => isOpen.value && filteredOptions.value.length > 0);
 
 function openOverlay() {
-  const trigger = triggerRef.value;
+  const trigger = triggerEl();
   if (!trigger || overlayRef) return;
 
   const ref = getOverlayService().open({
@@ -280,16 +285,18 @@ onBeforeUnmount(() => {
 <template>
   <div ref="hostRef" :class="hostClasses">
     <div class="coar-select-wrapper">
-      <!-- Trigger with Tags -->
-      <div
+      <!-- Trigger = the shared input shell in multiline mode (chips wrap, box grows).
+           The combobox role/aria live on the inner <input>, not the frame. -->
+      <CoarInputFrame
         ref="triggerRef"
-        class="coar-tag-select-trigger"
-        :class="{
-          'coar-tag-select-trigger--focused': isFocused,
-          'coar-tag-select-trigger--disabled': disabled,
-          'coar-tag-select-trigger--readonly': readonly,
-          'coar-tag-select-trigger--error': hasError,
-        }"
+        multiline
+        class="coar-tag-select-trigger coar-tag-select-frame"
+        :size="size"
+        :error="hasError"
+        :disabled="disabled"
+        :readonly="readonly"
+        :active="isOpen"
+        :borderless="appearance === 'inline'"
         @click="onTriggerClick"
       >
         <div class="coar-tag-select-tags">
@@ -333,7 +340,7 @@ onBeforeUnmount(() => {
             @blur="onInputBlur"
           />
         </div>
-      </div>
+      </CoarInputFrame>
     </div>
   </div>
 </template>
@@ -350,62 +357,25 @@ onBeforeUnmount(() => {
   width: 100%;
 }
 
-/* Tag Trigger */
-.coar-tag-select-trigger {
-  display: flex;
-  align-items: center;
-  /* Match the other selects' single-row height. The frame uses a fixed content
-     `height` (+1px border each side); here the box is content-box + vertical
-     padding (for multi-row chip breathing room), so the padding would stack ON TOP
-     of min-height and make a single row 2×spacing-xs taller. Subtract that padding
-     back out → single row == frame height; wrapped rows still grow naturally. */
-  min-height: calc(var(--coar-component-m-height) - 2 * var(--coar-spacing-xs));
-  --coar-field-pad: calc(var(--coar-field-padding-x) * var(--coar-component-scale, 1) * var(--coar-component-density, 1));
-  padding: var(--coar-spacing-xs) var(--coar-field-pad);
-  border: 1px solid var(--coar-border-input);
-  border-radius: var(--coar-input-radius);
-  background: var(--coar-surface-input);
+/* Trigger — box / radius / size / states / multiline min-height + vertical pad are
+   owned by CoarInputFrame (multiline mode). Only the pointer affordance and the
+   inline (borderless) fill live here. */
+.coar-tag-select-frame:not(.coar-input-frame--disabled):not(.coar-input-frame--readonly) {
   cursor: text;
-  transition: border-color var(--coar-duration-fast) var(--coar-ease-out), box-shadow var(--coar-duration-fast) var(--coar-ease-out);
 }
 
-.coar-select--xs .coar-tag-select-trigger { min-height: calc(var(--coar-component-xs-height) - 2 * var(--coar-spacing-xs)); --coar-component-scale: var(--coar-component-xs-scale); }
-.coar-select--s .coar-tag-select-trigger { min-height: calc(var(--coar-component-s-height) - 2 * var(--coar-spacing-xs)); --coar-component-scale: var(--coar-component-s-scale); }
-.coar-select--l .coar-tag-select-trigger { min-height: calc(var(--coar-component-l-height) - 2 * var(--coar-spacing-xs)); --coar-component-scale: var(--coar-component-l-scale); }
+/* Inline appearance: borderless frame + a neutral fill on hover / focus / open
+   (mirrors CoarSelect's inline treatment). */
+.coar-select--inline .coar-tag-select-frame:hover:not(.coar-input-frame--disabled):not(.coar-input-frame--readonly),
+.coar-select--inline .coar-tag-select-frame:focus-within,
+.coar-select--inline .coar-tag-select-frame.coar-input-frame--active {
+  background: var(--coar-background-neutral-tertiary);
+}
 
 /* Per-size input text (was constant 14px regardless of size) */
 .coar-select--xs .coar-tag-select-input { font-size: var(--coar-component-xs-font-size); }
 .coar-select--s .coar-tag-select-input { font-size: var(--coar-component-s-font-size); }
 .coar-select--l .coar-tag-select-input { font-size: var(--coar-component-l-font-size); }
-
-.coar-tag-select-trigger:hover:not(.coar-tag-select-trigger--disabled):not(.coar-tag-select-trigger--readonly):not(.coar-tag-select-trigger--error):not(.coar-tag-select-trigger--focused) {
-  border-color: var(--coar-border-input-hover);
-}
-
-.coar-tag-select-trigger--focused:not(.coar-tag-select-trigger--error) {
-  border-color: var(--coar-focus-color);
-  box-shadow: inset 0 0 0 1px var(--coar-focus-color);
-}
-
-.coar-tag-select-trigger--disabled {
-  background: var(--coar-surface-input-disabled);
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.coar-tag-select-trigger--readonly { cursor: default; }
-
-.coar-tag-select-trigger--error { border-color: var(--coar-border-semantic-error-bold); }
-
-.coar-tag-select-trigger--error.coar-tag-select-trigger--focused {
-  box-shadow: inset 0 0 0 1px var(--coar-border-semantic-error-bold);
-}
-
-.coar-select--inline .coar-tag-select-trigger {
-  border: none;
-  background: transparent;
-  box-shadow: none;
-}
 
 /* Tags Container */
 .coar-tag-select-tags {
