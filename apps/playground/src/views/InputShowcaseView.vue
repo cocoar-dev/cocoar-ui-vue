@@ -23,6 +23,7 @@ import {
 const sizes = ['xs', 's', 'm', 'l'] as const;
 
 const text = ref('Hello world');
+const multilineText = ref('Line one\nLine two\nLine three');
 const pwd = ref('hunter2');
 const num = ref<number | null>(42);
 const single = ref<string | null>('b');
@@ -165,6 +166,15 @@ const zoned = ref<Temporal.ZonedDateTime | null>(
       </tbody>
     </table>
 
+    <!-- ─────────── Multiline (textarea on the frame) ─────────── -->
+    <h2>Multiline — textarea on CoarInputFrame</h2>
+    <div class="row row--top">
+      <CoarTextInput :rows="3" placeholder="Type multiple lines…" />
+      <CoarTextInput v-model="multilineText" :rows="3" />
+      <CoarTextInput v-model="multilineText" :rows="3" error />
+      <CoarTextInput v-model="multilineText" :rows="3" disabled />
+    </div>
+
     <!-- ─────────── Affixes / appearance ─────────── -->
     <h2>Affixes &amp; appearance</h2>
     <div class="row">
@@ -233,4 +243,5 @@ code { font-family: var(--coar-code-family, monospace); font-size: 0.9em; }
   align-items: center;
 }
 .row > * { width: 220px; }
+.row--top { align-items: flex-start; }
 </style>

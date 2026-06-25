@@ -223,6 +223,14 @@ const hasActions = computed(() => !!slots.actions);
   padding-top: var(--coar-spacing-xs);
   padding-bottom: var(--coar-spacing-xs);
 }
+/* Affixes top-align in multiline (e.g. the textarea's clear button sits at the
+   top-right corner, level with the first line, not floating in the vertical centre
+   of a tall box). The matching top padding keeps it on the first line. */
+.coar-input-frame--multiline .coar-input-frame__leading,
+.coar-input-frame--multiline .coar-input-frame__trailing {
+  align-items: flex-start;
+  padding-top: var(--coar-spacing-xs);
+}
 
 /* ── Field (the input / value) ──────────────────────────────────── */
 .coar-input-frame__field {
