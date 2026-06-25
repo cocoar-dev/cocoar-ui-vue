@@ -142,19 +142,19 @@ describe('CoarZonedDateTimePicker', () => {
   });
 
   describe('disabled / readonly / error', () => {
-    it('applies disabled class', () => {
+    it('applies disabled state', () => {
       const w = mountPicker({ disabled: true });
-      expect(w.find('.coar-zdtp-trigger--disabled').exists()).toBe(true);
+      expect(w.find('.coar-zdtp-trigger.coar-input-frame--disabled').exists()).toBe(true);
     });
 
-    it('applies readonly class', () => {
+    it('applies readonly state', () => {
       const w = mountPicker({ readonly: true });
-      expect(w.find('.coar-zdtp-trigger--readonly').exists()).toBe(true);
+      expect(w.find('.coar-zdtp-trigger.coar-input-frame--readonly').exists()).toBe(true);
     });
 
-    it('applies error class and shows message', () => {
+    it('applies error state and shows message', () => {
       const w = mountPicker({ error: 'Invalid' });
-      expect(w.find('.coar-zdtp-trigger--error').exists()).toBe(true);
+      expect(w.find('.coar-zdtp-trigger.coar-input-frame--error').exists()).toBe(true);
       expect(w.find('.coar-form-field-message--error').text()).toBe('Invalid');
     });
   });
