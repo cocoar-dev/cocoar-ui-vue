@@ -354,7 +354,12 @@ onBeforeUnmount(() => {
 .coar-tag-select-trigger {
   display: flex;
   align-items: center;
-  min-height: var(--coar-component-m-height);
+  /* Match the other selects' single-row height. The frame uses a fixed content
+     `height` (+1px border each side); here the box is content-box + vertical
+     padding (for multi-row chip breathing room), so the padding would stack ON TOP
+     of min-height and make a single row 2×spacing-xs taller. Subtract that padding
+     back out → single row == frame height; wrapped rows still grow naturally. */
+  min-height: calc(var(--coar-component-m-height) - 2 * var(--coar-spacing-xs));
   --coar-field-pad: calc(var(--coar-field-padding-x) * var(--coar-component-scale, 1) * var(--coar-component-density, 1));
   padding: var(--coar-spacing-xs) var(--coar-field-pad);
   border: 1px solid var(--coar-border-input);
@@ -364,9 +369,9 @@ onBeforeUnmount(() => {
   transition: border-color var(--coar-duration-fast) var(--coar-ease-out), box-shadow var(--coar-duration-fast) var(--coar-ease-out);
 }
 
-.coar-select--xs .coar-tag-select-trigger { min-height: var(--coar-component-xs-height); --coar-component-scale: var(--coar-component-xs-scale); }
-.coar-select--s .coar-tag-select-trigger { min-height: var(--coar-component-s-height); --coar-component-scale: var(--coar-component-s-scale); }
-.coar-select--l .coar-tag-select-trigger { min-height: var(--coar-component-l-height); --coar-component-scale: var(--coar-component-l-scale); }
+.coar-select--xs .coar-tag-select-trigger { min-height: calc(var(--coar-component-xs-height) - 2 * var(--coar-spacing-xs)); --coar-component-scale: var(--coar-component-xs-scale); }
+.coar-select--s .coar-tag-select-trigger { min-height: calc(var(--coar-component-s-height) - 2 * var(--coar-spacing-xs)); --coar-component-scale: var(--coar-component-s-scale); }
+.coar-select--l .coar-tag-select-trigger { min-height: calc(var(--coar-component-l-height) - 2 * var(--coar-spacing-xs)); --coar-component-scale: var(--coar-component-l-scale); }
 
 /* Per-size input text (was constant 14px regardless of size) */
 .coar-select--xs .coar-tag-select-input { font-size: var(--coar-component-xs-font-size); }
