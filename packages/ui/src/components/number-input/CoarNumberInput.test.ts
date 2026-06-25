@@ -48,20 +48,20 @@ describe('CoarNumberInput', () => {
     expect(wrapper.emitted('clear')).toHaveLength(1);
   });
 
-  it('applies error class when error is true', () => {
+  it('applies error state via the input frame when error is true', () => {
     const wrapper = mountInput({ error: true });
-    expect(wrapper.find('.coar-number-input-error').exists()).toBe(true);
+    expect(wrapper.find('.coar-input-frame--error').exists()).toBe(true);
   });
 
   it('applies disabled state', () => {
     const wrapper = mountInput({ disabled: true });
-    expect(wrapper.find('.coar-number-input-disabled').exists()).toBe(true);
+    expect(wrapper.find('.coar-input-frame--disabled').exists()).toBe(true);
     expect((wrapper.find('input').element as HTMLInputElement).disabled).toBe(true);
   });
 
   it('applies readonly state', () => {
     const wrapper = mountInput({ readonly: true });
-    expect(wrapper.find('.coar-number-input-readonly').exists()).toBe(true);
+    expect(wrapper.find('.coar-input-frame--readonly').exists()).toBe(true);
   });
 
   it('applies size class', () => {
