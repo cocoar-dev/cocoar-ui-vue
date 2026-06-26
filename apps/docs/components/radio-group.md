@@ -38,7 +38,7 @@ Individual `CoarRadioButton` options can be disabled while the rest of the group
 
 ## Sizes
 
-Three sizes that stay in step with every other Cocoar form control.
+Four sizes that stay in step with every other Cocoar form control.
 
 <preview path="./radio-group/demos/RadioGroupSizes.vue" />
 
