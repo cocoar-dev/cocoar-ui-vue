@@ -812,7 +812,10 @@ const hostClasses = computed(() => [
   overflow-y: auto;
   background: var(--coar-surface-input);
   border: 1px solid var(--coar-border-input);
-  border-radius: var(--coar-input-radius);
+  /* Track the input radius, but cap at the field's pill end so a tall list
+     panel doesn't bow into a stadium at full radius — same cap the select
+     dropdown panels use (min with component-m-height / 2). */
+  border-radius: min(var(--coar-input-radius), calc(var(--coar-component-m-height) / 2));
   padding: var(--coar-spacing-xxs);
   user-select: none;
   outline: none;

@@ -173,7 +173,10 @@ function onBlur() { isFocused.value = false; }
 
 /* Sizes */
 .coar-radio--xs .coar-radio__control { width: 14px; height: 14px; }
-.coar-radio--xs .coar-radio__dot { width: 5px; height: 5px; }
+/* Even dot in the 10px content box (14 − 2×2 border) → 2px whole-pixel gaps
+   so the dot stays crisply centred. An odd 5px dot left 2.5px gaps that
+   sub-pixel rounding rendered as visibly off-centre. */
+.coar-radio--xs .coar-radio__dot { width: 6px; height: 6px; }
 .coar-radio--xs .coar-radio__label { font-size: var(--coar-component-xs-font-size); }
 
 .coar-radio--s .coar-radio__control { width: 16px; height: 16px; }
