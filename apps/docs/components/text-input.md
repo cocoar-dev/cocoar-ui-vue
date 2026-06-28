@@ -32,7 +32,7 @@ Prefix and suffix slots help users understand the expected format -- think curre
 
 ## Clear Button
 
-When `clearable` is enabled (the default), a small X button appears on hover or focus so users can quickly reset the field.
+When `clearable` is enabled, a small X button appears on hover or focus so users can quickly reset the field. It's **off by default** — set `clearable` to opt in.
 
 <preview path="./text-input/demos/TextInputClearable.vue" />
 
@@ -81,7 +81,7 @@ Labels are automatically associated with their inputs. The required asterisk is 
 | `suffix` | `string` | `''` | Suffix text after the input |
 | `size` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Input size |
 | `rows` | `number` | `1` | Rows >= 2 enables textarea mode |
-| `clearable` | `boolean` | `true` | Show clear button when input has value |
+| `clearable` | `boolean` | `false` | Show clear button when input has value |
 | `error` | `boolean` | `false` | Error state (auto-injected from `CoarFormField`) |
 | `disabled` | `boolean` | `false` | Disable the input |
 | `readonly` | `boolean` | `false` | Make read-only |

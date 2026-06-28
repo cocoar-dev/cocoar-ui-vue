@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   computed,
+  inject,
   nextTick,
   onBeforeUnmount,
   onMounted,
@@ -16,6 +17,8 @@ import { Maskito } from '@maskito/core';
 import { useI18n } from '@cocoar/vue-localization';
 
 import CoarIcon from '../../icon/CoarIcon.vue';
+import CoarInputFrame from '../../input-frame/CoarInputFrame.vue';
+import CoarInputFrameButton from '../../input-frame/CoarInputFrameButton.vue';
 import { getOverlayService } from '../../overlay/useOverlay';
 import { datepickerPreset } from '../../overlay/overlay-presets';
 import type { OverlayRef } from '../../overlay/overlay-types';
@@ -27,13 +30,12 @@ import {
 import { coarCreateDateMask } from '../_shared/maskito-config';
 import type { DateFormatConfig, CoarDateMarker } from '../_shared/types';
 import CoarPlainDatePickerPanel from './CoarPlainDatePickerPanel.vue';
+import { FORM_FIELD_INJECTION_KEY } from '../../form-field/constants';
 
 export type CoarPlainDatePickerSize = 'xs' | 's' | 'm' | 'l';
 
 const props = withDefaults(
   defineProps<{
-    /** Label text above the input */
-    label?: string;
     /** Placeholder (defaults to format pattern) */
     placeholder?: string;
     /** Size variant */
@@ -44,10 +46,14 @@ const props = withDefaults(
     readonly?: boolean;
     /** Required state */
     required?: boolean;
-    /** Error message */
-    error?: string;
-    /** Hint text */
-    hint?: string;
+    /**
+     * Error state (boolean for standalone use; auto-injected from CoarFormField).
+     * The error/hint/warning message + status icon live on the wrapping
+     * CoarFormField — this only flips the red border + aria-invalid.
+     */
+    error?: boolean;
+    /** Explicit input id (else taken from CoarFormField, else auto). */
+    id?: string;
     /** Whether the clear button is shown */
     clearable?: boolean;
     /** Whether to close the panel after date selection */
@@ -70,15 +76,14 @@ const props = withDefaults(
     showTodayMonthButton?: boolean;
   }>(),
   {
-    label: '',
     placeholder: '',
     size: 'm',
     disabled: false,
     readonly: false,
     required: false,
-    error: '',
-    hint: '',
-    clearable: true,
+    error: false,
+    id: '',
+    clearable: false,
     closeOnSelect: false,
     showWeekNumbers: false,
     highlightWeekends: false,
@@ -111,15 +116,19 @@ const activeMonth = ref<Temporal.PlainYearMonth>(
   modelValue.value?.toPlainYearMonth() ?? Temporal.Now.plainDateISO().toPlainYearMonth(),
 );
 
+// Form-field integration: label + status icon + message live on the wrapping
+// CoarFormField. We only consume its id / error / describedby contract.
+const formField = inject(FORM_FIELD_INJECTION_KEY, undefined);
+
 // IDs
 const uid = `coar-plain-date-picker-${crypto.randomUUID?.() ?? Date.now().toString(16)}`;
-const labelId = `${uid}-label`;
-const inputId = `${uid}-input`;
+const inputId = computed(() => props.id || formField?.inputId.value || `${uid}-input`);
 const panelId = `${uid}-panel`;
-const messageId = `${uid}-message`;
 
-// Refs
-const triggerRef = ref<HTMLElement | null>(null);
+// Refs — the trigger IS the CoarInputFrame root; reach its DOM node via $el for
+// overlay anchoring.
+const triggerRef = ref<{ $el?: HTMLElement } | null>(null);
+const triggerEl = (): HTMLElement | undefined => triggerRef.value?.$el ?? undefined;
 const dateInputRef = ref<HTMLInputElement | null>(null);
 
 // Overlay
@@ -168,11 +177,17 @@ onBeforeUnmount(() => {
 });
 
 // Computed
-const hasError = computed(() => props.error.length > 0);
-const displayMessage = computed(() => props.error || props.hint);
+const hasError = computed(() => props.error || (formField?.hasError.value ?? false));
+const describedBy = computed(() => formField?.messageId.value || undefined);
 const isDisabled = computed(() => props.disabled);
 const showClearButton = computed(
   () => props.clearable && modelValue.value !== null && !isDisabled.value && !props.readonly,
+);
+// Render (and reserve the leading slot for) the clear button only when clearable —
+// hidden-not-removed while empty so the field doesn't resize. Not clearable → no
+// button and no reserved left gap.
+const clearSlotActive = computed(
+  () => props.clearable && !isDisabled.value && !props.readonly,
 );
 const inputPlaceholder = computed(
   () => props.placeholder || pickerBase.effectiveDateFormat.value.pattern.toUpperCase(),
@@ -193,7 +208,7 @@ function openPanel() {
     activeMonth.value = modelValue.value.toPlainYearMonth();
   }
 
-  const trigger = triggerRef.value;
+  const trigger = triggerEl();
   if (!trigger) return;
 
   const panelInputs = reactive({
@@ -342,38 +357,34 @@ function onInputBlur() {
       },
     ]"
   >
-    <!-- Label -->
-    <span v-if="label" :id="labelId" class="coar-plain-date-picker-label">
-      {{ label }}
-      <span v-if="required" class="coar-plain-date-picker-required" aria-hidden="true">*</span>
-    </span>
-
-    <!-- Trigger -->
-    <div
+    <!-- Trigger = the shared input shell. combobox role/aria fall through to its
+         root; focus lives on the inner input (frame styles via :focus-within). -->
+    <CoarInputFrame
       ref="triggerRef"
       class="coar-plain-date-picker-trigger"
-      :class="{
-        'coar-plain-date-picker-trigger--disabled': isDisabled,
-        'coar-plain-date-picker-trigger--readonly': readonly,
-        'coar-plain-date-picker-trigger--error': hasError,
-        'coar-plain-date-picker-trigger--open': pickerBase.isOpen.value,
-      }"
+      :size="size"
+      :error="hasError"
+      :disabled="isDisabled"
+      :readonly="readonly"
+      :active="pickerBase.isOpen.value"
       :aria-expanded="pickerBase.isOpen.value"
       aria-haspopup="dialog"
       :aria-controls="pickerBase.isOpen.value ? panelId : undefined"
       role="combobox"
     >
-      <!-- Clear Button -->
-      <button
-        type="button"
-        class="coar-plain-date-picker-clear"
-        :class="{ 'coar-plain-date-picker-clear--hidden': !showClearButton }"
-        tabindex="-1"
-        :aria-label="t('coar.ui.datePicker.clearDate', undefined, 'Clear date')"
-        @click="clearValue($event)"
-      >
-        <CoarIcon name="x" size="auto" />
-      </button>
+      <!-- Clear Button → leading affix (only when clearable) -->
+      <template v-if="clearSlotActive" #leading>
+        <button
+          type="button"
+          class="coar-plain-date-picker-clear"
+          :class="{ 'coar-plain-date-picker-clear--hidden': !showClearButton }"
+          tabindex="-1"
+          :aria-label="t('coar.ui.datePicker.clearDate', undefined, 'Clear date')"
+          @click="clearValue($event)"
+        >
+          <CoarIcon name="x" size="auto" />
+        </button>
+      </template>
 
       <!-- Input -->
       <input
@@ -385,38 +396,27 @@ function onInputBlur() {
         :placeholder="inputPlaceholder"
         :disabled="isDisabled"
         :readonly="readonly"
-        :aria-labelledby="label ? labelId : undefined"
+        :required="required"
         :aria-invalid="hasError"
-        :aria-describedby="displayMessage ? messageId : undefined"
+        :aria-describedby="describedBy"
         autocomplete="off"
         @input="onInputChange"
         @blur="onInputBlur"
         @keydown="onKeydown"
       />
 
-      <!-- Calendar Icon -->
-      <button
-        type="button"
-        class="coar-plain-date-picker-btn"
-        tabindex="-1"
-        :aria-label="t('coar.ui.datePicker.openPicker', undefined, 'Open picker')"
-        :disabled="isDisabled || readonly"
-        @click="togglePanel"
-      >
-        <CoarIcon name="calendar" size="s" />
-      </button>
-    </div>
-
-    <!-- Hint/Error Message -->
-    <div
-      v-if="displayMessage"
-      :id="messageId"
-      class="coar-form-field-message"
-      :class="{ 'coar-form-field-message--error': hasError }"
-      :title="displayMessage"
-    >
-      {{ displayMessage }}
-    </div>
+      <!-- Calendar trigger → Type-B edge button (#actions) -->
+      <template #actions>
+        <CoarInputFrameButton
+          class="coar-plain-date-picker-btn"
+          :aria-label="t('coar.ui.datePicker.openPicker', undefined, 'Open picker')"
+          :disabled="isDisabled || readonly"
+          @click="togglePanel"
+        >
+          <CoarIcon name="calendar" size="s" />
+        </CoarInputFrameButton>
+      </template>
+    </CoarInputFrame>
   </div>
 </template>
 
@@ -427,115 +427,16 @@ function onInputBlur() {
   width: 100%;
 }
 
-/* ========================================
-   LABEL
-   ======================================== */
-
-.coar-plain-date-picker-label {
-  display: block;
-  margin-bottom: var(--coar-component-m-label-margin);
-  font-family: var(--coar-body-small-bold-family);
-  font-size: var(--coar-component-m-label-font-size);
-  font-weight: var(--coar-body-small-bold-weight);
-  color: var(--coar-text-neutral-primary);
-  cursor: pointer;
-  user-select: none;
-}
-
-.coar-plain-date-picker-required {
-  color: var(--coar-text-semantic-error-bold);
-  margin-left: var(--coar-spacing-xs);
-}
-
-.coar-plain-date-picker--xs .coar-plain-date-picker-label {
-  font-size: var(--coar-component-xs-label-font-size);
-  margin-bottom: var(--coar-component-xs-label-margin);
-}
-
-.coar-plain-date-picker--s .coar-plain-date-picker-label {
-  font-size: var(--coar-component-s-label-font-size);
-  margin-bottom: var(--coar-component-s-label-margin);
-}
-
-.coar-plain-date-picker--l .coar-plain-date-picker-label {
-  font-size: var(--coar-component-l-label-font-size);
-  margin-bottom: var(--coar-component-l-label-margin);
-}
+/* Label + status icon + message are owned by the wrapping CoarFormField. */
 
 /* ========================================
    TRIGGER
    ======================================== */
 
-.coar-plain-date-picker-trigger {
-  display: flex;
-  align-items: center;
-  gap: var(--coar-spacing-s);
-  height: var(--coar-component-m-height);
-  padding: 0;
-  border: 1px solid var(--coar-border-input);
-  border-radius: var(--coar-radius-xs);
-  background: var(--coar-surface-input);
+/* Box / radius / size / states are owned by CoarInputFrame; only the pointer
+   affordance lives here (the calendar segment + clear come via slots). */
+.coar-plain-date-picker-trigger:not(.coar-input-frame--disabled):not(.coar-input-frame--readonly) {
   cursor: pointer;
-  transition:
-    border-color var(--coar-duration-fast) var(--coar-ease-out),
-    box-shadow var(--coar-duration-fast) var(--coar-ease-out);
-}
-
-.coar-plain-date-picker-trigger:hover:not(
-    .coar-plain-date-picker-trigger--disabled
-  ):not(
-    .coar-plain-date-picker-trigger--readonly
-  ):not(
-    .coar-plain-date-picker-trigger--error
-  ) {
-  border-color: var(--coar-border-input-hover);
-}
-
-.coar-plain-date-picker-trigger:focus-within {
-  outline: none;
-  border-color: var(--coar-focus-color);
-  box-shadow: inset 0 0 0 1px var(--coar-focus-color);
-}
-
-.coar-plain-date-picker-trigger--open:not(.coar-plain-date-picker-trigger--error) {
-  border-color: var(--coar-focus-color);
-  box-shadow: inset 0 0 0 1px var(--coar-focus-color);
-}
-
-.coar-plain-date-picker-trigger--disabled {
-  background: var(--coar-surface-input-disabled);
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.coar-plain-date-picker-trigger--readonly {
-  cursor: default;
-}
-
-.coar-plain-date-picker-trigger--error {
-  border-color: var(--coar-border-semantic-error-bold);
-}
-
-.coar-plain-date-picker-trigger--error:focus-within,
-.coar-plain-date-picker-trigger--error.coar-plain-date-picker-trigger--open {
-  box-shadow: inset 0 0 0 1px var(--coar-border-semantic-error-bold);
-}
-
-/* Size variants */
-.coar-plain-date-picker--xs .coar-plain-date-picker-trigger {
-  height: var(--coar-component-xs-height);
-  padding: 0 var(--coar-spacing-s);
-  gap: var(--coar-spacing-xs);
-}
-
-.coar-plain-date-picker--s .coar-plain-date-picker-trigger {
-  height: var(--coar-component-s-height);
-  padding: 0 var(--coar-spacing-s);
-}
-
-.coar-plain-date-picker--l .coar-plain-date-picker-trigger {
-  height: var(--coar-component-l-height);
-  padding: 0 var(--coar-spacing-l);
 }
 
 /* ========================================
@@ -595,7 +496,6 @@ function onInputBlur() {
   background: none;
   border: none;
   padding: 0;
-  margin-left: var(--coar-spacing-s);
   color: var(--coar-icon-neutral-disabled);
   cursor: pointer;
   transition:
@@ -618,72 +518,9 @@ function onInputBlur() {
   color: var(--coar-icon-neutral-primary);
 }
 
-/* ========================================
-   CALENDAR BUTTON
-   ======================================== */
-
-.coar-plain-date-picker-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: var(--coar-component-m-height);
-  height: 100%;
-  padding: 0;
-  margin: 0;
-  border: none;
-  border-left: 1px solid var(--coar-border-input);
-  border-radius: 0 var(--coar-radius-xs) var(--coar-radius-xs) 0;
-  background: var(--coar-background-neutral-secondary);
-  color: var(--coar-icon-neutral-secondary);
-  cursor: pointer;
-  transition:
-    background-color var(--coar-duration-fast) var(--coar-ease-out),
-    color var(--coar-duration-fast) var(--coar-ease-out);
-}
-
-.coar-plain-date-picker-btn:hover:not(:disabled) {
-  background: var(--coar-background-neutral-tertiary);
-  color: var(--coar-icon-neutral-primary);
-}
-
-.coar-plain-date-picker-btn:disabled {
-  cursor: not-allowed;
-  color: var(--coar-icon-neutral-disabled);
-}
-
-.coar-plain-date-picker--xs .coar-plain-date-picker-btn {
-  width: var(--coar-component-xs-height);
-}
-
-.coar-plain-date-picker--s .coar-plain-date-picker-btn {
-  width: var(--coar-component-s-height);
-}
-
-.coar-plain-date-picker--l .coar-plain-date-picker-btn {
-  width: var(--coar-component-l-height);
-}
-
-/* ========================================
-   MESSAGE
-   ======================================== */
-
-.coar-form-field-message {
-  display: block;
-  margin-top: var(--coar-spacing-xs);
-  font-family: var(--coar-body-caption-family);
-  font-size: var(--coar-body-caption-size);
-  font-weight: var(--coar-body-caption-weight);
-  line-height: var(--coar-line-height-normal);
-  color: var(--coar-text-neutral-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.coar-form-field-message--error {
-  color: var(--coar-text-semantic-error-bold);
-}
+/* The calendar segment button is a CoarInputFrameButton (Type-B edge button);
+   its appearance — separator, surface, icon inset by --coar-field-pad, corner
+   clipped to the frame radius — is owned by that primitive. */
 
 @media (prefers-reduced-motion: reduce) {
   .coar-plain-date-picker-trigger,

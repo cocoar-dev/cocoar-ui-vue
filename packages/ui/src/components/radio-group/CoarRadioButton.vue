@@ -96,14 +96,14 @@ function onBlur() { isFocused.value = false; }
   cursor: pointer;
   user-select: none;
   font-family: var(--coar-body-base-family);
-  font-size: var(--coar-body-base-size);
+  font-size: var(--coar-component-m-font-size);
   line-height: var(--coar-body-base-line-height);
   color: var(--coar-text-neutral-primary);
 }
 
 .coar-radio--disabled .coar-radio__label {
   cursor: not-allowed;
-  opacity: 0.5;
+  opacity: 0.6;
 }
 
 /* Hidden input */
@@ -126,9 +126,9 @@ function onBlur() { isFocused.value = false; }
   justify-content: center;
   width: 18px;
   height: 18px;
-  border: 2px solid var(--coar-border-neutral-primary);
+  border: 2px solid var(--coar-border-input);
   border-radius: 50%;
-  background: var(--coar-background-neutral-primary);
+  background: var(--coar-surface-input);
   transition: border-color var(--coar-duration-fast) var(--coar-ease-out), box-shadow var(--coar-duration-fast) var(--coar-ease-out);
   flex-shrink: 0;
 }
@@ -143,7 +143,7 @@ function onBlur() { isFocused.value = false; }
 
 /* Hover */
 .coar-radio:not(.coar-radio--disabled):not(.coar-radio--checked):hover .coar-radio__control {
-  border-color: var(--coar-border-accent-primary);
+  border-color: var(--coar-border-input-hover);
 }
 
 /* Focus */
@@ -155,7 +155,7 @@ function onBlur() { isFocused.value = false; }
 /* Checked */
 .coar-radio--checked .coar-radio__control {
   border-color: var(--coar-border-accent-primary);
-  background: var(--coar-background-neutral-primary);
+  background: var(--coar-surface-input);
 }
 
 .coar-radio--checked .coar-radio__dot {
@@ -172,13 +172,20 @@ function onBlur() { isFocused.value = false; }
 }
 
 /* Sizes */
+.coar-radio--xs .coar-radio__control { width: 14px; height: 14px; }
+/* Even dot in the 10px content box (14 − 2×2 border) → 2px whole-pixel gaps
+   so the dot stays crisply centred. An odd 5px dot left 2.5px gaps that
+   sub-pixel rounding rendered as visibly off-centre. */
+.coar-radio--xs .coar-radio__dot { width: 6px; height: 6px; }
+.coar-radio--xs .coar-radio__label { font-size: var(--coar-component-xs-font-size); }
+
 .coar-radio--s .coar-radio__control { width: 16px; height: 16px; }
 .coar-radio--s .coar-radio__dot { width: 6px; height: 6px; }
-.coar-radio--s .coar-radio__label { font-size: var(--coar-body-small-base-size); }
+.coar-radio--s .coar-radio__label { font-size: var(--coar-component-s-font-size); }
 
 .coar-radio--l .coar-radio__control { width: 22px; height: 22px; }
 .coar-radio--l .coar-radio__dot { width: 10px; height: 10px; }
-.coar-radio--l .coar-radio__label { font-size: var(--coar-body-base-size); }
+.coar-radio--l .coar-radio__label { font-size: var(--coar-component-l-font-size); }
 
 /* Error */
 .coar-radio--error .coar-radio__control {

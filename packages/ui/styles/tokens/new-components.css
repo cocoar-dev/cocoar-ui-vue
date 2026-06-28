@@ -9,6 +9,8 @@
      ========================================================================== */
 
   /* Track dimensions */
+  --coar-switch-xs-track-width: 24px;
+  --coar-switch-xs-track-height: 14px;
   --coar-switch-s-track-width: 32px;
   --coar-switch-s-track-height: 18px;
   --coar-switch-m-track-width: 40px;
@@ -17,6 +19,7 @@
   --coar-switch-l-track-height: 26px;
 
   /* Thumb dimensions (circle inside track) */
+  --coar-switch-xs-thumb-size: 10px;
   --coar-switch-s-thumb-size: 14px;
   --coar-switch-m-thumb-size: 18px;
   --coar-switch-l-thumb-size: 22px;
@@ -143,12 +146,18 @@
   /* Radius — per component group */
   --coar-button-radius:    var(--coar-radius-xs);   /* CoarButton, CoarSegmentedControl, CoarPagination */
   --coar-input-radius:     var(--coar-radius-xs);   /* all text/number/otp/password/select inputs */
+
+  /* Field horizontal padding — a dedicated component token, intentionally NOT on
+     the spacing scale (12px sits in the scale's 8→16 gap). Single source of truth
+     for text/password/number/select fields; the consumer multiplies by density. */
+  --coar-field-padding-x:       12px;                                  /* canonical field padding */
+  --coar-field-padding-x-tight: calc(var(--coar-field-padding-x) / 2); /* tighter inset for affixes/toggles inside a field */
   --coar-tag-radius:       var(--coar-radius-xs);   /* CoarTag + inline chips inside multi-selects */
   --coar-badge-radius:     var(--coar-radius-full); /* CoarBadge */
   --coar-card-radius:      var(--coar-radius-s);    /* CoarCard */
   --coar-menu-radius:      var(--coar-radius-s);    /* CoarMenu */
   --coar-popover-radius:   var(--coar-radius-s);    /* CoarPopover, CoarPopconfirm */
-  --coar-dropdown-radius:  var(--coar-radius-s);    /* select/multi/tag dropdown panels */
+  --coar-dropdown-radius:  var(--coar-input-radius); /* select/multi/tag dropdown panels — track the input radius (the panel is part of the field); the panel CSS caps it per size at the trigger's pill end */
 
   /* Shadow — per component group */
   --coar-card-shadow:      var(--coar-elevation-medium);

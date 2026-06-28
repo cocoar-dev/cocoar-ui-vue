@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch, markRaw } from 'vue';
+import { computed, inject, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch, markRaw } from 'vue';
 
 import { Temporal } from '@js-temporal/polyfill';
 import { Maskito } from '@maskito/core';
@@ -7,6 +7,8 @@ import { Maskito } from '@maskito/core';
 import { useI18n } from '@cocoar/vue-localization';
 
 import CoarIcon from '../../icon/CoarIcon.vue';
+import CoarInputFrame from '../../input-frame/CoarInputFrame.vue';
+import CoarInputFrameButton from '../../input-frame/CoarInputFrameButton.vue';
 import { getOverlayService } from '../../overlay/useOverlay';
 import { datepickerPreset } from '../../overlay/overlay-presets';
 import type { OverlayRef } from '../../overlay/overlay-types';
@@ -28,19 +30,24 @@ import {
   coarFormatTimezoneLabel,
 } from '../_shared/timezone-helpers';
 import CoarZonedDateTimePickerPanel from './CoarZonedDateTimePickerPanel.vue';
+import { FORM_FIELD_INJECTION_KEY } from '../../form-field/constants';
 
 export type CoarZonedDateTimePickerSize = 'xs' | 's' | 'm' | 'l';
 
 const props = withDefaults(
   defineProps<{
-    label?: string;
     placeholder?: string;
     size?: CoarZonedDateTimePickerSize;
     disabled?: boolean;
     readonly?: boolean;
     required?: boolean;
-    error?: string;
-    hint?: string;
+    /**
+     * Error state (boolean for standalone use; auto-injected from CoarFormField).
+     * Message + status icon live on the wrapping CoarFormField.
+     */
+    error?: boolean;
+    /** Explicit input id (else taken from CoarFormField, else auto). */
+    id?: string;
     clearable?: boolean;
     showWeekNumbers?: boolean;
     highlightWeekends?: boolean;
@@ -64,15 +71,14 @@ const props = withDefaults(
     timezoneFilter?: string[];
   }>(),
   {
-    label: '',
     placeholder: '',
     size: 'm',
     disabled: false,
     readonly: false,
     required: false,
-    error: '',
-    hint: '',
-    clearable: true,
+    error: false,
+    id: '',
+    clearable: false,
     showWeekNumbers: false,
     highlightWeekends: false,
     markers: () => [],
@@ -118,15 +124,19 @@ const pendingTime = ref<CoarTimeValue | null>(null);
 // Timezone state
 const displayTimeZone = ref<string | null>(null);
 
+// Form-field integration: label + status icon + message live on the wrapping
+// CoarFormField. We only consume its id / error / describedby contract.
+const formField = inject(FORM_FIELD_INJECTION_KEY, undefined);
+
 // IDs
 const uid = `coar-zdtp-${crypto.randomUUID?.() ?? Date.now().toString(16)}`;
-const labelId = `${uid}-label`;
-const inputId = `${uid}-input`;
+const inputId = computed(() => props.id || formField?.inputId.value || `${uid}-input`);
 const panelId = `${uid}-panel`;
-const messageId = `${uid}-message`;
 
 // Refs
-const triggerRef = ref<HTMLElement | null>(null);
+// The trigger IS the CoarInputFrame root; reach its DOM node via $el.
+const triggerRef = ref<{ $el?: HTMLElement } | null>(null);
+const triggerEl = (): HTMLElement | undefined => triggerRef.value?.$el ?? undefined;
 const dateInputRef = ref<HTMLInputElement | null>(null);
 
 // Overlay
@@ -293,11 +303,16 @@ onBeforeUnmount(() => {
 // Computed helpers
 // ============================================================
 
-const hasError = computed(() => props.error.length > 0);
-const displayMessage = computed(() => props.error || props.hint);
+const hasError = computed(() => props.error || (formField?.hasError.value ?? false));
+const describedBy = computed(() => formField?.messageId.value || undefined);
 const isDisabled = computed(() => props.disabled);
 const showClearButton = computed(
   () => props.clearable && modelValue.value !== null && !isDisabled.value && !props.readonly,
+);
+// Reserve the leading slot for the clear button only when clearable (hidden-not-
+// removed while empty so the field doesn't resize); not clearable → no left gap.
+const clearSlotActive = computed(
+  () => props.clearable && !isDisabled.value && !props.readonly,
 );
 const inputPlaceholder = computed(() => {
   if (props.placeholder) return props.placeholder;
@@ -378,7 +393,7 @@ function openPanel() {
     activeMonth.value = valueInWorkingTz.value.toPlainDate().toPlainYearMonth();
   }
 
-  const trigger = triggerRef.value;
+  const trigger = triggerEl();
   if (!trigger) return;
 
   const panelInputs = reactive({
@@ -600,47 +615,37 @@ const tzIndicatorIcon = computed(() => {
     class="coar-zdtp"
     :class="[`coar-zdtp--${size}`]"
   >
-    <!-- Label -->
-    <label
-      v-if="label"
-      :id="labelId"
-      class="coar-zdtp-label"
-      :for="inputId"
-    >
-      {{ label }}
-      <span v-if="required" class="coar-zdtp-required" aria-hidden="true">*</span>
-    </label>
-
-    <!-- Trigger -->
-    <div
+    <!-- Trigger = the shared input shell. combobox role/aria fall through to its
+         root; focus lives on the inner input (frame styles via :focus-within). -->
+    <CoarInputFrame
       ref="triggerRef"
       role="combobox"
       :aria-expanded="pickerBase.isOpen.value"
       aria-haspopup="dialog"
       :aria-controls="pickerBase.isOpen.value ? panelId : undefined"
-      :aria-labelledby="label ? labelId : undefined"
       :aria-invalid="hasError || undefined"
       class="coar-zdtp-trigger"
-      :class="{
-        'coar-zdtp-trigger--disabled': isDisabled,
-        'coar-zdtp-trigger--readonly': readonly,
-        'coar-zdtp-trigger--error': hasError,
-        'coar-zdtp-trigger--open': pickerBase.isOpen.value,
-      }"
+      :size="size"
+      :error="hasError"
+      :disabled="isDisabled"
+      :readonly="readonly"
+      :active="pickerBase.isOpen.value"
       @keydown="onKeydown"
     >
-      <!-- Clear button -->
-      <button
-        type="button"
-        class="coar-zdtp-clear"
-        :class="{ 'coar-zdtp-clear--hidden': !showClearButton }"
-        :aria-label="t('coar.ui.zonedDateTimePicker.clearValue', undefined, 'Clear value')"
-        tabindex="-1"
-        :disabled="isDisabled"
-        @click="clearValue"
-      >
-        <CoarIcon name="x" size="auto" />
-      </button>
+      <!-- Clear button → leading affix (only when clearable) -->
+      <template v-if="clearSlotActive" #leading>
+        <button
+          type="button"
+          class="coar-zdtp-clear"
+          :class="{ 'coar-zdtp-clear--hidden': !showClearButton }"
+          :aria-label="t('coar.ui.zonedDateTimePicker.clearValue', undefined, 'Clear value')"
+          tabindex="-1"
+          :disabled="isDisabled"
+          @click="clearValue"
+        >
+          <CoarIcon name="x" size="auto" />
+        </button>
+      </template>
 
       <!-- Input -->
       <input
@@ -652,60 +657,56 @@ const tzIndicatorIcon = computed(() => {
         :value="displayValue"
         :disabled="isDisabled"
         :readonly="readonly"
-        :aria-describedby="displayMessage ? messageId : undefined"
+        :required="required"
+        :aria-describedby="describedBy"
         autocomplete="off"
         @input="onInputChange"
         @blur="onInputBlur"
       />
 
-      <!-- Timezone inline label -->
-      <span
-        v-if="modelValue"
-        class="coar-zdtp-tz-inline"
-        :title="currentTimeZoneDisplayName"
-      >
-        {{ currentTimeZoneDisplayName }}
-      </span>
+      <!-- Timezone indicator icon → trailing affix (Type A) -->
+      <template #trailing>
+        <button
+          type="button"
+          class="coar-zdtp-tz-indicator"
+          :class="{
+            'coar-zdtp-tz-indicator--clickable': timezoneIndicatorClickable,
+            'coar-zdtp-tz-indicator--disabled': !timezoneIndicatorClickable,
+          }"
+          :aria-label="t('coar.ui.zonedDateTimePicker.timezoneIndicator', { tz: currentTimeZoneDisplayName }, `Timezone: ${currentTimeZoneDisplayName}`) + (timezoneIndicatorClickable ? '. ' + t('coar.ui.zonedDateTimePicker.clickToToggle', undefined, 'Click to toggle.') : '')"
+          tabindex="-1"
+          :disabled="isDisabled"
+          @click.stop="toggleDisplayTimezone"
+        >
+          <CoarIcon :name="tzIndicatorIcon" size="xs" />
+        </button>
+      </template>
 
-      <!-- Timezone indicator icon -->
-      <button
-        type="button"
-        class="coar-zdtp-tz-indicator"
-        :class="{
-          'coar-zdtp-tz-indicator--clickable': timezoneIndicatorClickable,
-          'coar-zdtp-tz-indicator--disabled': !timezoneIndicatorClickable,
-        }"
-        :aria-label="t('coar.ui.zonedDateTimePicker.timezoneIndicator', { tz: currentTimeZoneDisplayName }, `Timezone: ${currentTimeZoneDisplayName}`) + (timezoneIndicatorClickable ? '. ' + t('coar.ui.zonedDateTimePicker.clickToToggle', undefined, 'Click to toggle.') : '')"
-        tabindex="-1"
-        :disabled="isDisabled"
-        @click.stop="toggleDisplayTimezone"
-      >
-        <CoarIcon :name="tzIndicatorIcon" size="xs" />
-      </button>
+      <!-- Calendar trigger → Type-B edge button (#actions). -->
+      <template #actions>
+        <CoarInputFrameButton
+          class="coar-zdtp-btn"
+          :disabled="isDisabled"
+          :aria-label="t('coar.ui.zonedDateTimePicker.openPicker', undefined, 'Open date and time picker')"
+          @click.stop="togglePanel"
+        >
+          <CoarIcon name="calendar" size="s" />
+        </CoarInputFrameButton>
+      </template>
+    </CoarInputFrame>
 
-      <!-- Calendar button -->
-      <button
-        type="button"
-        class="coar-zdtp-btn"
-        :disabled="isDisabled"
-        :aria-label="t('coar.ui.zonedDateTimePicker.openPicker', undefined, 'Open date and time picker')"
-        tabindex="-1"
-        @click.stop="togglePanel"
-      >
-        <CoarIcon name="calendar" size="s" />
-      </button>
-    </div>
-
-    <!-- Messages -->
-    <div
-      v-if="displayMessage"
-      :id="messageId"
-      class="coar-form-field-message"
-      :class="{ 'coar-form-field-message--error': hasError }"
-      aria-live="polite"
+    <!-- TZ caption floats on the bottom border, just left of the calendar button.
+         It lives OUTSIDE the frame: the frame's overflow:hidden (which clips the
+         edge-button corners to the radius) would otherwise cut the half that
+         straddles below the border. Anchored from the wrapper's right edge by the
+         calendar button's token-derived width so it tracks radius + field padding. -->
+    <span
+      v-if="modelValue"
+      class="coar-zdtp-tz-inline"
+      :title="currentTimeZoneDisplayName"
     >
-      {{ displayMessage }}
-    </div>
+      {{ currentTimeZoneDisplayName }}
+    </span>
   </div>
 </template>
 
@@ -715,75 +716,29 @@ const tzIndicatorIcon = computed(() => {
    ======================================== */
 
 .coar-zdtp {
+  /* positioning context for the floating TZ caption, which sits OUTSIDE the frame
+     (see .coar-zdtp-tz-inline). Per-size helpers re-derive the calendar button's
+     metrics so the caption can anchor to its left edge without inheriting the
+     frame's private vars. */
+  --coar-zdtp-scale: 1;
+  --coar-zdtp-height: var(--coar-component-m-height);
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--coar-spacing-xs);
   width: 100%;
 }
 
-/* ========================================
-   LABEL
-   ======================================== */
-
-.coar-zdtp-label {
-  font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-body-small-base-size);
-  font-weight: var(--coar-body-small-bold-weight);
-  color: var(--coar-text-neutral-primary);
-  cursor: pointer;
-}
-
-.coar-zdtp-required {
-  color: var(--coar-text-semantic-error-bold);
-  margin-left: 2px;
-}
+/* Label + status icon + message are owned by the wrapping CoarFormField. */
 
 /* ========================================
    TRIGGER
    ======================================== */
 
-.coar-zdtp-trigger {
-  display: flex;
-  align-items: center;
-  position: relative;
-  height: var(--coar-component-m-height);
-  border: 1px solid var(--coar-border-input);
-  border-radius: var(--coar-radius-xs);
-  background: var(--coar-surface-input);
+/* Box / radius / size / states are owned by CoarInputFrame; only the pointer
+   affordance lives here (clear / tz-indicator / calendar come via slots). */
+.coar-zdtp-trigger:not(.coar-input-frame--disabled):not(.coar-input-frame--readonly) {
   cursor: pointer;
-  transition:
-    border-color var(--coar-duration-fast) var(--coar-ease-out),
-    box-shadow var(--coar-duration-fast) var(--coar-ease-out);
-}
-
-.coar-zdtp-trigger:hover:not(
-    .coar-zdtp-trigger--disabled
-  ):not(
-    .coar-zdtp-trigger--readonly
-  ):not(
-    .coar-zdtp-trigger--error
-  ) {
-  border-color: var(--coar-border-input-hover);
-}
-
-.coar-zdtp-trigger--open:not(.coar-zdtp-trigger--error) {
-  border-color: var(--coar-focus-color);
-  box-shadow: inset 0 0 0 1px var(--coar-focus-color);
-}
-
-.coar-zdtp-trigger--error {
-  border-color: var(--coar-border-semantic-error);
-}
-
-.coar-zdtp-trigger--disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-.coar-zdtp-trigger--readonly {
-  background: var(--coar-background-neutral-secondary);
-  cursor: default;
 }
 
 /* ========================================
@@ -798,7 +753,6 @@ const tzIndicatorIcon = computed(() => {
   background: none;
   border: none;
   padding: 0;
-  margin-left: var(--coar-spacing-s);
   color: var(--coar-icon-neutral-disabled);
   cursor: pointer;
   transition:
@@ -832,7 +786,7 @@ const tzIndicatorIcon = computed(() => {
   border: none;
   background: transparent;
   outline: none;
-  padding: 0 var(--coar-spacing-s);
+  padding: 0;
   font-family: var(--coar-body-small-base-family);
   font-size: var(--coar-body-small-base-size);
   font-weight: var(--coar-body-small-base-weight);
@@ -851,7 +805,21 @@ const tzIndicatorIcon = computed(() => {
 .coar-zdtp-tz-inline {
   position: absolute;
   bottom: 0;
-  right: var(--coar-component-m-height);
+  /* Anchor the caption's right edge to the calendar button's left edge. The button
+     lives in the frame (overflow:hidden), so the caption can't anchor off it via
+     right:100% anymore — re-derive its outer width from the same tokens the button
+     uses (CoarInputFrameButton: spacing-s×scale left pad + icon + max(field-pad,
+     corner) right pad + 1px separator) plus the frame's 1px right border. Tracks
+     radius + field padding without inheriting the frame's private vars. */
+  right: calc(
+    var(--coar-spacing-s) * var(--coar-zdtp-scale)
+    + 16px
+    + max(
+      calc(var(--coar-field-padding-x) * var(--coar-zdtp-scale) * var(--coar-component-density, 1)),
+      min(var(--coar-input-radius), calc(var(--coar-zdtp-height) / 2))
+    )
+    + 2px
+  );
   transform: translateY(50%);
   padding: 0 var(--coar-spacing-xs);
   font-family: var(--coar-body-caption-family);
@@ -893,66 +861,19 @@ const tzIndicatorIcon = computed(() => {
   cursor: default;
 }
 
-/* ========================================
-   CALENDAR BUTTON
-   ======================================== */
-
-.coar-zdtp-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--coar-component-m-height);
-  height: 100%;
-  flex-shrink: 0;
-  border: none;
-  border-left: 1px solid var(--coar-border-input);
-  border-radius: 0 var(--coar-radius-xs) var(--coar-radius-xs) 0;
-  background: var(--coar-background-neutral-secondary);
-  color: var(--coar-icon-neutral-secondary);
-  cursor: pointer;
-  transition:
-    background-color var(--coar-duration-fast) var(--coar-ease-out),
-    color var(--coar-duration-fast) var(--coar-ease-out);
-}
-
-.coar-zdtp-btn:hover:not(:disabled) {
-  background: var(--coar-background-neutral-tertiary);
-  color: var(--coar-icon-neutral-primary);
-}
-
-.coar-zdtp-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
+/* The calendar segment button is a CoarInputFrameButton (Type-B edge button);
+   its surface / separator / icon inset / corner clipping are owned there. */
 
 /* ========================================
-   SIZE VARIANTS
+   SIZE VARIANTS (font only — box height/scale come from the frame's size prop)
    ======================================== */
 
-.coar-zdtp--xs .coar-zdtp-trigger { height: var(--coar-component-xs-height); }
-.coar-zdtp--xs .coar-zdtp-btn { width: var(--coar-component-xs-height); }
 .coar-zdtp--xs .coar-zdtp-input { font-size: var(--coar-component-xs-font-size); }
-.coar-zdtp--xs .coar-zdtp-tz-inline { right: var(--coar-component-xs-height); }
-
-.coar-zdtp--s .coar-zdtp-trigger { height: var(--coar-component-s-height); }
-.coar-zdtp--s .coar-zdtp-btn { width: var(--coar-component-s-height); }
 .coar-zdtp--s .coar-zdtp-input { font-size: var(--coar-component-s-font-size); }
-.coar-zdtp--s .coar-zdtp-tz-inline { right: var(--coar-component-s-height); }
-
-.coar-zdtp--l .coar-zdtp-trigger { height: var(--coar-component-l-height); }
-.coar-zdtp--l .coar-zdtp-btn { width: var(--coar-component-l-height); }
 .coar-zdtp--l .coar-zdtp-input { font-size: var(--coar-component-l-font-size); }
-.coar-zdtp--l .coar-zdtp-tz-inline { right: var(--coar-component-l-height); }
 
-/* ========================================
-   FORM FIELD MESSAGE
-   ======================================== */
-
-.coar-form-field-message {
-  font-family: var(--coar-body-caption-family);
-  font-size: var(--coar-body-caption-size);
-  color: var(--coar-text-neutral-secondary);
-}
-
-.coar-form-field-message--error { color: var(--coar-text-semantic-error-bold); }
+/* Per-size calendar-button metrics for the TZ-caption anchor (mirrors the frame). */
+.coar-zdtp--xs { --coar-zdtp-scale: var(--coar-component-xs-scale); --coar-zdtp-height: var(--coar-component-xs-height); }
+.coar-zdtp--s { --coar-zdtp-scale: var(--coar-component-s-scale); --coar-zdtp-height: var(--coar-component-s-height); }
+.coar-zdtp--l { --coar-zdtp-scale: var(--coar-component-l-scale); --coar-zdtp-height: var(--coar-component-l-height); }
 </style>

@@ -54,7 +54,7 @@ describe('CoarDualListbox', () => {
     const leftItems = w.findAll('.coar-listbox-list')[0].findAll('.coar-listbox-item');
     await leftItems[0].trigger('click');
     // click "move right" (2nd button when move-all is shown)
-    const buttons = w.findAll('.coar-dual-listbox-action');
+    const buttons = w.findAll('.coar-dual-listbox-actions .coar-button');
     await buttons[1].trigger('click');
     expect(w.props('modelValue')).toEqual(['a']);
   });
@@ -68,7 +68,7 @@ describe('CoarDualListbox', () => {
       },
     });
     await nextTick();
-    const buttons = w.findAll('.coar-dual-listbox-action');
+    const buttons = w.findAll('.coar-dual-listbox-actions .coar-button');
     await buttons[0].trigger('click'); // move-all-right
     expect(w.props('modelValue')).toEqual(['a', 'b', 'c', 'd']);
   });
@@ -83,7 +83,7 @@ describe('CoarDualListbox', () => {
     });
     const rightItems = w.findAll('.coar-listbox-list')[1].findAll('.coar-listbox-item');
     await rightItems[0].trigger('click'); // highlight 'a' in right col
-    const buttons = w.findAll('.coar-dual-listbox-action');
+    const buttons = w.findAll('.coar-dual-listbox-actions .coar-button');
     await buttons[2].trigger('click'); // move-left
     expect(w.props('modelValue')).toEqual(['b']);
   });
@@ -118,7 +118,7 @@ describe('CoarDualListbox', () => {
 
   it('hides move-all buttons when hideMoveAll=true', () => {
     const w = mount(CoarDualListbox, { props: { options, hideMoveAll: true } });
-    expect(w.findAll('.coar-dual-listbox-action')).toHaveLength(2);
+    expect(w.findAll('.coar-dual-listbox-actions .coar-button')).toHaveLength(2);
   });
 
   it('forwards #item slot to both sides', () => {

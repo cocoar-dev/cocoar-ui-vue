@@ -30,38 +30,43 @@ describe('CoarNumberInput', () => {
   });
 
   it('shows clear button when has value', () => {
-    const wrapper = mountInput({ modelValue: 42 });
+    const wrapper = mountInput({ modelValue: 42, clearable: true });
     expect(wrapper.find('.coar-number-input-clear').exists()).toBe(true);
     expect(wrapper.find('.coar-number-input-clear--hidden').exists()).toBe(false);
   });
 
   it('hides clear button when null', () => {
-    const wrapper = mountInput({ modelValue: null });
+    const wrapper = mountInput({ modelValue: null, clearable: true });
     expect(wrapper.find('.coar-number-input-clear--hidden').exists()).toBe(true);
   });
 
-  it('clears value when clear button clicked', async () => {
+  it('does not render the clear button when not clearable (default)', () => {
     const wrapper = mountInput({ modelValue: 42 });
+    expect(wrapper.find('.coar-number-input-clear').exists()).toBe(false);
+  });
+
+  it('clears value when clear button clicked', async () => {
+    const wrapper = mountInput({ modelValue: 42, clearable: true });
     const clearBtn = wrapper.find('.coar-number-input-clear:not(.coar-number-input-clear--hidden)');
     await clearBtn.trigger('click');
     expect(wrapper.emitted('update:modelValue')?.[0]).toEqual([null]);
     expect(wrapper.emitted('clear')).toHaveLength(1);
   });
 
-  it('applies error class when error is true', () => {
+  it('applies error state via the input frame when error is true', () => {
     const wrapper = mountInput({ error: true });
-    expect(wrapper.find('.coar-number-input-error').exists()).toBe(true);
+    expect(wrapper.find('.coar-input-frame--error').exists()).toBe(true);
   });
 
   it('applies disabled state', () => {
     const wrapper = mountInput({ disabled: true });
-    expect(wrapper.find('.coar-number-input-disabled').exists()).toBe(true);
+    expect(wrapper.find('.coar-input-frame--disabled').exists()).toBe(true);
     expect((wrapper.find('input').element as HTMLInputElement).disabled).toBe(true);
   });
 
   it('applies readonly state', () => {
     const wrapper = mountInput({ readonly: true });
-    expect(wrapper.find('.coar-number-input-readonly').exists()).toBe(true);
+    expect(wrapper.find('.coar-input-frame--readonly').exists()).toBe(true);
   });
 
   it('applies size class', () => {

@@ -1,5 +1,9 @@
 <template>
   <div style="display: flex; flex-direction: column; gap: 16px;">
+    <CoarRadioGroup :model-value="'a'" name="size-xs" label="Extra-small" size="xs">
+      <CoarRadioButton value="a">Option A</CoarRadioButton>
+      <CoarRadioButton value="b">Option B</CoarRadioButton>
+    </CoarRadioGroup>
     <CoarRadioGroup :model-value="'a'" name="size-s" label="Small" size="s">
       <CoarRadioButton value="a">Option A</CoarRadioButton>
       <CoarRadioButton value="b">Option B</CoarRadioButton>

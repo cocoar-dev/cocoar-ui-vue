@@ -1,5 +1,6 @@
 <template>
   <div style="display: flex; flex-direction: column; gap: 8px;">
+    <CoarCheckbox :model-value="true" size="xs" label="Extra-small checkbox" />
     <CoarCheckbox :model-value="true" size="s" label="Small checkbox" />
     <CoarCheckbox :model-value="true" size="m" label="Medium checkbox (default)" />
     <CoarCheckbox :model-value="true" size="l" label="Large checkbox" />

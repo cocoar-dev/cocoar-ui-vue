@@ -12,12 +12,13 @@ import {
 } from 'vue';
 import { useI18n } from '@cocoar/vue-localization';
 import { CoarIcon } from '../icon';
-import { useSelectBase, type CoarSelectSize, type CoarSelectAppearance } from './useSelectBase';
+import { useSelectBase, resolveDropdownSize, type CoarSelectSize, type CoarSelectAppearance } from './useSelectBase';
 import { getOverlayService, useOverlayParent } from '../overlay/useOverlay';
 import { selectPreset } from '../overlay/overlay-presets';
 import type { OverlayRef } from '../overlay/overlay-types';
 import type { CoarSelectOption, CoarSelectSortGroups, CoarSelectSortOptions } from './types';
 import { FORM_FIELD_INJECTION_KEY } from '../form-field/constants';
+import CoarInputFrame from '../input-frame/CoarInputFrame.vue';
 import CoarTagSelectDropdownPanel from './CoarTagSelectDropdownPanel.vue';
 
 export interface CoarTagSelectProps<T = unknown> {
@@ -47,6 +48,12 @@ export interface CoarTagSelectProps<T = unknown> {
   compareWith?: (a: T, b: T) => boolean;
   /** Dropdown position */
   dropdownPosition?: 'auto' | 'top' | 'bottom';
+  /**
+   * Max width of the dropdown panel. Omitted (default) → fixed to the trigger
+   * width with ellipsis + tooltip for long labels. Set a number (px) or CSS
+   * length → the panel may grow from the trigger width up to this cap.
+   */
+  dropdownMaxWidth?: number | string;
   /** Sort order for groups. Default: 'asc' */
   sortGroups?: CoarSelectSortGroups;
   /** Sort order for options (within each group, or all if ungrouped). Default: 'none' */
@@ -77,7 +84,11 @@ const model = defineModel<T[]>({ default: () => [] });
 const formField = inject(FORM_FIELD_INJECTION_KEY, undefined);
 
 const hostRef = useTemplateRef<HTMLElement>('hostRef');
-const triggerRef = useTemplateRef<HTMLElement>('triggerRef');
+// The trigger IS the CoarInputFrame root; reach its DOM node via $el for the
+// overlay anchor + keyboard helpers.
+const triggerRef = useTemplateRef('triggerRef');
+const triggerEl = (): HTMLElement | undefined =>
+  (triggerRef.value as unknown as { $el?: HTMLElement } | null)?.$el ?? undefined;
 const tagInputRef = useTemplateRef<HTMLInputElement>('tagInputRef');
 
 const hasError = computed(() => props.error || (formField?.hasError.value ?? false));
@@ -162,7 +173,7 @@ function onTagInput(event: Event) {
   tagInputValue.value = value;
   searchQuery.value = value;
   if (value && !isOpen.value) {
-    openDropdown(triggerRef.value ?? undefined);
+    openDropdown(triggerEl());
   }
 }
 
@@ -191,21 +202,21 @@ function onTagKeyDown(event: KeyboardEvent) {
     return;
   }
 
-  onKeyDown(event, selectHighlighted, triggerRef.value ?? undefined, true);
+  onKeyDown(event, selectHighlighted, triggerEl(), true);
 }
 
 function onTriggerClick() {
   if (props.disabled || props.readonly) return;
   tagInputRef.value?.focus();
   if (!isOpen.value && availableOptions.value.length > 0) {
-    openDropdown(triggerRef.value ?? undefined);
+    openDropdown(triggerEl());
   }
 }
 
 function onInputFocus() {
   isFocused.value = true;
   if (availableOptions.value.length > 0) {
-    openDropdown(triggerRef.value ?? undefined);
+    openDropdown(triggerEl());
   }
 }
 
@@ -225,13 +236,14 @@ let overlayRef: OverlayRef | null = null;
 const shouldShowOverlay = computed(() => isOpen.value && filteredOptions.value.length > 0);
 
 function openOverlay() {
-  const trigger = triggerRef.value;
+  const trigger = triggerEl();
   if (!trigger || overlayRef) return;
 
   const ref = getOverlayService().open({
     spec: {
       ...selectPreset,
       anchor: { kind: 'element', element: trigger },
+      size: resolveDropdownSize(props.dropdownMaxWidth),
     },
     content: { kind: 'component', component: markRaw(CoarTagSelectDropdownPanel) },
     inputs: {
@@ -273,16 +285,18 @@ onBeforeUnmount(() => {
 <template>
   <div ref="hostRef" :class="hostClasses">
     <div class="coar-select-wrapper">
-      <!-- Trigger with Tags -->
-      <div
+      <!-- Trigger = the shared input shell in multiline mode (chips wrap, box grows).
+           The combobox role/aria live on the inner <input>, not the frame. -->
+      <CoarInputFrame
         ref="triggerRef"
-        class="coar-tag-select-trigger"
-        :class="{
-          'coar-tag-select-trigger--focused': isFocused,
-          'coar-tag-select-trigger--disabled': disabled,
-          'coar-tag-select-trigger--readonly': readonly,
-          'coar-tag-select-trigger--error': hasError,
-        }"
+        multiline
+        class="coar-tag-select-trigger coar-tag-select-frame"
+        :size="size"
+        :error="hasError"
+        :disabled="disabled"
+        :readonly="readonly"
+        :active="isOpen"
+        :borderless="appearance === 'inline'"
         @click="onTriggerClick"
       >
         <div class="coar-tag-select-tags">
@@ -326,7 +340,7 @@ onBeforeUnmount(() => {
             @blur="onInputBlur"
           />
         </div>
-      </div>
+      </CoarInputFrame>
     </div>
   </div>
 </template>
@@ -343,51 +357,25 @@ onBeforeUnmount(() => {
   width: 100%;
 }
 
-/* Tag Trigger */
-.coar-tag-select-trigger {
-  display: flex;
-  align-items: center;
-  min-height: var(--coar-component-m-height);
-  padding: var(--coar-spacing-xs) var(--coar-spacing-s);
-  border: 1px solid var(--coar-border-input);
-  border-radius: var(--coar-input-radius);
-  background: var(--coar-surface-input);
+/* Trigger — box / radius / size / states / multiline min-height + vertical pad are
+   owned by CoarInputFrame (multiline mode). Only the pointer affordance and the
+   inline (borderless) fill live here. */
+.coar-tag-select-frame:not(.coar-input-frame--disabled):not(.coar-input-frame--readonly) {
   cursor: text;
-  transition: border-color var(--coar-duration-fast) var(--coar-ease-out), box-shadow var(--coar-duration-fast) var(--coar-ease-out);
 }
 
-.coar-select--xs .coar-tag-select-trigger { min-height: var(--coar-component-xs-height); }
-.coar-select--s .coar-tag-select-trigger { min-height: var(--coar-component-s-height); }
-.coar-select--l .coar-tag-select-trigger { min-height: var(--coar-component-l-height); }
-
-.coar-tag-select-trigger:hover:not(.coar-tag-select-trigger--disabled):not(.coar-tag-select-trigger--readonly):not(.coar-tag-select-trigger--error):not(.coar-tag-select-trigger--focused) {
-  border-color: var(--coar-border-input-hover);
+/* Inline appearance: borderless frame + a neutral fill on hover / focus / open
+   (mirrors CoarSelect's inline treatment). */
+.coar-select--inline .coar-tag-select-frame:hover:not(.coar-input-frame--disabled):not(.coar-input-frame--readonly),
+.coar-select--inline .coar-tag-select-frame:focus-within,
+.coar-select--inline .coar-tag-select-frame.coar-input-frame--active {
+  background: var(--coar-background-neutral-tertiary);
 }
 
-.coar-tag-select-trigger--focused:not(.coar-tag-select-trigger--error) {
-  border-color: var(--coar-focus-color);
-  box-shadow: inset 0 0 0 1px var(--coar-focus-color);
-}
-
-.coar-tag-select-trigger--disabled {
-  background: var(--coar-surface-input-disabled);
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.coar-tag-select-trigger--readonly { cursor: default; }
-
-.coar-tag-select-trigger--error { border-color: var(--coar-border-semantic-error-bold); }
-
-.coar-tag-select-trigger--error.coar-tag-select-trigger--focused {
-  box-shadow: inset 0 0 0 1px var(--coar-border-semantic-error-bold);
-}
-
-.coar-select--inline .coar-tag-select-trigger {
-  border: none;
-  background: transparent;
-  box-shadow: none;
-}
+/* Per-size input text (was constant 14px regardless of size) */
+.coar-select--xs .coar-tag-select-input { font-size: var(--coar-component-xs-font-size); }
+.coar-select--s .coar-tag-select-input { font-size: var(--coar-component-s-font-size); }
+.coar-select--l .coar-tag-select-input { font-size: var(--coar-component-l-font-size); }
 
 /* Tags Container */
 .coar-tag-select-tags {
@@ -404,14 +392,16 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  height: 24px;
+  /* Scale chip height + font with the control size so an xs trigger isn't
+     forced taller by a fixed 24px chip (see --coar-component-scale). */
+  height: calc(24px * var(--coar-component-scale, 1));
   padding: 0 var(--coar-spacing-xs) 0 var(--coar-spacing-s);
   border-radius: var(--coar-tag-radius);
   background: var(--coar-background-neutral-secondary);
   border: 1px solid var(--coar-border-neutral-tertiary);
   color: var(--coar-text-neutral-primary);
   font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-body-caption-size);
+  font-size: calc(var(--coar-body-caption-size) * var(--coar-component-scale, 1));
   font-weight: var(--coar-body-small-bold-weight);
   white-space: nowrap;
   max-width: 160px;
@@ -444,7 +434,7 @@ onBeforeUnmount(() => {
 .coar-tag-select-input {
   flex: 1;
   min-width: 60px;
-  height: 24px;
+  height: calc(24px * var(--coar-component-scale, 1));
   padding: 0;
   border: none;
   background: transparent;

@@ -364,7 +364,7 @@ provide(FORM_FIELD_INJECTION_KEY, {
      Same token-class the inputs themselves use, so label+input stay in
      visual sync regardless of how the component-size scale gets retuned. */
   font-size: var(--coar-component-m-label-font-size);
-  font-weight: 500;
+  font-weight: var(--coar-font-weight-medium);
   color: var(--coar-text-neutral-primary);
   cursor: pointer;
   user-select: none;

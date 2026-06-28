@@ -1,10 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
-import { nextTick } from 'vue';
+import { computed, nextTick } from 'vue';
 
 import { Temporal } from '@js-temporal/polyfill';
 
 import CoarPlainDateTimePicker from '../CoarPlainDateTimePicker.vue';
+import { FORM_FIELD_INJECTION_KEY } from '../../../form-field/constants';
 
 // Stubs
 vi.mock('../../../../scrollbar', () => ({
@@ -67,14 +68,9 @@ describe('CoarPlainDateTimePicker', () => {
       expect(w.find('.coar-pdtp-btn').exists()).toBe(true);
     });
 
-    it('renders label', () => {
-      const w = mountPicker({ label: 'Appointment' });
-      expect(w.find('.coar-pdtp-label').text()).toContain('Appointment');
-    });
-
-    it('renders required indicator', () => {
-      const w = mountPicker({ label: 'Date', required: true });
-      expect(w.find('.coar-pdtp-required').exists()).toBe(true);
+    it('marks the input required (label + * live on CoarFormField)', () => {
+      const w = mountPicker({ required: true });
+      expect((w.find('.coar-pdtp-input').element as HTMLInputElement).required).toBe(true);
     });
 
     it('shows placeholder with time format', () => {
@@ -127,20 +123,20 @@ describe('CoarPlainDateTimePicker', () => {
   });
 
   describe('disabled / readonly / error', () => {
-    it('applies disabled class', () => {
+    it('applies disabled state', () => {
       const w = mountPicker({ disabled: true });
-      expect(w.find('.coar-pdtp-trigger--disabled').exists()).toBe(true);
+      expect(w.find('.coar-pdtp-trigger.coar-input-frame--disabled').exists()).toBe(true);
     });
 
-    it('applies readonly class', () => {
+    it('applies readonly state', () => {
       const w = mountPicker({ readonly: true });
-      expect(w.find('.coar-pdtp-trigger--readonly').exists()).toBe(true);
+      expect(w.find('.coar-pdtp-trigger.coar-input-frame--readonly').exists()).toBe(true);
     });
 
-    it('applies error class and shows message', () => {
-      const w = mountPicker({ error: 'Invalid date' });
-      expect(w.find('.coar-pdtp-trigger--error').exists()).toBe(true);
-      expect(w.find('.coar-form-field-message--error').text()).toBe('Invalid date');
+    it('applies error state from the boolean prop, no own message', () => {
+      const w = mountPicker({ error: true });
+      expect(w.find('.coar-pdtp-trigger.coar-input-frame--error').exists()).toBe(true);
+      expect(w.find('.coar-form-field-message').exists()).toBe(false);
     });
   });
 
@@ -165,6 +161,42 @@ describe('CoarPlainDateTimePicker', () => {
     it('has aria-haspopup dialog', () => {
       const w = mountPicker();
       expect(w.find('[role="combobox"]').attributes('aria-haspopup')).toBe('dialog');
+    });
+  });
+
+  describe('CoarFormField integration', () => {
+    function mountWithField(provided: Record<string, unknown>) {
+      return mount(CoarPlainDateTimePicker, {
+        global: {
+          provide: {
+            'coar-l10n': undefined,
+            [FORM_FIELD_INJECTION_KEY as symbol]: provided,
+          },
+        },
+        attachTo: document.body,
+      });
+    }
+
+    it('adopts the injected input id', () => {
+      const w = mountWithField({
+        inputId: computed(() => 'field-1'),
+        messageId: computed(() => ''),
+        hasError: computed(() => false),
+        disabled: computed(() => false),
+      });
+      expect(w.find('.coar-pdtp-input').attributes('id')).toBe('field-1');
+    });
+
+    it('reflects injected error + describedby', () => {
+      const w = mountWithField({
+        inputId: computed(() => 'f'),
+        messageId: computed(() => 'f-err'),
+        hasError: computed(() => true),
+        disabled: computed(() => false),
+      });
+      expect(w.find('.coar-pdtp-trigger.coar-input-frame--error').exists()).toBe(true);
+      expect(w.find('.coar-pdtp-input').attributes('aria-invalid')).toBe('true');
+      expect(w.find('.coar-pdtp-input').attributes('aria-describedby')).toBe('f-err');
     });
   });
 

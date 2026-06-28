@@ -1,10 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
-import { nextTick } from 'vue';
+import { computed, nextTick } from 'vue';
 
 import { Temporal } from '@js-temporal/polyfill';
 
 import CoarZonedDateTimePicker from '../CoarZonedDateTimePicker.vue';
+import { FORM_FIELD_INJECTION_KEY } from '../../../form-field/constants';
 
 // Stubs
 vi.mock('../../../../scrollbar', () => ({
@@ -67,14 +68,9 @@ describe('CoarZonedDateTimePicker', () => {
       expect(w.find('.coar-zdtp-btn').exists()).toBe(true);
     });
 
-    it('renders label', () => {
-      const w = mountPicker({ label: 'Meeting' });
-      expect(w.find('.coar-zdtp-label').text()).toContain('Meeting');
-    });
-
-    it('renders required indicator', () => {
-      const w = mountPicker({ label: 'Date', required: true });
-      expect(w.find('.coar-zdtp-required').exists()).toBe(true);
+    it('marks the input required (label + * live on CoarFormField)', () => {
+      const w = mountPicker({ required: true });
+      expect((w.find('.coar-zdtp-input').element as HTMLInputElement).required).toBe(true);
     });
 
     it('shows placeholder with time format', () => {
@@ -142,20 +138,20 @@ describe('CoarZonedDateTimePicker', () => {
   });
 
   describe('disabled / readonly / error', () => {
-    it('applies disabled class', () => {
+    it('applies disabled state', () => {
       const w = mountPicker({ disabled: true });
-      expect(w.find('.coar-zdtp-trigger--disabled').exists()).toBe(true);
+      expect(w.find('.coar-zdtp-trigger.coar-input-frame--disabled').exists()).toBe(true);
     });
 
-    it('applies readonly class', () => {
+    it('applies readonly state', () => {
       const w = mountPicker({ readonly: true });
-      expect(w.find('.coar-zdtp-trigger--readonly').exists()).toBe(true);
+      expect(w.find('.coar-zdtp-trigger.coar-input-frame--readonly').exists()).toBe(true);
     });
 
-    it('applies error class and shows message', () => {
-      const w = mountPicker({ error: 'Invalid' });
-      expect(w.find('.coar-zdtp-trigger--error').exists()).toBe(true);
-      expect(w.find('.coar-form-field-message--error').text()).toBe('Invalid');
+    it('applies error state from the boolean prop, no own message', () => {
+      const w = mountPicker({ error: true });
+      expect(w.find('.coar-zdtp-trigger.coar-input-frame--error').exists()).toBe(true);
+      expect(w.find('.coar-form-field-message').exists()).toBe(false);
     });
   });
 
@@ -183,8 +179,44 @@ describe('CoarZonedDateTimePicker', () => {
     });
 
     it('has aria-invalid when error', () => {
-      const w = mountPicker({ error: 'Oops' });
+      const w = mountPicker({ error: true });
       expect(w.find('[role="combobox"]').attributes('aria-invalid')).toBe('true');
+    });
+  });
+
+  describe('CoarFormField integration', () => {
+    function mountWithField(provided: Record<string, unknown>) {
+      return mount(CoarZonedDateTimePicker, {
+        global: {
+          provide: {
+            'coar-l10n': undefined,
+            [FORM_FIELD_INJECTION_KEY as symbol]: provided,
+          },
+        },
+        attachTo: document.body,
+      });
+    }
+
+    it('adopts the injected input id', () => {
+      const w = mountWithField({
+        inputId: computed(() => 'field-1'),
+        messageId: computed(() => ''),
+        hasError: computed(() => false),
+        disabled: computed(() => false),
+      });
+      expect(w.find('.coar-zdtp-input').attributes('id')).toBe('field-1');
+    });
+
+    it('reflects injected error + describedby', () => {
+      const w = mountWithField({
+        inputId: computed(() => 'f'),
+        messageId: computed(() => 'f-err'),
+        hasError: computed(() => true),
+        disabled: computed(() => false),
+      });
+      expect(w.find('.coar-zdtp-trigger.coar-input-frame--error').exists()).toBe(true);
+      expect(w.find('[role="combobox"]').attributes('aria-invalid')).toBe('true');
+      expect(w.find('.coar-zdtp-input').attributes('aria-describedby')).toBe('f-err');
     });
   });
 

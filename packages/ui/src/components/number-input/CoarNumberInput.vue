@@ -2,6 +2,7 @@
 import { computed, ref, watch, onMounted, onBeforeUnmount, inject, useTemplateRef } from 'vue';
 import { useI18n } from '@cocoar/vue-localization';
 import { CoarIcon, type CoarIconSize } from '../icon';
+import CoarInputFrame from '../input-frame/CoarInputFrame.vue';
 import { FORM_FIELD_INJECTION_KEY } from '../form-field/constants';
 import { Maskito } from '@maskito/core';
 import { maskitoNumberOptionsGenerator } from '@maskito/kit';
@@ -65,7 +66,7 @@ const props = withDefaults(defineProps<CoarNumberInputProps>(), {
   readonly: false,
   required: false,
   error: false,
-  clearable: true,
+  clearable: false,
   stepperButtons: 'none',
   prefix: '',
   suffix: '',
@@ -87,7 +88,6 @@ const { t } = useI18n();
 const formField = inject(FORM_FIELD_INJECTION_KEY, undefined);
 
 const displayValue = ref('');
-const isFocused = ref(false);
 const inputElement = useTemplateRef<HTMLInputElement>('inputElement');
 
 let maskitoInstance: Maskito | null = null;
@@ -100,6 +100,12 @@ const describedBy = computed(() => formField?.messageId.value || undefined);
 
 const showClearButton = computed(
   () => props.clearable && model.value !== null && !props.disabled && !props.readonly,
+);
+// Render (and reserve the layout slot for) the clear button only when clearable —
+// it's then hidden-not-removed while empty so the field doesn't resize on the first
+// keystroke. When not clearable, no button and no reserved gap.
+const clearSlotActive = computed(
+  () => props.clearable && !props.disabled && !props.readonly,
 );
 
 const showIncrementButton = computed(
@@ -129,16 +135,6 @@ const iconSize = computed<CoarIconSize>(() => {
 });
 
 const hostClasses = computed(() => ['coar-number-input-host', `coar-number-input--${props.size}`]);
-
-const containerClasses = computed(() => [
-  'coar-number-input-container',
-  {
-    'coar-number-input-focused': isFocused.value,
-    'coar-number-input-disabled': props.disabled,
-    'coar-number-input-readonly': props.readonly,
-    'coar-number-input-error': hasError.value,
-  },
-]);
 
 /**
  * Resolved number format with priority chain:
@@ -251,12 +247,10 @@ function onInput(event: Event) {
 }
 
 function onFocus(event: FocusEvent) {
-  isFocused.value = true;
   emit('focused', event);
 }
 
 function onBlur(event: FocusEvent) {
-  isFocused.value = false;
   commitValue();
   emit('blurred', event);
 }
@@ -300,25 +294,33 @@ function decrement() {
 <template>
   <div :class="hostClasses">
     <div class="coar-number-input-wrapper">
-      <!-- Input Container -->
-      <div :class="containerClasses">
-        <!-- Clear button (left side) -->
-        <button
-          type="button"
-          class="coar-number-input-clear"
-          :class="{ 'coar-number-input-clear--hidden': !showClearButton }"
-          tabindex="-1"
-          :aria-label="t('coar.ui.numberInput.clear', undefined, 'Clear')"
-          @click="onClear"
-        >
-          <CoarIcon name="x" source="coar-builtin" size="auto" />
-        </button>
-
-        <!-- Prefix -->
-        <span class="coar-number-input-prefix">
-          <template v-if="prefix">{{ prefix }}</template>
-          <slot name="prefix" />
-        </span>
+      <!-- Single-line input shell owns box / radius / padding / states -->
+      <CoarInputFrame
+        class="coar-number-input-frame"
+        :size="size"
+        :error="hasError"
+        :disabled="disabled"
+        :readonly="readonly"
+      >
+        <!-- Clear (left) + prefix → leading affix (only when there's real content,
+             so the frame's has-leading padding logic stays correct) -->
+        <template v-if="clearSlotActive || prefix || $slots.prefix" #leading>
+          <button
+            v-if="clearSlotActive"
+            type="button"
+            class="coar-number-input-clear"
+            :class="{ 'coar-number-input-clear--hidden': !showClearButton }"
+            tabindex="-1"
+            :aria-label="t('coar.ui.numberInput.clear', undefined, 'Clear')"
+            @click="onClear"
+          >
+            <CoarIcon name="x" source="coar-builtin" size="auto" />
+          </button>
+          <span v-if="prefix || $slots.prefix" class="coar-number-input-prefix">
+            <template v-if="prefix">{{ prefix }}</template>
+            <slot name="prefix" />
+          </span>
+        </template>
 
         <!-- Input Element -->
         <input
@@ -344,38 +346,42 @@ function decrement() {
           @keydown="onKeyDown"
         />
 
-        <!-- Suffix -->
-        <span class="coar-number-input-suffix">
-          <template v-if="suffix">{{ suffix }}</template>
-          <slot name="suffix" />
-        </span>
+        <!-- Suffix → trailing affix (only when present) -->
+        <template v-if="suffix || $slots.suffix" #trailing>
+          <span class="coar-number-input-suffix">
+            <template v-if="suffix">{{ suffix }}</template>
+            <slot name="suffix" />
+          </span>
+        </template>
 
-        <!-- Increment/Decrement Buttons -->
-        <div v-if="showButtons" class="coar-number-input-buttons">
-          <button
-            v-if="showDecrementButton"
-            type="button"
-            class="coar-number-input-button coar-number-input-button--decrement"
-            :disabled="!canDecrement"
-            :aria-label="t('coar.ui.numberInput.decrease', undefined, 'Decrease value')"
-            tabindex="-1"
-            @click="decrement"
-          >
-            <CoarIcon name="minus" source="coar-builtin" :size="iconSize" />
-          </button>
-          <button
-            v-if="showIncrementButton"
-            type="button"
-            class="coar-number-input-button coar-number-input-button--increment"
-            :disabled="!canIncrement"
-            :aria-label="t('coar.ui.numberInput.increase', undefined, 'Increase value')"
-            tabindex="-1"
-            @click="increment"
-          >
-            <CoarIcon name="plus" source="coar-builtin" :size="iconSize" />
-          </button>
-        </div>
-      </div>
+        <!-- Stepper +/- → #actions (compact edge cluster; frame clips its outer corner) -->
+        <template v-if="showButtons" #actions>
+          <div class="coar-number-input-buttons">
+            <button
+              v-if="showDecrementButton"
+              type="button"
+              class="coar-number-input-button coar-number-input-button--decrement"
+              :disabled="!canDecrement"
+              :aria-label="t('coar.ui.numberInput.decrease', undefined, 'Decrease value')"
+              tabindex="-1"
+              @click="decrement"
+            >
+              <CoarIcon name="minus" source="coar-builtin" :size="iconSize" />
+            </button>
+            <button
+              v-if="showIncrementButton"
+              type="button"
+              class="coar-number-input-button coar-number-input-button--increment"
+              :disabled="!canIncrement"
+              :aria-label="t('coar.ui.numberInput.increase', undefined, 'Increase value')"
+              tabindex="-1"
+              @click="increment"
+            >
+              <CoarIcon name="plus" source="coar-builtin" :size="iconSize" />
+            </button>
+          </div>
+        </template>
+      </CoarInputFrame>
     </div>
   </div>
 </template>
@@ -391,31 +397,7 @@ function decrement() {
   width: 100%;
 }
 
-/* Input Container */
-.coar-number-input-container {
-  position: relative;
-  display: flex;
-  align-items: center;
-  height: var(--coar-component-m-height);
-  border: 1px solid var(--coar-border-input);
-  border-radius: var(--coar-input-radius);
-  background: var(--coar-surface-input);
-  transition:
-    border-color var(--coar-duration-fast) var(--coar-ease-out),
-    box-shadow var(--coar-duration-fast) var(--coar-ease-out);
-  overflow: hidden;
-}
-
-/* Size variants */
-.coar-number-input--xs .coar-number-input-container {
-  height: var(--coar-component-xs-height);
-}
-.coar-number-input--s .coar-number-input-container {
-  height: var(--coar-component-s-height);
-}
-.coar-number-input--l .coar-number-input-container {
-  height: var(--coar-component-l-height);
-}
+/* Box / radius / size / states owned by CoarInputFrame. */
 
 /* Size-specific typography */
 .coar-number-input--xs .coar-number-input-field {
@@ -430,53 +412,12 @@ function decrement() {
   font-size: var(--coar-component-l-font-size);
 }
 
-.coar-number-input-container:hover:not(.coar-number-input-disabled):not(
-    .coar-number-input-readonly
-  ):not(.coar-number-input-error):not(.coar-number-input-focused) {
-  border-color: var(--coar-border-input-hover);
-}
-
-/* Focus state */
-.coar-number-input-container.coar-number-input-focused:not(.coar-number-input-error) {
-  border-color: var(--coar-focus-color);
-  box-shadow: inset 0 0 0 1px var(--coar-focus-color);
-  outline: none;
-}
-
-.coar-number-input-container.coar-number-input-disabled {
-  background: var(--coar-surface-input-disabled);
-  border-color: var(--coar-border-input);
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.coar-number-input-container.coar-number-input-readonly {
-  background: var(--coar-surface-input);
-  border-color: var(--coar-border-input);
-  cursor: default;
-}
-
-/* Error state */
-.coar-number-input-container.coar-number-input-error {
-  border-color: var(--coar-border-semantic-error-bold);
-}
-
-.coar-number-input-container.coar-number-input-error.coar-number-input-focused {
-  border-color: var(--coar-border-semantic-error-bold);
-  box-shadow: inset 0 0 0 1px var(--coar-border-semantic-error-bold);
-  outline: none;
-}
-
-.coar-number-input-container.coar-number-input-error:hover:not(.coar-number-input-disabled) {
-  border-color: var(--coar-border-semantic-error-bold);
-}
-
-/* Input Field - right aligned for numbers */
+/* Input Field - right aligned for numbers. Horizontal padding owned by the frame. */
 .coar-number-input-field {
   flex: 1;
   min-width: 0;
   height: 100%;
-  padding: 0 var(--coar-spacing-s);
+  padding: 0;
   border: none;
   outline: none;
   background: transparent;
@@ -512,46 +453,32 @@ function decrement() {
   -moz-appearance: textfield;
 }
 
-/* Prefix */
+/* Prefix / Suffix — outer field-pad owned by the frame's leading/trailing affix. */
 .coar-number-input-prefix {
   display: inline-flex;
   align-items: center;
-  padding-left: var(--coar-spacing-s);
   color: var(--coar-icon-neutral-secondary);
   font-size: var(--coar-body-small-base-size);
   white-space: nowrap;
   flex-shrink: 0;
 }
 
-.coar-number-input-prefix:empty {
-  padding-left: 0;
-  flex-basis: 0;
-}
-
-/* Suffix */
 .coar-number-input-suffix {
   display: inline-flex;
   align-items: center;
-  padding-right: var(--coar-spacing-s);
   color: var(--coar-icon-neutral-secondary);
   font-size: var(--coar-body-small-base-size);
   white-space: nowrap;
   flex-shrink: 0;
 }
 
-.coar-number-input-suffix:empty {
-  padding-right: 0;
-  flex-basis: 0;
-}
-
-/* Clear Button (left side for number input) */
+/* Clear Button (sits left of the value, inside the leading affix) */
 .coar-number-input-clear {
   display: flex;
   align-items: center;
   justify-content: center;
   width: auto;
   height: auto;
-  margin-left: var(--coar-spacing-s);
   padding: 0;
   border: none;
   background: transparent;
@@ -572,12 +499,8 @@ function decrement() {
  * `opacity: 1` override outranks `.coar-number-input-clear--hidden { opacity: 0 }`
  * (same specificity, defined later) and the X surfaces even with `clearable: false`.
  */
-.coar-number-input-focused .coar-number-input-clear:not(.coar-number-input-clear--hidden) {
-  opacity: 1;
-  color: var(--coar-icon-neutral-tertiary);
-}
-
-.coar-number-input-container:hover .coar-number-input-clear:not(.coar-number-input-clear--hidden) {
+.coar-number-input-frame:focus-within .coar-number-input-clear:not(.coar-number-input-clear--hidden),
+.coar-number-input-frame:hover .coar-number-input-clear:not(.coar-number-input-clear--hidden) {
   opacity: 1;
   color: var(--coar-icon-neutral-tertiary);
 }
@@ -625,10 +548,15 @@ function decrement() {
 }
 
 .coar-number-input-button {
+  /* base cell width + the natural icon-edge↔cell-edge gap (= (w − iconW) / 2,
+     measured per size: 4/6/6/6 for xs/s/m/l). The outer button reuses that gap as
+     its compact (separator-side) inset so the +/− icons keep an even rhythm. */
+  --coar-number-btn-w: 28px;
+  --coar-number-btn-inner: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
+  width: var(--coar-number-btn-w);
   height: 100%;
   padding: 0;
   border: none;
@@ -641,13 +569,30 @@ function decrement() {
 }
 
 .coar-number-input--xs .coar-number-input-button {
-  width: 20px;
+  --coar-number-btn-w: 20px;
+  --coar-number-btn-inner: 4px;
 }
 .coar-number-input--s .coar-number-input-button {
-  width: 24px;
+  --coar-number-btn-w: 24px;
 }
 .coar-number-input--l .coar-number-input-button {
-  width: 32px;
+  --coar-number-btn-w: 32px;
+}
+
+/* The outer (last) stepper button meets the frame's rounded cap, so it must follow
+   the SAME rule as CoarInputFrameButton: its icon's outer edge lands at
+   max(field-pad, corner) from the frame edge — identical to the clear / eye /
+   chevron / calendar icons. Switch this one cell from fixed-width-centred to the
+   padding model: a compact inner (separator-side) inset, and an outer inset that
+   tracks BOTH the padding token and the radius. Inner buttons stay fixed-width. */
+.coar-number-input-buttons .coar-number-input-button:last-child {
+  width: auto;
+  padding-left: var(--coar-number-btn-inner);
+  padding-right: max(
+    var(--coar-number-btn-inner),
+    var(--coar-field-pad),
+    var(--coar-input-corner, 0px)
+  );
 }
 
 .coar-number-input-button:hover:not(:disabled) {
@@ -669,7 +614,7 @@ function decrement() {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .coar-number-input-container,
+  .coar-number-input-frame,
   .coar-number-input-clear,
   .coar-number-input-button {
     transition-duration: 0s;

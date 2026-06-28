@@ -146,7 +146,7 @@ defineProps<{
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--coar-spacing-2xs, 2px);
+  gap: var(--coar-spacing-xxs, 2px);
 }
 .coar-form-field__status-section-body > p {
   margin: 0;

@@ -4,7 +4,7 @@ import { RADIO_GROUP_INJECTION_KEY } from './constants';
 import { FORM_FIELD_INJECTION_KEY } from '../form-field/constants';
 
 export type RadioGroupOrientation = 'horizontal' | 'vertical';
-export type RadioGroupSize = 's' | 'm' | 'l';
+export type RadioGroupSize = 'xs' | 's' | 'm' | 'l';
 
 export interface CoarRadioGroupProps {
   /** Group name for radio inputs */
@@ -116,7 +116,7 @@ provide(RADIO_GROUP_INJECTION_KEY, {
 
 /* Disabled */
 .coar-radio-group--disabled {
-  opacity: 0.5;
+  opacity: 0.6;
   pointer-events: none;
 }
 </style>

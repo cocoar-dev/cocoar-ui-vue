@@ -211,7 +211,7 @@ function onBlur() {
   height: 20px;
   margin-top: 10px; /* Vertically centers box within component height — off the spacing grid */
   border: 1px solid var(--coar-border-input);
-  border-radius: var(--coar-radius-xs);
+  border-radius: var(--coar-input-radius);
   background: var(--coar-surface-input);
   transition: border-color var(--coar-duration-fast) var(--coar-ease-out), box-shadow var(--coar-duration-fast) var(--coar-ease-out);
 }
@@ -299,13 +299,13 @@ function onBlur() {
 
 /* Error state */
 .coar-checkbox--error .coar-checkbox-box {
-  border-color: var(--coar-text-semantic-error-bold);
+  border-color: var(--coar-border-semantic-error-bold);
 }
 
 .coar-checkbox--error .coar-checkbox-box.coar-checkbox-checked,
 .coar-checkbox--error .coar-checkbox-box.coar-checkbox-indeterminate {
-  background: var(--coar-text-semantic-error-bold);
-  border-color: var(--coar-text-semantic-error-bold);
+  background: var(--coar-background-semantic-error-bold);
+  border-color: var(--coar-border-semantic-error-bold);
 }
 
 /* Checkmark icon */

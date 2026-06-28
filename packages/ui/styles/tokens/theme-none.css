@@ -140,7 +140,7 @@
   --coar-card-radius:              var(--coar-radius-s);
   --coar-menu-radius:              var(--coar-radius-s);
   --coar-popover-radius:           var(--coar-radius-s);
-  --coar-dropdown-radius:          var(--coar-radius-s);
+  --coar-dropdown-radius:          var(--coar-input-radius);
   --coar-dialog-border-radius:     var(--coar-radius-l);
   --coar-toast-border-radius:      var(--coar-radius-m);
   --coar-card-shadow:              var(--coar-elevation-medium);
