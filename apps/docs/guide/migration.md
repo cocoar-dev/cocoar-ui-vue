@@ -12,7 +12,7 @@ checklist below is ordered by how likely it is to affect you.
 
 | If you… | …then you need to |
 | --- | --- |
-| Use the **date / time pickers** with a `label`, `hint`, or `error="message"` | Wrap them in [`CoarFormField`](/components/form-field) (see below). **The only real code change.** |
+| Use the **date / time pickers** with a `label`, `hint`, or `error="message"` | Wrap them in [`CoarFormField`](/components/form-field) (see below) — a consistency fix that brings them in line with every other input. **The only real code change.** |
 | Rely on the **auto clear ✕** on text / number / password / date inputs | Add the `clearable` prop where you want it. |
 | **Override `--coar-input-padding-x`** in your own CSS | Rename it to `--coar-field-padding-x`. |
 | **Use `--coar-spacing-2xs` / `-xxl` / `-xxxl`** in your own CSS | Switch `2xs → xxs`; pick another step for `xxl` / `xxxl`. |
@@ -22,7 +22,14 @@ checklist below is ordered by how likely it is to affect you.
 
 ## 1. Date & time pickers move onto `CoarFormField`
 
-The biggest change. `CoarPlainDatePicker`, `CoarPlainDateTimePicker` and
+This is really a **consistency fix**, not a feature removal. The date/time
+pickers were the only inputs that rendered their *own* label and below-field
+message instead of delegating to [`CoarFormField`](/components/form-field) like
+every other field — an oversight from when they were first built. They now follow
+the same pattern as the rest of the family, which also **fixes** a latent bug
+where a `CoarFormField`-wrapped picker didn't pick up the error border.
+
+Concretely: `CoarPlainDatePicker`, `CoarPlainDateTimePicker` and
 `CoarZonedDateTimePicker` no longer render their own label, required asterisk, or
 below-field hint/error message, and they no longer take `label` / `hint` props.
 Their `error` prop is now a **`boolean`** (it flips the red border + `aria-invalid`),
@@ -30,8 +37,7 @@ matching `CoarTextInput` and the rest of the field family.
 
 Wrap them in [`CoarFormField`](/components/form-field) — exactly like every other
 input — to get the label, the required `*`, validation messages and the inline
-status icon. This also **fixes** a latent bug where a `CoarFormField`-wrapped
-picker didn't pick up the error border.
+status icon.
 
 **Before:**
 
