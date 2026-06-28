@@ -7,9 +7,13 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
-## Unreleased
+## 2.11.0
 
-Spacing-scale cleanup and a dedicated field-padding token. The spacing scale had drifted: two dead steps, a duplicate, and an off-scale value (`12px`) faked with `calc(--spacing-s + --spacing-xs)` — which implicitly coupled input padding to two scale steps, so tuning `--coar-spacing-s` silently shifted every text field. A usage census (workhorses `s`/`xs` ≈ 70% of all references; `xxl`/`xxxl` unused; `2xs` a duplicate of `xxs`) drove the change.
+A library-wide consistency pass for the input & form-control family. The whole field family — text / number / password / select / multi-select / tag-select and the three date-time pickers — now sits on one internal shell (`CoarInputFrame`), so box, border, radius, surface, states and field padding all come from a single place. The non-typing form controls (checkbox, switch, radio, listbox, dual-listbox, segmented control) are aligned to the same input + semantic-error tokens, and the Theme Editor is rebuilt around the new token model.
+
+It is **mostly visual-neutral** — padding and sizing values were preserved. The breaking changes are narrow and concentrated: the date/time pickers move their label & validation onto `CoarFormField` (a consistency fix), `clearable` now defaults to `false`, and a few design tokens are renamed/removed. See the **[Migrating to 2.11 guide](/guide/migration)** — most apps need a one-line change or nothing at all.
+
+Underpinning it is a spacing-scale cleanup and a dedicated field-padding token. The spacing scale had drifted: two dead steps, a duplicate, and an off-scale value (`12px`) faked with `calc(--spacing-s + --spacing-xs)` — which implicitly coupled input padding to two scale steps, so tuning `--coar-spacing-s` silently shifted every text field. A usage census (workhorses `s`/`xs` ≈ 70% of all references; `xxl`/`xxxl` unused; `2xs` a duplicate of `xxs`) drove the change.
 
 ### Removed
 
