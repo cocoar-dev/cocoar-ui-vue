@@ -315,6 +315,7 @@ export default defineConfig({
             { text: 'Divider', link: '/components/divider' },
             { text: 'Link', link: '/components/link' },
             { text: 'Map (Preview)', link: '/components/map' },
+            { text: 'Map Editor (Preview)', link: '/components/map-editor' },
             { text: 'Note', link: '/components/note' },
             { text: 'Progress Bar', link: '/components/progress-bar' },
             { text: 'Spinner', link: '/components/spinner' },
