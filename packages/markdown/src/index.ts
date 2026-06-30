@@ -34,6 +34,7 @@ export {
   DefaultBlockquote,
   DefaultCodeBlock,
   DefaultColorSpan,
+  DefaultEmbed,
   DefaultEmphasis,
   DefaultFrontmatter,
   DefaultHeading,
@@ -57,6 +58,23 @@ export {
 // Recursive dispatcher. The viewer wraps it; the editor uses it directly
 // inside NodeViews when rendering markdown sub-trees outside of PM control.
 export { RenderNode, renderMarkdownNodes } from './RenderNode';
+
+// Custom-embed registry — the open `:::key{props}` → Vue component map shared
+// by the viewer and the editor. `DefaultEmbed` is exported via the renderer
+// block above.
+export {
+  EmbedRenderer,
+  MARKDOWN_EMBEDS_KEY,
+  resolveEmbed,
+  toEmbedProps,
+} from './embeds';
+export type {
+  EmbedDefinition,
+  EmbedEditorController,
+  EmbedEditorProps,
+  EmbedInsertIntegration,
+  EmbedRegistry,
+} from './embeds';
 
 // Node-attribute helpers — re-exported so consumers writing custom renderers
 // can reuse the same parsing logic instead of re-inventing it.

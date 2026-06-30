@@ -9,7 +9,7 @@
    `useInstance()` access pattern. */
 import {
   defineComponent, h, ref, shallowRef, computed, watch, inject, useId, markRaw,
-  onMounted, onBeforeUnmount, Teleport,
+  onMounted, onBeforeUnmount, Teleport, getCurrentInstance,
   type PropType, type VNodeArrayChildren,
 } from 'vue';
 import {
@@ -25,6 +25,8 @@ import { codeBlockNodeView } from './code-block-view';
 import { textColor } from './text-color';
 import { PlaceholderOverlay } from './placeholder';
 import { frontmatter } from './frontmatter';
+import { createEmbedNode } from './embed';
+import type { EmbedRegistry } from '@cocoar/vue-markdown';
 import ColorPickerPanel from './text-color/ColorPickerPanel.vue';
 import TableSizePicker from './table/TableSizePicker.vue';
 import TableHandles from './table/TableHandles.vue';
@@ -86,6 +88,38 @@ export const COAR_MARKDOWN_EDITOR_ALL_TOOLS: readonly CoarMarkdownEditorTool[] =
   'clearFormatting',
   'undo', 'redo',
 ];
+
+/**
+ * A reference in the `tools` layout: a built-in tool id, OR a custom embed
+ * insert item addressed by key as `embed:<key>`. The embed's icon/label/insert
+ * behaviour come from its registry entry's `insert` field — the `tools` layout
+ * only decides *where* it appears.
+ */
+export type CoarMarkdownEditorToolRef = CoarMarkdownEditorTool | `embed:${string}`;
+
+/**
+ * A flyout (submenu) group in the `tools` layout. Bundles any mix of built-in
+ * and embed refs behind a single toolbar button.
+ */
+export interface CoarMarkdownEditorToolFlyout {
+  flyout: CoarMarkdownEditorToolRef[];
+  /** Group button label / tooltip. */
+  label?: string;
+  /** Group button icon (CoarIcon name). Defaults to a generic insert icon. */
+  icon?: string;
+}
+
+/**
+ * One entry in the `tools` layout. The array order **is** the toolbar order.
+ * An entry is a single ref, a flyout group, or a `'divider'` separator.
+ *
+ * Backwards compatible: a plain `CoarMarkdownEditorTool[]` is still valid (every
+ * element is a `CoarMarkdownEditorToolRef`).
+ */
+export type CoarMarkdownEditorToolEntry =
+  | CoarMarkdownEditorToolRef
+  | CoarMarkdownEditorToolFlyout
+  | 'divider';
 
 export interface CoarMarkdownEditorProps {
   modelValue?: string;
@@ -203,7 +237,7 @@ const EditorImpl = defineComponent({
     disabled: { type: Boolean, required: true },
     toolbarMode: { type: String as PropType<CoarMarkdownEditorToolbarMode>, required: true },
     toolbarPosition: { type: String as PropType<CoarMarkdownEditorToolbarPosition>, required: true },
-    tools: { type: Array as PropType<CoarMarkdownEditorTool[] | undefined>, default: undefined },
+    tools: { type: Array as PropType<CoarMarkdownEditorToolEntry[] | undefined>, default: undefined },
     flavor: { type: [String, Object] as PropType<CoarMarkdownFlavorInput>, default: undefined },
     inputId: { type: String, required: true },
     hasError: { type: Boolean, required: true },
@@ -214,9 +248,13 @@ const EditorImpl = defineComponent({
     sourceToggle: { type: Boolean, default: false },
     uploadImage: { type: Function as PropType<ImageUploader | undefined>, default: undefined },
     pickImage: { type: Function as PropType<ImagePicker | undefined>, default: undefined },
+    embeds: { type: Object as PropType<EmbedRegistry | undefined>, default: undefined },
     onMarkdownChange: { type: Function as PropType<(md: string) => void>, required: true },
   },
   setup(props) {
+    // App context for mounting embed NodeView previews (manual mount needs it to
+    // inherit app-level provides + global components).
+    const appContext = getCurrentInstance()?.appContext ?? null;
     // Track last value emitted from inside the editor — so external watch
     // doesn't loop when the parent echoes our own update back. `lastEmitted`
     // is the single source of truth for the current markdown: it feeds the
@@ -262,6 +300,12 @@ const EditorImpl = defineComponent({
         .use(listener);
       // Inline color mark + raw-HTML span round-trip — non-portable, so gated.
       if (capabilities.textColor) editor.use(textColor);
+      // Custom `:::key{props}` embeds — non-portable, so gated. The NodeView
+      // mounts the consumer-registered component live (same `EmbedRenderer` the
+      // viewer uses); the registry is read lazily so a changed prop is honoured.
+      if (capabilities.embeds) {
+        editor.use(createEmbedNode({ resolveRegistry: () => props.embeds, appContext }));
+      }
       editor
         // Custom NodeView for `code_block` — Prism-rendered when not focused,
         // editable + language selector when the cursor is inside.
@@ -355,6 +399,7 @@ const EditorImpl = defineComponent({
       required: props.required,
       placeholder: props.placeholder,
       pickImage: props.pickImage,
+      embeds: props.embeds,
       flavor: props.flavor,
       isEmpty: lastEmitted.value.trim() === '',
       sourceToggle: props.sourceToggle,
@@ -376,7 +421,7 @@ const Toolbar = defineComponent({
     disabled: { type: Boolean, required: true },
     toolbarMode: { type: String as PropType<CoarMarkdownEditorToolbarMode>, required: true },
     toolbarPosition: { type: String as PropType<CoarMarkdownEditorToolbarPosition>, required: true },
-    tools: { type: Array as PropType<CoarMarkdownEditorTool[] | undefined>, default: undefined },
+    tools: { type: Array as PropType<CoarMarkdownEditorToolEntry[] | undefined>, default: undefined },
     flavor: { type: [String, Object] as PropType<CoarMarkdownFlavorInput>, default: undefined },
     inputId: { type: String, required: true },
     hasError: { type: Boolean, required: true },
@@ -385,6 +430,7 @@ const Toolbar = defineComponent({
     required: { type: Boolean, required: true },
     placeholder: { type: String, default: '' },
     pickImage: { type: Function as PropType<ImagePicker | undefined>, default: undefined },
+    embeds: { type: Object as PropType<EmbedRegistry | undefined>, default: undefined },
     isEmpty: { type: Boolean, default: false },
     sourceToggle: { type: Boolean, default: false },
     viewMode: { type: String as PropType<'rendered' | 'source'>, default: 'rendered' },
@@ -453,6 +499,34 @@ const Toolbar = defineComponent({
         ctx.get(commandsCtx).call(cmd.command.key, cmd.payload);
       });
       // Re-read active state after the command runs (toggles flip immediately).
+      updateActiveState();
+    }
+
+    /**
+     * Insert a custom embed (`:::key{props}`) at the cursor. Resolves the start
+     * attributes via the registry entry's `insert.pick` (e.g. a consumer picker
+     * dialog) when present; a `null` result cancels. The atom `embed` node is
+     * placed at the selection and round-trips to markdown via the embed schema.
+     */
+    async function insertEmbed(key: string) {
+      if (props.readonly) return;
+      const def = props.embeds?.[key];
+      let attrs: Record<string, string> = {};
+      if (def?.insert?.pick) {
+        const picked = await def.insert.pick();
+        if (picked == null) return; // cancelled
+        attrs = picked;
+      }
+      const editor = getInstance();
+      if (!editor) return;
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        const type = view.state.schema.nodes['embed'];
+        if (!type) return;
+        const node = type.create({ embedKey: key, props: attrs });
+        view.dispatch(view.state.tr.replaceSelectionWith(node).scrollIntoView());
+        view.focus();
+      });
       updateActiveState();
     }
 
@@ -536,11 +610,26 @@ const Toolbar = defineComponent({
       call(wrap);
     }
 
-    // Whitelist check — pure logic in `isToolEnabled`. We cache the Set so
-    // each render avoids a fresh membership conversion.
-    const enabledSet = computed<ReadonlySet<CoarMarkdownEditorTool> | undefined>(() =>
-      props.tools ? new Set(props.tools) : undefined,
-    );
+    // Whitelist check — pure logic in `isToolEnabled`. We FLATTEN the layout to
+    // the set of built-in tool ids it mentions (top-level and inside flyouts),
+    // ignoring `embed:` refs and dividers. This keeps the floating toolbar's
+    // curation correct when `tools` carries the richer entry/flyout shape.
+    const enabledSet = computed<ReadonlySet<CoarMarkdownEditorTool> | undefined>(() => {
+      if (!props.tools) return undefined;
+      const set = new Set<CoarMarkdownEditorTool>();
+      const addRef = (ref: unknown) => {
+        if (typeof ref === 'string' && ref !== 'divider' && !ref.startsWith('embed:')) {
+          set.add(ref as CoarMarkdownEditorTool);
+        }
+      };
+      for (const entry of props.tools) {
+        if (typeof entry === 'string') addRef(entry);
+        else if (entry && typeof entry === 'object' && Array.isArray(entry.flyout)) {
+          entry.flyout.forEach(addRef);
+        }
+      }
+      return set;
+    });
     // Resolved flavor capabilities (reactive so the toolbar tracks a changed
     // `flavor` prop). Drives the hard capability gate in `enabled()`.
     const capabilities = computed<CoarMarkdownCapabilities>(() => resolveCapabilities(props.flavor));
@@ -1059,19 +1148,24 @@ const Toolbar = defineComponent({
       });
     }
 
+    // Default sidebar layout (used when `tools` is undefined). The array order
+    // IS the toolbar order; `'divider'`s collapse contextually (see below).
+    const DEFAULT_LAYOUT: CoarMarkdownEditorToolEntry[] = [
+      'bold', 'italic', 'strikethrough', 'inlineCode', 'textColor', 'headings',
+      'divider',
+      'bulletList', 'orderedList', 'taskList', 'outdent', 'indent', 'blockquote', 'horizontalRule',
+      'divider',
+      'codeBlock', 'table', 'image',
+      'divider', 'tableOps',
+      'divider', 'clearFormatting',
+      'divider', 'undo', 'redo',
+    ];
+
     function renderSidebar() {
       const a = active.value;
       const isHeadingActive = a.heading != null;
+      const caps = capabilities.value;
 
-      // Helper: append an item if its tool is enabled. Keeps the list flat
-      // while respecting the `tools` whitelist.
-      function pushIf<T extends CoarMarkdownEditorTool>(
-        arr: VNodeArrayChildren,
-        tool: T,
-        node: VNodeArrayChildren[number],
-      ) {
-        if (enabled(tool)) arr.push(node);
-      }
       function sectionDivider(arr: VNodeArrayChildren) {
         // Only add a divider if the previous item isn't already a divider/empty
         if (arr.length === 0) return;
@@ -1080,11 +1174,123 @@ const Toolbar = defineComponent({
         arr.push(h(CoarSidebarDivider));
       }
 
+      // Single source of truth for built-in item construction. Returns []
+      // when the flavor forbids the tool, or it's contextual and not applicable
+      // (e.g. `tableOps` outside a table). Used by the default layout AND any
+      // consumer-provided layout, so both render identical items.
+      function descriptorFor(id: CoarMarkdownEditorTool): VNodeArrayChildren {
+        if (!isToolAllowedByCapabilities(id, caps)) return [];
+        switch (id) {
+          case 'bold': return [sidebarItem('bold', 'Bold', cmds.bold, { active: a.strong })];
+          case 'italic': return [sidebarItem('italic', 'Italic', cmds.italic, { active: a.emphasis })];
+          case 'strikethrough': return [sidebarItem('strikethrough', 'Strikethrough', cmds.strike, { active: a.strike_through })];
+          case 'inlineCode': return [sidebarItem('code', 'Inline Code', cmds.code, { active: a.inlineCode })];
+          case 'textColor': return [h(CoarSidebarItem, {
+            icon: 'palette',
+            label: 'Text Color',
+            active: a.text_color !== null,
+            onClick: (e: MouseEvent) => {
+              // Keyboard activation synthesises a MouseEvent without a
+              // currentTarget; fall back to the click target for the anchor.
+              const triggerEl = (e.currentTarget as HTMLElement | null) ?? (e.target as HTMLElement | null);
+              toggleColorPicker(triggerEl);
+            },
+          })];
+          case 'headings': return [h(CoarSidebarGroup, {
+            icon: 'hash',
+            label: isHeadingActive ? `Heading ${a.heading}` : 'Headings',
+            mode: 'flyout',
+            openOnHover: true,
+          }, {
+            default: () => [
+              h(CoarSidebarItem, { icon: 'pilcrow', label: 'Paragraph', active: !isHeadingActive, onClick: () => call(cmds.paragraph) }),
+              h(CoarSidebarItem, { icon: 'heading', label: 'Heading 1', active: a.heading === 1, onClick: () => call(cmds.h1) }),
+              h(CoarSidebarItem, { icon: 'heading', label: 'Heading 2', active: a.heading === 2, onClick: () => call(cmds.h2) }),
+              h(CoarSidebarItem, { icon: 'heading', label: 'Heading 3', active: a.heading === 3, onClick: () => call(cmds.h3) }),
+              h(CoarSidebarItem, { icon: 'heading', label: 'Heading 4', active: a.heading === 4, onClick: () => call(cmds.h4) }),
+              h(CoarSidebarItem, { icon: 'heading', label: 'Heading 5', active: a.heading === 5, onClick: () => call(cmds.h5) }),
+              h(CoarSidebarItem, { icon: 'heading', label: 'Heading 6', active: a.heading === 6, onClick: () => call(cmds.h6) }),
+            ],
+          })];
+          case 'bulletList': return [sidebarItem('list', 'Bullet List', cmds.bulletList, { active: a.bullet_list, onClick: () => toggleList('bullet_list') })];
+          case 'orderedList': return [sidebarItem('list-ordered', 'Ordered List', cmds.orderedList, { active: a.ordered_list, onClick: () => toggleList('ordered_list') })];
+          case 'taskList': return [sidebarItem('clipboard-check', 'Task List', cmds.bulletList, { active: a.task_list, onClick: toggleTaskList })];
+          // Indent is meaningless outside a list. Outdent stops at the top list
+          // level — leaving the list is the list-button's job, not Outdent's.
+          case 'outdent': return [sidebarItem('indent-decrease', 'Outdent', cmds.outdent, { disabled: a.list_item_depth < 2 })];
+          case 'indent': return [sidebarItem('indent-increase', 'Indent', cmds.indent, { disabled: a.list_item_depth < 1 })];
+          case 'blockquote': return [sidebarItem('text-quote', 'Blockquote', cmds.blockquote, { active: a.blockquote })];
+          case 'horizontalRule': return [sidebarItem('minus', 'Horizontal Rule', cmds.hr)];
+          case 'codeBlock': return [sidebarItem('square-code', 'Code Block', cmds.codeBlock, { active: a.code_block })];
+          case 'table': return [h(CoarSidebarItem, {
+            icon: 'table',
+            label: 'Insert Table',
+            active: a.table,
+            onClick: (e: MouseEvent) => {
+              const triggerEl = (e.currentTarget as HTMLElement | null) ?? (e.target as HTMLElement | null);
+              openTablePicker(triggerEl);
+            },
+          })];
+          case 'image': return [sidebarItem('image', 'Insert Image', cmds.bold, { onClick: handleInsertImageClick })];
+          // Contextual: only surfaces when the cursor is inside a table.
+          case 'tableOps': return a.table ? [
+            sidebarItem('table-row-plus-above', 'Insert Row Above', cmds.addRowBefore),
+            sidebarItem('table-row-plus-below', 'Insert Row Below', cmds.addRowAfter),
+            sidebarItem('table-column-plus-left', 'Insert Column Left', cmds.addColBefore),
+            sidebarItem('table-column-plus-right', 'Insert Column Right', cmds.addColAfter),
+            sidebarItem('align-left', 'Align Left', cmds.deleteCell, { active: a.cell_alignment === 'left', onClick: () => setColumnAlignment('left') }),
+            sidebarItem('align-center', 'Align Center', cmds.deleteCell, { active: a.cell_alignment === 'center', onClick: () => setColumnAlignment('center') }),
+            sidebarItem('align-right', 'Align Right', cmds.deleteCell, { active: a.cell_alignment === 'right', onClick: () => setColumnAlignment('right') }),
+            sidebarItem('trash-2', 'Delete Cell', cmds.deleteCell),
+            sidebarItem('table', 'Delete Table', cmds.deleteCell, { onClick: deleteTable }),
+          ] : [];
+          case 'clearFormatting': return [sidebarItem('eraser', 'Clear Formatting', cmds.bold, { onClick: clearFormatting })];
+          case 'undo': return [sidebarItem('undo-2', 'Undo', cmds.undo)];
+          case 'redo': return [sidebarItem('redo-2', 'Redo', cmds.redo)];
+          default: return [];
+        }
+      }
+
+      // Build the item for an `embed:<key>` ref from the registry's `insert`
+      // metadata. [] when embeds are off, the key isn't registered, or it has no
+      // `insert` config.
+      function embedItemNodes(key: string): VNodeArrayChildren {
+        if (!caps.embeds) return [];
+        const def = props.embeds?.[key];
+        if (!def?.insert) return [];
+        return [h(CoarSidebarItem, {
+          icon: def.insert.icon ?? 'layout-grid',
+          label: def.insert.label ?? key,
+          onClick: () => { void insertEmbed(key); },
+        })];
+      }
+
+      // Resolve one layout entry to its node(s). Flyout groups recurse; an empty
+      // group (all children gated out) renders nothing.
+      function resolveEntryNodes(entry: CoarMarkdownEditorToolEntry): VNodeArrayChildren {
+        if (typeof entry === 'string') {
+          if (entry === 'divider') return [];
+          if (entry.startsWith('embed:')) return embedItemNodes(entry.slice('embed:'.length));
+          // Neither divider nor embed ref ⇒ a built-in tool id.
+          return descriptorFor(entry as CoarMarkdownEditorTool);
+        }
+        if (entry && typeof entry === 'object' && Array.isArray(entry.flyout)) {
+          const children = entry.flyout.flatMap((ref) => resolveEntryNodes(ref));
+          if (children.length === 0) return [];
+          return [h(CoarSidebarGroup, {
+            icon: entry.icon ?? 'plus',
+            label: entry.label ?? '',
+            mode: 'flyout',
+            openOnHover: true,
+          }, { default: () => children })];
+        }
+        return [];
+      }
+
       const items: VNodeArrayChildren = [];
 
-      // Source toggle — pinned at the top when `sourceToggle` is on. In Source
-      // mode it's the *only* item: the formatting commands act on the hidden
-      // rich editor, so showing them would be confusing.
+      // Source toggle — pinned at the top when `sourceToggle` is on (independent
+      // of the tools layout). In Source mode it's the *only* item.
       if (props.sourceToggle) {
         const isSource = props.viewMode === 'source';
         items.push(h(CoarSidebarItem, {
@@ -1097,96 +1303,13 @@ const Toolbar = defineComponent({
         sectionDivider(items);
       }
 
-      pushIf(items, 'bold', sidebarItem('bold', 'Bold', cmds.bold, { active: a.strong }));
-      pushIf(items, 'italic', sidebarItem('italic', 'Italic', cmds.italic, { active: a.emphasis }));
-      pushIf(items, 'strikethrough', sidebarItem('strikethrough', 'Strikethrough', cmds.strike, { active: a.strike_through }));
-      pushIf(items, 'inlineCode', sidebarItem('code', 'Inline Code', cmds.code, { active: a.inlineCode }));
-      // Text color trigger — opens the same Teleported swatch popover used by
-      // the floating toolbar, anchored to the sidebar item so positioning
-      // stays correct when the sidebar lives on the right edge etc.
-      pushIf(items, 'textColor', h(CoarSidebarItem, {
-        icon: 'palette',
-        label: 'Text Color',
-        active: a.text_color !== null,
-        onClick: (e: MouseEvent) => {
-          // CoarSidebarItem's keyboard activation synthesises a MouseEvent
-          // without a currentTarget; fall back to the click target so the
-          // overlay still has a valid anchor element to position against.
-          const triggerEl = (e.currentTarget as HTMLElement | null) ??
-            (e.target as HTMLElement | null);
-          toggleColorPicker(triggerEl);
-        },
-      }));
-      pushIf(items, 'headings', h(CoarSidebarGroup, {
-        icon: 'hash',
-        label: isHeadingActive ? `Heading ${a.heading}` : 'Headings',
-        mode: 'flyout',
-        openOnHover: true,
-      }, {
-        default: () => [
-          h(CoarSidebarItem, { icon: 'pilcrow', label: 'Paragraph', active: !isHeadingActive, onClick: () => call(cmds.paragraph) }),
-          h(CoarSidebarItem, { icon: 'heading', label: 'Heading 1', active: a.heading === 1, onClick: () => call(cmds.h1) }),
-          h(CoarSidebarItem, { icon: 'heading', label: 'Heading 2', active: a.heading === 2, onClick: () => call(cmds.h2) }),
-          h(CoarSidebarItem, { icon: 'heading', label: 'Heading 3', active: a.heading === 3, onClick: () => call(cmds.h3) }),
-          h(CoarSidebarItem, { icon: 'heading', label: 'Heading 4', active: a.heading === 4, onClick: () => call(cmds.h4) }),
-          h(CoarSidebarItem, { icon: 'heading', label: 'Heading 5', active: a.heading === 5, onClick: () => call(cmds.h5) }),
-          h(CoarSidebarItem, { icon: 'heading', label: 'Heading 6', active: a.heading === 6, onClick: () => call(cmds.h6) }),
-        ],
-      }));
-
-      sectionDivider(items);
-      pushIf(items, 'bulletList', sidebarItem('list', 'Bullet List', cmds.bulletList,
-        { active: a.bullet_list, onClick: () => toggleList('bullet_list') }));
-      pushIf(items, 'orderedList', sidebarItem('list-ordered', 'Ordered List', cmds.orderedList,
-        { active: a.ordered_list, onClick: () => toggleList('ordered_list') }));
-      pushIf(items, 'taskList', sidebarItem('clipboard-check', 'Task List', cmds.bulletList,
-        { active: a.task_list, onClick: toggleTaskList }));
-      // Indent is meaningless outside a list. Outdent stops at the top list
-      // level — leaving the list is the list-button's job, not Outdent's.
-      pushIf(items, 'outdent', sidebarItem('indent-decrease', 'Outdent', cmds.outdent,
-        { disabled: a.list_item_depth < 2 }));
-      pushIf(items, 'indent', sidebarItem('indent-increase', 'Indent', cmds.indent,
-        { disabled: a.list_item_depth < 1 }));
-      pushIf(items, 'blockquote', sidebarItem('text-quote', 'Blockquote', cmds.blockquote, { active: a.blockquote }));
-      pushIf(items, 'horizontalRule', sidebarItem('minus', 'Horizontal Rule', cmds.hr));
-
-      sectionDivider(items);
-      pushIf(items, 'codeBlock', sidebarItem('square-code', 'Code Block', cmds.codeBlock, { active: a.code_block }));
-      pushIf(items, 'table', h(CoarSidebarItem, {
-        icon: 'table',
-        label: 'Insert Table',
-        active: a.table,
-        onClick: (e: MouseEvent) => {
-          const triggerEl = (e.currentTarget as HTMLElement | null) ?? (e.target as HTMLElement | null);
-          openTablePicker(triggerEl);
-        },
-      }));
-      pushIf(items, 'image', sidebarItem('image', 'Insert Image', cmds.bold, { onClick: handleInsertImageClick }));
-
-      // When the cursor is inside a table, surface the table operations in the
-      // sidebar so users in `fixed`/`both` toolbar mode can edit table structure
-      // without relying on the floating toolbar (which can be disabled).
-      if (a.table && enabled('tableOps')) {
-        sectionDivider(items);
-        items.push(sidebarItem('table-row-plus-above', 'Insert Row Above', cmds.addRowBefore));
-        items.push(sidebarItem('table-row-plus-below', 'Insert Row Below', cmds.addRowAfter));
-        items.push(sidebarItem('table-column-plus-left', 'Insert Column Left', cmds.addColBefore));
-        items.push(sidebarItem('table-column-plus-right', 'Insert Column Right', cmds.addColAfter));
-        items.push(sidebarItem('align-left', 'Align Left', cmds.deleteCell, { active: a.cell_alignment === 'left', onClick: () => setColumnAlignment('left') }));
-        items.push(sidebarItem('align-center', 'Align Center', cmds.deleteCell, { active: a.cell_alignment === 'center', onClick: () => setColumnAlignment('center') }));
-        items.push(sidebarItem('align-right', 'Align Right', cmds.deleteCell, { active: a.cell_alignment === 'right', onClick: () => setColumnAlignment('right') }));
-        items.push(sidebarItem('trash-2', 'Delete Cell', cmds.deleteCell));
-        items.push(sidebarItem('table', 'Delete Table', cmds.deleteCell, { onClick: deleteTable }));
+      // The array order IS the toolbar order. `'divider'`s collapse when the
+      // surrounding entries resolve to nothing (e.g. `tableOps` outside a table).
+      const layout = props.tools ?? DEFAULT_LAYOUT;
+      for (const entry of layout) {
+        if (entry === 'divider') { sectionDivider(items); continue; }
+        for (const node of resolveEntryNodes(entry)) items.push(node);
       }
-
-      if (enabled('clearFormatting')) {
-        sectionDivider(items);
-        items.push(sidebarItem('eraser', 'Clear Formatting', cmds.bold, { onClick: clearFormatting }));
-      }
-
-      sectionDivider(items);
-      pushIf(items, 'undo', sidebarItem('undo-2', 'Undo', cmds.undo));
-      pushIf(items, 'redo', sidebarItem('redo-2', 'Redo', cmds.redo));
 
       // Strip a trailing divider if no items followed
       const last = items[items.length - 1] as { type?: unknown } | undefined;
@@ -1509,10 +1632,11 @@ export default defineComponent({
     sourceToggle: { type: Boolean, default: false },
     toolbarMode: { type: String as PropType<CoarMarkdownEditorToolbarMode>, default: 'floating' },
     toolbarPosition: { type: String as PropType<CoarMarkdownEditorToolbarPosition>, default: 'left' },
-    tools: { type: Array as PropType<CoarMarkdownEditorTool[]>, default: undefined },
+    tools: { type: Array as PropType<CoarMarkdownEditorToolEntry[]>, default: undefined },
     flavor: { type: [String, Object] as PropType<CoarMarkdownFlavorInput>, default: undefined },
     uploadImage: { type: Function as PropType<ImageUploader | undefined>, default: undefined },
     pickImage: { type: Function as PropType<ImagePicker | undefined>, default: undefined },
+    embeds: { type: Object as PropType<EmbedRegistry>, default: undefined },
   },
   emits: ['update:modelValue'],
   setup(props, { emit }) {
@@ -1551,6 +1675,7 @@ export default defineComponent({
         placeholder: props.placeholder,
         uploadImage: props.uploadImage,
         pickImage: props.pickImage,
+        embeds: props.embeds,
         onMarkdownChange: (md: string) => emit('update:modelValue', md),
       }),
     );
@@ -1562,6 +1687,18 @@ export default defineComponent({
 /* Shared markdown-block stylesheet — same source as the viewer (`CoarMarkdown`).
    Editor-specific compactness rules below win via deeper-selector specificity. */
 @import "@cocoar/vue-markdown/styles";
+
+/* Custom-embed NodeView host — holds the live, manually-mounted preview. The
+   inner `.coar-markdown-embed` (from the shared stylesheet) owns block rhythm;
+   here we just give the selected state a focus halo. */
+.coar-markdown-embed-host {
+  position: relative;
+}
+.coar-markdown-embed-host--selected {
+  outline: 2px solid var(--coar-border-accent, #2563eb);
+  outline-offset: 2px;
+  border-radius: var(--coar-markdown-radius, 8px);
+}
 
 .coar-md-root {
   display: flex;

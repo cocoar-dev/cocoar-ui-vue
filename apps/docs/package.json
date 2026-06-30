@@ -15,6 +15,7 @@
     "@cocoar/vue-markdown": "workspace:*",
     "@cocoar/vue-markdown-core": "workspace:*",
     "@cocoar/vue-markdown-editor": "workspace:*",
+    "@cocoar/vue-map": "workspace:*",
     "@cocoar/vue-script-editor": "workspace:*",
     "@cocoar/vue-ui": "workspace:*",
     "@js-temporal/polyfill": "^0.5.1",

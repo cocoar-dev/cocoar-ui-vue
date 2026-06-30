@@ -6,6 +6,7 @@ import type { Root, RootContent, Table } from 'mdast';
 
 import type { MarkdownDocument, MarkdownNode } from './types';
 import { serializeColorSpanClose, serializeColorSpanOpen } from './color-span';
+import { serializeEmbedDirective, toEmbedProps } from './embed-directive';
 
 export interface SerializeMarkdownOptions {
   readonly gfm?: boolean;
@@ -165,6 +166,21 @@ function toMdastNode(node: MarkdownNode): unknown {
         type: 'tableCell',
         children: (node.children ?? []).flatMap(toMdastNodes),
       };
+    case 'embed': {
+      const key = typeof node.attrs?.['key'] === 'string' ? node.attrs['key'] : '';
+      if (key.length === 0) {
+        // Defensive: an embed without a key can't round-trip — emit nothing
+        // rather than a broken `:::` line.
+        return { type: 'html', value: '' };
+      }
+      // Verbatim `html` node (like colorSpan) so remark-stringify never escapes
+      // the `:::key{…}` text. On re-parse it becomes a paragraph again, which the
+      // embed fold re-recognises — so parse → serialize → parse is a fixed point.
+      return {
+        type: 'html',
+        value: serializeEmbedDirective({ key, props: toEmbedProps(node.attrs?.['props']) }),
+      };
+    }
     case 'unsupported':
       return {
         type: 'html',

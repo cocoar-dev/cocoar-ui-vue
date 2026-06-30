@@ -18,6 +18,7 @@ import type { MarkdownDocument, MarkdownNode, MarkdownPosition } from './types';
 import { createNodeId } from './id';
 import { isColorSpanClose, parseColorSpanOpen } from './color-span';
 import { parseFrontmatter } from './frontmatter';
+import { parseEmbedDirective } from './embed-directive';
 
 export interface ParseMarkdownOptions {
   readonly gfm?: boolean;
@@ -36,16 +37,54 @@ export function parse(markdown: string, options: ParseMarkdownOptions = {}): Mar
   processor.use(remarkFrontmatter, ['yaml']);
 
   const root = processor.parse(markdown) as Root;
-  return fromMdastRoot(root);
+  return fromMdastRoot(root, markdown);
 }
 
-function fromMdastRoot(root: Root): MarkdownDocument {
+function fromMdastRoot(root: Root, source: string): MarkdownDocument {
   const headingSlugger = createHeadingSlugger();
   const definitions = collectDefinitions(root);
   const rawNodes = root.children
     .map((child, index) => fromMdastNode(child, undefined, index, headingSlugger, definitions))
     .filter(isMarkdownNode);
-  return { nodes: foldColorSpansTree(rawNodes) };
+  return { nodes: foldEmbedsTree(foldColorSpansTree(rawNodes), source) };
+}
+
+/**
+ * Walk the tree and replace any paragraph that is *exactly* a `:::key{props}`
+ * directive with a single `embed` node. CommonMark has no `:::` construct, so
+ * remark parses such a line as an ordinary paragraph — we recognise it here (the
+ * same post-parse fold strategy color spans use).
+ *
+ * Recognition runs against the paragraph's **raw source** (sliced via its
+ * `position` offsets), NOT its parsed inline children: an attribute value can
+ * contain markdown specials (`*x*`, `<b>`) that remark would split into multiple
+ * inline nodes, which the raw-source check sidesteps entirely. A paragraph that
+ * mixes the directive with other content is left untouched, matching the
+ * "standalone block on its own line" contract.
+ */
+function foldEmbedsTree(nodes: readonly MarkdownNode[], source: string): MarkdownNode[] {
+  return nodes.map((node) => {
+    const embed = tryFoldEmbed(node, source);
+    if (embed) return embed;
+    if (!node.children) return node;
+    const folded = foldEmbedsTree(node.children, source);
+    return foldedAreEqual(node.children, folded) ? node : { ...node, children: folded };
+  });
+}
+
+function tryFoldEmbed(node: MarkdownNode, source: string): MarkdownNode | null {
+  if (node.type !== 'paragraph' || !node.position) return null;
+
+  const raw = source.slice(node.position.start, node.position.end).trim();
+  const directive = parseEmbedDirective(raw);
+  if (!directive) return null;
+
+  return {
+    id: createNodeId(`embed|${node.id}`),
+    type: 'embed',
+    position: node.position,
+    attrs: { key: directive.key, props: directive.props },
+  };
 }
 
 /**

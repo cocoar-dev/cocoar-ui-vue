@@ -18,9 +18,11 @@
  * package's `dist/index.css`, also reachable via `@import
  * "@cocoar/vue-markdown/styles"`.
  */
+import { provide } from 'vue';
 import type { MarkdownDocument } from '@cocoar/vue-markdown-core';
 import { RenderNode } from './RenderNode';
 import type { MarkdownViewerRenderers } from './registry';
+import { MARKDOWN_EMBEDS_KEY, type EmbedRegistry } from './embeds';
 
 export interface CoarMarkdownProps {
   /** The parsed markdown document to render. */
@@ -32,9 +34,21 @@ export interface CoarMarkdownProps {
    * `{ ...defaultMarkdownRenderers, codeBlock: MyCustomCodeBlock }`.
    */
   renderers?: MarkdownViewerRenderers;
+  /**
+   * Custom-embed registry: maps a `:::key{props}` key to a Vue component.
+   * Provided down to the `DefaultEmbed` renderer via inject. An app-wide
+   * default can also be set with `app.provide(MARKDOWN_EMBEDS_KEY, ...)`.
+   */
+  embeds?: EmbedRegistry;
 }
 
-defineProps<CoarMarkdownProps>();
+const props = defineProps<CoarMarkdownProps>();
+
+// Make the embed registry resolvable by `DefaultEmbed` deep in the render tree.
+// Registries are static in practice, so providing the initial value is enough.
+if (props.embeds) {
+  provide(MARKDOWN_EMBEDS_KEY, props.embeds);
+}
 </script>
 
 <template>

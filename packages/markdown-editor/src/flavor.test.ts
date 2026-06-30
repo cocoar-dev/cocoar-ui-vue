@@ -4,31 +4,32 @@ import { isToolAllowedByCapabilities } from './toolbar-helpers';
 
 describe('resolveCapabilities', () => {
   it('defaults to cocoar (everything on) when undefined — no breaking change', () => {
-    expect(resolveCapabilities(undefined)).toEqual({ gfm: true, textColor: true });
+    expect(resolveCapabilities(undefined)).toEqual({ gfm: true, textColor: true, embeds: true });
   });
 
   it('maps the named presets', () => {
-    expect(resolveCapabilities('commonmark')).toEqual({ gfm: false, textColor: false });
-    expect(resolveCapabilities('gfm')).toEqual({ gfm: true, textColor: false });
-    expect(resolveCapabilities('cocoar')).toEqual({ gfm: true, textColor: true });
+    expect(resolveCapabilities('commonmark')).toEqual({ gfm: false, textColor: false, embeds: false });
+    expect(resolveCapabilities('gfm')).toEqual({ gfm: true, textColor: false, embeds: false });
+    expect(resolveCapabilities('cocoar')).toEqual({ gfm: true, textColor: true, embeds: true });
   });
 
   it('treats a partial object as opt-in (unspecified = off)', () => {
-    expect(resolveCapabilities({})).toEqual({ gfm: false, textColor: false });
-    expect(resolveCapabilities({ gfm: true })).toEqual({ gfm: true, textColor: false });
-    expect(resolveCapabilities({ textColor: true })).toEqual({ gfm: false, textColor: true });
-    expect(resolveCapabilities({ gfm: true, textColor: true })).toEqual({ gfm: true, textColor: true });
+    expect(resolveCapabilities({})).toEqual({ gfm: false, textColor: false, embeds: false });
+    expect(resolveCapabilities({ gfm: true })).toEqual({ gfm: true, textColor: false, embeds: false });
+    expect(resolveCapabilities({ textColor: true })).toEqual({ gfm: false, textColor: true, embeds: false });
+    expect(resolveCapabilities({ embeds: true })).toEqual({ gfm: false, textColor: false, embeds: true });
+    expect(resolveCapabilities({ gfm: true, textColor: true })).toEqual({ gfm: true, textColor: true, embeds: false });
   });
 
   it('falls back to cocoar for an unknown preset string', () => {
-    expect(resolveCapabilities('nonsense' as 'gfm')).toEqual({ gfm: true, textColor: true });
+    expect(resolveCapabilities('nonsense' as 'gfm')).toEqual({ gfm: true, textColor: true, embeds: true });
   });
 });
 
 describe('isToolAllowedByCapabilities', () => {
-  const commonmark = { gfm: false, textColor: false };
-  const gfm = { gfm: true, textColor: false };
-  const cocoar = { gfm: true, textColor: true };
+  const commonmark = { gfm: false, textColor: false, embeds: false };
+  const gfm = { gfm: true, textColor: false, embeds: false };
+  const cocoar = { gfm: true, textColor: true, embeds: true };
 
   it('always allows portable CommonMark tools', () => {
     for (const caps of [commonmark, gfm, cocoar]) {

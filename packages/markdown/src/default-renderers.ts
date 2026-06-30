@@ -23,6 +23,8 @@ import { defineComponent, h, type PropType, type VNode } from 'vue';
 import type { MarkdownNode } from '@cocoar/vue-markdown-core';
 import { CoarCodeBlock } from '@cocoar/vue-ui';
 
+import { EmbedRenderer, toEmbedProps } from './embeds';
+
 import {
   codeBlockLanguage,
   colorSpanColor,
@@ -410,6 +412,27 @@ export const DefaultColorSpan = defineComponent({
 });
 
 /**
+ * Custom-embed renderer for the `embed` node type (`:::key{props}`). Looks the
+ * key up in the embed registry (injected via `MARKDOWN_EMBEDS_KEY`) and renders
+ * the registered component with the directive props; an unregistered key shows
+ * a labelled placeholder. The actual resolution lives in {@link EmbedRenderer}
+ * so the editor's NodeView can reuse it.
+ */
+export const DefaultEmbed = defineComponent({
+  name: 'DefaultEmbed',
+  props: rendererProps,
+  setup(props) {
+    return () => {
+      const key = typeof props.node.attrs?.['key'] === 'string' ? props.node.attrs['key'] : '';
+      return h(EmbedRenderer, {
+        embedKey: key,
+        embedProps: toEmbedProps(props.node.attrs?.['props']),
+      });
+    };
+  },
+});
+
+/**
  * Block-style fallback for unknown node types. Most "unsupported" nodes that
  * reach the registry are block-level (custom remark plugins emitting embeds,
  * directives, etc.), so we default to the block presentation. Consumers who
@@ -455,5 +478,6 @@ export const defaultMarkdownRenderers: MarkdownViewerRenderers = {
   image: DefaultImage,
   lineBreak: DefaultLineBreak,
   colorSpan: DefaultColorSpan,
+  embed: DefaultEmbed,
   unsupported: DefaultUnsupported,
 };

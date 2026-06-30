@@ -395,3 +395,29 @@
   overflow-wrap: anywhere;
   color: inherit;
 }
+
+/* Custom embed (`:::key{props}`). The wrapper just owns the block rhythm; the
+   registered component controls its own look. Both the viewer's DefaultEmbed
+   and the editor's NodeView mount inside this wrapper so they match. */
+.coar-markdown-embed {
+  margin: var(--coar-markdown-block-gap, 1em) 0;
+}
+
+/* Unregistered key — a labelled placeholder so the author still sees the embed
+   instead of a blank gap. */
+.coar-markdown-embed--unknown {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px dashed var(--coar-border-neutral, #d4d4d4);
+  border-radius: var(--coar-markdown-radius, 8px);
+  background: var(--coar-background-neutral-secondary, #f5f5f5);
+  color: var(--coar-text-neutral-secondary, #666);
+  font-size: 13px;
+}
+
+.coar-markdown-embed__icon {
+  font-size: 16px;
+  line-height: 1;
+}

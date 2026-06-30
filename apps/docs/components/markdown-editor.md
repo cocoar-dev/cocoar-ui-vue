@@ -79,7 +79,7 @@ This matters when the same Markdown is rendered somewhere stricter than the web 
 |---|---|---|
 | `'commonmark'` | _(nothing — the portable floor)_ headings, bold/italic, lists, links, images, code, blockquote, hr | **any** Markdown renderer |
 | `'gfm'` | tables, task lists, strikethrough | GFM-capable renderers (GitHub, swift-markdown-ui, …) |
-| `'cocoar'` _(default)_ | inline **text color** (non-portable raw HTML) | the Cocoar viewer / your own renderer |
+| `'cocoar'` _(default)_ | inline **text color** + **custom embeds** (non-portable) | the Cocoar viewer / your own renderer |
 
 ```vue
 <!-- Strict: only portable CommonMark can be authored -->
@@ -89,10 +89,10 @@ This matters when the same Markdown is rendered somewhere stricter than the web 
 <CoarMarkdownEditor v-model="value" :flavor="{ gfm: true, textColor: false }" />
 ```
 
-A capability object (`{ gfm?, textColor? }`) is **opt-in** — unspecified capabilities are off, so `{}` ≡ `'commonmark'`. The default is `'cocoar'`, so existing editors are unchanged.
+A capability object (`{ gfm?, textColor?, embeds? }`) is **opt-in** — unspecified capabilities are off, so `{}` ≡ `'commonmark'`. The default is `'cocoar'`, which also enables `embeds` — see [Custom Embeds](/components/markdown-embeds).
 
 ::: tip flavor vs. tools
-`flavor` is the **hard format contract** (what can exist in the document). The [`tools`](#restricting-the-toolbar) whitelist is **soft toolbar curation** (which buttons show) *within* the flavor — e.g. keep GFM parsing but hide the table button. They compose.
+`flavor` is the **hard format contract** (what can exist in the document). The [`tools`](#toolbar-layout-tools) layout is **soft toolbar curation** (which buttons show, and where) *within* the flavor — e.g. keep GFM parsing but hide the table button. They compose.
 :::
 
 ::: warning Changing flavor at runtime
@@ -312,6 +312,20 @@ Anything else — `var(--token)`, `url(...)`, `expression(...)`, multi-declarati
 The picker palette (`COAR_TEXT_COLOR_PALETTE`) is exported so consumers can mirror it in custom UI.
 :::
 
+## Custom Embeds
+
+Register your own Vue components against a `:::key{props}` directive and the
+editor folds them into live, editable blocks (the viewer renders the same
+component read-only). Pass an `embeds` registry and use the `cocoar` flavor:
+
+```vue
+<CoarMarkdownEditor v-model="value" flavor="cocoar" :embeds="embeds" :tools="tools" toolbar-mode="both" />
+```
+
+This is its own topic — see the dedicated **[Custom Embeds](/components/markdown-embeds)**
+page for the registry shape, the editor `controller` contract, toolbar insert
+placement, and a live demo.
+
 ## Editor ↔ Viewer Parity
 
 `<CoarMarkdownEditor>` and `<CoarMarkdown>` (the viewer) read the **same shared stylesheet** (`@cocoar/vue-markdown/styles`) so a markdown document looks pixel-identical whether you're editing it or rendering it for display. The two render through different DOM shapes — the editor's PM-managed contenteditable emits bare `<li>` / `<td>` / `<blockquote>` nodes inside a `.ProseMirror` wrapper, while the viewer emits class-tagged elements (`.coar-markdown-list-item`, etc.) — and the shared stylesheet covers both via parallel `:where(…)` selectors:
@@ -333,12 +347,14 @@ If you embed the editor next to a viewer pane (the playground's "viewer pane" to
 | `--coar-markdown-link` | `var(--coar-text-brand-primary)` | Link color (also applied to inline code). |
 | `--coar-markdown-border` | `var(--coar-border-neutral-tertiary)` | Used by tables, blockquote, `<hr>`. |
 
-## Restricting the Toolbar
+## Toolbar layout (`tools`)
 
-Pass a `tools` array to limit which buttons the toolbar exposes. When omitted, all tools are shown. Order does not matter — the canonical order is preserved.
+Pass a `tools` array to control which buttons the **sidebar** toolbar exposes and
+in what order. When omitted, the default layout is used. **The array order IS the
+toolbar order** — entries render top-to-bottom (or left-to-right) as listed.
 
 ```vue
-<!-- Minimal subset (matches the default rich-text editor in older Cocoar apps) -->
+<!-- Minimal subset, in the given order -->
 <CoarMarkdownEditor
   v-model="value"
   :tools="['bold', 'italic', 'bulletList', 'orderedList', 'outdent', 'indent', 'clearFormatting']"
@@ -351,6 +367,37 @@ const tools = COAR_MARKDOWN_EDITOR_ALL_TOOLS.filter(t => t !== 'table' && t !== 
 </script>
 <CoarMarkdownEditor v-model="value" :tools="tools" />
 ```
+
+::: warning Order is now significant
+Earlier, a flat `tools` array was an order-insensitive whitelist filtering a fixed
+sequence. It is now an **ordered layout**. If you relied on canonical ordering,
+list the tools in the order you want; the default (omit `tools`) is unchanged.
+:::
+
+### Groups and custom items
+
+An entry can also be a **flyout group** (a submenu) or a `'divider'`. A group
+bundles any mix of built-in tools and [custom-embed](/components/markdown-embeds)
+inserts (`embed:<key>`) behind one button:
+
+```ts
+import type { CoarMarkdownEditorToolEntry } from '@cocoar/vue-markdown-editor';
+
+const tools: CoarMarkdownEditorToolEntry[] = [
+  'bold', 'italic', 'headings',
+  'divider',
+  { flyout: ['table', 'image', 'embed:chart'], label: 'Insert', icon: 'plus' },
+  'divider',
+  'undo', 'redo',
+];
+```
+
+| Entry shape | Meaning |
+|---|---|
+| `'bold'` (a `CoarMarkdownEditorTool`) | A built-in tool. |
+| `` `embed:chart` `` (a `` `embed:${string}` ``) | A registered custom embed's insert item — see [Custom Embeds](/components/markdown-embeds). |
+| `{ flyout: ToolRef[], label?, icon? }` | A flyout submenu containing any of the above. |
+| `'divider'` | A separator. |
 
 ### Tool identifiers
 
@@ -397,8 +444,9 @@ When migrating from a richtext editor that exposed those tools, the closest Mark
 | `sourceToggle` | `boolean` | `false` | Show a Rendered ↔ Source toggle for editing the raw Markdown. See [Source view](#source-view-raw-markdown) |
 | `toolbarMode` | `'floating' \| 'fixed' \| 'both'` | `'floating'` | Toolbar layout |
 | `toolbarPosition` | `'left' \| 'right' \| 'top' \| 'bottom'` | `'left'` | Toolbar edge when `toolbarMode` is `'fixed'` or `'both'`. `top`/`bottom` render a horizontal toolbar; flyouts open along the perpendicular axis. |
-| `tools` | `CoarMarkdownEditorTool[]` | _all_ | Whitelist of toolbar tools. See [Restricting the Toolbar](#restricting-the-toolbar) |
-| `flavor` | `'commonmark' \| 'gfm' \| 'cocoar' \| { gfm?, textColor? }` | `'cocoar'` | Portability contract — hard-enforces which features can be authored. See [Flavors](#flavors-portability) |
+| `tools` | `CoarMarkdownEditorToolEntry[]` | _default layout_ | Ordered toolbar layout (built-in ids, `embed:<key>` refs, `{ flyout }` groups, `'divider'`). See [Toolbar layout](#toolbar-layout-tools) |
+| `flavor` | `'commonmark' \| 'gfm' \| 'cocoar' \| { gfm?, textColor?, embeds? }` | `'cocoar'` | Portability contract — hard-enforces which features can be authored. See [Flavors](#flavors-portability) |
+| `embeds` | `EmbedRegistry` | _undefined_ | Custom-embed registry (`:::key{props}` → your component). Requires the `embeds` capability (`cocoar` flavor). See [Custom Embeds](/components/markdown-embeds) |
 | `uploadImage` | `(file: File) => Promise<{ url: string; alt?: string }>` | _undefined_ | Enables paste / drag-drop image upload. Returns the stored image's URL. See [Images](#images) |
 | `pickImage` | `(ctx: ImagePickContext) => void` | _undefined_ | Override the Insert Image button with your own asset picker. See [Custom image source](#custom-image-source-pickimage) |
 

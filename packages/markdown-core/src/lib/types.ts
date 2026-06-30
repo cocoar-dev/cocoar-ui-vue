@@ -26,6 +26,7 @@ export type MarkdownNodeType =
   | 'link'
   | 'image'
   | 'colorSpan'
+  | 'embed'
   | 'unsupported';
 
 export interface MarkdownNode {
