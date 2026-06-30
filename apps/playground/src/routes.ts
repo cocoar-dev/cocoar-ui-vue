@@ -55,6 +55,10 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('./views/MarkdownEmbedView.vue'),
   },
   {
+    path: '/map',
+    component: () => import('./views/MapView.vue'),
+  },
+  {
     path: '/file-explorer-poc',
     component: () => import('./views/FileExplorerPocView.vue'),
   },
