@@ -31,6 +31,12 @@ export interface CoarMarkdownCapabilities {
   gfm: boolean;
   /** Cocoar inline text color. NOT portable (raw HTML; degrades to plain text). */
   textColor: boolean;
+  /**
+   * Custom `:::key{props}` embeds (consumer-registered components). NOT portable
+   * — a plain CommonMark/GFM renderer shows the directive as text. Off unless
+   * the `cocoar` flavor (or an explicit `{ embeds: true }`) is selected.
+   */
+  embeds: boolean;
 }
 
 /**
@@ -41,9 +47,9 @@ export interface CoarMarkdownCapabilities {
 export type CoarMarkdownFlavorInput = CoarMarkdownFlavor | Partial<CoarMarkdownCapabilities>;
 
 const PRESETS: Record<CoarMarkdownFlavor, CoarMarkdownCapabilities> = {
-  commonmark: { gfm: false, textColor: false },
-  gfm: { gfm: true, textColor: false },
-  cocoar: { gfm: true, textColor: true },
+  commonmark: { gfm: false, textColor: false, embeds: false },
+  gfm: { gfm: true, textColor: false, embeds: false },
+  cocoar: { gfm: true, textColor: true, embeds: true },
 };
 
 /**
@@ -57,5 +63,9 @@ const PRESETS: Record<CoarMarkdownFlavor, CoarMarkdownCapabilities> = {
 export function resolveCapabilities(flavor: CoarMarkdownFlavorInput | undefined): CoarMarkdownCapabilities {
   if (flavor === undefined) return { ...PRESETS.cocoar };
   if (typeof flavor === 'string') return { ...(PRESETS[flavor] ?? PRESETS.cocoar) };
-  return { gfm: flavor.gfm ?? false, textColor: flavor.textColor ?? false };
+  return {
+    gfm: flavor.gfm ?? false,
+    textColor: flavor.textColor ?? false,
+    embeds: flavor.embeds ?? false,
+  };
 }
