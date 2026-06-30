@@ -34,8 +34,8 @@ const props = defineProps<{
    * `focusPoint` to also pan + open the popup).
    */
   selected?: number | null;
-  /** Hide the legend, which otherwise shows when ≥ 2 categories are present. */
-  hideLegend?: boolean;
+  /** Show the legend (off by default). It then appears when ≥ 2 categories are present. */
+  showLegend?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -57,7 +57,7 @@ const markers = new Map<number, Marker | CircleMarker>();
 
 const fallback = computed(() => fallbackEntries(props.data, cfg.value ?? EMPTY_CONFIG));
 const legend = computed(() => (cfg.value ? legendCategories(props.data, cfg.value) : []));
-const showLegend = computed(() => !props.hideLegend && legend.value.length > 1);
+const legendVisible = computed(() => !!props.showLegend && legend.value.length > 1);
 
 function escapeHtml(value: string): string {
   return value
@@ -254,7 +254,7 @@ watch(() => props.selected, applySelectedVisual);
       </li>
     </ol>
 
-    <ul v-if="showLegend" class="coar-map__legend">
+    <ul v-if="legendVisible" class="coar-map__legend">
       <li v-for="category in legend" :key="category.id" class="coar-map__legend-item">
         <span class="coar-map__legend-swatch" :style="{ background: category.color }" />
         <span v-if="category.emoji" class="coar-map__legend-emoji">{{ category.emoji }}</span>

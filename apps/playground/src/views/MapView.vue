@@ -111,7 +111,7 @@ const listEntries = computed(() => fallbackEntries(data.value, config));
           v-model:selected="selected"
           :data="data"
           :config="config"
-          :hide-legend="!legendOn"
+          :show-legend="legendOn"
           @point-click="(e) => (selected = e.index)"
         />
       </div>
