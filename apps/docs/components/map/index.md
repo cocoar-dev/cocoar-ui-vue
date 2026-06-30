@@ -15,7 +15,12 @@ only peer. No stylesheet import needed: the component loads Leaflet's CSS itself
 when it mounts.
 :::
 
-<preview path="./map/demos/MapBasic.vue" />
+::: tip Authoring maps?
+This page is the **viewer**. To place, move and edit points visually, see
+[**CoarMapEditor**](/components/map/editor) — the write counterpart, same data.
+:::
+
+<preview path="./demos/MapBasic.vue" />
 
 The list on the right is **not** part of `<CoarMap>` — it's built by the demo from
 the exported `fallbackEntries` helper and wired to the map via the

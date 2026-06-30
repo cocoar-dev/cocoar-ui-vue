@@ -1,6 +1,6 @@
 # Map Editor <Badge type="warning" text="Preview" />
 
-A visual editor for [`<CoarMap>`](/components/map) data. `<CoarMapEditor>` is the
+A visual editor for [`<CoarMap>`](/components/map/) data. `<CoarMapEditor>` is the
 **write counterpart** of `<CoarMap>`: same `MapData` + `MapConfig`, but you can
 **place, move, edit, reorder and delete** points directly on the map, with every
 change flowing out through `v-model:data`. Like `<CoarMap>` it is **standalone** —
@@ -15,7 +15,7 @@ render `<CoarMap>` don't pull in the editing weight. Leaflet is still imported
 **lazily** at runtime; `vue` is the only peer.
 :::
 
-<preview path="./map/demos/MapEditorBasic.vue" />
+<preview path="./demos/MapEditorBasic.vue" />
 
 ## Quick start
 
@@ -48,7 +48,7 @@ const data = ref<MapData>({
 
 `data` is **controlled**: the editor never mutates your object, it emits a fresh
 `MapData` on every edit. The data contract (`MapData`, `MapPoint`, `MapConfig`)
-is identical to [`<CoarMap>`](/components/map#data) — read that page for the
+is identical to [`<CoarMap>`](/components/map/#data) — read that page for the
 field-level reference.
 
 ## Editing
@@ -107,8 +107,8 @@ the same hooks as `<CoarMap>` plus the editing operations:
 | `@point-click` | `{ point, index }` when a marker is clicked. |
 | `addPoint(lat, lng, init?)` | Add a point (type-aware), like a map click. |
 | `updatePoint(index, patch)` | Patch a point's fields. |
-| `removePoint(index)` | Delete a point. |
-| `reorder(from, to)` | Move a point within the order. |
+| `removePoint(index)` | Delete a point. Selection follows (stays on the same point, or clears). |
+| `reorder(from, to)` | Move a point within the order. Selection tracks the same point. |
 | `captureViewport()` | Save the current center + zoom into `data.viewport`. |
 | `focusPoint(index)` / `highlightPoint(index \| null)` | Pan-to-and-select / transient hover emphasis. |
 
@@ -125,6 +125,21 @@ const editor = ref<InstanceType<typeof CoarMapEditor>>();
   <CoarMapEditor ref="editor" v-model:data="data" :config="config" />
 </template>
 ```
+
+## A point list beside the editor
+
+The layout around the editor is the **consumer's job** — the editor just exposes
+the hooks. Here a list built from `data.points` reorders with ↑ / ↓
+(`reorder`), deletes (`removePoint`), flies to a point on click (`focusPoint`)
+and highlights on hover (`highlightPoint`); `v-model:selected` keeps the active
+row and the map marker in sync. Reordering and deleting keep the selection on the
+**same point**, so the highlighted row never drifts.
+
+<preview path="./demos/MapEditorList.vue" />
+
+Unlike the viewer's `fallbackEntries` rows, an editor list usually wants **every**
+point — including the unnamed `shape` vertices — so the whole route order stays
+editable.
 
 ## Pure editing operations
 

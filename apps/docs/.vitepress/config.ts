@@ -314,8 +314,6 @@ export default defineConfig({
             { text: 'Code Block', link: '/components/code-block' },
             { text: 'Divider', link: '/components/divider' },
             { text: 'Link', link: '/components/link' },
-            { text: 'Map (Preview)', link: '/components/map' },
-            { text: 'Map Editor (Preview)', link: '/components/map-editor' },
             { text: 'Note', link: '/components/note' },
             { text: 'Progress Bar', link: '/components/progress-bar' },
             { text: 'Spinner', link: '/components/spinner' },
@@ -399,6 +397,13 @@ export default defineConfig({
             { text: 'CoarDocumentViewer', link: '/components/document-viewer/coar-document-viewer' },
             { text: 'Toolbar customization', link: '/components/document-viewer/toolbar' },
             { text: 'Annotations', link: '/components/document-viewer/annotations' },
+          ],
+        },
+        {
+          text: 'Map (Preview)',
+          items: [
+            { text: 'Overview', link: '/components/map/' },
+            { text: 'CoarMapEditor', link: '/components/map/editor' },
           ],
         },
         {
