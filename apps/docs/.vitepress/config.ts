@@ -314,6 +314,7 @@ export default defineConfig({
             { text: 'Code Block', link: '/components/code-block' },
             { text: 'Divider', link: '/components/divider' },
             { text: 'Link', link: '/components/link' },
+            { text: 'Map (Preview)', link: '/components/map' },
             { text: 'Note', link: '/components/note' },
             { text: 'Progress Bar', link: '/components/progress-bar' },
             { text: 'Spinner', link: '/components/spinner' },

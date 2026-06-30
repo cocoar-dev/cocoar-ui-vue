@@ -74,6 +74,9 @@ importers:
       '@cocoar/vue-localization':
         specifier: workspace:*
         version: link:../../packages/localization
+      '@cocoar/vue-map':
+        specifier: workspace:*
+        version: link:../../packages/map
       '@cocoar/vue-markdown':
         specifier: workspace:*
         version: link:../../packages/markdown
