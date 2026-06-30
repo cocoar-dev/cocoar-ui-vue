@@ -39,6 +39,12 @@ const data = ref<MapData>({
 
 const selected = ref<number | null>(null);
 
+// Imperative bridge to the editor — a consumer toolbar drives edits through it.
+const editor = ref<{
+  captureViewport: () => void;
+  addPoint: (lat: number, lng: number) => void;
+} | null>(null);
+
 function setType(t: MapType): void {
   const points = t === 'single' ? data.value.points.slice(0, 1) : data.value.points;
   data.value = { ...data.value, type: t, points };
@@ -59,13 +65,17 @@ function setType(t: MapType): void {
         :class="['mapedit-demo__btn', { 'mapedit-demo__btn--active': data.type === t }]"
         @click="setType(t)"
       >{{ t }}</button>
+      <button class="mapedit-demo__btn" @click="editor?.captureViewport()">Save view</button>
+
       <span class="mapedit-demo__hint">
         selected: <strong>{{ selected ?? '—' }}</strong> · points: <strong>{{ data.points.length }}</strong>
+        <template v-if="data.viewport"> · viewport saved</template>
       </span>
     </div>
 
     <div class="mapedit-demo__frame">
       <CoarMapEditor
+        ref="editor"
         v-model:data="data"
         v-model:selected="selected"
         :config="config"
