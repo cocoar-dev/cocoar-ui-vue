@@ -1,0 +1,32 @@
+/*
+ * Shared layout for the "date, optionally with time" pickers
+ * (CoarZonedDateTimeOrDatePicker / CoarPlainDateTimeOrDatePicker). Imported by
+ * both so each is self-contained when the other isn't bundled.
+ *
+ * The visible chrome is the children's: the field is a CoarInputFrame
+ * (`--coar-input-radius`, sizes, focus/error) and the toggle is a CoarButton —
+ * both fully driven by the design tokens. This file only lays them out, spaces
+ * them with a spacing token, and aligns the toggle's roundness with the
+ * adjacent field so the pair reads as one themed control.
+ */
+.coar-date-or-time {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--coar-spacing-xs, 4px);
+}
+.coar-date-or-time--toggle-end .coar-date-or-time__toggle {
+  order: 1;
+}
+.coar-date-or-time__toggle {
+  flex-shrink: 0;
+  /* Track the field's radius (capped at half-height like the input frame) so a
+     pill theme yields a round toggle, a square theme a square one. */
+  --coar-button-radius: var(--coar-input-radius, var(--coar-button-radius));
+}
+/* Accent the clock while time is on (token-driven; falls back to inherited color). */
+.coar-date-or-time__toggle--active {
+  color: var(--coar-text-accent-primary, var(--coar-background-accent-primary, currentColor));
+}
+.coar-date-or-time__input {
+  min-width: 0;
+}

@@ -7,6 +7,17 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 2.13.0
+
+Optional-time date pickers: a small **clock toggle beside the field** lets one input be *either* a plain date *or* a date with time — no more separate "add time" checkbox.
+
+### Added
+
+- **`@cocoar/vue-ui` — `<CoarZonedDateTimeOrDatePicker>` + `<CoarPlainDateTimeOrDatePicker>`.** A date picker whose time is **optional**. A clock toggle sits **beside** the field (left or right via `togglePosition`); off enters a `Temporal.PlainDate`, on enters a date with time — a `Temporal.ZonedDateTime` (zoned variant) or `Temporal.PlainDateTime` (plain variant). One `v-model` carries the union value and `v-model:withTime` is the toggle; the two stay in sync (a non-null value's own type *is* the mode), so you read the result straight off its Temporal type. Flipping the clock converts the current value rather than clearing it — adding a time keeps the date (and, zoned, attaches the `timeZone` or the user's zone); removing it drops back to the date. They're thin **compositions** over the existing `CoarPlainDatePicker` / `CoarPlainDateTimePicker` / `CoarZonedDateTimePicker` (all common props pass through: size, disabled, readonly, required, error, clearable, locale, min/max, minuteStep, and the zoned timezone props). The toggle icon switches between a clock and a struck-through clock with a state-aware tooltip + `aria-pressed`; its roundness tracks `--coar-input-radius` so it always matches the adjacent field. See the new **[Date · optional time](/components/date-or-time-picker)** page.
+- **`@cocoar/vue-ui` — new built-in `clock-off` icon** (a clock with a diagonal strike), available to the icon system like any other built-in.
+
+---
+
 ## 2.12.0
 
 Custom **embeds** for the markdown stack, plus a new standalone **map** package — viewer and **visual editor**. Authors write a `:::key{props}` directive and the shared stack renders a consumer-registered Vue component — read-only in the [`<CoarMarkdown>`](/components/markdown) viewer, **live and editable** in [`<CoarMarkdownEditor>`](/components/markdown-editor) — with a lossless round-trip to plain Markdown. The embedded component has **zero dependency on markdown**: it's a plain component with normal props that a consumer registers from the outside, so the markdown packages never depend on it. To place those inserts, the editor's sidebar `tools` becomes an **ordered, groupable layout**. The new `@cocoar/vue-map` ships both [`<CoarMap>`](/components/map/) (display) and [`<CoarMapEditor>`](/components/map/editor) (author points/routes via `v-model:data`), each markdown-agnostic by design. See the new **[Custom Embeds](/components/markdown-embeds)** page. Everything is opt-in behind the `cocoar` flavor.
