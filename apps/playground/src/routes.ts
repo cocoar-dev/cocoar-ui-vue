@@ -90,6 +90,10 @@ export const routes: RouteRecordRaw[] = [
     path: '/input-showcase',
     component: () => import('./views/InputShowcaseView.vue'),
   },
+  {
+    path: '/date-or-time',
+    component: () => import('./views/DateOrTimePickerView.vue'),
+  },
   // ─── @cocoar/vue-calendar demos ────────────────────────────
   {
     path: '/calendar-basic',
