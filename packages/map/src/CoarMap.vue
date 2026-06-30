@@ -20,6 +20,7 @@ import {
   stopColor,
   stopEmoji,
 } from './internal/map-model';
+import './internal/map-base.css';
 
 type Leaflet = typeof import('leaflet');
 
@@ -270,62 +271,11 @@ watch(() => props.selected, applySelectedVisual);
 
 <!--
   Unscoped: Leaflet injects markers / popups / tooltips into its own panes,
-  outside this component's scoped DOM, so the pin + popup rules must be global.
-  Every selector is prefixed `coar-map` to avoid leakage.
+  outside this component's scoped DOM, so the rules must be global. Shared base
+  visuals live in `internal/map-base.css` (imported above); the fallback list +
+  legend below are CoarMap-only. Every selector is prefixed `coar-map`.
 -->
 <style>
-.coar-map {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.coar-map__canvas {
-  width: 100%;
-  height: var(--coar-map-height, 360px);
-  border-radius: var(--coar-map-radius, 10px);
-  overflow: hidden;
-  background: var(--coar-map-surface, #e8eef3);
-}
-
-/* Stop marker: a circular badge tinted with the category color + emoji. */
-.coar-map-pin {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: var(--coar-map-pin-color, #3b82f6);
-  border: 2px solid #fff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
-}
-.coar-map-pin__emoji {
-  font-size: 14px;
-  line-height: 1;
-}
-
-/* Interactive states toggled by `focusPoint` / `highlightPoint` / selection. */
-.coar-map-pin {
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
-}
-.coar-map-marker--highlight .coar-map-pin {
-  transform: scale(1.22);
-}
-.coar-map-marker--selected .coar-map-pin {
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5), 0 1px 4px rgba(0, 0, 0, 0.35);
-}
-/* Shape dots are SVG paths — emphasise via stroke. */
-path.coar-map-marker--highlight,
-path.coar-map-marker--selected {
-  stroke-width: 4;
-}
-
-.coar-map-popup__note {
-  margin-top: 2px;
-  color: #555;
-}
-
 /* No-JS fallback list. */
 .coar-map__fallback {
   margin: 0;
@@ -365,17 +315,5 @@ path.coar-map-marker--selected {
   height: 12px;
   border-radius: 3px;
   flex-shrink: 0;
-}
-
-.coar-map__caption {
-  margin: 0;
-  font-size: 13px;
-  color: var(--coar-map-caption-color, #666);
-}
-
-.coar-map__nocfg {
-  margin: 0;
-  font-size: 13px;
-  color: #b91c1c;
 }
 </style>
