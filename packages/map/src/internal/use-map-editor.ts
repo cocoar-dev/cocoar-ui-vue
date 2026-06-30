@@ -1,11 +1,9 @@
 /**
- * Leaflet controller for `<CoarMapEditor>`. Owns the map lifecycle, the
- * in-place layer reconcile, the drag / click / route-insert handlers and the
- * property-popup positioning, and exposes the edit operations. Keeping it here
- * leaves the component as a thin template + style shell.
- *
- * All edits go through the immutable ops in `map-edit.ts` and are emitted via
- * the `emit*` callbacks — the composable never mutates `data`.
+ * Leaflet controller for `<CoarMapEditor>`: owns the map lifecycle, in-place
+ * layer reconcile, drag / click / route-insert handlers and property-popup
+ * positioning, and exposes the edit operations (leaving the component a thin
+ * template + style shell). All edits go through the immutable ops in
+ * `map-edit.ts` via the `emit*` callbacks — it never mutates `data`.
  */
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch, type Ref } from 'vue';
 import type { LeafletMouseEvent, Map as LeafletMap, Marker, Polyline } from 'leaflet';
@@ -37,11 +35,8 @@ export interface UseMapEditorOptions {
 
 function escapeHtml(value: string): string {
   return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 /** Defensive: keep a category color from breaking out of the inline style. */
@@ -229,21 +224,15 @@ export function useMapEditor(mapEl: Ref<HTMLElement | null>, opts: UseMapEditorO
     commit(updatePoint(opts.data(), index, patch));
   }
 
+  // Popup actions delegate to the selection-aware bridge methods below.
   function removeSelected(): void {
     const index = opts.selected();
-    if (index === null) return;
-    commit(removePoint(opts.data(), index));
-    opts.emitSelected(null);
+    if (index !== null) removePointAt(index);
   }
 
   function moveSelected(direction: -1 | 1): void {
     const index = opts.selected();
-    if (index === null) return;
-    const to = index + direction;
-    const next = reorderPoint(opts.data(), index, to);
-    if (next === opts.data()) return;
-    commit(next);
-    opts.emitSelected(to);
+    if (index !== null) reorder(index, index + direction);
   }
 
   /** Close the popup (clear selection) — the × button + Escape. */
@@ -338,12 +327,21 @@ export function useMapEditor(mapEl: Ref<HTMLElement | null>, opts: UseMapEditorO
 
   function removePointAt(index: number): void {
     commit(removePoint(opts.data(), index));
-    if (opts.selected() === index) opts.emitSelected(null);
+    const sel = opts.selected(); // keep selection on the same point (or clear)
+    if (sel === null) return;
+    if (sel === index) opts.emitSelected(null);
+    else if (sel > index) opts.emitSelected(sel - 1);
   }
 
   function reorder(from: number, to: number): void {
     const next = reorderPoint(opts.data(), from, to);
-    if (next !== opts.data()) commit(next);
+    if (next === opts.data()) return;
+    commit(next);
+    const sel = opts.selected(); // keep selection on the same point through the move
+    if (sel === null) return;
+    if (sel === from) opts.emitSelected(to);
+    else if (from < sel && sel <= to) opts.emitSelected(sel - 1);
+    else if (to <= sel && sel < from) opts.emitSelected(sel + 1);
   }
 
   /** Save the map's current center + zoom into `data.viewport`. */
