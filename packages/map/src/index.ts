@@ -4,6 +4,8 @@
  * layer; a consumer feeds it resolved {@link MapData} + {@link MapConfig}.
  */
 export { default as CoarMap } from './CoarMap.vue';
+export { default as CoarMapEditor } from './CoarMapEditor.vue';
+export { default as CoarMapPointList } from './CoarMapPointList.vue';
 export { COAR_MAP_CONFIG_KEY } from './context';
 
 // Pure model helpers — useful for consumers building their own fallbacks/legends.
@@ -17,6 +19,22 @@ export {
   stopEmoji,
 } from './internal/map-model';
 export type { FallbackEntry } from './internal/map-model';
+
+// Pure editing operations — for consumers driving edits from their own UI.
+export {
+  addPointForType,
+  insertOnSegment,
+  movePoint,
+  nearestSegment,
+  normalizeLatLng,
+  removePoint,
+  reorderPoint,
+  selectionAfterRemove,
+  selectionAfterReorder,
+  setViewport,
+  updatePoint,
+} from './internal/map-edit';
+export type { NewPointInit } from './internal/map-edit';
 
 export type {
   MapBasemap,

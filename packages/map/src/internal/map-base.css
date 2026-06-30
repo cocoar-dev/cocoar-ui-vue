@@ -1,0 +1,71 @@
+/*
+ * Base map visuals shared by `<CoarMap>` (read) and `<CoarMapEditor>` (write),
+ * so the canvas, stop pins, caption and selection/hover states stay identical
+ * across both. Imported by each component; CoarMap-only chrome (the no-JS
+ * fallback list, the legend) stays in CoarMap.vue.
+ *
+ * Unscoped on purpose: Leaflet injects markers / popups into its own panes,
+ * outside any component's scoped DOM (same reason AG Grid forbids scoped CSS).
+ * Every selector is prefixed `coar-map` to avoid leakage.
+ */
+.coar-map {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.coar-map__canvas {
+  width: 100%;
+  height: var(--coar-map-height, 360px);
+  border-radius: var(--coar-map-radius, 10px);
+  overflow: hidden;
+  background: var(--coar-map-surface, #e8eef3);
+}
+
+/* Stop marker: a circular badge tinted with the category color + emoji. */
+.coar-map-pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--coar-map-pin-color, #3b82f6);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.coar-map-pin__emoji {
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* Interactive states toggled by `focusPoint` / `highlightPoint` / selection. */
+.coar-map-marker--highlight .coar-map-pin {
+  transform: scale(1.22);
+}
+.coar-map-marker--selected .coar-map-pin {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5), 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+/* Shape dots are SVG paths — emphasise via stroke. */
+path.coar-map-marker--highlight,
+path.coar-map-marker--selected {
+  stroke-width: 4;
+}
+
+.coar-map-popup__note {
+  margin-top: 2px;
+  color: #555;
+}
+
+.coar-map__caption {
+  margin: 0;
+  font-size: 13px;
+  color: var(--coar-map-caption-color, #666);
+}
+
+.coar-map__nocfg {
+  margin: 0;
+  font-size: 13px;
+  color: #b91c1c;
+}

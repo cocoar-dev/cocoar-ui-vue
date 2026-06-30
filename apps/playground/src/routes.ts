@@ -59,6 +59,14 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('./views/MapView.vue'),
   },
   {
+    path: '/map-editor',
+    component: () => import('./views/MapEditorView.vue'),
+  },
+  {
+    path: '/map-split',
+    component: () => import('./views/MapSplitView.vue'),
+  },
+  {
     path: '/file-explorer-poc',
     component: () => import('./views/FileExplorerPocView.vue'),
   },
