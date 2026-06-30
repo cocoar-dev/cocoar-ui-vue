@@ -61,6 +61,8 @@ export interface MarkdownViewerRenderers {
   image: Component<MarkdownRendererProps>;
   lineBreak: Component<MarkdownRendererProps>;
   colorSpan: Component<MarkdownRendererProps>;
+  // Custom embed (`:::key{props}`)
+  embed: Component<MarkdownRendererProps>;
   // Fallback
   unsupported: Component<MarkdownRendererProps>;
 }
@@ -90,6 +92,7 @@ const DEFAULT_NODE_TYPES: Record<MarkdownRendererName, true> = {
   text: true, emphasis: true, strong: true, strikethrough: true,
   inlineCode: true, link: true, image: true, lineBreak: true,
   colorSpan: true,
+  embed: true,
   unsupported: true,
 };
 
