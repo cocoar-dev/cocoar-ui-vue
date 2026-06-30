@@ -7,6 +7,24 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 2.12.0
+
+Custom **embeds** for the markdown stack. Authors write a `:::key{props}` directive and the shared stack renders a consumer-registered Vue component — read-only in the [`<CoarMarkdown>`](/components/markdown) viewer, **live and editable** in [`<CoarMarkdownEditor>`](/components/markdown-editor) — with a lossless round-trip to plain Markdown. The embedded component has **zero dependency on markdown**: it's a plain component with normal props that a consumer registers from the outside, so the markdown packages never depend on it. To place those inserts, the editor's sidebar `tools` becomes an **ordered, groupable layout**. See the new **[Custom Embeds](/components/markdown-embeds)** page. Everything is opt-in behind the `cocoar` flavor.
+
+### Added
+
+- **`@cocoar/vue-markdown-core` — `:::key{props}` custom-embed directive.** A standalone directive line parses to a generic `embed` node (`{ key, props }`) and serializes back losslessly (`parse → serialize → parse` is a fixed point; canonical forms like `:::map{id=<guid>}` are byte-stable). Exposes `parseEmbedDirective`, `serializeEmbedDirective` and `toEmbedProps`. The parser is registry-agnostic — any key round-trips, registered or not. Vue-free, like the rest of the core.
+- **`@cocoar/vue-markdown` — embed registry + viewer rendering.** New `embeds` prop on `<CoarMarkdown>` (and an app-wide `MARKDOWN_EMBEDS_KEY` provide) maps a directive key to a component via `EmbedRegistry` / `EmbedDefinition` (`{ viewer, editor?, insert? }`). A registered key renders through your component (props passed straight through); an unregistered key degrades to a labelled placeholder instead of vanishing. XSS-safe by construction — attribute values are bound as Vue props/text, never `innerHTML`.
+- **`@cocoar/vue-markdown-editor` — live, editable embeds.** Pass the same `embeds` registry and the editor folds `:::key{props}` into an atomic block whose NodeView mounts the registered component **live**. When the entry supplies an `editor` component it's mounted editable via a single typed `controller` prop (`EmbedEditorProps` / `EmbedEditorController` — `controller.patch(...)` writes attribute changes back to the Markdown); otherwise the read-only `viewer` is shown. Gated behind a new `embeds` flavor capability (on in `cocoar`, the default).
+- **`@cocoar/vue-markdown-editor` — groupable, ordered toolbar layout.** `tools` now accepts `CoarMarkdownEditorToolEntry[]`: built-in tool ids, custom-embed inserts addressed as `embed:<key>` (icon/label from the registry's `insert`), `{ flyout }` submenu groups (mixing built-in and embed items), and `'divider'`s. Array order is the toolbar order, so embeds and built-ins can be placed and grouped anywhere.
+
+### Changed
+
+- **`@cocoar/vue-markdown-editor` — `tools` is now an ordered layout (breaking).** A `tools` array previously acted as an order-insensitive whitelist that filtered a fixed sequence; it is now an ordered layout (array order = toolbar order). Flat built-in arrays remain valid and the default (omit `tools`) is unchanged, so apps passing tools in canonical order are unaffected — list tools in the order you want otherwise. `tools` is typed `CoarMarkdownEditorToolEntry[]` (a superset of `CoarMarkdownEditorTool[]`).
+- **`@cocoar/vue-markdown-editor` — the default `cocoar` flavor now recognises `:::key{props}` embeds.** A standalone `:::word{…}` line folds to an embed node (rendered as a placeholder when its key isn't registered) instead of staying literal text. Use a stricter `flavor` (`'commonmark'` / `'gfm'`, or a capability object without `embeds`) to keep such lines as plain text.
+
+---
+
 ## 2.11.0
 
 A library-wide consistency pass for the input & form-control family. The whole field family — text / number / password / select / multi-select / tag-select and the three date-time pickers — now sits on one internal shell (`CoarInputFrame`), so box, border, radius, surface, states and field padding all come from a single place. The non-typing form controls (checkbox, switch, radio, listbox, dual-listbox, segmented control) are aligned to the same input + semantic-error tokens, and the Theme Editor is rebuilt around the new token model.

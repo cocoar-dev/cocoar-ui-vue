@@ -17,6 +17,8 @@ export default defineConfig({
       { find: /^@cocoar\/vue-script-editor$/, replacement: resolve(__dirname, '../../packages/script-editor/src/index.ts') },
       { find: /^@cocoar\/vue-page-builder$/, replacement: resolve(__dirname, '../../packages/page-builder/src/index.ts') },
       { find: /^@cocoar\/vue-markdown-editor$/, replacement: resolve(__dirname, '../../packages/markdown-editor/src/index.ts') },
+      { find: /^@cocoar\/vue-markdown$/, replacement: resolve(__dirname, '../../packages/markdown/src/index.ts') },
+      { find: /^@cocoar\/vue-markdown-core$/, replacement: resolve(__dirname, '../../packages/markdown-core/src/index.ts') },
       { find: /^@cocoar\/vue-document-viewer$/, replacement: resolve(__dirname, '../../packages/document-viewer/src/index.ts') },
       { find: /^@cocoar\/vue-document-viewer\/pdf$/, replacement: resolve(__dirname, '../../packages/document-viewer/src/sources/pdf.ts') },
       { find: /^@cocoar\/vue-document-viewer\/styles$/, replacement: resolve(__dirname, '../../packages/document-viewer/dist/vue-document-viewer.css') },
