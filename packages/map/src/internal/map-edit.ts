@@ -126,6 +126,29 @@ export function setViewport(data: MapData, viewport: MapViewport | null): MapDat
   return { ...data, viewport };
 }
 
+/**
+ * New selected index after `reorderPoint(_, from, to)`, so a selection keeps
+ * pointing at the same logical point through the move. `null` stays `null`.
+ */
+export function selectionAfterReorder(selected: number | null, from: number, to: number): number | null {
+  if (selected === null) return null;
+  if (selected === from) return to;
+  if (from < selected && selected <= to) return selected - 1;
+  if (to <= selected && selected < from) return selected + 1;
+  return selected;
+}
+
+/**
+ * New selected index after `removePoint(_, index)`: clears when the selected
+ * point was removed, shifts down when a point before it was removed.
+ */
+export function selectionAfterRemove(selected: number | null, index: number): number | null {
+  if (selected === null) return null;
+  if (selected === index) return null;
+  if (selected > index) return selected - 1;
+  return selected;
+}
+
 /** Squared distance from point `p` to the segment `a→b`, in planar lat/lng space. */
 function distanceToSegmentSq(
   px: number, py: number,

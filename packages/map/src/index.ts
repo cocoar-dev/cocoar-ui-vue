@@ -5,6 +5,7 @@
  */
 export { default as CoarMap } from './CoarMap.vue';
 export { default as CoarMapEditor } from './CoarMapEditor.vue';
+export { default as CoarMapPointList } from './CoarMapPointList.vue';
 export { COAR_MAP_CONFIG_KEY } from './context';
 
 // Pure model helpers — useful for consumers building their own fallbacks/legends.
@@ -28,6 +29,8 @@ export {
   normalizeLatLng,
   removePoint,
   reorderPoint,
+  selectionAfterRemove,
+  selectionAfterReorder,
   setViewport,
   updatePoint,
 } from './internal/map-edit';

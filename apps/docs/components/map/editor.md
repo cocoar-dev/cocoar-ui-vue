@@ -126,20 +126,48 @@ const editor = ref<InstanceType<typeof CoarMapEditor>>();
 </template>
 ```
 
-## A point list beside the editor
+## Point list (`CoarMapPointList`)
 
-The layout around the editor is the **consumer's job** — the editor just exposes
-the hooks. Here a list built from `data.points` reorders with ↑ / ↓
-(`reorder`), deletes (`removePoint`), flies to a point on click (`focusPoint`)
-and highlights on hover (`highlightPoint`); `v-model:selected` keeps the active
-row and the map marker in sync. Reordering and deleting keep the selection on the
-**same point**, so the highlighted row never drifts.
+A ready-made, drop-anywhere point list ships in the package so you don't rebuild
+it per app. It's **controlled** (`v-model:data` / `v-model:selected`) and stays
+decoupled from the map — bind both to the same refs as the editor, and wire its
+`focus` / `highlight` events to the map's exposed methods for fly-to + hover.
 
 <preview path="./demos/MapEditorList.vue" />
 
-Unlike the viewer's `fallbackEntries` rows, an editor list usually wants **every**
-point — including the unnamed `shape` vertices — so the whole route order stays
-editable.
+```vue
+<CoarMapEditor ref="editor" v-model:data="data" v-model:selected="sel" :config="config" />
+
+<CoarMapPointList
+  v-model:data="data"
+  v-model:selected="sel"
+  :config="config"
+  reorderable
+  removable
+  @focus="editor.focusPoint($event)"
+  @highlight="editor.highlightPoint($event)"
+/>
+```
+
+| Prop / event | Description |
+|---|---|
+| `v-model:data` | The map data; reorder + delete emit a fresh `MapData`. |
+| `v-model:selected` | Active row ↔ selected index. |
+| `config` | Resolves stop emojis/labels (falls back to a point's own `icon`). |
+| `reorderable` | Drag-and-drop sorting via a per-row handle (default `false`). |
+| `removable` | Per-row delete button (default `false`). |
+| `@focus(index)` | Row activated — wire to `focusPoint`. |
+| `@highlight(index \| null)` | Row hover — wire to `highlightPoint`. |
+| `#row="{ point, index, selected }"` | Override a row's content. |
+
+It lists **every** point — including the unnamed `shape` vertices the viewer
+draws as bare geometry — so the whole route order stays editable. Reordering and
+deleting keep the selection on the **same point**, so the active row never
+drifts. Drag-and-drop is built on Cocoar UI's `useDragDrop`. The list works next
+to a read-only [`<CoarMap>`](/components/map/) too (omit `reorderable` /
+`removable` for a pure navigator). Prefer your own layout? It's still the
+consumer's call — the same edits are available as exposed methods (above) and as
+[pure operations](#pure-editing-operations).
 
 ## Pure editing operations
 

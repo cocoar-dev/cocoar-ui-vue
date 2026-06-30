@@ -16,6 +16,8 @@ import {
   nearestSegment,
   removePoint,
   reorderPoint,
+  selectionAfterRemove,
+  selectionAfterReorder,
   setViewport,
   updatePoint,
   type NewPointInit,
@@ -326,22 +328,16 @@ export function useMapEditor(mapEl: Ref<HTMLElement | null>, opts: UseMapEditorO
   }
 
   function removePointAt(index: number): void {
+    const sel = opts.selected();
     commit(removePoint(opts.data(), index));
-    const sel = opts.selected(); // keep selection on the same point (or clear)
-    if (sel === null) return;
-    if (sel === index) opts.emitSelected(null);
-    else if (sel > index) opts.emitSelected(sel - 1);
+    opts.emitSelected(selectionAfterRemove(sel, index));
   }
 
   function reorder(from: number, to: number): void {
     const next = reorderPoint(opts.data(), from, to);
     if (next === opts.data()) return;
     commit(next);
-    const sel = opts.selected(); // keep selection on the same point through the move
-    if (sel === null) return;
-    if (sel === from) opts.emitSelected(to);
-    else if (from < sel && sel <= to) opts.emitSelected(sel - 1);
-    else if (to <= sel && sel < from) opts.emitSelected(sel + 1);
+    opts.emitSelected(selectionAfterReorder(opts.selected(), from, to));
   }
 
   /** Save the map's current center + zoom into `data.viewport`. */

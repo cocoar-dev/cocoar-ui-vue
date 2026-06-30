@@ -5,7 +5,7 @@
  * polyline follows live. Everything flows through `v-model:data` — no markdown.
  */
 import { ref } from 'vue';
-import { CoarMapEditor, type MapConfig, type MapData, type MapType } from '@cocoar/vue-map';
+import { CoarMapEditor, CoarMapPointList, type MapConfig, type MapData, type MapType } from '@cocoar/vue-map';
 
 const config: MapConfig = {
   defaultBasemap: 'voyager',
@@ -39,10 +39,12 @@ const data = ref<MapData>({
 
 const selected = ref<number | null>(null);
 
-// Imperative bridge to the editor — a consumer toolbar drives edits through it.
+// Imperative bridge to the editor — a consumer toolbar/list drives it through this.
 const editor = ref<{
   captureViewport: () => void;
   addPoint: (lat: number, lng: number) => void;
+  focusPoint: (index: number) => void;
+  highlightPoint: (index: number | null) => void;
 } | null>(null);
 
 function setType(t: MapType): void {
@@ -73,13 +75,28 @@ function setType(t: MapType): void {
       </span>
     </div>
 
-    <div class="mapedit-demo__frame">
-      <CoarMapEditor
-        ref="editor"
-        v-model:data="data"
-        v-model:selected="selected"
-        :config="config"
-      />
+    <div class="mapedit-demo__layout">
+      <div class="mapedit-demo__frame">
+        <CoarMapEditor
+          ref="editor"
+          v-model:data="data"
+          v-model:selected="selected"
+          :config="config"
+        />
+      </div>
+
+      <aside class="mapedit-demo__list">
+        <div class="mapedit-demo__list-title">Points <span>({{ data.points.length }})</span></div>
+        <CoarMapPointList
+          v-model:data="data"
+          v-model:selected="selected"
+          :config="config"
+          reorderable
+          removable
+          @focus="editor?.focusPoint($event)"
+          @highlight="editor?.highlightPoint($event)"
+        />
+      </aside>
     </div>
 
     <details class="mapedit-demo__data" open>
@@ -95,7 +112,34 @@ function setType(t: MapType): void {
   flex-direction: column;
   gap: 12px;
   padding: 16px;
-  max-width: 900px;
+  max-width: 1100px;
+}
+.mapedit-demo__layout {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
+.mapedit-demo__frame {
+  flex: 1;
+  min-width: 0;
+  --coar-map-height: 440px;
+}
+.mapedit-demo__list {
+  width: 250px;
+  flex-shrink: 0;
+  border: 1px solid var(--coar-border-neutral, #e2e2e2);
+  border-radius: 10px;
+  overflow: hidden;
+  align-self: flex-start;
+}
+.mapedit-demo__list-title {
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--coar-text-neutral-secondary, #777);
+  border-bottom: 1px solid var(--coar-border-neutral, #ededed);
 }
 .mapedit-demo__title {
   margin: 0;
@@ -134,9 +178,6 @@ function setType(t: MapType): void {
   margin-left: 12px;
   font-size: 13px;
   color: var(--coar-text-neutral-secondary, #777);
-}
-.mapedit-demo__frame {
-  --coar-map-height: 440px;
 }
 .mapedit-demo__data pre {
   margin-top: 8px;

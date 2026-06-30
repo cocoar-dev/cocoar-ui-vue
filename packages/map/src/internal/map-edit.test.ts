@@ -7,6 +7,8 @@ import {
   normalizeLatLng,
   removePoint,
   reorderPoint,
+  selectionAfterRemove,
+  selectionAfterReorder,
   setViewport,
   updatePoint,
 } from './map-edit';
@@ -120,6 +122,39 @@ describe('setViewport', () => {
     const withVp = setViewport(data, { centerLat: 1, centerLng: 2, zoom: 8 });
     expect(withVp.viewport).toEqual({ centerLat: 1, centerLng: 2, zoom: 8 });
     expect(setViewport(withVp, null).viewport).toBeUndefined();
+  });
+});
+
+describe('selectionAfterReorder', () => {
+  it('null stays null', () => {
+    expect(selectionAfterReorder(null, 0, 2)).toBeNull();
+  });
+  it('the moved point follows to its new index', () => {
+    expect(selectionAfterReorder(1, 1, 3)).toBe(3);
+    expect(selectionAfterReorder(3, 3, 0)).toBe(0);
+  });
+  it('points the move passes over shift by one', () => {
+    expect(selectionAfterReorder(2, 0, 3)).toBe(1); // 0→3: items 1,2,3 shift down
+    expect(selectionAfterReorder(1, 3, 0)).toBe(2); // 3→0: items 0,1,2 shift up
+  });
+  it('points outside the moved range are unchanged', () => {
+    expect(selectionAfterReorder(5, 1, 3)).toBe(5);
+    expect(selectionAfterReorder(0, 2, 4)).toBe(0);
+  });
+});
+
+describe('selectionAfterRemove', () => {
+  it('null stays null', () => {
+    expect(selectionAfterRemove(null, 1)).toBeNull();
+  });
+  it('clears when the selected point is removed', () => {
+    expect(selectionAfterRemove(2, 2)).toBeNull();
+  });
+  it('shifts down when an earlier point is removed', () => {
+    expect(selectionAfterRemove(3, 1)).toBe(2);
+  });
+  it('is unchanged when a later point is removed', () => {
+    expect(selectionAfterRemove(1, 3)).toBe(1);
   });
 });
 
