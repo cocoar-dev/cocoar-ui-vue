@@ -11,8 +11,10 @@ no dependency on, or knowledge of, markdown or any embedding layer.
 pnpm add @cocoar/vue-map
 ```
 `CoarMapEditor` ships alongside `CoarMap` and is tree-shakeable — pages that only
-render `<CoarMap>` don't pull in the editing weight. Leaflet is still imported
-**lazily** at runtime; `vue` is the only peer.
+render `<CoarMap>` don't pull in the editing weight. Leaflet is imported
+**lazily** at runtime. The editor's built-in form uses the Cocoar UI controls, so
+`@cocoar/vue-ui` is an **optional peer** — install it when you use the editor;
+viewer-only `<CoarMap>` consumers don't need it.
 :::
 
 <preview path="./demos/MapEditorBasic.vue" />
@@ -68,11 +70,13 @@ Every point gets a draggable handle — including the unnamed `shape` vertices t
 ## Property popup
 
 Selecting a point opens a small popup anchored over its marker. The built-in form
-edits `label`, `note`, `category` and `icon` (for stops), toggles a point between
-**stop** and **vertex**, **reorders** route waypoints (↑ / ↓) and **deletes** the
-point. It flips below the marker automatically when there isn't room above. Close
-it with the **×**, **`Esc`**, or by clicking empty map space (which dismisses
-rather than adding a point).
+is rendered with the Cocoar UI controls (`CoarTextInput`, `CoarSelect`,
+`CoarButton`) so it matches the design system; it edits `label`, `note`,
+`category` and `icon` (for stops), toggles a point between **stop** and
+**vertex**, **reorders** route waypoints (↑ / ↓) and **deletes** the point. It
+flips below the marker automatically when there isn't room above. Close it with
+the **×**, **`Esc`**, or by clicking empty map space (which dismisses rather than
+adding a point).
 
 Override it entirely with the **`#point-form`** slot to drop in your own
 controls (e.g. design-system inputs):
