@@ -27,7 +27,7 @@ const config: MapConfig = {
 
 const data = ref<MapData>({
   type: 'route',
-  caption: 'Click the map to add points · drag markers to move them.',
+  caption: 'Click to add · drag to move · click a marker to edit · Esc / click-away to close.',
   basemap: 'voyager',
   points: [
     { lat: 51.4995, lng: -0.1248, kind: 'stop', label: 'Westminster', category: 'sight' },

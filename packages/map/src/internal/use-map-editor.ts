@@ -187,9 +187,14 @@ export function useMapEditor(mapEl: Ref<HTMLElement | null>, opts: UseMapEditorO
 
   function onMapClick(e: LeafletMouseEvent): void {
     if (opts.readonly()) return;
-    const next = addPointForType(opts.data(), e.latlng.lat, e.latlng.lng);
-    commit(next);
-    opts.emitSelected(next.points.length - 1);
+    // With a point selected, an empty-map click dismisses the popup (no point
+    // added). Otherwise add a point — but don't auto-select it, so dropping
+    // several points in a row stays fluid (no popup in the way).
+    if (opts.selected() !== null) {
+      opts.emitSelected(null);
+      return;
+    }
+    commit(addPointForType(opts.data(), e.latlng.lat, e.latlng.lng));
   }
 
   /** Click the route line → insert a waypoint there (snapped to the line). */
@@ -198,7 +203,8 @@ export function useMapEditor(mapEl: Ref<HTMLElement | null>, opts: UseMapEditorO
     const hit = nearestSegment(opts.data().points, e.latlng.lat, e.latlng.lng);
     if (!hit) return;
     commit(insertOnSegment(opts.data(), hit.segmentIndex, hit.lat, hit.lng));
-    opts.emitSelected(hit.segmentIndex + 1);
+    // Clear selection: the insert shifts indices (avoid staleness) + adds don't pop.
+    opts.emitSelected(null);
   }
 
   // ---- Property popup -------------------------------------------------------
@@ -238,6 +244,18 @@ export function useMapEditor(mapEl: Ref<HTMLElement | null>, opts: UseMapEditorO
     if (next === opts.data()) return;
     commit(next);
     opts.emitSelected(to);
+  }
+
+  /** Close the popup (clear selection) — the × button + Escape. */
+  function deselect(): void {
+    if (opts.selected() !== null) opts.emitSelected(null);
+  }
+
+  function onKeyDown(e: KeyboardEvent): void {
+    if (e.key === 'Escape' && !opts.readonly() && opts.selected() !== null) {
+      e.stopPropagation();
+      deselect();
+    }
   }
 
   // ---- Map lifecycle --------------------------------------------------------
@@ -336,8 +354,14 @@ export function useMapEditor(mapEl: Ref<HTMLElement | null>, opts: UseMapEditorO
     commit(setViewport(opts.data(), { centerLat: center.lat, centerLng: center.lng, zoom: map.getZoom() }));
   }
 
-  onMounted(initMap);
-  onBeforeUnmount(destroyMap);
+  onMounted(() => {
+    window.addEventListener('keydown', onKeyDown);
+    void initMap();
+  });
+  onBeforeUnmount(() => {
+    window.removeEventListener('keydown', onKeyDown);
+    destroyMap();
+  });
 
   // Re-create the map only when the resolved config changes; data edits just
   // reconcile the layers (never during a drag, never re-fitting the view).
@@ -364,6 +388,7 @@ export function useMapEditor(mapEl: Ref<HTMLElement | null>, opts: UseMapEditorO
     updateSelected,
     removeSelected,
     moveSelected,
+    deselect,
     focusPoint,
     highlightPoint,
     addPoint,

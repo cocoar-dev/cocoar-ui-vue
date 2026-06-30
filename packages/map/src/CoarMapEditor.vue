@@ -53,6 +53,7 @@ const {
   updateSelected,
   removeSelected,
   moveSelected,
+  deselect,
   focusPoint,
   highlightPoint,
   addPoint,
@@ -93,6 +94,12 @@ defineExpose({
         :class="{ 'coar-map-edit-popup--below': editBelow }"
         :style="{ left: `${editPos.x}px`, top: `${editPos.y}px` }"
       >
+        <button
+          type="button"
+          class="coar-map-edit-popup__close"
+          aria-label="Close"
+          @click="deselect"
+        >×</button>
         <slot
           name="point-form"
           :point="selectedPoint"
@@ -169,6 +176,28 @@ defineExpose({
 }
 .coar-map-edit-popup--below {
   transform: translate(-50%, 20px);
+}
+.coar-map-edit-popup__close {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #64748b;
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+.coar-map-edit-popup__close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
 }
 /* Little pointer tail, pointing at the marker (below the popup, or above when flipped). */
 .coar-map-edit-popup::after {

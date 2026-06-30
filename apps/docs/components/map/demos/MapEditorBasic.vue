@@ -28,7 +28,7 @@ const config: MapConfig = {
 
 const data = ref<MapData>({
   type: 'route',
-  caption: 'Click to add · drag to move · click a marker to edit · click the line to insert.',
+  caption: 'Click to add · drag to move · click a marker to edit · click the line to insert · Esc / click-away to close.',
   points: [
     { lat: 51.4995, lng: -0.1248, kind: 'stop', label: 'Westminster', category: 'sight' },
     { lat: 51.5076, lng: -0.118, kind: 'shape' },

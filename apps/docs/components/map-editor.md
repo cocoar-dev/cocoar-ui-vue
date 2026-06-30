@@ -55,10 +55,11 @@ field-level reference.
 
 | Gesture | Result |
 |---|---|
-| **Click an empty spot** | Adds a point. Type-aware: `route` / `multi` **append** a stop; `single` **moves** the one point. |
+| **Click an empty spot** | Adds a point — type-aware: `route` / `multi` **append** a stop, `single` **moves** the one point. The new point is **not** auto-opened, so dropping several in a row stays fluid. |
 | **Drag a marker** | Moves that point; the route polyline follows **live**, `update:data` fires on drop. |
 | **Click a marker** | Selects it and opens the **property popup** (see below). |
 | **Click the route line** | Inserts a waypoint **exactly there**, snapped to the nearest segment. |
+| **Click away · `Esc` · popup ×** | Closes the popup (deselects). Clicking empty space **while a point is selected dismisses it** — it does *not* add a point. |
 
 Every point gets a draggable handle — including the unnamed `shape` vertices that
 `<CoarMap>` draws as pure line geometry — so route shapes are editable too. Set
@@ -69,7 +70,9 @@ Every point gets a draggable handle — including the unnamed `shape` vertices t
 Selecting a point opens a small popup anchored over its marker. The built-in form
 edits `label`, `note`, `category` and `icon` (for stops), toggles a point between
 **stop** and **vertex**, **reorders** route waypoints (↑ / ↓) and **deletes** the
-point. It flips below the marker automatically when there isn't room above.
+point. It flips below the marker automatically when there isn't room above. Close
+it with the **×**, **`Esc`**, or by clicking empty map space (which dismisses
+rather than adding a point).
 
 Override it entirely with the **`#point-form`** slot to drop in your own
 controls (e.g. design-system inputs):
