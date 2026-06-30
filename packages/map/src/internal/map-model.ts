@@ -24,8 +24,10 @@ export function stopEmoji(point: MapPoint, config: MapConfig): string {
   return category?.emoji ?? '';
 }
 
-/** One row of the JS-free fallback list. */
+/** One row of the JS-free fallback / consumer list. */
 export interface FallbackEntry {
+  /** Index into `data.points` — use it to drive `<CoarMap>`'s `focusPoint` etc. */
+  index: number;
   emoji: string;
   label: string;
   lat: number;
@@ -33,24 +35,27 @@ export interface FallbackEntry {
 }
 
 /**
- * Rows for the crawlable / no-JS fallback: every **stop**, plus **named** shape
- * points. Unnamed shape points (pure line geometry) are excluded. Stops use
- * their category/custom emoji; named shape points use a `•`.
+ * Rows for the crawlable / no-JS fallback (and consumer-built list views): every
+ * **stop**, plus **named** shape points. Unnamed shape points (pure line
+ * geometry) are excluded. Stops use their category/custom emoji; named shape
+ * points use a `•`. Each row keeps its original `data.points` index so a list
+ * can address the matching marker.
  */
 export function fallbackEntries(data: MapData, config: MapConfig): FallbackEntry[] {
   const out: FallbackEntry[] = [];
-  for (const point of data.points) {
+  data.points.forEach((point, index) => {
     if (point.kind === 'stop') {
       out.push({
+        index,
         emoji: stopEmoji(point, config) || '📍',
         label: point.label ?? '',
         lat: point.lat,
         lng: point.lng,
       });
     } else if (point.label) {
-      out.push({ emoji: '•', label: point.label, lat: point.lat, lng: point.lng });
+      out.push({ index, emoji: '•', label: point.label, lat: point.lat, lng: point.lng });
     }
-  }
+  });
   return out;
 }
 

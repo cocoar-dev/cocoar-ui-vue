@@ -48,9 +48,9 @@ describe('fallbackEntries', () => {
       ],
     };
     expect(fallbackEntries(data, config)).toEqual([
-      { emoji: '🏛️', label: 'Start', lat: 1, lng: 1 },
-      { emoji: '•', label: 'Bend', lat: 2, lng: 2 },
-      { emoji: '🥐', label: 'End', lat: 4, lng: 4 },
+      { index: 0, emoji: '🏛️', label: 'Start', lat: 1, lng: 1 },
+      { index: 1, emoji: '•', label: 'Bend', lat: 2, lng: 2 },
+      { index: 3, emoji: '🥐', label: 'End', lat: 4, lng: 4 },
     ]);
   });
 });

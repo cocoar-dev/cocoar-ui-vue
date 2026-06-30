@@ -9,7 +9,7 @@
  * points is shown until the map hydrates (and if Leaflet fails to load).
  */
 import { computed, inject, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
-import type { Map as LeafletMap } from 'leaflet';
+import type { CircleMarker, Map as LeafletMap, Marker } from 'leaflet';
 import type { MapConfig, MapData, MapPoint } from './types';
 import { COAR_MAP_CONFIG_KEY } from './context';
 import {
@@ -27,6 +27,20 @@ const props = defineProps<{
   data: MapData;
   /** Falls back to an app-wide `COAR_MAP_CONFIG_KEY` provide when omitted. */
   config?: MapConfig;
+  /**
+   * Selected point index (index into `data.points`). Two-way via
+   * `v-model:selected` — set it to highlight a marker, read updates when a
+   * marker is clicked. The selection drives a visual ring only (use
+   * `focusPoint` to also pan + open the popup).
+   */
+  selected?: number | null;
+  /** Hide the legend, which otherwise shows when ≥ 2 categories are present. */
+  hideLegend?: boolean;
+}>();
+
+const emit = defineEmits<{
+  'update:selected': [number | null];
+  'point-click': [{ point: MapPoint; index: number }];
 }>();
 
 const injectedConfig = inject(COAR_MAP_CONFIG_KEY, undefined);
@@ -38,8 +52,12 @@ const mapEl = ref<HTMLElement | null>(null);
 const mapRef = shallowRef<LeafletMap | null>(null);
 const ready = ref(false);
 
+/** point index (into `data.points`) → its marker (stops + named shapes). */
+const markers = new Map<number, Marker | CircleMarker>();
+
 const fallback = computed(() => fallbackEntries(props.data, cfg.value ?? EMPTY_CONFIG));
 const legend = computed(() => (cfg.value ? legendCategories(props.data, cfg.value) : []));
+const showLegend = computed(() => !props.hideLegend && legend.value.length > 1);
 
 function escapeHtml(value: string): string {
   return value
@@ -73,7 +91,18 @@ function popupEl(point: MapPoint): HTMLElement {
   return root;
 }
 
-function addStop(L: Leaflet, map: LeafletMap, point: MapPoint, config: MapConfig): void {
+function onMarkerClick(index: number, point: MapPoint): void {
+  emit('update:selected', index);
+  emit('point-click', { point, index });
+}
+
+function addStop(
+  L: Leaflet,
+  map: LeafletMap,
+  point: MapPoint,
+  index: number,
+  config: MapConfig,
+): void {
   const color = safeColor(stopColor(point, config));
   const emoji = stopEmoji(point, config);
   const icon = L.divIcon({
@@ -86,10 +115,12 @@ function addStop(L: Leaflet, map: LeafletMap, point: MapPoint, config: MapConfig
   const marker = L.marker([point.lat, point.lng], { icon });
   if (point.label) marker.bindTooltip(escapeHtml(point.label));
   if (point.label || point.note) marker.bindPopup(popupEl(point));
+  marker.on('click', () => onMarkerClick(index, point));
   marker.addTo(map);
+  markers.set(index, marker);
 }
 
-function addShape(L: Leaflet, map: LeafletMap, point: MapPoint): void {
+function addShape(L: Leaflet, map: LeafletMap, point: MapPoint, index: number): void {
   const marker = L.circleMarker([point.lat, point.lng], {
     radius: 4,
     color: '#475569',
@@ -99,7 +130,9 @@ function addShape(L: Leaflet, map: LeafletMap, point: MapPoint): void {
   });
   if (point.label) marker.bindTooltip(escapeHtml(point.label));
   if (point.note) marker.bindPopup(popupEl(point));
+  marker.on('click', () => onMarkerClick(index, point));
   marker.addTo(map);
+  markers.set(index, marker);
 }
 
 function destroyMap(): void {
@@ -107,7 +140,23 @@ function destroyMap(): void {
     mapRef.value.remove();
     mapRef.value = null;
   }
+  markers.clear();
   ready.value = false;
+}
+
+/** The DOM/SVG element backing a marker, for toggling state classes. */
+function markerElement(index: number): Element | null {
+  const layer = markers.get(index);
+  const el = layer?.getElement?.();
+  return el ?? null;
+}
+
+/** Reflect the `selected` prop as a ring on the matching marker. */
+function applySelectedVisual(): void {
+  const selectedIndex = props.selected ?? null;
+  for (const index of markers.keys()) {
+    markerElement(index)?.classList.toggle('coar-map-marker--selected', index === selectedIndex);
+  }
 }
 
 async function initMap(): Promise<void> {
@@ -142,10 +191,10 @@ async function initMap(): Promise<void> {
       { color: '#3b82f6', weight: 4, opacity: 0.85 },
     ).addTo(map);
   }
-  for (const point of points) {
-    if (point.kind === 'stop') addStop(L, map, point, config);
-    else if (point.label) addShape(L, map, point);
-  }
+  points.forEach((point, index) => {
+    if (point.kind === 'stop') addStop(L, map, point, index, config);
+    else if (point.label) addShape(L, map, point, index);
+  });
 
   const viewport = props.data.viewport;
   if (viewport) {
@@ -159,13 +208,37 @@ async function initMap(): Promise<void> {
   // Container may have been zero-sized at init (flex / initially hidden).
   requestAnimationFrame(() => mapRef.value?.invalidateSize());
   ready.value = true;
+  applySelectedVisual();
 }
+
+/**
+ * Imperative bridge for a consumer-built list/UI. Pan to a point, open its popup
+ * and select it. `index` is into `data.points` (see `fallbackEntries(...).index`).
+ */
+function focusPoint(index: number): void {
+  const point = props.data.points[index];
+  if (!point || !mapRef.value) return;
+  mapRef.value.panTo([point.lat, point.lng]);
+  markers.get(index)?.openPopup();
+  if ((props.selected ?? null) !== index) emit('update:selected', index);
+}
+
+/** Transient hover emphasis on a marker (pass `null` to clear). */
+function highlightPoint(index: number | null): void {
+  for (const i of markers.keys()) {
+    markerElement(i)?.classList.toggle('coar-map-marker--highlight', i === index);
+  }
+}
+
+defineExpose({ focusPoint, highlightPoint });
 
 onMounted(initMap);
 onBeforeUnmount(destroyMap);
 
 // Re-initialise when the data or resolved config changes.
 watch([() => props.data, cfg], () => void initMap(), { deep: true });
+// Reflect external selection changes as the marker ring.
+watch(() => props.selected, applySelectedVisual);
 </script>
 
 <template>
@@ -181,7 +254,7 @@ watch([() => props.data, cfg], () => void initMap(), { deep: true });
       </li>
     </ol>
 
-    <ul v-if="legend.length > 1" class="coar-map__legend">
+    <ul v-if="showLegend" class="coar-map__legend">
       <li v-for="category in legend" :key="category.id" class="coar-map__legend-item">
         <span class="coar-map__legend-swatch" :style="{ background: category.color }" />
         <span v-if="category.emoji" class="coar-map__legend-emoji">{{ category.emoji }}</span>
@@ -230,6 +303,22 @@ watch([() => props.data, cfg], () => void initMap(), { deep: true });
 .coar-map-pin__emoji {
   font-size: 14px;
   line-height: 1;
+}
+
+/* Interactive states toggled by `focusPoint` / `highlightPoint` / selection. */
+.coar-map-pin {
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.coar-map-marker--highlight .coar-map-pin {
+  transform: scale(1.22);
+}
+.coar-map-marker--selected .coar-map-pin {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5), 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+/* Shape dots are SVG paths — emphasise via stroke. */
+path.coar-map-marker--highlight,
+path.coar-map-marker--selected {
+  stroke-width: 4;
 }
 
 .coar-map-popup__note {
