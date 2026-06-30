@@ -143,7 +143,7 @@ const embedSchema = $nodeSchema('embed', () => ({
       tag: 'div[data-type="embed"]',
       getAttrs: (dom) => {
         const el = dom as HTMLElement;
-        let props: Record<string, string> = {};
+        let props: Record<string, string>;
         try {
           props = JSON.parse(el.getAttribute('data-embed-props') ?? '{}');
         } catch {

@@ -96,7 +96,7 @@ function parseAttributes(body: string): Record<string, string> {
 
     if (i < n && body[i] === '=') {
       i++; // consume '='
-      let value = '';
+      let value: string;
       const quote = body[i];
       if (quote === '"' || quote === "'") {
         i++; // consume opening quote
