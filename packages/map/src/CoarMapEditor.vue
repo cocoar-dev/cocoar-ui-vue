@@ -17,6 +17,7 @@
  * `reorder` / `captureViewport` / `focusPoint` / `highlightPoint` methods.
  */
 import { computed, inject, ref } from 'vue';
+import { CoarButton } from '@cocoar/vue-ui';
 import type { MapConfig, MapData, MapPoint } from './types';
 import { COAR_MAP_CONFIG_KEY } from './context';
 import { useMapEditor } from './internal/use-map-editor';
@@ -94,12 +95,9 @@ defineExpose({
         :class="{ 'coar-map-edit-popup--below': editBelow }"
         :style="{ left: `${editPos.x}px`, top: `${editPos.y}px` }"
       >
-        <button
-          type="button"
-          class="coar-map-edit-popup__close"
-          aria-label="Close"
-          @click="deselect"
-        >×</button>
+        <div class="coar-map-edit-popup__close">
+          <CoarButton variant="ghost" size="xs" aria-label="Close" @click="deselect">×</CoarButton>
+        </div>
         <slot
           name="point-form"
           :point="selectedPoint"
@@ -163,16 +161,18 @@ defineExpose({
 }
 
 /* Floating property popup — a Vue overlay (not a Leaflet popup) so the
-   #point-form slot keeps full reactivity. Anchored above its marker. */
+   #point-form slot keeps full reactivity. The surface uses Cocoar neutral
+   tokens so it matches the design system (and adapts to the theme); anchored
+   above its marker, flips below near the top edge. */
 .coar-map-edit-popup {
   position: absolute;
   z-index: 1000;
   transform: translate(-50%, calc(-100% - 20px));
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: var(--coar-background-neutral-primary, #fff);
+  border: 1px solid var(--coar-border-neutral, #e2e8f0);
   border-radius: 10px;
   box-shadow: 0 6px 24px rgba(15, 23, 42, 0.18);
-  padding: 10px;
+  padding: 12px 12px 10px;
 }
 .coar-map-edit-popup--below {
   transform: translate(-50%, 20px);
@@ -181,23 +181,7 @@ defineExpose({
   position: absolute;
   top: 4px;
   right: 4px;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: 0;
-  border-radius: 5px;
-  background: transparent;
-  color: #64748b;
-  font-size: 17px;
-  line-height: 1;
-  cursor: pointer;
-}
-.coar-map-edit-popup__close:hover {
-  background: #f1f5f9;
-  color: #0f172a;
+  z-index: 1;
 }
 /* Little pointer tail, pointing at the marker (below the popup, or above when flipped). */
 .coar-map-edit-popup::after {
@@ -207,16 +191,16 @@ defineExpose({
   bottom: -7px;
   width: 12px;
   height: 12px;
-  background: #fff;
-  border-right: 1px solid #e2e8f0;
-  border-bottom: 1px solid #e2e8f0;
+  background: var(--coar-background-neutral-primary, #fff);
+  border-right: 1px solid var(--coar-border-neutral, #e2e8f0);
+  border-bottom: 1px solid var(--coar-border-neutral, #e2e8f0);
   transform: translateX(-50%) rotate(45deg);
 }
 .coar-map-edit-popup--below::after {
   bottom: auto;
   top: -7px;
   border: 0;
-  border-left: 1px solid #e2e8f0;
-  border-top: 1px solid #e2e8f0;
+  border-left: 1px solid var(--coar-border-neutral, #e2e8f0);
+  border-top: 1px solid var(--coar-border-neutral, #e2e8f0);
 }
 </style>

@@ -20,7 +20,9 @@ export default defineConfig({
     rollupOptions: {
       // Leaflet (and its CSS) stay external + lazily imported by the component,
       // so the consumer bundles it only on pages that actually render a map.
-      external: ['vue', 'leaflet', /^leaflet\//],
+      // `@cocoar/vue-ui` (the editor's form controls) is an optional peer —
+      // external so viewer-only consumers never pull it in.
+      external: ['vue', 'leaflet', /^leaflet\//, '@cocoar/vue-ui'],
       output: {
         globals: { vue: 'Vue', leaflet: 'L' },
       },

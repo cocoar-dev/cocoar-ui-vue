@@ -316,6 +316,9 @@ importers:
         specifier: ^1.9.4
         version: 1.9.4
     devDependencies:
+      '@cocoar/vue-ui':
+        specifier: workspace:*
+        version: link:../ui
       '@types/leaflet':
         specifier: ^1.9.12
         version: 1.9.21
