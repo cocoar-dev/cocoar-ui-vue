@@ -365,6 +365,7 @@ export default defineConfig({
           items: [
             { text: 'Markdown', link: '/components/markdown' },
             { text: 'Markdown Editor (Preview)', link: '/components/markdown-editor' },
+            { text: 'Markdown Embeds (Preview)', link: '/components/markdown-embeds' },
             { text: 'Script Editor', link: '/components/script-editor' },
           ],
         },

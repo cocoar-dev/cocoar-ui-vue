@@ -97,6 +97,7 @@ const doc = transform(parse(markdown), addPrefix);
 |------|------|-------------|
 | `doc` | `MarkdownDocument` | Pre-parsed markdown document |
 | `renderers` | `MarkdownViewerRenderers` | _(optional)_ Per-instance renderer override. See [Custom renderers](#custom-renderers-registry) below. |
+| `embeds` | `EmbedRegistry` | _(optional)_ Custom-embed registry — renders `:::key{props}` directives via your components. See [Custom Embeds](/components/markdown-embeds). |
 
 ### Custom renderers (registry)
 
@@ -204,6 +205,19 @@ The node carries three attrs: `raw` (verbatim YAML, the round-trip source), `dat
 
 `@cocoar/vue-markdown-editor` renders it the **same** way and round-trips the block on save — see the [editor's Frontmatter section](/components/markdown-editor#frontmatter).
 
+## Custom Embeds
+
+Render your own Vue components from a `:::key{props}` directive by passing an
+`embeds` registry. The same registry works in `<CoarMarkdownEditor>`, where the
+embed becomes editable — so a document looks consistent whether read or written.
+
+```vue
+<CoarMarkdown :doc="doc" :embeds="embeds" />
+```
+
+See the dedicated **[Custom Embeds](/components/markdown-embeds)** page for the
+registry shape, security model, and a live editor + viewer demo.
+
 ## Node Types
 
 ```ts
@@ -214,7 +228,8 @@ type MarkdownNodeType =
   | 'codeBlock' | 'table' | 'tableRow' | 'tableCell'
   | 'thematicBreak' | 'lineBreak'
   | 'text' | 'emphasis' | 'strong' | 'strikethrough'
-  | 'inlineCode' | 'link' | 'image';
+  | 'inlineCode' | 'link' | 'image'
+  | 'colorSpan' | 'embed';
 
 interface MarkdownNode {
   id: string;
