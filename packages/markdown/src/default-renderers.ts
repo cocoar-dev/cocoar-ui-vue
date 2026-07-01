@@ -19,11 +19,12 @@
  * `vue/one-component-per-file` lint is therefore disabled for this file.
  */
 /* eslint-disable vue/one-component-per-file */
-import { defineComponent, h, type PropType, type VNode } from 'vue';
+import { defineComponent, h, inject, type PropType, type VNode } from 'vue';
 import type { MarkdownNode } from '@cocoar/vue-markdown-core';
 import { CoarCodeBlock } from '@cocoar/vue-ui';
 
 import { EmbedRenderer, toEmbedProps } from './embeds';
+import { MARKDOWN_FENCE_RENDERERS_KEY, resolveFenceRenderer } from './fences';
 
 import {
   codeBlockLanguage,
@@ -183,15 +184,33 @@ export const DefaultCodeBlock = defineComponent({
   name: 'DefaultCodeBlock',
   props: rendererProps,
   setup(props) {
+    // A consumer can register a rich renderer for a specific fence language
+    // (e.g. `mermaid` → a diagram). Resolved via inject so the markdown layer
+    // never depends on the diagram engine; unregistered languages fall through
+    // to the plain, syntax-highlighted code block below.
+    const fenceRenderers = inject(MARKDOWN_FENCE_RENDERERS_KEY, undefined);
     // Leaf node — children are ignored; the text lives in node.text.
-    return () =>
-      h(CoarCodeBlock, {
+    return () => {
+      const language = codeBlockLanguage(props.node);
+      const code = props.node.text ?? '';
+
+      const custom = resolveFenceRenderer(fenceRenderers, language);
+      if (custom) {
+        return h(
+          'div',
+          { class: 'coar-markdown-fence', 'data-fence-language': language },
+          [h(custom, { code, language })],
+        );
+      }
+
+      return h(CoarCodeBlock, {
         class: 'coar-markdown-code-block',
-        code: props.node.text ?? '',
-        language: codeBlockLanguage(props.node),
+        code,
+        language,
         collapsible: false,
         showCopy: true,
       });
+    };
   },
 });
 

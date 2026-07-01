@@ -23,6 +23,7 @@ import type { MarkdownDocument } from '@cocoar/vue-markdown-core';
 import { RenderNode } from './RenderNode';
 import type { MarkdownViewerRenderers } from './registry';
 import { MARKDOWN_EMBEDS_KEY, type EmbedRegistry } from './embeds';
+import { MARKDOWN_FENCE_RENDERERS_KEY, type FenceRegistry } from './fences';
 
 export interface CoarMarkdownProps {
   /** The parsed markdown document to render. */
@@ -40,14 +41,25 @@ export interface CoarMarkdownProps {
    * default can also be set with `app.provide(MARKDOWN_EMBEDS_KEY, ...)`.
    */
   embeds?: EmbedRegistry;
+  /**
+   * Fenced-code-block renderer registry: maps a fence language (e.g. `mermaid`)
+   * to a Vue component that renders it richly instead of as a plain code block.
+   * Provided down to `DefaultCodeBlock` via inject; an unregistered language
+   * still renders as a normal code block. An app-wide default can also be set
+   * with `app.provide(MARKDOWN_FENCE_RENDERERS_KEY, ...)`.
+   */
+  fenceRenderers?: FenceRegistry;
 }
 
 const props = defineProps<CoarMarkdownProps>();
 
-// Make the embed registry resolvable by `DefaultEmbed` deep in the render tree.
+// Make the embed + fence registries resolvable deep in the render tree.
 // Registries are static in practice, so providing the initial value is enough.
 if (props.embeds) {
   provide(MARKDOWN_EMBEDS_KEY, props.embeds);
+}
+if (props.fenceRenderers) {
+  provide(MARKDOWN_FENCE_RENDERERS_KEY, props.fenceRenderers);
 }
 </script>
 

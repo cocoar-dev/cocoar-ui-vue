@@ -76,6 +76,13 @@ export type {
   EmbedRegistry,
 } from './embeds';
 
+// Fenced-code-block renderer registry — the open `language` → Vue component map
+// consulted by `DefaultCodeBlock`. The seam for rendering ` ```mermaid ` (and
+// similar diagram fences) richly without the markdown layer depending on any
+// diagram engine. Consumers register via `<CoarMarkdown :fenceRenderers>`.
+export { MARKDOWN_FENCE_RENDERERS_KEY, resolveFenceRenderer } from './fences';
+export type { FenceRegistry, FenceRendererProps } from './fences';
+
 // Node-attribute helpers — re-exported so consumers writing custom renderers
 // can reuse the same parsing logic instead of re-inventing it.
 export * from './helpers';
