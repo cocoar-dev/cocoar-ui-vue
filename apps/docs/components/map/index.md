@@ -11,8 +11,12 @@ on — and no knowledge of — markdown or any embedding layer**; resolving a so
 pnpm add @cocoar/vue-map
 ```
 `leaflet` is a regular dependency, imported **lazily** at runtime — `vue` is the
-only peer. No stylesheet import needed: the component loads Leaflet's CSS itself
-when it mounts.
+only peer. Import the component stylesheet once (it carries the pin, legend and
+layout styles); Leaflet's own CSS is still loaded lazily by the component:
+
+```ts
+import '@cocoar/vue-map/styles';
+```
 :::
 
 ::: tip Authoring maps?
