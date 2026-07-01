@@ -7,7 +7,7 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
-## Unreleased
+## 2.14.0
 
 **Diagrams in Markdown.** A ` ```mermaid ` fenced code block now renders as a diagram, via a new pluggable fence-renderer seam, a standalone `@cocoar/vue-mermaid` renderer and the thin `@cocoar/vue-markdown-mermaid` adapter. The Markdown packages carry **zero** dependency on Mermaid — installing and registering the adapter is the opt-in, and a fence with no registered renderer stays a readable code block, so the Markdown stays portable.
 
