@@ -9,8 +9,11 @@
  */
 import { computed, ref } from 'vue';
 import { CoarMarkdown } from '@cocoar/vue-markdown';
-import { mermaidFenceRenderers } from '@cocoar/vue-markdown-mermaid';
+import { createMermaidFenceRenderers } from '@cocoar/vue-markdown-mermaid';
 import { parse } from '@cocoar/vue-markdown-core';
+
+// zoomable: every diagram gets wheel-zoom + drag-pan + double-click-reset.
+const fenceRenderers = createMermaidFenceRenderers({ zoomable: true });
 
 // Assembled from lines (join) rather than one big template literal so the many
 // ``` fences don't need backtick-escaping. A spread of complex Mermaid diagram
@@ -204,8 +207,10 @@ const viewerDoc = computed(() => parse(value.value));
   <div class="mmd">
     <p class="mmd__hint">
       Edit the markdown on the left — the viewer on the right re-renders. Mermaid
-      is loaded lazily on first diagram. Try breaking a diagram to see the error
-      fallback.
+      is loaded lazily on first diagram. Diagrams are <strong>zoomable</strong>:
+      use the <strong>+ / − / ⤢</strong> buttons (or <strong>Ctrl/⌘ + wheel</strong>)
+      to zoom, drag to pan, double-click to reset. Plain scrolling still scrolls
+      the page. Try breaking a diagram to see the error fallback.
     </p>
 
     <div class="mmd__split">
@@ -215,9 +220,9 @@ const viewerDoc = computed(() => parse(value.value));
       </div>
 
       <div class="mmd__pane">
-        <div class="mmd__label">Viewer (<code>:fence-renderers="mermaidFenceRenderers"</code>)</div>
+        <div class="mmd__label">Viewer (<code>createMermaidFenceRenderers({ zoomable: true })</code>)</div>
         <div class="mmd__viewer-frame">
-          <CoarMarkdown :doc="viewerDoc" :fence-renderers="mermaidFenceRenderers" />
+          <CoarMarkdown :doc="viewerDoc" :fence-renderers="fenceRenderers" />
         </div>
       </div>
     </div>

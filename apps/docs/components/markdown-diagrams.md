@@ -77,6 +77,23 @@ flowchart LR
 An app-wide default works too — `app.provide(MARKDOWN_FENCE_RENDERERS_KEY, mermaidFenceRenderers)`.
 A per-instance `fence-renderers` prop wins over the provided value.
 
+## Zoom & pan
+
+Per-diagram options are configured on the **registry** (the fence contract only
+passes `{ code, language }` to a component), via `createMermaidFenceRenderers`:
+
+```ts
+import { createMermaidFenceRenderers } from '@cocoar/vue-markdown-mermaid';
+
+const fenceRenderers = createMermaidFenceRenderers({ zoomable: true });
+```
+
+Each diagram then sits in a fixed-height viewport with **+ / − / ⤢** controls,
+**Ctrl/⌘ + wheel** zoom, **drag** to pan and **double-click** to reset. Plain
+wheel and one-finger touch scrolling are left to the page, so a diagram never
+traps the scroll. Set the height with the `--coar-mermaid-height` CSS variable
+(default `420px`).
+
 ## Registering your own fence renderer
 
 The registry is open — any language can be mapped to any component. Register your
@@ -113,7 +130,8 @@ would plug into — no change to the markdown core.
 
 | Export | Description |
 |---|---|
-| `mermaidFenceRenderers` | Ready-to-spread `FenceRegistry` fragment (`{ mermaid }`). |
-| `CoarMermaidDiagram` | The renderer component (`{ code, language }` props). |
-| `buildMermaidThemeVariables(getToken)` | Pure Cocoar-token → Mermaid-theme mapping. |
-| `readCssTokens(el?)` | `getComputedStyle`-backed token getter for the bridge. |
+| `mermaidFenceRenderers` | Ready-to-spread `FenceRegistry` fragment (`{ mermaid }`), no zoom. |
+| `createMermaidFenceRenderers(options?)` | Build a registry with options baked in — `{ zoomable }`. |
+| `CoarMermaidDiagram` | The renderer component (`{ code, language, zoomable }` props). |
+| `buildMermaidThemeVariables(getToken, resolveColor?)` | Pure Cocoar-token → Mermaid-theme mapping. |
+| `makeCssColorResolver()` / `readCssTokens(el?)` | Browser-backed color/token resolvers for the bridge. |

@@ -9,7 +9,11 @@
  * block — the markdown stays portable.
  */
 export { default as CoarMermaidDiagram } from './CoarMermaidDiagram.vue';
-export { mermaidFenceRenderers } from './registry';
+export {
+  createMermaidFenceRenderers,
+  mermaidFenceRenderers,
+  type MermaidFenceOptions,
+} from './registry';
 
 // The Cocoar-token → Mermaid-theme bridge, exported for consumers who want to
 // build their own Mermaid config (e.g. a bespoke registration).

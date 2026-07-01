@@ -19,6 +19,7 @@ export default defineConfig({
       { find: /^@cocoar\/vue-markdown-editor$/, replacement: resolve(__dirname, '../../packages/markdown-editor/src/index.ts') },
       { find: /^@cocoar\/vue-markdown$/, replacement: resolve(__dirname, '../../packages/markdown/src/index.ts') },
       { find: /^@cocoar\/vue-markdown-core$/, replacement: resolve(__dirname, '../../packages/markdown-core/src/index.ts') },
+      { find: /^@cocoar\/vue-markdown-mermaid$/, replacement: resolve(__dirname, '../../packages/markdown-mermaid/src/index.ts') },
       { find: /^@cocoar\/vue-map$/, replacement: resolve(__dirname, '../../packages/map/src/index.ts') },
       { find: /^@cocoar\/vue-document-viewer$/, replacement: resolve(__dirname, '../../packages/document-viewer/src/index.ts') },
       { find: /^@cocoar\/vue-document-viewer\/pdf$/, replacement: resolve(__dirname, '../../packages/document-viewer/src/sources/pdf.ts') },

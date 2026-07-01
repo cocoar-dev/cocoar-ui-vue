@@ -49,6 +49,33 @@ Merge it with other fence renderers if you have them:
 const fenceRenderers = { ...mermaidFenceRenderers, dot: MyGraphvizRenderer };
 ```
 
+## Zoom & pan
+
+The fence-renderer contract only passes `{ code, language }` to a registered
+component, so per-diagram options are configured on the **registry** via
+`createMermaidFenceRenderers`:
+
+```ts
+import { createMermaidFenceRenderers } from '@cocoar/vue-markdown-mermaid';
+
+const fenceRenderers = createMermaidFenceRenderers({ zoomable: true });
+```
+
+With `zoomable`, each diagram sits in a fixed-height viewport with:
+
+- **+ / − / ⤢ buttons** (top-right) — the primary, touch-friendly zoom;
+- **Ctrl / ⌘ + wheel** — zoom toward the cursor;
+- **drag** — pan (mouse / pen);
+- **double-click** — reset.
+
+Plain mouse-wheel scrolling is deliberately **not** captured, so a diagram never
+traps the page scroll. On touch, one-finger scrolling still scrolls the page
+(zoom via the buttons). Set the viewport height with the `--coar-mermaid-height`
+CSS variable (default `420px`).
+
+`CoarMermaidDiagram` also accepts `zoomable` directly if you mount it yourself
+outside the fence registry.
+
 ## How it works
 
 - **On disk** a diagram is just a fenced code block (` ```mermaid `). It
@@ -68,7 +95,8 @@ const fenceRenderers = { ...mermaidFenceRenderers, dot: MyGraphvizRenderer };
 
 | Export | Description |
 | --- | --- |
-| `mermaidFenceRenderers` | Ready-to-spread `FenceRegistry` fragment (`{ mermaid }`). |
-| `CoarMermaidDiagram` | The renderer component (`{ code, language }` props). |
+| `mermaidFenceRenderers` | Ready-to-spread `FenceRegistry` fragment (`{ mermaid }`), no zoom. |
+| `createMermaidFenceRenderers(options?)` | Build a registry with options baked in — `{ zoomable }`. |
+| `CoarMermaidDiagram` | The renderer component (`{ code, language, zoomable }` props). |
 | `buildMermaidThemeVariables` | Pure Cocoar-token → Mermaid-theme mapping. |
-| `readCssTokens` | `getComputedStyle`-backed token getter. |
+| `makeCssColorResolver` / `readCssTokens` | Browser-backed color/token resolvers for the theme bridge. |

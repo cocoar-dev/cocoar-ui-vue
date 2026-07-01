@@ -76,6 +76,19 @@ export function renderMermaid(
 ): Promise<string> {
   const run = async (): Promise<string> => {
     const mermaid = await loadMermaid(configFactory);
+    // Wait for web fonts before rendering. Mermaid sizes every box from the
+    // MEASURED text width; if it measures with a fallback font (because the real
+    // font, e.g. Poppins from the theme bridge, hasn't loaded yet) but then
+    // renders with the wider real font, labels overflow + clip. Awaiting
+    // fonts.ready makes measurement + render use the same metrics. Resolves
+    // instantly once fonts are loaded, so later renders pay nothing.
+    if (typeof document !== 'undefined' && document.fonts?.ready) {
+      try {
+        await document.fonts.ready;
+      } catch {
+        // Font loading API hiccup — render anyway rather than block forever.
+      }
+    }
     const id = `coar-mermaid-${renderSeq++}`;
     try {
       const { svg } = await mermaid.render(id, code);
