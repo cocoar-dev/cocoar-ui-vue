@@ -18,6 +18,13 @@ pnpm add @cocoar/vue-markdown-mermaid
 regular dependency of this package, dynamically imported on first render so it
 lands in its own lazy chunk.
 
+Import the stylesheet once (it carries the diagram wrapper, error box and
+zoom-viewport styles):
+
+```ts
+import '@cocoar/vue-markdown-mermaid/styles';
+```
+
 ## Usage
 
 ```vue

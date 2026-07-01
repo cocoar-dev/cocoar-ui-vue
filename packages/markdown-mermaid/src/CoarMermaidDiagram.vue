@@ -182,6 +182,13 @@ onBeforeUnmount(teardownPanZoom);
 .coar-mermaid--zoomable .coar-mermaid__svg {
   max-width: none;
   width: 100%;
+}
+
+/* Promote to a GPU layer ONLY while dragging — a persistent `will-change:
+   transform` rasterizes the SVG once at 1× and bitmap-scales it, so a zoomed-in
+   diagram (especially a wide one like a Gantt) looks blurry. Scoping it to the
+   active pan keeps drag smooth while static zoom re-rasterizes vectors crisply. */
+.coar-mermaid--zoomable .coar-mermaid__viewport.is-panning .coar-mermaid__svg {
   will-change: transform;
 }
 

@@ -115,10 +115,18 @@ export function createPanZoom(
     viewport.classList.remove('is-panning');
   };
 
+  // Center the (untransformed) content in the viewport at scale 1. Without this a
+  // short/wide diagram (e.g. a Gantt) sits at the top of a taller viewport, so
+  // zooming toward the viewport center pushes it out of view.
   const reset = (): void => {
     scale = 1;
-    tx = 0;
-    ty = 0;
+    const prev = content.style.transform;
+    content.style.transform = 'none';
+    const vp = viewport.getBoundingClientRect();
+    const c = content.getBoundingClientRect();
+    content.style.transform = prev;
+    tx = Math.max(0, (vp.width - c.width) / 2);
+    ty = Math.max(0, (vp.height - c.height) / 2);
     apply();
   };
 
@@ -129,7 +137,7 @@ export function createPanZoom(
   viewport.addEventListener('pointercancel', endPan);
   viewport.addEventListener('dblclick', reset);
 
-  apply();
+  reset();
 
   return {
     zoomIn: () => zoomCenter(step),

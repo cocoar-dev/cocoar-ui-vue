@@ -42,7 +42,12 @@ pnpm add @cocoar/vue-markdown-mermaid
 ```
 
 `vue` and `@cocoar/vue-markdown` are peer dependencies; Mermaid is a regular
-dependency of the package, dynamically imported on first render.
+dependency of the package, dynamically imported on first render. Import the
+stylesheet once (diagram wrapper, error box, zoom viewport):
+
+```ts
+import '@cocoar/vue-markdown-mermaid/styles';
+```
 
 ## Usage
 
