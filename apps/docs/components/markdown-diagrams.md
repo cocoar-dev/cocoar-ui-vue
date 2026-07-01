@@ -14,6 +14,13 @@ for a *single-line reference + a few props* rendered by a rich, visually-edited
 component (e.g. a map). Diagrams belong in a fence; the map belongs in an embed.
 :::
 
+::: tip Two packages
+The renderer lives in the standalone, markdown-free **`@cocoar/vue-mermaid`**
+(`<CoarMermaidDiagram :code>` — usable anywhere). **`@cocoar/vue-markdown-mermaid`**
+is the thin adapter that registers it as a fence renderer. Rendering a diagram
+**outside** markdown? Reach for `@cocoar/vue-mermaid` directly.
+:::
+
 <preview path="./markdown-diagrams/demos/MarkdownDiagrams.vue" />
 
 ## How it works
@@ -41,12 +48,13 @@ block. Installing `@cocoar/vue-markdown-mermaid` and registering it is the opt-i
 pnpm add @cocoar/vue-markdown-mermaid
 ```
 
-`vue` and `@cocoar/vue-markdown` are peer dependencies; Mermaid is a regular
-dependency of the package, dynamically imported on first render. Import the
-stylesheet once (diagram wrapper, error box, zoom viewport):
+`vue` and `@cocoar/vue-markdown` are peer dependencies; `@cocoar/vue-mermaid`
+(which carries Mermaid, dynamically imported on first render) comes along as a
+regular dependency. Import its stylesheet once (diagram wrapper, error box, zoom
+viewport):
 
 ```ts
-import '@cocoar/vue-markdown-mermaid/styles';
+import '@cocoar/vue-mermaid/styles';
 ```
 
 ## Usage
@@ -131,12 +139,17 @@ would plug into — no change to the markdown core.
 | `MARKDOWN_FENCE_RENDERERS_KEY` | Inject key for an app-wide registry. |
 | `resolveFenceRenderer(registry, language)` | The case-insensitive lookup used by `DefaultCodeBlock`. |
 
-### `@cocoar/vue-markdown-mermaid`
+### `@cocoar/vue-markdown-mermaid` (the fence adapter)
 
 | Export | Description |
 |---|---|
 | `mermaidFenceRenderers` | Ready-to-spread `FenceRegistry` fragment (`{ mermaid }`), no zoom. |
 | `createMermaidFenceRenderers(options?)` | Build a registry with options baked in — `{ zoomable }`. |
-| `CoarMermaidDiagram` | The renderer component (`{ code, language, zoomable }` props). |
+
+### `@cocoar/vue-mermaid` (the standalone renderer)
+
+| Export | Description |
+|---|---|
+| `CoarMermaidDiagram` | The renderer component (`{ code, language, zoomable }` props). Use directly to render diagrams outside markdown. |
 | `buildMermaidThemeVariables(getToken, resolveColor?)` | Pure Cocoar-token → Mermaid-theme mapping. |
 | `makeCssColorResolver()` / `readCssTokens(el?)` | Browser-backed color/token resolvers for the bridge. |

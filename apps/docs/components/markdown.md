@@ -98,6 +98,7 @@ const doc = transform(parse(markdown), addPrefix);
 | `doc` | `MarkdownDocument` | Pre-parsed markdown document |
 | `renderers` | `MarkdownViewerRenderers` | _(optional)_ Per-instance renderer override. See [Custom renderers](#custom-renderers-registry) below. |
 | `embeds` | `EmbedRegistry` | _(optional)_ Custom-embed registry — renders `:::key{props}` directives via your components. See [Custom Embeds](/components/markdown-embeds). |
+| `fenceRenderers` | `FenceRegistry` | _(optional)_ Fenced-code-block renderer registry — render a fence language (e.g. ` ```mermaid `) with a rich component instead of a plain code block. Unregistered languages stay code blocks. See [Diagrams](/components/markdown-diagrams). |
 
 ### Custom renderers (registry)
 
@@ -217,6 +218,20 @@ embed becomes editable — so a document looks consistent whether read or writte
 
 See the dedicated **[Custom Embeds](/components/markdown-embeds)** page for the
 registry shape, security model, and a live editor + viewer demo.
+
+## Diagrams
+
+Render a fenced code block — ` ```mermaid ` — as a diagram by passing a
+`fenceRenderers` registry. An unregistered fence language stays a plain,
+syntax-highlighted code block, so the markdown stays portable.
+
+```vue
+<CoarMarkdown :doc="doc" :fence-renderers="fenceRenderers" />
+```
+
+See the dedicated **[Diagrams](/components/markdown-diagrams)** page for the
+opt-in `@cocoar/vue-markdown-mermaid` package, theming, zoom/pan and how to
+register your own fence renderer.
 
 ## Node Types
 

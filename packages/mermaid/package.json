@@ -1,24 +1,26 @@
 {
-  "name": "@cocoar/vue-markdown-mermaid",
+  "name": "@cocoar/vue-mermaid",
   "version": "0.0.1",
-  "description": "Thin adapter that registers @cocoar/vue-mermaid as a `mermaid` fenced-code-block renderer for @cocoar/vue-markdown, so ```mermaid blocks render as diagrams. The markdown packages have no dependency on Mermaid — installing this package is the opt-in.",
+  "description": "Standalone Mermaid diagram component for Vue 3: <CoarMermaidDiagram :code>. Cocoar-themed, lazy-loaded, with opt-in zoom/pan. Knows nothing about markdown — feed it a diagram source string.",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/cocoar-dev/cocoar-ui-vue.git",
-    "directory": "packages/markdown-mermaid"
+    "directory": "packages/mermaid"
   },
   "homepage": "https://docs.cocoar.dev/cocoar-ui-vue/",
   "bugs": "https://github.com/cocoar-dev/cocoar-ui-vue/issues",
   "keywords": [
     "vue",
     "vue3",
-    "markdown",
     "mermaid",
     "diagram"
   ],
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": [
+    "*.css",
+    "*.vue"
+  ],
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -27,7 +29,8 @@
       "source": "./src/index.ts",
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
-    }
+    },
+    "./styles": "./dist/index.css"
   },
   "files": [
     "dist"
@@ -39,14 +42,12 @@
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
-    "@cocoar/vue-mermaid": "workspace:*"
+    "mermaid": "^11.4.0"
   },
   "peerDependencies": {
-    "@cocoar/vue-markdown": "workspace:*",
     "vue": "^3.5.0"
   },
   "devDependencies": {
-    "@cocoar/vue-markdown": "workspace:*",
     "vue": "^3.5.32"
   }
 }

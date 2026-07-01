@@ -12,9 +12,10 @@ pnpm add @cocoar/vue-map
 ```
 `CoarMapEditor` ships alongside `CoarMap` and is tree-shakeable — pages that only
 render `<CoarMap>` don't pull in the editing weight. Leaflet is imported
-**lazily** at runtime. The editor's built-in form uses the Cocoar UI controls, so
-`@cocoar/vue-ui` is an **optional peer** — install it when you use the editor;
-viewer-only `<CoarMap>` consumers don't need it.
+**lazily** at runtime. Import the component styles once with
+`import '@cocoar/vue-map/styles'` (as for the viewer). The editor's built-in form
+uses the Cocoar UI controls, so `@cocoar/vue-ui` is an **optional peer** — install
+it when you use the editor; viewer-only `<CoarMap>` consumers don't need it.
 :::
 
 <preview path="./demos/MapEditorBasic.vue" />

@@ -1,8 +1,13 @@
 # @cocoar/vue-markdown-mermaid
 
-Opt-in [Mermaid](https://mermaid.js.org/) diagram renderer for
-[`@cocoar/vue-markdown`](../markdown). Renders ` ```mermaid ` fenced code blocks
-as diagrams — Cocoar-themed and lazy-loaded.
+The thin adapter that plugs [`@cocoar/vue-mermaid`](../mermaid)'s diagram renderer
+into [`@cocoar/vue-markdown`](../markdown) as a **fenced-code-block renderer**, so
+` ```mermaid ` blocks render as diagrams.
+
+This package is **only** the markdown integration (the fence registry). The
+diagram component, its theming and zoom/pan live in the standalone,
+markdown-free `@cocoar/vue-mermaid` — import `CoarMermaidDiagram` from there to
+render diagrams outside of markdown.
 
 The markdown packages have **no dependency on Mermaid**. Installing this package
 and registering it is the opt-in; a consumer that doesn't opt in still sees a
@@ -14,52 +19,39 @@ readable, syntax-highlighted code block. The markdown stays portable.
 pnpm add @cocoar/vue-markdown-mermaid
 ```
 
-`vue` and `@cocoar/vue-markdown` are peer dependencies. Mermaid itself is a
-regular dependency of this package, dynamically imported on first render so it
-lands in its own lazy chunk.
-
-Import the stylesheet once (it carries the diagram wrapper, error box and
-zoom-viewport styles):
+`vue` and `@cocoar/vue-markdown` are peer dependencies; `@cocoar/vue-mermaid`
+(which carries Mermaid) comes along as a regular dependency. Import its
+stylesheet once:
 
 ```ts
-import '@cocoar/vue-markdown-mermaid/styles';
+import '@cocoar/vue-mermaid/styles';
 ```
 
 ## Usage
 
+Pass the ready-made registry fragment to the viewer's `fenceRenderers` prop:
+
 ```vue
-<script setup lang="ts">
-import { CoarMarkdown } from '@cocoar/vue-markdown';
-import { mermaidFenceRenderers } from '@cocoar/vue-markdown-mermaid';
-import { parse } from '@cocoar/vue-markdown-core';
-
-const doc = parse(`
-# Flow
-
-\`\`\`mermaid
-flowchart LR
-  A[Start] --> B{Choice}
-  B -->|yes| C[Do it]
-  B -->|no| D[Skip]
-\`\`\`
-`);
-</script>
-
 <template>
   <CoarMarkdown :doc="doc" :fence-renderers="mermaidFenceRenderers" />
 </template>
+
+<script setup lang="ts">
+import { parse } from '@cocoar/vue-markdown-core';
+import { CoarMarkdown } from '@cocoar/vue-markdown';
+import { mermaidFenceRenderers } from '@cocoar/vue-markdown-mermaid';
+
+const doc = parse(source);
+</script>
 ```
 
-Merge it with other fence renderers if you have them:
-
-```ts
-const fenceRenderers = { ...mermaidFenceRenderers, dot: MyGraphvizRenderer };
-```
+An app-wide default works too — `app.provide(MARKDOWN_FENCE_RENDERERS_KEY, mermaidFenceRenderers)`.
+A per-instance `fence-renderers` prop wins over the provided value.
 
 ## Zoom & pan
 
-The fence-renderer contract only passes `{ code, language }` to a registered
-component, so per-diagram options are configured on the **registry** via
+The fence-renderer contract only passes `{ code, language }` to a component, so
+per-diagram options are configured on the **registry** via
 `createMermaidFenceRenderers`:
 
 ```ts
@@ -68,35 +60,20 @@ import { createMermaidFenceRenderers } from '@cocoar/vue-markdown-mermaid';
 const fenceRenderers = createMermaidFenceRenderers({ zoomable: true });
 ```
 
-With `zoomable`, each diagram sits in a fixed-height viewport with:
+See [`@cocoar/vue-mermaid`](../mermaid) for the zoom/pan controls and behaviour.
 
-- **+ / − / ⤢ buttons** (top-right) — the primary, touch-friendly zoom;
-- **Ctrl / ⌘ + wheel** — zoom toward the cursor;
-- **drag** — pan (mouse / pen);
-- **double-click** — reset.
+## Registering your own fence renderer
 
-Plain mouse-wheel scrolling is deliberately **not** captured, so a diagram never
-traps the page scroll. On touch, one-finger scrolling still scrolls the page
-(zoom via the buttons). Set the viewport height with the `--coar-mermaid-height`
-CSS variable (default `420px`).
+The registry is open — any language can map to any component. Register your own
+alongside Mermaid, or replace it:
 
-`CoarMermaidDiagram` also accepts `zoomable` directly if you mount it yourself
-outside the fence registry.
+```ts
+import type { FenceRegistry } from '@cocoar/vue-markdown';
+import { mermaidFenceRenderers } from '@cocoar/vue-markdown-mermaid';
+import MyGraphviz from './MyGraphviz.vue';
 
-## How it works
-
-- **On disk** a diagram is just a fenced code block (` ```mermaid `). It
-  round-trips losslessly and degrades to a code block anywhere Mermaid isn't
-  available (strict CommonMark renderers, viewer-only builds, native mobile
-  renderers).
-- **Rendering** is client-only (Mermaid needs a DOM) and lazy (Mermaid is
-  dynamically imported on first mount).
-- **Theming** maps Cocoar design tokens onto Mermaid's `themeVariables` via
-  `buildMermaidThemeVariables` so diagrams match the app's fonts and palette.
-- **Security**: Mermaid runs with `securityLevel: 'strict'` — author diagram
-  text is treated as untrusted (HTML in labels is sanitized).
-- **Invalid source** degrades to an error box that still shows the raw diagram
-  source; it never throws up to the app.
+const fenceRenderers: FenceRegistry = { ...mermaidFenceRenderers, dot: MyGraphviz };
+```
 
 ## Exports
 
@@ -104,6 +81,4 @@ outside the fence registry.
 | --- | --- |
 | `mermaidFenceRenderers` | Ready-to-spread `FenceRegistry` fragment (`{ mermaid }`), no zoom. |
 | `createMermaidFenceRenderers(options?)` | Build a registry with options baked in — `{ zoomable }`. |
-| `CoarMermaidDiagram` | The renderer component (`{ code, language, zoomable }` props). |
-| `buildMermaidThemeVariables` | Pure Cocoar-token → Mermaid-theme mapping. |
-| `makeCssColorResolver` / `readCssTokens` | Browser-backed color/token resolvers for the theme bridge. |
+| `MermaidFenceOptions` | The options type. |

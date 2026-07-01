@@ -18,16 +18,12 @@ export default defineConfig({
       fileName: 'index',
     },
     rollupOptions: {
-      // The renderer + engine live in `@cocoar/vue-mermaid` (external);
-      // `@cocoar/vue-markdown` is a peer (types only — the `FenceRegistry`
-      // contract). Neither is bundled into this thin adapter.
-      external: ['vue', '@cocoar/vue-mermaid', '@cocoar/vue-markdown'],
+      // `mermaid` stays external + is dynamically imported by the component, so
+      // the consumer's bundler code-splits it into a lazy chunk loaded only on
+      // pages that actually render a diagram.
+      external: ['vue', 'mermaid'],
       output: {
-        globals: {
-          vue: 'Vue',
-          '@cocoar/vue-mermaid': 'CocoarVueMermaid',
-          '@cocoar/vue-markdown': 'CocoarVueMarkdown',
-        },
+        globals: { vue: 'Vue', mermaid: 'mermaid' },
       },
     },
   },

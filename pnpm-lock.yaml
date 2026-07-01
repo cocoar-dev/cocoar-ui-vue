@@ -89,6 +89,9 @@ importers:
       '@cocoar/vue-markdown-mermaid':
         specifier: workspace:*
         version: link:../../packages/markdown-mermaid
+      '@cocoar/vue-mermaid':
+        specifier: workspace:*
+        version: link:../../packages/mermaid
       '@cocoar/vue-script-editor':
         specifier: workspace:*
         version: link:../../packages/script-editor
@@ -162,6 +165,9 @@ importers:
       '@cocoar/vue-markdown-mermaid':
         specifier: workspace:*
         version: link:../../packages/markdown-mermaid
+      '@cocoar/vue-mermaid':
+        specifier: workspace:*
+        version: link:../../packages/mermaid
       '@cocoar/vue-page-builder':
         specifier: workspace:*
         version: link:../../packages/page-builder
@@ -430,13 +436,23 @@ importers:
 
   packages/markdown-mermaid:
     dependencies:
-      mermaid:
-        specifier: ^11.4.0
-        version: 11.14.0
+      '@cocoar/vue-mermaid':
+        specifier: workspace:*
+        version: link:../mermaid
     devDependencies:
       '@cocoar/vue-markdown':
         specifier: workspace:*
         version: link:../markdown
+      vue:
+        specifier: ^3.5.32
+        version: 3.5.33(typescript@5.9.3)
+
+  packages/mermaid:
+    dependencies:
+      mermaid:
+        specifier: ^11.4.0
+        version: 11.14.0
+    devDependencies:
       vue:
         specifier: ^3.5.32
         version: 3.5.33(typescript@5.9.3)

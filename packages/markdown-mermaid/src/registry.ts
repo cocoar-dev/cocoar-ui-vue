@@ -18,7 +18,7 @@
  */
 import { defineComponent, h } from 'vue';
 import type { FenceRegistry } from '@cocoar/vue-markdown';
-import CoarMermaidDiagram from './CoarMermaidDiagram.vue';
+import { CoarMermaidDiagram } from '@cocoar/vue-mermaid';
 
 export interface MermaidFenceOptions {
   /** Enable wheel-zoom + drag-pan + double-click-reset on every diagram. */
