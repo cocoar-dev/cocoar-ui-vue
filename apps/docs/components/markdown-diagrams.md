@@ -16,9 +16,10 @@ component (e.g. a map). Diagrams belong in a fence; the map belongs in an embed.
 
 ::: tip Two packages
 The renderer lives in the standalone, markdown-free **`@cocoar/vue-mermaid`**
-(`<CoarMermaidDiagram :code>` — usable anywhere). **`@cocoar/vue-markdown-mermaid`**
-is the thin adapter that registers it as a fence renderer. Rendering a diagram
-**outside** markdown? Reach for `@cocoar/vue-mermaid` directly.
+([`<CoarMermaidDiagram :code>`](/components/mermaid) — usable anywhere).
+**`@cocoar/vue-markdown-mermaid`** is the thin adapter that registers it as a
+fence renderer. Rendering a diagram **outside** markdown? See the
+[**Mermaid Diagram**](/components/mermaid) page.
 :::
 
 <preview path="./markdown-diagrams/demos/MarkdownDiagrams.vue" />
