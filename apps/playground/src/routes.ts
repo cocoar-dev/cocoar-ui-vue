@@ -55,6 +55,10 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('./views/MarkdownEmbedView.vue'),
   },
   {
+    path: '/markdown-mermaid',
+    component: () => import('./views/MarkdownMermaidView.vue'),
+  },
+  {
     path: '/map',
     component: () => import('./views/MapView.vue'),
   },

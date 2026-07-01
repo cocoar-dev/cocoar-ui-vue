@@ -1,27 +1,24 @@
 {
-  "name": "@cocoar/vue-map",
+  "name": "@cocoar/vue-markdown-mermaid",
   "version": "0.0.1",
-  "description": "Interactive Leaflet map component for Vue 3. Data-driven and standalone — it knows nothing about markdown or any embedding layer; a consumer feeds it resolved map data.",
+  "description": "Thin adapter that registers @cocoar/vue-mermaid as a `mermaid` fenced-code-block renderer for @cocoar/vue-markdown, so ```mermaid blocks render as diagrams. The markdown packages have no dependency on Mermaid — installing this package is the opt-in.",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/cocoar-dev/cocoar-ui-vue.git",
-    "directory": "packages/map"
+    "directory": "packages/markdown-mermaid"
   },
   "homepage": "https://docs.cocoar.dev/cocoar-ui-vue/",
   "bugs": "https://github.com/cocoar-dev/cocoar-ui-vue/issues",
   "keywords": [
     "vue",
     "vue3",
-    "map",
-    "leaflet",
-    "geo"
+    "markdown",
+    "mermaid",
+    "diagram"
   ],
   "type": "module",
-  "sideEffects": [
-    "*.css",
-    "*.vue"
-  ],
+  "sideEffects": false,
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -30,8 +27,7 @@
       "source": "./src/index.ts",
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
-    },
-    "./styles": "./dist/index.css"
+    }
   },
   "files": [
     "dist"
@@ -43,20 +39,14 @@
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
-    "leaflet": "^1.9.4"
+    "@cocoar/vue-mermaid": "workspace:*"
   },
   "peerDependencies": {
-    "@cocoar/vue-ui": "workspace:*",
+    "@cocoar/vue-markdown": "workspace:*",
     "vue": "^3.5.0"
   },
-  "peerDependenciesMeta": {
-    "@cocoar/vue-ui": {
-      "optional": true
-    }
-  },
   "devDependencies": {
-    "@cocoar/vue-ui": "workspace:*",
-    "@types/leaflet": "^1.9.12",
+    "@cocoar/vue-markdown": "workspace:*",
     "vue": "^3.5.32"
   }
 }

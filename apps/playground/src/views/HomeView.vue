@@ -7,6 +7,8 @@
       <li><router-link to="/flex-debug">Flex Debug</router-link></li>
       <li><router-link to="/markdown-editor">Markdown Editor (Milkdown Prototype)</router-link></li>
       <li><router-link to="/markdown-tables"><strong>Markdown Tables (testbed for table editing + edge handles)</strong></router-link></li>
+      <li><router-link to="/markdown-embeds">Markdown Embeds (<code>:::key{}</code> registry)</router-link></li>
+      <li><router-link to="/markdown-mermaid"><strong>Markdown Diagrams (<code>```mermaid</code> fence renderer) ←</strong></router-link></li>
       <li><router-link to="/pdf-viewer"><strong>PDF Viewer (Phase A — rendering only)</strong></router-link></li>
       <li><router-link to="/file-explorer-poc"><strong>File Explorer POC (VSCode-like tree + tabs + editors)</strong></router-link></li>
       <li><router-link to="/overlay-stacking"><strong>Overlay stacking in modal (select + date-picker outside-click repro)</strong></router-link></li>

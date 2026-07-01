@@ -7,6 +7,22 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 2.14.0
+
+**Diagrams in Markdown.** A ` ```mermaid ` fenced code block now renders as a diagram, via a new pluggable fence-renderer seam, a standalone `@cocoar/vue-mermaid` renderer and the thin `@cocoar/vue-markdown-mermaid` adapter. The Markdown packages carry **zero** dependency on Mermaid — installing and registering the adapter is the opt-in, and a fence with no registered renderer stays a readable code block, so the Markdown stays portable.
+
+### Added
+
+- **`@cocoar/vue-markdown` — fenced-code-block renderer registry.** A new open, language-keyed `FenceRegistry` (`MARKDOWN_FENCE_RENDERERS_KEY`, `resolveFenceRenderer`) lets a consumer render a specific fence language (e.g. `mermaid`) with a rich component instead of a plain code block. `<CoarMarkdown>` gains a `fenceRenderers` prop (provide/inject, like `embeds`); an unregistered language still renders as a normal, syntax-highlighted code block. Additive — existing behaviour is unchanged.
+- **`@cocoar/vue-mermaid` — new standalone diagram component.** `<CoarMermaidDiagram :code>` renders a Mermaid diagram from a source string — **markdown-agnostic**, usable anywhere. Lazy-loaded Mermaid (its own chunk), client-only, `securityLevel: 'strict'` (author diagram text is sanitized), waits for `document.fonts.ready` (so labels aren't clipped by pre-font-load measurements), and an error-with-source fallback for invalid diagrams. **Cocoar-themed** — design tokens map onto Mermaid's `themeVariables`, colors normalized to sRGB. **Zoom & pan** (`zoomable`): fixed-height viewport with +/−/⤢ controls, Ctrl/⌘+wheel zoom, drag-to-pan and double-click reset — plain wheel and one-finger touch still scroll the page, so a diagram never traps scrolling. Import styles via `@cocoar/vue-mermaid/styles`.
+- **`@cocoar/vue-markdown-mermaid` — new opt-in fence adapter.** Registers `@cocoar/vue-mermaid` as the `mermaid` fence renderer for `@cocoar/vue-markdown`. Ships `mermaidFenceRenderers` (ready-to-spread) and `createMermaidFenceRenderers({ zoomable })`.
+
+### Fixed
+
+- **`@cocoar/vue-map` — the package now exposes its stylesheet.** `@cocoar/vue-map/styles` (`./styles` export) ships the ~5 KB of `.coar-map*` component styles (pins, legend, layout). Previously there was no way to import them from the published package, and they are **not** part of `@cocoar/vue-ui`'s stylesheet — so a consumer using the built package got an unstyled map. Leaflet's own CSS is still loaded lazily by the component.
+
+---
+
 ## 2.13.0
 
 Optional-time date pickers: a small **clock toggle beside the field** lets one input be *either* a plain date *or* a date with time — no more separate "add time" checkbox.
