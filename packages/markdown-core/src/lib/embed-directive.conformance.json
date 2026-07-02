@@ -1,0 +1,717 @@
+{
+  "spec": "cocoar-embed-directive",
+  "version": 1,
+  "_readme": [
+    "Cross-platform conformance vectors for the cocoar custom-embed directive syntax.",
+    "NORMATIVE SOURCE: this file lives in @cocoar/vue-markdown-core next to embed-directive.ts",
+    "and is consumed by BOTH test suites: embed-directive.conformance.test.ts (Vitest, here)",
+    "and ConformanceTests.swift (XCTest, Cocoar.Markdown \u2014 vendored copy, synced via",
+    "Scripts/sync-vectors.sh there). Change the wire behavior => extend these vectors FIRST;",
+    "both CIs then prove both implementations. Never edit the vendored copy by hand.",
+    "",
+    "Sections: `parse` (line -> directive | null), `serialize` (orderedProps -> canonical line,",
+    "insertion order + JS integer-key hoisting), `roundtrip` (parse -> serialize == canonical),",
+    "`segment` (document -> reduced top-level segment sequence).",
+    "",
+    "Segment reduction contract (applied by BOTH runners before comparing): keep embeds",
+    "verbatim ({type:'embed', key, props}); every other top-level block becomes",
+    "{type:'markdown'}; drop whitespace-only markdown entries; collapse adjacent markdown",
+    "entries into one. Known, intentionally out-of-contract divergence: directives nested",
+    "inside lists/blockquotes fold on the web but not in Swift's top-level segmenter."
+  ],
+  "parse": [
+    {
+      "name": "key with no attributes",
+      "input": ":::map",
+      "expected": {
+        "key": "map",
+        "props": {}
+      }
+    },
+    {
+      "name": "single key=value attribute",
+      "input": ":::map{id=2f1c0b9e-7a4d-4c1e-9b2a-1234567890ab}",
+      "expected": {
+        "key": "map",
+        "props": {
+          "id": "2f1c0b9e-7a4d-4c1e-9b2a-1234567890ab"
+        }
+      }
+    },
+    {
+      "name": "multiple attributes",
+      "input": ":::chart{id=42 type=bar}",
+      "expected": {
+        "key": "chart",
+        "props": {
+          "id": "42",
+          "type": "bar"
+        }
+      }
+    },
+    {
+      "name": "quoted value with spaces",
+      "input": ":::map{id=1 title=\"Hello world\"}",
+      "expected": {
+        "key": "map",
+        "props": {
+          "id": "1",
+          "title": "Hello world"
+        }
+      }
+    },
+    {
+      "name": "escaped quotes inside quoted value",
+      "input": ":::x{label=\"a \\\"q\\\" b\"}",
+      "expected": {
+        "key": "x",
+        "props": {
+          "label": "a \"q\" b"
+        }
+      }
+    },
+    {
+      "name": "valueless attribute is empty string",
+      "input": ":::x{interactive}",
+      "expected": {
+        "key": "x",
+        "props": {
+          "interactive": ""
+        }
+      }
+    },
+    {
+      "name": "untrusted value kept intact",
+      "input": ":::map{label=\"</script><img onerror=alert(1)>\"}",
+      "expected": {
+        "key": "map",
+        "props": {
+          "label": "</script><img onerror=alert(1)>"
+        }
+      }
+    },
+    {
+      "name": "plain text is not a directive",
+      "input": "not a directive",
+      "expected": null
+    },
+    {
+      "name": "double colon is not a directive",
+      "input": ":: map",
+      "expected": null
+    },
+    {
+      "name": "key must not start with a digit",
+      "input": ":::1bad{id=x}",
+      "expected": null
+    },
+    {
+      "name": "trailing content after brace fails",
+      "input": ":::map{id=x} trailing",
+      "expected": null
+    },
+    {
+      "name": "empty string",
+      "input": "",
+      "expected": null
+    },
+    {
+      "name": "bare triple colon",
+      "input": ":::",
+      "expected": null
+    },
+    {
+      "name": "triple colon with space",
+      "input": "::: ",
+      "expected": null
+    },
+    {
+      "name": "space before key fails",
+      "input": "::: map",
+      "expected": null
+    },
+    {
+      "name": "non-ascii key start umlaut",
+      "input": ":::\u00fcmlaut",
+      "expected": null
+    },
+    {
+      "name": "non-ascii key start cjk",
+      "input": ":::\u65e5\u672c{id=1}",
+      "expected": null
+    },
+    {
+      "name": "key with digits underscore hyphen",
+      "input": ":::my-embed_2{x=1}",
+      "expected": {
+        "key": "my-embed_2",
+        "props": {
+          "x": "1"
+        }
+      }
+    },
+    {
+      "name": "emoji in quoted value",
+      "input": ":::x{label=\"\ud83d\ude42 emoji \ud83d\udc69\u200d\ud83d\udc69\u200d\ud83d\udc67\u200d\ud83d\udc66\"}",
+      "expected": {
+        "key": "x",
+        "props": {
+          "label": "\ud83d\ude42 emoji \ud83d\udc69\u200d\ud83d\udc69\u200d\ud83d\udc67\u200d\ud83d\udc66"
+        }
+      }
+    },
+    {
+      "name": "emoji bareword value",
+      "input": ":::x{a=\ud83d\ude42}",
+      "expected": {
+        "key": "x",
+        "props": {
+          "a": "\ud83d\ude42"
+        }
+      }
+    },
+    {
+      "name": "combining mark after opening brace scans per code unit",
+      "input": ":::map{\u0301a=1}",
+      "expected": {
+        "key": "map",
+        "props": {
+          "\u0301a": "1"
+        }
+      }
+    },
+    {
+      "name": "combining mark after opening quote stays in value",
+      "input": ":::x{a=\"\u0301b c\"}",
+      "expected": {
+        "key": "x",
+        "props": {
+          "a": "\u0301b c"
+        }
+      }
+    },
+    {
+      "name": "combining mark after closing quote becomes flag",
+      "input": ":::x{a=\"b\"\u0301 c=d}",
+      "expected": {
+        "key": "x",
+        "props": {
+          "a": "b",
+          "\u0301": "",
+          "c": "d"
+        }
+      }
+    },
+    {
+      "name": "whitespace between key and attribute block",
+      "input": ":::map {id=1}",
+      "expected": {
+        "key": "map",
+        "props": {
+          "id": "1"
+        }
+      }
+    },
+    {
+      "name": "trailing spaces tolerated",
+      "input": ":::map   ",
+      "expected": {
+        "key": "map",
+        "props": {}
+      }
+    },
+    {
+      "name": "trailing space and tab after block tolerated",
+      "input": ":::map{id=1} \t ",
+      "expected": {
+        "key": "map",
+        "props": {
+          "id": "1"
+        }
+      }
+    },
+    {
+      "name": "empty attribute block",
+      "input": ":::map{}",
+      "expected": {
+        "key": "map",
+        "props": {}
+      }
+    },
+    {
+      "name": "unmatched quote tolerated to end of body",
+      "input": ":::x{a=\"unclosed}",
+      "expected": {
+        "key": "x",
+        "props": {
+          "a": "unclosed"
+        }
+      }
+    },
+    {
+      "name": "stray equals is skipped",
+      "input": ":::x{=1 a=2}",
+      "expected": {
+        "key": "x",
+        "props": {
+          "1": "",
+          "a": "2"
+        }
+      }
+    },
+    {
+      "name": "dangling equals yields empty value",
+      "input": ":::x{a=}",
+      "expected": {
+        "key": "x",
+        "props": {
+          "a": ""
+        }
+      }
+    },
+    {
+      "name": "backslash escapes any following character",
+      "input": ":::x{p=\"a\\b\"}",
+      "expected": {
+        "key": "x",
+        "props": {
+          "p": "ab"
+        }
+      }
+    },
+    {
+      "name": "single quoted value",
+      "input": ":::x{t='hello world'}",
+      "expected": {
+        "key": "x",
+        "props": {
+          "t": "hello world"
+        }
+      }
+    },
+    {
+      "name": "duplicate keys last value wins",
+      "input": ":::x{a=1 a=2}",
+      "expected": {
+        "key": "x",
+        "props": {
+          "a": "2"
+        }
+      }
+    },
+    {
+      "name": "tab as attribute separator",
+      "input": ":::x{a=1\tb=2}",
+      "expected": {
+        "key": "x",
+        "props": {
+          "a": "1",
+          "b": "2"
+        }
+      }
+    },
+    {
+      "name": "greedy body runs to last brace",
+      "input": ":::x{a=1} {b=2}",
+      "expected": {
+        "key": "x",
+        "props": {
+          "a": "1}",
+          "{b": "2"
+        }
+      }
+    },
+    {
+      "name": "missing closing brace fails",
+      "input": ":::x{a=1",
+      "expected": null
+    },
+    {
+      "name": "raw newline inside quoted value",
+      "input": ":::note{text=\"l1\nl2\"}",
+      "expected": {
+        "key": "note",
+        "props": {
+          "text": "l1\nl2"
+        }
+      }
+    }
+  ],
+  "serialize": [
+    {
+      "name": "key with no props",
+      "key": "map",
+      "orderedProps": [],
+      "expected": ":::map"
+    },
+    {
+      "name": "bareword value unquoted",
+      "key": "map",
+      "orderedProps": [
+        [
+          "id",
+          "abc-123"
+        ]
+      ],
+      "expected": ":::map{id=abc-123}"
+    },
+    {
+      "name": "value with spaces is quoted",
+      "key": "map",
+      "orderedProps": [
+        [
+          "title",
+          "Hello world"
+        ]
+      ],
+      "expected": ":::map{title=\"Hello world\"}"
+    },
+    {
+      "name": "hex color stays bareword",
+      "key": "demo",
+      "orderedProps": [
+        [
+          "accent",
+          "#6366f1"
+        ]
+      ],
+      "expected": ":::demo{accent=#6366f1}"
+    },
+    {
+      "name": "quotes and backslashes escaped",
+      "key": "x",
+      "orderedProps": [
+        [
+          "label",
+          "a \"q\" \\ b"
+        ]
+      ],
+      "expected": ":::x{label=\"a \\\"q\\\" \\\\ b\"}"
+    },
+    {
+      "name": "valueless attribute emitted bare",
+      "key": "x",
+      "orderedProps": [
+        [
+          "interactive",
+          ""
+        ]
+      ],
+      "expected": ":::x{interactive}"
+    },
+    {
+      "name": "insertion order preserved",
+      "key": "x",
+      "orderedProps": [
+        [
+          "b",
+          "1"
+        ],
+        [
+          "a",
+          "2"
+        ]
+      ],
+      "expected": ":::x{b=1 a=2}"
+    },
+    {
+      "name": "integer-like keys hoisted ascending (JS object semantics)",
+      "key": "x",
+      "orderedProps": [
+        [
+          "b",
+          "1"
+        ],
+        [
+          "2",
+          "x"
+        ],
+        [
+          "a",
+          "3"
+        ]
+      ],
+      "expected": ":::x{2=x b=1 a=3}"
+    },
+    {
+      "name": "non-canonical numeric keys not hoisted",
+      "key": "x",
+      "orderedProps": [
+        [
+          "b",
+          "1"
+        ],
+        [
+          "01",
+          "x"
+        ],
+        [
+          "-1",
+          "y"
+        ]
+      ],
+      "expected": ":::x{b=1 01=x -1=y}"
+    },
+    {
+      "name": "emoji value quoted",
+      "key": "x",
+      "orderedProps": [
+        [
+          "a",
+          "\ud83d\ude42"
+        ]
+      ],
+      "expected": ":::x{a=\"\ud83d\ude42\"}"
+    }
+  ],
+  "roundtrip": [
+    {
+      "name": "bare key",
+      "input": ":::map",
+      "canonical": ":::map"
+    },
+    {
+      "name": "guid id",
+      "input": ":::map{id=2f1c0b9e-7a4d-4c1e-9b2a-1234567890ab}",
+      "canonical": ":::map{id=2f1c0b9e-7a4d-4c1e-9b2a-1234567890ab}"
+    },
+    {
+      "name": "two attributes",
+      "input": ":::chart{id=42 type=bar}",
+      "canonical": ":::chart{id=42 type=bar}"
+    },
+    {
+      "name": "mixed bare and quoted",
+      "input": ":::map{id=1 title=\"Hello world\"}",
+      "canonical": ":::map{id=1 title=\"Hello world\"}"
+    },
+    {
+      "name": "dashboard-style props",
+      "input": ":::demo{title=Revenue accent=#6366f1 metric=\"1,284\" trend=+12.4%}",
+      "canonical": ":::demo{title=Revenue accent=#6366f1 metric=\"1,284\" trend=+12.4%}"
+    },
+    {
+      "name": "flag attribute",
+      "input": ":::x{interactive}",
+      "canonical": ":::x{interactive}"
+    },
+    {
+      "name": "empty block normalizes away",
+      "input": ":::map{}",
+      "canonical": ":::map"
+    },
+    {
+      "name": "single quotes normalize to double",
+      "input": ":::x{t='hello world'}",
+      "canonical": ":::x{t=\"hello world\"}"
+    },
+    {
+      "name": "space before block normalizes away",
+      "input": ":::map {id=1}",
+      "canonical": ":::map{id=1}"
+    },
+    {
+      "name": "integer-like keys hoist on round-trip",
+      "input": ":::x{b=1 2=x a=3}",
+      "canonical": ":::x{2=x b=1 a=3}"
+    },
+    {
+      "name": "multiple integer keys sort ascending",
+      "input": ":::x{10=a 2=b z=c}",
+      "canonical": ":::x{2=b 10=a z=c}"
+    },
+    {
+      "name": "leading-zero and negative keys keep position",
+      "input": ":::x{b=1 01=x -1=y}",
+      "canonical": ":::x{b=1 01=x -1=y}"
+    },
+    {
+      "name": "emoji bareword requotes",
+      "input": ":::x{a=\ud83d\ude42}",
+      "canonical": ":::x{a=\"\ud83d\ude42\"}"
+    }
+  ],
+  "segment": [
+    {
+      "name": "embed between paragraphs",
+      "input": "Para eins.\n\n:::timer{min=10}\n\nPara zwei.",
+      "expected": [
+        {
+          "type": "markdown"
+        },
+        {
+          "type": "embed",
+          "key": "timer",
+          "props": {
+            "min": "10"
+          }
+        },
+        {
+          "type": "markdown"
+        }
+      ]
+    },
+    {
+      "name": "embed at document start",
+      "input": ":::a{x}\n\ntext",
+      "expected": [
+        {
+          "type": "embed",
+          "key": "a",
+          "props": {
+            "x": ""
+          }
+        },
+        {
+          "type": "markdown"
+        }
+      ]
+    },
+    {
+      "name": "embed at document end",
+      "input": "text\n\n:::a{x}",
+      "expected": [
+        {
+          "type": "markdown"
+        },
+        {
+          "type": "embed",
+          "key": "a",
+          "props": {
+            "x": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "document is only an embed",
+      "input": ":::a{x}",
+      "expected": [
+        {
+          "type": "embed",
+          "key": "a",
+          "props": {
+            "x": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "no embeds at all",
+      "input": "just **text**\n\nmore",
+      "expected": [
+        {
+          "type": "markdown"
+        }
+      ]
+    },
+    {
+      "name": "two embeds separated by blank line",
+      "input": ":::a{x}\n\n:::b{y}",
+      "expected": [
+        {
+          "type": "embed",
+          "key": "a",
+          "props": {
+            "x": ""
+          }
+        },
+        {
+          "type": "embed",
+          "key": "b",
+          "props": {
+            "y": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "adjacent directive lines form one paragraph and fold to one embed with junk props",
+      "input": ":::a{x}\n:::b{y}",
+      "expected": [
+        {
+          "type": "embed",
+          "key": "a",
+          "props": {
+            "x}": "",
+            ":::b{y": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "trailing content keeps the line markdown",
+      "input": ":::a{x} trailing",
+      "expected": [
+        {
+          "type": "markdown"
+        }
+      ]
+    },
+    {
+      "name": "directive line attached to text above stays markdown",
+      "input": "text\n:::a{x}\n\nmore",
+      "expected": [
+        {
+          "type": "markdown"
+        }
+      ]
+    },
+    {
+      "name": "directive line attached to text below stays markdown",
+      "input": ":::a{x}\ntext",
+      "expected": [
+        {
+          "type": "markdown"
+        }
+      ]
+    },
+    {
+      "name": "multi-line quoted value folds",
+      "input": ":::note{text=\"l1\nl2\"}",
+      "expected": [
+        {
+          "type": "embed",
+          "key": "note",
+          "props": {
+            "text": "l1\nl2"
+          }
+        }
+      ]
+    },
+    {
+      "name": "four-space indent is a code block not an embed",
+      "input": "text\n\n    :::a{x}\n\nmore",
+      "expected": [
+        {
+          "type": "markdown"
+        }
+      ]
+    },
+    {
+      "name": "three-space indent still folds",
+      "input": "text\n\n   :::a{x}",
+      "expected": [
+        {
+          "type": "markdown"
+        },
+        {
+          "type": "embed",
+          "key": "a",
+          "props": {
+            "x": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "nbsp-only line is not a blank line",
+      "input": "text\n\u00a0\n:::a{x}",
+      "expected": [
+        {
+          "type": "markdown"
+        }
+      ]
+    }
+  ]
+}
