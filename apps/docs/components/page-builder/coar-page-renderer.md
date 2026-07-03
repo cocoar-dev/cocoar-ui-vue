@@ -1,4 +1,4 @@
-# `<CoarPageRenderer>` <Badge type="warning" text="Preview" />
+# `<CoarPageRenderer>`
 
 The runtime-renderer half of `@cocoar/vue-page-builder`. Takes a `PageNode` schema (produced by [`<CoarPageBuilder>`](./coar-page-builder) or written by hand) and renders it as live Cocoar components. This is the component you mount on the actual page that end-users see.
 
