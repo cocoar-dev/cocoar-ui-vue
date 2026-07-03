@@ -25,9 +25,10 @@ import {
   type CoreIconName,
   type CoarSelectOption,
 } from '@cocoar/vue-ui';
-import { isContainerNode, type PageNode, type ElementType } from '../schema';
+import { isContainerNode, isElementAllowed, type PageNode, type ElementType } from '../schema';
 import { selfLayoutStyle, containerLayoutStyle } from '../styleMapping';
 import { headingTag } from '../renderSafety';
+import { KNOWN_ELEMENT_TYPES } from './schemaNormalize';
 import { BUILDER_API, BUILDER_CONFIG } from './builderContext';
 import { useBuilderDnd } from './useBuilderDnd';
 import type { NodePath } from './operations';
@@ -90,6 +91,18 @@ const typeLabel = computed(() => {
 });
 
 const colorFamily = computed<'container' | 'element'>(() => isContainerNode(props.node) ? 'container' : 'element');
+
+// ── Runtime-blocked nodes get a VISIBLE treatment: the runtime renderer skips
+//    them, and the canvas must not pretend otherwise (Editor ≈ Preview). ──
+const isUnknownType = computed(() => !KNOWN_ELEMENT_TYPES.has(props.node.type));
+const isBlocked = computed(
+  () => isUnknownType.value || !isElementAllowed(props.node.type, config?.value),
+);
+const blockedHint = computed(() =>
+  isUnknownType.value
+    ? `Unknown type "${String(props.node.type)}" — skipped at runtime`
+    : 'Not in allowedElements — skipped at runtime',
+);
 
 /** Direction of this container — drives dropzone axis + child flex behavior. */
 const containerDirection = computed<FlexDirection>(() => {
@@ -188,6 +201,7 @@ function zoneClasses(index: number): Record<string, boolean> {
         'canvas-node--selected': isSelected,
         'canvas-node--root': isRoot,
         'canvas-node--dragging': isDraggingSource,
+        'canvas-node--blocked': isBlocked,
       },
     ]"
     :style="wrapperStyle"
@@ -200,9 +214,15 @@ function zoneClasses(index: number): Record<string, boolean> {
       :title="typeLabel"
       @pointerdown="onTabPointerDown"
     >
-      <CoarIcon :name="typeIcon[node.type]" size="xs" />
+      <CoarIcon :name="typeIcon[node.type] ?? 'circle-alert'" size="xs" />
       <span class="canvas-node__tab-label">{{ typeLabel }}</span>
     </span>
+
+    <!-- Runtime-blocked hint -->
+    <div v-if="isBlocked" class="canvas-node__blocked" role="note">
+      <CoarIcon name="circle-alert" size="xs" />
+      <span>{{ blockedHint }}</span>
+    </div>
 
     <!-- Delete button (top-right) -->
     <button
@@ -402,6 +422,30 @@ function zoneClasses(index: number): Record<string, boolean> {
 }
 
 .canvas-node--dragging { opacity: 0.4; }
+
+/* ── Runtime-blocked (unknown type / not in allowedElements) ── */
+.canvas-node--blocked {
+  --canvas-border: rgba(192, 57, 43, 0.5);
+  --canvas-tab-fg: #c0392b;
+  --canvas-tab-border: rgba(192, 57, 43, 0.55);
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(192, 57, 43, 0.04) 0px,
+    rgba(192, 57, 43, 0.04) 6px,
+    transparent 6px,
+    transparent 12px
+  );
+}
+
+.canvas-node__blocked {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--coar-text-semantic-error-bold, #c0392b);
+}
 
 .canvas-node--root {
   padding: 20px 14px 14px;

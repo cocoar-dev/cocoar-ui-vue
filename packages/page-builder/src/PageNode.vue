@@ -96,6 +96,25 @@ function toSelectOptions(
 ): CoarSelectOption<string>[] {
   return (options ?? []).map((o) => ({ value: o.value, label: o.label }));
 }
+
+// ─── Input type wiring ────────────────────────────────────────────────────────
+
+function htmlInputType(t?: string): 'text' | 'email' | 'url' {
+  return t === 'email' || t === 'url' ? t : 'text';
+}
+
+function autocompleteFor(t?: string): string | undefined {
+  return t === 'email' ? 'email' : t === 'url' ? 'url' : undefined;
+}
+
+// Selects and checkboxes have no meaningful blur moment — choosing a value IS
+// the interaction, so it marks the field touched (otherwise their errors could
+// never surface between submits).
+function setFieldValue(name: string | undefined, v: unknown) {
+  if (!name) return;
+  ctx!.setValue(name, v);
+  ctx!.markTouched(name);
+}
 </script>
 
 <template>
@@ -194,6 +213,8 @@ function toSelectOptions(
     <CoarTextInput
       v-else
       :model-value="nodeName ? (ctx.getValue(nodeName) as string ?? '') : ''"
+      :type="htmlInputType(n.inputType)"
+      :autocomplete="autocompleteFor(n.inputType)"
       :placeholder="n.placeholder"
       :disabled="n.disabled"
       @update:model-value="(v) => nodeName && ctx.setValue(nodeName, v)"
@@ -201,16 +222,21 @@ function toSelectOptions(
     />
   </CoarFormField>
 
-  <!-- ── checkbox ─────────────────────────────────────────────────────────── -->
-  <CoarCheckbox
+  <!-- ── checkbox (FormField wrapper so its validation error can surface) ──── -->
+  <CoarFormField
     v-else-if="n.type === 'checkbox'"
-    :model-value="nodeName ? (ctx.getValue(nodeName) as boolean ?? false) : false"
-    :label="n.label"
-    :required="n.validation?.required"
+    :error="nodeName ? ctx.getError(nodeName) : ''"
     :disabled="n.disabled"
     :style="wrapperStyle"
-    @update:model-value="(v) => nodeName && ctx.setValue(nodeName, v)"
-  />
+  >
+    <CoarCheckbox
+      :model-value="nodeName ? (ctx.getValue(nodeName) as boolean ?? false) : false"
+      :label="n.label"
+      :required="n.validation?.required"
+      :disabled="n.disabled"
+      @update:model-value="(v) => setFieldValue(nodeName, v)"
+    />
+  </CoarFormField>
 
   <!-- ── select ───────────────────────────────────────────────────────────── -->
   <CoarFormField
@@ -226,18 +252,21 @@ function toSelectOptions(
       :options="toSelectOptions(n.options)"
       :placeholder="n.placeholder"
       :disabled="n.disabled"
-      @update:model-value="(v) => nodeName && ctx.setValue(nodeName, v)"
+      @update:model-value="(v) => setFieldValue(nodeName, v)"
     />
   </CoarFormField>
 
   <!-- ── button ───────────────────────────────────────────────────────────── -->
+  <!-- Validating buttons stay CLICKABLE while the form is invalid — the click
+       reveals the errors (a disabled button can't explain itself). They only
+       disable while an async onValidate is in flight, to block double-submit. -->
   <CoarButton
     v-else-if="n.type === 'button'"
     class="pb-button"
     :variant="n.variant ?? 'primary'"
     :size="n.size"
     :icon-left="n.icon"
-    :disabled="n.validates && !ctx.isFormValid.value"
+    :disabled="n.validates && ctx.isValidating.value"
     :style="wrapperStyle"
     @click="callAction(n.action, n.validates)"
   >

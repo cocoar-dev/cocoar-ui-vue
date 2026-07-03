@@ -5,6 +5,7 @@ import type { PageNode } from '../schema';
 const validPage: PageNode = {
   id: 'root',
   type: 'page',
+  schemaVersion: 1,
   children: [
     { id: 'h', type: 'heading', text: 'Hello', level: 2 },
     { id: 's', type: 'stack', children: [{ id: 'p', type: 'paragraph', text: 'Hi' }] },
@@ -42,16 +43,38 @@ describe('normalizePageSchema — healing', () => {
     expect(changed).toBe(false);
   });
 
-  it('wraps a non-page root in a page', () => {
+  it('wraps a non-page root in a page (with a stamped schemaVersion)', () => {
     const { schema, issues, changed } = normalizePageSchema({
       id: 'c',
       type: 'card',
       children: [],
     });
     expect(schema.type).toBe('page');
+    expect((schema as { schemaVersion?: number }).schemaVersion).toBe(1);
     expect((schema as { children: PageNode[] }).children[0].type).toBe('card');
     expect(issues).toEqual([]);
     expect(changed).toBe(true);
+  });
+
+  it('stamps schemaVersion 1 on pre-versioning page roots (silently)', () => {
+    const { schema, issues, changed } = normalizePageSchema({
+      id: 'r',
+      type: 'page',
+      children: [],
+    });
+    expect((schema as { schemaVersion?: number }).schemaVersion).toBe(1);
+    expect(issues).toEqual([]);
+    expect(changed).toBe(true);
+  });
+
+  it('preserves an existing schemaVersion', () => {
+    const { schema } = normalizePageSchema({
+      id: 'r',
+      type: 'page',
+      schemaVersion: 5,
+      children: [],
+    });
+    expect((schema as { schemaVersion?: number }).schemaVersion).toBe(5);
   });
 
   it('heals a missing children array on containers silently', () => {

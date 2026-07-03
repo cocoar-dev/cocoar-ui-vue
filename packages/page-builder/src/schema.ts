@@ -46,6 +46,12 @@ interface PageNodeBase {
 /** Root-level page container. Behaves like a column; always the schema root. */
 export interface PageRootNode extends PageNodeBase {
   type: 'page'
+  /**
+   * Wire-format version, reserved for the future migration framework. The
+   * builder stamps `1` on new and normalized roots; renderers tolerate and
+   * preserve it. Absent = pre-versioning document.
+   */
+  schemaVersion?: number
   children: PageNode[]
 }
 

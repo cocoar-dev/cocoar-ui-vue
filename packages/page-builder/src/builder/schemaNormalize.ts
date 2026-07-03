@@ -82,7 +82,13 @@ export function migrateLegacyTypes(node: unknown): unknown {
 }
 
 function defaultPage(): PageNode {
-  return { id: 'root', type: 'page', style: { gap: '16px', padding: '24px' }, children: [] };
+  return {
+    id: 'root',
+    type: 'page',
+    schemaVersion: 1,
+    style: { gap: '16px', padding: '24px' },
+    children: [],
+  };
 }
 
 export function normalizePageSchema(value: unknown): NormalizeResult {
@@ -100,7 +106,18 @@ export function normalizePageSchema(value: unknown): NormalizeResult {
   if (root.type !== 'page') {
     // Any non-page root (stack, card, …) is wrapped so the builder always has
     // a page root. Style stays on the wrapped child; the wrapper is bare.
-    root = { id: 'root', type: 'page', style: { gap: '16px', padding: '24px' }, children: [root] };
+    root = {
+      id: 'root',
+      type: 'page',
+      schemaVersion: 1,
+      style: { gap: '16px', padding: '24px' },
+      children: [root],
+    };
+    rootChanged = true;
+  } else if (root.schemaVersion === undefined) {
+    // Stamp pre-versioning documents so GA never mints unversioned schemas;
+    // the migration framework itself stays a later phase.
+    root = { ...root, schemaVersion: 1 };
     rootChanged = true;
   }
 

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, provide, ref, watch } from 'vue';
+import { isElementAllowed } from './schema';
 import type {
   PageNode,
   TextInputNode,
@@ -8,6 +9,7 @@ import type {
   PageConfig,
   FieldValidation,
 } from './schema';
+import { migrateLegacyTypes } from './builder/schemaNormalize';
 import {
   PAGE_RENDERER_KEY,
   type ActionHandler,
@@ -40,6 +42,16 @@ const props = defineProps<{
 
 const values = ref<ActionValues>({});
 const touched = ref<Record<string, boolean>>({});
+/** Field errors from the submit-time `onValidate` — cleared per field on edit. */
+const asyncErrors = ref<Record<string, string>>({});
+const isValidating = ref(false);
+
+/**
+ * Legacy `column`/`row` containers migrate to `stack` on the fly, so schemas
+ * saved before the stack model still render (identity-preserving when there
+ * is nothing to migrate).
+ */
+const renderSchema = computed(() => migrateLegacyTypes(props.schema) as PageNode);
 
 type NamedInputNode = TextInputNode | CheckboxNode | SelectNode;
 
@@ -50,10 +62,21 @@ function isNamedInput(node: PageNode): node is NamedInputNode {
   );
 }
 
+/**
+ * The allow-list gate applies to the VALUE model too, not just rendering:
+ * disallowed subtrees must neither contribute defaults nor block validation —
+ * otherwise an invisible required field could permanently veto every
+ * validating button.
+ */
+function isNodeAllowed(node: PageNode): boolean {
+  return isElementAllowed(node.type, props.config);
+}
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
 function collectDefaults(node: PageNode): ActionValues {
   const defaults: ActionValues = {};
+  if (!isNodeAllowed(node)) return defaults;
   if (isNamedInput(node) && node.name && node.defaultValue !== undefined) {
     defaults[node.name] = node.defaultValue;
   }
@@ -64,8 +87,9 @@ function collectDefaults(node: PageNode): ActionValues {
 }
 
 function initValues() {
-  values.value = collectDefaults(props.schema);
+  values.value = collectDefaults(renderSchema.value);
   touched.value = {};
+  asyncErrors.value = {};
 }
 
 initValues();
@@ -123,6 +147,7 @@ function computeFieldError(node: NamedInputNode): string {
 }
 
 function collectErrors(node: PageNode, out: Record<string, string>) {
+  if (!isNodeAllowed(node)) return;
   if (isNamedInput(node) && node.name) {
     const err = computeFieldError(node);
     if (err) out[node.name] = err;
@@ -132,17 +157,13 @@ function collectErrors(node: PageNode, out: Record<string, string>) {
   }
 }
 
-// All errors, computed reactively. Reading values.value inside makes it
-// automatically re-run when any value changes — including the matchField source.
+// Declarative rule errors, computed reactively. Reading values.value inside
+// makes it re-run when any value changes — including the matchField source.
+// `onValidate` deliberately does NOT run here: it may be async (server
+// validation) and only fires at submit time, in triggerAction.
 const computedErrors = computed<Record<string, string>>(() => {
   const errors: Record<string, string> = {};
-  collectErrors(props.schema, errors);
-  if (props.onValidate) {
-    const custom = props.onValidate(values.value);
-    for (const [k, v] of Object.entries(custom)) {
-      if (v) errors[k] = v;
-    }
-  }
+  collectErrors(renderSchema.value, errors);
   return errors;
 });
 
@@ -151,6 +172,7 @@ const isFormValid = computed(() => Object.keys(computedErrors.value).length === 
 // ─── Touched helpers ──────────────────────────────────────────────────────────
 
 function markAllTouched(node: PageNode) {
+  if (!isNodeAllowed(node)) return;
   if (isNamedInput(node) && node.name) touched.value[node.name] = true;
   if ('children' in node && Array.isArray(node.children)) node.children.forEach(markAllTouched);
 }
@@ -161,9 +183,41 @@ function markAllTouched(node: PageNode) {
 // spammed when a schema contains many instances of the same forbidden element.
 const warnedDisallowed = new Set<string>();
 
+/**
+ * Submit path of a `validates: true` button: reveal every declarative error
+ * (the button stays clickable — a disabled button can't explain itself), then
+ * run the submit-time `onValidate` (possibly async), and only call the action
+ * when everything is clean.
+ */
+async function runValidatedAction(id: string) {
+  if (isValidating.value) return;
+  markAllTouched(renderSchema.value);
+  if (!isFormValid.value) return;
+  if (props.onValidate) {
+    isValidating.value = true;
+    try {
+      const result = await props.onValidate(values.value);
+      const errors: Record<string, string> = {};
+      for (const [k, v] of Object.entries(result ?? {})) {
+        if (v) errors[k] = v;
+      }
+      asyncErrors.value = errors;
+      if (Object.keys(errors).length > 0) return;
+    } catch (e) {
+      console.error('[CoarPageRenderer] onValidate threw — action not executed.', e);
+      return;
+    } finally {
+      isValidating.value = false;
+    }
+  }
+  props.actions?.[id]?.(values.value);
+}
+
 const ctx: PageRendererContext = {
   get actions() { return props.actions; },
-  get assetResolver() { return props.assetResolver; },
+  // The builder passes one shared config to both components; the explicit
+  // prop stays as the override, config as the documented fallback.
+  get assetResolver() { return props.assetResolver ?? props.config?.assetResolver; },
   get config() { return props.config; },
   reportDisallowed(type: string) {
     if (warnedDisallowed.has(type)) return;
@@ -174,14 +228,24 @@ const ctx: PageRendererContext = {
     );
   },
   isFormValid,
+  isValidating,
   getValue: (name) => values.value[name],
-  setValue: (name, value) => { values.value[name] = value; },
-  getError: (name) => touched.value[name] ? (computedErrors.value[name] ?? '') : '',
+  setValue: (name, value) => {
+    values.value[name] = value;
+    // A stale server-side error must not outlive the edit that addresses it.
+    if (asyncErrors.value[name]) {
+      const next = { ...asyncErrors.value };
+      delete next[name];
+      asyncErrors.value = next;
+    }
+  },
+  getError: (name) =>
+    touched.value[name] ? (computedErrors.value[name] ?? asyncErrors.value[name] ?? '') : '',
   markTouched: (name) => { touched.value[name] = true; },
   triggerAction(id, validates = false) {
     if (validates) {
-      markAllTouched(props.schema);
-      if (!isFormValid.value) return;
+      void runValidatedAction(id);
+      return;
     }
     props.actions?.[id]?.(values.value);
   },
@@ -192,7 +256,7 @@ provide(PAGE_RENDERER_KEY, ctx);
 
 <template>
   <div class="coar-page-renderer">
-    <PageNode_ :node="schema" />
+    <PageNode_ :node="renderSchema" />
   </div>
 </template>
 

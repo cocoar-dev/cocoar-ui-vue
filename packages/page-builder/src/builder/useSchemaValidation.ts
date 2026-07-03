@@ -1,6 +1,8 @@
 import { computed, type Ref } from 'vue';
+import { isElementAllowed } from '../schema';
 import type { PageConfig, PageNode } from '../schema';
 import { compilePagePattern } from '../renderSafety';
+import { KNOWN_ELEMENT_TYPES } from './schemaNormalize';
 
 export type IssueSeverity = 'warning' | 'error';
 
@@ -36,6 +38,26 @@ export function useSchemaValidation(
     const namedTypes = new Set(['text-input', 'checkbox', 'select']);
 
     walk(schema.value, (n) => {
+      // ── Type must exist and be allowed — otherwise the runtime SKIPS the
+      //    node silently, which the author must learn about before saving ──
+      if (!KNOWN_ELEMENT_TYPES.has(n.type)) {
+        out.push({
+          nodeId: n.id,
+          field: 'type',
+          severity: 'error',
+          message: `Unknown element type "${String(n.type)}" — skipped at render time.`,
+        });
+        return;
+      }
+      if (!isElementAllowed(n.type, config.value)) {
+        out.push({
+          nodeId: n.id,
+          field: 'type',
+          severity: 'error',
+          message: `"${n.type}" is not in config.allowedElements — skipped at render time.`,
+        });
+      }
+
       // ── Buttons & links: action wiring ─────────────────────────────────
       if (n.type === 'button') {
         if (!n.action) {
