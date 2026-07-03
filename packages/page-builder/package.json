@@ -24,7 +24,8 @@
   "files": ["dist"],
   "scripts": {
     "build": "vite build",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run",
+    "typecheck": "vue-tsc --noEmit",
     "lint": "eslint src/"
   },
   "peerDependencies": {

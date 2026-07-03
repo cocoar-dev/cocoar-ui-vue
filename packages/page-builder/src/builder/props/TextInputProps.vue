@@ -6,7 +6,7 @@ import {
   CoarSelect,
   type CoarSelectOption,
 } from '@cocoar/vue-ui';
-import type { TextInputNode } from '../../schema';
+import type { FieldValidation, TextInputNode } from '../../schema';
 
 const props = defineProps<{
   node: TextInputNode;
@@ -21,7 +21,12 @@ const INPUT_TYPE_OPTIONS: CoarSelectOption<string>[] = [
 ];
 
 function setRequired(v: boolean) {
-  props.patch({ validation: v ? { required: true } : {} });
+  // Merge into the existing rules — JSON-authored minLength/pattern/matchField/
+  // message must survive toggling Required in the panel.
+  const next: FieldValidation = { ...props.node.validation };
+  if (v) next.required = true;
+  else delete next.required;
+  props.patch({ validation: Object.keys(next).length > 0 ? next : undefined });
 }
 </script>
 

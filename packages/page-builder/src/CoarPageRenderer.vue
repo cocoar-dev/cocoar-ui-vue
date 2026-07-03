@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { computed, provide, ref, watch } from 'vue';
-import type { PageNode, TextInputNode, CheckboxNode, SelectNode, PageConfig } from './schema';
+import type {
+  PageNode,
+  TextInputNode,
+  CheckboxNode,
+  SelectNode,
+  PageConfig,
+  FieldValidation,
+} from './schema';
 import {
   PAGE_RENDERER_KEY,
   type ActionHandler,
@@ -8,6 +15,7 @@ import {
   type CustomValidator,
   type PageRendererContext,
 } from './context';
+import { compilePagePattern } from './renderSafety';
 import PageNode_ from './PageNode.vue';
 
 const props = defineProps<{
@@ -49,7 +57,7 @@ function collectDefaults(node: PageNode): ActionValues {
   if (isNamedInput(node) && node.name && node.defaultValue !== undefined) {
     defaults[node.name] = node.defaultValue;
   }
-  if ('children' in node) {
+  if ('children' in node && Array.isArray(node.children)) {
     for (const child of node.children) Object.assign(defaults, collectDefaults(child));
   }
   return defaults;
@@ -65,9 +73,29 @@ watch(() => props.schema, initValues, { deep: false });
 
 // ─── Reactive error computation ───────────────────────────────────────────────
 
+// One compile (and at most one warning) per distinct pattern — computeFieldError
+// runs during render, so a throwing `new RegExp` here crashed the whole page.
+const patternCache = new Map<string, RegExp | null>();
+function patternFor(pattern: string): RegExp | null {
+  let re = patternCache.get(pattern);
+  if (re === undefined) {
+    re = compilePagePattern(pattern);
+    if (re === null) {
+      console.warn(
+        `[CoarPageRenderer] validation.pattern ${JSON.stringify(pattern)} is not a valid regular expression — rule ignored.`,
+      );
+    }
+    patternCache.set(pattern, re);
+  }
+  return re;
+}
+
 function computeFieldError(node: NamedInputNode): string {
   const value = values.value[node.name!];
-  const v = node.validation;
+  // Checkbox/select validation is typed as Pick<…, 'required'>, but hand-written
+  // JSON can carry the full rule set — widening keeps the runtime checks (and
+  // their behavior) uniform across the named-input types.
+  const v = node.validation as FieldValidation | undefined;
   if (!v) return '';
 
   if (v.required) {
@@ -80,8 +108,10 @@ function computeFieldError(node: NamedInputNode): string {
       return v.message ?? `Minimum ${v.minLength} characters`;
     if (v.maxLength && value.length > v.maxLength)
       return v.message ?? `Maximum ${v.maxLength} characters`;
-    if (v.pattern && !new RegExp(v.pattern).test(value))
-      return v.message ?? 'Invalid format';
+    if (v.pattern) {
+      const re = patternFor(v.pattern);
+      if (re && !re.test(value)) return v.message ?? 'Invalid format';
+    }
   }
 
   if (v.matchField) {
@@ -97,7 +127,9 @@ function collectErrors(node: PageNode, out: Record<string, string>) {
     const err = computeFieldError(node);
     if (err) out[node.name] = err;
   }
-  if ('children' in node) node.children.forEach(c => collectErrors(c, out));
+  if ('children' in node && Array.isArray(node.children)) {
+    node.children.forEach(c => collectErrors(c, out));
+  }
 }
 
 // All errors, computed reactively. Reading values.value inside makes it
@@ -120,7 +152,7 @@ const isFormValid = computed(() => Object.keys(computedErrors.value).length === 
 
 function markAllTouched(node: PageNode) {
   if (isNamedInput(node) && node.name) touched.value[node.name] = true;
-  if ('children' in node) node.children.forEach(markAllTouched);
+  if ('children' in node && Array.isArray(node.children)) node.children.forEach(markAllTouched);
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────

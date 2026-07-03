@@ -26,6 +26,7 @@ import {
 } from '@cocoar/vue-ui';
 import { isElementAllowed, type PageNode } from './schema';
 import { selfStyle, containerLayoutStyle as layoutStyleFromStyle } from './styleMapping';
+import { headingTag } from './renderSafety';
 import { PAGE_RENDERER_KEY } from './context';
 
 defineOptions({ name: 'PageNode' });
@@ -156,7 +157,7 @@ function toSelectOptions(
 
   <!-- ── heading ──────────────────────────────────────────────────────────── -->
   <component
-    :is="`h${n.level ?? 2}`"
+    :is="headingTag(n.level)"
     v-else-if="n.type === 'heading'"
     class="pb-heading"
     :style="wrapperStyle"
