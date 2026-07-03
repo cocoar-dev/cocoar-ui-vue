@@ -4,6 +4,10 @@ The visual-editor half of `@cocoar/vue-page-builder`. Renders a three-panel layo
 
 All three panels are resizable via drag handles and collapsible.
 
+::: tip Stylesheet
+Import `@cocoar/vue-page-builder/styles` once in your app — it carries the entire builder chrome (panels, canvas, palette). Without it the builder renders unstyled.
+:::
+
 ## Props
 
 | Prop | Type | Default | Description |
