@@ -168,6 +168,16 @@ function onClick(e: MouseEvent) {
   builder.select(props.path);
 }
 
+// Enter/Space on the focused node selects it; keys originating from inner
+// interactive elements (delete/duplicate buttons, nested nodes) pass through.
+function onNodeKeydown(e: KeyboardEvent) {
+  if (e.target !== e.currentTarget) return;
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  e.preventDefault();
+  e.stopPropagation();
+  builder.select(props.path);
+}
+
 // ── Drag source (tab handle) ─────────────────────────────────────────────────
 
 function onTabPointerDown(e: PointerEvent) {
@@ -205,7 +215,9 @@ function zoneClasses(index: number): Record<string, boolean> {
       },
     ]"
     :style="wrapperStyle"
+    tabindex="0"
     @click="onClick"
+    @keydown="onNodeKeydown"
   >
     <!-- Type tab (drag handle) -->
     <span
@@ -224,7 +236,16 @@ function zoneClasses(index: number): Record<string, boolean> {
       <span>{{ blockedHint }}</span>
     </div>
 
-    <!-- Delete button (top-right) -->
+    <!-- Duplicate + delete buttons (top-right) -->
+    <button
+      v-if="!isRoot"
+      type="button"
+      class="canvas-node__delete canvas-node__duplicate"
+      title="Duplicate"
+      @click.stop="builder.duplicate(path)"
+    >
+      <CoarIcon name="copy" size="xs" />
+    </button>
     <button
       v-if="!isRoot"
       type="button"
@@ -517,6 +538,13 @@ function zoneClasses(index: number): Record<string, boolean> {
 
 .canvas-node:hover:not(:has(.canvas-node:hover)) > .canvas-node__delete,
 .canvas-node--selected > .canvas-node__delete { opacity: 1; }
+
+.canvas-node__duplicate { right: 34px; }
+
+.canvas-node:focus-visible {
+  outline: 2px solid var(--coar-border-focus, #1666cc);
+  outline-offset: 1px;
+}
 
 .canvas-node__delete:hover {
   background: var(--coar-surface-semantic-error-subtle, #fde8e4);

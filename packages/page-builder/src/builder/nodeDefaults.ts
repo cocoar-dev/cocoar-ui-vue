@@ -23,6 +23,19 @@ function fieldName(): string {
   return `field_${uid().replace(/-/g, '').slice(0, 8)}`;
 }
 
+/**
+ * Deep copy of a subtree with fresh ids on every node — the duplicate
+ * operation's core. Field `name`s are kept on purpose: renaming silently would
+ * surprise, and the duplicate-name validation flags the collision loudly.
+ */
+export function cloneWithFreshIds(node: PageNode): PageNode {
+  const clone = { ...node, id: uid() } as PageNode;
+  if ('children' in clone && Array.isArray(clone.children)) {
+    (clone as { children: PageNode[] }).children = clone.children.map(cloneWithFreshIds);
+  }
+  return clone;
+}
+
 export function defaultNode(type: ElementType): PageNode {
   switch (type) {
     case 'page':     return { id: uid(), type: 'page', children: [] };

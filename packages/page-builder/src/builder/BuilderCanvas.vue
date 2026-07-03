@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, inject, onBeforeUnmount, onMounted } from 'vue';
+import { computed, inject } from 'vue';
 import { CoarIcon, type CoreIconName } from '@cocoar/vue-ui';
 import { BUILDER_API, BUILDER_CONFIG } from './builderContext';
 import BuilderCanvasNode from './BuilderCanvasNode.vue';
@@ -50,29 +50,6 @@ function onCardPointerDown(e: PointerEvent, type: ElementType) {
 }
 
 function onCanvasBackgroundClick() { builder.select([]); }
-
-// ── Keyboard shortcuts ────────────────────────────────────────────────────────
-function onKeyDown(e: KeyboardEvent) {
-  const meta = e.ctrlKey || e.metaKey;
-  if (meta && (e.key === 'z' || e.key === 'Z')) {
-    e.preventDefault();
-    if (e.shiftKey) builder.redo(); else builder.undo();
-    return;
-  }
-  if (meta && (e.key === 'y' || e.key === 'Y')) { e.preventDefault(); builder.redo(); return; }
-  if (e.key !== 'Delete' && e.key !== 'Backspace') return;
-  const target = e.target as HTMLElement | null;
-  if (!target) return;
-  const tag = target.tagName;
-  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable) return;
-  const sel = builder.selectedPath.value;
-  if (!sel || sel.length === 0) return;
-  e.preventDefault();
-  builder.remove(sel);
-}
-
-onMounted(() => window.addEventListener('keydown', onKeyDown));
-onBeforeUnmount(() => window.removeEventListener('keydown', onKeyDown));
 </script>
 
 <template>

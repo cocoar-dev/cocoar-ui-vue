@@ -1,6 +1,7 @@
 import { computed, ref, shallowRef, type Ref } from 'vue';
 import type { PageNode } from '../schema';
 import {
+  cloneWithFreshIds,
   defaultNode,
   type ElementType,
 } from './nodeDefaults';
@@ -159,6 +160,19 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
     bumpVersion();
   }
 
+  function duplicate(path: NodePath) {
+    if (path.length === 0) return;
+    const loc = getNodeAt(schema.value, path);
+    if (!loc) return;
+    const before = schema.value;
+    const parentPath = path.slice(0, -1);
+    const index = path[path.length - 1] + 1;
+    schema.value = insertChild(schema.value, parentPath, index, cloneWithFreshIds(loc.node));
+    selectedPath.value = [...parentPath, index];
+    pushHistory(before, { kind: 'structural' });
+    bumpVersion();
+  }
+
   function patch(path: NodePath, update: Partial<PageNode>) {
     const before = schema.value;
     const next = patchNode(schema.value, path, update);
@@ -186,6 +200,7 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
     selectNode,
     addChild,
     remove,
+    duplicate,
     move,
     moveTo,
     patch,

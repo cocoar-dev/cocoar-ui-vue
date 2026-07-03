@@ -157,6 +157,15 @@ function onGripPointerDown(e: PointerEvent) {
   dnd.onHandlePointerDown(e, { kind: 'move', path: [...props.path] }, ghostFrom);
 }
 
+// Enter/Space on the row itself selects — keys from the inline action buttons
+// keep their native behavior.
+function onRowKeydown(e: KeyboardEvent) {
+  if ((e.target as HTMLElement | null)?.closest('button')) return;
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  e.preventDefault();
+  builder.select(props.path);
+}
+
 // ── Move validation ───────────────────────────────────────────────────────────
 
 function canMoveUp(): boolean {
@@ -185,10 +194,16 @@ function canMoveDown(): boolean {
       class="pb-tree-row"
       :class="{ 'pb-tree-row--dropinto': isDropInto }"
       :style="{ paddingLeft: `${8 + depth * 16}px` }"
+      role="treeitem"
+      :aria-level="depth + 1"
+      :aria-selected="isSelected"
+      :aria-expanded="isContainerNode(node) ? true : undefined"
+      :tabindex="isSelected ? 0 : -1"
       :data-dropzone="isContainerNode(node) ? intoKey : undefined"
       :data-pb-zone-path="isContainerNode(node) ? pathKey : undefined"
       :data-pb-zone-index="isContainerNode(node) ? childCount : undefined"
       @click.stop="builder.select(path)"
+      @keydown="onRowKeydown"
     >
       <span
         v-if="!isRoot"
@@ -238,6 +253,15 @@ function canMoveDown(): boolean {
           @click.stop="builder.move(path, 1)"
         >
           <CoarIcon name="chevron-down" size="s" />
+        </button>
+        <button
+          v-if="!isRoot"
+          type="button"
+          class="pb-tree-btn"
+          title="Duplicate"
+          @click.stop="builder.duplicate(path)"
+        >
+          <CoarIcon name="copy" size="s" />
         </button>
         <button
           v-if="!isRoot"

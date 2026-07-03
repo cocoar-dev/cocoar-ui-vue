@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { defaultNode, uid } from './nodeDefaults';
-import type { ElementType } from '../schema';
+import { cloneWithFreshIds, defaultNode, uid } from './nodeDefaults';
+import type { ElementType, PageNode } from '../schema';
 
 const ALL_TYPES: ElementType[] = [
   'page', 'stack', 'card', 'section', 'divider', 'spacer', 'heading',
@@ -44,5 +44,29 @@ describe('defaultNode', () => {
     for (const type of ['page', 'stack', 'card', 'section'] as const) {
       expect((defaultNode(type) as { children: unknown }).children).toEqual([]);
     }
+  });
+});
+
+describe('cloneWithFreshIds', () => {
+  it('deep-clones with fresh ids on every node, keeping content and names', () => {
+    const original: PageNode = {
+      id: 's1',
+      type: 'stack',
+      children: [
+        { id: 'h1', type: 'heading', text: 'Title', level: 3 },
+        { id: 't1', type: 'text-input', name: 'email', defaultValue: 'x@y.z' },
+      ],
+    };
+    const clone = cloneWithFreshIds(original) as typeof original;
+
+    const originalIds = ['s1', 'h1', 't1'];
+    const cloneIds = [clone.id, ...clone.children.map((c) => c.id)];
+    expect(cloneIds.some((id) => originalIds.includes(id))).toBe(false);
+    expect(new Set(cloneIds).size).toBe(3);
+
+    expect((clone.children[0] as { text: string; level: number }).text).toBe('Title');
+    expect((clone.children[1] as { name?: string }).name).toBe('email');
+    // The original stays untouched.
+    expect(original.children[0].id).toBe('h1');
   });
 });
