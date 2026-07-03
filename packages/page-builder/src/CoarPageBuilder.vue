@@ -4,6 +4,7 @@ import { CoarIcon, CoarTabGroup, CoarTab } from '@cocoar/vue-ui';
 import type { PageNode, PageConfig } from './schema';
 import { usePageBuilder } from './builder/usePageBuilder';
 import { useSchemaValidation } from './builder/useSchemaValidation';
+import { provideBuilderDnd } from './builder/useBuilderDnd';
 import { normalizePageSchema } from './builder/schemaNormalize';
 import { warnDev } from './builder/operations';
 import {
@@ -68,6 +69,11 @@ watch(model, (next) => {
 
 const configRef = computed(() => props.config);
 const validation = useSchemaValidation(builder.schema, configRef);
+
+// Provided here (not in BuilderCanvas) so the outline pane — a sibling of the
+// canvas — shares the same drag context: outline rows and canvas zones are
+// drop targets of one and the same drag.
+provideBuilderDnd(builder);
 
 provide(BUILDER_API, builder);
 provide(BUILDER_CONFIG, configRef);

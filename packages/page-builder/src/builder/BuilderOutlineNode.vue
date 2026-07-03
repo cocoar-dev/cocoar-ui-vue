@@ -3,6 +3,7 @@ import { computed, inject, onBeforeUnmount, onMounted, ref } from 'vue';
 import { CoarIcon, type CoreIconName } from '@cocoar/vue-ui';
 import { isContainerNode, isElementAllowed, type PageNode, type ElementType } from '../schema';
 import { BUILDER_API, BUILDER_CONFIG, BUILDER_VALIDATION } from './builderContext';
+import { useBuilderDnd } from './useBuilderDnd';
 import type { NodePath } from './operations';
 
 defineOptions({ name: 'BuilderOutlineNode' });
@@ -18,6 +19,7 @@ const props = withDefaults(defineProps<Props>(), { depth: 0 });
 const builder = inject(BUILDER_API)!;
 const config = inject(BUILDER_CONFIG);
 const validation = inject(BUILDER_VALIDATION);
+const dnd = useBuilderDnd();
 
 const visibleAddOptions = computed(() =>
   addOptions.filter((o) => isElementAllowed(o.type, config?.value)),
@@ -126,6 +128,35 @@ onBeforeUnmount(() => {
   document.removeEventListener('keydown', onDocKey);
 });
 
+// ── Drag & drop (outline surface of the shared pointer-drag context) ─────────
+
+const pathKey = computed(() => props.path.join('/'));
+const childCount = computed(() =>
+  isContainerNode(props.node) ? props.node.children.length : 0,
+);
+
+/** Zone keys are outline-prefixed so canvas zones with the same target never alias. */
+function barKey(index: number): string { return `o:${pathKey.value}:${index}`; }
+const intoKey = computed(() => `o:${pathKey.value}:into`);
+
+function barClasses(index: number): Record<string, boolean> {
+  const dragging = dnd.isDragging.value;
+  return {
+    'pb-outline-zone--active': dragging && dnd.canDrop(props.path),
+    'pb-outline-zone--over': dnd.activeZoneKey.value === barKey(index),
+  };
+}
+
+const isDropInto = computed(() =>
+  dnd.isDragging.value && dnd.activeZoneKey.value === intoKey.value,
+);
+
+function onGripPointerDown(e: PointerEvent) {
+  if (isRoot.value) return;
+  const ghostFrom = (e.currentTarget as HTMLElement | null)?.closest<HTMLElement>('.pb-tree-row');
+  dnd.onHandlePointerDown(e, { kind: 'move', path: [...props.path] }, ghostFrom);
+}
+
 // ── Move validation ───────────────────────────────────────────────────────────
 
 function canMoveUp(): boolean {
@@ -152,12 +183,22 @@ function canMoveDown(): boolean {
   >
     <div
       class="pb-tree-row"
+      :class="{ 'pb-tree-row--dropinto': isDropInto }"
       :style="{ paddingLeft: `${8 + depth * 16}px` }"
+      :data-dropzone="isContainerNode(node) ? intoKey : undefined"
+      :data-pb-zone-path="isContainerNode(node) ? pathKey : undefined"
+      :data-pb-zone-index="isContainerNode(node) ? childCount : undefined"
       @click.stop="builder.select(path)"
     >
-      <span class="pb-tree-grip" aria-hidden="true">
+      <span
+        v-if="!isRoot"
+        class="pb-tree-grip"
+        aria-hidden="true"
+        @pointerdown.stop="onGripPointerDown"
+      >
         <CoarIcon name="grip-vertical" size="xs" />
       </span>
+      <span v-else class="pb-tree-grip" aria-hidden="true" />
       <span class="pb-tree-type-icon" aria-hidden="true">
         <CoarIcon :name="typeIcon[node.type]" size="s" />
       </span>
@@ -210,14 +251,35 @@ function canMoveDown(): boolean {
       </div>
     </div>
 
-    <!-- Recursive children -->
+    <!-- Recursive children (with drop bars between the rows) -->
     <template v-if="isContainerNode(node)">
-      <BuilderOutlineNode
-        v-for="(child, i) in node.children"
-        :key="i"
-        :node="child"
-        :path="[...path, i]"
-        :depth="depth + 1"
+      <template v-for="(child, i) in node.children" :key="child.id">
+        <div
+          class="pb-outline-zone"
+          :class="barClasses(i)"
+          :style="{ marginLeft: `${8 + (depth + 1) * 16}px` }"
+          :data-dropzone="barKey(i)"
+          :data-pb-zone-path="pathKey"
+          :data-pb-zone-index="i"
+          data-pb-zone-inflate="6"
+          aria-hidden="true"
+        />
+        <BuilderOutlineNode
+          :node="child"
+          :path="[...path, i]"
+          :depth="depth + 1"
+        />
+      </template>
+      <div
+        v-if="node.children.length > 0"
+        class="pb-outline-zone"
+        :class="barClasses(node.children.length)"
+        :style="{ marginLeft: `${8 + (depth + 1) * 16}px` }"
+        :data-dropzone="barKey(node.children.length)"
+        :data-pb-zone-path="pathKey"
+        :data-pb-zone-index="node.children.length"
+        data-pb-zone-inflate="6"
+        aria-hidden="true"
       />
 
       <!-- Add-child trigger + dropdown -->
@@ -310,14 +372,55 @@ function canMoveDown(): boolean {
   justify-content: center;
   width: 12px;
   color: var(--coar-icon-neutral-disabled, #b8b8bc);
-  opacity: 0;
+  /* Faintly visible by default: touch has no hover to reveal the handle. */
+  opacity: 0.4;
   transition: opacity 0.12s ease-out;
   flex-shrink: 0;
+  cursor: grab;
+  /* The pointer-drag engine owns the gesture on this handle. */
+  touch-action: none;
+}
+
+.pb-tree-node--root > .pb-tree-row .pb-tree-grip {
+  opacity: 0;
+  cursor: default;
 }
 
 .pb-tree-row:hover .pb-tree-grip,
 .pb-tree-node--selected > .pb-tree-row .pb-tree-grip {
   opacity: 1;
+}
+
+.pb-tree-node--root > .pb-tree-row:hover .pb-tree-grip {
+  opacity: 0;
+}
+
+/* ── Drop targets while dragging ── */
+.pb-outline-zone {
+  height: 0;
+  margin-right: 8px;
+  border-radius: 2px;
+  transition: height 0.12s ease-out, background-color 0.12s ease-out;
+  background: transparent;
+  pointer-events: none;
+}
+
+.pb-outline-zone--active {
+  height: 6px;
+  background: rgba(22, 102, 204, 0.15);
+  outline: 1px dashed rgba(22, 102, 204, 0.35);
+  outline-offset: -1px;
+}
+
+.pb-outline-zone--over {
+  height: 10px;
+  background: var(--coar-background-accent-primary, #1666cc);
+  outline: none;
+}
+
+.pb-tree-row--dropinto {
+  background: var(--coar-surface-accent-subtle, #e6eefa);
+  box-shadow: inset 0 0 0 2px var(--coar-border-accent, #1666cc);
 }
 
 .pb-tree-type-icon {

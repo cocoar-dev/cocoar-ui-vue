@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import { computed, inject, onBeforeUnmount, onMounted, watch } from 'vue';
-import { CoarIcon, setCoarDragImageFromElement, type CoreIconName } from '@cocoar/vue-ui';
+import { computed, inject, onBeforeUnmount, onMounted } from 'vue';
+import { CoarIcon, type CoreIconName } from '@cocoar/vue-ui';
 import { BUILDER_API, BUILDER_CONFIG } from './builderContext';
 import BuilderCanvasNode from './BuilderCanvasNode.vue';
-import { provideBuilderDnd } from './useBuilderDnd';
+import { useBuilderDnd } from './useBuilderDnd';
 import { isElementAllowed, type ElementType } from '../schema';
 
 defineOptions({ name: 'BuilderCanvas' });
 
 const builder = inject(BUILDER_API)!;
 const config = inject(BUILDER_CONFIG);
-const dnd = provideBuilderDnd(builder);
+const dnd = useBuilderDnd();
 
 /** Hide palette entries for types that aren't allowed by the config. */
 const visiblePalette = computed(() =>
@@ -45,53 +45,11 @@ function isPaletteDragging(type: ElementType): boolean {
   return !!(p && p.kind === 'new' && p.type === type);
 }
 
-function onCardDragStart(e: DragEvent, type: ElementType) {
-  if (!e.dataTransfer) return;
-  dnd.startDrag({ kind: 'new', type });
-  e.dataTransfer.effectAllowed = 'copy';
-  e.dataTransfer.setData('text/plain', type);
-  const src = e.currentTarget as HTMLElement | null;
-  if (src) setCoarDragImageFromElement(e, src);
+function onCardPointerDown(e: PointerEvent, type: ElementType) {
+  dnd.onHandlePointerDown(e, { kind: 'new', type });
 }
-
-function onCardDragEnd() { dnd.endDrag(); }
 
 function onCanvasBackgroundClick() { builder.select([]); }
-
-// ── Proximity-based dropzone visibility ─────────────────────────────────────
-const PROX_RADIUS = 120;
-const PROX_DROPPABLE_MAX_DIST = 60;
-
-function onSurfaceDragOver(e: DragEvent) {
-  if (!dnd.isDragging.value) return;
-  const x = e.clientX;
-  const y = e.clientY;
-  const zones = document.querySelectorAll<HTMLElement>('.canvas-dropzone:not(.canvas-dropzone--empty)');
-  for (const zone of zones) {
-    const rect = zone.getBoundingClientRect();
-    const dx = Math.max(rect.left - x, 0, x - rect.right);
-    const dy = Math.max(rect.top - y, 0, y - rect.bottom);
-    const dist = Math.hypot(dx, dy);
-    if (dist >= PROX_RADIUS) {
-      zone.style.opacity = '0';
-      zone.style.pointerEvents = 'none';
-    } else {
-      const alpha = 1 - dist / PROX_RADIUS;
-      zone.style.opacity = alpha.toFixed(3);
-      zone.style.pointerEvents = dist <= PROX_DROPPABLE_MAX_DIST ? 'auto' : 'none';
-    }
-  }
-}
-
-function clearZoneStyles() {
-  const zones = document.querySelectorAll<HTMLElement>('.canvas-dropzone:not(.canvas-dropzone--empty)');
-  for (const zone of zones) {
-    zone.style.opacity = '';
-    zone.style.pointerEvents = '';
-  }
-}
-
-watch(() => dnd.isDragging.value, (on) => { if (!on) clearZoneStyles(); });
 
 // ── Keyboard shortcuts ────────────────────────────────────────────────────────
 function onKeyDown(e: KeyboardEvent) {
@@ -130,9 +88,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeyDown));
           class="pb-palette__card pb-palette__card--container"
           :class="{ 'pb-palette__card--dragging': isPaletteDragging(entry.type) }"
           :title="`Drag to add ${entry.label}`"
-          draggable="true"
-          @dragstart="onCardDragStart($event, entry.type)"
-          @dragend="onCardDragEnd"
+          @pointerdown="onCardPointerDown($event, entry.type)"
         >
           <CoarIcon :name="entry.icon" size="s" />
           <span>{{ entry.label }}</span>
@@ -148,9 +104,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeyDown));
           class="pb-palette__card pb-palette__card--element"
           :class="{ 'pb-palette__card--dragging': isPaletteDragging(entry.type) }"
           :title="`Drag to add ${entry.label}`"
-          draggable="true"
-          @dragstart="onCardDragStart($event, entry.type)"
-          @dragend="onCardDragEnd"
+          @pointerdown="onCardPointerDown($event, entry.type)"
         >
           <CoarIcon :name="entry.icon" size="s" />
           <span>{{ entry.label }}</span>
@@ -163,7 +117,6 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeyDown));
       class="pb-canvas"
       :class="{ 'pb-canvas--dragging': dnd.isDragging.value }"
       @click.self="onCanvasBackgroundClick"
-      @dragover="onSurfaceDragOver"
     >
       <BuilderCanvasNode :node="builder.schema.value" :path="[]" />
     </div>
@@ -232,6 +185,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeyDown));
   transition: background-color 0.12s, border-color 0.12s, transform 0.08s;
   user-select: none;
   white-space: nowrap;
+  /* The pointer-drag engine owns the gesture — without this, touch browsers
+     turn the drag into a scroll and fire pointercancel mid-gesture. */
+  touch-action: none;
 }
 
 .pb-palette__card:hover {
