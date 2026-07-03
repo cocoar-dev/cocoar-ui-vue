@@ -4,6 +4,10 @@ The runtime-renderer half of `@cocoar/vue-page-builder`. Takes a `PageNode` sche
 
 The renderer is also the **security boundary** — elements not in `config.allowedElements` are skipped at render time, even if they appear in hand-written or tampered JSON.
 
+::: tip Stylesheet
+Import `@cocoar/vue-page-builder/styles` once in your app — the renderer's layout styles (stack flexbox, section/card spacing) live there too, not just the builder chrome.
+:::
+
 ## Props
 
 | Prop | Type | Description |

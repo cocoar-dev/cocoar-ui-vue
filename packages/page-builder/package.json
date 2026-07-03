@@ -8,9 +8,11 @@
     "url": "https://github.com/cocoar-dev/cocoar-ui-vue.git",
     "directory": "packages/page-builder"
   },
+  "homepage": "https://docs.cocoar.dev/cocoar-ui-vue/",
+  "bugs": "https://github.com/cocoar-dev/cocoar-ui-vue/issues",
   "keywords": ["vue", "vue3", "page-builder", "low-code", "visual-editor"],
   "type": "module",
-  "sideEffects": ["*.css"],
+  "sideEffects": ["*.css", "*.vue"],
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -19,7 +21,8 @@
       "source": "./src/index.ts",
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
-    }
+    },
+    "./styles": "./dist/index.css"
   },
   "files": ["dist"],
   "scripts": {

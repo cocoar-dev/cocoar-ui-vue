@@ -15,6 +15,13 @@ Both share the same `PageConfig`. The builder uses it as UI affordances; the ren
 
 ## Quick start
 
+Import the stylesheet once (it carries the builder chrome **and** the renderer's
+layout styles — without it, stacks lose their flex layout):
+
+```ts
+import '@cocoar/vue-page-builder/styles';
+```
+
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue';
