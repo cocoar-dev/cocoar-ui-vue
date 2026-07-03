@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed, provide, ref, watch } from 'vue';
+import { computed, provide, ref, toRaw, watch } from 'vue';
 import { CoarIcon, CoarTabGroup, CoarTab } from '@cocoar/vue-ui';
 import type { PageNode, PageConfig } from './schema';
 import { usePageBuilder } from './builder/usePageBuilder';
 import { useSchemaValidation } from './builder/useSchemaValidation';
+import { normalizePageSchema } from './builder/schemaNormalize';
+import { warnDev } from './builder/operations';
 import {
   BUILDER_API,
   BUILDER_CONFIG,
@@ -25,9 +27,43 @@ const props = defineProps<{
   config?: PageConfig
 }>();
 
+/**
+ * The working tree lives in the builder; v-model is synced two-way below.
+ * Handing the model ref straight to usePageBuilder would freeze that decision
+ * at setup — a host binding an initially-undefined ref (the async-loaded-schema
+ * pattern) would leave the builder permanently detached from it. The two
+ * watchers keep both sides live: builder edits flow out, host-assigned trees
+ * flow in through the same normalize pass as JSON paste.
+ */
+function normalizedFromModel(value: PageNode): PageNode {
+  const { schema, issues } = normalizePageSchema(value);
+  if (issues.length > 0) {
+    warnDev(
+      `v-model schema needed repairs: ${issues.map((i) => `${i.path}: ${i.message}`).join(' · ')}`,
+    );
+  }
+  return schema;
+}
+
 const builder = usePageBuilder({
-  schema: model.value !== undefined ? model : undefined,
-  initial: { id: 'root', type: 'page', style: { gap: '16px', padding: '24px' }, children: [] },
+  initial: model.value != null
+    ? normalizedFromModel(toRaw(model.value))
+    : { id: 'root', type: 'page', style: { gap: '16px', padding: '24px' }, children: [] },
+});
+
+// toRaw on both sides: a host that stores the schema in a deep ref hands the
+// SAME tree back wrapped in a reactive proxy — without unwrapping, the echo of
+// every builder edit would look like an external replacement (spurious history
+// entry + selection reset).
+watch(builder.schema, (s) => {
+  if (toRaw(model.value) !== s) model.value = s;
+}, { immediate: true });
+
+watch(model, (next) => {
+  if (next == null) return;
+  const raw = toRaw(next);
+  if (raw === toRaw(builder.schema.value)) return;
+  builder.replaceSchema(normalizedFromModel(raw as PageNode));
 });
 
 const configRef = computed(() => props.config);
@@ -131,50 +167,27 @@ function onJsonInput(e: Event) {
   catch { jsonError.value = 'Invalid JSON'; }
 }
 function onJsonBlur() { userEditing = false; }
-/**
- * Recursively migrate legacy node types so pasted JSON from earlier versions
- * (or hand-written copies) still works:
- *   - `column` → `stack` (direction = 'column')
- *   - `row`    → `stack` (direction = 'row')
- */
-function migrateLegacyTypes(node: unknown): unknown {
-  if (!node || typeof node !== 'object') return node;
-  const n = node as { type?: string; children?: unknown[] };
-  const children = Array.isArray(n.children)
-    ? n.children.map(migrateLegacyTypes)
-    : n.children;
-  if (n.type === 'column') {
-    return { ...n, type: 'stack', direction: 'column', children };
-  }
-  if (n.type === 'row') {
-    return { ...n, type: 'stack', direction: 'row', children };
-  }
-  if (children === n.children) return node;
-  return { ...n, children };
-}
-
-function normalizeRoot(node: PageNode): PageNode {
-  const migrated = migrateLegacyTypes(node) as PageNode;
-  if (migrated.type === 'page') return migrated;
-  // Any non-page root (stack, card, …) → wrap in a page so the builder always
-  // has a page root. Style stays on the wrapped child; the page wrapper is bare.
-  return {
-    id: 'root',
-    type: 'page',
-    style: { gap: '16px', padding: '24px' },
-    children: [migrated],
-  } as PageNode;
-}
 
 function applyJson() {
+  let parsed: unknown;
   try {
-    const parsed = JSON.parse(jsonText.value) as PageNode;
-    builder.replaceSchema(normalizeRoot(parsed));
-    jsonError.value = '';
-    activeTab.value = 'editor';
+    parsed = JSON.parse(jsonText.value);
   } catch (e: unknown) {
     jsonError.value = e instanceof Error ? e.message : 'Invalid JSON';
+    return;
   }
+  // Structural gate: nothing broken may reach the working tree (and through
+  // v-model the host's storage) — a committed-then-crashing schema would come
+  // back on every reload.
+  const { schema, issues } = normalizePageSchema(parsed);
+  if (issues.length > 0) {
+    const first = `${issues[0].path}: ${issues[0].message}`;
+    jsonError.value = issues.length === 1 ? first : `${first} (+${issues.length - 1} more)`;
+    return;
+  }
+  builder.replaceSchema(schema);
+  jsonError.value = '';
+  activeTab.value = 'editor';
 }
 </script>
 

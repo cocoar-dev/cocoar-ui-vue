@@ -1,5 +1,6 @@
 import { computed, type Ref } from 'vue';
 import type { PageConfig, PageNode } from '../schema';
+import { compilePagePattern } from '../renderSafety';
 
 export type IssueSeverity = 'warning' | 'error';
 
@@ -71,6 +72,17 @@ export function useSchemaValidation(
         }
       }
 
+      // ── Text input: pattern must compile ───────────────────────────────
+      if (n.type === 'text-input' && n.validation?.pattern
+        && compilePagePattern(n.validation.pattern) === null) {
+        out.push({
+          nodeId: n.id,
+          field: 'validation',
+          severity: 'error',
+          message: `validation.pattern ${JSON.stringify(n.validation.pattern)} is not a valid regular expression.`,
+        });
+      }
+
       // ── Image: assetId required ────────────────────────────────────────
       if (n.type === 'image' && !n.assetId) {
         out.push({
@@ -125,7 +137,7 @@ export function useSchemaValidation(
 
 function walk(node: PageNode, fn: (n: PageNode) => void) {
   fn(node);
-  if ('children' in node) {
+  if ('children' in node && Array.isArray(node.children)) {
     for (const c of node.children) walk(c, fn);
   }
 }

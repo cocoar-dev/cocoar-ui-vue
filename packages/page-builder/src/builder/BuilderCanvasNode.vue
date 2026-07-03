@@ -28,18 +28,17 @@ import {
 } from '@cocoar/vue-ui';
 import { isContainerNode, type PageNode, type ElementType } from '../schema';
 import { selfLayoutStyle, containerLayoutStyle } from '../styleMapping';
+import { headingTag } from '../renderSafety';
 import { BUILDER_API, BUILDER_CONFIG } from './builderContext';
 import { useBuilderDnd } from './useBuilderDnd';
 import type { NodePath } from './operations';
 
 defineOptions({ name: 'BuilderCanvasNode' });
 
-interface Props {
+const props = defineProps<{
   node: PageNode;
   path: NodePath;
-}
-
-const props = defineProps<Props>();
+}>();
 
 const builder = inject(BUILDER_API)!;
 const config = inject(BUILDER_CONFIG);
@@ -311,7 +310,7 @@ function onZoneDrop(e: DragEvent, index: number) {
       <div v-else-if="node.type === 'spacer'" class="canvas-node__spacer-preview" />
 
       <component
-        :is="`h${(node as any).level ?? 2}`"
+        :is="headingTag((node as any).level)"
         v-else-if="node.type === 'heading'"
         class="canvas-node__heading"
       >

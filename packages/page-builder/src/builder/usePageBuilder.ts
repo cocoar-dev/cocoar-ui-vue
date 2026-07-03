@@ -11,6 +11,7 @@ import {
   moveNode,
   moveSibling,
   patchNode,
+  rebaseAfterRemoval,
   removeNode,
   type NodePath,
 } from './operations';
@@ -32,8 +33,11 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
   const bumpVersion = () => { structuralVersion.value++; };
 
   // ── History ────────────────────────────────────────────────────────────────
-  const past = ref<PageNode[]>([]);
-  const future = ref<PageNode[]>([]);
+  // shallowRef: entries are immutable snapshots and the arrays are replaced
+  // wholesale on every update — deep reactivity would wrap every snapshot in a
+  // proxy, so undo would restore a proxy instead of the original tree.
+  const past = shallowRef<PageNode[]>([]);
+  const future = shallowRef<PageNode[]>([]);
   let lastOp:
     | { kind: 'structural' }
     | { kind: 'patch'; pathKey: string; time: number }
@@ -148,7 +152,9 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
     const next = moveNode(before, fromPath, toParentPath, toIndex);
     if (before === next) return;
     schema.value = next;
-    selectedPath.value = [...toParentPath, toIndex];
+    // The node's actual parent path may have shifted by the removal — the
+    // selection must follow the node, not the caller's pre-removal target.
+    selectedPath.value = [...rebaseAfterRemoval(fromPath, toParentPath), toIndex];
     pushHistory(before, { kind: 'structural' });
     bumpVersion();
   }

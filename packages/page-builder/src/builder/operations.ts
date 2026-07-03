@@ -64,6 +64,13 @@ export function insertChild(
   index: number,
   newChild: PageNode,
 ): PageNode {
+  const parentLoc = getNodeAt(root, parentPath);
+  if (!parentLoc || !isContainerNode(parentLoc.node)) {
+    warnDev(
+      `insertChild: parent path [${parentPath.join(', ')}] does not resolve to a container — insert ignored.`,
+    );
+    return root;
+  }
   return mapNode(root, parentPath, (parent) => {
     if (!isContainerNode(parent)) return parent;
     const clamped = Math.max(0, Math.min(index, parent.children.length));
@@ -120,6 +127,28 @@ export function patchNode(root: PageNode, path: NodePath, patch: Partial<PageNod
   return replaceNode(root, path, merged as unknown as PageNode);
 }
 
+/**
+ * Where `targetParentPath` lives once the node at `fromPath` is removed:
+ * removing a node shifts its later siblings down by one, so a target path that
+ * passes the removed node's parent at a later index needs that segment
+ * decremented. Paths that don't cross the removal point are returned as-is.
+ */
+export function rebaseAfterRemoval(fromPath: NodePath, targetParentPath: NodePath): NodePath {
+  if (fromPath.length === 0) return targetParentPath;
+  const fromParent = fromPath.slice(0, -1);
+  const fromIndex = fromPath[fromPath.length - 1];
+  if (
+    targetParentPath.length > fromParent.length &&
+    isAncestor(fromParent, targetParentPath) &&
+    targetParentPath[fromParent.length] > fromIndex
+  ) {
+    const adjusted = [...targetParentPath];
+    adjusted[fromParent.length] -= 1;
+    return adjusted;
+  }
+  return targetParentPath;
+}
+
 export function moveNode(
   root: PageNode,
   fromPath: NodePath,
@@ -134,7 +163,18 @@ export function moveNode(
   const fromIndex = fromPath[fromPath.length - 1];
   if (samePath(fromParent, toParentPath) && toIndex === fromIndex) return root;
   const removed = removeNode(root, fromPath);
-  return insertChild(removed, toParentPath, toIndex, source.node);
+  // The caller's target path is expressed in the PRE-removal tree; inserting
+  // there directly can land in the wrong container — or nowhere, silently
+  // losing the node — whenever the target sits after the removed node.
+  const target = rebaseAfterRemoval(fromPath, toParentPath);
+  const targetLoc = getNodeAt(removed, target);
+  if (!targetLoc || !isContainerNode(targetLoc.node)) {
+    warnDev(
+      `moveNode: target path [${target.join(', ')}] does not resolve to a container after removal — move ignored.`,
+    );
+    return root;
+  }
+  return insertChild(removed, target, toIndex, source.node);
 }
 
 export function moveSibling(root: PageNode, path: NodePath, delta: -1 | 1): PageNode {
@@ -149,6 +189,12 @@ export function moveSibling(root: PageNode, path: NodePath, delta: -1 | 1): Page
 }
 
 // ─── Internal ─────────────────────────────────────────────────────────────────
+
+/** Dev-only warning (statically stripped in production builds). */
+export function warnDev(message: string): void {
+  if (typeof import.meta !== 'undefined' && import.meta.env && !import.meta.env.DEV) return;
+  console.warn(`[page-builder] ${message}`);
+}
 
 function samePath(a: NodePath, b: NodePath): boolean {
   if (a.length !== b.length) return false;

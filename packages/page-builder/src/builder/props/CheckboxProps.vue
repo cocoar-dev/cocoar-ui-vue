@@ -8,7 +8,10 @@ const props = defineProps<{
 }>();
 
 function setRequired(v: boolean) {
-  props.patch({ validation: v ? { required: true } : {} });
+  const next: NonNullable<CheckboxNode['validation']> = { ...props.node.validation };
+  if (v) next.required = true;
+  else delete next.required;
+  props.patch({ validation: Object.keys(next).length > 0 ? next : undefined });
 }
 </script>
 
