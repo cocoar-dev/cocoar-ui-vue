@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, provide, ref, toRaw, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, toRaw, watch } from 'vue';
 import { CoarIcon, CoarTabGroup, CoarTab } from '@cocoar/vue-ui';
 import type { PageNode, PageConfig } from './schema';
 import { usePageBuilder } from './builder/usePageBuilder';
@@ -130,6 +130,61 @@ watch([propsCollapsed, propsWidth], () => {
 // ── Splitter drag ─────────────────────────────────────────────────────────────
 const rootRef = ref<HTMLElement | null>(null);
 
+// ── Keyboard shortcuts (scoped to the builder) ────────────────────────────────
+
+function isEditableTarget(t: EventTarget | null): boolean {
+  const el = t as HTMLElement | null;
+  if (!el) return false;
+  const tag = el.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
+}
+
+/**
+ * The listener is window-level (shortcuts must work right after a canvas
+ * interaction), but strictly CONTAINED: it only acts while focus is inside
+ * this builder instance, and never inside editable targets — those keep their
+ * native text undo/delete (incl. the JSON tab's textarea and host-app inputs).
+ */
+function onKeyDown(e: KeyboardEvent) {
+  if (!rootRef.value?.contains(document.activeElement)) return;
+  if (isEditableTarget(e.target)) return;
+  const meta = e.ctrlKey || e.metaKey;
+  if (meta && (e.key === 'z' || e.key === 'Z')) {
+    e.preventDefault();
+    if (e.shiftKey) builder.redo(); else builder.undo();
+    return;
+  }
+  if (meta && (e.key === 'y' || e.key === 'Y')) { e.preventDefault(); builder.redo(); return; }
+  if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+  const sel = builder.selectedPath.value;
+  if (!sel || sel.length === 0) return;
+  e.preventDefault();
+  builder.remove(sel);
+  // Deleting the FOCUSED node drops focus to <body>, which would disarm the
+  // very next Ctrl+Z — re-anchor on the builder root once the DOM settled.
+  void nextTick(() => {
+    if (rootRef.value && !rootRef.value.contains(document.activeElement)) {
+      rootRef.value.focus({ preventScroll: true });
+    }
+  });
+}
+
+/**
+ * Presses on non-focusable builder chrome would drop focus to <body> and
+ * silently disarm the shortcuts — anchor it on the root instead. Focusable
+ * targets (inputs, rows, canvas nodes) win afterwards via the browser's own
+ * mousedown focus behavior.
+ */
+function onRootPointerDown() {
+  if (!rootRef.value) return;
+  if (!rootRef.value.contains(document.activeElement)) {
+    rootRef.value.focus({ preventScroll: true });
+  }
+}
+
+onMounted(() => window.addEventListener('keydown', onKeyDown));
+onBeforeUnmount(() => window.removeEventListener('keydown', onKeyDown));
+
 function startResize(target: 'outline' | 'props', event: PointerEvent) {
   if ((target === 'outline' && outlineCollapsed.value) || (target === 'props' && propsCollapsed.value)) return;
   event.preventDefault();
@@ -212,6 +267,8 @@ function applyJson() {
       'pb-builder--props-collapsed': propsCollapsed,
       'pb-builder--resizing': resizing !== null,
     }"
+    tabindex="-1"
+    @pointerdown="onRootPointerDown"
   >
     <!-- ── Outline pane ── -->
     <section
@@ -401,6 +458,11 @@ function applyJson() {
   transition: none;
   user-select: none;
   cursor: col-resize;
+}
+
+/* The root is a programmatic focus anchor (shortcut scope), never a visible stop. */
+.pb-builder:focus {
+  outline: none;
 }
 
 /* ── Panes ── */

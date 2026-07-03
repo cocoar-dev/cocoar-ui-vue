@@ -29,6 +29,11 @@ function setRequired(v: boolean) {
     />
   </CoarFormField>
   <CoarCheckbox
+    :model-value="!!props.node.defaultValue"
+    label="Checked by default"
+    @update:model-value="(v) => props.patch({ defaultValue: v || undefined })"
+  />
+  <CoarCheckbox
     :model-value="!!props.node.validation?.required"
     label="Required"
     @update:model-value="setRequired"

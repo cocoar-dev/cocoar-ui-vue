@@ -45,6 +45,39 @@ describe('usePageBuilder.moveTo', () => {
   });
 });
 
+describe('usePageBuilder.duplicate', () => {
+  it('inserts the copy right after the source and selects it', () => {
+    const builder = usePageBuilder({
+      initial: page([stack('c', [leaf('x')]), leaf('b')]),
+    });
+    builder.duplicate([0]);
+
+    const children = (builder.schema.value as { children: PageNode[] }).children;
+    expect(children).toHaveLength(3);
+    expect(children[1].type).toBe('stack');
+    expect(children[1].id).not.toBe('c');
+    expect((children[1] as { children: PageNode[] }).children[0].id).not.toBe('x');
+    expect(builder.selectedPath.value).toEqual([1]);
+    expect(builder.selectedNode.value).toBe(children[1]);
+  });
+
+  it('undo removes the copy again', () => {
+    const initial = page([leaf('a')]);
+    const builder = usePageBuilder({ initial });
+    builder.duplicate([0]);
+    expect(allIds(builder.schema.value)).toHaveLength(3);
+    builder.undo();
+    expect(builder.schema.value).toBe(initial);
+  });
+
+  it('ignores the root', () => {
+    const initial = page([]);
+    const builder = usePageBuilder({ initial });
+    builder.duplicate([]);
+    expect(builder.schema.value).toBe(initial);
+  });
+});
+
 describe('usePageBuilder history', () => {
   it('addChild → undo → redo round-trips the tree', () => {
     const builder = usePageBuilder({ initial: page([]) });
