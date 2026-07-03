@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, inject } from 'vue';
+import { useI18n } from '@cocoar/vue-localization';
 import {
   CoarFormField,
   CoarTextInput,
@@ -15,6 +16,8 @@ const props = defineProps<{
   patch: (update: Partial<ButtonNode>) => void;
 }>();
 
+const { t } = useI18n();
+
 const config = inject(BUILDER_CONFIG);
 
 /**
@@ -27,7 +30,9 @@ const actionOptions = computed<CoarSelectOption<string>[] | null>(() => {
   const list = config?.value?.availableActions;
   if (!list || list.length === 0) return null;
   const seen = new Set<string>();
-  const opts: CoarSelectOption<string>[] = [{ value: '', label: '— none' }];
+  const opts: CoarSelectOption<string>[] = [
+    { value: '', label: t('coar.pageBuilder.props.none', undefined, '— none') },
+  ];
   for (const a of list) {
     if (seen.has(a.id)) continue;
     seen.add(a.id);
@@ -37,7 +42,10 @@ const actionOptions = computed<CoarSelectOption<string>[] | null>(() => {
   // can see and change it instead of having a silently-broken hidden value.
   const cur = props.node.action;
   if (cur && !seen.has(cur)) {
-    opts.push({ value: cur, label: `${cur} (not configured)` });
+    opts.push({
+      value: cur,
+      label: t('coar.pageBuilder.props.notConfigured', { id: cur }, '{id} (not configured)'),
+    });
   }
   return opts;
 });
@@ -49,17 +57,17 @@ const VARIANT_OPTIONS: CoarSelectOption<string>[] = [
   { value: 'danger', label: 'danger' },
 ];
 
-const SIZE_OPTIONS: CoarSelectOption<string>[] = [
-  { value: '', label: '— default' },
+const sizeOptions = computed<CoarSelectOption<string>[]>(() => [
+  { value: '', label: t('coar.pageBuilder.props.default', undefined, '— default') },
   { value: 'xs', label: 'xs' },
   { value: 's', label: 's' },
   { value: 'm', label: 'm' },
   { value: 'l', label: 'l' },
-];
+]);
 </script>
 
 <template>
-  <CoarFormField label="Label">
+  <CoarFormField :label="t('coar.pageBuilder.props.label', undefined, 'Label')">
     <CoarTextInput
       :model-value="props.node.label ?? ''"
       @update:model-value="(v) => props.patch({ label: v })"
@@ -67,8 +75,8 @@ const SIZE_OPTIONS: CoarSelectOption<string>[] = [
   </CoarFormField>
 
   <CoarFormField
-    label="Action"
-    hint="Matched against the actions map at render time"
+    :label="t('coar.pageBuilder.props.action', undefined, 'Action')"
+    :hint="t('coar.pageBuilder.props.actionHint', undefined, 'Matched against the actions map at render time')"
   >
     <CoarSelect
       v-if="actionOptions"
@@ -84,21 +92,21 @@ const SIZE_OPTIONS: CoarSelectOption<string>[] = [
     />
   </CoarFormField>
 
-  <CoarFormField label="Variant">
+  <CoarFormField :label="t('coar.pageBuilder.props.variant', undefined, 'Variant')">
     <CoarSelect
       :model-value="props.node.variant ?? 'primary'"
       :options="VARIANT_OPTIONS"
       @update:model-value="(v) => props.patch({ variant: v as ButtonNode['variant'] })"
     />
   </CoarFormField>
-  <CoarFormField label="Size">
+  <CoarFormField :label="t('coar.pageBuilder.props.size', undefined, 'Size')">
     <CoarSelect
       :model-value="props.node.size ?? ''"
-      :options="SIZE_OPTIONS"
+      :options="sizeOptions"
       @update:model-value="(v) => props.patch({ size: (v || undefined) as ButtonNode['size'] })"
     />
   </CoarFormField>
-  <CoarFormField label="Icon (left)">
+  <CoarFormField :label="t('coar.pageBuilder.props.iconLeft', undefined, 'Icon (left)')">
     <CoarTextInput
       :model-value="props.node.icon ?? ''"
       placeholder="e.g. log-in"
@@ -107,7 +115,7 @@ const SIZE_OPTIONS: CoarSelectOption<string>[] = [
   </CoarFormField>
   <CoarCheckbox
     :model-value="!!props.node.validates"
-    label="Validates form before firing"
+    :label="t('coar.pageBuilder.props.validatesForm', undefined, 'Validates form before firing')"
     @update:model-value="(v) => props.patch({ validates: v })"
   />
 </template>

@@ -18,6 +18,7 @@
     "@cocoar/vue-markdown-mermaid": "workspace:*",
     "@cocoar/vue-mermaid": "workspace:*",
     "@cocoar/vue-map": "workspace:*",
+    "@cocoar/vue-page-builder": "workspace:*",
     "@cocoar/vue-script-editor": "workspace:*",
     "@cocoar/vue-ui": "workspace:*",
     "@js-temporal/polyfill": "^0.5.1",

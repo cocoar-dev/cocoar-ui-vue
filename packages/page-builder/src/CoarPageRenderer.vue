@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, provide, ref, watch } from 'vue';
+import { useI18n } from '@cocoar/vue-localization';
 import { isElementAllowed } from './schema';
 import type {
   PageNode,
@@ -37,6 +38,8 @@ const props = defineProps<{
    */
   config?: PageConfig
 }>();
+
+const { t } = useI18n();
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -124,23 +127,23 @@ function computeFieldError(node: NamedInputNode): string {
 
   if (v.required) {
     const empty = value === undefined || value === null || value === '' || value === false;
-    if (empty) return v.message ?? 'This field is required';
+    if (empty) return v.message ?? t('coar.pageBuilder.validation.required', undefined, 'This field is required');
   }
 
   if (node.type === 'text-input' && typeof value === 'string') {
     if (v.minLength && value.length < v.minLength)
-      return v.message ?? `Minimum ${v.minLength} characters`;
+      return v.message ?? t('coar.pageBuilder.validation.minLength', { n: v.minLength }, 'Minimum {n} characters');
     if (v.maxLength && value.length > v.maxLength)
-      return v.message ?? `Maximum ${v.maxLength} characters`;
+      return v.message ?? t('coar.pageBuilder.validation.maxLength', { n: v.maxLength }, 'Maximum {n} characters');
     if (v.pattern) {
       const re = patternFor(v.pattern);
-      if (re && !re.test(value)) return v.message ?? 'Invalid format';
+      if (re && !re.test(value)) return v.message ?? t('coar.pageBuilder.validation.pattern', undefined, 'Invalid format');
     }
   }
 
   if (v.matchField) {
     if (value !== values.value[v.matchField])
-      return v.message ?? 'Does not match';
+      return v.message ?? t('coar.pageBuilder.validation.matchField', undefined, 'Does not match');
   }
 
   return '';

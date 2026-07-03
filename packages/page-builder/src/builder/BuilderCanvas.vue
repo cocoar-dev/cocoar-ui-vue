@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { computed, inject } from 'vue';
 import { CoarIcon, type CoreIconName } from '@cocoar/vue-ui';
+import { useI18n } from '@cocoar/vue-localization';
 import { BUILDER_API, BUILDER_CONFIG } from './builderContext';
 import BuilderCanvasNode from './BuilderCanvasNode.vue';
 import { useBuilderDnd } from './useBuilderDnd';
+import { ELEMENT_TYPE_META, PLACEABLE_TYPES } from './typeMeta';
 import { isElementAllowed, type ElementType } from '../schema';
 
 defineOptions({ name: 'BuilderCanvas' });
@@ -11,11 +13,7 @@ defineOptions({ name: 'BuilderCanvas' });
 const builder = inject(BUILDER_API)!;
 const config = inject(BUILDER_CONFIG);
 const dnd = useBuilderDnd();
-
-/** Hide palette entries for types that aren't allowed by the config. */
-const visiblePalette = computed(() =>
-  paletteEntries.filter((e) => isElementAllowed(e.type, config?.value)),
-);
+const { t } = useI18n();
 
 interface PaletteEntry {
   type: ElementType;
@@ -24,21 +22,20 @@ interface PaletteEntry {
   group: 'container' | 'element';
 }
 
-const paletteEntries: ReadonlyArray<PaletteEntry> = [
-  { type: 'stack',      label: 'Stack',      icon: 'layers',         group: 'container' },
-  { type: 'card',       label: 'Card',       icon: 'square-dashed',  group: 'container' },
-  { type: 'section',    label: 'Section',    icon: 'panel-left',     group: 'container' },
-  { type: 'heading',    label: 'Heading',    icon: 'heading',        group: 'element' },
-  { type: 'paragraph',  label: 'Paragraph',  icon: 'pilcrow',        group: 'element' },
-  { type: 'divider',    label: 'Divider',    icon: 'minus',          group: 'element' },
-  { type: 'spacer',     label: 'Spacer',     icon: 'more-horizontal', group: 'element' },
-  { type: 'text-input', label: 'Text Input', icon: 'file-text',      group: 'element' },
-  { type: 'checkbox',   label: 'Checkbox',   icon: 'check-circle-2', group: 'element' },
-  { type: 'select',     label: 'Select',     icon: 'list',           group: 'element' },
-  { type: 'button',     label: 'Button',     icon: 'zap',            group: 'element' },
-  { type: 'link',       label: 'Link',       icon: 'link',           group: 'element' },
-  { type: 'image',      label: 'Image',      icon: 'image',          group: 'element' },
-];
+/** Palette derived from the type catalog; hides types not allowed by the config. */
+const visiblePalette = computed<PaletteEntry[]>(() =>
+  PLACEABLE_TYPES
+    .filter((type) => isElementAllowed(type, config?.value))
+    .map((type) => {
+      const meta = ELEMENT_TYPE_META[type];
+      return {
+        type,
+        label: t(meta.labelKey, undefined, meta.labelFallback),
+        icon: meta.icon,
+        group: meta.group as 'container' | 'element',
+      };
+    }),
+);
 
 function isPaletteDragging(type: ElementType): boolean {
   const p = dnd.payload.value;
@@ -57,14 +54,14 @@ function onCanvasBackgroundClick() { builder.select([]); }
     <!-- ── Palette toolbar ── -->
     <div class="pb-palette">
       <div class="pb-palette__group">
-        <span class="pb-palette__label">Containers</span>
+        <span class="pb-palette__label">{{ t('coar.pageBuilder.palette.containers', undefined, 'Containers') }}</span>
         <button
           v-for="entry in visiblePalette.filter((e) => e.group === 'container')"
           :key="entry.type"
           type="button"
           class="pb-palette__card pb-palette__card--container"
           :class="{ 'pb-palette__card--dragging': isPaletteDragging(entry.type) }"
-          :title="`Drag to add ${entry.label}`"
+          :title="t('coar.pageBuilder.palette.dragToAdd', { label: entry.label }, 'Drag to add {label}')"
           @pointerdown="onCardPointerDown($event, entry.type)"
         >
           <CoarIcon :name="entry.icon" size="s" />
@@ -73,14 +70,14 @@ function onCanvasBackgroundClick() { builder.select([]); }
       </div>
       <div class="pb-palette__divider" />
       <div class="pb-palette__group">
-        <span class="pb-palette__label">Elements</span>
+        <span class="pb-palette__label">{{ t('coar.pageBuilder.palette.elements', undefined, 'Elements') }}</span>
         <button
           v-for="entry in visiblePalette.filter((e) => e.group === 'element')"
           :key="entry.type"
           type="button"
           class="pb-palette__card pb-palette__card--element"
           :class="{ 'pb-palette__card--dragging': isPaletteDragging(entry.type) }"
-          :title="`Drag to add ${entry.label}`"
+          :title="t('coar.pageBuilder.palette.dragToAdd', { label: entry.label }, 'Drag to add {label}')"
           @pointerdown="onCardPointerDown($event, entry.type)"
         >
           <CoarIcon :name="entry.icon" size="s" />

@@ -22,15 +22,16 @@ import {
   CoarSelect,
   CoarTextInput,
   CoarPasswordInput,
-  type CoreIconName,
   type CoarSelectOption,
 } from '@cocoar/vue-ui';
-import { isContainerNode, isElementAllowed, type PageNode, type ElementType } from '../schema';
+import { useI18n } from '@cocoar/vue-localization';
+import { isContainerNode, isElementAllowed, type PageNode } from '../schema';
 import { selfLayoutStyle, containerLayoutStyle } from '../styleMapping';
 import { headingTag } from '../renderSafety';
 import { KNOWN_ELEMENT_TYPES } from './schemaNormalize';
 import { BUILDER_API, BUILDER_CONFIG } from './builderContext';
 import { useBuilderDnd } from './useBuilderDnd';
+import { typeIcon } from './typeMeta';
 import type { NodePath } from './operations';
 
 defineOptions({ name: 'BuilderCanvasNode' });
@@ -43,6 +44,7 @@ const props = defineProps<{
 const builder = inject(BUILDER_API)!;
 const config = inject(BUILDER_CONFIG);
 const dnd = useBuilderDnd();
+const { t } = useI18n();
 
 function resolveAsset(id: string): string {
   return config?.value?.assetResolver?.(id) ?? '';
@@ -64,23 +66,6 @@ const isSelected = computed(() => {
 
 // ── Type icon + label ────────────────────────────────────────────────────────
 
-const typeIcon: Record<ElementType, CoreIconName> = {
-  page: 'file',
-  stack: 'layers',
-  card: 'square-dashed',
-  section: 'panel-left',
-  divider: 'minus',
-  spacer: 'more-horizontal',
-  heading: 'heading',
-  paragraph: 'pilcrow',
-  'text-input': 'file-text',
-  checkbox: 'check-circle-2',
-  select: 'list',
-  button: 'zap',
-  link: 'link',
-  image: 'image',
-};
-
 const typeLabel = computed(() => {
   const n = props.node as PageNode & { text?: string; label?: string; title?: string; name?: string };
   if (n.text) return `${n.type} · ${String(n.text).slice(0, 24)}`;
@@ -100,8 +85,8 @@ const isBlocked = computed(
 );
 const blockedHint = computed(() =>
   isUnknownType.value
-    ? `Unknown type "${String(props.node.type)}" — skipped at runtime`
-    : 'Not in allowedElements — skipped at runtime',
+    ? t('coar.pageBuilder.canvas.unknownType', { type: String(props.node.type) }, 'Unknown type "{type}" — skipped at runtime')
+    : t('coar.pageBuilder.canvas.notAllowed', undefined, 'Not in allowedElements — skipped at runtime'),
 );
 
 /** Direction of this container — drives dropzone axis + child flex behavior. */
@@ -226,7 +211,7 @@ function zoneClasses(index: number): Record<string, boolean> {
       :title="typeLabel"
       @pointerdown="onTabPointerDown"
     >
-      <CoarIcon :name="typeIcon[node.type] ?? 'circle-alert'" size="xs" />
+      <CoarIcon :name="typeIcon(node.type)" size="xs" />
       <span class="canvas-node__tab-label">{{ typeLabel }}</span>
     </span>
 
@@ -241,7 +226,7 @@ function zoneClasses(index: number): Record<string, boolean> {
       v-if="!isRoot"
       type="button"
       class="canvas-node__delete canvas-node__duplicate"
-      title="Duplicate"
+      :title="t('coar.pageBuilder.common.duplicate', undefined, 'Duplicate')"
       @click.stop="builder.duplicate(path)"
     >
       <CoarIcon name="copy" size="xs" />
@@ -250,7 +235,7 @@ function zoneClasses(index: number): Record<string, boolean> {
       v-if="!isRoot"
       type="button"
       class="canvas-node__delete"
-      title="Delete"
+      :title="t('coar.pageBuilder.common.delete', undefined, 'Delete')"
       @click.stop="builder.remove(path)"
     >
       <CoarIcon name="x" size="xs" />
@@ -282,7 +267,7 @@ function zoneClasses(index: number): Record<string, boolean> {
           :data-pb-zone-path="pathKey"
           :data-pb-zone-index="0"
         >
-          Empty {{ node.type }} — drop something here
+          {{ t('coar.pageBuilder.canvas.emptyContainer', { type: node.type }, 'Empty {type} — drop something here') }}
         </div>
       </template>
 

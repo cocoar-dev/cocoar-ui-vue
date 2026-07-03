@@ -92,6 +92,9 @@ importers:
       '@cocoar/vue-mermaid':
         specifier: workspace:*
         version: link:../../packages/mermaid
+      '@cocoar/vue-page-builder':
+        specifier: workspace:*
+        version: link:../../packages/page-builder
       '@cocoar/vue-script-editor':
         specifier: workspace:*
         version: link:../../packages/script-editor
@@ -459,6 +462,9 @@ importers:
 
   packages/page-builder:
     devDependencies:
+      '@cocoar/vue-localization':
+        specifier: workspace:*
+        version: link:../localization
       '@cocoar/vue-ui':
         specifier: workspace:*
         version: link:../ui

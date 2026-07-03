@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, inject } from 'vue';
+import { useI18n } from '@cocoar/vue-localization';
 import {
   CoarFormField,
   CoarTextInput,
@@ -14,13 +15,17 @@ const props = defineProps<{
   patch: (update: Partial<LinkNode>) => void;
 }>();
 
+const { t } = useI18n();
+
 const config = inject(BUILDER_CONFIG);
 
 const actionOptions = computed<CoarSelectOption<string>[] | null>(() => {
   const list = config?.value?.availableActions;
   if (!list || list.length === 0) return null;
   const seen = new Set<string>();
-  const opts: CoarSelectOption<string>[] = [{ value: '', label: '— none' }];
+  const opts: CoarSelectOption<string>[] = [
+    { value: '', label: t('coar.pageBuilder.props.none', undefined, '— none') },
+  ];
   for (const a of list) {
     if (seen.has(a.id)) continue;
     seen.add(a.id);
@@ -28,20 +33,23 @@ const actionOptions = computed<CoarSelectOption<string>[] | null>(() => {
   }
   const cur = props.node.action;
   if (cur && !seen.has(cur)) {
-    opts.push({ value: cur, label: `${cur} (not configured)` });
+    opts.push({
+      value: cur,
+      label: t('coar.pageBuilder.props.notConfigured', { id: cur }, '{id} (not configured)'),
+    });
   }
   return opts;
 });
 </script>
 
 <template>
-  <CoarFormField label="Label">
+  <CoarFormField :label="t('coar.pageBuilder.props.label', undefined, 'Label')">
     <CoarTextInput
       :model-value="props.node.label ?? ''"
       @update:model-value="(v) => props.patch({ label: v })"
     />
   </CoarFormField>
-  <CoarFormField label="Action">
+  <CoarFormField :label="t('coar.pageBuilder.props.action', undefined, 'Action')">
     <CoarSelect
       v-if="actionOptions"
       :model-value="props.node.action ?? ''"

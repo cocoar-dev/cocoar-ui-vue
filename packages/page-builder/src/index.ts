@@ -7,6 +7,7 @@ export type {
   PageNode,
   ElementType,
   NodeStyle,
+  FieldValidation,
   ContainerNode,
   PageRootNode,
   StackNode,

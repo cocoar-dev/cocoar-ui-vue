@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from '@cocoar/vue-localization';
 import { CoarCheckbox } from '@cocoar/vue-ui';
 import type { StackNode } from '../../schema';
 
@@ -6,12 +7,14 @@ const props = defineProps<{
   node: StackNode;
   patch: (update: Partial<StackNode>) => void;
 }>();
+
+const { t } = useI18n();
 </script>
 
 <template>
   <div class="pb-prop-group">
-    <span class="pb-prop-label">Direction</span>
-    <div class="pb-prop-seg" role="radiogroup" aria-label="Stack direction">
+    <span class="pb-prop-label">{{ t('coar.pageBuilder.props.direction', undefined, 'Direction') }}</span>
+    <div class="pb-prop-seg" role="radiogroup" :aria-label="t('coar.pageBuilder.props.stackDirection', undefined, 'Stack direction')">
       <button
         type="button"
         class="pb-prop-seg__btn"
@@ -20,7 +23,7 @@ const props = defineProps<{
         :aria-checked="(props.node.direction ?? 'column') === 'column'"
         @click="props.patch({ direction: 'column' })"
       >
-        ↓ Column
+        ↓ {{ t('coar.pageBuilder.props.column', undefined, 'Column') }}
       </button>
       <button
         type="button"
@@ -30,14 +33,14 @@ const props = defineProps<{
         :aria-checked="props.node.direction === 'row'"
         @click="props.patch({ direction: 'row' })"
       >
-        → Row
+        → {{ t('coar.pageBuilder.props.row', undefined, 'Row') }}
       </button>
     </div>
   </div>
   <CoarCheckbox
     v-if="props.node.direction === 'row'"
     :model-value="!!props.node.wrap"
-    label="Wrap children"
+    :label="t('coar.pageBuilder.props.wrapChildren', undefined, 'Wrap children')"
     @update:model-value="(v) => props.patch({ wrap: v })"
   />
 </template>

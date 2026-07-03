@@ -22,6 +22,10 @@ layout styles — without it, stacks lose their flex layout):
 import '@cocoar/vue-page-builder/styles';
 ```
 
+::: info Peer dependencies
+`@cocoar/vue-page-builder` declares `@cocoar/vue-ui` **and** `@cocoar/vue-localization` as peer dependencies. All builder chrome and the renderer's validation messages resolve through `@cocoar/vue-localization` (keys under `coar.pageBuilder.*`), with built-in English fallbacks — English-only apps need no i18n setup.
+:::
+
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue';
@@ -64,12 +68,12 @@ const actions: Record<string, (v: ActionValues) => void> = {
     :schema="schema"
     :config="config"
     :actions="actions"
-    :asset-resolver="(id) => `/tenant/${tenantId}/assets/${id}`"
+    :asset-resolver="(id) => `/tenant/${tenantId}/assets/${encodeURIComponent(id)}`"
   />
 </template>
 ```
 
-The **same `config` is passed to both** — the builder uses it to filter UI affordances; the renderer uses it as the security boundary at render time.
+The **same `config` is passed to both** — the builder uses it to filter UI affordances; the renderer uses it as the security boundary at render time. When `config.assetResolver` is set, the renderer falls back to it automatically, so the `:asset-resolver` prop is only needed as an override.
 
 ## Architecture
 
@@ -109,7 +113,8 @@ interface PageConfig {
    * Resolves an assetId to a URL. Used by the builder for thumbnails
    * (canvas preview, props panel, Preview tab) and by the runtime
    * renderer for `<img src>`. Same contract as the renderer's
-   * `:asset-resolver` prop.
+   * `:asset-resolver` prop — the renderer falls back to this when
+   * that prop is absent, so passing the same config to both is enough.
    */
   assetResolver?: (id: string) => string
 
@@ -127,8 +132,10 @@ interface PageConfig {
 ### `allowedElements`
 
 Enforced at **both** layers:
-- *Builder*: hidden from the palette and add-child menu; tenants can't insert disallowed types.
-- *Renderer*: disallowed nodes are skipped at render time even if they appear in hand-written or tampered JSON. This is the security boundary.
+- *Builder*: hidden from the palette and add-child menu; tenants can't insert disallowed types. Nodes of a disallowed (or unknown) type already present in the schema get a validation **error** and a "skipped at runtime" banner treatment on the canvas, so authors learn about them before saving.
+- *Renderer*: disallowed nodes are skipped at render time (with one `console.warn` per type) even if they appear in hand-written or tampered JSON. This is the security boundary.
+
+The gate also applies to the renderer's **value model**, not just rendering: disallowed subtrees contribute no default values and their fields never block validation — an invisible `required` field can't permanently veto a validating button.
 
 ```ts
 allowedElements: [
@@ -164,8 +171,8 @@ The library does **not** ship an asset picker. You build your own — a modal, a
 const config: PageConfig = {
   // ...
   /** Resolves an asset id to a URL. The builder uses this for thumbnails;
-      pass the same function (or one equivalent) to the renderer's :asset-resolver. */
-  assetResolver: (id) => `https://cdn.example.com/t/${tenantId}/${id}`,
+      the renderer falls back to it when its :asset-resolver prop is absent. */
+  assetResolver: (id) => `https://cdn.example.com/t/${tenantId}/${encodeURIComponent(id)}`,
 
   /** Opens YOUR picker and resolves to the chosen id (or null on cancel). */
   async pickAsset(currentId) {
@@ -174,6 +181,10 @@ const config: PageConfig = {
   },
 };
 ```
+
+::: warning Validate the asset id
+`assetResolver` receives whatever `assetId` string sits in the schema — including hand-edited JSON. Encode it (`encodeURIComponent`) or allowlist it (e.g. `/^[A-Za-z0-9_-]+$/`) before splicing it into a URL, or a crafted id like `../other-tenant/logo` walks out of your tenant prefix.
+:::
 
 The image element's props panel renders:
 - a **thumbnail** using `assetResolver(node.assetId)`
@@ -221,11 +232,11 @@ A complete reference implementation lives at `apps/playground/src/components/Pla
 
 ## Security Model
 
-**Allowed elements** — `config.allowedElements` is enforced at both layers (builder hides; renderer skips). The renderer is the hard boundary — even tampered JSON cannot smuggle in disallowed types.
+**Allowed elements** — `config.allowedElements` is enforced at both layers (builder hides and flags; renderer skips, with one `console.warn` per type). The renderer is the hard boundary — even tampered JSON cannot smuggle in disallowed types, and disallowed subtrees are excluded from the value model too (no defaults, no validation veto).
 
-**Actions** — buttons and links store an action `id`. The renderer only invokes handlers from the consumer-provided `actions` map. Arbitrary JavaScript is never stored in the schema. When `config.availableActions` is set, the builder also constrains the Action input to a labeled dropdown.
+**Actions** — buttons and links store an action `id`. The renderer only invokes handlers from the consumer-provided `actions` map — action ids are inert strings. When `config.availableActions` is set, the builder also constrains the Action input to a labeled dropdown. One qualification to "nothing executable lives in the schema": `validation.pattern` is a tenant-authored regular expression that *is* evaluated at render time. It is compiled safely — an invalid pattern becomes an inert rule with a single `console.warn` — and anchored to match the full string, like the HTML `pattern` attribute.
 
-**Images** — `image` nodes store an `assetId` reference, never a raw URL. The renderer calls `assetResolver(id)` at render time. Tenants cannot reference external domains. Uploads happen entirely inside the consumer-built picker (whatever `pickAsset` opens) — that's where you validate file type, scan for malware, and enforce per-tenant size quotas.
+**Images** — `image` nodes store an `assetId` reference, never a raw URL. The renderer calls `assetResolver(id)` at render time. The "tenants cannot reference external domains" guarantee is therefore exactly as strong as **your** `assetResolver` — validate or encode the id before building a URL (see the warning above). Uploads happen entirely inside the consumer-built picker (whatever `pickAsset` opens) — that's where you validate file type, scan for malware, and enforce per-tenant size quotas.
 
 ## Complete IDP integration walkthrough
 
@@ -254,7 +265,9 @@ export function buildLoginConfig(tenantId: string): PageConfig {
       { id: 'auth:register',        label: 'Create account' },
       { id: 'nav:login',            label: 'Go to login' },
     ],
-    assetResolver: (id) => `https://cdn.example.com/t/${tenantId}/${id}`,
+    // Allowlist the id — it's tenant-authored schema data, not trusted input.
+    assetResolver: (id) =>
+      /^[A-Za-z0-9_-]+$/.test(id) ? `https://cdn.example.com/t/${tenantId}/${id}` : '',
     async pickAsset(currentId) {
       // Open your own asset picker — the library does not ship one.
       // Inside MyAssetPickerModal you'd call your /api/tenants/${tenantId}/assets
@@ -340,21 +353,23 @@ const actions: Record<string, (v: ActionValues) => void> = {
 </script>
 
 <template>
+  <!-- No :asset-resolver needed — the renderer falls back to config.assetResolver. -->
   <CoarPageRenderer
     v-if="schema"
     :schema="schema"
     :config="config"
     :actions="actions"
-    :asset-resolver="config.assetResolver"
   />
 </template>
 ```
 
 ### Notes for the IDP wiring
 
-- **Schema migration** — JSON pasted into the builder is normalised (`column`/`row` → `stack`, non-`page` roots get wrapped in a `page`). Schemas loaded from your backend that pre-date these types still work — the renderer accepts them implicitly because the builder migrates on paste, but if you have old saved schemas you should run the same migration server-side before storing the new shape.
-- **Validation** — the builder warns about missing actions, duplicate field names, and missing asset IDs, but lets the tenant save anyway. If you want hard server-side validation before persisting, walk the tree and reject (e.g., reject if any `image.assetId === ''`).
-- **CSP** — image URLs come from `assetResolver`, so your CDN domain needs to be in `img-src`. Action IDs and labels are plain strings — nothing executable lives in the schema.
+- **Schema migration** — the builder normalises schemas at **every entry point**: the initial `v-model` value, external `v-model` replacement, and the JSON tab's Apply. Legacy `column`/`row` containers migrate to `stack`, non-`page` roots get wrapped in a `page`, missing or duplicate node ids are repaired, missing `children` arrays and out-of-range heading levels are healed. The runtime renderer additionally migrates legacy `column`/`row` on the fly, so old saved schemas keep rendering even without a round-trip through the builder. To run the same migration server-side before persisting, use the exported helpers: `normalizePageSchema(value)` returns `{ schema, issues, changed }`; `migrateLegacyTypes` and `KNOWN_ELEMENT_TYPES` are exported alongside it.
+- **`schemaVersion`** — new and normalised roots are stamped with `schemaVersion: 1` (`PageRootNode.schemaVersion?: number`). The field is reserved for a future migration framework; an absent value means a pre-versioning document. Persist it as-is.
+- **JSON Apply is gated** — JSON pasted into the builder's JSON tab is rejected with a message when it has structural problems (unknown element types, non-object nodes, non-array `children`); nothing broken reaches your `v-model`. Healable issues (missing/duplicate ids, missing `children` arrays, out-of-range heading levels) are healed silently.
+- **Validation** — builder validation flags authoring mistakes but never blocks saving: a button/link without an action, or with an action id outside `availableActions`, is a *warning*; duplicate field names, missing image asset ids, invalid `validation.pattern`, and unknown/disallowed element types are *errors*. If you need hard guarantees, validate server-side before persisting (e.g., reject if any `image.assetId === ''`). At runtime, a `validates: true` button stays **clickable** while the form is invalid — clicking it marks every field touched and reveals all errors instead of running the action; it only disables while an async `onValidate` is in flight. Cross-field or server-side checks (e.g., "email domain not allowed for this tenant") go through the renderer's `:on-validate` prop: it runs at submit time after the declarative rules pass, may return a `Promise` of `{ fieldName: errorMessage }`, a non-empty result blocks the action, and editing a field clears its server error. See [CoarPageRenderer](./coar-page-renderer).
+- **CSP** — image URLs come from `assetResolver`, so your CDN domain needs to be in `img-src`. Action IDs and labels are inert strings; the one tenant-authored value evaluated at render time is `validation.pattern`, which is compiled safely and anchored (see [Security Model](#security-model)).
 - **Full-screen / centering** — the renderer is `display: contents`, so the `page` fills the host element's width. To center a login card on a full-height screen, set the `page` node's `minHeight: '100vh'` + `justify: 'center'` + `align: 'center'` — no host CSS needed. See [Sizing and alignment](./coar-page-renderer#sizing-and-alignment).
 - **Per-tenant theming** — the renderer uses the Cocoar Design System tokens; override CSS variables on a wrapping container for tenant brand colors.
 
@@ -367,5 +382,6 @@ const actions: Record<string, (v: ActionValues) => void> = {
 | **3 — Config + safety** | `page` root · `stack` (direction toggle) · `:config.allowedElements` · `:config.availableActions` | ✅ Done |
 | **4 — Asset callbacks + polish** | `:config.pickAsset` + `:config.assetResolver` · builder validation · responsive preview | ✅ Done |
 | **5 — Layout & sizing** | Flex model — `justify` / `align` / `alignSelf` / `size` (fit · fill · fixed) / `minHeight`; guided Style-panel controls; Editor matches Preview | ✅ Done |
+| **GA hardening** | Correctness & data-safety fixes (schema normalization at every entry point, gated JSON Apply, `crypto.randomUUID` ids, `schemaVersion` stamp, safe `pattern` compile) · pointer-events DnD (mouse + touch/pen long-press, outline drag-to-reorder) · validation UX (clickable validating buttons, submit-time async `onValidate`) · outline ARIA tree + scoped keyboard shortcuts · duplicate / select-options / default-value editors · i18n (`coar.pageBuilder.*` via `@cocoar/vue-localization`) | ✅ Done |
 | **5b — Style editor (visual)** | Spacing sliders + colour pickers (rolls into the tenant theming track) | Planned |
-| **6+ — Schema versioning** | Formal `version` field + migration framework | Planned |
+| **6+ — Schema versioning** | Formal migration framework — the `schemaVersion` field stub already ships (stamped `1` on new/normalised roots) | Planned |

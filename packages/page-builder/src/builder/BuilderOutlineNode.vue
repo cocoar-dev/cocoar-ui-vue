@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, inject, onBeforeUnmount, onMounted, ref } from 'vue';
-import { CoarIcon, type CoreIconName } from '@cocoar/vue-ui';
+import { CoarIcon } from '@cocoar/vue-ui';
+import { useI18n } from '@cocoar/vue-localization';
 import { isContainerNode, isElementAllowed, type PageNode, type ElementType } from '../schema';
 import { BUILDER_API, BUILDER_CONFIG, BUILDER_VALIDATION } from './builderContext';
+import { ELEMENT_TYPE_META, PLACEABLE_TYPES, typeIcon } from './typeMeta';
 import { useBuilderDnd } from './useBuilderDnd';
 import type { NodePath } from './operations';
 
@@ -16,13 +18,24 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), { depth: 0 });
 
+const { t } = useI18n();
 const builder = inject(BUILDER_API)!;
 const config = inject(BUILDER_CONFIG);
 const validation = inject(BUILDER_VALIDATION);
 const dnd = useBuilderDnd();
 
 const visibleAddOptions = computed(() =>
-  addOptions.filter((o) => isElementAllowed(o.type, config?.value)),
+  PLACEABLE_TYPES
+    .filter((type) => isElementAllowed(type, config?.value))
+    .map((type) => {
+      const meta = ELEMENT_TYPE_META[type];
+      return {
+        type,
+        label: t(meta.labelKey, undefined, meta.labelFallback),
+        icon: meta.icon,
+        group: meta.group,
+      };
+    }),
 );
 
 /** Validation issues for *this* node — drives the warning icon in the row. */
@@ -42,27 +55,17 @@ const isSelected = computed(() => {
   return sel !== null && sel.length === props.path.length && sel.every((v, i) => v === props.path[i]);
 });
 
-const typeIcon: Record<ElementType, CoreIconName> = {
-  page: 'file',
-  stack: 'layers',
-  card: 'square-dashed',
-  section: 'panel-left',
-  divider: 'minus',
-  spacer: 'more-horizontal',
-  heading: 'heading',
-  paragraph: 'pilcrow',
-  'text-input': 'file-text',
-  checkbox: 'check-circle-2',
-  select: 'list',
-  button: 'zap',
-  link: 'link',
-  image: 'image',
-};
-
 const nodeLabel = computed(() => {
   const n = props.node as PageNode & { text?: string; label?: string; title?: string };
-  if (n.type === 'page') return 'Page';
-  if (n.type === 'stack') return (n as PageNode & { direction?: string }).direction === 'row' ? 'Row' : 'Column';
+  if (n.type === 'page') {
+    const meta = ELEMENT_TYPE_META.page;
+    return t(meta.labelKey, undefined, meta.labelFallback);
+  }
+  if (n.type === 'stack') {
+    return (n as PageNode & { direction?: string }).direction === 'row'
+      ? t('coar.pageBuilder.outline.row', undefined, 'Row')
+      : t('coar.pageBuilder.outline.column', undefined, 'Column');
+  }
   if (n.text) return String(n.text);
   if (n.label) return String(n.label);
   if (n.title) return String(n.title);
@@ -75,29 +78,6 @@ const nodeSubLabel = computed(() => {
 });
 
 // ── Add-child dropdown ────────────────────────────────────────────────────────
-
-interface AddOption {
-  type: ElementType;
-  label: string;
-  icon: CoreIconName;
-  group: 'container' | 'element';
-}
-
-const addOptions: ReadonlyArray<AddOption> = [
-  { type: 'stack',      label: 'Stack',      icon: 'layers',        group: 'container' },
-  { type: 'card',       label: 'Card',       icon: 'square-dashed', group: 'container' },
-  { type: 'section',    label: 'Section',    icon: 'panel-left',    group: 'container' },
-  { type: 'heading',    label: 'Heading',    icon: 'heading',       group: 'element' },
-  { type: 'paragraph',  label: 'Paragraph',  icon: 'pilcrow',       group: 'element' },
-  { type: 'divider',    label: 'Divider',    icon: 'minus',         group: 'element' },
-  { type: 'spacer',     label: 'Spacer',     icon: 'more-horizontal', group: 'element' },
-  { type: 'text-input', label: 'Text Input', icon: 'file-text',     group: 'element' },
-  { type: 'checkbox',   label: 'Checkbox',   icon: 'check-circle-2', group: 'element' },
-  { type: 'select',     label: 'Select',     icon: 'list',          group: 'element' },
-  { type: 'button',     label: 'Button',     icon: 'zap',           group: 'element' },
-  { type: 'link',       label: 'Link',       icon: 'link',          group: 'element' },
-  { type: 'image',      label: 'Image',      icon: 'image',         group: 'element' },
-];
 
 const addMenuOpen = ref(false);
 const addMenuRoot = ref<HTMLElement | null>(null);
@@ -215,7 +195,7 @@ function canMoveDown(): boolean {
       </span>
       <span v-else class="pb-tree-grip" aria-hidden="true" />
       <span class="pb-tree-type-icon" aria-hidden="true">
-        <CoarIcon :name="typeIcon[node.type]" size="s" />
+        <CoarIcon :name="typeIcon(node.type)" size="s" />
       </span>
       <span class="pb-tree-label">
         <span class="pb-tree-label-text">{{ nodeLabel }}</span>
@@ -226,7 +206,7 @@ function canMoveDown(): boolean {
         class="pb-tree-issue"
         :class="`pb-tree-issue--${issueSeverity}`"
         :title="issueTitle"
-        aria-label="Validation issues"
+        :aria-label="t('coar.pageBuilder.outline.validationIssues', undefined, 'Validation issues')"
       >
         <CoarIcon
           :name="issueSeverity === 'error' ? 'circle-alert' : 'triangle-alert'"
@@ -239,7 +219,7 @@ function canMoveDown(): boolean {
           type="button"
           class="pb-tree-btn"
           :disabled="!canMoveUp()"
-          title="Move up"
+          :title="t('coar.pageBuilder.common.moveUp', undefined, 'Move up')"
           @click.stop="builder.move(path, -1)"
         >
           <CoarIcon name="chevron-up" size="s" />
@@ -249,7 +229,7 @@ function canMoveDown(): boolean {
           type="button"
           class="pb-tree-btn"
           :disabled="!canMoveDown()"
-          title="Move down"
+          :title="t('coar.pageBuilder.common.moveDown', undefined, 'Move down')"
           @click.stop="builder.move(path, 1)"
         >
           <CoarIcon name="chevron-down" size="s" />
@@ -258,7 +238,7 @@ function canMoveDown(): boolean {
           v-if="!isRoot"
           type="button"
           class="pb-tree-btn"
-          title="Duplicate"
+          :title="t('coar.pageBuilder.common.duplicate', undefined, 'Duplicate')"
           @click.stop="builder.duplicate(path)"
         >
           <CoarIcon name="copy" size="s" />
@@ -267,7 +247,7 @@ function canMoveDown(): boolean {
           v-if="!isRoot"
           type="button"
           class="pb-tree-btn pb-tree-btn--danger"
-          title="Delete"
+          :title="t('coar.pageBuilder.common.delete', undefined, 'Delete')"
           @click.stop="builder.remove(path)"
         >
           <CoarIcon name="trash-2" size="s" />
@@ -319,10 +299,10 @@ function canMoveDown(): boolean {
           @click.stop="toggleAddMenu"
         >
           <CoarIcon name="plus" size="s" />
-          <span>Add child</span>
+          <span>{{ t('coar.pageBuilder.outline.addChild', undefined, 'Add child') }}</span>
         </button>
         <div v-if="addMenuOpen" class="pb-tree-add__menu" role="menu">
-          <div class="pb-tree-add__group-label">Containers</div>
+          <div class="pb-tree-add__group-label">{{ t('coar.pageBuilder.palette.containers', undefined, 'Containers') }}</div>
           <button
             v-for="opt in visibleAddOptions.filter((o) => o.group === 'container')"
             :key="opt.type"
@@ -335,7 +315,7 @@ function canMoveDown(): boolean {
             <span>{{ opt.label }}</span>
           </button>
           <div class="pb-tree-add__divider" />
-          <div class="pb-tree-add__group-label">Elements</div>
+          <div class="pb-tree-add__group-label">{{ t('coar.pageBuilder.palette.elements', undefined, 'Elements') }}</div>
           <button
             v-for="opt in visibleAddOptions.filter((o) => o.group === 'element')"
             :key="opt.type"

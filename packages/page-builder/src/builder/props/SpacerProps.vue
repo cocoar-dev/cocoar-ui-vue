@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from '@cocoar/vue-localization';
 import { CoarFormField, CoarTextInput } from '@cocoar/vue-ui';
 import type { SpacerNode } from '../../schema';
 
@@ -6,12 +7,14 @@ const props = defineProps<{
   node: SpacerNode;
   patch: (update: Partial<SpacerNode>) => void;
 }>();
+
+const { t } = useI18n();
 </script>
 
 <template>
   <CoarFormField
-    label="Size (CSS)"
-    hint="Leave empty to fill available space"
+    :label="t('coar.pageBuilder.props.sizeCss', undefined, 'Size (CSS)')"
+    :hint="t('coar.pageBuilder.props.spacerSizeHint', undefined, 'Leave empty to fill available space')"
   >
     <CoarTextInput
       :model-value="props.node.size ?? ''"
