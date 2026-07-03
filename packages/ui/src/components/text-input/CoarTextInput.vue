@@ -32,6 +32,12 @@ export interface CoarTextInputProps {
   id?: string;
   /** HTML name attribute */
   name?: string;
+  /**
+   * HTML input type of the single-line input (multiline `rows > 1` renders a
+   * textarea and ignores it). Restricted to the free-text types — password,
+   * number and date inputs have their own dedicated Coar components.
+   */
+  type?: 'text' | 'email' | 'url' | 'tel' | 'search';
   /** HTML autocomplete attribute */
   autocomplete?: string;
   /** Maximum character length */
@@ -51,6 +57,7 @@ const props = withDefaults(defineProps<CoarTextInputProps>(), {
   suffix: '',
   id: '',
   name: '',
+  type: 'text',
   autocomplete: '',
   maxlength: undefined,
 });
@@ -146,7 +153,7 @@ function onClear() {
           :id="inputId"
           ref="inputElement"
           :name="name"
-          type="text"
+          :type="type"
           :value="model"
           :placeholder="placeholder"
           :disabled="disabled"

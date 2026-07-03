@@ -49,7 +49,13 @@ function normalizedFromModel(value: PageNode): PageNode {
 const builder = usePageBuilder({
   initial: model.value != null
     ? normalizedFromModel(toRaw(model.value))
-    : { id: 'root', type: 'page', style: { gap: '16px', padding: '24px' }, children: [] },
+    : {
+        id: 'root',
+        type: 'page',
+        schemaVersion: 1,
+        style: { gap: '16px', padding: '24px' },
+        children: [],
+      },
 });
 
 // toRaw on both sides: a host that stores the schema in a deep ref hands the
@@ -310,10 +316,10 @@ function applyJson() {
               </div>
               <div class="pb-builder__preview">
                 <div class="pb-builder__preview-frame" :style="previewFrameStyle">
+                  <!-- The renderer falls back to config.assetResolver itself. -->
                   <CoarPageRenderer
                     :schema="builder.schema.value"
                     :config="config"
-                    :asset-resolver="config?.assetResolver"
                   />
                 </div>
               </div>

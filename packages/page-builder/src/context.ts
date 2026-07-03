@@ -1,9 +1,16 @@
-import type { ComputedRef, InjectionKey } from 'vue';
+import type { ComputedRef, InjectionKey, Ref } from 'vue';
 import type { PageConfig } from './schema';
 
 export type ActionValues = Record<string, unknown>;
 export type ActionHandler = (values: ActionValues) => void;
-export type CustomValidator = (values: ActionValues) => Record<string, string>;
+/**
+ * Submit-time cross-field/server validation. Runs when a `validates: true`
+ * button fires, AFTER the declarative rules pass; may be async. Return
+ * fieldName → error message; the action only runs when the result is empty.
+ */
+export type CustomValidator = (
+  values: ActionValues,
+) => Record<string, string> | Promise<Record<string, string>>;
 
 export interface PageRendererContext {
   actions?: Record<string, ActionHandler>
@@ -14,6 +21,8 @@ export interface PageRendererContext {
   reportDisallowed?: (type: string) => void
   /** Whether all named fields currently pass validation (quiet, no errors shown). */
   isFormValid: ComputedRef<boolean>
+  /** True while an async `onValidate` is in flight — validating buttons disable to block double-submit. */
+  isValidating: Ref<boolean>
   getValue: (name: string) => unknown
   setValue: (name: string, value: unknown) => void
   /** Returns the error for a field only if it has been touched. */

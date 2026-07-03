@@ -26,3 +26,11 @@ export type {
 } from './schema';
 
 export { isContainerNode, isElementAllowed } from './schema';
+
+export {
+  normalizePageSchema,
+  migrateLegacyTypes,
+  KNOWN_ELEMENT_TYPES,
+  type NormalizeIssue,
+  type NormalizeResult,
+} from './builder/schemaNormalize';
