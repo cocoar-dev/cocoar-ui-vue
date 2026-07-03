@@ -1,4 +1,4 @@
-# `<CoarPageBuilder>` <Badge type="warning" text="Preview" />
+# `<CoarPageBuilder>`
 
 The visual-editor half of `@cocoar/vue-page-builder`. Renders a three-panel layout — outline tree on the left, canvas with palette in the centre, properties panel on the right — and emits a `PageNode` JSON tree as `v-model`. The same tree is consumed by [`<CoarPageRenderer>`](./coar-page-renderer) at runtime.
 
