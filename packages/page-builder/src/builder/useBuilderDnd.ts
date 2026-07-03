@@ -1,5 +1,6 @@
 import { inject, provide, ref, type InjectionKey, type Ref } from 'vue';
 import { isAncestor, type NodePath } from './operations';
+import { createPointerDndEngine } from './pointerDnd';
 import type { ElementType } from '../schema';
 import type { UsePageBuilderReturn } from './usePageBuilder';
 
@@ -17,6 +18,18 @@ export interface BuilderDndContext {
   onZoneLeave(key: string): void;
   onZoneDrop(parentPath: NodePath, index: number): void;
   canDrop(parentPath: NodePath): boolean;
+  /**
+   * Entry point for every drag handle (palette card, canvas tab, outline
+   * grip): hands the pointerdown to the pointer engine, which arms the drag
+   * (movement threshold for mouse, long-press for touch) and drives the zone
+   * callbacks above. `ghostFrom` picks the element the drag ghost is cloned
+   * from when the handle itself is too small to be recognizable.
+   */
+  onHandlePointerDown(
+    e: PointerEvent,
+    payload: DragPayload,
+    ghostFrom?: HTMLElement | null,
+  ): void;
 }
 
 export const BUILDER_DND: InjectionKey<BuilderDndContext> = Symbol('PageBuilderDnd');
@@ -95,9 +108,14 @@ export function provideBuilderDnd(builder: UsePageBuilderReturn): BuilderDndCont
     builder.moveTo(fromPath, parentPath, finalIndex);
   }
 
+  const engine = createPointerDndEngine({
+    canDrop, startDrag, endDrag, onZoneEnter, onZoneLeave, onZoneDrop,
+  });
+
   const ctx: BuilderDndContext = {
     isDragging, payload, activeZoneKey,
     startDrag, endDrag, onZoneEnter, onZoneLeave, onZoneDrop, canDrop,
+    onHandlePointerDown: engine.onHandlePointerDown,
   };
   provide(BUILDER_DND, ctx);
   return ctx;

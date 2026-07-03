@@ -22,7 +22,6 @@ import {
   CoarSelect,
   CoarTextInput,
   CoarPasswordInput,
-  setCoarDragImageFromElement,
   type CoreIconName,
   type CoarSelectOption,
 } from '@cocoar/vue-ui';
@@ -158,20 +157,13 @@ function onClick(e: MouseEvent) {
 
 // ── Drag source (tab handle) ─────────────────────────────────────────────────
 
-function onTabDragStart(e: DragEvent) {
-  if (isRoot.value) { e.preventDefault(); return; }
-  if (!e.dataTransfer) return;
-  dnd.startDrag({ kind: 'move', path: [...props.path] });
-  e.dataTransfer.effectAllowed = 'move';
-  e.dataTransfer.setData('text/plain', 'move');
-  const wrapper = (e.currentTarget as HTMLElement | null)?.closest('.canvas-node') as HTMLElement | null;
-  if (wrapper) setCoarDragImageFromElement(e, wrapper, { offsetX: 20, offsetY: 16 });
-  e.stopPropagation();
+function onTabPointerDown(e: PointerEvent) {
+  if (isRoot.value) return;
+  const ghostFrom = (e.currentTarget as HTMLElement | null)?.closest<HTMLElement>('.canvas-node');
+  dnd.onHandlePointerDown(e, { kind: 'move', path: [...props.path] }, ghostFrom);
 }
 
-function onTabDragEnd() { dnd.endDrag(); }
-
-// ── Drop zones ────────────────────────────────────────────────────────────────
+// ── Drop zones (declared via data attributes; the pointer engine hit-tests) ──
 
 function zoneKey(index: number): string { return `${pathKey.value}:${index}`; }
 function isZoneActive(index: number): boolean { return dnd.activeZoneKey.value === zoneKey(index); }
@@ -184,24 +176,6 @@ function zoneClasses(index: number): Record<string, boolean> {
     'canvas-dropzone--disabled': dragging && !accepts,
     'canvas-dropzone--over': isZoneActive(index),
   };
-}
-
-function onZoneDragEnter(e: DragEvent, index: number) {
-  const accepted = dnd.onZoneEnter(zoneKey(index), props.path);
-  if (accepted) e.preventDefault();
-}
-function onZoneDragOver(e: DragEvent, index: number) {
-  if (dnd.canDrop(props.path)) {
-    e.preventDefault();
-    if (!isZoneActive(index)) dnd.onZoneEnter(zoneKey(index), props.path);
-  }
-}
-function onZoneDragLeave(index: number) { dnd.onZoneLeave(zoneKey(index)); }
-function onZoneDrop(e: DragEvent, index: number) {
-  e.preventDefault();
-  e.stopPropagation();
-  dnd.onZoneDrop([...props.path], index);
-  dnd.endDrag();
 }
 </script>
 
@@ -224,9 +198,7 @@ function onZoneDrop(e: DragEvent, index: number) {
       class="canvas-node__tab"
       :class="{ 'canvas-node__tab--grabbable': !isRoot }"
       :title="typeLabel"
-      :draggable="!isRoot"
-      @dragstart="onTabDragStart"
-      @dragend="onTabDragEnd"
+      @pointerdown="onTabPointerDown"
     >
       <CoarIcon :name="typeIcon[node.type]" size="xs" />
       <span class="canvas-node__tab-label">{{ typeLabel }}</span>
@@ -266,10 +238,8 @@ function onZoneDrop(e: DragEvent, index: number) {
           class="canvas-dropzone canvas-dropzone--empty"
           :class="zoneClasses(0)"
           :data-dropzone="zoneKey(0)"
-          @dragenter="onZoneDragEnter($event, 0)"
-          @dragover="onZoneDragOver($event, 0)"
-          @dragleave="onZoneDragLeave(0)"
-          @drop="onZoneDrop($event, 0)"
+          :data-pb-zone-path="pathKey"
+          :data-pb-zone-index="0"
         >
           Empty {{ node.type }} — drop something here
         </div>
@@ -280,11 +250,10 @@ function onZoneDrop(e: DragEvent, index: number) {
           class="canvas-dropzone"
           :class="[`canvas-dropzone--${containerDirection}`, zoneClasses(0)]"
           :data-dropzone="zoneKey(0)"
+          :data-pb-zone-path="pathKey"
+          :data-pb-zone-index="0"
+          data-pb-zone-inflate="8"
           aria-hidden="true"
-          @dragenter="onZoneDragEnter($event, 0)"
-          @dragover="onZoneDragOver($event, 0)"
-          @dragleave="onZoneDragLeave(0)"
-          @drop="onZoneDrop($event, 0)"
         />
         <template v-for="(child, i) in node.children" :key="child.id">
           <BuilderCanvasNode :node="child" :path="[...path, i]" />
@@ -292,11 +261,10 @@ function onZoneDrop(e: DragEvent, index: number) {
             class="canvas-dropzone"
             :class="[`canvas-dropzone--${containerDirection}`, zoneClasses(i + 1)]"
             :data-dropzone="zoneKey(i + 1)"
+            :data-pb-zone-path="pathKey"
+            :data-pb-zone-index="i + 1"
+            data-pb-zone-inflate="8"
             aria-hidden="true"
-            @dragenter="onZoneDragEnter($event, i + 1)"
-            @dragover="onZoneDragOver($event, i + 1)"
-            @dragleave="onZoneDragLeave(i + 1)"
-            @drop="onZoneDrop($event, i + 1)"
           />
         </template>
       </template>
@@ -463,7 +431,11 @@ function onZoneDrop(e: DragEvent, index: number) {
   user-select: none;
 }
 
-.canvas-node__tab--grabbable { cursor: grab; }
+.canvas-node__tab--grabbable {
+  cursor: grab;
+  /* The pointer-drag engine owns the gesture on this handle. */
+  touch-action: none;
+}
 .canvas-node__tab--grabbable:active { cursor: grabbing; }
 
 .canvas-node--selected .canvas-node__tab {
