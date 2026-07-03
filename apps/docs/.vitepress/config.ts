@@ -174,6 +174,7 @@ export default defineConfig({
         '@cocoar/vue-calendar',
         '@cocoar/vue-document-viewer',
         '@cocoar/vue-file-explorer-core',
+        '@cocoar/vue-page-builder',
         'ag-grid-community',
         'ag-grid-vue3',
         '@maskito/core',

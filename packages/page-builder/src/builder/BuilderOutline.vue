@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { inject, ref } from 'vue';
+import { useI18n } from '@cocoar/vue-localization';
 import { BUILDER_API } from './builderContext';
 import BuilderOutlineNode from './BuilderOutlineNode.vue';
 
 defineOptions({ name: 'BuilderOutline' });
 
+const { t } = useI18n();
 const builder = inject(BUILDER_API)!;
 const treeRef = ref<HTMLElement | null>(null);
 
@@ -33,7 +35,7 @@ function onTreeKeydown(e: KeyboardEvent) {
     ref="treeRef"
     class="pb-outline-wrap"
     role="tree"
-    aria-label="Page structure"
+    :aria-label="t('coar.pageBuilder.outline.treeLabel', undefined, 'Page structure')"
     @keydown="onTreeKeydown"
   >
     <BuilderOutlineNode :node="builder.schema.value" :path="[]" :depth="0" />

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useI18n } from '@cocoar/vue-localization';
 import {
   CoarFormField,
   CoarIcon,
@@ -14,6 +15,8 @@ const props = defineProps<{
   node: SelectNode;
   patch: (update: Partial<SelectNode>) => void;
 }>();
+
+const { t } = useI18n();
 
 type Option = { value: string; label: string };
 
@@ -64,19 +67,19 @@ function setRequired(v: boolean) {
 </script>
 
 <template>
-  <CoarFormField label="Label">
+  <CoarFormField :label="t('coar.pageBuilder.props.label', undefined, 'Label')">
     <CoarTextInput
       :model-value="props.node.label ?? ''"
       @update:model-value="(v) => props.patch({ label: v })"
     />
   </CoarFormField>
-  <CoarFormField label="Name (field key)">
+  <CoarFormField :label="t('coar.pageBuilder.props.name', undefined, 'Name (field key)')">
     <CoarTextInput
       :model-value="props.node.name ?? ''"
       @update:model-value="(v) => props.patch({ name: v })"
     />
   </CoarFormField>
-  <CoarFormField label="Placeholder">
+  <CoarFormField :label="t('coar.pageBuilder.props.placeholder', undefined, 'Placeholder')">
     <CoarTextInput
       :model-value="props.node.placeholder ?? ''"
       @update:model-value="(v) => props.patch({ placeholder: v })"
@@ -85,7 +88,7 @@ function setRequired(v: boolean) {
 
   <!-- ── Options ── -->
   <div class="pb-select-options">
-    <div class="pb-select-options__label">Options</div>
+    <div class="pb-select-options__label">{{ t('coar.pageBuilder.props.options', undefined, 'Options') }}</div>
     <div
       v-for="(opt, i) in options"
       :key="i"
@@ -94,20 +97,20 @@ function setRequired(v: boolean) {
       <CoarTextInput
         size="s"
         :model-value="opt.value"
-        placeholder="value"
+        :placeholder="t('coar.pageBuilder.props.optionValuePlaceholder', undefined, 'value')"
         @update:model-value="(v) => updateOption(i, 'value', v)"
       />
       <CoarTextInput
         size="s"
         :model-value="opt.label"
-        placeholder="label"
+        :placeholder="t('coar.pageBuilder.props.optionLabelPlaceholder', undefined, 'label')"
         @update:model-value="(v) => updateOption(i, 'label', v)"
       />
       <button
         type="button"
         class="pb-select-options__btn"
         :disabled="i === 0"
-        title="Move up"
+        :title="t('coar.pageBuilder.common.moveUp', undefined, 'Move up')"
         @click="moveOption(i, -1)"
       >
         <CoarIcon name="chevron-up" size="xs" />
@@ -116,7 +119,7 @@ function setRequired(v: boolean) {
         type="button"
         class="pb-select-options__btn"
         :disabled="i === options.length - 1"
-        title="Move down"
+        :title="t('coar.pageBuilder.common.moveDown', undefined, 'Move down')"
         @click="moveOption(i, 1)"
       >
         <CoarIcon name="chevron-down" size="xs" />
@@ -124,7 +127,7 @@ function setRequired(v: boolean) {
       <button
         type="button"
         class="pb-select-options__btn pb-select-options__btn--danger"
-        title="Remove option"
+        :title="t('coar.pageBuilder.props.removeOption', undefined, 'Remove option')"
         @click="removeOption(i)"
       >
         <CoarIcon name="x" size="xs" />
@@ -132,15 +135,15 @@ function setRequired(v: boolean) {
     </div>
     <button type="button" class="pb-select-options__add" @click="addOption">
       <CoarIcon name="plus" size="xs" />
-      <span>Add option</span>
+      <span>{{ t('coar.pageBuilder.props.addOption', undefined, 'Add option') }}</span>
     </button>
   </div>
 
-  <CoarFormField label="Default value">
+  <CoarFormField :label="t('coar.pageBuilder.props.defaultValue', undefined, 'Default value')">
     <CoarSelect
       :model-value="props.node.defaultValue ?? null"
       :options="defaultChoices"
-      placeholder="— none"
+      :placeholder="t('coar.pageBuilder.props.none', undefined, '— none')"
       clearable
       @update:model-value="(v) => props.patch({ defaultValue: (v as string | null) ?? undefined })"
     />
@@ -148,12 +151,12 @@ function setRequired(v: boolean) {
 
   <CoarCheckbox
     :model-value="!!props.node.validation?.required"
-    label="Required"
+    :label="t('coar.pageBuilder.props.required', undefined, 'Required')"
     @update:model-value="setRequired"
   />
   <CoarCheckbox
     :model-value="!!props.node.disabled"
-    label="Disabled"
+    :label="t('coar.pageBuilder.props.disabled', undefined, 'Disabled')"
     @update:model-value="(v) => props.patch({ disabled: v })"
   />
 </template>

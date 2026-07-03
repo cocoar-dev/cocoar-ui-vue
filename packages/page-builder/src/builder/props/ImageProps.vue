@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, inject } from 'vue';
+import { useI18n } from '@cocoar/vue-localization';
 import {
   CoarFormField,
   CoarTextInput,
@@ -13,6 +14,8 @@ const props = defineProps<{
   node: ImageNode;
   patch: (update: Partial<ImageNode>) => void;
 }>();
+
+const { t } = useI18n();
 
 const config = inject(BUILDER_CONFIG);
 
@@ -39,20 +42,20 @@ function clearAsset() {
 <template>
   <!-- ── With pickAsset callback: visual picker entry point ───────────────── -->
   <template v-if="hasPicker">
-    <CoarFormField label="Asset">
+    <CoarFormField :label="t('coar.pageBuilder.props.asset', undefined, 'Asset')">
       <div class="pb-image-asset">
         <div class="pb-image-asset__thumb">
           <img v-if="thumbUrl" :src="thumbUrl" :alt="props.node.alt ?? ''" />
           <span v-else class="pb-image-asset__empty">
             <CoarIcon name="image" size="m" />
             <span class="pb-image-asset__empty-label">
-              {{ props.node.assetId ? 'No preview' : 'No image' }}
+              {{ props.node.assetId ? t('coar.pageBuilder.props.noPreview', undefined, 'No preview') : t('coar.pageBuilder.props.noImage', undefined, 'No image') }}
             </span>
           </span>
         </div>
         <div class="pb-image-asset__controls">
           <CoarButton size="s" variant="secondary" @click="openPicker">
-            {{ props.node.assetId ? 'Change…' : 'Choose…' }}
+            {{ props.node.assetId ? t('coar.pageBuilder.props.change', undefined, 'Change…') : t('coar.pageBuilder.props.choose', undefined, 'Choose…') }}
           </CoarButton>
           <CoarButton
             v-if="props.node.assetId"
@@ -60,7 +63,7 @@ function clearAsset() {
             variant="ghost"
             @click="clearAsset"
           >
-            Clear
+            {{ t('coar.pageBuilder.props.clear', undefined, 'Clear') }}
           </CoarButton>
         </div>
       </div>
@@ -70,8 +73,8 @@ function clearAsset() {
   <!-- ── Fallback: free-text Asset ID (no pickAsset configured) ───────────── -->
   <CoarFormField
     v-else
-    label="Asset ID"
-    hint="Resolved via assetResolver at render time"
+    :label="t('coar.pageBuilder.props.assetId', undefined, 'Asset ID')"
+    :hint="t('coar.pageBuilder.props.assetIdHint', undefined, 'Resolved via assetResolver at render time')"
   >
     <CoarTextInput
       :model-value="props.node.assetId ?? ''"
@@ -79,7 +82,7 @@ function clearAsset() {
     />
   </CoarFormField>
 
-  <CoarFormField label="Alt text">
+  <CoarFormField :label="t('coar.pageBuilder.props.altText', undefined, 'Alt text')">
     <CoarTextInput
       :model-value="props.node.alt ?? ''"
       @update:model-value="(v) => props.patch({ alt: v })"

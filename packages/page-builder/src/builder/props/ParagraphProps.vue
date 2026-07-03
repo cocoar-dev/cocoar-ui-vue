@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from '@cocoar/vue-localization';
 import { CoarFormField } from '@cocoar/vue-ui';
 import type { ParagraphNode } from '../../schema';
 
@@ -6,10 +7,12 @@ const props = defineProps<{
   node: ParagraphNode;
   patch: (update: Partial<ParagraphNode>) => void;
 }>();
+
+const { t } = useI18n();
 </script>
 
 <template>
-  <CoarFormField label="Text">
+  <CoarFormField :label="t('coar.pageBuilder.props.text', undefined, 'Text')">
     <textarea
       class="pb-prop-textarea"
       :value="props.node.text ?? ''"

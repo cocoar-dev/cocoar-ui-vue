@@ -16,7 +16,6 @@ export function uid(): string {
   counter += 1;
   return `node_${Date.now().toString(36)}_${counter}`;
 }
-export function resetIdCounter(): void { counter = 0; }
 
 /** Short unique-enough field key — readable in the props panel and in ActionValues. */
 function fieldName(): string {
@@ -57,49 +56,3 @@ export function defaultNode(type: ElementType): PageNode {
     case 'image':   return { id: uid(), type: 'image', assetId: '' };
   }
 }
-
-export interface PaletteGroup {
-  label: string;
-  items: { type: ElementType; label: string; icon: string }[];
-}
-
-export const PALETTE_GROUPS: PaletteGroup[] = [
-  {
-    label: 'Layout',
-    items: [
-      { type: 'stack',   label: 'Stack',   icon: '⬚' },
-      { type: 'card',    label: 'Card',    icon: '▭' },
-      { type: 'section', label: 'Section', icon: '§' },
-      { type: 'divider', label: 'Divider', icon: '─' },
-      { type: 'spacer',  label: 'Spacer',  icon: '↕' },
-    ],
-  },
-  {
-    label: 'Typography',
-    items: [
-      { type: 'heading',   label: 'Heading',   icon: 'H' },
-      { type: 'paragraph', label: 'Paragraph', icon: '¶' },
-    ],
-  },
-  {
-    label: 'Inputs',
-    items: [
-      { type: 'text-input', label: 'Text Input', icon: '✏' },
-      { type: 'checkbox',   label: 'Checkbox',   icon: '☑' },
-      { type: 'select',     label: 'Select',     icon: '▾' },
-    ],
-  },
-  {
-    label: 'Actions',
-    items: [
-      { type: 'button', label: 'Button', icon: '⬛' },
-      { type: 'link',   label: 'Link',   icon: '🔗' },
-    ],
-  },
-  {
-    label: 'Media',
-    items: [
-      { type: 'image', label: 'Image', icon: '🖼' },
-    ],
-  },
-];

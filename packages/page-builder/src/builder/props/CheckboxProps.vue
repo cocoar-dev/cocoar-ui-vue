@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from '@cocoar/vue-localization';
 import { CoarFormField, CoarTextInput, CoarCheckbox } from '@cocoar/vue-ui';
 import type { CheckboxNode } from '../../schema';
 
@@ -6,6 +7,8 @@ const props = defineProps<{
   node: CheckboxNode;
   patch: (update: Partial<CheckboxNode>) => void;
 }>();
+
+const { t } = useI18n();
 
 function setRequired(v: boolean) {
   const next: NonNullable<CheckboxNode['validation']> = { ...props.node.validation };
@@ -16,13 +19,13 @@ function setRequired(v: boolean) {
 </script>
 
 <template>
-  <CoarFormField label="Label">
+  <CoarFormField :label="t('coar.pageBuilder.props.label', undefined, 'Label')">
     <CoarTextInput
       :model-value="props.node.label ?? ''"
       @update:model-value="(v) => props.patch({ label: v })"
     />
   </CoarFormField>
-  <CoarFormField label="Name (field key)">
+  <CoarFormField :label="t('coar.pageBuilder.props.name', undefined, 'Name (field key)')">
     <CoarTextInput
       :model-value="props.node.name ?? ''"
       @update:model-value="(v) => props.patch({ name: v })"
@@ -30,17 +33,17 @@ function setRequired(v: boolean) {
   </CoarFormField>
   <CoarCheckbox
     :model-value="!!props.node.defaultValue"
-    label="Checked by default"
+    :label="t('coar.pageBuilder.props.checkedByDefault', undefined, 'Checked by default')"
     @update:model-value="(v) => props.patch({ defaultValue: v || undefined })"
   />
   <CoarCheckbox
     :model-value="!!props.node.validation?.required"
-    label="Required"
+    :label="t('coar.pageBuilder.props.required', undefined, 'Required')"
     @update:model-value="setRequired"
   />
   <CoarCheckbox
     :model-value="!!props.node.disabled"
-    label="Disabled"
+    :label="t('coar.pageBuilder.props.disabled', undefined, 'Disabled')"
     @update:model-value="(v) => props.patch({ disabled: v })"
   />
 </template>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, toRaw, watch } from 'vue';
 import { CoarIcon, CoarTabGroup, CoarTab } from '@cocoar/vue-ui';
+import { useI18n } from '@cocoar/vue-localization';
 import type { PageNode, PageConfig } from './schema';
 import { usePageBuilder } from './builder/usePageBuilder';
 import { useSchemaValidation } from './builder/useSchemaValidation';
@@ -16,6 +17,8 @@ import BuilderOutline from './builder/BuilderOutline.vue';
 import BuilderCanvas from './builder/BuilderCanvas.vue';
 import BuilderPropsPanel from './builder/BuilderPropsPanel.vue';
 import CoarPageRenderer from './CoarPageRenderer.vue';
+
+const { t } = useI18n();
 
 const model = defineModel<PageNode>({ required: false });
 
@@ -278,8 +281,8 @@ function applyJson() {
       <template v-if="!outlineCollapsed">
         <header class="pb-builder__pane-header">
           <CoarIcon name="list" size="s" />
-          <span class="pb-builder__pane-title">Outline</span>
-          <button type="button" class="pb-builder__icon-btn" title="Collapse outline" @click="outlineCollapsed = true">
+          <span class="pb-builder__pane-title">{{ t('coar.pageBuilder.chrome.outline', undefined, 'Outline') }}</span>
+          <button type="button" class="pb-builder__icon-btn" :title="t('coar.pageBuilder.chrome.collapseOutline', undefined, 'Collapse outline')" @click="outlineCollapsed = true">
             <CoarIcon name="chevrons-left" size="s" />
           </button>
         </header>
@@ -287,7 +290,7 @@ function applyJson() {
           <BuilderOutline />
         </div>
       </template>
-      <button v-else type="button" class="pb-builder__rail-btn" title="Expand outline" @click="outlineCollapsed = false">
+      <button v-else type="button" class="pb-builder__rail-btn" :title="t('coar.pageBuilder.chrome.expandOutline', undefined, 'Expand outline')" @click="outlineCollapsed = false">
         <CoarIcon name="chevrons-right" size="s" />
       </button>
     </section>
@@ -304,10 +307,10 @@ function applyJson() {
     <section class="pb-builder__pane pb-builder__pane--center">
       <CoarTabGroup v-model="activeTab" class="pb-builder__tabs">
         <template #actions>
-          <button type="button" class="pb-builder__icon-btn" :disabled="!builder.canUndo.value" title="Undo (Ctrl+Z)" @click="builder.undo()">
+          <button type="button" class="pb-builder__icon-btn" :disabled="!builder.canUndo.value" :title="t('coar.pageBuilder.chrome.undo', undefined, 'Undo (Ctrl+Z)')" @click="builder.undo()">
             <CoarIcon name="undo-2" size="s" />
           </button>
-          <button type="button" class="pb-builder__icon-btn" :disabled="!builder.canRedo.value" title="Redo (Ctrl+Y)" @click="builder.redo()">
+          <button type="button" class="pb-builder__icon-btn" :disabled="!builder.canRedo.value" :title="t('coar.pageBuilder.chrome.redo', undefined, 'Redo (Ctrl+Y)')" @click="builder.redo()">
             <CoarIcon name="redo-2" size="s" />
           </button>
         </template>
@@ -316,7 +319,7 @@ function applyJson() {
           <template #default>
             <span class="pb-builder__tab-label">
               <CoarIcon name="pencil" size="s" />
-              Editor
+              {{ t('coar.pageBuilder.chrome.tabEditor', undefined, 'Editor') }}
             </span>
           </template>
           <template #content>
@@ -328,24 +331,24 @@ function applyJson() {
           <template #default>
             <span class="pb-builder__tab-label">
               <CoarIcon name="eye" size="s" />
-              Preview
+              {{ t('coar.pageBuilder.chrome.tabPreview', undefined, 'Preview') }}
             </span>
           </template>
           <template #content>
             <div class="pb-builder__preview-pane">
               <!-- Responsive width toggle -->
               <div class="pb-builder__preview-toolbar">
-                <div class="pb-builder__seg" role="radiogroup" aria-label="Preview width">
+                <div class="pb-builder__seg" role="radiogroup" :aria-label="t('coar.pageBuilder.chrome.previewWidth', undefined, 'Preview width')">
                   <button
                     type="button"
                     class="pb-builder__seg-btn"
                     :class="{ 'pb-builder__seg-btn--active': previewWidth === 'full' }"
                     role="radio"
                     :aria-checked="previewWidth === 'full'"
-                    title="Full width"
+                    :title="t('coar.pageBuilder.chrome.previewFullTitle', undefined, 'Full width')"
                     @click="previewWidth = 'full'"
                   >
-                    Desktop
+                    {{ t('coar.pageBuilder.chrome.previewDesktop', undefined, 'Desktop') }}
                   </button>
                   <button
                     type="button"
@@ -353,10 +356,10 @@ function applyJson() {
                     :class="{ 'pb-builder__seg-btn--active': previewWidth === 'tablet' }"
                     role="radio"
                     :aria-checked="previewWidth === 'tablet'"
-                    title="768px"
+                    :title="t('coar.pageBuilder.chrome.previewTabletTitle', undefined, '768px')"
                     @click="previewWidth = 'tablet'"
                   >
-                    Tablet · 768
+                    {{ t('coar.pageBuilder.chrome.previewTablet', undefined, 'Tablet · 768') }}
                   </button>
                   <button
                     type="button"
@@ -364,10 +367,10 @@ function applyJson() {
                     :class="{ 'pb-builder__seg-btn--active': previewWidth === 'mobile' }"
                     role="radio"
                     :aria-checked="previewWidth === 'mobile'"
-                    title="375px"
+                    :title="t('coar.pageBuilder.chrome.previewMobileTitle', undefined, '375px')"
                     @click="previewWidth = 'mobile'"
                   >
-                    Mobile · 375
+                    {{ t('coar.pageBuilder.chrome.previewMobile', undefined, 'Mobile · 375') }}
                   </button>
                 </div>
               </div>
@@ -388,16 +391,16 @@ function applyJson() {
           <template #default>
             <span class="pb-builder__tab-label">
               <CoarIcon name="code" size="s" />
-              JSON
+              {{ t('coar.pageBuilder.chrome.tabJson', undefined, 'JSON') }}
             </span>
           </template>
           <template #content>
             <div class="pb-builder__json-pane">
               <div class="pb-builder__json-toolbar">
-                <span class="pb-builder__json-hint">Paste or edit JSON, then click Apply</span>
+                <span class="pb-builder__json-hint">{{ t('coar.pageBuilder.chrome.jsonHint', undefined, 'Paste or edit JSON, then click Apply') }}</span>
                 <span v-if="jsonError" class="pb-builder__json-error">{{ jsonError }}</span>
                 <button class="pb-builder__json-apply" :disabled="!!jsonError" @click="applyJson">
-                  Apply →
+                  {{ t('coar.pageBuilder.chrome.jsonApply', undefined, 'Apply →') }}
                 </button>
               </div>
               <textarea
@@ -427,12 +430,12 @@ function applyJson() {
       :class="{ 'pb-builder__pane--rail': propsCollapsed }"
     >
       <template v-if="!propsCollapsed">
-        <button type="button" class="pb-builder__icon-btn pb-builder__icon-btn--corner" title="Collapse properties" @click="propsCollapsed = true">
+        <button type="button" class="pb-builder__icon-btn pb-builder__icon-btn--corner" :title="t('coar.pageBuilder.chrome.collapseProperties', undefined, 'Collapse properties')" @click="propsCollapsed = true">
           <CoarIcon name="chevrons-right" size="s" />
         </button>
         <BuilderPropsPanel class="pb-builder__pane-inner" />
       </template>
-      <button v-else type="button" class="pb-builder__rail-btn" title="Expand properties" @click="propsCollapsed = false">
+      <button v-else type="button" class="pb-builder__rail-btn" :title="t('coar.pageBuilder.chrome.expandProperties', undefined, 'Expand properties')" @click="propsCollapsed = false">
         <CoarIcon name="chevrons-left" size="s" />
       </button>
     </section>

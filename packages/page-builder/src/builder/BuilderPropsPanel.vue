@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, inject } from 'vue';
+import { useI18n } from '@cocoar/vue-localization';
 import { CoarIcon } from '@cocoar/vue-ui';
 import type { PageNode, NodeStyle } from '../schema';
 import { BUILDER_API, BUILDER_VALIDATION } from './builderContext';
@@ -8,6 +9,8 @@ import { PROPS_REGISTRY } from './props/registry';
 import StyleProps from './props/StyleProps.vue';
 
 defineOptions({ name: 'BuilderPropsPanel' });
+
+const { t } = useI18n();
 
 const builder = inject(BUILDER_API)!;
 const validation = inject(BUILDER_VALIDATION);
@@ -36,13 +39,13 @@ function patchStyle(update: Partial<NodeStyle>) {
   <aside class="pb-props">
     <header class="pb-props__header">
       <CoarIcon name="settings" size="s" />
-      <span class="pb-props__title">Properties</span>
+      <span class="pb-props__title">{{ t('coar.pageBuilder.props.panelTitle', undefined, 'Properties') }}</span>
     </header>
 
     <div v-if="!node" class="pb-props__empty">
       <CoarIcon name="settings" size="l" />
-      <p class="pb-props__empty-title">No node selected</p>
-      <p class="pb-props__empty-hint">Click a node in the outline or canvas to edit it.</p>
+      <p class="pb-props__empty-title">{{ t('coar.pageBuilder.props.emptyTitle', undefined, 'No node selected') }}</p>
+      <p class="pb-props__empty-hint">{{ t('coar.pageBuilder.props.emptyHint', undefined, 'Click a node in the outline or canvas to edit it.') }}</p>
     </div>
 
     <div v-else class="pb-props__body">
@@ -64,7 +67,7 @@ function patchStyle(update: Partial<NodeStyle>) {
 
       <!-- ── Element-specific section (delegated to per-type component) ─── -->
       <section v-if="entry" class="pb-props__section">
-        <h4 class="pb-props__section-title">{{ entry.sectionTitle }}</h4>
+        <h4 class="pb-props__section-title">{{ t(entry.sectionTitleKey, undefined, entry.sectionTitleFallback) }}</h4>
         <component :is="entry.component" :node="node" :patch="patch" />
       </section>
 
@@ -74,7 +77,7 @@ function patchStyle(update: Partial<NodeStyle>) {
         class="pb-props__section"
         :class="{ 'pb-props__section--separated': !!entry }"
       >
-        <h4 class="pb-props__section-title">Style</h4>
+        <h4 class="pb-props__section-title">{{ t('coar.pageBuilder.props.section.style', undefined, 'Style') }}</h4>
         <StyleProps :node="node" :patch-style="patchStyle" />
       </section>
     </div>
