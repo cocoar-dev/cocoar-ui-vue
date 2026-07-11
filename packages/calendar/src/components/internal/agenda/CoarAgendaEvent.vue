@@ -82,7 +82,10 @@ function onDblclick(e: MouseEvent) {
 <style scoped>
 .coar-agenda-event {
   padding: 10px 16px;
-  border-bottom: 1px solid var(--coar-calendar-border, #f3f4f6);
+  /* Own token (falls back to the border token): the row separator
+     stays near-invisible in dark mode while borders don't. */
+  border-bottom: 1px solid
+    var(--coar-calendar-agenda-divider, var(--coar-calendar-border, #f3f4f6));
   cursor: pointer;
   user-select: none;
   background: var(--coar-calendar-bg, #fff);

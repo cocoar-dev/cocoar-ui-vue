@@ -574,7 +574,10 @@ function eventColor(event: CalendarEvent<TMeta>): string | undefined {
 }
 function eventBgFor(event: CalendarEvent<TMeta>): string {
   const c = eventColor(event);
-  return c ?? 'var(--coar-color-accent-soft, #93c5fd)';
+  return (
+    c ??
+    'var(--coar-calendar-event-default-bg, var(--coar-color-accent-soft, #93c5fd))'
+  );
 }
 function eventBorderFor(event: CalendarEvent<TMeta>): string {
   const c = eventColor(event);

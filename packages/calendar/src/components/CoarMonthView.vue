@@ -360,7 +360,10 @@ function eventColor(event: CalendarEvent<TMeta>): string | undefined {
   return typeof meta?.color === 'string' ? meta.color : undefined;
 }
 function eventBgFor(event: CalendarEvent<TMeta>): string {
-  return eventColor(event) ?? 'var(--coar-color-accent-soft, #93c5fd)';
+  return (
+    eventColor(event) ??
+    'var(--coar-calendar-event-default-bg, var(--coar-color-accent-soft, #93c5fd))'
+  );
 }
 function eventBorderFor(event: CalendarEvent<TMeta>): string {
   return eventColor(event) ?? 'var(--coar-color-accent, #2563eb)';
