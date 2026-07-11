@@ -25,6 +25,10 @@ Add a border or elevation shadow to the grid. Toggle the checkboxes to see the e
 
 <preview path="./data-grid/demos/GridAppearance.vue" />
 
+### Dark mode
+
+Dark styles ship with the package. The theme maps AG Grid's variables onto the semantic `--coar-*` tokens (with hardcoded fallbacks), so the grid follows your design-system theme in both modes. Dark values activate via the `.dark-mode` class — on `<html>` or any ancestor (the Cocoar convention, same as `@cocoar/vue-ui`), or directly on the grid element. `[data-theme="dark"]` is **not** a trigger here.
+
 ## Column Types
 
 Built-in renderers for dates, numbers, currency, tags, and icons — no custom cell components needed. Date, number, and currency columns are locale-aware and update reactively when the locale changes. Try the locale switcher in the nav bar.

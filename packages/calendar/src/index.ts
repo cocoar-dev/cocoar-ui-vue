@@ -14,6 +14,10 @@
  * design failure.
  */
 
+// Package stylesheet: dark-mode values for the `--coar-calendar-*`
+// tokens. Light values are per-usage fallbacks in the components.
+import './styles/tokens-dark.css';
+
 // ─── Builder ──────────────────────────────────────────────────────
 export { useCalendar } from './useCalendar';
 export {

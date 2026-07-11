@@ -134,9 +134,17 @@ export function layoutDayEvents<TMeta extends Record<string, unknown> = Record<s
     // `projectToDayMinute` returns -1 (before this day) or 24*60+1
     // (after this day) for multi-day events that pass through `day`.
     const startMin = projectToDayMinute(event.start, day, timezone);
-    const endMin = event.end
-      ? projectToDayMinute(event.end, day, timezone)
-      : startMin + 30; // default 30-min slot
+    let endMin: number;
+    if (event.end) {
+      endMin = projectToDayMinute(event.end, day, timezone);
+    } else {
+      // Default 30-min slot — but only on the event's START day. On a
+      // later day the start projects to the before-this-day sentinel
+      // (-1), and -1 + 30 = 29 would survive clipping as a phantom
+      // 0:00-0:29 card on every following day of the window.
+      if (startMin < 0) continue;
+      endMin = startMin + 30;
+    }
 
     const onDayStart = startMin;
     const onDayEnd = endMin;

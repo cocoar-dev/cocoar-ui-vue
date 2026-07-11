@@ -1,0 +1,49 @@
+/**
+ * Dark-mode values for the `--coar-calendar-*` tokens.
+ *
+ * The light values live as per-usage fallbacks in the view components
+ * (`var(--coar-calendar-bg, #fff)` …); the tokens are only DEFINED
+ * here, for dark mode — without these rules the grid stays white when
+ * the app shell flips dark.
+ *
+ * Values mirror the SwiftUI port (`Cocoar.Calendar.iOS`,
+ * `CalendarTheme.dark`), itself derived from the vue-ui dark
+ * primitives (`packages/ui/styles/tokens/colors-primitives-dark.css`)
+ * — keeping web and iOS visually consistent.
+ *
+ * Triggers on the vue-ui `.dark-mode` class convention AND on
+ * `[data-theme="dark"]`, so both wiring styles work.
+ *
+ * Event colors from `meta.color` are intentionally NOT remapped —
+ * they render raw in both modes (consumer ownership, same as iOS).
+ */
+
+:root.dark-mode,
+.dark-mode,
+:root[data-theme='dark'],
+[data-theme='dark'] {
+  /* Surfaces */
+  --coar-calendar-bg: #18181b; /* gray-50 dark (page surface) */
+  --coar-calendar-bg-weekend: #212125; /* between gray-50/gray-100: subtle tint */
+  --coar-calendar-bg-other-month: #131316; /* recedes behind the surface */
+  /* Accent at 4% (the light value) is invisible on dark — lift to ~14%. */
+  --coar-calendar-bg-today: #2563eb24;
+
+  /* Lines */
+  --coar-calendar-grid-line: #2c2c30; /* subtle line on #18181b */
+  --coar-calendar-border: #3f3f46; /* gray-200 dark ("tertiary/cards") */
+  /* Agenda row separator: near-invisible, like light's #f3f4f6. */
+  --coar-calendar-agenda-divider: #27272a;
+
+  /* Default event fill (events without `meta.color`): a dark accent
+     shade so the light title text stays readable. */
+  --coar-calendar-event-default-bg: #1e3a8a;
+
+  /* Text. These names are used ONLY by this package (vue-ui's
+     semantic tokens are `--coar-text-neutral-*`), so nothing defines
+     them — without these rules calendar text keeps its light-mode
+     fallbacks (#1a1c1f / #6c7280) on the dark surfaces. Values are
+     the vue-ui dark-primitive equivalents (gray-800 / gray-500). */
+  --coar-text-base: #f4f4f5;
+  --coar-text-subtle: #a1a1aa;
+}

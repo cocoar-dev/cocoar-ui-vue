@@ -54,6 +54,38 @@ describe('layoutDayEvents — basics', () => {
     expect(r[0].endMinutes).toBe(570); // 540 + 30
   });
 
+  it('end-less event is visible ONLY on its start day (no ghost on following days)', () => {
+    // Regression: the +30 default used to be applied AFTER day
+    // projection, so on a following day startMin was the before-day
+    // sentinel -1 → endMin 29 → a phantom 0:00-0:29 card on EVERY
+    // later day of the window.
+    const event = evTimed('x', '2026-04-15T23:08:00');
+    const onStartDay = layoutDayEvents([event], {
+      day: DAY, timeRange: RANGE_FULL, timezone: 'UTC',
+    });
+    expect(onStartDay.length).toBe(1);
+    expect(onStartDay[0].startMinutes).toBe(23 * 60 + 8);
+    expect(onStartDay[0].endMinutes).toBe(23 * 60 + 38);
+
+    const onNextDay = layoutDayEvents([event], {
+      day: DAY.add({ days: 1 }), timeRange: RANGE_FULL, timezone: 'UTC',
+    });
+    expect(onNextDay).toEqual([]);
+
+    const onLaterDay = layoutDayEvents([event], {
+      day: DAY.add({ days: 3 }), timeRange: RANGE_FULL, timezone: 'UTC',
+    });
+    expect(onLaterDay).toEqual([]);
+  });
+
+  it('end-less event on a day BEFORE its start day is skipped', () => {
+    const event = evTimed('x', '2026-04-15T09:00:00');
+    const r = layoutDayEvents([event], {
+      day: DAY.subtract({ days: 1 }), timeRange: RANGE_FULL, timezone: 'UTC',
+    });
+    expect(r).toEqual([]);
+  });
+
   it('event at top of business range starts at 0', () => {
     const r = layoutDayEvents(
       [evTimed('a', '2026-04-15T06:00:00', '2026-04-15T07:00:00')],
