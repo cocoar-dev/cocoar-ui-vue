@@ -7,6 +7,20 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 2.15.0
+
+**Calendar dark mode, out of the box** — plus a ghost-card layout fix. The calendar grid previously stayed white in a dark app shell because the `--coar-calendar-*` tokens only existed as hardcoded light fallbacks; the package now ships a full dark palette, value-identical to the SwiftUI port (`Cocoar.Calendar.iOS`), so web and iOS render the same dark calendar.
+
+### Added
+
+- **`@cocoar/vue-calendar` — dark-mode values for the grid tokens.** The package stylesheet now defines every `--coar-calendar-*` token for dark mode, activating on the `.dark-mode` class (the Cocoar convention, same as `@cocoar/vue-ui`) **or** the `[data-theme="dark"]` attribute. The values mirror the SwiftUI port's `CalendarTheme.dark` (derived from the vue-ui dark primitives): surfaces `#18181b` / weekend `#212125` / other-month `#131316`, today-tint lifted to ~14% accent (4% is invisible on dark), grid lines `#2c2c30`, borders `#3f3f46`. Two new tokens join the set — `--coar-calendar-agenda-divider` (agenda row separator, near-invisible `#27272a` in dark; falls back to `--coar-calendar-border` in light) and `--coar-calendar-event-default-bg` (fill of events without a `meta.color`: dark accent `#1e3a8a` so the light title text stays readable; falls back to `--coar-color-accent-soft`). The calendar-local text tokens `--coar-text-base` / `--coar-text-subtle` (names not defined by `@cocoar/vue-ui`) get dark values too, so labels flip with the surfaces. Event colors from `meta.color` are intentionally **not** remapped — they render raw in both modes. Light mode is byte-identical to before (light values remain per-usage fallbacks). See the updated [Theming section](/components/calendar/#theming).
+
+### Fixed
+
+- **`@cocoar/vue-calendar` — timed events without `end` no longer render ghost cards on following days.** `layoutDayEvents` applied the default 30-minute duration **after** projecting the start onto the day, so on any day after the event's start day the "before this day" sentinel (−1) yielded a visible 0:00–0:29 interval — a phantom card on **every** later day of the visible window in Week / Day views. The default now only applies when the start actually falls on the laid-out day; end-less events are visible on their start day only. _Heads-up for the SwiftUI port: `TimeGridLayout.swift` replicates the old behaviour fixture-true — regenerate the layout fixtures and port the fix._
+
+---
+
 ## 2.14.0
 
 **Diagrams in Markdown.** A ` ```mermaid ` fenced code block now renders as a diagram, via a new pluggable fence-renderer seam, a standalone `@cocoar/vue-mermaid` renderer and the thin `@cocoar/vue-markdown-mermaid` adapter. The Markdown packages carry **zero** dependency on Mermaid — installing and registering the adapter is the opt-in, and a fence with no registered renderer stays a readable code block, so the Markdown stays portable.

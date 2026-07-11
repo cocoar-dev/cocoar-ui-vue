@@ -195,16 +195,20 @@ Two layers of tokens. **Calendar-specific** tokens are unique to this component 
 
 ### Calendar-specific
 
-| Token | Default | Purpose |
-|---|---|---|
-| `--coar-calendar-bg` | `#fff` | Background of every cell, header, and band. |
-| `--coar-calendar-bg-today` | `rgba(37, 99, 235, 0.04)` | Today highlight on month cells + day-column tint. |
-| `--coar-calendar-bg-weekend` | `#f6f7f9` | Weekend tint (Sat/Sun) on month cells + day-columns. |
-| `--coar-calendar-bg-other-month` | `#fafafb` | Leading / trailing days outside the active month. |
-| `--coar-calendar-border` | `#d1d5db` | Cell borders, header underlines, axis dividers. |
-| `--coar-calendar-grid-line` | `#e3e5e9` | The slot-line gradient inside time-grid columns. |
-| `--coar-time-grid-axis-width` | `80px` | Width of the hour-axis on the left of Day / Week. |
-| `--coar-time-grid-header-height` | _auto_ | Sticky day-of-week header min-height. |
+| Token | Light | Dark | Purpose |
+|---|---|---|---|
+| `--coar-calendar-bg` | `#fff` | `#18181b` | Background of every cell, header, and band. |
+| `--coar-calendar-bg-today` | `rgba(37, 99, 235, 0.04)` | `#2563eb24` | Today highlight on month cells + day-column tint. |
+| `--coar-calendar-bg-weekend` | `#f6f7f9` | `#212125` | Weekend tint (Sat/Sun) on month cells + day-columns. |
+| `--coar-calendar-bg-other-month` | `#fafafb` | `#131316` | Leading / trailing days outside the active month. |
+| `--coar-calendar-border` | `#d1d5db` | `#3f3f46` | Cell borders, header underlines, axis dividers. |
+| `--coar-calendar-grid-line` | `#e3e5e9` | `#2c2c30` | The slot-line gradient inside time-grid columns. |
+| `--coar-calendar-agenda-divider` | → `--coar-calendar-border`, then `#f3f4f6` | `#27272a` | Row separator between agenda entries. |
+| `--coar-calendar-event-default-bg` | → `--coar-color-accent-soft`, then `#93c5fd` | `#1e3a8a` | Fill of events without a `meta.color`. |
+| `--coar-time-grid-axis-width` | `80px` | — | Width of the hour-axis on the left of Day / Week. |
+| `--coar-time-grid-header-height` | _auto_ | — | Sticky day-of-week header min-height. |
+
+Light values are per-usage `var()` fallbacks — the tokens are undefined in light mode, so a single override anywhere wins. Dark values ship with the package stylesheet (see below).
 
 ### Inherited from the design system
 
@@ -213,28 +217,27 @@ Used as direct `var()` references. Override at the design-system level rather th
 | Group | Tokens |
 |---|---|
 | Palette | `--coar-color-accent`, `--coar-color-accent-soft`, `--coar-color-danger`, `--coar-background-accent-primary`, `--coar-background-neutral-primary`, `--coar-background-neutral-tertiary`, `--coar-surface-subtle` |
-| Text | `--coar-text-base`, `--coar-text-subtle`, `--coar-text-neutral-primary` |
+| Text | `--coar-text-base`, `--coar-text-subtle` (calendar-local names — not defined by `@cocoar/vue-ui`; dark values ship with this package), `--coar-text-neutral-primary` |
 | Type | `--coar-font-size-base`, `--coar-font-size-sm`, `--coar-font-size-xs`, `--coar-body-base-family` |
 | Shape | `--coar-radius-md`, `--coar-radius-xs`, `--coar-border-neutral-tertiary` |
 
-### Example: dark theme
+### Dark mode
+
+Dark values for every calendar token ship with the package stylesheet — no consumer CSS needed. They activate on either trigger:
+
+- `.dark-mode` class on `<html>` or any ancestor (the Cocoar convention, same as `@cocoar/vue-ui`)
+- `[data-theme="dark"]` attribute
+
+The values mirror the SwiftUI port (`Cocoar.Calendar.iOS`, `CalendarTheme.dark`), so web and iOS render identically dark. Accent and danger stay scheme-invariant, and event colors provided via `meta.color` are **not** remapped in either mode — dark-safe event palettes are the consumer's responsibility.
+
+To customize, redefine any token under the same trigger after the package styles:
 
 ```css
-.dark .coar-calendar,
-.dark .coar-month-view,
-.dark .coar-day-view,
-.dark .coar-week-view,
-.dark .coar-agenda-view {
-  --coar-calendar-bg: #1a1c1f;
-  --coar-calendar-bg-today: rgba(96, 165, 250, 0.08);
-  --coar-calendar-bg-weekend: #14161a;
-  --coar-calendar-bg-other-month: #111316;
-  --coar-calendar-border: #2a2e34;
-  --coar-calendar-grid-line: #25282d;
+.dark-mode,
+[data-theme='dark'] {
+  --coar-calendar-bg: #101014;
 }
 ```
-
-The DS-level tokens (`--coar-color-accent`, `--coar-text-base`, etc.) typically already flip in your design-system's dark theme — only the calendar-specific tokens need explicit overrides above.
 
 ::: tip RTL
 Layout-mirroring for `direction: rtl` is **not yet** wired (multi-day bars, resize handles, sticky-header positioning all assume LTR). If you need RTL support, open an issue — the math is mostly localised to the bar / handle inset calc()s, but it deserves a deliberate pass with proper test coverage rather than a one-shot patch.
