@@ -34,6 +34,13 @@ const events = ref<CalendarEvent[]>([
     end: Temporal.ZonedDateTime.from('2026-06-16T15:30:00[Europe/Vienna]'),
     meta: { title: 'Design Review' },
   },
+  // Point event (no `end`) — renders with a start edge + translucent
+  // body, right below the Standup for direct comparison.
+  {
+    id: 'call',
+    start: Temporal.ZonedDateTime.from('2026-06-15T10:00:00[Europe/Vienna]'),
+    meta: { title: 'Anruf: Fr. Berger', color: '#f59e0b' },
+  },
   {
     id: 'vacation',
     start: Temporal.PlainDate.from('2026-06-22'),

@@ -15,6 +15,12 @@
  * `variant: 'live'`. The geometry (`top`, `height`, `left`, `width`,
  * `zIndex`) is computed by the parent column from `layoutDayEvents`.
  *
+ * Point events (timed, no `end`) keep the parent's +30-min default
+ * geometry but render distinguishably: a solid start edge in the
+ * event color exactly on the start time, a semi-transparent body
+ * (title stays fully opaque), and no resize handles — there is no
+ * `end` to grab. Values match the SwiftUI port (`EventCard.swift`).
+ *
  * Lives in `internal/` — NOT exported from the package barrel.
  */
 
@@ -96,6 +102,8 @@ const isInteractive = computed(
     props.variant === 'live' ||
     (props.variant === 'preview' && props.kbdActive),
 );
+// In the time grid every card is timed, so a missing `end` ⇒ point event.
+const isPoint = computed(() => props.event.end == null);
 const useCustomSlot = computed(
   () => props.variant === 'live' || props.variant === 'preview',
 );
@@ -134,6 +142,7 @@ function onEndResize(e: PointerEvent) {
       'coar-time-grid-event--invalid': variant === 'invalid',
       'coar-time-grid-event--snap-back': variant === 'invalid' && snappingBack,
       'coar-time-grid-event--density-compact': density === 'compact',
+      'coar-time-grid-event--point': isPoint,
     }"
     :style="{
       top: top + 'px',
@@ -141,8 +150,8 @@ function onEndResize(e: PointerEvent) {
       left,
       width,
       zIndex,
-      background: bg,
-      borderLeft: `3px solid ${border}`,
+      '--event-bg': bg,
+      '--event-border': border,
     }"
     :data-event-id="isInteractive ? event.id : undefined"
     :tabindex="isInteractive ? 0 : -1"
@@ -153,8 +162,16 @@ function onEndResize(e: PointerEvent) {
     @keydown="onKeydown"
     @dblclick="onDblclick"
   >
+    <!-- Start edge — the only "true" piece of duration geometry on a
+         point card. Not drawn when clippedTop: the card's top edge is
+         then the visible window, not the start time. -->
     <div
-      v-if="isInteractive"
+      v-if="isPoint && !clippedTop"
+      class="coar-time-grid-event__point-edge"
+      aria-hidden="true"
+    />
+    <div
+      v-if="isInteractive && !isPoint"
       class="coar-time-grid-event__resize coar-time-grid-event__resize--top"
       aria-hidden="true"
       @pointerdown="onStartResize"
@@ -174,7 +191,7 @@ function onEndResize(e: PointerEvent) {
       </span>
     </div>
     <div
-      v-if="isInteractive"
+      v-if="isInteractive && !isPoint"
       class="coar-time-grid-event__resize coar-time-grid-event__resize--bottom"
       aria-hidden="true"
       @pointerdown="onEndResize"
@@ -195,6 +212,27 @@ function onEndResize(e: PointerEvent) {
      still allow native scroll for the page. */
   touch-action: none;
   contain: layout paint;
+  /* --event-bg / --event-border come in via the inline :style. */
+  background: var(--event-bg);
+  border-left: 3px solid var(--event-border);
+}
+/* Point events (no `end`) — the body is tap target + label carrier,
+ * not a duration statement: fill AND leading bar mixed toward
+ * transparent. Mixing the color (instead of `opacity` on the element)
+ * keeps title + decorations opaque. Tokens are scheme-invariant and
+ * value-matched to the SwiftUI port (`pointEventEdgeHeight` /
+ * `pointEventBodyOpacity` in CalendarTheme.swift). */
+.coar-time-grid-event--point {
+  background: color-mix(
+    in srgb,
+    var(--event-bg) calc(var(--coar-calendar-point-body-opacity, 0.38) * 100%),
+    transparent
+  );
+  border-left-color: color-mix(
+    in srgb,
+    var(--event-border) calc(var(--coar-calendar-point-body-opacity, 0.38) * 100%),
+    transparent
+  );
 }
 .coar-time-grid-event--clipped-top {
   border-top-left-radius: 0;
@@ -267,6 +305,18 @@ function onEndResize(e: PointerEvent) {
   overflow: hidden;
   text-overflow: ellipsis;
   display: block;
+}
+
+/* Point events — solid start edge in the (undimmed) event color. */
+.coar-time-grid-event__point-edge {
+  background: var(--event-border);
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--coar-calendar-point-edge-height, 3px);
+  pointer-events: none;
+  z-index: 1;
 }
 
 /* Resize handles — top edge for start, bottom edge for end. */

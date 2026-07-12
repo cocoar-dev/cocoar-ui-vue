@@ -91,6 +91,10 @@ Full reference: see [the composer's API reference](/components/calendar/coar-cal
 
 Multi-day events that touch any visible day are split into one bar per row, each clipped to the row. Single-day all-day events appear in the same band. Cluster-aware lane sizing means a busy day doesn't unfairly narrow events on quieter days in the same week.
 
+## Point events (timed, no `end`)
+
+A timed event without `end` keeps the default 30-minute slot geometry but renders distinguishably from a real 30-minute event: a solid start edge in the event color sits exactly on the start time, and the card body drops to ~38 % fill opacity — the title stays fully opaque. Resize handles are suppressed (there is no `end` to grab). Month and Agenda render point events unchanged. The look matches the SwiftUI port; tune it via `--coar-calendar-point-edge-height` / `--coar-calendar-point-body-opacity` (see [Theming](/components/calendar/#theming)).
+
 ## Imperative API
 
 ```ts

@@ -131,4 +131,73 @@ describe('<CoarTimeGridEvent>', () => {
       );
     });
   });
+
+  describe('point events (timed, no end)', () => {
+    const pointEvent: CalendarEvent = {
+      id: 'p1',
+      start: zdt('2026-04-15T14:00:00'),
+      meta: { title: 'Anruf', color: '#abcdef' },
+    };
+    // layoutDayEvents applies the +30-min default; the card keeps
+    // that slot geometry — only the skin changes.
+    const pointPositioned: PositionedEvent = {
+      event: pointEvent,
+      startMinutes: 840,
+      endMinutes: 870,
+      lane: 0,
+      laneCount: 1,
+      clippedTop: false,
+      clippedBottom: false,
+    };
+
+    function mountPoint(propsOverride: Record<string, unknown> = {}) {
+      return mountEvent({
+        event: pointEvent,
+        positioned: pointPositioned,
+        ...propsOverride,
+      });
+    }
+
+    it('applies the --point modifier class', () => {
+      const wrapper = mountPoint();
+      expect(wrapper.find('.coar-time-grid-event').classes()).toContain(
+        'coar-time-grid-event--point',
+      );
+    });
+
+    it('renders the start edge (colored via --event-border)', () => {
+      const wrapper = mountPoint();
+      expect(wrapper.find('.coar-time-grid-event__point-edge').exists()).toBe(true);
+      // The edge + the color-mix'd body both read the custom
+      // properties forwarded on the root's inline style.
+      const style = wrapper.find('.coar-time-grid-event').attributes('style') ?? '';
+      expect(style).toContain('--event-border: #0070f3');
+      expect(style).toContain('--event-bg: #abcdef');
+    });
+
+    it('does not dim the element itself (title must stay opaque)', () => {
+      const wrapper = mountPoint();
+      const style = wrapper.find('.coar-time-grid-event').attributes('style') ?? '';
+      expect(style).not.toMatch(/(?:^|;)\s*opacity:/);
+    });
+
+    it('suppresses both resize handles', () => {
+      const wrapper = mountPoint();
+      expect(wrapper.find('.coar-time-grid-event__resize--top').exists()).toBe(false);
+      expect(wrapper.find('.coar-time-grid-event__resize--bottom').exists()).toBe(false);
+    });
+
+    it('does not draw the start edge when clippedTop', () => {
+      const wrapper = mountPoint({ clippedTop: true });
+      expect(wrapper.find('.coar-time-grid-event__point-edge').exists()).toBe(false);
+    });
+
+    it('leaves a normal card (with end) untouched', () => {
+      const wrapper = mountEvent();
+      const root = wrapper.find('.coar-time-grid-event');
+      expect(root.classes()).not.toContain('coar-time-grid-event--point');
+      expect(wrapper.find('.coar-time-grid-event__point-edge').exists()).toBe(false);
+      expect(wrapper.find('.coar-time-grid-event__resize--top').exists()).toBe(true);
+    });
+  });
 });

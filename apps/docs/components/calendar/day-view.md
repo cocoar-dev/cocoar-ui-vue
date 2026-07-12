@@ -50,6 +50,10 @@ Constrain the visible hour range via `timeRange([startHour, endHour])` and tight
 
 <preview path="./demos/DayViewWorkingHours.vue" />
 
+## Point events (timed, no `end`)
+
+A timed event without `end` keeps the default 30-minute slot geometry but renders distinguishably from a real 30-minute event: a solid start edge in the event color sits exactly on the start time, and the card body drops to ~38 % fill opacity — the title stays fully opaque. Resize handles are suppressed (there is no `end` to grab). Month and Agenda render point events unchanged. The look matches the SwiftUI port; tune it via `--coar-calendar-point-edge-height` / `--coar-calendar-point-body-opacity` (see [Theming](/components/calendar/#theming)).
+
 ## Inside `<CoarCalendar>`
 
 `<CoarCalendar>` and `<CoarDayView>` consume the SAME `CalendarBuilder` instance — there's no sub-builder forking. Time-grid config goes directly on the composer's builder:

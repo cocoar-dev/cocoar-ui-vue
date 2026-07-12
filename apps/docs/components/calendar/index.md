@@ -205,6 +205,8 @@ Two layers of tokens. **Calendar-specific** tokens are unique to this component 
 | `--coar-calendar-grid-line` | `#e3e5e9` | `#2c2c30` | The slot-line gradient inside time-grid columns. |
 | `--coar-calendar-agenda-divider` | → `--coar-calendar-border`, then `#f3f4f6` | `#27272a` | Row separator between agenda entries. |
 | `--coar-calendar-event-default-bg` | → `--coar-color-accent-soft`, then `#93c5fd` | `#1e3a8a` | Fill of events without a `meta.color`. |
+| `--coar-calendar-point-edge-height` | `3px` | — | Start-edge bar on point events (timed, no `end`) in Day / Week. |
+| `--coar-calendar-point-body-opacity` | `0.38` | — | Body fill opacity of point events (title stays fully opaque). |
 | `--coar-time-grid-axis-width` | `80px` | — | Width of the hour-axis on the left of Day / Week. |
 | `--coar-time-grid-header-height` | _auto_ | — | Sticky day-of-week header min-height. |
 
