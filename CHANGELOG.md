@@ -7,6 +7,16 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 2.16.0
+
+**Point events, visually honest.** A timed event without `end` (a "point event" — think *call at 14:00*) previously rendered over the +30-minute layout default in the exact same card as a real 30-minute meeting, so *call at 14:00* and *standup 14:00–14:30* were indistinguishable in Day / Week. The card now says what it knows: the start time — and nothing more.
+
+### Added
+
+- **`@cocoar/vue-calendar` — distinguishable rendering for point events in the time grid.** A timed event without `end` keeps its +30-minute slot geometry (layout math untouched — the card geometry of the web and SwiftUI ports stays identical) but renders with a solid start edge in the event color exactly on the start time, a semi-transparent card body (fill and leading bar mixed toward transparent; the **title stays fully opaque** — the body is tap target + label carrier, not a duration statement), and **no resize handles** (there is no `end` to grab; moving still works). The start edge is suppressed when the card is clipped at the top of the visible window, since the top edge then isn't the start time. Month and Agenda render point events unchanged — they draw no duration geometry. Two new scheme-invariant theme tokens: `--coar-calendar-point-edge-height` (default `3px`) and `--coar-calendar-point-body-opacity` (default `0.38`), value-matched to the SwiftUI port (`Cocoar.Calendar.iOS` `0eef2e0`), so web and iOS point events look alike. See the updated [Day](/components/calendar/day-view) / [Week](/components/calendar/week-view) pages.
+
+---
+
 ## 2.15.0
 
 **Calendar dark mode, out of the box** — plus a ghost-card layout fix. The calendar grid previously stayed white in a dark app shell because the `--coar-calendar-*` tokens only existed as hardcoded light fallbacks; the package now ships a full dark palette, value-identical to the SwiftUI port (`Cocoar.Calendar.iOS`), so web and iOS render the same dark calendar.
