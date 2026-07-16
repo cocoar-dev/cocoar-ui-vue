@@ -34,8 +34,8 @@ function setRequired(v: boolean) {
 <template>
   <CoarFormField :label="t('coar.pageBuilder.props.label', undefined, 'Label')">
     <CoarTextInput
-      :model-value="props.node.label ?? ''"
-      @update:model-value="(v) => props.patch({ label: v })"
+      :model-value="props.node.props.label ?? ''"
+      @update:model-value="(v) => props.patch({ props: { label: v } })"
     />
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.name', undefined, 'Name (field key)')">
@@ -49,22 +49,22 @@ function setRequired(v: boolean) {
       clearable
       :min="3"
       :max="12"
-      :model-value="props.node.length ?? null"
+      :model-value="props.node.props.length ?? null"
       :placeholder="'6'"
-      @update:model-value="(v) => props.patch({ length: v ?? undefined })"
+      @update:model-value="(v) => props.patch({ props: { length: v ?? undefined } })"
     />
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.otpType', undefined, 'Character set')">
     <CoarSelect
-      :model-value="props.node.otpType ?? 'numeric'"
+      :model-value="props.node.props.otpType ?? 'numeric'"
       :options="OTP_TYPE_OPTIONS"
-      @update:model-value="(v) => props.patch({ otpType: v as OtpInputNode['otpType'] })"
+      @update:model-value="(v) => props.patch({ props: { otpType: v as OtpInputNode['props']['otpType'] } })"
     />
   </CoarFormField>
   <CoarCheckbox
-    :model-value="!!props.node.mask"
+    :model-value="!!props.node.props.mask"
     :label="t('coar.pageBuilder.props.mask', undefined, 'Mask input')"
-    @update:model-value="(v) => props.patch({ mask: v || undefined })"
+    @update:model-value="(v) => props.patch({ props: { mask: v || undefined } })"
   />
   <CoarCheckbox
     :model-value="!!props.node.validation?.required"
@@ -72,8 +72,8 @@ function setRequired(v: boolean) {
     @update:model-value="setRequired"
   />
   <CoarCheckbox
-    :model-value="!!props.node.disabled"
+    :model-value="!!props.node.props.disabled"
     :label="t('coar.pageBuilder.props.disabled', undefined, 'Disabled')"
-    @update:model-value="(v) => props.patch({ disabled: v })"
+    @update:model-value="(v) => props.patch({ props: { disabled: v } })"
   />
 </template>

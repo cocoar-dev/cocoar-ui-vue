@@ -63,36 +63,36 @@ export function useSchemaValidation(
 
       // ── Buttons & links: action wiring ─────────────────────────────────
       if (n.type === 'button') {
-        if (!n.action) {
+        if (!n.props.action) {
           out.push({
             nodeId: n.id,
             field: 'action',
             severity: 'warning',
             message: 'Button has no Action — clicking it will do nothing.',
           });
-        } else if (hasAvailableActions && !knownActions.has(n.action)) {
+        } else if (hasAvailableActions && !knownActions.has(n.props.action)) {
           out.push({
             nodeId: n.id,
             field: 'action',
             severity: 'warning',
-            message: `Action "${n.action}" is not in config.availableActions.`,
+            message: `Action "${n.props.action}" is not in config.availableActions.`,
           });
         }
       }
       if (n.type === 'link') {
-        if (!n.action) {
+        if (!n.props.action) {
           out.push({
             nodeId: n.id,
             field: 'action',
             severity: 'warning',
             message: 'Link has no Action — clicking it will do nothing.',
           });
-        } else if (hasAvailableActions && !knownActions.has(n.action)) {
+        } else if (hasAvailableActions && !knownActions.has(n.props.action)) {
           out.push({
             nodeId: n.id,
             field: 'action',
             severity: 'warning',
-            message: `Action "${n.action}" is not in config.availableActions.`,
+            message: `Action "${n.props.action}" is not in config.availableActions.`,
           });
         }
       }
@@ -109,7 +109,7 @@ export function useSchemaValidation(
       }
 
       // ── Image: assetId required ────────────────────────────────────────
-      if (n.type === 'image' && !n.assetId) {
+      if (n.type === 'image' && !n.props.assetId) {
         out.push({
           nodeId: n.id,
           field: 'assetId',

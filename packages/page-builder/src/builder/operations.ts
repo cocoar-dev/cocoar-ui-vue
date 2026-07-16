@@ -116,6 +116,23 @@ export function patchNode(root: PageNode, path: NodePath, patch: Partial<PageNod
   let hasChange = false;
   for (const [k, v] of Object.entries(patch)) {
     if (k === 'type' || k === 'id') continue;
+    // `props` merges one level deep with the same delete-on-empty semantics
+    // per bag key — panels patch individual element props, never the whole bag.
+    if (k === 'props' && v !== null && typeof v === 'object') {
+      const currentBag = (current.props ?? {}) as Record<string, unknown>;
+      const nextBag: Record<string, unknown> = { ...currentBag };
+      let bagChanged = false;
+      for (const [pk, pv] of Object.entries(v)) {
+        const isClear = pv === '' || pv === null || pv === undefined;
+        if (isClear) {
+          if (currentBag[pk] !== undefined) { delete nextBag[pk]; bagChanged = true; }
+        } else if (currentBag[pk] !== pv) {
+          nextBag[pk] = pv; bagChanged = true;
+        }
+      }
+      if (bagChanged) { merged.props = nextBag; hasChange = true; }
+      continue;
+    }
     const isClear = v === '' || v === null || v === undefined;
     if (isClear) {
       if (current[k] !== undefined) { delete merged[k]; hasChange = true; }

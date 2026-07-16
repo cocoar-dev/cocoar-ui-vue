@@ -18,30 +18,30 @@ const { t } = useI18n();
       <button
         type="button"
         class="pb-prop-seg__btn"
-        :class="{ 'pb-prop-seg__btn--active': (props.node.direction ?? 'column') === 'column' }"
+        :class="{ 'pb-prop-seg__btn--active': (props.node.props.direction ?? 'column') === 'column' }"
         role="radio"
-        :aria-checked="(props.node.direction ?? 'column') === 'column'"
-        @click="props.patch({ direction: 'column' })"
+        :aria-checked="(props.node.props.direction ?? 'column') === 'column'"
+        @click="props.patch({ props: { direction: 'column' } })"
       >
         ↓ {{ t('coar.pageBuilder.props.column', undefined, 'Column') }}
       </button>
       <button
         type="button"
         class="pb-prop-seg__btn"
-        :class="{ 'pb-prop-seg__btn--active': props.node.direction === 'row' }"
+        :class="{ 'pb-prop-seg__btn--active': props.node.props.direction === 'row' }"
         role="radio"
-        :aria-checked="props.node.direction === 'row'"
-        @click="props.patch({ direction: 'row' })"
+        :aria-checked="props.node.props.direction === 'row'"
+        @click="props.patch({ props: { direction: 'row' } })"
       >
         → {{ t('coar.pageBuilder.props.row', undefined, 'Row') }}
       </button>
     </div>
   </div>
   <CoarCheckbox
-    v-if="props.node.direction === 'row'"
-    :model-value="!!props.node.wrap"
+    v-if="props.node.props.direction === 'row'"
+    :model-value="!!props.node.props.wrap"
     :label="t('coar.pageBuilder.props.wrapChildren', undefined, 'Wrap children')"
-    @update:model-value="(v) => props.patch({ wrap: v })"
+    @update:model-value="(v) => props.patch({ props: { wrap: v } })"
   />
 </template>
 

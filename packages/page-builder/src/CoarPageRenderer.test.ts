@@ -18,8 +18,8 @@ describe('CoarPageRenderer — tampered-schema robustness', () => {
       id: 'r',
       type: 'page',
       children: [
-        { id: 'h', type: 'heading', text: 'Still here', level: '1 onclick=alert(1)' },
-        { id: 'p', type: 'paragraph', text: 'Sibling survives' },
+        { id: 'h', type: 'heading', props: { text: 'Still here', level: '1 onclick=alert(1)' } },
+        { id: 'p', type: 'paragraph', props: { text: 'Sibling survives' } },
       ],
     } as unknown as PageNode;
 
@@ -32,7 +32,7 @@ describe('CoarPageRenderer — tampered-schema robustness', () => {
     const schema: PageNode = {
       id: 'r',
       type: 'page',
-      children: [{ id: 'h', type: 'heading', text: 'Five', level: 5 }],
+      children: [{ id: 'h', type: 'heading', props: { text: 'Five', level: 5 } }],
     };
     const wrapper = mount(CoarPageRenderer, { props: { schema } });
     expect(wrapper.find('h5').exists()).toBe(true);
@@ -48,11 +48,11 @@ describe('CoarPageRenderer — tampered-schema robustness', () => {
           id: 't',
           type: 'text-input',
           name: 'code',
-          label: 'Code',
+          props: { label: 'Code' },
           defaultValue: 'anything',
           validation: { pattern: '[' },
         },
-        { id: 'b', type: 'button', label: 'Send', action: 'send', validates: true },
+        { id: 'b', type: 'button', props: { label: 'Send', action: 'send', validates: true } },
       ],
     };
 
@@ -75,10 +75,11 @@ describe('CoarPageRenderer — tampered-schema robustness', () => {
           id: 't',
           type: 'text-input',
           name: 'digits',
+          props: {},
           defaultValue,
           validation: { pattern: '\\d+' },
         },
-        { id: 'b', type: 'button', label: 'Send', action: 'send', validates: true },
+        { id: 'b', type: 'button', props: { label: 'Send', action: 'send', validates: true } },
       ],
     });
 
@@ -106,8 +107,8 @@ describe('CoarPageRenderer — tampered-schema robustness', () => {
       id: 'r',
       type: 'page',
       children: [
-        { id: 's', type: 'stack', children: 'oops' },
-        { id: 'b', type: 'button', label: 'Send', action: 'send', validates: true },
+        { id: 's', type: 'stack', props: {}, children: 'oops' },
+        { id: 'b', type: 'button', props: { label: 'Send', action: 'send', validates: true } },
       ],
     } as unknown as PageNode;
 
@@ -119,7 +120,7 @@ describe('CoarPageRenderer — tampered-schema robustness', () => {
 
 describe('CoarPageRenderer — validation contract', () => {
   const validatesButton: PageNode['children'][number] = {
-    id: 'b', type: 'button', label: 'Send', action: 'send', validates: true,
+    id: 'b', type: 'button', props: { label: 'Send', action: 'send', validates: true },
   } as never;
 
   it('keeps the validating button clickable and reveals errors on click instead of running the action', async () => {
@@ -129,11 +130,14 @@ describe('CoarPageRenderer — validation contract', () => {
       type: 'page',
       children: [
         {
-          id: 's', type: 'select', name: 'plan', label: 'Plan',
-          options: [{ value: 'a', label: 'A' }],
+          id: 's', type: 'select', name: 'plan',
+          props: { label: 'Plan', options: [{ value: 'a', label: 'A' }] },
           validation: { required: true },
         },
-        { id: 'c', type: 'checkbox', name: 'terms', label: 'Terms', validation: { required: true } },
+        {
+          id: 'c', type: 'checkbox', name: 'terms', props: { label: 'Terms' },
+          validation: { required: true },
+        },
         validatesButton,
       ],
     };
@@ -158,7 +162,10 @@ describe('CoarPageRenderer — validation contract', () => {
       id: 'r',
       type: 'page',
       children: [
-        { id: 't', type: 'text-input', name: 'email', label: 'Email', defaultValue: 'x@y.z' },
+        {
+          id: 't', type: 'text-input', name: 'email', props: { label: 'Email' },
+          defaultValue: 'x@y.z',
+        },
         validatesButton,
       ],
     };
@@ -185,7 +192,7 @@ describe('CoarPageRenderer — validation contract', () => {
       id: 'r',
       type: 'page',
       children: [
-        { id: 't', type: 'text-input', name: 'email', defaultValue: 'x@y.z' },
+        { id: 't', type: 'text-input', name: 'email', props: {}, defaultValue: 'x@y.z' },
         validatesButton,
       ],
     };
@@ -207,7 +214,7 @@ describe('CoarPageRenderer — validation contract', () => {
       children: [
         // Disallowed AND invalid — must not block the button, must not leak a value.
         {
-          id: 'hidden', type: 'text-input', name: 'secret', defaultValue: 'leak',
+          id: 'hidden', type: 'text-input', name: 'secret', props: {}, defaultValue: 'leak',
           validation: { required: true },
         },
         validatesButton,
@@ -232,23 +239,41 @@ describe('CoarPageRenderer — expanded element set', () => {
       id: 'r',
       type: 'page',
       children: [
-        { id: 'n1', type: 'number-input', name: 'amount', label: 'Amount', defaultValue: 42 },
-        { id: 's1', type: 'switch', name: 'newsletter', label: 'Newsletter', defaultValue: true },
         {
-          id: 'rg', type: 'radio-group', name: 'plan', label: 'Plan', defaultValue: 'pro',
-          options: [{ value: 'free', label: 'Free' }, { value: 'pro', label: 'Pro' }],
+          id: 'n1', type: 'number-input', name: 'amount', props: { label: 'Amount' },
+          defaultValue: 42,
         },
         {
-          id: 'ms', type: 'multi-select', name: 'topics', label: 'Topics', defaultValue: ['a'],
-          options: [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }],
+          id: 's1', type: 'switch', name: 'newsletter', props: { label: 'Newsletter' },
+          defaultValue: true,
         },
-        { id: 'otp', type: 'otp-input', name: 'code', label: 'Code', defaultValue: '123456' },
-        { id: 'd1', type: 'date-input', name: 'from', label: 'From', defaultValue: '2026-01-15' },
         {
-          id: 'dt1', type: 'datetime-input', name: 'meeting', label: 'Meeting',
+          id: 'rg', type: 'radio-group', name: 'plan', defaultValue: 'pro',
+          props: {
+            label: 'Plan',
+            options: [{ value: 'free', label: 'Free' }, { value: 'pro', label: 'Pro' }],
+          },
+        },
+        {
+          id: 'ms', type: 'multi-select', name: 'topics', defaultValue: ['a'],
+          props: {
+            label: 'Topics',
+            options: [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }],
+          },
+        },
+        {
+          id: 'otp', type: 'otp-input', name: 'code', props: { label: 'Code' },
+          defaultValue: '123456',
+        },
+        {
+          id: 'd1', type: 'date-input', name: 'from', props: { label: 'From' },
+          defaultValue: '2026-01-15',
+        },
+        {
+          id: 'dt1', type: 'datetime-input', name: 'meeting', props: { label: 'Meeting' },
           defaultValue: '2026-01-15T09:30:00',
         },
-        { id: 'b', type: 'button', label: 'Send', action: 'send' },
+        { id: 'b', type: 'button', props: { label: 'Send', action: 'send' } },
       ],
     };
 
@@ -274,14 +299,15 @@ describe('CoarPageRenderer — expanded element set', () => {
       type: 'page',
       children: [
         {
-          id: 'ms', type: 'multi-select', name: 'topics', label: 'Topics',
-          options: [{ value: 'a', label: 'A' }], validation: { required: true },
-        },
-        {
-          id: 'otp', type: 'otp-input', name: 'code', label: 'Code', defaultValue: '123',
+          id: 'ms', type: 'multi-select', name: 'topics',
+          props: { label: 'Topics', options: [{ value: 'a', label: 'A' }] },
           validation: { required: true },
         },
-        { id: 'b', type: 'button', label: 'Send', action: 'send', validates: true },
+        {
+          id: 'otp', type: 'otp-input', name: 'code', props: { label: 'Code' },
+          defaultValue: '123', validation: { required: true },
+        },
+        { id: 'b', type: 'button', props: { label: 'Send', action: 'send', validates: true } },
       ],
     };
 
@@ -300,13 +326,13 @@ describe('CoarPageRenderer — expanded element set', () => {
       children: [
         {
           id: 'ms', type: 'multi-select', name: 'topics', defaultValue: ['a'],
-          options: [{ value: 'a', label: 'A' }], validation: { required: true },
+          props: { options: [{ value: 'a', label: 'A' }] }, validation: { required: true },
         },
         {
-          id: 'otp', type: 'otp-input', name: 'code', length: 4, defaultValue: '1234',
+          id: 'otp', type: 'otp-input', name: 'code', props: { length: 4 }, defaultValue: '1234',
           validation: { required: true },
         },
-        { id: 'b', type: 'button', label: 'Send', action: 'send', validates: true },
+        { id: 'b', type: 'button', props: { label: 'Send', action: 'send', validates: true } },
       ],
     };
 
@@ -321,12 +347,12 @@ describe('CoarPageRenderer — expanded element set', () => {
       id: 'r',
       type: 'page',
       children: [
-        { id: 'note', type: 'note', text: 'Heads up!', variant: 'warning' },
+        { id: 'note', type: 'note', props: { text: 'Heads up!', variant: 'warning' } },
         {
           id: 'rg', type: 'radio-group', name: 'plan',
-          options: [{ value: 'x', label: 'Option X' }],
+          props: { options: [{ value: 'x', label: 'Option X' }] },
         },
-        { id: 'd', type: 'date-input', name: 'from', defaultValue: 'not-a-date' },
+        { id: 'd', type: 'date-input', name: 'from', props: {}, defaultValue: 'not-a-date' },
       ],
     } as unknown as PageNode;
 
@@ -340,7 +366,7 @@ describe('CoarPageRenderer — expanded element set', () => {
     const schema: PageNode = {
       id: 'r',
       type: 'page',
-      children: [{ id: 't', type: 'text-input', name: 'bio', rows: 4 }],
+      children: [{ id: 't', type: 'text-input', name: 'bio', props: { rows: 4 } }],
     };
     const wrapper = mount(CoarPageRenderer, { props: { schema } });
     expect(wrapper.find('textarea').exists()).toBe(true);
@@ -360,11 +386,35 @@ describe('CoarPageRenderer — schema & config contract', () => {
     expect(wrapper.text()).toContain('Legacy content');
   });
 
+  it('renders and submits a v1 FLAT schema identically (on-the-fly props-bag migration)', async () => {
+    const send = vi.fn();
+    const schema = {
+      id: 'r',
+      type: 'page',
+      children: [
+        { id: 'h', type: 'heading', text: 'Legacy title', level: 3 },
+        {
+          id: 't', type: 'text-input', name: 'email', label: 'Email',
+          defaultValue: 'x@y.z', validation: { required: true },
+        },
+        { id: 'b', type: 'button', label: 'Send', action: 'send', validates: true },
+      ],
+    } as unknown as PageNode;
+
+    const wrapper = mount(CoarPageRenderer, { props: { schema, actions: { send } } });
+    expect(wrapper.find('h3').text()).toBe('Legacy title');
+    expect(wrapper.text()).toContain('Email');
+
+    await wrapper.find('button.pb-button').trigger('click');
+    await flushPromises();
+    expect(send).toHaveBeenCalledWith({ email: 'x@y.z' });
+  });
+
   it('falls back to config.assetResolver when no assetResolver prop is given', () => {
     const schema: PageNode = {
       id: 'r',
       type: 'page',
-      children: [{ id: 'i', type: 'image', assetId: 'a1', alt: 'pic' }],
+      children: [{ id: 'i', type: 'image', props: { assetId: 'a1', alt: 'pic' } }],
     };
     const wrapper = mount(CoarPageRenderer, {
       props: { schema, config: { assetResolver: (id: string) => `/cdn/${id}` } },
@@ -376,11 +426,68 @@ describe('CoarPageRenderer — schema & config contract', () => {
     const schema: PageNode = {
       id: 'r',
       type: 'page',
-      children: [{ id: 't', type: 'text-input', name: 'email', inputType: 'email' }],
+      children: [{ id: 't', type: 'text-input', name: 'email', props: { inputType: 'email' } }],
     };
     const wrapper = mount(CoarPageRenderer, { props: { schema } });
     const input = wrapper.find('input');
     expect(input.attributes('type')).toBe('email');
     expect(input.attributes('autocomplete')).toBe('email');
+  });
+});
+
+describe('CoarPageRenderer — initialValues', () => {
+  const schema: PageNode = {
+    id: 'r',
+    type: 'page',
+    children: [
+      {
+        id: 't', type: 'text-input', name: 'email', props: { label: 'Email' },
+        defaultValue: 'default@y.z',
+      },
+      { id: 'n', type: 'number-input', name: 'amount', props: {}, defaultValue: 5 },
+      { id: 'b', type: 'button', props: { label: 'Send', action: 'send' } },
+    ],
+  };
+
+  it('seeds host values over schema defaults', async () => {
+    const send = vi.fn();
+    const wrapper = mount(CoarPageRenderer, {
+      props: { schema, actions: { send }, initialValues: { email: 'host@y.z' } },
+    });
+
+    await wrapper.find('button.pb-button').trigger('click');
+    await flushPromises();
+    // Seeded key wins; untouched defaults stay.
+    expect(send).toHaveBeenCalledWith({ email: 'host@y.z', amount: 5 });
+  });
+
+  it('ignores keys that match no named field', async () => {
+    const send = vi.fn();
+    const wrapper = mount(CoarPageRenderer, {
+      props: {
+        schema, actions: { send },
+        initialValues: { email: 'host@y.z', stray: 'never-leaks' },
+      },
+    });
+
+    await wrapper.find('button.pb-button').trigger('click');
+    await flushPromises();
+    expect(send).toHaveBeenCalledWith({ email: 'host@y.z', amount: 5 });
+    expect(send.mock.calls[0][0]).not.toHaveProperty('stray');
+  });
+
+  it('re-initializes when the prop reference is replaced', async () => {
+    const send = vi.fn();
+    const wrapper = mount(CoarPageRenderer, {
+      props: { schema, actions: { send }, initialValues: { email: 'first@y.z' } },
+    });
+    expect(wrapper.find('input').element.value).toBe('first@y.z');
+
+    await wrapper.setProps({ initialValues: { email: 'second@y.z' } });
+    expect(wrapper.find('input').element.value).toBe('second@y.z');
+
+    await wrapper.find('button.pb-button').trigger('click');
+    await flushPromises();
+    expect(send).toHaveBeenCalledWith({ email: 'second@y.z', amount: 5 });
   });
 });

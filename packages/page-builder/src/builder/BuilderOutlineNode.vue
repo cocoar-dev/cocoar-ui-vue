@@ -56,19 +56,19 @@ const isSelected = computed(() => {
 });
 
 const nodeLabel = computed(() => {
-  const n = props.node as PageNode & { text?: string; label?: string; title?: string };
+  const n = props.node as PageNode & { props?: { text?: string; label?: string; title?: string } };
   if (n.type === 'page') {
     const meta = ELEMENT_TYPE_META.page;
     return t(meta.labelKey, undefined, meta.labelFallback);
   }
   if (n.type === 'stack') {
-    return (n as PageNode & { direction?: string }).direction === 'row'
+    return (n.props as { direction?: string } | undefined)?.direction === 'row'
       ? t('coar.pageBuilder.outline.row', undefined, 'Row')
       : t('coar.pageBuilder.outline.column', undefined, 'Column');
   }
-  if (n.text) return String(n.text);
-  if (n.label) return String(n.label);
-  if (n.title) return String(n.title);
+  if (n.props?.text) return String(n.props.text);
+  if (n.props?.label) return String(n.props.label);
+  if (n.props?.title) return String(n.props.title);
   return n.type;
 });
 

@@ -10,7 +10,7 @@ import type { HeadingNode } from '../../schema';
 
 const props = defineProps<{
   node: HeadingNode;
-  patch: (update: Partial<HeadingNode>) => void;
+  patch: (update: Partial<Omit<HeadingNode, 'props'>> & { props?: Partial<HeadingNode['props']> }) => void;
 }>();
 
 const { t } = useI18n();
@@ -28,15 +28,15 @@ const LEVEL_OPTIONS: CoarSelectOption<number>[] = [
 <template>
   <CoarFormField :label="t('coar.pageBuilder.props.text', undefined, 'Text')">
     <CoarTextInput
-      :model-value="props.node.text ?? ''"
-      @update:model-value="(v) => props.patch({ text: v })"
+      :model-value="props.node.props.text ?? ''"
+      @update:model-value="(v) => props.patch({ props: { text: v } })"
     />
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.level', undefined, 'Level')">
     <CoarSelect
-      :model-value="props.node.level ?? 2"
+      :model-value="props.node.props.level ?? 2"
       :options="LEVEL_OPTIONS"
-      @update:model-value="(v) => props.patch({ level: v as 1 | 2 | 3 | 4 | 5 | 6 })"
+      @update:model-value="(v) => props.patch({ props: { level: v as 1 | 2 | 3 | 4 | 5 | 6 } })"
     />
   </CoarFormField>
 </template>

@@ -71,70 +71,194 @@ export interface ElementNode<
   children?: PageNode[]
 }
 
-// ─── Layout / Containers ──────────────────────────────────────────────────────
+/** Marker bag for elements without element-specific props. */
+export type EmptyProps = Record<string, never>
 
-/** Root-level page container. Behaves like a column; always the schema root. */
+/** Option entry shared by the option-based inputs (radio-group, select, multi-select). */
+export interface OptionItem {
+  value: string
+  label: string
+}
+
+// ─── Root ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Root-level page container. Behaves like a column; always the schema root.
+ * The one node shape outside the element grammar — it is a schema-shape
+ * marker, not a placeable element, and carries the wire-format version.
+ */
 export interface PageRootNode extends PageNodeBase {
   type: 'page'
   /**
-   * Wire-format version, reserved for the future migration framework. The
-   * builder stamps `1` on new and normalized roots; renderers tolerate and
-   * preserve it. Absent = pre-versioning document.
+   * Wire-format version. `2` = unified props-bag grammar (current). `1` /
+   * absent = the pre-GA flat grammar, migrated transparently on ingest by
+   * `normalizePageSchema` (and on the fly by the renderer).
    */
   schemaVersion?: number
   children: PageNode[]
 }
 
+// ─── Built-in elements ────────────────────────────────────────────────────────
+// Aliases over the unified grammar. Containers narrow `children` to required.
+
 /**
  * Generic flex container. Direction is toggleable in the props panel, so users
  * never have to delete + recreate to switch between vertical and horizontal stacks.
  */
-export interface StackNode extends PageNodeBase {
-  type: 'stack'
+export interface StackNode extends ElementNode<'stack', {
   /** Flex direction. Defaults to 'column'. */
   direction?: 'column' | 'row'
   /** Wrap children to the next line. Only meaningful for direction = 'row'. */
   wrap?: boolean
-  children: PageNode[]
-}
+}> { children: PageNode[] }
 
-export interface CardNode extends PageNodeBase {
-  type: 'card'
+export interface CardNode extends ElementNode<'card', {
   title?: string
-  children: PageNode[]
-}
+}> { children: PageNode[] }
 
-export interface SectionNode extends PageNodeBase {
-  type: 'section'
+export interface SectionNode extends ElementNode<'section', {
   title?: string
-  children: PageNode[]
-}
+}> { children: PageNode[] }
 
-export interface DividerNode extends PageNodeBase {
-  type: 'divider'
-}
+export type DividerNode = ElementNode<'divider', EmptyProps>
 
-export interface SpacerNode extends PageNodeBase {
-  type: 'spacer'
+export type SpacerNode = ElementNode<'spacer', {
   /** CSS size, e.g. '24px'. Defaults to flex:1 (fills available space). */
   size?: string
-}
+}>
 
-// ─── Typography ───────────────────────────────────────────────────────────────
-
-export interface HeadingNode extends PageNodeBase {
-  type: 'heading'
+export type HeadingNode = ElementNode<'heading', {
   text: string
   level?: 1 | 2 | 3 | 4 | 5 | 6
-}
+}>
 
-export interface ParagraphNode extends PageNodeBase {
-  type: 'paragraph'
+export type ParagraphNode = ElementNode<'paragraph', {
   text: string
-}
+}>
 
-// ─── Inputs ───────────────────────────────────────────────────────────────────
+export type NoteNode = ElementNode<'note', {
+  text: string
+  /** Visual tone of the note box. Defaults to the design system's 'neutral'. */
+  variant?: 'neutral' | 'success' | 'warning' | 'error' | 'info' | 'accent'
+}>
 
+export type TextInputNode = ElementNode<'text-input', {
+  label?: string
+  placeholder?: string
+  /** Controls HTML input type and autocomplete hints. Defaults to 'text'. */
+  inputType?: 'text' | 'email' | 'password' | 'url'
+  /** Visible text rows; 2+ renders a multiline textarea. Defaults to 1. */
+  rows?: number
+  disabled?: boolean
+}>
+
+export type NumberInputNode = ElementNode<'number-input', {
+  label?: string
+  placeholder?: string
+  min?: number
+  max?: number
+  step?: number
+  /** Number of decimal places. Defaults to 0 (integers). */
+  decimals?: number
+  disabled?: boolean
+}>
+
+export type CheckboxNode = ElementNode<'checkbox', {
+  label: string
+  disabled?: boolean
+}>
+
+/** `validation.required` means the switch must be ON (consent-style, like checkbox). */
+export type SwitchNode = ElementNode<'switch', {
+  label: string
+  disabled?: boolean
+}>
+
+export type RadioGroupNode = ElementNode<'radio-group', {
+  label?: string
+  options?: OptionItem[]
+  /** Layout of the radio buttons. Defaults to 'vertical'. */
+  orientation?: 'vertical' | 'horizontal'
+  disabled?: boolean
+}>
+
+export type SelectNode = ElementNode<'select', {
+  label?: string
+  placeholder?: string
+  options?: OptionItem[]
+  disabled?: boolean
+}>
+
+/** `validation.required` means at least one option must be selected. */
+export type MultiSelectNode = ElementNode<'multi-select', {
+  label?: string
+  placeholder?: string
+  options?: OptionItem[]
+  disabled?: boolean
+}>
+
+/** `validation.required` means the code must be COMPLETE (all cells filled). */
+export type OtpInputNode = ElementNode<'otp-input', {
+  label?: string
+  /** Number of code cells. Defaults to 6. */
+  length?: number
+  /** Accepted character set. Defaults to 'numeric'. */
+  otpType?: 'numeric' | 'alphanumeric' | 'text'
+  /** Render cells masked (like a password). */
+  mask?: boolean
+  disabled?: boolean
+}>
+
+/**
+ * Date value wire format: ISO string `YYYY-MM-DD` (in `defaultValue` and the
+ * value model). The renderer converts to/from `Temporal.PlainDate` at the
+ * component boundary; an unparsable value renders as empty instead of crashing.
+ */
+export type DateInputNode = ElementNode<'date-input', {
+  label?: string
+  placeholder?: string
+  disabled?: boolean
+}>
+
+/** Date-time wire format: ISO `YYYY-MM-DDTHH:mm[:ss]` (no time zone — plain wall time). */
+export type DateTimeInputNode = ElementNode<'datetime-input', {
+  label?: string
+  placeholder?: string
+  disabled?: boolean
+}>
+
+export type ButtonNode = ElementNode<'button', {
+  label: string
+  /** Action ID matched against the `actions` map passed to the renderer. */
+  action?: string
+  /** When true, validates all named fields before calling the action. */
+  validates?: boolean
+  icon?: string
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
+  size?: 'xs' | 's' | 'm' | 'l'
+}>
+
+export type LinkNode = ElementNode<'link', {
+  label: string
+  /** Action ID matched against the `actions` map passed to the renderer. */
+  action?: string
+}>
+
+export type ImageNode = ElementNode<'image', {
+  /** Asset ID resolved by `assetResolver` at render time. Never a raw URL. */
+  assetId: string
+  alt?: string
+}>
+
+// ─── Validation ───────────────────────────────────────────────────────────────
+
+/**
+ * Declarative field validation, at node level (host vocabulary — uniform for
+ * every valued element). Which rules an element actually enforces is the
+ * element's concern: the built-in inputs enforce `required`/`matchField`
+ * everywhere and the text rules (`minLength`/`maxLength`/`pattern`) on
+ * text-input only.
+ */
 export interface FieldValidation {
   required?: boolean
   minLength?: number
@@ -144,179 +268,6 @@ export interface FieldValidation {
   matchField?: string
   /** Overrides the default error message for any rule on this field. */
   message?: string
-}
-
-export interface TextInputNode extends PageNodeBase {
-  type: 'text-input'
-  /** When set, value is managed by the renderer and passed to actions. */
-  name?: string
-  label?: string
-  placeholder?: string
-  /** Controls HTML input type and autocomplete hints. Defaults to 'text'. */
-  inputType?: 'text' | 'email' | 'password' | 'url'
-  /** Visible text rows; 2+ renders a multiline textarea. Defaults to 1. */
-  rows?: number
-  defaultValue?: string
-  validation?: FieldValidation
-  disabled?: boolean
-}
-
-export interface NumberInputNode extends PageNodeBase {
-  type: 'number-input'
-  /** When set, value is managed by the renderer (as a number) and passed to actions. */
-  name?: string
-  label?: string
-  placeholder?: string
-  min?: number
-  max?: number
-  step?: number
-  /** Number of decimal places. Defaults to 0 (integers). */
-  decimals?: number
-  defaultValue?: number
-  validation?: Pick<FieldValidation, 'required'>
-  disabled?: boolean
-}
-
-export interface SwitchNode extends PageNodeBase {
-  type: 'switch'
-  /** When set, value is managed by the renderer (as a boolean) and passed to actions. */
-  name?: string
-  label: string
-  defaultValue?: boolean
-  /** `required` means the switch must be ON (consent-style, like checkbox). */
-  validation?: Pick<FieldValidation, 'required'>
-  disabled?: boolean
-}
-
-export interface RadioGroupNode extends PageNodeBase {
-  type: 'radio-group'
-  /** When set, value is managed by the renderer and passed to actions. */
-  name?: string
-  label?: string
-  options?: { value: string; label: string }[]
-  defaultValue?: string
-  /** Layout of the radio buttons. Defaults to 'vertical'. */
-  orientation?: 'vertical' | 'horizontal'
-  validation?: Pick<FieldValidation, 'required'>
-  disabled?: boolean
-}
-
-export interface MultiSelectNode extends PageNodeBase {
-  type: 'multi-select'
-  /** When set, value is managed by the renderer (as a string array) and passed to actions. */
-  name?: string
-  label?: string
-  placeholder?: string
-  options?: { value: string; label: string }[]
-  defaultValue?: string[]
-  /** `required` means at least one option must be selected. */
-  validation?: Pick<FieldValidation, 'required'>
-  disabled?: boolean
-}
-
-export interface OtpInputNode extends PageNodeBase {
-  type: 'otp-input'
-  /** When set, value is managed by the renderer and passed to actions. */
-  name?: string
-  label?: string
-  /** Number of code cells. Defaults to 6. */
-  length?: number
-  /** Accepted character set. Defaults to 'numeric'. */
-  otpType?: 'numeric' | 'alphanumeric' | 'text'
-  /** Render cells masked (like a password). */
-  mask?: boolean
-  /** Prefilled code — rarely useful in production, handy in demos/tests. */
-  defaultValue?: string
-  /** `required` means the code must be COMPLETE (all cells filled). */
-  validation?: Pick<FieldValidation, 'required'>
-  disabled?: boolean
-}
-
-export interface DateInputNode extends PageNodeBase {
-  type: 'date-input'
-  /** When set, value is managed by the renderer and passed to actions. */
-  name?: string
-  label?: string
-  placeholder?: string
-  /**
-   * ISO date string `YYYY-MM-DD`. The wire format is always the ISO string —
-   * the renderer converts to/from `Temporal.PlainDate` at the component
-   * boundary; an unparsable value renders as empty instead of crashing.
-   */
-  defaultValue?: string
-  validation?: Pick<FieldValidation, 'required'>
-  disabled?: boolean
-}
-
-export interface DateTimeInputNode extends PageNodeBase {
-  type: 'datetime-input'
-  /** When set, value is managed by the renderer and passed to actions. */
-  name?: string
-  label?: string
-  placeholder?: string
-  /** ISO date-time string `YYYY-MM-DDTHH:mm[:ss]` (no time zone — plain wall time). */
-  defaultValue?: string
-  validation?: Pick<FieldValidation, 'required'>
-  disabled?: boolean
-}
-
-export interface CheckboxNode extends PageNodeBase {
-  type: 'checkbox'
-  /** When set, value is managed by the renderer and passed to actions. */
-  name?: string
-  label: string
-  defaultValue?: boolean
-  validation?: Pick<FieldValidation, 'required'>
-  disabled?: boolean
-}
-
-export interface SelectNode extends PageNodeBase {
-  type: 'select'
-  /** When set, value is managed by the renderer and passed to actions. */
-  name?: string
-  label?: string
-  placeholder?: string
-  options?: { value: string; label: string }[]
-  defaultValue?: string
-  validation?: Pick<FieldValidation, 'required'>
-  disabled?: boolean
-}
-
-// ─── Actions ──────────────────────────────────────────────────────────────────
-
-export interface ButtonNode extends PageNodeBase {
-  type: 'button'
-  label: string
-  /** Action ID matched against the `actions` map passed to the renderer. */
-  action?: string
-  /** When true, validates all named fields before calling the action. */
-  validates?: boolean
-  icon?: string
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
-  size?: 'xs' | 's' | 'm' | 'l'
-}
-
-export interface LinkNode extends PageNodeBase {
-  type: 'link'
-  label: string
-  /** Action ID matched against the `actions` map passed to the renderer. */
-  action?: string
-}
-
-// ─── Media / Display ──────────────────────────────────────────────────────────
-
-export interface ImageNode extends PageNodeBase {
-  type: 'image'
-  /** Asset ID resolved by `assetResolver` at render time. Never a raw URL. */
-  assetId: string
-  alt?: string
-}
-
-export interface NoteNode extends PageNodeBase {
-  type: 'note'
-  text: string
-  /** Visual tone of the note box. Defaults to the design system's 'neutral'. */
-  variant?: 'neutral' | 'success' | 'warning' | 'error' | 'info' | 'accent'
 }
 
 // ─── Union ────────────────────────────────────────────────────────────────────

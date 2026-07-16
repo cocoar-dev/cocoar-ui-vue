@@ -13,7 +13,7 @@ import { BUILDER_CONFIG } from '../builderContext';
 
 const props = defineProps<{
   node: ButtonNode;
-  patch: (update: Partial<ButtonNode>) => void;
+  patch: (update: Partial<Omit<ButtonNode, 'props'>> & { props?: Partial<ButtonNode['props']> }) => void;
 }>();
 
 const { t } = useI18n();
@@ -40,7 +40,7 @@ const actionOptions = computed<CoarSelectOption<string>[] | null>(() => {
   }
   // If the current value isn't in the configured list, surface it so the user
   // can see and change it instead of having a silently-broken hidden value.
-  const cur = props.node.action;
+  const cur = props.node.props.action;
   if (cur && !seen.has(cur)) {
     opts.push({
       value: cur,
@@ -69,8 +69,8 @@ const sizeOptions = computed<CoarSelectOption<string>[]>(() => [
 <template>
   <CoarFormField :label="t('coar.pageBuilder.props.label', undefined, 'Label')">
     <CoarTextInput
-      :model-value="props.node.label ?? ''"
-      @update:model-value="(v) => props.patch({ label: v })"
+      :model-value="props.node.props.label ?? ''"
+      @update:model-value="(v) => props.patch({ props: { label: v } })"
     />
   </CoarFormField>
 
@@ -80,42 +80,42 @@ const sizeOptions = computed<CoarSelectOption<string>[]>(() => [
   >
     <CoarSelect
       v-if="actionOptions"
-      :model-value="props.node.action ?? ''"
+      :model-value="props.node.props.action ?? ''"
       :options="actionOptions"
-      @update:model-value="(v) => props.patch({ action: (v as string) || undefined })"
+      @update:model-value="(v) => props.patch({ props: { action: (v as string) || undefined } })"
     />
     <CoarTextInput
       v-else
-      :model-value="props.node.action ?? ''"
+      :model-value="props.node.props.action ?? ''"
       placeholder="e.g. auth:login"
-      @update:model-value="(v) => props.patch({ action: v })"
+      @update:model-value="(v) => props.patch({ props: { action: v } })"
     />
   </CoarFormField>
 
   <CoarFormField :label="t('coar.pageBuilder.props.variant', undefined, 'Variant')">
     <CoarSelect
-      :model-value="props.node.variant ?? 'primary'"
+      :model-value="props.node.props.variant ?? 'primary'"
       :options="VARIANT_OPTIONS"
-      @update:model-value="(v) => props.patch({ variant: v as ButtonNode['variant'] })"
+      @update:model-value="(v) => props.patch({ props: { variant: v as ButtonNode['props']['variant'] } })"
     />
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.size', undefined, 'Size')">
     <CoarSelect
-      :model-value="props.node.size ?? ''"
+      :model-value="props.node.props.size ?? ''"
       :options="sizeOptions"
-      @update:model-value="(v) => props.patch({ size: (v || undefined) as ButtonNode['size'] })"
+      @update:model-value="(v) => props.patch({ props: { size: (v || undefined) as ButtonNode['props']['size'] } })"
     />
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.iconLeft', undefined, 'Icon (left)')">
     <CoarTextInput
-      :model-value="props.node.icon ?? ''"
+      :model-value="props.node.props.icon ?? ''"
       placeholder="e.g. log-in"
-      @update:model-value="(v) => props.patch({ icon: v })"
+      @update:model-value="(v) => props.patch({ props: { icon: v } })"
     />
   </CoarFormField>
   <CoarCheckbox
-    :model-value="!!props.node.validates"
+    :model-value="!!props.node.props.validates"
     :label="t('coar.pageBuilder.props.validatesForm', undefined, 'Validates form before firing')"
-    @update:model-value="(v) => props.patch({ validates: v })"
+    @update:model-value="(v) => props.patch({ props: { validates: v } })"
   />
 </template>

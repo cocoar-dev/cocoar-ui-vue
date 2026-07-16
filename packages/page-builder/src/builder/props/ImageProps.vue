@@ -12,7 +12,7 @@ import { BUILDER_CONFIG } from '../builderContext';
 
 const props = defineProps<{
   node: ImageNode;
-  patch: (update: Partial<ImageNode>) => void;
+  patch: (update: Partial<Omit<ImageNode, 'props'>> & { props?: Partial<ImageNode['props']> }) => void;
 }>();
 
 const { t } = useI18n();
@@ -21,7 +21,7 @@ const config = inject(BUILDER_CONFIG);
 
 const hasPicker = computed(() => !!config?.value?.pickAsset);
 const thumbUrl = computed(() => {
-  const id = props.node.assetId;
+  const id = props.node.props.assetId;
   if (!id) return '';
   return config?.value?.assetResolver?.(id) ?? '';
 });
@@ -29,13 +29,13 @@ const thumbUrl = computed(() => {
 async function openPicker() {
   const pick = config?.value?.pickAsset;
   if (!pick) return;
-  const picked = await pick(props.node.assetId || undefined);
+  const picked = await pick(props.node.props.assetId || undefined);
   if (picked === null || picked === undefined) return; // cancelled
-  props.patch({ assetId: picked });
+  props.patch({ props: { assetId: picked } });
 }
 
 function clearAsset() {
-  props.patch({ assetId: '' });
+  props.patch({ props: { assetId: '' } });
 }
 </script>
 
@@ -45,20 +45,20 @@ function clearAsset() {
     <CoarFormField :label="t('coar.pageBuilder.props.asset', undefined, 'Asset')">
       <div class="pb-image-asset">
         <div class="pb-image-asset__thumb">
-          <img v-if="thumbUrl" :src="thumbUrl" :alt="props.node.alt ?? ''" />
+          <img v-if="thumbUrl" :src="thumbUrl" :alt="props.node.props.alt ?? ''" />
           <span v-else class="pb-image-asset__empty">
             <CoarIcon name="image" size="m" />
             <span class="pb-image-asset__empty-label">
-              {{ props.node.assetId ? t('coar.pageBuilder.props.noPreview', undefined, 'No preview') : t('coar.pageBuilder.props.noImage', undefined, 'No image') }}
+              {{ props.node.props.assetId ? t('coar.pageBuilder.props.noPreview', undefined, 'No preview') : t('coar.pageBuilder.props.noImage', undefined, 'No image') }}
             </span>
           </span>
         </div>
         <div class="pb-image-asset__controls">
           <CoarButton size="s" variant="secondary" @click="openPicker">
-            {{ props.node.assetId ? t('coar.pageBuilder.props.change', undefined, 'Change…') : t('coar.pageBuilder.props.choose', undefined, 'Choose…') }}
+            {{ props.node.props.assetId ? t('coar.pageBuilder.props.change', undefined, 'Change…') : t('coar.pageBuilder.props.choose', undefined, 'Choose…') }}
           </CoarButton>
           <CoarButton
-            v-if="props.node.assetId"
+            v-if="props.node.props.assetId"
             size="s"
             variant="ghost"
             @click="clearAsset"
@@ -77,15 +77,15 @@ function clearAsset() {
     :hint="t('coar.pageBuilder.props.assetIdHint', undefined, 'Resolved via assetResolver at render time')"
   >
     <CoarTextInput
-      :model-value="props.node.assetId ?? ''"
-      @update:model-value="(v) => props.patch({ assetId: v })"
+      :model-value="props.node.props.assetId ?? ''"
+      @update:model-value="(v) => props.patch({ props: { assetId: v } })"
     />
   </CoarFormField>
 
   <CoarFormField :label="t('coar.pageBuilder.props.altText', undefined, 'Alt text')">
     <CoarTextInput
-      :model-value="props.node.alt ?? ''"
-      @update:model-value="(v) => props.patch({ alt: v })"
+      :model-value="props.node.props.alt ?? ''"
+      @update:model-value="(v) => props.patch({ props: { alt: v } })"
     />
   </CoarFormField>
 </template>

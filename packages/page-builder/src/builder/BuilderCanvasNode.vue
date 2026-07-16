@@ -76,10 +76,10 @@ const isSelected = computed(() => {
 // ── Type icon + label ────────────────────────────────────────────────────────
 
 const typeLabel = computed(() => {
-  const n = props.node as PageNode & { text?: string; label?: string; title?: string; name?: string };
-  if (n.text) return `${n.type} · ${String(n.text).slice(0, 24)}`;
-  if (n.label) return `${n.type} · ${String(n.label).slice(0, 24)}`;
-  if (n.title) return `${n.type} · ${String(n.title).slice(0, 24)}`;
+  const n = props.node as PageNode & { props?: { text?: string; label?: string; title?: string }; name?: string };
+  if (n.props?.text) return `${n.type} · ${String(n.props.text).slice(0, 24)}`;
+  if (n.props?.label) return `${n.type} · ${String(n.props.label).slice(0, 24)}`;
+  if (n.props?.title) return `${n.type} · ${String(n.props.title).slice(0, 24)}`;
   if (n.name) return `${n.type} · ${String(n.name)}`;
   return n.type;
 });
@@ -101,7 +101,7 @@ const blockedHint = computed(() =>
 /** Direction of this container — drives dropzone axis + child flex behavior. */
 const containerDirection = computed<FlexDirection>(() => {
   const n = props.node;
-  if (n.type === 'stack') return n.direction ?? 'column';
+  if (n.type === 'stack') return n.props.direction ?? 'column';
   return 'column';
 });
 
@@ -116,7 +116,7 @@ provide(CANVAS_PARENT_DIRECTION, containerDirection);
 const layoutStyle = computed<CSSProperties>(() => {
   const n = props.node;
   if (!isContainerNode(n)) return {};
-  const direction = n.type === 'stack' ? (n.direction ?? 'column') : 'column';
+  const direction = n.type === 'stack' ? (n.props.direction ?? 'column') : 'column';
   const css: CSSProperties = {
     display: 'flex',
     flexDirection: direction,
@@ -262,10 +262,10 @@ function zoneClasses(index: number): Record<string, boolean> {
     >
       <!-- Section title preview -->
       <div
-        v-if="node.type === 'section' && (node as any).title"
+        v-if="node.type === 'section' && (node as any).props?.title"
         class="canvas-node__section-title"
       >
-        {{ (node as any).title }}
+        {{ (node as any).props.title }}
       </div>
 
       <template v-if="node.children.length === 0">
@@ -313,49 +313,49 @@ function zoneClasses(index: number): Record<string, boolean> {
       <div v-else-if="node.type === 'spacer'" class="canvas-node__spacer-preview" />
 
       <component
-        :is="headingTag((node as any).level)"
+        :is="headingTag((node as any).props?.level)"
         v-else-if="node.type === 'heading'"
         class="canvas-node__heading"
       >
-        {{ (node as any).text || 'Heading' }}
+        {{ (node as any).props?.text || 'Heading' }}
       </component>
 
       <p v-else-if="node.type === 'paragraph'" class="canvas-node__paragraph">
-        {{ (node as any).text || 'Paragraph text.' }}
+        {{ (node as any).props?.text || 'Paragraph text.' }}
       </p>
 
-      <CoarNote v-else-if="node.type === 'note'" :variant="(node as any).variant">
-        {{ (node as any).text || 'Note text.' }}
+      <CoarNote v-else-if="node.type === 'note'" :variant="(node as any).props?.variant">
+        {{ (node as any).props?.text || 'Note text.' }}
       </CoarNote>
 
       <CoarFormField
         v-else-if="node.type === 'text-input'"
-        :label="(node as any).label"
+        :label="(node as any).props?.label"
         :required="(node as any).validation?.required"
       >
         <CoarPasswordInput
-          v-if="(node as any).inputType === 'password'"
+          v-if="(node as any).props?.inputType === 'password'"
           :model-value="''"
-          :placeholder="(node as any).placeholder"
+          :placeholder="(node as any).props?.placeholder"
           disabled
         />
         <CoarTextInput
           v-else
           :model-value="''"
-          :rows="(node as any).rows"
-          :placeholder="(node as any).placeholder"
+          :rows="(node as any).props?.rows"
+          :placeholder="(node as any).props?.placeholder"
           readonly
         />
       </CoarFormField>
 
       <CoarFormField
         v-else-if="node.type === 'number-input'"
-        :label="(node as any).label"
+        :label="(node as any).props?.label"
         :required="(node as any).validation?.required"
       >
         <CoarNumberInput
           :model-value="(node as any).defaultValue ?? null"
-          :placeholder="(node as any).placeholder"
+          :placeholder="(node as any).props?.placeholder"
           disabled
         />
       </CoarFormField>
@@ -363,7 +363,7 @@ function zoneClasses(index: number): Record<string, boolean> {
       <CoarCheckbox
         v-else-if="node.type === 'checkbox'"
         :model-value="!!(node as any).defaultValue"
-        :label="(node as any).label || 'Checkbox'"
+        :label="(node as any).props?.label || 'Checkbox'"
         :required="(node as any).validation?.required"
         disabled
       />
@@ -371,23 +371,23 @@ function zoneClasses(index: number): Record<string, boolean> {
       <CoarSwitch
         v-else-if="node.type === 'switch'"
         :model-value="!!(node as any).defaultValue"
-        :label="(node as any).label || 'Switch'"
+        :label="(node as any).props?.label || 'Switch'"
         disabled
       />
 
       <CoarFormField
         v-else-if="node.type === 'radio-group'"
-        :label="(node as any).label"
+        :label="(node as any).props?.label"
         :required="(node as any).validation?.required"
       >
         <CoarRadioGroup
           :model-value="(node as any).defaultValue"
           :name="`preview-${node.id}`"
-          :orientation="(node as any).orientation"
+          :orientation="(node as any).props?.orientation"
           disabled
         >
           <CoarRadioButton
-            v-for="o in ((node as any).options ?? [])"
+            v-for="o in ((node as any).props?.options ?? [])"
             :key="o.value"
             :value="o.value"
             disabled
@@ -399,92 +399,92 @@ function zoneClasses(index: number): Record<string, boolean> {
 
       <CoarFormField
         v-else-if="node.type === 'select'"
-        :label="(node as any).label"
+        :label="(node as any).props?.label"
         :required="(node as any).validation?.required"
       >
         <CoarSelect
           :model-value="null"
-          :options="toSelectOptions((node as any).options)"
-          :placeholder="(node as any).placeholder"
+          :options="toSelectOptions((node as any).props?.options)"
+          :placeholder="(node as any).props?.placeholder"
           disabled
         />
       </CoarFormField>
 
       <CoarFormField
         v-else-if="node.type === 'multi-select'"
-        :label="(node as any).label"
+        :label="(node as any).props?.label"
         :required="(node as any).validation?.required"
       >
         <CoarMultiSelect
           :model-value="(node as any).defaultValue ?? []"
-          :options="toSelectOptions((node as any).options)"
-          :placeholder="(node as any).placeholder"
+          :options="toSelectOptions((node as any).props?.options)"
+          :placeholder="(node as any).props?.placeholder"
           disabled
         />
       </CoarFormField>
 
       <CoarFormField
         v-else-if="node.type === 'otp-input'"
-        :label="(node as any).label"
+        :label="(node as any).props?.label"
         :required="(node as any).validation?.required"
       >
         <CoarOtpInput
           :model-value="''"
-          :length="(node as any).length"
-          :mask="(node as any).mask"
+          :length="(node as any).props?.length"
+          :mask="(node as any).props?.mask"
           disabled
         />
       </CoarFormField>
 
       <CoarFormField
         v-else-if="node.type === 'date-input'"
-        :label="(node as any).label"
+        :label="(node as any).props?.label"
         :required="(node as any).validation?.required"
       >
         <CoarPlainDatePicker
           :model-value="isoToPlainDate((node as any).defaultValue)"
-          :placeholder="(node as any).placeholder"
+          :placeholder="(node as any).props?.placeholder"
           disabled
         />
       </CoarFormField>
 
       <CoarFormField
         v-else-if="node.type === 'datetime-input'"
-        :label="(node as any).label"
+        :label="(node as any).props?.label"
         :required="(node as any).validation?.required"
       >
         <CoarPlainDateTimePicker
           :model-value="isoToPlainDateTime((node as any).defaultValue)"
-          :placeholder="(node as any).placeholder"
+          :placeholder="(node as any).props?.placeholder"
           disabled
         />
       </CoarFormField>
 
       <CoarButton
         v-else-if="node.type === 'button'"
-        :variant="(node as any).variant ?? 'primary'"
-        :size="(node as any).size"
+        :variant="(node as any).props?.variant ?? 'primary'"
+        :size="(node as any).props?.size"
         :style="leafSizeStyle"
         disabled
       >
-        {{ (node as any).label || 'Button' }}
+        {{ (node as any).props?.label || 'Button' }}
       </CoarButton>
 
       <button v-else-if="node.type === 'link'" class="canvas-node__link" type="button" :style="leafSizeStyle">
-        {{ (node as any).label || 'Link' }}
+        {{ (node as any).props?.label || 'Link' }}
       </button>
 
       <template v-else-if="node.type === 'image'">
         <img
-          v-if="(node as any).assetId && resolveAsset((node as any).assetId)"
-          :src="resolveAsset((node as any).assetId)"
-          :alt="(node as any).alt ?? ''"
+          v-if="(node as any).props?.assetId && resolveAsset((node as any).props.assetId)"
+          :src="resolveAsset((node as any).props.assetId)"
+          :alt="(node as any).props?.alt ?? ''"
           class="canvas-node__image-preview"
           :style="leafSizeStyle"
         />
         <div v-else class="canvas-node__image-placeholder">
           <CoarIcon name="image" size="m" />
-          <span>{{ (node as any).assetId || 'No image' }}</span>
+          <span>{{ (node as any).props?.assetId || 'No image' }}</span>
         </div>
       </template>
 

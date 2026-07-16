@@ -18,10 +18,10 @@ const props = defineProps<{
 
 const { t } = useI18n();
 
-const options = computed<EditorOption[]>(() => props.node.options ?? []);
+const options = computed<EditorOption[]>(() => props.node.props.options ?? []);
 
 function setOptions(next: EditorOption[]) {
-  const patch: Partial<RadioGroupNode> = { options: next.length > 0 ? next : undefined };
+  const patch: Partial<RadioGroupNode> = { props: { options: next.length > 0 ? next : undefined } };
   if (props.node.defaultValue !== undefined && !next.some((o) => o.value === props.node.defaultValue)) {
     patch.defaultValue = undefined;
   }
@@ -48,8 +48,8 @@ function setRequired(v: boolean) {
 <template>
   <CoarFormField :label="t('coar.pageBuilder.props.label', undefined, 'Label')">
     <CoarTextInput
-      :model-value="props.node.label ?? ''"
-      @update:model-value="(v) => props.patch({ label: v })"
+      :model-value="props.node.props.label ?? ''"
+      @update:model-value="(v) => props.patch({ props: { label: v } })"
     />
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.name', undefined, 'Name (field key)')">
@@ -63,7 +63,7 @@ function setRequired(v: boolean) {
 
   <CoarFormField :label="t('coar.pageBuilder.props.defaultValue', undefined, 'Default value')">
     <CoarSelect
-      :model-value="props.node.defaultValue ?? null"
+      :model-value="(props.node.defaultValue as string | undefined) ?? null"
       :options="defaultChoices"
       :placeholder="t('coar.pageBuilder.props.none', undefined, '— none')"
       clearable
@@ -72,9 +72,9 @@ function setRequired(v: boolean) {
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.orientation', undefined, 'Orientation')">
     <CoarSelect
-      :model-value="props.node.orientation ?? 'vertical'"
+      :model-value="props.node.props.orientation ?? 'vertical'"
       :options="orientationChoices"
-      @update:model-value="(v) => props.patch({ orientation: v as RadioGroupNode['orientation'] })"
+      @update:model-value="(v) => props.patch({ props: { orientation: v as RadioGroupNode['props']['orientation'] } })"
     />
   </CoarFormField>
 
@@ -84,8 +84,8 @@ function setRequired(v: boolean) {
     @update:model-value="setRequired"
   />
   <CoarCheckbox
-    :model-value="!!props.node.disabled"
+    :model-value="!!props.node.props.disabled"
     :label="t('coar.pageBuilder.props.disabled', undefined, 'Disabled')"
-    @update:model-value="(v) => props.patch({ disabled: v })"
+    @update:model-value="(v) => props.patch({ props: { disabled: v } })"
   />
 </template>

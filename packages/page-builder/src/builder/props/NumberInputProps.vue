@@ -18,16 +18,16 @@ function setRequired(v: boolean) {
 }
 
 /** null from a cleared number input clears the schema key (patchNode semantics). */
-function patchNumber(key: 'min' | 'max' | 'step' | 'decimals' | 'defaultValue', v: number | null) {
-  props.patch({ [key]: v ?? undefined });
+function patchNumber(key: 'min' | 'max' | 'step' | 'decimals', v: number | null) {
+  props.patch({ props: { [key]: v ?? undefined } });
 }
 </script>
 
 <template>
   <CoarFormField :label="t('coar.pageBuilder.props.label', undefined, 'Label')">
     <CoarTextInput
-      :model-value="props.node.label ?? ''"
-      @update:model-value="(v) => props.patch({ label: v })"
+      :model-value="props.node.props.label ?? ''"
+      @update:model-value="(v) => props.patch({ props: { label: v } })"
     />
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.name', undefined, 'Name (field key)')">
@@ -38,8 +38,8 @@ function patchNumber(key: 'min' | 'max' | 'step' | 'decimals' | 'defaultValue', 
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.placeholder', undefined, 'Placeholder')">
     <CoarTextInput
-      :model-value="props.node.placeholder ?? ''"
-      @update:model-value="(v) => props.patch({ placeholder: v })"
+      :model-value="props.node.props.placeholder ?? ''"
+      @update:model-value="(v) => props.patch({ props: { placeholder: v } })"
     />
   </CoarFormField>
   <div class="pb-number-grid">
@@ -48,7 +48,7 @@ function patchNumber(key: 'min' | 'max' | 'step' | 'decimals' | 'defaultValue', 
         size="s"
         clearable
         :decimals="6"
-        :model-value="props.node.min ?? null"
+        :model-value="props.node.props.min ?? null"
         @update:model-value="(v) => patchNumber('min', v)"
       />
     </CoarFormField>
@@ -57,7 +57,7 @@ function patchNumber(key: 'min' | 'max' | 'step' | 'decimals' | 'defaultValue', 
         size="s"
         clearable
         :decimals="6"
-        :model-value="props.node.max ?? null"
+        :model-value="props.node.props.max ?? null"
         @update:model-value="(v) => patchNumber('max', v)"
       />
     </CoarFormField>
@@ -66,7 +66,7 @@ function patchNumber(key: 'min' | 'max' | 'step' | 'decimals' | 'defaultValue', 
         size="s"
         clearable
         :decimals="6"
-        :model-value="props.node.step ?? null"
+        :model-value="props.node.props.step ?? null"
         @update:model-value="(v) => patchNumber('step', v)"
       />
     </CoarFormField>
@@ -76,7 +76,7 @@ function patchNumber(key: 'min' | 'max' | 'step' | 'decimals' | 'defaultValue', 
         clearable
         :min="0"
         :max="10"
-        :model-value="props.node.decimals ?? null"
+        :model-value="props.node.props.decimals ?? null"
         @update:model-value="(v) => patchNumber('decimals', v)"
       />
     </CoarFormField>
@@ -84,9 +84,9 @@ function patchNumber(key: 'min' | 'max' | 'step' | 'decimals' | 'defaultValue', 
   <CoarFormField :label="t('coar.pageBuilder.props.defaultValue', undefined, 'Default value')">
     <CoarNumberInput
       clearable
-      :decimals="props.node.decimals ?? 6"
-      :model-value="props.node.defaultValue ?? null"
-      @update:model-value="(v) => patchNumber('defaultValue', v)"
+      :decimals="props.node.props.decimals ?? 6"
+      :model-value="(props.node.defaultValue as number | undefined) ?? null"
+      @update:model-value="(v) => props.patch({ defaultValue: v ?? undefined })"
     />
   </CoarFormField>
   <CoarCheckbox
@@ -95,9 +95,9 @@ function patchNumber(key: 'min' | 'max' | 'step' | 'decimals' | 'defaultValue', 
     @update:model-value="setRequired"
   />
   <CoarCheckbox
-    :model-value="!!props.node.disabled"
+    :model-value="!!props.node.props.disabled"
     :label="t('coar.pageBuilder.props.disabled', undefined, 'Disabled')"
-    @update:model-value="(v) => props.patch({ disabled: v })"
+    @update:model-value="(v) => props.patch({ props: { disabled: v } })"
   />
 </template>
 

@@ -5,7 +5,7 @@ import type { NoteNode } from '../../schema';
 
 const props = defineProps<{
   node: NoteNode;
-  patch: (update: Partial<NoteNode>) => void;
+  patch: (update: Partial<Omit<NoteNode, 'props'>> & { props?: Partial<NoteNode['props']> }) => void;
 }>();
 
 const { t } = useI18n();
@@ -23,16 +23,16 @@ const VARIANT_OPTIONS: CoarSelectOption<string>[] = [
 <template>
   <CoarFormField :label="t('coar.pageBuilder.props.text', undefined, 'Text')">
     <CoarTextInput
-      :model-value="props.node.text ?? ''"
+      :model-value="props.node.props.text ?? ''"
       :rows="3"
-      @update:model-value="(v) => props.patch({ text: v })"
+      @update:model-value="(v) => props.patch({ props: { text: v } })"
     />
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.variant', undefined, 'Variant')">
     <CoarSelect
-      :model-value="props.node.variant ?? 'neutral'"
+      :model-value="props.node.props.variant ?? 'neutral'"
       :options="VARIANT_OPTIONS"
-      @update:model-value="(v) => props.patch({ variant: v as NoteNode['variant'] })"
+      @update:model-value="(v) => props.patch({ props: { variant: v as NoteNode['props']['variant'] } })"
     />
   </CoarFormField>
 </template>

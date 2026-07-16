@@ -12,25 +12,26 @@ import '@cocoar/vue-page-builder/styles';
 const schema = ref<PageNode>({
   id: 'root',
   type: 'page',
-  schemaVersion: 1,
+  schemaVersion: 2,
   style: { gap: '16px', padding: '24px' },
   children: [
     {
       id: 'heading-welcome',
       type: 'heading',
-      text: 'Welcome',
-      level: 2,
+      props: { text: 'Welcome', level: 2 },
     },
     {
       id: 'stack-intro',
       type: 'stack',
-      direction: 'column',
+      props: { direction: 'column' },
       style: { gap: '12px' },
       children: [
         {
           id: 'paragraph-intro',
           type: 'paragraph',
-          text: 'Drag elements from the palette onto the canvas, reorder rows in the outline via their grip handles, and press Ctrl+Z to undo.',
+          props: {
+            text: 'Drag elements from the palette onto the canvas, reorder rows in the outline via their grip handles, and press Ctrl+Z to undo.',
+          },
         },
       ],
     },

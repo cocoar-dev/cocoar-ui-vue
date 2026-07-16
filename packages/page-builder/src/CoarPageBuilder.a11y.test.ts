@@ -7,10 +7,10 @@ import type { PageNode } from './schema';
 const schemaWithNodes = (): PageNode => ({
   id: 'root',
   type: 'page',
-  schemaVersion: 1,
+  schemaVersion: 2,
   children: [
-    { id: 'h', type: 'heading', text: 'Title', level: 2 },
-    { id: 's', type: 'stack', children: [{ id: 'p', type: 'paragraph', text: 'Hi' }] },
+    { id: 'h', type: 'heading', props: { text: 'Title', level: 2 } },
+    { id: 's', type: 'stack', props: {}, children: [{ id: 'p', type: 'paragraph', props: { text: 'Hi' } }] },
   ],
 });
 

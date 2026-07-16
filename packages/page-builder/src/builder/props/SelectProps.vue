@@ -18,12 +18,12 @@ const props = defineProps<{
 
 const { t } = useI18n();
 
-const options = computed<EditorOption[]>(() => props.node.options ?? []);
+const options = computed<EditorOption[]>(() => props.node.props.options ?? []);
 
 function setOptions(next: EditorOption[]) {
   // An emptied list clears the key; a stale defaultValue pointing at a removed
   // option is dropped along with it.
-  const patch: Partial<SelectNode> = { options: next.length > 0 ? next : undefined };
+  const patch: Partial<SelectNode> = { props: { options: next.length > 0 ? next : undefined } };
   if (props.node.defaultValue !== undefined && !next.some((o) => o.value === props.node.defaultValue)) {
     patch.defaultValue = undefined;
   }
@@ -45,8 +45,8 @@ function setRequired(v: boolean) {
 <template>
   <CoarFormField :label="t('coar.pageBuilder.props.label', undefined, 'Label')">
     <CoarTextInput
-      :model-value="props.node.label ?? ''"
-      @update:model-value="(v) => props.patch({ label: v })"
+      :model-value="props.node.props.label ?? ''"
+      @update:model-value="(v) => props.patch({ props: { label: v } })"
     />
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.name', undefined, 'Name (field key)')">
@@ -57,8 +57,8 @@ function setRequired(v: boolean) {
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.placeholder', undefined, 'Placeholder')">
     <CoarTextInput
-      :model-value="props.node.placeholder ?? ''"
-      @update:model-value="(v) => props.patch({ placeholder: v })"
+      :model-value="props.node.props.placeholder ?? ''"
+      @update:model-value="(v) => props.patch({ props: { placeholder: v } })"
     />
   </CoarFormField>
 
@@ -66,7 +66,7 @@ function setRequired(v: boolean) {
 
   <CoarFormField :label="t('coar.pageBuilder.props.defaultValue', undefined, 'Default value')">
     <CoarSelect
-      :model-value="props.node.defaultValue ?? null"
+      :model-value="(props.node.defaultValue as string | undefined) ?? null"
       :options="defaultChoices"
       :placeholder="t('coar.pageBuilder.props.none', undefined, '— none')"
       clearable
@@ -80,8 +80,8 @@ function setRequired(v: boolean) {
     @update:model-value="setRequired"
   />
   <CoarCheckbox
-    :model-value="!!props.node.disabled"
+    :model-value="!!props.node.props.disabled"
     :label="t('coar.pageBuilder.props.disabled', undefined, 'Disabled')"
-    @update:model-value="(v) => props.patch({ disabled: v })"
+    @update:model-value="(v) => props.patch({ props: { disabled: v } })"
   />
 </template>

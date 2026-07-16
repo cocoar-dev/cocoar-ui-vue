@@ -5,7 +5,7 @@ import type { SwitchNode } from '../../schema';
 
 const props = defineProps<{
   node: SwitchNode;
-  patch: (update: Partial<SwitchNode>) => void;
+  patch: (update: Partial<Omit<SwitchNode, 'props'>> & { props?: Partial<SwitchNode['props']> }) => void;
 }>();
 
 const { t } = useI18n();
@@ -21,8 +21,8 @@ function setRequired(v: boolean) {
 <template>
   <CoarFormField :label="t('coar.pageBuilder.props.label', undefined, 'Label')">
     <CoarTextInput
-      :model-value="props.node.label ?? ''"
-      @update:model-value="(v) => props.patch({ label: v })"
+      :model-value="props.node.props.label ?? ''"
+      @update:model-value="(v) => props.patch({ props: { label: v } })"
     />
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.name', undefined, 'Name (field key)')">
@@ -42,8 +42,8 @@ function setRequired(v: boolean) {
     @update:model-value="setRequired"
   />
   <CoarCheckbox
-    :model-value="!!props.node.disabled"
+    :model-value="!!props.node.props.disabled"
     :label="t('coar.pageBuilder.props.disabled', undefined, 'Disabled')"
-    @update:model-value="(v) => props.patch({ disabled: v })"
+    @update:model-value="(v) => props.patch({ props: { disabled: v } })"
   />
 </template>

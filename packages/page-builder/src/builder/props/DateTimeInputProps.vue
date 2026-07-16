@@ -22,8 +22,8 @@ function setRequired(v: boolean) {
 <template>
   <CoarFormField :label="t('coar.pageBuilder.props.label', undefined, 'Label')">
     <CoarTextInput
-      :model-value="props.node.label ?? ''"
-      @update:model-value="(v) => props.patch({ label: v })"
+      :model-value="props.node.props.label ?? ''"
+      @update:model-value="(v) => props.patch({ props: { label: v } })"
     />
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.name', undefined, 'Name (field key)')">
@@ -34,8 +34,8 @@ function setRequired(v: boolean) {
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.placeholder', undefined, 'Placeholder')">
     <CoarTextInput
-      :model-value="props.node.placeholder ?? ''"
-      @update:model-value="(v) => props.patch({ placeholder: v })"
+      :model-value="props.node.props.placeholder ?? ''"
+      @update:model-value="(v) => props.patch({ props: { placeholder: v } })"
     />
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.defaultValue', undefined, 'Default value')">
@@ -51,8 +51,8 @@ function setRequired(v: boolean) {
     @update:model-value="setRequired"
   />
   <CoarCheckbox
-    :model-value="!!props.node.disabled"
+    :model-value="!!props.node.props.disabled"
     :label="t('coar.pageBuilder.props.disabled', undefined, 'Disabled')"
-    @update:model-value="(v) => props.patch({ disabled: v })"
+    @update:model-value="(v) => props.patch({ props: { disabled: v } })"
   />
 </template>

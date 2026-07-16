@@ -15,9 +15,9 @@ const { t } = useI18n();
   <CoarFormField :label="t('coar.pageBuilder.props.text', undefined, 'Text')">
     <textarea
       class="pb-prop-textarea"
-      :value="props.node.text ?? ''"
+      :value="props.node.props.text ?? ''"
       rows="3"
-      @input="props.patch({ text: ($event.target as HTMLTextAreaElement).value })"
+      @input="props.patch({ props: { text: ($event.target as HTMLTextAreaElement).value } })"
     />
   </CoarFormField>
 </template>

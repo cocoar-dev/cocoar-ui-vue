@@ -64,7 +64,7 @@ const allowed = computed(() => {
 // own children what direction WE impose on them.
 const parentDirection = inject(PB_PARENT_DIRECTION, undefined);
 const ownDirection = computed<FlexDirection>(() =>
-  props.node.type === 'stack' ? (props.node.direction ?? 'column') : 'column',
+  props.node.type === 'stack' ? (props.node.props.direction ?? 'column') : 'column',
 );
 provide(PB_PARENT_DIRECTION, ownDirection);
 
@@ -142,8 +142,8 @@ function setFieldValue(name: string | undefined, v: unknown) {
     v-else-if="n.type === 'stack'"
     class="pb-stack"
     :class="{
-      'pb-stack--row': n.direction === 'row',
-      'pb-stack--wrap': n.wrap,
+      'pb-stack--row': n.props.direction === 'row',
+      'pb-stack--wrap': n.props.wrap,
     }"
     :style="{ ...wrapperStyle, ...containerLayoutStyle(n) }"
   >
@@ -153,7 +153,7 @@ function setFieldValue(name: string | undefined, v: unknown) {
   <!-- ── card ─────────────────────────────────────────────────────────────── -->
   <CoarCard
     v-else-if="n.type === 'card'"
-    :title="n.title"
+    :title="n.props.title"
     :style="wrapperStyle"
   >
     <div class="pb-card-body" :style="containerLayoutStyle(n)">
@@ -167,7 +167,7 @@ function setFieldValue(name: string | undefined, v: unknown) {
     class="pb-section"
     :style="wrapperStyle"
   >
-    <h3 v-if="n.title" class="pb-section__title">{{ n.title }}</h3>
+    <h3 v-if="n.props.title" class="pb-section__title">{{ n.props.title }}</h3>
     <div class="pb-section__body" :style="containerLayoutStyle(n)">
       <PageNode v-for="child in n.children" :key="child.id" :node="child" />
     </div>
@@ -180,17 +180,17 @@ function setFieldValue(name: string | undefined, v: unknown) {
   <div
     v-else-if="n.type === 'spacer'"
     class="pb-spacer"
-    :style="n.size ? { height: n.size, width: n.size } : { flex: '1' }"
+    :style="n.props.size ? { height: n.props.size, width: n.props.size } : { flex: '1' }"
   />
 
   <!-- ── heading ──────────────────────────────────────────────────────────── -->
   <component
-    :is="headingTag(n.level)"
+    :is="headingTag(n.props.level)"
     v-else-if="n.type === 'heading'"
     class="pb-heading"
     :style="wrapperStyle"
   >
-    {{ n.text }}
+    {{ n.props.text }}
   </component>
 
   <!-- ── paragraph ────────────────────────────────────────────────────────── -->
@@ -199,43 +199,43 @@ function setFieldValue(name: string | undefined, v: unknown) {
     class="pb-paragraph"
     :style="wrapperStyle"
   >
-    {{ n.text }}
+    {{ n.props.text }}
   </p>
 
   <!-- ── note ─────────────────────────────────────────────────────────────── -->
   <CoarNote
     v-else-if="n.type === 'note'"
-    :variant="n.variant"
+    :variant="n.props.variant"
     :style="wrapperStyle"
   >
-    {{ n.text }}
+    {{ n.props.text }}
   </CoarNote>
 
   <!-- ── text-input ───────────────────────────────────────────────────────── -->
   <CoarFormField
     v-else-if="n.type === 'text-input'"
-    :label="n.label"
+    :label="n.props.label"
     :required="n.validation?.required"
     :error="nodeName ? ctx.getError(nodeName) : ''"
-    :disabled="n.disabled"
+    :disabled="n.props.disabled"
     :style="wrapperStyle"
   >
     <CoarPasswordInput
-      v-if="n.inputType === 'password'"
+      v-if="n.props.inputType === 'password'"
       :model-value="nodeName ? (ctx.getValue(nodeName) as string ?? '') : ''"
-      :placeholder="n.placeholder"
-      :disabled="n.disabled"
+      :placeholder="n.props.placeholder"
+      :disabled="n.props.disabled"
       @update:model-value="(v) => nodeName && ctx.setValue(nodeName, v)"
       @blurred="nodeName && ctx.markTouched(nodeName)"
     />
     <CoarTextInput
       v-else
       :model-value="nodeName ? (ctx.getValue(nodeName) as string ?? '') : ''"
-      :type="htmlInputType(n.inputType)"
-      :autocomplete="autocompleteFor(n.inputType)"
-      :rows="n.rows"
-      :placeholder="n.placeholder"
-      :disabled="n.disabled"
+      :type="htmlInputType(n.props.inputType)"
+      :autocomplete="autocompleteFor(n.props.inputType)"
+      :rows="n.props.rows"
+      :placeholder="n.props.placeholder"
+      :disabled="n.props.disabled"
       @update:model-value="(v) => nodeName && ctx.setValue(nodeName, v)"
       @blurred="nodeName && ctx.markTouched(nodeName)"
     />
@@ -244,20 +244,20 @@ function setFieldValue(name: string | undefined, v: unknown) {
   <!-- ── number-input ─────────────────────────────────────────────────────── -->
   <CoarFormField
     v-else-if="n.type === 'number-input'"
-    :label="n.label"
+    :label="n.props.label"
     :required="n.validation?.required"
     :error="nodeName ? ctx.getError(nodeName) : ''"
-    :disabled="n.disabled"
+    :disabled="n.props.disabled"
     :style="wrapperStyle"
   >
     <CoarNumberInput
       :model-value="nodeName ? (ctx.getValue(nodeName) as number ?? null) : null"
-      :placeholder="n.placeholder"
-      :min="n.min"
-      :max="n.max"
-      :step="n.step"
-      :decimals="n.decimals"
-      :disabled="n.disabled"
+      :placeholder="n.props.placeholder"
+      :min="n.props.min"
+      :max="n.props.max"
+      :step="n.props.step"
+      :decimals="n.props.decimals"
+      :disabled="n.props.disabled"
       @update:model-value="(v) => nodeName && ctx.setValue(nodeName, v)"
       @blurred="nodeName && ctx.markTouched(nodeName)"
     />
@@ -267,14 +267,14 @@ function setFieldValue(name: string | undefined, v: unknown) {
   <CoarFormField
     v-else-if="n.type === 'checkbox'"
     :error="nodeName ? ctx.getError(nodeName) : ''"
-    :disabled="n.disabled"
+    :disabled="n.props.disabled"
     :style="wrapperStyle"
   >
     <CoarCheckbox
       :model-value="nodeName ? (ctx.getValue(nodeName) as boolean ?? false) : false"
-      :label="n.label"
+      :label="n.props.label"
       :required="n.validation?.required"
-      :disabled="n.disabled"
+      :disabled="n.props.disabled"
       @update:model-value="(v) => setFieldValue(nodeName, v)"
     />
   </CoarFormField>
@@ -283,13 +283,13 @@ function setFieldValue(name: string | undefined, v: unknown) {
   <CoarFormField
     v-else-if="n.type === 'switch'"
     :error="nodeName ? ctx.getError(nodeName) : ''"
-    :disabled="n.disabled"
+    :disabled="n.props.disabled"
     :style="wrapperStyle"
   >
     <CoarSwitch
       :model-value="nodeName ? (ctx.getValue(nodeName) as boolean ?? false) : false"
-      :label="n.label"
-      :disabled="n.disabled"
+      :label="n.props.label"
+      :disabled="n.props.disabled"
       @update:model-value="(v) => setFieldValue(nodeName, v)"
     />
   </CoarFormField>
@@ -297,26 +297,26 @@ function setFieldValue(name: string | undefined, v: unknown) {
   <!-- ── radio-group ──────────────────────────────────────────────────────── -->
   <CoarFormField
     v-else-if="n.type === 'radio-group'"
-    :label="n.label"
+    :label="n.props.label"
     :required="n.validation?.required"
     :error="nodeName ? ctx.getError(nodeName) : ''"
-    :disabled="n.disabled"
+    :disabled="n.props.disabled"
     :style="wrapperStyle"
   >
     <CoarRadioGroup
       :model-value="nodeName ? (ctx.getValue(nodeName) as string ?? undefined) : undefined"
       :name="nodeName ?? n.id"
-      :label="n.label"
-      :orientation="n.orientation"
+      :label="n.props.label"
+      :orientation="n.props.orientation"
       :required="n.validation?.required"
-      :disabled="n.disabled"
+      :disabled="n.props.disabled"
       @update:model-value="(v) => setFieldValue(nodeName, v)"
     >
       <CoarRadioButton
-        v-for="o in n.options ?? []"
+        v-for="o in n.props.options ?? []"
         :key="o.value"
         :value="o.value"
-        :disabled="n.disabled"
+        :disabled="n.props.disabled"
       >
         {{ o.label }}
       </CoarRadioButton>
@@ -326,17 +326,17 @@ function setFieldValue(name: string | undefined, v: unknown) {
   <!-- ── select ───────────────────────────────────────────────────────────── -->
   <CoarFormField
     v-else-if="n.type === 'select'"
-    :label="n.label"
+    :label="n.props.label"
     :required="n.validation?.required"
     :error="nodeName ? ctx.getError(nodeName) : ''"
-    :disabled="n.disabled"
+    :disabled="n.props.disabled"
     :style="wrapperStyle"
   >
     <CoarSelect
       :model-value="nodeName ? (ctx.getValue(nodeName) as string ?? null) : null"
-      :options="toSelectOptions(n.options)"
-      :placeholder="n.placeholder"
-      :disabled="n.disabled"
+      :options="toSelectOptions(n.props.options)"
+      :placeholder="n.props.placeholder"
+      :disabled="n.props.disabled"
       @update:model-value="(v) => setFieldValue(nodeName, v)"
     />
   </CoarFormField>
@@ -344,17 +344,17 @@ function setFieldValue(name: string | undefined, v: unknown) {
   <!-- ── multi-select ─────────────────────────────────────────────────────── -->
   <CoarFormField
     v-else-if="n.type === 'multi-select'"
-    :label="n.label"
+    :label="n.props.label"
     :required="n.validation?.required"
     :error="nodeName ? ctx.getError(nodeName) : ''"
-    :disabled="n.disabled"
+    :disabled="n.props.disabled"
     :style="wrapperStyle"
   >
     <CoarMultiSelect
       :model-value="nodeName ? (ctx.getValue(nodeName) as string[] ?? []) : []"
-      :options="toSelectOptions(n.options)"
-      :placeholder="n.placeholder"
-      :disabled="n.disabled"
+      :options="toSelectOptions(n.props.options)"
+      :placeholder="n.props.placeholder"
+      :disabled="n.props.disabled"
       @update:model-value="(v) => setFieldValue(nodeName, v)"
     />
   </CoarFormField>
@@ -362,18 +362,18 @@ function setFieldValue(name: string | undefined, v: unknown) {
   <!-- ── otp-input ────────────────────────────────────────────────────────── -->
   <CoarFormField
     v-else-if="n.type === 'otp-input'"
-    :label="n.label"
+    :label="n.props.label"
     :required="n.validation?.required"
     :error="nodeName ? ctx.getError(nodeName) : ''"
-    :disabled="n.disabled"
+    :disabled="n.props.disabled"
     :style="wrapperStyle"
   >
     <CoarOtpInput
       :model-value="nodeName ? (ctx.getValue(nodeName) as string ?? '') : ''"
-      :length="n.length"
-      :type="n.otpType"
-      :mask="n.mask"
-      :disabled="n.disabled"
+      :length="n.props.length"
+      :type="n.props.otpType"
+      :mask="n.props.mask"
+      :disabled="n.props.disabled"
       @update:model-value="(v) => nodeName && ctx.setValue(nodeName, v)"
       @blurred="nodeName && ctx.markTouched(nodeName)"
     />
@@ -382,16 +382,16 @@ function setFieldValue(name: string | undefined, v: unknown) {
   <!-- ── date-input (ISO string in the value model, Temporal at the picker) ── -->
   <CoarFormField
     v-else-if="n.type === 'date-input'"
-    :label="n.label"
+    :label="n.props.label"
     :required="n.validation?.required"
     :error="nodeName ? ctx.getError(nodeName) : ''"
-    :disabled="n.disabled"
+    :disabled="n.props.disabled"
     :style="wrapperStyle"
   >
     <CoarPlainDatePicker
       :model-value="nodeName ? isoToPlainDate(ctx.getValue(nodeName)) : null"
-      :placeholder="n.placeholder"
-      :disabled="n.disabled"
+      :placeholder="n.props.placeholder"
+      :disabled="n.props.disabled"
       clearable
       @update:model-value="(d) => setFieldValue(nodeName, d ? d.toString() : '')"
     />
@@ -400,16 +400,16 @@ function setFieldValue(name: string | undefined, v: unknown) {
   <!-- ── datetime-input ───────────────────────────────────────────────────── -->
   <CoarFormField
     v-else-if="n.type === 'datetime-input'"
-    :label="n.label"
+    :label="n.props.label"
     :required="n.validation?.required"
     :error="nodeName ? ctx.getError(nodeName) : ''"
-    :disabled="n.disabled"
+    :disabled="n.props.disabled"
     :style="wrapperStyle"
   >
     <CoarPlainDateTimePicker
       :model-value="nodeName ? isoToPlainDateTime(ctx.getValue(nodeName)) : null"
-      :placeholder="n.placeholder"
-      :disabled="n.disabled"
+      :placeholder="n.props.placeholder"
+      :disabled="n.props.disabled"
       clearable
       @update:model-value="(d) => setFieldValue(nodeName, d ? d.toString() : '')"
     />
@@ -422,14 +422,14 @@ function setFieldValue(name: string | undefined, v: unknown) {
   <CoarButton
     v-else-if="n.type === 'button'"
     class="pb-button"
-    :variant="n.variant ?? 'primary'"
-    :size="n.size"
-    :icon-left="n.icon"
-    :disabled="n.validates && ctx.isValidating.value"
+    :variant="n.props.variant ?? 'primary'"
+    :size="n.props.size"
+    :icon-left="n.props.icon"
+    :disabled="n.props.validates && ctx.isValidating.value"
     :style="wrapperStyle"
-    @click="callAction(n.action, n.validates)"
+    @click="callAction(n.props.action, n.props.validates)"
   >
-    {{ n.label }}
+    {{ n.props.label }}
   </CoarButton>
 
   <!-- ── link ─────────────────────────────────────────────────────────────── -->
@@ -437,17 +437,17 @@ function setFieldValue(name: string | undefined, v: unknown) {
     v-else-if="n.type === 'link'"
     class="pb-link"
     :style="wrapperStyle"
-    @click="callAction(n.action)"
+    @click="callAction(n.props.action)"
   >
-    {{ n.label }}
+    {{ n.props.label }}
   </button>
 
   <!-- ── image ────────────────────────────────────────────────────────────── -->
   <img
     v-else-if="n.type === 'image'"
     class="pb-image"
-    :src="resolveAsset(n.assetId)"
-    :alt="n.alt ?? ''"
+    :src="resolveAsset(n.props.assetId)"
+    :alt="n.props.alt ?? ''"
     :style="wrapperStyle"
   />
   </template>

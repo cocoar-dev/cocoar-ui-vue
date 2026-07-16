@@ -10,8 +10,8 @@ import {
   type PageNode,
 } from './operations';
 
-const leaf = (id: string): PageNode => ({ id, type: 'paragraph', text: id });
-const stack = (id: string, children: PageNode[] = []): PageNode => ({ id, type: 'stack', children });
+const leaf = (id: string): PageNode => ({ id, type: 'paragraph', props: { text: id } });
+const stack = (id: string, children: PageNode[] = []): PageNode => ({ id, type: 'stack', props: {}, children });
 const page = (children: PageNode[]): PageNode => ({ id: 'root', type: 'page', children });
 
 function allIds(n: PageNode): string[] {
@@ -161,7 +161,7 @@ describe('insertChild', () => {
 describe('patchNode — contract the props editors rely on', () => {
   it('replaces object values wholesale', () => {
     const root = page([
-      { id: 't', type: 'text-input', validation: { required: true, minLength: 8 } },
+      { id: 't', type: 'text-input', props: {}, validation: { required: true, minLength: 8 } },
     ]);
     const next = patchNode(root, [0], { validation: { minLength: 8 } } as never);
     const node = getNodeAt(next, [0])!.node as { validation?: unknown };
@@ -170,10 +170,49 @@ describe('patchNode — contract the props editors rely on', () => {
 
   it('clears a key when the patch value is undefined', () => {
     const root = page([
-      { id: 't', type: 'text-input', validation: { required: true } },
+      { id: 't', type: 'text-input', props: {}, validation: { required: true } },
     ]);
     const next = patchNode(root, [0], { validation: undefined } as never);
     const node = getNodeAt(next, [0])!.node;
     expect('validation' in node).toBe(false);
+  });
+
+  it('merges a props patch one level deep into the bag (set + overwrite)', () => {
+    const root = page([
+      { id: 'h', type: 'heading', props: { text: 'Old', level: 2 } },
+    ]);
+    const next = patchNode(root, [0], { props: { text: 'New', level: 3 } } as never);
+    const node = getNodeAt(next, [0])!.node as { props: Record<string, unknown> };
+    expect(node.props).toEqual({ text: 'New', level: 3 });
+  });
+
+  it('keeps untouched bag keys when patching a single prop', () => {
+    const root = page([
+      { id: 'h', type: 'heading', props: { text: 'Hi', level: 4 } },
+    ]);
+    const next = patchNode(root, [0], { props: { text: 'Hello' } } as never);
+    const node = getNodeAt(next, [0])!.node as { props: Record<string, unknown> };
+    expect(node.props).toEqual({ text: 'Hello', level: 4 });
+  });
+
+  it('deletes a bag key when the patch value is empty ("" / null / undefined)', () => {
+    const root = page([
+      { id: 'h', type: 'heading', props: { text: 'Hi', level: 4 } },
+    ]);
+    for (const empty of ['', null, undefined]) {
+      const next = patchNode(root, [0], { props: { level: empty } } as never);
+      const node = getNodeAt(next, [0])!.node as { props: Record<string, unknown> };
+      expect('level' in node.props).toBe(false);
+      expect(node.props.text).toBe('Hi');
+    }
+  });
+
+  it('returns the SAME root when a props patch changes nothing (identity)', () => {
+    const root = page([
+      { id: 'h', type: 'heading', props: { text: 'Hi' } },
+    ]);
+    expect(patchNode(root, [0], { props: { text: 'Hi' } } as never)).toBe(root);
+    expect(patchNode(root, [0], { props: { level: undefined } } as never)).toBe(root);
+    expect(patchNode(root, [0], { props: {} } as never)).toBe(root);
   });
 });

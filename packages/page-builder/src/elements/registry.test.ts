@@ -8,7 +8,7 @@ import {
   type PageElementRegistry,
 } from './registry';
 
-const Dummy = () => defineComponent({ name: 'Dummy', template: '<div />' });
+const Dummy = () => defineComponent({ name: 'DummyElement', template: '<div />' });
 
 describe('definePageElement', () => {
   it('returns the definition unchanged (identity helper)', () => {

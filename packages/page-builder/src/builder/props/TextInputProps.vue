@@ -37,8 +37,8 @@ function setRequired(v: boolean) {
 <template>
   <CoarFormField :label="t('coar.pageBuilder.props.label', undefined, 'Label')">
     <CoarTextInput
-      :model-value="props.node.label ?? ''"
-      @update:model-value="(v) => props.patch({ label: v })"
+      :model-value="props.node.props.label ?? ''"
+      @update:model-value="(v) => props.patch({ props: { label: v } })"
     />
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.name', undefined, 'Name (field key)')">
@@ -49,15 +49,15 @@ function setRequired(v: boolean) {
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.placeholder', undefined, 'Placeholder')">
     <CoarTextInput
-      :model-value="props.node.placeholder ?? ''"
-      @update:model-value="(v) => props.patch({ placeholder: v })"
+      :model-value="props.node.props.placeholder ?? ''"
+      @update:model-value="(v) => props.patch({ props: { placeholder: v } })"
     />
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.inputType', undefined, 'Input type')">
     <CoarSelect
-      :model-value="props.node.inputType ?? 'text'"
+      :model-value="props.node.props.inputType ?? 'text'"
       :options="INPUT_TYPE_OPTIONS"
-      @update:model-value="(v) => props.patch({ inputType: v as TextInputNode['inputType'] })"
+      @update:model-value="(v) => props.patch({ props: { inputType: v as TextInputNode['props']['inputType'] } })"
     />
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.rows', undefined, 'Rows')">
@@ -65,14 +65,14 @@ function setRequired(v: boolean) {
       clearable
       :min="1"
       :max="20"
-      :model-value="props.node.rows ?? null"
+      :model-value="props.node.props.rows ?? null"
       :placeholder="'1'"
-      @update:model-value="(v) => props.patch({ rows: v && v > 1 ? v : undefined })"
+      @update:model-value="(v) => props.patch({ props: { rows: v && v > 1 ? v : undefined } })"
     />
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.defaultValue', undefined, 'Default value')">
     <CoarTextInput
-      :model-value="props.node.defaultValue ?? ''"
+      :model-value="(props.node.defaultValue as string | undefined) ?? ''"
       @update:model-value="(v) => props.patch({ defaultValue: v })"
     />
   </CoarFormField>
@@ -82,8 +82,8 @@ function setRequired(v: boolean) {
     @update:model-value="setRequired"
   />
   <CoarCheckbox
-    :model-value="!!props.node.disabled"
+    :model-value="!!props.node.props.disabled"
     :label="t('coar.pageBuilder.props.disabled', undefined, 'Disabled')"
-    @update:model-value="(v) => props.patch({ disabled: v })"
+    @update:model-value="(v) => props.patch({ props: { disabled: v } })"
   />
 </template>

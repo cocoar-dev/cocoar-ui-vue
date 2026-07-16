@@ -18,6 +18,7 @@ import type {
   FieldValidation,
 } from './schema';
 import { migrateLegacyTypes } from './builder/schemaNormalize';
+import { migrateV1PropsBag } from './builder/schemaMigrateV1';
 import {
   PAGE_RENDERER_KEY,
   type ActionHandler,
@@ -44,6 +45,14 @@ const props = defineProps<{
    * for hand-written or tampered-with JSON.
    */
   config?: PageConfig
+  /**
+   * Host-supplied field values for edit-form scenarios, merged OVER the
+   * schema's `defaultValue`s on init. Only keys that match a NAMED input in
+   * the (allowed) tree are taken — stray host data never leaks into the
+   * action payload. Replacing the object re-initializes the form, like a
+   * schema change.
+   */
+  initialValues?: ActionValues
 }>();
 
 const { t } = useI18n();
@@ -57,11 +66,14 @@ const asyncErrors = ref<Record<string, string>>({});
 const isValidating = ref(false);
 
 /**
- * Legacy `column`/`row` containers migrate to `stack` on the fly, so schemas
- * saved before the stack model still render (identity-preserving when there
- * is nothing to migrate).
+ * Legacy `column`/`row` containers migrate to `stack`, then v1 flat nodes get
+ * their props bag, all on the fly — so schemas saved before the stack model or
+ * the v2 wire format still render (identity-preserving when there is nothing
+ * to migrate).
  */
-const renderSchema = computed(() => migrateLegacyTypes(props.schema) as PageNode);
+const renderSchema = computed(
+  () => migrateV1PropsBag(migrateLegacyTypes(props.schema)) as PageNode,
+);
 
 type NamedInputNode =
   | TextInputNode
@@ -108,14 +120,32 @@ function collectDefaults(node: PageNode): ActionValues {
   return defaults;
 }
 
+/** Names of the named inputs in the allowed tree — the only keys `initialValues` may seed. */
+function collectFieldNames(node: PageNode, out: Set<string>) {
+  if (!isNodeAllowed(node)) return;
+  if (isNamedInput(node) && node.name) out.add(node.name);
+  if ('children' in node && Array.isArray(node.children)) {
+    for (const child of node.children) collectFieldNames(child, out);
+  }
+}
+
 function initValues() {
-  values.value = collectDefaults(renderSchema.value);
+  const defaults = collectDefaults(renderSchema.value);
+  if (props.initialValues) {
+    const names = new Set<string>();
+    collectFieldNames(renderSchema.value, names);
+    for (const [k, v] of Object.entries(props.initialValues)) {
+      if (names.has(k)) defaults[k] = v;
+    }
+  }
+  values.value = defaults;
   touched.value = {};
   asyncErrors.value = {};
 }
 
 initValues();
 watch(() => props.schema, initValues, { deep: false });
+watch(() => props.initialValues, initValues, { deep: false });
 
 // ─── Reactive error computation ───────────────────────────────────────────────
 
@@ -151,7 +181,7 @@ function computeFieldError(node: NamedInputNode): string {
       (Array.isArray(value) && value.length === 0) ||
       // otp: required means the code is COMPLETE, not merely started
       (node.type === 'otp-input' &&
-        typeof value === 'string' && value.length < (node.length ?? 6));
+        typeof value === 'string' && value.length < (node.props.length ?? 6));
     if (empty) return v.message ?? t('coar.pageBuilder.validation.required', undefined, 'This field is required');
   }
 

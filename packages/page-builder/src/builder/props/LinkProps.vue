@@ -12,7 +12,7 @@ import { BUILDER_CONFIG } from '../builderContext';
 
 const props = defineProps<{
   node: LinkNode;
-  patch: (update: Partial<LinkNode>) => void;
+  patch: (update: Partial<Omit<LinkNode, 'props'>> & { props?: Partial<LinkNode['props']> }) => void;
 }>();
 
 const { t } = useI18n();
@@ -31,7 +31,7 @@ const actionOptions = computed<CoarSelectOption<string>[] | null>(() => {
     seen.add(a.id);
     opts.push({ value: a.id, label: a.label });
   }
-  const cur = props.node.action;
+  const cur = props.node.props.action;
   if (cur && !seen.has(cur)) {
     opts.push({
       value: cur,
@@ -45,22 +45,22 @@ const actionOptions = computed<CoarSelectOption<string>[] | null>(() => {
 <template>
   <CoarFormField :label="t('coar.pageBuilder.props.label', undefined, 'Label')">
     <CoarTextInput
-      :model-value="props.node.label ?? ''"
-      @update:model-value="(v) => props.patch({ label: v })"
+      :model-value="props.node.props.label ?? ''"
+      @update:model-value="(v) => props.patch({ props: { label: v } })"
     />
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.action', undefined, 'Action')">
     <CoarSelect
       v-if="actionOptions"
-      :model-value="props.node.action ?? ''"
+      :model-value="props.node.props.action ?? ''"
       :options="actionOptions"
-      @update:model-value="(v) => props.patch({ action: (v as string) || undefined })"
+      @update:model-value="(v) => props.patch({ props: { action: (v as string) || undefined } })"
     />
     <CoarTextInput
       v-else
-      :model-value="props.node.action ?? ''"
+      :model-value="props.node.props.action ?? ''"
       placeholder="e.g. nav:forgot-password"
-      @update:model-value="(v) => props.patch({ action: v })"
+      @update:model-value="(v) => props.patch({ props: { action: v } })"
     />
   </CoarFormField>
 </template>

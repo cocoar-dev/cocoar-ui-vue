@@ -22,6 +22,7 @@
  */
 import type { ElementType, PageNode } from '../schema';
 import { isContainerNode } from '../schema';
+import { migrateV1PropsBag } from './schemaMigrateV1';
 import { uid } from './nodeDefaults';
 
 // Exhaustiveness-checked against the schema union: adding a new ElementType
@@ -102,7 +103,7 @@ function defaultPage(): PageNode {
   return {
     id: 'root',
     type: 'page',
-    schemaVersion: 1,
+    schemaVersion: 2,
     style: { gap: '16px', padding: '24px' },
     children: [],
   };
@@ -116,7 +117,10 @@ export function normalizePageSchema(value: unknown): NormalizeResult {
     return { schema: defaultPage(), issues, changed: true };
   }
 
-  const migrated = migrateLegacyTypes(value) as Record<string, unknown>;
+  // Legacy column/row containers first (their output is v1-flat by
+  // construction), then the v1 → v2 props-bag migration. Both are
+  // identity-preserving, so `rootChanged` stays honest.
+  const migrated = migrateV1PropsBag(migrateLegacyTypes(value)) as Record<string, unknown>;
   let rootChanged = migrated !== value;
 
   let root = migrated;
@@ -126,15 +130,15 @@ export function normalizePageSchema(value: unknown): NormalizeResult {
     root = {
       id: 'root',
       type: 'page',
-      schemaVersion: 1,
+      schemaVersion: 2,
       style: { gap: '16px', padding: '24px' },
       children: [root],
     };
     rootChanged = true;
-  } else if (root.schemaVersion === undefined) {
-    // Stamp pre-versioning documents so GA never mints unversioned schemas;
-    // the migration framework itself stays a later phase.
-    root = { ...root, schemaVersion: 1 };
+  } else if (root.schemaVersion === undefined || root.schemaVersion === 1) {
+    // Pre-versioning and v1 documents were just migrated to the bag grammar —
+    // stamp the version they now actually have. Later versions are preserved.
+    root = { ...root, schemaVersion: 2 };
     rootChanged = true;
   }
 
@@ -178,6 +182,22 @@ function normalizeNode(
     });
   }
 
+  // Every known element carries a props bag in the v2 grammar (the v1
+  // migration ran before this pass, so a missing bag means a hand-built tree —
+  // healed silently; a non-object bag is tampered data and worth a warning).
+  if (typeKnown && node.type !== 'page') {
+    if (node.props === undefined) {
+      set('props', {});
+    } else if (node.props === null || typeof node.props !== 'object' || Array.isArray(node.props)) {
+      issues.push({
+        path,
+        message: '`props` must be an object — reset to empty.',
+        severity: 'warning',
+      });
+      set('props', {});
+    }
+  }
+
   // Ids must be unique page-wide: they drive v-for keys, selection paths and
   // undo bookkeeping. First occurrence keeps its id, later duplicates get a
   // fresh one.
@@ -186,17 +206,22 @@ function normalizeNode(
   }
   seenIds.add(node.id as string);
 
-  if (typeKnown && node.type === 'heading' && node.level !== undefined && node.level !== null) {
-    if (typeof node.level === 'number' && Number.isFinite(node.level)) {
-      const clamped = Math.min(6, Math.max(1, Math.round(node.level)));
-      if (clamped !== node.level) set('level', clamped);
-    } else {
-      issues.push({
-        path,
-        message: `Heading level ${JSON.stringify(node.level)} is not a number — reset to 2.`,
-        severity: 'warning',
-      });
-      set('level', 2);
+  if (typeKnown && node.type === 'heading') {
+    // The props bag was healed to an object above; `level` lives inside it (v2).
+    const props = node.props as Record<string, unknown>;
+    const level = props.level;
+    if (level !== undefined && level !== null) {
+      if (typeof level === 'number' && Number.isFinite(level)) {
+        const clamped = Math.min(6, Math.max(1, Math.round(level)));
+        if (clamped !== level) set('props', { ...props, level: clamped });
+      } else {
+        issues.push({
+          path,
+          message: `Heading level ${JSON.stringify(level)} is not a number — reset to 2.`,
+          severity: 'warning',
+        });
+        set('props', { ...props, level: 2 });
+      }
     }
   }
 

@@ -17,6 +17,7 @@ describe('TextInputProps — Required toggle merges the validation object', () =
     const { patch, required } = mountPanel({
       id: 't',
       type: 'text-input',
+      props: {},
       validation: { minLength: 8, pattern: '\\d+' },
     });
 
@@ -30,6 +31,7 @@ describe('TextInputProps — Required toggle merges the validation object', () =
     const { patch, required } = mountPanel({
       id: 't',
       type: 'text-input',
+      props: {},
       validation: { required: true, minLength: 8 },
     });
 
@@ -41,6 +43,7 @@ describe('TextInputProps — Required toggle merges the validation object', () =
     const { patch, required } = mountPanel({
       id: 't',
       type: 'text-input',
+      props: {},
       validation: { required: true },
     });
 

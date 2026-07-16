@@ -111,7 +111,7 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
     if (!parent) return;
     const before = schema.value;
     const node = defaultNode(type);
-    const childCount = 'children' in parent.node ? parent.node.children.length : 0;
+    const childCount = parent.node.children?.length ?? 0;
     const index = atIndex ?? childCount;
     schema.value = insertChild(schema.value, parentPath, index, node);
     selectedPath.value = [...parentPath, index];
@@ -127,9 +127,10 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
     const parentPath = path.slice(0, -1);
     const idx = path[path.length - 1];
     const parent = getNodeAt(next, parentPath);
-    if (parent && 'children' in parent.node && parent.node.children.length > 0) {
+    const siblings = parent?.node.children;
+    if (parent && siblings && siblings.length > 0) {
       const newIdx = Math.max(0, idx - 1);
-      selectedPath.value = [...parentPath, Math.min(newIdx, parent.node.children.length - 1)];
+      selectedPath.value = [...parentPath, Math.min(newIdx, siblings.length - 1)];
     } else {
       selectedPath.value = parentPath;
     }

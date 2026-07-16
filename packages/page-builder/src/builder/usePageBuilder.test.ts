@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { usePageBuilder } from './usePageBuilder';
 import type { PageNode } from '../schema';
 
-const leaf = (id: string): PageNode => ({ id, type: 'paragraph', text: id });
-const stack = (id: string, children: PageNode[] = []): PageNode => ({ id, type: 'stack', children });
+const leaf = (id: string): PageNode => ({ id, type: 'paragraph', props: { text: id } });
+const stack = (id: string, children: PageNode[] = []): PageNode => ({ id, type: 'stack', props: {}, children });
 const page = (children: PageNode[]): PageNode => ({ id: 'root', type: 'page', children });
 
 function allIds(n: PageNode): string[] {

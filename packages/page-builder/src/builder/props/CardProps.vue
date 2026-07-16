@@ -14,8 +14,8 @@ const { t } = useI18n();
 <template>
   <CoarFormField :label="t('coar.pageBuilder.props.title', undefined, 'Title')">
     <CoarTextInput
-      :model-value="props.node.title ?? ''"
-      @update:model-value="(v) => props.patch({ title: v })"
+      :model-value="props.node.props.title ?? ''"
+      @update:model-value="(v) => props.patch({ props: { title: v } })"
     />
   </CoarFormField>
 </template>

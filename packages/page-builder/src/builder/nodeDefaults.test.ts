@@ -42,10 +42,18 @@ describe('defaultNode', () => {
     expect(names.size).toBe(50);
   });
 
+  it('emits a props bag on every element — and none on the page root', () => {
+    for (const type of ALL_TYPES) {
+      const node = defaultNode(type) as { props?: Record<string, unknown> };
+      if (type === 'page') expect(node.props).toBeUndefined();
+      else expect(node.props).toBeTypeOf('object');
+    }
+  });
+
   it('seeds choice elements with starter options', () => {
     for (const type of ['radio-group', 'select', 'multi-select'] as const) {
-      const node = defaultNode(type) as { options?: unknown[] };
-      expect(node.options).toHaveLength(2);
+      const node = defaultNode(type) as { props: { options?: unknown[] } };
+      expect(node.props.options).toHaveLength(2);
     }
   });
 
@@ -61,9 +69,10 @@ describe('cloneWithFreshIds', () => {
     const original: PageNode = {
       id: 's1',
       type: 'stack',
+      props: {},
       children: [
-        { id: 'h1', type: 'heading', text: 'Title', level: 3 },
-        { id: 't1', type: 'text-input', name: 'email', defaultValue: 'x@y.z' },
+        { id: 'h1', type: 'heading', props: { text: 'Title', level: 3 } },
+        { id: 't1', type: 'text-input', props: {}, name: 'email', defaultValue: 'x@y.z' },
       ],
     };
     const clone = cloneWithFreshIds(original) as typeof original;
@@ -73,7 +82,7 @@ describe('cloneWithFreshIds', () => {
     expect(cloneIds.some((id) => originalIds.includes(id))).toBe(false);
     expect(new Set(cloneIds).size).toBe(3);
 
-    expect((clone.children[0] as { text: string; level: number }).text).toBe('Title');
+    expect((clone.children[0] as { props: { text: string } }).props.text).toBe('Title');
     expect((clone.children[1] as { name?: string }).name).toBe('email');
     // The original stays untouched.
     expect(original.children[0].id).toBe('h1');

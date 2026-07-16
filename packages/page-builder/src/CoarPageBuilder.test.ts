@@ -37,7 +37,7 @@ describe('CoarPageBuilder — v-model wiring', () => {
     wrapper.vm.schema = {
       id: 'r',
       type: 'page',
-      children: [{ id: 'h', type: 'heading', text: 'LoadedFromServer', level: 2 }],
+      children: [{ id: 'h', type: 'heading', props: { text: 'LoadedFromServer', level: 2 } }],
     };
     await nextTick();
 
@@ -55,7 +55,7 @@ describe('CoarPageBuilder — v-model wiring', () => {
     wrapper.vm.schema = {
       id: 'r',
       type: 'page',
-      children: [{ id: 'h', type: 'heading', text: 'Loaded', level: 2 }],
+      children: [{ id: 'h', type: 'heading', props: { text: 'Loaded', level: 2 } }],
     };
     await nextTick();
     await nextTick();
