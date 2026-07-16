@@ -9,6 +9,7 @@ import {
 } from '@cocoar/vue-page-builder';
 import { CoarButton, CoarIcon, useDialog } from '@cocoar/vue-ui';
 import PlaygroundAssetPicker, { type AssetItem } from '../components/PlaygroundAssetPicker.vue';
+import { ratingElement } from '../components/rating/ratingElement';
 
 // ─── Login schema ─────────────────────────────────────────────────────────────
 
@@ -229,6 +230,9 @@ const memoryAssets = ref<AssetItem[]>([
 const dialog = useDialog();
 
 const idpLoginConfig: PageConfig = {
+  // A consumer-registered element (defined entirely in this app) — appears in
+  // the palette, canvas, inspector, preview and value model like a built-in.
+  elements: { 'acme-rating': ratingElement },
   // section + spacer stay excluded on purpose, so the allowlist gating
   // (hidden palette entries, blocked-node banners) remains visible in the demo.
   allowedElements: [
@@ -251,6 +255,7 @@ const idpLoginConfig: PageConfig = {
     'button',
     'link',
     'image',
+    'acme-rating',
   ],
   availableActions: [
     { id: 'auth:login',           label: 'Sign in' },
@@ -298,10 +303,53 @@ function resetBuilder() {
   builderSchema.value = JSON.parse(initialBuilderSchema);
 }
 
+// ─── Feedback schema (exercises the consumer-registered rating element) ──────
+
+const feedbackSchema: PageNode = {
+  id: 'root',
+  type: 'page',
+  style: { align: 'center', padding: '48px' },
+  children: [
+    {
+      id: 'card',
+      type: 'card',
+      props: {},
+      style: { width: '380px', gap: '20px' },
+      children: [
+        { id: 'h1', type: 'heading', props: { text: 'How did we do?', level: 2 } },
+        {
+          id: 'rating',
+          type: 'acme-rating',
+          name: 'rating',
+          props: { label: 'Your rating', max: 5 },
+          validation: { required: true },
+        },
+        {
+          id: 'comment',
+          type: 'text-input',
+          name: 'comment',
+          props: { label: 'Comment', rows: 3, placeholder: 'Tell us more (optional)' },
+        },
+        {
+          id: 'submit',
+          type: 'button',
+          props: { label: 'Send feedback', action: 'feedback:submit', validates: true },
+          style: { width: '100%' },
+        },
+      ],
+    },
+  ],
+};
+
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
 const loginPayload = ref<ActionValues | null>(null);
 const registerPayload = ref<ActionValues | null>(null);
+const feedbackPayload = ref<ActionValues | null>(null);
+
+const feedbackActions: Record<string, (v: ActionValues) => void> = {
+  'feedback:submit': (v) => { feedbackPayload.value = v; },
+};
 
 const loginActions: Record<string, (v: ActionValues) => void> = {
   'auth:login': (v) => { loginPayload.value = v; },
@@ -374,6 +422,25 @@ const registerActions: Record<string, (v: ActionValues) => void> = {
         <details class="pb-view__schema-details">
           <summary class="pb-view__result-label">SCHEMA JSON</summary>
           <pre class="pb-view__json pb-view__json--schema">{{ JSON.stringify(registerSchema, null, 2) }}</pre>
+        </details>
+      </div>
+
+      <!-- Feedback (consumer-registered rating element) -->
+      <div class="pb-view__demo">
+        <div class="pb-view__demo-title">Feedback (custom element)</div>
+        <div class="pb-view__canvas">
+          <CoarPageRenderer
+            :schema="feedbackSchema"
+            :actions="feedbackActions"
+            :config="{ elements: { 'acme-rating': ratingElement } }"
+          />
+        </div>
+        <div class="pb-view__result-label">ACTION PAYLOAD</div>
+        <pre v-if="feedbackPayload" class="pb-view__json">{{ JSON.stringify(feedbackPayload, null, 2) }}</pre>
+        <div v-else class="pb-view__placeholder">Rating is required — submit reveals the error until a star is set</div>
+        <details class="pb-view__schema-details">
+          <summary class="pb-view__result-label">SCHEMA JSON</summary>
+          <pre class="pb-view__json pb-view__json--schema">{{ JSON.stringify(feedbackSchema, null, 2) }}</pre>
         </details>
       </div>
     </div>
