@@ -6,7 +6,7 @@ import type { PageNode, PageConfig } from './schema';
 import { usePageBuilder } from './builder/usePageBuilder';
 import { useSchemaValidation } from './builder/useSchemaValidation';
 import { provideBuilderDnd } from './builder/useBuilderDnd';
-import { normalizePageSchema } from './builder/schemaNormalize';
+import { normalizePageSchema, type NormalizeIssue } from './builder/schemaNormalize';
 import { warnDev } from './builder/operations';
 import {
   BUILDER_API,
@@ -224,6 +224,7 @@ function startResize(target: 'outline' | 'props', event: PointerEvent) {
 // ── JSON tab ──────────────────────────────────────────────────────────────────
 const jsonText = ref(JSON.stringify(builder.schema.value, null, 2));
 const jsonError = ref('');
+const jsonWarning = ref('');
 let userEditing = false;
 
 watch(builder.schema, (s) => {
@@ -232,11 +233,17 @@ watch(builder.schema, (s) => {
 
 function onJsonInput(e: Event) {
   userEditing = true;
+  jsonWarning.value = '';
   jsonText.value = (e.target as HTMLTextAreaElement).value;
   try { JSON.parse(jsonText.value); jsonError.value = ''; }
   catch { jsonError.value = 'Invalid JSON'; }
 }
 function onJsonBlur() { userEditing = false; }
+
+function issueSummary(list: NormalizeIssue[]): string {
+  const first = `${list[0].path}: ${list[0].message}`;
+  return list.length === 1 ? first : `${first} (+${list.length - 1} more)`;
+}
 
 function applyJson() {
   let parsed: unknown;
@@ -246,18 +253,21 @@ function applyJson() {
     jsonError.value = e instanceof Error ? e.message : 'Invalid JSON';
     return;
   }
-  // Structural gate: nothing broken may reach the working tree (and through
+  // Structural gate: nothing BROKEN may reach the working tree (and through
   // v-model the host's storage) — a committed-then-crashing schema would come
-  // back on every reload.
+  // back on every reload. Warnings (healed or lossless findings, e.g. unknown
+  // element types) apply anyway: a document from a newer library version or
+  // with unregistered consumer elements must stay editable here.
   const { schema, issues } = normalizePageSchema(parsed);
-  if (issues.length > 0) {
-    const first = `${issues[0].path}: ${issues[0].message}`;
-    jsonError.value = issues.length === 1 ? first : `${first} (+${issues.length - 1} more)`;
+  const errors = issues.filter((i) => i.severity === 'error');
+  if (errors.length > 0) {
+    jsonError.value = issueSummary(errors);
     return;
   }
   builder.replaceSchema(schema);
   jsonError.value = '';
-  activeTab.value = 'editor';
+  jsonWarning.value = issues.length > 0 ? issueSummary(issues) : '';
+  if (issues.length === 0) activeTab.value = 'editor';
 }
 </script>
 
@@ -399,6 +409,7 @@ function applyJson() {
               <div class="pb-builder__json-toolbar">
                 <span class="pb-builder__json-hint">{{ t('coar.pageBuilder.chrome.jsonHint', undefined, 'Paste or edit JSON, then click Apply') }}</span>
                 <span v-if="jsonError" class="pb-builder__json-error">{{ jsonError }}</span>
+                <span v-else-if="jsonWarning" class="pb-builder__json-warning">{{ jsonWarning }}</span>
                 <button class="pb-builder__json-apply" :disabled="!!jsonError" @click="applyJson">
                   {{ t('coar.pageBuilder.chrome.jsonApply', undefined, 'Apply →') }}
                 </button>
@@ -754,6 +765,12 @@ function applyJson() {
 .pb-builder__json-error {
   font-size: 12px;
   color: var(--coar-text-semantic-error-bold, #c0392b);
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+
+.pb-builder__json-warning {
+  font-size: 12px;
+  color: var(--coar-text-semantic-warning-bold, #9a6700);
   font-family: ui-monospace, Menlo, Consolas, monospace;
 }
 

@@ -1,0 +1,170 @@
+/**
+ * The element-registry contract: one `PageElementDefinition` packages
+ * everything the renderer and the builder need to know about one element
+ * type. Built-ins and consumer elements ride the same contract — built-ins
+ * are pre-registered, consumer registrations merge additively over them via
+ * `PageConfig.elements` (per-instance data; there is deliberately no global
+ * `register()` so two builders with different registries can coexist).
+ *
+ * The definition splits into a renderer half (this object's top level —
+ * everything a renderer-only app needs) and an optional `builder` half
+ * (palette/canvas/inspector concerns). Contract packages should keep the two
+ * in separate modules so renderer bundles never pull builder-only components.
+ */
+import { markRaw } from 'vue';
+import type { Component, InjectionKey } from 'vue';
+import type { CoreIconName } from '@cocoar/vue-ui';
+import type { ActionValues } from '../context';
+import type { ElementNode, ElementProps, PageConfig } from '../schema';
+import { warnDev } from '../builder/operations';
+
+/**
+ * i18n (key, fallback) pair, translated at render time via
+ * `t(key, undefined, fallback)` — consumer labels work without registering
+ * translations, and localize when the consumer adds the key.
+ */
+export interface I18nText {
+  key: string;
+  fallback: string;
+}
+
+/**
+ * Value-model participation. Presence of this spec (plus a `name` on the
+ * node) makes the element a managed field: it seeds defaults, joins
+ * required/matchField gating, and its value is passed to actions.
+ */
+export interface ElementValueSpec<P extends ElementProps = ElementProps> {
+  /** Fallback default when the node carries no `defaultValue`. */
+  defaultValue?: (props: P) => unknown;
+  /**
+   * Emptiness test for `validation.required`.
+   * Default: `undefined | null | '' | false | []` count as empty.
+   */
+  isEmpty?: (value: unknown, props: P) => boolean;
+  /**
+   * Element-owned validation, run after `required`/`matchField`. Returns an
+   * error message or null. Messages are the element author's responsibility
+   * (including their localization).
+   */
+  validate?: (
+    value: unknown,
+    node: ElementNode<string, P>,
+    values: ActionValues,
+  ) => string | null;
+}
+
+/** A builder-lint finding for one node; `error` blocks nothing but renders prominently. */
+export interface ElementLintIssue {
+  severity: 'error' | 'warning';
+  message: I18nText;
+}
+
+/** Editor-only half: how the element appears in palette, canvas and inspector. */
+export interface PageElementBuilderDefinition<P extends ElementProps = ElementProps> {
+  label: I18nText;
+  icon?: CoreIconName;
+  /** Palette/add-menu grouping. Defaults to 'element'. */
+  group?: 'container' | 'element';
+  /** Props bag for a freshly dropped node. The host mints `id`, `name` and `children`. */
+  defaults: () => P;
+  /**
+   * Canvas preview component (receives `{ node }`, mounted inert). Absent →
+   * the canvas shows a neutral icon+label chip. Previews never receive the
+   * runtime renderer context — they render from the node alone.
+   */
+  preview?: Component;
+  /**
+   * Element section of the props panel. Receives `{ node, patch }` where
+   * `patch(update)` merges into the props bag with delete-on-empty semantics.
+   * Absent → only the host-owned sections (Field/Style) are shown.
+   */
+  inspector?: Component;
+  inspectorTitle?: I18nText;
+  /** Suppress the universal Style section (spacer-style minimal elements). */
+  hideStyleSection?: boolean;
+  /**
+   * Editor for the node-level `defaultValue` in the host-owned Field section
+   * (receives `{ modelValue, props }`, emits `update:modelValue`). Absent →
+   * the host offers a plain text input.
+   */
+  defaultValueInput?: Component;
+  /** Authoring diagnostics, merged into the builder's validation panel. */
+  lint?: (node: ElementNode<string, P>, config?: PageConfig) => ElementLintIssue[];
+}
+
+export interface PageElementDefinition<P extends ElementProps = ElementProps> {
+  /** Runtime renderer. Receives `{ node }`; containers get children via the default slot. */
+  renderer: Component;
+  /** Presence = value-model participation (with `node.name`). */
+  value?: ElementValueSpec<P>;
+  /** Children + dropzones + container style fields. Defaults to false. */
+  container?: boolean;
+  /** Inline-natured leaf — host applies the width:fit-content treatment. Defaults to false. */
+  inline?: boolean;
+  /** Ingest healing for the props bag (untrusted JSON), run by `normalizePageSchema`. */
+  normalizeProps?: (raw: unknown) => P;
+  /** Editor half — omit in renderer-only bundles. */
+  builder?: PageElementBuilderDefinition<P>;
+}
+
+/**
+ * Keyed by element type (= the wire `type` string). The slot type is
+ * intentionally `PageElementDefinition<any>` so definitions created with a
+ * concrete `P` assign without erasing their own generic (composition sites
+ * keep `keyof P` checking through `definePageElement`).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type PageElementRegistry = Record<string, PageElementDefinition<any>>;
+
+/** Consumer element keys: lowercase kebab, colon-free (survives the markdown embed grammar). */
+export const ELEMENT_KEY_PATTERN = /^[a-z][a-z0-9-]*$/;
+
+/**
+ * Identity helper that preserves `P` inference for the definition's hooks and
+ * marks the component fields raw (definitions travel through reactive config
+ * objects; proxying a component definition is pure overhead).
+ */
+export function definePageElement<P extends ElementProps>(
+  def: PageElementDefinition<P>,
+): PageElementDefinition<P> {
+  markRaw(def.renderer);
+  if (def.builder?.preview) markRaw(def.builder.preview);
+  if (def.builder?.inspector) markRaw(def.builder.inspector);
+  if (def.builder?.defaultValueInput) markRaw(def.builder.defaultValueInput);
+  return def;
+}
+
+/**
+ * App-wide default registry channel (`app.provide`). `PageConfig.elements`
+ * wins over it per instance. `Symbol.for` per the cross-package house
+ * convention so duplicated module instances still share the channel.
+ */
+export const PAGE_ELEMENTS_KEY: InjectionKey<PageElementRegistry> =
+  Symbol.for('coar:page-elements') as InjectionKey<PageElementRegistry>;
+
+/**
+ * Additive merge: consumer entries extend the base (built-in) set. Shadowing
+ * a base key is legal but almost always a mistake (a future built-in landing
+ * on a consumer's key), so it warns in DEV. Returns a new object; inputs are
+ * not mutated.
+ */
+export function mergeElementRegistries(
+  base: PageElementRegistry,
+  overlay?: PageElementRegistry,
+): PageElementRegistry {
+  if (!overlay) return { ...base };
+  for (const key of Object.keys(overlay)) {
+    if (key in base) {
+      warnDev(
+        `element registration "${key}" shadows an existing element of the same name — ` +
+          'prefix consumer keys (e.g. "acme-rating") to keep them collision-free.',
+      );
+    } else if (!ELEMENT_KEY_PATTERN.test(key)) {
+      warnDev(
+        `element key "${key}" does not match ${ELEMENT_KEY_PATTERN} — ` +
+          'keys must be lowercase kebab-case (colon-free) to stay portable.',
+      );
+    }
+  }
+  return { ...base, ...overlay };
+}

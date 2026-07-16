@@ -13,9 +13,12 @@
  *   (dropped), an unknown element type (kept — the renderer's allow-list
  *   drops it at render time), a non-array `children` value (reset to []), a
  *   non-numeric heading level (reset to 2), children on a non-container.
- * - The JSON tab treats ANY issue as a rejection (nothing is applied, nothing
- *   reaches the host's v-model); the v-model path applies the healed tree and
- *   warns in DEV.
+ * - Issues carry a severity: `error` = something was DROPPED (data loss),
+ *   `warning` = healed or lossless (unknown types stay in the tree). The JSON
+ *   tab rejects only on errors — a document mentioning element types this app
+ *   doesn't know (a newer library version, an unregistered consumer element)
+ *   must stay pasteable and round-trip losslessly. The v-model path applies
+ *   the healed tree either way and warns in DEV.
  */
 import type { ElementType, PageNode } from '../schema';
 import { isContainerNode } from '../schema';
@@ -54,6 +57,12 @@ export interface NormalizeIssue {
   /** Human-readable node position, e.g. `page.children[2]`. */
   path: string;
   message: string;
+  /**
+   * `error` = data was dropped (the input is structurally broken);
+   * `warning` = healed in place or lossless (e.g. an unknown element type,
+   * which stays in the tree and is skipped at render time).
+   */
+  severity: 'error' | 'warning';
 }
 
 export interface NormalizeResult {
@@ -103,7 +112,7 @@ export function normalizePageSchema(value: unknown): NormalizeResult {
   const issues: NormalizeIssue[] = [];
 
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
-    issues.push({ path: 'root', message: 'Schema root must be an object.' });
+    issues.push({ path: 'root', message: 'Schema root must be an object.', severity: 'error' });
     return { schema: defaultPage(), issues, changed: true };
   }
 
@@ -148,7 +157,7 @@ function normalizeNode(
   issues: NormalizeIssue[],
 ): NodeResult {
   if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
-    issues.push({ path, message: 'Node must be an object — entry dropped.' });
+    issues.push({ path, message: 'Node must be an object — entry dropped.', severity: 'error' });
     return { node: null, changed: true };
   }
 
@@ -165,6 +174,7 @@ function normalizeNode(
     issues.push({
       path,
       message: `Unknown element type ${JSON.stringify(node.type)} — the renderer will skip it.`,
+      severity: 'warning',
     });
   }
 
@@ -184,6 +194,7 @@ function normalizeNode(
       issues.push({
         path,
         message: `Heading level ${JSON.stringify(node.level)} is not a number — reset to 2.`,
+        severity: 'warning',
       });
       set('level', 2);
     }
@@ -194,25 +205,45 @@ function normalizeNode(
     if (node.children === undefined || node.children === null) {
       set('children', []);
     } else if (!Array.isArray(node.children)) {
-      issues.push({ path, message: '`children` must be an array — reset to empty.' });
+      issues.push({
+        path,
+        message: '`children` must be an array — reset to empty.',
+        severity: 'warning',
+      });
       set('children', []);
     } else {
-      const children = node.children as unknown[];
-      const nextChildren: unknown[] = [];
-      let childrenChanged = false;
-      for (let i = 0; i < children.length; i++) {
-        const child = normalizeNode(children[i], `${path}.children[${i}]`, seenIds, issues);
-        if (child.node !== null) nextChildren.push(child.node);
-        childrenChanged ||= child.changed;
-      }
-      if (childrenChanged) set('children', nextChildren);
+      normalizeChildren(node, set, path, seenIds, issues);
     }
+  } else if (!typeKnown && Array.isArray(node.children)) {
+    // Unknown-typed subtrees stay in the tree (skipped at render time), but
+    // their STRUCTURE is still healed — ids must be page-unique even in
+    // invisible branches, or they collide the moment the type gets registered.
+    normalizeChildren(node, set, path, seenIds, issues);
   } else if (typeKnown && node.children !== undefined) {
     issues.push({
       path,
       message: `"${node.type as string}" is not a container — its \`children\` are ignored by the renderer.`,
+      severity: 'warning',
     });
   }
 
   return { node, changed };
+}
+
+function normalizeChildren(
+  node: Record<string, unknown>,
+  set: (key: string, value: unknown) => void,
+  path: string,
+  seenIds: Set<string>,
+  issues: NormalizeIssue[],
+): void {
+  const children = node.children as unknown[];
+  const nextChildren: unknown[] = [];
+  let childrenChanged = false;
+  for (let i = 0; i < children.length; i++) {
+    const child = normalizeNode(children[i], `${path}.children[${i}]`, seenIds, issues);
+    if (child.node !== null) nextChildren.push(child.node);
+    childrenChanged ||= child.changed;
+  }
+  if (childrenChanged) set('children', nextChildren);
 }

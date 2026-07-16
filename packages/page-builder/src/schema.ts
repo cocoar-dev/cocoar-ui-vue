@@ -41,6 +41,36 @@ interface PageNodeBase {
   style?: NodeStyle
 }
 
+// ─── Unified element node (schema v2) ─────────────────────────────────────────
+
+/** Element-specific props. Must stay JSON-safe — the bag is persisted verbatim. */
+export type ElementProps = Record<string, unknown>
+
+/**
+ * The unified node grammar: `type` is an open string (the element-registry
+ * key), everything element-specific lives in the `props` bag, and the host
+ * vocabulary stays at node level (`id`, `style`, the value-model trio, and
+ * `children` for containers). The bag exists so consumer-registered elements
+ * can never collide with host fields; built-ins follow the same grammar for
+ * uniformity.
+ *
+ * `name`/`defaultValue`/`validation` are only meaningful when the element's
+ * registry definition declares a `value` spec; `children` only when it
+ * declares `container`.
+ */
+export interface ElementNode<
+  K extends string = string,
+  P extends ElementProps = ElementProps,
+> extends PageNodeBase {
+  type: K
+  props: P
+  /** When set (and the definition has a value spec), the renderer manages this node's value. */
+  name?: string
+  defaultValue?: unknown
+  validation?: FieldValidation
+  children?: PageNode[]
+}
+
 // ─── Layout / Containers ──────────────────────────────────────────────────────
 
 /** Root-level page container. Behaves like a column; always the schema root. */

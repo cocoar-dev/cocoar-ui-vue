@@ -183,3 +183,75 @@ describe('normalizePageSchema — issues', () => {
     expect(issues[0].message).toContain('not a container');
   });
 });
+
+describe('normalizePageSchema — issue severity', () => {
+  it('classifies dropped input as error, healed/lossless findings as warning', () => {
+    const { issues } = normalizePageSchema({
+      id: 'r',
+      type: 'page',
+      children: [
+        42, // dropped → error
+        { id: 'x', type: 'wat' }, // unknown type, kept → warning
+        { id: 'h', type: 'heading', text: 'x', level: 'nope' }, // healed → warning
+        { id: 'd', type: 'divider', children: [] }, // ignored children → warning
+      ],
+    });
+    const bySeverity = (s: string) => issues.filter((i) => i.severity === s);
+    expect(bySeverity('error')).toHaveLength(1);
+    expect(bySeverity('error')[0].path).toBe('page.children[0]');
+    expect(bySeverity('warning')).toHaveLength(3);
+  });
+
+  it('classifies a non-object root as error', () => {
+    const { issues } = normalizePageSchema('nope');
+    expect(issues[0].severity).toBe('error');
+  });
+});
+
+describe('normalizePageSchema — unknown-typed subtrees', () => {
+  it('recurses into children of unknown-typed nodes (id dedup reaches them)', () => {
+    const { schema, issues } = normalizePageSchema({
+      id: 'r',
+      type: 'page',
+      children: [
+        { id: 'dup', type: 'paragraph', text: 'visible' },
+        {
+          id: 'x',
+          type: 'acme-rating-group',
+          props: { max: 5 },
+          children: [{ id: 'dup', type: 'paragraph', text: 'inside unknown' }],
+        },
+      ],
+    });
+    const children = (schema as { children: { id: string; children?: { id: string }[] }[] })
+      .children;
+    const innerId = children[1].children![0].id;
+    expect(innerId).not.toBe('dup');
+    // The unknown node itself is a lossless warning, not an error.
+    expect(issues.filter((i) => i.severity === 'error')).toHaveLength(0);
+  });
+
+  it('keeps an unknown node byte-identical apart from structural healing', () => {
+    const unknown = {
+      id: 'x',
+      type: 'acme-rating',
+      props: { max: 5, exotic: { nested: true } },
+      customFlag: 'kept',
+    };
+    const { schema } = normalizePageSchema({ id: 'r', type: 'page', children: [unknown] });
+    const kept = (schema as { children: Record<string, unknown>[] }).children[0];
+    expect(kept).toBe(unknown); // untouched → same reference
+  });
+
+  it('leaves a non-array children value on an unknown node alone (lossless)', () => {
+    const unknown = { id: 'x', type: 'acme-thing', children: 'opaque' };
+    const { schema, issues } = normalizePageSchema({
+      id: 'r',
+      type: 'page',
+      children: [unknown],
+    });
+    const kept = (schema as { children: Record<string, unknown>[] }).children[0];
+    expect(kept.children).toBe('opaque');
+    expect(issues.filter((i) => i.severity === 'error')).toHaveLength(0);
+  });
+});
