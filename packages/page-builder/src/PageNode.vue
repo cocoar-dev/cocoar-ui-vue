@@ -13,29 +13,8 @@ const PB_PARENT_DIRECTION: InjectionKey<ComputedRef<FlexDirection>> =
 
 <script setup lang="ts">
 import { computed, inject, provide } from 'vue';
-import {
-  CoarButton,
-  CoarCard,
-  CoarCheckbox,
-  CoarDivider,
-  CoarFormField,
-  CoarMultiSelect,
-  CoarNote,
-  CoarNumberInput,
-  CoarOtpInput,
-  CoarPasswordInput,
-  CoarPlainDatePicker,
-  CoarPlainDateTimePicker,
-  CoarRadioButton,
-  CoarRadioGroup,
-  CoarSelect,
-  CoarSwitch,
-  CoarTextInput,
-  type CoarSelectOption,
-} from '@cocoar/vue-ui';
-import { isElementAllowed, type PageNode } from './schema';
-import { selfStyle, containerLayoutStyle as layoutStyleFromStyle } from './styleMapping';
-import { headingTag, isoToPlainDate, isoToPlainDateTime } from './renderSafety';
+import { isElementAllowed, type PageNode, type StackNode } from './schema';
+import { selfStyle, containerLayoutStyle } from './styleMapping';
 import { PAGE_RENDERER_KEY } from './context';
 
 defineOptions({ name: 'PageNode' });
@@ -56,15 +35,32 @@ const allowed = computed(() => {
   return ok;
 });
 
+/**
+ * Registry dispatch: the definition supplies the renderer component; the host
+ * owns everything around it (allow gate, self-style, children recursion). An
+ * allowed-but-unregistered type renders nothing and warns once — a production
+ * page is not an authoring surface, so no placeholder chrome appears here
+ * (the builder canvas is where missing registrations are made visible).
+ */
+const def = computed(() => {
+  if (props.node.type === 'page') return undefined;
+  const d = ctx!.elements.value[props.node.type];
+  if (!d && allowed.value) ctx!.reportUnknown?.(props.node.type);
+  return d;
+});
+
 // ─── Style helpers ────────────────────────────────────────────────────────────
 // Mapping lives in styleMapping.ts (pure, unit-tested). `wrapperStyle` is the
-// node's own outer style; `containerLayoutStyle` arranges a container's children.
+// node's own outer style, applied onto the renderer's root element via
+// attribute fallthrough (element renderers are single-root by contract).
 
 // Direction-aware sizing: read the parent container's direction, and tell our
 // own children what direction WE impose on them.
 const parentDirection = inject(PB_PARENT_DIRECTION, undefined);
 const ownDirection = computed<FlexDirection>(() =>
-  props.node.type === 'stack' ? (props.node.props.direction ?? 'column') : 'column',
+  props.node.type === 'stack'
+    ? ((props.node as StackNode).props.direction ?? 'column')
+    : 'column',
 );
 provide(PB_PARENT_DIRECTION, ownDirection);
 
@@ -72,477 +68,42 @@ const wrapperStyle = computed(() =>
   selfStyle(props.node.style, parentDirection?.value ?? 'column'),
 );
 
-function containerLayoutStyle(node: PageNode) {
-  return layoutStyleFromStyle(node.style);
-}
-
-// ─── Narrowed typed views (templates can't narrow discriminated unions) ────────
-
-const n = computed(() => props.node);
-
-// Field name for named inputs as a plain `string | undefined`. Using this in
-// handlers avoids vue-tsc losing the discriminated-union narrowing of `n` inside
-// nested arrow/`&&` expressions (which surfaced as spurious "Property 'name'…").
-const nodeName = computed(() => ('name' in props.node ? props.node.name : undefined));
-
-// ─── Action wiring ────────────────────────────────────────────────────────────
-
-function callAction(id?: string, validates?: boolean) {
-  if (!id) return;
-  ctx!.triggerAction(id, validates);
-}
-
-// ─── Asset resolution ─────────────────────────────────────────────────────────
-
-function resolveAsset(assetId: string): string {
-  return ctx!.assetResolver?.(assetId) ?? '';
-}
-
-// ─── Select options helper ────────────────────────────────────────────────────
-
-function toSelectOptions(
-  options?: { value: string; label: string }[],
-): CoarSelectOption<string>[] {
-  return (options ?? []).map((o) => ({ value: o.value, label: o.label }));
-}
-
-// ─── Input type wiring ────────────────────────────────────────────────────────
-
-function htmlInputType(t?: string): 'text' | 'email' | 'url' {
-  return t === 'email' || t === 'url' ? t : 'text';
-}
-
-function autocompleteFor(t?: string): string | undefined {
-  return t === 'email' ? 'email' : t === 'url' ? 'url' : undefined;
-}
-
-// Selects and checkboxes have no meaningful blur moment — choosing a value IS
-// the interaction, so it marks the field touched (otherwise their errors could
-// never surface between submits).
-function setFieldValue(name: string | undefined, v: unknown) {
-  if (!name) return;
-  ctx!.setValue(name, v);
-  ctx!.markTouched(name);
-}
+const children = computed(() =>
+  'children' in props.node && Array.isArray(props.node.children) ? props.node.children : [],
+);
 </script>
 
 <template>
   <template v-if="allowed">
-  <!-- ── page (root, always column-direction) ────────────────────────────── -->
-  <div
-    v-if="n.type === 'page'"
-    class="pb-stack"
-    :style="{ ...wrapperStyle, ...containerLayoutStyle(n) }"
-  >
-    <PageNode v-for="child in n.children" :key="child.id" :node="child" />
-  </div>
-
-  <!-- ── stack (generic flex container) ──────────────────────────────────── -->
-  <div
-    v-else-if="n.type === 'stack'"
-    class="pb-stack"
-    :class="{
-      'pb-stack--row': n.props.direction === 'row',
-      'pb-stack--wrap': n.props.wrap,
-    }"
-    :style="{ ...wrapperStyle, ...containerLayoutStyle(n) }"
-  >
-    <PageNode v-for="child in n.children" :key="child.id" :node="child" />
-  </div>
-
-  <!-- ── card ─────────────────────────────────────────────────────────────── -->
-  <CoarCard
-    v-else-if="n.type === 'card'"
-    :title="n.props.title"
-    :style="wrapperStyle"
-  >
-    <div class="pb-card-body" :style="containerLayoutStyle(n)">
-      <PageNode v-for="child in n.children" :key="child.id" :node="child" />
-    </div>
-  </CoarCard>
-
-  <!-- ── section ──────────────────────────────────────────────────────────── -->
-  <section
-    v-else-if="n.type === 'section'"
-    class="pb-section"
-    :style="wrapperStyle"
-  >
-    <h3 v-if="n.props.title" class="pb-section__title">{{ n.props.title }}</h3>
-    <div class="pb-section__body" :style="containerLayoutStyle(n)">
-      <PageNode v-for="child in n.children" :key="child.id" :node="child" />
-    </div>
-  </section>
-
-  <!-- ── divider ──────────────────────────────────────────────────────────── -->
-  <CoarDivider v-else-if="n.type === 'divider'" :style="wrapperStyle" />
-
-  <!-- ── spacer ───────────────────────────────────────────────────────────── -->
-  <div
-    v-else-if="n.type === 'spacer'"
-    class="pb-spacer"
-    :style="n.props.size ? { height: n.props.size, width: n.props.size } : { flex: '1' }"
-  />
-
-  <!-- ── heading ──────────────────────────────────────────────────────────── -->
-  <component
-    :is="headingTag(n.props.level)"
-    v-else-if="n.type === 'heading'"
-    class="pb-heading"
-    :style="wrapperStyle"
-  >
-    {{ n.props.text }}
-  </component>
-
-  <!-- ── paragraph ────────────────────────────────────────────────────────── -->
-  <p
-    v-else-if="n.type === 'paragraph'"
-    class="pb-paragraph"
-    :style="wrapperStyle"
-  >
-    {{ n.props.text }}
-  </p>
-
-  <!-- ── note ─────────────────────────────────────────────────────────────── -->
-  <CoarNote
-    v-else-if="n.type === 'note'"
-    :variant="n.props.variant"
-    :style="wrapperStyle"
-  >
-    {{ n.props.text }}
-  </CoarNote>
-
-  <!-- ── text-input ───────────────────────────────────────────────────────── -->
-  <CoarFormField
-    v-else-if="n.type === 'text-input'"
-    :label="n.props.label"
-    :required="n.validation?.required"
-    :error="nodeName ? ctx.getError(nodeName) : ''"
-    :disabled="n.props.disabled"
-    :style="wrapperStyle"
-  >
-    <CoarPasswordInput
-      v-if="n.props.inputType === 'password'"
-      :model-value="nodeName ? (ctx.getValue(nodeName) as string ?? '') : ''"
-      :placeholder="n.props.placeholder"
-      :disabled="n.props.disabled"
-      @update:model-value="(v) => nodeName && ctx.setValue(nodeName, v)"
-      @blurred="nodeName && ctx.markTouched(nodeName)"
-    />
-    <CoarTextInput
-      v-else
-      :model-value="nodeName ? (ctx.getValue(nodeName) as string ?? '') : ''"
-      :type="htmlInputType(n.props.inputType)"
-      :autocomplete="autocompleteFor(n.props.inputType)"
-      :rows="n.props.rows"
-      :placeholder="n.props.placeholder"
-      :disabled="n.props.disabled"
-      @update:model-value="(v) => nodeName && ctx.setValue(nodeName, v)"
-      @blurred="nodeName && ctx.markTouched(nodeName)"
-    />
-  </CoarFormField>
-
-  <!-- ── number-input ─────────────────────────────────────────────────────── -->
-  <CoarFormField
-    v-else-if="n.type === 'number-input'"
-    :label="n.props.label"
-    :required="n.validation?.required"
-    :error="nodeName ? ctx.getError(nodeName) : ''"
-    :disabled="n.props.disabled"
-    :style="wrapperStyle"
-  >
-    <CoarNumberInput
-      :model-value="nodeName ? (ctx.getValue(nodeName) as number ?? null) : null"
-      :placeholder="n.props.placeholder"
-      :min="n.props.min"
-      :max="n.props.max"
-      :step="n.props.step"
-      :decimals="n.props.decimals"
-      :disabled="n.props.disabled"
-      @update:model-value="(v) => nodeName && ctx.setValue(nodeName, v)"
-      @blurred="nodeName && ctx.markTouched(nodeName)"
-    />
-  </CoarFormField>
-
-  <!-- ── checkbox (FormField wrapper so its validation error can surface) ──── -->
-  <CoarFormField
-    v-else-if="n.type === 'checkbox'"
-    :error="nodeName ? ctx.getError(nodeName) : ''"
-    :disabled="n.props.disabled"
-    :style="wrapperStyle"
-  >
-    <CoarCheckbox
-      :model-value="nodeName ? (ctx.getValue(nodeName) as boolean ?? false) : false"
-      :label="n.props.label"
-      :required="n.validation?.required"
-      :disabled="n.props.disabled"
-      @update:model-value="(v) => setFieldValue(nodeName, v)"
-    />
-  </CoarFormField>
-
-  <!-- ── switch (boolean like checkbox; touch-on-change) ─────────────────────── -->
-  <CoarFormField
-    v-else-if="n.type === 'switch'"
-    :error="nodeName ? ctx.getError(nodeName) : ''"
-    :disabled="n.props.disabled"
-    :style="wrapperStyle"
-  >
-    <CoarSwitch
-      :model-value="nodeName ? (ctx.getValue(nodeName) as boolean ?? false) : false"
-      :label="n.props.label"
-      :disabled="n.props.disabled"
-      @update:model-value="(v) => setFieldValue(nodeName, v)"
-    />
-  </CoarFormField>
-
-  <!-- ── radio-group ──────────────────────────────────────────────────────── -->
-  <CoarFormField
-    v-else-if="n.type === 'radio-group'"
-    :label="n.props.label"
-    :required="n.validation?.required"
-    :error="nodeName ? ctx.getError(nodeName) : ''"
-    :disabled="n.props.disabled"
-    :style="wrapperStyle"
-  >
-    <CoarRadioGroup
-      :model-value="nodeName ? (ctx.getValue(nodeName) as string ?? undefined) : undefined"
-      :name="nodeName ?? n.id"
-      :label="n.props.label"
-      :orientation="n.props.orientation"
-      :required="n.validation?.required"
-      :disabled="n.props.disabled"
-      @update:model-value="(v) => setFieldValue(nodeName, v)"
+    <!-- ── page root (host-owned; always a column) ─────────────────────────── -->
+    <div
+      v-if="node.type === 'page'"
+      class="pb-page"
+      :style="{ ...wrapperStyle, ...containerLayoutStyle(node.style) }"
     >
-      <CoarRadioButton
-        v-for="o in n.props.options ?? []"
-        :key="o.value"
-        :value="o.value"
-        :disabled="n.props.disabled"
-      >
-        {{ o.label }}
-      </CoarRadioButton>
-    </CoarRadioGroup>
-  </CoarFormField>
+      <PageNode v-for="child in children" :key="child.id" :node="child" />
+    </div>
 
-  <!-- ── select ───────────────────────────────────────────────────────────── -->
-  <CoarFormField
-    v-else-if="n.type === 'select'"
-    :label="n.props.label"
-    :required="n.validation?.required"
-    :error="nodeName ? ctx.getError(nodeName) : ''"
-    :disabled="n.props.disabled"
-    :style="wrapperStyle"
-  >
-    <CoarSelect
-      :model-value="nodeName ? (ctx.getValue(nodeName) as string ?? null) : null"
-      :options="toSelectOptions(n.props.options)"
-      :placeholder="n.props.placeholder"
-      :disabled="n.props.disabled"
-      @update:model-value="(v) => setFieldValue(nodeName, v)"
-    />
-  </CoarFormField>
+    <!-- ── registered element ──────────────────────────────────────────────── -->
+    <component
+      :is="def.renderer"
+      v-else-if="def"
+      :node="node"
+      :style="wrapperStyle"
+    >
+      <template v-if="def.container" #default>
+        <PageNode v-for="child in children" :key="child.id" :node="child" />
+      </template>
+    </component>
 
-  <!-- ── multi-select ─────────────────────────────────────────────────────── -->
-  <CoarFormField
-    v-else-if="n.type === 'multi-select'"
-    :label="n.props.label"
-    :required="n.validation?.required"
-    :error="nodeName ? ctx.getError(nodeName) : ''"
-    :disabled="n.props.disabled"
-    :style="wrapperStyle"
-  >
-    <CoarMultiSelect
-      :model-value="nodeName ? (ctx.getValue(nodeName) as string[] ?? []) : []"
-      :options="toSelectOptions(n.props.options)"
-      :placeholder="n.props.placeholder"
-      :disabled="n.props.disabled"
-      @update:model-value="(v) => setFieldValue(nodeName, v)"
-    />
-  </CoarFormField>
-
-  <!-- ── otp-input ────────────────────────────────────────────────────────── -->
-  <CoarFormField
-    v-else-if="n.type === 'otp-input'"
-    :label="n.props.label"
-    :required="n.validation?.required"
-    :error="nodeName ? ctx.getError(nodeName) : ''"
-    :disabled="n.props.disabled"
-    :style="wrapperStyle"
-  >
-    <CoarOtpInput
-      :model-value="nodeName ? (ctx.getValue(nodeName) as string ?? '') : ''"
-      :length="n.props.length"
-      :type="n.props.otpType"
-      :mask="n.props.mask"
-      :disabled="n.props.disabled"
-      @update:model-value="(v) => nodeName && ctx.setValue(nodeName, v)"
-      @blurred="nodeName && ctx.markTouched(nodeName)"
-    />
-  </CoarFormField>
-
-  <!-- ── date-input (ISO string in the value model, Temporal at the picker) ── -->
-  <CoarFormField
-    v-else-if="n.type === 'date-input'"
-    :label="n.props.label"
-    :required="n.validation?.required"
-    :error="nodeName ? ctx.getError(nodeName) : ''"
-    :disabled="n.props.disabled"
-    :style="wrapperStyle"
-  >
-    <CoarPlainDatePicker
-      :model-value="nodeName ? isoToPlainDate(ctx.getValue(nodeName)) : null"
-      :placeholder="n.props.placeholder"
-      :disabled="n.props.disabled"
-      clearable
-      @update:model-value="(d) => setFieldValue(nodeName, d ? d.toString() : '')"
-    />
-  </CoarFormField>
-
-  <!-- ── datetime-input ───────────────────────────────────────────────────── -->
-  <CoarFormField
-    v-else-if="n.type === 'datetime-input'"
-    :label="n.props.label"
-    :required="n.validation?.required"
-    :error="nodeName ? ctx.getError(nodeName) : ''"
-    :disabled="n.props.disabled"
-    :style="wrapperStyle"
-  >
-    <CoarPlainDateTimePicker
-      :model-value="nodeName ? isoToPlainDateTime(ctx.getValue(nodeName)) : null"
-      :placeholder="n.props.placeholder"
-      :disabled="n.props.disabled"
-      clearable
-      @update:model-value="(d) => setFieldValue(nodeName, d ? d.toString() : '')"
-    />
-  </CoarFormField>
-
-  <!-- ── button ───────────────────────────────────────────────────────────── -->
-  <!-- Validating buttons stay CLICKABLE while the form is invalid — the click
-       reveals the errors (a disabled button can't explain itself). They only
-       disable while an async onValidate is in flight, to block double-submit. -->
-  <CoarButton
-    v-else-if="n.type === 'button'"
-    class="pb-button"
-    :variant="n.props.variant ?? 'primary'"
-    :size="n.props.size"
-    :icon-left="n.props.icon"
-    :disabled="n.props.validates && ctx.isValidating.value"
-    :style="wrapperStyle"
-    @click="callAction(n.props.action, n.props.validates)"
-  >
-    {{ n.props.label }}
-  </CoarButton>
-
-  <!-- ── link ─────────────────────────────────────────────────────────────── -->
-  <button
-    v-else-if="n.type === 'link'"
-    class="pb-link"
-    :style="wrapperStyle"
-    @click="callAction(n.props.action)"
-  >
-    {{ n.props.label }}
-  </button>
-
-  <!-- ── image ────────────────────────────────────────────────────────────── -->
-  <img
-    v-else-if="n.type === 'image'"
-    class="pb-image"
-    :src="resolveAsset(n.props.assetId)"
-    :alt="n.props.alt ?? ''"
-    :style="wrapperStyle"
-  />
+    <!-- unregistered type: render nothing (warned once above) -->
   </template>
 </template>
 
 <style scoped>
-.pb-stack {
+.pb-page {
   display: flex;
   flex-direction: column;
   min-width: 0;
-}
-
-.pb-stack--row {
-  flex-direction: row;
-}
-
-/*
- * Allow row children to shrink below their content size (prevents overflow of
- * long labels). Children are natural-width by default; growing to fill is opt-in
- * via the node's `size: 'fill'` (see styleMapping.ts), not forced here.
- */
-.pb-stack--row > * {
-  min-width: 0;
-}
-
-.pb-stack--wrap {
-  flex-wrap: wrap;
-}
-
-.pb-card-body {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.pb-section {
-  display: block;
-}
-
-.pb-section__title {
-  margin: 0 0 var(--coar-spacing-s, 8px);
-  font-size: var(--coar-body-base-size, 14px);
-  font-weight: 600;
-  color: var(--coar-text-neutral-primary, #111);
-}
-
-.pb-section__body {
-  display: flex;
-  flex-direction: column;
-}
-
-.pb-heading {
-  margin: 0;
-  font-weight: 600;
-  color: var(--coar-text-neutral-primary, #111);
-}
-
-.pb-paragraph {
-  margin: 0;
-  color: var(--coar-text-neutral-secondary, #666);
-}
-
-/*
- * Inline-natured leaves (button, link, image) would otherwise be stretched to
- * the full cross-axis by `align-items: stretch` (the flexbox default) on the
- * parent stack — matching the editor canvas where these elements sit content-
- * sized inside a wrapper. Explicit `style.width` on the schema still wins
- * because it's applied as an inline style.
- */
-.pb-button,
-.pb-link,
-.pb-image {
-  width: fit-content;
-  max-width: 100%;
-}
-
-.pb-link {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  color: var(--coar-text-accent, #0066cc);
-  font-size: inherit;
-  text-decoration: underline;
-}
-
-.pb-link:hover {
-  color: var(--coar-text-accent-hover, #004fa3);
-}
-
-.pb-image {
-  display: block;
-}
-
-.pb-spacer {
-  flex-shrink: 0;
 }
 </style>

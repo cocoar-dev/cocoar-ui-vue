@@ -164,6 +164,7 @@ export const PLACEABLE_TYPES: readonly ElementType[] = [
   'button', 'link', 'image',
 ];
 
-export function typeIcon(type: ElementType): CoreIconName {
-  return ELEMENT_TYPE_META[type]?.icon ?? 'circle-alert';
+/** Icon for a type string — open-union tolerant; unknown types get the alert icon. */
+export function typeIcon(type: string): CoreIconName {
+  return ELEMENT_TYPE_META[type as ElementType]?.icon ?? 'circle-alert';
 }

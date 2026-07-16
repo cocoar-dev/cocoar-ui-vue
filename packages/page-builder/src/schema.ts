@@ -1,3 +1,7 @@
+// Type-only import — the runtime dependency points the other way
+// (elements/registry.ts imports node types from here), so no cycle exists.
+import type { PageElementRegistry } from './elements/registry'
+
 // ─── Style ────────────────────────────────────────────────────────────────────
 
 export interface NodeStyle {
@@ -274,8 +278,8 @@ export interface FieldValidation {
 
 export type ContainerNode = PageRootNode | StackNode | CardNode | SectionNode
 
-export type PageNode =
-  | PageRootNode
+/** The built-in element set (closed — drives the internal per-type tables). */
+export type BuiltinNode =
   | StackNode
   | CardNode
   | SectionNode
@@ -298,7 +302,16 @@ export type PageNode =
   | LinkNode
   | ImageNode
 
-export type ElementType = PageNode['type']
+/**
+ * Any node in a page tree. The union is OPEN: the last member admits
+ * consumer-registered elements (whose `type` is their registry key). Code
+ * that needs the closed built-in set uses `ElementType`/`BuiltinNode`;
+ * dispatch on the open set goes through the element registry, not switches.
+ */
+export type PageNode = PageRootNode | BuiltinNode | ElementNode
+
+/** Built-in type strings (closed). The wire format admits any string `type`. */
+export type ElementType = 'page' | BuiltinNode['type']
 
 // ─── Type guards ──────────────────────────────────────────────────────────────
 
@@ -321,10 +334,19 @@ export function isContainerNode(node: PageNode): node is ContainerNode {
  */
 export interface PageConfig {
   /**
-   * Element types permitted to appear in the tree. Omit to allow every type.
-   * `page` (the root marker) is always implicitly allowed regardless of this list.
+   * Element types permitted to appear in the tree (built-in types and
+   * consumer-registered keys alike). Omit to allow every type. `page` (the
+   * root marker) is always implicitly allowed regardless of this list.
    */
-  allowedElements?: ElementType[]
+  allowedElements?: (ElementType | (string & {}))[]
+  /**
+   * Consumer-registered elements, merged ADDITIVELY over the built-in set
+   * (shadowing a built-in key warns in DEV). The same config reaches builder
+   * and renderer, so one registration serves palette, canvas, inspector and
+   * runtime. App-wide defaults can be provided under `PAGE_ELEMENTS_KEY`
+   * instead; this field wins when both are present.
+   */
+  elements?: PageElementRegistry
   /**
    * Action IDs that buttons and links may reference. When provided, the builder's
    * Action-ID input becomes a dropdown of these choices instead of free text.
@@ -362,8 +384,8 @@ export interface PageConfig {
  * The root `page` type is always allowed — it's a schema-shape marker, not a
  * user-placeable element.
  */
-export function isElementAllowed(type: ElementType, config?: PageConfig): boolean {
+export function isElementAllowed(type: string, config?: PageConfig): boolean {
   if (type === 'page') return true
   if (!config?.allowedElements) return true
-  return config.allowedElements.includes(type)
+  return (config.allowedElements as string[]).includes(type)
 }

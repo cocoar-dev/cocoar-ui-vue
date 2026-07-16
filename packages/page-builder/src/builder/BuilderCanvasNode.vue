@@ -34,7 +34,7 @@ import {
   type CoarSelectOption,
 } from '@cocoar/vue-ui';
 import { useI18n } from '@cocoar/vue-localization';
-import { isContainerNode, isElementAllowed, type PageNode } from '../schema';
+import { isContainerNode, isElementAllowed, type PageNode, type StackNode } from '../schema';
 import { selfLayoutStyle, containerLayoutStyle } from '../styleMapping';
 import { headingTag, isoToPlainDate, isoToPlainDateTime } from '../renderSafety';
 import { KNOWN_ELEMENT_TYPES } from './schemaNormalize';
@@ -101,7 +101,8 @@ const blockedHint = computed(() =>
 /** Direction of this container — drives dropzone axis + child flex behavior. */
 const containerDirection = computed<FlexDirection>(() => {
   const n = props.node;
-  if (n.type === 'stack') return n.props.direction ?? 'column';
+  // Cast: the open union member absorbs the 'stack' narrowing.
+  if (n.type === 'stack') return (n as StackNode).props.direction ?? 'column';
   return 'column';
 });
 

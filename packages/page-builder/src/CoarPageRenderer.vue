@@ -1,22 +1,14 @@
 <script setup lang="ts">
-import { computed, provide, ref, watch } from 'vue';
+import { computed, inject, provide, ref, watch } from 'vue';
 import { useI18n } from '@cocoar/vue-localization';
 import { isElementAllowed } from './schema';
-import type {
-  PageNode,
-  TextInputNode,
-  NumberInputNode,
-  CheckboxNode,
-  SwitchNode,
-  RadioGroupNode,
-  SelectNode,
-  MultiSelectNode,
-  OtpInputNode,
-  DateInputNode,
-  DateTimeInputNode,
-  PageConfig,
-  FieldValidation,
-} from './schema';
+import type { ElementNode, PageNode, PageConfig } from './schema';
+import { BUILTIN_ELEMENTS } from './elements/builtins';
+import {
+  mergeElementRegistries,
+  PAGE_ELEMENTS_KEY,
+  type PageElementDefinition,
+} from './elements/registry';
 import { migrateLegacyTypes } from './builder/schemaNormalize';
 import { migrateV1PropsBag } from './builder/schemaMigrateV1';
 import {
@@ -75,25 +67,25 @@ const renderSchema = computed(
   () => migrateV1PropsBag(migrateLegacyTypes(props.schema)) as PageNode,
 );
 
-type NamedInputNode =
-  | TextInputNode
-  | NumberInputNode
-  | CheckboxNode
-  | SwitchNode
-  | RadioGroupNode
-  | SelectNode
-  | MultiSelectNode
-  | OtpInputNode
-  | DateInputNode
-  | DateTimeInputNode;
+// ─── Element registry ─────────────────────────────────────────────────────────
 
-const NAMED_INPUT_TYPES: ReadonlySet<string> = new Set([
-  'text-input', 'number-input', 'checkbox', 'switch', 'radio-group',
-  'select', 'multi-select', 'otp-input', 'date-input', 'datetime-input',
-]);
+// App-wide default channel; injected once at setup, read reactively below so a
+// swapped config object is honoured (no static-provide-at-mount trap).
+const appElements = inject(PAGE_ELEMENTS_KEY, undefined);
+const elements = computed(() =>
+  mergeElementRegistries(BUILTIN_ELEMENTS, props.config?.elements ?? appElements),
+);
 
-function isNamedInput(node: PageNode): node is NamedInputNode {
-  return NAMED_INPUT_TYPES.has(node.type) && !!(node as NamedInputNode).name;
+function defFor(node: PageNode): PageElementDefinition | undefined {
+  return node.type === 'page' ? undefined : elements.value[node.type];
+}
+
+/** A named input = any element whose definition declares a value spec, carrying a `name`. */
+type NamedNode = ElementNode & { name: string };
+
+function isNamedInput(node: PageNode): node is NamedNode {
+  const def = defFor(node);
+  return !!def?.value && typeof (node as ElementNode).name === 'string' && !!(node as ElementNode).name;
 }
 
 /**
@@ -111,8 +103,11 @@ function isNodeAllowed(node: PageNode): boolean {
 function collectDefaults(node: PageNode): ActionValues {
   const defaults: ActionValues = {};
   if (!isNodeAllowed(node)) return defaults;
-  if (isNamedInput(node) && node.name && node.defaultValue !== undefined) {
-    defaults[node.name] = node.defaultValue;
+  if (isNamedInput(node)) {
+    // Node-level default wins; the definition's factory is the fallback.
+    const fallback = defFor(node)?.value?.defaultValue?.(node.props);
+    const seed = node.defaultValue !== undefined ? node.defaultValue : fallback;
+    if (seed !== undefined) defaults[node.name] = seed;
   }
   if ('children' in node && Array.isArray(node.children)) {
     for (const child of node.children) Object.assign(defaults, collectDefaults(child));
@@ -166,26 +161,35 @@ function patternFor(pattern: string): RegExp | null {
   return re;
 }
 
-function computeFieldError(node: NamedInputNode): string {
-  const value = values.value[node.name!];
-  // Checkbox/select validation is typed as Pick<…, 'required'>, but hand-written
-  // JSON can carry the full rule set — widening keeps the runtime checks (and
-  // their behavior) uniform across the named-input types.
-  const v = node.validation as FieldValidation | undefined;
-  if (!v) return '';
+/** Default emptiness for `required`: unset, '', false, and [] all count as empty. */
+function defaultIsEmpty(value: unknown): boolean {
+  return (
+    value === undefined || value === null || value === '' || value === false ||
+    (Array.isArray(value) && value.length === 0)
+  );
+}
 
-  if (v.required) {
-    const empty =
-      value === undefined || value === null || value === '' || value === false ||
-      // multi-select: required means at least one selection
-      (Array.isArray(value) && value.length === 0) ||
-      // otp: required means the code is COMPLETE, not merely started
-      (node.type === 'otp-input' &&
-        typeof value === 'string' && value.length < (node.props.length ?? 6));
+// Consumer `validate` hooks run inside the reactive error walk — a throwing
+// hook must not take the whole page down. Warn once per element type.
+const warnedValidateThrew = new Set<string>();
+
+function computeFieldError(node: NamedNode, def: PageElementDefinition): string {
+  const value = values.value[node.name];
+  const v = node.validation;
+
+  if (v?.required) {
+    // The definition owns its emptiness semantics (e.g. OTP completeness);
+    // the default covers the common scalar/array cases.
+    const empty = def.value?.isEmpty
+      ? def.value.isEmpty(value, node.props)
+      : defaultIsEmpty(value);
     if (empty) return v.message ?? t('coar.pageBuilder.validation.required', undefined, 'This field is required');
   }
 
-  if (node.type === 'text-input' && typeof value === 'string') {
+  // The text rules stay host-enforced (they need the localized message
+  // pipeline and the cached, crash-safe pattern compiler) and apply to the
+  // built-in text input only; elements express their own rules via `validate`.
+  if (v && node.type === 'text-input' && typeof value === 'string') {
     if (v.minLength && value.length < v.minLength)
       return v.message ?? t('coar.pageBuilder.validation.minLength', { n: v.minLength }, 'Minimum {n} characters');
     if (v.maxLength && value.length > v.maxLength)
@@ -196,9 +200,21 @@ function computeFieldError(node: NamedInputNode): string {
     }
   }
 
-  if (v.matchField) {
+  if (v?.matchField) {
     if (value !== values.value[v.matchField])
       return v.message ?? t('coar.pageBuilder.validation.matchField', undefined, 'Does not match');
+  }
+
+  if (def.value?.validate) {
+    try {
+      const custom = def.value.validate(value, node, values.value);
+      if (custom) return custom;
+    } catch (e) {
+      if (!warnedValidateThrew.has(node.type)) {
+        warnedValidateThrew.add(node.type);
+        console.warn(`[CoarPageRenderer] validate hook of element "${node.type}" threw — rule ignored.`, e);
+      }
+    }
   }
 
   return '';
@@ -206,8 +222,9 @@ function computeFieldError(node: NamedInputNode): string {
 
 function collectErrors(node: PageNode, out: Record<string, string>) {
   if (!isNodeAllowed(node)) return;
-  if (isNamedInput(node) && node.name) {
-    const err = computeFieldError(node);
+  if (isNamedInput(node)) {
+    const def = defFor(node);
+    const err = def ? computeFieldError(node, def) : '';
     if (err) out[node.name] = err;
   }
   if ('children' in node && Array.isArray(node.children)) {
@@ -237,9 +254,10 @@ function markAllTouched(node: PageNode) {
 
 // ─── Context ──────────────────────────────────────────────────────────────────
 
-// Track which disallowed types we've already warned about, so the console isn't
-// spammed when a schema contains many instances of the same forbidden element.
+// Track which disallowed/unknown types we've already warned about, so the
+// console isn't spammed when a schema contains many instances of the same one.
 const warnedDisallowed = new Set<string>();
+const warnedUnknown = new Set<string>();
 
 /**
  * Submit path of a `validates: true` button: reveal every declarative error
@@ -277,12 +295,21 @@ const ctx: PageRendererContext = {
   // prop stays as the override, config as the documented fallback.
   get assetResolver() { return props.assetResolver ?? props.config?.assetResolver; },
   get config() { return props.config; },
+  elements,
   reportDisallowed(type: string) {
     if (warnedDisallowed.has(type)) return;
     warnedDisallowed.add(type);
     console.warn(
       `[CoarPageRenderer] Element type "${type}" is not in `
       + `config.allowedElements; instances were skipped at render time.`,
+    );
+  },
+  reportUnknown(type: string) {
+    if (warnedUnknown.has(type)) return;
+    warnedUnknown.add(type);
+    console.warn(
+      `[CoarPageRenderer] No element registration for type "${type}" — `
+      + `instances were skipped at render time (register it via config.elements).`,
     );
   },
   isFormValid,

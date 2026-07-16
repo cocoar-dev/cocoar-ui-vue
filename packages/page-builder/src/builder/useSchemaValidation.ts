@@ -1,6 +1,6 @@
 import { computed, type Ref } from 'vue';
 import { isElementAllowed } from '../schema';
-import type { PageConfig, PageNode } from '../schema';
+import type { ButtonNode, LinkNode, PageConfig, PageNode } from '../schema';
 import { compilePagePattern } from '../renderSafety';
 import { KNOWN_ELEMENT_TYPES } from './schemaNormalize';
 
@@ -62,37 +62,40 @@ export function useSchemaValidation(
       }
 
       // ── Buttons & links: action wiring ─────────────────────────────────
+      // Cast: the open union member absorbs the literal narrowing.
       if (n.type === 'button') {
-        if (!n.props.action) {
+        const action = (n as ButtonNode).props.action;
+        if (!action) {
           out.push({
             nodeId: n.id,
             field: 'action',
             severity: 'warning',
             message: 'Button has no Action — clicking it will do nothing.',
           });
-        } else if (hasAvailableActions && !knownActions.has(n.props.action)) {
+        } else if (hasAvailableActions && !knownActions.has(action)) {
           out.push({
             nodeId: n.id,
             field: 'action',
             severity: 'warning',
-            message: `Action "${n.props.action}" is not in config.availableActions.`,
+            message: `Action "${action}" is not in config.availableActions.`,
           });
         }
       }
       if (n.type === 'link') {
-        if (!n.props.action) {
+        const action = (n as LinkNode).props.action;
+        if (!action) {
           out.push({
             nodeId: n.id,
             field: 'action',
             severity: 'warning',
             message: 'Link has no Action — clicking it will do nothing.',
           });
-        } else if (hasAvailableActions && !knownActions.has(n.props.action)) {
+        } else if (hasAvailableActions && !knownActions.has(action)) {
           out.push({
             nodeId: n.id,
             field: 'action',
             severity: 'warning',
-            message: `Action "${n.props.action}" is not in config.availableActions.`,
+            message: `Action "${action}" is not in config.availableActions.`,
           });
         }
       }

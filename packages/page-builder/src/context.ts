@@ -1,5 +1,6 @@
 import type { ComputedRef, InjectionKey, Ref } from 'vue';
 import type { PageConfig } from './schema';
+import type { PageElementRegistry } from './elements/registry';
 
 export type ActionValues = Record<string, unknown>;
 export type ActionHandler = (values: ActionValues) => void;
@@ -17,8 +18,12 @@ export interface PageRendererContext {
   assetResolver?: (id: string) => string
   /** Optional security/allowlist config. When set, disallowed elements are skipped. */
   config?: PageConfig
+  /** Merged element registry (built-ins + consumer registrations) — the render dispatch table. */
+  elements: ComputedRef<PageElementRegistry>
   /** Called by PageNode when it skips a disallowed type — used to console.warn once. */
   reportDisallowed?: (type: string) => void
+  /** Called by PageNode when it skips an unregistered type — used to console.warn once. */
+  reportUnknown?: (type: string) => void
   /** Whether all named fields currently pass validation (quiet, no errors shown). */
   isFormValid: ComputedRef<boolean>
   /** True while an async `onValidate` is in flight — validating buttons disable to block double-submit. */

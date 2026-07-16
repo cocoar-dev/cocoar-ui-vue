@@ -2,7 +2,7 @@
 import { computed, inject } from 'vue';
 import { useI18n } from '@cocoar/vue-localization';
 import { CoarIcon } from '@cocoar/vue-ui';
-import type { PageNode, NodeStyle } from '../schema';
+import type { PageNode, NodeStyle, ElementType } from '../schema';
 import { BUILDER_API, BUILDER_VALIDATION } from './builderContext';
 import type { NodePath } from './operations';
 import { PROPS_REGISTRY } from './props/registry';
@@ -18,7 +18,9 @@ const validation = inject(BUILDER_VALIDATION);
 const node = computed(() => builder.selectedNode.value);
 const path = computed(() => builder.selectedPath.value ?? []);
 
-const entry = computed(() => (node.value ? PROPS_REGISTRY[node.value.type] : undefined));
+const entry = computed(() =>
+  node.value ? PROPS_REGISTRY[node.value.type as ElementType] : undefined,
+);
 
 const nodeIssues = computed(() =>
   node.value ? validation?.byNodeId.value.get(node.value.id) ?? [] : [],
