@@ -1,13 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { cloneWithFreshIds, defaultNode, uid } from './nodeDefaults';
-import type { ElementType, PageNode } from '../schema';
-
-const ALL_TYPES: ElementType[] = [
-  'page', 'stack', 'card', 'section', 'divider', 'spacer', 'heading',
-  'paragraph', 'note', 'text-input', 'number-input', 'checkbox', 'switch',
-  'radio-group', 'select', 'multi-select', 'otp-input', 'date-input',
-  'datetime-input', 'button', 'link', 'image',
-];
+import { cloneWithFreshIds, fieldName, uid } from './nodeDefaults';
+import type { PageNode } from '../schema';
 
 describe('uid', () => {
   it('never repeats — even across simulated sessions (the duplicate-id regression)', () => {
@@ -21,46 +14,15 @@ describe('uid', () => {
   });
 });
 
-describe('defaultNode', () => {
-  it('creates a node for every element type with a unique id', () => {
-    const ids = new Set<string>();
-    for (const type of ALL_TYPES) {
-      const node = defaultNode(type);
-      expect(node.type).toBe(type);
-      ids.add(node.id);
-    }
-    expect(ids.size).toBe(ALL_TYPES.length);
-  });
-
-  it('gives named inputs readable, unique field names', () => {
+describe('fieldName', () => {
+  it('mints readable, unique field keys', () => {
     const names = new Set<string>();
     for (let i = 0; i < 50; i++) {
-      const node = defaultNode('text-input') as { name?: string };
-      expect(node.name).toMatch(/^field_/);
-      names.add(node.name!);
+      const name = fieldName();
+      expect(name).toMatch(/^field_/);
+      names.add(name);
     }
     expect(names.size).toBe(50);
-  });
-
-  it('emits a props bag on every element — and none on the page root', () => {
-    for (const type of ALL_TYPES) {
-      const node = defaultNode(type) as { props?: Record<string, unknown> };
-      if (type === 'page') expect(node.props).toBeUndefined();
-      else expect(node.props).toBeTypeOf('object');
-    }
-  });
-
-  it('seeds choice elements with starter options', () => {
-    for (const type of ['radio-group', 'select', 'multi-select'] as const) {
-      const node = defaultNode(type) as { props: { options?: unknown[] } };
-      expect(node.props.options).toHaveLength(2);
-    }
-  });
-
-  it('creates containers with children arrays', () => {
-    for (const type of ['page', 'stack', 'card', 'section'] as const) {
-      expect((defaultNode(type) as { children: unknown }).children).toEqual([]);
-    }
   });
 });
 

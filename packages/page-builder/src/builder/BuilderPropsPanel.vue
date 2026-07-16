@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, inject } from 'vue';
 import { useI18n } from '@cocoar/vue-localization';
-import { CoarIcon } from '@cocoar/vue-ui';
-import type { PageNode, NodeStyle, ElementType } from '../schema';
-import { BUILDER_API, BUILDER_VALIDATION } from './builderContext';
+import { CoarIcon, CoarFormField, CoarTextInput, CoarCheckbox } from '@cocoar/vue-ui';
+import type { PageNode, NodeStyle, ElementNode, FieldValidation } from '../schema';
+import { BUILDER_API, BUILDER_CONFIG, BUILDER_VALIDATION } from './builderContext';
 import type { NodePath } from './operations';
-import { PROPS_REGISTRY } from './props/registry';
+import { useMergedElements } from '../elements/useMergedElements';
 import StyleProps from './props/StyleProps.vue';
 
 defineOptions({ name: 'BuilderPropsPanel' });
@@ -13,13 +13,33 @@ defineOptions({ name: 'BuilderPropsPanel' });
 const { t } = useI18n();
 
 const builder = inject(BUILDER_API)!;
+const config = inject(BUILDER_CONFIG);
 const validation = inject(BUILDER_VALIDATION);
+const elements = useMergedElements(config);
 
 const node = computed(() => builder.selectedNode.value);
 const path = computed(() => builder.selectedPath.value ?? []);
 
-const entry = computed(() =>
-  node.value ? PROPS_REGISTRY[node.value.type as ElementType] : undefined,
+/** Registry definition for the selected node (undefined for `page`). */
+const def = computed(() => (node.value ? elements.value[node.value.type] : undefined));
+
+/** The selected node, narrowed to the element grammar when it participates in the value model. */
+const fieldNode = computed<ElementNode | null>(() =>
+  node.value && def.value?.value ? (node.value as ElementNode) : null,
+);
+
+const inspector = computed(() => def.value?.builder?.inspector);
+const defaultValueInput = computed(() => def.value?.builder?.defaultValueInput);
+
+const inspectorTitle = computed(() => {
+  const b = def.value?.builder;
+  if (!b) return '';
+  const text = b.inspectorTitle ?? b.label;
+  return t(text.key, undefined, text.fallback);
+});
+
+const isContainer = computed(
+  () => node.value?.type === 'page' || def.value?.container === true,
 );
 
 const nodeIssues = computed(() =>
@@ -34,6 +54,15 @@ function patch(update: Partial<PageNode>) {
 function patchStyle(update: Partial<NodeStyle>) {
   if (!node.value) return;
   patch({ style: { ...(node.value.style ?? {}), ...update } } as Partial<PageNode>);
+}
+
+function setRequired(v: boolean) {
+  // Merge into the existing rules — JSON-authored minLength/pattern/matchField/
+  // message must survive toggling Required in the panel.
+  const next: FieldValidation = { ...fieldNode.value?.validation };
+  if (v) next.required = true;
+  else delete next.required;
+  patch({ validation: Object.keys(next).length > 0 ? next : undefined });
 }
 </script>
 
@@ -67,20 +96,54 @@ function patchStyle(update: Partial<NodeStyle>) {
         </li>
       </ul>
 
-      <!-- ── Element-specific section (delegated to per-type component) ─── -->
-      <section v-if="entry" class="pb-props__section">
-        <h4 class="pb-props__section-title">{{ t(entry.sectionTitleKey, undefined, entry.sectionTitleFallback) }}</h4>
-        <component :is="entry.component" :node="node" :patch="patch" />
+      <!-- ── Host-owned field section (value-model participation) ────────── -->
+      <section v-if="fieldNode" class="pb-props__section">
+        <h4 class="pb-props__section-title">{{ t('coar.pageBuilder.props.section.field', undefined, 'Field') }}</h4>
+        <CoarFormField :label="t('coar.pageBuilder.props.fieldName', undefined, 'Field name')">
+          <CoarTextInput
+            :model-value="fieldNode.name ?? ''"
+            @update:model-value="(v) => patch({ name: v })"
+          />
+        </CoarFormField>
+        <CoarCheckbox
+          :model-value="!!fieldNode.validation?.required"
+          :label="t('coar.pageBuilder.props.required', undefined, 'Required')"
+          @update:model-value="setRequired"
+        />
+        <CoarFormField :label="t('coar.pageBuilder.props.defaultValue', undefined, 'Default value')">
+          <component
+            :is="defaultValueInput"
+            v-if="defaultValueInput"
+            :model-value="fieldNode.defaultValue"
+            :props="fieldNode.props"
+            @update:model-value="(v: unknown) => patch({ defaultValue: v ?? undefined })"
+          />
+          <CoarTextInput
+            v-else
+            :model-value="String(fieldNode.defaultValue ?? '')"
+            @update:model-value="(v) => patch({ defaultValue: v || undefined })"
+          />
+        </CoarFormField>
+      </section>
+
+      <!-- ── Element-specific section (delegated to the registry inspector) ─ -->
+      <section
+        v-if="inspector"
+        class="pb-props__section"
+        :class="{ 'pb-props__section--separated': !!fieldNode }"
+      >
+        <h4 class="pb-props__section-title">{{ inspectorTitle }}</h4>
+        <component :is="inspector" :node="node" :patch="patch" />
       </section>
 
       <!-- ── Universal style section ─────────────────────────────────────── -->
       <section
-        v-if="node.type !== 'spacer'"
+        v-if="!def?.builder?.hideStyleSection"
         class="pb-props__section"
-        :class="{ 'pb-props__section--separated': !!entry }"
+        :class="{ 'pb-props__section--separated': !!inspector || !!fieldNode }"
       >
         <h4 class="pb-props__section-title">{{ t('coar.pageBuilder.props.section.style', undefined, 'Style') }}</h4>
-        <StyleProps :node="node" :patch-style="patchStyle" />
+        <StyleProps :node="node" :container="isContainer" :patch-style="patchStyle" />
       </section>
     </div>
   </aside>

@@ -5,44 +5,46 @@ import { useI18n } from '@cocoar/vue-localization';
 import { BUILDER_API, BUILDER_CONFIG } from './builderContext';
 import BuilderCanvasNode from './BuilderCanvasNode.vue';
 import { useBuilderDnd } from './useBuilderDnd';
-import { ELEMENT_TYPE_META, PLACEABLE_TYPES } from './typeMeta';
-import { isElementAllowed, type ElementType } from '../schema';
+import { useMergedElements } from '../elements/useMergedElements';
+import { isElementAllowed } from '../schema';
 
 defineOptions({ name: 'BuilderCanvas' });
 
 const builder = inject(BUILDER_API)!;
 const config = inject(BUILDER_CONFIG);
 const dnd = useBuilderDnd();
+const elements = useMergedElements(config);
 const { t } = useI18n();
 
 interface PaletteEntry {
-  type: ElementType;
+  type: string;
   label: string;
   icon: CoreIconName;
   group: 'container' | 'element';
 }
 
-/** Palette derived from the type catalog; hides types not allowed by the config. */
+/**
+ * Palette derived from the merged registry (key order = palette order:
+ * built-ins first, consumer registrations after); entries need a builder half
+ * and must pass the allow-list.
+ */
 const visiblePalette = computed<PaletteEntry[]>(() =>
-  PLACEABLE_TYPES
-    .filter((type) => isElementAllowed(type, config?.value))
-    .map((type) => {
-      const meta = ELEMENT_TYPE_META[type];
-      return {
-        type,
-        label: t(meta.labelKey, undefined, meta.labelFallback),
-        icon: meta.icon,
-        group: meta.group as 'container' | 'element',
-      };
-    }),
+  Object.entries(elements.value)
+    .filter(([type, def]) => def.builder && isElementAllowed(type, config?.value))
+    .map(([type, def]) => ({
+      type,
+      label: t(def.builder!.label.key, undefined, def.builder!.label.fallback),
+      icon: def.builder!.icon ?? 'circle-alert',
+      group: def.builder!.group ?? 'element',
+    })),
 );
 
-function isPaletteDragging(type: ElementType): boolean {
+function isPaletteDragging(type: string): boolean {
   const p = dnd.payload.value;
   return !!(p && p.kind === 'new' && p.type === type);
 }
 
-function onCardPointerDown(e: PointerEvent, type: ElementType) {
+function onCardPointerDown(e: PointerEvent, type: string) {
   dnd.onHandlePointerDown(e, { kind: 'new', type });
 }
 

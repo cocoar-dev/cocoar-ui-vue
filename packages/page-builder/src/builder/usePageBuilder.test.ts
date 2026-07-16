@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
+import { computed } from 'vue';
 import { usePageBuilder } from './usePageBuilder';
+import { BUILTIN_ELEMENTS } from '../elements/builtins';
 import type { PageNode } from '../schema';
 
 const leaf = (id: string): PageNode => ({ id, type: 'paragraph', props: { text: id } });
@@ -75,6 +77,69 @@ describe('usePageBuilder.duplicate', () => {
     const builder = usePageBuilder({ initial });
     builder.duplicate([]);
     expect(builder.schema.value).toBe(initial);
+  });
+});
+
+describe('usePageBuilder.addChild', () => {
+  function added(type: string) {
+    const builder = usePageBuilder({ initial: page([]) });
+    builder.addChild([], type);
+    return (builder.schema.value as { children: PageNode[] }).children[0] as
+      PageNode & { props?: Record<string, unknown>; name?: string; children?: PageNode[] };
+  }
+
+  it('builds the props bag from the registry defaults', () => {
+    expect(added('heading').props).toEqual({ text: 'Heading', level: 2 });
+    expect((added('select').props as { options: unknown[] }).options).toHaveLength(2);
+    expect(added('section').props).toEqual({ title: 'Section' });
+  });
+
+  it('mints a field name only for value elements', () => {
+    expect(added('select').name).toMatch(/^field_/);
+    expect(added('text-input').name).toMatch(/^field_/);
+    expect(added('heading').name).toBeUndefined();
+    expect(added('section').name).toBeUndefined();
+  });
+
+  it('gives only containers a children array', () => {
+    expect(added('section').children).toEqual([]);
+    expect(added('stack').children).toEqual([]);
+    expect(added('heading').children).toBeUndefined();
+    expect(added('select').children).toBeUndefined();
+  });
+
+  it('creates consumer-registered custom elements from the merged registry', () => {
+    const DummyComponent = { render: () => null };
+    const builder = usePageBuilder({
+      initial: page([]),
+      elements: computed(() => ({
+        ...BUILTIN_ELEMENTS,
+        'acme-rating': {
+          renderer: DummyComponent,
+          value: {},
+          builder: {
+            label: { key: 'x', fallback: 'Rating' },
+            defaults: () => ({ max: 5 }),
+          },
+        },
+      })),
+    });
+    builder.addChild([], 'acme-rating');
+
+    const node = (builder.schema.value as { children: PageNode[] }).children[0] as
+      PageNode & { props: Record<string, unknown>; name?: string };
+    expect(node.type).toBe('acme-rating');
+    expect(node.props).toEqual({ max: 5 });
+    expect(node.name).toMatch(/^field_/);
+  });
+
+  it('is a no-op for unregistered types', () => {
+    const initial = page([]);
+    const builder = usePageBuilder({ initial });
+    builder.addChild([], 'not-registered');
+
+    expect(builder.schema.value).toBe(initial);
+    expect(builder.canUndo.value).toBe(false);
   });
 });
 

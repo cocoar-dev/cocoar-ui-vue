@@ -1,11 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
-import SelectProps from './SelectProps.vue';
+import SelectInspector from './SelectInspector.vue';
 import type { SelectNode } from '../../schema';
 
 function mountPanel(node: Partial<SelectNode> = {}) {
   const patch = vi.fn();
-  const wrapper = mount(SelectProps, {
+  const wrapper = mount(SelectInspector, {
     props: {
       node: { id: 's', type: 'select', props: {}, ...node } as SelectNode,
       patch,
@@ -19,7 +19,7 @@ const twoOptions = [
   { value: 'b', label: 'B' },
 ];
 
-describe('SelectProps — options editor', () => {
+describe('SelectInspector — options editor', () => {
   it('adds an option', async () => {
     const { wrapper, patch } = mountPanel({ props: { options: twoOptions } });
     await wrapper.find('.pb-select-options__add').trigger('click');

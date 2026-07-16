@@ -1,14 +1,10 @@
 <script setup lang="ts">
-import { computed, inject, provide, ref, watch } from 'vue';
+import { computed, provide, ref, watch } from 'vue';
 import { useI18n } from '@cocoar/vue-localization';
 import { isElementAllowed } from './schema';
 import type { ElementNode, PageNode, PageConfig } from './schema';
-import { BUILTIN_ELEMENTS } from './elements/builtins';
-import {
-  mergeElementRegistries,
-  PAGE_ELEMENTS_KEY,
-  type PageElementDefinition,
-} from './elements/registry';
+import { useMergedElements } from './elements/useMergedElements';
+import type { PageElementDefinition } from './elements/registry';
 import { migrateLegacyTypes } from './builder/schemaNormalize';
 import { migrateV1PropsBag } from './builder/schemaMigrateV1';
 import {
@@ -69,12 +65,7 @@ const renderSchema = computed(
 
 // ─── Element registry ─────────────────────────────────────────────────────────
 
-// App-wide default channel; injected once at setup, read reactively below so a
-// swapped config object is honoured (no static-provide-at-mount trap).
-const appElements = inject(PAGE_ELEMENTS_KEY, undefined);
-const elements = computed(() =>
-  mergeElementRegistries(BUILTIN_ELEMENTS, props.config?.elements ?? appElements),
-);
+const elements = useMergedElements(computed(() => props.config));
 
 function defFor(node: PageNode): PageElementDefinition | undefined {
   return node.type === 'page' ? undefined : elements.value[node.type];

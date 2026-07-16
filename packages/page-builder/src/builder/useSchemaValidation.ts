@@ -1,8 +1,8 @@
 import { computed, type Ref } from 'vue';
 import { isElementAllowed } from '../schema';
-import type { ButtonNode, LinkNode, PageConfig, PageNode } from '../schema';
+import type { ButtonNode, ElementNode, LinkNode, PageConfig, PageNode } from '../schema';
 import { compilePagePattern } from '../renderSafety';
-import { KNOWN_ELEMENT_TYPES } from './schemaNormalize';
+import { useMergedElements } from '../elements/useMergedElements';
 
 export type IssueSeverity = 'warning' | 'error';
 
@@ -30,25 +30,26 @@ export function useSchemaValidation(
   schema: Ref<PageNode>,
   config: Ref<PageConfig | undefined>,
 ) {
+  // Runs in component setup, so the inject inside resolves normally.
+  const elements = useMergedElements(config);
+
   const issues = computed<ValidationIssue[]>(() => {
     const out: ValidationIssue[] = [];
     const namedFields: Array<{ node: PageNode; name: string }> = [];
+    const registry = elements.value;
     const knownActions = new Set(config.value?.availableActions?.map((a) => a.id) ?? []);
     const hasAvailableActions = (config.value?.availableActions?.length ?? 0) > 0;
-    const namedTypes = new Set([
-      'text-input', 'number-input', 'checkbox', 'switch', 'radio-group',
-      'select', 'multi-select', 'otp-input', 'date-input', 'datetime-input',
-    ]);
 
     walk(schema.value, (n) => {
-      // ── Type must exist and be allowed — otherwise the runtime SKIPS the
-      //    node silently, which the author must learn about before saving ──
-      if (!KNOWN_ELEMENT_TYPES.has(n.type)) {
+      // ── Type must be registered and allowed — otherwise the runtime SKIPS
+      //    the node silently, which the author must learn about before saving ──
+      const def = n.type === 'page' ? undefined : registry[n.type];
+      if (n.type !== 'page' && !def) {
         out.push({
           nodeId: n.id,
           field: 'type',
-          severity: 'error',
-          message: `Unknown element type "${String(n.type)}" — skipped at render time.`,
+          severity: 'warning',
+          message: `Element type "${String(n.type)}" is not registered — skipped at runtime.`,
         });
         return;
       }
@@ -121,8 +122,20 @@ export function useSchemaValidation(
         });
       }
 
-      // ── Named inputs: collect for duplicate detection ──────────────────
-      if (namedTypes.has(n.type)) {
+      // ── Element-owned lint: merged into the same issue list ────────────
+      // No i18n plumbing here yet (deferred) — the fallback string carries.
+      if (def?.builder?.lint) {
+        for (const found of def.builder.lint(n as ElementNode, config.value)) {
+          out.push({
+            nodeId: n.id,
+            severity: found.severity,
+            message: found.message.fallback,
+          });
+        }
+      }
+
+      // ── Value elements: collect names for duplicate detection ──────────
+      if (def?.value) {
         const name = (n as { name?: string }).name;
         if (name) namedFields.push({ node: n, name });
       }

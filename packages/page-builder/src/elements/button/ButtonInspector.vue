@@ -9,7 +9,7 @@ import {
   type CoarSelectOption,
 } from '@cocoar/vue-ui';
 import type { ButtonNode } from '../../schema';
-import { BUILDER_CONFIG } from '../builderContext';
+import { BUILDER_CONFIG } from '../../builder/builderContext';
 
 const props = defineProps<{
   node: ButtonNode;

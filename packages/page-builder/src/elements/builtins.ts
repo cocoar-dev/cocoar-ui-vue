@@ -30,17 +30,18 @@ import { linkElement } from './link';
 import { imageElement } from './image';
 
 // Exhaustiveness-checked: a new built-in type without a definition here is a
-// compile error.
+// compile error. INSERTION ORDER IS PALETTE ORDER — the palette lists the
+// merged registry's keys as-is (built-ins first, consumer keys after).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const TABLE: Record<Exclude<ElementType, 'page'>, PageElementDefinition<any>> = {
   stack: stackElement,
   card: cardElement,
   section: sectionElement,
-  divider: dividerElement,
-  spacer: spacerElement,
   heading: headingElement,
   paragraph: paragraphElement,
   note: noteElement,
+  divider: dividerElement,
+  spacer: spacerElement,
   'text-input': textInputElement,
   'number-input': numberInputElement,
   checkbox: checkboxElement,

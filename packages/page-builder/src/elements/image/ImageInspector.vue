@@ -8,7 +8,7 @@ import {
   CoarIcon,
 } from '@cocoar/vue-ui';
 import type { ImageNode } from '../../schema';
-import { BUILDER_CONFIG } from '../builderContext';
+import { BUILDER_CONFIG } from '../../builder/builderContext';
 
 const props = defineProps<{
   node: ImageNode;

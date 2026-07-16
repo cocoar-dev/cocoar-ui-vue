@@ -61,11 +61,11 @@ describe('useSchemaValidation', () => {
     ]);
   });
 
-  it('errors on unknown element types (runtime skips them silently)', () => {
+  it('warns on unregistered element types (lossless — runtime skips them)', () => {
     const schema = page([{ id: 'x', type: 'wat' } as unknown as PageNode]);
     const issues = validate(schema);
     expect(issues).toEqual([
-      expect.objectContaining({ nodeId: 'x', field: 'type', severity: 'error' }),
+      expect.objectContaining({ nodeId: 'x', field: 'type', severity: 'warning' }),
     ]);
     expect(issues[0].message).toContain('"wat"');
   });

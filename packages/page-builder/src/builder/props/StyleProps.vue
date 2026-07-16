@@ -7,16 +7,17 @@ import {
   CoarSelect,
   type CoarSelectOption,
 } from '@cocoar/vue-ui';
-import { isContainerNode, type PageNode, type NodeStyle } from '../../schema';
+import type { PageNode, NodeStyle } from '../../schema';
 
 const props = defineProps<{
   node: PageNode;
   patchStyle: (update: Partial<NodeStyle>) => void;
+  /** Container-ness comes from the element registry (page or `def.container`), not the node shape. */
+  container?: boolean;
 }>();
 
 const { t } = useI18n();
 
-const isContainer = computed(() => isContainerNode(props.node));
 const style = computed<NodeStyle>(() => props.node.style ?? {});
 
 // A width set without an explicit `size` is treated as a fixed width, so legacy
@@ -57,7 +58,7 @@ function setSize(v: string) {
 
 <template>
   <!-- ── Container: how children are arranged ──────────────────────────────── -->
-  <CoarFormField v-if="isContainer" :label="t('coar.pageBuilder.props.gap', undefined, 'Gap')">
+  <CoarFormField v-if="props.container" :label="t('coar.pageBuilder.props.gap', undefined, 'Gap')">
     <CoarTextInput
       :model-value="style.gap ?? ''"
       placeholder="e.g. 8px"
@@ -65,7 +66,7 @@ function setSize(v: string) {
     />
   </CoarFormField>
 
-  <CoarFormField v-if="isContainer" :label="t('coar.pageBuilder.props.justify', undefined, 'Justify (main axis)')">
+  <CoarFormField v-if="props.container" :label="t('coar.pageBuilder.props.justify', undefined, 'Justify (main axis)')">
     <CoarSelect
       :model-value="style.justify ?? ''"
       :options="justifyOptions"
@@ -73,7 +74,7 @@ function setSize(v: string) {
     />
   </CoarFormField>
 
-  <CoarFormField v-if="isContainer" :label="t('coar.pageBuilder.props.alignItems', undefined, 'Align items (cross axis)')">
+  <CoarFormField v-if="props.container" :label="t('coar.pageBuilder.props.alignItems', undefined, 'Align items (cross axis)')">
     <CoarSelect
       :model-value="style.align ?? ''"
       :options="alignOptions"

@@ -8,7 +8,7 @@ import {
   type CoarSelectOption,
 } from '@cocoar/vue-ui';
 import type { LinkNode } from '../../schema';
-import { BUILDER_CONFIG } from '../builderContext';
+import { BUILDER_CONFIG } from '../../builder/builderContext';
 
 const props = defineProps<{
   node: LinkNode;

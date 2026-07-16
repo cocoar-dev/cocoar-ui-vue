@@ -1,14 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from '@cocoar/vue-localization';
-import {
-  CoarFormField,
-  CoarTextInput,
-  CoarCheckbox,
-  CoarSelect,
-  type CoarSelectOption,
-} from '@cocoar/vue-ui';
-import OptionsEditor, { type EditorOption } from './OptionsEditor.vue';
+import { CoarFormField, CoarTextInput, CoarCheckbox } from '@cocoar/vue-ui';
+import OptionsEditor, { type EditorOption } from '../../builder/props/OptionsEditor.vue';
 import type { SelectNode } from '../../schema';
 
 const props = defineProps<{
@@ -29,17 +23,6 @@ function setOptions(next: EditorOption[]) {
   }
   props.patch(patch);
 }
-
-const defaultChoices = computed<CoarSelectOption<string>[]>(() =>
-  options.value.map((o) => ({ value: o.value, label: o.label || o.value })),
-);
-
-function setRequired(v: boolean) {
-  const next: NonNullable<SelectNode['validation']> = { ...props.node.validation };
-  if (v) next.required = true;
-  else delete next.required;
-  props.patch({ validation: Object.keys(next).length > 0 ? next : undefined });
-}
 </script>
 
 <template>
@@ -47,12 +30,6 @@ function setRequired(v: boolean) {
     <CoarTextInput
       :model-value="props.node.props.label ?? ''"
       @update:model-value="(v) => props.patch({ props: { label: v } })"
-    />
-  </CoarFormField>
-  <CoarFormField :label="t('coar.pageBuilder.props.name', undefined, 'Name (field key)')">
-    <CoarTextInput
-      :model-value="props.node.name ?? ''"
-      @update:model-value="(v) => props.patch({ name: v })"
     />
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.placeholder', undefined, 'Placeholder')">
@@ -64,21 +41,6 @@ function setRequired(v: boolean) {
 
   <OptionsEditor :options="options" @update:options="setOptions" />
 
-  <CoarFormField :label="t('coar.pageBuilder.props.defaultValue', undefined, 'Default value')">
-    <CoarSelect
-      :model-value="(props.node.defaultValue as string | undefined) ?? null"
-      :options="defaultChoices"
-      :placeholder="t('coar.pageBuilder.props.none', undefined, '— none')"
-      clearable
-      @update:model-value="(v) => props.patch({ defaultValue: (v as string | null) ?? undefined })"
-    />
-  </CoarFormField>
-
-  <CoarCheckbox
-    :model-value="!!props.node.validation?.required"
-    :label="t('coar.pageBuilder.props.required', undefined, 'Required')"
-    @update:model-value="setRequired"
-  />
   <CoarCheckbox
     :model-value="!!props.node.props.disabled"
     :label="t('coar.pageBuilder.props.disabled', undefined, 'Disabled')"

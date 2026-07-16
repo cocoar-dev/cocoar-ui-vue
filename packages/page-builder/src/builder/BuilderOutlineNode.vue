@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, inject, onBeforeUnmount, onMounted, ref } from 'vue';
-import { CoarIcon } from '@cocoar/vue-ui';
+import { CoarIcon, type CoreIconName } from '@cocoar/vue-ui';
 import { useI18n } from '@cocoar/vue-localization';
-import { isContainerNode, isElementAllowed, type PageNode, type ElementType } from '../schema';
+import { isElementAllowed, type PageNode } from '../schema';
 import { BUILDER_API, BUILDER_CONFIG, BUILDER_VALIDATION } from './builderContext';
-import { ELEMENT_TYPE_META, PLACEABLE_TYPES, typeIcon } from './typeMeta';
+import { useMergedElements } from '../elements/useMergedElements';
 import { useBuilderDnd } from './useBuilderDnd';
 import type { NodePath } from './operations';
 
@@ -23,19 +23,42 @@ const builder = inject(BUILDER_API)!;
 const config = inject(BUILDER_CONFIG);
 const validation = inject(BUILDER_VALIDATION);
 const dnd = useBuilderDnd();
+const elements = useMergedElements(config);
 
+/** This node's registry definition (undefined for `page` and unknown types). */
+const def = computed(() => elements.value[props.node.type]);
+
+/**
+ * Container-ness for the UI affordances (children, drop-into, add-child):
+ * the page root plus every registered container definition.
+ */
+const isContainer = computed(
+  () => props.node.type === 'page' || def.value?.container === true,
+);
+
+const children = computed<PageNode[]>(() => {
+  const c = (props.node as PageNode & { children?: PageNode[] }).children;
+  return Array.isArray(c) ? c : [];
+});
+
+const nodeIcon = computed<CoreIconName>(
+  () => def.value?.builder?.icon ?? (props.node.type === 'page' ? 'file' : 'circle-alert'),
+);
+
+/**
+ * Add-child menu from the merged registry (key order = menu order: built-ins
+ * first, consumer registrations after); entries need a builder half and must
+ * pass the allow-list.
+ */
 const visibleAddOptions = computed(() =>
-  PLACEABLE_TYPES
-    .filter((type) => isElementAllowed(type, config?.value))
-    .map((type) => {
-      const meta = ELEMENT_TYPE_META[type];
-      return {
-        type,
-        label: t(meta.labelKey, undefined, meta.labelFallback),
-        icon: meta.icon,
-        group: meta.group,
-      };
-    }),
+  Object.entries(elements.value)
+    .filter(([type, entry]) => entry.builder && isElementAllowed(type, config?.value))
+    .map(([type, entry]) => ({
+      type,
+      label: t(entry.builder!.label.key, undefined, entry.builder!.label.fallback),
+      icon: entry.builder!.icon ?? 'circle-alert',
+      group: entry.builder!.group ?? 'element',
+    })),
 );
 
 /** Validation issues for *this* node — drives the warning icon in the row. */
@@ -58,8 +81,7 @@ const isSelected = computed(() => {
 const nodeLabel = computed(() => {
   const n = props.node as PageNode & { props?: { text?: string; label?: string; title?: string } };
   if (n.type === 'page') {
-    const meta = ELEMENT_TYPE_META.page;
-    return t(meta.labelKey, undefined, meta.labelFallback);
+    return t('coar.pageBuilder.type.page', undefined, 'Page');
   }
   if (n.type === 'stack') {
     return (n.props as { direction?: string } | undefined)?.direction === 'row'
@@ -69,7 +91,8 @@ const nodeLabel = computed(() => {
   if (n.props?.text) return String(n.props.text);
   if (n.props?.label) return String(n.props.label);
   if (n.props?.title) return String(n.props.title);
-  return n.type;
+  const label = def.value?.builder?.label;
+  return label ? t(label.key, undefined, label.fallback) : n.type;
 });
 
 const nodeSubLabel = computed(() => {
@@ -84,7 +107,7 @@ const addMenuRoot = ref<HTMLElement | null>(null);
 
 function toggleAddMenu() { addMenuOpen.value = !addMenuOpen.value; }
 
-function pickAdd(type: ElementType) {
+function pickAdd(type: string) {
   addMenuOpen.value = false;
   builder.addChild(props.path, type);
 }
@@ -111,9 +134,7 @@ onBeforeUnmount(() => {
 // ── Drag & drop (outline surface of the shared pointer-drag context) ─────────
 
 const pathKey = computed(() => props.path.join('/'));
-const childCount = computed(() =>
-  isContainerNode(props.node) ? props.node.children.length : 0,
-);
+const childCount = computed(() => children.value.length);
 
 /** Zone keys are outline-prefixed so canvas zones with the same target never alias. */
 function barKey(index: number): string { return `o:${pathKey.value}:${index}`; }
@@ -158,10 +179,12 @@ function canMoveDown(): boolean {
   const idx = props.path[props.path.length - 1];
   let parent: PageNode = builder.schema.value;
   for (const p of parentPath) {
-    if (!isContainerNode(parent)) return false;
-    parent = parent.children[p];
+    const kids = (parent as PageNode & { children?: PageNode[] }).children;
+    if (!Array.isArray(kids)) return false;
+    parent = kids[p];
   }
-  return isContainerNode(parent) && idx < parent.children.length - 1;
+  const siblings = (parent as PageNode & { children?: PageNode[] }).children;
+  return Array.isArray(siblings) && idx < siblings.length - 1;
 }
 </script>
 
@@ -177,11 +200,11 @@ function canMoveDown(): boolean {
       role="treeitem"
       :aria-level="depth + 1"
       :aria-selected="isSelected"
-      :aria-expanded="isContainerNode(node) ? true : undefined"
+      :aria-expanded="isContainer ? true : undefined"
       :tabindex="isSelected ? 0 : -1"
-      :data-dropzone="isContainerNode(node) ? intoKey : undefined"
-      :data-pb-zone-path="isContainerNode(node) ? pathKey : undefined"
-      :data-pb-zone-index="isContainerNode(node) ? childCount : undefined"
+      :data-dropzone="isContainer ? intoKey : undefined"
+      :data-pb-zone-path="isContainer ? pathKey : undefined"
+      :data-pb-zone-index="isContainer ? childCount : undefined"
       @click.stop="builder.select(path)"
       @keydown="onRowKeydown"
     >
@@ -195,7 +218,7 @@ function canMoveDown(): boolean {
       </span>
       <span v-else class="pb-tree-grip" aria-hidden="true" />
       <span class="pb-tree-type-icon" aria-hidden="true">
-        <CoarIcon :name="typeIcon(node.type)" size="s" />
+        <CoarIcon :name="nodeIcon" size="s" />
       </span>
       <span class="pb-tree-label">
         <span class="pb-tree-label-text">{{ nodeLabel }}</span>
@@ -256,8 +279,8 @@ function canMoveDown(): boolean {
     </div>
 
     <!-- Recursive children (with drop bars between the rows) -->
-    <template v-if="isContainerNode(node)">
-      <template v-for="(child, i) in node.children" :key="child.id">
+    <template v-if="isContainer">
+      <template v-for="(child, i) in children" :key="child.id">
         <div
           class="pb-outline-zone"
           :class="barClasses(i)"
@@ -275,13 +298,13 @@ function canMoveDown(): boolean {
         />
       </template>
       <div
-        v-if="node.children.length > 0"
+        v-if="children.length > 0"
         class="pb-outline-zone"
-        :class="barClasses(node.children.length)"
+        :class="barClasses(children.length)"
         :style="{ marginLeft: `${8 + (depth + 1) * 16}px` }"
-        :data-dropzone="barKey(node.children.length)"
+        :data-dropzone="barKey(children.length)"
         :data-pb-zone-path="pathKey"
-        :data-pb-zone-index="node.children.length"
+        :data-pb-zone-index="children.length"
         data-pb-zone-inflate="6"
         aria-hidden="true"
       />

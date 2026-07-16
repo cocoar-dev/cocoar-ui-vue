@@ -4,6 +4,7 @@ import { CoarIcon, CoarTabGroup, CoarTab } from '@cocoar/vue-ui';
 import { useI18n } from '@cocoar/vue-localization';
 import type { PageNode, PageConfig } from './schema';
 import { usePageBuilder } from './builder/usePageBuilder';
+import { useMergedElements } from './elements/useMergedElements';
 import { useSchemaValidation } from './builder/useSchemaValidation';
 import { provideBuilderDnd } from './builder/useBuilderDnd';
 import { normalizePageSchema, type NormalizeIssue } from './builder/schemaNormalize';
@@ -49,16 +50,20 @@ function normalizedFromModel(value: PageNode): PageNode {
   return schema;
 }
 
+const configRef = computed(() => props.config);
+const mergedElements = useMergedElements(configRef);
+
 const builder = usePageBuilder({
   initial: model.value != null
     ? normalizedFromModel(toRaw(model.value))
     : {
         id: 'root',
         type: 'page',
-        schemaVersion: 1,
+        schemaVersion: 2,
         style: { gap: '16px', padding: '24px' },
         children: [],
       },
+  elements: mergedElements,
 });
 
 // toRaw on both sides: a host that stores the schema in a deep ref hands the
@@ -76,7 +81,6 @@ watch(model, (next) => {
   builder.replaceSchema(normalizedFromModel(raw as PageNode));
 });
 
-const configRef = computed(() => props.config);
 const validation = useSchemaValidation(builder.schema, configRef);
 
 // Provided here (not in BuilderCanvas) so the outline pane — a sibling of the

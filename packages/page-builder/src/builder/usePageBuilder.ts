@@ -1,10 +1,8 @@
-import { computed, ref, shallowRef, type Ref } from 'vue';
+import { computed, ref, shallowRef, type ComputedRef, type Ref } from 'vue';
 import type { PageNode } from '../schema';
-import {
-  cloneWithFreshIds,
-  defaultNode,
-  type ElementType,
-} from './nodeDefaults';
+import { BUILTIN_ELEMENTS } from '../elements/builtins';
+import type { PageElementRegistry } from '../elements/registry';
+import { cloneWithFreshIds, fieldName, uid } from './nodeDefaults';
 import {
   findPath,
   getNodeAt,
@@ -14,12 +12,19 @@ import {
   patchNode,
   rebaseAfterRemoval,
   removeNode,
+  warnDev,
   type NodePath,
 } from './operations';
 
 export interface UsePageBuilderOptions {
   schema?: Ref<PageNode>;
   initial?: PageNode;
+  /**
+   * Merged element registry (see `useMergedElements`). Drives what `addChild`
+   * can create; defaults to the built-in set for registry-less usage (tests,
+   * headless tooling).
+   */
+  elements?: ComputedRef<PageElementRegistry>;
 }
 
 const PATCH_COALESCE_MS = 500;
@@ -106,11 +111,33 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
   function selectNode(node: PageNode) { selectedPath.value = findPath(schema.value, node); }
 
   // ── Mutations ──────────────────────────────────────────────────────────────
-  function addChild(parentPath: NodePath, type: ElementType, atIndex?: number) {
+
+  /**
+   * Fresh node for an element type, built from its registry definition: the
+   * builder half supplies the props bag, a value spec mints a field name, a
+   * container gets its children array. The host owns the id.
+   */
+  function createNode(type: string): PageNode | null {
+    const def = (options.elements?.value ?? BUILTIN_ELEMENTS)[type];
+    if (!def?.builder) {
+      warnDev(`addChild: no registered element (with a builder half) for type "${type}" — ignored.`);
+      return null;
+    }
+    return {
+      id: uid(),
+      type,
+      props: def.builder.defaults(),
+      ...(def.value ? { name: fieldName() } : {}),
+      ...(def.container ? { children: [] } : {}),
+    } as PageNode;
+  }
+
+  function addChild(parentPath: NodePath, type: string, atIndex?: number) {
     const parent = getNodeAt(schema.value, parentPath);
     if (!parent) return;
+    const node = createNode(type);
+    if (!node) return;
     const before = schema.value;
-    const node = defaultNode(type);
     const childCount = parent.node.children?.length ?? 0;
     const index = atIndex ?? childCount;
     schema.value = insertChild(schema.value, parentPath, index, node);

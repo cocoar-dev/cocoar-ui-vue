@@ -1,11 +1,11 @@
 import { inject, provide, ref, type InjectionKey, type Ref } from 'vue';
 import { isAncestor, type NodePath } from './operations';
 import { createPointerDndEngine } from './pointerDnd';
-import type { ElementType } from '../schema';
 import type { UsePageBuilderReturn } from './usePageBuilder';
 
 export type DragPayload =
-  | { kind: 'new'; type: ElementType }
+  // `type` is a registry key — built-in or consumer-registered.
+  | { kind: 'new'; type: string }
   | { kind: 'move'; path: NodePath };
 
 export interface BuilderDndContext {
