@@ -362,3 +362,65 @@ describe('normalizePageSchema — unknown-typed subtrees', () => {
     expect(issues.filter((i) => i.severity === 'error')).toHaveLength(0);
   });
 });
+
+describe('normalizePageSchema — registry-aware (options.elements)', () => {
+  const DummyRenderer = { template: '<div />' };
+
+  it('treats registered consumer types as known (no unknown-type warning)', () => {
+    const { issues } = normalizePageSchema(
+      { id: 'r', type: 'page', schemaVersion: 2, children: [{ id: 'x', type: 'acme-rating', props: { max: 5 } }] },
+      { elements: { 'acme-rating': { renderer: DummyRenderer } } },
+    );
+    expect(issues).toEqual([]);
+  });
+
+  it('runs the definition normalizeProps as a healing pass over the bag', () => {
+    const { schema, changed } = normalizePageSchema(
+      {
+        id: 'r', type: 'page', schemaVersion: 2,
+        children: [{ id: 'x', type: 'acme-rating', props: { max: 99 } }],
+      },
+      {
+        elements: {
+          'acme-rating': {
+            renderer: DummyRenderer,
+            normalizeProps: (raw) => {
+              const bag = raw as { max?: number };
+              const max = Math.min(10, Math.max(1, Number(bag.max ?? 5)));
+              return max === bag.max ? (raw as { max: number }) : { ...bag, max };
+            },
+          },
+        },
+      },
+    );
+    const child = (schema as { children: { props: { max: number } }[] }).children[0];
+    expect(child.props.max).toBe(10);
+    expect(changed).toBe(true);
+  });
+
+  it('guards a throwing normalizeProps (bag left as-is, no crash)', () => {
+    const { schema, issues } = normalizePageSchema(
+      { id: 'r', type: 'page', schemaVersion: 2, children: [{ id: 'x', type: 'acme-rating', props: { max: 3 } }] },
+      { elements: { 'acme-rating': { renderer: DummyRenderer, normalizeProps: () => { throw new Error('boom'); } } } },
+    );
+    const child = (schema as { children: { props: { max: number } }[] }).children[0];
+    expect(child.props.max).toBe(3);
+    expect(issues.filter((i) => i.severity === 'error')).toHaveLength(0);
+  });
+
+  it('recurses into children of registered custom CONTAINERS without a not-a-container warning', () => {
+    const { schema, issues } = normalizePageSchema(
+      {
+        id: 'r', type: 'page', schemaVersion: 2,
+        children: [{
+          id: 'x', type: 'acme-panel', props: {},
+          children: [{ id: 'dup', type: 'paragraph', props: { text: 'a' } }, { id: 'dup', type: 'paragraph', props: { text: 'b' } }],
+        }],
+      },
+      { elements: { 'acme-panel': { renderer: DummyRenderer, container: true } } },
+    );
+    expect(issues).toEqual([]);
+    const kids = (schema as { children: { children: { id: string }[] }[] }).children[0].children;
+    expect(kids[0].id).not.toBe(kids[1].id);
+  });
+});

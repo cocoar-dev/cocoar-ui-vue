@@ -18,16 +18,16 @@ A live builder with a small starting schema and a restricted `allowedElements` l
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `modelValue` / `v-model` | `PageNode` | empty `page` | The page schema. Bound two-way; every edit updates the ref. Every tree entering from **outside** — the initial value, a later external replacement, or an initially-`undefined` ref that is filled once an async load resolves — passes through the same normalization as the JSON tab's Apply: legacy `column`/`row` containers become `stack`, a non-`page` root is wrapped in one, missing/duplicate node ids are repaired with fresh `crypto.randomUUID` ids, missing `children` arrays are added, and the root is stamped `schemaVersion: 1`. Repairs log a DEV-only console warning. |
-| `config` | [`PageConfig`](./#pageconfig-the-consumer-contract) | — | Allowed elements, available actions, asset callbacks. The same value must be passed to the renderer. |
+| `modelValue` / `v-model` | `PageNode` | empty `page` | The page schema. Bound two-way; every edit updates the ref. Every tree entering from **outside** — the initial value, a later external replacement, or an initially-`undefined` ref that is filled once an async load resolves — passes through the same normalization as the JSON tab's Apply: legacy `column`/`row` containers become `stack`, v1 flat documents get their `props` bags, a non-`page` root is wrapped in one, missing/duplicate node ids are repaired with fresh `crypto.randomUUID` ids, missing `children` arrays and `props` bags are added, and the root is stamped `schemaVersion: 2`. Repairs log a DEV-only console warning. |
+| `config` | [`PageConfig`](./#pageconfig-the-consumer-contract) | — | Allowed elements, [consumer element registrations](./custom-elements), available actions, asset callbacks. The same value must be passed to the renderer. |
 
 ## Features
 
-- **Palette toolbar** — drag containers (Stack, Card, Section) and elements onto the canvas. Types not in `config.allowedElements` are hidden.
+- **Palette toolbar** — drag containers (Stack, Card, Section) and elements onto the canvas. Entries derive from the merged element registry — built-ins plus anything registered via [`config.elements`](./custom-elements) — filtered by `config.allowedElements` (types not in the list are hidden).
 - **Pointer-based drag & drop** — built on pointer events rather than HTML5 drag events, so it works with mouse, touch **and** pen (tablet-first). Mouse drags start after a 5 px movement threshold, so plain clicks keep working; touch/pen drags arm after a 300 ms long-press. A ghost preview follows the pointer, scroll containers auto-scroll near their edges, and `Escape` cancels a drag in flight.
 - **Outline tree** — hierarchical node list with selection and real drag-to-reorder: every row except the root carries a grip handle, thin drop bars light up between rows while dragging, and container rows highlight for drop-**into**. Per-row actions: move up/down, duplicate, delete, plus an inline "Add child" menu. Stacks display "Column" or "Row" based on direction. Warning icons mark nodes with validation issues (hover for the full message).
-- **Canvas** — real component previews with dashed selection borders; each node's type tab doubles as its drag handle. Unknown or disallowed element types get a "skipped at runtime" banner treatment, so the canvas never pretends the runtime renderer will show them. Switches to live preview in the **Preview** tab and to a paste-and-apply JSON editor in the **JSON** tab.
-- **Properties panel** — per-element configuration. Each element type ships its own props component. Validation issues for the selected node are surfaced at the top with colored banners. Includes a select **options editor** (add / remove / reorder options plus a default value that clears itself when its option is removed) and default-value editors for text inputs and checkboxes ("Checked by default").
+- **Canvas** — per-element preview components with dashed selection borders; each node's type tab doubles as its drag handle. A registered element without its own preview renders as a neutral icon+label chip; unregistered or disallowed element types get a red "skipped at runtime" treatment, so the canvas never pretends the runtime renderer will show them. Switches to live preview in the **Preview** tab and to a paste-and-apply JSON editor in the **JSON** tab.
+- **Properties panel** — resolved from the element registry: each definition ships its own inspector component. Value-producing elements additionally get a host-owned **Field** section (field name, Required, default value — with a per-element default-value editor when the definition provides one, e.g. "Checked by default" for checkboxes). Validation issues for the selected node are surfaced at the top with colored banners. Option-based inputs share an **options editor** (add / remove / reorder options; a removed option clears a default that pointed at it).
 - **Duplicate** — available as an outline row action and a canvas button. Deep-clones the subtree with fresh ids on every node; colliding field names are flagged by the duplicate-name validation.
 - **Stack direction toggle** — change a stack from column to row direction without re-creating it. Children stay put.
 - **Layout controls** — every node's Style section exposes the flex model: container `Justify` (main axis) + `Align items` (cross axis), and per-node `Align self`, `Size` (Fit / Fill / Fixed → Width) and `Min height`. Center a single element, distribute a row, or build a full-screen centered page — and the Editor canvas mirrors the result 1:1 with the Preview.
@@ -39,15 +39,17 @@ A live builder with a small starting schema and a restricted `allowedElements` l
 
 ## JSON tab
 
-The JSON tab shows the current schema and lets you paste and **Apply** a replacement. Apply is gated — the pasted tree runs through the same normalization pass the v-model entry points use, but here **any reported issue rejects the Apply** with an inline message and nothing reaches the working tree (or, through `v-model`, your storage):
+The JSON tab shows the current schema and lets you paste and **Apply** a replacement. Apply is gated by **issue severity** — the pasted tree runs through the same normalization pass the v-model entry points use:
 
-- **Rejected with a message** — structural problems that need the author: unknown element types, non-object nodes, a non-array `children` value, `children` on a non-container, a non-numeric heading level.
-- **Healed silently** — everything with unambiguous intent: legacy `column` / `row` containers (→ `stack`), a non-`page` root (wrapped in a `page`), missing or duplicate node ids (fresh ids), out-of-range numeric heading levels (clamped to 1–6), missing `children` arrays.
+- **Errors block Apply** — structural damage where data would be dropped: non-object nodes (and non-JSON input). The inline message lists what is wrong; nothing reaches the working tree (or, through `v-model`, your storage).
+- **Warnings apply anyway** and are surfaced next to the Apply button: everything healed in place or lossless — legacy `column` / `row` containers (→ `stack`), v1 flat nodes (→ `props` bags), a non-`page` root (wrapped in a `page`), missing or duplicate node ids (fresh ids), missing or non-object `props` bags, out-of-range or non-numeric heading levels, non-array `children` (reset), `children` on a non-container, and **unknown element types**.
 
-A successful Apply lands as a single undoable step and switches back to the Editor tab.
+Unknown element types are deliberately *not* rejected: a document from a newer library version — or one using [consumer elements](./custom-elements) this instance hasn't registered — stays pasteable and round-trips **losslessly** (the nodes stay in the tree; the runtime renderer skips them with one console warning per type).
+
+A successful Apply lands as a single undoable step; when there were no findings at all, the builder switches back to the Editor tab.
 
 ::: info Exported helpers
-The same machinery is exported for hosts that persist or migrate schemas themselves: `normalizePageSchema(value)` → `{ schema, issues, changed }`, `migrateLegacyTypes(node)`, and the `KNOWN_ELEMENT_TYPES` set.
+The same machinery is exported for hosts that persist or migrate schemas themselves: `normalizePageSchema(value)` → `{ schema, issues, changed }` (issues carry `severity: 'error' | 'warning'`), `migrateLegacyTypes(node)`, `migrateV1PropsBag(node)`, and the `KNOWN_ELEMENT_TYPES` set (built-ins only). See [Legacy schemas & normalization](./coar-page-renderer#legacy-schemas-normalization).
 :::
 
 ## Builder-side validation
@@ -61,7 +63,7 @@ Built-in rules:
 
 | Rule | Severity |
 |------|----------|
-| Unknown element type (skipped at render time) | error |
+| Element type is not registered (skipped at runtime, but kept losslessly in the tree) | warning |
 | Type not in `config.allowedElements` (skipped at render time) | error |
 | Button / link has no Action | warning |
 | Action ID is not in `config.availableActions` (only checked when that list is non-empty) | warning |
@@ -69,26 +71,28 @@ Built-in rules:
 | Image has no Asset ID | error |
 | Two named inputs share the same `name` | error |
 
-Validation is a builder UX scaffold — it does **not** affect what the renderer does. The renderer is governed by `allowedElements` (the hard security boundary) and by which handlers exist in the `actions` map.
+Element definitions can contribute their own findings through the definition's `builder.lint` hook — they are merged into the same outline/props-panel surfaces with their declared severity (see [Custom elements](./custom-elements)).
+
+Validation is a builder UX scaffold — it does **not** affect what the renderer does, and no severity blocks saving. The renderer is governed by `allowedElements` (the hard security boundary) and by which handlers exist in the `actions` map.
 
 ## Per-element architecture
 
-Each element type brings its own props component, registered in a single map:
+Every element type — built-in or consumer-registered — is **one registry definition** (`definePageElement`): a runtime renderer plus optional value spec, canvas preview, inspector, default-value editor and lint hook. Built-ins live one folder per element inside the package and are pre-registered on the same contract consumers use:
 
 ```
-packages/page-builder/src/builder/props/
-├── registry.ts        ← ElementType → { component, sectionTitle }
-├── StackProps.vue
-├── CardProps.vue
-├── HeadingProps.vue
-├── ButtonProps.vue
-├── ImageProps.vue
-├── SelectProps.vue    ← includes the options editor
-├── …
-└── StyleProps.vue     ← universal Gap/Justify/Align/Align-self/Size/Min-height/Padding
+packages/page-builder/src/elements/
+├── registry.ts             ← contract types · definePageElement · additive merge
+├── builtins.ts             ← the pre-registered built-in registry
+├── heading/
+│   ├── index.ts            ← the definition (renderer + builder halves)
+│   ├── HeadingRenderer.vue
+│   ├── HeadingPreview.vue
+│   └── HeadingInspector.vue
+├── text-input/
+└── …
 ```
 
-The main `BuilderPropsPanel.vue` is a thin shell that resolves the registry entry and renders `<component :is="entry.component" :node :patch />`. Adding a new element type requires creating one new `<Type>Props.vue` file and adding one line to the registry — no central files are touched.
+`BuilderPropsPanel.vue` is a thin host shell: it resolves the selected node's definition from the merged registry and renders `<component :is="def.builder.inspector" :node :patch />` between the host-owned **Field** and **Style** sections. The palette, add-child menu, canvas previews and outline icons all derive from the same registry — adding an element type is a single definition, **no central files are touched**. Consumer apps register theirs via `config.elements`; the shared `OptionsEditor` component is exported for reuse in consumer inspectors. See the [Custom elements guide](./custom-elements).
 
 ## Pairing with the renderer
 
@@ -159,7 +163,7 @@ All builder chrome — and the runtime renderer's validation messages — resolv
 
 ### Element type labels
 
-Used by the palette, the outline's add-child menu and the canvas type tabs.
+Used by the palette, the outline's add-child menu and the canvas type tabs. These are the built-in elements' `label` keys; consumer-registered elements carry their own `label: { key, fallback }` in the element definition, so their keys live in the consumer's namespace, not under `coar.pageBuilder.*`.
 
 | Key | Default (English) |
 |-----|-------------------|
@@ -171,30 +175,48 @@ Used by the palette, the outline's add-child menu and the canvas type tabs.
 | `coar.pageBuilder.type.spacer` | `'Spacer'` |
 | `coar.pageBuilder.type.heading` | `'Heading'` |
 | `coar.pageBuilder.type.paragraph` | `'Paragraph'` |
-| `coar.pageBuilder.type.textInput` | `'Text Input'` |
-| `coar.pageBuilder.type.checkbox` | `'Checkbox'` |
-| `coar.pageBuilder.type.select` | `'Select'` |
-| `coar.pageBuilder.type.button` | `'Button'` |
-| `coar.pageBuilder.type.link` | `'Link'` |
+| `coar.pageBuilder.type.note` | `'Note'` |
 | `coar.pageBuilder.type.image` | `'Image'` |
+| `coar.pageBuilder.type.link` | `'Link'` |
+| `coar.pageBuilder.type.button` | `'Button'` |
+| `coar.pageBuilder.type.textInput` | `'Text Input'` |
+| `coar.pageBuilder.type.numberInput` | `'Number Input'` |
+| `coar.pageBuilder.type.checkbox` | `'Checkbox'` |
+| `coar.pageBuilder.type.switch` | `'Switch'` |
+| `coar.pageBuilder.type.select` | `'Select'` |
+| `coar.pageBuilder.type.multiSelect` | `'Multi Select'` |
+| `coar.pageBuilder.type.radioGroup` | `'Radio Group'` |
+| `coar.pageBuilder.type.dateInput` | `'Date'` |
+| `coar.pageBuilder.type.dateTimeInput` | `'Date & Time'` |
+| `coar.pageBuilder.type.otpInput` | `'OTP Input'` |
 
 ### Properties panel
+
+The host-owned **Field** section (name / required / default value, shown for every value-producing element) uses `props.fieldName`, `props.required` and `props.defaultValue`.
 
 | Key | Default (English) |
 |-----|-------------------|
 | `coar.pageBuilder.props.panelTitle` | `'Properties'` |
 | `coar.pageBuilder.props.emptyTitle` | `'No node selected'` |
 | `coar.pageBuilder.props.emptyHint` | `'Click a node in the outline or canvas to edit it.'` |
-| `coar.pageBuilder.props.section.style` | `'Style'` |
 | `coar.pageBuilder.props.text` | `'Text'` |
 | `coar.pageBuilder.props.title` | `'Title'` |
 | `coar.pageBuilder.props.label` | `'Label'` |
 | `coar.pageBuilder.props.level` | `'Level'` |
-| `coar.pageBuilder.props.name` | `'Name (field key)'` |
+| `coar.pageBuilder.props.fieldName` | `'Field name'` |
 | `coar.pageBuilder.props.placeholder` | `'Placeholder'` |
 | `coar.pageBuilder.props.inputType` | `'Input type'` |
+| `coar.pageBuilder.props.rows` | `'Rows'` |
+| `coar.pageBuilder.props.min` | `'Min'` |
+| `coar.pageBuilder.props.max` | `'Max'` |
+| `coar.pageBuilder.props.step` | `'Step'` |
+| `coar.pageBuilder.props.decimals` | `'Decimals'` |
+| `coar.pageBuilder.props.length` | `'Length'` |
+| `coar.pageBuilder.props.mask` | `'Mask input'` |
+| `coar.pageBuilder.props.otpType` | `'Character set'` |
 | `coar.pageBuilder.props.defaultValue` | `'Default value'` |
 | `coar.pageBuilder.props.checkedByDefault` | `'Checked by default'` |
+| `coar.pageBuilder.props.onByDefault` | `'On by default'` |
 | `coar.pageBuilder.props.required` | `'Required'` |
 | `coar.pageBuilder.props.disabled` | `'Disabled'` |
 | `coar.pageBuilder.props.options` | `'Options'` |
@@ -221,6 +243,9 @@ Used by the palette, the outline's add-child menu and the canvas type tabs.
 | `coar.pageBuilder.props.direction` | `'Direction'` |
 | `coar.pageBuilder.props.column` | `'Column'` |
 | `coar.pageBuilder.props.row` | `'Row'` |
+| `coar.pageBuilder.props.orientation` | `'Orientation'` |
+| `coar.pageBuilder.props.horizontal` | `'Horizontal'` |
+| `coar.pageBuilder.props.vertical` | `'Vertical'` |
 | `coar.pageBuilder.props.wrapChildren` | `'Wrap children'` |
 | `coar.pageBuilder.props.gap` | `'Gap'` |
 | `coar.pageBuilder.props.padding` | `'Padding'` |
@@ -238,6 +263,35 @@ Used by the palette, the outline's add-child menu and the canvas type tabs.
 | `coar.pageBuilder.props.default` | `'— default'` |
 | `coar.pageBuilder.props.inherit` | `'— inherit'` |
 | `coar.pageBuilder.props.none` | `'— none'` |
+
+### Inspector section titles
+
+Headings of the collapsible sections in the properties panel. `props.section.field`, `props.section.style` and `props.section.layout` are host-owned; the per-element titles come from each built-in definition's `inspectorTitle`. Consumer-registered elements provide their own `inspectorTitle: { key, fallback }`, so their keys are not under `coar.pageBuilder.*`.
+
+| Key | Default (English) |
+|-----|-------------------|
+| `coar.pageBuilder.props.section.field` | `'Field'` |
+| `coar.pageBuilder.props.section.style` | `'Style'` |
+| `coar.pageBuilder.props.section.layout` | `'Layout'` |
+| `coar.pageBuilder.props.section.card` | `'Card'` |
+| `coar.pageBuilder.props.section.section` | `'Section'` |
+| `coar.pageBuilder.props.section.spacer` | `'Spacer'` |
+| `coar.pageBuilder.props.section.heading` | `'Heading'` |
+| `coar.pageBuilder.props.section.paragraph` | `'Paragraph'` |
+| `coar.pageBuilder.props.section.note` | `'Note'` |
+| `coar.pageBuilder.props.section.image` | `'Image'` |
+| `coar.pageBuilder.props.section.link` | `'Link'` |
+| `coar.pageBuilder.props.section.button` | `'Button'` |
+| `coar.pageBuilder.props.section.textInput` | `'Text input'` |
+| `coar.pageBuilder.props.section.numberInput` | `'Number input'` |
+| `coar.pageBuilder.props.section.checkbox` | `'Checkbox'` |
+| `coar.pageBuilder.props.section.switch` | `'Switch'` |
+| `coar.pageBuilder.props.section.select` | `'Select'` |
+| `coar.pageBuilder.props.section.multiSelect` | `'Multi select'` |
+| `coar.pageBuilder.props.section.radioGroup` | `'Radio group'` |
+| `coar.pageBuilder.props.section.dateInput` | `'Date'` |
+| `coar.pageBuilder.props.section.dateTimeInput` | `'Date & time'` |
+| `coar.pageBuilder.props.section.otpInput` | `'OTP input'` |
 
 ### Runtime validation messages
 

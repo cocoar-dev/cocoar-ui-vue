@@ -22,8 +22,10 @@
  */
 import type { ElementType, PageNode } from '../schema';
 import { isContainerNode } from '../schema';
+import type { PageElementRegistry } from '../elements/registry';
 import { migrateV1PropsBag } from './schemaMigrateV1';
 import { uid } from './nodeDefaults';
+import { warnDev } from './operations';
 
 // Exhaustiveness-checked against the schema union: adding a new ElementType
 // without listing it here is a compile error.
@@ -73,6 +75,16 @@ export interface NormalizeResult {
   changed: boolean;
 }
 
+export interface NormalizeOptions {
+  /**
+   * Merged element registry. When provided, registered consumer types count
+   * as known (no unknown-type warning) and each definition's `normalizeProps`
+   * runs as a per-type healing pass over the props bag. Omit for the
+   * registry-less structural pass (server-side persistence gate).
+   */
+  elements?: PageElementRegistry;
+}
+
 /**
  * Recursively migrate legacy node types so schemas from earlier versions (or
  * hand-written copies) still work:
@@ -109,7 +121,7 @@ function defaultPage(): PageNode {
   };
 }
 
-export function normalizePageSchema(value: unknown): NormalizeResult {
+export function normalizePageSchema(value: unknown, options?: NormalizeOptions): NormalizeResult {
   const issues: NormalizeIssue[] = [];
 
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
@@ -143,7 +155,7 @@ export function normalizePageSchema(value: unknown): NormalizeResult {
   }
 
   const seenIds = new Set<string>();
-  const result = normalizeNode(root, 'page', seenIds, issues);
+  const result = normalizeNode(root, 'page', seenIds, issues, options);
   // The root was pre-checked as an object and typed 'page', so it never drops.
   const schema = (result.node ?? defaultPage()) as PageNode;
   return { schema, issues, changed: rootChanged || result.changed };
@@ -159,6 +171,7 @@ function normalizeNode(
   path: string,
   seenIds: Set<string>,
   issues: NormalizeIssue[],
+  options?: NormalizeOptions,
 ): NodeResult {
   if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
     issues.push({ path, message: 'Node must be an object — entry dropped.', severity: 'error' });
@@ -173,7 +186,13 @@ function normalizeNode(
     changed = true;
   };
 
-  const typeKnown = typeof node.type === 'string' && KNOWN_ELEMENT_TYPES.has(node.type);
+  // With a registry, registered consumer types are as known as built-ins.
+  const def =
+    typeof node.type === 'string' && node.type !== 'page'
+      ? options?.elements?.[node.type]
+      : undefined;
+  const typeKnown =
+    (typeof node.type === 'string' && KNOWN_ELEMENT_TYPES.has(node.type)) || def !== undefined;
   if (!typeKnown) {
     issues.push({
       path,
@@ -195,6 +214,17 @@ function normalizeNode(
         severity: 'warning',
       });
       set('props', {});
+    }
+    // Per-definition healing of the (now object-shaped) bag — the element's
+    // own ingest gate for untrusted JSON. Crash-guarded: a throwing consumer
+    // hook must not take normalization down.
+    if (def?.normalizeProps) {
+      try {
+        const healed = def.normalizeProps(node.props);
+        if (healed !== node.props) set('props', healed);
+      } catch (e) {
+        warnDev(`normalizeProps of element "${String(node.type)}" threw — bag left as-is. ${String(e)}`);
+      }
     }
   }
 
@@ -225,7 +255,8 @@ function normalizeNode(
     }
   }
 
-  const isContainer = typeKnown && isContainerNode(node as unknown as PageNode);
+  const isContainer =
+    (typeKnown && isContainerNode(node as unknown as PageNode)) || def?.container === true;
   if (isContainer) {
     if (node.children === undefined || node.children === null) {
       set('children', []);
@@ -237,13 +268,13 @@ function normalizeNode(
       });
       set('children', []);
     } else {
-      normalizeChildren(node, set, path, seenIds, issues);
+      normalizeChildren(node, set, path, seenIds, issues, options);
     }
   } else if (!typeKnown && Array.isArray(node.children)) {
     // Unknown-typed subtrees stay in the tree (skipped at render time), but
     // their STRUCTURE is still healed — ids must be page-unique even in
     // invisible branches, or they collide the moment the type gets registered.
-    normalizeChildren(node, set, path, seenIds, issues);
+    normalizeChildren(node, set, path, seenIds, issues, options);
   } else if (typeKnown && node.children !== undefined) {
     issues.push({
       path,
@@ -261,12 +292,13 @@ function normalizeChildren(
   path: string,
   seenIds: Set<string>,
   issues: NormalizeIssue[],
+  options?: NormalizeOptions,
 ): void {
   const children = node.children as unknown[];
   const nextChildren: unknown[] = [];
   let childrenChanged = false;
   for (let i = 0; i < children.length; i++) {
-    const child = normalizeNode(children[i], `${path}.children[${i}]`, seenIds, issues);
+    const child = normalizeNode(children[i], `${path}.children[${i}]`, seenIds, issues, options);
     if (child.node !== null) nextChildren.push(child.node);
     childrenChanged ||= child.changed;
   }

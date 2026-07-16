@@ -2,7 +2,7 @@
 
 `@cocoar/vue-page-builder` is a generic, headless visual page composition framework. Users drag UI primitives onto a canvas, configure them, and the result is a portable JSON schema that a companion renderer turns back into live Cocoar components.
 
-Everything domain-specific — what actions a button can trigger, where images come from, which elements are permitted — is defined by the **consumer application**, not the library.
+Everything domain-specific — what actions a button can trigger, where images come from, which elements are permitted, and even **which element types exist** — is defined by the **consumer application**, not the library. Built-in elements are pre-registered definitions on an open [element registry](./custom-elements); consumer apps register their own element types on the same contract.
 
 ## Two components
 
@@ -40,6 +40,7 @@ import {
 const schema = ref<PageNode>({
   id: 'root',
   type: 'page',
+  schemaVersion: 2,
   style: { gap: '16px', padding: '24px' },
   children: [],
 });
@@ -96,10 +97,20 @@ Everything tenant-facing or domain-specific is declared here. Pass the **same va
 ```ts
 interface PageConfig {
   /**
-   * Element types permitted to appear in the tree. Omit to allow every type.
+   * Element types permitted to appear in the tree — built-in types and
+   * consumer-registered keys alike. Omit to allow every type.
    * `page` (the root marker) is always implicitly allowed.
    */
-  allowedElements?: ElementType[]
+  allowedElements?: (ElementType | (string & {}))[]
+
+  /**
+   * Consumer-registered element types, merged ADDITIVELY over the built-in
+   * set (shadowing a built-in key warns in DEV). One registration serves
+   * palette, canvas, inspector and runtime. App-wide defaults can be
+   * provided under PAGE_ELEMENTS_KEY instead; this field wins when both
+   * are present. See the Custom elements guide.
+   */
+  elements?: PageElementRegistry
 
   /**
    * Action IDs that buttons and links may reference. When provided, the
@@ -131,8 +142,8 @@ interface PageConfig {
 
 ### `allowedElements`
 
-Enforced at **both** layers:
-- *Builder*: hidden from the palette and add-child menu; tenants can't insert disallowed types. Nodes of a disallowed (or unknown) type already present in the schema get a validation **error** and a "skipped at runtime" banner treatment on the canvas, so authors learn about them before saving.
+Takes built-in types and consumer-registered keys alike. Enforced at **both** layers:
+- *Builder*: hidden from the palette and add-child menu; tenants can't insert disallowed types. Nodes of a disallowed type already present in the schema get a validation **error** and a "skipped at runtime" treatment on the canvas; nodes of an *unregistered* type get a **warning** (they stay in the tree losslessly), so authors learn about both before saving.
 - *Renderer*: disallowed nodes are skipped at render time (with one `console.warn` per type) even if they appear in hand-written or tampered JSON. This is the security boundary.
 
 The gate also applies to the renderer's **value model**, not just rendering: disallowed subtrees contribute no default values and their fields never block validation — an invisible `required` field can't permanently veto a validating button.
@@ -142,10 +153,32 @@ allowedElements: [
   'stack', 'card', 'section', 'divider',
   'heading', 'paragraph',
   'text-input', 'checkbox', 'button', 'link', 'image',
+  'acme-rating',   // a consumer-registered key from config.elements
 ],
 ```
 
 Drop element types the tenant shouldn't be able to use. `page` is implicitly always allowed.
+
+### `elements` — custom element types
+
+The element set is open: one `definePageElement()` definition registers a component defined entirely in **your app** as a first-class element — it appears in the palette, canvas, inspector, preview and value model exactly like a built-in. Registrations merge **additively** over the built-ins; keys are lowercase kebab-case (`^[a-z][a-z0-9-]*$`) and a vendor prefix is recommended:
+
+```ts
+import { definePageElement, type PageConfig } from '@cocoar/vue-page-builder';
+import RatingRenderer from './RatingRenderer.vue';
+
+const config: PageConfig = {
+  elements: {
+    'acme-rating': definePageElement({
+      renderer: RatingRenderer,                      // receives { node }
+      value: { isEmpty: (v) => !v || Number(v) === 0 }, // participates in the value model
+    }),
+  },
+  allowedElements: ['stack', 'heading', 'text-input', 'button', 'acme-rating'],
+};
+```
+
+Unregistered types degrade **losslessly**: kept in the tree and in the JSON tab, flagged in the builder, skipped at runtime with one console warning per type, and excluded from the value model so they can never block a submit. The full contract — builder half (palette label, canvas preview, inspector, lint), `usePageElement()` renderer context, app-wide registration via `PAGE_ELEMENTS_KEY` — is covered in the [Custom elements guide](./custom-elements).
 
 ### `availableActions`
 
@@ -365,10 +398,10 @@ const actions: Record<string, (v: ActionValues) => void> = {
 
 ### Notes for the IDP wiring
 
-- **Schema migration** — the builder normalises schemas at **every entry point**: the initial `v-model` value, external `v-model` replacement, and the JSON tab's Apply. Legacy `column`/`row` containers migrate to `stack`, non-`page` roots get wrapped in a `page`, missing or duplicate node ids are repaired, missing `children` arrays and out-of-range heading levels are healed. The runtime renderer additionally migrates legacy `column`/`row` on the fly, so old saved schemas keep rendering even without a round-trip through the builder. To run the same migration server-side before persisting, use the exported helpers: `normalizePageSchema(value)` returns `{ schema, issues, changed }`; `migrateLegacyTypes` and `KNOWN_ELEMENT_TYPES` are exported alongside it.
-- **`schemaVersion`** — new and normalised roots are stamped with `schemaVersion: 1` (`PageRootNode.schemaVersion?: number`). The field is reserved for a future migration framework; an absent value means a pre-versioning document. Persist it as-is.
-- **JSON Apply is gated** — JSON pasted into the builder's JSON tab is rejected with a message when it has structural problems (unknown element types, non-object nodes, non-array `children`); nothing broken reaches your `v-model`. Healable issues (missing/duplicate ids, missing `children` arrays, out-of-range heading levels) are healed silently.
-- **Validation** — builder validation flags authoring mistakes but never blocks saving: a button/link without an action, or with an action id outside `availableActions`, is a *warning*; duplicate field names, missing image asset ids, invalid `validation.pattern`, and unknown/disallowed element types are *errors*. If you need hard guarantees, validate server-side before persisting (e.g., reject if any `image.assetId === ''`). At runtime, a `validates: true` button stays **clickable** while the form is invalid — clicking it marks every field touched and reveals all errors instead of running the action; it only disables while an async `onValidate` is in flight. Cross-field or server-side checks (e.g., "email domain not allowed for this tenant") go through the renderer's `:on-validate` prop: it runs at submit time after the declarative rules pass, may return a `Promise` of `{ fieldName: errorMessage }`, a non-empty result blocks the action, and editing a field clears its server error. See [CoarPageRenderer](./coar-page-renderer).
+- **Schema migration** — the builder normalises schemas at **every entry point**: the initial `v-model` value, external `v-model` replacement, and the JSON tab's Apply. Legacy `column`/`row` containers migrate to `stack`, v1 flat documents get their `props` bags, non-`page` roots get wrapped in a `page`, missing or duplicate node ids are repaired, missing `children` arrays / `props` bags and out-of-range heading levels are healed. The runtime renderer additionally runs both migrations on the fly, so old saved schemas keep rendering even without a round-trip through the builder. To run the same migration server-side before persisting, use the exported helpers: `normalizePageSchema(value)` returns `{ schema, issues, changed }`; `migrateLegacyTypes`, `migrateV1PropsBag` and `KNOWN_ELEMENT_TYPES` are exported alongside it.
+- **`schemaVersion`** — new and normalised roots are stamped with `schemaVersion: 2` (`PageRootNode.schemaVersion?: number`), the unified props-bag wire format. `1` or an absent value marks a pre-GA flat document, which every ingest path migrates transparently. Persist it as-is.
+- **JSON Apply is gated by severity** — structural **errors** (non-object nodes — data would be dropped) reject the Apply with a message; nothing broken reaches your `v-model`. **Warnings** (healed or lossless findings — including *unknown element types*, which stay in the tree losslessly) apply anyway and are surfaced inline, so documents using newer or unregistered element types remain editable.
+- **Validation** — builder validation flags authoring mistakes but never blocks saving: a button/link without an action, or with an action id outside `availableActions`, or an *unregistered* element type, is a *warning*; duplicate field names, missing image asset ids, invalid `validation.pattern`, and disallowed element types are *errors*. If you need hard guarantees, validate server-side before persisting (e.g., reject if any image node has an empty `props.assetId`). At runtime, a `validates: true` button stays **clickable** while the form is invalid — clicking it marks every field touched and reveals all errors instead of running the action; it only disables while an async `onValidate` is in flight. Cross-field or server-side checks (e.g., "email domain not allowed for this tenant") go through the renderer's `:on-validate` prop: it runs at submit time after the declarative rules pass, may return a `Promise` of `{ fieldName: errorMessage }`, a non-empty result blocks the action, and editing a field clears its server error. See [CoarPageRenderer](./coar-page-renderer).
 - **CSP** — image URLs come from `assetResolver`, so your CDN domain needs to be in `img-src`. Action IDs and labels are inert strings; the one tenant-authored value evaluated at render time is `validation.pattern`, which is compiled safely and anchored (see [Security Model](#security-model)).
 - **Full-screen / centering** — the renderer is `display: contents`, so the `page` fills the host element's width. To center a login card on a full-height screen, set the `page` node's `minHeight: '100vh'` + `justify: 'center'` + `align: 'center'` — no host CSS needed. See [Sizing and alignment](./coar-page-renderer#sizing-and-alignment).
 - **Per-tenant theming** — the renderer uses the Cocoar Design System tokens; override CSS variables on a wrapping container for tenant brand colors.
@@ -383,5 +416,6 @@ const actions: Record<string, (v: ActionValues) => void> = {
 | **4 — Asset callbacks + polish** | `:config.pickAsset` + `:config.assetResolver` · builder validation · responsive preview | ✅ Done |
 | **5 — Layout & sizing** | Flex model — `justify` / `align` / `alignSelf` / `size` (fit · fill · fixed) / `minHeight`; guided Style-panel controls; Editor matches Preview | ✅ Done |
 | **GA hardening** | Correctness & data-safety fixes (schema normalization at every entry point, gated JSON Apply, `crypto.randomUUID` ids, `schemaVersion` stamp, safe `pattern` compile) · pointer-events DnD (mouse + touch/pen long-press, outline drag-to-reorder) · validation UX (clickable validating buttons, submit-time async `onValidate`) · outline ARIA tree + scoped keyboard shortcuts · duplicate / select-options / default-value editors · i18n (`coar.pageBuilder.*` via `@cocoar/vue-localization`) | ✅ Done |
+| **Element registry** | Unified v2 wire format (`props` bag, `schemaVersion: 2`, transparent v1 migration) · open [consumer-registered element types](./custom-elements) (`config.elements`, `definePageElement`, `usePageElement`) · lossless degradation of unregistered types · severity-gated JSON Apply · renderer `initialValues` | ✅ Done |
 | **5b — Style editor (visual)** | Spacing sliders + colour pickers (rolls into the tenant theming track) | Planned |
-| **6+ — Schema versioning** | Formal migration framework — the `schemaVersion` field stub already ships (stamped `1` on new/normalised roots) | Planned |
+| **6+ — Schema versioning** | Formal migration framework — `schemaVersion` ships today (stamped `2`; the v1 → v2 props-bag migration is the first real migration) | Planned |

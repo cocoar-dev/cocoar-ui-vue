@@ -41,7 +41,7 @@ const props = defineProps<{
  * flow in through the same normalize pass as JSON paste.
  */
 function normalizedFromModel(value: PageNode): PageNode {
-  const { schema, issues } = normalizePageSchema(value);
+  const { schema, issues } = normalizePageSchema(value, { elements: mergedElements.value });
   if (issues.length > 0) {
     warnDev(
       `v-model schema needed repairs: ${issues.map((i) => `${i.path}: ${i.message}`).join(' · ')}`,
@@ -262,7 +262,7 @@ function applyJson() {
   // back on every reload. Warnings (healed or lossless findings, e.g. unknown
   // element types) apply anyway: a document from a newer library version or
   // with unregistered consumer elements must stay editable here.
-  const { schema, issues } = normalizePageSchema(parsed);
+  const { schema, issues } = normalizePageSchema(parsed, { elements: mergedElements.value });
   const errors = issues.filter((i) => i.severity === 'error');
   if (errors.length > 0) {
     jsonError.value = issueSummary(errors);

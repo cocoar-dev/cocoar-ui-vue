@@ -392,6 +392,7 @@ export default defineConfig({
             { text: 'Overview', link: '/components/page-builder/' },
             { text: 'CoarPageBuilder', link: '/components/page-builder/coar-page-builder' },
             { text: 'CoarPageRenderer', link: '/components/page-builder/coar-page-renderer' },
+            { text: 'Custom elements', link: '/components/page-builder/custom-elements' },
           ],
         },
         {

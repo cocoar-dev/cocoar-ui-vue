@@ -46,6 +46,7 @@ export {
   migrateLegacyTypes,
   KNOWN_ELEMENT_TYPES,
   type NormalizeIssue,
+  type NormalizeOptions,
   type NormalizeResult,
 } from './builder/schemaNormalize';
 
