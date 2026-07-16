@@ -19,15 +19,24 @@ import {
   CoarCheckbox,
   CoarDivider,
   CoarFormField,
-  CoarSelect,
-  CoarTextInput,
+  CoarMultiSelect,
+  CoarNote,
+  CoarNumberInput,
+  CoarOtpInput,
   CoarPasswordInput,
+  CoarPlainDatePicker,
+  CoarPlainDateTimePicker,
+  CoarRadioButton,
+  CoarRadioGroup,
+  CoarSelect,
+  CoarSwitch,
+  CoarTextInput,
   type CoarSelectOption,
 } from '@cocoar/vue-ui';
 import { useI18n } from '@cocoar/vue-localization';
 import { isContainerNode, isElementAllowed, type PageNode } from '../schema';
 import { selfLayoutStyle, containerLayoutStyle } from '../styleMapping';
-import { headingTag } from '../renderSafety';
+import { headingTag, isoToPlainDate, isoToPlainDateTime } from '../renderSafety';
 import { KNOWN_ELEMENT_TYPES } from './schemaNormalize';
 import { BUILDER_API, BUILDER_CONFIG } from './builderContext';
 import { useBuilderDnd } from './useBuilderDnd';
@@ -315,6 +324,10 @@ function zoneClasses(index: number): Record<string, boolean> {
         {{ (node as any).text || 'Paragraph text.' }}
       </p>
 
+      <CoarNote v-else-if="node.type === 'note'" :variant="(node as any).variant">
+        {{ (node as any).text || 'Note text.' }}
+      </CoarNote>
+
       <CoarFormField
         v-else-if="node.type === 'text-input'"
         :label="(node as any).label"
@@ -329,18 +342,60 @@ function zoneClasses(index: number): Record<string, boolean> {
         <CoarTextInput
           v-else
           :model-value="''"
+          :rows="(node as any).rows"
           :placeholder="(node as any).placeholder"
           readonly
         />
       </CoarFormField>
 
+      <CoarFormField
+        v-else-if="node.type === 'number-input'"
+        :label="(node as any).label"
+        :required="(node as any).validation?.required"
+      >
+        <CoarNumberInput
+          :model-value="(node as any).defaultValue ?? null"
+          :placeholder="(node as any).placeholder"
+          disabled
+        />
+      </CoarFormField>
+
       <CoarCheckbox
         v-else-if="node.type === 'checkbox'"
-        :model-value="false"
+        :model-value="!!(node as any).defaultValue"
         :label="(node as any).label || 'Checkbox'"
         :required="(node as any).validation?.required"
         disabled
       />
+
+      <CoarSwitch
+        v-else-if="node.type === 'switch'"
+        :model-value="!!(node as any).defaultValue"
+        :label="(node as any).label || 'Switch'"
+        disabled
+      />
+
+      <CoarFormField
+        v-else-if="node.type === 'radio-group'"
+        :label="(node as any).label"
+        :required="(node as any).validation?.required"
+      >
+        <CoarRadioGroup
+          :model-value="(node as any).defaultValue"
+          :name="`preview-${node.id}`"
+          :orientation="(node as any).orientation"
+          disabled
+        >
+          <CoarRadioButton
+            v-for="o in ((node as any).options ?? [])"
+            :key="o.value"
+            :value="o.value"
+            disabled
+          >
+            {{ o.label }}
+          </CoarRadioButton>
+        </CoarRadioGroup>
+      </CoarFormField>
 
       <CoarFormField
         v-else-if="node.type === 'select'"
@@ -350,6 +405,56 @@ function zoneClasses(index: number): Record<string, boolean> {
         <CoarSelect
           :model-value="null"
           :options="toSelectOptions((node as any).options)"
+          :placeholder="(node as any).placeholder"
+          disabled
+        />
+      </CoarFormField>
+
+      <CoarFormField
+        v-else-if="node.type === 'multi-select'"
+        :label="(node as any).label"
+        :required="(node as any).validation?.required"
+      >
+        <CoarMultiSelect
+          :model-value="(node as any).defaultValue ?? []"
+          :options="toSelectOptions((node as any).options)"
+          :placeholder="(node as any).placeholder"
+          disabled
+        />
+      </CoarFormField>
+
+      <CoarFormField
+        v-else-if="node.type === 'otp-input'"
+        :label="(node as any).label"
+        :required="(node as any).validation?.required"
+      >
+        <CoarOtpInput
+          :model-value="''"
+          :length="(node as any).length"
+          :mask="(node as any).mask"
+          disabled
+        />
+      </CoarFormField>
+
+      <CoarFormField
+        v-else-if="node.type === 'date-input'"
+        :label="(node as any).label"
+        :required="(node as any).validation?.required"
+      >
+        <CoarPlainDatePicker
+          :model-value="isoToPlainDate((node as any).defaultValue)"
+          :placeholder="(node as any).placeholder"
+          disabled
+        />
+      </CoarFormField>
+
+      <CoarFormField
+        v-else-if="node.type === 'datetime-input'"
+        :label="(node as any).label"
+        :required="(node as any).validation?.required"
+      >
+        <CoarPlainDateTimePicker
+          :model-value="isoToPlainDateTime((node as any).defaultValue)"
           :placeholder="(node as any).placeholder"
           disabled
         />

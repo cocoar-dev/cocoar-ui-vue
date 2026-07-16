@@ -9,11 +9,11 @@ import {
   type CoarSelectOption,
 } from '@cocoar/vue-ui';
 import OptionsEditor, { type EditorOption } from './OptionsEditor.vue';
-import type { SelectNode } from '../../schema';
+import type { RadioGroupNode } from '../../schema';
 
 const props = defineProps<{
-  node: SelectNode;
-  patch: (update: Partial<SelectNode>) => void;
+  node: RadioGroupNode;
+  patch: (update: Partial<RadioGroupNode>) => void;
 }>();
 
 const { t } = useI18n();
@@ -21,9 +21,7 @@ const { t } = useI18n();
 const options = computed<EditorOption[]>(() => props.node.options ?? []);
 
 function setOptions(next: EditorOption[]) {
-  // An emptied list clears the key; a stale defaultValue pointing at a removed
-  // option is dropped along with it.
-  const patch: Partial<SelectNode> = { options: next.length > 0 ? next : undefined };
+  const patch: Partial<RadioGroupNode> = { options: next.length > 0 ? next : undefined };
   if (props.node.defaultValue !== undefined && !next.some((o) => o.value === props.node.defaultValue)) {
     patch.defaultValue = undefined;
   }
@@ -34,8 +32,13 @@ const defaultChoices = computed<CoarSelectOption<string>[]>(() =>
   options.value.map((o) => ({ value: o.value, label: o.label || o.value })),
 );
 
+const orientationChoices = computed<CoarSelectOption<string>[]>(() => [
+  { value: 'vertical', label: t('coar.pageBuilder.props.vertical', undefined, 'Vertical') },
+  { value: 'horizontal', label: t('coar.pageBuilder.props.horizontal', undefined, 'Horizontal') },
+]);
+
 function setRequired(v: boolean) {
-  const next: NonNullable<SelectNode['validation']> = { ...props.node.validation };
+  const next: NonNullable<RadioGroupNode['validation']> = { ...props.node.validation };
   if (v) next.required = true;
   else delete next.required;
   props.patch({ validation: Object.keys(next).length > 0 ? next : undefined });
@@ -55,12 +58,6 @@ function setRequired(v: boolean) {
       @update:model-value="(v) => props.patch({ name: v })"
     />
   </CoarFormField>
-  <CoarFormField :label="t('coar.pageBuilder.props.placeholder', undefined, 'Placeholder')">
-    <CoarTextInput
-      :model-value="props.node.placeholder ?? ''"
-      @update:model-value="(v) => props.patch({ placeholder: v })"
-    />
-  </CoarFormField>
 
   <OptionsEditor :options="options" @update:options="setOptions" />
 
@@ -71,6 +68,13 @@ function setRequired(v: boolean) {
       :placeholder="t('coar.pageBuilder.props.none', undefined, '— none')"
       clearable
       @update:model-value="(v) => props.patch({ defaultValue: (v as string | null) ?? undefined })"
+    />
+  </CoarFormField>
+  <CoarFormField :label="t('coar.pageBuilder.props.orientation', undefined, 'Orientation')">
+    <CoarSelect
+      :model-value="props.node.orientation ?? 'vertical'"
+      :options="orientationChoices"
+      @update:model-value="(v) => props.patch({ orientation: v as RadioGroupNode['orientation'] })"
     />
   </CoarFormField>
 

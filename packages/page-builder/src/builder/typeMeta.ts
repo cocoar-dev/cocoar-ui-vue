@@ -69,11 +69,23 @@ export const ELEMENT_TYPE_META: Record<ElementType, ElementTypeMeta> = {
     labelKey: 'coar.pageBuilder.type.paragraph',
     labelFallback: 'Paragraph',
   },
+  note: {
+    icon: 'info',
+    group: 'element',
+    labelKey: 'coar.pageBuilder.type.note',
+    labelFallback: 'Note',
+  },
   'text-input': {
     icon: 'file-text',
     group: 'element',
     labelKey: 'coar.pageBuilder.type.textInput',
     labelFallback: 'Text Input',
+  },
+  'number-input': {
+    icon: 'hash',
+    group: 'element',
+    labelKey: 'coar.pageBuilder.type.numberInput',
+    labelFallback: 'Number Input',
   },
   checkbox: {
     icon: 'check-circle-2',
@@ -81,11 +93,47 @@ export const ELEMENT_TYPE_META: Record<ElementType, ElementTypeMeta> = {
     labelKey: 'coar.pageBuilder.type.checkbox',
     labelFallback: 'Checkbox',
   },
+  switch: {
+    icon: 'check',
+    group: 'element',
+    labelKey: 'coar.pageBuilder.type.switch',
+    labelFallback: 'Switch',
+  },
+  'radio-group': {
+    icon: 'rows',
+    group: 'element',
+    labelKey: 'coar.pageBuilder.type.radioGroup',
+    labelFallback: 'Radio Group',
+  },
   select: {
     icon: 'list',
     group: 'element',
     labelKey: 'coar.pageBuilder.type.select',
     labelFallback: 'Select',
+  },
+  'multi-select': {
+    icon: 'list-ordered',
+    group: 'element',
+    labelKey: 'coar.pageBuilder.type.multiSelect',
+    labelFallback: 'Multi Select',
+  },
+  'otp-input': {
+    icon: 'key-round',
+    group: 'element',
+    labelKey: 'coar.pageBuilder.type.otpInput',
+    labelFallback: 'OTP Input',
+  },
+  'date-input': {
+    icon: 'calendar',
+    group: 'element',
+    labelKey: 'coar.pageBuilder.type.dateInput',
+    labelFallback: 'Date',
+  },
+  'datetime-input': {
+    icon: 'calendar-days',
+    group: 'element',
+    labelKey: 'coar.pageBuilder.type.dateTimeInput',
+    labelFallback: 'Date & Time',
   },
   button: {
     icon: 'zap',
@@ -110,8 +158,10 @@ export const ELEMENT_TYPE_META: Record<ElementType, ElementTypeMeta> = {
 /** User-placeable types in palette/add-menu order. */
 export const PLACEABLE_TYPES: readonly ElementType[] = [
   'stack', 'card', 'section',
-  'heading', 'paragraph', 'divider', 'spacer',
-  'text-input', 'checkbox', 'select', 'button', 'link', 'image',
+  'heading', 'paragraph', 'note', 'divider', 'spacer',
+  'text-input', 'number-input', 'checkbox', 'switch', 'radio-group',
+  'select', 'multi-select', 'otp-input', 'date-input', 'datetime-input',
+  'button', 'link', 'image',
 ];
 
 export function typeIcon(type: ElementType): CoreIconName {
