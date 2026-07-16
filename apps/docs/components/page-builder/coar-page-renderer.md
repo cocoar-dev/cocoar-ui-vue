@@ -33,7 +33,7 @@ Import `@cocoar/vue-page-builder/styles` once in your app — the renderer's lay
 />
 ```
 
-`ActionValues` is `Record<string, unknown>` — a flat map of all named fields at the time the action fires. Fields are collected from `text-input`, `checkbox`, and `select` nodes that have a `name` property: text inputs contribute strings, checkboxes booleans, selects the chosen option's `value`. Hand-written schemas carry no hard type guarantee, so narrow the values in your handler.
+`ActionValues` is `Record<string, unknown>` — a flat map of all named fields at the time the action fires. Every input element with a `name` property contributes its value: text/otp/date inputs and selects contribute **strings** (dates as ISO strings), `number-input` a **number**, `checkbox`/`switch` **booleans**, `multi-select` a **string array**. Hand-written schemas carry no hard type guarantee, so narrow the values in your handler.
 
 ## JSON Schema
 
@@ -149,22 +149,34 @@ The same card rendered live (logo omitted). Email is `required` + `inputType: 'e
 | `divider` | Visual separator (`CoarDivider`) |
 | `spacer` | Empty space — `flex: 1` (fills available space) unless `size` is set |
 
-### Typography
+### Typography & Display
 
 | Type | Props | Description |
 |------|-------|-------------|
 | `heading` | `text`, `level` (1–6) | H1–H6 heading |
 | `paragraph` | `text` | Body text block |
+| `note` | `text`, `variant` (`neutral` \| `info` \| `success` \| `warning` \| `error` \| `accent`) | `CoarNote` callout box |
 
 ### Inputs
 
-| Type | Key props | Cocoar component |
-|------|-----------|-----------------|
-| `text-input` | `label`, `name`, `inputType`, `placeholder`, `defaultValue`, `validation` | `CoarTextInput` / `CoarPasswordInput` |
-| `checkbox` | `label`, `name`, `defaultValue`, `validation` | `CoarCheckbox` |
-| `select` | `label`, `name`, `options`, `placeholder`, `defaultValue`, `validation` | `CoarSelect` |
+| Type | Key props | Value type | Cocoar component |
+|------|-----------|------------|-----------------|
+| `text-input` | `label`, `name`, `inputType`, `rows`, `placeholder`, `defaultValue`, `validation` | `string` | `CoarTextInput` / `CoarPasswordInput` (textarea when `rows > 1`) |
+| `number-input` | `label`, `name`, `min`, `max`, `step`, `decimals`, `defaultValue`, `validation` | `number` | `CoarNumberInput` |
+| `checkbox` | `label`, `name`, `defaultValue`, `validation` | `boolean` | `CoarCheckbox` |
+| `switch` | `label`, `name`, `defaultValue`, `validation` | `boolean` | `CoarSwitch` |
+| `radio-group` | `label`, `name`, `options`, `orientation`, `defaultValue`, `validation` | `string` | `CoarRadioGroup` + `CoarRadioButton` |
+| `select` | `label`, `name`, `options`, `placeholder`, `defaultValue`, `validation` | `string` | `CoarSelect` |
+| `multi-select` | `label`, `name`, `options`, `placeholder`, `defaultValue`, `validation` | `string[]` | `CoarMultiSelect` |
+| `otp-input` | `label`, `name`, `length`, `otpType`, `mask`, `validation` | `string` | `CoarOtpInput` |
+| `date-input` | `label`, `name`, `placeholder`, `defaultValue` (ISO `YYYY-MM-DD`), `validation` | ISO `string` | `CoarPlainDatePicker` |
+| `datetime-input` | `label`, `name`, `placeholder`, `defaultValue` (ISO `YYYY-MM-DDTHH:mm[:ss]`), `validation` | ISO `string` | `CoarPlainDateTimePicker` |
 
-All three support `name` (wires the value into `ActionValues`), `defaultValue`, `disabled`, and `validation`. Fields with `validation.required` get the `*` marker via `CoarFormField`.
+All inputs support `name` (wires the value into `ActionValues`), `defaultValue`, `disabled`, and `validation`. Fields with `validation.required` get the `*` marker via `CoarFormField`. Required semantics adapt to the value shape: a required `multi-select` needs **at least one** selection, a required `otp-input` needs a **complete** code (all cells filled), a required `switch`/`checkbox` must be **on**.
+
+::: info Date values are ISO strings
+The wire format for `date-input`/`datetime-input` is always the ISO string — in the schema's `defaultValue` **and** in `ActionValues`. The renderer converts to/from `Temporal.PlainDate`/`PlainDateTime` at the picker boundary; an unparsable value renders as an empty picker instead of crashing. Zoned (time-zone-aware) date-times are deliberately not part of the element set yet.
+:::
 
 #### `inputType`
 

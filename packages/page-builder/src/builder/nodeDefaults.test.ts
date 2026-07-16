@@ -4,7 +4,9 @@ import type { ElementType, PageNode } from '../schema';
 
 const ALL_TYPES: ElementType[] = [
   'page', 'stack', 'card', 'section', 'divider', 'spacer', 'heading',
-  'paragraph', 'text-input', 'checkbox', 'select', 'button', 'link', 'image',
+  'paragraph', 'note', 'text-input', 'number-input', 'checkbox', 'switch',
+  'radio-group', 'select', 'multi-select', 'otp-input', 'date-input',
+  'datetime-input', 'button', 'link', 'image',
 ];
 
 describe('uid', () => {
@@ -38,6 +40,13 @@ describe('defaultNode', () => {
       names.add(node.name!);
     }
     expect(names.size).toBe(50);
+  });
+
+  it('seeds choice elements with starter options', () => {
+    for (const type of ['radio-group', 'select', 'multi-select'] as const) {
+      const node = defaultNode(type) as { options?: unknown[] };
+      expect(node.options).toHaveLength(2);
+    }
   });
 
   it('creates containers with children arrays', () => {

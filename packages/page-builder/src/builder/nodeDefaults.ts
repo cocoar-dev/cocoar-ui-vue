@@ -45,12 +45,26 @@ export function defaultNode(type: ElementType): PageNode {
     case 'spacer':   return { id: uid(), type: 'spacer' };
     case 'heading':  return { id: uid(), type: 'heading', text: 'Heading', level: 2 };
     case 'paragraph': return { id: uid(), type: 'paragraph', text: 'Paragraph text.' };
+    case 'note':     return { id: uid(), type: 'note', text: 'Note text.', variant: 'info' };
     case 'text-input': return { id: uid(), type: 'text-input', label: 'Label', name: fieldName() };
+    case 'number-input': return { id: uid(), type: 'number-input', label: 'Number', name: fieldName() };
     case 'checkbox':  return { id: uid(), type: 'checkbox', label: 'Checkbox', name: fieldName() };
+    case 'switch':    return { id: uid(), type: 'switch', label: 'Switch', name: fieldName() };
+    case 'radio-group': return {
+      id: uid(), type: 'radio-group', label: 'Choose one', name: fieldName(),
+      options: [{ value: 'a', label: 'Option A' }, { value: 'b', label: 'Option B' }],
+    };
     case 'select':    return {
       id: uid(), type: 'select', label: 'Select', name: fieldName(),
       options: [{ value: 'a', label: 'Option A' }, { value: 'b', label: 'Option B' }],
     };
+    case 'multi-select': return {
+      id: uid(), type: 'multi-select', label: 'Multi select', name: fieldName(),
+      options: [{ value: 'a', label: 'Option A' }, { value: 'b', label: 'Option B' }],
+    };
+    case 'otp-input': return { id: uid(), type: 'otp-input', label: 'Code', name: fieldName() };
+    case 'date-input': return { id: uid(), type: 'date-input', label: 'Date', name: fieldName() };
+    case 'datetime-input': return { id: uid(), type: 'datetime-input', label: 'Date & time', name: fieldName() };
     case 'button':  return { id: uid(), type: 'button', label: 'Button' };
     case 'link':    return { id: uid(), type: 'link', label: 'Link' };
     case 'image':   return { id: uid(), type: 'image', assetId: '' };

@@ -225,6 +225,128 @@ describe('CoarPageRenderer — validation contract', () => {
   });
 });
 
+describe('CoarPageRenderer — expanded element set', () => {
+  it('collects typed values from all new named inputs into the action payload', async () => {
+    const send = vi.fn();
+    const schema: PageNode = {
+      id: 'r',
+      type: 'page',
+      children: [
+        { id: 'n1', type: 'number-input', name: 'amount', label: 'Amount', defaultValue: 42 },
+        { id: 's1', type: 'switch', name: 'newsletter', label: 'Newsletter', defaultValue: true },
+        {
+          id: 'rg', type: 'radio-group', name: 'plan', label: 'Plan', defaultValue: 'pro',
+          options: [{ value: 'free', label: 'Free' }, { value: 'pro', label: 'Pro' }],
+        },
+        {
+          id: 'ms', type: 'multi-select', name: 'topics', label: 'Topics', defaultValue: ['a'],
+          options: [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }],
+        },
+        { id: 'otp', type: 'otp-input', name: 'code', label: 'Code', defaultValue: '123456' },
+        { id: 'd1', type: 'date-input', name: 'from', label: 'From', defaultValue: '2026-01-15' },
+        {
+          id: 'dt1', type: 'datetime-input', name: 'meeting', label: 'Meeting',
+          defaultValue: '2026-01-15T09:30:00',
+        },
+        { id: 'b', type: 'button', label: 'Send', action: 'send' },
+      ],
+    };
+
+    const wrapper = mount(CoarPageRenderer, { props: { schema, actions: { send } } });
+    await wrapper.find('button.pb-button').trigger('click');
+    await flushPromises();
+
+    expect(send).toHaveBeenCalledWith({
+      amount: 42,
+      newsletter: true,
+      plan: 'pro',
+      topics: ['a'],
+      code: '123456',
+      from: '2026-01-15',
+      meeting: '2026-01-15T09:30:00',
+    });
+  });
+
+  it('required multi-select (empty array) and incomplete otp block a validating button', async () => {
+    const send = vi.fn();
+    const schema: PageNode = {
+      id: 'r',
+      type: 'page',
+      children: [
+        {
+          id: 'ms', type: 'multi-select', name: 'topics', label: 'Topics',
+          options: [{ value: 'a', label: 'A' }], validation: { required: true },
+        },
+        {
+          id: 'otp', type: 'otp-input', name: 'code', label: 'Code', defaultValue: '123',
+          validation: { required: true },
+        },
+        { id: 'b', type: 'button', label: 'Send', action: 'send', validates: true },
+      ],
+    };
+
+    const wrapper = mount(CoarPageRenderer, { props: { schema, actions: { send } } });
+    await wrapper.find('button.pb-button').trigger('click');
+    await flushPromises();
+    expect(send).not.toHaveBeenCalled();
+    expect(wrapper.text()).toContain('This field is required');
+  });
+
+  it('a complete otp and a non-empty multi-select pass the required gate', async () => {
+    const send = vi.fn();
+    const schema: PageNode = {
+      id: 'r',
+      type: 'page',
+      children: [
+        {
+          id: 'ms', type: 'multi-select', name: 'topics', defaultValue: ['a'],
+          options: [{ value: 'a', label: 'A' }], validation: { required: true },
+        },
+        {
+          id: 'otp', type: 'otp-input', name: 'code', length: 4, defaultValue: '1234',
+          validation: { required: true },
+        },
+        { id: 'b', type: 'button', label: 'Send', action: 'send', validates: true },
+      ],
+    };
+
+    const wrapper = mount(CoarPageRenderer, { props: { schema, actions: { send } } });
+    await wrapper.find('button.pb-button').trigger('click');
+    await flushPromises();
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders note, radio options and survives an unparsable date defaultValue', () => {
+    const schema = {
+      id: 'r',
+      type: 'page',
+      children: [
+        { id: 'note', type: 'note', text: 'Heads up!', variant: 'warning' },
+        {
+          id: 'rg', type: 'radio-group', name: 'plan',
+          options: [{ value: 'x', label: 'Option X' }],
+        },
+        { id: 'd', type: 'date-input', name: 'from', defaultValue: 'not-a-date' },
+      ],
+    } as unknown as PageNode;
+
+    const wrapper = mount(CoarPageRenderer, { props: { schema } });
+    expect(wrapper.text()).toContain('Heads up!');
+    expect(wrapper.text()).toContain('Option X');
+    expect(wrapper.find('input[type="radio"]').exists()).toBe(true);
+  });
+
+  it('renders a multiline text-input as a textarea when rows > 1', () => {
+    const schema: PageNode = {
+      id: 'r',
+      type: 'page',
+      children: [{ id: 't', type: 'text-input', name: 'bio', rows: 4 }],
+    };
+    const wrapper = mount(CoarPageRenderer, { props: { schema } });
+    expect(wrapper.find('textarea').exists()).toBe(true);
+  });
+});
+
 describe('CoarPageRenderer — schema & config contract', () => {
   it('renders legacy column/row schemas by migrating on the fly', () => {
     const schema = {

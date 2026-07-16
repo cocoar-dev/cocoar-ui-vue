@@ -10,9 +10,18 @@
   },
   "homepage": "https://docs.cocoar.dev/cocoar-ui-vue/",
   "bugs": "https://github.com/cocoar-dev/cocoar-ui-vue/issues",
-  "keywords": ["vue", "vue3", "page-builder", "low-code", "visual-editor"],
+  "keywords": [
+    "vue",
+    "vue3",
+    "page-builder",
+    "low-code",
+    "visual-editor"
+  ],
   "type": "module",
-  "sideEffects": ["*.css", "*.vue"],
+  "sideEffects": [
+    "*.css",
+    "*.vue"
+  ],
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -24,7 +33,9 @@
     },
     "./styles": "./dist/index.css"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "vite build",
     "test": "vitest run",
@@ -40,5 +51,8 @@
     "@cocoar/vue-localization": "workspace:*",
     "@cocoar/vue-ui": "workspace:*",
     "vue": "^3.5.32"
+  },
+  "dependencies": {
+    "@js-temporal/polyfill": "^0.5.1"
   }
 }

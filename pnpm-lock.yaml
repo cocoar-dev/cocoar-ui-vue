@@ -461,6 +461,10 @@ importers:
         version: 3.5.33(typescript@5.9.3)
 
   packages/page-builder:
+    dependencies:
+      '@js-temporal/polyfill':
+        specifier: 0.5.1
+        version: 0.5.1
     devDependencies:
       '@cocoar/vue-localization':
         specifier: workspace:*

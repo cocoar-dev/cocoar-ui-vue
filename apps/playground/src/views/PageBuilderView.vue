@@ -209,14 +209,25 @@ const memoryAssets = ref<AssetItem[]>([
 const dialog = useDialog();
 
 const idpLoginConfig: PageConfig = {
+  // section + spacer stay excluded on purpose, so the allowlist gating
+  // (hidden palette entries, blocked-node banners) remains visible in the demo.
   allowedElements: [
     'stack',
     'card',
     'heading',
     'paragraph',
+    'note',
     'divider',
     'text-input',
+    'number-input',
     'checkbox',
+    'switch',
+    'radio-group',
+    'select',
+    'multi-select',
+    'otp-input',
+    'date-input',
+    'datetime-input',
     'button',
     'link',
     'image',

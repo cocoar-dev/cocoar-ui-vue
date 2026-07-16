@@ -1,33 +1,43 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useI18n } from '@cocoar/vue-localization';
 import {
   CoarFormField,
   CoarTextInput,
   CoarCheckbox,
-  CoarNumberInput,
-  CoarSelect,
+  CoarMultiSelect,
   type CoarSelectOption,
 } from '@cocoar/vue-ui';
-import type { FieldValidation, TextInputNode } from '../../schema';
+import OptionsEditor, { type EditorOption } from './OptionsEditor.vue';
+import type { MultiSelectNode } from '../../schema';
 
 const props = defineProps<{
-  node: TextInputNode;
-  patch: (update: Partial<TextInputNode>) => void;
+  node: MultiSelectNode;
+  patch: (update: Partial<MultiSelectNode>) => void;
 }>();
 
 const { t } = useI18n();
 
-const INPUT_TYPE_OPTIONS: CoarSelectOption<string>[] = [
-  { value: 'text', label: 'text' },
-  { value: 'email', label: 'email' },
-  { value: 'password', label: 'password' },
-  { value: 'url', label: 'url' },
-];
+const options = computed<EditorOption[]>(() => props.node.options ?? []);
+
+function setOptions(next: EditorOption[]) {
+  const patch: Partial<MultiSelectNode> = { options: next.length > 0 ? next : undefined };
+  // Prune default selections whose option vanished; an emptied list clears the key.
+  if (props.node.defaultValue !== undefined) {
+    const kept = props.node.defaultValue.filter((v) => next.some((o) => o.value === v));
+    if (kept.length !== props.node.defaultValue.length) {
+      patch.defaultValue = kept.length > 0 ? kept : undefined;
+    }
+  }
+  props.patch(patch);
+}
+
+const defaultChoices = computed<CoarSelectOption<string>[]>(() =>
+  options.value.map((o) => ({ value: o.value, label: o.label || o.value })),
+);
 
 function setRequired(v: boolean) {
-  // Merge into the existing rules — JSON-authored minLength/pattern/matchField/
-  // message must survive toggling Required in the panel.
-  const next: FieldValidation = { ...props.node.validation };
+  const next: NonNullable<MultiSelectNode['validation']> = { ...props.node.validation };
   if (v) next.required = true;
   else delete next.required;
   props.patch({ validation: Object.keys(next).length > 0 ? next : undefined });
@@ -53,29 +63,19 @@ function setRequired(v: boolean) {
       @update:model-value="(v) => props.patch({ placeholder: v })"
     />
   </CoarFormField>
-  <CoarFormField :label="t('coar.pageBuilder.props.inputType', undefined, 'Input type')">
-    <CoarSelect
-      :model-value="props.node.inputType ?? 'text'"
-      :options="INPUT_TYPE_OPTIONS"
-      @update:model-value="(v) => props.patch({ inputType: v as TextInputNode['inputType'] })"
-    />
-  </CoarFormField>
-  <CoarFormField :label="t('coar.pageBuilder.props.rows', undefined, 'Rows')">
-    <CoarNumberInput
-      clearable
-      :min="1"
-      :max="20"
-      :model-value="props.node.rows ?? null"
-      :placeholder="'1'"
-      @update:model-value="(v) => props.patch({ rows: v && v > 1 ? v : undefined })"
-    />
-  </CoarFormField>
+
+  <OptionsEditor :options="options" @update:options="setOptions" />
+
   <CoarFormField :label="t('coar.pageBuilder.props.defaultValue', undefined, 'Default value')">
-    <CoarTextInput
-      :model-value="props.node.defaultValue ?? ''"
-      @update:model-value="(v) => props.patch({ defaultValue: v })"
+    <CoarMultiSelect
+      :model-value="props.node.defaultValue ?? []"
+      :options="defaultChoices"
+      :placeholder="t('coar.pageBuilder.props.none', undefined, '— none')"
+      clearable
+      @update:model-value="(v) => props.patch({ defaultValue: (v as string[]).length > 0 ? (v as string[]) : undefined })"
     />
   </CoarFormField>
+
   <CoarCheckbox
     :model-value="!!props.node.validation?.required"
     :label="t('coar.pageBuilder.props.required', undefined, 'Required')"

@@ -5,6 +5,8 @@
  * and taking the whole rendered page down with them.
  */
 
+import { Temporal } from '@js-temporal/polyfill';
+
 const HEADING_TAGS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] as const;
 export type HeadingTag = (typeof HEADING_TAGS)[number];
 
@@ -26,6 +28,28 @@ export function headingTag(level: unknown): HeadingTag {
 export function compilePagePattern(pattern: string): RegExp | null {
   try {
     return new RegExp(`^(?:${pattern})$`);
+  } catch {
+    return null;
+  }
+}
+
+// Date values travel as ISO strings in the schema and in ActionValues; the
+// Coar date pickers speak Temporal. These converters sit at that boundary —
+// unparsable schema data renders as an empty picker instead of throwing.
+
+export function isoToPlainDate(value: unknown): Temporal.PlainDate | null {
+  if (typeof value !== 'string' || value === '') return null;
+  try {
+    return Temporal.PlainDate.from(value);
+  } catch {
+    return null;
+  }
+}
+
+export function isoToPlainDateTime(value: unknown): Temporal.PlainDateTime | null {
+  if (typeof value !== 'string' || value === '') return null;
+  try {
+    return Temporal.PlainDateTime.from(value);
   } catch {
     return null;
   }

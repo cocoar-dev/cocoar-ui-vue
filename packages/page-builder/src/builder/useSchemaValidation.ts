@@ -35,7 +35,10 @@ export function useSchemaValidation(
     const namedFields: Array<{ node: PageNode; name: string }> = [];
     const knownActions = new Set(config.value?.availableActions?.map((a) => a.id) ?? []);
     const hasAvailableActions = (config.value?.availableActions?.length ?? 0) > 0;
-    const namedTypes = new Set(['text-input', 'checkbox', 'select']);
+    const namedTypes = new Set([
+      'text-input', 'number-input', 'checkbox', 'switch', 'radio-group',
+      'select', 'multi-select', 'otp-input', 'date-input', 'datetime-input',
+    ]);
 
     walk(schema.value, (n) => {
       // ── Type must exist and be allowed — otherwise the runtime SKIPS the

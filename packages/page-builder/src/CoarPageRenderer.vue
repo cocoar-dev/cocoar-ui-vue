@@ -5,8 +5,15 @@ import { isElementAllowed } from './schema';
 import type {
   PageNode,
   TextInputNode,
+  NumberInputNode,
   CheckboxNode,
+  SwitchNode,
+  RadioGroupNode,
   SelectNode,
+  MultiSelectNode,
+  OtpInputNode,
+  DateInputNode,
+  DateTimeInputNode,
   PageConfig,
   FieldValidation,
 } from './schema';
@@ -56,13 +63,25 @@ const isValidating = ref(false);
  */
 const renderSchema = computed(() => migrateLegacyTypes(props.schema) as PageNode);
 
-type NamedInputNode = TextInputNode | CheckboxNode | SelectNode;
+type NamedInputNode =
+  | TextInputNode
+  | NumberInputNode
+  | CheckboxNode
+  | SwitchNode
+  | RadioGroupNode
+  | SelectNode
+  | MultiSelectNode
+  | OtpInputNode
+  | DateInputNode
+  | DateTimeInputNode;
+
+const NAMED_INPUT_TYPES: ReadonlySet<string> = new Set([
+  'text-input', 'number-input', 'checkbox', 'switch', 'radio-group',
+  'select', 'multi-select', 'otp-input', 'date-input', 'datetime-input',
+]);
 
 function isNamedInput(node: PageNode): node is NamedInputNode {
-  return (
-    (node.type === 'text-input' || node.type === 'checkbox' || node.type === 'select') &&
-    !!(node as NamedInputNode).name
-  );
+  return NAMED_INPUT_TYPES.has(node.type) && !!(node as NamedInputNode).name;
 }
 
 /**
@@ -126,7 +145,13 @@ function computeFieldError(node: NamedInputNode): string {
   if (!v) return '';
 
   if (v.required) {
-    const empty = value === undefined || value === null || value === '' || value === false;
+    const empty =
+      value === undefined || value === null || value === '' || value === false ||
+      // multi-select: required means at least one selection
+      (Array.isArray(value) && value.length === 0) ||
+      // otp: required means the code is COMPLETE, not merely started
+      (node.type === 'otp-input' &&
+        typeof value === 'string' && value.length < (node.length ?? 6));
     if (empty) return v.message ?? t('coar.pageBuilder.validation.required', undefined, 'This field is required');
   }
 

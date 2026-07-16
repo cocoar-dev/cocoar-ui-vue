@@ -19,14 +19,23 @@ import {
   CoarCheckbox,
   CoarDivider,
   CoarFormField,
+  CoarMultiSelect,
+  CoarNote,
+  CoarNumberInput,
+  CoarOtpInput,
   CoarPasswordInput,
+  CoarPlainDatePicker,
+  CoarPlainDateTimePicker,
+  CoarRadioButton,
+  CoarRadioGroup,
   CoarSelect,
+  CoarSwitch,
   CoarTextInput,
   type CoarSelectOption,
 } from '@cocoar/vue-ui';
 import { isElementAllowed, type PageNode } from './schema';
 import { selfStyle, containerLayoutStyle as layoutStyleFromStyle } from './styleMapping';
-import { headingTag } from './renderSafety';
+import { headingTag, isoToPlainDate, isoToPlainDateTime } from './renderSafety';
 import { PAGE_RENDERER_KEY } from './context';
 
 defineOptions({ name: 'PageNode' });
@@ -193,6 +202,15 @@ function setFieldValue(name: string | undefined, v: unknown) {
     {{ n.text }}
   </p>
 
+  <!-- ── note ─────────────────────────────────────────────────────────────── -->
+  <CoarNote
+    v-else-if="n.type === 'note'"
+    :variant="n.variant"
+    :style="wrapperStyle"
+  >
+    {{ n.text }}
+  </CoarNote>
+
   <!-- ── text-input ───────────────────────────────────────────────────────── -->
   <CoarFormField
     v-else-if="n.type === 'text-input'"
@@ -215,7 +233,30 @@ function setFieldValue(name: string | undefined, v: unknown) {
       :model-value="nodeName ? (ctx.getValue(nodeName) as string ?? '') : ''"
       :type="htmlInputType(n.inputType)"
       :autocomplete="autocompleteFor(n.inputType)"
+      :rows="n.rows"
       :placeholder="n.placeholder"
+      :disabled="n.disabled"
+      @update:model-value="(v) => nodeName && ctx.setValue(nodeName, v)"
+      @blurred="nodeName && ctx.markTouched(nodeName)"
+    />
+  </CoarFormField>
+
+  <!-- ── number-input ─────────────────────────────────────────────────────── -->
+  <CoarFormField
+    v-else-if="n.type === 'number-input'"
+    :label="n.label"
+    :required="n.validation?.required"
+    :error="nodeName ? ctx.getError(nodeName) : ''"
+    :disabled="n.disabled"
+    :style="wrapperStyle"
+  >
+    <CoarNumberInput
+      :model-value="nodeName ? (ctx.getValue(nodeName) as number ?? null) : null"
+      :placeholder="n.placeholder"
+      :min="n.min"
+      :max="n.max"
+      :step="n.step"
+      :decimals="n.decimals"
       :disabled="n.disabled"
       @update:model-value="(v) => nodeName && ctx.setValue(nodeName, v)"
       @blurred="nodeName && ctx.markTouched(nodeName)"
@@ -238,6 +279,50 @@ function setFieldValue(name: string | undefined, v: unknown) {
     />
   </CoarFormField>
 
+  <!-- ── switch (boolean like checkbox; touch-on-change) ─────────────────────── -->
+  <CoarFormField
+    v-else-if="n.type === 'switch'"
+    :error="nodeName ? ctx.getError(nodeName) : ''"
+    :disabled="n.disabled"
+    :style="wrapperStyle"
+  >
+    <CoarSwitch
+      :model-value="nodeName ? (ctx.getValue(nodeName) as boolean ?? false) : false"
+      :label="n.label"
+      :disabled="n.disabled"
+      @update:model-value="(v) => setFieldValue(nodeName, v)"
+    />
+  </CoarFormField>
+
+  <!-- ── radio-group ──────────────────────────────────────────────────────── -->
+  <CoarFormField
+    v-else-if="n.type === 'radio-group'"
+    :label="n.label"
+    :required="n.validation?.required"
+    :error="nodeName ? ctx.getError(nodeName) : ''"
+    :disabled="n.disabled"
+    :style="wrapperStyle"
+  >
+    <CoarRadioGroup
+      :model-value="nodeName ? (ctx.getValue(nodeName) as string ?? undefined) : undefined"
+      :name="nodeName ?? n.id"
+      :label="n.label"
+      :orientation="n.orientation"
+      :required="n.validation?.required"
+      :disabled="n.disabled"
+      @update:model-value="(v) => setFieldValue(nodeName, v)"
+    >
+      <CoarRadioButton
+        v-for="o in n.options ?? []"
+        :key="o.value"
+        :value="o.value"
+        :disabled="n.disabled"
+      >
+        {{ o.label }}
+      </CoarRadioButton>
+    </CoarRadioGroup>
+  </CoarFormField>
+
   <!-- ── select ───────────────────────────────────────────────────────────── -->
   <CoarFormField
     v-else-if="n.type === 'select'"
@@ -253,6 +338,80 @@ function setFieldValue(name: string | undefined, v: unknown) {
       :placeholder="n.placeholder"
       :disabled="n.disabled"
       @update:model-value="(v) => setFieldValue(nodeName, v)"
+    />
+  </CoarFormField>
+
+  <!-- ── multi-select ─────────────────────────────────────────────────────── -->
+  <CoarFormField
+    v-else-if="n.type === 'multi-select'"
+    :label="n.label"
+    :required="n.validation?.required"
+    :error="nodeName ? ctx.getError(nodeName) : ''"
+    :disabled="n.disabled"
+    :style="wrapperStyle"
+  >
+    <CoarMultiSelect
+      :model-value="nodeName ? (ctx.getValue(nodeName) as string[] ?? []) : []"
+      :options="toSelectOptions(n.options)"
+      :placeholder="n.placeholder"
+      :disabled="n.disabled"
+      @update:model-value="(v) => setFieldValue(nodeName, v)"
+    />
+  </CoarFormField>
+
+  <!-- ── otp-input ────────────────────────────────────────────────────────── -->
+  <CoarFormField
+    v-else-if="n.type === 'otp-input'"
+    :label="n.label"
+    :required="n.validation?.required"
+    :error="nodeName ? ctx.getError(nodeName) : ''"
+    :disabled="n.disabled"
+    :style="wrapperStyle"
+  >
+    <CoarOtpInput
+      :model-value="nodeName ? (ctx.getValue(nodeName) as string ?? '') : ''"
+      :length="n.length"
+      :type="n.otpType"
+      :mask="n.mask"
+      :disabled="n.disabled"
+      @update:model-value="(v) => nodeName && ctx.setValue(nodeName, v)"
+      @blurred="nodeName && ctx.markTouched(nodeName)"
+    />
+  </CoarFormField>
+
+  <!-- ── date-input (ISO string in the value model, Temporal at the picker) ── -->
+  <CoarFormField
+    v-else-if="n.type === 'date-input'"
+    :label="n.label"
+    :required="n.validation?.required"
+    :error="nodeName ? ctx.getError(nodeName) : ''"
+    :disabled="n.disabled"
+    :style="wrapperStyle"
+  >
+    <CoarPlainDatePicker
+      :model-value="nodeName ? isoToPlainDate(ctx.getValue(nodeName)) : null"
+      :placeholder="n.placeholder"
+      :disabled="n.disabled"
+      clearable
+      @update:model-value="(d) => setFieldValue(nodeName, d ? d.toString() : '')"
+    />
+  </CoarFormField>
+
+  <!-- ── datetime-input ───────────────────────────────────────────────────── -->
+  <CoarFormField
+    v-else-if="n.type === 'datetime-input'"
+    :label="n.label"
+    :required="n.validation?.required"
+    :error="nodeName ? ctx.getError(nodeName) : ''"
+    :disabled="n.disabled"
+    :style="wrapperStyle"
+  >
+    <CoarPlainDateTimePicker
+      :model-value="nodeName ? isoToPlainDateTime(ctx.getValue(nodeName)) : null"
+      :placeholder="n.placeholder"
+      :disabled="n.disabled"
+      clearable
+      @update:model-value="(d) => setFieldValue(nodeName, d ? d.toString() : '')"
     />
   </CoarFormField>
 

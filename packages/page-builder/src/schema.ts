@@ -124,8 +124,109 @@ export interface TextInputNode extends PageNodeBase {
   placeholder?: string
   /** Controls HTML input type and autocomplete hints. Defaults to 'text'. */
   inputType?: 'text' | 'email' | 'password' | 'url'
+  /** Visible text rows; 2+ renders a multiline textarea. Defaults to 1. */
+  rows?: number
   defaultValue?: string
   validation?: FieldValidation
+  disabled?: boolean
+}
+
+export interface NumberInputNode extends PageNodeBase {
+  type: 'number-input'
+  /** When set, value is managed by the renderer (as a number) and passed to actions. */
+  name?: string
+  label?: string
+  placeholder?: string
+  min?: number
+  max?: number
+  step?: number
+  /** Number of decimal places. Defaults to 0 (integers). */
+  decimals?: number
+  defaultValue?: number
+  validation?: Pick<FieldValidation, 'required'>
+  disabled?: boolean
+}
+
+export interface SwitchNode extends PageNodeBase {
+  type: 'switch'
+  /** When set, value is managed by the renderer (as a boolean) and passed to actions. */
+  name?: string
+  label: string
+  defaultValue?: boolean
+  /** `required` means the switch must be ON (consent-style, like checkbox). */
+  validation?: Pick<FieldValidation, 'required'>
+  disabled?: boolean
+}
+
+export interface RadioGroupNode extends PageNodeBase {
+  type: 'radio-group'
+  /** When set, value is managed by the renderer and passed to actions. */
+  name?: string
+  label?: string
+  options?: { value: string; label: string }[]
+  defaultValue?: string
+  /** Layout of the radio buttons. Defaults to 'vertical'. */
+  orientation?: 'vertical' | 'horizontal'
+  validation?: Pick<FieldValidation, 'required'>
+  disabled?: boolean
+}
+
+export interface MultiSelectNode extends PageNodeBase {
+  type: 'multi-select'
+  /** When set, value is managed by the renderer (as a string array) and passed to actions. */
+  name?: string
+  label?: string
+  placeholder?: string
+  options?: { value: string; label: string }[]
+  defaultValue?: string[]
+  /** `required` means at least one option must be selected. */
+  validation?: Pick<FieldValidation, 'required'>
+  disabled?: boolean
+}
+
+export interface OtpInputNode extends PageNodeBase {
+  type: 'otp-input'
+  /** When set, value is managed by the renderer and passed to actions. */
+  name?: string
+  label?: string
+  /** Number of code cells. Defaults to 6. */
+  length?: number
+  /** Accepted character set. Defaults to 'numeric'. */
+  otpType?: 'numeric' | 'alphanumeric' | 'text'
+  /** Render cells masked (like a password). */
+  mask?: boolean
+  /** Prefilled code — rarely useful in production, handy in demos/tests. */
+  defaultValue?: string
+  /** `required` means the code must be COMPLETE (all cells filled). */
+  validation?: Pick<FieldValidation, 'required'>
+  disabled?: boolean
+}
+
+export interface DateInputNode extends PageNodeBase {
+  type: 'date-input'
+  /** When set, value is managed by the renderer and passed to actions. */
+  name?: string
+  label?: string
+  placeholder?: string
+  /**
+   * ISO date string `YYYY-MM-DD`. The wire format is always the ISO string —
+   * the renderer converts to/from `Temporal.PlainDate` at the component
+   * boundary; an unparsable value renders as empty instead of crashing.
+   */
+  defaultValue?: string
+  validation?: Pick<FieldValidation, 'required'>
+  disabled?: boolean
+}
+
+export interface DateTimeInputNode extends PageNodeBase {
+  type: 'datetime-input'
+  /** When set, value is managed by the renderer and passed to actions. */
+  name?: string
+  label?: string
+  placeholder?: string
+  /** ISO date-time string `YYYY-MM-DDTHH:mm[:ss]` (no time zone — plain wall time). */
+  defaultValue?: string
+  validation?: Pick<FieldValidation, 'required'>
   disabled?: boolean
 }
 
@@ -172,13 +273,20 @@ export interface LinkNode extends PageNodeBase {
   action?: string
 }
 
-// ─── Media ────────────────────────────────────────────────────────────────────
+// ─── Media / Display ──────────────────────────────────────────────────────────
 
 export interface ImageNode extends PageNodeBase {
   type: 'image'
   /** Asset ID resolved by `assetResolver` at render time. Never a raw URL. */
   assetId: string
   alt?: string
+}
+
+export interface NoteNode extends PageNodeBase {
+  type: 'note'
+  text: string
+  /** Visual tone of the note box. Defaults to the design system's 'neutral'. */
+  variant?: 'neutral' | 'success' | 'warning' | 'error' | 'info' | 'accent'
 }
 
 // ─── Union ────────────────────────────────────────────────────────────────────
@@ -194,9 +302,17 @@ export type PageNode =
   | SpacerNode
   | HeadingNode
   | ParagraphNode
+  | NoteNode
   | TextInputNode
+  | NumberInputNode
   | CheckboxNode
+  | SwitchNode
+  | RadioGroupNode
   | SelectNode
+  | MultiSelectNode
+  | OtpInputNode
+  | DateInputNode
+  | DateTimeInputNode
   | ButtonNode
   | LinkNode
   | ImageNode
