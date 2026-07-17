@@ -4,6 +4,7 @@ import {
   CoarPageRenderer,
   CoarPageBuilder,
   type PageNode,
+  type ActionHandler,
   type ActionValues,
   type PageConfig,
 } from '@cocoar/vue-page-builder';
@@ -16,6 +17,8 @@ import { ratingElement } from '../components/rating/ratingElement';
 const loginSchema: PageNode = {
   id: 'root',
   type: 'page',
+  // Enter inside any single-line input fires the default button below.
+  enterSubmits: true,
   style: { align: 'center', padding: '48px' },
   children: [
     {
@@ -65,6 +68,7 @@ const loginSchema: PageNode = {
             label: 'Sign in',
             action: 'auth:login',
             validates: true,
+            default: true,
           },
           style: { width: '100%' },
         },
@@ -150,6 +154,29 @@ const registerSchema: PageNode = {
             matchField: 'password',
             message: 'Passwords do not match',
           },
+        },
+        {
+          id: 'country',
+          type: 'select',
+          name: 'country',
+          // Dynamic list: resolved through config.optionsSource at render time.
+          props: { label: 'Country', placeholder: 'Select your country', optionsSourceId: 'countries' },
+          validation: { required: true },
+        },
+        {
+          id: 'business',
+          type: 'checkbox',
+          name: 'isBusiness',
+          props: { label: 'This is a business account' },
+        },
+        {
+          id: 'companyName',
+          type: 'text-input',
+          name: 'companyName',
+          props: { label: 'Company name', placeholder: 'ACME Inc.' },
+          validation: { required: true },
+          // Hidden (and exempt from required + payload) until the checkbox is on.
+          visibleWhen: { field: 'isBusiness', equals: true },
         },
         {
           id: 'terms',
@@ -356,18 +383,48 @@ const loginPayload = ref<ActionValues | null>(null);
 const registerPayload = ref<ActionValues | null>(null);
 const feedbackPayload = ref<ActionValues | null>(null);
 
-const feedbackActions: Record<string, (v: ActionValues) => void> = {
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+const feedbackActions: Record<string, ActionHandler> = {
   'feedback:submit': (v) => { feedbackPayload.value = v; },
 };
 
-const loginActions: Record<string, (v: ActionValues) => void> = {
-  'auth:login': (v) => { loginPayload.value = v; },
+const loginActions: Record<string, ActionHandler> = {
+  // Async action: the Sign-in button spins while the "API call" runs, every
+  // other action disables, and a thrown Error surfaces in the form banner.
+  'auth:login': async (v) => {
+    loginPayload.value = null;
+    await wait(900);
+    if (v.password !== 'secret123') {
+      throw new Error('Invalid credentials — try password "secret123".');
+    }
+    loginPayload.value = v;
+  },
   'auth:forgot': () => { alert('Forgot password flow'); },
 };
 
-const registerActions: Record<string, (v: ActionValues) => void> = {
-  'auth:register': (v) => { registerPayload.value = v; },
+const registerActions: Record<string, ActionHandler> = {
+  'auth:register': async (v) => {
+    registerPayload.value = null;
+    await wait(800);
+    registerPayload.value = v;
+  },
   'nav:login': () => { alert('Navigate to login'); },
+};
+
+/** Renderer-side config for the register demo: API-backed country list. */
+const registerConfig: PageConfig = {
+  optionsSource: async (sourceId) => {
+    await wait(600);
+    if (sourceId !== 'countries') return [];
+    return [
+      { value: 'at', label: 'Austria' },
+      { value: 'de', label: 'Germany' },
+      { value: 'ch', label: 'Switzerland' },
+      { value: 'gb', label: 'United Kingdom' },
+      { value: 'us', label: 'United States' },
+    ];
+  },
 };
 </script>
 
@@ -407,7 +464,9 @@ const registerActions: Record<string, (v: ActionValues) => void> = {
         </div>
         <div class="pb-view__result-label">ACTION PAYLOAD</div>
         <pre v-if="loginPayload" class="pb-view__json">{{ JSON.stringify(loginPayload, null, 2) }}</pre>
-        <div v-else class="pb-view__placeholder">Fill in the form and click Sign in</div>
+        <div v-else class="pb-view__placeholder">
+          Enter submits (async action — button spins). Password "secret123"; anything else hits the error banner.
+        </div>
         <details class="pb-view__schema-details">
           <summary class="pb-view__result-label">SCHEMA JSON</summary>
           <pre class="pb-view__json pb-view__json--schema">{{ JSON.stringify(loginSchema, null, 2) }}</pre>
@@ -421,12 +480,13 @@ const registerActions: Record<string, (v: ActionValues) => void> = {
           <CoarPageRenderer
             :schema="registerSchema"
             :actions="registerActions"
+            :config="registerConfig"
             />
         </div>
         <div class="pb-view__result-label">ACTION PAYLOAD</div>
         <pre v-if="registerPayload" class="pb-view__json">{{ JSON.stringify(registerPayload, null, 2) }}</pre>
         <div v-else class="pb-view__placeholder">
-          Button disabled until all fields valid + passwords match
+          Countries load async (optionsSource); "Company name" appears only for business accounts (visibleWhen) and is required while shown.
         </div>
         <details class="pb-view__schema-details">
           <summary class="pb-view__result-label">SCHEMA JSON</summary>
