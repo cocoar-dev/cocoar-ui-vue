@@ -116,9 +116,15 @@ const representationOptions = computed<CoarSelectOption<string>[]>(() => {
     for (const t of own) for (const el of compatibleElementTypes(elements.value, t)) set.add(el);
     types = [...set];
   }
-  const placeable = types.filter(
+  let placeable = types.filter(
     (t) => elements.value[t]?.builder && isElementAllowed(t, config?.value),
   );
+  // A node with children can only switch to another container — converting to
+  // a leaf would drop them (convertTo refuses it too).
+  const kids = (current as { children?: unknown[] }).children;
+  if (Array.isArray(kids) && kids.length > 0) {
+    placeable = placeable.filter((t) => elements.value[t].container === true);
+  }
   if (placeable.length < 2) return [];
   return placeable.map((t) => {
     const b = elements.value[t].builder!;

@@ -410,6 +410,13 @@ export interface PageConfig {
    */
   allowCustomFields?: boolean
   /**
+   * Hide the free element picker (the Containers/Elements palette groups and
+   * the outline's add-child menu). Authors then place content exclusively by
+   * dragging contract `fields`. Pure authoring UI — `allowedElements` remains
+   * the boundary for what may be USED at all.
+   */
+  hideElementPicker?: boolean
+  /**
    * Action IDs that buttons and links may reference. When provided, the builder's
    * Action-ID input becomes a dropdown of these choices instead of free text.
    * Omit to allow any string (development / single-tenant scenarios).

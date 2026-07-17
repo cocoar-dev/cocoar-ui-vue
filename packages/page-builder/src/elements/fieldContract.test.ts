@@ -70,3 +70,22 @@ describe('compatibleElementTypes / defaultElementForField', () => {
     expect(defaultElementForField(registry, { name: 'x', valueType: 'geo' })).toBe(undefined);
   });
 });
+
+describe('allowedElements governs the contract helpers', () => {
+  const registry: PageElementRegistry = {
+    'text-input': { renderer: Dummy(), value: { types: ['string'] }, builder: { label: { key: 'x', fallback: 'Text' }, defaults: () => ({}) } },
+    'password-input': { renderer: Dummy(), value: { types: ['string'] }, builder: { label: { key: 'x', fallback: 'PW' }, defaults: () => ({}) } },
+  };
+
+  it('compatibleElementTypes drops disallowed elements', () => {
+    expect(compatibleElementTypes(registry, 'string', { allowedElements: ['text-input'] }))
+      .toEqual(['text-input']);
+  });
+
+  it('defaultElementForField ignores a disallowed defaultElement and falls back to the first ALLOWED one', () => {
+    const field: PageFieldSpec = { name: 'pw', valueType: 'string', defaultElement: 'password-input' };
+    expect(defaultElementForField(registry, field, { allowedElements: ['text-input'] }))
+      .toBe('text-input');
+    expect(defaultElementForField(registry, field, { allowedElements: [] })).toBe(undefined);
+  });
+});

@@ -273,6 +273,10 @@ The remaining definition fields at a glance:
 
 Labels and lint messages are `I18nText` pairs — `{ key, fallback }`, translated via `@cocoar/vue-localization` with the fallback used when the key isn't registered. English-only apps need no i18n setup.
 
+::: warning `value` + `container` on one element
+The flags compose — an element can carry a value **and** accept children (say, a toggleable group), and the runtime handles both. Two authoring caveats, though: the builder **canvas** renders the generic children body for containers, so such an element's own chrome only shows in the Preview tab (a `builder.preview` on a container definition is never mounted — DEV warns about it), and the representation switcher refuses targets that would drop children (`convertTo` guards against it). If you hit this combination in earnest, tell us — full canvas support needs a designed preview-with-children contract.
+:::
+
 ## Registering
 
 There is deliberately **no global `register()`** — registries are per-instance data, so two builders with different element sets can coexist. Two channels:

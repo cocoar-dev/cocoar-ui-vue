@@ -5,7 +5,8 @@
  * spec WITHOUT declared types is unconstrained (compatible with everything —
  * never falsely blocking a consumer element that didn't declare).
  */
-import type { PageFieldSpec, PageValueType } from '../schema';
+import { isElementAllowed } from '../schema';
+import type { PageConfig, PageFieldSpec, PageValueType } from '../schema';
 import type { PageElementDefinition, PageElementRegistry } from './registry';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -28,28 +29,43 @@ export function compatibleFields(
 /**
  * Registry entries that can represent the given value type (registry order —
  * built-ins first). Used by the field-first palette flow and the
- * representation switch.
+ * representation switch. Pass the config to honour `allowedElements` — the
+ * allow-list governs what may be USED, everywhere.
  */
 export function compatibleElementTypes(
   elements: PageElementRegistry,
   valueType: PageValueType,
+  config?: PageConfig,
 ): string[] {
   return Object.entries(elements)
-    .filter(([, def]) =>
-      !!def.value && (!def.value.types || def.value.types.length === 0
+    .filter(([type, def]) =>
+      !!def.value &&
+      (!def.value.types || def.value.types.length === 0
         ? true
-        : def.value.types.includes(valueType)),
+        : def.value.types.includes(valueType)) &&
+      isElementAllowed(type, config),
     )
     .map(([type]) => type);
 }
 
-/** The element type the field-first flow creates for a field. */
+/**
+ * The element type the field-first flow creates for a field: the field's
+ * `defaultElement` when it is registered AND allowed, else the first
+ * compatible, allowed, placeable element in registry order.
+ */
 export function defaultElementForField(
   elements: PageElementRegistry,
   field: PageFieldSpec,
+  config?: PageConfig,
 ): string | undefined {
-  if (field.defaultElement && elements[field.defaultElement]?.builder) return field.defaultElement;
-  return compatibleElementTypes(elements, field.valueType).find(
+  if (
+    field.defaultElement &&
+    elements[field.defaultElement]?.builder &&
+    isElementAllowed(field.defaultElement, config)
+  ) {
+    return field.defaultElement;
+  }
+  return compatibleElementTypes(elements, field.valueType, config).find(
     (type) => !!elements[type].builder,
   );
 }

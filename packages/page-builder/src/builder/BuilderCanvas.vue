@@ -85,12 +85,15 @@ const boundNames = computed(() => {
 const fieldPalette = computed<FieldPaletteEntry[]>(() =>
   (config?.value?.fields ?? []).map((field) => ({
     field,
-    elementType: defaultElementForField(elements.value, field),
+    elementType: defaultElementForField(elements.value, field, config?.value),
     bound: boundNames.value.has(field.name),
     icon: FIELD_TYPE_ICONS[field.valueType] ?? 'circle-alert',
     label: field.label ?? field.name,
   })),
 );
+
+/** `hideElementPicker`: authors place content exclusively via the Fields group. */
+const showElementPicker = computed(() => config?.value?.hideElementPicker !== true);
 
 function isFieldDragging(name: string): boolean {
   const p = dnd.payload.value;
@@ -113,7 +116,7 @@ function onCanvasBackgroundClick() { builder.select([]); }
   <div class="pb-canvas-shell">
     <!-- ── Palette toolbar ── -->
     <div class="pb-palette">
-      <div class="pb-palette__group">
+      <div v-if="showElementPicker" class="pb-palette__group">
         <span class="pb-palette__label">{{ t('coar.pageBuilder.palette.containers', undefined, 'Containers') }}</span>
         <button
           v-for="entry in visiblePalette.filter((e) => e.group === 'container')"
@@ -128,8 +131,8 @@ function onCanvasBackgroundClick() { builder.select([]); }
           <span>{{ entry.label }}</span>
         </button>
       </div>
-      <div class="pb-palette__divider" />
-      <div class="pb-palette__group">
+      <div v-if="showElementPicker" class="pb-palette__divider" />
+      <div v-if="showElementPicker" class="pb-palette__group">
         <span class="pb-palette__label">{{ t('coar.pageBuilder.palette.elements', undefined, 'Elements') }}</span>
         <button
           v-for="entry in visiblePalette.filter((e) => e.group === 'element')"
@@ -145,7 +148,7 @@ function onCanvasBackgroundClick() { builder.select([]); }
         </button>
       </div>
       <template v-if="fieldPalette.length > 0">
-        <div class="pb-palette__divider" />
+        <div v-if="showElementPicker" class="pb-palette__divider" />
         <div class="pb-palette__group">
           <span class="pb-palette__label">{{ t('coar.pageBuilder.palette.fields', undefined, 'Fields') }}</span>
           <button

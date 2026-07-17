@@ -262,3 +262,23 @@ describe('usePageBuilder.addChild — strict-contract minting rule', () => {
     expect(node.name).toMatch(/^field_/);
   });
 });
+
+describe('usePageBuilder.convertTo — children guard', () => {
+  it('refuses converting a container with children to a leaf', () => {
+    const builder = usePageBuilder({ initial: page([]) });
+    builder.addChild([], 'stack');
+    builder.addChild([0], 'heading');
+    const before = builder.schema.value;
+
+    // stack has no value spec, so the UI never offers this — but the operation
+    // itself must hold the line for programmatic callers too.
+    builder.convertTo([0], 'heading');
+    expect(builder.schema.value).toBe(before);
+
+    builder.convertTo([0], 'card'); // container → container keeps the children
+    const converted = (builder.schema.value as { children: PageNode[] }).children[0] as
+      PageNode & { children: PageNode[] };
+    expect(converted.type).toBe('card');
+    expect(converted.children).toHaveLength(1);
+  });
+});

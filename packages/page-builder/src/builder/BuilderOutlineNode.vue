@@ -309,8 +309,10 @@ function canMoveDown(): boolean {
         aria-hidden="true"
       />
 
-      <!-- Add-child trigger + dropdown -->
+      <!-- Add-child trigger + dropdown (hidden when the config hides the
+           free element picker — fields-only authoring) -->
       <div
+        v-if="config?.hideElementPicker !== true"
         ref="addMenuRoot"
         class="pb-tree-add"
         :style="{ paddingLeft: `${8 + (depth + 1) * 16}px` }"

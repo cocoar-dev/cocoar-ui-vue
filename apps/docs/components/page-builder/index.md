@@ -129,6 +129,14 @@ interface PageConfig {
   allowCustomFields?: boolean
 
   /**
+   * Hide the free element picker (the Containers/Elements palette groups and
+   * the outline's add-child menu) — authors place content exclusively by
+   * dragging contract fields. Pure authoring UI; `allowedElements` remains
+   * the boundary for what may be used at all.
+   */
+  hideElementPicker?: boolean
+
+  /**
    * Action IDs that buttons and links may reference. When provided, the
    * builder's Action input becomes a dropdown of these labeled choices
    * instead of free text. The renderer's `actions` map is the actual
@@ -250,6 +258,14 @@ Three rules join [builder-side validation](./coar-page-builder#builder-side-vali
 #### Strict by default
 
 `allowCustomFields` defaults to `false`: with a contract, binding is select-only, and freshly dropped value elements start **unbound** instead of minting a `field_*` name the lint would immediately flag — the author picks a contract field. Setting `allowCustomFields: true` relaxes all of it: the Field section adds a free-text *Custom name* input, fresh elements mint names again, and the unknown-name lint rule stands down.
+
+#### `allowedElements` governs everything
+
+The allow-list composes with the contract at every seam: a field's default element (field-first drop) and the representation switcher only ever offer **allowed** elements. Drop `password-input` from `allowedElements` and a `string` field can no longer be represented as a password input — the field's `defaultElement` falls back to the first compatible *allowed* element, and a field with no allowed representation greys out in the palette.
+
+#### Fields-only authoring
+
+Set `hideElementPicker: true` to remove the free element picker entirely (the Containers/Elements palette groups and the outline's add-child menu): authors then place content exclusively by dragging contract fields. It is pure authoring UI — combine it with `allowedElements` when the *rendering* boundary should shrink too.
 
 #### Authoring-only by design
 

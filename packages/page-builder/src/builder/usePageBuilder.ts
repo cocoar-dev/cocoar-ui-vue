@@ -227,6 +227,14 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
       warnDev(`convertTo: no registered element (with a builder half) for type "${toType}" — ignored.`);
       return;
     }
+    const existingChildren = (loc.node as { children?: unknown[] }).children;
+    if (!def.container && Array.isArray(existingChildren) && existingChildren.length > 0) {
+      warnDev(
+        `convertTo: "${loc.node.type}" has children but "${toType}" is not a container — ` +
+          'the conversion would drop them; ignored.',
+      );
+      return;
+    }
     const before = schema.value;
     const old = loc.node as PageNode & {
       props?: Record<string, unknown>;

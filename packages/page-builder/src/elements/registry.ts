@@ -145,6 +145,14 @@ export function definePageElement<P extends ElementProps>(
   if (def.builder?.preview) markRaw(def.builder.preview);
   if (def.builder?.inspector) markRaw(def.builder.inspector);
   if (def.builder?.defaultValueInput) markRaw(def.builder.defaultValueInput);
+  if (def.container && def.builder?.preview) {
+    warnDev(
+      'element definition declares `container: true` AND `builder.preview` — the canvas ' +
+        'renders the generic children body for containers, so the preview component is ' +
+        'never mounted. Value+container elements work at runtime, but their own chrome ' +
+        'is not previewed on the canvas (only in the Preview tab).',
+    );
+  }
   return def;
 }
 
