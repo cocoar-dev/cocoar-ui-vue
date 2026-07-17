@@ -210,17 +210,32 @@ function initValues() {
 /**
  * Per-key value equality: Object.is over the RAW values (the value model
  * hands out reactive proxies while baselines/initialValues hold raw objects —
- * the same underlying object must compare equal), plus array-by-content so
- * `['a'] vs ['a']` (multi-select values, re-minted inline literals) compare
- * as equal. Distinct objects with equal content stay unequal (one level, by
- * design).
+ * the same underlying object must compare equal), plus content comparison for
+ * arrays and plain objects — form values are JSON-safe by contract, and an
+ * inline `:initial-values` literal re-mints its NESTED objects per parent
+ * render too, which must not count as a change. Depth-capped as a cycle
+ * backstop (beyond the cap = not equal).
  */
-function sameValue(a: unknown, b: unknown): boolean {
+function sameValue(a: unknown, b: unknown, depth = 0): boolean {
   const ra = toRaw(a);
   const rb = toRaw(b);
   if (Object.is(ra, rb)) return true;
+  if (depth > 32) return false;
   if (Array.isArray(ra) && Array.isArray(rb)) {
-    return ra.length === rb.length && ra.every((x, i) => sameValue(x, rb[i]));
+    return ra.length === rb.length && ra.every((x, i) => sameValue(x, rb[i], depth + 1));
+  }
+  if (
+    ra !== null && rb !== null && typeof ra === 'object' && typeof rb === 'object' &&
+    !Array.isArray(ra) && !Array.isArray(rb)
+  ) {
+    const ka = Object.keys(ra);
+    const kb = Object.keys(rb);
+    return (
+      ka.length === kb.length &&
+      ka.every((k) =>
+        sameValue((ra as Record<string, unknown>)[k], (rb as Record<string, unknown>)[k], depth + 1),
+      )
+    );
   }
   return false;
 }
@@ -451,8 +466,13 @@ async function runValidatedAction(id: string) {
     try {
       const result = await props.onValidate(payload);
       const errors: Record<string, string> = {};
+      // Reserved names cannot live in the error map (prototype machinery) —
+      // their messages still must BLOCK visibly, so they join the banner.
+      const unsafeKeyed: string[] = [];
       for (const [k, v] of Object.entries(result ?? {})) {
-        if (v && !isUnsafeFieldName(k)) errors[k] = v;
+        if (!v) continue;
+        if (isUnsafeFieldName(k)) unsafeKeyed.push(v);
+        else errors[k] = v;
       }
       // `_form` addresses the form, not a field — route it to the banner.
       formError.value = errors[FORM_ERROR_KEY] ?? '';
@@ -462,13 +482,15 @@ async function runValidatedAction(id: string) {
       // feedback — route their messages to the banner instead.
       const displayable = visibleFieldNames();
       const orphaned = Object.keys(errors).filter((k) => !displayable.has(k));
-      if (orphaned.length > 0) {
-        formError.value = [formError.value, ...orphaned.map((k) => errors[k])]
-          .filter(Boolean)
-          .join(' ');
-        for (const k of orphaned) delete errors[k];
-      }
+      formError.value = [formError.value, ...orphaned.map((k) => errors[k]), ...unsafeKeyed]
+        .filter(Boolean)
+        .join(' ');
+      for (const k of orphaned) delete errors[k];
       asyncErrors.value = errors;
+      // Fields can have become visible DURING the async window (visibleWhen) —
+      // they were not covered by the click-time markAllTouched, and an
+      // untouched error never renders. Touch them so the block stays visible.
+      for (const k of Object.keys(errors)) touched.value[k] = true;
       if (Object.keys(errors).length > 0 || formError.value) {
         if (Object.keys(errors).length > 0) void focusFirstError();
         return;
@@ -537,10 +559,14 @@ function onEnterKey(e: KeyboardEvent) {
   if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
   // An IME composition-commit Enter (Japanese/Chinese/Korean input) confirms
   // the composition, it does not submit — Vue's .enter modifier does not
-  // filter it.
-  if (e.isComposing) return;
+  // filter it. WebKit/Safari fires the commit keydown AFTER compositionend
+  // with isComposing=false but the legacy keyCode 229 — both must be checked.
+  if (e.isComposing || e.keyCode === 229) return;
   const el = e.target as Element | null;
   if (!el?.closest?.('[data-pb-enter-submit]')) return;
+  // A busy form ignores the trigger anyway — bail BEFORE the blur below, so
+  // an ignored Enter has no side effect (no focus theft mid-onValidate).
+  if (isBusy()) return;
   // Commit-on-blur controls (number input) flush their pending edit on blur —
   // the submit must read the value the user SEES, not the last committed one.
   // On a failed submit, focusFirstError restores focus.

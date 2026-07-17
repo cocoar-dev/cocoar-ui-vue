@@ -1061,7 +1061,7 @@ describe('CoarPageRenderer — R1/R2 hardening (verified audit findings)', () =>
     wrapper.unmount();
   });
 
-  it('ignores an IME composition-commit Enter', async () => {
+  it('ignores an IME composition-commit Enter (Chromium isComposing AND Safari keyCode 229)', async () => {
     const send = vi.fn();
     const schema: PageNode = {
       id: 'r', type: 'page', enterSubmits: true,
@@ -1072,11 +1072,91 @@ describe('CoarPageRenderer — R1/R2 hardening (verified audit findings)', () =>
     } as PageNode;
     const wrapper = mount(CoarPageRenderer, { props: { schema, actions: { send } } });
 
+    // Chromium/Firefox shape: the commit keydown carries isComposing.
     wrapper.find('input').element.dispatchEvent(
       new KeyboardEvent('keydown', { key: 'Enter', isComposing: true, bubbles: true }),
     );
+    // WebKit/Safari shape: fired AFTER compositionend — isComposing false,
+    // legacy keyCode 229.
+    const safariEnter = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true });
+    Object.defineProperty(safariEnter, 'keyCode', { value: 229 });
+    wrapper.find('input').element.dispatchEvent(safariEnter);
+
     await flushPromises();
     expect(send).not.toHaveBeenCalled();
+  });
+
+  it('an Enter while the form is busy is ignored WITHOUT stealing focus', async () => {
+    const send = vi.fn().mockReturnValue(new Promise(() => {})); // never settles
+    const schema: PageNode = {
+      id: 'r', type: 'page', enterSubmits: true,
+      children: [
+        { id: 't', type: 'text-input', name: 'q', props: {}, defaultValue: 'x' },
+        { id: 'b', type: 'button', props: { label: 'Send', action: 'send', validates: true } },
+      ],
+    } as PageNode;
+    const wrapper = mount(CoarPageRenderer, {
+      props: { schema, actions: { send } },
+      attachTo: document.body,
+    });
+
+    await wrapper.find('button.pb-button').trigger('click');
+    await flushPromises();
+    expect(send).toHaveBeenCalledTimes(1); // action pending forever → busy
+
+    const input = wrapper.find('input');
+    input.element.focus();
+    await input.trigger('keydown', { key: 'Enter' });
+    await flushPromises();
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(input.element); // no blur on the ignored path
+    wrapper.unmount();
+  });
+
+  it('blocks and banners onValidate errors keyed to reserved names instead of dropping them', async () => {
+    const send = vi.fn();
+    const onValidate = vi.fn().mockResolvedValue({ constructor: 'Chassis number required' });
+    const schema: PageNode = {
+      id: 'r', type: 'page',
+      children: [
+        { id: 't', type: 'text-input', name: 'email', props: {}, defaultValue: 'x@y.z' },
+        { id: 'b', type: 'button', props: { label: 'Send', action: 'send', validates: true } },
+      ],
+    };
+    const wrapper = mount(CoarPageRenderer, { props: { schema, actions: { send }, onValidate } });
+
+    await wrapper.find('button.pb-button').trigger('click');
+    await flushPromises();
+    expect(send).not.toHaveBeenCalled();
+    expect(wrapper.find('.pb-form-error').text()).toContain('Chassis number required');
+  });
+
+  it('errors for fields revealed DURING onValidate render visibly (auto-touched)', async () => {
+    const send = vi.fn();
+    const d = deferred<Record<string, string>>();
+    const onValidate = vi.fn().mockReturnValue(d.promise);
+    const schema: PageNode = {
+      id: 'r', type: 'page',
+      children: [
+        { id: 'biz', type: 'checkbox', name: 'isBusiness', props: { label: 'Business' } },
+        {
+          id: 'c', type: 'text-input', name: 'companyName', props: { label: 'Company' },
+          visibleWhen: { field: 'isBusiness', equals: true },
+        },
+        { id: 'b', type: 'button', props: { label: 'Send', action: 'send', validates: true } },
+      ],
+    };
+    const wrapper = mount(CoarPageRenderer, { props: { schema, actions: { send }, onValidate } });
+
+    await wrapper.find('button.pb-button').trigger('click');
+    // Reveal companyName while onValidate is still pending…
+    await wrapper.find('input[type="checkbox"]').setValue(true);
+    d.resolve({ companyName: 'Required for business accounts' });
+    await flushPromises();
+
+    expect(send).not.toHaveBeenCalled();
+    // …the freshly revealed field was never click-touched, but its error must show.
+    expect(wrapper.text()).toContain('Required for business accounts');
   });
 
   it('object-valued fields: isDirty starts false and same-content initialValues do not wipe input', async () => {
@@ -1108,6 +1188,11 @@ describe('CoarPageRenderer — R1/R2 hardening (verified audit findings)', () =>
 
     // New wrapper object, same object VALUES — must not re-init.
     await wrapper.setProps({ initialValues: { geo } });
+    expect(wrapper.find('input').element.value).toBe('typed');
+
+    // Even a FRESHLY MINTED nested object with equal content (the inline
+    // nested-literal footgun) must not re-init — values compare by content.
+    await wrapper.setProps({ initialValues: { geo: { lat: 47.1, lng: 15.4 } } });
     expect(wrapper.find('input').element.value).toBe('typed');
   });
 

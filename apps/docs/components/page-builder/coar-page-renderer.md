@@ -17,7 +17,7 @@ Import `@cocoar/vue-page-builder/styles` once in your app — the renderer's lay
 | `actions` | `Record<string, (values: ActionValues) => void \| Promise<unknown>>` | Map of action IDs to handler functions. Buttons and links call these. A returned Promise is awaited: buttons disable (the triggering one spins) until it settles, further clicks are ignored, and a rejection surfaces in the [form-level error banner](#async-actions-the-form-level-error-channel). |
 | `onValidate` | `(values: ActionValues) => Record<string, string> \| Promise<Record<string, string>>` | Developer-only cross-field/server validation. Runs at **submit time** — when a `validates: true` button is clicked and after all declarative rules pass. May be sync or async; returns `{ fieldName: errorMessage }`. A non-empty result blocks the action. The reserved key `_form` addresses the form as a whole (banner instead of a field). Not exposed in builder UI. See [Validation](#validation). |
 | `assetResolver` | `(id: string) => string` | Resolves an `assetId` to a URL at render time. Falls back to `config.assetResolver` when not set. Needed when the schema contains `image` nodes. |
-| `initialValues` | `ActionValues` | Host-supplied field values for edit-form scenarios, merged **over** the schema's `defaultValue`s on init. Only keys that match a **named** input in the (allowed) tree are taken — stray host data never leaks into the action payload. Replacing the object with **different values** re-initializes the form, like a schema change; a value-identical replacement (e.g. an inline object literal re-created by a parent re-render) is ignored, so in-progress user input survives. |
+| `initialValues` | `ActionValues` | Host-supplied field values for edit-form scenarios, merged **over** the schema's `defaultValue`s on init. Only keys that match a **named** input in the (allowed) tree are taken — stray host data never leaks into the action payload. Replacing the object with **different values** re-initializes the form, like a schema change; a value-identical replacement (e.g. an inline object literal re-created by a parent re-render — nested objects/arrays compare by content) is ignored, so in-progress user input survives. |
 
 ## Usage
 
@@ -404,7 +404,7 @@ Any node can declare a visibility condition against the **live value model** (ho
 | Field | Meaning |
 |-------|---------|
 | `field` | Name of the controlling field (a named input on the page). |
-| `equals` | Visible while the field's value equals this (arrays compare by content). |
+| `equals` | Visible while the field's value equals this (JSON-safe values compare by **content**, arrays and objects included). |
 | `in` | Visible while the field's value is one of these (array). |
 
 The condition gates the node **and its whole subtree** — in rendering *and* in the value model, in the same walk as `allowedElements`:

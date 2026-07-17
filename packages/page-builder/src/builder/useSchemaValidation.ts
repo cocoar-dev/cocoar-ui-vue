@@ -212,10 +212,11 @@ export function useSchemaValidation(
       }
     }
 
-    // ── visibleWhen: the controlling field must exist on the page ─────────
+    // ── visibleWhen: the controlling field must exist on the page, and an
+    //    `equals` condition on an array-valued controller can never match ──
     const boundNames = new Set(namedFields.map((f) => f.name));
     for (const { node: n, vw } of conditionalNodes) {
-      const cond = vw as { field?: unknown } | null;
+      const cond = vw as { field?: unknown; equals?: unknown } | null;
       if (!cond || typeof cond !== 'object' || typeof cond.field !== 'string' || !cond.field) {
         out.push({
           nodeId: n.id,
@@ -223,54 +224,83 @@ export function useSchemaValidation(
           severity: 'warning',
           message: 'visibleWhen is malformed — the node stays always visible.',
         });
-      } else if (!boundNames.has(cond.field)) {
+        continue;
+      }
+      if (!boundNames.has(cond.field)) {
         out.push({
           nodeId: n.id,
           field: 'visibleWhen',
           severity: 'warning',
           message: `visibleWhen references field "${cond.field}", which is not on the page.`,
         });
+        continue;
+      }
+      const controllerNode = namedFields.find((f) => f.name === cond.field)?.node;
+      const controllerDef = controllerNode ? registry[controllerNode.type] : undefined;
+      if (
+        'equals' in cond && !Array.isArray(cond.equals) &&
+        controllerDef?.value?.types?.includes('string[]')
+      ) {
+        out.push({
+          nodeId: n.id,
+          field: 'visibleWhen',
+          severity: 'warning',
+          message: `visibleWhen.equals can never match the multi-value field "${cond.field}" — the node stays hidden.`,
+        });
       }
     }
 
-    // ── visibleWhen: circular chains (incl. self-reference) can lock nodes
-    //    permanently hidden — a hidden controller cannot be edited to unhide
-    //    its dependents ────────────────────────────────────────────────────
-    const controllerOf = new Map<string, { node: PageNode; field: string }>();
-    for (const { node: n, vw } of conditionalNodes) {
-      const cond = vw as { field?: unknown } | null;
+    // ── visibleWhen: circular chains can lock fields permanently hidden — a
+    //    hidden controller cannot be edited to unhide its dependents. A field
+    //    is controlled by its OWN condition and by every ANCESTOR container's
+    //    condition (hiding gates whole subtrees), self-references included ──
+    const controllersByName = new Map<string, { node: PageNode; fields: Set<string> }>();
+    const collectControllers = (n: PageNode, inherited: string[]) => {
+      const vw = (n as ElementNode).visibleWhen as { field?: unknown } | undefined;
+      const ownField =
+        vw && typeof vw === 'object' && typeof vw.field === 'string' && vw.field
+          ? vw.field
+          : undefined;
+      const chain = ownField ? [...inherited, ownField] : inherited;
+      const def = n.type === 'page' ? undefined : registry[n.type];
       const name = (n as ElementNode).name;
-      if (
-        typeof name === 'string' && name &&
-        cond && typeof cond.field === 'string' && cond.field &&
-        !controllerOf.has(name)
-      ) {
-        controllerOf.set(name, { node: n, field: cond.field });
+      if (def?.value && typeof name === 'string' && name && chain.length > 0
+        && !controllersByName.has(name)) {
+        controllersByName.set(name, { node: n, fields: new Set(chain) });
       }
+      if ('children' in n && Array.isArray(n.children)) {
+        for (const c of n.children) collectControllers(c, chain);
+      }
+    };
+    collectControllers(schema.value, []);
+
+    const dfsState = new Map<string, 'active' | 'done'>();
+    const inCycle = new Set<string>();
+    const dfs = (name: string, stack: string[]) => {
+      dfsState.set(name, 'active');
+      stack.push(name);
+      for (const field of controllersByName.get(name)!.fields) {
+        if (!controllersByName.has(field)) continue; // stable root — no loop through it
+        const state = dfsState.get(field);
+        if (state === 'active') {
+          for (const member of stack.slice(stack.indexOf(field))) inCycle.add(member);
+        } else if (state === undefined) {
+          dfs(field, stack);
+        }
+      }
+      stack.pop();
+      dfsState.set(name, 'done');
+    };
+    for (const name of controllersByName.keys()) {
+      if (!dfsState.has(name)) dfs(name, []);
     }
-    const flaggedCircular = new Set<string>();
-    for (const start of controllerOf.keys()) {
-      const chain: string[] = [];
-      const seen = new Set<string>();
-      let cur: string | undefined = start;
-      while (cur !== undefined && controllerOf.has(cur) && !seen.has(cur)) {
-        seen.add(cur);
-        chain.push(cur);
-        cur = controllerOf.get(cur)!.field;
-      }
-      if (cur === undefined || !seen.has(cur)) continue;
-      const loop = chain.slice(chain.indexOf(cur));
-      const label = [...loop, cur].map((x) => `"${x}"`).join(' → ');
-      for (const name of loop) {
-        if (flaggedCircular.has(name)) continue;
-        flaggedCircular.add(name);
-        out.push({
-          nodeId: controllerOf.get(name)!.node.id,
-          field: 'visibleWhen',
-          severity: 'warning',
-          message: `visibleWhen chain is circular (${label}) — these fields can lock each other permanently hidden.`,
-        });
-      }
+    for (const name of inCycle) {
+      out.push({
+        nodeId: controllersByName.get(name)!.node.id,
+        field: 'visibleWhen',
+        severity: 'warning',
+        message: `visibleWhen chain around field "${name}" is circular — hidden controllers cannot be edited, so these fields can lock each other permanently hidden.`,
+      });
     }
 
     // ── Enter-to-submit: only ONE default button can win ──────────────────

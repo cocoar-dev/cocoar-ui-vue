@@ -170,21 +170,27 @@ function findController(name: string): ElementNode | null {
 /**
  * How the controller's VALUE is typed — the `equals` editor must author the
  * matching type, because the runtime comparison is Object.is: a string '18'
- * never matches the number 18 a number-input writes. Derived from the
- * definition's declared value types (consumer elements included).
+ * never matches the number 18 a number-input writes. The bound contract
+ * field's valueType is authoritative (multi-type elements store whatever
+ * their bound field says); without a binding, only an UNAMBIGUOUS single-type
+ * declaration is trusted — everything else authors strings.
  */
 type ControllerKind = 'boolean' | 'number' | 'string';
 function kindOf(c: ElementNode | null): ControllerKind {
   if (!c) return 'string';
+  const bound = contractFields.value?.find((f) => f.name === c.name)?.valueType;
+  if (bound === 'boolean') return 'boolean';
+  if (bound === 'number') return 'number';
+  if (bound) return 'string';
   const types = elements.value[c.type]?.value?.types;
-  if (types?.includes('boolean')) return 'boolean';
-  if (types?.includes('number')) return 'number';
+  if (types?.length === 1 && types[0] === 'boolean') return 'boolean';
+  if (types?.length === 1 && types[0] === 'number') return 'number';
   return 'string';
 }
 
 /**
  * Named inputs on the page (minus this node) — candidates for the controlling
- * field. Array-valued controllers (`string[]`) are excluded: an `equals`
+ * field. Array-valued controllers (`string[]`) are not OFFERED: an `equals`
  * condition on them is unsatisfiable by construction (v1 has no "contains").
  */
 const controllerOptions = computed<CoarSelectOption<string>[]>(() => {
@@ -200,10 +206,15 @@ const controllerOptions = computed<CoarSelectOption<string>[]>(() => {
     if ('children' in n && Array.isArray(n.children)) n.children.forEach(walk);
   };
   walk(builder.schema.value);
-  // A JSON-authored reference to a field not on the page stays visible (lint flags it).
+  // A pre-existing (JSON-authored) reference stays selected: plain label when
+  // the field exists on the page (e.g. an excluded array-valued one), `(?)`
+  // only when it genuinely isn't there (lint flags that case).
   const current = visibleWhen.value?.field;
   if (current && !out.some((o) => o.value === current)) {
-    out.push({ value: current, label: `${current} (?)` });
+    out.push({
+      value: current,
+      label: findController(current) ? current : `${current} (?)`,
+    });
   }
   return out;
 });
@@ -211,6 +222,15 @@ const controllerOptions = computed<CoarSelectOption<string>[]>(() => {
 const controller = computed(() =>
   visibleWhen.value?.field ? findController(visibleWhen.value.field) : null,
 );
+
+/** Array-valued controller (`string[]`): `equals` cannot match — JSON-authoring only. */
+const controllerIsArray = computed(() => {
+  const c = controller.value;
+  if (!c) return false;
+  const bound = contractFields.value?.find((f) => f.name === c.name)?.valueType;
+  if (bound) return bound === 'string[]';
+  return !!elements.value[c.type]?.value?.types?.includes('string[]');
+});
 
 /** Typed value choices where the controller's element suggests them; null → free text. */
 const conditionValueOptions = computed<CoarSelectOption<string>[] | null>(() => {
@@ -418,6 +438,9 @@ function bindField(name: string | null) {
         </CoarFormField>
         <p v-if="hasInCondition" class="pb-props__hint">
           {{ t('coar.pageBuilder.props.visibleWhenIn', undefined, 'Multi-value condition (in) — edit it in the JSON tab.') }}
+        </p>
+        <p v-else-if="visibleWhen && controllerIsArray" class="pb-props__hint">
+          {{ t('coar.pageBuilder.props.visibleWhenArray', undefined, '"equals" cannot match a multi-value field — author this condition in the JSON tab.') }}
         </p>
         <CoarFormField
           v-else-if="visibleWhen"

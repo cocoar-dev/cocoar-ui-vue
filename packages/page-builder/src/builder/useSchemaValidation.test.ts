@@ -106,6 +106,54 @@ describe('useSchemaValidation', () => {
     expect(mutual.every((i) => i.message.includes('circular'))).toBe(true);
   });
 
+  it('warns on containment loops — a field controlling its own ancestor container', () => {
+    const issues = validate(page([
+      {
+        id: 'card', type: 'card', props: {},
+        visibleWhen: { field: 'agree', equals: true },
+        children: [
+          { id: 'cb', type: 'checkbox', props: { label: 'Agree' }, name: 'agree' },
+        ],
+      },
+    ]));
+    expect(issues).toEqual([
+      expect.objectContaining({ nodeId: 'cb', field: 'visibleWhen', severity: 'warning' }),
+    ]);
+    expect(issues[0].message).toContain('circular');
+  });
+
+  it('does not flag shared controllers or plain container gating as circular', () => {
+    const issues = validate(page([
+      { id: 'mode', type: 'select', props: { options: [{ value: 'a', label: 'A' }] }, name: 'mode' },
+      {
+        id: 'x', type: 'text-input', props: {}, name: 'x',
+        visibleWhen: { field: 'mode', equals: 'a' },
+      },
+      {
+        id: 'card', type: 'card', props: {}, visibleWhen: { field: 'mode', equals: 'a' },
+        children: [{ id: 'y', type: 'text-input', props: {}, name: 'y' }],
+      },
+    ]));
+    expect(issues).toEqual([]);
+  });
+
+  it('warns when equals targets a multi-value (string[]) controller', () => {
+    const issues = validate(page([
+      {
+        id: 'ms', type: 'multi-select', props: { options: [{ value: 'a', label: 'A' }] },
+        name: 'tags',
+      },
+      {
+        id: 'h', type: 'heading', props: { text: 'Hi' },
+        visibleWhen: { field: 'tags', equals: 'a' },
+      },
+    ]));
+    expect(issues).toEqual([
+      expect.objectContaining({ nodeId: 'h', field: 'visibleWhen', severity: 'warning' }),
+    ]);
+    expect(issues[0].message).toContain('never match');
+  });
+
   it('warns when multiple buttons claim default', () => {
     const issues = validate(page([
       { id: 'b1', type: 'button', props: { label: 'One', action: 'x', default: true } },

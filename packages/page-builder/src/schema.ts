@@ -318,7 +318,7 @@ export interface FieldValidation {
 export interface VisibleWhen {
   /** Name of the controlling field (a named input on the page). */
   field: string
-  /** Visible while the field's value equals this (arrays compare by content). */
+  /** Visible while the field's value equals this (JSON-safe values compare by content). */
   equals?: unknown
   /** Visible while the field's value is one of these. */
   in?: unknown[]

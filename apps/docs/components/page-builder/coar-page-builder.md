@@ -75,7 +75,8 @@ Built-in rules:
 | Required contract field is missing from the page (reported on the root node) | warning |
 | `visibleWhen` is malformed (node stays always visible) | warning |
 | `visibleWhen` references a field that is not on the page | warning |
-| `visibleWhen` chain is circular (incl. self-reference) — fields can lock each other hidden | warning |
+| `visibleWhen` chain is circular (incl. self-reference and loops through ancestor containers) — fields can lock each other hidden | warning |
+| `visibleWhen.equals` targets a multi-value (`string[]`) field — the condition can never match | warning |
 | Multiple buttons claim `default` — Enter fires only the first in tree order | warning |
 | Field name is reserved (`__proto__`, `constructor`, `prototype`) — excluded from the value model | error |
 | `optionsSourceId` is set but `config.optionsSource` is not configured | warning |
@@ -251,6 +252,7 @@ The host-owned **Field** section (name / required / default value, shown for eve
 | `coar.pageBuilder.props.alwaysVisible` | `'Always visible'` |
 | `coar.pageBuilder.props.visibleWhenEquals` | `'equals'` |
 | `coar.pageBuilder.props.visibleWhenIn` | `'Multi-value condition (in) — edit it in the JSON tab.'` |
+| `coar.pageBuilder.props.visibleWhenArray` | `'"equals" cannot match a multi-value field — author this condition in the JSON tab.'` |
 | `coar.pageBuilder.props.checked` | `'checked'` |
 | `coar.pageBuilder.props.unchecked` | `'unchecked'` |
 | `coar.pageBuilder.props.optionsSource` | `'Options source ID'` |
