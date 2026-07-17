@@ -48,6 +48,43 @@ export function compatibleElementTypes(
     .map(([type]) => type);
 }
 
+// ─── Typed field lists (opt-in) ───────────────────────────────────────────────
+
+/**
+ * PageValueType tokens a DTO property type can legitimately map to. String
+ * properties admit the date tokens too — dates travel as ISO strings.
+ */
+export type ValueTypeFor<T> =
+  NonNullable<T> extends boolean ? 'boolean'
+  : NonNullable<T> extends number ? 'number'
+  : NonNullable<T> extends string ? 'string' | 'date' | 'datetime'
+  : NonNullable<T> extends Date ? 'date' | 'datetime'
+  : NonNullable<T> extends readonly string[] ? 'string[]'
+  : PageValueType;
+
+/** A PageFieldSpec whose `name` and `valueType` are checked against `TDto`. */
+export type TypedFieldSpec<TDto> = {
+  [K in keyof TDto & string]: {
+    name: K;
+    valueType: ValueTypeFor<TDto[K]>;
+    label?: string;
+    required?: boolean;
+    defaultElement?: string;
+  };
+}[keyof TDto & string];
+
+/**
+ * Opt-in compile-time contract for a STATIC DTO: field names must be DTO
+ * properties and value types must fit the property types. Zero runtime cost
+ * (identity), and the result is a plain `PageFieldSpec[]` — so dynamic
+ * extension stays trivial: `[...defineFields<LoginDto>([...]), ...extras]`.
+ * DTOs that grow at runtime simply use `PageFieldSpec[]` directly.
+ */
+export function defineFields<TDto>(fields: readonly TypedFieldSpec<TDto>[]): PageFieldSpec[] {
+  // The unresolved generic keeps TS from seeing the (real) structural overlap.
+  return fields as unknown as PageFieldSpec[];
+}
+
 /**
  * The element type the field-first flow creates for a field: the field's
  * `defaultElement` when it is registered AND allowed, else the first

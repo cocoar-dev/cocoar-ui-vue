@@ -77,6 +77,9 @@ export {
   compatibleFields,
   compatibleElementTypes,
   defaultElementForField,
+  defineFields,
+  type TypedFieldSpec,
+  type ValueTypeFor,
 } from './elements/fieldContract';
 
 /** Shared options-list editor, exported so consumer inspectors can reuse it. */

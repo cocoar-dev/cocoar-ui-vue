@@ -267,6 +267,23 @@ The allow-list composes with the contract at every seam: a field's default eleme
 
 Set `hideElementPicker: true` to remove the free element picker entirely (the Containers/Elements palette groups and the outline's add-child menu): authors then place content exclusively by dragging contract fields. It is pure authoring UI — combine it with `allowedElements` when the *rendering* boundary should shrink too.
 
+#### Typed field lists (opt-in)
+
+For a **static** DTO, `defineFields<TDto>()` checks the field list at compile time — names must be DTO properties, value types must fit the property types (string properties admit the `date`/`datetime` tokens, since dates travel as ISO strings):
+
+```ts
+interface LoginDto { username: string; password: string; rememberMe: boolean }
+
+fields: defineFields<LoginDto>([
+  { name: 'username',   valueType: 'string', required: true },
+  { name: 'rememberMe', valueType: 'boolean' },
+  // { name: 'usernme', valueType: 'string' },   // ✗ compile error — not a DTO property
+  // { name: 'rememberMe', valueType: 'string' } // ✗ compile error — boolean property
+])
+```
+
+It is pure opt-in sugar with zero runtime cost: the result is a plain `PageFieldSpec[]`, so dynamically grown DTOs keep working — either skip the helper entirely, or mix: `[...defineFields<LoginDto>([...]), ...dynamicExtraFields]`.
+
 #### Authoring-only by design
 
 The contract constrains **authoring only**. Binding is plain `node.name` — persisted schemas stay self-contained, render without the contract, and a document authored under one contract remains a valid document everywhere. The renderer never consults `fields`; `allowedElements` remains the security boundary.

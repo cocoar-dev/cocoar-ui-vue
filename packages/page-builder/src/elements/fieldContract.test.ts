@@ -5,6 +5,7 @@ import {
   compatibleFields,
   compatibleElementTypes,
   defaultElementForField,
+  defineFields,
 } from './fieldContract';
 import type { PageElementRegistry } from './registry';
 import type { PageFieldSpec } from '../schema';
@@ -87,5 +88,45 @@ describe('allowedElements governs the contract helpers', () => {
     expect(defaultElementForField(registry, field, { allowedElements: ['text-input'] }))
       .toBe('text-input');
     expect(defaultElementForField(registry, field, { allowedElements: [] })).toBe(undefined);
+  });
+});
+
+describe('defineFields — typed field lists (compile-time contract)', () => {
+  interface LoginDto {
+    username: string;
+    rememberMe: boolean;
+    age?: number;
+    tags: string[];
+    dueUntil: string;
+  }
+
+  it('is a zero-cost identity returning a plain PageFieldSpec[]', () => {
+    const fields = defineFields<LoginDto>([
+      { name: 'username', valueType: 'string', required: true },
+      { name: 'rememberMe', valueType: 'boolean' },
+      { name: 'age', valueType: 'number' },
+      { name: 'tags', valueType: 'string[]' },
+      { name: 'dueUntil', valueType: 'date' }, // string property — date token is legal (ISO wire)
+    ]);
+    expect(fields).toHaveLength(5);
+    // Plain array — dynamic extension stays trivial:
+    const extended = [...fields, { name: 'extra', valueType: 'string' as const }];
+    expect(extended).toHaveLength(6);
+  });
+
+  it('rejects names and value types that do not fit the DTO (compile-time)', () => {
+    defineFields<LoginDto>([
+      // @ts-expect-error — not a DTO property
+      { name: 'usernme', valueType: 'string' },
+    ]);
+    defineFields<LoginDto>([
+      // @ts-expect-error — rememberMe is a boolean property
+      { name: 'rememberMe', valueType: 'string' },
+    ]);
+    defineFields<LoginDto>([
+      // @ts-expect-error — age is a number property
+      { name: 'age', valueType: 'date' },
+    ]);
+    expect(true).toBe(true);
   });
 });
