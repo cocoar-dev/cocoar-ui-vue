@@ -8,12 +8,14 @@ import type { PageElementDefinition } from './elements/registry';
 import { migrateLegacyTypes } from './builder/schemaNormalize';
 import { migrateV1PropsBag, migrateLegacyPasswordInput } from './builder/schemaMigrateV1';
 import {
+  FORM_ERROR_KEY,
   PAGE_RENDERER_KEY,
   type ActionHandler,
   type ActionValues,
   type CustomValidator,
   type PageRendererContext,
 } from './context';
+import { CoarNote } from '@cocoar/vue-ui';
 import { compilePagePattern } from './renderSafety';
 import PageNode_ from './PageNode.vue';
 
@@ -52,6 +54,11 @@ const touched = ref<Record<string, boolean>>({});
 /** Field errors from the submit-time `onValidate` — cleared per field on edit. */
 const asyncErrors = ref<Record<string, string>>({});
 const isValidating = ref(false);
+const isSubmitting = ref(false);
+/** Action id whose trigger is in flight (validate + action phase) — drives the button spinner. */
+const pendingAction = ref<string | null>(null);
+/** Form-level error (`_form` from onValidate, or an action rejection) — the banner. */
+const formError = ref('');
 
 /**
  * Legacy `column`/`row` containers migrate to `stack`, then v1 flat nodes get
@@ -127,6 +134,7 @@ function initValues() {
   values.value = defaults;
   touched.value = {};
   asyncErrors.value = {};
+  formError.value = '';
 }
 
 initValues();
@@ -250,6 +258,34 @@ function markAllTouched(node: PageNode) {
 const warnedDisallowed = new Set<string>();
 const warnedUnknown = new Set<string>();
 
+/** True while a trigger is in flight — every further click is ignored (reentry guard). */
+function isBusy(): boolean {
+  return isValidating.value || isSubmitting.value;
+}
+
+const genericActionError = () =>
+  t('coar.pageBuilder.formError.actionFailed', undefined, 'Something went wrong. Please try again.');
+
+/**
+ * Runs the action handler, awaiting a returned Promise: `isSubmitting` covers
+ * the whole flight window, and a rejection surfaces in the form banner —
+ * `Error.message` is the consumer's user-facing channel ("Invalid
+ * credentials"), anything else falls back to a localized generic message.
+ */
+async function runAction(id: string) {
+  const handler = props.actions?.[id];
+  if (!handler) return;
+  isSubmitting.value = true;
+  try {
+    await handler(values.value);
+  } catch (e) {
+    formError.value = (e instanceof Error && e.message) || genericActionError();
+    console.error(`[CoarPageRenderer] action "${id}" failed.`, e);
+  } finally {
+    isSubmitting.value = false;
+  }
+}
+
 /**
  * Submit path of a `validates: true` button: reveal every declarative error
  * (the button stays clickable — a disabled button can't explain itself), then
@@ -257,7 +293,6 @@ const warnedUnknown = new Set<string>();
  * when everything is clean.
  */
 async function runValidatedAction(id: string) {
-  if (isValidating.value) return;
   markAllTouched(renderSchema.value);
   if (!isFormValid.value) return;
   if (props.onValidate) {
@@ -268,16 +303,33 @@ async function runValidatedAction(id: string) {
       for (const [k, v] of Object.entries(result ?? {})) {
         if (v) errors[k] = v;
       }
+      // `_form` addresses the form, not a field — route it to the banner.
+      formError.value = errors[FORM_ERROR_KEY] ?? '';
+      delete errors[FORM_ERROR_KEY];
       asyncErrors.value = errors;
-      if (Object.keys(errors).length > 0) return;
+      if (Object.keys(errors).length > 0 || formError.value) return;
     } catch (e) {
+      formError.value = genericActionError();
       console.error('[CoarPageRenderer] onValidate threw — action not executed.', e);
       return;
     } finally {
       isValidating.value = false;
     }
   }
-  props.actions?.[id]?.(values.value);
+  await runAction(id);
+}
+
+/** One trigger at a time: guard reentry, track the pending id, clear the stale banner. */
+async function runTrigger(id: string, validates: boolean) {
+  if (isBusy()) return;
+  formError.value = '';
+  pendingAction.value = id;
+  try {
+    if (validates) await runValidatedAction(id);
+    else await runAction(id);
+  } finally {
+    pendingAction.value = null;
+  }
 }
 
 const ctx: PageRendererContext = {
@@ -305,6 +357,9 @@ const ctx: PageRendererContext = {
   },
   isFormValid,
   isValidating,
+  isSubmitting,
+  pendingAction,
+  formError,
   getValue: (name) => values.value[name],
   setValue: (name, value) => {
     values.value[name] = value;
@@ -314,16 +369,13 @@ const ctx: PageRendererContext = {
       delete next[name];
       asyncErrors.value = next;
     }
+    if (formError.value) formError.value = '';
   },
   getError: (name) =>
     touched.value[name] ? (computedErrors.value[name] ?? asyncErrors.value[name] ?? '') : '',
   markTouched: (name) => { touched.value[name] = true; },
   triggerAction(id, validates = false) {
-    if (validates) {
-      void runValidatedAction(id);
-      return;
-    }
-    props.actions?.[id]?.(values.value);
+    void runTrigger(id, validates);
   },
 };
 
@@ -332,6 +384,14 @@ provide(PAGE_RENDERER_KEY, ctx);
 
 <template>
   <div class="coar-page-renderer">
+    <!-- Form-level error channel (`_form` / action rejection). The default
+         banner sits above the page; the slot replaces the presentation, and a
+         consumer element can render it in-page via usePageElement().formError. -->
+    <slot name="form-error" :error="formError">
+      <div v-if="formError" class="pb-form-error" role="alert">
+        <CoarNote variant="error" padding="s">{{ formError }}</CoarNote>
+      </div>
+    </slot>
     <PageNode_ :node="renderSchema" />
   </div>
 </template>
@@ -339,5 +399,9 @@ provide(PAGE_RENDERER_KEY, ctx);
 <style scoped>
 .coar-page-renderer {
   display: contents;
+}
+
+.pb-form-error {
+  margin-bottom: var(--coar-spacing-m);
 }
 </style>

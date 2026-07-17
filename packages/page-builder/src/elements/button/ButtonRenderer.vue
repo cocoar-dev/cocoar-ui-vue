@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { CoarButton } from '@cocoar/vue-ui';
 import type { ButtonNode } from '../../schema';
 import { usePageElement } from '../usePageElement';
@@ -6,6 +7,13 @@ import { usePageElement } from '../usePageElement';
 const props = defineProps<{ node: ButtonNode }>();
 
 const ctx = usePageElement();
+
+/** This button's trigger is in flight (onValidate or the action itself). */
+const isPending = computed(
+  () => !!props.node.props.action && ctx.pendingAction.value === props.node.props.action,
+);
+/** Another trigger is in flight — every action button disables while it runs. */
+const busy = computed(() => ctx.isValidating.value || ctx.isSubmitting.value);
 
 function callAction(id?: string, validates?: boolean) {
   if (!id) return;
@@ -15,14 +23,16 @@ function callAction(id?: string, validates?: boolean) {
 
 <template>
   <!-- Validating buttons stay CLICKABLE while the form is invalid — the click
-       reveals the errors (a disabled button can't explain itself). They only
-       disable while an async onValidate is in flight, to block double-submit. -->
+       reveals the errors (a disabled button can't explain itself). Buttons
+       only disable while a trigger is in flight (onValidate or an async
+       action), to block double-submit; the triggering one spins instead. -->
   <CoarButton
     class="pb-button"
     :variant="node.props.variant ?? 'primary'"
     :size="node.props.size"
     :icon-left="node.props.icon"
-    :disabled="node.props.validates && ctx.isValidating.value"
+    :loading="isPending && busy"
+    :disabled="busy && !isPending"
     @click="callAction(props.node.props.action, props.node.props.validates)"
   >
     {{ node.props.label }}

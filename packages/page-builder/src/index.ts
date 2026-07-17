@@ -2,6 +2,7 @@ export { default as CoarPageRenderer } from './CoarPageRenderer.vue';
 export { default as CoarPageBuilder } from './CoarPageBuilder.vue';
 
 export type { ActionValues, ActionHandler, CustomValidator } from './context';
+export { FORM_ERROR_KEY } from './context';
 
 export type {
   PageNode,

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { MockInstance } from 'vitest';
+import { h } from 'vue';
 import { flushPromises, mount } from '@vue/test-utils';
 import CoarPageRenderer from './CoarPageRenderer.vue';
 import type { PageNode } from './schema';
@@ -432,6 +433,138 @@ describe('CoarPageRenderer — schema & config contract', () => {
     const input = wrapper.find('input');
     expect(input.attributes('type')).toBe('email');
     expect(input.attributes('autocomplete')).toBe('email');
+  });
+});
+
+describe('CoarPageRenderer — submit lifecycle', () => {
+  function deferred() {
+    let resolve!: () => void;
+    let reject!: (e: unknown) => void;
+    const promise = new Promise<void>((res, rej) => { resolve = res; reject = rej; });
+    return { promise, resolve, reject };
+  }
+
+  const emailField = {
+    id: 't', type: 'text-input', name: 'email', props: { label: 'Email' }, defaultValue: 'x@y.z',
+  };
+  const submitButton = {
+    id: 'b', type: 'button', props: { label: 'Send', action: 'send', validates: true },
+  };
+  const pageWith = (...children: unknown[]): PageNode =>
+    ({ id: 'r', type: 'page', children } as PageNode);
+
+  let errorSpy: MockInstance;
+  beforeEach(() => { errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {}); });
+  afterEach(() => { errorSpy.mockRestore(); });
+
+  it('awaits an async action: the triggering button spins, others disable, reentry is blocked', async () => {
+    const d = deferred();
+    const send = vi.fn().mockReturnValue(d.promise);
+    const other = vi.fn();
+    const schema = pageWith(emailField, submitButton, {
+      id: 'b2', type: 'button', props: { label: 'Other', action: 'other' },
+    });
+    const wrapper = mount(CoarPageRenderer, { props: { schema, actions: { send, other } } });
+
+    const [submit, otherBtn] = wrapper.findAll('button.pb-button');
+    await submit.trigger('click');
+    await flushPromises();
+
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(submit.attributes('aria-busy')).toBe('true');
+    expect(otherBtn.attributes('disabled')).toBeDefined();
+
+    // Clicks during the flight window are ignored — on both buttons.
+    await submit.trigger('click');
+    await otherBtn.trigger('click');
+    await flushPromises();
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(other).not.toHaveBeenCalled();
+
+    d.resolve();
+    await flushPromises();
+    expect(submit.attributes('aria-busy')).toBeUndefined();
+    expect(otherBtn.attributes('disabled')).toBeUndefined();
+
+    await submit.trigger('click');
+    await flushPromises();
+    expect(send).toHaveBeenCalledTimes(2);
+  });
+
+  it('guards non-validating buttons against reentry while their action is pending', async () => {
+    const d = deferred();
+    const go = vi.fn().mockReturnValue(d.promise);
+    const schema = pageWith({ id: 'b', type: 'button', props: { label: 'Go', action: 'go' } });
+    const wrapper = mount(CoarPageRenderer, { props: { schema, actions: { go } } });
+
+    const btn = wrapper.find('button.pb-button');
+    await btn.trigger('click');
+    await btn.trigger('click');
+    await flushPromises();
+    expect(go).toHaveBeenCalledTimes(1);
+
+    d.resolve();
+    await flushPromises();
+    await btn.trigger('click');
+    await flushPromises();
+    expect(go).toHaveBeenCalledTimes(2);
+  });
+
+  it('surfaces an action rejection in the form banner and clears it on edit', async () => {
+    const send = vi.fn().mockRejectedValue(new Error('Invalid credentials'));
+    const wrapper = mount(CoarPageRenderer, {
+      props: { schema: pageWith(emailField, submitButton), actions: { send } },
+    });
+
+    await wrapper.find('button.pb-button').trigger('click');
+    await flushPromises();
+    expect(wrapper.find('.pb-form-error').text()).toContain('Invalid credentials');
+    expect(wrapper.find('.pb-form-error').attributes('role')).toBe('alert');
+    expect(errorSpy).toHaveBeenCalled();
+
+    // The stale banner must not outlive the edit that addresses it.
+    await wrapper.find('input').setValue('new@y.z');
+    expect(wrapper.find('.pb-form-error').exists()).toBe(false);
+  });
+
+  it('shows a localized generic message for a non-Error rejection', async () => {
+    const send = vi.fn().mockRejectedValue('boom');
+    const wrapper = mount(CoarPageRenderer, {
+      props: { schema: pageWith(emailField, submitButton), actions: { send } },
+    });
+
+    await wrapper.find('button.pb-button').trigger('click');
+    await flushPromises();
+    expect(wrapper.find('.pb-form-error').text()).toContain('Something went wrong');
+  });
+
+  it('routes the reserved _form key of onValidate to the banner and blocks the action', async () => {
+    const send = vi.fn();
+    const onValidate = vi.fn().mockResolvedValue({ _form: 'Try again later' });
+    const wrapper = mount(CoarPageRenderer, {
+      props: { schema: pageWith(emailField, submitButton), actions: { send }, onValidate },
+    });
+
+    await wrapper.find('button.pb-button').trigger('click');
+    await flushPromises();
+    expect(send).not.toHaveBeenCalled();
+    expect(wrapper.find('.pb-form-error').text()).toContain('Try again later');
+  });
+
+  it('replaces the default banner via the form-error slot', async () => {
+    const send = vi.fn().mockRejectedValue(new Error('Nope'));
+    const wrapper = mount(CoarPageRenderer, {
+      props: { schema: pageWith(emailField, submitButton), actions: { send } },
+      slots: {
+        'form-error': ({ error }: { error: string }) =>
+          error ? h('div', { class: 'custom-banner' }, `custom: ${error}`) : null,
+      },
+    });
+
+    await wrapper.find('button.pb-button').trigger('click');
+    await flushPromises();
+    expect(wrapper.find('.pb-form-error').exists()).toBe(false);
+    expect(wrapper.find('.custom-banner').text()).toBe('custom: Nope');
   });
 });
 

@@ -22,6 +22,20 @@ export interface PageElementContext {
   triggerAction: (id: string, validates?: boolean) => void;
   /** True while an async `onValidate` is in flight — disable submit affordances. */
   isValidating: Readonly<Ref<boolean>>;
+  /** True while an action handler's Promise is pending — disable submit affordances. */
+  isSubmitting: Readonly<Ref<boolean>>;
+  /**
+   * Action id whose trigger is currently in flight (validate + action phase),
+   * null when idle — action-firing elements show their busy state (spinner)
+   * when it matches their own action.
+   */
+  pendingAction: Readonly<Ref<string | null>>;
+  /**
+   * Form-level error (`_form` key from onValidate, or an action rejection).
+   * The renderer shows it in a banner above the page by default; elements can
+   * read it here to present it elsewhere.
+   */
+  formError: Readonly<Ref<string>>;
   /** Resolve an assetId to a URL; '' when no resolver is configured. */
   resolveAsset: (assetId: string) => string;
   config?: Readonly<PageConfig>;
@@ -41,6 +55,9 @@ export function usePageElement(): PageElementContext {
     markTouched: ctx.markTouched,
     triggerAction: ctx.triggerAction,
     isValidating: ctx.isValidating,
+    isSubmitting: ctx.isSubmitting,
+    pendingAction: ctx.pendingAction,
+    formError: ctx.formError,
     resolveAsset: (assetId: string) => ctx.assetResolver?.(assetId) ?? '',
     config: ctx.config,
   };
