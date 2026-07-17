@@ -7,7 +7,7 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
-## Unreleased
+## 2.17.0
 
 **Page Builder goes GA — on an open element registry.** `@cocoar/vue-page-builder` sheds its Preview badge after a full readiness audit (correctness & data-safety fixes, npm packaging, touch-first pointer drag & drop, builder table-stakes, i18n, 8 new element types) **and** a pre-GA rework onto a consumer-facing **element registry**: built-ins and consumer elements now ride one contract and one unified wire format. Register a component via `config.elements` and it becomes a first-class element — palette entry, canvas preview, props panel, runtime rendering and form-value participation included. On top of the registry sits a config-level **field contract** (`config.fields`): pages usually project a DTO, so field binding becomes DTO-driven picking — compatible-field selects, a draggable Fields palette group, and one-click representation switching. A production **submit lifecycle** rounds it off: async actions with busy state and a form-level error channel, Enter-to-submit, a built-in email check, a host form API (`update:values` / `isDirty` / `reset`), conditional visibility (`visibleWhen`) and API-backed option lists (`optionsSource`). The wire format changes (schema v2, see Breaking) — pre-v2 documents are migrated transparently on every ingest path.
 
