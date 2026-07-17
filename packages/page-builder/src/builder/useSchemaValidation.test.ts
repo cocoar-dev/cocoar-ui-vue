@@ -80,6 +80,52 @@ describe('useSchemaValidation', () => {
     expect(issues[0].message).toContain('"missing"');
   });
 
+  it('warns on circular visibleWhen chains including self-references', () => {
+    const selfRef = validate(page([
+      {
+        id: 'a', type: 'checkbox', props: { label: 'A' }, name: 'a',
+        visibleWhen: { field: 'a', equals: true },
+      },
+    ]));
+    expect(selfRef).toEqual([
+      expect.objectContaining({ nodeId: 'a', field: 'visibleWhen', severity: 'warning' }),
+    ]);
+    expect(selfRef[0].message).toContain('circular');
+
+    const mutual = validate(page([
+      {
+        id: 'a', type: 'checkbox', props: { label: 'A' }, name: 'a',
+        visibleWhen: { field: 'b', equals: true },
+      },
+      {
+        id: 'b', type: 'checkbox', props: { label: 'B' }, name: 'b',
+        visibleWhen: { field: 'a', equals: true },
+      },
+    ]));
+    expect(mutual.map((i) => i.nodeId).sort()).toEqual(['a', 'b']);
+    expect(mutual.every((i) => i.message.includes('circular'))).toBe(true);
+  });
+
+  it('warns when multiple buttons claim default', () => {
+    const issues = validate(page([
+      { id: 'b1', type: 'button', props: { label: 'One', action: 'x', default: true } },
+      { id: 'b2', type: 'button', props: { label: 'Two', action: 'y', default: true } },
+    ]));
+    const defaults = issues.filter((i) => i.field === 'default');
+    expect(defaults.map((i) => i.nodeId).sort()).toEqual(['b1', 'b2']);
+    expect(defaults.every((i) => i.severity === 'warning')).toBe(true);
+  });
+
+  it('errors on reserved field names', () => {
+    const issues = validate(page([
+      { id: 't', type: 'text-input', props: {}, name: '__proto__' },
+    ]));
+    expect(issues).toEqual([
+      expect.objectContaining({ nodeId: 't', field: 'name', severity: 'error' }),
+    ]);
+    expect(issues[0].message).toContain('reserved');
+  });
+
   it('warns on a malformed visibleWhen', () => {
     const issues = validate(page([
       { id: 'h', type: 'heading', props: { text: 'Hi' }, visibleWhen: {} as never },

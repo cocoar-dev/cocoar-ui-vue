@@ -329,10 +329,10 @@ A `text-input` with `inputType: 'email'` validates the entered value against the
 
 1. Clicking a `validates: true` button marks all fields touched. If any **declarative** rule fails, the errors show, the first invalid control is focused, and nothing else happens.
 2. Only when the declarative rules pass does `onValidate(values)` run. It may return the error map directly or a `Promise` of it; while a promise is pending, the triggering button spins and the other action buttons are disabled.
-3. A non-empty result blocks the action: `{ fieldName: errorMessage }` entries show on their fields, the reserved **`_form`** key (exported as `FORM_ERROR_KEY`) shows in the [form-level banner](#async-actions-the-form-level-error-channel).
+3. A non-empty result blocks the action: `{ fieldName: errorMessage }` entries show on their fields, the reserved **`_form`** key (exported as `FORM_ERROR_KEY`) shows in the [form-level banner](#async-actions-the-form-level-error-channel). Errors keyed to fields that cannot display (hidden by `visibleWhen`, renamed, never on the page) are routed to the banner too — a blocked submit is never invisible.
 4. Editing a field clears that field's server error (and the form banner) immediately — a stale error never outlives the edit that addresses it.
 5. If `onValidate` throws (or rejects), the action does not run, a localized generic message shows in the form banner, and the error is logged to the console.
-6. An empty result lets the action fire: `actions[id](values)` — awaited when it returns a Promise.
+6. An empty result lets the action fire — with **the exact snapshot `onValidate` approved** (edits made while an async `onValidate` was in flight never ship unvalidated; they need their own submit). A returned Promise is awaited.
 
 `onValidate` does **not** run on keystrokes — it fires at submit time only.
 
@@ -384,9 +384,9 @@ The default banner renders above the page (a `CoarNote` with `role="alert"`). Tw
 Enter-to-submit is double opt-in — the page and the element under the caret both agree:
 
 1. The **page root** sets `enterSubmits: true` (a checkbox in the builder's Page section; default off).
-2. The **element** declares Enter-eligibility in its definition (`value.submitOnEnter`). Built-ins: single-line `text-input` (`rows <= 1`), `password-input`, `number-input`, `date-input`, `datetime-input`. A multiline textarea, `select`s, `otp-input` and consumer elements that don't declare the flag never submit on Enter.
+2. The **element** declares Enter-eligibility in its definition (`value.submitOnEnter`). Built-ins: single-line `text-input` (`rows <= 1`), `password-input`, `number-input`. A multiline textarea, `select`s, `otp-input`, the date inputs (their picker panel uses Enter) and consumer elements that don't declare the flag never submit on Enter.
 
-A plain Enter (no modifiers) inside an eligible input fires the page's **default button**: the first button with `default: true` (a checkbox in the button inspector), else the first `validates: true` button in tree order — with the full submit pipeline (validation, `onValidate`, busy state). An Enter the element already consumed (`preventDefault`, e.g. inside a picker popover) never submits.
+A plain Enter (no modifiers) inside an eligible input fires the page's **default button**: the first button with `default: true` (a checkbox in the button inspector; the lint warns when several buttons claim it), else the first `validates: true` button in tree order — with the full submit pipeline (validation, `onValidate`, busy state). Before triggering, the input is blurred so commit-on-blur controls (number input) flush the value the user sees. An Enter the element already consumed (`preventDefault`, e.g. inside a picker popover) and an IME composition-commit Enter never submit.
 
 ## Conditional visibility (`visibleWhen`)
 
@@ -412,7 +412,7 @@ The condition gates the node **and its whole subtree** — in rendering *and* in
 - A hidden `required` field never vetoes a validating button.
 - Hidden values never ship: action payloads, `onValidate` input, `update:values` and the exposed `values` all carry only the allowed and **visible** tree.
 - Values typed before hiding are kept internally and return when the node is re-shown (so a mis-click doesn't wipe input) — they just don't leave the renderer while hidden.
-- A malformed condition fails **open** (the node stays visible); the builder lint flags it, as well as conditions referencing fields that aren't on the page.
+- A malformed condition fails **open** (the node stays visible), and a condition on the **page root is ignored** (a page can never blank itself). The builder lint flags malformed conditions, references to fields that aren't on the page, and **circular chains** (a field whose visibility depends on itself or on a mutual loop — hidden controllers can't be edited, so such chains can lock each other hidden).
 
 Authoring: the builder's **Visibility** section offers the controlling-field select and a typed `equals` editor (checked/unchecked for boolean controllers, the option list for choice controllers, free text otherwise); the `in` form is JSON-authorable. Conditional nodes carry an eye marker on the canvas — the canvas always *shows* them (it is an authoring surface); the Preview tab applies the real gating.
 
@@ -446,7 +446,8 @@ The renderer enforces these rules **regardless of what the schema contains**:
 
 1. **Allowed elements** — `config.allowedElements` is the hard boundary (it takes built-in types and consumer-registered keys alike). Disallowed types are skipped at render time, with one console warning per type. The gate applies to the **value model** too: disallowed subtrees contribute no default values and cannot block validation — an invisible `required` field can never veto a validating button. Unregistered element types (typos, newer schema versions, consumer elements this instance hasn't registered) degrade the same lenient way: skipped with one warning per type, excluded from the value model, but **kept losslessly in the tree** — the builder [flags them as warnings on the canvas and in validation](./coar-page-builder) instead of destroying them.
 2. **Actions** — buttons and links store an action `id`, an inert string. Only handlers present in the `actions` prop fire — any other action ID is a silent no-op. The one piece of tenant-authored logic the renderer evaluates is `validation.pattern`: a regex compiled safely (invalid = inert rule) and anchored — never executed as code.
-3. **Images** — `image` nodes store an `assetId` reference, never a raw URL. The renderer always goes through `assetResolver` — which makes the resolver **your** part of the boundary: it decides what an id can reach. Validate or encode the id before building a URL, e.g. allowlist `/^[A-Za-z0-9_-]+$/` or `encodeURIComponent(id)`, so a crafted id like `../other-tenant/logo` cannot traverse out of the tenant's asset prefix.
+3. **Reserved field names** — `__proto__`, `constructor` and `prototype` are excluded from the value model entirely (they would collide with `Object.prototype` machinery when used as map keys): such fields neither veto submission nor appear in payloads, and the builder lint flags them as errors.
+4. **Images** — `image` nodes store an `assetId` reference, never a raw URL. The renderer always goes through `assetResolver` — which makes the resolver **your** part of the boundary: it decides what an id can reach. Validate or encode the id before building a URL, e.g. allowlist `/^[A-Za-z0-9_-]+$/` or `encodeURIComponent(id)`, so a crafted id like `../other-tenant/logo` cannot traverse out of the tenant's asset prefix.
 
 See the [Security Model](./#security-model) section on the overview page for the full discussion.
 

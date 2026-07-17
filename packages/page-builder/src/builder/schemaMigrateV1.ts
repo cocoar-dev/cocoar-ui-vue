@@ -85,6 +85,33 @@ export function migrateV1PropsBag(node: unknown): unknown {
 }
 
 /**
+ * Any element node without an object `props` bag gets an empty one. The v1
+ * migration only manufactures bags for KNOWN built-in types — a registered
+ * CONSUMER element node with a missing/null bag (hand-written JSON that never
+ * passed the builder) would otherwise reach its renderer as-is and crash on
+ * the first `node.props.x` access, taking the whole page down. Chains LAST in
+ * the renderer's on-the-fly migration. Identity-preserving and idempotent.
+ */
+export function healMissingPropsBags(node: unknown): unknown {
+  if (!isRecord(node)) return node;
+
+  let children = node.children;
+  if (Array.isArray(node.children)) {
+    const mapped = node.children.map(healMissingPropsBags);
+    if (mapped.some((c, i) => c !== (node.children as unknown[])[i])) children = mapped;
+  }
+
+  const needsBag =
+    typeof node.type === 'string' && node.type !== 'page' && !isRecord(node.props);
+
+  if (!needsBag && children === node.children) return node;
+  const result: Record<string, unknown> = { ...node };
+  if (needsBag) result.props = {};
+  if (children !== node.children) result.children = children;
+  return result;
+}
+
+/**
  * `text-input` with `inputType: 'password'` predates the standalone
  * `password-input` element — rewrite it so old documents pick up the
  * dedicated element. Expects v2 (bag) shape, so it chains AFTER

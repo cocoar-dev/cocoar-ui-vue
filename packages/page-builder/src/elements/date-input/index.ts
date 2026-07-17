@@ -7,7 +7,9 @@ import DateInputDefaultInput from './DateInputDefaultInput.vue';
 
 export const dateInputElement = definePageElement<DateInputNode['props']>({
   renderer: DateInputRenderer,
-  value: { types: ['date'], submitOnEnter: true, defaultValue: () => null },
+  // NOT submitOnEnter: the picker panel is not teleported and does not
+  // consume Enter — an Enter meant to pick a date would submit the form.
+  value: { types: ['date'], defaultValue: () => null },
   builder: {
     label: { key: 'coar.pageBuilder.type.dateInput', fallback: 'Date' },
     icon: 'calendar',

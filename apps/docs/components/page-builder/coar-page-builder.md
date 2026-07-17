@@ -75,6 +75,9 @@ Built-in rules:
 | Required contract field is missing from the page (reported on the root node) | warning |
 | `visibleWhen` is malformed (node stays always visible) | warning |
 | `visibleWhen` references a field that is not on the page | warning |
+| `visibleWhen` chain is circular (incl. self-reference) — fields can lock each other hidden | warning |
+| Multiple buttons claim `default` — Enter fires only the first in tree order | warning |
+| Field name is reserved (`__proto__`, `constructor`, `prototype`) — excluded from the value model | error |
 | `optionsSourceId` is set but `config.optionsSource` is not configured | warning |
 
 Element definitions can contribute their own findings through the definition's `builder.lint` hook — they are merged into the same outline/props-panel surfaces with their declared severity (see [Custom elements](./custom-elements)).

@@ -59,6 +59,11 @@ export function usePageElement(): PageElementContext {
     pendingAction: ctx.pendingAction,
     formError: ctx.formError,
     resolveAsset: (assetId: string) => ctx.assetResolver?.(assetId) ?? '',
-    config: ctx.config,
+    // A getter, not a snapshot — a config supplied or replaced after this
+    // element mounted (late-arriving optionsSource, swapped allow-list) must
+    // reach the element, and reactive readers (watchEffect) must re-track it.
+    get config() {
+      return ctx.config;
+    },
   };
 }

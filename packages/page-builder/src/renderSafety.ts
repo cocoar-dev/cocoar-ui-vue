@@ -46,6 +46,18 @@ export function isValidEmail(value: string): boolean {
   return EMAIL_RE.test(value);
 }
 
+/**
+ * Field names that would collide with `Object.prototype` machinery when used
+ * as keys of the value/touched/error maps (`__proto__` assignment rebinds the
+ * prototype instead of creating an own property). Such names are excluded
+ * from the value model entirely and flagged by the builder lint.
+ */
+const UNSAFE_FIELD_NAMES = new Set(['__proto__', 'constructor', 'prototype']);
+
+export function isUnsafeFieldName(name: string): boolean {
+  return UNSAFE_FIELD_NAMES.has(name);
+}
+
 // Date values travel as ISO strings in the schema and in ActionValues; the
 // Coar date pickers speak Temporal. These converters sit at that boundary —
 // unparsable schema data renders as an empty picker instead of throwing.

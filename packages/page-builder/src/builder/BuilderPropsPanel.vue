@@ -167,13 +167,33 @@ function findController(name: string): ElementNode | null {
   return found;
 }
 
-/** Named inputs on the page (minus this node) — candidates for the controlling field. */
+/**
+ * How the controller's VALUE is typed — the `equals` editor must author the
+ * matching type, because the runtime comparison is Object.is: a string '18'
+ * never matches the number 18 a number-input writes. Derived from the
+ * definition's declared value types (consumer elements included).
+ */
+type ControllerKind = 'boolean' | 'number' | 'string';
+function kindOf(c: ElementNode | null): ControllerKind {
+  if (!c) return 'string';
+  const types = elements.value[c.type]?.value?.types;
+  if (types?.includes('boolean')) return 'boolean';
+  if (types?.includes('number')) return 'number';
+  return 'string';
+}
+
+/**
+ * Named inputs on the page (minus this node) — candidates for the controlling
+ * field. Array-valued controllers (`string[]`) are excluded: an `equals`
+ * condition on them is unsatisfiable by construction (v1 has no "contains").
+ */
 const controllerOptions = computed<CoarSelectOption<string>[]>(() => {
   const out: CoarSelectOption<string>[] = [];
   const walk = (n: PageNode) => {
     const d = n.type === 'page' ? undefined : elements.value[n.type];
     const name = (n as ElementNode).name;
     if (d?.value && typeof name === 'string' && name && n.id !== node.value?.id
+      && !d.value.types?.includes('string[]')
       && !out.some((o) => o.value === name)) {
       out.push({ value: name, label: name });
     }
@@ -196,7 +216,7 @@ const controller = computed(() =>
 const conditionValueOptions = computed<CoarSelectOption<string>[] | null>(() => {
   const c = controller.value;
   if (!c) return null;
-  if (c.type === 'checkbox' || c.type === 'switch') {
+  if (kindOf(c) === 'boolean') {
     return [
       { value: 'true', label: t('coar.pageBuilder.props.checked', undefined, 'checked') },
       { value: 'false', label: t('coar.pageBuilder.props.unchecked', undefined, 'unchecked') },
@@ -215,6 +235,17 @@ const equalsDisplay = computed(() => {
   return e == null ? '' : String(e);
 });
 
+/** Author `equals` in the controller's value type. */
+function typedEquals(raw: string | null, c: ElementNode | null): unknown {
+  const kind = kindOf(c);
+  if (kind === 'boolean') return raw === 'true';
+  if (kind === 'number') {
+    const n = Number(raw);
+    return raw !== null && raw !== '' && !Number.isNaN(n) ? n : (raw ?? '');
+  }
+  return raw ?? '';
+}
+
 function setVisibilityField(name: string | null) {
   if (!name) {
     patch({ visibleWhen: undefined } as Partial<PageNode>);
@@ -222,7 +253,7 @@ function setVisibilityField(name: string | null) {
   }
   const c = findController(name);
   const equals: unknown =
-    c?.type === 'checkbox' || c?.type === 'switch'
+    kindOf(c) === 'boolean'
       ? true
       : ((c?.props as { options?: { value: string }[] } | undefined)?.options?.[0]?.value ?? '');
   patch({ visibleWhen: { field: name, equals } satisfies VisibleWhen } as Partial<PageNode>);
@@ -231,10 +262,9 @@ function setVisibilityField(name: string | null) {
 function setVisibilityEquals(raw: string | null) {
   const vw = visibleWhen.value;
   if (!vw) return;
-  const c = controller.value;
-  const equals: unknown =
-    c && (c.type === 'checkbox' || c.type === 'switch') ? raw === 'true' : raw ?? '';
-  patch({ visibleWhen: { field: vw.field, equals } satisfies VisibleWhen } as Partial<PageNode>);
+  patch({
+    visibleWhen: { field: vw.field, equals: typedEquals(raw, controller.value) } satisfies VisibleWhen,
+  } as Partial<PageNode>);
 }
 
 function bindField(name: string | null) {

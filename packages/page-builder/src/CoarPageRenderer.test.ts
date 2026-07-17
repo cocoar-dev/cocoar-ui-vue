@@ -1002,6 +1002,206 @@ describe('CoarPageRenderer — enter to submit', () => {
   });
 });
 
+describe('CoarPageRenderer — R1/R2 hardening (verified audit findings)', () => {
+  function deferred<T>() {
+    let resolve!: (v: T) => void;
+    const promise = new Promise<T>((res) => { resolve = res; });
+    return { promise, resolve };
+  }
+
+  let errorSpy: MockInstance;
+  beforeEach(() => { errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {}); });
+  afterEach(() => { errorSpy.mockRestore(); });
+
+  it('ships exactly the snapshot onValidate approved — edits during the validate window do not leak', async () => {
+    const send = vi.fn();
+    const d = deferred<Record<string, string>>();
+    const onValidate = vi.fn().mockReturnValue(d.promise);
+    const schema: PageNode = {
+      id: 'r', type: 'page',
+      children: [
+        { id: 't', type: 'text-input', name: 'email', props: {}, defaultValue: 'validated@y.z' },
+        { id: 'b', type: 'button', props: { label: 'Send', action: 'send', validates: true } },
+      ],
+    };
+    const wrapper = mount(CoarPageRenderer, { props: { schema, actions: { send }, onValidate } });
+
+    await wrapper.find('button.pb-button').trigger('click');
+    // Inputs stay editable while onValidate is pending — edit mid-flight.
+    await wrapper.find('input').setValue('edited@y.z');
+    d.resolve({});
+    await flushPromises();
+
+    expect(onValidate).toHaveBeenCalledWith({ email: 'validated@y.z' });
+    expect(send).toHaveBeenCalledWith({ email: 'validated@y.z' });
+  });
+
+  it('Enter commits a pending number-input edit before submitting (blur-to-commit)', async () => {
+    const send = vi.fn();
+    const schema: PageNode = {
+      id: 'r', type: 'page', enterSubmits: true,
+      children: [
+        { id: 'n', type: 'number-input', name: 'amount', props: { label: 'Amount' } },
+        { id: 'b', type: 'button', props: { label: 'Send', action: 'send', validates: true } },
+      ],
+    } as PageNode;
+    const wrapper = mount(CoarPageRenderer, {
+      props: { schema, actions: { send } },
+      attachTo: document.body,
+    });
+
+    const input = wrapper.find('input');
+    input.element.focus(); // blur-to-commit only fires on a focused control
+    await input.setValue('42');
+    await input.trigger('keydown', { key: 'Enter' });
+    await flushPromises();
+
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send.mock.calls[0][0].amount).toBe(42);
+    wrapper.unmount();
+  });
+
+  it('ignores an IME composition-commit Enter', async () => {
+    const send = vi.fn();
+    const schema: PageNode = {
+      id: 'r', type: 'page', enterSubmits: true,
+      children: [
+        { id: 't', type: 'text-input', name: 'q', props: {}, defaultValue: 'かな' },
+        { id: 'b', type: 'button', props: { label: 'Send', action: 'send', validates: true } },
+      ],
+    } as PageNode;
+    const wrapper = mount(CoarPageRenderer, { props: { schema, actions: { send } } });
+
+    wrapper.find('input').element.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter', isComposing: true, bubbles: true }),
+    );
+    await flushPromises();
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it('object-valued fields: isDirty starts false and same-content initialValues do not wipe input', async () => {
+    const objHolder = {
+      renderer: { props: ['node'], setup: () => () => null },
+    };
+    const geo = { lat: 47.1, lng: 15.4 };
+    const schema: PageNode = {
+      id: 'r', type: 'page',
+      children: [
+        { id: 'g', type: 'obj-holder', name: 'geo', props: {} },
+        { id: 't', type: 'text-input', name: 'note', props: {} },
+      ],
+    } as PageNode;
+    const wrapper = mount(CoarPageRenderer, {
+      props: {
+        schema,
+        config: { elements: { 'obj-holder': objHolder } },
+        initialValues: { geo },
+      },
+    });
+    const vm = wrapper.vm as unknown as { isDirty: boolean };
+
+    // Reactive proxy vs raw baseline must compare equal.
+    expect(vm.isDirty).toBe(false);
+
+    await wrapper.find('input').setValue('typed');
+    expect(vm.isDirty).toBe(true);
+
+    // New wrapper object, same object VALUES — must not re-init.
+    await wrapper.setProps({ initialValues: { geo } });
+    expect(wrapper.find('input').element.value).toBe('typed');
+  });
+
+  it('irrelevant initialValues keys cannot wipe in-progress input', async () => {
+    const schema: PageNode = {
+      id: 'r', type: 'page',
+      children: [{ id: 't', type: 'text-input', name: 'email', props: {} }],
+    };
+    const wrapper = mount(CoarPageRenderer, {
+      props: { schema, initialValues: { email: 'a@y.z', stray: 1 } },
+    });
+    await wrapper.find('input').setValue('typed@y.z');
+
+    await wrapper.setProps({ initialValues: { email: 'a@y.z', stray: 2 } });
+    expect(wrapper.find('input').element.value).toBe('typed@y.z');
+  });
+
+  it('routes onValidate errors for hidden or unknown fields into the banner instead of a dead click', async () => {
+    const send = vi.fn();
+    const onValidate = vi.fn().mockResolvedValue({ ghost: 'System offline' });
+    const schema: PageNode = {
+      id: 'r', type: 'page',
+      children: [
+        { id: 't', type: 'text-input', name: 'email', props: {}, defaultValue: 'x@y.z' },
+        { id: 'b', type: 'button', props: { label: 'Send', action: 'send', validates: true } },
+      ],
+    };
+    const wrapper = mount(CoarPageRenderer, { props: { schema, actions: { send }, onValidate } });
+
+    await wrapper.find('button.pb-button').trigger('click');
+    await flushPromises();
+    expect(send).not.toHaveBeenCalled();
+    expect(wrapper.find('.pb-form-error').text()).toContain('System offline');
+  });
+
+  it('ignores visibleWhen on the page root — the page can never blank itself', () => {
+    const schema = {
+      id: 'r', type: 'page',
+      visibleWhen: { field: 'nope', equals: true },
+      children: [{ id: 'h', type: 'heading', props: { text: 'Still rendered' } }],
+    } as unknown as PageNode;
+    const wrapper = mount(CoarPageRenderer, { props: { schema } });
+    expect(wrapper.text()).toContain('Still rendered');
+  });
+
+  it('heals a props-less consumer-element node instead of crashing the page', () => {
+    const labelReader = {
+      renderer: {
+        props: ['node'],
+        // Reads node.props.label unguarded — the crash vector without healing.
+        setup: (p: { node: { props: { label?: string } } }) => () =>
+          h('div', { class: 'consumer-el' }, String(p.node.props.label ?? 'no label')),
+      },
+    };
+    const schema = {
+      id: 'r', type: 'page',
+      children: [
+        { id: 'c', type: 'acme-thing' }, // no props bag at all
+        { id: 'h', type: 'heading', props: { text: 'Sibling survives' } },
+      ],
+    } as unknown as PageNode;
+    const wrapper = mount(CoarPageRenderer, {
+      props: { schema, config: { elements: { 'acme-thing': labelReader } } },
+    });
+    expect(wrapper.find('.consumer-el').text()).toBe('no label');
+    expect(wrapper.text()).toContain('Sibling survives');
+  });
+
+  it('excludes reserved field names (__proto__) from the value model and does not pollute prototypes', async () => {
+    const send = vi.fn();
+    const schema = {
+      id: 'r', type: 'page',
+      children: [
+        {
+          id: 'evil', type: 'text-input', name: '__proto__', props: {},
+          defaultValue: 'x', validation: { required: true },
+        },
+        { id: 't', type: 'text-input', name: 'email', props: {}, defaultValue: 'a@y.z' },
+        { id: 'b', type: 'button', props: { label: 'Send', action: 'send', validates: true } },
+      ],
+    } as unknown as PageNode;
+    const wrapper = mount(CoarPageRenderer, { props: { schema, actions: { send } } });
+
+    await wrapper.find('button.pb-button').trigger('click');
+    await flushPromises();
+
+    // Neither vetoes nor ships; no prototype pollution.
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(Object.keys(send.mock.calls[0][0])).toEqual(['email']);
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+    expect(Object.prototype.hasOwnProperty.call(Object.prototype, 'x')).toBe(false);
+  });
+});
+
 describe('CoarPageRenderer — initialValues', () => {
   const schema: PageNode = {
     id: 'r',

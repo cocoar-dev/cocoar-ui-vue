@@ -7,7 +7,8 @@ import DateTimeInputDefaultInput from './DateTimeInputDefaultInput.vue';
 
 export const dateTimeInputElement = definePageElement<DateTimeInputNode['props']>({
   renderer: DateTimeInputRenderer,
-  value: { types: ['datetime'], submitOnEnter: true, defaultValue: () => null },
+  // NOT submitOnEnter — same picker-panel reasoning as date-input.
+  value: { types: ['datetime'], defaultValue: () => null },
   builder: {
     label: { key: 'coar.pageBuilder.type.dateTimeInput', fallback: 'Date & Time' },
     icon: 'calendar-days',

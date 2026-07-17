@@ -1,7 +1,7 @@
 import { computed, type Ref } from 'vue';
 import { isElementAllowed } from '../schema';
 import type { ButtonNode, ElementNode, LinkNode, PageConfig, PageNode } from '../schema';
-import { compilePagePattern } from '../renderSafety';
+import { compilePagePattern, isUnsafeFieldName } from '../renderSafety';
 import { useMergedElements } from '../elements/useMergedElements';
 import { isFieldCompatible } from '../elements/fieldContract';
 
@@ -38,6 +38,7 @@ export function useSchemaValidation(
     const out: ValidationIssue[] = [];
     const namedFields: Array<{ node: PageNode; name: string }> = [];
     const conditionalNodes: Array<{ node: PageNode; vw: unknown }> = [];
+    const defaultButtons: PageNode[] = [];
     const registry = elements.value;
     const knownActions = new Set(config.value?.availableActions?.map((a) => a.id) ?? []);
     const hasAvailableActions = (config.value?.availableActions?.length ?? 0) > 0;
@@ -67,6 +68,7 @@ export function useSchemaValidation(
       // ── Buttons & links: action wiring ─────────────────────────────────
       // Cast: the open union member absorbs the literal narrowing.
       if (n.type === 'button') {
+        if ((n as ButtonNode).props.default) defaultButtons.push(n);
         const action = (n as ButtonNode).props.action;
         if (!action) {
           out.push({
@@ -152,7 +154,16 @@ export function useSchemaValidation(
       // ── Value elements: collect names for duplicate detection ──────────
       if (def?.value) {
         const name = (n as { name?: string }).name;
-        if (name) namedFields.push({ node: n, name });
+        if (name && isUnsafeFieldName(name)) {
+          out.push({
+            nodeId: n.id,
+            field: 'name',
+            severity: 'error',
+            message: `Field name "${name}" is reserved — the field is excluded from the value model.`,
+          });
+        } else if (name) {
+          namedFields.push({ node: n, name });
+        }
       }
 
       // ── Conditional visibility: checked against the named fields later ─
@@ -218,6 +229,58 @@ export function useSchemaValidation(
           field: 'visibleWhen',
           severity: 'warning',
           message: `visibleWhen references field "${cond.field}", which is not on the page.`,
+        });
+      }
+    }
+
+    // ── visibleWhen: circular chains (incl. self-reference) can lock nodes
+    //    permanently hidden — a hidden controller cannot be edited to unhide
+    //    its dependents ────────────────────────────────────────────────────
+    const controllerOf = new Map<string, { node: PageNode; field: string }>();
+    for (const { node: n, vw } of conditionalNodes) {
+      const cond = vw as { field?: unknown } | null;
+      const name = (n as ElementNode).name;
+      if (
+        typeof name === 'string' && name &&
+        cond && typeof cond.field === 'string' && cond.field &&
+        !controllerOf.has(name)
+      ) {
+        controllerOf.set(name, { node: n, field: cond.field });
+      }
+    }
+    const flaggedCircular = new Set<string>();
+    for (const start of controllerOf.keys()) {
+      const chain: string[] = [];
+      const seen = new Set<string>();
+      let cur: string | undefined = start;
+      while (cur !== undefined && controllerOf.has(cur) && !seen.has(cur)) {
+        seen.add(cur);
+        chain.push(cur);
+        cur = controllerOf.get(cur)!.field;
+      }
+      if (cur === undefined || !seen.has(cur)) continue;
+      const loop = chain.slice(chain.indexOf(cur));
+      const label = [...loop, cur].map((x) => `"${x}"`).join(' → ');
+      for (const name of loop) {
+        if (flaggedCircular.has(name)) continue;
+        flaggedCircular.add(name);
+        out.push({
+          nodeId: controllerOf.get(name)!.node.id,
+          field: 'visibleWhen',
+          severity: 'warning',
+          message: `visibleWhen chain is circular (${label}) — these fields can lock each other permanently hidden.`,
+        });
+      }
+    }
+
+    // ── Enter-to-submit: only ONE default button can win ──────────────────
+    if (defaultButtons.length > 1) {
+      for (const n of defaultButtons) {
+        out.push({
+          nodeId: n.id,
+          field: 'default',
+          severity: 'warning',
+          message: `${defaultButtons.length} buttons are marked as default — Enter fires only the first in tree order.`,
         });
       }
     }

@@ -1,12 +1,16 @@
 <script setup lang="ts">
-import { computed, nextTick, provide, ref, watch } from 'vue';
+import { computed, nextTick, provide, ref, toRaw, watch } from 'vue';
 import { useI18n } from '@cocoar/vue-localization';
 import { isElementAllowed } from './schema';
 import type { ButtonNode, ElementNode, PageNode, PageConfig, PageRootNode } from './schema';
 import { useMergedElements } from './elements/useMergedElements';
 import type { PageElementDefinition } from './elements/registry';
 import { migrateLegacyTypes } from './builder/schemaNormalize';
-import { migrateV1PropsBag, migrateLegacyPasswordInput } from './builder/schemaMigrateV1';
+import {
+  migrateV1PropsBag,
+  migrateLegacyPasswordInput,
+  healMissingPropsBags,
+} from './builder/schemaMigrateV1';
 import {
   FORM_ERROR_KEY,
   PAGE_RENDERER_KEY,
@@ -16,7 +20,7 @@ import {
   type PageRendererContext,
 } from './context';
 import { CoarNote } from '@cocoar/vue-ui';
-import { compilePagePattern, isValidEmail } from './renderSafety';
+import { compilePagePattern, isValidEmail, isUnsafeFieldName } from './renderSafety';
 import PageNode_ from './PageNode.vue';
 
 const props = defineProps<{
@@ -76,7 +80,10 @@ const formError = ref('');
  * to migrate).
  */
 const renderSchema = computed(
-  () => migrateLegacyPasswordInput(migrateV1PropsBag(migrateLegacyTypes(props.schema))) as PageNode,
+  () =>
+    healMissingPropsBags(
+      migrateLegacyPasswordInput(migrateV1PropsBag(migrateLegacyTypes(props.schema))),
+    ) as PageNode,
 );
 
 // ─── Element registry ─────────────────────────────────────────────────────────
@@ -92,7 +99,11 @@ type NamedNode = ElementNode & { name: string };
 
 function isNamedInput(node: PageNode): node is NamedNode {
   const def = defFor(node);
-  return !!def?.value && typeof (node as ElementNode).name === 'string' && !!(node as ElementNode).name;
+  const name = (node as ElementNode).name;
+  // Unsafe names (__proto__ & co) would collide with Object.prototype
+  // machinery when used as map keys — excluded from the value model entirely
+  // (they neither veto nor ship; the builder lint flags them).
+  return !!def?.value && typeof name === 'string' && !!name && !isUnsafeFieldName(name);
 }
 
 /**
@@ -114,6 +125,9 @@ function isNodeAllowed(node: PageNode): boolean {
  * Malformed conditions fail OPEN (visible).
  */
 function isNodeVisible(node: PageNode): boolean {
+  // The page root is always visible — a (hand-written) root condition could
+  // otherwise blank the whole page with nothing left to toggle it back.
+  if (node.type === 'page') return true;
   const vw = (node as ElementNode).visibleWhen;
   if (!vw || typeof vw !== 'object') return true;
   if (typeof vw.field !== 'string' || vw.field === '') return true;
@@ -133,6 +147,18 @@ function visibleValues(): ActionValues {
   };
   walk(renderSchema.value);
   return out;
+}
+
+/** Names of the named inputs in the allowed AND currently visible tree. */
+function visibleFieldNames(): Set<string> {
+  const names = new Set<string>();
+  const walk = (node: PageNode) => {
+    if (!isNodeAllowed(node) || !isNodeVisible(node)) return;
+    if (isNamedInput(node)) names.add(node.name);
+    if ('children' in node && Array.isArray(node.children)) node.children.forEach(walk);
+  };
+  walk(renderSchema.value);
+  return names;
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
@@ -182,14 +208,19 @@ function initValues() {
 }
 
 /**
- * Per-key value equality: Object.is, plus one level of array-by-content so
+ * Per-key value equality: Object.is over the RAW values (the value model
+ * hands out reactive proxies while baselines/initialValues hold raw objects —
+ * the same underlying object must compare equal), plus array-by-content so
  * `['a'] vs ['a']` (multi-select values, re-minted inline literals) compare
- * as equal.
+ * as equal. Distinct objects with equal content stay unequal (one level, by
+ * design).
  */
 function sameValue(a: unknown, b: unknown): boolean {
-  if (Object.is(a, b)) return true;
-  if (Array.isArray(a) && Array.isArray(b)) {
-    return a.length === b.length && a.every((x, i) => Object.is(x, b[i]));
+  const ra = toRaw(a);
+  const rb = toRaw(b);
+  if (Object.is(ra, rb)) return true;
+  if (Array.isArray(ra) && Array.isArray(rb)) {
+    return ra.length === rb.length && ra.every((x, i) => sameValue(x, rb[i]));
   }
   return false;
 }
@@ -207,9 +238,20 @@ initValues();
 watch(() => props.schema, initValues, { deep: false });
 // Guarded by VALUE, not reference: an inline `:initial-values="{ … }"` literal
 // mints a new object on every parent render — a value-identical replacement
-// must not wipe the user's in-progress input.
+// must not wipe the user's in-progress input. Compared over the keys the form
+// actually CONSUMES (named inputs of the allowed tree), so changes to
+// irrelevant keys can't wipe input either.
 watch(() => props.initialValues, (next, prev) => {
-  if (shallowEqual(next, prev)) return;
+  const names = new Set<string>();
+  collectFieldNames(renderSchema.value, names);
+  const consumed = (source?: ActionValues): ActionValues => {
+    const out: ActionValues = {};
+    for (const k of Object.keys(source ?? {})) {
+      if (names.has(k)) out[k] = source![k];
+    }
+    return out;
+  };
+  if (shallowEqual(consumed(next), consumed(prev))) return;
   initValues();
 });
 
@@ -372,15 +414,15 @@ const genericActionError = () =>
  * the whole flight window, and a rejection surfaces in the form banner —
  * `Error.message` is the consumer's user-facing channel ("Invalid
  * credentials"), anything else falls back to a localized generic message.
+ * `payload` is a snapshot, never the live reactive object — the validated
+ * path passes the exact snapshot `onValidate` approved.
  */
-async function runAction(id: string) {
+async function runAction(id: string, payload?: ActionValues) {
   const handler = props.actions?.[id];
   if (!handler) return;
   isSubmitting.value = true;
   try {
-    // A snapshot, not the live reactive object — handlers must not be able to
-    // mutate or observe form state after the fact.
-    await handler(visibleValues());
+    await handler(payload ?? visibleValues());
   } catch (e) {
     formError.value = (e instanceof Error && e.message) || genericActionError();
     console.error(`[CoarPageRenderer] action "${id}" failed.`, e);
@@ -393,7 +435,9 @@ async function runAction(id: string) {
  * Submit path of a `validates: true` button: reveal every declarative error
  * (the button stays clickable — a disabled button can't explain itself), then
  * run the submit-time `onValidate` (possibly async), and only call the action
- * when everything is clean.
+ * when everything is clean. ONE snapshot serves validation AND the action —
+ * inputs stay editable during an async `onValidate`, and edits made in that
+ * window must not ship unvalidated (they need their own submit).
  */
 async function runValidatedAction(id: string) {
   markAllTouched(renderSchema.value);
@@ -401,17 +445,29 @@ async function runValidatedAction(id: string) {
     void focusFirstError();
     return;
   }
+  const payload = visibleValues();
   if (props.onValidate) {
     isValidating.value = true;
     try {
-      const result = await props.onValidate(visibleValues());
+      const result = await props.onValidate(payload);
       const errors: Record<string, string> = {};
       for (const [k, v] of Object.entries(result ?? {})) {
-        if (v) errors[k] = v;
+        if (v && !isUnsafeFieldName(k)) errors[k] = v;
       }
       // `_form` addresses the form, not a field — route it to the banner.
       formError.value = errors[FORM_ERROR_KEY] ?? '';
       delete errors[FORM_ERROR_KEY];
+      // Errors keyed to fields that cannot display (hidden by visibleWhen,
+      // renamed, never on the page) would block the submit with zero visible
+      // feedback — route their messages to the banner instead.
+      const displayable = visibleFieldNames();
+      const orphaned = Object.keys(errors).filter((k) => !displayable.has(k));
+      if (orphaned.length > 0) {
+        formError.value = [formError.value, ...orphaned.map((k) => errors[k])]
+          .filter(Boolean)
+          .join(' ');
+        for (const k of orphaned) delete errors[k];
+      }
       asyncErrors.value = errors;
       if (Object.keys(errors).length > 0 || formError.value) {
         if (Object.keys(errors).length > 0) void focusFirstError();
@@ -425,7 +481,7 @@ async function runValidatedAction(id: string) {
       isValidating.value = false;
     }
   }
-  await runAction(id);
+  await runAction(id, payload);
 }
 
 /** One trigger at a time: guard reentry, track the pending id, clear the stale banner. */
@@ -479,8 +535,16 @@ function onEnterKey(e: KeyboardEvent) {
   const target = enterTarget.value;
   if (!target) return;
   if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+  // An IME composition-commit Enter (Japanese/Chinese/Korean input) confirms
+  // the composition, it does not submit — Vue's .enter modifier does not
+  // filter it.
+  if (e.isComposing) return;
   const el = e.target as Element | null;
   if (!el?.closest?.('[data-pb-enter-submit]')) return;
+  // Commit-on-blur controls (number input) flush their pending edit on blur —
+  // the submit must read the value the user SEES, not the last committed one.
+  // On a failed submit, focusFirstError restores focus.
+  if (el instanceof HTMLElement) el.blur();
   void runTrigger(target.action, target.validates);
 }
 
@@ -513,8 +577,13 @@ const ctx: PageRendererContext = {
   isSubmitting,
   pendingAction,
   formError,
-  getValue: (name) => values.value[name],
+  // Unsafe keys also poison READS: `obj['__proto__']` returns the prototype
+  // object, which would leak into inputs/error slots as a truthy value.
+  getValue: (name) => (isUnsafeFieldName(name) ? undefined : values.value[name]),
   setValue: (name, value) => {
+    // Unsafe keys (__proto__ & co) would rebind the map's prototype instead
+    // of storing a value — such fields are outside the value model entirely.
+    if (isUnsafeFieldName(name)) return;
     values.value[name] = value;
     // A stale server-side error must not outlive the edit that addresses it.
     if (asyncErrors.value[name]) {
@@ -526,8 +595,13 @@ const ctx: PageRendererContext = {
     emit('update:values', visibleValues());
   },
   getError: (name) =>
-    touched.value[name] ? (computedErrors.value[name] ?? asyncErrors.value[name] ?? '') : '',
-  markTouched: (name) => { touched.value[name] = true; },
+    !isUnsafeFieldName(name) && touched.value[name]
+      ? (computedErrors.value[name] ?? asyncErrors.value[name] ?? '')
+      : '',
+  markTouched: (name) => {
+    if (isUnsafeFieldName(name)) return;
+    touched.value[name] = true;
+  },
   triggerAction(id, validates = false) {
     void runTrigger(id, validates);
   },
