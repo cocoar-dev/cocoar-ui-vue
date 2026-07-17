@@ -58,8 +58,27 @@ const visibleAddOptions = computed(() =>
       label: t(entry.builder!.label.key, undefined, entry.builder!.label.fallback),
       icon: entry.builder!.icon ?? 'circle-alert',
       group: entry.builder!.group ?? 'element',
+      hasValue: !!entry.value,
     })),
 );
+
+const containerAddOptions = computed(() =>
+  visibleAddOptions.value.filter((o) => o.group === 'container'),
+);
+const inputAddOptions = computed(() =>
+  visibleAddOptions.value.filter((o) => o.group === 'element' && o.hasValue),
+);
+const contentAddOptions = computed(() =>
+  visibleAddOptions.value.filter((o) => o.group === 'element' && !o.hasValue),
+);
+
+/**
+ * `hideElementPicker` (fields-only authoring) removes only the free INPUTS
+ * offering — the value elements the field contract replaces. Containers and
+ * content/action elements (headings, buttons, …) stay: every form needs
+ * them, contract or not.
+ */
+const showFreeInputs = computed(() => config?.value?.hideElementPicker !== true);
 
 /** Validation issues for *this* node — drives the warning icon in the row. */
 const nodeIssues = computed(() => validation?.byNodeId.value.get(props.node.id) ?? []);
@@ -309,10 +328,12 @@ function canMoveDown(): boolean {
         aria-hidden="true"
       />
 
-      <!-- Add-child trigger + dropdown (hidden when the config hides the
-           free element picker — fields-only authoring) -->
+      <!-- Add-child trigger + dropdown. With hideElementPicker (fields-only
+           authoring) only the free INPUTS section disappears — containers and
+           content/action elements stay: every form needs them. -->
       <div
-        v-if="config?.hideElementPicker !== true"
+        v-if="containerAddOptions.length > 0 || contentAddOptions.length > 0
+          || (showFreeInputs && inputAddOptions.length > 0)"
         ref="addMenuRoot"
         class="pb-tree-add"
         :style="{ paddingLeft: `${8 + (depth + 1) * 16}px` }"
@@ -327,31 +348,53 @@ function canMoveDown(): boolean {
           <span>{{ t('coar.pageBuilder.outline.addChild', undefined, 'Add child') }}</span>
         </button>
         <div v-if="addMenuOpen" class="pb-tree-add__menu" role="menu">
-          <div class="pb-tree-add__group-label">{{ t('coar.pageBuilder.palette.containers', undefined, 'Containers') }}</div>
-          <button
-            v-for="opt in visibleAddOptions.filter((o) => o.group === 'container')"
-            :key="opt.type"
-            type="button"
-            class="pb-tree-add__item"
-            role="menuitem"
-            @click.stop="pickAdd(opt.type)"
-          >
-            <CoarIcon :name="opt.icon" size="s" />
-            <span>{{ opt.label }}</span>
-          </button>
-          <div class="pb-tree-add__divider" />
-          <div class="pb-tree-add__group-label">{{ t('coar.pageBuilder.palette.elements', undefined, 'Elements') }}</div>
-          <button
-            v-for="opt in visibleAddOptions.filter((o) => o.group === 'element')"
-            :key="opt.type"
-            type="button"
-            class="pb-tree-add__item"
-            role="menuitem"
-            @click.stop="pickAdd(opt.type)"
-          >
-            <CoarIcon :name="opt.icon" size="s" />
-            <span>{{ opt.label }}</span>
-          </button>
+          <template v-if="containerAddOptions.length > 0">
+            <div class="pb-tree-add__group-label">{{ t('coar.pageBuilder.palette.containers', undefined, 'Containers') }}</div>
+            <button
+              v-for="opt in containerAddOptions"
+              :key="opt.type"
+              type="button"
+              class="pb-tree-add__item"
+              role="menuitem"
+              @click.stop="pickAdd(opt.type)"
+            >
+              <CoarIcon :name="opt.icon" size="s" />
+              <span>{{ opt.label }}</span>
+            </button>
+          </template>
+          <template v-if="showFreeInputs && inputAddOptions.length > 0">
+            <div v-if="containerAddOptions.length > 0" class="pb-tree-add__divider" />
+            <div class="pb-tree-add__group-label">{{ t('coar.pageBuilder.palette.inputs', undefined, 'Inputs') }}</div>
+            <button
+              v-for="opt in inputAddOptions"
+              :key="opt.type"
+              type="button"
+              class="pb-tree-add__item"
+              role="menuitem"
+              @click.stop="pickAdd(opt.type)"
+            >
+              <CoarIcon :name="opt.icon" size="s" />
+              <span>{{ opt.label }}</span>
+            </button>
+          </template>
+          <template v-if="contentAddOptions.length > 0">
+            <div
+              v-if="containerAddOptions.length > 0 || (showFreeInputs && inputAddOptions.length > 0)"
+              class="pb-tree-add__divider"
+            />
+            <div class="pb-tree-add__group-label">{{ t('coar.pageBuilder.palette.elements', undefined, 'Elements') }}</div>
+            <button
+              v-for="opt in contentAddOptions"
+              :key="opt.type"
+              type="button"
+              class="pb-tree-add__item"
+              role="menuitem"
+              @click.stop="pickAdd(opt.type)"
+            >
+              <CoarIcon :name="opt.icon" size="s" />
+              <span>{{ opt.label }}</span>
+            </button>
+          </template>
         </div>
       </div>
     </template>

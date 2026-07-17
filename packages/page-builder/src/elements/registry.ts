@@ -86,7 +86,11 @@ export interface ElementLintIssue {
 export interface PageElementBuilderDefinition<P extends ElementProps = ElementProps> {
   label: I18nText;
   icon?: CoreIconName;
-  /** Palette/add-menu grouping. Defaults to 'element'. */
+  /**
+   * Palette/add-menu grouping. Defaults to 'element'. The 'element' group is
+   * presented split: definitions WITH a value spec show under "Inputs" (the
+   * offering `hideElementPicker` removes), the rest under "Elements".
+   */
   group?: 'container' | 'element';
   /** Props bag for a freshly dropped node. The host mints `id`, `name` and `children`. */
   defaults: () => P;

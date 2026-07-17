@@ -133,10 +133,11 @@ interface PageConfig {
   allowCustomFields?: boolean
 
   /**
-   * Hide the free element picker (the Containers/Elements palette groups and
-   * the outline's add-child menu) — authors place content exclusively by
-   * dragging contract fields. Pure authoring UI; `allowedElements` remains
-   * the boundary for what may be used at all.
+   * Hide the free INPUTS offering (the palette's Inputs group and the
+   * input entries of the outline's add-child menu) — exactly the value
+   * elements the field contract replaces. Containers and content/action
+   * elements (headings, buttons, …) stay available. Pure authoring UI;
+   * `allowedElements` remains the boundary for what may be used at all.
    */
   hideElementPicker?: boolean
 
@@ -278,7 +279,7 @@ The allow-list composes with the contract at every seam: a field's default eleme
 
 #### Fields-only authoring
 
-Set `hideElementPicker: true` to remove the free element picker entirely (the Containers/Elements palette groups and the outline's add-child menu): authors then place content exclusively by dragging contract fields. It is pure authoring UI — combine it with `allowedElements` when the *rendering* boundary should shrink too.
+Set `hideElementPicker: true` to remove the free **Inputs** offering (the Inputs palette group and the input entries of the outline's add-child menu) — exactly the value elements the field contract replaces: fields then come exclusively from dragging contract cards. **Containers** (layout) and **Elements** (headings, notes, buttons, links, images — everything without a value spec) stay available, because every form needs structure and chrome. The Inputs/Elements split is registry-derived from the value spec, so consumer elements sort themselves. It is pure authoring UI — combine it with `allowedElements` when the *rendering* boundary should shrink too.
 
 #### Typed field lists (opt-in)
 
