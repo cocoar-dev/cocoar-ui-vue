@@ -1,3 +1,7 @@
+---
+description: "CoarDataGrid number column — col.number() formats locale-aware and edits with CoarNumberCellEditor supporting min/max, decimals, step, and stepper buttons."
+---
+
 # Number Column
 
 `col.number(field, …)` is locale-aware in both display and editing. Two forms — pick by need:

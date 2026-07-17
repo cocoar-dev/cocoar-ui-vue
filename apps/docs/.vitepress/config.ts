@@ -211,7 +211,9 @@ export default defineConfig({
       { text: 'Guide', link: '/guide/getting-started', activeMatch: '/guide/|/foundations/' },
       { text: 'Components', link: '/components/button', activeMatch: '/components/' },
       { text: 'Kitchen Sink', link: '/foundations/kitchen-sink' },
-      { text: 'LLM Docs', link: '/llms-full.txt', target: '_blank' },
+      // The compact annotated index (frontmatter descriptions per page) — the
+      // full dump stays reachable via the <link rel=alternate> head entry.
+      { text: 'LLM Docs', link: '/llms.txt', target: '_blank' },
     ],
 
     sidebar: {

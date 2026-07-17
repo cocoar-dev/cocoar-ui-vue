@@ -1,3 +1,7 @@
+---
+description: "CoarDataGrid — AG Grid-based data grid with fluent builder API, locale-aware column types, wrapper-column decorations and Cocoar theming with dark mode."
+---
+
 # Data Grid
 
 A powerful data grid built on AG Grid with Cocoar theming. Configure columns, sorting, selection, and cell renderers through a fluent builder API — no raw AG Grid config needed.

@@ -1,3 +1,7 @@
+---
+description: "CoarDataGrid text column — col.text() edits cells with CoarTextInput via CoarTextCellEditor, with placeholder, maxLength, and per-row editable gating."
+---
+
 # Text Column
 
 `col.text(field, configurator?)` declares a text column whose editor is `<CoarTextInput>` — same visual language as forms, fitted into the cell.

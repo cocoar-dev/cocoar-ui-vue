@@ -1,3 +1,7 @@
+---
+description: "Source-agnostic document viewer for Vue 3 — CoarDocumentViewer renders PDFs, images, and image galleries with shared toolbar chrome, side panels, and an annotation layer."
+---
+
 # Document Viewer <Badge type="warning" text="Preview" />
 
 `@cocoar/vue-document-viewer` is a generic, source-agnostic document viewer for Vue 3. One component — [`<CoarDocumentViewer>`](./coar-document-viewer) — renders **PDFs**, **single images**, and **multi-page image galleries**, with shared toolbar chrome, side panels, and an annotation layer.

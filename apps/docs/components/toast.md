@@ -1,3 +1,7 @@
+---
+description: "useToast and CoarToastContainer — non-blocking notification service with semantic variants, duration and position control, action buttons and progress indicator"
+---
+
 # Toast
 
 Non-blocking notification messages that slide in, deliver a brief update, and dismiss themselves. Toasts are perfect for confirming background actions -- a file uploaded, a record saved, or a network error encountered -- without interrupting the user's current workflow.

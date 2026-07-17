@@ -1,3 +1,7 @@
+---
+description: "CoarAvatar — user avatar with image and generated-initials fallback, six sizes, circle or square shape, clickable mode and group stacking."
+---
+
 # Avatar
 
 Use avatars to give users and entities a recognizable visual identity throughout your application. They display a profile image when available and gracefully fall back to generated initials, so every user always has a face -- even before they upload a photo.

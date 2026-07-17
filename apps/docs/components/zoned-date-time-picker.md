@@ -1,3 +1,7 @@
+---
+description: "CoarZonedDateTimePicker — timezone-aware datetime picker capturing date, time and IANA timezone as one Temporal.ZonedDateTime, with form states and four sizes"
+---
+
 # Zoned DateTime Picker
 
 The full-featured datetime picker for timezone-aware values. It captures a date, time, and IANA timezone as a single `Temporal.ZonedDateTime`, making it easy to derive UTC instants for storage while preserving the user's original intent.

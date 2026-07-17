@@ -1,3 +1,7 @@
+---
+description: "Translation lookup with the useI18n() composable: t() and tRef() with parameter interpolation, HTTP-loaded or code-registered translations, and fallbacks."
+---
+
 <script setup>
 import TranslationDemo from './demos/TranslationDemo.vue';
 </script>

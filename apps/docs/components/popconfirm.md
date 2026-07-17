@@ -1,3 +1,7 @@
+---
+description: "CoarPopconfirm — inline confirmation bubble anchored to a trigger element, with confirm/cancel actions, danger variant, custom labels and placement control"
+---
+
 # Popconfirm
 
 A lightweight confirmation bubble that appears right next to the trigger element. Use it for quick "are you sure?" moments -- deleting a row, removing a team member, or publishing a change -- without pulling the user out of context with a full-screen modal dialog.

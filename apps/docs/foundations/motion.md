@@ -1,3 +1,7 @@
+---
+description: "Motion design tokens: duration and easing CSS variables plus pre-composed transition values, with interactive demos and usage examples."
+---
+
 <script setup>
 import DurationDemo from './motion/demos/DurationDemo.vue';
 import EasingDemo from './motion/demos/EasingDemo.vue';

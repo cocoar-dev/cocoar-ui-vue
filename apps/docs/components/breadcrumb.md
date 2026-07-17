@@ -1,3 +1,7 @@
+---
+description: "CoarBreadcrumb — hierarchical navigation trail with router-aware links, non-interactive active item, icons and automatic render-mode selection per crumb."
+---
+
 # Breadcrumb
 
 Show users exactly where they are within a page hierarchy and give them a quick path back to any parent level. Breadcrumbs are especially valuable in applications with deep navigation structures, where the sidebar alone does not make the current location obvious.

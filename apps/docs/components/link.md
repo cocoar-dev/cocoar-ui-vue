@@ -1,3 +1,7 @@
+---
+description: "CoarLink — styled anchor for router and external navigation with accent/subtle variants, three sizes, safe new-tab defaults and disabled handling"
+---
+
 # Link
 
 Styled anchor elements for in-page navigation, external references, and any clickable text that isn't a button action. Two equivalent APIs:

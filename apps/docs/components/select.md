@@ -1,3 +1,7 @@
+---
+description: "CoarSelect, CoarMultiSelect and CoarTagSelect — dropdown selection with inline search, clearable state, option groups, sorting and form-field integration"
+---
+
 # Select
 
 Select components for single and multiple value selection. Choose between Single Select, Multi Select, or Tag Select variants.

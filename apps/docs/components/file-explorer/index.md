@@ -1,3 +1,7 @@
+---
+description: "Headless VSCode-style file explorer engine for Vue 3 — useFileExplorer drives a pluggable AssetStore backend; you compose the layout from @cocoar/vue-ui primitives."
+---
+
 # File Explorer <Badge type="warning" text="Preview" />
 
 `@cocoar/vue-file-explorer-core` is the **headless engine** for a VSCode-style file/asset explorer in Vue 3 — the **data + coordination**, not a finished UI. A single composable, `useFileExplorer({store})`, drives a pluggable `AssetStore<T>` backend and returns every ref + op a file explorer needs (tree + tab state machine, selection, async loading, blob-URL leases, dirty tracking, conflict resolution). It ships **no layout** — you compose the chrome with [`@cocoar/vue-ui`](/components/panel-layout) (`CoarPanelLayout`, `CoarSplitPane`, `CoarTree`, …). A batteries-included, layouted `<CoarFileExplorer>` component — under the bare `@cocoar/vue-file-explorer` name — is planned on top.

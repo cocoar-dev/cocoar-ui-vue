@@ -1,3 +1,7 @@
+---
+description: "CoarSwitch — toggle for boolean settings that apply immediately, with four sizes, label positioning, validation states and keyboard and screen-reader support"
+---
+
 # Switch
 
 A toggle for boolean settings that take effect immediately -- think "Enable notifications" or "Dark mode". Unlike a [Checkbox](/components/checkbox), a switch signals instant action rather than a deferred choice that requires a submit button.

@@ -1,3 +1,7 @@
+---
+description: "CoarIcon and the built-in SVG icon set: preset sizes, colors, rotation, spin animation, and registering custom icon sources with fallback."
+---
+
 <script setup>
 import IconGallery from './icons/demos/IconGallery.vue';
 import IconSizes from './icons/demos/IconSizes.vue';

@@ -1,5 +1,6 @@
 ---
 layout: home
+description: "Cocoar UI Vue — Vue 3 component library for the Cocoar Design System: 30+ accessible, themeable, tree-shakeable components with dark mode."
 
 hero:
   name: Cocoar UI Vue

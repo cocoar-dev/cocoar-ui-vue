@@ -1,3 +1,7 @@
+---
+description: "Locale-aware number, currency, percent, and date formatting via the useL10n() composable from @cocoar/vue-localization, reacting to language changes."
+---
+
 <script setup>
 import NumberFormatter from './demos/NumberFormatter.vue';
 import DateFormatter from './demos/DateFormatter.vue';

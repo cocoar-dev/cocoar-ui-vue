@@ -1,3 +1,7 @@
+---
+description: "Registering consumer element types via PageElementDefinition: props-bag wire format, runtime renderer with usePageElement, plus palette, preview and inspector integration."
+---
+
 # Custom elements
 
 `@cocoar/vue-page-builder` dispatches every element — built-in and consumer-defined alike — through one **element registry**. A registration is a plain object (`PageElementDefinition`) that packages everything the renderer and the builder need to know about one element type: the runtime component, its value-model participation, and optionally its editor appearance (palette entry, canvas preview, inspector).

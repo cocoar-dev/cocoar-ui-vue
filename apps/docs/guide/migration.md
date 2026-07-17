@@ -1,3 +1,7 @@
+---
+description: "Migration guide for Cocoar UI 2.11: date/time pickers move onto CoarFormField, the clear button becomes opt-in, and two CSS tokens are renamed."
+---
+
 # Migrating to 2.11
 
 The 2.11 release unifies the whole input family onto one internal shell

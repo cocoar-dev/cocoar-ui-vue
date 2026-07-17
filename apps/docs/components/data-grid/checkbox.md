@@ -1,3 +1,7 @@
+---
+description: "CoarDataGrid checkbox column — col.checkbox() renders a read-only CoarCheckbox per cell, with opt-in edit-mode toggling, per-row gating, and indeterminate tri-state."
+---
+
 # Checkbox Column
 
 `col.checkbox(field, configurator?)` renders a `<CoarCheckbox>` in each cell — same visual language as forms, just sized to fit the row. The renderer is **always read-only**; interactivity comes from edit-mode, exactly like text/number/select columns.

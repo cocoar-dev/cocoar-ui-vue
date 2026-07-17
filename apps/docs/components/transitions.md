@@ -1,3 +1,7 @@
+---
+description: "CoarFade, CoarSlide, CoarScale, CoarCollapse — pre-built Vue transition wrappers on design-system motion tokens with duration presets and prefers-reduced-motion support"
+---
+
 # Transitions
 
 Pre-built Vue `<Transition>` wrappers that use the design system's motion tokens. Drop them in, toggle visibility, done — durations, easing, and `prefers-reduced-motion` are handled automatically.

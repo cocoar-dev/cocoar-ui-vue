@@ -1,3 +1,7 @@
+---
+description: "Overview of @cocoar/vue-page-builder, a headless visual page composition framework: consumer-defined element registry, portable JSON schemas, shared PageConfig for builder and renderer."
+---
+
 # Page Builder
 
 `@cocoar/vue-page-builder` is a generic, headless visual page composition framework. Users drag UI primitives onto a canvas, configure them, and the result is a portable JSON schema that a companion renderer turns back into live Cocoar components.

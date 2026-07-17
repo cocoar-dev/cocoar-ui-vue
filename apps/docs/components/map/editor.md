@@ -1,3 +1,7 @@
+---
+description: "CoarMapEditor, the write counterpart of CoarMap: place, move, edit, reorder and delete points visually, emitting fresh MapData via v-model."
+---
+
 # Map Editor <Badge type="warning" text="Preview" />
 
 A visual editor for [`<CoarMap>`](/components/map/) data. `<CoarMapEditor>` is the

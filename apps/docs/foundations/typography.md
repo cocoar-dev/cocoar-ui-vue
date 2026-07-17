@@ -1,3 +1,7 @@
+---
+description: "The Cocoar type scale: eleven utility classes from display to footnote using Inter and Poppins, with sizes, weights, and usage examples."
+---
+
 <script setup>
 import TypeScale from './typography/demos/TypeScale.vue';
 import TypographyExample from './typography/demos/TypographyExample.vue';

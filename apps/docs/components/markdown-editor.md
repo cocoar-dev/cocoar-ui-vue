@@ -1,3 +1,7 @@
+---
+description: "CoarMarkdownEditor — Milkdown-based WYSIWYG markdown editor with lossless round-trip, floating or fixed toolbar and a render registry shared with CoarMarkdown"
+---
+
 # Markdown Editor <Badge type="warning" text="Preview" />
 
 WYSIWYG Markdown editor for Vue 3 based on [Milkdown](https://milkdown.dev/) (Kit approach), styled with the Cocoar Design System. Markdown-first: lossless round-trip between text and editor state. Shares the same remark stack — and the same render registry — as `@cocoar/vue-markdown-core` and `<CoarMarkdown>`.

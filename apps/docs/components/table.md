@@ -1,3 +1,7 @@
+---
+description: "CoarTable — lightweight styled table wrapper with striped, plain and bordered variants, compact padding, hover highlighting and rich cell content"
+---
+
 # Table
 
 A lightweight table wrapper that provides consistent styling, alternating row colors, and proper alignment out of the box. Use it whenever you need to present structured data -- user lists, order histories, configuration settings, or comparison grids.

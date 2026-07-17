@@ -1,3 +1,7 @@
+---
+description: "CoarWorkWeekView — week view filtered to a configurable working-day set (default Mon-Fri), supporting 6-day, 4-day and Sun-Thu weeks on the same time grid"
+---
+
 # `<CoarWorkWeekView>` — Work Week View <Badge type="warning" text="Preview" />
 
 The week view with weekend columns filtered out. Configurable working-day set via `builder.workDays(...)` — defaults to Mon–Fri but adapts to 6-day operations (Mon–Sat), 4-day weeks (Mon–Thu), Sun–Thu Middle-East work weeks, or any other DayOfWeek subset.

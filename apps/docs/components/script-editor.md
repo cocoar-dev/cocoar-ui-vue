@@ -1,3 +1,7 @@
+---
+description: "@cocoar/vue-script-editor — Monaco-based TypeScript/JavaScript/JSON editor with v-model, custom type definitions, constrained mode with protected lines and automatic theming"
+---
+
 # Script Editor
 
 A Monaco-based code editor for Vue 3 with Cocoar Design System theming. Supports **TypeScript, JavaScript, and JSON**, with first-class support for user-supplied type definitions (IntelliSense for your domain types).

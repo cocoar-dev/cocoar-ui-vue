@@ -1,3 +1,7 @@
+---
+description: "The six Cocoar Design System principles — clarity, consistency, accessibility, touch-first, performance, developer experience — plus the design token architecture and do's and don'ts."
+---
+
 # Design Principles
 
 The foundation of the Cocoar Design System — six principles that guide every design decision across our Vue 3 component library.

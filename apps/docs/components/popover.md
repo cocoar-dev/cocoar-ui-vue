@@ -1,3 +1,7 @@
+---
+description: "CoarPopover — anchored panel for rich interactive content with hover, click or combined trigger modes and automatic viewport-aware positioning"
+---
+
 # Popover
 
 Popovers display rich, interactive content anchored to a trigger element. Unlike tooltips (which are text-only and non-interactive), popovers can hold forms, menus, formatted text, and action buttons. They stay open until the user clicks away or presses Escape, giving people time to interact with the content inside.

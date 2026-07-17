@@ -1,3 +1,7 @@
+---
+description: "CoarProgressBar — determinate and indeterminate progress indicator with semantic color variants, three sizes, optional value display and accessible labels"
+---
+
 # Progress Bar
 
 Progress bars keep users informed about ongoing operations -- file uploads, multi-step workflows, or background tasks. They reduce uncertainty by showing either a concrete completion percentage or an animated indicator when the duration is unknown.

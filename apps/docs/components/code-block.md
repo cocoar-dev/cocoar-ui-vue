@@ -1,3 +1,7 @@
+---
+description: "CoarCodeBlock — syntax-highlighted code display with copy-to-clipboard button, collapsible behavior, line numbers, title label and color variants."
+---
+
 # Code Block
 
 Display source code with syntax highlighting, a one-click copy button, and optional collapsing. Use it in documentation, onboarding flows, or anywhere users need to read or copy code snippets.

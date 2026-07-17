@@ -1,3 +1,7 @@
+---
+description: "@cocoar/vue-calendar — Temporal-based Vue 3 calendar with Day, Week, Month and Agenda views, usable through the CoarCalendar shell or as standalone sub-views"
+---
+
 # Calendar <Badge type="warning" text="Preview" />
 
 A Vue 3 calendar built around four views — **Day**, **Week**, **Month**, **Agenda** — and a top-level [`<CoarCalendar>`](/components/calendar/coar-calendar) shell that wires them together with prev / today / next navigation and a view switcher.

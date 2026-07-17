@@ -1,3 +1,7 @@
+---
+description: "CoarDualListbox — two-column transfer list with move buttons, per-column search, grouping, custom item renderers and drag & drop between columns"
+---
+
 # Dual Listbox
 
 Two [`CoarListbox`](./listbox) columns side-by-side with move buttons — the classic pattern for moving items between "available" and "selected" sets. All the search, grouping, and custom-render features of `CoarListbox` carry over automatically.

@@ -1,3 +1,7 @@
+---
+description: "The useTimezone() composable exposes the detected IANA timezone as a reactive ref, with support for custom timezone providers."
+---
+
 <script setup>
 import TimezoneDemo from './demos/TimezoneDemo.vue';
 </script>

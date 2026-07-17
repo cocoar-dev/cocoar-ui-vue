@@ -1,3 +1,7 @@
+---
+description: "CoarTextInput — text field with validation states, prefix/suffix decorations, clearable option, four sizes and multiline textarea mode"
+---
+
 # Text Input
 
 The go-to component for collecting short text from users -- names, emails, search queries, and more. It handles labels, validation, prefix/suffix decorations, and can even stretch into a textarea when you need longer content.

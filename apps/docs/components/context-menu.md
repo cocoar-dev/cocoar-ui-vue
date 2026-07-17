@@ -1,3 +1,7 @@
+---
+description: "CoarContextMenu with useContextMenu — right-click menu at the pointer position with viewport clamping, submenus, flyouts and auto-close behavior."
+---
+
 # Context Menu
 
 Open a menu at the pointer position on right-click. The `useContextMenu` composable manages open/close state and cursor coordinates, while `CoarContextMenu` renders the menu as a floating overlay with automatic viewport clamping.

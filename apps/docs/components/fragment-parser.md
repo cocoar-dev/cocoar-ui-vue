@@ -1,3 +1,7 @@
+---
+description: "@cocoar/vue-fragment-parser — parses URL hash fragments into typed routes with parameters; composables enable deep-linkable modals with browser-back to close"
+---
+
 # Fragment Parser & Modal Routing
 
 Parse URL fragments (hash portion) into structured routes with parameters. Combined with composables, this enables **deep-linkable modals** — open modals via URL, share links, and use browser back to close them.

@@ -1,3 +1,7 @@
+---
+description: "CoarPasswordInput — masked text input with show/hide visibility toggle, clearable option, four sizes, validation states and CoarFormField integration"
+---
+
 # Password Input
 
 A text input tailored for passwords. It masks characters by default and provides a built-in eye toggle so users can temporarily reveal what they typed -- reducing frustration without sacrificing security.

@@ -1,3 +1,7 @@
+---
+description: "@cocoar/vue-markdown-mermaid — renders mermaid code fences in CoarMarkdown as Cocoar-themed diagrams; lazy-loaded, strict security, degrades to plain code blocks"
+---
+
 # Diagrams <Badge type="warning" text="Preview" />
 
 Render diagrams inside markdown from a fenced code block — <code>```mermaid</code>

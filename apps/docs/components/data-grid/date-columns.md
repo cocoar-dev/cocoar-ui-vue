@@ -1,3 +1,7 @@
+---
+description: "CoarDataGrid date columns — col.plainDate/plainDateTime/zonedDateTime render Temporal values locale-aware and edit via the matching Cocoar date-time picker."
+---
+
 # Date Columns <Badge type="tip" text="New in 2.0" />
 
 Three Temporal-typed column shortcuts for date / date-time / zoned-date-time cells. All three follow the same pattern: a renderer that formats locale-aware via `toLocaleString`, an editor that wraps the matching `<CoarPlainDatePicker>` / `<CoarPlainDateTimePicker>` / `<CoarZonedDateTimePicker>` component.

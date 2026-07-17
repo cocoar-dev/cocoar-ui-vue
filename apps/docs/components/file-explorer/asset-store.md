@@ -1,3 +1,7 @@
+---
+description: "AssetStore contract for the file-explorer engine — the backend-agnostic read/write interface (loadTree, uploadFile, rename, move) with optional lazy and browse-only modes."
+---
+
 # AssetStore&lt;T&gt; contract
 
 `AssetStore<T>` is the data-plane interface that decouples the file-explorer UX from any specific backend. Implement these methods over HTTP, IndexedDB, S3, the OPFS, an in-memory `ref` — the composable doesn't care. `createAssetStore(config)` returns a typed store from a flat config struct; this is the recommended factory because it gives future cross-cutting wrappers (request dedup, retry, telemetry) a place to land.
