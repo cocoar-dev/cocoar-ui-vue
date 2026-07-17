@@ -7,7 +7,7 @@ import DateInputDefaultInput from './DateInputDefaultInput.vue';
 
 export const dateInputElement = definePageElement<DateInputNode['props']>({
   renderer: DateInputRenderer,
-  value: { types: ['date'] },
+  value: { types: ['date'], submitOnEnter: true },
   builder: {
     label: { key: 'coar.pageBuilder.type.dateInput', fallback: 'Date' },
     icon: 'calendar',

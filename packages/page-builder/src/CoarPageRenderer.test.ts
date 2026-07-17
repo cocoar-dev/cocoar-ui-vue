@@ -568,6 +568,97 @@ describe('CoarPageRenderer — submit lifecycle', () => {
   });
 });
 
+describe('CoarPageRenderer — enter to submit', () => {
+  const emailField = {
+    id: 't', type: 'text-input', name: 'email', props: { label: 'Email' }, defaultValue: 'x@y.z',
+  };
+  const validatingButton = {
+    id: 'b', type: 'button', props: { label: 'Send', action: 'send', validates: true },
+  };
+  const pageFor = (enterSubmits: boolean | undefined, children: unknown[]): PageNode =>
+    ({ id: 'r', type: 'page', enterSubmits, children } as PageNode);
+
+  it('plain Enter in a single-line input fires the first validating button', async () => {
+    const send = vi.fn();
+    const wrapper = mount(CoarPageRenderer, {
+      props: { schema: pageFor(true, [emailField, validatingButton]), actions: { send } },
+    });
+
+    await wrapper.find('input').trigger('keydown', { key: 'Enter' });
+    await flushPromises();
+    expect(send).toHaveBeenCalledWith({ email: 'x@y.z' });
+  });
+
+  it('does nothing without the page-level enterSubmits opt-in', async () => {
+    const send = vi.fn();
+    const wrapper = mount(CoarPageRenderer, {
+      props: { schema: pageFor(undefined, [emailField, validatingButton]), actions: { send } },
+    });
+
+    await wrapper.find('input').trigger('keydown', { key: 'Enter' });
+    await flushPromises();
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it('prefers the default: true button over the first validating one', async () => {
+    const save = vi.fn();
+    const login = vi.fn();
+    const wrapper = mount(CoarPageRenderer, {
+      props: {
+        schema: pageFor(true, [
+          emailField,
+          validatingButton,
+          { id: 'b2', type: 'button', props: { label: 'Login', action: 'login', default: true } },
+        ]),
+        actions: { send: save, login },
+      },
+    });
+
+    await wrapper.find('input').trigger('keydown', { key: 'Enter' });
+    await flushPromises();
+    expect(login).toHaveBeenCalledTimes(1);
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it('ignores Enter in a textarea and in elements that never declared eligibility', async () => {
+    const send = vi.fn();
+    const wrapper = mount(CoarPageRenderer, {
+      props: {
+        schema: pageFor(true, [
+          { id: 'bio', type: 'text-input', name: 'bio', props: { rows: 4 } },
+          { id: 'ok', type: 'checkbox', name: 'ok', props: { label: 'OK' } },
+          validatingButton,
+        ]),
+        actions: { send },
+      },
+    });
+
+    await wrapper.find('textarea').trigger('keydown', { key: 'Enter' });
+    await wrapper.find('input[type="checkbox"]').trigger('keydown', { key: 'Enter' });
+    await flushPromises();
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it('ignores modified Enter and an Enter the element already consumed', async () => {
+    const send = vi.fn();
+    const wrapper = mount(CoarPageRenderer, {
+      props: { schema: pageFor(true, [emailField, validatingButton]), actions: { send } },
+    });
+
+    const input = wrapper.find('input');
+    await input.trigger('keydown', { key: 'Enter', shiftKey: true });
+    await input.trigger('keydown', { key: 'Enter', ctrlKey: true });
+
+    // A component that handles Enter itself (picker popover, autocomplete)
+    // calls preventDefault — the host must not double-handle it.
+    input.element.addEventListener('keydown', (e) => e.preventDefault());
+    await input.trigger('keydown', { key: 'Enter' });
+
+    await flushPromises();
+    expect(send).not.toHaveBeenCalled();
+  });
+});
+
 describe('CoarPageRenderer — initialValues', () => {
   const schema: PageNode = {
     id: 'r',

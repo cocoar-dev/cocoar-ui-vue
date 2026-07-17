@@ -2,7 +2,7 @@
 import { computed, provide, ref, watch } from 'vue';
 import { useI18n } from '@cocoar/vue-localization';
 import { isElementAllowed } from './schema';
-import type { ElementNode, PageNode, PageConfig } from './schema';
+import type { ButtonNode, ElementNode, PageNode, PageConfig, PageRootNode } from './schema';
 import { useMergedElements } from './elements/useMergedElements';
 import type { PageElementDefinition } from './elements/registry';
 import { migrateLegacyTypes } from './builder/schemaNormalize';
@@ -332,6 +332,49 @@ async function runTrigger(id: string, validates: boolean) {
   }
 }
 
+// ─── Enter to submit ──────────────────────────────────────────────────────────
+
+/**
+ * The page's default button (opt-in via the root's `enterSubmits`): the first
+ * `default: true` button, else the first `validates: true` button, in tree
+ * order — disallowed subtrees excluded, like everywhere else.
+ */
+const enterTarget = computed<{ action: string; validates: boolean } | null>(() => {
+  const root = renderSchema.value as PageRootNode;
+  if (root.type !== 'page' || !root.enterSubmits) return null;
+  let dflt: { action: string; validates: boolean } | null = null;
+  let firstValidating: { action: string; validates: boolean } | null = null;
+  const walk = (node: PageNode) => {
+    if (dflt || !isNodeAllowed(node)) return;
+    if (node.type === 'button') {
+      const p = (node as ButtonNode).props ?? {};
+      if (typeof p.action === 'string' && p.action) {
+        if (p.default) { dflt = { action: p.action, validates: !!p.validates }; return; }
+        if (p.validates && !firstValidating) firstValidating = { action: p.action, validates: true };
+      }
+    }
+    if ('children' in node && Array.isArray(node.children)) node.children.forEach(walk);
+  };
+  walk(root);
+  return dflt ?? firstValidating;
+});
+
+/**
+ * Enter fires the default button when BOTH sides opted in: the page root
+ * (`enterSubmits`) and the element under the caret (`value.submitOnEnter`,
+ * resolved by PageNode into a data attribute on the element's root). Plain
+ * Enter only; an Enter the element already consumed (`defaultPrevented`, e.g.
+ * a picker popover) never submits.
+ */
+function onEnterKey(e: KeyboardEvent) {
+  const target = enterTarget.value;
+  if (!target) return;
+  if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+  const el = e.target as Element | null;
+  if (!el?.closest?.('[data-pb-enter-submit]')) return;
+  void runTrigger(target.action, target.validates);
+}
+
 const ctx: PageRendererContext = {
   get actions() { return props.actions; },
   // The builder passes one shared config to both components; the explicit
@@ -383,7 +426,7 @@ provide(PAGE_RENDERER_KEY, ctx);
 </script>
 
 <template>
-  <div class="coar-page-renderer">
+  <div class="coar-page-renderer" @keydown.enter="onEnterKey">
     <!-- Form-level error channel (`_form` / action rejection). The default
          banner sits above the page; the slot replaces the presentation, and a
          consumer element can render it in-page via usePageElement().formError. -->

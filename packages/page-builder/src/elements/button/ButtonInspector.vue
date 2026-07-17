@@ -118,4 +118,9 @@ const sizeOptions = computed<CoarSelectOption<string>[]>(() => [
     :label="t('coar.pageBuilder.props.validatesForm', undefined, 'Validates form before firing')"
     @update:model-value="(v) => props.patch({ props: { validates: v } })"
   />
+  <CoarCheckbox
+    :model-value="!!props.node.props.default"
+    :label="t('coar.pageBuilder.props.defaultButton', undefined, 'Default button (Enter submits here)')"
+    @update:model-value="(v) => props.patch({ props: { default: v || undefined } })"
+  />
 </template>

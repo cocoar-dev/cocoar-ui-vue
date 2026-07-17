@@ -48,6 +48,15 @@ export interface ElementValueSpec<P extends ElementProps = ElementProps> {
    * meaningful for elements whose value is a string.
    */
   textRules?: boolean;
+  /**
+   * Whether a plain Enter inside this element may submit the page (fire the
+   * page's default button) — only effective when the page root opts in via
+   * `enterSubmits`. Single-line inputs declare true; multi-line/multi-value
+   * elements (textarea, multi-select, OTP) stay false — as does everything
+   * that leaves this undeclared. The function form decides per props bag
+   * (text-input: only while `rows <= 1`).
+   */
+  submitOnEnter?: boolean | ((props: P) => boolean);
   /** Fallback default when the node carries no `defaultValue`. */
   defaultValue?: (props: P) => unknown;
   /**

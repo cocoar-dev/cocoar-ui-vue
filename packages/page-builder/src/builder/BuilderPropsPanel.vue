@@ -9,7 +9,7 @@ import {
   CoarSelect,
   type CoarSelectOption,
 } from '@cocoar/vue-ui';
-import type { PageNode, NodeStyle, ElementNode, FieldValidation } from '../schema';
+import type { PageNode, NodeStyle, ElementNode, FieldValidation, PageRootNode } from '../schema';
 import { BUILDER_API, BUILDER_CONFIG, BUILDER_VALIDATION } from './builderContext';
 import type { NodePath } from './operations';
 import { useMergedElements } from '../elements/useMergedElements';
@@ -49,6 +49,11 @@ const inspectorTitle = computed(() => {
 
 const isContainer = computed(
   () => node.value?.type === 'page' || def.value?.container === true,
+);
+
+/** The page root, when selected — it gets a host-owned Page section (no registry definition). */
+const pageNode = computed<PageRootNode | null>(() =>
+  node.value?.type === 'page' ? (node.value as PageRootNode) : null,
 );
 
 const nodeIssues = computed(() =>
@@ -196,6 +201,16 @@ function bindField(name: string | null) {
         </li>
       </ul>
 
+      <!-- ── Host-owned page section (root-level behavior) ───────────────── -->
+      <section v-if="pageNode" class="pb-props__section">
+        <h4 class="pb-props__section-title">{{ t('coar.pageBuilder.props.section.page', undefined, 'Page') }}</h4>
+        <CoarCheckbox
+          :model-value="!!pageNode.enterSubmits"
+          :label="t('coar.pageBuilder.props.enterSubmits', undefined, 'Enter submits (fires the default button)')"
+          @update:model-value="(v) => patch({ enterSubmits: v || undefined } as Partial<PageNode>)"
+        />
+      </section>
+
       <!-- ── Host-owned field section (value-model participation) ────────── -->
       <section v-if="fieldNode" class="pb-props__section">
         <h4 class="pb-props__section-title">{{ t('coar.pageBuilder.props.section.field', undefined, 'Field') }}</h4>
@@ -268,7 +283,7 @@ function bindField(name: string | null) {
       <section
         v-if="!def?.builder?.hideStyleSection"
         class="pb-props__section"
-        :class="{ 'pb-props__section--separated': !!inspector || !!fieldNode }"
+        :class="{ 'pb-props__section--separated': !!inspector || !!fieldNode || !!pageNode }"
       >
         <h4 class="pb-props__section-title">{{ t('coar.pageBuilder.props.section.style', undefined, 'Style') }}</h4>
         <StyleProps :node="node" :container="isContainer" :patch-style="patchStyle" />

@@ -99,6 +99,13 @@ export interface PageRootNode extends PageNodeBase {
    * `normalizePageSchema` (and on the fly by the renderer).
    */
   schemaVersion?: number
+  /**
+   * Enter submits the page: a plain Enter inside an Enter-eligible input
+   * (see `ElementValueSpec.submitOnEnter`) fires the page's default button —
+   * the first button with `default: true`, else the first `validates: true`
+   * button in tree order. Off by default.
+   */
+  enterSubmits?: boolean
   children: PageNode[]
 }
 
@@ -248,6 +255,12 @@ export type ButtonNode = ElementNode<'button', {
   action?: string
   /** When true, validates all named fields before calling the action. */
   validates?: boolean
+  /**
+   * The page's default button: Enter-to-submit (page `enterSubmits`) fires
+   * this one. Without it, Enter falls back to the first `validates: true`
+   * button in tree order.
+   */
+  default?: boolean
   icon?: string
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
   size?: 'xs' | 's' | 'm' | 'l'

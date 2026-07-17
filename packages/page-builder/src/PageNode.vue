@@ -9,11 +9,14 @@ import type { FlexDirection } from './styleMapping';
  */
 const PB_PARENT_DIRECTION: InjectionKey<ComputedRef<FlexDirection>> =
   Symbol('pb-parent-direction');
+
+/** A throwing consumer `submitOnEnter` predicate warns once per type, not per keystroke. */
+const warnedEnterHookThrew = new Set<string>();
 </script>
 
 <script setup lang="ts">
 import { computed, inject, provide } from 'vue';
-import { isElementAllowed, type PageNode, type StackNode } from './schema';
+import { isElementAllowed, type ElementNode, type PageNode, type StackNode } from './schema';
 import { selfStyle, containerLayoutStyle } from './styleMapping';
 import { PAGE_RENDERER_KEY } from './context';
 
@@ -71,6 +74,28 @@ const wrapperStyle = computed(() =>
 const children = computed(() =>
   'children' in props.node && Array.isArray(props.node.children) ? props.node.children : [],
 );
+
+/**
+ * Enter-to-submit eligibility, declared by the definition
+ * (`value.submitOnEnter`). Marked as a data attribute on the renderer's root
+ * (attribute fallthrough), so the renderer host can resolve a bubbled Enter
+ * keydown back to "came from an eligible input" via `closest()` — no
+ * per-element wiring, and consumer elements participate by declaration alone.
+ */
+const enterEligible = computed(() => {
+  const spec = def.value?.value?.submitOnEnter;
+  if (!spec) return false;
+  if (typeof spec !== 'function') return true;
+  try {
+    return !!spec((props.node as ElementNode).props ?? {});
+  } catch (e) {
+    if (!warnedEnterHookThrew.has(props.node.type)) {
+      warnedEnterHookThrew.add(props.node.type);
+      console.warn(`[CoarPageRenderer] submitOnEnter hook of element "${props.node.type}" threw — treated as not eligible.`, e);
+    }
+    return false;
+  }
+});
 </script>
 
 <template>
@@ -90,6 +115,7 @@ const children = computed(() =>
       v-else-if="def"
       :node="node"
       :style="wrapperStyle"
+      :data-pb-enter-submit="enterEligible ? 'true' : undefined"
     >
       <template v-if="def.container" #default>
         <PageNode v-for="child in children" :key="child.id" :node="child" />
