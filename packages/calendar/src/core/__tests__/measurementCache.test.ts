@@ -232,8 +232,12 @@ describe('MeasurementCache — clear / resize', () => {
 // ─── Property tests ───────────────────────────────────────────────────────
 
 describe('MeasurementCache — properties (fast-check)', () => {
-  // Bounded inputs: itemCount up to 500 keeps tests fast (< 1s overall) but
-  // still exercises a fenwick tree of depth 9.
+  // Bounded inputs: itemCount up to 500 keeps tests fast (< 1s each in
+  // isolation) but still exercises a fenwick tree of depth 9. Under FULL
+  // turbo parallelism on a contended CI runner the per-iteration expect()
+  // calls (up to ~100k per property) can still blow vitest's 5s default —
+  // each property therefore carries its own generous timeout.
+  const PROPERTY_TIMEOUT = 30_000;
   const itemCountArb = fc.integer({ min: 0, max: 500 });
   const estimateArb = fc.integer({ min: 1, max: 200 });
   const sizeArb = fc.integer({ min: 0, max: 1000 });
@@ -258,7 +262,7 @@ describe('MeasurementCache — properties (fast-check)', () => {
       ),
       { numRuns: 200 },
     );
-  });
+  }, PROPERTY_TIMEOUT);
 
   it('prefixSum is monotonically non-decreasing', () => {
     fc.assert(
@@ -282,7 +286,7 @@ describe('MeasurementCache — properties (fast-check)', () => {
       ),
       { numRuns: 200 },
     );
-  });
+  }, PROPERTY_TIMEOUT);
 
   it('prefixSum(i + 1) - prefixSum(i) === get(i)', () => {
     fc.assert(
@@ -305,7 +309,7 @@ describe('MeasurementCache — properties (fast-check)', () => {
       ),
       { numRuns: 200 },
     );
-  });
+  }, PROPERTY_TIMEOUT);
 
   it('matches the reference implementation on arbitrary set/unset sequences', () => {
     fc.assert(
@@ -350,7 +354,7 @@ describe('MeasurementCache — properties (fast-check)', () => {
       ),
       { numRuns: 100 },
     );
-  });
+  }, PROPERTY_TIMEOUT);
 
   it('indexAtOffset(prefixSum(i)) === i for any measured index i', () => {
     fc.assert(
@@ -378,7 +382,7 @@ describe('MeasurementCache — properties (fast-check)', () => {
       ),
       { numRuns: 100 },
     );
-  });
+  }, PROPERTY_TIMEOUT);
 
   it('indexAtOffset always returns a valid index (or 0 for empty)', () => {
     fc.assert(
@@ -405,5 +409,5 @@ describe('MeasurementCache — properties (fast-check)', () => {
       ),
       { numRuns: 200 },
     );
-  });
+  }, PROPERTY_TIMEOUT);
 });
