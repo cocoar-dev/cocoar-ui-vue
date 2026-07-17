@@ -16,6 +16,13 @@ import {
   type NodePath,
 } from './operations';
 
+/** Pre-binding to a contract field, applied by createNode (field-first flow). */
+export interface FieldBinding {
+  name: string;
+  label?: string;
+  required?: boolean;
+}
+
 export interface UsePageBuilderOptions {
   schema?: Ref<PageNode>;
   initial?: PageNode;
@@ -115,27 +122,32 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
   /**
    * Fresh node for an element type, built from its registry definition: the
    * builder half supplies the props bag, a value spec mints a field name, a
-   * container gets its children array. The host owns the id.
+   * container gets its children array. The host owns the id. A `bind` (from
+   * the field-first palette flow) pre-binds the node to a contract field.
    */
-  function createNode(type: string): PageNode | null {
+  function createNode(type: string, bind?: FieldBinding): PageNode | null {
     const def = (options.elements?.value ?? BUILTIN_ELEMENTS)[type];
     if (!def?.builder) {
       warnDev(`addChild: no registered element (with a builder half) for type "${type}" — ignored.`);
       return null;
     }
+    const props = def.builder.defaults() as Record<string, unknown>;
+    // The contract label rides along when the element carries one at all.
+    if (bind?.label && 'label' in props) props.label = bind.label;
     return {
       id: uid(),
       type,
-      props: def.builder.defaults(),
-      ...(def.value ? { name: fieldName() } : {}),
+      props,
+      ...(def.value ? { name: bind?.name ?? fieldName() } : {}),
+      ...(def.value && bind?.required ? { validation: { required: true } } : {}),
       ...(def.container ? { children: [] } : {}),
     } as PageNode;
   }
 
-  function addChild(parentPath: NodePath, type: string, atIndex?: number) {
+  function addChild(parentPath: NodePath, type: string, atIndex?: number, bind?: FieldBinding) {
     const parent = getNodeAt(schema.value, parentPath);
     if (!parent) return;
-    const node = createNode(type);
+    const node = createNode(type, bind);
     if (!node) return;
     const before = schema.value;
     const childCount = parent.node.children?.length ?? 0;

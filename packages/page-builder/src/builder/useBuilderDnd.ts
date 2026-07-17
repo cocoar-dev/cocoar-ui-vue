@@ -1,11 +1,13 @@
 import { inject, provide, ref, type InjectionKey, type Ref } from 'vue';
 import { isAncestor, type NodePath } from './operations';
 import { createPointerDndEngine } from './pointerDnd';
-import type { UsePageBuilderReturn } from './usePageBuilder';
+import type { FieldBinding, UsePageBuilderReturn } from './usePageBuilder';
 
 export type DragPayload =
-  // `type` is a registry key — built-in or consumer-registered.
-  | { kind: 'new'; type: string }
+  // `type` is a registry key — built-in or consumer-registered. `bind` is set
+  // by the field-first palette flow: the node arrives pre-bound to a contract
+  // field.
+  | { kind: 'new'; type: string; bind?: FieldBinding }
   | { kind: 'move'; path: NodePath };
 
 export interface BuilderDndContext {
@@ -87,7 +89,7 @@ export function provideBuilderDnd(builder: UsePageBuilderReturn): BuilderDndCont
     if (!p || !canDrop(parentPath)) return;
 
     if (p.kind === 'new') {
-      builder.addChild(parentPath, p.type, index);
+      builder.addChild(parentPath, p.type, index, p.bind);
       return;
     }
 

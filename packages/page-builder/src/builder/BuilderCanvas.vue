@@ -6,7 +6,8 @@ import { BUILDER_API, BUILDER_CONFIG } from './builderContext';
 import BuilderCanvasNode from './BuilderCanvasNode.vue';
 import { useBuilderDnd } from './useBuilderDnd';
 import { useMergedElements } from '../elements/useMergedElements';
-import { isElementAllowed } from '../schema';
+import { defaultElementForField } from '../elements/fieldContract';
+import { isElementAllowed, type PageFieldSpec, type PageNode } from '../schema';
 
 defineOptions({ name: 'BuilderCanvas' });
 
@@ -41,11 +42,68 @@ const visiblePalette = computed<PaletteEntry[]>(() =>
 
 function isPaletteDragging(type: string): boolean {
   const p = dnd.payload.value;
-  return !!(p && p.kind === 'new' && p.type === type);
+  return !!(p && p.kind === 'new' && !p.bind && p.type === type);
 }
 
 function onCardPointerDown(e: PointerEvent, type: string) {
   dnd.onHandlePointerDown(e, { kind: 'new', type });
+}
+
+// ─── Field-first palette (config.fields) ──────────────────────────────────────
+// The contract's fields are draggable too: dropping one creates its default
+// element, pre-bound (name + label + required). Bound fields grey out.
+
+const FIELD_TYPE_ICONS: Record<string, CoreIconName> = {
+  string: 'file-text',
+  number: 'hash',
+  boolean: 'check',
+  'string[]': 'list',
+  date: 'calendar',
+  datetime: 'calendar-days',
+};
+
+interface FieldPaletteEntry {
+  field: PageFieldSpec;
+  /** Element the drop creates; undefined = no compatible placeable element. */
+  elementType?: string;
+  bound: boolean;
+  icon: CoreIconName;
+  label: string;
+}
+
+const boundNames = computed(() => {
+  const names = new Set<string>();
+  const walk = (n: PageNode) => {
+    const name = (n as { name?: string }).name;
+    if (name) names.add(name);
+    if ('children' in n && Array.isArray(n.children)) n.children.forEach(walk);
+  };
+  walk(builder.schema.value);
+  return names;
+});
+
+const fieldPalette = computed<FieldPaletteEntry[]>(() =>
+  (config?.value?.fields ?? []).map((field) => ({
+    field,
+    elementType: defaultElementForField(elements.value, field),
+    bound: boundNames.value.has(field.name),
+    icon: FIELD_TYPE_ICONS[field.valueType] ?? 'circle-alert',
+    label: field.label ?? field.name,
+  })),
+);
+
+function isFieldDragging(name: string): boolean {
+  const p = dnd.payload.value;
+  return !!(p && p.kind === 'new' && p.bind?.name === name);
+}
+
+function onFieldPointerDown(e: PointerEvent, entry: FieldPaletteEntry) {
+  if (entry.bound || !entry.elementType) return;
+  dnd.onHandlePointerDown(e, {
+    kind: 'new',
+    type: entry.elementType,
+    bind: { name: entry.field.name, label: entry.field.label, required: entry.field.required },
+  });
 }
 
 function onCanvasBackgroundClick() { builder.select([]); }
@@ -86,6 +144,32 @@ function onCanvasBackgroundClick() { builder.select([]); }
           <span>{{ entry.label }}</span>
         </button>
       </div>
+      <template v-if="fieldPalette.length > 0">
+        <div class="pb-palette__divider" />
+        <div class="pb-palette__group">
+          <span class="pb-palette__label">{{ t('coar.pageBuilder.palette.fields', undefined, 'Fields') }}</span>
+          <button
+            v-for="entry in fieldPalette"
+            :key="entry.field.name"
+            type="button"
+            class="pb-palette__card pb-palette__card--field"
+            :class="{ 'pb-palette__card--dragging': isFieldDragging(entry.field.name) }"
+            :disabled="entry.bound || !entry.elementType"
+            :title="
+              entry.bound
+                ? t('coar.pageBuilder.palette.fieldBound', undefined, 'Already on the page')
+                : entry.elementType
+                  ? t('coar.pageBuilder.palette.dragToAdd', { label: entry.label }, 'Drag to add {label}')
+                  : t('coar.pageBuilder.palette.fieldNoElement', undefined, 'No compatible element available')
+            "
+            @pointerdown="onFieldPointerDown($event, entry)"
+          >
+            <CoarIcon :name="entry.icon" size="s" />
+            <span>{{ entry.label }}</span>
+            <span v-if="entry.field.required" class="pb-palette__field-required" aria-hidden="true">*</span>
+          </button>
+        </div>
+      </template>
     </div>
 
     <!-- ── Canvas surface ── -->
@@ -188,6 +272,24 @@ function onCanvasBackgroundClick() { builder.select([]); }
   --card-border: rgba(5, 150, 105, 0.3);
   --card-border-hover: rgba(5, 150, 105, 0.55);
   --card-bg-hover: rgba(5, 150, 105, 0.08);
+}
+.pb-palette__card--field {
+  --card-fg: #7c3aed;
+  --card-fg-hover: #7c3aed;
+  --card-border: rgba(124, 58, 237, 0.3);
+  --card-border-hover: rgba(124, 58, 237, 0.55);
+  --card-bg-hover: rgba(124, 58, 237, 0.08);
+}
+
+.pb-palette__card--field:disabled {
+  opacity: 0.45;
+  cursor: default;
+  transform: none;
+}
+
+.pb-palette__field-required {
+  color: var(--coar-text-semantic-error-bold, #c0392b);
+  font-weight: 700;
 }
 
 /* ── Canvas surface ──────────────────────────────────────────────────────── */

@@ -166,3 +166,28 @@ describe('usePageBuilder history', () => {
     expect(allIds(builder.schema.value)).toEqual(['root', 'a', 'b']);
   });
 });
+
+describe('usePageBuilder.addChild — field binding (field-first flow)', () => {
+  it('applies name, contract label, and required to the fresh node', () => {
+    const builder = usePageBuilder({ initial: page([]) });
+    builder.addChild([], 'password-input', undefined, {
+      name: 'password', label: 'Passwort', required: true,
+    });
+    const node = (builder.schema.value as { children: PageNode[] }).children[0] as
+      PageNode & { props: Record<string, unknown>; name?: string; validation?: { required?: boolean } };
+    expect(node.type).toBe('password-input');
+    expect(node.name).toBe('password');
+    expect(node.props.label).toBe('Passwort');
+    expect(node.validation).toEqual({ required: true });
+  });
+
+  it('skips the label carry-over when the element has no label prop', () => {
+    const builder = usePageBuilder({ initial: page([]) });
+    builder.addChild([], 'checkbox', undefined, { name: 'ok' });
+    const node = (builder.schema.value as { children: PageNode[] }).children[0] as
+      PageNode & { props: Record<string, unknown>; name?: string; validation?: unknown };
+    expect(node.name).toBe('ok');
+    expect(node.props.label).toBe('Checkbox'); // element default kept — no bind label given
+    expect(node.validation).toBeUndefined();
+  });
+});
