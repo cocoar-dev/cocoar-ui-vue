@@ -33,6 +33,19 @@ export function compilePagePattern(pattern: string): RegExp | null {
   }
 }
 
+/**
+ * The WHATWG HTML "valid email address" pattern (input[type=email]
+ * constraint-validation semantics) — full-string, linear-time (bounded
+ * quantifiers, no nesting). Since submission is JS-driven (no <form>), the
+ * browser constraint never fires; the host runs this instead.
+ */
+const EMAIL_RE =
+  /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+
+export function isValidEmail(value: string): boolean {
+  return EMAIL_RE.test(value);
+}
+
 // Date values travel as ISO strings in the schema and in ActionValues; the
 // Coar date pickers speak Temporal. These converters sit at that boundary —
 // unparsable schema data renders as an empty picker instead of throwing.

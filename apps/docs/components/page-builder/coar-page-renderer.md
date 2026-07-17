@@ -17,7 +17,7 @@ Import `@cocoar/vue-page-builder/styles` once in your app — the renderer's lay
 | `actions` | `Record<string, (values: ActionValues) => void>` | Map of action IDs to handler functions. Buttons and links call these. |
 | `onValidate` | `(values: ActionValues) => Record<string, string> \| Promise<Record<string, string>>` | Developer-only cross-field/server validation. Runs at **submit time** — when a `validates: true` button is clicked and after all declarative rules pass. May be sync or async; returns `{ fieldName: errorMessage }`. A non-empty result blocks the action. Not exposed in builder UI. See [Validation](#validation). |
 | `assetResolver` | `(id: string) => string` | Resolves an `assetId` to a URL at render time. Falls back to `config.assetResolver` when not set. Needed when the schema contains `image` nodes. |
-| `initialValues` | `ActionValues` | Host-supplied field values for edit-form scenarios, merged **over** the schema's `defaultValue`s on init. Only keys that match a **named** input in the (allowed) tree are taken — stray host data never leaks into the action payload. Replacing the object re-initializes the form, like a schema change. |
+| `initialValues` | `ActionValues` | Host-supplied field values for edit-form scenarios, merged **over** the schema's `defaultValue`s on init. Only keys that match a **named** input in the (allowed) tree are taken — stray host data never leaks into the action payload. Replacing the object with **different values** re-initializes the form, like a schema change; a value-identical replacement (e.g. an inline object literal re-created by a parent re-render) is ignored, so in-progress user input survives. |
 
 ## Usage
 
@@ -36,14 +36,21 @@ Import `@cocoar/vue-page-builder/styles` once in your app — the renderer's lay
 
 `ActionValues` is `Record<string, unknown>` — a flat map of all named fields at the time the action fires. Every input element with a `name` property contributes its value: text/otp/date inputs and selects contribute **strings** (dates as ISO strings), `number-input` a **number**, `checkbox`/`switch` **booleans**, `multi-select` a **string array**. Hand-written schemas carry no hard type guarantee, so narrow the values in your handler.
 
-To prefill a form (edit scenarios), pass `initialValues` — the values seed **over** the schema defaults, filtered to the named fields that actually exist in the allowed tree:
+To prefill a form (edit scenarios), pass `initialValues` — the values seed **over** the schema defaults, filtered to the named fields that actually exist in the allowed tree. Prefer a stable reference (a `computed` or plain object created once): replacing it with different values re-initializes the form and discards user edits.
 
 ```vue
-<CoarPageRenderer
-  :schema="profileSchema"
-  :actions="{ 'profile:save': (v) => api.save(v) }"
-  :initial-values="{ email: user.email, newsletter: true }"
-/>
+<script setup>
+// Stable per user — recomputed only when the source data changes.
+const profileValues = computed(() => ({ email: user.email, newsletter: true }));
+</script>
+
+<template>
+  <CoarPageRenderer
+    :schema="profileSchema"
+    :actions="{ 'profile:save': (v) => api.save(v) }"
+    :initial-values="profileValues"
+  />
+</template>
 ```
 
 ## JSON Schema

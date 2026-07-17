@@ -9,7 +9,7 @@ export const checkboxElement = definePageElement<CheckboxNode['props']>({
   renderer: CheckboxRenderer,
   // Default emptiness fits: `false` counts as empty, so `required` means
   // the box must be checked (consent-style).
-  value: { types: ['boolean'] },
+  value: { types: ['boolean'], defaultValue: () => false },
   builder: {
     label: { key: 'coar.pageBuilder.type.checkbox', fallback: 'Checkbox' },
     icon: 'check-circle-2',

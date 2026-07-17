@@ -8,7 +8,8 @@ import SelectDefaultInput from './SelectDefaultInput.vue';
 export const selectElement = definePageElement<SelectNode['props']>({
   renderer: SelectRenderer,
   // Default emptiness (undefined | null | '' | false | []) fits.
-  value: { types: ['string'] },
+  // null = "nothing picked" — present in the payload, still empty for `required`.
+  value: { types: ['string'], defaultValue: () => null },
   builder: {
     label: { key: 'coar.pageBuilder.type.select', fallback: 'Select' },
     icon: 'list',

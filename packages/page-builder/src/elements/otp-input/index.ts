@@ -10,6 +10,7 @@ export const otpInputElement = definePageElement<OtpInputNode['props']>({
     types: ['string'],
     // `required` means the code is COMPLETE — a partially filled code counts as empty.
     isEmpty: (v, props) => typeof v !== 'string' || v.length < (props.length ?? 6),
+    defaultValue: () => '',
   },
   builder: {
     label: { key: 'coar.pageBuilder.type.otpInput', fallback: 'OTP Input' },

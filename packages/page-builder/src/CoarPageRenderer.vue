@@ -16,7 +16,7 @@ import {
   type PageRendererContext,
 } from './context';
 import { CoarNote } from '@cocoar/vue-ui';
-import { compilePagePattern } from './renderSafety';
+import { compilePagePattern, isValidEmail } from './renderSafety';
 import PageNode_ from './PageNode.vue';
 
 const props = defineProps<{
@@ -137,9 +137,24 @@ function initValues() {
   formError.value = '';
 }
 
+/** Shallow value equality — key set + Object.is per key. */
+function shallowEqual(a?: ActionValues, b?: ActionValues): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  const keys = Object.keys(a);
+  if (keys.length !== Object.keys(b).length) return false;
+  return keys.every((k) => Object.is(a[k], b[k]));
+}
+
 initValues();
 watch(() => props.schema, initValues, { deep: false });
-watch(() => props.initialValues, initValues, { deep: false });
+// Guarded by VALUE, not reference: an inline `:initial-values="{ … }"` literal
+// mints a new object on every parent render — a value-identical replacement
+// must not wipe the user's in-progress input.
+watch(() => props.initialValues, (next, prev) => {
+  if (shallowEqual(next, prev)) return;
+  initValues();
+});
 
 // ─── Reactive error computation ───────────────────────────────────────────────
 
@@ -197,6 +212,17 @@ function computeFieldError(node: NamedNode, def: PageElementDefinition): string 
       const re = patternFor(v.pattern);
       if (re && !re.test(value)) return v.message ?? t('coar.pageBuilder.validation.pattern', undefined, 'Invalid format');
     }
+  }
+
+  // `inputType: 'email'` opts into the built-in full-string format check by
+  // default — the most common format rule must not need a hand-written
+  // pattern. Rides the textRules opt-in like the other host string rules, so
+  // consumer elements with an inputType prop participate by declaration.
+  if (
+    def.value?.textRules && typeof value === 'string' && value !== '' &&
+    (node.props as { inputType?: unknown }).inputType === 'email' && !isValidEmail(value)
+  ) {
+    return v?.message ?? t('coar.pageBuilder.validation.email', undefined, 'Enter a valid email address');
   }
 
   if (v?.matchField) {

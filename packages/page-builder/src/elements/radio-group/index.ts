@@ -8,7 +8,7 @@ import RadioGroupDefaultInput from './RadioGroupDefaultInput.vue';
 export const radioGroupElement = definePageElement<RadioGroupNode['props']>({
   renderer: RadioGroupRenderer,
   // Default emptiness (undefined | null | '' | false | []) fits.
-  value: { types: ['string'] },
+  value: { types: ['string'], defaultValue: () => null },
   builder: {
     label: { key: 'coar.pageBuilder.type.radioGroup', fallback: 'Radio Group' },
     icon: 'rows',

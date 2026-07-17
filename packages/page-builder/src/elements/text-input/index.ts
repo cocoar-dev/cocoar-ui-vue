@@ -9,7 +9,13 @@ export const textInputElement = definePageElement<TextInputNode['props']>({
   // Default emptiness (undefined | null | '' | false | []) fits; textRules
   // opts into the host-enforced minLength/maxLength/pattern rules. Enter may
   // submit only while single-line — a textarea needs Enter for newlines.
-  value: { textRules: true, types: ['string'], submitOnEnter: (props) => (props.rows ?? 1) <= 1 },
+  // The defaultValue factory keeps untouched fields PRESENT in ActionValues.
+  value: {
+    textRules: true,
+    types: ['string'],
+    submitOnEnter: (props) => (props.rows ?? 1) <= 1,
+    defaultValue: () => '',
+  },
   builder: {
     label: { key: 'coar.pageBuilder.type.textInput', fallback: 'Text Input' },
     icon: 'file-text',

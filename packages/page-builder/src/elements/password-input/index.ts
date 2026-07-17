@@ -7,7 +7,7 @@ import PasswordInputInspector from './PasswordInputInspector.vue';
 export const passwordInputElement = definePageElement<PasswordInputNode['props']>({
   renderer: PasswordInputRenderer,
   // Passwords are the classic minLength/pattern case — host-enforced rules on.
-  value: { textRules: true, types: ['string'], submitOnEnter: true },
+  value: { textRules: true, types: ['string'], submitOnEnter: true, defaultValue: () => '' },
   builder: {
     label: { key: 'coar.pageBuilder.type.passwordInput', fallback: 'Password' },
     icon: 'lock',

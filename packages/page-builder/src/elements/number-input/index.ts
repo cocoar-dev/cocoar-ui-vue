@@ -7,7 +7,8 @@ import NumberInputDefaultInput from './NumberInputDefaultInput.vue';
 
 export const numberInputElement = definePageElement<NumberInputNode['props']>({
   renderer: NumberInputRenderer,
-  value: { types: ['number'], submitOnEnter: true },
+  // null = "no number entered" — present in the payload, still empty for `required`.
+  value: { types: ['number'], submitOnEnter: true, defaultValue: () => null },
   builder: {
     label: { key: 'coar.pageBuilder.type.numberInput', fallback: 'Number Input' },
     icon: 'hash',

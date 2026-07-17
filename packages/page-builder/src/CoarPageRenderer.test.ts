@@ -568,6 +568,98 @@ describe('CoarPageRenderer — submit lifecycle', () => {
   });
 });
 
+describe('CoarPageRenderer — payload & email format contract', () => {
+  it('untouched named fields are PRESENT in the payload via definition defaults', async () => {
+    const send = vi.fn();
+    const schema: PageNode = {
+      id: 'r',
+      type: 'page',
+      children: [
+        { id: 'c', type: 'text-input', name: 'comment', props: {} },
+        { id: 'n', type: 'checkbox', name: 'newsletter', props: { label: 'News' } },
+        { id: 'm', type: 'multi-select', name: 'topics', props: { options: [{ value: 'a', label: 'A' }] } },
+        { id: 'a', type: 'number-input', name: 'age', props: {} },
+        { id: 'p', type: 'select', name: 'plan', props: { options: [{ value: 'x', label: 'X' }] } },
+        { id: 'b', type: 'button', props: { label: 'Send', action: 'send' } },
+      ],
+    };
+    const wrapper = mount(CoarPageRenderer, { props: { schema, actions: { send } } });
+
+    await wrapper.find('button.pb-button').trigger('click');
+    await flushPromises();
+    expect(send).toHaveBeenCalledWith({
+      comment: '',
+      newsletter: false,
+      topics: [],
+      age: null,
+      plan: null,
+    });
+  });
+
+  const emailSchema = (defaultValue: string): PageNode => ({
+    id: 'r',
+    type: 'page',
+    children: [
+      {
+        id: 't', type: 'text-input', name: 'email',
+        props: { label: 'Email', inputType: 'email' }, defaultValue,
+      },
+      { id: 'b', type: 'button', props: { label: 'Send', action: 'send', validates: true } },
+    ],
+  });
+
+  it('validates inputType email by default — no hand-written pattern needed', async () => {
+    const send = vi.fn();
+    const wrapper = mount(CoarPageRenderer, {
+      props: { schema: emailSchema('a'), actions: { send } },
+    });
+
+    await wrapper.find('button.pb-button').trigger('click');
+    await flushPromises();
+    expect(send).not.toHaveBeenCalled();
+    expect(wrapper.text()).toContain('Enter a valid email address');
+
+    await wrapper.find('input').setValue('x@y.z');
+    await wrapper.find('button.pb-button').trigger('click');
+    await flushPromises();
+    expect(send).toHaveBeenCalledWith({ email: 'x@y.z' });
+  });
+
+  it('skips the email format check while the field is empty (required decides that)', async () => {
+    const send = vi.fn();
+    const wrapper = mount(CoarPageRenderer, {
+      props: { schema: emailSchema(''), actions: { send } },
+    });
+
+    await wrapper.find('button.pb-button').trigger('click');
+    await flushPromises();
+    expect(send).toHaveBeenCalledWith({ email: '' });
+  });
+
+  it('a value-identical initialValues replacement does not wipe user input', async () => {
+    const schema: PageNode = {
+      id: 'r',
+      type: 'page',
+      children: [
+        { id: 't', type: 'text-input', name: 'email', props: { label: 'Email' } },
+      ],
+    };
+    const wrapper = mount(CoarPageRenderer, {
+      props: { schema, initialValues: { email: 'host@y.z' } },
+    });
+    const input = wrapper.find('input');
+    await input.setValue('typed@y.z');
+
+    // Same values, new object — the inline-literal case. Must NOT re-init.
+    await wrapper.setProps({ initialValues: { email: 'host@y.z' } });
+    expect(input.element.value).toBe('typed@y.z');
+
+    // Actually different values — re-init is the documented contract.
+    await wrapper.setProps({ initialValues: { email: 'changed@y.z' } });
+    expect(input.element.value).toBe('changed@y.z');
+  });
+});
+
 describe('CoarPageRenderer — enter to submit', () => {
   const emailField = {
     id: 't', type: 'text-input', name: 'email', props: { label: 'Email' }, defaultValue: 'x@y.z',
