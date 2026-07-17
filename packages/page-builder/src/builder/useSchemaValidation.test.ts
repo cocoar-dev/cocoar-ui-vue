@@ -90,3 +90,64 @@ describe('useSchemaValidation', () => {
     expect(byNodeId.value.get('root')).toBeUndefined();
   });
 });
+
+describe('useSchemaValidation — field contract', () => {
+  const CONTRACT: PageConfig = {
+    fields: [
+      { name: 'username', valueType: 'string', required: true },
+      { name: 'rememberMe', valueType: 'boolean' },
+    ],
+  };
+
+  it('errors on names outside the contract (allowCustomFields off)', () => {
+    const issues = validate(
+      page([{ id: 't', type: 'text-input', name: 'nickname', props: {} }]),
+      { ...CONTRACT, fields: [...CONTRACT.fields!] },
+    );
+    expect(issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ nodeId: 't', field: 'name', severity: 'error' }),
+    ]));
+    expect(issues.find((i) => i.nodeId === 't')!.message).toContain('"nickname"');
+  });
+
+  it('allows custom names when allowCustomFields is set', () => {
+    const issues = validate(
+      page([{ id: 't', type: 'text-input', name: 'nickname', props: {} }]),
+      { ...CONTRACT, allowCustomFields: true },
+    );
+    expect(issues.filter((i) => i.nodeId === 't')).toEqual([]);
+  });
+
+  it('errors on type-incompatible bindings', () => {
+    const issues = validate(
+      page([{ id: 's', type: 'switch', name: 'username', props: { label: 'U' } }]),
+      CONTRACT,
+    );
+    expect(issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ nodeId: 's', field: 'name', severity: 'error' }),
+    ]));
+    expect(issues.find((i) => i.nodeId === 's')!.message).toContain('(string)');
+  });
+
+  it('warns (on the root) while a required contract field is unbound', () => {
+    const issues = validate(
+      page([{ id: 'r1', type: 'checkbox', name: 'rememberMe', props: { label: 'R' } }]),
+      CONTRACT,
+    );
+    expect(issues).toEqual([
+      expect.objectContaining({ nodeId: 'root', field: 'fields', severity: 'warning' }),
+    ]);
+    expect(issues[0].message).toContain('"username"');
+  });
+
+  it('is silent when every required field is bound compatibly', () => {
+    const issues = validate(
+      page([
+        { id: 't', type: 'text-input', name: 'username', props: {}, validation: { required: true } },
+        { id: 'c', type: 'checkbox', name: 'rememberMe', props: { label: 'R' } },
+      ]),
+      CONTRACT,
+    );
+    expect(issues).toEqual([]);
+  });
+});

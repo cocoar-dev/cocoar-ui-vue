@@ -9,7 +9,7 @@ export const multiSelectElement = definePageElement<MultiSelectNode['props']>({
   renderer: MultiSelectRenderer,
   // Default emptiness fits: `[]` counts as empty, so `required` means at
   // least one option must be selected.
-  value: {},
+  value: { types: ['string[]'] },
   builder: {
     label: { key: 'coar.pageBuilder.type.multiSelect', fallback: 'Multi Select' },
     icon: 'list-ordered',

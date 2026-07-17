@@ -24,6 +24,7 @@ export type {
   ParagraphNode,
   NoteNode,
   TextInputNode,
+  PasswordInputNode,
   NumberInputNode,
   CheckboxNode,
   SwitchNode,
@@ -37,6 +38,8 @@ export type {
   LinkNode,
   ImageNode,
   PageConfig,
+  PageValueType,
+  PageFieldSpec,
 } from './schema';
 
 export { isContainerNode, isElementAllowed } from './schema';
@@ -68,6 +71,13 @@ export {
 } from './elements/registry';
 
 export { usePageElement, type PageElementContext } from './elements/usePageElement';
+
+export {
+  isFieldCompatible,
+  compatibleFields,
+  compatibleElementTypes,
+  defaultElementForField,
+} from './elements/fieldContract';
 
 /** Shared options-list editor, exported so consumer inspectors can reuse it. */
 export { default as OptionsEditor } from './builder/props/OptionsEditor.vue';

@@ -14,6 +14,8 @@ import RatingDefaultInput from './RatingDefaultInput.vue';
 export const ratingElement = definePageElement<RatingProps>({
   renderer: RatingRenderer,
   value: {
+    // A rating edits number fields (contract compatibility).
+    types: ['number'],
     // required = at least one star.
     isEmpty: (v) => !v || Number(v) === 0,
   },

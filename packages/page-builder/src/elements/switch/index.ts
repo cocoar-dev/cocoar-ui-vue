@@ -9,7 +9,7 @@ export const switchElement = definePageElement<SwitchNode['props']>({
   renderer: SwitchRenderer,
   // Default emptiness fits: `false` counts as empty, so `required` means
   // the switch must be ON (consent-style, like checkbox).
-  value: {},
+  value: { types: ['boolean'] },
   builder: {
     label: { key: 'coar.pageBuilder.type.switch', fallback: 'Switch' },
     icon: 'check',

@@ -3,6 +3,7 @@ import { isElementAllowed } from '../schema';
 import type { ButtonNode, ElementNode, LinkNode, PageConfig, PageNode } from '../schema';
 import { compilePagePattern } from '../renderSafety';
 import { useMergedElements } from '../elements/useMergedElements';
+import { isFieldCompatible } from '../elements/fieldContract';
 
 export type IssueSeverity = 'warning' | 'error';
 
@@ -140,6 +141,28 @@ export function useSchemaValidation(
         const name = (n as { name?: string }).name;
         if (name) namedFields.push({ node: n, name });
       }
+
+      // ── Field contract: bindings must exist and be type-compatible ─────
+      const contract = config.value?.fields;
+      if (contract && def?.value) {
+        const name = (n as { name?: string }).name;
+        const field = name ? contract.find((f) => f.name === name) : undefined;
+        if (name && !field && !config.value?.allowCustomFields) {
+          out.push({
+            nodeId: n.id,
+            field: 'name',
+            severity: 'error',
+            message: `Field "${name}" is not in the field contract.`,
+          });
+        } else if (field && !isFieldCompatible(def, field)) {
+          out.push({
+            nodeId: n.id,
+            field: 'name',
+            severity: 'error',
+            message: `"${n.type}" cannot edit field "${field.name}" (${field.valueType}).`,
+          });
+        }
+      }
     });
 
     // ── Duplicate field names ────────────────────────────────────────────
@@ -158,6 +181,22 @@ export function useSchemaValidation(
           severity: 'error',
           message: `Duplicate field name "${name}" — values will overwrite each other.`,
         });
+      }
+    }
+
+    // ── Field contract: required fields must be collected somewhere ───────
+    const contract = config.value?.fields;
+    if (contract) {
+      const bound = new Set(namedFields.map((f) => f.name));
+      for (const field of contract) {
+        if (field.required && !bound.has(field.name)) {
+          out.push({
+            nodeId: schema.value.id,
+            field: 'fields',
+            severity: 'warning',
+            message: `Contract field "${field.name}" (required) is not on the page.`,
+          });
+        }
       }
     }
 

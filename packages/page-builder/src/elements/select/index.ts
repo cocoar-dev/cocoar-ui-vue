@@ -8,7 +8,7 @@ import SelectDefaultInput from './SelectDefaultInput.vue';
 export const selectElement = definePageElement<SelectNode['props']>({
   renderer: SelectRenderer,
   // Default emptiness (undefined | null | '' | false | []) fits.
-  value: {},
+  value: { types: ['string'] },
   builder: {
     label: { key: 'coar.pageBuilder.type.select', fallback: 'Select' },
     icon: 'list',

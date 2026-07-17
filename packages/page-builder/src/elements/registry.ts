@@ -15,7 +15,7 @@ import { markRaw } from 'vue';
 import type { Component, InjectionKey } from 'vue';
 import type { CoreIconName } from '@cocoar/vue-ui';
 import type { ActionValues } from '../context';
-import type { ElementNode, ElementProps, PageConfig } from '../schema';
+import type { ElementNode, ElementProps, PageConfig, PageValueType } from '../schema';
 import { warnDev } from '../builder/operations';
 
 /**
@@ -34,6 +34,13 @@ export interface I18nText {
  * required/matchField gating, and its value is passed to actions.
  */
 export interface ElementValueSpec<P extends ElementProps = ElementProps> {
+  /**
+   * Value types this element can edit — matched against
+   * `PageFieldSpec.valueType` when a field contract is configured. Omitted =
+   * unconstrained (compatible with every field). Built-ins declare theirs;
+   * consumer elements should too, so they show up for the right DTO fields.
+   */
+  types?: PageValueType[];
   /**
    * Opt into the host-enforced string rules (`minLength`/`maxLength`/
    * `pattern` from `validation`) — they need the localized message pipeline

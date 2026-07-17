@@ -336,6 +336,43 @@ export function isContainerNode(node: PageNode): node is ContainerNode {
   )
 }
 
+// ─── Field contract ───────────────────────────────────────────────────────────
+
+/**
+ * Value type of a contract field / of the values an element can edit. Open
+ * union: consumers can introduce their own tokens (e.g. 'geo', 'money') —
+ * compatibility is exact token match between field and element.
+ */
+export type PageValueType =
+  | 'string'
+  | 'number'
+  | 'boolean'
+  | 'string[]'
+  | 'date'
+  | 'datetime'
+  | (string & {})
+
+/**
+ * One field of the data contract behind a page — typically a DTO property.
+ * The contract constrains AUTHORING only: the persisted schema stays
+ * self-contained (binding is just `node.name === field.name`), and documents
+ * remain renderable without it.
+ */
+export interface PageFieldSpec {
+  /** The ActionValues key — the DTO property name. */
+  name: string
+  valueType: PageValueType
+  /** Display label, applied to the element on binding (when still default). */
+  label?: string
+  /**
+   * Contract-level requirement: binding sets `validation.required`, and the
+   * builder lint warns while the field is missing from the page.
+   */
+  required?: boolean
+  /** Preferred element type for the field-first flow (palette drag). */
+  defaultElement?: string
+}
+
 // ─── Configuration ────────────────────────────────────────────────────────────
 
 /**
@@ -359,6 +396,19 @@ export interface PageConfig {
    * instead; this field wins when both are present.
    */
   elements?: PageElementRegistry
+  /**
+   * The data contract behind the page (DTO fields). When present, the
+   * builder's Field section offers these instead of a free-text name —
+   * filtered to the fields the selected element can edit (see
+   * `ElementValueSpec.types`) — and the lint flags unknown names,
+   * incompatible bindings, and missing required fields.
+   */
+  fields?: PageFieldSpec[]
+  /**
+   * Allow binding names outside `fields`. Defaults to false — with a
+   * contract, authors pick from it.
+   */
+  allowCustomFields?: boolean
   /**
    * Action IDs that buttons and links may reference. When provided, the builder's
    * Action-ID input becomes a dropdown of these choices instead of free text.

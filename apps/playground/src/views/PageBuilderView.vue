@@ -230,6 +230,17 @@ const idpLoginConfig: PageConfig = {
   // A consumer-registered element (defined entirely in this app) — appears in
   // the palette, canvas, inspector, preview and value model like a built-in.
   elements: { 'acme-rating': ratingElement },
+  // The data contract behind the page (the LoginDto, say): the builder's
+  // Field section becomes a pick from these — filtered per element to the
+  // compatible value types (string → text/password/…, boolean → checkbox/
+  // switch, number → number-input AND acme-rating, date → date picker).
+  fields: [
+    { name: 'username',   valueType: 'string',  label: 'Username', required: true },
+    { name: 'password',   valueType: 'string',  label: 'Password', required: true, defaultElement: 'password-input' },
+    { name: 'rememberMe', valueType: 'boolean', label: 'Remember me' },
+    { name: 'age',        valueType: 'number',  label: 'Age' },
+    { name: 'dueUntil',   valueType: 'date',    label: 'Due until' },
+  ],
   // section + spacer stay excluded on purpose, so the allowlist gating
   // (hidden palette entries, blocked-node banners) remains visible in the demo.
   allowedElements: [

@@ -1,11 +1,19 @@
 <script setup lang="ts">
 import { computed, inject } from 'vue';
 import { useI18n } from '@cocoar/vue-localization';
-import { CoarIcon, CoarFormField, CoarTextInput, CoarCheckbox } from '@cocoar/vue-ui';
+import {
+  CoarIcon,
+  CoarFormField,
+  CoarTextInput,
+  CoarCheckbox,
+  CoarSelect,
+  type CoarSelectOption,
+} from '@cocoar/vue-ui';
 import type { PageNode, NodeStyle, ElementNode, FieldValidation } from '../schema';
 import { BUILDER_API, BUILDER_CONFIG, BUILDER_VALIDATION } from './builderContext';
 import type { NodePath } from './operations';
 import { useMergedElements } from '../elements/useMergedElements';
+import { compatibleFields } from '../elements/fieldContract';
 import StyleProps from './props/StyleProps.vue';
 
 defineOptions({ name: 'BuilderPropsPanel' });
@@ -64,6 +72,52 @@ function setRequired(v: boolean) {
   else delete next.required;
   patch({ validation: Object.keys(next).length > 0 ? next : undefined });
 }
+
+// ─── Field contract ───────────────────────────────────────────────────────────
+// With `config.fields`, the name becomes a pick from the contract, filtered to
+// fields this element can edit (ElementValueSpec.types).
+
+const contractFields = computed(() => config?.value?.fields);
+const useFieldSelect = computed(() => (contractFields.value?.length ?? 0) > 0);
+const allowCustom = computed(() => config?.value?.allowCustomFields === true);
+
+const fieldOptions = computed<CoarSelectOption<string>[]>(() => {
+  if (!contractFields.value || !def.value) return [];
+  const opts = compatibleFields(def.value, contractFields.value).map((f) => ({
+    value: f.name,
+    label: f.label ? `${f.label} (${f.name})` : f.name,
+  }));
+  // A bound name outside the contract stays visible (and lint flags it).
+  const current = fieldNode.value?.name;
+  if (current && !contractFields.value.some((f) => f.name === current)) {
+    opts.unshift({ value: current, label: `${current} (custom)` });
+  }
+  return opts;
+});
+
+function bindField(name: string | null) {
+  if (!name) {
+    patch({ name: undefined });
+    return;
+  }
+  const update: Record<string, unknown> = { name };
+  const field = contractFields.value?.find((f) => f.name === name);
+  if (field) {
+    // Take the contract label along — but never overwrite an author's label.
+    const defaults = def.value?.builder?.defaults() as Record<string, unknown> | undefined;
+    const currentLabel = (fieldNode.value?.props as Record<string, unknown> | undefined)?.label;
+    if (
+      field.label && defaults && 'label' in defaults &&
+      (currentLabel === undefined || currentLabel === defaults.label)
+    ) {
+      update.props = { label: field.label };
+    }
+    if (field.required && !fieldNode.value?.validation?.required) {
+      update.validation = { ...fieldNode.value?.validation, required: true };
+    }
+  }
+  patch(update as Partial<PageNode>);
+}
 </script>
 
 <template>
@@ -100,6 +154,24 @@ function setRequired(v: boolean) {
       <section v-if="fieldNode" class="pb-props__section">
         <h4 class="pb-props__section-title">{{ t('coar.pageBuilder.props.section.field', undefined, 'Field') }}</h4>
         <CoarFormField :label="t('coar.pageBuilder.props.fieldName', undefined, 'Field name')">
+          <CoarSelect
+            v-if="useFieldSelect"
+            :model-value="fieldNode.name ?? null"
+            :options="fieldOptions"
+            clearable
+            :placeholder="t('coar.pageBuilder.props.fieldUnbound', undefined, 'Not bound')"
+            @update:model-value="(v) => bindField(v)"
+          />
+          <CoarTextInput
+            v-else
+            :model-value="fieldNode.name ?? ''"
+            @update:model-value="(v) => patch({ name: v })"
+          />
+        </CoarFormField>
+        <CoarFormField
+          v-if="useFieldSelect && allowCustom"
+          :label="t('coar.pageBuilder.props.customFieldName', undefined, 'Custom name')"
+        >
           <CoarTextInput
             :model-value="fieldNode.name ?? ''"
             @update:model-value="(v) => patch({ name: v })"

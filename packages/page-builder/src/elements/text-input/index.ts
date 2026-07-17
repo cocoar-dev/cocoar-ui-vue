@@ -8,7 +8,7 @@ export const textInputElement = definePageElement<TextInputNode['props']>({
   renderer: TextInputRenderer,
   // Default emptiness (undefined | null | '' | false | []) fits; textRules
   // opts into the host-enforced minLength/maxLength/pattern rules.
-  value: { textRules: true },
+  value: { textRules: true, types: ['string'] },
   builder: {
     label: { key: 'coar.pageBuilder.type.textInput', fallback: 'Text Input' },
     icon: 'file-text',

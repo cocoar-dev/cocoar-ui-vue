@@ -7,7 +7,7 @@ import NumberInputDefaultInput from './NumberInputDefaultInput.vue';
 
 export const numberInputElement = definePageElement<NumberInputNode['props']>({
   renderer: NumberInputRenderer,
-  value: {},
+  value: { types: ['number'] },
   builder: {
     label: { key: 'coar.pageBuilder.type.numberInput', fallback: 'Number Input' },
     icon: 'hash',
