@@ -73,6 +73,7 @@ export {
 } from './elements/registry';
 
 export { usePageElement, type PageElementContext } from './elements/usePageElement';
+export { useResolvedOptions } from './elements/useResolvedOptions';
 
 export {
   isFieldCompatible,

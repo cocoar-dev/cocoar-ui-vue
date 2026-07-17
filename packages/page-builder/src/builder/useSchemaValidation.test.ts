@@ -52,6 +52,16 @@ describe('useSchemaValidation', () => {
     expect(issues.every((i) => i.severity === 'error')).toBe(true);
   });
 
+  it('warns when optionsSourceId is set without config.optionsSource', () => {
+    const schema = page([
+      { id: 's', type: 'select', props: { optionsSourceId: 'countries' }, name: 'c' },
+    ]);
+    expect(validate(schema)).toEqual([
+      expect.objectContaining({ nodeId: 's', field: 'optionsSourceId', severity: 'warning' }),
+    ]);
+    expect(validate(schema, { optionsSource: () => Promise.resolve([]) })).toEqual([]);
+  });
+
   it('warns when visibleWhen references a field that is not on the page', () => {
     const issues = validate(page([
       { id: 'ok', type: 'checkbox', props: { label: 'OK' }, name: 'consent' },

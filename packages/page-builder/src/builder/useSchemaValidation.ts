@@ -125,6 +125,18 @@ export function useSchemaValidation(
         });
       }
 
+      // ── Dynamic options: the source callback must be configured ────────
+      const sourceId = ((n as ElementNode).props as { optionsSourceId?: unknown } | undefined)
+        ?.optionsSourceId;
+      if (typeof sourceId === 'string' && sourceId && !config.value?.optionsSource) {
+        out.push({
+          nodeId: n.id,
+          field: 'optionsSourceId',
+          severity: 'warning',
+          message: `optionsSourceId "${sourceId}" is set, but config.optionsSource is not configured — the static options are used.`,
+        });
+      }
+
       // ── Element-owned lint: merged into the same issue list ────────────
       // No i18n plumbing here yet (deferred) — the fallback string carries.
       if (def?.builder?.lint) {

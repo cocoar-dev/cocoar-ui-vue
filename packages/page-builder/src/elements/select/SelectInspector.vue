@@ -41,6 +41,17 @@ function setOptions(next: EditorOption[]) {
 
   <OptionsEditor :options="options" @update:options="setOptions" />
 
+  <CoarFormField
+    :label="t('coar.pageBuilder.props.optionsSource', undefined, 'Options source ID')"
+    :hint="t('coar.pageBuilder.props.optionsSourceHint', undefined, 'Resolved via config.optionsSource at render time — overrides the static options')"
+  >
+    <CoarTextInput
+      :model-value="props.node.props.optionsSourceId ?? ''"
+      placeholder="e.g. countries"
+      @update:model-value="(v) => props.patch({ props: { optionsSourceId: v || undefined } })"
+    />
+  </CoarFormField>
+
   <CoarCheckbox
     :model-value="!!props.node.props.disabled"
     :label="t('coar.pageBuilder.props.disabled', undefined, 'Disabled')"

@@ -660,6 +660,75 @@ describe('CoarPageRenderer — payload & email format contract', () => {
   });
 });
 
+describe('CoarPageRenderer — optionsSource', () => {
+  const radioSchema = (props: Record<string, unknown>): PageNode => ({
+    id: 'r',
+    type: 'page',
+    children: [{ id: 'rg', type: 'radio-group', name: 'country', props }],
+  } as PageNode);
+
+  it('resolves optionsSourceId through config.optionsSource (wins over static options)', async () => {
+    const optionsSource = vi.fn().mockResolvedValue([
+      { value: 'at', label: 'Austria' },
+      { value: 'de', label: 'Germany' },
+    ]);
+    const wrapper = mount(CoarPageRenderer, {
+      props: {
+        schema: radioSchema({
+          optionsSourceId: 'countries',
+          options: [{ value: 'static', label: 'Static' }],
+        }),
+        config: { optionsSource },
+      },
+    });
+
+    await flushPromises();
+    expect(optionsSource).toHaveBeenCalledWith('countries');
+    expect(wrapper.text()).toContain('Austria');
+    expect(wrapper.text()).toContain('Germany');
+    expect(wrapper.text()).not.toContain('Static');
+  });
+
+  it('falls back to the static options when no resolver is configured', async () => {
+    const wrapper = mount(CoarPageRenderer, {
+      props: {
+        schema: radioSchema({
+          optionsSourceId: 'countries',
+          options: [{ value: 'static', label: 'Static' }],
+        }),
+      },
+    });
+
+    await flushPromises();
+    expect(wrapper.text()).toContain('Static');
+  });
+
+  it('stays empty and warns once when the source fails; malformed entries are dropped', async () => {
+    const failing = mount(CoarPageRenderer, {
+      props: {
+        schema: radioSchema({ optionsSourceId: 'boom' }),
+        config: { optionsSource: () => Promise.reject(new Error('down')) },
+      },
+    });
+    await flushPromises();
+    expect(failing.findAll('input[type="radio"]')).toHaveLength(0);
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('optionsSource'), expect.anything());
+
+    const mixed = mount(CoarPageRenderer, {
+      props: {
+        schema: radioSchema({ optionsSourceId: 'mixed' }),
+        config: {
+          optionsSource: () =>
+            Promise.resolve([{ value: 'ok', label: 'OK' }, { bogus: true }] as never),
+        },
+      },
+    });
+    await flushPromises();
+    expect(mixed.findAll('input[type="radio"]')).toHaveLength(1);
+    expect(mixed.text()).toContain('OK');
+  });
+});
+
 describe('CoarPageRenderer — visibleWhen', () => {
   const conditional: PageNode = {
     id: 'r',

@@ -201,6 +201,8 @@ export type SwitchNode = ElementNode<'switch', {
 export type RadioGroupNode = ElementNode<'radio-group', {
   label?: string
   options?: OptionItem[]
+  /** Dynamic option list: resolved via `config.optionsSource` at render time; wins over `options`. */
+  optionsSourceId?: string
   /** Layout of the radio buttons. Defaults to 'vertical'. */
   orientation?: 'vertical' | 'horizontal'
   disabled?: boolean
@@ -210,6 +212,8 @@ export type SelectNode = ElementNode<'select', {
   label?: string
   placeholder?: string
   options?: OptionItem[]
+  /** Dynamic option list: resolved via `config.optionsSource` at render time; wins over `options`. */
+  optionsSourceId?: string
   disabled?: boolean
 }>
 
@@ -218,6 +222,8 @@ export type MultiSelectNode = ElementNode<'multi-select', {
   label?: string
   placeholder?: string
   options?: OptionItem[]
+  /** Dynamic option list: resolved via `config.optionsSource` at render time; wins over `options`. */
+  optionsSourceId?: string
   disabled?: boolean
 }>
 
@@ -470,6 +476,16 @@ export interface PageConfig {
    * back to its `:asset-resolver` prop only.
    */
   assetResolver?: (id: string) => string
+  /**
+   * Resolves an options-source id to the option list of a choice input
+   * (select / multi-select / radio-group) — the async sibling of
+   * `assetResolver` in the callback family, for API-backed lists (countries,
+   * users, …). A node opts in via its `optionsSourceId` prop; static
+   * `options` remain the default and the fallback when this callback is
+   * absent. Called once per element instance — memoize consumer-side when
+   * several elements share a source.
+   */
+  optionsSource?: (sourceId: string) => Promise<OptionItem[]>
   /**
    * Opens the consumer's own asset picker UI (modal, drawer — whatever you
    * want) and resolves to the chosen `assetId`, or `null` if the user

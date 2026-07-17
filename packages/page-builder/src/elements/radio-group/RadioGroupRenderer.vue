@@ -3,11 +3,13 @@ import { computed } from 'vue';
 import { CoarFormField, CoarRadioButton, CoarRadioGroup } from '@cocoar/vue-ui';
 import type { RadioGroupNode } from '../../schema';
 import { usePageElement } from '../usePageElement';
+import { useResolvedOptions } from '../useResolvedOptions';
 
 const props = defineProps<{ node: RadioGroupNode }>();
 
 const ctx = usePageElement();
 const name = computed(() => props.node.name);
+const options = useResolvedOptions(() => props.node.props);
 
 // Radio groups have no meaningful blur moment — choosing a value IS the
 // interaction, so it marks the field touched (otherwise their errors could
@@ -36,7 +38,7 @@ function setFieldValue(v: unknown) {
       @update:model-value="setFieldValue"
     >
       <CoarRadioButton
-        v-for="o in node.props.options ?? []"
+        v-for="o in options"
         :key="o.value"
         :value="o.value"
         :disabled="node.props.disabled"
