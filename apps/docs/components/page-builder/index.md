@@ -161,6 +161,15 @@ interface PageConfig {
    * falls back to a free-text Asset ID input.
    */
   pickAsset?: (currentId?: string) => Promise<string | null>
+
+  /**
+   * Resolves an options-source id to the option list of a choice input
+   * (select / multi-select / radio-group) — the async sibling of
+   * `assetResolver`, for API-backed lists (countries, users, …). A node
+   * opts in via its `optionsSourceId` prop; static `options` stay the
+   * default and the fallback when this callback is absent.
+   */
+  optionsSource?: (sourceId: string) => Promise<OptionItem[]>
 }
 ```
 
@@ -525,5 +534,6 @@ const actions: Record<string, (v: ActionValues) => void> = {
 | **5 — Layout & sizing** | Flex model — `justify` / `align` / `alignSelf` / `size` (fit · fill · fixed) / `minHeight`; guided Style-panel controls; Editor matches Preview | ✅ Done |
 | **GA hardening** | Correctness & data-safety fixes (schema normalization at every entry point, gated JSON Apply, `crypto.randomUUID` ids, `schemaVersion` stamp, safe `pattern` compile) · pointer-events DnD (mouse + touch/pen long-press, outline drag-to-reorder) · validation UX (clickable validating buttons, submit-time async `onValidate`) · outline ARIA tree + scoped keyboard shortcuts · duplicate / select-options / default-value editors · i18n (`coar.pageBuilder.*` via `@cocoar/vue-localization`) | ✅ Done |
 | **Element registry** | Unified v2 wire format (`props` bag, `schemaVersion: 2`, transparent v1 migration) · open [consumer-registered element types](./custom-elements) (`config.elements`, `definePageElement`, `usePageElement`) · lossless degradation of unregistered types · severity-gated JSON Apply · renderer `initialValues` | ✅ Done |
+| **Submit lifecycle & dynamics** | Async actions (`isSubmitting`, spinner, reentry guards) · [form-level error channel](./coar-page-renderer#async-actions-the-form-level-error-channel) (`_form`, banner, `#form-error` slot) · [Enter-to-submit](./coar-page-renderer#enter-to-submit) · built-in email format check · host form API (`update:values`, `values` / `isDirty` / `reset`) · [`visibleWhen`](./coar-page-renderer#conditional-visibility-visiblewhen) conditional visibility · [`optionsSource`](./coar-page-renderer#dynamic-options-optionssource) dynamic option lists | ✅ Done |
 | **5b — Style editor (visual)** | Spacing sliders + colour pickers (rolls into the tenant theming track) | Planned |
 | **6+ — Schema versioning** | Formal migration framework — `schemaVersion` ships today (stamped `2`; the v1 → v2 props-bag migration is the first real migration) | Planned |

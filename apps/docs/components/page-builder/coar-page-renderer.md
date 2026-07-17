@@ -14,8 +14,8 @@ Import `@cocoar/vue-page-builder/styles` once in your app — the renderer's lay
 |------|------|-------------|
 | `schema` | `PageNode` | Required. The page schema to render. Legacy `column`/`row` containers and v1 flat documents are [migrated on the fly](#legacy-schemas-normalization). |
 | `config` | [`PageConfig`](./#pageconfig-the-consumer-contract) | Security/allowlist boundary. Elements not in `config.allowedElements` are skipped at render time (with one console warning per type) **and excluded from the value model**. Also supplies the `assetResolver` fallback and the [consumer element registrations](./custom-elements) (`config.elements`). |
-| `actions` | `Record<string, (values: ActionValues) => void>` | Map of action IDs to handler functions. Buttons and links call these. |
-| `onValidate` | `(values: ActionValues) => Record<string, string> \| Promise<Record<string, string>>` | Developer-only cross-field/server validation. Runs at **submit time** — when a `validates: true` button is clicked and after all declarative rules pass. May be sync or async; returns `{ fieldName: errorMessage }`. A non-empty result blocks the action. Not exposed in builder UI. See [Validation](#validation). |
+| `actions` | `Record<string, (values: ActionValues) => void \| Promise<unknown>>` | Map of action IDs to handler functions. Buttons and links call these. A returned Promise is awaited: buttons disable (the triggering one spins) until it settles, further clicks are ignored, and a rejection surfaces in the [form-level error banner](#async-actions-the-form-level-error-channel). |
+| `onValidate` | `(values: ActionValues) => Record<string, string> \| Promise<Record<string, string>>` | Developer-only cross-field/server validation. Runs at **submit time** — when a `validates: true` button is clicked and after all declarative rules pass. May be sync or async; returns `{ fieldName: errorMessage }`. A non-empty result blocks the action. The reserved key `_form` addresses the form as a whole (banner instead of a field). Not exposed in builder UI. See [Validation](#validation). |
 | `assetResolver` | `(id: string) => string` | Resolves an `assetId` to a URL at render time. Falls back to `config.assetResolver` when not set. Needed when the schema contains `image` nodes. |
 | `initialValues` | `ActionValues` | Host-supplied field values for edit-form scenarios, merged **over** the schema's `defaultValue`s on init. Only keys that match a **named** input in the (allowed) tree are taken — stray host data never leaks into the action payload. Replacing the object with **different values** re-initializes the form, like a schema change; a value-identical replacement (e.g. an inline object literal re-created by a parent re-render) is ignored, so in-progress user input survives. |
 
@@ -34,7 +34,7 @@ Import `@cocoar/vue-page-builder/styles` once in your app — the renderer's lay
 />
 ```
 
-`ActionValues` is `Record<string, unknown>` — a flat map of all named fields at the time the action fires. Every input element with a `name` property contributes its value: text/otp/date inputs and selects contribute **strings** (dates as ISO strings), `number-input` a **number**, `checkbox`/`switch` **booleans**, `multi-select` a **string array**. Hand-written schemas carry no hard type guarantee, so narrow the values in your handler.
+`ActionValues` is `Record<string, unknown>` — a flat map of all named fields at the time the action fires. Every input element with a `name` property contributes its value — **including untouched ones**: text/otp inputs contribute **strings** (`''` when untouched), `number-input` a **number** (`null`), `checkbox`/`switch` **booleans** (`false`), `multi-select` a **string array** (`[]`), `select`/`radio-group` a **string** (`null`), date inputs an **ISO string** (`null`). Fields in [conditionally hidden](#conditional-visibility-visiblewhen) or disallowed subtrees are excluded. Handlers receive a snapshot, not live state. Hand-written schemas carry no hard type guarantee, so narrow the values in your handler.
 
 To prefill a form (edit scenarios), pass `initialValues` — the values seed **over** the schema defaults, filtered to the named fields that actually exist in the allowed tree. Prefer a stable reference (a `computed` or plain object created once): replacing it with different values re-initializes the form and discards user edits.
 
@@ -50,6 +50,29 @@ const profileValues = computed(() => ({ email: user.email, newsletter: true }));
     :actions="{ 'profile:save': (v) => api.save(v) }"
     :initial-values="profileValues"
   />
+</template>
+```
+
+## Events & host form API
+
+The renderer is not a black box between init and action click — it emits value changes and exposes a small form API on its component ref:
+
+| Surface | Description |
+|---------|-------------|
+| `@update:values` (event) | Fires with a snapshot of the current value map on init, on every field edit and on `reset()` — unlocks autosave, drafts and dirty tracking. The snapshot is a copy, safe to keep; it contains the named fields of the allowed **and currently visible** tree. |
+| `values` (exposed) | Snapshot of the current value map (same rules as the event). |
+| `isDirty` (exposed) | `true` once any field differs from its initial state (schema defaults + `initialValues`). |
+| `isFormValid` (exposed) | Quiet validation state — `true` while every declarative rule passes. Shows no errors. |
+| `reset()` (exposed) | Back to the initial state: schema defaults + `initialValues`; touched flags, server errors and the form banner are cleared. |
+
+```vue
+<script setup>
+const form = ref();
+onBeforeRouteLeave(() => !form.value?.isDirty || confirm('Discard changes?'));
+</script>
+
+<template>
+  <CoarPageRenderer ref="form" :schema="schema" @update:values="autosave" />
 </template>
 ```
 
@@ -69,6 +92,7 @@ interface ElementNode {
   defaultValue?: unknown
   validation?:   FieldValidation
 
+  visibleWhen?:  VisibleWhen              // conditional visibility — see below
   children?:     PageNode[]               // containers only
 }
 
@@ -88,7 +112,7 @@ interface NodeStyle {
 }
 ```
 
-The root is the one node shape outside the element grammar: `{ id, type: 'page', schemaVersion, style?, children }` — a schema-shape marker, not a placeable element, with no props bag. It carries `schemaVersion?: number`, the wire-format version: **`2`** is the current props-bag grammar, stamped by the builder on new and normalized roots. `1` or absent marks the pre-GA **flat** grammar (element props directly on the node); such documents are [migrated transparently on every ingest path](#legacy-schemas-normalization) — by the builder/`normalizePageSchema` persistently, and by the renderer on the fly.
+The root is the one node shape outside the element grammar: `{ id, type: 'page', schemaVersion, enterSubmits?, style?, children }` — a schema-shape marker, not a placeable element, with no props bag. It carries `schemaVersion?: number`, the wire-format version: **`2`** is the current props-bag grammar, stamped by the builder on new and normalized roots. `1` or absent marks the pre-GA **flat** grammar (element props directly on the node); such documents are [migrated transparently on every ingest path](#legacy-schemas-normalization) — by the builder/`normalizePageSchema` persistently, and by the renderer on the fly. `enterSubmits` opts the page into [Enter-to-submit](#enter-to-submit).
 
 Node `id`s must be unique page-wide — the builder assigns them via `crypto.randomUUID()` and [repairs missing or duplicate ids](#legacy-schemas-normalization) at every entry point.
 
@@ -199,9 +223,9 @@ Built-ins are pre-registered [element definitions](./custom-elements) — they r
 | `number-input` | `label`, `placeholder`, `min`, `max`, `step`, `decimals`, `disabled` | `number` | `CoarNumberInput` |
 | `checkbox` | `label`, `disabled` | `boolean` | `CoarCheckbox` |
 | `switch` | `label`, `disabled` | `boolean` | `CoarSwitch` |
-| `radio-group` | `label`, `options`, `orientation`, `disabled` | `string` | `CoarRadioGroup` + `CoarRadioButton` |
-| `select` | `label`, `options`, `placeholder`, `disabled` | `string` | `CoarSelect` |
-| `multi-select` | `label`, `options`, `placeholder`, `disabled` | `string[]` | `CoarMultiSelect` |
+| `radio-group` | `label`, `options`, `optionsSourceId`, `orientation`, `disabled` | `string` | `CoarRadioGroup` + `CoarRadioButton` |
+| `select` | `label`, `options`, `optionsSourceId`, `placeholder`, `disabled` | `string` | `CoarSelect` |
+| `multi-select` | `label`, `options`, `optionsSourceId`, `placeholder`, `disabled` | `string[]` | `CoarMultiSelect` |
 | `otp-input` | `label`, `length`, `otpType`, `mask`, `disabled` | `string` | `CoarOtpInput` |
 | `date-input` | `label`, `placeholder`, `disabled` — `defaultValue` is ISO `YYYY-MM-DD` | ISO `string` | `CoarPlainDatePicker` |
 | `datetime-input` | `label`, `placeholder`, `disabled` — `defaultValue` is ISO `YYYY-MM-DDTHH:mm[:ss]` | ISO `string` | `CoarPlainDateTimePicker` |
@@ -224,6 +248,23 @@ The wire format for `date-input`/`datetime-input` is always the ISO string — i
 
 Masked passwords are their own element: `password-input` (renders `CoarPasswordInput`). Legacy `text-input` nodes with `inputType: 'password'` migrate to it transparently on load.
 
+`inputType: 'email'` also opts the field into the built-in **email format check** — see [Email format](#email-format).
+
+#### Dynamic options (`optionsSource`)
+
+The choice inputs (`select`, `multi-select`, `radio-group`) take their options from the static `options` array by default. For API-backed lists (countries, users, …), set the node's `optionsSourceId` and provide the resolver in the config — the async sibling of `assetResolver`:
+
+```ts
+const config: PageConfig = {
+  optionsSource: async (sourceId) => {
+    if (sourceId === 'countries') return api.countries(); // Promise<OptionItem[]>
+    return [];
+  },
+};
+```
+
+A set `optionsSourceId` wins over the static `options`; without a configured `optionsSource` the static options are used (and the builder lint warns). While a load is in flight the list is empty; a failed load stays empty and warns once. The resolver is called once per element instance — memoize consumer-side when several elements share a source. Consumer elements get the same behavior via the exported `useResolvedOptions` composable.
+
 #### Declarative rules
 
 Rules live on the node-level `validation` property (host vocabulary, uniform for every valued element):
@@ -245,10 +286,10 @@ interface FieldValidation {
 
 | Type | Key props | Description |
 |------|-----------|-------------|
-| `button` | `label`, `action`, `validates`, `variant`, `size`, `icon` | `CoarButton` — calls the matching `actions` handler. Content-width by default; use `style.size: 'fill'` for a full-width button. |
+| `button` | `label`, `action`, `validates`, `default`, `variant`, `size`, `icon` | `CoarButton` — calls the matching `actions` handler. Content-width by default; use `style.size: 'fill'` for a full-width button. `default: true` marks it as the [Enter-to-submit](#enter-to-submit) target. |
 | `link` | `label`, `action` | Inline text link. Content-width by default. |
 
-When `validates: true` on a button, clicking it validates all named fields before the action fires. The button **stays clickable while the form is invalid** — the click reveals the errors instead of firing the action. It only disables while an async `onValidate` is in flight. See [Validation](#validation).
+When `validates: true` on a button, clicking it validates all named fields before the action fires. The button **stays clickable while the form is invalid** — the click reveals the errors instead of firing the action. While a trigger is in flight (an async `onValidate` **or** an async action), the triggering button spins and every other action button and link disables; further clicks are ignored. See [Validation](#validation).
 
 ### Media
 
@@ -258,7 +299,7 @@ When `validates: true` on a button, clicking it validates all named fields befor
 
 ### Consumer elements
 
-The element set is **open**: register your own element types via `config.elements` (or app-wide via `PAGE_ELEMENTS_KEY`) and they render, join the value model and validate exactly like built-ins. Element renderers wire themselves through the `usePageElement()` context (`getValue` / `setValue` / `getError` / `markTouched` / `triggerAction` / `resolveAsset`). See the [Custom elements guide](./custom-elements).
+The element set is **open**: register your own element types via `config.elements` (or app-wide via `PAGE_ELEMENTS_KEY`) and they render, join the value model and validate exactly like built-ins. Element renderers wire themselves through the `usePageElement()` context (`getValue` / `setValue` / `getError` / `markTouched` / `triggerAction` / `isValidating` / `isSubmitting` / `pendingAction` / `formError` / `resolveAsset` / `config`). See the [Custom elements guide](./custom-elements).
 
 ## Validation
 
@@ -270,24 +311,28 @@ Named fields validate against their declarative `validation` rules reactively, b
 
 ### Click reveals errors
 
-A validating button is **not** disabled while the form is invalid. Clicking it with an invalid form marks all fields touched, reveals every error — including checkbox and select errors that have no blur moment — and does **not** run the action. A disabled button can't explain itself; a click can.
+A validating button is **not** disabled while the form is invalid. Clicking it with an invalid form marks all fields touched, reveals every error — including checkbox and select errors that have no blur moment — focuses and scrolls the **first invalid control** into view (off-screen errors must not make the click look dead), and does **not** run the action. A disabled button can't explain itself; a click can.
 
-The only time a validating button disables is while an async `onValidate` is in flight, to block double-submits.
+Buttons disable only while a trigger is genuinely in flight — an async `onValidate` or an async action. The triggering button shows a spinner; every other action button and link disables; repeated clicks are ignored (double-submit guard for validating and non-validating buttons alike).
 
 ### `pattern` semantics
 
 `validation.pattern` is applied as a **full-string match** — the source is compiled as `^(?:pattern)$`, the same semantics as the HTML `pattern` attribute. An invalid pattern never crashes the page: it becomes an **inert rule** (the field passes) and the renderer logs one `console.warn` per distinct pattern.
 
+### Email format
+
+A `text-input` with `inputType: 'email'` validates the entered value against the WHATWG email pattern (`input[type=email]` constraint semantics, full string) **by default** — no hand-written `pattern` needed. The check skips empty values (`required` decides those) and uses the localized `coar.pageBuilder.validation.email` message. Since submission is JS-driven (there is no `<form>`), the browser's own constraint never fires — this host-side rule replaces it. It rides the `textRules` opt-in, so a consumer element with `textRules` and an `inputType` prop participates the same way.
+
 ### Submit-time `onValidate`
 
 `onValidate` is the escape hatch for validation that can't be expressed declaratively — server checks, cross-field logic. Its contract:
 
-1. Clicking a `validates: true` button marks all fields touched. If any **declarative** rule fails, the errors show and nothing else happens.
-2. Only when the declarative rules pass does `onValidate(values)` run. It may return the error map directly or a `Promise` of it; while a promise is pending, validating buttons are disabled.
-3. A non-empty result (`{ fieldName: errorMessage }`) blocks the action and shows each message on its field.
-4. Editing a field clears that field's server error immediately — a stale error never outlives the edit that addresses it.
-5. If `onValidate` throws (or rejects), the action does not run and the error is logged to the console.
-6. An empty result lets the action fire: `actions[id](values)`.
+1. Clicking a `validates: true` button marks all fields touched. If any **declarative** rule fails, the errors show, the first invalid control is focused, and nothing else happens.
+2. Only when the declarative rules pass does `onValidate(values)` run. It may return the error map directly or a `Promise` of it; while a promise is pending, the triggering button spins and the other action buttons are disabled.
+3. A non-empty result blocks the action: `{ fieldName: errorMessage }` entries show on their fields, the reserved **`_form`** key (exported as `FORM_ERROR_KEY`) shows in the [form-level banner](#async-actions-the-form-level-error-channel).
+4. Editing a field clears that field's server error (and the form banner) immediately — a stale error never outlives the edit that addresses it.
+5. If `onValidate` throws (or rejects), the action does not run, a localized generic message shows in the form banner, and the error is logged to the console.
+6. An empty result lets the action fire: `actions[id](values)` — awaited when it returns a Promise.
 
 `onValidate` does **not** run on keystrokes — it fires at submit time only.
 
@@ -301,6 +346,75 @@ The only time a validating button disables is while an async `onValidate` is in 
   }"
 />
 ```
+
+### Async actions & the form-level error channel
+
+Real submits are API calls. An action handler may return a Promise — the renderer awaits it, keeps the whole form in its busy state (spinner on the triggering button, everything else disabled, reentry blocked) until it settles, and routes a **rejection** into the form-level error banner:
+
+```ts
+const actions = {
+  'auth:login': async (v) => {
+    const res = await api.login(v);
+    // Throw an Error whose message is user-facing — it becomes the banner text.
+    if (!res.ok) throw new Error('Invalid credentials');
+  },
+};
+```
+
+- An `Error`'s `message` is shown verbatim — that is the consumer's channel for user-facing failure text. Catch-and-rethrow if your transport errors ("Failed to fetch") shouldn't reach end users.
+- Any other rejection shows the localized generic message (`coar.pageBuilder.formError.actionFailed`).
+- The same banner shows the `_form` key of an `onValidate` result — for form-level *validation* outcomes like "Invalid credentials" from a validation endpoint.
+- The banner clears on any field edit and at the start of every new trigger.
+
+The default banner renders above the page (a `CoarNote` with `role="alert"`). Two ways to take over the presentation:
+
+```vue
+<!-- Replace the banner via the slot… -->
+<CoarPageRenderer :schema="schema" :actions="actions">
+  <template #form-error="{ error }">
+    <MyToast v-if="error" :text="error" />
+  </template>
+</CoarPageRenderer>
+```
+
+…or render it **inside** the page (e.g. right above the submit button) with a small custom element reading `usePageElement().formError` — see [Custom elements](./custom-elements).
+
+## Enter to submit
+
+Enter-to-submit is double opt-in — the page and the element under the caret both agree:
+
+1. The **page root** sets `enterSubmits: true` (a checkbox in the builder's Page section; default off).
+2. The **element** declares Enter-eligibility in its definition (`value.submitOnEnter`). Built-ins: single-line `text-input` (`rows <= 1`), `password-input`, `number-input`, `date-input`, `datetime-input`. A multiline textarea, `select`s, `otp-input` and consumer elements that don't declare the flag never submit on Enter.
+
+A plain Enter (no modifiers) inside an eligible input fires the page's **default button**: the first button with `default: true` (a checkbox in the button inspector), else the first `validates: true` button in tree order — with the full submit pipeline (validation, `onValidate`, busy state). An Enter the element already consumed (`preventDefault`, e.g. inside a picker popover) never submits.
+
+## Conditional visibility (`visibleWhen`)
+
+Any node can declare a visibility condition against the **live value model** (host vocabulary — works on every element, containers and consumer elements included):
+
+```jsonc
+{
+  "id": "company", "type": "text-input", "name": "companyName",
+  "props": { "label": "Company name" },
+  "validation": { "required": true },
+  "visibleWhen": { "field": "isBusiness", "equals": true }
+}
+```
+
+| Field | Meaning |
+|-------|---------|
+| `field` | Name of the controlling field (a named input on the page). |
+| `equals` | Visible while the field's value equals this (arrays compare by content). |
+| `in` | Visible while the field's value is one of these (array). |
+
+The condition gates the node **and its whole subtree** — in rendering *and* in the value model, in the same walk as `allowedElements`:
+
+- A hidden `required` field never vetoes a validating button.
+- Hidden values never ship: action payloads, `onValidate` input, `update:values` and the exposed `values` all carry only the allowed and **visible** tree.
+- Values typed before hiding are kept internally and return when the node is re-shown (so a mis-click doesn't wipe input) — they just don't leave the renderer while hidden.
+- A malformed condition fails **open** (the node stays visible); the builder lint flags it, as well as conditions referencing fields that aren't on the page.
+
+Authoring: the builder's **Visibility** section offers the controlling-field select and a typed `equals` editor (checked/unchecked for boolean controllers, the option list for choice controllers, free text otherwise); the `in` form is JSON-authorable. Conditional nodes carry an eye marker on the canvas — the canvas always *shows* them (it is an authoring surface); the Preview tab applies the real gating.
 
 ## Legacy schemas & normalization
 
@@ -347,6 +461,8 @@ The renderer's validation messages can be translated via [`@cocoar/vue-localizat
 | `coar.pageBuilder.validation.maxLength` | `'Maximum {n} characters'` | text longer than `maxLength` — `{n}` = the limit |
 | `coar.pageBuilder.validation.pattern` | `'Invalid format'` | `pattern` full-string match fails |
 | `coar.pageBuilder.validation.matchField` | `'Does not match'` | value differs from the referenced field |
+| `coar.pageBuilder.validation.email` | `'Enter a valid email address'` | the [built-in email check](#email-format) fails on an `inputType: 'email'` field |
+| `coar.pageBuilder.formError.actionFailed` | `'Something went wrong. Please try again.'` | an action rejects without an `Error` message, or `onValidate` throws |
 
 ## Pairing with the builder
 

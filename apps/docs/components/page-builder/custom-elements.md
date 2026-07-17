@@ -64,7 +64,7 @@ Keep it JSON-safe — the bag is persisted verbatim. Non-JSON values (dates, fun
 
 ### 2. The runtime renderer
 
-The renderer receives `{ node }` and wires itself into the renderer's value model via `usePageElement()` — a curated, stable context with `getValue` / `setValue` / `getError` / `markTouched` / `triggerAction` / `isValidating` / `resolveAsset` / `config`:
+The renderer receives `{ node }` and wires itself into the renderer's value model via `usePageElement()` — a curated, stable context with `getValue` / `setValue` / `getError` / `markTouched` / `triggerAction` / `isValidating` / `isSubmitting` / `pendingAction` / `formError` / `resolveAsset` / `config`:
 
 ```vue
 <!-- RatingRenderer.vue -->
@@ -101,6 +101,8 @@ Notes:
 - `node.name` is optional — a rating dropped without a field name still renders, it just doesn't participate in the value model. Guard your `getValue`/`setValue` calls.
 - `getError(name)` returns a non-empty message only once the field is *touched*; call `markTouched(name)` at the interaction that counts (blur for typing inputs, change for choose-is-the-interaction inputs like this one).
 - `usePageElement()` throws outside a `<CoarPageRenderer>` — element renderers only run inside the page renderer (the builder canvas uses the preview instead, never this component).
+- Submit-affordance elements read the busy state: `isSubmitting` is true while an action's Promise is pending, `pendingAction` names the action id in flight (spin when it matches your own), `isValidating` covers the `onValidate` window. `formError` carries the [form-level error](./coar-page-renderer#async-actions-the-form-level-error-channel) — a small consumer element can render the banner *inside* the page (e.g. right above the submit button) instead of the host-level default.
+- Choice-style elements can resolve `optionsSourceId` props exactly like the built-ins via the exported `useResolvedOptions(() => props.node.props)` composable.
 
 ### 3. Value-model participation
 
@@ -123,9 +125,18 @@ interface ElementValueSpec<P> {
       contract's `PageFieldSpec.valueType`. Omitted = unconstrained. */
   types?: PageValueType[];
   /** Opt into the host-enforced string rules
-      (validation.minLength / maxLength / pattern). */
+      (validation.minLength / maxLength / pattern, and the built-in
+      email check when the bag carries inputType: 'email'). */
   textRules?: boolean;
-  /** Fallback default when the node carries no `defaultValue`. */
+  /** May a plain Enter inside this element submit the page (fire the
+      default button)? Only effective when the page root sets
+      `enterSubmits`. Boolean, or a per-props predicate
+      (text-input: (p) => (p.rows ?? 1) <= 1). Undeclared = never. */
+  submitOnEnter?: boolean | ((props: P) => boolean);
+  /** Fallback default when the node carries no `defaultValue`. Declare it —
+      it keeps untouched fields PRESENT in ActionValues (the built-ins seed
+      '' for strings, false for booleans, [] for multi-select, null for
+      "nothing picked/entered"). */
   defaultValue?: (props: P) => unknown;
   /** Emptiness test for `validation.required`.
       Default: undefined | null | '' | false | [] count as empty. */
@@ -385,6 +396,8 @@ When writing an element, you own the props bag and the components. Everything el
 - **Style section** — the universal `NodeStyle` editor (size, alignment, gap, padding; container fields keyed off `container`). Elements don't define their own layout props — `props` is for element vocabulary, `style` is host-owned.
 - **Drag and drop** — palette entry, canvas dropzones, outline reorder, duplicate, undo/redo. Dropzone legality derives from `container`; a freshly dropped node gets `id`, `props` from your `defaults()`, a minted `name` when the definition has a `value` spec (under a strict [field contract](./#field-contract) — `config.fields` set, `allowCustomFields` off — fresh value elements start unbound instead, and the author binds a contract field), and `children: []` when it's a container.
 - **The allow gate** — `allowedElements` filtering in palette, canvas and renderer, including the value-model exclusion. Renderers never need to check it.
-- **Value plumbing** — default seeding (`node.defaultValue ?? value.defaultValue?.(props)`), the renderer's [`initialValues` host prefill](./coar-page-renderer), touched-state, error computation ordering (required → matchField → your `validate`), and action payload assembly.
+- **Conditional visibility** — [`visibleWhen`](./coar-page-renderer#conditional-visibility-visiblewhen) is host vocabulary: the host hides the node (your renderer simply isn't mounted) and excludes its subtree from the value model. Never re-implement show/hide inside a renderer — a hidden-by-you `required` child would still veto submits.
+- **Enter-to-submit** — declare eligibility (`value.submitOnEnter`); the host wires the keydown routing and the default-button resolution. No key handlers needed in your renderer.
+- **Value plumbing** — default seeding (`node.defaultValue ?? value.defaultValue?.(props)`), the renderer's [`initialValues` host prefill](./coar-page-renderer), touched-state, error computation ordering (required → string rules/email → matchField → your `validate`), the busy/submit lifecycle (`isSubmitting`, reentry guards, the form-error banner), and action payload assembly (allowed + visible fields, snapshot).
 
 Registered element components are **trusted consumer code** — the library does not sandbox them. The tenant-facing security boundary remains `allowedElements` plus the renderer's `actions` map; the registry is a developer-facing extension surface.

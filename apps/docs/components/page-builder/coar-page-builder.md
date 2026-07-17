@@ -27,7 +27,7 @@ A live builder with a small starting schema and a restricted `allowedElements` l
 - **Pointer-based drag & drop** — built on pointer events rather than HTML5 drag events, so it works with mouse, touch **and** pen (tablet-first). Mouse drags start after a 5 px movement threshold, so plain clicks keep working; touch/pen drags arm after a 300 ms long-press. A ghost preview follows the pointer, scroll containers auto-scroll near their edges, and `Escape` cancels a drag in flight.
 - **Outline tree** — hierarchical node list with selection and real drag-to-reorder: every row except the root carries a grip handle, thin drop bars light up between rows while dragging, and container rows highlight for drop-**into**. Per-row actions: move up/down, duplicate, delete, plus an inline "Add child" menu. Stacks display "Column" or "Row" based on direction. Warning icons mark nodes with validation issues (hover for the full message).
 - **Canvas** — per-element preview components with dashed selection borders; each node's type tab doubles as its drag handle. A registered element without its own preview renders as a neutral icon+label chip; unregistered or disallowed element types get a red "skipped at runtime" treatment, so the canvas never pretends the runtime renderer will show them. Switches to live preview in the **Preview** tab and to a paste-and-apply JSON editor in the **JSON** tab.
-- **Properties panel** — resolved from the element registry: each definition ships its own inspector component. Value-producing elements additionally get a host-owned **Field** section (field name, Required, default value — with a per-element default-value editor when the definition provides one, e.g. "Checked by default" for checkboxes). With a [field contract](./#field-contract), the field-name input becomes a select over the contract fields the element can edit (clearing it unbinds; binding carries the contract label and required along), an **Element** select switches the node to another representation of the same field, and `allowCustomFields` adds a free-text custom-name input. Validation issues for the selected node are surfaced at the top with colored banners. Option-based inputs share an **options editor** (add / remove / reorder options; a removed option clears a default that pointed at it).
+- **Properties panel** — resolved from the element registry: each definition ships its own inspector component. Value-producing elements additionally get a host-owned **Field** section (field name, Required, default value — with a per-element default-value editor when the definition provides one, e.g. "Checked by default" for checkboxes). With a [field contract](./#field-contract), the field-name input becomes a select over the contract fields the element can edit (clearing it unbinds; binding carries the contract label and required along), an **Element** select switches the node to another representation of the same field, and `allowCustomFields` adds a free-text custom-name input. Every non-page node also gets a host-owned **Visibility** section authoring [`visibleWhen`](./coar-page-renderer#conditional-visibility-visiblewhen): a "Visible when" select over the page's named fields plus a typed `equals` editor (checked/unchecked for boolean controllers, the option list for choice controllers, free text otherwise; a JSON-authored `in` condition is surfaced read-only) — conditional nodes carry an **eye marker** on their canvas tab. Selecting the page root shows a **Page** section with the [Enter-to-submit](./coar-page-renderer#enter-to-submit) checkbox; the button inspector offers the matching "Default button" checkbox. The choice inputs' inspectors take an **Options source ID** for [API-backed option lists](./coar-page-renderer#dynamic-options-optionssource). Validation issues for the selected node are surfaced at the top with colored banners. Option-based inputs share an **options editor** (add / remove / reorder options; a removed option clears a default that pointed at it).
 - **Duplicate** — available as an outline row action and a canvas button. Deep-clones the subtree with fresh ids on every node; colliding field names are flagged by the duplicate-name validation.
 - **Stack direction toggle** — change a stack from column to row direction without re-creating it. Children stay put.
 - **Layout controls** — every node's Style section exposes the flex model: container `Justify` (main axis) + `Align items` (cross axis), and per-node `Align self`, `Size` (Fit / Fill / Fixed → Width) and `Min height`. Center a single element, distribute a row, or build a full-screen centered page — and the Editor canvas mirrors the result 1:1 with the Preview.
@@ -73,6 +73,9 @@ Built-in rules:
 | Bound field name is not in the [field contract](./#field-contract) (`config.fields` set, `allowCustomFields` off) | error |
 | Element cannot edit its bound contract field's value type | error |
 | Required contract field is missing from the page (reported on the root node) | warning |
+| `visibleWhen` is malformed (node stays always visible) | warning |
+| `visibleWhen` references a field that is not on the page | warning |
+| `optionsSourceId` is set but `config.optionsSource` is not configured | warning |
 
 Element definitions can contribute their own findings through the definition's `builder.lint` hook — they are merged into the same outline/props-panel surfaces with their declared severity (see [Custom elements](./custom-elements)).
 
@@ -166,6 +169,7 @@ All builder chrome — and the runtime renderer's validation messages — resolv
 | `coar.pageBuilder.canvas.emptyContainer` | `'Empty {type} — drop something here'` |
 | `coar.pageBuilder.canvas.unknownType` | `'Unknown type "{type}" — skipped at runtime'` |
 | `coar.pageBuilder.canvas.notAllowed` | `'Not in allowedElements — skipped at runtime'` |
+| `coar.pageBuilder.canvas.visibleWhen` | `'Shown conditionally — depends on "{field}"'` |
 
 ### Element type labels
 
@@ -238,6 +242,16 @@ The host-owned **Field** section (name / required / default value, shown for eve
 | `coar.pageBuilder.props.actionHint` | `'Matched against the actions map at render time'` |
 | `coar.pageBuilder.props.notConfigured` | `'{id} (not configured)'` |
 | `coar.pageBuilder.props.validatesForm` | `'Validates form before firing'` |
+| `coar.pageBuilder.props.defaultButton` | `'Default button (Enter submits here)'` |
+| `coar.pageBuilder.props.enterSubmits` | `'Enter submits (fires the default button)'` |
+| `coar.pageBuilder.props.visibleWhenField` | `'Visible when'` |
+| `coar.pageBuilder.props.alwaysVisible` | `'Always visible'` |
+| `coar.pageBuilder.props.visibleWhenEquals` | `'equals'` |
+| `coar.pageBuilder.props.visibleWhenIn` | `'Multi-value condition (in) — edit it in the JSON tab.'` |
+| `coar.pageBuilder.props.checked` | `'checked'` |
+| `coar.pageBuilder.props.unchecked` | `'unchecked'` |
+| `coar.pageBuilder.props.optionsSource` | `'Options source ID'` |
+| `coar.pageBuilder.props.optionsSourceHint` | `'Resolved via config.optionsSource at render time — overrides the static options'` |
 | `coar.pageBuilder.props.variant` | `'Variant'` |
 | `coar.pageBuilder.props.iconLeft` | `'Icon (left)'` |
 | `coar.pageBuilder.props.asset` | `'Asset'` |
@@ -276,11 +290,13 @@ The host-owned **Field** section (name / required / default value, shown for eve
 
 ### Inspector section titles
 
-Headings of the collapsible sections in the properties panel. `props.section.field`, `props.section.style` and `props.section.layout` are host-owned; the per-element titles come from each built-in definition's `inspectorTitle`. Consumer-registered elements provide their own `inspectorTitle: { key, fallback }`, so their keys are not under `coar.pageBuilder.*`.
+Headings of the collapsible sections in the properties panel. `props.section.field`, `props.section.page`, `props.section.visibility`, `props.section.style` and `props.section.layout` are host-owned; the per-element titles come from each built-in definition's `inspectorTitle`. Consumer-registered elements provide their own `inspectorTitle: { key, fallback }`, so their keys are not under `coar.pageBuilder.*`.
 
 | Key | Default (English) |
 |-----|-------------------|
 | `coar.pageBuilder.props.section.field` | `'Field'` |
+| `coar.pageBuilder.props.section.page` | `'Page'` |
+| `coar.pageBuilder.props.section.visibility` | `'Visibility'` |
 | `coar.pageBuilder.props.section.style` | `'Style'` |
 | `coar.pageBuilder.props.section.layout` | `'Layout'` |
 | `coar.pageBuilder.props.section.card` | `'Card'` |
