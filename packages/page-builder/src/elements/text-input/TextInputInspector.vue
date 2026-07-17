@@ -17,10 +17,11 @@ const props = defineProps<{
 
 const { t } = useI18n();
 
+// 'password' is deliberately absent — that's the standalone password-input
+// element now (legacy nodes migrate on ingest).
 const INPUT_TYPE_OPTIONS: CoarSelectOption<string>[] = [
   { value: 'text', label: 'text' },
   { value: 'email', label: 'email' },
-  { value: 'password', label: 'password' },
   { value: 'url', label: 'url' },
 ];
 </script>

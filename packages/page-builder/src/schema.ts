@@ -150,9 +150,20 @@ export type TextInputNode = ElementNode<'text-input', {
   label?: string
   placeholder?: string
   /** Controls HTML input type and autocomplete hints. Defaults to 'text'. */
-  inputType?: 'text' | 'email' | 'password' | 'url'
+  inputType?: 'text' | 'email' | 'url'
   /** Visible text rows; 2+ renders a multiline textarea. Defaults to 1. */
   rows?: number
+  disabled?: boolean
+}>
+
+/**
+ * Masked single-line input. Its own element (not a text-input variant) so it
+ * is directly pickable — in the palette and as a representation for string
+ * fields. Legacy `text-input` nodes with `inputType: 'password'` migrate here.
+ */
+export type PasswordInputNode = ElementNode<'password-input', {
+  label?: string
+  placeholder?: string
   disabled?: boolean
 }>
 
@@ -289,6 +300,7 @@ export type BuiltinNode =
   | ParagraphNode
   | NoteNode
   | TextInputNode
+  | PasswordInputNode
   | NumberInputNode
   | CheckboxNode
   | SwitchNode

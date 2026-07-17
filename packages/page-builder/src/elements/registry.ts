@@ -34,6 +34,13 @@ export interface I18nText {
  * required/matchField gating, and its value is passed to actions.
  */
 export interface ElementValueSpec<P extends ElementProps = ElementProps> {
+  /**
+   * Opt into the host-enforced string rules (`minLength`/`maxLength`/
+   * `pattern` from `validation`) — they need the localized message pipeline
+   * and the cached, crash-safe pattern compiler, so the host runs them. Only
+   * meaningful for elements whose value is a string.
+   */
+  textRules?: boolean;
   /** Fallback default when the node carries no `defaultValue`. */
   defaultValue?: (props: P) => unknown;
   /**

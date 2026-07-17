@@ -16,6 +16,7 @@ import { headingElement } from './heading';
 import { paragraphElement } from './paragraph';
 import { noteElement } from './note';
 import { textInputElement } from './text-input';
+import { passwordInputElement } from './password-input';
 import { numberInputElement } from './number-input';
 import { checkboxElement } from './checkbox';
 import { switchElement } from './switch';
@@ -43,6 +44,7 @@ const TABLE: Record<Exclude<ElementType, 'page'>, PageElementDefinition<any>> = 
   divider: dividerElement,
   spacer: spacerElement,
   'text-input': textInputElement,
+  'password-input': passwordInputElement,
   'number-input': numberInputElement,
   checkbox: checkboxElement,
   switch: switchElement,

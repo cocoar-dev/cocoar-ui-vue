@@ -1,21 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { CoarFormField, CoarTextInput } from '@cocoar/vue-ui';
-import type { TextInputNode } from '../../schema';
+import { CoarFormField, CoarPasswordInput } from '@cocoar/vue-ui';
+import type { PasswordInputNode } from '../../schema';
 import { usePageElement } from '../usePageElement';
 
-const props = defineProps<{ node: TextInputNode }>();
+const props = defineProps<{ node: PasswordInputNode }>();
 
 const ctx = usePageElement();
 const name = computed(() => props.node.name);
-
-function htmlInputType(t?: string): 'text' | 'email' | 'url' {
-  return t === 'email' || t === 'url' ? t : 'text';
-}
-
-function autocompleteFor(t?: string): string | undefined {
-  return t === 'email' ? 'email' : t === 'url' ? 'url' : undefined;
-}
 </script>
 
 <template>
@@ -25,11 +17,8 @@ function autocompleteFor(t?: string): string | undefined {
     :error="name ? ctx.getError(name) : ''"
     :disabled="node.props.disabled"
   >
-    <CoarTextInput
+    <CoarPasswordInput
       :model-value="name ? (ctx.getValue(name) as string ?? '') : ''"
-      :type="htmlInputType(node.props.inputType)"
-      :autocomplete="autocompleteFor(node.props.inputType)"
-      :rows="node.props.rows"
       :placeholder="node.props.placeholder"
       :disabled="node.props.disabled"
       @update:model-value="(v) => name && ctx.setValue(name, v)"

@@ -1,20 +1,19 @@
 <script setup lang="ts">
-import { CoarFormField, CoarTextInput } from '@cocoar/vue-ui';
-import type { TextInputNode } from '../../schema';
+import { CoarFormField, CoarPasswordInput } from '@cocoar/vue-ui';
+import type { PasswordInputNode } from '../../schema';
 
 defineProps<{
-  node: TextInputNode;
+  node: PasswordInputNode;
   resolveAsset?: (id: string) => string;
 }>();
 </script>
 
 <template>
   <CoarFormField :label="node.props.label" :required="node.validation?.required">
-    <CoarTextInput
+    <CoarPasswordInput
       :model-value="''"
-      :rows="node.props.rows"
       :placeholder="node.props.placeholder"
-      readonly
+      disabled
     />
   </CoarFormField>
 </template>

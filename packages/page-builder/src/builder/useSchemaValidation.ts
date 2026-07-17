@@ -101,14 +101,15 @@ export function useSchemaValidation(
         }
       }
 
-      // ── Text input: pattern must compile ───────────────────────────────
-      if (n.type === 'text-input' && n.validation?.pattern
-        && compilePagePattern(n.validation.pattern) === null) {
+      // ── String-rule elements (textRules): pattern must compile ─────────
+      // Cast: without a type-literal check there is no narrowing past the root.
+      const pattern = def?.value?.textRules ? (n as ElementNode).validation?.pattern : undefined;
+      if (pattern && compilePagePattern(pattern) === null) {
         out.push({
           nodeId: n.id,
           field: 'validation',
           severity: 'error',
-          message: `validation.pattern ${JSON.stringify(n.validation.pattern)} is not a valid regular expression.`,
+          message: `validation.pattern ${JSON.stringify(pattern)} is not a valid regular expression.`,
         });
       }
 

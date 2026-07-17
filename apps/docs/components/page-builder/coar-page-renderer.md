@@ -138,8 +138,8 @@ The renderer adds no box of its own (`display: contents`), so the `page` node si
         { "id": "n4", "type": "text-input", "name": "email",
           "props": { "label": "Email", "inputType": "email" },
           "validation": { "required": true } },
-        { "id": "n5", "type": "text-input", "name": "password",
-          "props": { "label": "Password", "inputType": "password" },
+        { "id": "n5", "type": "password-input", "name": "password",
+          "props": { "label": "Password" },
           "validation": { "required": true, "minLength": 8 } },
         { "id": "n6", "type": "checkbox",   "name": "rememberMe", "defaultValue": false,
           "props": { "label": "Remember me" } },
@@ -213,7 +213,8 @@ The wire format for `date-input`/`datetime-input` is always the ISO string — i
 | `'text'` (default) | `CoarTextInput` with `type="text"` | — |
 | `'email'` | `CoarTextInput` with `type="email"` | `autocomplete="email"` |
 | `'url'` | `CoarTextInput` with `type="url"` | `autocomplete="url"` |
-| `'password'` | `CoarPasswordInput` (masked) | — |
+
+Masked passwords are their own element: `password-input` (renders `CoarPasswordInput`). Legacy `text-input` nodes with `inputType: 'password'` migrate to it transparently on load.
 
 #### Declarative rules
 
@@ -222,15 +223,15 @@ Rules live on the node-level `validation` property (host vocabulary, uniform for
 ```ts
 interface FieldValidation {
   required?:   boolean    // any valued element — emptiness comes from the element's definition
-  minLength?:  number     // text-input only
-  maxLength?:  number     // text-input only
-  pattern?:    string     // text-input only; regex source applied as full-string match
+  minLength?:  number     // string-rule elements (text-input, password-input, …)
+  maxLength?:  number     // string-rule elements
+  pattern?:    string     // string-rule elements; regex source applied as full-string match
   matchField?: string     // any valued element — value must equal this other named field's value
   message?:    string     // custom error message — overrides defaults
 }
 ```
 
-`required` and `matchField` are host-enforced on every valued element; the text rules (`minLength` / `maxLength` / `pattern`) stay host-enforced on `text-input` only. Other elements express extra rules through their definition's `validate` hook (run crash-guarded, after the host rules) — see [Custom elements](./custom-elements). How and when errors surface is described under [Validation](#validation).
+`required` and `matchField` are host-enforced on every valued element; the string rules (`minLength` / `maxLength` / `pattern`) are host-enforced on elements whose definition opts in via `value.textRules` (built-in: `text-input` and `password-input`). Other elements express extra rules through their definition's `validate` hook (run crash-guarded, after the host rules) — see [Custom elements](./custom-elements). How and when errors surface is described under [Validation](#validation).
 
 ### Actions
 

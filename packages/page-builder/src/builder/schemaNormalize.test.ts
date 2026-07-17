@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { migrateLegacyTypes, normalizePageSchema } from './schemaNormalize';
-import { migrateV1PropsBag } from './schemaMigrateV1';
+import { migrateV1PropsBag, migrateLegacyPasswordInput } from './schemaMigrateV1';
 import type { PageNode } from '../schema';
 
 const validPage: PageNode = {
@@ -422,5 +422,44 @@ describe('normalizePageSchema — registry-aware (options.elements)', () => {
     expect(issues).toEqual([]);
     const kids = (schema as { children: { children: { id: string }[] }[] }).children[0].children;
     expect(kids[0].id).not.toBe(kids[1].id);
+  });
+});
+
+describe('migrateLegacyPasswordInput', () => {
+  it('rewrites v2 text-input with inputType password to password-input (drops inputType/rows)', () => {
+    const migrated = migrateLegacyPasswordInput({
+      id: 'p',
+      type: 'text-input',
+      name: 'password',
+      props: { label: 'Password', placeholder: 'min 8', inputType: 'password', rows: 1 },
+      validation: { required: true, minLength: 8 },
+    }) as Record<string, unknown>;
+    expect(migrated.type).toBe('password-input');
+    expect(migrated.props).toEqual({ label: 'Password', placeholder: 'min 8' });
+    expect(migrated.name).toBe('password');
+    expect(migrated.validation).toEqual({ required: true, minLength: 8 });
+  });
+
+  it('chains after the v1 bag migration inside normalizePageSchema (flat v1 password)', () => {
+    const { schema } = normalizePageSchema({
+      id: 'r',
+      type: 'page',
+      children: [{ id: 'p', type: 'text-input', label: 'PW', inputType: 'password', name: 'pw' }],
+    });
+    const child = (schema as { children: { type: string; props: unknown }[] }).children[0];
+    expect(child.type).toBe('password-input');
+    expect(child.props).toEqual({ label: 'PW' });
+  });
+
+  it('is identity for non-password nodes and idempotent', () => {
+    const plain = {
+      id: 'r', type: 'page', schemaVersion: 2,
+      children: [{ id: 't', type: 'text-input', props: { label: 'Email', inputType: 'email' } }],
+    };
+    expect(migrateLegacyPasswordInput(plain)).toBe(plain);
+    const pw = migrateLegacyPasswordInput({
+      id: 'p', type: 'text-input', props: { inputType: 'password' },
+    });
+    expect(migrateLegacyPasswordInput(pw)).toBe(pw);
   });
 });

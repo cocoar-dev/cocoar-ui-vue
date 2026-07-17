@@ -38,11 +38,10 @@ const schema: PageNode = {
         },
         {
           id: 'password',
-          type: 'text-input',
+          type: 'password-input',
           name: 'password',
           props: {
             label: 'Password',
-            inputType: 'password',
           },
           validation: { required: true, minLength: 8 },
         },

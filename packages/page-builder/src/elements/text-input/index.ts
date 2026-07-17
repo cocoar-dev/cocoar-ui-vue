@@ -6,10 +6,9 @@ import TextInputInspector from './TextInputInspector.vue';
 
 export const textInputElement = definePageElement<TextInputNode['props']>({
   renderer: TextInputRenderer,
-  // Default emptiness (undefined | null | '' | false | []) fits; the extra
-  // text rules (minLength/maxLength/pattern) stay host-enforced — they need
-  // the localized message pipeline and the cached pattern compiler.
-  value: {},
+  // Default emptiness (undefined | null | '' | false | []) fits; textRules
+  // opts into the host-enforced minLength/maxLength/pattern rules.
+  value: { textRules: true },
   builder: {
     label: { key: 'coar.pageBuilder.type.textInput', fallback: 'Text Input' },
     icon: 'file-text',

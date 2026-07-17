@@ -40,11 +40,10 @@ const loginSchema: PageNode = {
         },
         {
           id: 'password',
-          type: 'text-input',
+          type: 'password-input',
           name: 'password',
           props: {
             label: 'Password',
-            inputType: 'password',
           },
           validation: { required: true, minLength: 8 },
         },
@@ -131,22 +130,20 @@ const registerSchema: PageNode = {
         },
         {
           id: 'password',
-          type: 'text-input',
+          type: 'password-input',
           name: 'password',
           props: {
             label: 'Password',
-            inputType: 'password',
             placeholder: 'Min. 8 characters',
           },
           validation: { required: true, minLength: 8 },
         },
         {
           id: 'confirmPassword',
-          type: 'text-input',
+          type: 'password-input',
           name: 'confirmPassword',
           props: {
             label: 'Confirm password',
-            inputType: 'password',
           },
           validation: {
             required: true,
@@ -243,6 +240,7 @@ const idpLoginConfig: PageConfig = {
     'note',
     'divider',
     'text-input',
+    'password-input',
     'number-input',
     'checkbox',
     'switch',

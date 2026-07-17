@@ -27,6 +27,10 @@ const V1_PROP_FIELDS: Record<Exclude<ElementType, 'page'>, readonly string[]> = 
   paragraph: ['text'],
   note: ['text', 'variant'],
   'text-input': ['label', 'placeholder', 'inputType', 'rows', 'disabled'],
+  // v1 documents predate the standalone password element (they carried
+  // text-input + inputType) — listed for the exhaustiveness check and for
+  // hand-written flat nodes.
+  'password-input': ['label', 'placeholder', 'disabled'],
   'number-input': ['label', 'placeholder', 'min', 'max', 'step', 'decimals', 'disabled'],
   checkbox: ['label', 'disabled'],
   switch: ['label', 'disabled'],
@@ -76,6 +80,39 @@ export function migrateV1PropsBag(node: unknown): unknown {
   // overwrite when the recursion produced a new array — leaves must not gain
   // a `children: undefined` key.
   const result: Record<string, unknown> = { ...rest, props };
+  if (children !== node.children) result.children = children;
+  return result;
+}
+
+/**
+ * `text-input` with `inputType: 'password'` predates the standalone
+ * `password-input` element — rewrite it so old documents pick up the
+ * dedicated element. Expects v2 (bag) shape, so it chains AFTER
+ * `migrateV1PropsBag`. Identity-preserving and idempotent.
+ */
+export function migrateLegacyPasswordInput(node: unknown): unknown {
+  if (!isRecord(node)) return node;
+
+  let children = node.children;
+  if (Array.isArray(node.children)) {
+    const mapped = node.children.map(migrateLegacyPasswordInput);
+    if (mapped.some((c, i) => c !== (node.children as unknown[])[i])) children = mapped;
+  }
+
+  const isLegacyPassword =
+    node.type === 'text-input' &&
+    isRecord(node.props) &&
+    node.props.inputType === 'password';
+
+  if (!isLegacyPassword) {
+    if (children === node.children) return node;
+    return { ...node, children };
+  }
+
+  const props = { ...(node.props as Record<string, unknown>) };
+  delete props.inputType;
+  delete props.rows;
+  const result: Record<string, unknown> = { ...node, type: 'password-input', props };
   if (children !== node.children) result.children = children;
   return result;
 }

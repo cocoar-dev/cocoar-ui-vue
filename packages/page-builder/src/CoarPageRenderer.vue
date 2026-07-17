@@ -6,7 +6,7 @@ import type { ElementNode, PageNode, PageConfig } from './schema';
 import { useMergedElements } from './elements/useMergedElements';
 import type { PageElementDefinition } from './elements/registry';
 import { migrateLegacyTypes } from './builder/schemaNormalize';
-import { migrateV1PropsBag } from './builder/schemaMigrateV1';
+import { migrateV1PropsBag, migrateLegacyPasswordInput } from './builder/schemaMigrateV1';
 import {
   PAGE_RENDERER_KEY,
   type ActionHandler,
@@ -60,7 +60,7 @@ const isValidating = ref(false);
  * to migrate).
  */
 const renderSchema = computed(
-  () => migrateV1PropsBag(migrateLegacyTypes(props.schema)) as PageNode,
+  () => migrateLegacyPasswordInput(migrateV1PropsBag(migrateLegacyTypes(props.schema))) as PageNode,
 );
 
 // ─── Element registry ─────────────────────────────────────────────────────────
@@ -177,10 +177,10 @@ function computeFieldError(node: NamedNode, def: PageElementDefinition): string 
     if (empty) return v.message ?? t('coar.pageBuilder.validation.required', undefined, 'This field is required');
   }
 
-  // The text rules stay host-enforced (they need the localized message
-  // pipeline and the cached, crash-safe pattern compiler) and apply to the
-  // built-in text input only; elements express their own rules via `validate`.
-  if (v && node.type === 'text-input' && typeof value === 'string') {
+  // The string rules stay host-enforced (they need the localized message
+  // pipeline and the cached, crash-safe pattern compiler); elements opt in
+  // via `value.textRules` — others express their rules via `validate`.
+  if (v && def.value?.textRules && typeof value === 'string') {
     if (v.minLength && value.length < v.minLength)
       return v.message ?? t('coar.pageBuilder.validation.minLength', { n: v.minLength }, 'Minimum {n} characters');
     if (v.maxLength && value.length > v.maxLength)

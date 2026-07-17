@@ -23,7 +23,7 @@
 import type { ElementType, PageNode } from '../schema';
 import { isContainerNode } from '../schema';
 import type { PageElementRegistry } from '../elements/registry';
-import { migrateV1PropsBag } from './schemaMigrateV1';
+import { migrateV1PropsBag, migrateLegacyPasswordInput } from './schemaMigrateV1';
 import { uid } from './nodeDefaults';
 import { warnDev } from './operations';
 
@@ -40,6 +40,7 @@ const ELEMENT_TYPE_MAP: Record<ElementType, true> = {
   paragraph: true,
   note: true,
   'text-input': true,
+  'password-input': true,
   'number-input': true,
   checkbox: true,
   switch: true,
@@ -130,9 +131,12 @@ export function normalizePageSchema(value: unknown, options?: NormalizeOptions):
   }
 
   // Legacy column/row containers first (their output is v1-flat by
-  // construction), then the v1 → v2 props-bag migration. Both are
-  // identity-preserving, so `rootChanged` stays honest.
-  const migrated = migrateV1PropsBag(migrateLegacyTypes(value)) as Record<string, unknown>;
+  // construction), then the v1 → v2 props-bag migration, then the
+  // password-input rewrite (needs the bag shape). All identity-preserving,
+  // so `rootChanged` stays honest.
+  const migrated = migrateLegacyPasswordInput(
+    migrateV1PropsBag(migrateLegacyTypes(value)),
+  ) as Record<string, unknown>;
   let rootChanged = migrated !== value;
 
   let root = migrated;
