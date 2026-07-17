@@ -92,8 +92,14 @@ const fieldPalette = computed<FieldPaletteEntry[]>(() =>
   })),
 );
 
-/** `hideElementPicker`: authors place content exclusively via the Fields group. */
-const showElementPicker = computed(() => config?.value?.hideElementPicker !== true);
+/**
+ * `hideElementPicker` (fields-only authoring) removes the free ELEMENTS group
+ * only — containers stay: authors always need layout structure, while
+ * value/content elements come from the contract fields.
+ */
+const showFreeElements = computed(() => config?.value?.hideElementPicker !== true);
+const containerEntries = computed(() => visiblePalette.value.filter((e) => e.group === 'container'));
+const elementEntries = computed(() => visiblePalette.value.filter((e) => e.group === 'element'));
 
 function isFieldDragging(name: string): boolean {
   const p = dnd.payload.value;
@@ -116,10 +122,11 @@ function onCanvasBackgroundClick() { builder.select([]); }
   <div class="pb-canvas-shell">
     <!-- ── Palette toolbar ── -->
     <div class="pb-palette">
-      <div v-if="showElementPicker" class="pb-palette__group">
+      <!-- Containers stay even with hideElementPicker — layout is always needed. -->
+      <div v-if="containerEntries.length > 0" class="pb-palette__group">
         <span class="pb-palette__label">{{ t('coar.pageBuilder.palette.containers', undefined, 'Containers') }}</span>
         <button
-          v-for="entry in visiblePalette.filter((e) => e.group === 'container')"
+          v-for="entry in containerEntries"
           :key="entry.type"
           type="button"
           class="pb-palette__card pb-palette__card--container"
@@ -131,24 +138,29 @@ function onCanvasBackgroundClick() { builder.select([]); }
           <span>{{ entry.label }}</span>
         </button>
       </div>
-      <div v-if="showElementPicker" class="pb-palette__divider" />
-      <div v-if="showElementPicker" class="pb-palette__group">
-        <span class="pb-palette__label">{{ t('coar.pageBuilder.palette.elements', undefined, 'Elements') }}</span>
-        <button
-          v-for="entry in visiblePalette.filter((e) => e.group === 'element')"
-          :key="entry.type"
-          type="button"
-          class="pb-palette__card pb-palette__card--element"
-          :class="{ 'pb-palette__card--dragging': isPaletteDragging(entry.type) }"
-          :title="t('coar.pageBuilder.palette.dragToAdd', { label: entry.label }, 'Drag to add {label}')"
-          @pointerdown="onCardPointerDown($event, entry.type)"
-        >
-          <CoarIcon :name="entry.icon" size="s" />
-          <span>{{ entry.label }}</span>
-        </button>
-      </div>
+      <template v-if="showFreeElements && elementEntries.length > 0">
+        <div v-if="containerEntries.length > 0" class="pb-palette__divider" />
+        <div class="pb-palette__group">
+          <span class="pb-palette__label">{{ t('coar.pageBuilder.palette.elements', undefined, 'Elements') }}</span>
+          <button
+            v-for="entry in elementEntries"
+            :key="entry.type"
+            type="button"
+            class="pb-palette__card pb-palette__card--element"
+            :class="{ 'pb-palette__card--dragging': isPaletteDragging(entry.type) }"
+            :title="t('coar.pageBuilder.palette.dragToAdd', { label: entry.label }, 'Drag to add {label}')"
+            @pointerdown="onCardPointerDown($event, entry.type)"
+          >
+            <CoarIcon :name="entry.icon" size="s" />
+            <span>{{ entry.label }}</span>
+          </button>
+        </div>
+      </template>
       <template v-if="fieldPalette.length > 0">
-        <div v-if="showElementPicker" class="pb-palette__divider" />
+        <div
+          v-if="containerEntries.length > 0 || (showFreeElements && elementEntries.length > 0)"
+          class="pb-palette__divider"
+        />
         <div class="pb-palette__group">
           <span class="pb-palette__label">{{ t('coar.pageBuilder.palette.fields', undefined, 'Fields') }}</span>
           <button

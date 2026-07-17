@@ -61,6 +61,20 @@ const visibleAddOptions = computed(() =>
     })),
 );
 
+const containerAddOptions = computed(() =>
+  visibleAddOptions.value.filter((o) => o.group === 'container'),
+);
+const elementAddOptions = computed(() =>
+  visibleAddOptions.value.filter((o) => o.group === 'element'),
+);
+
+/**
+ * `hideElementPicker` (fields-only authoring) removes the free ELEMENTS
+ * offering only — containers stay available: authors always need layout
+ * structure, while value/content elements come from the contract fields.
+ */
+const showFreeElements = computed(() => config?.value?.hideElementPicker !== true);
+
 /** Validation issues for *this* node — drives the warning icon in the row. */
 const nodeIssues = computed(() => validation?.byNodeId.value.get(props.node.id) ?? []);
 const issueSeverity = computed<'error' | 'warning' | null>(() => {
@@ -309,10 +323,11 @@ function canMoveDown(): boolean {
         aria-hidden="true"
       />
 
-      <!-- Add-child trigger + dropdown (hidden when the config hides the
-           free element picker — fields-only authoring) -->
+      <!-- Add-child trigger + dropdown. With hideElementPicker (fields-only
+           authoring) only the free ELEMENTS section disappears — containers
+           stay: layout structure is always needed. -->
       <div
-        v-if="config?.hideElementPicker !== true"
+        v-if="containerAddOptions.length > 0 || (showFreeElements && elementAddOptions.length > 0)"
         ref="addMenuRoot"
         class="pb-tree-add"
         :style="{ paddingLeft: `${8 + (depth + 1) * 16}px` }"
@@ -327,31 +342,35 @@ function canMoveDown(): boolean {
           <span>{{ t('coar.pageBuilder.outline.addChild', undefined, 'Add child') }}</span>
         </button>
         <div v-if="addMenuOpen" class="pb-tree-add__menu" role="menu">
-          <div class="pb-tree-add__group-label">{{ t('coar.pageBuilder.palette.containers', undefined, 'Containers') }}</div>
-          <button
-            v-for="opt in visibleAddOptions.filter((o) => o.group === 'container')"
-            :key="opt.type"
-            type="button"
-            class="pb-tree-add__item"
-            role="menuitem"
-            @click.stop="pickAdd(opt.type)"
-          >
-            <CoarIcon :name="opt.icon" size="s" />
-            <span>{{ opt.label }}</span>
-          </button>
-          <div class="pb-tree-add__divider" />
-          <div class="pb-tree-add__group-label">{{ t('coar.pageBuilder.palette.elements', undefined, 'Elements') }}</div>
-          <button
-            v-for="opt in visibleAddOptions.filter((o) => o.group === 'element')"
-            :key="opt.type"
-            type="button"
-            class="pb-tree-add__item"
-            role="menuitem"
-            @click.stop="pickAdd(opt.type)"
-          >
-            <CoarIcon :name="opt.icon" size="s" />
-            <span>{{ opt.label }}</span>
-          </button>
+          <template v-if="containerAddOptions.length > 0">
+            <div class="pb-tree-add__group-label">{{ t('coar.pageBuilder.palette.containers', undefined, 'Containers') }}</div>
+            <button
+              v-for="opt in containerAddOptions"
+              :key="opt.type"
+              type="button"
+              class="pb-tree-add__item"
+              role="menuitem"
+              @click.stop="pickAdd(opt.type)"
+            >
+              <CoarIcon :name="opt.icon" size="s" />
+              <span>{{ opt.label }}</span>
+            </button>
+          </template>
+          <template v-if="showFreeElements && elementAddOptions.length > 0">
+            <div v-if="containerAddOptions.length > 0" class="pb-tree-add__divider" />
+            <div class="pb-tree-add__group-label">{{ t('coar.pageBuilder.palette.elements', undefined, 'Elements') }}</div>
+            <button
+              v-for="opt in elementAddOptions"
+              :key="opt.type"
+              type="button"
+              class="pb-tree-add__item"
+              role="menuitem"
+              @click.stop="pickAdd(opt.type)"
+            >
+              <CoarIcon :name="opt.icon" size="s" />
+              <span>{{ opt.label }}</span>
+            </button>
+          </template>
         </div>
       </div>
     </template>

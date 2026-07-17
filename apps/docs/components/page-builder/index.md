@@ -133,10 +133,12 @@ interface PageConfig {
   allowCustomFields?: boolean
 
   /**
-   * Hide the free element picker (the Containers/Elements palette groups and
-   * the outline's add-child menu) — authors place content exclusively by
-   * dragging contract fields. Pure authoring UI; `allowedElements` remains
-   * the boundary for what may be used at all.
+   * Hide the free ELEMENT offering (the Elements palette group and the
+   * element entries of the outline's add-child menu). Containers stay
+   * available — authors always need layout structure; value/content
+   * elements then come exclusively from the contract fields. Pure
+   * authoring UI; `allowedElements` remains the boundary for what may
+   * be used at all.
    */
   hideElementPicker?: boolean
 
@@ -278,7 +280,7 @@ The allow-list composes with the contract at every seam: a field's default eleme
 
 #### Fields-only authoring
 
-Set `hideElementPicker: true` to remove the free element picker entirely (the Containers/Elements palette groups and the outline's add-child menu): authors then place content exclusively by dragging contract fields. It is pure authoring UI — combine it with `allowedElements` when the *rendering* boundary should shrink too.
+Set `hideElementPicker: true` to remove the free **Elements** offering (the Elements palette group and the element entries of the outline's add-child menu): value/content elements then come exclusively from dragging contract fields. The **Containers** group stays — authors always need layout structure (restrict it via `allowedElements` if needed). It is pure authoring UI — combine it with `allowedElements` when the *rendering* boundary should shrink too.
 
 #### Typed field lists (opt-in)
 

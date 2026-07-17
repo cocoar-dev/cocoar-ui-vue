@@ -449,10 +449,12 @@ export interface PageConfig {
    */
   allowCustomFields?: boolean
   /**
-   * Hide the free element picker (the Containers/Elements palette groups and
-   * the outline's add-child menu). Authors then place content exclusively by
-   * dragging contract `fields`. Pure authoring UI — `allowedElements` remains
-   * the boundary for what may be USED at all.
+   * Hide the free ELEMENT offering (the Elements palette group and the
+   * element entries of the outline's add-child menu) — containers stay
+   * available, because authors always need layout structure; value/content
+   * elements then come exclusively from the contract `fields`. Pure
+   * authoring UI — `allowedElements` remains the boundary for what may be
+   * USED at all (including which containers are offered).
    */
   hideElementPicker?: boolean
   /**

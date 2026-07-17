@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { defineComponent, nextTick, ref } from 'vue';
 import { mount } from '@vue/test-utils';
 import CoarPageBuilder from './CoarPageBuilder.vue';
-import type { PageNode } from './schema';
+import type { PageConfig, PageNode } from './schema';
 
 /**
  * The documented host pattern: bind an initially-empty ref, load the schema
@@ -66,6 +66,31 @@ describe('CoarPageBuilder — v-model wiring', () => {
     // And the echo must not have re-replaced the working tree: the builder
     // still reports the SAME tree the host holds (raw-identical).
     expect(wrapper.text()).toContain('Loaded');
+  });
+
+  it('hideElementPicker removes the free Elements offering but KEEPS containers', async () => {
+    const config: PageConfig = {
+      hideElementPicker: true,
+      fields: [{ name: 'email', valueType: 'string', label: 'Email' }],
+    };
+    const Host = defineComponent({
+      components: { CoarPageBuilder },
+      setup() {
+        const schema = ref<PageNode | undefined>(undefined);
+        return { schema, config };
+      },
+      template: '<div style="height: 600px"><CoarPageBuilder v-model="schema" :config="config" /></div>',
+    });
+    const wrapper = mount(Host);
+    await nextTick();
+
+    const labels = wrapper.findAll('.pb-palette__label').map((l) => l.text());
+    expect(labels).toContain('Containers');
+    expect(labels).toContain('Fields');
+    expect(labels).not.toContain('Elements');
+    // Layout structure stays draggable: the container cards are rendered.
+    expect(wrapper.find('.pb-palette__card--container').exists()).toBe(true);
+    expect(wrapper.find('.pb-palette__card--element').exists()).toBe(false);
   });
 
   it('normalizes an externally-assigned schema (legacy types, duplicate ids) before use', async () => {
