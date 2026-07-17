@@ -128,6 +128,32 @@ const config: PageConfig = {
 };
 ```
 
+## Field contract
+
+Pages are usually projections of a DTO — the field names and types are known
+up front. Declare them as `config.fields` and authors *pick* fields instead of
+inventing names: the props panel's field name becomes a select filtered to the
+value types each element can edit (`ElementValueSpec.types`; the rating above
+declares `types: ['number']` and shows up for number fields), the palette
+gains a draggable **Fields** group that drops pre-bound default elements, an
+**Element** select switches a bound field to another compatible
+representation, and the builder lint flags unknown names, incompatible
+bindings and missing required fields. Authoring-only: binding is plain
+`node.name`, so persisted schemas stay self-contained and render without the
+contract.
+
+```ts
+const config: PageConfig = {
+  fields: [
+    { name: 'username',   valueType: 'string',  label: 'Username', required: true },
+    { name: 'password',   valueType: 'string',  label: 'Password', required: true, defaultElement: 'password-input' },
+    { name: 'rememberMe', valueType: 'boolean', label: 'Remember me' },
+    { name: 'age',        valueType: 'number',  label: 'Age' },
+    { name: 'dueUntil',   valueType: 'date',    label: 'Due until' },
+  ],
+};
+```
+
 ## Documentation
 
 Full docs — schema reference, `PageConfig` contract, element registry guide,

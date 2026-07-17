@@ -187,7 +187,8 @@ Built-ins are pre-registered [element definitions](./custom-elements) — they r
 
 | Type | Key props (in `props`) | Value type | Cocoar component |
 |------|-----------|------------|-----------------|
-| `text-input` | `label`, `inputType`, `rows`, `placeholder`, `disabled` | `string` | `CoarTextInput` / `CoarPasswordInput` (textarea when `rows > 1`) |
+| `text-input` | `label`, `inputType`, `rows`, `placeholder`, `disabled` | `string` | `CoarTextInput` (textarea when `rows > 1`) |
+| `password-input` | `label`, `placeholder`, `disabled` | `string` | `CoarPasswordInput` (masked) |
 | `number-input` | `label`, `placeholder`, `min`, `max`, `step`, `decimals`, `disabled` | `number` | `CoarNumberInput` |
 | `checkbox` | `label`, `disabled` | `boolean` | `CoarCheckbox` |
 | `switch` | `label`, `disabled` | `boolean` | `CoarSwitch` |

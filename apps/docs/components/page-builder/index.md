@@ -113,6 +113,22 @@ interface PageConfig {
   elements?: PageElementRegistry
 
   /**
+   * The data contract behind the page (DTO fields). When present, the
+   * builder's Field section offers these instead of a free-text name —
+   * filtered per element to the compatible value types — the palette
+   * gains a draggable Fields group, and the builder lint flags unknown
+   * names, incompatible bindings and missing required fields.
+   * See the Field contract section below.
+   */
+  fields?: PageFieldSpec[]
+
+  /**
+   * Allow binding names outside `fields`. Defaults to false — with a
+   * contract, authors pick from it.
+   */
+  allowCustomFields?: boolean
+
+  /**
    * Action IDs that buttons and links may reference. When provided, the
    * builder's Action input becomes a dropdown of these labeled choices
    * instead of free text. The renderer's `actions` map is the actual
@@ -179,6 +195,65 @@ const config: PageConfig = {
 ```
 
 Unregistered types degrade **losslessly**: kept in the tree and in the JSON tab, flagged in the builder, skipped at runtime with one console warning per type, and excluded from the value model so they can never block a submit. The full contract — builder half (palette label, canvas preview, inspector, lint), `usePageElement()` renderer context, app-wide registration via `PAGE_ELEMENTS_KEY` — is covered in the [Custom elements guide](./custom-elements).
+
+### Field contract
+
+In practice a page is rarely a free-form document — it usually **projects a DTO**: the login request, the profile record, the ticket form. The field names and their types are known up front, and authors should *pick* from them instead of inventing names the backend then has to guess at. `config.fields` declares that contract:
+
+```ts
+const config: PageConfig = {
+  fields: [
+    { name: 'username',   valueType: 'string',  label: 'Username', required: true },
+    { name: 'password',   valueType: 'string',  label: 'Password', required: true, defaultElement: 'password-input' },
+    { name: 'rememberMe', valueType: 'boolean', label: 'Remember me' },
+    { name: 'age',        valueType: 'number',  label: 'Age' },
+    { name: 'dueUntil',   valueType: 'date',    label: 'Due until' },
+  ],
+};
+```
+
+Each `PageFieldSpec` is `{ name, valueType, label?, required?, defaultElement? }`: `name` is the `ActionValues` key (the DTO property), `valueType` decides which elements can edit the field, `label` is carried onto the element on binding, `required` sets `validation.required` on binding and keeps a root-level warning alive while the field is missing from the page, and `defaultElement` picks the element the field-first flow creates.
+
+#### Value types and compatibility
+
+Compatibility is an exact token match between the field's `valueType` and the element definition's `ElementValueSpec.types`. `PageValueType` is an **open** token union — the built-in tokens below plus any consumer token (`'geo'`, `'money'`, …):
+
+| `valueType` | Compatible built-in elements |
+|-------------|------------------------------|
+| `string` | `text-input`, `password-input`, `select`, `radio-group`, `otp-input` |
+| `boolean` | `checkbox`, `switch` |
+| `number` | `number-input` |
+| `string[]` | `multi-select` |
+| `date` | `date-input` |
+| `datetime` | `datetime-input` |
+
+Consumer elements participate through the same declaration: a rating element whose definition says `value: { types: ['number'] }` becomes a representation for `number` fields — compatibility is registry-driven, not a central table. A value spec **without** `types` is unconstrained (compatible with every field), so consumer elements that don't declare are never falsely blocked. See [Custom elements](./custom-elements#_3-value-model-participation).
+
+#### Two authoring flows
+
+**Element-first** — drop any element, then bind it. With a contract, the Field section's *Field name* control becomes a select over the **compatible** fields only (a `text-input` never offers `rememberMe`). Binding takes the contract label along — never overwriting a label the author already edited — and sets `validation.required` for contract-required fields. Clearing the select unbinds; a bound name outside the contract stays visible as `(custom)`.
+
+**Field-first** — with a contract the palette gains a third group, **Fields**: one draggable card per contract field, with a type icon, the contract label and a `*` for required fields; a card greys out once its name is bound anywhere on the page. Dropping a card creates the field's default element — `field.defaultElement` when registered, else the first compatible value element in registry order — **pre-bound**: name set, contract label carried into the props bag (when the element has a `label` prop at all), `validation.required` applied.
+
+#### Representation switch
+
+Same field, different element: the Field section gains an **Element** select listing the representations that can edit the bound field's value type (unbound: any type the current element declares) — filtered to placeable, allow-listed elements and hidden when fewer than two remain. Switching converts the node **in place**: it keeps `id` (selection follows), `name`, `defaultValue`, `validation`, `style` and the label, while the rest of the props bag restarts from the target element's defaults. One undoable step — username as `text-input` ⇄ `password-input` ⇄ `select` ⇄ `otp-input`, one click each.
+
+#### Contract lint
+
+Three rules join [builder-side validation](./coar-page-builder#builder-side-validation):
+
+- a bound name **outside the contract** is an *error* — unless `allowCustomFields` is set,
+- a **type-incompatible** binding (say, a `checkbox` bound to a `string` field) is an *error*,
+- a **required contract field missing** from the page is a *warning* on the root node.
+
+#### Strict by default
+
+`allowCustomFields` defaults to `false`: with a contract, binding is select-only, and freshly dropped value elements start **unbound** instead of minting a `field_*` name the lint would immediately flag — the author picks a contract field. Setting `allowCustomFields: true` relaxes all of it: the Field section adds a free-text *Custom name* input, fresh elements mint names again, and the unknown-name lint rule stands down.
+
+#### Authoring-only by design
+
+The contract constrains **authoring only**. Binding is plain `node.name` — persisted schemas stay self-contained, render without the contract, and a document authored under one contract remains a valid document everywhere. The renderer never consults `fields`; `allowedElements` remains the security boundary.
 
 ### `availableActions`
 

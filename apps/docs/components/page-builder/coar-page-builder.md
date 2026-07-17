@@ -23,11 +23,11 @@ A live builder with a small starting schema and a restricted `allowedElements` l
 
 ## Features
 
-- **Palette toolbar** — drag containers (Stack, Card, Section) and elements onto the canvas. Entries derive from the merged element registry — built-ins plus anything registered via [`config.elements`](./custom-elements) — filtered by `config.allowedElements` (types not in the list are hidden).
+- **Palette toolbar** — drag containers (Stack, Card, Section) and elements onto the canvas. Entries derive from the merged element registry — built-ins plus anything registered via [`config.elements`](./custom-elements) — filtered by `config.allowedElements` (types not in the list are hidden). With a [field contract](./#field-contract) (`config.fields`) a third group, **Fields**, offers one draggable card per contract field (type icon, `*` for required, greyed out once its name is bound anywhere on the page); dropping a card creates the field's default element pre-bound.
 - **Pointer-based drag & drop** — built on pointer events rather than HTML5 drag events, so it works with mouse, touch **and** pen (tablet-first). Mouse drags start after a 5 px movement threshold, so plain clicks keep working; touch/pen drags arm after a 300 ms long-press. A ghost preview follows the pointer, scroll containers auto-scroll near their edges, and `Escape` cancels a drag in flight.
 - **Outline tree** — hierarchical node list with selection and real drag-to-reorder: every row except the root carries a grip handle, thin drop bars light up between rows while dragging, and container rows highlight for drop-**into**. Per-row actions: move up/down, duplicate, delete, plus an inline "Add child" menu. Stacks display "Column" or "Row" based on direction. Warning icons mark nodes with validation issues (hover for the full message).
 - **Canvas** — per-element preview components with dashed selection borders; each node's type tab doubles as its drag handle. A registered element without its own preview renders as a neutral icon+label chip; unregistered or disallowed element types get a red "skipped at runtime" treatment, so the canvas never pretends the runtime renderer will show them. Switches to live preview in the **Preview** tab and to a paste-and-apply JSON editor in the **JSON** tab.
-- **Properties panel** — resolved from the element registry: each definition ships its own inspector component. Value-producing elements additionally get a host-owned **Field** section (field name, Required, default value — with a per-element default-value editor when the definition provides one, e.g. "Checked by default" for checkboxes). Validation issues for the selected node are surfaced at the top with colored banners. Option-based inputs share an **options editor** (add / remove / reorder options; a removed option clears a default that pointed at it).
+- **Properties panel** — resolved from the element registry: each definition ships its own inspector component. Value-producing elements additionally get a host-owned **Field** section (field name, Required, default value — with a per-element default-value editor when the definition provides one, e.g. "Checked by default" for checkboxes). With a [field contract](./#field-contract), the field-name input becomes a select over the contract fields the element can edit (clearing it unbinds; binding carries the contract label and required along), an **Element** select switches the node to another representation of the same field, and `allowCustomFields` adds a free-text custom-name input. Validation issues for the selected node are surfaced at the top with colored banners. Option-based inputs share an **options editor** (add / remove / reorder options; a removed option clears a default that pointed at it).
 - **Duplicate** — available as an outline row action and a canvas button. Deep-clones the subtree with fresh ids on every node; colliding field names are flagged by the duplicate-name validation.
 - **Stack direction toggle** — change a stack from column to row direction without re-creating it. Children stay put.
 - **Layout controls** — every node's Style section exposes the flex model: container `Justify` (main axis) + `Align items` (cross axis), and per-node `Align self`, `Size` (Fit / Fill / Fixed → Width) and `Min height`. Center a single element, distribute a row, or build a full-screen centered page — and the Editor canvas mirrors the result 1:1 with the Preview.
@@ -70,6 +70,9 @@ Built-in rules:
 | `validation.pattern` does not compile as a regular expression | error |
 | Image has no Asset ID | error |
 | Two named inputs share the same `name` | error |
+| Bound field name is not in the [field contract](./#field-contract) (`config.fields` set, `allowCustomFields` off) | error |
+| Element cannot edit its bound contract field's value type | error |
+| Required contract field is missing from the page (reported on the root node) | warning |
 
 Element definitions can contribute their own findings through the definition's `builder.lint` hook — they are merged into the same outline/props-panel surfaces with their declared severity (see [Custom elements](./custom-elements)).
 
@@ -151,7 +154,10 @@ All builder chrome — and the runtime renderer's validation messages — resolv
 |-----|-------------------|
 | `coar.pageBuilder.palette.containers` | `'Containers'` |
 | `coar.pageBuilder.palette.elements` | `'Elements'` |
+| `coar.pageBuilder.palette.fields` | `'Fields'` |
 | `coar.pageBuilder.palette.dragToAdd` | `'Drag to add {label}'` |
+| `coar.pageBuilder.palette.fieldBound` | `'Already on the page'` |
+| `coar.pageBuilder.palette.fieldNoElement` | `'No compatible element available'` |
 
 ### Canvas
 
@@ -180,6 +186,7 @@ Used by the palette, the outline's add-child menu and the canvas type tabs. Thes
 | `coar.pageBuilder.type.link` | `'Link'` |
 | `coar.pageBuilder.type.button` | `'Button'` |
 | `coar.pageBuilder.type.textInput` | `'Text Input'` |
+| `coar.pageBuilder.type.passwordInput` | `'Password'` |
 | `coar.pageBuilder.type.numberInput` | `'Number Input'` |
 | `coar.pageBuilder.type.checkbox` | `'Checkbox'` |
 | `coar.pageBuilder.type.switch` | `'Switch'` |
@@ -204,6 +211,9 @@ The host-owned **Field** section (name / required / default value, shown for eve
 | `coar.pageBuilder.props.label` | `'Label'` |
 | `coar.pageBuilder.props.level` | `'Level'` |
 | `coar.pageBuilder.props.fieldName` | `'Field name'` |
+| `coar.pageBuilder.props.fieldUnbound` | `'Not bound'` |
+| `coar.pageBuilder.props.customFieldName` | `'Custom name'` |
+| `coar.pageBuilder.props.elementType` | `'Element'` |
 | `coar.pageBuilder.props.placeholder` | `'Placeholder'` |
 | `coar.pageBuilder.props.inputType` | `'Input type'` |
 | `coar.pageBuilder.props.rows` | `'Rows'` |
@@ -283,6 +293,7 @@ Headings of the collapsible sections in the properties panel. `props.section.fie
 | `coar.pageBuilder.props.section.link` | `'Link'` |
 | `coar.pageBuilder.props.section.button` | `'Button'` |
 | `coar.pageBuilder.props.section.textInput` | `'Text input'` |
+| `coar.pageBuilder.props.section.passwordInput` | `'Password input'` |
 | `coar.pageBuilder.props.section.numberInput` | `'Number input'` |
 | `coar.pageBuilder.props.section.checkbox` | `'Checkbox'` |
 | `coar.pageBuilder.props.section.switch` | `'Switch'` |

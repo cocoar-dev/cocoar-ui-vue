@@ -108,6 +108,8 @@ Declaring a `value` spec makes the element a managed field whenever the node car
 
 ```ts
 value: {
+  // A rating edits number fields (field-contract compatibility).
+  types: ['number'],
   // What "empty" means for validation.required — a 0-star rating is empty.
   isEmpty: (v) => !v || Number(v) === 0,
 }
@@ -117,6 +119,12 @@ The full spec:
 
 ```ts
 interface ElementValueSpec<P> {
+  /** Value types this element can edit — matched against the field
+      contract's `PageFieldSpec.valueType`. Omitted = unconstrained. */
+  types?: PageValueType[];
+  /** Opt into the host-enforced string rules
+      (validation.minLength / maxLength / pattern). */
+  textRules?: boolean;
   /** Fallback default when the node carries no `defaultValue`. */
   defaultValue?: (props: P) => unknown;
   /** Emptiness test for `validation.required`.
@@ -128,7 +136,7 @@ interface ElementValueSpec<P> {
 }
 ```
 
-The host enforces `validation.required` (via your `isEmpty`) and `matchField` for every valued element; the text rules (`minLength` / `maxLength` / `pattern`) remain a text-input concern and are **not** applied to custom elements — put element-specific rules in `validate`. Error messages returned by `validate` are yours to localize.
+The host enforces `validation.required` (via your `isEmpty`) and `matchField` for every valued element; the string rules (`minLength` / `maxLength` / `pattern`) are host-enforced only for definitions that opt in via `textRules` — they need the localized message pipeline and the crash-safe pattern compiler, so the host runs them (the built-in `text-input` and `password-input` set it; any consumer element with a string value can too). `types` declares which [field-contract](./#field-contract) value types the element can edit — omitted means unconstrained (compatible with every field), so declare them to show up for the right DTO fields: the rating's `types: ['number']` is exactly what makes it a representation for `number` fields. Everything else goes through `validate`; error messages it returns are yours to localize.
 
 ### 4. The builder half
 
@@ -235,6 +243,8 @@ import RatingDefaultInput from './RatingDefaultInput.vue';
 export const ratingElement = definePageElement<RatingProps>({
   renderer: RatingRenderer,
   value: {
+    // A rating edits number fields (field-contract compatibility).
+    types: ['number'],
     // required = at least one star.
     isEmpty: (v) => !v || Number(v) === 0,
   },
@@ -322,7 +332,7 @@ import RatingRenderer from './RatingRenderer.vue';
 
 export const ratingRendererHalf = definePageElement<RatingProps>({
   renderer: RatingRenderer,
-  value: { isEmpty: (v) => !v || Number(v) === 0 },
+  value: { types: ['number'], isEmpty: (v) => !v || Number(v) === 0 },
 });
 ```
 
@@ -369,7 +379,7 @@ When writing an element, you own the props bag and the components. Everything el
 
 - **Field section** — the props panel renders name / required / default-value controls automatically whenever the definition has a `value` spec. Your inspector never edits `node.name`, `node.validation` or `node.defaultValue`; supply `defaultValueInput` if the default needs a typed editor.
 - **Style section** — the universal `NodeStyle` editor (size, alignment, gap, padding; container fields keyed off `container`). Elements don't define their own layout props — `props` is for element vocabulary, `style` is host-owned.
-- **Drag and drop** — palette entry, canvas dropzones, outline reorder, duplicate, undo/redo. Dropzone legality derives from `container`; a freshly dropped node gets `id`, `props` from your `defaults()`, a minted `name` when the definition has a `value` spec, and `children: []` when it's a container.
+- **Drag and drop** — palette entry, canvas dropzones, outline reorder, duplicate, undo/redo. Dropzone legality derives from `container`; a freshly dropped node gets `id`, `props` from your `defaults()`, a minted `name` when the definition has a `value` spec (under a strict [field contract](./#field-contract) — `config.fields` set, `allowCustomFields` off — fresh value elements start unbound instead, and the author binds a contract field), and `children: []` when it's a container.
 - **The allow gate** — `allowedElements` filtering in palette, canvas and renderer, including the value-model exclusion. Renderers never need to check it.
 - **Value plumbing** — default seeding (`node.defaultValue ?? value.defaultValue?.(props)`), the renderer's [`initialValues` host prefill](./coar-page-renderer), touched-state, error computation ordering (required → matchField → your `validate`), and action payload assembly.
 
