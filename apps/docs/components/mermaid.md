@@ -1,3 +1,7 @@
+---
+description: "CoarMermaidDiagram — standalone Mermaid diagram component for Vue 3 rendering from a source string; Cocoar-themed, lazily loaded, with opt-in zoom/pan"
+---
+
 # Mermaid Diagram <Badge type="warning" text="Preview" />
 
 A standalone [Mermaid](https://mermaid.js.org/) diagram component for Vue 3.

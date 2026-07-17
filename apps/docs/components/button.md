@@ -1,3 +1,7 @@
+---
+description: "CoarButton — action button with five variants, four sizes, icons, loading and disabled states, full width and router-aware link rendering."
+---
+
 # Button
 
 Buttons trigger actions and communicate what will happen when pressed.

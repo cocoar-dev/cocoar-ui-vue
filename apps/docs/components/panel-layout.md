@@ -1,3 +1,7 @@
+---
+description: "CoarSplitPane and CoarPanelLayout — resizable split panes and a VS-Code-style workbench shell with top/left/content/right/bottom/status regions"
+---
+
 # Panel Layout <Badge type="warning" text="Preview" />
 
 A VS-Code-style workbench: named, resizable regions you fill with whatever you like. Two pieces:

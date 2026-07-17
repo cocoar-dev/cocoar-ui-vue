@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { computed, inject, onBeforeUnmount, onMounted, ref } from 'vue';
 import { CoarIcon, type CoreIconName } from '@cocoar/vue-ui';
-import { isContainerNode, isElementAllowed, type PageNode, type ElementType } from '../schema';
+import { useI18n } from '@cocoar/vue-localization';
+import { isElementAllowed, type PageNode } from '../schema';
 import { BUILDER_API, BUILDER_CONFIG, BUILDER_VALIDATION } from './builderContext';
+import { useMergedElements } from '../elements/useMergedElements';
+import { useBuilderDnd } from './useBuilderDnd';
 import type { NodePath } from './operations';
 
 defineOptions({ name: 'BuilderOutlineNode' });
@@ -15,12 +18,47 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), { depth: 0 });
 
+const { t } = useI18n();
 const builder = inject(BUILDER_API)!;
 const config = inject(BUILDER_CONFIG);
 const validation = inject(BUILDER_VALIDATION);
+const dnd = useBuilderDnd();
+const elements = useMergedElements(config);
 
+/** This node's registry definition (undefined for `page` and unknown types). */
+const def = computed(() => elements.value[props.node.type]);
+
+/**
+ * Container-ness for the UI affordances (children, drop-into, add-child):
+ * the page root plus every registered container definition.
+ */
+const isContainer = computed(
+  () => props.node.type === 'page' || def.value?.container === true,
+);
+
+const children = computed<PageNode[]>(() => {
+  const c = (props.node as PageNode & { children?: PageNode[] }).children;
+  return Array.isArray(c) ? c : [];
+});
+
+const nodeIcon = computed<CoreIconName>(
+  () => def.value?.builder?.icon ?? (props.node.type === 'page' ? 'file' : 'circle-alert'),
+);
+
+/**
+ * Add-child menu from the merged registry (key order = menu order: built-ins
+ * first, consumer registrations after); entries need a builder half and must
+ * pass the allow-list.
+ */
 const visibleAddOptions = computed(() =>
-  addOptions.filter((o) => isElementAllowed(o.type, config?.value)),
+  Object.entries(elements.value)
+    .filter(([type, entry]) => entry.builder && isElementAllowed(type, config?.value))
+    .map(([type, entry]) => ({
+      type,
+      label: t(entry.builder!.label.key, undefined, entry.builder!.label.fallback),
+      icon: entry.builder!.icon ?? 'circle-alert',
+      group: entry.builder!.group ?? 'element',
+    })),
 );
 
 /** Validation issues for *this* node — drives the warning icon in the row. */
@@ -40,31 +78,21 @@ const isSelected = computed(() => {
   return sel !== null && sel.length === props.path.length && sel.every((v, i) => v === props.path[i]);
 });
 
-const typeIcon: Record<ElementType, CoreIconName> = {
-  page: 'file',
-  stack: 'layers',
-  card: 'square-dashed',
-  section: 'panel-left',
-  divider: 'minus',
-  spacer: 'more-horizontal',
-  heading: 'heading',
-  paragraph: 'pilcrow',
-  'text-input': 'file-text',
-  checkbox: 'check-circle-2',
-  select: 'list',
-  button: 'zap',
-  link: 'link',
-  image: 'image',
-};
-
 const nodeLabel = computed(() => {
-  const n = props.node as PageNode & { text?: string; label?: string; title?: string };
-  if (n.type === 'page') return 'Page';
-  if (n.type === 'stack') return (n as PageNode & { direction?: string }).direction === 'row' ? 'Row' : 'Column';
-  if (n.text) return String(n.text);
-  if (n.label) return String(n.label);
-  if (n.title) return String(n.title);
-  return n.type;
+  const n = props.node as PageNode & { props?: { text?: string; label?: string; title?: string } };
+  if (n.type === 'page') {
+    return t('coar.pageBuilder.type.page', undefined, 'Page');
+  }
+  if (n.type === 'stack') {
+    return (n.props as { direction?: string } | undefined)?.direction === 'row'
+      ? t('coar.pageBuilder.outline.row', undefined, 'Row')
+      : t('coar.pageBuilder.outline.column', undefined, 'Column');
+  }
+  if (n.props?.text) return String(n.props.text);
+  if (n.props?.label) return String(n.props.label);
+  if (n.props?.title) return String(n.props.title);
+  const label = def.value?.builder?.label;
+  return label ? t(label.key, undefined, label.fallback) : n.type;
 });
 
 const nodeSubLabel = computed(() => {
@@ -74,35 +102,12 @@ const nodeSubLabel = computed(() => {
 
 // ── Add-child dropdown ────────────────────────────────────────────────────────
 
-interface AddOption {
-  type: ElementType;
-  label: string;
-  icon: CoreIconName;
-  group: 'container' | 'element';
-}
-
-const addOptions: ReadonlyArray<AddOption> = [
-  { type: 'stack',      label: 'Stack',      icon: 'layers',        group: 'container' },
-  { type: 'card',       label: 'Card',       icon: 'square-dashed', group: 'container' },
-  { type: 'section',    label: 'Section',    icon: 'panel-left',    group: 'container' },
-  { type: 'heading',    label: 'Heading',    icon: 'heading',       group: 'element' },
-  { type: 'paragraph',  label: 'Paragraph',  icon: 'pilcrow',       group: 'element' },
-  { type: 'divider',    label: 'Divider',    icon: 'minus',         group: 'element' },
-  { type: 'spacer',     label: 'Spacer',     icon: 'more-horizontal', group: 'element' },
-  { type: 'text-input', label: 'Text Input', icon: 'file-text',     group: 'element' },
-  { type: 'checkbox',   label: 'Checkbox',   icon: 'check-circle-2', group: 'element' },
-  { type: 'select',     label: 'Select',     icon: 'list',          group: 'element' },
-  { type: 'button',     label: 'Button',     icon: 'zap',           group: 'element' },
-  { type: 'link',       label: 'Link',       icon: 'link',          group: 'element' },
-  { type: 'image',      label: 'Image',      icon: 'image',         group: 'element' },
-];
-
 const addMenuOpen = ref(false);
 const addMenuRoot = ref<HTMLElement | null>(null);
 
 function toggleAddMenu() { addMenuOpen.value = !addMenuOpen.value; }
 
-function pickAdd(type: ElementType) {
+function pickAdd(type: string) {
   addMenuOpen.value = false;
   builder.addChild(props.path, type);
 }
@@ -126,6 +131,42 @@ onBeforeUnmount(() => {
   document.removeEventListener('keydown', onDocKey);
 });
 
+// ── Drag & drop (outline surface of the shared pointer-drag context) ─────────
+
+const pathKey = computed(() => props.path.join('/'));
+const childCount = computed(() => children.value.length);
+
+/** Zone keys are outline-prefixed so canvas zones with the same target never alias. */
+function barKey(index: number): string { return `o:${pathKey.value}:${index}`; }
+const intoKey = computed(() => `o:${pathKey.value}:into`);
+
+function barClasses(index: number): Record<string, boolean> {
+  const dragging = dnd.isDragging.value;
+  return {
+    'pb-outline-zone--active': dragging && dnd.canDrop(props.path),
+    'pb-outline-zone--over': dnd.activeZoneKey.value === barKey(index),
+  };
+}
+
+const isDropInto = computed(() =>
+  dnd.isDragging.value && dnd.activeZoneKey.value === intoKey.value,
+);
+
+function onGripPointerDown(e: PointerEvent) {
+  if (isRoot.value) return;
+  const ghostFrom = (e.currentTarget as HTMLElement | null)?.closest<HTMLElement>('.pb-tree-row');
+  dnd.onHandlePointerDown(e, { kind: 'move', path: [...props.path] }, ghostFrom);
+}
+
+// Enter/Space on the row itself selects — keys from the inline action buttons
+// keep their native behavior.
+function onRowKeydown(e: KeyboardEvent) {
+  if ((e.target as HTMLElement | null)?.closest('button')) return;
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  e.preventDefault();
+  builder.select(props.path);
+}
+
 // ── Move validation ───────────────────────────────────────────────────────────
 
 function canMoveUp(): boolean {
@@ -138,10 +179,12 @@ function canMoveDown(): boolean {
   const idx = props.path[props.path.length - 1];
   let parent: PageNode = builder.schema.value;
   for (const p of parentPath) {
-    if (!isContainerNode(parent)) return false;
-    parent = parent.children[p];
+    const kids = (parent as PageNode & { children?: PageNode[] }).children;
+    if (!Array.isArray(kids)) return false;
+    parent = kids[p];
   }
-  return isContainerNode(parent) && idx < parent.children.length - 1;
+  const siblings = (parent as PageNode & { children?: PageNode[] }).children;
+  return Array.isArray(siblings) && idx < siblings.length - 1;
 }
 </script>
 
@@ -152,14 +195,30 @@ function canMoveDown(): boolean {
   >
     <div
       class="pb-tree-row"
+      :class="{ 'pb-tree-row--dropinto': isDropInto }"
       :style="{ paddingLeft: `${8 + depth * 16}px` }"
+      role="treeitem"
+      :aria-level="depth + 1"
+      :aria-selected="isSelected"
+      :aria-expanded="isContainer ? true : undefined"
+      :tabindex="isSelected ? 0 : -1"
+      :data-dropzone="isContainer ? intoKey : undefined"
+      :data-pb-zone-path="isContainer ? pathKey : undefined"
+      :data-pb-zone-index="isContainer ? childCount : undefined"
       @click.stop="builder.select(path)"
+      @keydown="onRowKeydown"
     >
-      <span class="pb-tree-grip" aria-hidden="true">
+      <span
+        v-if="!isRoot"
+        class="pb-tree-grip"
+        aria-hidden="true"
+        @pointerdown.stop="onGripPointerDown"
+      >
         <CoarIcon name="grip-vertical" size="xs" />
       </span>
+      <span v-else class="pb-tree-grip" aria-hidden="true" />
       <span class="pb-tree-type-icon" aria-hidden="true">
-        <CoarIcon :name="typeIcon[node.type]" size="s" />
+        <CoarIcon :name="nodeIcon" size="s" />
       </span>
       <span class="pb-tree-label">
         <span class="pb-tree-label-text">{{ nodeLabel }}</span>
@@ -170,7 +229,7 @@ function canMoveDown(): boolean {
         class="pb-tree-issue"
         :class="`pb-tree-issue--${issueSeverity}`"
         :title="issueTitle"
-        aria-label="Validation issues"
+        :aria-label="t('coar.pageBuilder.outline.validationIssues', undefined, 'Validation issues')"
       >
         <CoarIcon
           :name="issueSeverity === 'error' ? 'circle-alert' : 'triangle-alert'"
@@ -183,7 +242,7 @@ function canMoveDown(): boolean {
           type="button"
           class="pb-tree-btn"
           :disabled="!canMoveUp()"
-          title="Move up"
+          :title="t('coar.pageBuilder.common.moveUp', undefined, 'Move up')"
           @click.stop="builder.move(path, -1)"
         >
           <CoarIcon name="chevron-up" size="s" />
@@ -193,7 +252,7 @@ function canMoveDown(): boolean {
           type="button"
           class="pb-tree-btn"
           :disabled="!canMoveDown()"
-          title="Move down"
+          :title="t('coar.pageBuilder.common.moveDown', undefined, 'Move down')"
           @click.stop="builder.move(path, 1)"
         >
           <CoarIcon name="chevron-down" size="s" />
@@ -201,8 +260,17 @@ function canMoveDown(): boolean {
         <button
           v-if="!isRoot"
           type="button"
+          class="pb-tree-btn"
+          :title="t('coar.pageBuilder.common.duplicate', undefined, 'Duplicate')"
+          @click.stop="builder.duplicate(path)"
+        >
+          <CoarIcon name="copy" size="s" />
+        </button>
+        <button
+          v-if="!isRoot"
+          type="button"
           class="pb-tree-btn pb-tree-btn--danger"
-          title="Delete"
+          :title="t('coar.pageBuilder.common.delete', undefined, 'Delete')"
           @click.stop="builder.remove(path)"
         >
           <CoarIcon name="trash-2" size="s" />
@@ -210,18 +278,41 @@ function canMoveDown(): boolean {
       </div>
     </div>
 
-    <!-- Recursive children -->
-    <template v-if="isContainerNode(node)">
-      <BuilderOutlineNode
-        v-for="(child, i) in node.children"
-        :key="i"
-        :node="child"
-        :path="[...path, i]"
-        :depth="depth + 1"
+    <!-- Recursive children (with drop bars between the rows) -->
+    <template v-if="isContainer">
+      <template v-for="(child, i) in children" :key="child.id">
+        <div
+          class="pb-outline-zone"
+          :class="barClasses(i)"
+          :style="{ marginLeft: `${8 + (depth + 1) * 16}px` }"
+          :data-dropzone="barKey(i)"
+          :data-pb-zone-path="pathKey"
+          :data-pb-zone-index="i"
+          data-pb-zone-inflate="6"
+          aria-hidden="true"
+        />
+        <BuilderOutlineNode
+          :node="child"
+          :path="[...path, i]"
+          :depth="depth + 1"
+        />
+      </template>
+      <div
+        v-if="children.length > 0"
+        class="pb-outline-zone"
+        :class="barClasses(children.length)"
+        :style="{ marginLeft: `${8 + (depth + 1) * 16}px` }"
+        :data-dropzone="barKey(children.length)"
+        :data-pb-zone-path="pathKey"
+        :data-pb-zone-index="children.length"
+        data-pb-zone-inflate="6"
+        aria-hidden="true"
       />
 
-      <!-- Add-child trigger + dropdown -->
+      <!-- Add-child trigger + dropdown (hidden when the config hides the
+           free element picker — fields-only authoring) -->
       <div
+        v-if="config?.hideElementPicker !== true"
         ref="addMenuRoot"
         class="pb-tree-add"
         :style="{ paddingLeft: `${8 + (depth + 1) * 16}px` }"
@@ -233,10 +324,10 @@ function canMoveDown(): boolean {
           @click.stop="toggleAddMenu"
         >
           <CoarIcon name="plus" size="s" />
-          <span>Add child</span>
+          <span>{{ t('coar.pageBuilder.outline.addChild', undefined, 'Add child') }}</span>
         </button>
         <div v-if="addMenuOpen" class="pb-tree-add__menu" role="menu">
-          <div class="pb-tree-add__group-label">Containers</div>
+          <div class="pb-tree-add__group-label">{{ t('coar.pageBuilder.palette.containers', undefined, 'Containers') }}</div>
           <button
             v-for="opt in visibleAddOptions.filter((o) => o.group === 'container')"
             :key="opt.type"
@@ -249,7 +340,7 @@ function canMoveDown(): boolean {
             <span>{{ opt.label }}</span>
           </button>
           <div class="pb-tree-add__divider" />
-          <div class="pb-tree-add__group-label">Elements</div>
+          <div class="pb-tree-add__group-label">{{ t('coar.pageBuilder.palette.elements', undefined, 'Elements') }}</div>
           <button
             v-for="opt in visibleAddOptions.filter((o) => o.group === 'element')"
             :key="opt.type"
@@ -310,14 +401,55 @@ function canMoveDown(): boolean {
   justify-content: center;
   width: 12px;
   color: var(--coar-icon-neutral-disabled, #b8b8bc);
-  opacity: 0;
+  /* Faintly visible by default: touch has no hover to reveal the handle. */
+  opacity: 0.4;
   transition: opacity 0.12s ease-out;
   flex-shrink: 0;
+  cursor: grab;
+  /* The pointer-drag engine owns the gesture on this handle. */
+  touch-action: none;
+}
+
+.pb-tree-node--root > .pb-tree-row .pb-tree-grip {
+  opacity: 0;
+  cursor: default;
 }
 
 .pb-tree-row:hover .pb-tree-grip,
 .pb-tree-node--selected > .pb-tree-row .pb-tree-grip {
   opacity: 1;
+}
+
+.pb-tree-node--root > .pb-tree-row:hover .pb-tree-grip {
+  opacity: 0;
+}
+
+/* ── Drop targets while dragging ── */
+.pb-outline-zone {
+  height: 0;
+  margin-right: 8px;
+  border-radius: 2px;
+  transition: height 0.12s ease-out, background-color 0.12s ease-out;
+  background: transparent;
+  pointer-events: none;
+}
+
+.pb-outline-zone--active {
+  height: 6px;
+  background: rgba(22, 102, 204, 0.15);
+  outline: 1px dashed rgba(22, 102, 204, 0.35);
+  outline-offset: -1px;
+}
+
+.pb-outline-zone--over {
+  height: 10px;
+  background: var(--coar-background-accent-primary, #1666cc);
+  outline: none;
+}
+
+.pb-tree-row--dropinto {
+  background: var(--coar-surface-accent-subtle, #e6eefa);
+  box-shadow: inset 0 0 0 2px var(--coar-border-accent, #1666cc);
 }
 
 .pb-tree-type-icon {

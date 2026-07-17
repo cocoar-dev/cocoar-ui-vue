@@ -174,6 +174,7 @@ export default defineConfig({
         '@cocoar/vue-calendar',
         '@cocoar/vue-document-viewer',
         '@cocoar/vue-file-explorer-core',
+        '@cocoar/vue-page-builder',
         'ag-grid-community',
         'ag-grid-vue3',
         '@maskito/core',
@@ -210,7 +211,9 @@ export default defineConfig({
       { text: 'Guide', link: '/guide/getting-started', activeMatch: '/guide/|/foundations/' },
       { text: 'Components', link: '/components/button', activeMatch: '/components/' },
       { text: 'Kitchen Sink', link: '/foundations/kitchen-sink' },
-      { text: 'LLM Docs', link: '/llms-full.txt', target: '_blank' },
+      // The compact annotated index (frontmatter descriptions per page) — the
+      // full dump stays reachable via the <link rel=alternate> head entry.
+      { text: 'LLM Docs', link: '/llms.txt', target: '_blank' },
     ],
 
     sidebar: {
@@ -386,11 +389,12 @@ export default defineConfig({
           ],
         },
         {
-          text: 'Page Builder (Preview)',
+          text: 'Page Builder',
           items: [
             { text: 'Overview', link: '/components/page-builder/' },
             { text: 'CoarPageBuilder', link: '/components/page-builder/coar-page-builder' },
             { text: 'CoarPageRenderer', link: '/components/page-builder/coar-page-renderer' },
+            { text: 'Custom elements', link: '/components/page-builder/custom-elements' },
           ],
         },
         {

@@ -1,3 +1,7 @@
+---
+description: "Cocoar's two-layer color system: primitive palettes and semantic tokens that adapt to light and dark mode, with naming convention and full token reference."
+---
+
 <script setup>
 import ColorPrimitives from './colors/demos/ColorPrimitives.vue';
 import SemanticColors from './colors/demos/SemanticColors.vue';

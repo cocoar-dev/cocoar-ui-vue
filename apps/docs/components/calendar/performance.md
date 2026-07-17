@@ -1,3 +1,7 @@
+---
+description: "Performance baseline for @cocoar/vue-calendar — Long Animation Frame measurements and targets for virtualization, 2D scrolling and drag-and-drop with auto-scroll"
+---
+
 # Performance baseline <Badge type="warning" text="Preview" />
 
 The calendar's hot paths — virtualization, drag-and-drop with auto-scroll,

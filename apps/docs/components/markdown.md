@@ -1,3 +1,7 @@
+---
+description: "@cocoar/vue-markdown — markdown rendering split into a framework-agnostic parser (markdown-core) and the CoarMarkdown Vue component with GFM support"
+---
+
 # Markdown
 
 Render markdown content with Cocoar Design System styling. The system is split into two packages: a framework-agnostic parser and a Vue component.

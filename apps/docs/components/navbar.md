@@ -1,3 +1,7 @@
+---
+description: "CoarNavbar — top-level navigation bar with start, center and end content slots, elevated shadow by default or a flat bordered variant"
+---
+
 # Navbar
 
 A top-level navigation bar that anchors your application layout. It provides three flexible content slots -- start, center, and end -- so you can place a logo, navigation links, and user actions exactly where they belong. By default it uses a subtle shadow for visual elevation; switch to `bordered` for a flat look with a bottom border instead.

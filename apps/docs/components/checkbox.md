@@ -1,3 +1,7 @@
+---
+description: "CoarCheckbox — boolean checkbox with v-model, indeterminate state, four sizes, label positioning, validation states and CoarFormField integration."
+---
+
 # Checkbox
 
 Checkboxes let users pick one or more options from a list, or flip a single boolean on or off. Reach for a checkbox when the choice does not take effect until the user explicitly submits -- for instant toggles, consider a [Switch](/components/switch) instead.

@@ -1,3 +1,7 @@
+---
+description: "CoarDocumentViewer component reference — the source prop, toolbar and side-panel chrome toggles, annotation surface props, and v-model panel open state."
+---
+
 # CoarDocumentViewer
 
 The all-in-one viewer component. One required prop — `source` — plus a handful of toggles for chrome, panels, and the annotation surface.

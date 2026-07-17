@@ -19,6 +19,16 @@ describe('CoarTextInput', () => {
     expect(wrapper.find('input.coar-text-input-field').exists()).toBe(true);
   });
 
+  it('defaults to type="text"', () => {
+    const wrapper = mountInput();
+    expect(wrapper.find('input').attributes('type')).toBe('text');
+  });
+
+  it.each(['email', 'url', 'tel', 'search'] as const)('renders type="%s"', (type) => {
+    const wrapper = mountInput({ type });
+    expect(wrapper.find('input').attributes('type')).toBe(type);
+  });
+
   it('renders textarea when rows > 1', () => {
     const wrapper = mountInput({ rows: 3 });
     expect(wrapper.find('textarea.coar-text-input-field').exists()).toBe(true);

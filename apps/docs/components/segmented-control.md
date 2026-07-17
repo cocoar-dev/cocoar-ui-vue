@@ -1,3 +1,7 @@
+---
+description: "CoarSegmentedControl — toolbar button-bar for switching between mutually-exclusive view options, with icons, four sizes, disabled segments and full-width mode"
+---
+
 # Segmented Control
 
 Switch between a small fixed set of mutually-exclusive options like view modes, filters, density, or time ranges. A segmented control reads as a button-bar for view-state — same semantics as a radio group (single selection from N options), different visual register: it belongs in toolbars and headers, not in forms.

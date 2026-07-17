@@ -1,3 +1,7 @@
+---
+description: "CoarSidebar — navigation sidebar with header/content/footer sections, collapsible icon-only mode, expand and flyout groups, four-side orientation and router-aware items"
+---
+
 # Sidebar
 
 A structured navigation sidebar with three distinct sections: a header for branding, a scrollable content area for navigation, and a footer for secondary actions. Use the dedicated sidebar components (`CoarSidebarItem`, `CoarSidebarGroup`, `CoarSidebarHeading`, `CoarSidebarDivider`, `CoarSidebarSpacer`) for full collapsed/expanded support with automatic tooltips.

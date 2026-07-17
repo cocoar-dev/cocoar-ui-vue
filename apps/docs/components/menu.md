@@ -1,3 +1,7 @@
+---
+description: "CoarMenu — context menus and action lists with full keyboard support, icons, headings, dividers, nested and flyout submenus and router-aware link items"
+---
+
 # Menu
 
 Build context menus, action lists, and navigation panels with full keyboard support. Menus group related actions together, making them easy to discover and interact with. They support nested submenus, icons, section headings, and danger variants for destructive actions.

@@ -1,3 +1,7 @@
+---
+description: "Set up @cocoar/vue-ui in a Vue 3 project: install, import fonts and styles, use components, toggle dark mode, and register the overlay plugin."
+---
+
 # Getting Started
 
 Set up the Cocoar Design System in your Vue 3 project in a few steps.

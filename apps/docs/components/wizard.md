@@ -1,3 +1,7 @@
+---
+description: "CoarWizard — multi-step flow shell for modals with animated body resize, scrollable auto-centering step indicator, edge-placeable progress strip and step gating"
+---
+
 # Wizard <Badge type="warning" text="Preview" />
 
 A multi-step flow shell — built to live **inside a modal** (it renders no modal of its own). Three things make it a wizard rather than a plain stepper:

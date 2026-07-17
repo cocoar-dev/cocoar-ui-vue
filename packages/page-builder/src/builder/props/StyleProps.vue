@@ -1,19 +1,23 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useI18n } from '@cocoar/vue-localization';
 import {
   CoarFormField,
   CoarTextInput,
   CoarSelect,
   type CoarSelectOption,
 } from '@cocoar/vue-ui';
-import { isContainerNode, type PageNode, type NodeStyle } from '../../schema';
+import type { PageNode, NodeStyle } from '../../schema';
 
 const props = defineProps<{
   node: PageNode;
   patchStyle: (update: Partial<NodeStyle>) => void;
+  /** Container-ness comes from the element registry (page or `def.container`), not the node shape. */
+  container?: boolean;
 }>();
 
-const isContainer = computed(() => isContainerNode(props.node));
+const { t } = useI18n();
+
 const style = computed<NodeStyle>(() => props.node.style ?? {});
 
 // A width set without an explicit `size` is treated as a fixed width, so legacy
@@ -21,29 +25,29 @@ const style = computed<NodeStyle>(() => props.node.style ?? {});
 const sizeValue = computed<string>(() => style.value.size ?? (style.value.width ? 'fixed' : ''));
 const showWidth = computed(() => sizeValue.value === 'fixed');
 
-const JUSTIFY_OPTIONS: CoarSelectOption<string>[] = [
-  { value: '', label: '— inherit' },
+const justifyOptions = computed<CoarSelectOption<string>[]>(() => [
+  { value: '', label: t('coar.pageBuilder.props.inherit', undefined, '— inherit') },
   { value: 'start', label: 'start' },
   { value: 'center', label: 'center' },
   { value: 'end', label: 'end' },
   { value: 'space-between', label: 'space-between' },
   { value: 'space-around', label: 'space-around' },
   { value: 'space-evenly', label: 'space-evenly' },
-];
+]);
 
-const ALIGN_OPTIONS: CoarSelectOption<string>[] = [
-  { value: '', label: '— inherit' },
+const alignOptions = computed<CoarSelectOption<string>[]>(() => [
+  { value: '', label: t('coar.pageBuilder.props.inherit', undefined, '— inherit') },
   { value: 'start', label: 'start' },
   { value: 'center', label: 'center' },
   { value: 'end', label: 'end' },
   { value: 'stretch', label: 'stretch' },
-];
+]);
 
-const SIZE_OPTIONS: CoarSelectOption<string>[] = [
-  { value: '', label: 'Auto' },
-  { value: 'fill', label: 'Fill' },
-  { value: 'fixed', label: 'Fixed width' },
-];
+const sizeOptions = computed<CoarSelectOption<string>[]>(() => [
+  { value: '', label: t('coar.pageBuilder.props.sizeAuto', undefined, 'Auto') },
+  { value: 'fill', label: t('coar.pageBuilder.props.sizeFill', undefined, 'Fill') },
+  { value: 'fixed', label: t('coar.pageBuilder.props.sizeFixedWidth', undefined, 'Fixed width') },
+]);
 
 function setSize(v: string) {
   if (v === 'fill') props.patchStyle({ size: 'fill', width: undefined });
@@ -54,7 +58,7 @@ function setSize(v: string) {
 
 <template>
   <!-- ── Container: how children are arranged ──────────────────────────────── -->
-  <CoarFormField v-if="isContainer" label="Gap">
+  <CoarFormField v-if="props.container" :label="t('coar.pageBuilder.props.gap', undefined, 'Gap')">
     <CoarTextInput
       :model-value="style.gap ?? ''"
       placeholder="e.g. 8px"
@@ -62,40 +66,40 @@ function setSize(v: string) {
     />
   </CoarFormField>
 
-  <CoarFormField v-if="isContainer" label="Justify (main axis)">
+  <CoarFormField v-if="props.container" :label="t('coar.pageBuilder.props.justify', undefined, 'Justify (main axis)')">
     <CoarSelect
       :model-value="style.justify ?? ''"
-      :options="JUSTIFY_OPTIONS"
+      :options="justifyOptions"
       @update:model-value="(v) => props.patchStyle({ justify: (v || undefined) as NodeStyle['justify'] })"
     />
   </CoarFormField>
 
-  <CoarFormField v-if="isContainer" label="Align items (cross axis)">
+  <CoarFormField v-if="props.container" :label="t('coar.pageBuilder.props.alignItems', undefined, 'Align items (cross axis)')">
     <CoarSelect
       :model-value="style.align ?? ''"
-      :options="ALIGN_OPTIONS"
+      :options="alignOptions"
       @update:model-value="(v) => props.patchStyle({ align: (v || undefined) as NodeStyle['align'] })"
     />
   </CoarFormField>
 
   <!-- ── Self: how this node sits in its parent ────────────────────────────── -->
-  <CoarFormField label="Align self">
+  <CoarFormField :label="t('coar.pageBuilder.props.alignSelf', undefined, 'Align self')">
     <CoarSelect
       :model-value="style.alignSelf ?? ''"
-      :options="ALIGN_OPTIONS"
+      :options="alignOptions"
       @update:model-value="(v) => props.patchStyle({ alignSelf: (v || undefined) as NodeStyle['alignSelf'] })"
     />
   </CoarFormField>
 
-  <CoarFormField label="Size">
+  <CoarFormField :label="t('coar.pageBuilder.props.size', undefined, 'Size')">
     <CoarSelect
       :model-value="sizeValue"
-      :options="SIZE_OPTIONS"
+      :options="sizeOptions"
       @update:model-value="(v) => setSize(v as string)"
     />
   </CoarFormField>
 
-  <CoarFormField v-if="showWidth" label="Width">
+  <CoarFormField v-if="showWidth" :label="t('coar.pageBuilder.props.width', undefined, 'Width')">
     <CoarTextInput
       :model-value="style.width ?? ''"
       placeholder="e.g. 380px, 50%"
@@ -103,7 +107,7 @@ function setSize(v: string) {
     />
   </CoarFormField>
 
-  <CoarFormField label="Min height">
+  <CoarFormField :label="t('coar.pageBuilder.props.minHeight', undefined, 'Min height')">
     <CoarTextInput
       :model-value="style.minHeight ?? ''"
       placeholder="e.g. 100vh, 400px"
@@ -111,7 +115,7 @@ function setSize(v: string) {
     />
   </CoarFormField>
 
-  <CoarFormField label="Padding">
+  <CoarFormField :label="t('coar.pageBuilder.props.padding', undefined, 'Padding')">
     <CoarTextInput
       :model-value="style.padding ?? ''"
       placeholder="e.g. 16px"

@@ -1,3 +1,7 @@
+---
+description: "CoarSpinner — animated loading indicator for operations of unknown duration, with four sizes, accessible labels and full-page overlay patterns"
+---
+
 # Spinner
 
 Spinners signal that something is loading when you can't show a progress bar. They tell users "we're working on it" for network requests, lazy-loaded content, or any asynchronous operation with an unpredictable duration.

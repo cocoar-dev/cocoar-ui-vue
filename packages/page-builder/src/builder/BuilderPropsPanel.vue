@@ -1,21 +1,60 @@
 <script setup lang="ts">
 import { computed, inject } from 'vue';
-import { CoarIcon } from '@cocoar/vue-ui';
-import type { PageNode, NodeStyle } from '../schema';
-import { BUILDER_API, BUILDER_VALIDATION } from './builderContext';
+import { useI18n } from '@cocoar/vue-localization';
+import {
+  CoarIcon,
+  CoarFormField,
+  CoarTextInput,
+  CoarCheckbox,
+  CoarSelect,
+  type CoarSelectOption,
+} from '@cocoar/vue-ui';
+import type { PageNode, NodeStyle, ElementNode, FieldValidation, PageRootNode, VisibleWhen } from '../schema';
+import { BUILDER_API, BUILDER_CONFIG, BUILDER_VALIDATION } from './builderContext';
 import type { NodePath } from './operations';
-import { PROPS_REGISTRY } from './props/registry';
+import { useMergedElements } from '../elements/useMergedElements';
+import { compatibleFields, compatibleElementTypes } from '../elements/fieldContract';
+import { isElementAllowed } from '../schema';
 import StyleProps from './props/StyleProps.vue';
 
 defineOptions({ name: 'BuilderPropsPanel' });
 
+const { t } = useI18n();
+
 const builder = inject(BUILDER_API)!;
+const config = inject(BUILDER_CONFIG);
 const validation = inject(BUILDER_VALIDATION);
+const elements = useMergedElements(config);
 
 const node = computed(() => builder.selectedNode.value);
 const path = computed(() => builder.selectedPath.value ?? []);
 
-const entry = computed(() => (node.value ? PROPS_REGISTRY[node.value.type] : undefined));
+/** Registry definition for the selected node (undefined for `page`). */
+const def = computed(() => (node.value ? elements.value[node.value.type] : undefined));
+
+/** The selected node, narrowed to the element grammar when it participates in the value model. */
+const fieldNode = computed<ElementNode | null>(() =>
+  node.value && def.value?.value ? (node.value as ElementNode) : null,
+);
+
+const inspector = computed(() => def.value?.builder?.inspector);
+const defaultValueInput = computed(() => def.value?.builder?.defaultValueInput);
+
+const inspectorTitle = computed(() => {
+  const b = def.value?.builder;
+  if (!b) return '';
+  const text = b.inspectorTitle ?? b.label;
+  return t(text.key, undefined, text.fallback);
+});
+
+const isContainer = computed(
+  () => node.value?.type === 'page' || def.value?.container === true,
+);
+
+/** The page root, when selected — it gets a host-owned Page section (no registry definition). */
+const pageNode = computed<PageRootNode | null>(() =>
+  node.value?.type === 'page' ? (node.value as PageRootNode) : null,
+);
 
 const nodeIssues = computed(() =>
   node.value ? validation?.byNodeId.value.get(node.value.id) ?? [] : [],
@@ -30,19 +69,260 @@ function patchStyle(update: Partial<NodeStyle>) {
   if (!node.value) return;
   patch({ style: { ...(node.value.style ?? {}), ...update } } as Partial<PageNode>);
 }
+
+function setRequired(v: boolean) {
+  // Merge into the existing rules — JSON-authored minLength/pattern/matchField/
+  // message must survive toggling Required in the panel.
+  const next: FieldValidation = { ...fieldNode.value?.validation };
+  if (v) next.required = true;
+  else delete next.required;
+  patch({ validation: Object.keys(next).length > 0 ? next : undefined });
+}
+
+// ─── Field contract ───────────────────────────────────────────────────────────
+// With `config.fields`, the name becomes a pick from the contract, filtered to
+// fields this element can edit (ElementValueSpec.types).
+
+const contractFields = computed(() => config?.value?.fields);
+const useFieldSelect = computed(() => (contractFields.value?.length ?? 0) > 0);
+const allowCustom = computed(() => config?.value?.allowCustomFields === true);
+
+const fieldOptions = computed<CoarSelectOption<string>[]>(() => {
+  if (!contractFields.value || !def.value) return [];
+  const opts = compatibleFields(def.value, contractFields.value).map((f) => ({
+    value: f.name,
+    label: f.label ? `${f.label} (${f.name})` : f.name,
+  }));
+  // A bound name outside the contract stays visible (and lint flags it).
+  const current = fieldNode.value?.name;
+  if (current && !contractFields.value.some((f) => f.name === current)) {
+    opts.unshift({ value: current, label: `${current} (custom)` });
+  }
+  return opts;
+});
+
+// ─── Representation switch ────────────────────────────────────────────────────
+// Same field, different element: offered among the elements that can edit the
+// bound contract field's value type (or, unbound, any type the current
+// element declares). convertTo keeps id/name/defaultValue/validation/style +
+// label; the rest of the bag restarts from the target's defaults.
+
+const representationOptions = computed<CoarSelectOption<string>[]>(() => {
+  const current = node.value;
+  if (!current || !def.value?.value) return [];
+  const boundField = contractFields.value?.find((f) => f.name === fieldNode.value?.name);
+  let types: string[];
+  if (boundField) {
+    types = compatibleElementTypes(elements.value, boundField.valueType);
+  } else {
+    const own = def.value.value.types;
+    if (!own || own.length === 0) return [];
+    const set = new Set<string>();
+    for (const t of own) for (const el of compatibleElementTypes(elements.value, t)) set.add(el);
+    types = [...set];
+  }
+  let placeable = types.filter(
+    (t) => elements.value[t]?.builder && isElementAllowed(t, config?.value),
+  );
+  // A node with children can only switch to another container — converting to
+  // a leaf would drop them (convertTo refuses it too).
+  const kids = (current as { children?: unknown[] }).children;
+  if (Array.isArray(kids) && kids.length > 0) {
+    placeable = placeable.filter((t) => elements.value[t].container === true);
+  }
+  if (placeable.length < 2) return [];
+  return placeable.map((t) => {
+    const b = elements.value[t].builder!;
+    return { value: t, label: t2(b.label.key, b.label.fallback) };
+  });
+});
+
+function t2(key: string, fallback: string): string {
+  return t(key, undefined, fallback);
+}
+
+function convertRepresentation(toType: string | null) {
+  if (!toType || !node.value || toType === node.value.type) return;
+  builder.convertTo(path.value as NodePath, toType);
+}
+
+// ─── Conditional visibility (visibleWhen) ─────────────────────────────────────
+// Host vocabulary on every non-page node. The panel authors the `equals` form;
+// the `in` form stays JSON-authorable and is surfaced read-only.
+
+const showVisibility = computed(() => !!node.value && node.value.type !== 'page');
+const visibleWhen = computed(() => (node.value as ElementNode | null)?.visibleWhen);
+const hasInCondition = computed(() => Array.isArray(visibleWhen.value?.in));
+
+/** Find the named input carrying `name` (the condition's controlling node). */
+function findController(name: string): ElementNode | null {
+  let found: ElementNode | null = null;
+  const walk = (n: PageNode) => {
+    if (found) return;
+    const d = n.type === 'page' ? undefined : elements.value[n.type];
+    if (d?.value && (n as ElementNode).name === name) { found = n as ElementNode; return; }
+    if ('children' in n && Array.isArray(n.children)) n.children.forEach(walk);
+  };
+  walk(builder.schema.value);
+  return found;
+}
+
+/**
+ * How the controller's VALUE is typed — the `equals` editor must author the
+ * matching type, because the runtime comparison is Object.is: a string '18'
+ * never matches the number 18 a number-input writes. The bound contract
+ * field's valueType is authoritative (multi-type elements store whatever
+ * their bound field says); without a binding, only an UNAMBIGUOUS single-type
+ * declaration is trusted — everything else authors strings.
+ */
+type ControllerKind = 'boolean' | 'number' | 'string';
+function kindOf(c: ElementNode | null): ControllerKind {
+  if (!c) return 'string';
+  const bound = contractFields.value?.find((f) => f.name === c.name)?.valueType;
+  if (bound === 'boolean') return 'boolean';
+  if (bound === 'number') return 'number';
+  if (bound) return 'string';
+  const types = elements.value[c.type]?.value?.types;
+  if (types?.length === 1 && types[0] === 'boolean') return 'boolean';
+  if (types?.length === 1 && types[0] === 'number') return 'number';
+  return 'string';
+}
+
+/**
+ * Named inputs on the page (minus this node) — candidates for the controlling
+ * field. Array-valued controllers (`string[]`) are not OFFERED: an `equals`
+ * condition on them is unsatisfiable by construction (v1 has no "contains").
+ */
+const controllerOptions = computed<CoarSelectOption<string>[]>(() => {
+  const out: CoarSelectOption<string>[] = [];
+  const walk = (n: PageNode) => {
+    const d = n.type === 'page' ? undefined : elements.value[n.type];
+    const name = (n as ElementNode).name;
+    if (d?.value && typeof name === 'string' && name && n.id !== node.value?.id
+      && !d.value.types?.includes('string[]')
+      && !out.some((o) => o.value === name)) {
+      out.push({ value: name, label: name });
+    }
+    if ('children' in n && Array.isArray(n.children)) n.children.forEach(walk);
+  };
+  walk(builder.schema.value);
+  // A pre-existing (JSON-authored) reference stays selected: plain label when
+  // the field exists on the page (e.g. an excluded array-valued one), `(?)`
+  // only when it genuinely isn't there (lint flags that case).
+  const current = visibleWhen.value?.field;
+  if (current && !out.some((o) => o.value === current)) {
+    out.push({
+      value: current,
+      label: findController(current) ? current : `${current} (?)`,
+    });
+  }
+  return out;
+});
+
+const controller = computed(() =>
+  visibleWhen.value?.field ? findController(visibleWhen.value.field) : null,
+);
+
+/** Array-valued controller (`string[]`): `equals` cannot match — JSON-authoring only. */
+const controllerIsArray = computed(() => {
+  const c = controller.value;
+  if (!c) return false;
+  const bound = contractFields.value?.find((f) => f.name === c.name)?.valueType;
+  if (bound) return bound === 'string[]';
+  return !!elements.value[c.type]?.value?.types?.includes('string[]');
+});
+
+/** Typed value choices where the controller's element suggests them; null → free text. */
+const conditionValueOptions = computed<CoarSelectOption<string>[] | null>(() => {
+  const c = controller.value;
+  if (!c) return null;
+  if (kindOf(c) === 'boolean') {
+    return [
+      { value: 'true', label: t('coar.pageBuilder.props.checked', undefined, 'checked') },
+      { value: 'false', label: t('coar.pageBuilder.props.unchecked', undefined, 'unchecked') },
+    ];
+  }
+  const opts = (c.props as { options?: { value: string; label: string }[] }).options;
+  if (Array.isArray(opts) && opts.length > 0) {
+    return opts.map((o) => ({ value: o.value, label: o.label || o.value }));
+  }
+  return null;
+});
+
+const equalsDisplay = computed(() => {
+  const e = visibleWhen.value?.equals;
+  if (typeof e === 'boolean') return e ? 'true' : 'false';
+  return e == null ? '' : String(e);
+});
+
+/** Author `equals` in the controller's value type. */
+function typedEquals(raw: string | null, c: ElementNode | null): unknown {
+  const kind = kindOf(c);
+  if (kind === 'boolean') return raw === 'true';
+  if (kind === 'number') {
+    const n = Number(raw);
+    return raw !== null && raw !== '' && !Number.isNaN(n) ? n : (raw ?? '');
+  }
+  return raw ?? '';
+}
+
+function setVisibilityField(name: string | null) {
+  if (!name) {
+    patch({ visibleWhen: undefined } as Partial<PageNode>);
+    return;
+  }
+  const c = findController(name);
+  const equals: unknown =
+    kindOf(c) === 'boolean'
+      ? true
+      : ((c?.props as { options?: { value: string }[] } | undefined)?.options?.[0]?.value ?? '');
+  patch({ visibleWhen: { field: name, equals } satisfies VisibleWhen } as Partial<PageNode>);
+}
+
+function setVisibilityEquals(raw: string | null) {
+  const vw = visibleWhen.value;
+  if (!vw) return;
+  patch({
+    visibleWhen: { field: vw.field, equals: typedEquals(raw, controller.value) } satisfies VisibleWhen,
+  } as Partial<PageNode>);
+}
+
+function bindField(name: string | null) {
+  if (!name) {
+    patch({ name: undefined });
+    return;
+  }
+  const update: Record<string, unknown> = { name };
+  const field = contractFields.value?.find((f) => f.name === name);
+  if (field) {
+    // Take the contract label along — but never overwrite an author's label.
+    const defaults = def.value?.builder?.defaults() as Record<string, unknown> | undefined;
+    const currentLabel = (fieldNode.value?.props as Record<string, unknown> | undefined)?.label;
+    if (
+      field.label && defaults && 'label' in defaults &&
+      (currentLabel === undefined || currentLabel === defaults.label)
+    ) {
+      update.props = { label: field.label };
+    }
+    if (field.required && !fieldNode.value?.validation?.required) {
+      update.validation = { ...fieldNode.value?.validation, required: true };
+    }
+  }
+  patch(update as Partial<PageNode>);
+}
 </script>
 
 <template>
   <aside class="pb-props">
     <header class="pb-props__header">
       <CoarIcon name="settings" size="s" />
-      <span class="pb-props__title">Properties</span>
+      <span class="pb-props__title">{{ t('coar.pageBuilder.props.panelTitle', undefined, 'Properties') }}</span>
     </header>
 
     <div v-if="!node" class="pb-props__empty">
       <CoarIcon name="settings" size="l" />
-      <p class="pb-props__empty-title">No node selected</p>
-      <p class="pb-props__empty-hint">Click a node in the outline or canvas to edit it.</p>
+      <p class="pb-props__empty-title">{{ t('coar.pageBuilder.props.emptyTitle', undefined, 'No node selected') }}</p>
+      <p class="pb-props__empty-hint">{{ t('coar.pageBuilder.props.emptyHint', undefined, 'Click a node in the outline or canvas to edit it.') }}</p>
     </div>
 
     <div v-else class="pb-props__body">
@@ -62,20 +342,132 @@ function patchStyle(update: Partial<NodeStyle>) {
         </li>
       </ul>
 
-      <!-- ── Element-specific section (delegated to per-type component) ─── -->
-      <section v-if="entry" class="pb-props__section">
-        <h4 class="pb-props__section-title">{{ entry.sectionTitle }}</h4>
-        <component :is="entry.component" :node="node" :patch="patch" />
+      <!-- ── Host-owned page section (root-level behavior) ───────────────── -->
+      <section v-if="pageNode" class="pb-props__section">
+        <h4 class="pb-props__section-title">{{ t('coar.pageBuilder.props.section.page', undefined, 'Page') }}</h4>
+        <CoarCheckbox
+          :model-value="!!pageNode.enterSubmits"
+          :label="t('coar.pageBuilder.props.enterSubmits', undefined, 'Enter submits (fires the default button)')"
+          @update:model-value="(v) => patch({ enterSubmits: v || undefined } as Partial<PageNode>)"
+        />
+      </section>
+
+      <!-- ── Host-owned field section (value-model participation) ────────── -->
+      <section v-if="fieldNode" class="pb-props__section">
+        <h4 class="pb-props__section-title">{{ t('coar.pageBuilder.props.section.field', undefined, 'Field') }}</h4>
+        <CoarFormField :label="t('coar.pageBuilder.props.fieldName', undefined, 'Field name')">
+          <CoarSelect
+            v-if="useFieldSelect"
+            :model-value="fieldNode.name ?? null"
+            :options="fieldOptions"
+            clearable
+            :placeholder="t('coar.pageBuilder.props.fieldUnbound', undefined, 'Not bound')"
+            @update:model-value="(v) => bindField(v)"
+          />
+          <CoarTextInput
+            v-else
+            :model-value="fieldNode.name ?? ''"
+            @update:model-value="(v) => patch({ name: v })"
+          />
+        </CoarFormField>
+        <CoarFormField
+          v-if="useFieldSelect && allowCustom"
+          :label="t('coar.pageBuilder.props.customFieldName', undefined, 'Custom name')"
+        >
+          <CoarTextInput
+            :model-value="fieldNode.name ?? ''"
+            @update:model-value="(v) => patch({ name: v })"
+          />
+        </CoarFormField>
+        <CoarFormField
+          v-if="representationOptions.length > 0"
+          :label="t('coar.pageBuilder.props.elementType', undefined, 'Element')"
+        >
+          <CoarSelect
+            :model-value="node.type"
+            :options="representationOptions"
+            @update:model-value="(v) => convertRepresentation(v)"
+          />
+        </CoarFormField>
+        <CoarCheckbox
+          :model-value="!!fieldNode.validation?.required"
+          :label="t('coar.pageBuilder.props.required', undefined, 'Required')"
+          @update:model-value="setRequired"
+        />
+        <CoarFormField :label="t('coar.pageBuilder.props.defaultValue', undefined, 'Default value')">
+          <component
+            :is="defaultValueInput"
+            v-if="defaultValueInput"
+            :model-value="fieldNode.defaultValue"
+            :props="fieldNode.props"
+            @update:model-value="(v: unknown) => patch({ defaultValue: v ?? undefined })"
+          />
+          <CoarTextInput
+            v-else
+            :model-value="String(fieldNode.defaultValue ?? '')"
+            @update:model-value="(v) => patch({ defaultValue: v || undefined })"
+          />
+        </CoarFormField>
+      </section>
+
+      <!-- ── Element-specific section (delegated to the registry inspector) ─ -->
+      <section
+        v-if="inspector"
+        class="pb-props__section"
+        :class="{ 'pb-props__section--separated': !!fieldNode }"
+      >
+        <h4 class="pb-props__section-title">{{ inspectorTitle }}</h4>
+        <component :is="inspector" :node="node" :patch="patch" />
+      </section>
+
+      <!-- ── Conditional visibility (host vocabulary, every non-page node) ── -->
+      <section
+        v-if="showVisibility"
+        class="pb-props__section"
+        :class="{ 'pb-props__section--separated': !!inspector || !!fieldNode }"
+      >
+        <h4 class="pb-props__section-title">{{ t('coar.pageBuilder.props.section.visibility', undefined, 'Visibility') }}</h4>
+        <CoarFormField :label="t('coar.pageBuilder.props.visibleWhenField', undefined, 'Visible when')">
+          <CoarSelect
+            :model-value="visibleWhen?.field ?? null"
+            :options="controllerOptions"
+            clearable
+            :placeholder="t('coar.pageBuilder.props.alwaysVisible', undefined, 'Always visible')"
+            @update:model-value="(v) => setVisibilityField(v)"
+          />
+        </CoarFormField>
+        <p v-if="hasInCondition" class="pb-props__hint">
+          {{ t('coar.pageBuilder.props.visibleWhenIn', undefined, 'Multi-value condition (in) — edit it in the JSON tab.') }}
+        </p>
+        <p v-else-if="visibleWhen && controllerIsArray" class="pb-props__hint">
+          {{ t('coar.pageBuilder.props.visibleWhenArray', undefined, '"equals" cannot match a multi-value field — author this condition in the JSON tab.') }}
+        </p>
+        <CoarFormField
+          v-else-if="visibleWhen"
+          :label="t('coar.pageBuilder.props.visibleWhenEquals', undefined, 'equals')"
+        >
+          <CoarSelect
+            v-if="conditionValueOptions"
+            :model-value="equalsDisplay"
+            :options="conditionValueOptions"
+            @update:model-value="(v) => setVisibilityEquals(v)"
+          />
+          <CoarTextInput
+            v-else
+            :model-value="equalsDisplay"
+            @update:model-value="(v) => setVisibilityEquals(v)"
+          />
+        </CoarFormField>
       </section>
 
       <!-- ── Universal style section ─────────────────────────────────────── -->
       <section
-        v-if="node.type !== 'spacer'"
+        v-if="!def?.builder?.hideStyleSection"
         class="pb-props__section"
-        :class="{ 'pb-props__section--separated': !!entry }"
+        :class="{ 'pb-props__section--separated': !!inspector || !!fieldNode || !!pageNode || showVisibility }"
       >
-        <h4 class="pb-props__section-title">Style</h4>
-        <StyleProps :node="node" :patch-style="patchStyle" />
+        <h4 class="pb-props__section-title">{{ t('coar.pageBuilder.props.section.style', undefined, 'Style') }}</h4>
+        <StyleProps :node="node" :container="isContainer" :patch-style="patchStyle" />
       </section>
     </div>
   </aside>
@@ -160,6 +552,12 @@ function patchStyle(update: Partial<NodeStyle>) {
 }
 
 .pb-props__empty-hint {
+  margin: 0;
+  font-size: var(--coar-body-caption-size, 12px);
+  color: var(--coar-text-neutral-tertiary, #8a8a90);
+}
+
+.pb-props__hint {
   margin: 0;
   font-size: var(--coar-body-caption-size, 12px);
   color: var(--coar-text-neutral-tertiary, #8a8a90);

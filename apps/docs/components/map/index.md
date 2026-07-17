@@ -1,3 +1,7 @@
+---
+description: "CoarMap, a standalone data-driven Leaflet map for Vue 3 that renders pins, routes, popups and a legend from MapData plus MapConfig."
+---
+
 # Map <Badge type="warning" text="Preview" />
 
 An interactive [Leaflet](https://leafletjs.com/) map for Vue 3. `<CoarMap>` is

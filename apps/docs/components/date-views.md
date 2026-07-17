@@ -1,3 +1,7 @@
+---
+description: "CoarPlainDateView, CoarPlainDateTimeView and CoarZonedDateTimeView — read-only, locale-aware displays for Temporal date values with cross-zone projection."
+---
+
 # Date Views <Badge type="tip" text="New in 2.0" />
 
 The read-only display siblings of the picker family. When you have a `Temporal.PlainDate` / `Temporal.PlainDateTime` / `Temporal.ZonedDateTime` value and just want to show it (no editor, no panel) — use these.

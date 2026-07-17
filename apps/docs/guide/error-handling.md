@@ -1,3 +1,7 @@
+---
+description: "Error handling patterns in Cocoar UI: graceful fallbacks, overlay Promise rejections, error toasts, and handling failures in application code."
+---
+
 # Error Handling
 
 Cocoar UI components are designed to fail gracefully. Internal errors are either caught and recovered silently, or surfaced to the user through controlled feedback mechanisms. This guide explains the patterns used throughout the library and how to handle errors in your own application code.

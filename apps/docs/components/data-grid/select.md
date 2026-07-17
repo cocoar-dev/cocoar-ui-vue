@@ -1,3 +1,7 @@
+---
+description: "CoarDataGrid select column — col.select() renders the matched option label and edits via CoarSelect with auto-commit on pick, clearable, searchable, and row-aware options."
+---
+
 # Select Column
 
 `col.select(field, configurator)` declares a select column whose renderer shows the **label** of the matched option and whose editor is `<CoarSelect>` — same visual language as forms, with the dropdown teleported to `<body>` so it can overflow the cell freely.

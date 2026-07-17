@@ -92,6 +92,9 @@ importers:
       '@cocoar/vue-mermaid':
         specifier: workspace:*
         version: link:../../packages/mermaid
+      '@cocoar/vue-page-builder':
+        specifier: workspace:*
+        version: link:../../packages/page-builder
       '@cocoar/vue-script-editor':
         specifier: workspace:*
         version: link:../../packages/script-editor
@@ -458,7 +461,14 @@ importers:
         version: 3.5.33(typescript@5.9.3)
 
   packages/page-builder:
+    dependencies:
+      '@js-temporal/polyfill':
+        specifier: ^0.5.1
+        version: 0.5.1
     devDependencies:
+      '@cocoar/vue-localization':
+        specifier: workspace:*
+        version: link:../localization
       '@cocoar/vue-ui':
         specifier: workspace:*
         version: link:../ui

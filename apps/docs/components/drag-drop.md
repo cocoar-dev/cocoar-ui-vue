@@ -1,3 +1,7 @@
+---
+description: "useDragDrop — HTML5 drag-and-drop composable with group, accept and canDrop matching rules for building custom drag surfaces like Kanban boards."
+---
+
 # Drag & Drop
 
 `useDragDrop` is a small, framework-agnostic composable wrapping HTML5 drag-and-drop with the same group / accept / canDrop semantics used by [`CoarListbox`](/components/listbox#drag-drop-between-lists) — but usable from any Vue component. It takes care of the fiddly bits (module-level payload registry, group matching, directional whitelists, source-side cleanup on accept) so your component only needs to wire events.

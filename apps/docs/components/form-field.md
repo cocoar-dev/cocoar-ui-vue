@@ -1,3 +1,7 @@
+---
+description: "CoarFormField — label, hint and validation wrapper for form controls with a severity-aware status icon, pinnable popover and live-evaluated rules"
+---
+
 # Form Field
 
 A wrapper component that provides a label, hint text, and an inline error indicator around any form control. Instead of each input managing its own label and validation display, `CoarFormField` handles these concerns in one place.

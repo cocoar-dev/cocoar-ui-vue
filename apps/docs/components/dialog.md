@@ -1,3 +1,7 @@
+---
+description: "useDialog — promise-based modal dialogs for confirm, alert and custom components, with configurable buttons, sizes and localized labels."
+---
+
 # Dialog
 
 Modal dialogs demand attention. They block interaction with the rest of the page until the user makes a decision, making them the right choice for destructive actions, important confirmations, and messages that must be acknowledged before proceeding. Use them sparingly -- when the stakes are high enough to justify interrupting the user's flow.

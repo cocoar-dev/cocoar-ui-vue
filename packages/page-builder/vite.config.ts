@@ -21,7 +21,10 @@ export default defineConfig({
       fileName: 'index',
     },
     rollupOptions: {
-      external: ['vue', '@cocoar/vue-ui'],
+      // @cocoar/vue-localization is a peer and @js-temporal/polyfill must share
+      // the app's single instance with @cocoar/vue-ui (Temporal values cross the
+      // package boundary; a bundled copy breaks instanceof at the picker edge).
+      external: ['vue', '@cocoar/vue-ui', '@cocoar/vue-localization', '@js-temporal/polyfill'],
       output: { globals: { vue: 'Vue' } },
     },
   },

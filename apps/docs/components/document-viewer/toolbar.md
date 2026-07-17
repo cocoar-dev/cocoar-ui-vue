@@ -1,3 +1,7 @@
+---
+description: "CoarDocumentViewer toolbar customization — the order-driven tools array of tool identifiers, separator trimming rules, and the full CoarDocumentViewerTool reference."
+---
+
 # Toolbar customization
 
 The toolbar is **order-driven**: the `tools` prop is an array of tool identifiers in the order you want them to render. Want zoom buttons on the left and page navigation on the right? Just reorder the array. Want a custom layout with only the four buttons you actually need? Pass that subset.

@@ -1,3 +1,7 @@
+---
+description: "CoarThemeEditor, a live token editor: explore primitive, semantic, and component token layers, apply presets, and export a CSS snippet."
+---
+
 # Theme Editor
 
 The **Theme Editor** is a live token editor built into every Cocoar app. It lets you explore the entire token system — from raw palette shades all the way to semantic roles — and export a ready-to-paste CSS snippet.

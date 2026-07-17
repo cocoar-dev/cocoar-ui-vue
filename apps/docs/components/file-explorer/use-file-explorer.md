@@ -1,3 +1,7 @@
+---
+description: "useFileExplorer composable reference — options, reactive tree and tab state, imperative ops, and navigation returned by the file-explorer engine."
+---
+
 # useFileExplorer
 
 `useFileExplorer<T>({store, ...})` is the composable. It wires a configured [`AssetStore<T>`](./asset-store) into reactive tree + tab state, owns the async / dirty / blob-URL bookkeeping, and returns every ref and op a file-explorer shell needs.

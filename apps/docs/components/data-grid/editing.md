@@ -1,3 +1,7 @@
+---
+description: "CoarDataGrid in-cell editing — editable() with per-row predicates, custom Vue editors via cellEditorConfig, and onCellValueChanged for committed edits."
+---
+
 # Editing
 
 In-cell editing is exposed through three builder methods that map directly onto AG Grid's editor lifecycle:

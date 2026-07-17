@@ -1,3 +1,7 @@
+---
+description: "Markdown custom embeds — register Vue components rendered from :::key{props} directives in both viewer and editor, with lossless round-trip to plain text"
+---
+
 # Custom Embeds <Badge type="warning" text="Preview" />
 
 Embed your own Vue components into markdown with a `:::key{props}` directive. The

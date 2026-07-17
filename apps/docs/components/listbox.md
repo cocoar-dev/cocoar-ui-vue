@@ -1,3 +1,7 @@
+---
+description: "CoarListbox — single-column selectable list with grouping, search, multi-select highlighting, keyboard navigation, custom item renderers and display-only mode"
+---
+
 # Listbox
 
 A single-column list of selectable items with grouping, search, custom renderers, and multi-select highlighting. Use it as a form control (v-model of highlighted values), as a display-only roster, or as the foundation for [`CoarDualListbox`](./dual-listbox).

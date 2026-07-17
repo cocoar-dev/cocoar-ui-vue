@@ -1,10 +1,13 @@
 import { inject, provide, ref, type InjectionKey, type Ref } from 'vue';
 import { isAncestor, type NodePath } from './operations';
-import type { ElementType } from '../schema';
-import type { UsePageBuilderReturn } from './usePageBuilder';
+import { createPointerDndEngine } from './pointerDnd';
+import type { FieldBinding, UsePageBuilderReturn } from './usePageBuilder';
 
 export type DragPayload =
-  | { kind: 'new'; type: ElementType }
+  // `type` is a registry key — built-in or consumer-registered. `bind` is set
+  // by the field-first palette flow: the node arrives pre-bound to a contract
+  // field.
+  | { kind: 'new'; type: string; bind?: FieldBinding }
   | { kind: 'move'; path: NodePath };
 
 export interface BuilderDndContext {
@@ -17,6 +20,18 @@ export interface BuilderDndContext {
   onZoneLeave(key: string): void;
   onZoneDrop(parentPath: NodePath, index: number): void;
   canDrop(parentPath: NodePath): boolean;
+  /**
+   * Entry point for every drag handle (palette card, canvas tab, outline
+   * grip): hands the pointerdown to the pointer engine, which arms the drag
+   * (movement threshold for mouse, long-press for touch) and drives the zone
+   * callbacks above. `ghostFrom` picks the element the drag ghost is cloned
+   * from when the handle itself is too small to be recognizable.
+   */
+  onHandlePointerDown(
+    e: PointerEvent,
+    payload: DragPayload,
+    ghostFrom?: HTMLElement | null,
+  ): void;
 }
 
 export const BUILDER_DND: InjectionKey<BuilderDndContext> = Symbol('PageBuilderDnd');
@@ -74,7 +89,7 @@ export function provideBuilderDnd(builder: UsePageBuilderReturn): BuilderDndCont
     if (!p || !canDrop(parentPath)) return;
 
     if (p.kind === 'new') {
-      builder.addChild(parentPath, p.type, index);
+      builder.addChild(parentPath, p.type, index, p.bind);
       return;
     }
 
@@ -95,9 +110,14 @@ export function provideBuilderDnd(builder: UsePageBuilderReturn): BuilderDndCont
     builder.moveTo(fromPath, parentPath, finalIndex);
   }
 
+  const engine = createPointerDndEngine({
+    canDrop, startDrag, endDrag, onZoneEnter, onZoneLeave, onZoneDrop,
+  });
+
   const ctx: BuilderDndContext = {
     isDragging, payload, activeZoneKey,
     startDrag, endDrag, onZoneEnter, onZoneLeave, onZoneDrop, canDrop,
+    onHandlePointerDown: engine.onHandlePointerDown,
   };
   provide(BUILDER_DND, ctx);
   return ctx;

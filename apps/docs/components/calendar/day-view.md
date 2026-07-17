@@ -1,3 +1,7 @@
+---
+description: "CoarDayView — single-day time-grid calendar view with hour axis, all-day band, configurable time range and slot duration, usable standalone via useDayView"
+---
+
 # `<CoarDayView>` — Day View <Badge type="warning" text="Preview" />
 
 Single-day time-grid surface — one hour-axis on the left, one day column on the right. Multi-day all-day events that touch the visible day appear in the all-day band that pins under the day header. Use it standalone via [`useDayView()`](#usedayview) when you need just the day view without the [`<CoarCalendar>`](/components/calendar/coar-calendar) shell.

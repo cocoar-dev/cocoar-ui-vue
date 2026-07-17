@@ -20,15 +20,25 @@
 ```
 cocoar-ui-vue/
 ├── packages/
-│   ├── ui/                @cocoar/vue-ui              Main component library
-│   ├── localization/      @cocoar/vue-localization     i18n, L10n, and timezone support
-│   ├── data-grid/         @cocoar/vue-data-grid        Data grid component
-│   ├── markdown/          @cocoar/vue-markdown         Markdown viewer component (optional)
-│   ├── markdown-core/     @cocoar/vue-markdown-core    Markdown parser
-│   ├── fragment-parser/   @cocoar/vue-fragment-parser  HTML fragment parsing utilities
-│   └── icons/             @cocoar/icons-cli            Icon generation CLI
+│   ├── ui/                  @cocoar/vue-ui                  Main component library
+│   ├── localization/        @cocoar/vue-localization        i18n, L10n, and timezone support
+│   ├── data-grid/           @cocoar/vue-data-grid           Data grid component
+│   ├── calendar/            @cocoar/vue-calendar            Calendar & timeline views
+│   ├── page-builder/        @cocoar/vue-page-builder        Visual page builder + renderer
+│   ├── document-viewer/     @cocoar/vue-document-viewer     PDF / image document viewer
+│   ├── script-editor/       @cocoar/vue-script-editor       Monaco-based TS/JS editor
+│   ├── markdown/            @cocoar/vue-markdown            Markdown viewer component
+│   ├── markdown-core/       @cocoar/vue-markdown-core       Markdown parser
+│   ├── markdown-editor/     @cocoar/vue-markdown-editor     Milkdown-based markdown editor
+│   ├── markdown-mermaid/    @cocoar/vue-markdown-mermaid    Mermaid fence-renderer adapter
+│   ├── mermaid/             @cocoar/vue-mermaid             Standalone Mermaid diagrams
+│   ├── map/                 @cocoar/vue-map                 Interactive Leaflet map
+│   ├── file-explorer-core/  @cocoar/vue-file-explorer-core  Headless file-explorer engine
+│   ├── fragment-parser/     @cocoar/vue-fragment-parser     URL fragment routing utilities
+│   └── icons/               @cocoar/icons-cli               Icon generation CLI
 ├── apps/
-│   └── docs/              VitePress documentation      Component docs & demos
+│   ├── docs/              VitePress documentation      Component docs & demos
+│   └── playground/        Vue Router playground        Component debugging app
 ├── assets/
 │   └── icons/             Source SVG icon set
 ├── scripts/

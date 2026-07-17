@@ -1,161 +1,178 @@
 <script setup lang="ts">
-import { computed, inject, onBeforeUnmount, onMounted, watch } from 'vue';
-import { CoarIcon, setCoarDragImageFromElement, type CoreIconName } from '@cocoar/vue-ui';
+import { computed, inject } from 'vue';
+import { CoarIcon, type CoreIconName } from '@cocoar/vue-ui';
+import { useI18n } from '@cocoar/vue-localization';
 import { BUILDER_API, BUILDER_CONFIG } from './builderContext';
 import BuilderCanvasNode from './BuilderCanvasNode.vue';
-import { provideBuilderDnd } from './useBuilderDnd';
-import { isElementAllowed, type ElementType } from '../schema';
+import { useBuilderDnd } from './useBuilderDnd';
+import { useMergedElements } from '../elements/useMergedElements';
+import { defaultElementForField } from '../elements/fieldContract';
+import { isElementAllowed, type PageFieldSpec, type PageNode } from '../schema';
 
 defineOptions({ name: 'BuilderCanvas' });
 
 const builder = inject(BUILDER_API)!;
 const config = inject(BUILDER_CONFIG);
-const dnd = provideBuilderDnd(builder);
-
-/** Hide palette entries for types that aren't allowed by the config. */
-const visiblePalette = computed(() =>
-  paletteEntries.filter((e) => isElementAllowed(e.type, config?.value)),
-);
+const dnd = useBuilderDnd();
+const elements = useMergedElements(config);
+const { t } = useI18n();
 
 interface PaletteEntry {
-  type: ElementType;
+  type: string;
   label: string;
   icon: CoreIconName;
   group: 'container' | 'element';
 }
 
-const paletteEntries: ReadonlyArray<PaletteEntry> = [
-  { type: 'stack',      label: 'Stack',      icon: 'layers',         group: 'container' },
-  { type: 'card',       label: 'Card',       icon: 'square-dashed',  group: 'container' },
-  { type: 'section',    label: 'Section',    icon: 'panel-left',     group: 'container' },
-  { type: 'heading',    label: 'Heading',    icon: 'heading',        group: 'element' },
-  { type: 'paragraph',  label: 'Paragraph',  icon: 'pilcrow',        group: 'element' },
-  { type: 'divider',    label: 'Divider',    icon: 'minus',          group: 'element' },
-  { type: 'spacer',     label: 'Spacer',     icon: 'more-horizontal', group: 'element' },
-  { type: 'text-input', label: 'Text Input', icon: 'file-text',      group: 'element' },
-  { type: 'checkbox',   label: 'Checkbox',   icon: 'check-circle-2', group: 'element' },
-  { type: 'select',     label: 'Select',     icon: 'list',           group: 'element' },
-  { type: 'button',     label: 'Button',     icon: 'zap',            group: 'element' },
-  { type: 'link',       label: 'Link',       icon: 'link',           group: 'element' },
-  { type: 'image',      label: 'Image',      icon: 'image',          group: 'element' },
-];
+/**
+ * Palette derived from the merged registry (key order = palette order:
+ * built-ins first, consumer registrations after); entries need a builder half
+ * and must pass the allow-list.
+ */
+const visiblePalette = computed<PaletteEntry[]>(() =>
+  Object.entries(elements.value)
+    .filter(([type, def]) => def.builder && isElementAllowed(type, config?.value))
+    .map(([type, def]) => ({
+      type,
+      label: t(def.builder!.label.key, undefined, def.builder!.label.fallback),
+      icon: def.builder!.icon ?? 'circle-alert',
+      group: def.builder!.group ?? 'element',
+    })),
+);
 
-function isPaletteDragging(type: ElementType): boolean {
+function isPaletteDragging(type: string): boolean {
   const p = dnd.payload.value;
-  return !!(p && p.kind === 'new' && p.type === type);
+  return !!(p && p.kind === 'new' && !p.bind && p.type === type);
 }
 
-function onCardDragStart(e: DragEvent, type: ElementType) {
-  if (!e.dataTransfer) return;
-  dnd.startDrag({ kind: 'new', type });
-  e.dataTransfer.effectAllowed = 'copy';
-  e.dataTransfer.setData('text/plain', type);
-  const src = e.currentTarget as HTMLElement | null;
-  if (src) setCoarDragImageFromElement(e, src);
+function onCardPointerDown(e: PointerEvent, type: string) {
+  dnd.onHandlePointerDown(e, { kind: 'new', type });
 }
 
-function onCardDragEnd() { dnd.endDrag(); }
+// ─── Field-first palette (config.fields) ──────────────────────────────────────
+// The contract's fields are draggable too: dropping one creates its default
+// element, pre-bound (name + label + required). Bound fields grey out.
+
+const FIELD_TYPE_ICONS: Record<string, CoreIconName> = {
+  string: 'file-text',
+  number: 'hash',
+  boolean: 'check',
+  'string[]': 'list',
+  date: 'calendar',
+  datetime: 'calendar-days',
+};
+
+interface FieldPaletteEntry {
+  field: PageFieldSpec;
+  /** Element the drop creates; undefined = no compatible placeable element. */
+  elementType?: string;
+  bound: boolean;
+  icon: CoreIconName;
+  label: string;
+}
+
+const boundNames = computed(() => {
+  const names = new Set<string>();
+  const walk = (n: PageNode) => {
+    const name = (n as { name?: string }).name;
+    if (name) names.add(name);
+    if ('children' in n && Array.isArray(n.children)) n.children.forEach(walk);
+  };
+  walk(builder.schema.value);
+  return names;
+});
+
+const fieldPalette = computed<FieldPaletteEntry[]>(() =>
+  (config?.value?.fields ?? []).map((field) => ({
+    field,
+    elementType: defaultElementForField(elements.value, field, config?.value),
+    bound: boundNames.value.has(field.name),
+    icon: FIELD_TYPE_ICONS[field.valueType] ?? 'circle-alert',
+    label: field.label ?? field.name,
+  })),
+);
+
+/** `hideElementPicker`: authors place content exclusively via the Fields group. */
+const showElementPicker = computed(() => config?.value?.hideElementPicker !== true);
+
+function isFieldDragging(name: string): boolean {
+  const p = dnd.payload.value;
+  return !!(p && p.kind === 'new' && p.bind?.name === name);
+}
+
+function onFieldPointerDown(e: PointerEvent, entry: FieldPaletteEntry) {
+  if (entry.bound || !entry.elementType) return;
+  dnd.onHandlePointerDown(e, {
+    kind: 'new',
+    type: entry.elementType,
+    bind: { name: entry.field.name, label: entry.field.label, required: entry.field.required },
+  });
+}
 
 function onCanvasBackgroundClick() { builder.select([]); }
-
-// ── Proximity-based dropzone visibility ─────────────────────────────────────
-const PROX_RADIUS = 120;
-const PROX_DROPPABLE_MAX_DIST = 60;
-
-function onSurfaceDragOver(e: DragEvent) {
-  if (!dnd.isDragging.value) return;
-  const x = e.clientX;
-  const y = e.clientY;
-  const zones = document.querySelectorAll<HTMLElement>('.canvas-dropzone:not(.canvas-dropzone--empty)');
-  for (const zone of zones) {
-    const rect = zone.getBoundingClientRect();
-    const dx = Math.max(rect.left - x, 0, x - rect.right);
-    const dy = Math.max(rect.top - y, 0, y - rect.bottom);
-    const dist = Math.hypot(dx, dy);
-    if (dist >= PROX_RADIUS) {
-      zone.style.opacity = '0';
-      zone.style.pointerEvents = 'none';
-    } else {
-      const alpha = 1 - dist / PROX_RADIUS;
-      zone.style.opacity = alpha.toFixed(3);
-      zone.style.pointerEvents = dist <= PROX_DROPPABLE_MAX_DIST ? 'auto' : 'none';
-    }
-  }
-}
-
-function clearZoneStyles() {
-  const zones = document.querySelectorAll<HTMLElement>('.canvas-dropzone:not(.canvas-dropzone--empty)');
-  for (const zone of zones) {
-    zone.style.opacity = '';
-    zone.style.pointerEvents = '';
-  }
-}
-
-watch(() => dnd.isDragging.value, (on) => { if (!on) clearZoneStyles(); });
-
-// ── Keyboard shortcuts ────────────────────────────────────────────────────────
-function onKeyDown(e: KeyboardEvent) {
-  const meta = e.ctrlKey || e.metaKey;
-  if (meta && (e.key === 'z' || e.key === 'Z')) {
-    e.preventDefault();
-    if (e.shiftKey) builder.redo(); else builder.undo();
-    return;
-  }
-  if (meta && (e.key === 'y' || e.key === 'Y')) { e.preventDefault(); builder.redo(); return; }
-  if (e.key !== 'Delete' && e.key !== 'Backspace') return;
-  const target = e.target as HTMLElement | null;
-  if (!target) return;
-  const tag = target.tagName;
-  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable) return;
-  const sel = builder.selectedPath.value;
-  if (!sel || sel.length === 0) return;
-  e.preventDefault();
-  builder.remove(sel);
-}
-
-onMounted(() => window.addEventListener('keydown', onKeyDown));
-onBeforeUnmount(() => window.removeEventListener('keydown', onKeyDown));
 </script>
 
 <template>
   <div class="pb-canvas-shell">
     <!-- ── Palette toolbar ── -->
     <div class="pb-palette">
-      <div class="pb-palette__group">
-        <span class="pb-palette__label">Containers</span>
+      <div v-if="showElementPicker" class="pb-palette__group">
+        <span class="pb-palette__label">{{ t('coar.pageBuilder.palette.containers', undefined, 'Containers') }}</span>
         <button
           v-for="entry in visiblePalette.filter((e) => e.group === 'container')"
           :key="entry.type"
           type="button"
           class="pb-palette__card pb-palette__card--container"
           :class="{ 'pb-palette__card--dragging': isPaletteDragging(entry.type) }"
-          :title="`Drag to add ${entry.label}`"
-          draggable="true"
-          @dragstart="onCardDragStart($event, entry.type)"
-          @dragend="onCardDragEnd"
+          :title="t('coar.pageBuilder.palette.dragToAdd', { label: entry.label }, 'Drag to add {label}')"
+          @pointerdown="onCardPointerDown($event, entry.type)"
         >
           <CoarIcon :name="entry.icon" size="s" />
           <span>{{ entry.label }}</span>
         </button>
       </div>
-      <div class="pb-palette__divider" />
-      <div class="pb-palette__group">
-        <span class="pb-palette__label">Elements</span>
+      <div v-if="showElementPicker" class="pb-palette__divider" />
+      <div v-if="showElementPicker" class="pb-palette__group">
+        <span class="pb-palette__label">{{ t('coar.pageBuilder.palette.elements', undefined, 'Elements') }}</span>
         <button
           v-for="entry in visiblePalette.filter((e) => e.group === 'element')"
           :key="entry.type"
           type="button"
           class="pb-palette__card pb-palette__card--element"
           :class="{ 'pb-palette__card--dragging': isPaletteDragging(entry.type) }"
-          :title="`Drag to add ${entry.label}`"
-          draggable="true"
-          @dragstart="onCardDragStart($event, entry.type)"
-          @dragend="onCardDragEnd"
+          :title="t('coar.pageBuilder.palette.dragToAdd', { label: entry.label }, 'Drag to add {label}')"
+          @pointerdown="onCardPointerDown($event, entry.type)"
         >
           <CoarIcon :name="entry.icon" size="s" />
           <span>{{ entry.label }}</span>
         </button>
       </div>
+      <template v-if="fieldPalette.length > 0">
+        <div v-if="showElementPicker" class="pb-palette__divider" />
+        <div class="pb-palette__group">
+          <span class="pb-palette__label">{{ t('coar.pageBuilder.palette.fields', undefined, 'Fields') }}</span>
+          <button
+            v-for="entry in fieldPalette"
+            :key="entry.field.name"
+            type="button"
+            class="pb-palette__card pb-palette__card--field"
+            :class="{ 'pb-palette__card--dragging': isFieldDragging(entry.field.name) }"
+            :disabled="entry.bound || !entry.elementType"
+            :title="
+              entry.bound
+                ? t('coar.pageBuilder.palette.fieldBound', undefined, 'Already on the page')
+                : entry.elementType
+                  ? t('coar.pageBuilder.palette.dragToAdd', { label: entry.label }, 'Drag to add {label}')
+                  : t('coar.pageBuilder.palette.fieldNoElement', undefined, 'No compatible element available')
+            "
+            @pointerdown="onFieldPointerDown($event, entry)"
+          >
+            <CoarIcon :name="entry.icon" size="s" />
+            <span>{{ entry.label }}</span>
+            <span v-if="entry.field.required" class="pb-palette__field-required" aria-hidden="true">*</span>
+          </button>
+        </div>
+      </template>
     </div>
 
     <!-- ── Canvas surface ── -->
@@ -163,7 +180,6 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeyDown));
       class="pb-canvas"
       :class="{ 'pb-canvas--dragging': dnd.isDragging.value }"
       @click.self="onCanvasBackgroundClick"
-      @dragover="onSurfaceDragOver"
     >
       <BuilderCanvasNode :node="builder.schema.value" :path="[]" />
     </div>
@@ -232,6 +248,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeyDown));
   transition: background-color 0.12s, border-color 0.12s, transform 0.08s;
   user-select: none;
   white-space: nowrap;
+  /* The pointer-drag engine owns the gesture — without this, touch browsers
+     turn the drag into a scroll and fire pointercancel mid-gesture. */
+  touch-action: none;
 }
 
 .pb-palette__card:hover {
@@ -256,6 +275,24 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeyDown));
   --card-border: rgba(5, 150, 105, 0.3);
   --card-border-hover: rgba(5, 150, 105, 0.55);
   --card-bg-hover: rgba(5, 150, 105, 0.08);
+}
+.pb-palette__card--field {
+  --card-fg: #7c3aed;
+  --card-fg-hover: #7c3aed;
+  --card-border: rgba(124, 58, 237, 0.3);
+  --card-border-hover: rgba(124, 58, 237, 0.55);
+  --card-bg-hover: rgba(124, 58, 237, 0.08);
+}
+
+.pb-palette__card--field:disabled {
+  opacity: 0.45;
+  cursor: default;
+  transform: none;
+}
+
+.pb-palette__field-required {
+  color: var(--coar-text-semantic-error-bold, #c0392b);
+  font-weight: 700;
 }
 
 /* ── Canvas surface ──────────────────────────────────────────────────────── */

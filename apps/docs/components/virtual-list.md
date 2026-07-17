@@ -1,3 +1,7 @@
+---
+description: "useVirtualList — composable that virtualizes large scrollable lists, rendering only visible rows with overscan, variable item heights and scrollToIndex"
+---
+
 # Virtual List
 
 `useVirtualList` is a framework-agnostic composable that returns the slice of rows currently inside the viewport (plus an overscan buffer). Use it to render very large lists without putting thousands of DOM nodes in the tree. It's the primitive behind [`CoarListbox`'s virtual mode](/components/listbox#virtual-scrolling), but is independently exported and usable in any Vue component that scrolls.

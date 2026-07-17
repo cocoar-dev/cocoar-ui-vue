@@ -1,3 +1,7 @@
+---
+description: "CoarNumberInput — numeric input with min/max clamping, configurable step, optional stepper buttons, four sizes and standard form states"
+---
+
 # Number Input
 
 A purpose-built input for numeric values. It enforces min/max bounds, supports configurable step increments, and offers optional stepper buttons so users can nudge values up or down without typing.

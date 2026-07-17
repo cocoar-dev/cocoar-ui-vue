@@ -1,3 +1,7 @@
+---
+description: "CoarZonedDateTimeOrDatePicker and CoarPlainDateTimeOrDatePicker — date pickers with a clock toggle switching between plain date and date-with-time values."
+---
+
 # Date · optional time
 
 Sometimes a field is "a date, and *maybe* a time" — a due date that's usually

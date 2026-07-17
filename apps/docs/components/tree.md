@@ -1,3 +1,7 @@
+---
+description: "CoarTree — generic tree primitive with keyboard navigation, drag-and-drop reorder, single/multiple/checkbox selection, context menus, lazy loading and a fluent useTree builder"
+---
+
 # Tree
 
 A generic, keyboard-navigable, drag-drop-aware tree primitive. Identity, children and label are extracted via prop functions — render any node shape (file systems, navigation, settings, categories, …) without forcing a common base type.

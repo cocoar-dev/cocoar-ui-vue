@@ -1,3 +1,7 @@
+---
+description: "CoarOtpInput — N-cell one-time-code input with auto-advance, paste spreading, numeric/alphanumeric/text modes, masking, transform/accept hooks and a complete event"
+---
+
 # OTP Input <Badge type="tip" text="New in 2.0" />
 
 The N-cell input for verification codes — 2FA / TOTP from authenticator apps, SMS one-time passwords, claim codes, short PINs. Auto-advances as the user types, jumps back on Backspace, spreads pasted codes across cells, and fires a `complete` event the moment the last cell fills so you can submit without a button click.

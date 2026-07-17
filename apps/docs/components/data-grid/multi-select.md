@@ -1,3 +1,7 @@
+---
+description: "CoarDataGrid multi-value columns — col.multiSelect() and col.tagSelect() edit array cells via CoarMultiSelect or CoarTagSelect, with chips display, search, and allowCreate."
+---
+
 # Multi-Select & Tag-Select Columns <Badge type="tip" text="New in 2.0" />
 
 Two column shortcuts for multi-value cells. Both store the cell value as `T[]` and share the same renderer — they differ only in the editor surface and which configurator options are available.

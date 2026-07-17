@@ -1,3 +1,7 @@
+---
+description: "CoarPlainDatePicker — calendar date picker returning Temporal.PlainDate, with min/max limits, validation states, four sizes and form-field integration."
+---
+
 # Date Picker
 
 A calendar-backed date picker that returns a `Temporal.PlainDate` -- a date without time or timezone. Perfect for birthdays, deadlines, due dates, and any scenario where "which day" is all that matters.

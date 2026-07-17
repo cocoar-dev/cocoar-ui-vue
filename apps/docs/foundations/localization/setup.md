@@ -1,3 +1,7 @@
+---
+description: "Install and configure @cocoar/vue-localization: register the createCoarLocalization() plugin, set locale and translation URLs, and switch languages at runtime."
+---
+
 # Localization Setup
 
 A complete localization system for Vue 3 covering locale-aware formatting (l10n), translations (i18n), and timezone detection. Provided by the optional `@cocoar/vue-localization` package.

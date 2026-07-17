@@ -4,61 +4,72 @@ import {
   CoarPageRenderer,
   CoarPageBuilder,
   type PageNode,
+  type ActionHandler,
   type ActionValues,
   type PageConfig,
 } from '@cocoar/vue-page-builder';
 import { CoarButton, CoarIcon, useDialog } from '@cocoar/vue-ui';
 import PlaygroundAssetPicker, { type AssetItem } from '../components/PlaygroundAssetPicker.vue';
+import { ratingElement } from '../components/rating/ratingElement';
 
 // ─── Login schema ─────────────────────────────────────────────────────────────
 
 const loginSchema: PageNode = {
   id: 'root',
   type: 'page',
+  // Enter inside any single-line input fires the default button below.
+  enterSubmits: true,
   style: { align: 'center', padding: '48px' },
   children: [
     {
       id: 'card',
       type: 'card',
+      props: {},
       style: { width: '380px', gap: '20px' },
       children: [
-        { id: 'h1', type: 'heading', text: 'Welcome back', level: 1 },
-        { id: 'sub', type: 'paragraph', text: 'Sign in to your account.' },
-        { id: 'div1', type: 'divider' },
+        { id: 'h1', type: 'heading', props: { text: 'Welcome back', level: 1 } },
+        { id: 'sub', type: 'paragraph', props: { text: 'Sign in to your account.' } },
+        { id: 'div1', type: 'divider', props: {} },
         {
           id: 'email',
           type: 'text-input',
           name: 'email',
-          label: 'Email',
-          inputType: 'email',
-          placeholder: 'you@example.com',
+          props: {
+            label: 'Email',
+            inputType: 'email',
+            placeholder: 'you@example.com',
+          },
           validation: { required: true },
         },
         {
           id: 'password',
-          type: 'text-input',
+          type: 'password-input',
           name: 'password',
-          label: 'Password',
-          inputType: 'password',
+          props: {
+            label: 'Password',
+          },
           validation: { required: true, minLength: 8 },
         },
         {
           id: 'row-bottom',
           type: 'stack',
-          direction: 'row',
+          props: { direction: 'row' },
           style: { gap: '8px', align: 'center' },
           children: [
-            { id: 'remember', type: 'checkbox', name: 'rememberMe', label: 'Remember me', defaultValue: false },
-            { id: 'spacer', type: 'spacer' },
-            { id: 'forgot', type: 'link', label: 'Forgot password?', action: 'auth:forgot' },
+            { id: 'remember', type: 'checkbox', name: 'rememberMe', props: { label: 'Remember me' }, defaultValue: false },
+            { id: 'spacer', type: 'spacer', props: {} },
+            { id: 'forgot', type: 'link', props: { label: 'Forgot password?', action: 'auth:forgot' } },
           ],
         },
         {
           id: 'login-btn',
           type: 'button',
-          label: 'Sign in',
-          action: 'auth:login',
-          validates: true,
+          props: {
+            label: 'Sign in',
+            action: 'auth:login',
+            validates: true,
+            default: true,
+          },
           style: { width: '100%' },
         },
       ],
@@ -76,31 +87,36 @@ const registerSchema: PageNode = {
     {
       id: 'card',
       type: 'card',
+      props: {},
       style: { width: '380px', gap: '20px' },
       children: [
-        { id: 'h1', type: 'heading', text: 'Create account', level: 1 },
-        { id: 'sub', type: 'paragraph', text: 'Fill in your details to get started.' },
-        { id: 'div1', type: 'divider' },
+        { id: 'h1', type: 'heading', props: { text: 'Create account', level: 1 } },
+        { id: 'sub', type: 'paragraph', props: { text: 'Fill in your details to get started.' } },
+        { id: 'div1', type: 'divider', props: {} },
         {
           id: 'name-row',
           type: 'stack',
-          direction: 'row',
+          props: { direction: 'row' },
           style: { gap: '12px' },
           children: [
             {
               id: 'firstName',
               type: 'text-input',
               name: 'firstName',
-              label: 'First name',
-              placeholder: 'Jane',
+              props: {
+                label: 'First name',
+                placeholder: 'Jane',
+              },
               validation: { required: true },
             },
             {
               id: 'lastName',
               type: 'text-input',
               name: 'lastName',
-              label: 'Last name',
-              placeholder: 'Doe',
+              props: {
+                label: 'Last name',
+                placeholder: 'Doe',
+              },
               validation: { required: true },
             },
           ],
@@ -109,26 +125,30 @@ const registerSchema: PageNode = {
           id: 'email',
           type: 'text-input',
           name: 'email',
-          label: 'Email',
-          inputType: 'email',
-          placeholder: 'you@example.com',
+          props: {
+            label: 'Email',
+            inputType: 'email',
+            placeholder: 'you@example.com',
+          },
           validation: { required: true },
         },
         {
           id: 'password',
-          type: 'text-input',
+          type: 'password-input',
           name: 'password',
-          label: 'Password',
-          inputType: 'password',
-          placeholder: 'Min. 8 characters',
+          props: {
+            label: 'Password',
+            placeholder: 'Min. 8 characters',
+          },
           validation: { required: true, minLength: 8 },
         },
         {
           id: 'confirmPassword',
-          type: 'text-input',
+          type: 'password-input',
           name: 'confirmPassword',
-          label: 'Confirm password',
-          inputType: 'password',
+          props: {
+            label: 'Confirm password',
+          },
           validation: {
             required: true,
             matchField: 'password',
@@ -136,28 +156,53 @@ const registerSchema: PageNode = {
           },
         },
         {
+          id: 'country',
+          type: 'select',
+          name: 'country',
+          // Dynamic list: resolved through config.optionsSource at render time.
+          props: { label: 'Country', placeholder: 'Select your country', optionsSourceId: 'countries' },
+          validation: { required: true },
+        },
+        {
+          id: 'business',
+          type: 'checkbox',
+          name: 'isBusiness',
+          props: { label: 'This is a business account' },
+        },
+        {
+          id: 'companyName',
+          type: 'text-input',
+          name: 'companyName',
+          props: { label: 'Company name', placeholder: 'ACME Inc.' },
+          validation: { required: true },
+          // Hidden (and exempt from required + payload) until the checkbox is on.
+          visibleWhen: { field: 'isBusiness', equals: true },
+        },
+        {
           id: 'terms',
           type: 'checkbox',
           name: 'acceptTerms',
-          label: 'I accept the terms and conditions',
+          props: { label: 'I accept the terms and conditions' },
           validation: { required: true },
         },
         {
           id: 'register-btn',
           type: 'button',
-          label: 'Create account',
-          action: 'auth:register',
-          validates: true,
+          props: {
+            label: 'Create account',
+            action: 'auth:register',
+            validates: true,
+          },
           style: { width: '100%' },
         },
         {
           id: 'login-link-row',
           type: 'stack',
-          direction: 'row',
+          props: { direction: 'row' },
           style: { gap: '4px', align: 'center' },
           children: [
-            { id: 'login-hint', type: 'paragraph', text: 'Already have an account?' },
-            { id: 'login-link', type: 'link', label: 'Sign in', action: 'nav:login' },
+            { id: 'login-hint', type: 'paragraph', props: { text: 'Already have an account?' } },
+            { id: 'login-link', type: 'link', props: { label: 'Sign in', action: 'nav:login' } },
           ],
         },
       ],
@@ -209,17 +254,44 @@ const memoryAssets = ref<AssetItem[]>([
 const dialog = useDialog();
 
 const idpLoginConfig: PageConfig = {
+  // A consumer-registered element (defined entirely in this app) — appears in
+  // the palette, canvas, inspector, preview and value model like a built-in.
+  elements: { 'acme-rating': ratingElement },
+  // The data contract behind the page (the LoginDto, say): the builder's
+  // Field section becomes a pick from these — filtered per element to the
+  // compatible value types (string → text/password/…, boolean → checkbox/
+  // switch, number → number-input AND acme-rating, date → date picker).
+  fields: [
+    { name: 'username',   valueType: 'string',  label: 'Username', required: true },
+    { name: 'password',   valueType: 'string',  label: 'Password', required: true, defaultElement: 'password-input' },
+    { name: 'rememberMe', valueType: 'boolean', label: 'Remember me' },
+    { name: 'age',        valueType: 'number',  label: 'Age' },
+    { name: 'dueUntil',   valueType: 'date',    label: 'Due until' },
+  ],
+  // section + spacer stay excluded on purpose, so the allowlist gating
+  // (hidden palette entries, blocked-node banners) remains visible in the demo.
   allowedElements: [
     'stack',
     'card',
     'heading',
     'paragraph',
+    'note',
     'divider',
     'text-input',
+    'password-input',
+    'number-input',
     'checkbox',
+    'switch',
+    'radio-group',
+    'select',
+    'multi-select',
+    'otp-input',
+    'date-input',
+    'datetime-input',
     'button',
     'link',
     'image',
+    'acme-rating',
   ],
   availableActions: [
     { id: 'auth:login',           label: 'Sign in' },
@@ -267,19 +339,92 @@ function resetBuilder() {
   builderSchema.value = JSON.parse(initialBuilderSchema);
 }
 
+// ─── Feedback schema (exercises the consumer-registered rating element) ──────
+
+const feedbackSchema: PageNode = {
+  id: 'root',
+  type: 'page',
+  style: { align: 'center', padding: '48px' },
+  children: [
+    {
+      id: 'card',
+      type: 'card',
+      props: {},
+      style: { width: '380px', gap: '20px' },
+      children: [
+        { id: 'h1', type: 'heading', props: { text: 'How did we do?', level: 2 } },
+        {
+          id: 'rating',
+          type: 'acme-rating',
+          name: 'rating',
+          props: { label: 'Your rating', max: 5 },
+          validation: { required: true },
+        },
+        {
+          id: 'comment',
+          type: 'text-input',
+          name: 'comment',
+          props: { label: 'Comment', rows: 3, placeholder: 'Tell us more (optional)' },
+        },
+        {
+          id: 'submit',
+          type: 'button',
+          props: { label: 'Send feedback', action: 'feedback:submit', validates: true },
+          style: { width: '100%' },
+        },
+      ],
+    },
+  ],
+};
+
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
 const loginPayload = ref<ActionValues | null>(null);
 const registerPayload = ref<ActionValues | null>(null);
+const feedbackPayload = ref<ActionValues | null>(null);
 
-const loginActions: Record<string, (v: ActionValues) => void> = {
-  'auth:login': (v) => { loginPayload.value = v; },
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+const feedbackActions: Record<string, ActionHandler> = {
+  'feedback:submit': (v) => { feedbackPayload.value = v; },
+};
+
+const loginActions: Record<string, ActionHandler> = {
+  // Async action: the Sign-in button spins while the "API call" runs, every
+  // other action disables, and a thrown Error surfaces in the form banner.
+  'auth:login': async (v) => {
+    loginPayload.value = null;
+    await wait(900);
+    if (v.password !== 'secret123') {
+      throw new Error('Invalid credentials — try password "secret123".');
+    }
+    loginPayload.value = v;
+  },
   'auth:forgot': () => { alert('Forgot password flow'); },
 };
 
-const registerActions: Record<string, (v: ActionValues) => void> = {
-  'auth:register': (v) => { registerPayload.value = v; },
+const registerActions: Record<string, ActionHandler> = {
+  'auth:register': async (v) => {
+    registerPayload.value = null;
+    await wait(800);
+    registerPayload.value = v;
+  },
   'nav:login': () => { alert('Navigate to login'); },
+};
+
+/** Renderer-side config for the register demo: API-backed country list. */
+const registerConfig: PageConfig = {
+  optionsSource: async (sourceId) => {
+    await wait(600);
+    if (sourceId !== 'countries') return [];
+    return [
+      { value: 'at', label: 'Austria' },
+      { value: 'de', label: 'Germany' },
+      { value: 'ch', label: 'Switzerland' },
+      { value: 'gb', label: 'United Kingdom' },
+      { value: 'us', label: 'United States' },
+    ];
+  },
 };
 </script>
 
@@ -319,7 +464,9 @@ const registerActions: Record<string, (v: ActionValues) => void> = {
         </div>
         <div class="pb-view__result-label">ACTION PAYLOAD</div>
         <pre v-if="loginPayload" class="pb-view__json">{{ JSON.stringify(loginPayload, null, 2) }}</pre>
-        <div v-else class="pb-view__placeholder">Fill in the form and click Sign in</div>
+        <div v-else class="pb-view__placeholder">
+          Enter submits (async action — button spins). Password "secret123"; anything else hits the error banner.
+        </div>
         <details class="pb-view__schema-details">
           <summary class="pb-view__result-label">SCHEMA JSON</summary>
           <pre class="pb-view__json pb-view__json--schema">{{ JSON.stringify(loginSchema, null, 2) }}</pre>
@@ -333,16 +480,36 @@ const registerActions: Record<string, (v: ActionValues) => void> = {
           <CoarPageRenderer
             :schema="registerSchema"
             :actions="registerActions"
+            :config="registerConfig"
             />
         </div>
         <div class="pb-view__result-label">ACTION PAYLOAD</div>
         <pre v-if="registerPayload" class="pb-view__json">{{ JSON.stringify(registerPayload, null, 2) }}</pre>
         <div v-else class="pb-view__placeholder">
-          Button disabled until all fields valid + passwords match
+          Countries load async (optionsSource); "Company name" appears only for business accounts (visibleWhen) and is required while shown.
         </div>
         <details class="pb-view__schema-details">
           <summary class="pb-view__result-label">SCHEMA JSON</summary>
           <pre class="pb-view__json pb-view__json--schema">{{ JSON.stringify(registerSchema, null, 2) }}</pre>
+        </details>
+      </div>
+
+      <!-- Feedback (consumer-registered rating element) -->
+      <div class="pb-view__demo">
+        <div class="pb-view__demo-title">Feedback (custom element)</div>
+        <div class="pb-view__canvas">
+          <CoarPageRenderer
+            :schema="feedbackSchema"
+            :actions="feedbackActions"
+            :config="{ elements: { 'acme-rating': ratingElement } }"
+          />
+        </div>
+        <div class="pb-view__result-label">ACTION PAYLOAD</div>
+        <pre v-if="feedbackPayload" class="pb-view__json">{{ JSON.stringify(feedbackPayload, null, 2) }}</pre>
+        <div v-else class="pb-view__placeholder">Rating is required — submit reveals the error until a star is set</div>
+        <details class="pb-view__schema-details">
+          <summary class="pb-view__result-label">SCHEMA JSON</summary>
+          <pre class="pb-view__json pb-view__json--schema">{{ JSON.stringify(feedbackSchema, null, 2) }}</pre>
         </details>
       </div>
     </div>

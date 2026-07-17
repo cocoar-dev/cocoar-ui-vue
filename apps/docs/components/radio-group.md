@@ -1,3 +1,7 @@
+---
+description: "CoarRadioGroup and CoarRadioButton — single-choice selection with horizontal or vertical layout, four sizes, label positioning, keyboard navigation and form-field integration"
+---
+
 # Radio Group
 
 When users must pick exactly one option from a small set of mutually exclusive choices, a radio group is the right tool. Each option is visible at a glance, unlike a select dropdown, which makes radios ideal when the list is short (roughly 2--5 items).

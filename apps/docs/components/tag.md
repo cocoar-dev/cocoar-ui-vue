@@ -1,3 +1,7 @@
+---
+description: "CoarTag — label chip with six semantic color variants, three sizes, closable and selectable modes for metadata, categories and filter bars"
+---
+
 # Tag
 
 Tags label, categorize, and organize content. Use them for metadata (status labels, technology stacks), filter chips, or user-driven selections. Unlike badges, which show counts and status dots, tags convey descriptive information that users can read and often interact with.

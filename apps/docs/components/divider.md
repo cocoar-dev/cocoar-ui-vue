@@ -1,3 +1,7 @@
+---
+description: "CoarDivider — horizontal separator with optional slotted label, left/center/right alignment, subtle or strong weight and spacing controls."
+---
+
 # Divider
 
 Dividers create clear visual breaks between sections of content. They're especially useful in forms, settings panels, and feeds where distinct groups of information sit close together. Add an optional text label to give the break semantic meaning.

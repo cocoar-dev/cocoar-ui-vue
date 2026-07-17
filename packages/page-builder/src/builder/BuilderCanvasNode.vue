@@ -13,37 +13,35 @@ const CANVAS_PARENT_DIRECTION: InjectionKey<ComputedRef<FlexDirection>> =
 
 <script setup lang="ts">
 import { computed, inject, provide, type CSSProperties } from 'vue';
-import {
-  CoarIcon,
-  CoarButton,
-  CoarCheckbox,
-  CoarDivider,
-  CoarFormField,
-  CoarSelect,
-  CoarTextInput,
-  CoarPasswordInput,
-  setCoarDragImageFromElement,
-  type CoreIconName,
-  type CoarSelectOption,
-} from '@cocoar/vue-ui';
-import { isContainerNode, type PageNode, type ElementType } from '../schema';
+import { CoarIcon } from '@cocoar/vue-ui';
+import { useI18n } from '@cocoar/vue-localization';
+import { isElementAllowed, type ElementNode, type PageNode, type StackNode } from '../schema';
 import { selfLayoutStyle, containerLayoutStyle } from '../styleMapping';
+import { useMergedElements } from '../elements/useMergedElements';
 import { BUILDER_API, BUILDER_CONFIG } from './builderContext';
 import { useBuilderDnd } from './useBuilderDnd';
 import type { NodePath } from './operations';
 
 defineOptions({ name: 'BuilderCanvasNode' });
 
-interface Props {
+const props = defineProps<{
   node: PageNode;
   path: NodePath;
-}
-
-const props = defineProps<Props>();
+}>();
 
 const builder = inject(BUILDER_API)!;
 const config = inject(BUILDER_CONFIG);
 const dnd = useBuilderDnd();
+const elements = useMergedElements(config);
+const { t } = useI18n();
+
+/**
+ * Registry dispatch: the definition supplies preview/icon/container-ness; the
+ * page root is host-owned (not a registry entry).
+ */
+const def = computed(() =>
+  props.node.type === 'page' ? undefined : elements.value[props.node.type],
+);
 
 function resolveAsset(id: string): string {
   return config?.value?.assetResolver?.(id) ?? '';
@@ -65,38 +63,60 @@ const isSelected = computed(() => {
 
 // ── Type icon + label ────────────────────────────────────────────────────────
 
-const typeIcon: Record<ElementType, CoreIconName> = {
-  page: 'file',
-  stack: 'layers',
-  card: 'square-dashed',
-  section: 'panel-left',
-  divider: 'minus',
-  spacer: 'more-horizontal',
-  heading: 'heading',
-  paragraph: 'pilcrow',
-  'text-input': 'file-text',
-  checkbox: 'check-circle-2',
-  select: 'list',
-  button: 'zap',
-  link: 'link',
-  image: 'image',
-};
-
 const typeLabel = computed(() => {
-  const n = props.node as PageNode & { text?: string; label?: string; title?: string; name?: string };
-  if (n.text) return `${n.type} · ${String(n.text).slice(0, 24)}`;
-  if (n.label) return `${n.type} · ${String(n.label).slice(0, 24)}`;
-  if (n.title) return `${n.type} · ${String(n.title).slice(0, 24)}`;
+  const n = props.node as PageNode & { props?: { text?: string; label?: string; title?: string }; name?: string };
+  if (n.props?.text) return `${n.type} · ${String(n.props.text).slice(0, 24)}`;
+  if (n.props?.label) return `${n.type} · ${String(n.props.label).slice(0, 24)}`;
+  if (n.props?.title) return `${n.type} · ${String(n.props.title).slice(0, 24)}`;
   if (n.name) return `${n.type} · ${String(n.name)}`;
   return n.type;
 });
 
-const colorFamily = computed<'container' | 'element'>(() => isContainerNode(props.node) ? 'container' : 'element');
+const tabIcon = computed(
+  () => def.value?.builder?.icon ?? (props.node.type === 'page' ? 'file' : 'circle-alert'),
+);
+
+// ── Conditional visibility: the canvas always shows the node (authoring
+//    surface), but marks it so authors see it may be hidden at runtime. ──
+const visibilityCondition = computed(() => (props.node as ElementNode).visibleWhen);
+const visibilityHint = computed(() =>
+  t(
+    'coar.pageBuilder.canvas.visibleWhen',
+    { field: String(visibilityCondition.value?.field ?? '') },
+    'Shown conditionally — depends on "{field}"',
+  ),
+);
+
+/** Container-ness comes from the registry (page root is host-owned). */
+const isContainer = computed(
+  () => props.node.type === 'page' || def.value?.container === true,
+);
+
+const colorFamily = computed<'container' | 'element'>(() => isContainer.value ? 'container' : 'element');
+
+/** Children, guarded: malformed trees may drop the array on a custom container. */
+const children = computed<PageNode[]>(() => {
+  const n = props.node as PageNode & { children?: PageNode[] };
+  return n.children ?? [];
+});
+
+// ── Runtime-blocked nodes get a VISIBLE treatment: the runtime renderer skips
+//    them, and the canvas must not pretend otherwise (Editor ≈ Preview). ──
+const isUnknownType = computed(() => props.node.type !== 'page' && !def.value);
+const isBlocked = computed(
+  () => isUnknownType.value || !isElementAllowed(props.node.type, config?.value),
+);
+const blockedHint = computed(() =>
+  isUnknownType.value
+    ? t('coar.pageBuilder.canvas.unknownType', { type: String(props.node.type) }, 'Unknown type "{type}" — skipped at runtime')
+    : t('coar.pageBuilder.canvas.notAllowed', undefined, 'Not in allowedElements — skipped at runtime'),
+);
 
 /** Direction of this container — drives dropzone axis + child flex behavior. */
 const containerDirection = computed<FlexDirection>(() => {
   const n = props.node;
-  if (n.type === 'stack') return n.direction ?? 'column';
+  // Cast: the open union member absorbs the 'stack' narrowing.
+  if (n.type === 'stack') return (n as StackNode).props.direction ?? 'column';
   return 'column';
 });
 
@@ -110,11 +130,10 @@ provide(CANVAS_PARENT_DIRECTION, containerDirection);
 /** Inner layout of a container: gap + justify-content + align-items (+ flex box). */
 const layoutStyle = computed<CSSProperties>(() => {
   const n = props.node;
-  if (!isContainerNode(n)) return {};
-  const direction = n.type === 'stack' ? (n.direction ?? 'column') : 'column';
+  if (!isContainer.value) return {};
   const css: CSSProperties = {
     display: 'flex',
-    flexDirection: direction,
+    flexDirection: containerDirection.value,
     ...containerLayoutStyle(n.style),
   };
   // page/section/stack apply the node's padding here; card uses its own chrome.
@@ -131,25 +150,6 @@ const wrapperStyle = computed<CSSProperties>(() =>
   selfLayoutStyle(props.node.style, parentDirection?.value ?? 'column'),
 );
 
-/**
- * Inline-natured leaf previews (button / link / image) are content-width by
- * default. When the node is sized (fill / fixed / explicit width) the rendered
- * element fills its box, so the preview should too — `width: 100%` fills the
- * chrome wrapper's content area (no overflow from the wrapper's own padding).
- * Block leaves (text, headings, form fields) already fill their wrapper.
- */
-const leafSizeStyle = computed<CSSProperties>(() => {
-  const s = props.node.style;
-  const sized = !!s && (s.size === 'fill' || s.size === 'fixed' || (!s.size && !!s.width));
-  return sized ? { width: '100%' } : {};
-});
-
-// ── Select options ────────────────────────────────────────────────────────────
-
-function toSelectOptions(options?: { value: string; label: string }[]): CoarSelectOption<string>[] {
-  return (options ?? []).map((o) => ({ value: o.value, label: o.label }));
-}
-
 // ── Selection ────────────────────────────────────────────────────────────────
 
 function onClick(e: MouseEvent) {
@@ -157,22 +157,25 @@ function onClick(e: MouseEvent) {
   builder.select(props.path);
 }
 
-// ── Drag source (tab handle) ─────────────────────────────────────────────────
-
-function onTabDragStart(e: DragEvent) {
-  if (isRoot.value) { e.preventDefault(); return; }
-  if (!e.dataTransfer) return;
-  dnd.startDrag({ kind: 'move', path: [...props.path] });
-  e.dataTransfer.effectAllowed = 'move';
-  e.dataTransfer.setData('text/plain', 'move');
-  const wrapper = (e.currentTarget as HTMLElement | null)?.closest('.canvas-node') as HTMLElement | null;
-  if (wrapper) setCoarDragImageFromElement(e, wrapper, { offsetX: 20, offsetY: 16 });
+// Enter/Space on the focused node selects it; keys originating from inner
+// interactive elements (delete/duplicate buttons, nested nodes) pass through.
+function onNodeKeydown(e: KeyboardEvent) {
+  if (e.target !== e.currentTarget) return;
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  e.preventDefault();
   e.stopPropagation();
+  builder.select(props.path);
 }
 
-function onTabDragEnd() { dnd.endDrag(); }
+// ── Drag source (tab handle) ─────────────────────────────────────────────────
 
-// ── Drop zones ────────────────────────────────────────────────────────────────
+function onTabPointerDown(e: PointerEvent) {
+  if (isRoot.value) return;
+  const ghostFrom = (e.currentTarget as HTMLElement | null)?.closest<HTMLElement>('.canvas-node');
+  dnd.onHandlePointerDown(e, { kind: 'move', path: [...props.path] }, ghostFrom);
+}
+
+// ── Drop zones (declared via data attributes; the pointer engine hit-tests) ──
 
 function zoneKey(index: number): string { return `${pathKey.value}:${index}`; }
 function isZoneActive(index: number): boolean { return dnd.activeZoneKey.value === zoneKey(index); }
@@ -186,24 +189,6 @@ function zoneClasses(index: number): Record<string, boolean> {
     'canvas-dropzone--over': isZoneActive(index),
   };
 }
-
-function onZoneDragEnter(e: DragEvent, index: number) {
-  const accepted = dnd.onZoneEnter(zoneKey(index), props.path);
-  if (accepted) e.preventDefault();
-}
-function onZoneDragOver(e: DragEvent, index: number) {
-  if (dnd.canDrop(props.path)) {
-    e.preventDefault();
-    if (!isZoneActive(index)) dnd.onZoneEnter(zoneKey(index), props.path);
-  }
-}
-function onZoneDragLeave(index: number) { dnd.onZoneLeave(zoneKey(index)); }
-function onZoneDrop(e: DragEvent, index: number) {
-  e.preventDefault();
-  e.stopPropagation();
-  dnd.onZoneDrop([...props.path], index);
-  dnd.endDrag();
-}
 </script>
 
 <template>
@@ -215,30 +200,49 @@ function onZoneDrop(e: DragEvent, index: number) {
         'canvas-node--selected': isSelected,
         'canvas-node--root': isRoot,
         'canvas-node--dragging': isDraggingSource,
+        'canvas-node--blocked': isBlocked,
       },
     ]"
     :style="wrapperStyle"
+    tabindex="0"
     @click="onClick"
+    @keydown="onNodeKeydown"
   >
     <!-- Type tab (drag handle) -->
     <span
       class="canvas-node__tab"
       :class="{ 'canvas-node__tab--grabbable': !isRoot }"
       :title="typeLabel"
-      :draggable="!isRoot"
-      @dragstart="onTabDragStart"
-      @dragend="onTabDragEnd"
+      @pointerdown="onTabPointerDown"
     >
-      <CoarIcon :name="typeIcon[node.type]" size="xs" />
+      <CoarIcon :name="tabIcon" size="xs" />
       <span class="canvas-node__tab-label">{{ typeLabel }}</span>
+      <span v-if="visibilityCondition" class="canvas-node__tab-eye" :title="visibilityHint">
+        <CoarIcon name="eye" size="xs" />
+      </span>
     </span>
 
-    <!-- Delete button (top-right) -->
+    <!-- Runtime-blocked hint -->
+    <div v-if="isBlocked" class="canvas-node__blocked" role="note">
+      <CoarIcon name="circle-alert" size="xs" />
+      <span>{{ blockedHint }}</span>
+    </div>
+
+    <!-- Duplicate + delete buttons (top-right) -->
+    <button
+      v-if="!isRoot"
+      type="button"
+      class="canvas-node__delete canvas-node__duplicate"
+      :title="t('coar.pageBuilder.common.duplicate', undefined, 'Duplicate')"
+      @click.stop="builder.duplicate(path)"
+    >
+      <CoarIcon name="copy" size="xs" />
+    </button>
     <button
       v-if="!isRoot"
       type="button"
       class="canvas-node__delete"
-      title="Delete"
+      :title="t('coar.pageBuilder.common.delete', undefined, 'Delete')"
       @click.stop="builder.remove(path)"
     >
       <CoarIcon name="x" size="xs" />
@@ -246,7 +250,7 @@ function onZoneDrop(e: DragEvent, index: number) {
 
     <!-- ── Container body ── -->
     <div
-      v-if="isContainerNode(node)"
+      v-if="isContainer"
       class="canvas-node__body"
       :class="[
         `canvas-node__body--${node.type}`,
@@ -256,23 +260,21 @@ function onZoneDrop(e: DragEvent, index: number) {
     >
       <!-- Section title preview -->
       <div
-        v-if="node.type === 'section' && (node as any).title"
+        v-if="node.type === 'section' && (node as any).props?.title"
         class="canvas-node__section-title"
       >
-        {{ (node as any).title }}
+        {{ (node as any).props.title }}
       </div>
 
-      <template v-if="node.children.length === 0">
+      <template v-if="children.length === 0">
         <div
           class="canvas-dropzone canvas-dropzone--empty"
           :class="zoneClasses(0)"
           :data-dropzone="zoneKey(0)"
-          @dragenter="onZoneDragEnter($event, 0)"
-          @dragover="onZoneDragOver($event, 0)"
-          @dragleave="onZoneDragLeave(0)"
-          @drop="onZoneDrop($event, 0)"
+          :data-pb-zone-path="pathKey"
+          :data-pb-zone-index="0"
         >
-          Empty {{ node.type }} — drop something here
+          {{ t('coar.pageBuilder.canvas.emptyContainer', { type: node.type }, 'Empty {type} — drop something here') }}
         </div>
       </template>
 
@@ -281,115 +283,39 @@ function onZoneDrop(e: DragEvent, index: number) {
           class="canvas-dropzone"
           :class="[`canvas-dropzone--${containerDirection}`, zoneClasses(0)]"
           :data-dropzone="zoneKey(0)"
+          :data-pb-zone-path="pathKey"
+          :data-pb-zone-index="0"
+          data-pb-zone-inflate="8"
           aria-hidden="true"
-          @dragenter="onZoneDragEnter($event, 0)"
-          @dragover="onZoneDragOver($event, 0)"
-          @dragleave="onZoneDragLeave(0)"
-          @drop="onZoneDrop($event, 0)"
         />
-        <template v-for="(child, i) in node.children" :key="child.id">
+        <template v-for="(child, i) in children" :key="child.id">
           <BuilderCanvasNode :node="child" :path="[...path, i]" />
           <div
             class="canvas-dropzone"
             :class="[`canvas-dropzone--${containerDirection}`, zoneClasses(i + 1)]"
             :data-dropzone="zoneKey(i + 1)"
+            :data-pb-zone-path="pathKey"
+            :data-pb-zone-index="i + 1"
+            data-pb-zone-inflate="8"
             aria-hidden="true"
-            @dragenter="onZoneDragEnter($event, i + 1)"
-            @dragover="onZoneDragOver($event, i + 1)"
-            @dragleave="onZoneDragLeave(i + 1)"
-            @drop="onZoneDrop($event, i + 1)"
           />
         </template>
       </template>
     </div>
 
-    <!-- ── Leaf node previews (pointer-events: none so clicks fall to canvas-node) ── -->
+    <!-- ── Leaf node preview (pointer-events: none so clicks fall to canvas-node) ── -->
     <div v-else class="canvas-node__preview">
-
-      <CoarDivider v-if="node.type === 'divider'" />
-
-      <div v-else-if="node.type === 'spacer'" class="canvas-node__spacer-preview" />
-
       <component
-        :is="`h${(node as any).level ?? 2}`"
-        v-else-if="node.type === 'heading'"
-        class="canvas-node__heading"
-      >
-        {{ (node as any).text || 'Heading' }}
-      </component>
-
-      <p v-else-if="node.type === 'paragraph'" class="canvas-node__paragraph">
-        {{ (node as any).text || 'Paragraph text.' }}
-      </p>
-
-      <CoarFormField
-        v-else-if="node.type === 'text-input'"
-        :label="(node as any).label"
-        :required="(node as any).validation?.required"
-      >
-        <CoarPasswordInput
-          v-if="(node as any).inputType === 'password'"
-          :model-value="''"
-          :placeholder="(node as any).placeholder"
-          disabled
-        />
-        <CoarTextInput
-          v-else
-          :model-value="''"
-          :placeholder="(node as any).placeholder"
-          readonly
-        />
-      </CoarFormField>
-
-      <CoarCheckbox
-        v-else-if="node.type === 'checkbox'"
-        :model-value="false"
-        :label="(node as any).label || 'Checkbox'"
-        :required="(node as any).validation?.required"
-        disabled
+        :is="def!.builder!.preview"
+        v-if="def?.builder?.preview"
+        :node="node"
+        :resolve-asset="resolveAsset"
       />
-
-      <CoarFormField
-        v-else-if="node.type === 'select'"
-        :label="(node as any).label"
-        :required="(node as any).validation?.required"
-      >
-        <CoarSelect
-          :model-value="null"
-          :options="toSelectOptions((node as any).options)"
-          :placeholder="(node as any).placeholder"
-          disabled
-        />
-      </CoarFormField>
-
-      <CoarButton
-        v-else-if="node.type === 'button'"
-        :variant="(node as any).variant ?? 'primary'"
-        :size="(node as any).size"
-        :style="leafSizeStyle"
-        disabled
-      >
-        {{ (node as any).label || 'Button' }}
-      </CoarButton>
-
-      <button v-else-if="node.type === 'link'" class="canvas-node__link" type="button" :style="leafSizeStyle">
-        {{ (node as any).label || 'Link' }}
-      </button>
-
-      <template v-else-if="node.type === 'image'">
-        <img
-          v-if="(node as any).assetId && resolveAsset((node as any).assetId)"
-          :src="resolveAsset((node as any).assetId)"
-          :alt="(node as any).alt ?? ''"
-          class="canvas-node__image-preview"
-          :style="leafSizeStyle"
-        />
-        <div v-else class="canvas-node__image-placeholder">
-          <CoarIcon name="image" size="m" />
-          <span>{{ (node as any).assetId || 'No image' }}</span>
-        </div>
-      </template>
-
+      <!-- Registered but no preview component: neutral icon + label chip. -->
+      <div v-else-if="def" class="canvas-node__generic-preview">
+        <CoarIcon :name="def.builder?.icon ?? 'puzzle'" size="s" />
+        <span>{{ typeLabel }}</span>
+      </div>
     </div>
   </div>
 </template>
@@ -436,6 +362,30 @@ function onZoneDrop(e: DragEvent, index: number) {
 
 .canvas-node--dragging { opacity: 0.4; }
 
+/* ── Runtime-blocked (unknown type / not in allowedElements) ── */
+.canvas-node--blocked {
+  --canvas-border: rgba(192, 57, 43, 0.5);
+  --canvas-tab-fg: #c0392b;
+  --canvas-tab-border: rgba(192, 57, 43, 0.55);
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(192, 57, 43, 0.04) 0px,
+    rgba(192, 57, 43, 0.04) 6px,
+    transparent 6px,
+    transparent 12px
+  );
+}
+
+.canvas-node__blocked {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--coar-text-semantic-error-bold, #c0392b);
+}
+
 .canvas-node--root {
   padding: 20px 14px 14px;
   min-height: 80px;
@@ -464,7 +414,11 @@ function onZoneDrop(e: DragEvent, index: number) {
   user-select: none;
 }
 
-.canvas-node__tab--grabbable { cursor: grab; }
+.canvas-node__tab--grabbable {
+  cursor: grab;
+  /* The pointer-drag engine owns the gesture on this handle. */
+  touch-action: none;
+}
 .canvas-node__tab--grabbable:active { cursor: grabbing; }
 
 .canvas-node--selected .canvas-node__tab {
@@ -477,6 +431,14 @@ function onZoneDrop(e: DragEvent, index: number) {
   line-height: 1;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Conditional-visibility marker: the node may be hidden at runtime. */
+.canvas-node__tab-eye {
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.75;
+  flex-shrink: 0;
 }
 
 /* ── Delete button ────────────────────────────────────────────────────────── */
@@ -502,6 +464,13 @@ function onZoneDrop(e: DragEvent, index: number) {
 
 .canvas-node:hover:not(:has(.canvas-node:hover)) > .canvas-node__delete,
 .canvas-node--selected > .canvas-node__delete { opacity: 1; }
+
+.canvas-node__duplicate { right: 34px; }
+
+.canvas-node:focus-visible {
+  outline: 2px solid var(--coar-border-focus, #1666cc);
+  outline-offset: 1px;
+}
 
 .canvas-node__delete:hover {
   background: var(--coar-surface-semantic-error-subtle, #fde8e4);
@@ -607,67 +576,16 @@ function onZoneDrop(e: DragEvent, index: number) {
 .canvas-dropzone--column.canvas-dropzone--drag-active { height: 10px; min-height: 10px; }
 .canvas-dropzone--column.canvas-dropzone--over { height: 24px; min-height: 24px; }
 
-/* ── Leaf node previews ───────────────────────────────────────────────────── */
+/* ── Leaf node preview ────────────────────────────────────────────────────── */
 .canvas-node__preview { pointer-events: none; }
 
-.canvas-node__spacer-preview {
-  height: 20px;
-  background: repeating-linear-gradient(
-    45deg,
-    rgba(0, 0, 0, 0.03) 0px,
-    rgba(0, 0, 0, 0.03) 4px,
-    transparent 4px,
-    transparent 8px
-  );
-  border-radius: 2px;
-  border: 1px dashed rgba(0, 0, 0, 0.12);
-}
-
-.canvas-node__heading {
-  margin: 0;
-  font-weight: 600;
-  color: var(--coar-text-neutral-primary, #111);
-}
-
-h1.canvas-node__heading { font-size: 28px; }
-h2.canvas-node__heading { font-size: 22px; }
-h3.canvas-node__heading { font-size: 18px; }
-h4.canvas-node__heading { font-size: 15px; }
-h5.canvas-node__heading { font-size: 13px; }
-h6.canvas-node__heading { font-size: 12px; }
-
-.canvas-node__paragraph {
-  margin: 0;
-  font-size: 14px;
-  color: var(--coar-text-neutral-secondary, #555);
-}
-
-.canvas-node__link {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: default;
-  color: var(--coar-text-accent, #1666cc);
-  font-size: 14px;
-  text-decoration: underline;
-}
-
-.canvas-node__image-preview {
-  display: block;
-  max-width: 100%;
-  height: auto;
-  border-radius: 4px;
-}
-
-.canvas-node__image-placeholder {
+/* Registered element without a preview component. */
+.canvas-node__generic-preview {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
   gap: 6px;
-  padding: 20px;
-  background: var(--coar-surface-subtle, #f7f7f9);
-  border: 1px dashed rgba(0, 0, 0, 0.15);
+  padding: 10px;
+  border: 1px dashed rgba(102, 102, 110, 0.3);
   border-radius: 4px;
   color: var(--coar-text-neutral-secondary, #888);
   font-size: 12px;

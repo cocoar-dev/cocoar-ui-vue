@@ -1,3 +1,7 @@
+---
+description: "CoarDocumentViewer annotation layer — controlled marker, comment, ink, and freetext annotations; the consumer owns the data and applies create/update/delete events."
+---
+
 # Annotations
 
 `CoarDocumentViewer` ships with a built-in annotation layer that supports four types — **marker** highlights, comment **notes**, free-hand **ink**, and **freetext** boxes. Annotations are **controlled**: the consumer owns the data, the viewer emits events, the consumer applies changes.

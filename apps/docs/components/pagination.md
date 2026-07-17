@@ -1,3 +1,7 @@
+---
+description: "CoarPagination — page navigation computed from totalItems and pageSize with ellipsis truncation, first/last buttons and localized aria-labels"
+---
+
 # Pagination
 
 Split large collections into digestible pages and let users navigate between them. Pagination automatically calculates page count from `totalItems` and `pageSize`, and intelligently truncates the page range with ellipses when there are too many pages to display at once.

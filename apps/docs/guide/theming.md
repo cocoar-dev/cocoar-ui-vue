@@ -1,3 +1,7 @@
+---
+description: "Theme Cocoar with CSS custom properties: set five oklch base colors and all shade scales for light and dark mode recalculate automatically."
+---
+
 # Theming
 
 Cocoar uses an **oklch-based** color system. You set a few base colors, and the entire palette — including all shades for light and dark mode — is auto-calculated.

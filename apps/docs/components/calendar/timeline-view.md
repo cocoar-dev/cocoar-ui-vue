@@ -1,3 +1,7 @@
+---
+description: "CoarTimelineView — Gantt-lite timeline with one row per event, horizontal time-axis bars, automatic recurring-series row collapsing and drag-to-pan window"
+---
+
 # `<CoarTimelineView>` — Timeline View <Badge type="warning" text="Preview" />
 
 Gantt-lite layout: **one row per logical event**, horizontal time-axis. The left pane lists event titles; the right pane renders bars positioned by `[start, end)` against the visible window. Same `CalendarEvent` data as Day / Week / Month / Agenda — just rendered as a project-plan timeline instead of a calendar grid.

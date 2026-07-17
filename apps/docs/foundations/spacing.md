@@ -1,3 +1,7 @@
+---
+description: "Spacing and effects tokens: the 4 px spacing scale, border radius, stroke widths, and six shadow elevation levels with reference tables."
+---
+
 <script setup>
 import BorderRadius from './spacing/demos/BorderRadius.vue';
 import SpacingScale from './spacing/demos/SpacingScale.vue';

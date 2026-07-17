@@ -1,3 +1,7 @@
+---
+description: "CoarPlainDateTimePicker — combined calendar and time input returning a timezone-less Temporal.PlainDateTime, with validation states, four sizes and localized labels."
+---
+
 # DateTime Picker
 
 Combines a calendar date picker with a time input and returns a `Temporal.PlainDateTime` -- a date and time without any timezone attached. Use this when the timezone is implicit (the user's local time) or irrelevant (an alarm, a reminder). If you need timezone awareness, reach for the [Zoned DateTime Picker](/components/zoned-date-time-picker) instead.

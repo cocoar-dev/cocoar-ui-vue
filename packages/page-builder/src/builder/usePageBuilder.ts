@@ -1,9 +1,8 @@
-import { computed, ref, shallowRef, type Ref } from 'vue';
-import type { PageNode } from '../schema';
-import {
-  defaultNode,
-  type ElementType,
-} from './nodeDefaults';
+import { computed, ref, shallowRef, type ComputedRef, type Ref } from 'vue';
+import type { PageConfig, PageNode } from '../schema';
+import { BUILTIN_ELEMENTS } from '../elements/builtins';
+import type { PageElementRegistry } from '../elements/registry';
+import { cloneWithFreshIds, fieldName, uid } from './nodeDefaults';
 import {
   findPath,
   getNodeAt,
@@ -11,13 +10,35 @@ import {
   moveNode,
   moveSibling,
   patchNode,
+  rebaseAfterRemoval,
   removeNode,
+  replaceNode,
+  warnDev,
   type NodePath,
 } from './operations';
+
+/** Pre-binding to a contract field, applied by createNode (field-first flow). */
+export interface FieldBinding {
+  name: string;
+  label?: string;
+  required?: boolean;
+}
 
 export interface UsePageBuilderOptions {
   schema?: Ref<PageNode>;
   initial?: PageNode;
+  /**
+   * Merged element registry (see `useMergedElements`). Drives what `addChild`
+   * can create; defaults to the built-in set for registry-less usage (tests,
+   * headless tooling).
+   */
+  elements?: ComputedRef<PageElementRegistry>;
+  /**
+   * The builder's config — used for the field-contract minting rule: under a
+   * strict contract (fields set, allowCustomFields off), fresh value elements
+   * start UNBOUND instead of minting a `field_*` name the lint would flag.
+   */
+  config?: ComputedRef<PageConfig | undefined>;
 }
 
 const PATCH_COALESCE_MS = 500;
@@ -32,8 +53,11 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
   const bumpVersion = () => { structuralVersion.value++; };
 
   // ── History ────────────────────────────────────────────────────────────────
-  const past = ref<PageNode[]>([]);
-  const future = ref<PageNode[]>([]);
+  // shallowRef: entries are immutable snapshots and the arrays are replaced
+  // wholesale on every update — deep reactivity would wrap every snapshot in a
+  // proxy, so undo would restore a proxy instead of the original tree.
+  const past = shallowRef<PageNode[]>([]);
+  const future = shallowRef<PageNode[]>([]);
   let lastOp:
     | { kind: 'structural' }
     | { kind: 'patch'; pathKey: string; time: number }
@@ -101,12 +125,43 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
   function selectNode(node: PageNode) { selectedPath.value = findPath(schema.value, node); }
 
   // ── Mutations ──────────────────────────────────────────────────────────────
-  function addChild(parentPath: NodePath, type: ElementType, atIndex?: number) {
+
+  /**
+   * Fresh node for an element type, built from its registry definition: the
+   * builder half supplies the props bag, a value spec mints a field name, a
+   * container gets its children array. The host owns the id. A `bind` (from
+   * the field-first palette flow) pre-binds the node to a contract field.
+   */
+  function createNode(type: string, bind?: FieldBinding): PageNode | null {
+    const def = (options.elements?.value ?? BUILTIN_ELEMENTS)[type];
+    if (!def?.builder) {
+      warnDev(`addChild: no registered element (with a builder half) for type "${type}" — ignored.`);
+      return null;
+    }
+    const props = def.builder.defaults() as Record<string, unknown>;
+    // The contract label rides along when the element carries one at all.
+    if (bind?.label && 'label' in props) props.label = bind.label;
+    // Strict contract: unbound drops stay unbound — the author picks a field.
+    const cfg = options.config?.value;
+    const strictContract = (cfg?.fields?.length ?? 0) > 0 && !cfg?.allowCustomFields;
+    const name = bind?.name ?? (strictContract ? undefined : fieldName());
+    return {
+      id: uid(),
+      type,
+      props,
+      ...(def.value && name ? { name } : {}),
+      ...(def.value && bind?.required ? { validation: { required: true } } : {}),
+      ...(def.container ? { children: [] } : {}),
+    } as PageNode;
+  }
+
+  function addChild(parentPath: NodePath, type: string, atIndex?: number, bind?: FieldBinding) {
     const parent = getNodeAt(schema.value, parentPath);
     if (!parent) return;
+    const node = createNode(type, bind);
+    if (!node) return;
     const before = schema.value;
-    const node = defaultNode(type);
-    const childCount = 'children' in parent.node ? parent.node.children.length : 0;
+    const childCount = parent.node.children?.length ?? 0;
     const index = atIndex ?? childCount;
     schema.value = insertChild(schema.value, parentPath, index, node);
     selectedPath.value = [...parentPath, index];
@@ -122,9 +177,10 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
     const parentPath = path.slice(0, -1);
     const idx = path[path.length - 1];
     const parent = getNodeAt(next, parentPath);
-    if (parent && 'children' in parent.node && parent.node.children.length > 0) {
+    const siblings = parent?.node.children;
+    if (parent && siblings && siblings.length > 0) {
       const newIdx = Math.max(0, idx - 1);
-      selectedPath.value = [...parentPath, Math.min(newIdx, parent.node.children.length - 1)];
+      selectedPath.value = [...parentPath, Math.min(newIdx, siblings.length - 1)];
     } else {
       selectedPath.value = parentPath;
     }
@@ -148,7 +204,72 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
     const next = moveNode(before, fromPath, toParentPath, toIndex);
     if (before === next) return;
     schema.value = next;
-    selectedPath.value = [...toParentPath, toIndex];
+    // The node's actual parent path may have shifted by the removal — the
+    // selection must follow the node, not the caller's pre-removal target.
+    selectedPath.value = [...rebaseAfterRemoval(fromPath, toParentPath), toIndex];
+    pushHistory(before, { kind: 'structural' });
+    bumpVersion();
+  }
+
+  /**
+   * Switch a node's REPRESENTATION: same data, different element. Keeps the
+   * id (selection follows), the host vocabulary (name / defaultValue /
+   * validation / style) and the label; the rest of the props bag restarts
+   * from the target's defaults. Only offered by the UI among elements that
+   * can edit the same value type, so the carried value stays type-correct.
+   */
+  function convertTo(path: NodePath, toType: string) {
+    if (path.length === 0) return;
+    const loc = getNodeAt(schema.value, path);
+    if (!loc || loc.node.type === toType) return;
+    const def = (options.elements?.value ?? BUILTIN_ELEMENTS)[toType];
+    if (!def?.builder) {
+      warnDev(`convertTo: no registered element (with a builder half) for type "${toType}" — ignored.`);
+      return;
+    }
+    const existingChildren = (loc.node as { children?: unknown[] }).children;
+    if (!def.container && Array.isArray(existingChildren) && existingChildren.length > 0) {
+      warnDev(
+        `convertTo: "${loc.node.type}" has children but "${toType}" is not a container — ` +
+          'the conversion would drop them; ignored.',
+      );
+      return;
+    }
+    const before = schema.value;
+    const old = loc.node as PageNode & {
+      props?: Record<string, unknown>;
+      name?: string;
+      defaultValue?: unknown;
+      validation?: unknown;
+      visibleWhen?: unknown;
+      children?: PageNode[];
+    };
+    const props = def.builder.defaults() as Record<string, unknown>;
+    const oldLabel = old.props?.label;
+    if (oldLabel !== undefined && 'label' in props) props.label = oldLabel;
+    const next: Record<string, unknown> = { id: old.id, type: toType, props };
+    if (old.style !== undefined) next.style = old.style;
+    if (old.visibleWhen !== undefined) next.visibleWhen = old.visibleWhen;
+    if (def.value) {
+      if (old.name !== undefined) next.name = old.name;
+      if (old.defaultValue !== undefined) next.defaultValue = old.defaultValue;
+      if (old.validation !== undefined) next.validation = old.validation;
+    }
+    if (def.container) next.children = Array.isArray(old.children) ? old.children : [];
+    schema.value = replaceNode(schema.value, path, next as unknown as PageNode);
+    pushHistory(before, { kind: 'structural' });
+    bumpVersion();
+  }
+
+  function duplicate(path: NodePath) {
+    if (path.length === 0) return;
+    const loc = getNodeAt(schema.value, path);
+    if (!loc) return;
+    const before = schema.value;
+    const parentPath = path.slice(0, -1);
+    const index = path[path.length - 1] + 1;
+    schema.value = insertChild(schema.value, parentPath, index, cloneWithFreshIds(loc.node));
+    selectedPath.value = [...parentPath, index];
     pushHistory(before, { kind: 'structural' });
     bumpVersion();
   }
@@ -179,7 +300,9 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
     select,
     selectNode,
     addChild,
+    convertTo,
     remove,
+    duplicate,
     move,
     moveTo,
     patch,

@@ -1,3 +1,7 @@
+---
+description: "createInMemoryAssetStore — the reference AssetStore implementation with reactive latency, failure, lazy, and conflict knobs for demos, tests, and prototyping."
+---
+
 # In-memory store
 
 `createInMemoryAssetStore()` is the reference [`AssetStore<T>`](./asset-store) implementation. It's a browser-only, fully-reactive backend backed by a `ref<Asset<T>[]>` plus an `id → content` map. Reach for it for:

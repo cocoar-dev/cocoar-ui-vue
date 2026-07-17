@@ -1,9 +1,14 @@
 <script setup lang="ts">
-import { computed, provide, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, toRaw, watch } from 'vue';
 import { CoarIcon, CoarTabGroup, CoarTab } from '@cocoar/vue-ui';
+import { useI18n } from '@cocoar/vue-localization';
 import type { PageNode, PageConfig } from './schema';
 import { usePageBuilder } from './builder/usePageBuilder';
+import { useMergedElements } from './elements/useMergedElements';
 import { useSchemaValidation } from './builder/useSchemaValidation';
+import { provideBuilderDnd } from './builder/useBuilderDnd';
+import { normalizePageSchema, type NormalizeIssue } from './builder/schemaNormalize';
+import { warnDev } from './builder/operations';
 import {
   BUILDER_API,
   BUILDER_CONFIG,
@@ -13,6 +18,8 @@ import BuilderOutline from './builder/BuilderOutline.vue';
 import BuilderCanvas from './builder/BuilderCanvas.vue';
 import BuilderPropsPanel from './builder/BuilderPropsPanel.vue';
 import CoarPageRenderer from './CoarPageRenderer.vue';
+
+const { t } = useI18n();
 
 const model = defineModel<PageNode>({ required: false });
 
@@ -25,13 +32,62 @@ const props = defineProps<{
   config?: PageConfig
 }>();
 
-const builder = usePageBuilder({
-  schema: model.value !== undefined ? model : undefined,
-  initial: { id: 'root', type: 'page', style: { gap: '16px', padding: '24px' }, children: [] },
-});
+/**
+ * The working tree lives in the builder; v-model is synced two-way below.
+ * Handing the model ref straight to usePageBuilder would freeze that decision
+ * at setup — a host binding an initially-undefined ref (the async-loaded-schema
+ * pattern) would leave the builder permanently detached from it. The two
+ * watchers keep both sides live: builder edits flow out, host-assigned trees
+ * flow in through the same normalize pass as JSON paste.
+ */
+function normalizedFromModel(value: PageNode): PageNode {
+  const { schema, issues } = normalizePageSchema(value, { elements: mergedElements.value });
+  if (issues.length > 0) {
+    warnDev(
+      `v-model schema needed repairs: ${issues.map((i) => `${i.path}: ${i.message}`).join(' · ')}`,
+    );
+  }
+  return schema;
+}
 
 const configRef = computed(() => props.config);
+const mergedElements = useMergedElements(configRef);
+
+const builder = usePageBuilder({
+  initial: model.value != null
+    ? normalizedFromModel(toRaw(model.value))
+    : {
+        id: 'root',
+        type: 'page',
+        schemaVersion: 2,
+        style: { gap: '16px', padding: '24px' },
+        children: [],
+      },
+  elements: mergedElements,
+  config: configRef,
+});
+
+// toRaw on both sides: a host that stores the schema in a deep ref hands the
+// SAME tree back wrapped in a reactive proxy — without unwrapping, the echo of
+// every builder edit would look like an external replacement (spurious history
+// entry + selection reset).
+watch(builder.schema, (s) => {
+  if (toRaw(model.value) !== s) model.value = s;
+}, { immediate: true });
+
+watch(model, (next) => {
+  if (next == null) return;
+  const raw = toRaw(next);
+  if (raw === toRaw(builder.schema.value)) return;
+  builder.replaceSchema(normalizedFromModel(raw as PageNode));
+});
+
 const validation = useSchemaValidation(builder.schema, configRef);
+
+// Provided here (not in BuilderCanvas) so the outline pane — a sibling of the
+// canvas — shares the same drag context: outline rows and canvas zones are
+// drop targets of one and the same drag.
+provideBuilderDnd(builder);
 
 provide(BUILDER_API, builder);
 provide(BUILDER_CONFIG, configRef);
@@ -82,6 +138,61 @@ watch([propsCollapsed, propsWidth], () => {
 // ── Splitter drag ─────────────────────────────────────────────────────────────
 const rootRef = ref<HTMLElement | null>(null);
 
+// ── Keyboard shortcuts (scoped to the builder) ────────────────────────────────
+
+function isEditableTarget(t: EventTarget | null): boolean {
+  const el = t as HTMLElement | null;
+  if (!el) return false;
+  const tag = el.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
+}
+
+/**
+ * The listener is window-level (shortcuts must work right after a canvas
+ * interaction), but strictly CONTAINED: it only acts while focus is inside
+ * this builder instance, and never inside editable targets — those keep their
+ * native text undo/delete (incl. the JSON tab's textarea and host-app inputs).
+ */
+function onKeyDown(e: KeyboardEvent) {
+  if (!rootRef.value?.contains(document.activeElement)) return;
+  if (isEditableTarget(e.target)) return;
+  const meta = e.ctrlKey || e.metaKey;
+  if (meta && (e.key === 'z' || e.key === 'Z')) {
+    e.preventDefault();
+    if (e.shiftKey) builder.redo(); else builder.undo();
+    return;
+  }
+  if (meta && (e.key === 'y' || e.key === 'Y')) { e.preventDefault(); builder.redo(); return; }
+  if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+  const sel = builder.selectedPath.value;
+  if (!sel || sel.length === 0) return;
+  e.preventDefault();
+  builder.remove(sel);
+  // Deleting the FOCUSED node drops focus to <body>, which would disarm the
+  // very next Ctrl+Z — re-anchor on the builder root once the DOM settled.
+  void nextTick(() => {
+    if (rootRef.value && !rootRef.value.contains(document.activeElement)) {
+      rootRef.value.focus({ preventScroll: true });
+    }
+  });
+}
+
+/**
+ * Presses on non-focusable builder chrome would drop focus to <body> and
+ * silently disarm the shortcuts — anchor it on the root instead. Focusable
+ * targets (inputs, rows, canvas nodes) win afterwards via the browser's own
+ * mousedown focus behavior.
+ */
+function onRootPointerDown() {
+  if (!rootRef.value) return;
+  if (!rootRef.value.contains(document.activeElement)) {
+    rootRef.value.focus({ preventScroll: true });
+  }
+}
+
+onMounted(() => window.addEventListener('keydown', onKeyDown));
+onBeforeUnmount(() => window.removeEventListener('keydown', onKeyDown));
+
 function startResize(target: 'outline' | 'props', event: PointerEvent) {
   if ((target === 'outline' && outlineCollapsed.value) || (target === 'props' && propsCollapsed.value)) return;
   event.preventDefault();
@@ -118,6 +229,7 @@ function startResize(target: 'outline' | 'props', event: PointerEvent) {
 // ── JSON tab ──────────────────────────────────────────────────────────────────
 const jsonText = ref(JSON.stringify(builder.schema.value, null, 2));
 const jsonError = ref('');
+const jsonWarning = ref('');
 let userEditing = false;
 
 watch(builder.schema, (s) => {
@@ -126,55 +238,41 @@ watch(builder.schema, (s) => {
 
 function onJsonInput(e: Event) {
   userEditing = true;
+  jsonWarning.value = '';
   jsonText.value = (e.target as HTMLTextAreaElement).value;
   try { JSON.parse(jsonText.value); jsonError.value = ''; }
   catch { jsonError.value = 'Invalid JSON'; }
 }
 function onJsonBlur() { userEditing = false; }
-/**
- * Recursively migrate legacy node types so pasted JSON from earlier versions
- * (or hand-written copies) still works:
- *   - `column` → `stack` (direction = 'column')
- *   - `row`    → `stack` (direction = 'row')
- */
-function migrateLegacyTypes(node: unknown): unknown {
-  if (!node || typeof node !== 'object') return node;
-  const n = node as { type?: string; children?: unknown[] };
-  const children = Array.isArray(n.children)
-    ? n.children.map(migrateLegacyTypes)
-    : n.children;
-  if (n.type === 'column') {
-    return { ...n, type: 'stack', direction: 'column', children };
-  }
-  if (n.type === 'row') {
-    return { ...n, type: 'stack', direction: 'row', children };
-  }
-  if (children === n.children) return node;
-  return { ...n, children };
-}
 
-function normalizeRoot(node: PageNode): PageNode {
-  const migrated = migrateLegacyTypes(node) as PageNode;
-  if (migrated.type === 'page') return migrated;
-  // Any non-page root (stack, card, …) → wrap in a page so the builder always
-  // has a page root. Style stays on the wrapped child; the page wrapper is bare.
-  return {
-    id: 'root',
-    type: 'page',
-    style: { gap: '16px', padding: '24px' },
-    children: [migrated],
-  } as PageNode;
+function issueSummary(list: NormalizeIssue[]): string {
+  const first = `${list[0].path}: ${list[0].message}`;
+  return list.length === 1 ? first : `${first} (+${list.length - 1} more)`;
 }
 
 function applyJson() {
+  let parsed: unknown;
   try {
-    const parsed = JSON.parse(jsonText.value) as PageNode;
-    builder.replaceSchema(normalizeRoot(parsed));
-    jsonError.value = '';
-    activeTab.value = 'editor';
+    parsed = JSON.parse(jsonText.value);
   } catch (e: unknown) {
     jsonError.value = e instanceof Error ? e.message : 'Invalid JSON';
+    return;
   }
+  // Structural gate: nothing BROKEN may reach the working tree (and through
+  // v-model the host's storage) — a committed-then-crashing schema would come
+  // back on every reload. Warnings (healed or lossless findings, e.g. unknown
+  // element types) apply anyway: a document from a newer library version or
+  // with unregistered consumer elements must stay editable here.
+  const { schema, issues } = normalizePageSchema(parsed, { elements: mergedElements.value });
+  const errors = issues.filter((i) => i.severity === 'error');
+  if (errors.length > 0) {
+    jsonError.value = issueSummary(errors);
+    return;
+  }
+  builder.replaceSchema(schema);
+  jsonError.value = '';
+  jsonWarning.value = issues.length > 0 ? issueSummary(issues) : '';
+  if (issues.length === 0) activeTab.value = 'editor';
 }
 </script>
 
@@ -187,6 +285,8 @@ function applyJson() {
       'pb-builder--props-collapsed': propsCollapsed,
       'pb-builder--resizing': resizing !== null,
     }"
+    tabindex="-1"
+    @pointerdown="onRootPointerDown"
   >
     <!-- ── Outline pane ── -->
     <section
@@ -196,8 +296,8 @@ function applyJson() {
       <template v-if="!outlineCollapsed">
         <header class="pb-builder__pane-header">
           <CoarIcon name="list" size="s" />
-          <span class="pb-builder__pane-title">Outline</span>
-          <button type="button" class="pb-builder__icon-btn" title="Collapse outline" @click="outlineCollapsed = true">
+          <span class="pb-builder__pane-title">{{ t('coar.pageBuilder.chrome.outline', undefined, 'Outline') }}</span>
+          <button type="button" class="pb-builder__icon-btn" :title="t('coar.pageBuilder.chrome.collapseOutline', undefined, 'Collapse outline')" @click="outlineCollapsed = true">
             <CoarIcon name="chevrons-left" size="s" />
           </button>
         </header>
@@ -205,7 +305,7 @@ function applyJson() {
           <BuilderOutline />
         </div>
       </template>
-      <button v-else type="button" class="pb-builder__rail-btn" title="Expand outline" @click="outlineCollapsed = false">
+      <button v-else type="button" class="pb-builder__rail-btn" :title="t('coar.pageBuilder.chrome.expandOutline', undefined, 'Expand outline')" @click="outlineCollapsed = false">
         <CoarIcon name="chevrons-right" size="s" />
       </button>
     </section>
@@ -222,10 +322,10 @@ function applyJson() {
     <section class="pb-builder__pane pb-builder__pane--center">
       <CoarTabGroup v-model="activeTab" class="pb-builder__tabs">
         <template #actions>
-          <button type="button" class="pb-builder__icon-btn" :disabled="!builder.canUndo.value" title="Undo (Ctrl+Z)" @click="builder.undo()">
+          <button type="button" class="pb-builder__icon-btn" :disabled="!builder.canUndo.value" :title="t('coar.pageBuilder.chrome.undo', undefined, 'Undo (Ctrl+Z)')" @click="builder.undo()">
             <CoarIcon name="undo-2" size="s" />
           </button>
-          <button type="button" class="pb-builder__icon-btn" :disabled="!builder.canRedo.value" title="Redo (Ctrl+Y)" @click="builder.redo()">
+          <button type="button" class="pb-builder__icon-btn" :disabled="!builder.canRedo.value" :title="t('coar.pageBuilder.chrome.redo', undefined, 'Redo (Ctrl+Y)')" @click="builder.redo()">
             <CoarIcon name="redo-2" size="s" />
           </button>
         </template>
@@ -234,7 +334,7 @@ function applyJson() {
           <template #default>
             <span class="pb-builder__tab-label">
               <CoarIcon name="pencil" size="s" />
-              Editor
+              {{ t('coar.pageBuilder.chrome.tabEditor', undefined, 'Editor') }}
             </span>
           </template>
           <template #content>
@@ -246,24 +346,24 @@ function applyJson() {
           <template #default>
             <span class="pb-builder__tab-label">
               <CoarIcon name="eye" size="s" />
-              Preview
+              {{ t('coar.pageBuilder.chrome.tabPreview', undefined, 'Preview') }}
             </span>
           </template>
           <template #content>
             <div class="pb-builder__preview-pane">
               <!-- Responsive width toggle -->
               <div class="pb-builder__preview-toolbar">
-                <div class="pb-builder__seg" role="radiogroup" aria-label="Preview width">
+                <div class="pb-builder__seg" role="radiogroup" :aria-label="t('coar.pageBuilder.chrome.previewWidth', undefined, 'Preview width')">
                   <button
                     type="button"
                     class="pb-builder__seg-btn"
                     :class="{ 'pb-builder__seg-btn--active': previewWidth === 'full' }"
                     role="radio"
                     :aria-checked="previewWidth === 'full'"
-                    title="Full width"
+                    :title="t('coar.pageBuilder.chrome.previewFullTitle', undefined, 'Full width')"
                     @click="previewWidth = 'full'"
                   >
-                    Desktop
+                    {{ t('coar.pageBuilder.chrome.previewDesktop', undefined, 'Desktop') }}
                   </button>
                   <button
                     type="button"
@@ -271,10 +371,10 @@ function applyJson() {
                     :class="{ 'pb-builder__seg-btn--active': previewWidth === 'tablet' }"
                     role="radio"
                     :aria-checked="previewWidth === 'tablet'"
-                    title="768px"
+                    :title="t('coar.pageBuilder.chrome.previewTabletTitle', undefined, '768px')"
                     @click="previewWidth = 'tablet'"
                   >
-                    Tablet · 768
+                    {{ t('coar.pageBuilder.chrome.previewTablet', undefined, 'Tablet · 768') }}
                   </button>
                   <button
                     type="button"
@@ -282,19 +382,19 @@ function applyJson() {
                     :class="{ 'pb-builder__seg-btn--active': previewWidth === 'mobile' }"
                     role="radio"
                     :aria-checked="previewWidth === 'mobile'"
-                    title="375px"
+                    :title="t('coar.pageBuilder.chrome.previewMobileTitle', undefined, '375px')"
                     @click="previewWidth = 'mobile'"
                   >
-                    Mobile · 375
+                    {{ t('coar.pageBuilder.chrome.previewMobile', undefined, 'Mobile · 375') }}
                   </button>
                 </div>
               </div>
               <div class="pb-builder__preview">
                 <div class="pb-builder__preview-frame" :style="previewFrameStyle">
+                  <!-- The renderer falls back to config.assetResolver itself. -->
                   <CoarPageRenderer
                     :schema="builder.schema.value"
                     :config="config"
-                    :asset-resolver="config?.assetResolver"
                   />
                 </div>
               </div>
@@ -306,16 +406,17 @@ function applyJson() {
           <template #default>
             <span class="pb-builder__tab-label">
               <CoarIcon name="code" size="s" />
-              JSON
+              {{ t('coar.pageBuilder.chrome.tabJson', undefined, 'JSON') }}
             </span>
           </template>
           <template #content>
             <div class="pb-builder__json-pane">
               <div class="pb-builder__json-toolbar">
-                <span class="pb-builder__json-hint">Paste or edit JSON, then click Apply</span>
+                <span class="pb-builder__json-hint">{{ t('coar.pageBuilder.chrome.jsonHint', undefined, 'Paste or edit JSON, then click Apply') }}</span>
                 <span v-if="jsonError" class="pb-builder__json-error">{{ jsonError }}</span>
+                <span v-else-if="jsonWarning" class="pb-builder__json-warning">{{ jsonWarning }}</span>
                 <button class="pb-builder__json-apply" :disabled="!!jsonError" @click="applyJson">
-                  Apply →
+                  {{ t('coar.pageBuilder.chrome.jsonApply', undefined, 'Apply →') }}
                 </button>
               </div>
               <textarea
@@ -345,12 +446,12 @@ function applyJson() {
       :class="{ 'pb-builder__pane--rail': propsCollapsed }"
     >
       <template v-if="!propsCollapsed">
-        <button type="button" class="pb-builder__icon-btn pb-builder__icon-btn--corner" title="Collapse properties" @click="propsCollapsed = true">
+        <button type="button" class="pb-builder__icon-btn pb-builder__icon-btn--corner" :title="t('coar.pageBuilder.chrome.collapseProperties', undefined, 'Collapse properties')" @click="propsCollapsed = true">
           <CoarIcon name="chevrons-right" size="s" />
         </button>
         <BuilderPropsPanel class="pb-builder__pane-inner" />
       </template>
-      <button v-else type="button" class="pb-builder__rail-btn" title="Expand properties" @click="propsCollapsed = false">
+      <button v-else type="button" class="pb-builder__rail-btn" :title="t('coar.pageBuilder.chrome.expandProperties', undefined, 'Expand properties')" @click="propsCollapsed = false">
         <CoarIcon name="chevrons-left" size="s" />
       </button>
     </section>
@@ -376,6 +477,11 @@ function applyJson() {
   transition: none;
   user-select: none;
   cursor: col-resize;
+}
+
+/* The root is a programmatic focus anchor (shortcut scope), never a visible stop. */
+.pb-builder:focus {
+  outline: none;
 }
 
 /* ── Panes ── */
@@ -664,6 +770,12 @@ function applyJson() {
 .pb-builder__json-error {
   font-size: 12px;
   color: var(--coar-text-semantic-error-bold, #c0392b);
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+
+.pb-builder__json-warning {
+  font-size: 12px;
+  color: var(--coar-text-semantic-warning-bold, #9a6700);
   font-family: ui-monospace, Menlo, Consolas, monospace;
 }
 

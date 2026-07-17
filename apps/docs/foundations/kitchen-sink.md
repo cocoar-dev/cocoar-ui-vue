@@ -1,6 +1,7 @@
 ---
 layout: page
 sidebar: false
+description: "Every Cocoar component rendered on a single page for side-by-side inspection and light versus dark theme comparison."
 ---
 
 <script setup>
