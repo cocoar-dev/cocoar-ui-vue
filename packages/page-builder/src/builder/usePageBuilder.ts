@@ -1,5 +1,5 @@
 import { computed, ref, shallowRef, type ComputedRef, type Ref } from 'vue';
-import type { PageNode } from '../schema';
+import type { PageConfig, PageNode } from '../schema';
 import { BUILTIN_ELEMENTS } from '../elements/builtins';
 import type { PageElementRegistry } from '../elements/registry';
 import { cloneWithFreshIds, fieldName, uid } from './nodeDefaults';
@@ -12,6 +12,7 @@ import {
   patchNode,
   rebaseAfterRemoval,
   removeNode,
+  replaceNode,
   warnDev,
   type NodePath,
 } from './operations';
@@ -32,6 +33,12 @@ export interface UsePageBuilderOptions {
    * headless tooling).
    */
   elements?: ComputedRef<PageElementRegistry>;
+  /**
+   * The builder's config — used for the field-contract minting rule: under a
+   * strict contract (fields set, allowCustomFields off), fresh value elements
+   * start UNBOUND instead of minting a `field_*` name the lint would flag.
+   */
+  config?: ComputedRef<PageConfig | undefined>;
 }
 
 const PATCH_COALESCE_MS = 500;
@@ -134,11 +141,15 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
     const props = def.builder.defaults() as Record<string, unknown>;
     // The contract label rides along when the element carries one at all.
     if (bind?.label && 'label' in props) props.label = bind.label;
+    // Strict contract: unbound drops stay unbound — the author picks a field.
+    const cfg = options.config?.value;
+    const strictContract = (cfg?.fields?.length ?? 0) > 0 && !cfg?.allowCustomFields;
+    const name = bind?.name ?? (strictContract ? undefined : fieldName());
     return {
       id: uid(),
       type,
       props,
-      ...(def.value ? { name: bind?.name ?? fieldName() } : {}),
+      ...(def.value && name ? { name } : {}),
       ...(def.value && bind?.required ? { validation: { required: true } } : {}),
       ...(def.container ? { children: [] } : {}),
     } as PageNode;
@@ -200,6 +211,46 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
     bumpVersion();
   }
 
+  /**
+   * Switch a node's REPRESENTATION: same data, different element. Keeps the
+   * id (selection follows), the host vocabulary (name / defaultValue /
+   * validation / style) and the label; the rest of the props bag restarts
+   * from the target's defaults. Only offered by the UI among elements that
+   * can edit the same value type, so the carried value stays type-correct.
+   */
+  function convertTo(path: NodePath, toType: string) {
+    if (path.length === 0) return;
+    const loc = getNodeAt(schema.value, path);
+    if (!loc || loc.node.type === toType) return;
+    const def = (options.elements?.value ?? BUILTIN_ELEMENTS)[toType];
+    if (!def?.builder) {
+      warnDev(`convertTo: no registered element (with a builder half) for type "${toType}" — ignored.`);
+      return;
+    }
+    const before = schema.value;
+    const old = loc.node as PageNode & {
+      props?: Record<string, unknown>;
+      name?: string;
+      defaultValue?: unknown;
+      validation?: unknown;
+      children?: PageNode[];
+    };
+    const props = def.builder.defaults() as Record<string, unknown>;
+    const oldLabel = old.props?.label;
+    if (oldLabel !== undefined && 'label' in props) props.label = oldLabel;
+    const next: Record<string, unknown> = { id: old.id, type: toType, props };
+    if (old.style !== undefined) next.style = old.style;
+    if (def.value) {
+      if (old.name !== undefined) next.name = old.name;
+      if (old.defaultValue !== undefined) next.defaultValue = old.defaultValue;
+      if (old.validation !== undefined) next.validation = old.validation;
+    }
+    if (def.container) next.children = Array.isArray(old.children) ? old.children : [];
+    schema.value = replaceNode(schema.value, path, next as unknown as PageNode);
+    pushHistory(before, { kind: 'structural' });
+    bumpVersion();
+  }
+
   function duplicate(path: NodePath) {
     if (path.length === 0) return;
     const loc = getNodeAt(schema.value, path);
@@ -239,6 +290,7 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
     select,
     selectNode,
     addChild,
+    convertTo,
     remove,
     duplicate,
     move,

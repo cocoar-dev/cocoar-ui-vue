@@ -191,3 +191,74 @@ describe('usePageBuilder.addChild — field binding (field-first flow)', () => {
     expect(node.validation).toBeUndefined();
   });
 });
+
+describe('usePageBuilder.convertTo — representation switch', () => {
+  function withPasswordField() {
+    const builder = usePageBuilder({ initial: page([]) });
+    builder.addChild([], 'text-input', undefined, { name: 'password', label: 'Passwort', required: true });
+    return builder;
+  }
+
+  it('keeps id/name/validation/style/label, resets the rest of the bag', () => {
+    const builder = withPasswordField();
+    const beforeNode = (builder.schema.value as { children: PageNode[] }).children[0] as
+      PageNode & { id: string; props: Record<string, unknown> };
+    builder.patch([0], { props: { placeholder: 'secret…' } });
+    builder.patch([0], { style: { width: '200px' } });
+    builder.patch([0], { defaultValue: 'x' });
+
+    builder.convertTo([0], 'password-input');
+
+    const node = (builder.schema.value as { children: PageNode[] }).children[0] as
+      PageNode & { id: string; props: Record<string, unknown>; name?: string;
+        validation?: unknown; style?: unknown; defaultValue?: unknown };
+    expect(node.type).toBe('password-input');
+    expect(node.id).toBe(beforeNode.id);
+    expect(node.name).toBe('password');
+    expect(node.validation).toEqual({ required: true });
+    expect(node.style).toEqual({ width: '200px' });
+    expect(node.defaultValue).toBe('x');
+    expect(node.props.label).toBe('Passwort');
+    expect('placeholder' in node.props).toBe(false); // element-specific — restarts from defaults
+  });
+
+  it('round-trips through undo and is a no-op for same/unknown targets', () => {
+    const builder = withPasswordField();
+    const before = builder.schema.value;
+    builder.convertTo([0], 'text-input'); // same type
+    builder.convertTo([0], 'not-registered');
+    expect(builder.schema.value).toBe(before);
+
+    builder.convertTo([0], 'password-input');
+    expect((builder.schema.value as { children: PageNode[] }).children[0].type).toBe('password-input');
+    builder.undo();
+    expect(builder.schema.value).toBe(before);
+  });
+});
+
+describe('usePageBuilder.addChild — strict-contract minting rule', () => {
+  it('leaves fresh value elements unbound under a strict contract', () => {
+    const builder = usePageBuilder({
+      initial: page([]),
+      config: computed(() => ({ fields: [{ name: 'username', valueType: 'string' as const }] })),
+    });
+    builder.addChild([], 'text-input');
+    const node = (builder.schema.value as { children: PageNode[] }).children[0] as
+      PageNode & { name?: string };
+    expect(node.name).toBeUndefined();
+  });
+
+  it('keeps minting when allowCustomFields is on', () => {
+    const builder = usePageBuilder({
+      initial: page([]),
+      config: computed(() => ({
+        fields: [{ name: 'username', valueType: 'string' as const }],
+        allowCustomFields: true,
+      })),
+    });
+    builder.addChild([], 'text-input');
+    const node = (builder.schema.value as { children: PageNode[] }).children[0] as
+      PageNode & { name?: string };
+    expect(node.name).toMatch(/^field_/);
+  });
+});

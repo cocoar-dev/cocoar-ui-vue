@@ -64,6 +64,7 @@ const builder = usePageBuilder({
         children: [],
       },
   elements: mergedElements,
+  config: configRef,
 });
 
 // toRaw on both sides: a host that stores the schema in a deep ref hands the

@@ -13,7 +13,8 @@ import type { PageNode, NodeStyle, ElementNode, FieldValidation } from '../schem
 import { BUILDER_API, BUILDER_CONFIG, BUILDER_VALIDATION } from './builderContext';
 import type { NodePath } from './operations';
 import { useMergedElements } from '../elements/useMergedElements';
-import { compatibleFields } from '../elements/fieldContract';
+import { compatibleFields, compatibleElementTypes } from '../elements/fieldContract';
+import { isElementAllowed } from '../schema';
 import StyleProps from './props/StyleProps.vue';
 
 defineOptions({ name: 'BuilderPropsPanel' });
@@ -95,6 +96,45 @@ const fieldOptions = computed<CoarSelectOption<string>[]>(() => {
   return opts;
 });
 
+// ─── Representation switch ────────────────────────────────────────────────────
+// Same field, different element: offered among the elements that can edit the
+// bound contract field's value type (or, unbound, any type the current
+// element declares). convertTo keeps id/name/defaultValue/validation/style +
+// label; the rest of the bag restarts from the target's defaults.
+
+const representationOptions = computed<CoarSelectOption<string>[]>(() => {
+  const current = node.value;
+  if (!current || !def.value?.value) return [];
+  const boundField = contractFields.value?.find((f) => f.name === fieldNode.value?.name);
+  let types: string[];
+  if (boundField) {
+    types = compatibleElementTypes(elements.value, boundField.valueType);
+  } else {
+    const own = def.value.value.types;
+    if (!own || own.length === 0) return [];
+    const set = new Set<string>();
+    for (const t of own) for (const el of compatibleElementTypes(elements.value, t)) set.add(el);
+    types = [...set];
+  }
+  const placeable = types.filter(
+    (t) => elements.value[t]?.builder && isElementAllowed(t, config?.value),
+  );
+  if (placeable.length < 2) return [];
+  return placeable.map((t) => {
+    const b = elements.value[t].builder!;
+    return { value: t, label: t2(b.label.key, b.label.fallback) };
+  });
+});
+
+function t2(key: string, fallback: string): string {
+  return t(key, undefined, fallback);
+}
+
+function convertRepresentation(toType: string | null) {
+  if (!toType || !node.value || toType === node.value.type) return;
+  builder.convertTo(path.value as NodePath, toType);
+}
+
 function bindField(name: string | null) {
   if (!name) {
     patch({ name: undefined });
@@ -175,6 +215,16 @@ function bindField(name: string | null) {
           <CoarTextInput
             :model-value="fieldNode.name ?? ''"
             @update:model-value="(v) => patch({ name: v })"
+          />
+        </CoarFormField>
+        <CoarFormField
+          v-if="representationOptions.length > 0"
+          :label="t('coar.pageBuilder.props.elementType', undefined, 'Element')"
+        >
+          <CoarSelect
+            :model-value="node.type"
+            :options="representationOptions"
+            @update:model-value="(v) => convertRepresentation(v)"
           />
         </CoarFormField>
         <CoarCheckbox
