@@ -660,6 +660,81 @@ describe('CoarPageRenderer — payload & email format contract', () => {
   });
 });
 
+describe('CoarPageRenderer — host form API', () => {
+  const schema: PageNode = {
+    id: 'r',
+    type: 'page',
+    children: [
+      { id: 't', type: 'text-input', name: 'email', props: { label: 'Email' }, defaultValue: 'a@y.z' },
+      { id: 'c', type: 'checkbox', name: 'ok', props: { label: 'OK' } },
+    ],
+  };
+
+  it('emits update:values on init and on every edit, with a safe snapshot', async () => {
+    const wrapper = mount(CoarPageRenderer, { props: { schema } });
+
+    const emitted = wrapper.emitted('update:values')!;
+    expect(emitted[0][0]).toEqual({ email: 'a@y.z', ok: false });
+
+    await wrapper.find('input[type="text"]').setValue('b@y.z');
+    const last = emitted[emitted.length - 1][0] as Record<string, unknown>;
+    expect(last).toEqual({ email: 'b@y.z', ok: false });
+
+    // Mutating the emitted snapshot must not corrupt internal form state.
+    (last as Record<string, unknown>).email = 'hacked';
+    expect((wrapper.vm as unknown as { values: Record<string, unknown> }).values.email).toBe('b@y.z');
+  });
+
+  it('exposes values, isDirty and reset', async () => {
+    const wrapper = mount(CoarPageRenderer, { props: { schema } });
+    const vm = wrapper.vm as unknown as {
+      values: Record<string, unknown>;
+      isDirty: boolean;
+      isFormValid: boolean;
+      reset: () => void;
+    };
+
+    expect(vm.isDirty).toBe(false);
+    expect(vm.values).toEqual({ email: 'a@y.z', ok: false });
+
+    await wrapper.find('input[type="text"]').setValue('edited@y.z');
+    expect(vm.isDirty).toBe(true);
+    expect(vm.values.email).toBe('edited@y.z');
+
+    vm.reset();
+    await flushPromises();
+    expect(vm.isDirty).toBe(false);
+    expect(vm.values).toEqual({ email: 'a@y.z', ok: false });
+    expect(wrapper.find<HTMLInputElement>('input[type="text"]').element.value).toBe('a@y.z');
+  });
+
+  it('focuses the first invalid control after a failed validating click', async () => {
+    const send = vi.fn();
+    const invalidSchema: PageNode = {
+      id: 'r',
+      type: 'page',
+      children: [
+        { id: 'h', type: 'heading', props: { text: 'Form' } },
+        {
+          id: 't', type: 'text-input', name: 'email', props: { label: 'Email' },
+          validation: { required: true },
+        },
+        { id: 'b', type: 'button', props: { label: 'Send', action: 'send', validates: true } },
+      ],
+    };
+    const wrapper = mount(CoarPageRenderer, {
+      props: { schema: invalidSchema, actions: { send } },
+      attachTo: document.body,
+    });
+
+    await wrapper.find('button.pb-button').trigger('click');
+    await flushPromises();
+    expect(send).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(wrapper.find('input').element);
+    wrapper.unmount();
+  });
+});
+
 describe('CoarPageRenderer — enter to submit', () => {
   const emailField = {
     id: 't', type: 'text-input', name: 'email', props: { label: 'Email' }, defaultValue: 'x@y.z',

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, provide, ref, watch } from 'vue';
+import { computed, nextTick, provide, ref, watch } from 'vue';
 import { useI18n } from '@cocoar/vue-localization';
 import { isElementAllowed } from './schema';
 import type { ButtonNode, ElementNode, PageNode, PageConfig, PageRootNode } from './schema';
@@ -43,6 +43,15 @@ const props = defineProps<{
    * schema change.
    */
   initialValues?: ActionValues
+}>();
+
+const emit = defineEmits<{
+  /**
+   * Fires whenever the value model changes — field edits, (re-)initialization
+   * and `reset()`. Carries a snapshot copy, safe for the host to keep;
+   * unlocks autosave, drafts and dirty tracking.
+   */
+  'update:values': [values: ActionValues];
 }>();
 
 const { t } = useI18n();
@@ -122,6 +131,9 @@ function collectFieldNames(node: PageNode, out: Set<string>) {
   }
 }
 
+/** Baseline for `isDirty` — the value map as of the last (re-)initialization. */
+let valuesBaseline: ActionValues = {};
+
 function initValues() {
   const defaults = collectDefaults(renderSchema.value);
   if (props.initialValues) {
@@ -132,18 +144,33 @@ function initValues() {
     }
   }
   values.value = defaults;
+  valuesBaseline = { ...defaults };
   touched.value = {};
   asyncErrors.value = {};
   formError.value = '';
+  emit('update:values', { ...defaults });
 }
 
-/** Shallow value equality — key set + Object.is per key. */
+/**
+ * Per-key value equality: Object.is, plus one level of array-by-content so
+ * `['a'] vs ['a']` (multi-select values, re-minted inline literals) compare
+ * as equal.
+ */
+function sameValue(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) return true;
+  if (Array.isArray(a) && Array.isArray(b)) {
+    return a.length === b.length && a.every((x, i) => Object.is(x, b[i]));
+  }
+  return false;
+}
+
+/** Shallow value equality — key set + `sameValue` per key. */
 function shallowEqual(a?: ActionValues, b?: ActionValues): boolean {
   if (a === b) return true;
   if (!a || !b) return false;
   const keys = Object.keys(a);
   if (keys.length !== Object.keys(b).length) return false;
-  return keys.every((k) => Object.is(a[k], b[k]));
+  return keys.every((k) => sameValue(a[k], b[k]));
 }
 
 initValues();
@@ -269,6 +296,9 @@ const computedErrors = computed<Record<string, string>>(() => {
 
 const isFormValid = computed(() => Object.keys(computedErrors.value).length === 0);
 
+/** True once any field differs from its initial value (schema defaults + initialValues). */
+const isDirty = computed(() => !shallowEqual(values.value, valuesBaseline));
+
 // ─── Touched helpers ──────────────────────────────────────────────────────────
 
 function markAllTouched(node: PageNode) {
@@ -287,6 +317,21 @@ const warnedUnknown = new Set<string>();
 /** True while a trigger is in flight — every further click is ignored (reentry guard). */
 function isBusy(): boolean {
   return isValidating.value || isSubmitting.value;
+}
+
+const rootEl = ref<HTMLElement | null>(null);
+
+/**
+ * After a failed validating click, move focus to the first invalid control —
+ * on a long page the revealed errors may sit off-screen and the click would
+ * otherwise look dead. CoarFormField marks its control `aria-invalid`.
+ */
+async function focusFirstError() {
+  await nextTick();
+  const el = rootEl.value?.querySelector<HTMLElement>('[aria-invalid="true"]');
+  if (!el) return;
+  el.focus?.();
+  el.scrollIntoView?.({ block: 'center' });
 }
 
 const genericActionError = () =>
@@ -320,7 +365,10 @@ async function runAction(id: string) {
  */
 async function runValidatedAction(id: string) {
   markAllTouched(renderSchema.value);
-  if (!isFormValid.value) return;
+  if (!isFormValid.value) {
+    void focusFirstError();
+    return;
+  }
   if (props.onValidate) {
     isValidating.value = true;
     try {
@@ -333,7 +381,10 @@ async function runValidatedAction(id: string) {
       formError.value = errors[FORM_ERROR_KEY] ?? '';
       delete errors[FORM_ERROR_KEY];
       asyncErrors.value = errors;
-      if (Object.keys(errors).length > 0 || formError.value) return;
+      if (Object.keys(errors).length > 0 || formError.value) {
+        if (Object.keys(errors).length > 0) void focusFirstError();
+        return;
+      }
     } catch (e) {
       formError.value = genericActionError();
       console.error('[CoarPageRenderer] onValidate threw — action not executed.', e);
@@ -439,6 +490,7 @@ const ctx: PageRendererContext = {
       asyncErrors.value = next;
     }
     if (formError.value) formError.value = '';
+    emit('update:values', { ...values.value });
   },
   getError: (name) =>
     touched.value[name] ? (computedErrors.value[name] ?? asyncErrors.value[name] ?? '') : '',
@@ -449,10 +501,23 @@ const ctx: PageRendererContext = {
 };
 
 provide(PAGE_RENDERER_KEY, ctx);
+
+// ─── Host form API ────────────────────────────────────────────────────────────
+
+defineExpose({
+  /** Snapshot of the current value map (copy — safe to keep or mutate). */
+  values: computed(() => ({ ...values.value })),
+  /** True once any field differs from its initial state. */
+  isDirty,
+  /** Quiet validation state — true when every declarative rule passes. */
+  isFormValid,
+  /** Back to the initial state: schema defaults + initialValues; touched/errors/banner cleared. */
+  reset: () => initValues(),
+});
 </script>
 
 <template>
-  <div class="coar-page-renderer" @keydown.enter="onEnterKey">
+  <div ref="rootEl" class="coar-page-renderer" @keydown.enter="onEnterKey">
     <!-- Form-level error channel (`_form` / action rejection). The default
          banner sits above the page; the slot replaces the presentation, and a
          consumer element can render it in-page via usePageElement().formError. -->
