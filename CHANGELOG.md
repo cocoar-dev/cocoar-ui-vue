@@ -7,7 +7,7 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
-## Unreleased
+## 2.17.1
 
 ### Fixed
 

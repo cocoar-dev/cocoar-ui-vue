@@ -281,7 +281,7 @@ The remaining definition fields at a glance:
 |-------|--------|
 | `container: true` | Node gets a `children` array, canvas dropzones, and the container style fields (gap, justify, align). The **host** renders the children into your renderer's default slot — recursion, allow-gating and direction context stay centralized. |
 | `inline: true` | Leaf gets the `width: fit-content` treatment (like button/link) instead of stretching. |
-| `builder.group` | Palette grouping: `'container'` or `'element'` (default). |
+| `builder.group` | Palette grouping: `'container'` or `'element'` (default). The `'element'` group is presented split by value-spec presence: value elements show under **Inputs** (the offering `hideElementPicker` removes), the rest under **Elements**. |
 | `builder.hideStyleSection` | Suppresses the universal Style section for spacer-style minimal elements. |
 | `builder.lint` | `(node, config?) => { severity: 'error' \| 'warning'; message: I18nText }[]` — authoring diagnostics merged into the builder's validation panel. Lint never blocks saving. |
 | `normalizeProps` | `(raw: unknown) => P` — ingest healing for the props bag (untrusted JSON). Runs crash-guarded inside `normalizePageSchema` on every builder ingest path (v-model, JSON tab) and wherever the server passes `{ elements }`. Return the input unchanged (same reference) when nothing needs healing. |
