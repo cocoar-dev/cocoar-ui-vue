@@ -11,7 +11,7 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ### Fixed
 
-- **`@cocoar/vue-page-builder` — `hideElementPicker` keeps containers.** Fields-only authoring (`config.hideElementPicker`) now removes only the free **Elements** offering (palette group + the element entries of the outline's add-child menu); the **Containers** group stays — authors always need layout structure, while value/content elements come from the contract fields. Empty palette/menu groups (e.g. all containers excluded via `allowedElements`) are no longer rendered as bare labels.
+- **`@cocoar/vue-page-builder` — the palette splits Inputs from Elements, and `hideElementPicker` hides only the Inputs.** The free offering now has three groups — **Containers**, **Inputs** (value elements: text/password/number inputs, checkboxes, selects, …) and **Elements** (content and actions: headings, paragraphs, notes, buttons, links, images), split registry-derived by value-spec presence (consumer elements sort themselves). Fields-only authoring (`config.hideElementPicker`) now removes only the **Inputs** group (palette + the input entries of the outline's add-child menu) — exactly what the field contract replaces; containers and content/action elements stay, because a contract-authored form still needs layout, headings and a submit button. Empty palette/menu groups (e.g. everything excluded via `allowedElements`) are no longer rendered as bare labels. New i18n key `coar.pageBuilder.palette.inputs`.
 
 ## 2.17.0
 

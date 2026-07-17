@@ -22,6 +22,8 @@ interface PaletteEntry {
   label: string;
   icon: CoreIconName;
   group: 'container' | 'element';
+  /** Value-model participation — splits the Elements offering into Inputs vs content. */
+  hasValue: boolean;
 }
 
 /**
@@ -37,6 +39,7 @@ const visiblePalette = computed<PaletteEntry[]>(() =>
       label: t(def.builder!.label.key, undefined, def.builder!.label.fallback),
       icon: def.builder!.icon ?? 'circle-alert',
       group: def.builder!.group ?? 'element',
+      hasValue: !!def.value,
     })),
 );
 
@@ -93,13 +96,21 @@ const fieldPalette = computed<FieldPaletteEntry[]>(() =>
 );
 
 /**
- * `hideElementPicker` (fields-only authoring) removes the free ELEMENTS group
- * only — containers stay: authors always need layout structure, while
- * value/content elements come from the contract fields.
+ * `hideElementPicker` (fields-only authoring) removes only the free INPUTS
+ * group — the value elements the field contract replaces. Containers (layout
+ * structure) and content/action elements (headings, notes, buttons, links,
+ * images) stay: every form needs them, contract or not. The split is
+ * registry-derived (value-spec presence), so consumer elements sort
+ * themselves automatically.
  */
-const showFreeElements = computed(() => config?.value?.hideElementPicker !== true);
+const showFreeInputs = computed(() => config?.value?.hideElementPicker !== true);
 const containerEntries = computed(() => visiblePalette.value.filter((e) => e.group === 'container'));
-const elementEntries = computed(() => visiblePalette.value.filter((e) => e.group === 'element'));
+const inputEntries = computed(
+  () => visiblePalette.value.filter((e) => e.group === 'element' && e.hasValue),
+);
+const contentEntries = computed(
+  () => visiblePalette.value.filter((e) => e.group === 'element' && !e.hasValue),
+);
 
 function isFieldDragging(name: string): boolean {
   const p = dnd.payload.value;
@@ -138,12 +149,35 @@ function onCanvasBackgroundClick() { builder.select([]); }
           <span>{{ entry.label }}</span>
         </button>
       </div>
-      <template v-if="showFreeElements && elementEntries.length > 0">
+      <!-- Inputs = value elements; the group the field contract supersedes. -->
+      <template v-if="showFreeInputs && inputEntries.length > 0">
         <div v-if="containerEntries.length > 0" class="pb-palette__divider" />
+        <div class="pb-palette__group">
+          <span class="pb-palette__label">{{ t('coar.pageBuilder.palette.inputs', undefined, 'Inputs') }}</span>
+          <button
+            v-for="entry in inputEntries"
+            :key="entry.type"
+            type="button"
+            class="pb-palette__card pb-palette__card--element"
+            :class="{ 'pb-palette__card--dragging': isPaletteDragging(entry.type) }"
+            :title="t('coar.pageBuilder.palette.dragToAdd', { label: entry.label }, 'Drag to add {label}')"
+            @pointerdown="onCardPointerDown($event, entry.type)"
+          >
+            <CoarIcon :name="entry.icon" size="s" />
+            <span>{{ entry.label }}</span>
+          </button>
+        </div>
+      </template>
+      <!-- Content/action elements (headings, notes, buttons, links, images) always stay. -->
+      <template v-if="contentEntries.length > 0">
+        <div
+          v-if="containerEntries.length > 0 || (showFreeInputs && inputEntries.length > 0)"
+          class="pb-palette__divider"
+        />
         <div class="pb-palette__group">
           <span class="pb-palette__label">{{ t('coar.pageBuilder.palette.elements', undefined, 'Elements') }}</span>
           <button
-            v-for="entry in elementEntries"
+            v-for="entry in contentEntries"
             :key="entry.type"
             type="button"
             class="pb-palette__card pb-palette__card--element"
@@ -158,7 +192,7 @@ function onCanvasBackgroundClick() { builder.select([]); }
       </template>
       <template v-if="fieldPalette.length > 0">
         <div
-          v-if="containerEntries.length > 0 || (showFreeElements && elementEntries.length > 0)"
+          v-if="containerEntries.length > 0 || contentEntries.length > 0 || (showFreeInputs && inputEntries.length > 0)"
           class="pb-palette__divider"
         />
         <div class="pb-palette__group">

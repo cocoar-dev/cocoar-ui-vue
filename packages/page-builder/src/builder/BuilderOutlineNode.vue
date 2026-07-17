@@ -58,22 +58,27 @@ const visibleAddOptions = computed(() =>
       label: t(entry.builder!.label.key, undefined, entry.builder!.label.fallback),
       icon: entry.builder!.icon ?? 'circle-alert',
       group: entry.builder!.group ?? 'element',
+      hasValue: !!entry.value,
     })),
 );
 
 const containerAddOptions = computed(() =>
   visibleAddOptions.value.filter((o) => o.group === 'container'),
 );
-const elementAddOptions = computed(() =>
-  visibleAddOptions.value.filter((o) => o.group === 'element'),
+const inputAddOptions = computed(() =>
+  visibleAddOptions.value.filter((o) => o.group === 'element' && o.hasValue),
+);
+const contentAddOptions = computed(() =>
+  visibleAddOptions.value.filter((o) => o.group === 'element' && !o.hasValue),
 );
 
 /**
- * `hideElementPicker` (fields-only authoring) removes the free ELEMENTS
- * offering only — containers stay available: authors always need layout
- * structure, while value/content elements come from the contract fields.
+ * `hideElementPicker` (fields-only authoring) removes only the free INPUTS
+ * offering — the value elements the field contract replaces. Containers and
+ * content/action elements (headings, buttons, …) stay: every form needs
+ * them, contract or not.
  */
-const showFreeElements = computed(() => config?.value?.hideElementPicker !== true);
+const showFreeInputs = computed(() => config?.value?.hideElementPicker !== true);
 
 /** Validation issues for *this* node — drives the warning icon in the row. */
 const nodeIssues = computed(() => validation?.byNodeId.value.get(props.node.id) ?? []);
@@ -324,10 +329,11 @@ function canMoveDown(): boolean {
       />
 
       <!-- Add-child trigger + dropdown. With hideElementPicker (fields-only
-           authoring) only the free ELEMENTS section disappears — containers
-           stay: layout structure is always needed. -->
+           authoring) only the free INPUTS section disappears — containers and
+           content/action elements stay: every form needs them. -->
       <div
-        v-if="containerAddOptions.length > 0 || (showFreeElements && elementAddOptions.length > 0)"
+        v-if="containerAddOptions.length > 0 || contentAddOptions.length > 0
+          || (showFreeInputs && inputAddOptions.length > 0)"
         ref="addMenuRoot"
         class="pb-tree-add"
         :style="{ paddingLeft: `${8 + (depth + 1) * 16}px` }"
@@ -356,11 +362,29 @@ function canMoveDown(): boolean {
               <span>{{ opt.label }}</span>
             </button>
           </template>
-          <template v-if="showFreeElements && elementAddOptions.length > 0">
+          <template v-if="showFreeInputs && inputAddOptions.length > 0">
             <div v-if="containerAddOptions.length > 0" class="pb-tree-add__divider" />
+            <div class="pb-tree-add__group-label">{{ t('coar.pageBuilder.palette.inputs', undefined, 'Inputs') }}</div>
+            <button
+              v-for="opt in inputAddOptions"
+              :key="opt.type"
+              type="button"
+              class="pb-tree-add__item"
+              role="menuitem"
+              @click.stop="pickAdd(opt.type)"
+            >
+              <CoarIcon :name="opt.icon" size="s" />
+              <span>{{ opt.label }}</span>
+            </button>
+          </template>
+          <template v-if="contentAddOptions.length > 0">
+            <div
+              v-if="containerAddOptions.length > 0 || (showFreeInputs && inputAddOptions.length > 0)"
+              class="pb-tree-add__divider"
+            />
             <div class="pb-tree-add__group-label">{{ t('coar.pageBuilder.palette.elements', undefined, 'Elements') }}</div>
             <button
-              v-for="opt in elementAddOptions"
+              v-for="opt in contentAddOptions"
               :key="opt.type"
               type="button"
               class="pb-tree-add__item"

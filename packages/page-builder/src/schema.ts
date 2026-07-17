@@ -449,12 +449,14 @@ export interface PageConfig {
    */
   allowCustomFields?: boolean
   /**
-   * Hide the free ELEMENT offering (the Elements palette group and the
-   * element entries of the outline's add-child menu) — containers stay
-   * available, because authors always need layout structure; value/content
-   * elements then come exclusively from the contract `fields`. Pure
-   * authoring UI — `allowedElements` remains the boundary for what may be
-   * USED at all (including which containers are offered).
+   * Hide the free INPUTS offering (the palette's Inputs group and the input
+   * entries of the outline's add-child menu) — i.e. exactly the value
+   * elements the field contract replaces; authors then bind fields by
+   * dragging contract `fields`. Containers and content/action elements
+   * (headings, notes, buttons, links, images) stay available — every form
+   * needs layout and chrome. The split is registry-derived (value-spec
+   * presence), so consumer elements sort themselves. Pure authoring UI —
+   * `allowedElements` remains the boundary for what may be USED at all.
    */
   hideElementPicker?: boolean
   /**

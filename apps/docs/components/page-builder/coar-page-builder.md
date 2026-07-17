@@ -27,7 +27,7 @@ A live builder with a small starting schema and a restricted `allowedElements` l
 
 ## Features
 
-- **Palette toolbar** — drag containers (Stack, Card, Section) and elements onto the canvas. Entries derive from the merged element registry — built-ins plus anything registered via [`config.elements`](./custom-elements) — filtered by `config.allowedElements` (types not in the list are hidden). With a [field contract](./#field-contract) (`config.fields`) a third group, **Fields**, offers one draggable card per contract field (type icon, `*` for required, greyed out once its name is bound anywhere on the page); dropping a card creates the field's default element pre-bound.
+- **Palette toolbar** — drag containers (Stack, Card, Section), **Inputs** (value elements — text/password/number inputs, checkboxes, selects, …) and **Elements** (content and actions — headings, paragraphs, notes, buttons, links, images) onto the canvas; the Inputs/Elements split derives from each definition's value spec. Entries come from the merged element registry — built-ins plus anything registered via [`config.elements`](./custom-elements) — filtered by `config.allowedElements` (types not in the list are hidden). With a [field contract](./#field-contract) (`config.fields`) a fourth group, **Fields**, offers one draggable card per contract field (type icon, `*` for required, greyed out once its name is bound anywhere on the page); dropping a card creates the field's default element pre-bound. `hideElementPicker` removes only the Inputs group — containers and content/action elements always stay.
 - **Pointer-based drag & drop** — built on pointer events rather than HTML5 drag events, so it works with mouse, touch **and** pen (tablet-first). Mouse drags start after a 5 px movement threshold, so plain clicks keep working; touch/pen drags arm after a 300 ms long-press. A ghost preview follows the pointer, scroll containers auto-scroll near their edges, and `Escape` cancels a drag in flight.
 - **Outline tree** — hierarchical node list with selection and real drag-to-reorder: every row except the root carries a grip handle, thin drop bars light up between rows while dragging, and container rows highlight for drop-**into**. Per-row actions: move up/down, duplicate, delete, plus an inline "Add child" menu. Stacks display "Column" or "Row" based on direction. Warning icons mark nodes with validation issues (hover for the full message).
 - **Canvas** — per-element preview components with dashed selection borders; each node's type tab doubles as its drag handle. A registered element without its own preview renders as a neutral icon+label chip; unregistered or disallowed element types get a red "skipped at runtime" treatment, so the canvas never pretends the runtime renderer will show them. Switches to live preview in the **Preview** tab and to a paste-and-apply JSON editor in the **JSON** tab.
@@ -164,6 +164,7 @@ All builder chrome — and the runtime renderer's validation messages — resolv
 | Key | Default (English) |
 |-----|-------------------|
 | `coar.pageBuilder.palette.containers` | `'Containers'` |
+| `coar.pageBuilder.palette.inputs` | `'Inputs'` |
 | `coar.pageBuilder.palette.elements` | `'Elements'` |
 | `coar.pageBuilder.palette.fields` | `'Fields'` |
 | `coar.pageBuilder.palette.dragToAdd` | `'Drag to add {label}'` |

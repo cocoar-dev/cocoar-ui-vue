@@ -68,11 +68,7 @@ describe('CoarPageBuilder — v-model wiring', () => {
     expect(wrapper.text()).toContain('Loaded');
   });
 
-  it('hideElementPicker removes the free Elements offering but KEEPS containers', async () => {
-    const config: PageConfig = {
-      hideElementPicker: true,
-      fields: [{ name: 'email', valueType: 'string', label: 'Email' }],
-    };
+  function mountWithConfig(config: PageConfig) {
     const Host = defineComponent({
       components: { CoarPageBuilder },
       setup() {
@@ -81,16 +77,44 @@ describe('CoarPageBuilder — v-model wiring', () => {
       },
       template: '<div style="height: 600px"><CoarPageBuilder v-model="schema" :config="config" /></div>',
     });
-    const wrapper = mount(Host);
+    return mount(Host);
+  }
+
+  it('splits the palette into Containers / Inputs / Elements (registry-derived)', async () => {
+    const wrapper = mountWithConfig({});
+    await nextTick();
+
+    const groups = wrapper.findAll('.pb-palette__group').map((g) => ({
+      label: g.find('.pb-palette__label').text(),
+      cards: g.findAll('.pb-palette__card').map((c) => c.text()),
+    }));
+    const byLabel = Object.fromEntries(groups.map((g) => [g.label, g.cards]));
+
+    expect(byLabel['Containers']).toContain('Card');
+    expect(byLabel['Inputs']).toContain('Text Input');
+    expect(byLabel['Inputs']).toContain('Checkbox');
+    expect(byLabel['Elements']).toContain('Heading');
+    expect(byLabel['Elements']).toContain('Button');
+    expect(byLabel['Elements']).not.toContain('Text Input');
+  });
+
+  it('hideElementPicker hides ONLY the Inputs group — containers, content and actions stay', async () => {
+    const wrapper = mountWithConfig({
+      hideElementPicker: true,
+      fields: [{ name: 'email', valueType: 'string', label: 'Email' }],
+    });
     await nextTick();
 
     const labels = wrapper.findAll('.pb-palette__label').map((l) => l.text());
     expect(labels).toContain('Containers');
+    expect(labels).toContain('Elements'); // headings, buttons & co stay
     expect(labels).toContain('Fields');
-    expect(labels).not.toContain('Elements');
-    // Layout structure stays draggable: the container cards are rendered.
-    expect(wrapper.find('.pb-palette__card--container').exists()).toBe(true);
-    expect(wrapper.find('.pb-palette__card--element').exists()).toBe(false);
+    expect(labels).not.toContain('Inputs');
+
+    const cards = wrapper.findAll('.pb-palette__card').map((c) => c.text());
+    expect(cards).toContain('Heading');
+    expect(cards).toContain('Button');
+    expect(cards).not.toContain('Text Input'); // free inputs come from the contract
   });
 
   it('normalizes an externally-assigned schema (legacy types, duplicate ids) before use', async () => {

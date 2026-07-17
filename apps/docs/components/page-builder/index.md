@@ -133,12 +133,11 @@ interface PageConfig {
   allowCustomFields?: boolean
 
   /**
-   * Hide the free ELEMENT offering (the Elements palette group and the
-   * element entries of the outline's add-child menu). Containers stay
-   * available — authors always need layout structure; value/content
-   * elements then come exclusively from the contract fields. Pure
-   * authoring UI; `allowedElements` remains the boundary for what may
-   * be used at all.
+   * Hide the free INPUTS offering (the palette's Inputs group and the
+   * input entries of the outline's add-child menu) — exactly the value
+   * elements the field contract replaces. Containers and content/action
+   * elements (headings, buttons, …) stay available. Pure authoring UI;
+   * `allowedElements` remains the boundary for what may be used at all.
    */
   hideElementPicker?: boolean
 
@@ -280,7 +279,7 @@ The allow-list composes with the contract at every seam: a field's default eleme
 
 #### Fields-only authoring
 
-Set `hideElementPicker: true` to remove the free **Elements** offering (the Elements palette group and the element entries of the outline's add-child menu): value/content elements then come exclusively from dragging contract fields. The **Containers** group stays — authors always need layout structure (restrict it via `allowedElements` if needed). It is pure authoring UI — combine it with `allowedElements` when the *rendering* boundary should shrink too.
+Set `hideElementPicker: true` to remove the free **Inputs** offering (the Inputs palette group and the input entries of the outline's add-child menu) — exactly the value elements the field contract replaces: fields then come exclusively from dragging contract cards. **Containers** (layout) and **Elements** (headings, notes, buttons, links, images — everything without a value spec) stay available, because every form needs structure and chrome. The Inputs/Elements split is registry-derived from the value spec, so consumer elements sort themselves. It is pure authoring UI — combine it with `allowedElements` when the *rendering* boundary should shrink too.
 
 #### Typed field lists (opt-in)
 
