@@ -206,16 +206,18 @@ describe('usePageBuilder.convertTo — representation switch', () => {
     builder.patch([0], { props: { placeholder: 'secret…' } });
     builder.patch([0], { style: { width: '200px' } });
     builder.patch([0], { defaultValue: 'x' });
+    builder.patch([0], { visibleWhen: { field: 'mode', equals: 'advanced' } } as never);
 
     builder.convertTo([0], 'password-input');
 
     const node = (builder.schema.value as { children: PageNode[] }).children[0] as
       PageNode & { id: string; props: Record<string, unknown>; name?: string;
-        validation?: unknown; style?: unknown; defaultValue?: unknown };
+        validation?: unknown; style?: unknown; defaultValue?: unknown; visibleWhen?: unknown };
     expect(node.type).toBe('password-input');
     expect(node.id).toBe(beforeNode.id);
     expect(node.name).toBe('password');
     expect(node.validation).toEqual({ required: true });
+    expect(node.visibleWhen).toEqual({ field: 'mode', equals: 'advanced' });
     expect(node.style).toEqual({ width: '200px' });
     expect(node.defaultValue).toBe('x');
     expect(node.props.label).toBe('Passwort');

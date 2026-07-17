@@ -1,5 +1,5 @@
 import type { ComputedRef, InjectionKey, Ref } from 'vue';
-import type { PageConfig } from './schema';
+import type { PageConfig, PageNode } from './schema';
 import type { PageElementRegistry } from './elements/registry';
 
 export type ActionValues = Record<string, unknown>;
@@ -36,6 +36,8 @@ export interface PageRendererContext {
   config?: PageConfig
   /** Merged element registry (built-ins + consumer registrations) — the render dispatch table. */
   elements: ComputedRef<PageElementRegistry>
+  /** `visibleWhen` gate, evaluated against the live value model — PageNode skips hidden subtrees. */
+  isVisible: (node: PageNode) => boolean
   /** Called by PageNode when it skips a disallowed type — used to console.warn once. */
   reportDisallowed?: (type: string) => void
   /** Called by PageNode when it skips an unregistered type — used to console.warn once. */

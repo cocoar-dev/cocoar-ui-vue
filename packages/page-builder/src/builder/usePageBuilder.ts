@@ -241,6 +241,7 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
       name?: string;
       defaultValue?: unknown;
       validation?: unknown;
+      visibleWhen?: unknown;
       children?: PageNode[];
     };
     const props = def.builder.defaults() as Record<string, unknown>;
@@ -248,6 +249,7 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
     if (oldLabel !== undefined && 'label' in props) props.label = oldLabel;
     const next: Record<string, unknown> = { id: old.id, type: toType, props };
     if (old.style !== undefined) next.style = old.style;
+    if (old.visibleWhen !== undefined) next.visibleWhen = old.visibleWhen;
     if (def.value) {
       if (old.name !== undefined) next.name = old.name;
       if (old.defaultValue !== undefined) next.defaultValue = old.defaultValue;

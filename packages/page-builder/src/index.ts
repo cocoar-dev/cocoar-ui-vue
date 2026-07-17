@@ -9,6 +9,7 @@ export type {
   ElementType,
   NodeStyle,
   FieldValidation,
+  VisibleWhen,
   ContainerNode,
   BuiltinNode,
   ElementNode,

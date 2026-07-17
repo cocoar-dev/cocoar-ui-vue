@@ -9,7 +9,7 @@ import {
   CoarSelect,
   type CoarSelectOption,
 } from '@cocoar/vue-ui';
-import type { PageNode, NodeStyle, ElementNode, FieldValidation, PageRootNode } from '../schema';
+import type { PageNode, NodeStyle, ElementNode, FieldValidation, PageRootNode, VisibleWhen } from '../schema';
 import { BUILDER_API, BUILDER_CONFIG, BUILDER_VALIDATION } from './builderContext';
 import type { NodePath } from './operations';
 import { useMergedElements } from '../elements/useMergedElements';
@@ -146,6 +146,97 @@ function convertRepresentation(toType: string | null) {
   builder.convertTo(path.value as NodePath, toType);
 }
 
+// ─── Conditional visibility (visibleWhen) ─────────────────────────────────────
+// Host vocabulary on every non-page node. The panel authors the `equals` form;
+// the `in` form stays JSON-authorable and is surfaced read-only.
+
+const showVisibility = computed(() => !!node.value && node.value.type !== 'page');
+const visibleWhen = computed(() => (node.value as ElementNode | null)?.visibleWhen);
+const hasInCondition = computed(() => Array.isArray(visibleWhen.value?.in));
+
+/** Find the named input carrying `name` (the condition's controlling node). */
+function findController(name: string): ElementNode | null {
+  let found: ElementNode | null = null;
+  const walk = (n: PageNode) => {
+    if (found) return;
+    const d = n.type === 'page' ? undefined : elements.value[n.type];
+    if (d?.value && (n as ElementNode).name === name) { found = n as ElementNode; return; }
+    if ('children' in n && Array.isArray(n.children)) n.children.forEach(walk);
+  };
+  walk(builder.schema.value);
+  return found;
+}
+
+/** Named inputs on the page (minus this node) — candidates for the controlling field. */
+const controllerOptions = computed<CoarSelectOption<string>[]>(() => {
+  const out: CoarSelectOption<string>[] = [];
+  const walk = (n: PageNode) => {
+    const d = n.type === 'page' ? undefined : elements.value[n.type];
+    const name = (n as ElementNode).name;
+    if (d?.value && typeof name === 'string' && name && n.id !== node.value?.id
+      && !out.some((o) => o.value === name)) {
+      out.push({ value: name, label: name });
+    }
+    if ('children' in n && Array.isArray(n.children)) n.children.forEach(walk);
+  };
+  walk(builder.schema.value);
+  // A JSON-authored reference to a field not on the page stays visible (lint flags it).
+  const current = visibleWhen.value?.field;
+  if (current && !out.some((o) => o.value === current)) {
+    out.push({ value: current, label: `${current} (?)` });
+  }
+  return out;
+});
+
+const controller = computed(() =>
+  visibleWhen.value?.field ? findController(visibleWhen.value.field) : null,
+);
+
+/** Typed value choices where the controller's element suggests them; null → free text. */
+const conditionValueOptions = computed<CoarSelectOption<string>[] | null>(() => {
+  const c = controller.value;
+  if (!c) return null;
+  if (c.type === 'checkbox' || c.type === 'switch') {
+    return [
+      { value: 'true', label: t('coar.pageBuilder.props.checked', undefined, 'checked') },
+      { value: 'false', label: t('coar.pageBuilder.props.unchecked', undefined, 'unchecked') },
+    ];
+  }
+  const opts = (c.props as { options?: { value: string; label: string }[] }).options;
+  if (Array.isArray(opts) && opts.length > 0) {
+    return opts.map((o) => ({ value: o.value, label: o.label || o.value }));
+  }
+  return null;
+});
+
+const equalsDisplay = computed(() => {
+  const e = visibleWhen.value?.equals;
+  if (typeof e === 'boolean') return e ? 'true' : 'false';
+  return e == null ? '' : String(e);
+});
+
+function setVisibilityField(name: string | null) {
+  if (!name) {
+    patch({ visibleWhen: undefined } as Partial<PageNode>);
+    return;
+  }
+  const c = findController(name);
+  const equals: unknown =
+    c?.type === 'checkbox' || c?.type === 'switch'
+      ? true
+      : ((c?.props as { options?: { value: string }[] } | undefined)?.options?.[0]?.value ?? '');
+  patch({ visibleWhen: { field: name, equals } satisfies VisibleWhen } as Partial<PageNode>);
+}
+
+function setVisibilityEquals(raw: string | null) {
+  const vw = visibleWhen.value;
+  if (!vw) return;
+  const c = controller.value;
+  const equals: unknown =
+    c && (c.type === 'checkbox' || c.type === 'switch') ? raw === 'true' : raw ?? '';
+  patch({ visibleWhen: { field: vw.field, equals } satisfies VisibleWhen } as Partial<PageNode>);
+}
+
 function bindField(name: string | null) {
   if (!name) {
     patch({ name: undefined });
@@ -279,11 +370,48 @@ function bindField(name: string | null) {
         <component :is="inspector" :node="node" :patch="patch" />
       </section>
 
+      <!-- ── Conditional visibility (host vocabulary, every non-page node) ── -->
+      <section
+        v-if="showVisibility"
+        class="pb-props__section"
+        :class="{ 'pb-props__section--separated': !!inspector || !!fieldNode }"
+      >
+        <h4 class="pb-props__section-title">{{ t('coar.pageBuilder.props.section.visibility', undefined, 'Visibility') }}</h4>
+        <CoarFormField :label="t('coar.pageBuilder.props.visibleWhenField', undefined, 'Visible when')">
+          <CoarSelect
+            :model-value="visibleWhen?.field ?? null"
+            :options="controllerOptions"
+            clearable
+            :placeholder="t('coar.pageBuilder.props.alwaysVisible', undefined, 'Always visible')"
+            @update:model-value="(v) => setVisibilityField(v)"
+          />
+        </CoarFormField>
+        <p v-if="hasInCondition" class="pb-props__hint">
+          {{ t('coar.pageBuilder.props.visibleWhenIn', undefined, 'Multi-value condition (in) — edit it in the JSON tab.') }}
+        </p>
+        <CoarFormField
+          v-else-if="visibleWhen"
+          :label="t('coar.pageBuilder.props.visibleWhenEquals', undefined, 'equals')"
+        >
+          <CoarSelect
+            v-if="conditionValueOptions"
+            :model-value="equalsDisplay"
+            :options="conditionValueOptions"
+            @update:model-value="(v) => setVisibilityEquals(v)"
+          />
+          <CoarTextInput
+            v-else
+            :model-value="equalsDisplay"
+            @update:model-value="(v) => setVisibilityEquals(v)"
+          />
+        </CoarFormField>
+      </section>
+
       <!-- ── Universal style section ─────────────────────────────────────── -->
       <section
         v-if="!def?.builder?.hideStyleSection"
         class="pb-props__section"
-        :class="{ 'pb-props__section--separated': !!inspector || !!fieldNode || !!pageNode }"
+        :class="{ 'pb-props__section--separated': !!inspector || !!fieldNode || !!pageNode || showVisibility }"
       >
         <h4 class="pb-props__section-title">{{ t('coar.pageBuilder.props.section.style', undefined, 'Style') }}</h4>
         <StyleProps :node="node" :container="isContainer" :patch-style="patchStyle" />
@@ -371,6 +499,12 @@ function bindField(name: string | null) {
 }
 
 .pb-props__empty-hint {
+  margin: 0;
+  font-size: var(--coar-body-caption-size, 12px);
+  color: var(--coar-text-neutral-tertiary, #8a8a90);
+}
+
+.pb-props__hint {
   margin: 0;
   font-size: var(--coar-body-caption-size, 12px);
   color: var(--coar-text-neutral-tertiary, #8a8a90);

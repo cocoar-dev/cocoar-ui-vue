@@ -105,6 +105,36 @@ function isNodeAllowed(node: PageNode): boolean {
   return isElementAllowed(node.type, props.config);
 }
 
+/**
+ * `visibleWhen` gate, evaluated against the LIVE value model — and applied in
+ * the SAME walks as the allow-list, so a hidden required field neither vetoes
+ * a validating button nor ships its value in the payload (the conditional-
+ * container trap). Values are kept internally while hidden (collectDefaults /
+ * initialValues seeding ignore visibility), so re-showing restores them.
+ * Malformed conditions fail OPEN (visible).
+ */
+function isNodeVisible(node: PageNode): boolean {
+  const vw = (node as ElementNode).visibleWhen;
+  if (!vw || typeof vw !== 'object') return true;
+  if (typeof vw.field !== 'string' || vw.field === '') return true;
+  const value = values.value[vw.field];
+  if ('equals' in vw) return sameValue(value, vw.equals);
+  if (Array.isArray(vw.in)) return vw.in.some((x) => sameValue(value, x));
+  return true;
+}
+
+/** Outward value map: the named inputs of the allowed AND currently visible tree. */
+function visibleValues(): ActionValues {
+  const out: ActionValues = {};
+  const walk = (node: PageNode) => {
+    if (!isNodeAllowed(node) || !isNodeVisible(node)) return;
+    if (isNamedInput(node) && node.name in values.value) out[node.name] = values.value[node.name];
+    if ('children' in node && Array.isArray(node.children)) node.children.forEach(walk);
+  };
+  walk(renderSchema.value);
+  return out;
+}
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
 function collectDefaults(node: PageNode): ActionValues {
@@ -148,7 +178,7 @@ function initValues() {
   touched.value = {};
   asyncErrors.value = {};
   formError.value = '';
-  emit('update:values', { ...defaults });
+  emit('update:values', visibleValues());
 }
 
 /**
@@ -273,7 +303,7 @@ function computeFieldError(node: NamedNode, def: PageElementDefinition): string 
 }
 
 function collectErrors(node: PageNode, out: Record<string, string>) {
-  if (!isNodeAllowed(node)) return;
+  if (!isNodeAllowed(node) || !isNodeVisible(node)) return;
   if (isNamedInput(node)) {
     const def = defFor(node);
     const err = def ? computeFieldError(node, def) : '';
@@ -302,7 +332,7 @@ const isDirty = computed(() => !shallowEqual(values.value, valuesBaseline));
 // ─── Touched helpers ──────────────────────────────────────────────────────────
 
 function markAllTouched(node: PageNode) {
-  if (!isNodeAllowed(node)) return;
+  if (!isNodeAllowed(node) || !isNodeVisible(node)) return;
   if (isNamedInput(node) && node.name) touched.value[node.name] = true;
   if ('children' in node && Array.isArray(node.children)) node.children.forEach(markAllTouched);
 }
@@ -348,7 +378,9 @@ async function runAction(id: string) {
   if (!handler) return;
   isSubmitting.value = true;
   try {
-    await handler(values.value);
+    // A snapshot, not the live reactive object — handlers must not be able to
+    // mutate or observe form state after the fact.
+    await handler(visibleValues());
   } catch (e) {
     formError.value = (e instanceof Error && e.message) || genericActionError();
     console.error(`[CoarPageRenderer] action "${id}" failed.`, e);
@@ -372,7 +404,7 @@ async function runValidatedAction(id: string) {
   if (props.onValidate) {
     isValidating.value = true;
     try {
-      const result = await props.onValidate(values.value);
+      const result = await props.onValidate(visibleValues());
       const errors: Record<string, string> = {};
       for (const [k, v] of Object.entries(result ?? {})) {
         if (v) errors[k] = v;
@@ -422,7 +454,7 @@ const enterTarget = computed<{ action: string; validates: boolean } | null>(() =
   let dflt: { action: string; validates: boolean } | null = null;
   let firstValidating: { action: string; validates: boolean } | null = null;
   const walk = (node: PageNode) => {
-    if (dflt || !isNodeAllowed(node)) return;
+    if (dflt || !isNodeAllowed(node) || !isNodeVisible(node)) return;
     if (node.type === 'button') {
       const p = (node as ButtonNode).props ?? {};
       if (typeof p.action === 'string' && p.action) {
@@ -475,6 +507,7 @@ const ctx: PageRendererContext = {
       + `instances were skipped at render time (register it via config.elements).`,
     );
   },
+  isVisible: isNodeVisible,
   isFormValid,
   isValidating,
   isSubmitting,
@@ -490,7 +523,7 @@ const ctx: PageRendererContext = {
       asyncErrors.value = next;
     }
     if (formError.value) formError.value = '';
-    emit('update:values', { ...values.value });
+    emit('update:values', visibleValues());
   },
   getError: (name) =>
     touched.value[name] ? (computedErrors.value[name] ?? asyncErrors.value[name] ?? '') : '',
@@ -505,8 +538,8 @@ provide(PAGE_RENDERER_KEY, ctx);
 // ─── Host form API ────────────────────────────────────────────────────────────
 
 defineExpose({
-  /** Snapshot of the current value map (copy — safe to keep or mutate). */
-  values: computed(() => ({ ...values.value })),
+  /** Snapshot of the current value map (allowed + visible fields; copy — safe to keep). */
+  values: computed(() => visibleValues()),
   /** True once any field differs from its initial state. */
   isDirty,
   /** Quiet validation state — true when every declarative rule passes. */

@@ -39,6 +39,13 @@ const allowed = computed(() => {
 });
 
 /**
+ * `visibleWhen` gate — reactive against the live value model (the host owns
+ * the evaluation). A hidden node takes its whole subtree with it; the value
+ * model applies the same gate, so hidden fields neither veto nor ship.
+ */
+const visible = computed(() => ctx!.isVisible(props.node));
+
+/**
  * Registry dispatch: the definition supplies the renderer component; the host
  * owns everything around it (allow gate, self-style, children recursion). An
  * allowed-but-unregistered type renders nothing and warns once — a production
@@ -99,7 +106,7 @@ const enterEligible = computed(() => {
 </script>
 
 <template>
-  <template v-if="allowed">
+  <template v-if="allowed && visible">
     <!-- ── page root (host-owned; always a column) ─────────────────────────── -->
     <div
       v-if="node.type === 'page'"

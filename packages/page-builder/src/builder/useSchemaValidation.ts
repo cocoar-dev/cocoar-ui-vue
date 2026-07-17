@@ -37,6 +37,7 @@ export function useSchemaValidation(
   const issues = computed<ValidationIssue[]>(() => {
     const out: ValidationIssue[] = [];
     const namedFields: Array<{ node: PageNode; name: string }> = [];
+    const conditionalNodes: Array<{ node: PageNode; vw: unknown }> = [];
     const registry = elements.value;
     const knownActions = new Set(config.value?.availableActions?.map((a) => a.id) ?? []);
     const hasAvailableActions = (config.value?.availableActions?.length ?? 0) > 0;
@@ -142,6 +143,10 @@ export function useSchemaValidation(
         if (name) namedFields.push({ node: n, name });
       }
 
+      // ── Conditional visibility: checked against the named fields later ─
+      const vw = (n as ElementNode).visibleWhen;
+      if (vw !== undefined) conditionalNodes.push({ node: n, vw });
+
       // ── Field contract: bindings must exist and be type-compatible ─────
       const contract = config.value?.fields;
       if (contract && def?.value) {
@@ -180,6 +185,27 @@ export function useSchemaValidation(
           field: 'name',
           severity: 'error',
           message: `Duplicate field name "${name}" — values will overwrite each other.`,
+        });
+      }
+    }
+
+    // ── visibleWhen: the controlling field must exist on the page ─────────
+    const boundNames = new Set(namedFields.map((f) => f.name));
+    for (const { node: n, vw } of conditionalNodes) {
+      const cond = vw as { field?: unknown } | null;
+      if (!cond || typeof cond !== 'object' || typeof cond.field !== 'string' || !cond.field) {
+        out.push({
+          nodeId: n.id,
+          field: 'visibleWhen',
+          severity: 'warning',
+          message: 'visibleWhen is malformed — the node stays always visible.',
+        });
+      } else if (!boundNames.has(cond.field)) {
+        out.push({
+          nodeId: n.id,
+          field: 'visibleWhen',
+          severity: 'warning',
+          message: `visibleWhen references field "${cond.field}", which is not on the page.`,
         });
       }
     }

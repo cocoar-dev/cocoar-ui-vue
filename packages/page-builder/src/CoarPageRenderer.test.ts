@@ -660,6 +660,113 @@ describe('CoarPageRenderer — payload & email format contract', () => {
   });
 });
 
+describe('CoarPageRenderer — visibleWhen', () => {
+  const conditional: PageNode = {
+    id: 'r',
+    type: 'page',
+    children: [
+      { id: 'biz', type: 'checkbox', name: 'business', props: { label: 'Business account' } },
+      {
+        id: 'company', type: 'text-input', name: 'companyName', props: { label: 'Company' },
+        validation: { required: true }, visibleWhen: { field: 'business', equals: true },
+      },
+      { id: 'b', type: 'button', props: { label: 'Send', action: 'send', validates: true } },
+    ],
+  };
+
+  it('hides and shows the node reactively with the controlling value', async () => {
+    const wrapper = mount(CoarPageRenderer, { props: { schema: conditional } });
+    expect(wrapper.text()).not.toContain('Company');
+
+    await wrapper.find('input[type="checkbox"]').setValue(true);
+    expect(wrapper.text()).toContain('Company');
+
+    await wrapper.find('input[type="checkbox"]').setValue(false);
+    expect(wrapper.text()).not.toContain('Company');
+  });
+
+  it('hidden required fields neither veto a validating button nor ship values', async () => {
+    const send = vi.fn();
+    const wrapper = mount(CoarPageRenderer, { props: { schema: conditional, actions: { send } } });
+
+    await wrapper.find('button.pb-button').trigger('click');
+    await flushPromises();
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send.mock.calls[0][0]).toEqual({ business: false });
+  });
+
+  it('keeps values while hidden and enforces the rules again when re-shown', async () => {
+    const send = vi.fn();
+    const wrapper = mount(CoarPageRenderer, { props: { schema: conditional, actions: { send } } });
+
+    await wrapper.find('input[type="checkbox"]').setValue(true);
+    await wrapper.find('input[type="text"]').setValue('ACME');
+    await wrapper.find('input[type="checkbox"]').setValue(false);
+
+    await wrapper.find('button.pb-button').trigger('click');
+    await flushPromises();
+    expect(send.mock.calls[0][0]).toEqual({ business: false });
+
+    await wrapper.find('input[type="checkbox"]').setValue(true);
+    expect(wrapper.find<HTMLInputElement>('input[type="text"]').element.value).toBe('ACME');
+    await wrapper.find('button.pb-button').trigger('click');
+    await flushPromises();
+    expect(send.mock.calls[1][0]).toEqual({ business: true, companyName: 'ACME' });
+  });
+
+  it('supports the `in` form and hides whole subtrees, value model included', async () => {
+    const schemaFor = (plan: string): PageNode => ({
+      id: 'r',
+      type: 'page',
+      children: [
+        {
+          id: 'p', type: 'select', name: 'plan', defaultValue: plan,
+          props: { options: [{ value: 'free', label: 'Free' }, { value: 'pro', label: 'Pro' }] },
+        },
+        {
+          id: 'card', type: 'card', props: { title: 'Billing' },
+          visibleWhen: { field: 'plan', in: ['pro', 'team'] },
+          children: [
+            {
+              id: 'vat', type: 'text-input', name: 'vatId', props: { label: 'VAT ID' },
+              validation: { required: true },
+            },
+          ],
+        },
+        { id: 'b', type: 'button', props: { label: 'Send', action: 'send', validates: true } },
+      ],
+    });
+
+    const send = vi.fn();
+    const hidden = mount(CoarPageRenderer, { props: { schema: schemaFor('free'), actions: { send } } });
+    expect(hidden.text()).not.toContain('VAT ID');
+    await hidden.find('button.pb-button').trigger('click');
+    await flushPromises();
+    expect(send).toHaveBeenCalledWith({ plan: 'free' });
+
+    const blocked = vi.fn();
+    const shown = mount(CoarPageRenderer, { props: { schema: schemaFor('pro'), actions: { send: blocked } } });
+    expect(shown.text()).toContain('VAT ID');
+    await shown.find('button.pb-button').trigger('click');
+    await flushPromises();
+    expect(blocked).not.toHaveBeenCalled(); // required VAT ID is now visible — and empty
+  });
+
+  it('malformed conditions fail open (node stays visible)', () => {
+    const schema = {
+      id: 'r',
+      type: 'page',
+      children: [
+        { id: 'h', type: 'heading', props: { text: 'Always here' }, visibleWhen: {} },
+        { id: 'h2', type: 'heading', props: { text: 'Here too' }, visibleWhen: { field: 42 } },
+      ],
+    } as unknown as PageNode;
+    const wrapper = mount(CoarPageRenderer, { props: { schema } });
+    expect(wrapper.text()).toContain('Always here');
+    expect(wrapper.text()).toContain('Here too');
+  });
+});
+
 describe('CoarPageRenderer — host form API', () => {
   const schema: PageNode = {
     id: 'r',

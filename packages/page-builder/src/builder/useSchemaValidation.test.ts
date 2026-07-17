@@ -52,6 +52,34 @@ describe('useSchemaValidation', () => {
     expect(issues.every((i) => i.severity === 'error')).toBe(true);
   });
 
+  it('warns when visibleWhen references a field that is not on the page', () => {
+    const issues = validate(page([
+      { id: 'ok', type: 'checkbox', props: { label: 'OK' }, name: 'consent' },
+      {
+        id: 'h', type: 'heading', props: { text: 'Details' },
+        visibleWhen: { field: 'missing', equals: true },
+      },
+      {
+        id: 'h2', type: 'heading', props: { text: 'Fine' },
+        visibleWhen: { field: 'consent', equals: true },
+      },
+    ]));
+    expect(issues).toEqual([
+      expect.objectContaining({ nodeId: 'h', field: 'visibleWhen', severity: 'warning' }),
+    ]);
+    expect(issues[0].message).toContain('"missing"');
+  });
+
+  it('warns on a malformed visibleWhen', () => {
+    const issues = validate(page([
+      { id: 'h', type: 'heading', props: { text: 'Hi' }, visibleWhen: {} as never },
+    ]));
+    expect(issues).toEqual([
+      expect.objectContaining({ nodeId: 'h', field: 'visibleWhen', severity: 'warning' }),
+    ]);
+    expect(issues[0].message).toContain('malformed');
+  });
+
   it('errors on an invalid validation.pattern', () => {
     const issues = validate(page([
       { id: 't', type: 'text-input', props: {}, name: 'x', validation: { pattern: '[' } },

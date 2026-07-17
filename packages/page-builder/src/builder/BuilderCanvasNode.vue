@@ -15,7 +15,7 @@ const CANVAS_PARENT_DIRECTION: InjectionKey<ComputedRef<FlexDirection>> =
 import { computed, inject, provide, type CSSProperties } from 'vue';
 import { CoarIcon } from '@cocoar/vue-ui';
 import { useI18n } from '@cocoar/vue-localization';
-import { isElementAllowed, type PageNode, type StackNode } from '../schema';
+import { isElementAllowed, type ElementNode, type PageNode, type StackNode } from '../schema';
 import { selfLayoutStyle, containerLayoutStyle } from '../styleMapping';
 import { useMergedElements } from '../elements/useMergedElements';
 import { BUILDER_API, BUILDER_CONFIG } from './builderContext';
@@ -74,6 +74,17 @@ const typeLabel = computed(() => {
 
 const tabIcon = computed(
   () => def.value?.builder?.icon ?? (props.node.type === 'page' ? 'file' : 'circle-alert'),
+);
+
+// ── Conditional visibility: the canvas always shows the node (authoring
+//    surface), but marks it so authors see it may be hidden at runtime. ──
+const visibilityCondition = computed(() => (props.node as ElementNode).visibleWhen);
+const visibilityHint = computed(() =>
+  t(
+    'coar.pageBuilder.canvas.visibleWhen',
+    { field: String(visibilityCondition.value?.field ?? '') },
+    'Shown conditionally — depends on "{field}"',
+  ),
 );
 
 /** Container-ness comes from the registry (page root is host-owned). */
@@ -206,6 +217,9 @@ function zoneClasses(index: number): Record<string, boolean> {
     >
       <CoarIcon :name="tabIcon" size="xs" />
       <span class="canvas-node__tab-label">{{ typeLabel }}</span>
+      <span v-if="visibilityCondition" class="canvas-node__tab-eye" :title="visibilityHint">
+        <CoarIcon name="eye" size="xs" />
+      </span>
     </span>
 
     <!-- Runtime-blocked hint -->
@@ -417,6 +431,14 @@ function zoneClasses(index: number): Record<string, boolean> {
   line-height: 1;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Conditional-visibility marker: the node may be hidden at runtime. */
+.canvas-node__tab-eye {
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.75;
+  flex-shrink: 0;
 }
 
 /* ── Delete button ────────────────────────────────────────────────────────── */

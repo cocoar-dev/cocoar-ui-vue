@@ -72,6 +72,8 @@ export interface ElementNode<
   name?: string
   defaultValue?: unknown
   validation?: FieldValidation
+  /** Conditional visibility against the live value model. See `VisibleWhen`. */
+  visibleWhen?: VisibleWhen
   children?: PageNode[]
 }
 
@@ -296,6 +298,24 @@ export interface FieldValidation {
   matchField?: string
   /** Overrides the default error message for any rule on this field. */
   message?: string
+}
+
+/**
+ * Declarative conditional visibility, at node level (host vocabulary — works
+ * on every element, containers included). The node and its whole subtree
+ * render only while the condition holds against the LIVE value model, and a
+ * hidden subtree leaves the value model with it: hidden required fields never
+ * veto a validating button, and hidden values never ship in action payloads.
+ * Values typed before hiding are kept internally and return when re-shown.
+ * A malformed condition fails OPEN (the node stays visible).
+ */
+export interface VisibleWhen {
+  /** Name of the controlling field (a named input on the page). */
+  field: string
+  /** Visible while the field's value equals this (arrays compare by content). */
+  equals?: unknown
+  /** Visible while the field's value is one of these. */
+  in?: unknown[]
 }
 
 // ─── Union ────────────────────────────────────────────────────────────────────
