@@ -62,11 +62,10 @@ export type CoarFormFieldRulePassMode = 'success' | 'hide';
  *   - `'hide'` — don't render the rule even when unfulfilled. Useful when
  *     the rule's `label` is only meaningful in the fulfilled state.
  */
-export type CoarFormFieldRuleFailMode =
-  | 'pending'
-  | 'warning'
-  | 'error'
-  | 'hide';
+export type CoarFormFieldRuleFailMode = 'pending' | 'warning' | 'error' | 'hide';
+
+export type CoarFormFieldLayout = 'stacked' | 'inline';
+export type CoarFormFieldLabelPosition = 'before' | 'after';
 
 /**
  * A single live-validation rule. Pass an array of these to
@@ -145,6 +144,10 @@ export interface CoarFormFieldProps {
   disabled?: boolean;
   /** Explicit input ID (auto-generated if omitted). */
   id?: string;
+  /** Places label and control vertically (`stacked`) or on one row (`inline`). */
+  layout?: CoarFormFieldLayout;
+  /** Places the complete label/status cluster before or after the control. */
+  labelPosition?: CoarFormFieldLabelPosition;
 }
 
 const props = withDefaults(defineProps<CoarFormFieldProps>(), {
@@ -159,6 +162,8 @@ const props = withDefaults(defineProps<CoarFormFieldProps>(), {
   required: false,
   disabled: false,
   id: undefined,
+  layout: 'stacked',
+  labelPosition: 'before',
 });
 
 const autoId = `coar-field-${useId()}`;
@@ -208,11 +213,7 @@ const hasError = computed(() => errors.value.length > 0);
 const hasWarning = computed(() => warnings.value.length > 0);
 const hasHint = computed(() => props.hint.length > 0);
 const hasAnyStatus = computed(
-  () =>
-    hasError.value ||
-    hasWarning.value ||
-    hasHint.value ||
-    checklistRules.value.length > 0,
+  () => hasError.value || hasWarning.value || hasHint.value || checklistRules.value.length > 0,
 );
 
 /**
@@ -236,14 +237,10 @@ const hasAnyStatus = computed(
  */
 type Severity = 'error' | 'warning' | 'success' | 'hint' | 'none';
 const popoverHasSuccessItem = computed(() =>
-  checklistRules.value.some(
-    (r) => r.fulfilled && (r.whenPass ?? 'success') === 'success',
-  ),
+  checklistRules.value.some((r) => r.fulfilled && (r.whenPass ?? 'success') === 'success'),
 );
 const popoverHasPendingItem = computed(() =>
-  checklistRules.value.some(
-    (r) => !r.fulfilled && (r.whenFail ?? 'pending') === 'pending',
-  ),
+  checklistRules.value.some((r) => !r.fulfilled && (r.whenFail ?? 'pending') === 'pending'),
 );
 const severity = computed<Severity>(() => {
   if (hasError.value) return 'error';
@@ -281,6 +278,7 @@ const messageId = computed(() => {
 
 provide(FORM_FIELD_INJECTION_KEY, {
   inputId,
+  labelId,
   messageId,
   hasError,
   disabled: computed(() => props.disabled),
@@ -288,40 +286,74 @@ provide(FORM_FIELD_INJECTION_KEY, {
 </script>
 
 <template>
-  <div class="coar-form-field" :class="{ 'coar-form-field--disabled': disabled }">
-    <label v-if="label" :id="labelId" :for="inputId" class="coar-form-field__label">
-      <!-- Single status icon. Conditional render → its appearance shifts the
-           label-text right by `icon-width + gap`. The popover wraps it so
-           hover (or focus) opens, click pins. -->
-      <CoarPopover
-        v-if="hasAnyStatus"
-        mode="both"
-        :offset="6"
-        class="coar-form-field__status-popover"
-      >
-        <CoarIcon
-          :name="iconName"
-          size="s"
-          class="coar-form-field__status-icon"
-          :class="[
-            `coar-form-field__status-icon--${severity}`,
-          ]"
-          aria-hidden="true"
-        />
-        <template #content>
-          <CoarFormFieldStatusPanel
-            :hint="hint"
-            :rules="checklistRules"
-            :errors="errors"
-            :warnings="warnings"
+  <div
+    class="coar-form-field"
+    :class="[
+      `coar-form-field--${layout}`,
+      `coar-form-field--label-${labelPosition}`,
+      { 'coar-form-field--disabled': disabled },
+    ]"
+  >
+    <div class="coar-form-field__body">
+      <div v-if="label" class="coar-form-field__label-cluster">
+        <!-- Keep the popover trigger outside the native label. Opening help
+             must never toggle a checkbox, switch, or radio control. -->
+        <CoarPopover
+          v-if="hasAnyStatus && labelPosition === 'before'"
+          mode="both"
+          :offset="6"
+          class="coar-form-field__status-popover"
+        >
+          <CoarIcon
+            :name="iconName"
+            size="s"
+            class="coar-form-field__status-icon"
+            :class="`coar-form-field__status-icon--${severity}`"
+            aria-hidden="true"
           />
-        </template>
-      </CoarPopover>
-      <span class="coar-form-field__label-text">{{ label }}</span>
-      <span v-if="required" class="coar-form-field__required" aria-hidden="true">*</span>
-    </label>
+          <template #content>
+            <CoarFormFieldStatusPanel
+              :hint="hint"
+              :rules="checklistRules"
+              :errors="errors"
+              :warnings="warnings"
+            />
+          </template>
+        </CoarPopover>
 
-    <slot />
+        <label :id="labelId" :for="inputId" class="coar-form-field__label">
+          <span class="coar-form-field__label-text">{{ label }}</span>
+          <span v-if="required" class="coar-form-field__required" aria-hidden="true">*</span>
+        </label>
+
+        <CoarPopover
+          v-if="hasAnyStatus && labelPosition === 'after'"
+          mode="both"
+          :offset="6"
+          class="coar-form-field__status-popover"
+        >
+          <CoarIcon
+            :name="iconName"
+            size="s"
+            class="coar-form-field__status-icon"
+            :class="`coar-form-field__status-icon--${severity}`"
+            aria-hidden="true"
+          />
+          <template #content>
+            <CoarFormFieldStatusPanel
+              :hint="hint"
+              :rules="checklistRules"
+              :errors="errors"
+              :warnings="warnings"
+            />
+          </template>
+        </CoarPopover>
+      </div>
+
+      <div class="coar-form-field__control">
+        <slot />
+      </div>
+    </div>
 
     <!-- SR-only spans — one per piece. Carry the IDs that the child input's
          `aria-describedby` references. Errors are wrapped in role="alert" so
@@ -334,13 +366,15 @@ provide(FORM_FIELD_INJECTION_KEY, {
       :key="`error-sr-${i}`"
       class="coar-form-field__sr-only"
       role="alert"
-    >{{ msg }}</span>
+      >{{ msg }}</span
+    >
     <span
       v-for="(msg, i) in warnings"
       :id="warningIds[i]"
       :key="`warning-sr-${i}`"
       class="coar-form-field__sr-only"
-    >{{ msg }}</span>
+      >{{ msg }}</span
+    >
   </div>
 </template>
 
@@ -349,15 +383,41 @@ provide(FORM_FIELD_INJECTION_KEY, {
   display: block;
 }
 
+.coar-form-field__body {
+  display: flex;
+}
+
+.coar-form-field--stacked .coar-form-field__body {
+  flex-direction: column;
+}
+
+.coar-form-field--inline .coar-form-field__body {
+  align-items: center;
+  gap: var(--coar-spacing-s);
+}
+
+.coar-form-field--stacked.coar-form-field--label-after .coar-form-field__body {
+  flex-direction: column-reverse;
+}
+
+.coar-form-field--inline.coar-form-field--label-after .coar-form-field__body {
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+}
+
 .coar-form-field--disabled {
   opacity: 0.6;
   pointer-events: none;
 }
 
+.coar-form-field__label-cluster,
 .coar-form-field__label {
   display: inline-flex;
   align-items: center;
   gap: var(--coar-spacing-xs);
+}
+
+.coar-form-field__label {
   font-family: var(--coar-body-base-family);
   /* Form labels are "medium component label" size (14px) — distinct from
      caption-size (12px) which lives in tags / badges / dropdown footnotes.
@@ -380,10 +440,10 @@ provide(FORM_FIELD_INJECTION_KEY, {
 .coar-form-field__status-icon {
   cursor: help;
   flex-shrink: 0;
-  /* Nudge the icon down to compensate for Poppins / Inter font metrics:
-     the text line-box has more leading above the cap-line than below the
-     baseline, so the geometric center sits above the visual glyph center.
-     Without this the icon reads as floating ~3px high relative to the text. */
+  /* Poppins/Inter have visibly more line-box space above the cap height than
+     below the baseline. Aligning the SVG's geometric box to the line box
+     therefore makes it look too high; this optical correction keeps glyph
+     and label centered in both stacked and inline layouts. */
   transform: translateY(3px);
 }
 .coar-form-field__status-icon--error {

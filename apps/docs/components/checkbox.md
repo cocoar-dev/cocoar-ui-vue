@@ -36,7 +36,7 @@ Four sizes to match different information densities, from compact data tables to
 
 ## Hint Text
 
-Wrap in `CoarFormField` with a `hint` prop to give users extra context without cluttering the label itself.
+Wrap in `CoarFormField` with a `hint` prop to give users extra context without cluttering the label itself. When the form field owns the label, use `layout="inline"` for checkbox and switch rows.
 
 <preview path="./checkbox/demos/CheckboxHint.vue" />
 
@@ -45,6 +45,12 @@ Wrap in `CoarFormField` with a `hint` prop to give users extra context without c
 Place the label before or after the checkbox with the `labelPosition` prop. Defaults to `'after'`.
 
 <preview path="./checkbox/demos/CheckboxLabelPosition.vue" />
+
+## Long Labels
+
+Checkbox labels may wrap naturally. These deliberately narrow examples show both label positions and a mixed-length group.
+
+<preview path="./checkbox/demos/CheckboxLongLabel.vue" />
 
 ## Without Label
 

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, ref, watch, useTemplateRef, inject } from 'vue';
+import { computed, ref, watch, useTemplateRef, inject, onMounted, onBeforeUnmount } from 'vue';
 import { FORM_FIELD_INJECTION_KEY } from '../form-field/constants';
+import { CHECKBOX_GROUP_INJECTION_KEY } from '../checkbox-group/constants';
 
 export type CoarCheckboxSize = 'xs' | 's' | 'm' | 'l';
 
@@ -49,17 +50,35 @@ const isFocused = ref(false);
 const checkboxElement = useTemplateRef<HTMLInputElement>('checkboxElement');
 
 const formField = inject(FORM_FIELD_INJECTION_KEY, undefined);
+const checkboxGroup = inject(CHECKBOX_GROUP_INJECTION_KEY, undefined);
+const effectiveSize = computed(() => checkboxGroup?.size.value ?? props.size);
 
 const autoId = `coar-checkbox-${crypto.randomUUID?.() ?? Date.now().toString(16)}`;
-const inputId = computed(() => props.id || autoId);
+const inputId = computed(
+  () =>
+    props.id || (!props.label && !checkboxGroup ? formField?.inputId.value : undefined) || autoId,
+);
 
-const hasError = computed(() => props.error || (formField?.hasError.value ?? false));
+const hasError = computed(
+  () =>
+    props.error || (checkboxGroup?.hasError.value ?? false) || (formField?.hasError.value ?? false),
+);
+const isDisabled = computed(
+  () =>
+    props.disabled ||
+    (checkboxGroup?.disabled.value ?? false) ||
+    (formField?.disabled.value ?? false),
+);
+const isGroupCheckbox = computed(() => Boolean(checkboxGroup && props.value));
+const checked = computed(() =>
+  isGroupCheckbox.value ? checkboxGroup!.isChecked(props.value) : model.value === true,
+);
 
 const hostClasses = computed(() => [
   'coar-checkbox-host',
-  `coar-checkbox--${props.size}`,
+  `coar-checkbox--${effectiveSize.value}`,
   {
-    'coar-checkbox--disabled': props.disabled,
+    'coar-checkbox--disabled': isDisabled.value,
     'coar-checkbox--readonly': props.readonly,
     'coar-checkbox--error': hasError.value,
   },
@@ -68,7 +87,7 @@ const hostClasses = computed(() => [
 const boxClasses = computed(() => [
   'coar-checkbox-box',
   {
-    'coar-checkbox-checked': model.value === true,
+    'coar-checkbox-checked': checked.value,
     'coar-checkbox-indeterminate': props.indeterminate,
   },
 ]);
@@ -86,10 +105,14 @@ function onChange(event: Event) {
   if (props.readonly) {
     event.preventDefault();
     const target = event.target as HTMLInputElement;
-    target.checked = model.value === true;
+    target.checked = checked.value;
     return;
   }
   const target = event.target as HTMLInputElement;
+  if (isGroupCheckbox.value) {
+    checkboxGroup!.setChecked(props.value, target.checked);
+    return;
+  }
   model.value = target.checked;
 }
 
@@ -100,6 +123,23 @@ function onFocus() {
 function onBlur() {
   isFocused.value = false;
 }
+
+onMounted(() => {
+  if (checkboxGroup && props.value) checkboxGroup.register(props.value);
+});
+
+watch(
+  () => props.value,
+  (value, previous) => {
+    if (!checkboxGroup || value === previous) return;
+    if (previous) checkboxGroup.unregister(previous);
+    if (value) checkboxGroup.register(value);
+  },
+);
+
+onBeforeUnmount(() => {
+  if (checkboxGroup && props.value) checkboxGroup.unregister(props.value);
+});
 </script>
 
 <template>
@@ -117,15 +157,15 @@ function onBlur() {
         ref="checkboxElement"
         type="checkbox"
         class="coar-checkbox-input"
-        :name="name || undefined"
+        :name="name || checkboxGroup?.name.value || undefined"
         :value="value || undefined"
-        :checked="model === true"
-        :disabled="disabled"
+        :checked="checked"
+        :disabled="isDisabled"
         :required="required"
         :aria-describedby="formField?.messageId.value || undefined"
         :aria-invalid="hasError ? 'true' : undefined"
         :aria-readonly="readonly ? 'true' : undefined"
-        :aria-checked="indeterminate ? 'mixed' : model === true"
+        :aria-checked="indeterminate ? 'mixed' : checked"
         @change="onChange"
         @focus="onFocus"
         @blur="onBlur"
@@ -134,11 +174,27 @@ function onBlur() {
       <!-- Custom checkbox visual -->
       <span :class="boxClasses">
         <!-- Checkmark icon -->
-        <svg class="coar-checkbox-icon coar-checkbox-icon-check" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M13.5 4.5L6.5 11.5L3 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        <svg
+          class="coar-checkbox-icon coar-checkbox-icon-check"
+          viewBox="0 0 16 16"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M13.5 4.5L6.5 11.5L3 8"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
         </svg>
         <!-- Indeterminate icon (minus) -->
-        <svg class="coar-checkbox-icon coar-checkbox-icon-indeterminate" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg
+          class="coar-checkbox-icon coar-checkbox-icon-indeterminate"
+          viewBox="0 0 16 16"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
           <path d="M4 8H12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
         </svg>
       </span>
@@ -149,7 +205,6 @@ function onBlur() {
         <span v-if="required" class="coar-checkbox-required">*</span>
       </span>
     </label>
-
   </div>
 </template>
 
@@ -160,27 +215,32 @@ function onBlur() {
 
 /* Checkbox Wrapper */
 .coar-checkbox-wrapper {
+  box-sizing: border-box;
   display: inline-flex;
   align-items: flex-start;
   gap: var(--coar-spacing-s);
   cursor: pointer;
   user-select: none;
   position: relative;
-  min-height: var(--coar-component-m-height);
+  min-height: 32px;
+  padding-block: 6px;
 }
 
 .coar-checkbox--xs .coar-checkbox-wrapper {
-  min-height: var(--coar-component-xs-height);
+  min-height: 24px;
+  padding-block: 5px;
   gap: var(--coar-spacing-xs);
 }
 
 .coar-checkbox--s .coar-checkbox-wrapper {
-  min-height: var(--coar-component-s-height);
+  min-height: 28px;
+  padding-block: 6px;
   gap: var(--coar-spacing-xs);
 }
 
 .coar-checkbox--l .coar-checkbox-wrapper {
-  min-height: var(--coar-component-l-height);
+  min-height: 40px;
+  padding-block: var(--coar-spacing-s);
   gap: var(--coar-spacing-s);
 }
 
@@ -209,17 +269,27 @@ function onBlur() {
   flex-shrink: 0;
   width: 20px;
   height: 20px;
-  margin-top: 10px; /* Vertically centers box within component height — off the spacing grid */
   border: 1px solid var(--coar-border-input);
   border-radius: var(--coar-input-radius);
   background: var(--coar-surface-input);
-  transition: border-color var(--coar-duration-fast) var(--coar-ease-out), box-shadow var(--coar-duration-fast) var(--coar-ease-out);
+  transition:
+    border-color var(--coar-duration-fast) var(--coar-ease-out),
+    box-shadow var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 /* Size variants */
-.coar-checkbox--xs .coar-checkbox-box { width: 14px; height: 14px; margin-top: 6px; /* Vertical centering — off the spacing grid */ }
-.coar-checkbox--s .coar-checkbox-box { width: 16px; height: 16px; margin-top: var(--coar-spacing-s); }
-.coar-checkbox--l .coar-checkbox-box { width: 24px; height: 24px; margin-top: 12px; /* Vertical centering — off the spacing grid */ }
+.coar-checkbox--xs .coar-checkbox-box {
+  width: 14px;
+  height: 14px;
+}
+.coar-checkbox--s .coar-checkbox-box {
+  width: 16px;
+  height: 16px;
+}
+.coar-checkbox--l .coar-checkbox-box {
+  width: 24px;
+  height: 24px;
+}
 
 /* Hover state */
 .coar-checkbox-wrapper:hover
@@ -272,9 +342,13 @@ function onBlur() {
 }
 
 .coar-checkbox--disabled .coar-checkbox-wrapper:hover .coar-checkbox-box.coar-checkbox-checked,
-.coar-checkbox--disabled .coar-checkbox-wrapper:hover .coar-checkbox-box.coar-checkbox-indeterminate,
+.coar-checkbox--disabled
+  .coar-checkbox-wrapper:hover
+  .coar-checkbox-box.coar-checkbox-indeterminate,
 .coar-checkbox--disabled .coar-checkbox-wrapper:active .coar-checkbox-box.coar-checkbox-checked,
-.coar-checkbox--disabled .coar-checkbox-wrapper:active .coar-checkbox-box.coar-checkbox-indeterminate {
+.coar-checkbox--disabled
+  .coar-checkbox-wrapper:active
+  .coar-checkbox-box.coar-checkbox-indeterminate {
   background: var(--coar-background-neutral-tertiary);
   border-color: var(--coar-background-neutral-tertiary);
 }
@@ -284,15 +358,20 @@ function onBlur() {
   cursor: default;
 }
 
-.coar-checkbox--readonly .coar-checkbox-wrapper:hover
+.coar-checkbox--readonly
+  .coar-checkbox-wrapper:hover
   .coar-checkbox-box:not(.coar-checkbox-checked):not(.coar-checkbox-indeterminate) {
   border-color: var(--coar-border-input);
 }
 
 .coar-checkbox--readonly .coar-checkbox-wrapper:hover .coar-checkbox-box.coar-checkbox-checked,
-.coar-checkbox--readonly .coar-checkbox-wrapper:hover .coar-checkbox-box.coar-checkbox-indeterminate,
+.coar-checkbox--readonly
+  .coar-checkbox-wrapper:hover
+  .coar-checkbox-box.coar-checkbox-indeterminate,
 .coar-checkbox--readonly .coar-checkbox-wrapper:active .coar-checkbox-box.coar-checkbox-checked,
-.coar-checkbox--readonly .coar-checkbox-wrapper:active .coar-checkbox-box.coar-checkbox-indeterminate {
+.coar-checkbox--readonly
+  .coar-checkbox-wrapper:active
+  .coar-checkbox-box.coar-checkbox-indeterminate {
   background: var(--coar-background-accent-primary);
   border-color: var(--coar-background-accent-primary);
 }
@@ -318,7 +397,8 @@ function onBlur() {
   transition: opacity var(--coar-duration-fast) var(--coar-ease-out);
 }
 
-.coar-checkbox-box.coar-checkbox-checked:not(.coar-checkbox-indeterminate) .coar-checkbox-icon-check {
+.coar-checkbox-box.coar-checkbox-checked:not(.coar-checkbox-indeterminate)
+  .coar-checkbox-icon-check {
   opacity: 1;
 }
 
@@ -326,9 +406,18 @@ function onBlur() {
   opacity: 1;
 }
 
-.coar-checkbox--xs .coar-checkbox-icon { width: 10px; height: 10px; }
-.coar-checkbox--s .coar-checkbox-icon { width: 11px; height: 11px; }
-.coar-checkbox--l .coar-checkbox-icon { width: 16px; height: 16px; }
+.coar-checkbox--xs .coar-checkbox-icon {
+  width: 10px;
+  height: 10px;
+}
+.coar-checkbox--s .coar-checkbox-icon {
+  width: 11px;
+  height: 11px;
+}
+.coar-checkbox--l .coar-checkbox-icon {
+  width: 16px;
+  height: 16px;
+}
 
 .coar-checkbox--disabled .coar-checkbox-icon {
   color: var(--coar-text-neutral-tertiary);
@@ -339,23 +428,20 @@ function onBlur() {
   font-family: var(--coar-body-small-base-family);
   font-size: var(--coar-component-m-font-size);
   font-weight: var(--coar-body-small-base-weight);
-  line-height: var(--coar-component-m-height);
+  line-height: 1.4;
   color: var(--coar-text-neutral-primary);
 }
 
 .coar-checkbox--xs .coar-checkbox-label {
   font-size: var(--coar-component-xs-font-size);
-  line-height: var(--coar-component-xs-height);
 }
 
 .coar-checkbox--s .coar-checkbox-label {
   font-size: var(--coar-component-s-font-size);
-  line-height: var(--coar-component-s-height);
 }
 
 .coar-checkbox--l .coar-checkbox-label {
   font-size: var(--coar-component-l-font-size);
-  line-height: var(--coar-component-l-height);
 }
 
 .coar-checkbox--disabled .coar-checkbox-label {

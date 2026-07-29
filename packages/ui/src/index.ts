@@ -22,6 +22,8 @@ export type {
   CoarFormFieldRule,
   CoarFormFieldRulePassMode,
   CoarFormFieldRuleFailMode,
+  CoarFormFieldLayout,
+  CoarFormFieldLabelPosition,
   FormFieldProvided,
 } from './components/form-field';
 export { FORM_FIELD_INJECTION_KEY } from './components/form-field';
@@ -37,8 +39,26 @@ export { CoarLink } from './components/link';
 export type { CoarLinkProps, CoarLinkSize, CoarLinkVariant } from './components/link';
 
 export { CoarIcon } from './components/icon';
-export type { CoarIconProps, CoarIconSize, CoarIconSource, CoarIconSourceEntry, CoarIconRegisteredSource, CoarIconPluginOptions, CoreIconName } from './components/icon';
-export { CoarIconService, CoarIconMapSource, CoarHttpIconSource, COAR_ICON_SERVICE_KEY, COAR_BUILTIN_ICON_SOURCE_KEY, PRESET_SIZES, CoarIconPlugin, createCoarIconService, CORE_ICONS } from './components/icon';
+export type {
+  CoarIconProps,
+  CoarIconSize,
+  CoarIconSource,
+  CoarIconSourceEntry,
+  CoarIconRegisteredSource,
+  CoarIconPluginOptions,
+  CoreIconName,
+} from './components/icon';
+export {
+  CoarIconService,
+  CoarIconMapSource,
+  CoarHttpIconSource,
+  COAR_ICON_SERVICE_KEY,
+  COAR_BUILTIN_ICON_SOURCE_KEY,
+  PRESET_SIZES,
+  CoarIconPlugin,
+  createCoarIconService,
+  CORE_ICONS,
+} from './components/icon';
 
 export { CoarDivider } from './components/divider';
 export type { CoarDividerProps, DividerAlign, DividerVariant } from './components/divider';
@@ -52,8 +72,15 @@ export type { CoarBadgeProps, BadgeVariant, BadgeSize } from './components/badge
 export { CoarNote } from './components/note';
 export type { CoarNoteProps, NoteVariant, NotePadding } from './components/note';
 
+export { CoarNotice } from './components/notice';
+export type { CoarNoticeProps, NoticePlacement, NoticeVariant } from './components/notice';
+
 export { CoarProgressBar } from './components/progress-bar';
-export type { CoarProgressBarProps, ProgressBarVariant, ProgressBarSize } from './components/progress-bar';
+export type {
+  CoarProgressBarProps,
+  ProgressBarVariant,
+  ProgressBarSize,
+} from './components/progress-bar';
 
 export { CoarCard } from './components/card';
 export type { CoarCardProps, CardVariant, CardPadding } from './components/card';
@@ -74,23 +101,41 @@ export type { CoarTableProps, CoarTableVariant } from './components/table';
 export { CoarTextInput } from './components/text-input';
 export type { CoarTextInputProps, CoarTextInputSize } from './components/text-input';
 export { CoarOtpInput } from './components/otp-input';
-export type {
-  CoarOtpInputProps,
-  CoarOtpInputSize,
-  CoarOtpInputType,
-} from './components/otp-input';
+export type { CoarOtpInputProps, CoarOtpInputSize, CoarOtpInputType } from './components/otp-input';
 
 export { CoarPasswordInput } from './components/password-input';
 export type { CoarPasswordInputProps, CoarPasswordInputSize } from './components/password-input';
 
 export { CoarNumberInput } from './components/number-input';
-export type { CoarNumberInputProps, CoarNumberInputSize, CoarNumberInputStepperButtons, NumberFormatConfig } from './components/number-input';
+export type {
+  CoarNumberInputProps,
+  CoarNumberInputSize,
+  CoarNumberInputStepperButtons,
+  NumberFormatConfig,
+} from './components/number-input';
 
 export { CoarCheckbox } from './components/checkbox';
 export type { CoarCheckboxProps, CoarCheckboxSize } from './components/checkbox';
+export { CoarCheckboxGroup, CHECKBOX_GROUP_INJECTION_KEY } from './components/checkbox-group';
+export type {
+  CoarCheckboxGroupProps,
+  CheckboxGroupModel,
+  CheckboxGroupModelType,
+  CheckboxGroupOrientation,
+  CheckboxGroupContext,
+} from './components/checkbox-group';
 
-export { CoarRadioGroup, CoarRadioButton, RADIO_GROUP_INJECTION_KEY } from './components/radio-group';
-export type { CoarRadioGroupProps, RadioGroupOrientation, RadioGroupSize, CoarRadioButtonProps } from './components/radio-group';
+export {
+  CoarRadioGroup,
+  CoarRadioButton,
+  RADIO_GROUP_INJECTION_KEY,
+} from './components/radio-group';
+export type {
+  CoarRadioGroupProps,
+  RadioGroupOrientation,
+  RadioGroupSize,
+  CoarRadioButtonProps,
+} from './components/radio-group';
 
 export { CoarSwitch } from './components/switch';
 export type { CoarSwitchProps, CoarSwitchSize } from './components/switch';
@@ -116,7 +161,17 @@ export { CoarDualListbox } from './components/dual-listbox';
 export type { CoarDualListboxProps } from './components/dual-listbox';
 
 // Overlay System
-export { CoarOverlayHost, CoarOverlayOutlet, CoarOverlayPlugin, useOverlay, useOverlayParent, getOverlayService, OVERLAY_SERVICE_KEY, OVERLAY_PARENT_KEY, createOverlayService } from './components/overlay';
+export {
+  CoarOverlayHost,
+  CoarOverlayOutlet,
+  CoarOverlayPlugin,
+  useOverlay,
+  useOverlayParent,
+  getOverlayService,
+  OVERLAY_SERVICE_KEY,
+  OVERLAY_PARENT_KEY,
+  createOverlayService,
+} from './components/overlay';
 export {
   tooltipPreset,
   modalPreset,
@@ -133,9 +188,34 @@ export {
   OVERLAY_DEFAULTS,
   resolveOverlaySpec,
 } from './components/overlay';
-export { computeOverlayCoordinates, getViewportRect, getAnchorRect, getContainerRect, getScrollParents } from './components/overlay';
-export type { Placement, OverlaySpec, OverlayRef, OverlayService, OverlayInstance, OverlayContent, OverlayOpenOptions } from './components/overlay';
-export type { AnchorSpec, PositionSpec, SizeSpec, BackdropSpec, ScrollSpec, DismissSpec, FocusSpec, A11ySpec, AttachmentSpec, ResolvedOverlaySpec } from './components/overlay';
+export {
+  computeOverlayCoordinates,
+  getViewportRect,
+  getAnchorRect,
+  getContainerRect,
+  getScrollParents,
+} from './components/overlay';
+export type {
+  Placement,
+  OverlaySpec,
+  OverlayRef,
+  OverlayService,
+  OverlayInstance,
+  OverlayContent,
+  OverlayOpenOptions,
+} from './components/overlay';
+export type {
+  AnchorSpec,
+  PositionSpec,
+  SizeSpec,
+  BackdropSpec,
+  ScrollSpec,
+  DismissSpec,
+  FocusSpec,
+  A11ySpec,
+  AttachmentSpec,
+  ResolvedOverlaySpec,
+} from './components/overlay';
 export type { ViewportRect, Rect, OverlaySize, OverlayCoordinates } from './components/overlay';
 
 // Tooltip
@@ -177,7 +257,13 @@ export {
   provideMenuClose,
   useMenuClose,
 } from './components/menu';
-export type { MenuItemClickEvent, MenuAimPoint, MenuAimDirection, MenuAimConfig, ContextMenuContext } from './components/menu';
+export type {
+  MenuItemClickEvent,
+  MenuAimPoint,
+  MenuAimDirection,
+  MenuAimConfig,
+  ContextMenuContext,
+} from './components/menu';
 
 // Tabs
 export { CoarTabGroup, CoarTab } from './components/tabs';
@@ -234,11 +320,7 @@ export type {
 
 // Wizard
 export { CoarWizard } from './components/wizard';
-export type {
-  CoarWizardProps,
-  CoarWizardStep,
-  WizardIndicatorPosition,
-} from './components/wizard';
+export type { CoarWizardProps, CoarWizardStep, WizardIndicatorPosition } from './components/wizard';
 
 // Breadcrumb
 export { CoarBreadcrumb, CoarBreadcrumbItem } from './components/breadcrumb';
@@ -279,11 +361,20 @@ export type { CoarZonedDateTimeOrDatePickerSize } from './components/date-time/z
 export { CoarPlainDateTimeOrDatePicker } from './components/date-time/plain-date-time-or-date-picker';
 export type { CoarPlainDateTimeOrDatePickerSize } from './components/date-time/plain-date-time-or-date-picker';
 export { CoarPlainDateView } from './components/date-time/plain-date-view';
-export type { CoarPlainDateViewProps, CoarPlainDateViewSize } from './components/date-time/plain-date-view';
+export type {
+  CoarPlainDateViewProps,
+  CoarPlainDateViewSize,
+} from './components/date-time/plain-date-view';
 export { CoarPlainDateTimeView } from './components/date-time/plain-date-time-view';
-export type { CoarPlainDateTimeViewProps, CoarPlainDateTimeViewSize } from './components/date-time/plain-date-time-view';
+export type {
+  CoarPlainDateTimeViewProps,
+  CoarPlainDateTimeViewSize,
+} from './components/date-time/plain-date-time-view';
 export { CoarZonedDateTimeView } from './components/date-time/zoned-date-time-view';
-export type { CoarZonedDateTimeViewProps, CoarZonedDateTimeViewSize } from './components/date-time/zoned-date-time-view';
+export type {
+  CoarZonedDateTimeViewProps,
+  CoarZonedDateTimeViewSize,
+} from './components/date-time/zoned-date-time-view';
 export type {
   DateFormatConfig,
   CoarDateMarker,
@@ -292,9 +383,16 @@ export type {
   TimeFormatConfig,
   CoarCalendarGridCell,
 } from './components/date-time/_shared/types';
-export { COAR_DEFAULT_TIME_FORMAT, COAR_DATE_FORMAT_TO_MASKITO_MODE } from './components/date-time/_shared/types';
+export {
+  COAR_DEFAULT_TIME_FORMAT,
+  COAR_DATE_FORMAT_TO_MASKITO_MODE,
+} from './components/date-time/_shared/types';
 
 // Scrollbar
 export { vScrollbar, getScrollbarInstance } from './components/scrollbar';
-export type { ScrollbarOptions, ScrollbarTheme, ScrollbarAutoHide, ScrollbarOverflow } from './components/scrollbar';
-
+export type {
+  ScrollbarOptions,
+  ScrollbarTheme,
+  ScrollbarAutoHide,
+  ScrollbarOverflow,
+} from './components/scrollbar';

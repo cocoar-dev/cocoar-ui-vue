@@ -7,6 +7,24 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 2.18.0
+
+### Added
+
+- **`@cocoar/vue-ui` — `CoarNotice` for compact status messages and application banners.** The new component supports `info`, `success`, `warning`, `error`, `neutral` and `accent` variants with matching default icons, plus `placement="inline" | "banner"`. Inline notices render as compact bordered callouts; banners sit flush below an application header without making themselves sticky. Optional `label`, icon override, single-line inline `truncate`, long-form `#details` popover and right-aligned `#cta` slot cover short operational messages without turning the entire notice into a link. Banners always wrap, and actions remain independently interactive. New documentation compares `CoarNotice` with the richer, page-content-oriented `CoarNote`.
+- **`@cocoar/vue-ui` — `CoarCheckboxGroup` with real collection models.** Child `CoarCheckbox value="…"` controls can now project into either an ordered `string[]` or an explicit `Record<string, boolean>` via `v-model`; `modelType` selects the empty-model shape and otherwise follows the supplied model. Array output follows checkbox registration order, object output includes every registered key with a true/false value, and external model changes update the children. The group owns `name`, orientation, size, disabled and error state, provides `role="group"` semantics, and integrates with `CoarFormField` labels and messages.
+- **Semantic `subtlest` status backgrounds.** Success, error, warning and info now expose `--coar-background-semantic-*-subtlest` tokens for lightweight status surfaces in light, dark and theme-less modes. The theme editor exposes the new tokens as first-class semantic overrides.
+
+### Changed
+
+- **`@cocoar/vue-ui` — `CoarFormField` controls label layout consistently.** New `layout="stacked" | "inline"` and `labelPosition="before" | "after"` props support all four combinations for every child control. The label and status indicator move as one cluster, while the status popover trigger remains outside the native `<label>` so opening help never toggles a checkbox. Form-field context now exposes `labelId`; unlabeled `CoarCheckbox` and `CoarSwitch` controls adopt the field input id so an external form-field label is associated correctly.
+- **Checkbox rows use compact control-native density.** Standalone and grouped checkboxes no longer reserve text-input height. Size-specific touch rows remain usable while consecutive checkboxes sit closer together; labels use natural line height and wrap with the box aligned to the first text line. `CoarCheckbox` keeps its existing standalone `label` API.
+
+### Fixed
+
+- **Info semantic text remains legible on subtle surfaces.** `--coar-text-semantic-info-bold` now resolves to a dark slate in light mode and a light slate in dark mode instead of white/dark inverted values that disappeared against low-emphasis info backgrounds.
+- **Form-field label and status alignment.** The status icon is optically aligned with the label baseline in both stacked and inline layouts.
+
 ## 2.17.1
 
 ### Fixed

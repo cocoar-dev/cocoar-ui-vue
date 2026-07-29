@@ -55,6 +55,41 @@ describe('CoarFormField', () => {
       const wrapper = mountField({ label: 'Name' });
       expect(wrapper.find('.coar-form-field__required').exists()).toBe(false);
     });
+
+    it.each([
+      ['stacked', 'before'],
+      ['stacked', 'after'],
+      ['inline', 'before'],
+      ['inline', 'after'],
+    ] as const)('renders layout=%s with labelPosition=%s', (layout, labelPosition) => {
+      const wrapper = mountField({ label: 'Name', layout, labelPosition });
+      const host = wrapper.find('.coar-form-field');
+      expect(host.classes()).toContain(`coar-form-field--${layout}`);
+      expect(host.classes()).toContain(`coar-form-field--label-${labelPosition}`);
+    });
+
+    it('defaults to stacked with the label before the control', () => {
+      const host = mountField({ label: 'Name' }).find('.coar-form-field');
+      expect(host.classes()).toContain('coar-form-field--stacked');
+      expect(host.classes()).toContain('coar-form-field--label-before');
+    });
+
+    it('places the status trigger before or after the native label to match labelPosition', () => {
+      const before = mountField({ label: 'Name', hint: 'Help', labelPosition: 'before' });
+      const after = mountField({ label: 'Name', hint: 'Help', labelPosition: 'after' });
+      const beforeChildren = Array.from(
+        before.find('.coar-form-field__label-cluster').element.children,
+      );
+      const afterChildren = Array.from(
+        after.find('.coar-form-field__label-cluster').element.children,
+      );
+      expect(beforeChildren[0]?.classList.contains('coar-form-field__status-popover')).toBe(true);
+      expect(afterChildren.at(-1)?.classList.contains('coar-form-field__status-popover')).toBe(
+        true,
+      );
+      expect(before.find('label .coar-form-field__status-popover').exists()).toBe(false);
+      expect(after.find('label .coar-form-field__status-popover').exists()).toBe(false);
+    });
   });
 
   describe('status icon — severity selection', () => {
@@ -167,9 +202,7 @@ describe('CoarFormField', () => {
       // moment the user types past the limit.
       const wrapper = mountField({
         label: 'Title',
-        rules: [
-          { label: 'Max 20 characters', fulfilled: false, whenFail: 'error' },
-        ],
+        rules: [{ label: 'Max 20 characters', fulfilled: false, whenFail: 'error' }],
       });
       expect(wrapper.find('.coar-form-field__status-icon').classes()).toContain(
         'coar-form-field__status-icon--error',
@@ -179,9 +212,7 @@ describe('CoarFormField', () => {
     it('rule with whenFail=warning + unfulfilled → orange warning severity', () => {
       const wrapper = mountField({
         label: 'URL',
-        rules: [
-          { label: 'Tracking params detected', fulfilled: false, whenFail: 'warning' },
-        ],
+        rules: [{ label: 'Tracking params detected', fulfilled: false, whenFail: 'warning' }],
       });
       expect(wrapper.find('.coar-form-field__status-icon').classes()).toContain(
         'coar-form-field__status-icon--warning',
@@ -193,9 +224,7 @@ describe('CoarFormField', () => {
       // ("no problem" is the natural state — nothing to celebrate).
       const wrapper = mountField({
         label: 'Title',
-        rules: [
-          { label: 'Max 20 chars', fulfilled: true, whenPass: 'hide', whenFail: 'error' },
-        ],
+        rules: [{ label: 'Max 20 chars', fulfilled: true, whenPass: 'hide', whenFail: 'error' }],
       });
       expect(wrapper.find('.coar-form-field__status-icon').exists()).toBe(false);
     });
@@ -372,10 +401,16 @@ describe('CoarFormField', () => {
       // Order in panel children: hint section, rules ul, error section, warning section.
       const panel = wrapper.find('.coar-form-field__status-panel').element;
       const directChildren = Array.from(panel.children);
-      expect(directChildren[0]?.classList.contains('coar-form-field__status-section--hint')).toBe(true);
+      expect(directChildren[0]?.classList.contains('coar-form-field__status-section--hint')).toBe(
+        true,
+      );
       expect(directChildren[1]?.classList.contains('coar-form-field__status-rules')).toBe(true);
-      expect(directChildren[2]?.classList.contains('coar-form-field__status-section--error')).toBe(true);
-      expect(directChildren[3]?.classList.contains('coar-form-field__status-section--warning')).toBe(true);
+      expect(directChildren[2]?.classList.contains('coar-form-field__status-section--error')).toBe(
+        true,
+      );
+      expect(
+        directChildren[3]?.classList.contains('coar-form-field__status-section--warning'),
+      ).toBe(true);
     });
   });
 
@@ -419,10 +454,12 @@ describe('CoarFormField', () => {
       const b = mountField({ label: 'B', warning: ['Heads up', 'Also note'] });
       // Warnings are not role=alert — they render as plain sr-only spans.
       expect(
-        a.findAll('.coar-form-field__sr-only').filter((s) => s.attributes('role') !== 'alert').length,
+        a.findAll('.coar-form-field__sr-only').filter((s) => s.attributes('role') !== 'alert')
+          .length,
       ).toBe(1);
       expect(
-        b.findAll('.coar-form-field__sr-only').filter((s) => s.attributes('role') !== 'alert').length,
+        b.findAll('.coar-form-field__sr-only').filter((s) => s.attributes('role') !== 'alert')
+          .length,
       ).toBe(2);
     });
   });

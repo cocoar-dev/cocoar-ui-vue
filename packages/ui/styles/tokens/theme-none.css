@@ -15,148 +15,156 @@
 
 .coar-theme-none {
   /* ── Base hue vars ──────────────────────────────────── */
-  --coar-accent:  #1183CD;
+  --coar-accent: #1183cd;
   --coar-success: #1e8f48;
-  --coar-error:   #d63b3b;
+  --coar-error: #d63b3b;
   --coar-warning: #cc821f;
-  --coar-info:    #5e6b84;
+  --coar-info: #5e6b84;
 
   /* ── Accent palette steps ───────────────────────────── */
-  --coar-color-accent-50:  oklch(from var(--coar-accent) 0.97 0.012 h);
+  --coar-color-accent-50: oklch(from var(--coar-accent) 0.97 0.012 h);
   --coar-color-accent-100: oklch(from var(--coar-accent) 0.92 0.035 h);
   --coar-color-accent-200: oklch(from var(--coar-accent) 0.84 0.075 h);
   --coar-color-accent-300: oklch(from var(--coar-accent) 0.74 0.115 h);
   --coar-color-accent-400: oklch(from var(--coar-accent) 0.66 0.145 h);
-  --coar-color-accent-600: oklch(from var(--coar-accent) 0.53 0.15  h);
-  --coar-color-accent-700: oklch(from var(--coar-accent) 0.47 0.14  h);
-  --coar-color-accent-800: oklch(from var(--coar-accent) 0.39 0.12  h);
+  --coar-color-accent-600: oklch(from var(--coar-accent) 0.53 0.15 h);
+  --coar-color-accent-700: oklch(from var(--coar-accent) 0.47 0.14 h);
+  --coar-color-accent-800: oklch(from var(--coar-accent) 0.39 0.12 h);
   --coar-color-accent-900: oklch(from var(--coar-accent) 0.31 0.095 h);
 
   /* ── Green (success) palette steps ─────────────────── */
-  --coar-color-green-50:  oklch(from var(--coar-success) 0.97 0.012 h);
+  --coar-color-green-50: oklch(from var(--coar-success) 0.97 0.012 h);
   --coar-color-green-100: oklch(from var(--coar-success) 0.92 0.035 h);
   --coar-color-green-200: oklch(from var(--coar-success) 0.84 0.065 h);
-  --coar-color-green-300: oklch(from var(--coar-success) 0.74 0.10  h);
-  --coar-color-green-400: oklch(from var(--coar-success) 0.66 0.13  h);
-  --coar-color-green-600: oklch(from var(--coar-success) 0.47 0.12  h);
-  --coar-color-green-700: oklch(from var(--coar-success) 0.40 0.10  h);
-  --coar-color-green-800: oklch(from var(--coar-success) 0.33 0.08  h);
-  --coar-color-green-900: oklch(from var(--coar-success) 0.26 0.06  h);
+  --coar-color-green-300: oklch(from var(--coar-success) 0.74 0.1 h);
+  --coar-color-green-400: oklch(from var(--coar-success) 0.66 0.13 h);
+  --coar-color-green-600: oklch(from var(--coar-success) 0.47 0.12 h);
+  --coar-color-green-700: oklch(from var(--coar-success) 0.4 0.1 h);
+  --coar-color-green-800: oklch(from var(--coar-success) 0.33 0.08 h);
+  --coar-color-green-900: oklch(from var(--coar-success) 0.26 0.06 h);
 
   /* ── Red (error) palette steps ──────────────────────── */
-  --coar-color-red-50:  oklch(from var(--coar-error) 0.97 0.012 h);
+  --coar-color-red-50: oklch(from var(--coar-error) 0.97 0.012 h);
   --coar-color-red-100: oklch(from var(--coar-error) 0.92 0.035 h);
-  --coar-color-red-200: oklch(from var(--coar-error) 0.84 0.07  h);
-  --coar-color-red-300: oklch(from var(--coar-error) 0.74 0.11  h);
+  --coar-color-red-200: oklch(from var(--coar-error) 0.84 0.07 h);
+  --coar-color-red-300: oklch(from var(--coar-error) 0.74 0.11 h);
   --coar-color-red-400: oklch(from var(--coar-error) 0.66 0.145 h);
-  --coar-color-red-600: oklch(from var(--coar-error) 0.47 0.13  h);
-  --coar-color-red-700: oklch(from var(--coar-error) 0.40 0.11  h);
-  --coar-color-red-800: oklch(from var(--coar-error) 0.33 0.09  h);
-  --coar-color-red-900: oklch(from var(--coar-error) 0.26 0.07  h);
+  --coar-color-red-600: oklch(from var(--coar-error) 0.47 0.13 h);
+  --coar-color-red-700: oklch(from var(--coar-error) 0.4 0.11 h);
+  --coar-color-red-800: oklch(from var(--coar-error) 0.33 0.09 h);
+  --coar-color-red-900: oklch(from var(--coar-error) 0.26 0.07 h);
 
   /* ── Amber (warning) palette steps ─────────────────── */
-  --coar-color-amber-50:  oklch(from var(--coar-warning) 0.97 0.015 h);
-  --coar-color-amber-100: oklch(from var(--coar-warning) 0.92 0.04  h);
-  --coar-color-amber-200: oklch(from var(--coar-warning) 0.86 0.08  h);
-  --coar-color-amber-300: oklch(from var(--coar-warning) 0.78 0.12  h);
-  --coar-color-amber-400: oklch(from var(--coar-warning) 0.72 0.14  h);
-  --coar-color-amber-600: oklch(from var(--coar-warning) 0.50 0.12  h);
-  --coar-color-amber-700: oklch(from var(--coar-warning) 0.43 0.10  h);
-  --coar-color-amber-800: oklch(from var(--coar-warning) 0.36 0.08  h);
-  --coar-color-amber-900: oklch(from var(--coar-warning) 0.29 0.06  h);
+  --coar-color-amber-50: oklch(from var(--coar-warning) 0.97 0.015 h);
+  --coar-color-amber-100: oklch(from var(--coar-warning) 0.92 0.04 h);
+  --coar-color-amber-200: oklch(from var(--coar-warning) 0.86 0.08 h);
+  --coar-color-amber-300: oklch(from var(--coar-warning) 0.78 0.12 h);
+  --coar-color-amber-400: oklch(from var(--coar-warning) 0.72 0.14 h);
+  --coar-color-amber-600: oklch(from var(--coar-warning) 0.5 0.12 h);
+  --coar-color-amber-700: oklch(from var(--coar-warning) 0.43 0.1 h);
+  --coar-color-amber-800: oklch(from var(--coar-warning) 0.36 0.08 h);
+  --coar-color-amber-900: oklch(from var(--coar-warning) 0.29 0.06 h);
 
   /* ── Slate (info) palette steps ─────────────────────── */
-  --coar-color-slate-50:  oklch(from var(--coar-info) 0.97 0.006 h);
+  --coar-color-slate-50: oklch(from var(--coar-info) 0.97 0.006 h);
   --coar-color-slate-100: oklch(from var(--coar-info) 0.92 0.012 h);
-  --coar-color-slate-200: oklch(from var(--coar-info) 0.84 0.02  h);
-  --coar-color-slate-300: oklch(from var(--coar-info) 0.74 0.03  h);
+  --coar-color-slate-200: oklch(from var(--coar-info) 0.84 0.02 h);
+  --coar-color-slate-300: oklch(from var(--coar-info) 0.74 0.03 h);
   --coar-color-slate-400: oklch(from var(--coar-info) 0.66 0.035 h);
-  --coar-color-slate-600: oklch(from var(--coar-info) 0.47 0.03  h);
-  --coar-color-slate-700: oklch(from var(--coar-info) 0.40 0.025 h);
-  --coar-color-slate-800: oklch(from var(--coar-info) 0.35 0.02  h);
-  --coar-color-slate-900: oklch(from var(--coar-info) 0.30 0.02  h);
+  --coar-color-slate-600: oklch(from var(--coar-info) 0.47 0.03 h);
+  --coar-color-slate-700: oklch(from var(--coar-info) 0.4 0.025 h);
+  --coar-color-slate-800: oklch(from var(--coar-info) 0.35 0.02 h);
+  --coar-color-slate-900: oklch(from var(--coar-info) 0.3 0.02 h);
 
   /* ── Accent semantic tokens ─────────────────────────── */
-  --coar-background-accent-primary:              var(--coar-color-accent-500);
-  --coar-background-accent-secondary:            var(--coar-color-accent-100);
-  --coar-background-accent-tertiary:             var(--coar-color-accent-50);
-  --coar-background-accent-hover:                var(--coar-color-accent-600);
-  --coar-background-accent-active:               var(--coar-color-accent-700);
-  --coar-background-accent-tertiary-active:      var(--coar-color-accent-200);
-  --coar-text-accent-primary:                    var(--coar-color-accent-600);
-  --coar-text-accent-secondary:                  var(--coar-color-accent-500);
-  --coar-border-accent-primary:                  var(--coar-color-accent-500);
-  --coar-border-accent-secondary:                var(--coar-color-accent-300);
+  --coar-background-accent-primary: var(--coar-color-accent-500);
+  --coar-background-accent-secondary: var(--coar-color-accent-100);
+  --coar-background-accent-tertiary: var(--coar-color-accent-50);
+  --coar-background-accent-hover: var(--coar-color-accent-600);
+  --coar-background-accent-active: var(--coar-color-accent-700);
+  --coar-background-accent-tertiary-active: var(--coar-color-accent-200);
+  --coar-text-accent-primary: var(--coar-color-accent-600);
+  --coar-text-accent-secondary: var(--coar-color-accent-500);
+  --coar-border-accent-primary: var(--coar-color-accent-500);
+  --coar-border-accent-secondary: var(--coar-color-accent-300);
 
   /* ── Success semantic tokens ────────────────────────── */
-  --coar-background-semantic-success-bold:       var(--coar-color-green-600);
-  --coar-background-semantic-success-subtle:     var(--coar-color-green-100);
-  --coar-text-semantic-success-bold:             var(--coar-color-green-800);
-  --coar-text-semantic-success-subtle:           var(--coar-color-green-700);
-  --coar-border-semantic-success-bold:           var(--coar-color-green-800);
-  --coar-border-semantic-success-subtle:         var(--coar-color-green-200);
+  --coar-background-semantic-success-bold: var(--coar-color-green-600);
+  --coar-background-semantic-success-subtlest: var(--coar-color-green-50);
+  --coar-background-semantic-success-subtle: var(--coar-color-green-100);
+  --coar-text-semantic-success-bold: var(--coar-color-green-800);
+  --coar-text-semantic-success-subtle: var(--coar-color-green-700);
+  --coar-border-semantic-success-bold: var(--coar-color-green-800);
+  --coar-border-semantic-success-subtle: var(--coar-color-green-200);
 
   /* ── Error semantic tokens ──────────────────────────── */
-  --coar-background-semantic-error-bold:         var(--coar-color-red-600);
-  --coar-background-semantic-error-hover:        var(--coar-color-red-700);
-  --coar-background-semantic-error-active:       var(--coar-color-red-800);
-  --coar-background-semantic-error-subtle:       var(--coar-color-red-100);
-  --coar-text-semantic-error-bold:               var(--coar-color-red-800);
-  --coar-text-semantic-error-subtle:             var(--coar-color-red-700);
-  --coar-border-semantic-error:                  var(--coar-color-red-600);
-  --coar-border-semantic-error-bold:             var(--coar-color-red-800);
-  --coar-border-semantic-error-subtle:           var(--coar-color-red-200);
+  --coar-background-semantic-error-bold: var(--coar-color-red-600);
+  --coar-background-semantic-error-hover: var(--coar-color-red-700);
+  --coar-background-semantic-error-active: var(--coar-color-red-800);
+  --coar-background-semantic-error-subtlest: var(--coar-color-red-50);
+  --coar-background-semantic-error-subtle: var(--coar-color-red-100);
+  --coar-text-semantic-error-bold: var(--coar-color-red-800);
+  --coar-text-semantic-error-subtle: var(--coar-color-red-700);
+  --coar-border-semantic-error: var(--coar-color-red-600);
+  --coar-border-semantic-error-bold: var(--coar-color-red-800);
+  --coar-border-semantic-error-subtle: var(--coar-color-red-200);
 
   /* ── Warning semantic tokens ────────────────────────── */
-  --coar-background-semantic-warning-bold:       var(--coar-color-amber-600);
-  --coar-background-semantic-warning-subtle:     var(--coar-color-amber-100);
-  --coar-text-semantic-warning-bold:             var(--coar-color-amber-900);
-  --coar-text-semantic-warning-subtle:           var(--coar-color-amber-800);
-  --coar-border-semantic-warning-bold:           var(--coar-color-amber-900);
-  --coar-border-semantic-warning-subtle:         var(--coar-color-amber-200);
+  --coar-background-semantic-warning-bold: var(--coar-color-amber-600);
+  --coar-background-semantic-warning-subtlest: var(--coar-color-amber-50);
+  --coar-background-semantic-warning-subtle: var(--coar-color-amber-100);
+  --coar-text-semantic-warning-bold: var(--coar-color-amber-900);
+  --coar-text-semantic-warning-subtle: var(--coar-color-amber-800);
+  --coar-border-semantic-warning-bold: var(--coar-color-amber-900);
+  --coar-border-semantic-warning-subtle: var(--coar-color-amber-200);
 
   /* ── Info semantic tokens ───────────────────────────── */
-  --coar-background-semantic-info-bold:          var(--coar-color-slate-700);
-  --coar-background-semantic-info-subtle:        var(--coar-color-slate-100);
-  --coar-text-semantic-info-bold:                var(--coar-color-white);
-  --coar-text-semantic-info-subtle:              var(--coar-color-slate-700);
-  --coar-border-semantic-info-bold:              var(--coar-color-slate-900);
-  --coar-border-semantic-info-subtle:            var(--coar-color-slate-200);
+  --coar-background-semantic-info-bold: var(--coar-color-slate-700);
+  --coar-background-semantic-info-subtlest: var(--coar-color-slate-50);
+  --coar-background-semantic-info-subtle: var(--coar-color-slate-100);
+  --coar-text-semantic-info-bold: var(--coar-color-slate-800);
+  --coar-text-semantic-info-subtle: var(--coar-color-slate-700);
+  --coar-border-semantic-info-bold: var(--coar-color-slate-900);
+  --coar-border-semantic-info-subtle: var(--coar-color-slate-200);
 
   /* ── Radius scale ───────────────────────────────────── */
   --coar-radius-xxs: 1px;
-  --coar-radius-xs:  2px;
-  --coar-radius-s:   3px;
-  --coar-radius-m:   4px;
-  --coar-radius-l:   5px;
-  --coar-radius-xl:  6px;
+  --coar-radius-xs: 2px;
+  --coar-radius-s: 3px;
+  --coar-radius-m: 4px;
+  --coar-radius-l: 5px;
+  --coar-radius-xl: 6px;
 
   /* ── Component tokens ───────────────────────────────── */
-  --coar-component-density:        1;
-  --coar-button-radius:            var(--coar-radius-xs);
-  --coar-input-radius:             var(--coar-radius-xs);
-  --coar-tag-radius:               var(--coar-radius-xs);
-  --coar-badge-radius:             var(--coar-radius-full);
-  --coar-card-radius:              var(--coar-radius-s);
-  --coar-menu-radius:              var(--coar-radius-s);
-  --coar-popover-radius:           var(--coar-radius-s);
-  --coar-dropdown-radius:          var(--coar-input-radius);
-  --coar-dialog-border-radius:     var(--coar-radius-l);
-  --coar-toast-border-radius:      var(--coar-radius-m);
-  --coar-card-shadow:              var(--coar-elevation-medium);
-  --coar-menu-shadow:              var(--coar-shadow-s);
-  --coar-popover-shadow:           var(--coar-shadow-m);
-  --coar-dropdown-shadow:          var(--coar-shadow-m);
-  --coar-dialog-shadow:            var(--coar-shadow-xl);
-  --coar-toast-shadow:             var(--coar-shadow-l);
-  --coar-font-family-body:  Poppins, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --coar-font-family-title: Inter,   ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --coar-component-density: 1;
+  --coar-button-radius: var(--coar-radius-xs);
+  --coar-input-radius: var(--coar-radius-xs);
+  --coar-tag-radius: var(--coar-radius-xs);
+  --coar-badge-radius: var(--coar-radius-full);
+  --coar-card-radius: var(--coar-radius-s);
+  --coar-menu-radius: var(--coar-radius-s);
+  --coar-popover-radius: var(--coar-radius-s);
+  --coar-dropdown-radius: var(--coar-input-radius);
+  --coar-dialog-border-radius: var(--coar-radius-l);
+  --coar-toast-border-radius: var(--coar-radius-m);
+  --coar-card-shadow: var(--coar-elevation-medium);
+  --coar-menu-shadow: var(--coar-shadow-s);
+  --coar-popover-shadow: var(--coar-shadow-m);
+  --coar-dropdown-shadow: var(--coar-shadow-m);
+  --coar-dialog-shadow: var(--coar-shadow-xl);
+  --coar-toast-shadow: var(--coar-shadow-l);
+  --coar-font-family-body:
+    Poppins, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --coar-font-family-title:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
 
   /* ── Motion ─────────────────────────────────────────── */
   --coar-duration-instant: 0ms;
-  --coar-duration-fast:    100ms;
-  --coar-duration-normal:  200ms;
-  --coar-duration-slow:    300ms;
-  --coar-duration-slower:  400ms;
+  --coar-duration-fast: 100ms;
+  --coar-duration-normal: 200ms;
+  --coar-duration-slow: 300ms;
+  --coar-duration-slower: 400ms;
   --coar-duration-slowest: 500ms;
 }

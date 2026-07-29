@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
 import CoarCheckbox from './CoarCheckbox.vue';
+import CoarFormField from '../form-field/CoarFormField.vue';
 
 describe('CoarCheckbox', () => {
-  const mountCheckbox = (props = {}) =>
-    mount(CoarCheckbox, { props });
+  const mountCheckbox = (props = {}) => mount(CoarCheckbox, { props });
 
   it('renders with default props', () => {
     const wrapper = mountCheckbox();
@@ -91,6 +91,15 @@ describe('CoarCheckbox', () => {
   it('applies aria-invalid on error', () => {
     const wrapper = mountCheckbox({ error: true });
     expect(wrapper.find('input').attributes('aria-invalid')).toBe('true');
+  });
+
+  it('adopts the wrapping CoarFormField id so its external label is associated', () => {
+    const wrapper = mount(CoarFormField, {
+      props: { id: 'active-user', label: 'User active', layout: 'inline', labelPosition: 'after' },
+      slots: { default: CoarCheckbox },
+    });
+    expect(wrapper.find('label').attributes('for')).toBe('active-user');
+    expect(wrapper.find('input').attributes('id')).toBe('active-user');
   });
 
   it('sets aria-checked to mixed when indeterminate', () => {

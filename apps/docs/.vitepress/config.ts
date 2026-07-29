@@ -1,9 +1,6 @@
 import { defineConfig } from 'vitepress';
 import llmstxt from 'vitepress-plugin-llms';
-import {
-  containerPreview,
-  componentPreview,
-} from '@vitepress-demo-preview/plugin';
+import { containerPreview, componentPreview } from '@vitepress-demo-preview/plugin';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -15,10 +12,7 @@ export default defineConfig({
   base: '/',
 
   head: [
-    [
-      'link',
-      { rel: 'icon', type: 'image/svg+xml', href: '/logo_light.svg' },
-    ],
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo_light.svg' }],
     [
       'link',
       {
@@ -48,10 +42,7 @@ export default defineConfig({
       alias: [
         {
           find: /^@cocoar\/vue-ui$/,
-          replacement: resolve(
-            __dirname,
-            '../../../packages/ui/src/index.ts',
-          ),
+          replacement: resolve(__dirname, '../../../packages/ui/src/index.ts'),
         },
         {
           find: /^@cocoar\/vue-ui\/theme-editor$/,
@@ -62,80 +53,47 @@ export default defineConfig({
         },
         {
           find: /^@cocoar\/vue-ui\/styles$/,
-          replacement: resolve(
-            __dirname,
-            '../../../packages/ui/styles/all.css',
-          ),
+          replacement: resolve(__dirname, '../../../packages/ui/styles/all.css'),
         },
         {
           find: /^@cocoar\/vue-localization$/,
-          replacement: resolve(
-            __dirname,
-            '../../../packages/localization/src/index.ts',
-          ),
+          replacement: resolve(__dirname, '../../../packages/localization/src/index.ts'),
         },
         {
           find: /^@cocoar\/vue-fragment-parser$/,
-          replacement: resolve(
-            __dirname,
-            '../../../packages/fragment-parser/src/index.ts',
-          ),
+          replacement: resolve(__dirname, '../../../packages/fragment-parser/src/index.ts'),
         },
         {
           find: /^@cocoar\/vue-data-grid$/,
-          replacement: resolve(
-            __dirname,
-            '../../../packages/data-grid/src/index.ts',
-          ),
+          replacement: resolve(__dirname, '../../../packages/data-grid/src/index.ts'),
         },
         {
           find: /^@cocoar\/vue-script-editor$/,
-          replacement: resolve(
-            __dirname,
-            '../../../packages/script-editor/src/index.ts',
-          ),
+          replacement: resolve(__dirname, '../../../packages/script-editor/src/index.ts'),
         },
         {
           find: /^@cocoar\/vue-markdown-editor$/,
-          replacement: resolve(
-            __dirname,
-            '../../../packages/markdown-editor/src/index.ts',
-          ),
+          replacement: resolve(__dirname, '../../../packages/markdown-editor/src/index.ts'),
         },
         {
           find: /^@cocoar\/vue-calendar$/,
-          replacement: resolve(
-            __dirname,
-            '../../../packages/calendar/src/index.ts',
-          ),
+          replacement: resolve(__dirname, '../../../packages/calendar/src/index.ts'),
         },
         {
           find: /^@cocoar\/vue-calendar\/core$/,
-          replacement: resolve(
-            __dirname,
-            '../../../packages/calendar/src/core/index.ts',
-          ),
+          replacement: resolve(__dirname, '../../../packages/calendar/src/core/index.ts'),
         },
         {
           find: /^@cocoar\/vue-file-explorer-core$/,
-          replacement: resolve(
-            __dirname,
-            '../../../packages/file-explorer-core/src/index.ts',
-          ),
+          replacement: resolve(__dirname, '../../../packages/file-explorer-core/src/index.ts'),
         },
         {
           find: /^@cocoar\/vue-document-viewer$/,
-          replacement: resolve(
-            __dirname,
-            '../../../packages/document-viewer/src/index.ts',
-          ),
+          replacement: resolve(__dirname, '../../../packages/document-viewer/src/index.ts'),
         },
         {
           find: /^@cocoar\/vue-document-viewer\/pdf$/,
-          replacement: resolve(
-            __dirname,
-            '../../../packages/document-viewer/src/sources/pdf.ts',
-          ),
+          replacement: resolve(__dirname, '../../../packages/document-viewer/src/sources/pdf.ts'),
         },
         {
           // Docs demos use the built CSS path. The library's CSS is the
@@ -299,6 +257,7 @@ export default defineConfig({
             { text: 'Listbox', link: '/components/listbox' },
             { text: 'Dual Listbox', link: '/components/dual-listbox' },
             { text: 'Checkbox', link: '/components/checkbox' },
+            { text: 'Checkbox Group', link: '/components/checkbox-group' },
             { text: 'Radio Group', link: '/components/radio-group' },
             { text: 'Switch', link: '/components/switch' },
             { text: 'Segmented Control', link: '/components/segmented-control' },
@@ -319,6 +278,7 @@ export default defineConfig({
             { text: 'Divider', link: '/components/divider' },
             { text: 'Link', link: '/components/link' },
             { text: 'Note', link: '/components/note' },
+            { text: 'Notice', link: '/components/notice' },
             { text: 'Progress Bar', link: '/components/progress-bar' },
             { text: 'Spinner', link: '/components/spinner' },
             { text: 'Table', link: '/components/table' },
@@ -401,7 +361,10 @@ export default defineConfig({
           text: 'Document Viewer (Preview)',
           items: [
             { text: 'Overview', link: '/components/document-viewer/' },
-            { text: 'CoarDocumentViewer', link: '/components/document-viewer/coar-document-viewer' },
+            {
+              text: 'CoarDocumentViewer',
+              link: '/components/document-viewer/coar-document-viewer',
+            },
             { text: 'Toolbar customization', link: '/components/document-viewer/toolbar' },
             { text: 'Annotations', link: '/components/document-viewer/annotations' },
           ],

@@ -1,30 +1,28 @@
 <template>
-  <div style="max-width: 400px;">
+  <div style="max-width: 400px">
     <CoarFormField
       label="Permissions"
       :error="permissionsError"
       hint="Select at least one permission"
       required
     >
-      <div style="display: flex; flex-direction: column; gap: 8px;">
-        <CoarCheckbox v-model="read" label="Read — View content" />
-        <CoarCheckbox v-model="write" label="Write — Create and edit content" />
-        <CoarCheckbox v-model="admin" label="Admin — Manage users and settings" />
-      </div>
+      <CoarCheckboxGroup v-model="permissions">
+        <CoarCheckbox value="read" label="Read — View content" />
+        <CoarCheckbox value="write" label="Write — Create and edit content" />
+        <CoarCheckbox value="admin" label="Admin — Manage users and settings" />
+      </CoarCheckboxGroup>
     </CoarFormField>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { CoarCheckbox, CoarFormField } from '@cocoar/vue-ui';
+import { CoarCheckbox, CoarCheckboxGroup, CoarFormField } from '@cocoar/vue-ui';
 
-const read = ref(false);
-const write = ref(false);
-const admin = ref(false);
+const permissions = ref<string[]>([]);
 
 const permissionsError = computed(() => {
-  if (!read.value && !write.value && !admin.value) {
+  if (permissions.value.length === 0) {
     return 'At least one permission is required';
   }
   return '';

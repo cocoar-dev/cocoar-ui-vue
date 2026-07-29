@@ -41,7 +41,7 @@ const isFocused = ref(false);
 const formField = inject(FORM_FIELD_INJECTION_KEY, undefined);
 
 const autoId = `coar-switch-${crypto.randomUUID?.() ?? Date.now().toString(16)}`;
-const inputId = computed(() => props.id || autoId);
+const inputId = computed(() => props.id || formField?.inputId.value || autoId);
 
 const hasError = computed(() => props.error || (formField?.hasError.value ?? false));
 
@@ -67,8 +67,12 @@ function onToggle(event: Event) {
   model.value = target.checked;
 }
 
-function onFocus() { isFocused.value = true; }
-function onBlur() { isFocused.value = false; }
+function onFocus() {
+  isFocused.value = true;
+}
+function onBlur() {
+  isFocused.value = false;
+}
 </script>
 
 <template>
@@ -102,7 +106,6 @@ function onBlur() { isFocused.value = false; }
 
       <span v-if="labelPosition === 'after' && label" class="coar-switch-label">{{ label }}</span>
     </label>
-
   </div>
 </template>
 
@@ -183,9 +186,10 @@ function onBlur() { isFocused.value = false; }
   border: 1px solid transparent;
   border-radius: calc(var(--coar-switch-track-height) / 2);
   background: var(--coar-background-neutral-tertiary);
-  transition: background var(--coar-duration-fast) ease,
-              border-color var(--coar-duration-fast) ease,
-              box-shadow var(--coar-duration-fast) ease;
+  transition:
+    background var(--coar-duration-fast) ease,
+    border-color var(--coar-duration-fast) ease,
+    box-shadow var(--coar-duration-fast) ease;
 }
 
 /* Track hover (off) */
@@ -226,7 +230,8 @@ function onBlur() { isFocused.value = false; }
 
 /* Thumb checked position */
 .coar-switch-track--checked .coar-switch-thumb {
-  transform: translateY(-50%) translateX(calc(var(--coar-switch-track-width) - var(--coar-switch-thumb-size) - 4px));
+  transform: translateY(-50%)
+    translateX(calc(var(--coar-switch-track-width) - var(--coar-switch-thumb-size) - 4px));
 }
 
 /* Disabled */
@@ -249,7 +254,9 @@ function onBlur() { isFocused.value = false; }
 }
 
 /* Readonly hover - no change */
-.coar-switch--readonly .coar-switch-wrapper:hover .coar-switch-track:not(.coar-switch-track--checked) {
+.coar-switch--readonly
+  .coar-switch-wrapper:hover
+  .coar-switch-track:not(.coar-switch-track--checked) {
   background: var(--coar-background-neutral-tertiary);
 }
 

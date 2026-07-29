@@ -22,6 +22,12 @@ Wrap any form control in `CoarFormField` and pass `label`, `hint`, or `error` pr
 
 <preview path="./form-field/demos/FormFieldBasic.vue" />
 
+## Layout and Label Position
+
+`CoarFormField` can place its label before or after any control, either stacked or inline. All four combinations have a visible effect. Inline layouts are especially useful when the field label is the only label of a checkbox or switch; leave the control's own `label` unset in that case.
+
+<preview path="./form-field/demos/FormFieldLayouts.vue" />
+
 ## Status Indicator
 
 Toggle hint / warning / error individually and watch the icon shift severity and the popover stack content in priority order (hint → errors → warnings). Hover the icon, or click to pin.
@@ -176,6 +182,8 @@ Form controls work without `CoarFormField` when no label or validation is needed
 | `error` | `string \| readonly string[]` | `[]` | Validation error(s). Drives the red `circle-alert` icon + `aria-invalid="true"` on the child input. Single string is sugar for a one-item array. Each entry is announced as a `role="alert"` to screen readers. |
 | `warning` | `string \| readonly string[]` | `[]` | Non-blocking warning(s). Drives the orange `triangle-alert` icon (when no error is also set). The input stays valid; SR announcements are non-urgent. |
 | `rules` | `readonly CoarFormFieldRule[]` | `[]` | Live-validation rules. Each rule has `label`, `fulfilled: boolean`, and optional `whenPass: 'success' \| 'hide'` (default `'success'`) + `whenFail: 'pending' \| 'warning' \| 'error' \| 'hide'` (default `'pending'`). See [Live Rules](#live-rules) for the four common patterns. Rules with `whenFail: 'error'` drive the input's `aria-invalid="true"`. |
+| `layout` | `'stacked' \| 'inline'` | `'stacked'` | Places the label/status cluster and control vertically or on one row. |
+| `labelPosition` | `'before' \| 'after'` | `'before'` | Places the complete label/status cluster before or after the control. Works in both layouts. |
 | `required` | `boolean` | `false` | Show required asterisk next to label. |
 | `disabled` | `boolean` | `false` | Disabled state — propagated to child inputs. |
 | `id` | `string` | auto | Explicit input ID (auto-generated if omitted). |
