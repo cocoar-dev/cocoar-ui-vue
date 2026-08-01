@@ -373,7 +373,8 @@ describe('CoarGridColumnBuilder', () => {
     it('should disable quick filter', () => {
       const colDef = new CoarGridColumnBuilder<TestRow>('name').quickFilter(false).build();
 
-      expect((colDef as Record<string, unknown>)['__coarQuickFilter']).toBe(false);
+      expect(colDef.context.__coarQuickFilter).toBe(false);
+      expect(colDef).not.toHaveProperty('__coarQuickFilter');
     });
 
     it('should set custom quick filter function', () => {
@@ -381,13 +382,25 @@ describe('CoarGridColumnBuilder', () => {
       const fn = (value: unknown, data: TestRow) => 'custom';
       const colDef = new CoarGridColumnBuilder<TestRow>('name').quickFilter(fn).build();
 
-      expect((colDef as Record<string, unknown>)['__coarQuickFilter']).toBe(fn);
+      expect(colDef.context.__coarQuickFilter).toBe(fn);
     });
 
     it('should enable quick filter with true', () => {
       const colDef = new CoarGridColumnBuilder<TestRow>('name').quickFilter(true).build();
 
-      expect((colDef as Record<string, unknown>)['__coarQuickFilter']).toBe(true);
+      expect(colDef.context.__coarQuickFilter).toBe(true);
+    });
+
+    it('should preserve existing column context', () => {
+      const colDef = new CoarGridColumnBuilder<TestRow>('name')
+        .option('context', { source: 'test' })
+        .quickFilter(true)
+        .build();
+
+      expect(colDef.context).toEqual({
+        source: 'test',
+        __coarQuickFilter: true,
+      });
     });
   });
 

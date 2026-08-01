@@ -12,7 +12,7 @@ import type {
 } from 'ag-grid-community';
 
 /**
- * Key used to store custom quick filter configuration on ColDef.
+ * Key used to store custom quick filter configuration in ColDef context.
  * @internal
  */
 export const COAR_QUICK_FILTER_KEY = '__coarQuickFilter';
@@ -293,7 +293,10 @@ export class CoarGridColumnBuilder<TData = unknown, TValue = unknown> {
    * ```
    */
   quickFilter(fn: boolean | ((value: TValue, data: TData) => string)): this {
-    (this.#colDef as Record<string, unknown>)[COAR_QUICK_FILTER_KEY] = fn;
+    this.#colDef.context = {
+      ...this.#colDef.context,
+      [COAR_QUICK_FILTER_KEY]: fn,
+    };
     return this;
   }
 

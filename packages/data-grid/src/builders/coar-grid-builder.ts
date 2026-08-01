@@ -1220,7 +1220,9 @@ export class CoarGridBuilder<TData = unknown> {
       if (colDef.hide) continue;
       if (!colDef.field) continue;
 
-      const qfConfig = (colDef as Record<string, unknown>)[COAR_QUICK_FILTER_KEY] as
+      const qfConfig = (colDef.context as Record<string, unknown> | undefined)?.[
+        COAR_QUICK_FILTER_KEY
+      ] as
         | QuickFilterConfig<TData>
         | undefined;
       if (qfConfig === false) continue;
