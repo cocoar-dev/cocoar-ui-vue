@@ -52,6 +52,29 @@ describe('CoarGridColumnBuilder', () => {
 
       expect(colDef.headerName).toBe('Full Name');
     });
+
+    it('should pass the i18n key through header component params', () => {
+      const colDef = new CoarGridColumnBuilder<TestRow>('name')
+        .header('Full Name', 'grid.header.name')
+        .build();
+
+      expect(colDef.headerComponentParams).toEqual({
+        __coarHeaderI18nKey: 'grid.header.name',
+      });
+      expect(colDef).not.toHaveProperty('__coarHeaderI18nKey');
+    });
+
+    it('should preserve existing header component params', () => {
+      const colDef = new CoarGridColumnBuilder<TestRow>('name')
+        .option('headerComponentParams', { menu: false })
+        .header('Full Name', 'grid.header.name')
+        .build();
+
+      expect(colDef.headerComponentParams).toEqual({
+        menu: false,
+        __coarHeaderI18nKey: 'grid.header.name',
+      });
+    });
   });
 
   describe('headerTooltip', () => {

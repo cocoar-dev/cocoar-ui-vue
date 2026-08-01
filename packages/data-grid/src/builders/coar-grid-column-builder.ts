@@ -18,7 +18,7 @@ import type {
 export const COAR_QUICK_FILTER_KEY = '__coarQuickFilter';
 
 /**
- * Key used to store i18n header key on ColDef.
+ * Key used to pass the i18n header key via AG Grid's header component params.
  * @internal
  */
 export const COAR_HEADER_I18N_KEY = '__coarHeaderI18nKey';
@@ -81,7 +81,10 @@ export class CoarGridColumnBuilder<TData = unknown, TValue = unknown> {
   header(value: string, i18nKey?: string): this {
     this.#colDef.headerName = value;
     if (i18nKey) {
-      (this.#colDef as Record<string, unknown>)[COAR_HEADER_I18N_KEY] = i18nKey;
+      this.#colDef.headerComponentParams = {
+        ...this.#colDef.headerComponentParams,
+        [COAR_HEADER_I18N_KEY]: i18nKey,
+      };
     }
     return this;
   }

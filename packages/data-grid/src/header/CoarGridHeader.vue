@@ -11,7 +11,10 @@ const props = defineProps<{
 const { t } = useI18n();
 
 const i18nKey = computed<string | undefined>(
-  () => (props.params.column.getColDef() as Record<string, unknown>)[COAR_HEADER_I18N_KEY] as string | undefined,
+  () =>
+    (props.params as unknown as Record<string, unknown>)[COAR_HEADER_I18N_KEY] as
+      | string
+      | undefined,
 );
 
 const displayName = computed(() =>
