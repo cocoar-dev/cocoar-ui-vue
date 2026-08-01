@@ -125,10 +125,10 @@ const MONTHS_TO_LOAD = 6;
 const MAX_MONTHS_IN_DOM = 25;
 
 const earliestMonth = ref<Temporal.PlainYearMonth>(
-  Temporal.Now.plainDateISO().toPlainYearMonth().subtract({ months: MONTHS_BEFORE }),
+  activeMonth.value.subtract({ months: MONTHS_BEFORE }),
 );
 const latestMonth = ref<Temporal.PlainYearMonth>(
-  Temporal.Now.plainDateISO().toPlainYearMonth().add({ months: MONTHS_AFTER }),
+  activeMonth.value.add({ months: MONTHS_AFTER }),
 );
 
 // Focused date for keyboard nav
