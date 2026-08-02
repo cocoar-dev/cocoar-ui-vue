@@ -39,6 +39,10 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('./views/PageBuilderView.vue'),
   },
   {
+    path: '/auth-customization-lab',
+    component: () => import('./views/AuthCustomizationLabView.vue'),
+  },
+  {
     path: '/pdf-viewer',
     component: () => import('./views/PdfViewerView.vue'),
   },

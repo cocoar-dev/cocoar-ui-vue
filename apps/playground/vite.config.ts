@@ -1,9 +1,10 @@
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { resolve } from 'path';
+import { authLabApi } from './auth-lab-api';
 
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [vue(), authLabApi()],
   server: { port: 5188 },
   resolve: {
     alias: [
