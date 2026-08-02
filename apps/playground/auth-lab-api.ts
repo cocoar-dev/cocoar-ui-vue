@@ -57,7 +57,7 @@ async function handleAuthLabApi(
     return;
   }
 
-  const identifier = String(body.username ?? '')
+  const identifier = String(body.username ?? body.scenario ?? '')
     .trim()
     .toLowerCase();
 
@@ -107,6 +107,28 @@ async function handleAuthLabApi(
       ok: true,
       outcome: 'accepted',
       message: 'If the account exists, a reset link has been queued.',
+    });
+    return;
+  }
+
+  if (url.pathname === '/api/auth-lab/consent') {
+    if (identifier === 'expired') {
+      problem(res, 409, 'This consent request has expired. Restart the authorization flow.');
+      return;
+    }
+    const decision = body.decision === 'deny' ? 'deny' : 'allow';
+    const approvedScopes = Array.isArray(body.approvedScopes)
+      ? body.approvedScopes.filter((scope): scope is string => typeof scope === 'string')
+      : [];
+    await wait(350);
+    json(res, 200, {
+      ok: true,
+      outcome: decision === 'allow' ? 'approved' : 'denied',
+      approvedScopes,
+      message:
+        decision === 'allow'
+          ? `Consent accepted with ${approvedScopes.length} approved scope(s); redirect suppressed in the lab.`
+          : 'Consent denied; the OAuth client redirect is intentionally suppressed in the lab.',
     });
     return;
   }

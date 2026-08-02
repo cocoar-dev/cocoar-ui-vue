@@ -8,8 +8,10 @@ import LabBrandElement from './LabBrandElement.vue';
 import LabBrandPreview from './LabBrandPreview.vue';
 import LabProviderButtonsElement from './LabProviderButtonsElement.vue';
 import LabProviderButtonsPreview from './LabProviderButtonsPreview.vue';
+import LabConsentScopesElement from './LabConsentScopesElement.vue';
+import LabConsentScopesPreview from './LabConsentScopesPreview.vue';
 
-export type AuthLabSlot = 'login' | 'password-forgot' | 'logout';
+export type AuthLabSlot = 'login' | 'password-forgot' | 'logout' | 'consent';
 export type AuthLabLocale = 'de' | 'en';
 
 type Copy = {
@@ -31,6 +33,10 @@ type Copy = {
   signedOut: string;
   signedOutHint: string;
   signInAgain: string;
+  consentTitle: string;
+  consentSubtitle: string;
+  consentDeny: string;
+  consentAllow: string;
 };
 
 export const AUTH_LAB_COPY: Record<AuthLabLocale, Copy> = {
@@ -54,6 +60,10 @@ export const AUTH_LAB_COPY: Record<AuthLabLocale, Copy> = {
     signedOut: 'Abgemeldet',
     signedOutHint: 'Ihre Sitzung wurde sicher beendet.',
     signInAgain: 'Erneut anmelden',
+    consentTitle: '„Northwind Analytics“ autorisieren',
+    consentSubtitle: 'Prüfen Sie, auf welche Daten diese Anwendung zugreifen möchte.',
+    consentDeny: 'Ablehnen',
+    consentAllow: 'Zulassen',
   },
   en: {
     subtitle: 'Sign in to continue.',
@@ -75,6 +85,10 @@ export const AUTH_LAB_COPY: Record<AuthLabLocale, Copy> = {
     signedOut: 'Signed out',
     signedOutHint: 'Your session has ended safely.',
     signInAgain: 'Sign in again',
+    consentTitle: 'Authorise “Northwind Analytics”',
+    consentSubtitle: 'Review the access this app is asking for.',
+    consentDeny: 'Deny',
+    consentAllow: 'Allow',
   },
 };
 
@@ -95,6 +109,15 @@ const elements = {
       icon: 'log-in',
       defaults: () => ({ prefix: 'Sign in with' }),
       preview: LabProviderButtonsPreview,
+    },
+  }),
+  'lab-consent-scopes': definePageElement<EmptyProps>({
+    renderer: LabConsentScopesElement,
+    builder: {
+      label: { key: 'playground.authLab.consentScopes', fallback: 'Runtime consent scopes[]' },
+      icon: 'list-checks',
+      defaults: () => ({}),
+      preview: LabConsentScopesPreview,
     },
   }),
 };
@@ -170,11 +193,20 @@ export function createAuthLabConfig(slot: AuthLabSlot, locale: AuthLabLocale): P
             { id: 'auth:send-reset-link', label: copy.sendLink },
             { id: 'auth:back-to-login', label: copy.back },
           ]
-        : [{ id: 'auth:back-to-login', label: copy.signInAgain }];
+        : slot === 'consent'
+          ? [
+              { id: 'auth:consent-deny', label: copy.consentDeny },
+              { id: 'auth:consent-allow', label: copy.consentAllow },
+            ]
+          : [{ id: 'auth:back-to-login', label: copy.signInAgain }];
 
   return {
     allowedElements:
-      slot === 'login' ? [...commonAllowed, 'lab-provider-buttons'] : [...commonAllowed],
+      slot === 'login'
+        ? [...commonAllowed, 'lab-provider-buttons']
+        : slot === 'consent'
+          ? [...commonAllowed, 'lab-consent-scopes']
+          : [...commonAllowed],
     elements,
     fields,
     allowCustomFields: false,
@@ -185,6 +217,7 @@ export function createAuthLabConfig(slot: AuthLabSlot, locale: AuthLabLocale): P
 export function createAuthLabSchema(slot: AuthLabSlot, locale: AuthLabLocale): PageNode {
   if (slot === 'password-forgot') return forgotSchema(AUTH_LAB_COPY[locale]);
   if (slot === 'logout') return logoutSchema(AUTH_LAB_COPY[locale]);
+  if (slot === 'consent') return consentSchema(AUTH_LAB_COPY[locale]);
   return loginSchema(AUTH_LAB_COPY[locale]);
 }
 
@@ -399,5 +432,69 @@ function logoutSchema(copy: Copy): PageNode {
         ],
       },
     ]),
+  ]);
+}
+
+function consentSchema(copy: Copy): PageNode {
+  return page([
+    {
+      id: 'consent-frame',
+      type: 'stack',
+      props: { direction: 'column' },
+      style: {
+        size: 'fixed',
+        width: 'min(448px, 100%)',
+        gap: '32px',
+        align: 'stretch',
+      },
+      children: [
+        { id: 'consent-brand', type: 'lab-brand', props: {} },
+        {
+          id: 'consent-card',
+          type: 'card',
+          props: {},
+          style: { gap: '16px' },
+          children: [
+            {
+              id: 'consent-title',
+              type: 'heading',
+              props: { text: copy.consentTitle, level: 2 },
+              style: { alignSelf: 'center' },
+            },
+            {
+              id: 'consent-subtitle',
+              type: 'paragraph',
+              props: { text: copy.consentSubtitle },
+              style: { alignSelf: 'center' },
+            },
+            { id: 'consent-scopes', type: 'lab-consent-scopes', props: {} },
+            {
+              id: 'consent-actions',
+              type: 'stack',
+              props: { direction: 'row' },
+              style: { gap: '8px' },
+              children: [
+                {
+                  id: 'consent-deny',
+                  type: 'button',
+                  props: {
+                    label: copy.consentDeny,
+                    action: 'auth:consent-deny',
+                    variant: 'secondary',
+                  },
+                  style: { size: 'fill' },
+                },
+                {
+                  id: 'consent-allow',
+                  type: 'button',
+                  props: { label: copy.consentAllow, action: 'auth:consent-allow' },
+                  style: { size: 'fill' },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
   ]);
 }

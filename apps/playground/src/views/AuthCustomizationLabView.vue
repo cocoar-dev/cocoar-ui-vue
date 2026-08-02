@@ -9,6 +9,7 @@ import {
   type PageNode,
 } from '@cocoar/vue-page-builder';
 import AuthReferenceSurface from './auth-customization/AuthReferenceSurface.vue';
+import ConsentReferenceSurface from './auth-customization/ConsentReferenceSurface.vue';
 import {
   AUTH_LAB_COPY,
   createAuthLabConfig,
@@ -16,16 +17,21 @@ import {
   type AuthLabLocale,
   type AuthLabSlot,
 } from './auth-customization/authLabSchemas';
-import { AUTH_LAB_RUNTIME_KEY, type AuthLabProvider } from './auth-customization/authLabRuntime';
+import {
+  AUTH_LAB_RUNTIME_KEY,
+  type AuthLabConsentScope,
+  type AuthLabProvider,
+} from './auth-customization/authLabRuntime';
 import { postAuthLab } from './auth-customization/authLabClient';
 
-type LabMode = 'compare' | 'renderer' | 'builder' | 'json' | 'requirements';
+type LabMode = 'compare' | 'renderer' | 'builder' | 'json' | 'contract' | 'requirements';
 type ViewportId = 'compact' | 'phone' | 'tablet' | 'desktop' | 'fluid';
 
 const slots: { id: AuthLabSlot; label: string }[] = [
   { id: 'login', label: 'Login' },
   { id: 'password-forgot', label: 'Forgot password' },
   { id: 'logout', label: 'Logout' },
+  { id: 'consent', label: 'Consent · scopes[]' },
 ];
 
 const modes: { id: LabMode; label: string }[] = [
@@ -33,6 +39,7 @@ const modes: { id: LabMode; label: string }[] = [
   { id: 'renderer', label: 'Renderer' },
   { id: 'builder', label: 'Builder' },
   { id: 'json', label: 'JSON' },
+  { id: 'contract', label: 'View contract' },
   { id: 'requirements', label: 'Use cases & gaps' },
 ];
 
@@ -56,6 +63,12 @@ const passwordless = ref(false);
 const magicLink = ref(true);
 const registration = ref(true);
 const providerCount = ref(2);
+const scopeCount = ref(3);
+const consentScenario = ref('success');
+const consentClientName = ref('Northwind Analytics');
+const consentClientHostname = ref('analytics.northwind.example');
+const dynamicConsentClient = ref(true);
+const approvedScopes = ref<Record<string, boolean>>({});
 const rendererResult = ref('');
 
 const providers = computed<AuthLabProvider[]>(() =>
@@ -66,18 +79,88 @@ const providers = computed<AuthLabProvider[]>(() =>
   ].slice(0, providerCount.value),
 );
 
-provide(AUTH_LAB_RUNTIME_KEY, { productName, showLegal, providers });
+const consentScopes = computed<AuthLabConsentScope[]>(() =>
+  [
+    {
+      name: 'openid',
+      displayName: 'Sign-in identity',
+      description: 'Confirms who you are. Required to sign in.',
+      required: true,
+    },
+    {
+      name: 'profile',
+      displayName: 'Profile',
+      description: 'Name, picture and locale.',
+      required: false,
+    },
+    {
+      name: 'email',
+      displayName: 'Email address',
+      description: 'Your email address and whether it is verified.',
+      required: false,
+    },
+    {
+      name: 'offline_access',
+      displayName: 'Stay signed in',
+      description: 'Allows the app to refresh its access without prompting again.',
+      required: false,
+    },
+    {
+      name: 'roles',
+      displayName: 'Roles',
+      description: 'Lets the app see which roles you have in this realm.',
+      required: false,
+    },
+    {
+      name: 'permissions',
+      displayName: 'Permissions',
+      description: 'Lets the app see which fine-grained permissions you have.',
+      required: false,
+    },
+    {
+      name: 'invoices.read',
+      displayName: 'Read invoices for all assigned organisations',
+      description:
+        'A deliberately long custom permission to test wrapping and narrow viewport behaviour.',
+      required: false,
+    },
+    {
+      name: 'projects.write',
+      displayName: 'Create and update projects',
+      description: 'Allows this application to change project data on your behalf.',
+      required: false,
+    },
+  ].slice(0, scopeCount.value),
+);
+
+watch(
+  consentScopes,
+  (scopes) => {
+    approvedScopes.value = Object.fromEntries(scopes.map((scope) => [scope.name, true]));
+  },
+  { immediate: true },
+);
+
+provide(AUTH_LAB_RUNTIME_KEY, {
+  productName,
+  showLegal,
+  providers,
+  consentScopes,
+  approvedScopes,
+});
 
 const schemas = reactive<Record<AuthLabLocale, Record<AuthLabSlot, PageNode>>>({
   de: {
     login: createAuthLabSchema('login', 'de'),
     'password-forgot': createAuthLabSchema('password-forgot', 'de'),
     logout: createAuthLabSchema('logout', 'de'),
+    consent: createAuthLabSchema('consent', 'de'),
   },
   en: {
     login: createAuthLabSchema('login', 'en'),
     'password-forgot': createAuthLabSchema('password-forgot', 'en'),
     logout: createAuthLabSchema('logout', 'en'),
+    consent: createAuthLabSchema('consent', 'en'),
   },
 });
 
@@ -120,6 +203,26 @@ const rendererActions: Record<string, ActionHandler> = {
   'auth:back-to-login': () => {
     rendererResult.value = `${copy.value.back} (demo navigation suppressed).`;
   },
+  'auth:consent-deny': async () => {
+    rendererResult.value = '';
+    const response = await postAuthLab('consent', {
+      decision: 'deny',
+      scenario: consentScenario.value,
+      approvedScopes: [],
+    });
+    rendererResult.value = response.message;
+  },
+  'auth:consent-allow': async () => {
+    rendererResult.value = '';
+    const response = await postAuthLab('consent', {
+      decision: 'allow',
+      scenario: consentScenario.value,
+      approvedScopes: consentScopes.value
+        .filter((scope) => approvedScopes.value[scope.name])
+        .map((scope) => scope.name),
+    });
+    rendererResult.value = response.message;
+  },
 };
 
 const frameStyle = computed(() => ({
@@ -142,6 +245,114 @@ async function copyJson() {
   await navigator.clipboard.writeText(JSON.stringify(schema.value, null, 2));
   rendererResult.value = 'JSON copied to clipboard.';
 }
+
+const viewContracts: Record<
+  AuthLabSlot,
+  {
+    purpose: string;
+    runtimeData: string[];
+    states: string[];
+    actions: string[];
+    invariants: string[];
+    responsive: string[];
+  }
+> = {
+  login: {
+    purpose: 'Authenticate a user and safely resume the originating application flow.',
+    runtimeData: [
+      'Realm branding, legal URLs and selected language',
+      'Internal/passwordless capability flags and remember-me policy',
+      'Zero to many external identity providers with runtime labels',
+      'Application continuation and self-registration availability',
+    ],
+    states: [
+      'Credentials, passwordless, magic-link sent, submitting and error',
+      'MFA continuation after accepted credentials',
+      'No internal provider, no external provider and mixed-provider variants',
+    ],
+    actions: [
+      'Password login with Enter-to-submit and duplicate-submit protection',
+      'Passkey, magic link, external provider, forgot password and registration',
+    ],
+    invariants: [
+      'A failed or aborted request never navigates and preserves entered values',
+      'Password values never enter persisted page JSON, logs or URL parameters',
+      'Continuation targets are host-owned and validated; a design cannot define arbitrary redirects',
+      'Errors are announced accessibly and focus returns to a useful control',
+    ],
+    responsive: [
+      'Long provider names, translated labels and multiple providers must wrap safely',
+      'Keyboard, password-manager/autofill, 200% zoom and 320 px width',
+    ],
+  },
+  'password-forgot': {
+    purpose: 'Request a reset message without disclosing whether an account exists.',
+    runtimeData: [
+      'Realm branding, language, passwordless capability and continuation',
+      'Username/email policy and server-side rate-limit result',
+    ],
+    states: [
+      'Form, submitting, generic accepted result, validation/rate-limit error',
+      'Passwordless-disabled explanation instead of a dead form',
+    ],
+    actions: ['Send reset request and return to the preserved login continuation'],
+    invariants: [
+      'Success copy is account-enumeration safe and identical for existing/non-existing users',
+      'Timeout and server failure keep the identifier for a retry',
+      'Reset tokens and destination URLs are generated and validated by the host, never by page JSON',
+    ],
+    responsive: [
+      'Long generic success/error text must wrap without moving actions off-screen',
+      'Works with mobile keyboards, 200% zoom and 320 px width',
+    ],
+  },
+  logout: {
+    purpose: 'Confirm the local session ended and offer a safe next step.',
+    runtimeData: [
+      'Realm branding and language',
+      'Local versus federated logout result and validated post-logout destination',
+    ],
+    states: ['Local logout complete, federated logout complete and recoverable provider failure'],
+    actions: ['Sign in again or continue to a host-approved application destination'],
+    invariants: [
+      'The session is invalidated before the confirmation is rendered',
+      'The PageBuilder cannot inject an arbitrary post-logout redirect',
+      'Browser back must not restore authenticated content from cache',
+    ],
+    responsive: ['Short page must remain vertically balanced without hiding the primary action'],
+  },
+  consent: {
+    purpose:
+      'Let an authenticated user make an informed, ticket-bound OAuth authorization decision.',
+    runtimeData: [
+      'Trusted ticket, client id/name, expiry and zero-to-many RequestedScopes[]',
+      'Per-scope stable name, localized label, description and required flag',
+      'Dynamic/unverified-client flag and verified client-id hostname',
+    ],
+    states: [
+      'Loading, prompt, submitting, denied, expired/consumed ticket, forbidden and connection error',
+      'One required scope, typical list and long overflowing list',
+    ],
+    actions: [
+      'Allow submits selected ApprovedScopes[]; Deny submits an empty list',
+      'Expired tickets may expose only a host-validated authorization retry action',
+    ],
+    invariants: [
+      'Required scopes are selected and cannot be unchecked',
+      'Scope names and ticket are immutable runtime values, never editable design props',
+      'The host revalidates ticket ownership, expiry and approved scopes on submit',
+      'RedirectUrl stays host-owned and same-origin; page JSON cannot choose the OAuth destination',
+      'Unverified/DCR/CIMD identity warnings cannot be removed or visually de-emphasised by customization',
+      'A failed submit keeps the exact scope selection and does not consume or leave the prompt',
+    ],
+    responsive: [
+      'Unknown scope count, long localized descriptions and long custom scope names',
+      'Actions remain reachable with 8+ scopes, 320 px width, 200% zoom and keyboard navigation',
+    ],
+  },
+};
+
+const viewContract = computed(() => viewContracts[slot.value]);
 
 const requirements = [
   {
@@ -207,6 +418,12 @@ const requirements = [
     state: 'missing',
     detail:
       'visibleWhen only reads page fields. Auth pages also need safe host context such as passwordless, magic-link and registration availability.',
+  },
+  {
+    area: 'Dynamic arrays / repeaters',
+    state: 'missing',
+    detail:
+      'Consent scopes prove the need for a repeat/for-each node bound to a safe host array, item aliases, stable keys, per-item fields and an ApprovedScopes[] action value. The registered scope element is only the current workaround.',
   },
   {
     area: 'Repeating login providers',
@@ -305,11 +522,13 @@ const requirements = [
     <section class="scenario-toolbar" aria-label="Host runtime scenarios">
       <strong>Host context</strong>
       <label><input v-model="showLegal" type="checkbox" /> Legal links</label>
-      <label><input v-model="internalLogin" type="checkbox" /> Internal login</label>
-      <label><input v-model="passwordless" type="checkbox" /> Passwordless</label>
-      <label><input v-model="magicLink" type="checkbox" /> Magic link</label>
-      <label><input v-model="registration" type="checkbox" /> Registration</label>
-      <label>
+      <template v-if="slot !== 'consent'">
+        <label><input v-model="internalLogin" type="checkbox" /> Internal login</label>
+        <label><input v-model="passwordless" type="checkbox" /> Passwordless</label>
+        <label><input v-model="magicLink" type="checkbox" /> Magic link</label>
+        <label><input v-model="registration" type="checkbox" /> Registration</label>
+      </template>
+      <label v-if="slot !== 'consent'">
         Providers
         <select v-model.number="providerCount">
           <option :value="0">0</option>
@@ -318,13 +537,43 @@ const requirements = [
           <option :value="3">3 + long label</option>
         </select>
       </label>
+      <template v-else>
+        <label>
+          Scopes[]
+          <select v-model.number="scopeCount" aria-label="Consent scope count">
+            <option :value="1">1 · required only</option>
+            <option :value="3">3 · typical</option>
+            <option :value="8">8 · overflow + long copy</option>
+          </select>
+        </label>
+        <label>
+          API result
+          <select v-model="consentScenario" aria-label="Consent API result">
+            <option value="success">Success</option>
+            <option value="expired">Expired ticket · 409</option>
+            <option value="server-error">Server error · 500</option>
+            <option value="slow">Timeout / abort</option>
+            <option value="disconnect">Broken connection</option>
+          </select>
+        </label>
+        <label><input v-model="dynamicConsentClient" type="checkbox" /> Unverified client</label>
+        <label class="field-control field-control--grow">
+          Client name
+          <input v-model="consentClientName" type="text" />
+        </label>
+      </template>
       <span class="scenario-note"
         >Reference reacts to every flag. Renderer differences expose missing host-context
         conditions.</span
       >
     </section>
 
-    <CoarNotice v-if="slot !== 'logout'" variant="info" class="edge-cases">
+    <CoarNotice v-if="slot === 'consent'" variant="info" class="edge-cases">
+      <strong>Array fixture:</strong> switch between <code>1</code>, <code>3</code> and
+      <code>8</code> server-provided scopes. The renderer currently needs a registered host element;
+      the target is a native repeater whose checkboxes produce <code>ApprovedScopes[]</code>.
+    </CoarNotice>
+    <CoarNotice v-else-if="slot !== 'logout'" variant="info" class="edge-cases">
       <strong>Node API edge-case usernames:</strong>
       <code>invalid</code> → validation response, <code>locked</code> → account locked,
       <code>server-error</code> → HTTP 500, <code>slow</code> → client timeout/abort,
@@ -338,7 +587,19 @@ const requirements = [
           <strong>Fixed Modgud reference</strong><span>Expected behaviour and layout</span>
         </header>
         <div class="device-frame" :class="frameClass" :style="frameStyle">
+          <ConsentReferenceSurface
+            v-if="slot === 'consent'"
+            :locale="locale"
+            :product-name="productName"
+            :show-legal="showLegal"
+            :client-name="consentClientName"
+            :client-hostname="consentClientHostname"
+            :dynamic-client="dynamicConsentClient"
+            :scopes="consentScopes"
+            :scenario="consentScenario"
+          />
           <AuthReferenceSurface
+            v-else
             :slot="slot"
             :locale="locale"
             :product-name="productName"
@@ -391,6 +652,46 @@ const requirements = [
         </div>
       </div>
       <pre><code>{{ JSON.stringify(schema, null, 2) }}</code></pre>
+    </section>
+
+    <section v-else-if="mode === 'contract'" class="contract-stage">
+      <header>
+        <p class="contract-eyebrow">{{ slots.find((item) => item.id === slot)?.label }}</p>
+        <h2>View contract</h2>
+        <p>{{ viewContract.purpose }}</p>
+      </header>
+      <div class="contract-grid">
+        <article>
+          <h3>Runtime data</h3>
+          <ul>
+            <li v-for="item in viewContract.runtimeData" :key="item">{{ item }}</li>
+          </ul>
+        </article>
+        <article>
+          <h3>Required states</h3>
+          <ul>
+            <li v-for="item in viewContract.states" :key="item">{{ item }}</li>
+          </ul>
+        </article>
+        <article>
+          <h3>Actions</h3>
+          <ul>
+            <li v-for="item in viewContract.actions" :key="item">{{ item }}</li>
+          </ul>
+        </article>
+        <article class="contract-invariants">
+          <h3>Non-negotiable security & behaviour</h3>
+          <ul>
+            <li v-for="item in viewContract.invariants" :key="item">{{ item }}</li>
+          </ul>
+        </article>
+        <article>
+          <h3>Responsive & accessibility cases</h3>
+          <ul>
+            <li v-for="item in viewContract.responsive" :key="item">{{ item }}</li>
+          </ul>
+        </article>
+      </div>
     </section>
 
     <section v-else class="requirements-stage">
@@ -544,6 +845,7 @@ const requirements = [
 .single-stage,
 .builder-stage,
 .json-stage,
+.contract-stage,
 .requirements-stage {
   min-width: 0;
 }
@@ -593,6 +895,7 @@ const requirements = [
 
 .builder-stage,
 .json-stage,
+.contract-stage,
 .requirements-stage {
   padding: 1rem;
   border: 1px solid var(--coar-border-neutral, #dfe1e7);
@@ -627,6 +930,50 @@ const requirements = [
   color: #e6edf7;
   font-size: 0.78rem;
   line-height: 1.55;
+}
+
+.contract-stage > header h2,
+.contract-stage > header p,
+.contract-grid h3,
+.contract-grid ul {
+  margin: 0;
+}
+.contract-stage > header > p:last-child {
+  margin-top: 0.35rem;
+  color: var(--coar-text-neutral-secondary, #5f6470);
+}
+.contract-eyebrow {
+  color: var(--coar-text-accent-primary, #1666cc);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.contract-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+.contract-grid article {
+  padding: 1rem;
+  border: 1px solid var(--coar-border-neutral, #dfe1e7);
+  border-radius: 0.6rem;
+  background: var(--coar-surface-neutral-subtle, #f7f7f9);
+}
+.contract-grid h3 {
+  font-size: 0.9rem;
+}
+.contract-grid ul {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.65rem 0 0 1.1rem;
+  color: var(--coar-text-neutral-secondary, #5f6470);
+  font-size: 0.82rem;
+}
+.contract-invariants {
+  border-color: #f59e0b !important;
+  background: #fffbeb !important;
 }
 
 .requirements-stage > header h2 {
