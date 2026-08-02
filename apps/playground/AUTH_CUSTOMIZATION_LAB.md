@@ -12,6 +12,9 @@ pnpm --filter @cocoar/playground dev
 
 Open <http://localhost:5188/auth-customization-lab>.
 
+The detailed package-team request and acceptance criteria live in
+[`PAGE_BUILDER_AUTH_FEATURE_REQUEST.md`](./PAGE_BUILDER_AUTH_FEATURE_REQUEST.md).
+
 ## Included page slots
 
 - Login
