@@ -172,6 +172,9 @@ jobs:
             fi
           done
 
+      - name: Verify packed PageBuilder in Vite consumer
+        run: pnpm --filter @cocoar/playground test:packed-page-builder-consumer
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:

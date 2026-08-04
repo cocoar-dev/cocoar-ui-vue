@@ -267,6 +267,10 @@ route unknown action ids through `runtime.runPageAction`. If no host is passed,
 the package uses a no-capability host: there is no ambient `fetch`, `window`, DOM
 or application API inside tenant code.
 
+The consuming Vite build emits the SES runtime as a same-origin
+`pageScriptRuntime.worker-<hash>.js` module asset. Keep the document CSP free of
+`unsafe-eval`; see `IDP_INTEGRATION.md` for the Worker-response CSP requirement.
+
 The package also exports four optional integration presets:
 `createAuthPageDocument()` and `createAuthPageConfig()` for `login`,
 `password-forgot`, `logout` and `consent`. They are example/default documents;

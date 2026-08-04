@@ -191,10 +191,22 @@ catalogue when tenants must not replace them.
 
 ## 8. Deployment and beta boundary
 
-The runtime Worker is emitted as a separate package asset. Verify that the IDP
-deployment serves module workers from the final asset base and that its CSP
-permits the worker URL. Do not add `unsafe-eval` to the main application for the
-Page Builder.
+The packed library retains its Worker source import so the consuming Vite build
+emits `pageScriptRuntime.worker-<hash>.js` itself. This makes the URL follow the
+consumer's configured `base` and avoids package-local `/assets/...` URLs.
+
+Serve that file as a same-origin module Worker and permit it through
+`worker-src 'self'` (Modgud may keep `blob:` for unrelated Workers). SES uses
+`Compartment.evaluate()` inside the Worker, so the Worker response must not
+inherit an application CSP that forbids dynamic evaluation. Apply the strict
+`script-src 'self'` policy to the HTML response, not indiscriminately to every
+static asset. If the server requires a CSP header on the Worker response, scope
+`script-src 'self' 'unsafe-eval'` to that response only. Do **not** add
+`unsafe-eval` to the IDP document/application CSP.
+
+The prerelease workflow verifies this from packed tarballs with a production
+Vite consumer, a non-root `/idp/` base and a browser boot under the strict
+document CSP.
 
 Before general tenant production rollout, complete the product threat model,
 independent security review, browser/mobile matrix, operational quotas and

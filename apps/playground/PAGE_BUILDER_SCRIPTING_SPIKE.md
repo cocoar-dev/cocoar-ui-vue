@@ -96,10 +96,12 @@ while the worker initialized. These numbers are evidence of feasibility, not a
 cross-device budget. Low-end mobile hardware, cold HTTP cache, browser variants
 and the final runtime API still require measurement.
 
-Vite must emit the runtime worker as an ES module (`worker.format = "es"`). A
-classic production worker is sloppy-mode code, which SES correctly refuses to
-initialize. The spike's browser test found this difference between development
-and the first production bundle.
+The package preserves a Vite `?worker&url` import in its built entry. The
+consuming application therefore emits the runtime Worker under its own asset
+base, and `PageScriptRuntime` starts that URL explicitly as an ES module. A
+classic production Worker is sloppy-mode code, which SES correctly refuses to
+initialize. A network Worker also keeps SES evaluation out of the document's
+strict `script-src` CSP; the Worker response must not inherit that restriction.
 
 ## Authoring versus runtime
 
