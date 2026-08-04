@@ -58,19 +58,21 @@ const config: PageConfig = {
 </template>
 ```
 
-## Schema (v2)
+## Schema (v4)
 
 The persisted document is a tree of one uniform node grammar: `type` is an
 open registry key (built-in or consumer), everything element-specific lives in
 the `props` bag, and the host vocabulary — `id`, `style`, the value-model trio
 `name` / `defaultValue` / `validation`, and `children` for containers — stays
-at node level. The `page` root carries `schemaVersion: 2`.
+at node level. The `page` root carries `schemaVersion: 4`. Version 4 gives every
+element a stable, page-wide `name`; value elements use that same name as their
+form/DTO property and Element Code uses it as its authoring identity.
 
 ```jsonc
 {
   "id": "3f6c…",
   "type": "page",
-  "schemaVersion": 2,
+  "schemaVersion": 4,
   "style": { "gap": "16px", "padding": "24px" },
   "children": [
     { "id": "a1b2…", "type": "heading", "props": { "text": "Sign in", "level": 2 } },
@@ -91,10 +93,11 @@ at node level. The `page` root carries `schemaVersion: 2`.
 }
 ```
 
-Pre-v2 documents (flat element props, no `schemaVersion`) are migrated
-transparently on every ingest path; nodes with unknown/unregistered types are
-kept losslessly in the tree (flagged in the builder, skipped with a one-time
-warning at runtime).
+Older documents are normalized transparently on every ingest path: pre-v2 flat
+props move into the `props` bag, v3 runtime-composition documents keep their
+meaning, and v4 deterministically adds missing element names. Unknown or
+unregistered types stay losslessly in the tree (flagged in the builder, skipped
+with a one-time warning at runtime).
 
 ## Custom elements
 
@@ -130,9 +133,14 @@ const config: PageConfig = {
 
 ## Field contract
 
-Pages are usually projections of a DTO — the field names and types are known
-up front. Declare them as `config.fields` and authors *pick* fields instead of
-inventing names: the props panel's field name becomes a select filtered to the
+Every element has one page-wide unique `name`, which is its exact Page-Code
+key (`elements.pageTitle`). For value elements, the same name is also the form
+and DTO property (`elements.username` and `fields.username`); there is no
+second field-name or identifier property.
+
+Pages are usually projections of a DTO — the value-element names and types are
+known up front. Declare them as `config.fields` and authors *pick* fields instead
+of inventing names: the props panel's Name becomes a select filtered to the
 value types each element can edit (`ElementValueSpec.types`; the rating above
 declares `types: ['number']` and shows up for number fields), the palette
 gains a draggable **Fields** group that drops pre-bound default elements, an
@@ -153,6 +161,120 @@ const config: PageConfig = {
   ],
 };
 ```
+
+## Page-owned translations
+
+Human-readable element properties use stable translation keys instead of
+embedding one object per language into every node. The root owns the editable
+catalogue and Element Code keeps only a data-safe reference:
+
+```jsonc
+{
+  "type": "page",
+  "translations": {
+    "de": { "page.submit.label": "Anmelden" },
+    "en": { "page.submit.label": "Sign in" }
+  }
+}
+```
+
+```js
+element.props.label = i18n.text('page.submit.label', undefined, 'Sign in');
+```
+
+The Builder's **Translations** tab edits the catalogue, reports missing/unused
+keys and shares its language with the preview. Localizability is explicit
+element metadata (`valueKind: 'localized-text'`), so layout strings such as
+`style.width` never accidentally get translation UI. Monaco completes the
+keys present in the page document. At runtime page messages win, then the
+host's `@cocoar/vue-localization` store is consulted, followed by the binding
+fallback and finally the key itself. The legacy `LocalizedValue` shape remains
+readable for existing documents, but new authoring uses translation bindings.
+
+## JavaScript property bindings
+
+Bindable properties can retain a static fallback and opt into a pure
+JavaScript expression. In the right-hand Properties panel, a compact `fx`
+control in the property's label row switches modes without opening an editor
+(struck through = static, accent colour = expression). Its explicit Edit action
+opens the shared lazy Monaco dialog. Disabled expressions remain persisted with
+`enabled: false`, so switching modes never loses authored code. The optional
+Logic overview opens that same dialog and edits the same record:
+
+```ts
+const submit = {
+  id: 'submit',
+  type: 'button',
+  props: { label: 'Sign in', disabled: false },
+  bindings: {
+    disabled: {
+      source: 'expression',
+      expression: '!fields.username?.trim() || !fields.password',
+    },
+  },
+};
+```
+
+The builder never evaluates this source. A host-owned sandbox session extracts
+definitions with `collectPageRuntimeExpressions()`, evaluates them, and passes
+the data-only result map to `CoarPageRenderer.expressionValues` (or
+`CoarPageBuilder.previewExpressionValues`). Static props remain active during
+startup and after runtime failures. Monaco is lazy-loaded in JavaScript mode;
+host field/context contracts provide its IntelliSense declarations.
+
+## Browser Page Runtime
+
+The package contains the SES Worker runtime used by Page State and Element Code.
+Create the host once in the consumer application. It is a capability catalogue,
+not shared page state; every `usePageCodeRuntime()` call owns an isolated Worker
+session and disposes it with the Vue component.
+
+```ts
+import {
+  definePageRuntimeHost,
+  withRuntimeEndowmentContext,
+} from '@cocoar/vue-page-builder';
+
+export const pageRuntimeHost = definePageRuntimeHost({
+  endowments: {
+    api: {
+      loadOptions: withRuntimeEndowmentContext(
+        ({ signal, tenantId }, source: unknown) =>
+          applicationApi.loadOptions(String(source), { tenantId, signal }),
+      ),
+    },
+  },
+  grants: ({ pageId, definition }) =>
+    pageId.startsWith('auth:') && definition.id.startsWith('element-action:')
+      ? ['api']
+      : [],
+});
+```
+
+```ts
+const runtime = usePageCodeRuntime({
+  pageId,
+  tenantId,
+  schema,
+  context,
+  viewport,
+  runtimeHost: pageRuntimeHost,
+});
+```
+
+Pass `runtime.pageCodeValues` and `runtime.onRuntimeChange` to the renderer and
+route unknown action ids through `runtime.runPageAction`. If no host is passed,
+the package uses a no-capability host: there is no ambient `fetch`, `window`, DOM
+or application API inside tenant code.
+
+The package also exports four optional integration presets:
+`createAuthPageDocument()` and `createAuthPageConfig()` for `login`,
+`password-forgot`, `logout` and `consent`. They are example/default documents;
+all underlying elements, repeaters, feedback zones and runtime APIs remain
+generic.
+
+See [IDP_INTEGRATION.md](./IDP_INTEGRATION.md) for the complete draft/publish,
+host-action and security contract.
 
 ## Documentation
 

@@ -22,14 +22,14 @@ const VARIANT_OPTIONS: CoarSelectOption<string>[] = [
 
 <template>
   <CoarFormField :label="t('coar.pageBuilder.props.text', undefined, 'Text')">
-    <CoarTextInput
+    <CoarTextInput size="s"
       :model-value="props.node.props.text ?? ''"
       :rows="3"
       @update:model-value="(v) => props.patch({ props: { text: v } })"
     />
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.variant', undefined, 'Variant')">
-    <CoarSelect
+    <CoarSelect size="s"
       :model-value="props.node.props.variant ?? 'neutral'"
       :options="VARIANT_OPTIONS"
       @update:model-value="(v) => props.patch({ props: { variant: v as NoteNode['props']['variant'] } })"

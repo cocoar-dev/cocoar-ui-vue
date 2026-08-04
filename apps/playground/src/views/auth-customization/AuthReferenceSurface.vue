@@ -9,7 +9,11 @@ import {
   CoarPasswordInput,
   CoarTextInput,
 } from '@cocoar/vue-ui';
-import { AUTH_LAB_COPY, type AuthLabLocale, type AuthLabSlot } from './authLabSchemas';
+import {
+  AUTH_PAGE_COPY as AUTH_LAB_COPY,
+  type AuthPageLocale as AuthLabLocale,
+  type AuthPageSlot as AuthLabSlot,
+} from '@cocoar/vue-page-builder';
 import type { AuthLabProvider } from './authLabRuntime';
 import { postAuthLab } from './authLabClient';
 

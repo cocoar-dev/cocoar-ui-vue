@@ -8,6 +8,19 @@ export type {
   PageNode,
   ElementType,
   NodeStyle,
+  PageBreakpoint,
+  ResponsiveNodeStyles,
+  PageContextValueType,
+  PageContextItemField,
+  PageContextField,
+  RuntimeBinding,
+  RuntimeExpressionBinding,
+  RuntimeExpressionValues,
+  RuntimeTemplate,
+  PropertyBinding,
+  LocalizedValue,
+  TranslationBinding,
+  PageTranslations,
   FieldValidation,
   VisibleWhen,
   ContainerNode,
@@ -20,11 +33,14 @@ export type {
   StackNode,
   CardNode,
   SectionNode,
+  RepeatNode,
+  RepeatSelection,
   DividerNode,
   SpacerNode,
   HeadingNode,
   ParagraphNode,
   NoteNode,
+  FeedbackNode,
   TextInputNode,
   PasswordInputNode,
   NumberInputNode,
@@ -45,6 +61,68 @@ export type {
 } from './schema';
 
 export { isContainerNode, isElementAllowed } from './schema';
+export { CURRENT_PAGE_SCHEMA_VERSION } from './schema';
+
+// ─── Browser Page Runtime ────────────────────────────────────────────────────
+
+export {
+  PageScriptRuntime,
+  withRuntimeEndowmentContext,
+  type ContextualRuntimeEndowmentMethod,
+  type ContextualRuntimeEndowmentMethodHandler,
+  type PageScriptRuntimeContext,
+  type RuntimeEndowmentContext,
+  type RuntimeEndowmentObject,
+  type RuntimeEndowments,
+  type RuntimeInvocation,
+} from './runtime/PageScriptRuntime';
+export {
+  PageRuntimeHost,
+  PageRuntimeSession,
+  definePageRuntimeHost,
+  type PageRuntimeGrantContext,
+  type PageRuntimeHostOptions,
+  type PageRuntimeSessionOptions,
+} from './runtime/PageRuntimeHost';
+export {
+  cloneRuntimeValue,
+  type MainToRuntimeMessage,
+  type RuntimeBindingDefinition,
+  type RuntimeBootstrapMetrics,
+  type RuntimeDefinition,
+  type RuntimeEndowmentDescriptor,
+  type RuntimeEndowmentGrants,
+  type RuntimeInitializationMetrics,
+  type RuntimePath,
+  type RuntimeReactiveUpdate,
+  type RuntimeResourceDefinition,
+  type RuntimeResourceState,
+  type RuntimeResourceStatus,
+  type RuntimeScriptDefinition,
+  type RuntimeStatePatch,
+  type RuntimeStateUpdateMetrics,
+  type RuntimeToMainMessage,
+  type RuntimeValue,
+} from './runtime/runtimeProtocol';
+export {
+  usePageCodeRuntime,
+  type PageCodeRuntimeOptions,
+} from './runtime/usePageCodeRuntime';
+export {
+  AUTH_PAGE_COPY,
+  createAuthPageConfig,
+  createAuthPageDocument,
+  type AuthPageLocale,
+  type AuthPageSlot,
+} from './presets/authCustomization';
+
+export {
+  PAGE_BREAKPOINT_WIDTHS,
+  breakpointForWidth,
+  resolveNodeStyle,
+  localNodeStyle,
+} from './responsive';
+export { safeCssLength } from './styleMapping';
 
 export {
   normalizePageSchema,
@@ -64,8 +142,11 @@ export {
   mergeElementRegistries,
   PAGE_ELEMENTS_KEY,
   ELEMENT_KEY_PATTERN,
+  QUICK_PROPERTY_PRESETS,
   type PageElementDefinition,
   type PageElementBuilderDefinition,
+  type PageElementQuickProperty,
+  type PageElementQuickPropertyOption,
   type PageElementRegistry,
   type ElementValueSpec,
   type ElementLintIssue,
@@ -74,6 +155,62 @@ export {
 
 export { usePageElement, type PageElementContext } from './elements/usePageElement';
 export { useResolvedOptions } from './elements/useResolvedOptions';
+
+export { evaluateCondition, type ConditionSources } from './conditions';
+export {
+  safeReadPath,
+  matchesContextType,
+  readAllowedContext,
+  resolveLocalizedValue,
+  resolveRuntimeBinding,
+  resolvePropertyBinding,
+  resolveNodeRuntime,
+  resolveExpressionStyle,
+  isExpressionBinding,
+  isExpressionBindingEnabled,
+  runtimeExpressionKey,
+  type RuntimeResolutionContext,
+} from './runtimeBindings';
+
+export {
+  isTranslationBinding,
+  translation,
+  pageTranslationTemplate,
+  resolveTranslation,
+  translationKeyFor,
+} from './translations';
+
+export { validatePageDocument, type PageDocumentIssue, type PageDocumentValidationResult } from './documentValidation';
+
+export {
+  collectPageRuntimeExpressions,
+  pageRuntimeExpressionSource,
+  type PageRuntimeExpressionDefinition,
+} from './runtimeExpressions';
+export {
+  DEFAULT_PAGE_CODE,
+  applyPageCodeValues,
+  createPageCodeDrafts,
+  normalizePageCodeOutput,
+  pageCodeRuntimeSource,
+  pageStateRuntimeSource,
+  elementComputeRuntimeSource,
+  elementActionRuntimeSource,
+  readElementQuickProperties,
+  setElementQuickProperty,
+  elementBindingId,
+  elementActionDefinitionId,
+  elementClickActionId,
+  DEFAULT_PAGE_STATE_CODE,
+  DEFAULT_ELEMENT_CODE,
+  constrainPageStateCode,
+  constrainElementCode,
+  elementCodeHasClickAction,
+  type PageCodeDraftSet,
+  type PageCodeElementDraft,
+  type PageCodeRuntimeInput,
+  type PageCodeRuntimeValues,
+} from './pageCode';
 
 export {
   isFieldCompatible,

@@ -1,5 +1,5 @@
 import type { SwitchNode } from '../../schema';
-import { definePageElement } from '../registry';
+import { definePageElement, QUICK_PROPERTY_PRESETS as quick } from '../registry';
 import SwitchRenderer from './SwitchRenderer.vue';
 import SwitchPreview from './SwitchPreview.vue';
 import SwitchInspector from './SwitchInspector.vue';
@@ -15,6 +15,7 @@ export const switchElement = definePageElement<SwitchNode['props']>({
     icon: 'check',
     group: 'element',
     defaults: () => ({ label: 'Switch' }),
+    quickProperties: [quick.label, quick.disabled, quick.required, quick.width],
     preview: SwitchPreview,
     inspector: SwitchInspector,
     inspectorTitle: { key: 'coar.pageBuilder.props.section.switch', fallback: 'Switch' },

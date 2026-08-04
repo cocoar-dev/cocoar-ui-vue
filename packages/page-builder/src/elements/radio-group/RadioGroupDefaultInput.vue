@@ -20,7 +20,7 @@ const choices = computed(() => toSelectOptions(componentProps.props.options));
 </script>
 
 <template>
-  <CoarSelect
+  <CoarSelect size="s"
     :model-value="(componentProps.modelValue as string | undefined) ?? null"
     :options="choices"
     :placeholder="t('coar.pageBuilder.props.none', undefined, '— none')"

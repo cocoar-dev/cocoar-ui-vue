@@ -4,6 +4,63 @@ import type { NodeStyle } from './schema';
 /** Flex direction of the parent container — drives how `size: 'fill'` maps. */
 export type FlexDirection = 'row' | 'column';
 
+/** Harmless CSS lengths only: numbers, common units and calc/min/max/clamp arithmetic. */
+export function safeCssLength(value: string | undefined): string | undefined {
+  if (!value || value.length > 120) return undefined;
+  if (/url|var|expression|[;{}\\]/i.test(value)) return undefined;
+  return /^[\d\s.,+\-*/%()a-z]+$/i.test(value)
+    && !/[a-z]/i.test(value.replace(/calc|min|max|clamp|px|rem|em|vh|vw|vmin|vmax|ch|auto|fit-content/g, ''))
+    ? value
+    : undefined;
+}
+
+const SURFACES = {
+  default: 'var(--coar-surface-default, #fff)',
+  subtle: 'var(--coar-surface-neutral-subtle, #f7f7f9)',
+  raised: 'var(--coar-surface-raised, #fff)',
+  accent: 'var(--coar-surface-accent-subtle, #e6eefa)',
+  success: 'var(--coar-surface-semantic-success-subtle, #e8f5ed)',
+  warning: 'var(--coar-surface-semantic-warning-subtle, #fef3c7)',
+  error: 'var(--coar-surface-semantic-error-subtle, #fde8e4)',
+} as const;
+const FOREGROUNDS = {
+  primary: 'var(--coar-text-neutral-primary, #111)',
+  secondary: 'var(--coar-text-neutral-secondary, #666)',
+  tertiary: 'var(--coar-text-neutral-tertiary, #888)',
+  inverse: 'var(--coar-text-inverse, #fff)',
+  accent: 'var(--coar-text-accent, #1666cc)',
+  success: 'var(--coar-text-semantic-success-bold, #176b3a)',
+  warning: 'var(--coar-text-semantic-warning-bold, #92400e)',
+  error: 'var(--coar-text-semantic-error-bold, #c0392b)',
+} as const;
+const BORDERS = {
+  neutral: 'var(--coar-border-neutral, #dfe1e7)',
+  accent: 'var(--coar-border-accent, #1666cc)',
+  success: 'var(--coar-border-semantic-success, #22834b)',
+  warning: 'var(--coar-border-semantic-warning, #b7791f)',
+  error: 'var(--coar-border-semantic-error, #c0392b)',
+} as const;
+const RADII = { none: '0', small: '4px', medium: '8px', large: '16px', full: '9999px' } as const;
+const SHADOWS = {
+  none: 'none',
+  small: 'var(--coar-shadow-small, 0 1px 3px rgba(0,0,0,.12))',
+  medium: 'var(--coar-shadow-medium, 0 4px 12px rgba(0,0,0,.14))',
+  large: 'var(--coar-shadow-large, 0 12px 28px rgba(0,0,0,.18))',
+} as const;
+const FONT_FAMILIES = {
+  body: 'var(--coar-body-base-family, sans-serif)',
+  heading: 'var(--coar-heading-family, var(--coar-body-base-family, sans-serif))',
+  mono: 'var(--coar-monospace-family, ui-monospace, monospace)',
+} as const;
+const FONT_SIZES = {
+  caption: 'var(--coar-body-caption-size, 12px)', small: 'var(--coar-body-small-base-size, 14px)',
+  base: 'var(--coar-body-base-size, 16px)', large: 'var(--coar-heading-small-size, 20px)',
+  xlarge: 'var(--coar-heading-medium-size, 24px)', display: 'var(--coar-heading-large-size, 32px)',
+} as const;
+const FONT_WEIGHTS = { regular: '400', medium: '500', semibold: '600', bold: '700' } as const;
+const LINE_HEIGHTS = { tight: '1.2', normal: '1.5', relaxed: '1.75' } as const;
+const LETTER_SPACING = { tight: '-0.025em', normal: 'normal', wide: '0.05em' } as const;
+
 /**
  * How a node sits inside its parent's flex layout: cross-axis self-alignment
  * (`align-self`) and main-axis sizing (the simple `size` + `width` model).
@@ -32,16 +89,32 @@ export function selfLayoutStyle(
     else css.width = '100%';
   } else if (style.size === 'fixed') {
     css.flex = '0 0 auto';
-    if (style.width) css.width = style.width;
+    if (safeCssLength(style.width)) css.width = safeCssLength(style.width);
   } else if (style.size === 'fit') {
     css.flex = '0 0 auto';
   } else if (style.width) {
     // Back-compat: a width set without an explicit `size` behaves as 'fixed'.
     css.flex = '0 0 auto';
-    css.width = style.width;
+    if (safeCssLength(style.width)) css.width = safeCssLength(style.width);
   }
 
-  if (style.minHeight) css.minHeight = style.minHeight;
+  if (safeCssLength(style.minHeight)) css.minHeight = safeCssLength(style.minHeight);
+  if (safeCssLength(style.minWidth)) css.minWidth = safeCssLength(style.minWidth);
+  if (safeCssLength(style.maxWidth)) css.maxWidth = safeCssLength(style.maxWidth);
+  if (safeCssLength(style.height)) css.height = safeCssLength(style.height);
+  if (style.hidden) css.display = 'none';
+  if (style.surface) css.background = SURFACES[style.surface];
+  if (style.foreground) css.color = FOREGROUNDS[style.foreground];
+  if (style.borderTone) css.borderColor = BORDERS[style.borderTone];
+  if (style.borderWidth) { css.borderWidth = style.borderWidth; css.borderStyle = style.borderWidth === '0' ? 'none' : 'solid'; }
+  if (style.radius) css.borderRadius = RADII[style.radius];
+  if (style.elevation) css.boxShadow = SHADOWS[style.elevation];
+  if (style.fontFamily) css.fontFamily = FONT_FAMILIES[style.fontFamily];
+  if (style.fontSize) css.fontSize = FONT_SIZES[style.fontSize];
+  if (style.fontWeight) css.fontWeight = FONT_WEIGHTS[style.fontWeight];
+  if (style.lineHeight) css.lineHeight = LINE_HEIGHTS[style.lineHeight];
+  if (style.letterSpacing) css.letterSpacing = LETTER_SPACING[style.letterSpacing];
+  if (style.textAlign) css.textAlign = style.textAlign;
 
   return css;
 }
@@ -55,7 +128,7 @@ export function selfLayoutStyle(
  */
 export function selfStyle(style?: NodeStyle, parentDirection: FlexDirection = 'column'): CSSProperties {
   const css = selfLayoutStyle(style, parentDirection);
-  if (style?.padding) css.padding = style.padding;
+  if (safeCssLength(style?.padding)) css.padding = safeCssLength(style?.padding);
   return css;
 }
 
@@ -67,8 +140,9 @@ export function selfStyle(style?: NodeStyle, parentDirection: FlexDirection = 'c
 export function containerLayoutStyle(style?: NodeStyle): CSSProperties {
   const css: CSSProperties = {};
   if (!style) return css;
-  if (style.gap) css.gap = style.gap;
+  if (safeCssLength(style.gap)) css.gap = safeCssLength(style.gap);
   if (style.justify) css.justifyContent = style.justify;
   if (style.align) css.alignItems = style.align;
+  if (style.wrap !== undefined) css.flexWrap = style.wrap ? 'wrap' : 'nowrap';
   return css;
 }

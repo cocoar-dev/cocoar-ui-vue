@@ -2,12 +2,28 @@ import { describe, it, expect } from 'vitest';
 import { ref } from 'vue';
 import { useSchemaValidation } from './useSchemaValidation';
 import type { PageConfig, PageNode } from '../schema';
+import { elementNameBase } from './nodeDefaults';
 
 function validate(schema: PageNode, config?: PageConfig) {
   return useSchemaValidation(ref(schema), ref(config)).issues.value;
 }
 
-const page = (children: PageNode[]): PageNode => ({ id: 'root', type: 'page', children });
+function addMissingNames(node: PageNode): PageNode {
+  if (node.type === 'page') return { ...node, children: node.children.map(addMissingNames) };
+  return {
+    ...node,
+    name: node.name || elementNameBase(node.id),
+    ...('children' in node && Array.isArray(node.children)
+      ? { children: node.children.map(addMissingNames) }
+      : {}),
+  } as PageNode;
+}
+
+const page = (children: PageNode[]): PageNode => ({
+  id: 'root',
+  type: 'page',
+  children: children.map(addMissingNames),
+});
 
 describe('useSchemaValidation', () => {
   it('reports nothing for a clean schema', () => {
@@ -50,6 +66,15 @@ describe('useSchemaValidation', () => {
     ]));
     expect(issues.map((i) => i.nodeId).sort()).toEqual(['t1', 't2']);
     expect(issues.every((i) => i.severity === 'error')).toBe(true);
+  });
+
+  it('requires unique names for non-value elements too', () => {
+    const issues = validate(page([
+      { id: 'first', type: 'heading', name: 'title', props: { text: 'One' } },
+      { id: 'second', type: 'paragraph', name: 'title', props: { text: 'Two' } },
+    ]));
+    expect(issues.filter((issue) => issue.field === 'name')).toHaveLength(2);
+    expect(issues.every((issue) => issue.message.includes('Duplicate name'))).toBe(true);
   });
 
   it('warns when optionsSourceId is set without config.optionsSource', () => {

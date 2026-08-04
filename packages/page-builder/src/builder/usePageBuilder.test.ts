@@ -94,11 +94,11 @@ describe('usePageBuilder.addChild', () => {
     expect(added('section').props).toEqual({ title: 'Section' });
   });
 
-  it('mints a field name only for value elements', () => {
-    expect(added('select').name).toMatch(/^field_/);
-    expect(added('text-input').name).toMatch(/^field_/);
-    expect(added('heading').name).toBeUndefined();
-    expect(added('section').name).toBeUndefined();
+  it('mints one readable public name for every element', () => {
+    expect(added('select').name).toBe('select');
+    expect(added('text-input').name).toBe('textInput');
+    expect(added('heading').name).toBe('heading');
+    expect(added('section').name).toBe('section');
   });
 
   it('gives only containers a children array', () => {
@@ -130,7 +130,7 @@ describe('usePageBuilder.addChild', () => {
       PageNode & { props: Record<string, unknown>; name?: string };
     expect(node.type).toBe('acme-rating');
     expect(node.props).toEqual({ max: 5 });
-    expect(node.name).toMatch(/^field_/);
+    expect(node.name).toBe('acmeRating');
   });
 
   it('is a no-op for unregistered types', () => {
@@ -239,7 +239,7 @@ describe('usePageBuilder.convertTo — representation switch', () => {
 });
 
 describe('usePageBuilder.addChild — strict-contract minting rule', () => {
-  it('leaves fresh value elements unbound under a strict contract', () => {
+  it('still gives fresh value elements a Page-Code name under a strict contract', () => {
     const builder = usePageBuilder({
       initial: page([]),
       config: computed(() => ({ fields: [{ name: 'username', valueType: 'string' as const }] })),
@@ -247,10 +247,10 @@ describe('usePageBuilder.addChild — strict-contract minting rule', () => {
     builder.addChild([], 'text-input');
     const node = (builder.schema.value as { children: PageNode[] }).children[0] as
       PageNode & { name?: string };
-    expect(node.name).toBeUndefined();
+    expect(node.name).toBe('textInput');
   });
 
-  it('keeps minting when allowCustomFields is on', () => {
+  it('uses the same naming rule when allowCustomFields is on', () => {
     const builder = usePageBuilder({
       initial: page([]),
       config: computed(() => ({
@@ -261,7 +261,7 @@ describe('usePageBuilder.addChild — strict-contract minting rule', () => {
     builder.addChild([], 'text-input');
     const node = (builder.schema.value as { children: PageNode[] }).children[0] as
       PageNode & { name?: string };
-    expect(node.name).toMatch(/^field_/);
+    expect(node.name).toBe('textInput');
   });
 });
 

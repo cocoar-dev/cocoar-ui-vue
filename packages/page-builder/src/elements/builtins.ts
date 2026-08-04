@@ -10,11 +10,13 @@ import type { PageElementRegistry, PageElementDefinition } from './registry';
 import { stackElement } from './stack';
 import { cardElement } from './card';
 import { sectionElement } from './section';
+import { repeatElement } from './repeat';
 import { dividerElement } from './divider';
 import { spacerElement } from './spacer';
 import { headingElement } from './heading';
 import { paragraphElement } from './paragraph';
 import { noteElement } from './note';
+import { feedbackElement } from './feedback';
 import { textInputElement } from './text-input';
 import { passwordInputElement } from './password-input';
 import { numberInputElement } from './number-input';
@@ -38,9 +40,11 @@ const TABLE: Record<Exclude<ElementType, 'page'>, PageElementDefinition<any>> = 
   stack: stackElement,
   card: cardElement,
   section: sectionElement,
+  repeat: repeatElement,
   heading: headingElement,
   paragraph: paragraphElement,
   note: noteElement,
+  feedback: feedbackElement,
   divider: dividerElement,
   spacer: spacerElement,
   'text-input': textInputElement,

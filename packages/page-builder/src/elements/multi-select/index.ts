@@ -1,5 +1,5 @@
 import type { MultiSelectNode } from '../../schema';
-import { definePageElement } from '../registry';
+import { definePageElement, QUICK_PROPERTY_PRESETS as quick } from '../registry';
 import MultiSelectRenderer from './MultiSelectRenderer.vue';
 import MultiSelectPreview from './MultiSelectPreview.vue';
 import MultiSelectInspector from './MultiSelectInspector.vue';
@@ -21,6 +21,7 @@ export const multiSelectElement = definePageElement<MultiSelectNode['props']>({
         { value: 'b', label: 'Option B' },
       ],
     }),
+    quickProperties: [quick.label, quick.placeholder, quick.disabled, quick.required, quick.width],
     preview: MultiSelectPreview,
     inspector: MultiSelectInspector,
     inspectorTitle: { key: 'coar.pageBuilder.props.section.multiSelect', fallback: 'Multi select' },

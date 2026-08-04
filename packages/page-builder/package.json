@@ -34,7 +34,8 @@
     "./styles": "./dist/index.css"
   },
   "files": [
-    "dist"
+    "dist",
+    "IDP_INTEGRATION.md"
   ],
   "scripts": {
     "build": "vite build",
@@ -44,15 +45,20 @@
   },
   "peerDependencies": {
     "@cocoar/vue-localization": "workspace:*",
+    "@cocoar/vue-script-editor": "workspace:*",
     "@cocoar/vue-ui": "workspace:*",
+    "monaco-editor": "^0.55.1",
     "vue": "^3.5.0"
   },
   "devDependencies": {
     "@cocoar/vue-localization": "workspace:*",
+    "@cocoar/vue-script-editor": "workspace:*",
     "@cocoar/vue-ui": "workspace:*",
+    "monaco-editor": "^0.55.1",
     "vue": "^3.5.32"
   },
   "dependencies": {
-    "@js-temporal/polyfill": "^0.5.1"
+    "@js-temporal/polyfill": "^0.5.1",
+    "ses": "2.2.0"
   }
 }

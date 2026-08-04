@@ -26,13 +26,13 @@ const OTP_TYPE_OPTIONS: CoarSelectOption<string>[] = [
 
 <template>
   <CoarFormField :label="t('coar.pageBuilder.props.label', undefined, 'Label')">
-    <CoarTextInput
+    <CoarTextInput size="s"
       :model-value="props.node.props.label ?? ''"
       @update:model-value="(v) => props.patch({ props: { label: v } })"
     />
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.length', undefined, 'Length')">
-    <CoarNumberInput
+    <CoarNumberInput size="s"
       clearable
       :min="3"
       :max="12"
@@ -42,18 +42,18 @@ const OTP_TYPE_OPTIONS: CoarSelectOption<string>[] = [
     />
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.otpType', undefined, 'Character set')">
-    <CoarSelect
+    <CoarSelect size="s"
       :model-value="props.node.props.otpType ?? 'numeric'"
       :options="OTP_TYPE_OPTIONS"
       @update:model-value="(v) => props.patch({ props: { otpType: v as OtpInputNode['props']['otpType'] } })"
     />
   </CoarFormField>
-  <CoarCheckbox
+  <CoarCheckbox size="s"
     :model-value="!!props.node.props.mask"
     :label="t('coar.pageBuilder.props.mask', undefined, 'Mask input')"
     @update:model-value="(v) => props.patch({ props: { mask: v || undefined } })"
   />
-  <CoarCheckbox
+  <CoarCheckbox size="s"
     :model-value="!!props.node.props.disabled"
     :label="t('coar.pageBuilder.props.disabled', undefined, 'Disabled')"
     @update:model-value="(v) => props.patch({ props: { disabled: v } })"

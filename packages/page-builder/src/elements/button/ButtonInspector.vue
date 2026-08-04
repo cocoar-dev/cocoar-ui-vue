@@ -10,6 +10,7 @@ import {
 } from '@cocoar/vue-ui';
 import type { ButtonNode } from '../../schema';
 import { BUILDER_CONFIG } from '../../builder/builderContext';
+import BuilderFxButton from '../../builder/BuilderFxButton.vue';
 
 const props = defineProps<{
   node: ButtonNode;
@@ -68,7 +69,7 @@ const sizeOptions = computed<CoarSelectOption<string>[]>(() => [
 
 <template>
   <CoarFormField :label="t('coar.pageBuilder.props.label', undefined, 'Label')">
-    <CoarTextInput
+    <CoarTextInput size="s"
       :model-value="props.node.props.label ?? ''"
       @update:model-value="(v) => props.patch({ props: { label: v } })"
     />
@@ -78,13 +79,13 @@ const sizeOptions = computed<CoarSelectOption<string>[]>(() => [
     :label="t('coar.pageBuilder.props.action', undefined, 'Action')"
     :hint="t('coar.pageBuilder.props.actionHint', undefined, 'Matched against the actions map at render time')"
   >
-    <CoarSelect
+    <CoarSelect size="s"
       v-if="actionOptions"
       :model-value="props.node.props.action ?? ''"
       :options="actionOptions"
       @update:model-value="(v) => props.patch({ props: { action: (v as string) || undefined } })"
     />
-    <CoarTextInput
+    <CoarTextInput size="s"
       v-else
       :model-value="props.node.props.action ?? ''"
       placeholder="e.g. auth:login"
@@ -93,32 +94,44 @@ const sizeOptions = computed<CoarSelectOption<string>[]>(() => [
   </CoarFormField>
 
   <CoarFormField :label="t('coar.pageBuilder.props.variant', undefined, 'Variant')">
-    <CoarSelect
+    <CoarSelect size="s"
       :model-value="props.node.props.variant ?? 'primary'"
       :options="VARIANT_OPTIONS"
       @update:model-value="(v) => props.patch({ props: { variant: v as ButtonNode['props']['variant'] } })"
     />
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.size', undefined, 'Size')">
-    <CoarSelect
+    <CoarSelect size="s"
       :model-value="props.node.props.size ?? ''"
       :options="sizeOptions"
       @update:model-value="(v) => props.patch({ props: { size: (v || undefined) as ButtonNode['props']['size'] } })"
     />
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.iconLeft', undefined, 'Icon (left)')">
-    <CoarTextInput
+    <CoarTextInput size="s"
       :model-value="props.node.props.icon ?? ''"
       placeholder="e.g. log-in"
       @update:model-value="(v) => props.patch({ props: { icon: v } })"
     />
   </CoarFormField>
-  <CoarCheckbox
+  <CoarCheckbox size="s"
     :model-value="!!props.node.props.validates"
     :label="t('coar.pageBuilder.props.validatesForm', undefined, 'Validates form before firing')"
     @update:model-value="(v) => props.patch({ props: { validates: v } })"
   />
-  <CoarCheckbox
+  <BuilderFxButton
+    :node="props.node"
+    target="disabled"
+    label="Disabled"
+    :static-value="!!props.node.props.disabled"
+    :patch="props.patch"
+  >
+    <CoarCheckbox size="s"
+      :model-value="!!props.node.props.disabled"
+      @update:model-value="(v) => props.patch({ props: { disabled: v || undefined } })"
+    />
+  </BuilderFxButton>
+  <CoarCheckbox size="s"
     :model-value="!!props.node.props.default"
     :label="t('coar.pageBuilder.props.defaultButton', undefined, 'Default button (Enter submits here)')"
     @update:model-value="(v) => props.patch({ props: { default: v || undefined } })"

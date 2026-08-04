@@ -172,7 +172,11 @@ function configureCompilerLibs(): void {
     allowNonTsExtensions: true,
   };
   ts.setCompilerOptions(options);
-  js.setCompilerOptions(options);
+  // Monaco otherwise treats JavaScript as syntax-only input: completion works,
+  // but undeclared identifiers such as `username2` do not produce semantic
+  // diagnostics. Page Code relies on those diagnostics to catch stale or
+  // non-destructured element names before the sandbox executes them.
+  js.setCompilerOptions({ ...options, allowJs: true, checkJs: true });
 }
 
 /**
@@ -362,6 +366,8 @@ function applyScriptMode(language: CoarScriptEditorLanguage, enabled: boolean): 
   for (const code of SCRIPT_MODE_DIAGNOSTIC_CODES) existing.add(code);
   defaults.setDiagnosticsOptions({
     ...current,
+    noSemanticValidation: false,
+    noSyntaxValidation: false,
     diagnosticCodesToIgnore: Array.from(existing),
   });
 }

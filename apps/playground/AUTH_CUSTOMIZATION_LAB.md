@@ -2,7 +2,9 @@
 
 This playground route is the executable hand-off for bringing Modgud's built-in
 authentication pages to JSON/PageBuilder parity without coupling the experiment
-to the .NET application.
+to the .NET application. Runtime and default Auth documents are imported from
+the public `@cocoar/vue-page-builder` beta API; no production integration code
+lives only in this Playground.
 
 ## Run it
 
@@ -25,6 +27,22 @@ The detailed package-team request and acceptance criteria live in
 For each slot the lab exposes the fixed reference, the live JSON renderer, the
 real visual PageBuilder and the persisted JSON document. The viewport selector
 covers 320 px compact, phone, tablet, desktop and a fluid host container.
+
+The renderer and Builder preview both execute the current code-authoring model:
+
+- one browser-only SES Worker session per selected page;
+- customer-authored `definePageState(...)` shared by the page;
+- constrained `defineElement(...)` code per named element;
+- registry-driven Quick Properties that write deterministic locked assignments
+  into the same element source;
+- reactive `page.fields`, `page.form`, allowlisted `page.context` and
+  `page.viewport` inputs;
+- host-owned action handlers, API access and navigation.
+
+The Login submit button is the smallest executable example. Its disabled state
+is computed from `page.fields.username`, `page.fields.password`,
+`page.form.valid` and `page.form.submitting`. It is not a Login-specific
+component or a special disabled-expression input in the editor.
 
 The **View contract** mode is part of the hand-off, not optional documentation.
 For the selected slot it records runtime inputs, required states, actions,
@@ -64,17 +82,36 @@ retry.
 
 ## Ownership boundary
 
-The page JSON owns visual structure, copy placement and actions. Registered host
-elements own runtime data that cannot safely be persisted into a design:
-product/realm identity, legal links and a dynamic list of external providers.
+The page JSON owns visual structure, copy placement, Page State and per-element
+configuration code. The code may update an element's allowed draft properties,
+but cannot add/delete elements or change their `type`/`name`. Runtime data such
+as product/realm identity, legal-link availability, external providers and
+requested consent scopes is supplied by the host through explicitly declared
+context contracts.
+
+Authentication, authorization, API calls, tickets, redirects and other effects
+remain host-owned. No `api`, `fetch`, `window` or similar capability exists in a
+page session unless the host explicitly supplies a data-only capability contract.
 Browser tab title, email sender settings and other non-visual metadata remain
 outside the PageBuilder.
 
-The in-app **Use cases & gaps** matrix is the package backlog. In particular,
-the current builder still needs responsive overrides and viewport previews,
-token-aware visual styles, typography, elevation, host-context conditions,
-localized values, multi-state page variants and schema-positioned form feedback.
-Consent additionally defines the native array/repeater requirement: a safe host-array
-binding, item alias and stable key, repeatable child template, per-item form values and
-array-shaped action output. The registered consent-scopes element demonstrates the
-current consumer-owned workaround, not the desired final API.
+The in-app **Use cases & gaps** matrix now doubles as an executable acceptance
+matrix. Responsive overrides, token-aware styles, localization, multi-state
+pages, schema-positioned feedback and native repeat/selection arrays are backed
+by the actual generic PageBuilder primitives. Consent uses no consumer-specific
+scope component: the generic repeater turns the allowlisted
+`consent.requestedScopes` array into the freely named `approvedScopes` action
+value. Newly arriving default-selected items are selected without reselecting a
+value the user already unchecked.
+
+## Verification
+
+`packages/page-builder/src/presets/authCustomization.test.ts` validates all four generated documents, including Page
+State, safe unique element names and Element Code. The Playwright suite verifies:
+
+- reactive Login disabled/enabled transitions;
+- API rejection, timeout and value preservation;
+- every page slot at the 320 px compact fixture without horizontal overflow;
+- the real Builder, Quick Properties, Monaco Element Code and persisted code;
+- dynamic consent arrays, selected-key submission and expired-ticket feedback;
+- the security/behaviour contract for every slot.

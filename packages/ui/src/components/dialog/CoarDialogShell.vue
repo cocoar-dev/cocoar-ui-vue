@@ -195,6 +195,7 @@ const BodyRenderer = computed(() => {
 .coar-dialog--s { width: var(--coar-dialog-s-width); }
 .coar-dialog--m { width: var(--coar-dialog-m-width); }
 .coar-dialog--l { width: var(--coar-dialog-l-width); }
+.coar-dialog--xl { width: min(var(--coar-dialog-xl-width), calc(100vw - 32px)); }
 
 .coar-dialog-header {
   display: flex;

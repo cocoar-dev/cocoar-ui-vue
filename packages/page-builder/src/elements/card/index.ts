@@ -1,5 +1,5 @@
 import type { CardNode } from '../../schema';
-import { definePageElement } from '../registry';
+import { definePageElement, QUICK_PROPERTY_PRESETS as quick } from '../registry';
 import CardRenderer from './CardRenderer.vue';
 import CardInspector from './CardInspector.vue';
 
@@ -11,6 +11,7 @@ export const cardElement = definePageElement<CardNode['props']>({
     icon: 'square-dashed',
     group: 'container',
     defaults: () => ({}),
+    quickProperties: [quick.width, quick.gap, quick.padding, quick.hidden],
     inspector: CardInspector,
     inspectorTitle: { key: 'coar.pageBuilder.props.section.card', fallback: 'Card' },
   },

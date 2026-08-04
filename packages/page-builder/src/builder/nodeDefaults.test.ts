@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { cloneWithFreshIds, fieldName, uid } from './nodeDefaults';
+import { cloneWithFreshIds, elementNameBase, isValidElementName, uniqueElementName, uid } from './nodeDefaults';
 import type { PageNode } from '../schema';
 
 describe('uid', () => {
@@ -14,15 +14,12 @@ describe('uid', () => {
   });
 });
 
-describe('fieldName', () => {
-  it('mints readable, unique field keys', () => {
-    const names = new Set<string>();
-    for (let i = 0; i < 50; i++) {
-      const name = fieldName();
-      expect(name).toMatch(/^field_/);
-      names.add(name);
-    }
-    expect(names.size).toBe(50);
+describe('element names', () => {
+  it('mints readable, unique Page-Code names', () => {
+    expect(elementNameBase('password-input')).toBe('passwordInput');
+    expect(uniqueElementName('heading', new Set(['heading', 'heading2']))).toBe('heading3');
+    expect(isValidElementName('pageTitle')).toBe(true);
+    expect(isValidElementName('not-valid')).toBe(false);
   });
 });
 
@@ -31,13 +28,14 @@ describe('cloneWithFreshIds', () => {
     const original: PageNode = {
       id: 's1',
       type: 'stack',
+      name: 'formStack',
       props: {},
       children: [
-        { id: 'h1', type: 'heading', props: { text: 'Title', level: 3 } },
+        { id: 'h1', type: 'heading', name: 'title', props: { text: 'Title', level: 3 } },
         { id: 't1', type: 'text-input', props: {}, name: 'email', defaultValue: 'x@y.z' },
       ],
     };
-    const clone = cloneWithFreshIds(original) as typeof original;
+    const clone = cloneWithFreshIds(original, new Set(['formStack', 'title', 'email'])) as typeof original;
 
     const originalIds = ['s1', 'h1', 't1'];
     const cloneIds = [clone.id, ...clone.children.map((c) => c.id)];
@@ -45,7 +43,9 @@ describe('cloneWithFreshIds', () => {
     expect(new Set(cloneIds).size).toBe(3);
 
     expect((clone.children[0] as { props: { text: string } }).props.text).toBe('Title');
-    expect((clone.children[1] as { name?: string }).name).toBe('email');
+    expect(clone.name).toBe('formStack2');
+    expect((clone.children[0] as { name?: string }).name).toBe('title2');
+    expect((clone.children[1] as { name?: string }).name).toBe('email2');
     // The original stays untouched.
     expect(original.children[0].id).toBe('h1');
   });

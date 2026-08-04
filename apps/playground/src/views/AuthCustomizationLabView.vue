@@ -1,27 +1,22 @@
 <script setup lang="ts">
-import { computed, provide, reactive, ref, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { CoarButton, CoarNotice } from '@cocoar/vue-ui';
 import {
   CoarPageBuilder,
   CoarPageRenderer,
+  usePageCodeRuntime,
+  AUTH_PAGE_COPY as AUTH_LAB_COPY,
+  createAuthPageConfig as createAuthLabConfig,
+  createAuthPageDocument as createAuthLabSchema,
   type ActionHandler,
   type ActionValues,
+  type AuthPageLocale as AuthLabLocale,
+  type AuthPageSlot as AuthLabSlot,
   type PageNode,
 } from '@cocoar/vue-page-builder';
 import AuthReferenceSurface from './auth-customization/AuthReferenceSurface.vue';
 import ConsentReferenceSurface from './auth-customization/ConsentReferenceSurface.vue';
-import {
-  AUTH_LAB_COPY,
-  createAuthLabConfig,
-  createAuthLabSchema,
-  type AuthLabLocale,
-  type AuthLabSlot,
-} from './auth-customization/authLabSchemas';
-import {
-  AUTH_LAB_RUNTIME_KEY,
-  type AuthLabConsentScope,
-  type AuthLabProvider,
-} from './auth-customization/authLabRuntime';
+import type { AuthLabConsentScope, AuthLabProvider } from './auth-customization/authLabRuntime';
 import { postAuthLab } from './auth-customization/authLabClient';
 
 type LabMode = 'compare' | 'renderer' | 'builder' | 'json' | 'contract' | 'requirements';
@@ -68,8 +63,8 @@ const consentScenario = ref('success');
 const consentClientName = ref('Northwind Analytics');
 const consentClientHostname = ref('analytics.northwind.example');
 const dynamicConsentClient = ref(true);
-const approvedScopes = ref<Record<string, boolean>>({});
 const rendererResult = ref('');
+const stateOverride = ref('');
 
 const providers = computed<AuthLabProvider[]>(() =>
   [
@@ -133,41 +128,17 @@ const consentScopes = computed<AuthLabConsentScope[]>(() =>
   ].slice(0, scopeCount.value),
 );
 
-watch(
-  consentScopes,
-  (scopes) => {
-    approvedScopes.value = Object.fromEntries(scopes.map((scope) => [scope.name, true]));
-  },
-  { immediate: true },
-);
-
-provide(AUTH_LAB_RUNTIME_KEY, {
-  productName,
-  showLegal,
-  providers,
-  consentScopes,
-  approvedScopes,
-});
-
-const schemas = reactive<Record<AuthLabLocale, Record<AuthLabSlot, PageNode>>>({
-  de: {
-    login: createAuthLabSchema('login', 'de'),
-    'password-forgot': createAuthLabSchema('password-forgot', 'de'),
-    logout: createAuthLabSchema('logout', 'de'),
-    consent: createAuthLabSchema('consent', 'de'),
-  },
-  en: {
-    login: createAuthLabSchema('login', 'en'),
-    'password-forgot': createAuthLabSchema('password-forgot', 'en'),
-    logout: createAuthLabSchema('logout', 'en'),
-    consent: createAuthLabSchema('consent', 'en'),
-  },
+const schemas = reactive<Record<AuthLabSlot, PageNode>>({
+  login: createAuthLabSchema('login'),
+  'password-forgot': createAuthLabSchema('password-forgot'),
+  logout: createAuthLabSchema('logout'),
+  consent: createAuthLabSchema('consent'),
 });
 
 const schema = computed<PageNode>({
-  get: () => schemas[locale.value][slot.value],
+  get: () => schemas[slot.value],
   set: (value) => {
-    schemas[locale.value][slot.value] = value;
+    schemas[slot.value] = value;
   },
 });
 const pageConfig = computed(() => createAuthLabConfig(slot.value, locale.value));
@@ -175,6 +146,58 @@ const copy = computed(() => AUTH_LAB_COPY[locale.value]);
 
 watch([slot, locale], () => {
   rendererResult.value = '';
+  stateOverride.value = '';
+});
+
+const defaultViewState = computed(() => {
+  if (slot.value === 'login') return passwordless.value ? 'passwordless' : 'credentials';
+  if (slot.value === 'password-forgot') return passwordless.value ? 'passwordless-unavailable' : 'form';
+  if (slot.value === 'consent') return 'prompt';
+  return 'complete';
+});
+const viewState = computed(() => stateOverride.value || defaultViewState.value);
+const runtimeContext = computed<Record<string, unknown>>(() => ({
+  branding: { productName: productName.value, showLegal: showLegal.value },
+  auth: {
+    internalLoginEnabled: internalLogin.value,
+    passwordless: passwordless.value,
+    magicLinkEnabled: magicLink.value,
+    registrationEnabled: registration.value,
+    externalProviders: providers.value,
+  },
+  consent: {
+    clientName: consentClientName.value,
+    clientHostname: consentClientHostname.value,
+    isDynamicallyRegistered: dynamicConsentClient.value,
+    requestedScopes: consentScopes.value,
+  },
+  feedback: { message: rendererResult.value, success: rendererResult.value.length > 0 },
+  runtime: { viewState: viewState.value },
+}));
+const fallbackSchema = computed(() => createAuthLabSchema(slot.value));
+
+const runtimeViewport = computed(() => {
+  const width = viewports[viewport.value].width ?? 1280;
+  const breakpoint = width <= 359
+    ? 'compact'
+    : width <= 599
+      ? 'phone'
+      : width <= 899
+        ? 'tablet'
+        : 'desktop';
+  return { width, breakpoint };
+});
+
+const {
+  pageCodeValues,
+  onRuntimeChange,
+  runPageAction,
+} = usePageCodeRuntime({
+  pageId: computed(() => `auth-lab:${slot.value}`),
+  schema,
+  context: runtimeContext,
+  viewport: runtimeViewport,
+  tenantId: 'auth-lab',
 });
 
 const rendererActions: Record<string, ActionHandler> = {
@@ -187,6 +210,7 @@ const rendererActions: Record<string, ActionHandler> = {
     rendererResult.value = '';
     const response = await postAuthLab('forgot-password', values);
     rendererResult.value = response.message;
+    stateOverride.value = 'accepted';
   },
   'auth:passkey': () => {
     rendererResult.value = `${copy.value.passkey} (demo navigation suppressed).`;
@@ -200,29 +224,33 @@ const rendererActions: Record<string, ActionHandler> = {
   'auth:register': () => {
     rendererResult.value = `${copy.value.register} (demo navigation suppressed).`;
   },
+  'auth:external-provider': (values: ActionValues) => {
+    const provider = providers.value.find((entry) => entry.id === values.providerId);
+    rendererResult.value = `${copy.value.externalPrefix} ${provider?.name ?? String(values.providerId ?? '')} (demo navigation suppressed).`;
+  },
   'auth:back-to-login': () => {
     rendererResult.value = `${copy.value.back} (demo navigation suppressed).`;
   },
-  'auth:consent-deny': async () => {
+  'auth:consent-deny': async (values: ActionValues) => {
     rendererResult.value = '';
     const response = await postAuthLab('consent', {
       decision: 'deny',
       scenario: consentScenario.value,
-      approvedScopes: [],
+      approvedScopes: Array.isArray(values.approvedScopes) ? values.approvedScopes : [],
     });
     rendererResult.value = response.message;
   },
-  'auth:consent-allow': async () => {
+  'auth:consent-allow': async (values: ActionValues) => {
     rendererResult.value = '';
     const response = await postAuthLab('consent', {
       decision: 'allow',
       scenario: consentScenario.value,
-      approvedScopes: consentScopes.value
-        .filter((scope) => approvedScopes.value[scope.name])
-        .map((scope) => scope.name),
+      approvedScopes: Array.isArray(values.approvedScopes) ? values.approvedScopes : [],
     });
     rendererResult.value = response.message;
   },
+  'legal:terms': () => { rendererResult.value = 'Terms (demo navigation suppressed).'; },
+  'legal:privacy': () => { rendererResult.value = 'Privacy (demo navigation suppressed).'; },
 };
 
 const frameStyle = computed(() => ({
@@ -237,7 +265,7 @@ const frameStyle = computed(() => ({
 const frameClass = computed(() => ({ 'device-frame--fluid': viewport.value === 'fluid' }));
 
 function resetCurrentSchema() {
-  schemas[locale.value][slot.value] = createAuthLabSchema(slot.value, locale.value);
+  schemas[slot.value] = createAuthLabSchema(slot.value);
   rendererResult.value = '';
 }
 
@@ -375,79 +403,79 @@ const requirements = [
   },
   {
     area: 'Schema-positioned form feedback',
-    state: 'missing',
+    state: 'works',
     detail:
-      'Action errors currently render above the root document. Auth parity needs an error node or an explicit in-form feedback slot for errors and success states.',
+      'Generic feedback nodes place action errors, loading, success and host messages inside the authored tree with live-region semantics.',
   },
   {
     area: 'Fixed min/max widths',
-    state: 'workaround',
+    state: 'works',
     detail:
-      'CSS min() can be typed into Width, but min-width/max-width are not first-class style controls.',
+      'Width, min-width, max-width, height and min-height are first-class responsive style controls.',
   },
   {
     area: 'Responsive overrides',
-    state: 'missing',
+    state: 'works',
     detail:
-      'No per-breakpoint styles, visibility or stack direction; the compact 320 px case needs explicit authoring support.',
+      'Compact/base, phone, tablet and desktop share a mobile-first cascade with per-property reset.',
   },
   {
     area: 'Viewport preview in Builder',
-    state: 'missing',
+    state: 'works',
     detail:
-      'Authors need phone/tablet/desktop presets inside the Builder, not only an external lab frame.',
+      'Compact, phone, tablet, desktop and fluid presets run through the same renderer cascade.',
   },
   {
     area: 'Page/card/text/button colours',
-    state: 'missing',
+    state: 'works',
     detail:
-      'NodeStyle currently exposes layout only. Background, foreground, accent and token-aware colour controls are required.',
+      'Surface, foreground, semantic border, radius and elevation use controlled design tokens.',
   },
   {
     area: 'Typography',
-    state: 'missing',
-    detail: 'Font size, weight, alignment, line height and responsive type scale are not editable.',
+    state: 'works',
+    detail: 'Font family, size, weight, alignment, line height and letter spacing are token-controlled and responsive.',
   },
   {
     area: 'Elevated card parity',
-    state: 'missing',
-    detail: 'CoarCard supports elevation, but the PageBuilder card schema does not expose it.',
+    state: 'works',
+    detail: 'Elevation is a controlled NodeStyle token and works on cards and other nodes.',
   },
   {
     area: 'Runtime capability conditions',
-    state: 'missing',
+    state: 'works',
     detail:
-      'visibleWhen only reads page fields. Auth pages also need safe host context such as passwordless, magic-link and registration availability.',
+      'Conditions support typed form, allowlisted context, host state and repeat-item sources without expressions.',
   },
   {
     area: 'Dynamic arrays / repeaters',
-    state: 'missing',
+    state: 'works',
     detail:
-      'Consent scopes prove the need for a repeat/for-each node bound to a safe host array, item aliases, stable keys, per-item fields and an ApprovedScopes[] action value. The registered scope element is only the current workaround.',
+      'The native repeat template supports allowlisted arrays, stable keys, item bindings, caps, empty text and a freely named selected-key array output.',
   },
   {
     area: 'Repeating login providers',
-    state: 'host-seam',
+    state: 'works',
     detail:
-      'Dynamic provider lists belong in a registered consumer element; their placement still belongs to the page schema.',
+      'Dynamic provider lists now use the same native repeat template as other host arrays; the fixed action id receives a host-owned provider id.',
   },
   {
     area: 'Runtime branding and legal links',
-    state: 'host-seam',
+    state: 'works',
     detail:
-      'Product name, logo and legal URLs come from realm/app metadata and are rendered by a registered consumer element.',
+      'Branding and legal affordances are normal nodes bound to allowlisted metadata and fixed host actions.',
   },
   {
     area: 'Multilingual defaults and overrides',
-    state: 'missing',
+    state: 'works',
     detail:
-      'The lab keeps separate DE/EN JSON because built-in text props do not yet support localized values.',
+      'DE and EN use one structure tree with localized props, typed placeholders and deterministic fallback.',
   },
   {
     area: 'Multi-state pages',
-    state: 'missing',
+    state: 'works',
     detail:
-      'Forgot success/passwordless and Login passwordless/MFA need variants or host-state conditions without leaving the page slot.',
+      'Host-controlled state conditions keep accepted, passwordless and error variants inside one page document.',
   },
   {
     area: 'Safe fallback',
@@ -562,16 +590,22 @@ const requirements = [
           <input v-model="consentClientName" type="text" />
         </label>
       </template>
+      <label>
+        View state
+        <select v-model="stateOverride" aria-label="Host view state">
+          <option value="">Automatic · {{ defaultViewState }}</option>
+          <option v-for="state in pageConfig.availableStates" :key="state.id" :value="state.id">{{ state.label }}</option>
+        </select>
+      </label>
       <span class="scenario-note"
-        >Reference reacts to every flag. Renderer differences expose missing host-context
-        conditions.</span
+        >Reference and JSON renderer react to the same host context; differences reveal remaining parity work.</span
       >
     </section>
 
     <CoarNotice v-if="slot === 'consent'" variant="info" class="edge-cases">
       <strong>Array fixture:</strong> switch between <code>1</code>, <code>3</code> and
-      <code>8</code> server-provided scopes. The renderer currently needs a registered host element;
-      the target is a native repeater whose checkboxes produce <code>ApprovedScopes[]</code>.
+      <code>8</code> server-provided scopes. The JSON uses the generic native repeater and names
+      this document's selected-key output <code>approvedScopes</code>.
     </CoarNotice>
     <CoarNotice v-else-if="slot !== 'logout'" variant="info" class="edge-cases">
       <strong>Node API edge-case usernames:</strong>
@@ -618,33 +652,54 @@ const requirements = [
           ><span>Differences are requirements, not hidden demo CSS</span>
         </header>
         <div class="device-frame renderer-frame" :class="frameClass" :style="frameStyle">
-          <CoarPageRenderer :schema="schema" :config="pageConfig" :actions="rendererActions" />
+          <CoarPageRenderer
+            :schema="schema" :fallback-schema="fallbackSchema" :config="pageConfig"
+            :actions="rendererActions" :runtime-context="runtimeContext"
+            :view-state="viewState" :locale="locale" :viewport-width="viewports[viewport].width"
+            :page-code-values="pageCodeValues" :on-action="runPageAction"
+            @runtime-change="onRuntimeChange"
+          />
         </div>
       </article>
     </div>
 
     <div v-else-if="mode === 'renderer'" class="single-stage">
       <div class="device-frame renderer-frame" :class="frameClass" :style="frameStyle">
-        <CoarPageRenderer :schema="schema" :config="pageConfig" :actions="rendererActions" />
+        <CoarPageRenderer
+          :schema="schema" :fallback-schema="fallbackSchema" :config="pageConfig"
+          :actions="rendererActions" :runtime-context="runtimeContext"
+          :view-state="viewState" :locale="locale" :viewport-width="viewports[viewport].width"
+          :page-code-values="pageCodeValues" :on-action="runPageAction"
+          @runtime-change="onRuntimeChange"
+        />
       </div>
     </div>
 
     <section v-else-if="mode === 'builder'" class="builder-stage">
       <div class="builder-actions">
         <p>
-          Edit the same JSON rendered above. Switch to Renderer or Compare to validate the result.
+          Edit structure, Quick Properties, Page State and per-element code. The preview executes
+          the same browser runtime as the standalone renderer.
         </p>
         <CoarButton variant="secondary" @click="resetCurrentSchema"
           >Reset {{ slot }} / {{ locale.toUpperCase() }}</CoarButton
         >
       </div>
-      <CoarPageBuilder v-model="schema" :config="pageConfig" class="builder" />
+      <CoarPageBuilder
+        v-model="schema" :config="pageConfig" class="builder"
+        authoring-mode="code"
+        :preview-context="runtimeContext" :preview-state="viewState"
+        :preview-locale="locale" :preview-actions="rendererActions"
+        :preview-fallback-schema="fallbackSchema"
+        :preview-page-code-values="pageCodeValues" :preview-on-action="runPageAction"
+        @preview-runtime="onRuntimeChange"
+      />
     </section>
 
     <section v-else-if="mode === 'json'" class="json-stage">
       <div class="builder-actions">
         <p>
-          This is the actual persisted PageNode document for the selected slot and language fixture.
+          This is the actual persisted PageNode document. DE and EN share this same structure tree.
         </p>
         <div class="button-row">
           <CoarButton variant="secondary" @click="copyJson">Copy JSON</CoarButton>

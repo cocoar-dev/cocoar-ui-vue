@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, nextTick, provide, ref, toRaw, watch } from 'vue';
-import { useI18n } from '@cocoar/vue-localization';
+import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, toRaw, watch } from 'vue';
+import { useI18n, useLocalization } from '@cocoar/vue-localization';
 import { isElementAllowed } from './schema';
-import type { ButtonNode, ElementNode, PageNode, PageConfig, PageRootNode } from './schema';
+import type { ButtonNode, ElementNode, PageNode, PageConfig, PageRootNode, RepeatNode, RuntimeExpressionValues } from './schema';
 import { useMergedElements } from './elements/useMergedElements';
 import type { PageElementDefinition } from './elements/registry';
 import { migrateLegacyTypes } from './builder/schemaNormalize';
@@ -22,10 +22,17 @@ import {
 import { CoarNote } from '@cocoar/vue-ui';
 import { compilePagePattern, isValidEmail, isUnsafeFieldName } from './renderSafety';
 import PageNode_ from './PageNode.vue';
+import { resolveNodeStyle } from './responsive';
+import { evaluateCondition } from './conditions';
+import { readAllowedContext, resolveExpressionStyle, resolveNodeRuntime, resolveRuntimeBinding, safeReadPath } from './runtimeBindings';
+import { validatePageDocument } from './documentValidation';
+import { applyPageCodeValues, type PageCodeRuntimeValues } from './pageCode';
 
 const props = defineProps<{
   schema: PageNode
   actions?: Record<string, ActionHandler>
+  /** Optional dynamic action dispatcher (for Page Code action ids). */
+  onAction?: (id: string, values: ActionValues) => void | Promise<unknown>
   /**
    * Developer-only: async or complex cross-field validation that cannot be
    * expressed declaratively. Returns fieldName → error message.
@@ -47,6 +54,20 @@ const props = defineProps<{
    * schema change.
    */
   initialValues?: ActionValues
+  /** Deterministic container width override, primarily for builder previews and tests. */
+  viewportWidth?: number
+  /** Host-owned, typed runtime data. Only paths declared in config.contextFields are readable. */
+  runtimeContext?: Record<string, unknown>
+  /** Host-controlled view state (for example `prompt`, `submitting`, `expired`). */
+  viewState?: string
+  /** Active locale used to resolve LocalizedValue props. */
+  locale?: string
+  /** Host-owned built-in document used when the customized document violates its contract. */
+  fallbackSchema?: PageNode
+  /** Data-only results produced by a host-owned sandbox runtime. */
+  expressionValues?: RuntimeExpressionValues
+  /** One atomic, data-only Page Code result produced by the host sandbox. */
+  pageCodeValues?: PageCodeRuntimeValues
 }>();
 
 const emit = defineEmits<{
@@ -56,9 +77,15 @@ const emit = defineEmits<{
    * unlocks autosave, drafts and dirty tracking.
    */
   'update:values': [values: ActionValues];
+  /** Complete reactive scope required by a host Page Code session. */
+  'runtime-change': [scope: {
+    fields: ActionValues;
+    form: { valid: boolean; dirty: boolean; validating: boolean; submitting: boolean };
+  }];
 }>();
 
 const { t } = useI18n();
+const localization = useLocalization();
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -72,6 +99,25 @@ const isSubmitting = ref(false);
 const pendingAction = ref<string | null>(null);
 /** Form-level error (`_form` from onValidate, or an action rejection) — the banner. */
 const formError = ref('');
+const rootEl = ref<HTMLElement | null>(null);
+const measuredWidth = ref<number>();
+let resizeObserver: ResizeObserver | undefined;
+const viewportWidth = computed(() => props.viewportWidth ?? measuredWidth.value ?? Number.POSITIVE_INFINITY);
+
+onMounted(() => {
+  const el = rootEl.value;
+  if (!el) return;
+  const measure = () => { measuredWidth.value = el.getBoundingClientRect().width; };
+  measure();
+  if (typeof ResizeObserver !== 'undefined') {
+    resizeObserver = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width;
+      if (width !== undefined) measuredWidth.value = width;
+    });
+    resizeObserver.observe(el);
+  }
+});
+onBeforeUnmount(() => resizeObserver?.disconnect());
 
 /**
  * Legacy `column`/`row` containers migrate to `stack`, then v1 flat nodes get
@@ -79,12 +125,42 @@ const formError = ref('');
  * the v2 wire format still render (identity-preserving when there is nothing
  * to migrate).
  */
-const renderSchema = computed(
+const primaryValidation = computed(() => validatePageDocument(props.schema, props.config));
+const usingFallback = computed(() => !!props.fallbackSchema && !primaryValidation.value.valid);
+const sourceSchema = computed(() => usingFallback.value ? props.fallbackSchema! : props.schema);
+let warnedFallback = false;
+watch(usingFallback, (active) => {
+  if (!active || warnedFallback) return;
+  warnedFallback = true;
+  console.error('[CoarPageRenderer] Customized page document is invalid; rendering the host fallback.', primaryValidation.value.issues);
+}, { immediate: true });
+
+const baseRenderSchema = computed(
   () =>
     healMissingPropsBags(
-      migrateLegacyPasswordInput(migrateV1PropsBag(migrateLegacyTypes(props.schema))),
+      migrateLegacyPasswordInput(migrateV1PropsBag(migrateLegacyTypes(sourceSchema.value))),
     ) as PageNode,
 );
+const renderSchema = computed(() => applyPageCodeValues(baseRenderSchema.value, props.pageCodeValues));
+const pageTranslations = computed(() => renderSchema.value.type === 'page'
+  ? (renderSchema.value as PageRootNode).translations
+  : undefined);
+const hostTranslation = (locale: string, key: string): string | undefined =>
+  localization?.i18nStore.getTranslation(locale, key);
+
+const hasSchemaFormErrorZone = computed(() => {
+  let found = false;
+  const walk = (node: PageNode) => {
+    if (found) return;
+    if (node.type === 'feedback' && (node as ElementNode).props?.kind === 'form-error') {
+      found = true;
+      return;
+    }
+    if ('children' in node && Array.isArray(node.children)) node.children.forEach(walk);
+  };
+  walk(renderSchema.value);
+  return found;
+});
 
 // ─── Element registry ─────────────────────────────────────────────────────────
 
@@ -103,7 +179,13 @@ function isNamedInput(node: PageNode): node is NamedNode {
   // Unsafe names (__proto__ & co) would collide with Object.prototype
   // machinery when used as map keys — excluded from the value model entirely
   // (they neither veto nor ship; the builder lint flags them).
-  return !!def?.value && typeof name === 'string' && !!name && !isUnsafeFieldName(name);
+  return !!def?.value && typeof name === 'string' && !!name && name !== '$selection' && !isUnsafeFieldName(name);
+}
+
+function repeatSelectionName(node: PageNode): string | undefined {
+  if (node.type !== 'repeat') return undefined;
+  const name = (node as RepeatNode).props.selection?.name;
+  return typeof name === 'string' && name && !isUnsafeFieldName(name) ? name : undefined;
 }
 
 /**
@@ -124,17 +206,19 @@ function isNodeAllowed(node: PageNode): boolean {
  * initialValues seeding ignore visibility), so re-showing restores them.
  * Malformed conditions fail OPEN (visible).
  */
-function isNodeVisible(node: PageNode): boolean {
+function isNodeVisible(node: PageNode, item?: unknown, allowedItemPaths?: ReadonlySet<string>): boolean {
   // The page root is always visible — a (hand-written) root condition could
   // otherwise blank the whole page with nothing left to toggle it back.
   if (node.type === 'page') return true;
-  const vw = (node as ElementNode).visibleWhen;
-  if (!vw || typeof vw !== 'object') return true;
-  if (typeof vw.field !== 'string' || vw.field === '') return true;
-  const value = values.value[vw.field];
-  if ('equals' in vw) return sameValue(value, vw.equals);
-  if (Array.isArray(vw.in)) return vw.in.some((x) => sameValue(value, x));
-  return true;
+  if (resolveNodeStyle(node, viewportWidth.value).hidden) return false;
+  const condition = (node as ElementNode).visibleWhen;
+  if (!condition || typeof condition !== 'object') return true;
+  return evaluateCondition(condition, {
+    field: (path) => values.value[path],
+    context: (path) => readAllowedContext(props.runtimeContext, props.config, path),
+    item: (path) => allowedItemPaths?.has(path) ? safeReadPath(item, path) : undefined,
+    state: () => props.viewState,
+  });
 }
 
 /** Outward value map: the named inputs of the allowed AND currently visible tree. */
@@ -143,6 +227,8 @@ function visibleValues(): ActionValues {
   const walk = (node: PageNode) => {
     if (!isNodeAllowed(node) || !isNodeVisible(node)) return;
     if (isNamedInput(node) && node.name in values.value) out[node.name] = values.value[node.name];
+    const selectionName = repeatSelectionName(node);
+    if (selectionName && selectionName in values.value) out[selectionName] = values.value[selectionName];
     if ('children' in node && Array.isArray(node.children)) node.children.forEach(walk);
   };
   walk(renderSchema.value);
@@ -155,6 +241,8 @@ function visibleFieldNames(): Set<string> {
   const walk = (node: PageNode) => {
     if (!isNodeAllowed(node) || !isNodeVisible(node)) return;
     if (isNamedInput(node)) names.add(node.name);
+    const selectionName = repeatSelectionName(node);
+    if (selectionName) names.add(selectionName);
     if ('children' in node && Array.isArray(node.children)) node.children.forEach(walk);
   };
   walk(renderSchema.value);
@@ -172,6 +260,8 @@ function collectDefaults(node: PageNode): ActionValues {
     const seed = node.defaultValue !== undefined ? node.defaultValue : fallback;
     if (seed !== undefined) defaults[node.name] = seed;
   }
+  const selectionName = repeatSelectionName(node);
+  if (selectionName) defaults[selectionName] = [];
   if ('children' in node && Array.isArray(node.children)) {
     for (const child of node.children) Object.assign(defaults, collectDefaults(child));
   }
@@ -191,10 +281,12 @@ function collectFieldNames(node: PageNode, out: Set<string>) {
 let valuesBaseline: ActionValues = {};
 
 function initValues() {
-  const defaults = collectDefaults(renderSchema.value);
+  // Runtime configuration may change on every keystroke. It must never reset
+  // the value model; structural schema/defaults remain the initialization base.
+  const defaults = collectDefaults(baseRenderSchema.value);
   if (props.initialValues) {
     const names = new Set<string>();
-    collectFieldNames(renderSchema.value, names);
+    collectFieldNames(baseRenderSchema.value, names);
     for (const [k, v] of Object.entries(props.initialValues)) {
       if (names.has(k)) defaults[k] = v;
     }
@@ -258,7 +350,7 @@ watch(() => props.schema, initValues, { deep: false });
 // irrelevant keys can't wipe input either.
 watch(() => props.initialValues, (next, prev) => {
   const names = new Set<string>();
-  collectFieldNames(renderSchema.value, names);
+  collectFieldNames(baseRenderSchema.value, names);
   const consumed = (source?: ActionValues): ActionValues => {
     const out: ActionValues = {};
     for (const k of Object.keys(source ?? {})) {
@@ -386,6 +478,20 @@ const isFormValid = computed(() => Object.keys(computedErrors.value).length === 
 /** True once any field differs from its initial value (schema defaults + initialValues). */
 const isDirty = computed(() => !shallowEqual(values.value, valuesBaseline));
 
+watch(
+  [values, isFormValid, isDirty, isValidating, isSubmitting],
+  () => emit('runtime-change', {
+    fields: { ...values.value },
+    form: {
+      valid: isFormValid.value,
+      dirty: isDirty.value,
+      validating: isValidating.value,
+      submitting: isSubmitting.value,
+    },
+  }),
+  { deep: true, immediate: true },
+);
+
 // ─── Touched helpers ──────────────────────────────────────────────────────────
 
 function markAllTouched(node: PageNode) {
@@ -405,8 +511,6 @@ const warnedUnknown = new Set<string>();
 function isBusy(): boolean {
   return isValidating.value || isSubmitting.value;
 }
-
-const rootEl = ref<HTMLElement | null>(null);
 
 /**
  * After a failed validating click, move focus to the first invalid control —
@@ -433,7 +537,8 @@ const genericActionError = () =>
  * path passes the exact snapshot `onValidate` approved.
  */
 async function runAction(id: string, payload?: ActionValues) {
-  const handler = props.actions?.[id];
+  const handler = props.actions?.[id]
+    ?? (props.onAction ? ((values: ActionValues) => props.onAction!(id, values)) : undefined);
   if (!handler) return;
   isSubmitting.value = true;
   try {
@@ -454,7 +559,7 @@ async function runAction(id: string, payload?: ActionValues) {
  * inputs stay editable during an async `onValidate`, and edits made in that
  * window must not ship unvalidated (they need their own submit).
  */
-async function runValidatedAction(id: string) {
+async function runValidatedAction(id: string, actionValues?: ActionValues) {
   markAllTouched(renderSchema.value);
   if (!isFormValid.value) {
     void focusFirstError();
@@ -503,17 +608,17 @@ async function runValidatedAction(id: string) {
       isValidating.value = false;
     }
   }
-  await runAction(id, payload);
+  await runAction(id, { ...payload, ...(actionValues ?? {}) });
 }
 
 /** One trigger at a time: guard reentry, track the pending id, clear the stale banner. */
-async function runTrigger(id: string, validates: boolean) {
+async function runTrigger(id: string, validates: boolean, actionValues?: ActionValues) {
   if (isBusy()) return;
   formError.value = '';
   pendingAction.value = id;
   try {
-    if (validates) await runValidatedAction(id);
-    else await runAction(id);
+    if (validates) await runValidatedAction(id, actionValues);
+    else await runAction(id, { ...visibleValues(), ...(actionValues ?? {}) });
   } finally {
     pendingAction.value = null;
   }
@@ -598,6 +703,32 @@ const ctx: PageRendererContext = {
     );
   },
   isVisible: isNodeVisible,
+  resolveStyle: (node) => resolveExpressionStyle(
+    node,
+    resolveNodeStyle(node, viewportWidth.value),
+    props.expressionValues,
+  ) ?? {},
+  resolveNode: (node, item, allowedItemPaths) => resolveNodeRuntime(node, {
+    config: props.config,
+    context: props.runtimeContext,
+    state: props.viewState,
+    locale: props.locale,
+    item,
+    allowedItemPaths,
+    expressionValues: props.expressionValues,
+    translations: pageTranslations.value,
+    hostTranslation,
+  }),
+  resolveBinding: (binding, item, allowedItemPaths) => resolveRuntimeBinding(binding, {
+    config: props.config,
+    context: props.runtimeContext,
+    state: props.viewState,
+    locale: props.locale,
+    item,
+    allowedItemPaths,
+    translations: pageTranslations.value,
+    hostTranslation,
+  }),
   isFormValid,
   isValidating,
   isSubmitting,
@@ -610,6 +741,10 @@ const ctx: PageRendererContext = {
     // Unsafe keys (__proto__ & co) would rebind the map's prototype instead
     // of storing a value — such fields are outside the value model entirely.
     if (isUnsafeFieldName(name)) return;
+    // Derived controls may re-emit their current value when runtime props are
+    // recomputed. A semantic no-op must not clear an action error or make the
+    // form dirty.
+    if (sameValue(values.value[name], value)) return;
     values.value[name] = value;
     // A stale server-side error must not outlive the edit that addresses it.
     if (asyncErrors.value[name]) {
@@ -628,8 +763,8 @@ const ctx: PageRendererContext = {
     if (isUnsafeFieldName(name)) return;
     touched.value[name] = true;
   },
-  triggerAction(id, validates = false) {
-    void runTrigger(id, validates);
+  triggerAction(id, validates = false, actionValues) {
+    void runTrigger(id, validates, actionValues);
   },
 };
 
@@ -644,6 +779,8 @@ defineExpose({
   isDirty,
   /** Quiet validation state — true when every declarative rule passes. */
   isFormValid,
+  /** True while an invalid customization is replaced by fallbackSchema. */
+  usingFallback,
   /** Back to the initial state: schema defaults + initialValues; touched/errors/banner cleared. */
   reset: () => initValues(),
 });
@@ -655,7 +792,7 @@ defineExpose({
          banner sits above the page; the slot replaces the presentation, and a
          consumer element can render it in-page via usePageElement().formError. -->
     <slot name="form-error" :error="formError">
-      <div v-if="formError" class="pb-form-error" role="alert">
+      <div v-if="formError && !hasSchemaFormErrorZone" class="pb-form-error" role="alert">
         <CoarNote variant="error" padding="s">{{ formError }}</CoarNote>
       </div>
     </slot>
@@ -665,7 +802,9 @@ defineExpose({
 
 <style scoped>
 .coar-page-renderer {
-  display: contents;
+  display: block;
+  width: 100%;
+  min-width: 0;
 }
 
 .pb-form-error {

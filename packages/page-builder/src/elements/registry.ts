@@ -82,6 +82,55 @@ export interface ElementLintIssue {
   message: I18nText;
 }
 
+export interface PageElementQuickPropertyOption {
+  value: string;
+  label: I18nText;
+}
+
+/**
+ * One optional Properties-Panel shortcut for Element Code. The path is a
+ * mutable element-draft property; changing the control writes a deterministic,
+ * locked assignment before the customer's free compute body.
+ */
+export interface PageElementQuickProperty {
+  path: `props.${string}` | `style.${string}` | `validation.${string}`;
+  label: I18nText;
+  control: 'text' | 'boolean' | 'select';
+  /** Explicit authoring contract; never inferred from the current value. */
+  valueKind?: 'literal' | 'localized-text';
+  options?: readonly PageElementQuickPropertyOption[];
+}
+
+const quickLabel = (fallback: string): I18nText => ({
+  key: `coar.pageBuilder.quick.${fallback.toLowerCase().replaceAll(' ', '')}`,
+  fallback,
+});
+
+/** Shared descriptors are conveniences only; custom elements can define any supported path. */
+export const QUICK_PROPERTY_PRESETS = {
+  label: { path: 'props.label', label: quickLabel('Label'), control: 'text', valueKind: 'localized-text' },
+  text: { path: 'props.text', label: quickLabel('Text'), control: 'text', valueKind: 'localized-text' },
+  placeholder: { path: 'props.placeholder', label: quickLabel('Placeholder'), control: 'text', valueKind: 'localized-text' },
+  disabled: { path: 'props.disabled', label: quickLabel('Disabled'), control: 'boolean' },
+  required: { path: 'validation.required', label: quickLabel('Required'), control: 'boolean' },
+  width: { path: 'style.width', label: quickLabel('Width'), control: 'text' },
+  hidden: { path: 'style.hidden', label: quickLabel('Hidden'), control: 'boolean' },
+  gap: { path: 'style.gap', label: quickLabel('Gap'), control: 'text' },
+  padding: { path: 'style.padding', label: quickLabel('Padding'), control: 'text' },
+  variant: {
+    path: 'props.variant', label: quickLabel('Variant'), control: 'select',
+    options: ['primary', 'secondary', 'ghost', 'danger'].map((value) => ({ value, label: quickLabel(value) })),
+  },
+  direction: {
+    path: 'style.direction', label: quickLabel('Direction'), control: 'select',
+    options: ['column', 'row'].map((value) => ({ value, label: quickLabel(value) })),
+  },
+  align: {
+    path: 'style.align', label: quickLabel('Align'), control: 'select',
+    options: ['start', 'center', 'end', 'stretch'].map((value) => ({ value, label: quickLabel(value) })),
+  },
+} as const satisfies Record<string, PageElementQuickProperty>;
+
 /** Editor-only half: how the element appears in palette, canvas and inspector. */
 export interface PageElementBuilderDefinition<P extends ElementProps = ElementProps> {
   label: I18nText;
@@ -115,6 +164,8 @@ export interface PageElementBuilderDefinition<P extends ElementProps = ElementPr
    * the host offers a plain text input.
    */
   defaultValueInput?: Component;
+  /** Common code-backed controls shown in code authoring mode. */
+  quickProperties?: readonly PageElementQuickProperty[];
   /** Authoring diagnostics, merged into the builder's validation panel. */
   lint?: (node: ElementNode<string, P>, config?: PageConfig) => ElementLintIssue[];
 }

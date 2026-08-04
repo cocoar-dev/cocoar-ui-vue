@@ -457,6 +457,20 @@ describe('CoarPageRenderer — submit lifecycle', () => {
   beforeEach(() => { errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {}); });
   afterEach(() => { errorSpy.mockRestore(); });
 
+  it('honours an explicit disabled button state', async () => {
+    const send = vi.fn();
+    const schema = pageWith({
+      id: 'b', type: 'button', props: { label: 'Send', action: 'send', disabled: true },
+    });
+    const wrapper = mount(CoarPageRenderer, { props: { schema, actions: { send } } });
+
+    const button = wrapper.find('button.pb-button');
+    expect(button.attributes('disabled')).toBeDefined();
+    await button.trigger('click');
+    await flushPromises();
+    expect(send).not.toHaveBeenCalled();
+  });
+
   it('awaits an async action: the triggering button spins, others disable, reentry is blocked', async () => {
     const d = deferred();
     const send = vi.fn().mockReturnValue(d.promise);

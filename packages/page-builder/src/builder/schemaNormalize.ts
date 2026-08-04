@@ -21,10 +21,10 @@
  *   the healed tree either way and warns in DEV.
  */
 import type { ElementType, PageNode } from '../schema';
-import { isContainerNode } from '../schema';
+import { CURRENT_PAGE_SCHEMA_VERSION, isContainerNode } from '../schema';
 import type { PageElementRegistry } from '../elements/registry';
 import { migrateV1PropsBag, migrateLegacyPasswordInput } from './schemaMigrateV1';
-import { uid } from './nodeDefaults';
+import { elementNameBase, isValidElementName, uid, uniqueElementName } from './nodeDefaults';
 import { warnDev } from './operations';
 
 // Exhaustiveness-checked against the schema union: adding a new ElementType
@@ -34,11 +34,13 @@ const ELEMENT_TYPE_MAP: Record<ElementType, true> = {
   stack: true,
   card: true,
   section: true,
+  repeat: true,
   divider: true,
   spacer: true,
   heading: true,
   paragraph: true,
   note: true,
+  feedback: true,
   'text-input': true,
   'password-input': true,
   'number-input': true,
@@ -116,7 +118,7 @@ function defaultPage(): PageNode {
   return {
     id: 'root',
     type: 'page',
-    schemaVersion: 2,
+    schemaVersion: CURRENT_PAGE_SCHEMA_VERSION,
     style: { gap: '16px', padding: '24px' },
     children: [],
   };
@@ -146,20 +148,25 @@ export function normalizePageSchema(value: unknown, options?: NormalizeOptions):
     root = {
       id: 'root',
       type: 'page',
-      schemaVersion: 2,
+      schemaVersion: CURRENT_PAGE_SCHEMA_VERSION,
       style: { gap: '16px', padding: '24px' },
       children: [root],
     };
     rootChanged = true;
-  } else if (root.schemaVersion === undefined || root.schemaVersion === 1) {
-    // Pre-versioning and v1 documents were just migrated to the bag grammar —
-    // stamp the version they now actually have. Later versions are preserved.
-    root = { ...root, schemaVersion: 2 };
+  } else if (
+    root.schemaVersion === undefined
+    || typeof root.schemaVersion !== 'number'
+    || root.schemaVersion < CURRENT_PAGE_SCHEMA_VERSION
+  ) {
+    // Every ingest pass produces the current canonical grammar. Version 4 in
+    // particular adds mandatory public names to every element.
+    root = { ...root, schemaVersion: CURRENT_PAGE_SCHEMA_VERSION };
     rootChanged = true;
   }
 
   const seenIds = new Set<string>();
-  const result = normalizeNode(root, 'page', seenIds, issues, options);
+  const seenNames = new Set<string>();
+  const result = normalizeNode(root, 'page', seenIds, seenNames, issues, options);
   // The root was pre-checked as an object and typed 'page', so it never drops.
   const schema = (result.node ?? defaultPage()) as PageNode;
   return { schema, issues, changed: rootChanged || result.changed };
@@ -174,6 +181,7 @@ function normalizeNode(
   raw: unknown,
   path: string,
   seenIds: Set<string>,
+  seenNames: Set<string>,
   issues: NormalizeIssue[],
   options?: NormalizeOptions,
 ): NodeResult {
@@ -240,6 +248,23 @@ function normalizeNode(
   }
   seenIds.add(node.id as string);
 
+  // `name` is the stable public identity used by Page Code and, for value
+  // elements, by the form model as well. Old documents only named form
+  // controls; v4 deterministically backfills every other element.
+  if (node.type !== 'page') {
+    const idLooksGenerated = typeof node.id !== 'string'
+      || /^node_/.test(node.id)
+      || /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(node.id);
+    const preferred = isValidElementName(node.name)
+      ? node.name
+      : elementNameBase(typeof node.name === 'string'
+        ? node.name
+        : (idLooksGenerated ? String(node.type ?? 'element') : String(node.id)));
+    const name = uniqueElementName(preferred, seenNames);
+    if (node.name !== name) set('name', name);
+    seenNames.add(name);
+  }
+
   if (typeKnown && node.type === 'heading') {
     // The props bag was healed to an object above; `level` lives inside it (v2).
     const props = node.props as Record<string, unknown>;
@@ -272,13 +297,13 @@ function normalizeNode(
       });
       set('children', []);
     } else {
-      normalizeChildren(node, set, path, seenIds, issues, options);
+      normalizeChildren(node, set, path, seenIds, seenNames, issues, options);
     }
   } else if (!typeKnown && Array.isArray(node.children)) {
     // Unknown-typed subtrees stay in the tree (skipped at render time), but
     // their STRUCTURE is still healed — ids must be page-unique even in
     // invisible branches, or they collide the moment the type gets registered.
-    normalizeChildren(node, set, path, seenIds, issues, options);
+    normalizeChildren(node, set, path, seenIds, seenNames, issues, options);
   } else if (typeKnown && node.children !== undefined) {
     issues.push({
       path,
@@ -295,6 +320,7 @@ function normalizeChildren(
   set: (key: string, value: unknown) => void,
   path: string,
   seenIds: Set<string>,
+  seenNames: Set<string>,
   issues: NormalizeIssue[],
   options?: NormalizeOptions,
 ): void {
@@ -302,7 +328,7 @@ function normalizeChildren(
   const nextChildren: unknown[] = [];
   let childrenChanged = false;
   for (let i = 0; i < children.length; i++) {
-    const child = normalizeNode(children[i], `${path}.children[${i}]`, seenIds, issues, options);
+    const child = normalizeNode(children[i], `${path}.children[${i}]`, seenIds, seenNames, issues, options);
     if (child.node !== null) nextChildren.push(child.node);
     childrenChanged ||= child.changed;
   }

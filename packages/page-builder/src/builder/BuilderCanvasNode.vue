@@ -16,9 +16,12 @@ import { computed, inject, provide, type CSSProperties } from 'vue';
 import { CoarIcon } from '@cocoar/vue-ui';
 import { useI18n } from '@cocoar/vue-localization';
 import { isElementAllowed, type ElementNode, type PageNode, type StackNode } from '../schema';
+import { resolveNodeStyle } from '../responsive';
+import { resolveNodeRuntime } from '../runtimeBindings';
 import { selfLayoutStyle, containerLayoutStyle } from '../styleMapping';
 import { useMergedElements } from '../elements/useMergedElements';
-import { BUILDER_API, BUILDER_CONFIG } from './builderContext';
+import { BUILDER_API, BUILDER_BREAKPOINT, BUILDER_CONFIG, BUILDER_PAGE_CODE_VALUES, BUILDER_RUNTIME } from './builderContext';
+import { applyPageCodeValues } from '../pageCode';
 import { useBuilderDnd } from './useBuilderDnd';
 import type { NodePath } from './operations';
 
@@ -31,6 +34,9 @@ const props = defineProps<{
 
 const builder = inject(BUILDER_API)!;
 const config = inject(BUILDER_CONFIG);
+const activeBreakpoint = inject(BUILDER_BREAKPOINT)!;
+const runtime = inject(BUILDER_RUNTIME);
+const pageCodeValues = inject(BUILDER_PAGE_CODE_VALUES);
 const dnd = useBuilderDnd();
 const elements = useMergedElements(config);
 const { t } = useI18n();
@@ -49,6 +55,8 @@ function resolveAsset(id: string): string {
 
 const isRoot = computed(() => props.path.length === 0);
 const pathKey = computed(() => props.path.join('/'));
+const configuredNode = computed(() => applyPageCodeValues(props.node, pageCodeValues?.value));
+const authoredNode = computed(() => resolveNodeRuntime(configuredNode.value, runtime?.value ?? { config: config?.value }));
 
 const isDraggingSource = computed(() => {
   const p = dnd.payload.value;
@@ -64,7 +72,7 @@ const isSelected = computed(() => {
 // ── Type icon + label ────────────────────────────────────────────────────────
 
 const typeLabel = computed(() => {
-  const n = props.node as PageNode & { props?: { text?: string; label?: string; title?: string }; name?: string };
+  const n = authoredNode.value as PageNode & { props?: { text?: string; label?: string; title?: string }; name?: string };
   if (n.props?.text) return `${n.type} · ${String(n.props.text).slice(0, 24)}`;
   if (n.props?.label) return `${n.type} · ${String(n.props.label).slice(0, 24)}`;
   if (n.props?.title) return `${n.type} · ${String(n.props.title).slice(0, 24)}`;
@@ -96,9 +104,12 @@ const colorFamily = computed<'container' | 'element'>(() => isContainer.value ? 
 
 /** Children, guarded: malformed trees may drop the array on a custom container. */
 const children = computed<PageNode[]>(() => {
-  const n = props.node as PageNode & { children?: PageNode[] };
+  const n = configuredNode.value as PageNode & { children?: PageNode[] };
   return n.children ?? [];
 });
+const resolvedStyle = computed(() => resolveNodeStyle(configuredNode.value, activeBreakpoint.value));
+const hiddenAtBreakpoint = computed(() => resolvedStyle.value.hidden === true);
+const resolvedNode = computed<PageNode>(() => ({ ...authoredNode.value, style: resolvedStyle.value } as PageNode));
 
 // ── Runtime-blocked nodes get a VISIBLE treatment: the runtime renderer skips
 //    them, and the canvas must not pretend otherwise (Editor ≈ Preview). ──
@@ -116,7 +127,7 @@ const blockedHint = computed(() =>
 const containerDirection = computed<FlexDirection>(() => {
   const n = props.node;
   // Cast: the open union member absorbs the 'stack' narrowing.
-  if (n.type === 'stack') return (n as StackNode).props.direction ?? 'column';
+  if (n.type === 'stack') return resolvedStyle.value.direction ?? (n as StackNode).props.direction ?? 'column';
   return 'column';
 });
 
@@ -134,10 +145,10 @@ const layoutStyle = computed<CSSProperties>(() => {
   const css: CSSProperties = {
     display: 'flex',
     flexDirection: containerDirection.value,
-    ...containerLayoutStyle(n.style),
+    ...containerLayoutStyle(resolvedStyle.value),
   };
   // page/section/stack apply the node's padding here; card uses its own chrome.
-  if (n.type !== 'card' && n.style?.padding) css.padding = n.style.padding;
+  if (n.type !== 'card' && resolvedStyle.value.padding) css.padding = resolvedStyle.value.padding;
   return css;
 });
 
@@ -146,9 +157,11 @@ const layoutStyle = computed<CSSProperties>(() => {
  * self-alignment (`align-self`) and sizing (`size`/`width`) belong here — same
  * mapping the real renderer applies to the node element itself.
  */
-const wrapperStyle = computed<CSSProperties>(() =>
-  selfLayoutStyle(props.node.style, parentDirection?.value ?? 'column'),
-);
+const wrapperStyle = computed<CSSProperties>(() => {
+  const css = selfLayoutStyle(resolvedStyle.value, parentDirection?.value ?? 'column');
+  if (hiddenAtBreakpoint.value) delete css.display;
+  return css;
+});
 
 // ── Selection ────────────────────────────────────────────────────────────────
 
@@ -170,7 +183,7 @@ function onNodeKeydown(e: KeyboardEvent) {
 // ── Drag source (tab handle) ─────────────────────────────────────────────────
 
 function onTabPointerDown(e: PointerEvent) {
-  if (isRoot.value) return;
+  if (isRoot.value || builder.isPositionLocked(props.path)) return;
   const ghostFrom = (e.currentTarget as HTMLElement | null)?.closest<HTMLElement>('.canvas-node');
   dnd.onHandlePointerDown(e, { kind: 'move', path: [...props.path] }, ghostFrom);
 }
@@ -201,6 +214,7 @@ function zoneClasses(index: number): Record<string, boolean> {
         'canvas-node--root': isRoot,
         'canvas-node--dragging': isDraggingSource,
         'canvas-node--blocked': isBlocked,
+        'canvas-node--responsive-hidden': hiddenAtBreakpoint,
       },
     ]"
     :style="wrapperStyle"
@@ -211,13 +225,13 @@ function zoneClasses(index: number): Record<string, boolean> {
     <!-- Type tab (drag handle) -->
     <span
       class="canvas-node__tab"
-      :class="{ 'canvas-node__tab--grabbable': !isRoot }"
+      :class="{ 'canvas-node__tab--grabbable': !isRoot && !builder.isPositionLocked(path) }"
       :title="typeLabel"
       @pointerdown="onTabPointerDown"
     >
       <CoarIcon :name="tabIcon" size="xs" />
       <span class="canvas-node__tab-label">{{ typeLabel }}</span>
-      <span v-if="visibilityCondition" class="canvas-node__tab-eye" :title="visibilityHint">
+      <span v-if="visibilityCondition || hiddenAtBreakpoint" class="canvas-node__tab-eye" :title="hiddenAtBreakpoint ? `Hidden at ${activeBreakpoint}` : visibilityHint">
         <CoarIcon name="eye" size="xs" />
       </span>
     </span>
@@ -239,7 +253,7 @@ function zoneClasses(index: number): Record<string, boolean> {
       <CoarIcon name="copy" size="xs" />
     </button>
     <button
-      v-if="!isRoot"
+      v-if="!isRoot && !builder.isRequired(path)"
       type="button"
       class="canvas-node__delete"
       :title="t('coar.pageBuilder.common.delete', undefined, 'Delete')"
@@ -260,10 +274,10 @@ function zoneClasses(index: number): Record<string, boolean> {
     >
       <!-- Section title preview -->
       <div
-        v-if="node.type === 'section' && (node as any).props?.title"
+        v-if="node.type === 'section' && (resolvedNode as any).props?.title"
         class="canvas-node__section-title"
       >
-        {{ (node as any).props.title }}
+        {{ (resolvedNode as any).props.title }}
       </div>
 
       <template v-if="children.length === 0">
@@ -308,7 +322,7 @@ function zoneClasses(index: number): Record<string, boolean> {
       <component
         :is="def!.builder!.preview"
         v-if="def?.builder?.preview"
-        :node="node"
+        :node="resolvedNode"
         :resolve-asset="resolveAsset"
       />
       <!-- Registered but no preview component: neutral icon + label chip. -->
@@ -353,6 +367,7 @@ function zoneClasses(index: number): Record<string, boolean> {
 }
 
 .canvas-node:hover { background: rgba(22, 102, 204, 0.03); }
+.canvas-node--responsive-hidden { opacity: 0.52; background: repeating-linear-gradient(-45deg, transparent 0 6px, rgba(90,90,100,.06) 6px 12px); }
 
 .canvas-node--selected {
   border-color: var(--canvas-border-selected);

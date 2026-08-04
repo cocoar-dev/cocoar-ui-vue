@@ -355,6 +355,7 @@ export default defineConfig({
             { text: 'CoarPageBuilder', link: '/components/page-builder/coar-page-builder' },
             { text: 'CoarPageRenderer', link: '/components/page-builder/coar-page-renderer' },
             { text: 'Custom elements', link: '/components/page-builder/custom-elements' },
+            { text: 'IDP integration', link: '/components/page-builder/idp-integration' },
           ],
         },
         {

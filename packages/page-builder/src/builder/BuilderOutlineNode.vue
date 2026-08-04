@@ -3,7 +3,8 @@ import { computed, inject, onBeforeUnmount, onMounted, ref } from 'vue';
 import { CoarIcon, type CoreIconName } from '@cocoar/vue-ui';
 import { useI18n } from '@cocoar/vue-localization';
 import { isElementAllowed, type PageNode } from '../schema';
-import { BUILDER_API, BUILDER_CONFIG, BUILDER_VALIDATION } from './builderContext';
+import { resolveNodeRuntime } from '../runtimeBindings';
+import { BUILDER_API, BUILDER_CONFIG, BUILDER_RUNTIME, BUILDER_VALIDATION } from './builderContext';
 import { useMergedElements } from '../elements/useMergedElements';
 import { useBuilderDnd } from './useBuilderDnd';
 import type { NodePath } from './operations';
@@ -21,9 +22,11 @@ const props = withDefaults(defineProps<Props>(), { depth: 0 });
 const { t } = useI18n();
 const builder = inject(BUILDER_API)!;
 const config = inject(BUILDER_CONFIG);
+const runtime = inject(BUILDER_RUNTIME);
 const validation = inject(BUILDER_VALIDATION);
 const dnd = useBuilderDnd();
 const elements = useMergedElements(config);
+const authoredNode = computed(() => resolveNodeRuntime(props.node, runtime?.value ?? { config: config?.value }));
 
 /** This node's registry definition (undefined for `page` and unknown types). */
 const def = computed(() => elements.value[props.node.type]);
@@ -98,7 +101,7 @@ const isSelected = computed(() => {
 });
 
 const nodeLabel = computed(() => {
-  const n = props.node as PageNode & { props?: { text?: string; label?: string; title?: string } };
+  const n = authoredNode.value as PageNode & { props?: { text?: string; label?: string; title?: string } };
   if (n.type === 'page') {
     return t('coar.pageBuilder.type.page', undefined, 'Page');
   }
@@ -172,7 +175,7 @@ const isDropInto = computed(() =>
 );
 
 function onGripPointerDown(e: PointerEvent) {
-  if (isRoot.value) return;
+  if (isRoot.value || builder.isPositionLocked(props.path)) return;
   const ghostFrom = (e.currentTarget as HTMLElement | null)?.closest<HTMLElement>('.pb-tree-row');
   dnd.onHandlePointerDown(e, { kind: 'move', path: [...props.path] }, ghostFrom);
 }
@@ -228,7 +231,7 @@ function canMoveDown(): boolean {
       @keydown="onRowKeydown"
     >
       <span
-        v-if="!isRoot"
+        v-if="!isRoot && !builder.isPositionLocked(path)"
         class="pb-tree-grip"
         aria-hidden="true"
         @pointerdown.stop="onGripPointerDown"
@@ -260,7 +263,7 @@ function canMoveDown(): boolean {
           v-if="!isRoot"
           type="button"
           class="pb-tree-btn"
-          :disabled="!canMoveUp()"
+          :disabled="!canMoveUp() || builder.isPositionLocked(path)"
           :title="t('coar.pageBuilder.common.moveUp', undefined, 'Move up')"
           @click.stop="builder.move(path, -1)"
         >
@@ -270,7 +273,7 @@ function canMoveDown(): boolean {
           v-if="!isRoot"
           type="button"
           class="pb-tree-btn"
-          :disabled="!canMoveDown()"
+          :disabled="!canMoveDown() || builder.isPositionLocked(path)"
           :title="t('coar.pageBuilder.common.moveDown', undefined, 'Move down')"
           @click.stop="builder.move(path, 1)"
         >
@@ -286,7 +289,7 @@ function canMoveDown(): boolean {
           <CoarIcon name="copy" size="s" />
         </button>
         <button
-          v-if="!isRoot"
+          v-if="!isRoot && !builder.isRequired(path)"
           type="button"
           class="pb-tree-btn pb-tree-btn--danger"
           :title="t('coar.pageBuilder.common.delete', undefined, 'Delete')"

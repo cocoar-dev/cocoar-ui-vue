@@ -14,6 +14,7 @@ import CoarThemeEditor from '@cocoar/vue-ui/theme-editor';
       <router-link to="/editor-in-modal">Editor in Modal</router-link>
       <router-link to="/page-builder">Page Builder</router-link>
       <router-link to="/auth-customization-lab">Auth Lab</router-link>
+      <router-link to="/page-builder-scripting-spike">Scripting Spike</router-link>
       <router-link to="/file-explorer-poc">File Explorer POC</router-link>
       <router-link to="/panel-layout">Panel Layout</router-link>
     </nav>

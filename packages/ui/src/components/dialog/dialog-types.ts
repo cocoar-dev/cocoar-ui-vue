@@ -1,4 +1,4 @@
-export type DialogSize = 's' | 'm' | 'l';
+export type DialogSize = 's' | 'm' | 'l' | 'xl';
 
 export interface DialogConfig {
   /** Dialog title shown in header. */

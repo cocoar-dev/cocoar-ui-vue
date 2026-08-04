@@ -1,5 +1,5 @@
 import type { ComputedRef, InjectionKey, Ref } from 'vue';
-import type { PageConfig, PageNode } from './schema';
+import type { NodeStyle, PageConfig, PageNode, RepeatSelection, RuntimeBinding } from './schema';
 import type { PageElementRegistry } from './elements/registry';
 
 export type ActionValues = Record<string, unknown>;
@@ -29,6 +29,14 @@ export type CustomValidator = (
  */
 export const FORM_ERROR_KEY = '_form';
 
+export interface RepeatRenderScope {
+  item: unknown
+  index: number
+  itemKey: string
+  allowedItemPaths: ReadonlySet<string>
+  selection?: RepeatSelection
+}
+
 export interface PageRendererContext {
   actions?: Record<string, ActionHandler>
   assetResolver?: (id: string) => string
@@ -37,7 +45,12 @@ export interface PageRendererContext {
   /** Merged element registry (built-ins + consumer registrations) — the render dispatch table. */
   elements: ComputedRef<PageElementRegistry>
   /** `visibleWhen` gate, evaluated against the live value model — PageNode skips hidden subtrees. */
-  isVisible: (node: PageNode) => boolean
+  isVisible: (node: PageNode, item?: unknown, allowedItemPaths?: ReadonlySet<string>) => boolean
+  /** Responsive style resolved against this renderer's host-container width. */
+  resolveStyle: (node: PageNode) => NodeStyle
+  /** Resolve bindings and localized values without exposing undeclared host paths. */
+  resolveNode: (node: PageNode, item?: unknown, allowedItemPaths?: ReadonlySet<string>) => PageNode
+  resolveBinding: (binding: RuntimeBinding, item?: unknown, allowedItemPaths?: ReadonlySet<string>) => unknown
   /** Called by PageNode when it skips a disallowed type — used to console.warn once. */
   reportDisallowed?: (type: string) => void
   /** Called by PageNode when it skips an unregistered type — used to console.warn once. */
@@ -65,7 +78,7 @@ export interface PageRendererContext {
   getError: (name: string) => string
   /** Mark a field as touched (called on blur). */
   markTouched: (name: string) => void
-  triggerAction: (id: string, validates?: boolean) => void
+  triggerAction: (id: string, validates?: boolean, actionValues?: ActionValues) => void
 }
 
 export const PAGE_RENDERER_KEY: InjectionKey<PageRendererContext> = Symbol('page-renderer');

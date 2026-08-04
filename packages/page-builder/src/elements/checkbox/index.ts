@@ -1,5 +1,5 @@
 import type { CheckboxNode } from '../../schema';
-import { definePageElement } from '../registry';
+import { definePageElement, QUICK_PROPERTY_PRESETS as quick } from '../registry';
 import CheckboxRenderer from './CheckboxRenderer.vue';
 import CheckboxPreview from './CheckboxPreview.vue';
 import CheckboxInspector from './CheckboxInspector.vue';
@@ -15,6 +15,7 @@ export const checkboxElement = definePageElement<CheckboxNode['props']>({
     icon: 'check-circle-2',
     group: 'element',
     defaults: () => ({ label: 'Checkbox' }),
+    quickProperties: [quick.label, quick.disabled, quick.required, quick.width],
     preview: CheckboxPreview,
     inspector: CheckboxInspector,
     inspectorTitle: { key: 'coar.pageBuilder.props.section.checkbox', fallback: 'Checkbox' },

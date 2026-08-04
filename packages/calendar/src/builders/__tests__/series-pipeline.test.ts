@@ -70,6 +70,10 @@ describe('builder.series() reactive source', () => {
     builder.series([makeWeeklySeries()]);
     builder[SET_VISIBLE_RANGE](VIENNA_WINDOW);
     await flushAsync();
+    // The first recurrence-engine import is intentionally lazy. Under the
+    // repository-wide parallel test load it can outlive the fixed warm-up
+    // delay, so assert the observable result instead of CPU timing.
+    await expect.poll(() => api.getVisibleEvents().length, { timeout: 2_000 }).toBe(5);
     const events = api.getVisibleEvents();
     // Mondays Jun 1, 8, 15, 22, 29 → 5 occurrences
     expect(events.length).toBe(5);

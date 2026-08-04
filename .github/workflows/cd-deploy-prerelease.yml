@@ -14,6 +14,7 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
+      packages: write
     env:
       TURBO_TELEMETRY_DISABLED: 1
     defaults:
@@ -58,10 +59,34 @@ jobs:
           echo "PACKAGE_VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "Calculated prerelease version: $VERSION"
 
+      - name: Select npm prerelease channel
+        run: |
+          case "${{ github.ref_name }}" in
+            develop)
+              DIST_TAG="beta"
+              REGISTRY="https://registry.npmjs.org"
+              ;;
+            release/*)
+              DIST_TAG="rc"
+              REGISTRY="https://registry.npmjs.org"
+              ;;
+            *)
+              DIST_TAG="alpha"
+              REGISTRY="https://npm.pkg.github.com"
+              ;;
+          esac
+
+          echo "NPM_DIST_TAG=$DIST_TAG" >> $GITHUB_ENV
+          echo "PUBLISH_REGISTRY=$REGISTRY" >> $GITHUB_ENV
+          echo "Selected npm dist-tag: $DIST_TAG"
+          echo "Selected package registry: $REGISTRY"
+
       - name: Log calculated version
         run: |
           echo "GitVersion SemVer (original): ${{ steps.gv.outputs.semVer }}"
           echo "Using PACKAGE_VERSION:        $PACKAGE_VERSION"
+          echo "Using npm dist-tag:           $NPM_DIST_TAG"
+          echo "Using package registry:       $PUBLISH_REGISTRY"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -100,13 +125,31 @@ jobs:
             if [ -f "$pkg" ] && [ "$(jq -r '.private // false' "$pkg")" != "true" ]; then
               PKG_NAME=$(jq -r '.name' "$pkg")
               echo "Updating $PKG_NAME → $PACKAGE_VERSION"
-              jq --arg v "$PACKAGE_VERSION" '
+              jq --arg v "$PACKAGE_VERSION" --arg channel "$NPM_DIST_TAG" '
                 .version = $v
+                | (if $channel == "alpha" then
+                    .name |= sub("^@cocoar/"; "@cocoar-dev/")
+                  else . end)
                 | (if .exports then .exports |= with_entries(if (.value | type) == "object" then .value |= del(.source) else . end) else . end)
                 | (if .dependencies then
                     .dependencies |= with_entries(
                       if (.key | startswith("@cocoar/")) and (.value | startswith("workspace:"))
-                      then .value = $v else . end)
+                      then
+                        if $channel == "alpha"
+                        then . as $entry | .value = ("npm:" + ($entry.key | sub("^@cocoar/"; "@cocoar-dev/")) + "@" + $v)
+                        else .value = $v
+                        end
+                      else . end)
+                  else . end)
+                | (if .optionalDependencies then
+                    .optionalDependencies |= with_entries(
+                      if (.key | startswith("@cocoar/")) and (.value | startswith("workspace:"))
+                      then
+                        if $channel == "alpha"
+                        then . as $entry | .value = ("npm:" + ($entry.key | sub("^@cocoar/"; "@cocoar-dev/")) + "@" + $v)
+                        else .value = $v
+                        end
+                      else . end)
                   else . end)
                 | (if .peerDependencies then
                     .peerDependencies |= with_entries(
@@ -136,17 +179,30 @@ jobs:
           path: artifacts
           retention-days: 30
 
-      - name: Setup npm registry
-        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" >> ~/.npmrc
+      - name: Setup package registry
+        env:
+          GITHUB_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPMJS_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ "$NPM_DIST_TAG" = "alpha" ]; then
+            echo "@cocoar-dev:registry=https://npm.pkg.github.com" >> ~/.npmrc
+            echo "//npm.pkg.github.com/:_authToken=$GITHUB_PACKAGES_TOKEN" >> ~/.npmrc
+          else
+            echo "//registry.npmjs.org/:_authToken=$NPMJS_TOKEN" >> ~/.npmrc
+          fi
 
-      - name: Publish to npmjs.com (beta tag)
+      - name: Publish to npmjs.com
         run: |
           shopt -s nullglob
           for pkg_dir in packages/*/; do
             if [ -f "$pkg_dir/package.json" ] && [ "$(jq -r '.private // false' "$pkg_dir/package.json")" != "true" ]; then
               PKG_NAME=$(jq -r '.name' "$pkg_dir/package.json")
               PKG_VERSION=$(jq -r '.version' "$pkg_dir/package.json")
-              echo "Publishing $PKG_NAME@$PKG_VERSION with tag 'beta'"
-              (cd "$pkg_dir" && npm publish --tag beta --access public) || echo "Skipped (private or failed)"
+              echo "Publishing $PKG_NAME@$PKG_VERSION to '$PUBLISH_REGISTRY' with tag '$NPM_DIST_TAG'"
+              if [ "$NPM_DIST_TAG" = "alpha" ]; then
+                (cd "$pkg_dir" && npm publish --registry "$PUBLISH_REGISTRY" --tag "$NPM_DIST_TAG")
+              else
+                (cd "$pkg_dir" && npm publish --registry "$PUBLISH_REGISTRY" --tag "$NPM_DIST_TAG" --access public)
+              fi
             fi
           done

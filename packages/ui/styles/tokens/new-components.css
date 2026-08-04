@@ -100,6 +100,7 @@
   --coar-dialog-s-width: 400px;
   --coar-dialog-m-width: 560px;
   --coar-dialog-l-width: 720px;
+  --coar-dialog-xl-width: 80vw;
   --coar-dialog-padding: var(--coar-spacing-l);
   --coar-dialog-header-gap: var(--coar-spacing-m);
   --coar-dialog-border-radius: var(--coar-radius-l);

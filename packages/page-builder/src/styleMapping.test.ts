@@ -1,5 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { selfStyle, selfLayoutStyle, containerLayoutStyle } from './styleMapping';
+import { selfStyle, selfLayoutStyle, containerLayoutStyle, safeCssLength } from './styleMapping';
+
+describe('safeCssLength', () => {
+  it('allows layout lengths and rejects CSS injection primitives', () => {
+    expect(safeCssLength('min(448px, 100%)')).toBe('min(448px, 100%)');
+    expect(safeCssLength('8px 12px')).toBe('8px 12px');
+    expect(safeCssLength('url(https://example.test/x)')).toBeUndefined();
+    expect(safeCssLength('1px;display:none')).toBeUndefined();
+  });
+});
 
 describe('selfLayoutStyle', () => {
   it('returns an empty object when there is no style', () => {

@@ -10,7 +10,7 @@ interface ProblemDetails {
 }
 
 export async function postAuthLab(
-  endpoint: 'login' | 'forgot-password',
+  endpoint: 'login' | 'forgot-password' | 'consent',
   values: Record<string, unknown>,
 ): Promise<AuthLabResponse> {
   const controller = new AbortController();

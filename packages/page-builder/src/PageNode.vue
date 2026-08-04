@@ -16,13 +16,19 @@ const warnedEnterHookThrew = new Set<string>();
 
 <script setup lang="ts">
 import { computed, inject, provide } from 'vue';
-import { isElementAllowed, type ElementNode, type PageNode, type StackNode } from './schema';
+import { isElementAllowed, type ElementNode, type PageNode, type RepeatSelection, type StackNode } from './schema';
 import { selfStyle, containerLayoutStyle } from './styleMapping';
-import { PAGE_RENDERER_KEY } from './context';
+import { PAGE_RENDERER_KEY, type RepeatRenderScope } from './context';
+import { safeReadPath } from './runtimeBindings';
 
 defineOptions({ name: 'PageNode' });
 
-const props = defineProps<{ node: PageNode }>();
+const props = defineProps<{
+  node: PageNode
+  item?: unknown
+  allowedItemPaths?: ReadonlySet<string>
+  repeatSelection?: RepeatSelection
+}>();
 
 const ctx = inject(PAGE_RENDERER_KEY);
 if (!ctx) throw new Error('PageNode must be rendered inside CoarPageRenderer.');
@@ -43,7 +49,7 @@ const allowed = computed(() => {
  * the evaluation). A hidden node takes its whole subtree with it; the value
  * model applies the same gate, so hidden fields neither veto nor ship.
  */
-const visible = computed(() => ctx!.isVisible(props.node));
+const visible = computed(() => ctx!.isVisible(props.node, props.item, props.allowedItemPaths));
 
 /**
  * Registry dispatch: the definition supplies the renderer component; the host
@@ -69,13 +75,34 @@ const def = computed(() => {
 const parentDirection = inject(PB_PARENT_DIRECTION, undefined);
 const ownDirection = computed<FlexDirection>(() =>
   props.node.type === 'stack'
-    ? ((props.node as StackNode).props.direction ?? 'column')
+    ? (resolvedStyle.value.direction ?? (props.node as StackNode).props.direction ?? 'column')
     : 'column',
 );
 provide(PB_PARENT_DIRECTION, ownDirection);
 
+const resolvedStyle = computed(() => ctx!.resolveStyle(props.node));
+const resolvedNode = computed<PageNode>(() => {
+  const resolved = ctx!.resolveNode(props.node, props.item, props.allowedItemPaths);
+  if (props.repeatSelection && resolved.type !== 'page' && (resolved as ElementNode).name === '$selection') {
+    const selection = props.repeatSelection;
+    const value = props.allowedItemPaths?.has(selection.valuePath)
+      ? safeReadPath(props.item, selection.valuePath)
+      : undefined;
+    const required = selection.requiredPath && props.allowedItemPaths?.has(selection.requiredPath)
+      ? safeReadPath(props.item, selection.requiredPath) === true
+      : false;
+    return {
+      ...resolved,
+      name: selection.name,
+      props: { ...(resolved as ElementNode).props, _repeatValue: value, _repeatRequired: required },
+      style: resolvedStyle.value,
+    } as PageNode;
+  }
+  return { ...resolved, style: resolvedStyle.value } as PageNode;
+});
+
 const wrapperStyle = computed(() =>
-  selfStyle(props.node.style, parentDirection?.value ?? 'column'),
+  selfStyle(resolvedStyle.value, parentDirection?.value ?? 'column'),
 );
 
 const children = computed(() =>
@@ -111,21 +138,35 @@ const enterEligible = computed(() => {
     <div
       v-if="node.type === 'page'"
       class="pb-page"
-      :style="{ ...wrapperStyle, ...containerLayoutStyle(node.style) }"
+      :style="{ ...wrapperStyle, ...containerLayoutStyle(resolvedStyle) }"
     >
-      <PageNode v-for="child in children" :key="child.id" :node="child" />
+      <PageNode
+        v-for="child in children"
+        :key="child.id"
+        :node="child"
+        :item="item"
+        :allowed-item-paths="allowedItemPaths"
+        :repeat-selection="repeatSelection"
+      />
     </div>
 
     <!-- ── registered element ──────────────────────────────────────────────── -->
     <component
       :is="def.renderer"
       v-else-if="def"
-      :node="node"
+      :node="resolvedNode"
       :style="wrapperStyle"
       :data-pb-enter-submit="enterEligible ? 'true' : undefined"
     >
-      <template v-if="def.container" #default>
-        <PageNode v-for="child in children" :key="child.id" :node="child" />
+      <template v-if="def.container" #default="slotScope: RepeatRenderScope">
+        <PageNode
+          v-for="child in children"
+          :key="`${child.id}:${node.type === 'repeat' ? slotScope?.itemKey : ''}`"
+          :node="child"
+          :item="node.type === 'repeat' ? slotScope?.item : item"
+          :allowed-item-paths="node.type === 'repeat' ? slotScope?.allowedItemPaths : allowedItemPaths"
+          :repeat-selection="node.type === 'repeat' ? slotScope?.selection : repeatSelection"
+        />
       </template>
     </component>
 

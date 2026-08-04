@@ -1,5 +1,5 @@
 import type { TextInputNode } from '../../schema';
-import { definePageElement } from '../registry';
+import { definePageElement, QUICK_PROPERTY_PRESETS as quick } from '../registry';
 import TextInputRenderer from './TextInputRenderer.vue';
 import TextInputPreview from './TextInputPreview.vue';
 import TextInputInspector from './TextInputInspector.vue';
@@ -21,6 +21,7 @@ export const textInputElement = definePageElement<TextInputNode['props']>({
     icon: 'file-text',
     group: 'element',
     defaults: () => ({ label: 'Label' }),
+    quickProperties: [quick.label, quick.placeholder, quick.disabled, quick.required, quick.width],
     preview: TextInputPreview,
     inspector: TextInputInspector,
     inspectorTitle: { key: 'coar.pageBuilder.props.section.textInput', fallback: 'Text input' },

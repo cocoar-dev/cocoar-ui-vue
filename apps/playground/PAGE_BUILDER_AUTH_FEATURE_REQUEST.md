@@ -1,5 +1,14 @@
 # Feature Request: PageBuilder als vollständiger Editor für sicherheitskritische Auth-Seiten
 
+> **Architektur-Update (2026-08-03):** Die ursprüngliche Einschränkung „kein
+> JavaScript“ in diesem frühen Feature Request wurde durch die spätere,
+> explizite Produktentscheidung ersetzt. Tenant-Code läuft ausschließlich als
+> Page State und isolierter Element Code in der SES-Worker-Runtime. Die aktuelle
+> Authoring- und Sicherheitsgrenze ist in
+> [`PAGE_BUILDER_SCRIPTING_AUTHORING.md`](./PAGE_BUILDER_SCRIPTING_AUTHORING.md)
+> beschrieben. Struktur und Host-Capabilities bleiben weiterhin unveränderbar
+> beziehungsweise explizit vom Host gewährt.
+
 ## Kurzfassung
 
 Wir möchten die eingebauten Modgud-Auth-Seiten als versionierte PageBuilder-JSON-Dokumente
@@ -88,8 +97,11 @@ kein echter PageBuilder für Auth-Seiten, sondern nur ein Platzhalter-Editor.
   werden darf;
 - Schema-Prüfung, Migration und sichere Fallback-View.
 
-Das Page-Dokument darf niemals freie URLs, JavaScript, Expressions, Netzwerkaufrufe
-oder beliebige Host-Property-Pfade ausführen.
+Das Page-Dokument darf niemals freie URLs, direkte Netzwerkaufrufe oder beliebige
+Host-Property-Pfade verwenden. Der inzwischen beschlossene JavaScript-Code läuft
+nur als `definePageState(...)` und constrained `defineElement(...)` innerhalb der
+SES-Worker-Runtime. Dort existieren weder `fetch` noch DOM-/Browser-Globals; nach
+außen reichende Fähigkeiten müssen vom Host explizit bereitgestellt werden.
 
 ## Funktionale Anforderungen
 
@@ -547,4 +559,3 @@ Elements als normale PageBuilder-Dokumente authorbar sind, die festen Referenzen
 allen View-Contract-Zuständen funktional abbilden, alle Acceptance Criteria in
 Package-Tests und Lab-E2E-Tests bestehen und ungültige Customizations jederzeit sicher
 auf die eingebauten Defaults zurückfallen.
-

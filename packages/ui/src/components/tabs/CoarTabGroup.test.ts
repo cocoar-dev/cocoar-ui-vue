@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
-import { defineComponent, nextTick, ref } from 'vue';
+import { defineComponent, nextTick, onMounted, onUnmounted, ref } from 'vue';
 import CoarTabGroup from './CoarTabGroup.vue';
 import CoarTab from './CoarTab.vue';
 
@@ -269,6 +269,41 @@ describe('CoarTabGroup', () => {
 
       // Tab 2 is eager, should be rendered even though tab 1 is active
       expect(wrapper.find('.panel-t2').exists()).toBe(true);
+    });
+
+    it('does not remount stateful tab content when the parent updates', async () => {
+      let mounts = 0;
+      let unmounts = 0;
+      const StatefulPanel = defineComponent({
+        setup() {
+          onMounted(() => mounts++);
+          onUnmounted(() => unmounts++);
+          return () => 'stateful';
+        },
+      });
+      const Wrapper = defineComponent({
+        components: { CoarTabGroup, CoarTab, StatefulPanel },
+        setup() { return { revision: ref(0) }; },
+        template: `
+          <div>
+            <button class="update" @click="revision++">{{ revision }}</button>
+            <CoarTabGroup>
+              <CoarTab id="stateful">
+                <template #default>Stateful</template>
+                <template #content><StatefulPanel :revision="revision" /></template>
+              </CoarTab>
+            </CoarTabGroup>
+          </div>
+        `,
+      });
+      const wrapper = mount(Wrapper);
+      await nextTick();
+      expect(mounts).toBe(1);
+
+      await wrapper.find('.update').trigger('click');
+      await nextTick();
+      expect(mounts).toBe(1);
+      expect(unmounts).toBe(0);
     });
   });
 

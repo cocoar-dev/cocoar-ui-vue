@@ -20,9 +20,12 @@ export interface UseConstrainedRegionsOptions {
 }
 
 const LINE_DECORATION_CLASS = 'coar-script-editor-locked-line';
+const CODE_DECORATION_CLASS = 'coar-script-editor-locked-code';
 const MARKER_DECORATION_CLASS = 'coar-script-editor-locked-marker';
 
-const LOCKED_MARKER_IN_LINE = /\/\/\s*@locked\b/g;
+// The complete comment suffix is template metadata. Decorating only the
+// `// @locked` token would leave attributes such as `@slot:compute` visible.
+const LOCKED_METADATA_IN_LINE = /\/\/\s*@locked\b.*$/g;
 
 /**
  * Attaches change + cursor guards when the source contains locked-line markers, and draws
@@ -71,10 +74,25 @@ export function useConstrainedRegions(options: UseConstrainedRegionsOptions): vo
           stickiness: 1,
         },
       });
-      // Shrink + dim every marker occurrence on the line. Uses the /g flag so multiple
-      // `// @locked` comments on the same line are all styled.
+      // Whole-line background decorations live on a separate Monaco layer and
+      // cannot visually dim syntax tokens. This inline decoration wraps the
+      // actual rendered code so opacity affects what the author reads.
+      decs.push({
+        range: {
+          startLineNumber: lineNumber,
+          startColumn: 1,
+          endLineNumber: lineNumber,
+          endColumn: lineLength + 1,
+        } as monaco.IRange,
+        options: {
+          inlineClassName: CODE_DECORATION_CLASS,
+          stickiness: 1,
+        },
+      });
+      // Style the complete metadata suffix, including optional @slot attributes.
+      // Consumers may collapse it entirely through the public CSS variable.
       const lineText = model.getLineContent(lineNumber);
-      const lineMarkerRe = new RegExp(LOCKED_MARKER_IN_LINE.source, 'g');
+      const lineMarkerRe = new RegExp(LOCKED_METADATA_IN_LINE.source, 'g');
       let match: RegExpExecArray | null;
       while ((match = lineMarkerRe.exec(lineText)) !== null) {
         decs.push({

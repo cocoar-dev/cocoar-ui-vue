@@ -1,12 +1,30 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import {
   CoarPageRenderer,
   CoarPageBuilder,
+  createPageCodeDrafts,
+  normalizePageCodeOutput,
+  pageStateRuntimeSource,
+  elementComputeRuntimeSource,
+  elementActionRuntimeSource,
+  elementBindingId,
+  elementActionDefinitionId,
+  elementClickActionId,
+  setElementQuickProperty,
+  definePageRuntimeHost,
+  type ElementNode,
   type PageNode,
   type ActionHandler,
   type ActionValues,
+  type PageCodeRuntimeInput,
+  type PageCodeRuntimeValues,
   type PageConfig,
+  type PageRuntimeSession,
+  type RuntimeDefinition,
+  type RuntimeReactiveUpdate,
+  type RuntimeStatePatch,
+  type RuntimeValue,
 } from '@cocoar/vue-page-builder';
 import { CoarButton, CoarIcon, useDialog } from '@cocoar/vue-ui';
 import PlaygroundAssetPicker, { type AssetItem } from '../components/PlaygroundAssetPicker.vue';
@@ -24,12 +42,13 @@ const loginSchema: PageNode = {
     {
       id: 'card',
       type: 'card',
+      name: 'loginCard',
       props: {},
       style: { width: '380px', gap: '20px' },
       children: [
-        { id: 'h1', type: 'heading', props: { text: 'Welcome back', level: 1 } },
-        { id: 'sub', type: 'paragraph', props: { text: 'Sign in to your account.' } },
-        { id: 'div1', type: 'divider', props: {} },
+        { id: 'h1', type: 'heading', name: 'loginTitle', props: { text: 'Welcome back', level: 1 } },
+        { id: 'sub', type: 'paragraph', name: 'loginSubtitle', props: { text: 'Sign in to your account.' } },
+        { id: 'div1', type: 'divider', name: 'loginDivider', props: {} },
         {
           id: 'email',
           type: 'text-input',
@@ -53,17 +72,19 @@ const loginSchema: PageNode = {
         {
           id: 'row-bottom',
           type: 'stack',
+          name: 'loginActions',
           props: { direction: 'row' },
           style: { gap: '8px', align: 'center' },
           children: [
             { id: 'remember', type: 'checkbox', name: 'rememberMe', props: { label: 'Remember me' }, defaultValue: false },
-            { id: 'spacer', type: 'spacer', props: {} },
-            { id: 'forgot', type: 'link', props: { label: 'Forgot password?', action: 'auth:forgot' } },
+            { id: 'spacer', type: 'spacer', name: 'loginSpacer', props: {} },
+            { id: 'forgot', type: 'link', name: 'forgotPasswordLink', props: { label: 'Forgot password?', action: 'auth:forgot' } },
           ],
         },
         {
           id: 'login-btn',
           type: 'button',
+          name: 'loginButton',
           props: {
             label: 'Sign in',
             action: 'auth:login',
@@ -87,15 +108,17 @@ const registerSchema: PageNode = {
     {
       id: 'card',
       type: 'card',
+      name: 'registerCard',
       props: {},
       style: { width: '380px', gap: '20px' },
       children: [
-        { id: 'h1', type: 'heading', props: { text: 'Create account', level: 1 } },
-        { id: 'sub', type: 'paragraph', props: { text: 'Fill in your details to get started.' } },
-        { id: 'div1', type: 'divider', props: {} },
+        { id: 'h1', type: 'heading', name: 'registerTitle', props: { text: 'Create account', level: 1 } },
+        { id: 'sub', type: 'paragraph', name: 'registerSubtitle', props: { text: 'Fill in your details to get started.' } },
+        { id: 'div1', type: 'divider', name: 'registerDivider', props: {} },
         {
           id: 'name-row',
           type: 'stack',
+          name: 'nameRow',
           props: { direction: 'row' },
           style: { gap: '12px' },
           children: [
@@ -188,6 +211,7 @@ const registerSchema: PageNode = {
         {
           id: 'register-btn',
           type: 'button',
+          name: 'registerButton',
           props: {
             label: 'Create account',
             action: 'auth:register',
@@ -198,11 +222,12 @@ const registerSchema: PageNode = {
         {
           id: 'login-link-row',
           type: 'stack',
+          name: 'loginLinkRow',
           props: { direction: 'row' },
           style: { gap: '4px', align: 'center' },
           children: [
-            { id: 'login-hint', type: 'paragraph', props: { text: 'Already have an account?' } },
-            { id: 'login-link', type: 'link', props: { label: 'Sign in', action: 'nav:login' } },
+            { id: 'login-hint', type: 'paragraph', name: 'loginHint', props: { text: 'Already have an account?' } },
+            { id: 'login-link', type: 'link', name: 'loginLink', props: { label: 'Sign in', action: 'nav:login' } },
           ],
         },
       ],
@@ -268,6 +293,7 @@ const idpLoginConfig: PageConfig = {
     { name: 'age',        valueType: 'number',  label: 'Age' },
     { name: 'dueUntil',   valueType: 'date',    label: 'Due until' },
   ],
+  allowCustomFields: true,
   // section + spacer stay excluded on purpose, so the allowlist gating
   // (hidden palette entries, blocked-node banners) remains visible in the demo.
   allowedElements: [
@@ -291,6 +317,7 @@ const idpLoginConfig: PageConfig = {
     'button',
     'link',
     'image',
+    'repeat',
     'acme-rating',
   ],
   availableActions: [
@@ -318,11 +345,349 @@ const idpLoginConfig: PageConfig = {
   },
 };
 
+function withQuickProperties(
+  source: string | undefined,
+  values: Record<string, unknown>,
+): string {
+  let result = source;
+  for (const [path, value] of Object.entries(values)) {
+    result = setElementQuickProperty(result, path, value);
+  }
+  return result!;
+}
+
 const builderSchema = ref<PageNode>({
   id: 'root',
   type: 'page',
+  stateCode: `definePageState({
+    recentUsers: [
+      { id: 'initial', label: 'First runtime item' },
+    ],
+    nextUserId: 1,
+    lastSubmit: null,
+})`,
   style: { gap: '16px', padding: '24px' },
-  children: [],
+  children: [
+    {
+      id: 'loginCard',
+      type: 'card',
+      name: 'loginCard',
+      props: {},
+      style: {},
+      elementCode: withQuickProperties(undefined, {
+        'style.width': '380px',
+        'style.gap': '16px',
+      }),
+      children: [
+        {
+          id: 'pageTitle',
+          type: 'heading',
+          name: 'pageTitle',
+          props: { text: '', level: 2 },
+          elementCode: withQuickProperties(`defineElement({
+  compute(element, page) {
+    element.props.level = 2;
+  },
+})`, { 'props.text': 'Element code + Page State' }),
+        },
+        {
+          id: 'stateSummary',
+          type: 'paragraph',
+          name: 'stateSummary',
+          props: { text: '' },
+          elementCode: `defineElement({
+  compute(element, page) {
+    element.props.text = 'Runtime items: ' + page.state.recentUsers.length;
+  },
+})`,
+        },
+        {
+          id: 'username',
+          type: 'text-input',
+          name: 'username',
+          props: {},
+          elementCode: withQuickProperties(undefined, {
+            'props.label': 'Username',
+            'props.placeholder': 'Type to drive element code',
+            'validation.required': true,
+          }),
+        },
+        {
+          id: 'password',
+          type: 'password-input',
+          name: 'password',
+          props: {},
+          style: {},
+          elementCode: withQuickProperties(`defineElement({
+  compute(element, page) {
+    const userNameLength = String(page.fields.username || '').length;
+    element.style.size = 'fixed';
+    element.style.width = (200 + userNameLength * 8) + 'px';
+  },
+})`, {
+            'props.label': 'Password',
+            'validation.required': true,
+          }),
+        },
+        {
+          id: 'recentUsers',
+          type: 'repeat',
+          name: 'recentUsers',
+          props: { items: [], keyPath: 'id' },
+          elementCode: `defineElement({
+  compute(element, page) {
+    element.props.items = page.state.recentUsers;
+    element.props.keyPath = 'id';
+    element.props.emptyText = 'No runtime items';
+  },
+})`,
+          children: [
+            {
+              id: 'recentUserLabel',
+              type: 'paragraph',
+              name: 'recentUserLabel',
+              props: { text: '' },
+              elementCode: `defineElement({
+  compute(element, page) {
+    element.bindings.text = { source: 'item', path: 'label', fallback: '' };
+  },
+})`,
+            },
+          ],
+        },
+        {
+          id: 'addUserButton',
+          type: 'button',
+          name: 'addUserButton',
+          props: { label: 'Button' },
+          elementCode: withQuickProperties(`defineElement({
+  compute(element, page) {
+  },
+  actions: {
+    async click(element, page, action) {
+      const id = page.state.nextUserId++;
+      page.state.recentUsers.push({ id: String(id), label: 'Runtime item ' + id });
+    },
+  },
+})`, {
+            'props.label': 'Add array item',
+            'props.variant': 'secondary',
+          }),
+        },
+        {
+          id: 'submitButton',
+          type: 'button',
+          name: 'submitButton',
+          props: { label: 'Button' },
+          style: {},
+          elementCode: withQuickProperties(`defineElement({
+  compute(element, page) {
+    element.props.validates = true;
+    element.props.disabled = !page.fields.username?.trim() || !page.fields.password || !page.form.valid;
+  },
+  actions: {
+    async click(element, page, action) {
+      page.state.lastSubmit = action.payload;
+    },
+  },
+})`, {
+            'props.label': 'Sign in',
+            'style.width': '100%',
+          }),
+        },
+      ],
+    },
+  ],
+});
+
+// The builder persists state/element source but never evaluates it. This
+// playground is the host: one SES Worker session per renderer preview.
+const builderRuntimeHost = definePageRuntimeHost({});
+const builderPageCodeValues = ref<PageCodeRuntimeValues>();
+const builderRuntimeScope = ref<Pick<PageCodeRuntimeInput, 'fields' | 'form'>>({
+  fields: {},
+  form: { valid: false, dirty: false, validating: false, submitting: false },
+});
+let builderPageState: Record<string, unknown> = {};
+let builderRuntimeSession: PageRuntimeSession | undefined;
+let builderRuntimeRestartTimer: ReturnType<typeof setTimeout> | undefined;
+let builderRuntimeGeneration = 0;
+let builderRuntimeQueue: Promise<void> = Promise.resolve();
+let builderRuntimeDrafts = createPageCodeDrafts(builderSchema.value);
+let builderElementActions = new Map<string, { definitionId: string; nodeName: string }>();
+
+function runtimeScope() {
+  return {
+    state: builderPageState,
+    elements: builderRuntimeDrafts.elements,
+    fields: builderRuntimeScope.value.fields,
+    form: builderRuntimeScope.value.form,
+    context: {},
+    viewport: { width: 1280, breakpoint: 'desktop' },
+  };
+}
+
+function collectRuntimeDefinitions(schema: PageNode): RuntimeDefinition[] {
+  const definitions: RuntimeDefinition[] = [];
+  builderElementActions = new Map();
+  const stateCode = schema.type === 'page' ? schema.stateCode ?? 'definePageState({})' : 'definePageState({})';
+  definitions.push({ id: 'page-state', source: pageStateRuntimeSource(stateCode) });
+  const walk = (node: PageNode) => {
+    if (node.type !== 'page') {
+      const element = node as ElementNode;
+      if (element.elementCode && element.name) {
+        const actionId = elementClickActionId(element.id);
+        const actionDefinition = elementActionDefinitionId(element.id);
+        definitions.push({
+          id: elementBindingId(element.id),
+          kind: 'binding',
+          source: elementComputeRuntimeSource(element.elementCode, element.name, actionId),
+        });
+        definitions.push({
+          id: actionDefinition,
+          source: elementActionRuntimeSource(element.elementCode, element.name),
+        });
+        builderElementActions.set(actionId, { definitionId: actionDefinition, nodeName: element.name });
+      }
+    }
+    if ('children' in node && Array.isArray(node.children)) node.children.forEach(walk);
+  };
+  walk(schema);
+  return definitions;
+}
+
+function applyElementUpdate(update: RuntimeReactiveUpdate) {
+  if (update.kind !== 'binding') return;
+  const nodeId = update.id.startsWith('element-binding:') ? update.id.slice('element-binding:'.length) : '';
+  const alias = Object.entries(builderRuntimeDrafts.nodeIds).find(([, id]) => id === nodeId)?.[0];
+  if (!alias) return;
+  const normalized = normalizePageCodeOutput({ elements: { [alias]: update.value }, state: builderPageState }, builderRuntimeDrafts);
+  builderPageCodeValues.value = {
+    nodes: { ...(builderPageCodeValues.value?.nodes ?? {}), ...normalized.nodes },
+    state: { ...builderPageState },
+    actionIds: [...builderElementActions.keys()],
+  };
+}
+
+function runtimePatches(previous: unknown, next: unknown, path: string[]): RuntimeStatePatch[] {
+  if (Object.is(previous, next)) return [];
+  if (
+    !previous || !next || typeof previous !== 'object' || typeof next !== 'object' ||
+    Array.isArray(previous) || Array.isArray(next)
+  ) return [{ op: 'set', path, value: next as RuntimeValue }];
+  const left = previous as Record<string, unknown>;
+  const right = next as Record<string, unknown>;
+  const patches: RuntimeStatePatch[] = [];
+  for (const key of Object.keys(left)) if (!(key in right)) patches.push({ op: 'delete', path: [...path, key] });
+  for (const [key, value] of Object.entries(right)) {
+    if (!(key in left)) patches.push({ op: 'set', path: [...path, key], value: value as RuntimeValue });
+    else patches.push(...runtimePatches(left[key], value, [...path, key]));
+  }
+  return patches;
+}
+
+async function restartBuilderRuntime() {
+  const generation = ++builderRuntimeGeneration;
+  builderRuntimeSession?.dispose('Builder state, element code, or structure changed.');
+  builderRuntimeSession = undefined;
+  builderPageCodeValues.value = undefined;
+  builderPageState = {};
+  builderRuntimeQueue = Promise.resolve();
+  builderRuntimeDrafts = createPageCodeDrafts(builderSchema.value);
+  const definitions = collectRuntimeDefinitions(builderSchema.value);
+
+  const session = builderRuntimeHost.createSession({
+    pageId: 'page-builder.preview',
+    tenantId: 'authoring-preview',
+    definitions,
+  });
+  builderRuntimeSession = session;
+  session.subscribe(applyElementUpdate);
+  try {
+    await session.initialize();
+    if (generation !== builderRuntimeGeneration) return;
+    const initialState = await session.invoke('page-state', {});
+    if (generation !== builderRuntimeGeneration || session !== builderRuntimeSession) return;
+    if (!initialState.value || typeof initialState.value !== 'object' || Array.isArray(initialState.value)) {
+      throw new Error('Page State must return a plain object.');
+    }
+    builderPageState = { ...(initialState.value as Record<string, unknown>) };
+    builderPageCodeValues.value = {
+      nodes: {},
+      state: { ...builderPageState },
+      actionIds: [...builderElementActions.keys()],
+    };
+    await session.setState(runtimeScope());
+  } catch (error) {
+    if (generation === builderRuntimeGeneration) {
+      console.warn('[PageBuilder demo] Element runtime preview failed; structural fallbacks remain active.', error);
+    }
+  }
+}
+
+function scheduleBuilderRuntimeRestart() {
+  if (builderRuntimeRestartTimer) clearTimeout(builderRuntimeRestartTimer);
+  builderRuntimeRestartTimer = setTimeout(() => { void restartBuilderRuntime(); }, 250);
+}
+
+watch(
+  () => builderSchema.value,
+  scheduleBuilderRuntimeRestart,
+  { immediate: true, deep: true },
+);
+
+let builderComputeTimer: ReturnType<typeof setTimeout> | undefined;
+function onBuilderRuntimeChange(scope: Pick<PageCodeRuntimeInput, 'fields' | 'form'>) {
+  const previous = builderRuntimeScope.value;
+  builderRuntimeScope.value = scope;
+  if (builderComputeTimer) clearTimeout(builderComputeTimer);
+  builderComputeTimer = setTimeout(() => {
+    const session = builderRuntimeSession;
+    if (!session) return;
+    const patches = [
+      ...runtimePatches(previous.fields, scope.fields, ['fields']),
+      ...runtimePatches(previous.form, scope.form, ['form']),
+    ];
+    if (patches.length === 0) return;
+    const operation = builderRuntimeQueue.then(() => session.patchState(patches));
+    builderRuntimeQueue = operation.then(() => undefined, () => undefined);
+    void operation.catch((error) => {
+      console.warn('[PageBuilder demo] Reactive element update failed.', error);
+    });
+  }, 0);
+}
+
+async function runBuilderPageAction(id: string, payload: ActionValues) {
+  const session = builderRuntimeSession;
+  const action = builderElementActions.get(id);
+  if (!session || !action) return;
+  const operation = builderRuntimeQueue.then(async () => {
+    const result = await session.invoke(action.definitionId, {
+      ...runtimeScope(),
+      actionName: 'click',
+      payload,
+    });
+    const value = result.value as { state?: unknown } | undefined;
+    if (!value?.state || typeof value.state !== 'object' || Array.isArray(value.state)) {
+      throw new Error('Element action returned invalid Page State.');
+    }
+    const nextState = value.state as Record<string, unknown>;
+    const patches = runtimePatches(builderPageState, nextState, ['state']);
+    builderPageState = { ...nextState };
+    builderPageCodeValues.value = builderPageCodeValues.value && {
+      ...builderPageCodeValues.value,
+      state: { ...builderPageState },
+    };
+    if (patches.length > 0) await session.patchState(patches);
+  });
+  builderRuntimeQueue = operation.then(() => undefined, () => undefined);
+  await operation;
+}
+
+onBeforeUnmount(() => {
+  if (builderRuntimeRestartTimer) clearTimeout(builderRuntimeRestartTimer);
+  if (builderComputeTimer) clearTimeout(builderComputeTimer);
+  builderRuntimeSession?.dispose();
 });
 
 const initialBuilderSchema = JSON.stringify(builderSchema.value);
@@ -349,10 +714,11 @@ const feedbackSchema: PageNode = {
     {
       id: 'card',
       type: 'card',
+      name: 'feedbackCard',
       props: {},
       style: { width: '380px', gap: '20px' },
       children: [
-        { id: 'h1', type: 'heading', props: { text: 'How did we do?', level: 2 } },
+        { id: 'h1', type: 'heading', name: 'feedbackTitle', props: { text: 'How did we do?', level: 2 } },
         {
           id: 'rating',
           type: 'acme-rating',
@@ -369,6 +735,7 @@ const feedbackSchema: PageNode = {
         {
           id: 'submit',
           type: 'button',
+          name: 'feedbackSubmit',
           props: { label: 'Send feedback', action: 'feedback:submit', validates: true },
           style: { width: '100%' },
         },
@@ -449,7 +816,14 @@ const registerConfig: PageConfig = {
     </header>
 
     <!-- ── Builder (fills remaining height) ── -->
-    <CoarPageBuilder v-model="builderSchema" :config="idpLoginConfig" />
+    <CoarPageBuilder
+      v-model="builderSchema"
+      :config="idpLoginConfig"
+      authoring-mode="code"
+      :preview-page-code-values="builderPageCodeValues"
+      :preview-on-action="runBuilderPageAction"
+      @preview-runtime="onBuilderRuntimeChange"
+    />
 
     <!-- ── Renderer demos ── -->
     <section class="pb-view__section">

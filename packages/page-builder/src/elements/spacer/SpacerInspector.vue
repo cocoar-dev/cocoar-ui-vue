@@ -16,7 +16,7 @@ const { t } = useI18n();
     :label="t('coar.pageBuilder.props.sizeCss', undefined, 'Size (CSS)')"
     :hint="t('coar.pageBuilder.props.spacerSizeHint', undefined, 'Leave empty to fill available space')"
   >
-    <CoarTextInput
+    <CoarTextInput size="s"
       :model-value="props.node.props.size ?? ''"
       placeholder="e.g. 24px"
       @update:model-value="(v) => props.patch({ props: { size: v } })"

@@ -6,6 +6,22 @@ async function openRenderer(page: Page) {
 }
 
 test.describe('Auth Customization Lab', () => {
+  test('runs the code-authored login disabled rule reactively', async ({ page }) => {
+    await openRenderer(page);
+
+    const submit = page.getByRole('button', { name: 'Anmelden', exact: true });
+    const username = page.getByRole('textbox', { name: 'Benutzername', exact: true });
+    const password = page.locator('.renderer-frame input[type="password"]');
+
+    await expect(submit).toBeDisabled();
+    await username.fill('alice');
+    await expect(submit).toBeDisabled();
+    await password.fill('demo-password');
+    await expect(submit).toBeEnabled();
+    await password.fill('');
+    await expect(submit).toBeDisabled();
+  });
+
   test('keeps the login view and values after an API rejection', async ({ page }) => {
     await openRenderer(page);
 
@@ -62,11 +78,31 @@ test.describe('Auth Customization Lab', () => {
     await page.goto('/auth-customization-lab');
 
     await page.getByRole('button', { name: 'Builder', exact: true }).click();
-    await expect(page.getByText('Edit the same JSON rendered above.')).toBeVisible();
+    await expect(page.getByText('Edit structure, Quick Properties', { exact: false })).toBeVisible();
+    await page.getByRole('treeitem', { name: 'Anmelden submit', exact: true }).click();
+    const builder = page.locator('.pb-builder');
+    await builder.getByRole('tab', { name: 'Translations', exact: true }).click();
+    const translationRow = builder.getByRole('row').filter({ hasText: 'page.submit.label' });
+    await expect(translationRow.getByRole('textbox').nth(0)).toHaveValue('Anmelden');
+    const englishLabel = translationRow.getByRole('textbox').nth(1);
+    await expect(englishLabel).toHaveValue('Sign in');
+    await englishLabel.fill('Continue');
+    await expect(translationRow.getByRole('textbox').nth(0)).toHaveValue('Anmelden');
+    await builder.getByRole('tab', { name: 'Editor', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Edit element code' })).toBeVisible();
+    await page.getByRole('button', { name: 'Edit element code' }).click();
+    const codeDialog = page.getByRole('dialog', { name: 'Element Code · submit' });
+    await expect(codeDialog.locator('.monaco-editor')).toBeVisible();
+    await expect(codeDialog.locator('.view-lines')).toContainText('page.fields.username?.trim()');
+    await expect(codeDialog.locator('.view-lines')).toContainText('page.form.valid');
+    await expect(codeDialog.locator('.view-lines')).toContainText('page.submit.label');
+    await page.getByRole('button', { name: 'Cancel', exact: true }).click();
 
     await page.getByRole('button', { name: 'JSON', exact: true }).click();
     await expect(page.locator('pre')).toContainText('"type": "page"');
     await expect(page.locator('pre')).toContainText('"auth:login"');
+    await expect(page.locator('pre')).toContainText('"stateCode"');
+    await expect(page.locator('pre')).toContainText('"elementCode"');
 
     await page.getByRole('button', { name: 'Use cases & gaps', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'PageBuilder hand-off matrix' })).toBeVisible();
@@ -80,14 +116,17 @@ test.describe('Auth Customization Lab', () => {
     await page.getByRole('button', { name: 'Consent · scopes[]', exact: true }).click();
     await page.getByLabel('Consent scope count').selectOption('8');
 
-    const scopes = page.locator('[data-testid="renderer-consent-scopes"] article');
+    const scopes = page.locator('.renderer-frame input[type="checkbox"]');
     await expect(scopes).toHaveCount(8);
     await expect(page.getByText('Read invoices for all assigned organisations')).toBeVisible();
 
     await page.getByText('Email address', { exact: true }).click();
     await expect(page.getByRole('checkbox', { name: 'Email address' })).not.toBeChecked();
     await page.getByRole('button', { name: 'Zulassen', exact: true }).click();
-    await expect(page.getByText(/Consent accepted with 7 approved scope/)).toBeVisible();
+    await expect(page.getByText(
+      'Consent accepted with 7 approved scope(s); redirect suppressed in the lab.',
+      { exact: true },
+    )).toBeVisible();
     await expect(page).toHaveURL(/\/auth-customization-lab$/);
   });
 
@@ -98,7 +137,7 @@ test.describe('Auth Customization Lab', () => {
     await page.getByRole('button', { name: 'Zulassen', exact: true }).click();
 
     await expect(page.getByRole('alert')).toContainText('consent request has expired');
-    await expect(page.locator('[data-testid="renderer-consent-scopes"] article')).toHaveCount(3);
+    await expect(page.locator('.renderer-frame input[type="checkbox"]')).toHaveCount(3);
     await expect(page.getByRole('checkbox', { name: 'Profile' })).toBeChecked();
     await expect(page).toHaveURL(/\/auth-customization-lab$/);
   });

@@ -12,7 +12,7 @@ import '@cocoar/vue-page-builder/styles';
 const schema = ref<PageNode>({
   id: 'root',
   type: 'page',
-  schemaVersion: 2,
+  schemaVersion: 4,
   style: { gap: '16px', padding: '24px' },
   children: [
     {

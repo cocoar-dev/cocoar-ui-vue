@@ -1,6 +1,23 @@
 <script setup lang="ts">
-import { computed, ref, watch, type VNode } from 'vue';
+import { computed, defineComponent, ref, watch, type PropType, type VNode } from 'vue';
 import CoarTab from './CoarTab.vue';
+
+/**
+ * Stable renderer type for VNode arrays captured from CoarTab slots. Using an
+ * inline `() => tab.contentSlot` as the dynamic component type minted a brand
+ * new component on every parent update and remounted stateful tab content
+ * (forms, Monaco, renderer sessions). This wrapper updates its nodes while its
+ * component identity stays stable.
+ */
+const VNodeRenderer = defineComponent({
+  name: 'CoarTabVNodeRenderer',
+  props: {
+    nodes: { type: Array as PropType<VNode[]>, required: true },
+  },
+  setup(props) {
+    return () => props.nodes;
+  },
+});
 
 const props = withDefaults(
   defineProps<{
@@ -205,7 +222,7 @@ function onKeydown(event: KeyboardEvent) {
         @keydown="onKeydown"
       >
         <span class="coar-tab-label">
-          <component :is="() => tab.labelSlot" />
+          <VNodeRenderer :nodes="tab.labelSlot" />
         </span>
       </button>
 
@@ -226,7 +243,7 @@ function onKeydown(event: KeyboardEvent) {
         :hidden="activeTabId !== tab.id"
       >
         <template v-if="shouldRender(tab)">
-          <component :is="() => tab.contentSlot" />
+          <VNodeRenderer :nodes="tab.contentSlot" />
         </template>
       </div>
     </div>

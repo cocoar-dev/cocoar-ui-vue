@@ -1,15 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { migrateLegacyTypes, normalizePageSchema } from './schemaNormalize';
 import { migrateV1PropsBag, migrateLegacyPasswordInput } from './schemaMigrateV1';
-import type { PageNode } from '../schema';
+import { CURRENT_PAGE_SCHEMA_VERSION, type PageNode } from '../schema';
 
 const validPage: PageNode = {
   id: 'root',
   type: 'page',
-  schemaVersion: 2,
+  schemaVersion: CURRENT_PAGE_SCHEMA_VERSION,
   children: [
-    { id: 'h', type: 'heading', props: { text: 'Hello', level: 2 } },
-    { id: 's', type: 'stack', props: {}, children: [{ id: 'p', type: 'paragraph', props: { text: 'Hi' } }] },
+    { id: 'h', type: 'heading', name: 'heading', props: { text: 'Hello', level: 2 } },
+    { id: 's', type: 'stack', name: 'stack', props: {}, children: [{ id: 'p', type: 'paragraph', name: 'paragraph', props: { text: 'Hi' } }] },
   ],
 };
 
@@ -117,31 +117,31 @@ describe('normalizePageSchema — healing', () => {
       children: [],
     });
     expect(schema.type).toBe('page');
-    expect((schema as { schemaVersion?: number }).schemaVersion).toBe(2);
+    expect((schema as { schemaVersion?: number }).schemaVersion).toBe(CURRENT_PAGE_SCHEMA_VERSION);
     expect((schema as { children: PageNode[] }).children[0].type).toBe('card');
     expect(issues).toEqual([]);
     expect(changed).toBe(true);
   });
 
-  it('stamps schemaVersion 2 on pre-versioning page roots (silently)', () => {
+  it('stamps the current schemaVersion on pre-versioning page roots (silently)', () => {
     const { schema, issues, changed } = normalizePageSchema({
       id: 'r',
       type: 'page',
       children: [],
     });
-    expect((schema as { schemaVersion?: number }).schemaVersion).toBe(2);
+    expect((schema as { schemaVersion?: number }).schemaVersion).toBe(CURRENT_PAGE_SCHEMA_VERSION);
     expect(issues).toEqual([]);
     expect(changed).toBe(true);
   });
 
-  it('re-stamps v1 documents as schemaVersion 2 after the bag migration', () => {
+  it('re-stamps v1 documents with the current version after migration', () => {
     const { schema, changed } = normalizePageSchema({
       id: 'r',
       type: 'page',
       schemaVersion: 1,
       children: [{ id: 'h', type: 'heading', text: 'Hi', level: 2 }],
     });
-    expect((schema as { schemaVersion?: number }).schemaVersion).toBe(2);
+    expect((schema as { schemaVersion?: number }).schemaVersion).toBe(CURRENT_PAGE_SCHEMA_VERSION);
     const child = (schema as { children: { props: unknown }[] }).children[0];
     expect(child.props).toEqual({ text: 'Hi', level: 2 });
     expect(changed).toBe(true);
@@ -155,6 +155,23 @@ describe('normalizePageSchema — healing', () => {
       children: [],
     });
     expect((schema as { schemaVersion?: number }).schemaVersion).toBe(5);
+  });
+
+  it('migrates every element to one deterministic, page-wide unique name', () => {
+    const { schema, changed } = normalizePageSchema({
+      id: 'root',
+      type: 'page',
+      schemaVersion: 3,
+      children: [
+        { id: 'page-title', type: 'heading', props: { text: 'Hello' } },
+        { id: 'second-title', type: 'heading', name: 'pageTitle', props: { text: 'Again' } },
+        { id: 'third-title', type: 'heading', name: 'pageTitle', props: { text: 'Third' } },
+      ],
+    });
+    const children = (schema as { children: Array<{ name: string }> }).children;
+    expect(children.map((node) => node.name)).toEqual(['pageTitle', 'pageTitle2', 'pageTitle3']);
+    expect((schema as { schemaVersion?: number }).schemaVersion).toBe(CURRENT_PAGE_SCHEMA_VERSION);
+    expect(changed).toBe(true);
   });
 
   it('heals a missing children array on containers silently', () => {
@@ -342,6 +359,7 @@ describe('normalizePageSchema — unknown-typed subtrees', () => {
     const unknown = {
       id: 'x',
       type: 'acme-rating',
+      name: 'acmeRating',
       props: { max: 5, exotic: { nested: true } },
       customFlag: 'kept',
     };
@@ -351,7 +369,7 @@ describe('normalizePageSchema — unknown-typed subtrees', () => {
   });
 
   it('leaves a non-array children value on an unknown node alone (lossless)', () => {
-    const unknown = { id: 'x', type: 'acme-thing', children: 'opaque' };
+    const unknown = { id: 'x', type: 'acme-thing', name: 'acmeThing', children: 'opaque' };
     const { schema, issues } = normalizePageSchema({
       id: 'r',
       type: 'page',

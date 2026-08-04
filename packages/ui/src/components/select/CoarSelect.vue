@@ -132,6 +132,7 @@ const {
 
 const inputId = computed(() => props.id || formField?.inputId.value || baseInputId.value);
 const describedBy = computed(() => formField?.messageId.value || undefined);
+const labelledBy = computed(() => formField?.labelId.value || undefined);
 
 const compare = computed(() => props.compareWith ?? ((a: T, b: T) => a === b));
 
@@ -284,6 +285,7 @@ onBeforeUnmount(() => {
         :aria-controls="listboxId"
         :aria-activedescendant="activeDescendantId"
         :aria-describedby="describedBy"
+        :aria-labelledby="labelledBy"
         :aria-invalid="hasError ? 'true' : undefined"
         :aria-disabled="disabled ? 'true' : undefined"
         :tabindex="disabled ? -1 : 0"

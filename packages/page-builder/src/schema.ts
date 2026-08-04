@@ -2,9 +2,24 @@
 // (elements/registry.ts imports node types from here), so no cycle exists.
 import type { PageElementRegistry } from './elements/registry'
 
+export const CURRENT_PAGE_SCHEMA_VERSION = 4
+
 // ─── Style ────────────────────────────────────────────────────────────────────
 
 export interface NodeStyle {
+  // ── Token-controlled visual presentation ──
+  surface?: 'default' | 'subtle' | 'raised' | 'accent' | 'success' | 'warning' | 'error'
+  foreground?: 'primary' | 'secondary' | 'tertiary' | 'inverse' | 'accent' | 'success' | 'warning' | 'error'
+  borderTone?: 'neutral' | 'accent' | 'success' | 'warning' | 'error'
+  borderWidth?: '0' | '1px' | '2px'
+  radius?: 'none' | 'small' | 'medium' | 'large' | 'full'
+  elevation?: 'none' | 'small' | 'medium' | 'large'
+  fontFamily?: 'body' | 'heading' | 'mono'
+  fontSize?: 'caption' | 'small' | 'base' | 'large' | 'xlarge' | 'display'
+  fontWeight?: 'regular' | 'medium' | 'semibold' | 'bold'
+  lineHeight?: 'tight' | 'normal' | 'relaxed'
+  letterSpacing?: 'tight' | 'normal' | 'wide'
+  textAlign?: 'start' | 'center' | 'end'
   // ── Container layout: how this node arranges its children ──
   /** CSS gap between children, e.g. '8px', '1rem'. Applied to inner layout. */
   gap?: string
@@ -14,6 +29,10 @@ export interface NodeStyle {
   justify?: 'start' | 'center' | 'end' | 'space-between' | 'space-around' | 'space-evenly'
   /** align-items — alignment of children along the cross axis. */
   align?: 'start' | 'center' | 'end' | 'stretch'
+  /** Stack direction override. On stack nodes this wins over the legacy props.direction value. */
+  direction?: 'column' | 'row'
+  /** Whether a row stack wraps. On stack nodes this wins over the legacy props.wrap value. */
+  wrap?: boolean
 
   // ── Self: how this node sits inside its parent ──
   /** align-self — overrides the parent's `align` for just this node. */
@@ -27,6 +46,12 @@ export interface NodeStyle {
   size?: 'fit' | 'fill' | 'fixed'
   /** CSS width. Applied when `size` is `fixed` (or when set without a `size`). */
   width?: string
+  /** Minimum width of this node's box. */
+  minWidth?: string
+  /** Maximum width of this node's box. */
+  maxWidth?: string
+  /** CSS height of this node's box. */
+  height?: string
   /**
    * CSS min-height of this node's box, e.g. '100vh', '400px'. On the `page`
    * root this makes the page fill the viewport so `justify` (vertical) +
@@ -35,7 +60,15 @@ export interface NodeStyle {
    * page own its vertical extent without depending on host CSS.
    */
   minHeight?: string
+  /** Responsive presentation switch. Hidden nodes do not render or participate in actions. */
+  hidden?: boolean
 }
+
+/** Breakpoints use a mobile-first cascade: compact/base → phone → tablet → desktop. */
+export type PageBreakpoint = 'compact' | 'phone' | 'tablet' | 'desktop'
+
+/** Per-breakpoint style differences. Compact is represented by the base `style`. */
+export type ResponsiveNodeStyles = Partial<Record<Exclude<PageBreakpoint, 'compact'>, Partial<NodeStyle>>>
 
 // ─── Base ─────────────────────────────────────────────────────────────────────
 
@@ -43,12 +76,86 @@ interface PageNodeBase {
   /** Stable UUID assigned by the builder. */
   id: string
   style?: NodeStyle
+  /** Mobile-first style overrides; unset properties inherit from the preceding breakpoint. */
+  responsive?: ResponsiveNodeStyles
 }
 
 // ─── Unified element node (schema v2) ─────────────────────────────────────────
 
 /** Element-specific props. Must stay JSON-safe — the bag is persisted verbatim. */
 export type ElementProps = Record<string, unknown>
+
+export type PageContextValueType =
+  | 'string'
+  | 'number'
+  | 'boolean'
+  | 'string[]'
+  | 'object'
+  | 'array'
+
+export interface PageContextItemField {
+  path: string
+  type: Exclude<PageContextValueType, 'array'>
+}
+
+/** One explicitly exposed host-context path. Paths not listed here are unreadable. */
+export interface PageContextField {
+  path: string
+  type: PageContextValueType
+  itemFields?: PageContextItemField[]
+}
+
+export interface RuntimeBinding {
+  source: 'context' | 'state' | 'item'
+  /** Context/item path. State bindings omit it and resolve to the state id. */
+  path?: string
+  fallback?: unknown
+}
+
+/**
+ * A pure JavaScript expression authored by the tenant. The expression returns
+ * one value for exactly one target property; it never mutates the page tree.
+ * Evaluation happens in the host-provided sandbox runtime, not in the schema
+ * resolver. Until a result exists (startup/error), the persisted static value
+ * remains authoritative, with `fallback` as the optional final fallback.
+ */
+export interface RuntimeExpressionBinding {
+  source: 'expression'
+  /** False keeps the authored expression but makes the static property authoritative. */
+  enabled?: boolean
+  expression: string
+  fallback?: unknown
+}
+
+export interface LocalizedValue<T = string> {
+  localized: Record<string, T>
+  fallback?: T
+}
+
+/**
+ * A locale-reactive reference into the page/host translation catalogue.
+ * It stays JSON-safe when produced by Element Code; the renderer resolves it
+ * after the sandbox result has been applied.
+ */
+export interface TranslationBinding {
+  source: 'translation'
+  key: string
+  params?: Record<string, unknown>
+  fallback?: string
+}
+
+/** Page-owned messages, grouped by locale and addressed by stable dot keys. */
+export type PageTranslations = Record<string, Record<string, string>>
+
+export interface RuntimeTemplate {
+  template: string | LocalizedValue<string> | TranslationBinding
+  placeholders: Record<string, RuntimeBinding>
+}
+
+export type PropertyBinding = RuntimeBinding | RuntimeTemplate | RuntimeExpressionBinding | TranslationBinding
+
+/** Results supplied by the sandbox runtime, keyed by runtimeExpressionKey(). */
+export type RuntimeExpressionValues = Readonly<Record<string, unknown>>
 
 /**
  * The unified node grammar: `type` is an open string (the element-registry
@@ -58,9 +165,11 @@ export type ElementProps = Record<string, unknown>
  * can never collide with host fields; built-ins follow the same grammar for
  * uniformity.
  *
- * `name`/`defaultValue`/`validation` are only meaningful when the element's
- * registry definition declares a `value` spec; `children` only when it
- * declares `container`.
+ * Every element has one page-wide unique public `name`. Element Code uses it
+ * as the stable authoring identity; value elements additionally use the exact
+ * same name as their form/value-model key. `defaultValue`/`validation` are only
+ * meaningful when the registry definition declares a `value` spec;
+ * `children` only when it declares `container`.
  */
 export interface ElementNode<
   K extends string = string,
@@ -68,12 +177,24 @@ export interface ElementNode<
 > extends PageNodeBase {
   type: K
   props: P
-  /** When set (and the definition has a value spec), the renderer manages this node's value. */
+  /**
+   * Public Page-Code name; also the form key when the definition has a value
+   * spec. Canonical v4 documents always contain it. It remains optional in
+   * this ingest type so pre-v4 documents can be passed to the normalizer.
+   */
   name?: string
   defaultValue?: unknown
   validation?: FieldValidation
+  /** Safe host-provided values mapped onto top-level element props. */
+  bindings?: Record<string, PropertyBinding>
   /** Conditional visibility against the live value model. See `VisibleWhen`. */
   visibleWhen?: VisibleWhen
+  /**
+   * JavaScript configuration for this element. The host evaluates it in its
+   * sandbox runtime with a mutable `element` draft and read-only page inputs.
+   * Structure, type and name are never part of the returned patch.
+   */
+  elementCode?: string
   children?: PageNode[]
 }
 
@@ -96,9 +217,9 @@ export interface OptionItem {
 export interface PageRootNode extends PageNodeBase {
   type: 'page'
   /**
-   * Wire-format version. `2` = unified props-bag grammar (current). `1` /
-   * absent = the pre-GA flat grammar, migrated transparently on ingest by
-   * `normalizePageSchema` (and on the fly by the renderer).
+   * Wire-format version. `4` makes every element name mandatory and unique;
+   * `3` adds responsive overrides, runtime bindings, repeaters and feedback
+   * zones. Older documents are migrated on ingest.
    */
   schemaVersion?: number
   /**
@@ -108,6 +229,17 @@ export interface PageRootNode extends PageNodeBase {
    * button in tree order. Off by default.
    */
   enterSubmits?: boolean
+  /**
+   * One JavaScript page program evaluated by a host-provided sandbox runtime.
+   * The page-builder persists and edits the source, but never evaluates it.
+   * Structural fields (`id`, `type`, `name`, `children`) remain owned by the
+   * visual builder; the program can only return configuration drafts.
+   */
+  pageCode?: string
+  /** Customer-authored initial state shared by this page's element scripts. */
+  stateCode?: string
+  /** Customer-owned messages edited in the Builder's Translations tab. */
+  translations?: PageTranslations
   children: PageNode[]
 }
 
@@ -133,6 +265,27 @@ export interface SectionNode extends ElementNode<'section', {
   title?: string
 }> { children: PageNode[] }
 
+export interface RepeatSelection {
+  /** ActionValues array field produced by `$selection` checkboxes in the template. */
+  name: string
+  valuePath: string
+  requiredPath?: string
+  defaultSelected?: boolean
+}
+
+/** Native template repeater over one allowlisted host-context array. */
+export interface RepeatNode extends ElementNode<'repeat', {
+  /** Legacy/host-context source. Page Code may instead provide `items`. */
+  source?: string
+  keyPath?: string
+  /** Runtime-only data source produced by Page Code (still JSON-safe data). */
+  items?: unknown[]
+  itemAlias?: string
+  maxItems?: number
+  emptyText?: string
+  selection?: RepeatSelection
+}> { children: PageNode[] }
+
 export type DividerNode = ElementNode<'divider', EmptyProps>
 
 export type SpacerNode = ElementNode<'spacer', {
@@ -153,6 +306,13 @@ export type NoteNode = ElementNode<'note', {
   text: string
   /** Visual tone of the note box. Defaults to the design system's 'neutral'. */
   variant?: 'neutral' | 'success' | 'warning' | 'error' | 'info' | 'accent'
+}>
+
+/** Authorable semantic placement for renderer/host feedback. */
+export type FeedbackNode = ElementNode<'feedback', {
+  kind?: 'form-error' | 'error' | 'success' | 'info' | 'loading'
+  text?: string
+  emptyText?: string
 }>
 
 export type TextInputNode = ElementNode<'text-input', {
@@ -259,6 +419,8 @@ export type DateTimeInputNode = ElementNode<'datetime-input', {
 
 export type ButtonNode = ElementNode<'button', {
   label: string
+  /** Static or runtime-resolved interaction state. */
+  disabled?: boolean
   /** Action ID matched against the `actions` map passed to the renderer. */
   action?: string
   /** When true, validates all named fields before calling the action. */
@@ -272,6 +434,11 @@ export type ButtonNode = ElementNode<'button', {
   icon?: string
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
   size?: 'xs' | 's' | 'm' | 'l'
+  /** Static, JSON-safe additions merged into this action call only. */
+  actionValues?: Record<string, unknown>
+  /** Optional single dynamic action value; bind `actionValue` from context/item data. */
+  actionValueField?: string
+  actionValue?: unknown
 }>
 
 export type LinkNode = ElementNode<'link', {
@@ -317,27 +484,38 @@ export interface FieldValidation {
  */
 export interface VisibleWhen {
   /** Name of the controlling field (a named input on the page). */
-  field: string
+  field?: string
   /** Visible while the field's value equals this (JSON-safe values compare by content). */
   equals?: unknown
   /** Visible while the field's value is one of these. */
   in?: unknown[]
+  /** Safe source for the extended condition grammar. Legacy conditions omit this. */
+  source?: 'field' | 'context' | 'state' | 'item'
+  /** Field/context path. State conditions may omit it and compare the current state id. */
+  path?: string
+  operator?: 'equals' | 'notEquals' | 'in' | 'notIn' | 'exists' | 'isEmpty' | 'isNotEmpty'
+  value?: unknown
+  /** Bounded boolean composition; free expressions are deliberately unsupported. */
+  all?: VisibleWhen[]
+  any?: VisibleWhen[]
 }
 
 // ─── Union ────────────────────────────────────────────────────────────────────
 
-export type ContainerNode = PageRootNode | StackNode | CardNode | SectionNode
+export type ContainerNode = PageRootNode | StackNode | CardNode | SectionNode | RepeatNode
 
 /** The built-in element set (closed — drives the internal per-type tables). */
 export type BuiltinNode =
   | StackNode
   | CardNode
   | SectionNode
+  | RepeatNode
   | DividerNode
   | SpacerNode
   | HeadingNode
   | ParagraphNode
   | NoteNode
+  | FeedbackNode
   | TextInputNode
   | PasswordInputNode
   | NumberInputNode
@@ -372,6 +550,7 @@ export function isContainerNode(node: PageNode): node is ContainerNode {
     node.type === 'stack' ||
     node.type === 'card' ||
     node.type === 'section'
+    || node.type === 'repeat'
   )
 }
 
@@ -443,6 +622,35 @@ export interface PageConfig {
    * incompatible bindings, and missing required fields.
    */
   fields?: PageFieldSpec[]
+  /** Typed allowlist of host values the document may bind or use in conditions. */
+  contextFields?: PageContextField[]
+  /** State ids the host may expose and authors may select in conditions/previews. */
+  availableStates?: { id: string; label: string }[]
+  /** Locales offered by the builder for LocalizedValue props. */
+  locales?: { id: string; label: string }[]
+  defaultLocale?: string
+  /** Nodes the host requires for security or flow completeness. */
+  requiredNodes?: {
+    id: string
+    type: string
+    lockVisibility?: boolean
+    lockStyle?: boolean
+    /** Optional generic placement invariant for high-priority content. */
+    parentId?: string
+    maxIndex?: number
+  }[]
+  documentLimits?: {
+    maxNodes?: number
+    maxDepth?: number
+  }
+  /** Named, non-persisted sample contexts for deterministic builder previews. */
+  previewFixtures?: {
+    id: string
+    label: string
+    context: Record<string, unknown>
+    state?: string
+    locale?: string
+  }[]
   /**
    * Allow binding names outside `fields`. Defaults to false — with a
    * contract, authors pick from it.

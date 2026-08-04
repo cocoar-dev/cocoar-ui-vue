@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, toRaw, watch } from 'vue';
-import { CoarIcon, CoarTabGroup, CoarTab } from '@cocoar/vue-ui';
-import { useI18n } from '@cocoar/vue-localization';
-import type { PageNode, PageConfig } from './schema';
+import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, provide, ref, toRaw, watch } from 'vue';
+import { CoarIcon, CoarTabGroup, CoarTab, useDialog } from '@cocoar/vue-ui';
+import { useI18n, useLocalization } from '@cocoar/vue-localization';
+import { CURRENT_PAGE_SCHEMA_VERSION, type ElementNode, type PageBreakpoint, type PageNode, type PageRootNode, type PageConfig, type RuntimeExpressionValues } from './schema';
+import type { CoarScriptEditorExtraLib } from '@cocoar/vue-script-editor';
+import type { PageCodeRuntimeValues } from './pageCode';
+import { PAGE_BREAKPOINT_WIDTHS } from './responsive';
 import { usePageBuilder } from './builder/usePageBuilder';
 import { useMergedElements } from './elements/useMergedElements';
 import { useSchemaValidation } from './builder/useSchemaValidation';
@@ -13,15 +16,43 @@ import {
   BUILDER_API,
   BUILDER_CONFIG,
   BUILDER_VALIDATION,
+  BUILDER_BREAKPOINT,
+  BUILDER_RUNTIME,
+  BUILDER_LOGIC,
+  BUILDER_AUTHORING_MODE,
+  BUILDER_PAGE_CODE_LIBS,
+  BUILDER_PAGE_CODE_VALUES,
+  BUILDER_LOCALE,
+  type PageBuilderAuthoringMode,
 } from './builder/builderContext';
 import BuilderOutline from './builder/BuilderOutline.vue';
 import BuilderCanvas from './builder/BuilderCanvas.vue';
 import BuilderPropsPanel from './builder/BuilderPropsPanel.vue';
+import BuilderTranslationsPanel from './builder/BuilderTranslationsPanel.vue';
 import CoarPageRenderer from './CoarPageRenderer.vue';
+import type { ActionHandler } from './context';
+import type { ActionValues } from './context';
+import { isExpressionBinding } from './runtimeBindings';
+import type { NodePath } from './builder/operations';
+
+// Monaco is authoring-only and expensive. Both components are lazy: opening
+// the builder and its property inspector does not request the editor chunk.
+const BuilderLogicPanel = defineAsyncComponent(() => import('./builder/BuilderLogicPanel.vue'));
+const BuilderExpressionDialog = defineAsyncComponent(() => import('./builder/BuilderExpressionDialog.vue'));
+const BuilderElementCodeDialog = defineAsyncComponent(() => import('./builder/BuilderElementCodeDialog.vue'));
 
 const { t } = useI18n();
+const localization = useLocalization();
 
 const model = defineModel<PageNode>({ required: false });
+const emit = defineEmits<{
+  /** Live field values from the embedded preview, useful for its sandbox session. */
+  'preview-values': [values: ActionValues]
+  'preview-runtime': [scope: {
+    fields: ActionValues;
+    form: { valid: boolean; dirty: boolean; validating: boolean; submitting: boolean };
+  }]
+}>();
 
 const props = defineProps<{
   /**
@@ -30,6 +61,22 @@ const props = defineProps<{
    * authoring (palette + add-child menu) and at render time (security boundary).
    */
   config?: PageConfig
+  /** Safe fixture context used only by the embedded preview; never persisted. */
+  previewContext?: Record<string, unknown>
+  previewState?: string
+  previewLocale?: string
+  previewActions?: Record<string, ActionHandler>
+  previewFallbackSchema?: PageNode
+  /** Sandbox results used by the embedded preview; source code is never evaluated by the builder itself. */
+  previewExpressionValues?: RuntimeExpressionValues
+  /** Code-driven mode keeps the inspector structural and makes Page Code authoritative. */
+  authoringMode?: PageBuilderAuthoringMode
+  /** Atomic sandbox result used by the embedded renderer preview. */
+  previewPageCodeValues?: PageCodeRuntimeValues
+  /** Dynamic Page Code action dispatcher owned by the host. */
+  previewOnAction?: (id: string, values: ActionValues) => void | Promise<unknown>
+  /** Host capability declarations merged into Monaco IntelliSense. */
+  pageCodeExtraLibs?: CoarScriptEditorExtraLib[]
 }>();
 
 /**
@@ -59,7 +106,7 @@ const builder = usePageBuilder({
     : {
         id: 'root',
         type: 'page',
-        schemaVersion: 2,
+        schemaVersion: CURRENT_PAGE_SCHEMA_VERSION,
         style: { gap: '16px', padding: '24px' },
         children: [],
       },
@@ -92,24 +139,145 @@ provideBuilderDnd(builder);
 provide(BUILDER_API, builder);
 provide(BUILDER_CONFIG, configRef);
 provide(BUILDER_VALIDATION, validation);
+provide(BUILDER_AUTHORING_MODE, computed(() => props.authoringMode ?? 'properties'));
+provide(BUILDER_PAGE_CODE_LIBS, computed(() => props.pageCodeExtraLibs ?? []));
+provide(BUILDER_PAGE_CODE_VALUES, computed(() => props.previewPageCodeValues));
+
+const authoringBreakpoint = ref<PageBreakpoint>('desktop');
+provide(BUILDER_BREAKPOINT, authoringBreakpoint);
 
 // ── Tab ───────────────────────────────────────────────────────────────────────
 const activeTab = ref<string>('editor');
+const activeLogicBinding = ref<{ nodeId: string; target: string } | null>(null);
+const focusedTranslationKey = ref<string>();
+const dialog = useDialog();
+
+function findNodeById(root: PageNode, nodeId: string): { node: PageNode; path: NodePath } | null {
+  if (root.id === nodeId) return { node: root, path: [] };
+  if (!('children' in root) || !Array.isArray(root.children)) return null;
+  for (let index = 0; index < root.children.length; index++) {
+    const found = findNodeById(root.children[index], nodeId);
+    if (found) return { node: found.node, path: [index, ...found.path] };
+  }
+  return null;
+}
+
+provide(BUILDER_LOGIC, {
+  activeBinding: activeLogicBinding,
+  openPageState() {
+    activeTab.value = 'logic';
+  },
+  openTranslations(key) {
+    focusedTranslationKey.value = key;
+    activeTab.value = 'translations';
+  },
+  async openElementCode(nodeId) {
+    const location = findNodeById(builder.schema.value, nodeId);
+    if (!location || location.node.type === 'page') return false;
+    const node = location.node as ElementNode;
+    const root = builder.schema.value.type === 'page' ? builder.schema.value as PageRootNode : undefined;
+    const editor = dialog.open<string>(BuilderElementCodeDialog, {
+      title: `Element Code · ${node.name ?? node.id}`,
+      size: 'xl',
+      closeOnBackdropClick: false,
+    }, {
+      schema: builder.schema.value,
+      node,
+      source: node.elementCode,
+      stateCode: root?.stateCode,
+      config: props.config,
+      hostLibs: props.pageCodeExtraLibs ?? [],
+    });
+    const result = await editor.result;
+    if (typeof result !== 'string') return false;
+    const latest = findNodeById(builder.schema.value, nodeId);
+    if (!latest || latest.node.type === 'page') return false;
+    builder.patch(latest.path, { elementCode: result || undefined } as Partial<PageNode>);
+    return true;
+  },
+  async openBinding(nodeId, target, initialExpression = 'undefined') {
+    activeLogicBinding.value = { nodeId, target };
+    const location = findNodeById(builder.schema.value, nodeId);
+    if (!location || location.node.type === 'page') return false;
+    const node = location.node as ElementNode;
+    const current = node.bindings?.[target];
+    const expression = current && isExpressionBinding(current)
+      ? current.expression
+      : initialExpression;
+    const editor = dialog.open<string>(BuilderExpressionDialog, {
+      title: `Expression · ${target}`,
+      size: 'l',
+      closeOnBackdropClick: false,
+    }, {
+      nodeId,
+      target,
+      expression,
+      config: props.config,
+    });
+    const result = await editor.result;
+    if (typeof result !== 'string') return false;
+
+    // Resolve again: the schema may have changed while the modal was open.
+    const latest = findNodeById(builder.schema.value, nodeId);
+    if (!latest || latest.node.type === 'page') return false;
+    const latestNode = latest.node as ElementNode;
+    const bindings = { ...(latestNode.bindings ?? {}) };
+    const latestBinding = bindings[target];
+    bindings[target] = latestBinding && isExpressionBinding(latestBinding)
+      ? { ...latestBinding, expression: result }
+      : { source: 'expression', enabled: true, expression: result };
+    builder.patch(latest.path, { bindings } as Partial<PageNode>);
+    return true;
+  },
+});
 
 // ── Responsive preview ───────────────────────────────────────────────────────
-type PreviewWidth = 'full' | 'tablet' | 'mobile';
-const previewWidth = ref<PreviewWidth>('full');
-
-const PREVIEW_WIDTHS: Record<Exclude<PreviewWidth, 'full'>, number> = {
-  tablet: 768,
-  mobile: 375,
-};
+type PreviewWidth = PageBreakpoint | 'fluid';
+const previewWidth = ref<PreviewWidth>('desktop');
+const PREVIEW_HEIGHTS: Record<PageBreakpoint, number> = { compact: 568, phone: 844, tablet: 1024, desktop: 800 };
 
 const previewFrameStyle = computed(() => {
-  if (previewWidth.value === 'full') return {};
-  const w = PREVIEW_WIDTHS[previewWidth.value];
-  return { maxWidth: `${w}px`, width: '100%', margin: '0 auto' };
+  if (previewWidth.value === 'fluid') return { width: '100%', minHeight: '480px', margin: '0 auto' };
+  const w = PAGE_BREAKPOINT_WIDTHS[previewWidth.value];
+  return { width: `${w}px`, height: `${PREVIEW_HEIGHTS[previewWidth.value]}px`, margin: '0 auto' };
 });
+
+const previewViewportWidth = computed(() =>
+  previewWidth.value === 'fluid' ? undefined : PAGE_BREAKPOINT_WIDTHS[previewWidth.value],
+);
+const selectedFixtureId = ref('');
+const previewStateOverride = ref('');
+const previewLocaleOverride = ref('');
+const selectedFixture = computed(() => props.config?.previewFixtures?.find((fixture) => fixture.id === selectedFixtureId.value));
+const effectivePreviewContext = computed(() => selectedFixture.value?.context ?? props.previewContext);
+const effectivePreviewState = computed(() => previewStateOverride.value || selectedFixture.value?.state || props.previewState);
+const effectivePreviewLocale = computed(() => previewLocaleOverride.value || selectedFixture.value?.locale || props.previewLocale);
+const effectiveAuthoringLocale = computed(() => effectivePreviewLocale.value
+  || props.config?.defaultLocale
+  || props.config?.locales?.[0]?.id
+  || 'en');
+provide(BUILDER_LOCALE, {
+  active: effectiveAuthoringLocale,
+  setActive(locale) {
+    previewLocaleOverride.value = locale;
+  },
+});
+const builderRuntime = computed(() => ({
+  config: props.config,
+  context: effectivePreviewContext.value,
+  state: effectivePreviewState.value,
+  locale: effectivePreviewLocale.value,
+  translations: builder.schema.value.type === 'page'
+    ? (builder.schema.value as PageRootNode).translations
+    : undefined,
+  hostTranslation: (locale: string, key: string) => localization?.i18nStore.getTranslation(locale, key),
+}));
+provide(BUILDER_RUNTIME, builderRuntime);
+
+function setPreviewWidth(value: PreviewWidth) {
+  previewWidth.value = value;
+  if (value !== 'fluid') authoringBreakpoint.value = value;
+}
 
 // ── Panel widths + collapse ────────────────────────────────────────────────────
 const OUTLINE_DEFAULT = 260;
@@ -357,13 +525,24 @@ function applyJson() {
                   <button
                     type="button"
                     class="pb-builder__seg-btn"
-                    :class="{ 'pb-builder__seg-btn--active': previewWidth === 'full' }"
+                    :class="{ 'pb-builder__seg-btn--active': previewWidth === 'compact' }"
                     role="radio"
-                    :aria-checked="previewWidth === 'full'"
-                    :title="t('coar.pageBuilder.chrome.previewFullTitle', undefined, 'Full width')"
-                    @click="previewWidth = 'full'"
+                    :aria-checked="previewWidth === 'compact'"
+                    title="320 × 568"
+                    @click="setPreviewWidth('compact')"
                   >
-                    {{ t('coar.pageBuilder.chrome.previewDesktop', undefined, 'Desktop') }}
+                    Compact · 320
+                  </button>
+                  <button
+                    type="button"
+                    class="pb-builder__seg-btn"
+                    :class="{ 'pb-builder__seg-btn--active': previewWidth === 'phone' }"
+                    role="radio"
+                    :aria-checked="previewWidth === 'phone'"
+                    title="390 × 844"
+                    @click="setPreviewWidth('phone')"
+                  >
+                    Phone · 390
                   </button>
                   <button
                     type="button"
@@ -371,23 +550,39 @@ function applyJson() {
                     :class="{ 'pb-builder__seg-btn--active': previewWidth === 'tablet' }"
                     role="radio"
                     :aria-checked="previewWidth === 'tablet'"
-                    :title="t('coar.pageBuilder.chrome.previewTabletTitle', undefined, '768px')"
-                    @click="previewWidth = 'tablet'"
+                    title="768 × 1024"
+                    @click="setPreviewWidth('tablet')"
                   >
-                    {{ t('coar.pageBuilder.chrome.previewTablet', undefined, 'Tablet · 768') }}
+                    Tablet · 768
                   </button>
-                  <button
-                    type="button"
-                    class="pb-builder__seg-btn"
-                    :class="{ 'pb-builder__seg-btn--active': previewWidth === 'mobile' }"
-                    role="radio"
-                    :aria-checked="previewWidth === 'mobile'"
-                    :title="t('coar.pageBuilder.chrome.previewMobileTitle', undefined, '375px')"
-                    @click="previewWidth = 'mobile'"
-                  >
-                    {{ t('coar.pageBuilder.chrome.previewMobile', undefined, 'Mobile · 375') }}
+                  <button type="button" class="pb-builder__seg-btn" :class="{ 'pb-builder__seg-btn--active': previewWidth === 'desktop' }" role="radio" :aria-checked="previewWidth === 'desktop'" title="1280 × 800" @click="setPreviewWidth('desktop')">
+                    Desktop · 1280
+                  </button>
+                  <button type="button" class="pb-builder__seg-btn" :class="{ 'pb-builder__seg-btn--active': previewWidth === 'fluid' }" role="radio" :aria-checked="previewWidth === 'fluid'" title="Host container" @click="setPreviewWidth('fluid')">
+                    Fluid
                   </button>
                 </div>
+                <label v-if="config?.previewFixtures?.length" class="pb-builder__preview-control">
+                  Fixture
+                  <select v-model="selectedFixtureId">
+                    <option value="">Host values</option>
+                    <option v-for="fixture in config.previewFixtures" :key="fixture.id" :value="fixture.id">{{ fixture.label }}</option>
+                  </select>
+                </label>
+                <label v-if="config?.availableStates?.length" class="pb-builder__preview-control">
+                  State
+                  <select v-model="previewStateOverride">
+                    <option value="">Host / fixture</option>
+                    <option v-for="state in config.availableStates" :key="state.id" :value="state.id">{{ state.label }}</option>
+                  </select>
+                </label>
+                <label v-if="config?.locales?.length" class="pb-builder__preview-control">
+                  Language
+                  <select v-model="previewLocaleOverride">
+                    <option value="">Host / fixture</option>
+                    <option v-for="item in config.locales" :key="item.id" :value="item.id">{{ item.label }}</option>
+                  </select>
+                </label>
               </div>
               <div class="pb-builder__preview">
                 <div class="pb-builder__preview-frame" :style="previewFrameStyle">
@@ -395,10 +590,48 @@ function applyJson() {
                   <CoarPageRenderer
                     :schema="builder.schema.value"
                     :config="config"
+                    :viewport-width="previewViewportWidth"
+                    :runtime-context="effectivePreviewContext"
+                    :view-state="effectivePreviewState"
+                    :locale="effectivePreviewLocale"
+                    :actions="previewActions"
+                    :fallback-schema="previewFallbackSchema"
+                    :expression-values="previewExpressionValues"
+                    :page-code-values="previewPageCodeValues"
+                    :on-action="previewOnAction"
+                    @update:values="emit('preview-values', $event)"
+                    @runtime-change="emit('preview-runtime', $event)"
                   />
                 </div>
               </div>
             </div>
+          </template>
+        </CoarTab>
+
+        <CoarTab id="logic">
+          <template #default>
+            <span class="pb-builder__tab-label">
+              <CoarIcon name="code" size="s" />
+              Logic
+            </span>
+          </template>
+          <template #content>
+            <BuilderLogicPanel v-if="activeTab === 'logic'" />
+          </template>
+        </CoarTab>
+
+        <CoarTab id="translations">
+          <template #default>
+            <span class="pb-builder__tab-label">
+              <CoarIcon name="globe" size="s" />
+              Translations
+            </span>
+          </template>
+          <template #content>
+            <BuilderTranslationsPanel
+              v-if="activeTab === 'translations'"
+              :focus-key="focusedTranslationKey"
+            />
           </template>
         </CoarTab>
 
@@ -682,6 +915,9 @@ function applyJson() {
   flex-shrink: 0;
 }
 
+.pb-builder__preview-control { display: inline-flex; align-items: center; gap: 5px; margin-left: 4px; color: var(--coar-text-neutral-secondary, #555); font-size: 11px; }
+.pb-builder__preview-control select { max-width: 150px; border: 1px solid var(--coar-border-neutral, #d0d0d0); border-radius: 4px; background: var(--coar-surface-default, #fff); font: inherit; }
+
 .pb-builder__seg {
   display: inline-flex;
   border: 1px solid var(--coar-border-neutral, #d0d0d0);
@@ -738,7 +974,8 @@ function applyJson() {
   background: var(--coar-surface-default, #fff);
   border: 1px solid var(--coar-border-neutral, #e2e2e6);
   border-radius: 8px;
-  overflow: hidden;
+  overflow: auto;
+  flex: 0 0 auto;
   transition: max-width 0.18s ease-out, width 0.18s ease-out;
 }
 

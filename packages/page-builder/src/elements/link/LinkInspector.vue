@@ -44,19 +44,19 @@ const actionOptions = computed<CoarSelectOption<string>[] | null>(() => {
 
 <template>
   <CoarFormField :label="t('coar.pageBuilder.props.label', undefined, 'Label')">
-    <CoarTextInput
+    <CoarTextInput size="s"
       :model-value="props.node.props.label ?? ''"
       @update:model-value="(v) => props.patch({ props: { label: v } })"
     />
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.action', undefined, 'Action')">
-    <CoarSelect
+    <CoarSelect size="s"
       v-if="actionOptions"
       :model-value="props.node.props.action ?? ''"
       :options="actionOptions"
       @update:model-value="(v) => props.patch({ props: { action: (v as string) || undefined } })"
     />
-    <CoarTextInput
+    <CoarTextInput size="s"
       v-else
       :model-value="props.node.props.action ?? ''"
       placeholder="e.g. nav:forgot-password"

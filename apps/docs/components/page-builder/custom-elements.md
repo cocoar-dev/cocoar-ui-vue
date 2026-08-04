@@ -37,7 +37,7 @@ The **host vocabulary** stays at node level and is the same for every element:
 | `name` / `defaultValue` / `validation` | host | Value-model trio; only meaningful when the definition has a `value` spec |
 | `children` | host | Only when the definition declares `container` |
 
-The bag exists so element props can never collide with host fields — an element prop named `style` or `children` is just `props.style` / `props.children`. Page roots carry `schemaVersion: 2` (the unified props-bag grammar); older flat documents migrate transparently (see [Degradation and compatibility](#degradation-and-compatibility)).
+The bag exists so element props can never collide with host fields — an element prop named `style` or `children` is just `props.style` / `props.children`. The unified props-bag grammar was introduced in v2; new roots carry `schemaVersion: 4`, which adds a stable name to every element while retaining the runtime-composition extensions. Older documents normalize transparently (see [Degradation and compatibility](#degradation-and-compatibility)).
 
 ## Walkthrough: a rating element
 
@@ -283,6 +283,7 @@ The remaining definition fields at a glance:
 | `inline: true` | Leaf gets the `width: fit-content` treatment (like button/link) instead of stretching. |
 | `builder.group` | Palette grouping: `'container'` or `'element'` (default). The `'element'` group is presented split by value-spec presence: value elements show under **Inputs** (the offering `hideElementPicker` removes), the rest under **Elements**. |
 | `builder.hideStyleSection` | Suppresses the universal Style section for spacer-style minimal elements. |
+| `builder.quickProperties` | Optional Properties-panel shortcuts that write locked Element Code assignments. Mark human copy with `valueKind: 'localized-text'`; the Builder then stores a translation key and edits its values in the central Translations tab. Leave layout, identifiers and enum values literal. |
 | `builder.lint` | `(node, config?) => { severity: 'error' \| 'warning'; message: I18nText }[]` — authoring diagnostics merged into the builder's validation panel. Lint never blocks saving. |
 | `normalizeProps` | `(raw: unknown) => P` — ingest healing for the props bag (untrusted JSON). Runs crash-guarded inside `normalizePageSchema` on every builder ingest path (v-model, JSON tab) and wherever the server passes `{ elements }`. Return the input unchanged (same reference) when nothing needs healing. |
 
@@ -386,7 +387,7 @@ A document is data; the registry is code. The two can disagree — a document au
 |-----------|----------------|------------------|------------------|-------------|
 | **Unregistered type** (unknown to this app) | Red "Unknown type — skipped at runtime" treatment; node stays selectable, movable, deletable | Normalize *warning* — Apply is **not** blocked (only structural errors block), node round-trips byte-for-byte incl. its `children` | Skipped, one `console.warn` per type | Excluded — contributes no defaults, **cannot veto submit** |
 | **Registered but not in `allowedElements`** | Same blocked treatment + validation error; hidden from palette/add menu | Pasteable, kept | Skipped (this is the security boundary) | Excluded, same non-veto rule |
-| **v1 document** (pre-GA flat props, `schemaVersion` absent or `1`) | Migrated to the v2 props bag on ingest (`migrateV1PropsBag`, idempotent), `schemaVersion: 2` stamped | Migrated on Apply | Migrated on the fly | Normal |
+| **v1 document** (pre-GA flat props, `schemaVersion` absent or `1`) | Migrated to the v2 props bag on ingest (`migrateV1PropsBag`, idempotent), missing names added and `schemaVersion: 4` stamped | Migrated on Apply | Migrated on the fly | Normal |
 
 The non-veto rule matters: a `required` field of a type this deployment can't render would otherwise permanently block every `validates: true` button. Submission is therefore **lenient by design** — an invisible field can't veto submit. If a document must not execute with fields missing, enforce that server-side against the payload.
 

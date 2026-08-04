@@ -5,6 +5,7 @@ import CoarSelect from './CoarSelect.vue';
 import type { CoarSelectOption, CoarSelectSortGroups, CoarSelectSortOptions } from './types';
 import { CoarOverlayPlugin, _resetOverlayServiceForTests } from '../overlay/useOverlay';
 import CoarOverlayHost from '../overlay/CoarOverlayHost.vue';
+import CoarFormField from '../form-field/CoarFormField.vue';
 
 /**
  * Each test mounts a thin wrapper that nests `CoarSelect` beside a `CoarOverlayHost`,
@@ -188,6 +189,19 @@ describe('CoarSelect', () => {
     expect(trigger.attributes('aria-haspopup')).toBe('listbox');
     expect(trigger.attributes('aria-expanded')).toBe('false');
     expect(trigger.attributes('aria-invalid')).toBe('true');
+  });
+
+  it('uses the surrounding form-field label as its accessible name', () => {
+    const Wrapper = defineComponent({
+      setup: () => () => h(CoarFormField, { label: 'Editing language' }, {
+        default: () => h(CoarSelect, { modelValue: 'de', options: [{ value: 'de', label: 'Deutsch' }] }),
+      }),
+    });
+    const wrapper = mount(Wrapper);
+    const label = wrapper.find('label');
+    const trigger = wrapper.find('.coar-select-trigger');
+
+    expect(trigger.attributes('aria-labelledby')).toBe(label.attributes('id'));
   });
 
   describe('sortOptions', () => {
