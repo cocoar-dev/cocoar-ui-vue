@@ -2,7 +2,7 @@ import {
   PageScriptRuntime,
   type RuntimeEndowments,
   type RuntimeInvocation,
-} from './PageScriptRuntime';
+} from '#page-runtime-worker';
 import type {
   RuntimeBootstrapMetrics,
   RuntimeDefinition,

@@ -8,6 +8,8 @@ import {
   elementClickActionId,
   elementComputeRuntimeSource,
   normalizePageCodeOutput,
+  pageRootBindingId,
+  pageRootComputeRuntimeSource,
   pageStateRuntimeSource,
   type PageCodeRuntimeInput,
   type PageCodeRuntimeValues,
@@ -33,6 +35,9 @@ export interface PageCodeRuntimeOptions {
   schema: ReadonlyValue<PageNode>
   context: ReadonlyValue<Record<string, unknown>>
   viewport: ReadonlyValue<{ width: number; breakpoint: string }>
+  viewState?: ReadonlyValue<string | undefined>
+  locale?: ReadonlyValue<string | undefined>
+  enabled?: ReadonlyValue<boolean>
   tenantId?: string
   /** Application-owned host. Create once and reuse it for every renderer session. */
   runtimeHost?: PageRuntimeHost
@@ -60,6 +65,7 @@ export function usePageCodeRuntime(options: PageCodeRuntimeOptions) {
   let queue: Promise<void> = Promise.resolve()
   let drafts = createPageCodeDrafts(options.schema.value)
   let elementActions = new Map<string, { definitionId: string }>()
+  let bindingNodeIds = new Map<string, string>()
 
   const runtimeScope = () => ({
     state: pageState,
@@ -68,15 +74,29 @@ export function usePageCodeRuntime(options: PageCodeRuntimeOptions) {
     form: rendererScope.value.form,
     context: options.context.value,
     viewport: options.viewport.value,
+    viewState: options.viewState?.value,
+    locale: options.locale?.value,
   })
 
   function collectDefinitions(schema: PageNode): RuntimeDefinition[] {
     const definitions: RuntimeDefinition[] = []
     elementActions = new Map()
+    bindingNodeIds = new Map()
     const stateCode = schema.type === 'page'
       ? (schema as PageRootNode).stateCode ?? 'definePageState({})'
       : 'definePageState({})'
     definitions.push({ id: 'page-state', source: pageStateRuntimeSource(stateCode) })
+
+    const root = schema.type === 'page' ? schema as PageRootNode : undefined
+    if (root?.rootCode) {
+      const id = pageRootBindingId(root.id)
+      definitions.push({
+        id,
+        kind: 'binding',
+        source: pageRootComputeRuntimeSource(root.rootCode),
+      })
+      bindingNodeIds.set(id, root.id)
+    }
 
     const walk = (node: PageNode) => {
       if (node.type !== 'page') {
@@ -89,6 +109,7 @@ export function usePageCodeRuntime(options: PageCodeRuntimeOptions) {
             kind: 'binding',
             source: elementComputeRuntimeSource(element.elementCode, element.name, actionId),
           })
+          bindingNodeIds.set(elementBindingId(element.id), element.id)
           if (elementCodeHasClickAction(element.elementCode)) {
             definitions.push({
               id: actionDefinition,
@@ -106,9 +127,7 @@ export function usePageCodeRuntime(options: PageCodeRuntimeOptions) {
 
   function applyElementUpdate(update: RuntimeReactiveUpdate) {
     if (update.kind !== 'binding') return
-    const nodeId = update.id.startsWith('element-binding:')
-      ? update.id.slice('element-binding:'.length)
-      : ''
+    const nodeId = bindingNodeIds.get(update.id) ?? ''
     const alias = Object.entries(drafts.nodeIds).find(([, id]) => id === nodeId)?.[0]
     if (!alias) return
     const normalized = normalizePageCodeOutput({
@@ -150,14 +169,16 @@ export function usePageCodeRuntime(options: PageCodeRuntimeOptions) {
     queue = Promise.resolve()
     drafts = createPageCodeDrafts(options.schema.value)
 
-    const nextSession = (options.runtimeHost ?? defaultPageRuntimeHost).createSession({
-      pageId: options.pageId.value,
-      tenantId: options.tenantId,
-      definitions: collectDefinitions(options.schema.value),
-    })
-    session = nextSession
-    nextSession.subscribe(applyElementUpdate)
+    if (options.enabled?.value === false || typeof Worker === 'undefined') return
+
     try {
+      const nextSession = (options.runtimeHost ?? defaultPageRuntimeHost).createSession({
+        pageId: options.pageId.value,
+        tenantId: options.tenantId,
+        definitions: collectDefinitions(options.schema.value),
+      })
+      session = nextSession
+      nextSession.subscribe(applyElementUpdate)
       await nextSession.initialize()
       if (currentGeneration !== generation) return
       const initialState = await nextSession.invoke('page-state', {})
@@ -233,12 +254,23 @@ export function usePageCodeRuntime(options: PageCodeRuntimeOptions) {
   }
 
   watch([options.schema, options.pageId], scheduleRestart, { immediate: true, deep: true })
+  if (options.enabled) watch(options.enabled, scheduleRestart)
   watch([options.context, options.viewport], ([nextContext, nextViewport], [previousContext, previousViewport]) => {
     enqueuePatches([
       ...runtimePatches(previousContext, nextContext, ['context']),
       ...runtimePatches(previousViewport, nextViewport, ['viewport']),
     ])
   }, { deep: true })
+  if (options.viewState) {
+    watch(options.viewState, (next, previous) => {
+      enqueuePatches(runtimePatches(previous, next, ['viewState']))
+    })
+  }
+  if (options.locale) {
+    watch(options.locale, (next, previous) => {
+      enqueuePatches(runtimePatches(previous, next, ['locale']))
+    })
+  }
 
   onBeforeUnmount(() => {
     if (restartTimer) clearTimeout(restartTimer)

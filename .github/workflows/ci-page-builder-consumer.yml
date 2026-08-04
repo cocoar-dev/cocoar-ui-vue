@@ -1,0 +1,65 @@
+name: CI - PageBuilder Vite Consumer
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'packages/page-builder/**'
+      - 'packages/ui/**'
+      - 'packages/localization/**'
+      - 'packages/script-editor/**'
+      - 'apps/playground/scripts/verify-packed-page-builder-consumer.mjs'
+      - '.github/workflows/ci-page-builder-consumer.yml'
+      - 'pnpm-lock.yaml'
+
+jobs:
+  packed-consumer:
+    name: Vite 8 forced optimizer · ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    env:
+      TURBO_TELEMETRY_DISABLED: 1
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Volta (Node + pnpm)
+        uses: volta-cli/action@v5
+        with:
+          package-json-path: ./package.json
+
+      - name: Install Node.js and pnpm
+        run: |
+          volta install node
+          volta install pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium (Linux)
+        if: runner.os == 'Linux'
+        run: pnpm --filter @cocoar/playground exec playwright install --with-deps chromium
+
+      - name: Install Chromium (Windows)
+        if: runner.os == 'Windows'
+        run: pnpm --filter @cocoar/playground exec playwright install chromium
+
+      - name: Build consumer packages
+        run: pnpm --filter @cocoar/vue-page-builder... build
+
+      - name: Pack consumer packages
+        run: |
+          node -e "require('node:fs').mkdirSync('artifacts', { recursive: true })"
+          pnpm --dir packages/ui pack --pack-destination ../../artifacts
+          pnpm --dir packages/localization pack --pack-destination ../../artifacts
+          pnpm --dir packages/script-editor pack --pack-destination ../../artifacts
+          pnpm --dir packages/page-builder pack --pack-destination ../../artifacts
+
+      - name: Verify forced dev optimizer, production build, base path, CSP, and Worker boot
+        run: pnpm --filter @cocoar/playground test:packed-page-builder-consumer

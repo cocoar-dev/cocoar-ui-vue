@@ -50,6 +50,8 @@ export interface BuilderLogicContext {
   openBinding: (nodeId: string, target: string, initialExpression?: string) => Promise<boolean>;
   /** Opens the isolated code editor for one existing element. */
   openElementCode: (nodeId: string) => Promise<boolean>;
+  /** Opens reactive configuration code for the existing page root. */
+  openPageCode: () => Promise<boolean>;
   /** Navigates to the customer-authored Page State editor. */
   openPageState: () => void;
   /** Opens the central page translation catalogue, optionally focused on one key. */

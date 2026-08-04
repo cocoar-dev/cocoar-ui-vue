@@ -24,6 +24,12 @@ export const DEFAULT_PAGE_STATE_CODE = `definePageState({ // @locked @slot:state
   counter: 0,
 }) // @locked`
 
+export const DEFAULT_PAGE_ROOT_CODE = `definePageRoot({ // @locked
+  compute(page, runtime) { // @locked @slot:compute
+    // Configure the existing page root. Structure stays in the visual builder.
+  }, // @locked
+}) // @locked`
+
 export const DEFAULT_ELEMENT_CODE = `defineElement({ // @locked
   compute(element, page) { // @locked
     // Properties Panel values // @locked @quick:start
@@ -38,6 +44,7 @@ export const DEFAULT_ELEMENT_CODE = `defineElement({ // @locked
 }) // @locked`
 
 export const elementBindingId = (nodeId: string) => `element-binding:${nodeId}`
+export const pageRootBindingId = (nodeId: string) => `page-root-binding:${nodeId}`
 export const elementActionDefinitionId = (nodeId: string) => `element-action:${nodeId}`
 export const elementClickActionId = (nodeId: string) => `__element:${nodeId}:click`
 
@@ -82,6 +89,8 @@ export interface PageCodeRuntimeInput {
   context?: Record<string, unknown>
   resources?: Record<string, unknown>
   viewport?: { width: number; breakpoint: string }
+  viewState?: string
+  locale?: string
   actionId?: string
   payload?: Record<string, unknown>
 }
@@ -285,6 +294,19 @@ export function constrainPageStateCode(source?: string): string {
   const close = open >= 0 ? matchingBrace(current, open) : -1
   const body = open >= 0 && close > open ? current.slice(open + 1, close) : ''
   return `definePageState({ // @locked @slot:state\n${normalizeBody(body, '  ')}\n}) // @locked`
+}
+
+/** Converts Page Root Code into one constrained reactive compute slot. */
+export function constrainPageRootCode(source?: string): string {
+  const current = source?.trim() || DEFAULT_PAGE_ROOT_CODE
+  if (/\/\/\s*@locked\b/.test(current)
+    && /\bcompute\s*\(\s*page\s*,\s*runtime\s*\)/.test(current)) return current
+  const body = methodBody(current, 'compute')
+  return `definePageRoot({ // @locked
+  compute(page, runtime) { // @locked @slot:compute
+${normalizeBody(body, '    ')}
+  }, // @locked
+}) // @locked`
 }
 
 /**
@@ -560,6 +582,8 @@ export function elementComputeRuntimeSource(
       context: scope.context || {},
       resources: scope.resources || {},
       viewport: scope.viewport || {},
+      viewState: scope.viewState,
+      locale: scope.locale,
     };
     let computedElement = element;
     if (${JSON.stringify(legacyComputeSignature)}) {
@@ -577,6 +601,53 @@ export function elementComputeRuntimeSource(
     self.props.action = ${JSON.stringify(clickActionId)};
   }
   return self;
+}`
+}
+
+/** Pure reactive binding for the page root's controlled presentation draft. */
+export function pageRootComputeRuntimeSource(source: string): string {
+  return `(scope) => {
+  const clone = (value) => {
+    if (value === undefined || value === null || typeof value !== 'object') return value;
+    if (Array.isArray(value)) return value.map(clone);
+    const result = Object.create(null);
+    for (const key of Object.keys(value)) {
+      if (key !== '__proto__' && key !== 'prototype' && key !== 'constructor') result[key] = clone(value[key]);
+    }
+    return result;
+  };
+  const definePageRoot = (definition) => definition;
+  const definition = (${source || DEFAULT_PAGE_ROOT_CODE}\n);
+  if (!definition || typeof definition !== 'object') throw new TypeError('Page Root Code must call definePageRoot({...}).');
+  const current = clone(scope.elements.page);
+  if (!current) throw new Error('Page root is not available.');
+  const page = {
+    id: current.id,
+    type: current.type,
+    name: current.name,
+    style: clone(current.style || {}),
+    responsive: clone(current.responsive || {}),
+    enterSubmits: !!current.enterSubmits,
+  };
+  const runtime = {
+    state: scope.state || {},
+    fields: scope.fields || {},
+    form: scope.form || {},
+    context: scope.context || {},
+    resources: scope.resources || {},
+    viewport: scope.viewport || {},
+    viewState: scope.viewState,
+    locale: scope.locale,
+  };
+  if (typeof definition.compute === 'function') definition.compute(page, runtime);
+  return {
+    id: current.id,
+    type: current.type,
+    name: current.name,
+    style: page.style,
+    responsive: page.responsive,
+    enterSubmits: page.enterSubmits,
+  };
 }`
 }
 
@@ -610,6 +681,8 @@ export function elementActionRuntimeSource(source: string, elementName: string):
     context: input.context || {},
     resources: input.resources || {},
     viewport: input.viewport || {},
+    viewState: input.viewState,
+    locale: input.locale,
   };
   const actionContext = { payload: input.payload || {} };
   for (const name of Object.keys(capabilities || {})) page[name] = capabilities[name];

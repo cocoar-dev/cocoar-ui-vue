@@ -224,7 +224,8 @@ host field/context contracts provide its IntelliSense declarations.
 
 ## Browser Page Runtime
 
-The package contains the SES Worker runtime used by Page State and Element Code.
+The package contains the SES Worker runtime used by Page State, constrained Page
+Root Code and per-element code.
 Create the host once in the consumer application. It is a capability catalogue,
 not shared page state; every `usePageCodeRuntime()` call owns an isolated Worker
 session and disposes it with the Vue component.
@@ -270,6 +271,18 @@ or application API inside tenant code.
 The consuming Vite build emits the SES runtime as a same-origin
 `pageScriptRuntime.worker-<hash>.js` module asset. Keep the document CSP free of
 `unsafe-eval`; see `IDP_INTEGRATION.md` for the Worker-response CSP requirement.
+For Vite development, exclude only the dedicated runtime entry from dependency
+pre-bundling:
+
+```ts
+optimizeDeps: { exclude: ['@cocoar/vue-page-builder/runtime-worker'] }
+```
+
+`CoarPageBuilder` owns its embedded preview runtime. A selected fixture now
+provides context, view state, locale and viewport as one effective preview
+contract; the Builder evaluates Page State, Page Root Code and Element Code in
+that same isolated session. Pass `previewRuntimeHost` only when preview actions
+need the application's explicitly granted capabilities.
 
 The package also exports four optional integration presets:
 `createAuthPageDocument()` and `createAuthPageConfig()` for `login`,

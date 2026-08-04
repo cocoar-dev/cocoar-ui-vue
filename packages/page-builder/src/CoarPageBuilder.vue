@@ -5,7 +5,9 @@ import { useI18n, useLocalization } from '@cocoar/vue-localization';
 import { CURRENT_PAGE_SCHEMA_VERSION, type ElementNode, type PageBreakpoint, type PageNode, type PageRootNode, type PageConfig, type RuntimeExpressionValues } from './schema';
 import type { CoarScriptEditorExtraLib } from '@cocoar/vue-script-editor';
 import type { PageCodeRuntimeValues } from './pageCode';
-import { PAGE_BREAKPOINT_WIDTHS } from './responsive';
+import { usePageCodeRuntime } from './runtime/usePageCodeRuntime';
+import type { PageRuntimeHost } from './runtime/PageRuntimeHost';
+import { PAGE_BREAKPOINT_WIDTHS, breakpointForWidth } from './responsive';
 import { usePageBuilder } from './builder/usePageBuilder';
 import { useMergedElements } from './elements/useMergedElements';
 import { useSchemaValidation } from './builder/useSchemaValidation';
@@ -40,6 +42,7 @@ import type { NodePath } from './builder/operations';
 const BuilderLogicPanel = defineAsyncComponent(() => import('./builder/BuilderLogicPanel.vue'));
 const BuilderExpressionDialog = defineAsyncComponent(() => import('./builder/BuilderExpressionDialog.vue'));
 const BuilderElementCodeDialog = defineAsyncComponent(() => import('./builder/BuilderElementCodeDialog.vue'));
+const BuilderPageRootCodeDialog = defineAsyncComponent(() => import('./builder/BuilderPageRootCodeDialog.vue'));
 
 const { t } = useI18n();
 const localization = useLocalization();
@@ -71,10 +74,14 @@ const props = defineProps<{
   previewExpressionValues?: RuntimeExpressionValues
   /** Code-driven mode keeps the inspector structural and makes Page Code authoritative. */
   authoringMode?: PageBuilderAuthoringMode
-  /** Atomic sandbox result used by the embedded renderer preview. */
+  /** @deprecated The Builder now owns its fixture-bound preview runtime. */
   previewPageCodeValues?: PageCodeRuntimeValues
-  /** Dynamic Page Code action dispatcher owned by the host. */
+  /** @deprecated Used only as a fallback for actions unknown to the Builder runtime. */
   previewOnAction?: (id: string, values: ActionValues) => void | Promise<unknown>
+  /** Application-owned capability host reused by the Builder's isolated preview session. */
+  previewRuntimeHost?: PageRuntimeHost
+  previewRuntimePageId?: string
+  previewRuntimeTenantId?: string
   /** Host capability declarations merged into Monaco IntelliSense. */
   pageCodeExtraLibs?: CoarScriptEditorExtraLib[]
 }>();
@@ -141,7 +148,6 @@ provide(BUILDER_CONFIG, configRef);
 provide(BUILDER_VALIDATION, validation);
 provide(BUILDER_AUTHORING_MODE, computed(() => props.authoringMode ?? 'properties'));
 provide(BUILDER_PAGE_CODE_LIBS, computed(() => props.pageCodeExtraLibs ?? []));
-provide(BUILDER_PAGE_CODE_VALUES, computed(() => props.previewPageCodeValues));
 
 const authoringBreakpoint = ref<PageBreakpoint>('desktop');
 provide(BUILDER_BREAKPOINT, authoringBreakpoint);
@@ -170,6 +176,25 @@ provide(BUILDER_LOGIC, {
   openTranslations(key) {
     focusedTranslationKey.value = key;
     activeTab.value = 'translations';
+  },
+  async openPageCode() {
+    const root = builder.schema.value.type === 'page' ? builder.schema.value as PageRootNode : undefined;
+    if (!root) return false;
+    const editor = dialog.open<string>(BuilderPageRootCodeDialog, {
+      title: 'Page Code · Root',
+      size: 'xl',
+      closeOnBackdropClick: false,
+    }, {
+      schema: builder.schema.value,
+      source: root.rootCode,
+      stateCode: root.stateCode,
+      config: props.config,
+      hostLibs: props.pageCodeExtraLibs ?? [],
+    });
+    const result = await editor.result;
+    if (typeof result !== 'string') return false;
+    builder.patch([], { rootCode: result || undefined } as Partial<PageNode>);
+    return true;
   },
   async openElementCode(nodeId) {
     const location = findNodeById(builder.schema.value, nodeId);
@@ -234,21 +259,57 @@ provide(BUILDER_LOGIC, {
 // ── Responsive preview ───────────────────────────────────────────────────────
 type PreviewWidth = PageBreakpoint | 'fluid';
 const previewWidth = ref<PreviewWidth>('desktop');
+const customPreviewViewport = ref<{ width: number; height?: number }>();
 const PREVIEW_HEIGHTS: Record<PageBreakpoint, number> = { compact: 568, phone: 844, tablet: 1024, desktop: 800 };
+const selectedFixtureId = ref('');
+const previewStateOverride = ref('');
+const previewLocaleOverride = ref('');
+const selectedFixture = computed(() => props.config?.previewFixtures?.find((fixture) => fixture.id === selectedFixtureId.value));
+const hasCompleteHostPreview = computed(() =>
+  (!(props.config?.contextFields?.length) || props.previewContext !== undefined)
+  && (!(props.config?.availableStates?.length) || props.previewState !== undefined)
+  && (!(props.config?.locales?.length) || props.previewLocale !== undefined),
+);
+const hasEffectivePreviewContract = computed(() => !!selectedFixture.value || hasCompleteHostPreview.value);
+
+watch(
+  [() => props.config?.previewFixtures, hasCompleteHostPreview],
+  ([fixtures, hasHost]) => {
+    const available = fixtures ?? [];
+    if (selectedFixtureId.value && available.some((fixture) => fixture.id === selectedFixtureId.value)) return;
+    selectedFixtureId.value = hasHost ? '' : (available[0]?.id ?? '');
+  },
+  { immediate: true, deep: true },
+);
+
+watch(selectedFixture, (fixture) => {
+  previewStateOverride.value = '';
+  previewLocaleOverride.value = '';
+  customPreviewViewport.value = undefined;
+  if (!fixture?.viewport) return;
+  if (typeof fixture.viewport === 'string') {
+    previewWidth.value = fixture.viewport;
+    authoringBreakpoint.value = fixture.viewport;
+  } else {
+    customPreviewViewport.value = { ...fixture.viewport };
+  }
+});
 
 const previewFrameStyle = computed(() => {
+  if (customPreviewViewport.value) return {
+    width: `${customPreviewViewport.value.width}px`,
+    height: `${customPreviewViewport.value.height ?? 800}px`,
+    margin: '0 auto',
+  };
   if (previewWidth.value === 'fluid') return { width: '100%', minHeight: '480px', margin: '0 auto' };
   const w = PAGE_BREAKPOINT_WIDTHS[previewWidth.value];
   return { width: `${w}px`, height: `${PREVIEW_HEIGHTS[previewWidth.value]}px`, margin: '0 auto' };
 });
 
 const previewViewportWidth = computed(() =>
-  previewWidth.value === 'fluid' ? undefined : PAGE_BREAKPOINT_WIDTHS[previewWidth.value],
+  customPreviewViewport.value?.width
+    ?? (previewWidth.value === 'fluid' ? undefined : PAGE_BREAKPOINT_WIDTHS[previewWidth.value]),
 );
-const selectedFixtureId = ref('');
-const previewStateOverride = ref('');
-const previewLocaleOverride = ref('');
-const selectedFixture = computed(() => props.config?.previewFixtures?.find((fixture) => fixture.id === selectedFixtureId.value));
 const effectivePreviewContext = computed(() => selectedFixture.value?.context ?? props.previewContext);
 const effectivePreviewState = computed(() => previewStateOverride.value || selectedFixture.value?.state || props.previewState);
 const effectivePreviewLocale = computed(() => previewLocaleOverride.value || selectedFixture.value?.locale || props.previewLocale);
@@ -274,7 +335,41 @@ const builderRuntime = computed(() => ({
 }));
 provide(BUILDER_RUNTIME, builderRuntime);
 
+const previewRuntimeViewport = computed(() => {
+  const width = previewViewportWidth.value ?? PAGE_BREAKPOINT_WIDTHS.desktop;
+  return { width, breakpoint: breakpointForWidth(width) };
+});
+const previewRuntime = usePageCodeRuntime({
+  pageId: computed(() => props.previewRuntimePageId ?? `page-builder-preview:${builder.schema.value.id}`),
+  tenantId: props.previewRuntimeTenantId,
+  schema: builder.schema,
+  context: computed(() => effectivePreviewContext.value ?? {}),
+  viewport: previewRuntimeViewport,
+  viewState: effectivePreviewState,
+  locale: effectivePreviewLocale,
+  enabled: hasEffectivePreviewContract,
+  runtimeHost: props.previewRuntimeHost,
+});
+const effectivePreviewPageCodeValues = computed(() => hasEffectivePreviewContract.value
+  ? previewRuntime.pageCodeValues.value
+  : undefined);
+provide(BUILDER_PAGE_CODE_VALUES, effectivePreviewPageCodeValues);
+
+async function runPreviewAction(id: string, values: ActionValues) {
+  if (await previewRuntime.runPageAction(id, values)) return;
+  await props.previewOnAction?.(id, values);
+}
+
+function onPreviewRuntimeChange(scope: {
+  fields: ActionValues;
+  form: { valid: boolean; dirty: boolean; validating: boolean; submitting: boolean };
+}) {
+  previewRuntime.onRuntimeChange(scope);
+  emit('preview-runtime', scope);
+}
+
 function setPreviewWidth(value: PreviewWidth) {
+  customPreviewViewport.value = undefined;
   previewWidth.value = value;
   if (value !== 'fluid') authoringBreakpoint.value = value;
 }
@@ -565,7 +660,7 @@ function applyJson() {
                 <label v-if="config?.previewFixtures?.length" class="pb-builder__preview-control">
                   Fixture
                   <select v-model="selectedFixtureId">
-                    <option value="">Host values</option>
+                    <option v-if="hasCompleteHostPreview" value="">Host values</option>
                     <option v-for="fixture in config.previewFixtures" :key="fixture.id" :value="fixture.id">{{ fixture.label }}</option>
                   </select>
                 </label>
@@ -588,6 +683,7 @@ function applyJson() {
                 <div class="pb-builder__preview-frame" :style="previewFrameStyle">
                   <!-- The renderer falls back to config.assetResolver itself. -->
                   <CoarPageRenderer
+                    v-if="hasEffectivePreviewContract"
                     :schema="builder.schema.value"
                     :config="config"
                     :viewport-width="previewViewportWidth"
@@ -597,11 +693,16 @@ function applyJson() {
                     :actions="previewActions"
                     :fallback-schema="previewFallbackSchema"
                     :expression-values="previewExpressionValues"
-                    :page-code-values="previewPageCodeValues"
-                    :on-action="previewOnAction"
+                    :page-code-values="effectivePreviewPageCodeValues"
+                    :on-action="runPreviewAction"
                     @update:values="emit('preview-values', $event)"
-                    @runtime-change="emit('preview-runtime', $event)"
+                    @runtime-change="onPreviewRuntimeChange"
                   />
+                  <div v-else class="pb-builder__preview-empty">
+                    <CoarIcon name="circle-alert" size="m" />
+                    <strong>Preview values are missing</strong>
+                    <span>The host must provide context, state, and locale together, or configure a preview fixture.</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -978,6 +1079,22 @@ function applyJson() {
   flex: 0 0 auto;
   transition: max-width 0.18s ease-out, width 0.18s ease-out;
 }
+
+.pb-builder__preview-empty {
+  display: flex;
+  min-height: 240px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  padding: 24px;
+  box-sizing: border-box;
+  color: var(--coar-text-neutral-secondary, #666);
+  text-align: center;
+}
+
+.pb-builder__preview-empty strong { color: var(--coar-text-neutral, #222); }
+.pb-builder__preview-empty span { max-width: 440px; font-size: 12px; }
 
 /* ── JSON pane ── */
 .pb-builder__json-pane {

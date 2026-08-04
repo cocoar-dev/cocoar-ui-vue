@@ -691,8 +691,6 @@ const requirements = [
         :preview-context="runtimeContext" :preview-state="viewState"
         :preview-locale="locale" :preview-actions="rendererActions"
         :preview-fallback-schema="fallbackSchema"
-        :preview-page-code-values="pageCodeValues" :preview-on-action="runPageAction"
-        @preview-runtime="onRuntimeChange"
       />
     </section>
 

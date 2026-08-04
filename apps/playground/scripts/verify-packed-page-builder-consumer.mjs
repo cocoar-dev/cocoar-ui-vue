@@ -102,6 +102,7 @@ async function stopProcess(child) {
 }
 
 let previewProcess;
+let developmentProcess;
 let browser;
 
 try {
@@ -162,6 +163,10 @@ const csp = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inl
 
 export default defineConfig({
   base: '/idp/',
+  // Vite does not relocate import.meta.url assets while pre-bundling a
+  // dependency. Only the tiny worker entry stays in its normal transform
+  // graph; the PageBuilder and all UI dependencies remain optimized.
+  optimizeDeps: { exclude: ['@cocoar/vue-page-builder/runtime-worker'] },
   plugins: [{
     name: 'fixture-html-csp',
     configurePreviewServer(server) {
@@ -216,6 +221,47 @@ createApp({
   );
 
   await run(pnpmCommand, ['install', '--no-frozen-lockfile']);
+
+  // Vite's forced dependency optimizer exercises a different code path than
+  // production bundling. This specifically protects Windows consumers from
+  // query-bearing worker source imports becoming unloadable dependencies.
+  const developmentPort = await availablePort();
+  const developmentOutput = [];
+  developmentProcess = spawn(
+    pnpmCommand,
+    ['exec', 'vite', '--force', '--host', '127.0.0.1', '--port', String(developmentPort), '--strictPort'],
+    {
+      cwd: temporaryDirectory,
+      env: process.env,
+      detached: process.platform !== 'win32',
+      shell: requiresCommandShell,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    },
+  );
+  developmentProcess.stdout.on('data', (chunk) => developmentOutput.push(chunk.toString()));
+  developmentProcess.stderr.on('data', (chunk) => developmentOutput.push(chunk.toString()));
+  const developmentUrl = `http://127.0.0.1:${developmentPort}/idp/`;
+  await waitForServer(developmentUrl, developmentOutput);
+  browser = await chromium.launch({ headless: true });
+  const developmentPage = await browser.newPage();
+  const developmentErrors = [];
+  developmentPage.on('pageerror', (error) => developmentErrors.push(error.message));
+  developmentPage.on('console', (message) => {
+    if (message.type() === 'error') developmentErrors.push(message.text());
+  });
+  try {
+    await developmentPage.goto(developmentUrl, { waitUntil: 'domcontentloaded' });
+    await developmentPage.locator('#runtime-status').filter({ hasText: 'ready' }).waitFor({ timeout: 20_000 });
+  } catch (error) {
+    throw new Error(`Forced Vite development consumer did not boot.\n${developmentOutput.join('')}`, { cause: error });
+  }
+  if (developmentErrors.length > 0) {
+    throw new Error(`Forced Vite development consumer failed:\n${developmentErrors.join('\n')}\n${developmentOutput.join('')}`);
+  }
+  await developmentPage.close();
+  await stopProcess(developmentProcess);
+  developmentProcess = undefined;
+
   await run(pnpmCommand, ['run', 'build']);
 
   const assetsDirectory = join(temporaryDirectory, 'dist', 'assets');
@@ -223,14 +269,15 @@ createApp({
   const pageRuntimeWorkerAssets = javascriptAssets.filter((file) =>
     /^pageScriptRuntime\.worker-.+\.js$/u.test(file),
   );
-  if (pageRuntimeWorkerAssets.length !== 1) {
-    throw new Error(
-      `Expected one emitted Page Runtime worker, found ${JSON.stringify(pageRuntimeWorkerAssets)}.`,
-    );
-  }
   const bundledSource = (
     await Promise.all(javascriptAssets.map((file) => readFile(join(assetsDirectory, file), 'utf8')))
   ).join('\n');
+  if (pageRuntimeWorkerAssets.length !== 1) {
+    const workerReferences = bundledSource.match(/.{0,120}pageScriptRuntime.{0,200}/gu) ?? [];
+    throw new Error(
+      `Expected one emitted Page Runtime worker, found ${JSON.stringify(pageRuntimeWorkerAssets)}. References: ${JSON.stringify(workerReferences.slice(0, 5))}`,
+    );
+  }
   if (/new URL\(["']\/assets\/pageScriptRuntime\.worker-/u.test(bundledSource)) {
     throw new Error(
       'Packed consumer still contains an unresolved root-relative Page Runtime worker URL.',
@@ -256,7 +303,6 @@ createApp({
   const fixtureUrl = `http://127.0.0.1:${port}/idp/`;
   await waitForServer(fixtureUrl, previewOutput);
 
-  browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
   const failedRequests = [];
   const consoleErrors = [];
@@ -329,6 +375,7 @@ createApp({
   console.log(`Worker booted from ${pageRuntimeWorkerAssets[0]} under non-root base /idp/.`);
 } finally {
   if (browser) await browser.close();
+  if (developmentProcess) await stopProcess(developmentProcess);
   if (previewProcess) await stopProcess(previewProcess);
   assertTemporaryDirectory(temporaryDirectory);
   await rm(temporaryDirectory, { recursive: true, force: true });

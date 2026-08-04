@@ -13,6 +13,8 @@ import {
   readElementQuickProperties,
   setElementQuickProperty,
   pageCodeRuntimeSource,
+  pageRootComputeRuntimeSource,
+  constrainPageRootCode,
 } from './pageCode'
 
 const schema: PageNode = {
@@ -99,6 +101,24 @@ describe('Page Code data boundary', () => {
     expect(compute).toContain('definition.compute(element, page)')
     expect(action).toContain('await action(element, page, actionContext)')
     expect(action).toContain('return { state: page.state }')
+  })
+
+  it('builds constrained reactive Page Root Code without structural authority', () => {
+    const constrained = constrainPageRootCode(`definePageRoot({
+      compute(page, runtime) {
+        page.style.minHeight = runtime.viewport.width < 600 ? '100dvh' : '720px'
+        page.enterSubmits = true
+      },
+    })`)
+    const source = pageRootComputeRuntimeSource(constrained)
+
+    expect(constrained).toContain('compute(page, runtime)')
+    expect(constrained).toContain('@slot:compute')
+    expect(source).toContain('scope.elements.page')
+    expect(source).toContain('style: page.style')
+    expect(source).toContain('responsive: page.responsive')
+    expect(source).toContain('enterSubmits: page.enterSubmits')
+    expect(source).not.toContain('children: page.children')
   })
 
   it('migrates free-form source into locked editable slots without losing bodies', () => {

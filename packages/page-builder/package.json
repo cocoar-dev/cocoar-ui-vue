@@ -20,7 +20,8 @@
   "type": "module",
   "sideEffects": [
     "*.css",
-    "*.vue"
+    "*.vue",
+    "**/pageScriptRuntime.worker.*"
   ],
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -31,7 +32,19 @@
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
     },
+    "./runtime-worker": {
+      "source": "./src/runtimeWorkerEntry.ts",
+      "import": "./dist/runtime-worker.js",
+      "types": "./dist/runtimeWorkerEntry.d.ts"
+    },
     "./styles": "./dist/index.css"
+  },
+  "imports": {
+    "#page-runtime-worker": {
+      "source": "./src/runtimeWorkerEntry.ts",
+      "types": "./dist/runtimeWorkerEntry.d.ts",
+      "default": "./dist/runtime-worker.js"
+    }
   },
   "files": [
     "dist",

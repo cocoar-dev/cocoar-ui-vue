@@ -8,9 +8,11 @@ Konfiguration werden nicht durch eine ständig wachsende Liste spezieller
 Property-Controls modelliert, sondern durch gewöhnliche JavaScript-Syntax mit
 Monaco IntelliSense.
 
-Die Architektur hat zwei vom Kunden bearbeitbare Quellen:
+Die Architektur hat drei vom Kunden bearbeitbare Quellen:
 
 - genau ein `stateCode` am Page-Root für den initialen gemeinsamen State;
+- optional ein `rootCode` für reaktive Root-Darstellung (`style`,
+  `responsive`, `enterSubmits`);
 - optional ein `elementCode` an jedem Element für dessen Konfiguration und
   Aktionen.
 
@@ -35,6 +37,20 @@ Runtime nur Element-Bindings aus, deren aufgezeichnete Reads den veränderten
 Pfad schneiden.
 
 ## Element Code
+
+Der Page-Root besitzt denselben reaktiven Mechanismus in einer noch engeren
+Form:
+
+```js
+definePageRoot({
+  compute(page, runtime) {
+    page.style.minHeight = runtime.viewport.width < 600 ? '100dvh' : '720px';
+  },
+})
+```
+
+Root Code kann weder Elemente erzeugen/löschen noch `id`, `type`, `name` oder
+`children` verändern.
 
 Im Properties Panel bleibt für ein Element nur die strukturelle Konfiguration
 sichtbar: `Element` und `Name`. „Add/Edit element code“ öffnet den Monaco-Editor

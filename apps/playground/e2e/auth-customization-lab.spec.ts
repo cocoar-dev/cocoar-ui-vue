@@ -98,6 +98,15 @@ test.describe('Auth Customization Lab', () => {
     await expect(codeDialog.locator('.view-lines')).toContainText('page.submit.label');
     await page.getByRole('button', { name: 'Cancel', exact: true }).click();
 
+    await page.getByRole('treeitem', { name: 'Page', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Add Page Code', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Add Page Code', exact: true }).click();
+    const pageCodeDialog = page.getByRole('dialog', { name: 'Page Code · Root' });
+    await expect(pageCodeDialog.locator('.monaco-editor')).toBeVisible();
+    await expect(pageCodeDialog.locator('.view-lines')).toContainText('compute(page, runtime)');
+    await expect(pageCodeDialog).toContainText('page.style');
+    await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+
     await page.getByRole('button', { name: 'JSON', exact: true }).click();
     await expect(page.locator('pre')).toContainText('"type": "page"');
     await expect(page.locator('pre')).toContainText('"auth:login"');
@@ -109,6 +118,26 @@ test.describe('Auth Customization Lab', () => {
     await expect(page.getByText('Responsive overrides', { exact: true })).toBeVisible();
     await expect(page.getByText('Schema-positioned form feedback', { exact: true })).toBeVisible();
     await expect(page.getByText('Dynamic arrays / repeaters', { exact: true })).toBeVisible();
+  });
+
+  test('evaluates Builder preview fixtures and element code in its own runtime session', async ({ page }) => {
+    await page.goto('/auth-customization-lab');
+    await page.getByRole('button', { name: 'Builder', exact: true }).click();
+    const builder = page.locator('.pb-builder');
+    await builder.getByRole('tab', { name: 'Preview', exact: true }).click();
+
+    const submit = builder.getByRole('button', { name: 'Anmelden', exact: true });
+    const username = builder.getByRole('textbox', { name: 'Benutzername', exact: true });
+    const password = builder.locator('.pb-builder__preview-frame input[type="password"]');
+    await expect(submit).toBeDisabled();
+    await username.fill('alice');
+    await password.fill('demo-password');
+    await expect(submit).toBeEnabled();
+
+    const fixtureOptions = await builder.locator('.pb-builder__preview-control select').first()
+      .locator('option').allTextContents();
+    expect(fixtureOptions).toContain('Host values');
+    expect(fixtureOptions).toContain('Typical');
   });
 
   test('renders a dynamic consent scope array and submits selected values', async ({ page }) => {

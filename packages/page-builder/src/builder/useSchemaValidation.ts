@@ -47,7 +47,7 @@ export function useSchemaValidation(
     const hasAvailableActions = (config.value?.availableActions?.length ?? 0) > 0;
     const root = schema.value as import('../schema').PageRootNode;
     const codeDriven = schema.value.type === 'page'
-      && (!!root.pageCode?.trim() || !!root.stateCode?.trim());
+      && (!!root.pageCode?.trim() || !!root.rootCode?.trim() || !!root.stateCode?.trim());
 
     walk(schema.value, (n) => {
       if (n.type !== 'page') {

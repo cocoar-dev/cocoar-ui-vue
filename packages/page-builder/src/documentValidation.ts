@@ -38,9 +38,11 @@ export function validatePageDocument(schema: PageNode, config?: PageConfig): Pag
   const ids = new Set<string>()
   const names = new Set<string>()
   const pageCode = (schema as PageRootNode).pageCode
+  const rootCode = (schema as PageRootNode).rootCode
   const stateCode = (schema as PageRootNode).stateCode
-  const codeDriven = !!pageCode?.trim() || !!stateCode?.trim() || containsElementCode(schema)
+  const codeDriven = !!pageCode?.trim() || !!rootCode?.trim() || !!stateCode?.trim() || containsElementCode(schema)
   if (pageCode && pageCode.length > 50_000) issues.push({ nodeId: schema.id, field: 'pageCode', message: 'Legacy Page Code exceeds 50,000 characters.' })
+  if (rootCode && rootCode.length > 50_000) issues.push({ nodeId: schema.id, field: 'rootCode', message: 'Page Root Code exceeds 50,000 characters.' })
   if (stateCode && stateCode.length > 50_000) issues.push({ nodeId: schema.id, field: 'stateCode', message: 'Page State exceeds 50,000 characters.' })
   const nodesById = new Map<string, PageNode>()
   const placementById = new Map<string, { parentId?: string; index: number }>()

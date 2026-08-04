@@ -123,7 +123,7 @@ interface NodeStyle {
 }
 ```
 
-The root is the one node shape outside the element grammar: `{ id, type: 'page', schemaVersion, enterSubmits?, stateCode?, translations?, style?, responsive?, children }` — a schema-shape marker, not a placeable element, with no props bag. **`4`** is current. Older documents remain readable and are normalized deterministically. `enterSubmits` opts the page into [Enter-to-submit](#enter-to-submit).
+The root is the one node shape outside the element grammar: `{ id, type: 'page', schemaVersion, enterSubmits?, stateCode?, rootCode?, translations?, style?, responsive?, children }` — a schema-shape marker, not a placeable element, with no props bag. `rootCode` is a constrained reactive presentation binding and can return only root `style`, `responsive`, and `enterSubmits` changes. **`4`** is current. Older documents remain readable and are normalized deterministically. `enterSubmits` opts the page into [Enter-to-submit](#enter-to-submit).
 
 Node `id`s must be unique page-wide — the builder assigns them via `crypto.randomUUID()` and [repairs missing or duplicate ids](#legacy-schemas-normalization) at every entry point.
 

@@ -191,9 +191,25 @@ catalogue when tenants must not replace them.
 
 ## 8. Deployment and beta boundary
 
-The packed library retains its Worker source import so the consuming Vite build
-emits `pageScriptRuntime.worker-<hash>.js` itself. This makes the URL follow the
-consumer's configured `base` and avoids package-local `/assets/...` URLs.
+Vite does not relocate `import.meta.url` assets while dependency pre-bundling.
+The PageBuilder therefore publishes the Worker runtime as the isolated
+`runtime-worker` subpath. Keep only this small entry out of the optimizer; the
+PageBuilder, UI, Script Editor and their transitive dependencies remain fully
+optimized:
+
+```ts
+// vite.config.ts
+export default defineConfig({
+  optimizeDeps: {
+    exclude: ['@cocoar/vue-page-builder/runtime-worker'],
+  },
+});
+```
+
+Do not exclude the complete `@cocoar/vue-page-builder` package. That would also
+skip optimization of CommonJS dependencies used by its UI/editor peers. The
+consuming production build emits `pageScriptRuntime.worker-<hash>.js` under its
+own configured `base`.
 
 Serve that file as a same-origin module Worker and permit it through
 `worker-src 'self'` (Modgud may keep `blob:` for unrelated Workers). SES uses
@@ -204,9 +220,9 @@ static asset. If the server requires a CSP header on the Worker response, scope
 `script-src 'self' 'unsafe-eval'` to that response only. Do **not** add
 `unsafe-eval` to the IDP document/application CSP.
 
-The prerelease workflow verifies this from packed tarballs with a production
-Vite consumer, a non-root `/idp/` base and a browser boot under the strict
-document CSP.
+The prerelease workflow verifies this from packed tarballs on Linux and Windows
+with `vite --force`, a production build, a non-root `/idp/` base and a browser
+boot under the strict document CSP.
 
 Before general tenant production rollout, complete the product threat model,
 independent security review, browser/mobile matrix, operational quotas and

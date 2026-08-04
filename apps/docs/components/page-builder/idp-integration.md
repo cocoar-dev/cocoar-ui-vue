@@ -54,6 +54,19 @@ const runtimeHost = definePageRuntimeHost({
 Without a grant there is no `api`; there is never ambient `window`, `fetch`, DOM
 or filesystem access in Element Code.
 
+For Vite 8, keep only the Worker-bearing runtime subpath outside dependency
+pre-bundling:
+
+```ts
+optimizeDeps: {
+  exclude: ['@cocoar/vue-page-builder/runtime-worker'],
+}
+```
+
+The main PageBuilder package and all UI/editor dependencies remain optimized.
+The packed-consumer matrix verifies forced development optimization and the
+production Worker asset on both Linux and Windows.
+
 ## Publication boundary
 
 Save drafts as immutable, versioned documents and activate a revision only after

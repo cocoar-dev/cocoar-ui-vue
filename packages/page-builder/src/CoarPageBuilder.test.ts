@@ -68,14 +68,14 @@ describe('CoarPageBuilder — v-model wiring', () => {
     expect(wrapper.text()).toContain('Loaded');
   });
 
-  function mountWithConfig(config: PageConfig) {
+  function mountWithConfig(config: PageConfig, authoringMode: 'properties' | 'code' = 'properties') {
     const Host = defineComponent({
       components: { CoarPageBuilder },
       setup() {
         const schema = ref<PageNode | undefined>(undefined);
-        return { schema, config };
+        return { schema, config, authoringMode };
       },
-      template: '<div style="height: 600px"><CoarPageBuilder v-model="schema" :config="config" /></div>',
+      template: '<div style="height: 600px"><CoarPageBuilder v-model="schema" :config="config" :authoring-mode="authoringMode" /></div>',
     });
     return mount(Host);
   }
@@ -115,6 +115,43 @@ describe('CoarPageBuilder — v-model wiring', () => {
     expect(cards).toContain('Heading');
     expect(cards).toContain('Button');
     expect(cards).not.toContain('Text Input'); // free inputs come from the contract
+  });
+
+  it('offers separate Page State and Page Code entry points for the root', async () => {
+    const wrapper = mountWithConfig({}, 'code');
+    await nextTick();
+    const rootRow = wrapper.find('.pb-tree-row');
+    await rootRow.trigger('click');
+    await nextTick();
+
+    expect(wrapper.text()).toContain('Edit Page State');
+    expect(wrapper.text()).toContain('Add Page Code');
+  });
+
+  it('does not advertise incomplete host values and selects a complete fixture', async () => {
+    const wrapper = mountWithConfig({
+      contextFields: [{ path: 'auth.enabled', type: 'boolean' }],
+      availableStates: [{ id: 'ready', label: 'Ready' }],
+      locales: [{ id: 'en', label: 'English' }],
+      previewFixtures: [{
+        id: 'complete',
+        label: 'Complete fixture',
+        context: { auth: { enabled: true } },
+        state: 'ready',
+        locale: 'en',
+        viewport: 'phone',
+      }],
+    });
+    await nextTick();
+    const previewTab = wrapper.findAll('button').find((button) => button.text().trim() === 'Preview');
+    expect(previewTab).toBeDefined();
+    await previewTab!.trigger('click');
+    await nextTick();
+
+    const fixture = wrapper.find('.pb-builder__preview-control select');
+    expect(fixture.exists()).toBe(true);
+    expect(fixture.element.value).toBe('complete');
+    expect(fixture.findAll('option').map((option) => option.text())).not.toContain('Host values');
   });
 
   it('normalizes an externally-assigned schema (legacy types, duplicate ids) before use', async () => {

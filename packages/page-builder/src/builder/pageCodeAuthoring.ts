@@ -152,6 +152,8 @@ type PageComputeContext<S extends Record<string, unknown>> = PageCapabilities & 
   readonly context: Readonly<PageContext>;
   readonly resources: Readonly<PageResources>;
   readonly viewport: Readonly<PageViewport>;
+  readonly viewState?: string;
+  readonly locale?: string;
 };
 type PageActionContext<S extends Record<string, unknown>> = PageCapabilities & {
   state: S;
@@ -160,6 +162,8 @@ type PageActionContext<S extends Record<string, unknown>> = PageCapabilities & {
   readonly context: Readonly<PageContext>;
   readonly resources: Readonly<PageResources>;
   readonly viewport: Readonly<PageViewport>;
+  readonly viewState?: string;
+  readonly locale?: string;
 };
 interface PageAction {
   readonly payload: Readonly<Record<string, unknown>>;
@@ -195,6 +199,47 @@ export function elementCodeTypeLibrary(
   ]
 }
 
+const PAGE_ROOT_AUTHORING_TYPES = `
+${DRAFT_TYPES}
+interface PageRootDraft {
+  readonly id: string;
+  readonly type: 'page';
+  readonly name: 'page';
+  style: PageNodeStyle;
+  responsive: Record<string, Partial<PageNodeStyle>>;
+  enterSubmits: boolean;
+}
+interface PageCapabilities {}
+type PageRootRuntime<S extends Record<string, unknown>> = PageCapabilities & {
+  readonly state: Readonly<S>;
+  readonly fields: Readonly<PageFields>;
+  readonly form: Readonly<PageForm>;
+  readonly context: Readonly<PageContext>;
+  readonly resources: Readonly<PageResources>;
+  readonly viewport: Readonly<PageViewport>;
+  readonly viewState?: string;
+  readonly locale?: string;
+};
+interface PageRootDefinition<S extends Record<string, unknown>> {
+  compute?: (page: PageRootDraft, runtime: PageRootRuntime<S>) => void;
+}
+type DefinePageRoot<S extends Record<string, unknown>> =
+  (definition: PageRootDefinition<S>) => PageRootDefinition<S>;
+`
+
+export function pageRootCodeTypeLibrary(
+  schema: PageNode,
+  config?: PageConfig,
+): CoarScriptEditorExtraLib[] {
+  return [
+    ...runtimeTypeLibrary(config),
+    {
+      filePath: 'file:///page-builder/page-root-code.d.ts',
+      content: `${translationKeyDeclaration(schema)}\n${PAGE_ROOT_AUTHORING_TYPES}`,
+    },
+  ]
+}
+
 export function elementCodePreamble(stateCode: string, node: ElementNode): string {
   const typeName = elementAuthoringTypeName(node)
   return `
@@ -203,5 +248,14 @@ const i18n = /** @type {PageI18n} */ ({ text: (key, params, fallback) => ({ sour
 const __pageState = (${stateCode}
 );
 const defineElement = /** @type {DefineElement<typeof __pageState, ${typeName}>} */ ((definition) => definition);
+`
+}
+
+export function pageRootCodePreamble(stateCode: string): string {
+  return `
+const definePageState = /** @type {<S extends Record<string, unknown>>(state: S) => S} */ ((state) => state);
+const __pageState = (${stateCode}
+);
+const definePageRoot = /** @type {DefinePageRoot<typeof __pageState>} */ ((definition) => definition);
 `
 }

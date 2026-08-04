@@ -694,6 +694,10 @@ function bindField(name: string | null) {
               <CoarIcon name="code" size="s" />
               Edit Page State
             </CoarButton>
+            <CoarButton size="s" variant="secondary" @click="logic?.openPageCode()">
+              <CoarIcon name="code" size="s" />
+              {{ pageNode.rootCode ? 'Edit Page Code' : 'Add Page Code' }}
+            </CoarButton>
           </template>
           <template v-else>
             <CoarFormField :label="t('coar.pageBuilder.props.elementType', undefined, 'Element')">

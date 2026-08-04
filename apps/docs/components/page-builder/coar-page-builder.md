@@ -29,6 +29,9 @@ A live builder with a small starting schema and a restricted `allowedElements` l
 | `previewLocale` | `string` | — | Initial locale for localized schema values in the preview. |
 | `previewActions` | `Record<string, ActionHandler>` | — | Optional live handlers for action testing in the embedded preview. |
 | `previewFallbackSchema` | `PageNode` | — | Host-owned fallback used by the preview when the customized document violates its contract. |
+| `previewRuntimeHost` | `PageRuntimeHost` | no-capability host | Application capability catalogue for the Builder-owned isolated preview runtime. |
+| `previewRuntimePageId` | `string` | schema id | Stable page identity used by preview capability grants and diagnostics. |
+| `previewRuntimeTenantId` | `string` | — | Optional tenant identity supplied to preview capability grants. |
 
 ## Features
 
@@ -44,7 +47,8 @@ A live builder with a small starting schema and a restricted `allowedElements` l
 - **Responsive authoring and preview** — Mobile-first base styles plus Phone, Tablet and Desktop overrides. The exact Compact 320×568, Phone 390×844, Tablet 768×1024 and Desktop 1280×800 frames use the same resolver as runtime; each override can be reset independently. `hidden` removes the node from rendering, validation and action payloads at that breakpoint.
 - **Runtime bindings and localization** — bind supported top-level element props to allow-listed context paths, host state or the current repeater item. Properties explicitly registered as `valueKind: 'localized-text'` reference stable keys; the central **Translations** tab edits the page-owned catalogue for every configured locale and flags unused keys. Legacy embedded `LocalizedValue` objects remain readable.
 - **Conditions, repeaters and feedback zones** — `visibleWhen` supports field/context/state/item sources and bounded `all`/`any` composition. A generic `repeat` renders a child template for an allow-listed context array and can emit a selected-key array under any configured output name. A `feedback` node places form errors, status, loading or authored messages inside the layout.
-- **Deterministic fixtures** — `config.previewFixtures` supplies named context/state/locale samples such as empty, typical and large collections without persisting test data in the document.
+- **Deterministic fixtures** — `config.previewFixtures` supplies named context/state/locale/viewport samples such as empty, typical and large collections without persisting test data in the document. Fixture selection also restarts/updates the Builder-owned sandbox against exactly that effective contract. “Host values” appears only when the host supplied every context/state/locale part required by the config; otherwise the first fixture is selected or an explicit missing-values state is shown.
+- **Page Root Code** — selecting the page root exposes a separate constrained code editor. It can reactively configure only `page.style`, `page.responsive`, and `page.enterSubmits`; structure, children, ids, types and names remain visual-builder owned. Shared mutable data stays in the independent Page State editor.
 - **Undo / redo** — `Ctrl+Z` / `Ctrl+Y` (or `Cmd+Z` / `Cmd+Shift+Z`), also via toolbar buttons.
 - **Scoped keyboard shortcuts** — undo/redo and `Delete` / `Backspace` (removes the selected node) only act while focus is inside *that builder instance*, and never while focus is in an editable target: the JSON textarea, props-panel inputs and your app's own form fields keep their native undo and delete behavior.
 - **Keyboard navigation** — the outline is an ARIA tree (`role="tree"` / `role="treeitem"` with `aria-level`, `aria-selected`, `aria-expanded`) with a roving tabindex: `Arrow Up` / `Arrow Down` / `Home` / `End` move focus, `Enter` / `Space` selects the focused row. Canvas nodes are focusable too; `Enter` / `Space` selects the focused node.

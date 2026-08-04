@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ElementNode, PageNode } from '../schema'
-import { elementCodeTypeLibrary } from './pageCodeAuthoring'
+import { elementCodeTypeLibrary, pageRootCodeTypeLibrary } from './pageCodeAuthoring'
 
 const button: ElementNode = {
   id: 'submit-button',
@@ -16,6 +16,17 @@ const schema: PageNode = {
 }
 
 describe('Element Code authoring types', () => {
+  it('narrows Page Root Code to presentation and enter-submit configuration', () => {
+    const content = pageRootCodeTypeLibrary(schema).map((library) => library.content).join('\n')
+
+    expect(content).toContain("readonly type: 'page';")
+    expect(content).toContain('style: PageNodeStyle;')
+    expect(content).toContain('responsive: Record<string, Partial<PageNodeStyle>>;')
+    expect(content).toContain('enterSubmits: boolean;')
+    expect(content).toContain('compute?: (page: PageRootDraft, runtime: PageRootRuntime<S>) => void;')
+    expect(content).not.toContain('children:')
+  })
+
   it('keeps the current element separate from page and action context', () => {
     const content = elementCodeTypeLibrary(schema, button).at(-1)?.content ?? ''
 

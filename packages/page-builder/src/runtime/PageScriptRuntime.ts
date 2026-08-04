@@ -12,7 +12,6 @@ import type {
   RuntimeValue,
 } from './runtimeProtocol';
 import { cloneRuntimeValue } from './runtimeProtocol';
-import pageScriptRuntimeWorkerUrl from './pageScriptRuntime.worker.ts?worker&url';
 
 /** Identity and cancellation metadata supplied only to opted-in host methods. */
 export interface RuntimeEndowmentContext {
@@ -132,7 +131,7 @@ export class PageScriptRuntime {
     // Vite consumer owns emitting the asset and applying its configured base.
     // A network worker also has its own CSP context; unlike a Blob worker it
     // does not inherit the document's `script-src` restriction used by IDPs.
-    this.worker = new Worker(pageScriptRuntimeWorkerUrl, {
+    this.worker = new Worker(new URL('./pageScriptRuntime.worker.js', import.meta.url), {
       name: 'page-script-runtime',
       type: 'module',
     });

@@ -236,11 +236,28 @@ export interface PageRootNode extends PageNodeBase {
    * visual builder; the program can only return configuration drafts.
    */
   pageCode?: string
+  /**
+   * Reactive configuration for the page root itself. Unlike the legacy
+   * whole-page `pageCode`, this has the same narrow responsibility as an
+   * element's `elementCode`: it may configure only the existing root draft
+   * (`style`, `responsive`, and `enterSubmits`).
+   */
+  rootCode?: string
   /** Customer-authored initial state shared by this page's element scripts. */
   stateCode?: string
   /** Customer-owned messages edited in the Builder's Translations tab. */
   translations?: PageTranslations
   children: PageNode[]
+}
+
+export interface PagePreviewFixture {
+  id: string
+  label: string
+  context: Record<string, unknown>
+  state?: string
+  locale?: string
+  /** Viewport selected atomically with the fixture. */
+  viewport?: PageBreakpoint | { width: number; height?: number }
 }
 
 // ─── Built-in elements ────────────────────────────────────────────────────────
@@ -644,13 +661,7 @@ export interface PageConfig {
     maxDepth?: number
   }
   /** Named, non-persisted sample contexts for deterministic builder previews. */
-  previewFixtures?: {
-    id: string
-    label: string
-    context: Record<string, unknown>
-    state?: string
-    locale?: string
-  }[]
+  previewFixtures?: PagePreviewFixture[]
   /**
    * Allow binding names outside `fields`. Defaults to false — with a
    * contract, authors pick from it.
