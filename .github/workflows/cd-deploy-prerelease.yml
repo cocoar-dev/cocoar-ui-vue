@@ -49,16 +49,6 @@ jobs:
         id: gv
         uses: gittools/actions/gitversion/execute@v4
 
-      - name: Build prerelease version string
-        id: prerelease
-        run: |
-          BASE="${{ steps.gv.outputs.majorMinorPatch }}-${{ steps.gv.outputs.preReleaseLabel }}"
-          N="${{ steps.gv.outputs.commitsSinceVersionSource }}"
-          VERSION="$BASE.$N"
-          echo "PACKAGE_VERSION=$VERSION" >> $GITHUB_ENV
-          echo "PACKAGE_VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "Calculated prerelease version: $VERSION"
-
       - name: Select npm prerelease channel
         run: |
           case "${{ github.ref_name }}" in
@@ -80,6 +70,16 @@ jobs:
           echo "PUBLISH_REGISTRY=$REGISTRY" >> $GITHUB_ENV
           echo "Selected npm dist-tag: $DIST_TAG"
           echo "Selected package registry: $REGISTRY"
+
+      - name: Build prerelease version string
+        id: prerelease
+        run: |
+          BASE="${{ steps.gv.outputs.majorMinorPatch }}-$NPM_DIST_TAG"
+          N="${{ steps.gv.outputs.commitsSinceVersionSource }}"
+          VERSION="$BASE.$N"
+          echo "PACKAGE_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "PACKAGE_VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Calculated prerelease version: $VERSION"
 
       - name: Log calculated version
         run: |
@@ -191,7 +191,7 @@ jobs:
             echo "//registry.npmjs.org/:_authToken=$NPMJS_TOKEN" >> ~/.npmrc
           fi
 
-      - name: Publish to npmjs.com
+      - name: Publish packages
         run: |
           shopt -s nullglob
           for pkg_dir in packages/*/; do
