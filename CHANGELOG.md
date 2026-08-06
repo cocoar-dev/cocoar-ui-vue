@@ -7,6 +7,29 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 2.19.0 (Beta)
+
+This beta brings the Vue calendar's view hierarchy and interaction model in line with the newer Cocoar iOS calendar while keeping the web package deliberately presentation-agnostic. The flat `CalendarBuilder` remains the single integration surface: applications choose their own create/edit UI, persistence and recurring-series scope flows through callbacks and occurrence provenance.
+
+### Added
+
+- **`@cocoar/vue-calendar` — iOS-style Year / Month / Day / Agenda hierarchy.** New public `CoarYearView`, `CoarContinuousMonthView` and `CoarMonthListView` components join the existing time-grid and agenda surfaces. The shell groups Compact, Stacked, Details and List under Month, groups One day and Multi-day under Day, and retains fixed Week and Work week views as useful web additions. The old `legacyMonth` idea is intentionally absent.
+- **Continuously scrolling Month.** Month sections render only their required four to six weeks, materialize and preload adjacent months, preserve the active month while density changes, and extend in either direction without an unbounded DOM. Compact, Stacked and Details use content-aware row heights; Month List places the selected-day list below the mini calendar in narrow containers and beside it when space allows.
+- **Responsive Multi-day view.** New fluent setters `dayMode('single' | 'multiDay')`, `dayColumnCount(...)` and `dayColumnMinWidth(...)` derive one to seven complete day columns from the calendar's actual container width. `api.setDayMode(...)` and `api.setMonthDensity(...)` provide the imperative counterparts.
+- **Calendar presentation controls.** `monthDensity(...)` selects Compact / Stacked / Details, `shadeWeekends(...)` controls the weekend tint, event metadata can render assignee avatars, and event foreground contrast is selected from the event colour. The default view set now follows the iOS hierarchy; Timeline remains opt-in.
+- **Public layout helpers.** `responsiveDayColumnCount`, `contentAwareCascadeFrames` and `eventTextColor` are exported from the core subpath for consumers building compatible custom surfaces.
+
+### Changed
+
+- **Create and edit stay host-owned.** `onDateClick`, `onTimeClick`, `onEventClick`, `onEventDoubleClick`, hover handlers and the native DOM anchor form the complete Fluent API integration seam. The library does not force a modal or overlay, so consumers can choose a popover, dialog, side panel or routed editor. Recurring occurrences retain series id, recurrence id and source provenance for This occurrence / This and following / Entire series persistence flows.
+- **Month and time-grid overlaps follow the available content.** Same-day items no longer disappear after two entries in Details mode; every item remains reachable. Timed overlaps use content-aware cascading and width allocation, while responsive headers and view controls wrap against the calendar container instead of overflowing narrow host layouts.
+- **Month-cell drops preserve timed-event intent.** Dropping a timed event onto a month date moves it by the display-date delta while retaining its local time, duration and per-endpoint source zones.
+
+### Fixed
+
+- **Continuous-month separators and today marker.** Every month begins with a consistent top separator even when the previous section has no rendered day above it, and the current-day marker is no longer clipped at the section edge.
+- **Subpath declaration packaging.** The `recurrence` and `recurrence-rrule-temporal` exports now point at the declaration files Vite actually emits, so TypeScript consumers resolve both subpaths from the packed npm artifact.
+
 ## 2.18.0
 
 ### Added

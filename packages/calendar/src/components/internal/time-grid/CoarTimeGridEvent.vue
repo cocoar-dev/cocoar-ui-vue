@@ -27,6 +27,8 @@
 import { computed } from 'vue';
 import type { CalendarEvent, PositionedEvent } from '../../../core';
 import CoarEventDecorations from '../CoarEventDecorations.vue';
+import CoarEventAssignees from '../CoarEventAssignees.vue';
+import { eventTextColor } from '../../../core/eventTextContrast';
 
 // Inlined defineProps argument to avoid vue-tsc TS4025 — see note in
 // CoarMonthView.vue.
@@ -91,22 +93,16 @@ const emit = defineEmits<{
 }>();
 
 defineSlots<{
-  default(props: {
-    event: CalendarEvent<TMeta>;
-    positioned: PositionedEvent<TMeta>;
-  }): unknown;
+  default(props: { event: CalendarEvent<TMeta>; positioned: PositionedEvent<TMeta> }): unknown;
 }>();
 
 const isInteractive = computed(
-  () =>
-    props.variant === 'live' ||
-    (props.variant === 'preview' && props.kbdActive),
+  () => props.variant === 'live' || (props.variant === 'preview' && props.kbdActive),
 );
 // In the time grid every card is timed, so a missing `end` ⇒ point event.
 const isPoint = computed(() => props.event.end == null);
-const useCustomSlot = computed(
-  () => props.variant === 'live' || props.variant === 'preview',
-);
+const useCustomSlot = computed(() => props.variant === 'live' || props.variant === 'preview');
+const eventInk = computed(() => eventTextColor(props.bg));
 
 function onPointerdown(e: PointerEvent) {
   if (!isInteractive.value) return;
@@ -152,6 +148,7 @@ function onEndResize(e: PointerEvent) {
       zIndex,
       '--event-bg': bg,
       '--event-border': border,
+      '--event-ink': eventInk,
     }"
     :data-event-id="isInteractive ? event.id : undefined"
     :tabindex="isInteractive ? 0 : -1"
@@ -181,6 +178,7 @@ function onEndResize(e: PointerEvent) {
         <span class="coar-time-grid-event__title-row">
           <CoarEventDecorations :event="event" :display-zone="displayZone" size="s" />
           <span class="coar-time-grid-event__title">{{ title }}</span>
+          <CoarEventAssignees :event="event" :max="2" size="xs" />
         </span>
       </div>
     </slot>
@@ -188,6 +186,7 @@ function onEndResize(e: PointerEvent) {
       <span class="coar-time-grid-event__title-row">
         <CoarEventDecorations :event="event" :display-zone="displayZone" size="s" />
         <span class="coar-time-grid-event__title">{{ title }}</span>
+        <CoarEventAssignees :event="event" :max="2" size="xs" />
       </span>
     </div>
     <div
@@ -268,24 +267,32 @@ function onEndResize(e: PointerEvent) {
   outline: 2px dashed var(--coar-color-danger, #dc2626);
   outline-offset: 1px;
   box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
-  background-image:
-    repeating-linear-gradient(
-      45deg,
-      rgba(220, 38, 38, 0.18) 0,
-      rgba(220, 38, 38, 0.18) 6px,
-      transparent 6px,
-      transparent 12px
-    );
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(220, 38, 38, 0.18) 0,
+    rgba(220, 38, 38, 0.18) 6px,
+    transparent 6px,
+    transparent 12px
+  );
 }
 .coar-time-grid-event--snap-back {
   animation: coar-time-grid-event-snap-back 220ms ease-out forwards;
 }
 @keyframes coar-time-grid-event-snap-back {
-  0%   { opacity: 0.7; transform: scale(1); }
-  100% { opacity: 0;   transform: scale(0.96); }
+  0% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .coar-time-grid-event--snap-back { animation: none; opacity: 0; }
+  .coar-time-grid-event--snap-back {
+    animation: none;
+    opacity: 0;
+  }
 }
 
 .coar-time-grid-event__default {
@@ -299,12 +306,13 @@ function onEndResize(e: PointerEvent) {
   min-width: 0;
 }
 .coar-time-grid-event__title {
-  color: var(--coar-text-base, #1a1c1f);
+  color: var(--event-ink, var(--coar-text-base, #1a1c1f));
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   display: block;
+  min-width: 0;
 }
 
 /* Point events — solid start edge in the (undimmed) event color. */
@@ -330,8 +338,12 @@ function onEndResize(e: PointerEvent) {
   pointer-events: auto;
   z-index: 2;
 }
-.coar-time-grid-event__resize--top { top: 0; }
-.coar-time-grid-event__resize--bottom { bottom: 0; }
+.coar-time-grid-event__resize--top {
+  top: 0;
+}
+.coar-time-grid-event__resize--bottom {
+  bottom: 0;
+}
 
 /* Density */
 .coar-time-grid-event--density-compact {

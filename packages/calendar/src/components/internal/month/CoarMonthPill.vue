@@ -22,6 +22,8 @@
 import { computed } from 'vue';
 import type { CalendarEvent, MonthCellPill } from '../../../core';
 import CoarEventDecorations from '../CoarEventDecorations.vue';
+import CoarEventAssignees from '../CoarEventAssignees.vue';
+import { eventTextColor } from '../../../core/eventTextContrast';
 
 // Inlined defineProps argument to avoid vue-tsc TS4025 — see note in
 // CoarMonthView.vue.
@@ -84,13 +86,10 @@ defineSlots<{
 }>();
 
 const isInteractive = computed(
-  () =>
-    props.variant === 'live' ||
-    (props.variant === 'preview' && props.kbdActive),
+  () => props.variant === 'live' || (props.variant === 'preview' && props.kbdActive),
 );
-const useCustomSlot = computed(
-  () => props.variant === 'live' || props.variant === 'preview',
-);
+const useCustomSlot = computed(() => props.variant === 'live' || props.variant === 'preview');
+const eventInk = computed(() => eventTextColor(props.bg));
 
 function onPointerdown(e: PointerEvent) {
   if (!isInteractive.value) return;
@@ -120,6 +119,7 @@ function onDblclick(e: MouseEvent) {
     :style="{
       background: bg,
       borderLeft: `3px solid ${border}`,
+      '--event-ink': eventInk,
     }"
     :data-event-id="isInteractive ? event.id : undefined"
     :tabindex="isInteractive ? 0 : -1"
@@ -133,10 +133,12 @@ function onDblclick(e: MouseEvent) {
     <slot v-if="useCustomSlot" :event="event" :pill="pill">
       <CoarEventDecorations :event="event" :display-zone="displayZone" size="xs" />
       <span class="coar-month-pill__title">{{ title }}</span>
+      <CoarEventAssignees :event="event" :max="1" size="xs" />
     </slot>
     <template v-else>
       <CoarEventDecorations :event="event" :display-zone="displayZone" size="xs" />
       <span class="coar-month-pill__title">{{ title }}</span>
+      <CoarEventAssignees :event="event" :max="1" size="xs" />
     </template>
   </div>
 </template>
@@ -188,17 +190,16 @@ function onDblclick(e: MouseEvent) {
   outline: 2px dashed var(--coar-color-danger, #dc2626);
   outline-offset: 1px;
   box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
-  background-image:
-    repeating-linear-gradient(
-      45deg,
-      rgba(220, 38, 38, 0.18) 0,
-      rgba(220, 38, 38, 0.18) 6px,
-      transparent 6px,
-      transparent 12px
-    );
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(220, 38, 38, 0.18) 0,
+    rgba(220, 38, 38, 0.18) 6px,
+    transparent 6px,
+    transparent 12px
+  );
 }
 .coar-month-pill__title {
-  color: var(--coar-text-base, #1a1c1f);
+  color: var(--event-ink, var(--coar-text-base, #1a1c1f));
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -210,11 +211,20 @@ function onDblclick(e: MouseEvent) {
   animation: coar-month-pill-snap-back 220ms ease-out forwards;
 }
 @keyframes coar-month-pill-snap-back {
-  0%   { opacity: 0.7; transform: scale(1); }
-  100% { opacity: 0;   transform: scale(0.96); }
+  0% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .coar-month-pill--snap-back { animation: none; opacity: 0; }
+  .coar-month-pill--snap-back {
+    animation: none;
+    opacity: 0;
+  }
 }
 
 /* Density */

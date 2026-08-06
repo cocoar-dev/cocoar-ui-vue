@@ -80,18 +80,10 @@ export interface CalendarEvent<TMeta extends Record<string, unknown> = Record<st
    */
   end?: Temporal.ZonedDateTime | Temporal.PlainDate;
 
-  // ── Recurrence (Phase 4 — NOT YET WIRED) ───────────────────────────
-  // RRULE / RDATE / EXDATE / parentId / recurrenceId fields were
-  // removed in Phase 8.8e because the EventIndex did not expand them
-  // and the recurrence engine wasn't reachable from `<CoarCalendar>`.
-  // Carrying them on the type taught consumers to populate fields that
-  // silently rendered an empty calendar.
-  //
-  // They will return as a discriminated `RecurringCalendarEvent`
-  // shape in Phase 4 once the engine wire-up + worker boundary +
-  // DST disambiguation policy at expansion time are settled. Until
-  // then, expand recurring series in your data layer and pass the
-  // resulting concrete events.
+  // ── Recurrence ─────────────────────────────────────────────────────
+  // RRULE / RDATE / EXDATE deliberately do not live on a concrete event.
+  // Bind `RecurringSeries[]` through CalendarBuilder.series(...) instead;
+  // the builder expands the visible window and adds occurrence provenance.
 
   // ── App-specific metadata ───────────────────────────────────────────
   /**
@@ -151,10 +143,8 @@ export function isAllDayEvent<T extends Record<string, unknown>>(
  *   - `end` shape doesn't match `start`'s shape (mixed timed + all-day)
  *   - `end` is not strictly after `start`
  *
- * Recurrence fields (`rrule` / `rdate` / `exdate` / `recurrenceId` /
- * `parentId`) were removed in Phase 8.8e; if the consumer's `meta`
- * carries `rrule` / `rdate`, a one-shot dev-mode warn fires telling
- * them the engine isn't yet wired (Phase 4 will return the feature).
+ * Event-level recurrence fields are invalid; if consumer metadata carries
+ * `rrule` / `rdate`, a one-shot warning points to `RecurringSeries`.
  */
 export function validateCalendarEvent(event: CalendarEvent): void {
   const { id, start, end } = event;
@@ -207,9 +197,7 @@ export function validateCalendarEvent(event: CalendarEvent): void {
         (end as Temporal.ZonedDateTime).toInstant(),
       );
       if (cmp >= 0) {
-        throw new RangeError(
-          `[CalendarEvent ${id}] end must be strictly after start.`,
-        );
+        throw new RangeError(`[CalendarEvent ${id}] end must be strictly after start.`);
       }
     } else {
       const cmp = Temporal.PlainDate.compare(
@@ -217,17 +205,15 @@ export function validateCalendarEvent(event: CalendarEvent): void {
         end as Temporal.PlainDate,
       );
       if (cmp >= 0) {
-        throw new RangeError(
-          `[CalendarEvent ${id}] end must be strictly after start.`,
-        );
+        throw new RangeError(`[CalendarEvent ${id}] end must be strictly after start.`);
       }
     }
   }
 
   // Recurrence-migration guard: consumers porting from FullCalendar /
   // ICS feeds frequently drop `rrule` / `rdate` / `exdate` into `meta`
-  // assuming the lib expands them. It does NOT (recurrence is Phase 4).
-  // Warn once per offending id so silent empty calendars don't ship.
+  // assuming the concrete-event pipeline expands them. Recurrence is instead
+  // a separate `RecurringSeries` source. Warn once per offending id.
   const meta = event.meta as
     | {
         rrule?: unknown;
@@ -250,9 +236,9 @@ export function validateCalendarEvent(event: CalendarEvent): void {
       // (no log spam from a 10k-event payload).
       const message =
         `[@cocoar/vue-calendar] [CalendarEvent ${id}] meta.rrule / .rdate / .exdate / .recurrenceId is set, ` +
-        'but recurrence is not yet wired (Phase 4). The event will render only ' +
-        'as a single occurrence at `start`. Construct a `RecurringSeries` and ' +
-        'use `expandSeries()` (when available) instead of stuffing rrule into meta.';
+        'but recurrence is a separate series pipeline. This event renders only ' +
+        'at `start`. Construct a `RecurringSeries` and bind it through ' +
+        '`CalendarBuilder.series(...)` instead of putting rules into event metadata.';
       if (typeof console !== 'undefined') console.warn(message);
     }
   }
@@ -266,15 +252,22 @@ const _warnedRecurrenceIds = new Set<string>();
  *  serialize cleanly in URLs / state. */
 export type CalendarView =
   | 'month'
+  | 'monthList'
   | 'week'
   | 'workWeek'
   | 'day'
+  | 'dayAgenda'
   | 'agenda'
-  // Reserved view ids — declared up-front for type stability so future
-  // additions don't widen `CalendarView` later (which would be a
-  // breaking type change for consumers exhaustively switching on it):
   | 'timeline'
   | 'year';
+
+/** Month-level display choices. `list` keeps the month context but replaces
+ * event chips with a date selector plus the selected day's agenda. */
+/** Rendering density of the Month grid. List is a separate view id, matching iOS. */
+export type CalendarMonthDensity = 'compact' | 'stacked' | 'details';
+
+/** Day-level display choices. Multi-day derives 1…7 columns from width. */
+export type CalendarDayMode = 'single' | 'multiDay';
 
 /**
  * A visible date range bounded to a single view mode.
@@ -330,14 +323,11 @@ export type RecurrencePattern = string;
  * `validateCalendarEvent` dev-warns if a consumer tries that, telling
  * them to use `RecurringSeries` instead.
  *
- * **Engine status (Session 2 stub).** `expandSeries` throws
- * `not implemented yet — Phase 4` from `recurrence-public.ts`. The
- * engine integration ships in Phase 4. Type contract exists so
- * consumers can build their data layer against it from day one.
+ * Bind a reactive array with `CalendarBuilder.series(...)`, or call
+ * `expandSeries(...)` directly from the `@cocoar/vue-calendar/recurrence`
+ * subpath. The bundled `rrule-temporal` adapter is loaded lazily.
  */
-export interface RecurringSeries<
-  TMeta extends Record<string, unknown> = Record<string, unknown>,
-> {
+export interface RecurringSeries<TMeta extends Record<string, unknown> = Record<string, unknown>> {
   /** Stable series identifier — every expanded occurrence carries
    *  this same id (distinguish occurrences via their `start` value). */
   id: string;

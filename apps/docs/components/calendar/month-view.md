@@ -1,10 +1,48 @@
 ---
-description: "CoarMonthView — 6x7 month-grid calendar view rendering multi-day events as bars and single-day events as pills, with per-cell overflow and custom event renderers"
+description: "Month views — continuously scrolling Compact, Stacked and Details months, responsive Month List, and the lower-level CoarMonthView section"
 ---
 
-# `<CoarMonthView>` — Month View <Badge type="warning" text="Preview" />
+# Month Views <Badge type="warning" text="Preview" />
 
-6×7 grid showing the full calendar month plus leading / trailing days for context. Multi-day events render as continuous **bars** across the rows they touch; single-day events render as **pills** inside cells. Cells with overflow scroll internally; per-cell expansion via the kebab menu replaces the older "+ N more" popover.
+The shell's Month view follows the iOS structure: months scroll continuously and expose **Compact**, **Stacked**, **Details**, and **List** display choices. Continuous sections render only the 4–6 weeks the month actually needs; leading and trailing positions stay blank instead of repeating neighbour dates.
+
+| Choice | Rendering |
+|---|---|
+| Compact | 52 px base week rows; per-day events combine into a segmented colour capsule. |
+| Stacked | 68 px base rows; compact individual event marks. |
+| Details | 94 px base rows; titles, assignees, multi-day bars and row expansion. |
+| List | Compact month selector plus the selected day's event list; stacked in narrow containers and side-by-side from 720 px. |
+
+The regular Month choices use `<CoarContinuousMonthView>`. `<CoarMonthView>` remains exported as the lower-level single-month section for widgets and custom compositions.
+
+```ts
+const { builder } = useCalendar();
+builder
+  .view('month')
+  .availableViews(['month', 'monthList'])
+  .monthDensity('compact')
+  .shadeWeekends(true);
+```
+
+## Continuous month
+
+Month navigation scrolls to the requested section. Scrolling updates the builder cursor when the next month's heading reaches the top, and event / recurrence loaders preload the adjacent months. The surface initially materializes 13 months and extends in either direction while keeping a bounded DOM window.
+
+```html
+<CoarContinuousMonthView :builder="builder" />
+```
+
+## Month List {#month-list}
+
+`monthList` is a real serialized `CalendarView`, but `<CoarCalendar>` nests it under Month as the **List** display choice. Selecting a date in the small calendar updates the builder cursor and the adjacent daily event list.
+
+```html
+<CoarMonthListView :builder="builder" />
+```
+
+## Single month section {#single-month-section}
+
+`<CoarMonthView>` renders the fixed single-section grid used internally by the continuous composition. Multi-day events render as continuous **bars** across the rows they touch; single-day events render as **pills** inside cells. Use it directly when the host owns pagination or needs a compact embedded month.
 
 ```html
 <CoarMonthView :builder="builder" />
@@ -16,6 +54,8 @@ description: "CoarMonthView — 6x7 month-grid calendar view rendering multi-day
 import { ref } from 'vue';
 import { Temporal } from '@js-temporal/polyfill';
 import {
+  CoarContinuousMonthView,
+  CoarMonthListView,
   CoarMonthView,
   useMonthView,
   type CalendarEvent,
@@ -69,7 +109,7 @@ const { builder } = useCalendar();
 builder.maxEventsPerCell(5);
 ```
 
-When the active view is month, the same builder feeds the embedded `<CoarMonthView>`. When it's week or day, the same builder feeds `<CoarTimeGrid>`. View-specific settings simply have no effect outside their view.
+When the active view is `month`, the same builder feeds `<CoarContinuousMonthView>` and resolves `monthDensity`. Selecting List switches the serialized view to `monthList` and mounts `<CoarMonthListView>`. View-specific settings simply have no effect outside their view.
 
 ## `useMonthView<TMeta>()`
 
@@ -89,6 +129,8 @@ Full reference: see [the composer's API reference](/components/calendar/coar-cal
 | Setter | Argument | Default | Notes |
 |---|---|---|---|
 | `firstDayOfWeek(d)` | `0..6 \| undefined` | locale-aware | `0` = Sunday, `1` = Monday, … |
+| `monthDensity(d)` | `'compact' \| 'stacked' \| 'details'` | `'details'` | Presentation used by continuous Month. |
+| `shadeWeekends(b)` | `MaybeRefOrGetter<boolean>` | `true` | Shades Saturday / Sunday cells and weekday headers. Set `false` for an unshaded appearance. |
 | `maxEventsPerCell(n)` | `MaybeRefOrGetter<number>` | `3` | Pill cap hint. The library never truncates — pills always reach the DOM — but the collapsed-cell height reserves space for ~`n` pills before the cell starts to scroll. |
 | `eventRenderer(r)` | `EventRenderer<TMeta>` | — | Universal renderer. Branch on `ctx.layout?.kind === 'monthPill' \| 'monthBar'` for variant-specific rendering — see the example above. |
 | `dayHeaderRenderer(r)` | `DayHeaderRenderer` | — | Weekday-strip header (Mon / Tue / ...). |
@@ -124,9 +166,9 @@ interface CalendarApi<TMeta> {
 }
 ```
 
-`scrollToTime` / `scrollToDate` are not on the month API — neither has a vertical-scroll surface in this view.
+`scrollToTime` / `scrollToDate` are not month operations. `api.goTo(...)`, `next()`, and `prev()` align the continuous surface to the requested month; a standalone `<CoarContinuousMonthView>` additionally exposes `scrollToMonth(...)` on its component ref.
 
-## `<CoarMonthView>` props + slots
+## Month component props + slots
 
 | Prop | Type | Description |
 |---|---|---|

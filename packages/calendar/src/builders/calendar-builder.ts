@@ -55,6 +55,8 @@ import {
 } from 'vue';
 import {
   type CalendarEvent,
+  type CalendarDayMode,
+  type CalendarMonthDensity,
   type CalendarView,
   type DayOfWeek,
   type RecurringSeries,
@@ -63,12 +65,10 @@ import {
   Temporal,
   detectBrowserTimezone,
   navigateCursor,
+  windowDayCount,
   validateCalendarEvent,
 } from '../core';
-import {
-  SET_VISIBLE_RANGE,
-  INVALIDATE_LOADER_CACHE,
-} from './calendar-builder-internals';
+import { SET_VISIBLE_RANGE, INVALIDATE_LOADER_CACHE } from './calendar-builder-internals';
 import type {
   CalendarDensity,
   CanDropFn,
@@ -117,12 +117,7 @@ function windowKey(w: ViewWindow): string {
 function windowsEqual(a: ViewWindow | null, b: ViewWindow | null): boolean {
   if (a === b) return true;
   if (a === null || b === null) return false;
-  return (
-    a.view === b.view &&
-    a.start === b.start &&
-    a.end === b.end &&
-    a.timezone === b.timezone
-  );
+  return a.view === b.view && a.start === b.start && a.end === b.end && a.timezone === b.timezone;
 }
 
 /**
@@ -213,7 +208,13 @@ export interface CalendarBuilderState<
    * BCP-47).
    */
   workDays: MaybeRefOrGetter<readonly DayOfWeek[]>;
+  /** Tint Saturday and Sunday cells in month views. Enabled by default. */
+  shadeWeekends: MaybeRefOrGetter<boolean>;
   density: MaybeRefOrGetter<CalendarDensity>;
+  /** Apple-style month presentation. Default `details` preserves the classic web grid. */
+  monthDensity: MaybeRefOrGetter<CalendarMonthDensity>;
+  /** One fixed day or a width-driven 1…7-day surface. */
+  dayMode: MaybeRefOrGetter<CalendarDayMode>;
   /** Intl date style (C6 — independent of timeStyle / hour12).
    *  Locale-derived when undefined (Article 9). */
   dateStyle: MaybeRefOrGetter<'short' | 'medium' | 'long' | 'full' | undefined>;
@@ -235,10 +236,7 @@ export interface CalendarBuilderState<
    * sensible semantics (in-flight requests, worker lifecycle). Set
    * once at construction.
    */
-  recurrenceEngine:
-    | RecurrenceEngine
-    | (() => RecurrenceEngine)
-    | null;
+  recurrenceEngine: RecurrenceEngine | (() => RecurrenceEngine) | null;
   /** Subset of CalendarView the view-switcher offers. */
   availableViews: MaybeRefOrGetter<readonly CalendarView[]>;
   // ── View-specific (flat — D2 / handoff trade-off) ──────────────
@@ -246,6 +244,10 @@ export interface CalendarBuilderState<
   slotDuration: MaybeRefOrGetter<number>;
   pixelsPerHour: MaybeRefOrGetter<number>;
   maxEventsPerCell: MaybeRefOrGetter<number>;
+  /** Minimum number of adjacent columns in the responsive day view. */
+  dayColumnCount: MaybeRefOrGetter<number>;
+  /** Target width of one responsive day column in CSS pixels. */
+  dayColumnMinWidth: MaybeRefOrGetter<number>;
   agendaLengthDays: MaybeRefOrGetter<number>;
   showEmptyDays: MaybeRefOrGetter<boolean>;
   /**
@@ -297,9 +299,7 @@ export interface CalendarBuilderState<
 /**
  * Imperative + reactive surface returned alongside the builder.
  */
-export interface CalendarApi<
-  TMeta extends Record<string, unknown> = Record<string, unknown>,
-> {
+export interface CalendarApi<TMeta extends Record<string, unknown> = Record<string, unknown>> {
   // ── Readonly reactive surface ──────────────────────────────────
   /** `true` while at least one `eventsLoader` invocation is in flight. */
   readonly loading: Readonly<Ref<boolean>>;
@@ -313,6 +313,8 @@ export interface CalendarApi<
   next(): void;
   prev(): void;
   setView(view: CalendarView): void;
+  setMonthDensity(density: CalendarMonthDensity): void;
+  setDayMode(mode: CalendarDayMode): void;
   /** Wired in Session 3 (component-side). No-op until then. */
   scrollToTime(time: Temporal.PlainTime): void;
   /** Wired in Session 3 (component-side). No-op until then. */
@@ -333,9 +335,7 @@ export interface CalendarApi<
 
 // ─── Class ───────────────────────────────────────────────────────
 
-export class CalendarBuilder<
-  TMeta extends Record<string, unknown> = Record<string, unknown>,
-> {
+export class CalendarBuilder<TMeta extends Record<string, unknown> = Record<string, unknown>> {
   /** Reactive state — single source of truth (C7 read site). */
   readonly state: CalendarBuilderState<TMeta>;
 
@@ -355,9 +355,7 @@ export class CalendarBuilder<
   // ── Loader cache + flight tracking ────────────────────────────
   /** Map<windowKey, events>. Wrapped in shallowRef so cache swaps
    *  trigger reactivity for `getVisibleEvents`. */
-  private readonly _loaderCache = shallowRef(
-    new Map<string, CalendarEvent<TMeta>[]>(),
-  );
+  private readonly _loaderCache = shallowRef(new Map<string, CalendarEvent<TMeta>[]>());
   /** In-flight loader counter — `loading.value = (counter > 0)`.
    *  Counter (not boolean) so concurrent fetches don't race the flag. */
   private _inFlight = 0;
@@ -374,9 +372,7 @@ export class CalendarBuilder<
   // ── Recurring-series cache + flight tracking (Phase 4) ─────────
   /** Map<windowKey, expanded events>. Same key shape as _loaderCache.
    *  Holds occurrences expanded from `state.series` / `state.seriesLoader`. */
-  private readonly _seriesCache = shallowRef(
-    new Map<string, CalendarEvent<TMeta>[]>(),
-  );
+  private readonly _seriesCache = shallowRef(new Map<string, CalendarEvent<TMeta>[]>());
   /** Bumped on series invalidation. Independent of `_generation` so
    *  series and events caches don't fight over the same counter. */
   private _seriesGeneration = 0;
@@ -392,9 +388,9 @@ export class CalendarBuilder<
    *  the recurrence runtime out of the main bundle for apps that
    *  don't use series — the chunk only loads on first
    *  `_runSeriesExpansion` call. Per Phase 4 §A1 topology rule. */
-  private _expandSeriesFnPromise:
-    | Promise<typeof import('../recurrence/index').expandSeries>
-    | null = null;
+  private _expandSeriesFnPromise: Promise<
+    typeof import('../recurrence/index').expandSeries
+  > | null = null;
 
   /** Effect scope for builder-owned watchers (audit fix #1 — events
    *  source watcher). Cleaned up if/when a `.dispose()` is added in
@@ -432,9 +428,7 @@ export class CalendarBuilder<
     // matches what the user sees, not whatever the JS engine's system
     // zone happens to be (Docker / TZ env mismatches).
     const internalView = ref<CalendarView>('month');
-    const internalDate = ref<Temporal.PlainDate>(
-      Temporal.Now.plainDateISO(detectedZone),
-    );
+    const internalDate = ref<Temporal.PlainDate>(Temporal.Now.plainDateISO(detectedZone));
 
     this.state = shallowReactive<CalendarBuilderState<TMeta>>({
       events: null,
@@ -452,7 +446,10 @@ export class CalendarBuilder<
       // (Mon–Sat) or 4-day (Mon–Thu) operations override via
       // `builder.workDays(...)`.
       workDays: DEFAULT_WORK_DAYS,
+      shadeWeekends: true,
       density: 'comfortable',
+      monthDensity: 'details',
+      dayMode: 'single',
       // Article 9 defaults — undefined lets Intl pick locale-appropriate.
       dateStyle: undefined,
       timeStyle: undefined,
@@ -465,7 +462,9 @@ export class CalendarBuilder<
       // Phase 4 §A8 — defer to lazy default rrule-temporal until
       // consumer explicitly picks a different engine.
       recurrenceEngine: null,
-      availableViews: ['month', 'week', 'workWeek', 'day', 'agenda', 'timeline'],
+      // Same primary set as the iOS shell. Timeline remains an explicit
+      // opt-in for planning screens instead of crowding the default switcher.
+      availableViews: ['year', 'month', 'monthList', 'week', 'workWeek', 'day', 'agenda'],
       timeRange: { startMinutes: 0, endMinutes: 24 * 60 - 1 },
       slotDuration: 30,
       // Default of 60. Time-grid columns end up 1440 px tall
@@ -473,6 +472,8 @@ export class CalendarBuilder<
       // halos, and resize handles without crowding.
       pixelsPerHour: 60,
       maxEventsPerCell: 3,
+      dayColumnCount: 1,
+      dayColumnMinWidth: 220,
       agendaLengthDays: 30,
       showEmptyDays: false,
       timelineRangeDays: 60,
@@ -497,15 +498,15 @@ export class CalendarBuilder<
 
     this.api = {
       loading: this._loading as Readonly<Ref<boolean>>,
-      visibleRange: this._visibleRange as Readonly<
-        ShallowRef<ViewWindow | null>
-      >,
+      visibleRange: this._visibleRange as Readonly<ShallowRef<ViewWindow | null>>,
       gridReady: this._gridReady as Readonly<Ref<boolean>>,
       goTo: (d) => this._goTo(d),
       goToToday: () => this._goToToday(),
       next: () => this._navigate(+1),
       prev: () => this._navigate(-1),
       setView: (v) => this._setView(v),
+      setMonthDensity: (density) => this._setMonthDensity(density),
+      setDayMode: (mode) => this._setDayMode(mode),
       // The scroll-to-X methods are wired by the active view component
       // via `_setScrollToTime` / `_setScrollToDate` (registered on
       // mount, cleared on unmount). Until wired, dev-warn so consumer
@@ -546,10 +547,7 @@ export class CalendarBuilder<
           try {
             this._validateEvents(events);
           } catch (e) {
-            console.error(
-              '[CalendarBuilder] reactive event-source change failed validation:',
-              e,
-            );
+            console.error('[CalendarBuilder] reactive event-source change failed validation:', e);
           }
         },
         { immediate: false, flush: 'post' },
@@ -591,7 +589,7 @@ export class CalendarBuilder<
         () => {
           this._seriesCache.value = new Map();
           this._seriesGeneration += 1;
-    this._inFlightSeriesKeys.clear();
+          this._inFlightSeriesKeys.clear();
           const w = this._visibleRange.value;
           if (w) this._runSeriesExpansion(w);
         },
@@ -726,8 +724,24 @@ export class CalendarBuilder<
     return this;
   }
 
+  /** Tint Saturday and Sunday cells in month views. */
+  shadeWeekends(enabled: MaybeRefOrGetter<boolean>): this {
+    this.state.shadeWeekends = enabled;
+    return this;
+  }
+
   density(d: MaybeRefOrGetter<CalendarDensity>): this {
     this.state.density = d;
+    return this;
+  }
+
+  monthDensity(density: MaybeRefOrGetter<CalendarMonthDensity>): this {
+    this.state.monthDensity = density;
+    return this;
+  }
+
+  dayMode(mode: MaybeRefOrGetter<CalendarDayMode>): this {
+    this.state.dayMode = mode;
     return this;
   }
 
@@ -786,9 +800,7 @@ export class CalendarBuilder<
    * — calling this method after a series expansion has been
    * dispatched does NOT cancel or re-route in-flight calls.
    */
-  recurrenceEngine(
-    engineOrFactory: RecurrenceEngine | (() => RecurrenceEngine),
-  ): this {
+  recurrenceEngine(engineOrFactory: RecurrenceEngine | (() => RecurrenceEngine)): this {
     this.state.recurrenceEngine = engineOrFactory;
     // Bust the resolved-engine cache + invalidate series cache so a
     // subsequent visible-range change re-expands with the new engine.
@@ -852,6 +864,18 @@ export class CalendarBuilder<
   /** Month view setting — pills before "+N more". */
   maxEventsPerCell(n: MaybeRefOrGetter<number>): this {
     this.state.maxEventsPerCell = n;
+    return this;
+  }
+
+  /** Responsive day view: minimum number of full day columns. */
+  dayColumnCount(n: MaybeRefOrGetter<number>): this {
+    this.state.dayColumnCount = n;
+    return this;
+  }
+
+  /** Responsive day view: target width used to derive additional columns. */
+  dayColumnMinWidth(px: MaybeRefOrGetter<number>): this {
+    this.state.dayColumnMinWidth = px;
     return this;
   }
 
@@ -1011,12 +1035,18 @@ export class CalendarBuilder<
     const cursor = this.state.date.value;
     const agendaDays = toValue(this.state.agendaLengthDays);
     const timelineDays = toValue(this.state.timelineRangeDays);
+    const visible = this._visibleRange.value;
+    const dayColumns =
+      view === 'day' && visible?.view === 'day'
+        ? Math.max(1, windowDayCount(visible))
+        : toValue(this.state.dayColumnCount);
     this.state.date.value = navigateCursor(
       view,
       cursor,
       direction === 1 ? 'next' : 'prev',
       agendaDays,
       timelineDays,
+      dayColumns,
     );
   }
 
@@ -1034,6 +1064,40 @@ export class CalendarBuilder<
       }
     }
     this.state.view.value = v;
+  }
+
+  private _setMonthDensity(value: CalendarMonthDensity): void {
+    const current = this.state.monthDensity;
+    if (isRef(current)) {
+      (current as Ref<CalendarMonthDensity>).value = value;
+      return;
+    }
+    if (typeof current === 'function') {
+      if (typeof console !== 'undefined') {
+        console.warn(
+          '[CalendarBuilder.api.setMonthDensity] cannot write to a getter. Bind a Ref or a plain value.',
+        );
+      }
+      return;
+    }
+    this.state.monthDensity = value;
+  }
+
+  private _setDayMode(value: CalendarDayMode): void {
+    const current = this.state.dayMode;
+    if (isRef(current)) {
+      (current as Ref<CalendarDayMode>).value = value;
+      return;
+    }
+    if (typeof current === 'function') {
+      if (typeof console !== 'undefined') {
+        console.warn(
+          '[CalendarBuilder.api.setDayMode] cannot write to a getter. Bind a Ref or a plain value.',
+        );
+      }
+      return;
+    }
+    this.state.dayMode = value;
   }
 
   // ─── Internal: visible-range writer (symbol-keyed; see #2 fix) ──
@@ -1131,10 +1195,7 @@ export class CalendarBuilder<
         this._loaderCache.value = next;
       })
       .catch((e) => {
-        console.error(
-          `[CalendarBuilder] eventsLoader rejected for window ${key}:`,
-          e,
-        );
+        console.error(`[CalendarBuilder] eventsLoader rejected for window ${key}:`, e);
         // NOT cached on error — next visit re-attempts.
       })
       .finally(() => {
@@ -1203,10 +1264,7 @@ export class CalendarBuilder<
     for (const [key, events] of this._loaderCache.value.entries()) {
       const [v, tz, start, end] = key.split('|');
       const intersects =
-        v === window.view &&
-        tz === window.timezone &&
-        start < window.end &&
-        end > window.start;
+        v === window.view && tz === window.timezone && start < window.end && end > window.start;
       if (intersects) {
         dirty = true;
         continue;
@@ -1223,10 +1281,7 @@ export class CalendarBuilder<
     for (const [key, events] of this._seriesCache.value.entries()) {
       const [v, tz, start, end] = key.split('|');
       const intersects =
-        v === window.view &&
-        tz === window.timezone &&
-        start < window.end &&
-        end > window.start;
+        v === window.view && tz === window.timezone && start < window.end && end > window.start;
       if (intersects) {
         seriesDirty = true;
         continue;
@@ -1236,7 +1291,7 @@ export class CalendarBuilder<
     if (seriesDirty) {
       this._seriesCache.value = nextSeries;
       this._seriesGeneration += 1;
-    this._inFlightSeriesKeys.clear();
+      this._inFlightSeriesKeys.clear();
     }
     const current = this._visibleRange.value;
     if (current) {
@@ -1354,9 +1409,7 @@ export class CalendarBuilder<
         const engine = this._resolveEngine();
         const expandFn = await this._loadExpandSeries();
         const expanded = await Promise.all(
-          series.map((s) =>
-            expandFn(s, expansionWindow, dstPolicy, engine),
-          ),
+          series.map((s) => expandFn(s, expansionWindow, dstPolicy, engine)),
         );
         if (generation !== this._seriesGeneration) return;
         const all = expanded.flat();
@@ -1368,10 +1421,7 @@ export class CalendarBuilder<
         this._seriesCache.value = next;
       })
       .catch((e) => {
-        console.error(
-          `[CalendarBuilder] recurring-series expansion failed for window ${key}:`,
-          e,
-        );
+        console.error(`[CalendarBuilder] recurring-series expansion failed for window ${key}:`, e);
         // Not cached on error — next visible-range change re-attempts.
       })
       .finally(() => {
@@ -1384,19 +1434,13 @@ export class CalendarBuilder<
       });
   }
 
-  private async _loadExpandSeries(): Promise<
-    typeof import('../recurrence/index').expandSeries
-  > {
+  private async _loadExpandSeries(): Promise<typeof import('../recurrence/index').expandSeries> {
     if (this._expandSeriesFnPromise) return this._expandSeriesFnPromise;
-    this._expandSeriesFnPromise = import('../recurrence/index').then(
-      (mod) => mod.expandSeries,
-    );
+    this._expandSeriesFnPromise = import('../recurrence/index').then((mod) => mod.expandSeries);
     return this._expandSeriesFnPromise;
   }
 
-  private async _readSeriesForWindow(
-    window: ViewWindow,
-  ): Promise<RecurringSeries<TMeta>[]> {
+  private async _readSeriesForWindow(window: ViewWindow): Promise<RecurringSeries<TMeta>[]> {
     if (this.state.series !== null) {
       return toValue(this.state.series) ?? [];
     }

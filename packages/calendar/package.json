@@ -43,12 +43,12 @@
     "./recurrence": {
       "source": "./src/recurrence/index.ts",
       "import": "./dist/recurrence.js",
-      "types": "./dist/recurrence.d.ts"
+      "types": "./dist/recurrence/index.d.ts"
     },
     "./recurrence-rrule-temporal": {
       "source": "./src/recurrence-rrule-temporal/index.ts",
       "import": "./dist/recurrence-rrule-temporal.js",
-      "types": "./dist/recurrence-rrule-temporal.d.ts"
+      "types": "./dist/recurrence-rrule-temporal/index.d.ts"
     }
   },
   "files": [

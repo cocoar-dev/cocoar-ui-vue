@@ -13,6 +13,7 @@
 
 import type { CalendarEvent, AgendaEventItem } from '../../../core';
 import CoarEventDecorations from '../CoarEventDecorations.vue';
+import CoarEventAssignees from '../CoarEventAssignees.vue';
 
 // Inlined defineProps argument to avoid vue-tsc TS4025 — see note in
 // CoarMonthView.vue.
@@ -69,11 +70,11 @@ function onDblclick(e: MouseEvent) {
         <span class="coar-agenda-event__title">
           <CoarEventDecorations :event="event" :display-zone="displayZone" size="s" />
           {{ title }}
-          <span
-            v-if="item.isContinuation"
-            class="coar-agenda-event__continuation-tag"
-          >{{ continuationTag }}</span>
+          <span v-if="item.isContinuation" class="coar-agenda-event__continuation-tag">{{
+            continuationTag
+          }}</span>
         </span>
+        <CoarEventAssignees :event="event" :max="3" size="m" />
       </div>
     </slot>
   </div>
@@ -84,8 +85,7 @@ function onDblclick(e: MouseEvent) {
   padding: 10px 16px;
   /* Own token (falls back to the border token): the row separator
      stays near-invisible in dark mode while borders don't. */
-  border-bottom: 1px solid
-    var(--coar-calendar-agenda-divider, var(--coar-calendar-border, #f3f4f6));
+  border-bottom: 1px solid var(--coar-calendar-agenda-divider, var(--coar-calendar-border, #f3f4f6));
   cursor: pointer;
   user-select: none;
   background: var(--coar-calendar-bg, #fff);
@@ -119,6 +119,7 @@ function onDblclick(e: MouseEvent) {
   font-size: var(--coar-font-size-base, 14px);
   color: var(--coar-text-base, #1a1c1f);
   font-weight: 500;
+  min-width: 0;
 }
 .coar-agenda-event__continuation-tag {
   margin-left: 6px;

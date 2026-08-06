@@ -18,11 +18,7 @@ import {
 } from '../move-math';
 import { pd, zdt } from '../../../__test-utils__/event-fixtures';
 
-const target = (
-  date: string,
-  minutes: number | null,
-  displayZone = 'UTC',
-): CalendarDropTarget => ({
+const target = (date: string, minutes: number | null, displayZone = 'UTC'): CalendarDropTarget => ({
   date,
   minutes,
   displayZone,
@@ -48,6 +44,17 @@ describe('core/dnd/move-math', () => {
       expect((next.end as Temporal.ZonedDateTime).toString()).toBe(
         '2026-04-16T12:00:00+00:00[UTC]',
       );
+    });
+
+    it('month-cell drag changes only the calendar day and preserves wall time', () => {
+      const ev: CalendarEvent = {
+        id: 'month-timed',
+        start: zdt('2026-06-15T09:00:00', 'Europe/Vienna'),
+        end: zdt('2026-06-15T09:30:00', 'Europe/Vienna'),
+      };
+      const next = applyMoveToEvent(ev, target('2026-06-17', null, 'Europe/Vienna'), 'month');
+      expect(next.start.toString()).toBe('2026-06-17T09:00:00+02:00[Europe/Vienna]');
+      expect(next.end?.toString()).toBe('2026-06-17T09:30:00+02:00[Europe/Vienna]');
     });
 
     it('clamps a too-late timed-resize-start to MIN_RESIZE_MINUTES before end', () => {
@@ -91,11 +98,7 @@ describe('core/dnd/move-math', () => {
         start: pd('2026-04-13'),
         end: pd('2026-04-16'),
       };
-      const next = applyMoveToEvent(
-        ev,
-        target('2026-04-16', null),
-        'allDay-resize-start',
-      );
+      const next = applyMoveToEvent(ev, target('2026-04-16', null), 'allDay-resize-start');
       expect((next.start as Temporal.PlainDate).toString()).toBe('2026-04-15');
       expect((next.end as Temporal.PlainDate).toString()).toBe('2026-04-16');
     });
@@ -106,11 +109,7 @@ describe('core/dnd/move-math', () => {
         start: pd('2026-04-13'),
         end: pd('2026-04-16'),
       };
-      const next = applyMoveToEvent(
-        ev,
-        target('2026-04-17', null),
-        'allDay-resize-end',
-      );
+      const next = applyMoveToEvent(ev, target('2026-04-17', null), 'allDay-resize-end');
       expect((next.start as Temporal.PlainDate).toString()).toBe('2026-04-13');
       expect((next.end as Temporal.PlainDate).toString()).toBe('2026-04-18');
     });
@@ -124,11 +123,7 @@ describe('core/dnd/move-math', () => {
         start: zdt('2026-06-15T10:00:00', 'Europe/Vienna'),
         end: zdt('2026-06-15T11:00:00', 'Europe/Vienna'),
       };
-      const next = applyMoveToEvent(
-        ev,
-        target('2026-06-15', 14 * 60, 'Europe/Vienna'),
-        'timed',
-      );
+      const next = applyMoveToEvent(ev, target('2026-06-15', 14 * 60, 'Europe/Vienna'), 'timed');
       const start = next.start as Temporal.ZonedDateTime;
       // Should land at 14:00 Vienna (12:00 UTC), preserving the
       // Europe/Vienna source zone.
@@ -142,11 +137,7 @@ describe('core/dnd/move-math', () => {
         start: zdt('2026-12-15T10:00:00', 'Europe/Vienna'),
         end: zdt('2026-12-15T11:00:00', 'Europe/Vienna'),
       };
-      const next = applyMoveToEvent(
-        ev,
-        target('2026-12-15', 14 * 60, 'Europe/Vienna'),
-        'timed',
-      );
+      const next = applyMoveToEvent(ev, target('2026-12-15', 14 * 60, 'Europe/Vienna'), 'timed');
       const start = next.start as Temporal.ZonedDateTime;
       expect(start.timeZoneId).toBe('Europe/Vienna');
       expect(start.toInstant().toString()).toBe('2026-12-15T13:00:00Z');

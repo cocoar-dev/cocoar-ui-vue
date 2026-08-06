@@ -73,6 +73,27 @@ builder
 
 That's it. Drag events, switch views, navigate dates — all wired.
 
+## Create / edit UI belongs to the host
+
+The Fluent API provides the interaction and persistence seam without forcing a
+specific web UX:
+
+```ts
+builder
+  .onDateClick(({ date, native }) => openCreate(date, native.currentTarget))
+  .onTimeClick(({ date, time, native }) => openCreateAt(date, time, native.currentTarget))
+  .onEventClick(({ event, native }) => openDetails(event, native.currentTarget))
+  .onEventDoubleClick(({ event }) => openEditor(event))
+  .onEventDrop(({ event, next }) => persistMove(event.id, next));
+```
+
+Use the supplied DOM target with `@cocoar/vue-ui` for an anchored popover, or
+ignore it and open a modal, side panel, routed page, or custom view. The calendar
+does not ship a fixed create/edit overlay. Recurring occurrences expose stable
+series and recurrence provenance through `getRecurrenceMeta(event)` so the host
+can implement This occurrence / This and following / Entire series against its
+own persistence model.
+
 ## API contract for backends (Article 8)
 
 The library ships two helpers that mirror Article 8's recommended
@@ -113,7 +134,7 @@ The shape is stable across:
 | 3, 4 | **C5** Display zone vs source zone separate | `EventDropPayload.target.displayZone` (what the user saw) and `next.start.timeZoneId` (where the event lives) are distinct fields. |
 | 9 | **C6** Three independent display decisions | `locale`, `dateStyle`, `timeStyle`, `hour12` are independent setters. `buildFormatOptions` is the only `Intl` merge point. |
 | spirit | **C7** Reactivity by reads | Every consumer function (`canDrop`, `eventsLoader`, `eventRenderer`) is read on every invocation, never captured at setup. |
-| 5 | **C8** Recurrence is a first-class type | `RecurringSeries` lives separately from `CalendarEvent`. `expandSeries` ships as a throwing stub until Phase 4. |
+| 5 | **C8** Recurrence is a first-class type | `RecurringSeries` lives separately from `CalendarEvent`; the builder expands it per visible window. |
 
 The conformance test suite at `src/core/__tests__/timezone/` pins
 every invariant.
@@ -196,12 +217,47 @@ When mounted standalone, the sub-view sets `state.view` to its
 intended value and mounts its own `useViewWindow` (single writer per
 the C5 invariant).
 
+## Views and user-facing names
+
+The visible hierarchy follows iOS instead of exposing every renderer as a flat
+list. The default primary switcher contains **Year, Month, Week, Work week, Day,
+Agenda**. Month and Day then expose their own display choices:
+
+| Primary view | Variations |
+| --- | --- |
+| `year` | twelve-month overview |
+| `month` | continuous vertical months in Compact, Stacked, Details, List |
+| `week` | fixed seven-day time grid |
+| `workWeek` | the same time grid restricted to configured work days |
+| `day` | One day, width-aware Multi-day (up to seven full columns) |
+| `agenda` | chronological multi-day list |
+
+`monthList` remains a serialized/rendering id, but the shell presents it as the
+**List** variation of Month. It combines a compact month selector with the
+selected day's events; its layout is stacked in narrow containers and
+side-by-side in wide containers. `dayAgenda` and `timeline` remain opt-in generic
+surfaces and are not part of the default switcher.
+
+The shell's `month` surface is continuously scrollable like iOS: every section
+contains only its required 4–6 weeks, density changes preserve the active month
+anchor, and event loaders preload the adjacent months. `CoarMonthView` remains
+available as the lower-level single-section grid; `CoarContinuousMonthView`
+exposes the scrolling composition for standalone use.
+
+Weekend cells are subtly shaded by default for easier scanning on wide web
+layouts. Disable the tint with `builder.shadeWeekends(false)` when a host wants
+the unshaded iOS appearance; weekday labels remain visually de-emphasized.
+
+`legacyMonth` is intentionally absent: the old Vue parity grid is already
+available through the lower-level month section, so a second serialized view id
+would duplicate the same capability.
+
 ## Known scope cuts (post-2.0.0)
 
-- **Recurrence engine** — `expandSeries(...)` is a typed throwing stub.
-  The contract (`RecurringSeries` shape, `dstPolicy` argument) is stable,
-  but the engine wires up in Phase 4. Consumers porting from FullCalendar /
-  ICS feeds should construct concrete events in their data layer for now.
+- **Recurrence engine** — bind `RecurringSeries[]` with `builder.series(...)`
+  or load them per window with `builder.seriesLoader(...)`. RRULE/RDATE/EXDATE
+  expansion uses the lazy bundled `rrule-temporal` adapter and preserves
+  occurrence provenance for click and drop handlers.
 - **Global-event type** — Article 5's "global events" (same instant
   worldwide — product launches, livestreams) have no first-class
   `event.kind === 'global'` discriminator. Consumers model them as
@@ -226,8 +282,8 @@ the C5 invariant).
 
 In short:
 
-- **D1** — `RecurringSeries` is a first-class type from day one;
-  `expandSeries` throws informatively until Phase 4 wires the engine.
+- **D1** — `RecurringSeries` is a first-class type; `expandSeries` is
+  available from the `@cocoar/vue-calendar/recurrence` subpath.
 - **D2** — All-day drops preserve **day-count duration only**.
   Calendar UIs don't have a "+1 month" gesture; spans are always
   preserved as day-counts (May 5–10 → drag onto June 5 → June 5–10).
@@ -242,14 +298,14 @@ In short:
 ## Status
 
 Feature-complete for the initial release (Temporal-only public API,
-C1–C8 invariants, all four views, drag-and-drop, virtualization). The
+C1–C8 invariants, year/month/month-list/week/work-week/day/day-agenda/agenda/timeline
+views, drag-and-drop, responsive day columns and virtualization). The
 repo's release version is calculated by GitVersion at publish time, so
 this package's `package.json` carries a placeholder `0.0.1` like
 everything else in the workspace — the actual semver number lives in
 CI.
 
-Post-launch backlog: recurrence engine (`expandSeries` is a typed
-throwing stub today), Ctrl+C / Ctrl+V copy-paste, "+ N more" overflow
+Post-launch backlog: Ctrl+C / Ctrl+V copy-paste, "+ N more" overflow
 signal in `<CoarMonthView>`, preemptive DST-gap visual marker.
 
 ## License

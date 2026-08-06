@@ -35,15 +35,19 @@ import { CoarButton, CoarSegmentedControl } from '@cocoar/vue-ui';
 import CoarDayView from './CoarDayView.vue';
 import CoarWeekView from './CoarWeekView.vue';
 import CoarWorkWeekView from './CoarWorkWeekView.vue';
-import CoarMonthView from './CoarMonthView.vue';
+import CoarContinuousMonthView from './CoarContinuousMonthView.vue';
+import CoarMonthListView from './CoarMonthListView.vue';
 import CoarAgendaView from './CoarAgendaView.vue';
 import CoarTimelineView from './CoarTimelineView.vue';
+import CoarYearView from './CoarYearView.vue';
 import {
   Temporal,
   computeViewWindow,
   detectFirstDayOfWeekFromLocale,
   buildFormatOptions,
   type CalendarEvent,
+  type CalendarDayMode,
+  type CalendarMonthDensity,
   type CalendarView,
   type MonthCellPill,
   type MonthMultiDayBar,
@@ -133,6 +137,8 @@ const state = computed(() => {
     timezone: toValue(s.timezone),
     firstDayOfWeek: toValue(s.firstDayOfWeek),
     density: toValue(s.density),
+    monthDensity: toValue(s.monthDensity),
+    dayMode: toValue(s.dayMode),
     dateStyle: toValue(s.dateStyle),
     timeStyle: toValue(s.timeStyle),
     hour12: toValue(s.hour12),
@@ -141,6 +147,8 @@ const state = computed(() => {
     timeRangeMinutes: tr,
     slotDuration: toValue(s.slotDuration),
     pixelsPerHour: toValue(s.pixelsPerHour),
+    dayColumnCount: toValue(s.dayColumnCount),
+    dayColumnMinWidth: toValue(s.dayColumnMinWidth),
     agendaLengthDays: toValue(s.agendaLengthDays),
     timelineRangeDays: toValue(s.timelineRangeDays),
     showEmptyDays: toValue(s.showEmptyDays),
@@ -180,16 +188,21 @@ const resolvedFirstDayOfWeek = computed(
   () => state.value.firstDayOfWeek ?? detectFirstDayOfWeekFromLocale(effectiveLocale.value),
 );
 
-const window = computed<ViewWindow>(() =>
+const configuredWindow = computed<ViewWindow>(() =>
   computeViewWindow({
     view: view.value,
     cursor: cursor.value,
     firstDayOfWeek: resolvedFirstDayOfWeek.value,
     agendaLengthDays: state.value.agendaLengthDays,
     timelineRangeDays: state.value.timelineRangeDays,
+    dayColumnCount: state.value.dayColumnCount,
     timezone: state.value.timezone,
   }),
 );
+const window = computed<ViewWindow>(() => {
+  const rendered = props.builder.api.visibleRange.value;
+  return rendered?.view === view.value ? rendered : configuredWindow.value;
+});
 
 // The COMPOSER doesn't push the visible window itself — each sub-view
 // mounts its own `useViewWindow`, which writes via the symbol-keyed
@@ -219,6 +232,25 @@ const rangeLabel = computed<string>(() => {
   };
   switch (view.value) {
     case 'day': {
+      if (start.until(lastVisible, { largestUnit: 'day' }).days > 0) {
+        const fmt = new Intl.DateTimeFormat(
+          locale,
+          buildFormatOptions(
+            { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' },
+            fmtOverrides,
+          ),
+        );
+        return fmt.formatRange(toDate(start), toDate(lastVisible));
+      }
+      return new Intl.DateTimeFormat(
+        locale,
+        buildFormatOptions(
+          { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' },
+          fmtOverrides,
+        ),
+      ).format(toDate(cursor.value));
+    }
+    case 'dayAgenda': {
       return new Intl.DateTimeFormat(
         locale,
         buildFormatOptions(
@@ -241,13 +273,11 @@ const rangeLabel = computed<string>(() => {
       );
       return fmt.formatRange(toDate(start), toDate(lastVisible));
     }
-    case 'month': {
+    case 'month':
+    case 'monthList': {
       return new Intl.DateTimeFormat(
         locale,
-        buildFormatOptions(
-          { year: 'numeric', month: 'long', timeZone: 'UTC' },
-          fmtOverrides,
-        ),
+        buildFormatOptions({ year: 'numeric', month: 'long', timeZone: 'UTC' }, fmtOverrides),
       ).format(toDate(cursor.value));
     }
     case 'agenda':
@@ -264,6 +294,8 @@ const rangeLabel = computed<string>(() => {
       );
       return fmt.formatRange(toDate(start), toDate(lastVisible));
     }
+    case 'year':
+      return String(cursor.value.year);
     default:
       return '';
   }
@@ -279,17 +311,57 @@ function toDate(d: Temporal.PlainDate): Date {
 
 const viewLabels = computed<Record<CalendarView, string>>(() => ({
   day: t('coar.calendar.view.day', undefined, 'Day'),
+  dayAgenda: t('coar.calendar.view.dayAgenda', undefined, 'Day agenda'),
   week: t('coar.calendar.view.week', undefined, 'Week'),
   workWeek: t('coar.calendar.view.workWeek', undefined, 'Work week'),
   month: t('coar.calendar.view.month', undefined, 'Month'),
+  monthList: t('coar.calendar.view.monthList', undefined, 'List'),
   agenda: t('coar.calendar.view.agenda', undefined, 'Agenda'),
   timeline: t('coar.calendar.view.timeline', undefined, 'Timeline'),
   year: t('coar.calendar.view.year', undefined, 'Year'),
 }));
 
 const viewSwitcherOptions = computed(() =>
-  state.value.availableViews.map((v) => ({ value: v, label: viewLabels.value[v] })),
+  state.value.availableViews
+    .filter((candidate) => candidate !== 'monthList' && candidate !== 'dayAgenda')
+    .map((candidate) => ({ value: candidate, label: viewLabels.value[candidate] })),
 );
+
+const navigationView = computed<CalendarView>({
+  get: () =>
+    view.value === 'monthList' ? 'month' : view.value === 'dayAgenda' ? 'day' : view.value,
+  set: (next) => setView(next),
+});
+
+type CalendarMonthDisplay = CalendarMonthDensity | 'list';
+const monthModeOptions = computed<ReadonlyArray<{ value: CalendarMonthDisplay; label: string }>>(
+  () => [
+    { value: 'compact', label: t('coar.calendar.monthMode.compact', undefined, 'Compact') },
+    { value: 'stacked', label: t('coar.calendar.monthMode.stacked', undefined, 'Stacked') },
+    { value: 'details', label: t('coar.calendar.monthMode.details', undefined, 'Details') },
+    ...(state.value.availableViews.includes('monthList')
+      ? [{ value: 'list' as const, label: t('coar.calendar.monthMode.list', undefined, 'List') }]
+      : []),
+  ],
+);
+const selectedMonthMode = computed<CalendarMonthDisplay>({
+  get: () => (view.value === 'monthList' ? 'list' : state.value.monthDensity),
+  set: (mode) => {
+    if (mode === 'list') setView('monthList');
+    else {
+      props.builder.api.setMonthDensity(mode);
+      if (view.value === 'monthList') setView('month');
+    }
+  },
+});
+const dayModeOptions = computed<ReadonlyArray<{ value: CalendarDayMode; label: string }>>(() => [
+  { value: 'single', label: t('coar.calendar.dayMode.single', undefined, 'One day') },
+  { value: 'multiDay', label: t('coar.calendar.dayMode.multiDay', undefined, 'Multi-day') },
+]);
+const selectedDayMode = computed<CalendarDayMode>({
+  get: () => state.value.dayMode,
+  set: (mode) => props.builder.api.setDayMode(mode),
+});
 
 // ─── Header controls bag (passed to slots) ───────────────────────
 
@@ -323,7 +395,9 @@ const bodyEl = useTemplateRef<HTMLElement>('bodyEl');
 // trips vue-tsc because the generic constructor signature doesn't satisfy
 // `abstract new (...args: any) => any`. We only call `scrollToDate` on the
 // instance, so a structural type is enough.
-const agendaRef = useTemplateRef<{ scrollToDate?: (d: Temporal.PlainDate) => void } | null>('agendaView');
+const agendaRef = useTemplateRef<{ scrollToDate?: (d: Temporal.PlainDate) => void } | null>(
+  'agendaView',
+);
 
 /**
  * Smooth-scroll the calendar body from its current `scrollTop` to
@@ -340,7 +414,9 @@ let scrollAnimToken = 0;
 function smoothScrollBodyTo(body: HTMLElement, target: number): void {
   // Local `window` is a `ViewWindow` computed that shadows the global —
   // reach the browser one explicitly via globalThis.
-  const reduced = (globalThis as unknown as Window).matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  const reduced = (globalThis as unknown as Window).matchMedia?.(
+    '(prefers-reduced-motion: reduce)',
+  ).matches;
   if (reduced) {
     body.scrollTop = target;
     return;
@@ -371,16 +447,16 @@ onMounted(() => {
     if (view.value !== 'day' && view.value !== 'week') return;
     const body = bodyEl.value;
     if (!body) return;
-    const label = body.querySelector<HTMLElement>(`.coar-time-grid__hour-label[data-hour="${hour}"]`);
+    const label = body.querySelector<HTMLElement>(
+      `.coar-time-grid__hour-label[data-hour="${hour}"]`,
+    );
     if (!label) return;
     // Find the sticky band's bottom edge in viewport-space so the
     // chosen hour lands just below it instead of being hidden
     // behind it.
     const stickyTop = body.querySelector<HTMLElement>('.coar-time-grid__sticky-top');
     const bodyTop = body.getBoundingClientRect().top;
-    const stickyBottom = stickyTop
-      ? stickyTop.getBoundingClientRect().bottom
-      : bodyTop;
+    const stickyBottom = stickyTop ? stickyTop.getBoundingClientRect().bottom : bodyTop;
     const labelTop = label.getBoundingClientRect().top;
     smoothScrollBodyTo(body, body.scrollTop + (labelTop - stickyBottom));
   });
@@ -432,19 +508,43 @@ onBeforeUnmount(() => {
         </div>
         <span class="coar-calendar__range-label">{{ rangeLabel }}</span>
         <span class="coar-calendar__spacer" />
-        <slot
-          name="viewSwitcher"
-          :view="view"
-          :available="state.availableViews"
-          :set-view="setView"
+        <div class="coar-calendar__view-switcher">
+          <slot
+            name="viewSwitcher"
+            :view="view"
+            :available="state.availableViews"
+            :set-view="setView"
+          >
+            <CoarSegmentedControl
+              v-model="navigationView"
+              :options="viewSwitcherOptions"
+              size="s"
+              :aria-label="t('coar.calendar.viewSwitcher.label', undefined, 'Change view')"
+            />
+          </slot>
+        </div>
+        <div
+          v-if="navigationView === 'month' && monthModeOptions.length > 1"
+          class="coar-calendar__mode-switcher"
         >
           <CoarSegmentedControl
-            v-model="view"
-            :options="viewSwitcherOptions"
-            size="s"
-            :aria-label="t('coar.calendar.viewSwitcher.label', undefined, 'Change view')"
+            v-model="selectedMonthMode"
+            :options="monthModeOptions"
+            size="xs"
+            aria-label="Month display"
           />
-        </slot>
+        </div>
+        <div
+          v-else-if="navigationView === 'day' && dayModeOptions.length > 1"
+          class="coar-calendar__mode-switcher"
+        >
+          <CoarSegmentedControl
+            v-model="selectedDayMode"
+            :options="dayModeOptions"
+            size="xs"
+            aria-label="Day display"
+          />
+        </div>
         <slot name="headerEnd" :controls="headerControls" />
       </header>
     </slot>
@@ -458,11 +558,7 @@ onBeforeUnmount(() => {
       internally), so the body must NOT scroll there or we'd get a
       double scrollbar / collapsed agenda.
     -->
-    <div
-      ref="bodyEl"
-      class="coar-calendar__body"
-      :class="`coar-calendar__body--${view}`"
-    >
+    <div ref="bodyEl" class="coar-calendar__body" :class="`coar-calendar__body--${view}`">
       <CoarDayView v-if="view === 'day'" :builder="props.builder">
         <template v-if="$slots.event" #event="slotProps">
           <slot name="event" v-bind="slotProps" :view="view" />
@@ -471,6 +567,17 @@ onBeforeUnmount(() => {
           <slot name="dayHeader" v-bind="slotProps" />
         </template>
       </CoarDayView>
+
+      <CoarAgendaView
+        v-else-if="view === 'dayAgenda'"
+        ref="agendaView"
+        :builder="props.builder"
+        view="dayAgenda"
+      >
+        <template v-if="$slots.event" #event="slotProps">
+          <slot name="event" v-bind="slotProps" :view="view" />
+        </template>
+      </CoarAgendaView>
 
       <CoarWeekView v-else-if="view === 'week'" :builder="props.builder">
         <template v-if="$slots.event" #event="slotProps">
@@ -496,16 +603,9 @@ onBeforeUnmount(() => {
         </template>
       </CoarWorkWeekView>
 
-      <CoarMonthView
-        v-else-if="view === 'month'"
-        :builder="props.builder"
-      >
+      <CoarContinuousMonthView v-else-if="view === 'month'" :builder="props.builder">
         <template v-if="$slots.pill || $slots.event" #pill="slotProps">
-          <slot
-            v-if="$slots.pill"
-            name="pill"
-            v-bind="slotProps"
-          />
+          <slot v-if="$slots.pill" name="pill" v-bind="slotProps" />
           <slot
             v-else
             name="event"
@@ -515,26 +615,18 @@ onBeforeUnmount(() => {
           />
         </template>
         <template v-if="$slots.multiDayBar || $slots.event" #multiDayBar="slotProps">
-          <slot
-            v-if="$slots.multiDayBar"
-            name="multiDayBar"
-            v-bind="slotProps"
-          />
-          <slot
-            v-else
-            name="event"
-            :event="slotProps.event"
-            :view="view"
-            :layout="slotProps.bar"
-          />
+          <slot v-if="$slots.multiDayBar" name="multiDayBar" v-bind="slotProps" />
+          <slot v-else name="event" :event="slotProps.event" :view="view" :layout="slotProps.bar" />
         </template>
-      </CoarMonthView>
+      </CoarContinuousMonthView>
 
-      <CoarAgendaView
-        v-else-if="view === 'agenda'"
-        ref="agendaView"
-        :builder="props.builder"
-      >
+      <CoarMonthListView v-else-if="view === 'monthList'" :builder="props.builder">
+        <template v-if="$slots.event" #event="slotProps">
+          <slot name="event" v-bind="slotProps" :view="view" />
+        </template>
+      </CoarMonthListView>
+
+      <CoarAgendaView v-else-if="view === 'agenda'" ref="agendaView" :builder="props.builder">
         <template v-if="$slots.event" #event="slotProps">
           <slot name="event" v-bind="slotProps" :view="view" />
         </template>
@@ -547,13 +639,11 @@ onBeforeUnmount(() => {
                universal slot. Consumers wanting timeline-row geometry
                use the dedicated `#bar` slot on `<CoarTimelineView>`
                directly. -->
-          <slot
-            name="event"
-            :event="slotProps.event"
-            :view="view"
-          />
+          <slot name="event" :event="slotProps.event" :view="view" />
         </template>
       </CoarTimelineView>
+
+      <CoarYearView v-else-if="view === 'year'" :builder="props.builder" />
     </div>
   </div>
 </template>
@@ -563,6 +653,8 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-width: 0;
+  container-type: inline-size;
   background: var(--coar-background-neutral-primary);
   font-family: var(--coar-body-base-family);
   color: var(--coar-text-neutral-primary);
@@ -570,6 +662,7 @@ onBeforeUnmount(() => {
 
 .coar-calendar__header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--coar-spacing-m);
   padding: var(--coar-spacing-s) var(--coar-spacing-m);
@@ -598,26 +691,88 @@ onBeforeUnmount(() => {
   flex: 1 1 auto;
 }
 
+.coar-calendar__view-switcher {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+.coar-calendar__view-switcher :deep(.coar-segmented-control) {
+  display: flex;
+  width: max-content;
+}
+
+.coar-calendar__mode-switcher {
+  flex: 0 0 auto;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+@media (max-width: 48rem) {
+  .coar-calendar__spacer {
+    display: none;
+  }
+
+  .coar-calendar__view-switcher {
+    flex-basis: 100%;
+  }
+}
+
+/* Consumers often place the calendar beside a persistent sidebar. React to the calendar's actual
+   width rather than the viewport so every view remains reachable without a clipped horizontal pill. */
+@container (max-width: 42rem) {
+  .coar-calendar__spacer {
+    display: none;
+  }
+
+  .coar-calendar__view-switcher {
+    flex: 1 0 100%;
+    overflow: visible;
+  }
+
+  .coar-calendar__view-switcher :deep(.coar-segmented-control) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--coar-spacing-xs);
+    width: 100%;
+    border: 0;
+    overflow: visible;
+    background: transparent;
+  }
+
+  .coar-calendar__view-switcher :deep(.coar-segmented-control__segment) {
+    flex: 1 0 auto;
+    border: 1px solid var(--coar-border-neutral-tertiary);
+    border-radius: var(--coar-button-radius);
+  }
+}
+
 .coar-calendar__body {
   flex: 1 1 auto;
   min-height: 0; /* allow children's overflow:auto to work */
 }
 .coar-calendar__body--day,
-.coar-calendar__body--week {
+.coar-calendar__body--week,
+.coar-calendar__body--workWeek {
   /* Time-grid views scroll vertically through the hour range. */
   overflow-y: auto;
   overflow-x: hidden;
 }
 .coar-calendar__body--month {
-  /* Month was a fixed 6×7 grid before Phase 2.3e — now any row
-     can grow when the user expands a day's pill list. Allow
-     vertical scroll so expanded rows that push the grid past the
-     calendar height stay reachable. */
-  overflow-y: auto;
-  overflow-x: hidden;
+  /* The continuous month surface owns its scrolling so it can preserve
+     semantic month anchors while rows reflow between densities. */
+  overflow: hidden;
 }
 .coar-calendar__body--agenda {
   /* Agenda is internally virtualized; let it own the scroll. */
+  overflow: hidden;
+}
+.coar-calendar__body--monthList,
+.coar-calendar__body--year {
   overflow: hidden;
 }
 </style>

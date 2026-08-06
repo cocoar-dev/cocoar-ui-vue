@@ -27,6 +27,8 @@ interface Props {
   isToday?: boolean;
   isOtherMonth?: boolean;
   isWeekend?: boolean;
+  /** Blank leading/trailing cell in a continuous month section. */
+  placeholder?: boolean;
   /**
    * Top inset for the pills container. Lets the pills sit below
    * the row's multi-day-bar area instead of overlapping it. The
@@ -56,6 +58,7 @@ const props = withDefaults(defineProps<Props>(), {
   isToday: false,
   isOtherMonth: false,
   isWeekend: false,
+  placeholder: false,
   menuOpenForThisCell: false,
   density: 'comfortable',
 });
@@ -77,14 +80,14 @@ defineSlots<{
   default(): unknown;
 }>();
 
-const ariaExpanded = computed(() =>
-  props.menuOpenForThisCell ? 'true' : 'false',
-);
+const ariaExpanded = computed(() => (props.menuOpenForThisCell ? 'true' : 'false'));
 
 function onPointerdown(e: PointerEvent) {
+  if (props.placeholder) return;
   emit('cellPointerdown', e, props.day);
 }
 function onContextmenu(e: MouseEvent) {
+  if (props.placeholder) return;
   emit('cellContextmenu', e, props.day);
 }
 function onKebabClick(e: MouseEvent) {
@@ -99,18 +102,21 @@ function onKebabClick(e: MouseEvent) {
       'coar-month-cell--today': isToday,
       'coar-month-cell--other-month': isOtherMonth,
       'coar-month-cell--weekend': isWeekend,
+      'coar-month-cell--placeholder': placeholder,
       'coar-month-cell--density-compact': density === 'compact',
     }"
     :data-day-key="dayKey"
+    :data-placeholder="placeholder ? 'true' : undefined"
     role="gridcell"
     :aria-rowindex="ariaRowIndex"
     :aria-colindex="ariaColIndex"
     :aria-label="ariaLabel"
     :aria-current="isToday ? 'date' : undefined"
+    :aria-hidden="placeholder ? 'true' : undefined"
     @pointerdown="onPointerdown"
     @contextmenu="onContextmenu"
   >
-    <div class="coar-month-cell__day-number-row">
+    <div v-if="!placeholder" class="coar-month-cell__day-number-row">
       <span class="coar-month-cell__day-number">{{ day.day }}</span>
       <!-- Kebab trigger for per-cell actions. Hover-reveal on
            desktop (CSS), always visible on touch where there's
@@ -139,6 +145,7 @@ function onKebabClick(e: MouseEvent) {
          "+N more" truncation, every event stays in the DOM
          (so keyboard focus + DnD reach all of them). -->
     <div
+      v-if="!placeholder"
       class="coar-month-cell__pills"
       :style="{ marginTop: pillsMarginTopPx + 'px' }"
     >
@@ -166,13 +173,19 @@ function onKebabClick(e: MouseEvent) {
   background: var(--coar-calendar-bg, #fff);
   contain: layout paint;
 }
-.coar-month-cell:first-child { border-left: none; }
+.coar-month-cell:first-child {
+  border-left: none;
+}
 .coar-month-cell--weekend {
   background: var(--coar-calendar-bg-weekend, #f6f7f9);
 }
 .coar-month-cell--other-month {
   background: var(--coar-calendar-bg-other-month, #fafafb);
   color: var(--coar-text-subtle, #9ca3af);
+}
+.coar-month-cell--placeholder {
+  background: var(--coar-calendar-bg, #fff);
+  cursor: default;
 }
 .coar-month-cell--today {
   background: var(--coar-calendar-bg-today, rgba(37, 99, 235, 0.04));
@@ -255,7 +268,7 @@ function onKebabClick(e: MouseEvent) {
 }
 .coar-month-cell__menu-trigger:hover,
 .coar-month-cell__menu-trigger:focus-visible,
-.coar-month-cell__menu-trigger[aria-expanded="true"] {
+.coar-month-cell__menu-trigger[aria-expanded='true'] {
   background: var(--coar-background-neutral-tertiary, #f3f4f6);
   color: var(--coar-text-base, #1a1c1f);
 }
@@ -265,7 +278,7 @@ function onKebabClick(e: MouseEvent) {
   }
   .coar-month-cell:hover .coar-month-cell__menu-trigger,
   .coar-month-cell__menu-trigger:focus-visible,
-  .coar-month-cell__menu-trigger[aria-expanded="true"] {
+  .coar-month-cell__menu-trigger[aria-expanded='true'] {
     opacity: 1;
   }
 }

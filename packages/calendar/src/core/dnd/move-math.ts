@@ -216,9 +216,7 @@ export function detectDstSituation(
  * / month / agenda) — produced by `buildDropPayload` exactly once per
  * commit.
  */
-export interface EventDropPayload<
-  TMeta extends Record<string, unknown> = Record<string, unknown>,
-> {
+export interface EventDropPayload<TMeta extends Record<string, unknown> = Record<string, unknown>> {
   event: CalendarEvent<TMeta>;
   /** Snapshot at drag-start. `displayZone` is the zone the user
    *  STARTED viewing in (a mid-drag `.timezone()` swap is allowed). */
@@ -254,9 +252,7 @@ export interface EventDropPayload<
  * wall-time falls in a DST gap. The caller (composable) catches it
  * and translates to "drop suppressed".
  */
-export function buildDropPayload<
-  TMeta extends Record<string, unknown> = Record<string, unknown>,
->(
+export function buildDropPayload<TMeta extends Record<string, unknown> = Record<string, unknown>>(
   dstPolicy: DstPolicy,
   event: CalendarEvent<TMeta>,
   originalSnapshot: {
@@ -334,9 +330,7 @@ export function applyMoveToEvent(
   if (!isTimedEvent(event)) {
     // Mixed-shape events should have been rejected by validation,
     // but be defensive.
-    throw new TypeError(
-      `[applyMoveToEvent] event ${event.id} has unrecognised start shape`,
-    );
+    throw new TypeError(`[applyMoveToEvent] event ${event.id} has unrecognised start shape`);
   }
 
   // Article-4: each endpoint preserves its own source zone. For move
@@ -351,6 +345,18 @@ export function applyMoveToEvent(
   const oldEndZdt = event.end ?? null;
 
   const targetDate = Temporal.PlainDate.from(target.date);
+  // A month cell has no minute coordinate. Moving a timed event there means
+  // "same local appointment, different calendar day" — preserve each endpoint's
+  // source-zone wall time and shift both by the display-date delta.
+  if (target.minutes === null && mode === 'month') {
+    const originalDisplayDate = oldStartZdt.withTimeZone(target.displayZone).toPlainDate();
+    const deltaDays = originalDisplayDate.until(targetDate, { largestUnit: 'days' }).days;
+    return {
+      start: oldStartZdt.add({ days: deltaDays }),
+      ...(oldEndZdt ? { end: oldEndZdt.add({ days: deltaDays }) } : {}),
+      disambiguation: null,
+    };
+  }
   // Audit Session 3 #5 fix — reject timed→all-day-band drops.
   // Calendar UIs don't have a sensible "convert this timed event to
   // all-day" gesture in mid-drag; previously we silently re-anchored
@@ -358,7 +364,10 @@ export function applyMoveToEvent(
   // error the lifecycle composable translates to "drop suppressed."
   // Same UX outcome as canDrop=false / DstResolutionError, but the
   // root cause is named explicitly in the message.
-  if (target.minutes === null && (mode === 'timed' || mode === 'timed-resize-start' || mode === 'timed-resize-end')) {
+  if (
+    target.minutes === null &&
+    (mode === 'timed' || mode === 'timed-resize-start' || mode === 'timed-resize-end')
+  ) {
     throw new TypeError(
       `[applyMoveToEvent] timed event ${event.id} cannot be dropped onto an all-day target (target.minutes === null). To convert a timed event to all-day, change the event's start to a Temporal.PlainDate explicitly in your event-source — the drop API does not auto-convert.`,
     );
@@ -439,9 +448,7 @@ export function applyMoveToEvent(
   if (mode === 'timed-resize-end') {
     // Move end; clamp to preserve a minimum duration after start.
     // end re-anchored in endSourceZone (preserves cross-zone shape).
-    const capEnd = oldStartZdt
-      .add({ minutes: MIN_RESIZE_MINUTES })
-      .withTimeZone(endSourceZone);
+    const capEnd = oldStartZdt.add({ minutes: MIN_RESIZE_MINUTES }).withTimeZone(endSourceZone);
     let newEnd = targetInEndZone;
     if (Temporal.Instant.compare(newEnd.toInstant(), capEnd.toInstant()) < 0) {
       newEnd = capEnd;
@@ -472,9 +479,7 @@ export function applyMoveToEvent(
       );
     }
     const movedDisamb: 'compatible' | 'earlier' | 'later' =
-      dstPolicy === 'reject'
-        ? 'compatible'
-        : (dstPolicy as 'compatible' | 'earlier' | 'later');
+      dstPolicy === 'reject' ? 'compatible' : (dstPolicy as 'compatible' | 'earlier' | 'later');
     const movedPdt = Temporal.PlainDateTime.from({
       year: targetDate.year,
       month: targetDate.month,
@@ -519,9 +524,7 @@ export function applyMoveToEvent(
       );
     }
     const movedDisamb: 'compatible' | 'earlier' | 'later' =
-      dstPolicy === 'reject'
-        ? 'compatible'
-        : (dstPolicy as 'compatible' | 'earlier' | 'later');
+      dstPolicy === 'reject' ? 'compatible' : (dstPolicy as 'compatible' | 'earlier' | 'later');
     const movedPdt = Temporal.PlainDateTime.from({
       year: targetDate.year,
       month: targetDate.month,
@@ -533,9 +536,7 @@ export function applyMoveToEvent(
     let newEnd = movedPdt
       .toZonedDateTime(target.displayZone, { disambiguation: movedDisamb })
       .withTimeZone(anchorZone);
-    const capEnd = oldStartZdt
-      .add({ minutes: MIN_RESIZE_MINUTES })
-      .withTimeZone(anchorZone);
+    const capEnd = oldStartZdt.add({ minutes: MIN_RESIZE_MINUTES }).withTimeZone(anchorZone);
     if (Temporal.Instant.compare(newEnd.toInstant(), capEnd.toInstant()) < 0) {
       newEnd = capEnd;
     }
@@ -568,8 +569,7 @@ export function applyMoveToEvent(
   // typically scheduling-rule UIs, not direct manipulation), use
   // resize-start / resize-end on each endpoint independently.
   if (oldEndZdt) {
-    const durationMs =
-      oldEndZdt.epochMilliseconds - oldStartZdt.epochMilliseconds;
+    const durationMs = oldEndZdt.epochMilliseconds - oldStartZdt.epochMilliseconds;
     const newEndInStart = targetInStartZone.add({ milliseconds: durationMs });
     const newEnd = newEndInStart.withTimeZone(endSourceZone);
     return { start: targetInStartZone, end: newEnd, disambiguation: disamb };

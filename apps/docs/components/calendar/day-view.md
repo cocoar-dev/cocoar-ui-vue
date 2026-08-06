@@ -1,10 +1,10 @@
 ---
-description: "CoarDayView — single-day time-grid calendar view with hour axis, all-day band, configurable time range and slot duration, usable standalone via useDayView"
+description: "CoarDayView — one-day or width-aware multi-day time grid with hour axis, all-day band, configurable columns, time range and slot duration"
 ---
 
 # `<CoarDayView>` — Day View <Badge type="warning" text="Preview" />
 
-Single-day time-grid surface — one hour-axis on the left, one day column on the right. Multi-day all-day events that touch the visible day appear in the all-day band that pins under the day header. Use it standalone via [`useDayView()`](#usedayview) when you need just the day view without the [`<CoarCalendar>`](/components/calendar/coar-calendar) shell.
+Time-grid surface with two display choices: **One day** renders one fixed column, while **Multi-day** derives 1–7 complete columns from the available container width. Multi-day all-day events that touch the visible range appear in the all-day band pinned under the day headers. Use it standalone via [`useDayView()`](#usedayview) when you need the surface without the [`<CoarCalendar>`](/components/calendar/coar-calendar) shell.
 
 ```html
 <CoarDayView :builder="builder" />
@@ -45,6 +45,21 @@ builder
 ```
 
 The Day view shares its builder type, `CalendarBuilder`, with the [Week view](/components/calendar/week-view) — they differ only in the days array the wrapper computes (Day uses `[date]`, Week uses `weekDates(date, fdow)`).
+
+## One day and Multi-day
+
+The shell presents both as variations under Day. Multi-day never squeezes partial columns into the available width: it calculates the number of full columns from `dayColumnMinWidth`, clamps the result to `1…7`, and honours `dayColumnCount` as its minimum.
+
+```ts
+builder
+  .dayMode('multiDay')
+  .dayColumnCount(1)
+  .dayColumnMinWidth(220);
+
+api.setDayMode('single');
+```
+
+For fixed seven-day and configured-workday grids, use [Week](/components/calendar/week-view) and [Work Week](/components/calendar/work-week-view). They share the same time-grid renderer.
 
 <preview path="./demos/DayViewBasic.vue" />
 
@@ -89,6 +104,9 @@ Full reference: see [the composer's API reference](/components/calendar/coar-cal
 | Setter | Argument | Default | Notes |
 |---|---|---|---|
 | `timeRange(r)` | `MaybeRefOrGetter<{ startMinutes, endMinutes }>` | `{0, 1440}` | Visible hour range, in minutes from midnight. Events outside are still rendered into the all-day band when applicable. |
+| `dayMode(m)` | `'single' \| 'multiDay'` | `'single'` | Fixed one-day column or width-aware multi-day range. |
+| `dayColumnCount(n)` | `MaybeRefOrGetter<number>` | `1` | Minimum number of complete columns in Multi-day mode. |
+| `dayColumnMinWidth(px)` | `MaybeRefOrGetter<number>` | `220` | Target width used to derive additional columns, capped at seven. |
 | `slotDuration(d)` | `MaybeRefOrGetter<number>` | `30` | Slot subdivision (minutes). Also the snap step when dragging. |
 | `pixelsPerHour(p)` | `MaybeRefOrGetter<number>` | `60` | Vertical density. `60` = 30 px per 30-min slot. |
 | `eventRenderer(r)` | `EventRenderer<TMeta>` | — | Universal renderer. Branch on `ctx.layout?.kind === 'positioned'` (timed cards) vs `'allDayBar'` (all-day band). |

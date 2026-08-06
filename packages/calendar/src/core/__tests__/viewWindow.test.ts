@@ -11,11 +11,7 @@
 
 import { describe, it, expect } from 'vitest';
 import * as fc from 'fast-check';
-import {
-  Temporal,
-  type DayOfWeek,
-  temporalDowToCalendarDow,
-} from '../temporal';
+import { Temporal, type DayOfWeek, temporalDowToCalendarDow } from '../temporal';
 import {
   computeViewWindow,
   daysInWindow,
@@ -60,11 +56,23 @@ describe('computeViewWindow — month', () => {
     expect(w.start).toBe('2026-03-30');
     // 42 days from Mar 30 (Mon) → Apr 30 + leading + trailing = May 10 (Sun).
     // start + 42 days → next day after window end.
-    const span = Temporal.PlainDate.from(w.end).since(
-      Temporal.PlainDate.from(w.start),
-      { largestUnit: 'days' },
-    ).days;
+    const span = Temporal.PlainDate.from(w.end).since(Temporal.PlainDate.from(w.start), {
+      largestUnit: 'days',
+    }).days;
     expect(span).toBe(42);
+  });
+
+  it('can preload adjacent months for a continuous surface', () => {
+    const cursor = Temporal.PlainDate.from('2026-06-15');
+    const w = computeViewWindow({
+      view: 'month',
+      cursor,
+      firstDayOfWeek: 1,
+      timezone: 'UTC',
+      monthBuffer: 1,
+    });
+    expect(w.start).toBe('2026-04-27');
+    expect(w.end).toBe('2026-08-10');
   });
 });
 
@@ -85,7 +93,7 @@ describe('computeViewWindow — agenda', () => {
       view: 'agenda',
       cursor,
       firstDayOfWeek: 1,
-        timezone: 'UTC',
+      timezone: 'UTC',
       agendaLengthDays: 7,
     });
     expect(w.end).toBe('2026-04-22');
@@ -94,15 +102,18 @@ describe('computeViewWindow — agenda', () => {
 
 // ─── Property tests ─────────────────────────────────────────────────
 
-const dateArb = fc.integer({ min: 0, max: 365 * 30 }).map((n) =>
-  Temporal.PlainDate.from('2010-01-01').add({ days: n }),
-);
+const dateArb = fc
+  .integer({ min: 0, max: 365 * 30 })
+  .map((n) => Temporal.PlainDate.from('2010-01-01').add({ days: n }));
 const fdowArb = fc.integer({ min: 0, max: 6 });
 const viewArb: fc.Arbitrary<CalendarView> = fc.constantFrom(
   'day',
   'week',
+  'dayAgenda',
   'month',
+  'monthList',
   'agenda',
+  'year',
 );
 
 describe('computeViewWindow — properties', () => {
@@ -218,7 +229,7 @@ describe('computeViewWindow — properties', () => {
     );
   });
 
-  it('month-view contains every day of the cursor\'s calendar month', () => {
+  it("month-view contains every day of the cursor's calendar month", () => {
     fc.assert(
       fc.property(dateArb, fdowArb, (cursor, fdow) => {
         const w = computeViewWindow({
@@ -248,7 +259,7 @@ describe('daysInWindow', () => {
       view: 'day',
       cursor: Temporal.PlainDate.from('2026-04-15'),
       firstDayOfWeek: 1,
-        timezone: 'UTC',
+      timezone: 'UTC',
     });
     const days = [...daysInWindow(w)];
     expect(days.map((d) => d.toString())).toEqual(['2026-04-15']);
@@ -275,7 +286,7 @@ describe('windowContainsDate — boundary cases', () => {
       view: 'week',
       cursor: Temporal.PlainDate.from('2026-04-15'),
       firstDayOfWeek: 1,
-        timezone: 'UTC',
+      timezone: 'UTC',
     });
     expect(windowContainsDate(w, Temporal.PlainDate.from(w.start))).toBe(true);
     expect(windowContainsDate(w, Temporal.PlainDate.from(w.end))).toBe(false);
@@ -288,10 +299,41 @@ describe('windowContainsDate — boundary cases', () => {
 // ─── navigateCursor ─────────────────────────────────────────────────
 
 describe('navigateCursor', () => {
+  it('widens a multi-day day window but pages one day at a time', () => {
+    const c = Temporal.PlainDate.from('2026-04-15');
+    const window = computeViewWindow({
+      view: 'day',
+      cursor: c,
+      firstDayOfWeek: 1,
+      dayColumnCount: 2,
+      timezone: 'Europe/Vienna',
+    });
+    expect(window.start).toBe('2026-04-15');
+    expect(window.end).toBe('2026-04-17');
+    expect(navigateCursor('day', c, 'next').toString()).toBe('2026-04-16');
+  });
+
   it('day: ±1 day', () => {
     const c = Temporal.PlainDate.from('2026-04-15');
     expect(navigateCursor('day', c, 'next').toString()).toBe('2026-04-16');
     expect(navigateCursor('day', c, 'prev').toString()).toBe('2026-04-14');
+    expect(navigateCursor('day', c, 'next', 30, 60, 3).toString()).toBe('2026-04-18');
+  });
+
+  it('dayAgenda loads and pages its week; monthList is month-aligned; year spans a year', () => {
+    const cursor = Temporal.PlainDate.from('2026-08-17');
+    expect(
+      computeViewWindow({ view: 'dayAgenda', cursor, firstDayOfWeek: 1, timezone: 'UTC' }),
+    ).toMatchObject({ start: '2026-08-17', end: '2026-08-24' });
+    expect(
+      computeViewWindow({ view: 'monthList', cursor, firstDayOfWeek: 1, timezone: 'UTC' }),
+    ).toMatchObject({ start: '2026-07-27', end: '2026-09-07' });
+    expect(
+      computeViewWindow({ view: 'year', cursor, firstDayOfWeek: 1, timezone: 'UTC' }),
+    ).toMatchObject({ start: '2026-01-01', end: '2027-01-01' });
+    expect(navigateCursor('dayAgenda', cursor, 'next').toString()).toBe('2026-08-24');
+    expect(navigateCursor('monthList', cursor, 'next').toString()).toBe('2026-09-17');
+    expect(navigateCursor('year', cursor, 'next').toString()).toBe('2027-08-17');
   });
   it('week: ±7 days', () => {
     const c = Temporal.PlainDate.from('2026-04-15');
@@ -322,9 +364,10 @@ describe('navigateCursor', () => {
         const next = navigateCursor(view, cursor, 'next');
         const back = navigateCursor(view, next, 'prev');
         // For most views and cursors this round-trips exactly.
-        // The exception is end-of-month clamping in month view:
-        // Jan 31 → Feb 28 → Jan 28 (loses 3 days).
-        if (view === 'month' && cursor.day > 28) return;
+        // Month-family views clamp end-of-month dates; year navigation likewise
+        // clamps leap day. Those calendar operations are intentionally not invertible.
+        if (['month', 'monthList'].includes(view) && cursor.day > 28) return;
+        if (view === 'year' && cursor.month === 2 && cursor.day === 29) return;
         expect(back.toString()).toBe(cursor.toString());
       }),
       { numRuns: 100 },

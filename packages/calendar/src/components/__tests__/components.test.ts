@@ -14,6 +14,7 @@ import CoarCalendar from '../CoarCalendar.vue';
 import CoarDayView from '../CoarDayView.vue';
 import CoarWeekView from '../CoarWeekView.vue';
 import CoarMonthView from '../CoarMonthView.vue';
+import CoarMonthListView from '../CoarMonthListView.vue';
 import CoarAgendaView from '../CoarAgendaView.vue';
 import type { CalendarEvent } from '../../core';
 import { zdt, pd } from '../../__test-utils__/event-fixtures';
@@ -65,6 +66,7 @@ describe('CoarCalendar shell', () => {
   it('switches sub-view when state.view changes', async () => {
     const b = newBuilder().view('month');
     const w = mount(CoarCalendar, { props: { builder: b } });
+    expect(w.find('.coar-continuous-month-view').exists()).toBe(true);
     expect(w.find('.coar-month-view').exists()).toBe(true);
     b.api.setView('day');
     await w.vm.$nextTick();
@@ -73,10 +75,7 @@ describe('CoarCalendar shell', () => {
   });
 
   it('header label routes through buildFormatOptions (C6)', () => {
-    const b = newBuilder()
-      .view('day')
-      .locale('de-AT')
-      .dateStyle('long');
+    const b = newBuilder().view('day').locale('de-AT').dateStyle('long');
     const w = mount(CoarCalendar, { props: { builder: b } });
     // Header label class was renamed `__label` → `__range-label`
     // when the range-spanning week-view header landed.
@@ -101,14 +100,48 @@ describe('CoarCalendar shell', () => {
     expect(b.state.view.value).toBe('month');
   });
 
+  it('keeps Month variations out of the primary switcher and switches them contextually', async () => {
+    const b = newBuilder(sampleEvents()).view('month');
+    const w = mount(CoarCalendar, { props: { builder: b } });
+    const primaryLabels = w
+      .findAll('.coar-calendar__view-switcher .coar-segmented-control__segment')
+      .map((button) => button.text());
+    expect(primaryLabels).toContain('Month');
+    expect(primaryLabels).not.toContain('List');
+
+    const listButton = w
+      .findAll('.coar-calendar__mode-switcher .coar-segmented-control__segment')
+      .find((button) => button.text() === 'List');
+    expect(listButton).toBeDefined();
+    await listButton!.trigger('click');
+    expect(b.state.view.value).toBe('monthList');
+    expect(w.find('.coar-month-list-view').exists()).toBe(true);
+
+    const compactButton = w
+      .findAll('.coar-calendar__mode-switcher .coar-segmented-control__segment')
+      .find((button) => button.text() === 'Compact');
+    await compactButton!.trigger('click');
+    expect(b.state.view.value).toBe('month');
+    expect(b.state.monthDensity).toBe('compact');
+  });
+
+  it('offers One day and Multi-day as contextual Day modes', async () => {
+    const b = newBuilder().view('day');
+    const w = mount(CoarCalendar, { props: { builder: b } });
+    const multiDayButton = w
+      .findAll('.coar-calendar__mode-switcher .coar-segmented-control__segment')
+      .find((button) => button.text() === 'Multi-day');
+    expect(multiDayButton).toBeDefined();
+    await multiDayButton!.trigger('click');
+    expect(b.state.dayMode).toBe('multiDay');
+  });
+
   it('mounts useViewWindow exactly once (no second-mount warn)', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const b = newBuilder().view('week');
     mount(CoarCalendar, { props: { builder: b } });
     // Shell mounted useViewWindow once; sub-views must NOT mount another.
-    expect(warnSpy).not.toHaveBeenCalledWith(
-      expect.stringMatching(/single writer|second/i),
-    );
+    expect(warnSpy).not.toHaveBeenCalledWith(expect.stringMatching(/single writer|second/i));
     warnSpy.mockRestore();
   });
 });
@@ -123,6 +156,20 @@ describe('CoarDayView', () => {
     // Standup falls on June 15 → renders.
     const eventCards = w.findAll('.coar-time-grid-event');
     expect(eventCards.length).toBeGreaterThan(0);
+  });
+
+  it('keeps assignees in the default timed-event renderer', () => {
+    const events = sampleEvents();
+    events[0] = {
+      ...events[0],
+      meta: {
+        ...events[0].meta,
+        assignees: [{ id: 'anna', displayName: 'Anna Berger', color: '#7c3aed' }],
+      },
+    };
+    const w = mount(CoarDayView, { props: { builder: newBuilder(events).view('day') } });
+    expect(w.find('.coar-event-assignees').attributes('aria-label')).toBe('Anna Berger');
+    expect(w.find('.coar-event-assignees__avatar').text()).toBe('AB');
   });
 });
 
@@ -166,6 +213,48 @@ describe('CoarMonthView', () => {
     const bars = w.findAll('.coar-month-bar');
     expect(bars.length).toBeGreaterThan(0);
   });
+
+  it('keeps assignees in the default month renderer', () => {
+    const events = sampleEvents();
+    events[0] = {
+      ...events[0],
+      meta: {
+        ...events[0].meta,
+        assignees: [{ id: 'anna', displayName: 'Anna Berger', color: '#7c3aed' }],
+      },
+    };
+    const w = mount(CoarMonthView, { props: { builder: newBuilder(events).view('month') } });
+    expect(w.find('.coar-event-assignees').attributes('aria-label')).toBe('Anna Berger');
+  });
+
+  it('surfaces the selected Compact, Stacked or Details mode as a render class', () => {
+    const b = newBuilder().view('month').monthDensity('stacked');
+    const w = mount(CoarMonthView, { props: { builder: b } });
+    expect(w.classes()).toContain('coar-month-view--mode-stacked');
+  });
+});
+
+// ─── CoarMonthListView ─────────────────────────────────────────
+
+describe('CoarMonthListView', () => {
+  it('renders a compact 42-day selector and the selected day list', async () => {
+    const b = newBuilder(sampleEvents()).view('monthList');
+    const w = mount(CoarMonthListView, { props: { builder: b } });
+    expect(w.findAll('.coar-month-list-view__day')).toHaveLength(42);
+    expect(w.find('.coar-month-list-view__events').text()).toContain('Daily Standup');
+
+    const june16 = w
+      .findAll('.coar-month-list-view__day')
+      .find(
+        (button) =>
+          button.text().startsWith('16') &&
+          !button.classes().includes('coar-month-list-view__day--other'),
+      );
+    expect(june16).toBeDefined();
+    await june16!.trigger('click');
+    expect(b.state.date.value.toString()).toBe('2026-06-16');
+    expect(w.find('.coar-month-list-view__events').text()).toContain('Lunch');
+  });
 });
 
 // ─── CoarAgendaView ────────────────────────────────────────────
@@ -178,11 +267,18 @@ describe('CoarAgendaView', () => {
     expect(w.findAll('.coar-agenda-event').length).toBeGreaterThan(0);
   });
 
+  it('renders a seven-day selector for day agenda and updates the selected day', async () => {
+    const b = newBuilder(sampleEvents()).view('dayAgenda');
+    const w = mount(CoarAgendaView, { props: { builder: b, view: 'dayAgenda' } });
+    const days = w.findAll('.coar-agenda-view__week-day');
+    expect(days).toHaveLength(7);
+    expect(days[0].attributes('aria-selected')).toBe('true');
+    await days[1].trigger('click');
+    expect(b.state.date.value.toString()).toBe('2026-06-16');
+  });
+
   it('event time labels route through buildFormatOptions (C6)', () => {
-    const b = newBuilder(sampleEvents())
-      .view('agenda')
-      .timeStyle('short')
-      .hour12(false);
+    const b = newBuilder(sampleEvents()).view('agenda').timeStyle('short').hour12(false);
     const w = mount(CoarAgendaView, { props: { builder: b } });
     const eventTexts = w.findAll('.coar-agenda-event').map((e) => e.text());
     // Standup is 09:00; in 24h format with timeStyle='short', should
@@ -211,8 +307,15 @@ describe('Drop pipeline integration', () => {
     const surface = w.find('.coar-time-grid__columns').element as HTMLElement;
     surface.getBoundingClientRect = () =>
       ({
-        left: 0, top: 0, width: 200, height: 1440,
-        right: 200, bottom: 1440, x: 0, y: 0, toJSON: () => ({}),
+        left: 0,
+        top: 0,
+        width: 200,
+        height: 1440,
+        right: 200,
+        bottom: 1440,
+        x: 0,
+        y: 0,
+        toJSON: () => ({}),
       }) as DOMRect;
     // Pointerdown initialises the drag on the CARD (with
     // setPointerCapture). Move + up are listened to on `window`
