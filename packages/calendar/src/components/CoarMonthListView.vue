@@ -231,7 +231,7 @@ function formatTime(event: CalendarEvent<TMeta>): string {
   justify-content: center;
   gap: 2px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--coar-button-radius, var(--coar-radius-xs, 2px));
   background: transparent;
   color: var(--coar-text-neutral-primary);
   font: inherit;
