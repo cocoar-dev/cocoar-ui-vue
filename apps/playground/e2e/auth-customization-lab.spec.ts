@@ -171,11 +171,34 @@ test.describe('Auth Customization Lab', () => {
     });
     await expect(stillPinnedV1).toBeVisible();
     await stillPinnedV1.click();
-    await builder.getByRole('button', { name: 'Update to latest', exact: true }).click();
+    await builder.getByTestId('composition-properties')
+      .getByRole('button', { name: 'Update to latest', exact: true }).click();
     await expect(builder.getByRole('treeitem', {
       name: 'Visual markup shoppingListVisual amzettel-brand-panel@2',
       exact: true,
     })).toBeVisible();
+  });
+
+  test('places a repository composition from the element palette and opens its definition', async ({ page }) => {
+    await page.goto('/auth-customization-lab');
+    await page.getByRole('button', { name: 'Forgot password', exact: true }).click();
+    await page.getByRole('button', { name: 'Builder', exact: true }).click();
+
+    const builder = page.locator('.pb-builder');
+    const composition = builder.locator('[data-composition-id="amzettel-brand-panel"]');
+    await expect(composition).toContainText('amZettel brand panel');
+    await composition.dragTo(builder.locator('[data-dropzone="o::into"]'));
+
+    const properties = builder.getByTestId('composition-properties');
+    await expect(properties.getByLabel('Name')).toHaveValue('amZettel brand panel');
+    await expect(properties.getByLabel('Pinned version')).toHaveText(/1/);
+    await expect(properties.getByRole('button', { name: 'Up to date', exact: true })).toBeDisabled();
+
+    await properties.getByRole('button', { name: 'Open composition', exact: true }).click();
+    await expect(page.getByRole('complementary', { name: 'Composition library' })).toBeVisible();
+    const definitionEditor = page.getByRole('region', { name: 'amZettel brand panel', exact: true });
+    await expect(definitionEditor.getByRole('heading', { name: 'amZettel brand panel', exact: true })).toBeVisible();
+    await expect(definitionEditor.getByText('amzettel-brand-panel@1', { exact: false })).toBeVisible();
   });
 
   test('renders a dynamic consent scope array and submits selected values', async ({ page }) => {

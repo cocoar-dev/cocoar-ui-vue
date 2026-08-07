@@ -128,6 +128,7 @@ Pass it only to the Builder:
   :config="config"
   :composition-repository="compositionRepository"
   composition-management="consume"
+  @open-composition="({ id, version }) => openCompositionEditor(id, version)"
 />
 ```
 
@@ -138,6 +139,16 @@ host edits a definition as a standalone element subtree (usually inside a
 temporary Page root) and calls `create()` / `publish()` itself. The default
 `inline` mode additionally exposes create/publish in the Builder tab and is
 useful for compact tools or bootstrapping a definition from an existing page.
+
+Every repository summary is also exposed in the normal element palette under
+**Compositions**. Dragging one to a valid tree/canvas drop zone loads its
+displayed `latestVersion`, materializes the definition and pins that exact
+version. Selecting the linked instance root exposes its name, pinned-version
+selector, update, detach and open controls in Properties. `open-composition`
+is the host navigation seam: the Builder emits the exact pinned `{ id,
+version }`, while the host decides where its independent definition editor
+lives. The existing Compositions tab remains the overview for references,
+updates and repository problems.
 
 Instances are fully materialized normal node trees. This gives drafts an
 offline-safe snapshot and lets the Builder preserve page-local node ids and

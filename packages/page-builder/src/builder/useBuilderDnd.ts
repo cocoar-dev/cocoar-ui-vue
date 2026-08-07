@@ -8,7 +8,14 @@ export type DragPayload =
   // by the field-first palette flow: the node arrives pre-bound to a contract
   // field.
   | { kind: 'new'; type: string; bind?: FieldBinding }
+  // Editor-only reference. The drop handler materializes it into ordinary
+  // page nodes; this payload never becomes part of the persisted schema.
+  | { kind: 'composition'; id: string; version: string }
   | { kind: 'move'; path: NodePath };
+
+export interface BuilderDndOptions {
+  insertComposition?: (id: string, version: string, parentPath: NodePath, index: number) => void | Promise<void>;
+}
 
 export interface BuilderDndContext {
   isDragging: Ref<boolean>;
@@ -38,7 +45,7 @@ export const BUILDER_DND: InjectionKey<BuilderDndContext> = Symbol('PageBuilderD
 
 const HOVER_CLEAR_DELAY_MS = 80;
 
-export function provideBuilderDnd(builder: UsePageBuilderReturn): BuilderDndContext {
+export function provideBuilderDnd(builder: UsePageBuilderReturn, options: BuilderDndOptions = {}): BuilderDndContext {
   const isDragging = ref(false);
   const payload = ref<DragPayload | null>(null);
   const activeZoneKey = ref<string | null>(null);
@@ -51,7 +58,7 @@ export function provideBuilderDnd(builder: UsePageBuilderReturn): BuilderDndCont
   function canDrop(parentPath: NodePath): boolean {
     const p = payload.value;
     if (!p) return false;
-    if (p.kind === 'new') return true;
+    if (p.kind === 'new' || p.kind === 'composition') return true;
     return !isAncestor(p.path, parentPath);
   }
 
@@ -90,6 +97,11 @@ export function provideBuilderDnd(builder: UsePageBuilderReturn): BuilderDndCont
 
     if (p.kind === 'new') {
       builder.addChild(parentPath, p.type, index, p.bind);
+      return;
+    }
+
+    if (p.kind === 'composition') {
+      void options.insertComposition?.(p.id, p.version, parentPath, index);
       return;
     }
 

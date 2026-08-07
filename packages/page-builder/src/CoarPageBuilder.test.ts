@@ -80,38 +80,43 @@ describe('CoarPageBuilder — v-model wiring', () => {
     return mount(Host);
   }
 
-  it('splits the palette into Containers / Inputs / Elements (registry-derived)', async () => {
+  it('renders the registry as collapsible Containers / Elements groups', async () => {
     const wrapper = mountWithConfig({});
     await nextTick();
 
-    const groups = wrapper.findAll('.pb-palette__group').map((g) => ({
-      label: g.find('.pb-palette__label').text(),
-      cards: g.findAll('.pb-palette__card').map((c) => c.text()),
-    }));
-    const byLabel = Object.fromEntries(groups.map((g) => [g.label, g.cards]));
+    const cards = (group: string) => wrapper
+      .find(`[data-palette-group="${group}"]`)
+      .findAll('.pb-library__item')
+      .map((card) => card.text());
 
-    expect(byLabel['Containers']).toContain('Card');
-    expect(byLabel['Inputs']).toContain('Text Input');
-    expect(byLabel['Inputs']).toContain('Checkbox');
-    expect(byLabel['Elements']).toContain('Heading');
-    expect(byLabel['Elements']).toContain('Button');
-    expect(byLabel['Elements']).not.toContain('Text Input');
+    expect(cards('containers')).toContain('Card');
+    expect(cards('elements')).toContain('Text Input');
+    expect(cards('elements')).toContain('Checkbox');
+    expect(cards('elements')).toContain('Heading');
+    expect(cards('elements')).toContain('Button');
+
+    const elementsGroup = wrapper.find('[data-palette-group="elements"]');
+    const toggle = elementsGroup.find('.pb-library__group-toggle');
+    expect(toggle.attributes('aria-expanded')).toBe('true');
+    await toggle.trigger('click');
+    expect(toggle.attributes('aria-expanded')).toBe('false');
+    expect(elementsGroup.findAll('.pb-library__item')).toHaveLength(0);
   });
 
-  it('hideElementPicker hides ONLY the Inputs group — containers, content and actions stay', async () => {
+  it('hideElementPicker removes free inputs while containers, content, actions and fields stay', async () => {
     const wrapper = mountWithConfig({
       hideElementPicker: true,
       fields: [{ name: 'email', valueType: 'string', label: 'Email' }],
     });
     await nextTick();
 
-    const labels = wrapper.findAll('.pb-palette__label').map((l) => l.text());
-    expect(labels).toContain('Containers');
-    expect(labels).toContain('Elements'); // headings, buttons & co stay
-    expect(labels).toContain('Fields');
-    expect(labels).not.toContain('Inputs');
+    expect(wrapper.find('[data-palette-group="containers"]').exists()).toBe(true);
+    expect(wrapper.find('[data-palette-group="elements"]').exists()).toBe(true);
+    expect(wrapper.find('[data-palette-group="fields"]').exists()).toBe(true);
+    expect(wrapper.findAll('[data-palette-group]').map((group) => group.attributes('data-palette-group')))
+      .toEqual(['fields', 'containers', 'elements']);
 
-    const cards = wrapper.findAll('.pb-palette__card').map((c) => c.text());
+    const cards = wrapper.findAll('.pb-library__item').map((c) => c.text());
     expect(cards).toContain('Heading');
     expect(cards).toContain('Button');
     expect(cards).not.toContain('Text Input'); // free inputs come from the contract

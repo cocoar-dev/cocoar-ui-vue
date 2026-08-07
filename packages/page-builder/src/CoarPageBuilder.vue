@@ -10,7 +10,7 @@ import {
   type CoarThemeMode,
 } from '@cocoar/vue-ui';
 import { useI18n, useLocalization } from '@cocoar/vue-localization';
-import { CURRENT_PAGE_SCHEMA_VERSION, type ElementNode, type PageBreakpoint, type PageNode, type PageRootNode, type PageConfig, type RuntimeExpressionValues } from './schema';
+import { CURRENT_PAGE_SCHEMA_VERSION, type ElementNode, type PageBreakpoint, type PageNode, type PageRootNode, type PageConfig, type RuntimeExpressionValues, type PageCompositionReference } from './schema';
 import type { CoarScriptEditorExtraLib } from '@cocoar/vue-script-editor';
 import type { PageCodeRuntimeValues } from './pageCode';
 import { usePageCodeRuntime } from './runtime/usePageCodeRuntime';
@@ -38,6 +38,7 @@ import {
 } from './builder/builderContext';
 import BuilderOutline from './builder/BuilderOutline.vue';
 import BuilderCanvas from './builder/BuilderCanvas.vue';
+import BuilderPalette from './builder/BuilderPalette.vue';
 import BuilderPropsPanel from './builder/BuilderPropsPanel.vue';
 import BuilderTranslationsPanel from './builder/BuilderTranslationsPanel.vue';
 import BuilderCompositionsPanel from './builder/BuilderCompositionsPanel.vue';
@@ -67,6 +68,8 @@ const emit = defineEmits<{
     fields: ActionValues;
     form: { valid: boolean; dirty: boolean; validating: boolean; submitting: boolean };
   }]
+  /** Host navigation hook for the independent composition definition editor. */
+  'open-composition': [reference: PageCompositionReference]
 }>();
 
 const props = defineProps<{
@@ -144,6 +147,7 @@ const compositions = usePageCompositions({
   builder,
   repository: computed(() => props.compositionRepository),
   management: computed(() => props.compositionManagement ?? 'inline'),
+  open: (reference) => emit('open-composition', reference),
 });
 
 // toRaw on both sides: a host that stores the schema in a deep ref hands the
@@ -166,7 +170,11 @@ const validation = useSchemaValidation(builder.schema, configRef);
 // Provided here (not in BuilderCanvas) so the outline pane — a sibling of the
 // canvas — shares the same drag context: outline rows and canvas zones are
 // drop targets of one and the same drag.
-provideBuilderDnd(builder);
+provideBuilderDnd(builder, {
+  insertComposition: async (id, version, path, index) => {
+    await compositions.insertAt(id, version, path, index);
+  },
+});
 
 provide(BUILDER_API, builder);
 provide(BUILDER_CONFIG, configRef);
@@ -401,31 +409,35 @@ function setPreviewWidth(value: PreviewWidth) {
 }
 
 // ── Panel widths + collapse ────────────────────────────────────────────────────
-const OUTLINE_DEFAULT = 260;
-const OUTLINE_MIN = 180;
-const PROPS_DEFAULT = 280;
-const PROPS_MIN = 220;
+const OUTLINE_DEFAULT = 340;
+const OUTLINE_MIN = 260;
+const LIBRARY_DEFAULT = 260;
+const LIBRARY_MIN = 220;
 const MIDDLE_MIN = 360;
 const RAIL_WIDTH = 36;
+const TREE_MIN_HEIGHT = 130;
+const PROPERTIES_MIN_HEIGHT = 180;
 
 const outlineWidth = ref(OUTLINE_DEFAULT);
-const propsWidth = ref(PROPS_DEFAULT);
+const libraryWidth = ref(LIBRARY_DEFAULT);
 const outlineCollapsed = ref(false);
-const propsCollapsed = ref(false);
-const resizing = ref<null | 'outline' | 'props'>(null);
+const libraryCollapsed = ref(false);
+const resizing = ref<null | 'outline' | 'library' | 'tree'>(null);
 
 const outlineCol = ref(`${OUTLINE_DEFAULT}px`);
-const propsCol = ref(`${PROPS_DEFAULT}px`);
+const libraryCol = ref(`${LIBRARY_DEFAULT}px`);
+const treeRow = ref('46%');
 
 watch([outlineCollapsed, outlineWidth], () => {
   outlineCol.value = outlineCollapsed.value ? `${RAIL_WIDTH}px` : `${outlineWidth.value}px`;
 });
-watch([propsCollapsed, propsWidth], () => {
-  propsCol.value = propsCollapsed.value ? `${RAIL_WIDTH}px` : `${propsWidth.value}px`;
+watch([libraryCollapsed, libraryWidth], () => {
+  libraryCol.value = libraryCollapsed.value ? `${RAIL_WIDTH}px` : `${libraryWidth.value}px`;
 });
 
 // ── Splitter drag ─────────────────────────────────────────────────────────────
 const rootRef = ref<HTMLElement | null>(null);
+const inspectorRef = ref<HTMLElement | null>(null);
 
 // ── Keyboard shortcuts (scoped to the builder) ────────────────────────────────
 
@@ -482,27 +494,52 @@ function onRootPointerDown() {
 onMounted(() => window.addEventListener('keydown', onKeyDown));
 onBeforeUnmount(() => window.removeEventListener('keydown', onKeyDown));
 
-function startResize(target: 'outline' | 'props', event: PointerEvent) {
-  if ((target === 'outline' && outlineCollapsed.value) || (target === 'props' && propsCollapsed.value)) return;
+function startResize(target: 'outline' | 'library', event: PointerEvent) {
+  if ((target === 'outline' && outlineCollapsed.value) || (target === 'library' && libraryCollapsed.value)) return;
   event.preventDefault();
   resizing.value = target;
   const startX = event.clientX;
   const startOutline = outlineWidth.value;
-  const startProps = propsWidth.value;
+  const startLibrary = libraryWidth.value;
 
   function onMove(ev: PointerEvent) {
     const w = rootRef.value?.getBoundingClientRect().width ?? 0;
     if (!w) return;
     const other = target === 'outline'
-      ? (propsCollapsed.value ? RAIL_WIDTH : propsWidth.value)
+      ? (libraryCollapsed.value ? RAIL_WIDTH : libraryWidth.value)
       : (outlineCollapsed.value ? RAIL_WIDTH : outlineWidth.value);
     const available = w - other - MIDDLE_MIN - 2;
     const delta = ev.clientX - startX;
     if (target === 'outline') {
       outlineWidth.value = Math.min(Math.max(startOutline + delta, OUTLINE_MIN), Math.max(OUTLINE_MIN, available));
     } else {
-      propsWidth.value = Math.min(Math.max(startProps - delta, PROPS_MIN), Math.max(PROPS_MIN, available));
+      libraryWidth.value = Math.min(Math.max(startLibrary - delta, LIBRARY_MIN), Math.max(LIBRARY_MIN, available));
     }
+  }
+  function onUp() {
+    resizing.value = null;
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    window.removeEventListener('pointercancel', onUp);
+  }
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp);
+  window.addEventListener('pointercancel', onUp);
+}
+
+function startTreeResize(event: PointerEvent) {
+  const pane = inspectorRef.value;
+  if (!pane || outlineCollapsed.value) return;
+  event.preventDefault();
+  resizing.value = 'tree';
+  const rect = pane.getBoundingClientRect();
+  const startY = event.clientY;
+  const startHeight = Number.parseFloat(getComputedStyle(pane).gridTemplateRows.split(' ')[0]) || rect.height * 0.46;
+
+  function onMove(ev: PointerEvent) {
+    const available = rect.height - 5;
+    const maximum = Math.max(TREE_MIN_HEIGHT, available - PROPERTIES_MIN_HEIGHT);
+    treeRow.value = `${Math.min(Math.max(startHeight + ev.clientY - startY, TREE_MIN_HEIGHT), maximum)}px`;
   }
   function onUp() {
     resizing.value = null;
@@ -571,30 +608,38 @@ function applyJson() {
     class="pb-builder"
     :class="{
       'pb-builder--outline-collapsed': outlineCollapsed,
-      'pb-builder--props-collapsed': propsCollapsed,
+      'pb-builder--library-collapsed': libraryCollapsed,
       'pb-builder--resizing': resizing !== null,
+      'pb-builder--resizing-tree': resizing === 'tree',
     }"
     tabindex="-1"
+    :style="{ gridTemplateColumns: `${outlineCol} 1px minmax(360px, 1fr) 1px ${libraryCol}` }"
     @pointerdown="onRootPointerDown"
   >
     <!-- ── Outline pane ── -->
     <section
+      ref="inspectorRef"
       class="pb-builder__pane pb-builder__pane--tree"
       :class="{ 'pb-builder__pane--rail': outlineCollapsed }"
+      :style="outlineCollapsed ? undefined : { gridTemplateRows: `minmax(0, ${treeRow}) 5px minmax(0, 1fr)` }"
     >
       <template v-if="!outlineCollapsed">
-        <header class="pb-builder__pane-header">
-          <CoarIcon name="list" size="s" />
-          <span class="pb-builder__pane-title">{{ t('coar.pageBuilder.chrome.outline', undefined, 'Outline') }}</span>
-          <button type="button" class="pb-builder__icon-btn" :title="t('coar.pageBuilder.chrome.collapseOutline', undefined, 'Collapse outline')" @click="outlineCollapsed = true">
-            <CoarIcon name="chevrons-left" size="s" />
-          </button>
-        </header>
-        <div class="pb-builder__tree-scroll">
-          <BuilderOutline />
+        <div class="pb-builder__tree-area">
+          <header class="pb-builder__pane-header">
+            <CoarIcon name="list" size="s" />
+            <span class="pb-builder__pane-title">{{ t('coar.pageBuilder.chrome.outline', undefined, 'Outline') }}</span>
+            <button type="button" class="pb-builder__icon-btn" :title="t('coar.pageBuilder.chrome.collapseOutline', undefined, 'Collapse inspector')" @click="outlineCollapsed = true">
+              <CoarIcon name="chevrons-left" size="s" />
+            </button>
+          </header>
+          <div class="pb-builder__tree-scroll">
+            <BuilderOutline />
+          </div>
         </div>
+        <div class="pb-builder__row-divider" role="separator" aria-orientation="horizontal" @pointerdown="startTreeResize" />
+        <BuilderPropsPanel class="pb-builder__pane-inner" />
       </template>
-      <button v-else type="button" class="pb-builder__rail-btn" :title="t('coar.pageBuilder.chrome.expandOutline', undefined, 'Expand outline')" @click="outlineCollapsed = false">
+      <button v-else type="button" class="pb-builder__rail-btn" :title="t('coar.pageBuilder.chrome.expandOutline', undefined, 'Expand inspector')" @click="outlineCollapsed = false">
         <CoarIcon name="chevrons-right" size="s" />
       </button>
     </section>
@@ -810,26 +855,30 @@ function applyJson() {
       </CoarTabGroup>
     </section>
 
-    <!-- ── Right divider ── -->
+    <!-- ── Element-library divider ── -->
     <div
       class="pb-builder__divider"
-      :class="{ 'pb-builder__divider--inert': propsCollapsed }"
+      :class="{ 'pb-builder__divider--inert': libraryCollapsed }"
       role="separator"
-      @pointerdown="startResize('props', $event)"
+      @pointerdown="startResize('library', $event)"
     />
 
-    <!-- ── Properties pane ── -->
+    <!-- ── Element library ── -->
     <section
-      class="pb-builder__pane pb-builder__pane--props"
-      :class="{ 'pb-builder__pane--rail': propsCollapsed }"
+      class="pb-builder__pane pb-builder__pane--library"
+      :class="{ 'pb-builder__pane--rail': libraryCollapsed }"
     >
-      <template v-if="!propsCollapsed">
-        <button type="button" class="pb-builder__icon-btn pb-builder__icon-btn--corner" :title="t('coar.pageBuilder.chrome.collapseProperties', undefined, 'Collapse properties')" @click="propsCollapsed = true">
-          <CoarIcon name="chevrons-right" size="s" />
-        </button>
-        <BuilderPropsPanel class="pb-builder__pane-inner" />
+      <template v-if="!libraryCollapsed">
+        <header class="pb-builder__pane-header">
+          <CoarIcon name="columns" size="s" />
+          <span class="pb-builder__pane-title">Elements</span>
+          <button type="button" class="pb-builder__icon-btn" title="Collapse element library" @click="libraryCollapsed = true">
+            <CoarIcon name="chevrons-right" size="s" />
+          </button>
+        </header>
+        <BuilderPalette />
       </template>
-      <button v-else type="button" class="pb-builder__rail-btn" :title="t('coar.pageBuilder.chrome.expandProperties', undefined, 'Expand properties')" @click="propsCollapsed = false">
+      <button v-else type="button" class="pb-builder__rail-btn" title="Expand element library" @click="libraryCollapsed = false">
         <CoarIcon name="chevrons-left" size="s" />
       </button>
     </section>
@@ -839,8 +888,6 @@ function applyJson() {
 <style scoped>
 .pb-builder {
   display: grid;
-  grid-template-columns:
-    v-bind(outlineCol) 1px minmax(360px, 1fr) 1px v-bind(propsCol);
   height: 100%;
   min-height: 520px;
   background: var(--coar-background-neutral-primary, #fff);
@@ -856,6 +903,7 @@ function applyJson() {
   user-select: none;
   cursor: col-resize;
 }
+.pb-builder--resizing-tree { cursor: row-resize; }
 
 /* The root is a programmatic focus anchor (shortcut scope), never a visible stop. */
 .pb-builder:focus {
@@ -877,6 +925,17 @@ function applyJson() {
   align-items: center;
   justify-content: flex-start;
   padding: 8px 0;
+}
+
+.pb-builder__pane--tree:not(.pb-builder__pane--rail) {
+  display: grid;
+}
+
+.pb-builder__tree-area {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 /* ── Panel header (outline pane) ── */
@@ -977,6 +1036,24 @@ function applyJson() {
   pointer-events: none;
 }
 .pb-builder__divider--inert::after { pointer-events: none; }
+
+.pb-builder__row-divider {
+  position: relative;
+  z-index: 2;
+  border-top: 1px solid var(--coar-border-neutral, #e2e2e6);
+  border-bottom: 1px solid var(--coar-border-neutral, #e2e2e6);
+  background: var(--coar-background-neutral-secondary, #f7f7f9);
+  cursor: row-resize;
+}
+.pb-builder__row-divider::after {
+  content: '';
+  position: absolute;
+  inset: -3px 0;
+}
+.pb-builder__row-divider:hover,
+.pb-builder--resizing .pb-builder__row-divider {
+  background: var(--coar-background-accent-primary, #1666cc);
+}
 
 /* ── Icon buttons ── */
 .pb-builder__icon-btn {

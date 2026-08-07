@@ -15,6 +15,7 @@ import {
   type AuthPageSlot as AuthLabSlot,
   type ElementNode,
   type PageCompositionDefinition,
+  type PageCompositionReference,
   type PageCompositionSummary,
   type PageNode,
   compilePageCompositions,
@@ -213,6 +214,12 @@ async function refreshCompositionLibrary(preferredId = selectedCompositionId.val
 async function showCompositions() {
   hostContentArea.value = 'compositions';
   await refreshCompositionLibrary();
+}
+
+async function openCompositionFromPage(reference: PageCompositionReference) {
+  hostContentArea.value = 'compositions';
+  compositionSummaries.value = await compositionRepository.list();
+  await loadComposition(reference.id, reference.version);
 }
 
 function startNewComposition() {
@@ -867,6 +874,7 @@ const requirements = [
         :preview-fallback-schema="fallbackSchema"
         :composition-repository="compositionRepository"
         composition-management="consume"
+        @open-composition="openCompositionFromPage"
       />
     </section>
 
@@ -1023,6 +1031,7 @@ const requirements = [
           :preview-actions="rendererActions"
           :composition-repository="compositionRepository"
           composition-management="consume"
+          @open-composition="openCompositionFromPage"
         />
       </section>
     </section>

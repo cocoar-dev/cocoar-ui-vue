@@ -286,9 +286,17 @@ through `baseVersion` on `publish`.
 For a SaaS authoring host, expose definitions separately from pages:
 
 - **Pages** embed the Builder with `composition-management="consume"` and may
-  insert, update or detach pinned instances.
+  drag definitions from the **Compositions** palette group, select another
+  immutable version, update to latest or detach pinned instances.
 - **Compositions** edit one standalone definition tree and call repository
   `create()` / `publish()` at the host boundary.
+
+Use `@open-composition="openComposition"` on `CoarPageBuilder` to connect the
+Properties action to that separate host area. The event carries the exact
+pinned `{ id, version }`; the host should open that version rather than latest.
+The palette drag payload is editor-only. A successful drop is persisted solely
+as the already-defined materialized nodes plus `composition` and
+`compositionOrigins`; no wrapper or composition element type is introduced.
 
 Removing a composition instance from Login therefore changes only Login. It
 does not mutate the definition, Logout, or any other consumer. Publishing a new

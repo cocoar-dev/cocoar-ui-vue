@@ -14,13 +14,13 @@ function childIds(node: PageNode): string[] {
 }
 
 /** provideBuilderDnd needs a component instance for provide(). */
-function setup(initial: PageNode) {
+function setup(initial: PageNode, insertComposition?: (id: string, version: string, path: number[], index: number) => void) {
   let builder!: UsePageBuilderReturn;
   let dnd!: BuilderDndContext;
   const wrapper = mount(defineComponent({
     setup() {
       builder = usePageBuilder({ initial });
-      dnd = provideBuilderDnd(builder);
+      dnd = provideBuilderDnd(builder, { insertComposition });
       return () => null;
     },
   }));
@@ -61,6 +61,15 @@ describe('useBuilderDnd — onZoneDrop', () => {
     const ids = childIds(builder.schema.value);
     expect(ids).toHaveLength(2);
     expect(ids[1]).toBe('a');
+  });
+
+  it('delegates composition drops without persisting a wrapper node', () => {
+    const insertComposition = vi.fn();
+    const { builder, dnd } = setup(page([leaf('a')]), insertComposition);
+    dnd.startDrag({ kind: 'composition', id: 'brand-panel', version: 'v3' });
+    dnd.onZoneDrop([], 1);
+    expect(insertComposition).toHaveBeenCalledWith('brand-panel', 'v3', [], 1);
+    expect(childIds(builder.schema.value)).toEqual(['a']);
   });
 
   it('compensates same-parent down-moves for the pre-removal dropzone index', () => {

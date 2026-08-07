@@ -25,12 +25,13 @@ export interface UsePageCompositionsOptions {
   builder: UsePageBuilderReturn
   repository: ComputedRef<PageCompositionRepository | undefined>
   management: ComputedRef<PageCompositionManagement>
+  open?: (reference: PageCompositionReference) => void
 }
 
 /** Controls whether definitions may be authored from inside a normal page. */
 export type PageCompositionManagement = 'inline' | 'consume'
 
-export function usePageCompositions({ builder, repository, management }: UsePageCompositionsOptions) {
+export function usePageCompositions({ builder, repository, management, open }: UsePageCompositionsOptions) {
   const summaries = ref<readonly PageCompositionSummary[]>([])
   const busy = ref(false)
   const error = ref<string>()
@@ -132,10 +133,9 @@ export function usePageCompositions({ builder, repository, management }: UsePage
     return result === true
   }
 
-  async function insert(id: string, version?: string): Promise<boolean> {
+  async function insertAt(id: string, version: string | undefined, path: NodePath, index?: number): Promise<boolean> {
     const repo = repository.value
-    const target = insertTarget.value
-    if (!repo || !target) return false
+    if (!repo) return false
     const result = await run(async () => {
       const definition = await repo.get(id, version)
       if (!definition) throw new Error(`Composition ${id}${version ? `@${version}` : ''} is missing.`)
@@ -143,10 +143,16 @@ export function usePageCompositions({ builder, repository, management }: UsePage
         throw new Error(`Composition repository returned ${definition.id}@${definition.version} for ${id}${version ? `@${version}` : ''}.`)
       }
       const instance = materializePageComposition(definition, { page: builder.schema.value })
-      builder.insertNode(target.path, instance, target.index)
+      builder.insertNode(path, instance, index)
       return true
     })
     return result === true
+  }
+
+  async function insert(id: string, version?: string): Promise<boolean> {
+    const target = insertTarget.value
+    if (!target) return false
+    return insertAt(id, version, target.path, target.index)
   }
 
   async function update(version?: string): Promise<boolean> {
@@ -202,6 +208,13 @@ export function usePageCompositions({ builder, repository, management }: UsePage
     return true
   }
 
+  function openSelected(): boolean {
+    const reference = selectedLink.value?.reference
+    if (!reference || !open) return false
+    open(reference)
+    return true
+  }
+
   watch(repository, () => { void reload() }, { immediate: true })
   watch(builder.structuralVersion, () => { void validateLinks() })
 
@@ -218,10 +231,13 @@ export function usePageCompositions({ builder, repository, management }: UsePage
     insertTarget,
     reload,
     createFromSelection,
+    insertAt,
     insert,
     update,
     publish,
     detach,
+    openSelected,
+    canOpen: computed(() => !!open),
   }
 }
 

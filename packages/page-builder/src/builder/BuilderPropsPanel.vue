@@ -11,7 +11,7 @@ import {
   type CoarSelectOption,
 } from '@cocoar/vue-ui';
 import type { LocalizedValue, PageBreakpoint, PageNode, NodeStyle, ElementNode, FieldValidation, PageRootNode, PageTranslations, PropertyBinding, RepeatNode, RuntimeBinding, RuntimeExpressionBinding, TranslationBinding, VisibleWhen } from '../schema';
-import { BUILDER_API, BUILDER_AUTHORING_MODE, BUILDER_BREAKPOINT, BUILDER_CONFIG, BUILDER_LOCALE, BUILDER_LOGIC, BUILDER_PAGE_CODE_VALUES, BUILDER_VALIDATION } from './builderContext';
+import { BUILDER_API, BUILDER_AUTHORING_MODE, BUILDER_BREAKPOINT, BUILDER_COMPOSITIONS, BUILDER_CONFIG, BUILDER_LOCALE, BUILDER_LOGIC, BUILDER_PAGE_CODE_VALUES, BUILDER_VALIDATION } from './builderContext';
 import type { NodePath } from './operations';
 import { useMergedElements } from '../elements/useMergedElements';
 import { compatibleFields, compatibleElementTypes } from '../elements/fieldContract';
@@ -39,10 +39,25 @@ const logic = inject(BUILDER_LOGIC);
 const pageCodeValues = inject(BUILDER_PAGE_CODE_VALUES);
 const builderLocale = inject(BUILDER_LOCALE);
 const authoringMode = inject(BUILDER_AUTHORING_MODE, computed(() => 'properties' as const));
+const compositions = inject(BUILDER_COMPOSITIONS);
 const codeDriven = computed(() => authoringMode.value === 'code');
 
 const node = computed(() => builder.selectedNode.value);
 const path = computed(() => builder.selectedPath.value ?? []);
+const selectedCompositionRoot = computed(() => {
+  const link = compositions?.selectedLink.value;
+  if (!link || link.path.length !== path.value.length) return null;
+  return link.path.every((part, index) => part === path.value[index]) ? link : null;
+});
+const selectedCompositionName = computed(() =>
+  compositions?.selectedSummary.value?.name ?? selectedCompositionRoot.value?.reference.id ?? '',
+);
+const selectedCompositionVersions = computed<CoarSelectOption<string>[]>(() => {
+  const link = selectedCompositionRoot.value;
+  if (!link) return [];
+  const versions = compositions?.selectedSummary.value?.versions ?? [link.reference.version];
+  return [...new Set([link.reference.version, ...versions])].map((version) => ({ value: version, label: version }));
+});
 
 /** Registry definition for the selected node (undefined for `page`). */
 const def = computed(() => (node.value ? elements.value[node.value.type] : undefined));
@@ -744,6 +759,37 @@ function bindField(name: string | null) {
         </li>
       </ul>
 
+      <section v-if="selectedCompositionRoot && compositions" class="pb-props__section pb-props__composition" data-testid="composition-properties">
+        <div class="pb-props__section-heading">
+          <h4 class="pb-props__section-title">Composition</h4>
+          <CoarIcon name="copy" size="s" />
+        </div>
+        <CoarFormField label="Name">
+          <CoarTextInput size="s" :model-value="selectedCompositionName" disabled />
+        </CoarFormField>
+        <CoarFormField label="Pinned version">
+          <CoarSelect
+            size="s"
+            :model-value="selectedCompositionRoot.reference.version"
+            :options="selectedCompositionVersions"
+            sort-options="none"
+            :disabled="compositions.busy.value"
+            @update:model-value="(version) => version && compositions?.update(version)"
+          />
+        </CoarFormField>
+        <p class="pb-props__hint"><code>{{ selectedCompositionRoot.reference.id }}</code></p>
+        <p v-if="compositions.error.value" class="pb-props__composition-error" role="alert">{{ compositions.error.value }}</p>
+        <div class="pb-props__composition-actions">
+          <CoarButton
+            size="s"
+            :disabled="compositions.busy.value || compositions.selectedIsLatest.value"
+            @click="compositions.update()"
+          >{{ compositions.selectedIsLatest.value ? 'Up to date' : 'Update to latest' }}</CoarButton>
+          <CoarButton size="s" variant="secondary" :disabled="compositions.busy.value" @click="compositions.detach()">Detach</CoarButton>
+          <CoarButton size="s" variant="secondary" :disabled="compositions.busy.value" @click="compositions.openSelected()">Open composition</CoarButton>
+        </div>
+      </section>
+
       <template v-if="codeDriven">
         <section class="pb-props__section">
           <h4 class="pb-props__section-title">Structure</h4>
@@ -1252,6 +1298,9 @@ function bindField(name: string | null) {
 
 .pb-props__section-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .pb-props__section-actions { display: flex; align-items: center; gap: 5px; }
+.pb-props__composition { border-bottom: 1px solid var(--coar-border-neutral, #e2e2e6); padding-bottom: 14px; }
+.pb-props__composition-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.pb-props__composition-error { margin: 0; color: var(--coar-text-semantic-error-bold, #b42318); font-size: 11px; }
 .pb-props__small-button, .pb-props__remove-binding {
   border: 1px solid var(--coar-border-neutral, #d0d0d5);
   border-radius: 5px;
