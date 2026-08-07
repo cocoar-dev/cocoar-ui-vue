@@ -730,7 +730,10 @@ function bindField(name: string | null) {
 </script>
 
 <template>
-  <aside class="pb-props">
+  <aside
+    class="pb-props"
+    :aria-label="t('coar.pageBuilder.props.panelTitle', undefined, 'Properties')"
+  >
     <header class="pb-props__header">
       <CoarIcon name="settings" size="s" />
       <span class="pb-props__title">{{ t('coar.pageBuilder.props.panelTitle', undefined, 'Properties') }}</span>

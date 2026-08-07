@@ -45,7 +45,7 @@ test.describe('PageBuilder element code authoring', () => {
     const builder = page.locator('.pb-builder')
     await builder.getByRole('treeitem', { name: 'Password password', exact: true }).click()
 
-    const properties = builder.getByRole('complementary')
+    const properties = builder.getByRole('complementary', { name: 'Properties' })
     const structure = properties.locator('.pb-props__section').first()
     await expect(properties.getByRole('heading', { name: 'Structure' })).toBeVisible()
     await expect(properties.getByText('Element', { exact: true })).toHaveCount(1)
