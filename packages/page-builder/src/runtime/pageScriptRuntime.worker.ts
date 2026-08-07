@@ -465,7 +465,11 @@ async function initialize(
     }
 
     const compartmentStarted = performance.now();
-    const compartment = new Compartment();
+    // SES keeps eval/Function confined to the compartment, but the public page
+    // contract is stricter: tenant code must not dynamically compile source at
+    // all. Shadow both globals explicitly instead of merely relying on SES'
+    // confinement semantics.
+    const compartment = new Compartment({ eval: undefined, Function: undefined });
     harden(compartment.globalThis);
     const compartmentMs = performance.now() - compartmentStarted;
 

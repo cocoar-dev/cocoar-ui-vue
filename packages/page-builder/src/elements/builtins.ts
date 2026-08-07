@@ -31,6 +31,7 @@ import { dateTimeInputElement } from './datetime-input';
 import { buttonElement } from './button';
 import { linkElement } from './link';
 import { imageElement } from './image';
+import { visualMarkupElement } from './visual-markup';
 
 // Exhaustiveness-checked: a new built-in type without a definition here is a
 // compile error. INSERTION ORDER IS PALETTE ORDER — the palette lists the
@@ -61,6 +62,7 @@ const TABLE: Record<Exclude<ElementType, 'page'>, PageElementDefinition<any>> = 
   button: buttonElement,
   link: linkElement,
   image: imageElement,
+  'visual-markup': visualMarkupElement,
 };
 
 export const BUILTIN_ELEMENTS: PageElementRegistry = TABLE;

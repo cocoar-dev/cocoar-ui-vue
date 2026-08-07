@@ -110,6 +110,7 @@ const commonAllowed = [
   'button',
   'link',
   'image',
+  'visual-markup',
 ] as const;
 
 function fixtureContext(providerCount: number, scopeCount: number): Record<string, unknown> {

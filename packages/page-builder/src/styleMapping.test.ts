@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { selfStyle, selfLayoutStyle, containerLayoutStyle, safeCssLength } from './styleMapping';
+import { selfStyle, selfLayoutStyle, containerLayoutStyle, safeAspectRatio, safeCssLength, safeFontVariationSettings } from './styleMapping';
 
 describe('safeCssLength', () => {
   it('allows layout lengths and rejects CSS injection primitives', () => {
@@ -24,6 +24,18 @@ describe('safeCssLength', () => {
   it('still rejects unknown units that contain an allowed unit name', () => {
     expect(safeCssLength('100xdvh')).toBeUndefined();
     expect(safeCssLength('10pixels')).toBeUndefined();
+  });
+});
+
+describe('safe typography and ratio values', () => {
+  it('accepts bounded variable-font axes and rejects CSS injection', () => {
+    expect(safeFontVariationSettings('"wght" 650, "opsz" 32')).toBe('"wght" 650, "opsz" 32');
+    expect(safeFontVariationSettings('"wght" 650; color: red')).toBeUndefined();
+  });
+
+  it('accepts numeric aspect ratios only', () => {
+    expect(safeAspectRatio('16 / 9')).toBe('16 / 9');
+    expect(safeAspectRatio('var(--ratio)')).toBeUndefined();
   });
 });
 

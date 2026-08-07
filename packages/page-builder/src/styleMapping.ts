@@ -64,6 +64,20 @@ const FONT_WEIGHTS = { regular: '400', medium: '500', semibold: '600', bold: '70
 const LINE_HEIGHTS = { tight: '1.2', normal: '1.5', relaxed: '1.75' } as const;
 const LETTER_SPACING = { tight: '-0.025em', normal: 'normal', wide: '0.05em' } as const;
 
+export function safeFontVariationSettings(value: string | undefined): string | undefined {
+  if (!value || value.length > 160) return undefined;
+  return /^(?:\s*"[A-Za-z0-9]{1,4}"\s+-?(?:\d+(?:\.\d+)?|\.\d+)\s*)(?:,\s*"[A-Za-z0-9]{1,4}"\s+-?(?:\d+(?:\.\d+)?|\.\d+)\s*)*$/.test(value)
+    ? value
+    : undefined;
+}
+
+export function safeAspectRatio(value: string | undefined): string | undefined {
+  if (!value || value.length > 40) return undefined;
+  return /^\s*(?:\d+(?:\.\d+)?|\.\d+)(?:\s*\/\s*(?:\d+(?:\.\d+)?|\.\d+))?\s*$/.test(value)
+    ? value
+    : undefined;
+}
+
 /**
  * How a node sits inside its parent's flex layout: cross-axis self-alignment
  * (`align-self`) and main-axis sizing (the simple `size` + `width` model).
@@ -106,6 +120,7 @@ export function selfLayoutStyle(
   if (safeCssLength(style.maxWidth)) css.maxWidth = safeCssLength(style.maxWidth);
   if (safeCssLength(style.height)) css.height = safeCssLength(style.height);
   if (safeCssLength(style.maxHeight)) css.maxHeight = safeCssLength(style.maxHeight);
+  if (safeAspectRatio(style.aspectRatio)) css.aspectRatio = safeAspectRatio(style.aspectRatio);
   if (style.overflow) css.overflow = style.overflow;
   if (style.hidden) css.display = 'none';
   if (style.surface) css.background = SURFACES[style.surface];
@@ -117,9 +132,14 @@ export function selfLayoutStyle(
   if (style.fontFamily) css.fontFamily = FONT_FAMILIES[style.fontFamily];
   if (style.fontSize) css.fontSize = FONT_SIZES[style.fontSize];
   if (style.fontWeight) css.fontWeight = FONT_WEIGHTS[style.fontWeight];
+  if (style.fontStyle) css.fontStyle = style.fontStyle;
+  if (safeFontVariationSettings(style.fontVariationSettings)) {
+    css.fontVariationSettings = safeFontVariationSettings(style.fontVariationSettings);
+  }
   if (style.lineHeight) css.lineHeight = LINE_HEIGHTS[style.lineHeight];
   if (style.letterSpacing) css.letterSpacing = LETTER_SPACING[style.letterSpacing];
   if (style.textAlign) css.textAlign = style.textAlign;
+  if (style.textDecoration) css.textDecoration = style.textDecoration;
 
   return css;
 }

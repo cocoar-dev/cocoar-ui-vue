@@ -55,6 +55,7 @@ const ELEMENT_TYPE_MAP: Record<ElementType, true> = {
   button: true,
   link: true,
   image: true,
+  'visual-markup': true,
 };
 
 export const KNOWN_ELEMENT_TYPES: ReadonlySet<string> = new Set(Object.keys(ELEMENT_TYPE_MAP));

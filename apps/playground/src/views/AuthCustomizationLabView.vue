@@ -18,6 +18,10 @@ import AuthReferenceSurface from './auth-customization/AuthReferenceSurface.vue'
 import ConsentReferenceSurface from './auth-customization/ConsentReferenceSurface.vue';
 import type { AuthLabConsentScope, AuthLabProvider } from './auth-customization/authLabRuntime';
 import { postAuthLab } from './auth-customization/authLabClient';
+import {
+  AMZETTEL_VISUAL_CONFIG,
+  createAmZettelLoginPage,
+} from './auth-customization/amZettelVisual';
 
 type LabMode = 'compare' | 'renderer' | 'builder' | 'json' | 'contract' | 'requirements';
 type ViewportId = 'compact' | 'phone' | 'tablet' | 'desktop' | 'fluid';
@@ -129,7 +133,7 @@ const consentScopes = computed<AuthLabConsentScope[]>(() =>
 );
 
 const schemas = reactive<Record<AuthLabSlot, PageNode>>({
-  login: createAuthLabSchema('login'),
+  login: createAmZettelLoginPage(createAuthLabSchema('login')),
   'password-forgot': createAuthLabSchema('password-forgot'),
   logout: createAuthLabSchema('logout'),
   consent: createAuthLabSchema('consent'),
@@ -141,7 +145,10 @@ const schema = computed<PageNode>({
     schemas[slot.value] = value;
   },
 });
-const pageConfig = computed(() => createAuthLabConfig(slot.value, locale.value));
+const pageConfig = computed(() => ({
+  ...createAuthLabConfig(slot.value, locale.value),
+  visualMarkup: AMZETTEL_VISUAL_CONFIG,
+}));
 const copy = computed(() => AUTH_LAB_COPY[locale.value]);
 
 watch([slot, locale], () => {
@@ -266,6 +273,13 @@ const frameClass = computed(() => ({ 'device-frame--fluid': viewport.value === '
 
 function resetCurrentSchema() {
   schemas[slot.value] = createAuthLabSchema(slot.value);
+  rendererResult.value = '';
+}
+
+function loadAmZettelConsumerTest() {
+  slot.value = 'login';
+  schemas.login = createAmZettelLoginPage(createAuthLabSchema('login'));
+  viewport.value = 'desktop';
   rendererResult.value = '';
 }
 
@@ -508,6 +522,12 @@ const requirements = [
           >
             {{ item.label }}
           </button>
+        </div>
+      </div>
+      <div class="control-group">
+        <strong>Alpha.12 consumer</strong>
+        <div class="button-row">
+          <button type="button" @click="loadAmZettelConsumerTest">Load amZettel visual</button>
         </div>
       </div>
       <div class="control-group">
@@ -938,6 +958,7 @@ const requirements = [
 .renderer-frame :deep(.coar-page-renderer),
 .renderer-frame :deep(.pb-page) {
   min-height: 100%;
+  height: 100%;
 }
 
 .single-stage {

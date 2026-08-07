@@ -196,6 +196,8 @@ export function usePageCodeRuntime(options: PageCodeRuntimeOptions) {
     } catch (error) {
       if (currentGeneration === generation) {
         console.warn('[PageBuilder runtime] Script preview failed; static fallbacks remain active.', error)
+        session?.dispose('Page runtime initialization failed.')
+        session = undefined
       }
     }
   }
@@ -212,6 +214,12 @@ export function usePageCodeRuntime(options: PageCodeRuntimeOptions) {
     queue = operation.then(() => undefined, () => undefined)
     void operation.catch((error) => {
       console.warn('[PageBuilder runtime] Reactive Element Code update failed.', error)
+      // A normal tenant exception leaves the SES session usable. A timeout or
+      // worker crash terminates it; rebuild exactly once from the persisted
+      // definitions so a transient failure does not permanently disable the
+      // page. If initialization fails again, restart() keeps static fallbacks
+      // and waits for a document edit instead of entering a retry loop.
+      if (currentSession === session && !currentSession.isAvailable) scheduleRestart()
     })
   }
 
@@ -249,7 +257,12 @@ export function usePageCodeRuntime(options: PageCodeRuntimeOptions) {
       if (patches.length > 0) await currentSession.patchState(patches)
     })
     queue = operation.then(() => undefined, () => undefined)
-    await operation
+    try {
+      await operation
+    } catch (error) {
+      if (currentSession === session && !currentSession.isAvailable) scheduleRestart()
+      throw error
+    }
     return true
   }
 

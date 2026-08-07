@@ -34,4 +34,8 @@ describe('cloneRuntimeValue', () => {
 
     expect(() => cloneRuntimeValue(Array.from({ length: 10_001 }, () => null))).toThrow('node limit');
   });
+
+  it('enforces an approximate serialized byte budget', () => {
+    expect(() => cloneRuntimeValue('x'.repeat(1_000_001))).toThrow('byte limit');
+  });
 });

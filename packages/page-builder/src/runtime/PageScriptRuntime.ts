@@ -117,6 +117,10 @@ export class PageScriptRuntime {
 
   readonly bootstrap: Promise<RuntimeBootstrapMetrics>;
 
+  get isAvailable(): boolean {
+    return !this.stopped;
+  }
+
   constructor(
     endowments: RuntimeEndowments = {},
     context: PageScriptRuntimeContext = { sessionId: 'standalone', pageId: 'standalone' },
@@ -139,7 +143,7 @@ export class PageScriptRuntime {
       void this.onMessage(event.data);
     });
     this.worker.addEventListener('error', (event) => {
-      this.failAll(new Error(event.message || 'The script worker failed.'));
+      this.terminate(event.message || 'The script worker failed.');
     });
   }
 

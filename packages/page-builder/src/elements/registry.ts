@@ -156,6 +156,12 @@ export interface PageElementBuilderDefinition<P extends ElementProps = ElementPr
    */
   inspector?: Component;
   inspectorTitle?: I18nText;
+  /**
+   * Keep the element-owned source inspector available in code authoring mode.
+   * Use this only for editors whose content is itself an authored resource
+   * (for example HTML/CSS), not as a second UI for ordinary computed props.
+   */
+  inspectorInCodeMode?: boolean;
   /** Suppress the universal Style section (spacer-style minimal elements). */
   hideStyleSection?: boolean;
   /**

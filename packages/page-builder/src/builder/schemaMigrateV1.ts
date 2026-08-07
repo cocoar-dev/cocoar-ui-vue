@@ -45,6 +45,7 @@ const V1_PROP_FIELDS: Record<Exclude<ElementType, 'page'>, readonly string[]> = 
   button: ['label', 'action', 'validates', 'icon', 'variant', 'size', 'actionValues', 'actionValueField', 'actionValue'],
   link: ['label', 'action', 'actionValues', 'actionValueField', 'actionValue'],
   image: ['assetId', 'alt'],
+  'visual-markup': ['html', 'css'],
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {

@@ -99,12 +99,14 @@ const alignOptions = computed<CoarSelectOption<string>[]>(() => [
 
 const sizeOptions = computed<CoarSelectOption<string>[]>(() => [
   { value: '', label: t('coar.pageBuilder.props.sizeAuto', undefined, 'Auto') },
+  { value: 'fit', label: t('coar.pageBuilder.props.sizeFit', undefined, 'Fit content') },
   { value: 'fill', label: t('coar.pageBuilder.props.sizeFill', undefined, 'Fill') },
   { value: 'fixed', label: t('coar.pageBuilder.props.sizeFixedWidth', undefined, 'Fixed width') },
 ]);
 
 function setSize(v: string) {
   if (v === 'fill') props.patchStyle({ size: 'fill', width: undefined });
+  else if (v === 'fit') props.patchStyle({ size: 'fit', width: undefined });
   else if (v === 'fixed') props.patchStyle({ size: 'fixed' });
   else props.patchStyle({ size: undefined, width: undefined });
 }
@@ -187,6 +189,12 @@ function setSize(v: string) {
   <CoarFormField label="Font weight">
     <CoarSelect size="s" :model-value="style.fontWeight ?? ''" :options="options(['regular','medium','semibold','bold'])" @update:model-value="(v) => props.patchStyle({ fontWeight: (v || undefined) as NodeStyle['fontWeight'] })" />
   </CoarFormField>
+  <CoarFormField label="Font style">
+    <CoarSelect size="s" :model-value="style.fontStyle ?? ''" :options="options(['normal','italic','oblique'])" @update:model-value="(v) => props.patchStyle({ fontStyle: (v || undefined) as NodeStyle['fontStyle'] })" />
+  </CoarFormField>
+  <CoarFormField label="Variable font axes">
+    <CoarTextInput size="s" :model-value="style.fontVariationSettings ?? ''" placeholder='e.g. "wght" 650, "opsz" 32' @update:model-value="(v) => props.patchStyle({ fontVariationSettings: v || undefined })" />
+  </CoarFormField>
   <CoarFormField label="Line height">
     <CoarSelect size="s" :model-value="style.lineHeight ?? ''" :options="options(['tight','normal','relaxed'])" @update:model-value="(v) => props.patchStyle({ lineHeight: (v || undefined) as NodeStyle['lineHeight'] })" />
   </CoarFormField>
@@ -195,6 +203,9 @@ function setSize(v: string) {
   </CoarFormField>
   <CoarFormField label="Text alignment">
     <CoarSelect size="s" :model-value="style.textAlign ?? ''" :options="options(['start','center','end'])" @update:model-value="(v) => props.patchStyle({ textAlign: (v || undefined) as NodeStyle['textAlign'] })" />
+  </CoarFormField>
+  <CoarFormField label="Text decoration">
+    <CoarSelect size="s" :model-value="style.textDecoration ?? ''" :options="options(['none','underline','line-through'])" @update:model-value="(v) => props.patchStyle({ textDecoration: (v || undefined) as NodeStyle['textDecoration'] })" />
   </CoarFormField>
 
   <!-- ── Container: how children are arranged ──────────────────────────────── -->
@@ -288,6 +299,15 @@ function setSize(v: string) {
       :model-value="style.maxHeight ?? ''"
       placeholder="e.g. 100dvh, 800px"
       @update:model-value="(v) => props.patchStyle({ maxHeight: v || undefined })"
+    />
+  </CoarFormField>
+
+  <CoarFormField :label="t('coar.pageBuilder.props.aspectRatio', undefined, 'Aspect ratio')">
+    <CoarTextInput
+      size="s"
+      :model-value="style.aspectRatio ?? ''"
+      placeholder="e.g. 16 / 9"
+      @update:model-value="(v) => props.patchStyle({ aspectRatio: v || undefined })"
     />
   </CoarFormField>
 

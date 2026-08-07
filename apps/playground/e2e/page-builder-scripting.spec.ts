@@ -25,7 +25,8 @@ test.describe('PageBuilder browser scripting spike', () => {
     await expect(diagnostics).toContainText('typeof endowments without a host grantundefined');
     await expect(diagnostics).toContainText('typeof endowments?.apiundefined');
     await expect(diagnostics).toContainText('Object.isFrozen(globalThis)true');
-    await expect(diagnostics).toContainText("Function('return typeof fetch')()undefined");
+    await expect(diagnostics).toContainText('typeof Functionundefined');
+    await expect(diagnostics).toContainText('typeof evalundefined');
 
     const region = page.locator('.login-frame [role="combobox"]');
     await expect(page.getByTestId('resource-status')).toContainText('success');

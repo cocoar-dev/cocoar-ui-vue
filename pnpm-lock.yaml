@@ -183,6 +183,12 @@ importers:
       '@dagrejs/dagre':
         specifier: ^3.0.0
         version: 3.0.0
+      '@fontsource-variable/fraunces':
+        specifier: ^5.2.9
+        version: 5.3.0
+      '@fontsource-variable/instrument-sans':
+        specifier: ^5.2.8
+        version: 5.3.0
       '@js-temporal/polyfill':
         specifier: ^0.5.1
         version: 0.5.1
@@ -1151,6 +1157,12 @@ packages:
 
   '@flypeng/tool@5.7.5':
     resolution: {integrity: sha512-3/TMouPSQiKcvV4sL/Jog20codkmEObYr0Pn4xJl6J+XEyb1rN/HqaQve2Kv5GhsbBC4s7YSlGcmOCC9CgH9aA==}
+
+  '@fontsource-variable/fraunces@5.3.0':
+    resolution: {integrity: sha512-9BYGySn4AHEJdgp9Z28tQ3X+laJMEOITXkQarZXeloWQZDq5oOvXJ3kDA8c7MGIfpogIaZfjrQBqmda8POOCKA==}
+
+  '@fontsource-variable/instrument-sans@5.3.0':
+    resolution: {integrity: sha512-u4gKbDBTNFGkg997tfQn3eHOhHuquWUFTRT/rwzuKtrxX5P2ekfs2x+LgBPP4P32+cC+vUwF1Cr+IdRoPQbrGw==}
 
   '@fontsource/cascadia-code@5.2.3':
     resolution: {integrity: sha512-jnKfdZ+0UL25XUqYV7iq9gDlaUMWXxZNA7KnYzO4v8De6jBJmTkLHxDXs+1iZwl/8w7eKlDrTJWcyalOHdE2eg==}
@@ -4962,6 +4974,10 @@ snapshots:
       dayjs: 1.11.20
       html-to-image: 1.11.13
       lodash: 4.18.1
+
+  '@fontsource-variable/fraunces@5.3.0': {}
+
+  '@fontsource-variable/instrument-sans@5.3.0': {}
 
   '@fontsource/cascadia-code@5.2.3': {}
 

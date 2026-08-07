@@ -104,7 +104,8 @@ const diagnosticSource = `(input, endowments) => ({
   endowmentsType: typeof endowments,
   apiType: typeof endowments?.api,
   globalIsFrozen: Object.isFrozen(globalThis),
-  functionFetchType: Function("return typeof fetch")()
+  functionType: typeof Function,
+  evalType: typeof eval
 })`;
 
 const definitions: RuntimeDefinition[] = [
@@ -417,7 +418,8 @@ void startRuntime();
           <dt><code>typeof endowments</code> without a host grant</dt><dd>{{ diagnostics.endowmentsType ?? '…' }}</dd>
           <dt><code>typeof endowments?.api</code></dt><dd>{{ diagnostics.apiType ?? '…' }}</dd>
           <dt><code>Object.isFrozen(globalThis)</code></dt><dd>{{ diagnostics.globalIsFrozen ?? '…' }}</dd>
-          <dt><code>Function('return typeof fetch')()</code></dt><dd>{{ diagnostics.functionFetchType ?? '…' }}</dd>
+          <dt><code>typeof Function</code></dt><dd>{{ diagnostics.functionType ?? '…' }}</dd>
+          <dt><code>typeof eval</code></dt><dd>{{ diagnostics.evalType ?? '…' }}</dd>
         </dl>
         <p class="capability-note">
           The host constructs the complete <code>api</code> object and selectively endows the

@@ -57,7 +57,10 @@ export type {
   ButtonNode,
   LinkNode,
   ImageNode,
+  VisualMarkupNode,
   PageConfig,
+  PageVisualFont,
+  PageVisualMarkupConfig,
   PageStylePreset,
   PageValueType,
   PageFieldSpec,
@@ -127,7 +130,7 @@ export {
   resolveNodeStyle,
   localNodeStyle,
 } from './responsive';
-export { safeCssLength } from './styleMapping';
+export { safeAspectRatio, safeCssLength, safeFontVariationSettings } from './styleMapping';
 export {
   actionValuesFromProps,
   isJsonSafeActionValue,
@@ -168,6 +171,7 @@ export {
 
 export { usePageElement, type PageElementContext } from './elements/usePageElement';
 export { useResolvedOptions } from './elements/useResolvedOptions';
+export { buildVisualDocument } from './elements/visual-markup';
 
 export { evaluateCondition, type ConditionSources } from './conditions';
 export {

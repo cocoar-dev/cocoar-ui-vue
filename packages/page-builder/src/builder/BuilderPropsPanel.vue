@@ -219,8 +219,8 @@ const bindableTargets = computed<CoarSelectOption<string>[]>(() => {
   return [...keys].map((key) => ({ value: key, label: key }));
 });
 const STYLE_EXPRESSION_TARGETS = [
-  'width', 'minWidth', 'maxWidth', 'height', 'minHeight', 'maxHeight', 'overflow', 'padding', 'gap',
-  'hidden', 'fontSize', 'fontWeight', 'textAlign', 'surface', 'foreground',
+  'width', 'minWidth', 'maxWidth', 'height', 'minHeight', 'maxHeight', 'aspectRatio', 'overflow', 'padding', 'gap',
+  'hidden', 'fontSize', 'fontWeight', 'fontStyle', 'fontVariationSettings', 'textAlign', 'textDecoration', 'surface', 'foreground',
 ] as const;
 const expressionTargets = computed<CoarSelectOption<string>[]>(() => [
   ...bindableTargets.value,
@@ -882,6 +882,14 @@ function bindField(name: string | null) {
               @click="resetQuickProperty(property)"
             >Reset</button>
           </div>
+        </section>
+
+        <section
+          v-if="inspector && def?.builder?.inspectorInCodeMode"
+          class="pb-props__section pb-props__section--separated"
+        >
+          <h4 class="pb-props__section-title">{{ inspectorTitle }}</h4>
+          <component :is="inspector" :node="node" :patch="patch" />
         </section>
       </template>
 

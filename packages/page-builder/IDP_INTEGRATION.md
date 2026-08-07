@@ -252,6 +252,23 @@ The prerelease workflow verifies this from packed tarballs on Linux and Windows
 with `vite --force`, a production build, a non-root `/idp/` base and a browser
 boot under the strict document CSP.
 
+### Decorative visual documents
+
+Use the built-in `visual-markup` element only for non-semantic decoration.
+`PageConfig.visualMarkup` is the host-controlled capability boundary for
+approved font data/blob URLs and sanitized CSS custom properties. The page
+author controls the node's allowlisted HTML, inline SVG and local CSS, while
+the renderer supplies an empty iframe sandbox and a restrictive document CSP.
+No JavaScript, form control, navigation or network API is available.
+
+Pass the same `PageConfig` to the Builder and Runtime. The Builder's Preview tab
+uses the real renderer; it intentionally does not grant a more permissive
+preview environment. Size the opaque iframe through the outer node style—it
+cannot inspect its content to auto-report height. Invalid or oversized visual
+content is a node-local error: the iframe stays absent while the remaining IDP
+form renders normally. The host's whole-document fallback is reserved for an
+invalid or failed published page, not a rejected decorative node.
+
 Before general tenant production rollout, complete the product threat model,
 independent security review, browser/mobile matrix, operational quotas and
 server-side publication checks. The beta is intended for Modgud integration and

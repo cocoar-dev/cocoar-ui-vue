@@ -165,6 +165,63 @@ stores raw CSS or an arbitrary class. The host must load the matching CSS in
 both administration and runtime. Unknown, unsafe, or disallowed presets are an
 authoring error and are safely ignored by the renderer.
 
+## Decorative visual markup
+
+The built-in `visual-markup` element is the deliberately narrow escape hatch
+for branded, animated decoration that cannot reasonably be expressed through
+individual PageBuilder primitives. It renders HTML, inline SVG and local CSS in
+an opaque-origin iframe. It is **not** a general custom-code element:
+
+- the iframe has an empty `sandbox`, `aria-hidden="true"`, `tabindex="-1"` and
+  `pointer-events: none`;
+- JavaScript, forms, links, navigation, network access, parent-DOM access and
+  interactive controls are rejected or blocked by CSP;
+- markup and CSS use strict allowlists and hard size limits;
+- invalid visuals are hidden locally; siblings and the page form keep working;
+- Builder Preview and Runtime use the same renderer and security policy.
+
+Functional content must remain native PageBuilder elements. A visual node can
+use local `@keyframes`, transforms, media queries, `prefers-reduced-motion`, CSS
+custom properties and inline SVG. Its outer PageBuilder `style` controls its
+size, including responsive `width`, `height`, `minHeight`, `maxHeight`,
+`aspectRatio` and `size`.
+
+Select the node to edit its HTML and CSS source with the dedicated Monaco
+inspectors. These source editors remain available in code-driven authoring
+mode; ordinary computed properties still use Element Code and Quick
+Properties. Invalid source is reported on the node and in the inspector.
+
+The host may inject only explicitly approved theme values and font files:
+
+```ts
+import type { PageConfig } from '@cocoar/vue-page-builder';
+
+const config: PageConfig = {
+  allowedElements: ['page', 'row', 'column', 'visual-markup', 'text-input', 'button'],
+  visualMarkup: {
+    themeVariables: {
+      '--coar-accent': '#10b981',
+      '--visual-surface': '#ffffff',
+      '--visual-text': '#16202e',
+    },
+    fonts: [{
+      id: 'brand-variable',
+      family: 'Brand Sans Variable',
+      source: approvedFontDataUrl, // data:font/...;base64 or a host-created blob URL
+      format: 'woff2',
+      weight: '100 900',
+      style: 'normal',
+      display: 'swap',
+    }],
+  },
+};
+```
+
+Font storage, tenant authorization and URL creation remain host
+responsibilities. For deterministic opaque-iframe loading, a `data:font/...`
+URL is the simplest option. Do not place secrets in theme values, fonts, markup
+or CSS: they become part of the generated `srcdoc`.
+
 ## Custom elements
 
 The built-in elements are just pre-registered entries of an open **element

@@ -17,9 +17,13 @@ export interface NodeStyle {
   fontFamily?: 'body' | 'heading' | 'mono'
   fontSize?: 'caption' | 'small' | 'base' | 'large' | 'xlarge' | 'display'
   fontWeight?: 'regular' | 'medium' | 'semibold' | 'bold'
+  fontStyle?: 'normal' | 'italic' | 'oblique'
+  /** Safe CSS variable-font axes, e.g. `"wght" 650, "opsz" 32`. */
+  fontVariationSettings?: string
   lineHeight?: 'tight' | 'normal' | 'relaxed'
   letterSpacing?: 'tight' | 'normal' | 'wide'
   textAlign?: 'start' | 'center' | 'end'
+  textDecoration?: 'none' | 'underline' | 'line-through'
   // ── Container layout: how this node arranges its children ──
   /** CSS gap between children, e.g. '8px', '1rem'. Applied to inner layout. */
   gap?: string
@@ -62,6 +66,8 @@ export interface NodeStyle {
   minHeight?: string
   /** Maximum height of this node's box. */
   maxHeight?: string
+  /** CSS aspect-ratio, e.g. `16 / 9` or `1`. */
+  aspectRatio?: string
   /** Overflow behavior of this node's box. */
   overflow?: 'visible' | 'hidden' | 'clip' | 'auto' | 'scroll'
   /** Responsive presentation switch. Hidden nodes do not render or participate in actions. */
@@ -481,6 +487,12 @@ export type ImageNode = ElementNode<'image', {
   alt?: string
 }>
 
+/** Scriptless decorative HTML/SVG/CSS rendered in an opaque sandboxed iframe. */
+export type VisualMarkupNode = ElementNode<'visual-markup', {
+  html: string
+  css?: string
+}>
+
 // ─── Validation ───────────────────────────────────────────────────────────────
 
 /**
@@ -558,6 +570,7 @@ export type BuiltinNode =
   | ButtonNode
   | LinkNode
   | ImageNode
+  | VisualMarkupNode
 
 /**
  * Any node in a page tree. The union is OPEN: the last member admits
@@ -734,6 +747,29 @@ export interface PageConfig {
    * When omitted, the image element falls back to a free-text Asset ID input.
    */
   pickAsset?: (currentId?: string) => Promise<string | null>
+  /** Host-owned values injected into every scriptless visual-markup document. */
+  visualMarkup?: PageVisualMarkupConfig
+}
+
+/** One host-approved font made available inside the opaque visual iframe. */
+export interface PageVisualFont {
+  id: string
+  family: string
+  /** Only data:font/...;base64 and blob: URLs are accepted by the renderer. */
+  source: string
+  format?: 'woff2' | 'woff' | 'truetype' | 'opentype'
+  weight?: string
+  style?: 'normal' | 'italic' | 'oblique'
+  display?: 'auto' | 'block' | 'swap' | 'fallback' | 'optional'
+}
+
+export interface PageVisualMarkupConfig {
+  /** CSS custom properties only (`--name` → scalar CSS value). */
+  themeVariables?: Record<string, string | number>
+  /** All entries are host-owned and security-filtered before @font-face emission. */
+  fonts?: PageVisualFont[]
+  maxHtmlLength?: number
+  maxCssLength?: number
 }
 
 export interface PageStylePreset {

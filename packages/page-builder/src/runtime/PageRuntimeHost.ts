@@ -44,6 +44,15 @@ export class PageRuntimeSession {
 
   readonly bootstrap: Promise<RuntimeBootstrapMetrics>;
 
+  /** False after a fatal worker error/timeout or explicit disposal. */
+  get isAvailable(): boolean {
+    // The runtime is imported through the published worker subpath so Vite can
+    // emit it for consumers. During declaration generation that alias can
+    // temporarily resolve to the previous dist declaration; use the runtime
+    // contract without coupling this source build to that stale type snapshot.
+    return !this.disposed && Reflect.get(this.runtime, 'isAvailable') === true;
+  }
+
   constructor(
     readonly sessionId: string,
     readonly pageId: string,

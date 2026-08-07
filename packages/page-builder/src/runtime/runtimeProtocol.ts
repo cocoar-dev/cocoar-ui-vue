@@ -9,20 +9,37 @@ export type RuntimeValue =
   | { [key: string]: RuntimeValue };
 
 const FORBIDDEN_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
+const MAX_RUNTIME_VALUE_NODES = 10_000;
+const MAX_RUNTIME_VALUE_DEPTH = 32;
+const MAX_RUNTIME_VALUE_BYTES = 2_000_000;
 
 /** Copy and validate the data-only values allowed across the runtime boundary. */
 export function cloneRuntimeValue(value: unknown): RuntimeValue {
   const seen = new WeakSet<object>();
   let nodes = 0;
+  let bytes = 0;
+
+  const countText = (text: string) => {
+    // Structured clone uses an implementation-specific representation. UTF-16
+    // length is a deterministic, conservative browser-side budget that also
+    // prevents a single huge string from bypassing the node/depth limits.
+    bytes += text.length * 2;
+    if (bytes > MAX_RUNTIME_VALUE_BYTES) {
+      throw new Error('Runtime value exceeds the byte limit.');
+    }
+  };
 
   const copy = (current: unknown, depth: number): RuntimeValue => {
     nodes += 1;
-    if (nodes > 10_000) throw new Error('Runtime value exceeds the node limit.');
-    if (depth > 32) throw new Error('Runtime value exceeds the depth limit.');
+    if (nodes > MAX_RUNTIME_VALUE_NODES) throw new Error('Runtime value exceeds the node limit.');
+    if (depth > MAX_RUNTIME_VALUE_DEPTH) throw new Error('Runtime value exceeds the depth limit.');
     if (
       current === undefined || current === null || typeof current === 'boolean' ||
       typeof current === 'string'
-    ) return current;
+    ) {
+      if (typeof current === 'string') countText(current);
+      return current;
+    }
     if (typeof current === 'number') {
       if (!Number.isFinite(current)) throw new Error('Runtime value contains a non-finite number.');
       return current;
@@ -46,6 +63,7 @@ export function cloneRuntimeValue(value: unknown): RuntimeValue {
     const result: Record<string, RuntimeValue> = Object.create(null) as Record<string, RuntimeValue>;
     for (const [key, entry] of Object.entries(current)) {
       if (FORBIDDEN_KEYS.has(key)) throw new Error(`Runtime value contains forbidden key "${key}".`);
+      countText(key);
       result[key] = copy(entry, depth + 1);
     }
     seen.delete(current);

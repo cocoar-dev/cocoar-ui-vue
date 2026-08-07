@@ -15,6 +15,61 @@ afterEach(() => {
 });
 
 describe('CoarPageRenderer — tampered-schema robustness', () => {
+  it('isolates invalid visual markup without hiding the rest of the page', () => {
+    const schema: PageNode = {
+      id: 'r',
+      type: 'page',
+      children: [
+        {
+          id: 'visual',
+          type: 'visual-markup',
+          name: 'decorativeVisual',
+          props: { html: '<form><button>Must never render</button></form>', css: '' },
+        },
+        { id: 'h', type: 'heading', props: { text: 'Login remains available' } },
+      ],
+    };
+
+    const wrapper = mount(CoarPageRenderer, { props: { schema } });
+
+    expect(wrapper.find('[data-visual-invalid="true"]').exists()).toBe(true);
+    expect(wrapper.find('iframe').exists()).toBe(false);
+    expect(wrapper.text()).toContain('Login remains available');
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('visual-markup "decorativeVisual" was hidden'),
+      expect.arrayContaining([expect.stringContaining('<form>')]),
+    );
+  });
+
+  it('renders valid visual markup as a non-interactive decorative iframe', () => {
+    const schema: PageNode = {
+      id: 'r',
+      type: 'page',
+      children: [
+        {
+          id: 'visual',
+          type: 'visual-markup',
+          name: 'decorativeVisual',
+          props: {
+            html: '<div class="pulse">Decorative only</div>',
+            css: '.pulse { animation: pulse 1s infinite } @keyframes pulse { to { opacity: .5 } }',
+          },
+        },
+      ],
+    };
+
+    const wrapper = mount(CoarPageRenderer, { props: { schema } });
+    const frame = wrapper.get('iframe');
+
+    expect(frame.attributes('sandbox')).toBe('');
+    expect(frame.attributes('aria-hidden')).toBe('true');
+    expect(frame.attributes('tabindex')).toBe('-1');
+    expect(frame.attributes('referrerpolicy')).toBe('no-referrer');
+    expect(frame.attributes('srcdoc')).toContain("script-src 'none'");
+    expect(frame.attributes('srcdoc')).toContain("connect-src 'none'");
+    expect(frame.attributes('srcdoc')).toContain('@keyframes pulse');
+  });
+
   it('renders a tampered heading level as h2 instead of crashing the page', () => {
     const schema = {
       id: 'r',
