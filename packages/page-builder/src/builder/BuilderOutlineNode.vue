@@ -8,6 +8,7 @@ import { BUILDER_API, BUILDER_CONFIG, BUILDER_RUNTIME, BUILDER_VALIDATION } from
 import { useMergedElements } from '../elements/useMergedElements';
 import { useBuilderDnd } from './useBuilderDnd';
 import type { NodePath } from './operations';
+import { compositionReference } from '../compositions';
 
 defineOptions({ name: 'BuilderOutlineNode' });
 
@@ -121,6 +122,7 @@ const nodeSubLabel = computed(() => {
   const n = props.node as PageNode & { name?: string };
   return n.name ? String(n.name) : undefined;
 });
+const compositionLink = computed(() => compositionReference(props.node));
 
 // ── Add-child dropdown ────────────────────────────────────────────────────────
 
@@ -245,6 +247,9 @@ function canMoveDown(): boolean {
       <span class="pb-tree-label">
         <span class="pb-tree-label-text">{{ nodeLabel }}</span>
         <span v-if="nodeSubLabel" class="pb-tree-label-key">{{ nodeSubLabel }}</span>
+        <span v-if="compositionLink" class="pb-tree-composition" :title="`Linked composition ${compositionLink.id}@${compositionLink.version}`">
+          {{ compositionLink.id }}@{{ compositionLink.version }}
+        </span>
       </span>
       <span
         v-if="issueSeverity"
@@ -532,6 +537,19 @@ function canMoveDown(): boolean {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.pb-tree-composition {
+  max-width: 120px;
+  padding: 1px 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--coar-surface-accent-secondary, #e6eefa);
+  color: var(--coar-text-accent-primary, #1666cc);
+  font-size: 9px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pb-tree-node--selected > .pb-tree-row .pb-tree-label-key {

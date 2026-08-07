@@ -33,17 +33,21 @@ import {
   BUILDER_PAGE_CODE_LIBS,
   BUILDER_PAGE_CODE_VALUES,
   BUILDER_LOCALE,
+  BUILDER_COMPOSITIONS,
   type PageBuilderAuthoringMode,
 } from './builder/builderContext';
 import BuilderOutline from './builder/BuilderOutline.vue';
 import BuilderCanvas from './builder/BuilderCanvas.vue';
 import BuilderPropsPanel from './builder/BuilderPropsPanel.vue';
 import BuilderTranslationsPanel from './builder/BuilderTranslationsPanel.vue';
+import BuilderCompositionsPanel from './builder/BuilderCompositionsPanel.vue';
 import CoarPageRenderer from './CoarPageRenderer.vue';
 import type { ActionHandler } from './context';
 import type { ActionValues } from './context';
 import { isExpressionBinding } from './runtimeBindings';
 import type { NodePath } from './builder/operations';
+import type { PageCompositionRepository } from './compositions';
+import { usePageCompositions, type PageCompositionManagement } from './builder/usePageCompositions';
 
 // Monaco is authoring-only and expensive. Both components are lazy: opening
 // the builder and its property inspector does not request the editor chunk.
@@ -96,6 +100,10 @@ const props = defineProps<{
   previewRuntimeTenantId?: string
   /** Host capability declarations merged into Monaco IntelliSense. */
   pageCodeExtraLibs?: CoarScriptEditorExtraLib[]
+  /** Optional host-owned persistence boundary for reusable, versioned subtrees. */
+  compositionRepository?: PageCompositionRepository
+  /** `consume` keeps definition creation/publication in a separate host-owned editor. */
+  compositionManagement?: PageCompositionManagement
 }>();
 
 /**
@@ -132,6 +140,11 @@ const builder = usePageBuilder({
   elements: mergedElements,
   config: configRef,
 });
+const compositions = usePageCompositions({
+  builder,
+  repository: computed(() => props.compositionRepository),
+  management: computed(() => props.compositionManagement ?? 'inline'),
+});
 
 // toRaw on both sides: a host that stores the schema in a deep ref hands the
 // SAME tree back wrapped in a reactive proxy — without unwrapping, the echo of
@@ -160,6 +173,7 @@ provide(BUILDER_CONFIG, configRef);
 provide(BUILDER_VALIDATION, validation);
 provide(BUILDER_AUTHORING_MODE, computed(() => props.authoringMode ?? 'properties'));
 provide(BUILDER_PAGE_CODE_LIBS, computed(() => props.pageCodeExtraLibs ?? []));
+provide(BUILDER_COMPOSITIONS, compositions);
 
 const authoringBreakpoint = ref<PageBreakpoint>('desktop');
 provide(BUILDER_BREAKPOINT, authoringBreakpoint);
@@ -751,6 +765,18 @@ function applyJson() {
               v-if="activeTab === 'translations'"
               :focus-key="focusedTranslationKey"
             />
+          </template>
+        </CoarTab>
+
+        <CoarTab v-if="compositionRepository" id="compositions">
+          <template #default>
+            <span class="pb-builder__tab-label">
+              <CoarIcon name="copy" size="s" />
+              Compositions
+            </span>
+          </template>
+          <template #content>
+            <BuilderCompositionsPanel v-if="activeTab === 'compositions'" />
           </template>
         </CoarTab>
 

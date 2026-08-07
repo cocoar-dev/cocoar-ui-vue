@@ -6,7 +6,9 @@ import type {
   PageNode,
   PageRootNode,
   VisualMarkupNode,
+  PageCompositionDefinition,
 } from '@cocoar/vue-page-builder';
+import { materializePageComposition } from '@cocoar/vue-page-builder';
 
 export const AMZETTEL_VISUAL_HTML = `<div class="auth-brand-inner">
   <h1 class="auth-logo">
@@ -99,23 +101,31 @@ export const AMZETTEL_VISUAL_CONFIG: NonNullable<PageConfig['visualMarkup']> = {
   ],
 };
 
-export function createAmZettelLoginPage(base: PageNode): PageNode {
-  if (base.type !== 'page') return base;
-  const root = base as PageRootNode;
-  const frame = root.children?.[0] as ElementNode | undefined;
-  if (!frame || !Array.isArray(frame.children)) return base;
-
-  frame.children = frame.children.filter((child) => child.id !== 'login-brand-zone');
-  frame.style = { ...(frame.style ?? {}), size: 'fill', maxWidth: '420px', gap: '20px' };
-
-  const visual: VisualMarkupNode = {
-    id: 'amzettel-shopping-visual',
+export const AMZETTEL_BRAND_COMPOSITION: PageCompositionDefinition = {
+  id: 'amzettel-brand-panel',
+  name: 'amZettel brand panel',
+  version: '1',
+  root: {
+    id: 'amzettel-shopping-visual-template',
     type: 'visual-markup',
     name: 'shoppingListVisual',
     props: { html: AMZETTEL_VISUAL_HTML, css: AMZETTEL_VISUAL_CSS },
     style: { size: 'fixed', width: '44%', minWidth: '380px', height: '100%', hidden: true },
     responsive: { desktop: { hidden: false } },
-  };
+  } satisfies VisualMarkupNode,
+};
+
+/** Applies the same generic linked brand-panel composition to any auth page. */
+export function createAmZettelPage(base: PageNode): PageNode {
+  if (base.type !== 'page') return base;
+  const root = base as PageRootNode;
+  const frame = root.children?.[0] as ElementNode | undefined;
+  if (!frame || !Array.isArray(frame.children)) return base;
+
+  frame.children = frame.children.filter((child) => !child.id.endsWith('-brand-zone'));
+  frame.style = { ...(frame.style ?? {}), size: 'fill', maxWidth: '420px', gap: '20px' };
+
+  const visual = materializePageComposition(AMZETTEL_BRAND_COMPOSITION, { page: root });
   const rightPane: ElementNode = {
     id: 'amzettel-auth-pane',
     type: 'stack',
@@ -137,3 +147,6 @@ export function createAmZettelLoginPage(base: PageNode): PageNode {
   root.children = [shell];
   return root;
 }
+
+/** @deprecated Use createAmZettelPage; retained for old playground links. */
+export const createAmZettelLoginPage = createAmZettelPage;

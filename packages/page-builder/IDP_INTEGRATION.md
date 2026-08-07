@@ -273,3 +273,35 @@ Before general tenant production rollout, complete the product threat model,
 independent security review, browser/mobile matrix, operational quotas and
 server-side publication checks. The beta is intended for Modgud integration and
 controlled testing, not an unreviewed public tenant rollout.
+
+### Reusable composition repository
+
+Reusable subtrees belong to the authoring workflow, not to the IDP request
+runtime. Supply a host-owned `PageCompositionRepository` to `CoarPageBuilder`.
+The Builder stores exact immutable version tokens, materializes the complete
+subtree in the draft, and preserves instance ids/names while applying an update.
+The host repository should enforce tenant ownership and optimistic concurrency
+through `baseVersion` on `publish`.
+
+For a SaaS authoring host, expose definitions separately from pages:
+
+- **Pages** embed the Builder with `composition-management="consume"` and may
+  insert, update or detach pinned instances.
+- **Compositions** edit one standalone definition tree and call repository
+  `create()` / `publish()` at the host boundary.
+
+Removing a composition instance from Login therefore changes only Login. It
+does not mutate the definition, Logout, or any other consumer. Publishing a new
+definition version also leaves every page pinned until its author updates it.
+
+At the server-side publication boundary:
+
+1. Load the tenant-owned authoring document.
+2. Run `validatePageCompositionReferences(document, repository)` and reject
+   missing versions or cycles.
+3. Run the normal page-document validation and security checks.
+4. Store `compilePageCompositions(document)` as the immutable runtime document.
+
+The runtime document contains no composition reference and never loads a
+repository. A missing repository therefore affects authoring/update only, not a
+previously materialized draft or an already published IDP page.

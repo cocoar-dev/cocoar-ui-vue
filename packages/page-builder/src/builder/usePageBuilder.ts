@@ -169,6 +169,34 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
     bumpVersion();
   }
 
+  /** Inserts an already materialized subtree (for example a composition instance). */
+  function insertNode(parentPath: NodePath, node: PageNode, atIndex?: number) {
+    const parent = getNodeAt(schema.value, parentPath);
+    const children = parent?.node && 'children' in parent.node && Array.isArray(parent.node.children)
+      ? parent.node.children
+      : undefined;
+    if (!parent || !children) return;
+    const before = schema.value;
+    const index = atIndex ?? children.length;
+    const next = insertChild(before, parentPath, index, node);
+    if (next === before) return;
+    schema.value = next;
+    selectedPath.value = [...parentPath, Math.max(0, Math.min(index, children.length))];
+    pushHistory(before, { kind: 'structural' });
+    bumpVersion();
+  }
+
+  /** Replaces one complete subtree while keeping the operation undoable. */
+  function replaceAt(path: NodePath, node: PageNode) {
+    const before = schema.value;
+    const next = replaceNode(before, path, node);
+    if (next === before) return;
+    schema.value = next;
+    selectedPath.value = [...path];
+    pushHistory(before, { kind: 'structural' });
+    bumpVersion();
+  }
+
   function requiredRule(path: NodePath) {
     const node = getNodeAt(schema.value, path)?.node;
     return node && options.config?.value?.requiredNodes?.find(
@@ -324,6 +352,8 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
     select,
     selectNode,
     addChild,
+    insertNode,
+    replaceAt,
     convertTo,
     remove,
     duplicate,

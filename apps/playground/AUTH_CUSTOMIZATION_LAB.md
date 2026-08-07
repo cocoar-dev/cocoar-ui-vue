@@ -28,6 +28,15 @@ For each slot the lab exposes the fixed reference, the live JSON renderer, the
 real visual PageBuilder and the persisted JSON document. The viewport selector
 covers 320 px compact, phone, tablet, desktop and a fluid host container.
 
+Login and Logout intentionally share the same linked **amZettel brand panel**
+composition. The top-level **Pages / Compositions** navigation mirrors a real
+host: the standalone Composition editor owns the definition and publishes new
+versions, while Builder → Compositions on Login or Logout only inserts, updates
+or detaches pinned instances. Deleting Login's instance does not affect Logout
+or the repository definition. The standalone renderer receives
+`compilePageCompositions(schema)`, proving that runtime delivery contains only
+normal PageBuilder elements and no repository reference.
+
 The renderer and Builder preview both execute the current code-authoring model:
 
 - one browser-only SES Worker session per selected page;

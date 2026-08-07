@@ -2,7 +2,7 @@
 // (elements/registry.ts imports node types from here), so no cycle exists.
 import type { PageElementRegistry } from './elements/registry'
 
-export const CURRENT_PAGE_SCHEMA_VERSION = 4
+export const CURRENT_PAGE_SCHEMA_VERSION = 5
 
 // ─── Style ────────────────────────────────────────────────────────────────────
 
@@ -90,6 +90,29 @@ interface PageNodeBase {
   stylePreset?: string
   /** Mobile-first style overrides; unset properties inherit from the preceding breakpoint. */
   responsive?: ResponsiveNodeStyles
+  /**
+   * Builder-only origin of this node inside a reusable composition template.
+   * The runtime compiler removes it before delivery. It lets composition
+   * updates preserve the instance's public names and node ids.
+   */
+  compositionOrigins?: PageCompositionOrigin[]
+  /**
+   * Builder-only link carried by the root of a materialized composition
+   * instance. The subtree itself always remains present and renderable.
+   */
+  composition?: PageCompositionReference
+}
+
+/** Immutable source/version selected for one materialized composition instance. */
+export interface PageCompositionReference {
+  id: string
+  version: string
+}
+
+/** One stable template identity in a possibly nested composition chain. */
+export interface PageCompositionOrigin {
+  id: string
+  sourceNodeId: string
 }
 
 // ─── Unified element node (schema v2) ─────────────────────────────────────────
@@ -229,7 +252,8 @@ export interface OptionItem {
 export interface PageRootNode extends PageNodeBase {
   type: 'page'
   /**
-   * Wire-format version. `4` makes every element name mandatory and unique;
+   * Wire-format version. `5` adds authoring metadata for reusable, versioned
+   * compositions; `4` makes every element name mandatory and unique;
    * `3` adds responsive overrides, runtime bindings, repeaters and feedback
    * zones. Older documents are migrated on ingest.
    */

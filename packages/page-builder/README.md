@@ -58,21 +58,22 @@ const config: PageConfig = {
 </template>
 ```
 
-## Schema (v4)
+## Schema (v5)
 
 The persisted document is a tree of one uniform node grammar: `type` is an
 open registry key (built-in or consumer), everything element-specific lives in
 the `props` bag, and the host vocabulary — `id`, `style`, the value-model trio
 `name` / `defaultValue` / `validation`, and `children` for containers — stays
-at node level. The `page` root carries `schemaVersion: 4`. Version 4 gives every
+at node level. The `page` root carries `schemaVersion: 5`. Version 4 gives every
 element a stable, page-wide `name`; value elements use that same name as their
-form/DTO property and Element Code uses it as its authoring identity.
+form/DTO property and Element Code uses it as its authoring identity. Version 5
+adds builder-only origin metadata for reusable, versioned compositions.
 
 ```jsonc
 {
   "id": "3f6c…",
   "type": "page",
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "style": { "gap": "16px", "padding": "24px" },
   "children": [
     { "id": "a1b2…", "type": "heading", "props": { "text": "Sign in", "level": 2 } },
@@ -98,6 +99,65 @@ props move into the `props` bag, v3 runtime-composition documents keep their
 meaning, and v4 deterministically adds missing element names. Unknown or
 unregistered types stay losslessly in the tree (flagged in the builder, skipped
 with a one-time warning at runtime).
+
+## Reusable compositions
+
+Any non-page subtree can be stored and reused: a brand panel, header, form
+section, footer, product card or a consumer element. Compositions are generic;
+there are no auth-specific categories or runtime components.
+
+The host owns persistence by implementing `PageCompositionRepository`. It may
+use an API, IndexedDB or another store, and every method may be sync or async:
+
+```ts
+import type { PageCompositionRepository } from '@cocoar/vue-page-builder';
+
+const compositionRepository: PageCompositionRepository = {
+  list: () => api.get('/page-compositions'),
+  get: (id, version) => api.get(`/page-compositions/${id}/${version ?? 'latest'}`),
+  create: (input) => api.post('/page-compositions', input),
+  publish: (input) => api.post(`/page-compositions/${input.id}/versions`, input),
+};
+```
+
+Pass it only to the Builder:
+
+```vue
+<CoarPageBuilder
+  v-model="authoringDocument"
+  :config="config"
+  :composition-repository="compositionRepository"
+  composition-management="consume"
+/>
+```
+
+`composition-management="consume"` is intended for a host with separate
+**Pages** and **Compositions** areas. Page editors can insert an exact pinned
+version, update it or detach it, but cannot create or publish definitions. The
+host edits a definition as a standalone element subtree (usually inside a
+temporary Page root) and calls `create()` / `publish()` itself. The default
+`inline` mode additionally exposes create/publish in the Builder tab and is
+useful for compact tools or bootstrapping a definition from an existing page.
+
+Instances are fully materialized normal node trees. This gives drafts an
+offline-safe snapshot and lets the Builder preserve page-local node ids and
+public names across updates. Nested compositions keep a small origin chain so
+each linked level can be updated or detached independently. Deleting an instance
+from one page never deletes the repository definition or instances on other pages.
+
+Before persisting a runtime document, remove authoring links deterministically:
+
+```ts
+import { compilePageCompositions } from '@cocoar/vue-page-builder';
+
+const runtimeDocument = compilePageCompositions(authoringDocument.value);
+```
+
+The compiled result has no repository ids, versions or source-node metadata and
+requires no composition repository at runtime. Use
+`validatePageCompositionReferences(authoringDocument, repository)` before
+publication to report missing versions and nested cycles. The package also
+exports `createInMemoryPageCompositionRepository()` for tests and local demos.
 
 ## Action payloads
 

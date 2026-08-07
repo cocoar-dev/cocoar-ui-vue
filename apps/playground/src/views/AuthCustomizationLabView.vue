@@ -8,11 +8,17 @@ import {
   AUTH_PAGE_COPY as AUTH_LAB_COPY,
   createAuthPageConfig as createAuthLabConfig,
   createAuthPageDocument as createAuthLabSchema,
+  CURRENT_PAGE_SCHEMA_VERSION,
   type ActionHandler,
   type ActionValues,
   type AuthPageLocale as AuthLabLocale,
   type AuthPageSlot as AuthLabSlot,
+  type ElementNode,
+  type PageCompositionDefinition,
+  type PageCompositionSummary,
   type PageNode,
+  compilePageCompositions,
+  createInMemoryPageCompositionRepository,
 } from '@cocoar/vue-page-builder';
 import AuthReferenceSurface from './auth-customization/AuthReferenceSurface.vue';
 import ConsentReferenceSurface from './auth-customization/ConsentReferenceSurface.vue';
@@ -20,10 +26,12 @@ import type { AuthLabConsentScope, AuthLabProvider } from './auth-customization/
 import { postAuthLab } from './auth-customization/authLabClient';
 import {
   AMZETTEL_VISUAL_CONFIG,
-  createAmZettelLoginPage,
+  AMZETTEL_BRAND_COMPOSITION,
+  createAmZettelPage,
 } from './auth-customization/amZettelVisual';
 
 type LabMode = 'compare' | 'renderer' | 'builder' | 'json' | 'contract' | 'requirements';
+type HostContentArea = 'pages' | 'compositions';
 type ViewportId = 'compact' | 'phone' | 'tablet' | 'desktop' | 'fluid';
 
 const slots: { id: AuthLabSlot; label: string }[] = [
@@ -51,6 +59,7 @@ const viewports: Record<ViewportId, { label: string; width?: number; height: num
 };
 
 const slot = ref<AuthLabSlot>('login');
+const hostContentArea = ref<HostContentArea>('pages');
 const mode = ref<LabMode>('compare');
 const viewport = ref<ViewportId>('phone');
 const locale = ref<AuthLabLocale>('de');
@@ -132,10 +141,134 @@ const consentScopes = computed<AuthLabConsentScope[]>(() =>
   ].slice(0, scopeCount.value),
 );
 
+const compositionRepository = createInMemoryPageCompositionRepository([AMZETTEL_BRAND_COMPOSITION]);
+
+function cloneJson<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function compositionEditorDocument(root?: ElementNode): PageNode {
+  return {
+    id: 'composition-editor-page',
+    type: 'page',
+    schemaVersion: CURRENT_PAGE_SCHEMA_VERSION,
+    style: { minHeight: '100%', padding: '32px', gap: '16px' },
+    children: [root ? cloneJson(root) : {
+      id: 'new-composition-root',
+      type: 'stack',
+      name: 'compositionRoot',
+      props: { direction: 'column' },
+      style: { gap: '16px', padding: '24px' },
+      children: [],
+    }],
+  };
+}
+
+const compositionSummaries = ref<readonly PageCompositionSummary[]>([]);
+const selectedCompositionId = ref<string>();
+const selectedCompositionVersion = ref<string>();
+const compositionName = ref('');
+const compositionDraft = ref<PageNode>(compositionEditorDocument());
+const compositionMessage = ref('');
+const compositionBusy = ref(false);
+const editingNewComposition = computed(() => !selectedCompositionId.value);
+const compositionRoot = computed(() => {
+  const children = compositionDraft.value.type === 'page' ? compositionDraft.value.children : [];
+  const root = children.length === 1 ? children[0] : undefined;
+  return root && root.type !== 'page' ? root as ElementNode : undefined;
+});
+const compositionRootIssue = computed(() => {
+  if (compositionDraft.value.type !== 'page' || compositionDraft.value.children.length !== 1) {
+    return 'A composition definition must contain exactly one root element.';
+  }
+  return '';
+});
+
+async function loadComposition(id: string, version?: string) {
+  compositionBusy.value = true;
+  compositionMessage.value = '';
+  try {
+    const definition = await compositionRepository.get(id, version);
+    if (!definition) throw new Error(`Composition ${id}${version ? `@${version}` : ''} was not found.`);
+    selectedCompositionId.value = definition.id;
+    selectedCompositionVersion.value = definition.version;
+    compositionName.value = definition.name;
+    compositionDraft.value = compositionEditorDocument(definition.root);
+  } catch (cause) {
+    compositionMessage.value = cause instanceof Error ? cause.message : String(cause);
+  } finally {
+    compositionBusy.value = false;
+  }
+}
+
+async function refreshCompositionLibrary(preferredId = selectedCompositionId.value) {
+  compositionSummaries.value = await compositionRepository.list();
+  const target = preferredId && compositionSummaries.value.some((entry) => entry.id === preferredId)
+    ? preferredId
+    : compositionSummaries.value[0]?.id;
+  if (target) await loadComposition(target);
+  else startNewComposition();
+}
+
+async function showCompositions() {
+  hostContentArea.value = 'compositions';
+  await refreshCompositionLibrary();
+}
+
+function startNewComposition() {
+  selectedCompositionId.value = undefined;
+  selectedCompositionVersion.value = undefined;
+  compositionName.value = '';
+  compositionMessage.value = '';
+  compositionDraft.value = compositionEditorDocument();
+}
+
+async function saveCompositionDefinition() {
+  const root = compositionRoot.value;
+  if (!root) {
+    compositionMessage.value = 'A composition needs exactly one root element.';
+    return;
+  }
+  if (!compositionName.value.trim()) {
+    compositionMessage.value = 'Enter a composition name.';
+    return;
+  }
+  compositionBusy.value = true;
+  compositionMessage.value = '';
+  try {
+    let saved: PageCompositionDefinition;
+    if (selectedCompositionId.value && selectedCompositionVersion.value) {
+      saved = await compositionRepository.publish({
+        id: selectedCompositionId.value,
+        baseVersion: selectedCompositionVersion.value,
+        root: cloneJson(root),
+      });
+      compositionMessage.value = `Published ${saved.id}@${saved.version}. Existing pages remain pinned until updated.`;
+    } else {
+      saved = await compositionRepository.create({ name: compositionName.value.trim(), root: cloneJson(root) });
+      compositionMessage.value = `Created ${saved.id}@${saved.version}.`;
+    }
+    compositionSummaries.value = await compositionRepository.list();
+    selectedCompositionId.value = saved.id;
+    selectedCompositionVersion.value = saved.version;
+    compositionName.value = saved.name;
+    compositionDraft.value = compositionEditorDocument(saved.root);
+  } catch (cause) {
+    compositionMessage.value = cause instanceof Error ? cause.message : String(cause);
+  } finally {
+    compositionBusy.value = false;
+  }
+}
+
+function createLabSchema(target: AuthLabSlot): PageNode {
+  const base = createAuthLabSchema(target);
+  return target === 'login' || target === 'logout' ? createAmZettelPage(base) : base;
+}
+
 const schemas = reactive<Record<AuthLabSlot, PageNode>>({
-  login: createAmZettelLoginPage(createAuthLabSchema('login')),
+  login: createLabSchema('login'),
   'password-forgot': createAuthLabSchema('password-forgot'),
-  logout: createAuthLabSchema('logout'),
+  logout: createLabSchema('logout'),
   consent: createAuthLabSchema('consent'),
 });
 
@@ -145,8 +278,16 @@ const schema = computed<PageNode>({
     schemas[slot.value] = value;
   },
 });
+const runtimeSchema = computed(() => compilePageCompositions(schema.value));
 const pageConfig = computed(() => ({
   ...createAuthLabConfig(slot.value, locale.value),
+  visualMarkup: AMZETTEL_VISUAL_CONFIG,
+}));
+const compositionPageConfig = computed(() => ({
+  ...createAuthLabConfig('login', locale.value),
+  fields: undefined,
+  requiredNodes: undefined,
+  allowCustomFields: true,
   visualMarkup: AMZETTEL_VISUAL_CONFIG,
 }));
 const copy = computed(() => AUTH_LAB_COPY[locale.value]);
@@ -201,7 +342,7 @@ const {
   runPageAction,
 } = usePageCodeRuntime({
   pageId: computed(() => `auth-lab:${slot.value}`),
-  schema,
+  schema: runtimeSchema,
   context: runtimeContext,
   viewport: runtimeViewport,
   tenantId: 'auth-lab',
@@ -272,13 +413,14 @@ const frameStyle = computed(() => ({
 const frameClass = computed(() => ({ 'device-frame--fluid': viewport.value === 'fluid' }));
 
 function resetCurrentSchema() {
-  schemas[slot.value] = createAuthLabSchema(slot.value);
+  schemas[slot.value] = createLabSchema(slot.value);
   rendererResult.value = '';
 }
 
 function loadAmZettelConsumerTest() {
   slot.value = 'login';
-  schemas.login = createAmZettelLoginPage(createAuthLabSchema('login'));
+  schemas.login = createLabSchema('login');
+  schemas.logout = createLabSchema('logout');
   viewport.value = 'desktop';
   rendererResult.value = '';
 }
@@ -510,7 +652,19 @@ const requirements = [
       </p>
     </header>
 
-    <section class="lab-toolbar" aria-label="Lab controls">
+    <nav class="host-content-nav" aria-label="Host content">
+      <div>
+        <strong>Host content</strong>
+        <span>Pages and reusable definitions are stored independently.</span>
+      </div>
+      <div class="host-content-nav__buttons">
+        <button :class="{ active: hostContentArea === 'pages' }" @click="hostContentArea = 'pages'">Pages</button>
+        <button :class="{ active: hostContentArea === 'compositions' }" @click="showCompositions">Compositions</button>
+      </div>
+    </nav>
+
+    <template v-if="hostContentArea === 'pages'">
+      <section class="lab-toolbar" aria-label="Lab controls">
       <div class="control-group">
         <strong>Page slot</strong>
         <div class="button-row">
@@ -565,7 +719,7 @@ const requirements = [
         <input v-model="accent" type="color" />
         <code>{{ accent }}</code>
       </label>
-    </section>
+      </section>
 
     <section class="scenario-toolbar" aria-label="Host runtime scenarios">
       <strong>Host context</strong>
@@ -654,7 +808,7 @@ const requirements = [
           />
           <AuthReferenceSurface
             v-else
-            :slot="slot"
+            :page-slot="slot"
             :locale="locale"
             :product-name="productName"
             :show-legal="showLegal"
@@ -673,7 +827,7 @@ const requirements = [
         </header>
         <div class="device-frame renderer-frame" :class="frameClass" :style="frameStyle">
           <CoarPageRenderer
-            :schema="schema" :fallback-schema="fallbackSchema" :config="pageConfig"
+            :schema="runtimeSchema" :fallback-schema="fallbackSchema" :config="pageConfig"
             :actions="rendererActions" :runtime-context="runtimeContext"
             :view-state="viewState" :locale="locale" :viewport-width="viewports[viewport].width"
             :page-code-values="pageCodeValues" :on-action="runPageAction"
@@ -686,7 +840,7 @@ const requirements = [
     <div v-else-if="mode === 'renderer'" class="single-stage">
       <div class="device-frame renderer-frame" :class="frameClass" :style="frameStyle">
         <CoarPageRenderer
-          :schema="schema" :fallback-schema="fallbackSchema" :config="pageConfig"
+          :schema="runtimeSchema" :fallback-schema="fallbackSchema" :config="pageConfig"
           :actions="rendererActions" :runtime-context="runtimeContext"
           :view-state="viewState" :locale="locale" :viewport-width="viewports[viewport].width"
           :page-code-values="pageCodeValues" :on-action="runPageAction"
@@ -711,6 +865,8 @@ const requirements = [
         :preview-context="runtimeContext" :preview-state="viewState"
         :preview-locale="locale" :preview-actions="rendererActions"
         :preview-fallback-schema="fallbackSchema"
+        :composition-repository="compositionRepository"
+        composition-management="consume"
       />
     </section>
 
@@ -787,9 +943,89 @@ const requirements = [
       </div>
     </section>
 
-    <CoarNotice v-if="rendererResult" variant="success" class="renderer-result">
-      <strong>Renderer action:</strong> {{ rendererResult }}
-    </CoarNotice>
+      <CoarNotice v-if="rendererResult" variant="success" class="renderer-result">
+        <strong>Renderer action:</strong> {{ rendererResult }}
+      </CoarNotice>
+    </template>
+
+    <section v-else class="composition-host-stage">
+      <aside class="composition-library" aria-label="Composition library">
+        <header>
+          <div>
+            <p class="composition-eyebrow">Host repository</p>
+            <h2>Compositions</h2>
+          </div>
+          <CoarButton size="s" @click="startNewComposition">New</CoarButton>
+        </header>
+        <p class="composition-library__intro">
+          Definitions live independently from Login, Logout and other pages.
+        </p>
+        <button
+          v-for="item in compositionSummaries"
+          :key="item.id"
+          class="composition-library__item"
+          :class="{ active: selectedCompositionId === item.id }"
+          :disabled="compositionBusy"
+          @click="loadComposition(item.id)"
+        >
+          <span>{{ item.name }}</span>
+          <code>{{ item.id }}@{{ item.latestVersion }}</code>
+        </button>
+      </aside>
+
+      <section class="composition-editor-stage" aria-labelledby="composition-editor-title">
+        <header class="composition-editor-header">
+          <div>
+            <p class="composition-eyebrow">{{ editingNewComposition ? 'New definition' : 'Composition definition' }}</p>
+            <h2 id="composition-editor-title">{{ editingNewComposition ? 'Create composition' : compositionName }}</h2>
+            <p v-if="selectedCompositionId">
+              <code>{{ selectedCompositionId }}@{{ selectedCompositionVersion }}</code> is the editable source. Pages only contain pinned instances.
+            </p>
+            <p v-else>Build one reusable element subtree and store it in the host repository.</p>
+          </div>
+          <div class="composition-editor-actions">
+            <label>
+              Name
+              <input v-model="compositionName" type="text" placeholder="e.g. Auth branding" />
+            </label>
+            <CoarButton
+              :disabled="compositionBusy || !compositionRoot || !compositionName.trim()"
+              @click="saveCompositionDefinition"
+            >
+              {{ editingNewComposition ? 'Create composition' : 'Publish new version' }}
+            </CoarButton>
+            <CoarButton
+              v-if="selectedCompositionId"
+              variant="secondary"
+              :disabled="compositionBusy"
+              @click="loadComposition(selectedCompositionId, selectedCompositionVersion)"
+            >
+              Discard changes
+            </CoarButton>
+          </div>
+        </header>
+
+        <CoarNotice v-if="compositionMessage" variant="info" class="composition-message">
+          {{ compositionMessage }}
+        </CoarNotice>
+        <CoarNotice v-else-if="compositionRootIssue" variant="warning" class="composition-message">
+          {{ compositionRootIssue }}
+        </CoarNotice>
+
+        <CoarPageBuilder
+          v-model="compositionDraft"
+          :config="compositionPageConfig"
+          class="builder composition-builder"
+          authoring-mode="code"
+          :preview-context="runtimeContext"
+          :preview-state="viewState"
+          :preview-locale="locale"
+          :preview-actions="rendererActions"
+          :composition-repository="compositionRepository"
+          composition-management="consume"
+        />
+      </section>
+    </section>
   </div>
 </template>
 
@@ -807,6 +1043,176 @@ const requirements = [
 .lab-heading p {
   margin: 0.25rem 0 0;
   color: var(--coar-text-neutral-secondary, #5f6470);
+}
+
+.host-content-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--coar-border-neutral, #dfe1e7);
+  border-radius: 0.75rem;
+  background: var(--coar-surface-default, white);
+}
+.host-content-nav > div:first-child {
+  display: grid;
+  gap: 0.15rem;
+}
+.host-content-nav strong {
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.host-content-nav span {
+  color: var(--coar-text-neutral-secondary, #5f6470);
+  font-size: 0.78rem;
+}
+.host-content-nav__buttons {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.25rem;
+  border-radius: 0.55rem;
+  background: var(--coar-surface-neutral-subtle, #f3f4f7);
+}
+.host-content-nav__buttons button {
+  min-height: 2rem;
+  padding: 0.35rem 0.8rem;
+  border: 0;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: var(--coar-text-neutral-secondary, #5f6470);
+  font: inherit;
+  cursor: pointer;
+}
+.host-content-nav__buttons button.active {
+  background: var(--coar-surface-default, white);
+  color: var(--coar-text-accent-primary, #1666cc);
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgb(26 33 46 / 12%);
+}
+
+.composition-host-stage {
+  display: grid;
+  grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr);
+  min-height: 44rem;
+  overflow: hidden;
+  border: 1px solid var(--coar-border-neutral, #dfe1e7);
+  border-radius: 0.75rem;
+  background: var(--coar-surface-default, white);
+}
+.composition-library {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 1rem;
+  border-right: 1px solid var(--coar-border-neutral, #dfe1e7);
+  background: var(--coar-surface-neutral-subtle, #f7f7f9);
+}
+.composition-library header,
+.composition-editor-header,
+.composition-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.composition-library header,
+.composition-editor-header {
+  justify-content: space-between;
+}
+.composition-library h2,
+.composition-editor-header h2,
+.composition-editor-header p,
+.composition-eyebrow {
+  margin: 0;
+}
+.composition-eyebrow {
+  color: var(--coar-text-accent-primary, #1666cc);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.composition-library__intro,
+.composition-editor-header p {
+  color: var(--coar-text-neutral-secondary, #5f6470);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+.composition-library__item {
+  display: grid;
+  gap: 0.2rem;
+  width: 100%;
+  padding: 0.7rem;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.composition-library__item:hover,
+.composition-library__item.active {
+  border-color: var(--coar-border-accent, #1666cc);
+  background: var(--coar-surface-default, white);
+}
+.composition-library__item span {
+  font-weight: 650;
+}
+.composition-library__item code {
+  color: var(--coar-text-neutral-tertiary, #777b86);
+  font-size: 0.72rem;
+}
+.composition-editor-stage {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 1rem;
+}
+.composition-editor-header > div:first-child {
+  display: grid;
+  gap: 0.25rem;
+}
+.composition-editor-actions {
+  flex-wrap: wrap;
+  justify-content: end;
+}
+.composition-editor-actions label {
+  display: grid;
+  gap: 0.2rem;
+  color: var(--coar-text-neutral-secondary, #5f6470);
+  font-size: 0.7rem;
+}
+.composition-editor-actions input {
+  min-height: 2rem;
+  min-width: 13rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--coar-border-neutral, #d6d8df);
+  border-radius: 0.45rem;
+  background: var(--coar-surface-default, white);
+  font: inherit;
+}
+.composition-message {
+  margin: 0;
+}
+.composition-builder {
+  height: 70vh;
+}
+
+@media (max-width: 900px) {
+  .host-content-nav,
+  .composition-editor-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .composition-host-stage {
+    grid-template-columns: 1fr;
+  }
+  .composition-library {
+    border-right: 0;
+    border-bottom: 1px solid var(--coar-border-neutral, #dfe1e7);
+  }
 }
 
 .lab-toolbar,

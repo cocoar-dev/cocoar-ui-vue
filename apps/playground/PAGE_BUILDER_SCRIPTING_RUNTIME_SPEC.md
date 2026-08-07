@@ -4,7 +4,7 @@ The visual JavaScript authoring model, Page State plus per-element code wire
 format, and Monaco integration are documented in
 [`PAGE_BUILDER_SCRIPTING_AUTHORING.md`](./PAGE_BUILDER_SCRIPTING_AUTHORING.md).
 
-Status: **Exported beta package API and schema v4; controlled integration testing, not a production security claim**
+Status: **Exported beta package API and schema v5; controlled integration testing, not a production security claim**
 Date: 2026-08-03
 Executable route: `/page-builder-scripting-spike`
 

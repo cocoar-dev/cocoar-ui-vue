@@ -18,7 +18,7 @@ import type { AuthLabProvider } from './authLabRuntime';
 import { postAuthLab } from './authLabClient';
 
 const props = defineProps<{
-  slot: AuthLabSlot;
+  pageSlot: AuthLabSlot;
   locale: AuthLabLocale;
   productName: string;
   showLegal: boolean;
@@ -39,7 +39,7 @@ const result = ref('');
 const resetSent = ref(false);
 
 watch(
-  () => props.slot,
+  () => props.pageSlot,
   () => {
     error.value = '';
     result.value = '';
@@ -91,7 +91,7 @@ function localAction(message: string) {
 <template>
   <section class="reference-page" data-testid="reference-surface">
     <div class="language-chip">{{ locale.toUpperCase() }}</div>
-    <div class="auth-frame" :class="{ 'auth-frame--logout': slot === 'logout' }">
+    <div class="auth-frame" :class="{ 'auth-frame--logout': pageSlot === 'logout' }">
       <div class="brand" data-testid="reference-brand">
         <div class="brand__mark" aria-hidden="true">M</div>
         <h1>{{ productName || 'Modgud' }}</h1>
@@ -99,11 +99,11 @@ function localAction(message: string) {
           <a href="#terms" @click.prevent>Terms</a>
           <a href="#privacy" @click.prevent>Privacy</a>
         </div>
-        <p v-if="slot === 'login'">{{ copy.subtitle }}</p>
-        <p v-else-if="slot === 'password-forgot'">{{ copy.resetTitle }}</p>
+        <p v-if="pageSlot === 'login'">{{ copy.subtitle }}</p>
+        <p v-else-if="pageSlot === 'password-forgot'">{{ copy.resetTitle }}</p>
       </div>
 
-      <CoarCard v-if="slot === 'login'" elevated>
+      <CoarCard v-if="pageSlot === 'login'" elevated>
         <form class="form-stack" @submit.prevent="submitLogin">
           <template v-if="internalLogin && !passwordless">
             <CoarFormField :label="copy.username">
@@ -203,7 +203,7 @@ function localAction(message: string) {
         </form>
       </CoarCard>
 
-      <CoarCard v-else-if="slot === 'password-forgot'" elevated>
+      <CoarCard v-else-if="pageSlot === 'password-forgot'" elevated>
         <div v-if="passwordless" class="form-stack">
           <CoarNotice variant="info">
             {{

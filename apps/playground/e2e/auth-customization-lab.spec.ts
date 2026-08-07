@@ -140,6 +140,44 @@ test.describe('Auth Customization Lab', () => {
     expect(fixtureOptions).toContain('Typical');
   });
 
+  test('authors compositions separately and keeps pages pinned until updated', async ({ page }) => {
+    await page.goto('/auth-customization-lab');
+    await page.getByRole('button', { name: 'Builder', exact: true }).click();
+    const builder = page.locator('.pb-builder');
+    await builder.getByRole('tab', { name: 'Compositions', exact: true }).click();
+
+    const loginV1 = builder.getByRole('treeitem', {
+      name: 'Visual markup shoppingListVisual amzettel-brand-panel@1',
+      exact: true,
+    });
+    await expect(loginV1).toBeVisible();
+    await loginV1.click();
+    await expect(builder.getByRole('heading', { name: 'amzettel-brand-panel@1', exact: true })).toBeVisible();
+    await expect(builder.getByRole('button', { name: 'Publish new version', exact: true })).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Compositions', exact: true }).click();
+    const repository = page.getByRole('complementary', { name: 'Composition library' });
+    await expect(repository.getByRole('button', { name: /amZettel brand panel/ })).toContainText('amzettel-brand-panel@1');
+    await expect(page.getByRole('heading', { name: 'amZettel brand panel', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Publish new version', exact: true }).click();
+    await expect(repository.getByRole('button', { name: /amZettel brand panel/ })).toContainText('amzettel-brand-panel@2');
+    await expect(page.getByText('Published amzettel-brand-panel@2.', { exact: false })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Pages', exact: true }).click();
+    await builder.getByRole('tab', { name: 'Compositions', exact: true }).click();
+    const stillPinnedV1 = builder.getByRole('treeitem', {
+      name: 'Visual markup shoppingListVisual amzettel-brand-panel@1',
+      exact: true,
+    });
+    await expect(stillPinnedV1).toBeVisible();
+    await stillPinnedV1.click();
+    await builder.getByRole('button', { name: 'Update to latest', exact: true }).click();
+    await expect(builder.getByRole('treeitem', {
+      name: 'Visual markup shoppingListVisual amzettel-brand-panel@2',
+      exact: true,
+    })).toBeVisible();
+  });
+
   test('renders a dynamic consent scope array and submits selected values', async ({ page }) => {
     await openRenderer(page);
     await page.getByRole('button', { name: 'Consent · scopes[]', exact: true }).click();

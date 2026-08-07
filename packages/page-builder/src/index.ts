@@ -6,6 +6,8 @@ export { FORM_ERROR_KEY } from './context';
 
 export type {
   PageNode,
+  PageCompositionReference,
+  PageCompositionOrigin,
   ElementType,
   NodeStyle,
   PageBreakpoint,
@@ -66,10 +68,31 @@ export type {
   PageFieldSpec,
 } from './schema';
 
+export {
+  collectCompositionReferences,
+  compilePageCompositions,
+  compositionReference,
+  compositionTemplateFromInstance,
+  createInMemoryPageCompositionRepository,
+  detachPageComposition,
+  isPageCompositionReference,
+  linkExistingCompositionInstance,
+  materializePageComposition,
+  validatePageCompositionReferences,
+  type CreatePageCompositionInput,
+  type MaybePromise,
+  type PageCompositionDefinition,
+  type PageCompositionIssue,
+  type PageCompositionRepository,
+  type PageCompositionSummary,
+  type PublishPageCompositionInput,
+} from './compositions';
+
 export { findStylePreset, isSafeStylePreset } from './stylePresets';
 
 export { isContainerNode, isElementAllowed } from './schema';
 export { CURRENT_PAGE_SCHEMA_VERSION } from './schema';
+export type { PageCompositionManagement } from './builder/usePageCompositions';
 
 // ─── Browser Page Runtime ────────────────────────────────────────────────────
 

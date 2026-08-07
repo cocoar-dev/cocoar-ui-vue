@@ -5,6 +5,7 @@ import type { CoarScriptEditorExtraLib } from '@cocoar/vue-script-editor';
 import type { PageCodeRuntimeValues } from '../pageCode';
 import type { UsePageBuilderReturn } from './usePageBuilder';
 import type { UseSchemaValidationReturn } from './useSchemaValidation';
+import type { UsePageCompositionsReturn } from './usePageCompositions';
 
 export const BUILDER_API: InjectionKey<UsePageBuilderReturn> = Symbol('PageBuilderApi');
 
@@ -60,3 +61,6 @@ export interface BuilderLogicContext {
 
 /** Shared expression-editor entry point used by property rows and Logic overview. */
 export const BUILDER_LOGIC: InjectionKey<BuilderLogicContext> = Symbol('PageBuilderLogic');
+
+/** Optional host-backed reusable-subtree library. */
+export const BUILDER_COMPOSITIONS: InjectionKey<UsePageCompositionsReturn> = Symbol('PageBuilderCompositions');
