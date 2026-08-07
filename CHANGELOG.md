@@ -27,6 +27,7 @@ This beta brings the Vue calendar's view hierarchy and interaction model in line
 
 ### Fixed
 
+- **Selected-day hover contrast.** Month List and Agenda keep the selected day on its accent background while hovering, so the white label remains readable. The Year view applies the same rule to its current-day marker.
 - **Continuous-month separators and today marker.** Every month begins with a consistent top separator even when the previous section has no rendered day above it, and the current-day marker is no longer clipped at the section edge.
 - **Subpath declaration packaging.** The `recurrence` and `recurrence-rrule-temporal` exports now point at the declaration files Vite actually emits, so TypeScript consumers resolve both subpaths from the packed npm artifact.
 

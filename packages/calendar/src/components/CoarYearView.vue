@@ -139,7 +139,7 @@ function openMonth(date: Temporal.PlainDate) {
   font-size: var(--coar-font-size-xs, 11px);
   cursor: pointer;
 }
-.coar-year-view__day:hover {
+.coar-year-view__day:hover:not(.coar-year-view__day--today) {
   background: var(--coar-surface-subtle, #f3f4f6);
 }
 .coar-year-view__day--outside {

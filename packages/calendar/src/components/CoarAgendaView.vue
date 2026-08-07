@@ -527,7 +527,7 @@ defineExpose({
   cursor: pointer;
 }
 
-.coar-agenda-view__week-day:hover {
+.coar-agenda-view__week-day:hover:not(.coar-agenda-view__week-day--selected) {
   background: var(--coar-background-neutral-secondary);
 }
 

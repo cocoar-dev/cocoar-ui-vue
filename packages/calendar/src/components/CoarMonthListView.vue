@@ -237,7 +237,7 @@ function formatTime(event: CalendarEvent<TMeta>): string {
   font: inherit;
   cursor: pointer;
 }
-.coar-month-list-view__day:hover {
+.coar-month-list-view__day:hover:not(.coar-month-list-view__day--selected) {
   background: var(--coar-background-neutral-secondary);
 }
 .coar-month-list-view__day--selected {
