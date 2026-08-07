@@ -9,53 +9,56 @@ export function safeCssLength(value: string | undefined): string | undefined {
   if (!value || value.length > 120) return undefined;
   if (/url|var|expression|[;{}\\]/i.test(value)) return undefined;
   return /^[\d\s.,+\-*/%()a-z]+$/i.test(value)
-    && !/[a-z]/i.test(value.replace(/calc|min|max|clamp|px|rem|em|vh|vw|vmin|vmax|ch|auto|fit-content/g, ''))
+    && !/[a-z]/i.test(value.replace(
+      /fit-content|clamp|calc|min|max|rem|vmin|vmax|dvh|svh|lvh|dvw|svw|lvw|dvi|svi|lvi|dvb|svb|lvb|px|em|vh|vw|vi|vb|ch|auto/g,
+      '',
+    ))
     ? value
     : undefined;
 }
 
 const SURFACES = {
-  default: 'var(--coar-surface-default, #fff)',
-  subtle: 'var(--coar-surface-neutral-subtle, #f7f7f9)',
-  raised: 'var(--coar-surface-raised, #fff)',
-  accent: 'var(--coar-surface-accent-subtle, #e6eefa)',
-  success: 'var(--coar-surface-semantic-success-subtle, #e8f5ed)',
-  warning: 'var(--coar-surface-semantic-warning-subtle, #fef3c7)',
-  error: 'var(--coar-surface-semantic-error-subtle, #fde8e4)',
+  default: 'var(--coar-background-neutral-primary, #fff)',
+  subtle: 'var(--coar-background-neutral-secondary, #f7f7f9)',
+  raised: 'var(--coar-background-neutral-primary, #fff)',
+  accent: 'var(--coar-surface-accent-secondary, #e6eefa)',
+  success: 'var(--coar-background-semantic-success-subtle, #e8f5ed)',
+  warning: 'var(--coar-background-semantic-warning-subtle, #fef3c7)',
+  error: 'var(--coar-background-semantic-error-subtle, #fde8e4)',
 } as const;
 const FOREGROUNDS = {
   primary: 'var(--coar-text-neutral-primary, #111)',
   secondary: 'var(--coar-text-neutral-secondary, #666)',
   tertiary: 'var(--coar-text-neutral-tertiary, #888)',
-  inverse: 'var(--coar-text-inverse, #fff)',
-  accent: 'var(--coar-text-accent, #1666cc)',
+  inverse: 'var(--coar-text-on-bold, #fff)',
+  accent: 'var(--coar-text-accent-primary, #1666cc)',
   success: 'var(--coar-text-semantic-success-bold, #176b3a)',
   warning: 'var(--coar-text-semantic-warning-bold, #92400e)',
   error: 'var(--coar-text-semantic-error-bold, #c0392b)',
 } as const;
 const BORDERS = {
   neutral: 'var(--coar-border-neutral, #dfe1e7)',
-  accent: 'var(--coar-border-accent, #1666cc)',
-  success: 'var(--coar-border-semantic-success, #22834b)',
-  warning: 'var(--coar-border-semantic-warning, #b7791f)',
+  accent: 'var(--coar-border-accent-primary, #1666cc)',
+  success: 'var(--coar-border-semantic-success-bold, #22834b)',
+  warning: 'var(--coar-border-semantic-warning-bold, #b7791f)',
   error: 'var(--coar-border-semantic-error, #c0392b)',
 } as const;
 const RADII = { none: '0', small: '4px', medium: '8px', large: '16px', full: '9999px' } as const;
 const SHADOWS = {
   none: 'none',
-  small: 'var(--coar-shadow-small, 0 1px 3px rgba(0,0,0,.12))',
-  medium: 'var(--coar-shadow-medium, 0 4px 12px rgba(0,0,0,.14))',
-  large: 'var(--coar-shadow-large, 0 12px 28px rgba(0,0,0,.18))',
+  small: 'var(--coar-shadow-s, 0 1px 3px rgba(0,0,0,.12))',
+  medium: 'var(--coar-shadow-m, 0 4px 12px rgba(0,0,0,.14))',
+  large: 'var(--coar-shadow-l, 0 12px 28px rgba(0,0,0,.18))',
 } as const;
 const FONT_FAMILIES = {
   body: 'var(--coar-body-base-family, sans-serif)',
-  heading: 'var(--coar-heading-family, var(--coar-body-base-family, sans-serif))',
-  mono: 'var(--coar-monospace-family, ui-monospace, monospace)',
+  heading: 'var(--coar-headings-heading-family, var(--coar-body-base-family, sans-serif))',
+  mono: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
 } as const;
 const FONT_SIZES = {
   caption: 'var(--coar-body-caption-size, 12px)', small: 'var(--coar-body-small-base-size, 14px)',
-  base: 'var(--coar-body-base-size, 16px)', large: 'var(--coar-heading-small-size, 20px)',
-  xlarge: 'var(--coar-heading-medium-size, 24px)', display: 'var(--coar-heading-large-size, 32px)',
+  base: 'var(--coar-body-base-size, 16px)', large: 'var(--coar-headings-subheading-size, 20px)',
+  xlarge: 'var(--coar-headings-heading-size, 24px)', display: 'var(--coar-titles-subtitle-size, 32px)',
 } as const;
 const FONT_WEIGHTS = { regular: '400', medium: '500', semibold: '600', bold: '700' } as const;
 const LINE_HEIGHTS = { tight: '1.2', normal: '1.5', relaxed: '1.75' } as const;
@@ -102,6 +105,8 @@ export function selfLayoutStyle(
   if (safeCssLength(style.minWidth)) css.minWidth = safeCssLength(style.minWidth);
   if (safeCssLength(style.maxWidth)) css.maxWidth = safeCssLength(style.maxWidth);
   if (safeCssLength(style.height)) css.height = safeCssLength(style.height);
+  if (safeCssLength(style.maxHeight)) css.maxHeight = safeCssLength(style.maxHeight);
+  if (style.overflow) css.overflow = style.overflow;
   if (style.hidden) css.display = 'none';
   if (style.surface) css.background = SURFACES[style.surface];
   if (style.foreground) css.color = FOREGROUNDS[style.foreground];

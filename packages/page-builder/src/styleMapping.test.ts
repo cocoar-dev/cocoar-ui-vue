@@ -8,6 +8,23 @@ describe('safeCssLength', () => {
     expect(safeCssLength('url(https://example.test/x)')).toBeUndefined();
     expect(safeCssLength('1px;display:none')).toBeUndefined();
   });
+
+  it('allows modern small, large, and dynamic viewport units', () => {
+    for (const unit of [
+      'dvh', 'svh', 'lvh',
+      'dvw', 'svw', 'lvw',
+      'dvi', 'svi', 'lvi',
+      'dvb', 'svb', 'lvb',
+    ]) {
+      expect(safeCssLength(`100${unit}`)).toBe(`100${unit}`);
+    }
+    expect(safeCssLength('calc(100dvh - 2rem)')).toBe('calc(100dvh - 2rem)');
+  });
+
+  it('still rejects unknown units that contain an allowed unit name', () => {
+    expect(safeCssLength('100xdvh')).toBeUndefined();
+    expect(safeCssLength('10pixels')).toBeUndefined();
+  });
 });
 
 describe('selfLayoutStyle', () => {
@@ -54,7 +71,14 @@ describe('selfLayoutStyle', () => {
   });
 
   it('maps min-height (so Editor and Preview size the box alike)', () => {
-    expect(selfLayoutStyle({ minHeight: '100vh' })).toEqual({ minHeight: '100vh' });
+    expect(selfLayoutStyle({ minHeight: '100dvh' })).toEqual({ minHeight: '100dvh' });
+  });
+
+  it('maps max-height and overflow for scrollable page roots', () => {
+    expect(selfLayoutStyle({ maxHeight: '100dvh', overflow: 'auto' })).toEqual({
+      maxHeight: '100dvh',
+      overflow: 'auto',
+    });
   });
 });
 

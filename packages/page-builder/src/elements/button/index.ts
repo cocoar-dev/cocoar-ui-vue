@@ -6,6 +6,7 @@ import ButtonInspector from './ButtonInspector.vue';
 
 export const buttonElement = definePageElement<ButtonNode['props']>({
   renderer: ButtonRenderer,
+  action: true,
   builder: {
     label: { key: 'coar.pageBuilder.type.button', fallback: 'Button' },
     icon: 'zap',

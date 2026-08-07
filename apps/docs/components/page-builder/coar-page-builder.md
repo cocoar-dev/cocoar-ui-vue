@@ -25,8 +25,10 @@ A live builder with a small starting schema and a restricted `allowedElements` l
 | `modelValue` / `v-model` | `PageNode` | empty `page` | The page schema. Bound two-way; every edit updates the ref. Every tree entering from **outside** — the initial value, a later external replacement, or an initially-`undefined` ref that is filled once an async load resolves — passes through the same normalization as the JSON tab's Apply: legacy `column`/`row` containers become `stack`, v1 flat documents get their `props` bags, a non-`page` root is wrapped in one, missing/duplicate node ids are repaired with fresh `crypto.randomUUID` ids, missing `children` arrays and `props` bags are added, every element receives a unique name, and documents are stamped `schemaVersion: 4`. Repairs log a DEV-only console warning. |
 | `config` | [`PageConfig`](./#pageconfig-the-consumer-contract) | — | Allowed elements, [consumer element registrations](./custom-elements), actions, runtime-context contracts, states, locales, required nodes, limits, fixtures and asset callbacks. Pass the same value to the renderer. |
 | `previewContext` | `Record<string, unknown>` | — | Safe host data for the embedded preview. Only paths declared by `config.contextFields` are readable. |
-| `previewState` | `string` | — | Initial host state for state-based bindings and conditions in the preview. |
+| `previewState` | `string` | — | Initial host view-state ID for conditions and Page/Element Code in the preview. Direct `source: 'state'` bindings read customer Page State. |
 | `previewLocale` | `string` | — | Initial locale for localized schema values in the preview. |
+| `previewTheme` | `CoarTheme` | — | Host-resolved brand primitives applied through the same `CoarThemeScope` used at runtime. Scoped to the Preview canvas; builder chrome and dialogs are unaffected. |
+| `previewThemeMode` | `'auto' \| 'light' \| 'dark'` | `'auto'` | Colour mode for the preview theme. Auto follows the surrounding application/OS mode. |
 | `previewActions` | `Record<string, ActionHandler>` | — | Optional live handlers for action testing in the embedded preview. |
 | `previewFallbackSchema` | `PageNode` | — | Host-owned fallback used by the preview when the customized document violates its contract. |
 | `previewRuntimeHost` | `PageRuntimeHost` | no-capability host | Application capability catalogue for the Builder-owned isolated preview runtime. |
@@ -45,7 +47,7 @@ A live builder with a small starting schema and a restricted `allowedElements` l
 - **Layout controls** — every node's Style section exposes the flex model: container `Justify` (main axis) + `Align items` (cross axis), and per-node `Align self`, `Size` (Fit / Fill / Fixed → Width) and `Min height`. Center a single element, distribute a row, or build a full-screen centered page — and the Editor canvas mirrors the result 1:1 with the Preview.
 - **Asset picker entry point** — when `config.pickAsset` is set, the image element shows a thumbnail + "Choose…" button that defers to your own picker UI.
 - **Responsive authoring and preview** — Mobile-first base styles plus Phone, Tablet and Desktop overrides. The exact Compact 320×568, Phone 390×844, Tablet 768×1024 and Desktop 1280×800 frames use the same resolver as runtime; each override can be reset independently. `hidden` removes the node from rendering, validation and action payloads at that breakpoint.
-- **Runtime bindings and localization** — bind supported top-level element props to allow-listed context paths, host state or the current repeater item. Properties explicitly registered as `valueKind: 'localized-text'` reference stable keys; the central **Translations** tab edits the page-owned catalogue for every configured locale and flags unused keys. Legacy embedded `LocalizedValue` objects remain readable.
+- **Runtime bindings and localization** — bind supported element props and individual `actionValues.<key>` entries to allow-listed context paths, customer Page State, named form fields/selections, or the current repeater item/index. Safe expressions use the same targets. Properties explicitly registered as `valueKind: 'localized-text'` reference stable keys; the central **Translations** tab edits the page-owned catalogue for every configured locale and flags unused keys. Legacy embedded `LocalizedValue` objects remain readable.
 - **Conditions, repeaters and feedback zones** — `visibleWhen` supports field/context/state/item sources and bounded `all`/`any` composition. A generic `repeat` renders a child template for an allow-listed context array and can emit a selected-key array under any configured output name. A `feedback` node places form errors, status, loading or authored messages inside the layout.
 - **Deterministic fixtures** — `config.previewFixtures` supplies named context/state/locale/viewport samples such as empty, typical and large collections without persisting test data in the document. Fixture selection also restarts/updates the Builder-owned sandbox against exactly that effective contract. “Host values” appears only when the host supplied every context/state/locale part required by the config; otherwise the first fixture is selected or an explicit missing-values state is shown.
 - **Page Root Code** — selecting the page root exposes a separate constrained code editor. It can reactively configure only `page.style`, `page.responsive`, and `page.enterSubmits`; structure, children, ids, types and names remain visual-builder owned. Shared mutable data stays in the independent Page State editor.
@@ -81,8 +83,9 @@ Built-in rules:
 |------|----------|
 | Element type is not registered (skipped at runtime, but kept losslessly in the tree) | warning |
 | Type not in `config.allowedElements` (skipped at render time) | error |
-| Button / link has no Action | warning |
+| Any registry element with `action: true` has no Action | warning |
 | Action ID is not in `config.availableActions` (only checked when that list is non-empty) | warning |
+| Action values are not JSON-safe, or the dynamic action-value key is empty/reserved | error |
 | `validation.pattern` does not compile as a regular expression | error |
 | Image has no Asset ID | error |
 | Two named inputs share the same `name` | error |

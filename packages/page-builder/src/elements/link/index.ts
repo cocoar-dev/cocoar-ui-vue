@@ -6,6 +6,7 @@ import LinkInspector from './LinkInspector.vue';
 
 export const linkElement = definePageElement<LinkNode['props']>({
   renderer: LinkRenderer,
+  action: true,
   builder: {
     label: { key: 'coar.pageBuilder.type.link', fallback: 'Link' },
     icon: 'link',

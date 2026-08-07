@@ -5,8 +5,9 @@ description: "Integrate the Page Builder beta into an identity provider with iso
 # IDP integration
 
 The Page Builder beta ships the complete browser runtime and four optional Auth
-presets. Modgud can therefore consume package APIs instead of copying code from
-the Playground.
+example presets. They are fixtures built from the same generic registry,
+Repeat, selection, action and styling contracts as every consumer page; the
+runtime contains no Modgud/auth-specific element types or branches.
 
 ## Public integration surface
 
@@ -34,6 +35,28 @@ The presets are defaults, not special element types.
 | API facades and grants | Application `PageRuntimeHost` |
 | Login, consent, tickets, redirects and authorization | IDP backend |
 | Drafts, revisions, publish, rollback and audit | IDP persistence layer |
+
+Resolve the application/client theme in the host, then use the generic UI
+scope for runtime and the Builder's preview-only prop for authoring:
+
+```vue
+<CoarThemeScope :theme="applicationTheme" mode="auto">
+  <CoarPageRenderer :schema :config />
+</CoarThemeScope>
+
+<CoarPageBuilder
+  v-model="schema"
+  :config="config"
+  :preview-theme="applicationTheme"
+  preview-theme-mode="dark"
+/>
+```
+
+The Builder applies `previewTheme` only around its embedded renderer; toolbar,
+properties, dialogs and Monaco retain the administration application's theme.
+Register host CSS via `config.stylePresets` and load the corresponding scoped
+classes in both administration and runtime. The document persists only the
+preset id.
 
 Create one application-wide host. Each `usePageCodeRuntime()` instance creates
 an isolated Worker session for one rendered page; sessions do not share globals

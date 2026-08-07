@@ -101,7 +101,7 @@ function clearAsset() {
   width: 80px;
   height: 80px;
   border-radius: 6px;
-  background: var(--coar-surface-neutral-subtle, #f0f0f2);
+  background: var(--coar-background-neutral-secondary, #f0f0f2);
   border: 1px solid var(--coar-border-neutral, #e0e0e0);
   display: flex;
   align-items: center;

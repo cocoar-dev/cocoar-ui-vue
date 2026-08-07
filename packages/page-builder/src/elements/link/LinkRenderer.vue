@@ -12,7 +12,7 @@ const busy = computed(() => ctx.isValidating.value || ctx.isSubmitting.value);
 
 function callAction(id?: string) {
   if (!id) return;
-  ctx.triggerAction(id);
+  ctx.triggerElementAction(props.node.props);
 }
 </script>
 
@@ -31,13 +31,13 @@ function callAction(id?: string) {
   border: none;
   padding: 0;
   cursor: pointer;
-  color: var(--coar-text-accent, #0066cc);
+  color: var(--coar-text-accent-primary, #0066cc);
   font-size: inherit;
   text-decoration: underline;
 }
 
 .pb-link:hover {
-  color: var(--coar-text-accent-hover, #004fa3);
+  color: var(--coar-text-accent-secondary, #004fa3);
 }
 
 .pb-link:disabled {

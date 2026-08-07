@@ -422,12 +422,12 @@ function canMoveDown(): boolean {
 }
 
 .pb-tree-row:hover {
-  background: var(--coar-surface-neutral-subtle, #f1f1f3);
+  background: var(--coar-background-neutral-secondary, #f1f1f3);
 }
 
 .pb-tree-node--selected > .pb-tree-row {
-  background: var(--coar-surface-accent-subtle, #e6eefa);
-  color: var(--coar-text-accent, #1666cc);
+  background: var(--coar-surface-accent-secondary, #e6eefa);
+  color: var(--coar-text-accent-primary, #1666cc);
 }
 
 .pb-tree-node--selected > .pb-tree-row::before {
@@ -494,8 +494,8 @@ function canMoveDown(): boolean {
 }
 
 .pb-tree-row--dropinto {
-  background: var(--coar-surface-accent-subtle, #e6eefa);
-  box-shadow: inset 0 0 0 2px var(--coar-border-accent, #1666cc);
+  background: var(--coar-surface-accent-secondary, #e6eefa);
+  box-shadow: inset 0 0 0 2px var(--coar-border-accent-primary, #1666cc);
 }
 
 .pb-tree-type-icon {
@@ -507,7 +507,7 @@ function canMoveDown(): boolean {
 }
 
 .pb-tree-node--selected > .pb-tree-row .pb-tree-type-icon {
-  color: var(--coar-icon-accent, #1666cc);
+  color: var(--coar-icon-accent-primary, #1666cc);
 }
 
 .pb-tree-label {
@@ -535,7 +535,7 @@ function canMoveDown(): boolean {
 }
 
 .pb-tree-node--selected > .pb-tree-row .pb-tree-label-key {
-  color: var(--coar-text-accent, #1666cc);
+  color: var(--coar-text-accent-primary, #1666cc);
   opacity: 0.7;
 }
 
@@ -550,11 +550,11 @@ function canMoveDown(): boolean {
 }
 
 .pb-tree-issue--warning {
-  color: var(--coar-icon-semantic-warning, #b45309);
+  color: var(--coar-icon-semantic-warning-bold, #b45309);
 }
 
 .pb-tree-issue--error {
-  color: var(--coar-icon-semantic-error, #c0392b);
+  color: var(--coar-icon-semantic-error-bold, #c0392b);
 }
 
 .pb-tree-actions {
@@ -566,7 +566,7 @@ function canMoveDown(): boolean {
   right: 4px;
   top: 50%;
   transform: translateY(-50%);
-  background: var(--coar-surface-neutral-subtle, #f1f1f3);
+  background: var(--coar-background-neutral-secondary, #f1f1f3);
   border-radius: 4px;
   padding: 1px;
 }
@@ -577,7 +577,7 @@ function canMoveDown(): boolean {
 }
 
 .pb-tree-node--selected > .pb-tree-row .pb-tree-actions {
-  background: var(--coar-surface-accent-subtle, #e6eefa);
+  background: var(--coar-surface-accent-secondary, #e6eefa);
 }
 
 .pb-tree-btn {
@@ -596,7 +596,7 @@ function canMoveDown(): boolean {
 }
 
 .pb-tree-btn:hover:not(:disabled) {
-  background: var(--coar-surface-neutral-default, #dedee2);
+  background: var(--coar-background-neutral-tertiary, #dedee2);
   color: var(--coar-icon-neutral-primary, #111);
 }
 
@@ -606,7 +606,7 @@ function canMoveDown(): boolean {
 }
 
 .pb-tree-btn--danger:hover:not(:disabled) {
-  background: var(--coar-surface-semantic-error-subtle, #fde8e4);
+  background: var(--coar-background-semantic-error-subtle, #fde8e4);
   color: var(--coar-text-semantic-error-bold, #c0392b);
 }
 
@@ -636,9 +636,9 @@ function canMoveDown(): boolean {
 
 .pb-tree-add__trigger:hover,
 .pb-tree-add__trigger--open {
-  border-color: var(--coar-border-accent, #1666cc);
-  color: var(--coar-text-accent, #1666cc);
-  background: var(--coar-surface-accent-subtle, #e6eefa);
+  border-color: var(--coar-border-accent-primary, #1666cc);
+  color: var(--coar-text-accent-primary, #1666cc);
+  background: var(--coar-surface-accent-secondary, #e6eefa);
 }
 
 .pb-tree-add__menu {
@@ -647,7 +647,7 @@ function canMoveDown(): boolean {
   left: inherit;
   padding: 4px;
   min-width: 200px;
-  background: var(--coar-surface-default, #fff);
+  background: var(--coar-background-neutral-primary, #fff);
   border: 1px solid var(--coar-border-neutral, #dcdce0);
   border-radius: 6px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
@@ -666,7 +666,7 @@ function canMoveDown(): boolean {
 
 .pb-tree-add__divider {
   height: 1px;
-  background: var(--coar-border-neutral-subtle, #eeeef0);
+  background: var(--coar-border-neutral-tertiary, #eeeef0);
   margin: 4px 0;
 }
 
@@ -687,8 +687,8 @@ function canMoveDown(): boolean {
 }
 
 .pb-tree-add__item:hover {
-  background: var(--coar-surface-accent-subtle, #e6eefa);
-  color: var(--coar-text-accent, #1666cc);
+  background: var(--coar-surface-accent-secondary, #e6eefa);
+  color: var(--coar-text-accent-primary, #1666cc);
 }
 
 .pb-tree-add__item > :first-child {
@@ -697,6 +697,6 @@ function canMoveDown(): boolean {
 }
 
 .pb-tree-add__item:hover > :first-child {
-  color: var(--coar-icon-accent, #1666cc);
+  color: var(--coar-icon-accent-primary, #1666cc);
 }
 </style>

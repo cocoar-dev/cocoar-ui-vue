@@ -12,6 +12,7 @@ const PB_PARENT_DIRECTION: InjectionKey<ComputedRef<FlexDirection>> =
 
 /** A throwing consumer `submitOnEnter` predicate warns once per type, not per keystroke. */
 const warnedEnterHookThrew = new Set<string>();
+const warnedStylePresets = new Set<string>();
 </script>
 
 <script setup lang="ts">
@@ -20,12 +21,14 @@ import { isElementAllowed, type ElementNode, type PageNode, type RepeatSelection
 import { selfStyle, containerLayoutStyle } from './styleMapping';
 import { PAGE_RENDERER_KEY, type RepeatRenderScope } from './context';
 import { safeReadPath } from './runtimeBindings';
+import { findStylePreset } from './stylePresets';
 
 defineOptions({ name: 'PageNode' });
 
 const props = defineProps<{
   node: PageNode
   item?: unknown
+  itemIndex?: number
   allowedItemPaths?: ReadonlySet<string>
   repeatSelection?: RepeatSelection
 }>();
@@ -65,6 +68,20 @@ const def = computed(() => {
   return d;
 });
 
+const stylePresetClass = computed(() => {
+  if (!props.node.stylePreset) return undefined;
+  const preset = findStylePreset(ctx!.config, props.node);
+  if (preset) return preset.className;
+  const warningKey = `${props.node.type}:${props.node.stylePreset}`;
+  if (!warnedStylePresets.has(warningKey)) {
+    warnedStylePresets.add(warningKey);
+    console.warn(
+      `[CoarPageRenderer] Unknown, unsafe, or disallowed style preset "${props.node.stylePreset}" on "${props.node.type}" — ignored.`,
+    );
+  }
+  return undefined;
+});
+
 // ─── Style helpers ────────────────────────────────────────────────────────────
 // Mapping lives in styleMapping.ts (pure, unit-tested). `wrapperStyle` is the
 // node's own outer style, applied onto the renderer's root element via
@@ -82,7 +99,7 @@ provide(PB_PARENT_DIRECTION, ownDirection);
 
 const resolvedStyle = computed(() => ctx!.resolveStyle(props.node));
 const resolvedNode = computed<PageNode>(() => {
-  const resolved = ctx!.resolveNode(props.node, props.item, props.allowedItemPaths);
+  const resolved = ctx!.resolveNode(props.node, props.item, props.allowedItemPaths, props.itemIndex);
   if (props.repeatSelection && resolved.type !== 'page' && (resolved as ElementNode).name === '$selection') {
     const selection = props.repeatSelection;
     const value = props.allowedItemPaths?.has(selection.valuePath)
@@ -137,7 +154,7 @@ const enterEligible = computed(() => {
     <!-- ── page root (host-owned; always a column) ─────────────────────────── -->
     <div
       v-if="node.type === 'page'"
-      class="pb-page"
+      :class="['pb-page', stylePresetClass]"
       :style="{ ...wrapperStyle, ...containerLayoutStyle(resolvedStyle) }"
     >
       <PageNode
@@ -145,6 +162,7 @@ const enterEligible = computed(() => {
         :key="child.id"
         :node="child"
         :item="item"
+        :item-index="itemIndex"
         :allowed-item-paths="allowedItemPaths"
         :repeat-selection="repeatSelection"
       />
@@ -156,6 +174,7 @@ const enterEligible = computed(() => {
       v-else-if="def"
       :node="resolvedNode"
       :style="wrapperStyle"
+      :class="stylePresetClass"
       :data-pb-enter-submit="enterEligible ? 'true' : undefined"
     >
       <template v-if="def.container" #default="slotScope: RepeatRenderScope">
@@ -164,6 +183,7 @@ const enterEligible = computed(() => {
           :key="`${child.id}:${node.type === 'repeat' ? slotScope?.itemKey : ''}`"
           :node="child"
           :item="node.type === 'repeat' ? slotScope?.item : item"
+          :item-index="node.type === 'repeat' ? slotScope?.index : itemIndex"
           :allowed-item-paths="node.type === 'repeat' ? slotScope?.allowedItemPaths : allowedItemPaths"
           :repeat-selection="node.type === 'repeat' ? slotScope?.selection : repeatSelection"
         />

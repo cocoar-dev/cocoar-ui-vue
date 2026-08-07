@@ -21,4 +21,69 @@ describe('runtime document activation', () => {
     expect(result.issues.map((issue) => issue.field)).toContain('props.source')
     expect(result.issues.map((issue) => issue.field)).toContain('requiredNodes')
   })
+
+  it('rejects non-JSON action values at the activation boundary', () => {
+    const schema = {
+      id: 'root', type: 'page', children: [{
+        id: 'action', type: 'button', name: 'action',
+        props: {
+          label: 'Run', action: 'run',
+          actionValues: [] as unknown as Record<string, unknown>,
+          actionValueField: 'constructor',
+          actionValue: Number.POSITIVE_INFINITY,
+        },
+      }],
+    } as PageNode
+    const result = validatePageDocument(schema, { allowedElements: ['button'] })
+    expect(result.valid).toBe(false)
+    expect(result.issues.map((issue) => issue.field)).toEqual(expect.arrayContaining([
+      'props.actionValues', 'props.actionValueField', 'props.actionValue',
+    ]))
+  })
+
+  it('validates new direct-binding sources at activation without rejecting an unknown runtime preset', () => {
+    const schema = {
+      id: 'root', type: 'page', stylePreset: 'page-shell', children: [
+        { id: 'email', type: 'text-input', name: 'email', props: {} },
+        {
+          id: 'repeat', type: 'repeat', name: 'repeat',
+          props: {
+            source: 'items', keyPath: 'id',
+            selection: { name: 'selectedIds', valuePath: 'id' },
+          },
+          children: [{
+            id: 'inside', type: 'heading', name: 'inside', props: { text: 'Item' },
+            bindings: { text: { source: 'item', path: 'id' } },
+          }],
+        },
+        {
+          id: 'action', type: 'button', name: 'action', props: { label: 'Run', action: 'run' },
+          bindings: {
+            'actionValues.email': { source: 'field', path: 'email' },
+            'actionValues.selectedIds': { source: 'selection', path: 'selectedIds' },
+          },
+        },
+      ],
+    } as PageNode
+    const result = validatePageDocument(schema, {
+      allowedElements: ['text-input', 'repeat', 'heading', 'button'],
+      contextFields: [{ path: 'items', type: 'array', itemFields: [{ path: 'id', type: 'string' }] }],
+      stylePresets: [{ id: 'page-shell', label: 'Page shell', className: 'app-page-shell', allowedOn: ['page'] }],
+    })
+    expect(result).toEqual({ valid: true, issues: [] })
+
+    const invalid = {
+      id: 'root', type: 'page', stylePreset: 'missing', children: [{
+        id: 'action', type: 'button', name: 'action', props: { label: 'Run' },
+        bindings: {
+          title: { source: 'index' },
+          label: { source: 'selection', path: 'missing' },
+        },
+      }],
+    } as PageNode
+    const invalidResult = validatePageDocument(invalid, { allowedElements: ['button'] })
+    expect(invalidResult.valid).toBe(false)
+    expect(invalidResult.issues.map((issue) => issue.field)).toContain('bindings')
+    expect(invalidResult.issues.map((issue) => issue.field)).not.toContain('stylePreset')
+  })
 })

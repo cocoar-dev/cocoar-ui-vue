@@ -50,17 +50,25 @@ watch([source, () => props.node.props.selection], ([current, selection]) => {
   }
   const previous = ctx.getValue(selection.name)
   const selected = new Set(Array.isArray(previous) ? previous.filter((value): value is string => typeof value === 'string') : [])
+  const selectNewItems = selection.defaultSelection === 'all' || selection.defaultSelected === true
   for (const item of current) {
     const value = safeReadPath(item, selection.valuePath)
     if (typeof value !== 'string') continue
     const required = selection.requiredPath && allowedItemPaths.value.has(selection.requiredPath)
       ? safeReadPath(item, selection.requiredPath) === true
       : false
-    if (required || (!seenSelectionValues.has(value) && selection.defaultSelected)) selected.add(value)
+    if (required || (!seenSelectionValues.has(value) && selectNewItems)) selected.add(value)
     seenSelectionValues.add(value)
   }
-  const valid = new Set(current.map((item) => safeReadPath(item, selection.valuePath)).filter((value): value is string => typeof value === 'string'))
-  ctx.setValue(selection.name, [...selected].filter((value) => valid.has(value)))
+  const ordered: string[] = []
+  const emitted = new Set<string>()
+  for (const item of current) {
+    const value = safeReadPath(item, selection.valuePath)
+    if (typeof value !== 'string' || emitted.has(value) || !selected.has(value)) continue
+    emitted.add(value)
+    ordered.push(value)
+  }
+  ctx.setValue(selection.name, ordered)
 }, { immediate: true, deep: true })
 </script>
 

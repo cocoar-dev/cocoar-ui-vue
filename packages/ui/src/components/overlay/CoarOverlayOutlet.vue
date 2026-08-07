@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, provide, useTemplateRef, inject } from 'vue';
+import { onBeforeUnmount, onMounted, provide, useTemplateRef, inject } from 'vue';
 import { OVERLAY_PARENT_KEY, OVERLAY_SERVICE_KEY } from './useOverlay';
 import type { OverlayInstance } from './overlay-service';
 
@@ -11,6 +11,35 @@ const hostRef = useTemplateRef<HTMLElement>('hostRef');
 const panelRef = useTemplateRef<HTMLElement>('panelRef');
 
 const service = inject(OVERLAY_SERVICE_KEY)!;
+let themeObserver: MutationObserver | undefined;
+const copiedThemeTokens = new Set<string>();
+
+function themeSource(): HTMLElement | null {
+  const anchor = props.instance.spec.anchor;
+  if (anchor.kind !== 'element') return null;
+  const source = anchor.element.closest('.coar-theme-scope, [data-coar-theme-proxy]');
+  return source instanceof HTMLElement ? source : null;
+}
+
+/**
+ * Teleported overlays otherwise leave a local ThemeScope and inherit :root.
+ * Copy only the host-owned token overrides and the resolved mode from the
+ * anchor's nearest scope. Derived palettes are recalculated by the existing
+ * `.light-mode` / `.dark-mode` token rules on the overlay host.
+ */
+function syncThemeContext(host: HTMLElement, source: HTMLElement) {
+  host.toggleAttribute('data-coar-theme-proxy', true);
+  host.classList.toggle('light-mode', source.classList.contains('light-mode'));
+  host.classList.toggle('dark-mode', source.classList.contains('dark-mode'));
+  for (const token of copiedThemeTokens) host.style.removeProperty(token);
+  copiedThemeTokens.clear();
+  for (let index = 0; index < source.style.length; index += 1) {
+    const property = source.style.item(index);
+    if (!property.startsWith('--coar-')) continue;
+    host.style.setProperty(property, source.style.getPropertyValue(property));
+    copiedThemeTokens.add(property);
+  }
+}
 
 // Expose this overlay as the parent-context for any descendant that opens its own overlay
 // (popover, tooltip, sub-menu). Descendants call `useOverlayParent()` and pass the result
@@ -22,9 +51,22 @@ onMounted(() => {
   const hostEl = hostRef.value;
   const panelEl = panelRef.value;
   if (hostEl && panelEl) {
+    const source = themeSource();
+    if (source) {
+      syncThemeContext(hostEl, source);
+      if (typeof MutationObserver !== 'undefined') {
+        themeObserver = new MutationObserver(() => syncThemeContext(hostEl, source));
+        themeObserver.observe(source, {
+          attributes: true,
+          attributeFilter: ['class', 'style', 'data-coar-theme-mode'],
+        });
+      }
+    }
     service.onPanelMounted(props.instance, panelEl, hostEl);
   }
 });
+
+onBeforeUnmount(() => themeObserver?.disconnect());
 
 function getPanelClasses(): string[] {
   const classes = ['coar-overlay-panel'];

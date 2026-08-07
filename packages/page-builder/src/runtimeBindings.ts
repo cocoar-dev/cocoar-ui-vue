@@ -85,10 +85,16 @@ export function runtimeExpressionKey(nodeId: string, target: string): string {
 export interface RuntimeResolutionContext {
   config?: PageConfig
   context?: Record<string, unknown>
-  state?: string
+  /** Customer-authored `definePageState` value. */
+  pageState?: Readonly<Record<string, unknown>>
+  /** Host-controlled view-state ID; used by conditions/scripts, not `source: state`. */
+  viewState?: string
   locale?: string
   item?: unknown
+  itemIndex?: number
   allowedItemPaths?: ReadonlySet<string>
+  fields?: Readonly<Record<string, unknown>>
+  selectionNames?: ReadonlySet<string>
   expressionValues?: RuntimeExpressionValues
   translations?: PageTranslations
   hostTranslation?: (locale: string, key: string) => string | undefined
@@ -96,7 +102,8 @@ export interface RuntimeResolutionContext {
 
 export function resolveRuntimeBinding(binding: RuntimeBinding, runtime: RuntimeResolutionContext): unknown {
   let value: unknown
-  if (binding.source === 'state') value = runtime.state
+  if (binding.source === 'state' && binding.path) value = safeReadPath(runtime.pageState, binding.path)
+  else if (binding.source === 'index') value = runtime.itemIndex
   else if (binding.source === 'context' && binding.path) {
     value = readAllowedContext(runtime.context, runtime.config, binding.path)
   } else if (
@@ -105,6 +112,14 @@ export function resolveRuntimeBinding(binding: RuntimeBinding, runtime: RuntimeR
     && runtime.allowedItemPaths?.has(binding.path)
   ) {
     value = safeReadPath(runtime.item, binding.path)
+  } else if (binding.source === 'field' && binding.path) {
+    value = runtime.fields?.[binding.path]
+  } else if (
+    binding.source === 'selection'
+    && binding.path
+    && runtime.selectionNames?.has(binding.path)
+  ) {
+    value = runtime.fields?.[binding.path]
   }
   return value === undefined || value === null ? binding.fallback : value
 }
@@ -155,19 +170,32 @@ export function resolveNodeRuntime(node: PageNode, runtime: RuntimeResolutionCon
         )
       : resolveLocalizedValue(value, runtime.locale, runtime.config?.defaultLocale)
   }
+  const assignBindingValue = (target: string, value: unknown) => {
+    const actionValueTarget = /^actionValues\.([A-Za-z_][A-Za-z0-9_-]*)$/.exec(target)
+    if (actionValueTarget) {
+      const current = props.actionValues
+      const actionValues = current && typeof current === 'object' && !Array.isArray(current)
+        ? { ...(current as Record<string, unknown>) }
+        : {}
+      actionValues[actionValueTarget[1]] = value
+      props.actionValues = actionValues
+      return
+    }
+    if (!target.includes('.')) props[target] = value
+  }
   for (const [key, binding] of Object.entries(element.bindings ?? {})) {
     if (FORBIDDEN.has(key) || key.startsWith('style.')) continue
     if (isExpressionBinding(binding)) {
       if (!isExpressionBindingEnabled(binding)) continue
       const resultKey = runtimeExpressionKey(element.id, key)
       if (runtime.expressionValues && Object.hasOwn(runtime.expressionValues, resultKey)) {
-        props[key] = runtime.expressionValues[resultKey]
+        assignBindingValue(key, runtime.expressionValues[resultKey])
       } else if (binding.fallback !== undefined) {
-        props[key] = binding.fallback
+        assignBindingValue(key, binding.fallback)
       }
       continue
     }
-    props[key] = resolvePropertyBinding(binding, runtime)
+    assignBindingValue(key, resolvePropertyBinding(binding, runtime))
   }
   return { ...element, props } as PageNode
 }
@@ -177,7 +205,7 @@ const STYLE_TARGETS = new Set([
   'fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing',
   'textAlign', 'gap', 'padding', 'justify', 'align', 'direction', 'wrap',
   'alignSelf', 'size', 'width', 'minWidth', 'maxWidth', 'height', 'minHeight',
-  'hidden',
+  'maxHeight', 'overflow', 'hidden',
 ])
 
 /** Applies only allowlisted `style.*` expression results over responsive/static style. */

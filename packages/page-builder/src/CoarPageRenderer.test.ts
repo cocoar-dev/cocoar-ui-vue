@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { MockInstance } from 'vitest';
-import { h } from 'vue';
+import { defineComponent, h } from 'vue';
 import { flushPromises, mount } from '@vue/test-utils';
 import CoarPageRenderer from './CoarPageRenderer.vue';
-import type { PageNode } from './schema';
+import type { ActionProps, ElementNode, PageNode } from './schema';
+import { usePageElement } from './elements/usePageElement';
 
 let warnSpy: MockInstance;
 beforeEach(() => {
@@ -434,6 +435,28 @@ describe('CoarPageRenderer — schema & config contract', () => {
     expect(input.attributes('type')).toBe('email');
     expect(input.attributes('autocomplete')).toBe('email');
   });
+
+  it('resolves host style presets for the page root and safely ignores disallowed presets', () => {
+    const schema: PageNode = {
+      id: 'r', type: 'page', stylePreset: 'app-shell', children: [{
+        id: 'stack', type: 'stack', name: 'content', stylePreset: 'app-shell', props: {}, children: [],
+      }],
+    };
+    const wrapper = mount(CoarPageRenderer, {
+      props: {
+        schema,
+        config: {
+          stylePresets: [{
+            id: 'app-shell', label: 'Application shell', className: 'application-shell', allowedOn: ['page'],
+          }],
+        },
+      },
+    });
+
+    expect(wrapper.find('.pb-page').classes()).toContain('application-shell');
+    expect(wrapper.find('.pb-stack').classes()).not.toContain('application-shell');
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('style preset'));
+  });
 });
 
 describe('CoarPageRenderer — submit lifecycle', () => {
@@ -583,6 +606,229 @@ describe('CoarPageRenderer — submit lifecycle', () => {
 });
 
 describe('CoarPageRenderer — payload & email format contract', () => {
+  it('merges static action values identically for buttons and links, with explicit values winning collisions', async () => {
+    const buttonAction = vi.fn();
+    const linkAction = vi.fn();
+    const schema: PageNode = {
+      id: 'r', type: 'page', children: [
+        { id: 'language', type: 'text-input', name: 'language', props: {}, defaultValue: 'en' },
+        {
+          id: 'button', type: 'button',
+          props: { label: 'Deutsch', action: 'button-action', actionValues: { language: 'de', source: 'button' } },
+        },
+        {
+          id: 'link', type: 'link',
+          props: { label: 'English', action: 'link-action', actionValues: { language: 'en-GB', source: 'link' } },
+        },
+      ],
+    };
+    const wrapper = mount(CoarPageRenderer, {
+      props: { schema, actions: { 'button-action': buttonAction, 'link-action': linkAction } },
+    });
+
+    await wrapper.find('button.pb-button').trigger('click');
+    await flushPromises();
+    expect(buttonAction).toHaveBeenCalledWith({ language: 'de', source: 'button' });
+
+    await wrapper.find('button.pb-link').trigger('click');
+    await flushPromises();
+    expect(linkAction).toHaveBeenCalledWith({ language: 'en-GB', source: 'link' });
+  });
+
+  it('resolves a dynamic actionValue binding before invoking the shared link action path', async () => {
+    const setLanguage = vi.fn();
+    const schema: PageNode = {
+      id: 'r', type: 'page', children: [{
+        id: 'link', type: 'link',
+        props: {
+          label: 'Use preferred language',
+          action: 'auth:set-language',
+          actionValueField: 'language',
+          actionValue: 'en',
+        },
+        bindings: { actionValue: { source: 'context', path: 'preferredLanguage' } },
+      }],
+    };
+    const wrapper = mount(CoarPageRenderer, {
+      props: {
+        schema,
+        actions: { 'auth:set-language': setLanguage },
+        config: { contextFields: [{ path: 'preferredLanguage', type: 'string' }] },
+        runtimeContext: { preferredLanguage: 'de' },
+      },
+    });
+
+    await wrapper.find('button.pb-link').trigger('click');
+    await flushPromises();
+    expect(setLanguage).toHaveBeenCalledWith({ language: 'de' });
+  });
+
+  it('passes a Repeat selection through a nested actionValues binding', async () => {
+    const approve = vi.fn();
+    const schema: PageNode = {
+      id: 'r', type: 'page', children: [
+        {
+          id: 'scopes', type: 'repeat', name: 'scopes',
+          props: {
+            source: 'scopes', keyPath: 'id',
+            selection: {
+              name: 'approvedScopes', valuePath: 'id', requiredPath: 'required',
+              defaultSelection: 'all',
+            },
+          },
+          children: [{
+            id: 'scope-check', type: 'checkbox', name: '$selection', props: { label: 'Scope' },
+          }],
+        },
+        {
+          id: 'approve', type: 'button', name: 'approve',
+          props: { label: 'Approve', action: 'approve', actionValues: { approvedScopes: [] } },
+          bindings: {
+            'actionValues.approvedScopes': { source: 'selection', path: 'approvedScopes' },
+          },
+        },
+      ],
+    };
+    const wrapper = mount(CoarPageRenderer, {
+      props: {
+        schema,
+        actions: { approve },
+        config: {
+          contextFields: [{
+            path: 'scopes', type: 'array',
+            itemFields: [{ path: 'id', type: 'string' }, { path: 'required', type: 'boolean' }],
+          }],
+        },
+        runtimeContext: {
+          scopes: [
+            { id: 'openid', required: true },
+            { id: 'profile', required: false },
+          ],
+        },
+      },
+    });
+    await flushPromises();
+
+    await wrapper.find('button.pb-button').trigger('click');
+    await flushPromises();
+    expect(approve).toHaveBeenCalledWith({ approvedScopes: ['openid', 'profile'] });
+  });
+
+  it('resolves repeat item and index per rendered action element', async () => {
+    const choose = vi.fn();
+    const schema: PageNode = {
+      id: 'r', type: 'page', children: [{
+        id: 'scopes', type: 'repeat', name: 'scopes',
+        props: { source: 'scopes', keyPath: 'id' },
+        children: [{
+          id: 'choose', type: 'button', name: 'chooseScope',
+          props: { label: 'Choose', action: 'choose', actionValues: {} },
+          bindings: {
+            'actionValues.scopeId': { source: 'item', path: 'id' },
+            'actionValues.scopeIndex': { source: 'index' },
+          },
+        }],
+      }],
+    };
+    const wrapper = mount(CoarPageRenderer, {
+      props: {
+        schema,
+        actions: { choose },
+        config: {
+          contextFields: [{ path: 'scopes', type: 'array', itemFields: [{ path: 'id', type: 'string' }] }],
+        },
+        runtimeContext: { scopes: [{ id: 'openid' }, { id: 'profile' }] },
+      },
+    });
+    await flushPromises();
+
+    await wrapper.findAll('button.pb-button')[1].trigger('click');
+    await flushPromises();
+    expect(choose).toHaveBeenCalledWith({ scopeId: 'profile', scopeIndex: 1 });
+  });
+
+  it('resolves a nested action value from customer-authored Page State', async () => {
+    const run = vi.fn();
+    const schema: PageNode = {
+      id: 'r', type: 'page', children: [{
+        id: 'run', type: 'button', name: 'run',
+        props: { label: 'Run', action: 'run', actionValues: { checked: false } },
+        bindings: {
+          'actionValues.checked': { source: 'state', path: 'consent.checked' },
+        },
+      }],
+    };
+    const wrapper = mount(CoarPageRenderer, {
+      props: {
+        schema,
+        actions: { run },
+        pageCodeValues: {
+          nodes: {}, state: { consent: { checked: true } }, actionIds: [],
+        },
+      },
+    });
+
+    await wrapper.find('button.pb-button').trigger('click');
+    await flushPromises();
+    expect(run).toHaveBeenCalledWith({ checked: true });
+  });
+
+  it('gives consumer action elements the same triggerElementAction contract', async () => {
+    type ChipProps = ActionProps & { label: string };
+    const ActionChip = defineComponent({
+      props: ['node'],
+      setup(componentProps) {
+        const context = usePageElement();
+        return () => h('button', {
+          class: 'consumer-action',
+          onClick: () => context.triggerElementAction(
+            (componentProps.node as ElementNode<string, ChipProps>).props,
+          ),
+        }, (componentProps.node as ElementNode<string, ChipProps>).props.label);
+      },
+    });
+    const run = vi.fn();
+    const schema = {
+      id: 'r', type: 'page', children: [{
+        id: 'chip', type: 'acme-action-chip',
+        props: { label: 'Run', action: 'run', actionValues: { source: 'chip' } },
+      }],
+    } as PageNode;
+    const wrapper = mount(CoarPageRenderer, {
+      props: {
+        schema,
+        actions: { run },
+        config: { elements: { 'acme-action-chip': { renderer: ActionChip, action: true } } },
+      },
+    });
+
+    await wrapper.find('button.consumer-action').trigger('click');
+    await flushPromises();
+    expect(run).toHaveBeenCalledWith({ source: 'chip' });
+  });
+
+  it('keeps action values when Enter triggers the default button', async () => {
+    const send = vi.fn();
+    const schema: PageNode = {
+      id: 'r', type: 'page', enterSubmits: true, children: [
+        { id: 'field', type: 'text-input', name: 'query', props: {}, defaultValue: 'hello' },
+        {
+          id: 'button', type: 'button',
+          props: {
+            label: 'Search', action: 'search', default: true,
+            actionValues: { mode: 'exact' },
+            actionValueField: 'page', actionValue: 2,
+          },
+        },
+      ],
+    };
+    const wrapper = mount(CoarPageRenderer, { props: { schema, actions: { search: send } } });
+
+    await wrapper.find('input').trigger('keydown', { key: 'Enter' });
+    await flushPromises();
+    expect(send).toHaveBeenCalledWith({ query: 'hello', mode: 'exact', page: 2 });
+  });
+
   it('untouched named fields are PRESENT in the payload via definition defaults', async () => {
     const send = vi.fn();
     const schema: PageNode = {

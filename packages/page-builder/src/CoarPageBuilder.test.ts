@@ -128,6 +128,57 @@ describe('CoarPageBuilder — v-model wiring', () => {
     expect(wrapper.text()).toContain('Add Page Code');
   });
 
+  it.each(['button', 'link'] as const)('shows the same action key/value editor for %s elements', async (type) => {
+    const wrapper = mountWithConfig({});
+    await nextTick();
+    wrapper.vm.schema = {
+      id: 'r', type: 'page', children: [{
+        id: 'action-node', type, name: `${type}Action`,
+        props: { label: type === 'button' ? 'Run' : 'Open', action: 'run' },
+      }],
+    } as PageNode;
+    await nextTick();
+    await nextTick();
+
+    const rows = wrapper.findAll('.pb-tree-row');
+    await rows[1].trigger('click');
+    await nextTick();
+
+    const editor = wrapper.find('[data-testid="action-props-editor"]');
+    expect(editor.exists()).toBe(true);
+    expect(editor.text()).toContain('Static action values');
+    expect(editor.text()).toContain('Dynamic action value');
+
+    await editor.find('[data-testid="add-action-value"]').trigger('click');
+    await editor.find('[data-testid="action-value-key"] input').setValue('language');
+    await editor.find('[data-testid="action-value-json"] input').setValue('"de"');
+    await nextTick();
+
+    const actionNode = (wrapper.vm.schema as PageNode & { children: PageNode[] }).children[0] as {
+      props: { actionValues?: Record<string, unknown> };
+      bindings?: Record<string, unknown>;
+    };
+    expect(actionNode.props.actionValues).toEqual({ language: 'de' });
+
+    await editor.find('.pb-action-values__row .pb-bindable-property__mode').trigger('click');
+    await nextTick();
+    const updatedActionNode = (wrapper.vm.schema as PageNode & { children: PageNode[] }).children[0] as {
+      bindings?: Record<string, { source?: string; expression?: string }>;
+    };
+    expect(updatedActionNode.bindings?.['actionValues.language']).toEqual(expect.objectContaining({
+      source: 'expression',
+      expression: '"de"',
+    }));
+
+    await editor.find('[data-testid="action-value-key"] input').setValue('locale');
+    await nextTick();
+    const renamedActionNode = (wrapper.vm.schema as PageNode & { children: PageNode[] }).children[0] as {
+      bindings?: Record<string, { source?: string }>;
+    };
+    expect(renamedActionNode.bindings?.['actionValues.language']).toBeUndefined();
+    expect(renamedActionNode.bindings?.['actionValues.locale']?.source).toBe('expression');
+  });
+
   it('does not advertise incomplete host values and selects a complete fixture', async () => {
     const wrapper = mountWithConfig({
       contextFields: [{ path: 'auth.enabled', type: 'boolean' }],
@@ -152,6 +203,34 @@ describe('CoarPageBuilder — v-model wiring', () => {
     expect(fixture.exists()).toBe(true);
     expect(fixture.element.value).toBe('complete');
     expect(fixture.findAll('option').map((option) => option.text())).not.toContain('Host values');
+  });
+
+  it('scopes previewTheme to the embedded renderer canvas', async () => {
+    const Host = defineComponent({
+      components: { CoarPageBuilder },
+      setup() {
+        const schema = ref<PageNode>({ id: 'r', type: 'page', children: [] });
+        return { schema };
+      },
+      template: `<div style="height: 600px">
+        <CoarPageBuilder
+          v-model="schema"
+          :preview-theme="{ accent: '#10b981', inputRadius: 14 }"
+          preview-theme-mode="dark"
+        />
+      </div>`,
+    });
+    const wrapper = mount(Host);
+    await nextTick();
+    const previewTab = wrapper.findAll('button').find((button) => button.text().trim() === 'Preview');
+    await previewTab!.trigger('click');
+    await nextTick();
+
+    const scope = wrapper.find('.pb-builder__preview-frame .coar-theme-scope');
+    expect(scope.exists()).toBe(true);
+    expect(scope.classes()).toContain('dark-mode');
+    expect(scope.attributes('style')).toContain('--coar-accent: #10b981');
+    expect(wrapper.find('.pb-builder').classes()).not.toContain('dark-mode');
   });
 
   it('normalizes an externally-assigned schema (legacy types, duplicate ids) before use', async () => {

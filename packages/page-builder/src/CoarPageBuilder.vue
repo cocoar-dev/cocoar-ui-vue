@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, provide, ref, toRaw, watch } from 'vue';
-import { CoarIcon, CoarTabGroup, CoarTab, useDialog } from '@cocoar/vue-ui';
+import {
+  CoarIcon,
+  CoarTabGroup,
+  CoarTab,
+  CoarThemeScope,
+  useDialog,
+  type CoarTheme,
+  type CoarThemeMode,
+} from '@cocoar/vue-ui';
 import { useI18n, useLocalization } from '@cocoar/vue-localization';
 import { CURRENT_PAGE_SCHEMA_VERSION, type ElementNode, type PageBreakpoint, type PageNode, type PageRootNode, type PageConfig, type RuntimeExpressionValues } from './schema';
 import type { CoarScriptEditorExtraLib } from '@cocoar/vue-script-editor';
@@ -68,6 +76,10 @@ const props = defineProps<{
   previewContext?: Record<string, unknown>
   previewState?: string
   previewLocale?: string
+  /** Host-owned theme applied only to the embedded renderer canvas. */
+  previewTheme?: CoarTheme
+  /** Preview colour mode. `auto` follows the surrounding application/OS mode. */
+  previewThemeMode?: CoarThemeMode
   previewActions?: Record<string, ActionHandler>
   previewFallbackSchema?: PageNode
   /** Sandbox results used by the embedded preview; source code is never evaluated by the builder itself. */
@@ -323,18 +335,6 @@ provide(BUILDER_LOCALE, {
     previewLocaleOverride.value = locale;
   },
 });
-const builderRuntime = computed(() => ({
-  config: props.config,
-  context: effectivePreviewContext.value,
-  state: effectivePreviewState.value,
-  locale: effectivePreviewLocale.value,
-  translations: builder.schema.value.type === 'page'
-    ? (builder.schema.value as PageRootNode).translations
-    : undefined,
-  hostTranslation: (locale: string, key: string) => localization?.i18nStore.getTranslation(locale, key),
-}));
-provide(BUILDER_RUNTIME, builderRuntime);
-
 const previewRuntimeViewport = computed(() => {
   const width = previewViewportWidth.value ?? PAGE_BREAKPOINT_WIDTHS.desktop;
   return { width, breakpoint: breakpointForWidth(width) };
@@ -354,6 +354,18 @@ const effectivePreviewPageCodeValues = computed(() => hasEffectivePreviewContrac
   ? previewRuntime.pageCodeValues.value
   : undefined);
 provide(BUILDER_PAGE_CODE_VALUES, effectivePreviewPageCodeValues);
+const builderRuntime = computed(() => ({
+  config: props.config,
+  context: effectivePreviewContext.value,
+  pageState: effectivePreviewPageCodeValues.value?.state,
+  viewState: effectivePreviewState.value,
+  locale: effectivePreviewLocale.value,
+  translations: builder.schema.value.type === 'page'
+    ? (builder.schema.value as PageRootNode).translations
+    : undefined,
+  hostTranslation: (locale: string, key: string) => localization?.i18nStore.getTranslation(locale, key),
+}));
+provide(BUILDER_RUNTIME, builderRuntime);
 
 async function runPreviewAction(id: string, values: ActionValues) {
   if (await previewRuntime.runPageAction(id, values)) return;
@@ -682,22 +694,28 @@ function applyJson() {
               <div class="pb-builder__preview">
                 <div class="pb-builder__preview-frame" :style="previewFrameStyle">
                   <!-- The renderer falls back to config.assetResolver itself. -->
-                  <CoarPageRenderer
+                  <CoarThemeScope
                     v-if="hasEffectivePreviewContract"
-                    :schema="builder.schema.value"
-                    :config="config"
-                    :viewport-width="previewViewportWidth"
-                    :runtime-context="effectivePreviewContext"
-                    :view-state="effectivePreviewState"
-                    :locale="effectivePreviewLocale"
-                    :actions="previewActions"
-                    :fallback-schema="previewFallbackSchema"
-                    :expression-values="previewExpressionValues"
-                    :page-code-values="effectivePreviewPageCodeValues"
-                    :on-action="runPreviewAction"
-                    @update:values="emit('preview-values', $event)"
-                    @runtime-change="onPreviewRuntimeChange"
-                  />
+                    :theme="previewTheme"
+                    :mode="previewThemeMode ?? 'auto'"
+                  >
+                    <!-- The renderer falls back to config.assetResolver itself. -->
+                    <CoarPageRenderer
+                      :schema="builder.schema.value"
+                      :config="config"
+                      :viewport-width="previewViewportWidth"
+                      :runtime-context="effectivePreviewContext"
+                      :view-state="effectivePreviewState"
+                      :locale="effectivePreviewLocale"
+                      :actions="previewActions"
+                      :fallback-schema="previewFallbackSchema"
+                      :expression-values="previewExpressionValues"
+                      :page-code-values="effectivePreviewPageCodeValues"
+                      :on-action="runPreviewAction"
+                      @update:values="emit('preview-values', $event)"
+                      @runtime-change="onPreviewRuntimeChange"
+                    />
+                  </CoarThemeScope>
                   <div v-else class="pb-builder__preview-empty">
                     <CoarIcon name="circle-alert" size="m" />
                     <strong>Preview values are missing</strong>
@@ -799,7 +817,7 @@ function applyJson() {
     v-bind(outlineCol) 1px minmax(360px, 1fr) 1px v-bind(propsCol);
   height: 100%;
   min-height: 520px;
-  background: var(--coar-surface-default, #fff);
+  background: var(--coar-background-neutral-primary, #fff);
   border: 1px solid var(--coar-border-neutral, #e2e2e6);
   border-radius: 8px;
   overflow: hidden;
@@ -825,7 +843,7 @@ function applyJson() {
   min-height: 0;
   min-width: 0;
   overflow: hidden;
-  background: var(--coar-surface-default, #fff);
+  background: var(--coar-background-neutral-primary, #fff);
   position: relative;
 }
 
@@ -950,7 +968,7 @@ function applyJson() {
   transition: background-color 0.12s, color 0.12s, border-color 0.12s;
 }
 .pb-builder__icon-btn:hover:not(:disabled) {
-  background: var(--coar-surface-neutral-subtle, #f0f0f2);
+  background: var(--coar-background-neutral-secondary, #f0f0f2);
   border-color: var(--coar-border-neutral, #dcdce0);
   color: var(--coar-icon-neutral-primary, #111);
 }
@@ -977,7 +995,7 @@ function applyJson() {
   transition: background-color 0.12s, border-color 0.12s, color 0.12s;
 }
 .pb-builder__rail-btn:hover {
-  background: var(--coar-surface-neutral-subtle, #f0f0f2);
+  background: var(--coar-background-neutral-secondary, #f0f0f2);
   border-color: var(--coar-border-neutral, #dcdce0);
   color: var(--coar-icon-neutral-primary, #111);
 }
@@ -1012,19 +1030,19 @@ function applyJson() {
   gap: 8px;
   padding: 8px 12px;
   border-bottom: 1px solid var(--coar-border-neutral, #e2e2e6);
-  background: var(--coar-surface-neutral-subtle, #f7f7f9);
+  background: var(--coar-background-neutral-secondary, #f7f7f9);
   flex-shrink: 0;
 }
 
 .pb-builder__preview-control { display: inline-flex; align-items: center; gap: 5px; margin-left: 4px; color: var(--coar-text-neutral-secondary, #555); font-size: 11px; }
-.pb-builder__preview-control select { max-width: 150px; border: 1px solid var(--coar-border-neutral, #d0d0d0); border-radius: 4px; background: var(--coar-surface-default, #fff); font: inherit; }
+.pb-builder__preview-control select { max-width: 150px; border: 1px solid var(--coar-border-neutral, #d0d0d0); border-radius: 4px; background: var(--coar-background-neutral-primary, #fff); font: inherit; }
 
 .pb-builder__seg {
   display: inline-flex;
   border: 1px solid var(--coar-border-neutral, #d0d0d0);
   border-radius: 6px;
   overflow: hidden;
-  background: var(--coar-surface-base, #fff);
+  background: var(--coar-background-neutral-primary, #fff);
 }
 
 .pb-builder__seg-btn {
@@ -1046,12 +1064,12 @@ function applyJson() {
 }
 
 .pb-builder__seg-btn:hover:not(.pb-builder__seg-btn--active) {
-  background: var(--coar-surface-neutral-subtle, #f0f0f2);
+  background: var(--coar-background-neutral-secondary, #f0f0f2);
 }
 
 .pb-builder__seg-btn--active {
-  background: var(--coar-surface-accent-subtle, #e6eefa);
-  color: var(--coar-text-accent, #1666cc);
+  background: var(--coar-surface-accent-secondary, #e6eefa);
+  color: var(--coar-text-accent-primary, #1666cc);
   font-weight: 600;
 }
 
@@ -1072,7 +1090,7 @@ function applyJson() {
 }
 
 .pb-builder__preview-frame {
-  background: var(--coar-surface-default, #fff);
+  background: var(--coar-background-neutral-primary, #fff);
   border: 1px solid var(--coar-border-neutral, #e2e2e6);
   border-radius: 8px;
   overflow: auto;
@@ -1093,7 +1111,7 @@ function applyJson() {
   text-align: center;
 }
 
-.pb-builder__preview-empty strong { color: var(--coar-text-neutral, #222); }
+.pb-builder__preview-empty strong { color: var(--coar-text-neutral-primary, #222); }
 .pb-builder__preview-empty span { max-width: 440px; font-size: 12px; }
 
 /* ── JSON pane ── */
@@ -1111,7 +1129,7 @@ function applyJson() {
   gap: 8px;
   padding: 6px 12px;
   border-bottom: 1px solid var(--coar-border-neutral, #e2e2e6);
-  background: var(--coar-surface-neutral-subtle, #f7f7f9);
+  background: var(--coar-background-neutral-secondary, #f7f7f9);
   flex-shrink: 0;
 }
 
@@ -1157,7 +1175,7 @@ function applyJson() {
   font-family: ui-monospace, Menlo, Consolas, monospace;
   font-size: 12px;
   color: var(--coar-text-neutral-primary, #111);
-  background: var(--coar-surface-neutral-subtle, #f7f7f9);
+  background: var(--coar-background-neutral-secondary, #f7f7f9);
   line-height: 1.55;
 }
 </style>

@@ -247,7 +247,7 @@ function onCanvasBackgroundClick() { builder.select([]); }
   align-items: center;
   gap: 10px;
   padding: 8px 12px;
-  background: var(--coar-surface-neutral-subtle, #f7f7f9);
+  background: var(--coar-background-neutral-secondary, #f7f7f9);
   border-bottom: 1px solid var(--coar-border-neutral, #e2e2e6);
   flex-wrap: wrap;
   flex-shrink: 0;

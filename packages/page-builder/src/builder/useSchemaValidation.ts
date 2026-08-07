@@ -1,10 +1,12 @@
 import { computed, type Ref } from 'vue';
 import { isElementAllowed } from '../schema';
-import type { ButtonNode, ElementNode, LinkNode, PageConfig, PageNode } from '../schema';
+import type { ActionProps, ButtonNode, ElementNode, PageConfig, PageNode } from '../schema';
 import { compilePagePattern, isUnsafeFieldName } from '../renderSafety';
+import { isJsonSafeActionValue, isJsonSafeActionValues, isSafeActionValueField } from '../actionValues';
 import { useMergedElements } from '../elements/useMergedElements';
 import { isFieldCompatible } from '../elements/fieldContract';
 import { validatePageDocument } from '../documentValidation';
+import { findStylePreset } from '../stylePresets';
 import { isValidElementName } from './nodeDefaults';
 
 export type IssueSeverity = 'warning' | 'error';
@@ -49,6 +51,36 @@ export function useSchemaValidation(
     const codeDriven = schema.value.type === 'page'
       && (!!root.pageCode?.trim() || !!root.rootCode?.trim() || !!root.stateCode?.trim());
 
+    // Binding validation needs page-wide names even when the referenced node
+    // appears later in tree order. Repeat ancestry, on the other hand, is
+    // deliberately local: `item` and `index` only exist inside that repeat.
+    const knownFieldNames = new Set<string>();
+    const knownSelectionNames = new Set<string>();
+    const repeatAncestor = new Map<string, import('../schema').RepeatNode | undefined>();
+    const indexBindingScope = (
+      current: PageNode,
+      parentRepeat?: import('../schema').RepeatNode,
+    ) => {
+      repeatAncestor.set(current.id, parentRepeat);
+      if (current.type !== 'page') {
+        const element = current as ElementNode;
+        if (registry[current.type]?.value && isValidElementName(element.name) && element.name !== '$selection') {
+          knownFieldNames.add(element.name!);
+        }
+        if (current.type === 'repeat') {
+          const selectionName = (current as import('../schema').RepeatNode).props.selection?.name;
+          if (selectionName) knownSelectionNames.add(selectionName);
+        }
+      }
+      const nextRepeat = current.type === 'repeat'
+        ? current as import('../schema').RepeatNode
+        : parentRepeat;
+      if ('children' in current && Array.isArray(current.children)) {
+        for (const child of current.children) indexBindingScope(child, nextRepeat);
+      }
+    };
+    indexBindingScope(schema.value);
+
     walk(schema.value, (n) => {
       if (n.type !== 'page') {
         const name = (n as ElementNode).name;
@@ -92,17 +124,29 @@ export function useSchemaValidation(
         });
       }
 
-      // ── Buttons & links: action wiring ─────────────────────────────────
-      // Cast: the open union member absorbs the literal narrowing.
-      if (n.type === 'button' && !codeDriven) {
-        if ((n as ButtonNode).props.default) defaultButtons.push(n);
-        const action = (n as ButtonNode).props.action;
+      if (n.stylePreset && !findStylePreset(config.value, n)) {
+        out.push({
+          nodeId: n.id,
+          field: 'stylePreset',
+          severity: 'error',
+          message: `Style preset "${n.stylePreset}" is unknown, unsafe, or not allowed on ${n.type}.`,
+        });
+      }
+
+      // ── Registry-declared action elements: shared wiring + payload ──────
+      if (n.type === 'button' && !codeDriven && (n as ButtonNode).props.default) {
+        defaultButtons.push(n);
+      }
+      if (def?.action && !codeDriven) {
+        const actionProps = (n as ElementNode<string, ActionProps>).props;
+        const action = actionProps.action;
+        const label = def.builder?.label.fallback ?? n.type;
         if (!action) {
           out.push({
             nodeId: n.id,
             field: 'action',
             severity: 'warning',
-            message: 'Button has no Action — clicking it will do nothing.',
+            message: `${label} has no Action — triggering it will do nothing.`,
           });
         } else if (hasAvailableActions && !knownActions.has(action)) {
           out.push({
@@ -112,22 +156,28 @@ export function useSchemaValidation(
             message: `Action "${action}" is not in config.availableActions.`,
           });
         }
-      }
-      if (n.type === 'link' && !codeDriven) {
-        const action = (n as LinkNode).props.action;
-        if (!action) {
+        if (actionProps.actionValues !== undefined && !isJsonSafeActionValues(actionProps.actionValues)) {
           out.push({
             nodeId: n.id,
-            field: 'action',
-            severity: 'warning',
-            message: 'Link has no Action — clicking it will do nothing.',
+            field: 'actionValues',
+            severity: 'error',
+            message: 'Action values must be a JSON-safe object.',
           });
-        } else if (hasAvailableActions && !knownActions.has(action)) {
+        }
+        if (actionProps.actionValueField !== undefined && !isSafeActionValueField(actionProps.actionValueField)) {
           out.push({
             nodeId: n.id,
-            field: 'action',
-            severity: 'warning',
-            message: `Action "${action}" is not in config.availableActions.`,
+            field: 'actionValueField',
+            severity: 'error',
+            message: 'Dynamic action-value key is empty or reserved.',
+          });
+        }
+        if (actionProps.actionValue !== undefined && !isJsonSafeActionValue(actionProps.actionValue)) {
+          out.push({
+            nodeId: n.id,
+            field: 'actionValue',
+            severity: 'error',
+            message: 'Dynamic action value must be JSON-safe.',
           });
         }
       }
@@ -203,9 +253,23 @@ export function useSchemaValidation(
           const known = config.value?.contextFields?.some((field) => field.path === binding.path);
           if (!known) out.push({ nodeId: n.id, field: `bindings.${prop}`, severity: 'error', message: `Binding for "${prop}" references unknown context path "${String(binding.path ?? '')}".` });
         }
-        if (binding.source === 'item' && !codeDriven) {
-          const known = config.value?.contextFields?.some((field) => field.itemFields?.some((item) => item.path === binding.path));
+        if (binding.source === 'state' && !binding.path) {
+          out.push({ nodeId: n.id, field: `bindings.${prop}`, severity: 'error', message: `Page-state binding for "${prop}" requires a path.` });
+        }
+        if (binding.source === 'item') {
+          const repeat = repeatAncestor.get(n.id);
+          const contract = config.value?.contextFields?.find((field) => field.path === repeat?.props.source && field.type === 'array');
+          const known = contract?.itemFields?.some((item) => item.path === binding.path);
           if (!known) out.push({ nodeId: n.id, field: `bindings.${prop}`, severity: 'error', message: `Binding for "${prop}" references unknown repeat-item path "${String(binding.path ?? '')}".` });
+        }
+        if (binding.source === 'index' && !repeatAncestor.get(n.id)) {
+          out.push({ nodeId: n.id, field: `bindings.${prop}`, severity: 'error', message: `Binding for "${prop}" uses a repeat index outside a Repeat.` });
+        }
+        if (binding.source === 'field' && (!binding.path || !knownFieldNames.has(binding.path))) {
+          out.push({ nodeId: n.id, field: `bindings.${prop}`, severity: 'error', message: `Binding for "${prop}" references unknown form field "${String(binding.path ?? '')}".` });
+        }
+        if (binding.source === 'selection' && (!binding.path || !knownSelectionNames.has(binding.path))) {
+          out.push({ nodeId: n.id, field: `bindings.${prop}`, severity: 'error', message: `Binding for "${prop}" references unknown repeat selection "${String(binding.path ?? '')}".` });
         }
       }
 

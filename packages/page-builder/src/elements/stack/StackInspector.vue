@@ -63,7 +63,7 @@ const { t } = useI18n();
   border: 1px solid var(--coar-border-neutral, #d0d0d0);
   border-radius: 6px;
   overflow: hidden;
-  background: var(--coar-surface-base, #fff);
+  background: var(--coar-background-neutral-primary, #fff);
 }
 
 .pb-prop-seg__btn {
@@ -83,12 +83,12 @@ const { t } = useI18n();
 }
 
 .pb-prop-seg__btn:hover:not(.pb-prop-seg__btn--active) {
-  background: var(--coar-surface-neutral-subtle, #f0f0f2);
+  background: var(--coar-background-neutral-secondary, #f0f0f2);
 }
 
 .pb-prop-seg__btn--active {
-  background: var(--coar-surface-accent-subtle, #e6eefa);
-  color: var(--coar-text-accent, #1666cc);
+  background: var(--coar-surface-accent-secondary, #e6eefa);
+  color: var(--coar-text-accent-primary, #1666cc);
   font-weight: 600;
 }
 </style>

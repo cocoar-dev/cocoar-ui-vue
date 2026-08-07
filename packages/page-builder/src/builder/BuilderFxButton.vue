@@ -113,18 +113,18 @@ function toggleMode() {
   color: var(--coar-text-neutral-tertiary, #777);
   cursor: pointer;
 }
-.pb-bindable-property__mode span { font-family: var(--coar-monospace-family, ui-monospace, monospace); font-size: 11px; font-style: italic; font-weight: 700; line-height: 1; }
+.pb-bindable-property__mode span { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; font-style: italic; font-weight: 700; line-height: 1; }
 .pb-bindable-property__mode:not(.pb-bindable-property__mode--active)::after { position: absolute; width: 20px; height: 1.5px; border-radius: 1px; background: currentColor; content: ''; transform: rotate(-42deg); }
-.pb-bindable-property__mode--active { color: var(--coar-text-accent, #1666cc); }
-.pb-bindable-property__mode:hover { color: var(--coar-text-accent, #1666cc); }
+.pb-bindable-property__mode--active { color: var(--coar-text-accent-primary, #1666cc); }
+.pb-bindable-property__mode:hover { color: var(--coar-text-accent-primary, #1666cc); }
 .pb-bindable-property__mode:focus-visible { outline: 2px solid var(--coar-focus-color, #1666cc); outline-offset: 2px; }
 .pb-bindable-property__control { position: relative; min-width: 0; }
 .pb-bindable-property__static--covered { visibility: hidden; pointer-events: none; }
-.pb-bindable-property__expression { position: absolute; inset: 0; display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; box-sizing: border-box; min-width: 0; min-height: 0; padding: 7px 9px; overflow: hidden; border: 1px solid var(--coar-border-accent, #1666cc); border-radius: 5px; background: var(--coar-surface-accent-subtle, #eef4ff); color: var(--coar-text-accent, #1666cc); cursor: pointer; text-align: left; }
+.pb-bindable-property__expression { position: absolute; inset: 0; display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; box-sizing: border-box; min-width: 0; min-height: 0; padding: 7px 9px; overflow: hidden; border: 1px solid var(--coar-border-accent-primary, #1666cc); border-radius: 5px; background: var(--coar-surface-accent-secondary, #eef4ff); color: var(--coar-text-accent-primary, #1666cc); cursor: pointer; text-align: left; }
 .pb-bindable-property__expression code { display: -webkit-box; overflow: hidden; color: inherit; font-size: 11px; overflow-wrap: anywhere; white-space: pre-wrap; -webkit-box-orient: vertical; -webkit-line-clamp: 6; }
 .pb-bindable-property__expression span { flex: none; font-size: 11px; font-weight: 600; }
 .pb-bindable-property__expression:hover {
-  background: var(--coar-surface-accent-subtle, #e6eefa);
-  color: var(--coar-text-accent, #1666cc);
+  background: var(--coar-surface-accent-secondary, #e6eefa);
+  color: var(--coar-text-accent-primary, #1666cc);
 }
 </style>

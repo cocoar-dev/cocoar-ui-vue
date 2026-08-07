@@ -53,13 +53,17 @@ export type {
   OtpInputNode,
   DateInputNode,
   DateTimeInputNode,
+  ActionProps,
   ButtonNode,
   LinkNode,
   ImageNode,
   PageConfig,
+  PageStylePreset,
   PageValueType,
   PageFieldSpec,
 } from './schema';
+
+export { findStylePreset, isSafeStylePreset } from './stylePresets';
 
 export { isContainerNode, isElementAllowed } from './schema';
 export { CURRENT_PAGE_SCHEMA_VERSION } from './schema';
@@ -124,6 +128,14 @@ export {
   localNodeStyle,
 } from './responsive';
 export { safeCssLength } from './styleMapping';
+export {
+  actionValuesFromProps,
+  isJsonSafeActionValue,
+  isJsonSafeActionValues,
+  isBindableActionValueField,
+  isSafeActionValueField,
+  mergeActionValues,
+} from './actionValues';
 
 export {
   normalizePageSchema,

@@ -18,12 +18,7 @@ const disabled = computed(() => !!props.node.props.disabled || (busy.value && !i
 
 function callAction(id?: string, validates?: boolean) {
   if (!id) return;
-  const actionValues = { ...(props.node.props.actionValues ?? {}) };
-  const field = props.node.props.actionValueField;
-  if (field && field !== '__proto__' && field !== 'prototype' && field !== 'constructor') {
-    actionValues[field] = props.node.props.actionValue;
-  }
-  ctx.triggerAction(id, validates, actionValues);
+  ctx.triggerElementAction(props.node.props, validates);
 }
 </script>
 

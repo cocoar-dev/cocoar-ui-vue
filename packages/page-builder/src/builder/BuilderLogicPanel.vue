@@ -67,7 +67,7 @@ function revert() {
 .pb-page-code__toolbar > div:first-child { display: flex; flex-direction: column; gap: 2px; }
 .pb-page-code__toolbar span, .pb-page-code footer { color: var(--coar-text-neutral-secondary, #666); font-size: 11px; }
 .pb-page-code__actions { display: flex; align-items: center; gap: 8px; }
-.pb-page-code__dirty { color: var(--coar-text-warning, #946200) !important; }
+.pb-page-code__dirty { color: var(--coar-text-semantic-warning-bold, #946200) !important; }
 .pb-page-code__editor { flex: 1; min-height: 360px; overflow: hidden; }
 .pb-page-code__editor :deep(.coar-script-editor) {
   --coar-script-editor-marker-display: none;

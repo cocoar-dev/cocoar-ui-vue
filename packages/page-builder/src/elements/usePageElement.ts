@@ -7,7 +7,7 @@
  */
 import { inject } from 'vue';
 import type { Ref } from 'vue';
-import type { PageConfig, RuntimeBinding } from '../schema';
+import type { ActionProps, PageConfig, RuntimeBinding } from '../schema';
 import { PAGE_RENDERER_KEY } from '../context';
 import type { ActionValues } from '../context';
 
@@ -21,6 +21,8 @@ export interface PageElementContext {
   markTouched: (name: string) => void;
   /** Fire a page action by id; `validates` gates it behind form validation. */
   triggerAction: (id: string, validates?: boolean, actionValues?: ActionValues) => void;
+  /** Fire an ActionProps element through the shared JSON-safe payload path. */
+  triggerElementAction: (props: ActionProps, validates?: boolean) => void;
   /** True while an async `onValidate` is in flight — disable submit affordances. */
   isValidating: Readonly<Ref<boolean>>;
   /** True while an action handler's Promise is pending — disable submit affordances. */
@@ -39,7 +41,7 @@ export interface PageElementContext {
   formError: Readonly<Ref<string>>;
   /** Resolve an assetId to a URL; '' when no resolver is configured. */
   resolveAsset: (assetId: string) => string;
-  resolveBinding: (binding: RuntimeBinding, item?: unknown, allowedItemPaths?: ReadonlySet<string>) => unknown;
+  resolveBinding: (binding: RuntimeBinding, item?: unknown, allowedItemPaths?: ReadonlySet<string>, itemIndex?: number) => unknown;
   config?: Readonly<PageConfig>;
 }
 
@@ -56,6 +58,7 @@ export function usePageElement(): PageElementContext {
     getError: ctx.getError,
     markTouched: ctx.markTouched,
     triggerAction: ctx.triggerAction,
+    triggerElementAction: ctx.triggerElementAction,
     isValidating: ctx.isValidating,
     isSubmitting: ctx.isSubmitting,
     pendingAction: ctx.pendingAction,

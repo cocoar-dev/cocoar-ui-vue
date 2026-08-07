@@ -68,7 +68,7 @@ Keep it JSON-safe — the bag is persisted verbatim. Non-JSON values (dates, fun
 
 ### 2. The runtime renderer
 
-The renderer receives `{ node }` and wires itself into the renderer's value model via `usePageElement()` — a curated, stable context with `getValue` / `setValue` / `getError` / `markTouched` / `triggerAction` / `isValidating` / `isSubmitting` / `pendingAction` / `formError` / `resolveAsset` / `config`:
+The renderer receives `{ node }` and wires itself into the renderer's value model via `usePageElement()` — a curated, stable context with `getValue` / `setValue` / `getError` / `markTouched` / `triggerAction` / `triggerElementAction` / `isValidating` / `isSubmitting` / `pendingAction` / `formError` / `resolveAsset` / `config`:
 
 ```vue
 <!-- RatingRenderer.vue -->
@@ -107,6 +107,41 @@ Notes:
 - `usePageElement()` throws outside a `<CoarPageRenderer>` — element renderers only run inside the page renderer (the builder canvas uses the preview instead, never this component).
 - Submit-affordance elements read the busy state: `isSubmitting` is true while an action's Promise is pending, `pendingAction` names the action id in flight (spin when it matches your own), `isValidating` covers the `onValidate` window. `formError` carries the [form-level error](./coar-page-renderer#async-actions-the-form-level-error-channel) — a small consumer element can render the banner *inside* the page (e.g. right above the submit button) instead of the host-level default.
 - Choice-style elements can resolve `optionsSourceId` props exactly like the built-ins via the exported `useResolvedOptions(() => props.node.props)` composable.
+
+#### Action-capable consumer elements
+
+Compose your props with the exported `ActionProps`, declare `action: true` on the definition, and trigger through `triggerElementAction`. The builder then adds its universal Action and JSON key/value editor; runtime merging behaves exactly like built-in buttons and links.
+
+```ts
+import { definePageElement, type ActionProps } from '@cocoar/vue-page-builder'
+
+type ActionChipProps = ActionProps & { label: string }
+
+export const actionChip = definePageElement<ActionChipProps>({
+  action: true,
+  renderer: ActionChipRenderer,
+  builder: {
+    label: { key: 'app.pb.actionChip', fallback: 'Action chip' },
+    icon: 'bolt',
+    defaults: () => ({ label: 'Run' }),
+  },
+})
+```
+
+```vue
+<script setup lang="ts">
+import { usePageElement, type ActionProps, type ElementNode } from '@cocoar/vue-page-builder'
+
+defineProps<{ node: ElementNode<string, ActionProps & { label: string }> }>()
+const ctx = usePageElement()
+</script>
+
+<template>
+  <button type="button" @click="ctx.triggerElementAction(node.props)">{{ node.props.label }}</button>
+</template>
+```
+
+Do not manually merge form data with `actionValues`: the shared trigger path applies the documented precedence (**form < resolved per-key action values < legacy dynamic action value**), removes invalid runtime values, and preserves the renderer's async-action guard.
 
 ### 3. Value-model participation
 

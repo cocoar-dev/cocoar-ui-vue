@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ref } from 'vue';
+import { defineComponent, ref } from 'vue';
 import { useSchemaValidation } from './useSchemaValidation';
 import type { PageConfig, PageNode } from '../schema';
 import { elementNameBase } from './nodeDefaults';
@@ -50,6 +50,90 @@ describe('useSchemaValidation', () => {
     );
     expect(issues).toHaveLength(1);
     expect(issues[0].message).toContain('"nope"');
+  });
+
+  it('validates the shared action contract for consumer action elements', () => {
+    const issues = validate(
+      page([{
+        id: 'chip', type: 'acme-action', name: 'chip',
+        props: {
+          action: 'run',
+          actionValues: [] as unknown as Record<string, unknown>,
+          actionValueField: '__proto__',
+          actionValue: new Date(),
+        },
+      }]),
+      {
+        elements: {
+          'acme-action': {
+            renderer: defineComponent({ template: '<button />' }),
+            action: true,
+            builder: { label: { key: 'acme.action', fallback: 'Action chip' }, defaults: () => ({}) },
+          },
+        },
+      },
+    );
+
+    expect(issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ nodeId: 'chip', field: 'actionValues', severity: 'error' }),
+      expect.objectContaining({ nodeId: 'chip', field: 'actionValueField', severity: 'error' }),
+      expect.objectContaining({ nodeId: 'chip', field: 'actionValue', severity: 'error' }),
+    ]));
+  });
+
+  it('rejects unknown or disallowed style presets during authoring', () => {
+    const schema = page([{ id: 'card', type: 'card', name: 'card', stylePreset: 'page-only', props: {}, children: [] }]);
+    const issues = validate(schema, {
+      stylePresets: [{ id: 'page-only', label: 'Page only', className: 'app-page', allowedOn: ['page'] }],
+    });
+    expect(issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ nodeId: 'card', field: 'stylePreset', severity: 'error' }),
+    ]));
+  });
+
+  it('validates field and selection bindings page-wide and item/index bindings in their Repeat', () => {
+    const schema = page([
+      { id: 'email', type: 'text-input', name: 'email', props: {} },
+      {
+        id: 'repeat', type: 'repeat', name: 'scopes',
+        props: {
+          source: 'scopes', keyPath: 'id',
+          selection: { name: 'approvedScopes', valuePath: 'id' },
+        },
+        children: [{
+          id: 'inside', type: 'button', name: 'inside', props: { label: 'Inside', action: 'go' },
+          bindings: {
+            'actionValues.scopeId': { source: 'item', path: 'id' },
+            'actionValues.scopeIndex': { source: 'index' },
+          },
+        }],
+      },
+      {
+        id: 'outside', type: 'button', name: 'outside', props: { label: 'Outside', action: 'go' },
+        bindings: {
+          'actionValues.email': { source: 'field', path: 'email' },
+          'actionValues.approvedScopes': { source: 'selection', path: 'approvedScopes' },
+        },
+      },
+    ]);
+    expect(validate(schema, {
+      contextFields: [{ path: 'scopes', type: 'array', itemFields: [{ path: 'id', type: 'string' }] }],
+    })).toEqual([]);
+
+    const invalid = page([{
+      id: 'outside', type: 'button', name: 'outside', props: { label: 'Outside', action: 'go' },
+      bindings: {
+        title: { source: 'index' },
+        label: { source: 'selection', path: 'missingSelection' },
+        disabled: { source: 'field', path: 'missingField' },
+      },
+    }]);
+    const issues = validate(invalid);
+    expect(issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ field: 'bindings.title', severity: 'error' }),
+      expect.objectContaining({ field: 'bindings.label', severity: 'error' }),
+      expect.objectContaining({ field: 'bindings.disabled', severity: 'error' }),
+    ]));
   });
 
   it('errors on images without an asset id', () => {

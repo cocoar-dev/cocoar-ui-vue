@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { CoarCheckbox, CoarFormField, CoarTextInput } from '@cocoar/vue-ui'
+import { CoarFormField, CoarSelect, CoarTextInput } from '@cocoar/vue-ui'
 import type { RepeatNode, RepeatSelection } from '../../schema'
 const props = defineProps<{ node: RepeatNode; patch: (update: Partial<RepeatNode>) => void }>()
 const selection = computed(() => props.node.props.selection)
@@ -16,5 +16,15 @@ function patchSelection(update: Partial<RepeatSelection>) {
   <CoarFormField label="Selection output field"><CoarTextInput size="s" :model-value="selection?.name ?? ''" @update:model-value="(v) => patchSelection({ name: v })" /></CoarFormField>
   <CoarFormField label="Selection value item path"><CoarTextInput size="s" :model-value="selection?.valuePath ?? ''" @update:model-value="(v) => patchSelection({ valuePath: v })" /></CoarFormField>
   <CoarFormField label="Required item path"><CoarTextInput size="s" :model-value="selection?.requiredPath ?? ''" @update:model-value="(v) => patchSelection({ requiredPath: v || undefined })" /></CoarFormField>
-  <CoarCheckbox size="s" :model-value="selection?.defaultSelected ?? false" label="Select new items by default" @update:model-value="(v) => patchSelection({ defaultSelected: v })" />
+  <CoarFormField label="Default selection">
+    <CoarSelect
+      size="s"
+      :model-value="selection?.defaultSelection ?? (selection?.defaultSelected ? 'all' : 'none')"
+      :options="[
+        { value: 'none', label: 'None' },
+        { value: 'all', label: 'All items' },
+      ]"
+      @update:model-value="(v) => patchSelection({ defaultSelection: v as RepeatSelection['defaultSelection'], defaultSelected: undefined })"
+    />
+  </CoarFormField>
 </template>

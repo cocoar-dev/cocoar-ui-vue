@@ -1,5 +1,5 @@
 import type { ComputedRef, InjectionKey, Ref } from 'vue';
-import type { NodeStyle, PageConfig, PageNode, RepeatSelection, RuntimeBinding } from './schema';
+import type { ActionProps, NodeStyle, PageConfig, PageNode, RepeatSelection, RuntimeBinding } from './schema';
 import type { PageElementRegistry } from './elements/registry';
 
 export type ActionValues = Record<string, unknown>;
@@ -49,8 +49,8 @@ export interface PageRendererContext {
   /** Responsive style resolved against this renderer's host-container width. */
   resolveStyle: (node: PageNode) => NodeStyle
   /** Resolve bindings and localized values without exposing undeclared host paths. */
-  resolveNode: (node: PageNode, item?: unknown, allowedItemPaths?: ReadonlySet<string>) => PageNode
-  resolveBinding: (binding: RuntimeBinding, item?: unknown, allowedItemPaths?: ReadonlySet<string>) => unknown
+  resolveNode: (node: PageNode, item?: unknown, allowedItemPaths?: ReadonlySet<string>, itemIndex?: number) => PageNode
+  resolveBinding: (binding: RuntimeBinding, item?: unknown, allowedItemPaths?: ReadonlySet<string>, itemIndex?: number) => unknown
   /** Called by PageNode when it skips a disallowed type — used to console.warn once. */
   reportDisallowed?: (type: string) => void
   /** Called by PageNode when it skips an unregistered type — used to console.warn once. */
@@ -79,6 +79,8 @@ export interface PageRendererContext {
   /** Mark a field as touched (called on blur). */
   markTouched: (name: string) => void
   triggerAction: (id: string, validates?: boolean, actionValues?: ActionValues) => void
+  /** Shared path for every registry element that declares the ActionProps contract. */
+  triggerElementAction: (props: ActionProps, validates?: boolean) => void
 }
 
 export const PAGE_RENDERER_KEY: InjectionKey<PageRendererContext> = Symbol('page-renderer');

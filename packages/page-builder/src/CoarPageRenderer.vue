@@ -27,6 +27,7 @@ import { evaluateCondition } from './conditions';
 import { readAllowedContext, resolveExpressionStyle, resolveNodeRuntime, resolveRuntimeBinding, safeReadPath } from './runtimeBindings';
 import { validatePageDocument } from './documentValidation';
 import { applyPageCodeValues, type PageCodeRuntimeValues } from './pageCode';
+import { actionValuesFromProps, mergeActionValues } from './actionValues';
 
 const props = defineProps<{
   schema: PageNode
@@ -249,6 +250,18 @@ function visibleFieldNames(): Set<string> {
   return names;
 }
 
+function visibleSelectionNames(): Set<string> {
+  const names = new Set<string>();
+  const walk = (node: PageNode) => {
+    if (!isNodeAllowed(node) || !isNodeVisible(node)) return;
+    const name = repeatSelectionName(node);
+    if (name) names.add(name);
+    if ('children' in node && Array.isArray(node.children)) node.children.forEach(walk);
+  };
+  walk(renderSchema.value);
+  return names;
+}
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
 function collectDefaults(node: PageNode): ActionValues {
@@ -272,6 +285,8 @@ function collectDefaults(node: PageNode): ActionValues {
 function collectFieldNames(node: PageNode, out: Set<string>) {
   if (!isNodeAllowed(node)) return;
   if (isNamedInput(node) && node.name) out.add(node.name);
+  const selectionName = repeatSelectionName(node);
+  if (selectionName) out.add(selectionName);
   if ('children' in node && Array.isArray(node.children)) {
     for (const child of node.children) collectFieldNames(child, out);
   }
@@ -608,7 +623,7 @@ async function runValidatedAction(id: string, actionValues?: ActionValues) {
       isValidating.value = false;
     }
   }
-  await runAction(id, { ...payload, ...(actionValues ?? {}) });
+  await runAction(id, mergeActionValues(payload, actionValues));
 }
 
 /** One trigger at a time: guard reentry, track the pending id, clear the stale banner. */
@@ -618,7 +633,7 @@ async function runTrigger(id: string, validates: boolean, actionValues?: ActionV
   pendingAction.value = id;
   try {
     if (validates) await runValidatedAction(id, actionValues);
-    else await runAction(id, { ...visibleValues(), ...(actionValues ?? {}) });
+    else await runAction(id, mergeActionValues(visibleValues(), actionValues));
   } finally {
     pendingAction.value = null;
   }
@@ -631,18 +646,18 @@ async function runTrigger(id: string, validates: boolean, actionValues?: ActionV
  * `default: true` button, else the first `validates: true` button, in tree
  * order — disallowed subtrees excluded, like everywhere else.
  */
-const enterTarget = computed<{ action: string; validates: boolean } | null>(() => {
+const enterTarget = computed<{ props: ButtonNode['props']; validates: boolean } | null>(() => {
   const root = renderSchema.value as PageRootNode;
   if (root.type !== 'page' || !root.enterSubmits) return null;
-  let dflt: { action: string; validates: boolean } | null = null;
-  let firstValidating: { action: string; validates: boolean } | null = null;
+  let dflt: { props: ButtonNode['props']; validates: boolean } | null = null;
+  let firstValidating: { props: ButtonNode['props']; validates: boolean } | null = null;
   const walk = (node: PageNode) => {
     if (dflt || !isNodeAllowed(node) || !isNodeVisible(node)) return;
     if (node.type === 'button') {
       const p = (node as ButtonNode).props ?? {};
       if (typeof p.action === 'string' && p.action) {
-        if (p.default) { dflt = { action: p.action, validates: !!p.validates }; return; }
-        if (p.validates && !firstValidating) firstValidating = { action: p.action, validates: true };
+        if (p.default) { dflt = { props: p, validates: !!p.validates }; return; }
+        if (p.validates && !firstValidating) firstValidating = { props: p, validates: true };
       }
     }
     if ('children' in node && Array.isArray(node.children)) node.children.forEach(walk);
@@ -676,7 +691,9 @@ function onEnterKey(e: KeyboardEvent) {
   // the submit must read the value the user SEES, not the last committed one.
   // On a failed submit, focusFirstError restores focus.
   if (el instanceof HTMLElement) el.blur();
-  void runTrigger(target.action, target.validates);
+  if (target.props.action) {
+    void runTrigger(target.props.action, target.validates, actionValuesFromProps(target.props));
+  }
 }
 
 const ctx: PageRendererContext = {
@@ -708,24 +725,32 @@ const ctx: PageRendererContext = {
     resolveNodeStyle(node, viewportWidth.value),
     props.expressionValues,
   ) ?? {},
-  resolveNode: (node, item, allowedItemPaths) => resolveNodeRuntime(node, {
+  resolveNode: (node, item, allowedItemPaths, itemIndex) => resolveNodeRuntime(node, {
     config: props.config,
     context: props.runtimeContext,
-    state: props.viewState,
+    pageState: props.pageCodeValues?.state,
+    viewState: props.viewState,
     locale: props.locale,
     item,
+    itemIndex,
     allowedItemPaths,
+    fields: visibleValues(),
+    selectionNames: visibleSelectionNames(),
     expressionValues: props.expressionValues,
     translations: pageTranslations.value,
     hostTranslation,
   }),
-  resolveBinding: (binding, item, allowedItemPaths) => resolveRuntimeBinding(binding, {
+  resolveBinding: (binding, item, allowedItemPaths, itemIndex) => resolveRuntimeBinding(binding, {
     config: props.config,
     context: props.runtimeContext,
-    state: props.viewState,
+    pageState: props.pageCodeValues?.state,
+    viewState: props.viewState,
     locale: props.locale,
     item,
+    itemIndex,
     allowedItemPaths,
+    fields: visibleValues(),
+    selectionNames: visibleSelectionNames(),
     translations: pageTranslations.value,
     hostTranslation,
   }),
@@ -765,6 +790,10 @@ const ctx: PageRendererContext = {
   },
   triggerAction(id, validates = false, actionValues) {
     void runTrigger(id, validates, actionValues);
+  },
+  triggerElementAction(actionProps, validates = false) {
+    if (!actionProps.action) return;
+    void runTrigger(actionProps.action, validates, actionValuesFromProps(actionProps));
   },
 };
 

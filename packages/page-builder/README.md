@@ -99,6 +99,72 @@ meaning, and v4 deterministically adds missing element names. Unknown or
 unregistered types stay losslessly in the tree (flagged in the builder, skipped
 with a one-time warning at runtime).
 
+## Action payloads
+
+Every action-capable element uses the same optional `ActionProps` contract:
+
+```ts
+interface ActionProps {
+  action?: string;
+  actionValues?: Record<string, unknown>;
+  actionValueField?: string;
+  actionValue?: unknown;
+}
+```
+
+`actionValues` contains JSON-safe defaults. Every individual entry can be
+switched to **fx** or bound through `bindings["actionValues.<key>"]` to a host
+context value, customer Page State, form field, named Repeat selection, current
+Repeat item/index, or a sandbox expression. `actionValue` /
+`actionValueField` remain as the backwards-compatible single-dynamic-value
+shape. The handler receives one snapshot with deterministic precedence:
+**form values < resolved `actionValues` < dynamic `actionValue`**. Explicit
+action arguments therefore win key collisions with form fields.
+
+```jsonc
+{
+  "props": {
+    "action": "auth:consent-allow",
+    "actionValues": { "approvedScopes": [] }
+  },
+  "bindings": {
+    "actionValues.approvedScopes": {
+      "source": "selection",
+      "path": "approvedScopes"
+    }
+  }
+}
+```
+
+The builder supplies this editor automatically to built-in buttons/links and
+to consumer elements registered with `action: true`. A custom action renderer
+should call `usePageElement().triggerElementAction(node.props)` so it follows
+the identical merge, validation and async-action path.
+
+## Host themes and style presets
+
+Runtime applications wrap the renderer in the generic `CoarThemeScope` from
+`@cocoar/vue-ui`. For authoring, pass the same theme as `previewTheme`; it is
+applied only to the preview canvas, never to the builder chrome.
+
+Host CSS can be exposed as controlled presets through `PageConfig`:
+
+```ts
+const config: PageConfig = {
+  stylePresets: [{
+    id: 'brand-auth-visual',
+    label: 'Brand Auth Visual',
+    className: 'brand-auth-visual',
+    allowedOn: ['page', 'stack', 'card'],
+  }],
+};
+```
+
+The page document stores only `stylePreset: 'brand-auth-visual'`; it never
+stores raw CSS or an arbitrary class. The host must load the matching CSS in
+both administration and runtime. Unknown, unsafe, or disallowed presets are an
+authoring error and are safely ignored by the renderer.
+
 ## Custom elements
 
 The built-in elements are just pre-registered entries of an open **element

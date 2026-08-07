@@ -188,7 +188,7 @@ function removeTranslationKey(key: string) {
 </template>
 
 <style scoped>
-.pb-translations { height: 100%; overflow: auto; padding: 20px; background: var(--coar-surface-default, #fff); }
+.pb-translations { height: 100%; overflow: auto; padding: 20px; background: var(--coar-background-neutral-primary, #fff); }
 .pb-translations__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 18px; }
 .pb-translations__header h3 { margin: 0 0 4px; font-size: 18px; }
 .pb-translations__header p { margin: 0; color: var(--coar-text-neutral-secondary, #666); font-size: 13px; }
@@ -198,12 +198,12 @@ function removeTranslationKey(key: string) {
 .pb-translations__table-wrap { overflow: auto; border: 1px solid var(--coar-border-neutral, #ddd); border-radius: 7px; }
 .pb-translations__table { width: 100%; min-width: 760px; border-collapse: collapse; }
 .pb-translations__table th, .pb-translations__table td { padding: 9px; border-bottom: 1px solid var(--coar-border-neutral, #e5e5e8); text-align: left; vertical-align: middle; }
-.pb-translations__table thead th { position: sticky; top: 0; z-index: 1; background: var(--coar-surface-subtle, #f7f7f8); font-size: 12px; }
+.pb-translations__table thead th { position: sticky; top: 0; z-index: 1; background: var(--coar-background-neutral-secondary, #f7f7f8); font-size: 12px; }
 .pb-translations__table tbody th { width: 30%; font-weight: 500; }
 .pb-translations__table tbody tr:last-child > * { border-bottom: 0; }
 .pb-translations__table code { font-size: 12px; overflow-wrap: anywhere; }
 .pb-translations__usage, .pb-translations__unused { font-size: 11px; white-space: nowrap; }
-.pb-translations__usage { display: inline-flex; min-width: 22px; justify-content: center; padding: 2px 6px; border-radius: 999px; background: var(--coar-surface-accent, #e8f1ff); color: var(--coar-text-accent, #1666cc); }
+.pb-translations__usage { display: inline-flex; min-width: 22px; justify-content: center; padding: 2px 6px; border-radius: 999px; background: var(--coar-surface-accent-secondary, #e8f1ff); color: var(--coar-text-accent-primary, #1666cc); }
 .pb-translations__unused { color: var(--coar-text-neutral-tertiary, #888); }
 .pb-translations__actions { width: 1%; white-space: nowrap; }
 .pb-translations__delete { padding: 3px 5px; border: 0; background: transparent; color: var(--coar-text-semantic-error-bold, #b42318); font: inherit; font-size: 11px; cursor: pointer; }

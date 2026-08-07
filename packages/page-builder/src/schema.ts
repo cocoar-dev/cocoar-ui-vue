@@ -53,13 +53,17 @@ export interface NodeStyle {
   /** CSS height of this node's box. */
   height?: string
   /**
-   * CSS min-height of this node's box, e.g. '100vh', '400px'. On the `page`
+   * CSS min-height of this node's box, e.g. '100dvh', '400px'. On the `page`
    * root this makes the page fill the viewport so `justify` (vertical) +
    * `align` (horizontal) can center content — e.g. a login card centered on a
    * full-screen page. The host element provides the width; min-height lets the
    * page own its vertical extent without depending on host CSS.
    */
   minHeight?: string
+  /** Maximum height of this node's box. */
+  maxHeight?: string
+  /** Overflow behavior of this node's box. */
+  overflow?: 'visible' | 'hidden' | 'clip' | 'auto' | 'scroll'
   /** Responsive presentation switch. Hidden nodes do not render or participate in actions. */
   hidden?: boolean
 }
@@ -76,6 +80,8 @@ interface PageNodeBase {
   /** Stable UUID assigned by the builder. */
   id: string
   style?: NodeStyle
+  /** Host-registered appearance preset id. The document never stores a CSS class. */
+  stylePreset?: string
   /** Mobile-first style overrides; unset properties inherit from the preceding breakpoint. */
   responsive?: ResponsiveNodeStyles
 }
@@ -106,8 +112,8 @@ export interface PageContextField {
 }
 
 export interface RuntimeBinding {
-  source: 'context' | 'state' | 'item'
-  /** Context/item path. State bindings omit it and resolve to the state id. */
+  source: 'context' | 'state' | 'item' | 'index' | 'field' | 'selection'
+  /** Context/page-state/item/field/selection path. Index bindings omit it. */
   path?: string
   fallback?: unknown
 }
@@ -287,6 +293,9 @@ export interface RepeatSelection {
   name: string
   valuePath: string
   requiredPath?: string
+  /** Initial selection for newly observed optional items. */
+  defaultSelection?: 'none' | 'all'
+  /** @deprecated Use `defaultSelection: 'all'`. */
   defaultSelected?: boolean
 }
 
@@ -434,12 +443,21 @@ export type DateTimeInputNode = ElementNode<'datetime-input', {
   disabled?: boolean
 }>
 
-export type ButtonNode = ElementNode<'button', {
+/** Shared props contract for every registry element that declares `action: true`. */
+export interface ActionProps extends ElementProps {
+  /** Action ID matched against the `actions` map passed to the renderer. */
+  action?: string
+  /** Static, JSON-safe additions merged into this action call only. */
+  actionValues?: Record<string, unknown>
+  /** Optional single dynamic action value; bind `actionValue` from context, item data, or an expression. */
+  actionValueField?: string
+  actionValue?: unknown
+}
+
+export type ButtonNode = ElementNode<'button', ActionProps & {
   label: string
   /** Static or runtime-resolved interaction state. */
   disabled?: boolean
-  /** Action ID matched against the `actions` map passed to the renderer. */
-  action?: string
   /** When true, validates all named fields before calling the action. */
   validates?: boolean
   /**
@@ -451,17 +469,10 @@ export type ButtonNode = ElementNode<'button', {
   icon?: string
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
   size?: 'xs' | 's' | 'm' | 'l'
-  /** Static, JSON-safe additions merged into this action call only. */
-  actionValues?: Record<string, unknown>
-  /** Optional single dynamic action value; bind `actionValue` from context/item data. */
-  actionValueField?: string
-  actionValue?: unknown
 }>
 
-export type LinkNode = ElementNode<'link', {
+export type LinkNode = ElementNode<'link', ActionProps & {
   label: string
-  /** Action ID matched against the `actions` map passed to the renderer. */
-  action?: string
 }>
 
 export type ImageNode = ElementNode<'image', {
@@ -632,6 +643,11 @@ export interface PageConfig {
    */
   elements?: PageElementRegistry
   /**
+   * Host-owned CSS presets exposed as safe ids. The builder stores only `id`;
+   * renderer and preview resolve the class through this same registration.
+   */
+  stylePresets?: PageStylePreset[]
+  /**
    * The data contract behind the page (DTO fields). When present, the
    * builder's Field section offers these instead of a free-text name —
    * filtered to the fields the selected element can edit (see
@@ -679,7 +695,7 @@ export interface PageConfig {
    */
   hideElementPicker?: boolean
   /**
-   * Action IDs that buttons and links may reference. When provided, the builder's
+   * Action IDs that any registry element with `action: true` may reference. When provided, the builder's
    * Action-ID input becomes a dropdown of these choices instead of free text.
    * Omit to allow any string (development / single-tenant scenarios).
    *
@@ -718,6 +734,14 @@ export interface PageConfig {
    * When omitted, the image element falls back to a free-text Asset ID input.
    */
   pickAsset?: (currentId?: string) => Promise<string | null>
+}
+
+export interface PageStylePreset {
+  id: string
+  label: string
+  className: string
+  /** Element registry types that may use the preset. Includes the `page` root marker. */
+  allowedOn: string[]
 }
 
 /**

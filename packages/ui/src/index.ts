@@ -32,6 +32,9 @@ export { FORM_FIELD_INJECTION_KEY } from './components/form-field';
 export { CoarFade, CoarSlide, CoarScale, CoarCollapse } from './components/transitions';
 
 // Components
+export { CoarThemeScope } from './components/theme-scope';
+export type { CoarTheme, CoarThemeMode } from './components/theme-scope';
+
 export { CoarButton } from './components/button';
 export type { CoarButtonProps, ButtonVariant, ButtonSize } from './components/button';
 

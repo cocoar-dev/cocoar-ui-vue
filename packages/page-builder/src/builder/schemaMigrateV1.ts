@@ -43,7 +43,7 @@ const V1_PROP_FIELDS: Record<Exclude<ElementType, 'page'>, readonly string[]> = 
   'date-input': ['label', 'placeholder', 'disabled'],
   'datetime-input': ['label', 'placeholder', 'disabled'],
   button: ['label', 'action', 'validates', 'icon', 'variant', 'size', 'actionValues', 'actionValueField', 'actionValue'],
-  link: ['label', 'action'],
+  link: ['label', 'action', 'actionValues', 'actionValueField', 'actionValue'],
   image: ['assetId', 'alt'],
 };
 

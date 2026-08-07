@@ -173,6 +173,12 @@ export interface PageElementBuilderDefinition<P extends ElementProps = ElementPr
 export interface PageElementDefinition<P extends ElementProps = ElementProps> {
   /** Runtime renderer. Receives `{ node }`; containers get children via the default slot. */
   renderer: Component;
+  /**
+   * Declares the shared ActionProps contract. The builder adds its universal
+   * Action editor and validation; renderers fire through
+   * `usePageElement().triggerElementAction()`.
+   */
+  action?: boolean;
   /** Presence = value-model participation (with `node.name`). */
   value?: ElementValueSpec<P>;
   /** Children + dropzones + container style fields. Defaults to false. */

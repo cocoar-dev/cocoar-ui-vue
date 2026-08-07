@@ -17,7 +17,7 @@ const schema = {
   id: 'root', type: 'page', children: [
     {
       id: 'items', type: 'repeat',
-      props: { source: 'items', keyPath: 'id', selection: { name: 'selected', valuePath: 'id', requiredPath: 'required', defaultSelected: true } },
+      props: { source: 'items', keyPath: 'id', selection: { name: 'selected', valuePath: 'id', requiredPath: 'required', defaultSelection: 'all' } },
       children: [{ id: 'choice', type: 'checkbox', name: '$selection', props: { label: '' }, bindings: { label: { source: 'item', path: 'label' } } }],
     },
     { id: 'error', type: 'feedback', props: { kind: 'form-error' } },
@@ -69,6 +69,52 @@ describe('generic auth-grade primitives', () => {
     const boxes = wrapper.findAll('input[type="checkbox"]')
     expect((boxes[0].element as HTMLInputElement).checked).toBe(false)
     expect((boxes[1].element as HTMLInputElement).checked).toBe(true)
+  })
+
+  it('removes stale values, de-duplicates them, and follows the current item order', async () => {
+    const save = vi.fn()
+    const wrapper = mount(CoarPageRenderer, {
+      props: {
+        schema, config, actions: { save },
+        runtimeContext: { items: [
+          { id: 'a', label: 'A', required: false },
+          { id: 'b', label: 'B', required: false },
+          { id: 'c', label: 'C', required: false },
+        ] },
+      },
+    })
+    await flushPromises()
+
+    await wrapper.setProps({
+      runtimeContext: { items: [
+        { id: 'c', label: 'C', required: false },
+        { id: 'a', label: 'A', required: false },
+        { id: 'a', label: 'Duplicate A', required: false },
+      ] },
+    })
+    await flushPromises()
+    await wrapper.find('button').trigger('click')
+    expect(save).toHaveBeenCalledWith({ selected: ['c', 'a'] })
+  })
+
+  it('merges host initial selection with required items without selecting every optional item', async () => {
+    const save = vi.fn()
+    const noneByDefault = structuredClone(schema) as PageNode
+    const repeat = (noneByDefault as Extract<PageNode, { type: 'page' }>).children[0] as Extract<PageNode, { type: 'repeat' }>
+    repeat.props.selection!.defaultSelection = 'none'
+    const wrapper = mount(CoarPageRenderer, {
+      props: {
+        schema: noneByDefault, config, actions: { save }, initialValues: { selected: ['b'] },
+        runtimeContext: { items: [
+          { id: 'a', label: 'Required A', required: true },
+          { id: 'b', label: 'Optional B', required: false },
+          { id: 'c', label: 'Optional C', required: false },
+        ] },
+      },
+    })
+    await flushPromises()
+    await wrapper.find('button').trigger('click')
+    expect(save).toHaveBeenCalledWith({ selected: ['a', 'b'] })
   })
 
   it('renders action failures at the authored feedback node and preserves values', async () => {

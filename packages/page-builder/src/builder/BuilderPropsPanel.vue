@@ -11,18 +11,20 @@ import {
   type CoarSelectOption,
 } from '@cocoar/vue-ui';
 import type { LocalizedValue, PageBreakpoint, PageNode, NodeStyle, ElementNode, FieldValidation, PageRootNode, PageTranslations, PropertyBinding, RepeatNode, RuntimeBinding, RuntimeExpressionBinding, TranslationBinding, VisibleWhen } from '../schema';
-import { BUILDER_API, BUILDER_AUTHORING_MODE, BUILDER_BREAKPOINT, BUILDER_CONFIG, BUILDER_LOCALE, BUILDER_LOGIC, BUILDER_VALIDATION } from './builderContext';
+import { BUILDER_API, BUILDER_AUTHORING_MODE, BUILDER_BREAKPOINT, BUILDER_CONFIG, BUILDER_LOCALE, BUILDER_LOGIC, BUILDER_PAGE_CODE_VALUES, BUILDER_VALIDATION } from './builderContext';
 import type { NodePath } from './operations';
 import { useMergedElements } from '../elements/useMergedElements';
 import { compatibleFields, compatibleElementTypes } from '../elements/fieldContract';
 import { isElementAllowed } from '../schema';
 import StyleProps from './props/StyleProps.vue';
+import ActionPropsEditor from './props/ActionPropsEditor.vue';
 import { isExpressionBinding } from '../runtimeBindings';
 import { expressionLiteral } from './expressionAuthoring';
 import { collectElementNames, elementNameBase, uniqueElementName } from './nodeDefaults';
 import { readElementQuickProperties, setElementQuickProperty } from '../pageCode';
 import type { PageElementQuickProperty } from '../elements/registry';
 import { isTranslationBinding, pageTranslationTemplate, translation, translationKeyFor } from '../translations';
+import { isBindableActionValueField } from '../actionValues';
 
 defineOptions({ name: 'BuilderPropsPanel' });
 
@@ -34,6 +36,7 @@ const validation = inject(BUILDER_VALIDATION);
 const activeBreakpoint = inject(BUILDER_BREAKPOINT)!;
 const elements = useMergedElements(config);
 const logic = inject(BUILDER_LOGIC);
+const pageCodeValues = inject(BUILDER_PAGE_CODE_VALUES);
 const builderLocale = inject(BUILDER_LOCALE);
 const authoringMode = inject(BUILDER_AUTHORING_MODE, computed(() => 'properties' as const));
 const codeDriven = computed(() => authoringMode.value === 'code');
@@ -207,10 +210,16 @@ const bindableTargets = computed<CoarSelectOption<string>[]>(() => {
   for (const key of Object.keys(elementNode.value?.props ?? {})) {
     if (key !== 'action' && key !== 'actionValues' && key !== 'actionValueField') keys.add(key);
   }
+  const actionValues = elementNode.value?.props.actionValues;
+  if (actionValues && typeof actionValues === 'object' && !Array.isArray(actionValues)) {
+    for (const key of Object.keys(actionValues)) {
+      if (isBindableActionValueField(key)) keys.add(`actionValues.${key}`);
+    }
+  }
   return [...keys].map((key) => ({ value: key, label: key }));
 });
 const STYLE_EXPRESSION_TARGETS = [
-  'width', 'minWidth', 'maxWidth', 'height', 'minHeight', 'padding', 'gap',
+  'width', 'minWidth', 'maxWidth', 'height', 'minHeight', 'maxHeight', 'overflow', 'padding', 'gap',
   'hidden', 'fontSize', 'fontWeight', 'textAlign', 'surface', 'foreground',
 ] as const;
 const expressionTargets = computed<CoarSelectOption<string>[]>(() => [
@@ -236,10 +245,50 @@ const itemPathOptions = computed<CoarSelectOption<string>[]>(() => {
   const contract = config?.value?.contextFields?.find((field) => field.path === source);
   return (contract?.itemFields ?? []).map((field) => ({ value: field.path, label: `${field.path} · ${field.type}` }));
 });
-const bindingSourceOptions = computed<CoarSelectOption<string>[]>(() => [
-  { value: 'context', label: 'Host context' },
-  { value: 'state', label: 'View state' },
-  ...(nearestRepeat.value ? [{ value: 'item', label: `Repeat item (${nearestRepeat.value.props.itemAlias ?? 'item'})` }] : []),
+function collectTreeOptions(kind: 'field' | 'selection'): CoarSelectOption<string>[] {
+  const found = new Set<string>();
+  const visit = (entry: PageNode) => {
+    if (entry.type !== 'page') {
+      const element = entry as ElementNode;
+      const definition = elements.value[entry.type];
+      if (kind === 'field' && definition?.value && element.name && element.name !== '$selection') {
+        found.add(element.name);
+      }
+      if (kind === 'selection' && entry.type === 'repeat') {
+        const selectionName = (entry as RepeatNode).props.selection?.name;
+        if (selectionName) found.add(selectionName);
+      }
+    }
+    if ('children' in entry && Array.isArray(entry.children)) entry.children.forEach(visit);
+  };
+  visit(builder.schema.value);
+  return [...found].map((value) => ({ value, label: value }));
+}
+const fieldPathOptions = computed(() => collectTreeOptions('field'));
+const selectionPathOptions = computed(() => collectTreeOptions('selection'));
+const statePathOptions = computed<CoarSelectOption<string>[]>(() => {
+  const paths: string[] = [];
+  const collect = (value: unknown, prefix = '', depth = 0) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value) || depth > 8) return;
+    for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+      if (!/^[A-Za-z_][A-Za-z0-9_-]*$/.test(key) || ['__proto__', 'prototype', 'constructor'].includes(key)) continue;
+      const path = prefix ? `${prefix}.${key}` : key;
+      paths.push(path);
+      collect(entry, path, depth + 1);
+    }
+  };
+  collect(pageCodeValues?.value?.state);
+  return paths.map((value) => ({ value, label: value }));
+});
+const bindingSourceOptions = computed<CoarSelectOption<RuntimeBinding['source']>[]>(() => [
+  ...(contextPathOptions.value.length ? [{ value: 'context' as const, label: 'Host context' }] : []),
+  { value: 'state', label: 'Page state' },
+  ...(fieldPathOptions.value.length ? [{ value: 'field' as const, label: 'Form field' }] : []),
+  ...(selectionPathOptions.value.length ? [{ value: 'selection' as const, label: 'Repeat selection' }] : []),
+  ...(nearestRepeat.value ? [
+    { value: 'item' as const, label: `Repeat item (${nearestRepeat.value.props.itemAlias ?? 'item'})` },
+    { value: 'index' as const, label: 'Repeat index' },
+  ] : []),
 ]);
 
 function patchBindings(next: Record<string, PropertyBinding>) {
@@ -249,13 +298,20 @@ function addBinding() {
   const used = new Set(bindingEntries.value.map(([key]) => key));
   const target = bindableTargets.value.find((entry) => !used.has(entry.value))?.value;
   if (!target) return;
-  const firstPath = contextPathOptions.value[0]?.value;
-  patchBindings({ ...(elementNode.value?.bindings ?? {}), [target]: { source: 'context', path: firstPath } });
+  const source = bindingSourceOptions.value[0]?.value ?? 'state';
+  const firstPath = source === 'context' ? contextPathOptions.value[0]?.value : undefined;
+  patchBindings({ ...(elementNode.value?.bindings ?? {}), [target]: { source, path: firstPath } });
 }
 function staticTargetValue(target: string): unknown {
   const element = elementNode.value;
   if (!element) return undefined;
   if (target.startsWith('style.')) return element.style?.[target.slice(6) as keyof NodeStyle];
+  if (target.startsWith('actionValues.')) {
+    const actionValues = element.props.actionValues;
+    return actionValues && typeof actionValues === 'object' && !Array.isArray(actionValues)
+      ? (actionValues as Record<string, unknown>)[target.slice('actionValues.'.length)]
+      : undefined;
+  }
   return element.props?.[target];
 }
 function addExpressionBinding() {
@@ -283,7 +339,8 @@ function renameBinding(from: string, to: string | null) {
 }
 function directBinding(binding: PropertyBinding): RuntimeBinding | null {
   return 'source' in binding
-    && (binding.source === 'context' || binding.source === 'state' || binding.source === 'item')
+    && (binding.source === 'context' || binding.source === 'state' || binding.source === 'item'
+      || binding.source === 'index' || binding.source === 'field' || binding.source === 'selection')
     ? binding
     : null;
 }
@@ -309,7 +366,14 @@ function updateBinding(target: string, update: Partial<RuntimeBinding>) {
 function bindingPaths(binding: PropertyBinding): CoarSelectOption<string>[] {
   const direct = directBinding(binding);
   if (direct?.source === 'item') return itemPathOptions.value;
+  if (direct?.source === 'state') return statePathOptions.value;
+  if (direct?.source === 'field') return fieldPathOptions.value;
+  if (direct?.source === 'selection') return selectionPathOptions.value;
   return contextPathOptions.value;
+}
+function bindingNeedsPath(binding: PropertyBinding): boolean {
+  const source = directBinding(binding)?.source;
+  return source !== 'index';
 }
 
 // ─── Localized string props ──────────────────────────────────────────────────
@@ -911,6 +975,15 @@ function bindField(name: string | null) {
         <component :is="inspector" :node="node" :patch="patch" />
       </section>
 
+      <!-- ── Universal action section (registry capability) ─────────────── -->
+      <section
+        v-if="def?.action && elementNode"
+        class="pb-props__section pb-props__section--separated"
+      >
+        <h4 class="pb-props__section-title">{{ t('coar.pageBuilder.props.section.action', undefined, 'Action') }}</h4>
+        <ActionPropsEditor :node="elementNode" :patch="patch" />
+      </section>
+
       <!-- ── Safe host/item bindings ─────────────────────────────────────── -->
       <section
         v-if="elementNode"
@@ -938,11 +1011,19 @@ function bindField(name: string | null) {
                 @update:model-value="(v) => updateBinding(target, { source: v as RuntimeBinding['source'], path: undefined })"
               />
             </CoarFormField>
-            <CoarFormField v-if="directBinding(binding)!.source !== 'state'" label="Allowed path">
+            <CoarFormField v-if="bindingNeedsPath(binding)" label="Allowed path">
               <CoarSelect size="s"
+                v-if="directBinding(binding)!.source !== 'state' || bindingPaths(binding).length > 0"
                 :model-value="directBinding(binding)!.path ?? null"
                 :options="bindingPaths(binding)"
                 @update:model-value="(v) => updateBinding(target, { path: v ?? undefined })"
+              />
+              <CoarTextInput
+                v-else
+                size="s"
+                :model-value="directBinding(binding)!.path ?? ''"
+                placeholder="e.g. consent.checked"
+                @update:model-value="(v) => updateBinding(target, { path: v || undefined })"
               />
             </CoarFormField>
           </template>
@@ -1046,7 +1127,7 @@ function bindField(name: string | null) {
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  background: var(--coar-surface-default, #fff);
+  background: var(--coar-background-neutral-primary, #fff);
   font-family: var(--coar-body-base-family, sans-serif);
 }
 
@@ -1087,7 +1168,7 @@ function bindField(name: string | null) {
 .pb-props__section--separated {
   margin-top: 20px;
   padding-top: 16px;
-  border-top: 1px solid var(--coar-border-neutral-subtle, #eeeef0);
+  border-top: 1px solid var(--coar-border-neutral-tertiary, #eeeef0);
 }
 
 .pb-props__section-title {
@@ -1129,7 +1210,7 @@ function bindField(name: string | null) {
 }
 
 .pb-props__quick-reset:hover {
-  color: var(--coar-text-accent, #1666cc);
+  color: var(--coar-text-accent-primary, #1666cc);
 }
 
 .pb-props__translation-link {
@@ -1146,7 +1227,7 @@ function bindField(name: string | null) {
   text-align: left;
 }
 
-.pb-props__translation-link:hover { color: var(--coar-text-accent, #1666cc); }
+.pb-props__translation-link:hover { color: var(--coar-text-accent-primary, #1666cc); }
 .pb-props__translation-link code { overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 
 .pb-props__sr-only {
@@ -1166,15 +1247,15 @@ function bindField(name: string | null) {
 .pb-props__small-button, .pb-props__remove-binding {
   border: 1px solid var(--coar-border-neutral, #d0d0d5);
   border-radius: 5px;
-  background: var(--coar-surface-default, #fff);
-  color: var(--coar-text-accent, #1666cc);
+  background: var(--coar-background-neutral-primary, #fff);
+  color: var(--coar-text-accent-primary, #1666cc);
   font: inherit;
   font-size: 11px;
   cursor: pointer;
 }
-.pb-props__binding { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid var(--coar-border-neutral-subtle, #eeeef0); border-radius: 6px; }
+.pb-props__binding { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid var(--coar-border-neutral-tertiary, #eeeef0); border-radius: 6px; }
 .pb-props__expression-summary { display: flex; flex-direction: column; gap: 7px; }
-.pb-props__expression-summary code { display: block; max-height: 54px; overflow: hidden; padding: 6px; border-radius: 4px; background: var(--coar-surface-neutral-subtle, #f7f7f9); color: var(--coar-text-neutral-secondary, #555); font-size: 10px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.pb-props__expression-summary code { display: block; max-height: 54px; overflow: hidden; padding: 6px; border-radius: 4px; background: var(--coar-background-neutral-secondary, #f7f7f9); color: var(--coar-text-neutral-secondary, #555); font-size: 10px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .pb-props__localized-key { font-size: 12px; color: var(--coar-text-neutral-primary, #222); }
 .pb-props__remove-binding { align-self: flex-start; color: var(--coar-text-semantic-error-bold, #b42318); }
 
@@ -1229,12 +1310,12 @@ function bindField(name: string | null) {
 }
 
 .pb-props__issue--warning {
-  background: var(--coar-surface-semantic-warning-subtle, #fef3c7);
+  background: var(--coar-background-semantic-warning-subtle, #fef3c7);
   color: var(--coar-text-semantic-warning-bold, #92400e);
 }
 
 .pb-props__issue--error {
-  background: var(--coar-surface-semantic-error-subtle, #fde8e4);
+  background: var(--coar-background-semantic-error-subtle, #fde8e4);
   color: var(--coar-text-semantic-error-bold, #c0392b);
 }
 </style>

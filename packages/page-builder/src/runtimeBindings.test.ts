@@ -64,6 +64,61 @@ describe('safe runtime bindings', () => {
     expect((node as ElementNode).props.text).toBe('Default')
   })
 
+  it('resolves controlled field, selection, item and index sources into nested action values', () => {
+    const node = {
+      id: 'approve', type: 'button', props: {
+        label: 'Approve',
+        actionValues: { fixed: true, approvedScopes: [] },
+      },
+      bindings: {
+        'actionValues.approvedScopes': { source: 'selection', path: 'approvedScopes' },
+        'actionValues.email': { source: 'field', path: 'email' },
+        'actionValues.scopeId': { source: 'item', path: 'id' },
+        'actionValues.scopeIndex': { source: 'index' },
+      },
+    } as PageNode
+    const resolved = resolveNodeRuntime(node, {
+      fields: { approvedScopes: ['openid', 'profile'], email: 'ada@example.test' },
+      selectionNames: new Set(['approvedScopes']),
+      item: { id: 'profile', secret: 'hidden' },
+      itemIndex: 1,
+      allowedItemPaths: new Set(['id']),
+    }) as ElementNode
+
+    expect(resolved.props.actionValues).toEqual({
+      fixed: true,
+      approvedScopes: ['openid', 'profile'],
+      email: 'ada@example.test',
+      scopeId: 'profile',
+      scopeIndex: 1,
+    })
+    expect((node as ElementNode).props.actionValues).toEqual({ fixed: true, approvedScopes: [] })
+  })
+
+  it('reads a direct state binding from customer-authored Page State', () => {
+    expect(resolvePropertyBinding({ source: 'state', path: 'consent.checked' }, {
+      pageState: { consent: { checked: true }, privateValue: 'not addressed' },
+      viewState: 'prompt',
+    })).toBe(true)
+  })
+
+  it('applies sandbox results to one nested action-value key only', () => {
+    const node = {
+      id: 'language', type: 'link', props: {
+        label: 'Switch', actionValues: { language: 'en', source: 'static' },
+      },
+      bindings: {
+        'actionValues.language': { source: 'expression', expression: 'state.language' },
+      },
+    } as PageNode
+    const resolved = resolveNodeRuntime(node, {
+      expressionValues: {
+        [runtimeExpressionKey('language', 'actionValues.language')]: 'de',
+      },
+    }) as ElementNode
+    expect(resolved.props.actionValues).toEqual({ language: 'de', source: 'static' })
+  })
+
   it('keeps static values until sandbox expression results arrive', () => {
     const node = {
       id: 'submit', type: 'button', props: { label: 'Sign in', disabled: false, title: 'Static title' },

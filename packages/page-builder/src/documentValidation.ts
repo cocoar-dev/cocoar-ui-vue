@@ -1,6 +1,8 @@
-import type { ElementNode, PageConfig, PageNode, PageRootNode, RepeatNode, RuntimeBinding, VisibleWhen } from './schema'
+import type { ActionProps, ElementNode, PageConfig, PageNode, PageRootNode, RepeatNode, RuntimeBinding, VisibleWhen } from './schema'
 import { isElementAllowed } from './schema'
 import { isValidElementName } from './builder/nodeDefaults'
+import { isJsonSafeActionValue, isJsonSafeActionValues, isSafeActionValueField } from './actionValues'
+import { BUILTIN_ELEMENTS } from './elements/builtins'
 
 export interface PageDocumentIssue {
   nodeId?: string
@@ -17,7 +19,7 @@ function directBindings(node: ElementNode): RuntimeBinding[] {
   const result: RuntimeBinding[] = []
   for (const binding of Object.values(node.bindings ?? {})) {
     if ('source' in binding) {
-      if (binding.source === 'context' || binding.source === 'state' || binding.source === 'item') result.push(binding)
+      if (binding.source !== 'expression' && binding.source !== 'translation') result.push(binding)
     } else if ('placeholders' in binding) {
       result.push(...Object.values(binding.placeholders))
     }
@@ -46,6 +48,28 @@ export function validatePageDocument(schema: PageNode, config?: PageConfig): Pag
   if (stateCode && stateCode.length > 50_000) issues.push({ nodeId: schema.id, field: 'stateCode', message: 'Page State exceeds 50,000 characters.' })
   const nodesById = new Map<string, PageNode>()
   const placementById = new Map<string, { parentId?: string; index: number }>()
+  const registry = { ...BUILTIN_ELEMENTS, ...(config?.elements ?? {}) }
+  const fieldNames = new Set<string>()
+  const selectionNames = new Set<string>()
+  const repeatAncestor = new Map<string, RepeatNode | undefined>()
+  const indexContracts = (node: PageNode, parentRepeat?: RepeatNode) => {
+    repeatAncestor.set(node.id, parentRepeat)
+    if (node.type !== 'page') {
+      const element = node as ElementNode
+      if (registry[node.type]?.value && isValidElementName(element.name) && element.name !== '$selection') {
+        fieldNames.add(element.name!)
+      }
+      if (node.type === 'repeat') {
+        const selectionName = (node as RepeatNode).props.selection?.name
+        if (selectionName) selectionNames.add(selectionName)
+      }
+    }
+    const nextRepeat = node.type === 'repeat' ? node as RepeatNode : parentRepeat
+    if ('children' in node && Array.isArray(node.children)) {
+      for (const child of node.children) indexContracts(child, nextRepeat)
+    }
+  }
+  indexContracts(schema)
   let count = 0
 
   const validateCondition = (node: PageNode, condition: VisibleWhen, depth: number) => {
@@ -94,15 +118,40 @@ export function validatePageDocument(schema: PageNode, config?: PageConfig): Pag
         if (binding.source === 'context' && !config?.contextFields?.some((field) => field.path === binding.path)) {
           issues.push({ nodeId: node.id, field: 'bindings', message: `Unknown context binding "${String(binding.path ?? '')}".` })
         }
-        if (binding.source === 'item' && !config?.contextFields?.some((field) => field.itemFields?.some((item) => item.path === binding.path))) {
+        if (binding.source === 'state' && !binding.path) {
+          issues.push({ nodeId: node.id, field: 'bindings', message: 'Page-state binding requires a path.' })
+        }
+        const repeat = repeatAncestor.get(node.id)
+        const repeatContract = config?.contextFields?.find((field) => field.path === repeat?.props.source && field.type === 'array')
+        if (binding.source === 'item' && !repeatContract?.itemFields?.some((item) => item.path === binding.path)) {
           issues.push({ nodeId: node.id, field: 'bindings', message: `Unknown item binding "${String(binding.path ?? '')}".` })
+        }
+        if (binding.source === 'index' && !repeat) {
+          issues.push({ nodeId: node.id, field: 'bindings', message: 'Repeat-index binding is outside a Repeat.' })
+        }
+        if (binding.source === 'field' && (!binding.path || !fieldNames.has(binding.path))) {
+          issues.push({ nodeId: node.id, field: 'bindings', message: `Unknown form-field binding "${String(binding.path ?? '')}".` })
+        }
+        if (binding.source === 'selection' && (!binding.path || !selectionNames.has(binding.path))) {
+          issues.push({ nodeId: node.id, field: 'bindings', message: `Unknown selection binding "${String(binding.path ?? '')}".` })
         }
       }
       if (element.visibleWhen) validateCondition(node, element.visibleWhen, 0)
-      if ((node.type === 'button' || node.type === 'link') && config?.availableActions) {
-        const action = element.props.action
-        if (typeof action === 'string' && action && !config.availableActions.some((entry) => entry.id === action)) {
+      const actionCapable = node.type === 'button' || node.type === 'link' || config?.elements?.[node.type]?.action
+      if (actionCapable) {
+        const actionProps = element.props as ActionProps
+        const action = actionProps.action
+        if (config?.availableActions && typeof action === 'string' && action && !config.availableActions.some((entry) => entry.id === action)) {
           issues.push({ nodeId: node.id, field: 'props.action', message: `Unknown action "${action}".` })
+        }
+        if (actionProps.actionValues !== undefined && !isJsonSafeActionValues(actionProps.actionValues)) {
+          issues.push({ nodeId: node.id, field: 'props.actionValues', message: 'Action values must be a JSON-safe object.' })
+        }
+        if (actionProps.actionValueField !== undefined && !isSafeActionValueField(actionProps.actionValueField)) {
+          issues.push({ nodeId: node.id, field: 'props.actionValueField', message: 'Dynamic action-value key is empty or reserved.' })
+        }
+        if (actionProps.actionValue !== undefined && !isJsonSafeActionValue(actionProps.actionValue)) {
+          issues.push({ nodeId: node.id, field: 'props.actionValue', message: 'Dynamic action value must be JSON-safe.' })
         }
       }
     }

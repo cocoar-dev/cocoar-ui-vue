@@ -37,7 +37,8 @@ interface PageElementProps {
   [property: string]: unknown;
 }
 interface PageNodeStyle {
-  width?: string; minWidth?: string; maxWidth?: string; height?: string; minHeight?: string;
+  width?: string; minWidth?: string; maxWidth?: string; height?: string; minHeight?: string; maxHeight?: string;
+  overflow?: 'visible' | 'hidden' | 'clip' | 'auto' | 'scroll';
   gap?: string; padding?: string; hidden?: boolean; direction?: 'column' | 'row'; wrap?: boolean;
   align?: 'start' | 'center' | 'end' | 'stretch'; justify?: string; alignSelf?: string;
   surface?: string; foreground?: string; radius?: string; elevation?: string;

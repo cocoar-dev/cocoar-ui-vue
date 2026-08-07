@@ -11,7 +11,9 @@ import {
 import type { ElementNode, PageBreakpoint, PageNode, NodeStyle } from '../../schema';
 import { localNodeStyle, resolveNodeStyle } from '../../responsive';
 import { BUILDER_BREAKPOINT } from '../builderContext';
+import { BUILDER_CONFIG } from '../builderContext';
 import BuilderFxButton from '../BuilderFxButton.vue';
+import { isSafeStylePreset } from '../../stylePresets';
 
 const props = defineProps<{
   node: PageNode;
@@ -23,6 +25,7 @@ const props = defineProps<{
 
 const { t } = useI18n();
 const activeBreakpoint = inject(BUILDER_BREAKPOINT)!;
+const config = inject(BUILDER_CONFIG);
 
 const style = computed<NodeStyle>(() => resolveNodeStyle(props.node, activeBreakpoint.value));
 const localStyle = computed<Partial<NodeStyle>>(() => localNodeStyle(props.node, activeBreakpoint.value));
@@ -39,6 +42,30 @@ const options = (values: readonly string[]): CoarSelectOption<string>[] => [
   ...values.map((value) => ({ value, label: value })),
 ];
 
+const presetOptions = computed<CoarSelectOption<string>[] | null>(() => {
+  const seen = new Set<string>();
+  const available = (config?.value?.stylePresets ?? [])
+    .filter((preset) => isSafeStylePreset(preset) && preset.allowedOn.includes(props.node.type))
+    .filter((preset) => {
+      if (seen.has(preset.id)) return false;
+      seen.add(preset.id);
+      return true;
+    })
+    .map((preset) => ({ value: preset.id, label: preset.label }));
+  const current = props.node.stylePreset;
+  if (current && !seen.has(current)) {
+    available.push({
+      value: current,
+      label: t('coar.pageBuilder.props.notConfigured', { id: current }, '{id} (not configured)'),
+    });
+  }
+  if (!available.length && !current) return null;
+  return [
+    { value: '', label: t('coar.pageBuilder.props.none', undefined, '— none') },
+    ...available,
+  ];
+});
+
 function setBreakpoint(value: string | null) {
   if (value) activeBreakpoint.value = value as PageBreakpoint;
 }
@@ -50,7 +77,7 @@ function resetProperty(key: keyof NodeStyle) {
 // A width set without an explicit `size` is treated as a fixed width, so legacy
 // schemas surface as 'Fixed width' with their value still visible/editable.
 const sizeValue = computed<string>(() => style.value.size ?? (style.value.width ? 'fixed' : ''));
-const showWidth = computed(() => sizeValue.value === 'fixed');
+const showWidth = computed(() => props.node.type === 'page' || sizeValue.value === 'fixed');
 
 const justifyOptions = computed<CoarSelectOption<string>[]>(() => [
   { value: '', label: t('coar.pageBuilder.props.inherit', undefined, '— inherit') },
@@ -100,6 +127,19 @@ function setSize(v: string) {
       </button>
     </template>
   </div>
+
+  <CoarFormField
+    v-if="presetOptions"
+    :label="t('coar.pageBuilder.props.stylePreset', undefined, 'Style preset')"
+    :hint="t('coar.pageBuilder.props.stylePresetHint', undefined, 'Host-registered appearance; the document stores only its safe id')"
+  >
+    <CoarSelect
+      size="s"
+      :model-value="node.stylePreset ?? ''"
+      :options="presetOptions"
+      @update:model-value="(value) => props.patchNode({ stylePreset: value || undefined })"
+    />
+  </CoarFormField>
 
   <template v-if="isStack">
     <CoarFormField label="Stack direction">
@@ -242,6 +282,24 @@ function setSize(v: string) {
     />
   </CoarFormField>
 
+  <CoarFormField :label="t('coar.pageBuilder.props.maxHeight', undefined, 'Max height')">
+    <CoarTextInput
+      size="s"
+      :model-value="style.maxHeight ?? ''"
+      placeholder="e.g. 100dvh, 800px"
+      @update:model-value="(v) => props.patchStyle({ maxHeight: v || undefined })"
+    />
+  </CoarFormField>
+
+  <CoarFormField :label="t('coar.pageBuilder.props.overflow', undefined, 'Overflow')">
+    <CoarSelect
+      size="s"
+      :model-value="style.overflow ?? ''"
+      :options="options(['visible', 'hidden', 'clip', 'auto', 'scroll'])"
+      @update:model-value="(v) => props.patchStyle({ overflow: (v || undefined) as NodeStyle['overflow'] })"
+    />
+  </CoarFormField>
+
   <CoarFormField :label="t('coar.pageBuilder.props.padding', undefined, 'Padding')">
     <CoarTextInput size="s"
       :model-value="style.padding ?? ''"
@@ -265,14 +323,14 @@ function setSize(v: string) {
   gap: 5px;
   padding: 7px 8px;
   border-radius: 5px;
-  background: var(--coar-surface-neutral-subtle, #f7f7f9);
+  background: var(--coar-background-neutral-secondary, #f7f7f9);
   color: var(--coar-text-neutral-secondary, #666);
   font-size: 11px;
 }
 .pb-responsive-status button {
   border: 1px solid var(--coar-border-neutral, #d0d0d5);
   border-radius: 999px;
-  background: var(--coar-surface-default, #fff);
+  background: var(--coar-background-neutral-primary, #fff);
   color: inherit;
   font: inherit;
   cursor: pointer;

@@ -488,7 +488,7 @@ function zoneClasses(index: number): Record<string, boolean> {
 }
 
 .canvas-node__delete:hover {
-  background: var(--coar-surface-semantic-error-subtle, #fde8e4);
+  background: var(--coar-background-semantic-error-subtle, #fde8e4);
   border-color: var(--coar-text-semantic-error-bold, #c0392b);
   color: var(--coar-text-semantic-error-bold, #c0392b);
 }
@@ -506,7 +506,7 @@ function zoneClasses(index: number): Record<string, boolean> {
 }
 
 .canvas-node__body--card {
-  background: var(--coar-surface-default, #fff);
+  background: var(--coar-background-neutral-primary, #fff);
   border: 1px solid var(--coar-border-neutral, #e0e0e0);
   border-radius: 6px;
   padding: 12px;

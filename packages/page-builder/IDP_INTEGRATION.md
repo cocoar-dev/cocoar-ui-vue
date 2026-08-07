@@ -44,6 +44,34 @@ pnpm add @cocoar/vue-page-builder@beta
 Import `@cocoar/vue-page-builder/styles` once in the authoring application and
 the application that renders the authentication views.
 
+### Theme and host style registration
+
+Resolve the application/client theme in the IDP and pass stable primitives to
+the generic UI scope. Runtime and Builder preview intentionally share this one
+implementation:
+
+```vue
+<CoarThemeScope :theme="applicationTheme" mode="auto">
+  <CoarPageRenderer :schema :config />
+</CoarThemeScope>
+
+<CoarPageBuilder
+  v-model="schema"
+  :config="config"
+  :preview-theme="applicationTheme"
+  preview-theme-mode="dark"
+/>
+```
+
+`previewTheme` is scoped to the embedded renderer; the Builder toolbar,
+Properties panel, dialogs, and Monaco keep the administration theme.
+
+Register controlled CSS affordances through `config.stylePresets`. Each entry
+declares an id, label, one safe CSS class and `allowedOn` element types (including
+`page` when appropriate). The document persists only `stylePreset: '<id>'`.
+Load the associated scoped CSS in both authoring and runtime. Unknown presets
+are an authoring error and are ignored safely at runtime.
+
 ## 2. Persist one versioned document per scope and slot
 
 The recommended storage key is:
