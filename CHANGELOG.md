@@ -7,9 +7,9 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
-## 2.19.0 (Beta)
+## 2.19.0
 
-This beta brings the Vue calendar's view hierarchy and interaction model in line with the newer Cocoar iOS calendar while keeping the web package deliberately presentation-agnostic. The flat `CalendarBuilder` remains the single integration surface: applications choose their own create/edit UI, persistence and recurring-series scope flows through callbacks and occurrence provenance.
+This release brings the Vue calendar's view hierarchy and interaction model in line with the newer Cocoar iOS calendar while keeping the web package deliberately presentation-agnostic. The flat `CalendarBuilder` remains the single integration surface: applications choose their own create/edit UI, persistence and recurring-series scope flows through callbacks and occurrence provenance.
 
 ### Added
 
