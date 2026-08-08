@@ -1,5 +1,5 @@
 import type { DateInputNode } from '../../schema';
-import { definePageElement } from '../registry';
+import { definePageElement, QUICK_PROPERTY_PRESETS as quick } from '../registry';
 import DateInputRenderer from './DateInputRenderer.vue';
 import DateInputPreview from './DateInputPreview.vue';
 import DateInputInspector from './DateInputInspector.vue';
@@ -15,6 +15,7 @@ export const dateInputElement = definePageElement<DateInputNode['props']>({
     icon: 'calendar',
     group: 'element',
     defaults: () => ({ label: 'Date' }),
+    quickProperties: [quick.label, quick.placeholder, quick.disabled, quick.required, quick.width],
     preview: DateInputPreview,
     inspector: DateInputInspector,
     inspectorTitle: { key: 'coar.pageBuilder.props.section.dateInput', fallback: 'Date' },

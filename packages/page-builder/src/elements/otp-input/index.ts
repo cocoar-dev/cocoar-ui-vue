@@ -1,5 +1,5 @@
 import type { OtpInputNode } from '../../schema';
-import { definePageElement } from '../registry';
+import { definePageElement, QUICK_PROPERTY_PRESETS as quick } from '../registry';
 import OtpInputRenderer from './OtpInputRenderer.vue';
 import OtpInputPreview from './OtpInputPreview.vue';
 import OtpInputInspector from './OtpInputInspector.vue';
@@ -17,6 +17,7 @@ export const otpInputElement = definePageElement<OtpInputNode['props']>({
     icon: 'key-round',
     group: 'element',
     defaults: () => ({ label: 'Code' }),
+    quickProperties: [quick.label, quick.disabled, quick.required, quick.width],
     preview: OtpInputPreview,
     inspector: OtpInputInspector,
     inspectorTitle: { key: 'coar.pageBuilder.props.section.otpInput', fallback: 'OTP input' },

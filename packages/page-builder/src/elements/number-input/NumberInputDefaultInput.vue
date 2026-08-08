@@ -14,6 +14,7 @@ const emit = defineEmits<{
 
 <template>
   <CoarNumberInput
+size="s"
     clearable
     :decimals="props.props.decimals ?? 6"
     :model-value="(props.modelValue as number | undefined) ?? null"

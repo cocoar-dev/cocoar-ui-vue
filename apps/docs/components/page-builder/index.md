@@ -44,7 +44,7 @@ import {
 const schema = ref<PageNode>({
   id: 'root',
   type: 'page',
-  schemaVersion: 2,
+  schemaVersion: 5,
   style: { gap: '16px', padding: '24px' },
   children: [],
 });
@@ -117,6 +117,17 @@ interface PageConfig {
   elements?: PageElementRegistry
 
   /**
+   * Host-owned CSS affordances. The document stores only the preset id;
+   * raw CSS and arbitrary class names never enter the page schema.
+   */
+  stylePresets?: {
+    id: string
+    label: string
+    className: string
+    allowedOn: string[]
+  }[]
+
+  /**
    * The data contract behind the page (DTO fields). When present, the
    * builder's Field section offers these instead of a free-text name —
    * filtered per element to the compatible value types — the palette
@@ -126,6 +137,34 @@ interface PageConfig {
    */
   fields?: PageFieldSpec[]
 
+  /** Allow-listed host context for property bindings, conditions and repeaters. */
+  contextFields?: PageContextField[]
+
+  /** Host states and locales available to authors and the preview toolbar. */
+  availableStates?: { id: string; label: string }[]
+  locales?: { id: string; label: string }[]
+  defaultLocale?: string
+
+  /** Generic document invariants enforced by builder and fallback validation. */
+  requiredNodes?: {
+    id: string
+    type: string
+    lockVisibility?: boolean
+    lockStyle?: boolean
+    parentId?: string
+    maxIndex?: number
+  }[]
+  documentLimits?: { maxNodes?: number; maxDepth?: number }
+
+  /** Non-persisted named samples for context/state/locale preview testing. */
+  previewFixtures?: {
+    id: string
+    label: string
+    context: Record<string, unknown>
+    state?: string
+    locale?: string
+  }[]
+
   /**
    * Allow binding names outside `fields`. Defaults to false — with a
    * contract, authors pick from it.
@@ -133,16 +172,16 @@ interface PageConfig {
   allowCustomFields?: boolean
 
   /**
-   * Hide the free INPUTS offering (the palette's Inputs group and the
-   * input entries of the outline's add-child menu) — exactly the value
-   * elements the field contract replaces. Containers and content/action
-   * elements (headings, buttons, …) stay available. Pure authoring UI;
+   * Hide free value-producing elements from the library and the Inputs
+   * entries of the outline's add-child menu — exactly what the field
+   * contract replaces. Containers and content/action elements stay available.
+   * Pure authoring UI;
    * `allowedElements` remains the boundary for what may be used at all.
    */
   hideElementPicker?: boolean
 
   /**
-   * Action IDs that buttons and links may reference. When provided, the
+   * Action IDs that registry elements with `action: true` may reference. When provided, the
    * builder's Action input becomes a dropdown of these labeled choices
    * instead of free text. The renderer's `actions` map is the actual
    * security boundary — `availableActions` is a UX affordance.
@@ -279,7 +318,7 @@ The allow-list composes with the contract at every seam: a field's default eleme
 
 #### Fields-only authoring
 
-Set `hideElementPicker: true` to remove the free **Inputs** offering (the Inputs palette group and the input entries of the outline's add-child menu) — exactly the value elements the field contract replaces: fields then come exclusively from dragging contract cards. **Containers** (layout) and **Elements** (headings, notes, buttons, links, images — everything without a value spec) stay available, because every form needs structure and chrome. The Inputs/Elements split is registry-derived from the value spec, so consumer elements sort themselves. It is pure authoring UI — combine it with `allowedElements` when the *rendering* boundary should shrink too.
+Set `hideElementPicker: true` to remove free value-producing elements from the right-hand **Elements** library and from the outline's **Inputs** add-child group — exactly the entries the field contract replaces. Fields then come exclusively from dragging contract cards. **Containers** and content/action elements (headings, notes, buttons, links, images) stay available because every form needs structure and chrome. Classification is registry-derived from the value spec, so consumer elements sort themselves. This is pure authoring UI — combine it with `allowedElements` when the *rendering* boundary should shrink too.
 
 #### Typed field lists (opt-in)
 
@@ -389,7 +428,7 @@ A complete reference implementation lives at `apps/playground/src/components/Pla
 
 **Allowed elements** — `config.allowedElements` is enforced at both layers (builder hides and flags; renderer skips, with one `console.warn` per type). The renderer is the hard boundary — even tampered JSON cannot smuggle in disallowed types, and disallowed subtrees are excluded from the value model too (no defaults, no validation veto).
 
-**Actions** — buttons and links store an action `id`. The renderer only invokes handlers from the consumer-provided `actions` map — action ids are inert strings. When `config.availableActions` is set, the builder also constrains the Action input to a labeled dropdown. One qualification to "nothing executable lives in the schema": `validation.pattern` is a tenant-authored regular expression that *is* evaluated at render time. It is compiled safely — an invalid pattern becomes an inert rule with a single `console.warn` — and anchored to match the full string, like the HTML `pattern` attribute.
+**Actions** — every registry element that declares `action: true` stores the shared optional `ActionProps` contract; built-in buttons and links use it too. The builder supplies one Action + JSON key/value editor with an `fx` switch per value, and the renderer only invokes handlers from the consumer-provided `actions` map — action ids are inert strings. Handler payload precedence is form values < resolved per-key `actionValues` < the legacy bound `actionValue`; only JSON-safe explicit values cross the boundary. Per-key bindings may read controlled context, customer Page State, form fields, named Repeat selections, or the current Repeat item/index. When `config.availableActions` is set, the builder also constrains the Action input to a labeled dropdown. One qualification to "nothing executable lives in the schema": `validation.pattern` is a tenant-authored regular expression that *is* evaluated at render time. It is compiled safely — an invalid pattern becomes an inert rule with a single `console.warn` — and anchored to match the full string, like the HTML `pattern` attribute.
 
 **Images** — `image` nodes store an `assetId` reference, never a raw URL. The renderer calls `assetResolver(id)` at render time. The "tenants cannot reference external domains" guarantee is therefore exactly as strong as **your** `assetResolver` — validate or encode the id before building a URL (see the warning above). Uploads happen entirely inside the consumer-built picker (whatever `pickAsset` opens) — that's where you validate file type, scan for malware, and enforce per-tenant size quotas.
 
@@ -521,11 +560,11 @@ const actions: Record<string, (v: ActionValues) => void> = {
 ### Notes for the IDP wiring
 
 - **Schema migration** — the builder normalises schemas at **every entry point**: the initial `v-model` value, external `v-model` replacement, and the JSON tab's Apply. Legacy `column`/`row` containers migrate to `stack`, v1 flat documents get their `props` bags, non-`page` roots get wrapped in a `page`, missing or duplicate node ids are repaired, missing `children` arrays / `props` bags and out-of-range heading levels are healed. The runtime renderer additionally runs both migrations on the fly, so old saved schemas keep rendering even without a round-trip through the builder. To run the same migration server-side before persisting, use the exported helpers: `normalizePageSchema(value)` returns `{ schema, issues, changed }`; `migrateLegacyTypes`, `migrateV1PropsBag` and `KNOWN_ELEMENT_TYPES` are exported alongside it.
-- **`schemaVersion`** — new and normalised roots are stamped with `schemaVersion: 2` (`PageRootNode.schemaVersion?: number`), the unified props-bag wire format. `1` or an absent value marks a pre-GA flat document, which every ingest path migrates transparently. Persist it as-is.
+- **`schemaVersion`** — new roots are stamped with `schemaVersion: 5`. Version 4 keeps the v2 props-bag and v3 runtime-composition grammar and adds a stable page-wide `name` to every element for Element Code (the same name is the form/DTO key for value elements). Version 5 adds builder-only origin metadata for reusable, versioned compositions. Older documents are normalized deterministically. Persist the version as-is.
 - **JSON Apply is gated by severity** — structural **errors** (non-object nodes — data would be dropped) reject the Apply with a message; nothing broken reaches your `v-model`. **Warnings** (healed or lossless findings — including *unknown element types*, which stay in the tree losslessly) apply anyway and are surfaced inline, so documents using newer or unregistered element types remain editable.
 - **Validation** — builder validation flags authoring mistakes but never blocks saving: a button/link without an action, or with an action id outside `availableActions`, or an *unregistered* element type, is a *warning*; duplicate field names, missing image asset ids, invalid `validation.pattern`, and disallowed element types are *errors*. If you need hard guarantees, validate server-side before persisting (e.g., reject if any image node has an empty `props.assetId`). At runtime, a `validates: true` button stays **clickable** while the form is invalid — clicking it marks every field touched and reveals all errors instead of running the action; it only disables while an async `onValidate` is in flight. Cross-field or server-side checks (e.g., "email domain not allowed for this tenant") go through the renderer's `:on-validate` prop: it runs at submit time after the declarative rules pass, may return a `Promise` of `{ fieldName: errorMessage }`, a non-empty result blocks the action, and editing a field clears its server error. See [CoarPageRenderer](./coar-page-renderer).
 - **CSP** — image URLs come from `assetResolver`, so your CDN domain needs to be in `img-src`. Action IDs and labels are inert strings; the one tenant-authored value evaluated at render time is `validation.pattern`, which is compiled safely and anchored (see [Security Model](#security-model)).
-- **Full-screen / centering** — the renderer is `display: contents`, so the `page` fills the host element's width. To center a login card on a full-height screen, set the `page` node's `minHeight: '100vh'` + `justify: 'center'` + `align: 'center'` — no host CSS needed. See [Sizing and alignment](./coar-page-renderer#sizing-and-alignment).
+- **Full-screen / centering** — the renderer fills and measures its host width. To center content on a full-height screen, set the `page` node's `minHeight: '100dvh'` + `justify: 'center'` + `align: 'center'`. See [Sizing and alignment](./coar-page-renderer#sizing-and-alignment).
 - **Per-tenant theming** — the renderer uses the Cocoar Design System tokens; override CSS variables on a wrapping container for tenant brand colors.
 
 ## Implementation Roadmap
@@ -538,7 +577,8 @@ const actions: Record<string, (v: ActionValues) => void> = {
 | **4 — Asset callbacks + polish** | `:config.pickAsset` + `:config.assetResolver` · builder validation · responsive preview | ✅ Done |
 | **5 — Layout & sizing** | Flex model — `justify` / `align` / `alignSelf` / `size` (fit · fill · fixed) / `minHeight`; guided Style-panel controls; Editor matches Preview | ✅ Done |
 | **GA hardening** | Correctness & data-safety fixes (schema normalization at every entry point, gated JSON Apply, `crypto.randomUUID` ids, `schemaVersion` stamp, safe `pattern` compile) · pointer-events DnD (mouse + touch/pen long-press, outline drag-to-reorder) · validation UX (clickable validating buttons, submit-time async `onValidate`) · outline ARIA tree + scoped keyboard shortcuts · duplicate / select-options / default-value editors · i18n (`coar.pageBuilder.*` via `@cocoar/vue-localization`) | ✅ Done |
-| **Element registry** | Unified v2 wire format (`props` bag, `schemaVersion: 2`, transparent v1 migration) · open [consumer-registered element types](./custom-elements) (`config.elements`, `definePageElement`, `usePageElement`) · lossless degradation of unregistered types · severity-gated JSON Apply · renderer `initialValues` | ✅ Done |
+| **Element registry** | Unified props-bag wire format (introduced in v2, current `schemaVersion: 5`, transparent older-document normalization) · open [consumer-registered element types](./custom-elements) (`config.elements`, `definePageElement`, `usePageElement`) · lossless degradation of unregistered types · severity-gated JSON Apply · renderer `initialValues` | ✅ Done |
 | **Submit lifecycle & dynamics** | Async actions (`isSubmitting`, spinner, reentry guards) · [form-level error channel](./coar-page-renderer#async-actions-the-form-level-error-channel) (`_form`, banner, `#form-error` slot) · [Enter-to-submit](./coar-page-renderer#enter-to-submit) · built-in email format check · host form API (`update:values`, `values` / `isDirty` / `reset`) · [`visibleWhen`](./coar-page-renderer#conditional-visibility-visiblewhen) conditional visibility · [`optionsSource`](./coar-page-renderer#dynamic-options-optionssource) dynamic option lists | ✅ Done |
 | **5b — Style editor (visual)** | Spacing sliders + colour pickers (rolls into the tenant theming track) | Planned |
-| **6+ — Schema versioning** | Formal migration framework — `schemaVersion` ships today (stamped `2`; the v1 → v2 props-bag migration is the first real migration) | Planned |
+| **Runtime composition v4** | Mobile-first responsive overrides · safe context/state/item bindings · Page State and per-element code · key-based localization · generic repeaters and selected-key outputs · feedback zones · required-node/limit fallback validation | ✅ Done |
+| **5+ — Schema versioning** | Formal multi-step migration framework beyond the current deterministic normalization to v5 | Planned |

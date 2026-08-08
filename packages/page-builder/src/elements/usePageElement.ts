@@ -7,8 +7,9 @@
  */
 import { inject } from 'vue';
 import type { Ref } from 'vue';
-import type { PageConfig } from '../schema';
+import type { ActionProps, PageConfig, RuntimeBinding } from '../schema';
 import { PAGE_RENDERER_KEY } from '../context';
+import type { ActionValues } from '../context';
 
 export interface PageElementContext {
   /** Current value of a named field ('' semantics are the element's concern). */
@@ -19,7 +20,9 @@ export interface PageElementContext {
   /** Mark a field touched (typically on blur; choose-is-the-interaction inputs mark on change). */
   markTouched: (name: string) => void;
   /** Fire a page action by id; `validates` gates it behind form validation. */
-  triggerAction: (id: string, validates?: boolean) => void;
+  triggerAction: (id: string, validates?: boolean, actionValues?: ActionValues) => void;
+  /** Fire an ActionProps element through the shared JSON-safe payload path. */
+  triggerElementAction: (props: ActionProps, validates?: boolean) => void;
   /** True while an async `onValidate` is in flight — disable submit affordances. */
   isValidating: Readonly<Ref<boolean>>;
   /** True while an action handler's Promise is pending — disable submit affordances. */
@@ -38,6 +41,7 @@ export interface PageElementContext {
   formError: Readonly<Ref<string>>;
   /** Resolve an assetId to a URL; '' when no resolver is configured. */
   resolveAsset: (assetId: string) => string;
+  resolveBinding: (binding: RuntimeBinding, item?: unknown, allowedItemPaths?: ReadonlySet<string>, itemIndex?: number) => unknown;
   config?: Readonly<PageConfig>;
 }
 
@@ -54,11 +58,13 @@ export function usePageElement(): PageElementContext {
     getError: ctx.getError,
     markTouched: ctx.markTouched,
     triggerAction: ctx.triggerAction,
+    triggerElementAction: ctx.triggerElementAction,
     isValidating: ctx.isValidating,
     isSubmitting: ctx.isSubmitting,
     pendingAction: ctx.pendingAction,
     formError: ctx.formError,
     resolveAsset: (assetId: string) => ctx.assetResolver?.(assetId) ?? '',
+    resolveBinding: ctx.resolveBinding,
     // A getter, not a snapshot — a config supplied or replaced after this
     // element mounted (late-arriving optionsSource, swapped allow-list) must
     // reach the element, and reactive readers (watchEffect) must re-track it.

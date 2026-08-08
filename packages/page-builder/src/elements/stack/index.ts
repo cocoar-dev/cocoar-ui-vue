@@ -1,7 +1,6 @@
 import type { StackNode } from '../../schema';
-import { definePageElement } from '../registry';
+import { definePageElement, QUICK_PROPERTY_PRESETS as quick } from '../registry';
 import StackRenderer from './StackRenderer.vue';
-import StackInspector from './StackInspector.vue';
 
 export const stackElement = definePageElement<StackNode['props']>({
   renderer: StackRenderer,
@@ -11,7 +10,6 @@ export const stackElement = definePageElement<StackNode['props']>({
     icon: 'layers',
     group: 'container',
     defaults: () => ({}),
-    inspector: StackInspector,
-    inspectorTitle: { key: 'coar.pageBuilder.props.section.layout', fallback: 'Layout' },
+    quickProperties: [quick.direction, quick.align, quick.gap, quick.padding, quick.width, quick.hidden],
   },
 });

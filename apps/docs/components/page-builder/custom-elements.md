@@ -37,7 +37,7 @@ The **host vocabulary** stays at node level and is the same for every element:
 | `name` / `defaultValue` / `validation` | host | Value-model trio; only meaningful when the definition has a `value` spec |
 | `children` | host | Only when the definition declares `container` |
 
-The bag exists so element props can never collide with host fields — an element prop named `style` or `children` is just `props.style` / `props.children`. Page roots carry `schemaVersion: 2` (the unified props-bag grammar); older flat documents migrate transparently (see [Degradation and compatibility](#degradation-and-compatibility)).
+The bag exists so element props can never collide with host fields — an element prop named `style` or `children` is just `props.style` / `props.children`. The unified props-bag grammar was introduced in v2; version 4 added a stable name to every element, and current `schemaVersion: 5` adds builder-only origin metadata for reusable compositions. Older documents normalize transparently (see [Degradation and compatibility](#degradation-and-compatibility)).
 
 ## Walkthrough: a rating element
 
@@ -68,7 +68,7 @@ Keep it JSON-safe — the bag is persisted verbatim. Non-JSON values (dates, fun
 
 ### 2. The runtime renderer
 
-The renderer receives `{ node }` and wires itself into the renderer's value model via `usePageElement()` — a curated, stable context with `getValue` / `setValue` / `getError` / `markTouched` / `triggerAction` / `isValidating` / `isSubmitting` / `pendingAction` / `formError` / `resolveAsset` / `config`:
+The renderer receives `{ node }` and wires itself into the renderer's value model via `usePageElement()` — a curated, stable context with `getValue` / `setValue` / `getError` / `markTouched` / `triggerAction` / `triggerElementAction` / `isValidating` / `isSubmitting` / `pendingAction` / `formError` / `resolveAsset` / `config`:
 
 ```vue
 <!-- RatingRenderer.vue -->
@@ -107,6 +107,41 @@ Notes:
 - `usePageElement()` throws outside a `<CoarPageRenderer>` — element renderers only run inside the page renderer (the builder canvas uses the preview instead, never this component).
 - Submit-affordance elements read the busy state: `isSubmitting` is true while an action's Promise is pending, `pendingAction` names the action id in flight (spin when it matches your own), `isValidating` covers the `onValidate` window. `formError` carries the [form-level error](./coar-page-renderer#async-actions-the-form-level-error-channel) — a small consumer element can render the banner *inside* the page (e.g. right above the submit button) instead of the host-level default.
 - Choice-style elements can resolve `optionsSourceId` props exactly like the built-ins via the exported `useResolvedOptions(() => props.node.props)` composable.
+
+#### Action-capable consumer elements
+
+Compose your props with the exported `ActionProps`, declare `action: true` on the definition, and trigger through `triggerElementAction`. The builder then adds its universal Action and JSON key/value editor; runtime merging behaves exactly like built-in buttons and links.
+
+```ts
+import { definePageElement, type ActionProps } from '@cocoar/vue-page-builder'
+
+type ActionChipProps = ActionProps & { label: string }
+
+export const actionChip = definePageElement<ActionChipProps>({
+  action: true,
+  renderer: ActionChipRenderer,
+  builder: {
+    label: { key: 'app.pb.actionChip', fallback: 'Action chip' },
+    icon: 'bolt',
+    defaults: () => ({ label: 'Run' }),
+  },
+})
+```
+
+```vue
+<script setup lang="ts">
+import { usePageElement, type ActionProps, type ElementNode } from '@cocoar/vue-page-builder'
+
+defineProps<{ node: ElementNode<string, ActionProps & { label: string }> }>()
+const ctx = usePageElement()
+</script>
+
+<template>
+  <button type="button" @click="ctx.triggerElementAction(node.props)">{{ node.props.label }}</button>
+</template>
+```
+
+Do not manually merge form data with `actionValues`: the shared trigger path applies the documented precedence (**form < resolved per-key action values < legacy dynamic action value**), removes invalid runtime values, and preserves the renderer's async-action guard.
 
 ### 3. Value-model participation
 
@@ -283,6 +318,7 @@ The remaining definition fields at a glance:
 | `inline: true` | Leaf gets the `width: fit-content` treatment (like button/link) instead of stretching. |
 | `builder.group` | Palette grouping: `'container'` or `'element'` (default). The `'element'` group is presented split by value-spec presence: value elements show under **Inputs** (the offering `hideElementPicker` removes), the rest under **Elements**. |
 | `builder.hideStyleSection` | Suppresses the universal Style section for spacer-style minimal elements. |
+| `builder.quickProperties` | Optional Properties-panel shortcuts that write locked Element Code assignments. Mark human copy with `valueKind: 'localized-text'`; the Builder then stores a translation key and edits its values in the central Translations tab. Leave layout, identifiers and enum values literal. |
 | `builder.lint` | `(node, config?) => { severity: 'error' \| 'warning'; message: I18nText }[]` — authoring diagnostics merged into the builder's validation panel. Lint never blocks saving. |
 | `normalizeProps` | `(raw: unknown) => P` — ingest healing for the props bag (untrusted JSON). Runs crash-guarded inside `normalizePageSchema` on every builder ingest path (v-model, JSON tab) and wherever the server passes `{ elements }`. Return the input unchanged (same reference) when nothing needs healing. |
 
@@ -386,7 +422,7 @@ A document is data; the registry is code. The two can disagree — a document au
 |-----------|----------------|------------------|------------------|-------------|
 | **Unregistered type** (unknown to this app) | Red "Unknown type — skipped at runtime" treatment; node stays selectable, movable, deletable | Normalize *warning* — Apply is **not** blocked (only structural errors block), node round-trips byte-for-byte incl. its `children` | Skipped, one `console.warn` per type | Excluded — contributes no defaults, **cannot veto submit** |
 | **Registered but not in `allowedElements`** | Same blocked treatment + validation error; hidden from palette/add menu | Pasteable, kept | Skipped (this is the security boundary) | Excluded, same non-veto rule |
-| **v1 document** (pre-GA flat props, `schemaVersion` absent or `1`) | Migrated to the v2 props bag on ingest (`migrateV1PropsBag`, idempotent), `schemaVersion: 2` stamped | Migrated on Apply | Migrated on the fly | Normal |
+| **v1 document** (pre-GA flat props, `schemaVersion` absent or `1`) | Migrated to the v2 props bag on ingest (`migrateV1PropsBag`, idempotent), missing names added and `schemaVersion: 5` stamped | Migrated on Apply | Migrated on the fly | Normal |
 
 The non-veto rule matters: a `required` field of a type this deployment can't render would otherwise permanently block every `validates: true` button. Submission is therefore **lenient by design** — an invisible field can't veto submit. If a document must not execute with fields missing, enforce that server-side against the payload.
 

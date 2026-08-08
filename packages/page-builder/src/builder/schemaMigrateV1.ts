@@ -21,11 +21,13 @@ const V1_PROP_FIELDS: Record<Exclude<ElementType, 'page'>, readonly string[]> = 
   stack: ['direction', 'wrap'],
   card: ['title'],
   section: ['title'],
+  repeat: ['source', 'keyPath', 'itemAlias', 'maxItems', 'emptyText', 'selection'],
   divider: [],
   spacer: ['size'],
   heading: ['text', 'level'],
   paragraph: ['text'],
   note: ['text', 'variant'],
+  feedback: ['kind', 'text', 'emptyText'],
   'text-input': ['label', 'placeholder', 'inputType', 'rows', 'disabled'],
   // v1 documents predate the standalone password element (they carried
   // text-input + inputType) — listed for the exhaustiveness check and for
@@ -40,9 +42,10 @@ const V1_PROP_FIELDS: Record<Exclude<ElementType, 'page'>, readonly string[]> = 
   'otp-input': ['label', 'length', 'otpType', 'mask', 'disabled'],
   'date-input': ['label', 'placeholder', 'disabled'],
   'datetime-input': ['label', 'placeholder', 'disabled'],
-  button: ['label', 'action', 'validates', 'icon', 'variant', 'size'],
-  link: ['label', 'action'],
+  button: ['label', 'action', 'validates', 'icon', 'variant', 'size', 'actionValues', 'actionValueField', 'actionValue'],
+  link: ['label', 'action', 'actionValues', 'actionValueField', 'actionValue'],
   image: ['assetId', 'alt'],
+  'visual-markup': ['html', 'css'],
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {

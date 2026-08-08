@@ -46,7 +46,7 @@ const src = computed(() => {
   justify-content: center;
   gap: 6px;
   padding: 20px;
-  background: var(--coar-surface-subtle, #f7f7f9);
+  background: var(--coar-background-neutral-secondary, #f7f7f9);
   border: 1px dashed rgba(0, 0, 0, 0.15);
   border-radius: 4px;
   color: var(--coar-text-neutral-secondary, #888);

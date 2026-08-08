@@ -31,14 +31,14 @@ const { t } = useI18n();
   font-family: inherit;
   font-size: 13px;
   color: var(--coar-text-neutral-primary, #111);
-  background: var(--coar-surface-base, #fff);
+  background: var(--coar-background-neutral-primary, #fff);
   resize: vertical;
   min-height: 60px;
   box-sizing: border-box;
 }
 
 .pb-prop-textarea:focus {
-  outline: 2px solid var(--coar-border-accent, #1a73e8);
+  outline: 2px solid var(--coar-border-accent-primary, #1a73e8);
   outline-offset: -1px;
 }
 </style>

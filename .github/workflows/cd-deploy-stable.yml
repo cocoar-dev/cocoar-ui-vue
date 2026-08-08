@@ -35,10 +35,12 @@ jobs:
           package-json-path: ./package.json
 
       - name: Install Node.js
-        run: volta install node
+        run: volta install node@22.17.1
 
-      - name: Install pnpm
-        run: volta install pnpm
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.13.1
 
       - name: Extract and validate release version
         id: version
@@ -124,6 +126,9 @@ jobs:
               (cd "$pkg_dir" && pnpm pack --pack-destination ../../artifacts)
             fi
           done
+
+      - name: Verify packed PageBuilder in Vite consumer
+        run: pnpm --filter @cocoar/playground test:packed-page-builder-consumer
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7

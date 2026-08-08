@@ -310,7 +310,7 @@ export function createPointerDndEngine(dnd: PointerDndTarget): PointerDndEngine 
       overflow: 'hidden',
       borderRadius: '6px',
       boxShadow: '0 8px 24px rgba(0, 0, 0, 0.18)',
-      background: 'var(--coar-surface-default, #fff)',
+      background: 'var(--coar-background-neutral-primary, #fff)',
       transform: `translate(${lastX + 12}px, ${lastY + 10}px)`,
     } satisfies Partial<CSSStyleDeclaration>);
     wrap.appendChild(clone);

@@ -134,7 +134,7 @@ function moveOption(index: number, delta: -1 | 1) {
 }
 
 .pb-select-options__btn:hover:not(:disabled) {
-  background: var(--coar-surface-neutral-subtle, #f0f0f2);
+  background: var(--coar-background-neutral-secondary, #f0f0f2);
   color: var(--coar-icon-neutral-primary, #111);
 }
 
@@ -144,7 +144,7 @@ function moveOption(index: number, delta: -1 | 1) {
 }
 
 .pb-select-options__btn--danger:hover:not(:disabled) {
-  background: var(--coar-surface-semantic-error-subtle, #fde8e4);
+  background: var(--coar-background-semantic-error-subtle, #fde8e4);
   color: var(--coar-text-semantic-error-bold, #c0392b);
 }
 
@@ -166,7 +166,7 @@ function moveOption(index: number, delta: -1 | 1) {
 }
 
 .pb-select-options__add:hover {
-  border-color: var(--coar-border-accent, #1666cc);
-  color: var(--coar-text-accent, #1666cc);
+  border-color: var(--coar-border-accent-primary, #1666cc);
+  color: var(--coar-text-accent-primary, #1666cc);
 }
 </style>

@@ -4,7 +4,7 @@
  * builder + renderer element. Registered under the vendor-prefixed key
  * `acme-rating` via `config.elements`.
  */
-import { definePageElement } from '@cocoar/vue-page-builder';
+import { definePageElement, QUICK_PROPERTY_PRESETS as quick } from '@cocoar/vue-page-builder';
 import type { RatingProps } from './ratingProps';
 import RatingRenderer from './RatingRenderer.vue';
 import RatingPreview from './RatingPreview.vue';
@@ -23,6 +23,8 @@ export const ratingElement = definePageElement<RatingProps>({
     label: { key: 'playground.pb.type.rating', fallback: 'Rating' },
     icon: 'star',
     defaults: () => ({ label: 'Rating', max: 5 }),
+    // Consumer elements opt into the same code-backed Quick Property contract.
+    quickProperties: [quick.label, quick.width, quick.hidden],
     preview: RatingPreview,
     inspector: RatingInspector,
     inspectorTitle: { key: 'playground.pb.section.rating', fallback: 'Rating' },

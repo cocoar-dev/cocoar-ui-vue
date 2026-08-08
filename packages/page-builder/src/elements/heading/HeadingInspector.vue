@@ -28,12 +28,14 @@ const LEVEL_OPTIONS: CoarSelectOption<number>[] = [
 <template>
   <CoarFormField :label="t('coar.pageBuilder.props.text', undefined, 'Text')">
     <CoarTextInput
+size="s"
       :model-value="props.node.props.text ?? ''"
       @update:model-value="(v) => props.patch({ props: { text: v } })"
     />
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.level', undefined, 'Level')">
     <CoarSelect
+size="s"
       :model-value="props.node.props.level ?? 2"
       :options="LEVEL_OPTIONS"
       @update:model-value="(v) => props.patch({ props: { level: v as 1 | 2 | 3 | 4 | 5 | 6 } })"

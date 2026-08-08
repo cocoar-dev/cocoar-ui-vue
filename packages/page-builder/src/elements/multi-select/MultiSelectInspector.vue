@@ -31,12 +31,14 @@ function setOptions(next: EditorOption[]) {
 <template>
   <CoarFormField :label="t('coar.pageBuilder.props.label', undefined, 'Label')">
     <CoarTextInput
+size="s"
       :model-value="props.node.props.label ?? ''"
       @update:model-value="(v) => props.patch({ props: { label: v } })"
     />
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.placeholder', undefined, 'Placeholder')">
     <CoarTextInput
+size="s"
       :model-value="props.node.props.placeholder ?? ''"
       @update:model-value="(v) => props.patch({ props: { placeholder: v } })"
     />
@@ -49,6 +51,7 @@ function setOptions(next: EditorOption[]) {
     :hint="t('coar.pageBuilder.props.optionsSourceHint', undefined, 'Resolved via config.optionsSource at render time — overrides the static options')"
   >
     <CoarTextInput
+size="s"
       :model-value="props.node.props.optionsSourceId ?? ''"
       placeholder="e.g. countries"
       @update:model-value="(v) => props.patch({ props: { optionsSourceId: v || undefined } })"
@@ -56,6 +59,7 @@ function setOptions(next: EditorOption[]) {
   </CoarFormField>
 
   <CoarCheckbox
+size="s"
     :model-value="!!props.node.props.disabled"
     :label="t('coar.pageBuilder.props.disabled', undefined, 'Disabled')"
     @update:model-value="(v) => props.patch({ props: { disabled: v } })"

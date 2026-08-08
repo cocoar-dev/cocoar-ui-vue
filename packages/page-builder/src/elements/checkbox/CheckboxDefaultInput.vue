@@ -17,6 +17,7 @@ const { t } = useI18n();
 
 <template>
   <CoarCheckbox
+size="s"
     :model-value="!!props.modelValue"
     :label="t('coar.pageBuilder.props.checkedByDefault', undefined, 'Checked by default')"
     @update:model-value="(v) => emit('update:modelValue', v || undefined)"

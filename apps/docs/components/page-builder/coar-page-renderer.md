@@ -22,6 +22,11 @@ Import `@cocoar/vue-page-builder/styles` once in your app — the renderer's lay
 | `onValidate` | `(values: ActionValues) => Record<string, string> \| Promise<Record<string, string>>` | Developer-only cross-field/server validation. Runs at **submit time** — when a `validates: true` button is clicked and after all declarative rules pass. May be sync or async; returns `{ fieldName: errorMessage }`. A non-empty result blocks the action. The reserved key `_form` addresses the form as a whole (banner instead of a field). Not exposed in builder UI. See [Validation](#validation). |
 | `assetResolver` | `(id: string) => string` | Resolves an `assetId` to a URL at render time. Falls back to `config.assetResolver` when not set. Needed when the schema contains `image` nodes. |
 | `initialValues` | `ActionValues` | Host-supplied field values for edit-form scenarios, merged **over** the schema's `defaultValue`s on init. Only keys that match a **named** input in the (allowed) tree are taken — stray host data never leaks into the action payload. Replacing the object with **different values** re-initializes the form, like a schema change; a value-identical replacement (e.g. an inline object literal re-created by a parent re-render — nested objects/arrays compare by content) is ignored, so in-progress user input survives. |
+| `runtimeContext` | `Record<string, unknown>` | Host-owned runtime data. The document can only read paths explicitly declared by `config.contextFields`; undeclared paths resolve to the binding fallback. |
+| `viewState` | `string` | Host-controlled state ID used by conditions and Page/Element Code. The builder offers IDs from `config.availableStates`. Customer-authored `source: 'state'` property bindings read Page State instead. |
+| `locale` | `string` | Active locale used to resolve page translation keys, legacy `LocalizedValue` props and localized templates. Regional locales fall back to their base locale and then `config.defaultLocale`. |
+| `viewportWidth` | `number` | Optional deterministic container width. Runtime normally measures its container; previews and tests can provide an exact width. |
+| `fallbackSchema` | `PageNode` | Host-owned safe document rendered when the customized document fails allow-list, required-node, placement or document-limit validation. `usingFallback` is exposed on the component ref. |
 
 ## Usage
 
@@ -82,7 +87,7 @@ onBeforeRouteLeave(() => !form.value?.isDirty || confirm('Discard changes?'));
 
 ## JSON Schema
 
-One node grammar for every element (wire-format **v2**): the host vocabulary lives at node level, everything element-specific lives in the `props` bag.
+One node grammar for every element (wire-format **v4**): the v2 `props`-bag and v3 runtime-composition grammar remain compatible; v4 gives every element a stable page-wide `name` for Element Code and form identity.
 
 ```ts
 interface ElementNode {
@@ -90,6 +95,8 @@ interface ElementNode {
   type:          string                   // element-registry key — a built-in type or a consumer key
   props:         Record<string, unknown>  // element-specific props (JSON-safe bag)
   style?:        NodeStyle
+  responsive?:   Partial<Record<'phone' | 'tablet' | 'desktop', Partial<NodeStyle>>>
+  bindings?:     Record<string, RuntimeBinding | RuntimeTemplate>
 
   // Value-model trio — meaningful when the element's definition declares `value`:
   name?:         string
@@ -112,11 +119,11 @@ interface NodeStyle {
   alignSelf?: 'start' | 'center' | 'end' | 'stretch' // align-self — overrides parent `align`
   size?:      'fit' | 'fill' | 'fixed'               // sizing along the parent's main axis
   width?:     string   // used when size: 'fixed' — '380px', '100%', …
-  minHeight?: string   // 'min-height' — e.g. '100vh' to make the page fill the viewport
+  minHeight?: string   // 'min-height' — e.g. '100dvh' to make the page fill the viewport
 }
 ```
 
-The root is the one node shape outside the element grammar: `{ id, type: 'page', schemaVersion, enterSubmits?, style?, children }` — a schema-shape marker, not a placeable element, with no props bag. It carries `schemaVersion?: number`, the wire-format version: **`2`** is the current props-bag grammar, stamped by the builder on new and normalized roots. `1` or absent marks the pre-GA **flat** grammar (element props directly on the node); such documents are [migrated transparently on every ingest path](#legacy-schemas-normalization) — by the builder/`normalizePageSchema` persistently, and by the renderer on the fly. `enterSubmits` opts the page into [Enter-to-submit](#enter-to-submit).
+The root is the one node shape outside the element grammar: `{ id, type: 'page', schemaVersion, enterSubmits?, stateCode?, rootCode?, translations?, style?, responsive?, children }` — a schema-shape marker, not a placeable element, with no props bag. `rootCode` is a constrained reactive presentation binding and can return only root `style`, `responsive`, and `enterSubmits` changes. **`4`** is current. Older documents remain readable and are normalized deterministically. `enterSubmits` opts the page into [Enter-to-submit](#enter-to-submit).
 
 Node `id`s must be unique page-wide — the builder assigns them via `crypto.randomUUID()` and [repairs missing or duplicate ids](#legacy-schemas-normalization) at every entry point.
 
@@ -145,13 +152,13 @@ Containers are flexbox. The `page` root and `card` / `section` bodies are column
 
 #### Full-screen / centered pages
 
-The renderer adds no box of its own (`display: contents`), so the `page` node sits directly inside whatever element you mount `<CoarPageRenderer>` in — that **host provides the width**. To center content on a full-screen page (the classic login card), size the `page` itself:
+The renderer is a width-filling block and measures that container for responsive resolution. To center content on a full-screen page (the classic login card), size the `page` itself:
 
 ```json
-{ "type": "page", "style": { "minHeight": "100vh", "justify": "center", "align": "center" } }
+{ "type": "page", "style": { "minHeight": "100dvh", "justify": "center", "align": "center" } }
 ```
 
-`minHeight: '100vh'` makes the page fill the viewport; `justify: 'center'` centers vertically (a column's main axis is vertical) and `align: 'center'` centers horizontally — no host CSS required beyond the host having its natural width.
+`minHeight: '100dvh'` makes the page fill the current dynamic viewport; `justify: 'center'` centers vertically (a column's main axis is vertical) and `align: 'center'` centers horizontally — no host CSS required beyond the host having its natural width. Legacy `vh` and the modern `svh`/`lvh` variants are supported as well.
 
 ### Example — login page
 
@@ -159,8 +166,8 @@ The renderer adds no box of its own (`display: contents`), so the `page` node si
 {
   "id": "root",
   "type": "page",
-  "schemaVersion": 2,
-  "style": { "minHeight": "100vh", "justify": "center", "align": "center", "padding": "48px" },
+  "schemaVersion": 3,
+  "style": { "minHeight": "100dvh", "justify": "center", "align": "center", "padding": "48px" },
   "children": [
     {
       "id": "n1",
@@ -194,6 +201,83 @@ Note the split: `name`, `defaultValue`, `validation` and `style` sit at **node l
 The same card rendered live (logo omitted). Email is `required` + `inputType: 'email'`, password is `required` + `minLength: 8`, and the Sign-in button `validates`. Click it with empty fields — the click marks every field touched and reveals all errors at once; once the form is valid, the action receives the `ActionValues` and writes them below the card.
 
 <preview path="./demos/RendererLoginCard.vue" />
+
+## Generic runtime composition (v4)
+
+These features are domain-neutral. Authentication pages are one consumer: names such as `approvedScopes` are ordinary schema configuration, not package concepts.
+
+### Responsive styles
+
+The renderer applies a mobile-first cascade using its measured container width: Compact/base from 320 px, Phone from 390 px, Tablet from 768 px and Desktop from 1280 px. Base values live in `style`; breakpoint differences live in `responsive.phone`, `responsive.tablet` and `responsive.desktop`. The renderer and builder preview share the same resolver. Length values pass through a restrictive CSS-length parser, while colors, typography, radii and elevation use controlled design-token enums.
+
+### Safe bindings, localization and conditions
+
+`bindings` maps an element prop to a controlled runtime source. A target may
+be a top-level prop (`disabled`, `label`, …) or one action argument
+(`actionValues.approvedScopes`). Supported direct sources are:
+
+| Source | Value |
+|--------|-------|
+| `context` + `path` | Exact host path declared by `config.contextFields` |
+| `state` + `path` | Customer-authored `definePageState(...)` value |
+| `field` + `path` | Current named form value |
+| `selection` + `path` | Current named Repeat selection (`string[]`) |
+| `item` + `path` | Current Repeat item path declared by that Repeat's context contract |
+| `index` | Current Repeat index |
+| `expression` | Host-sandboxed JavaScript result supplied through `expressionValues` |
+
+Context/item traversal is allow-listed; state/form/selection names come from
+the page contract itself. A `RuntimeTemplate` can interpolate several
+allow-listed values.
+
+New page documents keep customer-owned messages once on the page root and reference them with a serializable translation binding:
+
+```json
+{
+  "source": "translation",
+  "key": "page.submit.label",
+  "params": { "name": "Ada" },
+  "fallback": "Sign in"
+}
+```
+
+Element Code creates the same value through `i18n.text(key, params?, fallback?)`. Resolution is page catalogue → host `@cocoar/vue-localization` catalogue → fallback → key. `LocalizedValue` is retained as a compatibility format for existing schemas.
+
+`visibleWhen` uses the same field/context/state/item sources with `equals`, `notEquals`, `in`, `notIn`, `exists`, `isEmpty` and `isNotEmpty`. Conditions can be combined with bounded `all`/`any` groups. Hidden subtrees do not render, validate or contribute values/action payloads.
+
+### Generic repeaters and selections
+
+`repeat` renders its child template for an allow-listed context array. Item bindings and conditions can only read declared `itemFields`; `maxItems` is capped at 500. Its optional selection contract is also generic:
+
+```json
+{
+  "type": "repeat",
+  "props": {
+    "source": "catalog.items",
+    "keyPath": "id",
+    "selection": {
+      "name": "chosenItemIds",
+      "valuePath": "id",
+      "requiredPath": "mandatory",
+      "defaultSelection": "all"
+    }
+  }
+}
+```
+
+The result is `ActionValues.chosenItemIds: string[]`. Required items are always
+selected and cannot be unchecked. Host `initialValues` may seed the selection;
+otherwise `defaultSelection` is `'none'` or `'all'`. Reconciliation retains
+the current choice, removes stale and duplicate values, adds required values,
+and emits the source-array order. The output name and item paths are freely
+configured; the primitive has no knowledge of scopes, products, roles or any
+other domain.
+
+### Feedback placement, actions and fallback
+
+`feedback` is an authorable semantic zone. `kind: 'form-error'` places rejected async-action or `_form` validation errors at that exact tree position; other kinds provide error, success, info and loading status with appropriate live-region semantics. Every action-capable element uses the same optional [`ActionProps`](#action-arguments) payload contract.
+
+Hosts can mark nodes as required, lock their visibility/style/placement, and cap node count/depth through `PageConfig`. If a saved customization violates those invariants, `fallbackSchema` provides a safe host-owned render path rather than a partially broken page.
 
 ## Built-in Elements
 
@@ -294,6 +378,34 @@ interface FieldValidation {
 | `link` | `label`, `action` | Inline text link. Content-width by default. |
 
 When `validates: true` on a button, clicking it validates all named fields before the action fires. The button **stays clickable while the form is invalid** — the click reveals the errors instead of firing the action. While a trigger is in flight (an async `onValidate` **or** an async action), the triggering button spins and every other action button and link disables; further clicks are ignored. See [Validation](#validation).
+
+#### Action arguments
+
+Buttons, links and consumer elements with `action: true` share one contract:
+
+```ts
+interface ActionProps {
+  action?: string
+  actionValues?: Record<string, unknown>
+  actionValueField?: string
+  actionValue?: unknown
+}
+```
+
+All four fields are optional. `actionValues` is a JSON-safe key/value map. The
+common Properties-panel editor accepts values such as `"de"`, `42`, `true`,
+`null`, arrays and objects; every key has its own **fx** switch. A nested
+binding such as `bindings["actionValues.language"]` replaces only that entry.
+`actionValue` supplies the older single additional value under
+`actionValueField` and remains supported.
+
+The renderer builds a detached handler payload in this explicit order:
+
+1. current named form values,
+2. resolved `actionValues` (static defaults plus per-key bindings), overwriting colliding form keys,
+3. the dynamic `actionValue`, overwriting a static entry with the same `actionValueField`.
+
+This order is identical for click, link activation, Enter-to-submit and consumer action elements. Invalid non-JSON values never reach a handler; builder and activation validation report them as errors.
 
 ### Media
 
@@ -449,7 +561,7 @@ const { schema, issues, changed } = normalizePageSchema(stored);
 The renderer enforces these rules **regardless of what the schema contains**:
 
 1. **Allowed elements** — `config.allowedElements` is the hard boundary (it takes built-in types and consumer-registered keys alike). Disallowed types are skipped at render time, with one console warning per type. The gate applies to the **value model** too: disallowed subtrees contribute no default values and cannot block validation — an invisible `required` field can never veto a validating button. Unregistered element types (typos, newer schema versions, consumer elements this instance hasn't registered) degrade the same lenient way: skipped with one warning per type, excluded from the value model, but **kept losslessly in the tree** — the builder [flags them as warnings on the canvas and in validation](./coar-page-builder) instead of destroying them.
-2. **Actions** — buttons and links store an action `id`, an inert string. Only handlers present in the `actions` prop fire — any other action ID is a silent no-op. The one piece of tenant-authored logic the renderer evaluates is `validation.pattern`: a regex compiled safely (invalid = inert rule) and anchored — never executed as code.
+2. **Actions** — every registry element with `action: true` stores an action `id`, an inert string. Only handlers present in the `actions` prop fire — any other action ID is a silent no-op. The one piece of tenant-authored logic the renderer evaluates is `validation.pattern`: a regex compiled safely (invalid = inert rule) and anchored — never executed as code.
 3. **Reserved field names** — `__proto__`, `constructor` and `prototype` are excluded from the value model entirely (they would collide with `Object.prototype` machinery when used as map keys): such fields neither veto submission nor appear in payloads, and the builder lint flags them as errors.
 4. **Images** — `image` nodes store an `assetId` reference, never a raw URL. The renderer always goes through `assetResolver` — which makes the resolver **your** part of the boundary: it decides what an id can reach. Validate or encode the id before building a URL, e.g. allowlist `/^[A-Za-z0-9_-]+$/` or `encodeURIComponent(id)`, so a crafted id like `../other-tenant/logo` cannot traverse out of the tenant's asset prefix.
 

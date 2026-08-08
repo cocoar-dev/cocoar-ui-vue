@@ -1,8 +1,21 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, toRaw, watch } from 'vue';
-import { CoarIcon, CoarTabGroup, CoarTab } from '@cocoar/vue-ui';
-import { useI18n } from '@cocoar/vue-localization';
-import type { PageNode, PageConfig } from './schema';
+import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, provide, ref, toRaw, watch } from 'vue';
+import {
+  CoarIcon,
+  CoarTabGroup,
+  CoarTab,
+  CoarThemeScope,
+  useDialog,
+  type CoarTheme,
+  type CoarThemeMode,
+} from '@cocoar/vue-ui';
+import { useI18n, useLocalization } from '@cocoar/vue-localization';
+import { CURRENT_PAGE_SCHEMA_VERSION, type ElementNode, type PageBreakpoint, type PageNode, type PageRootNode, type PageConfig, type RuntimeExpressionValues, type PageCompositionReference } from './schema';
+import type { CoarScriptEditorExtraLib } from '@cocoar/vue-script-editor';
+import type { PageCodeRuntimeValues } from './pageCode';
+import { usePageCodeRuntime } from './runtime/usePageCodeRuntime';
+import type { PageRuntimeHost } from './runtime/PageRuntimeHost';
+import { PAGE_BREAKPOINT_WIDTHS, breakpointForWidth } from './responsive';
 import { usePageBuilder } from './builder/usePageBuilder';
 import { useMergedElements } from './elements/useMergedElements';
 import { useSchemaValidation } from './builder/useSchemaValidation';
@@ -13,15 +26,51 @@ import {
   BUILDER_API,
   BUILDER_CONFIG,
   BUILDER_VALIDATION,
+  BUILDER_BREAKPOINT,
+  BUILDER_RUNTIME,
+  BUILDER_LOGIC,
+  BUILDER_AUTHORING_MODE,
+  BUILDER_PAGE_CODE_LIBS,
+  BUILDER_PAGE_CODE_VALUES,
+  BUILDER_LOCALE,
+  BUILDER_COMPOSITIONS,
+  type PageBuilderAuthoringMode,
 } from './builder/builderContext';
 import BuilderOutline from './builder/BuilderOutline.vue';
 import BuilderCanvas from './builder/BuilderCanvas.vue';
+import BuilderPalette from './builder/BuilderPalette.vue';
 import BuilderPropsPanel from './builder/BuilderPropsPanel.vue';
+import BuilderTranslationsPanel from './builder/BuilderTranslationsPanel.vue';
+import BuilderCompositionsPanel from './builder/BuilderCompositionsPanel.vue';
 import CoarPageRenderer from './CoarPageRenderer.vue';
+import type { ActionHandler } from './context';
+import type { ActionValues } from './context';
+import { isExpressionBinding } from './runtimeBindings';
+import type { NodePath } from './builder/operations';
+import type { PageCompositionRepository } from './compositions';
+import { usePageCompositions, type PageCompositionManagement } from './builder/usePageCompositions';
+
+// Monaco is authoring-only and expensive. Both components are lazy: opening
+// the builder and its property inspector does not request the editor chunk.
+const BuilderLogicPanel = defineAsyncComponent(() => import('./builder/BuilderLogicPanel.vue'));
+const BuilderExpressionDialog = defineAsyncComponent(() => import('./builder/BuilderExpressionDialog.vue'));
+const BuilderElementCodeDialog = defineAsyncComponent(() => import('./builder/BuilderElementCodeDialog.vue'));
+const BuilderPageRootCodeDialog = defineAsyncComponent(() => import('./builder/BuilderPageRootCodeDialog.vue'));
 
 const { t } = useI18n();
+const localization = useLocalization();
 
 const model = defineModel<PageNode>({ required: false });
+const emit = defineEmits<{
+  /** Live field values from the embedded preview, useful for its sandbox session. */
+  'preview-values': [values: ActionValues]
+  'preview-runtime': [scope: {
+    fields: ActionValues;
+    form: { valid: boolean; dirty: boolean; validating: boolean; submitting: boolean };
+  }]
+  /** Host navigation hook for the independent composition definition editor. */
+  'open-composition': [reference: PageCompositionReference]
+}>();
 
 const props = defineProps<{
   /**
@@ -30,6 +79,34 @@ const props = defineProps<{
    * authoring (palette + add-child menu) and at render time (security boundary).
    */
   config?: PageConfig
+  /** Safe fixture context used only by the embedded preview; never persisted. */
+  previewContext?: Record<string, unknown>
+  previewState?: string
+  previewLocale?: string
+  /** Host-owned theme applied only to the embedded renderer canvas. */
+  previewTheme?: CoarTheme
+  /** Preview colour mode. `auto` follows the surrounding application/OS mode. */
+  previewThemeMode?: CoarThemeMode
+  previewActions?: Record<string, ActionHandler>
+  previewFallbackSchema?: PageNode
+  /** Sandbox results used by the embedded preview; source code is never evaluated by the builder itself. */
+  previewExpressionValues?: RuntimeExpressionValues
+  /** Code-driven mode keeps the inspector structural and makes Page Code authoritative. */
+  authoringMode?: PageBuilderAuthoringMode
+  /** @deprecated The Builder now owns its fixture-bound preview runtime. */
+  previewPageCodeValues?: PageCodeRuntimeValues
+  /** @deprecated Used only as a fallback for actions unknown to the Builder runtime. */
+  previewOnAction?: (id: string, values: ActionValues) => void | Promise<unknown>
+  /** Application-owned capability host reused by the Builder's isolated preview session. */
+  previewRuntimeHost?: PageRuntimeHost
+  previewRuntimePageId?: string
+  previewRuntimeTenantId?: string
+  /** Host capability declarations merged into Monaco IntelliSense. */
+  pageCodeExtraLibs?: CoarScriptEditorExtraLib[]
+  /** Optional host-owned persistence boundary for reusable, versioned subtrees. */
+  compositionRepository?: PageCompositionRepository
+  /** `consume` keeps definition creation/publication in a separate host-owned editor. */
+  compositionManagement?: PageCompositionManagement
 }>();
 
 /**
@@ -59,12 +136,18 @@ const builder = usePageBuilder({
     : {
         id: 'root',
         type: 'page',
-        schemaVersion: 2,
+        schemaVersion: CURRENT_PAGE_SCHEMA_VERSION,
         style: { gap: '16px', padding: '24px' },
         children: [],
       },
   elements: mergedElements,
   config: configRef,
+});
+const compositions = usePageCompositions({
+  builder,
+  repository: computed(() => props.compositionRepository),
+  management: computed(() => props.compositionManagement ?? 'inline'),
+  open: (reference) => emit('open-composition', reference),
 });
 
 // toRaw on both sides: a host that stores the schema in a deep ref hands the
@@ -87,56 +170,274 @@ const validation = useSchemaValidation(builder.schema, configRef);
 // Provided here (not in BuilderCanvas) so the outline pane — a sibling of the
 // canvas — shares the same drag context: outline rows and canvas zones are
 // drop targets of one and the same drag.
-provideBuilderDnd(builder);
+provideBuilderDnd(builder, {
+  insertComposition: async (id, version, path, index) => {
+    await compositions.insertAt(id, version, path, index);
+  },
+});
 
 provide(BUILDER_API, builder);
 provide(BUILDER_CONFIG, configRef);
 provide(BUILDER_VALIDATION, validation);
+provide(BUILDER_AUTHORING_MODE, computed(() => props.authoringMode ?? 'properties'));
+provide(BUILDER_PAGE_CODE_LIBS, computed(() => props.pageCodeExtraLibs ?? []));
+provide(BUILDER_COMPOSITIONS, compositions);
+
+const authoringBreakpoint = ref<PageBreakpoint>('desktop');
+provide(BUILDER_BREAKPOINT, authoringBreakpoint);
 
 // ── Tab ───────────────────────────────────────────────────────────────────────
 const activeTab = ref<string>('editor');
+const activeLogicBinding = ref<{ nodeId: string; target: string } | null>(null);
+const focusedTranslationKey = ref<string>();
+const dialog = useDialog();
 
-// ── Responsive preview ───────────────────────────────────────────────────────
-type PreviewWidth = 'full' | 'tablet' | 'mobile';
-const previewWidth = ref<PreviewWidth>('full');
+function findNodeById(root: PageNode, nodeId: string): { node: PageNode; path: NodePath } | null {
+  if (root.id === nodeId) return { node: root, path: [] };
+  if (!('children' in root) || !Array.isArray(root.children)) return null;
+  for (let index = 0; index < root.children.length; index++) {
+    const found = findNodeById(root.children[index], nodeId);
+    if (found) return { node: found.node, path: [index, ...found.path] };
+  }
+  return null;
+}
 
-const PREVIEW_WIDTHS: Record<Exclude<PreviewWidth, 'full'>, number> = {
-  tablet: 768,
-  mobile: 375,
-};
+provide(BUILDER_LOGIC, {
+  activeBinding: activeLogicBinding,
+  openPageState() {
+    activeTab.value = 'logic';
+  },
+  openTranslations(key) {
+    focusedTranslationKey.value = key;
+    activeTab.value = 'translations';
+  },
+  async openPageCode() {
+    const root = builder.schema.value.type === 'page' ? builder.schema.value as PageRootNode : undefined;
+    if (!root) return false;
+    const editor = dialog.open<string>(BuilderPageRootCodeDialog, {
+      title: 'Page Code · Root',
+      size: 'xl',
+      closeOnBackdropClick: false,
+    }, {
+      schema: builder.schema.value,
+      source: root.rootCode,
+      stateCode: root.stateCode,
+      config: props.config,
+      hostLibs: props.pageCodeExtraLibs ?? [],
+    });
+    const result = await editor.result;
+    if (typeof result !== 'string') return false;
+    builder.patch([], { rootCode: result || undefined } as Partial<PageNode>);
+    return true;
+  },
+  async openElementCode(nodeId) {
+    const location = findNodeById(builder.schema.value, nodeId);
+    if (!location || location.node.type === 'page') return false;
+    const node = location.node as ElementNode;
+    const root = builder.schema.value.type === 'page' ? builder.schema.value as PageRootNode : undefined;
+    const editor = dialog.open<string>(BuilderElementCodeDialog, {
+      title: `Element Code · ${node.name ?? node.id}`,
+      size: 'xl',
+      closeOnBackdropClick: false,
+    }, {
+      schema: builder.schema.value,
+      node,
+      source: node.elementCode,
+      stateCode: root?.stateCode,
+      config: props.config,
+      hostLibs: props.pageCodeExtraLibs ?? [],
+    });
+    const result = await editor.result;
+    if (typeof result !== 'string') return false;
+    const latest = findNodeById(builder.schema.value, nodeId);
+    if (!latest || latest.node.type === 'page') return false;
+    builder.patch(latest.path, { elementCode: result || undefined } as Partial<PageNode>);
+    return true;
+  },
+  async openBinding(nodeId, target, initialExpression = 'undefined') {
+    activeLogicBinding.value = { nodeId, target };
+    const location = findNodeById(builder.schema.value, nodeId);
+    if (!location || location.node.type === 'page') return false;
+    const node = location.node as ElementNode;
+    const current = node.bindings?.[target];
+    const expression = current && isExpressionBinding(current)
+      ? current.expression
+      : initialExpression;
+    const editor = dialog.open<string>(BuilderExpressionDialog, {
+      title: `Expression · ${target}`,
+      size: 'l',
+      closeOnBackdropClick: false,
+    }, {
+      nodeId,
+      target,
+      expression,
+      config: props.config,
+    });
+    const result = await editor.result;
+    if (typeof result !== 'string') return false;
 
-const previewFrameStyle = computed(() => {
-  if (previewWidth.value === 'full') return {};
-  const w = PREVIEW_WIDTHS[previewWidth.value];
-  return { maxWidth: `${w}px`, width: '100%', margin: '0 auto' };
+    // Resolve again: the schema may have changed while the modal was open.
+    const latest = findNodeById(builder.schema.value, nodeId);
+    if (!latest || latest.node.type === 'page') return false;
+    const latestNode = latest.node as ElementNode;
+    const bindings = { ...(latestNode.bindings ?? {}) };
+    const latestBinding = bindings[target];
+    bindings[target] = latestBinding && isExpressionBinding(latestBinding)
+      ? { ...latestBinding, expression: result }
+      : { source: 'expression', enabled: true, expression: result };
+    builder.patch(latest.path, { bindings } as Partial<PageNode>);
+    return true;
+  },
 });
 
+// ── Responsive preview ───────────────────────────────────────────────────────
+type PreviewWidth = PageBreakpoint | 'fluid';
+const previewWidth = ref<PreviewWidth>('desktop');
+const customPreviewViewport = ref<{ width: number; height?: number }>();
+const PREVIEW_HEIGHTS: Record<PageBreakpoint, number> = { compact: 568, phone: 844, tablet: 1024, desktop: 800 };
+const selectedFixtureId = ref('');
+const previewStateOverride = ref('');
+const previewLocaleOverride = ref('');
+const selectedFixture = computed(() => props.config?.previewFixtures?.find((fixture) => fixture.id === selectedFixtureId.value));
+const hasCompleteHostPreview = computed(() =>
+  (!(props.config?.contextFields?.length) || props.previewContext !== undefined)
+  && (!(props.config?.availableStates?.length) || props.previewState !== undefined)
+  && (!(props.config?.locales?.length) || props.previewLocale !== undefined),
+);
+const hasEffectivePreviewContract = computed(() => !!selectedFixture.value || hasCompleteHostPreview.value);
+
+watch(
+  [() => props.config?.previewFixtures, hasCompleteHostPreview],
+  ([fixtures, hasHost]) => {
+    const available = fixtures ?? [];
+    if (selectedFixtureId.value && available.some((fixture) => fixture.id === selectedFixtureId.value)) return;
+    selectedFixtureId.value = hasHost ? '' : (available[0]?.id ?? '');
+  },
+  { immediate: true, deep: true },
+);
+
+watch(selectedFixture, (fixture) => {
+  previewStateOverride.value = '';
+  previewLocaleOverride.value = '';
+  customPreviewViewport.value = undefined;
+  if (!fixture?.viewport) return;
+  if (typeof fixture.viewport === 'string') {
+    previewWidth.value = fixture.viewport;
+    authoringBreakpoint.value = fixture.viewport;
+  } else {
+    customPreviewViewport.value = { ...fixture.viewport };
+  }
+});
+
+const previewFrameStyle = computed(() => {
+  if (customPreviewViewport.value) return {
+    width: `${customPreviewViewport.value.width}px`,
+    height: `${customPreviewViewport.value.height ?? 800}px`,
+    margin: '0 auto',
+  };
+  if (previewWidth.value === 'fluid') return { width: '100%', minHeight: '480px', margin: '0 auto' };
+  const w = PAGE_BREAKPOINT_WIDTHS[previewWidth.value];
+  return { width: `${w}px`, height: `${PREVIEW_HEIGHTS[previewWidth.value]}px`, margin: '0 auto' };
+});
+
+const previewViewportWidth = computed(() =>
+  customPreviewViewport.value?.width
+    ?? (previewWidth.value === 'fluid' ? undefined : PAGE_BREAKPOINT_WIDTHS[previewWidth.value]),
+);
+const effectivePreviewContext = computed(() => selectedFixture.value?.context ?? props.previewContext);
+const effectivePreviewState = computed(() => previewStateOverride.value || selectedFixture.value?.state || props.previewState);
+const effectivePreviewLocale = computed(() => previewLocaleOverride.value || selectedFixture.value?.locale || props.previewLocale);
+const effectiveAuthoringLocale = computed(() => effectivePreviewLocale.value
+  || props.config?.defaultLocale
+  || props.config?.locales?.[0]?.id
+  || 'en');
+provide(BUILDER_LOCALE, {
+  active: effectiveAuthoringLocale,
+  setActive(locale) {
+    previewLocaleOverride.value = locale;
+  },
+});
+const previewRuntimeViewport = computed(() => {
+  const width = previewViewportWidth.value ?? PAGE_BREAKPOINT_WIDTHS.desktop;
+  return { width, breakpoint: breakpointForWidth(width) };
+});
+const previewRuntime = usePageCodeRuntime({
+  pageId: computed(() => props.previewRuntimePageId ?? `page-builder-preview:${builder.schema.value.id}`),
+  tenantId: props.previewRuntimeTenantId,
+  schema: builder.schema,
+  context: computed(() => effectivePreviewContext.value ?? {}),
+  viewport: previewRuntimeViewport,
+  viewState: effectivePreviewState,
+  locale: effectivePreviewLocale,
+  enabled: hasEffectivePreviewContract,
+  runtimeHost: props.previewRuntimeHost,
+});
+const effectivePreviewPageCodeValues = computed(() => hasEffectivePreviewContract.value
+  ? previewRuntime.pageCodeValues.value
+  : undefined);
+provide(BUILDER_PAGE_CODE_VALUES, effectivePreviewPageCodeValues);
+const builderRuntime = computed(() => ({
+  config: props.config,
+  context: effectivePreviewContext.value,
+  pageState: effectivePreviewPageCodeValues.value?.state,
+  viewState: effectivePreviewState.value,
+  locale: effectivePreviewLocale.value,
+  translations: builder.schema.value.type === 'page'
+    ? (builder.schema.value as PageRootNode).translations
+    : undefined,
+  hostTranslation: (locale: string, key: string) => localization?.i18nStore.getTranslation(locale, key),
+}));
+provide(BUILDER_RUNTIME, builderRuntime);
+
+async function runPreviewAction(id: string, values: ActionValues) {
+  if (await previewRuntime.runPageAction(id, values)) return;
+  await props.previewOnAction?.(id, values);
+}
+
+function onPreviewRuntimeChange(scope: {
+  fields: ActionValues;
+  form: { valid: boolean; dirty: boolean; validating: boolean; submitting: boolean };
+}) {
+  previewRuntime.onRuntimeChange(scope);
+  emit('preview-runtime', scope);
+}
+
+function setPreviewWidth(value: PreviewWidth) {
+  customPreviewViewport.value = undefined;
+  previewWidth.value = value;
+  if (value !== 'fluid') authoringBreakpoint.value = value;
+}
+
 // ── Panel widths + collapse ────────────────────────────────────────────────────
-const OUTLINE_DEFAULT = 260;
-const OUTLINE_MIN = 180;
-const PROPS_DEFAULT = 280;
-const PROPS_MIN = 220;
+const OUTLINE_DEFAULT = 340;
+const OUTLINE_MIN = 260;
+const LIBRARY_DEFAULT = 260;
+const LIBRARY_MIN = 220;
 const MIDDLE_MIN = 360;
 const RAIL_WIDTH = 36;
+const TREE_MIN_HEIGHT = 130;
+const PROPERTIES_MIN_HEIGHT = 180;
 
 const outlineWidth = ref(OUTLINE_DEFAULT);
-const propsWidth = ref(PROPS_DEFAULT);
+const libraryWidth = ref(LIBRARY_DEFAULT);
 const outlineCollapsed = ref(false);
-const propsCollapsed = ref(false);
-const resizing = ref<null | 'outline' | 'props'>(null);
+const libraryCollapsed = ref(false);
+const resizing = ref<null | 'outline' | 'library' | 'tree'>(null);
 
 const outlineCol = ref(`${OUTLINE_DEFAULT}px`);
-const propsCol = ref(`${PROPS_DEFAULT}px`);
+const libraryCol = ref(`${LIBRARY_DEFAULT}px`);
+const treeRow = ref('46%');
 
 watch([outlineCollapsed, outlineWidth], () => {
   outlineCol.value = outlineCollapsed.value ? `${RAIL_WIDTH}px` : `${outlineWidth.value}px`;
 });
-watch([propsCollapsed, propsWidth], () => {
-  propsCol.value = propsCollapsed.value ? `${RAIL_WIDTH}px` : `${propsWidth.value}px`;
+watch([libraryCollapsed, libraryWidth], () => {
+  libraryCol.value = libraryCollapsed.value ? `${RAIL_WIDTH}px` : `${libraryWidth.value}px`;
 });
 
 // ── Splitter drag ─────────────────────────────────────────────────────────────
 const rootRef = ref<HTMLElement | null>(null);
+const inspectorRef = ref<HTMLElement | null>(null);
 
 // ── Keyboard shortcuts (scoped to the builder) ────────────────────────────────
 
@@ -193,27 +494,52 @@ function onRootPointerDown() {
 onMounted(() => window.addEventListener('keydown', onKeyDown));
 onBeforeUnmount(() => window.removeEventListener('keydown', onKeyDown));
 
-function startResize(target: 'outline' | 'props', event: PointerEvent) {
-  if ((target === 'outline' && outlineCollapsed.value) || (target === 'props' && propsCollapsed.value)) return;
+function startResize(target: 'outline' | 'library', event: PointerEvent) {
+  if ((target === 'outline' && outlineCollapsed.value) || (target === 'library' && libraryCollapsed.value)) return;
   event.preventDefault();
   resizing.value = target;
   const startX = event.clientX;
   const startOutline = outlineWidth.value;
-  const startProps = propsWidth.value;
+  const startLibrary = libraryWidth.value;
 
   function onMove(ev: PointerEvent) {
     const w = rootRef.value?.getBoundingClientRect().width ?? 0;
     if (!w) return;
     const other = target === 'outline'
-      ? (propsCollapsed.value ? RAIL_WIDTH : propsWidth.value)
+      ? (libraryCollapsed.value ? RAIL_WIDTH : libraryWidth.value)
       : (outlineCollapsed.value ? RAIL_WIDTH : outlineWidth.value);
     const available = w - other - MIDDLE_MIN - 2;
     const delta = ev.clientX - startX;
     if (target === 'outline') {
       outlineWidth.value = Math.min(Math.max(startOutline + delta, OUTLINE_MIN), Math.max(OUTLINE_MIN, available));
     } else {
-      propsWidth.value = Math.min(Math.max(startProps - delta, PROPS_MIN), Math.max(PROPS_MIN, available));
+      libraryWidth.value = Math.min(Math.max(startLibrary - delta, LIBRARY_MIN), Math.max(LIBRARY_MIN, available));
     }
+  }
+  function onUp() {
+    resizing.value = null;
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    window.removeEventListener('pointercancel', onUp);
+  }
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp);
+  window.addEventListener('pointercancel', onUp);
+}
+
+function startTreeResize(event: PointerEvent) {
+  const pane = inspectorRef.value;
+  if (!pane || outlineCollapsed.value) return;
+  event.preventDefault();
+  resizing.value = 'tree';
+  const rect = pane.getBoundingClientRect();
+  const startY = event.clientY;
+  const startHeight = Number.parseFloat(getComputedStyle(pane).gridTemplateRows.split(' ')[0]) || rect.height * 0.46;
+
+  function onMove(ev: PointerEvent) {
+    const available = rect.height - 5;
+    const maximum = Math.max(TREE_MIN_HEIGHT, available - PROPERTIES_MIN_HEIGHT);
+    treeRow.value = `${Math.min(Math.max(startHeight + ev.clientY - startY, TREE_MIN_HEIGHT), maximum)}px`;
   }
   function onUp() {
     resizing.value = null;
@@ -282,30 +608,38 @@ function applyJson() {
     class="pb-builder"
     :class="{
       'pb-builder--outline-collapsed': outlineCollapsed,
-      'pb-builder--props-collapsed': propsCollapsed,
+      'pb-builder--library-collapsed': libraryCollapsed,
       'pb-builder--resizing': resizing !== null,
+      'pb-builder--resizing-tree': resizing === 'tree',
     }"
     tabindex="-1"
+    :style="{ gridTemplateColumns: `${outlineCol} 1px minmax(360px, 1fr) 1px ${libraryCol}` }"
     @pointerdown="onRootPointerDown"
   >
     <!-- ── Outline pane ── -->
     <section
+      ref="inspectorRef"
       class="pb-builder__pane pb-builder__pane--tree"
       :class="{ 'pb-builder__pane--rail': outlineCollapsed }"
+      :style="outlineCollapsed ? undefined : { gridTemplateRows: `minmax(0, ${treeRow}) 5px minmax(0, 1fr)` }"
     >
       <template v-if="!outlineCollapsed">
-        <header class="pb-builder__pane-header">
-          <CoarIcon name="list" size="s" />
-          <span class="pb-builder__pane-title">{{ t('coar.pageBuilder.chrome.outline', undefined, 'Outline') }}</span>
-          <button type="button" class="pb-builder__icon-btn" :title="t('coar.pageBuilder.chrome.collapseOutline', undefined, 'Collapse outline')" @click="outlineCollapsed = true">
-            <CoarIcon name="chevrons-left" size="s" />
-          </button>
-        </header>
-        <div class="pb-builder__tree-scroll">
-          <BuilderOutline />
+        <div class="pb-builder__tree-area">
+          <header class="pb-builder__pane-header">
+            <CoarIcon name="list" size="s" />
+            <span class="pb-builder__pane-title">{{ t('coar.pageBuilder.chrome.outline', undefined, 'Outline') }}</span>
+            <button type="button" class="pb-builder__icon-btn" :title="t('coar.pageBuilder.chrome.collapseOutline', undefined, 'Collapse inspector')" @click="outlineCollapsed = true">
+              <CoarIcon name="chevrons-left" size="s" />
+            </button>
+          </header>
+          <div class="pb-builder__tree-scroll">
+            <BuilderOutline />
+          </div>
         </div>
+        <div class="pb-builder__row-divider" role="separator" aria-orientation="horizontal" @pointerdown="startTreeResize" />
+        <BuilderPropsPanel class="pb-builder__pane-inner" />
       </template>
-      <button v-else type="button" class="pb-builder__rail-btn" :title="t('coar.pageBuilder.chrome.expandOutline', undefined, 'Expand outline')" @click="outlineCollapsed = false">
+      <button v-else type="button" class="pb-builder__rail-btn" :title="t('coar.pageBuilder.chrome.expandOutline', undefined, 'Expand inspector')" @click="outlineCollapsed = false">
         <CoarIcon name="chevrons-right" size="s" />
       </button>
     </section>
@@ -357,13 +691,24 @@ function applyJson() {
                   <button
                     type="button"
                     class="pb-builder__seg-btn"
-                    :class="{ 'pb-builder__seg-btn--active': previewWidth === 'full' }"
+                    :class="{ 'pb-builder__seg-btn--active': previewWidth === 'compact' }"
                     role="radio"
-                    :aria-checked="previewWidth === 'full'"
-                    :title="t('coar.pageBuilder.chrome.previewFullTitle', undefined, 'Full width')"
-                    @click="previewWidth = 'full'"
+                    :aria-checked="previewWidth === 'compact'"
+                    title="320 × 568"
+                    @click="setPreviewWidth('compact')"
                   >
-                    {{ t('coar.pageBuilder.chrome.previewDesktop', undefined, 'Desktop') }}
+                    Compact · 320
+                  </button>
+                  <button
+                    type="button"
+                    class="pb-builder__seg-btn"
+                    :class="{ 'pb-builder__seg-btn--active': previewWidth === 'phone' }"
+                    role="radio"
+                    :aria-checked="previewWidth === 'phone'"
+                    title="390 × 844"
+                    @click="setPreviewWidth('phone')"
+                  >
+                    Phone · 390
                   </button>
                   <button
                     type="button"
@@ -371,34 +716,112 @@ function applyJson() {
                     :class="{ 'pb-builder__seg-btn--active': previewWidth === 'tablet' }"
                     role="radio"
                     :aria-checked="previewWidth === 'tablet'"
-                    :title="t('coar.pageBuilder.chrome.previewTabletTitle', undefined, '768px')"
-                    @click="previewWidth = 'tablet'"
+                    title="768 × 1024"
+                    @click="setPreviewWidth('tablet')"
                   >
-                    {{ t('coar.pageBuilder.chrome.previewTablet', undefined, 'Tablet · 768') }}
+                    Tablet · 768
                   </button>
-                  <button
-                    type="button"
-                    class="pb-builder__seg-btn"
-                    :class="{ 'pb-builder__seg-btn--active': previewWidth === 'mobile' }"
-                    role="radio"
-                    :aria-checked="previewWidth === 'mobile'"
-                    :title="t('coar.pageBuilder.chrome.previewMobileTitle', undefined, '375px')"
-                    @click="previewWidth = 'mobile'"
-                  >
-                    {{ t('coar.pageBuilder.chrome.previewMobile', undefined, 'Mobile · 375') }}
+                  <button type="button" class="pb-builder__seg-btn" :class="{ 'pb-builder__seg-btn--active': previewWidth === 'desktop' }" role="radio" :aria-checked="previewWidth === 'desktop'" title="1280 × 800" @click="setPreviewWidth('desktop')">
+                    Desktop · 1280
+                  </button>
+                  <button type="button" class="pb-builder__seg-btn" :class="{ 'pb-builder__seg-btn--active': previewWidth === 'fluid' }" role="radio" :aria-checked="previewWidth === 'fluid'" title="Host container" @click="setPreviewWidth('fluid')">
+                    Fluid
                   </button>
                 </div>
+                <label v-if="config?.previewFixtures?.length" class="pb-builder__preview-control">
+                  Fixture
+                  <select v-model="selectedFixtureId">
+                    <option v-if="hasCompleteHostPreview" value="">Host values</option>
+                    <option v-for="fixture in config.previewFixtures" :key="fixture.id" :value="fixture.id">{{ fixture.label }}</option>
+                  </select>
+                </label>
+                <label v-if="config?.availableStates?.length" class="pb-builder__preview-control">
+                  State
+                  <select v-model="previewStateOverride">
+                    <option value="">Host / fixture</option>
+                    <option v-for="state in config.availableStates" :key="state.id" :value="state.id">{{ state.label }}</option>
+                  </select>
+                </label>
+                <label v-if="config?.locales?.length" class="pb-builder__preview-control">
+                  Language
+                  <select v-model="previewLocaleOverride">
+                    <option value="">Host / fixture</option>
+                    <option v-for="item in config.locales" :key="item.id" :value="item.id">{{ item.label }}</option>
+                  </select>
+                </label>
               </div>
               <div class="pb-builder__preview">
                 <div class="pb-builder__preview-frame" :style="previewFrameStyle">
                   <!-- The renderer falls back to config.assetResolver itself. -->
-                  <CoarPageRenderer
-                    :schema="builder.schema.value"
-                    :config="config"
-                  />
+                  <CoarThemeScope
+                    v-if="hasEffectivePreviewContract"
+                    :theme="previewTheme"
+                    :mode="previewThemeMode ?? 'auto'"
+                  >
+                    <!-- The renderer falls back to config.assetResolver itself. -->
+                    <CoarPageRenderer
+                      :schema="builder.schema.value"
+                      :config="config"
+                      :viewport-width="previewViewportWidth"
+                      :runtime-context="effectivePreviewContext"
+                      :view-state="effectivePreviewState"
+                      :locale="effectivePreviewLocale"
+                      :actions="previewActions"
+                      :fallback-schema="previewFallbackSchema"
+                      :expression-values="previewExpressionValues"
+                      :page-code-values="effectivePreviewPageCodeValues"
+                      :on-action="runPreviewAction"
+                      @update:values="emit('preview-values', $event)"
+                      @runtime-change="onPreviewRuntimeChange"
+                    />
+                  </CoarThemeScope>
+                  <div v-else class="pb-builder__preview-empty">
+                    <CoarIcon name="circle-alert" size="m" />
+                    <strong>Preview values are missing</strong>
+                    <span>The host must provide context, state, and locale together, or configure a preview fixture.</span>
+                  </div>
                 </div>
               </div>
             </div>
+          </template>
+        </CoarTab>
+
+        <CoarTab id="logic">
+          <template #default>
+            <span class="pb-builder__tab-label">
+              <CoarIcon name="code" size="s" />
+              Logic
+            </span>
+          </template>
+          <template #content>
+            <BuilderLogicPanel v-if="activeTab === 'logic'" />
+          </template>
+        </CoarTab>
+
+        <CoarTab id="translations">
+          <template #default>
+            <span class="pb-builder__tab-label">
+              <CoarIcon name="globe" size="s" />
+              Translations
+            </span>
+          </template>
+          <template #content>
+            <BuilderTranslationsPanel
+              v-if="activeTab === 'translations'"
+              :focus-key="focusedTranslationKey"
+            />
+          </template>
+        </CoarTab>
+
+        <CoarTab v-if="compositionRepository" id="compositions">
+          <template #default>
+            <span class="pb-builder__tab-label">
+              <CoarIcon name="copy" size="s" />
+              Compositions
+            </span>
+          </template>
+          <template #content>
+            <BuilderCompositionsPanel v-if="activeTab === 'compositions'" />
           </template>
         </CoarTab>
 
@@ -432,26 +855,30 @@ function applyJson() {
       </CoarTabGroup>
     </section>
 
-    <!-- ── Right divider ── -->
+    <!-- ── Element-library divider ── -->
     <div
       class="pb-builder__divider"
-      :class="{ 'pb-builder__divider--inert': propsCollapsed }"
+      :class="{ 'pb-builder__divider--inert': libraryCollapsed }"
       role="separator"
-      @pointerdown="startResize('props', $event)"
+      @pointerdown="startResize('library', $event)"
     />
 
-    <!-- ── Properties pane ── -->
+    <!-- ── Element library ── -->
     <section
-      class="pb-builder__pane pb-builder__pane--props"
-      :class="{ 'pb-builder__pane--rail': propsCollapsed }"
+      class="pb-builder__pane pb-builder__pane--library"
+      :class="{ 'pb-builder__pane--rail': libraryCollapsed }"
     >
-      <template v-if="!propsCollapsed">
-        <button type="button" class="pb-builder__icon-btn pb-builder__icon-btn--corner" :title="t('coar.pageBuilder.chrome.collapseProperties', undefined, 'Collapse properties')" @click="propsCollapsed = true">
-          <CoarIcon name="chevrons-right" size="s" />
-        </button>
-        <BuilderPropsPanel class="pb-builder__pane-inner" />
+      <template v-if="!libraryCollapsed">
+        <header class="pb-builder__pane-header">
+          <CoarIcon name="columns" size="s" />
+          <span class="pb-builder__pane-title">Elements</span>
+          <button type="button" class="pb-builder__icon-btn" title="Collapse element library" @click="libraryCollapsed = true">
+            <CoarIcon name="chevrons-right" size="s" />
+          </button>
+        </header>
+        <BuilderPalette />
       </template>
-      <button v-else type="button" class="pb-builder__rail-btn" :title="t('coar.pageBuilder.chrome.expandProperties', undefined, 'Expand properties')" @click="propsCollapsed = false">
+      <button v-else type="button" class="pb-builder__rail-btn" title="Expand element library" @click="libraryCollapsed = false">
         <CoarIcon name="chevrons-left" size="s" />
       </button>
     </section>
@@ -461,11 +888,9 @@ function applyJson() {
 <style scoped>
 .pb-builder {
   display: grid;
-  grid-template-columns:
-    v-bind(outlineCol) 1px minmax(360px, 1fr) 1px v-bind(propsCol);
   height: 100%;
   min-height: 520px;
-  background: var(--coar-surface-default, #fff);
+  background: var(--coar-background-neutral-primary, #fff);
   border: 1px solid var(--coar-border-neutral, #e2e2e6);
   border-radius: 8px;
   overflow: hidden;
@@ -478,6 +903,7 @@ function applyJson() {
   user-select: none;
   cursor: col-resize;
 }
+.pb-builder--resizing-tree { cursor: row-resize; }
 
 /* The root is a programmatic focus anchor (shortcut scope), never a visible stop. */
 .pb-builder:focus {
@@ -491,7 +917,7 @@ function applyJson() {
   min-height: 0;
   min-width: 0;
   overflow: hidden;
-  background: var(--coar-surface-default, #fff);
+  background: var(--coar-background-neutral-primary, #fff);
   position: relative;
 }
 
@@ -499,6 +925,17 @@ function applyJson() {
   align-items: center;
   justify-content: flex-start;
   padding: 8px 0;
+}
+
+.pb-builder__pane--tree:not(.pb-builder__pane--rail) {
+  display: grid;
+}
+
+.pb-builder__tree-area {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 /* ── Panel header (outline pane) ── */
@@ -600,6 +1037,24 @@ function applyJson() {
 }
 .pb-builder__divider--inert::after { pointer-events: none; }
 
+.pb-builder__row-divider {
+  position: relative;
+  z-index: 2;
+  border-top: 1px solid var(--coar-border-neutral, #e2e2e6);
+  border-bottom: 1px solid var(--coar-border-neutral, #e2e2e6);
+  background: var(--coar-background-neutral-secondary, #f7f7f9);
+  cursor: row-resize;
+}
+.pb-builder__row-divider::after {
+  content: '';
+  position: absolute;
+  inset: -3px 0;
+}
+.pb-builder__row-divider:hover,
+.pb-builder--resizing .pb-builder__row-divider {
+  background: var(--coar-background-accent-primary, #1666cc);
+}
+
 /* ── Icon buttons ── */
 .pb-builder__icon-btn {
   display: inline-flex;
@@ -616,7 +1071,7 @@ function applyJson() {
   transition: background-color 0.12s, color 0.12s, border-color 0.12s;
 }
 .pb-builder__icon-btn:hover:not(:disabled) {
-  background: var(--coar-surface-neutral-subtle, #f0f0f2);
+  background: var(--coar-background-neutral-secondary, #f0f0f2);
   border-color: var(--coar-border-neutral, #dcdce0);
   color: var(--coar-icon-neutral-primary, #111);
 }
@@ -643,7 +1098,7 @@ function applyJson() {
   transition: background-color 0.12s, border-color 0.12s, color 0.12s;
 }
 .pb-builder__rail-btn:hover {
-  background: var(--coar-surface-neutral-subtle, #f0f0f2);
+  background: var(--coar-background-neutral-secondary, #f0f0f2);
   border-color: var(--coar-border-neutral, #dcdce0);
   color: var(--coar-icon-neutral-primary, #111);
 }
@@ -678,16 +1133,19 @@ function applyJson() {
   gap: 8px;
   padding: 8px 12px;
   border-bottom: 1px solid var(--coar-border-neutral, #e2e2e6);
-  background: var(--coar-surface-neutral-subtle, #f7f7f9);
+  background: var(--coar-background-neutral-secondary, #f7f7f9);
   flex-shrink: 0;
 }
+
+.pb-builder__preview-control { display: inline-flex; align-items: center; gap: 5px; margin-left: 4px; color: var(--coar-text-neutral-secondary, #555); font-size: 11px; }
+.pb-builder__preview-control select { max-width: 150px; border: 1px solid var(--coar-border-neutral, #d0d0d0); border-radius: 4px; background: var(--coar-background-neutral-primary, #fff); font: inherit; }
 
 .pb-builder__seg {
   display: inline-flex;
   border: 1px solid var(--coar-border-neutral, #d0d0d0);
   border-radius: 6px;
   overflow: hidden;
-  background: var(--coar-surface-base, #fff);
+  background: var(--coar-background-neutral-primary, #fff);
 }
 
 .pb-builder__seg-btn {
@@ -709,12 +1167,12 @@ function applyJson() {
 }
 
 .pb-builder__seg-btn:hover:not(.pb-builder__seg-btn--active) {
-  background: var(--coar-surface-neutral-subtle, #f0f0f2);
+  background: var(--coar-background-neutral-secondary, #f0f0f2);
 }
 
 .pb-builder__seg-btn--active {
-  background: var(--coar-surface-accent-subtle, #e6eefa);
-  color: var(--coar-text-accent, #1666cc);
+  background: var(--coar-surface-accent-secondary, #e6eefa);
+  color: var(--coar-text-accent-primary, #1666cc);
   font-weight: 600;
 }
 
@@ -735,12 +1193,29 @@ function applyJson() {
 }
 
 .pb-builder__preview-frame {
-  background: var(--coar-surface-default, #fff);
+  background: var(--coar-background-neutral-primary, #fff);
   border: 1px solid var(--coar-border-neutral, #e2e2e6);
   border-radius: 8px;
-  overflow: hidden;
+  overflow: auto;
+  flex: 0 0 auto;
   transition: max-width 0.18s ease-out, width 0.18s ease-out;
 }
+
+.pb-builder__preview-empty {
+  display: flex;
+  min-height: 240px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  padding: 24px;
+  box-sizing: border-box;
+  color: var(--coar-text-neutral-secondary, #666);
+  text-align: center;
+}
+
+.pb-builder__preview-empty strong { color: var(--coar-text-neutral-primary, #222); }
+.pb-builder__preview-empty span { max-width: 440px; font-size: 12px; }
 
 /* ── JSON pane ── */
 .pb-builder__json-pane {
@@ -757,7 +1232,7 @@ function applyJson() {
   gap: 8px;
   padding: 6px 12px;
   border-bottom: 1px solid var(--coar-border-neutral, #e2e2e6);
-  background: var(--coar-surface-neutral-subtle, #f7f7f9);
+  background: var(--coar-background-neutral-secondary, #f7f7f9);
   flex-shrink: 0;
 }
 
@@ -803,7 +1278,7 @@ function applyJson() {
   font-family: ui-monospace, Menlo, Consolas, monospace;
   font-size: 12px;
   color: var(--coar-text-neutral-primary, #111);
-  background: var(--coar-surface-neutral-subtle, #f7f7f9);
+  background: var(--coar-background-neutral-secondary, #f7f7f9);
   line-height: 1.55;
 }
 </style>

@@ -21,6 +21,7 @@ const choices = computed(() => toSelectOptions(componentProps.props.options));
 
 <template>
   <CoarMultiSelect
+size="s"
     :model-value="(componentProps.modelValue as string[] | undefined) ?? []"
     :options="choices"
     :placeholder="t('coar.pageBuilder.props.none', undefined, '— none')"

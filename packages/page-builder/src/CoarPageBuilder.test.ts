@@ -68,53 +68,174 @@ describe('CoarPageBuilder — v-model wiring', () => {
     expect(wrapper.text()).toContain('Loaded');
   });
 
-  function mountWithConfig(config: PageConfig) {
+  function mountWithConfig(config: PageConfig, authoringMode: 'properties' | 'code' = 'properties') {
     const Host = defineComponent({
       components: { CoarPageBuilder },
       setup() {
         const schema = ref<PageNode | undefined>(undefined);
-        return { schema, config };
+        return { schema, config, authoringMode };
       },
-      template: '<div style="height: 600px"><CoarPageBuilder v-model="schema" :config="config" /></div>',
+      template: '<div style="height: 600px"><CoarPageBuilder v-model="schema" :config="config" :authoring-mode="authoringMode" /></div>',
     });
     return mount(Host);
   }
 
-  it('splits the palette into Containers / Inputs / Elements (registry-derived)', async () => {
+  it('renders the registry as collapsible Containers / Elements groups', async () => {
     const wrapper = mountWithConfig({});
     await nextTick();
 
-    const groups = wrapper.findAll('.pb-palette__group').map((g) => ({
-      label: g.find('.pb-palette__label').text(),
-      cards: g.findAll('.pb-palette__card').map((c) => c.text()),
-    }));
-    const byLabel = Object.fromEntries(groups.map((g) => [g.label, g.cards]));
+    const cards = (group: string) => wrapper
+      .find(`[data-palette-group="${group}"]`)
+      .findAll('.pb-library__item')
+      .map((card) => card.text());
 
-    expect(byLabel['Containers']).toContain('Card');
-    expect(byLabel['Inputs']).toContain('Text Input');
-    expect(byLabel['Inputs']).toContain('Checkbox');
-    expect(byLabel['Elements']).toContain('Heading');
-    expect(byLabel['Elements']).toContain('Button');
-    expect(byLabel['Elements']).not.toContain('Text Input');
+    expect(cards('containers')).toContain('Card');
+    expect(cards('elements')).toContain('Text Input');
+    expect(cards('elements')).toContain('Checkbox');
+    expect(cards('elements')).toContain('Heading');
+    expect(cards('elements')).toContain('Button');
+
+    const elementsGroup = wrapper.find('[data-palette-group="elements"]');
+    const toggle = elementsGroup.find('.pb-library__group-toggle');
+    expect(toggle.attributes('aria-expanded')).toBe('true');
+    await toggle.trigger('click');
+    expect(toggle.attributes('aria-expanded')).toBe('false');
+    expect(elementsGroup.findAll('.pb-library__item')).toHaveLength(0);
   });
 
-  it('hideElementPicker hides ONLY the Inputs group — containers, content and actions stay', async () => {
+  it('hideElementPicker removes free inputs while containers, content, actions and fields stay', async () => {
     const wrapper = mountWithConfig({
       hideElementPicker: true,
       fields: [{ name: 'email', valueType: 'string', label: 'Email' }],
     });
     await nextTick();
 
-    const labels = wrapper.findAll('.pb-palette__label').map((l) => l.text());
-    expect(labels).toContain('Containers');
-    expect(labels).toContain('Elements'); // headings, buttons & co stay
-    expect(labels).toContain('Fields');
-    expect(labels).not.toContain('Inputs');
+    expect(wrapper.find('[data-palette-group="containers"]').exists()).toBe(true);
+    expect(wrapper.find('[data-palette-group="elements"]').exists()).toBe(true);
+    expect(wrapper.find('[data-palette-group="fields"]').exists()).toBe(true);
+    expect(wrapper.findAll('[data-palette-group]').map((group) => group.attributes('data-palette-group')))
+      .toEqual(['fields', 'containers', 'elements']);
 
-    const cards = wrapper.findAll('.pb-palette__card').map((c) => c.text());
+    const cards = wrapper.findAll('.pb-library__item').map((c) => c.text());
     expect(cards).toContain('Heading');
     expect(cards).toContain('Button');
     expect(cards).not.toContain('Text Input'); // free inputs come from the contract
+  });
+
+  it('offers separate Page State and Page Code entry points for the root', async () => {
+    const wrapper = mountWithConfig({}, 'code');
+    await nextTick();
+    const rootRow = wrapper.find('.pb-tree-row');
+    await rootRow.trigger('click');
+    await nextTick();
+
+    expect(wrapper.text()).toContain('Edit Page State');
+    expect(wrapper.text()).toContain('Add Page Code');
+  });
+
+  it.each(['button', 'link'] as const)('shows the same action key/value editor for %s elements', async (type) => {
+    const wrapper = mountWithConfig({});
+    await nextTick();
+    wrapper.vm.schema = {
+      id: 'r', type: 'page', children: [{
+        id: 'action-node', type, name: `${type}Action`,
+        props: { label: type === 'button' ? 'Run' : 'Open', action: 'run' },
+      }],
+    } as PageNode;
+    await nextTick();
+    await nextTick();
+
+    const rows = wrapper.findAll('.pb-tree-row');
+    await rows[1].trigger('click');
+    await nextTick();
+
+    const editor = wrapper.find('[data-testid="action-props-editor"]');
+    expect(editor.exists()).toBe(true);
+    expect(editor.text()).toContain('Static action values');
+    expect(editor.text()).toContain('Dynamic action value');
+
+    await editor.find('[data-testid="add-action-value"]').trigger('click');
+    await editor.find('[data-testid="action-value-key"] input').setValue('language');
+    await editor.find('[data-testid="action-value-json"] input').setValue('"de"');
+    await nextTick();
+
+    const actionNode = (wrapper.vm.schema as PageNode & { children: PageNode[] }).children[0] as {
+      props: { actionValues?: Record<string, unknown> };
+      bindings?: Record<string, unknown>;
+    };
+    expect(actionNode.props.actionValues).toEqual({ language: 'de' });
+
+    await editor.find('.pb-action-values__row .pb-bindable-property__mode').trigger('click');
+    await nextTick();
+    const updatedActionNode = (wrapper.vm.schema as PageNode & { children: PageNode[] }).children[0] as {
+      bindings?: Record<string, { source?: string; expression?: string }>;
+    };
+    expect(updatedActionNode.bindings?.['actionValues.language']).toEqual(expect.objectContaining({
+      source: 'expression',
+      expression: '"de"',
+    }));
+
+    await editor.find('[data-testid="action-value-key"] input').setValue('locale');
+    await nextTick();
+    const renamedActionNode = (wrapper.vm.schema as PageNode & { children: PageNode[] }).children[0] as {
+      bindings?: Record<string, { source?: string }>;
+    };
+    expect(renamedActionNode.bindings?.['actionValues.language']).toBeUndefined();
+    expect(renamedActionNode.bindings?.['actionValues.locale']?.source).toBe('expression');
+  });
+
+  it('does not advertise incomplete host values and selects a complete fixture', async () => {
+    const wrapper = mountWithConfig({
+      contextFields: [{ path: 'auth.enabled', type: 'boolean' }],
+      availableStates: [{ id: 'ready', label: 'Ready' }],
+      locales: [{ id: 'en', label: 'English' }],
+      previewFixtures: [{
+        id: 'complete',
+        label: 'Complete fixture',
+        context: { auth: { enabled: true } },
+        state: 'ready',
+        locale: 'en',
+        viewport: 'phone',
+      }],
+    });
+    await nextTick();
+    const previewTab = wrapper.findAll('button').find((button) => button.text().trim() === 'Preview');
+    expect(previewTab).toBeDefined();
+    await previewTab!.trigger('click');
+    await nextTick();
+
+    const fixture = wrapper.find('.pb-builder__preview-control select');
+    expect(fixture.exists()).toBe(true);
+    expect(fixture.element.value).toBe('complete');
+    expect(fixture.findAll('option').map((option) => option.text())).not.toContain('Host values');
+  });
+
+  it('scopes previewTheme to the embedded renderer canvas', async () => {
+    const Host = defineComponent({
+      components: { CoarPageBuilder },
+      setup() {
+        const schema = ref<PageNode>({ id: 'r', type: 'page', children: [] });
+        return { schema };
+      },
+      template: `<div style="height: 600px">
+        <CoarPageBuilder
+          v-model="schema"
+          :preview-theme="{ accent: '#10b981', inputRadius: 14 }"
+          preview-theme-mode="dark"
+        />
+      </div>`,
+    });
+    const wrapper = mount(Host);
+    await nextTick();
+    const previewTab = wrapper.findAll('button').find((button) => button.text().trim() === 'Preview');
+    await previewTab!.trigger('click');
+    await nextTick();
+
+    const scope = wrapper.find('.pb-builder__preview-frame .coar-theme-scope');
+    expect(scope.exists()).toBe(true);
+    expect(scope.classes()).toContain('dark-mode');
+    expect(scope.attributes('style')).toContain('--coar-accent: #10b981');
+    expect(wrapper.find('.pb-builder').classes()).not.toContain('dark-mode');
   });
 
   it('normalizes an externally-assigned schema (legacy types, duplicate ids) before use', async () => {

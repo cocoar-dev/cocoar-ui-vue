@@ -153,5 +153,32 @@ describe('CoarOverlayOutlet — panel layout contract', () => {
       const hostEl = document.querySelector('.coar-overlay-host') as HTMLElement;
       expect(hostEl.style.width).toBe('42rem');
     });
+
+    it('propagates the nearest scoped theme to a teleported overlay host', async () => {
+      const service = mountHost();
+      const Content = defineComponent({ render: () => h('div', 'themed') });
+      const scope = document.createElement('div');
+      scope.className = 'coar-theme-scope dark-mode';
+      scope.style.setProperty('--coar-accent', '#10b981');
+      const anchor = document.createElement('button');
+      scope.appendChild(anchor);
+      document.body.appendChild(scope);
+
+      service.open({
+        spec: {
+          anchor: { kind: 'element', element: anchor },
+          position: { placement: 'bottom-start' },
+        },
+        content: { kind: 'component', component: Content },
+      });
+      await nextTick();
+      await nextTick();
+
+      const hostEl = document.querySelector('.coar-overlay-host') as HTMLElement;
+      expect(hostEl.classList.contains('dark-mode')).toBe(true);
+      expect(hostEl.getAttribute('data-coar-theme-proxy')).toBe('');
+      expect(hostEl.style.getPropertyValue('--coar-accent')).toBe('#10b981');
+      scope.remove();
+    });
   });
 });

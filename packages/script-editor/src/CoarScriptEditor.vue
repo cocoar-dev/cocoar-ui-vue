@@ -248,7 +248,9 @@ defineExpose({
    */
   --coar-script-editor-marker-scale: 0.6;
   --coar-script-editor-marker-opacity: 0.45;
+  --coar-script-editor-marker-display: inline;
   --coar-script-editor-marker-color: var(--coar-text-neutral-tertiary, #6b7280);
+  --coar-script-editor-locked-line-opacity: 1;
   --coar-script-editor-locked-line-bg: color-mix(
     in srgb,
     var(--coar-text-neutral-tertiary, #6b7280) 6%,
@@ -311,6 +313,8 @@ defineExpose({
 .coar-script-editor--authoring {
   --coar-script-editor-marker-scale: 1;
   --coar-script-editor-marker-opacity: 0.85;
+  --coar-script-editor-marker-display: inline;
+  --coar-script-editor-locked-line-opacity: 1;
   --coar-script-editor-marker-color: var(--coar-text-warning, #b45309);
   --coar-script-editor-locked-line-bg: color-mix(
     in srgb,
@@ -323,7 +327,12 @@ defineExpose({
   background: var(--coar-script-editor-locked-line-bg);
 }
 
+.coar-script-editor-locked-code {
+  opacity: var(--coar-script-editor-locked-line-opacity);
+}
+
 .coar-script-editor-locked-marker {
+  display: var(--coar-script-editor-marker-display);
   font-size: calc(1em * var(--coar-script-editor-marker-scale));
   opacity: var(--coar-script-editor-marker-opacity);
   letter-spacing: -0.02em;

@@ -77,6 +77,7 @@ function clearAsset() {
     :hint="t('coar.pageBuilder.props.assetIdHint', undefined, 'Resolved via assetResolver at render time')"
   >
     <CoarTextInput
+size="s"
       :model-value="props.node.props.assetId ?? ''"
       @update:model-value="(v) => props.patch({ props: { assetId: v } })"
     />
@@ -84,6 +85,7 @@ function clearAsset() {
 
   <CoarFormField :label="t('coar.pageBuilder.props.altText', undefined, 'Alt text')">
     <CoarTextInput
+size="s"
       :model-value="props.node.props.alt ?? ''"
       @update:model-value="(v) => props.patch({ props: { alt: v } })"
     />
@@ -101,7 +103,7 @@ function clearAsset() {
   width: 80px;
   height: 80px;
   border-radius: 6px;
-  background: var(--coar-surface-neutral-subtle, #f0f0f2);
+  background: var(--coar-background-neutral-secondary, #f0f0f2);
   border: 1px solid var(--coar-border-neutral, #e0e0e0);
   display: flex;
   align-items: center;

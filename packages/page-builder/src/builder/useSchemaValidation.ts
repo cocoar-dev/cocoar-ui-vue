@@ -1,9 +1,13 @@
 import { computed, type Ref } from 'vue';
 import { isElementAllowed } from '../schema';
-import type { ButtonNode, ElementNode, LinkNode, PageConfig, PageNode } from '../schema';
+import type { ActionProps, ButtonNode, ElementNode, PageConfig, PageNode } from '../schema';
 import { compilePagePattern, isUnsafeFieldName } from '../renderSafety';
+import { isJsonSafeActionValue, isJsonSafeActionValues, isSafeActionValueField } from '../actionValues';
 import { useMergedElements } from '../elements/useMergedElements';
 import { isFieldCompatible } from '../elements/fieldContract';
+import { validatePageDocument } from '../documentValidation';
+import { findStylePreset } from '../stylePresets';
+import { isValidElementName } from './nodeDefaults';
 
 export type IssueSeverity = 'warning' | 'error';
 
@@ -36,14 +40,69 @@ export function useSchemaValidation(
 
   const issues = computed<ValidationIssue[]>(() => {
     const out: ValidationIssue[] = [];
+    const namedElements: Array<{ node: PageNode; name: string }> = [];
     const namedFields: Array<{ node: PageNode; name: string }> = [];
     const conditionalNodes: Array<{ node: PageNode; vw: unknown }> = [];
     const defaultButtons: PageNode[] = [];
     const registry = elements.value;
     const knownActions = new Set(config.value?.availableActions?.map((a) => a.id) ?? []);
     const hasAvailableActions = (config.value?.availableActions?.length ?? 0) > 0;
+    const root = schema.value as import('../schema').PageRootNode;
+    const codeDriven = schema.value.type === 'page'
+      && (!!root.pageCode?.trim() || !!root.rootCode?.trim() || !!root.stateCode?.trim());
+
+    // Binding validation needs page-wide names even when the referenced node
+    // appears later in tree order. Repeat ancestry, on the other hand, is
+    // deliberately local: `item` and `index` only exist inside that repeat.
+    const knownFieldNames = new Set<string>();
+    const knownSelectionNames = new Set<string>();
+    const repeatAncestor = new Map<string, import('../schema').RepeatNode | undefined>();
+    const indexBindingScope = (
+      current: PageNode,
+      parentRepeat?: import('../schema').RepeatNode,
+    ) => {
+      repeatAncestor.set(current.id, parentRepeat);
+      if (current.type !== 'page') {
+        const element = current as ElementNode;
+        if (registry[current.type]?.value && isValidElementName(element.name) && element.name !== '$selection') {
+          knownFieldNames.add(element.name!);
+        }
+        if (current.type === 'repeat') {
+          const selectionName = (current as import('../schema').RepeatNode).props.selection?.name;
+          if (selectionName) knownSelectionNames.add(selectionName);
+        }
+      }
+      const nextRepeat = current.type === 'repeat'
+        ? current as import('../schema').RepeatNode
+        : parentRepeat;
+      if ('children' in current && Array.isArray(current.children)) {
+        for (const child of current.children) indexBindingScope(child, nextRepeat);
+      }
+    };
+    indexBindingScope(schema.value);
 
     walk(schema.value, (n) => {
+      if (n.type !== 'page') {
+        const name = (n as ElementNode).name;
+        if (typeof name === 'string' && isUnsafeFieldName(name)) {
+          out.push({
+            nodeId: n.id,
+            field: 'name',
+            severity: 'error',
+            message: `Name "${String(name)}" is reserved.`,
+          });
+        } else if (!isValidElementName(name)) {
+          out.push({
+            nodeId: n.id,
+            field: 'name',
+            severity: 'error',
+            message: 'Name is required and must be a JavaScript identifier.',
+          });
+        } else {
+          namedElements.push({ node: n, name });
+        }
+      }
+
       // ── Type must be registered and allowed — otherwise the runtime SKIPS
       //    the node silently, which the author must learn about before saving ──
       const def = n.type === 'page' ? undefined : registry[n.type];
@@ -65,17 +124,29 @@ export function useSchemaValidation(
         });
       }
 
-      // ── Buttons & links: action wiring ─────────────────────────────────
-      // Cast: the open union member absorbs the literal narrowing.
-      if (n.type === 'button') {
-        if ((n as ButtonNode).props.default) defaultButtons.push(n);
-        const action = (n as ButtonNode).props.action;
+      if (n.stylePreset && !findStylePreset(config.value, n)) {
+        out.push({
+          nodeId: n.id,
+          field: 'stylePreset',
+          severity: 'error',
+          message: `Style preset "${n.stylePreset}" is unknown, unsafe, or not allowed on ${n.type}.`,
+        });
+      }
+
+      // ── Registry-declared action elements: shared wiring + payload ──────
+      if (n.type === 'button' && !codeDriven && (n as ButtonNode).props.default) {
+        defaultButtons.push(n);
+      }
+      if (def?.action && !codeDriven) {
+        const actionProps = (n as ElementNode<string, ActionProps>).props;
+        const action = actionProps.action;
+        const label = def.builder?.label.fallback ?? n.type;
         if (!action) {
           out.push({
             nodeId: n.id,
             field: 'action',
             severity: 'warning',
-            message: 'Button has no Action — clicking it will do nothing.',
+            message: `${label} has no Action — triggering it will do nothing.`,
           });
         } else if (hasAvailableActions && !knownActions.has(action)) {
           out.push({
@@ -85,22 +156,28 @@ export function useSchemaValidation(
             message: `Action "${action}" is not in config.availableActions.`,
           });
         }
-      }
-      if (n.type === 'link') {
-        const action = (n as LinkNode).props.action;
-        if (!action) {
+        if (actionProps.actionValues !== undefined && !isJsonSafeActionValues(actionProps.actionValues)) {
           out.push({
             nodeId: n.id,
-            field: 'action',
-            severity: 'warning',
-            message: 'Link has no Action — clicking it will do nothing.',
+            field: 'actionValues',
+            severity: 'error',
+            message: 'Action values must be a JSON-safe object.',
           });
-        } else if (hasAvailableActions && !knownActions.has(action)) {
+        }
+        if (actionProps.actionValueField !== undefined && !isSafeActionValueField(actionProps.actionValueField)) {
           out.push({
             nodeId: n.id,
-            field: 'action',
-            severity: 'warning',
-            message: `Action "${action}" is not in config.availableActions.`,
+            field: 'actionValueField',
+            severity: 'error',
+            message: 'Dynamic action-value key is empty or reserved.',
+          });
+        }
+        if (actionProps.actionValue !== undefined && !isJsonSafeActionValue(actionProps.actionValue)) {
+          out.push({
+            nodeId: n.id,
+            field: 'actionValue',
+            severity: 'error',
+            message: 'Dynamic action value must be JSON-safe.',
           });
         }
       }
@@ -118,7 +195,7 @@ export function useSchemaValidation(
       }
 
       // ── Image: assetId required ────────────────────────────────────────
-      if (n.type === 'image' && !n.props.assetId) {
+      if (!codeDriven && n.type === 'image' && !n.props.assetId) {
         out.push({
           nodeId: n.id,
           field: 'assetId',
@@ -154,14 +231,7 @@ export function useSchemaValidation(
       // ── Value elements: collect names for duplicate detection ──────────
       if (def?.value) {
         const name = (n as { name?: string }).name;
-        if (name && isUnsafeFieldName(name)) {
-          out.push({
-            nodeId: n.id,
-            field: 'name',
-            severity: 'error',
-            message: `Field name "${name}" is reserved — the field is excluded from the value model.`,
-          });
-        } else if (name) {
+        if (isValidElementName(name) && name !== '$selection') {
           namedFields.push({ node: n, name });
         }
       }
@@ -170,12 +240,52 @@ export function useSchemaValidation(
       const vw = (n as ElementNode).visibleWhen;
       if (vw !== undefined) conditionalNodes.push({ node: n, vw });
 
+      // ── Runtime bindings: only declared context/item paths are authorable ─
+      for (const [prop, binding] of Object.entries((n as ElementNode).bindings ?? {})) {
+        if (!binding || typeof binding !== 'object' || !('source' in binding)) continue;
+        if (binding.source === 'expression') {
+          const source = typeof binding.expression === 'string' ? binding.expression.trim() : '';
+          if (!source) out.push({ nodeId: n.id, field: `bindings.${prop}`, severity: 'error', message: `Expression binding for "${prop}" is empty.` });
+          else if (source.length > 10_000) out.push({ nodeId: n.id, field: `bindings.${prop}`, severity: 'error', message: `Expression binding for "${prop}" exceeds 10,000 characters.` });
+          continue;
+        }
+        if (binding.source === 'context') {
+          const known = config.value?.contextFields?.some((field) => field.path === binding.path);
+          if (!known) out.push({ nodeId: n.id, field: `bindings.${prop}`, severity: 'error', message: `Binding for "${prop}" references unknown context path "${String(binding.path ?? '')}".` });
+        }
+        if (binding.source === 'state' && !binding.path) {
+          out.push({ nodeId: n.id, field: `bindings.${prop}`, severity: 'error', message: `Page-state binding for "${prop}" requires a path.` });
+        }
+        if (binding.source === 'item') {
+          const repeat = repeatAncestor.get(n.id);
+          const contract = config.value?.contextFields?.find((field) => field.path === repeat?.props.source && field.type === 'array');
+          const known = contract?.itemFields?.some((item) => item.path === binding.path);
+          if (!known) out.push({ nodeId: n.id, field: `bindings.${prop}`, severity: 'error', message: `Binding for "${prop}" references unknown repeat-item path "${String(binding.path ?? '')}".` });
+        }
+        if (binding.source === 'index' && !repeatAncestor.get(n.id)) {
+          out.push({ nodeId: n.id, field: `bindings.${prop}`, severity: 'error', message: `Binding for "${prop}" uses a repeat index outside a Repeat.` });
+        }
+        if (binding.source === 'field' && (!binding.path || !knownFieldNames.has(binding.path))) {
+          out.push({ nodeId: n.id, field: `bindings.${prop}`, severity: 'error', message: `Binding for "${prop}" references unknown form field "${String(binding.path ?? '')}".` });
+        }
+        if (binding.source === 'selection' && (!binding.path || !knownSelectionNames.has(binding.path))) {
+          out.push({ nodeId: n.id, field: `bindings.${prop}`, severity: 'error', message: `Binding for "${prop}" references unknown repeat selection "${String(binding.path ?? '')}".` });
+        }
+      }
+
+      if (n.type === 'repeat' && !codeDriven) {
+        const repeat = n as import('../schema').RepeatNode;
+        const contract = config.value?.contextFields?.find((field) => field.path === repeat.props.source && field.type === 'array');
+        if (!contract) out.push({ nodeId: n.id, field: 'props.source', severity: 'error', message: `Repeat source "${repeat.props.source}" is not an allowlisted array.` });
+        else if (!contract.itemFields?.some((field) => field.path === repeat.props.keyPath)) out.push({ nodeId: n.id, field: 'props.keyPath', severity: 'error', message: `Repeat key "${repeat.props.keyPath}" is not an allowed item path.` });
+      }
+
       // ── Field contract: bindings must exist and be type-compatible ─────
       const contract = config.value?.fields;
       if (contract && def?.value) {
         const name = (n as { name?: string }).name;
         const field = name ? contract.find((f) => f.name === name) : undefined;
-        if (name && !field && !config.value?.allowCustomFields) {
+        if (name && name !== '$selection' && !field && !config.value?.allowCustomFields) {
           out.push({
             nodeId: n.id,
             field: 'name',
@@ -193,9 +303,9 @@ export function useSchemaValidation(
       }
     });
 
-    // ── Duplicate field names ────────────────────────────────────────────
+    // ── Every public element name is page-wide unique ───────────────────
     const seen = new Map<string, PageNode[]>();
-    for (const { node, name } of namedFields) {
+    for (const { node, name } of namedElements) {
       const list = seen.get(name) ?? [];
       list.push(node);
       seen.set(name, list);
@@ -207,7 +317,7 @@ export function useSchemaValidation(
           nodeId: n.id,
           field: 'name',
           severity: 'error',
-          message: `Duplicate field name "${name}" — values will overwrite each other.`,
+          message: `Duplicate name "${name}" — Page Code references must be unique.`,
         });
       }
     }
@@ -216,6 +326,30 @@ export function useSchemaValidation(
     //    `equals` condition on an array-valued controller can never match ──
     const boundNames = new Set(namedFields.map((f) => f.name));
     for (const { node: n, vw } of conditionalNodes) {
+      const extended = vw as import('../schema').VisibleWhen;
+      if (extended?.source || extended?.all || extended?.any) {
+        const visit = (condition: import('../schema').VisibleWhen, depth = 0) => {
+          if (depth > 4) {
+            out.push({ nodeId: n.id, field: 'visibleWhen', severity: 'error', message: 'visibleWhen nesting exceeds the maximum depth of 4.' });
+            return;
+          }
+          for (const child of condition.all ?? condition.any ?? []) visit(child, depth + 1);
+          if (condition.source === 'context' && !config.value?.contextFields?.some((field) => field.path === condition.path)) {
+            out.push({ nodeId: n.id, field: 'visibleWhen', severity: 'error', message: `visibleWhen references unknown context path "${String(condition.path ?? '')}".` });
+          }
+          if (condition.source === 'state' && condition.operator === 'equals' && !config.value?.availableStates?.some((state) => state.id === condition.value)) {
+            out.push({ nodeId: n.id, field: 'visibleWhen', severity: 'warning', message: `visibleWhen references unknown view state "${String(condition.value ?? '')}".` });
+          }
+          if (condition.source === 'item' && !config.value?.contextFields?.some((field) => field.itemFields?.some((item) => item.path === condition.path))) {
+            out.push({ nodeId: n.id, field: 'visibleWhen', severity: 'error', message: `visibleWhen references unknown repeat-item path "${String(condition.path ?? '')}".` });
+          }
+          if (condition.source === 'field' && condition.path && !boundNames.has(condition.path)) {
+            out.push({ nodeId: n.id, field: 'visibleWhen', severity: 'warning', message: `visibleWhen references field "${condition.path}", which is not on the page.` });
+          }
+        };
+        visit(extended);
+        continue;
+      }
       const cond = vw as { field?: unknown; equals?: unknown } | null;
       if (!cond || typeof cond !== 'object' || typeof cond.field !== 'string' || !cond.field) {
         out.push({
@@ -329,6 +463,15 @@ export function useSchemaValidation(
           });
         }
       }
+    }
+
+    // Runtime activation uses the same contract. Surface any remaining hard
+    // failures (required nodes, limits, locked security presentation) while authoring.
+    for (const issue of validatePageDocument(schema.value, config.value).issues) {
+      if (!['requiredNodes', 'visibility', 'style', 'position', 'document'].includes(issue.field)) continue;
+      const nodeId = issue.nodeId ?? schema.value.id;
+      if (out.some((existing) => existing.nodeId === nodeId && existing.field === issue.field && existing.message === issue.message)) continue;
+      out.push({ nodeId, field: issue.field, severity: 'error', message: issue.message });
     }
 
     return out;

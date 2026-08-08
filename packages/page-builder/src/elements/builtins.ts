@@ -10,11 +10,13 @@ import type { PageElementRegistry, PageElementDefinition } from './registry';
 import { stackElement } from './stack';
 import { cardElement } from './card';
 import { sectionElement } from './section';
+import { repeatElement } from './repeat';
 import { dividerElement } from './divider';
 import { spacerElement } from './spacer';
 import { headingElement } from './heading';
 import { paragraphElement } from './paragraph';
 import { noteElement } from './note';
+import { feedbackElement } from './feedback';
 import { textInputElement } from './text-input';
 import { passwordInputElement } from './password-input';
 import { numberInputElement } from './number-input';
@@ -29,6 +31,7 @@ import { dateTimeInputElement } from './datetime-input';
 import { buttonElement } from './button';
 import { linkElement } from './link';
 import { imageElement } from './image';
+import { visualMarkupElement } from './visual-markup';
 
 // Exhaustiveness-checked: a new built-in type without a definition here is a
 // compile error. INSERTION ORDER IS PALETTE ORDER — the palette lists the
@@ -38,9 +41,11 @@ const TABLE: Record<Exclude<ElementType, 'page'>, PageElementDefinition<any>> = 
   stack: stackElement,
   card: cardElement,
   section: sectionElement,
+  repeat: repeatElement,
   heading: headingElement,
   paragraph: paragraphElement,
   note: noteElement,
+  feedback: feedbackElement,
   divider: dividerElement,
   spacer: spacerElement,
   'text-input': textInputElement,
@@ -57,6 +62,7 @@ const TABLE: Record<Exclude<ElementType, 'page'>, PageElementDefinition<any>> = 
   button: buttonElement,
   link: linkElement,
   image: imageElement,
+  'visual-markup': visualMarkupElement,
 };
 
 export const BUILTIN_ELEMENTS: PageElementRegistry = TABLE;

@@ -14,25 +14,25 @@ const isPending = computed(
 );
 /** Another trigger is in flight — every action button disables while it runs. */
 const busy = computed(() => ctx.isValidating.value || ctx.isSubmitting.value);
+const disabled = computed(() => !!props.node.props.disabled || (busy.value && !isPending.value));
 
 function callAction(id?: string, validates?: boolean) {
   if (!id) return;
-  ctx.triggerAction(id, validates);
+  ctx.triggerElementAction(props.node.props, validates);
 }
 </script>
 
 <template>
-  <!-- Validating buttons stay CLICKABLE while the form is invalid — the click
-       reveals the errors (a disabled button can't explain itself). Buttons
-       only disable while a trigger is in flight (onValidate or an async
-       action), to block double-submit; the triggering one spins instead. -->
+  <!-- Validating buttons stay clickable merely because the form is invalid —
+       the click reveals its errors. An explicit (including runtime-resolved)
+       disabled prop still wins. Busy state blocks duplicate submits. -->
   <CoarButton
     class="pb-button"
     :variant="node.props.variant ?? 'primary'"
     :size="node.props.size"
     :icon-left="node.props.icon"
     :loading="isPending && busy"
-    :disabled="busy && !isPending"
+    :disabled="disabled"
     @click="callAction(props.node.props.action, props.node.props.validates)"
   >
     {{ node.props.label }}

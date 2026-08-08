@@ -1,5 +1,5 @@
 import type { SelectNode } from '../../schema';
-import { definePageElement } from '../registry';
+import { definePageElement, QUICK_PROPERTY_PRESETS as quick } from '../registry';
 import SelectRenderer from './SelectRenderer.vue';
 import SelectPreview from './SelectPreview.vue';
 import SelectInspector from './SelectInspector.vue';
@@ -21,6 +21,7 @@ export const selectElement = definePageElement<SelectNode['props']>({
         { value: 'b', label: 'Option B' },
       ],
     }),
+    quickProperties: [quick.label, quick.placeholder, quick.disabled, quick.required, quick.width],
     preview: SelectPreview,
     inspector: SelectInspector,
     inspectorTitle: { key: 'coar.pageBuilder.props.section.select', fallback: 'Select' },

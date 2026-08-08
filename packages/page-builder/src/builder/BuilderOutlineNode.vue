@@ -3,10 +3,12 @@ import { computed, inject, onBeforeUnmount, onMounted, ref } from 'vue';
 import { CoarIcon, type CoreIconName } from '@cocoar/vue-ui';
 import { useI18n } from '@cocoar/vue-localization';
 import { isElementAllowed, type PageNode } from '../schema';
-import { BUILDER_API, BUILDER_CONFIG, BUILDER_VALIDATION } from './builderContext';
+import { resolveNodeRuntime } from '../runtimeBindings';
+import { BUILDER_API, BUILDER_CONFIG, BUILDER_RUNTIME, BUILDER_VALIDATION } from './builderContext';
 import { useMergedElements } from '../elements/useMergedElements';
 import { useBuilderDnd } from './useBuilderDnd';
 import type { NodePath } from './operations';
+import { compositionReference } from '../compositions';
 
 defineOptions({ name: 'BuilderOutlineNode' });
 
@@ -21,9 +23,11 @@ const props = withDefaults(defineProps<Props>(), { depth: 0 });
 const { t } = useI18n();
 const builder = inject(BUILDER_API)!;
 const config = inject(BUILDER_CONFIG);
+const runtime = inject(BUILDER_RUNTIME);
 const validation = inject(BUILDER_VALIDATION);
 const dnd = useBuilderDnd();
 const elements = useMergedElements(config);
+const authoredNode = computed(() => resolveNodeRuntime(props.node, runtime?.value ?? { config: config?.value }));
 
 /** This node's registry definition (undefined for `page` and unknown types). */
 const def = computed(() => elements.value[props.node.type]);
@@ -98,7 +102,7 @@ const isSelected = computed(() => {
 });
 
 const nodeLabel = computed(() => {
-  const n = props.node as PageNode & { props?: { text?: string; label?: string; title?: string } };
+  const n = authoredNode.value as PageNode & { props?: { text?: string; label?: string; title?: string } };
   if (n.type === 'page') {
     return t('coar.pageBuilder.type.page', undefined, 'Page');
   }
@@ -118,6 +122,7 @@ const nodeSubLabel = computed(() => {
   const n = props.node as PageNode & { name?: string };
   return n.name ? String(n.name) : undefined;
 });
+const compositionLink = computed(() => compositionReference(props.node));
 
 // ── Add-child dropdown ────────────────────────────────────────────────────────
 
@@ -172,7 +177,7 @@ const isDropInto = computed(() =>
 );
 
 function onGripPointerDown(e: PointerEvent) {
-  if (isRoot.value) return;
+  if (isRoot.value || builder.isPositionLocked(props.path)) return;
   const ghostFrom = (e.currentTarget as HTMLElement | null)?.closest<HTMLElement>('.pb-tree-row');
   dnd.onHandlePointerDown(e, { kind: 'move', path: [...props.path] }, ghostFrom);
 }
@@ -228,7 +233,7 @@ function canMoveDown(): boolean {
       @keydown="onRowKeydown"
     >
       <span
-        v-if="!isRoot"
+        v-if="!isRoot && !builder.isPositionLocked(path)"
         class="pb-tree-grip"
         aria-hidden="true"
         @pointerdown.stop="onGripPointerDown"
@@ -242,6 +247,9 @@ function canMoveDown(): boolean {
       <span class="pb-tree-label">
         <span class="pb-tree-label-text">{{ nodeLabel }}</span>
         <span v-if="nodeSubLabel" class="pb-tree-label-key">{{ nodeSubLabel }}</span>
+        <span v-if="compositionLink" class="pb-tree-composition" :title="`Linked composition ${compositionLink.id}@${compositionLink.version}`">
+          {{ compositionLink.id }}@{{ compositionLink.version }}
+        </span>
       </span>
       <span
         v-if="issueSeverity"
@@ -260,7 +268,7 @@ function canMoveDown(): boolean {
           v-if="!isRoot"
           type="button"
           class="pb-tree-btn"
-          :disabled="!canMoveUp()"
+          :disabled="!canMoveUp() || builder.isPositionLocked(path)"
           :title="t('coar.pageBuilder.common.moveUp', undefined, 'Move up')"
           @click.stop="builder.move(path, -1)"
         >
@@ -270,7 +278,7 @@ function canMoveDown(): boolean {
           v-if="!isRoot"
           type="button"
           class="pb-tree-btn"
-          :disabled="!canMoveDown()"
+          :disabled="!canMoveDown() || builder.isPositionLocked(path)"
           :title="t('coar.pageBuilder.common.moveDown', undefined, 'Move down')"
           @click.stop="builder.move(path, 1)"
         >
@@ -286,7 +294,7 @@ function canMoveDown(): boolean {
           <CoarIcon name="copy" size="s" />
         </button>
         <button
-          v-if="!isRoot"
+          v-if="!isRoot && !builder.isRequired(path)"
           type="button"
           class="pb-tree-btn pb-tree-btn--danger"
           :title="t('coar.pageBuilder.common.delete', undefined, 'Delete')"
@@ -419,12 +427,12 @@ function canMoveDown(): boolean {
 }
 
 .pb-tree-row:hover {
-  background: var(--coar-surface-neutral-subtle, #f1f1f3);
+  background: var(--coar-background-neutral-secondary, #f1f1f3);
 }
 
 .pb-tree-node--selected > .pb-tree-row {
-  background: var(--coar-surface-accent-subtle, #e6eefa);
-  color: var(--coar-text-accent, #1666cc);
+  background: var(--coar-surface-accent-secondary, #e6eefa);
+  color: var(--coar-text-accent-primary, #1666cc);
 }
 
 .pb-tree-node--selected > .pb-tree-row::before {
@@ -491,8 +499,8 @@ function canMoveDown(): boolean {
 }
 
 .pb-tree-row--dropinto {
-  background: var(--coar-surface-accent-subtle, #e6eefa);
-  box-shadow: inset 0 0 0 2px var(--coar-border-accent, #1666cc);
+  background: var(--coar-surface-accent-secondary, #e6eefa);
+  box-shadow: inset 0 0 0 2px var(--coar-border-accent-primary, #1666cc);
 }
 
 .pb-tree-type-icon {
@@ -504,7 +512,7 @@ function canMoveDown(): boolean {
 }
 
 .pb-tree-node--selected > .pb-tree-row .pb-tree-type-icon {
-  color: var(--coar-icon-accent, #1666cc);
+  color: var(--coar-icon-accent-primary, #1666cc);
 }
 
 .pb-tree-label {
@@ -531,8 +539,21 @@ function canMoveDown(): boolean {
   text-overflow: ellipsis;
 }
 
+.pb-tree-composition {
+  max-width: 120px;
+  padding: 1px 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--coar-surface-accent-secondary, #e6eefa);
+  color: var(--coar-text-accent-primary, #1666cc);
+  font-size: 9px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .pb-tree-node--selected > .pb-tree-row .pb-tree-label-key {
-  color: var(--coar-text-accent, #1666cc);
+  color: var(--coar-text-accent-primary, #1666cc);
   opacity: 0.7;
 }
 
@@ -547,11 +568,11 @@ function canMoveDown(): boolean {
 }
 
 .pb-tree-issue--warning {
-  color: var(--coar-icon-semantic-warning, #b45309);
+  color: var(--coar-icon-semantic-warning-bold, #b45309);
 }
 
 .pb-tree-issue--error {
-  color: var(--coar-icon-semantic-error, #c0392b);
+  color: var(--coar-icon-semantic-error-bold, #c0392b);
 }
 
 .pb-tree-actions {
@@ -563,7 +584,7 @@ function canMoveDown(): boolean {
   right: 4px;
   top: 50%;
   transform: translateY(-50%);
-  background: var(--coar-surface-neutral-subtle, #f1f1f3);
+  background: var(--coar-background-neutral-secondary, #f1f1f3);
   border-radius: 4px;
   padding: 1px;
 }
@@ -574,7 +595,7 @@ function canMoveDown(): boolean {
 }
 
 .pb-tree-node--selected > .pb-tree-row .pb-tree-actions {
-  background: var(--coar-surface-accent-subtle, #e6eefa);
+  background: var(--coar-surface-accent-secondary, #e6eefa);
 }
 
 .pb-tree-btn {
@@ -593,7 +614,7 @@ function canMoveDown(): boolean {
 }
 
 .pb-tree-btn:hover:not(:disabled) {
-  background: var(--coar-surface-neutral-default, #dedee2);
+  background: var(--coar-background-neutral-tertiary, #dedee2);
   color: var(--coar-icon-neutral-primary, #111);
 }
 
@@ -603,7 +624,7 @@ function canMoveDown(): boolean {
 }
 
 .pb-tree-btn--danger:hover:not(:disabled) {
-  background: var(--coar-surface-semantic-error-subtle, #fde8e4);
+  background: var(--coar-background-semantic-error-subtle, #fde8e4);
   color: var(--coar-text-semantic-error-bold, #c0392b);
 }
 
@@ -633,9 +654,9 @@ function canMoveDown(): boolean {
 
 .pb-tree-add__trigger:hover,
 .pb-tree-add__trigger--open {
-  border-color: var(--coar-border-accent, #1666cc);
-  color: var(--coar-text-accent, #1666cc);
-  background: var(--coar-surface-accent-subtle, #e6eefa);
+  border-color: var(--coar-border-accent-primary, #1666cc);
+  color: var(--coar-text-accent-primary, #1666cc);
+  background: var(--coar-surface-accent-secondary, #e6eefa);
 }
 
 .pb-tree-add__menu {
@@ -644,7 +665,7 @@ function canMoveDown(): boolean {
   left: inherit;
   padding: 4px;
   min-width: 200px;
-  background: var(--coar-surface-default, #fff);
+  background: var(--coar-background-neutral-primary, #fff);
   border: 1px solid var(--coar-border-neutral, #dcdce0);
   border-radius: 6px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
@@ -663,7 +684,7 @@ function canMoveDown(): boolean {
 
 .pb-tree-add__divider {
   height: 1px;
-  background: var(--coar-border-neutral-subtle, #eeeef0);
+  background: var(--coar-border-neutral-tertiary, #eeeef0);
   margin: 4px 0;
 }
 
@@ -684,8 +705,8 @@ function canMoveDown(): boolean {
 }
 
 .pb-tree-add__item:hover {
-  background: var(--coar-surface-accent-subtle, #e6eefa);
-  color: var(--coar-text-accent, #1666cc);
+  background: var(--coar-surface-accent-secondary, #e6eefa);
+  color: var(--coar-text-accent-primary, #1666cc);
 }
 
 .pb-tree-add__item > :first-child {
@@ -694,6 +715,6 @@ function canMoveDown(): boolean {
 }
 
 .pb-tree-add__item:hover > :first-child {
-  color: var(--coar-icon-accent, #1666cc);
+  color: var(--coar-icon-accent-primary, #1666cc);
 }
 </style>

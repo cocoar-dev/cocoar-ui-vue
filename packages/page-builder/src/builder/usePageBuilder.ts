@@ -2,7 +2,7 @@ import { computed, ref, shallowRef, type ComputedRef, type Ref } from 'vue';
 import type { PageConfig, PageNode } from '../schema';
 import { BUILTIN_ELEMENTS } from '../elements/builtins';
 import type { PageElementRegistry } from '../elements/registry';
-import { cloneWithFreshIds, fieldName, uid } from './nodeDefaults';
+import { cloneWithFreshIds, collectElementNames, elementNameBase, uniqueElementName, uid } from './nodeDefaults';
 import {
   findPath,
   getNodeAt,
@@ -128,7 +128,7 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
 
   /**
    * Fresh node for an element type, built from its registry definition: the
-   * builder half supplies the props bag, a value spec mints a field name, a
+   * builder half supplies the props bag, every element gets a public name, a
    * container gets its children array. The host owns the id. A `bind` (from
    * the field-first palette flow) pre-binds the node to a contract field.
    */
@@ -141,15 +141,15 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
     const props = def.builder.defaults() as Record<string, unknown>;
     // The contract label rides along when the element carries one at all.
     if (bind?.label && 'label' in props) props.label = bind.label;
-    // Strict contract: unbound drops stay unbound — the author picks a field.
-    const cfg = options.config?.value;
-    const strictContract = (cfg?.fields?.length ?? 0) > 0 && !cfg?.allowCustomFields;
-    const name = bind?.name ?? (strictContract ? undefined : fieldName());
+    const name = uniqueElementName(
+      bind?.name ?? elementNameBase(type),
+      collectElementNames(schema.value),
+    );
     return {
       id: uid(),
       type,
+      name,
       props,
-      ...(def.value && name ? { name } : {}),
       ...(def.value && bind?.required ? { validation: { required: true } } : {}),
       ...(def.container ? { children: [] } : {}),
     } as PageNode;
@@ -169,8 +169,49 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
     bumpVersion();
   }
 
+  /** Inserts an already materialized subtree (for example a composition instance). */
+  function insertNode(parentPath: NodePath, node: PageNode, atIndex?: number) {
+    const parent = getNodeAt(schema.value, parentPath);
+    const children = parent?.node && 'children' in parent.node && Array.isArray(parent.node.children)
+      ? parent.node.children
+      : undefined;
+    if (!parent || !children) return;
+    const before = schema.value;
+    const index = atIndex ?? children.length;
+    const next = insertChild(before, parentPath, index, node);
+    if (next === before) return;
+    schema.value = next;
+    selectedPath.value = [...parentPath, Math.max(0, Math.min(index, children.length))];
+    pushHistory(before, { kind: 'structural' });
+    bumpVersion();
+  }
+
+  /** Replaces one complete subtree while keeping the operation undoable. */
+  function replaceAt(path: NodePath, node: PageNode) {
+    const before = schema.value;
+    const next = replaceNode(before, path, node);
+    if (next === before) return;
+    schema.value = next;
+    selectedPath.value = [...path];
+    pushHistory(before, { kind: 'structural' });
+    bumpVersion();
+  }
+
+  function requiredRule(path: NodePath) {
+    const node = getNodeAt(schema.value, path)?.node;
+    return node && options.config?.value?.requiredNodes?.find(
+      (required) => required.id === node.id && required.type === node.type,
+    );
+  }
+  function isRequired(path: NodePath): boolean { return !!requiredRule(path); }
+  function isPositionLocked(path: NodePath): boolean {
+    const rule = requiredRule(path);
+    return !!rule && (rule.parentId !== undefined || rule.maxIndex !== undefined);
+  }
+
   function remove(path: NodePath) {
     if (path.length === 0) return;
+    if (isRequired(path)) { warnDev('remove: required node cannot be removed.'); return; }
     const before = schema.value;
     const next = removeNode(schema.value, path);
     schema.value = next;
@@ -189,6 +230,7 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
   }
 
   function move(path: NodePath, delta: -1 | 1) {
+    if (isPositionLocked(path)) { warnDev('move: required node position is locked.'); return; }
     const before = schema.value;
     const next = moveSibling(before, path, delta);
     if (before === next) return;
@@ -200,6 +242,7 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
   }
 
   function moveTo(fromPath: NodePath, toParentPath: NodePath, toIndex: number) {
+    if (isPositionLocked(fromPath)) { warnDev('moveTo: required node position is locked.'); return; }
     const before = schema.value;
     const next = moveNode(before, fromPath, toParentPath, toIndex);
     if (before === next) return;
@@ -220,6 +263,7 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
    */
   function convertTo(path: NodePath, toType: string) {
     if (path.length === 0) return;
+    if (isRequired(path)) { warnDev('convertTo: required node type is locked.'); return; }
     const loc = getNodeAt(schema.value, path);
     if (!loc || loc.node.type === toType) return;
     const def = (options.elements?.value ?? BUILTIN_ELEMENTS)[toType];
@@ -242,16 +286,19 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
       defaultValue?: unknown;
       validation?: unknown;
       visibleWhen?: unknown;
+      bindings?: unknown;
+      responsive?: unknown;
       children?: PageNode[];
     };
     const props = def.builder.defaults() as Record<string, unknown>;
     const oldLabel = old.props?.label;
     if (oldLabel !== undefined && 'label' in props) props.label = oldLabel;
-    const next: Record<string, unknown> = { id: old.id, type: toType, props };
+    const next: Record<string, unknown> = { id: old.id, type: toType, name: old.name, props };
     if (old.style !== undefined) next.style = old.style;
+    if (old.responsive !== undefined) next.responsive = old.responsive;
     if (old.visibleWhen !== undefined) next.visibleWhen = old.visibleWhen;
+    if (old.bindings !== undefined) next.bindings = old.bindings;
     if (def.value) {
-      if (old.name !== undefined) next.name = old.name;
       if (old.defaultValue !== undefined) next.defaultValue = old.defaultValue;
       if (old.validation !== undefined) next.validation = old.validation;
     }
@@ -268,7 +315,12 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
     const before = schema.value;
     const parentPath = path.slice(0, -1);
     const index = path[path.length - 1] + 1;
-    schema.value = insertChild(schema.value, parentPath, index, cloneWithFreshIds(loc.node));
+    schema.value = insertChild(
+      schema.value,
+      parentPath,
+      index,
+      cloneWithFreshIds(loc.node, collectElementNames(schema.value)),
+    );
     selectedPath.value = [...parentPath, index];
     pushHistory(before, { kind: 'structural' });
     bumpVersion();
@@ -300,9 +352,13 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
     select,
     selectNode,
     addChild,
+    insertNode,
+    replaceAt,
     convertTo,
     remove,
     duplicate,
+    isRequired,
+    isPositionLocked,
     move,
     moveTo,
     patch,

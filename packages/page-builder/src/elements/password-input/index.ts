@@ -1,5 +1,5 @@
 import type { PasswordInputNode } from '../../schema';
-import { definePageElement } from '../registry';
+import { definePageElement, QUICK_PROPERTY_PRESETS as quick } from '../registry';
 import PasswordInputRenderer from './PasswordInputRenderer.vue';
 import PasswordInputPreview from './PasswordInputPreview.vue';
 import PasswordInputInspector from './PasswordInputInspector.vue';
@@ -13,6 +13,7 @@ export const passwordInputElement = definePageElement<PasswordInputNode['props']
     icon: 'lock',
     group: 'element',
     defaults: () => ({ label: 'Password' }),
+    quickProperties: [quick.label, quick.placeholder, quick.disabled, quick.required, quick.width],
     preview: PasswordInputPreview,
     inspector: PasswordInputInspector,
     inspectorTitle: { key: 'coar.pageBuilder.props.section.passwordInput', fallback: 'Password input' },

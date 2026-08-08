@@ -1,10 +1,14 @@
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { resolve } from 'path';
+import { authLabApi } from './auth-lab-api';
 
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [vue(), authLabApi()],
   server: { port: 5188 },
+  // SES deliberately refuses classic/sloppy worker bundles. Keep Vite
+  // workers as ES modules so production uses strict mode like development.
+  worker: { format: 'es' },
   resolve: {
     alias: [
       { find: /^@cocoar\/vue-ui$/, replacement: resolve(__dirname, '../../packages/ui/src/index.ts') },

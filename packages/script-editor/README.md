@@ -39,7 +39,11 @@ self.MonacoEnvironment = {
 };
 ```
 
-Drop the `JsonWorker` entries if you don't use JSON mode.
+Drop the `JsonWorker` entries only if neither your application nor an integrated
+library uses JSON mode. `@cocoar/vue-page-builder` uses it for its JSON document
+tab and therefore requires this worker. Routing `json` to `EditorWorker` produces
+`Missing requestHandler or method: doValidation` (and related language-feature
+diagnostics) because the generic worker does not implement the JSON service.
 
 ### SSR / static-generation (VitePress, Nuxt, Astro)
 

@@ -1,5 +1,5 @@
 import type { RadioGroupNode } from '../../schema';
-import { definePageElement } from '../registry';
+import { definePageElement, QUICK_PROPERTY_PRESETS as quick } from '../registry';
 import RadioGroupRenderer from './RadioGroupRenderer.vue';
 import RadioGroupPreview from './RadioGroupPreview.vue';
 import RadioGroupInspector from './RadioGroupInspector.vue';
@@ -20,6 +20,7 @@ export const radioGroupElement = definePageElement<RadioGroupNode['props']>({
         { value: 'b', label: 'Option B' },
       ],
     }),
+    quickProperties: [quick.label, quick.disabled, quick.required, quick.width],
     preview: RadioGroupPreview,
     inspector: RadioGroupInspector,
     inspectorTitle: { key: 'coar.pageBuilder.props.section.radioGroup', fallback: 'Radio group' },

@@ -23,7 +23,7 @@ const sizeStyle = computed(() => leafSizeStyle(props.node.style));
   border: none;
   padding: 0;
   cursor: default;
-  color: var(--coar-text-accent, #1666cc);
+  color: var(--coar-text-accent-primary, #1666cc);
   font-size: 14px;
   text-decoration: underline;
 }

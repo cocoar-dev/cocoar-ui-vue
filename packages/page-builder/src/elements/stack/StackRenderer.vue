@@ -6,14 +6,16 @@ import { containerLayoutStyle } from '../../styleMapping';
 const props = defineProps<{ node: StackNode }>();
 
 const layoutStyle = computed(() => containerLayoutStyle(props.node.style));
+const direction = computed(() => props.node.style?.direction ?? props.node.props.direction ?? 'column');
+const wrap = computed(() => props.node.style?.wrap ?? props.node.props.wrap ?? false);
 </script>
 
 <template>
   <div
     class="pb-stack"
     :class="{
-      'pb-stack--row': node.props.direction === 'row',
-      'pb-stack--wrap': node.props.wrap,
+      'pb-stack--row': direction === 'row',
+      'pb-stack--wrap': wrap,
     }"
     :style="layoutStyle"
   >

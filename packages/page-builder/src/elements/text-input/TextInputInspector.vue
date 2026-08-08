@@ -29,18 +29,21 @@ const INPUT_TYPE_OPTIONS: CoarSelectOption<string>[] = [
 <template>
   <CoarFormField :label="t('coar.pageBuilder.props.label', undefined, 'Label')">
     <CoarTextInput
+size="s"
       :model-value="props.node.props.label ?? ''"
       @update:model-value="(v) => props.patch({ props: { label: v } })"
     />
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.placeholder', undefined, 'Placeholder')">
     <CoarTextInput
+size="s"
       :model-value="props.node.props.placeholder ?? ''"
       @update:model-value="(v) => props.patch({ props: { placeholder: v } })"
     />
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.inputType', undefined, 'Input type')">
     <CoarSelect
+size="s"
       :model-value="props.node.props.inputType ?? 'text'"
       :options="INPUT_TYPE_OPTIONS"
       @update:model-value="(v) => props.patch({ props: { inputType: v as TextInputNode['props']['inputType'] } })"
@@ -48,6 +51,7 @@ const INPUT_TYPE_OPTIONS: CoarSelectOption<string>[] = [
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.rows', undefined, 'Rows')">
     <CoarNumberInput
+size="s"
       clearable
       :min="1"
       :max="20"
@@ -57,6 +61,7 @@ const INPUT_TYPE_OPTIONS: CoarSelectOption<string>[] = [
     />
   </CoarFormField>
   <CoarCheckbox
+size="s"
     :model-value="!!props.node.props.disabled"
     :label="t('coar.pageBuilder.props.disabled', undefined, 'Disabled')"
     @update:model-value="(v) => props.patch({ props: { disabled: v } })"

@@ -17,6 +17,7 @@ const { t } = useI18n();
 
 <template>
   <CoarSwitch
+size="s"
     :model-value="!!props.modelValue"
     :label="t('coar.pageBuilder.props.onByDefault', undefined, 'On by default')"
     @update:model-value="(v) => emit('update:modelValue', v || undefined)"

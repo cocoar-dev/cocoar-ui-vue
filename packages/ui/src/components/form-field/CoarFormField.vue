@@ -326,6 +326,13 @@ provide(FORM_FIELD_INJECTION_KEY, {
           <span v-if="required" class="coar-form-field__required" aria-hidden="true">*</span>
         </label>
 
+        <!-- Optional property-level affordance (for example an expression
+             toggle). It deliberately stays outside the native label so
+             clicking it never focuses or toggles the field control. -->
+        <div v-if="$slots['label-action']" class="coar-form-field__label-action">
+          <slot name="label-action" />
+        </div>
+
         <CoarPopover
           v-if="hasAnyStatus && labelPosition === 'after'"
           mode="both"
@@ -415,6 +422,16 @@ provide(FORM_FIELD_INJECTION_KEY, {
   display: inline-flex;
   align-items: center;
   gap: var(--coar-spacing-xs);
+}
+
+.coar-form-field__label-cluster {
+  width: 100%;
+}
+
+.coar-form-field__label-action {
+  display: inline-flex;
+  align-items: center;
+  margin-inline-start: auto;
 }
 
 .coar-form-field__label {

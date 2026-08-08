@@ -60,6 +60,9 @@ describe('CoarScriptEditor — compiler libs', () => {
     };
     assertLibs(tsFn);
     assertLibs(jsFn);
+    expect(jsFn.mock.calls.at(-1)![0].allowJs).toBe(true);
+    expect(jsFn.mock.calls.at(-1)![0].checkJs).toBe(true);
+    expect(tsFn.mock.calls.at(-1)![0].checkJs).toBeUndefined();
     wrapper.unmount();
   });
 });
@@ -286,6 +289,8 @@ describe('CoarScriptEditor — scriptMode', () => {
       expect(passedCodes).toContain(code);
     }
     expect(passedCodes).not.toContain(2304);
+    expect(calls[calls.length - 1][0].noSemanticValidation).toBe(false);
+    expect(calls[calls.length - 1][0].noSyntaxValidation).toBe(false);
     wrapper.unmount();
   });
 
