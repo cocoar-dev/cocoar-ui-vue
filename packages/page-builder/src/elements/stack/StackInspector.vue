@@ -37,8 +37,9 @@ const { t } = useI18n();
       </button>
     </div>
   </div>
-  <CoarCheckbox size="s"
-    v-if="props.node.props.direction === 'row'"
+  <CoarCheckbox
+v-if="props.node.props.direction === 'row'"
+    size="s"
     :model-value="!!props.node.props.wrap"
     :label="t('coar.pageBuilder.props.wrapChildren', undefined, 'Wrap children')"
     @update:model-value="(v) => props.patch({ props: { wrap: v } })"

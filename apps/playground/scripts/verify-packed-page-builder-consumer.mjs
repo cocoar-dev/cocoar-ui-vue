@@ -7,6 +7,7 @@ import { basename, isAbsolute, join, resolve, sep } from 'node:path';
 
 const artifactsDirectory = resolve(process.argv[2] ?? '../../artifacts');
 const temporaryDirectory = await mkdtemp(join(tmpdir(), 'coar-page-builder-consumer-'));
+const consumerBasePath = '/consumer-app/';
 const pnpmCommand = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 const requiresCommandShell = process.platform === 'win32';
 
@@ -162,7 +163,7 @@ try {
 const csp = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; connect-src 'self'; img-src 'self' data: blob:; font-src 'self' data:";
 
 export default defineConfig({
-  base: '/idp/',
+  base: ${JSON.stringify(consumerBasePath)},
   // Vite does not relocate import.meta.url assets while pre-bundling a
   // dependency. Only the tiny worker entry stays in its normal transform
   // graph; the PageBuilder and all UI dependencies remain optimized.
@@ -205,7 +206,7 @@ createApp({
     const context = ref<Record<string, unknown>>({});
     const viewport = ref({ width: 800, breakpoint: 'tablet' });
     const runtime = usePageCodeRuntime({
-      pageId: ref('auth:packed-consumer'),
+      pageId: ref('consumer:packed-page'),
       tenantId: 'fixture-tenant',
       schema,
       context,
@@ -240,7 +241,7 @@ createApp({
   );
   developmentProcess.stdout.on('data', (chunk) => developmentOutput.push(chunk.toString()));
   developmentProcess.stderr.on('data', (chunk) => developmentOutput.push(chunk.toString()));
-  const developmentUrl = `http://127.0.0.1:${developmentPort}/idp/`;
+  const developmentUrl = `http://127.0.0.1:${developmentPort}${consumerBasePath}`;
   await waitForServer(developmentUrl, developmentOutput);
   browser = await chromium.launch({ headless: true });
   const developmentPage = await browser.newPage();
@@ -300,7 +301,7 @@ createApp({
   previewProcess.stdout.on('data', (chunk) => previewOutput.push(chunk.toString()));
   previewProcess.stderr.on('data', (chunk) => previewOutput.push(chunk.toString()));
 
-  const fixtureUrl = `http://127.0.0.1:${port}/idp/`;
+  const fixtureUrl = `http://127.0.0.1:${port}${consumerBasePath}`;
   await waitForServer(fixtureUrl, previewOutput);
 
   const page = await browser.newPage();
@@ -356,9 +357,9 @@ createApp({
     );
   }
 
-  if (workers.length !== 1 || !workers[0].includes(`/idp/assets/${pageRuntimeWorkerAssets[0]}`)) {
+  if (workers.length !== 1 || !workers[0].includes(`${consumerBasePath}assets/${pageRuntimeWorkerAssets[0]}`)) {
     throw new Error(
-      `Expected one emitted Page Runtime worker under /idp/, received ${JSON.stringify(workers)}.`,
+      `Expected one emitted Page Runtime worker under ${consumerBasePath}, received ${JSON.stringify(workers)}.`,
     );
   }
   if (workerResponses.length !== 1 || workerResponses[0].csp) {
@@ -372,7 +373,7 @@ createApp({
     throw new Error(`Fixture console errors:\n${consoleErrors.join('\n')}`);
 
   console.log(`Packed PageBuilder consumer verified at ${fixtureUrl}`);
-  console.log(`Worker booted from ${pageRuntimeWorkerAssets[0]} under non-root base /idp/.`);
+  console.log(`Worker booted from ${pageRuntimeWorkerAssets[0]} under non-root base ${consumerBasePath}.`);
 } finally {
   if (browser) await browser.close();
   if (developmentProcess) await stopProcess(developmentProcess);

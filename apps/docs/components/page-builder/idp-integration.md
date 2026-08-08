@@ -1,10 +1,10 @@
 ---
-description: "Integrate the Page Builder beta into an identity provider with isolated SES Worker sessions, host-owned capabilities, versioned documents and server-authoritative publication."
+description: "Integrate Page Builder 2.19 into an identity provider with isolated SES Worker sessions, host-owned capabilities, versioned documents and server-authoritative publication."
 ---
 
 # IDP integration
 
-The Page Builder beta ships the complete browser runtime and four optional Auth
+Page Builder 2.19 ships the complete browser runtime and four optional Auth
 example presets. They are fixtures built from the same generic registry,
 Repeat, selection, action and styling contracts as every consumer page; the
 runtime contains no Modgud/auth-specific element types or branches.
@@ -58,6 +58,30 @@ Register host CSS via `config.stylePresets` and load the corresponding scoped
 classes in both administration and runtime. The document persists only the
 preset id.
 
+## Monaco workers in the authoring application
+
+The Builder uses Monaco in JavaScript and JSON mode. A Vite consumer must route
+both languages to their matching workers before the first Builder mounts:
+
+```ts
+import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
+import TsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker';
+import JsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
+
+self.MonacoEnvironment = {
+  getWorker(_workerId, label) {
+    if (label === 'typescript' || label === 'javascript') return new TsWorker();
+    if (label === 'json') return new JsonWorker();
+    return new EditorWorker();
+  },
+};
+```
+
+Routing `json` to the generic editor worker causes diagnostics such as
+`Missing requestHandler or method: doValidation`, `findDocumentColors` or
+`getFoldingRanges`. This is a consumer worker configuration error, not a
+PageBuilder runtime or sandbox failure.
+
 Create one application-wide host. Each `usePageCodeRuntime()` instance creates
 an isolated Worker session for one rendered page; sessions do not share globals
 or Page State. A host object is available to tenant code only when it exists in
@@ -98,5 +122,5 @@ same fast feedback to the author but cannot authorize publication. Keep a known
 good default and published revision so invalid or unavailable customizations can
 fall back without breaking authentication.
 
-The complete storage lifecycle, Vue wiring, capability example and beta security
+The complete storage lifecycle, Vue wiring, capability example and production security
 boundary are included in the package's `IDP_INTEGRATION.md`.

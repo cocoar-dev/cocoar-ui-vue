@@ -1,10 +1,25 @@
 # IDP integration guide
 
-This guide is the integration contract for the Page Builder prerelease. It separates
+This guide is the integration contract for Page Builder 2.19. It separates
 tenant-owned data from application-owned authority so an IDP can offer visual
 customization without turning a page document into application code.
 
-## 1. Install a prerelease
+## 1. Install the matching package set
+
+Install the Page Builder and its Cocoar peers at the same release version. Pinning
+the set prevents an authoring package from being combined accidentally with an
+older renderer, localization or ScriptEditor runtime:
+
+```bash
+pnpm add --save-exact \
+  @cocoar/vue-page-builder@2.19.0 \
+  @cocoar/vue-ui@2.19.0 \
+  @cocoar/vue-localization@2.19.0 \
+  @cocoar/vue-script-editor@2.19.0 \
+  monaco-editor@^0.55.1
+```
+
+### Prerelease channels
 
 Use the `alpha` channel for feature-branch integration tests without merging the
 implementation into `develop`. Alpha packages are hosted by GitHub Packages
@@ -29,11 +44,8 @@ pnpm add --save-exact \
   monaco-editor
 ```
 
-The Cocoar peer packages are published together at the same prerelease version.
-Installing them from one channel prevents a feature-branch package from being
-combined accidentally with an older beta runtime. The dependency keys and all
-source imports remain `@cocoar/*`; only the package source in `package.json`
-points at the temporary GitHub package.
+The dependency keys and all source imports remain `@cocoar/*`; only the package
+source in `package.json` points at the temporary GitHub package.
 
 The shared `develop` prerelease remains available on the `beta` channel:
 
@@ -43,6 +55,33 @@ pnpm add @cocoar/vue-page-builder@beta
 
 Import `@cocoar/vue-page-builder/styles` once in the authoring application and
 the application that renders the authentication views.
+
+### Register all Monaco workers used by the Builder
+
+The Page Builder opens Monaco in JavaScript **and JSON** mode. The consuming
+authoring application therefore has to route both language labels to their
+matching Monaco workers before the first Builder mounts:
+
+```ts
+// src/main.ts (Vite)
+import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
+import TsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker';
+import JsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
+
+self.MonacoEnvironment = {
+  getWorker(_workerId, label) {
+    if (label === 'typescript' || label === 'javascript') return new TsWorker();
+    if (label === 'json') return new JsonWorker();
+    return new EditorWorker();
+  },
+};
+```
+
+Do not route `json` to the generic `EditorWorker`. The JSON language client then
+requests methods that worker cannot provide and logs errors such as
+`Missing requestHandler or method: doValidation`, `findDocumentColors`, or
+`getFoldingRanges`. Script execution is unaffected, but JSON validation,
+folding and color support are unavailable until the correct worker is used.
 
 ### Theme and host style registration
 
@@ -217,7 +256,7 @@ Runtime lookup order is page translation, host localization store, binding
 fallback, then key. Keep security- or protocol-owned messages in the host
 catalogue when tenants must not replace them.
 
-## 8. Deployment and beta boundary
+## 8. Deployment and production boundary
 
 Vite does not relocate `import.meta.url` assets while dependency pre-bundling.
 The PageBuilder therefore publishes the Worker runtime as the isolated
@@ -240,7 +279,7 @@ consuming production build emits `pageScriptRuntime.worker-<hash>.js` under its
 own configured `base`.
 
 Serve that file as a same-origin module Worker and permit it through
-`worker-src 'self'` (Modgud may keep `blob:` for unrelated Workers). SES uses
+`worker-src 'self'` (the application may keep `blob:` for unrelated Workers). SES uses
 `Compartment.evaluate()` inside the Worker, so the Worker response must not
 inherit an application CSP that forbids dynamic evaluation. Apply the strict
 `script-src 'self'` policy to the HTML response, not indiscriminately to every
@@ -248,9 +287,9 @@ static asset. If the server requires a CSP header on the Worker response, scope
 `script-src 'self' 'unsafe-eval'` to that response only. Do **not** add
 `unsafe-eval` to the IDP document/application CSP.
 
-The prerelease workflow verifies this from packed tarballs on Linux and Windows
-with `vite --force`, a production build, a non-root `/idp/` base and a browser
-boot under the strict document CSP.
+The packed-consumer CI and release gates verify this from tarballs on Linux and
+Windows with `vite --force`, a production build, a neutral non-root
+`/consumer-app/` base and a browser boot under the strict document CSP.
 
 ### Decorative visual documents
 
@@ -271,8 +310,9 @@ invalid or failed published page, not a rejected decorative node.
 
 Before general tenant production rollout, complete the product threat model,
 independent security review, browser/mobile matrix, operational quotas and
-server-side publication checks. The beta is intended for Modgud integration and
-controlled testing, not an unreviewed public tenant rollout.
+server-side publication checks. A stable library version supplies the technical
+boundary; it does not replace the consuming SaaS product's own security and
+publication review.
 
 ### Reusable composition repository
 

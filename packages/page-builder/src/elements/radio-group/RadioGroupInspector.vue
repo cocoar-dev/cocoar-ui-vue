@@ -38,7 +38,8 @@ const orientationChoices = computed<CoarSelectOption<string>[]>(() => [
 
 <template>
   <CoarFormField :label="t('coar.pageBuilder.props.label', undefined, 'Label')">
-    <CoarTextInput size="s"
+    <CoarTextInput
+size="s"
       :model-value="props.node.props.label ?? ''"
       @update:model-value="(v) => props.patch({ props: { label: v } })"
     />
@@ -50,7 +51,8 @@ const orientationChoices = computed<CoarSelectOption<string>[]>(() => [
     :label="t('coar.pageBuilder.props.optionsSource', undefined, 'Options source ID')"
     :hint="t('coar.pageBuilder.props.optionsSourceHint', undefined, 'Resolved via config.optionsSource at render time — overrides the static options')"
   >
-    <CoarTextInput size="s"
+    <CoarTextInput
+size="s"
       :model-value="props.node.props.optionsSourceId ?? ''"
       placeholder="e.g. countries"
       @update:model-value="(v) => props.patch({ props: { optionsSourceId: v || undefined } })"
@@ -58,14 +60,16 @@ const orientationChoices = computed<CoarSelectOption<string>[]>(() => [
   </CoarFormField>
 
   <CoarFormField :label="t('coar.pageBuilder.props.orientation', undefined, 'Orientation')">
-    <CoarSelect size="s"
+    <CoarSelect
+size="s"
       :model-value="props.node.props.orientation ?? 'vertical'"
       :options="orientationChoices"
       @update:model-value="(v) => props.patch({ props: { orientation: v as RadioGroupNode['props']['orientation'] } })"
     />
   </CoarFormField>
 
-  <CoarCheckbox size="s"
+  <CoarCheckbox
+size="s"
     :model-value="!!props.node.props.disabled"
     :label="t('coar.pageBuilder.props.disabled', undefined, 'Disabled')"
     @update:model-value="(v) => props.patch({ props: { disabled: v } })"

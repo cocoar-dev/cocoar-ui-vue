@@ -76,14 +76,16 @@ function clearAsset() {
     :label="t('coar.pageBuilder.props.assetId', undefined, 'Asset ID')"
     :hint="t('coar.pageBuilder.props.assetIdHint', undefined, 'Resolved via assetResolver at render time')"
   >
-    <CoarTextInput size="s"
+    <CoarTextInput
+size="s"
       :model-value="props.node.props.assetId ?? ''"
       @update:model-value="(v) => props.patch({ props: { assetId: v } })"
     />
   </CoarFormField>
 
   <CoarFormField :label="t('coar.pageBuilder.props.altText', undefined, 'Alt text')">
-    <CoarTextInput size="s"
+    <CoarTextInput
+size="s"
       :model-value="props.node.props.alt ?? ''"
       @update:model-value="(v) => props.patch({ props: { alt: v } })"
     />

@@ -92,6 +92,7 @@ export { findStylePreset, isSafeStylePreset } from './stylePresets';
 
 export { isContainerNode, isElementAllowed } from './schema';
 export { CURRENT_PAGE_SCHEMA_VERSION } from './schema';
+export type { PageBuilderAuthoringMode } from './builder/builderContext';
 export type { PageCompositionManagement } from './builder/usePageCompositions';
 
 // ─── Browser Page Runtime ────────────────────────────────────────────────────

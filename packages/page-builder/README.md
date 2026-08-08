@@ -15,15 +15,22 @@ JSON.
 ## Install
 
 ```bash
-pnpm add @cocoar/vue-page-builder @cocoar/vue-ui
+pnpm add @cocoar/vue-page-builder @cocoar/vue-ui \
+  @cocoar/vue-localization @cocoar/vue-script-editor monaco-editor
 ```
 
-`@cocoar/vue-ui` and `vue` are peer dependencies. Import the stylesheet once —
+The UI, localization, ScriptEditor, Monaco and Vue packages are peers so the
+host owns their single application-wide instances. Import the stylesheet once —
 it carries the builder chrome **and** the renderer's layout styles:
 
 ```ts
 import '@cocoar/vue-page-builder/styles';
 ```
+
+The Builder uses Monaco in JavaScript and JSON mode. Register the TypeScript /
+JavaScript and JSON workers before the first Builder mounts; the complete Vite
+and SSR configurations are documented in
+[IDP_INTEGRATION.md](./IDP_INTEGRATION.md#register-all-monaco-workers-used-by-the-builder).
 
 ## Usage
 

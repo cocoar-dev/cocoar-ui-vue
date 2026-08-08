@@ -114,7 +114,8 @@ function setSize(v: string) {
 
 <template>
   <CoarFormField label="Authoring breakpoint">
-    <CoarSelect size="s"
+    <CoarSelect
+size="s"
       :model-value="activeBreakpoint"
       :options="breakpointOptions"
       @update:model-value="setBreakpoint"
@@ -145,7 +146,8 @@ function setSize(v: string) {
 
   <template v-if="isStack">
     <CoarFormField label="Stack direction">
-      <CoarSelect size="s"
+      <CoarSelect
+size="s"
         :model-value="style.direction ?? ((node as any).props?.direction ?? 'column')"
         :options="[
           { value: 'column', label: 'Column' },
@@ -154,8 +156,9 @@ function setSize(v: string) {
         @update:model-value="(v) => props.patchStyle({ direction: v as NodeStyle['direction'] })"
       />
     </CoarFormField>
-    <CoarCheckbox size="s"
-      v-if="(style.direction ?? (node as any).props?.direction) === 'row'"
+    <CoarCheckbox
+v-if="(style.direction ?? (node as any).props?.direction) === 'row'"
+      size="s"
       :model-value="style.wrap ?? ((node as any).props?.wrap ?? false)"
       label="Wrap children"
       @update:model-value="(v) => props.patchStyle({ wrap: v })"
@@ -210,7 +213,8 @@ function setSize(v: string) {
 
   <!-- ── Container: how children are arranged ──────────────────────────────── -->
   <CoarFormField v-if="props.container" :label="t('coar.pageBuilder.props.gap', undefined, 'Gap')">
-    <CoarTextInput size="s"
+    <CoarTextInput
+size="s"
       :model-value="style.gap ?? ''"
       placeholder="e.g. 8px"
       @update:model-value="(v) => props.patchStyle({ gap: v || undefined })"
@@ -218,7 +222,8 @@ function setSize(v: string) {
   </CoarFormField>
 
   <CoarFormField v-if="props.container" :label="t('coar.pageBuilder.props.justify', undefined, 'Justify (main axis)')">
-    <CoarSelect size="s"
+    <CoarSelect
+size="s"
       :model-value="style.justify ?? ''"
       :options="justifyOptions"
       @update:model-value="(v) => props.patchStyle({ justify: (v || undefined) as NodeStyle['justify'] })"
@@ -226,7 +231,8 @@ function setSize(v: string) {
   </CoarFormField>
 
   <CoarFormField v-if="props.container" :label="t('coar.pageBuilder.props.alignItems', undefined, 'Align items (cross axis)')">
-    <CoarSelect size="s"
+    <CoarSelect
+size="s"
       :model-value="style.align ?? ''"
       :options="alignOptions"
       @update:model-value="(v) => props.patchStyle({ align: (v || undefined) as NodeStyle['align'] })"
@@ -235,7 +241,8 @@ function setSize(v: string) {
 
   <!-- ── Self: how this node sits in its parent ────────────────────────────── -->
   <CoarFormField :label="t('coar.pageBuilder.props.alignSelf', undefined, 'Align self')">
-    <CoarSelect size="s"
+    <CoarSelect
+size="s"
       :model-value="style.alignSelf ?? ''"
       :options="alignOptions"
       @update:model-value="(v) => props.patchStyle({ alignSelf: (v || undefined) as NodeStyle['alignSelf'] })"
@@ -243,7 +250,8 @@ function setSize(v: string) {
   </CoarFormField>
 
   <CoarFormField :label="t('coar.pageBuilder.props.size', undefined, 'Size')">
-    <CoarSelect size="s"
+    <CoarSelect
+size="s"
       :model-value="sizeValue"
       :options="sizeOptions"
       @update:model-value="(v) => setSize(v as string)"
@@ -258,7 +266,8 @@ function setSize(v: string) {
     :static-value="style.width"
     :patch="patchNode"
   >
-    <CoarTextInput size="s"
+    <CoarTextInput
+size="s"
       :model-value="style.width ?? ''"
       placeholder="e.g. 380px, 50%"
       @update:model-value="(v) => props.patchStyle({ width: v || undefined })"
@@ -266,7 +275,8 @@ function setSize(v: string) {
   </BuilderFxButton>
 
   <CoarFormField v-else-if="showWidth" :label="t('coar.pageBuilder.props.width', undefined, 'Width')">
-    <CoarTextInput size="s"
+    <CoarTextInput
+size="s"
       :model-value="style.width ?? ''"
       placeholder="e.g. 380px, 50%"
       @update:model-value="(v) => props.patchStyle({ width: v || undefined })"
@@ -286,7 +296,8 @@ function setSize(v: string) {
   </CoarFormField>
 
   <CoarFormField :label="t('coar.pageBuilder.props.minHeight', undefined, 'Min height')">
-    <CoarTextInput size="s"
+    <CoarTextInput
+size="s"
       :model-value="style.minHeight ?? ''"
       placeholder="e.g. 100vh, 400px"
       @update:model-value="(v) => props.patchStyle({ minHeight: v || undefined })"
@@ -321,14 +332,16 @@ function setSize(v: string) {
   </CoarFormField>
 
   <CoarFormField :label="t('coar.pageBuilder.props.padding', undefined, 'Padding')">
-    <CoarTextInput size="s"
+    <CoarTextInput
+size="s"
       :model-value="style.padding ?? ''"
       placeholder="e.g. 16px"
       @update:model-value="(v) => props.patchStyle({ padding: v || undefined })"
     />
   </CoarFormField>
 
-  <CoarCheckbox size="s"
+  <CoarCheckbox
+size="s"
     :model-value="!style.hidden"
     label="Visible at this breakpoint"
     @update:model-value="(v) => props.patchStyle({ hidden: v ? false : true })"

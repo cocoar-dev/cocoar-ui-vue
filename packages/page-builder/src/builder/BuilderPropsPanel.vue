@@ -838,8 +838,8 @@ function bindField(name: string | null) {
                 />
                 <CoarTextInput
                   v-if="!fieldNode || !useFieldSelect || customNameActive"
-                  size="s"
                   :id="customNameInputId"
+                  size="s"
                   :model-value="elementNode.name ?? ''"
                   @update:model-value="(v) => patch({ name: v })"
                 />
@@ -947,7 +947,8 @@ function bindField(name: string | null) {
       <!-- ── Host-owned page section (root-level behavior) ───────────────── -->
       <section v-if="pageNode" class="pb-props__section">
         <h4 class="pb-props__section-title">{{ t('coar.pageBuilder.props.section.page', undefined, 'Page') }}</h4>
-        <CoarCheckbox size="s"
+        <CoarCheckbox
+size="s"
           :model-value="!!pageNode.enterSubmits"
           :label="t('coar.pageBuilder.props.enterSubmits', undefined, 'Enter submits (fires the default button)')"
           @update:model-value="(v) => patch({ enterSubmits: v || undefined } as Partial<PageNode>)"
@@ -958,7 +959,8 @@ function bindField(name: string | null) {
       <section v-if="elementNode && !fieldNode" class="pb-props__section">
         <h4 class="pb-props__section-title">{{ t('coar.pageBuilder.props.section.element', undefined, 'Element') }}</h4>
         <CoarFormField :label="t('coar.pageBuilder.props.name', undefined, 'Name')">
-          <CoarTextInput size="s"
+          <CoarTextInput
+size="s"
             :model-value="elementNode.name ?? ''"
             @update:model-value="(v) => patch({ name: v })"
           />
@@ -978,9 +980,10 @@ function bindField(name: string | null) {
               sort-options="none"
               @update:model-value="setNameSource"
             />
-            <CoarTextInput size="s"
-              v-if="!useFieldSelect || customNameActive"
+            <CoarTextInput
+v-if="!useFieldSelect || customNameActive"
               :id="customNameInputId"
+              size="s"
               :model-value="fieldNode.name ?? ''"
               @update:model-value="(v) => patch({ name: v })"
             />
@@ -995,13 +998,15 @@ function bindField(name: string | null) {
           v-if="representationOptions.length > 0"
           :label="t('coar.pageBuilder.props.elementType', undefined, 'Element')"
         >
-          <CoarSelect size="s"
+          <CoarSelect
+size="s"
             :model-value="node.type"
             :options="representationOptions"
             @update:model-value="(v) => convertRepresentation(v)"
           />
         </CoarFormField>
-        <CoarCheckbox size="s"
+        <CoarCheckbox
+size="s"
           :model-value="!!fieldNode.validation?.required"
           :label="t('coar.pageBuilder.props.required', undefined, 'Required')"
           @update:model-value="setRequired"
@@ -1014,8 +1019,9 @@ function bindField(name: string | null) {
             :props="fieldNode.props"
             @update:model-value="(v: unknown) => patch({ defaultValue: v ?? undefined })"
           />
-          <CoarTextInput size="s"
-            v-else
+          <CoarTextInput
+v-else
+            size="s"
             :model-value="String(fieldNode.defaultValue ?? '')"
             @update:model-value="(v) => patch({ defaultValue: v || undefined })"
           />
@@ -1062,15 +1068,17 @@ function bindField(name: string | null) {
           </CoarFormField>
           <template v-if="directBinding(binding)">
             <CoarFormField label="Source">
-              <CoarSelect size="s"
+              <CoarSelect
+size="s"
                 :model-value="directBinding(binding)!.source"
                 :options="bindingSourceOptions"
                 @update:model-value="(v) => updateBinding(target, { source: v as RuntimeBinding['source'], path: undefined })"
               />
             </CoarFormField>
             <CoarFormField v-if="bindingNeedsPath(binding)" label="Allowed path">
-              <CoarSelect size="s"
-                v-if="directBinding(binding)!.source !== 'state' || bindingPaths(binding).length > 0"
+              <CoarSelect
+v-if="directBinding(binding)!.source !== 'state' || bindingPaths(binding).length > 0"
+                size="s"
                 :model-value="directBinding(binding)!.path ?? null"
                 :options="bindingPaths(binding)"
                 @update:model-value="(v) => updateBinding(target, { path: v ?? undefined })"
@@ -1112,14 +1120,16 @@ function bindField(name: string | null) {
       >
         <h4 class="pb-props__section-title">{{ t('coar.pageBuilder.props.section.visibility', undefined, 'Visibility') }}</h4>
         <CoarFormField :label="t('coar.pageBuilder.props.visibleWhenField', undefined, 'Visible when')">
-          <CoarSelect size="s"
+          <CoarSelect
+size="s"
             :model-value="visibilitySource"
             :options="visibilitySourceOptions"
             @update:model-value="setVisibilitySource"
           />
         </CoarFormField>
         <CoarFormField v-if="visibilitySource === 'field'" label="Form field">
-          <CoarSelect size="s"
+          <CoarSelect
+size="s"
             :model-value="visibleWhen?.field ?? null"
             :options="controllerOptions"
             clearable
@@ -1150,14 +1160,16 @@ function bindField(name: string | null) {
           v-else-if="visibilitySource === 'field' && visibleWhen"
           :label="t('coar.pageBuilder.props.visibleWhenEquals', undefined, 'equals')"
         >
-          <CoarSelect size="s"
-            v-if="conditionValueOptions"
+          <CoarSelect
+v-if="conditionValueOptions"
+            size="s"
             :model-value="equalsDisplay"
             :options="conditionValueOptions"
             @update:model-value="(v) => setVisibilityEquals(v)"
           />
-          <CoarTextInput size="s"
-            v-else
+          <CoarTextInput
+v-else
+            size="s"
             :model-value="equalsDisplay"
             @update:model-value="(v) => setVisibilityEquals(v)"
           />

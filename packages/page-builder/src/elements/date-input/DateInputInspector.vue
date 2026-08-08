@@ -13,18 +13,21 @@ const { t } = useI18n();
 
 <template>
   <CoarFormField :label="t('coar.pageBuilder.props.label', undefined, 'Label')">
-    <CoarTextInput size="s"
+    <CoarTextInput
+size="s"
       :model-value="props.node.props.label ?? ''"
       @update:model-value="(v) => props.patch({ props: { label: v } })"
     />
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.placeholder', undefined, 'Placeholder')">
-    <CoarTextInput size="s"
+    <CoarTextInput
+size="s"
       :model-value="props.node.props.placeholder ?? ''"
       @update:model-value="(v) => props.patch({ props: { placeholder: v } })"
     />
   </CoarFormField>
-  <CoarCheckbox size="s"
+  <CoarCheckbox
+size="s"
     :model-value="!!props.node.props.disabled"
     :label="t('coar.pageBuilder.props.disabled', undefined, 'Disabled')"
     @update:model-value="(v) => props.patch({ props: { disabled: v } })"

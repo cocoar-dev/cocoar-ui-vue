@@ -36,34 +36,39 @@ const sizeOptions = computed<CoarSelectOption<string>[]>(() => [
 
 <template>
   <CoarFormField :label="t('coar.pageBuilder.props.label', undefined, 'Label')">
-    <CoarTextInput size="s"
+    <CoarTextInput
+size="s"
       :model-value="props.node.props.label ?? ''"
       @update:model-value="(v) => props.patch({ props: { label: v } })"
     />
   </CoarFormField>
 
   <CoarFormField :label="t('coar.pageBuilder.props.variant', undefined, 'Variant')">
-    <CoarSelect size="s"
+    <CoarSelect
+size="s"
       :model-value="props.node.props.variant ?? 'primary'"
       :options="VARIANT_OPTIONS"
       @update:model-value="(v) => props.patch({ props: { variant: v as ButtonNode['props']['variant'] } })"
     />
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.size', undefined, 'Size')">
-    <CoarSelect size="s"
+    <CoarSelect
+size="s"
       :model-value="props.node.props.size ?? ''"
       :options="sizeOptions"
       @update:model-value="(v) => props.patch({ props: { size: (v || undefined) as ButtonNode['props']['size'] } })"
     />
   </CoarFormField>
   <CoarFormField :label="t('coar.pageBuilder.props.iconLeft', undefined, 'Icon (left)')">
-    <CoarTextInput size="s"
+    <CoarTextInput
+size="s"
       :model-value="props.node.props.icon ?? ''"
       placeholder="e.g. log-in"
       @update:model-value="(v) => props.patch({ props: { icon: v } })"
     />
   </CoarFormField>
-  <CoarCheckbox size="s"
+  <CoarCheckbox
+size="s"
     :model-value="!!props.node.props.validates"
     :label="t('coar.pageBuilder.props.validatesForm', undefined, 'Validates form before firing')"
     @update:model-value="(v) => props.patch({ props: { validates: v } })"
@@ -75,12 +80,14 @@ const sizeOptions = computed<CoarSelectOption<string>[]>(() => [
     :static-value="!!props.node.props.disabled"
     :patch="props.patch"
   >
-    <CoarCheckbox size="s"
+    <CoarCheckbox
+size="s"
       :model-value="!!props.node.props.disabled"
       @update:model-value="(v) => props.patch({ props: { disabled: v || undefined } })"
     />
   </BuilderFxButton>
-  <CoarCheckbox size="s"
+  <CoarCheckbox
+size="s"
     :model-value="!!props.node.props.default"
     :label="t('coar.pageBuilder.props.defaultButton', undefined, 'Default button (Enter submits here)')"
     @update:model-value="(v) => props.patch({ props: { default: v || undefined } })"

@@ -14,7 +14,8 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <CoarPlainDateTimePicker size="s"
+  <CoarPlainDateTimePicker
+size="s"
     clearable
     :model-value="isoToPlainDateTime(componentProps.modelValue)"
     @update:model-value="(d) => emit('update:modelValue', d ? d.toString() : undefined)"
