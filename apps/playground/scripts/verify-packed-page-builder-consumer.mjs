@@ -149,6 +149,14 @@ try {
     )}\n`,
   );
 
+  // The CI fixture intentionally lives below the repository artifacts folder
+  // so Vite sees one canonical Windows path. Give it its own workspace root;
+  // otherwise pnpm walks up to the repository workspace and installs there.
+  await writeFile(
+    join(temporaryDirectory, 'pnpm-workspace.yaml'),
+    "packages:\n  - '.'\n",
+  );
+
   await writeFile(
     join(temporaryDirectory, 'index.html'),
     `<!doctype html>
