@@ -37,8 +37,10 @@ jobs:
       - name: Install Node.js
         run: volta install node@22.17.1
 
-      - name: Install pnpm
-        run: volta install pnpm@10.13.1
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.13.1
 
       - name: Extract and validate release version
         id: version

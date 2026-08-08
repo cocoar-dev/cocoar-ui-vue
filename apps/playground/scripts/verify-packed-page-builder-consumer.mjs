@@ -2,11 +2,13 @@ import { chromium } from '@playwright/test';
 import { spawn } from 'node:child_process';
 import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
-import { tmpdir } from 'node:os';
 import { basename, isAbsolute, join, resolve, sep } from 'node:path';
 
 const artifactsDirectory = resolve(process.argv[2] ?? '../../artifacts');
-const temporaryDirectory = await mkdtemp(join(tmpdir(), 'coar-page-builder-consumer-'));
+// Keep the fixture beside the tarballs. On Windows runners the OS temp path may
+// use an 8.3 alias (RUNNER~1) while Vite canonicalizes its allow-list to the
+// long path, making an otherwise valid project look outside the serving root.
+const temporaryDirectory = await mkdtemp(join(artifactsDirectory, 'coar-page-builder-consumer-'));
 const consumerBasePath = '/consumer-app/';
 const pnpmCommand = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 const requiresCommandShell = process.platform === 'win32';
@@ -16,7 +18,7 @@ function fileDependency(path) {
 }
 
 function assertTemporaryDirectory(path) {
-  const resolvedTempRoot = resolve(tmpdir()) + sep;
+  const resolvedTempRoot = resolve(artifactsDirectory) + sep;
   const resolvedPath = resolve(path);
   if (
     !isAbsolute(resolvedPath) ||
