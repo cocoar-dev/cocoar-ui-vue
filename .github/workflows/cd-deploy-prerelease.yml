@@ -35,10 +35,10 @@ jobs:
           package-json-path: ./package.json
 
       - name: Install Node.js
-        run: volta install node
+        run: volta install node@22.17.1
 
       - name: Install pnpm
-        run: volta install pnpm
+        run: volta install pnpm@10.13.1
 
       - name: Install GitVersion
         uses: gittools/actions/gitversion/setup@v4
