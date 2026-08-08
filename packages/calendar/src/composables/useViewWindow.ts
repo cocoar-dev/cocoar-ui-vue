@@ -35,13 +35,7 @@
  * the warn surfaces.
  */
 
-import {
-  type Ref,
-  computed,
-  onScopeDispose,
-  toValue,
-  watch,
-} from 'vue';
+import { type Ref, type MaybeRefOrGetter, computed, onScopeDispose, toValue, watch } from 'vue';
 import {
   type CalendarView,
   type ViewWindow,
@@ -59,6 +53,10 @@ export interface UseViewWindowOptions {
    * separately remember to set `builder.state.view`.
    */
   view?: CalendarView;
+  /** Resolved number of rendered day columns (may react to container width). */
+  dayColumnCount?: MaybeRefOrGetter<number>;
+  /** Adjacent months to include in the loader/recurrence window. */
+  monthBuffer?: MaybeRefOrGetter<number>;
 }
 
 /**
@@ -118,6 +116,8 @@ export function useViewWindow<TMeta extends Record<string, unknown> = Record<str
       firstDayOfWeek: fdow,
       agendaLengthDays: toValue(builder.state.agendaLengthDays),
       timelineRangeDays: toValue(builder.state.timelineRangeDays),
+      dayColumnCount: toValue(options?.dayColumnCount ?? builder.state.dayColumnCount),
+      monthBuffer: toValue(options?.monthBuffer ?? 0),
       timezone: toValue(builder.state.timezone),
     });
   });

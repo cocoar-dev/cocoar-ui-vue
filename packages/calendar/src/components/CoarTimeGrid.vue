@@ -21,12 +21,17 @@
  * default that reads `meta.title` / `meta.color`.
  */
 
-import { computed, onBeforeUnmount, onMounted, ref, toValue, useTemplateRef, watchEffect } from 'vue';
-import { useI18n, useLocalization } from '@cocoar/vue-localization';
 import {
-  useTimeGridDnd,
-  type TimeGridEventDropPayload,
-} from '../composables/useTimeGridDnd';
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  toValue,
+  useTemplateRef,
+  watchEffect,
+} from 'vue';
+import { useI18n, useLocalization } from '@cocoar/vue-localization';
+import { useTimeGridDnd, type TimeGridEventDropPayload } from '../composables/useTimeGridDnd';
 import { useA11yAnnouncer } from '../composables/useA11yAnnouncer';
 import {
   Temporal,
@@ -48,6 +53,7 @@ import CoarTimeGridNowMarker from './internal/time-grid/CoarTimeGridNowMarker.vu
 import CoarTimeGridHeader from './internal/time-grid/CoarTimeGridHeader.vue';
 import CoarTimeGridAllDayBand from './internal/time-grid/CoarTimeGridAllDayBand.vue';
 import CoarTimeGridColumn from './internal/time-grid/CoarTimeGridColumn.vue';
+import { contentAwareCascadeFrames, type CascadeItem } from '../core/cascadeLayout';
 
 // Inlined defineProps argument to avoid vue-tsc TS4025 — see note in
 // CoarMonthView.vue.
@@ -59,7 +65,7 @@ const props = defineProps<{
 }>();
 const { t } = useI18n();
 
-defineSlots<{
+const slots = defineSlots<{
   event?(props: { event: CalendarEvent<TMeta>; layout: PositionedEvent<TMeta> }): unknown;
   allDayEvent?(props: { event: CalendarEvent<TMeta>; layout: AllDayBar<TMeta> }): unknown;
   dayHeader?(props: { date: Temporal.PlainDate; isToday: boolean; isWeekend: boolean }): unknown;
@@ -86,10 +92,10 @@ const state = computed(() => {
     dateStyle: toValue(s.dateStyle),
     timeStyle: toValue(s.timeStyle),
     hour12: toValue(s.hour12),
-    timeRange: [
-      Math.floor(tr.startMinutes / 60),
-      Math.ceil(tr.endMinutes / 60),
-    ] as readonly [number, number],
+    timeRange: [Math.floor(tr.startMinutes / 60), Math.ceil(tr.endMinutes / 60)] as readonly [
+      number,
+      number,
+    ],
     timeRangeMinutes: tr,
     slotDuration: toValue(s.slotDuration) as 5 | 10 | 15 | 30 | 60,
     pixelsPerHour: toValue(s.pixelsPerHour),
@@ -246,9 +252,7 @@ function formatAnnouncementWhen(payload: TimeGridEventDropPayload<TMeta>): strin
       const pd = payload.next.start as Temporal.PlainDate;
       return fmt.format(new Date(Date.UTC(pd.year, pd.month - 1, pd.day)));
     }
-    const zdt = (payload.next.start as Temporal.ZonedDateTime).withTimeZone(
-      timezone.value,
-    );
+    const zdt = (payload.next.start as Temporal.ZonedDateTime).withTimeZone(timezone.value);
     return fmt.format(new Date(zdt.epochMilliseconds));
   } catch {
     return payload.target.date;
@@ -275,7 +279,9 @@ function kbdPreviewAriaLabel(event: CalendarEvent<TMeta>): string {
 
 function eventTitleSafe(p: TimeGridEventDropPayload<TMeta>): string {
   const meta = p.event.meta as { title?: unknown } | undefined;
-  return typeof meta?.title === 'string' ? meta.title : t('coar.calendar.a11y.unnamedEvent', undefined, 'Event');
+  return typeof meta?.title === 'string'
+    ? meta.title
+    : t('coar.calendar.a11y.unnamedEvent', undefined, 'Event');
 }
 
 function onA11yAnnounce(
@@ -283,21 +289,13 @@ function onA11yAnnounce(
   payload?: TimeGridEventDropPayload<TMeta>,
 ): void {
   if (kind === 'cancelled') {
-    a11y.announce(
-      t('coar.calendar.a11y.moveCancelled', undefined, 'Move cancelled'),
-    );
+    a11y.announce(t('coar.calendar.a11y.moveCancelled', undefined, 'Move cancelled'));
     return;
   }
   if (!payload) return;
   const title = eventTitleSafe(payload);
   const when = formatAnnouncementWhen(payload);
-  a11y.announce(
-    t(
-      'coar.calendar.a11y.eventMovedTo',
-      { title, when },
-      `${title} moved to ${when}`,
-    ),
-  );
+  a11y.announce(t('coar.calendar.a11y.eventMovedTo', { title, when }, `${title} moved to ${when}`));
 }
 
 // All event emission flows through the builder's `_emit*` family
@@ -326,13 +324,12 @@ const totalMinutes = computed(() => totalHours.value * 60);
 // at the time-range boundary have room for their focus halo / resize
 // handles without being clipped or covered by the all-day band.
 const totalHeightPx = computed(
-  () => totalHours.value * pixelsPerHour.value
-    + 2 * (pixelsPerHour.value * RENDER_BUFFER_MINUTES) / 60,
+  () =>
+    totalHours.value * pixelsPerHour.value +
+    (2 * (pixelsPerHour.value * RENDER_BUFFER_MINUTES)) / 60,
 );
 
-const slotHeightPx = computed(
-  () => (pixelsPerHour.value * slotDuration.value) / 60,
-);
+const slotHeightPx = computed(() => (pixelsPerHour.value * slotDuration.value) / 60);
 
 const hourLabels = computed(() => {
   const labels: { hour: number; label: string }[] = [];
@@ -359,10 +356,13 @@ const hourLabels = computed(() => {
 
 // ─── Per-day event layout ─────────────────────────────────────────────
 
-const dayLayouts = computed<{
-  date: Temporal.PlainDate;
-  positioned: PositionedEvent<TMeta>[];
-}[]>(() => {
+const dayLayouts = computed<
+  {
+    date: Temporal.PlainDate;
+    positioned: PositionedEvent<TMeta>[];
+    horizontalFrames: Map<string, { x: number; width: number }>;
+  }[]
+>(() => {
   // While dragging, anchor the preview event to the rightmost lane
   // within its overlap component. Without this, the greedy lane
   // assignment can flip the ghost between left/right lanes as the
@@ -374,23 +374,70 @@ const dayLayouts = computed<{
   // being moved or resized in the time grid. Other modes
   // (`'month'`, `'allDay*'`) don't go through `layoutDayEvents`.
   const isTimedMode =
-    mode === 'timed' ||
-    mode === 'timed-resize-start' ||
-    mode === 'timed-resize-end';
-  const previewId =
-    dragged !== null && isTimedMode
-      ? `${dragged.id}__preview`
-      : undefined;
-  return visibleDays.value.map((day) => ({
-    date: day,
-    positioned: layoutDayEvents(workingEvents.value, {
+    mode === 'timed' || mode === 'timed-resize-start' || mode === 'timed-resize-end';
+  const previewId = dragged !== null && isTimedMode ? `${dragged.id}__preview` : undefined;
+  return visibleDays.value.map((day) => {
+    const positioned = layoutDayEvents(workingEvents.value, {
       day,
       timeRange: timeRange.value,
       timezone: timezone.value,
       priorityId: previewId,
-    }),
-  }));
+    });
+    const hasCustomContent = !!slots.event || state.value.eventRenderer !== null;
+    const cascadeItems: CascadeItem[] = positioned.map((item) => {
+      const meta = item.event.meta as
+        | { title?: unknown; location?: unknown; assignees?: unknown }
+        | undefined;
+      const title = typeof meta?.title === 'string' ? meta.title : '';
+      const assignees = Array.isArray(meta?.assignees) ? meta.assignees.length : 0;
+      const duration = item.endMinutes - item.startMinutes;
+      const textHeight =
+        18 +
+        (typeof meta?.location === 'string' && duration >= 34 ? 13 : 0) +
+        (duration >= 52 ? 13 : 0);
+      const textMinutes =
+        pixelsPerHour.value > 0 ? (textHeight / pixelsPerHour.value) * 60 : Infinity;
+      const preferred = Math.min(
+        58,
+        Math.max(24, 10 + Math.min(title.length, 32) * 1.15 + Math.min(assignees, 3) * 8),
+      );
+      return {
+        id: item.event.id,
+        lane: item.lane,
+        laneCount: item.laneCount,
+        startMinutes: item.startMinutes,
+        endMinutes: item.endMinutes,
+        textEndMinutes: hasCustomContent ? Infinity : item.startMinutes + textMinutes,
+        preferredVisibleWidth: hasCustomContent ? Infinity : preferred,
+        compactPreferredVisibleWidth: hasCustomContent
+          ? Infinity
+          : Math.min(preferred, 32 + Math.min(assignees, 1) * 8),
+      };
+    });
+    return {
+      date: day,
+      positioned,
+      horizontalFrames: contentAwareCascadeFrames(cascadeItems),
+    };
+  });
 });
+
+function eventHorizontalStyle(
+  layout: { horizontalFrames: Map<string, { x: number; width: number }> },
+  positioned: PositionedEvent<TMeta>,
+): { left: string; width: string } {
+  const frame = layout.horizontalFrames.get(positioned.event.id);
+  if (!frame) {
+    return {
+      left: `calc(${(positioned.lane / positioned.laneCount) * 100}% + 2px)`,
+      width: `calc(${100 / positioned.laneCount}% - 4px)`,
+    };
+  }
+  return {
+    left: `calc(${frame.x}% + 2px)`,
+    width: `calc(${frame.width}% - 4px)`,
+  };
+}
 
 // All-day band: filtered to all-day + multi-day-all-day events,
 // laid out across the visible day columns. Empty when no all-day
@@ -452,8 +499,7 @@ watchEffect(() => {
 });
 
 const nowMinutesFromGridStart = computed(() => {
-  const minutes =
-    now.value.hour * 60 + now.value.minute - timeRange.value[0] * 60;
+  const minutes = now.value.hour * 60 + now.value.minute - timeRange.value[0] * 60;
   if (minutes < 0 || minutes >= totalMinutes.value) return null;
   return minutes;
 });
@@ -487,9 +533,7 @@ const dayHeaderFormatter = computed(
 function formatDayHeader(date: Temporal.PlainDate): string {
   // Convert to JS Date for Intl. UTC interpretation here is fine —
   // we're only formatting day-of-week + day-of-month.
-  return dayHeaderFormatter.value.format(
-    new Date(Date.UTC(date.year, date.month - 1, date.day)),
-  );
+  return dayHeaderFormatter.value.format(new Date(Date.UTC(date.year, date.month - 1, date.day)));
 }
 
 function onColumnPointerDown(e: PointerEvent, date: Temporal.PlainDate) {
@@ -553,14 +597,17 @@ function eventAriaLabel(event: CalendarEvent<TMeta>): string {
         },
       ),
     );
-    const range = (fmt as Intl.DateTimeFormat & {
-      formatRange?: (a: Date, b: Date) => string;
-    }).formatRange;
+    const range = (
+      fmt as Intl.DateTimeFormat & {
+        formatRange?: (a: Date, b: Date) => string;
+      }
+    ).formatRange;
     if (event.start instanceof Temporal.PlainDate) return title;
     const startD = new Date(event.start.epochMilliseconds);
-    const endD = event.end && !(event.end instanceof Temporal.PlainDate)
-      ? new Date(event.end.epochMilliseconds)
-      : startD;
+    const endD =
+      event.end && !(event.end instanceof Temporal.PlainDate)
+        ? new Date(event.end.epochMilliseconds)
+        : startD;
     return range
       ? `${title}, ${range.call(fmt, startD, endD)}`
       : `${title}, ${fmt.format(startD)} – ${fmt.format(endD)}`;
@@ -574,10 +621,7 @@ function eventColor(event: CalendarEvent<TMeta>): string | undefined {
 }
 function eventBgFor(event: CalendarEvent<TMeta>): string {
   const c = eventColor(event);
-  return (
-    c ??
-    'var(--coar-calendar-event-default-bg, var(--coar-color-accent-soft, #93c5fd))'
-  );
+  return c ?? 'var(--coar-calendar-event-default-bg, var(--coar-color-accent-soft, #93c5fd))';
 }
 function eventBorderFor(event: CalendarEvent<TMeta>): string {
   const c = eventColor(event);
@@ -612,25 +656,22 @@ defineExpose({
 <template>
   <div
     class="coar-time-grid"
-    :class="[
-      `coar-time-grid--density-${density}`,
-    ]"
+    :class="[`coar-time-grid--density-${density}`]"
     role="region"
     :aria-label="
       days.length === 1
         ? t('coar.calendar.timegrid.dayLabel', undefined, 'Day view')
-        : t('coar.calendar.timegrid.weekLabel', undefined, 'Week view')
+        : builder.state.view.value === 'day'
+          ? t('coar.calendar.timegrid.multiDayLabel', undefined, 'Multi-day view')
+          : t('coar.calendar.timegrid.weekLabel', undefined, 'Week view')
     "
   >
     <!-- Live region for SR announcements (move committed / move
          cancelled). Visually hidden but read out by assistive
          tech. -->
-    <div
-      class="coar-time-grid__a11y-live"
-      role="status"
-      aria-live="polite"
-      aria-atomic="true"
-    >{{ a11y.message.value }}</div>
+    <div class="coar-time-grid__a11y-live" role="status" aria-live="polite" aria-atomic="true">
+      {{ a11y.message.value }}
+    </div>
     <!--
       Sticky-top wrapper. Holds both the day-of-week header AND the
       all-day band so they pin together at the top of the scroll
@@ -642,38 +683,35 @@ defineExpose({
       match the header's actual rendered height.
     -->
     <div class="coar-time-grid__sticky-top">
-    <!-- Header row: blank cell over hour labels + one cell per day -->
-    <CoarTimeGridHeader
-      :days="days"
-      :is-today="isTodayColumn"
-      :is-weekend="isWeekend"
-      :format-label="formatDayHeader"
-      :density="density"
-    >
-      <template
-        v-if="$slots.dayHeader || state.dayHeaderRenderer"
-        #dayHeader="slotProps"
+      <!-- Header row: blank cell over hour labels + one cell per day -->
+      <CoarTimeGridHeader
+        :days="days"
+        :is-today="isTodayColumn"
+        :is-weekend="isWeekend"
+        :format-label="formatDayHeader"
+        :density="density"
       >
-        <slot v-if="$slots.dayHeader" name="dayHeader" v-bind="slotProps" />
-        <RenderDayHeader
-          v-else-if="state.dayHeaderRenderer"
-          :renderer="state.dayHeaderRenderer!"
-          :ctx="slotProps"
-        />
-      </template>
-    </CoarTimeGridHeader>
+        <template v-if="$slots.dayHeader || state.dayHeaderRenderer" #dayHeader="slotProps">
+          <slot v-if="$slots.dayHeader" name="dayHeader" v-bind="slotProps" />
+          <RenderDayHeader
+            v-else-if="state.dayHeaderRenderer"
+            :renderer="state.dayHeaderRenderer!"
+            :ctx="slotProps"
+          />
+        </template>
+      </CoarTimeGridHeader>
 
-    <!-- All-day band (between header and body, only if there are any) -->
-    <CoarTimeGridAllDayBand
-      v-if="allDayLaneCount > 0"
-      :days="days"
-      :axis-label="t('coar.calendar.timegrid.allDay', undefined, 'all-day')"
-      :band-height-px="allDayBandHeight"
-      :is-today="isTodayColumn"
-      :is-weekend="isWeekend"
-      :set-columns-el="setAllDayColumnsEl"
-      @cell-pointerdown="(e, day) => onAllDayCellPointerDown(e, day)"
-    >
+      <!-- All-day band (between header and body, only if there are any) -->
+      <CoarTimeGridAllDayBand
+        v-if="allDayLaneCount > 0"
+        :days="days"
+        :axis-label="t('coar.calendar.timegrid.allDay', undefined, 'all-day')"
+        :band-height-px="allDayBandHeight"
+        :is-today="isTodayColumn"
+        :is-weekend="isWeekend"
+        :set-columns-el="setAllDayColumnsEl"
+        @cell-pointerdown="(e, day) => onAllDayCellPointerDown(e, day)"
+      >
         <!--
           All-day bars on top of the day-cell background.
           Same calc()-based inset as timed events: 2 px gap left and
@@ -708,25 +746,22 @@ defineExpose({
           @keydown="onEventKeydown($event, bar.event)"
           @dblclick="props.builder.state.onEventDoubleClick?.({ event: bar.event, native: $event })"
           @pointerenter="props.builder.state.onEventHover?.({ event: bar.event, native: $event })"
-          @pointerleave="props.builder.state.onEventHoverLeave?.({ event: bar.event, native: $event })"
+          @pointerleave="
+            props.builder.state.onEventHoverLeave?.({ event: bar.event, native: $event })
+          "
           @start-resize="dnd.startAllDayResizeStart(bar.event)($event)"
           @end-resize="dnd.startAllDayResizeEnd(bar.event)($event)"
         >
-          <template #default="{ event: e, bar: b }">
-            <slot
-              v-if="$slots.allDayEvent"
-              name="allDayEvent"
-              :event="e"
-              :layout="b"
-            />
+          <template
+            v-if="$slots.allDayEvent || state.eventRenderer"
+            #default="{ event: e, bar: b }"
+          >
+            <slot v-if="$slots.allDayEvent" name="allDayEvent" :event="e" :layout="b" />
             <RenderEvent
               v-else-if="state.eventRenderer"
               :renderer="state.eventRenderer"
               :ctx="{ event: e, view: 'week', layout: { kind: 'allDayBar', layout: b } }"
             />
-            <span v-else class="coar-time-grid__all-day-bar-title">
-              {{ eventTitle(e) }}
-            </span>
           </template>
         </CoarTimeGridAllDayBar>
 
@@ -763,26 +798,22 @@ defineExpose({
           :title="eventTitle(dnd.draggedEvent.value!)"
           :snapping-back="dnd.snappingBack.value"
           :density="density"
-          :top="4 + (dragAllDaySourceSnapshot?.lane ?? 0) * (ALL_DAY_LANE_HEIGHT + ALL_DAY_LANE_GAP)"
+          :top="
+            4 + (dragAllDaySourceSnapshot?.lane ?? 0) * (ALL_DAY_LANE_HEIGHT + ALL_DAY_LANE_GAP)
+          "
           :left="`calc(${(invalidAllDayGhost.startCol / days.length) * 100}% + ${invalidAllDayGhost.startCol === 0 ? 4 : 2}px)`"
           :width="`calc(${((invalidAllDayGhost.endCol - invalidAllDayGhost.startCol + 1) / days.length) * 100}% - ${(invalidAllDayGhost.startCol === 0 ? 4 : 2) + (invalidAllDayGhost.endCol === days.length - 1 ? 4 : 2)}px)`"
           :height="ALL_DAY_LANE_HEIGHT"
           :z-index="100"
         />
-    </CoarTimeGridAllDayBand>
+      </CoarTimeGridAllDayBand>
     </div>
     <!-- /sticky-top wrapper -->
 
     <!-- Grid body: hour labels + day columns -->
-    <div
-      class="coar-time-grid__body"
-      :style="{ height: totalHeightPx + 'px' }"
-    >
+    <div class="coar-time-grid__body" :style="{ height: totalHeightPx + 'px' }">
       <!-- Hour labels (left axis) -->
-      <div
-        class="coar-time-grid__hour-axis"
-        :style="{ height: totalHeightPx + 'px' }"
-      >
+      <div class="coar-time-grid__hour-axis" :style="{ height: totalHeightPx + 'px' }">
         <div
           v-for="entry in hourLabels"
           :key="entry.hour"
@@ -841,45 +872,45 @@ defineExpose({
             :density="density"
             :top="minutesToOffsetPx(positioned.startMinutes)"
             :height="Math.max(16, minutesToPx(positioned.endMinutes - positioned.startMinutes))"
-            :left="`calc(${(positioned.lane / positioned.laneCount) * 100}% + ${positioned.lane === 0 ? 4 : 2}px)`"
-            :width="`calc(${100 / positioned.laneCount}% - ${(positioned.lane === 0 ? 4 : 2) + (positioned.lane === positioned.laneCount - 1 ? 4 : 2)}px)`"
+            :left="eventHorizontalStyle(layout, positioned).left"
+            :width="eventHorizontalStyle(layout, positioned).width"
             :z-index="isPreviewEvent(positioned.event.id) ? 100 : positioned.lane + 1"
             :clipped-top="positioned.clippedTop"
             :clipped-bottom="positioned.clippedBottom"
             @pointerdown="onEventPointerdown($event, positioned.event, dnd.startDrag)"
             @keydown="onEventKeydown($event, positioned.event)"
-            @dblclick="props.builder.state.onEventDoubleClick?.({ event: positioned.event, native: $event })"
-            @pointerenter="props.builder.state.onEventHover?.({ event: positioned.event, native: $event })"
-            @pointerleave="props.builder.state.onEventHoverLeave?.({ event: positioned.event, native: $event })"
+            @dblclick="
+              props.builder.state.onEventDoubleClick?.({ event: positioned.event, native: $event })
+            "
+            @pointerenter="
+              props.builder.state.onEventHover?.({ event: positioned.event, native: $event })
+            "
+            @pointerleave="
+              props.builder.state.onEventHoverLeave?.({ event: positioned.event, native: $event })
+            "
             @start-resize="dnd.startTimedResizeStart(positioned.event)($event)"
             @end-resize="dnd.startTimedResizeEnd(positioned.event)($event)"
           >
-            <template #default="{ event: e, positioned: p }">
-              <slot
-                v-if="$slots.event"
-                name="event"
-                :event="e"
-                :layout="p"
-              />
+            <template
+              v-if="$slots.event || state.eventRenderer"
+              #default="{ event: e, positioned: p }"
+            >
+              <slot v-if="$slots.event" name="event" :event="e" :layout="p" />
               <RenderEvent
                 v-else-if="state.eventRenderer"
                 :renderer="state.eventRenderer!"
-                :ctx="{ event: e, view: days.length === 1 ? 'day' : 'week', layout: { kind: 'positioned', layout: p } }"
+                :ctx="{
+                  event: e,
+                  view: days.length === 1 ? 'day' : 'week',
+                  layout: { kind: 'positioned', layout: p },
+                }"
               />
-              <div v-else class="coar-time-grid__event-default">
-                <span class="coar-time-grid__event-title">
-                  {{ eventTitle(e) }}
-                </span>
-              </div>
             </template>
           </CoarTimeGridEvent>
 
           <!-- Source phantom for the dragged event at its original slot. -->
           <CoarTimeGridEvent
-            v-if="
-              dragSourceSnapshot
-                && dragSourceSnapshot.dayKey === layout.date.toString()
-            "
+            v-if="dragSourceSnapshot && dragSourceSnapshot.dayKey === layout.date.toString()"
             variant="phantom"
             :event="dragSourceSnapshot.event"
             :positioned="phantomPositionedStub"
@@ -889,7 +920,12 @@ defineExpose({
             :display-zone="timezone"
             :density="density"
             :top="minutesToOffsetPx(dragSourceSnapshot.startMinutes)"
-            :height="Math.max(16, minutesToPx(dragSourceSnapshot.endMinutes - dragSourceSnapshot.startMinutes))"
+            :height="
+              Math.max(
+                16,
+                minutesToPx(dragSourceSnapshot.endMinutes - dragSourceSnapshot.startMinutes),
+              )
+            "
             :left="`calc(${(dragSourceSnapshot.lane / dragSourceSnapshot.laneCount) * 100}% + ${dragSourceSnapshot.lane === 0 ? 4 : 2}px)`"
             :width="`calc(${100 / dragSourceSnapshot.laneCount}% - ${(dragSourceSnapshot.lane === 0 ? 4 : 2) + (dragSourceSnapshot.lane === dragSourceSnapshot.laneCount - 1 ? 4 : 2)}px)`"
             :z-index="dragSourceSnapshot.lane + 1"
@@ -898,9 +934,9 @@ defineExpose({
           <!-- Invalid timed ghost. -->
           <CoarTimeGridEvent
             v-if="
-              invalidTimedGhost
-                && invalidTimedGhost.dayKey === layout.date.toString()
-                && dnd.draggedEvent.value
+              invalidTimedGhost &&
+              invalidTimedGhost.dayKey === layout.date.toString() &&
+              dnd.draggedEvent.value
             "
             variant="invalid"
             :event="dnd.draggedEvent.value!"
@@ -922,7 +958,6 @@ defineExpose({
             v-if="isTodayColumn(layout.date) && nowMinutesFromGridStart !== null"
             :top-px="minutesToOffsetPx(nowMinutesFromGridStart)"
           />
-
         </CoarTimeGridColumn>
       </div>
     </div>
@@ -1033,7 +1068,6 @@ defineExpose({
 /* Column visuals (today / weekend tint, slot-gradient lines,
    contain:layout for outline overflow) live in
    `internal/time-grid/CoarTimeGridColumn.vue`. */
-
 
 /* Event visuals (timed card variants, resize handles, snap-back,
    now-marker) live in `internal/time-grid/`. The slot-fallback

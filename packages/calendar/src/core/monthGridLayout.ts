@@ -1,8 +1,8 @@
 /**
  * Pure-function layout for the month view.
  *
- * The month view renders a fixed 6 × 7 grid (42 cells, always —
- * see `monthGridDates` in temporal.ts). Events fall into two
+ * The classic month view renders a fixed 6 × 7 grid. Continuous
+ * month sections may contain 4–6 complete week rows. Events fall into two
  * visual categories:
  *
  *   1. **Multi-day all-day events** render as horizontal BARS that
@@ -26,10 +26,7 @@
 
 import type { CalendarEvent } from './types';
 import { isAllDayEvent } from './types';
-import {
-  layoutOverlappingIntervals,
-  type IntervalInput,
-} from './overlapLayout';
+import { layoutOverlappingIntervals, type IntervalInput } from './overlapLayout';
 import { Temporal, dateKey, eventStartDateInZone } from './temporal';
 
 // ─── Output types ────────────────────────────────────────────────────
@@ -80,7 +77,7 @@ export interface MonthWeekRow<TMeta extends Record<string, unknown> = Record<str
 }
 
 export interface MonthLayout<TMeta extends Record<string, unknown> = Record<string, unknown>> {
-  /** Always 6 rows. */
+  /** Complete seven-day rows; classic grids use 6, continuous sections use 4–6. */
   weekRows: ReadonlyArray<MonthWeekRow<TMeta>>;
 }
 
@@ -88,7 +85,7 @@ export interface MonthLayout<TMeta extends Record<string, unknown> = Record<stri
 
 export interface MonthLayoutOptions {
   /**
-   * The 42 dates of the month grid, in row-major order
+   * Complete weeks of the month grid, in row-major order
    * (cell 0 = top-left, cell 6 = top-right, cell 7 = next row,
    * etc.). Use `monthGridDates(yearMonth, firstDayOfWeek)` from
    * temporal.ts.
@@ -96,6 +93,9 @@ export interface MonthLayoutOptions {
   gridDates: ReadonlyArray<Temporal.PlainDate>;
   /** Timezone for resolving timed events. */
   timezone: string;
+  /** Optional inclusive bounds. Dates outside stay as layout placeholders. */
+  visibleStart?: Temporal.PlainDate;
+  visibleEnd?: Temporal.PlainDate;
 }
 
 // ─── Main function ───────────────────────────────────────────────────
@@ -112,9 +112,9 @@ export function layoutMonthGrid<TMeta extends Record<string, unknown> = Record<s
   opts: MonthLayoutOptions,
 ): MonthLayout<TMeta> {
   const { gridDates, timezone } = opts;
-  if (gridDates.length !== 42) {
+  if (gridDates.length < 7 || gridDates.length % 7 !== 0) {
     throw new RangeError(
-      `gridDates must have exactly 42 entries (got ${gridDates.length})`,
+      `gridDates must contain complete seven-day rows (got ${gridDates.length})`,
     );
   }
 
@@ -126,7 +126,7 @@ export function layoutMonthGrid<TMeta extends Record<string, unknown> = Record<s
     weekStart: Temporal.PlainDate;
     weekEnd: Temporal.PlainDate;
   }[] = [];
-  for (let r = 0; r < 6; r++) {
+  for (let r = 0; r < gridDates.length / 7; r++) {
     const days = gridDates.slice(r * 7, r * 7 + 7) as Temporal.PlainDate[];
     const dayKeyToCol = new Map<string, number>();
     for (let i = 0; i < 7; i++) dayKeyToCol.set(dateKey(days[i]), i);
@@ -155,14 +155,15 @@ export function layoutMonthGrid<TMeta extends Record<string, unknown> = Record<s
     if (seenIds.has(event.id)) continue;
     seenIds.add(event.id);
 
-    const { firstDay, lastDayInclusive, isMultiDay } = resolveDayBounds(
-      event,
-      timezone,
-    );
+    const { firstDay, lastDayInclusive, isMultiDay } = resolveDayBounds(event, timezone);
+
+    const insideVisibleBounds = (day: Temporal.PlainDate) =>
+      (!opts.visibleStart || Temporal.PlainDate.compare(day, opts.visibleStart) >= 0) &&
+      (!opts.visibleEnd || Temporal.PlainDate.compare(day, opts.visibleEnd) <= 0);
 
     if (isMultiDay) {
       multiDayCandidates.push({ event, firstDay, lastDayInclusive });
-    } else {
+    } else if (insideVisibleBounds(firstDay)) {
       // Single-day. Pin to the start day's bucket.
       const key = dateKey(firstDay);
       const existing = cellPillsByKey.get(key);
@@ -195,14 +196,15 @@ export function layoutMonthGrid<TMeta extends Record<string, unknown> = Record<s
       ) {
         continue;
       }
-      const visStart =
-        Temporal.PlainDate.compare(m.firstDay, row.weekStart) < 0
-          ? row.weekStart
-          : m.firstDay;
-      const visEnd =
-        Temporal.PlainDate.compare(m.lastDayInclusive, row.weekEnd) > 0
-          ? row.weekEnd
-          : m.lastDayInclusive;
+      const visStart = [m.firstDay, row.weekStart, opts.visibleStart]
+        .filter((date): date is Temporal.PlainDate => date !== undefined)
+        .reduce((latest, date) => (Temporal.PlainDate.compare(date, latest) > 0 ? date : latest));
+      const visEnd = [m.lastDayInclusive, row.weekEnd, opts.visibleEnd]
+        .filter((date): date is Temporal.PlainDate => date !== undefined)
+        .reduce((earliest, date) =>
+          Temporal.PlainDate.compare(date, earliest) < 0 ? date : earliest,
+        );
+      if (Temporal.PlainDate.compare(visStart, visEnd) > 0) continue;
       const startCol = row.dayKeyToCol.get(dateKey(visStart));
       const endCol = row.dayKeyToCol.get(dateKey(visEnd));
       if (startCol === undefined || endCol === undefined) continue;
@@ -210,10 +212,8 @@ export function layoutMonthGrid<TMeta extends Record<string, unknown> = Record<s
         ...m,
         startCol,
         endCol,
-        clippedStart:
-          Temporal.PlainDate.compare(m.firstDay, row.weekStart) < 0,
-        clippedEnd:
-          Temporal.PlainDate.compare(m.lastDayInclusive, row.weekEnd) > 0,
+        clippedStart: Temporal.PlainDate.compare(m.firstDay, row.weekStart) < 0,
+        clippedEnd: Temporal.PlainDate.compare(m.lastDayInclusive, row.weekEnd) > 0,
       });
     }
 
@@ -241,6 +241,8 @@ export function layoutMonthGrid<TMeta extends Record<string, unknown> = Record<s
     // Cell pills for this row's days.
     const cellPills = new Map<string, MonthCellPill<TMeta>[]>();
     for (const day of row.days) {
+      if (opts.visibleStart && Temporal.PlainDate.compare(day, opts.visibleStart) < 0) continue;
+      if (opts.visibleEnd && Temporal.PlainDate.compare(day, opts.visibleEnd) > 0) continue;
       const key = dateKey(day);
       const pills = cellPillsByKey.get(key);
       if (pills) cellPills.set(key, pills);
@@ -297,8 +299,7 @@ function resolveDayBounds(
     return {
       firstDay,
       lastDayInclusive,
-      isMultiDay:
-        Temporal.PlainDate.compare(lastDayInclusive, firstDay) > 0,
+      isMultiDay: Temporal.PlainDate.compare(lastDayInclusive, firstDay) > 0,
     };
   }
 

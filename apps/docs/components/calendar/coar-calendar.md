@@ -1,14 +1,38 @@
 ---
-description: "CoarCalendar — top-level calendar shell wiring Day, Week, Month and Agenda views with navigation and a view switcher, driven by the chainable useCalendar builder"
+description: "CoarCalendar — top-level calendar shell wiring the iOS-style Year, Month, Day and Agenda hierarchy plus Week and Work Week, driven by the chainable useCalendar builder"
 ---
 
 # `<CoarCalendar>` — Composer <Badge type="warning" text="Preview" />
 
-`<CoarCalendar>` is the top-level shell that wires all four views (Day / Week / Month / Agenda) together with prev / today / next navigation and a view switcher. It's driven by the **builder** returned from `useCalendar()` — a single chainable surface that owns events, configuration, handlers, renderers, and an imperative `api` object.
+`<CoarCalendar>` is the top-level shell that wires the complete calendar hierarchy together with prev / today / next navigation and responsive display controls. It's driven by the **builder** returned from `useCalendar()` — a single chainable surface that owns events, recurrence, configuration, handlers, renderers, and an imperative `api` object.
 
 The builder is **flat**: every setter lives directly on it, including view-specific ones (`timeRange`, `slotDuration` for Day / Week; `maxEventsPerCell` for Month; `agendaLengthDays` / `showEmptyDays` for Agenda). View-specific settings are no-ops outside their target view, so a single chained `.timeRange(...).maxEventsPerCell(...)` is fine — each one only takes effect when the matching view is active.
 
 When you embed `<CoarDayView>` / `<CoarWeekView>` / `<CoarMonthView>` / `<CoarAgendaView>` standalone (without the shell), they consume the same builder type — `useDayView()` etc. are just shorthands that pre-set the matching `view` value.
+
+## View hierarchy
+
+The primary switcher follows iOS while keeping the fixed web time grids as useful additions:
+
+| Primary view | Display choices |
+|---|---|
+| Year | Responsive twelve-month overview; selecting a day or month drills into Month. |
+| Month | Compact, Stacked, Details, List. The first three use continuously scrolling 4–6-week month sections. |
+| Week | Fixed seven-day time grid. |
+| Work week | The Week grid filtered by `workDays(...)`. |
+| Day | One day or width-aware Multi-day (1–7 complete columns). |
+| Agenda | Virtualized chronological list. |
+
+`monthList` is a serializable `CalendarView`, but the shell presents it as the **List** choice under Month. Likewise, `dayMode('single' | 'multiDay')` changes the Day renderer without adding another primary view. `dayAgenda` and `timeline` remain opt-in views and are not in the default switcher.
+
+```ts
+builder
+  .availableViews(['year', 'month', 'monthList', 'week', 'workWeek', 'day', 'agenda'])
+  .monthDensity('stacked')
+  .dayMode('multiDay')
+  .dayColumnMinWidth(220)
+  .shadeWeekends(true);
+```
 
 ## Basic usage
 
@@ -157,7 +181,7 @@ Two ways to customise event rendering — pick whichever fits the consumer code 
 
 ### Template slot
 
-The `#event` slot replaces the default event card. The slot receives `{ event, view, layout?, item? }` so you can render differently per view. The same slot is forwarded to all four sub-views (and used as a fallback for month pills / bars when no specific `#pill` / `#multiDayBar` slot is supplied).
+The `#event` slot replaces the default event card. The slot receives `{ event, view, layout?, item? }` so you can render differently per view. The shell forwards it to every event-rendering sub-view (and uses it as a fallback for month pills / bars when no specific `#pill` / `#multiDayBar` slot is supplied).
 
 <preview path="./demos/CalendarCustomEventSlot.vue" />
 
@@ -326,7 +350,19 @@ builder.onEventClick(({ event }) => {
 });
 ```
 
-`event.id` is a unique synthetic value of shape `${seriesId}__${recurrenceId}` — the layout pipeline dedupes by id, so series identity lives in the provenance accessor, not on the event id directly. `recurrenceId` matches RFC 5545 RECURRENCE-ID semantics (the original slot), enabling future single-instance edits without data-shape changes.
+`event.id` is a unique synthetic value of shape `${seriesId}__${recurrenceId}` — the layout pipeline dedupes by id, so series identity lives in the provenance accessor, not on the event id directly. `recurrenceId` matches RFC 5545 RECURRENCE-ID semantics (the original slot) and is the stable boundary for occurrence-scoped editing.
+
+### Editing a recurring occurrence
+
+The calendar owns expansion and provenance; the host application owns persistence. When an occurrence is clicked, dragged, resized, or deleted, use `getRecurrenceMeta(event)` to offer the familiar scopes:
+
+| Scope | Persistence operation |
+|---|---|
+| This occurrence | Add `recurrenceId` to the source series' EXDATE set and, for a move/edit, persist one standalone event at the new date/time. |
+| This and following | Split the RRULE immediately before `recurrenceId`, then persist the following part as a new series whose DTSTART contains the edit or move. |
+| Entire series | Update the original series and shift its DTSTART / RDATE / EXDATE values losslessly. |
+
+The library deliberately does not guess a backend wire shape or perform those writes. It guarantees that every occurrence handler receives the original series id, RFC recurrence id, and source (`rrule` or `rdate`) needed to implement all three operations without identifying an occurrence by its rendered position.
 
 ### Standalone expansion
 
@@ -372,6 +408,21 @@ Engine-swap invariance is enforced by the library: every occurrence is re-resolv
 
 <preview path="./demos/CalendarRecurrence.vue" />
 
+## Create and edit integration
+
+The calendar owns interaction geometry; the host application owns the editing experience and persistence. There is deliberately no fixed create/edit overlay because web consumers may want a popover, modal, side panel, routed page, or a completely custom view. The flat builder exposes the same integration seam for each choice:
+
+```ts
+builder
+  .onDateClick(({ date, native }) => openCreate({ date, anchor: native.currentTarget }))
+  .onTimeClick(({ date, time, native }) => openCreate({ date, time, anchor: native.currentTarget }))
+  .onEventClick(({ event, native }) => openDetails(event, native.currentTarget))
+  .onEventDoubleClick(({ event }) => openEditModal(event))
+  .onEventDrop(({ event, next }) => persistMove(event.id, next));
+```
+
+`native.currentTarget` is the rendered calendar element and can be passed directly to `@cocoar/vue-ui`'s overlay service. Applications using a modal or routed editor can ignore it. For recurring events, call `getRecurrenceMeta(event)` before opening the editor so the host can offer This occurrence / This and following / Entire series; the calendar supplies stable occurrence identity but never guesses the backend mutation.
+
 ## Popovers and tooltips
 
 The library deliberately doesn't ship a built-in popover — every app wants different content (title-only tooltip vs full action menu vs edit-in-place panel). What it does ship are two handlers that surface the timing + anchor element so consumer code can wire `useOverlay()` (from `@cocoar/vue-ui`) into events:
@@ -402,7 +453,7 @@ builder
 
 `native.currentTarget` is the event-element DOM node — pass it straight to the overlay's anchor spec. The same pattern works for click-driven popovers (use `onEventClick`) and double-click triggers (`onEventDoubleClick`). No hover delay is applied; wrap the open in `setTimeout(..., 200)` if you want one. For touch / pen pointers, `pointerenter` fires on press — handler doubles as a long-press surface on tablets when paired with a delay.
 
-Handlers fire across all five views (day / week / workWeek / month / agenda / timeline) at the same DOM elements that handle click. The library never opens an overlay itself — the entire interaction lifecycle (open / close / outside-click / escape / scroll-strategy) lives in consumer code via the overlay spec.
+Handlers fire across every event-rendering view at the same DOM elements that handle click. The library never opens an overlay itself — the entire interaction lifecycle (open / close / outside-click / escape / scroll-strategy) lives in consumer code via the overlay spec.
 
 <preview path="./demos/CalendarPopover.vue" />
 
@@ -418,6 +469,8 @@ api.prev();
 api.goToToday();
 api.goTo('2026-12-25');
 api.setView('month');
+api.setMonthDensity('compact');
+api.setDayMode('multiDay');
 api.scrollToTime(8);            // day / week only
 api.scrollToDate('2026-04-15'); // agenda only
 api.getVisibleRange();          // ViewWindow | null
@@ -461,9 +514,14 @@ The builder is **flat** — every setter lives directly on it. There are no sub-
 | `locale(loc)` | `MaybeRefOrGetter<string \| undefined>` | BCP-47 locale. |
 | `firstDayOfWeek(d)` | `MaybeRefOrGetter<0..6 \| undefined>` | Override the locale-detected default. |
 | `workDays(d)` | `MaybeRefOrGetter<readonly DayOfWeek[]>` | Days to render in the `'workWeek'` view (0 = Sun … 6 = Sat). Default `[1,2,3,4,5]` (Mon–Fri). |
+| `shadeWeekends(b)` | `MaybeRefOrGetter<boolean>` | Tint Saturday / Sunday cells and headers in Month. Default `true`; disable for the unshaded iOS appearance. |
+| `monthDensity(d)` | `MaybeRefOrGetter<'compact' \| 'stacked' \| 'details'>` | Month presentation. The shell exposes these beside the optional List variation. Default `'details'`. |
+| `dayMode(m)` | `MaybeRefOrGetter<'single' \| 'multiDay'>` | One fixed day or a width-aware 1–7-day surface. Default `'single'`. |
 | `timeRange(r)` | `MaybeRefOrGetter<{ startMinutes: number; endMinutes: number }>` | Day / week visible hour range, in minutes from midnight. |
 | `slotDuration(d)` | `MaybeRefOrGetter<number>` | Time-grid slot subdivision (minutes). Default `30`. |
 | `pixelsPerHour(p)` | `MaybeRefOrGetter<number>` | Time-grid row height. Default `60`. |
+| `dayColumnCount(n)` | `MaybeRefOrGetter<number>` | Minimum complete columns in Multi-day mode. Clamped to `1…7`. |
+| `dayColumnMinWidth(px)` | `MaybeRefOrGetter<number>` | Target width used to derive extra Multi-day columns. |
 | `density(d)` | `MaybeRefOrGetter<'comfortable' \| 'compact'>` | Row / padding tightness. |
 | `maxEventsPerCell(n)` | `MaybeRefOrGetter<number>` | Month-cell pill hint. Default `3`. |
 | `agendaLengthDays(n)` | `MaybeRefOrGetter<number>` | Days the agenda window covers. Default `30`. |
@@ -476,11 +534,10 @@ The builder is **flat** — every setter lives directly on it. There are no sub-
 | `canDrop(fn)` | `(event, target) => boolean` | Drop-target validator. Read refs inside the function for reactive policies. |
 | `eventRenderer(r)` | `EventRenderer<TMeta>` | Universal event renderer. Branch on `ctx.layout?.kind` (`'positioned'` / `'allDayBar'` / `'monthPill'` / `'monthBar'`) to render per layout variant. See "Custom event rendering" above. |
 | `dayHeaderRenderer(r)` | `DayHeaderRenderer` | Day column header. |
-| `onEventClick(fn)` | `(payload: { event, native: PointerEvent }) => void` | |
-| `onEventDoubleClick(fn)` | `(payload: { event, native: MouseEvent }) => void` | |
+| `onEventClick(fn)` | `(payload: { event, native: PointerEvent }) => void` | Common: open details, a side panel or a click-anchored popover. |
+| `onEventDoubleClick(fn)` | `(payload: { event, native: MouseEvent }) => void` | Common: open the host application's edit UI. |
 | `onEventHover(fn)` | `(payload: { event, native: PointerEvent }) => void` | Pair with `useOverlay()` for popovers / tooltips. `native.currentTarget` is the anchor element. No hover delay applied — wrap with `setTimeout(..., 200)` if needed. |
 | `onEventHoverLeave(fn)` | `(payload: { event, native: PointerEvent }) => void` | Companion close-trigger for the popover the hover handler opened. |
-| `onEventDoubleClick(fn)` | `(payload) => void` | Common: open an edit dialog. |
 | `onEventDrop(fn)` | `(payload) => void` | Drag-and-drop / keyboard / touch all flow through this. |
 | `onDateClick(fn)` | `(payload) => void` | Empty cell / day-header clicked. |
 | `onTimeClick(fn)` | `(payload) => void` | Empty time slot (week / day). |
@@ -496,6 +553,8 @@ interface CalendarApi<TMeta> {
   next(): void;
   prev(): void;
   setView(view: CalendarView): void;
+  setMonthDensity(density: CalendarMonthDensity): void;
+  setDayMode(mode: CalendarDayMode): void;
   getVisibleRange(): ViewWindow | null;
   getVisibleEvents(): CalendarEvent<TMeta>[];
   scrollToTime(time: Temporal.PlainTime): void;

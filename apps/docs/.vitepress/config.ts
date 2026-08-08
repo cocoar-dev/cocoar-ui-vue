@@ -72,6 +72,14 @@ export default defineConfig({
           replacement: resolve(__dirname, '../../../packages/script-editor/src/index.ts'),
         },
         {
+          find: /^@cocoar\/vue-page-builder$/,
+          replacement: resolve(__dirname, '../../../packages/page-builder/src/index.ts'),
+        },
+        {
+          find: /^@cocoar\/vue-page-builder\/styles$/,
+          replacement: resolve(__dirname, '../../../packages/page-builder/dist/index.css'),
+        },
+        {
           find: /^@cocoar\/vue-markdown-editor$/,
           replacement: resolve(__dirname, '../../../packages/markdown-editor/src/index.ts'),
         },
@@ -82,6 +90,17 @@ export default defineConfig({
         {
           find: /^@cocoar\/vue-calendar\/core$/,
           replacement: resolve(__dirname, '../../../packages/calendar/src/core/index.ts'),
+        },
+        {
+          find: /^@cocoar\/vue-calendar\/recurrence$/,
+          replacement: resolve(__dirname, '../../../packages/calendar/src/recurrence/index.ts'),
+        },
+        {
+          find: /^@cocoar\/vue-calendar\/recurrence-rrule-temporal$/,
+          replacement: resolve(
+            __dirname,
+            '../../../packages/calendar/src/recurrence-rrule-temporal/index.ts',
+          ),
         },
         {
           find: /^@cocoar\/vue-file-explorer-core$/,
@@ -391,10 +410,11 @@ export default defineConfig({
           items: [
             { text: 'Overview', link: '/components/calendar/' },
             { text: 'CoarCalendar (composer)', link: '/components/calendar/coar-calendar' },
+            { text: 'Year View', link: '/components/calendar/year-view' },
+            { text: 'Month Views', link: '/components/calendar/month-view' },
             { text: 'Day View', link: '/components/calendar/day-view' },
             { text: 'Week View', link: '/components/calendar/week-view' },
             { text: 'Work Week View', link: '/components/calendar/work-week-view' },
-            { text: 'Month View', link: '/components/calendar/month-view' },
             { text: 'Agenda View', link: '/components/calendar/agenda-view' },
             { text: 'Timeline View', link: '/components/calendar/timeline-view' },
             { text: 'Performance baseline', link: '/components/calendar/performance' },

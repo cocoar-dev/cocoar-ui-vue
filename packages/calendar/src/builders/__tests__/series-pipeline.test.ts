@@ -14,16 +14,13 @@
  *   - `loading` flag accounts for series expansion
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { ref, nextTick } from 'vue';
 import { Temporal } from '@js-temporal/polyfill';
 import { useCalendar } from '../../useCalendar';
 import { SET_VISIBLE_RANGE } from '../calendar-builder-internals';
 import type { ViewWindow } from '../../core';
-import type {
-  CalendarEvent,
-  RecurringSeries,
-} from '../../core/types';
+import type { CalendarEvent, RecurringSeries } from '../../core/types';
 import { getRecurrenceMeta } from '../../recurrence';
 import type { RecurrenceEngine } from '../../recurrence/types';
 
@@ -40,9 +37,7 @@ function makeWeeklySeries(id = 'standup'): RecurringSeries {
   return {
     id,
     rrule: 'FREQ=WEEKLY;BYDAY=MO',
-    dtstart: Temporal.ZonedDateTime.from(
-      '2026-06-01T09:00:00[Europe/Vienna]',
-    ),
+    dtstart: Temporal.ZonedDateTime.from('2026-06-01T09:00:00[Europe/Vienna]'),
     duration: { minutes: 30 },
   };
 }
@@ -69,11 +64,15 @@ describe('builder.series() reactive source', () => {
     const { builder, api } = useCalendar();
     builder.series([makeWeeklySeries()]);
     builder[SET_VISIBLE_RANGE](VIENNA_WINDOW);
-    await flushAsync();
-    // The first recurrence-engine import is intentionally lazy. Under the
-    // repository-wide parallel test load it can outlive the fixed warm-up
-    // delay, so assert the observable result instead of CPU timing.
-    await expect.poll(() => api.getVisibleEvents().length, { timeout: 2_000 }).toBe(5);
+    // The first expansion lazy-loads the default recurrence engine. On a
+    // busy CI runner that import can take longer than the fixed debounce
+    // flush used by the remaining, already-warmed pipeline tests.
+    await vi.waitFor(
+      () => {
+        expect(api.getVisibleEvents()).toHaveLength(5);
+      },
+      { timeout: 10_000 },
+    );
     const events = api.getVisibleEvents();
     // Mondays Jun 1, 8, 15, 22, 29 → 5 occurrences
     expect(events.length).toBe(5);
@@ -201,9 +200,7 @@ describe('series + events composition', () => {
     const { builder, api } = useCalendar();
     const oneOff: CalendarEvent = {
       id: 'one-off',
-      start: Temporal.ZonedDateTime.from(
-        '2026-06-15T14:00:00[Europe/Vienna]',
-      ),
+      start: Temporal.ZonedDateTime.from('2026-06-15T14:00:00[Europe/Vienna]'),
     };
     builder.events([oneOff]);
     builder.series([makeWeeklySeries()]);
@@ -221,9 +218,7 @@ describe('series + events composition', () => {
     builder.eventsLoader(async () => [
       {
         id: 'loaded-one-off',
-        start: Temporal.ZonedDateTime.from(
-          '2026-06-10T14:00:00[Europe/Vienna]',
-        ),
+        start: Temporal.ZonedDateTime.from('2026-06-10T14:00:00[Europe/Vienna]'),
       },
     ]);
     builder.series([makeWeeklySeries()]);

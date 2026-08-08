@@ -1,10 +1,10 @@
 ---
-description: "@cocoar/vue-calendar — Temporal-based Vue 3 calendar with Day, Week, Month and Agenda views, usable through the CoarCalendar shell or as standalone sub-views"
+description: "@cocoar/vue-calendar — Temporal-based Vue 3 calendar with Year, Month, Week, Day and Agenda views, iOS-style display variations, recurrence and standalone sub-views"
 ---
 
 # Calendar <Badge type="warning" text="Preview" />
 
-A Vue 3 calendar built around four views — **Day**, **Week**, **Month**, **Agenda** — and a top-level [`<CoarCalendar>`](/components/calendar/coar-calendar) shell that wires them together with prev / today / next navigation and a view switcher.
+A Vue 3 calendar whose visible hierarchy follows the iOS calendar: **Year**, **Month**, **Day** and **Agenda**, plus fixed **Week** and **Work week** time grids for web applications. Month and Day expose their display choices as nested variations instead of flattening every renderer into the primary view switcher.
 
 Events on the public surface use **`Temporal`** values directly (`PlainDate` for all-day, `ZonedDateTime` for timed) — there's no string parsing or implicit-zone guessing. Consumers convert their wire format (ISO strings, epoch ms, etc.) at the boundary; the calendar receives unambiguous values and runs all date math on them across DST boundaries.
 
@@ -14,9 +14,12 @@ import {
   CoarCalendar,
   useCalendar,
   // Sub-views — each usable standalone via a matching composable
+  CoarYearView,
+  CoarContinuousMonthView,
+  CoarMonthListView,
+  CoarMonthView,  useMonthView,
   CoarDayView,    useDayView,
   CoarWeekView,   useWeekView,
-  CoarMonthView,  useMonthView,
   CoarAgendaView, useAgendaView,
   // Drop-in display-zone selector (writes to a string ref consumed by `builder.timezone(ref)`)
   CoarDisplayZoneSwitcher,
@@ -34,7 +37,7 @@ import {
 
 ### As a single shell
 
-[`<CoarCalendar>`](/components/calendar/coar-calendar) is the all-in-one component: header with prev / today / next, a segmented-control view switcher, and the body that dispatches to whichever view is active. **One** `useCalendar()` builder feeds it; switching views is just `api.setView('agenda')`.
+[`<CoarCalendar>`](/components/calendar/coar-calendar) is the all-in-one component: header with prev / today / next, a primary view switcher, nested Month / Day display controls, and the body that dispatches to whichever view is active. **One** `useCalendar()` builder feeds it; switching views is just `api.setView('agenda')`.
 
 ```ts
 const { builder, api } = useCalendar();
@@ -46,7 +49,7 @@ builder.events(events).date(date).timezone('Europe/Vienna');
 ```
 
 ::: tip Use the shell when…
-You want all four views, navigation chrome, and a consistent feel without writing custom layout. This is the path 90 % of consumers want.
+You want the complete view hierarchy, navigation chrome, and a consistent feel without writing custom layout. This is the path 90 % of consumers want.
 :::
 
 ### As a single sub-view
@@ -55,9 +58,12 @@ Each sub-view is exported and consumes its OWN `:builder` produced by a matching
 
 | View | Component | Composable | Builder |
 |---|---|---|---|
+| Year | [`<CoarYearView>`](/components/calendar/year-view) | `useCalendar()` + `.view('year')` | `CalendarBuilder` |
+| Continuous Month | [`<CoarContinuousMonthView>`](/components/calendar/month-view) | `useCalendar()` + `.view('month')` | `CalendarBuilder` |
+| Month List | [`<CoarMonthListView>`](/components/calendar/month-view#month-list) | `useCalendar()` + `.view('monthList')` | `CalendarBuilder` |
 | Day | [`<CoarDayView>`](/components/calendar/day-view) | `useDayView()` | `CalendarBuilder` |
 | Week | [`<CoarWeekView>`](/components/calendar/week-view) | `useWeekView()` | `CalendarBuilder` |
-| Month | [`<CoarMonthView>`](/components/calendar/month-view) | `useMonthView()` | `CalendarBuilder` |
+| Single Month Section | [`<CoarMonthView>`](/components/calendar/month-view#single-month-section) | `useMonthView()` | `CalendarBuilder` |
 | Agenda | [`<CoarAgendaView>`](/components/calendar/agenda-view) | `useAgendaView()` | `CalendarBuilder` |
 
 ```ts
@@ -90,7 +96,7 @@ Eight non-negotiable invariants drawn from the ["Time in Software, Done Right"][
 | 3, 4 | **C5** Display zone vs source zone separated | `EventDropPayload.target.displayZone` (the zone the user's eyes saw) and `next.start.timeZoneId` (where the event actually lives) are distinct fields. Switching display zone never destroys event intent. |
 | 9 | **C6** Three independent display decisions | `locale`, `dateStyle`, `timeStyle`, `hour12` are independent setters, none derived from another. `buildFormatOptions(base, overrides)` is the only `Intl.DateTimeFormat` merge point. |
 | spirit | **C7** Reactivity by reads, not setup-captures | Every consumer function (`canDrop`, `eventsLoader`, `eventRenderer`, `dayHeaderRenderer`) is read on every invocation — never captured at setup. Mutating the builder mid-session always takes effect on the next call. |
-| 5 | **C8** Recurrence is a first-class type | `RecurringSeries` lives separately from `CalendarEvent`. `expandSeries(...)` ships as a typed throwing stub today — the engine wires up post-launch, but the contract is stable now so consumers can build against it. |
+| 5 | **C8** Recurrence is a first-class type | `RecurringSeries` lives separately from `CalendarEvent`. RRULE / RDATE / EXDATE expand only for the visible window through the lazy bundled `rrule-temporal` engine, with occurrence provenance preserved for consumer-side series editing. |
 
 The conformance test suite at `src/core/__tests__/timezone/` pins every invariant; CI fails if any of them slips.
 
@@ -189,7 +195,7 @@ builder.timezone(timezoneRef);                   // ref
 builder.density(() => narrow.value ? 'compact' : 'comfortable');  // getter / computed
 ```
 
-This applies on every builder — the shell composer, every sub-view standalone, and the sub-builders inside the shell.
+This applies to the one flat builder shared by the shell and to every standalone sub-view builder.
 
 ## Theming
 
@@ -259,7 +265,8 @@ Layout-mirroring for `direction: rtl` is **not yet** wired (multi-day bars, resi
 ## Where to next
 
 - **[`<CoarCalendar>` (composer)](/components/calendar/coar-calendar)** — the top-level shell + the full builder API reference.
-- **[Day View](/components/calendar/day-view)** — single-day time-grid surface.
+- **[Year View](/components/calendar/year-view)** — responsive twelve-month overview and drill-in.
+- **[Month Views](/components/calendar/month-view)** — continuous Compact / Stacked / Details months and responsive Month List.
+- **[Day View](/components/calendar/day-view)** — one-day or width-aware multi-day time-grid surface.
 - **[Week View](/components/calendar/week-view)** — 7-day time-grid + all-day band.
-- **[Month View](/components/calendar/month-view)** — 6×7 grid with multi-day bars + per-cell pills.
 - **[Agenda View](/components/calendar/agenda-view)** — virtualized chronological list grouped by day.

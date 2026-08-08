@@ -20,10 +20,7 @@ export default defineConfig({
         index: resolve(__dirname, 'src/index.ts'),
         core: resolve(__dirname, 'src/core/index.ts'),
         recurrence: resolve(__dirname, 'src/recurrence/index.ts'),
-        'recurrence-rrule-temporal': resolve(
-          __dirname,
-          'src/recurrence-rrule-temporal/index.ts',
-        ),
+        'recurrence-rrule-temporal': resolve(__dirname, 'src/recurrence-rrule-temporal/index.ts'),
       },
       formats: ['es'],
     },
@@ -52,5 +49,9 @@ export default defineConfig({
   test: {
     environment: 'happy-dom',
     globals: true,
+    // Calendar component integration tests mount full month/time-grid trees.
+    // Under the monorepo's parallel CI load these can exceed Vitest's 5s
+    // default even though the same assertions finish quickly in isolation.
+    testTimeout: 15_000,
   },
 });

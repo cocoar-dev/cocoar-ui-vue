@@ -57,10 +57,7 @@ defineSlots<{
   position: relative;
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  /* `height` is set inline by the parent via the `heightPx` prop;
-     this `min-height` is an emergency floor in case the inline
-     height is ever omitted. */
-  min-height: 100px;
+  min-height: 0;
   border-bottom: 1px solid var(--coar-calendar-border, #d1d5db);
   /* Smooth the collapsed → expanded height change when a user
      opens (or closes) a row via the cell kebab. 200 ms is short
@@ -70,13 +67,11 @@ defineSlots<{
   transition: height 200ms ease-out;
 }
 @media (prefers-reduced-motion: reduce) {
-  .coar-month-row { transition: none; }
+  .coar-month-row {
+    transition: none;
+  }
 }
 .coar-month-row:last-child {
   border-bottom: none;
-}
-
-.coar-month-row--density-compact {
-  min-height: 80px;
 }
 </style>

@@ -24,12 +24,22 @@
  * at-or-before the topmost visible item.
  */
 
-import { computed, onBeforeUnmount, onMounted, ref, toValue, useTemplateRef, watchEffect } from 'vue';
+import {
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  toValue,
+  useTemplateRef,
+  watchEffect,
+} from 'vue';
 import { useI18n, useLocalization } from '@cocoar/vue-localization';
 import VirtualizedSurface1DY from './VirtualizedSurface1DY.vue';
 import {
   Temporal,
   buildAgendaItems,
+  detectFirstDayOfWeekFromLocale,
+  startOfWeek,
   todayInZone,
   isAllDayEvent,
   isTimedEvent,
@@ -49,12 +59,15 @@ import { useViewWindow } from '../composables/useViewWindow';
 const props = withDefaults(
   defineProps<{
     builder: CalendarBuilder<TMeta>;
+    /** Agenda surface semantics: rolling agenda, one-day list, or current-month list. */
+    view?: 'agenda' | 'dayAgenda' | 'monthList';
     /** Estimate for variable-size virtualization. Default 64 px. */
     estimatedItemSize?: number;
     /** Items beyond the viewport rendered each direction. Default 5. */
     overscan?: number;
   }>(),
   {
+    view: 'agenda',
     estimatedItemSize: 64,
     overscan: 5,
   },
@@ -82,6 +95,7 @@ const state = computed(() => {
     events: props.builder.api.getVisibleEvents(),
     timezone: toValue(s.timezone),
     locale: toValue(s.locale),
+    firstDayOfWeek: toValue(s.firstDayOfWeek),
     density: toValue(s.density),
     dateStyle: toValue(s.dateStyle),
     timeStyle: toValue(s.timeStyle),
@@ -102,10 +116,17 @@ const density = computed(() => state.value.density);
 const showEmptyDays = computed(() => state.value.showEmptyDays);
 const agendaLengthDays = computed(() => state.value.agendaLengthDays);
 const cursor = computed(() => props.builder.state.date.value);
+const resolvedFirstDayOfWeek = computed(
+  () => state.value.firstDayOfWeek ?? detectFirstDayOfWeekFromLocale(locale.value),
+);
+const dayAgendaDates = computed(() => {
+  const start = startOfWeek(cursor.value, resolvedFirstDayOfWeek.value);
+  return Array.from({ length: 7 }, (_, index) => start.add({ days: index }));
+});
 
 // Push visible window into the builder for standalone usage (loader /
 // onRangeChange / api.getVisibleRange).
-useViewWindow(props.builder, { view: 'agenda' });
+useViewWindow(props.builder, { view: props.view });
 
 /**
  * Visible date window — derived from the builder's cursor (date)
@@ -117,10 +138,16 @@ useViewWindow(props.builder, { view: 'agenda' });
 // normalization needed; expose it under the existing name so the rest
 // of the file keeps working.
 const cursorDate = computed(() => cursor.value);
-const rangeStart = computed(() => cursorDate.value.toString());
-const rangeEnd = computed(() =>
-  cursorDate.value.add({ days: agendaLengthDays.value }).toString(),
+const rangeStartDate = computed(() =>
+  props.view === 'monthList' ? cursorDate.value.with({ day: 1 }) : cursorDate.value,
 );
+const rangeEndDate = computed(() => {
+  if (props.view === 'dayAgenda') return rangeStartDate.value.add({ days: 1 });
+  if (props.view === 'monthList') return rangeStartDate.value.add({ months: 1 });
+  return rangeStartDate.value.add({ days: agendaLengthDays.value });
+});
+const rangeStart = computed(() => rangeStartDate.value.toString());
+const rangeEnd = computed(() => rangeEndDate.value.toString());
 
 // ─── Items ───────────────────────────────────────────────────────────
 
@@ -189,6 +216,21 @@ function formatHeaderDate(iso: string): string {
   return headerFormatter.value.format(d);
 }
 
+function formatWeekStripWeekday(date: Temporal.PlainDate): string {
+  return new Intl.DateTimeFormat(locale.value, {
+    weekday: 'narrow',
+    timeZone: 'UTC',
+  }).format(new Date(`${date}T00:00:00Z`));
+}
+
+function selectDayAgendaDate(event: MouseEvent, date: Temporal.PlainDate): void {
+  props.builder.api.goTo(date);
+  // The public callback predates button-backed selectors and names its native
+  // input PointerEvent. A keyboard-activated button produces MouseEvent; keep
+  // that activation path working while preserving the existing callback API.
+  props.builder.state.onDateClick?.({ date, native: event as unknown as PointerEvent });
+}
+
 function formatEventTime(event: CalendarEvent<TMeta>): string {
   if (isAllDayEvent(event)) {
     return t('coar.calendar.agenda.allDay', undefined, 'All day');
@@ -242,9 +284,7 @@ onMounted(() => {
   // CoarCalendar.api.scrollToDate finds it. The public API takes
   // Temporal.PlainDate; the inner scrollToDate uses the ISO string
   // form (matches the items[].date keys), so adapt at the boundary.
-  props.builder._setScrollToDate((d: Temporal.PlainDate) =>
-    scrollToDate(d.toString()),
-  );
+  props.builder._setScrollToDate((d: Temporal.PlainDate) => scrollToDate(d.toString()));
 });
 onBeforeUnmount(() => {
   if (scrollEl) {
@@ -314,9 +354,7 @@ watchEffect(measureOverlay);
 // ─── Imperative API ──────────────────────────────────────────────────
 
 function scrollToDate(dateIso: string): void {
-  const idx = items.value.findIndex(
-    (it) => it.kind === 'header' && it.date === dateIso,
-  );
+  const idx = items.value.findIndex((it) => it.kind === 'header' && it.date === dateIso);
   if (idx >= 0) surfaceRef.value?.scrollToIndex(idx);
 }
 
@@ -334,6 +372,31 @@ defineExpose({
     role="region"
     :aria-label="t('coar.calendar.agenda.viewLabel', undefined, 'Agenda view')"
   >
+    <div
+      v-if="view === 'dayAgenda'"
+      class="coar-agenda-view__week-strip"
+      role="tablist"
+      :aria-label="t('coar.calendar.dayAgenda.weekLabel', undefined, 'Week')"
+    >
+      <button
+        v-for="date in dayAgendaDates"
+        :key="date.toString()"
+        type="button"
+        role="tab"
+        class="coar-agenda-view__week-day"
+        :class="{
+          'coar-agenda-view__week-day--selected': Temporal.PlainDate.compare(date, cursor) === 0,
+          'coar-agenda-view__week-day--today': isToday(date),
+        }"
+        :aria-selected="Temporal.PlainDate.compare(date, cursor) === 0"
+        :aria-label="formatHeaderDate(date.toString())"
+        @click="selectDayAgendaDate($event, date)"
+      >
+        <span class="coar-agenda-view__week-day-name">{{ formatWeekStripWeekday(date) }}</span>
+        <span class="coar-agenda-view__week-day-number">{{ date.day }}</span>
+      </button>
+    </div>
+
     <!--
       Floating sticky header overlay. Rendered even at scrollTop=0
       to avoid a 1 px snap on the first scroll tick (otherwise the
@@ -341,7 +404,7 @@ defineExpose({
       briefly leaving a 1 px stripe of clipped inline text).
     -->
     <CoarAgendaDayHeader
-      v-if="floatingHeader"
+      v-if="floatingHeader && view !== 'dayAgenda'"
       ref="overlayEl"
       floating
       :date="Temporal.PlainDate.from(floatingHeader.date)"
@@ -352,10 +415,7 @@ defineExpose({
       :transform="floatingTransform"
       @pointerdown="onHeaderClick($event, floatingHeader.date)"
     >
-      <template
-        v-if="$slots.dayGroupHeader"
-        #default="slotProps"
-      >
+      <template v-if="$slots.dayGroupHeader" #default="slotProps">
         <slot name="dayGroupHeader" v-bind="slotProps" />
       </template>
     </CoarAgendaDayHeader>
@@ -395,9 +455,24 @@ defineExpose({
             :continuation-tag="t('coar.calendar.agenda.continuationTag', undefined, '(cont.)')"
             :display-zone="timezone"
             @pointerdown="onEventClick($event, (items[y] as AgendaEventItem<TMeta>).event)"
-            @dblclick="props.builder.state.onEventDoubleClick?.({ event: (items[y] as AgendaEventItem<TMeta>).event, native: $event })"
-            @pointerenter="props.builder.state.onEventHover?.({ event: (items[y] as AgendaEventItem<TMeta>).event, native: $event })"
-            @pointerleave="props.builder.state.onEventHoverLeave?.({ event: (items[y] as AgendaEventItem<TMeta>).event, native: $event })"
+            @dblclick="
+              props.builder.state.onEventDoubleClick?.({
+                event: (items[y] as AgendaEventItem<TMeta>).event,
+                native: $event,
+              })
+            "
+            @pointerenter="
+              props.builder.state.onEventHover?.({
+                event: (items[y] as AgendaEventItem<TMeta>).event,
+                native: $event,
+              })
+            "
+            @pointerleave="
+              props.builder.state.onEventHoverLeave?.({
+                event: (items[y] as AgendaEventItem<TMeta>).event,
+                native: $event,
+              })
+            "
           >
             <template v-if="$slots.event" #default="slotProps">
               <slot name="event" v-bind="slotProps" />
@@ -412,6 +487,8 @@ defineExpose({
 <style scoped>
 .coar-agenda-view {
   position: relative;
+  display: flex;
+  flex-direction: column;
   background: var(--coar-calendar-bg, #fff);
   font-family: var(--coar-body-base-family, system-ui, sans-serif);
   /* Fill the parent container's available height. */
@@ -419,7 +496,59 @@ defineExpose({
   overflow: hidden;
 }
 .coar-agenda-view__surface {
-  height: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+}
+
+.coar-agenda-view__week-strip {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  flex: 0 0 auto;
+  padding: var(--coar-spacing-xs) var(--coar-spacing-s);
+  border-bottom: 1px solid var(--coar-border-neutral-tertiary);
+  background: var(--coar-background-neutral-primary);
+}
+
+.coar-agenda-view__week-day {
+  display: flex;
+  min-width: 0;
+  min-height: 48px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 3px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--coar-text-neutral-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.coar-agenda-view__week-day:hover:not(.coar-agenda-view__week-day--selected) {
+  background: var(--coar-background-neutral-secondary);
+}
+
+.coar-agenda-view__week-day--selected {
+  background: var(--coar-background-accent-primary);
+  color: var(--coar-text-on-accent, white);
+}
+
+.coar-agenda-view__week-day--today:not(.coar-agenda-view__week-day--selected) {
+  color: var(--coar-text-danger, #d70015);
+}
+
+.coar-agenda-view__week-day-name {
+  font-size: var(--coar-component-xs-font-size);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.coar-agenda-view__week-day-number {
+  font-size: var(--coar-component-s-font-size);
+  font-weight: 700;
 }
 
 /* Density — compact tightens row padding + font size. The actual

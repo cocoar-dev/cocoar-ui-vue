@@ -9,12 +9,13 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ## 2.19.0
 
-**PageBuilder customer authoring, end to end.** Version 2.19 turns the existing
-generic renderer into a complete browser-based customization platform: reactive
-Page and Element Code, host-controlled capabilities, responsive/themed Auth
-presets and reusable versioned compositions all use the same public element,
-action and document contracts. No Modgud- or Auth-specific runtime element type
-was introduced.
+Version 2.19 delivers two major additions: **PageBuilder customer authoring, end
+to end**, and a Vue calendar aligned with the newer Cocoar iOS view hierarchy.
+The PageBuilder's reactive Page and Element Code, host-controlled capabilities,
+responsive/themed Auth presets and reusable versioned compositions all use the
+same generic public element, action and document contracts. The calendar keeps
+its flat `CalendarBuilder` integration surface while adding the new presentation
+and responsive-view vocabulary.
 
 ### Added
 
@@ -27,6 +28,11 @@ was introduced.
 - **`@cocoar/vue-page-builder` — optional Auth customization presets.** `createAuthPageConfig()` and `createAuthPageDocument()` provide Login, Password Forgot, Logout and Consent examples using only the public registry, validation, feedback, repeat, selection, action, translation, responsive and scripting contracts. They are defaults and test fixtures, not privileged runtime branches.
 - **`@cocoar/vue-page-builder` — sandboxed visual markup.** The optional `visual-markup` element renders a bounded declarative document with host-owned values, font registrations and navigation/action policy; arbitrary HTML, DOM scripts and page-global CSS are not accepted.
 - **`@cocoar/vue-page-builder` — schema v5.** Every element has one stable page-wide `name`; for value elements it is also the submitted form/DTO property, while content and container elements use it as their code identity. Version 5 adds builder-only composition-origin metadata and keeps older documents normalized on every ingest path.
+- **`@cocoar/vue-calendar` — iOS-style Year / Month / Day / Agenda hierarchy.** New public `CoarYearView`, `CoarContinuousMonthView` and `CoarMonthListView` components join the existing time-grid and agenda surfaces. The shell groups Compact, Stacked, Details and List under Month, groups One day and Multi-day under Day, and retains fixed Week and Work week views as useful web additions. The old `legacyMonth` idea is intentionally absent.
+- **Continuously scrolling Month.** Month sections render only their required four to six weeks, materialize and preload adjacent months, preserve the active month while density changes, and extend in either direction without an unbounded DOM. Compact, Stacked and Details use content-aware row heights; Month List places the selected-day list below the mini calendar in narrow containers and beside it when space allows.
+- **Responsive Multi-day view.** New fluent setters `dayMode('single' | 'multiDay')`, `dayColumnCount(...)` and `dayColumnMinWidth(...)` derive one to seven complete day columns from the calendar's actual container width. `api.setDayMode(...)` and `api.setMonthDensity(...)` provide the imperative counterparts.
+- **Calendar presentation controls.** `monthDensity(...)` selects Compact / Stacked / Details, `shadeWeekends(...)` controls the weekend tint, event metadata can render assignee avatars, and event foreground contrast is selected from the event colour. The default view set now follows the iOS hierarchy; Timeline remains opt-in.
+- **Public calendar layout helpers.** `responsiveDayColumnCount`, `contentAwareCascadeFrames` and `eventTextColor` are exported from the core subpath for consumers building compatible custom surfaces.
 
 ### Changed
 
@@ -34,6 +40,9 @@ was introduced.
 - **`@cocoar/vue-page-builder` — localization uses stable keys.** Localizable element properties reference a page translation catalogue edited in one Translations tab. Legacy embedded localized objects remain readable, while the properties inspector no longer displays them as `[object Object]`.
 - **`@cocoar/vue-script-editor` — constrained authoring is visually quieter and more usable.** Locked scaffolding markers can be hidden, protected lines are deemphasized without a dominant background, editor sizing is stable, and PageBuilder code dialogs use a wide viewport-relative layout.
 - **`@cocoar/vue-ui` — scoped application themes.** New `CoarThemeScope` applies typed theme primitives and light/dark/auto mode to a subtree, enabling an embedded preview and the production page to share the same brand contract.
+- **`@cocoar/vue-calendar` — create and edit stay host-owned.** `onDateClick`, `onTimeClick`, `onEventClick`, `onEventDoubleClick`, hover handlers and the native DOM anchor form the complete Fluent API integration seam. The library does not force a modal or overlay, so consumers can choose a popover, dialog, side panel or routed editor. Recurring occurrences retain series id, recurrence id and source provenance for This occurrence / This and following / Entire series persistence flows.
+- **Month and time-grid overlaps follow the available content.** Same-day items no longer disappear after two entries in Details mode; every item remains reachable. Timed overlaps use content-aware cascading and width allocation, while responsive headers and view controls wrap against the calendar container instead of overflowing narrow host layouts.
+- **Month-cell drops preserve timed-event intent.** Dropping a timed event onto a month date moves it by the display-date delta while retaining its local time, duration and per-endpoint source zones.
 
 ### Fixed
 
@@ -42,6 +51,9 @@ was introduced.
 - **Monaco JSON diagnostics are documented at the consumer boundary.** PageBuilder uses JavaScript and JSON language services; Vite hosts must route `json` to Monaco's `JsonWorker`. Routing it to the generic editor worker caused `Missing requestHandler or method: doValidation`, `findDocumentColors` and `getFoldingRanges` messages even though the sandbox itself was healthy.
 - **`@cocoar/vue-data-grid` — header and quick-filter configuration stay in the correct column context.** Header localization keys now reach custom headers, and quick-filter settings no longer disappear during column construction.
 - **`@cocoar/vue-ui` — calendar range initialization follows the active month.** The scrollable calendar no longer initializes a stale range when opened on a different month.
+- **`@cocoar/vue-calendar` — selected-day hover contrast and shape.** Month List and Agenda keep the selected day on its accent background while hovering, so the white label remains readable. The Year view applies the same rule to its current-day marker. Month List now also derives its day-cell radius from the Cocoar button-radius token instead of using an out-of-scale hardcoded radius.
+- **Continuous-month separators and today marker.** Every month begins with a consistent top separator even when the previous section has no rendered day above it, and the current-day marker is no longer clipped at the section edge.
+- **Calendar subpath declaration packaging.** The `recurrence` and `recurrence-rrule-temporal` exports now point at the declaration files Vite actually emits, so TypeScript consumers resolve both subpaths from the packed npm artifact.
 
 ## 2.18.0
 

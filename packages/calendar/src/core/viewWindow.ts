@@ -25,11 +25,7 @@
  */
 
 import { Temporal } from '@js-temporal/polyfill';
-import {
-  type DayOfWeek,
-  startOfWeek,
-  monthGridDates,
-} from './temporal';
+import { type DayOfWeek, startOfWeek, monthGridDates } from './temporal';
 
 /** Default `workDays` — Mon–Fri using the 0=Sun..6=Sat convention. */
 export const DEFAULT_WORK_DAYS: readonly DayOfWeek[] = [1, 2, 3, 4, 5];
@@ -52,6 +48,13 @@ export interface ViewWindowOptions {
    */
   timelineRangeDays?: number;
   /**
+   * Number of adjacent columns rendered by the day view. Default 1.
+   * Ignored for non-day views.
+   */
+  dayColumnCount?: number;
+  /** Adjacent calendar months loaded around the cursor for the continuous month surface. */
+  monthBuffer?: number;
+  /**
    * IANA display timezone — written through to `ViewWindow.timezone`
    * so loaders can derive the correct instant range.
    */
@@ -69,14 +72,16 @@ export function computeViewWindow(opts: ViewWindowOptions): ViewWindow {
 
   switch (view) {
     case 'day': {
+      const dayColumnCount = Math.max(1, opts.dayColumnCount ?? 1);
       return {
         view,
         start: cursor.toString(),
-        end: cursor.add({ days: 1 }).toString(),
+        end: cursor.add({ days: dayColumnCount }).toString(),
         timezone,
       };
     }
 
+    case 'dayAgenda':
     case 'week': {
       const weekStart = startOfWeek(cursor, firstDayOfWeek);
       return {
@@ -108,10 +113,23 @@ export function computeViewWindow(opts: ViewWindowOptions): ViewWindow {
     }
 
     case 'month': {
+      const buffer = Math.max(0, Math.floor(opts.monthBuffer ?? 0));
       const ym = Temporal.PlainYearMonth.from({
         year: cursor.year,
         month: cursor.month,
       });
+      const firstGrid = monthGridDates(ym.subtract({ months: buffer }), firstDayOfWeek);
+      const lastGrid = monthGridDates(ym.add({ months: buffer }), firstDayOfWeek);
+      return {
+        view,
+        start: firstGrid[0].toString(),
+        end: lastGrid[41].add({ days: 1 }).toString(),
+        timezone,
+      };
+    }
+
+    case 'monthList': {
+      const ym = Temporal.PlainYearMonth.from({ year: cursor.year, month: cursor.month });
       const grid = monthGridDates(ym, firstDayOfWeek);
       return {
         view,
@@ -142,10 +160,11 @@ export function computeViewWindow(opts: ViewWindowOptions): ViewWindow {
     }
 
     case 'year': {
+      const start = Temporal.PlainDate.from({ year: cursor.year, month: 1, day: 1 });
       return {
         view,
-        start: cursor.toString(),
-        end: cursor.add({ days: 1 }).toString(),
+        start: start.toString(),
+        end: start.add({ years: 1 }).toString(),
         timezone,
       };
     }
@@ -191,10 +210,7 @@ export function windowDayCount(window: ViewWindow): number {
 export function windowContainsDate(window: ViewWindow, date: Temporal.PlainDate): boolean {
   const start = Temporal.PlainDate.from(window.start);
   const end = Temporal.PlainDate.from(window.end);
-  return (
-    Temporal.PlainDate.compare(date, start) >= 0 &&
-    Temporal.PlainDate.compare(date, end) < 0
-  );
+  return Temporal.PlainDate.compare(date, start) >= 0 && Temporal.PlainDate.compare(date, end) < 0;
 }
 
 /**
@@ -213,11 +229,13 @@ export function navigateCursor(
   direction: 'prev' | 'next',
   agendaLengthDays = 30,
   timelineRangeDays = 60,
+  dayColumnCount = 1,
 ): Temporal.PlainDate {
   const sign = direction === 'next' ? 1 : -1;
   switch (view) {
     case 'day':
-      return cursor.add({ days: 1 * sign });
+      return cursor.add({ days: Math.max(1, dayColumnCount) * sign });
+    case 'dayAgenda':
     case 'week':
     case 'workWeek':
       // workWeek navigates by full week (7 days) — the workday
@@ -226,13 +244,14 @@ export function navigateCursor(
       // other prev/next click.
       return cursor.add({ days: 7 * sign });
     case 'month':
+    case 'monthList':
       return cursor.add({ months: 1 * sign });
     case 'agenda':
       return cursor.add({ days: agendaLengthDays * sign });
     case 'timeline':
       return cursor.add({ days: timelineRangeDays * sign });
     case 'year':
-      return cursor.add({ months: 1 * sign });
+      return cursor.add({ years: 1 * sign });
     default: {
       const _exhaustive: never = view;
       void _exhaustive;

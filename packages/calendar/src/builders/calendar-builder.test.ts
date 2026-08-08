@@ -63,6 +63,18 @@ describe('CalendarBuilder construction', () => {
     expect(typeof toValue(b.state.timezone)).toBe('string'); // browser zone
     expect(toValue(b.state.locale)).toBe('en-US');
     expect(b.state.view.value).toBe('month');
+    expect(toValue(b.state.availableViews)).toEqual([
+      'year',
+      'month',
+      'monthList',
+      'week',
+      'workWeek',
+      'day',
+      'agenda',
+    ]);
+    expect(toValue(b.state.monthDensity)).toBe('details');
+    expect(toValue(b.state.dayMode)).toBe('single');
+    expect(toValue(b.state.shadeWeekends)).toBe(true);
     expect(b.state.date.value).toBeInstanceOf(Temporal.PlainDate);
   });
 
@@ -73,7 +85,10 @@ describe('CalendarBuilder construction', () => {
       .timezone('Europe/Vienna')
       .locale('de-AT')
       .firstDayOfWeek(1)
+      .shadeWeekends(false)
       .density('compact')
+      .monthDensity('stacked')
+      .dayMode('multiDay')
       .dateStyle('long')
       .timeStyle('short')
       .hour12(false)
@@ -84,6 +99,8 @@ describe('CalendarBuilder construction', () => {
       .timeRange({ startMinutes: 6 * 60, endMinutes: 22 * 60 })
       .slotDuration(15)
       .pixelsPerHour(64)
+      .dayColumnCount(2)
+      .dayColumnMinWidth(180)
       .maxEventsPerCell(5)
       .agendaLengthDays(7)
       .showEmptyDays(true)
@@ -98,6 +115,7 @@ describe('CalendarBuilder construction', () => {
       .onMoreClick(() => {})
       .onRangeChange(() => {});
     expect(result).toBe(b);
+    expect(toValue(b.state.shadeWeekends)).toBe(false);
   });
 });
 
@@ -135,11 +153,15 @@ describe('D4 — canDrop reads fresh state on every invocation', () => {
   it('replacing canDrop mid-flight takes effect immediately', () => {
     const b = CalendarBuilder.create();
     b.canDrop(() => true);
-    expect(b.state.canDrop?.(evt('a'), { date: '2026-06-05', minutes: 600, displayZone: 'UTC' })).toBe(true);
+    expect(
+      b.state.canDrop?.(evt('a'), { date: '2026-06-05', minutes: 600, displayZone: 'UTC' }),
+    ).toBe(true);
     // Replace and re-invoke through the same state slot — composables
     // do exactly this via `state.value.canDrop?.(...)` per hit-test.
     b.canDrop(() => false);
-    expect(b.state.canDrop?.(evt('a'), { date: '2026-06-05', minutes: 600, displayZone: 'UTC' })).toBe(false);
+    expect(
+      b.state.canDrop?.(evt('a'), { date: '2026-06-05', minutes: 600, displayZone: 'UTC' }),
+    ).toBe(false);
   });
 });
 
@@ -352,13 +374,31 @@ describe('Navigation setters', () => {
     expect(b.state.date.value.toString()).toBe('2026-06-08');
   });
 
+  it('day navigation pages by the configured column count', () => {
+    const b = CalendarBuilder.create();
+    b.view('day').dayColumnCount(3).date(Temporal.PlainDate.from('2026-06-15'));
+    b.api.next();
+    expect(b.state.date.value.toString()).toBe('2026-06-18');
+  });
+
+  it('day navigation uses the currently rendered responsive column count', () => {
+    const b = CalendarBuilder.create();
+    b.view('day').date(Temporal.PlainDate.from('2026-06-15'));
+    b[SET_VISIBLE_RANGE]({
+      view: 'day',
+      start: '2026-06-15',
+      end: '2026-06-17',
+      timezone: 'Europe/Vienna',
+    });
+    b.api.next();
+    expect(b.state.date.value.toString()).toBe('2026-06-17');
+  });
+
   it('goToToday() uses the current display zone', () => {
     const b = CalendarBuilder.create();
     b.timezone('UTC');
     b.api.goToToday();
-    expect(b.state.date.value.toString()).toBe(
-      Temporal.Now.plainDateISO('UTC').toString(),
-    );
+    expect(b.state.date.value.toString()).toBe(Temporal.Now.plainDateISO('UTC').toString());
   });
 });
 

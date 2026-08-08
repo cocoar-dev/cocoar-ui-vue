@@ -47,10 +47,7 @@ export type {
   TimeClickHandler,
   TimeRange,
 } from './builders/types';
-export {
-  getEventZoneHints,
-  type EventZoneHints,
-} from './builders/event-zone-hints';
+export { getEventZoneHints, type EventZoneHints } from './builders/event-zone-hints';
 
 // ─── Composables ──────────────────────────────────────────────────
 
@@ -99,8 +96,11 @@ export { default as CoarWeekView } from './components/CoarWeekView.vue';
 export { default as CoarWorkWeekView } from './components/CoarWorkWeekView.vue';
 export { default as CoarTimeGrid } from './components/CoarTimeGrid.vue';
 export { default as CoarMonthView } from './components/CoarMonthView.vue';
+export { default as CoarContinuousMonthView } from './components/CoarContinuousMonthView.vue';
+export { default as CoarMonthListView } from './components/CoarMonthListView.vue';
 export { default as CoarAgendaView } from './components/CoarAgendaView.vue';
 export { default as CoarTimelineView } from './components/CoarTimelineView.vue';
+export { default as CoarYearView } from './components/CoarYearView.vue';
 export { default as CoarDisplayZoneSwitcher } from './components/CoarDisplayZoneSwitcher.vue';
 export { default as VirtualizedSurface1DY } from './components/VirtualizedSurface1DY.vue';
 export { default as VirtualizedSurface2D } from './components/VirtualizedSurface2D.vue';

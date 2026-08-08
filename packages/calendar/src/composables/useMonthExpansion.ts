@@ -26,26 +26,35 @@
 
 import {
   type ComputedRef,
+  type MaybeRefOrGetter,
   type Ref,
   computed,
   nextTick,
   onBeforeUnmount,
   onMounted,
   ref,
+  toValue,
   watch,
 } from 'vue';
-import type { MonthLayout } from '../core';
+import type { CalendarMonthDensity, MonthLayout } from '../core';
 
-const BAR_HEIGHT = 20;
 const BAR_GAP = 2;
 /** Pixels reserved at the top of each cell for the day-number badge. */
 const DAY_NUMBER_HEIGHT = 24;
 /** Minimum vertical space below the bar lanes for the pills
  *  area in a collapsed row. Tuned so an empty cell still reads
  *  comfortably; pills overflow into a scroll. */
-const COLLAPSED_PILLS_AREA = 76;
-const MIN_ROW_HEIGHT = 100;
 const MAX_ROW_HEIGHT = 300;
+const MONTH_BASE_ROW_HEIGHT: Record<CalendarMonthDensity, number> = {
+  compact: 52,
+  stacked: 68,
+  details: 94,
+};
+const MONTH_BAR_HEIGHT: Record<CalendarMonthDensity, number> = {
+  compact: 5,
+  stacked: 8,
+  details: 18,
+};
 
 export interface UseMonthExpansionOptions {
   /** Pixel-perfect month layout from `layoutMonthGrid`. */
@@ -55,11 +64,13 @@ export interface UseMonthExpansionOptions {
   /** Reactive token that resets expansion when the visible
    *  month changes (typically a `Temporal.PlainYearMonth`). */
   resetToken: ComputedRef<unknown> | Ref<unknown>;
+  /** Apple-style month density controlling base row and multi-day lane height. */
+  monthDensity?: MaybeRefOrGetter<CalendarMonthDensity>;
 }
 
 export interface UseMonthExpansionReturn {
   /** Constants exposed for the parent's bar geometry math. */
-  readonly BAR_HEIGHT: number;
+  readonly BAR_HEIGHT: ComputedRef<number>;
   readonly BAR_GAP: number;
   readonly DAY_NUMBER_HEIGHT: number;
 
@@ -86,11 +97,12 @@ export interface UseMonthExpansionReturn {
   overflowingCells: Ref<Set<string>>;
 }
 
-export function useMonthExpansion(
-  opts: UseMonthExpansionOptions,
-): UseMonthExpansionReturn {
+export function useMonthExpansion(opts: UseMonthExpansionOptions): UseMonthExpansionReturn {
+  const monthDensity = computed(() => toValue(opts.monthDensity) ?? 'details');
+  const BAR_HEIGHT = computed(() => MONTH_BAR_HEIGHT[monthDensity.value]);
+
   function barTopPx(lane: number): number {
-    return DAY_NUMBER_HEIGHT + lane * (BAR_HEIGHT + BAR_GAP);
+    return DAY_NUMBER_HEIGHT + lane * (BAR_HEIGHT.value + BAR_GAP);
   }
 
   /** For each row, compute how many lanes the multi-day bars
@@ -100,7 +112,7 @@ export function useMonthExpansion(
     return opts.layout.value.weekRows.map((row) => {
       if (row.multiDayBars.length === 0) return DAY_NUMBER_HEIGHT;
       const lanes = row.multiDayBars[0].laneCount;
-      return DAY_NUMBER_HEIGHT + lanes * (BAR_HEIGHT + BAR_GAP);
+      return DAY_NUMBER_HEIGHT + lanes * (BAR_HEIGHT.value + BAR_GAP);
     });
   });
 
@@ -112,7 +124,8 @@ export function useMonthExpansion(
   const rowHeightPx = computed(() => {
     return rowBarHeightsPx.value.map((barAreaHeight, rowIdx) => {
       if (expandedRows.value.has(rowIdx)) return MAX_ROW_HEIGHT;
-      return Math.max(MIN_ROW_HEIGHT, barAreaHeight + COLLAPSED_PILLS_AREA);
+      const laneBandHeight = Math.max(0, barAreaHeight - DAY_NUMBER_HEIGHT);
+      return MONTH_BASE_ROW_HEIGHT[monthDensity.value] + laneBandHeight;
     });
   });
 
@@ -166,11 +179,7 @@ export function useMonthExpansion(
   // Recompute overflow after every layout / row-height /
   // expansion change. `nextTick` waits for Vue to finish
   // rendering.
-  watch(
-    [opts.layout, rowHeightPx, expandedRows],
-    () => nextTick(refreshOverflow),
-    { deep: false },
-  );
+  watch([opts.layout, rowHeightPx, expandedRows], () => nextTick(refreshOverflow), { deep: false });
   onMounted(() => {
     nextTick(refreshOverflow);
     window.addEventListener('resize', refreshOverflow);

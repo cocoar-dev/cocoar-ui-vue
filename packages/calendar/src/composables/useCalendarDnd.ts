@@ -64,8 +64,7 @@ function setGlobalDragCursor(cursor: string | null): void {
     dragCursorStyleEl.setAttribute('data-coar-drag-cursor', '');
     document.head.appendChild(dragCursorStyleEl);
   }
-  dragCursorStyleEl.textContent =
-    `*, *::before, *::after { cursor: ${cursor} !important; }`;
+  dragCursorStyleEl.textContent = `*, *::before, *::after { cursor: ${cursor} !important; }`;
 }
 
 function cursorForMode(mode: CalendarDragMode | null): string | null {
@@ -101,7 +100,9 @@ function cursorForMode(mode: CalendarDragMode | null): string | null {
  */
 export type { CalendarDropTarget };
 
-export interface UseCalendarDndOptions<TMeta extends Record<string, unknown> = Record<string, unknown>> {
+export interface UseCalendarDndOptions<
+  TMeta extends Record<string, unknown> = Record<string, unknown>,
+> {
   /** Scrollable surface element (for auto-scroll). */
   surfaceRef: Ref<HTMLElement | null>;
   /**
@@ -130,7 +131,9 @@ export interface UseCalendarDndOptions<TMeta extends Record<string, unknown> = R
    * 42 dates for the month grid (6 rows × 7 cols, top-left first).
    * Required when `monthGridRef` is set.
    */
-  monthGridDates?: ComputedRef<ReadonlyArray<Temporal.PlainDate>> | Ref<ReadonlyArray<Temporal.PlainDate>>;
+  monthGridDates?:
+    | ComputedRef<ReadonlyArray<Temporal.PlainDate>>
+    | Ref<ReadonlyArray<Temporal.PlainDate>>;
   /** `[startHour, endHour]`. Required when columnsRef is set. */
   timeRange?: ComputedRef<readonly [number, number]> | Ref<readonly [number, number]>;
   /** Pixels per hour (for translating Y → minutes). Required when columnsRef is set. */
@@ -217,7 +220,9 @@ export interface UseCalendarDndOptions<TMeta extends Record<string, unknown> = R
  */
 export type { CalendarDragMode };
 
-export interface UseCalendarDndReturn<TMeta extends Record<string, unknown> = Record<string, unknown>> {
+export interface UseCalendarDndReturn<
+  TMeta extends Record<string, unknown> = Record<string, unknown>,
+> {
   /** True only once the pointer has crossed the drag threshold. */
   isDragging: ComputedRef<boolean>;
   /** The event currently being dragged (or null when idle). */
@@ -359,10 +364,7 @@ export function useCalendarDnd<TMeta extends Record<string, unknown> = Record<st
       const zStart = dragged.start as Temporal.ZonedDateTime;
       const zEnd = dragged.end as Temporal.ZonedDateTime | undefined;
       if (zEnd) {
-        draggedDur = Math.max(
-          slot,
-          (zEnd.epochMilliseconds - zStart.epochMilliseconds) / 60000,
-        );
+        draggedDur = Math.max(slot, (zEnd.epochMilliseconds - zStart.epochMilliseconds) / 60000);
       }
     }
     const lastVisibleSlot = endHour * 60 - draggedDur;
@@ -422,6 +424,31 @@ export function useCalendarDnd<TMeta extends Record<string, unknown> = Record<st
     const grid = opts.monthGridRef?.value;
     const dates = opts.monthGridDates?.value;
     if (!grid || !dates || dates.length === 0) return null;
+    // Continuous month view: prefer the actual day cell under the pointer. It
+    // may belong to the following/previous month section, while this drag
+    // instance is owned by the source section. `elementsFromPoint` also sees
+    // the cell underneath an overlaid multi-day bar.
+    if (typeof document !== 'undefined' && typeof document.elementsFromPoint === 'function') {
+      const continuousRoot = grid.closest('.coar-continuous-month-view');
+      const pointedCell = document
+        .elementsFromPoint(clientX, clientY)
+        .map((element) => element.closest<HTMLElement>('[data-day-key]'))
+        .find(
+          (cell): cell is HTMLElement =>
+            cell !== null &&
+            cell.dataset.placeholder !== 'true' &&
+            (!continuousRoot || continuousRoot.contains(cell)),
+        );
+      const pointedDate = pointedCell?.dataset.dayKey;
+      if (pointedDate) {
+        return {
+          date: Temporal.PlainDate.from(pointedDate).subtract({ days: grabOffsetDays }).toString(),
+          minutes: null,
+          displayZone: opts.timezone.value,
+          valid: true,
+        };
+      }
+    }
     const rect = grid.getBoundingClientRect();
     const localX = clientX - rect.left;
     if (rect.width <= 0 || rect.height <= 0) return null;
@@ -507,10 +534,8 @@ export function useCalendarDnd<TMeta extends Record<string, unknown> = Record<st
    * immutable, so a reference is enough; we capture them explicitly
    * to make the contract obvious.
    */
-  let dragStartOriginalStart: Temporal.ZonedDateTime | Temporal.PlainDate | null =
-    null;
-  let dragStartOriginalEnd: Temporal.ZonedDateTime | Temporal.PlainDate | undefined =
-    undefined;
+  let dragStartOriginalStart: Temporal.ZonedDateTime | Temporal.PlainDate | null = null;
+  let dragStartOriginalEnd: Temporal.ZonedDateTime | Temporal.PlainDate | undefined = undefined;
 
   const drag = useCoarDrag<CalendarEvent<TMeta>>({
     surfaceRef: opts.surfaceRef,
@@ -529,11 +554,7 @@ export function useCalendarDnd<TMeta extends Record<string, unknown> = Record<st
       // and resizes use X-only date hit-test; month uses 2D cells.
       const mode = dragMode.value;
       let raw: CalendarDropTarget | null;
-      if (
-        mode === 'month' ||
-        mode === 'month-resize-start' ||
-        mode === 'month-resize-end'
-      ) {
+      if (mode === 'month' || mode === 'month-resize-start' || mode === 'month-resize-end') {
         raw = pointToMonthCell(ctx.pointer.x, ctx.pointer.y);
       } else if (
         mode === 'allDay' ||
@@ -564,9 +585,7 @@ export function useCalendarDnd<TMeta extends Record<string, unknown> = Record<st
               ctx.data,
               {
                 start: dragStartOriginalStart ?? ctx.data.start,
-                ...(dragStartOriginalEnd !== undefined
-                  ? { end: dragStartOriginalEnd }
-                  : {}),
+                ...(dragStartOriginalEnd !== undefined ? { end: dragStartOriginalEnd } : {}),
                 displayZone: dragStartDisplayZone,
               },
               target,

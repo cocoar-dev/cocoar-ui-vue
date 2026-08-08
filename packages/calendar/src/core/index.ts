@@ -12,19 +12,17 @@
 
 export type {
   CalendarEvent,
+  CalendarDayMode,
+  CalendarMonthDensity,
   CalendarView,
   ViewWindow,
   ResolvedLocale,
-  // C8 — Recurrence type contract (engine arrives in Phase 4)
+  // C8 — Recurrence type contract (runtime lives on the recurrence subpath)
   RecurringSeries,
   RecurrencePattern,
   RecurrenceExpansionWindow,
 } from './types';
-export {
-  isTimedEvent,
-  isAllDayEvent,
-  validateCalendarEvent,
-} from './types';
+export { isTimedEvent, isAllDayEvent, validateCalendarEvent } from './types';
 export {
   Temporal,
   type DayOfWeek,
@@ -67,6 +65,9 @@ export {
   DEFAULT_WORK_DAYS,
   type ViewWindowOptions,
 } from './viewWindow';
+export { responsiveDayColumnCount } from './dayColumns';
+export { contentAwareCascadeFrames, type CascadeItem, type CascadeFrame } from './cascadeLayout';
+export { eventTextColor } from './eventTextContrast';
 // EventIndex is intentionally NOT re-exported. It exists for tests
 // + future internal use, but the runtime layout pipeline reaches the
 // events through `_computeVisibleEvents` (BaseCalendarBuilder) +
