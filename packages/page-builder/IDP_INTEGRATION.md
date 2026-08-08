@@ -1,6 +1,6 @@
 # IDP integration guide
 
-This guide is the integration contract for Page Builder 2.19. It separates
+This guide is the integration contract for Page Builder 2.20. It separates
 tenant-owned data from application-owned authority so an IDP can offer visual
 customization without turning a page document into application code.
 
@@ -12,10 +12,10 @@ older renderer, localization or ScriptEditor runtime:
 
 ```bash
 pnpm add --save-exact \
-  @cocoar/vue-page-builder@2.19.0 \
-  @cocoar/vue-ui@2.19.0 \
-  @cocoar/vue-localization@2.19.0 \
-  @cocoar/vue-script-editor@2.19.0 \
+  @cocoar/vue-page-builder@2.20.0 \
+  @cocoar/vue-ui@2.20.0 \
+  @cocoar/vue-localization@2.20.0 \
+  @cocoar/vue-script-editor@2.20.0 \
   monaco-editor@^0.55.1
 ```
 

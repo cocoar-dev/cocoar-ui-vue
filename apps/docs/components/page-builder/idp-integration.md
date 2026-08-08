@@ -1,10 +1,10 @@
 ---
-description: "Integrate Page Builder 2.19 into an identity provider with isolated SES Worker sessions, host-owned capabilities, versioned documents and server-authoritative publication."
+description: "Integrate Page Builder 2.20 into an identity provider with isolated SES Worker sessions, host-owned capabilities, versioned documents and server-authoritative publication."
 ---
 
 # IDP integration
 
-Page Builder 2.19 ships the complete browser runtime and four optional Auth
+Page Builder 2.20 ships the complete browser runtime and four optional Auth
 example presets. They are fixtures built from the same generic registry,
 Repeat, selection, action and styling contracts as every consumer page; the
 runtime contains no Modgud/auth-specific element types or branches.
