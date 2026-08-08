@@ -408,36 +408,30 @@ function setPreviewWidth(value: PreviewWidth) {
   if (value !== 'fluid') authoringBreakpoint.value = value;
 }
 
-// ── Panel widths + collapse ────────────────────────────────────────────────────
-const OUTLINE_DEFAULT = 340;
-const OUTLINE_MIN = 260;
-const LIBRARY_DEFAULT = 260;
-const LIBRARY_MIN = 220;
+// ── Canvas-first tool drawers + inspector ─────────────────────────────────────
+const DRAWER_DEFAULT = 300;
+const DRAWER_MIN = 240;
+const INSPECTOR_DEFAULT = 300;
+const INSPECTOR_MIN = 260;
 const MIDDLE_MIN = 360;
-const RAIL_WIDTH = 36;
-const TREE_MIN_HEIGHT = 130;
-const PROPERTIES_MIN_HEIGHT = 180;
+const TOOL_RAIL_WIDTH = 44;
 
-const outlineWidth = ref(OUTLINE_DEFAULT);
-const libraryWidth = ref(LIBRARY_DEFAULT);
-const outlineCollapsed = ref(false);
-const libraryCollapsed = ref(false);
-const resizing = ref<null | 'outline' | 'library' | 'tree'>(null);
+type LeftToolPanel = 'outline' | 'library';
+const leftToolPanel = ref<LeftToolPanel | null>(null);
+const drawerWidth = ref(DRAWER_DEFAULT);
+const inspectorWidth = ref(INSPECTOR_DEFAULT);
+const inspectorCollapsed = ref(false);
+const resizing = ref<null | 'drawer' | 'inspector'>(null);
 
-const outlineCol = ref(`${OUTLINE_DEFAULT}px`);
-const libraryCol = ref(`${LIBRARY_DEFAULT}px`);
-const treeRow = ref('46%');
+const leftToolsCol = computed(() => `${TOOL_RAIL_WIDTH + (leftToolPanel.value ? drawerWidth.value : 0)}px`);
+const inspectorCol = computed(() => inspectorCollapsed.value ? `${TOOL_RAIL_WIDTH}px` : `${inspectorWidth.value}px`);
 
-watch([outlineCollapsed, outlineWidth], () => {
-  outlineCol.value = outlineCollapsed.value ? `${RAIL_WIDTH}px` : `${outlineWidth.value}px`;
-});
-watch([libraryCollapsed, libraryWidth], () => {
-  libraryCol.value = libraryCollapsed.value ? `${RAIL_WIDTH}px` : `${libraryWidth.value}px`;
-});
+function toggleLeftToolPanel(panel: LeftToolPanel) {
+  leftToolPanel.value = leftToolPanel.value === panel ? null : panel;
+}
 
 // ── Splitter drag ─────────────────────────────────────────────────────────────
 const rootRef = ref<HTMLElement | null>(null);
-const inspectorRef = ref<HTMLElement | null>(null);
 
 // ── Keyboard shortcuts (scoped to the builder) ────────────────────────────────
 
@@ -494,52 +488,27 @@ function onRootPointerDown() {
 onMounted(() => window.addEventListener('keydown', onKeyDown));
 onBeforeUnmount(() => window.removeEventListener('keydown', onKeyDown));
 
-function startResize(target: 'outline' | 'library', event: PointerEvent) {
-  if ((target === 'outline' && outlineCollapsed.value) || (target === 'library' && libraryCollapsed.value)) return;
+function startResize(target: 'drawer' | 'inspector', event: PointerEvent) {
+  if ((target === 'drawer' && !leftToolPanel.value) || (target === 'inspector' && inspectorCollapsed.value)) return;
   event.preventDefault();
   resizing.value = target;
   const startX = event.clientX;
-  const startOutline = outlineWidth.value;
-  const startLibrary = libraryWidth.value;
+  const startDrawer = drawerWidth.value;
+  const startInspector = inspectorWidth.value;
 
   function onMove(ev: PointerEvent) {
     const w = rootRef.value?.getBoundingClientRect().width ?? 0;
     if (!w) return;
-    const other = target === 'outline'
-      ? (libraryCollapsed.value ? RAIL_WIDTH : libraryWidth.value)
-      : (outlineCollapsed.value ? RAIL_WIDTH : outlineWidth.value);
-    const available = w - other - MIDDLE_MIN - 2;
+    const drawerTotal = TOOL_RAIL_WIDTH + (leftToolPanel.value ? drawerWidth.value : 0);
+    const inspectorTotal = inspectorCollapsed.value ? TOOL_RAIL_WIDTH : inspectorWidth.value;
     const delta = ev.clientX - startX;
-    if (target === 'outline') {
-      outlineWidth.value = Math.min(Math.max(startOutline + delta, OUTLINE_MIN), Math.max(OUTLINE_MIN, available));
+    if (target === 'drawer') {
+      const available = w - TOOL_RAIL_WIDTH - inspectorTotal - MIDDLE_MIN - 2;
+      drawerWidth.value = Math.min(Math.max(startDrawer + delta, DRAWER_MIN), Math.max(DRAWER_MIN, available));
     } else {
-      libraryWidth.value = Math.min(Math.max(startLibrary - delta, LIBRARY_MIN), Math.max(LIBRARY_MIN, available));
+      const available = w - drawerTotal - MIDDLE_MIN - 2;
+      inspectorWidth.value = Math.min(Math.max(startInspector - delta, INSPECTOR_MIN), Math.max(INSPECTOR_MIN, available));
     }
-  }
-  function onUp() {
-    resizing.value = null;
-    window.removeEventListener('pointermove', onMove);
-    window.removeEventListener('pointerup', onUp);
-    window.removeEventListener('pointercancel', onUp);
-  }
-  window.addEventListener('pointermove', onMove);
-  window.addEventListener('pointerup', onUp);
-  window.addEventListener('pointercancel', onUp);
-}
-
-function startTreeResize(event: PointerEvent) {
-  const pane = inspectorRef.value;
-  if (!pane || outlineCollapsed.value) return;
-  event.preventDefault();
-  resizing.value = 'tree';
-  const rect = pane.getBoundingClientRect();
-  const startY = event.clientY;
-  const startHeight = Number.parseFloat(getComputedStyle(pane).gridTemplateRows.split(' ')[0]) || rect.height * 0.46;
-
-  function onMove(ev: PointerEvent) {
-    const available = rect.height - 5;
-    const maximum = Math.max(TREE_MIN_HEIGHT, available - PROPERTIES_MIN_HEIGHT);
-    treeRow.value = `${Math.min(Math.max(startHeight + ev.clientY - startY, TREE_MIN_HEIGHT), maximum)}px`;
   }
   function onUp() {
     resizing.value = null;
@@ -607,49 +576,71 @@ function applyJson() {
     ref="rootRef"
     class="pb-builder"
     :class="{
-      'pb-builder--outline-collapsed': outlineCollapsed,
-      'pb-builder--library-collapsed': libraryCollapsed,
       'pb-builder--resizing': resizing !== null,
-      'pb-builder--resizing-tree': resizing === 'tree',
     }"
     tabindex="-1"
-    :style="{ gridTemplateColumns: `${outlineCol} 1px minmax(360px, 1fr) 1px ${libraryCol}` }"
+    :style="{ gridTemplateColumns: `${leftToolsCol} 1px minmax(360px, 1fr) 1px ${inspectorCol}` }"
     @pointerdown="onRootPointerDown"
   >
-    <!-- ── Outline pane ── -->
-    <section
-      ref="inspectorRef"
-      class="pb-builder__pane pb-builder__pane--tree"
-      :class="{ 'pb-builder__pane--rail': outlineCollapsed }"
-      :style="outlineCollapsed ? undefined : { gridTemplateRows: `minmax(0, ${treeRow}) 5px minmax(0, 1fr)` }"
-    >
-      <template v-if="!outlineCollapsed">
-        <div class="pb-builder__tree-area">
+    <!-- ── Quiet activity rail + one contextual drawer ── -->
+    <section class="pb-builder__pane pb-builder__pane--tools">
+      <nav class="pb-builder__activity-rail" aria-label="Builder tools">
+        <button
+          type="button"
+          class="pb-builder__activity-btn"
+          :class="{ 'pb-builder__activity-btn--active': leftToolPanel === 'library' }"
+          :aria-pressed="leftToolPanel === 'library'"
+          aria-label="Insert elements"
+          title="Insert elements"
+          @click="toggleLeftToolPanel('library')"
+        >
+          <CoarIcon name="plus" size="s" />
+        </button>
+        <button
+          type="button"
+          class="pb-builder__activity-btn"
+          :class="{ 'pb-builder__activity-btn--active': leftToolPanel === 'outline' }"
+          :aria-pressed="leftToolPanel === 'outline'"
+          aria-label="Structure"
+          title="Structure"
+          @click="toggleLeftToolPanel('outline')"
+        >
+          <CoarIcon name="list" size="s" />
+        </button>
+      </nav>
+
+      <div v-if="leftToolPanel" class="pb-builder__tool-drawer">
+        <template v-if="leftToolPanel === 'outline'">
           <header class="pb-builder__pane-header">
             <CoarIcon name="list" size="s" />
-            <span class="pb-builder__pane-title">{{ t('coar.pageBuilder.chrome.outline', undefined, 'Outline') }}</span>
-            <button type="button" class="pb-builder__icon-btn" :title="t('coar.pageBuilder.chrome.collapseOutline', undefined, 'Collapse inspector')" @click="outlineCollapsed = true">
+            <span class="pb-builder__pane-title">{{ t('coar.pageBuilder.chrome.outline', undefined, 'Structure') }}</span>
+            <button type="button" class="pb-builder__icon-btn" title="Close structure" @click="leftToolPanel = null">
               <CoarIcon name="chevrons-left" size="s" />
             </button>
           </header>
           <div class="pb-builder__tree-scroll">
             <BuilderOutline />
           </div>
-        </div>
-        <div class="pb-builder__row-divider" role="separator" aria-orientation="horizontal" @pointerdown="startTreeResize" />
-        <BuilderPropsPanel class="pb-builder__pane-inner" />
-      </template>
-      <button v-else type="button" class="pb-builder__rail-btn" :title="t('coar.pageBuilder.chrome.expandOutline', undefined, 'Expand inspector')" @click="outlineCollapsed = false">
-        <CoarIcon name="chevrons-right" size="s" />
-      </button>
+        </template>
+        <template v-else>
+          <header class="pb-builder__pane-header">
+            <CoarIcon name="plus" size="s" />
+            <span class="pb-builder__pane-title">Insert</span>
+            <button type="button" class="pb-builder__icon-btn" title="Close element library" @click="leftToolPanel = null">
+              <CoarIcon name="chevrons-left" size="s" />
+            </button>
+          </header>
+          <BuilderPalette />
+        </template>
+      </div>
     </section>
 
-    <!-- ── Left divider ── -->
+    <!-- ── Tool drawer divider ── -->
     <div
       class="pb-builder__divider"
-      :class="{ 'pb-builder__divider--inert': outlineCollapsed }"
+      :class="{ 'pb-builder__divider--inert': !leftToolPanel }"
       role="separator"
-      @pointerdown="startResize('outline', $event)"
+      @pointerdown="startResize('drawer', $event)"
     />
 
     <!-- ── Center pane ── -->
@@ -855,31 +846,24 @@ function applyJson() {
       </CoarTabGroup>
     </section>
 
-    <!-- ── Element-library divider ── -->
+    <!-- ── Inspector divider ── -->
     <div
       class="pb-builder__divider"
-      :class="{ 'pb-builder__divider--inert': libraryCollapsed }"
+      :class="{ 'pb-builder__divider--inert': inspectorCollapsed }"
       role="separator"
-      @pointerdown="startResize('library', $event)"
+      @pointerdown="startResize('inspector', $event)"
     />
 
-    <!-- ── Element library ── -->
-    <section
-      class="pb-builder__pane pb-builder__pane--library"
-      :class="{ 'pb-builder__pane--rail': libraryCollapsed }"
-    >
-      <template v-if="!libraryCollapsed">
-        <header class="pb-builder__pane-header">
-          <CoarIcon name="columns" size="s" />
-          <span class="pb-builder__pane-title">Elements</span>
-          <button type="button" class="pb-builder__icon-btn" title="Collapse element library" @click="libraryCollapsed = true">
-            <CoarIcon name="chevrons-right" size="s" />
-          </button>
-        </header>
-        <BuilderPalette />
+    <!-- ── Dedicated properties inspector ── -->
+    <section class="pb-builder__pane pb-builder__pane--inspector" :class="{ 'pb-builder__pane--rail': inspectorCollapsed }">
+      <template v-if="!inspectorCollapsed">
+        <button type="button" class="pb-builder__icon-btn pb-builder__icon-btn--corner" title="Collapse properties" @click="inspectorCollapsed = true">
+          <CoarIcon name="chevrons-right" size="s" />
+        </button>
+        <BuilderPropsPanel class="pb-builder__pane-inner" />
       </template>
-      <button v-else type="button" class="pb-builder__rail-btn" title="Expand element library" @click="libraryCollapsed = false">
-        <CoarIcon name="chevrons-left" size="s" />
+      <button v-else type="button" class="pb-builder__rail-btn" title="Expand properties" @click="inspectorCollapsed = false">
+        <CoarIcon name="panel-right" size="s" />
       </button>
     </section>
   </div>
@@ -895,6 +879,9 @@ function applyJson() {
   border-radius: 8px;
   overflow: hidden;
   font-family: var(--coar-body-base-family, sans-serif);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--coar-text-neutral-primary, #202124);
   transition: grid-template-columns 0.18s ease-out;
 }
 
@@ -903,7 +890,6 @@ function applyJson() {
   user-select: none;
   cursor: col-resize;
 }
-.pb-builder--resizing-tree { cursor: row-resize; }
 
 /* The root is a programmatic focus anchor (shortcut scope), never a visible stop. */
 .pb-builder:focus {
@@ -927,15 +913,64 @@ function applyJson() {
   padding: 8px 0;
 }
 
-.pb-builder__pane--tree:not(.pb-builder__pane--rail) {
+.pb-builder__pane--tools {
   display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  background: var(--coar-background-neutral-secondary, #f8f8f9);
 }
 
-.pb-builder__tree-area {
+.pb-builder__activity-rail {
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 0;
+  border-right: 1px solid var(--coar-border-neutral-tertiary, #ececef);
+}
+
+.pb-builder__activity-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--coar-icon-neutral-secondary, #6c7078);
+  cursor: pointer;
+  transition: background-color 0.12s ease-out, color 0.12s ease-out;
+}
+
+.pb-builder__activity-btn:hover {
+  background: var(--coar-background-neutral-tertiary, #eeeef1);
+  color: var(--coar-icon-neutral-primary, #202124);
+}
+
+.pb-builder__activity-btn--active {
+  background: var(--coar-surface-accent-secondary, #eef3f9);
+  color: var(--coar-text-accent-primary, #315f91);
+}
+
+.pb-builder__activity-btn--active::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  width: 2px;
+  height: 18px;
+  border-radius: 2px;
+  background: var(--coar-background-accent-primary, #315f91);
+}
+
+.pb-builder__tool-drawer {
+  display: flex;
+  min-width: 0;
   min-height: 0;
   flex-direction: column;
   overflow: hidden;
+  background: var(--coar-background-neutral-primary, #fff);
 }
 
 /* ── Panel header (outline pane) ── */
@@ -943,8 +978,8 @@ function applyJson() {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 14px;
-  height: 44px;
+  padding: 0 12px;
+  height: 40px;
   box-sizing: border-box;
   border-bottom: 1px solid var(--coar-border-neutral, #e2e2e6);
   color: var(--coar-text-neutral-secondary, #5a5a60);
@@ -952,17 +987,16 @@ function applyJson() {
 }
 
 .pb-builder__pane-title {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
   color: var(--coar-text-neutral-secondary, #5a5a60);
   flex: 1;
 }
 
-/* Align the tab list, props header to the same 44px height */
+/* Align the tab list and props header to the same compact height. */
 .pb-builder :deep(.coar-tab-list) {
-  min-height: 44px;
+  min-height: 40px;
   box-sizing: border-box;
   align-items: stretch;
 }
@@ -971,10 +1005,11 @@ function applyJson() {
   padding-bottom: 0;
   display: inline-flex;
   align-items: center;
+  font-weight: 400;
 }
 .pb-builder :deep(.pb-props__header) {
-  height: 44px;
-  padding: 0 14px;
+  height: 40px;
+  padding: 0 12px;
   box-sizing: border-box;
 }
 
@@ -1000,7 +1035,7 @@ function applyJson() {
 .pb-builder__tree-scroll {
   flex: 1;
   overflow: auto;
-  padding: 6px 6px 12px;
+  padding: 6px 4px 12px;
 }
 
 .pb-builder__pane-inner {
@@ -1037,31 +1072,13 @@ function applyJson() {
 }
 .pb-builder__divider--inert::after { pointer-events: none; }
 
-.pb-builder__row-divider {
-  position: relative;
-  z-index: 2;
-  border-top: 1px solid var(--coar-border-neutral, #e2e2e6);
-  border-bottom: 1px solid var(--coar-border-neutral, #e2e2e6);
-  background: var(--coar-background-neutral-secondary, #f7f7f9);
-  cursor: row-resize;
-}
-.pb-builder__row-divider::after {
-  content: '';
-  position: absolute;
-  inset: -3px 0;
-}
-.pb-builder__row-divider:hover,
-.pb-builder--resizing .pb-builder__row-divider {
-  background: var(--coar-background-accent-primary, #1666cc);
-}
-
 /* ── Icon buttons ── */
 .pb-builder__icon-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   padding: 0;
   border: 1px solid transparent;
   background: transparent;
@@ -1078,8 +1095,8 @@ function applyJson() {
 .pb-builder__icon-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 .pb-builder__icon-btn--corner {
   position: absolute;
-  top: 9px;
-  right: 10px;
+  top: 8px;
+  right: 8px;
   z-index: 2;
 }
 
@@ -1182,14 +1199,7 @@ function applyJson() {
   flex: 1;
   min-height: 0;
   box-sizing: border-box;
-  background:
-    repeating-linear-gradient(
-      45deg,
-      rgba(0, 0, 0, 0.015) 0px,
-      rgba(0, 0, 0, 0.015) 6px,
-      transparent 6px,
-      transparent 12px
-    );
+  background: var(--coar-background-neutral-secondary, #f7f8f9);
 }
 
 .pb-builder__preview-frame {

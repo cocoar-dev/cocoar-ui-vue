@@ -411,8 +411,9 @@ function canMoveDown(): boolean {
 
 <style scoped>
 .pb-tree-node {
-  font-size: 13px;
-  color: var(--coar-text-neutral-primary, #111);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--coar-text-neutral-primary, #303238);
 }
 
 .pb-tree-row {
@@ -431,8 +432,8 @@ function canMoveDown(): boolean {
 }
 
 .pb-tree-node--selected > .pb-tree-row {
-  background: var(--coar-surface-accent-secondary, #e6eefa);
-  color: var(--coar-text-accent-primary, #1666cc);
+  background: var(--coar-surface-accent-secondary, #eef3f9);
+  color: var(--coar-text-accent-primary, #315f91);
 }
 
 .pb-tree-node--selected > .pb-tree-row::before {
@@ -441,9 +442,9 @@ function canMoveDown(): boolean {
   left: 0;
   top: 3px;
   bottom: 3px;
-  width: 3px;
+  width: 2px;
   border-radius: 2px;
-  background: var(--coar-background-accent-primary, #1666cc);
+  background: var(--coar-background-accent-primary, #315f91);
 }
 
 .pb-tree-grip {
@@ -524,7 +525,7 @@ function canMoveDown(): boolean {
 }
 
 .pb-tree-label-text {
-  font-weight: 500;
+  font-weight: 400;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -544,10 +545,10 @@ function canMoveDown(): boolean {
   padding: 1px 5px;
   overflow: hidden;
   border-radius: 999px;
-  background: var(--coar-surface-accent-secondary, #e6eefa);
-  color: var(--coar-text-accent-primary, #1666cc);
+  background: var(--coar-background-neutral-secondary, #f1f1f3);
+  color: var(--coar-text-neutral-secondary, #666a72);
   font-size: 9px;
-  font-weight: 600;
+  font-weight: 400;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

@@ -29,14 +29,7 @@ function onCanvasBackgroundClick() {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 28px 20px 20px;
-  background:
-    repeating-linear-gradient(
-      45deg,
-      rgba(0, 0, 0, 0.015) 0px,
-      rgba(0, 0, 0, 0.015) 6px,
-      transparent 6px,
-      transparent 12px
-    );
+  padding: 28px 24px 24px;
+  background: var(--coar-background-neutral-secondary, #f7f8f9);
 }
 </style>

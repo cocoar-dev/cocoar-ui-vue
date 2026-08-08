@@ -80,9 +80,16 @@ describe('CoarPageBuilder — v-model wiring', () => {
     return mount(Host);
   }
 
+  async function openTool(wrapper: ReturnType<typeof mountWithConfig>, title: 'Insert elements' | 'Structure') {
+    await wrapper.get(`button[title="${title}"]`).trigger('click');
+    await nextTick();
+  }
+
   it('renders the registry as collapsible Containers / Elements groups', async () => {
     const wrapper = mountWithConfig({});
     await nextTick();
+    expect(wrapper.find('[aria-label="Element library"]').exists()).toBe(false);
+    await openTool(wrapper, 'Insert elements');
 
     const cards = (group: string) => wrapper
       .find(`[data-palette-group="${group}"]`)
@@ -109,6 +116,7 @@ describe('CoarPageBuilder — v-model wiring', () => {
       fields: [{ name: 'email', valueType: 'string', label: 'Email' }],
     });
     await nextTick();
+    await openTool(wrapper, 'Insert elements');
 
     expect(wrapper.find('[data-palette-group="containers"]').exists()).toBe(true);
     expect(wrapper.find('[data-palette-group="elements"]').exists()).toBe(true);
@@ -125,6 +133,7 @@ describe('CoarPageBuilder — v-model wiring', () => {
   it('offers separate Page State and Page Code entry points for the root', async () => {
     const wrapper = mountWithConfig({}, 'code');
     await nextTick();
+    await openTool(wrapper, 'Structure');
     const rootRow = wrapper.find('.pb-tree-row');
     await rootRow.trigger('click');
     await nextTick();
@@ -144,6 +153,7 @@ describe('CoarPageBuilder — v-model wiring', () => {
     } as PageNode;
     await nextTick();
     await nextTick();
+    await openTool(wrapper, 'Structure');
 
     const rows = wrapper.findAll('.pb-tree-row');
     await rows[1].trigger('click');

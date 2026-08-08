@@ -337,42 +337,43 @@ function zoneClasses(index: number): Record<string, boolean> {
 <style scoped>
 /* ── Color families ───────────────────────────────────────────────────────── */
 .canvas-node {
-  --canvas-border: rgba(102, 102, 110, 0.3);
-  --canvas-border-selected: rgba(22, 102, 204, 0.7);
-  --canvas-tab-fg: #5a5a60;
+  --canvas-border: rgba(80, 86, 96, 0.12);
+  --canvas-border-selected: rgba(49, 95, 145, 0.72);
+  --canvas-tab-fg: #666b73;
   --canvas-tab-bg: #fff;
-  --canvas-tab-border: rgba(102, 102, 110, 0.35);
+  --canvas-tab-border: rgba(80, 86, 96, 0.24);
 }
 .canvas-node--container {
-  --canvas-border: rgba(22, 102, 204, 0.38);
-  --canvas-tab-fg: #1666cc;
-  --canvas-tab-border: rgba(22, 102, 204, 0.45);
+  --canvas-border: rgba(80, 86, 96, 0.12);
+  --canvas-tab-fg: #666b73;
+  --canvas-tab-border: rgba(80, 86, 96, 0.24);
 }
 .canvas-node--element {
-  --canvas-border: rgba(5, 150, 105, 0.35);
-  --canvas-tab-fg: #047857;
-  --canvas-tab-border: rgba(5, 150, 105, 0.45);
+  --canvas-border: rgba(80, 86, 96, 0.12);
+  --canvas-tab-fg: #666b73;
+  --canvas-tab-border: rgba(80, 86, 96, 0.24);
 }
 
 /* ── Base wrapper ─────────────────────────────────────────────────────────── */
 .canvas-node {
   position: relative;
   box-sizing: border-box;
-  border: 1px dashed var(--canvas-border);
-  border-radius: 6px;
-  padding: 16px 10px 10px;
+  border: 1px solid var(--canvas-border);
+  border-radius: 5px;
+  padding: 11px 8px 8px;
   cursor: pointer;
   transition: border-color 0.12s ease-out, background-color 0.12s ease-out;
   min-width: 0;
 }
 
-.canvas-node:hover { background: rgba(22, 102, 204, 0.03); }
+.canvas-node:hover:not(:has(.canvas-node:hover)) { border-color: rgba(80, 86, 96, 0.28); }
 .canvas-node--responsive-hidden { opacity: 0.52; background: repeating-linear-gradient(-45deg, transparent 0 6px, rgba(90,90,100,.06) 6px 12px); }
 
 .canvas-node--selected {
   border-color: var(--canvas-border-selected);
   border-style: solid;
-  background: rgba(22, 102, 204, 0.05);
+  background: rgba(49, 95, 145, 0.025);
+  box-shadow: 0 0 0 1px rgba(49, 95, 145, 0.06);
 }
 
 .canvas-node--dragging { opacity: 0.4; }
@@ -402,32 +403,38 @@ function zoneClasses(index: number): Record<string, boolean> {
 }
 
 .canvas-node--root {
-  padding: 20px 14px 14px;
+  padding: 14px 10px 10px;
   min-height: 80px;
 }
 
 /* ── Type tab ─────────────────────────────────────────────────────────────── */
 .canvas-node__tab {
   position: absolute;
-  top: -9px;
-  left: 10px;
+  top: -8px;
+  left: 8px;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  height: 18px;
-  padding: 0 6px;
+  height: 16px;
+  padding: 0 5px;
   background: var(--canvas-tab-bg);
   border: 1px solid var(--canvas-tab-border);
   border-radius: 4px;
-  font-size: 11px;
-  font-weight: 500;
+  font-size: 10px;
+  font-weight: 400;
   color: var(--canvas-tab-fg);
   white-space: nowrap;
   max-width: calc(100% - 40px);
   overflow: hidden;
   text-overflow: ellipsis;
   user-select: none;
+  opacity: 0;
+  transition: opacity 0.12s ease-out, border-color 0.12s ease-out, color 0.12s ease-out;
 }
+
+.canvas-node:hover:not(:has(.canvas-node:hover)) > .canvas-node__tab,
+.canvas-node--selected > .canvas-node__tab,
+.canvas-node--blocked > .canvas-node__tab { opacity: 1; }
 
 .canvas-node__tab--grabbable {
   cursor: grab;
@@ -436,10 +443,10 @@ function zoneClasses(index: number): Record<string, boolean> {
 }
 .canvas-node__tab--grabbable:active { cursor: grabbing; }
 
-.canvas-node--selected .canvas-node__tab {
+.canvas-node--selected > .canvas-node__tab {
   border-color: var(--canvas-border-selected);
   color: var(--canvas-border-selected);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .canvas-node__tab-label {
@@ -459,13 +466,13 @@ function zoneClasses(index: number): Record<string, boolean> {
 /* ── Delete button ────────────────────────────────────────────────────────── */
 .canvas-node__delete {
   position: absolute;
-  top: -9px;
-  right: 10px;
+  top: -8px;
+  right: 8px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   padding: 0;
   border: 1px solid var(--canvas-tab-border);
   background: var(--canvas-tab-bg);
@@ -480,7 +487,7 @@ function zoneClasses(index: number): Record<string, boolean> {
 .canvas-node:hover:not(:has(.canvas-node:hover)) > .canvas-node__delete,
 .canvas-node--selected > .canvas-node__delete { opacity: 1; }
 
-.canvas-node__duplicate { right: 34px; }
+.canvas-node__duplicate { right: 29px; }
 
 .canvas-node:focus-visible {
   outline: 2px solid var(--coar-border-focus, #1666cc);

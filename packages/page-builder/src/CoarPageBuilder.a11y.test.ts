@@ -32,8 +32,15 @@ function mountBuilder(initial?: PageNode) {
 }
 
 describe('CoarPageBuilder — outline tree semantics', () => {
-  it('exposes role=tree with treeitems carrying level, selection and roving tabindex', () => {
+  async function openStructure(wrapper: ReturnType<typeof mountBuilder>) {
+    await wrapper.get('button[title="Structure"]').trigger('click');
+    await nextTick();
+  }
+
+  it('exposes role=tree with treeitems carrying level, selection and roving tabindex', async () => {
     const wrapper = mountBuilder(schemaWithNodes());
+    expect(wrapper.find('[role="tree"]').exists()).toBe(false);
+    await openStructure(wrapper);
     const tree = wrapper.find('[role="tree"]');
     expect(tree.exists()).toBe(true);
 
@@ -53,6 +60,7 @@ describe('CoarPageBuilder — outline tree semantics', () => {
 
   it('ArrowDown/ArrowUp move focus through the rows, Enter selects', async () => {
     const wrapper = mountBuilder(schemaWithNodes());
+    await openStructure(wrapper);
     const rows = wrapper.findAll('[role="treeitem"]');
     (rows[0].element as HTMLElement).focus();
 

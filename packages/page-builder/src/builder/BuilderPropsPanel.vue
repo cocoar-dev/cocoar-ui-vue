@@ -1198,6 +1198,7 @@ v-else
   min-height: 0;
   background: var(--coar-background-neutral-primary, #fff);
   font-family: var(--coar-body-base-family, sans-serif);
+  font-weight: 400;
 }
 
 .pb-props__header {
@@ -1213,17 +1214,16 @@ v-else
 }
 
 .pb-props__title {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
   color: var(--coar-text-neutral-secondary, #5a5a60);
 }
 
 .pb-props__body {
   flex: 1;
   overflow: auto;
-  padding: 16px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
 }
@@ -1242,11 +1242,10 @@ v-else
 
 .pb-props__section-title {
   margin: 0;
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--coar-text-neutral-tertiary, #8a8a90);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--coar-text-neutral-secondary, #666a72);
 }
 
 .pb-props__name-editor {
