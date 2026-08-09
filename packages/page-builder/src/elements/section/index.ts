@@ -1,5 +1,5 @@
 import type { SectionNode } from '../../schema';
-import { definePageElement, QUICK_PROPERTY_PRESETS as quick } from '../registry';
+import { definePageElement, QUICK_PROPERTY_PRESETS as quick, QUICK_COMPOUND_PRESETS as box } from '../registry';
 import SectionRenderer from './SectionRenderer.vue';
 import SectionInspector from './SectionInspector.vue';
 
@@ -14,8 +14,8 @@ export const sectionElement = definePageElement<SectionNode['props']>({
     inspector: SectionInspector,
     inspectorTitle: { key: 'coar.pageBuilder.props.section.section', fallback: 'Section' },
     quickProperties: [
-      quick.direction, quick.gap, quick.padding, quick.size, quick.width, quick.height,
-      quick.minHeight, quick.maxHeight, quick.overflow, quick.hidden,
+      quick.direction, quick.gap, box.paddingBox,
+      quick.size, box.widthBox, box.heightBox, quick.overflow, quick.hidden,
     ],
   },
 });

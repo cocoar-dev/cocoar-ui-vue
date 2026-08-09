@@ -1,5 +1,5 @@
 import type { RepeatNode } from '../../schema'
-import { definePageElement, QUICK_PROPERTY_PRESETS as quick } from '../registry'
+import { definePageElement, QUICK_PROPERTY_PRESETS as quick, QUICK_COMPOUND_PRESETS as box } from '../registry'
 import RepeatRenderer from './RepeatRenderer.vue'
 import RepeatInspector from './RepeatInspector.vue'
 
@@ -14,8 +14,8 @@ export const repeatElement = definePageElement<RepeatNode['props']>({
     inspector: RepeatInspector,
     inspectorTitle: { key: 'coar.pageBuilder.props.section.repeat', fallback: 'Repeat data' },
     quickProperties: [
-      quick.direction, quick.gap, quick.padding, quick.size, quick.width, quick.height,
-      quick.minHeight, quick.maxHeight, quick.overflow, quick.hidden,
+      quick.direction, quick.gap, box.paddingBox,
+      quick.size, box.widthBox, box.heightBox, quick.overflow, quick.hidden,
     ],
   },
 })

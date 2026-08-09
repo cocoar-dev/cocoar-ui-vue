@@ -1,5 +1,9 @@
 import type { StackNode } from '../../schema';
-import { definePageElement, QUICK_PROPERTY_PRESETS as quick } from '../registry';
+import {
+  definePageElement,
+  QUICK_PROPERTY_PRESETS as quick,
+  QUICK_COMPOUND_PRESETS as box,
+} from '../registry';
 import StackRenderer from './StackRenderer.vue';
 
 export const stackElement = definePageElement<StackNode['props']>({
@@ -11,9 +15,8 @@ export const stackElement = definePageElement<StackNode['props']>({
     group: 'container',
     defaults: () => ({}),
     quickProperties: [
-      quick.direction, quick.align, quick.gap, quick.padding,
-      quick.size, quick.width, quick.height, quick.minHeight, quick.maxHeight,
-      quick.overflow, quick.hidden,
+      quick.direction, quick.align, quick.gap, box.paddingBox,
+      quick.size, box.widthBox, box.heightBox, quick.overflow, quick.hidden,
     ],
   },
 });

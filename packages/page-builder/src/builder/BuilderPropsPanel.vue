@@ -22,7 +22,14 @@ import { isExpressionBinding } from '../runtimeBindings';
 import { expressionLiteral } from './expressionAuthoring';
 import { collectElementNames, elementNameBase, uniqueElementName } from './nodeDefaults';
 import { readElementQuickProperties, setElementQuickProperty, setPageRootQuickProperty } from '../pageCode';
-import { PAGE_ROOT_QUICK_PROPERTIES, type PageElementQuickProperty } from '../elements/registry';
+import {
+  PAGE_ROOT_QUICK_PROPERTIES,
+  isQuickCompound,
+  type PageElementQuickCompound,
+  type PageElementQuickEntry,
+  type PageElementQuickProperty,
+} from '../elements/registry';
+import CompoundLengthProperty from './props/CompoundLengthProperty.vue';
 import { isTranslationBinding, pageTranslationTemplate, translation, translationKeyFor } from '../translations';
 import { isBindableActionValueField } from '../actionValues';
 
@@ -72,7 +79,7 @@ const defaultValueInput = computed(() => def.value?.builder?.defaultValueInput);
 // The page root is not a registered element, so its shortcuts come from the
 // registry constant. Both write into their own code draft's Quick Properties
 // block, which uses one shared metadata format.
-const quickProperties = computed<readonly PageElementQuickProperty[]>(() =>
+const quickProperties = computed<readonly PageElementQuickEntry[]>(() =>
   pageNode.value ? PAGE_ROOT_QUICK_PROPERTIES : def.value?.builder?.quickProperties ?? [],
 );
 const quickPropertyValues = computed(() => readElementQuickProperties(
@@ -239,6 +246,60 @@ function resetQuickProperty(property: PageElementQuickProperty) {
 
 function hasQuickProperty(property: PageElementQuickProperty): boolean {
   return Object.prototype.hasOwnProperty.call(quickPropertyValues.value, property.path);
+}
+
+// ─── Compound (grouped length) properties ────────────────────────────────────
+
+/** Every path a compound owns, whether bundled or shorthand-backed. */
+function compoundPaths(compound: PageElementQuickCompound): string[] {
+  if (compound.shorthand) return [compound.shorthand];
+  const paths: string[] = [];
+  for (const part of compound.parts) if (part.path) paths.push(part.path);
+  return paths;
+}
+
+/**
+ * Same fallback as single properties: with no assignment yet, show the value
+ * the document already carries so the summary matches what the canvas renders.
+ */
+function readStylePath(path: string): string {
+  const authored = quickPropertyValues.value;
+  if (Object.prototype.hasOwnProperty.call(authored, path)) {
+    const value = authored[path];
+    return value === undefined || value === null ? '' : String(value);
+  }
+  const key = path.slice('style.'.length) as keyof NodeStyle;
+  const current = pageNode.value ? pageNode.value.style : elementNode.value?.style;
+  const value = current?.[key];
+  return value === undefined || value === null ? '' : String(value);
+}
+
+function writeStylePath(path: string, value: string) {
+  writeQuickAssignment(path, value === '' ? '' : value);
+}
+
+/** Compounds are style-only, so both node kinds route through their own code draft. */
+function writeQuickAssignment(path: string, value: unknown) {
+  if (pageNode.value) {
+    patch({ rootCode: setPageRootQuickProperty(pageNode.value.rootCode, path, value) } as Partial<PageNode>);
+    return;
+  }
+  const current = elementNode.value;
+  if (!current) return;
+  patch({ elementCode: setElementQuickProperty(current.elementCode, path, value) } as Partial<PageNode>);
+}
+
+function hasCompound(compound: PageElementQuickCompound): boolean {
+  return compoundPaths(compound).some(
+    (path) => Object.prototype.hasOwnProperty.call(quickPropertyValues.value, path),
+  );
+}
+
+function resetCompound(compound: PageElementQuickCompound) {
+  for (const path of compoundPaths(compound)) {
+    if (!Object.prototype.hasOwnProperty.call(quickPropertyValues.value, path)) continue;
+    writeQuickAssignment(path, undefined);
+  }
 }
 
 // ─── Runtime property bindings ───────────────────────────────────────────────
@@ -907,9 +968,20 @@ function bindField(name: string | null) {
           <p class="pb-props__hint">
             These controls write locked assignments before your custom code. Custom code can override them.
           </p>
+          <template v-for="(property, index) in quickProperties" :key="index">
+          <CompoundLengthProperty
+            v-if="isQuickCompound(property)"
+            class="pb-props__quick-property"
+            :compound="property"
+            :assigned="hasCompound(property)"
+            :read-path="readStylePath"
+            :read-shorthand="() => readStylePath(property.shorthand!)"
+            :write-path="writeStylePath"
+            :write-shorthand="(v: string | undefined) => writeQuickAssignment(property.shorthand!, v)"
+            :on-reset="() => resetCompound(property)"
+          />
           <div
-            v-for="property in quickProperties"
-            :key="property.path"
+            v-else
             class="pb-props__quick-property"
           >
             <div class="pb-props__quick-control">
@@ -955,6 +1027,7 @@ function bindField(name: string | null) {
               @click="resetQuickProperty(property)"
             >Reset</button>
           </div>
+          </template>
         </section>
 
         <section

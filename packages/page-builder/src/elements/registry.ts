@@ -87,18 +87,57 @@ export interface PageElementQuickPropertyOption {
   label: I18nText;
 }
 
+export type QuickPropertyPath = `props.${string}` | `style.${string}` | `validation.${string}`;
+
 /**
  * One optional Properties-Panel shortcut for Element Code. The path is a
  * mutable element-draft property; changing the control writes a deterministic,
  * locked assignment before the customer's free compute body.
  */
 export interface PageElementQuickProperty {
-  path: `props.${string}` | `style.${string}` | `validation.${string}`;
+  path: QuickPropertyPath;
   label: I18nText;
   control: 'text' | 'boolean' | 'select';
   /** Explicit authoring contract; never inferred from the current value. */
   valueKind?: 'literal' | 'localized-text';
   options?: readonly PageElementQuickPropertyOption[];
+}
+
+/** One editable slot inside a {@link PageElementQuickCompound}. */
+export interface PageElementQuickCompoundPart {
+  /** Stable slot id. Also the sides key ('top' | 'right' | 'bottom' | 'left'). */
+  key: string;
+  label: I18nText;
+  /** Own property. Omit when the compound is backed by one shorthand value. */
+  path?: QuickPropertyPath;
+  /** Rendered before the value in the collapsed summary, e.g. 'min'. */
+  summaryPrefix?: string;
+  placeholder?: string;
+}
+
+/**
+ * Several related lengths presented as ONE row: a readable summary plus a
+ * popover holding the individual inputs. Two shapes are supported, because the
+ * schema models these cases differently:
+ *
+ * - `parts[].path` — separate properties bundled visually (min/height/max).
+ * - `shorthand` — a single CSS shorthand property split into sides (padding).
+ *
+ * Both spend one row instead of three or four, which matters because the
+ * inspector is the narrowest pane in the builder.
+ */
+export interface PageElementQuickCompound {
+  control: 'compound';
+  label: I18nText;
+  /** Set for sides-style values; parts then address positions, not properties. */
+  shorthand?: QuickPropertyPath;
+  parts: readonly PageElementQuickCompoundPart[];
+}
+
+export type PageElementQuickEntry = PageElementQuickProperty | PageElementQuickCompound;
+
+export function isQuickCompound(entry: PageElementQuickEntry): entry is PageElementQuickCompound {
+  return (entry as PageElementQuickCompound).control === 'compound';
 }
 
 const quickLabel = (fallback: string): I18nText => ({
@@ -151,21 +190,55 @@ export const QUICK_PROPERTY_PRESETS = {
 } as const satisfies Record<string, PageElementQuickProperty>;
 
 /**
+ * Compound presets. Each spends one inspector row instead of three or four,
+ * and keeps the rarely-touched bounds reachable without a code round-trip.
+ */
+export const QUICK_COMPOUND_PRESETS = {
+  heightBox: {
+    control: 'compound',
+    label: quickLabel('Height'),
+    parts: [
+      { key: 'min', label: quickLabel('Min height'), path: 'style.minHeight', summaryPrefix: 'min', placeholder: 'e.g. 0, 240px' },
+      { key: 'value', label: quickLabel('Height'), path: 'style.height', placeholder: 'e.g. auto, 100%' },
+      { key: 'max', label: quickLabel('Max height'), path: 'style.maxHeight', summaryPrefix: 'max', placeholder: 'e.g. 100dvh' },
+    ],
+  },
+  widthBox: {
+    control: 'compound',
+    label: quickLabel('Width'),
+    parts: [
+      { key: 'min', label: quickLabel('Min width'), path: 'style.minWidth', summaryPrefix: 'min', placeholder: 'e.g. 0, 240px' },
+      { key: 'value', label: quickLabel('Width'), path: 'style.width', placeholder: 'e.g. 380px, 50%' },
+      { key: 'max', label: quickLabel('Max width'), path: 'style.maxWidth', summaryPrefix: 'max', placeholder: 'e.g. 448px' },
+    ],
+  },
+  paddingBox: {
+    control: 'compound',
+    label: quickLabel('Padding'),
+    shorthand: 'style.padding',
+    parts: [
+      { key: 'top', label: quickLabel('Top'), placeholder: 'e.g. 16px' },
+      { key: 'right', label: quickLabel('Right'), placeholder: 'e.g. 16px' },
+      { key: 'bottom', label: quickLabel('Bottom'), placeholder: 'e.g. 16px' },
+      { key: 'left', label: quickLabel('Left'), placeholder: 'e.g. 16px' },
+    ],
+  },
+} as const satisfies Record<string, PageElementQuickCompound>;
+
+/**
  * The page root is not a registered element, so its shortcuts live here. Its
  * code draft exposes `style` only — `props.*` and `validation.*` are rejected
  * by `setPageRootQuickProperty`. min-height plus justify/align is what makes a
  * card centre on a full-screen page, which is the common reason to reach for
  * the root at all.
  */
-export const PAGE_ROOT_QUICK_PROPERTIES: readonly PageElementQuickProperty[] = [
+export const PAGE_ROOT_QUICK_PROPERTIES: readonly PageElementQuickEntry[] = [
   QUICK_PROPERTY_PRESETS.direction,
-  QUICK_PROPERTY_PRESETS.padding,
+  QUICK_COMPOUND_PRESETS.paddingBox,
   QUICK_PROPERTY_PRESETS.gap,
   QUICK_PROPERTY_PRESETS.justify,
   QUICK_PROPERTY_PRESETS.align,
-  QUICK_PROPERTY_PRESETS.height,
-  QUICK_PROPERTY_PRESETS.minHeight,
-  QUICK_PROPERTY_PRESETS.maxHeight,
+  QUICK_COMPOUND_PRESETS.heightBox,
   QUICK_PROPERTY_PRESETS.overflow,
 ];
 
@@ -209,7 +282,7 @@ export interface PageElementBuilderDefinition<P extends ElementProps = ElementPr
    */
   defaultValueInput?: Component;
   /** Common code-backed controls shown in code authoring mode. */
-  quickProperties?: readonly PageElementQuickProperty[];
+  quickProperties?: readonly PageElementQuickEntry[];
   /** Authoring diagnostics, merged into the builder's validation panel. */
   lint?: (node: ElementNode<string, P>, config?: PageConfig) => ElementLintIssue[];
 }
