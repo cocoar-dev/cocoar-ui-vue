@@ -1,15 +1,13 @@
 <script setup lang="ts">
 import { inject, ref } from 'vue';
-import { CoarIcon } from '@cocoar/vue-ui';
-import { useI18n } from '@cocoar/vue-localization';
 import { BUILDER_API } from './builderContext';
 import BuilderCanvasNode from './BuilderCanvasNode.vue';
+import BuilderZoomControl from './props/BuilderZoomControl.vue';
 import { useBuilderDnd } from './useBuilderDnd';
-import { useCanvasZoom } from './useCanvasZoom';
+import { useCanvasZoom, CANVAS_ZOOM_STEPS } from './useCanvasZoom';
 
 defineOptions({ name: 'BuilderCanvas' });
 
-const { t } = useI18n();
 const builder = inject(BUILDER_API)!;
 const dnd = useBuilderDnd();
 
@@ -39,6 +37,17 @@ function onWheel(event: WheelEvent) {
 
 <template>
   <div class="pb-canvas-shell">
+    <!-- Mirrors the preview toolbar so the zoom control sits in the same
+         place in both views, and never covers the surface it scales. -->
+    <div class="pb-canvas__toolbar">
+      <BuilderZoomControl
+        :zoom="zoom"
+        :min="CANVAS_ZOOM_STEPS[0]"
+        :max="CANVAS_ZOOM_STEPS[CANVAS_ZOOM_STEPS.length - 1]"
+        @step="step"
+        @reset="reset"
+      />
+    </div>
     <div
       ref="viewportRef"
       class="pb-canvas"
@@ -53,42 +62,32 @@ function onWheel(event: WheelEvent) {
       </div>
     </div>
 
-    <div class="pb-canvas__zoom-bar">
-      <button
-        type="button"
-        class="pb-canvas__zoom-btn"
-        :disabled="zoom <= 0.25"
-        :title="t('coar.pageBuilder.canvas.zoomOut', undefined, 'Zoom out')"
-        @click="step(-1)"
-      >
-        <CoarIcon name="minus" size="xs" />
-      </button>
-      <button
-        type="button"
-        class="pb-canvas__zoom-value"
-        :title="t('coar.pageBuilder.canvas.zoomReset', undefined, 'Reset zoom')"
-        @click="reset"
-      >{{ Math.round(zoom * 100) }}%</button>
-      <button
-        type="button"
-        class="pb-canvas__zoom-btn"
-        :disabled="zoom >= 2"
-        :title="t('coar.pageBuilder.canvas.zoomIn', undefined, 'Zoom in')"
-        @click="step(1)"
-      >
-        <CoarIcon name="plus" size="xs" />
-      </button>
-    </div>
   </div>
 </template>
 
 <style scoped>
 .pb-canvas-shell {
-  position: relative;
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
+}
+
+/*
+ * Same metrics as .pb-builder__preview-toolbar so both views share one frame
+ * and the zoom control lands on the same pixel when switching tabs. The
+ * min-height keeps them aligned even though the preview bar also holds selects.
+ */
+.pb-canvas__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  height: 38px;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--coar-border-neutral, #e2e2e6);
+  background: var(--coar-background-neutral-secondary, #f7f7f9);
+  flex-shrink: 0;
 }
 
 .pb-canvas {
@@ -113,51 +112,4 @@ function onWheel(event: WheelEvent) {
   min-width: 0;
 }
 
-.pb-canvas__zoom-bar {
-  position: absolute;
-  right: 12px;
-  bottom: 12px;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 2px;
-  border: 1px solid var(--coar-border-neutral, #e2e2e6);
-  border-radius: 6px;
-  background: var(--coar-background-neutral-primary, #fff);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-}
-
-.pb-canvas__zoom-btn,
-.pb-canvas__zoom-value {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 22px;
-  padding: 0 6px;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--coar-text-neutral-secondary, #5a5a60);
-  font: inherit;
-  font-size: 11px;
-  cursor: pointer;
-}
-
-.pb-canvas__zoom-btn { width: 22px; padding: 0; }
-
-.pb-canvas__zoom-btn:hover:not(:disabled),
-.pb-canvas__zoom-value:hover {
-  background: var(--coar-background-neutral-tertiary, #eeeef1);
-  color: var(--coar-text-neutral-primary, #202124);
-}
-
-.pb-canvas__zoom-btn:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
-.pb-canvas__zoom-value {
-  min-width: 40px;
-  font-variant-numeric: tabular-nums;
-}
 </style>

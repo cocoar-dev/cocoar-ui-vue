@@ -20,7 +20,8 @@ import { usePageBuilder } from './builder/usePageBuilder';
 import { useMergedElements } from './elements/useMergedElements';
 import { useSchemaValidation } from './builder/useSchemaValidation';
 import { provideBuilderDnd } from './builder/useBuilderDnd';
-import { useCanvasZoom } from './builder/useCanvasZoom';
+import { useCanvasZoom, CANVAS_ZOOM_STEPS } from './builder/useCanvasZoom';
+import BuilderZoomControl from './builder/props/BuilderZoomControl.vue';
 import { normalizePageSchema, type NormalizeIssue } from './builder/schemaNormalize';
 import { warnDev } from './builder/operations';
 import {
@@ -757,32 +758,13 @@ function applyJson() {
                     <option v-for="item in config.locales" :key="item.id" :value="item.id">{{ item.label }}</option>
                   </select>
                 </label>
-                <span class="pb-builder__preview-zoom">
-                  <button
-                    type="button"
-                    class="pb-builder__icon-btn"
-                    :disabled="previewZoom <= 0.25"
-                    :title="t('coar.pageBuilder.canvas.zoomOut', undefined, 'Zoom out')"
-                    @click="previewZoomStep(-1)"
-                  >
-                    <CoarIcon name="minus" size="xs" />
-                  </button>
-                  <button
-                    type="button"
-                    class="pb-builder__preview-zoom-value"
-                    :title="t('coar.pageBuilder.canvas.zoomReset', undefined, 'Reset zoom')"
-                    @click="previewZoomReset()"
-                  >{{ Math.round(previewZoom * 100) }}%</button>
-                  <button
-                    type="button"
-                    class="pb-builder__icon-btn"
-                    :disabled="previewZoom >= 2"
-                    :title="t('coar.pageBuilder.canvas.zoomIn', undefined, 'Zoom in')"
-                    @click="previewZoomStep(1)"
-                  >
-                    <CoarIcon name="plus" size="xs" />
-                  </button>
-                </span>
+                <BuilderZoomControl
+                  :zoom="previewZoom"
+                  :min="CANVAS_ZOOM_STEPS[0]"
+                  :max="CANVAS_ZOOM_STEPS[CANVAS_ZOOM_STEPS.length - 1]"
+                  @step="previewZoomStep"
+                  @reset="previewZoomReset"
+                />
               </div>
               <div ref="previewViewportRef" class="pb-builder__preview">
                 <!-- Reserves the space the scaled frame occupies; a transform
@@ -1211,6 +1193,8 @@ function applyJson() {
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
+  height: 38px;
+  box-sizing: border-box;
   border-bottom: 1px solid var(--coar-border-neutral, #e2e2e6);
   background: var(--coar-background-neutral-secondary, #f7f7f9);
   flex-shrink: 0;
@@ -1218,29 +1202,6 @@ function applyJson() {
 
 .pb-builder__preview-control { display: inline-flex; align-items: center; gap: 5px; margin-left: 4px; color: var(--coar-text-neutral-secondary, #555); font-size: 11px; }
 
-.pb-builder__preview-zoom {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  margin-left: auto;
-}
-.pb-builder__preview-zoom-value {
-  min-width: 40px;
-  height: 22px;
-  padding: 0 4px;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--coar-text-neutral-secondary, #5a5a60);
-  font: inherit;
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  cursor: pointer;
-}
-.pb-builder__preview-zoom-value:hover {
-  background: var(--coar-background-neutral-tertiary, #eeeef1);
-  color: var(--coar-text-neutral-primary, #202124);
-}
 /* Centres the scaled frame while it is narrower than the pane. */
 .pb-builder__preview-scale { margin-inline: auto; width: fit-content; }
 .pb-builder__preview-control select { max-width: 150px; border: 1px solid var(--coar-border-neutral, #d0d0d0); border-radius: 4px; background: var(--coar-background-neutral-primary, #fff); font: inherit; }
