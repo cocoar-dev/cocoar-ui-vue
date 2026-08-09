@@ -32,7 +32,7 @@ const viewportRef = ref<HTMLElement | null>(null);
 const contentRef = ref<HTMLElement | null>(null);
 // The canvas has no width of its own: pin the content to the simulated device
 // width when one is chosen, otherwise to the pane.
-const { zoom, step, reset, contentStyle, frameStyle } = useCanvasZoom(
+const { zoom, step, setZoom, reset, contentStyle, frameStyle } = useCanvasZoom(
   viewportRef,
   contentRef,
   { pinToViewportWidth: true, pinnedWidth: computed(() => props.viewportWidth) },
@@ -64,6 +64,7 @@ function onWheel(event: WheelEvent) {
         :min="CANVAS_ZOOM_STEPS[0]"
         :max="CANVAS_ZOOM_STEPS[CANVAS_ZOOM_STEPS.length - 1]"
         @step="step"
+        @set="setZoom"
         @reset="reset"
       />
     </div>

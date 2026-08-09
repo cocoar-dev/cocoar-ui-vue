@@ -366,6 +366,7 @@ const previewFrameRef = ref<HTMLElement | null>(null);
 const {
   zoom: previewZoom,
   step: previewZoomStep,
+  setZoom: previewZoomSet,
   reset: previewZoomReset,
   contentStyle: previewScaleContentStyle,
   frameStyle: previewScaleFrameStyle,
@@ -782,6 +783,7 @@ function applyJson() {
                   :min="CANVAS_ZOOM_STEPS[0]"
                   :max="CANVAS_ZOOM_STEPS[CANVAS_ZOOM_STEPS.length - 1]"
                   @step="previewZoomStep"
+                  @set="previewZoomSet"
                   @reset="previewZoomReset"
                 />
               </div>

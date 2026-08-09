@@ -129,11 +129,19 @@ export function useCanvasZoom(
     zoom.value = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, value));
   }
 
+  /**
+   * Moves to the neighbouring step. Written against the current value rather
+   * than an index, because a typed level like 47% sits between steps — indexing
+   * would jump past 50% to 75%.
+   */
   function step(direction: 1 | -1) {
-    const index = CANVAS_ZOOM_STEPS.findIndex((s) => s >= zoom.value - 0.001);
-    setZoom(direction > 0
-      ? CANVAS_ZOOM_STEPS[Math.min(CANVAS_ZOOM_STEPS.length - 1, index + 1)]
-      : CANVAS_ZOOM_STEPS[Math.max(0, index - 1)]);
+    const EPSILON = 0.001;
+    if (direction > 0) {
+      setZoom(CANVAS_ZOOM_STEPS.find((s) => s > zoom.value + EPSILON) ?? MAX_ZOOM);
+      return;
+    }
+    const lower = CANVAS_ZOOM_STEPS.filter((s) => s < zoom.value - EPSILON);
+    setZoom(lower.length > 0 ? lower[lower.length - 1] : MIN_ZOOM);
   }
 
   function reset() {
