@@ -26,11 +26,13 @@ const MAX_ZOOM = CANVAS_ZOOM_STEPS[CANVAS_ZOOM_STEPS.length - 1];
 
 export interface CanvasZoomOptions {
   /**
-   * Pin the content to the viewport's width (the editor canvas, which has no
-   * width of its own). Leave false where the content is already sized — the
-   * preview frame carries the simulated viewport width and must keep it.
+   * Pin the content to the viewport's width. Required whenever the content has
+   * no intrinsic width — the editor canvas always, and the preview while its
+   * frame is fluid (`width: 100%`). Without the pin, measuring a
+   * percentage-width child to size its own parent feeds back and collapses it.
+   * A frame with a simulated device width must NOT be pinned; it keeps its own.
    */
-  pinToViewportWidth?: boolean;
+  pinToViewportWidth?: boolean | Ref<boolean>;
   /**
    * Overrides the pinned width, e.g. once the editor simulates a device width.
    * Ignored unless `pinToViewportWidth` is set.
@@ -43,7 +45,10 @@ export function useCanvasZoom(
   contentRef: Ref<HTMLElement | null>,
   options: CanvasZoomOptions = {},
 ) {
-  const pinWidth = options.pinToViewportWidth ?? false;
+  const pinWidth = computed(() => {
+    const option = options.pinToViewportWidth ?? false;
+    return typeof option === 'boolean' ? option : option.value;
+  });
   const zoom = ref(DEFAULT_ZOOM);
   /** Layout width the content is pinned to — the viewport's content box. */
   const viewportWidth = ref<number | null>(null);
@@ -51,11 +56,11 @@ export function useCanvasZoom(
   const contentHeight = ref<number | null>(null);
   /** The width the content is actually laid out at, whatever pins it. */
   const pinnedWidth = computed(() => {
-    if (!pinWidth) return null;
+    if (!pinWidth.value) return null;
     const override = options.pinnedWidth?.value;
     return override ?? viewportWidth.value;
   });
-  const layoutWidth = computed(() => (pinWidth ? pinnedWidth.value : contentWidth.value));
+  const layoutWidth = computed(() => (pinWidth.value ? pinnedWidth.value : contentWidth.value));
 
   let viewportObserver: ResizeObserver | null = null;
   let contentObserver: ResizeObserver | null = null;
@@ -103,7 +108,7 @@ export function useCanvasZoom(
 
   const contentStyle = computed(() => {
     const style: Record<string, string> = {};
-    if (pinWidth && pinnedWidth.value != null) style.width = `${pinnedWidth.value}px`;
+    if (pinWidth.value && pinnedWidth.value != null) style.width = `${pinnedWidth.value}px`;
     if (zoom.value !== 1) {
       style.transform = `scale(${zoom.value})`;
       style.transformOrigin = 'top left';

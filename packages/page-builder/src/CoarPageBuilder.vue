@@ -357,7 +357,11 @@ const {
   reset: previewZoomReset,
   contentStyle: previewScaleContentStyle,
   frameStyle: previewScaleFrameStyle,
-} = useCanvasZoom(previewViewportRef, previewFrameRef);
+} = useCanvasZoom(previewViewportRef, previewFrameRef, {
+  // A fluid frame is `width: 100%` and therefore has no width to measure;
+  // pinning it to the pane is what stops the scale wrapper from collapsing it.
+  pinToViewportWidth: computed(() => previewWidth.value === 'fluid'),
+});
 
 const previewViewportWidth = computed(() =>
   customPreviewViewport.value?.width
@@ -1182,8 +1186,13 @@ function applyJson() {
 
 .pb-builder__bar-control { display: inline-flex; align-items: center; gap: 5px; margin-left: 4px; color: var(--coar-text-neutral-secondary, #555); font-size: 11px; }
 
-/* Centres the scaled frame while it is narrower than the pane. */
-.pb-builder__preview-scale { margin-inline: auto; width: fit-content; }
+/*
+ * Centres the scaled frame while it is narrower than the pane. Deliberately no
+ * `width: fit-content`: the fluid frame is `width: 100%`, and a percentage
+ * against a shrink-to-fit parent collapses it to a few pixels. While zoomed the
+ * width comes from the zoom composable, which is what auto margins act on.
+ */
+.pb-builder__preview-scale { margin-inline: auto; }
 .pb-builder__bar-control select { max-width: 150px; border: 1px solid var(--coar-border-neutral, #d0d0d0); border-radius: 4px; background: var(--coar-background-neutral-primary, #fff); font: inherit; }
 
 .pb-builder__preview {
