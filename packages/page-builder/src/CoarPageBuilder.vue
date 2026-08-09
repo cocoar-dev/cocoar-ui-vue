@@ -1006,6 +1006,13 @@ function applyJson() {
   display: inline-flex;
   align-items: center;
   font-weight: 400;
+  font-size: 13px;
+}
+/* The accent underline is the only selection signal here: colouring the label
+   as well made the tab strip the loudest thing in an otherwise quiet chrome. */
+.pb-builder :deep(.coar-tab-button:hover:not(.disabled)),
+.pb-builder :deep(.coar-tab-button.active) {
+  color: var(--coar-text-neutral-primary, #202124);
 }
 .pb-builder :deep(.pb-props__header) {
   height: 40px;
@@ -1053,13 +1060,15 @@ function applyJson() {
   z-index: 1;
   transition: background-color 0.12s ease-out;
 }
+/* The visible seam stays 1px; the grab area is widened so the handle is still
+   hittable with a finger on the tablet form factor this ships for. */
 .pb-builder__divider::after {
   content: '';
   position: absolute;
   top: 0;
   bottom: 0;
-  left: -3px;
-  right: -3px;
+  left: -5px;
+  right: -5px;
   cursor: inherit;
 }
 .pb-builder__divider:hover,

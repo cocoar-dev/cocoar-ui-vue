@@ -337,19 +337,22 @@ function zoneClasses(index: number): Record<string, boolean> {
 <style scoped>
 /* ── Color families ───────────────────────────────────────────────────────── */
 .canvas-node {
-  --canvas-border: rgba(80, 86, 96, 0.12);
-  --canvas-border-selected: rgba(49, 95, 145, 0.72);
+  /* Selection follows the host accent instead of a hardcoded blue, but is
+     pulled down in chroma so authoring never competes with the page content. */
+  --canvas-accent: oklch(from var(--coar-background-accent-primary, #315f91) 0.44 0.07 h);
+  --canvas-border: rgba(80, 86, 96, 0.16);
+  --canvas-border-selected: var(--canvas-accent);
   --canvas-tab-fg: #666b73;
   --canvas-tab-bg: #fff;
   --canvas-tab-border: rgba(80, 86, 96, 0.24);
 }
 .canvas-node--container {
-  --canvas-border: rgba(80, 86, 96, 0.12);
+  --canvas-border: rgba(80, 86, 96, 0.16);
   --canvas-tab-fg: #666b73;
   --canvas-tab-border: rgba(80, 86, 96, 0.24);
 }
 .canvas-node--element {
-  --canvas-border: rgba(80, 86, 96, 0.12);
+  --canvas-border: rgba(80, 86, 96, 0.16);
   --canvas-tab-fg: #666b73;
   --canvas-tab-border: rgba(80, 86, 96, 0.24);
 }
@@ -366,14 +369,14 @@ function zoneClasses(index: number): Record<string, boolean> {
   min-width: 0;
 }
 
-.canvas-node:hover:not(:has(.canvas-node:hover)) { border-color: rgba(80, 86, 96, 0.28); }
+.canvas-node:hover:not(:has(.canvas-node:hover)) { border-color: rgba(80, 86, 96, 0.34); }
 .canvas-node--responsive-hidden { opacity: 0.52; background: repeating-linear-gradient(-45deg, transparent 0 6px, rgba(90,90,100,.06) 6px 12px); }
 
 .canvas-node--selected {
   border-color: var(--canvas-border-selected);
   border-style: solid;
-  background: rgba(49, 95, 145, 0.025);
-  box-shadow: 0 0 0 1px rgba(49, 95, 145, 0.06);
+  background: color-mix(in oklab, var(--canvas-accent) 4%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--canvas-accent) 12%, transparent);
 }
 
 .canvas-node--dragging { opacity: 0.4; }
