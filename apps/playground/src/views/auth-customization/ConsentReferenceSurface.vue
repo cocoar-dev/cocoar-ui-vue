@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { CoarButton, CoarCard, CoarCheckbox, CoarNotice } from '@cocoar/vue-ui';
 import type { AuthLabConsentScope } from './authLabRuntime';
-import type { AuthPageLocale as AuthLabLocale } from '@cocoar/vue-page-builder';
+import type { AuthPageLocale as AuthLabLocale } from './authPageConfig';
 import { postAuthLab } from './authLabClient';
 
 const props = defineProps<{

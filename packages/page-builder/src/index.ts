@@ -141,14 +141,6 @@ export {
   type PageCodeRuntimeOptions,
 } from './runtime/usePageCodeRuntime';
 export {
-  AUTH_PAGE_COPY,
-  createAuthPageConfig,
-  createAuthPageDocument,
-  type AuthPageLocale,
-  type AuthPageSlot,
-} from './presets/authCustomization';
-
-export {
   PAGE_BREAKPOINT_WIDTHS,
   breakpointForWidth,
   resolveNodeStyle,

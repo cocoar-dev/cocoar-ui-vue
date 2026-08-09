@@ -5,14 +5,9 @@ import {
   CoarPageBuilder,
   CoarPageRenderer,
   usePageCodeRuntime,
-  AUTH_PAGE_COPY as AUTH_LAB_COPY,
-  createAuthPageConfig as createAuthLabConfig,
-  createAuthPageDocument as createAuthLabSchema,
   CURRENT_PAGE_SCHEMA_VERSION,
   type ActionHandler,
   type ActionValues,
-  type AuthPageLocale as AuthLabLocale,
-  type AuthPageSlot as AuthLabSlot,
   type ElementNode,
   type PageCompositionDefinition,
   type PageCompositionReference,
@@ -21,6 +16,13 @@ import {
   compilePageCompositions,
   createInMemoryPageCompositionRepository,
 } from '@cocoar/vue-page-builder';
+import {
+  AUTH_PAGE_COPY as AUTH_LAB_COPY,
+  createAuthPageConfig as createAuthLabConfig,
+  type AuthPageLocale as AuthLabLocale,
+  type AuthPageSlot as AuthLabSlot,
+} from './auth-customization/authPageConfig';
+import { loadAuthDemoDocument } from './auth-customization/documents';
 import AuthReferenceSurface from './auth-customization/AuthReferenceSurface.vue';
 import ConsentReferenceSurface from './auth-customization/ConsentReferenceSurface.vue';
 import type { AuthLabConsentScope, AuthLabProvider } from './auth-customization/authLabRuntime';
@@ -28,7 +30,6 @@ import { postAuthLab } from './auth-customization/authLabClient';
 import {
   AMZETTEL_VISUAL_CONFIG,
   AMZETTEL_BRAND_COMPOSITION,
-  createAmZettelPage,
 } from './auth-customization/amZettelVisual';
 
 type LabMode = 'compare' | 'renderer' | 'builder' | 'json' | 'contract' | 'requirements';
@@ -268,15 +269,14 @@ async function saveCompositionDefinition() {
 }
 
 function createLabSchema(target: AuthLabSlot): PageNode {
-  const base = createAuthLabSchema(target);
-  return target === 'login' || target === 'logout' ? createAmZettelPage(base) : base;
+  return loadAuthDemoDocument(target);
 }
 
 const schemas = reactive<Record<AuthLabSlot, PageNode>>({
   login: createLabSchema('login'),
-  'password-forgot': createAuthLabSchema('password-forgot'),
+  'password-forgot': createLabSchema('password-forgot'),
   logout: createLabSchema('logout'),
-  consent: createAuthLabSchema('consent'),
+  consent: createLabSchema('consent'),
 });
 
 const schema = computed<PageNode>({
@@ -329,7 +329,7 @@ const runtimeContext = computed<Record<string, unknown>>(() => ({
   feedback: { message: rendererResult.value, success: rendererResult.value.length > 0 },
   runtime: { viewState: viewState.value },
 }));
-const fallbackSchema = computed(() => createAuthLabSchema(slot.value));
+const fallbackSchema = computed(() => createLabSchema(slot.value));
 
 const runtimeViewport = computed(() => {
   const width = viewports[viewport.value].width ?? 1280;
