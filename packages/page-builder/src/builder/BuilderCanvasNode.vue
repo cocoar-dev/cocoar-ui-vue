@@ -369,6 +369,22 @@ function zoneClasses(index: number): Record<string, boolean> {
   min-width: 0;
 }
 
+/*
+ * A container's chrome wrapper must pass its own constrained height down to the
+ * body, or a node with a height renders at that height while its children still
+ * lay out against an unbounded box — the canvas would then disagree with the
+ * renderer for every flex-driven layout. Unconstrained nodes are unaffected:
+ * an auto basis still resolves to the natural content height.
+ */
+.canvas-node--container {
+  display: flex;
+  flex-direction: column;
+}
+.canvas-node--container > .canvas-node__body {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .canvas-node:hover:not(:has(.canvas-node:hover)) { border-color: rgba(80, 86, 96, 0.34); }
 .canvas-node--responsive-hidden { opacity: 0.52; background: repeating-linear-gradient(-45deg, transparent 0 6px, rgba(90,90,100,.06) 6px 12px); }
 
