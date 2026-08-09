@@ -134,7 +134,7 @@ test.describe('Auth Customization Lab', () => {
     await password.fill('demo-password');
     await expect(submit).toBeEnabled();
 
-    const fixtureOptions = await builder.locator('.pb-builder__preview-control select').first()
+    const fixtureOptions = await builder.locator('.pb-builder__preview-pane .pb-builder__bar-control select').first()
       .locator('option').allTextContents();
     expect(fixtureOptions).toContain('Host values');
     expect(fixtureOptions).toContain('Typical');

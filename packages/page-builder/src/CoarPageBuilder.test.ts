@@ -214,7 +214,9 @@ describe('CoarPageBuilder — v-model wiring', () => {
     await previewTab!.trigger('click');
     await nextTick();
 
-    const fixture = wrapper.find('.pb-builder__preview-control select');
+    // Scoped to the preview pane: the editor toolbar carries the same kind of
+    // control now, so an unscoped lookup would grab its language select.
+    const fixture = wrapper.find('.pb-builder__preview-pane .pb-builder__bar-control select');
     expect(fixture.exists()).toBe(true);
     expect(fixture.element.value).toBe('complete');
     expect(fixture.findAll('option').map((option) => option.text())).not.toContain('Host values');

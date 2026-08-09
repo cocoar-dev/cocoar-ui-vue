@@ -22,6 +22,7 @@ import { useSchemaValidation } from './builder/useSchemaValidation';
 import { provideBuilderDnd } from './builder/useBuilderDnd';
 import { useCanvasZoom, CANVAS_ZOOM_STEPS } from './builder/useCanvasZoom';
 import BuilderZoomControl from './builder/props/BuilderZoomControl.vue';
+import BuilderViewportControl from './builder/props/BuilderViewportControl.vue';
 import { normalizePageSchema, type NormalizeIssue } from './builder/schemaNormalize';
 import { warnDev } from './builder/operations';
 import {
@@ -420,6 +421,11 @@ function onPreviewRuntimeChange(scope: {
   emit('preview-runtime', scope);
 }
 
+/** Device width the editor canvas is constrained to; null for the fluid case. */
+const canvasViewportWidth = computed(() => (previewWidth.value === 'fluid'
+  ? null
+  : PAGE_BREAKPOINT_WIDTHS[previewWidth.value]));
+
 function setPreviewWidth(value: PreviewWidth) {
   customPreviewViewport.value = undefined;
   previewWidth.value = value;
@@ -681,7 +687,21 @@ function applyJson() {
             </span>
           </template>
           <template #content>
-            <BuilderCanvas />
+            <BuilderCanvas :viewport-width="canvasViewportWidth">
+              <template #toolbar>
+                <!-- Same controls as the preview, minus fixture and state:
+                     canvas previews render from the node alone and never see
+                     runtime data, so those two would do nothing here. -->
+                <BuilderViewportControl :value="previewWidth" @select="setPreviewWidth" />
+                <label v-if="config?.locales?.length" class="pb-builder__bar-control">
+                  {{ t('coar.pageBuilder.chrome.language', undefined, 'Language') }}
+                  <select v-model="previewLocaleOverride">
+                    <option value="">Host / fixture</option>
+                    <option v-for="item in config.locales" :key="item.id" :value="item.id">{{ item.label }}</option>
+                  </select>
+                </label>
+              </template>
+            </BuilderCanvas>
           </template>
         </CoarTab>
 
@@ -696,62 +716,22 @@ function applyJson() {
             <div class="pb-builder__preview-pane">
               <!-- Responsive width toggle -->
               <div class="pb-builder__preview-toolbar">
-                <div class="pb-builder__seg" role="radiogroup" :aria-label="t('coar.pageBuilder.chrome.previewWidth', undefined, 'Preview width')">
-                  <button
-                    type="button"
-                    class="pb-builder__seg-btn"
-                    :class="{ 'pb-builder__seg-btn--active': previewWidth === 'compact' }"
-                    role="radio"
-                    :aria-checked="previewWidth === 'compact'"
-                    title="320 × 568"
-                    @click="setPreviewWidth('compact')"
-                  >
-                    Compact · 320
-                  </button>
-                  <button
-                    type="button"
-                    class="pb-builder__seg-btn"
-                    :class="{ 'pb-builder__seg-btn--active': previewWidth === 'phone' }"
-                    role="radio"
-                    :aria-checked="previewWidth === 'phone'"
-                    title="390 × 844"
-                    @click="setPreviewWidth('phone')"
-                  >
-                    Phone · 390
-                  </button>
-                  <button
-                    type="button"
-                    class="pb-builder__seg-btn"
-                    :class="{ 'pb-builder__seg-btn--active': previewWidth === 'tablet' }"
-                    role="radio"
-                    :aria-checked="previewWidth === 'tablet'"
-                    title="768 × 1024"
-                    @click="setPreviewWidth('tablet')"
-                  >
-                    Tablet · 768
-                  </button>
-                  <button type="button" class="pb-builder__seg-btn" :class="{ 'pb-builder__seg-btn--active': previewWidth === 'desktop' }" role="radio" :aria-checked="previewWidth === 'desktop'" title="1280 × 800" @click="setPreviewWidth('desktop')">
-                    Desktop · 1280
-                  </button>
-                  <button type="button" class="pb-builder__seg-btn" :class="{ 'pb-builder__seg-btn--active': previewWidth === 'fluid' }" role="radio" :aria-checked="previewWidth === 'fluid'" title="Host container" @click="setPreviewWidth('fluid')">
-                    Fluid
-                  </button>
-                </div>
-                <label v-if="config?.previewFixtures?.length" class="pb-builder__preview-control">
+                <BuilderViewportControl :value="previewWidth" @select="setPreviewWidth" />
+                <label v-if="config?.previewFixtures?.length" class="pb-builder__bar-control">
                   Fixture
                   <select v-model="selectedFixtureId">
                     <option v-if="hasCompleteHostPreview" value="">Host values</option>
                     <option v-for="fixture in config.previewFixtures" :key="fixture.id" :value="fixture.id">{{ fixture.label }}</option>
                   </select>
                 </label>
-                <label v-if="config?.availableStates?.length" class="pb-builder__preview-control">
+                <label v-if="config?.availableStates?.length" class="pb-builder__bar-control">
                   State
                   <select v-model="previewStateOverride">
                     <option value="">Host / fixture</option>
                     <option v-for="state in config.availableStates" :key="state.id" :value="state.id">{{ state.label }}</option>
                   </select>
                 </label>
-                <label v-if="config?.locales?.length" class="pb-builder__preview-control">
+                <label v-if="config?.locales?.length" class="pb-builder__bar-control">
                   Language
                   <select v-model="previewLocaleOverride">
                     <option value="">Host / fixture</option>
@@ -1200,47 +1180,11 @@ function applyJson() {
   flex-shrink: 0;
 }
 
-.pb-builder__preview-control { display: inline-flex; align-items: center; gap: 5px; margin-left: 4px; color: var(--coar-text-neutral-secondary, #555); font-size: 11px; }
+.pb-builder__bar-control { display: inline-flex; align-items: center; gap: 5px; margin-left: 4px; color: var(--coar-text-neutral-secondary, #555); font-size: 11px; }
 
 /* Centres the scaled frame while it is narrower than the pane. */
 .pb-builder__preview-scale { margin-inline: auto; width: fit-content; }
-.pb-builder__preview-control select { max-width: 150px; border: 1px solid var(--coar-border-neutral, #d0d0d0); border-radius: 4px; background: var(--coar-background-neutral-primary, #fff); font: inherit; }
-
-.pb-builder__seg {
-  display: inline-flex;
-  border: 1px solid var(--coar-border-neutral, #d0d0d0);
-  border-radius: 6px;
-  overflow: hidden;
-  background: var(--coar-background-neutral-primary, #fff);
-}
-
-.pb-builder__seg-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  border: none;
-  background: transparent;
-  color: var(--coar-text-neutral-secondary, #555);
-  font-family: inherit;
-  font-size: 12px;
-  cursor: pointer;
-  transition: background-color 0.12s, color 0.12s;
-}
-
-.pb-builder__seg-btn + .pb-builder__seg-btn {
-  border-left: 1px solid var(--coar-border-neutral, #d0d0d0);
-}
-
-.pb-builder__seg-btn:hover:not(.pb-builder__seg-btn--active) {
-  background: var(--coar-background-neutral-secondary, #f0f0f2);
-}
-
-.pb-builder__seg-btn--active {
-  background: var(--coar-surface-accent-secondary, #e6eefa);
-  color: var(--coar-text-accent-primary, #1666cc);
-  font-weight: 600;
-}
+.pb-builder__bar-control select { max-width: 150px; border: 1px solid var(--coar-border-neutral, #d0d0d0); border-radius: 4px; background: var(--coar-background-neutral-primary, #fff); font: inherit; }
 
 .pb-builder__preview {
   padding: 20px 24px;

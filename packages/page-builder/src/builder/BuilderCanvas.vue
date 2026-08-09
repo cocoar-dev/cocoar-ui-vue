@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { inject, ref } from 'vue';
+import { computed, inject, ref } from 'vue';
 import { BUILDER_API } from './builderContext';
 import BuilderCanvasNode from './BuilderCanvasNode.vue';
 import BuilderZoomControl from './props/BuilderZoomControl.vue';
@@ -8,16 +8,29 @@ import { useCanvasZoom, CANVAS_ZOOM_STEPS } from './useCanvasZoom';
 
 defineOptions({ name: 'BuilderCanvas' });
 
+/**
+ * Constrains the authored page to the selected viewport width. Without it the
+ * canvas is always as wide as its pane, so percentage widths and breakpoint
+ * rules cannot be judged while editing — the breakpoint alone only picks which
+ * responsive overrides apply, not the width they apply at.
+ */
+const props = defineProps<{ viewportWidth?: number | null }>();
+
 const builder = inject(BUILDER_API)!;
+
+const frameWidthStyle = computed(() => (props.viewportWidth
+  ? { width: `${props.viewportWidth}px`, maxWidth: '100%' }
+  : {}));
 const dnd = useBuilderDnd();
 
 const viewportRef = ref<HTMLElement | null>(null);
 const contentRef = ref<HTMLElement | null>(null);
-// The canvas has no width of its own, so the content is pinned to the viewport.
+// The canvas has no width of its own: pin the content to the simulated device
+// width when one is chosen, otherwise to the pane.
 const { zoom, step, reset, contentStyle, frameStyle } = useCanvasZoom(
   viewportRef,
   contentRef,
-  { pinToViewportWidth: true },
+  { pinToViewportWidth: true, pinnedWidth: computed(() => props.viewportWidth) },
 );
 
 function onCanvasBackgroundClick() {
@@ -40,6 +53,7 @@ function onWheel(event: WheelEvent) {
     <!-- Mirrors the preview toolbar so the zoom control sits in the same
          place in both views, and never covers the surface it scales. -->
     <div class="pb-canvas__toolbar">
+      <slot name="toolbar" />
       <BuilderZoomControl
         :zoom="zoom"
         :min="CANVAS_ZOOM_STEPS[0]"
@@ -55,7 +69,7 @@ function onWheel(event: WheelEvent) {
       @click.self="onCanvasBackgroundClick"
       @wheel="onWheel"
     >
-      <div class="pb-canvas__frame" :style="frameStyle">
+      <div class="pb-canvas__frame" :style="{ ...frameWidthStyle, ...frameStyle }">
         <div ref="contentRef" class="pb-canvas__content" :style="contentStyle">
           <BuilderCanvasNode :node="builder.schema.value" :path="[]" />
         </div>
