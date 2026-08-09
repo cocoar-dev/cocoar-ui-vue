@@ -1,6 +1,6 @@
 import { defineAsyncComponent } from 'vue';
 import type { VisualMarkupNode } from '../../schema';
-import { definePageElement } from '../registry';
+import { definePageElement, QUICK_PROPERTY_PRESETS as quick } from '../registry';
 import VisualMarkupRenderer from './VisualMarkupRenderer.vue';
 import VisualMarkupPreview from './VisualMarkupPreview.vue';
 import { buildVisualDocument } from './visualDocument';
@@ -37,6 +37,12 @@ export const visualMarkupElement = definePageElement<VisualMarkupNode['props']>(
     inspector: VisualMarkupInspector,
     inspectorInCodeMode: true,
     inspectorTitle: { key: 'coar.pageBuilder.props.section.visualMarkup', fallback: 'Visual markup' },
+    // A decorative panel is nearly always sized by its slot, so leaving Height
+    // empty (and letting the parent row stretch it) has to be reachable.
+    quickProperties: [
+      quick.width, quick.height, quick.minHeight, quick.maxHeight,
+      quick.overflow, quick.hidden,
+    ],
     lint: (node, config) => {
       const result = buildVisualDocument(node.props.html ?? '', node.props.css ?? '', config?.visualMarkup);
       return result.errors.map((message) => ({
