@@ -584,14 +584,14 @@ function applyJson() {
   >
     <!-- ── Quiet activity rail + one contextual drawer ── -->
     <section class="pb-builder__pane pb-builder__pane--tools">
-      <nav class="pb-builder__activity-rail" aria-label="Builder tools">
+      <nav class="pb-builder__activity-rail" :aria-label="t('coar.pageBuilder.chrome.builderTools', undefined, 'Builder tools')">
         <button
           type="button"
           class="pb-builder__activity-btn"
           :class="{ 'pb-builder__activity-btn--active': leftToolPanel === 'library' }"
           :aria-pressed="leftToolPanel === 'library'"
-          aria-label="Insert elements"
-          title="Insert elements"
+          :aria-label="t('coar.pageBuilder.chrome.insertElements', undefined, 'Insert elements')"
+          :title="t('coar.pageBuilder.chrome.insertElements', undefined, 'Insert elements')"
           @click="toggleLeftToolPanel('library')"
         >
           <CoarIcon name="plus" size="s" />
@@ -601,8 +601,8 @@ function applyJson() {
           class="pb-builder__activity-btn"
           :class="{ 'pb-builder__activity-btn--active': leftToolPanel === 'outline' }"
           :aria-pressed="leftToolPanel === 'outline'"
-          aria-label="Structure"
-          title="Structure"
+          :aria-label="t('coar.pageBuilder.chrome.outline', undefined, 'Structure')"
+          :title="t('coar.pageBuilder.chrome.outline', undefined, 'Structure')"
           @click="toggleLeftToolPanel('outline')"
         >
           <CoarIcon name="list" size="s" />
@@ -614,7 +614,7 @@ function applyJson() {
           <header class="pb-builder__pane-header">
             <CoarIcon name="list" size="s" />
             <span class="pb-builder__pane-title">{{ t('coar.pageBuilder.chrome.outline', undefined, 'Structure') }}</span>
-            <button type="button" class="pb-builder__icon-btn" title="Close structure" @click="leftToolPanel = null">
+            <button type="button" class="pb-builder__icon-btn" :title="t('coar.pageBuilder.chrome.closeOutline', undefined, 'Close structure')" @click="leftToolPanel = null">
               <CoarIcon name="chevrons-left" size="s" />
             </button>
           </header>
@@ -625,8 +625,8 @@ function applyJson() {
         <template v-else>
           <header class="pb-builder__pane-header">
             <CoarIcon name="plus" size="s" />
-            <span class="pb-builder__pane-title">Insert</span>
-            <button type="button" class="pb-builder__icon-btn" title="Close element library" @click="leftToolPanel = null">
+            <span class="pb-builder__pane-title">{{ t('coar.pageBuilder.chrome.insert', undefined, 'Insert') }}</span>
+            <button type="button" class="pb-builder__icon-btn" :title="t('coar.pageBuilder.chrome.closeLibrary', undefined, 'Close element library')" @click="leftToolPanel = null">
               <CoarIcon name="chevrons-left" size="s" />
             </button>
           </header>
@@ -857,12 +857,12 @@ function applyJson() {
     <!-- ── Dedicated properties inspector ── -->
     <section class="pb-builder__pane pb-builder__pane--inspector" :class="{ 'pb-builder__pane--rail': inspectorCollapsed }">
       <template v-if="!inspectorCollapsed">
-        <button type="button" class="pb-builder__icon-btn pb-builder__icon-btn--corner" title="Collapse properties" @click="inspectorCollapsed = true">
+        <button type="button" class="pb-builder__icon-btn pb-builder__icon-btn--corner" :title="t('coar.pageBuilder.chrome.collapseInspector', undefined, 'Collapse properties')" @click="inspectorCollapsed = true">
           <CoarIcon name="chevrons-right" size="s" />
         </button>
         <BuilderPropsPanel class="pb-builder__pane-inner" />
       </template>
-      <button v-else type="button" class="pb-builder__rail-btn" title="Expand properties" @click="inspectorCollapsed = false">
+      <button v-else type="button" class="pb-builder__rail-btn" :title="t('coar.pageBuilder.chrome.expandInspector', undefined, 'Expand properties')" @click="inspectorCollapsed = false">
         <CoarIcon name="panel-right" size="s" />
       </button>
     </section>
