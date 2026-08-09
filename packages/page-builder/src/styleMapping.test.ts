@@ -59,6 +59,36 @@ describe('selfLayoutStyle', () => {
     expect(selfLayoutStyle({ size: 'fill' }, 'column')).toEqual({ width: '100%' });
   });
 
+  it('size:grow takes the remaining main-axis space in both directions', () => {
+    // The point of `grow`: a column can finally grow vertically, so only the
+    // outermost node needs a height and the rest resolves through flex.
+    expect(selfLayoutStyle({ size: 'grow' }, 'row')).toEqual({ flex: '1 1 auto', minWidth: 0 });
+    expect(selfLayoutStyle({ size: 'grow' }, 'column')).toEqual({ flex: '1 1 auto', minHeight: 0 });
+    expect(selfLayoutStyle({ size: 'grow' })).toEqual({ flex: '1 1 auto', minHeight: 0 });
+  });
+
+  it('size:grow releases the main-axis minimum so it fits a constrained parent', () => {
+    // Without this a flex item keeps min-*:auto and overflows its parent
+    // instead of shrinking into it.
+    expect(selfLayoutStyle({ size: 'grow' }, 'column').minHeight).toBe(0);
+    expect(selfLayoutStyle({ size: 'grow' }, 'row').minWidth).toBe(0);
+    // An explicit minimum still wins over the released one.
+    expect(selfLayoutStyle({ size: 'grow', minHeight: '120px' }, 'column').minHeight).toBe('120px');
+    expect(selfLayoutStyle({ size: 'grow', minWidth: '240px' }, 'row').minWidth).toBe('240px');
+  });
+
+  it('size:grow uses an auto basis so siblings keep their content proportions', () => {
+    // A zero basis is what squashed every child to the same size when `fill`
+    // was tried vertically; `grow` must never emit one.
+    const css = selfLayoutStyle({ size: 'grow' }, 'column');
+    expect(css.flex).not.toContain('0%');
+    expect(css.flex).toContain('auto');
+  });
+
+  it('size:grow ignores width, like fill', () => {
+    expect(selfLayoutStyle({ size: 'grow', width: '380px' }, 'row')).toEqual({ flex: '1 1 auto', minWidth: 0 });
+  });
+
   it('size:fixed applies the width and disables grow/shrink (direction-independent)', () => {
     expect(selfLayoutStyle({ size: 'fixed', width: '200px' }, 'row')).toEqual({
       flex: '0 0 auto',

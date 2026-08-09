@@ -14,7 +14,7 @@ export const imageElement = definePageElement<ImageNode['props']>({
     inspector: ImageInspector,
     inspectorTitle: { key: 'coar.pageBuilder.props.section.image', fallback: 'Image' },
     quickProperties: [
-      quick.width, quick.height, quick.minHeight, quick.maxHeight,
+      quick.size, quick.width, quick.height, quick.minHeight, quick.maxHeight,
       quick.overflow, quick.hidden,
     ],
   },

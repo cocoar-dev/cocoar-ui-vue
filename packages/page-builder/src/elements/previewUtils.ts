@@ -12,6 +12,7 @@ import type { NodeStyle } from '../schema';
  * Block leaves (text, headings, form fields) already fill their wrapper.
  */
 export function leafSizeStyle(style?: NodeStyle): CSSProperties {
-  const sized = !!style && (style.size === 'fill' || style.size === 'fixed' || (!style.size && !!style.width));
+  const sized = !!style && (style.size === 'fill' || style.size === 'grow' || style.size === 'fixed'
+    || (!style.size && !!style.width));
   return sized ? { width: '100%' } : {};
 }

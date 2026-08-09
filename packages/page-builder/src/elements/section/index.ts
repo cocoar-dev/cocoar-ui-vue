@@ -14,7 +14,7 @@ export const sectionElement = definePageElement<SectionNode['props']>({
     inspector: SectionInspector,
     inspectorTitle: { key: 'coar.pageBuilder.props.section.section', fallback: 'Section' },
     quickProperties: [
-      quick.gap, quick.padding, quick.width, quick.height,
+      quick.gap, quick.padding, quick.size, quick.width, quick.height,
       quick.minHeight, quick.maxHeight, quick.overflow, quick.hidden,
     ],
   },

@@ -12,7 +12,7 @@ export const stackElement = definePageElement<StackNode['props']>({
     defaults: () => ({}),
     quickProperties: [
       quick.direction, quick.align, quick.gap, quick.padding,
-      quick.width, quick.height, quick.minHeight, quick.maxHeight,
+      quick.size, quick.width, quick.height, quick.minHeight, quick.maxHeight,
       quick.overflow, quick.hidden,
     ],
   },

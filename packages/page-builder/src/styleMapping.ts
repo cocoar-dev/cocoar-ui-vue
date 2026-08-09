@@ -104,6 +104,19 @@ export function selfLayoutStyle(
   if (style.size === 'fill') {
     if (parentDirection === 'row') css.flex = '1 1 0%';
     else css.width = '100%';
+  } else if (style.size === 'grow') {
+    // `auto` basis, not `0%`: growing from natural size keeps content
+    // proportions, which is exactly what the zero basis destroyed when `fill`
+    // was tried vertically. Main axis only — the cross axis stays with the
+    // parent's align-items, same as `fill` in a row.
+    css.flex = '1 1 auto';
+    // A flex item defaults to min-*:auto and therefore refuses to shrink below
+    // its content, which would make it overflow a constrained parent instead of
+    // fitting it. Releasing the main-axis minimum is what makes "height on the
+    // outermost node only" actually hold. An explicit minWidth/minHeight below
+    // still wins.
+    if (parentDirection === 'row') css.minWidth = 0;
+    else css.minHeight = 0;
   } else if (style.size === 'fixed') {
     css.flex = '0 0 auto';
     if (safeCssLength(style.width)) css.width = safeCssLength(style.width);

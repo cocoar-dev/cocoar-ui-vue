@@ -44,10 +44,16 @@ export interface NodeStyle {
   /**
    * Sizing along the parent's main axis:
    * - `fit`   — natural content size (no grow / no shrink)
-   * - `fill`  — grow to fill the available space
+   * - `fill`  — grow to fill the available space. Direction-aware: in a row
+   *             this distributes space evenly from a zero basis; in a column
+   *             it only means full width, so it cannot grow vertically.
+   * - `grow`  — take the remaining main-axis space in EITHER direction,
+   *             growing from natural size. This is what lets a layout put a
+   *             height on the outermost node only and let everything below it
+   *             resolve through flex.
    * - `fixed` — exact `width`
    */
-  size?: 'fit' | 'fill' | 'fixed'
+  size?: 'fit' | 'fill' | 'grow' | 'fixed'
   /** CSS width. Applied when `size` is `fixed` (or when set without a `size`). */
   width?: string
   /** Minimum width of this node's box. */

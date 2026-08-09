@@ -40,7 +40,7 @@ export const visualMarkupElement = definePageElement<VisualMarkupNode['props']>(
     // A decorative panel is nearly always sized by its slot, so leaving Height
     // empty (and letting the parent row stretch it) has to be reachable.
     quickProperties: [
-      quick.width, quick.height, quick.minHeight, quick.maxHeight,
+      quick.size, quick.width, quick.height, quick.minHeight, quick.maxHeight,
       quick.overflow, quick.hidden,
     ],
     lint: (node, config) => {

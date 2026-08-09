@@ -118,6 +118,10 @@ export const QUICK_PROPERTY_PRESETS = {
   // Box geometry: no design-system semantics, constantly touched while laying
   // out, and the canvas shows the result immediately. Everything token-backed
   // (surface, radius, typography) stays code-only on purpose.
+  size: {
+    path: 'style.size', label: quickLabel('Size'), control: 'select',
+    options: ['fit', 'fill', 'grow', 'fixed'].map((value) => ({ value, label: quickLabel(value) })),
+  },
   height: { path: 'style.height', label: quickLabel('Height'), control: 'text' },
   minHeight: { path: 'style.minHeight', label: quickLabel('Min height'), control: 'text' },
   maxHeight: { path: 'style.maxHeight', label: quickLabel('Max height'), control: 'text' },

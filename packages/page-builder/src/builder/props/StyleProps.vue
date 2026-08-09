@@ -101,11 +101,13 @@ const sizeOptions = computed<CoarSelectOption<string>[]>(() => [
   { value: '', label: t('coar.pageBuilder.props.sizeAuto', undefined, 'Auto') },
   { value: 'fit', label: t('coar.pageBuilder.props.sizeFit', undefined, 'Fit content') },
   { value: 'fill', label: t('coar.pageBuilder.props.sizeFill', undefined, 'Fill') },
+  { value: 'grow', label: t('coar.pageBuilder.props.sizeGrow', undefined, 'Grow (both directions)') },
   { value: 'fixed', label: t('coar.pageBuilder.props.sizeFixedWidth', undefined, 'Fixed width') },
 ]);
 
 function setSize(v: string) {
   if (v === 'fill') props.patchStyle({ size: 'fill', width: undefined });
+  else if (v === 'grow') props.patchStyle({ size: 'grow', width: undefined });
   else if (v === 'fit') props.patchStyle({ size: 'fit', width: undefined });
   else if (v === 'fixed') props.patchStyle({ size: 'fixed' });
   else props.patchStyle({ size: undefined, width: undefined });
