@@ -1,20 +1,19 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { CoarFormField, CoarIcon, CoarPopover, CoarTextInput } from '@cocoar/vue-ui';
+import { computed, ref } from 'vue';
+import { CoarIcon, CoarTextInput } from '@cocoar/vue-ui';
 import { useI18n } from '@cocoar/vue-localization';
 import type { PageElementQuickCompound, PageElementQuickCompoundPart } from '../../elements/registry';
 import { formatBoxSides, parseBoxSides, type BoxSide, type BoxSides } from '../boxSides';
 
 /**
- * Renders several related lengths as one row: a readable summary plus a popover
- * with the individual inputs. Backed either by one property per part
- * (min/height/max) or by a single CSS shorthand split into sides (padding).
+ * Several related lengths on one row: the value people actually reach for stays
+ * directly editable, the rarer ones fold out underneath. Backed either by one
+ * property per part (height + min/max) or by a single CSS shorthand split into
+ * sides (padding).
  */
 const props = defineProps<{
   compound: PageElementQuickCompound;
-  /** Current value of a part's own property. */
   readPath: (path: string) => string;
-  /** Current value of the shorthand property. */
   readShorthand: () => string;
   writePath: (path: string, value: string) => void;
   writeShorthand: (value: string | undefined) => void;
@@ -24,6 +23,13 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
+const expanded = ref(false);
+
+// Real <label for> rather than aria-label: it also makes the visible text a
+// click target for the control, which a span cannot do.
+const fieldId = `pb-compound-${Math.random().toString(36).slice(2, 9)}`;
+const primaryId = `${fieldId}-primary`;
+const detailId = (key: string) => `${fieldId}-${key}`;
 
 const label = computed(() => t(props.compound.label.key, undefined, props.compound.label.fallback));
 function partLabel(part: PageElementQuickCompoundPart) {
@@ -33,154 +39,204 @@ function partLabel(part: PageElementQuickCompoundPart) {
 const isSides = computed(() => !!props.compound.shorthand);
 
 /**
- * A shorthand the parser could not split (a `calc()` with spaces, say) must
- * stay editable as a whole rather than being silently rewritten.
+ * A shorthand the parser cannot split (a `calc()` with spaces) has to stay
+ * editable as a whole rather than be silently rewritten.
  */
 const sides = computed<BoxSides | null>(() =>
   isSides.value ? parseBoxSides(props.readShorthand()) : null,
 );
 const unsplittable = computed(() => isSides.value && sides.value === null);
 
-function sideValue(key: string): string {
-  return sides.value ? sides.value[key as BoxSide] ?? '' : '';
-}
+/** For paths: the part without a summary prefix is the headline value. */
+const primaryPart = computed(() => props.compound.parts.find((p) => !p.summaryPrefix));
+const detailParts = computed(() =>
+  isSides.value ? props.compound.parts : props.compound.parts.filter((p) => p.summaryPrefix),
+);
 
-function setSide(key: string, value: string) {
-  const current = sides.value;
-  if (!current) return;
-  props.writeShorthand(formatBoxSides({ ...current, [key as BoxSide]: value }));
-}
+const primaryValue = computed(() => {
+  if (isSides.value) return props.readShorthand();
+  const path = primaryPart.value?.path;
+  return path ? props.readPath(path) : '';
+});
 
-/** Collapsed line, e.g. 'min 50px / 120px' or '16px 32px'. Empty stays 'auto'. */
-const summary = computed(() => {
+function setPrimary(value: string) {
   if (isSides.value) {
-    const raw = props.readShorthand().trim();
-    if (unsplittable.value) return raw;
-    const shorthand = sides.value ? formatBoxSides(sides.value) : undefined;
-    return shorthand ?? '';
+    props.writeShorthand(value.trim() === '' ? undefined : value);
+    return;
+  }
+  const path = primaryPart.value?.path;
+  if (path) props.writePath(path, value);
+}
+
+function detailValue(part: PageElementQuickCompoundPart): string {
+  if (isSides.value) return sides.value ? sides.value[part.key as BoxSide] ?? '' : '';
+  return part.path ? props.readPath(part.path) : '';
+}
+
+function setDetail(part: PageElementQuickCompoundPart, value: string) {
+  if (isSides.value) {
+    const current = sides.value;
+    if (!current) return;
+    props.writeShorthand(formatBoxSides({ ...current, [part.key as BoxSide]: value }));
+    return;
+  }
+  if (part.path) props.writePath(part.path, value);
+}
+
+/** Marks the toggle when folded-away values are set, so they are not invisible. */
+const detailSummary = computed(() => {
+  if (isSides.value) {
+    const current = sides.value;
+    if (!current) return '';
+    const distinct = new Set([current.top, current.right, current.bottom, current.left]);
+    return distinct.size > 1 ? 'per side' : '';
   }
   const pieces: string[] = [];
-  for (const part of props.compound.parts) {
-    if (!part.path) continue;
-    const value = props.readPath(part.path).trim();
-    if (!value) continue;
-    pieces.push(part.summaryPrefix ? `${part.summaryPrefix} ${value}` : value);
+  for (const part of detailParts.value) {
+    const value = detailValue(part).trim();
+    if (value) pieces.push(`${part.summaryPrefix} ${value}`);
   }
-  return pieces.join(' / ');
+  return pieces.join(' · ');
 });
+
+const primaryPlaceholder = computed(() =>
+  isSides.value ? 'all sides' : primaryPart.value?.placeholder,
+);
 </script>
 
 <template>
   <div class="pb-compound">
-    <span class="pb-compound__label">{{ label }}</span>
+    <div class="pb-compound__row">
+      <label class="pb-compound__label" :for="primaryId">{{ label }}</label>
 
-    <CoarPopover mode="click" :offset="8">
-      <template #default>
-        <button type="button" class="pb-compound__summary" :title="label">
-          <!-- Neutral dash rather than 'auto': the initial value differs per
-               property (auto for height, none for padding), and guessing wrong
-               reads as a set value. -->
-          <span :class="['pb-compound__value', { 'pb-compound__value--empty': !summary }]">
-            {{ summary || '—' }}
-          </span>
-          <CoarIcon name="ellipsis" size="xs" />
-        </button>
-      </template>
+      <CoarTextInput
+        :id="primaryId"
+        size="xs"
+        class="pb-compound__input"
+        :model-value="primaryValue"
+        :placeholder="primaryPlaceholder"
+        @update:model-value="setPrimary"
+      />
 
-      <template #content>
-        <div class="pb-compound__panel">
-          <p v-if="unsplittable" class="pb-compound__note">
-            This value cannot be split into sides. Edit it as a whole.
-          </p>
-          <CoarFormField v-if="unsplittable" label="Value">
-            <CoarTextInput
-              size="s"
-              :model-value="props.readShorthand()"
-              @update:model-value="(v: string) => props.writeShorthand(v || undefined)"
-            />
-          </CoarFormField>
+      <button
+        type="button"
+        class="pb-compound__toggle"
+        :class="{ 'pb-compound__toggle--marked': !!detailSummary }"
+        :aria-expanded="expanded"
+        :title="expanded ? `Hide ${label} details` : `Show ${label} details`"
+        @click="expanded = !expanded"
+      >
+        <CoarIcon :name="expanded ? 'chevron-up' : 'chevron-down'" size="xs" />
+      </button>
+    </div>
 
-          <template v-else>
-            <CoarFormField
-              v-for="part in compound.parts"
-              :key="part.key"
-              :label="partLabel(part)"
-            >
-              <CoarTextInput
-                size="s"
-                :placeholder="part.placeholder"
-                :model-value="isSides ? sideValue(part.key) : props.readPath(part.path!)"
-                @update:model-value="(v: string) => isSides ? setSide(part.key, v) : props.writePath(part.path!, v)"
-              />
-            </CoarFormField>
-          </template>
+    <p v-if="detailSummary && !expanded" class="pb-compound__hint">{{ detailSummary }}</p>
+
+    <div v-if="expanded" class="pb-compound__details">
+      <p v-if="unsplittable" class="pb-compound__note">
+        This value cannot be split into sides — edit it above as a whole.
+      </p>
+      <template v-else>
+        <div v-for="part in detailParts" :key="part.key" class="pb-compound__detail">
+          <label class="pb-compound__detail-label" :for="detailId(part.key)">{{ partLabel(part) }}</label>
+          <CoarTextInput
+            :id="detailId(part.key)"
+            size="xs"
+            :placeholder="part.placeholder"
+            :model-value="detailValue(part)"
+            @update:model-value="(v: string) => setDetail(part, v)"
+          />
         </div>
       </template>
-    </CoarPopover>
-
-    <button
-      v-if="assigned"
-      type="button"
-      class="pb-compound__reset"
-      :title="`Remove ${label} assignment`"
-      @click="onReset"
-    >Reset</button>
+      <button v-if="assigned" type="button" class="pb-compound__reset" @click="onReset">
+        Reset {{ label.toLowerCase() }}
+      </button>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .pb-compound {
   display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pb-compound__row {
+  display: grid;
+  grid-template-columns: minmax(0, 84px) minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
-  min-width: 0;
 }
 
 .pb-compound__label {
   font-size: 12px;
+  line-height: 1.3;
   color: var(--coar-text-neutral-secondary, #5a5a60);
-  flex-shrink: 0;
+  overflow-wrap: anywhere;
 }
 
-.pb-compound__summary {
+.pb-compound__input { min-width: 0; }
+
+.pb-compound__toggle {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  flex: 1 1 auto;
-  min-width: 0;
-  padding: 3px 6px;
-  border: 1px solid var(--coar-border-neutral, #e2e2e6);
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
   border-radius: 4px;
-  background: var(--coar-background-neutral-primary, #fff);
-  color: var(--coar-text-neutral-primary, #202124);
-  font: inherit;
-  font-size: 12px;
-  text-align: left;
+  background: transparent;
+  color: var(--coar-icon-neutral-secondary, #6c7078);
   cursor: pointer;
+  position: relative;
 }
 
-.pb-compound__summary:hover {
-  border-color: var(--coar-border-neutral-strong, #c9c9cf);
+.pb-compound__toggle:hover {
+  background: var(--coar-background-neutral-tertiary, #eeeef1);
+  color: var(--coar-icon-neutral-primary, #202124);
 }
 
-.pb-compound__value {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* A dot rather than a number: it only has to say "there is more here". */
+.pb-compound__toggle--marked::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--coar-background-accent-primary, #315f91);
 }
 
-.pb-compound__value--empty {
+.pb-compound__hint {
+  margin: 0 0 0 92px;
+  font-size: 11px;
   color: var(--coar-text-neutral-tertiary, #8a8a90);
 }
 
-.pb-compound__panel {
+.pb-compound__details {
   display: flex;
   flex-direction: column;
+  gap: 4px;
+  margin: 2px 0 4px 92px;
+  padding-left: 8px;
+  border-left: 1px solid var(--coar-border-neutral, #e2e2e6);
+}
+
+.pb-compound__detail {
+  display: grid;
+  grid-template-columns: minmax(0, 64px) minmax(0, 1fr);
+  align-items: center;
   gap: 8px;
-  min-width: 180px;
-  padding: 4px;
+}
+
+.pb-compound__detail-label {
+  font-size: 11px;
+  color: var(--coar-text-neutral-tertiary, #8a8a90);
+  overflow-wrap: anywhere;
 }
 
 .pb-compound__note {
@@ -190,13 +246,13 @@ const summary = computed(() => {
 }
 
 .pb-compound__reset {
+  align-self: flex-start;
   border: 0;
   background: transparent;
-  padding: 0;
+  padding: 2px 0;
   font: inherit;
   font-size: 11px;
   color: var(--coar-text-accent-primary, #315f91);
   cursor: pointer;
-  flex-shrink: 0;
 }
 </style>
