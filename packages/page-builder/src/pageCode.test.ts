@@ -199,6 +199,22 @@ describe('Page Code data boundary', () => {
     expect(reset).toContain('element.props.disabled = !page.form.valid;')
   })
 
+  it('exposes the viewport width to element code so visibility can be computed', () => {
+    // The documented way to make an element responsive from code, without the
+    // document carrying a breakpoint override or depending on host-defined
+    // breakpoint names.
+    const source = `defineElement({
+      compute(element, page) {
+        element.style.hidden = page.viewport.width < 768;
+      },
+    })`;
+    const runtime = elementComputeRuntimeSource(source, 'brandPanel', 'none');
+    expect(runtime).toContain('viewport: scope.viewport || {}');
+    expect(runtime).toContain('definition.compute(element, page)');
+    // style is among the keys copied back onto the element draft.
+    expect(runtime).toContain("'style'");
+  });
+
   it('writes page root Quick Properties against the root draft, preserving custom code', () => {
     // Verbatim shape of a rootCode persisted before the Quick Properties
     // boundary existed: locked, correct signature, but no @quick markers.

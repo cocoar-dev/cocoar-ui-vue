@@ -18,8 +18,13 @@ const props = defineProps<{ viewportWidth?: number | null }>();
 
 const builder = inject(BUILDER_API)!;
 
+/*
+ * No max-width: a viewport wider than the pane has to scroll, or the simulated
+ * width would silently become the pane width and stop being a simulation. Zoom
+ * is the way to see all of it at once.
+ */
 const frameWidthStyle = computed(() => (props.viewportWidth
-  ? { width: `${props.viewportWidth}px`, maxWidth: '100%' }
+  ? { width: `${props.viewportWidth}px` }
   : {}));
 const dnd = useBuilderDnd();
 

@@ -33,6 +33,7 @@ export type {
   OptionItem,
   PageRootNode,
   PagePreviewFixture,
+  PagePreviewViewport,
   StackNode,
   CardNode,
   SectionNode,

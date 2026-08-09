@@ -302,6 +302,19 @@ export interface PagePreviewFixture {
   viewport?: PageBreakpoint | { width: number; height?: number }
 }
 
+/**
+ * One entry in the editor/preview size picker. Authoring-only: the width
+ * decides which breakpoint the cascade resolves against, so a custom size
+ * needs no new breakpoint name and documents stay self-describing.
+ */
+export interface PagePreviewViewport {
+  id: string
+  label: string
+  /** Omit for a size that follows the host container ("fluid"). */
+  width?: number
+  height?: number
+}
+
 // ─── Built-in elements ────────────────────────────────────────────────────────
 // Aliases over the unified grammar. Containers narrow `children` to required.
 
@@ -721,6 +734,16 @@ export interface PageConfig {
   }
   /** Named, non-persisted sample contexts for deterministic builder previews. */
   previewFixtures?: PagePreviewFixture[]
+  /**
+   * Device sizes offered in the editor and preview toolbars. Purely an
+   * authoring convenience: the document never records which one was chosen,
+   * and the style cascade keeps using the fixed breakpoints, derived from the
+   * width. A host can therefore add "Wide · 1920" without making its documents
+   * depend on a host-defined breakpoint name to stay readable.
+   *
+   * Unset falls back to the built-in sizes.
+   */
+  previewViewports?: PagePreviewViewport[]
   /**
    * Allow binding names outside `fields`. Defaults to false — with a
    * contract, authors pick from it.

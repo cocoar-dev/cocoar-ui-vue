@@ -294,10 +294,22 @@ provide(BUILDER_LOGIC, {
 });
 
 // ── Responsive preview ───────────────────────────────────────────────────────
-type PreviewWidth = PageBreakpoint | 'fluid';
+/** A built-in breakpoint id, 'fluid', or a host-defined viewport id. */
+type PreviewWidth = PageBreakpoint | 'fluid' | (string & {});
 const previewWidth = ref<PreviewWidth>('desktop');
 const customPreviewViewport = ref<{ width: number; height?: number }>();
 const PREVIEW_HEIGHTS: Record<PageBreakpoint, number> = { compact: 568, phone: 844, tablet: 1024, desktop: 800 };
+
+/**
+ * Viewport ids are open now that a host can add its own, so the built-in tables
+ * are looked up defensively rather than indexed as if every id were a breakpoint.
+ */
+function builtInViewportWidth(id: string): number | undefined {
+  return (PAGE_BREAKPOINT_WIDTHS as Record<string, number>)[id];
+}
+function builtInViewportHeight(id: string): number {
+  return (PREVIEW_HEIGHTS as Record<string, number>)[id] ?? 800;
+}
 const selectedFixtureId = ref('');
 const previewStateOverride = ref('');
 const previewLocaleOverride = ref('');
@@ -339,8 +351,8 @@ const previewFrameStyle = computed(() => {
     margin: '0 auto',
   };
   if (previewWidth.value === 'fluid') return { width: '100%', minHeight: '480px', margin: '0 auto' };
-  const w = PAGE_BREAKPOINT_WIDTHS[previewWidth.value];
-  return { width: `${w}px`, height: `${PREVIEW_HEIGHTS[previewWidth.value]}px`, margin: '0 auto' };
+  const w = builtInViewportWidth(previewWidth.value) ?? PAGE_BREAKPOINT_WIDTHS.desktop;
+  return { width: `${w}px`, height: `${builtInViewportHeight(previewWidth.value)}px`, margin: '0 auto' };
 });
 
 /*
@@ -365,7 +377,7 @@ const {
 
 const previewViewportWidth = computed(() =>
   customPreviewViewport.value?.width
-    ?? (previewWidth.value === 'fluid' ? undefined : PAGE_BREAKPOINT_WIDTHS[previewWidth.value]),
+    ?? (previewWidth.value === 'fluid' ? undefined : builtInViewportWidth(previewWidth.value)),
 );
 const effectivePreviewContext = computed(() => selectedFixture.value?.context ?? props.previewContext);
 const effectivePreviewState = computed(() => previewStateOverride.value || selectedFixture.value?.state || props.previewState);
@@ -425,15 +437,38 @@ function onPreviewRuntimeChange(scope: {
   emit('preview-runtime', scope);
 }
 
-/** Device width the editor canvas is constrained to; null for the fluid case. */
-const canvasViewportWidth = computed(() => (previewWidth.value === 'fluid'
-  ? null
-  : PAGE_BREAKPOINT_WIDTHS[previewWidth.value]));
+/**
+ * The size list the toolbars offer. A host may replace it; the entries are
+ * authoring-only, so widths still map onto the fixed breakpoints below.
+ */
+const previewViewportOptions = computed(() => props.config?.previewViewports ?? null);
 
-function setPreviewWidth(value: PreviewWidth) {
+function viewportOption(id: string) {
+  return previewViewportOptions.value?.find((v) => v.id === id);
+}
+
+/** Device width the editor canvas is constrained to; null for the fluid case. */
+const canvasViewportWidth = computed(() => {
+  const custom = viewportOption(previewWidth.value);
+  if (custom) return custom.width ?? null;
+  return previewWidth.value === 'fluid' ? null : builtInViewportWidth(previewWidth.value) ?? null;
+});
+
+function setPreviewWidth(value: string) {
   customPreviewViewport.value = undefined;
-  previewWidth.value = value;
-  if (value !== 'fluid') authoringBreakpoint.value = value;
+  const custom = viewportOption(value);
+  if (custom) {
+    previewWidth.value = value as PreviewWidth;
+    // A host size carries no breakpoint name: derive it from the width so the
+    // cascade keeps working without host-defined breakpoints.
+    if (custom.width) {
+      customPreviewViewport.value = { width: custom.width, height: custom.height };
+      authoringBreakpoint.value = breakpointForWidth(custom.width);
+    }
+    return;
+  }
+  previewWidth.value = value as PreviewWidth;
+  if (value !== 'fluid') authoringBreakpoint.value = value as PageBreakpoint;
 }
 
 // ── Canvas-first tool drawers + inspector ─────────────────────────────────────
@@ -696,7 +731,7 @@ function applyJson() {
                 <!-- Same controls as the preview, minus fixture and state:
                      canvas previews render from the node alone and never see
                      runtime data, so those two would do nothing here. -->
-                <BuilderViewportControl :value="previewWidth" @select="setPreviewWidth" />
+                <BuilderViewportControl :value="previewWidth" :viewports="config?.previewViewports" @select="setPreviewWidth" />
                 <label v-if="config?.locales?.length" class="pb-builder__bar-control">
                   {{ t('coar.pageBuilder.chrome.language', undefined, 'Language') }}
                   <select v-model="previewLocaleOverride">
@@ -720,7 +755,7 @@ function applyJson() {
             <div class="pb-builder__preview-pane">
               <!-- Responsive width toggle -->
               <div class="pb-builder__preview-toolbar">
-                <BuilderViewportControl :value="previewWidth" @select="setPreviewWidth" />
+                <BuilderViewportControl :value="previewWidth" :viewports="config?.previewViewports" @select="setPreviewWidth" />
                 <label v-if="config?.previewFixtures?.length" class="pb-builder__bar-control">
                   Fixture
                   <select v-model="selectedFixtureId">

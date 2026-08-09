@@ -242,6 +242,16 @@ export function createAuthPageConfig(slot: AuthPageSlot, locale: AuthPageLocale)
       ? [{ id: 'unverified-client-warning', type: 'note', lockStyle: true, parentId: 'consent-card', maxIndex: 4 }]
       : [],
     documentLimits: { maxNodes: 500, maxDepth: 30 },
+    // Demonstrates host-defined sizes: the extra wide entry is authoring-only,
+    // the cascade still resolves it through the built-in desktop breakpoint.
+    previewViewports: [
+      { id: 'compact', label: 'Compact · 320', width: 320, height: 568 },
+      { id: 'phone', label: 'Phone · 390', width: 390, height: 844 },
+      { id: 'tablet', label: 'Tablet · 768', width: 768, height: 1024 },
+      { id: 'desktop', label: 'Desktop · 1280', width: 1280, height: 800 },
+      { id: 'wide', label: 'Wide · 1920', width: 1920, height: 1080 },
+      { id: 'fluid', label: 'Fluid' },
+    ],
     previewFixtures: [
       { id: 'empty', label: 'Empty arrays', context: fixtureContext(0, 0), state: slot === 'consent' ? 'prompt' : slot === 'password-forgot' ? 'form' : slot === 'logout' ? 'complete' : 'credentials', locale },
       { id: 'typical', label: 'Typical', context: fixtureContext(2, 3), state: slot === 'consent' ? 'prompt' : slot === 'password-forgot' ? 'form' : slot === 'logout' ? 'complete' : 'credentials', locale },
