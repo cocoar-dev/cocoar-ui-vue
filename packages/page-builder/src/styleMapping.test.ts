@@ -59,6 +59,14 @@ describe('selfLayoutStyle', () => {
     expect(selfLayoutStyle({ size: 'fill' }, 'column')).toEqual({ width: '100%' });
   });
 
+  it('direction turns any container into a row, not just a stack', () => {
+    // Every container is already a flex box; before this the stack was the only
+    // one whose direction could be changed, via a CSS class of its own.
+    expect(containerLayoutStyle({ direction: 'row' }).flexDirection).toBe('row');
+    expect(containerLayoutStyle({ direction: 'column' }).flexDirection).toBe('column');
+    expect(containerLayoutStyle({}).flexDirection).toBeUndefined();
+  });
+
   it('size:grow takes the remaining main-axis space in both directions', () => {
     // The point of `grow`: a column can finally grow vertically, so only the
     // outermost node needs a height and the rest resolves through flex.

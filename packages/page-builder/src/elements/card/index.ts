@@ -12,7 +12,7 @@ export const cardElement = definePageElement<CardNode['props']>({
     group: 'container',
     defaults: () => ({}),
     quickProperties: [
-      quick.gap, quick.padding, quick.size, quick.width, quick.height,
+      quick.direction, quick.gap, quick.padding, quick.size, quick.width, quick.height,
       quick.minHeight, quick.maxHeight, quick.overflow, quick.hidden,
     ],
     inspector: CardInspector,

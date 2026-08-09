@@ -126,8 +126,12 @@ const blockedHint = computed(() =>
 /** Direction of this container — drives dropzone axis + child flex behavior. */
 const containerDirection = computed<FlexDirection>(() => {
   const n = props.node;
+  // Mirrors PageNode.vue: style.direction applies to every container, so
+  // dropzones and child sizing follow a row card just as they follow a row
+  // stack. props.direction remains the stack's legacy fallback.
+  if (resolvedStyle.value.direction) return resolvedStyle.value.direction;
   // Cast: the open union member absorbs the 'stack' narrowing.
-  if (n.type === 'stack') return resolvedStyle.value.direction ?? (n as StackNode).props.direction ?? 'column';
+  if (n.type === 'stack') return (n as StackNode).props.direction ?? 'column';
   return 'column';
 });
 

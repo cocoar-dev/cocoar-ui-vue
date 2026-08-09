@@ -158,6 +158,7 @@ export const QUICK_PROPERTY_PRESETS = {
  * the root at all.
  */
 export const PAGE_ROOT_QUICK_PROPERTIES: readonly PageElementQuickProperty[] = [
+  QUICK_PROPERTY_PRESETS.direction,
   QUICK_PROPERTY_PRESETS.padding,
   QUICK_PROPERTY_PRESETS.gap,
   QUICK_PROPERTY_PRESETS.justify,

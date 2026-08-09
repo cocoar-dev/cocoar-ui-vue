@@ -178,6 +178,10 @@ export function selfStyle(style?: NodeStyle, parentDirection: FlexDirection = 'c
 export function containerLayoutStyle(style?: NodeStyle): CSSProperties {
   const css: CSSProperties = {};
   if (!style) return css;
+  // Every container already IS a flex box; only the stack could change its
+  // direction, and it did so through a CSS class of its own. Mapping it here
+  // makes `direction` mean the same thing on page, card, section and repeat.
+  if (style.direction) css.flexDirection = style.direction;
   if (safeCssLength(style.gap)) css.gap = safeCssLength(style.gap);
   if (style.justify) css.justifyContent = style.justify;
   if (style.align) css.alignItems = style.align;

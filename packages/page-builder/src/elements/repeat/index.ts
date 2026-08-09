@@ -14,7 +14,7 @@ export const repeatElement = definePageElement<RepeatNode['props']>({
     inspector: RepeatInspector,
     inspectorTitle: { key: 'coar.pageBuilder.props.section.repeat', fallback: 'Repeat data' },
     quickProperties: [
-      quick.gap, quick.padding, quick.size, quick.width, quick.height,
+      quick.direction, quick.gap, quick.padding, quick.size, quick.width, quick.height,
       quick.minHeight, quick.maxHeight, quick.overflow, quick.hidden,
     ],
   },

@@ -90,11 +90,15 @@ const stylePresetClass = computed(() => {
 // Direction-aware sizing: read the parent container's direction, and tell our
 // own children what direction WE impose on them.
 const parentDirection = inject(PB_PARENT_DIRECTION, undefined);
-const ownDirection = computed<FlexDirection>(() =>
-  props.node.type === 'stack'
-    ? (resolvedStyle.value.direction ?? (props.node as StackNode).props.direction ?? 'column')
-    : 'column',
-);
+const ownDirection = computed<FlexDirection>(() => {
+  // Any container can be a row now, so children must be told the truth or
+  // `size` would map against the wrong axis. props.direction stays as the
+  // stack's legacy fallback only.
+  if (resolvedStyle.value.direction) return resolvedStyle.value.direction;
+  return props.node.type === 'stack'
+    ? ((props.node as StackNode).props.direction ?? 'column')
+    : 'column';
+});
 provide(PB_PARENT_DIRECTION, ownDirection);
 
 const resolvedStyle = computed(() => ctx!.resolveStyle(props.node));
