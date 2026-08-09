@@ -20,6 +20,7 @@ import { usePageBuilder } from './builder/usePageBuilder';
 import { useMergedElements } from './elements/useMergedElements';
 import { useSchemaValidation } from './builder/useSchemaValidation';
 import { provideBuilderDnd } from './builder/useBuilderDnd';
+import { useCanvasZoom } from './builder/useCanvasZoom';
 import { normalizePageSchema, type NormalizeIssue } from './builder/schemaNormalize';
 import { warnDev } from './builder/operations';
 import {
@@ -339,6 +340,22 @@ const previewFrameStyle = computed(() => {
   const w = PAGE_BREAKPOINT_WIDTHS[previewWidth.value];
   return { width: `${w}px`, height: `${PREVIEW_HEIGHTS[previewWidth.value]}px`, margin: '0 auto' };
 });
+
+/*
+ * The frame already carries the simulated viewport width, so unlike the canvas
+ * its content must not be pinned — only scaled. Overlays are safe here because
+ * CoarOverlayOutlet teleports to <body>, outside the transformed subtree that
+ * would otherwise become their containing block.
+ */
+const previewViewportRef = ref<HTMLElement | null>(null);
+const previewFrameRef = ref<HTMLElement | null>(null);
+const {
+  zoom: previewZoom,
+  step: previewZoomStep,
+  reset: previewZoomReset,
+  contentStyle: previewScaleContentStyle,
+  frameStyle: previewScaleFrameStyle,
+} = useCanvasZoom(previewViewportRef, previewFrameRef);
 
 const previewViewportWidth = computed(() =>
   customPreviewViewport.value?.width
@@ -740,9 +757,42 @@ function applyJson() {
                     <option v-for="item in config.locales" :key="item.id" :value="item.id">{{ item.label }}</option>
                   </select>
                 </label>
+                <span class="pb-builder__preview-zoom">
+                  <button
+                    type="button"
+                    class="pb-builder__icon-btn"
+                    :disabled="previewZoom <= 0.25"
+                    :title="t('coar.pageBuilder.canvas.zoomOut', undefined, 'Zoom out')"
+                    @click="previewZoomStep(-1)"
+                  >
+                    <CoarIcon name="minus" size="xs" />
+                  </button>
+                  <button
+                    type="button"
+                    class="pb-builder__preview-zoom-value"
+                    :title="t('coar.pageBuilder.canvas.zoomReset', undefined, 'Reset zoom')"
+                    @click="previewZoomReset()"
+                  >{{ Math.round(previewZoom * 100) }}%</button>
+                  <button
+                    type="button"
+                    class="pb-builder__icon-btn"
+                    :disabled="previewZoom >= 2"
+                    :title="t('coar.pageBuilder.canvas.zoomIn', undefined, 'Zoom in')"
+                    @click="previewZoomStep(1)"
+                  >
+                    <CoarIcon name="plus" size="xs" />
+                  </button>
+                </span>
               </div>
-              <div class="pb-builder__preview">
-                <div class="pb-builder__preview-frame" :style="previewFrameStyle">
+              <div ref="previewViewportRef" class="pb-builder__preview">
+                <!-- Reserves the space the scaled frame occupies; a transform
+                     changes no layout box on its own. -->
+                <div class="pb-builder__preview-scale" :style="previewScaleFrameStyle">
+                <div
+                  ref="previewFrameRef"
+                  class="pb-builder__preview-frame"
+                  :style="{ ...previewFrameStyle, ...previewScaleContentStyle }"
+                >
                   <!-- The renderer falls back to config.assetResolver itself. -->
                   <CoarThemeScope
                     v-if="hasEffectivePreviewContract"
@@ -771,6 +821,7 @@ function applyJson() {
                     <strong>Preview values are missing</strong>
                     <span>The host must provide context, state, and locale together, or configure a preview fixture.</span>
                   </div>
+                </div>
                 </div>
               </div>
             </div>
@@ -1166,6 +1217,32 @@ function applyJson() {
 }
 
 .pb-builder__preview-control { display: inline-flex; align-items: center; gap: 5px; margin-left: 4px; color: var(--coar-text-neutral-secondary, #555); font-size: 11px; }
+
+.pb-builder__preview-zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+.pb-builder__preview-zoom-value {
+  min-width: 40px;
+  height: 22px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--coar-text-neutral-secondary, #5a5a60);
+  font: inherit;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.pb-builder__preview-zoom-value:hover {
+  background: var(--coar-background-neutral-tertiary, #eeeef1);
+  color: var(--coar-text-neutral-primary, #202124);
+}
+/* Centres the scaled frame while it is narrower than the pane. */
+.pb-builder__preview-scale { margin-inline: auto; width: fit-content; }
 .pb-builder__preview-control select { max-width: 150px; border: 1px solid var(--coar-border-neutral, #d0d0d0); border-radius: 4px; background: var(--coar-background-neutral-primary, #fff); font: inherit; }
 
 .pb-builder__seg {

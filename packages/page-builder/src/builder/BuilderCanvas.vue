@@ -15,7 +15,12 @@ const dnd = useBuilderDnd();
 
 const viewportRef = ref<HTMLElement | null>(null);
 const contentRef = ref<HTMLElement | null>(null);
-const { zoom, step, reset, contentStyle, frameStyle } = useCanvasZoom(viewportRef, contentRef);
+// The canvas has no width of its own, so the content is pinned to the viewport.
+const { zoom, step, reset, contentStyle, frameStyle } = useCanvasZoom(
+  viewportRef,
+  contentRef,
+  { pinToViewportWidth: true },
+);
 
 function onCanvasBackgroundClick() {
   builder.select([]);

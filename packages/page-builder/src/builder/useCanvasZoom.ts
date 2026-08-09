@@ -24,14 +24,27 @@ const DEFAULT_ZOOM = 1;
 const MIN_ZOOM = CANVAS_ZOOM_STEPS[0];
 const MAX_ZOOM = CANVAS_ZOOM_STEPS[CANVAS_ZOOM_STEPS.length - 1];
 
+export interface CanvasZoomOptions {
+  /**
+   * Pin the content to the viewport's width (the editor canvas, which has no
+   * width of its own). Leave false where the content is already sized — the
+   * preview frame carries the simulated viewport width and must keep it.
+   */
+  pinToViewportWidth?: boolean;
+}
+
 export function useCanvasZoom(
   viewportRef: Ref<HTMLElement | null>,
   contentRef: Ref<HTMLElement | null>,
+  options: CanvasZoomOptions = {},
 ) {
+  const pinWidth = options.pinToViewportWidth ?? false;
   const zoom = ref(DEFAULT_ZOOM);
   /** Layout width the content is pinned to — the viewport's content box. */
-  const layoutWidth = ref<number | null>(null);
+  const viewportWidth = ref<number | null>(null);
+  const contentWidth = ref<number | null>(null);
   const contentHeight = ref<number | null>(null);
+  const layoutWidth = computed(() => (pinWidth ? viewportWidth.value : contentWidth.value));
 
   let viewportObserver: ResizeObserver | null = null;
   let contentObserver: ResizeObserver | null = null;
@@ -43,12 +56,14 @@ export function useCanvasZoom(
     const inner = el.clientWidth
       - parseFloat(style.paddingLeft || '0')
       - parseFloat(style.paddingRight || '0');
-    layoutWidth.value = inner > 0 ? inner : null;
+    viewportWidth.value = inner > 0 ? inner : null;
   }
 
   function measureContent() {
-    // offsetHeight is pre-transform, i.e. the untouched layout height.
-    contentHeight.value = contentRef.value?.offsetHeight ?? null;
+    // offsetWidth/Height are pre-transform, i.e. the untouched layout size.
+    const el = contentRef.value;
+    contentWidth.value = el?.offsetWidth ?? null;
+    contentHeight.value = el?.offsetHeight ?? null;
   }
 
   function observe(el: HTMLElement | null, onChange: () => void): ResizeObserver | null {
@@ -77,7 +92,7 @@ export function useCanvasZoom(
 
   const contentStyle = computed(() => {
     const style: Record<string, string> = {};
-    if (layoutWidth.value !== null) style.width = `${layoutWidth.value}px`;
+    if (pinWidth && viewportWidth.value !== null) style.width = `${viewportWidth.value}px`;
     if (zoom.value !== 1) {
       style.transform = `scale(${zoom.value})`;
       style.transformOrigin = 'top left';
