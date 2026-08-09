@@ -25,7 +25,9 @@ export const DEFAULT_PAGE_STATE_CODE = `definePageState({ // @locked @slot:state
 }) // @locked`
 
 export const DEFAULT_PAGE_ROOT_CODE = `definePageRoot({ // @locked
-  compute(page, runtime) { // @locked @slot:compute
+  compute(page, runtime) { // @locked
+    // Properties Panel values // @locked @quick:start
+    // Custom code (overrides values above) // @locked @quick:end @slot:compute
     // Configure the existing page root. Structure stays in the visual builder.
   }, // @locked
 }) // @locked`
@@ -186,7 +188,11 @@ function quickPropertyMetadata(path: string, value: unknown): string {
   return `@quick:${encodeURIComponent(path)} @value:${encodeURIComponent(serialized)}`
 }
 
-function quickPropertyLine(path: string, value: unknown): string {
+/**
+ * `receiver` is the compute slot's draft parameter: `element` for element code,
+ * `page` for page root code. Both expose the same `style` draft.
+ */
+function quickPropertyLine(path: string, value: unknown, receiver: 'element' | 'page' = 'element'): string {
   const match = QUICK_PROPERTY_PATH.exec(path)
   if (!match) throw new TypeError(`Unsupported Quick Property path "${path}".`)
   const [, root, property] = match
@@ -198,9 +204,12 @@ function quickPropertyLine(path: string, value: unknown): string {
   const expression = candidate?.source === 'translation' && typeof candidate.key === 'string'
     ? `i18n.text(${JSON.stringify(candidate.key)}, ${candidate.params === undefined ? 'undefined' : JSON.stringify(candidate.params)}, ${candidate.fallback === undefined ? 'undefined' : JSON.stringify(candidate.fallback)})`
     : serialized
+  if (receiver === 'page' && root !== 'style') {
+    throw new TypeError(`Page Root Quick Properties support style.* only, got "${path}".`)
+  }
   const assignment = root === 'validation'
     ? `element.validation = { ...(element.validation || {}), ${property}: ${expression} };`
-    : `element.${root}.${property} = ${expression};`
+    : `${receiver}.${root}.${property} = ${expression};`
   return `    ${assignment} // @locked ${quickPropertyMetadata(path, value)}`
 }
 
@@ -210,7 +219,11 @@ function quickPropertyLines(source: string): string[] {
   )
 }
 
-/** Reads only deterministic Properties-Panel assignments, never arbitrary customer code. */
+/**
+ * Reads only deterministic Properties-Panel assignments, never arbitrary
+ * customer code. The metadata format is identical for element and page root
+ * code, so this serves both.
+ */
 export function readElementQuickProperties(source?: string): Record<string, unknown> {
   const values: Record<string, unknown> = Object.create(null)
   for (const line of quickPropertyLines(source ?? '')) {
@@ -227,18 +240,22 @@ export function readElementQuickProperties(source?: string): Record<string, unkn
   return values
 }
 
-/** Adds, replaces, or removes one machine-owned assignment without parsing custom code. */
-export function setElementQuickProperty(source: string | undefined, path: string, value: unknown): string {
+function setQuickProperty(
+  constrained: string,
+  path: string,
+  value: unknown,
+  receiver: 'element' | 'page',
+  label: string,
+): string {
   if (!QUICK_PROPERTY_PATH.test(path)) throw new TypeError(`Unsupported Quick Property path "${path}".`)
-  const constrained = constrainElementCode(source)
   const lines = constrained.replace(/\r\n/g, '\n').split('\n')
   const encodedPath = encodeURIComponent(path)
   const existing = lines.findIndex((line) => line.includes(`@quick:${encodedPath} `))
   if (existing >= 0) lines.splice(existing, 1)
   if (value !== undefined) {
     const end = lines.findIndex((line) => /@quick:end\b/.test(line))
-    if (end < 0) throw new Error('Element Code is missing its Quick Properties boundary.')
-    lines.splice(end, 0, quickPropertyLine(path, value))
+    if (end < 0) throw new Error(`${label} is missing its Quick Properties boundary.`)
+    lines.splice(end, 0, quickPropertyLine(path, value, receiver))
   }
   const start = lines.findIndex((line) => /@quick:start\b/.test(line))
   const end = lines.findIndex((line) => /@quick:end\b/.test(line))
@@ -251,6 +268,19 @@ export function setElementQuickProperty(source: string | undefined, path: string
     lines.splice(start + 1, end - start - 1, ...assignments)
   }
   return lines.join('\n')
+}
+
+/** Adds, replaces, or removes one machine-owned assignment without parsing custom code. */
+export function setElementQuickProperty(source: string | undefined, path: string, value: unknown): string {
+  return setQuickProperty(constrainElementCode(source), path, value, 'element', 'Element Code')
+}
+
+/**
+ * Page-root counterpart. The root draft exposes `style` only, so `props.*` and
+ * `validation.*` paths are rejected rather than silently written.
+ */
+export function setPageRootQuickProperty(source: string | undefined, path: string, value: unknown): string {
+  return setQuickProperty(constrainPageRootCode(source), path, value, 'page', 'Page Root Code')
 }
 
 function migrateLegacyElementBody(body: string, action: boolean): string {
@@ -299,11 +329,17 @@ export function constrainPageStateCode(source?: string): string {
 /** Converts Page Root Code into one constrained reactive compute slot. */
 export function constrainPageRootCode(source?: string): string {
   const current = source?.trim() || DEFAULT_PAGE_ROOT_CODE
-  if (/\/\/\s*@locked\b/.test(current)
-    && /\bcompute\s*\(\s*page\s*,\s*runtime\s*\)/.test(current)) return current
-  const body = methodBody(current, 'compute')
+  const constrained = /\/\/\s*@locked\b/.test(current)
+    && /\bcompute\s*\(\s*page\s*,\s*runtime\s*\)/.test(current)
+  // Sources predating the Quick Properties boundary are rebuilt so the panel
+  // has somewhere to write; already-bounded sources round-trip unchanged.
+  if (constrained && /@quick:start\b/.test(current) && /@quick:end\b/.test(current)) return current
+  const body = constrained ? namedSlot(current, 'compute') ?? '' : methodBody(current, 'compute')
+  const quick = quickPropertyLines(current).join('\n')
   return `definePageRoot({ // @locked
-  compute(page, runtime) { // @locked @slot:compute
+  compute(page, runtime) { // @locked
+    // Properties Panel values // @locked @quick:start
+${quick ? `${quick}\n` : ''}    // Custom code (overrides values above) // @locked @quick:end @slot:compute
 ${normalizeBody(body, '    ')}
   }, // @locked
 }) // @locked`

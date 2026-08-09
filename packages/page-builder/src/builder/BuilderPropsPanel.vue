@@ -21,8 +21,8 @@ import ActionPropsEditor from './props/ActionPropsEditor.vue';
 import { isExpressionBinding } from '../runtimeBindings';
 import { expressionLiteral } from './expressionAuthoring';
 import { collectElementNames, elementNameBase, uniqueElementName } from './nodeDefaults';
-import { readElementQuickProperties, setElementQuickProperty } from '../pageCode';
-import type { PageElementQuickProperty } from '../elements/registry';
+import { readElementQuickProperties, setElementQuickProperty, setPageRootQuickProperty } from '../pageCode';
+import { PAGE_ROOT_QUICK_PROPERTIES, type PageElementQuickProperty } from '../elements/registry';
 import { isTranslationBinding, pageTranslationTemplate, translation, translationKeyFor } from '../translations';
 import { isBindableActionValueField } from '../actionValues';
 
@@ -69,8 +69,15 @@ const fieldNode = computed<ElementNode | null>(() =>
 
 const inspector = computed(() => def.value?.builder?.inspector);
 const defaultValueInput = computed(() => def.value?.builder?.defaultValueInput);
-const quickProperties = computed(() => def.value?.builder?.quickProperties ?? []);
-const quickPropertyValues = computed(() => readElementQuickProperties(elementNode.value?.elementCode));
+// The page root is not a registered element, so its shortcuts come from the
+// registry constant. Both write into their own code draft's Quick Properties
+// block, which uses one shared metadata format.
+const quickProperties = computed<readonly PageElementQuickProperty[]>(() =>
+  pageNode.value ? PAGE_ROOT_QUICK_PROPERTIES : def.value?.builder?.quickProperties ?? [],
+);
+const quickPropertyValues = computed(() => readElementQuickProperties(
+  pageNode.value ? pageNode.value.rootCode : elementNode.value?.elementCode,
+));
 
 const inspectorTitle = computed(() => {
   const b = def.value?.builder;
@@ -118,6 +125,11 @@ function quickPropertyRawValue(property: PageElementQuickProperty): unknown {
   const authored = quickPropertyValues.value;
   if (Object.prototype.hasOwnProperty.call(authored, property.path)) return authored[property.path];
   const [root, key] = property.path.split('.') as [string, string];
+  // No assignment yet: show the value the document already carries, so the
+  // field reflects what the canvas renders instead of looking unset.
+  if (pageNode.value) {
+    return root === 'style' ? pageNode.value.style?.[key as keyof NodeStyle] : undefined;
+  }
   const current = elementNode.value;
   if (!current) return undefined;
   if (root === 'props') return current.props[key];
@@ -166,6 +178,12 @@ function quickPropertyOptions(property: PageElementQuickProperty): CoarSelectOpt
 }
 
 function updateQuickProperty(property: PageElementQuickProperty, value: unknown) {
+  if (pageNode.value) {
+    patch({
+      rootCode: setPageRootQuickProperty(pageNode.value.rootCode, property.path, value),
+    } as Partial<PageNode>);
+    return;
+  }
   const current = elementNode.value;
   if (!current) return;
   const existing = quickPropertyRawValue(property);
@@ -206,6 +224,12 @@ function quickTranslationBinding(property: PageElementQuickProperty): Translatio
 }
 
 function resetQuickProperty(property: PageElementQuickProperty) {
+  if (pageNode.value) {
+    patch({
+      rootCode: setPageRootQuickProperty(pageNode.value.rootCode, property.path, undefined),
+    } as Partial<PageNode>);
+    return;
+  }
   const current = elementNode.value;
   if (!current) return;
   patch({
@@ -876,7 +900,7 @@ function bindField(name: string | null) {
         </section>
 
         <section
-          v-if="elementNode && quickProperties.length > 0"
+          v-if="quickProperties.length > 0"
           class="pb-props__section pb-props__section--separated"
         >
           <h4 class="pb-props__section-title">Quick properties</h4>

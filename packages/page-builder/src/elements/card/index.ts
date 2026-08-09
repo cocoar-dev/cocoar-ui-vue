@@ -11,7 +11,10 @@ export const cardElement = definePageElement<CardNode['props']>({
     icon: 'square-dashed',
     group: 'container',
     defaults: () => ({}),
-    quickProperties: [quick.width, quick.gap, quick.padding, quick.hidden],
+    quickProperties: [
+      quick.gap, quick.padding, quick.width, quick.height,
+      quick.minHeight, quick.maxHeight, quick.overflow, quick.hidden,
+    ],
     inspector: CardInspector,
     inspectorTitle: { key: 'coar.pageBuilder.props.section.card', fallback: 'Card' },
   },

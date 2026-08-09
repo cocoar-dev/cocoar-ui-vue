@@ -115,6 +115,16 @@ export const QUICK_PROPERTY_PRESETS = {
   required: { path: 'validation.required', label: quickLabel('Required'), control: 'boolean' },
   width: { path: 'style.width', label: quickLabel('Width'), control: 'text' },
   hidden: { path: 'style.hidden', label: quickLabel('Hidden'), control: 'boolean' },
+  // Box geometry: no design-system semantics, constantly touched while laying
+  // out, and the canvas shows the result immediately. Everything token-backed
+  // (surface, radius, typography) stays code-only on purpose.
+  height: { path: 'style.height', label: quickLabel('Height'), control: 'text' },
+  minHeight: { path: 'style.minHeight', label: quickLabel('Min height'), control: 'text' },
+  maxHeight: { path: 'style.maxHeight', label: quickLabel('Max height'), control: 'text' },
+  overflow: {
+    path: 'style.overflow', label: quickLabel('Overflow'), control: 'select',
+    options: ['visible', 'hidden', 'clip', 'auto', 'scroll'].map((value) => ({ value, label: quickLabel(value) })),
+  },
   gap: { path: 'style.gap', label: quickLabel('Gap'), control: 'text' },
   padding: { path: 'style.padding', label: quickLabel('Padding'), control: 'text' },
   variant: {
@@ -129,7 +139,30 @@ export const QUICK_PROPERTY_PRESETS = {
     path: 'style.align', label: quickLabel('Align'), control: 'select',
     options: ['start', 'center', 'end', 'stretch'].map((value) => ({ value, label: quickLabel(value) })),
   },
+  justify: {
+    path: 'style.justify', label: quickLabel('Justify'), control: 'select',
+    options: ['start', 'center', 'end', 'space-between', 'space-around', 'space-evenly']
+      .map((value) => ({ value, label: quickLabel(value) })),
+  },
 } as const satisfies Record<string, PageElementQuickProperty>;
+
+/**
+ * The page root is not a registered element, so its shortcuts live here. Its
+ * code draft exposes `style` only — `props.*` and `validation.*` are rejected
+ * by `setPageRootQuickProperty`. min-height plus justify/align is what makes a
+ * card centre on a full-screen page, which is the common reason to reach for
+ * the root at all.
+ */
+export const PAGE_ROOT_QUICK_PROPERTIES: readonly PageElementQuickProperty[] = [
+  QUICK_PROPERTY_PRESETS.padding,
+  QUICK_PROPERTY_PRESETS.gap,
+  QUICK_PROPERTY_PRESETS.justify,
+  QUICK_PROPERTY_PRESETS.align,
+  QUICK_PROPERTY_PRESETS.height,
+  QUICK_PROPERTY_PRESETS.minHeight,
+  QUICK_PROPERTY_PRESETS.maxHeight,
+  QUICK_PROPERTY_PRESETS.overflow,
+];
 
 /** Editor-only half: how the element appears in palette, canvas and inspector. */
 export interface PageElementBuilderDefinition<P extends ElementProps = ElementProps> {
