@@ -830,8 +830,21 @@ defineExpose({
 </template>
 
 <style scoped>
+/*
+ * The renderer has to pass the host's height down, or a page carrying
+ * `height: 100%` has nothing definite to resolve against, falls back to its
+ * content height and leaves a gap below itself in any fixed-height host.
+ *
+ * Grid rather than flex on purpose: the page root often carries an inline
+ * `flex` from its own style mapping, which would override anything this
+ * stylesheet sets. A grid item ignores that shorthand. `min-content` as the
+ * row minimum keeps taller pages growing (and the host scrolling) instead of
+ * being clamped to the host.
+ */
 .coar-page-renderer {
-  display: block;
+  display: grid;
+  grid-template-rows: minmax(min-content, 1fr);
+  min-height: 100%;
   width: 100%;
   min-width: 0;
 }
