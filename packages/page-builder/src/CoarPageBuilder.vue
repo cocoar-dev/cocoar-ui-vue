@@ -1039,9 +1039,11 @@ function applyJson() {
   overflow: hidden;
 }
 
+/* The outline owns its own scrolling; this is only the frame around it. */
 .pb-builder__tree-scroll {
   flex: 1;
-  overflow: auto;
+  min-height: 0;
+  overflow: hidden;
   padding: 6px 4px 12px;
 }
 
