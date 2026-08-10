@@ -85,22 +85,22 @@ function safeThemeVariables(values: PageVisualMarkupConfig['themeVariables']): s
   return declarations.length ? `:root{${declarations.join(';')}}` : '';
 }
 
-function safeFontSource(source: string): boolean {
-  return /^data:font\/(?:woff2?|ttf|otf|sfnt);base64,[A-Za-z0-9+/=]+$/i.test(source)
-    || /^blob:https?:\/\/[A-Za-z0-9._~:/?#[\]@!$&'()*+,;=%-]+$/i.test(source);
+function safeFontSource(src: string): boolean {
+  return /^data:font\/(?:woff2?|ttf|otf|sfnt);base64,[A-Za-z0-9+/=]+$/i.test(src)
+    || /^blob:https?:\/\/[A-Za-z0-9._~:/?#[\]@!$&'()*+,;=%-]+$/i.test(src);
 }
 
 function fontFace(font: PageVisualFont): string {
   if (!font.id || !/^[A-Za-z0-9._-]{1,100}$/.test(font.id)) return '';
   if (!font.family || font.family.length > 120 || !/^[\p{L}\p{N} _.-]+$/u.test(font.family)) return '';
-  if (!safeFontSource(font.source)) return '';
+  if (!safeFontSource(font.src)) return '';
   const weight = font.weight && /^(?:normal|bold|[1-9]00|[1-9]00\s+[1-9]00)$/.test(font.weight)
     ? font.weight
     : 'normal';
   const style = font.style ?? 'normal';
   const display = font.display ?? 'swap';
   const format = font.format ? ` format("${font.format}")` : '';
-  return `@font-face{font-family:${JSON.stringify(font.family)};src:url("${font.source}")${format};font-weight:${weight};font-style:${style};font-display:${display}}`;
+  return `@font-face{font-family:${JSON.stringify(font.family)};src:url("${font.src}")${format};font-weight:${weight};font-style:${style};font-display:${display}}`;
 }
 
 /**

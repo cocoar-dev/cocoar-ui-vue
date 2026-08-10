@@ -170,7 +170,7 @@ export { migrateV1PropsBag } from './builder/schemaMigrateV1';
 export {
   definePageElement,
   mergeElementRegistries,
-  PAGE_ELEMENTS_KEY,
+  PAGE_ELEMENT_TYPES_KEY,
   ELEMENT_KEY_PATTERN,
   QUICK_PROPERTY_PRESETS,
   QUICK_COMPOUND_PRESETS,
@@ -222,21 +222,21 @@ export { validatePageDocument, type PageDocumentIssue, type PageDocumentValidati
 
 /**
  * The builder's authoring findings — the same list `<CoarPageBuilder>` draws
- * in its outline and props panel and emits via `@validation`. Exported for
+ * in its outline and props panel and emits via `@findings`. Exported for
  * hosts that need them OUTSIDE a mounted builder (a save gate, a document
  * dashboard). Call it in a component `setup()`: it resolves the element
- * registry reactively, honouring `config.elements` and an app-level
- * `providePageElements()` alike.
+ * registry reactively, honouring `config.elementTypes` and an app-level
+ * `PAGE_ELEMENT_TYPES_KEY` provide alike.
  *
  * Not the activation contract — `validatePageDocument` is what the runtime
  * enforces. These are UX hints on top of it.
  */
 export {
-  useSchemaValidation,
-  type ValidationIssue,
-  type IssueSeverity,
-  type UseSchemaValidationReturn,
-} from './builder/useSchemaValidation';
+  useAuthoringFindings,
+  type AuthoringFinding,
+  type FindingSeverity,
+  type UseAuthoringFindingsReturn,
+} from './builder/useAuthoringFindings';
 
 export {
   collectPageRuntimeExpressions,

@@ -242,7 +242,7 @@ describe('usePageBuilder.addChild — strict-contract minting rule', () => {
   it('still gives fresh value elements a Page-Code name under a strict contract', () => {
     const builder = usePageBuilder({
       initial: page([]),
-      config: computed(() => ({ fields: [{ name: 'username', valueType: 'string' as const }] })),
+      config: computed(() => ({ dataContract: [{ name: 'username', valueType: 'string' as const }] })),
     });
     builder.addChild([], 'text-input');
     const node = (builder.schema.value as { children: PageNode[] }).children[0] as
@@ -254,7 +254,7 @@ describe('usePageBuilder.addChild — strict-contract minting rule', () => {
     const builder = usePageBuilder({
       initial: page([]),
       config: computed(() => ({
-        fields: [{ name: 'username', valueType: 'string' as const }],
+        dataContract: [{ name: 'username', valueType: 'string' as const }],
         allowCustomFields: true,
       })),
     });

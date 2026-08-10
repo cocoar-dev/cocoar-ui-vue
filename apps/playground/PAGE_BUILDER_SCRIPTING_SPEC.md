@@ -169,8 +169,10 @@ bounded, data-only projection instead of exposing the host object by reference.
 
 ### 7.4 `state`
 
-`state` is a string-literal union generated from `PageConfig.availableStates`.
-Changing state remains host-owned; expressions can read but never assign it.
+`state` is the page's own shared data, declared by the author with
+`definePageState`. The host's "which screen is this" travels as ordinary
+context — a `PageContextField` whose `allowedValues` list the screens — and is
+read, never assigned, from an expression.
 
 ### 7.5 `item`
 

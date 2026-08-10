@@ -88,7 +88,7 @@ const boundNames = computed(() => {
 });
 
 const fieldEntries = computed<FieldPaletteEntry[]>(() =>
-  (config?.value?.fields ?? [])
+  (config?.value?.dataContract ?? [])
     .map((field) => ({
       field,
       elementType: defaultElementForField(elements.value, field, config?.value),
@@ -151,7 +151,7 @@ function onFieldPointerDown(event: PointerEvent, entry: FieldPaletteEntry) {
     </div>
 
     <div class="pb-library__scroll">
-      <section v-if="config?.fields?.length" class="pb-library__group" data-palette-group="fields">
+      <section v-if="config?.dataContract?.length" class="pb-library__group" data-palette-group="fields">
         <button type="button" class="pb-library__group-toggle" :aria-expanded="!collapsed.fields" @click="collapsed.fields = !collapsed.fields">
           <CoarIcon :name="collapsed.fields ? 'chevron-right' : 'chevron-down'" size="xs" />
           <span>{{ t('coar.pageBuilder.palette.fields', undefined, 'Fields') }}</span>

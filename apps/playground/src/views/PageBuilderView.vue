@@ -286,7 +286,7 @@ const idpLoginConfig: PageConfig = {
   // Field section becomes a pick from these — filtered per element to the
   // compatible value types (string → text/password/…, boolean → checkbox/
   // switch, number → number-input AND acme-rating, date → date picker).
-  fields: [
+  dataContract: [
     { name: 'username',   valueType: 'string',  label: 'Username', required: true },
     { name: 'password',   valueType: 'string',  label: 'Password', required: true, defaultElement: 'password-input' },
     { name: 'rememberMe', valueType: 'boolean', label: 'Remember me' },

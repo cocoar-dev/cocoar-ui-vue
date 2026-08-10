@@ -71,16 +71,18 @@ The persisted document is a tree of one uniform node grammar: `type` is an
 open registry key (built-in or consumer), everything element-specific lives in
 the `props` bag, and the host vocabulary — `id`, `style`, the value-model trio
 `name` / `defaultValue` / `validation`, and `children` for containers — stays
-at node level. The `page` root carries `schemaVersion: 5`. Version 4 gives every
+at node level. The `page` root carries `schemaVersion: 6`. Version 4 gives every
 element a stable, page-wide `name`; value elements use that same name as their
 form/DTO property and Element Code uses it as its authoring identity. Version 5
-adds builder-only origin metadata for reusable, versioned compositions.
+adds builder-only origin metadata for reusable, versioned compositions. Version
+6 renames the repeat's `props.source` to `props.contextPath`, so `source` means
+one thing everywhere.
 
 ```jsonc
 {
   "id": "3f6c…",
   "type": "page",
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "style": { "gap": "16px", "padding": "24px" },
   "children": [
     { "id": "a1b2…", "type": "heading", "props": { "text": "Sign in", "level": 2 } },
@@ -286,7 +288,7 @@ or CSS: they become part of the generated `srcdoc`.
 
 The built-in elements are just pre-registered entries of an open **element
 registry** — a consumer can register its own element types on the exact same
-contract via `config.elements` (or app-wide via `PAGE_ELEMENTS_KEY`). One
+contract via `config.elementTypes` (or app-wide via `PAGE_ELEMENT_TYPES_KEY`). One
 registration serves palette, canvas preview, props panel and the runtime
 renderer; the value model (defaults, `required`, validation, action payloads)
 comes from the host for free. Element renderers wire their field state through
@@ -322,7 +324,7 @@ and DTO property (`elements.username` and `fields.username`); there is no
 second field-name or identifier property.
 
 Pages are usually projections of a DTO — the value-element names and types are
-known up front. Declare them as `config.fields` and authors *pick* fields instead
+known up front. Declare them as `config.dataContract` and authors *pick* fields instead
 of inventing names: the props panel's Name becomes a select filtered to the
 value types each element can edit (`ElementValueSpec.types`; the rating above
 declares `types: ['number']` and shows up for number fields), the palette

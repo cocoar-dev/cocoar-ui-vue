@@ -2,7 +2,7 @@
 // (elements/registry.ts imports node types from here), so no cycle exists.
 import type { PageElementRegistry } from './elements/registry'
 
-export const CURRENT_PAGE_SCHEMA_VERSION = 5
+export const CURRENT_PAGE_SCHEMA_VERSION = 6
 
 // ─── Style ────────────────────────────────────────────────────────────────────
 
@@ -147,7 +147,7 @@ export interface PageContextField {
    * as a dropdown instead of a free-text box, which is what makes a host's
    * view state, tier or status authorable without a second mechanism for it.
    */
-  values?: string[]
+  allowedValues?: string[]
 }
 
 export interface RuntimeBinding {
@@ -344,8 +344,8 @@ export interface RepeatSelection {
 
 /** Native template repeater over one allowlisted host-context array. */
 export interface RepeatNode extends ElementNode<'repeat', {
-  /** Legacy/host-context source. Page Code may instead provide `items`. */
-  source?: string
+  /** Allow-listed host-context array path. Page Code may instead provide `items`. */
+  contextPath?: string
   keyPath?: string
   /** Runtime-only data source produced by Page Code (still JSON-safe data). */
   items?: unknown[]
@@ -688,18 +688,18 @@ export interface PageConfig {
    * Consumer-registered elements, merged ADDITIVELY over the built-in set
    * (shadowing a built-in key warns in DEV). The same config reaches builder
    * and renderer, so one registration serves palette, canvas, inspector and
-   * runtime. App-wide defaults can be provided under `PAGE_ELEMENTS_KEY`
+   * runtime. App-wide defaults can be provided under `PAGE_ELEMENT_TYPES_KEY`
    * instead; this field wins when both are present.
    */
-  elements?: PageElementRegistry
+  elementTypes?: PageElementRegistry
   /**
-   * The data contract behind the page (DTO fields). When present, the
+   * The data contract behind the page (DTO properties). When present, the
    * builder's Field section offers these instead of a free-text name —
    * filtered to the fields the selected element can edit (see
    * `ElementValueSpec.types`) — and the lint flags unknown names,
    * incompatible bindings, and missing required fields.
    */
-  fields?: PageFieldSpec[]
+  dataContract?: PageFieldSpec[]
   /** Typed allowlist of host values the document may bind or use in conditions. */
   contextFields?: PageContextField[]
   /** Locales offered by the builder for LocalizedValue props. */
@@ -782,7 +782,7 @@ export interface PageVisualFont {
   id: string
   family: string
   /** Only data:font/...;base64 and blob: URLs are accepted by the renderer. */
-  source: string
+  src: string
   format?: 'woff2' | 'woff' | 'truetype' | 'opentype'
   weight?: string
   style?: 'normal' | 'italic' | 'oblique'

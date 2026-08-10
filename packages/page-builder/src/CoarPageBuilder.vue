@@ -18,7 +18,7 @@ import type { PageRuntimeHost } from './runtime/PageRuntimeHost';
 import { PAGE_BREAKPOINT_WIDTHS, breakpointForWidth } from './responsive';
 import { usePageBuilder } from './builder/usePageBuilder';
 import { useMergedElements } from './elements/useMergedElements';
-import { useSchemaValidation, type ValidationIssue } from './builder/useSchemaValidation';
+import { useAuthoringFindings, type AuthoringFinding } from './builder/useAuthoringFindings';
 import { provideBuilderDnd } from './builder/useBuilderDnd';
 import { useCanvasZoom, CANVAS_ZOOM_STEPS } from './builder/useCanvasZoom';
 import BuilderZoomControl from './builder/props/BuilderZoomControl.vue';
@@ -28,7 +28,7 @@ import { warnDev } from './builder/operations';
 import {
   BUILDER_API,
   BUILDER_CONFIG,
-  BUILDER_VALIDATION,
+  BUILDER_FINDINGS,
   BUILDER_BREAKPOINT,
   BUILDER_RUNTIME,
   BUILDER_LOGIC,
@@ -83,7 +83,7 @@ const emit = defineEmits<{
    * These are AUTHORING hints, not the activation contract: for "may this
    * document go live?" use `validatePageDocument`, which the runtime honours.
    */
-  validation: [issues: ValidationIssue[]]
+  findings: [findings: AuthoringFinding[]]
 }>();
 
 const props = defineProps<{
@@ -186,21 +186,21 @@ watch(model, (next) => {
   builder.replaceSchema(normalizedFromModel(raw as PageNode));
 });
 
-const validation = useSchemaValidation(builder.schema, configRef);
+const findings = useAuthoringFindings(builder.schema, configRef);
 
 // Every schema mutation produces a fresh array, so identity alone would emit on
 // each keystroke. Hosts get the list only when its CONTENT moves.
-watch(validation.issues, (issues, previous) => {
-  if (previous && sameIssues(issues, previous)) return;
-  emit('validation', issues.map((issue) => ({ ...issue })));
+watch(findings.findings, (next, previous) => {
+  if (previous && sameFindings(next, previous)) return;
+  emit('findings', next.map((finding) => ({ ...finding })));
 }, { immediate: true });
 
-function sameIssues(a: readonly ValidationIssue[], b: readonly ValidationIssue[]) {
-  return a.length === b.length && a.every((issue, i) =>
-    issue.nodeId === b[i].nodeId
-    && issue.field === b[i].field
-    && issue.severity === b[i].severity
-    && issue.message === b[i].message);
+function sameFindings(a: readonly AuthoringFinding[], b: readonly AuthoringFinding[]) {
+  return a.length === b.length && a.every((finding, i) =>
+    finding.nodeId === b[i].nodeId
+    && finding.field === b[i].field
+    && finding.severity === b[i].severity
+    && finding.message === b[i].message);
 }
 
 // Provided here (not in BuilderCanvas) so the outline pane — a sibling of the
@@ -214,7 +214,7 @@ provideBuilderDnd(builder, {
 
 provide(BUILDER_API, builder);
 provide(BUILDER_CONFIG, configRef);
-provide(BUILDER_VALIDATION, validation);
+provide(BUILDER_FINDINGS, findings);
 provide(BUILDER_AUTHORING_MODE, computed(() => props.authoringMode ?? 'properties'));
 provide(BUILDER_PAGE_CODE_LIBS, computed(() => props.pageCodeExtraLibs ?? []));
 provide(BUILDER_COMPOSITIONS, compositions);

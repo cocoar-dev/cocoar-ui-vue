@@ -47,7 +47,7 @@ export function validatePageDocument(schema: PageNode, config?: PageConfig): Pag
   if (rootCode && rootCode.length > 50_000) issues.push({ nodeId: schema.id, field: 'rootCode', message: 'Page Root Code exceeds 50,000 characters.' })
   if (stateCode && stateCode.length > 50_000) issues.push({ nodeId: schema.id, field: 'stateCode', message: 'Page State exceeds 50,000 characters.' })
   const nodesById = new Map<string, PageNode>()
-  const registry = { ...BUILTIN_ELEMENTS, ...(config?.elements ?? {}) }
+  const registry = { ...BUILTIN_ELEMENTS, ...(config?.elementTypes ?? {}) }
   const fieldNames = new Set<string>()
   const selectionNames = new Set<string>()
   const repeatAncestor = new Map<string, RepeatNode | undefined>()
@@ -117,7 +117,7 @@ export function validatePageDocument(schema: PageNode, config?: PageConfig): Pag
           issues.push({ nodeId: node.id, field: 'bindings', message: 'Page-state binding requires a path.' })
         }
         const repeat = repeatAncestor.get(node.id)
-        const repeatContract = config?.contextFields?.find((field) => field.path === repeat?.props.source && field.type === 'array')
+        const repeatContract = config?.contextFields?.find((field) => field.path === repeat?.props.contextPath && field.type === 'array')
         if (binding.source === 'item' && !repeatContract?.itemFields?.some((item) => item.path === binding.path)) {
           issues.push({ nodeId: node.id, field: 'bindings', message: `Unknown item binding "${String(binding.path ?? '')}".` })
         }
@@ -132,7 +132,7 @@ export function validatePageDocument(schema: PageNode, config?: PageConfig): Pag
         }
       }
       if (element.visibleWhen) validateCondition(node, element.visibleWhen, 0)
-      const actionCapable = node.type === 'button' || node.type === 'link' || config?.elements?.[node.type]?.action
+      const actionCapable = node.type === 'button' || node.type === 'link' || config?.elementTypes?.[node.type]?.action
       if (actionCapable) {
         const actionProps = element.props as ActionProps
         const action = actionProps.action
@@ -156,9 +156,9 @@ export function validatePageDocument(schema: PageNode, config?: PageConfig): Pag
         if (repeat.props.items.length > 500) {
           issues.push({ nodeId: node.id, field: 'props.items', message: 'Repeat runtime items exceed the maximum of 500.' })
         }
-      } else if (repeat.props.source || !codeDriven) {
-      const contract = config?.contextFields?.find((field) => field.path === repeat.props.source && field.type === 'array')
-      if (!contract) issues.push({ nodeId: node.id, field: 'props.source', message: `Repeat source "${repeat.props.source}" is not an allowed array.` })
+      } else if (repeat.props.contextPath || !codeDriven) {
+      const contract = config?.contextFields?.find((field) => field.path === repeat.props.contextPath && field.type === 'array')
+      if (!contract) issues.push({ nodeId: node.id, field: 'props.contextPath', message: `Repeat source "${repeat.props.contextPath}" is not an allowed array.` })
       else {
         const allowed = new Set(contract.itemFields?.map((field) => field.path) ?? [])
         if (repeat.props.keyPath && !allowed.has(repeat.props.keyPath)) issues.push({ nodeId: node.id, field: 'props.keyPath', message: `Repeat key "${repeat.props.keyPath}" is not allowed.` })

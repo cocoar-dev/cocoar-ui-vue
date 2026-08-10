@@ -172,7 +172,7 @@ const authConfig = createAuthLabConfig('login', 'en');
 const config = {
   ...authConfig,
   allowedElements: [...(authConfig.allowedElements ?? []), 'select'],
-  fields: [
+  dataContract: [
     ...(authConfig.fields ?? []),
     { name: 'region', valueType: 'string' as const, label: 'Region', required: true },
   ],

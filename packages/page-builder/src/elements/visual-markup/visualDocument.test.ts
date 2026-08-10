@@ -20,7 +20,7 @@ describe('buildVisualDocument', () => {
       fonts: [{
         id: 'instrument-sans',
         family: 'Instrument Sans Variable',
-        source: 'data:font/woff2;base64,AAAA',
+        src: 'data:font/woff2;base64,AAAA',
         format: 'woff2',
         weight: '100 900',
       }],

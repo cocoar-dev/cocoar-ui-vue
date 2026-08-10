@@ -23,7 +23,7 @@
 import type { ElementType, PageNode } from '../schema';
 import { CURRENT_PAGE_SCHEMA_VERSION, isContainerNode } from '../schema';
 import type { PageElementRegistry } from '../elements/registry';
-import { migrateV1PropsBag, migrateLegacyPasswordInput } from './schemaMigrateV1';
+import { migrateV1PropsBag, migrateLegacyPasswordInput, migrateRepeatContextPath } from './schemaMigrateV1';
 import { elementNameBase, isValidElementName, uid, uniqueElementName } from './nodeDefaults';
 import { warnDev } from './operations';
 
@@ -134,11 +134,11 @@ export function normalizePageSchema(value: unknown, options?: NormalizeOptions):
   }
 
   // Legacy column/row containers first (their output is v1-flat by
-  // construction), then the v1 → v2 props-bag migration, then the
-  // password-input rewrite (needs the bag shape). All identity-preserving,
-  // so `rootChanged` stays honest.
-  const migrated = migrateLegacyPasswordInput(
-    migrateV1PropsBag(migrateLegacyTypes(value)),
+  // construction), then the v1 → v2 props-bag migration, then the rewrites
+  // that need the bag shape: password-input, and the repeat source → context
+  // path rename. All identity-preserving, so `rootChanged` stays honest.
+  const migrated = migrateRepeatContextPath(
+    migrateLegacyPasswordInput(migrateV1PropsBag(migrateLegacyTypes(value))),
   ) as Record<string, unknown>;
   let rootChanged = migrated !== value;
 

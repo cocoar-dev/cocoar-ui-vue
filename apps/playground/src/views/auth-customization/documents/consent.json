@@ -1,7 +1,7 @@
 {
   "id": "auth-page",
   "type": "page",
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "enterSubmits": false,
   "style": {
     "justify": "center",
@@ -321,7 +321,7 @@
               "id": "consent-scopes",
               "type": "repeat",
               "props": {
-                "source": "consent.requestedScopes",
+                "contextPath": "consent.requestedScopes",
                 "keyPath": "name",
                 "itemAlias": "scope",
                 "maxItems": 100,

@@ -113,7 +113,7 @@ describe('CoarPageBuilder — v-model wiring', () => {
   it('hideElementPicker removes free inputs while containers, content, actions and fields stay', async () => {
     const wrapper = mountWithConfig({
       hideElementPicker: true,
-      fields: [{ name: 'email', valueType: 'string', label: 'Email' }],
+      dataContract: [{ name: 'email', valueType: 'string', label: 'Email' }],
     });
     await nextTick();
     await openTool(wrapper, 'Insert elements');
@@ -270,9 +270,9 @@ describe('CoarPageBuilder — v-model wiring', () => {
  * list — to gate a save button, to render its own issue panel. Before this the
  * findings were reachable only through an internal provide.
  */
-describe('CoarPageBuilder — validation emit', () => {
-  function emittedIssues(wrapper: ReturnType<typeof mountHost>) {
-    return (wrapper.findComponent(CoarPageBuilder).emitted('validation') ?? []) as Array<[
+describe('CoarPageBuilder — findings emit', () => {
+  function emittedFindings(wrapper: ReturnType<typeof mountHost>) {
+    return (wrapper.findComponent(CoarPageBuilder).emitted('findings') ?? []) as Array<[
       Array<{ nodeId: string; field?: string; severity: string; message: string }>,
     ]>;
   }
@@ -280,7 +280,7 @@ describe('CoarPageBuilder — validation emit', () => {
   it('emits on mount, so a host that never edits still knows the state', async () => {
     const wrapper = mountHost();
     await nextTick();
-    expect(emittedIssues(wrapper).length).toBeGreaterThanOrEqual(1);
+    expect(emittedFindings(wrapper).length).toBeGreaterThanOrEqual(1);
   });
 
   it('reports a finding the author introduced', async () => {
@@ -296,7 +296,7 @@ describe('CoarPageBuilder — validation emit', () => {
     await nextTick();
     await nextTick();
 
-    const last = emittedIssues(wrapper).at(-1)![0];
+    const last = emittedFindings(wrapper).at(-1)![0];
     expect(last.some((issue) => issue.field === 'style' && /host container/.test(issue.message))).toBe(true);
   });
 
@@ -311,7 +311,7 @@ describe('CoarPageBuilder — validation emit', () => {
     } as unknown as PageNode;
     await nextTick();
     await nextTick();
-    const before = emittedIssues(wrapper).length;
+    const before = emittedFindings(wrapper).length;
 
     // Same findings, different text — a keystroke must not wake the host.
     wrapper.vm.schema = {
@@ -322,7 +322,7 @@ describe('CoarPageBuilder — validation emit', () => {
     await nextTick();
     await nextTick();
 
-    expect(emittedIssues(wrapper).length).toBe(before);
+    expect(emittedFindings(wrapper).length).toBe(before);
   });
 
   it('hands out a copy — a host mutating the payload cannot corrupt the builder', async () => {
@@ -338,7 +338,7 @@ describe('CoarPageBuilder — validation emit', () => {
     await nextTick();
     await nextTick();
 
-    const payload = emittedIssues(wrapper).at(-1)![0];
+    const payload = emittedFindings(wrapper).at(-1)![0];
     const first = payload[0];
     first.message = 'tampered';
 
@@ -356,7 +356,7 @@ describe('CoarPageBuilder — validation emit', () => {
     await nextTick();
     await nextTick();
 
-    expect(emittedIssues(wrapper).at(-1)![0][0].message).not.toBe('tampered');
+    expect(emittedFindings(wrapper).at(-1)![0][0].message).not.toBe('tampered');
   });
 });
 

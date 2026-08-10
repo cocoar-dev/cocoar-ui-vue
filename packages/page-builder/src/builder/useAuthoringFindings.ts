@@ -9,16 +9,16 @@ import { isFieldCompatible } from '../elements/fieldContract';
 import { validatePageDocument } from '../documentValidation';
 import { isValidElementName } from './nodeDefaults';
 
-export type IssueSeverity = 'warning' | 'error';
+export type FindingSeverity = 'warning' | 'error';
 
-export interface ValidationIssue {
+export interface AuthoringFinding {
   /** Stable ID of the node the issue belongs to. */
   nodeId: string
   /** Which property of the node is the problem (used to surface the issue near a specific field). */
   field?: string
   /** Human-readable explanation. */
   message: string
-  severity: IssueSeverity
+  severity: FindingSeverity
 }
 
 /**
@@ -31,15 +31,15 @@ export interface ValidationIssue {
  * security boundary) are enforced separately. Validation is purely a UX
  * scaffold for the builder.
  */
-export function useSchemaValidation(
+export function useAuthoringFindings(
   schema: Ref<PageNode>,
   config: Ref<PageConfig | undefined>,
 ) {
   // Runs in component setup, so the inject inside resolves normally.
   const elements = useMergedElements(config);
 
-  const issues = computed<ValidationIssue[]>(() => {
-    const out: ValidationIssue[] = [];
+  const findings = computed<AuthoringFinding[]>(() => {
+    const out: AuthoringFinding[] = [];
     const namedElements: Array<{ node: PageNode; name: string }> = [];
     const namedFields: Array<{ node: PageNode; name: string }> = [];
     const conditionalNodes: Array<{ node: PageNode; vw: unknown }> = [];
@@ -278,7 +278,7 @@ export function useSchemaValidation(
         }
         if (binding.source === 'item') {
           const repeat = repeatAncestor.get(n.id);
-          const contract = config.value?.contextFields?.find((field) => field.path === repeat?.props.source && field.type === 'array');
+          const contract = config.value?.contextFields?.find((field) => field.path === repeat?.props.contextPath && field.type === 'array');
           const known = contract?.itemFields?.some((item) => item.path === binding.path);
           if (!known) out.push({ nodeId: n.id, field: `bindings.${prop}`, severity: 'error', message: `Binding for "${prop}" references unknown repeat-item path "${String(binding.path ?? '')}".` });
         }
@@ -295,13 +295,13 @@ export function useSchemaValidation(
 
       if (n.type === 'repeat' && !codeDriven) {
         const repeat = n as import('../schema').RepeatNode;
-        const contract = config.value?.contextFields?.find((field) => field.path === repeat.props.source && field.type === 'array');
-        if (!contract) out.push({ nodeId: n.id, field: 'props.source', severity: 'error', message: `Repeat source "${repeat.props.source}" is not an allowlisted array.` });
+        const contract = config.value?.contextFields?.find((field) => field.path === repeat.props.contextPath && field.type === 'array');
+        if (!contract) out.push({ nodeId: n.id, field: 'props.contextPath', severity: 'error', message: `Repeat source "${repeat.props.contextPath}" is not an allowlisted array.` });
         else if (!contract.itemFields?.some((field) => field.path === repeat.props.keyPath)) out.push({ nodeId: n.id, field: 'props.keyPath', severity: 'error', message: `Repeat key "${repeat.props.keyPath}" is not an allowed item path.` });
       }
 
       // ── Field contract: bindings must exist and be type-compatible ─────
-      const contract = config.value?.fields;
+      const contract = config.value?.dataContract;
       if (contract && def?.value) {
         const name = (n as { name?: string }).name;
         const field = name ? contract.find((f) => f.name === name) : undefined;
@@ -467,7 +467,7 @@ export function useSchemaValidation(
     }
 
     // ── Field contract: required fields must be collected somewhere ───────
-    const contract = config.value?.fields;
+    const contract = config.value?.dataContract;
     if (contract) {
       const bound = new Set(namedFields.map((f) => f.name));
       for (const field of contract) {
@@ -494,17 +494,17 @@ export function useSchemaValidation(
     return out;
   });
 
-  const byNodeId = computed<Map<string, ValidationIssue[]>>(() => {
-    const m = new Map<string, ValidationIssue[]>();
-    for (const issue of issues.value) {
-      const list = m.get(issue.nodeId) ?? [];
-      list.push(issue);
-      m.set(issue.nodeId, list);
+  const byNodeId = computed<Map<string, AuthoringFinding[]>>(() => {
+    const m = new Map<string, AuthoringFinding[]>();
+    for (const finding of findings.value) {
+      const list = m.get(finding.nodeId) ?? [];
+      list.push(finding);
+      m.set(finding.nodeId, list);
     }
     return m;
   });
 
-  return { issues, byNodeId };
+  return { findings, byNodeId };
 }
 
 function walk(node: PageNode, fn: (n: PageNode) => void) {
@@ -514,4 +514,4 @@ function walk(node: PageNode, fn: (n: PageNode) => void) {
   }
 }
 
-export type UseSchemaValidationReturn = ReturnType<typeof useSchemaValidation>;
+export type UseAuthoringFindingsReturn = ReturnType<typeof useAuthoringFindings>;

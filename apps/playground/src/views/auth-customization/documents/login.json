@@ -1,7 +1,7 @@
 {
   "id": "auth-page",
   "type": "page",
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "enterSubmits": true,
   "style": {
     "padding": "0",
@@ -391,7 +391,7 @@
                       "id": "providers",
                       "type": "repeat",
                       "props": {
-                        "source": "auth.externalProviders",
+                        "contextPath": "auth.externalProviders",
                         "keyPath": "id",
                         "itemAlias": "provider",
                         "emptyText": ""

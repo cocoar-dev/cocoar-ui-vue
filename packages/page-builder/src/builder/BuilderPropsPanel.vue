@@ -11,7 +11,7 @@ import {
   type CoarSelectOption,
 } from '@cocoar/vue-ui';
 import type { LocalizedValue, PageBreakpoint, PageNode, NodeStyle, ElementNode, FieldValidation, PageRootNode, PageTranslations, PropertyBinding, RepeatNode, RuntimeBinding, RuntimeExpressionBinding, TranslationBinding, VisibleWhen } from '../schema';
-import { BUILDER_API, BUILDER_AUTHORING_MODE, BUILDER_BREAKPOINT, BUILDER_COMPOSITIONS, BUILDER_CONFIG, BUILDER_LOCALE, BUILDER_LOGIC, BUILDER_PAGE_CODE_VALUES, BUILDER_VALIDATION } from './builderContext';
+import { BUILDER_API, BUILDER_AUTHORING_MODE, BUILDER_BREAKPOINT, BUILDER_COMPOSITIONS, BUILDER_CONFIG, BUILDER_LOCALE, BUILDER_LOGIC, BUILDER_PAGE_CODE_VALUES, BUILDER_FINDINGS } from './builderContext';
 import type { NodePath } from './operations';
 import { useMergedElements } from '../elements/useMergedElements';
 import { compatibleFields, compatibleElementTypes } from '../elements/fieldContract';
@@ -40,7 +40,7 @@ const { t } = useI18n();
 
 const builder = inject(BUILDER_API)!;
 const config = inject(BUILDER_CONFIG);
-const validation = inject(BUILDER_VALIDATION);
+const findings = inject(BUILDER_FINDINGS);
 const activeBreakpoint = inject(BUILDER_BREAKPOINT)!;
 const elements = useMergedElements(config);
 const logic = inject(BUILDER_LOGIC);
@@ -104,7 +104,7 @@ const pageNode = computed<PageRootNode | null>(() =>
 );
 
 const nodeIssues = computed(() =>
-  node.value ? validation?.byNodeId.value.get(node.value.id) ?? [] : [],
+  node.value ? findings?.byNodeId.value.get(node.value.id) ?? [] : [],
 );
 
 function patch(update: Partial<PageNode>) {
@@ -388,7 +388,7 @@ const nearestRepeat = computed<RepeatNode | undefined>(() => {
   return found;
 });
 const itemPathOptions = computed<CoarSelectOption<string>[]>(() => {
-  const source = nearestRepeat.value?.props.source;
+  const source = nearestRepeat.value?.props.contextPath;
   const contract = config?.value?.contextFields?.find((field) => field.path === source);
   return (contract?.itemFields ?? []).map((field) => ({ value: field.path, label: `${field.path} · ${field.type}` }));
 });
@@ -543,7 +543,7 @@ function setRequired(v: boolean) {
 // Selecting one also applies its label/required metadata; free text remains
 // authoritative so custom form properties and non-contract use cases work.
 
-const contractFields = computed(() => config?.value?.fields);
+const contractFields = computed(() => config?.value?.dataContract);
 const useFieldSelect = computed(() => (contractFields.value?.length ?? 0) > 0);
 const allowCustom = computed(() => config?.value?.allowCustomFields === true);
 const CUSTOM_NAME_SOURCE = '\u0000page-builder-custom-name';
@@ -687,8 +687,8 @@ const conditionOperatorOptions = computed<CoarSelectOption<string>[]>(() => [
 const conditionValueChoices = computed<CoarSelectOption<string>[] | null>(() => {
   if (visibilitySource.value !== 'context') return null;
   const field = config?.value?.contextFields?.find((entry) => entry.path === visibleWhen.value?.path);
-  if (!field?.values?.length) return null;
-  return field.values.map((value) => ({ value, label: value }));
+  if (!field?.allowedValues?.length) return null;
+  return field.allowedValues.map((value) => ({ value, label: value }));
 });
 
 function setVisibilitySource(source: string | null) {

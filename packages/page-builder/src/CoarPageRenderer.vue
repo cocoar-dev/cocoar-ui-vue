@@ -9,6 +9,7 @@ import { migrateLegacyTypes } from './builder/schemaNormalize';
 import {
   migrateV1PropsBag,
   migrateLegacyPasswordInput,
+  migrateRepeatContextPath,
   healMissingPropsBags,
 } from './builder/schemaMigrateV1';
 import {
@@ -137,7 +138,9 @@ watch(usingFallback, (active) => {
 const baseRenderSchema = computed(
   () =>
     healMissingPropsBags(
-      migrateLegacyPasswordInput(migrateV1PropsBag(migrateLegacyTypes(sourceSchema.value))),
+      migrateRepeatContextPath(
+        migrateLegacyPasswordInput(migrateV1PropsBag(migrateLegacyTypes(sourceSchema.value))),
+      ),
     ) as PageNode,
 );
 const renderSchema = computed(() => applyPageCodeValues(baseRenderSchema.value, props.pageCodeValues));
@@ -713,7 +716,7 @@ const ctx: PageRendererContext = {
     warnedUnknown.add(type);
     console.warn(
       `[CoarPageRenderer] No element registration for type "${type}" — `
-      + `instances were skipped at render time (register it via config.elements).`,
+      + `instances were skipped at render time (register it via config.elementTypes).`,
     );
   },
   isVisible: isNodeVisible,

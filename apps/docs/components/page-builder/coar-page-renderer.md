@@ -17,7 +17,7 @@ Import `@cocoar/vue-page-builder/styles` once in your app — the renderer's lay
 | Prop | Type | Description |
 |------|------|-------------|
 | `schema` | `PageNode` | Required. The page schema to render. Legacy `column`/`row` containers and v1 flat documents are [migrated on the fly](#legacy-schemas-normalization). |
-| `config` | [`PageConfig`](./#pageconfig-the-consumer-contract) | Security/allowlist boundary. Elements not in `config.allowedElements` are skipped at render time (with one console warning per type) **and excluded from the value model**. Also supplies the `assetResolver` fallback and the [consumer element registrations](./custom-elements) (`config.elements`). |
+| `config` | [`PageConfig`](./#pageconfig-the-consumer-contract) | Security/allowlist boundary. Elements not in `config.allowedElements` are skipped at render time (with one console warning per type) **and excluded from the value model**. Also supplies the `assetResolver` fallback and the [consumer element registrations](./custom-elements) (`config.elementTypes`). |
 | `actions` | `Record<string, (values: ActionValues) => void \| Promise<unknown>>` | Map of action IDs to handler functions. Buttons and links call these. A returned Promise is awaited: buttons disable (the triggering one spins) until it settles, further clicks are ignored, and a rejection surfaces in the [form-level error banner](#async-actions-the-form-level-error-channel). |
 | `onValidate` | `(values: ActionValues) => Record<string, string> \| Promise<Record<string, string>>` | Developer-only cross-field/server validation. Runs at **submit time** — when a `validates: true` button is clicked and after all declarative rules pass. May be sync or async; returns `{ fieldName: errorMessage }`. A non-empty result blocks the action. The reserved key `_form` addresses the form as a whole (banner instead of a field). Not exposed in builder UI. See [Validation](#validation). |
 | `assetResolver` | `(id: string) => string` | Resolves an `assetId` to a URL at render time. Falls back to `config.assetResolver` when not set. Needed when the schema contains `image` nodes. |
@@ -414,7 +414,7 @@ This order is identical for click, link activation, Enter-to-submit and consumer
 
 ### Consumer elements
 
-The element set is **open**: register your own element types via `config.elements` (or app-wide via `PAGE_ELEMENTS_KEY`) and they render, join the value model and validate exactly like built-ins. Element renderers wire themselves through the `usePageElement()` context (`getValue` / `setValue` / `getError` / `markTouched` / `triggerAction` / `isValidating` / `isSubmitting` / `pendingAction` / `formError` / `resolveAsset` / `config`). See the [Custom elements guide](./custom-elements).
+The element set is **open**: register your own element types via `config.elementTypes` (or app-wide via `PAGE_ELEMENT_TYPES_KEY`) and they render, join the value model and validate exactly like built-ins. Element renderers wire themselves through the `usePageElement()` context (`getValue` / `setValue` / `getError` / `markTouched` / `triggerAction` / `isValidating` / `isSubmitting` / `pendingAction` / `formError` / `resolveAsset` / `config`). See the [Custom elements guide](./custom-elements).
 
 ## Validation
 
@@ -553,7 +553,7 @@ const { schema, issues, changed } = normalizePageSchema(stored);
 | `normalizePageSchema(value)` | Returns `{ schema, issues, changed }`. Runs both migrations, then heals silently what has unambiguous intent: a non-`page` root (wrapped in a fresh page), missing `children` arrays, missing/duplicate/empty node ids (fresh UUIDs), missing `props` bags, numeric heading levels outside 1–6 (clamped), a missing/`1` `schemaVersion` (stamped `2`). Every `issue` carries a `severity`: **`error`** = data was dropped (non-object nodes — structurally broken input), **`warning`** = healed in place or lossless (unknown element types — kept in the tree, skipped at render time; non-array `children` or non-object `props` reset; non-numeric heading levels reset to 2; `children` on a non-container). |
 | `migrateLegacyTypes(node)` | Just the `column`/`row` → `stack` mapping, recursive and identity-preserving when there is nothing to migrate. |
 | `migrateV1PropsBag(node)` | The v1 → v2 wire-format migration: per node, a known element type without a `props` object gets its flat element props moved into a fresh bag. Idempotent and identity-preserving — safe to run unconditionally. |
-| `KNOWN_ELEMENT_TYPES` | `ReadonlySet<string>` of the **built-in** element types. Consumer-registered keys are per-instance data (`config.elements`) and deliberately not part of this module constant. |
+| `KNOWN_ELEMENT_TYPES` | `ReadonlySet<string>` of the **built-in** element types. Consumer-registered keys are per-instance data (`config.elementTypes`) and deliberately not part of this module constant. |
 
 ## Security boundary
 

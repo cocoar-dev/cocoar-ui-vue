@@ -3,7 +3,7 @@
  * everything the renderer and the builder need to know about one element
  * type. Built-ins and consumer elements ride the same contract — built-ins
  * are pre-registered, consumer registrations merge additively over them via
- * `PageConfig.elements` (per-instance data; there is deliberately no global
+ * `PageConfig.elementTypes` (per-instance data; there is deliberately no global
  * `register()` so two builders with different registries can coexist).
  *
  * The definition splits into a renderer half (this object's top level —
@@ -346,12 +346,12 @@ export function definePageElement<P extends ElementProps>(
 }
 
 /**
- * App-wide default registry channel (`app.provide`). `PageConfig.elements`
+ * App-wide default registry channel (`app.provide`). `PageConfig.elementTypes`
  * wins over it per instance. `Symbol.for` per the cross-package house
  * convention so duplicated module instances still share the channel.
  */
-export const PAGE_ELEMENTS_KEY: InjectionKey<PageElementRegistry> =
-  Symbol.for('coar:page-elements') as InjectionKey<PageElementRegistry>;
+export const PAGE_ELEMENT_TYPES_KEY: InjectionKey<PageElementRegistry> =
+  Symbol.for('coar:page-element-types') as InjectionKey<PageElementRegistry>;
 
 /**
  * Additive merge: consumer entries extend the base (built-in) set. Shadowing

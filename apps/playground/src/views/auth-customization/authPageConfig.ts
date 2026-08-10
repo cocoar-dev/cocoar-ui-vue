@@ -1,7 +1,7 @@
 import type { PageConfig } from '@cocoar/vue-page-builder';
 
 /*
- * Host-side configuration for the auth demo: the fields, actions, states and
+ * Host-side configuration for the auth demo: the data contract, actions and
  * preview fixtures a login host would supply at runtime. Demo material only —
  * the page-builder itself knows nothing about auth, and the documents these
  * configs pair with are plain JSON in ./documents.
@@ -123,7 +123,7 @@ export function authViewStates(slot: AuthPageSlot): readonly string[] {
 
 export function createAuthPageConfig(slot: AuthPageSlot, locale: AuthPageLocale): PageConfig {
   const copy = AUTH_PAGE_COPY[locale];
-  const fields =
+  const dataContract =
     slot === 'login'
       ? [
           {
@@ -185,7 +185,7 @@ export function createAuthPageConfig(slot: AuthPageSlot, locale: AuthPageLocale)
 
   return {
     allowedElements: [...commonAllowed],
-    fields,
+    dataContract,
     allowCustomFields: false,
     availableActions: [
       ...actions,
@@ -223,7 +223,7 @@ export function createAuthPageConfig(slot: AuthPageSlot, locale: AuthPageLocale)
       },
       { path: 'feedback.message', type: 'string' },
       { path: 'feedback.success', type: 'boolean' },
-      { path: 'runtime.viewState', type: 'string', values: [...authViewStates(slot)] },
+      { path: 'runtime.viewState', type: 'string', allowedValues: [...authViewStates(slot)] },
     ],
     locales: [{ id: 'de', label: 'Deutsch' }, { id: 'en', label: 'English' }],
     defaultLocale: 'en',

@@ -13,7 +13,7 @@ import {
   type PageCompositionReference,
   type PageCompositionSummary,
   type PageNode,
-  type ValidationIssue,
+  type AuthoringFinding,
   compilePageCompositions,
   createInMemoryPageCompositionRepository,
 } from '@cocoar/vue-page-builder';
@@ -302,7 +302,7 @@ const pageConfig = computed(() => ({
 }));
 const compositionPageConfig = computed(() => ({
   ...createAuthLabConfig('login', locale.value),
-  fields: undefined,
+  dataContract: undefined,
   allowCustomFields: true,
   visualMarkup: AMZETTEL_VISUAL_CONFIG,
 }));
@@ -436,13 +436,13 @@ function resetCurrentSchema() {
 // ── Host-side use of the builder's authoring findings ────────────────────────
 // The builder draws these itself; a host still needs them to decide whether the
 // document may be persisted. Errors block, warnings only inform.
-const builderIssues = ref<ValidationIssue[]>([]);
-const builderErrors = computed(() => builderIssues.value.filter((issue) => issue.severity === 'error'));
+const builderFindings = ref<AuthoringFinding[]>([]);
+const builderBlockers = computed(() => builderFindings.value.filter((finding) => finding.severity === 'error'));
 
 function saveFromBuilder() {
-  rendererResult.value = builderErrors.value.length > 0
+  rendererResult.value = builderBlockers.value.length > 0
     ? 'Refused to save — resolve the errors first.'
-    : `Saved ${slot.value} / ${locale.value.toUpperCase()} with ${builderIssues.value.length} warning(s).`;
+    : `Saved ${slot.value} / ${locale.value.toUpperCase()} with ${builderFindings.value.length} warning(s).`;
 }
 
 function loadAmZettelConsumerTest() {
@@ -897,25 +897,25 @@ const requirements = [
           >Reset {{ slot }} / {{ locale.toUpperCase() }}</CoarButton
         >
       </div>
-      <!-- What a real host does with `@validation`: gate the save, list the blockers. -->
-      <div class="builder-validation">
-        <span class="builder-validation__summary" :class="{ 'is-clean': builderIssues.length === 0 }">
-          {{ builderIssues.length === 0
+      <!-- What a real host does with `@findings`: gate the save, list the blockers. -->
+      <div class="builder-findings">
+        <span class="builder-findings__summary" :class="{ 'is-clean': builderFindings.length === 0 }">
+          {{ builderFindings.length === 0
             ? 'No authoring findings'
-            : `${builderErrors.length} error(s), ${builderIssues.length - builderErrors.length} warning(s)` }}
+            : `${builderBlockers.length} error(s), ${builderFindings.length - builderBlockers.length} warning(s)` }}
         </span>
-        <CoarButton size="s" :disabled="builderErrors.length > 0" @click="saveFromBuilder">Save</CoarButton>
-        <ul v-if="builderIssues.length > 0" class="builder-validation__list">
-          <li v-for="(issue, index) in builderIssues" :key="index" :class="`is-${issue.severity}`">
-            {{ issue.message }}
-            <code>{{ issue.nodeId }}{{ issue.field ? `.${issue.field}` : '' }}</code>
+        <CoarButton size="s" :disabled="builderBlockers.length > 0" @click="saveFromBuilder">Save</CoarButton>
+        <ul v-if="builderFindings.length > 0" class="builder-findings__list">
+          <li v-for="(finding, index) in builderFindings" :key="index" :class="`is-${finding.severity}`">
+            {{ finding.message }}
+            <code>{{ finding.nodeId }}{{ finding.field ? `.${finding.field}` : '' }}</code>
           </li>
         </ul>
       </div>
       <CoarPageBuilder
         v-model="schema" :config="pageConfig" class="builder"
         authoring-mode="code"
-        @validation="builderIssues = $event"
+        @findings="builderFindings = $event"
         :preview-context="runtimeContext"
         :preview-initial-values="previewInitialValues"
         :preview-locale="locale" :preview-actions="rendererActions"
@@ -1469,7 +1469,7 @@ const requirements = [
   width: 9rem;
 }
 
-.builder-validation {
+.builder-findings {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -1477,16 +1477,16 @@ const requirements = [
   margin-bottom: 0.75rem;
 }
 
-.builder-validation__summary {
+.builder-findings__summary {
   font-size: 0.8125rem;
   color: var(--coar-text-semantic-warning-bold, #92400e);
 }
 
-.builder-validation__summary.is-clean {
+.builder-findings__summary.is-clean {
   color: var(--coar-text-neutral-tertiary, #8a8a90);
 }
 
-.builder-validation__list {
+.builder-findings__list {
   flex: 1 0 100%;
   list-style: none;
   margin: 0;
@@ -1499,15 +1499,15 @@ const requirements = [
   font-size: 0.75rem;
 }
 
-.builder-validation__list .is-error {
+.builder-findings__list .is-error {
   color: var(--coar-text-semantic-error-bold, #c0392b);
 }
 
-.builder-validation__list .is-warning {
+.builder-findings__list .is-warning {
   color: var(--coar-text-semantic-warning-bold, #92400e);
 }
 
-.builder-validation__list code {
+.builder-findings__list code {
   color: var(--coar-text-neutral-tertiary, #8a8a90);
 }
 

@@ -1,7 +1,7 @@
 {
   "id": "auth-page",
   "type": "page",
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "enterSubmits": false,
   "style": {
     "padding": "0",

@@ -14,10 +14,10 @@ describe('runtime document activation', () => {
   })
 
   it('rejects missing required nodes and unknown repeat paths', () => {
-    const schema = { id: 'root', type: 'page', children: [{ id: 'r', type: 'repeat', name: 'items', props: { source: 'secret', keyPath: 'id' }, children: [] }] } as PageNode
+    const schema = { id: 'root', type: 'page', children: [{ id: 'r', type: 'repeat', name: 'items', props: { contextPath: 'secret', keyPath: 'id' }, children: [] }] } as PageNode
     const result = validatePageDocument(schema, config)
     expect(result.valid).toBe(false)
-    expect(result.issues.map((issue) => issue.field)).toContain('props.source')
+    expect(result.issues.map((issue) => issue.field)).toContain('props.contextPath')
   })
 
   it('rejects non-JSON action values at the activation boundary', () => {
@@ -46,7 +46,7 @@ describe('runtime document activation', () => {
         {
           id: 'repeat', type: 'repeat', name: 'repeat',
           props: {
-            source: 'items', keyPath: 'id',
+            contextPath: 'items', keyPath: 'id',
             selection: { name: 'selectedIds', valuePath: 'id' },
           },
           children: [{

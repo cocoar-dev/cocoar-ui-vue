@@ -147,14 +147,33 @@ describe('normalizePageSchema — healing', () => {
     expect(changed).toBe(true);
   });
 
-  it('preserves an existing schemaVersion', () => {
+  it('leaves a document that is already current alone', () => {
     const { schema } = normalizePageSchema({
       id: 'r',
       type: 'page',
-      schemaVersion: 5,
+      schemaVersion: CURRENT_PAGE_SCHEMA_VERSION,
       children: [],
     });
-    expect((schema as { schemaVersion?: number }).schemaVersion).toBe(5);
+    expect((schema as { schemaVersion?: number }).schemaVersion).toBe(CURRENT_PAGE_SCHEMA_VERSION);
+  });
+
+  // v6 renamed the repeat's context path. The rename is the migration; a
+  // document already using the new key must come back untouched.
+  it('renames a v5 repeat source to contextPath, and leaves a v6 one alone', () => {
+    const { schema } = normalizePageSchema({
+      id: 'r', type: 'page', schemaVersion: 5,
+      children: [{ id: 'rep', type: 'repeat', name: 'rows', props: { source: 'items', keyPath: 'id' }, children: [] }],
+    });
+    const repeat = (schema as { children: { props: Record<string, unknown> }[] }).children[0];
+    expect(repeat.props.contextPath).toBe('items');
+    expect('source' in repeat.props).toBe(false);
+
+    const already = normalizePageSchema({
+      id: 'r', type: 'page', schemaVersion: CURRENT_PAGE_SCHEMA_VERSION,
+      children: [{ id: 'rep', type: 'repeat', name: 'rows', props: { contextPath: 'items', keyPath: 'id' }, children: [] }],
+    });
+    const untouched = (already.schema as { children: { props: Record<string, unknown> }[] }).children[0];
+    expect(untouched.props).toEqual({ contextPath: 'items', keyPath: 'id' });
   });
 
   it('migrates every element to one deterministic, page-wide unique name', () => {

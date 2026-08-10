@@ -42,7 +42,7 @@ async function selectHeadingAndPickContext(wrapper: ReturnType<typeof mountBuild
 }
 
 const FIELD_WITH_VALUES: PageConfig = {
-  contextFields: [{ path: 'runtime.viewState', type: 'string', values: ['prompt', 'denied', 'expired'] }],
+  contextFields: [{ path: 'runtime.viewState', type: 'string', allowedValues: ['prompt', 'denied', 'expired'] }],
 };
 
 const FIELD_WITHOUT_VALUES: PageConfig = {

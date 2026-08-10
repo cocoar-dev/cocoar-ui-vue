@@ -146,3 +146,37 @@ export function migrateLegacyPasswordInput(node: unknown): unknown {
   if (children !== node.children) result.children = children;
   return result;
 }
+
+/**
+ * `repeat.props.contextPath` said "a context path" while `binding.source` said "a
+ * kind of source" — one word, two grammars. The path is now `contextPath`,
+ * next to the `keyPath` it belongs with. Renamed on ingest under the v6
+ * migration, identity-preserving and idempotent.
+ */
+export function migrateRepeatContextPath(node: unknown): unknown {
+  if (!isRecord(node)) return node;
+
+  let children = node.children;
+  if (Array.isArray(node.children)) {
+    const mapped = node.children.map(migrateRepeatContextPath);
+    if (mapped.some((c, i) => c !== (node.children as unknown[])[i])) children = mapped;
+  }
+
+  const needsRename =
+    node.type === 'repeat' &&
+    isRecord(node.props) &&
+    node.props.source !== undefined &&
+    node.props.contextPath === undefined;
+
+  if (!needsRename) {
+    if (children === node.children) return node;
+    return { ...node, children };
+  }
+
+  const props = { ...(node.props as Record<string, unknown>) };
+  props.contextPath = props.source;
+  delete props.source;
+  const result: Record<string, unknown> = { ...node, props };
+  if (children !== node.children) result.children = children;
+  return result;
+}

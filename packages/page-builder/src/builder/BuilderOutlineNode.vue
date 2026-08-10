@@ -4,7 +4,7 @@ import { CoarIcon, type CoreIconName } from '@cocoar/vue-ui';
 import { useI18n } from '@cocoar/vue-localization';
 import { isElementAllowed, type PageNode } from '../schema';
 import { resolveNodeRuntime } from '../runtimeBindings';
-import { BUILDER_API, BUILDER_CONFIG, BUILDER_RUNTIME, BUILDER_VALIDATION } from './builderContext';
+import { BUILDER_API, BUILDER_CONFIG, BUILDER_RUNTIME, BUILDER_FINDINGS } from './builderContext';
 import { useMergedElements } from '../elements/useMergedElements';
 import { useBuilderDnd } from './useBuilderDnd';
 import type { NodePath } from './operations';
@@ -24,7 +24,7 @@ const { t } = useI18n();
 const builder = inject(BUILDER_API)!;
 const config = inject(BUILDER_CONFIG);
 const runtime = inject(BUILDER_RUNTIME);
-const validation = inject(BUILDER_VALIDATION);
+const findings = inject(BUILDER_FINDINGS);
 const dnd = useBuilderDnd();
 const elements = useMergedElements(config);
 const authoredNode = computed(() => resolveNodeRuntime(props.node, runtime?.value ?? { config: config?.value }));
@@ -85,14 +85,14 @@ const contentAddOptions = computed(() =>
 const showFreeInputs = computed(() => config?.value?.hideElementPicker !== true);
 
 /** Validation issues for *this* node — drives the warning icon in the row. */
-const nodeIssues = computed(() => validation?.byNodeId.value.get(props.node.id) ?? []);
+const nodeFindings = computed(() => findings?.byNodeId.value.get(props.node.id) ?? []);
 const issueSeverity = computed<'error' | 'warning' | null>(() => {
-  if (nodeIssues.value.some((i) => i.severity === 'error')) return 'error';
-  if (nodeIssues.value.length > 0) return 'warning';
+  if (nodeFindings.value.some((i) => i.severity === 'error')) return 'error';
+  if (nodeFindings.value.length > 0) return 'warning';
   return null;
 });
 const issueTitle = computed(() =>
-  nodeIssues.value.map((i) => `• ${i.message}`).join('\n'),
+  nodeFindings.value.map((i) => `• ${i.message}`).join('\n'),
 );
 
 const isRoot = computed(() => props.path.length === 0);

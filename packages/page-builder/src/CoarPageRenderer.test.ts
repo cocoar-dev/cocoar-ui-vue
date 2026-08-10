@@ -845,7 +845,7 @@ describe('CoarPageRenderer — payload & email format contract', () => {
       props: {
         schema,
         actions: { run },
-        config: { elements: { 'acme-action-chip': { renderer: ActionChip, action: true } } },
+        config: { elementTypes: { 'acme-action-chip': { renderer: ActionChip, action: true } } },
       },
     });
 
@@ -1481,7 +1481,7 @@ describe('CoarPageRenderer — R1/R2 hardening (verified audit findings)', () =>
     const wrapper = mount(CoarPageRenderer, {
       props: {
         schema,
-        config: { elements: { 'obj-holder': objHolder } },
+        config: { elementTypes: { 'obj-holder': objHolder } },
         initialValues: { geo },
       },
     });
@@ -1562,7 +1562,7 @@ describe('CoarPageRenderer — R1/R2 hardening (verified audit findings)', () =>
       ],
     } as unknown as PageNode;
     const wrapper = mount(CoarPageRenderer, {
-      props: { schema, config: { elements: { 'acme-thing': labelReader } } },
+      props: { schema, config: { elementTypes: { 'acme-thing': labelReader } } },
     });
     expect(wrapper.find('.consumer-el').text()).toBe('no label');
     expect(wrapper.text()).toContain('Sibling survives');
