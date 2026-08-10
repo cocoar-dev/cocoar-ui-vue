@@ -201,6 +201,10 @@ const enterEligible = computed(() => {
 .pb-page {
   display: flex;
   flex-direction: column;
+  /* The page is exactly its host container — which is only true if its own
+     padding stays INSIDE that box. Without this, an authored padding is added
+     to 100% and the page is wider than the container it is supposed to fill. */
+  box-sizing: border-box;
   width: 100%;
   height: 100%;
   min-width: 0;

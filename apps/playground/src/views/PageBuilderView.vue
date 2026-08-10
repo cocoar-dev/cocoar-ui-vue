@@ -281,7 +281,7 @@ const dialog = useDialog();
 const idpLoginConfig: PageConfig = {
   // A consumer-registered element (defined entirely in this app) — appears in
   // the palette, canvas, inspector, preview and value model like a built-in.
-  elements: { 'acme-rating': ratingElement },
+  elementTypes: { 'acme-rating': ratingElement },
   // The data contract behind the page (the LoginDto, say): the builder's
   // Field section becomes a pick from these — filtered per element to the
   // compatible value types (string → text/password/…, boolean → checkbox/
@@ -875,7 +875,7 @@ const registerConfig: PageConfig = {
           <CoarPageRenderer
             :schema="feedbackSchema"
             :actions="feedbackActions"
-            :config="{ elements: { 'acme-rating': ratingElement } }"
+            :config="{ elementTypes: { 'acme-rating': ratingElement } }"
           />
         </div>
         <div class="pb-view__result-label">ACTION PAYLOAD</div>
