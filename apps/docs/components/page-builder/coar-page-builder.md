@@ -48,6 +48,53 @@ A live builder with a small starting schema and a restricted `allowedElements` l
 | `preview-values` | `ActionValues` | Current field-value snapshot from the embedded preview. |
 | `preview-runtime` | `{ fields, form }` | Reactive preview scope for host diagnostics; `form` contains valid, dirty, validating and submitting flags. |
 | `open-composition` | `PageCompositionReference` | Requests host navigation to the independently managed composition definition and exact pinned version. |
+| `validation` | `ValidationIssue[]` | The authoring findings the builder draws in its own outline and props panel. Fires on mount and whenever the set changes in content, so an edit that leaves the findings alone stays quiet. The payload is a copy — mutating it cannot corrupt the builder. |
+
+## Reaching the validation findings
+
+Two layers answer two different questions, and mixing them up leads to either a
+save button that never enables or a document that fails at activation.
+
+| | Question | API |
+|---|---|---|
+| **Authoring findings** | "What should I tell the author to fix?" | `@validation` / `useSchemaValidation()` |
+| **Activation contract** | "May this document go live?" | [`validatePageDocument()`](./idp-integration) |
+
+The authoring layer is the broader one — it includes hints the runtime does not
+care about (an action that is not in `availableActions`, a required contract
+field nobody put on the page) and it *contains* the hard failures of the
+activation contract, so gating a save on `severity === 'error'` is sound.
+
+```vue
+<script setup lang="ts">
+import { ref, computed } from 'vue';
+import { CoarPageBuilder, type ValidationIssue, type PageNode } from '@cocoar/vue-page-builder';
+
+const schema = ref<PageNode>();
+const issues = ref<ValidationIssue[]>([]);
+const blocking = computed(() => issues.value.filter((i) => i.severity === 'error'));
+</script>
+
+<template>
+  <CoarPageBuilder v-model="schema" :config="config" @validation="issues = $event" />
+  <button :disabled="blocking.length > 0" @click="save">Save</button>
+  <ul>
+    <li v-for="(issue, i) in blocking" :key="i">{{ issue.message }}</li>
+  </ul>
+</template>
+```
+
+Each issue carries the `nodeId` it belongs to and, where the problem is a
+specific property, the `field` — enough to build your own "jump to node" list.
+
+Outside a mounted builder — a document dashboard, a bulk migration check — call
+the composable directly in a component `setup()`. It resolves the element
+registry reactively, honouring `config.elements` and an app-level
+`providePageElements()` alike:
+
+```ts
+const { issues, byNodeId } = useSchemaValidation(schema, config);
+```
 
 ## Features
 

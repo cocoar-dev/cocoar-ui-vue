@@ -13,6 +13,7 @@ import {
   type PageCompositionReference,
   type PageCompositionSummary,
   type PageNode,
+  type ValidationIssue,
   compilePageCompositions,
   createInMemoryPageCompositionRepository,
 } from '@cocoar/vue-page-builder';
@@ -422,6 +423,18 @@ const frameClass = computed(() => ({ 'device-frame--fluid': viewport.value === '
 function resetCurrentSchema() {
   schemas[slot.value] = createLabSchema(slot.value);
   rendererResult.value = '';
+}
+
+// ── Host-side use of the builder's authoring findings ────────────────────────
+// The builder draws these itself; a host still needs them to decide whether the
+// document may be persisted. Errors block, warnings only inform.
+const builderIssues = ref<ValidationIssue[]>([]);
+const builderErrors = computed(() => builderIssues.value.filter((issue) => issue.severity === 'error'));
+
+function saveFromBuilder() {
+  rendererResult.value = builderErrors.value.length > 0
+    ? 'Refused to save — resolve the errors first.'
+    : `Saved ${slot.value} / ${locale.value.toUpperCase()} with ${builderIssues.value.length} warning(s).`;
 }
 
 function loadAmZettelConsumerTest() {
@@ -866,9 +879,25 @@ const requirements = [
           >Reset {{ slot }} / {{ locale.toUpperCase() }}</CoarButton
         >
       </div>
+      <!-- What a real host does with `@validation`: gate the save, list the blockers. -->
+      <div class="builder-validation">
+        <span class="builder-validation__summary" :class="{ 'is-clean': builderIssues.length === 0 }">
+          {{ builderIssues.length === 0
+            ? 'No authoring findings'
+            : `${builderErrors.length} error(s), ${builderIssues.length - builderErrors.length} warning(s)` }}
+        </span>
+        <CoarButton size="s" :disabled="builderErrors.length > 0" @click="saveFromBuilder">Save</CoarButton>
+        <ul v-if="builderIssues.length > 0" class="builder-validation__list">
+          <li v-for="(issue, index) in builderIssues" :key="index" :class="`is-${issue.severity}`">
+            {{ issue.message }}
+            <code>{{ issue.nodeId }}{{ issue.field ? `.${issue.field}` : '' }}</code>
+          </li>
+        </ul>
+      </div>
       <CoarPageBuilder
         v-model="schema" :config="pageConfig" class="builder"
         authoring-mode="code"
+        @validation="builderIssues = $event"
         :preview-context="runtimeContext" :preview-state="viewState"
         :preview-locale="locale" :preview-actions="rendererActions"
         :preview-fallback-schema="fallbackSchema"
@@ -1404,6 +1433,48 @@ const requirements = [
   margin: 0;
   color: var(--coar-text-neutral-secondary, #5f6470);
 }
+.builder-validation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.builder-validation__summary {
+  font-size: 0.8125rem;
+  color: var(--coar-text-semantic-warning-bold, #92400e);
+}
+
+.builder-validation__summary.is-clean {
+  color: var(--coar-text-neutral-tertiary, #8a8a90);
+}
+
+.builder-validation__list {
+  flex: 1 0 100%;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-height: 7rem;
+  overflow: auto;
+  font-size: 0.75rem;
+}
+
+.builder-validation__list .is-error {
+  color: var(--coar-text-semantic-error-bold, #c0392b);
+}
+
+.builder-validation__list .is-warning {
+  color: var(--coar-text-semantic-warning-bold, #92400e);
+}
+
+.builder-validation__list code {
+  color: var(--coar-text-neutral-tertiary, #8a8a90);
+}
+
 .builder {
   height: 68vh;
   min-height: 36rem;

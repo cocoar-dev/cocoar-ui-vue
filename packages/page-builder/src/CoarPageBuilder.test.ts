@@ -275,3 +275,98 @@ describe('CoarPageBuilder — v-model wiring', () => {
     expect(stack.children[0].id).not.toBe(stack.children[1].id);
   });
 });
+
+/**
+ * The builder draws its findings itself, but a host embedding it needs the same
+ * list — to gate a save button, to render its own issue panel. Before this the
+ * findings were reachable only through an internal provide.
+ */
+describe('CoarPageBuilder — validation emit', () => {
+  function emittedIssues(wrapper: ReturnType<typeof mountHost>) {
+    return (wrapper.findComponent(CoarPageBuilder).emitted('validation') ?? []) as Array<[
+      Array<{ nodeId: string; field?: string; severity: string; message: string }>,
+    ]>;
+  }
+
+  it('emits on mount, so a host that never edits still knows the state', async () => {
+    const wrapper = mountHost();
+    await nextTick();
+    expect(emittedIssues(wrapper).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('reports a finding the author introduced', async () => {
+    const wrapper = mountHost();
+    await nextTick();
+
+    wrapper.vm.schema = {
+      id: 'r',
+      type: 'page',
+      style: { height: '100vh' },
+      children: [],
+    } as unknown as PageNode;
+    await nextTick();
+    await nextTick();
+
+    const last = emittedIssues(wrapper).at(-1)![0];
+    expect(last.some((issue) => issue.field === 'style' && /host container/.test(issue.message))).toBe(true);
+  });
+
+  it('stays quiet when an edit leaves the findings untouched', async () => {
+    const wrapper = mountHost();
+    await nextTick();
+
+    wrapper.vm.schema = {
+      id: 'r',
+      type: 'page',
+      children: [{ id: 'h', type: 'heading', name: 'title', props: { text: 'One', level: 2 } }],
+    } as unknown as PageNode;
+    await nextTick();
+    await nextTick();
+    const before = emittedIssues(wrapper).length;
+
+    // Same findings, different text — a keystroke must not wake the host.
+    wrapper.vm.schema = {
+      id: 'r',
+      type: 'page',
+      children: [{ id: 'h', type: 'heading', name: 'title', props: { text: 'Two', level: 2 } }],
+    } as unknown as PageNode;
+    await nextTick();
+    await nextTick();
+
+    expect(emittedIssues(wrapper).length).toBe(before);
+  });
+
+  it('hands out a copy — a host mutating the payload cannot corrupt the builder', async () => {
+    const wrapper = mountHost();
+    await nextTick();
+
+    wrapper.vm.schema = {
+      id: 'r',
+      type: 'page',
+      style: { height: '100vh' },
+      children: [],
+    } as unknown as PageNode;
+    await nextTick();
+    await nextTick();
+
+    const payload = emittedIssues(wrapper).at(-1)![0];
+    const first = payload[0];
+    first.message = 'tampered';
+
+    // Re-emit with a genuinely different finding set, then back again: the
+    // builder's own list must still carry the original text.
+    wrapper.vm.schema = { id: 'r', type: 'page', children: [] } as unknown as PageNode;
+    await nextTick();
+    await nextTick();
+    wrapper.vm.schema = {
+      id: 'r',
+      type: 'page',
+      style: { height: '100vh' },
+      children: [],
+    } as unknown as PageNode;
+    await nextTick();
+    await nextTick();
+
+    expect(emittedIssues(wrapper).at(-1)![0][0].message).not.toBe('tampered');
+  });
+});

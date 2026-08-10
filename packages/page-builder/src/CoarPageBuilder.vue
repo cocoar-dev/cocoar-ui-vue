@@ -18,7 +18,7 @@ import type { PageRuntimeHost } from './runtime/PageRuntimeHost';
 import { PAGE_BREAKPOINT_WIDTHS, breakpointForWidth } from './responsive';
 import { usePageBuilder } from './builder/usePageBuilder';
 import { useMergedElements } from './elements/useMergedElements';
-import { useSchemaValidation } from './builder/useSchemaValidation';
+import { useSchemaValidation, type ValidationIssue } from './builder/useSchemaValidation';
 import { provideBuilderDnd } from './builder/useBuilderDnd';
 import { useCanvasZoom, CANVAS_ZOOM_STEPS } from './builder/useCanvasZoom';
 import BuilderZoomControl from './builder/props/BuilderZoomControl.vue';
@@ -73,6 +73,17 @@ const emit = defineEmits<{
   }]
   /** Host navigation hook for the independent composition definition editor. */
   'open-composition': [reference: PageCompositionReference]
+  /**
+   * The authoring findings the builder draws in its own outline and props
+   * panel, mirrored to the host — a save button that greys out on errors, a
+   * host-owned issue list, a telemetry hook. Fires on mount and whenever the
+   * set changes in content (not merely in identity), so a keystroke that
+   * leaves the findings alone stays quiet.
+   *
+   * These are AUTHORING hints, not the activation contract: for "may this
+   * document go live?" use `validatePageDocument`, which the runtime honours.
+   */
+  validation: [issues: ValidationIssue[]]
 }>();
 
 const props = defineProps<{
@@ -169,6 +180,21 @@ watch(model, (next) => {
 });
 
 const validation = useSchemaValidation(builder.schema, configRef);
+
+// Every schema mutation produces a fresh array, so identity alone would emit on
+// each keystroke. Hosts get the list only when its CONTENT moves.
+watch(validation.issues, (issues, previous) => {
+  if (previous && sameIssues(issues, previous)) return;
+  emit('validation', issues.map((issue) => ({ ...issue })));
+}, { immediate: true });
+
+function sameIssues(a: readonly ValidationIssue[], b: readonly ValidationIssue[]) {
+  return a.length === b.length && a.every((issue, i) =>
+    issue.nodeId === b[i].nodeId
+    && issue.field === b[i].field
+    && issue.severity === b[i].severity
+    && issue.message === b[i].message);
+}
 
 // Provided here (not in BuilderCanvas) so the outline pane — a sibling of the
 // canvas — shares the same drag context: outline rows and canvas zones are
