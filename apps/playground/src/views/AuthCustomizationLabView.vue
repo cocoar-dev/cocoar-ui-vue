@@ -154,7 +154,7 @@ function compositionEditorDocument(root?: ElementNode): PageNode {
     id: 'composition-editor-page',
     type: 'page',
     schemaVersion: CURRENT_PAGE_SCHEMA_VERSION,
-    style: { minHeight: '100%', padding: '32px', gap: '16px' },
+    style: { padding: '32px', gap: '16px' },
     children: [root ? cloneJson(root) : {
       id: 'new-composition-root',
       type: 'stack',

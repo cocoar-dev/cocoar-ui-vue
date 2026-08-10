@@ -238,7 +238,9 @@ export const PAGE_ROOT_QUICK_PROPERTIES: readonly PageElementQuickEntry[] = [
   QUICK_PROPERTY_PRESETS.gap,
   QUICK_PROPERTY_PRESETS.justify,
   QUICK_PROPERTY_PRESETS.align,
-  QUICK_COMPOUND_PRESETS.heightBox,
+  // No size fields: the page is always exactly its host container, so offering
+  // width/height here would only invite documents that fight their container.
+  // Overflow stays — that is a real choice about content the host cannot hold.
   QUICK_PROPERTY_PRESETS.overflow,
 ];
 

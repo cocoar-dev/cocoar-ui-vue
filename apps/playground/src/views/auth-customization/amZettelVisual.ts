@@ -148,7 +148,7 @@ export function createAmZettelPage(base: PageNode): PageNode {
     style: { size: 'grow', minWidth: '0', gap: '0', align: 'stretch' },
     children: [visual, rightPane],
   };
-  root.style = { minHeight: '100%', height: '100%', width: '100%', padding: '0', surface: 'default', align: 'stretch', justify: 'start' };
+  root.style = { padding: '0', surface: 'default', align: 'stretch', justify: 'start' };
   root.responsive = undefined;
   root.children = [shell];
   return root;

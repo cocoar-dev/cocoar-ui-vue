@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { InjectionKey, ComputedRef } from 'vue';
+import type { InjectionKey, ComputedRef, CSSProperties } from 'vue';
 import type { FlexDirection } from './styleMapping';
 
 /**
@@ -126,6 +126,25 @@ const wrapperStyle = computed(() =>
   selfStyle(resolvedStyle.value, parentDirection?.value ?? 'column'),
 );
 
+/**
+ * The page root is always exactly its host container: sizing it is the
+ * embedding application's job, done by handing the renderer a box with a
+ * height. Own size values are therefore dropped rather than honoured — a
+ * document that carries them (percentages cannot resolve against every host)
+ * would otherwise fight the container it was placed in.
+ *
+ * Everything else, including overflow, still comes from the document.
+ */
+const PAGE_ROOT_IGNORED_SIZE = [
+  'width', 'minWidth', 'maxWidth', 'height', 'minHeight', 'maxHeight', 'flex', 'aspectRatio',
+] as const;
+
+const pageRootStyle = computed<CSSProperties>(() => {
+  const css = { ...wrapperStyle.value } as Record<string, unknown>;
+  for (const key of PAGE_ROOT_IGNORED_SIZE) delete css[key];
+  return css as CSSProperties;
+});
+
 const children = computed(() =>
   'children' in props.node && Array.isArray(props.node.children) ? props.node.children : [],
 );
@@ -159,7 +178,7 @@ const enterEligible = computed(() => {
     <div
       v-if="node.type === 'page'"
       :class="['pb-page', stylePresetClass]"
-      :style="{ ...wrapperStyle, ...containerLayoutStyle(resolvedStyle) }"
+      :style="{ ...pageRootStyle, ...containerLayoutStyle(resolvedStyle) }"
     >
       <PageNode
         v-for="child in children"
@@ -199,9 +218,21 @@ const enterEligible = computed(() => {
 </template>
 
 <style scoped>
+/*
+ * Exactly the host container, never more: whether that is the body, an overlay
+ * or a virtualised grid cell, the embedding application owns the size.
+ *
+ * overflow:auto rather than hidden — clipping would make content that does not
+ * fit unreachable rather than merely unseen, which on a small viewport can hide
+ * the very controls a page exists for. A document can still set overflow
+ * explicitly; only the size values are ignored.
+ */
 .pb-page {
   display: flex;
   flex-direction: column;
+  width: 100%;
+  height: 100%;
   min-width: 0;
+  overflow: auto;
 }
 </style>

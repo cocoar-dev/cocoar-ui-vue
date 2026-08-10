@@ -4,9 +4,6 @@
   "schemaVersion": 5,
   "enterSubmits": false,
   "style": {
-    "minHeight": "100%",
-    "height": "100%",
-    "width": "100%",
     "padding": "0",
     "surface": "default",
     "align": "stretch",
