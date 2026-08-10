@@ -105,12 +105,6 @@ implementation:
 `previewTheme` is scoped to the embedded renderer; the Builder toolbar,
 Properties panel, dialogs, and Monaco keep the administration theme.
 
-Register controlled CSS affordances through `config.stylePresets`. Each entry
-declares an id, label, one safe CSS class and `allowedOn` element types (including
-`page` when appropriate). The document persists only `stylePreset: '<id>'`.
-Load the associated scoped CSS in both authoring and runtime. Unknown presets
-are an authoring error and are ignored safely at runtime.
-
 ## 2. Persist one versioned document per scope and slot
 
 The recommended storage key is:
@@ -126,9 +120,8 @@ The first preset release contains these slots:
 - `logout`
 - `consent`
 
-Use `createAuthPageDocument(slot)` for the initial multilingual document and
-`createAuthPageConfig(slot, locale)` as the common builder/renderer contract.
-Persist the complete `PageNode` JSON, including its `schemaVersion`. Treat saved
+The host owns the starting document and the `PageConfig` for each slot; the
+package ships neither. Persist the complete `PageNode` JSON, including its `schemaVersion`. Treat saved
 documents as immutable revisions. Draft, published revision, rollback target,
 ETag and audit metadata belong to the IDP record around that JSON rather than to
 the generic page schema.

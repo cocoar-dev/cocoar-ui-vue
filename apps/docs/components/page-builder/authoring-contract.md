@@ -57,7 +57,6 @@ opens the day properties mode is removed, not a gap you can see now.
 | `id` | Canvas / Outline, builder-assigned — **named exception** |
 | `style` | Element Code (`element.style`), Quick Properties for the common keys |
 | `responsive` | Element Code (`element.responsive`) — **no Quick Property**, see gaps |
-| `stylePreset` | **none** — see gaps. Legacy-only today. |
 | `composition`, `compositionOrigins` | Compositions library — **named exception** |
 
 `NodeStyle` in full: presentation (`surface`, `foreground`, `borderTone`,
@@ -150,6 +149,23 @@ builder could not otherwise open.
 **Cost:** a v1–v4 document saved by this builder comes back as v5. Round-trips
 within one version rewrite nothing.
 
+### Host CSS never reaches the document
+
+There is no way for a document to carry a CSS class or a stylesheet. Styling is
+`NodeStyle` per node, `CoarTheme` for brand colours, radii and fonts, and the
+`visual-markup` element for free-form decoration inside its sealed iframe.
+
+`config.stylePresets` used to be a fourth channel — a host-registered catalogue
+of named classes the author could pick from. It was removed: the author who
+builds a page owns the realm it renders in, so the restriction protected
+nobody, and a class name written into a document couples it to one application's
+stylesheet forever. A leftover `stylePreset` key in an old document is reported
+as a warning, never stripped.
+
+**Cost:** a vendor cannot ship a catalogue of ready-made looks. If that becomes
+a product requirement, it is a new feature with its own design — not a revival
+of this one.
+
 ### Token-backed style keys are code-only
 
 `surface`, `radius`, `elevation` and the typography keys have no Quick
@@ -166,7 +182,6 @@ These violate the rules and are not exceptions.
 
 | Gap | Evidence | Consequence |
 |---|---|---|
-| `stylePreset` has no code-mode surface at all | Element Code's returned patch covers `props`, `style`, `responsive`, `validation`, `visibleWhen`, `bindings`, `defaultValue` — not `stylePreset`. Its only control is the legacy Style section. | Style presets become unauthorable the day properties mode is removed. Either the code patch accepts `stylePreset`, or it needs a structural control. |
 | `visibleWhen` has no code-mode control | The Visibility section is legacy-only | Conditions become text-only. Acceptable under rule 1, but it is the single most-used non-style property. |
 | Element inspectors are legacy-only | Only `visual-markup` sets `inspectorInCodeMode` | Every per-element prop not covered by a Quick Property becomes text-only: `heading.level`, `note.variant`, `otp.length`, `select.options`, `button.icon`/`validates`/`default`, `image.alt`/`assetId`, `repeat.*`, action wiring. |
 

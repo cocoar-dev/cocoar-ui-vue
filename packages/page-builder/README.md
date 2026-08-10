@@ -219,29 +219,11 @@ to consumer elements registered with `action: true`. A custom action renderer
 should call `usePageElement().triggerElementAction(node.props)` so it follows
 the identical merge, validation and async-action path.
 
-## Host themes and style presets
+## Host themes
 
 Runtime applications wrap the renderer in the generic `CoarThemeScope` from
 `@cocoar/vue-ui`. For authoring, pass the same theme as `previewTheme`; it is
 applied only to the preview canvas, never to the builder chrome.
-
-Host CSS can be exposed as controlled presets through `PageConfig`:
-
-```ts
-const config: PageConfig = {
-  stylePresets: [{
-    id: 'brand-auth-visual',
-    label: 'Brand Auth Visual',
-    className: 'brand-auth-visual',
-    allowedOn: ['page', 'stack', 'card'],
-  }],
-};
-```
-
-The page document stores only `stylePreset: 'brand-auth-visual'`; it never
-stores raw CSS or an arbitrary class. The host must load the matching CSS in
-both administration and runtime. Unknown, unsafe, or disallowed presets are an
-authoring error and are safely ignored by the renderer.
 
 ## Decorative visual markup
 
@@ -485,10 +467,9 @@ contract; the Builder evaluates Page State, Page Root Code and Element Code in
 that same isolated session. Pass `previewRuntimeHost` only when preview actions
 need the application's explicitly granted capabilities.
 
-The package also exports four optional integration presets:
-`createAuthPageDocument()` and `createAuthPageConfig()` for `login`,
-`password-forgot`, `logout` and `consent`. They are example/default documents;
-all underlying elements, repeaters, feedback zones and runtime APIs remain
+The package ships no auth-specific configuration or documents. An IDP owns its
+own `PageConfig` and starting documents for `login`, `password-forgot`, `logout`
+and `consent`; every element, repeater, feedback zone and runtime API stays
 generic.
 
 See [IDP_INTEGRATION.md](./IDP_INTEGRATION.md) for the complete draft/publish,

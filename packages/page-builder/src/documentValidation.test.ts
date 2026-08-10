@@ -41,9 +41,9 @@ describe('runtime document activation', () => {
     ]))
   })
 
-  it('validates new direct-binding sources at activation without rejecting an unknown runtime preset', () => {
+  it('validates new direct-binding sources at activation', () => {
     const schema = {
-      id: 'root', type: 'page', stylePreset: 'page-shell', children: [
+      id: 'root', type: 'page', children: [
         { id: 'email', type: 'text-input', name: 'email', props: {} },
         {
           id: 'repeat', type: 'repeat', name: 'repeat',
@@ -68,12 +68,11 @@ describe('runtime document activation', () => {
     const result = validatePageDocument(schema, {
       allowedElements: ['text-input', 'repeat', 'heading', 'button'],
       contextFields: [{ path: 'items', type: 'array', itemFields: [{ path: 'id', type: 'string' }] }],
-      stylePresets: [{ id: 'page-shell', label: 'Page shell', className: 'app-page-shell', allowedOn: ['page'] }],
     })
     expect(result).toEqual({ valid: true, issues: [] })
 
     const invalid = {
-      id: 'root', type: 'page', stylePreset: 'missing', children: [{
+      id: 'root', type: 'page', children: [{
         id: 'action', type: 'button', name: 'action', props: { label: 'Run' },
         bindings: {
           title: { source: 'index' },
@@ -84,6 +83,5 @@ describe('runtime document activation', () => {
     const invalidResult = validatePageDocument(invalid, { allowedElements: ['button'] })
     expect(invalidResult.valid).toBe(false)
     expect(invalidResult.issues.map((issue) => issue.field)).toContain('bindings')
-    expect(invalidResult.issues.map((issue) => issue.field)).not.toContain('stylePreset')
   })
 })

@@ -7,7 +7,6 @@ import { isJsonSafeActionValue, isJsonSafeActionValues, isSafeActionValueField }
 import { useMergedElements } from '../elements/useMergedElements';
 import { isFieldCompatible } from '../elements/fieldContract';
 import { validatePageDocument } from '../documentValidation';
-import { findStylePreset } from '../stylePresets';
 import { isValidElementName } from './nodeDefaults';
 
 export type IssueSeverity = 'warning' | 'error';
@@ -142,12 +141,15 @@ export function useSchemaValidation(
         });
       }
 
-      if (n.stylePreset && !findStylePreset(config.value, n)) {
+      // ── Style presets were removed. A document written against an older
+      //    version still carries the key; say so rather than let the author
+      //    wonder why the look is gone — and never strip it silently ──
+      if ((n as { stylePreset?: unknown }).stylePreset !== undefined) {
         out.push({
           nodeId: n.id,
           field: 'stylePreset',
-          severity: 'error',
-          message: `Style preset "${n.stylePreset}" is unknown, unsafe, or not allowed on ${n.type}.`,
+          severity: 'warning',
+          message: 'Style presets were removed — this node\'s "stylePreset" no longer does anything.',
         });
       }
 

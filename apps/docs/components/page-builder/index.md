@@ -117,17 +117,6 @@ interface PageConfig {
   elements?: PageElementRegistry
 
   /**
-   * Host-owned CSS affordances. The document stores only the preset id;
-   * raw CSS and arbitrary class names never enter the page schema.
-   */
-  stylePresets?: {
-    id: string
-    label: string
-    className: string
-    allowedOn: string[]
-  }[]
-
-  /**
    * The data contract behind the page (DTO fields). When present, the
    * builder's Field section offers these instead of a free-text name —
    * filtered per element to the compatible value types — the palette

@@ -64,7 +64,6 @@ export type {
   PageConfig,
   PageVisualFont,
   PageVisualMarkupConfig,
-  PageStylePreset,
   PageValueType,
   PageFieldSpec,
 } from './schema';
@@ -89,7 +88,6 @@ export {
   type PublishPageCompositionInput,
 } from './compositions';
 
-export { findStylePreset, isSafeStylePreset } from './stylePresets';
 
 export { isContainerNode, isElementAllowed } from './schema';
 export { CURRENT_PAGE_SCHEMA_VERSION } from './schema';

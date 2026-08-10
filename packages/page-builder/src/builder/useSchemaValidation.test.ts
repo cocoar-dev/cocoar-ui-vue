@@ -109,13 +109,13 @@ describe('useSchemaValidation', () => {
     ]));
   });
 
-  it('rejects unknown or disallowed style presets during authoring', () => {
-    const schema = page([{ id: 'card', type: 'card', name: 'card', stylePreset: 'page-only', props: {}, children: [] }]);
-    const issues = validate(schema, {
-      stylePresets: [{ id: 'page-only', label: 'Page only', className: 'app-page', allowedOn: ['page'] }],
-    });
+  // Style presets are gone. A document written against an older version still
+  // carries the key, and the rule is to report rather than strip it.
+  it('reports a leftover stylePreset instead of silently ignoring it', () => {
+    const schema = page([{ id: 'card', type: 'card', name: 'card', stylePreset: 'page-only', props: {}, children: [] }] as never);
+    const issues = validate(schema, {});
     expect(issues).toEqual(expect.arrayContaining([
-      expect.objectContaining({ nodeId: 'card', field: 'stylePreset', severity: 'error' }),
+      expect.objectContaining({ nodeId: 'card', field: 'stylePreset', severity: 'warning' }),
     ]));
   });
 

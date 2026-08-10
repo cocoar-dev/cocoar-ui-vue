@@ -12,7 +12,6 @@ const PB_PARENT_DIRECTION: InjectionKey<ComputedRef<FlexDirection>> =
 
 /** A throwing consumer `submitOnEnter` predicate warns once per type, not per keystroke. */
 const warnedEnterHookThrew = new Set<string>();
-const warnedStylePresets = new Set<string>();
 </script>
 
 <script setup lang="ts">
@@ -21,7 +20,6 @@ import { isElementAllowed, type ElementNode, type PageNode, type RepeatSelection
 import { selfStyle, containerLayoutStyle, withoutPageRootSize } from './styleMapping';
 import { PAGE_RENDERER_KEY, type RepeatRenderScope } from './context';
 import { safeReadPath } from './runtimeBindings';
-import { findStylePreset } from './stylePresets';
 
 defineOptions({ name: 'PageNode' });
 
@@ -66,20 +64,6 @@ const def = computed(() => {
   const d = ctx!.elements.value[props.node.type];
   if (!d && allowed.value) ctx!.reportUnknown?.(props.node.type);
   return d;
-});
-
-const stylePresetClass = computed(() => {
-  if (!props.node.stylePreset) return undefined;
-  const preset = findStylePreset(ctx!.config, props.node);
-  if (preset) return preset.className;
-  const warningKey = `${props.node.type}:${props.node.stylePreset}`;
-  if (!warnedStylePresets.has(warningKey)) {
-    warnedStylePresets.add(warningKey);
-    console.warn(
-      `[CoarPageRenderer] Unknown, unsafe, or disallowed style preset "${props.node.stylePreset}" on "${props.node.type}" — ignored.`,
-    );
-  }
-  return undefined;
 });
 
 // ─── Style helpers ────────────────────────────────────────────────────────────
@@ -165,7 +149,7 @@ const enterEligible = computed(() => {
     <!-- ── page root (host-owned; always a column) ─────────────────────────── -->
     <div
       v-if="node.type === 'page'"
-      :class="['pb-page', stylePresetClass]"
+      class="pb-page"
       :style="{ ...pageRootStyle, ...containerLayoutStyle(resolvedStyle) }"
     >
       <PageNode
@@ -185,7 +169,6 @@ const enterEligible = computed(() => {
       v-else-if="def"
       :node="resolvedNode"
       :style="wrapperStyle"
-      :class="stylePresetClass"
       :data-pb-enter-submit="enterEligible ? 'true' : undefined"
     >
       <template v-if="def.container" #default="slotScope: RepeatRenderScope">

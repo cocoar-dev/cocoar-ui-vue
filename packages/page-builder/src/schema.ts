@@ -92,8 +92,6 @@ interface PageNodeBase {
   /** Stable UUID assigned by the builder. */
   id: string
   style?: NodeStyle
-  /** Host-registered appearance preset id. The document never stores a CSS class. */
-  stylePreset?: string
   /** Mobile-first style overrides; unset properties inherit from the preceding breakpoint. */
   responsive?: ResponsiveNodeStyles
   /**
@@ -699,11 +697,6 @@ export interface PageConfig {
    */
   elements?: PageElementRegistry
   /**
-   * Host-owned CSS presets exposed as safe ids. The builder stores only `id`;
-   * renderer and preview resolve the class through this same registration.
-   */
-  stylePresets?: PageStylePreset[]
-  /**
    * The data contract behind the page (DTO fields). When present, the
    * builder's Field section offers these instead of a free-text name —
    * filtered to the fields the selected element can edit (see
@@ -821,14 +814,6 @@ export interface PageVisualMarkupConfig {
   fonts?: PageVisualFont[]
   maxHtmlLength?: number
   maxCssLength?: number
-}
-
-export interface PageStylePreset {
-  id: string
-  label: string
-  className: string
-  /** Element registry types that may use the preset. Includes the `page` root marker. */
-  allowedOn: string[]
 }
 
 /**
