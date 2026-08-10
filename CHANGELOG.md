@@ -9,16 +9,48 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ## 3.0.0
 
-**Page Builder: fewer concepts, unambiguous names — and back under Preview.**
-A major confined to `@cocoar/vue-page-builder`; every other package is
-unchanged. The package shipped as GA in 2.17 by oversight; it now carries the
-Preview badge until the authoring model settles, so expect the public API,
-`PageConfig` and the document schema to keep moving in minor releases.
-Documents stay safe: every schema change ships a migration that runs on ingest. Four `PageConfig`
-concepts are removed because they restricted a page author inside a realm they
-own, or duplicated something the host already passed. Several names are
-disambiguated where one word covered two things. See
+**Page Builder: a complete authoring platform, fewer concepts, unambiguous names
+— and back under Preview.** A major confined to `@cocoar/vue-page-builder` and
+its immediate neighbours. Nothing has been published since 2.19, so this release
+carries both the customer-authoring platform (isolated scripting, runtime
+bindings, reusable compositions) and the consolidation that followed it: four
+`PageConfig` concepts removed because they restricted a page author inside a
+realm they own or duplicated something the host already passed, plus several
+names disambiguated where one word covered two things.
+
+The package shipped as GA in 2.17 by oversight; it now carries the Preview badge
+until the authoring model settles, so expect the public API, `PageConfig` and the
+document schema to keep moving in minor releases. Documents stay safe: every
+schema change ships a migration that runs on ingest. See
 [Migrating Page Builder to 3.0](https://docs.cocoar.dev/cocoar-ui-vue/guide/migration-page-builder-3).
+
+### Added
+
+- **`@cocoar/vue-page-builder` — isolated browser scripting.** Page State, Page Root Code, per-element compute/action code and async host calls run in one SES-hardened Web Worker session per rendered page. Tenant code has no ambient DOM, `window`, `fetch` or filesystem access; a host exposes explicit, structured-clone-safe capability facades with `definePageRuntimeHost()` and grants them per page and runtime definition. Reactive dependency tracking recalculates only definitions affected by changed fields, state, repeater context, viewport or host resources. Constrained Monaco templates keep function signatures and element identity locked while exposing element-specific IntelliSense.
+- **`@cocoar/vue-page-builder` — generic runtime bindings and authored state.** Supported properties, action arguments and visibility rules can read allow-listed host context, Page State, named form fields/selections, repeater item/index or sandbox expressions. The page owns its initial mutable state; element code may use ordinary local variables without persisting them. The code path computes immutable property snapshots before applying the final result, so repeated assignments do not cause repeated DOM writes.
+- **`@cocoar/vue-page-builder` — reusable, versioned compositions.** `PageCompositionRepository` is the host-owned persistence boundary for immutable subtree definitions. Repository summaries appear in a searchable **Compositions** library and can be dragged through the normal Tree/Canvas drop pipeline. Instances materialize as ordinary nodes, pin an exact version, support explicit version changes, update-to-latest, detach and host navigation through `open-composition`, and retain nested origin chains. `compilePageCompositions()` strips authoring metadata, so runtime documents need neither a repository nor a wrapper element. Separate Pages/Compositions applications use `composition-management="consume"`; compact tools may use inline definition management.
+- **`@cocoar/vue-page-builder` — general action arguments.** Every action-capable registry element shares optional `actionValues`, `actionValueField` and `actionValue` properties. JSON-safe static values and per-key dynamic bindings reach the handler with deterministic precedence: form values, then `actionValues`, then the legacy dynamic `actionValue`. Buttons, links and consumer elements therefore use one action contract.
+- **`@cocoar/vue-page-builder` — repeaters, selections and feedback zones.** The generic `repeat` element renders an allow-listed host array, exposes current item/index to descendants and can publish selected-key arrays under a configured name. The generic `feedback` element places form errors, status, loading or authored messages inside the visual layout. These primitives replace proprietary Auth provider/scope elements.
+- **`@cocoar/vue-page-builder` — sandboxed visual markup.** The optional `visual-markup` element renders a bounded declarative document with host-owned values, font registrations and navigation/action policy; arbitrary HTML, DOM scripts and page-global CSS are not accepted.
+- **`@cocoar/vue-page-builder` — responsive styling, translations and application theming.** Documents author mobile-first styles plus Phone, Tablet and Desktop overrides, safe modern viewport units (including `dvh`, `svh` and `lvh`), breakpoint visibility and centralized key-based translations. `CoarThemeScope` and the Builder's `previewTheme` apply the resolved application brand to runtime and canvas without restyling the administration chrome.
+- **`@findings` event and exported `useAuthoringFindings()`.** The builder's authoring findings reach the host, so a save button can grey out on errors or a host can render its own issue list. Outside a mounted builder, the composable answers the same question.
+- **`previewInitialValues`.** The embedded preview starts from host values, merged over the authored `defaultValue`s exactly as at runtime — the edit-form case, and the case where a default is computed per tenant.
+- **`PageContextField.allowedValues`.** A context field with a closed value set is authored with a dropdown in the condition editor, which is what makes a host state, tier or status authorable without a second mechanism for it.
+- **Authoring contract documentation.** Every field of the node grammar, the surface that writes it, every named exception with its cost, and the open gaps.
+
+### Changed
+
+- **`@cocoar/vue-page-builder` — editor layout and authoring flow.** Outline and compact Properties now share the resizable left inspector, the Canvas stays central, and a searchable, independently collapsible element library sits on the right. Contract **Fields** appear first, followed by Containers, Elements and Compositions. Common properties remain quick controls; Page/Element Code is the authoritative escape hatch for the complete registered property surface.
+- **`@cocoar/vue-page-builder` — localization uses stable keys.** Localizable element properties reference a page translation catalogue edited in one Translations tab. Legacy embedded localized objects remain readable, while the properties inspector no longer displays them as `[object Object]`.
+- **`@cocoar/vue-script-editor` — constrained authoring is visually quieter and more usable.** Locked scaffolding markers can be hidden, protected lines are deemphasized without a dominant background, editor sizing is stable, and PageBuilder code dialogs use a wide viewport-relative layout.
+- **`@cocoar/vue-ui` — scoped application themes.** New `CoarThemeScope` applies typed theme primitives and light/dark/auto mode to a subtree, enabling an embedded preview and the production page to share the same brand contract.
+- **`config.fields` → `config.dataContract`.** `fields` named both the DTO contract and the live values (`page.fields`). The contract takes the new name; the values keep the one that reads correctly in code.
+- **`config.elements` → `config.elementTypes`, `PAGE_ELEMENTS_KEY` → `PAGE_ELEMENT_TYPES_KEY`.** The registry says which element *kinds* exist; `page.elements` is this page's nodes.
+- **`useSchemaValidation()` → `useAuthoringFindings()`** (returning `{ findings, byNodeId }`), **`ValidationIssue` → `AuthoringFinding`**, **`IssueSeverity` → `FindingSeverity`**, **`@validation` → `@findings`**. "Validation" covered a node's field rules, the activation contract and the builder's authoring hints; the first two keep the word.
+- **`repeat.props.source` → `props.contextPath`** and **`PageVisualFont.source` → `src`.** `source` was an enum, a context path and a data URL at once. `binding.source` keeps it.
+- **Schema v6.** The repeat rename is applied by `migrateRepeatContextPath` on every ingest path — identity-preserving, idempotent, skipped when the new key is present. Stored documents open and render unchanged.
+- **The page is exactly its host container.** Size values on the page root are dropped and the root offers no size fields; the host container owns the box and must have a determinable height. A document that set a root size is told so.
+- **Quick Properties resolve per breakpoint.** They showed the base value while the canvas rendered the resolved one. An inherited value now also names the override it came from.
 
 ### Removed
 
@@ -28,58 +60,14 @@ disambiguated where one word covered two things. See
 - **`config.previewFixtures` and `PagePreviewFixture`.** A fixture bundled `{ context, state, locale, viewport }` plus a builder-drawn dropdown, but the host already owns `previewContext` and `previewLocale`. The preview now runs when the host supplies the inputs its own config declares, and says so when it cannot.
 - **`createAuthPageConfig()` and `createAuthPageDocument()`.** The package ships nothing auth-specific; an IDP owns its own config and starting documents.
 
-### Changed
-
-- **`config.fields` → `config.dataContract`.** `fields` named both the DTO contract and the live values (`page.fields`). The contract takes the new name; the values keep the one that reads correctly in code.
-- **`config.elements` → `config.elementTypes`, `PAGE_ELEMENTS_KEY` → `PAGE_ELEMENT_TYPES_KEY`.** The registry says which element *kinds* exist; `page.elements` is this page's nodes.
-- **`useSchemaValidation()` → `useAuthoringFindings()`** (returning `{ findings, byNodeId }`), **`ValidationIssue` → `AuthoringFinding`**, **`IssueSeverity` → `FindingSeverity`**, **`@validation` → `@findings`**. "Validation" covered a node's field rules, the activation contract and the builder's authoring hints; the first two keep the word.
-- **`repeat.props.source` → `props.contextPath`** and **`PageVisualFont.source` → `src`.** `source` was an enum, a context path and a data URL at once. `binding.source` keeps it.
-- **Schema v6.** The repeat rename is applied by `migrateRepeatContextPath` on every ingest path — identity-preserving, idempotent, skipped when the new key is present. Stored documents open and render unchanged.
-- **The page is exactly its host container.** Size values on the page root are dropped and the root offers no size fields; the host container owns the box and must have a determinable height. A document that set a root size is told so.
-- **Quick Properties resolve per breakpoint.** They showed the base value while the canvas rendered the resolved one. An inherited value now also names the override it came from.
-
-### Added
-
-- **`@findings` event and exported `useAuthoringFindings()`.** The builder's authoring findings reach the host, so a save button can grey out on errors or a host can render its own issue list. Outside a mounted builder, the composable answers the same question.
-- **`previewInitialValues`.** The embedded preview starts from host values, merged over the authored `defaultValue`s exactly as at runtime — the edit-form case, and the case where a default is computed per tenant.
-- **`PageContextField.allowedValues`.** A context field with a closed value set is authored with a dropdown in the condition editor, which is what makes a host state, tier or status authorable without a second mechanism for it.
-- **Authoring contract documentation.** Every field of the node grammar, the surface that writes it, every named exception with its cost, and the open gaps.
-
----
-
-## 2.20.0
-
-**PageBuilder customer authoring, end to end.** Version 2.20 turns the existing
-generic renderer into a complete browser-based customization platform: reactive
-Page and Element Code, host-controlled capabilities, responsive/themed Auth
-presets and reusable versioned compositions all use the same public element,
-action and document contracts. No Modgud- or Auth-specific runtime element type
-was introduced.
-
-### Added
-
-- **`@cocoar/vue-page-builder` — isolated browser scripting.** Page State, Page Root Code, per-element compute/action code and async host calls run in one SES-hardened Web Worker session per rendered page. Tenant code has no ambient DOM, `window`, `fetch` or filesystem access; a host exposes explicit, structured-clone-safe capability facades with `definePageRuntimeHost()` and grants them per page and runtime definition. Reactive dependency tracking recalculates only definitions affected by changed fields, state, repeater context, viewport or host resources. Constrained Monaco templates keep function signatures and element identity locked while exposing element-specific IntelliSense.
-- **`@cocoar/vue-page-builder` — generic runtime bindings and authored state.** Supported properties, action arguments and visibility rules can read allow-listed host context, Page State, named form fields/selections, repeater item/index or sandbox expressions. The page owns its initial mutable state; element code may use ordinary local variables without persisting them. The code path computes immutable property snapshots before applying the final result, so repeated assignments do not cause repeated DOM writes.
-- **`@cocoar/vue-page-builder` — reusable, versioned compositions.** `PageCompositionRepository` is the host-owned persistence boundary for immutable subtree definitions. Repository summaries appear in a searchable **Compositions** library and can be dragged through the normal Tree/Canvas drop pipeline. Instances materialize as ordinary nodes, pin an exact version, support explicit version changes, update-to-latest, detach and host navigation through `open-composition`, and retain nested origin chains. `compilePageCompositions()` strips authoring metadata, so runtime documents need neither a repository nor a wrapper element. Separate Pages/Compositions applications use `composition-management="consume"`; compact tools may use inline definition management.
-- **`@cocoar/vue-page-builder` — general action arguments.** Every action-capable registry element shares optional `actionValues`, `actionValueField` and `actionValue` properties. JSON-safe static values and per-key dynamic bindings reach the handler with deterministic precedence: form values, then `actionValues`, then the legacy dynamic `actionValue`. Buttons, links and consumer elements therefore use one action contract.
-- **`@cocoar/vue-page-builder` — repeaters, selections and feedback zones.** The generic `repeat` element renders an allow-listed host array, exposes current item/index to descendants and can publish selected-key arrays under a configured name. The generic `feedback` element places form errors, status, loading or authored messages inside the visual layout. These primitives replace proprietary Auth provider/scope elements.
-- **`@cocoar/vue-page-builder` — responsive styling, translations and application theming.** Documents author mobile-first styles plus Phone, Tablet and Desktop overrides, safe modern viewport units (including `dvh`, `svh` and `lvh`), breakpoint visibility, centralized key-based translations and host-registered style presets. `CoarThemeScope` and the Builder's `previewTheme` apply the resolved application brand to runtime and canvas without restyling the administration chrome.
-- **`@cocoar/vue-page-builder` — optional Auth customization presets.** `createAuthPageConfig()` and `createAuthPageDocument()` provide Login, Password Forgot, Logout and Consent examples using only the public registry, validation, feedback, repeat, selection, action, translation, responsive and scripting contracts. They are defaults and test fixtures, not privileged runtime branches.
-- **`@cocoar/vue-page-builder` — sandboxed visual markup.** The optional `visual-markup` element renders a bounded declarative document with host-owned values, font registrations and navigation/action policy; arbitrary HTML, DOM scripts and page-global CSS are not accepted.
-- **`@cocoar/vue-page-builder` — schema v5.** Every element has one stable page-wide `name`; for value elements it is also the submitted form/DTO property, while content and container elements use it as their code identity. Version 5 adds builder-only composition-origin metadata and keeps older documents normalized on every ingest path.
-
-### Changed
-
-- **`@cocoar/vue-page-builder` — editor layout and authoring flow.** Outline and compact Properties now share the resizable left inspector, the Canvas stays central, and a searchable, independently collapsible element library sits on the right. Contract **Fields** appear first, followed by Containers, Elements and Compositions. Common properties remain quick controls; Page/Element Code is the authoritative escape hatch for the complete registered property surface.
-- **`@cocoar/vue-page-builder` — localization uses stable keys.** Localizable element properties reference a page translation catalogue edited in one Translations tab. Legacy embedded localized objects remain readable, while the properties inspector no longer displays them as `[object Object]`.
-- **`@cocoar/vue-script-editor` — constrained authoring is visually quieter and more usable.** Locked scaffolding markers can be hidden, protected lines are deemphasized without a dominant background, editor sizing is stable, and PageBuilder code dialogs use a wide viewport-relative layout.
-- **`@cocoar/vue-ui` — scoped application themes.** New `CoarThemeScope` applies typed theme primitives and light/dark/auto mode to a subtree, enabling an embedded preview and the production page to share the same brand contract.
-
 ### Fixed
 
 - **`@cocoar/vue-page-builder` — packaged Worker execution in real Vite consumers.** The runtime Worker is emitted through a dedicated package subpath, remains outside Vite dependency pre-bundling where required, resolves correctly below non-root base paths and works in development optimization and production builds. Release CI now installs the packed PageBuilder and its peers into a separate Vite consumer before publishing; the packed-consumer matrix covers Linux and Windows.
 - **`@cocoar/vue-page-builder` — Auth integration correctness.** Runtime actions receive current form values plus explicit arguments, validation/errors/loading render in authored locations, conditional controls react without polling every expression, modern viewport lengths survive CSS sanitization, and generic external-provider/consent collections work without consumer-only element implementations.
 - **Monaco JSON diagnostics are documented at the consumer boundary.** PageBuilder uses JavaScript and JSON language services; Vite hosts must route `json` to Monaco's `JsonWorker`. Routing it to the generic editor worker caused `Missing requestHandler or method: doValidation`, `findDocumentColors` and `getFoldingRanges` messages even though the sandbox itself was healthy.
+- **`@cocoar/vue-page-builder` — the page root is a border box.** "The page is exactly its host container" only held while the page had no padding of its own: `.pb-page` was content-box, so an authored padding was added to `width: 100%` and the page came out wider than the container it fills. Invisible until the host is narrow, and then a horizontal scrollbar on a login page at 320px.
+
+---
 
 ## 2.19.0
 
