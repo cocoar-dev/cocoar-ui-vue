@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { validatePageDocument } from './documentValidation'
+import { enforceRequiredNodeLocks, validatePageDocument } from './documentValidation'
 import type { PageConfig, PageNode } from './schema'
 
 const config: PageConfig = {
@@ -83,5 +83,73 @@ describe('runtime document activation', () => {
     const invalidResult = validatePageDocument(invalid, { allowedElements: ['button'] })
     expect(invalidResult.valid).toBe(false)
     expect(invalidResult.issues.map((issue) => issue.field)).toContain('bindings')
+  })
+})
+
+/**
+ * The publication gate judges the persisted document, but Element Code patches
+ * the tree afterwards. A lock that only holds until the first compute is not a
+ * lock — so it is re-applied to the computed result.
+ */
+describe('enforceRequiredNodeLocks', () => {
+  const config: PageConfig = {
+    requiredNodes: [
+      { id: 'legal', type: 'note', lockVisibility: true },
+      { id: 'hint', type: 'note', lockStyle: true },
+    ],
+  }
+
+  const computed = (patch: Record<string, unknown>, id = 'legal') => ({
+    id: 'root',
+    type: 'page',
+    children: [
+      { id, type: 'note', name: id, props: { text: 'x' }, ...patch },
+      { id: 'free', type: 'note', name: 'free', props: { text: 'y' }, style: { hidden: true } },
+    ],
+  } as unknown as PageNode)
+
+  const child = (schema: PageNode, index: number) =>
+    (schema as unknown as { children: Array<Record<string, unknown>> }).children[index]
+
+  it('drops a hidden that code put on a locked node, and leaves other nodes alone', () => {
+    const result = enforceRequiredNodeLocks(computed({ style: { hidden: true, gap: '8px' } }), config)
+    expect(child(result, 0).style).toEqual({ gap: '8px' })
+    // An unlocked node keeps whatever code decided for it.
+    expect(child(result, 1).style).toEqual({ hidden: true })
+  })
+
+  it('drops a visibleWhen condition code added to a visibility-locked node', () => {
+    const result = enforceRequiredNodeLocks(
+      computed({ visibleWhen: { field: 'x', equals: true } }),
+      config,
+    )
+    expect(child(result, 0).visibleWhen).toBeUndefined()
+  })
+
+  it('strips hidden from every responsive layer, not just the base', () => {
+    const result = enforceRequiredNodeLocks(
+      computed({ responsive: { tablet: { hidden: true }, desktop: { gap: '4px' } } }),
+      config,
+    )
+    expect(child(result, 0).responsive).toEqual({ desktop: { gap: '4px' } })
+  })
+
+  it('lockStyle also covers the quieter ways to disappear', () => {
+    const result = enforceRequiredNodeLocks(
+      computed({ style: { foreground: 'inverse', fontSize: 'caption', padding: '4px' } }, 'hint'),
+      config,
+    )
+    expect(child(result, 0).style).toEqual({ padding: '4px' })
+  })
+
+  it('lockVisibility does not touch presentation it was never meant to guard', () => {
+    const result = enforceRequiredNodeLocks(computed({ style: { foreground: 'inverse' } }), config)
+    expect(child(result, 0).style).toEqual({ foreground: 'inverse' })
+  })
+
+  it('returns the very same tree when no lock is engaged, so rendering does not churn', () => {
+    const schema = computed({ style: { gap: '8px' } })
+    expect(enforceRequiredNodeLocks(schema, config)).toBe(schema)
+    expect(enforceRequiredNodeLocks(schema, {})).toBe(schema)
   })
 })

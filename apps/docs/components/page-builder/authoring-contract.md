@@ -48,6 +48,48 @@ The inventory below is written against the **target** state. Where a capability
 today has only a legacy-mode control, that is called out — it is a gap that
 opens the day properties mode is removed, not a gap you can see now.
 
+## The sandbox is mandatory
+
+If code is the truth, then the code has to run. `CoarPageRenderer` never
+evaluates it: the host runs `usePageCodeRuntime()` against an isolated Worker
+session and passes the data-only result as `pageCodeValues`.
+
+Leaving it out does **not** produce an error. `applyPageCodeValues` returns the
+schema untouched when it gets no values, so the renderer draws the persisted
+document — a different page, silently. And the difference is not small, because
+Quick Properties write **only** into `elementCode`; no write path touches
+`node.style` or `node.props`. A page whose author set anything in code mode
+renders unconfigured without the runtime.
+
+There is no realistic document that avoids this. A Quick Property *is* Element
+Code, and a page with a button or a validated field has one.
+
+```ts
+const runtime = usePageCodeRuntime({ schema, pageId, /* … */ });
+```
+```vue
+<CoarPageRenderer :schema :config :page-code-values="runtime.values.value" />
+```
+
+**Consequence to know about:** the persisted JSON on its own no longer
+describes the page. Static `style` values left over from earlier authoring can
+disagree with the code that overrides them, and the code wins. Read a document
+through the runtime, not by eye.
+
+### Locks are re-applied after the code
+
+`validatePageDocument` judges the document, and Element Code patches `style`,
+`responsive` and `visibleWhen` afterwards — so `config.requiredNodes` locks are
+enforced a second time, on the computed result, by `enforceRequiredNodeLocks()`.
+Without that, a host that locked a legal notice as always-visible would watch
+code hide it anyway, after the publication gate had passed.
+
+The re-check is targeted: only the locked aspects of the locked nodes revert,
+and the renderer warns once. A lock protects its node — it does not switch off
+the page. `<CoarPageRenderer>` applies it for you; a host that computes a
+document elsewhere (server-side rendering, a preview service) has to call it
+itself.
+
 ## Node grammar
 
 ### Every node
