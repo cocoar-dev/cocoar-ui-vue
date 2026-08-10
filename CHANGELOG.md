@@ -7,6 +7,42 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 3.0.0
+
+**Page Builder: fewer concepts, unambiguous names.** A major confined to
+`@cocoar/vue-page-builder`; every other package is unchanged. Four `PageConfig`
+concepts are removed because they restricted a page author inside a realm they
+own, or duplicated something the host already passed. Several names are
+disambiguated where one word covered two things. See
+[Migrating Page Builder to 3.0](https://docs.cocoar.dev/cocoar-ui-vue/guide/migration-page-builder-3).
+
+### Removed
+
+- **`config.stylePresets`, `node.stylePreset`, `PageStylePreset`, `findStylePreset()`, `isSafeStylePreset()`.** Host-registered CSS classes the author picked by id. A page author owns the realm their page renders in, so the restriction protected nobody — and the Editor canvas never applied the class, so the feature only ever took effect in Preview. Styling remains `NodeStyle`, `CoarTheme` and the `visual-markup` element. A leftover `stylePreset` key is reported as an authoring warning, never stripped.
+- **`config.requiredNodes`** (with `lockVisibility`, `lockStyle`, `parentId`, `maxIndex`). Besides the same ownership argument, it did not hold: a node carrying both locks still vanished when the container above it was hidden, with `validatePageDocument()` reporting the document as valid. Guarantees of this kind belong in the publication endpoint, where they cannot be bypassed from the browser.
+- **`config.availableStates`, `<CoarPageRenderer>`'s `viewState`, `<CoarPageBuilder>`'s `previewState`, `visibleWhen.source: 'state'`, `page.viewState`.** The host's view state was a second mechanism for something `runtimeContext` already carried — and `source: 'state'` meant Page State in a binding but view state in a condition. Page State (`definePageState`, `page.state`, `source: 'state'` bindings) is untouched and now unambiguous.
+- **`config.previewFixtures` and `PagePreviewFixture`.** A fixture bundled `{ context, state, locale, viewport }` plus a builder-drawn dropdown, but the host already owns `previewContext` and `previewLocale`. The preview now runs when the host supplies the inputs its own config declares, and says so when it cannot.
+- **`createAuthPageConfig()` and `createAuthPageDocument()`.** The package ships nothing auth-specific; an IDP owns its own config and starting documents.
+
+### Changed
+
+- **`config.fields` → `config.dataContract`.** `fields` named both the DTO contract and the live values (`page.fields`). The contract takes the new name; the values keep the one that reads correctly in code.
+- **`config.elements` → `config.elementTypes`, `PAGE_ELEMENTS_KEY` → `PAGE_ELEMENT_TYPES_KEY`.** The registry says which element *kinds* exist; `page.elements` is this page's nodes.
+- **`useSchemaValidation()` → `useAuthoringFindings()`** (returning `{ findings, byNodeId }`), **`ValidationIssue` → `AuthoringFinding`**, **`IssueSeverity` → `FindingSeverity`**, **`@validation` → `@findings`**. "Validation" covered a node's field rules, the activation contract and the builder's authoring hints; the first two keep the word.
+- **`repeat.props.source` → `props.contextPath`** and **`PageVisualFont.source` → `src`.** `source` was an enum, a context path and a data URL at once. `binding.source` keeps it.
+- **Schema v6.** The repeat rename is applied by `migrateRepeatContextPath` on every ingest path — identity-preserving, idempotent, skipped when the new key is present. Stored documents open and render unchanged.
+- **The page is exactly its host container.** Size values on the page root are dropped and the root offers no size fields; the host container owns the box and must have a determinable height. A document that set a root size is told so.
+- **Quick Properties resolve per breakpoint.** They showed the base value while the canvas rendered the resolved one. An inherited value now also names the override it came from.
+
+### Added
+
+- **`@findings` event and exported `useAuthoringFindings()`.** The builder's authoring findings reach the host, so a save button can grey out on errors or a host can render its own issue list. Outside a mounted builder, the composable answers the same question.
+- **`previewInitialValues`.** The embedded preview starts from host values, merged over the authored `defaultValue`s exactly as at runtime — the edit-form case, and the case where a default is computed per tenant.
+- **`PageContextField.allowedValues`.** A context field with a closed value set is authored with a dropdown in the condition editor, which is what makes a host state, tier or status authorable without a second mechanism for it.
+- **Authoring contract documentation.** Every field of the node grammar, the surface that writes it, every named exception with its cost, and the open gaps.
+
+---
+
 ## 2.20.0
 
 **PageBuilder customer authoring, end to end.** Version 2.20 turns the existing
