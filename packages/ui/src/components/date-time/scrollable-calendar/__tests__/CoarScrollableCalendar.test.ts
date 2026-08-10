@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { nextTick } from 'vue';
 import { Temporal } from '@js-temporal/polyfill';
@@ -8,13 +8,29 @@ import CoarScrollableCalendar from '../CoarScrollableCalendar.vue';
 // Mock scrollIntoView since happy-dom doesn't support it
 Element.prototype.scrollIntoView = vi.fn();
 
+/**
+ * The calendar attaches to `document.body` and schedules `requestAnimationFrame`
+ * in three places, tearing it down in `onBeforeUnmount` — which never ran here,
+ * because nothing unmounted. Eleven live calendars accumulated across the file,
+ * each still scheduling frames against a DOM that kept growing. Locally every
+ * test stayed near 200ms; on a loaded CI runner the LAST test of the file was
+ * the one that blew vitest's 5s default, twice in a row.
+ */
+const mounted: { unmount: () => void }[] = [];
+
+afterEach(() => {
+  while (mounted.length > 0) mounted.pop()!.unmount();
+});
+
 function mountCalendar(props: Record<string, unknown> = {}) {
-  return mount(CoarScrollableCalendar, {
+  const wrapper = mount(CoarScrollableCalendar, {
     props: {
       ...props,
     },
     attachTo: document.body,
   });
+  mounted.push(wrapper);
+  return wrapper;
 }
 
 describe('CoarScrollableCalendar', () => {
