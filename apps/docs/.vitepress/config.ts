@@ -373,6 +373,7 @@ export default defineConfig({
             { text: 'Overview', link: '/components/page-builder/' },
             { text: 'CoarPageBuilder', link: '/components/page-builder/coar-page-builder' },
             { text: 'CoarPageRenderer', link: '/components/page-builder/coar-page-renderer' },
+            { text: 'Authoring contract', link: '/components/page-builder/authoring-contract' },
             { text: 'Custom elements', link: '/components/page-builder/custom-elements' },
             { text: 'IDP integration', link: '/components/page-builder/idp-integration' },
           ],
