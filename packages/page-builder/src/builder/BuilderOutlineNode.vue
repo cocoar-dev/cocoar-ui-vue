@@ -177,7 +177,7 @@ const isDropInto = computed(() =>
 );
 
 function onGripPointerDown(e: PointerEvent) {
-  if (isRoot.value || builder.isPositionLocked(props.path)) return;
+  if (isRoot.value) return;
   const ghostFrom = (e.currentTarget as HTMLElement | null)?.closest<HTMLElement>('.pb-tree-row');
   dnd.onHandlePointerDown(e, { kind: 'move', path: [...props.path] }, ghostFrom);
 }
@@ -233,7 +233,7 @@ function canMoveDown(): boolean {
       @keydown="onRowKeydown"
     >
       <span
-        v-if="!isRoot && !builder.isPositionLocked(path)"
+        v-if="!isRoot"
         class="pb-tree-grip"
         aria-hidden="true"
         @pointerdown.stop="onGripPointerDown"
@@ -268,7 +268,7 @@ function canMoveDown(): boolean {
           v-if="!isRoot"
           type="button"
           class="pb-tree-btn"
-          :disabled="!canMoveUp() || builder.isPositionLocked(path)"
+          :disabled="!canMoveUp()"
           :title="t('coar.pageBuilder.common.moveUp', undefined, 'Move up')"
           @click.stop="builder.move(path, -1)"
         >
@@ -278,7 +278,7 @@ function canMoveDown(): boolean {
           v-if="!isRoot"
           type="button"
           class="pb-tree-btn"
-          :disabled="!canMoveDown() || builder.isPositionLocked(path)"
+          :disabled="!canMoveDown()"
           :title="t('coar.pageBuilder.common.moveDown', undefined, 'Move down')"
           @click.stop="builder.move(path, 1)"
         >
@@ -294,7 +294,7 @@ function canMoveDown(): boolean {
           <CoarIcon name="copy" size="s" />
         </button>
         <button
-          v-if="!isRoot && !builder.isRequired(path)"
+          v-if="!isRoot"
           type="button"
           class="pb-tree-btn pb-tree-btn--danger"
           :title="t('coar.pageBuilder.common.delete', undefined, 'Delete')"

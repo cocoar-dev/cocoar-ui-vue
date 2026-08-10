@@ -1,4 +1,4 @@
-import type { ActionProps, ElementNode, NodeStyle, PageConfig, PageNode, PageRootNode, RepeatNode, RuntimeBinding, VisibleWhen } from './schema'
+import type { ActionProps, ElementNode, PageConfig, PageNode, PageRootNode, RepeatNode, RuntimeBinding, VisibleWhen } from './schema'
 import { isElementAllowed } from './schema'
 import { isValidElementName } from './builder/nodeDefaults'
 import { isJsonSafeActionValue, isJsonSafeActionValues, isSafeActionValueField } from './actionValues'
@@ -47,7 +47,6 @@ export function validatePageDocument(schema: PageNode, config?: PageConfig): Pag
   if (rootCode && rootCode.length > 50_000) issues.push({ nodeId: schema.id, field: 'rootCode', message: 'Page Root Code exceeds 50,000 characters.' })
   if (stateCode && stateCode.length > 50_000) issues.push({ nodeId: schema.id, field: 'stateCode', message: 'Page State exceeds 50,000 characters.' })
   const nodesById = new Map<string, PageNode>()
-  const placementById = new Map<string, { parentId?: string; index: number }>()
   const registry = { ...BUILTIN_ELEMENTS, ...(config?.elements ?? {}) }
   const fieldNames = new Set<string>()
   const selectionNames = new Set<string>()
@@ -86,14 +85,13 @@ export function validatePageDocument(schema: PageNode, config?: PageConfig): Pag
     }
   }
 
-  const walk = (node: PageNode, depth: number, parentId?: string, index = 0) => {
+  const walk = (node: PageNode, depth: number) => {
     count += 1
     if (count > maxNodes) return
     if (depth > maxDepth) { issues.push({ nodeId: node.id, field: 'children', message: `Document exceeds maximum depth ${maxDepth}.` }); return }
     if (!node.id || ids.has(node.id)) issues.push({ nodeId: node.id, field: 'id', message: 'Node id is missing or duplicated.' })
     ids.add(node.id)
     nodesById.set(node.id, node)
-    placementById.set(node.id, { parentId, index })
     if (!isElementAllowed(node.type, config)) issues.push({ nodeId: node.id, field: 'type', message: `Element "${node.type}" is not allowed.` })
     if (node.type !== 'page') {
       const element = node as ElementNode
@@ -174,115 +172,11 @@ export function validatePageDocument(schema: PageNode, config?: PageConfig): Pag
       }
       }
     }
-    if ('children' in node && Array.isArray(node.children)) node.children.forEach((child, childIndex) => walk(child, depth + 1, node.id, childIndex))
+    if ('children' in node && Array.isArray(node.children)) node.children.forEach((child) => walk(child, depth + 1))
   }
   walk(schema, 0)
   if (count > maxNodes) issues.push({ field: 'document', message: `Document exceeds maximum node count ${maxNodes}.` })
 
-  for (const required of config?.requiredNodes ?? []) {
-    const node = nodesById.get(required.id)
-    if (!node || node.type !== required.type) {
-      issues.push({ nodeId: required.id, field: 'requiredNodes', message: `Required ${required.type} node "${required.id}" is missing.` })
-      continue
-    }
-    const styles = [node.style, ...Object.values(node.responsive ?? {})].filter(Boolean)
-    if (required.lockVisibility && (styles.some((style) => style?.hidden) || (node as ElementNode).visibleWhen)) issues.push({ nodeId: node.id, field: 'visibility', message: 'Required node visibility is locked.' })
-    if (required.lockStyle && styles.some((style) => Object.keys(style ?? {}).some((key) => (LOCKED_STYLE_KEYS as readonly string[]).includes(key)))) {
-      issues.push({ nodeId: node.id, field: 'style', message: 'Required node security styling is locked.' })
-    }
-    const placement = placementById.get(node.id)
-    if (required.parentId && placement?.parentId !== required.parentId) issues.push({ nodeId: node.id, field: 'position', message: `Required node must remain inside "${required.parentId}".` })
-    if (required.maxIndex !== undefined && (placement?.index ?? Number.POSITIVE_INFINITY) > required.maxIndex) issues.push({ nodeId: node.id, field: 'position', message: `Required node must remain within the first ${required.maxIndex + 1} children.` })
-  }
   return { valid: issues.length === 0, issues }
 }
 
-/**
- * Style keys `lockStyle` protects — the ones that can make a node effectively
- * invisible without removing it.
- */
-export const LOCKED_STYLE_KEYS = ['hidden', 'foreground', 'fontSize', 'fontWeight', 'surface'] as const
-
-/** `lockVisibility` guards only the switch, not the whole security styling. */
-const VISIBILITY_LOCK_KEYS = ['hidden'] as const
-
-function withoutKeys(
-  style: Partial<NodeStyle> | undefined,
-  keys: readonly (keyof NodeStyle)[],
-): Partial<NodeStyle> | undefined {
-  if (!style) return style
-  const present = keys.filter((key) => style[key] !== undefined)
-  if (present.length === 0) return style
-  const next = { ...style }
-  for (const key of present) delete next[key]
-  return Object.keys(next).length > 0 ? next : undefined
-}
-
-/**
- * Re-apply the `requiredNodes` locks AFTER Element Code has patched the tree.
- *
- * `validatePageDocument` judges the persisted document, but Element Code hands
- * back `style`, `responsive` and `visibleWhen` afterwards — so a legal notice
- * the host locked as always-visible could still be hidden at runtime by code
- * that passed the publication gate. The gate guarantees the document itself
- * carries none of the locked keys, so enforcing here means dropping exactly
- * what code added.
- *
- * Targeted on purpose: only the locked aspects of the locked nodes revert.
- * A lock protects one node — it must not switch off the whole page. Returns
- * the input unchanged (identity-preserving) when there is nothing to strip.
- */
-export function enforceRequiredNodeLocks(schema: PageNode, config?: PageConfig): PageNode {
-  const locks = new Map<string, readonly (keyof NodeStyle)[]>()
-  const locksVisibility = new Set<string>()
-  for (const required of config?.requiredNodes ?? []) {
-    if (!required.lockVisibility && !required.lockStyle) continue
-    locks.set(required.id, required.lockStyle ? LOCKED_STYLE_KEYS : VISIBILITY_LOCK_KEYS)
-    if (required.lockVisibility) locksVisibility.add(required.id)
-  }
-  if (locks.size === 0) return schema
-
-  const walk = (node: PageNode): PageNode => {
-    const children = 'children' in node && Array.isArray(node.children)
-      ? node.children.map(walk)
-      : undefined
-    const childrenChanged = !!children
-      && children.some((child, index) => child !== (node as { children: PageNode[] }).children[index])
-
-    const keys = locks.get(node.id)
-    if (!keys) return childrenChanged ? { ...node, children } as PageNode : node
-
-    const patch: Record<string, unknown> = {}
-    let touched = false
-
-    const style = withoutKeys(node.style, keys)
-    if (style !== node.style) {
-      patch.style = style
-      touched = true
-    }
-
-    if (node.responsive) {
-      const responsive: Record<string, Partial<NodeStyle>> = {}
-      let responsiveTouched = false
-      for (const [breakpoint, layer] of Object.entries(node.responsive)) {
-        const stripped = withoutKeys(layer, keys)
-        if (stripped !== layer) responsiveTouched = true
-        if (stripped) responsive[breakpoint] = stripped
-      }
-      if (responsiveTouched) {
-        patch.responsive = Object.keys(responsive).length > 0 ? responsive : undefined
-        touched = true
-      }
-    }
-
-    if (locksVisibility.has(node.id) && (node as ElementNode).visibleWhen !== undefined) {
-      patch.visibleWhen = undefined
-      touched = true
-    }
-
-    if (!touched && !childrenChanged) return node
-    return { ...node, ...patch, ...(children ? { children } : {}) } as PageNode
-  }
-
-  return walk(schema)
-}

@@ -711,16 +711,6 @@ export interface PageConfig {
   /** Locales offered by the builder for LocalizedValue props. */
   locales?: { id: string; label: string }[]
   defaultLocale?: string
-  /** Nodes the host requires for security or flow completeness. */
-  requiredNodes?: {
-    id: string
-    type: string
-    lockVisibility?: boolean
-    lockStyle?: boolean
-    /** Optional generic placement invariant for high-priority content. */
-    parentId?: string
-    maxIndex?: number
-  }[]
   documentLimits?: {
     maxNodes?: number
     maxDepth?: number

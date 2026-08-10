@@ -219,13 +219,7 @@ export {
   translationKeyFor,
 } from './translations';
 
-export {
-  validatePageDocument,
-  enforceRequiredNodeLocks,
-  LOCKED_STYLE_KEYS,
-  type PageDocumentIssue,
-  type PageDocumentValidationResult,
-} from './documentValidation';
+export { validatePageDocument, type PageDocumentIssue, type PageDocumentValidationResult } from './documentValidation';
 
 /**
  * The builder's authoring findings — the same list `<CoarPageBuilder>` draws

@@ -238,9 +238,6 @@ export function createAuthPageConfig(slot: AuthPageSlot, locale: AuthPageLocale)
       .map((id) => ({ id, label: id })),
     locales: [{ id: 'de', label: 'Deutsch' }, { id: 'en', label: 'English' }],
     defaultLocale: 'en',
-    requiredNodes: slot === 'consent'
-      ? [{ id: 'unverified-client-warning', type: 'note', lockStyle: true, parentId: 'consent-card', maxIndex: 4 }]
-      : [],
     documentLimits: { maxNodes: 500, maxDepth: 30 },
     // Demonstrates host-defined sizes: the extra wide entry is authoring-only,
     // the cascade still resolves it through the built-in desktop breakpoint.

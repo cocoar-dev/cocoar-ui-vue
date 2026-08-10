@@ -294,7 +294,6 @@ const pageConfig = computed(() => ({
 const compositionPageConfig = computed(() => ({
   ...createAuthLabConfig('login', locale.value),
   fields: undefined,
-  requiredNodes: undefined,
   allowCustomFields: true,
   visualMarkup: AMZETTEL_VISUAL_CONFIG,
 }));

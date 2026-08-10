@@ -25,7 +25,7 @@ import PageNode_ from './PageNode.vue';
 import { resolveNodeStyle } from './responsive';
 import { evaluateCondition } from './conditions';
 import { readAllowedContext, resolveExpressionStyle, resolveNodeRuntime, resolveRuntimeBinding, safeReadPath } from './runtimeBindings';
-import { enforceRequiredNodeLocks, validatePageDocument } from './documentValidation';
+import { validatePageDocument } from './documentValidation';
 import { applyPageCodeValues, type PageCodeRuntimeValues } from './pageCode';
 import { actionValuesFromProps, mergeActionValues } from './actionValues';
 
@@ -142,18 +142,7 @@ const baseRenderSchema = computed(
       migrateLegacyPasswordInput(migrateV1PropsBag(migrateLegacyTypes(sourceSchema.value))),
     ) as PageNode,
 );
-// `validatePageDocument` above judged the DOCUMENT. Element Code patches style,
-// responsive and visibleWhen afterwards, so the `requiredNodes` locks have to be
-// re-applied to the computed result — otherwise code that passed the publication
-// gate could still hide a node the host locked as always-visible.
-const codeSchema = computed(() => applyPageCodeValues(baseRenderSchema.value, props.pageCodeValues));
-const renderSchema = computed(() => enforceRequiredNodeLocks(codeSchema.value, props.config));
-let warnedLockOverride = false;
-watch([codeSchema, renderSchema], ([computedSchema, enforced]) => {
-  if (computedSchema === enforced || warnedLockOverride) return;
-  warnedLockOverride = true;
-  console.warn('[CoarPageRenderer] Element Code changed a locked required node — the lock was re-applied.');
-}, { immediate: true });
+const renderSchema = computed(() => applyPageCodeValues(baseRenderSchema.value, props.pageCodeValues));
 const pageTranslations = computed(() => renderSchema.value.type === 'page'
   ? (renderSchema.value as PageRootNode).translations
   : undefined);

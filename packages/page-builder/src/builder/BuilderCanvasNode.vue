@@ -190,7 +190,7 @@ function onNodeKeydown(e: KeyboardEvent) {
 // ── Drag source (tab handle) ─────────────────────────────────────────────────
 
 function onTabPointerDown(e: PointerEvent) {
-  if (isRoot.value || builder.isPositionLocked(props.path)) return;
+  if (isRoot.value) return;
   const ghostFrom = (e.currentTarget as HTMLElement | null)?.closest<HTMLElement>('.canvas-node');
   dnd.onHandlePointerDown(e, { kind: 'move', path: [...props.path] }, ghostFrom);
 }
@@ -232,7 +232,7 @@ function zoneClasses(index: number): Record<string, boolean> {
     <!-- Type tab (drag handle) -->
     <span
       class="canvas-node__tab"
-      :class="{ 'canvas-node__tab--grabbable': !isRoot && !builder.isPositionLocked(path) }"
+      :class="{ 'canvas-node__tab--grabbable': !isRoot }"
       :title="typeLabel"
       @pointerdown="onTabPointerDown"
     >
@@ -260,7 +260,7 @@ function zoneClasses(index: number): Record<string, boolean> {
       <CoarIcon name="copy" size="xs" />
     </button>
     <button
-      v-if="!isRoot && !builder.isRequired(path)"
+      v-if="!isRoot"
       type="button"
       class="canvas-node__delete"
       :title="t('coar.pageBuilder.common.delete', undefined, 'Delete')"

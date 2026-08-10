@@ -197,21 +197,8 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
     bumpVersion();
   }
 
-  function requiredRule(path: NodePath) {
-    const node = getNodeAt(schema.value, path)?.node;
-    return node && options.config?.value?.requiredNodes?.find(
-      (required) => required.id === node.id && required.type === node.type,
-    );
-  }
-  function isRequired(path: NodePath): boolean { return !!requiredRule(path); }
-  function isPositionLocked(path: NodePath): boolean {
-    const rule = requiredRule(path);
-    return !!rule && (rule.parentId !== undefined || rule.maxIndex !== undefined);
-  }
-
   function remove(path: NodePath) {
     if (path.length === 0) return;
-    if (isRequired(path)) { warnDev('remove: required node cannot be removed.'); return; }
     const before = schema.value;
     const next = removeNode(schema.value, path);
     schema.value = next;
@@ -230,7 +217,6 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
   }
 
   function move(path: NodePath, delta: -1 | 1) {
-    if (isPositionLocked(path)) { warnDev('move: required node position is locked.'); return; }
     const before = schema.value;
     const next = moveSibling(before, path, delta);
     if (before === next) return;
@@ -242,7 +228,6 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
   }
 
   function moveTo(fromPath: NodePath, toParentPath: NodePath, toIndex: number) {
-    if (isPositionLocked(fromPath)) { warnDev('moveTo: required node position is locked.'); return; }
     const before = schema.value;
     const next = moveNode(before, fromPath, toParentPath, toIndex);
     if (before === next) return;
@@ -263,7 +248,6 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
    */
   function convertTo(path: NodePath, toType: string) {
     if (path.length === 0) return;
-    if (isRequired(path)) { warnDev('convertTo: required node type is locked.'); return; }
     const loc = getNodeAt(schema.value, path);
     if (!loc || loc.node.type === toType) return;
     const def = (options.elements?.value ?? BUILTIN_ELEMENTS)[toType];
@@ -357,8 +341,6 @@ export function usePageBuilder(options: UsePageBuilderOptions = {}) {
     convertTo,
     remove,
     duplicate,
-    isRequired,
-    isPositionLocked,
     move,
     moveTo,
     patch,

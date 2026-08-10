@@ -488,7 +488,7 @@ export function useSchemaValidation(
     // Runtime activation uses the same contract. Surface any remaining hard
     // failures (required nodes, limits, locked security presentation) while authoring.
     for (const issue of validatePageDocument(schema.value, config.value).issues) {
-      if (!['requiredNodes', 'visibility', 'style', 'position', 'document'].includes(issue.field)) continue;
+      if (issue.field !== 'document') continue;
       const nodeId = issue.nodeId ?? schema.value.id;
       if (out.some((existing) => existing.nodeId === nodeId && existing.field === issue.field && existing.message === issue.message)) continue;
       out.push({ nodeId, field: issue.field, severity: 'error', message: issue.message });

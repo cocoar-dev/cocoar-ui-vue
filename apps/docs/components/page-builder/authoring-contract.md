@@ -76,20 +76,6 @@ describes the page. Static `style` values left over from earlier authoring can
 disagree with the code that overrides them, and the code wins. Read a document
 through the runtime, not by eye.
 
-### Locks are re-applied after the code
-
-`validatePageDocument` judges the document, and Element Code patches `style`,
-`responsive` and `visibleWhen` afterwards — so `config.requiredNodes` locks are
-enforced a second time, on the computed result, by `enforceRequiredNodeLocks()`.
-Without that, a host that locked a legal notice as always-visible would watch
-code hide it anyway, after the publication gate had passed.
-
-The re-check is targeted: only the locked aspects of the locked nodes revert,
-and the renderer warns once. A lock protects its node — it does not switch off
-the page. `<CoarPageRenderer>` applies it for you; a host that computes a
-document elsewhere (server-side rendering, a preview service) has to call it
-itself.
-
 ## Node grammar
 
 ### Every node

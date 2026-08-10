@@ -134,15 +134,6 @@ interface PageConfig {
   locales?: { id: string; label: string }[]
   defaultLocale?: string
 
-  /** Generic document invariants enforced by builder and fallback validation. */
-  requiredNodes?: {
-    id: string
-    type: string
-    lockVisibility?: boolean
-    lockStyle?: boolean
-    parentId?: string
-    maxIndex?: number
-  }[]
   documentLimits?: { maxNodes?: number; maxDepth?: number }
 
   /** Non-persisted named samples for context/state/locale preview testing. */
