@@ -42,6 +42,19 @@ function commit() {
   draft.value = String(Math.round(Math.min(percentRange.value.max, Math.max(percentRange.value.min, parsed))));
 }
 
+/**
+ * Leaving edit mode first is what makes this work: the watcher below ignores
+ * incoming values while the field is being edited, so without it the draft
+ * would keep the pre-reset number and blur would write it straight back.
+ */
+function onReset() {
+  editing.value = false;
+  emit('reset');
+  // The watcher only fires on an actual change, so a draft typed while the
+  // level was already 100 would survive and be written back on blur.
+  draft.value = String(Math.round(props.zoom * 100));
+}
+
 function cancel(event: Event) {
   editing.value = false;
   draft.value = String(Math.round(props.zoom * 100));
@@ -73,7 +86,7 @@ function cancel(event: Event) {
         @blur="commit"
         @keydown.enter.prevent="($event.target as HTMLInputElement).blur()"
         @keydown.esc.prevent="cancel"
-        @dblclick="emit('reset')"
+        @dblclick="onReset"
       >
       <span class="pb-zoom__suffix" aria-hidden="true">%</span>
     </span>
