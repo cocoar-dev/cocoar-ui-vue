@@ -16,6 +16,7 @@ import type { NodePath } from './operations';
 import { useMergedElements } from '../elements/useMergedElements';
 import { compatibleFields, compatibleElementTypes } from '../elements/fieldContract';
 import { isElementAllowed } from '../schema';
+import { resolveNodeStyle } from '../responsive';
 import StyleProps from './props/StyleProps.vue';
 import ActionPropsEditor from './props/ActionPropsEditor.vue';
 import { isExpressionBinding } from '../runtimeBindings';
@@ -128,6 +129,54 @@ function patchStyle(update: Partial<NodeStyle>) {
   patch({ responsive: Object.keys(responsive).length ? responsive : undefined } as Partial<PageNode>);
 }
 
+/**
+ * Style values cascade mobile-first, so the BASE value is not what the canvas
+ * shows once an override exists: a node hidden on Compact and revealed on
+ * Desktop read as "hidden" while sitting plainly visible in front of the
+ * author. Resolve against the breakpoint being authored — the same function
+ * the canvas and the renderer use — so the field agrees with the canvas.
+ */
+function documentStyleValue(key: keyof NodeStyle): unknown {
+  const current: Pick<PageNode, 'style' | 'responsive'> | null = pageNode.value ?? elementNode.value;
+  return current ? resolveNodeStyle(current, activeBreakpoint.value)[key] : undefined;
+}
+
+/**
+ * True when the value on screen comes from a breakpoint override rather than
+ * the base. Editing the field writes ONE assignment that applies everywhere,
+ * so the author has to know the difference is there before flattening it.
+ */
+function isBreakpointInherited(path: string): boolean {
+  if (!path.startsWith('style.')) return false;
+  // An explicit assignment wins over the document at every breakpoint alike.
+  if (Object.prototype.hasOwnProperty.call(quickPropertyValues.value, path)) return false;
+  const current: Pick<PageNode, 'style' | 'responsive'> | null = pageNode.value ?? elementNode.value;
+  if (!current) return false;
+  const key = path.slice('style.'.length) as keyof NodeStyle;
+  return resolveNodeStyle(current, activeBreakpoint.value)[key] !== (current.style ?? {})[key];
+}
+
+const BREAKPOINT_LABELS: Readonly<Record<PageBreakpoint, string>> = {
+  compact: 'Compact',
+  phone: 'Phone',
+  tablet: 'Tablet',
+  desktop: 'Desktop',
+};
+const OVERRIDE_CASCADE = ['phone', 'tablet', 'desktop'] as const;
+
+/** Which override the displayed value came from — the last one that wins. */
+function breakpointSourceLabel(path: string): string {
+  const current: Pick<PageNode, 'style' | 'responsive'> | null = pageNode.value ?? elementNode.value;
+  if (!current) return '';
+  const key = path.slice('style.'.length) as keyof NodeStyle;
+  let source: PageBreakpoint | undefined;
+  for (const breakpoint of OVERRIDE_CASCADE) {
+    if (current.responsive?.[breakpoint]?.[key] !== undefined) source = breakpoint;
+    if (breakpoint === activeBreakpoint.value) break;
+  }
+  return source ? BREAKPOINT_LABELS[source] : '';
+}
+
 function quickPropertyRawValue(property: PageElementQuickProperty): unknown {
   const authored = quickPropertyValues.value;
   if (Object.prototype.hasOwnProperty.call(authored, property.path)) return authored[property.path];
@@ -135,12 +184,12 @@ function quickPropertyRawValue(property: PageElementQuickProperty): unknown {
   // No assignment yet: show the value the document already carries, so the
   // field reflects what the canvas renders instead of looking unset.
   if (pageNode.value) {
-    return root === 'style' ? pageNode.value.style?.[key as keyof NodeStyle] : undefined;
+    return root === 'style' ? documentStyleValue(key as keyof NodeStyle) : undefined;
   }
   const current = elementNode.value;
   if (!current) return undefined;
   if (root === 'props') return current.props[key];
-  if (root === 'style') return current.style?.[key as keyof NodeStyle];
+  if (root === 'style') return documentStyleValue(key as keyof NodeStyle);
   if (root === 'validation') return current.validation?.[key as keyof FieldValidation];
   return undefined;
 }
@@ -268,9 +317,7 @@ function readStylePath(path: string): string {
     const value = authored[path];
     return value === undefined || value === null ? '' : String(value);
   }
-  const key = path.slice('style.'.length) as keyof NodeStyle;
-  const current = pageNode.value ? pageNode.value.style : elementNode.value?.style;
-  const value = current?.[key];
+  const value = documentStyleValue(path.slice('style.'.length) as keyof NodeStyle);
   return value === undefined || value === null ? '' : String(value);
 }
 
@@ -1010,6 +1057,13 @@ v-if="customNameActive && customNameSupportsLabel"
                   @update:model-value="(v) => updateQuickProperty(property, v)"
                 />
               </CoarFormField>
+              <!-- The value on screen came from an override, not the base. One
+                   edit here replaces both, so say where it came from. -->
+              <span
+                v-if="isBreakpointInherited(property.path)"
+                class="pb-props__quick-from"
+                :title="`From the ${breakpointSourceLabel(property.path)} override. Editing writes one value for every breakpoint.`"
+              >{{ breakpointSourceLabel(property.path) }}</span>
               <button
                 v-if="property.valueKind === 'localized-text' && quickTranslationBinding(property)"
                 type="button"
@@ -1391,6 +1445,18 @@ v-else
 .pb-props__quick-control {
   flex: 1;
   min-width: 0;
+}
+
+.pb-props__quick-from {
+  flex: none;
+  align-self: center;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: var(--coar-background-neutral-secondary, #f2f2f4);
+  color: var(--coar-text-neutral-tertiary, #8a8a90);
+  font-size: 10px;
+  white-space: nowrap;
+  cursor: help;
 }
 
 .pb-props__quick-reset {
