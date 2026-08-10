@@ -359,3 +359,71 @@ describe('CoarPageBuilder — validation emit', () => {
     expect(emittedIssues(wrapper).at(-1)![0][0].message).not.toBe('tampered');
   });
 });
+
+/**
+ * `defaultValue` is what the author wrote; `initialValues` is what the host
+ * computed — a per-tenant setting, a record loaded for editing. The runtime
+ * merges the second over the first, and the preview has to show the same thing
+ * or it is showing a page that never exists.
+ */
+describe('CoarPageBuilder — preview initial values', () => {
+  function mountWithValues(initialValues?: Record<string, unknown>) {
+    const Host = defineComponent({
+      components: { CoarPageBuilder },
+      setup() {
+        const schema = ref<PageNode | undefined>({
+          id: 'r',
+          type: 'page',
+          children: [
+            { id: 'u', type: 'text-input', name: 'username', props: { label: 'User' }, defaultValue: 'authored' },
+            { id: 'r2', type: 'checkbox', name: 'rememberMe', props: { label: 'Remember me' }, defaultValue: false },
+          ],
+        } as unknown as PageNode);
+        // A plain setup return is not reactive — the swap test needs a ref.
+        return { schema, initialValues: ref(initialValues) };
+      },
+      template: '<div style="height: 600px"><CoarPageBuilder v-model="schema" :preview-initial-values="initialValues" /></div>',
+    });
+    return mount(Host);
+  }
+
+  async function openPreview(wrapper: ReturnType<typeof mountWithValues>) {
+    const tab = wrapper.findAll('button').find((button) => button.text().trim() === 'Preview');
+    await tab!.trigger('click');
+    await nextTick();
+    await nextTick();
+    // Scoped to the rendered page: the preview toolbar carries its own text
+    // input (the zoom percentage), which an unscoped lookup finds first.
+    const page = wrapper.find('.pb-builder__preview-pane .pb-page');
+    return {
+      text: (page.find('input[type="text"]').element as HTMLInputElement | undefined)?.value,
+      checked: (page.find('input[type="checkbox"]').element as HTMLInputElement | undefined)?.checked,
+    };
+  }
+
+  it('starts the preview from the authored defaults when the host supplies none', async () => {
+    const wrapper = mountWithValues();
+    await nextTick();
+    expect(await openPreview(wrapper)).toEqual({ text: 'authored', checked: false });
+  });
+
+  it('lets host values win, the same way the runtime resolves them', async () => {
+    const wrapper = mountWithValues({ username: 'from-backend', rememberMe: true });
+    await nextTick();
+    expect(await openPreview(wrapper)).toEqual({ text: 'from-backend', checked: true });
+  });
+
+  it('re-seeds the preview when the host swaps the values', async () => {
+    const wrapper = mountWithValues({ username: 'first', rememberMe: false });
+    await nextTick();
+    expect((await openPreview(wrapper)).text).toBe('first');
+
+    wrapper.vm.initialValues = { username: 'second', rememberMe: true };
+    await nextTick();
+    await nextTick();
+
+    const page = wrapper.find('.pb-builder__preview-pane .pb-page');
+    expect((page.find('input[type="text"]').element as HTMLInputElement).value).toBe('second');
+    expect((page.find('input[type="checkbox"]').element as HTMLInputElement).checked).toBe(true);
+  });
+});

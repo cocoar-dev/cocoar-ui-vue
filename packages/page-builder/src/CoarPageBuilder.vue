@@ -95,6 +95,14 @@ const props = defineProps<{
   config?: PageConfig
   /** Safe sample context used only by the embedded preview; never persisted. */
   previewContext?: Record<string, unknown>
+  /**
+   * Field values the embedded preview starts from, merged OVER the schema's
+   * own `defaultValue`s exactly as at runtime. This is the edit-form case —
+   * and the case where the host computes a default the author did not write,
+   * such as a per-tenant "remember me" setting. Without it the preview can
+   * only ever show an empty form.
+   */
+  previewInitialValues?: ActionValues
   previewLocale?: string
   /** Host-owned theme applied only to the embedded renderer canvas. */
   previewTheme?: CoarTheme
@@ -789,6 +797,7 @@ function applyJson() {
                       :config="config"
                       :viewport-width="previewViewportWidth"
                       :runtime-context="effectivePreviewContext"
+                      :initial-values="previewInitialValues"
                       :locale="effectivePreviewLocale"
                       :actions="previewActions"
                       :fallback-schema="previewFallbackSchema"

@@ -81,6 +81,14 @@ const consentClientName = ref('Northwind Analytics');
 const consentClientHostname = ref('analytics.northwind.example');
 const dynamicConsentClient = ref(true);
 const rendererResult = ref('');
+// The realm-setting case: "remember me" defaults per tenant, so the value the
+// form starts from is computed by the host, not written by the page author.
+const rememberMeDefault = ref(false);
+const knownUsername = ref('');
+const previewInitialValues = computed(() => ({
+  rememberMe: rememberMeDefault.value,
+  ...(knownUsername.value ? { username: knownUsername.value } : {}),
+}));
 const stateOverride = ref('');
 
 const providers = computed<AuthLabProvider[]>(() =>
@@ -875,6 +883,16 @@ const requirements = [
           Edit structure, Quick Properties, Page State and per-element code. The preview executes
           the same browser runtime as the standalone renderer.
         </p>
+        <div class="builder-host-values">
+          <label>
+            <input v-model="rememberMeDefault" type="checkbox" />
+            Realm default: remember me
+          </label>
+          <label>
+            Known username
+            <input v-model="knownUsername" type="text" placeholder="(empty)" />
+          </label>
+        </div>
         <CoarButton variant="secondary" @click="resetCurrentSchema"
           >Reset {{ slot }} / {{ locale.toUpperCase() }}</CoarButton
         >
@@ -899,6 +917,7 @@ const requirements = [
         authoring-mode="code"
         @validation="builderIssues = $event"
         :preview-context="runtimeContext"
+        :preview-initial-values="previewInitialValues"
         :preview-locale="locale" :preview-actions="rendererActions"
         :preview-fallback-schema="fallbackSchema"
         :composition-repository="compositionRepository"
@@ -1432,6 +1451,24 @@ const requirements = [
   margin: 0;
   color: var(--coar-text-neutral-secondary, #5f6470);
 }
+.builder-host-values {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.8125rem;
+  color: var(--coar-text-neutral-secondary, #5f6470);
+}
+
+.builder-host-values label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.builder-host-values input[type='text'] {
+  width: 9rem;
+}
+
 .builder-validation {
   display: flex;
   flex-wrap: wrap;
