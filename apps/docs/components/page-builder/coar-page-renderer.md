@@ -23,7 +23,6 @@ Import `@cocoar/vue-page-builder/styles` once in your app — the renderer's lay
 | `assetResolver` | `(id: string) => string` | Resolves an `assetId` to a URL at render time. Falls back to `config.assetResolver` when not set. Needed when the schema contains `image` nodes. |
 | `initialValues` | `ActionValues` | Host-supplied field values for edit-form scenarios, merged **over** the schema's `defaultValue`s on init. Only keys that match a **named** input in the (allowed) tree are taken — stray host data never leaks into the action payload. Replacing the object with **different values** re-initializes the form, like a schema change; a value-identical replacement (e.g. an inline object literal re-created by a parent re-render — nested objects/arrays compare by content) is ignored, so in-progress user input survives. |
 | `runtimeContext` | `Record<string, unknown>` | Host-owned runtime data. The document can only read paths explicitly declared by `config.contextFields`; undeclared paths resolve to the binding fallback. |
-| `viewState` | `string` | Host-controlled state ID used by conditions and Page/Element Code. The builder offers IDs from `config.availableStates`. Customer-authored `source: 'state'` property bindings read Page State instead. |
 | `locale` | `string` | Active locale used to resolve page translation keys, legacy `LocalizedValue` props and localized templates. Regional locales fall back to their base locale and then `config.defaultLocale`. |
 | `viewportWidth` | `number` | Optional deterministic container width. Runtime normally measures its container; previews and tests can provide an exact width. |
 | `fallbackSchema` | `PageNode` | Host-owned safe document rendered when the customized document fails allow-list, required-node, placement or document-limit validation. `usingFallback` is exposed on the component ref. |
@@ -243,7 +242,7 @@ New page documents keep customer-owned messages once on the page root and refere
 
 Element Code creates the same value through `i18n.text(key, params?, fallback?)`. Resolution is page catalogue → host `@cocoar/vue-localization` catalogue → fallback → key. `LocalizedValue` is retained as a compatibility format for existing schemas.
 
-`visibleWhen` uses the same field/context/state/item sources with `equals`, `notEquals`, `in`, `notIn`, `exists`, `isEmpty` and `isNotEmpty`. Conditions can be combined with bounded `all`/`any` groups. Hidden subtrees do not render, validate or contribute values/action payloads.
+`visibleWhen` uses the same field/context/item sources with `equals`, `notEquals`, `in`, `notIn`, `exists`, `isEmpty` and `isNotEmpty`. Conditions can be combined with bounded `all`/`any` groups. Hidden subtrees do not render, validate or contribute values/action payloads.
 
 ### Generic repeaters and selections
 

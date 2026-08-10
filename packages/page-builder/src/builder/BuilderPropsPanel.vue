@@ -670,7 +670,6 @@ const visibilitySourceOptions = computed<CoarSelectOption<string>[]>(() => [
   { value: '', label: 'Always visible' },
   { value: 'field', label: 'Form field' },
   { value: 'context', label: 'Host context' },
-  { value: 'state', label: 'View state' },
   ...(nearestRepeat.value ? [{ value: 'item', label: `Repeat item (${nearestRepeat.value.props.itemAlias ?? 'item'})` }] : []),
 ]);
 const conditionOperatorOptions = computed<CoarSelectOption<string>[]>(() => [
@@ -680,9 +679,17 @@ const conditionOperatorOptions = computed<CoarSelectOption<string>[]>(() => [
   { value: 'isEmpty', label: 'is empty' },
   { value: 'isNotEmpty', label: 'is not empty' },
 ]);
-const stateOptions = computed<CoarSelectOption<string>[]>(() =>
-  (config?.value?.availableStates ?? []).map((state) => ({ value: state.id, label: state.label })),
-);
+/**
+ * A context field that declares a closed `values` set is authored with a
+ * dropdown instead of a free-text box — the reason the separate view-state
+ * mechanism is not needed.
+ */
+const conditionValueChoices = computed<CoarSelectOption<string>[] | null>(() => {
+  if (visibilitySource.value !== 'context') return null;
+  const field = config?.value?.contextFields?.find((entry) => entry.path === visibleWhen.value?.path);
+  if (!field?.values?.length) return null;
+  return field.values.map((value) => ({ value, label: value }));
+});
 
 function setVisibilitySource(source: string | null) {
   if (!source) { patch({ visibleWhen: undefined } as Partial<PageNode>); return; }
@@ -695,11 +702,7 @@ function setVisibilitySource(source: string | null) {
     patch({ visibleWhen: { source: 'context', path: contextPathOptions.value[0]?.value ?? '', operator: 'exists' } } as Partial<PageNode>);
     return;
   }
-  if (source === 'item') {
-    patch({ visibleWhen: { source: 'item', path: itemPathOptions.value[0]?.value ?? '', operator: 'exists' } } as Partial<PageNode>);
-    return;
-  }
-  patch({ visibleWhen: { source: 'state', operator: 'equals', value: stateOptions.value[0]?.value ?? '' } } as Partial<PageNode>);
+  patch({ visibleWhen: { source: 'item', path: itemPathOptions.value[0]?.value ?? '', operator: 'exists' } } as Partial<PageNode>);
 }
 
 function patchExtendedCondition(update: Partial<VisibleWhen>) {
@@ -1297,13 +1300,17 @@ size="xs"
           <CoarFormField layout="inline" label="Operator">
             <CoarSelect size="xs" :model-value="visibleWhen?.operator ?? 'equals'" :options="conditionOperatorOptions" @update:model-value="(v) => patchExtendedCondition({ operator: v as VisibleWhen['operator'] })" />
           </CoarFormField>
-          <CoarFormField v-if="visibleWhen?.operator === 'equals' || visibleWhen?.operator === 'notEquals'" layout="inline" label="Value (JSON primitive)">
-            <CoarTextInput size="xs" :model-value="String(visibleWhen?.value ?? '')" @update:model-value="(v) => patchExtendedCondition({ value: v })" />
+          <CoarFormField v-if="visibleWhen?.operator === 'equals' || visibleWhen?.operator === 'notEquals'" layout="inline" label="Value">
+            <CoarSelect
+              v-if="conditionValueChoices"
+              size="xs"
+              :model-value="String(visibleWhen?.value ?? '')"
+              :options="conditionValueChoices"
+              @update:model-value="(v) => patchExtendedCondition({ value: v })"
+            />
+            <CoarTextInput v-else size="xs" :model-value="String(visibleWhen?.value ?? '')" @update:model-value="(v) => patchExtendedCondition({ value: v })" />
           </CoarFormField>
         </template>
-        <CoarFormField v-else-if="visibilitySource === 'state'" layout="inline" label="View state">
-          <CoarSelect size="xs" :model-value="String(visibleWhen?.value ?? '')" :options="stateOptions" @update:model-value="(v) => patchExtendedCondition({ value: v })" />
-        </CoarFormField>
         <p v-if="visibilitySource === 'field' && hasInCondition" class="pb-props__hint">
           {{ t('coar.pageBuilder.props.visibleWhenIn', undefined, 'Multi-value condition (in) — edit it in the JSON tab.') }}
         </p>

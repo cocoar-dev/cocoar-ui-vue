@@ -153,7 +153,6 @@ type PageComputeContext<S extends Record<string, unknown>> = PageCapabilities & 
   readonly context: Readonly<PageContext>;
   readonly resources: Readonly<PageResources>;
   readonly viewport: Readonly<PageViewport>;
-  readonly viewState?: string;
   readonly locale?: string;
 };
 type PageActionContext<S extends Record<string, unknown>> = PageCapabilities & {
@@ -163,7 +162,6 @@ type PageActionContext<S extends Record<string, unknown>> = PageCapabilities & {
   readonly context: Readonly<PageContext>;
   readonly resources: Readonly<PageResources>;
   readonly viewport: Readonly<PageViewport>;
-  readonly viewState?: string;
   readonly locale?: string;
 };
 interface PageAction {
@@ -218,7 +216,6 @@ type PageRootRuntime<S extends Record<string, unknown>> = PageCapabilities & {
   readonly context: Readonly<PageContext>;
   readonly resources: Readonly<PageResources>;
   readonly viewport: Readonly<PageViewport>;
-  readonly viewState?: string;
   readonly locale?: string;
 };
 interface PageRootDefinition<S extends Record<string, unknown>> {

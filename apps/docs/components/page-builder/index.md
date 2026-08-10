@@ -128,22 +128,21 @@ interface PageConfig {
 
   /** Allow-listed host context for property bindings, conditions and repeaters. */
   contextFields?: PageContextField[]
+  // interface PageContextField {
+  //   path: string
+  //   type: PageContextValueType
+  //   itemFields?: PageContextItemField[]
+  //   /** Closed set of values — the condition editor offers them as a dropdown
+  //    *  instead of a free-text box. This is how a host view state, tier or
+  //    *  status becomes authorable without a second mechanism for it. */
+  //   values?: string[]
+  // }
 
-  /** Host states and locales available to authors and the preview toolbar. */
-  availableStates?: { id: string; label: string }[]
+  /** Locales offered by the builder for LocalizedValue props. */
   locales?: { id: string; label: string }[]
   defaultLocale?: string
 
   documentLimits?: { maxNodes?: number; maxDepth?: number }
-
-  /** Non-persisted named samples for context/state/locale preview testing. */
-  previewFixtures?: {
-    id: string
-    label: string
-    context: Record<string, unknown>
-    state?: string
-    locale?: string
-  }[]
 
   /**
    * Allow binding names outside `fields`. Defaults to false — with a

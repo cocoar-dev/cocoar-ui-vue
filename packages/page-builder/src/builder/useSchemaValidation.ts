@@ -357,9 +357,6 @@ export function useSchemaValidation(
           if (condition.source === 'context' && !config.value?.contextFields?.some((field) => field.path === condition.path)) {
             out.push({ nodeId: n.id, field: 'visibleWhen', severity: 'error', message: `visibleWhen references unknown context path "${String(condition.path ?? '')}".` });
           }
-          if (condition.source === 'state' && condition.operator === 'equals' && !config.value?.availableStates?.some((state) => state.id === condition.value)) {
-            out.push({ nodeId: n.id, field: 'visibleWhen', severity: 'warning', message: `visibleWhen references unknown view state "${String(condition.value ?? '')}".` });
-          }
           if (condition.source === 'item' && !config.value?.contextFields?.some((field) => field.itemFields?.some((item) => item.path === condition.path))) {
             out.push({ nodeId: n.id, field: 'visibleWhen', severity: 'error', message: `visibleWhen references unknown repeat-item path "${String(condition.path ?? '')}".` });
           }

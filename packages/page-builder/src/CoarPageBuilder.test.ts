@@ -194,32 +194,21 @@ describe('CoarPageBuilder — v-model wiring', () => {
     expect(renamedActionNode.bindings?.['actionValues.locale']?.source).toBe('expression');
   });
 
-  it('does not advertise incomplete host values and selects a complete fixture', async () => {
+  // Preview inputs are the host's to supply. Without the ones its own config
+  // declares, the sandbox would run against invented data, so it stays off and
+  // says so rather than showing a page nobody can trust.
+  it('refuses to preview until the host supplies the inputs its config declares', async () => {
     const wrapper = mountWithConfig({
       contextFields: [{ path: 'auth.enabled', type: 'boolean' }],
-      availableStates: [{ id: 'ready', label: 'Ready' }],
       locales: [{ id: 'en', label: 'English' }],
-      previewFixtures: [{
-        id: 'complete',
-        label: 'Complete fixture',
-        context: { auth: { enabled: true } },
-        state: 'ready',
-        locale: 'en',
-        viewport: 'phone',
-      }],
     });
     await nextTick();
     const previewTab = wrapper.findAll('button').find((button) => button.text().trim() === 'Preview');
-    expect(previewTab).toBeDefined();
     await previewTab!.trigger('click');
     await nextTick();
 
-    // Scoped to the preview pane: the editor toolbar carries the same kind of
-    // control now, so an unscoped lookup would grab its language select.
-    const fixture = wrapper.find('.pb-builder__preview-pane .pb-builder__bar-control select');
-    expect(fixture.exists()).toBe(true);
-    expect(fixture.element.value).toBe('complete');
-    expect(fixture.findAll('option').map((option) => option.text())).not.toContain('Host values');
+    expect(wrapper.find('.pb-builder__preview-empty').exists()).toBe(true);
+    expect(wrapper.text()).toContain('Preview values are missing');
   });
 
   it('scopes previewTheme to the embedded renderer canvas', async () => {

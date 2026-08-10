@@ -32,7 +32,6 @@ export type {
   EmptyProps,
   OptionItem,
   PageRootNode,
-  PagePreviewFixture,
   PagePreviewViewport,
   StackNode,
   CardNode,

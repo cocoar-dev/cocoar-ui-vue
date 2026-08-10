@@ -19,6 +19,7 @@ import {
 } from '@cocoar/vue-page-builder';
 import {
   AUTH_PAGE_COPY as AUTH_LAB_COPY,
+  authViewStates,
   createAuthPageConfig as createAuthLabConfig,
   type AuthPageLocale as AuthLabLocale,
   type AuthPageSlot as AuthLabSlot,
@@ -787,7 +788,7 @@ const requirements = [
         View state
         <select v-model="stateOverride" aria-label="Host view state">
           <option value="">Automatic · {{ defaultViewState }}</option>
-          <option v-for="state in pageConfig.availableStates" :key="state.id" :value="state.id">{{ state.label }}</option>
+          <option v-for="state in authViewStates(slot)" :key="state" :value="state">{{ state }}</option>
         </select>
       </label>
       <span class="scenario-note"
@@ -848,7 +849,7 @@ const requirements = [
           <CoarPageRenderer
             :schema="runtimeSchema" :fallback-schema="fallbackSchema" :config="pageConfig"
             :actions="rendererActions" :runtime-context="runtimeContext"
-            :view-state="viewState" :locale="locale" :viewport-width="viewports[viewport].width"
+            :locale="locale" :viewport-width="viewports[viewport].width"
             :page-code-values="pageCodeValues" :on-action="runPageAction"
             @runtime-change="onRuntimeChange"
           />
@@ -861,7 +862,7 @@ const requirements = [
         <CoarPageRenderer
           :schema="runtimeSchema" :fallback-schema="fallbackSchema" :config="pageConfig"
           :actions="rendererActions" :runtime-context="runtimeContext"
-          :view-state="viewState" :locale="locale" :viewport-width="viewports[viewport].width"
+          :locale="locale" :viewport-width="viewports[viewport].width"
           :page-code-values="pageCodeValues" :on-action="runPageAction"
           @runtime-change="onRuntimeChange"
         />
@@ -897,7 +898,7 @@ const requirements = [
         v-model="schema" :config="pageConfig" class="builder"
         authoring-mode="code"
         @validation="builderIssues = $event"
-        :preview-context="runtimeContext" :preview-state="viewState"
+        :preview-context="runtimeContext"
         :preview-locale="locale" :preview-actions="rendererActions"
         :preview-fallback-schema="fallbackSchema"
         :composition-repository="compositionRepository"
@@ -1054,7 +1055,6 @@ const requirements = [
           class="builder composition-builder"
           authoring-mode="code"
           :preview-context="runtimeContext"
-          :preview-state="viewState"
           :preview-locale="locale"
           :preview-actions="rendererActions"
           :composition-repository="compositionRepository"

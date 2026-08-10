@@ -77,9 +77,6 @@ export function validatePageDocument(schema: PageNode, config?: PageConfig): Pag
     if (condition.source === 'context' && !config?.contextFields?.some((field) => field.path === condition.path)) {
       issues.push({ nodeId: node.id, field: 'visibleWhen.path', message: `Unknown context path "${String(condition.path ?? '')}".` })
     }
-    if (condition.source === 'state' && condition.operator === 'equals' && config?.availableStates && !config.availableStates.some((state) => state.id === condition.value)) {
-      issues.push({ nodeId: node.id, field: 'visibleWhen.value', message: `Unknown state "${String(condition.value ?? '')}".` })
-    }
     if (condition.source === 'item' && !config?.contextFields?.some((field) => field.itemFields?.some((item) => item.path === condition.path))) {
       issues.push({ nodeId: node.id, field: 'visibleWhen.path', message: `Unknown item path "${String(condition.path ?? '')}".` })
     }

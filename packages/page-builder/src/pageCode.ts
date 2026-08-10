@@ -91,7 +91,6 @@ export interface PageCodeRuntimeInput {
   context?: Record<string, unknown>
   resources?: Record<string, unknown>
   viewport?: { width: number; breakpoint: string }
-  viewState?: string
   locale?: string
   actionId?: string
   payload?: Record<string, unknown>
@@ -618,7 +617,6 @@ export function elementComputeRuntimeSource(
       context: scope.context || {},
       resources: scope.resources || {},
       viewport: scope.viewport || {},
-      viewState: scope.viewState,
       locale: scope.locale,
     };
     let computedElement = element;
@@ -672,7 +670,6 @@ export function pageRootComputeRuntimeSource(source: string): string {
     context: scope.context || {},
     resources: scope.resources || {},
     viewport: scope.viewport || {},
-    viewState: scope.viewState,
     locale: scope.locale,
   };
   if (typeof definition.compute === 'function') definition.compute(page, runtime);
@@ -717,7 +714,6 @@ export function elementActionRuntimeSource(source: string, elementName: string):
     context: input.context || {},
     resources: input.resources || {},
     viewport: input.viewport || {},
-    viewState: input.viewState,
     locale: input.locale,
   };
   const actionContext = { payload: input.payload || {} };

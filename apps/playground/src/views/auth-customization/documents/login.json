@@ -108,11 +108,6 @@
                           "fallback": "The login link has been sent."
                         }
                       },
-                      "visibleWhen": {
-                        "source": "state",
-                        "operator": "equals",
-                        "value": "magic-link-sent"
-                      },
                       "name": "magicLinkSent",
                       "elementCode": "defineElement({ // @locked\n  compute(element, page) { // @locked\n    // Properties Panel values // @locked @quick:start\n    element.props.text = i18n.text(\"page.magicLinkSent.text\", undefined, \"The login link has been sent.\"); // @locked @quick:props.text @value:%7B%22source%22%3A%22translation%22%2C%22key%22%3A%22page.magicLinkSent.text%22%2C%22fallback%22%3A%22The%20login%20link%20has%20been%20sent.%22%7D\n    element.props.variant = \"success\"; // @locked @quick:props.variant @value:%22success%22\n    // Custom code (overrides values above) // @locked @quick:end @slot:compute\n    element.style.hidden = page.context.runtime?.viewState !== 'magic-link-sent';\n  }, // @locked\n  actions: { // @locked\n    async click(element, page, action) { // @locked @slot:click\n\n    }, // @locked\n  }, // @locked\n}) // @locked"
                     },
@@ -126,11 +121,6 @@
                           "key": "page.mfaContinuation.text",
                           "fallback": "Continue with your second authentication factor."
                         }
-                      },
-                      "visibleWhen": {
-                        "source": "state",
-                        "operator": "equals",
-                        "value": "mfa-continuation"
                       },
                       "name": "mfaContinuation",
                       "elementCode": "defineElement({ // @locked\n  compute(element, page) { // @locked\n    // Properties Panel values // @locked @quick:start\n    element.props.text = i18n.text(\"page.mfaContinuation.text\", undefined, \"Continue with your second authentication factor.\"); // @locked @quick:props.text @value:%7B%22source%22%3A%22translation%22%2C%22key%22%3A%22page.mfaContinuation.text%22%2C%22fallback%22%3A%22Continue%20with%20your%20second%20authentication%20factor.%22%7D\n    element.props.variant = \"info\"; // @locked @quick:props.variant @value:%22info%22\n    // Custom code (overrides values above) // @locked @quick:end @slot:compute\n    element.style.hidden = page.context.runtime?.viewState !== 'mfa-continuation';\n  }, // @locked\n  actions: { // @locked\n    async click(element, page, action) { // @locked @slot:click\n\n    }, // @locked\n  }, // @locked\n}) // @locked"

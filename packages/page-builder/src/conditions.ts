@@ -20,7 +20,6 @@ export interface ConditionSources {
   field: (path: string) => unknown
   context: (path: string) => unknown
   item?: (path: string) => unknown
-  state: () => unknown
 }
 
 export function evaluateCondition(condition: VisibleWhen, sources: ConditionSources, depth = 0): boolean {
@@ -45,7 +44,7 @@ export function evaluateCondition(condition: VisibleWhen, sources: ConditionSour
   const source = condition.source
   if (!source) return true
   const path = condition.path ?? ''
-  const current = source === 'state' ? sources.state() : source === 'item' ? sources.item?.(path) : sources[source](path)
+  const current = source === 'item' ? sources.item?.(path) : sources[source](path)
   const operator = condition.operator ?? 'equals'
   const expected = condition.value
   if (operator === 'equals') return sameValue(current, expected)

@@ -142,6 +142,12 @@ export interface PageContextField {
   path: string
   type: PageContextValueType
   itemFields?: PageContextItemField[]
+  /**
+   * Closed set of values this field can take. The condition editor offers them
+   * as a dropdown instead of a free-text box, which is what makes a host's
+   * view state, tier or status authorable without a second mechanism for it.
+   */
+  values?: string[]
 }
 
 export interface RuntimeBinding {
@@ -288,16 +294,6 @@ export interface PageRootNode extends PageNodeBase {
   /** Customer-owned messages edited in the Builder's Translations tab. */
   translations?: PageTranslations
   children: PageNode[]
-}
-
-export interface PagePreviewFixture {
-  id: string
-  label: string
-  context: Record<string, unknown>
-  state?: string
-  locale?: string
-  /** Viewport selected atomically with the fixture. */
-  viewport?: PageBreakpoint | { width: number; height?: number }
 }
 
 /**
@@ -571,8 +567,8 @@ export interface VisibleWhen {
   /** Visible while the field's value is one of these. */
   in?: unknown[]
   /** Safe source for the extended condition grammar. Legacy conditions omit this. */
-  source?: 'field' | 'context' | 'state' | 'item'
-  /** Field/context path. State conditions may omit it and compare the current state id. */
+  source?: 'field' | 'context' | 'item'
+  /** Field/context/item path. */
   path?: string
   operator?: 'equals' | 'notEquals' | 'in' | 'notIn' | 'exists' | 'isEmpty' | 'isNotEmpty'
   value?: unknown
@@ -706,8 +702,6 @@ export interface PageConfig {
   fields?: PageFieldSpec[]
   /** Typed allowlist of host values the document may bind or use in conditions. */
   contextFields?: PageContextField[]
-  /** State ids the host may expose and authors may select in conditions/previews. */
-  availableStates?: { id: string; label: string }[]
   /** Locales offered by the builder for LocalizedValue props. */
   locales?: { id: string; label: string }[]
   defaultLocale?: string
@@ -715,8 +709,6 @@ export interface PageConfig {
     maxNodes?: number
     maxDepth?: number
   }
-  /** Named, non-persisted sample contexts for deterministic builder previews. */
-  previewFixtures?: PagePreviewFixture[]
   /**
    * Device sizes offered in the editor and preview toolbars. Purely an
    * authoring convenience: the document never records which one was chosen,

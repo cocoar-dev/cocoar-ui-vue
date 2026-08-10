@@ -93,9 +93,8 @@ const props = defineProps<{
    * authoring (palette + add-child menu) and at render time (security boundary).
    */
   config?: PageConfig
-  /** Safe fixture context used only by the embedded preview; never persisted. */
+  /** Safe sample context used only by the embedded preview; never persisted. */
   previewContext?: Record<string, unknown>
-  previewState?: string
   previewLocale?: string
   /** Host-owned theme applied only to the embedded renderer canvas. */
   previewTheme?: CoarTheme
@@ -107,7 +106,7 @@ const props = defineProps<{
   previewExpressionValues?: RuntimeExpressionValues
   /** Code-driven mode keeps the inspector structural and makes Page Code authoritative. */
   authoringMode?: PageBuilderAuthoringMode
-  /** @deprecated The Builder now owns its fixture-bound preview runtime. */
+  /** @deprecated The Builder now owns its preview runtime. */
   previewPageCodeValues?: PageCodeRuntimeValues
   /** @deprecated Used only as a fallback for actions unknown to the Builder runtime. */
   previewOnAction?: (id: string, values: ActionValues) => void | Promise<unknown>
@@ -336,39 +335,13 @@ function builtInViewportWidth(id: string): number | undefined {
 function builtInViewportHeight(id: string): number {
   return (PREVIEW_HEIGHTS as Record<string, number>)[id] ?? 800;
 }
-const selectedFixtureId = ref('');
-const previewStateOverride = ref('');
 const previewLocaleOverride = ref('');
-const selectedFixture = computed(() => props.config?.previewFixtures?.find((fixture) => fixture.id === selectedFixtureId.value));
-const hasCompleteHostPreview = computed(() =>
+// Preview inputs belong to the host. Without the ones its own config declares,
+// the sandbox has nothing truthful to run against, so the preview stays off.
+const hasEffectivePreviewContract = computed(() =>
   (!(props.config?.contextFields?.length) || props.previewContext !== undefined)
-  && (!(props.config?.availableStates?.length) || props.previewState !== undefined)
   && (!(props.config?.locales?.length) || props.previewLocale !== undefined),
 );
-const hasEffectivePreviewContract = computed(() => !!selectedFixture.value || hasCompleteHostPreview.value);
-
-watch(
-  [() => props.config?.previewFixtures, hasCompleteHostPreview],
-  ([fixtures, hasHost]) => {
-    const available = fixtures ?? [];
-    if (selectedFixtureId.value && available.some((fixture) => fixture.id === selectedFixtureId.value)) return;
-    selectedFixtureId.value = hasHost ? '' : (available[0]?.id ?? '');
-  },
-  { immediate: true, deep: true },
-);
-
-watch(selectedFixture, (fixture) => {
-  previewStateOverride.value = '';
-  previewLocaleOverride.value = '';
-  customPreviewViewport.value = undefined;
-  if (!fixture?.viewport) return;
-  if (typeof fixture.viewport === 'string') {
-    previewWidth.value = fixture.viewport;
-    authoringBreakpoint.value = fixture.viewport;
-  } else {
-    customPreviewViewport.value = { ...fixture.viewport };
-  }
-});
 
 const previewFrameStyle = computed(() => {
   if (customPreviewViewport.value) return {
@@ -406,9 +379,8 @@ const previewViewportWidth = computed(() =>
   customPreviewViewport.value?.width
     ?? (previewWidth.value === 'fluid' ? undefined : builtInViewportWidth(previewWidth.value)),
 );
-const effectivePreviewContext = computed(() => selectedFixture.value?.context ?? props.previewContext);
-const effectivePreviewState = computed(() => previewStateOverride.value || selectedFixture.value?.state || props.previewState);
-const effectivePreviewLocale = computed(() => previewLocaleOverride.value || selectedFixture.value?.locale || props.previewLocale);
+const effectivePreviewContext = computed(() => props.previewContext);
+const effectivePreviewLocale = computed(() => previewLocaleOverride.value || props.previewLocale);
 const effectiveAuthoringLocale = computed(() => effectivePreviewLocale.value
   || props.config?.defaultLocale
   || props.config?.locales?.[0]?.id
@@ -429,7 +401,6 @@ const previewRuntime = usePageCodeRuntime({
   schema: builder.schema,
   context: computed(() => effectivePreviewContext.value ?? {}),
   viewport: previewRuntimeViewport,
-  viewState: effectivePreviewState,
   locale: effectivePreviewLocale,
   enabled: hasEffectivePreviewContract,
   runtimeHost: props.previewRuntimeHost,
@@ -442,7 +413,6 @@ const builderRuntime = computed(() => ({
   config: props.config,
   context: effectivePreviewContext.value,
   pageState: effectivePreviewPageCodeValues.value?.state,
-  viewState: effectivePreviewState.value,
   locale: effectivePreviewLocale.value,
   translations: builder.schema.value.type === 'page'
     ? (builder.schema.value as PageRootNode).translations
@@ -755,14 +725,13 @@ function applyJson() {
           <template #content>
             <BuilderCanvas :viewport-width="canvasViewportWidth">
               <template #toolbar>
-                <!-- Same controls as the preview, minus fixture and state:
-                     canvas previews render from the node alone and never see
-                     runtime data, so those two would do nothing here. -->
+                <!-- Same controls as the preview: canvas previews render from
+                     the node alone and never see runtime data. -->
                 <BuilderViewportControl :value="previewWidth" :viewports="config?.previewViewports" @select="setPreviewWidth" />
                 <label v-if="config?.locales?.length" class="pb-builder__bar-control">
                   {{ t('coar.pageBuilder.chrome.language', undefined, 'Language') }}
                   <select v-model="previewLocaleOverride">
-                    <option value="">Host / fixture</option>
+                    <option value="">Host</option>
                     <option v-for="item in config.locales" :key="item.id" :value="item.id">{{ item.label }}</option>
                   </select>
                 </label>
@@ -783,24 +752,10 @@ function applyJson() {
               <!-- Responsive width toggle -->
               <div class="pb-builder__preview-toolbar">
                 <BuilderViewportControl :value="previewWidth" :viewports="config?.previewViewports" @select="setPreviewWidth" />
-                <label v-if="config?.previewFixtures?.length" class="pb-builder__bar-control">
-                  Fixture
-                  <select v-model="selectedFixtureId">
-                    <option v-if="hasCompleteHostPreview" value="">Host values</option>
-                    <option v-for="fixture in config.previewFixtures" :key="fixture.id" :value="fixture.id">{{ fixture.label }}</option>
-                  </select>
-                </label>
-                <label v-if="config?.availableStates?.length" class="pb-builder__bar-control">
-                  State
-                  <select v-model="previewStateOverride">
-                    <option value="">Host / fixture</option>
-                    <option v-for="state in config.availableStates" :key="state.id" :value="state.id">{{ state.label }}</option>
-                  </select>
-                </label>
                 <label v-if="config?.locales?.length" class="pb-builder__bar-control">
                   Language
                   <select v-model="previewLocaleOverride">
-                    <option value="">Host / fixture</option>
+                    <option value="">Host</option>
                     <option v-for="item in config.locales" :key="item.id" :value="item.id">{{ item.label }}</option>
                   </select>
                 </label>
@@ -834,7 +789,6 @@ function applyJson() {
                       :config="config"
                       :viewport-width="previewViewportWidth"
                       :runtime-context="effectivePreviewContext"
-                      :view-state="effectivePreviewState"
                       :locale="effectivePreviewLocale"
                       :actions="previewActions"
                       :fallback-schema="previewFallbackSchema"
@@ -848,7 +802,7 @@ function applyJson() {
                   <div v-else class="pb-builder__preview-empty">
                     <CoarIcon name="circle-alert" size="m" />
                     <strong>Preview values are missing</strong>
-                    <span>The host must provide context, state, and locale together, or configure a preview fixture.</span>
+                    <span>The host must supply the preview context and locale its config declares.</span>
                   </div>
                 </div>
                 </div>

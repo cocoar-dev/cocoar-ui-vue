@@ -109,19 +109,16 @@ const commonAllowed = [
   'visual-markup',
 ] as const;
 
-function fixtureContext(providerCount: number, scopeCount: number): Record<string, unknown> {
-  return {
-    branding: { productName: 'Modgud Preview', showLegal: true },
-    auth: {
-      internalLoginEnabled: true, passwordless: false, magicLinkEnabled: true, registrationEnabled: true,
-      externalProviders: Array.from({ length: providerCount }, (_, index) => ({ id: `provider-${index}`, name: index === providerCount - 1 && providerCount > 2 ? 'Provider with a deliberately very long localized display name' : `Provider ${index + 1}`, color: '#1666cc' })),
-    },
-    consent: {
-      clientName: 'Northwind Analytics', clientHostname: 'analytics.northwind.example', isDynamicallyRegistered: true,
-      requestedScopes: Array.from({ length: scopeCount }, (_, index) => ({ name: index === 0 ? 'openid' : `scope-${index}`, displayName: index === scopeCount - 1 && scopeCount > 3 ? 'A permission with a deliberately long display name for overflow testing' : `Permission ${index + 1}`, description: 'Host-provided permission description that remains readable at narrow widths.', required: index === 0 })),
-    },
-    feedback: { message: '', success: false },
-  };
+/**
+ * The view states this host drives. They are ordinary host data: the page reads
+ * them through `context.runtime.viewState`, and declaring them as that field's
+ * closed value set is what gives the condition editor a dropdown.
+ */
+export function authViewStates(slot: AuthPageSlot): readonly string[] {
+  if (slot === 'login') return ['credentials', 'passwordless', 'magic-link-sent', 'submitting', 'error', 'mfa-continuation'];
+  if (slot === 'password-forgot') return ['form', 'submitting', 'accepted', 'passwordless-unavailable', 'error'];
+  if (slot === 'consent') return ['loading', 'prompt', 'submitting', 'denied', 'expired', 'forbidden', 'error'];
+  return ['complete', 'federated-complete', 'provider-error'];
 }
 
 export function createAuthPageConfig(slot: AuthPageSlot, locale: AuthPageLocale): PageConfig {
@@ -226,16 +223,8 @@ export function createAuthPageConfig(slot: AuthPageSlot, locale: AuthPageLocale)
       },
       { path: 'feedback.message', type: 'string' },
       { path: 'feedback.success', type: 'boolean' },
-      { path: 'runtime.viewState', type: 'string' },
+      { path: 'runtime.viewState', type: 'string', values: [...authViewStates(slot)] },
     ],
-    availableStates: (slot === 'login'
-      ? ['credentials', 'passwordless', 'magic-link-sent', 'submitting', 'error', 'mfa-continuation']
-      : slot === 'password-forgot'
-        ? ['form', 'submitting', 'accepted', 'passwordless-unavailable', 'error']
-        : slot === 'consent'
-          ? ['loading', 'prompt', 'submitting', 'denied', 'expired', 'forbidden', 'error']
-          : ['complete', 'federated-complete', 'provider-error'])
-      .map((id) => ({ id, label: id })),
     locales: [{ id: 'de', label: 'Deutsch' }, { id: 'en', label: 'English' }],
     defaultLocale: 'en',
     documentLimits: { maxNodes: 500, maxDepth: 30 },
@@ -248,11 +237,6 @@ export function createAuthPageConfig(slot: AuthPageSlot, locale: AuthPageLocale)
       { id: 'desktop', label: 'Desktop · 1280', width: 1280, height: 800 },
       { id: 'wide', label: 'Wide · 1920', width: 1920, height: 1080 },
       { id: 'fluid', label: 'Fluid' },
-    ],
-    previewFixtures: [
-      { id: 'empty', label: 'Empty arrays', context: fixtureContext(0, 0), state: slot === 'consent' ? 'prompt' : slot === 'password-forgot' ? 'form' : slot === 'logout' ? 'complete' : 'credentials', locale },
-      { id: 'typical', label: 'Typical', context: fixtureContext(2, 3), state: slot === 'consent' ? 'prompt' : slot === 'password-forgot' ? 'form' : slot === 'logout' ? 'complete' : 'credentials', locale },
-      { id: 'overflow', label: 'Overflow · 50 items', context: fixtureContext(3, 50), state: slot === 'consent' ? 'prompt' : slot === 'password-forgot' ? 'form' : slot === 'logout' ? 'complete' : 'credentials', locale },
     ],
   };
 }

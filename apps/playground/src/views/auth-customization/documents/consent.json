@@ -153,11 +153,6 @@
               "fallback": "Loading authorization request…"
             }
           },
-          "visibleWhen": {
-            "source": "state",
-            "operator": "equals",
-            "value": "loading"
-          },
           "name": "consentLoadingState",
           "elementCode": "defineElement({ // @locked\n  compute(element, page) { // @locked\n    // Properties Panel values // @locked @quick:start\n    element.props.text = i18n.text(\"page.consentLoadingState.text\", undefined, \"Loading authorization request…\"); // @locked @quick:props.text @value:%7B%22source%22%3A%22translation%22%2C%22key%22%3A%22page.consentLoadingState.text%22%2C%22fallback%22%3A%22Loading%20authorization%20request%E2%80%A6%22%7D\n    element.props.variant = \"info\"; // @locked @quick:props.variant @value:%22info%22\n    // Custom code (overrides values above) // @locked @quick:end @slot:compute\n    element.style.hidden = page.context.runtime?.viewState !== 'loading';\n  }, // @locked\n  actions: { // @locked\n    async click(element, page, action) { // @locked @slot:click\n\n    }, // @locked\n  }, // @locked\n}) // @locked"
         },
@@ -171,11 +166,6 @@
               "key": "page.consentDeniedState.text",
               "fallback": "The request was denied."
             }
-          },
-          "visibleWhen": {
-            "source": "state",
-            "operator": "equals",
-            "value": "denied"
           },
           "name": "consentDeniedState",
           "elementCode": "defineElement({ // @locked\n  compute(element, page) { // @locked\n    // Properties Panel values // @locked @quick:start\n    element.props.text = i18n.text(\"page.consentDeniedState.text\", undefined, \"The request was denied.\"); // @locked @quick:props.text @value:%7B%22source%22%3A%22translation%22%2C%22key%22%3A%22page.consentDeniedState.text%22%2C%22fallback%22%3A%22The%20request%20was%20denied.%22%7D\n    element.props.variant = \"info\"; // @locked @quick:props.variant @value:%22info%22\n    // Custom code (overrides values above) // @locked @quick:end @slot:compute\n    element.style.hidden = page.context.runtime?.viewState !== 'denied';\n  }, // @locked\n  actions: { // @locked\n    async click(element, page, action) { // @locked @slot:click\n\n    }, // @locked\n  }, // @locked\n}) // @locked"
@@ -191,11 +181,6 @@
               "fallback": "This authorization request expired or was already used."
             }
           },
-          "visibleWhen": {
-            "source": "state",
-            "operator": "equals",
-            "value": "expired"
-          },
           "name": "consentExpiredState",
           "elementCode": "defineElement({ // @locked\n  compute(element, page) { // @locked\n    // Properties Panel values // @locked @quick:start\n    element.props.text = i18n.text(\"page.consentExpiredState.text\", undefined, \"This authorization request expired or was already used.\"); // @locked @quick:props.text @value:%7B%22source%22%3A%22translation%22%2C%22key%22%3A%22page.consentExpiredState.text%22%2C%22fallback%22%3A%22This%20authorization%20request%20expired%20or%20was%20already%20used.%22%7D\n    element.props.variant = \"warning\"; // @locked @quick:props.variant @value:%22warning%22\n    // Custom code (overrides values above) // @locked @quick:end @slot:compute\n    element.style.hidden = page.context.runtime?.viewState !== 'expired';\n  }, // @locked\n  actions: { // @locked\n    async click(element, page, action) { // @locked @slot:click\n\n    }, // @locked\n  }, // @locked\n}) // @locked"
         },
@@ -210,11 +195,6 @@
               "fallback": "This request does not belong to your session."
             }
           },
-          "visibleWhen": {
-            "source": "state",
-            "operator": "equals",
-            "value": "forbidden"
-          },
           "name": "consentForbiddenState",
           "elementCode": "defineElement({ // @locked\n  compute(element, page) { // @locked\n    // Properties Panel values // @locked @quick:start\n    element.props.text = i18n.text(\"page.consentForbiddenState.text\", undefined, \"This request does not belong to your session.\"); // @locked @quick:props.text @value:%7B%22source%22%3A%22translation%22%2C%22key%22%3A%22page.consentForbiddenState.text%22%2C%22fallback%22%3A%22This%20request%20does%20not%20belong%20to%20your%20session.%22%7D\n    element.props.variant = \"error\"; // @locked @quick:props.variant @value:%22error%22\n    // Custom code (overrides values above) // @locked @quick:end @slot:compute\n    element.style.hidden = page.context.runtime?.viewState !== 'forbidden';\n  }, // @locked\n  actions: { // @locked\n    async click(element, page, action) { // @locked @slot:click\n\n    }, // @locked\n  }, // @locked\n}) // @locked"
         },
@@ -226,25 +206,6 @@
             "gap": "16px",
             "elevation": "medium",
             "radius": "large"
-          },
-          "visibleWhen": {
-            "any": [
-              {
-                "source": "state",
-                "operator": "equals",
-                "value": "prompt"
-              },
-              {
-                "source": "state",
-                "operator": "equals",
-                "value": "submitting"
-              },
-              {
-                "source": "state",
-                "operator": "equals",
-                "value": "error"
-              }
-            ]
           },
           "children": [
             {

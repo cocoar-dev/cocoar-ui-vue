@@ -59,8 +59,6 @@ const props = defineProps<{
   viewportWidth?: number
   /** Host-owned, typed runtime data. Only paths declared in config.contextFields are readable. */
   runtimeContext?: Record<string, unknown>
-  /** Host-controlled view state (for example `prompt`, `submitting`, `expired`). */
-  viewState?: string
   /** Active locale used to resolve LocalizedValue props. */
   locale?: string
   /** Host-owned built-in document used when the customized document violates its contract. */
@@ -218,7 +216,6 @@ function isNodeVisible(node: PageNode, item?: unknown, allowedItemPaths?: Readon
     field: (path) => values.value[path],
     context: (path) => readAllowedContext(props.runtimeContext, props.config, path),
     item: (path) => allowedItemPaths?.has(path) ? safeReadPath(item, path) : undefined,
-    state: () => props.viewState,
   });
 }
 
@@ -729,7 +726,6 @@ const ctx: PageRendererContext = {
     config: props.config,
     context: props.runtimeContext,
     pageState: props.pageCodeValues?.state,
-    viewState: props.viewState,
     locale: props.locale,
     item,
     itemIndex,
@@ -744,7 +740,6 @@ const ctx: PageRendererContext = {
     config: props.config,
     context: props.runtimeContext,
     pageState: props.pageCodeValues?.state,
-    viewState: props.viewState,
     locale: props.locale,
     item,
     itemIndex,

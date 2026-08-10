@@ -88,7 +88,6 @@ export interface RuntimeResolutionContext {
   /** Customer-authored `definePageState` value. */
   pageState?: Readonly<Record<string, unknown>>
   /** Host-controlled view-state ID; used by conditions/scripts, not `source: state`. */
-  viewState?: string
   locale?: string
   item?: unknown
   itemIndex?: number
