@@ -2,7 +2,7 @@
 // (elements/registry.ts imports node types from here), so no cycle exists.
 import type { PageElementRegistry } from './elements/registry'
 
-export const CURRENT_PAGE_SCHEMA_VERSION = 5
+export const CURRENT_PAGE_SCHEMA_VERSION = 6
 
 // ─── Style ────────────────────────────────────────────────────────────────────
 
@@ -44,10 +44,16 @@ export interface NodeStyle {
   /**
    * Sizing along the parent's main axis:
    * - `fit`   — natural content size (no grow / no shrink)
-   * - `fill`  — grow to fill the available space
+   * - `fill`  — grow to fill the available space. Direction-aware: in a row
+   *             this distributes space evenly from a zero basis; in a column
+   *             it only means full width, so it cannot grow vertically.
+   * - `grow`  — take the remaining main-axis space in EITHER direction,
+   *             growing from natural size. This is what lets a layout put a
+   *             height on the outermost node only and let everything below it
+   *             resolve through flex.
    * - `fixed` — exact `width`
    */
-  size?: 'fit' | 'fill' | 'fixed'
+  size?: 'fit' | 'fill' | 'grow' | 'fixed'
   /** CSS width. Applied when `size` is `fixed` (or when set without a `size`). */
   width?: string
   /** Minimum width of this node's box. */
@@ -86,8 +92,6 @@ interface PageNodeBase {
   /** Stable UUID assigned by the builder. */
   id: string
   style?: NodeStyle
-  /** Host-registered appearance preset id. The document never stores a CSS class. */
-  stylePreset?: string
   /** Mobile-first style overrides; unset properties inherit from the preceding breakpoint. */
   responsive?: ResponsiveNodeStyles
   /**
@@ -138,6 +142,12 @@ export interface PageContextField {
   path: string
   type: PageContextValueType
   itemFields?: PageContextItemField[]
+  /**
+   * Closed set of values this field can take. The condition editor offers them
+   * as a dropdown instead of a free-text box, which is what makes a host's
+   * view state, tier or status authorable without a second mechanism for it.
+   */
+  allowedValues?: string[]
 }
 
 export interface RuntimeBinding {
@@ -286,14 +296,17 @@ export interface PageRootNode extends PageNodeBase {
   children: PageNode[]
 }
 
-export interface PagePreviewFixture {
+/**
+ * One entry in the editor/preview size picker. Authoring-only: the width
+ * decides which breakpoint the cascade resolves against, so a custom size
+ * needs no new breakpoint name and documents stay self-describing.
+ */
+export interface PagePreviewViewport {
   id: string
   label: string
-  context: Record<string, unknown>
-  state?: string
-  locale?: string
-  /** Viewport selected atomically with the fixture. */
-  viewport?: PageBreakpoint | { width: number; height?: number }
+  /** Omit for a size that follows the host container ("fluid"). */
+  width?: number
+  height?: number
 }
 
 // ─── Built-in elements ────────────────────────────────────────────────────────
@@ -331,8 +344,8 @@ export interface RepeatSelection {
 
 /** Native template repeater over one allowlisted host-context array. */
 export interface RepeatNode extends ElementNode<'repeat', {
-  /** Legacy/host-context source. Page Code may instead provide `items`. */
-  source?: string
+  /** Allow-listed host-context array path. Page Code may instead provide `items`. */
+  contextPath?: string
   keyPath?: string
   /** Runtime-only data source produced by Page Code (still JSON-safe data). */
   items?: unknown[]
@@ -554,8 +567,8 @@ export interface VisibleWhen {
   /** Visible while the field's value is one of these. */
   in?: unknown[]
   /** Safe source for the extended condition grammar. Legacy conditions omit this. */
-  source?: 'field' | 'context' | 'state' | 'item'
-  /** Field/context path. State conditions may omit it and compare the current state id. */
+  source?: 'field' | 'context' | 'item'
+  /** Field/context/item path. */
   path?: string
   operator?: 'equals' | 'notEquals' | 'in' | 'notIn' | 'exists' | 'isEmpty' | 'isNotEmpty'
   value?: unknown
@@ -675,46 +688,37 @@ export interface PageConfig {
    * Consumer-registered elements, merged ADDITIVELY over the built-in set
    * (shadowing a built-in key warns in DEV). The same config reaches builder
    * and renderer, so one registration serves palette, canvas, inspector and
-   * runtime. App-wide defaults can be provided under `PAGE_ELEMENTS_KEY`
+   * runtime. App-wide defaults can be provided under `PAGE_ELEMENT_TYPES_KEY`
    * instead; this field wins when both are present.
    */
-  elements?: PageElementRegistry
+  elementTypes?: PageElementRegistry
   /**
-   * Host-owned CSS presets exposed as safe ids. The builder stores only `id`;
-   * renderer and preview resolve the class through this same registration.
-   */
-  stylePresets?: PageStylePreset[]
-  /**
-   * The data contract behind the page (DTO fields). When present, the
+   * The data contract behind the page (DTO properties). When present, the
    * builder's Field section offers these instead of a free-text name —
    * filtered to the fields the selected element can edit (see
    * `ElementValueSpec.types`) — and the lint flags unknown names,
    * incompatible bindings, and missing required fields.
    */
-  fields?: PageFieldSpec[]
+  dataContract?: PageFieldSpec[]
   /** Typed allowlist of host values the document may bind or use in conditions. */
   contextFields?: PageContextField[]
-  /** State ids the host may expose and authors may select in conditions/previews. */
-  availableStates?: { id: string; label: string }[]
   /** Locales offered by the builder for LocalizedValue props. */
   locales?: { id: string; label: string }[]
   defaultLocale?: string
-  /** Nodes the host requires for security or flow completeness. */
-  requiredNodes?: {
-    id: string
-    type: string
-    lockVisibility?: boolean
-    lockStyle?: boolean
-    /** Optional generic placement invariant for high-priority content. */
-    parentId?: string
-    maxIndex?: number
-  }[]
   documentLimits?: {
     maxNodes?: number
     maxDepth?: number
   }
-  /** Named, non-persisted sample contexts for deterministic builder previews. */
-  previewFixtures?: PagePreviewFixture[]
+  /**
+   * Device sizes offered in the editor and preview toolbars. Purely an
+   * authoring convenience: the document never records which one was chosen,
+   * and the style cascade keeps using the fixed breakpoints, derived from the
+   * width. A host can therefore add "Wide · 1920" without making its documents
+   * depend on a host-defined breakpoint name to stay readable.
+   *
+   * Unset falls back to the built-in sizes.
+   */
+  previewViewports?: PagePreviewViewport[]
   /**
    * Allow binding names outside `fields`. Defaults to false — with a
    * contract, authors pick from it.
@@ -778,7 +782,7 @@ export interface PageVisualFont {
   id: string
   family: string
   /** Only data:font/...;base64 and blob: URLs are accepted by the renderer. */
-  source: string
+  src: string
   format?: 'woff2' | 'woff' | 'truetype' | 'opentype'
   weight?: string
   style?: 'normal' | 'italic' | 'oblique'
@@ -792,14 +796,6 @@ export interface PageVisualMarkupConfig {
   fonts?: PageVisualFont[]
   maxHtmlLength?: number
   maxCssLength?: number
-}
-
-export interface PageStylePreset {
-  id: string
-  label: string
-  className: string
-  /** Element registry types that may use the preset. Includes the `page` root marker. */
-  allowedOn: string[]
 }
 
 /**

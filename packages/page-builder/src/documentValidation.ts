@@ -47,8 +47,7 @@ export function validatePageDocument(schema: PageNode, config?: PageConfig): Pag
   if (rootCode && rootCode.length > 50_000) issues.push({ nodeId: schema.id, field: 'rootCode', message: 'Page Root Code exceeds 50,000 characters.' })
   if (stateCode && stateCode.length > 50_000) issues.push({ nodeId: schema.id, field: 'stateCode', message: 'Page State exceeds 50,000 characters.' })
   const nodesById = new Map<string, PageNode>()
-  const placementById = new Map<string, { parentId?: string; index: number }>()
-  const registry = { ...BUILTIN_ELEMENTS, ...(config?.elements ?? {}) }
+  const registry = { ...BUILTIN_ELEMENTS, ...(config?.elementTypes ?? {}) }
   const fieldNames = new Set<string>()
   const selectionNames = new Set<string>()
   const repeatAncestor = new Map<string, RepeatNode | undefined>()
@@ -78,22 +77,18 @@ export function validatePageDocument(schema: PageNode, config?: PageConfig): Pag
     if (condition.source === 'context' && !config?.contextFields?.some((field) => field.path === condition.path)) {
       issues.push({ nodeId: node.id, field: 'visibleWhen.path', message: `Unknown context path "${String(condition.path ?? '')}".` })
     }
-    if (condition.source === 'state' && condition.operator === 'equals' && config?.availableStates && !config.availableStates.some((state) => state.id === condition.value)) {
-      issues.push({ nodeId: node.id, field: 'visibleWhen.value', message: `Unknown state "${String(condition.value ?? '')}".` })
-    }
     if (condition.source === 'item' && !config?.contextFields?.some((field) => field.itemFields?.some((item) => item.path === condition.path))) {
       issues.push({ nodeId: node.id, field: 'visibleWhen.path', message: `Unknown item path "${String(condition.path ?? '')}".` })
     }
   }
 
-  const walk = (node: PageNode, depth: number, parentId?: string, index = 0) => {
+  const walk = (node: PageNode, depth: number) => {
     count += 1
     if (count > maxNodes) return
     if (depth > maxDepth) { issues.push({ nodeId: node.id, field: 'children', message: `Document exceeds maximum depth ${maxDepth}.` }); return }
     if (!node.id || ids.has(node.id)) issues.push({ nodeId: node.id, field: 'id', message: 'Node id is missing or duplicated.' })
     ids.add(node.id)
     nodesById.set(node.id, node)
-    placementById.set(node.id, { parentId, index })
     if (!isElementAllowed(node.type, config)) issues.push({ nodeId: node.id, field: 'type', message: `Element "${node.type}" is not allowed.` })
     if (node.type !== 'page') {
       const element = node as ElementNode
@@ -122,7 +117,7 @@ export function validatePageDocument(schema: PageNode, config?: PageConfig): Pag
           issues.push({ nodeId: node.id, field: 'bindings', message: 'Page-state binding requires a path.' })
         }
         const repeat = repeatAncestor.get(node.id)
-        const repeatContract = config?.contextFields?.find((field) => field.path === repeat?.props.source && field.type === 'array')
+        const repeatContract = config?.contextFields?.find((field) => field.path === repeat?.props.contextPath && field.type === 'array')
         if (binding.source === 'item' && !repeatContract?.itemFields?.some((item) => item.path === binding.path)) {
           issues.push({ nodeId: node.id, field: 'bindings', message: `Unknown item binding "${String(binding.path ?? '')}".` })
         }
@@ -137,7 +132,7 @@ export function validatePageDocument(schema: PageNode, config?: PageConfig): Pag
         }
       }
       if (element.visibleWhen) validateCondition(node, element.visibleWhen, 0)
-      const actionCapable = node.type === 'button' || node.type === 'link' || config?.elements?.[node.type]?.action
+      const actionCapable = node.type === 'button' || node.type === 'link' || config?.elementTypes?.[node.type]?.action
       if (actionCapable) {
         const actionProps = element.props as ActionProps
         const action = actionProps.action
@@ -161,9 +156,9 @@ export function validatePageDocument(schema: PageNode, config?: PageConfig): Pag
         if (repeat.props.items.length > 500) {
           issues.push({ nodeId: node.id, field: 'props.items', message: 'Repeat runtime items exceed the maximum of 500.' })
         }
-      } else if (repeat.props.source || !codeDriven) {
-      const contract = config?.contextFields?.find((field) => field.path === repeat.props.source && field.type === 'array')
-      if (!contract) issues.push({ nodeId: node.id, field: 'props.source', message: `Repeat source "${repeat.props.source}" is not an allowed array.` })
+      } else if (repeat.props.contextPath || !codeDriven) {
+      const contract = config?.contextFields?.find((field) => field.path === repeat.props.contextPath && field.type === 'array')
+      if (!contract) issues.push({ nodeId: node.id, field: 'props.contextPath', message: `Repeat source "${repeat.props.contextPath}" is not an allowed array.` })
       else {
         const allowed = new Set(contract.itemFields?.map((field) => field.path) ?? [])
         if (repeat.props.keyPath && !allowed.has(repeat.props.keyPath)) issues.push({ nodeId: node.id, field: 'props.keyPath', message: `Repeat key "${repeat.props.keyPath}" is not allowed.` })
@@ -174,25 +169,11 @@ export function validatePageDocument(schema: PageNode, config?: PageConfig): Pag
       }
       }
     }
-    if ('children' in node && Array.isArray(node.children)) node.children.forEach((child, childIndex) => walk(child, depth + 1, node.id, childIndex))
+    if ('children' in node && Array.isArray(node.children)) node.children.forEach((child) => walk(child, depth + 1))
   }
   walk(schema, 0)
   if (count > maxNodes) issues.push({ field: 'document', message: `Document exceeds maximum node count ${maxNodes}.` })
 
-  for (const required of config?.requiredNodes ?? []) {
-    const node = nodesById.get(required.id)
-    if (!node || node.type !== required.type) {
-      issues.push({ nodeId: required.id, field: 'requiredNodes', message: `Required ${required.type} node "${required.id}" is missing.` })
-      continue
-    }
-    const styles = [node.style, ...Object.values(node.responsive ?? {})].filter(Boolean)
-    if (required.lockVisibility && (styles.some((style) => style?.hidden) || (node as ElementNode).visibleWhen)) issues.push({ nodeId: node.id, field: 'visibility', message: 'Required node visibility is locked.' })
-    if (required.lockStyle && styles.some((style) => Object.keys(style ?? {}).some((key) => ['hidden', 'foreground', 'fontSize', 'fontWeight', 'surface'].includes(key)))) {
-      issues.push({ nodeId: node.id, field: 'style', message: 'Required node security styling is locked.' })
-    }
-    const placement = placementById.get(node.id)
-    if (required.parentId && placement?.parentId !== required.parentId) issues.push({ nodeId: node.id, field: 'position', message: `Required node must remain inside "${required.parentId}".` })
-    if (required.maxIndex !== undefined && (placement?.index ?? Number.POSITIVE_INFINITY) > required.maxIndex) issues.push({ nodeId: node.id, field: 'position', message: `Required node must remain within the first ${required.maxIndex + 1} children.` })
-  }
   return { valid: issues.length === 0, issues }
 }
+

@@ -13,7 +13,7 @@ import {
   AUTH_PAGE_COPY as AUTH_LAB_COPY,
   type AuthPageLocale as AuthLabLocale,
   type AuthPageSlot as AuthLabSlot,
-} from '@cocoar/vue-page-builder';
+} from './authPageConfig';
 import type { AuthLabProvider } from './authLabRuntime';
 import { postAuthLab } from './authLabClient';
 

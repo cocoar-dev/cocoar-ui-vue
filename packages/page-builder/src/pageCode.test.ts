@@ -12,6 +12,7 @@ import {
   elementCodeHasClickAction,
   readElementQuickProperties,
   setElementQuickProperty,
+  setPageRootQuickProperty,
   pageCodeRuntimeSource,
   pageRootComputeRuntimeSource,
   constrainPageRootCode,
@@ -196,6 +197,74 @@ describe('Page Code data boundary', () => {
     const reset = setElementQuickProperty(withRequired, 'props.label', undefined)
     expect(readElementQuickProperties(reset)).toEqual({ 'validation.required': true })
     expect(reset).toContain('element.props.disabled = !page.form.valid;')
+  })
+
+  it('exposes the viewport width to element code so visibility can be computed', () => {
+    // The documented way to make an element responsive from code, without the
+    // document carrying a breakpoint override or depending on host-defined
+    // breakpoint names.
+    const source = `defineElement({
+      compute(element, page) {
+        element.style.hidden = page.viewport.width < 768;
+      },
+    })`;
+    const runtime = elementComputeRuntimeSource(source, 'brandPanel', 'none');
+    expect(runtime).toContain('viewport: scope.viewport || {}');
+    expect(runtime).toContain('definition.compute(element, page)');
+    // style is among the keys copied back onto the element draft.
+    expect(runtime).toContain("'style'");
+  });
+
+  it('writes page root Quick Properties against the root draft, preserving custom code', () => {
+    // Verbatim shape of a rootCode persisted before the Quick Properties
+    // boundary existed: locked, correct signature, but no @quick markers.
+    const legacy = [
+      'definePageRoot({ // @locked',
+      '  compute(page, runtime) { // @locked @slot:compute',
+      '    page.enterSubmits = runtime.viewport.width > 600',
+      '  }, // @locked',
+      '}) // @locked',
+    ].join('\n')
+    expect(legacy).not.toContain('@quick:start')
+    // Such a source must be rebuilt rather than left without a write target.
+    expect(constrainPageRootCode(legacy)).toContain('@quick:start')
+
+    const withHeight = setPageRootQuickProperty(legacy, 'style.height', '600px')
+    const withOverflow = setPageRootQuickProperty(withHeight, 'style.overflow', 'auto')
+
+    // Assignments target `page`, the root compute slot's draft parameter.
+    expect(withOverflow).toContain('page.style.height = "600px";')
+    expect(withOverflow).toContain('page.style.overflow = "auto";')
+    expect(withOverflow).not.toContain('element.style')
+    // The pre-existing body survives and still runs after the locked block.
+    expect(withOverflow).toContain('page.enterSubmits = runtime.viewport.width > 600')
+    expect(withOverflow.indexOf('page.style.height')).toBeLessThan(withOverflow.indexOf('page.enterSubmits'))
+    expect(readElementQuickProperties(withOverflow)).toEqual({
+      'style.height': '600px',
+      'style.overflow': 'auto',
+    })
+
+    // Re-constraining an already-bounded source must not duplicate the block.
+    expect(constrainPageRootCode(withOverflow)).toBe(withOverflow)
+
+    const reset = setPageRootQuickProperty(withOverflow, 'style.height', undefined)
+    expect(readElementQuickProperties(reset)).toEqual({ 'style.overflow': 'auto' })
+    expect(reset).toContain('page.enterSubmits = runtime.viewport.width > 600')
+  })
+
+  it('rejects page root Quick Properties the root draft cannot carry', () => {
+    // The root draft exposes style/responsive/enterSubmits only, so a props or
+    // validation write would silently do nothing at runtime.
+    expect(() => setPageRootQuickProperty(undefined, 'props.label', 'x')).toThrow(/style/)
+    expect(() => setPageRootQuickProperty(undefined, 'validation.required', true)).toThrow(/style/)
+  })
+
+  it('keeps page root Quick Properties executable through the runtime wrapper', () => {
+    const source = setPageRootQuickProperty(undefined, 'style.minHeight', '100dvh')
+    const runtime = pageRootComputeRuntimeSource(source)
+    expect(runtime).toContain('page.style.minHeight = "100dvh";')
+    expect(runtime).toContain('definition.compute(page, runtime)')
+    expect(runtime).toContain('style: page.style')
   })
 
   it('writes translation Quick Properties as readable i18n helpers', () => {

@@ -2,7 +2,7 @@
  * The playground's consumer-registered element — the end-to-end proof that a
  * component defined entirely OUTSIDE the library becomes a first-class
  * builder + renderer element. Registered under the vendor-prefixed key
- * `acme-rating` via `config.elements`.
+ * `acme-rating` via `config.elementTypes`.
  */
 import { definePageElement, QUICK_PROPERTY_PRESETS as quick } from '@cocoar/vue-page-builder';
 import type { RatingProps } from './ratingProps';

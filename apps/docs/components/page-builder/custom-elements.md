@@ -37,7 +37,7 @@ The **host vocabulary** stays at node level and is the same for every element:
 | `name` / `defaultValue` / `validation` | host | Value-model trio; only meaningful when the definition has a `value` spec |
 | `children` | host | Only when the definition declares `container` |
 
-The bag exists so element props can never collide with host fields — an element prop named `style` or `children` is just `props.style` / `props.children`. The unified props-bag grammar was introduced in v2; version 4 added a stable name to every element, and current `schemaVersion: 5` adds builder-only origin metadata for reusable compositions. Older documents normalize transparently (see [Degradation and compatibility](#degradation-and-compatibility)).
+The bag exists so element props can never collide with host fields — an element prop named `style` or `children` is just `props.style` / `props.children`. The unified props-bag grammar was introduced in v2; version 4 added a stable name to every element, and version 5 added builder-only origin metadata for reusable compositions, and current `schemaVersion: 6` renamed the repeat's `props.source` to `props.contextPath`. Older documents normalize transparently (see [Degradation and compatibility](#degradation-and-compatibility)).
 
 ## Walkthrough: a rating element
 
@@ -332,7 +332,7 @@ The flags compose — an element can carry a value **and** accept children (say,
 
 There is deliberately **no global `register()`** — registries are per-instance data, so two builders with different element sets can coexist. Two channels:
 
-**Per instance, via `config.elements`** (wins when both are present):
+**Per instance, via `config.elementTypes`** (wins when both are present):
 
 ```ts
 import type { PageConfig } from '@cocoar/vue-page-builder';
@@ -350,13 +350,13 @@ Pass the same `config` to both `<CoarPageBuilder>` and `<CoarPageRenderer>` — 
 
 ```ts
 // main.ts
-import { PAGE_ELEMENTS_KEY } from '@cocoar/vue-page-builder';
+import { PAGE_ELEMENT_TYPES_KEY } from '@cocoar/vue-page-builder';
 import { ratingElement } from './rating/ratingElement';
 
-app.provide(PAGE_ELEMENTS_KEY, { 'acme-rating': ratingElement });
+app.provide(PAGE_ELEMENT_TYPES_KEY, { 'acme-rating': ratingElement });
 ```
 
-Every builder/renderer in the app without its own `config.elements` picks these up.
+Every builder/renderer in the app without its own `config.elementTypes` picks these up.
 
 ### `allowedElements` composition
 
@@ -422,7 +422,7 @@ A document is data; the registry is code. The two can disagree — a document au
 |-----------|----------------|------------------|------------------|-------------|
 | **Unregistered type** (unknown to this app) | Red "Unknown type — skipped at runtime" treatment; node stays selectable, movable, deletable | Normalize *warning* — Apply is **not** blocked (only structural errors block), node round-trips byte-for-byte incl. its `children` | Skipped, one `console.warn` per type | Excluded — contributes no defaults, **cannot veto submit** |
 | **Registered but not in `allowedElements`** | Same blocked treatment + validation error; hidden from palette/add menu | Pasteable, kept | Skipped (this is the security boundary) | Excluded, same non-veto rule |
-| **v1 document** (pre-GA flat props, `schemaVersion` absent or `1`) | Migrated to the v2 props bag on ingest (`migrateV1PropsBag`, idempotent), missing names added and `schemaVersion: 5` stamped | Migrated on Apply | Migrated on the fly | Normal |
+| **v1 document** (pre-GA flat props, `schemaVersion` absent or `1`) | Migrated to the v2 props bag on ingest (`migrateV1PropsBag`, idempotent), missing names added and `schemaVersion: 6` stamped | Migrated on Apply | Migrated on the fly | Normal |
 
 The non-veto rule matters: a `required` field of a type this deployment can't render would otherwise permanently block every `validates: true` button. Submission is therefore **lenient by design** — an invisible field can't veto submit. If a document must not execute with fields missing, enforce that server-side against the payload.
 
@@ -434,7 +434,7 @@ When writing an element, you own the props bag and the components. Everything el
 
 - **Field section** — the props panel renders name / required / default-value controls automatically whenever the definition has a `value` spec. Your inspector never edits `node.name`, `node.validation` or `node.defaultValue`; supply `defaultValueInput` if the default needs a typed editor.
 - **Style section** — the universal `NodeStyle` editor (size, alignment, gap, padding; container fields keyed off `container`). Elements don't define their own layout props — `props` is for element vocabulary, `style` is host-owned.
-- **Drag and drop** — palette entry, canvas dropzones, outline reorder, duplicate, undo/redo. Dropzone legality derives from `container`; a freshly dropped node gets `id`, `props` from your `defaults()`, a minted `name` when the definition has a `value` spec (under a strict [field contract](./#field-contract) — `config.fields` set, `allowCustomFields` off — fresh value elements start unbound instead, and the author binds a contract field), and `children: []` when it's a container.
+- **Drag and drop** — palette entry, canvas dropzones, outline reorder, duplicate, undo/redo. Dropzone legality derives from `container`; a freshly dropped node gets `id`, `props` from your `defaults()`, a minted `name` when the definition has a `value` spec (under a strict [field contract](./#field-contract) — `config.dataContract` set, `allowCustomFields` off — fresh value elements start unbound instead, and the author binds a contract field), and `children: []` when it's a container.
 - **The allow gate** — `allowedElements` filtering in palette, canvas and renderer, including the value-model exclusion. Renderers never need to check it.
 - **Conditional visibility** — [`visibleWhen`](./coar-page-renderer#conditional-visibility-visiblewhen) is host vocabulary: the host hides the node (your renderer simply isn't mounted) and excludes its subtree from the value model. Never re-implement show/hide inside a renderer — a hidden-by-you `required` child would still veto submits.
 - **Enter-to-submit** — declare eligibility (`value.submitOnEnter`); the host wires the keydown routing and the default-button resolution. No key handlers needed in your renderer.

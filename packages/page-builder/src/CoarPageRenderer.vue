@@ -9,6 +9,7 @@ import { migrateLegacyTypes } from './builder/schemaNormalize';
 import {
   migrateV1PropsBag,
   migrateLegacyPasswordInput,
+  migrateRepeatContextPath,
   healMissingPropsBags,
 } from './builder/schemaMigrateV1';
 import {
@@ -59,8 +60,6 @@ const props = defineProps<{
   viewportWidth?: number
   /** Host-owned, typed runtime data. Only paths declared in config.contextFields are readable. */
   runtimeContext?: Record<string, unknown>
-  /** Host-controlled view state (for example `prompt`, `submitting`, `expired`). */
-  viewState?: string
   /** Active locale used to resolve LocalizedValue props. */
   locale?: string
   /** Host-owned built-in document used when the customized document violates its contract. */
@@ -139,7 +138,9 @@ watch(usingFallback, (active) => {
 const baseRenderSchema = computed(
   () =>
     healMissingPropsBags(
-      migrateLegacyPasswordInput(migrateV1PropsBag(migrateLegacyTypes(sourceSchema.value))),
+      migrateRepeatContextPath(
+        migrateLegacyPasswordInput(migrateV1PropsBag(migrateLegacyTypes(sourceSchema.value))),
+      ),
     ) as PageNode,
 );
 const renderSchema = computed(() => applyPageCodeValues(baseRenderSchema.value, props.pageCodeValues));
@@ -218,7 +219,6 @@ function isNodeVisible(node: PageNode, item?: unknown, allowedItemPaths?: Readon
     field: (path) => values.value[path],
     context: (path) => readAllowedContext(props.runtimeContext, props.config, path),
     item: (path) => allowedItemPaths?.has(path) ? safeReadPath(item, path) : undefined,
-    state: () => props.viewState,
   });
 }
 
@@ -716,7 +716,7 @@ const ctx: PageRendererContext = {
     warnedUnknown.add(type);
     console.warn(
       `[CoarPageRenderer] No element registration for type "${type}" — `
-      + `instances were skipped at render time (register it via config.elements).`,
+      + `instances were skipped at render time (register it via config.elementTypes).`,
     );
   },
   isVisible: isNodeVisible,
@@ -729,7 +729,6 @@ const ctx: PageRendererContext = {
     config: props.config,
     context: props.runtimeContext,
     pageState: props.pageCodeValues?.state,
-    viewState: props.viewState,
     locale: props.locale,
     item,
     itemIndex,
@@ -744,7 +743,6 @@ const ctx: PageRendererContext = {
     config: props.config,
     context: props.runtimeContext,
     pageState: props.pageCodeValues?.state,
-    viewState: props.viewState,
     locale: props.locale,
     item,
     itemIndex,
@@ -830,9 +828,19 @@ defineExpose({
 </template>
 
 <style scoped>
+/*
+ * Passes the host's box straight through to the page, which is exactly as big
+ * as its container and no bigger. The only requirement on the embedding
+ * application is that the container has a determinable height — a fixed one,
+ * a percentage chain up to a fixed ancestor, or a stretched flex/grid item.
+ * Deliberately no `position` requirement: `height: 100%` resolves against a
+ * static parent just as well, whereas an absolutely positioned renderer would
+ * silently attach itself to whatever ancestor happened to be positioned.
+ */
 .coar-page-renderer {
   display: block;
   width: 100%;
+  height: 100%;
   min-width: 0;
 }
 

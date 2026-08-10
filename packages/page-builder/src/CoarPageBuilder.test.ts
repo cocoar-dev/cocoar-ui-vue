@@ -80,9 +80,16 @@ describe('CoarPageBuilder — v-model wiring', () => {
     return mount(Host);
   }
 
+  async function openTool(wrapper: ReturnType<typeof mountWithConfig>, title: 'Insert elements' | 'Structure') {
+    await wrapper.get(`button[title="${title}"]`).trigger('click');
+    await nextTick();
+  }
+
   it('renders the registry as collapsible Containers / Elements groups', async () => {
     const wrapper = mountWithConfig({});
     await nextTick();
+    expect(wrapper.find('[aria-label="Element library"]').exists()).toBe(false);
+    await openTool(wrapper, 'Insert elements');
 
     const cards = (group: string) => wrapper
       .find(`[data-palette-group="${group}"]`)
@@ -106,9 +113,10 @@ describe('CoarPageBuilder — v-model wiring', () => {
   it('hideElementPicker removes free inputs while containers, content, actions and fields stay', async () => {
     const wrapper = mountWithConfig({
       hideElementPicker: true,
-      fields: [{ name: 'email', valueType: 'string', label: 'Email' }],
+      dataContract: [{ name: 'email', valueType: 'string', label: 'Email' }],
     });
     await nextTick();
+    await openTool(wrapper, 'Insert elements');
 
     expect(wrapper.find('[data-palette-group="containers"]').exists()).toBe(true);
     expect(wrapper.find('[data-palette-group="elements"]').exists()).toBe(true);
@@ -125,6 +133,7 @@ describe('CoarPageBuilder — v-model wiring', () => {
   it('offers separate Page State and Page Code entry points for the root', async () => {
     const wrapper = mountWithConfig({}, 'code');
     await nextTick();
+    await openTool(wrapper, 'Structure');
     const rootRow = wrapper.find('.pb-tree-row');
     await rootRow.trigger('click');
     await nextTick();
@@ -144,6 +153,7 @@ describe('CoarPageBuilder — v-model wiring', () => {
     } as PageNode;
     await nextTick();
     await nextTick();
+    await openTool(wrapper, 'Structure');
 
     const rows = wrapper.findAll('.pb-tree-row');
     await rows[1].trigger('click');
@@ -184,30 +194,21 @@ describe('CoarPageBuilder — v-model wiring', () => {
     expect(renamedActionNode.bindings?.['actionValues.locale']?.source).toBe('expression');
   });
 
-  it('does not advertise incomplete host values and selects a complete fixture', async () => {
+  // Preview inputs are the host's to supply. Without the ones its own config
+  // declares, the sandbox would run against invented data, so it stays off and
+  // says so rather than showing a page nobody can trust.
+  it('refuses to preview until the host supplies the inputs its config declares', async () => {
     const wrapper = mountWithConfig({
       contextFields: [{ path: 'auth.enabled', type: 'boolean' }],
-      availableStates: [{ id: 'ready', label: 'Ready' }],
       locales: [{ id: 'en', label: 'English' }],
-      previewFixtures: [{
-        id: 'complete',
-        label: 'Complete fixture',
-        context: { auth: { enabled: true } },
-        state: 'ready',
-        locale: 'en',
-        viewport: 'phone',
-      }],
     });
     await nextTick();
     const previewTab = wrapper.findAll('button').find((button) => button.text().trim() === 'Preview');
-    expect(previewTab).toBeDefined();
     await previewTab!.trigger('click');
     await nextTick();
 
-    const fixture = wrapper.find('.pb-builder__preview-control select');
-    expect(fixture.exists()).toBe(true);
-    expect(fixture.element.value).toBe('complete');
-    expect(fixture.findAll('option').map((option) => option.text())).not.toContain('Host values');
+    expect(wrapper.find('.pb-builder__preview-empty').exists()).toBe(true);
+    expect(wrapper.text()).toContain('Preview values are missing');
   });
 
   it('scopes previewTheme to the embedded renderer canvas', async () => {
@@ -261,5 +262,168 @@ describe('CoarPageBuilder — v-model wiring', () => {
     };
     expect(stack.type).toBe('stack');
     expect(stack.children[0].id).not.toBe(stack.children[1].id);
+  });
+});
+
+/**
+ * The builder draws its findings itself, but a host embedding it needs the same
+ * list — to gate a save button, to render its own issue panel. Before this the
+ * findings were reachable only through an internal provide.
+ */
+describe('CoarPageBuilder — findings emit', () => {
+  function emittedFindings(wrapper: ReturnType<typeof mountHost>) {
+    return (wrapper.findComponent(CoarPageBuilder).emitted('findings') ?? []) as Array<[
+      Array<{ nodeId: string; field?: string; severity: string; message: string }>,
+    ]>;
+  }
+
+  it('emits on mount, so a host that never edits still knows the state', async () => {
+    const wrapper = mountHost();
+    await nextTick();
+    expect(emittedFindings(wrapper).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('reports a finding the author introduced', async () => {
+    const wrapper = mountHost();
+    await nextTick();
+
+    wrapper.vm.schema = {
+      id: 'r',
+      type: 'page',
+      style: { height: '100vh' },
+      children: [],
+    } as unknown as PageNode;
+    await nextTick();
+    await nextTick();
+
+    const last = emittedFindings(wrapper).at(-1)![0];
+    expect(last.some((issue) => issue.field === 'style' && /host container/.test(issue.message))).toBe(true);
+  });
+
+  it('stays quiet when an edit leaves the findings untouched', async () => {
+    const wrapper = mountHost();
+    await nextTick();
+
+    wrapper.vm.schema = {
+      id: 'r',
+      type: 'page',
+      children: [{ id: 'h', type: 'heading', name: 'title', props: { text: 'One', level: 2 } }],
+    } as unknown as PageNode;
+    await nextTick();
+    await nextTick();
+    const before = emittedFindings(wrapper).length;
+
+    // Same findings, different text — a keystroke must not wake the host.
+    wrapper.vm.schema = {
+      id: 'r',
+      type: 'page',
+      children: [{ id: 'h', type: 'heading', name: 'title', props: { text: 'Two', level: 2 } }],
+    } as unknown as PageNode;
+    await nextTick();
+    await nextTick();
+
+    expect(emittedFindings(wrapper).length).toBe(before);
+  });
+
+  it('hands out a copy — a host mutating the payload cannot corrupt the builder', async () => {
+    const wrapper = mountHost();
+    await nextTick();
+
+    wrapper.vm.schema = {
+      id: 'r',
+      type: 'page',
+      style: { height: '100vh' },
+      children: [],
+    } as unknown as PageNode;
+    await nextTick();
+    await nextTick();
+
+    const payload = emittedFindings(wrapper).at(-1)![0];
+    const first = payload[0];
+    first.message = 'tampered';
+
+    // Re-emit with a genuinely different finding set, then back again: the
+    // builder's own list must still carry the original text.
+    wrapper.vm.schema = { id: 'r', type: 'page', children: [] } as unknown as PageNode;
+    await nextTick();
+    await nextTick();
+    wrapper.vm.schema = {
+      id: 'r',
+      type: 'page',
+      style: { height: '100vh' },
+      children: [],
+    } as unknown as PageNode;
+    await nextTick();
+    await nextTick();
+
+    expect(emittedFindings(wrapper).at(-1)![0][0].message).not.toBe('tampered');
+  });
+});
+
+/**
+ * `defaultValue` is what the author wrote; `initialValues` is what the host
+ * computed — a per-tenant setting, a record loaded for editing. The runtime
+ * merges the second over the first, and the preview has to show the same thing
+ * or it is showing a page that never exists.
+ */
+describe('CoarPageBuilder — preview initial values', () => {
+  function mountWithValues(initialValues?: Record<string, unknown>) {
+    const Host = defineComponent({
+      components: { CoarPageBuilder },
+      setup() {
+        const schema = ref<PageNode | undefined>({
+          id: 'r',
+          type: 'page',
+          children: [
+            { id: 'u', type: 'text-input', name: 'username', props: { label: 'User' }, defaultValue: 'authored' },
+            { id: 'r2', type: 'checkbox', name: 'rememberMe', props: { label: 'Remember me' }, defaultValue: false },
+          ],
+        } as unknown as PageNode);
+        // A plain setup return is not reactive — the swap test needs a ref.
+        return { schema, initialValues: ref(initialValues) };
+      },
+      template: '<div style="height: 600px"><CoarPageBuilder v-model="schema" :preview-initial-values="initialValues" /></div>',
+    });
+    return mount(Host);
+  }
+
+  async function openPreview(wrapper: ReturnType<typeof mountWithValues>) {
+    const tab = wrapper.findAll('button').find((button) => button.text().trim() === 'Preview');
+    await tab!.trigger('click');
+    await nextTick();
+    await nextTick();
+    // Scoped to the rendered page: the preview toolbar carries its own text
+    // input (the zoom percentage), which an unscoped lookup finds first.
+    const page = wrapper.find('.pb-builder__preview-pane .pb-page');
+    return {
+      text: (page.find('input[type="text"]').element as HTMLInputElement | undefined)?.value,
+      checked: (page.find('input[type="checkbox"]').element as HTMLInputElement | undefined)?.checked,
+    };
+  }
+
+  it('starts the preview from the authored defaults when the host supplies none', async () => {
+    const wrapper = mountWithValues();
+    await nextTick();
+    expect(await openPreview(wrapper)).toEqual({ text: 'authored', checked: false });
+  });
+
+  it('lets host values win, the same way the runtime resolves them', async () => {
+    const wrapper = mountWithValues({ username: 'from-backend', rememberMe: true });
+    await nextTick();
+    expect(await openPreview(wrapper)).toEqual({ text: 'from-backend', checked: true });
+  });
+
+  it('re-seeds the preview when the host swaps the values', async () => {
+    const wrapper = mountWithValues({ username: 'first', rememberMe: false });
+    await nextTick();
+    expect((await openPreview(wrapper)).text).toBe('first');
+
+    wrapper.vm.initialValues = { username: 'second', rememberMe: true };
+    await nextTick();
+    await nextTick();
+
+    const page = wrapper.find('.pb-builder__preview-pane .pb-page');
+    expect((page.find('input[type="text"]').element as HTMLInputElement).value).toBe('second');
+    expect((page.find('input[type="checkbox"]').element as HTMLInputElement).checked).toBe(true);
   });
 });

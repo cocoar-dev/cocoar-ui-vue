@@ -35,7 +35,6 @@ export interface PageCodeRuntimeOptions {
   schema: ReadonlyValue<PageNode>
   context: ReadonlyValue<Record<string, unknown>>
   viewport: ReadonlyValue<{ width: number; breakpoint: string }>
-  viewState?: ReadonlyValue<string | undefined>
   locale?: ReadonlyValue<string | undefined>
   enabled?: ReadonlyValue<boolean>
   tenantId?: string
@@ -74,7 +73,6 @@ export function usePageCodeRuntime(options: PageCodeRuntimeOptions) {
     form: rendererScope.value.form,
     context: options.context.value,
     viewport: options.viewport.value,
-    viewState: options.viewState?.value,
     locale: options.locale?.value,
   })
 
@@ -274,11 +272,6 @@ export function usePageCodeRuntime(options: PageCodeRuntimeOptions) {
       ...runtimePatches(previousViewport, nextViewport, ['viewport']),
     ])
   }, { deep: true })
-  if (options.viewState) {
-    watch(options.viewState, (next, previous) => {
-      enqueuePatches(runtimePatches(previous, next, ['viewState']))
-    })
-  }
   if (options.locale) {
     watch(options.locale, (next, previous) => {
       enqueuePatches(runtimePatches(previous, next, ['locale']))

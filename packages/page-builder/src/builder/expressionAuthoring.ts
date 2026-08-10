@@ -60,7 +60,7 @@ function contextLines(config?: PageConfig): string {
 }
 
 export function runtimeTypeLibrary(config?: PageConfig): CoarScriptEditorExtraLib[] {
-  const fields = config?.fields ?? [];
+  const fields = config?.dataContract ?? [];
   const fieldLines = fields.length
     ? fields.map((field) => `  readonly ${JSON.stringify(field.name)}: ${fieldType(field)};`).join('\n')
     : '  readonly [name: string]: unknown;';

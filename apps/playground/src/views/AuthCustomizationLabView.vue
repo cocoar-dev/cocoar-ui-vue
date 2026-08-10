@@ -5,22 +5,26 @@ import {
   CoarPageBuilder,
   CoarPageRenderer,
   usePageCodeRuntime,
-  AUTH_PAGE_COPY as AUTH_LAB_COPY,
-  createAuthPageConfig as createAuthLabConfig,
-  createAuthPageDocument as createAuthLabSchema,
   CURRENT_PAGE_SCHEMA_VERSION,
   type ActionHandler,
   type ActionValues,
-  type AuthPageLocale as AuthLabLocale,
-  type AuthPageSlot as AuthLabSlot,
   type ElementNode,
   type PageCompositionDefinition,
   type PageCompositionReference,
   type PageCompositionSummary,
   type PageNode,
+  type AuthoringFinding,
   compilePageCompositions,
   createInMemoryPageCompositionRepository,
 } from '@cocoar/vue-page-builder';
+import {
+  AUTH_PAGE_COPY as AUTH_LAB_COPY,
+  authViewStates,
+  createAuthPageConfig as createAuthLabConfig,
+  type AuthPageLocale as AuthLabLocale,
+  type AuthPageSlot as AuthLabSlot,
+} from './auth-customization/authPageConfig';
+import { loadAuthDemoDocument } from './auth-customization/documents';
 import AuthReferenceSurface from './auth-customization/AuthReferenceSurface.vue';
 import ConsentReferenceSurface from './auth-customization/ConsentReferenceSurface.vue';
 import type { AuthLabConsentScope, AuthLabProvider } from './auth-customization/authLabRuntime';
@@ -28,7 +32,6 @@ import { postAuthLab } from './auth-customization/authLabClient';
 import {
   AMZETTEL_VISUAL_CONFIG,
   AMZETTEL_BRAND_COMPOSITION,
-  createAmZettelPage,
 } from './auth-customization/amZettelVisual';
 
 type LabMode = 'compare' | 'renderer' | 'builder' | 'json' | 'contract' | 'requirements';
@@ -78,6 +81,14 @@ const consentClientName = ref('Northwind Analytics');
 const consentClientHostname = ref('analytics.northwind.example');
 const dynamicConsentClient = ref(true);
 const rendererResult = ref('');
+// The realm-setting case: "remember me" defaults per tenant, so the value the
+// form starts from is computed by the host, not written by the page author.
+const rememberMeDefault = ref(false);
+const knownUsername = ref('');
+const previewInitialValues = computed(() => ({
+  rememberMe: rememberMeDefault.value,
+  ...(knownUsername.value ? { username: knownUsername.value } : {}),
+}));
 const stateOverride = ref('');
 
 const providers = computed<AuthLabProvider[]>(() =>
@@ -153,7 +164,7 @@ function compositionEditorDocument(root?: ElementNode): PageNode {
     id: 'composition-editor-page',
     type: 'page',
     schemaVersion: CURRENT_PAGE_SCHEMA_VERSION,
-    style: { minHeight: '100%', padding: '32px', gap: '16px' },
+    style: { padding: '32px', gap: '16px' },
     children: [root ? cloneJson(root) : {
       id: 'new-composition-root',
       type: 'stack',
@@ -268,15 +279,14 @@ async function saveCompositionDefinition() {
 }
 
 function createLabSchema(target: AuthLabSlot): PageNode {
-  const base = createAuthLabSchema(target);
-  return target === 'login' || target === 'logout' ? createAmZettelPage(base) : base;
+  return loadAuthDemoDocument(target);
 }
 
 const schemas = reactive<Record<AuthLabSlot, PageNode>>({
   login: createLabSchema('login'),
-  'password-forgot': createAuthLabSchema('password-forgot'),
+  'password-forgot': createLabSchema('password-forgot'),
   logout: createLabSchema('logout'),
-  consent: createAuthLabSchema('consent'),
+  consent: createLabSchema('consent'),
 });
 
 const schema = computed<PageNode>({
@@ -292,8 +302,7 @@ const pageConfig = computed(() => ({
 }));
 const compositionPageConfig = computed(() => ({
   ...createAuthLabConfig('login', locale.value),
-  fields: undefined,
-  requiredNodes: undefined,
+  dataContract: undefined,
   allowCustomFields: true,
   visualMarkup: AMZETTEL_VISUAL_CONFIG,
 }));
@@ -329,7 +338,7 @@ const runtimeContext = computed<Record<string, unknown>>(() => ({
   feedback: { message: rendererResult.value, success: rendererResult.value.length > 0 },
   runtime: { viewState: viewState.value },
 }));
-const fallbackSchema = computed(() => createAuthLabSchema(slot.value));
+const fallbackSchema = computed(() => createLabSchema(slot.value));
 
 const runtimeViewport = computed(() => {
   const width = viewports[viewport.value].width ?? 1280;
@@ -422,6 +431,18 @@ const frameClass = computed(() => ({ 'device-frame--fluid': viewport.value === '
 function resetCurrentSchema() {
   schemas[slot.value] = createLabSchema(slot.value);
   rendererResult.value = '';
+}
+
+// ── Host-side use of the builder's authoring findings ────────────────────────
+// The builder draws these itself; a host still needs them to decide whether the
+// document may be persisted. Errors block, warnings only inform.
+const builderFindings = ref<AuthoringFinding[]>([]);
+const builderBlockers = computed(() => builderFindings.value.filter((finding) => finding.severity === 'error'));
+
+function saveFromBuilder() {
+  rendererResult.value = builderBlockers.value.length > 0
+    ? 'Refused to save — resolve the errors first.'
+    : `Saved ${slot.value} / ${locale.value.toUpperCase()} with ${builderFindings.value.length} warning(s).`;
 }
 
 function loadAmZettelConsumerTest() {
@@ -775,7 +796,7 @@ const requirements = [
         View state
         <select v-model="stateOverride" aria-label="Host view state">
           <option value="">Automatic · {{ defaultViewState }}</option>
-          <option v-for="state in pageConfig.availableStates" :key="state.id" :value="state.id">{{ state.label }}</option>
+          <option v-for="state in authViewStates(slot)" :key="state" :value="state">{{ state }}</option>
         </select>
       </label>
       <span class="scenario-note"
@@ -836,7 +857,7 @@ const requirements = [
           <CoarPageRenderer
             :schema="runtimeSchema" :fallback-schema="fallbackSchema" :config="pageConfig"
             :actions="rendererActions" :runtime-context="runtimeContext"
-            :view-state="viewState" :locale="locale" :viewport-width="viewports[viewport].width"
+            :locale="locale" :viewport-width="viewports[viewport].width"
             :page-code-values="pageCodeValues" :on-action="runPageAction"
             @runtime-change="onRuntimeChange"
           />
@@ -849,7 +870,7 @@ const requirements = [
         <CoarPageRenderer
           :schema="runtimeSchema" :fallback-schema="fallbackSchema" :config="pageConfig"
           :actions="rendererActions" :runtime-context="runtimeContext"
-          :view-state="viewState" :locale="locale" :viewport-width="viewports[viewport].width"
+          :locale="locale" :viewport-width="viewports[viewport].width"
           :page-code-values="pageCodeValues" :on-action="runPageAction"
           @runtime-change="onRuntimeChange"
         />
@@ -862,14 +883,41 @@ const requirements = [
           Edit structure, Quick Properties, Page State and per-element code. The preview executes
           the same browser runtime as the standalone renderer.
         </p>
+        <div class="builder-host-values">
+          <label>
+            <input v-model="rememberMeDefault" type="checkbox" />
+            Realm default: remember me
+          </label>
+          <label>
+            Known username
+            <input v-model="knownUsername" type="text" placeholder="(empty)" />
+          </label>
+        </div>
         <CoarButton variant="secondary" @click="resetCurrentSchema"
           >Reset {{ slot }} / {{ locale.toUpperCase() }}</CoarButton
         >
       </div>
+      <!-- What a real host does with `@findings`: gate the save, list the blockers. -->
+      <div class="builder-findings">
+        <span class="builder-findings__summary" :class="{ 'is-clean': builderFindings.length === 0 }">
+          {{ builderFindings.length === 0
+            ? 'No authoring findings'
+            : `${builderBlockers.length} error(s), ${builderFindings.length - builderBlockers.length} warning(s)` }}
+        </span>
+        <CoarButton size="s" :disabled="builderBlockers.length > 0" @click="saveFromBuilder">Save</CoarButton>
+        <ul v-if="builderFindings.length > 0" class="builder-findings__list">
+          <li v-for="(finding, index) in builderFindings" :key="index" :class="`is-${finding.severity}`">
+            {{ finding.message }}
+            <code>{{ finding.nodeId }}{{ finding.field ? `.${finding.field}` : '' }}</code>
+          </li>
+        </ul>
+      </div>
       <CoarPageBuilder
         v-model="schema" :config="pageConfig" class="builder"
         authoring-mode="code"
-        :preview-context="runtimeContext" :preview-state="viewState"
+        @findings="builderFindings = $event"
+        :preview-context="runtimeContext"
+        :preview-initial-values="previewInitialValues"
         :preview-locale="locale" :preview-actions="rendererActions"
         :preview-fallback-schema="fallbackSchema"
         :composition-repository="compositionRepository"
@@ -1026,7 +1074,6 @@ const requirements = [
           class="builder composition-builder"
           authoring-mode="code"
           :preview-context="runtimeContext"
-          :preview-state="viewState"
           :preview-locale="locale"
           :preview-actions="rendererActions"
           :composition-repository="compositionRepository"
@@ -1404,6 +1451,66 @@ const requirements = [
   margin: 0;
   color: var(--coar-text-neutral-secondary, #5f6470);
 }
+.builder-host-values {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.8125rem;
+  color: var(--coar-text-neutral-secondary, #5f6470);
+}
+
+.builder-host-values label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.builder-host-values input[type='text'] {
+  width: 9rem;
+}
+
+.builder-findings {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.builder-findings__summary {
+  font-size: 0.8125rem;
+  color: var(--coar-text-semantic-warning-bold, #92400e);
+}
+
+.builder-findings__summary.is-clean {
+  color: var(--coar-text-neutral-tertiary, #8a8a90);
+}
+
+.builder-findings__list {
+  flex: 1 0 100%;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-height: 7rem;
+  overflow: auto;
+  font-size: 0.75rem;
+}
+
+.builder-findings__list .is-error {
+  color: var(--coar-text-semantic-error-bold, #c0392b);
+}
+
+.builder-findings__list .is-warning {
+  color: var(--coar-text-semantic-warning-bold, #92400e);
+}
+
+.builder-findings__list code {
+  color: var(--coar-text-neutral-tertiary, #8a8a90);
+}
+
 .builder {
   height: 68vh;
   min-height: 36rem;

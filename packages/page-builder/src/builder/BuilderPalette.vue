@@ -88,7 +88,7 @@ const boundNames = computed(() => {
 });
 
 const fieldEntries = computed<FieldPaletteEntry[]>(() =>
-  (config?.value?.fields ?? [])
+  (config?.value?.dataContract ?? [])
     .map((field) => ({
       field,
       elementType: defaultElementForField(elements.value, field, config?.value),
@@ -151,7 +151,7 @@ function onFieldPointerDown(event: PointerEvent, entry: FieldPaletteEntry) {
     </div>
 
     <div class="pb-library__scroll">
-      <section v-if="config?.fields?.length" class="pb-library__group" data-palette-group="fields">
+      <section v-if="config?.dataContract?.length" class="pb-library__group" data-palette-group="fields">
         <button type="button" class="pb-library__group-toggle" :aria-expanded="!collapsed.fields" @click="collapsed.fields = !collapsed.fields">
           <CoarIcon :name="collapsed.fields ? 'chevron-right' : 'chevron-down'" size="xs" />
           <span>{{ t('coar.pageBuilder.palette.fields', undefined, 'Fields') }}</span>
@@ -258,23 +258,24 @@ function onFieldPointerDown(event: PointerEvent, entry: FieldPaletteEntry) {
 <style scoped>
 .pb-library { display: flex; flex: 1; min-height: 0; flex-direction: column; overflow: hidden; background: var(--coar-background-neutral-primary, #fff); }
 .pb-library__sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
-.pb-library__search { flex: 0 0 auto; padding: 10px; border-bottom: 1px solid var(--coar-border-neutral, #e2e2e6); }
+.pb-library__search { flex: 0 0 auto; padding: 10px 9px; border-bottom: 1px solid var(--coar-border-neutral-tertiary, #ececef); }
 .pb-library__scroll { flex: 1; min-height: 0; overflow: auto; }
-.pb-library__group { border-bottom: 1px solid var(--coar-border-neutral, #e2e2e6); }
-.pb-library__group-toggle { display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; align-items: center; gap: 6px; width: 100%; height: 34px; padding: 0 10px; border: 0; background: var(--coar-background-neutral-secondary, #f7f7f9); color: var(--coar-text-neutral-secondary, #555); font: inherit; font-size: 10px; font-weight: 700; letter-spacing: .055em; text-align: left; text-transform: uppercase; cursor: pointer; }
-.pb-library__group-toggle:hover { background: var(--coar-background-neutral-tertiary, #efeff2); }
-.pb-library__group-toggle small { min-width: 20px; padding: 1px 5px; border-radius: 999px; background: var(--coar-background-neutral-primary, #fff); color: var(--coar-text-neutral-tertiary, #777); font-size: 9px; text-align: center; }
-.pb-library__items { display: grid; gap: 4px; padding: 7px; }
-.pb-library__item { --item-color: #555; display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; align-items: center; gap: 7px; min-height: 30px; padding: 4px 8px; border: 1px solid color-mix(in srgb, var(--item-color) 82%, #000); border-radius: 5px; background: var(--item-color); color: #fff; font: inherit; font-size: 12px; font-weight: 600; text-align: left; cursor: grab; user-select: none; touch-action: none; }
-.pb-library__item:hover { background: color-mix(in srgb, var(--item-color) 86%, #000); border-color: color-mix(in srgb, var(--item-color) 70%, #000); }
+.pb-library__group { border-bottom: 1px solid var(--coar-border-neutral-tertiary, #ececef); }
+.pb-library__group-toggle { display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; align-items: center; gap: 6px; width: 100%; height: 36px; padding: 0 10px; border: 0; background: transparent; color: var(--coar-text-neutral-secondary, #5f6368); font: inherit; font-size: 12px; font-weight: 500; letter-spacing: .01em; text-align: left; cursor: pointer; }
+.pb-library__group-toggle:hover { background: var(--coar-background-neutral-secondary, #f6f6f7); }
+.pb-library__group-toggle small { min-width: 18px; padding: 0; color: var(--coar-text-neutral-tertiary, #8b8f96); font-size: 10px; font-weight: 400; text-align: right; }
+.pb-library__items { display: grid; gap: 2px; padding: 3px 6px 8px; }
+.pb-library__item { --item-accent: #6c7078; display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; align-items: center; gap: 7px; min-height: 30px; padding: 4px 7px; border: 1px solid transparent; border-radius: 4px; background: transparent; color: var(--coar-text-neutral-primary, #303238); font: inherit; font-size: 12px; font-weight: 400; text-align: left; cursor: grab; user-select: none; touch-action: none; }
+.pb-library__item:hover { border-color: var(--coar-border-neutral-tertiary, #e4e5e8); background: var(--coar-background-neutral-secondary, #f5f5f6); }
 .pb-library__item > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pb-library__item > small { color: rgba(255, 255, 255, .82); font-size: 9px; }
-.pb-library__item--container { --item-color: #1666cc; }
-.pb-library__item--element { --item-color: #047857; }
-.pb-library__item--composition { --item-color: #a44705; }
-.pb-library__item--field { --item-color: #6d28d9; }
+.pb-library__item > :first-child { color: var(--item-accent); }
+.pb-library__item > small { color: var(--coar-text-neutral-tertiary, #8b8f96); font-size: 9px; }
+.pb-library__item--container { --item-accent: #52749a; }
+.pb-library__item--element { --item-accent: #5f6b72; }
+.pb-library__item--composition { --item-accent: #806b52; }
+.pb-library__item--field { --item-accent: #725f88; }
 .pb-library__item--dragging { opacity: .4; cursor: grabbing; }
 .pb-library__item:disabled { opacity: .43; cursor: default; }
-.pb-library__required { color: #fff; font-weight: 800; }
+.pb-library__required { color: var(--coar-text-semantic-error-bold, #b42318); font-weight: 500; }
 .pb-library__empty { margin: 4px 3px; color: var(--coar-text-neutral-tertiary, #777); font-size: 11px; }
 </style>

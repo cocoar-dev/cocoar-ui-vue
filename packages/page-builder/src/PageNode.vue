@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { InjectionKey, ComputedRef } from 'vue';
+import type { InjectionKey, ComputedRef, CSSProperties } from 'vue';
 import type { FlexDirection } from './styleMapping';
 
 /**
@@ -12,16 +12,14 @@ const PB_PARENT_DIRECTION: InjectionKey<ComputedRef<FlexDirection>> =
 
 /** A throwing consumer `submitOnEnter` predicate warns once per type, not per keystroke. */
 const warnedEnterHookThrew = new Set<string>();
-const warnedStylePresets = new Set<string>();
 </script>
 
 <script setup lang="ts">
 import { computed, inject, provide } from 'vue';
 import { isElementAllowed, type ElementNode, type PageNode, type RepeatSelection, type StackNode } from './schema';
-import { selfStyle, containerLayoutStyle } from './styleMapping';
+import { selfStyle, containerLayoutStyle, withoutPageRootSize } from './styleMapping';
 import { PAGE_RENDERER_KEY, type RepeatRenderScope } from './context';
 import { safeReadPath } from './runtimeBindings';
-import { findStylePreset } from './stylePresets';
 
 defineOptions({ name: 'PageNode' });
 
@@ -68,20 +66,6 @@ const def = computed(() => {
   return d;
 });
 
-const stylePresetClass = computed(() => {
-  if (!props.node.stylePreset) return undefined;
-  const preset = findStylePreset(ctx!.config, props.node);
-  if (preset) return preset.className;
-  const warningKey = `${props.node.type}:${props.node.stylePreset}`;
-  if (!warnedStylePresets.has(warningKey)) {
-    warnedStylePresets.add(warningKey);
-    console.warn(
-      `[CoarPageRenderer] Unknown, unsafe, or disallowed style preset "${props.node.stylePreset}" on "${props.node.type}" — ignored.`,
-    );
-  }
-  return undefined;
-});
-
 // ─── Style helpers ────────────────────────────────────────────────────────────
 // Mapping lives in styleMapping.ts (pure, unit-tested). `wrapperStyle` is the
 // node's own outer style, applied onto the renderer's root element via
@@ -90,11 +74,15 @@ const stylePresetClass = computed(() => {
 // Direction-aware sizing: read the parent container's direction, and tell our
 // own children what direction WE impose on them.
 const parentDirection = inject(PB_PARENT_DIRECTION, undefined);
-const ownDirection = computed<FlexDirection>(() =>
-  props.node.type === 'stack'
-    ? (resolvedStyle.value.direction ?? (props.node as StackNode).props.direction ?? 'column')
-    : 'column',
-);
+const ownDirection = computed<FlexDirection>(() => {
+  // Any container can be a row now, so children must be told the truth or
+  // `size` would map against the wrong axis. props.direction stays as the
+  // stack's legacy fallback only.
+  if (resolvedStyle.value.direction) return resolvedStyle.value.direction;
+  return props.node.type === 'stack'
+    ? ((props.node as StackNode).props.direction ?? 'column')
+    : 'column';
+});
 provide(PB_PARENT_DIRECTION, ownDirection);
 
 const resolvedStyle = computed(() => ctx!.resolveStyle(props.node));
@@ -121,6 +109,13 @@ const resolvedNode = computed<PageNode>(() => {
 const wrapperStyle = computed(() =>
   selfStyle(resolvedStyle.value, parentDirection?.value ?? 'column'),
 );
+
+/**
+ * The page root is always exactly its host container, so its own size values
+ * are dropped. Everything else, including overflow, still comes from the
+ * document. Shared with the canvas so editor and renderer agree.
+ */
+const pageRootStyle = computed<CSSProperties>(() => withoutPageRootSize(wrapperStyle.value));
 
 const children = computed(() =>
   'children' in props.node && Array.isArray(props.node.children) ? props.node.children : [],
@@ -154,8 +149,8 @@ const enterEligible = computed(() => {
     <!-- ── page root (host-owned; always a column) ─────────────────────────── -->
     <div
       v-if="node.type === 'page'"
-      :class="['pb-page', stylePresetClass]"
-      :style="{ ...wrapperStyle, ...containerLayoutStyle(resolvedStyle) }"
+      class="pb-page"
+      :style="{ ...pageRootStyle, ...containerLayoutStyle(resolvedStyle) }"
     >
       <PageNode
         v-for="child in children"
@@ -174,7 +169,6 @@ const enterEligible = computed(() => {
       v-else-if="def"
       :node="resolvedNode"
       :style="wrapperStyle"
-      :class="stylePresetClass"
       :data-pb-enter-submit="enterEligible ? 'true' : undefined"
     >
       <template v-if="def.container" #default="slotScope: RepeatRenderScope">
@@ -195,9 +189,25 @@ const enterEligible = computed(() => {
 </template>
 
 <style scoped>
+/*
+ * Exactly the host container, never more: whether that is the body, an overlay
+ * or a virtualised grid cell, the embedding application owns the size.
+ *
+ * overflow:auto rather than hidden — clipping would make content that does not
+ * fit unreachable rather than merely unseen, which on a small viewport can hide
+ * the very controls a page exists for. A document can still set overflow
+ * explicitly; only the size values are ignored.
+ */
 .pb-page {
   display: flex;
   flex-direction: column;
+  /* The page is exactly its host container — which is only true if its own
+     padding stays INSIDE that box. Without this, an authored padding is added
+     to 100% and the page is wider than the container it is supposed to fill. */
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
   min-width: 0;
+  overflow: auto;
 }
 </style>

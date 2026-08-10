@@ -4,7 +4,7 @@ import type { RuntimeResolutionContext } from '../runtimeBindings';
 import type { CoarScriptEditorExtraLib } from '@cocoar/vue-script-editor';
 import type { PageCodeRuntimeValues } from '../pageCode';
 import type { UsePageBuilderReturn } from './usePageBuilder';
-import type { UseSchemaValidationReturn } from './useSchemaValidation';
+import type { UseAuthoringFindingsReturn } from './useAuthoringFindings';
 import type { UsePageCompositionsReturn } from './usePageCompositions';
 
 export const BUILDER_API: InjectionKey<UsePageBuilderReturn> = Symbol('PageBuilderApi');
@@ -14,7 +14,7 @@ export const BUILDER_CONFIG: InjectionKey<ComputedRef<PageConfig | undefined>> =
   Symbol('PageBuilderConfig');
 
 /** Reactive validation issues for the current schema, keyed by node id. */
-export const BUILDER_VALIDATION: InjectionKey<UseSchemaValidationReturn> =
+export const BUILDER_FINDINGS: InjectionKey<UseAuthoringFindingsReturn> =
   Symbol('PageBuilderValidation');
 
 /** Breakpoint currently being authored in the canvas and universal style panel. */

@@ -10,7 +10,7 @@ function patchSelection(update: Partial<RepeatSelection>) {
 }
 </script>
 <template>
-  <CoarFormField label="Context array path"><CoarTextInput size="s" :model-value="node.props.source" @update:model-value="(v) => patchProps({ source: v })" /></CoarFormField>
+  <CoarFormField label="Context array path"><CoarTextInput size="s" :model-value="node.props.contextPath" @update:model-value="(v) => patchProps({ contextPath: v })" /></CoarFormField>
   <CoarFormField label="Stable key item path"><CoarTextInput size="s" :model-value="node.props.keyPath" @update:model-value="(v) => patchProps({ keyPath: v })" /></CoarFormField>
   <CoarFormField label="Empty text"><CoarTextInput size="s" :model-value="node.props.emptyText ?? ''" @update:model-value="(v) => patchProps({ emptyText: v || undefined })" /></CoarFormField>
   <CoarFormField label="Selection output field"><CoarTextInput size="s" :model-value="selection?.name ?? ''" @update:model-value="(v) => patchSelection({ name: v })" /></CoarFormField>

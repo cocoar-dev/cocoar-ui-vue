@@ -491,26 +491,18 @@ describe('CoarPageRenderer — schema & config contract', () => {
     expect(input.attributes('autocomplete')).toBe('email');
   });
 
-  it('resolves host style presets for the page root and safely ignores disallowed presets', () => {
-    const schema: PageNode = {
+  // Style presets are gone: a leftover key must render as if it were not there,
+  // and must not put a host class name into the page.
+  it('ignores a leftover stylePreset without emitting any class from it', () => {
+    const schema = {
       id: 'r', type: 'page', stylePreset: 'app-shell', children: [{
         id: 'stack', type: 'stack', name: 'content', stylePreset: 'app-shell', props: {}, children: [],
       }],
-    };
-    const wrapper = mount(CoarPageRenderer, {
-      props: {
-        schema,
-        config: {
-          stylePresets: [{
-            id: 'app-shell', label: 'Application shell', className: 'application-shell', allowedOn: ['page'],
-          }],
-        },
-      },
-    });
+    } as unknown as PageNode;
+    const wrapper = mount(CoarPageRenderer, { props: { schema } });
 
-    expect(wrapper.find('.pb-page').classes()).toContain('application-shell');
-    expect(wrapper.find('.pb-stack').classes()).not.toContain('application-shell');
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('style preset'));
+    expect(wrapper.find('.pb-page').exists()).toBe(true);
+    expect(wrapper.html()).not.toContain('app-shell');
   });
 });
 
@@ -853,7 +845,7 @@ describe('CoarPageRenderer — payload & email format contract', () => {
       props: {
         schema,
         actions: { run },
-        config: { elements: { 'acme-action-chip': { renderer: ActionChip, action: true } } },
+        config: { elementTypes: { 'acme-action-chip': { renderer: ActionChip, action: true } } },
       },
     });
 
@@ -1489,7 +1481,7 @@ describe('CoarPageRenderer — R1/R2 hardening (verified audit findings)', () =>
     const wrapper = mount(CoarPageRenderer, {
       props: {
         schema,
-        config: { elements: { 'obj-holder': objHolder } },
+        config: { elementTypes: { 'obj-holder': objHolder } },
         initialValues: { geo },
       },
     });
@@ -1570,7 +1562,7 @@ describe('CoarPageRenderer — R1/R2 hardening (verified audit findings)', () =>
       ],
     } as unknown as PageNode;
     const wrapper = mount(CoarPageRenderer, {
-      props: { schema, config: { elements: { 'acme-thing': labelReader } } },
+      props: { schema, config: { elementTypes: { 'acme-thing': labelReader } } },
     });
     expect(wrapper.find('.consumer-el').text()).toBe('no label');
     expect(wrapper.text()).toContain('Sibling survives');
@@ -1658,3 +1650,5 @@ describe('CoarPageRenderer — initialValues', () => {
     expect(send).toHaveBeenCalledWith({ email: 'second@y.z', amount: 5 });
   });
 });
+
+

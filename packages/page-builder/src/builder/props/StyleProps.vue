@@ -11,9 +11,7 @@ import {
 import type { ElementNode, PageBreakpoint, PageNode, NodeStyle } from '../../schema';
 import { localNodeStyle, resolveNodeStyle } from '../../responsive';
 import { BUILDER_BREAKPOINT } from '../builderContext';
-import { BUILDER_CONFIG } from '../builderContext';
 import BuilderFxButton from '../BuilderFxButton.vue';
-import { isSafeStylePreset } from '../../stylePresets';
 
 const props = defineProps<{
   node: PageNode;
@@ -25,7 +23,6 @@ const props = defineProps<{
 
 const { t } = useI18n();
 const activeBreakpoint = inject(BUILDER_BREAKPOINT)!;
-const config = inject(BUILDER_CONFIG);
 
 const style = computed<NodeStyle>(() => resolveNodeStyle(props.node, activeBreakpoint.value));
 const localStyle = computed<Partial<NodeStyle>>(() => localNodeStyle(props.node, activeBreakpoint.value));
@@ -41,30 +38,6 @@ const options = (values: readonly string[]): CoarSelectOption<string>[] => [
   { value: '', label: '— inherit / default' },
   ...values.map((value) => ({ value, label: value })),
 ];
-
-const presetOptions = computed<CoarSelectOption<string>[] | null>(() => {
-  const seen = new Set<string>();
-  const available = (config?.value?.stylePresets ?? [])
-    .filter((preset) => isSafeStylePreset(preset) && preset.allowedOn.includes(props.node.type))
-    .filter((preset) => {
-      if (seen.has(preset.id)) return false;
-      seen.add(preset.id);
-      return true;
-    })
-    .map((preset) => ({ value: preset.id, label: preset.label }));
-  const current = props.node.stylePreset;
-  if (current && !seen.has(current)) {
-    available.push({
-      value: current,
-      label: t('coar.pageBuilder.props.notConfigured', { id: current }, '{id} (not configured)'),
-    });
-  }
-  if (!available.length && !current) return null;
-  return [
-    { value: '', label: t('coar.pageBuilder.props.none', undefined, '— none') },
-    ...available,
-  ];
-});
 
 function setBreakpoint(value: string | null) {
   if (value) activeBreakpoint.value = value as PageBreakpoint;
@@ -101,11 +74,13 @@ const sizeOptions = computed<CoarSelectOption<string>[]>(() => [
   { value: '', label: t('coar.pageBuilder.props.sizeAuto', undefined, 'Auto') },
   { value: 'fit', label: t('coar.pageBuilder.props.sizeFit', undefined, 'Fit content') },
   { value: 'fill', label: t('coar.pageBuilder.props.sizeFill', undefined, 'Fill') },
+  { value: 'grow', label: t('coar.pageBuilder.props.sizeGrow', undefined, 'Grow (both directions)') },
   { value: 'fixed', label: t('coar.pageBuilder.props.sizeFixedWidth', undefined, 'Fixed width') },
 ]);
 
 function setSize(v: string) {
   if (v === 'fill') props.patchStyle({ size: 'fill', width: undefined });
+  else if (v === 'grow') props.patchStyle({ size: 'grow', width: undefined });
   else if (v === 'fit') props.patchStyle({ size: 'fit', width: undefined });
   else if (v === 'fixed') props.patchStyle({ size: 'fixed' });
   else props.patchStyle({ size: undefined, width: undefined });
@@ -130,19 +105,6 @@ size="s"
       </button>
     </template>
   </div>
-
-  <CoarFormField
-    v-if="presetOptions"
-    :label="t('coar.pageBuilder.props.stylePreset', undefined, 'Style preset')"
-    :hint="t('coar.pageBuilder.props.stylePresetHint', undefined, 'Host-registered appearance; the document stores only its safe id')"
-  >
-    <CoarSelect
-      size="s"
-      :model-value="node.stylePreset ?? ''"
-      :options="presetOptions"
-      @update:model-value="(value) => props.patchNode({ stylePreset: value || undefined })"
-    />
-  </CoarFormField>
 
   <template v-if="isStack">
     <CoarFormField label="Stack direction">

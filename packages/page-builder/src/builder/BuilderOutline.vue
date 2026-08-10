@@ -45,6 +45,10 @@ function onTreeKeydown(e: KeyboardEvent) {
 <style scoped>
 .pb-outline-wrap {
   overflow-y: auto;
+  /* Without border-box the vertical padding is added on top of height:100%,
+     so the tree overflows its host by exactly 8px and the host grows a second
+     scrollbar next to this one. */
+  box-sizing: border-box;
   height: 100%;
   padding: 4px 0;
 }

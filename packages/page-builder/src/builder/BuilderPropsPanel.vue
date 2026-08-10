@@ -11,18 +11,26 @@ import {
   type CoarSelectOption,
 } from '@cocoar/vue-ui';
 import type { LocalizedValue, PageBreakpoint, PageNode, NodeStyle, ElementNode, FieldValidation, PageRootNode, PageTranslations, PropertyBinding, RepeatNode, RuntimeBinding, RuntimeExpressionBinding, TranslationBinding, VisibleWhen } from '../schema';
-import { BUILDER_API, BUILDER_AUTHORING_MODE, BUILDER_BREAKPOINT, BUILDER_COMPOSITIONS, BUILDER_CONFIG, BUILDER_LOCALE, BUILDER_LOGIC, BUILDER_PAGE_CODE_VALUES, BUILDER_VALIDATION } from './builderContext';
+import { BUILDER_API, BUILDER_AUTHORING_MODE, BUILDER_BREAKPOINT, BUILDER_COMPOSITIONS, BUILDER_CONFIG, BUILDER_LOCALE, BUILDER_LOGIC, BUILDER_PAGE_CODE_VALUES, BUILDER_FINDINGS } from './builderContext';
 import type { NodePath } from './operations';
 import { useMergedElements } from '../elements/useMergedElements';
 import { compatibleFields, compatibleElementTypes } from '../elements/fieldContract';
 import { isElementAllowed } from '../schema';
+import { resolveNodeStyle } from '../responsive';
 import StyleProps from './props/StyleProps.vue';
 import ActionPropsEditor from './props/ActionPropsEditor.vue';
 import { isExpressionBinding } from '../runtimeBindings';
 import { expressionLiteral } from './expressionAuthoring';
 import { collectElementNames, elementNameBase, uniqueElementName } from './nodeDefaults';
-import { readElementQuickProperties, setElementQuickProperty } from '../pageCode';
-import type { PageElementQuickProperty } from '../elements/registry';
+import { readElementQuickProperties, setElementQuickProperty, setPageRootQuickProperty } from '../pageCode';
+import {
+  PAGE_ROOT_QUICK_PROPERTIES,
+  isQuickCompound,
+  type PageElementQuickCompound,
+  type PageElementQuickEntry,
+  type PageElementQuickProperty,
+} from '../elements/registry';
+import CompoundLengthProperty from './props/CompoundLengthProperty.vue';
 import { isTranslationBinding, pageTranslationTemplate, translation, translationKeyFor } from '../translations';
 import { isBindableActionValueField } from '../actionValues';
 
@@ -32,7 +40,7 @@ const { t } = useI18n();
 
 const builder = inject(BUILDER_API)!;
 const config = inject(BUILDER_CONFIG);
-const validation = inject(BUILDER_VALIDATION);
+const findings = inject(BUILDER_FINDINGS);
 const activeBreakpoint = inject(BUILDER_BREAKPOINT)!;
 const elements = useMergedElements(config);
 const logic = inject(BUILDER_LOGIC);
@@ -69,8 +77,15 @@ const fieldNode = computed<ElementNode | null>(() =>
 
 const inspector = computed(() => def.value?.builder?.inspector);
 const defaultValueInput = computed(() => def.value?.builder?.defaultValueInput);
-const quickProperties = computed(() => def.value?.builder?.quickProperties ?? []);
-const quickPropertyValues = computed(() => readElementQuickProperties(elementNode.value?.elementCode));
+// The page root is not a registered element, so its shortcuts come from the
+// registry constant. Both write into their own code draft's Quick Properties
+// block, which uses one shared metadata format.
+const quickProperties = computed<readonly PageElementQuickEntry[]>(() =>
+  pageNode.value ? PAGE_ROOT_QUICK_PROPERTIES : def.value?.builder?.quickProperties ?? [],
+);
+const quickPropertyValues = computed(() => readElementQuickProperties(
+  pageNode.value ? pageNode.value.rootCode : elementNode.value?.elementCode,
+));
 
 const inspectorTitle = computed(() => {
   const b = def.value?.builder;
@@ -89,7 +104,7 @@ const pageNode = computed<PageRootNode | null>(() =>
 );
 
 const nodeIssues = computed(() =>
-  node.value ? validation?.byNodeId.value.get(node.value.id) ?? [] : [],
+  node.value ? findings?.byNodeId.value.get(node.value.id) ?? [] : [],
 );
 
 function patch(update: Partial<PageNode>) {
@@ -114,14 +129,67 @@ function patchStyle(update: Partial<NodeStyle>) {
   patch({ responsive: Object.keys(responsive).length ? responsive : undefined } as Partial<PageNode>);
 }
 
+/**
+ * Style values cascade mobile-first, so the BASE value is not what the canvas
+ * shows once an override exists: a node hidden on Compact and revealed on
+ * Desktop read as "hidden" while sitting plainly visible in front of the
+ * author. Resolve against the breakpoint being authored — the same function
+ * the canvas and the renderer use — so the field agrees with the canvas.
+ */
+function documentStyleValue(key: keyof NodeStyle): unknown {
+  const current: Pick<PageNode, 'style' | 'responsive'> | null = pageNode.value ?? elementNode.value;
+  return current ? resolveNodeStyle(current, activeBreakpoint.value)[key] : undefined;
+}
+
+/**
+ * True when the value on screen comes from a breakpoint override rather than
+ * the base. Editing the field writes ONE assignment that applies everywhere,
+ * so the author has to know the difference is there before flattening it.
+ */
+function isBreakpointInherited(path: string): boolean {
+  if (!path.startsWith('style.')) return false;
+  // An explicit assignment wins over the document at every breakpoint alike.
+  if (Object.prototype.hasOwnProperty.call(quickPropertyValues.value, path)) return false;
+  const current: Pick<PageNode, 'style' | 'responsive'> | null = pageNode.value ?? elementNode.value;
+  if (!current) return false;
+  const key = path.slice('style.'.length) as keyof NodeStyle;
+  return resolveNodeStyle(current, activeBreakpoint.value)[key] !== (current.style ?? {})[key];
+}
+
+const BREAKPOINT_LABELS: Readonly<Record<PageBreakpoint, string>> = {
+  compact: 'Compact',
+  phone: 'Phone',
+  tablet: 'Tablet',
+  desktop: 'Desktop',
+};
+const OVERRIDE_CASCADE = ['phone', 'tablet', 'desktop'] as const;
+
+/** Which override the displayed value came from — the last one that wins. */
+function breakpointSourceLabel(path: string): string {
+  const current: Pick<PageNode, 'style' | 'responsive'> | null = pageNode.value ?? elementNode.value;
+  if (!current) return '';
+  const key = path.slice('style.'.length) as keyof NodeStyle;
+  let source: PageBreakpoint | undefined;
+  for (const breakpoint of OVERRIDE_CASCADE) {
+    if (current.responsive?.[breakpoint]?.[key] !== undefined) source = breakpoint;
+    if (breakpoint === activeBreakpoint.value) break;
+  }
+  return source ? BREAKPOINT_LABELS[source] : '';
+}
+
 function quickPropertyRawValue(property: PageElementQuickProperty): unknown {
   const authored = quickPropertyValues.value;
   if (Object.prototype.hasOwnProperty.call(authored, property.path)) return authored[property.path];
   const [root, key] = property.path.split('.') as [string, string];
+  // No assignment yet: show the value the document already carries, so the
+  // field reflects what the canvas renders instead of looking unset.
+  if (pageNode.value) {
+    return root === 'style' ? documentStyleValue(key as keyof NodeStyle) : undefined;
+  }
   const current = elementNode.value;
   if (!current) return undefined;
   if (root === 'props') return current.props[key];
-  if (root === 'style') return current.style?.[key as keyof NodeStyle];
+  if (root === 'style') return documentStyleValue(key as keyof NodeStyle);
   if (root === 'validation') return current.validation?.[key as keyof FieldValidation];
   return undefined;
 }
@@ -166,6 +234,12 @@ function quickPropertyOptions(property: PageElementQuickProperty): CoarSelectOpt
 }
 
 function updateQuickProperty(property: PageElementQuickProperty, value: unknown) {
+  if (pageNode.value) {
+    patch({
+      rootCode: setPageRootQuickProperty(pageNode.value.rootCode, property.path, value),
+    } as Partial<PageNode>);
+    return;
+  }
   const current = elementNode.value;
   if (!current) return;
   const existing = quickPropertyRawValue(property);
@@ -206,6 +280,12 @@ function quickTranslationBinding(property: PageElementQuickProperty): Translatio
 }
 
 function resetQuickProperty(property: PageElementQuickProperty) {
+  if (pageNode.value) {
+    patch({
+      rootCode: setPageRootQuickProperty(pageNode.value.rootCode, property.path, undefined),
+    } as Partial<PageNode>);
+    return;
+  }
   const current = elementNode.value;
   if (!current) return;
   patch({
@@ -215,6 +295,58 @@ function resetQuickProperty(property: PageElementQuickProperty) {
 
 function hasQuickProperty(property: PageElementQuickProperty): boolean {
   return Object.prototype.hasOwnProperty.call(quickPropertyValues.value, property.path);
+}
+
+// ─── Compound (grouped length) properties ────────────────────────────────────
+
+/** Every path a compound owns, whether bundled or shorthand-backed. */
+function compoundPaths(compound: PageElementQuickCompound): string[] {
+  if (compound.shorthand) return [compound.shorthand];
+  const paths: string[] = [];
+  for (const part of compound.parts) if (part.path) paths.push(part.path);
+  return paths;
+}
+
+/**
+ * Same fallback as single properties: with no assignment yet, show the value
+ * the document already carries so the summary matches what the canvas renders.
+ */
+function readStylePath(path: string): string {
+  const authored = quickPropertyValues.value;
+  if (Object.prototype.hasOwnProperty.call(authored, path)) {
+    const value = authored[path];
+    return value === undefined || value === null ? '' : String(value);
+  }
+  const value = documentStyleValue(path.slice('style.'.length) as keyof NodeStyle);
+  return value === undefined || value === null ? '' : String(value);
+}
+
+function writeStylePath(path: string, value: string) {
+  writeQuickAssignment(path, value === '' ? '' : value);
+}
+
+/** Compounds are style-only, so both node kinds route through their own code draft. */
+function writeQuickAssignment(path: string, value: unknown) {
+  if (pageNode.value) {
+    patch({ rootCode: setPageRootQuickProperty(pageNode.value.rootCode, path, value) } as Partial<PageNode>);
+    return;
+  }
+  const current = elementNode.value;
+  if (!current) return;
+  patch({ elementCode: setElementQuickProperty(current.elementCode, path, value) } as Partial<PageNode>);
+}
+
+function hasCompound(compound: PageElementQuickCompound): boolean {
+  return compoundPaths(compound).some(
+    (path) => Object.prototype.hasOwnProperty.call(quickPropertyValues.value, path),
+  );
+}
+
+function resetCompound(compound: PageElementQuickCompound) {
+  for (const path of compoundPaths(compound)) {
+    if (!Object.prototype.hasOwnProperty.call(quickPropertyValues.value, path)) continue;
+    writeQuickAssignment(path, undefined);
+  }
 }
 
 // ─── Runtime property bindings ───────────────────────────────────────────────
@@ -256,7 +388,7 @@ const nearestRepeat = computed<RepeatNode | undefined>(() => {
   return found;
 });
 const itemPathOptions = computed<CoarSelectOption<string>[]>(() => {
-  const source = nearestRepeat.value?.props.source;
+  const source = nearestRepeat.value?.props.contextPath;
   const contract = config?.value?.contextFields?.find((field) => field.path === source);
   return (contract?.itemFields ?? []).map((field) => ({ value: field.path, label: `${field.path} · ${field.type}` }));
 });
@@ -411,7 +543,7 @@ function setRequired(v: boolean) {
 // Selecting one also applies its label/required metadata; free text remains
 // authoritative so custom form properties and non-contract use cases work.
 
-const contractFields = computed(() => config?.value?.fields);
+const contractFields = computed(() => config?.value?.dataContract);
 const useFieldSelect = computed(() => (contractFields.value?.length ?? 0) > 0);
 const allowCustom = computed(() => config?.value?.allowCustomFields === true);
 const CUSTOM_NAME_SOURCE = '\u0000page-builder-custom-name';
@@ -538,7 +670,6 @@ const visibilitySourceOptions = computed<CoarSelectOption<string>[]>(() => [
   { value: '', label: 'Always visible' },
   { value: 'field', label: 'Form field' },
   { value: 'context', label: 'Host context' },
-  { value: 'state', label: 'View state' },
   ...(nearestRepeat.value ? [{ value: 'item', label: `Repeat item (${nearestRepeat.value.props.itemAlias ?? 'item'})` }] : []),
 ]);
 const conditionOperatorOptions = computed<CoarSelectOption<string>[]>(() => [
@@ -548,9 +679,17 @@ const conditionOperatorOptions = computed<CoarSelectOption<string>[]>(() => [
   { value: 'isEmpty', label: 'is empty' },
   { value: 'isNotEmpty', label: 'is not empty' },
 ]);
-const stateOptions = computed<CoarSelectOption<string>[]>(() =>
-  (config?.value?.availableStates ?? []).map((state) => ({ value: state.id, label: state.label })),
-);
+/**
+ * A context field that declares a closed `values` set is authored with a
+ * dropdown instead of a free-text box — the reason the separate view-state
+ * mechanism is not needed.
+ */
+const conditionValueChoices = computed<CoarSelectOption<string>[] | null>(() => {
+  if (visibilitySource.value !== 'context') return null;
+  const field = config?.value?.contextFields?.find((entry) => entry.path === visibleWhen.value?.path);
+  if (!field?.allowedValues?.length) return null;
+  return field.allowedValues.map((value) => ({ value, label: value }));
+});
 
 function setVisibilitySource(source: string | null) {
   if (!source) { patch({ visibleWhen: undefined } as Partial<PageNode>); return; }
@@ -563,11 +702,7 @@ function setVisibilitySource(source: string | null) {
     patch({ visibleWhen: { source: 'context', path: contextPathOptions.value[0]?.value ?? '', operator: 'exists' } } as Partial<PageNode>);
     return;
   }
-  if (source === 'item') {
-    patch({ visibleWhen: { source: 'item', path: itemPathOptions.value[0]?.value ?? '', operator: 'exists' } } as Partial<PageNode>);
-    return;
-  }
-  patch({ visibleWhen: { source: 'state', operator: 'equals', value: stateOptions.value[0]?.value ?? '' } } as Partial<PageNode>);
+  patch({ visibleWhen: { source: 'item', path: itemPathOptions.value[0]?.value ?? '', operator: 'exists' } } as Partial<PageNode>);
 }
 
 function patchExtendedCondition(update: Partial<VisibleWhen>) {
@@ -735,7 +870,7 @@ function bindField(name: string | null) {
     :aria-label="t('coar.pageBuilder.props.panelTitle', undefined, 'Properties')"
   >
     <header class="pb-props__header">
-      <CoarIcon name="settings" size="s" />
+      <CoarIcon name="settings" size="xs" />
       <span class="pb-props__title">{{ t('coar.pageBuilder.props.panelTitle', undefined, 'Properties') }}</span>
     </header>
 
@@ -756,7 +891,7 @@ function bindField(name: string | null) {
         >
           <CoarIcon
             :name="issue.severity === 'error' ? 'circle-alert' : 'triangle-alert'"
-            size="s"
+            size="xs"
           />
           <span>{{ issue.message }}</span>
         </li>
@@ -765,14 +900,14 @@ function bindField(name: string | null) {
       <section v-if="selectedCompositionRoot && compositions" class="pb-props__section pb-props__composition" data-testid="composition-properties">
         <div class="pb-props__section-heading">
           <h4 class="pb-props__section-title">Composition</h4>
-          <CoarIcon name="copy" size="s" />
+          <CoarIcon name="copy" size="xs" />
         </div>
-        <CoarFormField label="Name">
-          <CoarTextInput size="s" :model-value="selectedCompositionName" disabled />
+        <CoarFormField layout="inline" label="Name">
+          <CoarTextInput size="xs" :model-value="selectedCompositionName" disabled />
         </CoarFormField>
-        <CoarFormField label="Pinned version">
+        <CoarFormField layout="inline" label="Pinned version">
           <CoarSelect
-            size="s"
+            size="xs"
             :model-value="selectedCompositionRoot.reference.version"
             :options="selectedCompositionVersions"
             sort-options="none"
@@ -784,12 +919,12 @@ function bindField(name: string | null) {
         <p v-if="compositions.error.value" class="pb-props__composition-error" role="alert">{{ compositions.error.value }}</p>
         <div class="pb-props__composition-actions">
           <CoarButton
-            size="s"
+            size="xs"
             :disabled="compositions.busy.value || compositions.selectedIsLatest.value"
             @click="compositions.update()"
           >{{ compositions.selectedIsLatest.value ? 'Up to date' : 'Update to latest' }}</CoarButton>
-          <CoarButton size="s" variant="secondary" :disabled="compositions.busy.value" @click="compositions.detach()">Detach</CoarButton>
-          <CoarButton size="s" variant="secondary" :disabled="compositions.busy.value" @click="compositions.openSelected()">Open composition</CoarButton>
+          <CoarButton size="xs" variant="secondary" :disabled="compositions.busy.value" @click="compositions.detach()">Detach</CoarButton>
+          <CoarButton size="xs" variant="secondary" :disabled="compositions.busy.value" @click="compositions.openSelected()">Open composition</CoarButton>
         </div>
       </section>
 
@@ -797,40 +932,41 @@ function bindField(name: string | null) {
         <section class="pb-props__section">
           <h4 class="pb-props__section-title">Structure</h4>
           <template v-if="pageNode">
-            <CoarFormField label="Element">
-              <CoarTextInput size="s" model-value="Page" disabled />
+            <CoarFormField layout="inline" label="Element">
+              <CoarTextInput size="xs" model-value="Page" disabled />
             </CoarFormField>
             <p class="pb-props__hint">
               Shared customer-authored data is configured as Page State. Element behavior stays with each element.
             </p>
-            <CoarButton size="s" variant="secondary" @click="logic?.openPageState()">
-              <CoarIcon name="code" size="s" />
+            <CoarButton size="xs" variant="secondary" @click="logic?.openPageState()">
+              <CoarIcon name="code" size="xs" />
               Edit Page State
             </CoarButton>
-            <CoarButton size="s" variant="secondary" @click="logic?.openPageCode()">
-              <CoarIcon name="code" size="s" />
+            <CoarButton size="xs" variant="secondary" @click="logic?.openPageCode()">
+              <CoarIcon name="code" size="xs" />
               {{ pageNode.rootCode ? 'Edit Page Code' : 'Add Page Code' }}
             </CoarButton>
           </template>
           <template v-else>
-            <CoarFormField :label="t('coar.pageBuilder.props.elementType', undefined, 'Element')">
+            <CoarFormField layout="inline" :label="t('coar.pageBuilder.props.elementType', undefined, 'Element')">
               <CoarSelect
                 v-if="representationOptions.length > 0"
-                size="s"
+                size="xs"
                 :model-value="node.type"
                 :options="representationOptions"
                 @update:model-value="(v) => convertRepresentation(v)"
               />
-              <CoarTextInput v-else size="s" :model-value="node.type" disabled />
+              <CoarTextInput v-else size="xs" :model-value="node.type" disabled />
             </CoarFormField>
             <CoarFormField
-              v-if="elementNode"
+v-if="elementNode"
+              layout="inline"
               :label="t('coar.pageBuilder.props.name', undefined, 'Name')"
             >
               <div class="pb-props__name-editor">
                 <CoarSelect
                   v-if="fieldNode && useFieldSelect"
-                  size="s"
+                  size="xs"
                   :model-value="selectedContractFieldName ?? CUSTOM_NAME_SOURCE"
                   :options="nameSourceOptions"
                   sort-options="none"
@@ -839,7 +975,7 @@ function bindField(name: string | null) {
                 <CoarTextInput
                   v-if="!fieldNode || !useFieldSelect || customNameActive"
                   :id="customNameInputId"
-                  size="s"
+                  size="xs"
                   :model-value="elementNode.name ?? ''"
                   @update:model-value="(v) => patch({ name: v })"
                 />
@@ -851,11 +987,12 @@ function bindField(name: string | null) {
               </div>
             </CoarFormField>
             <CoarFormField
-              v-if="customNameActive && customNameSupportsLabel"
+v-if="customNameActive && customNameSupportsLabel"
+              layout="inline"
               :label="t('coar.pageBuilder.props.label', undefined, 'Label')"
             >
               <CoarTextInput
-                size="s"
+                size="xs"
                 :model-value="customNameLabel"
                 @update:model-value="(v) => patch({ props: { label: v } } as Partial<PageNode>)"
               />
@@ -865,41 +1002,52 @@ function bindField(name: string | null) {
             </p>
             <CoarButton
               v-if="elementNode"
-              size="s"
+              size="xs"
               variant="secondary"
               @click="logic?.openElementCode(elementNode.id)"
             >
-              <CoarIcon name="code" size="s" />
+              <CoarIcon name="code" size="xs" />
               {{ elementNode.elementCode ? 'Edit element code' : 'Add element code' }}
             </CoarButton>
           </template>
         </section>
 
         <section
-          v-if="elementNode && quickProperties.length > 0"
+          v-if="quickProperties.length > 0"
           class="pb-props__section pb-props__section--separated"
         >
           <h4 class="pb-props__section-title">Quick properties</h4>
           <p class="pb-props__hint">
             These controls write locked assignments before your custom code. Custom code can override them.
           </p>
+          <template v-for="(property, index) in quickProperties" :key="index">
+          <CompoundLengthProperty
+            v-if="isQuickCompound(property)"
+            class="pb-props__quick-property"
+            :compound="property"
+            :assigned="hasCompound(property)"
+            :read-path="readStylePath"
+            :read-shorthand="() => readStylePath(property.shorthand!)"
+            :write-path="writeStylePath"
+            :write-shorthand="(v: string | undefined) => writeQuickAssignment(property.shorthand!, v)"
+            :on-reset="() => resetCompound(property)"
+          />
           <div
-            v-for="property in quickProperties"
-            :key="property.path"
+            v-else
             class="pb-props__quick-property"
           >
             <div class="pb-props__quick-control">
               <CoarCheckbox
                 v-if="property.control === 'boolean'"
-                size="s"
+                size="xs"
                 :model-value="!!quickPropertyValue(property)"
                 :label="quickPropertyLabel(property)"
                 @update:model-value="(v) => updateQuickProperty(property, v)"
               />
-              <CoarFormField v-else :label="quickPropertyLabel(property)">
+              <CoarFormField v-else layout="inline" :label="quickPropertyLabel(property)">
                 <CoarSelect
                   v-if="property.control === 'select'"
-                  size="s"
+                  size="xs"
                   :model-value="String(quickPropertyValue(property) ?? '')"
                   :options="quickPropertyOptions(property)"
                   sort-options="none"
@@ -907,11 +1055,18 @@ function bindField(name: string | null) {
                 />
                 <CoarTextInput
                   v-else
-                  size="s"
+                  size="xs"
                   :model-value="String(quickPropertyValue(property) ?? '')"
                   @update:model-value="(v) => updateQuickProperty(property, v)"
                 />
               </CoarFormField>
+              <!-- The value on screen came from an override, not the base. One
+                   edit here replaces both, so say where it came from. -->
+              <span
+                v-if="isBreakpointInherited(property.path)"
+                class="pb-props__quick-from"
+                :title="`From the ${breakpointSourceLabel(property.path)} override. Editing writes one value for every breakpoint.`"
+              >{{ breakpointSourceLabel(property.path) }}</span>
               <button
                 v-if="property.valueKind === 'localized-text' && quickTranslationBinding(property)"
                 type="button"
@@ -931,6 +1086,7 @@ function bindField(name: string | null) {
               @click="resetQuickProperty(property)"
             >Reset</button>
           </div>
+          </template>
         </section>
 
         <section
@@ -948,7 +1104,7 @@ function bindField(name: string | null) {
       <section v-if="pageNode" class="pb-props__section">
         <h4 class="pb-props__section-title">{{ t('coar.pageBuilder.props.section.page', undefined, 'Page') }}</h4>
         <CoarCheckbox
-size="s"
+size="xs"
           :model-value="!!pageNode.enterSubmits"
           :label="t('coar.pageBuilder.props.enterSubmits', undefined, 'Enter submits (fires the default button)')"
           @update:model-value="(v) => patch({ enterSubmits: v || undefined } as Partial<PageNode>)"
@@ -958,9 +1114,9 @@ size="s"
       <!-- Every non-form element still needs a public Page-Code name. -->
       <section v-if="elementNode && !fieldNode" class="pb-props__section">
         <h4 class="pb-props__section-title">{{ t('coar.pageBuilder.props.section.element', undefined, 'Element') }}</h4>
-        <CoarFormField :label="t('coar.pageBuilder.props.name', undefined, 'Name')">
+        <CoarFormField layout="inline" :label="t('coar.pageBuilder.props.name', undefined, 'Name')">
           <CoarTextInput
-size="s"
+size="xs"
             :model-value="elementNode.name ?? ''"
             @update:model-value="(v) => patch({ name: v })"
           />
@@ -970,11 +1126,11 @@ size="s"
       <!-- ── Host-owned field section (value-model participation) ────────── -->
       <section v-if="fieldNode" class="pb-props__section">
         <h4 class="pb-props__section-title">{{ t('coar.pageBuilder.props.section.field', undefined, 'Field') }}</h4>
-        <CoarFormField :label="t('coar.pageBuilder.props.name', undefined, 'Name')">
+        <CoarFormField layout="inline" :label="t('coar.pageBuilder.props.name', undefined, 'Name')">
           <div class="pb-props__name-editor">
             <CoarSelect
               v-if="useFieldSelect"
-              size="s"
+              size="xs"
               :model-value="selectedContractFieldName ?? CUSTOM_NAME_SOURCE"
               :options="nameSourceOptions"
               sort-options="none"
@@ -983,7 +1139,7 @@ size="s"
             <CoarTextInput
 v-if="!useFieldSelect || customNameActive"
               :id="customNameInputId"
-              size="s"
+              size="xs"
               :model-value="fieldNode.name ?? ''"
               @update:model-value="(v) => patch({ name: v })"
             />
@@ -995,23 +1151,24 @@ v-if="!useFieldSelect || customNameActive"
           </div>
         </CoarFormField>
         <CoarFormField
-          v-if="representationOptions.length > 0"
+v-if="representationOptions.length > 0"
+          layout="inline"
           :label="t('coar.pageBuilder.props.elementType', undefined, 'Element')"
         >
           <CoarSelect
-size="s"
+size="xs"
             :model-value="node.type"
             :options="representationOptions"
             @update:model-value="(v) => convertRepresentation(v)"
           />
         </CoarFormField>
         <CoarCheckbox
-size="s"
+size="xs"
           :model-value="!!fieldNode.validation?.required"
           :label="t('coar.pageBuilder.props.required', undefined, 'Required')"
           @update:model-value="setRequired"
         />
-        <CoarFormField :label="t('coar.pageBuilder.props.defaultValue', undefined, 'Default value')">
+        <CoarFormField layout="inline" :label="t('coar.pageBuilder.props.defaultValue', undefined, 'Default value')">
           <component
             :is="defaultValueInput"
             v-if="defaultValueInput"
@@ -1021,7 +1178,7 @@ size="s"
           />
           <CoarTextInput
 v-else
-            size="s"
+            size="xs"
             :model-value="String(fieldNode.defaultValue ?? '')"
             @update:model-value="(v) => patch({ defaultValue: v || undefined })"
           />
@@ -1063,29 +1220,29 @@ v-else
           Bind an element property to an allowlisted host value or repeat item field.
         </p>
         <div v-for="([target, binding]) in bindingEntries" :key="target" class="pb-props__binding">
-          <CoarFormField label="Property">
-            <CoarSelect size="s" :model-value="target" :options="expressionBinding(binding) ? expressionTargets : bindableTargets" @update:model-value="(v) => renameBinding(target, v)" />
+          <CoarFormField layout="inline" label="Property">
+            <CoarSelect size="xs" :model-value="target" :options="expressionBinding(binding) ? expressionTargets : bindableTargets" @update:model-value="(v) => renameBinding(target, v)" />
           </CoarFormField>
           <template v-if="directBinding(binding)">
-            <CoarFormField label="Source">
+            <CoarFormField layout="inline" label="Source">
               <CoarSelect
-size="s"
+size="xs"
                 :model-value="directBinding(binding)!.source"
                 :options="bindingSourceOptions"
                 @update:model-value="(v) => updateBinding(target, { source: v as RuntimeBinding['source'], path: undefined })"
               />
             </CoarFormField>
-            <CoarFormField v-if="bindingNeedsPath(binding)" label="Allowed path">
+            <CoarFormField v-if="bindingNeedsPath(binding)" layout="inline" label="Allowed path">
               <CoarSelect
 v-if="directBinding(binding)!.source !== 'state' || bindingPaths(binding).length > 0"
-                size="s"
+                size="xs"
                 :model-value="directBinding(binding)!.path ?? null"
                 :options="bindingPaths(binding)"
                 @update:model-value="(v) => updateBinding(target, { path: v ?? undefined })"
               />
               <CoarTextInput
                 v-else
-                size="s"
+                size="xs"
                 :model-value="directBinding(binding)!.path ?? ''"
                 placeholder="e.g. consent.checked"
                 @update:model-value="(v) => updateBinding(target, { path: v || undefined })"
@@ -1119,17 +1276,17 @@ v-if="directBinding(binding)!.source !== 'state' || bindingPaths(binding).length
         :class="{ 'pb-props__section--separated': !!inspector || !!fieldNode }"
       >
         <h4 class="pb-props__section-title">{{ t('coar.pageBuilder.props.section.visibility', undefined, 'Visibility') }}</h4>
-        <CoarFormField :label="t('coar.pageBuilder.props.visibleWhenField', undefined, 'Visible when')">
+        <CoarFormField layout="inline" :label="t('coar.pageBuilder.props.visibleWhenField', undefined, 'Visible when')">
           <CoarSelect
-size="s"
+size="xs"
             :model-value="visibilitySource"
             :options="visibilitySourceOptions"
             @update:model-value="setVisibilitySource"
           />
         </CoarFormField>
-        <CoarFormField v-if="visibilitySource === 'field'" label="Form field">
+        <CoarFormField v-if="visibilitySource === 'field'" layout="inline" label="Form field">
           <CoarSelect
-size="s"
+size="xs"
             :model-value="visibleWhen?.field ?? null"
             :options="controllerOptions"
             clearable
@@ -1137,19 +1294,23 @@ size="s"
           />
         </CoarFormField>
         <template v-else-if="visibilitySource === 'context' || visibilitySource === 'item'">
-          <CoarFormField :label="visibilitySource === 'item' ? 'Allowed item path' : 'Allowed context path'">
-            <CoarSelect size="s" :model-value="visibleWhen?.path ?? null" :options="visibilitySource === 'item' ? itemPathOptions : contextPathOptions" @update:model-value="(v) => patchExtendedCondition({ path: v ?? '' })" />
+          <CoarFormField layout="inline" :label="visibilitySource === 'item' ? 'Allowed item path' : 'Allowed context path'">
+            <CoarSelect size="xs" :model-value="visibleWhen?.path ?? null" :options="visibilitySource === 'item' ? itemPathOptions : contextPathOptions" @update:model-value="(v) => patchExtendedCondition({ path: v ?? '' })" />
           </CoarFormField>
-          <CoarFormField label="Operator">
-            <CoarSelect size="s" :model-value="visibleWhen?.operator ?? 'equals'" :options="conditionOperatorOptions" @update:model-value="(v) => patchExtendedCondition({ operator: v as VisibleWhen['operator'] })" />
+          <CoarFormField layout="inline" label="Operator">
+            <CoarSelect size="xs" :model-value="visibleWhen?.operator ?? 'equals'" :options="conditionOperatorOptions" @update:model-value="(v) => patchExtendedCondition({ operator: v as VisibleWhen['operator'] })" />
           </CoarFormField>
-          <CoarFormField v-if="visibleWhen?.operator === 'equals' || visibleWhen?.operator === 'notEquals'" label="Value (JSON primitive)">
-            <CoarTextInput size="s" :model-value="String(visibleWhen?.value ?? '')" @update:model-value="(v) => patchExtendedCondition({ value: v })" />
+          <CoarFormField v-if="visibleWhen?.operator === 'equals' || visibleWhen?.operator === 'notEquals'" layout="inline" label="Value">
+            <CoarSelect
+              v-if="conditionValueChoices"
+              size="xs"
+              :model-value="String(visibleWhen?.value ?? '')"
+              :options="conditionValueChoices"
+              @update:model-value="(v) => patchExtendedCondition({ value: v })"
+            />
+            <CoarTextInput v-else size="xs" :model-value="String(visibleWhen?.value ?? '')" @update:model-value="(v) => patchExtendedCondition({ value: v })" />
           </CoarFormField>
         </template>
-        <CoarFormField v-else-if="visibilitySource === 'state'" label="View state">
-          <CoarSelect size="s" :model-value="String(visibleWhen?.value ?? '')" :options="stateOptions" @update:model-value="(v) => patchExtendedCondition({ value: v })" />
-        </CoarFormField>
         <p v-if="visibilitySource === 'field' && hasInCondition" class="pb-props__hint">
           {{ t('coar.pageBuilder.props.visibleWhenIn', undefined, 'Multi-value condition (in) — edit it in the JSON tab.') }}
         </p>
@@ -1157,19 +1318,20 @@ size="s"
           {{ t('coar.pageBuilder.props.visibleWhenArray', undefined, '"equals" cannot match a multi-value field — author this condition in the JSON tab.') }}
         </p>
         <CoarFormField
-          v-else-if="visibilitySource === 'field' && visibleWhen"
+v-else-if="visibilitySource === 'field' && visibleWhen"
+          layout="inline"
           :label="t('coar.pageBuilder.props.visibleWhenEquals', undefined, 'equals')"
         >
           <CoarSelect
 v-if="conditionValueOptions"
-            size="s"
+            size="xs"
             :model-value="equalsDisplay"
             :options="conditionValueOptions"
             @update:model-value="(v) => setVisibilityEquals(v)"
           />
           <CoarTextInput
 v-else
-            size="s"
+            size="xs"
             :model-value="equalsDisplay"
             @update:model-value="(v) => setVisibilityEquals(v)"
           />
@@ -1198,6 +1360,7 @@ v-else
   min-height: 0;
   background: var(--coar-background-neutral-primary, #fff);
   font-family: var(--coar-body-base-family, sans-serif);
+  font-weight: 400;
 }
 
 .pb-props__header {
@@ -1213,17 +1376,16 @@ v-else
 }
 
 .pb-props__title {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
   color: var(--coar-text-neutral-secondary, #5a5a60);
 }
 
 .pb-props__body {
   flex: 1;
   overflow: auto;
-  padding: 16px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
 }
@@ -1242,11 +1404,10 @@ v-else
 
 .pb-props__section-title {
   margin: 0;
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--coar-text-neutral-tertiary, #8a8a90);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--coar-text-neutral-secondary, #666a72);
 }
 
 .pb-props__name-editor {
@@ -1257,13 +1418,52 @@ v-else
 
 .pb-props__quick-property {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 6px;
+}
+
+/*
+ * One row per property: label left, control right, on a shared column so the
+ * controls line up down the whole panel. Stacked labels cost roughly twice the
+ * height, which the inspector — the narrowest pane here — cannot spare.
+ */
+.pb-props :deep(.coar-form-field--inline) {
+  width: 100%;
+}
+.pb-props :deep(.coar-form-field--inline .coar-form-field__body) {
+  display: grid;
+  grid-template-columns: minmax(0, 84px) minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+.pb-props :deep(.coar-form-field--inline .coar-form-field__label-cluster),
+.pb-props :deep(.coar-form-field--inline .coar-form-field__label) {
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--coar-text-neutral-secondary, #5a5a60);
+  overflow-wrap: anywhere;
+}
+/* Checkboxes carry their own label, so they span both columns. */
+.pb-props :deep(.coar-form-field--inline .coar-form-field__control) {
+  min-width: 0;
 }
 
 .pb-props__quick-control {
   flex: 1;
   min-width: 0;
+}
+
+.pb-props__quick-from {
+  flex: none;
+  align-self: center;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: var(--coar-background-neutral-secondary, #f2f2f4);
+  color: var(--coar-text-neutral-tertiary, #8a8a90);
+  font-size: 10px;
+  white-space: nowrap;
+  cursor: help;
 }
 
 .pb-props__quick-reset {

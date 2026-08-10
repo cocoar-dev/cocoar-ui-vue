@@ -2,7 +2,7 @@
 description: "CoarPageBuilder visual editor: outline and properties inspector, drag-and-drop canvas, searchable element library and reusable compositions, emitting a PageNode JSON schema via v-model."
 ---
 
-# `<CoarPageBuilder>`
+# `<CoarPageBuilder>` <Badge type="warning" text="Preview" />
 
 The visual-editor half of `@cocoar/vue-page-builder`. It renders a three-panel layout: the vertically split Outline and Properties inspector on the left, the canvas in the centre, and a searchable element library on the right. It emits a `PageNode` JSON tree as `v-model`; the same tree is consumed by [`<CoarPageRenderer>`](./coar-page-renderer) at runtime.
 
@@ -22,10 +22,10 @@ A live builder with a small starting schema and a restricted `allowedElements` l
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `modelValue` / `v-model` | `PageNode` | empty `page` | The page schema. Bound two-way; every edit updates the ref. Every tree entering from **outside** — the initial value, a later external replacement, or an initially-`undefined` ref that is filled once an async load resolves — passes through the same normalization as the JSON tab's Apply: legacy `column`/`row` containers become `stack`, v1 flat documents get their `props` bags, a non-`page` root is wrapped in one, missing/duplicate node ids are repaired with fresh `crypto.randomUUID` ids, missing `children` arrays and `props` bags are added, every element receives a unique name, and documents are stamped `schemaVersion: 5`. Repairs log a DEV-only console warning. |
-| `config` | [`PageConfig`](./#pageconfig-the-consumer-contract) | — | Allowed elements, [consumer element registrations](./custom-elements), actions, runtime-context contracts, states, locales, required nodes, limits, fixtures and asset callbacks. Pass the same value to the renderer. |
+| `modelValue` / `v-model` | `PageNode` | empty `page` | The page schema. Bound two-way; every edit updates the ref. Every tree entering from **outside** — the initial value, a later external replacement, or an initially-`undefined` ref that is filled once an async load resolves — passes through the same normalization as the JSON tab's Apply: legacy `column`/`row` containers become `stack`, v1 flat documents get their `props` bags, a non-`page` root is wrapped in one, missing/duplicate node ids are repaired with fresh `crypto.randomUUID` ids, missing `children` arrays and `props` bags are added, every element receives a unique name, and documents are stamped `schemaVersion: 6`. Repairs log a DEV-only console warning. |
+| `config` | [`PageConfig`](./#pageconfig-the-consumer-contract) | — | Allowed elements, [consumer element registrations](./custom-elements), actions, runtime-context contracts, locales, limits and asset callbacks. Pass the same value to the renderer. |
 | `previewContext` | `Record<string, unknown>` | — | Safe host data for the embedded preview. Only paths declared by `config.contextFields` are readable. |
-| `previewState` | `string` | — | Initial host view-state ID for conditions and Page/Element Code in the preview. Direct `source: 'state'` bindings read customer Page State. |
+| `previewInitialValues` | `ActionValues` | — | Field values the embedded preview starts from, merged **over** the schema's own `defaultValue`s exactly as at runtime. The edit-form case, and the case where the host computes a default the author did not write (a per-tenant "remember me" setting). Replacing the object re-seeds the preview. |
 | `previewLocale` | `string` | — | Initial locale for localized schema values in the preview. |
 | `previewTheme` | `CoarTheme` | — | Host-resolved brand primitives applied through the same `CoarThemeScope` used at runtime. Scoped to the Preview canvas; builder chrome and dialogs are unaffected. |
 | `previewThemeMode` | `'auto' \| 'light' \| 'dark'` | `'auto'` | Colour mode for the preview theme. Auto follows the surrounding application/OS mode. |
@@ -48,10 +48,57 @@ A live builder with a small starting schema and a restricted `allowedElements` l
 | `preview-values` | `ActionValues` | Current field-value snapshot from the embedded preview. |
 | `preview-runtime` | `{ fields, form }` | Reactive preview scope for host diagnostics; `form` contains valid, dirty, validating and submitting flags. |
 | `open-composition` | `PageCompositionReference` | Requests host navigation to the independently managed composition definition and exact pinned version. |
+| `validation` | `AuthoringFinding[]` | The authoring findings the builder draws in its own outline and props panel. Fires on mount and whenever the set changes in content, so an edit that leaves the findings alone stays quiet. The payload is a copy — mutating it cannot corrupt the builder. |
+
+## Reaching the validation findings
+
+Two layers answer two different questions, and mixing them up leads to either a
+save button that never enables or a document that fails at activation.
+
+| | Question | API |
+|---|---|---|
+| **Authoring findings** | "What should I tell the author to fix?" | `@findings` / `useAuthoringFindings()` |
+| **Activation contract** | "May this document go live?" | [`validatePageDocument()`](./idp-integration) |
+
+The authoring layer is the broader one — it includes hints the runtime does not
+care about (an action that is not in `availableActions`, a required contract
+field nobody put on the page) and it *contains* the hard failures of the
+activation contract, so gating a save on `severity === 'error'` is sound.
+
+```vue
+<script setup lang="ts">
+import { ref, computed } from 'vue';
+import { CoarPageBuilder, type AuthoringFinding, type PageNode } from '@cocoar/vue-page-builder';
+
+const schema = ref<PageNode>();
+const findings = ref<AuthoringFinding[]>([]);
+const blocking = computed(() => findings.value.filter((f) => f.severity === 'error'));
+</script>
+
+<template>
+  <CoarPageBuilder v-model="schema" :config="config" @findings="findings = $event" />
+  <button :disabled="blocking.length > 0" @click="save">Save</button>
+  <ul>
+    <li v-for="(finding, i) in blocking" :key="i">{{ finding.message }}</li>
+  </ul>
+</template>
+```
+
+Each finding carries the `nodeId` it belongs to and, where the problem is a
+specific property, the `field` — enough to build your own "jump to node" list.
+
+Outside a mounted builder — a document dashboard, a bulk migration check — call
+the composable directly in a component `setup()`. It resolves the element
+registry reactively, honouring `config.elementTypes` and an app-level
+`PAGE_ELEMENT_TYPES_KEY` provide alike:
+
+```ts
+const { findings, byNodeId } = useAuthoringFindings(schema, config);
+```
 
 ## Features
 
-- **Searchable element library** — the right panel groups draggable cards under **Fields** (first when a field contract exists), **Containers**, **Elements** and, when a repository is supplied, **Compositions**. Groups are independently collapsible and a single search filters all of them, so repositories with dozens of definitions remain manageable. Registry entries come from built-ins plus [`config.elements`](./custom-elements), filtered by `config.allowedElements`. `hideElementPicker` removes value-producing entries from **Elements** and from the outline's separate Inputs add-child group; containers and content/action elements remain available.
+- **Searchable element library** — the right panel groups draggable cards under **Fields** (first when a field contract exists), **Containers**, **Elements** and, when a repository is supplied, **Compositions**. Groups are independently collapsible and a single search filters all of them, so repositories with dozens of definitions remain manageable. Registry entries come from built-ins plus [`config.elementTypes`](./custom-elements), filtered by `config.allowedElements`. `hideElementPicker` removes value-producing entries from **Elements** and from the outline's separate Inputs add-child group; containers and content/action elements remain available.
 - **Pointer-based drag & drop** — built on pointer events rather than HTML5 drag events, so it works with mouse, touch **and** pen (tablet-first). Mouse drags start after a 5 px movement threshold, so plain clicks keep working; touch/pen drags arm after a 300 ms long-press. A ghost preview follows the pointer, scroll containers auto-scroll near their edges, and `Escape` cancels a drag in flight.
 - **Outline tree** — hierarchical node list with selection and real drag-to-reorder: every row except the root carries a grip handle, thin drop bars light up between rows while dragging, and container rows highlight for drop-**into**. Per-row actions: move up/down, duplicate, delete, plus an inline "Add child" menu. Stacks display "Column" or "Row" based on direction. Warning icons mark nodes with validation issues (hover for the full message).
 - **Canvas** — per-element preview components with dashed selection borders; each node's type tab doubles as its drag handle. A registered element without its own preview renders as a neutral icon+label chip; unregistered or disallowed element types get a red "skipped at runtime" treatment, so the canvas never pretends the runtime renderer will show them. Switches to live preview in the **Preview** tab and to a paste-and-apply JSON editor in the **JSON** tab.
@@ -61,10 +108,10 @@ A live builder with a small starting schema and a restricted `allowedElements` l
 - **Stack direction toggle** — change a stack from column to row direction without re-creating it. Children stay put.
 - **Layout controls** — every node's Style section exposes the flex model: container `Justify` (main axis) + `Align items` (cross axis), and per-node `Align self`, `Size` (Fit / Fill / Fixed → Width) and `Min height`. Center a single element, distribute a row, or build a full-screen centered page — and the Editor canvas mirrors the result 1:1 with the Preview.
 - **Asset picker entry point** — when `config.pickAsset` is set, the image element shows a thumbnail + "Choose…" button that defers to your own picker UI.
-- **Responsive authoring and preview** — Mobile-first base styles plus Phone, Tablet and Desktop overrides. The exact Compact 320×568, Phone 390×844, Tablet 768×1024 and Desktop 1280×800 frames use the same resolver as runtime; each override can be reset independently. `hidden` removes the node from rendering, validation and action payloads at that breakpoint.
+- **Responsive authoring and preview** — Mobile-first base styles plus Phone, Tablet and Desktop overrides. The exact Compact 320×568, Phone 390×844, Tablet 768×1024 and Desktop 1280×800 frames use the same resolver as runtime; each override can be reset independently. `hidden` removes the node from rendering, validation and action payloads at that breakpoint. Both the Style section and the code-mode **Quick Properties** show the value that applies at the breakpoint being authored, not the base — a node hidden on Compact and revealed on Desktop reads as visible while you are on Desktop. Where that value came from an override, the Quick Property carries a small breakpoint chip, because editing it writes one assignment that applies everywhere and would flatten the difference.
 - **Runtime bindings and localization** — bind supported element props and individual `actionValues.<key>` entries to allow-listed context paths, customer Page State, named form fields/selections, or the current repeater item/index. Safe expressions use the same targets. Properties explicitly registered as `valueKind: 'localized-text'` reference stable keys; the central **Translations** tab edits the page-owned catalogue for every configured locale and flags unused keys. Legacy embedded `LocalizedValue` objects remain readable.
 - **Conditions, repeaters and feedback zones** — `visibleWhen` supports field/context/state/item sources and bounded `all`/`any` composition. A generic `repeat` renders a child template for an allow-listed context array and can emit a selected-key array under any configured output name. A `feedback` node places form errors, status, loading or authored messages inside the layout.
-- **Deterministic fixtures** — `config.previewFixtures` supplies named context/state/locale/viewport samples such as empty, typical and large collections without persisting test data in the document. Fixture selection also restarts/updates the Builder-owned sandbox against exactly that effective contract. “Host values” appears only when the host supplied every context/state/locale part required by the config; otherwise the first fixture is selected or an explicit missing-values state is shown.
+- **Host-supplied preview inputs** — the embedded preview and its sandbox session run against `previewContext` and `previewLocale`. Until the host supplies whatever its own `config` declares (`contextFields`, `locales`), the preview stays off and says so rather than rendering against invented data. Swapping `previewContext` restarts the sandbox against the new contract, so a host that wants an “empty / typical / 50 items” picker builds it in its own chrome and simply binds the chosen sample.
 - **Page Root Code** — selecting the page root exposes a separate constrained code editor. It can reactively configure only `page.style`, `page.responsive`, and `page.enterSubmits`; structure, children, ids, types and names remain visual-builder owned. Shared mutable data stays in the independent Page State editor.
 - **Undo / redo** — `Ctrl+Z` / `Ctrl+Y` (or `Cmd+Z` / `Cmd+Shift+Z`), also via toolbar buttons.
 - **Scoped keyboard shortcuts** — undo/redo and `Delete` / `Backspace` (removes the selected node) only act while focus is inside *that builder instance*, and never while focus is in an editable target: the JSON textarea, props-panel inputs and your app's own form fields keep their native undo and delete behavior.
@@ -85,12 +132,12 @@ A successful Apply lands as a single undoable step; when there were no findings 
 The same machinery is exported for hosts that persist or migrate schemas themselves: `normalizePageSchema(value)` → `{ schema, issues, changed }` (issues carry `severity: 'error' | 'warning'`), `migrateLegacyTypes(node)`, `migrateV1PropsBag(node)`, and the `KNOWN_ELEMENT_TYPES` set (built-ins only). See [Legacy schemas & normalization](./coar-page-renderer#legacy-schemas-normalization).
 :::
 
-## Builder-side validation
+## Builder-side findings
 
-The builder runs schema-level validation reactively and surfaces issues at two layers:
+The builder derives its authoring findings reactively and surfaces them at two layers:
 
 - **Outline** — a warning icon next to the affected node row (red ⛔ for errors, yellow ⚠ for warnings). Hover the icon for the full message.
-- **Props panel** — a colored banner at the top of the selected node's properties listing every issue for that node.
+- **Props panel** — a colored banner at the top of the selected node's properties listing every finding for that node.
 
 Built-in rules:
 
@@ -104,7 +151,7 @@ Built-in rules:
 | `validation.pattern` does not compile as a regular expression | error |
 | Image has no Asset ID | error |
 | Two named inputs share the same `name` | error |
-| Bound field name is not in the [field contract](./#field-contract) (`config.fields` set, `allowCustomFields` off) | error |
+| Bound field name is not in the [field contract](./#field-contract) (`config.dataContract` set, `allowCustomFields` off) | error |
 | Element cannot edit its bound contract field's value type | error |
 | Required contract field is missing from the page (reported on the root node) | warning |
 | `visibleWhen` is malformed (node stays always visible) | warning |
@@ -136,7 +183,7 @@ packages/page-builder/src/elements/
 └── …
 ```
 
-`BuilderPropsPanel.vue` is a thin host shell: it resolves the selected node's definition from the merged registry and renders `<component :is="def.builder.inspector" :node :patch />` between the host-owned **Field** and **Style** sections. The palette, add-child menu, canvas previews and outline icons all derive from the same registry — adding an element type is a single definition, **no central files are touched**. Consumer apps register theirs via `config.elements`; the shared `OptionsEditor` component is exported for reuse in consumer inspectors. See the [Custom elements guide](./custom-elements).
+`BuilderPropsPanel.vue` is a thin host shell: it resolves the selected node's definition from the merged registry and renders `<component :is="def.builder.inspector" :node :patch />` between the host-owned **Field** and **Style** sections. The palette, add-child menu, canvas previews and outline icons all derive from the same registry — adding an element type is a single definition, **no central files are touched**. Consumer apps register theirs via `config.elementTypes`; the shared `OptionsEditor` component is exported for reuse in consumer inspectors. See the [Custom elements guide](./custom-elements).
 
 ## Pairing with the renderer
 

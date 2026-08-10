@@ -4,7 +4,7 @@ import { CoarIcon, type CoreIconName } from '@cocoar/vue-ui';
 import { useI18n } from '@cocoar/vue-localization';
 import { isElementAllowed, type PageNode } from '../schema';
 import { resolveNodeRuntime } from '../runtimeBindings';
-import { BUILDER_API, BUILDER_CONFIG, BUILDER_RUNTIME, BUILDER_VALIDATION } from './builderContext';
+import { BUILDER_API, BUILDER_CONFIG, BUILDER_RUNTIME, BUILDER_FINDINGS } from './builderContext';
 import { useMergedElements } from '../elements/useMergedElements';
 import { useBuilderDnd } from './useBuilderDnd';
 import type { NodePath } from './operations';
@@ -24,7 +24,7 @@ const { t } = useI18n();
 const builder = inject(BUILDER_API)!;
 const config = inject(BUILDER_CONFIG);
 const runtime = inject(BUILDER_RUNTIME);
-const validation = inject(BUILDER_VALIDATION);
+const findings = inject(BUILDER_FINDINGS);
 const dnd = useBuilderDnd();
 const elements = useMergedElements(config);
 const authoredNode = computed(() => resolveNodeRuntime(props.node, runtime?.value ?? { config: config?.value }));
@@ -85,14 +85,14 @@ const contentAddOptions = computed(() =>
 const showFreeInputs = computed(() => config?.value?.hideElementPicker !== true);
 
 /** Validation issues for *this* node — drives the warning icon in the row. */
-const nodeIssues = computed(() => validation?.byNodeId.value.get(props.node.id) ?? []);
+const nodeFindings = computed(() => findings?.byNodeId.value.get(props.node.id) ?? []);
 const issueSeverity = computed<'error' | 'warning' | null>(() => {
-  if (nodeIssues.value.some((i) => i.severity === 'error')) return 'error';
-  if (nodeIssues.value.length > 0) return 'warning';
+  if (nodeFindings.value.some((i) => i.severity === 'error')) return 'error';
+  if (nodeFindings.value.length > 0) return 'warning';
   return null;
 });
 const issueTitle = computed(() =>
-  nodeIssues.value.map((i) => `• ${i.message}`).join('\n'),
+  nodeFindings.value.map((i) => `• ${i.message}`).join('\n'),
 );
 
 const isRoot = computed(() => props.path.length === 0);
@@ -177,7 +177,7 @@ const isDropInto = computed(() =>
 );
 
 function onGripPointerDown(e: PointerEvent) {
-  if (isRoot.value || builder.isPositionLocked(props.path)) return;
+  if (isRoot.value) return;
   const ghostFrom = (e.currentTarget as HTMLElement | null)?.closest<HTMLElement>('.pb-tree-row');
   dnd.onHandlePointerDown(e, { kind: 'move', path: [...props.path] }, ghostFrom);
 }
@@ -233,7 +233,7 @@ function canMoveDown(): boolean {
       @keydown="onRowKeydown"
     >
       <span
-        v-if="!isRoot && !builder.isPositionLocked(path)"
+        v-if="!isRoot"
         class="pb-tree-grip"
         aria-hidden="true"
         @pointerdown.stop="onGripPointerDown"
@@ -268,7 +268,7 @@ function canMoveDown(): boolean {
           v-if="!isRoot"
           type="button"
           class="pb-tree-btn"
-          :disabled="!canMoveUp() || builder.isPositionLocked(path)"
+          :disabled="!canMoveUp()"
           :title="t('coar.pageBuilder.common.moveUp', undefined, 'Move up')"
           @click.stop="builder.move(path, -1)"
         >
@@ -278,7 +278,7 @@ function canMoveDown(): boolean {
           v-if="!isRoot"
           type="button"
           class="pb-tree-btn"
-          :disabled="!canMoveDown() || builder.isPositionLocked(path)"
+          :disabled="!canMoveDown()"
           :title="t('coar.pageBuilder.common.moveDown', undefined, 'Move down')"
           @click.stop="builder.move(path, 1)"
         >
@@ -294,7 +294,7 @@ function canMoveDown(): boolean {
           <CoarIcon name="copy" size="s" />
         </button>
         <button
-          v-if="!isRoot && !builder.isRequired(path)"
+          v-if="!isRoot"
           type="button"
           class="pb-tree-btn pb-tree-btn--danger"
           :title="t('coar.pageBuilder.common.delete', undefined, 'Delete')"
@@ -411,8 +411,9 @@ function canMoveDown(): boolean {
 
 <style scoped>
 .pb-tree-node {
-  font-size: 13px;
-  color: var(--coar-text-neutral-primary, #111);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--coar-text-neutral-primary, #303238);
 }
 
 .pb-tree-row {
@@ -431,8 +432,8 @@ function canMoveDown(): boolean {
 }
 
 .pb-tree-node--selected > .pb-tree-row {
-  background: var(--coar-surface-accent-secondary, #e6eefa);
-  color: var(--coar-text-accent-primary, #1666cc);
+  background: var(--coar-surface-accent-secondary, #eef3f9);
+  color: var(--coar-text-accent-primary, #315f91);
 }
 
 .pb-tree-node--selected > .pb-tree-row::before {
@@ -441,9 +442,9 @@ function canMoveDown(): boolean {
   left: 0;
   top: 3px;
   bottom: 3px;
-  width: 3px;
+  width: 2px;
   border-radius: 2px;
-  background: var(--coar-background-accent-primary, #1666cc);
+  background: var(--coar-background-accent-primary, #315f91);
 }
 
 .pb-tree-grip {
@@ -524,7 +525,7 @@ function canMoveDown(): boolean {
 }
 
 .pb-tree-label-text {
-  font-weight: 500;
+  font-weight: 400;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -544,10 +545,10 @@ function canMoveDown(): boolean {
   padding: 1px 5px;
   overflow: hidden;
   border-radius: 999px;
-  background: var(--coar-surface-accent-secondary, #e6eefa);
-  color: var(--coar-text-accent-primary, #1666cc);
+  background: var(--coar-background-neutral-secondary, #f1f1f3);
+  color: var(--coar-text-neutral-secondary, #666a72);
   font-size: 9px;
-  font-weight: 600;
+  font-weight: 400;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

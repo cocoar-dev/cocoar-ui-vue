@@ -18,7 +18,7 @@ import { useI18n } from '@cocoar/vue-localization';
 import { isElementAllowed, type ElementNode, type PageNode, type StackNode } from '../schema';
 import { resolveNodeStyle } from '../responsive';
 import { resolveNodeRuntime } from '../runtimeBindings';
-import { selfLayoutStyle, containerLayoutStyle } from '../styleMapping';
+import { selfLayoutStyle, containerLayoutStyle, withoutPageRootSize } from '../styleMapping';
 import { useMergedElements } from '../elements/useMergedElements';
 import { BUILDER_API, BUILDER_BREAKPOINT, BUILDER_CONFIG, BUILDER_PAGE_CODE_VALUES, BUILDER_RUNTIME } from './builderContext';
 import { applyPageCodeValues } from '../pageCode';
@@ -126,8 +126,12 @@ const blockedHint = computed(() =>
 /** Direction of this container — drives dropzone axis + child flex behavior. */
 const containerDirection = computed<FlexDirection>(() => {
   const n = props.node;
+  // Mirrors PageNode.vue: style.direction applies to every container, so
+  // dropzones and child sizing follow a row card just as they follow a row
+  // stack. props.direction remains the stack's legacy fallback.
+  if (resolvedStyle.value.direction) return resolvedStyle.value.direction;
   // Cast: the open union member absorbs the 'stack' narrowing.
-  if (n.type === 'stack') return resolvedStyle.value.direction ?? (n as StackNode).props.direction ?? 'column';
+  if (n.type === 'stack') return (n as StackNode).props.direction ?? 'column';
   return 'column';
 });
 
@@ -158,7 +162,10 @@ const layoutStyle = computed<CSSProperties>(() => {
  * mapping the real renderer applies to the node element itself.
  */
 const wrapperStyle = computed<CSSProperties>(() => {
-  const css = selfLayoutStyle(resolvedStyle.value, parentDirection?.value ?? 'column');
+  const mapped = selfLayoutStyle(resolvedStyle.value, parentDirection?.value ?? 'column');
+  // The renderer ignores size on the page root, so the canvas must too — else a
+  // document carrying one would look different here than where it ships.
+  const css = isRoot.value ? withoutPageRootSize(mapped) : mapped;
   if (hiddenAtBreakpoint.value) delete css.display;
   return css;
 });
@@ -183,7 +190,7 @@ function onNodeKeydown(e: KeyboardEvent) {
 // ── Drag source (tab handle) ─────────────────────────────────────────────────
 
 function onTabPointerDown(e: PointerEvent) {
-  if (isRoot.value || builder.isPositionLocked(props.path)) return;
+  if (isRoot.value) return;
   const ghostFrom = (e.currentTarget as HTMLElement | null)?.closest<HTMLElement>('.canvas-node');
   dnd.onHandlePointerDown(e, { kind: 'move', path: [...props.path] }, ghostFrom);
 }
@@ -225,7 +232,7 @@ function zoneClasses(index: number): Record<string, boolean> {
     <!-- Type tab (drag handle) -->
     <span
       class="canvas-node__tab"
-      :class="{ 'canvas-node__tab--grabbable': !isRoot && !builder.isPositionLocked(path) }"
+      :class="{ 'canvas-node__tab--grabbable': !isRoot }"
       :title="typeLabel"
       @pointerdown="onTabPointerDown"
     >
@@ -253,7 +260,7 @@ function zoneClasses(index: number): Record<string, boolean> {
       <CoarIcon name="copy" size="xs" />
     </button>
     <button
-      v-if="!isRoot && !builder.isRequired(path)"
+      v-if="!isRoot"
       type="button"
       class="canvas-node__delete"
       :title="t('coar.pageBuilder.common.delete', undefined, 'Delete')"
@@ -337,42 +344,62 @@ function zoneClasses(index: number): Record<string, boolean> {
 <style scoped>
 /* ── Color families ───────────────────────────────────────────────────────── */
 .canvas-node {
-  --canvas-border: rgba(102, 102, 110, 0.3);
-  --canvas-border-selected: rgba(22, 102, 204, 0.7);
-  --canvas-tab-fg: #5a5a60;
+  /* Selection follows the host accent instead of a hardcoded blue, but is
+     pulled down in chroma so authoring never competes with the page content. */
+  --canvas-accent: oklch(from var(--coar-background-accent-primary, #315f91) 0.44 0.07 h);
+  --canvas-border: rgba(80, 86, 96, 0.16);
+  --canvas-border-selected: var(--canvas-accent);
+  --canvas-tab-fg: #666b73;
   --canvas-tab-bg: #fff;
-  --canvas-tab-border: rgba(102, 102, 110, 0.35);
+  --canvas-tab-border: rgba(80, 86, 96, 0.24);
 }
 .canvas-node--container {
-  --canvas-border: rgba(22, 102, 204, 0.38);
-  --canvas-tab-fg: #1666cc;
-  --canvas-tab-border: rgba(22, 102, 204, 0.45);
+  --canvas-border: rgba(80, 86, 96, 0.16);
+  --canvas-tab-fg: #666b73;
+  --canvas-tab-border: rgba(80, 86, 96, 0.24);
 }
 .canvas-node--element {
-  --canvas-border: rgba(5, 150, 105, 0.35);
-  --canvas-tab-fg: #047857;
-  --canvas-tab-border: rgba(5, 150, 105, 0.45);
+  --canvas-border: rgba(80, 86, 96, 0.16);
+  --canvas-tab-fg: #666b73;
+  --canvas-tab-border: rgba(80, 86, 96, 0.24);
 }
 
 /* ── Base wrapper ─────────────────────────────────────────────────────────── */
 .canvas-node {
   position: relative;
   box-sizing: border-box;
-  border: 1px dashed var(--canvas-border);
-  border-radius: 6px;
-  padding: 16px 10px 10px;
+  border: 1px solid var(--canvas-border);
+  border-radius: 5px;
+  padding: 11px 8px 8px;
   cursor: pointer;
   transition: border-color 0.12s ease-out, background-color 0.12s ease-out;
   min-width: 0;
 }
 
-.canvas-node:hover { background: rgba(22, 102, 204, 0.03); }
+/*
+ * A container's chrome wrapper must pass its own constrained height down to the
+ * body, or a node with a height renders at that height while its children still
+ * lay out against an unbounded box — the canvas would then disagree with the
+ * renderer for every flex-driven layout. Unconstrained nodes are unaffected:
+ * an auto basis still resolves to the natural content height.
+ */
+.canvas-node--container {
+  display: flex;
+  flex-direction: column;
+}
+.canvas-node--container > .canvas-node__body {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.canvas-node:hover:not(:has(.canvas-node:hover)) { border-color: rgba(80, 86, 96, 0.34); }
 .canvas-node--responsive-hidden { opacity: 0.52; background: repeating-linear-gradient(-45deg, transparent 0 6px, rgba(90,90,100,.06) 6px 12px); }
 
 .canvas-node--selected {
   border-color: var(--canvas-border-selected);
   border-style: solid;
-  background: rgba(22, 102, 204, 0.05);
+  background: color-mix(in oklab, var(--canvas-accent) 4%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--canvas-accent) 12%, transparent);
 }
 
 .canvas-node--dragging { opacity: 0.4; }
@@ -402,32 +429,38 @@ function zoneClasses(index: number): Record<string, boolean> {
 }
 
 .canvas-node--root {
-  padding: 20px 14px 14px;
+  padding: 14px 10px 10px;
   min-height: 80px;
 }
 
 /* ── Type tab ─────────────────────────────────────────────────────────────── */
 .canvas-node__tab {
   position: absolute;
-  top: -9px;
-  left: 10px;
+  top: -8px;
+  left: 8px;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  height: 18px;
-  padding: 0 6px;
+  height: 16px;
+  padding: 0 5px;
   background: var(--canvas-tab-bg);
   border: 1px solid var(--canvas-tab-border);
   border-radius: 4px;
-  font-size: 11px;
-  font-weight: 500;
+  font-size: 10px;
+  font-weight: 400;
   color: var(--canvas-tab-fg);
   white-space: nowrap;
   max-width: calc(100% - 40px);
   overflow: hidden;
   text-overflow: ellipsis;
   user-select: none;
+  opacity: 0;
+  transition: opacity 0.12s ease-out, border-color 0.12s ease-out, color 0.12s ease-out;
 }
+
+.canvas-node:hover:not(:has(.canvas-node:hover)) > .canvas-node__tab,
+.canvas-node--selected > .canvas-node__tab,
+.canvas-node--blocked > .canvas-node__tab { opacity: 1; }
 
 .canvas-node__tab--grabbable {
   cursor: grab;
@@ -436,10 +469,10 @@ function zoneClasses(index: number): Record<string, boolean> {
 }
 .canvas-node__tab--grabbable:active { cursor: grabbing; }
 
-.canvas-node--selected .canvas-node__tab {
+.canvas-node--selected > .canvas-node__tab {
   border-color: var(--canvas-border-selected);
   color: var(--canvas-border-selected);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .canvas-node__tab-label {
@@ -459,13 +492,13 @@ function zoneClasses(index: number): Record<string, boolean> {
 /* ── Delete button ────────────────────────────────────────────────────────── */
 .canvas-node__delete {
   position: absolute;
-  top: -9px;
-  right: 10px;
+  top: -8px;
+  right: 8px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   padding: 0;
   border: 1px solid var(--canvas-tab-border);
   background: var(--canvas-tab-bg);
@@ -480,7 +513,7 @@ function zoneClasses(index: number): Record<string, boolean> {
 .canvas-node:hover:not(:has(.canvas-node:hover)) > .canvas-node__delete,
 .canvas-node--selected > .canvas-node__delete { opacity: 1; }
 
-.canvas-node__duplicate { right: 34px; }
+.canvas-node__duplicate { right: 29px; }
 
 .canvas-node:focus-visible {
   outline: 2px solid var(--coar-border-focus, #1666cc);

@@ -3,8 +3,6 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { CoarNotice } from '@cocoar/vue-ui';
 import {
   CoarPageRenderer,
-  createAuthPageConfig as createAuthLabConfig,
-  createAuthPageDocument as createAuthLabSchema,
   type ActionHandler,
   type ActionValues,
   type ElementNode,
@@ -18,6 +16,8 @@ import {
   type RuntimeResourceState,
   type RuntimeValue,
 } from '@cocoar/vue-page-builder';
+import { createAuthPageConfig as createAuthLabConfig } from './auth-customization/authPageConfig';
+import { loadAuthDemoDocument as createAuthLabSchema } from './auth-customization/documents';
 import {
   scriptingSpikeRuntimeHost,
   subscribeScriptingSpikeHostTelemetry,
@@ -172,7 +172,7 @@ const authConfig = createAuthLabConfig('login', 'en');
 const config = {
   ...authConfig,
   allowedElements: [...(authConfig.allowedElements ?? []), 'select'],
-  fields: [
+  dataContract: [
     ...(authConfig.fields ?? []),
     { name: 'region', valueType: 'string' as const, label: 'Region', required: true },
   ],

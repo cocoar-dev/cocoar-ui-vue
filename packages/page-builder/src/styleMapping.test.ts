@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { selfStyle, selfLayoutStyle, containerLayoutStyle, safeAspectRatio, safeCssLength, safeFontVariationSettings } from './styleMapping';
+import { selfStyle, selfLayoutStyle, containerLayoutStyle, withoutPageRootSize, safeAspectRatio, safeCssLength, safeFontVariationSettings } from './styleMapping';
 
 describe('safeCssLength', () => {
   it('allows layout lengths and rejects CSS injection primitives', () => {
@@ -57,6 +57,73 @@ describe('selfLayoutStyle', () => {
     // flex-grow in a column would zero the height basis and squash the box.
     expect(selfLayoutStyle({ size: 'fill' })).toEqual({ width: '100%' });
     expect(selfLayoutStyle({ size: 'fill' }, 'column')).toEqual({ width: '100%' });
+  });
+
+  it('drops size from the page root but keeps everything else', () => {
+    // The page is exactly its host container, so a document (or Page Root
+    // Code) assigning a size must not win over the box it was placed in.
+    const mapped = withoutPageRootSize(selfStyle({
+      height: '500px',
+      minHeight: '100%',
+      maxHeight: '900px',
+      width: '80%',
+      minWidth: '200px',
+      maxWidth: '1200px',
+      aspectRatio: '16 / 9',
+      padding: '24px',
+      surface: 'subtle',
+      overflow: 'hidden',
+    }));
+    expect(mapped.height).toBeUndefined();
+    expect(mapped.minHeight).toBeUndefined();
+    expect(mapped.maxHeight).toBeUndefined();
+    expect(mapped.width).toBeUndefined();
+    expect(mapped.minWidth).toBeUndefined();
+    expect(mapped.maxWidth).toBeUndefined();
+    expect(mapped.aspectRatio).toBeUndefined();
+    expect(mapped.flex).toBeUndefined();
+    // Presentation and overflow remain the document's decision.
+    expect(mapped.padding).toBe('24px');
+    expect(mapped.overflow).toBe('hidden');
+    expect(mapped.background).toBeDefined();
+  });
+
+  it('direction turns any container into a row, not just a stack', () => {
+    // Every container is already a flex box; before this the stack was the only
+    // one whose direction could be changed, via a CSS class of its own.
+    expect(containerLayoutStyle({ direction: 'row' }).flexDirection).toBe('row');
+    expect(containerLayoutStyle({ direction: 'column' }).flexDirection).toBe('column');
+    expect(containerLayoutStyle({}).flexDirection).toBeUndefined();
+  });
+
+  it('size:grow takes the remaining main-axis space in both directions', () => {
+    // The point of `grow`: a column can finally grow vertically, so only the
+    // outermost node needs a height and the rest resolves through flex.
+    expect(selfLayoutStyle({ size: 'grow' }, 'row')).toEqual({ flex: '1 1 auto', minWidth: 0 });
+    expect(selfLayoutStyle({ size: 'grow' }, 'column')).toEqual({ flex: '1 1 auto', minHeight: 0 });
+    expect(selfLayoutStyle({ size: 'grow' })).toEqual({ flex: '1 1 auto', minHeight: 0 });
+  });
+
+  it('size:grow releases the main-axis minimum so it fits a constrained parent', () => {
+    // Without this a flex item keeps min-*:auto and overflows its parent
+    // instead of shrinking into it.
+    expect(selfLayoutStyle({ size: 'grow' }, 'column').minHeight).toBe(0);
+    expect(selfLayoutStyle({ size: 'grow' }, 'row').minWidth).toBe(0);
+    // An explicit minimum still wins over the released one.
+    expect(selfLayoutStyle({ size: 'grow', minHeight: '120px' }, 'column').minHeight).toBe('120px');
+    expect(selfLayoutStyle({ size: 'grow', minWidth: '240px' }, 'row').minWidth).toBe('240px');
+  });
+
+  it('size:grow uses an auto basis so siblings keep their content proportions', () => {
+    // A zero basis is what squashed every child to the same size when `fill`
+    // was tried vertically; `grow` must never emit one.
+    const css = selfLayoutStyle({ size: 'grow' }, 'column');
+    expect(css.flex).not.toContain('0%');
+    expect(css.flex).toContain('auto');
+  });
+
+  it('size:grow ignores width, like fill', () => {
+    expect(selfLayoutStyle({ size: 'grow', width: '380px' }, 'row')).toEqual({ flex: '1 1 auto', minWidth: 0 });
   });
 
   it('size:fixed applies the width and disables grow/shrink (direction-independent)', () => {

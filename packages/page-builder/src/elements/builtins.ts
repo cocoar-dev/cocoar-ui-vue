@@ -1,6 +1,6 @@
 /**
  * The built-in element set as a pre-registered registry. Consumer
- * registrations (`PageConfig.elements` / `PAGE_ELEMENTS_KEY`) merge
+ * registrations (`PageConfig.elementTypes` / `PAGE_ELEMENT_TYPES_KEY`) merge
  * additively over this table. The `page` root is deliberately absent — it is
  * a schema-shape marker owned by the host, not an element.
  */

@@ -1,5 +1,11 @@
 # @cocoar/vue-page-builder
 
+> **Preview.** This package is provisional. It shipped as GA in 2.17 by
+> oversight; 3.0 puts it back under Preview until the authoring model settles.
+> Public API, `PageConfig` and the document schema may still change in a minor
+> release. Documents are safe — every schema change ships a migration that runs
+> on ingest — so pin a version if you depend on the API.
+
 A generic, headless visual page builder and renderer for Vue 3, built on the
 Cocoar Design System. Users drag UI primitives onto a canvas, configure them,
 and the result is a plain JSON schema (`PageNode`) that `<CoarPageRenderer>`
@@ -71,16 +77,18 @@ The persisted document is a tree of one uniform node grammar: `type` is an
 open registry key (built-in or consumer), everything element-specific lives in
 the `props` bag, and the host vocabulary — `id`, `style`, the value-model trio
 `name` / `defaultValue` / `validation`, and `children` for containers — stays
-at node level. The `page` root carries `schemaVersion: 5`. Version 4 gives every
+at node level. The `page` root carries `schemaVersion: 6`. Version 4 gives every
 element a stable, page-wide `name`; value elements use that same name as their
 form/DTO property and Element Code uses it as its authoring identity. Version 5
-adds builder-only origin metadata for reusable, versioned compositions.
+adds builder-only origin metadata for reusable, versioned compositions. Version
+6 renames the repeat's `props.source` to `props.contextPath`, so `source` means
+one thing everywhere.
 
 ```jsonc
 {
   "id": "3f6c…",
   "type": "page",
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "style": { "gap": "16px", "padding": "24px" },
   "children": [
     { "id": "a1b2…", "type": "heading", "props": { "text": "Sign in", "level": 2 } },
@@ -219,29 +227,11 @@ to consumer elements registered with `action: true`. A custom action renderer
 should call `usePageElement().triggerElementAction(node.props)` so it follows
 the identical merge, validation and async-action path.
 
-## Host themes and style presets
+## Host themes
 
 Runtime applications wrap the renderer in the generic `CoarThemeScope` from
 `@cocoar/vue-ui`. For authoring, pass the same theme as `previewTheme`; it is
 applied only to the preview canvas, never to the builder chrome.
-
-Host CSS can be exposed as controlled presets through `PageConfig`:
-
-```ts
-const config: PageConfig = {
-  stylePresets: [{
-    id: 'brand-auth-visual',
-    label: 'Brand Auth Visual',
-    className: 'brand-auth-visual',
-    allowedOn: ['page', 'stack', 'card'],
-  }],
-};
-```
-
-The page document stores only `stylePreset: 'brand-auth-visual'`; it never
-stores raw CSS or an arbitrary class. The host must load the matching CSS in
-both administration and runtime. Unknown, unsafe, or disallowed presets are an
-authoring error and are safely ignored by the renderer.
 
 ## Decorative visual markup
 
@@ -304,7 +294,7 @@ or CSS: they become part of the generated `srcdoc`.
 
 The built-in elements are just pre-registered entries of an open **element
 registry** — a consumer can register its own element types on the exact same
-contract via `config.elements` (or app-wide via `PAGE_ELEMENTS_KEY`). One
+contract via `config.elementTypes` (or app-wide via `PAGE_ELEMENT_TYPES_KEY`). One
 registration serves palette, canvas preview, props panel and the runtime
 renderer; the value model (defaults, `required`, validation, action payloads)
 comes from the host for free. Element renderers wire their field state through
@@ -340,7 +330,7 @@ and DTO property (`elements.username` and `fields.username`); there is no
 second field-name or identifier property.
 
 Pages are usually projections of a DTO — the value-element names and types are
-known up front. Declare them as `config.fields` and authors *pick* fields instead
+known up front. Declare them as `config.dataContract` and authors *pick* fields instead
 of inventing names: the props panel's Name becomes a select filtered to the
 value types each element can edit (`ElementValueSpec.types`; the rating above
 declares `types: ['number']` and shows up for number fields), the palette
@@ -479,16 +469,15 @@ pre-bundling:
 optimizeDeps: { exclude: ['@cocoar/vue-page-builder/runtime-worker'] }
 ```
 
-`CoarPageBuilder` owns its embedded preview runtime. A selected fixture now
-provides context, view state, locale and viewport as one effective preview
-contract; the Builder evaluates Page State, Page Root Code and Element Code in
-that same isolated session. Pass `previewRuntimeHost` only when preview actions
+`CoarPageBuilder` owns its embedded preview runtime. The host supplies its
+inputs — `previewContext`, `previewInitialValues`, `previewLocale` — and the
+Builder evaluates Page State, Page Root Code and Element Code in one isolated
+session against exactly those. Pass `previewRuntimeHost` only when preview actions
 need the application's explicitly granted capabilities.
 
-The package also exports four optional integration presets:
-`createAuthPageDocument()` and `createAuthPageConfig()` for `login`,
-`password-forgot`, `logout` and `consent`. They are example/default documents;
-all underlying elements, repeaters, feedback zones and runtime APIs remain
+The package ships no auth-specific configuration or documents. An IDP owns its
+own `PageConfig` and starting documents for `login`, `password-forgot`, `logout`
+and `consent`; every element, repeater, feedback zone and runtime API stays
 generic.
 
 See [IDP_INTEGRATION.md](./IDP_INTEGRATION.md) for the complete draft/publish,

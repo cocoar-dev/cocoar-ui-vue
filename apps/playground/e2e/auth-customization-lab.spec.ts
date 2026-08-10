@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { dragCardOntoCanvas, openBuilderTool } from './helpers';
 
 async function openRenderer(page: Page) {
   await page.goto('/auth-customization-lab');
@@ -52,7 +53,11 @@ test.describe('Auth Customization Lab', () => {
     );
   });
 
-  test('renders every slot and keeps the compact fixture horizontally stable', async ({ page }) => {
+  // Also the guard for "the page is exactly its host container": a content-box
+  // page root adds its authored padding to 100% and spills sideways, which only
+  // shows up once the host is narrow. CSS is why this lives here and not in a
+  // jsdom unit test.
+  test('renders every slot and keeps the compact viewport horizontally stable', async ({ page }) => {
     await openRenderer(page);
     await page.getByLabel('Viewport').selectOption('compact');
 
@@ -79,8 +84,9 @@ test.describe('Auth Customization Lab', () => {
 
     await page.getByRole('button', { name: 'Builder', exact: true }).click();
     await expect(page.getByText('Edit structure, Quick Properties', { exact: false })).toBeVisible();
-    await page.getByRole('treeitem', { name: 'Anmelden submit', exact: true }).click();
     const builder = page.locator('.pb-builder');
+    await openBuilderTool(builder, 'Structure');
+    await page.getByRole('treeitem', { name: 'Anmelden submit', exact: true }).click();
     await builder.getByRole('tab', { name: 'Translations', exact: true }).click();
     const translationRow = builder.getByRole('row').filter({ hasText: 'page.submit.label' });
     await expect(translationRow.getByRole('textbox').nth(0)).toHaveValue('Anmelden');
@@ -120,7 +126,7 @@ test.describe('Auth Customization Lab', () => {
     await expect(page.getByText('Dynamic arrays / repeaters', { exact: true })).toBeVisible();
   });
 
-  test('evaluates Builder preview fixtures and element code in its own runtime session', async ({ page }) => {
+  test('evaluates element code in its own preview runtime session', async ({ page }) => {
     await page.goto('/auth-customization-lab');
     await page.getByRole('button', { name: 'Builder', exact: true }).click();
     const builder = page.locator('.pb-builder');
@@ -134,10 +140,13 @@ test.describe('Auth Customization Lab', () => {
     await password.fill('demo-password');
     await expect(submit).toBeEnabled();
 
-    const fixtureOptions = await builder.locator('.pb-builder__preview-control select').first()
-      .locator('option').allTextContents();
-    expect(fixtureOptions).toContain('Host values');
-    expect(fixtureOptions).toContain('Typical');
+    // Named preview fixtures are gone — preview inputs come from the host. The
+    // language control is the one that still restarts the session, so it is
+    // what proves the runtime re-evaluates against a changed contract.
+    const language = builder.locator('.pb-builder__preview-pane .pb-builder__bar-control select').first();
+    expect(await language.locator('option').allTextContents()).toEqual(['Host', 'Deutsch', 'English']);
+    await language.selectOption('en');
+    await expect(builder.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible();
   });
 
   test('authors compositions separately and keeps pages pinned until updated', async ({ page }) => {
@@ -145,6 +154,8 @@ test.describe('Auth Customization Lab', () => {
     await page.getByRole('button', { name: 'Builder', exact: true }).click();
     const builder = page.locator('.pb-builder');
     await builder.getByRole('tab', { name: 'Compositions', exact: true }).click();
+    // The pinned-version suffix is drawn on the outline row, not in the tab.
+    await openBuilderTool(builder, 'Structure');
 
     const loginV1 = builder.getByRole('treeitem', {
       name: 'Visual markup shoppingListVisual amzettel-brand-panel@1',
@@ -165,6 +176,7 @@ test.describe('Auth Customization Lab', () => {
 
     await page.getByRole('button', { name: 'Pages', exact: true }).click();
     await builder.getByRole('tab', { name: 'Compositions', exact: true }).click();
+    await openBuilderTool(builder, 'Structure');
     const stillPinnedV1 = builder.getByRole('treeitem', {
       name: 'Visual markup shoppingListVisual amzettel-brand-panel@1',
       exact: true,
@@ -185,9 +197,13 @@ test.describe('Auth Customization Lab', () => {
     await page.getByRole('button', { name: 'Builder', exact: true }).click();
 
     const builder = page.locator('.pb-builder');
+    await openBuilderTool(builder, 'Insert elements');
     const composition = builder.locator('[data-composition-id="amzettel-brand-panel"]');
     await expect(composition).toContainText('amZettel brand panel');
-    await composition.dragTo(builder.locator('[data-dropzone="o::into"]'));
+    // Library and outline share one drawer, so the outline's drop zones are not
+    // on screen while the palette is. Drop on the canvas instead — which is the
+    // gesture this test is about anyway.
+    await dragCardOntoCanvas(page, composition, builder.locator('[data-dropzone=":0"]'));
 
     const properties = builder.getByTestId('composition-properties');
     await expect(properties.getByLabel('Name')).toHaveValue('amZettel brand panel');

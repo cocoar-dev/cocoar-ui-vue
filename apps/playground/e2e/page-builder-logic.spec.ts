@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { openBuilderTool } from './helpers'
 
 test.describe('PageBuilder element code authoring', () => {
   test('loads Page State and applies reactive element compute, actions and repeat state', async ({ page }) => {
@@ -43,6 +44,7 @@ test.describe('PageBuilder element code authoring', () => {
   test('keeps the Properties panel structural in code mode', async ({ page }) => {
     await page.goto('/page-builder')
     const builder = page.locator('.pb-builder')
+    await openBuilderTool(builder, 'Structure')
     await builder.getByRole('treeitem', { name: 'Password password', exact: true }).click()
 
     const properties = builder.getByRole('complementary', { name: 'Properties' })

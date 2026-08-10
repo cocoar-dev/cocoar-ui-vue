@@ -2,7 +2,7 @@
 description: "CoarPageRenderer turns a PageNode schema into live Cocoar components at runtime, enforcing the allowedElements security boundary with actions, validation and initialValues."
 ---
 
-# `<CoarPageRenderer>`
+# `<CoarPageRenderer>` <Badge type="warning" text="Preview" />
 
 The runtime-renderer half of `@cocoar/vue-page-builder`. Takes a `PageNode` schema (produced by [`<CoarPageBuilder>`](./coar-page-builder) or written by hand) and renders it as live Cocoar components. This is the component you mount on the actual page that end-users see.
 
@@ -17,16 +17,15 @@ Import `@cocoar/vue-page-builder/styles` once in your app — the renderer's lay
 | Prop | Type | Description |
 |------|------|-------------|
 | `schema` | `PageNode` | Required. The page schema to render. Legacy `column`/`row` containers and v1 flat documents are [migrated on the fly](#legacy-schemas-normalization). |
-| `config` | [`PageConfig`](./#pageconfig-the-consumer-contract) | Security/allowlist boundary. Elements not in `config.allowedElements` are skipped at render time (with one console warning per type) **and excluded from the value model**. Also supplies the `assetResolver` fallback and the [consumer element registrations](./custom-elements) (`config.elements`). |
+| `config` | [`PageConfig`](./#pageconfig-the-consumer-contract) | Security/allowlist boundary. Elements not in `config.allowedElements` are skipped at render time (with one console warning per type) **and excluded from the value model**. Also supplies the `assetResolver` fallback and the [consumer element registrations](./custom-elements) (`config.elementTypes`). |
 | `actions` | `Record<string, (values: ActionValues) => void \| Promise<unknown>>` | Map of action IDs to handler functions. Buttons and links call these. A returned Promise is awaited: buttons disable (the triggering one spins) until it settles, further clicks are ignored, and a rejection surfaces in the [form-level error banner](#async-actions-the-form-level-error-channel). |
 | `onValidate` | `(values: ActionValues) => Record<string, string> \| Promise<Record<string, string>>` | Developer-only cross-field/server validation. Runs at **submit time** — when a `validates: true` button is clicked and after all declarative rules pass. May be sync or async; returns `{ fieldName: errorMessage }`. A non-empty result blocks the action. The reserved key `_form` addresses the form as a whole (banner instead of a field). Not exposed in builder UI. See [Validation](#validation). |
 | `assetResolver` | `(id: string) => string` | Resolves an `assetId` to a URL at render time. Falls back to `config.assetResolver` when not set. Needed when the schema contains `image` nodes. |
 | `initialValues` | `ActionValues` | Host-supplied field values for edit-form scenarios, merged **over** the schema's `defaultValue`s on init. Only keys that match a **named** input in the (allowed) tree are taken — stray host data never leaks into the action payload. Replacing the object with **different values** re-initializes the form, like a schema change; a value-identical replacement (e.g. an inline object literal re-created by a parent re-render — nested objects/arrays compare by content) is ignored, so in-progress user input survives. |
 | `runtimeContext` | `Record<string, unknown>` | Host-owned runtime data. The document can only read paths explicitly declared by `config.contextFields`; undeclared paths resolve to the binding fallback. |
-| `viewState` | `string` | Host-controlled state ID used by conditions and Page/Element Code. The builder offers IDs from `config.availableStates`. Customer-authored `source: 'state'` property bindings read Page State instead. |
 | `locale` | `string` | Active locale used to resolve page translation keys, legacy `LocalizedValue` props and localized templates. Regional locales fall back to their base locale and then `config.defaultLocale`. |
 | `viewportWidth` | `number` | Optional deterministic container width. Runtime normally measures its container; previews and tests can provide an exact width. |
-| `fallbackSchema` | `PageNode` | Host-owned safe document rendered when the customized document fails allow-list, required-node, placement or document-limit validation. `usingFallback` is exposed on the component ref. |
+| `fallbackSchema` | `PageNode` | Host-owned safe document rendered when the customized document fails allow-list, binding or document-limit validation. `usingFallback` is exposed on the component ref. |
 
 ## Usage
 
@@ -243,7 +242,7 @@ New page documents keep customer-owned messages once on the page root and refere
 
 Element Code creates the same value through `i18n.text(key, params?, fallback?)`. Resolution is page catalogue → host `@cocoar/vue-localization` catalogue → fallback → key. `LocalizedValue` is retained as a compatibility format for existing schemas.
 
-`visibleWhen` uses the same field/context/state/item sources with `equals`, `notEquals`, `in`, `notIn`, `exists`, `isEmpty` and `isNotEmpty`. Conditions can be combined with bounded `all`/`any` groups. Hidden subtrees do not render, validate or contribute values/action payloads.
+`visibleWhen` uses the same field/context/item sources with `equals`, `notEquals`, `in`, `notIn`, `exists`, `isEmpty` and `isNotEmpty`. Conditions can be combined with bounded `all`/`any` groups. Hidden subtrees do not render, validate or contribute values/action payloads.
 
 ### Generic repeaters and selections
 
@@ -415,7 +414,7 @@ This order is identical for click, link activation, Enter-to-submit and consumer
 
 ### Consumer elements
 
-The element set is **open**: register your own element types via `config.elements` (or app-wide via `PAGE_ELEMENTS_KEY`) and they render, join the value model and validate exactly like built-ins. Element renderers wire themselves through the `usePageElement()` context (`getValue` / `setValue` / `getError` / `markTouched` / `triggerAction` / `isValidating` / `isSubmitting` / `pendingAction` / `formError` / `resolveAsset` / `config`). See the [Custom elements guide](./custom-elements).
+The element set is **open**: register your own element types via `config.elementTypes` (or app-wide via `PAGE_ELEMENT_TYPES_KEY`) and they render, join the value model and validate exactly like built-ins. Element renderers wire themselves through the `usePageElement()` context (`getValue` / `setValue` / `getError` / `markTouched` / `triggerAction` / `isValidating` / `isSubmitting` / `pendingAction` / `formError` / `resolveAsset` / `config`). See the [Custom elements guide](./custom-elements).
 
 ## Validation
 
@@ -554,7 +553,7 @@ const { schema, issues, changed } = normalizePageSchema(stored);
 | `normalizePageSchema(value)` | Returns `{ schema, issues, changed }`. Runs both migrations, then heals silently what has unambiguous intent: a non-`page` root (wrapped in a fresh page), missing `children` arrays, missing/duplicate/empty node ids (fresh UUIDs), missing `props` bags, numeric heading levels outside 1–6 (clamped), a missing/`1` `schemaVersion` (stamped `2`). Every `issue` carries a `severity`: **`error`** = data was dropped (non-object nodes — structurally broken input), **`warning`** = healed in place or lossless (unknown element types — kept in the tree, skipped at render time; non-array `children` or non-object `props` reset; non-numeric heading levels reset to 2; `children` on a non-container). |
 | `migrateLegacyTypes(node)` | Just the `column`/`row` → `stack` mapping, recursive and identity-preserving when there is nothing to migrate. |
 | `migrateV1PropsBag(node)` | The v1 → v2 wire-format migration: per node, a known element type without a `props` object gets its flat element props moved into a fresh bag. Idempotent and identity-preserving — safe to run unconditionally. |
-| `KNOWN_ELEMENT_TYPES` | `ReadonlySet<string>` of the **built-in** element types. Consumer-registered keys are per-instance data (`config.elements`) and deliberately not part of this module constant. |
+| `KNOWN_ELEMENT_TYPES` | `ReadonlySet<string>` of the **built-in** element types. Consumer-registered keys are per-instance data (`config.elementTypes`) and deliberately not part of this module constant. |
 
 ## Security boundary
 

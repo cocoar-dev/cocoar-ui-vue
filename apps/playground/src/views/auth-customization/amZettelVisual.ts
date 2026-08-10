@@ -110,7 +110,10 @@ export const AMZETTEL_BRAND_COMPOSITION: PageCompositionDefinition = {
     type: 'visual-markup',
     name: 'shoppingListVisual',
     props: { html: AMZETTEL_VISUAL_HTML, css: AMZETTEL_VISUAL_CSS },
-    style: { size: 'fixed', width: '44%', minWidth: '380px', height: '100%', hidden: true },
+    // No height: the shell row is align-items:stretch, which fills this pane
+    // top to bottom on its own. An explicit height would opt out of stretching
+    // and a percentage cannot resolve against a content-sized row anyway.
+    style: { size: 'fixed', width: '44%', minWidth: '380px', hidden: true },
     responsive: { desktop: { hidden: false } },
   } satisfies VisualMarkupNode,
 };
@@ -131,7 +134,7 @@ export function createAmZettelPage(base: PageNode): PageNode {
     type: 'stack',
     name: 'authPane',
     props: { direction: 'column' },
-    style: { size: 'fill', height: '100%', minWidth: '0', padding: '48px 32px', justify: 'center', align: 'center' },
+    style: { size: 'fill', minWidth: '0', padding: '48px 32px', justify: 'center', align: 'center' },
     children: [frame],
   };
   const shell: ElementNode = {
@@ -139,10 +142,13 @@ export function createAmZettelPage(base: PageNode): PageNode {
     type: 'stack',
     name: 'authShell',
     props: { direction: 'row' },
-    style: { size: 'fill', width: '100%', height: '100%', minWidth: '0', gap: '0', align: 'stretch' },
+    // The shell sits in the page's column flow, where stretch only governs
+    // width. Taking the page's full height is a main-axis concern, so it needs
+    // grow rather than a percentage height.
+    style: { size: 'grow', minWidth: '0', gap: '0', align: 'stretch' },
     children: [visual, rightPane],
   };
-  root.style = { minHeight: '100%', height: '100%', width: '100%', padding: '0', surface: 'default', align: 'stretch', justify: 'start' };
+  root.style = { padding: '0', surface: 'default', align: 'stretch', justify: 'start' };
   root.responsive = undefined;
   root.children = [shell];
   return root;

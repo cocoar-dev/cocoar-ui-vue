@@ -32,7 +32,7 @@ export type {
   EmptyProps,
   OptionItem,
   PageRootNode,
-  PagePreviewFixture,
+  PagePreviewViewport,
   StackNode,
   CardNode,
   SectionNode,
@@ -63,7 +63,6 @@ export type {
   PageConfig,
   PageVisualFont,
   PageVisualMarkupConfig,
-  PageStylePreset,
   PageValueType,
   PageFieldSpec,
 } from './schema';
@@ -88,7 +87,6 @@ export {
   type PublishPageCompositionInput,
 } from './compositions';
 
-export { findStylePreset, isSafeStylePreset } from './stylePresets';
 
 export { isContainerNode, isElementAllowed } from './schema';
 export { CURRENT_PAGE_SCHEMA_VERSION } from './schema';
@@ -141,14 +139,6 @@ export {
   type PageCodeRuntimeOptions,
 } from './runtime/usePageCodeRuntime';
 export {
-  AUTH_PAGE_COPY,
-  createAuthPageConfig,
-  createAuthPageDocument,
-  type AuthPageLocale,
-  type AuthPageSlot,
-} from './presets/authCustomization';
-
-export {
   PAGE_BREAKPOINT_WIDTHS,
   breakpointForWidth,
   resolveNodeStyle,
@@ -180,13 +170,20 @@ export { migrateV1PropsBag } from './builder/schemaMigrateV1';
 export {
   definePageElement,
   mergeElementRegistries,
-  PAGE_ELEMENTS_KEY,
+  PAGE_ELEMENT_TYPES_KEY,
   ELEMENT_KEY_PATTERN,
   QUICK_PROPERTY_PRESETS,
+  QUICK_COMPOUND_PRESETS,
+  PAGE_ROOT_QUICK_PROPERTIES,
+  isQuickCompound,
   type PageElementDefinition,
   type PageElementBuilderDefinition,
   type PageElementQuickProperty,
   type PageElementQuickPropertyOption,
+  type PageElementQuickCompound,
+  type PageElementQuickCompoundPart,
+  type PageElementQuickEntry,
+  type QuickPropertyPath,
   type PageElementRegistry,
   type ElementValueSpec,
   type ElementLintIssue,
@@ -223,6 +220,24 @@ export {
 
 export { validatePageDocument, type PageDocumentIssue, type PageDocumentValidationResult } from './documentValidation';
 
+/**
+ * The builder's authoring findings — the same list `<CoarPageBuilder>` draws
+ * in its outline and props panel and emits via `@findings`. Exported for
+ * hosts that need them OUTSIDE a mounted builder (a save gate, a document
+ * dashboard). Call it in a component `setup()`: it resolves the element
+ * registry reactively, honouring `config.elementTypes` and an app-level
+ * `PAGE_ELEMENT_TYPES_KEY` provide alike.
+ *
+ * Not the activation contract — `validatePageDocument` is what the runtime
+ * enforces. These are UX hints on top of it.
+ */
+export {
+  useAuthoringFindings,
+  type AuthoringFinding,
+  type FindingSeverity,
+  type UseAuthoringFindingsReturn,
+} from './builder/useAuthoringFindings';
+
 export {
   collectPageRuntimeExpressions,
   pageRuntimeExpressionSource,
@@ -240,6 +255,7 @@ export {
   elementActionRuntimeSource,
   readElementQuickProperties,
   setElementQuickProperty,
+  setPageRootQuickProperty,
   elementBindingId,
   pageRootBindingId,
   elementActionDefinitionId,

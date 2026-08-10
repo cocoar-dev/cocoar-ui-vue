@@ -1,0 +1,209 @@
+{
+  "id": "auth-page",
+  "type": "page",
+  "schemaVersion": 6,
+  "enterSubmits": false,
+  "style": {
+    "padding": "0",
+    "surface": "default",
+    "align": "stretch",
+    "justify": "start"
+  },
+  "children": [
+    {
+      "id": "amzettel-auth-shell",
+      "type": "stack",
+      "name": "authShell",
+      "props": {
+        "direction": "row"
+      },
+      "style": {
+        "size": "grow",
+        "minWidth": "0",
+        "gap": "0",
+        "align": "stretch"
+      },
+      "children": [
+        {
+          "id": "47ad65c9-48df-4db4-8aa3-c2d2ec7e92b6",
+          "type": "visual-markup",
+          "name": "shoppingListVisual",
+          "props": {
+            "html": "<div class=\"auth-brand-inner\">\n  <h1 class=\"auth-logo\">\n    <span class=\"wordmark\"><span class=\"wm-am\">am</span><span class=\"wm-zettel\">Zettel</span></span>\n  </h1>\n  <p class=\"auth-tagline\">Gemeinsam einkaufen. Einfach abhaken.</p>\n  <div class=\"demo-card\">\n    <div class=\"demo-head\">\n      <span class=\"demo-tile\">W</span>\n      <span class=\"demo-title\">Wocheneinkauf</span>\n      <svg width=\"30\" height=\"30\" viewBox=\"0 0 36 36\" class=\"demo-ring\" aria-hidden=\"true\">\n        <circle cx=\"18\" cy=\"18\" r=\"15.5\" fill=\"none\" class=\"demo-ring-track\" stroke-width=\"4.5\"></circle>\n        <circle cx=\"18\" cy=\"18\" r=\"15.5\" fill=\"none\" stroke-width=\"4.5\" stroke-linecap=\"round\" class=\"demo-ring-fg\" transform=\"rotate(-90 18 18)\"></circle>\n      </svg>\n    </div>\n    <ul class=\"demo-lines\">\n      <li style=\"--d:1.2s;--cat:#0284c7\"><span class=\"demo-dot\"></span><span class=\"demo-word\">Milch</span><span class=\"demo-pill\">2 L</span></li>\n      <li style=\"--d:2.25s;--cat:#d97706\"><span class=\"demo-dot\"></span><span class=\"demo-word\">Brot</span><span class=\"demo-pill\">1 Stk</span></li>\n      <li style=\"--d:3.3s;--cat:#16a34a\"><span class=\"demo-dot\"></span><span class=\"demo-word\">Äpfel</span><span class=\"demo-pill\">6 Stk</span></li>\n      <li style=\"--d:4.35s;--cat:#2563eb\"><span class=\"demo-dot\"></span><span class=\"demo-word\">Kaffee</span><span class=\"demo-pill\">500 g</span></li>\n      <li style=\"--d:5.4s;--cat:#0284c7\"><span class=\"demo-dot\"></span><span class=\"demo-word\">Butter</span><span class=\"demo-pill\">250 g</span></li>\n    </ul>\n  </div>\n</div>",
+            "css": "\nbody {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  padding: 48px;\n  color: var(--ink);\n  background:\n    radial-gradient(700px 480px at 85% 12%, rgba(139, 92, 246, 0.10), transparent 60%),\n    radial-gradient(620px 460px at 0% 100%, rgba(16, 185, 129, 0.13), transparent 55%),\n    var(--surface);\n  border-right: 1px solid var(--line);\n  font-family: var(--font-ui);\n}\n.auth-brand-inner { width: 100%; max-width: 360px; }\n.auth-logo { margin: 0; font-size: clamp(2.6rem, 4.5vw, 3.4rem); animation: rise-in .5s var(--ease-out) both; }\n.wordmark { display: inline-flex; align-items: baseline; letter-spacing: -.02em; line-height: 1; white-space: nowrap; }\n.wm-am { color: var(--ink); font-family: var(--font-ui); font-weight: 700; }\n.wm-zettel { color: var(--brand-deep); font-family: var(--font-display); font-style: italic; font-variation-settings: \"opsz\" 40, \"wght\" 520; }\n.auth-tagline { margin: 6px 0 40px; color: var(--ink-soft); font-size: 1.06rem; animation: rise-in .5s var(--ease-out) .08s both; }\n.demo-card { padding: 20px 22px; border: 1px solid var(--line); border-radius: var(--radius-l); background: var(--surface); box-shadow: var(--shadow-pop); transform: rotate(-1.2deg); animation: rise-in .55s var(--ease-out) .18s both; }\n.demo-head { display: flex; align-items: center; gap: 11px; padding-bottom: 14px; margin-bottom: 6px; border-bottom: 1px solid var(--line); }\n.demo-tile { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 10px; background: #10b981; color: #fff; font-weight: 700; }\n.demo-title { flex: 1; font-size: 1.04rem; font-weight: 700; }\n.demo-ring-track { stroke: var(--hover); }\n.demo-ring-fg { stroke: var(--brand); stroke-dasharray: 0 97.4; animation: ring-fill 5.5s var(--ease-out) 1.2s both; }\n.demo-lines { margin: 0; padding: 0; list-style: none; }\n.demo-lines li { display: flex; align-items: center; gap: 12px; padding: 10px 2px; border-bottom: 1px solid var(--line); font-size: .98rem; font-weight: 500; }\n.demo-lines li:last-child { border-bottom: 0; }\n.demo-dot { width: 19px; height: 19px; flex: 0 0 auto; border: 2px solid color-mix(in srgb, var(--cat) 55%, var(--line-strong)); border-radius: 50%; animation: dot-fill .35s ease var(--d) both; }\n.demo-word { flex: 1; animation: word-strike .35s ease var(--d) both; }\n.demo-pill { padding: 2px 9px; border-radius: 999px; background: color-mix(in srgb, var(--cat) 13%, var(--surface)); color: var(--ink-soft); font-size: .74rem; font-weight: 700; }\n@keyframes rise-in { from { opacity: 0; transform: translateY(14px); } }\n@keyframes ring-fill { to { stroke-dasharray: 97.4 97.4; } }\n@keyframes dot-fill { to { border-color: var(--cat); background: var(--cat); } }\n@keyframes word-strike { to { color: var(--ink-faint); text-decoration: line-through; text-decoration-color: var(--cat); text-decoration-thickness: 2px; } }\n@media (prefers-reduced-motion: reduce) {\n  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }\n}\n"
+          },
+          "style": {
+            "size": "fixed",
+            "width": "44%",
+            "minWidth": "380px",
+            "hidden": true
+          },
+          "responsive": {
+            "desktop": {
+              "hidden": false
+            }
+          },
+          "compositionOrigins": [
+            {
+              "id": "amzettel-brand-panel",
+              "sourceNodeId": "amzettel-shopping-visual-template"
+            }
+          ],
+          "composition": {
+            "id": "amzettel-brand-panel",
+            "version": "1"
+          }
+        },
+        {
+          "id": "amzettel-auth-pane",
+          "type": "stack",
+          "name": "authPane",
+          "props": {
+            "direction": "column"
+          },
+          "style": {
+            "size": "fill",
+            "minWidth": "0",
+            "padding": "48px 32px",
+            "justify": "center",
+            "align": "center"
+          },
+          "children": [
+            {
+              "id": "logout-frame",
+              "type": "stack",
+              "props": {
+                "direction": "column"
+              },
+              "style": {
+                "size": "fill",
+                "maxWidth": "420px",
+                "gap": "20px",
+                "align": "stretch"
+              },
+              "responsive": {
+                "tablet": {
+                  "gap": "32px"
+                }
+              },
+              "children": [
+                {
+                  "id": "logout-card",
+                  "type": "card",
+                  "props": {},
+                  "style": {
+                    "gap": "16px",
+                    "align": "center",
+                    "elevation": "medium",
+                    "radius": "large",
+                    "textAlign": "center"
+                  },
+                  "children": [
+                    {
+                      "id": "logout-title",
+                      "type": "heading",
+                      "props": {
+                        "text": {
+                          "source": "translation",
+                          "key": "page.logoutTitle.text",
+                          "fallback": "Signed out"
+                        },
+                        "level": 1
+                      },
+                      "style": {
+                        "alignSelf": "center"
+                      },
+                      "name": "logoutTitle",
+                      "elementCode": "defineElement({ // @locked\n  compute(element, page) { // @locked\n    // Properties Panel values // @locked @quick:start\n    element.props.text = i18n.text(\"page.logoutTitle.text\", undefined, \"Signed out\"); // @locked @quick:props.text @value:%7B%22source%22%3A%22translation%22%2C%22key%22%3A%22page.logoutTitle.text%22%2C%22fallback%22%3A%22Signed%20out%22%7D\n    element.style.alignSelf = \"center\"; // @locked @quick:style.alignSelf @value:%22center%22\n    // Custom code (overrides values above) // @locked @quick:end @slot:compute\n    // Configure this element. Page inputs live on page.*.\n  }, // @locked\n  actions: { // @locked\n    async click(element, page, action) { // @locked @slot:click\n\n    }, // @locked\n  }, // @locked\n}) // @locked"
+                    },
+                    {
+                      "id": "logout-copy",
+                      "type": "paragraph",
+                      "props": {
+                        "text": {
+                          "source": "translation",
+                          "key": "page.logoutCopy.text",
+                          "fallback": "Your session has ended safely."
+                        }
+                      },
+                      "style": {
+                        "alignSelf": "center"
+                      },
+                      "name": "logoutCopy",
+                      "elementCode": "defineElement({ // @locked\n  compute(element, page) { // @locked\n    // Properties Panel values // @locked @quick:start\n    element.props.text = i18n.text(\"page.logoutCopy.text\", undefined, \"Your session has ended safely.\"); // @locked @quick:props.text @value:%7B%22source%22%3A%22translation%22%2C%22key%22%3A%22page.logoutCopy.text%22%2C%22fallback%22%3A%22Your%20session%20has%20ended%20safely.%22%7D\n    element.style.alignSelf = \"center\"; // @locked @quick:style.alignSelf @value:%22center%22\n    // Custom code (overrides values above) // @locked @quick:end @slot:compute\n    // Configure this element. Page inputs live on page.*.\n  }, // @locked\n  actions: { // @locked\n    async click(element, page, action) { // @locked @slot:click\n\n    }, // @locked\n  }, // @locked\n}) // @locked"
+                    },
+                    {
+                      "id": "logout-action-error",
+                      "type": "feedback",
+                      "props": {
+                        "kind": "form-error"
+                      },
+                      "name": "logoutActionError"
+                    },
+                    {
+                      "id": "logout-success",
+                      "type": "feedback",
+                      "props": {
+                        "kind": "success",
+                        "text": ""
+                      },
+                      "bindings": {
+                        "text": {
+                          "source": "context",
+                          "path": "feedback.message",
+                          "fallback": ""
+                        }
+                      },
+                      "visibleWhen": {
+                        "source": "context",
+                        "path": "feedback.success",
+                        "operator": "equals",
+                        "value": true
+                      },
+                      "name": "logoutSuccess",
+                      "elementCode": "defineElement({ // @locked\n  compute(element, page) { // @locked\n    // Properties Panel values // @locked @quick:start\n    element.props.text = \"\"; // @locked @quick:props.text @value:%22%22\n    // Custom code (overrides values above) // @locked @quick:end @slot:compute\n    // Configure this element. Page inputs live on page.*.\n  }, // @locked\n  actions: { // @locked\n    async click(element, page, action) { // @locked @slot:click\n\n    }, // @locked\n  }, // @locked\n}) // @locked"
+                    },
+                    {
+                      "id": "logout-login",
+                      "type": "button",
+                      "props": {
+                        "label": {
+                          "source": "translation",
+                          "key": "page.logoutLogin.label",
+                          "fallback": "Sign in again"
+                        },
+                        "action": "auth:back-to-login"
+                      },
+                      "style": {
+                        "size": "fill"
+                      },
+                      "name": "logoutLogin",
+                      "elementCode": "defineElement({ // @locked\n  compute(element, page) { // @locked\n    // Properties Panel values // @locked @quick:start\n    element.props.label = i18n.text(\"page.logoutLogin.label\", undefined, \"Sign in again\"); // @locked @quick:props.label @value:%7B%22source%22%3A%22translation%22%2C%22key%22%3A%22page.logoutLogin.label%22%2C%22fallback%22%3A%22Sign%20in%20again%22%7D\n    element.style.size = \"fill\"; // @locked @quick:style.size @value:%22fill%22\n    // Custom code (overrides values above) // @locked @quick:end @slot:compute\n    // Configure this element. Page inputs live on page.*.\n  }, // @locked\n  actions: { // @locked\n    async click(element, page, action) { // @locked @slot:click\n\n    }, // @locked\n  }, // @locked\n}) // @locked"
+                    }
+                  ],
+                  "name": "logoutCard",
+                  "elementCode": "defineElement({ // @locked\n  compute(element, page) { // @locked\n    // Properties Panel values // @locked @quick:start\n    element.style.align = \"center\"; // @locked @quick:style.align @value:%22center%22\n    element.style.elevation = \"medium\"; // @locked @quick:style.elevation @value:%22medium%22\n    element.style.gap = \"16px\"; // @locked @quick:style.gap @value:%2216px%22\n    element.style.radius = \"large\"; // @locked @quick:style.radius @value:%22large%22\n    element.style.textAlign = \"center\"; // @locked @quick:style.textAlign @value:%22center%22\n    // Custom code (overrides values above) // @locked @quick:end @slot:compute\n    // Configure this element. Page inputs live on page.*.\n  }, // @locked\n  actions: { // @locked\n    async click(element, page, action) { // @locked @slot:click\n\n    }, // @locked\n  }, // @locked\n}) // @locked"
+                }
+              ],
+              "name": "logoutFrame",
+              "elementCode": "defineElement({ // @locked\n  compute(element, page) { // @locked\n    // Properties Panel values // @locked @quick:start\n    element.style.align = \"stretch\"; // @locked @quick:style.align @value:%22stretch%22\n    element.style.gap = \"20px\"; // @locked @quick:style.gap @value:%2220px%22\n    element.style.maxWidth = \"384px\"; // @locked @quick:style.maxWidth @value:%22384px%22\n    element.style.size = \"fill\"; // @locked @quick:style.size @value:%22fill%22\n    // Custom code (overrides values above) // @locked @quick:end @slot:compute\n    // Configure this element. Page inputs live on page.*.\n  }, // @locked\n  actions: { // @locked\n    async click(element, page, action) { // @locked @slot:click\n\n    }, // @locked\n  }, // @locked\n}) // @locked"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "stateCode": "definePageState({\n  interactionCount: 0,\n})",
+  "translations": {
+    "de": {
+      "page.logoutTitle.text": "Abgemeldet",
+      "page.logoutCopy.text": "Ihre Sitzung wurde sicher beendet.",
+      "page.logoutLogin.label": "Erneut anmelden"
+    },
+    "en": {
+      "page.logoutTitle.text": "Signed out",
+      "page.logoutCopy.text": "Your session has ended safely.",
+      "page.logoutLogin.label": "Sign in again"
+    }
+  }
+}

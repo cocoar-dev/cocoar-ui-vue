@@ -104,6 +104,19 @@ export function selfLayoutStyle(
   if (style.size === 'fill') {
     if (parentDirection === 'row') css.flex = '1 1 0%';
     else css.width = '100%';
+  } else if (style.size === 'grow') {
+    // `auto` basis, not `0%`: growing from natural size keeps content
+    // proportions, which is exactly what the zero basis destroyed when `fill`
+    // was tried vertically. Main axis only — the cross axis stays with the
+    // parent's align-items, same as `fill` in a row.
+    css.flex = '1 1 auto';
+    // A flex item defaults to min-*:auto and therefore refuses to shrink below
+    // its content, which would make it overflow a constrained parent instead of
+    // fitting it. Releasing the main-axis minimum is what makes "height on the
+    // outermost node only" actually hold. An explicit minWidth/minHeight below
+    // still wins.
+    if (parentDirection === 'row') css.minWidth = 0;
+    else css.minHeight = 0;
   } else if (style.size === 'fixed') {
     css.flex = '0 0 auto';
     if (safeCssLength(style.width)) css.width = safeCssLength(style.width);
@@ -145,6 +158,25 @@ export function selfLayoutStyle(
 }
 
 /**
+ * Size values the page root never applies. The page is exactly its host
+ * container — sizing it is the embedding application's job — so a document (or
+ * Page Root Code) carrying these would fight whatever box it was placed in.
+ * Applied by both the renderer and the canvas so the two cannot disagree.
+ */
+const PAGE_ROOT_IGNORED_SIZE = [
+  'width', 'minWidth', 'maxWidth', 'height', 'minHeight', 'maxHeight', 'flex', 'aspectRatio',
+] as const;
+
+export function withoutPageRootSize(css: CSSProperties): CSSProperties {
+  const next = { ...css } as Record<string, unknown>;
+  for (const key of PAGE_ROOT_IGNORED_SIZE) delete next[key];
+  return next as CSSProperties;
+}
+
+/** The style keys a page root silently ignores — for authoring diagnostics. */
+export const PAGE_ROOT_IGNORED_STYLE_KEYS: readonly string[] = PAGE_ROOT_IGNORED_SIZE;
+
+/**
  * Full style for a node's own outer element — {@link selfLayoutStyle} plus
  * padding. Used by the real renderer where the node element *is* the box.
  *
@@ -165,6 +197,10 @@ export function selfStyle(style?: NodeStyle, parentDirection: FlexDirection = 'c
 export function containerLayoutStyle(style?: NodeStyle): CSSProperties {
   const css: CSSProperties = {};
   if (!style) return css;
+  // Every container already IS a flex box; only the stack could change its
+  // direction, and it did so through a CSS class of its own. Mapping it here
+  // makes `direction` mean the same thing on page, card, section and repeat.
+  if (style.direction) css.flexDirection = style.direction;
   if (safeCssLength(style.gap)) css.gap = safeCssLength(style.gap);
   if (style.justify) css.justifyContent = style.justify;
   if (style.align) css.alignItems = style.align;

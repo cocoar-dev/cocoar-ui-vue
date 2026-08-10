@@ -4,7 +4,7 @@ import {
   definePageElement,
   mergeElementRegistries,
   ELEMENT_KEY_PATTERN,
-  PAGE_ELEMENTS_KEY,
+  PAGE_ELEMENT_TYPES_KEY,
   type PageElementRegistry,
 } from './registry';
 
@@ -102,6 +102,6 @@ describe('key grammar + injection key', () => {
   });
 
   it('uses a Symbol.for channel (shared across module instances)', () => {
-    expect(PAGE_ELEMENTS_KEY).toBe(Symbol.for('coar:page-elements'));
+    expect(PAGE_ELEMENT_TYPES_KEY).toBe(Symbol.for('coar:page-element-types'));
   });
 });

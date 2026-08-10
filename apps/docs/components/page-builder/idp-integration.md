@@ -4,27 +4,25 @@ description: "Integrate Page Builder 2.20 into an identity provider with isolate
 
 # IDP integration
 
-Page Builder 2.20 ships the complete browser runtime and four optional Auth
-example presets. They are fixtures built from the same generic registry,
-Repeat, selection, action and styling contracts as every consumer page; the
-runtime contains no Modgud/auth-specific element types or branches.
+Page Builder ships the complete browser runtime and nothing auth-specific.
+Login, consent and the rest are built from the same generic registry, Repeat,
+selection, action and styling contracts as every other consumer page.
 
 ## Public integration surface
 
 ```ts
 import {
-  createAuthPageConfig,
-  createAuthPageDocument,
   definePageRuntimeHost,
   usePageCodeRuntime,
   validatePageDocument,
 } from '@cocoar/vue-page-builder';
 ```
 
-The initial preset slots are `login`, `password-forgot`, `logout` and `consent`.
-They demonstrate generic elements, feedback zones, validation, responsive
-overrides, repeaters, Page State, per-element code and key-based translations.
-The presets are defaults, not special element types.
+The package ships no auth-specific configuration or documents. An IDP builds
+its own `PageConfig` — fields, actions, context and states for `login`,
+`password-forgot`, `logout` and `consent` — and stores the starting documents
+itself; `apps/playground/src/views/auth-customization/` is a worked example.
+The runtime contains no auth element types or branches.
 
 ## Ownership boundary
 
@@ -54,9 +52,9 @@ scope for runtime and the Builder's preview-only prop for authoring:
 
 The Builder applies `previewTheme` only around its embedded renderer; toolbar,
 properties, dialogs and Monaco retain the administration application's theme.
-Register host CSS via `config.stylePresets` and load the corresponding scoped
-classes in both administration and runtime. The document persists only the
-preset id.
+Brand colours, radii and fonts travel through `CoarTheme`; anything beyond it
+is authored as node styles or as a `visual-markup` element. The document never
+carries a CSS class from the host.
 
 ## Monaco workers in the authoring application
 

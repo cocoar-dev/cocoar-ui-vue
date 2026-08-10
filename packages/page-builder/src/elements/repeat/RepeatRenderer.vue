@@ -6,7 +6,7 @@ import { usePageElement } from '../usePageElement'
 
 const props = defineProps<{ node: RepeatNode }>()
 const ctx = usePageElement()
-const contract = computed(() => ctx.config?.contextFields?.find((field) => field.path === props.node.props.source && field.type === 'array'))
+const contract = computed(() => ctx.config?.contextFields?.find((field) => field.path === props.node.props.contextPath && field.type === 'array'))
 function collectItemPaths(value: unknown, prefix = '', result = new Set<string>(), depth = 0): Set<string> {
   if (!value || typeof value !== 'object' || Array.isArray(value) || depth > 8) return result
   for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
@@ -27,8 +27,8 @@ const allowedItemPaths = computed(() => {
 })
 const source = computed<unknown[]>(() => {
   if (Array.isArray(props.node.props.items)) return props.node.props.items.slice(0, 500)
-  if (!contract.value || !props.node.props.source) return []
-  const value = ctx.resolveBinding({ source: 'context', path: props.node.props.source, fallback: [] })
+  if (!contract.value || !props.node.props.contextPath) return []
+  const value = ctx.resolveBinding({ source: 'context', path: props.node.props.contextPath, fallback: [] })
   if (!Array.isArray(value)) return []
   const limit = Math.min(Math.max(Number(props.node.props.maxItems) || 100, 1), 500)
   return value.slice(0, limit)
