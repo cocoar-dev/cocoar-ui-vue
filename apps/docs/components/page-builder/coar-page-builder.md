@@ -2,7 +2,7 @@
 description: "CoarPageBuilder visual editor: outline and properties inspector, drag-and-drop canvas, searchable element library and reusable compositions, emitting a PageNode JSON schema via v-model."
 ---
 
-# `<CoarPageBuilder>`
+# `<CoarPageBuilder>` <Badge type="warning" text="Preview" />
 
 The visual-editor half of `@cocoar/vue-page-builder`. It renders a three-panel layout: the vertically split Outline and Properties inspector on the left, the canvas in the centre, and a searchable element library on the right. It emits a `PageNode` JSON tree as `v-model`; the same tree is consumed by [`<CoarPageRenderer>`](./coar-page-renderer) at runtime.
 

@@ -2,7 +2,19 @@
 description: "Overview of @cocoar/vue-page-builder, a headless visual page composition framework: consumer-defined element registry, portable JSON schemas, shared PageConfig for builder and renderer."
 ---
 
-# Page Builder
+# Page Builder <Badge type="warning" text="Preview" />
+
+::: warning Preview
+Page Builder is **provisional**. It shipped as GA in 2.17 — that was an
+oversight, and 3.0 corrects it: the package is back under the Preview badge
+until the authoring model settles. Public API, `PageConfig` and the document
+schema may still change in a minor release, and 3.0 itself removed four config
+concepts and renamed several more.
+
+Documents are safe across those changes: every schema change ships a migration
+that runs on ingest. Pin a version if you depend on the API, and read the
+[Authoring contract](./authoring-contract) for what is still open.
+:::
 
 `@cocoar/vue-page-builder` is a generic, headless visual page composition framework. Users drag UI primitives onto a canvas, configure them, and the result is a portable JSON schema that a companion renderer turns back into live Cocoar components.
 

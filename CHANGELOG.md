@@ -9,8 +9,12 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ## 3.0.0
 
-**Page Builder: fewer concepts, unambiguous names.** A major confined to
-`@cocoar/vue-page-builder`; every other package is unchanged. Four `PageConfig`
+**Page Builder: fewer concepts, unambiguous names — and back under Preview.**
+A major confined to `@cocoar/vue-page-builder`; every other package is
+unchanged. The package shipped as GA in 2.17 by oversight; it now carries the
+Preview badge until the authoring model settles, so expect the public API,
+`PageConfig` and the document schema to keep moving in minor releases.
+Documents stay safe: every schema change ships a migration that runs on ingest. Four `PageConfig`
 concepts are removed because they restricted a page author inside a realm they
 own, or duplicated something the host already passed. Several names are
 disambiguated where one word covered two things. See
@@ -18,7 +22,7 @@ disambiguated where one word covered two things. See
 
 ### Removed
 
-- **`config.stylePresets`, `node.stylePreset`, `PageStylePreset`, `findStylePreset()`, `isSafeStylePreset()`.** Host-registered CSS classes the author picked by id. A page author owns the realm their page renders in, so the restriction protected nobody — and the Editor canvas never applied the class, so the feature only ever took effect in Preview. Styling remains `NodeStyle`, `CoarTheme` and the `visual-markup` element. A leftover `stylePreset` key is reported as an authoring warning, never stripped.
+- **`config.stylePresets`, `node.stylePreset`, `PageStylePreset`, `findStylePreset()`, `isSafeStylePreset()`.** Host-registered CSS classes the author picked by id. A page author owns the realm their page renders in, so the restriction protected nobody — and the Editor canvas never applied the class, so picking a preset changed nothing until you switched to the Preview tab. Styling remains `NodeStyle`, `CoarTheme` and the `visual-markup` element. A leftover `stylePreset` key is reported as an authoring warning, never stripped.
 - **`config.requiredNodes`** (with `lockVisibility`, `lockStyle`, `parentId`, `maxIndex`). Besides the same ownership argument, it did not hold: a node carrying both locks still vanished when the container above it was hidden, with `validatePageDocument()` reporting the document as valid. Guarantees of this kind belong in the publication endpoint, where they cannot be bypassed from the browser.
 - **`config.availableStates`, `<CoarPageRenderer>`'s `viewState`, `<CoarPageBuilder>`'s `previewState`, `visibleWhen.source: 'state'`, `page.viewState`.** The host's view state was a second mechanism for something `runtimeContext` already carried — and `source: 'state'` meant Page State in a binding but view state in a condition. Page State (`definePageState`, `page.state`, `source: 'state'` bindings) is untouched and now unambiguous.
 - **`config.previewFixtures` and `PagePreviewFixture`.** A fixture bundled `{ context, state, locale, viewport }` plus a builder-drawn dropdown, but the host already owns `previewContext` and `previewLocale`. The preview now runs when the host supplies the inputs its own config declares, and says so when it cannot.

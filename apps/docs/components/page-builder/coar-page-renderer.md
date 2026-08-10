@@ -2,7 +2,7 @@
 description: "CoarPageRenderer turns a PageNode schema into live Cocoar components at runtime, enforcing the allowedElements security boundary with actions, validation and initialValues."
 ---
 
-# `<CoarPageRenderer>`
+# `<CoarPageRenderer>` <Badge type="warning" text="Preview" />
 
 The runtime-renderer half of `@cocoar/vue-page-builder`. Takes a `PageNode` schema (produced by [`<CoarPageBuilder>`](./coar-page-builder) or written by hand) and renders it as live Cocoar components. This is the component you mount on the actual page that end-users see.
 

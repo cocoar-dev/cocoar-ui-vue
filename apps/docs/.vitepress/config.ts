@@ -370,7 +370,7 @@ export default defineConfig({
           ],
         },
         {
-          text: 'Page Builder',
+          text: 'Page Builder (Preview)',
           items: [
             { text: 'Overview', link: '/components/page-builder/' },
             { text: 'CoarPageBuilder', link: '/components/page-builder/coar-page-builder' },

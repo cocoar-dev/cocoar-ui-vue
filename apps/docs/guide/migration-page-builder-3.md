@@ -7,6 +7,15 @@ description: "Migration guide for @cocoar/vue-page-builder 3.0: four PageConfig 
 This release is confined to `@cocoar/vue-page-builder`. Every other package is
 untouched.
 
+::: warning The package is back under Preview
+Page Builder shipped as GA in 2.17. That was an oversight — the authoring model
+is still moving, as this release shows. From 3.0 it carries the **Preview**
+badge again: expect the public API, `PageConfig` and the document schema to keep
+changing in minor releases, and pin a version if you depend on them. Documents
+stay safe either way — every schema change ships a migration that runs on
+ingest.
+:::
+
 It removes four `PageConfig` concepts and renames several more. The removals all
 answer the same question — *who does this protect, from whom?* — and the renames
 all fix one word covering two things. The reasoning behind each is on the
@@ -40,7 +49,7 @@ justification was that a page author must not put CSS into a page they do not
 own — but a page author *does* own the realm their page renders in, so the
 restriction protected nobody. The feature was also never finished: the Editor
 canvas never applied the class, so picking a preset changed nothing until you
-switched to Preview.
+switched to the Preview tab.
 
 **What to use instead.** Styling has three channels and always did:
 

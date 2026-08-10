@@ -1,5 +1,11 @@
 # @cocoar/vue-page-builder
 
+> **Preview.** This package is provisional. It shipped as GA in 2.17 by
+> oversight; 3.0 puts it back under Preview until the authoring model settles.
+> Public API, `PageConfig` and the document schema may still change in a minor
+> release. Documents are safe — every schema change ships a migration that runs
+> on ingest — so pin a version if you depend on the API.
+
 A generic, headless visual page builder and renderer for Vue 3, built on the
 Cocoar Design System. Users drag UI primitives onto a canvas, configure them,
 and the result is a plain JSON schema (`PageNode`) that `<CoarPageRenderer>`
