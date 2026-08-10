@@ -194,11 +194,44 @@ as a warning, never stripped.
 a product requirement, it is a new feature with its own design — not a revival
 of this one.
 
+### Host data has one channel
+
+Everything the host knows travels through `runtimeContext`, allow-listed by
+`config.contextFields`. There is no separate view-state input and no named
+preview fixtures: "which screen is this right now" is ordinary host data, and
+a fixture was a bundle of the very props the host already passes.
+
+A context field may declare `values: string[]`, and the condition editor then
+offers them as a dropdown instead of a free-text box. That is what makes a
+host state, tier or status authorable without a second mechanism carrying it.
+
+Three channels remain, each with one owner: `runtimeContext` (host), Page State
+via `definePageState` (the page author), and the field values — `defaultValue`
+authored, `initialValues` supplied by the host and winning over it.
+
+**Cost:** a host wanting an "empty / typical / 50 items" preview picker builds
+it in its own chrome and binds the chosen sample to `previewContext`. The
+builder no longer draws that control.
+
+### The document is not policed
+
+There is no way for a host to pin a node as present, placed or visually
+untouchable. `config.requiredNodes` did that and was removed: a page author
+owns the realm the page renders in, and the mechanism did not hold anyway — a
+locked node still vanished when the container above it was hidden, with the
+document reporting no issue.
+
+**Cost:** a host that must guarantee a notice — a compliance line on a consent
+screen — enforces it where activation happens. The IDP contract already puts
+publication behind trusted server validation; that check runs on the document
+about to go live and cannot be reached from the browser.
+
 ### Token-backed style keys are code-only
 
 `surface`, `radius`, `elevation` and the typography keys have no Quick
-Property. They carry design-system semantics, and a quick field next to the
-canvas invites authors to reach for them instead of a style preset.
+Property. They carry design-system semantics: a token name picked in passing
+next to the canvas is how a page ends up with six subtly different card looks.
+Element Code still writes them, so nothing is out of reach.
 
 **Cost:** changing a card's surface needs the code editor. Deliberate friction.
 

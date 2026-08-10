@@ -25,7 +25,7 @@ Import `@cocoar/vue-page-builder/styles` once in your app — the renderer's lay
 | `runtimeContext` | `Record<string, unknown>` | Host-owned runtime data. The document can only read paths explicitly declared by `config.contextFields`; undeclared paths resolve to the binding fallback. |
 | `locale` | `string` | Active locale used to resolve page translation keys, legacy `LocalizedValue` props and localized templates. Regional locales fall back to their base locale and then `config.defaultLocale`. |
 | `viewportWidth` | `number` | Optional deterministic container width. Runtime normally measures its container; previews and tests can provide an exact width. |
-| `fallbackSchema` | `PageNode` | Host-owned safe document rendered when the customized document fails allow-list, required-node, placement or document-limit validation. `usingFallback` is exposed on the component ref. |
+| `fallbackSchema` | `PageNode` | Host-owned safe document rendered when the customized document fails allow-list, binding or document-limit validation. `usingFallback` is exposed on the component ref. |
 
 ## Usage
 

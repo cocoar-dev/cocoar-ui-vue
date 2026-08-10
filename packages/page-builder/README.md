@@ -461,10 +461,10 @@ pre-bundling:
 optimizeDeps: { exclude: ['@cocoar/vue-page-builder/runtime-worker'] }
 ```
 
-`CoarPageBuilder` owns its embedded preview runtime. A selected fixture now
-provides context, view state, locale and viewport as one effective preview
-contract; the Builder evaluates Page State, Page Root Code and Element Code in
-that same isolated session. Pass `previewRuntimeHost` only when preview actions
+`CoarPageBuilder` owns its embedded preview runtime. The host supplies its
+inputs — `previewContext`, `previewInitialValues`, `previewLocale` — and the
+Builder evaluates Page State, Page Root Code and Element Code in one isolated
+session against exactly those. Pass `previewRuntimeHost` only when preview actions
 need the application's explicitly granted capabilities.
 
 The package ships no auth-specific configuration or documents. An IDP owns its

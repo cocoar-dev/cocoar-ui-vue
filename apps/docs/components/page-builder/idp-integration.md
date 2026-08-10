@@ -4,10 +4,9 @@ description: "Integrate Page Builder 2.20 into an identity provider with isolate
 
 # IDP integration
 
-Page Builder 2.20 ships the complete browser runtime and four optional Auth
-example presets. They are fixtures built from the same generic registry,
-Repeat, selection, action and styling contracts as every consumer page; the
-runtime contains no Modgud/auth-specific element types or branches.
+Page Builder ships the complete browser runtime and nothing auth-specific.
+Login, consent and the rest are built from the same generic registry, Repeat,
+selection, action and styling contracts as every other consumer page.
 
 ## Public integration surface
 

@@ -146,8 +146,10 @@ const validation = validatePageDocument(normalized.schema, config);
 
 Repeat equivalent validation in the trusted publish endpoint. Client validation
 is authoring feedback, not authorization. Reject unsupported schema versions,
-disallowed element types, missing required nodes, document-limit violations and
-invalid host-context bindings before a revision becomes active.
+disallowed element types, document-limit violations and invalid host-context
+bindings before a revision becomes active. Anything the tenant must not remove
+— a compliance notice on a consent screen — is checked here too: the library
+has no mechanism that could hold it in the browser.
 
 Authentication, consent, ticket ownership, redirect validation and field-level
 authorization always remain authoritative on the server.
