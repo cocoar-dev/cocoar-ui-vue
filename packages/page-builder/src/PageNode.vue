@@ -18,7 +18,7 @@ const warnedStylePresets = new Set<string>();
 <script setup lang="ts">
 import { computed, inject, provide } from 'vue';
 import { isElementAllowed, type ElementNode, type PageNode, type RepeatSelection, type StackNode } from './schema';
-import { selfStyle, containerLayoutStyle } from './styleMapping';
+import { selfStyle, containerLayoutStyle, withoutPageRootSize } from './styleMapping';
 import { PAGE_RENDERER_KEY, type RepeatRenderScope } from './context';
 import { safeReadPath } from './runtimeBindings';
 import { findStylePreset } from './stylePresets';
@@ -127,23 +127,11 @@ const wrapperStyle = computed(() =>
 );
 
 /**
- * The page root is always exactly its host container: sizing it is the
- * embedding application's job, done by handing the renderer a box with a
- * height. Own size values are therefore dropped rather than honoured — a
- * document that carries them (percentages cannot resolve against every host)
- * would otherwise fight the container it was placed in.
- *
- * Everything else, including overflow, still comes from the document.
+ * The page root is always exactly its host container, so its own size values
+ * are dropped. Everything else, including overflow, still comes from the
+ * document. Shared with the canvas so editor and renderer agree.
  */
-const PAGE_ROOT_IGNORED_SIZE = [
-  'width', 'minWidth', 'maxWidth', 'height', 'minHeight', 'maxHeight', 'flex', 'aspectRatio',
-] as const;
-
-const pageRootStyle = computed<CSSProperties>(() => {
-  const css = { ...wrapperStyle.value } as Record<string, unknown>;
-  for (const key of PAGE_ROOT_IGNORED_SIZE) delete css[key];
-  return css as CSSProperties;
-});
+const pageRootStyle = computed<CSSProperties>(() => withoutPageRootSize(wrapperStyle.value));
 
 const children = computed(() =>
   'children' in props.node && Array.isArray(props.node.children) ? props.node.children : [],

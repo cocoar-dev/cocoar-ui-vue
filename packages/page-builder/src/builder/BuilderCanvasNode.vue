@@ -18,7 +18,7 @@ import { useI18n } from '@cocoar/vue-localization';
 import { isElementAllowed, type ElementNode, type PageNode, type StackNode } from '../schema';
 import { resolveNodeStyle } from '../responsive';
 import { resolveNodeRuntime } from '../runtimeBindings';
-import { selfLayoutStyle, containerLayoutStyle } from '../styleMapping';
+import { selfLayoutStyle, containerLayoutStyle, withoutPageRootSize } from '../styleMapping';
 import { useMergedElements } from '../elements/useMergedElements';
 import { BUILDER_API, BUILDER_BREAKPOINT, BUILDER_CONFIG, BUILDER_PAGE_CODE_VALUES, BUILDER_RUNTIME } from './builderContext';
 import { applyPageCodeValues } from '../pageCode';
@@ -162,7 +162,10 @@ const layoutStyle = computed<CSSProperties>(() => {
  * mapping the real renderer applies to the node element itself.
  */
 const wrapperStyle = computed<CSSProperties>(() => {
-  const css = selfLayoutStyle(resolvedStyle.value, parentDirection?.value ?? 'column');
+  const mapped = selfLayoutStyle(resolvedStyle.value, parentDirection?.value ?? 'column');
+  // The renderer ignores size on the page root, so the canvas must too — else a
+  // document carrying one would look different here than where it ships.
+  const css = isRoot.value ? withoutPageRootSize(mapped) : mapped;
   if (hiddenAtBreakpoint.value) delete css.display;
   return css;
 });

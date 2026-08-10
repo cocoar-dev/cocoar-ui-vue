@@ -2,6 +2,7 @@ import { computed, type Ref } from 'vue';
 import { isElementAllowed } from '../schema';
 import type { ActionProps, ButtonNode, ElementNode, PageConfig, PageNode } from '../schema';
 import { compilePagePattern, isUnsafeFieldName } from '../renderSafety';
+import { PAGE_ROOT_IGNORED_STYLE_KEYS } from '../styleMapping';
 import { isJsonSafeActionValue, isJsonSafeActionValues, isSafeActionValueField } from '../actionValues';
 import { useMergedElements } from '../elements/useMergedElements';
 import { isFieldCompatible } from '../elements/fieldContract';
@@ -100,6 +101,23 @@ export function useSchemaValidation(
           });
         } else {
           namedElements.push({ node: n, name });
+        }
+      }
+
+      // ── The page is exactly its host container, so size values on the root
+      //    are dropped. Page Root Code can still assign them, so say so rather
+      //    than let the author wonder why nothing happens ──
+      if (n.type === 'page') {
+        const sized = PAGE_ROOT_IGNORED_STYLE_KEYS.filter(
+          (key) => (n.style as Record<string, unknown> | undefined)?.[key] !== undefined,
+        );
+        if (sized.length > 0) {
+          out.push({
+            nodeId: n.id,
+            field: 'style',
+            severity: 'warning',
+            message: `Page size is owned by the host container — ${sized.join(', ')} ${sized.length === 1 ? 'is' : 'are'} ignored.`,
+          });
         }
       }
 

@@ -34,6 +34,34 @@ describe('useSchemaValidation', () => {
     expect(issues).toEqual([]);
   });
 
+  it('warns that a size on the page root is ignored', () => {
+    // The renderer drops these, and Page Root Code can still assign them, so
+    // the author must be told rather than left wondering why nothing happens.
+    const issues = validate({
+      id: 'root',
+      type: 'page',
+      style: { height: '500px', maxHeight: '900px', padding: '24px' },
+      children: [],
+    });
+    const sizing = issues.filter((i) => /Page size is owned/i.test(i.message));
+    expect(sizing).toHaveLength(1);
+    expect(sizing[0].severity).toBe('warning');
+    expect(sizing[0].message).toContain('height');
+    expect(sizing[0].message).toContain('maxHeight');
+    // Padding is legitimate styling and must not be reported.
+    expect(sizing[0].message).not.toContain('padding');
+  });
+
+  it('stays quiet when the page root carries no size', () => {
+    const issues = validate({
+      id: 'root',
+      type: 'page',
+      style: { padding: '24px', surface: 'subtle' },
+      children: [],
+    });
+    expect(issues.filter((i) => /Page size is owned/i.test(i.message))).toHaveLength(0);
+  });
+
   it('warns about buttons and links without an action', () => {
     const issues = validate(page([
       { id: 'b', type: 'button', props: { label: 'Go' } },

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { selfStyle, selfLayoutStyle, containerLayoutStyle, safeAspectRatio, safeCssLength, safeFontVariationSettings } from './styleMapping';
+import { selfStyle, selfLayoutStyle, containerLayoutStyle, withoutPageRootSize, safeAspectRatio, safeCssLength, safeFontVariationSettings } from './styleMapping';
 
 describe('safeCssLength', () => {
   it('allows layout lengths and rejects CSS injection primitives', () => {
@@ -57,6 +57,35 @@ describe('selfLayoutStyle', () => {
     // flex-grow in a column would zero the height basis and squash the box.
     expect(selfLayoutStyle({ size: 'fill' })).toEqual({ width: '100%' });
     expect(selfLayoutStyle({ size: 'fill' }, 'column')).toEqual({ width: '100%' });
+  });
+
+  it('drops size from the page root but keeps everything else', () => {
+    // The page is exactly its host container, so a document (or Page Root
+    // Code) assigning a size must not win over the box it was placed in.
+    const mapped = withoutPageRootSize(selfStyle({
+      height: '500px',
+      minHeight: '100%',
+      maxHeight: '900px',
+      width: '80%',
+      minWidth: '200px',
+      maxWidth: '1200px',
+      aspectRatio: '16 / 9',
+      padding: '24px',
+      surface: 'subtle',
+      overflow: 'hidden',
+    }));
+    expect(mapped.height).toBeUndefined();
+    expect(mapped.minHeight).toBeUndefined();
+    expect(mapped.maxHeight).toBeUndefined();
+    expect(mapped.width).toBeUndefined();
+    expect(mapped.minWidth).toBeUndefined();
+    expect(mapped.maxWidth).toBeUndefined();
+    expect(mapped.aspectRatio).toBeUndefined();
+    expect(mapped.flex).toBeUndefined();
+    // Presentation and overflow remain the document's decision.
+    expect(mapped.padding).toBe('24px');
+    expect(mapped.overflow).toBe('hidden');
+    expect(mapped.background).toBeDefined();
   });
 
   it('direction turns any container into a row, not just a stack', () => {

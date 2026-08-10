@@ -158,6 +158,25 @@ export function selfLayoutStyle(
 }
 
 /**
+ * Size values the page root never applies. The page is exactly its host
+ * container — sizing it is the embedding application's job — so a document (or
+ * Page Root Code) carrying these would fight whatever box it was placed in.
+ * Applied by both the renderer and the canvas so the two cannot disagree.
+ */
+const PAGE_ROOT_IGNORED_SIZE = [
+  'width', 'minWidth', 'maxWidth', 'height', 'minHeight', 'maxHeight', 'flex', 'aspectRatio',
+] as const;
+
+export function withoutPageRootSize(css: CSSProperties): CSSProperties {
+  const next = { ...css } as Record<string, unknown>;
+  for (const key of PAGE_ROOT_IGNORED_SIZE) delete next[key];
+  return next as CSSProperties;
+}
+
+/** The style keys a page root silently ignores — for authoring diagnostics. */
+export const PAGE_ROOT_IGNORED_STYLE_KEYS: readonly string[] = PAGE_ROOT_IGNORED_SIZE;
+
+/**
  * Full style for a node's own outer element — {@link selfLayoutStyle} plus
  * padding. Used by the real renderer where the node element *is* the box.
  *
