@@ -1,0 +1,177 @@
+.coar-markdown-form > .coar-markdown {
+  max-width: none;
+}
+.coar-markdown-form__issues {
+  margin-block-end: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--coar-color-danger-500, #b42318);
+  border-radius: var(--coar-radius-m, 6px);
+  background: var(--coar-color-danger-50, #fef3f2);
+  color: var(--coar-color-danger-800, #7a271a);
+  font-size: 0.85rem;
+}
+.coar-markdown-form__issues ul {
+  margin: 0.35rem 0 0;
+  padding-inline-start: 1.25rem;
+}
+.coar-markdown-form-field {
+  min-width: 0;
+}
+.coar-markdown-form-field--inline {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 0.22rem;
+  line-height: normal;
+  vertical-align: middle;
+}
+.coar-markdown-form-field--inline > :not(.coar-markdown-form-field__error) {
+  width: 100%;
+}
+.coar-markdown-form-field--layout-row,
+.coar-markdown-form-field--layout-stacked {
+  flex-wrap: wrap;
+}
+.coar-markdown-form-field--width-fill,
+.coar-markdown-form-field--width-full {
+  width: 100% !important;
+}
+.coar-markdown-form-paragraph--row {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  margin-block-end: 0;
+  line-height: normal;
+}
+.coar-markdown-form-paragraph--row > .coar-markdown-form-text-fragment {
+  display: flex;
+  min-width: 0;
+}
+.coar-markdown-form-paragraph--row .coar-markdown-form-field--layout-row {
+  margin: 0;
+  width: 100% !important;
+}
+.coar-markdown-form-paragraph--stacked {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  line-height: normal;
+}
+.coar-markdown-form-paragraph--stacked > .coar-markdown-form-text-fragment {
+  display: flex;
+  min-width: 0;
+}
+.coar-markdown-form-paragraph--stacked .coar-markdown-form-field--layout-stacked {
+  margin: 0;
+  width: 100% !important;
+}
+.coar-markdown-form-field--block {
+  display: block;
+  min-height: 58px;
+  margin: 2px 0 10px;
+  overflow: hidden;
+  border: 1px dashed #abc0c7;
+  border-radius: 3px 10px 3px 10px;
+  background: #fbfdfd;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+.coar-markdown-form-field--block:focus-within {
+  border-color: #326b8c;
+  box-shadow: 0 0 0 3px rgba(50, 107, 140, 0.12);
+}
+.coar-markdown-form-field--frameless {
+  border-color: transparent;
+  background: transparent;
+}
+.coar-markdown-form-field--frameless:focus-within {
+  border-color: transparent;
+  box-shadow: none;
+}
+.coar-markdown-form-field--block > .coar-md-root {
+  min-height: 56px;
+  border: 0;
+}
+.coar-markdown-form-field--block .coar-md-area {
+  padding: 6px 10px;
+}
+.coar-markdown-form-field--block .coar-md-area .milkdown {
+  min-height: 44px;
+  padding: 0;
+}
+.coar-markdown-form-field--block > .coar-markdown {
+  min-height: 56px;
+  padding: 6px 10px;
+}
+.coar-markdown-form-field--block .ProseMirror > :last-child,
+.coar-markdown-form-field--block > .coar-markdown > :last-child {
+  margin-block-end: 0;
+}
+.coar-markdown-form-field--underlined {
+  border-bottom: 1px solid #a5b3b8;
+}
+.coar-markdown-form-field__readonly {
+  padding: 1px 2px;
+  color: #1c3c4b;
+  font-weight: 700;
+}
+.coar-markdown-form-field__empty {
+  display: block;
+  min-height: 44px;
+  padding: 8px 10px;
+  color: #9aa5aa;
+}
+.coar-markdown-form-field__invalid {
+  padding: 0.3rem 0.45rem;
+  color: var(--coar-color-danger-700, #b42318);
+  font-size: 0.78rem;
+}
+.coar-markdown-form-field--block.coar-markdown-form-field--error {
+  border-color: var(--coar-color-danger-500, #b42318);
+  border-style: solid;
+  box-shadow: 0 0 0 2px rgba(180, 35, 24, 0.1);
+}
+.coar-markdown-form-field__error {
+  display: block;
+  flex-basis: 100%;
+  margin-block-start: 3px;
+  color: var(--coar-color-danger-700, #b42318);
+  font-size: 0.7rem;
+  line-height: 1.2;
+}
+.coar-markdown-form-field__error--inline {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+.coar-markdown-form-basic-control[aria-invalid='true'] {
+  border-color: var(--coar-color-danger-500, #b42318);
+}
+.coar-markdown-form-basic-control {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 27px;
+  padding: 2px 6px;
+  border: 1px solid #aebbc0;
+  border-radius: 3px;
+  background: #fff;
+  color: #25353d;
+  font: inherit;
+  font-size: 12px;
+}
+.coar-markdown-form-basic-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .coar-markdown-form-field {
+    transition-duration: 0.01ms !important;
+  }
+}

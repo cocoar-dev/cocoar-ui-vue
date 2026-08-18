@@ -8,19 +8,44 @@
    provider context to flow through prop drilling and break the
    `useInstance()` access pattern. */
 import {
-  defineComponent, h, ref, shallowRef, computed, watch, inject, useId, markRaw,
-  onMounted, onBeforeUnmount, Teleport, getCurrentInstance,
-  type PropType, type VNodeArrayChildren,
+  defineComponent,
+  h,
+  ref,
+  shallowRef,
+  computed,
+  watch,
+  inject,
+  useId,
+  markRaw,
+  onMounted,
+  onBeforeUnmount,
+  Teleport,
+  getCurrentInstance,
+  type PropType,
+  type VNodeArrayChildren,
 } from 'vue';
 import {
-  Editor, rootCtx, defaultValueCtx, commandsCtx, editorViewCtx, editorViewOptionsCtx,
+  Editor,
+  rootCtx,
+  defaultValueCtx,
+  commandsCtx,
+  editorViewCtx,
+  editorViewOptionsCtx,
 } from '@milkdown/core';
 import type { $Command } from '@milkdown/utils';
 import { Milkdown, MilkdownProvider, useEditor, useInstance } from '@milkdown/vue';
 import { FORM_FIELD_INJECTION_KEY, menuPreset, useOverlay, useDialog } from '@cocoar/vue-ui';
 import type { OverlayRef } from '@cocoar/vue-ui';
-import { decideListToggleAction, isToolEnabled, isToolAllowedByCapabilities } from './toolbar-helpers';
-import { resolveCapabilities, type CoarMarkdownFlavorInput, type CoarMarkdownCapabilities } from './flavor';
+import {
+  decideListToggleAction,
+  isToolEnabled,
+  isToolAllowedByCapabilities,
+} from './toolbar-helpers';
+import {
+  resolveCapabilities,
+  type CoarMarkdownFlavorInput,
+  type CoarMarkdownCapabilities,
+} from './flavor';
 import { codeBlockNodeView } from './code-block-view';
 import { textColor } from './text-color';
 import { PlaceholderOverlay } from './placeholder';
@@ -36,15 +61,30 @@ import type { ImagePicker } from './image/pickImage';
 import { sanitizeColor } from '@cocoar/vue-markdown-core';
 import {
   commonmark,
-  toggleStrongCommand, toggleEmphasisCommand, toggleInlineCodeCommand,
-  wrapInBlockquoteCommand, wrapInBulletListCommand, wrapInOrderedListCommand,
-  wrapInHeadingCommand, turnIntoTextCommand, insertHrCommand, createCodeBlockCommand,
-  liftListItemCommand, sinkListItemCommand, insertImageCommand,
+  toggleStrongCommand,
+  toggleEmphasisCommand,
+  toggleInlineCodeCommand,
+  wrapInBlockquoteCommand,
+  wrapInBulletListCommand,
+  wrapInOrderedListCommand,
+  wrapInHeadingCommand,
+  turnIntoTextCommand,
+  insertHrCommand,
+  createCodeBlockCommand,
+  liftListItemCommand,
+  sinkListItemCommand,
+  insertImageCommand,
 } from '@milkdown/preset-commonmark';
 import {
-  gfm, toggleStrikethroughCommand, insertTableCommand,
-  addRowBeforeCommand, addRowAfterCommand, addColBeforeCommand, addColAfterCommand,
-  deleteSelectedCellsCommand, selectTableCommand,
+  gfm,
+  toggleStrikethroughCommand,
+  insertTableCommand,
+  addRowBeforeCommand,
+  addRowAfterCommand,
+  addColBeforeCommand,
+  addColAfterCommand,
+  deleteSelectedCellsCommand,
+  selectTableCommand,
 } from '@milkdown/preset-gfm';
 import { history, undoCommand, redoCommand } from '@milkdown/plugin-history';
 import { clipboard } from '@milkdown/plugin-clipboard';
@@ -52,10 +92,15 @@ import { listener, listenerCtx } from '@milkdown/plugin-listener';
 import { replaceAll } from '@milkdown/utils';
 import { TextSelection, type EditorState } from '@milkdown/prose/state';
 import {
-  CoarSidebar, CoarSidebarItem, CoarSidebarGroup, CoarSidebarDivider, CoarIcon,
+  CoarSidebar,
+  CoarSidebarItem,
+  CoarSidebarGroup,
+  CoarSidebarDivider,
+  CoarIcon,
 } from '@cocoar/vue-ui';
+import { MARKDOWN_EDITOR_GROUP_KEY } from './editor-group';
 
-export type CoarMarkdownEditorToolbarMode = 'floating' | 'fixed' | 'both';
+export type CoarMarkdownEditorToolbarMode = 'floating' | 'fixed' | 'both' | 'external';
 export type CoarMarkdownEditorToolbarPosition = 'left' | 'right' | 'top' | 'bottom';
 
 /**
@@ -63,30 +108,50 @@ export type CoarMarkdownEditorToolbarPosition = 'left' | 'right' | 'top' | 'bott
  * restrict which buttons are shown. When `tools` is undefined, all are shown.
  */
 export type CoarMarkdownEditorTool =
-  | 'bold' | 'italic' | 'strikethrough' | 'inlineCode'
+  | 'bold'
+  | 'italic'
+  | 'strikethrough'
+  | 'inlineCode'
   | 'textColor'
   | 'headings'
-  | 'bulletList' | 'orderedList' | 'taskList'
-  | 'indent' | 'outdent'
-  | 'blockquote' | 'horizontalRule'
-  | 'codeBlock' | 'table' | 'tableOps'
+  | 'bulletList'
+  | 'orderedList'
+  | 'taskList'
+  | 'indent'
+  | 'outdent'
+  | 'blockquote'
+  | 'horizontalRule'
+  | 'codeBlock'
+  | 'table'
+  | 'tableOps'
   | 'image'
   | 'clearFormatting'
-  | 'undo' | 'redo';
+  | 'undo'
+  | 'redo';
 
 /** Canonical list of all toolbar tools — exported so consumers can build
  *  custom subsets (e.g. `tools: COAR_MARKDOWN_EDITOR_ALL_TOOLS.filter(...)`). */
 export const COAR_MARKDOWN_EDITOR_ALL_TOOLS: readonly CoarMarkdownEditorTool[] = [
-  'bold', 'italic', 'strikethrough', 'inlineCode',
+  'bold',
+  'italic',
+  'strikethrough',
+  'inlineCode',
   'textColor',
   'headings',
-  'bulletList', 'orderedList', 'taskList',
-  'indent', 'outdent',
-  'blockquote', 'horizontalRule',
-  'codeBlock', 'table', 'tableOps',
+  'bulletList',
+  'orderedList',
+  'taskList',
+  'indent',
+  'outdent',
+  'blockquote',
+  'horizontalRule',
+  'codeBlock',
+  'table',
+  'tableOps',
   'image',
   'clearFormatting',
-  'undo', 'redo',
+  'undo',
+  'redo',
 ];
 
 /**
@@ -146,6 +211,11 @@ export interface CoarMarkdownEditorProps {
    * `<textarea>`; switching back re-renders it. Defaults to false.
    */
   sourceToggle?: boolean;
+  /**
+   * Toolbar layout. Use `'external'` inside a `CoarMarkdownEditorGroup` to
+   * route this editor's commands and tool set into one stable
+   * `CoarMarkdownToolbar` host.
+   */
   toolbarMode?: CoarMarkdownEditorToolbarMode;
   toolbarPosition?: CoarMarkdownEditorToolbarPosition;
   /**
@@ -153,7 +223,7 @@ export interface CoarMarkdownEditorProps {
    * only the listed tools render (in fixed canonical order — passing order
    * does not influence button order).
    */
-  tools?: CoarMarkdownEditorTool[];
+  tools?: CoarMarkdownEditorToolEntry[];
   /**
    * Markdown **flavor** — the portability contract, hard-enforced. Picks which
    * features are available: the editor only registers the matching plugins (so
@@ -236,8 +306,14 @@ const EditorImpl = defineComponent({
     readonly: { type: Boolean, required: true },
     disabled: { type: Boolean, required: true },
     toolbarMode: { type: String as PropType<CoarMarkdownEditorToolbarMode>, required: true },
-    toolbarPosition: { type: String as PropType<CoarMarkdownEditorToolbarPosition>, required: true },
-    tools: { type: Array as PropType<CoarMarkdownEditorToolEntry[] | undefined>, default: undefined },
+    toolbarPosition: {
+      type: String as PropType<CoarMarkdownEditorToolbarPosition>,
+      required: true,
+    },
+    tools: {
+      type: Array as PropType<CoarMarkdownEditorToolEntry[] | undefined>,
+      default: undefined,
+    },
     flavor: { type: [String, Object] as PropType<CoarMarkdownFlavorInput>, default: undefined },
     inputId: { type: String, required: true },
     hasError: { type: Boolean, required: true },
@@ -249,6 +325,7 @@ const EditorImpl = defineComponent({
     uploadImage: { type: Function as PropType<ImageUploader | undefined>, default: undefined },
     pickImage: { type: Function as PropType<ImagePicker | undefined>, default: undefined },
     embeds: { type: Object as PropType<EmbedRegistry | undefined>, default: undefined },
+    editorGroupId: { type: String, required: true },
     onMarkdownChange: { type: Function as PropType<(md: string) => void>, required: true },
   },
   setup(props) {
@@ -326,23 +403,26 @@ const EditorImpl = defineComponent({
     // subsequent save would round-trip the placeholder back to the consumer.
     const pendingExternal = ref<string | null>(null);
 
-    watch(() => props.externalValue.value, (next) => {
-      if (next === lastEmitted.value) return;
-      // In Source mode Milkdown is hidden; just track the value (the textarea
-      // shows it) and re-sync the hidden editor when we switch back to Rendered.
-      if (viewMode.value === 'source') {
+    watch(
+      () => props.externalValue.value,
+      (next) => {
+        if (next === lastEmitted.value) return;
+        // In Source mode Milkdown is hidden; just track the value (the textarea
+        // shows it) and re-sync the hidden editor when we switch back to Rendered.
+        if (viewMode.value === 'source') {
+          lastEmitted.value = next;
+          return;
+        }
+        const editor = getInstance();
+        if (!editor) {
+          pendingExternal.value = next;
+          return;
+        }
+        pendingExternal.value = null;
         lastEmitted.value = next;
-        return;
-      }
-      const editor = getInstance();
-      if (!editor) {
-        pendingExternal.value = next;
-        return;
-      }
-      pendingExternal.value = null;
-      lastEmitted.value = next;
-      editor.action(replaceAll(next));
-    });
+        editor.action(replaceAll(next));
+      },
+    );
 
     // Re-seed Milkdown with the current markdown when returning to Rendered, so
     // any edits made in Source mode (incl. the frontmatter YAML) are re-parsed.
@@ -354,31 +434,38 @@ const EditorImpl = defineComponent({
     });
 
     // Flush a buffered external update once Milkdown finishes init.
-    watch(loading, (isLoading) => {
-      if (isLoading) return;
-      if (pendingExternal.value === null) return;
-      const editor = getInstance();
-      if (!editor) return;
-      const next = pendingExternal.value;
-      pendingExternal.value = null;
-      if (next === lastEmitted.value) return;
-      lastEmitted.value = next;
-      editor.action(replaceAll(next));
-    }, { immediate: true });
+    watch(
+      loading,
+      (isLoading) => {
+        if (isLoading) return;
+        if (pendingExternal.value === null) return;
+        const editor = getInstance();
+        if (!editor) return;
+        const next = pendingExternal.value;
+        pendingExternal.value = null;
+        if (next === lastEmitted.value) return;
+        lastEmitted.value = next;
+        editor.action(replaceAll(next));
+      },
+      { immediate: true },
+    );
 
     // Sync readonly → editor view
-    watch(() => props.readonly, () => {
-      const editor = getInstance();
-      if (!editor) return;
-      editor.action((ctx) => {
-        ctx.update(editorViewOptionsCtx, (prev) => ({
-          ...prev,
-          editable: () => !props.readonly,
-        }));
-        // Force the view to re-read editable
-        ctx.get(editorViewCtx).update(ctx.get(editorViewCtx).props);
-      });
-    });
+    watch(
+      () => props.readonly,
+      () => {
+        const editor = getInstance();
+        if (!editor) return;
+        editor.action((ctx) => {
+          ctx.update(editorViewOptionsCtx, (prev) => ({
+            ...prev,
+            editable: () => !props.readonly,
+          }));
+          // Force the view to re-read editable
+          ctx.get(editorViewCtx).update(ctx.get(editorViewCtx).props);
+        });
+      },
+    );
 
     // The placeholder is shown by the Toolbar (which owns the writing-area
     // DOM) as a muted overlay of the shared markdown viewer. It must appear
@@ -386,32 +473,36 @@ const EditorImpl = defineComponent({
     // current markdown (updated by the markdownUpdated listener and the
     // external-sync watch), so emptiness is a pure read of it — reading it
     // here makes this render reactive to every content change.
-    return () => h(Toolbar, {
-      readonly: props.readonly,
-      disabled: props.disabled,
-      toolbarMode: props.toolbarMode,
-      toolbarPosition: props.toolbarPosition,
-      tools: props.tools,
-      inputId: props.inputId,
-      hasError: props.hasError,
-      describedBy: props.describedBy,
-      name: props.name,
-      required: props.required,
-      placeholder: props.placeholder,
-      pickImage: props.pickImage,
-      embeds: props.embeds,
-      flavor: props.flavor,
-      isEmpty: lastEmitted.value.trim() === '',
-      sourceToggle: props.sourceToggle,
-      viewMode: viewMode.value,
-      sourceValue: lastEmitted.value,
-      onToggleView: (mode: 'rendered' | 'source') => { viewMode.value = mode; },
-      onSourceInput: (md: string) => {
-        if (md === lastEmitted.value) return;
-        lastEmitted.value = md;
-        props.onMarkdownChange(md);
-      },
-    });
+    return () =>
+      h(Toolbar, {
+        readonly: props.readonly,
+        disabled: props.disabled,
+        toolbarMode: props.toolbarMode,
+        toolbarPosition: props.toolbarPosition,
+        tools: props.tools,
+        inputId: props.inputId,
+        hasError: props.hasError,
+        describedBy: props.describedBy,
+        name: props.name,
+        required: props.required,
+        placeholder: props.placeholder,
+        pickImage: props.pickImage,
+        embeds: props.embeds,
+        editorGroupId: props.editorGroupId,
+        flavor: props.flavor,
+        isEmpty: lastEmitted.value.trim() === '',
+        sourceToggle: props.sourceToggle,
+        viewMode: viewMode.value,
+        sourceValue: lastEmitted.value,
+        onToggleView: (mode: 'rendered' | 'source') => {
+          viewMode.value = mode;
+        },
+        onSourceInput: (md: string) => {
+          if (md === lastEmitted.value) return;
+          lastEmitted.value = md;
+          props.onMarkdownChange(md);
+        },
+      });
   },
 });
 
@@ -420,8 +511,14 @@ const Toolbar = defineComponent({
     readonly: { type: Boolean, required: true },
     disabled: { type: Boolean, required: true },
     toolbarMode: { type: String as PropType<CoarMarkdownEditorToolbarMode>, required: true },
-    toolbarPosition: { type: String as PropType<CoarMarkdownEditorToolbarPosition>, required: true },
-    tools: { type: Array as PropType<CoarMarkdownEditorToolEntry[] | undefined>, default: undefined },
+    toolbarPosition: {
+      type: String as PropType<CoarMarkdownEditorToolbarPosition>,
+      required: true,
+    },
+    tools: {
+      type: Array as PropType<CoarMarkdownEditorToolEntry[] | undefined>,
+      default: undefined,
+    },
     flavor: { type: [String, Object] as PropType<CoarMarkdownFlavorInput>, default: undefined },
     inputId: { type: String, required: true },
     hasError: { type: Boolean, required: true },
@@ -435,11 +532,16 @@ const Toolbar = defineComponent({
     sourceToggle: { type: Boolean, default: false },
     viewMode: { type: String as PropType<'rendered' | 'source'>, default: 'rendered' },
     sourceValue: { type: String, default: '' },
-    onToggleView: { type: Function as PropType<(mode: 'rendered' | 'source') => void>, default: undefined },
+    editorGroupId: { type: String, required: true },
+    onToggleView: {
+      type: Function as PropType<(mode: 'rendered' | 'source') => void>,
+      default: undefined,
+    },
     onSourceInput: { type: Function as PropType<(md: string) => void>, default: undefined },
   },
   setup(props) {
     const [, getInstance] = useInstance();
+    const editorGroup = inject(MARKDOWN_EDITOR_GROUP_KEY, undefined);
     const rootEl = ref<HTMLElement | null>(null);
     const areaEl = ref<HTMLElement | null>(null);
     const floatingVisible = ref(false);
@@ -476,10 +578,20 @@ const Toolbar = defineComponent({
       list_item_depth: number;
     }
     const emptyActive: ActiveState = {
-      strong: false, emphasis: false, strike_through: false, inlineCode: false,
+      strong: false,
+      emphasis: false,
+      strike_through: false,
+      inlineCode: false,
       text_color: null,
-      bullet_list: false, ordered_list: false, task_list: false, blockquote: false,
-      heading: null, table: false, cell_alignment: null, code_block: false, list_item_depth: 0,
+      bullet_list: false,
+      ordered_list: false,
+      task_list: false,
+      blockquote: false,
+      heading: null,
+      table: false,
+      cell_alignment: null,
+      code_block: false,
+      list_item_depth: 0,
     };
     // Overlay-driven color picker: positioning, viewport flipping, and
     // outside-click + escape dismissal are owned by the shared overlay
@@ -550,8 +662,14 @@ const Toolbar = defineComponent({
         let cellDepth = -1;
         for (let d = $from.depth; d > 0; d--) {
           const node = $from.node(d);
-          if (node.type.name === 'table') { tableNode = node; tablePos = $from.before(d); }
-          if ((node.type.name === 'table_cell' || node.type.name === 'table_header') && cellDepth < 0) {
+          if (node.type.name === 'table') {
+            tableNode = node;
+            tablePos = $from.before(d);
+          }
+          if (
+            (node.type.name === 'table_cell' || node.type.name === 'table_header') &&
+            cellDepth < 0
+          ) {
             cellDepth = d;
           }
         }
@@ -632,7 +750,9 @@ const Toolbar = defineComponent({
     });
     // Resolved flavor capabilities (reactive so the toolbar tracks a changed
     // `flavor` prop). Drives the hard capability gate in `enabled()`.
-    const capabilities = computed<CoarMarkdownCapabilities>(() => resolveCapabilities(props.flavor));
+    const capabilities = computed<CoarMarkdownCapabilities>(() =>
+      resolveCapabilities(props.flavor),
+    );
     function enabled(tool: CoarMarkdownEditorTool): boolean {
       // Capability gate first: a tool the flavor forbids is never shown.
       if (!isToolAllowedByCapabilities(tool, capabilities.value)) return false;
@@ -789,12 +909,10 @@ const Toolbar = defineComponent({
         picker({ insertImage: doInsertImage, selectedText: getSelectedText() });
         return;
       }
-      dialog
-        .open(ImageInsertDialog, { title: 'Insert image', size: 's' })
-        .result.then((result) => {
-          const value = result as ImageInsertResult | undefined;
-          if (value?.url) doInsertImage(value);
-        });
+      dialog.open(ImageInsertDialog, { title: 'Insert image', size: 's' }).result.then((result) => {
+        const value = result as ImageInsertResult | undefined;
+        if (value?.url) doInsertImage(value);
+      });
     }
 
     // Clear all inline marks on the current selection AND turn the active
@@ -842,7 +960,9 @@ const Toolbar = defineComponent({
           if (node.type.name === 'list_item') {
             const itemPos = $from.before(d);
             const isTask = node.attrs.checked != null;
-            view.dispatch(view.state.tr.setNodeAttribute(itemPos, 'checked', isTask ? null : false));
+            view.dispatch(
+              view.state.tr.setNodeAttribute(itemPos, 'checked', isTask ? null : false),
+            );
             return;
           }
         }
@@ -935,8 +1055,7 @@ const Toolbar = defineComponent({
               if (align === 'left' || align === 'center' || align === 'right') {
                 next.cell_alignment = align;
               }
-            }
-            else if (name === 'code_block') next.code_block = true;
+            } else if (name === 'code_block') next.code_block = true;
             else if (name === 'list_item') {
               next.list_item_depth += 1;
               // Task list = list_item with the `checked` attr set (true or false).
@@ -1018,11 +1137,16 @@ const Toolbar = defineComponent({
           const view = milkCtx.get(editorViewCtx);
           const { $from } = view.state.selection;
           for (let d = $from.depth; d > 0; d--) {
-            if ($from.node(d).type.name === 'table') { ctx = 'table'; break; }
+            if ($from.node(d).type.name === 'table') {
+              ctx = 'table';
+              break;
+            }
           }
         });
         return ctx;
-      } catch { return 'text'; }
+      } catch {
+        return 'text';
+      }
     }
 
     function positionFloating(anchorRect: DOMRect) {
@@ -1039,7 +1163,7 @@ const Toolbar = defineComponent({
       // Active state is updated via PM's `selectionUpdated` listener (registered
       // in onMounted) — reading PM state here would be one click stale because
       // browser selectionchange fires *before* PM dispatches its transaction.
-      if (props.readonly || props.toolbarMode === 'fixed') {
+      if (props.readonly || props.toolbarMode === 'fixed' || props.toolbarMode === 'external') {
         floatingVisible.value = false;
         return;
       }
@@ -1065,7 +1189,12 @@ const Toolbar = defineComponent({
 
     function onDocMouseDown(e: MouseEvent) {
       const target = e.target as HTMLElement;
-      if (target.closest('.coar-md-floating-toolbar') || target.closest('.coar-md-float-submenu')) return;
+      if (
+        target.closest('.coar-md-floating-toolbar') ||
+        target.closest('.coar-md-float-submenu') ||
+        target.closest('.coar-md-external-toolbar')
+      )
+        return;
       // The color picker lives in an overlay outlet (Teleport-to-body via the
       // overlay service); it has its own outside-click handler and must be
       // exempt here so a click inside the picker doesn't bleed through to
@@ -1074,6 +1203,7 @@ const Toolbar = defineComponent({
       if (!rootEl.value || !rootEl.value.contains(target)) {
         floatingVisible.value = false;
         headingSubmenuOpen.value = false;
+        editorGroup?.deactivate(props.editorGroupId);
       }
     }
 
@@ -1117,19 +1247,44 @@ const Toolbar = defineComponent({
           const idx = arr.indexOf(myListener!);
           if (idx >= 0) arr.splice(idx, 1);
         });
-      } catch { /* editor may already be gone */ }
+      } catch {
+        /* editor may already be gone */
+      }
       myListener = null;
     }
 
+    let unregisterEditorGroup: (() => void) | undefined;
+    let toolbarMounted = false;
+
+    function syncEditorGroupRegistration(mode: CoarMarkdownEditorToolbarMode): void {
+      unregisterEditorGroup?.();
+      unregisterEditorGroup = undefined;
+      if (mode !== 'external') return;
+      unregisterEditorGroup = editorGroup?.register({
+        id: props.editorGroupId,
+        render: () => renderSidebar(),
+      });
+    }
+
     onMounted(() => {
+      toolbarMounted = true;
       document.addEventListener('selectionchange', onSelectionChange);
       document.addEventListener('mousedown', onDocMouseDown, true);
       registerPmListener();
+      syncEditorGroupRegistration(props.toolbarMode);
     });
+    watch(
+      () => props.toolbarMode,
+      (mode) => {
+        if (toolbarMounted) syncEditorGroupRegistration(mode);
+      },
+    );
     onBeforeUnmount(() => {
+      toolbarMounted = false;
       document.removeEventListener('selectionchange', onSelectionChange);
       document.removeEventListener('mousedown', onDocMouseDown, true);
       unregisterPmListener();
+      unregisterEditorGroup?.();
       closeColorPicker();
     });
 
@@ -1151,14 +1306,31 @@ const Toolbar = defineComponent({
     // Default sidebar layout (used when `tools` is undefined). The array order
     // IS the toolbar order; `'divider'`s collapse contextually (see below).
     const DEFAULT_LAYOUT: CoarMarkdownEditorToolEntry[] = [
-      'bold', 'italic', 'strikethrough', 'inlineCode', 'textColor', 'headings',
+      'bold',
+      'italic',
+      'strikethrough',
+      'inlineCode',
+      'textColor',
+      'headings',
       'divider',
-      'bulletList', 'orderedList', 'taskList', 'outdent', 'indent', 'blockquote', 'horizontalRule',
+      'bulletList',
+      'orderedList',
+      'taskList',
+      'outdent',
+      'indent',
+      'blockquote',
+      'horizontalRule',
       'divider',
-      'codeBlock', 'table', 'image',
-      'divider', 'tableOps',
-      'divider', 'clearFormatting',
-      'divider', 'undo', 'redo',
+      'codeBlock',
+      'table',
+      'image',
+      'divider',
+      'tableOps',
+      'divider',
+      'clearFormatting',
+      'divider',
+      'undo',
+      'redo',
     ];
 
     function renderSidebar() {
@@ -1181,73 +1353,187 @@ const Toolbar = defineComponent({
       function descriptorFor(id: CoarMarkdownEditorTool): VNodeArrayChildren {
         if (!isToolAllowedByCapabilities(id, caps)) return [];
         switch (id) {
-          case 'bold': return [sidebarItem('bold', 'Bold', cmds.bold, { active: a.strong })];
-          case 'italic': return [sidebarItem('italic', 'Italic', cmds.italic, { active: a.emphasis })];
-          case 'strikethrough': return [sidebarItem('strikethrough', 'Strikethrough', cmds.strike, { active: a.strike_through })];
-          case 'inlineCode': return [sidebarItem('code', 'Inline Code', cmds.code, { active: a.inlineCode })];
-          case 'textColor': return [h(CoarSidebarItem, {
-            icon: 'palette',
-            label: 'Text Color',
-            active: a.text_color !== null,
-            onClick: (e: MouseEvent) => {
-              // Keyboard activation synthesises a MouseEvent without a
-              // currentTarget; fall back to the click target for the anchor.
-              const triggerEl = (e.currentTarget as HTMLElement | null) ?? (e.target as HTMLElement | null);
-              toggleColorPicker(triggerEl);
-            },
-          })];
-          case 'headings': return [h(CoarSidebarGroup, {
-            icon: 'hash',
-            label: isHeadingActive ? `Heading ${a.heading}` : 'Headings',
-            mode: 'flyout',
-            openOnHover: true,
-          }, {
-            default: () => [
-              h(CoarSidebarItem, { icon: 'pilcrow', label: 'Paragraph', active: !isHeadingActive, onClick: () => call(cmds.paragraph) }),
-              h(CoarSidebarItem, { icon: 'heading', label: 'Heading 1', active: a.heading === 1, onClick: () => call(cmds.h1) }),
-              h(CoarSidebarItem, { icon: 'heading', label: 'Heading 2', active: a.heading === 2, onClick: () => call(cmds.h2) }),
-              h(CoarSidebarItem, { icon: 'heading', label: 'Heading 3', active: a.heading === 3, onClick: () => call(cmds.h3) }),
-              h(CoarSidebarItem, { icon: 'heading', label: 'Heading 4', active: a.heading === 4, onClick: () => call(cmds.h4) }),
-              h(CoarSidebarItem, { icon: 'heading', label: 'Heading 5', active: a.heading === 5, onClick: () => call(cmds.h5) }),
-              h(CoarSidebarItem, { icon: 'heading', label: 'Heading 6', active: a.heading === 6, onClick: () => call(cmds.h6) }),
-            ],
-          })];
-          case 'bulletList': return [sidebarItem('list', 'Bullet List', cmds.bulletList, { active: a.bullet_list, onClick: () => toggleList('bullet_list') })];
-          case 'orderedList': return [sidebarItem('list-ordered', 'Ordered List', cmds.orderedList, { active: a.ordered_list, onClick: () => toggleList('ordered_list') })];
-          case 'taskList': return [sidebarItem('clipboard-check', 'Task List', cmds.bulletList, { active: a.task_list, onClick: toggleTaskList })];
+          case 'bold':
+            return [sidebarItem('bold', 'Bold', cmds.bold, { active: a.strong })];
+          case 'italic':
+            return [sidebarItem('italic', 'Italic', cmds.italic, { active: a.emphasis })];
+          case 'strikethrough':
+            return [
+              sidebarItem('strikethrough', 'Strikethrough', cmds.strike, {
+                active: a.strike_through,
+              }),
+            ];
+          case 'inlineCode':
+            return [sidebarItem('code', 'Inline Code', cmds.code, { active: a.inlineCode })];
+          case 'textColor':
+            return [
+              h(CoarSidebarItem, {
+                icon: 'palette',
+                label: 'Text Color',
+                active: a.text_color !== null,
+                onClick: (e: MouseEvent) => {
+                  // Keyboard activation synthesises a MouseEvent without a
+                  // currentTarget; fall back to the click target for the anchor.
+                  const triggerEl =
+                    (e.currentTarget as HTMLElement | null) ?? (e.target as HTMLElement | null);
+                  toggleColorPicker(triggerEl);
+                },
+              }),
+            ];
+          case 'headings':
+            return [
+              h(
+                CoarSidebarGroup,
+                {
+                  icon: 'hash',
+                  label: isHeadingActive ? `Heading ${a.heading}` : 'Headings',
+                  mode: 'flyout',
+                  openOnHover: true,
+                },
+                {
+                  default: () => [
+                    h(CoarSidebarItem, {
+                      icon: 'pilcrow',
+                      label: 'Paragraph',
+                      active: !isHeadingActive,
+                      onClick: () => call(cmds.paragraph),
+                    }),
+                    h(CoarSidebarItem, {
+                      icon: 'heading',
+                      label: 'Heading 1',
+                      active: a.heading === 1,
+                      onClick: () => call(cmds.h1),
+                    }),
+                    h(CoarSidebarItem, {
+                      icon: 'heading',
+                      label: 'Heading 2',
+                      active: a.heading === 2,
+                      onClick: () => call(cmds.h2),
+                    }),
+                    h(CoarSidebarItem, {
+                      icon: 'heading',
+                      label: 'Heading 3',
+                      active: a.heading === 3,
+                      onClick: () => call(cmds.h3),
+                    }),
+                    h(CoarSidebarItem, {
+                      icon: 'heading',
+                      label: 'Heading 4',
+                      active: a.heading === 4,
+                      onClick: () => call(cmds.h4),
+                    }),
+                    h(CoarSidebarItem, {
+                      icon: 'heading',
+                      label: 'Heading 5',
+                      active: a.heading === 5,
+                      onClick: () => call(cmds.h5),
+                    }),
+                    h(CoarSidebarItem, {
+                      icon: 'heading',
+                      label: 'Heading 6',
+                      active: a.heading === 6,
+                      onClick: () => call(cmds.h6),
+                    }),
+                  ],
+                },
+              ),
+            ];
+          case 'bulletList':
+            return [
+              sidebarItem('list', 'Bullet List', cmds.bulletList, {
+                active: a.bullet_list,
+                onClick: () => toggleList('bullet_list'),
+              }),
+            ];
+          case 'orderedList':
+            return [
+              sidebarItem('list-ordered', 'Ordered List', cmds.orderedList, {
+                active: a.ordered_list,
+                onClick: () => toggleList('ordered_list'),
+              }),
+            ];
+          case 'taskList':
+            return [
+              sidebarItem('clipboard-check', 'Task List', cmds.bulletList, {
+                active: a.task_list,
+                onClick: toggleTaskList,
+              }),
+            ];
           // Indent is meaningless outside a list. Outdent stops at the top list
           // level — leaving the list is the list-button's job, not Outdent's.
-          case 'outdent': return [sidebarItem('indent-decrease', 'Outdent', cmds.outdent, { disabled: a.list_item_depth < 2 })];
-          case 'indent': return [sidebarItem('indent-increase', 'Indent', cmds.indent, { disabled: a.list_item_depth < 1 })];
-          case 'blockquote': return [sidebarItem('text-quote', 'Blockquote', cmds.blockquote, { active: a.blockquote })];
-          case 'horizontalRule': return [sidebarItem('minus', 'Horizontal Rule', cmds.hr)];
-          case 'codeBlock': return [sidebarItem('square-code', 'Code Block', cmds.codeBlock, { active: a.code_block })];
-          case 'table': return [h(CoarSidebarItem, {
-            icon: 'table',
-            label: 'Insert Table',
-            active: a.table,
-            onClick: (e: MouseEvent) => {
-              const triggerEl = (e.currentTarget as HTMLElement | null) ?? (e.target as HTMLElement | null);
-              openTablePicker(triggerEl);
-            },
-          })];
-          case 'image': return [sidebarItem('image', 'Insert Image', cmds.bold, { onClick: handleInsertImageClick })];
+          case 'outdent':
+            return [
+              sidebarItem('indent-decrease', 'Outdent', cmds.outdent, {
+                disabled: a.list_item_depth < 2,
+              }),
+            ];
+          case 'indent':
+            return [
+              sidebarItem('indent-increase', 'Indent', cmds.indent, {
+                disabled: a.list_item_depth < 1,
+              }),
+            ];
+          case 'blockquote':
+            return [
+              sidebarItem('text-quote', 'Blockquote', cmds.blockquote, { active: a.blockquote }),
+            ];
+          case 'horizontalRule':
+            return [sidebarItem('minus', 'Horizontal Rule', cmds.hr)];
+          case 'codeBlock':
+            return [
+              sidebarItem('square-code', 'Code Block', cmds.codeBlock, { active: a.code_block }),
+            ];
+          case 'table':
+            return [
+              h(CoarSidebarItem, {
+                icon: 'table',
+                label: 'Insert Table',
+                active: a.table,
+                onClick: (e: MouseEvent) => {
+                  const triggerEl =
+                    (e.currentTarget as HTMLElement | null) ?? (e.target as HTMLElement | null);
+                  openTablePicker(triggerEl);
+                },
+              }),
+            ];
+          case 'image':
+            return [
+              sidebarItem('image', 'Insert Image', cmds.bold, { onClick: handleInsertImageClick }),
+            ];
           // Contextual: only surfaces when the cursor is inside a table.
-          case 'tableOps': return a.table ? [
-            sidebarItem('table-row-plus-above', 'Insert Row Above', cmds.addRowBefore),
-            sidebarItem('table-row-plus-below', 'Insert Row Below', cmds.addRowAfter),
-            sidebarItem('table-column-plus-left', 'Insert Column Left', cmds.addColBefore),
-            sidebarItem('table-column-plus-right', 'Insert Column Right', cmds.addColAfter),
-            sidebarItem('align-left', 'Align Left', cmds.deleteCell, { active: a.cell_alignment === 'left', onClick: () => setColumnAlignment('left') }),
-            sidebarItem('align-center', 'Align Center', cmds.deleteCell, { active: a.cell_alignment === 'center', onClick: () => setColumnAlignment('center') }),
-            sidebarItem('align-right', 'Align Right', cmds.deleteCell, { active: a.cell_alignment === 'right', onClick: () => setColumnAlignment('right') }),
-            sidebarItem('trash-2', 'Delete Cell', cmds.deleteCell),
-            sidebarItem('table', 'Delete Table', cmds.deleteCell, { onClick: deleteTable }),
-          ] : [];
-          case 'clearFormatting': return [sidebarItem('eraser', 'Clear Formatting', cmds.bold, { onClick: clearFormatting })];
-          case 'undo': return [sidebarItem('undo-2', 'Undo', cmds.undo)];
-          case 'redo': return [sidebarItem('redo-2', 'Redo', cmds.redo)];
-          default: return [];
+          case 'tableOps':
+            return a.table
+              ? [
+                  sidebarItem('table-row-plus-above', 'Insert Row Above', cmds.addRowBefore),
+                  sidebarItem('table-row-plus-below', 'Insert Row Below', cmds.addRowAfter),
+                  sidebarItem('table-column-plus-left', 'Insert Column Left', cmds.addColBefore),
+                  sidebarItem('table-column-plus-right', 'Insert Column Right', cmds.addColAfter),
+                  sidebarItem('align-left', 'Align Left', cmds.deleteCell, {
+                    active: a.cell_alignment === 'left',
+                    onClick: () => setColumnAlignment('left'),
+                  }),
+                  sidebarItem('align-center', 'Align Center', cmds.deleteCell, {
+                    active: a.cell_alignment === 'center',
+                    onClick: () => setColumnAlignment('center'),
+                  }),
+                  sidebarItem('align-right', 'Align Right', cmds.deleteCell, {
+                    active: a.cell_alignment === 'right',
+                    onClick: () => setColumnAlignment('right'),
+                  }),
+                  sidebarItem('trash-2', 'Delete Cell', cmds.deleteCell),
+                  sidebarItem('table', 'Delete Table', cmds.deleteCell, { onClick: deleteTable }),
+                ]
+              : [];
+          case 'clearFormatting':
+            return [
+              sidebarItem('eraser', 'Clear Formatting', cmds.bold, { onClick: clearFormatting }),
+            ];
+          case 'undo':
+            return [sidebarItem('undo-2', 'Undo', cmds.undo)];
+          case 'redo':
+            return [sidebarItem('redo-2', 'Redo', cmds.redo)];
+          default:
+            return [];
         }
       }
 
@@ -1258,11 +1544,15 @@ const Toolbar = defineComponent({
         if (!caps.embeds) return [];
         const def = props.embeds?.[key];
         if (!def?.insert) return [];
-        return [h(CoarSidebarItem, {
-          icon: def.insert.icon ?? 'layout-grid',
-          label: def.insert.label ?? key,
-          onClick: () => { void insertEmbed(key); },
-        })];
+        return [
+          h(CoarSidebarItem, {
+            icon: def.insert.icon ?? 'layout-grid',
+            label: def.insert.label ?? key,
+            onClick: () => {
+              void insertEmbed(key);
+            },
+          }),
+        ];
       }
 
       // Resolve one layout entry to its node(s). Flyout groups recurse; an empty
@@ -1277,12 +1567,18 @@ const Toolbar = defineComponent({
         if (entry && typeof entry === 'object' && Array.isArray(entry.flyout)) {
           const children = entry.flyout.flatMap((ref) => resolveEntryNodes(ref));
           if (children.length === 0) return [];
-          return [h(CoarSidebarGroup, {
-            icon: entry.icon ?? 'plus',
-            label: entry.label ?? '',
-            mode: 'flyout',
-            openOnHover: true,
-          }, { default: () => children })];
+          return [
+            h(
+              CoarSidebarGroup,
+              {
+                icon: entry.icon ?? 'plus',
+                label: entry.label ?? '',
+                mode: 'flyout',
+                openOnHover: true,
+              },
+              { default: () => children },
+            ),
+          ];
         }
         return [];
       }
@@ -1293,12 +1589,14 @@ const Toolbar = defineComponent({
       // of the tools layout). In Source mode it's the *only* item.
       if (props.sourceToggle) {
         const isSource = props.viewMode === 'source';
-        items.push(h(CoarSidebarItem, {
-          icon: isSource ? 'eye' : 'code',
-          label: isSource ? 'Rendered' : 'Source',
-          active: isSource,
-          onClick: () => props.onToggleView?.(isSource ? 'rendered' : 'source'),
-        }));
+        items.push(
+          h(CoarSidebarItem, {
+            icon: isSource ? 'eye' : 'code',
+            label: isSource ? 'Rendered' : 'Source',
+            active: isSource,
+            onClick: () => props.onToggleView?.(isSource ? 'rendered' : 'source'),
+          }),
+        );
         if (isSource) return renderSidebarHost(items);
         sectionDivider(items);
       }
@@ -1307,7 +1605,10 @@ const Toolbar = defineComponent({
       // surrounding entries resolve to nothing (e.g. `tableOps` outside a table).
       const layout = props.tools ?? DEFAULT_LAYOUT;
       for (const entry of layout) {
-        if (entry === 'divider') { sectionDivider(items); continue; }
+        if (entry === 'divider') {
+          sectionDivider(items);
+          continue;
+        }
         for (const node of resolveEntryNodes(entry)) items.push(node);
       }
 
@@ -1321,27 +1622,41 @@ const Toolbar = defineComponent({
     // Wraps a built item list in the collapsed CoarSidebar host. Shared by the
     // normal sidebar and the Source-mode (toggle-only) variant.
     function renderSidebarHost(items: VNodeArrayChildren) {
-      return h('div', {
-        key: 'sidebar',
-        class: 'coar-md-sidebar-wrap',
-        // Prevent focus steal from the editor when clicking sidebar items
-        onMousedown: (e: MouseEvent) => e.preventDefault(),
-      }, [
-        h(CoarSidebar, {
-          collapsed: true,
-          // CoarSidebar's `side` accepts all four edges; the deprecated
-          // `position` only handles left/right, so use `side` directly.
-          side: props.toolbarPosition,
-          size: 's',
-          // 'primary' = light grey background (--coar-background-neutral-secondary).
-          // 'secondary' is plain white. We want the toolbar to read as a distinct
-          // surface separate from the editor's writing area.
-          variant: 'primary',
-          borderless: true,
-        }, {
-          default: () => items,
-        }),
-      ]);
+      return h(
+        'div',
+        {
+          key: 'sidebar',
+          class: [
+            'coar-md-sidebar-wrap',
+            { 'coar-md-sidebar-wrap--external': props.toolbarMode === 'external' },
+          ],
+          // Prevent focus steal from the editor when clicking sidebar items
+          onMousedown: (e: MouseEvent) => e.preventDefault(),
+        },
+        [
+          h(
+            CoarSidebar,
+            {
+              collapsed: true,
+              // CoarSidebar's `side` accepts all four edges; the deprecated
+              // `position` only handles left/right, so use `side` directly.
+              side:
+                props.toolbarMode === 'external'
+                  ? (editorGroup?.position.value ?? props.toolbarPosition)
+                  : props.toolbarPosition,
+              size: 's',
+              // 'primary' = light grey background (--coar-background-neutral-secondary).
+              // 'secondary' is plain white. We want the toolbar to read as a distinct
+              // surface separate from the editor's writing area.
+              variant: 'primary',
+              borderless: true,
+            },
+            {
+              default: () => items,
+            },
+          ),
+        ],
+      );
     }
 
     function renderFloating() {
@@ -1351,27 +1666,36 @@ const Toolbar = defineComponent({
         cmd: CmdDef<T>,
         opts: { isActive?: boolean; disabled?: boolean; onClick?: () => void } = {},
       ) =>
-        h('button', {
-          class: [
-            'coar-md-float-btn',
-            opts.isActive ? 'coar-md-float-btn--active' : '',
-            opts.disabled ? 'coar-md-float-btn--disabled' : '',
-          ],
-          title, type: 'button',
-          disabled: opts.disabled ?? false,
-          onMousedown: (e: MouseEvent) => {
-            e.preventDefault();
-            if (opts.disabled) return;
-            (opts.onClick ?? (() => call(cmd)))();
+        h(
+          'button',
+          {
+            class: [
+              'coar-md-float-btn',
+              opts.isActive ? 'coar-md-float-btn--active' : '',
+              opts.disabled ? 'coar-md-float-btn--disabled' : '',
+            ],
+            title,
+            type: 'button',
+            disabled: opts.disabled ?? false,
+            onMousedown: (e: MouseEvent) => {
+              e.preventDefault();
+              if (opts.disabled) return;
+              (opts.onClick ?? (() => call(cmd)))();
+            },
           },
-        }, [h(CoarIcon, { name: icon, size: 's' })]);
+          [h(CoarIcon, { name: icon, size: 's' })],
+        );
 
       const sep = () => h('div', { class: 'coar-md-float-sep' });
 
       const a = active.value;
 
       // Build text toolbar with the same enabled() filter as the sidebar.
-      function pushFb(arr: VNodeArrayChildren, tool: CoarMarkdownEditorTool, node: VNodeArrayChildren[number]) {
+      function pushFb(
+        arr: VNodeArrayChildren,
+        tool: CoarMarkdownEditorTool,
+        node: VNodeArrayChildren[number],
+      ) {
         if (enabled(tool)) arr.push(node);
       }
       function pushSep(arr: VNodeArrayChildren) {
@@ -1384,83 +1708,139 @@ const Toolbar = defineComponent({
       const textToolbar: VNodeArrayChildren = [];
       pushFb(textToolbar, 'bold', fb('bold', 'Bold', cmds.bold, { isActive: a.strong }));
       pushFb(textToolbar, 'italic', fb('italic', 'Italic', cmds.italic, { isActive: a.emphasis }));
-      pushFb(textToolbar, 'strikethrough', fb('strikethrough', 'Strikethrough', cmds.strike, { isActive: a.strike_through }));
-      pushFb(textToolbar, 'inlineCode', fb('code', 'Inline Code', cmds.code, { isActive: a.inlineCode }));
+      pushFb(
+        textToolbar,
+        'strikethrough',
+        fb('strikethrough', 'Strikethrough', cmds.strike, { isActive: a.strike_through }),
+      );
+      pushFb(
+        textToolbar,
+        'inlineCode',
+        fb('code', 'Inline Code', cmds.code, { isActive: a.inlineCode }),
+      );
 
       if (enabled('textColor')) {
         const colorActive = a.text_color !== null;
         textToolbar.push(
-          h('button', {
-            class: [
-              'coar-md-float-btn',
-              colorActive ? 'coar-md-float-btn--active' : '',
-            ],
-            type: 'button',
-            title: colorActive ? `Text Color (${a.text_color})` : 'Text Color',
-            style: colorActive ? `--coar-md-color-indicator: ${a.text_color};` : undefined,
-            onMousedown: (e: MouseEvent) => {
-              e.preventDefault();
-              toggleColorPicker(e.currentTarget as HTMLElement);
+          h(
+            'button',
+            {
+              class: ['coar-md-float-btn', colorActive ? 'coar-md-float-btn--active' : ''],
+              type: 'button',
+              title: colorActive ? `Text Color (${a.text_color})` : 'Text Color',
+              style: colorActive ? `--coar-md-color-indicator: ${a.text_color};` : undefined,
+              onMousedown: (e: MouseEvent) => {
+                e.preventDefault();
+                toggleColorPicker(e.currentTarget as HTMLElement);
+              },
             },
-          }, [h(CoarIcon, { name: 'palette', size: 's' })]),
+            [h(CoarIcon, { name: 'palette', size: 's' })],
+          ),
         );
       }
 
       if (enabled('headings')) {
         pushSep(textToolbar);
-        textToolbar.push(h('div', { class: 'coar-md-float-dropdown' }, [
-          h('button', {
-            class: [
-              'coar-md-float-btn',
-              (headingSubmenuOpen.value || a.heading != null) ? 'coar-md-float-btn--active' : '',
-            ],
-            title: a.heading != null ? `Heading ${a.heading}` : 'Headings',
-            type: 'button',
-            onMousedown: (e: MouseEvent) => { e.preventDefault(); headingSubmenuOpen.value = !headingSubmenuOpen.value; },
-          }, [h(CoarIcon, { name: 'heading', size: 's' })]),
-          headingSubmenuOpen.value
-            ? h('div', { class: 'coar-md-float-submenu' },
-                ([
-                  { label: 'Paragraph', cmd: cmds.paragraph, icon: 'pilcrow', activeLevel: 0 },
-                  { label: 'Heading 1', cmd: cmds.h1, icon: 'heading', activeLevel: 1 },
-                  { label: 'Heading 2', cmd: cmds.h2, icon: 'heading', activeLevel: 2 },
-                  { label: 'Heading 3', cmd: cmds.h3, icon: 'heading', activeLevel: 3 },
-                  { label: 'Heading 4', cmd: cmds.h4, icon: 'heading', activeLevel: 4 },
-                  { label: 'Heading 5', cmd: cmds.h5, icon: 'heading', activeLevel: 5 },
-                  { label: 'Heading 6', cmd: cmds.h6, icon: 'heading', activeLevel: 6 },
-                ]).map(({ label, cmd, icon, activeLevel }) => {
-                  const isActive = activeLevel === 0
-                    ? (a.heading == null)
-                    : (a.heading === activeLevel);
-                  return h('button', {
-                    class: ['coar-md-float-submenu-item', isActive ? 'coar-md-float-submenu-item--active' : ''],
-                    type: 'button',
-                    onMousedown: (e: MouseEvent) => {
-                      // Each cmd has a different payload shape (paragraph: unknown, headings: number).
-                      // The runtime call only needs the key + payload — narrow via CmdDef<unknown>.
-                      e.preventDefault(); call(cmd as CmdDef<unknown>);
-                      headingSubmenuOpen.value = false;
-                    },
-                  }, [h(CoarIcon, { name: icon, size: 'xs' }), h('span', null, label)]);
-                }))
-            : null,
-        ]));
+        textToolbar.push(
+          h('div', { class: 'coar-md-float-dropdown' }, [
+            h(
+              'button',
+              {
+                class: [
+                  'coar-md-float-btn',
+                  headingSubmenuOpen.value || a.heading != null ? 'coar-md-float-btn--active' : '',
+                ],
+                title: a.heading != null ? `Heading ${a.heading}` : 'Headings',
+                type: 'button',
+                onMousedown: (e: MouseEvent) => {
+                  e.preventDefault();
+                  headingSubmenuOpen.value = !headingSubmenuOpen.value;
+                },
+              },
+              [h(CoarIcon, { name: 'heading', size: 's' })],
+            ),
+            headingSubmenuOpen.value
+              ? h(
+                  'div',
+                  { class: 'coar-md-float-submenu' },
+                  [
+                    { label: 'Paragraph', cmd: cmds.paragraph, icon: 'pilcrow', activeLevel: 0 },
+                    { label: 'Heading 1', cmd: cmds.h1, icon: 'heading', activeLevel: 1 },
+                    { label: 'Heading 2', cmd: cmds.h2, icon: 'heading', activeLevel: 2 },
+                    { label: 'Heading 3', cmd: cmds.h3, icon: 'heading', activeLevel: 3 },
+                    { label: 'Heading 4', cmd: cmds.h4, icon: 'heading', activeLevel: 4 },
+                    { label: 'Heading 5', cmd: cmds.h5, icon: 'heading', activeLevel: 5 },
+                    { label: 'Heading 6', cmd: cmds.h6, icon: 'heading', activeLevel: 6 },
+                  ].map(({ label, cmd, icon, activeLevel }) => {
+                    const isActive =
+                      activeLevel === 0 ? a.heading == null : a.heading === activeLevel;
+                    return h(
+                      'button',
+                      {
+                        class: [
+                          'coar-md-float-submenu-item',
+                          isActive ? 'coar-md-float-submenu-item--active' : '',
+                        ],
+                        type: 'button',
+                        onMousedown: (e: MouseEvent) => {
+                          // Each cmd has a different payload shape (paragraph: unknown, headings: number).
+                          // The runtime call only needs the key + payload — narrow via CmdDef<unknown>.
+                          e.preventDefault();
+                          call(cmd as CmdDef<unknown>);
+                          headingSubmenuOpen.value = false;
+                        },
+                      },
+                      [h(CoarIcon, { name: icon, size: 'xs' }), h('span', null, label)],
+                    );
+                  }),
+                )
+              : null,
+          ]),
+        );
       }
 
       pushSep(textToolbar);
-      pushFb(textToolbar, 'bulletList', fb('list', 'Bullet List', cmds.bulletList,
-        { isActive: a.bullet_list, onClick: () => toggleList('bullet_list') }));
-      pushFb(textToolbar, 'orderedList', fb('list-ordered', 'Ordered List', cmds.orderedList,
-        { isActive: a.ordered_list, onClick: () => toggleList('ordered_list') }));
-      pushFb(textToolbar, 'taskList', fb('clipboard-check', 'Task List', cmds.bulletList,
-        { isActive: a.task_list, onClick: toggleTaskList }));
-      pushFb(textToolbar, 'outdent', fb('indent-decrease', 'Outdent', cmds.outdent,
-        { disabled: a.list_item_depth < 2 }));
-      pushFb(textToolbar, 'indent', fb('indent-increase', 'Indent', cmds.indent,
-        { disabled: a.list_item_depth < 1 }));
+      pushFb(
+        textToolbar,
+        'bulletList',
+        fb('list', 'Bullet List', cmds.bulletList, {
+          isActive: a.bullet_list,
+          onClick: () => toggleList('bullet_list'),
+        }),
+      );
+      pushFb(
+        textToolbar,
+        'orderedList',
+        fb('list-ordered', 'Ordered List', cmds.orderedList, {
+          isActive: a.ordered_list,
+          onClick: () => toggleList('ordered_list'),
+        }),
+      );
+      pushFb(
+        textToolbar,
+        'taskList',
+        fb('clipboard-check', 'Task List', cmds.bulletList, {
+          isActive: a.task_list,
+          onClick: toggleTaskList,
+        }),
+      );
+      pushFb(
+        textToolbar,
+        'outdent',
+        fb('indent-decrease', 'Outdent', cmds.outdent, { disabled: a.list_item_depth < 2 }),
+      );
+      pushFb(
+        textToolbar,
+        'indent',
+        fb('indent-increase', 'Indent', cmds.indent, { disabled: a.list_item_depth < 1 }),
+      );
 
       pushSep(textToolbar);
-      pushFb(textToolbar, 'blockquote', fb('text-quote', 'Blockquote', cmds.blockquote, { isActive: a.blockquote }));
+      pushFb(
+        textToolbar,
+        'blockquote',
+        fb('text-quote', 'Blockquote', cmds.blockquote, { isActive: a.blockquote }),
+      );
 
       if (enabled('clearFormatting')) {
         pushSep(textToolbar);
@@ -1468,62 +1848,87 @@ const Toolbar = defineComponent({
       }
 
       // Drop a trailing separator if nothing followed
-      const last = textToolbar[textToolbar.length - 1] as { props?: { class?: string } } | undefined;
+      const last = textToolbar[textToolbar.length - 1] as
+        | { props?: { class?: string } }
+        | undefined;
       if (last?.props?.class === 'coar-md-float-sep') textToolbar.pop();
 
-      const tableCursorToolbar: VNodeArrayChildren = enabled('tableOps') ? [
-        fb('table-row-plus-above', 'Insert Row Above', cmds.addRowBefore),
-        fb('table-row-plus-below', 'Insert Row Below', cmds.addRowAfter),
-        sep(),
-        fb('table-column-plus-left', 'Insert Column Left', cmds.addColBefore),
-        fb('table-column-plus-right', 'Insert Column Right', cmds.addColAfter),
-        sep(),
-        fb('align-left', 'Align Left', cmds.deleteCell, { isActive: a.cell_alignment === 'left', onClick: () => setColumnAlignment('left') }),
-        fb('align-center', 'Align Center', cmds.deleteCell, { isActive: a.cell_alignment === 'center', onClick: () => setColumnAlignment('center') }),
-        fb('align-right', 'Align Right', cmds.deleteCell, { isActive: a.cell_alignment === 'right', onClick: () => setColumnAlignment('right') }),
-        sep(),
-        fb('trash-2', 'Delete Cell', cmds.deleteCell),
-        fb('table', 'Delete Table', cmds.deleteCell, { onClick: deleteTable }),
-        ...(enabled('bold') || enabled('italic') || enabled('inlineCode') ? [sep()] : []),
-        ...(enabled('bold') ? [fb('bold', 'Bold', cmds.bold)] : []),
-        ...(enabled('italic') ? [fb('italic', 'Italic', cmds.italic)] : []),
-        ...(enabled('inlineCode') ? [fb('code', 'Code', cmds.code)] : []),
-      ] : textToolbar;
+      const tableCursorToolbar: VNodeArrayChildren = enabled('tableOps')
+        ? [
+            fb('table-row-plus-above', 'Insert Row Above', cmds.addRowBefore),
+            fb('table-row-plus-below', 'Insert Row Below', cmds.addRowAfter),
+            sep(),
+            fb('table-column-plus-left', 'Insert Column Left', cmds.addColBefore),
+            fb('table-column-plus-right', 'Insert Column Right', cmds.addColAfter),
+            sep(),
+            fb('align-left', 'Align Left', cmds.deleteCell, {
+              isActive: a.cell_alignment === 'left',
+              onClick: () => setColumnAlignment('left'),
+            }),
+            fb('align-center', 'Align Center', cmds.deleteCell, {
+              isActive: a.cell_alignment === 'center',
+              onClick: () => setColumnAlignment('center'),
+            }),
+            fb('align-right', 'Align Right', cmds.deleteCell, {
+              isActive: a.cell_alignment === 'right',
+              onClick: () => setColumnAlignment('right'),
+            }),
+            sep(),
+            fb('trash-2', 'Delete Cell', cmds.deleteCell),
+            fb('table', 'Delete Table', cmds.deleteCell, { onClick: deleteTable }),
+            ...(enabled('bold') || enabled('italic') || enabled('inlineCode') ? [sep()] : []),
+            ...(enabled('bold') ? [fb('bold', 'Bold', cmds.bold)] : []),
+            ...(enabled('italic') ? [fb('italic', 'Italic', cmds.italic)] : []),
+            ...(enabled('inlineCode') ? [fb('code', 'Code', cmds.code)] : []),
+          ]
+        : textToolbar;
 
-      const colToolbar: VNodeArrayChildren = enabled('tableOps') ? [
-        fb('table-column-plus-left', 'Insert Column Left', cmds.addColBefore),
-        fb('table-column-plus-right', 'Insert Column Right', cmds.addColAfter),
-        sep(),
-        fb('trash-2', 'Delete Column', cmds.deleteCell),
-      ] : textToolbar;
+      const colToolbar: VNodeArrayChildren = enabled('tableOps')
+        ? [
+            fb('table-column-plus-left', 'Insert Column Left', cmds.addColBefore),
+            fb('table-column-plus-right', 'Insert Column Right', cmds.addColAfter),
+            sep(),
+            fb('trash-2', 'Delete Column', cmds.deleteCell),
+          ]
+        : textToolbar;
 
-      const rowToolbar: VNodeArrayChildren = enabled('tableOps') ? [
-        fb('table-row-plus-above', 'Insert Row Above', cmds.addRowBefore),
-        fb('table-row-plus-below', 'Insert Row Below', cmds.addRowAfter),
-        sep(),
-        fb('trash-2', 'Delete Row', cmds.deleteCell),
-      ] : textToolbar;
+      const rowToolbar: VNodeArrayChildren = enabled('tableOps')
+        ? [
+            fb('table-row-plus-above', 'Insert Row Above', cmds.addRowBefore),
+            fb('table-row-plus-below', 'Insert Row Below', cmds.addRowAfter),
+            sep(),
+            fb('trash-2', 'Delete Row', cmds.deleteCell),
+          ]
+        : textToolbar;
 
       const toolbarMap: Record<EditorContext, VNodeArrayChildren> = {
-        'text': textToolbar,
-        'table': tableCursorToolbar,
+        text: textToolbar,
+        table: tableCursorToolbar,
         'col-selection': colToolbar,
         'row-selection': rowToolbar,
       };
 
-      return h(Teleport, { to: 'body' },
-        h('div', {
-          class: 'coar-md-floating-toolbar',
-          style: `left:${floatingStyle.value.left};top:${floatingStyle.value.top};`,
-        }, toolbarMap[floatingContext.value] || textToolbar),
+      return h(
+        Teleport,
+        { to: 'body' },
+        h(
+          'div',
+          {
+            class: 'coar-md-floating-toolbar',
+            style: `left:${floatingStyle.value.left};top:${floatingStyle.value.top};`,
+          },
+          toolbarMap[floatingContext.value] || textToolbar,
+        ),
       );
     }
 
     return () => {
       const showFixed = props.toolbarMode === 'fixed' || props.toolbarMode === 'both';
       const isSource = props.sourceToggle && props.viewMode === 'source';
-      const showFloat = !props.readonly && !isSource
-        && (props.toolbarMode === 'floating' || props.toolbarMode === 'both');
+      const showFloat =
+        !props.readonly &&
+        !isSource &&
+        (props.toolbarMode === 'floating' || props.toolbarMode === 'both');
 
       // Stable keys are critical: without them, switching toolbar mode shifts
       // the editor div's position in the children list, Vue re-creates the DOM,
@@ -1547,53 +1952,70 @@ const Toolbar = defineComponent({
       // Milkdown stays mounted in Source mode (hidden via the `--source` class);
       // the raw textarea takes over the writing area. When there is no fixed
       // sidebar to host the toggle (floating mode), a small corner button does.
-      children.push(h('div', {
-        key: 'area',
-        ref: areaEl,
-        class: ['coar-md-area', 'coar-markdown', { 'coar-md-area--source': isSource }],
-        onMousedown: isSource ? undefined : onAreaMouseDown,
-      }, [
-        h(Milkdown),
-        showPlaceholder
-          ? h(PlaceholderOverlay, { key: 'placeholder', source: props.placeholder })
-          : null,
-        // Hover edge-handles for tables — only when tables are possible (gfm)
-        // and the doc is editable. Reads the area element as its hover scope.
-        (!props.readonly && !isSource && capabilities.value.gfm)
-          ? h(TableHandles, {
-              key: 'table-handles',
-              area: areaEl.value,
-              onMenuToggle: (open: boolean) => { tableHandleMenuOpen.value = open; },
-            })
-          : null,
-        isSource
-          ? h('textarea', {
-              key: 'source',
-              class: 'coar-md-source-area',
-              value: props.sourceValue,
-              readonly: props.readonly || undefined,
-              disabled: props.disabled || undefined,
-              spellcheck: 'false',
-              placeholder: props.placeholder || undefined,
-              onInput: (e: Event) => props.onSourceInput?.((e.target as HTMLTextAreaElement).value),
-            })
-          : null,
-        props.sourceToggle && !showFixed
-          ? h('button', {
-              key: 'source-corner',
-              class: 'coar-md-source-corner',
-              type: 'button',
-              title: isSource ? 'Show rendered' : 'Edit source',
-              'aria-label': isSource ? 'Show rendered' : 'Edit source',
-              onMousedown: (e: MouseEvent) => {
-                e.preventDefault();
-                props.onToggleView?.(isSource ? 'rendered' : 'source');
-              },
-            }, [h(CoarIcon, { name: isSource ? 'eye' : 'code', size: 's' })])
-          : null,
-      ]));
+      children.push(
+        h(
+          'div',
+          {
+            key: 'area',
+            ref: areaEl,
+            class: ['coar-md-area', 'coar-markdown', { 'coar-md-area--source': isSource }],
+            onMousedown: isSource ? undefined : onAreaMouseDown,
+          },
+          [
+            h(Milkdown),
+            showPlaceholder
+              ? h(PlaceholderOverlay, { key: 'placeholder', source: props.placeholder })
+              : null,
+            // Hover edge-handles for tables — only when tables are possible (gfm)
+            // and the doc is editable. Reads the area element as its hover scope.
+            !props.readonly && !isSource && capabilities.value.gfm
+              ? h(TableHandles, {
+                  key: 'table-handles',
+                  area: areaEl.value,
+                  onMenuToggle: (open: boolean) => {
+                    tableHandleMenuOpen.value = open;
+                  },
+                })
+              : null,
+            isSource
+              ? h('textarea', {
+                  key: 'source',
+                  class: 'coar-md-source-area',
+                  value: props.sourceValue,
+                  readonly: props.readonly || undefined,
+                  disabled: props.disabled || undefined,
+                  spellcheck: 'false',
+                  placeholder: props.placeholder || undefined,
+                  onInput: (e: Event) =>
+                    props.onSourceInput?.((e.target as HTMLTextAreaElement).value),
+                })
+              : null,
+            props.sourceToggle &&
+            props.toolbarMode !== 'fixed' &&
+            props.toolbarMode !== 'both' &&
+            props.toolbarMode !== 'external'
+              ? h(
+                  'button',
+                  {
+                    key: 'source-corner',
+                    class: 'coar-md-source-corner',
+                    type: 'button',
+                    title: isSource ? 'Show rendered' : 'Edit source',
+                    'aria-label': isSource ? 'Show rendered' : 'Edit source',
+                    onMousedown: (e: MouseEvent) => {
+                      e.preventDefault();
+                      props.onToggleView?.(isSource ? 'rendered' : 'source');
+                    },
+                  },
+                  [h(CoarIcon, { name: isSource ? 'eye' : 'code', size: 's' })],
+                )
+              : null,
+          ],
+        ),
+      );
       if (showFixed && sidebarLast) children.push(renderSidebar());
-      if (floatingVisible.value && showFloat && !tableHandleMenuOpen.value) children.push(renderFloating());
+      if (floatingVisible.value && showFloat && !tableHandleMenuOpen.value)
+        children.push(renderFloating());
 
       const rootClass = {
         'coar-md-root': true,
@@ -1603,17 +2025,28 @@ const Toolbar = defineComponent({
         'coar-md-root--error': props.hasError,
       };
 
-      return h('div', {
-        class: rootClass,
-        ref: rootEl,
-        id: props.inputId,
-        'aria-invalid': props.hasError ? 'true' : undefined,
-        'aria-describedby': props.describedBy,
-        'aria-disabled': props.disabled ? 'true' : undefined,
-        'aria-readonly': props.readonly && !props.disabled ? 'true' : undefined,
-        'aria-required': props.required ? 'true' : undefined,
-        'data-name': props.name,
-      }, children);
+      return h(
+        'div',
+        {
+          class: rootClass,
+          ref: rootEl,
+          id: props.inputId,
+          'aria-invalid': props.hasError ? 'true' : undefined,
+          'aria-describedby': props.describedBy,
+          'aria-disabled': props.disabled ? 'true' : undefined,
+          'aria-readonly': props.readonly && !props.disabled ? 'true' : undefined,
+          'aria-required': props.required ? 'true' : undefined,
+          'data-name': props.name,
+          onMousedown: () => editorGroup?.activate(props.editorGroupId),
+          onFocusin: () => editorGroup?.activate(props.editorGroupId),
+          onFocusout: (event: FocusEvent) => {
+            const nextTarget = event.relatedTarget;
+            if (nextTarget instanceof Node && rootEl.value?.contains(nextTarget)) return;
+            editorGroup?.deactivate(props.editorGroupId);
+          },
+        },
+        children,
+      );
     };
   },
 });
@@ -1631,7 +2064,10 @@ export default defineComponent({
     placeholder: { type: String, default: '' },
     sourceToggle: { type: Boolean, default: false },
     toolbarMode: { type: String as PropType<CoarMarkdownEditorToolbarMode>, default: 'floating' },
-    toolbarPosition: { type: String as PropType<CoarMarkdownEditorToolbarPosition>, default: 'left' },
+    toolbarPosition: {
+      type: String as PropType<CoarMarkdownEditorToolbarPosition>,
+      default: 'left',
+    },
     tools: { type: Array as PropType<CoarMarkdownEditorToolEntry[]>, default: undefined },
     flavor: { type: [String, Object] as PropType<CoarMarkdownFlavorInput>, default: undefined },
     uploadImage: { type: Function as PropType<ImageUploader | undefined>, default: undefined },
@@ -1643,42 +2079,48 @@ export default defineComponent({
     // Capture the initial value once; external updates flow through externalValue.
     const initialValue = props.modelValue;
     const externalValue = shallowRef({ value: props.modelValue });
-    watch(() => props.modelValue, (next) => {
-      externalValue.value = { value: next };
-    });
+    watch(
+      () => props.modelValue,
+      (next) => {
+        externalValue.value = { value: next };
+      },
+    );
 
     // CoarFormField integration — auto-picks up id / error / disabled / describedBy when wrapped.
     const formField = inject(FORM_FIELD_INJECTION_KEY, undefined);
     const autoId = `coar-markdown-editor-${useId()}`;
+    const editorGroupId = `coar-markdown-editor-group-member-${useId()}`;
     const inputId = computed(() => props.id || formField?.inputId.value || autoId);
     const hasError = computed(() => props.error || (formField?.hasError.value ?? false));
     const describedBy = computed(() => formField?.messageId.value);
     const isDisabled = computed(() => props.disabled || (formField?.disabled.value ?? false));
     const effectiveReadonly = computed(() => props.readonly || isDisabled.value);
 
-    return () => h(MilkdownProvider, null, () =>
-      h(EditorImpl, {
-        initialValue,
-        externalValue: externalValue.value,
-        readonly: effectiveReadonly.value,
-        disabled: isDisabled.value,
-        sourceToggle: props.sourceToggle,
-        toolbarMode: props.toolbarMode,
-        toolbarPosition: props.toolbarPosition,
-        tools: props.tools,
-        flavor: props.flavor,
-        inputId: inputId.value,
-        hasError: hasError.value,
-        describedBy: describedBy.value,
-        name: props.name,
-        required: props.required,
-        placeholder: props.placeholder,
-        uploadImage: props.uploadImage,
-        pickImage: props.pickImage,
-        embeds: props.embeds,
-        onMarkdownChange: (md: string) => emit('update:modelValue', md),
-      }),
-    );
+    return () =>
+      h(MilkdownProvider, null, () =>
+        h(EditorImpl, {
+          initialValue,
+          externalValue: externalValue.value,
+          readonly: effectiveReadonly.value,
+          disabled: isDisabled.value,
+          sourceToggle: props.sourceToggle,
+          toolbarMode: props.toolbarMode,
+          toolbarPosition: props.toolbarPosition,
+          tools: props.tools,
+          flavor: props.flavor,
+          inputId: inputId.value,
+          hasError: hasError.value,
+          describedBy: describedBy.value,
+          name: props.name,
+          required: props.required,
+          placeholder: props.placeholder,
+          uploadImage: props.uploadImage,
+          pickImage: props.pickImage,
+          embeds: props.embeds,
+          editorGroupId,
+          onMarkdownChange: (md: string) => emit('update:modelValue', md),
+        }),
+      );
   },
 });
 </script>
@@ -1686,7 +2128,7 @@ export default defineComponent({
 <style>
 /* Shared markdown-block stylesheet — same source as the viewer (`CoarMarkdown`).
    Editor-specific compactness rules below win via deeper-selector specificity. */
-@import "@cocoar/vue-markdown/styles";
+@import '@cocoar/vue-markdown/styles';
 
 /* Custom-embed NodeView host — holds the live, manually-mounted preview. The
    inner `.coar-markdown-embed` (from the shared stylesheet) owns block rhythm;
@@ -1794,6 +2236,15 @@ export default defineComponent({
   --coar-sidebar-item-padding: 0.25rem 0.375rem;
 }
 
+/* A shared toolbar is rendered by the stable external host, outside this
+   editor root. The host owns the outer frame; this wrapper only needs to fill
+   the toolbar outlet. */
+.coar-md-sidebar-wrap--external {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+}
+
 /* Border lives on the edge between the toolbar and the editor area, so it
    flips depending on toolbarPosition. The selectors target the wrap based on
    its sibling order relative to the editor area. */
@@ -1846,7 +2297,10 @@ export default defineComponent({
   overflow-x: auto;
   margin: 0.5em 0;
 }
-.coar-md-area .milkdown pre code { background: none; padding: 0; }
+.coar-md-area .milkdown pre code {
+  background: none;
+  padding: 0;
+}
 
 .coar-md-area .milkdown hr {
   border: none;
@@ -1876,7 +2330,9 @@ export default defineComponent({
   animation: coar-md-image-spin 0.7s linear infinite;
 }
 @keyframes coar-md-image-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 /* `strong` and `del` intentionally NOT styled here — browser defaults
    (bold = 700, line-through) match the viewer. The previous `font-weight:
@@ -1971,7 +2427,9 @@ export default defineComponent({
   align-self: center;
 }
 
-.coar-md-float-dropdown { position: relative; }
+.coar-md-float-dropdown {
+  position: relative;
+}
 
 .coar-md-float-submenu {
   position: absolute;
@@ -2017,8 +2475,14 @@ export default defineComponent({
 }
 
 @keyframes coar-md-float-in {
-  from { opacity: 0; transform: translate(-50%, -100%) translateY(4px); }
-  to { opacity: 1; transform: translate(-50%, -100%) translateY(0); }
+  from {
+    opacity: 0;
+    transform: translate(-50%, -100%) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -100%) translateY(0);
+  }
 }
 
 /* ── Text-color trigger ── */

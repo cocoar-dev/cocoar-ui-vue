@@ -47,6 +47,7 @@ const value = ref('# Hello\n\nStart typing **markdown**.');
 - `floating` (default) — appears on text selection, teleported to `<body>`, context-aware (text vs. table)
 - `fixed` — `CoarSidebar` collapsed with icon buttons and flyout submenus
 - `both` — both active simultaneously
+- `external` — contributes this editor's commands and tool set to one stable shared toolbar
 
 ```vue
 <CoarMarkdownEditor
@@ -56,6 +57,33 @@ const value = ref('# Hello\n\nStart typing **markdown**.');
 />
 ```
 
+### One toolbar for multiple editors
+
+Wrap the toolbar and editors in `CoarMarkdownEditorGroup`, then use
+`toolbar-mode="external"` on every participating editor. There is exactly one
+toolbar DOM host; focus only switches its active editor controller. Each editor
+may expose a different `tools` list without mounting, hiding, or teleporting a
+second toolbar. When focus leaves all editors in the group, the host keeps the
+last tool set visible but becomes inert and `aria-disabled` until an editor is
+focused again.
+
+```vue
+<CoarMarkdownEditorGroup>
+  <CoarMarkdownToolbar position="top" />
+
+  <CoarMarkdownEditor
+    v-model="document"
+    toolbar-mode="external"
+    :tools="['bold', 'headings', 'embed:page']"
+  />
+  <CoarMarkdownEditor
+    v-model="notes"
+    toolbar-mode="external"
+    :tools="['bold', 'italic', 'bulletList']"
+  />
+</CoarMarkdownEditorGroup>
+```
+
 ## Props
 
 | Prop | Type | Default | Description |
@@ -63,8 +91,8 @@ const value = ref('# Hello\n\nStart typing **markdown**.');
 | `modelValue` | `string` | `''` | Markdown content (use with `v-model`) |
 | `readonly` | `boolean` | `false` | Disable editing |
 | `placeholder` | `string` | `''` | Markdown hint shown while empty. Overlay-only — never written to `modelValue` |
-| `toolbarMode` | `'floating' \| 'fixed' \| 'both'` | `'floating'` | Toolbar layout |
-| `toolbarPosition` | `'left' \| 'right'` | `'left'` | Sidebar position when `toolbarMode` is `'fixed'` or `'both'` |
+| `toolbarMode` | `'floating' \| 'fixed' \| 'both' \| 'external'` | `'floating'` | Toolbar layout; `external` routes tools into a shared `CoarMarkdownToolbar` |
+| `toolbarPosition` | `'left' \| 'right' \| 'top' \| 'bottom'` | `'left'` | Sidebar position when `toolbarMode` is `'fixed'` or `'both'` |
 | `flavor` | `'commonmark' \| 'gfm' \| 'cocoar' \| { gfm?, textColor? }` | `'cocoar'` | Portability contract — hard-enforces which features can be authored (see [Flavors](#flavors-portability)) |
 | `uploadImage` | `(file: File) => Promise<{ url: string; alt?: string }>` | _undefined_ | Enables paste / drag-drop image upload (see [Images](#images)) |
 | `pickImage` | `(ctx: ImagePickContext) => void` | _undefined_ | Override the Insert Image button with your own asset picker (see [Custom image source](#custom-image-source-pickimage)) |

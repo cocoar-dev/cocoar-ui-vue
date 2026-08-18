@@ -1,8 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
-import { nextTick, ref } from 'vue';
+import { defineComponent, h, nextTick, ref } from 'vue';
 import { CoarOverlayPlugin } from '@cocoar/vue-ui';
 import CoarMarkdownEditor from './CoarMarkdownEditor.vue';
+import CoarMarkdownEditorGroup from './CoarMarkdownEditorGroup.vue';
+import CoarMarkdownToolbar from './CoarMarkdownToolbar.vue';
 
 const globalConfig = {
   plugins: [CoarOverlayPlugin],
@@ -26,11 +28,51 @@ function readEditorMarkdown(rootEl: HTMLElement): string {
   return pm?.textContent ?? '';
 }
 
+describe('CoarMarkdownEditor — external toolbar activation', () => {
+  it('activates on pointer interaction and deactivates on an outside pointer interaction', async () => {
+    const wrapper = mount(
+      defineComponent({
+        setup: () => () =>
+          h('div', [
+            h(CoarMarkdownEditorGroup, null, {
+              default: () => [
+                h(CoarMarkdownToolbar),
+                h(CoarMarkdownEditor, { modelValue: 'Text', toolbarMode: 'external' }),
+              ],
+            }),
+            h('button', { class: 'outside' }, 'Outside'),
+          ]),
+      }),
+      { attachTo: document.body, global: globalConfig },
+    );
+    await waitForEditorReady();
+
+    const toolbar = wrapper.get('.coar-md-external-toolbar');
+    expect(toolbar.attributes('aria-disabled')).toBe('true');
+
+    await wrapper.get('.coar-md-root').trigger('mousedown');
+    await nextTick();
+    expect(toolbar.attributes('aria-disabled')).toBeUndefined();
+    expect(toolbar.attributes('data-active-editor')).toBeTruthy();
+
+    await wrapper.get('.outside').trigger('mousedown');
+    await nextTick();
+    expect(toolbar.attributes('aria-disabled')).toBe('true');
+    expect(toolbar.attributes('data-active-editor')).toBeUndefined();
+    wrapper.unmount();
+  });
+});
+
 describe('CoarMarkdownEditor — external v-model sync', () => {
   it('reflects an external modelValue update that arrives before Milkdown finishes init (Bug 1)', async () => {
     const model = ref('# placeholder\n\ntype here…');
     const wrapper = mount(CoarMarkdownEditor, {
-      props: { modelValue: model.value, 'onUpdate:modelValue': (v: string) => { model.value = v; } },
+      props: {
+        modelValue: model.value,
+        'onUpdate:modelValue': (v: string) => {
+          model.value = v;
+        },
+      },
       global: globalConfig,
     });
 
@@ -50,7 +92,10 @@ describe('CoarMarkdownEditor — external v-model sync', () => {
   });
 
   it('still applies external updates after the editor is ready', async () => {
-    const wrapper = mount(CoarMarkdownEditor, { props: { modelValue: 'initial' }, global: globalConfig });
+    const wrapper = mount(CoarMarkdownEditor, {
+      props: { modelValue: 'initial' },
+      global: globalConfig,
+    });
     await waitForEditorReady();
 
     expect(readEditorMarkdown(wrapper.element as HTMLElement)).toContain('initial');
@@ -130,7 +175,9 @@ describe('CoarMarkdownEditor — placeholder', () => {
       global: globalConfig,
     });
     await waitForEditorReady();
-    expect(wrapper.element.querySelector('.coar-md-placeholder')?.textContent).toContain('First hint');
+    expect(wrapper.element.querySelector('.coar-md-placeholder')?.textContent).toContain(
+      'First hint',
+    );
 
     await wrapper.setProps({ placeholder: 'Second hint' });
     await waitForEditorReady();
@@ -152,8 +199,12 @@ describe('CoarMarkdownEditor — frontmatter', () => {
     // The frontmatter renders as the metadata card inside the editor…
     const card = wrapper.element.querySelector('.coar-md-area .coar-markdown-frontmatter');
     expect(card).not.toBeNull();
-    const keys = [...card!.querySelectorAll('.coar-markdown-frontmatter__key')].map((n) => n.textContent);
-    const values = [...card!.querySelectorAll('.coar-markdown-frontmatter__value')].map((n) => n.textContent);
+    const keys = [...card!.querySelectorAll('.coar-markdown-frontmatter__key')].map(
+      (n) => n.textContent,
+    );
+    const values = [...card!.querySelectorAll('.coar-markdown-frontmatter__value')].map(
+      (n) => n.textContent,
+    );
     expect(keys).toEqual(['name', 'description']);
     expect(values).toEqual(['handoff', 'Do a thing']);
 
@@ -170,13 +221,14 @@ describe('CoarMarkdownEditor — source toggle', () => {
   }
   // The sidebar toggle is a CoarSidebarItem (`.coar-sidebar-item` with a label).
   function sidebarToggle(wrapper: ReturnType<typeof mount>) {
-    return wrapper
-      .findAll('.coar-sidebar-item')
-      .find((i) => /Source|Rendered/.test(i.text()));
+    return wrapper.findAll('.coar-sidebar-item').find((i) => /Source|Rendered/.test(i.text()));
   }
 
   it('is off by default — no toggle, no source textarea', async () => {
-    const wrapper = mount(CoarMarkdownEditor, { props: { modelValue: '# Hi' }, global: globalConfig });
+    const wrapper = mount(CoarMarkdownEditor, {
+      props: { modelValue: '# Hi' },
+      global: globalConfig,
+    });
     await waitForEditorReady();
     expect(corner(wrapper).exists()).toBe(false);
     expect(wrapper.find('.coar-md-source-area').exists()).toBe(false);
@@ -226,7 +278,13 @@ describe('CoarMarkdownEditor — source toggle', () => {
   it('round-trips Source edits back to v-model and re-renders on switch back', async () => {
     let model = '---\ntitle: Old\n---\n\n# Heading\n';
     const wrapper = mount(CoarMarkdownEditor, {
-      props: { modelValue: model, sourceToggle: true, 'onUpdate:modelValue': (v: string) => { model = v; } },
+      props: {
+        modelValue: model,
+        sourceToggle: true,
+        'onUpdate:modelValue': (v: string) => {
+          model = v;
+        },
+      },
       global: globalConfig,
     });
     await waitForEditorReady();
@@ -287,7 +345,9 @@ describe('CoarMarkdownEditor — image insert', () => {
     expect(typeof calls[0]!.selectedText).toBe('string');
 
     // The bound insertImage is safe to call and reaches the editor.
-    expect(() => (calls[0]!.insertImage as (i: { url: string }) => void)({ url: 'https://x.test/a.png' })).not.toThrow();
+    expect(() =>
+      (calls[0]!.insertImage as (i: { url: string }) => void)({ url: 'https://x.test/a.png' }),
+    ).not.toThrow();
     wrapper.unmount();
   });
 });
@@ -307,7 +367,7 @@ describe('CoarMarkdownEditor — flavor (portability gate)', () => {
     return wrapper;
   }
 
-  it("commonmark hides GFM + color tools", async () => {
+  it('commonmark hides GFM + color tools', async () => {
     const wrapper = await mountWithFlavor('commonmark');
     const labels = sidebarLabels(wrapper);
     expect(labels).not.toContain('Insert Table');

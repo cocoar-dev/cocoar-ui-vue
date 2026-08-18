@@ -1,5 +1,5 @@
 ---
-description: "CoarMarkdownEditor — Milkdown-based WYSIWYG markdown editor with lossless round-trip, floating or fixed toolbar and a render registry shared with CoarMarkdown"
+description: 'CoarMarkdownEditor — Milkdown-based WYSIWYG markdown editor with lossless round-trip, floating or fixed toolbar and a render registry shared with CoarMarkdown'
 ---
 
 # Markdown Editor <Badge type="warning" text="Preview" />
@@ -7,19 +7,22 @@ description: "CoarMarkdownEditor — Milkdown-based WYSIWYG markdown editor with
 WYSIWYG Markdown editor for Vue 3 based on [Milkdown](https://milkdown.dev/) (Kit approach), styled with the Cocoar Design System. Markdown-first: lossless round-trip between text and editor state. Shares the same remark stack — and the same render registry — as `@cocoar/vue-markdown-core` and `<CoarMarkdown>`.
 
 ::: info Separate Package
+
 ```bash
 pnpm add @cocoar/vue-markdown-editor @cocoar/vue-markdown @cocoar/vue-ui
 ```
+
 `@cocoar/vue-markdown`, `@cocoar/vue-ui` and `vue` are peer dependencies. Milkdown is bundled as a regular dependency — no extra setup required. The peer-dep on `@cocoar/vue-markdown` is what makes the **shared rendering registry** work — code blocks, tables, etc. look identical here and in `<CoarMarkdown>`.
 
 Import the stylesheets once at your app's entry — same pattern as `@cocoar/vue-ui`:
 
 ```css
 /* app/main.css */
-@import "@cocoar/vue-ui/styles";
-@import "@cocoar/vue-markdown/styles";        /* ← shared block styles */
-@import "@cocoar/vue-markdown-editor/styles"; /* ← editor-specific chrome */
+@import '@cocoar/vue-ui/styles';
+@import '@cocoar/vue-markdown/styles'; /* ← shared block styles */
+@import '@cocoar/vue-markdown-editor/styles'; /* ← editor-specific chrome */
 ```
+
 :::
 
 ::: warning Preview release
@@ -53,37 +56,80 @@ The editor fills its parent container. Wrap it in a parent with explicit height 
 
 ## Toolbar Modes
 
-`toolbarMode` controls the layout. Three values:
+`toolbarMode` controls the layout. Four values:
 
-| Value | Description |
-|---|---|
-| `'floating'` (default) | Appears on text selection, teleported to `<body>`, context-aware (text vs. table) |
-| `'fixed'` | `CoarSidebar` collapsed with icon buttons and flyout submenus, persistent. Sits on any of the four edges — see `toolbarPosition` |
-| `'both'` | Both active simultaneously |
+| Value                  | Description                                                                                                                      |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `'floating'` (default) | Appears on text selection, teleported to `<body>`, context-aware (text vs. table)                                                |
+| `'fixed'`              | `CoarSidebar` collapsed with icon buttons and flyout submenus, persistent. Sits on any of the four edges — see `toolbarPosition` |
+| `'both'`               | Both active simultaneously                                                                                                       |
+| `'external'`           | Routes this editor's commands and tool list into one shared `CoarMarkdownToolbar`                                                |
 
 When `toolbarMode` is `'fixed'` or `'both'`, `toolbarPosition` controls which edge the toolbar attaches to. All four edges are supported — `'left'` and `'right'` give a vertical icon column, `'top'` and `'bottom'` switch to a horizontal toolbar above or below the editor area. Flyout submenus open in the corresponding direction (right for `left`, downward for `top`, etc.).
 
 <preview path="./markdown-editor/demos/MarkdownEditorSidebar.vue" />
 
 ```vue
-<CoarMarkdownEditor
-  v-model="value"
-  toolbar-mode="fixed"
-  toolbar-position="top"
-/>
+<CoarMarkdownEditor v-model="value" toolbar-mode="fixed" toolbar-position="top" />
 ```
+
+### One toolbar for multiple editors
+
+Wrap one toolbar and all participating editors in `CoarMarkdownEditorGroup`.
+Every editor uses `toolbar-mode="external"`:
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import {
+  CoarMarkdownEditor,
+  CoarMarkdownEditorGroup,
+  CoarMarkdownToolbar,
+} from '@cocoar/vue-markdown-editor';
+
+const document = ref('');
+const notes = ref('');
+</script>
+
+<template>
+  <CoarMarkdownEditorGroup>
+    <CoarMarkdownToolbar position="top" />
+
+    <CoarMarkdownEditor
+      v-model="document"
+      toolbar-mode="external"
+      :tools="['bold', 'headings', 'bulletList', 'table']"
+    />
+
+    <CoarMarkdownEditor
+      v-model="notes"
+      toolbar-mode="external"
+      :tools="['bold', 'italic', 'bulletList']"
+    />
+  </CoarMarkdownEditorGroup>
+</template>
+```
+
+There is exactly one toolbar DOM host. Focusing an editor switches the active
+command controller and its available `tools`; the toolbar is not hidden,
+remounted or teleported during that switch. When focus is outside every editor
+in the group, the toolbar stays visible but is disabled. Clicking the toolbar
+does not lose the active editor.
+
+Editors in the same group may expose different tool lists. Editors outside the
+group and editors using `floating`, `fixed` or `both` remain independent.
 
 ## Flavors (portability)
 
-The **`flavor`** prop is a portability contract: it picks which features the editor offers and **hard-enforces** them — it only registers the matching Milkdown plugins, so a non-flavor construct can't be typed *or pasted* (it degrades to plain text), and its toolbar buttons are hidden.
+The **`flavor`** prop is a portability contract: it picks which features the editor offers and **hard-enforces** them — it only registers the matching Milkdown plugins, so a non-flavor construct can't be typed _or pasted_ (it degrades to plain text), and its toolbar buttons are hidden.
 
 This matters when the same Markdown is rendered somewhere stricter than the web — e.g. a **native SwiftUI Markdown view** that only understands CommonMark, or CommonMark+GFM. Pick the flavor that matches your strictest renderer and authors physically can't produce content it won't render.
 
-| Flavor | Adds on top of CommonMark | Renders in |
-|---|---|---|
-| `'commonmark'` | _(nothing — the portable floor)_ headings, bold/italic, lists, links, images, code, blockquote, hr | **any** Markdown renderer |
-| `'gfm'` | tables, task lists, strikethrough | GFM-capable renderers (GitHub, swift-markdown-ui, …) |
-| `'cocoar'` _(default)_ | inline **text color** + **custom embeds** (non-portable) | the Cocoar viewer / your own renderer |
+| Flavor                 | Adds on top of CommonMark                                                                          | Renders in                                           |
+| ---------------------- | -------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| `'commonmark'`         | _(nothing — the portable floor)_ headings, bold/italic, lists, links, images, code, blockquote, hr | **any** Markdown renderer                            |
+| `'gfm'`                | tables, task lists, strikethrough                                                                  | GFM-capable renderers (GitHub, swift-markdown-ui, …) |
+| `'cocoar'` _(default)_ | inline **text color** + **custom embeds** (non-portable)                                           | the Cocoar viewer / your own renderer                |
 
 ```vue
 <!-- Strict: only portable CommonMark can be authored -->
@@ -96,7 +142,7 @@ This matters when the same Markdown is rendered somewhere stricter than the web 
 A capability object (`{ gfm?, textColor?, embeds? }`) is **opt-in** — unspecified capabilities are off, so `{}` ≡ `'commonmark'`. The default is `'cocoar'`, which also enables `embeds` — see [Custom Embeds](/components/markdown-embeds).
 
 ::: tip flavor vs. tools
-`flavor` is the **hard format contract** (what can exist in the document). The [`tools`](#toolbar-layout-tools) layout is **soft toolbar curation** (which buttons show, and where) *within* the flavor — e.g. keep GFM parsing but hide the table button. They compose.
+`flavor` is the **hard format contract** (what can exist in the document). The [`tools`](#toolbar-layout-tools) layout is **soft toolbar curation** (which buttons show, and where) _within_ the flavor — e.g. keep GFM parsing but hide the table button. They compose.
 :::
 
 ::: warning Changing flavor at runtime
@@ -180,16 +226,12 @@ There are three ways to add one:
 Paste and drop require an `upload-image` callback. It receives the dropped/pasted `File`, stores it wherever you like, and resolves with the resulting `url` (plus optional `alt`). A spinner placeholder is shown at the insertion point until it resolves, then is replaced by the image. Without the callback, image files fall through to the browser's default handling.
 
 ```vue
-<CoarMarkdownEditor
-  v-model="value"
-  toolbar-mode="both"
-  :upload-image="uploadImage"
-/>
+<CoarMarkdownEditor v-model="value" toolbar-mode="both" :upload-image="uploadImage" />
 
 <script setup lang="ts">
 async function uploadImage(file: File) {
-  const url = await myAssetService.upload(file) // your storage
-  return { url, alt: file.name }
+  const url = await myAssetService.upload(file); // your storage
+  return { url, alt: file.name };
 }
 </script>
 ```
@@ -208,7 +250,7 @@ function openGallery(ctx) {
   myGalleryModal.open({
     defaultAlt: ctx.selectedText,
     onPick: (asset) => ctx.insertImage({ url: asset.url, alt: asset.title }),
-  })
+  });
 }
 </script>
 ```
@@ -226,6 +268,7 @@ Width, alignment, and captions aren't part of standard Markdown, so they're not 
 GFM tables are portable (they render on GitHub, in `swift-markdown-ui`, etc.), so they're available in the `'gfm'` and `'cocoar'` [flavors](#flavors-portability). The editor offers a full set of table operations:
 
 **Create** — two ways:
+
 - The **Insert Table** sidebar button opens a small **grid size picker** — hover (or tap) to choose `cols × rows`, then click to insert.
 - Type **`|3x4|`** followed by a space anywhere — a GFM input rule turns it into a 3-column × 4-row table. This needs no toolbar, so it's the way to create a table in the default `floating` mode.
 
@@ -242,12 +285,13 @@ The handles are geometry-driven — they measure the hovered table's cell rectan
 
 Code blocks have a richer UX than the rest of the editor. When the cursor is **outside** a code block it renders as `CoarCodeBlock` with full Prism syntax highlighting — same component, same look as `<CoarMarkdown>` produces in the viewer. When the cursor moves **inside** the block it switches to plain editable mode plus a language selector at the top.
 
-| State | What renders | Why |
-|---|---|---|
-| Cursor **outside** | `CoarCodeBlock` (Prism-highlighted, copy button, language label) | Read-mode aesthetic — matches the viewer |
-| Cursor **inside** | Plain editable text + `CoarSelect` for the language | Editing on top of Prism-highlighted DOM is fragile (cursor jumps, IME issues). Plain text avoids that. |
+| State              | What renders                                                     | Why                                                                                                    |
+| ------------------ | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Cursor **outside** | `CoarCodeBlock` (Prism-highlighted, copy button, language label) | Read-mode aesthetic — matches the viewer                                                               |
+| Cursor **inside**  | Plain editable text + `CoarSelect` for the language              | Editing on top of Prism-highlighted DOM is fragile (cursor jumps, IME issues). Plain text avoids that. |
 
 Switching directions:
+
 - **Render → edit**: hover the code block to reveal a small **Edit** button (top-right), or simply click into the text via PM's natural cursor placement
 - **Edit → render**: click anywhere outside the code block. PM's selection moves out → the NodeView swaps back automatically
 
@@ -276,18 +320,18 @@ import { CoarFormField } from '@cocoar/vue-ui';
 import { CoarMarkdownEditor } from '@cocoar/vue-markdown-editor';
 
 const form = reactive({ body: '' });
-const bodyError = computed(() => form.body.trim().length === 0 ? 'Body cannot be empty.' : '');
+const bodyError = computed(() => (form.body.trim().length === 0 ? 'Body cannot be empty.' : ''));
 </script>
 ```
 
 What gets auto-wired from the surrounding `<CoarFormField>`:
 
-| Form-field state | Effect on the editor |
-|---|---|
-| `id` | Set as the editor wrapper's `id` (so `<label for="...">` association works) |
-| `error` | Sets `aria-invalid="true"` and applies the error outline |
-| `disabled` | Combined with the editor's own `readonly` prop — `disabled || readonly` controls editability. `disabled` also dims the editor and blocks pointer events |
-| `messageId` | Set as `aria-describedby` so screen readers announce the form-field's error/hint when the editor is focused |
+| Form-field state | Effect on the editor                                                                                        |
+| ---------------- | ----------------------------------------------------------------------------------------------------------- | --- | --------------------------------------------------------------------------------------- |
+| `id`             | Set as the editor wrapper's `id` (so `<label for="...">` association works)                                 |
+| `error`          | Sets `aria-invalid="true"` and applies the error outline                                                    |
+| `disabled`       | Combined with the editor's own `readonly` prop — `disabled                                                  |     | readonly`controls editability.`disabled` also dims the editor and blocks pointer events |
+| `messageId`      | Set as `aria-describedby` so screen readers announce the form-field's error/hint when the editor is focused |
 
 You can also pass these props directly without `CoarFormField` (`error`, `disabled`, `id`) — direct props win over the injected context.
 
@@ -323,7 +367,13 @@ editor folds them into live, editable blocks (the viewer renders the same
 component read-only). Pass an `embeds` registry and use the `cocoar` flavor:
 
 ```vue
-<CoarMarkdownEditor v-model="value" flavor="cocoar" :embeds="embeds" :tools="tools" toolbar-mode="both" />
+<CoarMarkdownEditor
+  v-model="value"
+  flavor="cocoar"
+  :embeds="embeds"
+  :tools="tools"
+  toolbar-mode="both"
+/>
 ```
 
 This is its own topic — see the dedicated **[Custom Embeds](/components/markdown-embeds)**
@@ -334,22 +384,22 @@ placement, and a live demo.
 
 `<CoarMarkdownEditor>` and `<CoarMarkdown>` (the viewer) read the **same shared stylesheet** (`@cocoar/vue-markdown/styles`) so a markdown document looks pixel-identical whether you're editing it or rendering it for display. The two render through different DOM shapes — the editor's PM-managed contenteditable emits bare `<li>` / `<td>` / `<blockquote>` nodes inside a `.ProseMirror` wrapper, while the viewer emits class-tagged elements (`.coar-markdown-list-item`, etc.) — and the shared stylesheet covers both via parallel `:where(…)` selectors:
 
-| Concern | Note |
-|---|---|
-| Vertical rhythm | Block margins apply to direct children of `.coar-markdown` (viewer) **and** `.coar-markdown .ProseMirror` (editor). |
-| Typography | Heading sizes, blockquote inset, list indentation, `<strong>` weight (700), inline-code color, link underline — all defined once. |
-| Tables | Zebra alternation uses `:nth-child(<n> of :not([data-is-header]))` to handle Milkdown's `<tr data-is-header>`-inside-`<tbody>` shape and the viewer's classic `<thead>` / `<tbody>` split with one rule. |
-| Task lists | `<li data-item-type="task" data-checked="true">` in both panes; the visual checkbox is a `::before` pseudo-element (no native `<input>`). Completed items get the muted-color strikethrough. |
-| Cell padding | `<p>` user-agent margin reset to `0` inside `<li>` / `<td>` / `<th>` — without the reset PM's auto-wrapped paragraph would add ~1em of vertical whitespace per row. |
+| Concern         | Note                                                                                                                                                                                                     |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Vertical rhythm | Block margins apply to direct children of `.coar-markdown` (viewer) **and** `.coar-markdown .ProseMirror` (editor).                                                                                      |
+| Typography      | Heading sizes, blockquote inset, list indentation, `<strong>` weight (700), inline-code color, link underline — all defined once.                                                                        |
+| Tables          | Zebra alternation uses `:nth-child(<n> of :not([data-is-header]))` to handle Milkdown's `<tr data-is-header>`-inside-`<tbody>` shape and the viewer's classic `<thead>` / `<tbody>` split with one rule. |
+| Task lists      | `<li data-item-type="task" data-checked="true">` in both panes; the visual checkbox is a `::before` pseudo-element (no native `<input>`). Completed items get the muted-color strikethrough.             |
+| Cell padding    | `<p>` user-agent margin reset to `0` inside `<li>` / `<td>` / `<th>` — without the reset PM's auto-wrapped paragraph would add ~1em of vertical whitespace per row.                                      |
 
 If you embed the editor next to a viewer pane (the playground's "viewer pane" toggle does exactly this), the two should render the same source identically. Differences narrow down to design tokens you can override globally:
 
-| Variable | Default | Effect |
-|---|---|---|
-| `--coar-markdown-heading-block-start` | `var(--coar-spacing-xl, 2rem)` | Extra space above every top-level heading. Lower for tighter docs, raise for more whitespace. |
-| `--coar-markdown-space-2` | `var(--coar-spacing-m, 1rem)` | Default block-end margin. Drives paragraph / list / table / blockquote spacing. |
-| `--coar-markdown-link` | `var(--coar-text-brand-primary)` | Link color (also applied to inline code). |
-| `--coar-markdown-border` | `var(--coar-border-neutral-tertiary)` | Used by tables, blockquote, `<hr>`. |
+| Variable                              | Default                               | Effect                                                                                        |
+| ------------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `--coar-markdown-heading-block-start` | `var(--coar-spacing-xl, 2rem)`        | Extra space above every top-level heading. Lower for tighter docs, raise for more whitespace. |
+| `--coar-markdown-space-2`             | `var(--coar-spacing-m, 1rem)`         | Default block-end margin. Drives paragraph / list / table / blockquote spacing.               |
+| `--coar-markdown-link`                | `var(--coar-text-brand-primary)`      | Link color (also applied to inline code).                                                     |
+| `--coar-markdown-border`              | `var(--coar-border-neutral-tertiary)` | Used by tables, blockquote, `<hr>`.                                                           |
 
 ## Toolbar layout (`tools`)
 
@@ -367,7 +417,7 @@ toolbar order** — entries render top-to-bottom (or left-to-right) as listed.
 <!-- All tools except tables -->
 <script setup lang="ts">
 import { COAR_MARKDOWN_EDITOR_ALL_TOOLS } from '@cocoar/vue-markdown-editor';
-const tools = COAR_MARKDOWN_EDITOR_ALL_TOOLS.filter(t => t !== 'table' && t !== 'tableOps');
+const tools = COAR_MARKDOWN_EDITOR_ALL_TOOLS.filter((t) => t !== 'table' && t !== 'tableOps');
 </script>
 <CoarMarkdownEditor v-model="value" :tools="tools" />
 ```
@@ -388,85 +438,89 @@ inserts (`embed:<key>`) behind one button:
 import type { CoarMarkdownEditorToolEntry } from '@cocoar/vue-markdown-editor';
 
 const tools: CoarMarkdownEditorToolEntry[] = [
-  'bold', 'italic', 'headings',
+  'bold',
+  'italic',
+  'headings',
   'divider',
   { flyout: ['table', 'image', 'embed:chart'], label: 'Insert', icon: 'plus' },
   'divider',
-  'undo', 'redo',
+  'undo',
+  'redo',
 ];
 ```
 
-| Entry shape | Meaning |
-|---|---|
-| `'bold'` (a `CoarMarkdownEditorTool`) | A built-in tool. |
+| Entry shape                                     | Meaning                                                                                     |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `'bold'` (a `CoarMarkdownEditorTool`)           | A built-in tool.                                                                            |
 | `` `embed:chart` `` (a `` `embed:${string}` ``) | A registered custom embed's insert item — see [Custom Embeds](/components/markdown-embeds). |
-| `{ flyout: ToolRef[], label?, icon? }` | A flyout submenu containing any of the above. |
-| `'divider'` | A separator. |
+| `{ flyout: ToolRef[], label?, icon? }`          | A flyout submenu containing any of the above.                                               |
+| `'divider'`                                     | A separator.                                                                                |
 
 ### Tool identifiers
 
-| Tool | Description |
-|---|---|
-| `bold` `italic` `strikethrough` `inlineCode` | Inline marks |
-| `textColor` | Text color picker — see [Text Color](#text-color) |
-| `headings` | Heading flyout (H1–H6 + paragraph) |
-| `bulletList` `orderedList` `taskList` | List variants |
-| `indent` `outdent` | List nesting controls |
-| `blockquote` `horizontalRule` | Block elements |
-| `codeBlock` `table` `image` | Insert blocks (sidebar only) |
-| `tableOps` | Insert/Delete row/col, shown contextually when cursor is inside a table |
-| `clearFormatting` | Strip all marks + reset block to paragraph |
-| `undo` `redo` | History |
+| Tool                                         | Description                                                             |
+| -------------------------------------------- | ----------------------------------------------------------------------- |
+| `bold` `italic` `strikethrough` `inlineCode` | Inline marks                                                            |
+| `textColor`                                  | Text color picker — see [Text Color](#text-color)                       |
+| `headings`                                   | Heading flyout (H1–H6 + paragraph)                                      |
+| `bulletList` `orderedList` `taskList`        | List variants                                                           |
+| `indent` `outdent`                           | List nesting controls                                                   |
+| `blockquote` `horizontalRule`                | Block elements                                                          |
+| `codeBlock` `table` `image`                  | Insert blocks (sidebar only)                                            |
+| `tableOps`                                   | Insert/Delete row/col, shown contextually when cursor is inside a table |
+| `clearFormatting`                            | Strip all marks + reset block to paragraph                              |
+| `undo` `redo`                                | History                                                                 |
 
 ::: info Markdown-only formatting
 Only formatting that round-trips through Markdown is exposed. There is intentionally **no underline, font-family, font-size, or alignment** — these have no Markdown representation and would silently break round-trip persistence. **Text color** is the one exception: it round-trips as plain inline HTML through a strict whitelist sanitizer (see [Text Color](#text-color)).
 
 When migrating from a richtext editor that exposed those tools, the closest Markdown-native substitutes are:
 
-| Richtext tool | Markdown equivalent |
-|---|---|
-| Font size | `headings` — H1–H6 provide the typographic hierarchy |
-| Bold / italic | `bold` / `italic` (no change) |
-| Bulleted / numbered list | `bulletList` / `orderedList` |
-| Indent / outdent (in lists) | `indent` / `outdent` |
-| Clear / eraser | `clearFormatting` |
-| Underline, color, alignment, font-family | _no equivalent — drop or accept embedded HTML_ |
+| Richtext tool                            | Markdown equivalent                                  |
+| ---------------------------------------- | ---------------------------------------------------- |
+| Font size                                | `headings` — H1–H6 provide the typographic hierarchy |
+| Bold / italic                            | `bold` / `italic` (no change)                        |
+| Bulleted / numbered list                 | `bulletList` / `orderedList`                         |
+| Indent / outdent (in lists)              | `indent` / `outdent`                                 |
+| Clear / eraser                           | `clearFormatting`                                    |
+| Underline, color, alignment, font-family | _no equivalent — drop or accept embedded HTML_       |
+
 :::
 
 ## Props
 
-| Prop | Type | Default | Description |
-|---|---|---|---|
-| `modelValue` | `string` | `''` | Markdown content (use with `v-model`) |
-| `readonly` | `boolean` | `false` | Disable editing (keeps the layout, suppresses the toolbar) |
-| `disabled` | `boolean` | `false` | Disabled state — non-interactive, dimmed. Auto-picked up from `CoarFormField` |
-| `error` | `boolean` | `false` | Error state — adds outline + `aria-invalid`. Auto-picked up from `CoarFormField.error` |
-| `id` | `string` | _(auto)_ | HTML id. Auto-generated if omitted; `CoarFormField`'s id takes precedence |
-| `name` | `string` | _undefined_ | Reflected as `data-name` for form-submission tooling |
-| `required` | `boolean` | `false` | Sets `aria-required="true"` |
-| `placeholder` | `string` | `''` | Markdown hint shown while the editor is empty. Overlay-only — never written to `modelValue`. See [Placeholder](#placeholder) |
-| `sourceToggle` | `boolean` | `false` | Show a Rendered ↔ Source toggle for editing the raw Markdown. See [Source view](#source-view-raw-markdown) |
-| `toolbarMode` | `'floating' \| 'fixed' \| 'both'` | `'floating'` | Toolbar layout |
-| `toolbarPosition` | `'left' \| 'right' \| 'top' \| 'bottom'` | `'left'` | Toolbar edge when `toolbarMode` is `'fixed'` or `'both'`. `top`/`bottom` render a horizontal toolbar; flyouts open along the perpendicular axis. |
-| `tools` | `CoarMarkdownEditorToolEntry[]` | _default layout_ | Ordered toolbar layout (built-in ids, `embed:<key>` refs, `{ flyout }` groups, `'divider'`). See [Toolbar layout](#toolbar-layout-tools) |
-| `flavor` | `'commonmark' \| 'gfm' \| 'cocoar' \| { gfm?, textColor?, embeds? }` | `'cocoar'` | Portability contract — hard-enforces which features can be authored. See [Flavors](#flavors-portability) |
-| `embeds` | `EmbedRegistry` | _undefined_ | Custom-embed registry (`:::key{props}` → your component). Requires the `embeds` capability (`cocoar` flavor). See [Custom Embeds](/components/markdown-embeds) |
-| `uploadImage` | `(file: File) => Promise<{ url: string; alt?: string }>` | _undefined_ | Enables paste / drag-drop image upload. Returns the stored image's URL. See [Images](#images) |
-| `pickImage` | `(ctx: ImagePickContext) => void` | _undefined_ | Override the Insert Image button with your own asset picker. See [Custom image source](#custom-image-source-pickimage) |
+| Prop              | Type                                                                 | Default          | Description                                                                                                                                                    |
+| ----------------- | -------------------------------------------------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `modelValue`      | `string`                                                             | `''`             | Markdown content (use with `v-model`)                                                                                                                          |
+| `readonly`        | `boolean`                                                            | `false`          | Disable editing (keeps the layout, suppresses the toolbar)                                                                                                     |
+| `disabled`        | `boolean`                                                            | `false`          | Disabled state — non-interactive, dimmed. Auto-picked up from `CoarFormField`                                                                                  |
+| `error`           | `boolean`                                                            | `false`          | Error state — adds outline + `aria-invalid`. Auto-picked up from `CoarFormField.error`                                                                         |
+| `id`              | `string`                                                             | _(auto)_         | HTML id. Auto-generated if omitted; `CoarFormField`'s id takes precedence                                                                                      |
+| `name`            | `string`                                                             | _undefined_      | Reflected as `data-name` for form-submission tooling                                                                                                           |
+| `required`        | `boolean`                                                            | `false`          | Sets `aria-required="true"`                                                                                                                                    |
+| `placeholder`     | `string`                                                             | `''`             | Markdown hint shown while the editor is empty. Overlay-only — never written to `modelValue`. See [Placeholder](#placeholder)                                   |
+| `sourceToggle`    | `boolean`                                                            | `false`          | Show a Rendered ↔ Source toggle for editing the raw Markdown. See [Source view](#source-view-raw-markdown)                                                     |
+| `toolbarMode`     | `'floating' \| 'fixed' \| 'both' \| 'external'`                      | `'floating'`     | Toolbar layout; `external` connects the editor to a shared `CoarMarkdownToolbar`                                                                               |
+| `toolbarPosition` | `'left' \| 'right' \| 'top' \| 'bottom'`                             | `'left'`         | Toolbar edge when `toolbarMode` is `'fixed'` or `'both'`. `top`/`bottom` render a horizontal toolbar; flyouts open along the perpendicular axis.               |
+| `tools`           | `CoarMarkdownEditorToolEntry[]`                                      | _default layout_ | Ordered toolbar layout (built-in ids, `embed:<key>` refs, `{ flyout }` groups, `'divider'`). See [Toolbar layout](#toolbar-layout-tools)                       |
+| `flavor`          | `'commonmark' \| 'gfm' \| 'cocoar' \| { gfm?, textColor?, embeds? }` | `'cocoar'`       | Portability contract — hard-enforces which features can be authored. See [Flavors](#flavors-portability)                                                       |
+| `embeds`          | `EmbedRegistry`                                                      | _undefined_      | Custom-embed registry (`:::key{props}` → your component). Requires the `embeds` capability (`cocoar` flavor). See [Custom Embeds](/components/markdown-embeds) |
+| `uploadImage`     | `(file: File) => Promise<{ url: string; alt?: string }>`             | _undefined_      | Enables paste / drag-drop image upload. Returns the stored image's URL. See [Images](#images)                                                                  |
+| `pickImage`       | `(ctx: ImagePickContext) => void`                                    | _undefined_      | Override the Insert Image button with your own asset picker. See [Custom image source](#custom-image-source-pickimage)                                         |
 
 ## Events
 
-| Event | Payload | Description |
-|---|---|---|
+| Event               | Payload  | Description                                                                                                                              |
+| ------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | `update:modelValue` | `string` | Fired on every internal markdown change. The editor de-duplicates — if a parent echoes the value back unchanged, no second update fires. |
 
 ## Floating-Toolbar Contexts
 
 The floating toolbar swaps its contents based on what's selected:
 
-| Selection | Toolbar |
-|---|---|
-| Text outside a table | Bold, Italic, Strikethrough, Inline Code, Headings flyout, Blockquote |
+| Selection                | Toolbar                                                                              |
+| ------------------------ | ------------------------------------------------------------------------------------ |
+| Text outside a table     | Bold, Italic, Strikethrough, Inline Code, Headings flyout, Blockquote                |
 | Text inside a table cell | Row insert above/below, Column insert left/right, Delete cell, plus Bold/Italic/Code |
 
 Detection runs on the ProseMirror selection state via `editorViewCtx`. CellSelections are ProseMirror-internal and don't fire `selectionchange` — the column- and row-handle toolbars referenced in the architecture below are not wired up yet (see [TODO](#todo)).
@@ -475,13 +529,13 @@ Detection runs on the ProseMirror selection state via `editorViewCtx`. CellSelec
 
 ### Why Milkdown (not TipTap, not Crepe)
 
-| | Milkdown Kit | TipTap | Milkdown Crepe |
-|---|---|---|---|
-| Data format | **Markdown-first** (lossless round-trip) | JSON-first (lossy markdown export) | Markdown-first |
-| Shared stack | Same as `@cocoar/vue-markdown-core`: unified@^11, remark-parse@^11, remark-gfm@^4 | No overlap | Same |
-| Bundle | ~137 KB gzip (Kit) | Similar | ~2 MB (CodeMirror, KaTeX, etc.) |
-| UI control | Full — headless, own components | Full — headless | Limited — predefined Notion-like UI |
-| License | MIT | MIT (core), paid (collab) | MIT |
+|              | Milkdown Kit                                                                      | TipTap                             | Milkdown Crepe                      |
+| ------------ | --------------------------------------------------------------------------------- | ---------------------------------- | ----------------------------------- |
+| Data format  | **Markdown-first** (lossless round-trip)                                          | JSON-first (lossy markdown export) | Markdown-first                      |
+| Shared stack | Same as `@cocoar/vue-markdown-core`: unified@^11, remark-parse@^11, remark-gfm@^4 | No overlap                         | Same                                |
+| Bundle       | ~137 KB gzip (Kit)                                                                | Similar                            | ~2 MB (CodeMirror, KaTeX, etc.)     |
+| UI control   | Full — headless, own components                                                   | Full — headless                    | Limited — predefined Notion-like UI |
+| License      | MIT                                                                               | MIT (core), paid (collab)          | MIT                                 |
 
 The Kit approach gives full control over UI while sharing the remark pipeline with the existing `@cocoar/vue-markdown-core` parser and `<CoarMarkdown>` viewer.
 

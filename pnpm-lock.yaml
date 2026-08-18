@@ -86,6 +86,9 @@ importers:
       '@cocoar/vue-markdown-editor':
         specifier: workspace:*
         version: link:../../packages/markdown-editor
+      '@cocoar/vue-markdown-form':
+        specifier: workspace:*
+        version: link:../../packages/markdown-form
       '@cocoar/vue-markdown-mermaid':
         specifier: workspace:*
         version: link:../../packages/markdown-mermaid
@@ -132,6 +135,77 @@ importers:
       vitepress-plugin-mermaid:
         specifier: ^2.0.17
         version: 2.0.17(mermaid@11.14.0)(vitepress@1.6.4(@algolia/client-search@5.50.1)(@types/node@25.6.0)(lightningcss@1.32.0)(postcss@8.5.10)(search-insights@2.17.3)(typescript@5.9.3))
+
+  apps/document-composer-poc:
+    dependencies:
+      '@cocoar/vue-localization':
+        specifier: workspace:*
+        version: link:../../packages/localization
+      '@cocoar/vue-markdown':
+        specifier: workspace:*
+        version: link:../../packages/markdown
+      '@cocoar/vue-markdown-core':
+        specifier: workspace:*
+        version: link:../../packages/markdown-core
+      '@cocoar/vue-markdown-editor':
+        specifier: workspace:*
+        version: link:../../packages/markdown-editor
+      '@cocoar/vue-page-builder':
+        specifier: workspace:*
+        version: link:../../packages/page-builder
+      '@cocoar/vue-script-editor':
+        specifier: workspace:*
+        version: link:../../packages/script-editor
+      '@cocoar/vue-ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      monaco-editor:
+        specifier: ^0.55.1
+        version: 0.55.1
+      ses:
+        specifier: 2.2.0
+        version: 2.2.0
+      vue:
+        specifier: ^3.5.33
+        version: 3.5.33(typescript@5.9.3)
+    devDependencies:
+      '@vitejs/plugin-vue':
+        specifier: ^6.0.6
+        version: 6.0.6(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.3)(yaml@2.8.3))(vue@3.5.33(typescript@5.9.3))
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vite:
+        specifier: ^8.0.10
+        version: 8.0.10(@types/node@25.6.0)(esbuild@0.27.3)(yaml@2.8.3)
+
+  apps/markdown-inline-fill-poc:
+    dependencies:
+      '@cocoar/vue-localization':
+        specifier: workspace:*
+        version: link:../../packages/localization
+      '@cocoar/vue-markdown-editor':
+        specifier: workspace:*
+        version: link:../../packages/markdown-editor
+      '@cocoar/vue-markdown-form':
+        specifier: workspace:*
+        version: link:../../packages/markdown-form
+      '@cocoar/vue-ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      vue:
+        specifier: ^3.5.33
+        version: 3.5.33(typescript@5.9.3)
+    devDependencies:
+      '@vitejs/plugin-vue':
+        specifier: ^6.0.6
+        version: 6.0.6(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.3)(yaml@2.8.3))(vue@3.5.33(typescript@5.9.3))
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vite:
+        specifier: ^8.0.10
+        version: 8.0.10(@types/node@25.6.0)(esbuild@0.27.3)(yaml@2.8.3)
 
   apps/playground:
     dependencies:
@@ -442,6 +516,28 @@ importers:
       '@types/mdast':
         specifier: ^4.0.4
         version: 4.0.4
+      vue:
+        specifier: ^3.5.32
+        version: 3.5.33(typescript@5.9.3)
+
+  packages/markdown-form:
+    dependencies:
+      '@cocoar/vue-markdown':
+        specifier: workspace:*
+        version: link:../markdown
+      '@cocoar/vue-markdown-core':
+        specifier: workspace:*
+        version: link:../markdown-core
+      '@cocoar/vue-markdown-editor':
+        specifier: workspace:*
+        version: link:../markdown-editor
+      '@js-temporal/polyfill':
+        specifier: ^0.5.1
+        version: 0.5.1
+    devDependencies:
+      '@cocoar/vue-ui':
+        specifier: workspace:*
+        version: link:../ui
       vue:
         specifier: ^3.5.32
         version: 3.5.33(typescript@5.9.3)

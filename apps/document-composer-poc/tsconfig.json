@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "jsx": "preserve",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "types": ["vite/client"],
+    "paths": {
+      "@cocoar/vue-ui": ["../../packages/ui/src/index.ts"],
+      "@cocoar/vue-localization": ["../../packages/localization/src/index.ts"],
+      "@cocoar/vue-script-editor": ["../../packages/script-editor/src/index.ts"],
+      "@cocoar/vue-page-builder": ["../../packages/page-builder/src/index.ts"],
+      "@cocoar/vue-markdown-editor": ["../../packages/markdown-editor/src/index.ts"],
+      "@cocoar/vue-markdown": ["../../packages/markdown/src/index.ts"],
+      "@cocoar/vue-markdown-core": ["../../packages/markdown-core/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.vue", "src/**/*.d.ts"]
+}

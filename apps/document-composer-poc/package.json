@@ -1,0 +1,29 @@
+{
+  "name": "@cocoar/document-composer-poc",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5192",
+    "build": "vite build",
+    "preview": "vite preview --strictPort --port 4192",
+    "typecheck": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "@cocoar/vue-localization": "workspace:*",
+    "@cocoar/vue-markdown": "workspace:*",
+    "@cocoar/vue-markdown-core": "workspace:*",
+    "@cocoar/vue-markdown-editor": "workspace:*",
+    "@cocoar/vue-page-builder": "workspace:*",
+    "@cocoar/vue-script-editor": "workspace:*",
+    "@cocoar/vue-ui": "workspace:*",
+    "monaco-editor": "^0.55.1",
+    "ses": "2.2.0",
+    "vue": "^3.5.33"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.6",
+    "typescript": "^5.9.3",
+    "vite": "^8.0.10"
+  }
+}
