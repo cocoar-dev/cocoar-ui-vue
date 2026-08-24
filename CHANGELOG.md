@@ -7,6 +7,54 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 3.1.0
+
+**Fixed Markdown structure with focused, typed places to fill it in.** This
+release introduces a template-driven Markdown form for protocols, meeting notes
+and document-like forms whose headings and explanatory text must remain intact.
+It also separates the Markdown editor toolbar from an individual editor, so one
+stable toolbar can serve every editable Markdown section on a page.
+
+### Added
+
+- **New `@cocoar/vue-markdown-form` package.** `CoarMarkdownForm` renders an
+  ordinary Markdown template as fixed document content and turns only explicit
+  `:field{...}` / `:::field{...}` directives into editable controls. The
+  reusable template and the filled values stay separate; applications receive
+  one typed values object without rewriting the Markdown source.
+- **Built-in text, number, date, date-time, boolean, select and Markdown
+  fields.** Fields support required validation, placeholders, options and
+  type-appropriate constraints. Empty Markdown sections remain reachable, so a
+  user can delete all section content and still continue filling the document.
+- **Fill and readonly document modes.** Fill mode keeps the authored structure
+  immutable while exposing its controls. Readonly mode renders the completed
+  document with configurable field decorations, making the same template useful
+  for entry, review and presentation.
+- **Typed renderer context and an open field registry.** Hosts can provide
+  presentation context such as a basic or styled design, while consumer-defined
+  field types plug into the same parser, value model and rendering contract as
+  the built-ins.
+- **Responsive field layout controls.** Templates can choose inline or stacked
+  placement and semantic widths including compact presets, full width and
+  `fill`, which consumes the remaining space beside a label.
+- **One toolbar for multiple Markdown editors.** New
+  `CoarMarkdownEditorGroup`, `CoarMarkdownToolbar` and
+  `toolbar-mode="external"` route commands to the currently active editor. The
+  toolbar remains mounted, changes its available tools without flicker and is
+  disabled whenever no editor is active.
+- **Complete template and integration documentation.** The docs include a
+  copyable protocol template, the directive grammar, built-in field reference,
+  typed values, validation, layouts, context, custom fields and the shared
+  toolbar setup.
+
+### Fixed
+
+- **External Markdown values remain synchronized during editor startup.** Model
+  updates that arrive before Milkdown is ready are buffered and applied once the
+  editor initializes, while later host updates continue to flow normally.
+
+---
+
 ## 3.0.0
 
 **Page Builder: a complete authoring platform, fewer concepts, unambiguous names
