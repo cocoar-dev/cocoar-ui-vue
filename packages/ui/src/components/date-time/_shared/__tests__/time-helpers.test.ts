@@ -38,6 +38,12 @@ describe('coarFormatTime', () => {
     expect(coarFormatTime(12, 0, false)).toBe('12:00 PM');
     expect(coarFormatTime(23, 59, false)).toBe('11:59 PM');
   });
+
+  it('formats the Maskito-canonical 12h text with forMaskedInput (padded hour, NBSP before meridiem)', () => {
+    expect(coarFormatTime(14, 30, false, true)).toBe('02:30\u00a0PM');
+    expect(coarFormatTime(0, 5, false, true)).toBe('12:05\u00a0AM');
+    expect(coarFormatTime(9, 0, false, true)).toBe('09:00\u00a0AM');
+  });
 });
 
 describe('coarParseTimeInput', () => {
