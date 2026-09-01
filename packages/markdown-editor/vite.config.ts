@@ -39,5 +39,20 @@ export default defineConfig({
   test: {
     environment: 'happy-dom',
     globals: true,
+    // @milkdown/ctx's Timer never clears its 3s watchdog setTimeout, even after
+    // the editor resolves. On slow runners those timeouts fire between test
+    // files — after the happy-dom globals are torn down — and explode as
+    // "ReferenceError: removeEventListener is not defined", failing a run whose
+    // tests all passed. Ignore exactly that teardown race; everything else
+    // stays fatal.
+    onUnhandledError(error: Error) {
+      if (
+        error.name === 'ReferenceError'
+        && error.message.includes('removeEventListener is not defined')
+        && error.stack?.includes('@milkdown')
+      ) {
+        return false;
+      }
+    },
   },
 });
