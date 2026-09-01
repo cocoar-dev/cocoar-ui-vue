@@ -245,7 +245,7 @@ function formatValue(val: Temporal.ZonedDateTime): string {
     inDisplayTz.toPlainDate(),
     pickerBase.effectiveDateFormat.value.pattern,
   );
-  const timePart = coarFormatTime(inDisplayTz.hour, inDisplayTz.minute, effectiveUse24Hour.value);
+  const timePart = coarFormatTime(inDisplayTz.hour, inDisplayTz.minute, effectiveUse24Hour.value, true);
   return `${datePart} ${timePart}`;
 }
 

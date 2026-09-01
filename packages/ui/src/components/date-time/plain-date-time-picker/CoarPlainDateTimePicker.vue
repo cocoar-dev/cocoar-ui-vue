@@ -152,7 +152,7 @@ function formatValue(val: Temporal.PlainDateTime): string {
     val.toPlainDate(),
     pickerBase.effectiveDateFormat.value.pattern,
   );
-  const timePart = coarFormatTime(val.hour, val.minute, effectiveUse24Hour.value);
+  const timePart = coarFormatTime(val.hour, val.minute, effectiveUse24Hour.value, true);
   return `${datePart} ${timePart}`;
 }
 

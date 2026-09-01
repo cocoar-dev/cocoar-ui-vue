@@ -30,12 +30,24 @@ export function coarDetect12HourFormat(locale: string): boolean {
 /**
  * Formats a time value as a string.
  *
+ * `forMaskedInput` emits the exact canonical text of the Maskito `HH:MM AA`
+ * mask: two-digit hour (the mask shreds "8:30 PM" into "83:0" on the first
+ * re-mask) and a no-break space before the meridiem (Maskito's own output —
+ * a regular space would make every programmatic write differ from the DOM
+ * and yank the cursor to the end). 24h output is identical either way.
+ *
  * @example
- * coarFormatTime(14, 30, true)  // "14:30"
- * coarFormatTime(14, 30, false) // "2:30 PM"
- * coarFormatTime(0, 5, false)   // "12:05 AM"
+ * coarFormatTime(14, 30, true)         // "14:30"
+ * coarFormatTime(14, 30, false)        // "2:30 PM"
+ * coarFormatTime(14, 30, false, true)  // "02:30\u00a0PM"
+ * coarFormatTime(0, 5, false)          // "12:05 AM"
  */
-export function coarFormatTime(hours: number, minutes: number, use24Hour: boolean): string {
+export function coarFormatTime(
+  hours: number,
+  minutes: number,
+  use24Hour: boolean,
+  forMaskedInput = false,
+): string {
   const paddedMinutes = String(minutes).padStart(2, '0');
 
   if (use24Hour) {
@@ -45,6 +57,9 @@ export function coarFormatTime(hours: number, minutes: number, use24Hour: boolea
   const period: CoarTimePeriod = hours >= 12 ? 'PM' : 'AM';
   let displayHours = hours % 12;
   if (displayHours === 0) displayHours = 12;
+  if (forMaskedInput) {
+    return `${String(displayHours).padStart(2, '0')}:${paddedMinutes}\u00a0${period}`;
+  }
 
   return `${displayHours}:${paddedMinutes} ${period}`;
 }

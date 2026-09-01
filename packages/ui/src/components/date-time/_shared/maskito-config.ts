@@ -26,9 +26,14 @@ export function coarCreateDateMask(pattern: DateFormatConfig['pattern']) {
 /**
  * Creates a Maskito datetime mask for a given date format pattern and time options.
  *
+ * The date/time separator must stay a plain space: the pickers format and parse
+ * their input as `"<date> <time>"`, while Maskito's default separator is `", "`
+ * — with the default, re-masking on the first keystroke inserts a comma the
+ * parsers reject, so edits never reach the model and revert on blur.
+ *
  * @example
- * const mask = coarCreateDateTimeMask('dd.mm.yyyy', false) // "01.06.2026, 14:30"
- * const mask = coarCreateDateTimeMask('mm/dd/yyyy', true)  // "06/01/2026, 2:30 PM"
+ * const mask = coarCreateDateTimeMask('dd.mm.yyyy', false) // "01.06.2026 14:30"
+ * const mask = coarCreateDateTimeMask('mm/dd/yyyy', true)  // "06/01/2026 02:30 PM"
  */
 export function coarCreateDateTimeMask(
   pattern: DateFormatConfig['pattern'],
@@ -38,5 +43,6 @@ export function coarCreateDateTimeMask(
     dateMode: COAR_DATE_FORMAT_TO_MASKITO_MODE[pattern],
     dateSeparator: coarGetDateSeparatorForPattern(pattern),
     timeMode: use12Hour ? 'HH:MM AA' : 'HH:MM',
+    dateTimeSeparator: ' ',
   });
 }
