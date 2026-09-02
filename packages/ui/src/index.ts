@@ -309,6 +309,36 @@ export type {
   TreeBuilderState,
 } from './components/tree';
 
+// Data List (virtualized, sortable, searchable record list with a free item template)
+export {
+  CoarDataList,
+  useDataList,
+  createValueComparator,
+  normalizeSearchText,
+  searchTerms,
+  matchesSearchTerms,
+  DATA_LIST_HIGHLIGHT_NAME,
+} from './components/data-list';
+export type {
+  CoarDataListProps,
+  CoarDataListDensity,
+  CoarDataListEntry,
+  CoarDataListGroupSlotProps,
+  CoarDataListItemEvent,
+  CoarDataListItemSlotProps,
+  CoarDataListKey,
+  CoarDataListSearchBy,
+  CoarDataListSelection,
+  CoarDataListSelectionMode,
+  CoarDataListSort,
+  CoarDataListSortDirection,
+  CoarDataListSortGroups,
+  CoarDataListSortOption,
+  UseDataListOptions,
+  UseDataListReturn,
+  ValueComparator,
+} from './components/data-list';
+
 // Panel Layout (resizable workbench + split-pane primitive)
 export { CoarSplitPane, CoarPanelLayout } from './components/panel-layout';
 export type { SplitDirection, SplitSide } from './components/panel-layout';
