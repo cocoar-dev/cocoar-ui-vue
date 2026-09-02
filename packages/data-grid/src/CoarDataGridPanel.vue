@@ -22,6 +22,7 @@ const props = withDefaults(
     theme?: Theme;
     searchPlaceholder?: string;
     searchSize?: CoarTextInputSize;
+    showColumnPicker?: boolean;
     bordered?: boolean;
     elevated?: boolean;
     gridClass?: string;
@@ -31,6 +32,7 @@ const props = withDefaults(
     theme: () => cocoarTheme,
     searchPlaceholder: 'Search...',
     searchSize: 'm',
+    showColumnPicker: false,
     bordered: false,
     elevated: false,
     gridClass: undefined,
@@ -47,6 +49,7 @@ const searchText = defineModel<string>('search', { default: '' });
     :builder="props.builder"
     :theme="props.theme"
     show-search
+    :show-column-picker="props.showColumnPicker"
     :bordered="props.bordered"
     :elevated="props.elevated"
     :class="props.gridClass"

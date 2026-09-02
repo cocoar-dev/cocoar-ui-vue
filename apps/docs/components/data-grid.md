@@ -284,9 +284,73 @@ const builder = CoarGridBuilder.create<Row>()
   .defaultSort('name', 'asc');
 ```
 
+## Column Visibility and Dynamic Columns
+
+Enable the built-in picker with `show-column-picker`. Changes apply immediately and the picker keeps at least one configurable column visible. Columns with `lockVisible: true` are shown but cannot be toggled; columns with `suppressColumnsToolPanel: true` are omitted.
+
+The picker is backed by a public `CoarGridColumns` model rather than owning the state itself. This means the same model can drive the built-in toolbar control, a freely placed `CoarGridColumnPicker`, or a completely custom menu. It can also replace definitions when backend-provided property metadata changes — AG Grid updates its columns without remounting the Vue grid.
+
+<preview path="./data-grid/demos/GridColumnPicker.vue" />
+
+```ts
+import {
+  CoarGridBuilder,
+  CoarGridColumns,
+  type ColumnDefinition,
+} from '@cocoar/vue-data-grid';
+
+const baseColumns: ColumnDefinition<Row>[] = [
+  (col) => col.field('id').header('ID').option('lockVisible', true),
+  (col) => col.field('name').header('Name').flex(1),
+];
+
+const columns = CoarGridColumns.create(baseColumns);
+
+const builder = CoarGridBuilder.create<Row>()
+  .columns(columns)
+  .persistColumnState('assets');
+
+// Later, after mapping backend property metadata to column definitions:
+columns.replaceDefinitions([...baseColumns, ...mappedBackendColumns]);
+```
+
+Matching definitions are reconciled by stable `colId` (or `field` when no explicit ID is set). Existing width, order, visibility, pinning, and sort state is reapplied. New columns use their definition defaults. State for temporarily removed columns is kept dormant, so it is restored if the same `colId` returns.
+
+For a freely placed standard picker:
+
+```vue
+<CoarGridColumnPicker :model="columns" />
+<CoarDataGrid :builder="builder" />
+```
+
+For a custom menu, consume the reactive `items` and call the headless actions directly:
+
+```vue
+<CoarCheckbox
+  v-for="column in columns.items.value"
+  :key="column.id"
+  :model-value="column.visible"
+  :label="column.label"
+  :disabled="!column.canHide"
+  @update:model-value="columns.setVisible(column.id, $event)"
+/>
+```
+
+`CoarGridColumns` can also be used without `CoarDataGrid`. Pass an initial snapshot to `AgGridVue`, then bind the model on `grid-ready`; the bound model owns subsequent definition updates. Persistence can be enabled directly with `columns.persistColumnState(key)`.
+
+```ts
+const initialColumnDefs = [...columns.columnDefs.value];
+
+function onGridReady(event: GridReadyEvent<Row>) {
+  columns.bind(event.api, gridElement.value);
+}
+```
+
 ## Column Persistence
 
 Persist column widths, order, visibility, and sort in IndexedDB with `.persistColumnState(key)`.
+
+Persistence is handled by the same `CoarGridColumns` model used by the picker and dynamic definition updates. Stored state is data-only — column definitions still come from application code or the backend mapper.
 
 **Width buckets:** The grid container width is rounded to buckets (default: 100px). Each bucket gets its own saved column layout, so different container sizes — switching monitors, collapsing a sidebar — each keep their own column widths. When no exact bucket exists, the nearest saved state is applied.
 
@@ -331,6 +395,7 @@ cleanupColumnStates(180); // Remove entries older than 6 months
 | `builder` | `CoarGridBuilder<T>` | — | Grid configuration builder (required) |
 | `theme` | `Theme` | `cocoarTheme` | AG Grid theme override |
 | `showSearch` | `boolean` | `false` | Show the search bar in the toolbar |
+| `showColumnPicker` | `boolean` | `false` | Show the built-in column visibility picker in the toolbar |
 | `searchPlaceholder` | `string` | `'Search...'` | Placeholder for the search input |
 | `searchSize` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Search input size |
 | `search` | `string` | `''` | Search text (`v-model:search`) |
@@ -344,7 +409,7 @@ cleanupColumnStates(180); // Remove entries older than 6 months
 | `toolbar-left` | Content on the left side of the toolbar (e.g., title, icon) |
 | `toolbar-right` | Content on the right side of the toolbar (e.g., buttons, actions) |
 
-The toolbar appears automatically when `showSearch` is enabled or any `toolbar-*` slot is used. The search input fills available space (`flex: 1`). When search is disabled, a spacer pushes `toolbar-right` to the far right.
+The toolbar appears automatically when `showSearch`, `showColumnPicker`, or any `toolbar-*` slot is used. The search input fills available space (`flex: 1`). When search is disabled, a spacer pushes the picker and `toolbar-right` to the far right.
 
 ```vue
 <!-- Search + actions -->
@@ -369,7 +434,7 @@ The toolbar appears automatically when `showSearch` is enabled or any `toolbar-*
 
 | Method | Parameters | Description |
 |--------|-----------|-------------|
-| `.columns(defs)` | `ColumnDefFn<T>[]` | Define column configuration |
+| `.columns(defsOrModel)` | `ColumnDefinition<T>[] \| CoarGridColumns<T>` | Define columns or attach a reusable headless column model |
 | `.rowData(data)` | `T[]` | Set static row data |
 | `.rowDataRef(ref)` | `Ref<T[]>` | Bind reactive row data |
 | `.quickFilterText(ref)` | `Ref<string>` | Bind search text for quick filtering |
@@ -389,6 +454,23 @@ The toolbar appears automatically when `showSearch` is enabled or any `toolbar-*
 | `.resetPersistedState(bucket?)` | `number?` | Reset persisted state for a specific bucket (defaults to current) |
 | `.resetPersistedStates()` | — | Reset all persisted column states (all buckets) |
 | `.rowClassRules(rules)` | `RowClassRules<T>` | Conditional row CSS classes |
+
+The active model is also available as `builder.columnModel` for custom menus.
+
+### CoarGridColumns Methods
+
+| Method | Parameters | Description |
+|--------|-----------|-------------|
+| `.replaceDefinitions(defs)` | `ColumnDefinition<T>[]` | Replace definitions and reconcile matching runtime state by stable ID |
+| `.append(defs)` | `ColumnDefinition<T> \| ColumnDefinition<T>[]` | Append dynamic definitions |
+| `.remove(ids)` | `string \| string[]` | Remove definitions by column ID |
+| `.setVisible(id, visible)` | `string, boolean` | Set runtime visibility |
+| `.toggle(id)` | `string` | Toggle runtime visibility |
+| `.showAll()` | — | Show every configurable column |
+| `.resetVisibility()` | — | Restore definition visibility without resetting width, order, pinning, or sort |
+| `.persistColumnState(key, opts?)` | `string, ColumnPersistenceOptions?` | Enable the same IndexedDB persistence used by `CoarGridBuilder` |
+| `.bind(api, element?)` | `GridApi<T>, HTMLElement?` | Bind the model when using `AgGridVue` directly |
+| `.unbind()` | — | Remove grid and persistence listeners |
 
 ### Standalone Functions
 

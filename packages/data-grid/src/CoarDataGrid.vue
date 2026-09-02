@@ -7,6 +7,7 @@ import type { CoarTextInputSize } from '@cocoar/vue-ui';
 import { CoarGridBuilder } from './builders';
 import { cocoarTheme } from './theme';
 import CoarDataGridSearch from './CoarDataGridSearch.vue';
+import CoarGridColumnPicker from './CoarGridColumnPicker.vue';
 import './theme/ag-theme-cocoar.css';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -29,6 +30,8 @@ const props = withDefaults(
     theme?: Theme;
     /** Show the search bar above the grid */
     showSearch?: boolean;
+    /** Show the built-in column visibility picker in the toolbar */
+    showColumnPicker?: boolean;
     /** Placeholder text for the search input */
     searchPlaceholder?: string;
     /** Search input size variant */
@@ -45,6 +48,7 @@ const props = withDefaults(
   {
     theme: () => cocoarTheme,
     showSearch: false,
+    showColumnPicker: false,
     searchPlaceholder: 'Search...',
     searchSize: 'm',
     bordered: false,
@@ -56,9 +60,12 @@ const props = withDefaults(
 
 const searchText = defineModel<string>('search', { default: '' });
 
-// Toolbar visibility: show when search is enabled or any toolbar slot is used
+// Toolbar visibility: show when a built-in control or any toolbar slot is used
 const showToolbar = computed(
-  () => props.showSearch || !!slots['toolbar-left'] || !!slots['toolbar-right'],
+  () => props.showSearch
+    || props.showColumnPicker
+    || !!slots['toolbar-left']
+    || !!slots['toolbar-right'],
 );
 
 // Internal search ref wired to builder's quick filter
@@ -89,7 +96,10 @@ const gridOptions = computed(() => {
   const { onGridReady: _onGridReady, ...rest } = props.builder._getGridOptions();
   return rest;
 });
-const columnDefs = computed(() => props.builder._getColumnDefs());
+// Column definition updates are owned by the bound CoarGridColumns model after
+// grid-ready. Keeping this initial value non-reactive avoids applying the same
+// stateful ColDefs a second time through the AgGridVue prop watcher.
+const columnDefs = props.builder._getColumnDefs();
 const rowData = computed(() => props.builder._getRowData());
 
 function onGridReady(event: GridReadyEvent<TData>) {
@@ -153,6 +163,10 @@ onBeforeUnmount(() => {
         class="coar-grid-toolbar__search"
       />
       <div v-else class="coar-grid-toolbar__spacer" />
+      <CoarGridColumnPicker
+        v-if="showColumnPicker"
+        :model="builder.columnModel"
+      />
       <slot name="toolbar-right" />
     </div>
     <ag-grid-vue

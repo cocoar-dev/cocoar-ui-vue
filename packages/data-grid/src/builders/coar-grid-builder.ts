@@ -23,29 +23,14 @@ import type {
 
 import { CoarGridColumnBuilder, COAR_QUICK_FILTER_KEY } from './coar-grid-column-builder';
 import type { QuickFilterConfig } from './coar-grid-column-builder';
-import { CoarGridColumnFactory } from './coar-grid-column-factory';
 import CoarGridHeader from '../header/CoarGridHeader.vue';
 import {
-  loadColumnState,
-  saveColumnState,
-  getSavedBuckets,
-  deleteColumnState,
-  deleteAllColumnStates,
-  toBucket,
-  findNearestBucket,
-  createPersistenceInstanceId,
-  onColumnStateChanged,
-  broadcastColumnState,
-} from './column-state-storage';
+  CoarGridColumns,
+  type ColumnDefinition,
+  type ColumnPersistenceOptions,
+} from './coar-grid-columns';
 
-type ColumnBuilderLike<TData> = {
-  build(): ColDef<TData>;
-};
-
-/** Column definition input - either a builder or a factory function */
-export type ColumnDefinition<TData> =
-  | ColumnBuilderLike<TData>
-  | ((factory: CoarGridColumnFactory<TData>) => ColumnBuilderLike<TData>);
+export type { ColumnDefinition, ColumnPersistenceOptions } from './coar-grid-columns';
 
 /** Configuration for tree (hierarchical) data */
 export interface TreeDataConfig<TData> {
@@ -78,14 +63,6 @@ export interface CoarTreeContext<TData = unknown> {
 export interface RowDragHighlightOptions<TData> {
   /** Validate if dragged row can be dropped on target. Return `false` to show "not allowed" feedback. */
   canDrop?: (draggedData: TData, targetData: TData) => boolean;
-}
-
-/** Options for column state persistence */
-export interface ColumnPersistenceOptions {
-  /** Bucket size in pixels. Grid width is rounded to the nearest bucket. Default: 100 */
-  bucketSize?: number;
-  /** Debounce delay in ms for saving column state. Default: 500 */
-  debounceMs?: number;
 }
 
 /** Options for row selection */
@@ -121,7 +98,7 @@ export class CoarGridBuilder<TData = unknown> {
   #cleanupFns: Array<() => void> = [];
 
   #gridOptions: GridOptions<TData> = {};
-  #columnDefs: ColDef<TData>[] = [];
+  #columnModel = CoarGridColumns.create<TData>();
   #rowData: TData[] | null = null;
   #reactiveRowData?: Ref<TData[] | null | undefined>;
 
@@ -133,6 +110,7 @@ export class CoarGridBuilder<TData = unknown> {
   #sortFilterTriggers: WatchSource[] = [];
   #externalFilterTriggers: WatchSource[] = [];
   #dataPipelineTriggers: WatchSource[] = [];
+  #columnVisibilityVersion = ref(0);
 
   // Quick filter
   #quickFilterTextRef?: Ref<string>;
@@ -155,12 +133,7 @@ export class CoarGridBuilder<TData = unknown> {
 
   // Column state persistence
   #persistKey?: string;
-  #persistInstanceId = 0;
   #persistOptions?: ColumnPersistenceOptions;
-  #persistBucket = 0;
-  #persistResizeObserver?: ResizeObserver;
-  #persistDebounceTimer?: ReturnType<typeof setTimeout>;
-  #persistSuppressSave = false;
 
   // Viewport event handlers (wired by wrapper component)
   #viewportClickHandler?: ($event: MouseEvent, api: GridApi<TData>) => void;
@@ -181,6 +154,11 @@ export class CoarGridBuilder<TData = unknown> {
   /** Get the AG Grid API (available after grid ready) */
   get api(): GridApi<TData> | undefined {
     return this.#gridApi;
+  }
+
+  /** Headless reactive column model for the built-in picker or custom column menus. */
+  get columnModel(): CoarGridColumns<TData> {
+    return this.#columnModel;
   }
 
   // ============================================================
@@ -219,13 +197,21 @@ export class CoarGridBuilder<TData = unknown> {
   // Column Configuration
   // ============================================================
 
-  /** Define columns using builders or factory functions */
-  columns(definitions: ColumnDefinition<TData>[]): this {
-    const factory = new CoarGridColumnFactory<TData>();
-    this.#columnDefs = definitions.map((def) => {
-      if (typeof def === 'function') return def(factory).build();
-      return def.build();
-    });
+  /** Define columns using builders, factory functions, or a reusable column model. */
+  columns(definitions: ColumnDefinition<TData>[] | CoarGridColumns<TData>): this {
+    if (definitions instanceof CoarGridColumns) {
+      if (this.#gridApi) this.#columnModel.unbind();
+      this.#columnModel = definitions;
+      if (this.#persistKey) {
+        this.#columnModel.persistColumnState(this.#persistKey, this.#persistOptions);
+      }
+      if (this.#gridApi) {
+        this.#gridApi.setGridOption('columnDefs', this.#columnModel._getColumnDefs());
+        this.#columnModel.bind(this.#gridApi, this.#gridElement);
+      }
+    } else {
+      this.#columnModel.replaceDefinitions(definitions);
+    }
     return this;
   }
 
@@ -514,6 +500,7 @@ export class CoarGridBuilder<TData = unknown> {
   persistColumnState(gridKey: string, options?: ColumnPersistenceOptions): this {
     this.#persistKey = gridKey;
     this.#persistOptions = options;
+    this.#columnModel.persistColumnState(gridKey, options);
     return this;
   }
 
@@ -533,12 +520,7 @@ export class CoarGridBuilder<TData = unknown> {
    * ```
    */
   async resetPersistedState(bucket?: number): Promise<void> {
-    if (!this.#persistKey) return;
-    const target = bucket ?? this.#persistBucket;
-    if (target) {
-      await deleteColumnState(this.#persistKey, target);
-    }
-    this.#gridApi?.resetColumnState();
+    await this.#columnModel.resetPersistedState(bucket);
   }
 
   /**
@@ -551,9 +533,7 @@ export class CoarGridBuilder<TData = unknown> {
    * ```
    */
   async resetPersistedStates(): Promise<void> {
-    if (!this.#persistKey) return;
-    await deleteAllColumnStates(this.#persistKey);
-    this.#gridApi?.resetColumnState();
+    await this.#columnModel.resetPersistedStates();
   }
 
   // ============================================================
@@ -971,129 +951,6 @@ export class CoarGridBuilder<TData = unknown> {
   }
 
   // ============================================================
-  // Private - Column Persistence Helpers
-  // ============================================================
-
-  #persistSaveCurrentState(): void {
-    if (this.#persistSuppressSave || !this.#persistBucket || !this.#persistKey) return;
-    const state = this.#gridApi?.getColumnState();
-    if (state) {
-      saveColumnState(this.#persistKey, this.#persistBucket, state);
-    }
-  }
-
-  #persistBroadcastAndSave(): void {
-    if (this.#persistSuppressSave || !this.#persistKey) return;
-    const state = this.#gridApi?.getColumnState();
-    if (!state) return;
-
-    // Broadcast to other grids immediately
-    broadcastColumnState(this.#persistKey, this.#persistInstanceId, state);
-
-    // Debounce the IndexedDB write
-    if (this.#persistDebounceTimer) clearTimeout(this.#persistDebounceTimer);
-    const delay = this.#persistOptions?.debounceMs ?? 500;
-    this.#persistDebounceTimer = setTimeout(() => {
-      if (this.#persistBucket && this.#persistKey) {
-        saveColumnState(this.#persistKey, this.#persistBucket, state);
-      }
-    }, delay);
-  }
-
-  async #persistApplyStateForBucket(bucket: number): Promise<void> {
-    if (!this.#persistKey) return;
-
-    let state = await loadColumnState(this.#persistKey, bucket);
-
-    if (!state) {
-      const nearest = findNearestBucket(bucket, await getSavedBuckets(this.#persistKey));
-      if (nearest !== null) {
-        state = await loadColumnState(this.#persistKey, nearest);
-      }
-    }
-
-    if (state) {
-      this.#persistSuppressSave = true;
-      this.#gridApi?.applyColumnState({ state: state as ColumnState[], applyOrder: true });
-      setTimeout(() => { this.#persistSuppressSave = false; }, 100);
-    }
-  }
-
-  async #persistOnWidthChanged(width: number): Promise<void> {
-    const bucketSize = this.#persistOptions?.bucketSize ?? 100;
-    const newBucket = toBucket(width, bucketSize);
-    const oldBucket = this.#persistBucket;
-    if (oldBucket === newBucket) return;
-
-    if (oldBucket) {
-      this.#persistSaveCurrentState();
-    }
-
-    this.#persistBucket = newBucket;
-    await this.#persistApplyStateForBucket(newBucket);
-  }
-
-  #persistSetup(): void {
-    if (!this.#persistKey) return;
-    const bucketSize = this.#persistOptions?.bucketSize ?? 100;
-
-    this.#persistInstanceId = createPersistenceInstanceId();
-
-    const gridElement = this.#gridElement?.querySelector('.ag-root-wrapper') as HTMLElement
-      ?? this.#gridElement;
-
-    if (!gridElement) return;
-
-    const initialBucket = toBucket(gridElement.clientWidth, bucketSize);
-    this.#persistBucket = initialBucket;
-    this.#persistApplyStateForBucket(initialBucket);
-
-    this.#persistResizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        this.#persistOnWidthChanged(entry.contentRect.width);
-      }
-    });
-    this.#persistResizeObserver.observe(gridElement);
-
-    // Listen for column changes from other grids with the same key
-    const unsubscribe = onColumnStateChanged(this.#persistKey, this.#persistInstanceId, (state) => {
-      this.#persistSuppressSave = true;
-      this.#gridApi?.applyColumnState({ state: state as ColumnState[], applyOrder: true });
-      setTimeout(() => { this.#persistSuppressSave = false; }, 100);
-    });
-    this.#cleanupFns.push(unsubscribe);
-
-    // Listen for column changes via AG Grid API events (gridOptions already consumed at this point)
-    const api = this.#gridApi!;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- AG Grid addEventListener uses broad overloads
-    const onResized = (event: any) => { if (event.finished) this.#persistBroadcastAndSave(); };
-    const onMoved = () => this.#persistBroadcastAndSave();
-    const onVisible = () => this.#persistBroadcastAndSave();
-    const onSorted = () => this.#persistBroadcastAndSave();
-
-    api.addEventListener('columnResized', onResized);
-    api.addEventListener('columnMoved', onMoved);
-    api.addEventListener('columnVisible', onVisible);
-    api.addEventListener('sortChanged', onSorted);
-
-    this.#cleanupFns.push(() => {
-      api.removeEventListener('columnResized', onResized);
-      api.removeEventListener('columnMoved', onMoved);
-      api.removeEventListener('columnVisible', onVisible);
-      api.removeEventListener('sortChanged', onSorted);
-    });
-  }
-
-  #persistCleanup(): void {
-    this.#persistSaveCurrentState();
-    if (this.#persistDebounceTimer) clearTimeout(this.#persistDebounceTimer);
-    this.#persistResizeObserver?.disconnect();
-    this.#persistResizeObserver = undefined;
-    this.#persistBucket = 0;
-    this.#persistSuppressSave = false;
-  }
-
-  // ============================================================
   // Private - Tree Data Helpers
   // ============================================================
 
@@ -1180,9 +1037,9 @@ export class CoarGridBuilder<TData = unknown> {
     // Re-applying columnDefs once forces a fresh flex layout pass.
     // Gate on result.length so the flag only flips after real rows arrive — initial
     // empty sets (common in tree mode) must not consume the one-shot workaround.
-    if (!this.#flexApplied && result.length > 0 && this.#columnDefs.some((c) => c.flex)) {
+    if (!this.#flexApplied && result.length > 0 && this.#columnModel._getColumnDefs().some((c) => c.flex)) {
       this.#flexApplied = true;
-      api.setGridOption('columnDefs', this.#columnDefs);
+      api.setGridOption('columnDefs', this.#columnModel._getColumnDefs());
     }
 
     // Force cell renderers to re-render (meta changed but row data objects are the same)
@@ -1216,8 +1073,10 @@ export class CoarGridBuilder<TData = unknown> {
   }
 
   #defaultQuickFilterMatch(row: TData, searchText: string): boolean {
-    for (const colDef of this.#columnDefs) {
-      if (colDef.hide) continue;
+    for (const colDef of this.#columnModel._getColumnDefs()) {
+      const colId = colDef.colId ?? colDef.field;
+      const gridColumn = colId ? this.#gridApi?.getColumn(colId) : undefined;
+      if (gridColumn ? !gridColumn.isVisible() : colDef.hide) continue;
       if (!colDef.field) continue;
 
       const qfConfig = (colDef.context as Record<string, unknown> | undefined)?.[
@@ -1261,9 +1120,9 @@ export class CoarGridBuilder<TData = unknown> {
     // Re-applying columnDefs once forces a fresh flex layout pass.
     // Gate on filtered.length so the flag only flips after real rows arrive — initial
     // empty sets must not consume the one-shot workaround (consumers commonly start with []).
-    if (!this.#flexApplied && filtered.length > 0 && this.#columnDefs.some((c) => c.flex)) {
+    if (!this.#flexApplied && filtered.length > 0 && this.#columnModel._getColumnDefs().some((c) => c.flex)) {
       this.#flexApplied = true;
-      api.setGridOption('columnDefs', this.#columnDefs);
+      api.setGridOption('columnDefs', this.#columnModel._getColumnDefs());
     }
 
     this.#scheduleSearchHighlight(searchText);
@@ -1282,6 +1141,7 @@ export class CoarGridBuilder<TData = unknown> {
       if (this.#quickFilterTextRef) sources.push(this.#quickFilterTextRef);
       if (this.#openRows) sources.push(this.#openRows);
       if (this.#forceExpandedRef) sources.push(this.#forceExpandedRef);
+      sources.push(this.#columnVisibilityVersion);
       sources.push(...this.#dataPipelineTriggers);
 
       // Save/restore open-rows when forceExpanded toggles
@@ -1309,6 +1169,7 @@ export class CoarGridBuilder<TData = unknown> {
       const dataSource = this.#reactiveRowData ?? ref(this.#rowData) as Ref<TData[] | null>;
       const sources: WatchSource[] = [dataSource];
       if (this.#quickFilterTextRef) sources.push(this.#quickFilterTextRef);
+      sources.push(this.#columnVisibilityVersion);
       sources.push(...this.#dataPipelineTriggers);
 
       const stopWatch = watch(
@@ -1350,10 +1211,14 @@ export class CoarGridBuilder<TData = unknown> {
       }
     }
 
-    // Column state persistence (IndexedDB + width buckets)
-    if (this.#persistKey) {
-      this.#persistSetup();
-      this.#cleanupFns.push(() => this.#persistCleanup());
+    this.#columnModel.bind(api, gridElement);
+
+    // The default quick filter searches visible columns only, so visibility
+    // changes must re-run the row-data pipeline as well as update the picker.
+    if ((this.#treeConfig || this.#quickFilterTextRef || this.#customFilterFn) && api.addEventListener) {
+      const onColumnVisible = () => { this.#columnVisibilityVersion.value++; };
+      api.addEventListener('columnVisible', onColumnVisible);
+      this.#cleanupFns.push(() => api.removeEventListener('columnVisible', onColumnVisible));
     }
 
     // Watch sort/filter triggers
@@ -1405,6 +1270,7 @@ export class CoarGridBuilder<TData = unknown> {
 
   /** @internal Called by the wrapper component on unmount */
   _destroy(): void {
+    this.#columnModel.unbind();
     for (const cleanup of this.#cleanupFns) {
       cleanup();
     }
@@ -1437,7 +1303,7 @@ export class CoarGridBuilder<TData = unknown> {
 
   /** Get column definitions (for wrapper component) */
   _getColumnDefs(): ColDef<TData>[] {
-    return this.#columnDefs;
+    return this.#columnModel._getColumnDefs();
   }
 
   /** Get grid options (for wrapper component) */

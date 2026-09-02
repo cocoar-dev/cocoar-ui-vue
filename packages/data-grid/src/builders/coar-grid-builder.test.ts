@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import type { GridApi } from 'ag-grid-community';
 import { CoarGridBuilder } from './coar-grid-builder';
 import { CoarGridColumnBuilder } from './coar-grid-column-builder';
+import { CoarGridColumns } from './coar-grid-columns';
 
 interface TestRow {
   id: number;
@@ -51,6 +52,18 @@ describe('CoarGridBuilder', () => {
       const colDefs = builder._getColumnDefs();
       expect(colDefs).toHaveLength(1);
       expect(colDefs[0].field).toBe('name');
+    });
+
+    it('should accept a reusable column model and follow definition updates', () => {
+      const columns = CoarGridColumns.create<TestRow>([
+        (col) => col.field('name').header('Name'),
+      ]);
+      const builder = CoarGridBuilder.create<TestRow>().columns(columns);
+
+      columns.append((col) => col.field('status').header('Status'));
+
+      expect(builder.columnModel).toBe(columns);
+      expect(builder._getColumnDefs().map((column) => column.colId)).toEqual(['name', 'status']);
     });
   });
 
