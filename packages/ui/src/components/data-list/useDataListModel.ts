@@ -12,7 +12,7 @@ import type {
 import { createValueComparator, sortByValue, sortWithComparator } from './internal/compare';
 import { matchesSearchTerms, normalizeSearchText, searchTerms, searchTextOf } from './internal/search';
 
-export interface UseDataListOptions<T> {
+export interface UseDataListModelOptions<T> {
   items: MaybeRefOrGetter<readonly T[]>;
   /** Stable identity of an item. Selection and measured heights are stored under it. */
   itemKey: (item: T) => CoarDataListKey;
@@ -34,7 +34,7 @@ export interface UseDataListOptions<T> {
   selected?: Ref<CoarDataListKey[]>;
 }
 
-export interface UseDataListReturn<T> extends CoarDataListSelection<T> {
+export interface UseDataListModelReturn<T> extends CoarDataListSelection<T> {
   /** Visible items after filter, search, sort and grouping, in display order. */
   items: ComputedRef<T[]>;
   /** Visible rows including group headings, in display order. */
@@ -58,7 +58,7 @@ export interface UseDataListReturn<T> extends CoarDataListSelection<T> {
  * Headless data pipeline for {@link CoarDataList}: filter → search → sort → group,
  * plus key-based selection. Use it directly when you render your own list.
  */
-export function useDataList<T>(options: UseDataListOptions<T>): UseDataListReturn<T> {
+export function useDataListModel<T>(options: UseDataListModelOptions<T>): UseDataListModelReturn<T> {
   const keyOf = options.itemKey;
   const selected = options.selected ?? ref<CoarDataListKey[]>([]);
   const anchor = ref<CoarDataListKey | null>(null);

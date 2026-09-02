@@ -1,5 +1,5 @@
 ---
-description: "CoarDataList — virtualized, searchable, sortable record list with a free multi-line item template, key-based selection, grouping and a headless useDataList composable"
+description: "CoarDataList — virtualized, searchable, sortable record list with a free multi-line item template, key-based selection, grouping and a headless useDataListModel composable"
 ---
 
 # Data List
@@ -7,11 +7,61 @@ description: "CoarDataList — virtualized, searchable, sortable record list wit
 A list of records where **you own the row layout**. Where [`CoarDataGrid`](/components/data-grid) squeezes every field into a column, `CoarDataList` gives each record a free-form, multi-line template — the right tool when a notebook screen would otherwise show a dozen tiny columns and a horizontal scrollbar. It brings the parts a hand-rolled list keeps reinventing: virtual scrolling with measured row heights, search, a sort menu, keyboard and pointer selection, grouping, and an empty state.
 
 ```ts
-import { CoarDataList, useDataList } from '@cocoar/vue-ui';
+import { CoarDataList, useDataList, useDataListModel } from '@cocoar/vue-ui';
 import type { CoarDataListSortOption, CoarDataListSort, CoarDataListKey } from '@cocoar/vue-ui';
 ```
 
-## Basic
+Two ways to configure it: **props + `v-model`** for simple lists, or the **fluent builder** from `useDataList()` — the same pattern as `CoarGridBuilder` and `useTree()` — which also gives you declarative context menus and an imperative `api`.
+
+## Builder API
+
+`useDataList<T>()` returns `{ builder, api }`. Configure data, behaviour, appearance, handlers and context menus in one chain; the template is just `<CoarDataList :builder>` plus your item slot. The list renders the `<CoarContextMenu>` itself.
+
+<preview path="./data-list/demos/BuilderDataList.vue" />
+
+```ts
+const { builder, api } = useDataList<Order>();
+
+builder
+  .items(orders)                                  // array, ref or getter
+  .itemKey((o) => o.number)
+  .filter((o) => !o.archived)
+  .searchBy(['number', 'customer'])
+  .sortOption('placed', 'Date', { defaultDirection: 'desc' })
+  .sortOption('total', 'Total', { by: (o) => o.total })
+  .sort({ key: 'placed', direction: 'desc' })     // initial value, or your own Ref
+  .groupBy((o) => (o.paid ? 'Paid' : 'Open'))
+  .selection('multiple')
+  .showSearch().showSort().searchHighlight()
+  .dividers().bordered().height('22rem')
+  .onItemActivate((e) => open(e.item))
+  .itemMenu((order, selectedItems) => [
+    { label: 'Open', icon: 'external-link', onClick: () => open(order) },
+    'divider',
+    { label: `Archive ${selectedItems.length}`, danger: true, onClick: archive },
+  ])
+  .viewportMenu(() => [{ label: 'Select all', onClick: () => api.selectAll() }]);
+```
+
+Every setter accepts a plain value, a `Ref`, or a getter, and setters called after mount re-render the list. Boolean setters default to `true` (`.showSearch()` ≡ `.showSearch(true)`). `.search()`, `.sort()` and `.selected()` take either an initial value or your own writable `Ref` — pass the ref when other UI (a view-mode toggle, a URL query) shares the state.
+
+### Context menus
+
+`.itemMenu((item, selectedItems) => entries)` fires on right-click / long-press of an item. The item under the pointer is selected first unless it already was, so `selectedItems` is what a bulk action should operate on. `.viewportMenu(() => entries)` fires on the empty area. Entries are `{ label, icon?, danger?, disabled?, onClick }` or the literal `'divider'`. Setting `.onItemContextMenu(handler)` hands you the raw event instead and bypasses `itemMenu`.
+
+### `api`
+
+| Member | Description |
+|--------|-------------|
+| `select(key, mode?)`, `selectAll()`, `clearSelection()`, `isSelected(key)` | Selection actions (`mode`: `'replace'` default, `'toggle'`, `'range'`) |
+| `scrollToKey(key, align?)`, `scrollToIndex(index, align?)`, `focusKey(key)` | Scrolling and focus |
+| `invalidateMeasurements(key?)` | Forget measured heights after a layout change the list cannot observe |
+| `selected`, `search`, `sort` | The builder's writable refs |
+| `selectedItems`, `items`, `count`, `total` | Readonly computed refs, live once mounted |
+
+Actions called before `<CoarDataList>` mounts warn and do nothing; move them into `onMounted` or an event handler.
+
+## Basic (props)
 
 Search, sort menu, multi-select, search-hit highlighting. The `item` slot renders a two-line ticket; its layout, fields and container-query breakpoints belong to the consumer.
 
@@ -68,14 +118,14 @@ Every list is virtualized — only the rows in and around the viewport exist in 
 
 Group headings scroll with the content (they are not sticky), and browser find-in-page only sees rendered rows.
 
-## Headless: `useDataList`
+## Headless: `useDataListModel`
 
-The component is a thin renderer over `useDataList`, which owns the pipeline **filter → search → sort → group** and key-based selection. Use it directly when you render something other than a vertical list — cards, a kanban column, a map sidebar — and still want the same search, sort and selection semantics.
+The component is a thin renderer over `useDataListModel`, which owns the pipeline **filter → search → sort → group** and key-based selection. Use it directly when you render something other than a vertical list — cards, a kanban column, a map sidebar — and still want the same search, sort and selection semantics.
 
 <preview path="./data-list/demos/HeadlessDataList.vue" />
 
 ```ts
-const list = useDataList<Product>({
+const list = useDataListModel<Product>({
   items: products,                 // array, ref or getter
   itemKey: (p) => p.sku,
   search,                          // Ref<string>
@@ -138,8 +188,9 @@ ARIA: `role="listbox"` with `option` children when selection is enabled, `role="
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
+| `builder` | `DataListBuilder<T>` | — | Fluent builder from `useDataList()`. When set, the other config props and the `v-model`s are ignored |
 | `items` | `T[]` | `[]` | Records to display |
-| `itemKey` | `(item: T) => string \| number` | — | Stable identity (required) |
+| `itemKey` | `(item: T) => string \| number` | — | Stable identity (required in props-mode) |
 | `searchBy` | `(keyof T)[] \| (item: T) => string` | all primitive props | Text the search matches against |
 | `filter` | `(item: T) => boolean` | — | Predicate applied before the search |
 | `sortOptions` | `CoarDataListSortOption<T>[]` | `[]` | Sort menu entries |
@@ -194,13 +245,13 @@ ARIA: `role="listbox"` with `option` children when selection is enabled, `role="
 
 | Member | Description |
 |--------|-------------|
-| `list` | The `useDataList` instance (visible items, selection, lookups) |
+| `list` | The `useDataListModel` instance (visible items, selection, lookups) |
 | `scrollToKey(key, align?)` | Scroll an item into view |
 | `scrollToIndex(index, align?)` | Scroll the visible item at `index` into view |
 | `focusKey(key)` | Move the focus marker and scroll to it |
 | `invalidateMeasurements(key?)` | Forget measured heights (all or one) after a layout change the list cannot observe |
 
-### `useDataList(options)`
+### `useDataListModel(options)`
 
 | Option | Type | Description |
 |--------|------|-------------|

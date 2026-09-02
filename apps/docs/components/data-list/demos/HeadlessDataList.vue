@@ -25,7 +25,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { CoarSegmentedControl, CoarTextInput, useDataList } from '@cocoar/vue-ui';
+import { CoarSegmentedControl, CoarTextInput, useDataListModel } from '@cocoar/vue-ui';
 import type { CoarDataListSortOption } from '@cocoar/vue-ui';
 
 interface Product {
@@ -57,7 +57,7 @@ const search = ref('');
 const sortKey = ref('name');
 
 // The same pipeline the component uses — rendered here as a card grid.
-const list = useDataList<Product>({
+const list = useDataListModel<Product>({
   items: products,
   itemKey: (product) => product.sku,
   search,

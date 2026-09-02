@@ -313,6 +313,8 @@ export type {
 export {
   CoarDataList,
   useDataList,
+  DataListBuilder,
+  useDataListModel,
   createValueComparator,
   normalizeSearchText,
   searchTerms,
@@ -327,6 +329,8 @@ export type {
   CoarDataListItemEvent,
   CoarDataListItemSlotProps,
   CoarDataListKey,
+  CoarDataListMenuEntry,
+  CoarDataListMenuItem,
   CoarDataListSearchBy,
   CoarDataListSelection,
   CoarDataListSelectionMode,
@@ -334,8 +338,10 @@ export type {
   CoarDataListSortDirection,
   CoarDataListSortGroups,
   CoarDataListSortOption,
-  UseDataListOptions,
-  UseDataListReturn,
+  DataListApi,
+  DataListBuilderState,
+  UseDataListModelOptions,
+  UseDataListModelReturn,
   ValueComparator,
 } from './components/data-list';
 

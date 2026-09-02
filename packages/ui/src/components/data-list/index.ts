@@ -1,7 +1,9 @@
 export { default as CoarDataList } from './CoarDataList.vue';
 export type { CoarDataListProps } from './CoarDataList.vue';
-export { useDataList } from './useDataList';
-export type { UseDataListOptions, UseDataListReturn } from './useDataList';
+export { useDataList, DataListBuilder } from './data-list-builder';
+export type { DataListApi, DataListBuilderState } from './data-list-builder';
+export { useDataListModel } from './useDataListModel';
+export type { UseDataListModelOptions, UseDataListModelReturn } from './useDataListModel';
 export { createValueComparator } from './internal/compare';
 export type { ValueComparator } from './internal/compare';
 export { normalizeSearchText, searchTerms, matchesSearchTerms } from './internal/search';
@@ -13,6 +15,8 @@ export type {
   CoarDataListItemEvent,
   CoarDataListItemSlotProps,
   CoarDataListKey,
+  CoarDataListMenuEntry,
+  CoarDataListMenuItem,
   CoarDataListSearchBy,
   CoarDataListSelection,
   CoarDataListSelectionMode,

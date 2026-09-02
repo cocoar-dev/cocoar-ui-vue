@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ref } from 'vue';
-import { useDataList } from './useDataList';
+import { useDataListModel } from './useDataListModel';
 import type { CoarDataListSort, CoarDataListSortOption } from './types';
 
 interface Row {
@@ -27,9 +27,9 @@ function ids(items: readonly Row[]): number[] {
   return items.map((row) => row.id);
 }
 
-describe('useDataList pipeline', () => {
+describe('useDataListModel pipeline', () => {
   it('passes items through untouched by default', () => {
-    const list = useDataList<Row>({ items: rows, itemKey: (row) => row.id });
+    const list = useDataListModel<Row>({ items: rows, itemKey: (row) => row.id });
     expect(ids(list.items.value)).toEqual([1, 2, 3, 4]);
     expect(list.total.value).toBe(4);
     expect(list.count.value).toBe(4);
@@ -37,7 +37,7 @@ describe('useDataList pipeline', () => {
 
   it('searches all primitive fields with AND-terms, diacritics folded', () => {
     const search = ref('');
-    const list = useDataList<Row>({ items: rows, itemKey: (row) => row.id, search });
+    const list = useDataListModel<Row>({ items: rows, itemKey: (row) => row.id, search });
     search.value = 'eu';
     expect(ids(list.items.value)).toEqual([1, 2]);
     search.value = 'eu relay';
@@ -47,7 +47,7 @@ describe('useDataList pipeline', () => {
   });
 
   it('respects searchBy fields', () => {
-    const list = useDataList<Row>({
+    const list = useDataListModel<Row>({
       items: rows,
       itemKey: (row) => row.id,
       search: 'EU',
@@ -57,7 +57,7 @@ describe('useDataList pipeline', () => {
   });
 
   it('applies the filter before the search', () => {
-    const list = useDataList<Row>({
+    const list = useDataListModel<Row>({
       items: rows,
       itemKey: (row) => row.id,
       filter: (row) => row.region === 'EU',
@@ -68,7 +68,7 @@ describe('useDataList pipeline', () => {
 
   it('sorts by option key, extractor, and custom comparator', () => {
     const sort = ref<CoarDataListSort | null>({ key: 'name', direction: 'asc' });
-    const list = useDataList<Row>({ items: rows, itemKey: (row) => row.id, sort, sortOptions, locale: 'en' });
+    const list = useDataListModel<Row>({ items: rows, itemKey: (row) => row.id, sort, sortOptions, locale: 'en' });
     expect(ids(list.items.value)).toEqual([4, 2, 3, 1]);
 
     sort.value = { key: 'score', direction: 'desc' };
@@ -84,7 +84,7 @@ describe('useDataList pipeline', () => {
   });
 
   it('ignores an unknown sort key', () => {
-    const list = useDataList<Row>({
+    const list = useDataListModel<Row>({
       items: rows,
       itemKey: (row) => row.id,
       sort: { key: 'nope', direction: 'asc' },
@@ -94,7 +94,7 @@ describe('useDataList pipeline', () => {
   });
 
   it('groups with headings in group order and sorts inside groups', () => {
-    const list = useDataList<Row>({
+    const list = useDataListModel<Row>({
       items: rows,
       itemKey: (row) => row.id,
       groupBy: (row) => row.region,
@@ -111,7 +111,7 @@ describe('useDataList pipeline', () => {
   });
 
   it('supports custom group order', () => {
-    const list = useDataList<Row>({
+    const list = useDataListModel<Row>({
       items: rows,
       itemKey: (row) => row.id,
       groupBy: (row) => row.region,
@@ -122,9 +122,9 @@ describe('useDataList pipeline', () => {
   });
 });
 
-describe('useDataList selection', () => {
+describe('useDataListModel selection', () => {
   it('replaces, toggles, and ranges in multiple mode', () => {
-    const list = useDataList<Row>({ items: rows, itemKey: (row) => row.id, selectionMode: 'multiple' });
+    const list = useDataListModel<Row>({ items: rows, itemKey: (row) => row.id, selectionMode: 'multiple' });
     list.select(2);
     expect(list.selected.value).toEqual([2]);
     list.select(4, 'toggle');
@@ -142,7 +142,7 @@ describe('useDataList selection', () => {
   });
 
   it('keeps a single item in single mode', () => {
-    const list = useDataList<Row>({ items: rows, itemKey: (row) => row.id, selectionMode: 'single' });
+    const list = useDataListModel<Row>({ items: rows, itemKey: (row) => row.id, selectionMode: 'single' });
     list.select(1);
     list.select(2, 'toggle');
     expect(list.selected.value).toEqual([2]);
@@ -156,7 +156,7 @@ describe('useDataList selection', () => {
   });
 
   it('does nothing in none mode', () => {
-    const list = useDataList<Row>({ items: rows, itemKey: (row) => row.id, selectionMode: 'none' });
+    const list = useDataListModel<Row>({ items: rows, itemKey: (row) => row.id, selectionMode: 'none' });
     list.select(1);
     expect(list.selected.value).toEqual([]);
   });
@@ -164,7 +164,7 @@ describe('useDataList selection', () => {
   it('writes to an external model and resolves selected items even when filtered out', () => {
     const selected = ref<(string | number)[]>([3]);
     const search = ref('');
-    const list = useDataList<Row>({
+    const list = useDataListModel<Row>({
       items: rows,
       itemKey: (row) => row.id,
       selectionMode: 'multiple',

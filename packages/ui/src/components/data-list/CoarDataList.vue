@@ -1,10 +1,26 @@
 <script setup lang="ts" generic="T">
-import { computed, nextTick, ref, useTemplateRef, watch } from 'vue';
+/**
+ * `<CoarDataList>` — virtualized record list with a free item template.
+ *
+ * Two ways to configure it:
+ * 1. *Props-mode*: `items`, `itemKey`, `v-model:search` … as props.
+ * 2. *Builder-mode*: `:builder` from `useDataList()`. Fluent setters, handlers
+ *    and declarative context menus in one chain; the component renders the
+ *    `<CoarContextMenu>` itself. When `builder` is set, the other config props
+ *    and the `v-model`s are ignored.
+ */
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, toValue, unref, useTemplateRef, watch } from 'vue';
 import { useI18n } from '@cocoar/vue-localization';
 import { useVirtualList } from '../../composables/useVirtualList';
-import { useDataList } from './useDataList';
+import { useDataListModel } from './useDataListModel';
 import { useSearchHighlight } from './internal/useSearchHighlight';
 import CoarDataListToolbar from './CoarDataListToolbar.vue';
+import CoarContextMenu from '../menu/CoarContextMenu.vue';
+import CoarMenu from '../menu/CoarMenu.vue';
+import CoarMenuItem from '../menu/CoarMenuItem.vue';
+import CoarMenuDivider from '../menu/CoarMenuDivider.vue';
+import { useContextMenu } from '../menu/useContextMenu';
+import type { DataListBuilder } from './data-list-builder';
 import type {
   CoarDataListDensity,
   CoarDataListEntry,
@@ -12,6 +28,8 @@ import type {
   CoarDataListItemEvent,
   CoarDataListItemSlotProps,
   CoarDataListKey,
+  CoarDataListMenuEntry,
+  CoarDataListMenuItem,
   CoarDataListSearchBy,
   CoarDataListSelectionMode,
   CoarDataListSort,
@@ -20,10 +38,13 @@ import type {
 } from './types';
 
 export interface CoarDataListProps<T = unknown> {
+  /** Fluent builder from `useDataList()`. When set, the other config props are ignored. */
+  builder?: DataListBuilder<T>;
+
   /** Records to display. */
   items?: readonly T[];
-  /** Stable identity of a record. Required. */
-  itemKey: (item: T) => CoarDataListKey;
+  /** Stable identity of a record. Required in props-mode. */
+  itemKey?: (item: T) => CoarDataListKey;
 
   /** Text the search matches against. Default: all primitive properties. */
   searchBy?: CoarDataListSearchBy<T>;
@@ -73,7 +94,9 @@ export interface CoarDataListProps<T = unknown> {
 }
 
 const props = withDefaults(defineProps<CoarDataListProps<T>>(), {
+  builder: undefined,
   items: () => [],
+  itemKey: undefined,
   searchBy: undefined,
   filter: undefined,
   sortOptions: () => [],
@@ -113,35 +136,126 @@ defineSlots<{
   'toolbar-right'(): unknown;
 }>();
 
-const search = defineModel<string>('search', { default: '' });
-const sort = defineModel<CoarDataListSort | null>('sort', { default: null });
-const selected = defineModel<CoarDataListKey[]>('selected', { default: () => [] });
+const searchModel = defineModel<string>('search', { default: '' });
+const sortModel = defineModel<CoarDataListSort | null>('sort', { default: null });
+const selectedModel = defineModel<CoarDataListKey[]>('selected', { default: () => [] });
 
 const { t, language } = useI18n();
 
-const list = useDataList<T>({
-  items: () => props.items,
-  itemKey: (item) => props.itemKey(item),
+// ─── effective config (props-mode vs builder-mode) ──────────────────────────
+const cfg = computed(() => {
+  const s = props.builder?.state;
+  if (s) {
+    return {
+      items: toValue(s.items),
+      itemKey: s.itemKey,
+      searchBy: unref(s.searchBy),
+      filter: unref(s.filter),
+      sortOptions: toValue(s.sortOptions),
+      groupBy: unref(s.groupBy),
+      sortGroups: unref(s.sortGroups),
+      selection: toValue(s.selection),
+      showSearch: toValue(s.showSearch),
+      showSort: toValue(s.showSort),
+      searchPlaceholder: toValue(s.searchPlaceholder),
+      searchHighlight: toValue(s.searchHighlight),
+      density: toValue(s.density),
+      dividers: toValue(s.dividers),
+      gap: toValue(s.gap),
+      bordered: toValue(s.bordered),
+      elevated: toValue(s.elevated),
+      height: toValue(s.height),
+      itemSize: toValue(s.itemSize),
+      overscan: toValue(s.overscan),
+      emptyText: toValue(s.emptyText),
+      ariaLabel: toValue(s.ariaLabel),
+      disabled: toValue(s.disabled),
+    };
+  }
+  return {
+    items: props.items,
+    itemKey:
+      props.itemKey
+      ?? (() => {
+        throw new Error('<CoarDataList> requires either :builder or :item-key.');
+      }),
+    searchBy: props.searchBy,
+    filter: props.filter,
+    sortOptions: props.sortOptions,
+    groupBy: props.groupBy,
+    sortGroups: props.sortGroups,
+    selection: props.selection,
+    showSearch: props.showSearch,
+    showSort: props.showSort,
+    searchPlaceholder: props.searchPlaceholder,
+    searchHighlight: props.searchHighlight,
+    density: props.density,
+    dividers: props.dividers,
+    gap: props.gap,
+    bordered: props.bordered,
+    elevated: props.elevated,
+    height: props.height,
+    itemSize: props.itemSize,
+    overscan: props.overscan,
+    emptyText: props.emptyText,
+    ariaLabel: props.ariaLabel,
+    disabled: props.disabled,
+  };
+});
+
+// Writable state: the builder's refs in builder-mode, the v-models otherwise.
+// The builder owns its refs; writing through them is the contract, not a prop mutation.
+function builderState() {
+  return props.builder?.state ?? null;
+}
+const search = computed<string>({
+  get: () => builderState()?.search.value ?? searchModel.value,
+  set: (value) => {
+    const state = builderState();
+    if (state) state.search.value = value;
+    else searchModel.value = value;
+  },
+});
+const sort = computed<CoarDataListSort | null>({
+  get: () => (builderState() ? builderState()!.sort.value : sortModel.value),
+  set: (value) => {
+    const state = builderState();
+    if (state) state.sort.value = value;
+    else sortModel.value = value;
+  },
+});
+const selected = computed<CoarDataListKey[]>({
+  get: () => builderState()?.selected.value ?? selectedModel.value,
+  set: (value) => {
+    const state = builderState();
+    if (state) state.selected.value = value;
+    else selectedModel.value = value;
+  },
+});
+
+const list = useDataListModel<T>({
+  items: () => cfg.value.items,
+  itemKey: (item) => cfg.value.itemKey(item),
   search,
-  searchBy: computed(() => props.searchBy),
-  filter: computed(() => props.filter),
+  searchBy: computed(() => cfg.value.searchBy),
+  filter: computed(() => cfg.value.filter),
   sort,
-  sortOptions: () => props.sortOptions,
-  groupBy: computed(() => props.groupBy),
-  sortGroups: computed(() => props.sortGroups),
+  sortOptions: () => cfg.value.sortOptions,
+  groupBy: computed(() => cfg.value.groupBy),
+  sortGroups: computed(() => cfg.value.sortGroups),
   locale: language,
-  selectionMode: () => props.selection,
+  selectionMode: () => cfg.value.selection,
   selected,
 });
 
-// ── Virtualisation ───────────────────────────────────────────────────
+// ─── Virtualisation ──────────────────────────────────────────────────────────
 const scrollRef = useTemplateRef<HTMLElement>('scrollRef');
 const entries = list.entries;
 
 const virtualizer = useVirtualList({
   count: () => entries.value.length,
-  itemSize: () => props.itemSize,
-  overscan: () => props.overscan,
+  itemSize: () => cfg.value.itemSize,
+  overscan: () => cfg.value.overscan,
   scrollElement: scrollRef,
   measure: true,
   itemKey: (index) => entries.value[index]?.key ?? index,
@@ -157,23 +271,25 @@ const virtualEntries = computed(() =>
 useSearchHighlight({
   root: scrollRef,
   query: search,
-  enabled: () => props.searchHighlight,
+  enabled: () => cfg.value.searchHighlight,
   triggers: [virtualizer.virtualRows],
 });
 
-// ── Focus & selection ────────────────────────────────────────────────
-const focusedKey = ref<CoarDataListKey | null>(null);
-const interactive = computed(() => !props.disabled);
-const selectable = computed(() => interactive.value && props.selection !== 'none');
+// ─── Focus & selection ───────────────────────────────────────────────────────
+type ItemEntry = Extract<CoarDataListEntry<T>, { kind: 'item' }>;
 
-function itemEvent(entry: Extract<CoarDataListEntry<T>, { kind: 'item' }>, event: MouseEvent | KeyboardEvent): CoarDataListItemEvent<T> {
+const focusedKey = ref<CoarDataListKey | null>(null);
+const interactive = computed(() => !cfg.value.disabled);
+const selectable = computed(() => interactive.value && cfg.value.selection !== 'none');
+
+function itemEvent(entry: ItemEntry, event: MouseEvent | KeyboardEvent): CoarDataListItemEvent<T> {
   return { item: entry.item, itemKey: entry.itemKey, index: entry.index, event };
 }
 
 function selectWithModifiers(key: CoarDataListKey, event: MouseEvent | KeyboardEvent) {
   if (!selectable.value) return;
-  if (event.shiftKey && props.selection === 'multiple') list.select(key, 'range');
-  else if ((event.ctrlKey || event.metaKey) && props.selection === 'multiple') list.select(key, 'toggle');
+  if (event.shiftKey && cfg.value.selection === 'multiple') list.select(key, 'range');
+  else if ((event.ctrlKey || event.metaKey) && cfg.value.selection === 'multiple') list.select(key, 'toggle');
   else list.select(key, 'replace');
 }
 
@@ -182,27 +298,80 @@ function onItemMouseDown(event: MouseEvent) {
   if (event.shiftKey && selectable.value) event.preventDefault();
 }
 
-function onItemClick(entry: Extract<CoarDataListEntry<T>, { kind: 'item' }>, event: MouseEvent) {
+function onItemClick(entry: ItemEntry, event: MouseEvent) {
   if (!interactive.value) return;
   focusedKey.value = entry.itemKey;
   selectWithModifiers(entry.itemKey, event);
-  emit('item-click', itemEvent(entry, event));
+  const payload = itemEvent(entry, event);
+  emit('item-click', payload);
+  props.builder?.state.onItemClick?.(payload);
 }
 
-function onItemDoubleClick(entry: Extract<CoarDataListEntry<T>, { kind: 'item' }>, event: MouseEvent) {
-  if (!interactive.value) return;
-  emit('item-dblclick', itemEvent(entry, event));
-  emit('item-activate', itemEvent(entry, event));
+function fireActivate(entry: ItemEntry, event: MouseEvent | KeyboardEvent) {
+  const payload = itemEvent(entry, event);
+  emit('item-activate', payload);
+  props.builder?.state.onItemActivate?.(payload);
 }
 
-function onItemContextMenu(entry: Extract<CoarDataListEntry<T>, { kind: 'item' }>, event: MouseEvent) {
+function onItemDoubleClick(entry: ItemEntry, event: MouseEvent) {
   if (!interactive.value) return;
+  const payload = itemEvent(entry, event);
+  emit('item-dblclick', payload);
+  props.builder?.state.onItemDoubleClick?.(payload);
+  fireActivate(entry, event);
+}
+
+// ─── Context menu ────────────────────────────────────────────────────────────
+const internalMenu = useContextMenu();
+type ContextTarget = { kind: 'item'; item: T } | { kind: 'viewport' };
+const contextTarget = shallowRef<ContextTarget | null>(null);
+
+const menuEntries = computed<readonly CoarDataListMenuEntry[]>(() => {
+  const s = props.builder?.state;
+  const target = contextTarget.value;
+  if (!s || !target) return [];
+  if (target.kind === 'item') return s.itemMenu ? s.itemMenu(target.item, list.selectedItems.value) : [];
+  return s.viewportMenu ? s.viewportMenu() : [];
+});
+
+const hasDeclarativeMenu = computed(
+  () => !!props.builder && (!!props.builder.state.itemMenu || !!props.builder.state.viewportMenu),
+);
+
+function onMenuItemClick(entry: CoarDataListMenuItem) {
+  if (entry.disabled) return;
+  entry.onClick();
+  internalMenu.close();
+}
+
+function onItemContextMenu(entry: ItemEntry, event: MouseEvent) {
+  if (!interactive.value) return;
+  event.stopPropagation();
   focusedKey.value = entry.itemKey;
   if (selectable.value && !list.isSelected(entry.itemKey)) list.select(entry.itemKey, 'replace');
-  emit('item-contextmenu', itemEvent(entry, event));
+  const payload = itemEvent(entry, event);
+  emit('item-contextmenu', payload);
+  const s = props.builder?.state;
+  if (s?.onItemContextMenu) {
+    s.onItemContextMenu(payload);
+    return;
+  }
+  if (s?.itemMenu) {
+    contextTarget.value = { kind: 'item', item: entry.item };
+    internalMenu.open(event);
+  }
 }
 
-function slotPropsFor(entry: Extract<CoarDataListEntry<T>, { kind: 'item' }>): CoarDataListItemSlotProps<T> {
+function onViewportContextMenu(event: MouseEvent) {
+  if (!interactive.value) return;
+  const s = props.builder?.state;
+  if (!s?.viewportMenu) return;
+  contextTarget.value = { kind: 'viewport' };
+  internalMenu.open(event);
+}
+
+// ─── Slot props & navigation ─────────────────────────────────────────────────
+function slotPropsFor(entry: ItemEntry): CoarDataListItemSlotProps<T> {
   return {
     item: entry.item,
     index: entry.index,
@@ -226,7 +395,7 @@ function moveFocus(toIndex: number, event: KeyboardEvent) {
   const key = list.keyOf(items[index]);
   focusedKey.value = key;
   if (selectable.value) {
-    if (event.shiftKey && props.selection === 'multiple') list.select(key, 'range');
+    if (event.shiftKey && cfg.value.selection === 'multiple') list.select(key, 'range');
     else if (!event.ctrlKey && !event.metaKey) list.select(key, 'replace');
   }
   scrollToKey(key);
@@ -234,7 +403,7 @@ function moveFocus(toIndex: number, event: KeyboardEvent) {
 
 function pageSize(): number {
   const viewport = scrollRef.value?.clientHeight ?? 0;
-  return Math.max(1, Math.floor(viewport / Math.max(1, props.itemSize)) - 1);
+  return Math.max(1, Math.floor(viewport / Math.max(1, cfg.value.itemSize)) - 1);
 }
 
 function onKeyDown(event: KeyboardEvent) {
@@ -276,14 +445,13 @@ function onKeyDown(event: KeyboardEvent) {
     case 'Enter': {
       if (current < 0) return;
       event.preventDefault();
-      const entryIndex = list.entryIndexOfKey(list.keyOf(items[current]));
-      const entry = entries.value[entryIndex];
-      if (entry?.kind === 'item') emit('item-activate', itemEvent(entry, event));
+      const entry = entries.value[list.entryIndexOfKey(list.keyOf(items[current]))];
+      if (entry?.kind === 'item') fireActivate(entry, event);
       return;
     }
     case 'a':
     case 'A':
-      if ((event.ctrlKey || event.metaKey) && props.selection === 'multiple') {
+      if ((event.ctrlKey || event.metaKey) && cfg.value.selection === 'multiple') {
         event.preventDefault();
         list.selectAll();
       }
@@ -300,23 +468,24 @@ function onViewportFocus() {
 }
 
 // Drop the focus marker when the item leaves the visible set (filtered out / removed).
-watch(list.items, (items) => {
-  if (focusedKey.value !== null && list.indexOfKey(focusedKey.value) < 0) {
-    focusedKey.value = items.length > 0 ? null : null;
-  }
+watch(list.items, () => {
+  if (focusedKey.value !== null && list.indexOfKey(focusedKey.value) < 0) focusedKey.value = null;
 });
 
-// ── Presentation ─────────────────────────────────────────────────────
-const showToolbar = computed(() => props.showSearch || (props.showSort && props.sortOptions.length > 0));
-const emptyLabel = computed(() => props.emptyText ?? t('coar.ui.dataList.empty', undefined, 'No items'));
-const viewportStyle = computed(() => (props.height ? { height: props.height, flex: 'none' } : undefined));
+// ─── Presentation ────────────────────────────────────────────────────────────
+const showToolbar = computed(
+  () => cfg.value.showSearch || (cfg.value.showSort && cfg.value.sortOptions.length > 0),
+);
+const emptyLabel = computed(() => cfg.value.emptyText ?? t('coar.ui.dataList.empty', undefined, 'No items'));
+const viewportStyle = computed(() => (cfg.value.height ? { height: cfg.value.height, flex: 'none' } : undefined));
 const gapStyle = computed(() => {
-  if (props.gap === undefined || props.gap === '') return undefined;
-  const value = typeof props.gap === 'number' ? `${props.gap}px` : props.gap;
-  return { '--coar-data-list-gap': value };
+  const gap = cfg.value.gap;
+  if (gap === undefined || gap === '') return undefined;
+  return { '--coar-data-list-gap': typeof gap === 'number' ? `${gap}px` : gap };
 });
-const role = computed(() => (props.selection === 'none' ? 'list' : 'listbox'));
+const role = computed(() => (cfg.value.selection === 'none' ? 'list' : 'listbox'));
 
+// ─── Imperative API ──────────────────────────────────────────────────────────
 /** Scroll the visible item at `index` into view. */
 function scrollToIndex(index: number, align?: 'auto' | 'start' | 'center' | 'end') {
   const item = list.items.value[index];
@@ -334,6 +503,13 @@ function invalidateMeasurements(key?: CoarDataListKey) {
   virtualizer.invalidateMeasurements(key === undefined ? undefined : `i:${String(key)}`);
 }
 
+onMounted(() => {
+  props.builder?._bindImpls({ model: list, scrollToKey, scrollToIndex, focusKey, invalidateMeasurements });
+});
+onBeforeUnmount(() => {
+  props.builder?._bindImpls(null);
+});
+
 defineExpose({
   /** Headless list API (visible items, selection, lookups). */
   list,
@@ -348,12 +524,12 @@ defineExpose({
   <div
     class="coar-data-list"
     :class="[
-      `coar-data-list--density-${density}`,
+      `coar-data-list--density-${cfg.density}`,
       {
-        'coar-data-list--bordered': bordered,
-        'coar-data-list--elevated': elevated,
-        'coar-data-list--dividers': dividers,
-        'coar-data-list--disabled': disabled,
+        'coar-data-list--bordered': cfg.bordered,
+        'coar-data-list--elevated': cfg.elevated,
+        'coar-data-list--dividers': cfg.dividers,
+        'coar-data-list--disabled': cfg.disabled,
         'coar-data-list--selectable': selectable,
       },
     ]"
@@ -363,11 +539,11 @@ defineExpose({
       v-if="showToolbar"
       v-model:search="search"
       v-model:sort="sort"
-      :show-search="showSearch"
-      :show-sort="showSort"
-      :search-placeholder="searchPlaceholder"
-      :sort-options="sortOptions"
-      :disabled="disabled"
+      :show-search="cfg.showSearch"
+      :show-sort="cfg.showSort"
+      :search-placeholder="cfg.searchPlaceholder"
+      :sort-options="cfg.sortOptions"
+      :disabled="cfg.disabled"
     >
       <template #left><slot name="toolbar-left" /></template>
       <template #right><slot name="toolbar-right" /></template>
@@ -379,11 +555,12 @@ defineExpose({
       :style="viewportStyle"
       :tabindex="interactive ? 0 : -1"
       :role="role"
-      :aria-label="ariaLabel"
-      :aria-multiselectable="selection === 'multiple' ? 'true' : undefined"
-      :aria-disabled="disabled ? 'true' : undefined"
+      :aria-label="cfg.ariaLabel"
+      :aria-multiselectable="cfg.selection === 'multiple' ? 'true' : undefined"
+      :aria-disabled="cfg.disabled ? 'true' : undefined"
       @keydown="onKeyDown"
       @focus="onViewportFocus"
+      @contextmenu="onViewportContextMenu"
     >
       <div
         v-if="entries.length > 0"
@@ -415,8 +592,8 @@ defineExpose({
               'coar-data-list__item--selected': list.isSelected(entry.itemKey),
               'coar-data-list__item--focused': focusedKey === entry.itemKey,
             }"
-            :role="selection === 'none' ? 'listitem' : 'option'"
-            :aria-selected="selection === 'none' ? undefined : list.isSelected(entry.itemKey) ? 'true' : 'false'"
+            :role="cfg.selection === 'none' ? 'listitem' : 'option'"
+            :aria-selected="cfg.selection === 'none' ? undefined : list.isSelected(entry.itemKey) ? 'true' : 'false'"
             @mousedown="onItemMouseDown"
             @click="onItemClick(entry, $event)"
             @dblclick="onItemDoubleClick(entry, $event)"
@@ -432,6 +609,23 @@ defineExpose({
         <slot name="empty">{{ emptyLabel }}</slot>
       </div>
     </div>
+
+    <!-- Builder-driven internal context menu. -->
+    <CoarContextMenu v-if="hasDeclarativeMenu" :menu="internalMenu">
+      <CoarMenu>
+        <template v-for="(entry, i) in menuEntries" :key="i">
+          <CoarMenuDivider v-if="entry === 'divider'" />
+          <CoarMenuItem
+            v-else
+            :label="entry.label"
+            :icon="entry.icon"
+            :disabled="entry.disabled"
+            :class="{ 'coar-data-list__menu-item--danger': entry.danger }"
+            @clicked="onMenuItemClick(entry)"
+          />
+        </template>
+      </CoarMenu>
+    </CoarContextMenu>
   </div>
 </template>
 
@@ -439,6 +633,12 @@ defineExpose({
 ::highlight(coar-data-list-search) {
   background-color: var(--coar-background-warning-secondary, rgb(255 213 0 / 0.45));
   color: inherit;
+}
+
+/* Same treatment as CoarTree's declarative menus. */
+.coar-data-list__menu-item--danger > button,
+.coar-data-list__menu-item--danger > .coar-menu-item {
+  color: var(--coar-text-semantic-error-bold, #dc2626);
 }
 </style>
 

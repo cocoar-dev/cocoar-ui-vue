@@ -87,6 +87,20 @@ export interface CoarDataListItemEvent<T> {
   event: MouseEvent | KeyboardEvent;
 }
 
+/** One entry of a declarative context menu (`builder.itemMenu` / `builder.viewportMenu`). */
+export interface CoarDataListMenuItem {
+  label: string;
+  /** Icon name passed to `<CoarMenuItem :icon>`. */
+  icon?: string;
+  /** Destructive action styling. */
+  danger?: boolean;
+  disabled?: boolean;
+  /** Invoked on click; the list closes the menu afterwards. */
+  onClick: () => void;
+}
+
+export type CoarDataListMenuEntry = CoarDataListMenuItem | 'divider';
+
 /** Selection API shared by the composable and the component. */
 export interface CoarDataListSelection<T> {
   isSelected(key: CoarDataListKey): boolean;
