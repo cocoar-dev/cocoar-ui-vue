@@ -43,6 +43,7 @@ Search, sort menu, multi-select, search-hit highlighting. The `item` slot render
 ### Writing the item template
 
 - The list positions rows absolutely and **measures their rendered height**, so the template may be one line, three lines, or vary per record. Keep `min-width: 0` on flex/grid children that should truncate.
+- Space between rows comes from the `gap` prop. Margins in the template are **not** part of the measured height and would make rows overlap; padding inside the template is fine.
 - Use **container queries** (`container-type: inline-size` on the template root) rather than viewport media queries. The same template then adapts when the list sits in a narrow side panel.
 - The slot receives `selected`, `focused`, `select()` and `toggle()`. Render a checkbox bound to `toggle()` when touch users should be able to multi-select without modifier keys.
 - Rows have no built-in actions column. Put a "…" button in the template or handle `item-contextmenu`.
@@ -151,6 +152,7 @@ ARIA: `role="listbox"` with `option` children when selection is enabled, `role="
 | `searchHighlight` | `boolean` | `false` | Highlight matches in rendered rows |
 | `density` | `'s' \| 'm' \| 'l'` | `'m'` | Row padding |
 | `dividers` | `boolean` | `false` | Line between rows |
+| `gap` | `number \| string` | — | Space between rows (px number or CSS length); use this, not a template margin |
 | `bordered` | `boolean` | `false` | Border around the list |
 | `elevated` | `boolean` | `false` | Elevation shadow |
 | `height` | `string` | fills parent | Fixed height of the scroll area |

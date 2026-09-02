@@ -5,6 +5,7 @@
       :items="files"
       :item-key="(file) => file.path"
       selection="multiple"
+      :gap="4"
       bordered
       height="18rem"
       @item-contextmenu="onContextMenu"

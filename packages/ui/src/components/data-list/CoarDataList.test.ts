@@ -169,6 +169,20 @@ describe('CoarDataList', () => {
     expect(withSearch.wrapper.find('input').attributes('placeholder')).toBe('Search…');
   });
 
+  it('applies the gap as a CSS variable and skips it on the last row', async () => {
+    const { wrapper } = mountList({ gap: 8 });
+    await nextTick();
+    const root = wrapper.find('.coar-data-list').element as HTMLElement;
+    expect(root.style.getPropertyValue('--coar-data-list-gap')).toBe('8px');
+    const rows = wrapper.findAll('.coar-data-list__row');
+    expect(rows[0].classes()).not.toContain('coar-data-list__row--last');
+    expect(rows[rows.length - 1].classes()).toContain('coar-data-list__row--last');
+
+    const rem = mountList({ gap: '0.5rem' });
+    await nextTick();
+    expect((rem.wrapper.find('.coar-data-list').element as HTMLElement).style.getPropertyValue('--coar-data-list-gap')).toBe('0.5rem');
+  });
+
   it('exposes the headless list and scroll helpers', async () => {
     const { wrapper } = mountList();
     await nextTick();

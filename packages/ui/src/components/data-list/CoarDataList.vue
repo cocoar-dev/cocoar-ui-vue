@@ -51,6 +51,12 @@ export interface CoarDataListProps<T = unknown> {
   density?: CoarDataListDensity;
   /** Draws a divider between rows. */
   dividers?: boolean;
+  /**
+   * Space between rows — a pixel number or any CSS length (e.g. `'0.5rem'`).
+   * Set it here rather than as a margin in the item template: rows are measured
+   * by their border box, so a template margin would not be accounted for.
+   */
+  gap?: number | string;
   bordered?: boolean;
   elevated?: boolean;
   /** Fixed height of the scroll area (e.g. `'24rem'`). Default: fills the parent. */
@@ -80,6 +86,7 @@ const props = withDefaults(defineProps<CoarDataListProps<T>>(), {
   searchHighlight: false,
   density: 'm',
   dividers: false,
+  gap: undefined,
   bordered: false,
   elevated: false,
   height: undefined,
@@ -303,6 +310,11 @@ watch(list.items, (items) => {
 const showToolbar = computed(() => props.showSearch || (props.showSort && props.sortOptions.length > 0));
 const emptyLabel = computed(() => props.emptyText ?? t('coar.ui.dataList.empty', undefined, 'No items'));
 const viewportStyle = computed(() => (props.height ? { height: props.height, flex: 'none' } : undefined));
+const gapStyle = computed(() => {
+  if (props.gap === undefined || props.gap === '') return undefined;
+  const value = typeof props.gap === 'number' ? `${props.gap}px` : props.gap;
+  return { '--coar-data-list-gap': value };
+});
 const role = computed(() => (props.selection === 'none' ? 'list' : 'listbox'));
 
 /** Scroll the visible item at `index` into view. */
@@ -345,6 +357,7 @@ defineExpose({
         'coar-data-list--selectable': selectable,
       },
     ]"
+    :style="gapStyle"
   >
     <CoarDataListToolbar
       v-if="showToolbar"
@@ -382,6 +395,7 @@ defineExpose({
           :key="entry.key"
           :ref="(el) => virtualizer.measureElement(row.index, el as Element | null)"
           class="coar-data-list__row"
+          :class="{ 'coar-data-list__row--last': row.index === entries.length - 1 }"
           :style="{ transform: `translateY(${row.start}px)` }"
         >
           <div
@@ -493,6 +507,12 @@ defineExpose({
   position: absolute;
   inset: 0 0 auto;
   box-sizing: border-box;
+  /* The gap is padding, not margin, so the measured row height includes it. */
+  padding-bottom: var(--coar-data-list-gap, 0px);
+}
+
+.coar-data-list__row--last {
+  padding-bottom: 0;
 }
 
 .coar-data-list__item {
