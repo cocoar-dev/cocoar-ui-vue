@@ -338,9 +338,13 @@ export function useVirtualList(opts: UseVirtualListOptions): UseVirtualListRetur
       }
       return;
     }
-    if (observedElements.get(el) === key) return;
-    observedElements.set(el, key);
-    ensureResizeObserver()?.observe(el);
+    if (observedElements.get(el) !== key) {
+      observedElements.set(el, key);
+      ensureResizeObserver()?.observe(el);
+    }
+    // Re-measure on every call, not only the first: function refs run on each
+    // render, which makes a padding/density change take effect immediately
+    // instead of waiting for the ResizeObserver (paused in background tabs).
     if (recordSize(key, el.getBoundingClientRect().height)) measureVersion.value++;
   }
 

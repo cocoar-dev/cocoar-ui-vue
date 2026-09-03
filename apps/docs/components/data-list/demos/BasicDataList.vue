@@ -12,7 +12,8 @@
       show-search
       show-sort
       search-highlight
-      dividers
+      :gap="gap"
+      :dividers="gap === 0"
       bordered
       height="22rem"
       aria-label="Tickets"
@@ -37,13 +38,17 @@
         </div>
       </template>
     </CoarDataList>
-    <p class="demo__hint">{{ hint }}</p>
+    <div class="demo__controls">
+      <span class="demo__label">Row gap</span>
+      <CoarSegmentedControl v-model="gap" :options="gapOptions" size="s" aria-label="Row gap" />
+      <p class="demo__hint">{{ hint }}</p>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { CoarBadge, CoarDataList, CoarTag } from '@cocoar/vue-ui';
+import { CoarBadge, CoarDataList, CoarSegmentedControl, CoarTag } from '@cocoar/vue-ui';
 import type { CoarDataListItemEvent, CoarDataListKey, CoarDataListSort, CoarDataListSortOption } from '@cocoar/vue-ui';
 
 type Status = 'Open' | 'In progress' | 'Blocked' | 'Done';
@@ -104,6 +109,16 @@ const sort = ref<CoarDataListSort | null>({ key: 'due', direction: 'asc' });
 const selected = ref<CoarDataListKey[]>([]);
 const hint = ref('Double-click or press Enter to open a ticket.');
 
+// Gap is a list prop, not a template margin: the measured row height includes it.
+// With a gap, dividers are switched off — the space separates the rows on its own.
+const gap = ref(0);
+const gapOptions = [
+  { value: 0, label: 'None' },
+  { value: 4, label: '4 px' },
+  { value: 8, label: '8 px' },
+  { value: 16, label: '16 px' },
+];
+
 function open(event: CoarDataListItemEvent<Ticket>) {
   hint.value = `Opened ${event.item.title}`;
 }
@@ -116,8 +131,20 @@ function open(event: CoarDataListItemEvent<Ticket>) {
   gap: var(--coar-spacing-s);
 }
 
+.demo__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--coar-spacing-s);
+  flex-wrap: wrap;
+}
+
+.demo__label {
+  font-size: var(--coar-body-caption-size);
+  color: var(--coar-text-neutral-secondary);
+}
+
 .demo__hint {
-  margin: 0;
+  margin: 0 0 0 auto;
   color: var(--coar-text-neutral-secondary);
   font-size: var(--coar-body-caption-size);
 }

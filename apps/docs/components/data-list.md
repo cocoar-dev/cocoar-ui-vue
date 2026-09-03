@@ -63,7 +63,7 @@ Actions called before `<CoarDataList>` mounts warn and do nothing; move them int
 
 ## Basic (props)
 
-Search, sort menu, multi-select, search-hit highlighting. The `item` slot renders a two-line ticket; its layout, fields and container-query breakpoints belong to the consumer.
+Search, sort menu, multi-select, search-hit highlighting. The `item` slot renders a two-line ticket; its layout, fields and container-query breakpoints belong to the consumer. The control below the list switches the `gap` between rows — try it with a wide gap, the rows stay measured and aligned.
 
 <preview path="./data-list/demos/BasicDataList.vue" />
 
