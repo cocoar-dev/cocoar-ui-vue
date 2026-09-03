@@ -74,6 +74,23 @@ describe('useVirtualList measurement', () => {
     expect(api().offsetFor(1)).toBe(50);
   });
 
+  it('re-measures observed rows after the patch, catching styles applied late', async () => {
+    const { api } = harness(['a', 'b']);
+    const el = elementWithHeight(60);
+    document.body.appendChild(el);
+    api().measureElement(0, el);
+    await nextTick();
+    expect(api().offsetFor(1)).toBe(60);
+
+    // Re-render: the ref callback still sees 60, the parent's new style lands afterwards.
+    api().measureElement(0, el);
+    el.getBoundingClientRect = () => ({ height: 72, width: 0, top: 0, left: 0, right: 0, bottom: 0, x: 0, y: 0, toJSON: () => ({}) });
+    expect(api().offsetFor(1)).toBe(60);
+    await nextTick();
+    await nextTick();
+    expect(api().offsetFor(1)).toBe(72);
+  });
+
   it('does nothing when measuring is off', async () => {
     let api: UseVirtualListReturn | null = null;
     const Host = defineComponent({

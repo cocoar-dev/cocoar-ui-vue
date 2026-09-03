@@ -3,6 +3,7 @@ import {
   computed,
   watch,
   unref,
+  nextTick,
   onBeforeUnmount,
   type MaybeRefOrGetter,
   type Ref,
@@ -325,6 +326,26 @@ export function useVirtualList(opts: UseVirtualListOptions): UseVirtualListRetur
     return resizeObserver;
   }
 
+  // Function refs run while Vue is still patching — children before the parent's
+  // own props — so a synchronous measurement can see the previous styles (e.g. a
+  // gap or density change on the root). Re-measure every observed row once the
+  // patch has finished; this also covers background tabs, where the
+  // ResizeObserver is paused.
+  let remeasureScheduled = false;
+  function scheduleRemeasure(): void {
+    if (remeasureScheduled) return;
+    remeasureScheduled = true;
+    void nextTick(() => {
+      remeasureScheduled = false;
+      let changed = false;
+      for (const [el, key] of observedElements) {
+        if (!el.isConnected) continue;
+        if (recordSize(key, el.getBoundingClientRect().height)) changed = true;
+      }
+      if (changed) measureVersion.value++;
+    });
+  }
+
   function measureElement(index: number, value: Element | ComponentPublicInstance | null): void {
     if (!getMeasure()) return;
     const el = value instanceof Element ? value : (value as ComponentPublicInstance | null)?.$el;
@@ -342,10 +363,8 @@ export function useVirtualList(opts: UseVirtualListOptions): UseVirtualListRetur
       observedElements.set(el, key);
       ensureResizeObserver()?.observe(el);
     }
-    // Re-measure on every call, not only the first: function refs run on each
-    // render, which makes a padding/density change take effect immediately
-    // instead of waiting for the ResizeObserver (paused in background tabs).
     if (recordSize(key, el.getBoundingClientRect().height)) measureVersion.value++;
+    scheduleRemeasure();
   }
 
   function invalidateMeasurements(key?: string | number): void {
