@@ -15,8 +15,11 @@ export interface UseDataListReorderOptions<T> {
   viewport: Ref<HTMLElement | null>;
   /** Reordering / accepting drops is on and the list is not disabled. */
   enabled: () => boolean;
-  /** An active sort: drops are accepted but always append (no positional target). */
-  sorted: () => boolean;
+  /**
+   * Whether the sibling level under `parentKey` (`null` = top level) is sorted.
+   * A sorted level takes no positional drops — its order is the sort's business.
+   */
+  sortedAt: (parentKey: CoarDataListKey | null) => boolean;
   engine: () => CoarDataListDragEngine;
   layout: () => CoarDataListLayout;
   visibleItems: () => readonly T[];
@@ -120,10 +123,10 @@ export function useDataListReorder<T>(options: UseDataListReorderOptions<T>) {
     }
     const item = options.itemByKey(key);
     const nestable = item !== undefined && options.canNestInto(item, draggedItems());
-    if (options.sorted()) {
-      // Order is the sort's business, but re-parenting changes structure: the whole
-      // row means "inside" when nesting is allowed. Otherwise a row from this list
-      // is refused; drops from other lists still append.
+    if (options.sortedAt(options.parentOf(key))) {
+      // This level's order is the sort's business, but re-parenting changes
+      // structure: the whole row means "inside" when nesting is allowed. Otherwise
+      // a row from this list is refused; drops from other lists still append.
       if (nestable) return { key, position: 'inside' };
       if (dragKeys.value.size > 0) refused = true;
       return null;
@@ -336,14 +339,14 @@ export function useDataListReorder<T>(options: UseDataListReorderOptions<T>) {
   }
 
   function onKeyDown(event: KeyboardEvent): boolean {
-    if (!options.enabled() || options.sorted()) return false;
+    if (!options.enabled()) return false;
     const modifier = event.ctrlKey || event.metaKey;
 
     if (!grabbed.value) {
       if (!(modifier && (event.key === 'x' || event.key === 'X'))) return false;
       const focused = options.focusedKey.value;
       const item = focused === null ? undefined : options.itemByKey(focused);
-      if (item === undefined) return false;
+      if (item === undefined || options.sortedAt(options.parentOf(focused!))) return false;
       const items = itemsToDrag(item);
       if (items.length === 0) return false;
       event.preventDefault();

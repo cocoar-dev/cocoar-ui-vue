@@ -81,6 +81,8 @@ export interface UseDataListModelReturn<T> extends CoarDataListSelection<T> {
   collapseAll(): void;
   /** Parent key of a visible item, `null` at the top level. */
   parentOf(key: CoarDataListKey): CoarDataListKey | null;
+  /** The sort in effect on a level (0 = top level); `null` when that level keeps its input order. */
+  sortAtDepth(depth: number): CoarDataListSort | null;
 }
 
 /**
@@ -167,16 +169,20 @@ export function useDataListModel<T>(options: UseDataListModelOptions<T>): UseDat
     return sortByValue(items, by, comparator.value, descending);
   }
 
+  function sortAtDepth(depth: number): CoarDataListSort | null {
+    if (depth === 0) return toValue(options.sort) ?? null;
+    const level = toValue(options.childLevel);
+    // Without its own configuration a child level inherits the top level's sorting.
+    return level && 'sort' in level ? (level.sort ?? null) : (toValue(options.sort) ?? null);
+  }
+
   function sortTopLevel(items: readonly T[]): T[] {
-    return applySort(items, toValue(options.sort), toValue(options.sortOptions));
+    return applySort(items, sortAtDepth(0), toValue(options.sortOptions));
   }
 
   function sortChildLevel(items: readonly T[]): T[] {
     const level = toValue(options.childLevel);
-    // Without its own configuration a child level inherits the top level's sorting.
-    const sort = level && 'sort' in level ? level.sort : toValue(options.sort);
-    const sortOptions = level?.sortOptions ?? toValue(options.sortOptions);
-    return applySort(items, sort, sortOptions);
+    return applySort(items, sortAtDepth(1), level?.sortOptions ?? toValue(options.sortOptions));
   }
 
   const entries = computed<CoarDataListEntry<T>[]>(() => {
@@ -384,6 +390,7 @@ export function useDataListModel<T>(options: UseDataListModelOptions<T>): UseDat
     entryIndexOfKey,
     entryOfKey,
     parentOf,
+    sortAtDepth,
     selected,
     anchor,
     isSelected,

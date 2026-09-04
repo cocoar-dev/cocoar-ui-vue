@@ -533,7 +533,10 @@ function onViewportContextMenu(event: MouseEvent) {
 const reorder = useDataListReorder<T>({
   viewport: scrollRef,
   enabled: () => cfg.value.reorderable && !cfg.value.disabled,
-  sorted: () => sort.value !== null,
+  sortedAt: (parentKey) => {
+    const depth = parentKey === null ? 0 : (list.entryOfKey(parentKey)?.depth ?? 0) + 1;
+    return list.sortAtDepth(depth) !== null;
+  },
   engine: () => cfg.value.dragEngine,
   layout: () => cfg.value.layout,
   visibleItems: () => list.items.value,

@@ -212,6 +212,33 @@ describe('CoarDataList nesting', () => {
       expect(reorders).toHaveLength(0);
     });
 
+    it('judges sortedness per level: sorted parents, manually ordered children', async () => {
+      const { wrapper, reorders } = mountList({
+        reorderable: true,
+        expanded: ['a'],
+        sortOptions: [{ key: 'title', label: 'Title' }],
+        sort: { key: 'title', direction: 'asc' },
+        childLevel: { sort: null },
+      });
+      await nextTick();
+      // Rows: Alpha, Alpha one, Alpha two, Beta, Gamma. Children keep input order → reorderable.
+      let position = await dragTo(wrapper, 1, 2, 36); // Alpha one after Alpha two
+      expect(position).toBe('after');
+      expect(reorders.at(-1)).toMatchObject({ keys: ['a1'], parentKey: 'a', afterKey: 'a2' });
+      // Top level is sorted → Beta before Gamma is refused (only "inside" is offered).
+      reorders.length = 0;
+      position = await dragTo(wrapper, 3, 4, 5);
+      expect(position).toBe('inside');
+      // Keyboard grab follows the same rule.
+      const viewport = wrapper.find('.coar-data-list__viewport');
+      await viewport.trigger('focus'); // Alpha (sorted level)
+      await viewport.trigger('keydown', { key: 'x', ctrlKey: true });
+      expect(wrapper.find('.coar-data-list__item--dragging').exists()).toBe(false);
+      await viewport.trigger('keydown', { key: 'ArrowDown' }); // Alpha one (manual level)
+      await viewport.trigger('keydown', { key: 'x', ctrlKey: true });
+      expect(wrapper.find('.coar-data-list__item--dragging').text()).toContain('Alpha one');
+    });
+
     it('keeps keyboard moves among siblings', async () => {
       const { wrapper, reorders } = mountList({ reorderable: true, expanded: ['a'] });
       await nextTick();

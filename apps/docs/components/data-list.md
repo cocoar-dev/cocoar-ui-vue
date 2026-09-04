@@ -160,7 +160,7 @@ The drop payload names the **visible neighbours** of the insertion point (`after
 
 **Rules**
 
-- Reordering is off while a sort is active — the dragged order would be gone after the next re-sort. Drops from other lists are still accepted and append, and in nested lists dropping **inside** a row still works: re-parenting changes structure, not order.
+- Reordering is off on a sorted level — the dragged order would be gone after the next re-sort. This is judged **per level**: sorted parents with manually ordered children (`childLevel: { sort: null }`) let you drag the children but not the parents. Drops from other lists are still accepted and append, and dropping **inside** a row still works on a sorted level: re-parenting changes structure, not order.
 - `canDrag(item)` vetoes single items; `canDrop(payload)` and `dragAccept` veto incoming drops.
 - Keyboard: `Ctrl`+`X` grabs the focused item (or selection), arrows / `Home` / `End` move the insertion line, `Ctrl`+`V` or `Enter` drops, `Escape` cancels.
 

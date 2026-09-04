@@ -62,7 +62,7 @@ const tasks = ref<Task[]>([
   { id: 'docs', title: 'Docs sweep', due: '2026-10-01', summary: 'One pass over every page touched this quarter.' },
 ]);
 
-const hint = ref('Parents sort by title, sub-tasks by due date. Drag onto a row to nest, Right/Left to expand and collapse.');
+const hint = ref('Parents sort by title; sub-tasks keep their manual order — drag them to reorder, drop onto a row to nest.');
 
 const { builder, api } = useDataList<Task>();
 
@@ -101,9 +101,10 @@ function applyDrop(event: CoarDataListDropEvent<Task>) {
 builder
   .items(tasks)
   .itemKey((task) => task.id)
-  .children((task) => task.subTasks, (level) =>
-    level.sortOption('due', 'Due date').sort({ key: 'due', direction: 'asc' }),
-  )
+  // Child levels are lists of their own: here they keep their manual order
+  // (`sort(null)`), so sub-tasks can be dragged around while parents stay sorted.
+  // `.sort({ key: 'due', direction: 'asc' })` would sort them by due date instead.
+  .children((task) => task.subTasks, (level) => level.sortOption('due', 'Due date').sort(null))
   .expanded(['release'])
   .sortOption('title', 'Title')
   .sortOption('due', 'Due date')
