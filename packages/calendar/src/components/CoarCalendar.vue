@@ -44,7 +44,6 @@ import {
   Temporal,
   computeViewWindow,
   detectFirstDayOfWeekFromLocale,
-  buildFormatOptions,
   type CalendarEvent,
   type CalendarDayMode,
   type CalendarMonthDensity,
@@ -239,93 +238,10 @@ const prev = () => props.builder.api.prev();
 const setView = (v: CalendarView) => props.builder.api.setView(v);
 
 // ─── Range label ─────────────────────────────────────────────────
-
-const rangeLabel = computed<string>(() => {
-  const w = window.value;
-  const start = Temporal.PlainDate.from(w.start);
-  const lastVisible = Temporal.PlainDate.from(w.end).subtract({ days: 1 });
-  const locale = effectiveLocale.value;
-  const fmtOverrides = {
-    dateStyle: state.value.dateStyle,
-    timeStyle: state.value.timeStyle,
-    hour12: state.value.hour12,
-  };
-  switch (view.value) {
-    case 'day': {
-      if (start.until(lastVisible, { largestUnit: 'day' }).days > 0) {
-        const fmt = new Intl.DateTimeFormat(
-          locale,
-          buildFormatOptions(
-            { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' },
-            fmtOverrides,
-          ),
-        );
-        return fmt.formatRange(toDate(start), toDate(lastVisible));
-      }
-      return new Intl.DateTimeFormat(
-        locale,
-        buildFormatOptions(
-          { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' },
-          fmtOverrides,
-        ),
-      ).format(toDate(cursor.value));
-    }
-    case 'dayAgenda': {
-      return new Intl.DateTimeFormat(
-        locale,
-        buildFormatOptions(
-          { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' },
-          fmtOverrides,
-        ),
-      ).format(toDate(cursor.value));
-    }
-    case 'week':
-    case 'workWeek': {
-      // The window is the full Mon–Sun span for workWeek too; the
-      // label reflects that span (not the filtered render set) so
-      // navigation reads consistently with week view.
-      const fmt = new Intl.DateTimeFormat(
-        locale,
-        buildFormatOptions(
-          { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' },
-          fmtOverrides,
-        ),
-      );
-      return fmt.formatRange(toDate(start), toDate(lastVisible));
-    }
-    case 'month':
-    case 'monthList': {
-      return new Intl.DateTimeFormat(
-        locale,
-        buildFormatOptions({ year: 'numeric', month: 'long', timeZone: 'UTC' }, fmtOverrides),
-      ).format(toDate(cursor.value));
-    }
-    case 'agenda':
-    case 'timeline': {
-      // Both views span a configurable range of days; the label is
-      // the formatted date-range bounds, same as agenda's existing
-      // shape.
-      const fmt = new Intl.DateTimeFormat(
-        locale,
-        buildFormatOptions(
-          { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' },
-          fmtOverrides,
-        ),
-      );
-      return fmt.formatRange(toDate(start), toDate(lastVisible));
-    }
-    case 'year':
-      return String(cursor.value.year);
-    default:
-      return '';
-  }
-});
-
-function toDate(d: Temporal.PlainDate): Date {
-  // Anchor at UTC midnight so Intl with timeZone:'UTC' renders the
-  // exact calendar date and never drifts by a day.
-  return new Date(Date.UTC(d.year, d.month - 1, d.day));
-}
+// One formatter for the header and `api.rangeLabel` (core
+// `formatRangeLabel`), so hosts that draw their own controls show
+// exactly this text.
+const rangeLabel = computed<string>(() => props.builder.api.rangeLabel.value);
 
 // ─── View-switcher labels ────────────────────────────────────────
 

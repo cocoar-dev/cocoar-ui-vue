@@ -42,7 +42,6 @@ export type {
   EventRenderer,
   EventRendererCtx,
   EventsLoader,
-  MoreClickHandler,
   RangeChangeHandler,
   SeriesLoader,
   TimeClickHandler,

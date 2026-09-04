@@ -66,6 +66,7 @@ export {
   type ViewWindowOptions,
 } from './viewWindow';
 export { responsiveDayColumnCount } from './dayColumns';
+export { formatRangeLabel, type RangeLabelOptions } from './rangeLabel';
 export {
   TIME_GRID_PRESETS,
   resolveTimeGridRange,

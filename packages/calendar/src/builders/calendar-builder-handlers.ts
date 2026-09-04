@@ -19,15 +19,11 @@ import type {
   EventHoverHandler,
   EventHoverLeaveHandler,
   EventRenderer,
-  MoreClickHandler,
   RangeChangeHandler,
   TimeClickHandler,
   TimeDoubleClickHandler,
 } from './types';
 import { CalendarBuilderConfig } from './calendar-builder-config';
-
-/** Process-level guard for the onMoreClick dev-warn (once per page). */
-let _warnedOnMoreClick = false;
 
 export abstract class CalendarBuilderHandlers<
   TMeta extends Record<string, unknown> = Record<string, unknown>,
@@ -125,27 +121,6 @@ export abstract class CalendarBuilderHandlers<
   /** Double-click on an empty time slot (week / work-week / day). */
   onTimeDoubleClick(h: TimeDoubleClickHandler): this {
     this.state.onTimeDoubleClick = h;
-    return this;
-  }
-
-  /**
-   * `onMoreClick` is wired by month-view's "+N more" overflow
-   * surface, which is not yet drawn. The setter is honoured today
-   * (handler stored on state, read-on-fire), but the overflow
-   * trigger is not implemented in `<CoarMonthView>`. A one-shot
-   * dev-warn surfaces the gap so consumers don't ship features that
-   * never fire.
-   */
-  onMoreClick(h: MoreClickHandler<TMeta>): this {
-    this.state.onMoreClick = h;
-    if (!_warnedOnMoreClick) {
-      _warnedOnMoreClick = true;
-      if (typeof console !== 'undefined') {
-        console.warn(
-          '[CalendarBuilder.onMoreClick] handler registered, but the "+N more" overflow surface is not yet wired in <CoarMonthView>. The handler will start firing once month-view overflow ships in Session 3.5+. Until then, this setter is typed-but-dead.',
-        );
-      }
-    }
     return this;
   }
 

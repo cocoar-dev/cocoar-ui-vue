@@ -100,7 +100,7 @@ Constrain the visible hour range in `day` / `week` views via `timeRange([startHo
 
 ## Locale & first day of week
 
-Pass any BCP-47 locale via `locale(...)`. The first day of week is auto-detected from the locale (`en-US` → Sunday, `de-AT` / `fr-FR` → Monday, `ja-JP` → Sunday) and used by the `month` and `week` view windows. Override with `firstDayOfWeek(0..6)` (0 = Sunday … 6 = Saturday) when needed. Range labels and weekday names use the same locale.
+Pass any BCP-47 locale via `locale(...)`. Without it the calendar follows the host's `@cocoar/vue-localization` language, and `en-US` when no localization service is installed. The first day of week is auto-detected from the locale (`en-US` → Sunday, `de-AT` / `fr-FR` → Monday, `ja-JP` → Sunday) and used by the `month` and `week` view windows. Override with `firstDayOfWeek(0..6)` (0 = Sunday … 6 = Saturday) when needed. Range labels and weekday names use the same locale.
 
 <preview path="./demos/CalendarLocale.vue" />
 
@@ -486,6 +486,7 @@ api.refreshRange(start, end);   // invalidate intersecting cache entries
 
 watch(api.loading, (b) => console.log('loading?', b));
 watch(api.visibleRange, (w) => console.log('window changed', w));
+api.rangeLabel.value;           // "15.–21. Juni 2026" — the header's title, for your own header
 ```
 
 <preview path="./demos/CalendarImperativeApi.vue" />
@@ -555,7 +556,6 @@ The builder is **flat** — every setter lives directly on it. There are no sub-
 | `onTimeClick(fn)` | `(payload: { date, time, native: PointerEvent }) => void` | Empty time slot (week / day). |
 | `onDateDoubleClick(fn)` | `(payload: { date, native: MouseEvent }) => void` | Empty month cell / all-day cell double-clicked. Never fires for a double-click on an event. |
 | `onTimeDoubleClick(fn)` | `(payload: { date, time, native: MouseEvent }) => void` | Empty time slot double-clicked; `time` snapped like `onTimeClick`. |
-| `onMoreClick(fn)` | `(payload) => void` | Per-cell context menu trigger (month). |
 | `onRangeChange(fn)` | `(window) => void` | Visible window changed. |
 
 ### `CalendarApi<TMeta>`
@@ -580,6 +580,8 @@ interface CalendarApi<TMeta> {
   readonly loading: Readonly<Ref<boolean>>;
   readonly visibleRange: Readonly<Ref<ViewWindow | null>>;
   readonly gridReady: Readonly<Ref<boolean>>;
+  /** Title of the visible window, exactly as the built-in header shows it. */
+  readonly rangeLabel: Readonly<ComputedRef<string>>;
 }
 ```
 
@@ -605,7 +607,7 @@ Variant-specific slots (`pill`, `multiDayBar`, `allDayEvent`) still exist on the
 | Prop | Type | Description |
 |------|------|-------------|
 | `builder` | `CalendarBuilder` | **Required.** From `useCalendar()`. |
-| `hideHeader` | `boolean` | Render only the body — no header bar. For hosts that own navigation and view selection and drive the calendar through `api.goTo / next / prev / setView / setMonthDensity / setDayMode`. Default `false`. |
+| `hideHeader` | `boolean` | Render only the body — no header bar. For hosts that own navigation and view selection and drive the calendar through `api.goTo / next / prev / setView / setMonthDensity / setDayMode`; `api.rangeLabel` is the title the built-in header would have shown. Default `false`. |
 | `hideViewSwitcher` | `boolean` | Keep the header but drop the primary view switcher. Default `false`. |
 | `hideModeSwitcher` | `boolean` | Keep the header but drop the Month / Day display-choice switcher. Default `false`. |
 

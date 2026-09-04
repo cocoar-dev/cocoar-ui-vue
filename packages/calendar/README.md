@@ -304,10 +304,6 @@ would duplicate the same capability.
 - **Timezone abbreviations (`'EST'`, `'CET'`, etc.)** — the underlying
   Temporal polyfill resolves these to fixed-offset zones rather than
   rejecting them. The calendar accepts whatever Temporal accepts.
-- **`onMoreClick`** — typed setter exists, but the "+N more" overflow
-  surface in `<CoarMonthView>` is a post-2.0 visual-polish item. Setting
-  the handler today emits a one-shot dev-warn; the handler starts firing
-  once the overflow surface ships.
 
 ## Architecture decisions (locked)
 

@@ -71,6 +71,7 @@ import { EventValidator } from './internal/event-validation';
 import { LoaderPipeline } from './internal/loader-pipeline';
 import { SeriesPipeline } from './internal/series-pipeline';
 import { eventsForWindow } from './internal/events-for-window';
+import { createRangeLabel } from './internal/range-label';
 
 export type { CalendarApi, CalendarBuilderState } from './calendar-builder-state';
 
@@ -133,6 +134,7 @@ export class CalendarBuilder<
       loading: this._loading.loading as Readonly<Ref<boolean>>,
       visibleRange: this._visibleRange as Readonly<ShallowRef<ViewWindow | null>>,
       gridReady: this._gridReady as Readonly<Ref<boolean>>,
+      rangeLabel: this._scope.run(() => createRangeLabel(this.state, this._visibleRange))!,
       goTo: (d) => this._goTo(d),
       goToToday: () => this._goToToday(),
       next: () => this._navigate(+1),

@@ -11,7 +11,14 @@
  * following the class hierarchy.
  */
 
-import { ref, shallowReactive, type MaybeRefOrGetter, type Ref, type ShallowRef } from 'vue';
+import {
+  ref,
+  shallowReactive,
+  type MaybeRefOrGetter,
+  type ComputedRef,
+  type Ref,
+  type ShallowRef,
+} from 'vue';
 import {
   type AllDayBandMode,
   type CalendarDayMode,
@@ -41,7 +48,6 @@ import type {
   EventHoverLeaveHandler,
   EventRenderer,
   EventsLoader,
-  MoreClickHandler,
   RangeChangeHandler,
   SeriesLoader,
   TimeClickHandler,
@@ -78,7 +84,11 @@ export interface CalendarBuilderState<
   seriesLoader: SeriesLoader<TMeta> | null;
   /** Display zone (C5). Defaults to the browser's IANA zone. */
   timezone: MaybeRefOrGetter<string>;
-  locale: MaybeRefOrGetter<string>;
+  /**
+   * BCP-47 display locale. `undefined` (the default) defers to the host's
+   * `@cocoar/vue-localization` language, then `'en-US'`.
+   */
+  locale: MaybeRefOrGetter<string | undefined>;
   /** Locale-derived when undefined (Article 9 — defaults are not decisions). */
   firstDayOfWeek: MaybeRefOrGetter<DayOfWeek | undefined>;
   /**
@@ -210,7 +220,6 @@ export interface CalendarBuilderState<
   onTimeClick: TimeClickHandler | null;
   onDateDoubleClick: DateDoubleClickHandler | null;
   onTimeDoubleClick: TimeDoubleClickHandler | null;
-  onMoreClick: MoreClickHandler<TMeta> | null;
   onRangeChange: RangeChangeHandler | null;
 }
 
@@ -236,7 +245,7 @@ export function createCalendarBuilderState<TMeta extends Record<string, unknown>
     series: null,
     seriesLoader: null,
     timezone: detectedZone,
-    locale: 'en-US',
+    locale: undefined,
     // Article 9 — `undefined` so detectFirstDayOfWeekFromLocale(locale)
     // resolves at the view layer. Avoid baking implicit decisions.
     firstDayOfWeek: undefined,
@@ -298,7 +307,6 @@ export function createCalendarBuilderState<TMeta extends Record<string, unknown>
     onTimeClick: null,
     onDateDoubleClick: null,
     onTimeDoubleClick: null,
-    onMoreClick: null,
     onRangeChange: null,
   });
 }
@@ -316,6 +324,13 @@ export interface CalendarApi<TMeta extends Record<string, unknown> = Record<stri
   readonly visibleRange: Readonly<ShallowRef<ViewWindow | null>>;
   /** `true` once the active view's grid has reported ready. */
   readonly gridReady: Readonly<Ref<boolean>>;
+  /**
+   * The title of the visible window, exactly as the built-in header
+   * shows it ("15.–21. Juni 2026", "June 2026", "2026"). For hosts
+   * that hide the header and draw their own navigation. Right before
+   * any view has mounted, too (computed from the configured window).
+   */
+  readonly rangeLabel: Readonly<ComputedRef<string>>;
   // ── Imperative navigation ─────────────────────────────────────
   goTo(date: Temporal.PlainDate): void;
   goToToday(): void;

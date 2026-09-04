@@ -61,7 +61,8 @@ describe('CalendarBuilder construction', () => {
     const b = CalendarBuilder.create();
     expect(toValue(b.state.dstPolicy)).toBe('compatible');
     expect(typeof toValue(b.state.timezone)).toBe('string'); // browser zone
-    expect(toValue(b.state.locale)).toBe('en-US');
+    // Article 9: no locale decision baked in — the host language (or en-US) is resolved at read time.
+    expect(toValue(b.state.locale)).toBeUndefined();
     expect(b.state.view.value).toBe('month');
     expect(toValue(b.state.availableViews)).toEqual([
       'year',
@@ -112,7 +113,6 @@ describe('CalendarBuilder construction', () => {
       .onEventDrop(() => {})
       .onDateClick(() => {})
       .onTimeClick(() => {})
-      .onMoreClick(() => {})
       .onRangeChange(() => {});
     expect(result).toBe(b);
     expect(toValue(b.state.shadeWeekends)).toBe(false);

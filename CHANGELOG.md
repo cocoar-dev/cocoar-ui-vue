@@ -78,6 +78,12 @@ the time grids.
   scans the source tree and fails when a component reads a key either
   catalog lacks.
 
+- **`api.rangeLabel`** — the title of the visible window ("15.–21. Juni
+  2026", "June 2026", "2026") as a readonly computed, formatted by the same
+  `formatRangeLabel` (core) the built-in header uses. For hosts that set
+  `hideHeader` and draw their own navigation. Correct before any view has
+  mounted, too.
+
 ### Changed
 
 - **Agenda and Month List show time spans.** Timed events with an end render
@@ -90,7 +96,22 @@ the time grids.
   event fills without a calendar-specific override. An explicit
   `--coar-color-accent` still wins.
 
+### Removed
+
+- **`onMoreClick`** and the `MoreClickHandler` type. The setter never
+  fired: it was specified for a "+N more" overflow surface in the month
+  view, and the month view deliberately has none (every event stays in
+  the DOM, cells scroll, a row expands via its cell menu). Use
+  `onDateClick` plus `api.getEventsForWindow(window)` for a day's events.
+
 ### Fixed
+
+- **Locale fallback to the host's localization service now works.** The
+  builder's `locale` defaulted to `'en-US'`, so the documented fallback to
+  the `@cocoar/vue-localization` language never applied in any view. The
+  default is now `undefined`: an explicit `locale(...)` wins, then the
+  host language, then `en-US`. Hosts with the localization plugin that
+  never called `locale(...)` will see the calendar in their app language.
 
 - **Cross-zone and UTC decorations no longer crash the agenda.** The
   decoration component called the localization service's `t` detached from
