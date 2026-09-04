@@ -156,3 +156,36 @@ describe('onTimeDoubleClick / onDateDoubleClick — time grid', () => {
     expect(onDateDoubleClick.mock.calls[0][0].date.toString()).toBe('2026-06-15');
   });
 });
+
+describe('single-click hooks ignore clicks that start on an event element', () => {
+  // (onEventClick itself fires on release below the drag threshold —
+  // that's the drag runtime's contract, pinned in its own tests.)
+  it('month: pointerdown on a pill never reaches onDateClick', async () => {
+    const onDateClick = vi.fn();
+    const b = newBuilder().view('month').onDateClick(onDateClick);
+    const w = mount(CoarMonthView, { props: { builder: b } });
+    await w.find('.coar-month-pill[data-event-id="standup"]').trigger('pointerdown');
+    expect(onDateClick).not.toHaveBeenCalled();
+    // …while the empty cell itself still reports.
+    await w.find('[data-day-key="2026-06-17"]').trigger('pointerdown');
+    expect(onDateClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('time grid: pointerdown on a card never reaches onTimeClick', async () => {
+    const onTimeClick = vi.fn();
+    const b = newBuilder().view('day').onTimeClick(onTimeClick);
+    const w = mount(CoarDayView, { props: { builder: b } });
+    await w.find('.coar-time-grid-event[data-event-id="standup"]').trigger('pointerdown');
+    expect(onTimeClick).not.toHaveBeenCalled();
+  });
+
+  it('all-day band: pointerdown on a bar never reaches onDateClick', async () => {
+    const onDateClick = vi.fn();
+    const b = newBuilder().view('day').onDateClick(onDateClick);
+    const w = mount(CoarDayView, { props: { builder: b } });
+    const bar = w.find('.coar-time-grid-all-day-bar[data-event-id="offsite"]');
+    expect(bar.exists()).toBe(true);
+    await bar.trigger('pointerdown');
+    expect(onDateClick).not.toHaveBeenCalled();
+  });
+});

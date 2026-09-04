@@ -52,6 +52,7 @@ import { RenderEvent } from '../builders/render-helpers';
 import CoarMonthPill from './internal/month/CoarMonthPill.vue';
 import CoarMonthBar from './internal/month/CoarMonthBar.vue';
 import CoarMonthCell from './internal/month/CoarMonthCell.vue';
+import { originatesFromEvent } from './internal/originatesFromEvent';
 import CoarMonthRow from './internal/month/CoarMonthRow.vue';
 import CoarMonthGrid from './internal/month/CoarMonthGrid.vue';
 
@@ -461,6 +462,9 @@ function eventAriaLabel(event: CalendarEvent<TMeta>): string {
 // ─── Click handlers ──────────────────────────────────────────────────
 
 function onCellClick(e: PointerEvent, date: Temporal.PlainDate) {
+  // A pill's pointerdown bubbles through its cell — that's an event
+  // click (onEventClick), not an empty-cell click.
+  if (originatesFromEvent(e)) return;
   props.builder.state.onDateClick?.({ date, native: e });
 }
 function onCellDblclick(e: MouseEvent, date: Temporal.PlainDate) {

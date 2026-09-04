@@ -61,6 +61,12 @@ builder
     const title = (event.meta as { title?: string } | undefined)?.title ?? event.id;
     pushLog(`click: ${title}`);
   })
+  // Empty cells / slots: single-click selects, double-click creates
+  // (desktop convention) — two separate hooks, no host-side timer.
+  .onDateClick(({ date }) => pushLog(`dateClick: ${date}`))
+  .onTimeClick(({ date, time }) => pushLog(`timeClick: ${date} ${time}`))
+  .onDateDoubleClick(({ date }) => pushLog(`dateDblClick: ${date}`))
+  .onTimeDoubleClick(({ date, time }) => pushLog(`timeDblClick: ${date} ${time}`))
   .onEventDrop(({ event, next, target }) => {
     const title = (event.meta as { title?: string } | undefined)?.title ?? event.id;
     pushLog(

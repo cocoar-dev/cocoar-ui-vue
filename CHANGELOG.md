@@ -55,6 +55,11 @@ cross-zone decorations is fixed.
   its instance; the first event whose source zone differed from the display
   zone threw `Cannot read properties of undefined (reading '_language')` and
   left the agenda blank. The call is now bound to the service.
+- **Clicking an event no longer also reports an empty-cell click.** A pill or
+  card's `pointerdown` bubbled through its month cell / time-grid column, so
+  `onDateClick` / `onTimeClick` fired alongside `onEventClick`. The
+  empty-surface hooks now ignore pointer events that started inside an event
+  element, matching their documented "empty cell / slot" contract.
 - **Multi-day all-day events are announced with their inclusive last day.**
   The month-grid `aria-label` named the RFC-5545 exclusive end (a Fri–Sun stay
   read "Fri – Mon"); it now names the last covered day, and single-day

@@ -53,6 +53,7 @@ import CoarTimeGridNowMarker from './internal/time-grid/CoarTimeGridNowMarker.vu
 import CoarTimeGridHeader from './internal/time-grid/CoarTimeGridHeader.vue';
 import CoarTimeGridAllDayBand from './internal/time-grid/CoarTimeGridAllDayBand.vue';
 import CoarTimeGridColumn from './internal/time-grid/CoarTimeGridColumn.vue';
+import { originatesFromEvent } from './internal/originatesFromEvent';
 import { contentAwareCascadeFrames, type CascadeItem } from '../core/cascadeLayout';
 
 // Inlined defineProps argument to avoid vue-tsc TS4025 — see note in
@@ -558,6 +559,9 @@ function slotTimeAt(e: MouseEvent): Temporal.PlainTime | null {
 }
 
 function onColumnPointerDown(e: PointerEvent, date: Temporal.PlainDate) {
+  // A card's pointerdown bubbles through its column — that's an event
+  // click (onEventClick), not an empty-slot click.
+  if (originatesFromEvent(e)) return;
   const time = slotTimeAt(e);
   if (!time) return;
   props.builder.state.onTimeClick?.({ date, time, native: e });
@@ -570,6 +574,7 @@ function onColumnDblclick(e: MouseEvent, date: Temporal.PlainDate) {
 }
 
 function onAllDayCellPointerDown(e: PointerEvent, date: Temporal.PlainDate) {
+  if (originatesFromEvent(e)) return;
   props.builder.state.onDateClick?.({ date, native: e });
 }
 
