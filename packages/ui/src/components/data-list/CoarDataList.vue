@@ -18,6 +18,7 @@ import { useDataListLines } from './internal/useDataListLines';
 import { useDataListReorder } from './internal/useDataListReorder';
 import type { DropPayload } from '../../composables/useDragDrop';
 import CoarDataListToolbar from './CoarDataListToolbar.vue';
+import CoarIcon from '../icon/CoarIcon.vue';
 import CoarContextMenu from '../menu/CoarContextMenu.vue';
 import CoarMenu from '../menu/CoarMenu.vue';
 import CoarMenuItem from '../menu/CoarMenuItem.vue';
@@ -36,6 +37,8 @@ import type {
   CoarDataListItemsRemoveEvent,
   CoarDataListKey,
   CoarDataListLayout,
+  CoarDataListLevelConfig,
+  CoarDataListNestingStyle,
   CoarDataListMenuEntry,
   CoarDataListMenuItem,
   CoarDataListSearchBy,
@@ -124,6 +127,21 @@ export interface CoarDataListProps<T = unknown> {
   canDrop?: (payload: DropPayload<T>) => boolean;
   /** Accept OS file drops (`files-drop`); works with either drag engine. */
   acceptsFiles?: boolean;
+
+  /** Nested lists: returns an item's children. Shown in the list layout only. */
+  children?: (item: T) => readonly T[] | null | undefined;
+  /** Sorting of the child levels; without it they inherit the top level's sort. */
+  childLevel?: CoarDataListLevelConfig<T>;
+  /** Deepest level shown, 0 = top level only. Default: unlimited. */
+  maxDepth?: number;
+  /** Indent per level, px number or CSS length. Default `'1.5rem'`. */
+  nestingIndent?: number | string;
+  /** `'lines'` (guide line per level, default) or `'none'`. */
+  nestingStyle?: CoarDataListNestingStyle;
+  /** Hide the built-in expand chevrons; use `toggleExpanded()` from the item slot instead. */
+  hideExpandToggle?: boolean;
+  /** Veto for dropping `item` inside `parent` (drag & drop re-parenting). */
+  canNest?: (item: T, parent: T) => boolean;
 }
 
 const props = withDefaults(defineProps<CoarDataListProps<T>>(), {
@@ -161,6 +179,13 @@ const props = withDefaults(defineProps<CoarDataListProps<T>>(), {
   dragAccept: undefined,
   canDrop: undefined,
   acceptsFiles: false,
+  children: undefined,
+  childLevel: undefined,
+  maxDepth: undefined,
+  nestingIndent: '1.5rem',
+  nestingStyle: 'lines',
+  hideExpandToggle: false,
+  canNest: undefined,
 });
 
 const emit = defineEmits<{
@@ -191,6 +216,7 @@ defineSlots<{
 const searchModel = defineModel<string>('search', { default: '' });
 const sortModel = defineModel<CoarDataListSort | null>('sort', { default: null });
 const selectedModel = defineModel<CoarDataListKey[]>('selected', { default: () => [] });
+const expandedModel = defineModel<CoarDataListKey[]>('expanded', { default: () => [] });
 
 const { t, language } = useI18n();
 
@@ -232,6 +258,13 @@ const cfg = computed(() => {
       dragAccept: toValue(s.dragAccept),
       canDrop: s.canDrop,
       acceptsFiles: toValue(s.acceptsFiles),
+      children: s.children,
+      childLevel: toValue(s.childLevel),
+      maxDepth: toValue(s.maxDepth),
+      nestingIndent: toValue(s.nestingIndent),
+      nestingStyle: toValue(s.nestingStyle),
+      hideExpandToggle: toValue(s.hideExpandToggle),
+      canNest: s.canNest,
     };
   }
   return {
@@ -272,6 +305,13 @@ const cfg = computed(() => {
     dragAccept: props.dragAccept,
     canDrop: props.canDrop,
     acceptsFiles: props.acceptsFiles,
+    children: props.children,
+    childLevel: props.childLevel,
+    maxDepth: props.maxDepth,
+    nestingIndent: props.nestingIndent,
+    nestingStyle: props.nestingStyle,
+    hideExpandToggle: props.hideExpandToggle,
+    canNest: props.canNest,
   };
 });
 
@@ -304,6 +344,17 @@ const selected = computed<CoarDataListKey[]>({
     else selectedModel.value = value;
   },
 });
+const expanded = computed<CoarDataListKey[]>({
+  get: () => builderState()?.expanded.value ?? expandedModel.value,
+  set: (value) => {
+    const state = builderState();
+    if (state) state.expanded.value = value;
+    else expandedModel.value = value;
+  },
+});
+
+// Nesting is a list-layout feature; the grid shows top-level items only.
+const nestingActive = computed(() => !!cfg.value.children && cfg.value.layout === 'list');
 
 const list = useDataListModel<T>({
   items: () => cfg.value.items,
@@ -318,6 +369,11 @@ const list = useDataListModel<T>({
   locale: language,
   selectionMode: () => cfg.value.selection,
   selected,
+  children: computed(() => cfg.value.children),
+  expanded,
+  childLevel: () => cfg.value.childLevel,
+  maxDepth: () => cfg.value.maxDepth,
+  nesting: () => cfg.value.layout === 'list',
 });
 
 // ─── Lines & virtualisation ──────────────────────────────────────────────────
@@ -490,6 +546,23 @@ const reorder = useDataListReorder<T>({
   dragAccept: () => cfg.value.dragAccept,
   canDrop: () => cfg.value.canDrop,
   groupOf: (item) => cfg.value.groupBy?.(item) ?? null,
+  parentOf: (key) => list.parentOf(key),
+  siblingsOf: (parentKey) =>
+    entries.value.flatMap((entry) => (entry.kind === 'item' && entry.parentKey === parentKey ? [entry.item] : [])),
+  canNestInto: (parent, items) => {
+    if (!nestingActive.value) return false;
+    const depth = list.entryOfKey(list.keyOf(parent))?.depth ?? 0;
+    if (cfg.value.maxDepth !== undefined && depth >= cfg.value.maxDepth) return false;
+    return cfg.value.canNest ? items.every((item) => cfg.value.canNest!(item, parent)) : true;
+  },
+  isDescendantOf: (key, ancestorKey) => {
+    let current = list.parentOf(key);
+    while (current !== null) {
+      if (current === ancestorKey) return true;
+      current = list.parentOf(current);
+    }
+    return false;
+  },
   acceptsFiles: () => cfg.value.acceptsFiles,
   focusedKey,
   scrollToKey: (key) => scrollToKey(key),
@@ -534,9 +607,19 @@ function slotPropsFor(entry: ItemEntry): CoarDataListItemSlotProps<T> {
     selected: list.isSelected(entry.itemKey),
     focused: focusedKey.value === entry.itemKey,
     dragging: reorder.isDragged(entry.itemKey),
+    depth: entry.depth,
+    hasChildren: entry.hasChildren,
+    expanded: entry.expanded,
     select: () => list.select(entry.itemKey, 'replace'),
     toggle: () => list.select(entry.itemKey, 'toggle'),
+    toggleExpanded: () => list.toggleExpanded(entry.itemKey),
   };
+}
+
+function toggleLabel(entry: ItemEntry): string {
+  return entry.expanded
+    ? t('coar.ui.dataList.collapse', undefined, 'Collapse')
+    : t('coar.ui.dataList.expand', undefined, 'Expand');
 }
 
 function scrollToKey(key: CoarDataListKey, align: 'auto' | 'start' | 'center' | 'end' = 'auto') {
@@ -581,16 +664,42 @@ function onKeyDown(event: KeyboardEvent) {
       event.preventDefault();
       moveFocus(current <= 0 ? 0 : current - step, event);
       return;
-    case 'ArrowRight':
-      if (cfg.value.layout !== 'grid') return;
+    case 'ArrowRight': {
+      if (cfg.value.layout === 'grid') {
+        event.preventDefault();
+        moveFocus(current + 1, event);
+        return;
+      }
+      if (!nestingActive.value || current < 0) return;
+      // Expand a collapsed parent; on an expanded one, step into the first child.
+      const entry = list.entryOfKey(list.keyOf(items[current]));
+      if (!entry?.hasChildren) return;
       event.preventDefault();
-      moveFocus(current + 1, event);
+      if (!entry.expanded) list.expand(entry.itemKey);
+      else moveFocus(current + 1, event);
       return;
-    case 'ArrowLeft':
-      if (cfg.value.layout !== 'grid') return;
-      event.preventDefault();
-      moveFocus(current <= 0 ? 0 : current - 1, event);
+    }
+    case 'ArrowLeft': {
+      if (cfg.value.layout === 'grid') {
+        event.preventDefault();
+        moveFocus(current <= 0 ? 0 : current - 1, event);
+        return;
+      }
+      if (!nestingActive.value || current < 0) return;
+      // Collapse an expanded parent; otherwise jump to the parent row.
+      const entry = list.entryOfKey(list.keyOf(items[current]));
+      if (!entry) return;
+      if (entry.hasChildren && entry.expanded) {
+        event.preventDefault();
+        list.collapse(entry.itemKey);
+        return;
+      }
+      if (entry.parentKey !== null) {
+        event.preventDefault();
+        moveFocus(list.indexOfKey(entry.parentKey), event);
+      }
       return;
+    }
     case 'Home':
       event.preventDefault();
       moveFocus(0, event);
@@ -648,10 +757,13 @@ const showToolbar = computed(
 );
 const emptyLabel = computed(() => cfg.value.emptyText ?? t('coar.ui.dataList.empty', undefined, 'No items'));
 const viewportStyle = computed(() => (cfg.value.height ? { height: cfg.value.height, flex: 'none' } : undefined));
-const gapStyle = computed(() => {
+const rootStyle = computed(() => {
+  const style: Record<string, string> = {};
   const gap = cfg.value.gap;
-  if (gap === undefined || gap === '') return undefined;
-  return { '--coar-data-list-gap': typeof gap === 'number' ? `${gap}px` : gap };
+  if (gap !== undefined && gap !== '') style['--coar-data-list-gap'] = typeof gap === 'number' ? `${gap}px` : gap;
+  const indent = cfg.value.nestingIndent;
+  style['--coar-data-list-indent'] = typeof indent === 'number' ? `${indent}px` : indent;
+  return style;
 });
 const role = computed(() => (cfg.value.selection === 'none' ? 'list' : 'listbox'));
 
@@ -710,9 +822,11 @@ defineExpose({
         'coar-data-list--reorderable': cfg.reorderable && !cfg.disabled,
         'coar-data-list--drag-over': reorder.isDragOver.value,
         'coar-data-list--dragging': reorder.dragging.value,
+        'coar-data-list--nested': nestingActive,
+        [`coar-data-list--nesting-${cfg.nestingStyle}`]: nestingActive,
       },
     ]"
-    :style="gapStyle"
+    :style="rootStyle"
   >
     <CoarDataListToolbar
       v-if="showToolbar"
@@ -780,12 +894,18 @@ defineExpose({
                   'coar-data-list__item--selected': list.isSelected(entry.itemKey),
                   'coar-data-list__item--focused': focusedKey === entry.itemKey,
                   'coar-data-list__item--dragging': reorder.isDragged(entry.itemKey),
+                  'coar-data-list__item--nested': entry.depth > 0,
+                  'coar-data-list__item--parent': entry.hasChildren,
+                  'coar-data-list__item--expanded': entry.expanded,
                 },
                 dropClass(entry.itemKey),
               ]"
+              :style="nestingActive ? { '--coar-data-list-depth': entry.depth } : undefined"
               :data-key="String(entry.itemKey)"
               :role="cfg.selection === 'none' ? 'listitem' : 'option'"
               :aria-selected="cfg.selection === 'none' ? undefined : list.isSelected(entry.itemKey) ? 'true' : 'false'"
+              :aria-level="nestingActive ? entry.depth + 1 : undefined"
+              :aria-expanded="nestingActive && entry.hasChildren ? (entry.expanded ? 'true' : 'false') : undefined"
               :draggable="reorder.nativeDraggable.value ? true : undefined"
               @mousedown="onItemMouseDown"
               @click="onItemClick(entry, $event)"
@@ -795,9 +915,36 @@ defineExpose({
               @dragend="reorder.onItemDragEnd"
               @pointerdown="reorder.onItemPointerDown($event, entry.item)"
             >
-              <slot name="item" v-bind="slotPropsFor(entry)">
-                {{ String(entry.itemKey) }}
-              </slot>
+              <template v-if="nestingActive">
+                <span
+                  v-for="level in entry.depth"
+                  :key="level"
+                  class="coar-data-list__guide"
+                  :style="{ '--coar-data-list-guide-index': level - 1 }"
+                  aria-hidden="true"
+                />
+                <button
+                  v-if="!cfg.hideExpandToggle"
+                  type="button"
+                  class="coar-data-list__toggle"
+                  :class="{ 'coar-data-list__toggle--leaf': !entry.hasChildren }"
+                  :aria-label="toggleLabel(entry)"
+                  :aria-hidden="entry.hasChildren ? undefined : 'true'"
+                  :tabindex="-1"
+                  :disabled="!entry.hasChildren"
+                  @mousedown.prevent.stop
+                  @pointerdown.stop
+                  @click.stop="list.toggleExpanded(entry.itemKey)"
+                  @dblclick.stop
+                >
+                  <CoarIcon name="chevron-right" size="s" class="coar-data-list__chevron" />
+                </button>
+              </template>
+              <div class="coar-data-list__content">
+                <slot name="item" v-bind="slotPropsFor(entry)">
+                  {{ String(entry.itemKey) }}
+                </slot>
+              </div>
             </div>
           </div>
         </div>
@@ -955,11 +1102,92 @@ defineExpose({
 }
 
 .coar-data-list__item {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
   box-sizing: border-box;
   padding: var(--coar-data-list-item-pad-y) var(--coar-data-list-item-pad-x);
   border-radius: var(--coar-radius-xs);
   min-width: 0;
   transition: background-color var(--coar-duration-fast) var(--coar-ease-out);
+}
+
+.coar-data-list__content {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* ── Nesting ── */
+.coar-data-list--nested .coar-data-list__item {
+  --coar-data-list-toggle-size: 1.25rem;
+  padding-left: calc(
+    var(--coar-data-list-item-pad-x) + var(--coar-data-list-depth, 0) * var(--coar-data-list-indent, 1.5rem)
+  );
+}
+
+.coar-data-list__toggle {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--coar-data-list-toggle-size);
+  height: var(--coar-data-list-toggle-size);
+  margin-right: var(--coar-spacing-xs);
+  padding: 0;
+  border: 0;
+  border-radius: var(--coar-radius-xs);
+  background: transparent;
+  color: var(--coar-icon-neutral-secondary);
+  cursor: pointer;
+}
+
+.coar-data-list__toggle--leaf {
+  visibility: hidden;
+  cursor: default;
+}
+
+@media (hover: hover) {
+  .coar-data-list__toggle:not(.coar-data-list__toggle--leaf):hover {
+    background: var(--coar-background-neutral-tertiary);
+    color: var(--coar-icon-neutral-primary);
+  }
+}
+
+.coar-data-list__chevron {
+  transition: transform var(--coar-duration-fast) var(--coar-ease-out);
+}
+
+.coar-data-list__item--expanded > .coar-data-list__toggle .coar-data-list__chevron {
+  transform: rotate(90deg);
+}
+
+/* One guide line per ancestor level, aligned with that level's chevron. */
+.coar-data-list__guide {
+  display: none;
+}
+
+.coar-data-list--nesting-lines .coar-data-list__guide {
+  display: block;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(
+    var(--coar-data-list-item-pad-x) + var(--coar-data-list-guide-index) * var(--coar-data-list-indent, 1.5rem)
+      + var(--coar-data-list-toggle-size) / 2
+  );
+  border-left: 1px solid var(--coar-border-neutral-secondary, var(--coar-border-neutral));
+  pointer-events: none;
+}
+
+.coar-data-list--nesting-lines .coar-data-list__item--nested {
+  border-radius: 0;
+}
+
+/* Drop "inside": make the row the new parent. */
+.coar-data-list__item--drop-inside {
+  outline: 2px dashed var(--coar-border-accent-primary);
+  outline-offset: -2px;
+  background: var(--coar-background-accent-tertiary);
 }
 
 .coar-data-list--selectable .coar-data-list__item {
@@ -996,7 +1224,6 @@ defineExpose({
 
 /* ── Drag & drop ── */
 .coar-data-list--reorderable .coar-data-list__item {
-  position: relative;
   touch-action: pan-y;
 }
 

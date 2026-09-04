@@ -2,18 +2,25 @@ import type { CoarDataListDropTarget, CoarDataListKey, CoarDataListLayout } from
 
 /**
  * Drop position relative to the item under the pointer: split vertically in the
- * list layout, horizontally between tiles in the grid layout.
+ * list layout, horizontally between tiles in the grid layout. With `nestable`,
+ * the middle half of a list row means "drop inside" (make the item the parent).
  */
 export function computeDropTarget(
   layout: CoarDataListLayout,
   rect: { top: number; left: number; width: number; height: number },
   point: { x: number; y: number },
   key: CoarDataListKey,
+  options: { nestable?: boolean } = {},
 ): CoarDataListDropTarget {
   const ratio =
     layout === 'grid'
       ? rect.width > 0 ? (point.x - rect.left) / rect.width : 0
       : rect.height > 0 ? (point.y - rect.top) / rect.height : 0;
+  if (options.nestable && layout === 'list') {
+    if (ratio < 0.25) return { key, position: 'before' };
+    if (ratio > 0.75) return { key, position: 'after' };
+    return { key, position: 'inside' };
+  }
   return { key, position: ratio < 0.5 ? 'before' : 'after' };
 }
 
@@ -24,17 +31,19 @@ export interface Insertion {
 }
 
 /**
- * Translates a drop target into an insertion point among the visible keys with
- * the dragged keys removed. Returns `null` when the drop would change nothing
- * (target is a dragged item, or the block would land where it already is).
+ * Translates a drop target into an insertion point among `siblingKeys` (the
+ * visible items that share the destination parent) with the dragged keys
+ * removed. Pass `null` as target to append. Returns `null` when the drop would
+ * change nothing (target is a dragged item, or the block would land where it
+ * already is).
  */
 export function resolveInsertion(
-  visibleKeys: readonly CoarDataListKey[],
+  siblingKeys: readonly CoarDataListKey[],
   draggedKeys: ReadonlySet<CoarDataListKey>,
-  target: CoarDataListDropTarget | null,
-  options: { fromSelf: boolean },
+  target: { key: CoarDataListKey; position: 'before' | 'after' } | null,
+  options: { fromSelf: boolean; sameParent: boolean },
 ): Insertion | null {
-  const remaining = visibleKeys.filter((key) => !draggedKeys.has(key));
+  const remaining = siblingKeys.filter((key) => !draggedKeys.has(key));
 
   let toIndex: number;
   if (!target) {
@@ -46,10 +55,10 @@ export function resolveInsertion(
     toIndex = target.position === 'before' ? index : index + 1;
   }
 
-  if (options.fromSelf) {
-    const dragged = visibleKeys.filter((key) => draggedKeys.has(key));
+  if (options.fromSelf && options.sameParent) {
+    const dragged = siblingKeys.filter((key) => draggedKeys.has(key));
     const next = [...remaining.slice(0, toIndex), ...dragged, ...remaining.slice(toIndex)];
-    if (next.length === visibleKeys.length && next.every((key, i) => key === visibleKeys[i])) return null;
+    if (next.length === siblingKeys.length && next.every((key, i) => key === siblingKeys[i])) return null;
   }
 
   return {

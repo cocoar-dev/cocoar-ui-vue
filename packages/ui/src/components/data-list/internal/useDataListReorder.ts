@@ -29,6 +29,14 @@ export interface UseDataListReorderOptions<T> {
   dragAccept: () => string[] | undefined;
   canDrop: () => ((payload: DropPayload<T>) => boolean) | undefined;
   groupOf: (item: T) => string | null;
+  /** Visible parent key of a visible item (`null` at the top level). */
+  parentOf: (key: CoarDataListKey) => CoarDataListKey | null;
+  /** Visible items sharing `parentKey` (`null` = top level), in display order. */
+  siblingsOf: (parentKey: CoarDataListKey | null) => readonly T[];
+  /** The list nests and dropping inside `item` is allowed for the dragged items. */
+  canNestInto: (parent: T, items: readonly T[]) => boolean;
+  /** Ancestor check to refuse dropping a parent into its own subtree. */
+  isDescendantOf: (key: CoarDataListKey, ancestorKey: CoarDataListKey) => boolean;
   acceptsFiles: () => boolean;
   focusedKey: Ref<CoarDataListKey | null>;
   scrollToKey: (key: CoarDataListKey) => void;
@@ -80,14 +88,50 @@ export function useDataListReorder<T>(options: UseDataListReorderOptions<T>) {
     return el && viewport.contains(el) ? el : null;
   }
 
-  /** Drop target implied by the pointer position: before/after the row or tile under it. */
+  /** Items currently being dragged (from this list) — for nesting vetoes. */
+  function draggedItems(): T[] {
+    return [...dragKeys.value].map(options.itemByKey).filter((item): item is T => item !== undefined);
+  }
+
+  /** A drop relative to `key` must not move an item into its own subtree. */
+  function insideOwnSubtree(key: CoarDataListKey): boolean {
+    for (const dragged of dragKeys.value) {
+      if (key === dragged || options.isDescendantOf(key, dragged)) return true;
+    }
+    return false;
+  }
+
+  /**
+   * A hovered row that must not take the drop (own subtree, nesting veto). Unlike
+   * "no row under the pointer" (= append), a refused row means the drop does nothing.
+   */
+  let refused = false;
+
+  /** Drop target implied by the pointer position: before / after / inside the row or tile under it. */
   function targetAt(x: number, y: number): CoarDataListDropTarget | null {
+    refused = false;
     if (options.sorted()) return null;
     const el = itemElementAt(x, y);
     if (!el) return null;
     const key = keyIndex().get(el.dataset.key ?? '');
-    if (key === undefined || dragKeys.value.has(key)) return null;
-    return computeDropTarget(options.layout(), el.getBoundingClientRect(), { x, y }, key);
+    if (key === undefined) return null;
+    if (insideOwnSubtree(key)) {
+      refused = true;
+      return null;
+    }
+    const item = options.itemByKey(key);
+    const nestable = item !== undefined && options.canNestInto(item, draggedItems());
+    const target = computeDropTarget(options.layout(), el.getBoundingClientRect(), { x, y }, key, { nestable });
+    // Before/after a nested row keeps its parent; make sure that parent accepts the items too.
+    if (target.position !== 'inside') {
+      const parentKey = options.parentOf(key);
+      const parent = parentKey === null ? undefined : options.itemByKey(parentKey);
+      if (parent !== undefined && !options.canNestInto(parent, draggedItems())) {
+        refused = true;
+        return null;
+      }
+    }
+    return target;
   }
 
   function itemAt(x: number, y: number): T | null {
@@ -97,17 +141,32 @@ export function useDataListReorder<T>(options: UseDataListReorderOptions<T>) {
   }
 
   function commitDrop(items: readonly T[], meta: { fromSelf: boolean; sourceId: string | null; sourceDragGroup: string | null }): boolean {
+    if (refused) return false;
     const keys = items.map(options.keyOf);
-    const visibleKeys = options.visibleItems().map(options.keyOf);
     const target = dropTarget.value;
-    const insertion = resolveInsertion(visibleKeys, new Set(meta.fromSelf ? keys : []), target, meta);
+
+    // Destination parent and the sibling list the insertion is expressed in.
+    let parentKey: CoarDataListKey | null = null;
+    let siblingTarget: { key: CoarDataListKey; position: 'before' | 'after' } | null = null;
+    if (target?.position === 'inside') {
+      parentKey = target.key;
+    } else if (target) {
+      parentKey = options.parentOf(target.key);
+      siblingTarget = { key: target.key, position: target.position };
+    }
+    const siblingKeys = options.siblingsOf(parentKey).map(options.keyOf);
+    const dragged = new Set(meta.fromSelf ? keys : []);
+    const sameParent = meta.fromSelf && keys.every((key) => options.parentOf(key) === parentKey);
+    const insertion = resolveInsertion(siblingKeys, dragged, siblingTarget, { fromSelf: meta.fromSelf, sameParent });
     if (!insertion) return false;
+
     const targetItem = target ? options.itemByKey(target.key) : undefined;
     const event: CoarDataListDropEvent<T> = {
       items: [...items],
       keys,
       ...insertion,
       group: targetItem === undefined ? null : options.groupOf(targetItem),
+      parentKey,
       ...meta,
     };
     if (meta.fromSelf) options.onReorder(event);
@@ -118,6 +177,7 @@ export function useDataListReorder<T>(options: UseDataListReorderOptions<T>) {
   function reset(): void {
     dragKeys.value = new Set();
     dropTarget.value = null;
+    refused = false;
     fileOver.value = false;
     grabbed.value = false;
     stopAutoscroll();
@@ -251,10 +311,12 @@ export function useDataListReorder<T>(options: UseDataListReorderOptions<T>) {
   }
 
   // ── Keyboard: Ctrl+X grab, arrows move the target, Ctrl+V / Enter drop ──────
+  // Keyboard moves stay among the grabbed item's siblings; re-parenting is a pointer gesture.
   let grabIndex = 0;
+  let grabParent: CoarDataListKey | null = null;
 
   function remainingKeys(): CoarDataListKey[] {
-    return options.visibleItems().map(options.keyOf).filter((key) => !dragKeys.value.has(key));
+    return options.siblingsOf(grabParent).map(options.keyOf).filter((key) => !dragKeys.value.has(key));
   }
 
   function applyGrabIndex(): void {
@@ -278,9 +340,12 @@ export function useDataListReorder<T>(options: UseDataListReorderOptions<T>) {
       const items = itemsToDrag(item);
       if (items.length === 0) return false;
       event.preventDefault();
-      dragKeys.value = new Set(items.map(options.keyOf));
+      grabParent = options.parentOf(options.keyOf(item));
+      // Only siblings of the focused item travel together.
+      const siblings = items.filter((candidate) => options.parentOf(options.keyOf(candidate)) === grabParent);
+      dragKeys.value = new Set(siblings.map(options.keyOf));
       grabbed.value = true;
-      const visible = options.visibleItems().map(options.keyOf);
+      const visible = options.siblingsOf(grabParent).map(options.keyOf);
       const first = visible.findIndex((key) => dragKeys.value.has(key));
       grabIndex = visible.slice(0, first).filter((key) => !dragKeys.value.has(key)).length;
       applyGrabIndex();

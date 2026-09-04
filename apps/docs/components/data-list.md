@@ -116,6 +116,30 @@ builder.layout(layoutRef).tileMinWidth('11rem').gap(8)
 
 Rows are still virtualized and measured — tiles in one row share the height of the tallest. Group headings take a full row. `dividers` only apply to the list layout; use `gap` for spacing between tiles. Layouts that give up the data order for the visuals (masonry) are deliberately not part of this component.
 
+## Nested lists
+
+`children` returns an item's sub-items and the list becomes a tree of lists: every child level is a list of its own — same template, own sorting — shown indented under its expanded parent. The exact order is kept on every level. Nesting is a **list-layout** feature; the grid shows top-level items only.
+
+<preview path="./data-list/demos/NestedDataList.vue" />
+
+```ts
+builder
+  .children((task) => task.subTasks, (level) =>
+    level.sortOption('due', 'Due date').sort({ key: 'due', direction: 'asc' }),   // child levels
+  )
+  .sortOption('title', 'Title').sort({ key: 'title', direction: 'asc' })          // top level
+  .expanded(expandedRef)                                                          // v-model:expanded
+```
+
+- **Own configuration per level.** The `configure` callback of `.children()` receives a level builder: `sortOptions`, `sortOption`, `sort`. Without it, child levels inherit the top level's sort; `sort(null)` keeps their input order. Layout per level (a grid of children under a list row, or vice versa) is planned to live in the same place.
+- **Drawing.** The list draws the structure so the template stays free: a chevron gutter (leaves get the same space so text aligns), an indent per level (`nestingIndent`) and, with `nestingStyle: 'lines'` (default), a guide line per ancestor. `hideExpandToggle` removes the chevrons when the template toggles itself via the `toggleExpanded()` slot prop.
+- **Search** keeps a parent whose descendants match and opens it while the query is active; a parent matching by itself does not force its children open.
+- **Selection** stays flat and key-based; selecting a parent does not select its children.
+- **Keyboard:** `→` expands a parent or steps into its first child, `←` collapses or jumps to the parent.
+- **Drag & drop** gains a third position: the middle of a row means **inside** — the row becomes the new parent. Drop events carry `parentKey`, and `toIndex` / `afterKey` / `beforeKey` refer to the destination's siblings. `canNest(item, parent)` and `maxDepth` veto nesting; an item can never be dropped into its own subtree. Keyboard moves stay among siblings.
+
+The `api` adds `expand`, `collapse`, `toggleExpanded`, `expandAll`, `collapseAll` and the `expanded` ref.
+
 ## Reordering with drag & drop
 
 Opt in with `reorderable`. Users drag one item or the whole selection; the list shows an insertion line and reports the result — it **never mutates your data**. Lists sharing a `dragGroup` accept each other's items, which is all a board needs: three columns, three lists.
@@ -220,7 +244,7 @@ The scroll area is the single tab stop; a focus marker moves between items.
 | Key | Action |
 |---|---|
 | `↓` / `↑` | Move focus by one row (one tile row in grid layout); selects the focused item unless `Ctrl` is held; `Shift` extends the range |
-| `→` / `←` | Grid layout: move focus by one tile |
+| `→` / `←` | Grid layout: move focus by one tile. Nested list: expand / step into the first child, collapse / jump to the parent |
 | `Home` / `End` | First / last item |
 | `PageDown` / `PageUp` | Move by one viewport |
 | `Space` | Toggle the focused item |
@@ -270,6 +294,13 @@ ARIA: `role="listbox"` with `option` children when selection is enabled, `role="
 | `dragAccept` | `string[]` | — | Whitelist of source `dragId`s |
 | `canDrop` | `(payload) => boolean` | — | Runtime veto for incoming drops |
 | `acceptsFiles` | `boolean` | `false` | Accept OS file drops (`files-drop`) |
+| `children` | `(item: T) => T[] \| null \| undefined` | — | Nested lists (list layout) |
+| `childLevel` | `{ sortOptions?, sort? }` | inherits | Sorting of the child levels |
+| `maxDepth` | `number` | unlimited | Deepest level shown, 0 = top level only |
+| `nestingIndent` | `number \| string` | `'1.5rem'` | Indent per level |
+| `nestingStyle` | `'lines' \| 'none'` | `'lines'` | Guide lines per level, or indent only |
+| `hideExpandToggle` | `boolean` | `false` | No built-in chevrons |
+| `canNest` | `(item: T, parent: T) => boolean` | — | Veto for dropping inside a row |
 
 ### Models
 
@@ -278,6 +309,7 @@ ARIA: `role="listbox"` with `option` children when selection is enabled, `role="
 | `v-model:search` | `string` | Search query |
 | `v-model:sort` | `CoarDataListSort \| null` | `{ key, direction }` of the active sort option |
 | `v-model:selected` | `(string \| number)[]` | Selected item keys, in selection order |
+| `v-model:expanded` | `(string \| number)[]` | Keys whose children are shown |
 
 ### Events
 
@@ -293,13 +325,13 @@ ARIA: `role="listbox"` with `option` children when selection is enabled, `role="
 | `files-drop` | `CoarDataListFilesDropEvent<T>` | OS files dropped (`acceptsFiles`) |
 | `drag-start` / `drag-end` | `T[]` / `{ items, dropped }` | Drag lifecycle |
 
-`CoarDataListItemEvent<T>` is `{ item, itemKey, index, event }`. `CoarDataListDropEvent<T>` is `{ items, keys, toIndex, afterKey, beforeKey, group, fromSelf, sourceId, sourceDragGroup }`.
+`CoarDataListItemEvent<T>` is `{ item, itemKey, index, event }`. `CoarDataListDropEvent<T>` is `{ items, keys, toIndex, afterKey, beforeKey, group, parentKey, fromSelf, sourceId, sourceDragGroup }` — `toIndex` and the neighbour keys refer to the siblings under `parentKey`.
 
 ### Slots
 
 | Slot | Props | Description |
 |------|-------|-------------|
-| `item` | `{ item, index, itemKey, selected, focused, dragging, select, toggle }` | Row content |
+| `item` | `{ item, index, itemKey, selected, focused, dragging, depth, hasChildren, expanded, select, toggle, toggleExpanded }` | Row content |
 | `group-header` | `{ group, count, items }` | Group heading |
 | `empty` | — | Shown when no item is visible |
 | `toolbar-left` / `toolbar-right` | — | Extra toolbar content beside search and sort |

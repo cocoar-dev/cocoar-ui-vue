@@ -51,6 +51,19 @@ export type CoarDataListDensity = 's' | 'm' | 'l';
  */
 export type CoarDataListLayout = 'list' | 'grid';
 
+/** How nested levels are drawn: guide lines per depth, or indentation only. */
+export type CoarDataListNestingStyle = 'lines' | 'none';
+
+/**
+ * Per-level configuration for nested lists. The top level is the list itself;
+ * every child level may override how its items are sorted. (Layout per level
+ * is planned — mixed list/grid nesting — and will live here too.)
+ */
+export interface CoarDataListLevelConfig<T> {
+  sortOptions?: readonly CoarDataListSortOption<T>[];
+  sort?: CoarDataListSort | null;
+}
+
 /** A visible row — either an item or the heading of a group. */
 export type CoarDataListEntry<T> =
   | {
@@ -61,6 +74,14 @@ export type CoarDataListEntry<T> =
       item: T;
       /** Position among the visible items (group headings excluded). */
       index: number;
+      /** Nesting depth, 0 for top-level items. */
+      depth: number;
+      /** Key of the parent item, `null` at the top level. */
+      parentKey: CoarDataListKey | null;
+      /** The item has children (whether or not they are shown). */
+      hasChildren: boolean;
+      /** Children are currently shown. */
+      expanded: boolean;
     }
   | {
       kind: 'group';
@@ -79,10 +100,16 @@ export interface CoarDataListItemSlotProps<T> {
   focused: boolean;
   /** Part of an in-flight drag (pointer or keyboard). */
   dragging: boolean;
+  /** Nesting depth, 0 at the top level. */
+  depth: number;
+  hasChildren: boolean;
+  expanded: boolean;
   /** Select only this item. */
   select(): void;
   /** Toggle this item's selection (multiple) or select/clear it (single). */
   toggle(): void;
+  /** Show / hide this item's children. */
+  toggleExpanded(): void;
 }
 
 export interface CoarDataListGroupSlotProps<T> {
@@ -101,7 +128,8 @@ export interface CoarDataListItemEvent<T> {
 /** Drag engine — see `DragEngine` in `useDragDrop`. Accepting OS files works with either. */
 export type CoarDataListDragEngine = DragEngine;
 
-export type CoarDataListDropPosition = 'before' | 'after';
+/** `'inside'` makes the target the new parent (nested lists only). */
+export type CoarDataListDropPosition = 'before' | 'after' | 'inside';
 
 /** Where a drag would land, relative to a visible item. */
 export interface CoarDataListDropTarget {
@@ -118,12 +146,14 @@ export interface CoarDataListDropTarget {
 export interface CoarDataListDropEvent<T> {
   items: T[];
   keys: CoarDataListKey[];
-  /** Index among the visible items, dragged items excluded. */
+  /** Index among the visible siblings of the insertion point, dragged items excluded. */
   toIndex: number;
   afterKey: CoarDataListKey | null;
   beforeKey: CoarDataListKey | null;
   /** `groupBy` value at the insertion point, or `null` without grouping / at the end. */
   group: string | null;
+  /** Parent of the insertion point in nested lists (`null` = top level). */
+  parentKey: CoarDataListKey | null;
   fromSelf: boolean;
   /** `dragId` of the source list, if it set one. */
   sourceId: string | null;

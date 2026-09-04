@@ -1,6 +1,6 @@
 export { default as CoarDataList } from './CoarDataList.vue';
 export type { CoarDataListProps } from './CoarDataList.vue';
-export { useDataList, DataListBuilder } from './data-list-builder';
+export { useDataList, DataListBuilder, DataListLevelBuilder } from './data-list-builder';
 export type { DataListApi, DataListBuilderState } from './data-list-builder';
 export { useDataListModel } from './useDataListModel';
 export type { UseDataListModelOptions, UseDataListModelReturn } from './useDataListModel';
@@ -22,6 +22,8 @@ export type {
   CoarDataListItemSlotProps,
   CoarDataListKey,
   CoarDataListLayout,
+  CoarDataListLevelConfig,
+  CoarDataListNestingStyle,
   CoarDataListMenuEntry,
   CoarDataListMenuItem,
   CoarDataListSearchBy,

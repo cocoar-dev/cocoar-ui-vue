@@ -27,6 +27,8 @@ import type {
   CoarDataListFilesDropEvent,
   CoarDataListItemsRemoveEvent,
   CoarDataListLayout,
+  CoarDataListLevelConfig,
+  CoarDataListNestingStyle,
   CoarDataListItemEvent,
   CoarDataListKey,
   CoarDataListMenuEntry,
@@ -68,6 +70,16 @@ export interface DataListBuilderState<T> {
   emptyText: MaybeRefOrGetter<string | undefined>;
   ariaLabel: MaybeRefOrGetter<string | undefined>;
   disabled: MaybeRefOrGetter<boolean>;
+
+  /** Nested lists (see the `children` setter). */
+  children?: (item: T) => readonly T[] | null | undefined;
+  childLevel: MaybeRefOrGetter<CoarDataListLevelConfig<T> | undefined>;
+  maxDepth: MaybeRefOrGetter<number | undefined>;
+  nestingIndent: MaybeRefOrGetter<number | string>;
+  nestingStyle: MaybeRefOrGetter<CoarDataListNestingStyle>;
+  hideExpandToggle: MaybeRefOrGetter<boolean>;
+  canNest?: (item: T, parent: T) => boolean;
+  expanded: Ref<CoarDataListKey[]>;
 
   /** Drag & drop reordering (see the `reorderable` setter). */
   reorderable: MaybeRefOrGetter<boolean>;
@@ -123,10 +135,17 @@ export interface DataListApi<T> {
   scrollToIndex(index: number, align?: 'auto' | 'start' | 'center' | 'end'): void;
   focusKey(key: CoarDataListKey): void;
   invalidateMeasurements(key?: CoarDataListKey): void;
+  expand(key: CoarDataListKey): void;
+  collapse(key: CoarDataListKey): void;
+  toggleExpanded(key: CoarDataListKey): void;
+  expandAll(): void;
+  collapseAll(): void;
   /** Selected keys (the builder's writable ref). */
   readonly selected: Ref<CoarDataListKey[]>;
   readonly search: Ref<string>;
   readonly sort: Ref<CoarDataListSort | null>;
+  /** Keys whose children are shown (the builder's writable ref). */
+  readonly expanded: Ref<CoarDataListKey[]>;
   /** Selected records in selection order. */
   readonly selectedItems: ComputedRef<readonly T[]>;
   /** Visible records after filter, search, sort and grouping. */
@@ -167,6 +186,11 @@ export class DataListBuilder<T> {
       scrollToIndex: guard('scrollToIndex', (i, index: number, align?: 'auto' | 'start' | 'center' | 'end') => i.scrollToIndex(index, align)),
       focusKey: guard('focusKey', (i, key: CoarDataListKey) => i.focusKey(key)),
       invalidateMeasurements: guard('invalidateMeasurements', (i, key?: CoarDataListKey) => i.invalidateMeasurements(key)),
+      expand: guard('expand', (i, key: CoarDataListKey) => i.model.expand(key)),
+      collapse: guard('collapse', (i, key: CoarDataListKey) => i.model.collapse(key)),
+      toggleExpanded: guard('toggleExpanded', (i, key: CoarDataListKey) => i.model.toggleExpanded(key)),
+      expandAll: guard('expandAll', (i) => i.model.expandAll()),
+      collapseAll: guard('collapseAll', (i) => i.model.collapseAll()),
       // Getters: `.search(ref)` & co. may swap the underlying ref after construction.
       get selected() {
         return state.selected;
@@ -176,6 +200,9 @@ export class DataListBuilder<T> {
       },
       get sort() {
         return state.sort;
+      },
+      get expanded() {
+        return state.expanded;
       },
       selectedItems: computed(() => impls.value?.model.selectedItems.value ?? []),
       items: computed(() => impls.value?.model.items.value ?? []),
@@ -213,6 +240,14 @@ export class DataListBuilder<T> {
       emptyText: undefined,
       ariaLabel: undefined,
       disabled: false,
+      children: undefined,
+      childLevel: undefined,
+      maxDepth: undefined,
+      nestingIndent: '1.5rem',
+      nestingStyle: 'lines',
+      hideExpandToggle: false,
+      canNest: undefined,
+      expanded: ref<CoarDataListKey[]>([]),
       reorderable: false,
       dragEngine: 'native',
       canDrag: undefined,
@@ -405,6 +440,67 @@ export class DataListBuilder<T> {
     return this;
   }
 
+  // ─── Nesting ──────────────────────────────────────────────────────────────
+
+  /**
+   * Nested lists: `accessor` returns an item's children. The optional `configure`
+   * callback sets up the child levels as a list of their own — today their
+   * sorting, later their layout:
+   * ```ts
+   * builder.children((t) => t.subTasks, (level) => level.sortOption('due', 'Due').sort({ key: 'due', direction: 'asc' }))
+   * ```
+   * Without `configure`, child levels inherit the top level's sorting.
+   */
+  children(
+    accessor: (item: T) => readonly T[] | null | undefined,
+    configure?: (level: DataListLevelBuilder<T>) => void,
+  ): this {
+    this.state.children = accessor;
+    if (configure) {
+      const level = new DataListLevelBuilder<T>();
+      configure(level);
+      this.state.childLevel = level.config;
+    }
+    return this;
+  }
+
+  /** Bind the expanded keys to your own ref, or set an initial value. */
+  expanded(value: Ref<CoarDataListKey[]> | CoarDataListKey[]): this {
+    if (isRef(value)) this.state.expanded = value;
+    else this.state.expanded.value = value;
+    return this;
+  }
+
+  /** Deepest level shown; 0 = top level only. Default: unlimited. */
+  maxDepth(depth: MaybeRefOrGetter<number | undefined>): this {
+    this.state.maxDepth = depth;
+    return this;
+  }
+
+  /** Indent per level (px number or CSS length). Default `'1.5rem'`. */
+  nestingIndent(value: MaybeRefOrGetter<number | string>): this {
+    this.state.nestingIndent = value;
+    return this;
+  }
+
+  /** `'lines'` (guide lines per level, default) or `'none'`. */
+  nestingStyle(style: MaybeRefOrGetter<CoarDataListNestingStyle>): this {
+    this.state.nestingStyle = style;
+    return this;
+  }
+
+  /** Hide the built-in expand chevrons (use `toggleExpanded()` from the item slot instead). */
+  hideExpandToggle(on: MaybeRefOrGetter<boolean> = true): this {
+    this.state.hideExpandToggle = on;
+    return this;
+  }
+
+  /** Veto for dropping `item` inside `parent` (drag & drop re-parenting). */
+  canNest(fn: (item: T, parent: T) => boolean): this {
+    this.state.canNest = fn;
+    return this;
+  }
+
   // ─── Drag & drop ──────────────────────────────────────────────────────────
 
   /**
@@ -560,6 +656,35 @@ export class DataListBuilder<T> {
   /** @internal Called by `<CoarDataList>` on mount / unmount. */
   _bindImpls(impls: DataListApiImpls<T> | null): void {
     this._impls.value = impls;
+  }
+}
+
+/**
+ * Configuration of the child levels of a nested list — the argument of
+ * `builder.children(accessor, (level) => …)`. Mirrors the list's own sort
+ * setters; layout per level will follow.
+ */
+export class DataListLevelBuilder<T> {
+  readonly config: CoarDataListLevelConfig<T> = {};
+
+  sortOptions(options: readonly CoarDataListSortOption<T>[]): this {
+    this.config.sortOptions = options;
+    return this;
+  }
+
+  sortOption(
+    key: string,
+    label: string,
+    options?: { by?: (item: T) => unknown; compare?: (a: T, b: T) => number; defaultDirection?: CoarDataListSortDirection },
+  ): this {
+    this.config.sortOptions = [...(this.config.sortOptions ?? []), { key, label, ...options }];
+    return this;
+  }
+
+  /** Sort applied on every child level. `null` keeps the children's input order. */
+  sort(value: CoarDataListSort | null): this {
+    this.config.sort = value;
+    return this;
   }
 }
 
