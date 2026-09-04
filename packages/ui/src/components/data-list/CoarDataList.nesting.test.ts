@@ -192,6 +192,26 @@ describe('CoarDataList nesting', () => {
       expect(reorders.at(-1)).toMatchObject({ keys: ['b'], parentKey: null, afterKey: 'c' });
     });
 
+    it('still re-parents while a sort is active, but refuses plain reordering', async () => {
+      const { wrapper, reorders } = mountList({
+        reorderable: true,
+        expanded: ['a'],
+        maxDepth: 1,
+        sortOptions: [{ key: 'title', label: 'Title' }],
+        sort: { key: 'title', direction: 'asc' },
+      });
+      await nextTick();
+      // Order by title: Alpha, Alpha one, Alpha two, Beta, Gamma. Beta (3) anywhere on Gamma (4) → inside.
+      let position = await dragTo(wrapper, 3, 4, 5);
+      expect(position).toBe('inside');
+      expect(reorders.at(-1)).toMatchObject({ keys: ['b'], parentKey: 'c' });
+      // Alpha one (1) onto Alpha two (2): depth 1 cannot take children (maxDepth) → nothing happens.
+      reorders.length = 0;
+      position = await dragTo(wrapper, 1, 2, 5);
+      expect(position).toBeNull();
+      expect(reorders).toHaveLength(0);
+    });
+
     it('keeps keyboard moves among siblings', async () => {
       const { wrapper, reorders } = mountList({ reorderable: true, expanded: ['a'] });
       await nextTick();

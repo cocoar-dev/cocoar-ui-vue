@@ -110,7 +110,6 @@ export function useDataListReorder<T>(options: UseDataListReorderOptions<T>) {
   /** Drop target implied by the pointer position: before / after / inside the row or tile under it. */
   function targetAt(x: number, y: number): CoarDataListDropTarget | null {
     refused = false;
-    if (options.sorted()) return null;
     const el = itemElementAt(x, y);
     if (!el) return null;
     const key = keyIndex().get(el.dataset.key ?? '');
@@ -121,6 +120,14 @@ export function useDataListReorder<T>(options: UseDataListReorderOptions<T>) {
     }
     const item = options.itemByKey(key);
     const nestable = item !== undefined && options.canNestInto(item, draggedItems());
+    if (options.sorted()) {
+      // Order is the sort's business, but re-parenting changes structure: the whole
+      // row means "inside" when nesting is allowed. Otherwise a row from this list
+      // is refused; drops from other lists still append.
+      if (nestable) return { key, position: 'inside' };
+      if (dragKeys.value.size > 0) refused = true;
+      return null;
+    }
     const target = computeDropTarget(options.layout(), el.getBoundingClientRect(), { x, y }, key, { nestable });
     // Before/after a nested row keeps its parent; make sure that parent accepts the items too.
     if (target.position !== 'inside') {
