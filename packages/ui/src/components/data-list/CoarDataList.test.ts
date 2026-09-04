@@ -233,6 +233,15 @@ describe('CoarDataList', () => {
     expect(selected.value).toEqual([]);
   });
 
+  it('marks the root when the template owns the box', async () => {
+    const { wrapper } = mountList({ unstyledItems: true });
+    await nextTick();
+    expect(wrapper.find('.coar-data-list--unstyled').exists()).toBe(true);
+    // Structure and behaviour stay: rows, keys, roles.
+    expect(wrapper.findAll('.coar-data-list__item').length).toBe(8);
+    expect(wrapper.find('.coar-data-list__item').attributes('data-key')).toBe('1');
+  });
+
   it('exposes the headless list and scroll helpers', async () => {
     const { wrapper } = mountList();
     await nextTick();

@@ -84,6 +84,8 @@ export interface DataListBuilderState<T> {
   tileCards: MaybeRefOrGetter<boolean>;
   /** Lift an expanded card and its band with a shadow. */
   bandElevated: MaybeRefOrGetter<boolean>;
+  /** The template owns the whole box: no list-drawn padding, hover, selection, focus, dividers or card. */
+  unstyledItems: MaybeRefOrGetter<boolean>;
 
   /** Drag & drop reordering (see the `reorderable` setter). */
   reorderable: MaybeRefOrGetter<boolean>;
@@ -254,6 +256,7 @@ export class DataListBuilder<T> {
       expanded: ref<CoarDataListKey[]>([]),
       tileCards: false,
       bandElevated: false,
+      unstyledItems: false,
       reorderable: false,
       dragEngine: 'native',
       canDrag: undefined,
@@ -402,6 +405,18 @@ export class DataListBuilder<T> {
   /** Lift an expanded card and its band with a shadow. */
   bandElevated(on: MaybeRefOrGetter<boolean> = true): this {
     this.state.bandElevated = on;
+    return this;
+  }
+
+  /**
+   * The template owns the whole box. The list draws no padding, hover, selection,
+   * focus, dividers or card around items — only position, measurement and the
+   * drop indicators. Show state through the slot props (`selected`, `focused`,
+   * `dragging`, `expanded`) and drive it through `select()`, `toggle()`,
+   * `toggleExpanded()` or the `api`.
+   */
+  unstyledItems(on: MaybeRefOrGetter<boolean> = true): this {
+    this.state.unstyledItems = on;
     return this;
   }
 

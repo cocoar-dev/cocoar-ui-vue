@@ -114,6 +114,12 @@ Rules that follow from the split:
 
 CSS variables the list exposes: `--coar-data-list-gap`, `--coar-data-list-indent`, `--coar-data-list-padding` (inner padding of the scroll area), `--coar-data-list-item-pad-x` / `-pad-y` (box padding per density); `--coar-data-list-depth` is set on nested rows and can be read by the template.
 
+### Owning the box too: `unstyledItems`
+
+When the template should be the *whole* item, set `unstyledItems` (builder: `.unstyledItems()`). The list then draws nothing around a record — no padding, hover, selection, focus, dividers or card — and keeps only what a template cannot do itself: position, measurement, the drop indicators and the row gap. State arrives through the slot props (`selected`, `focused`, `dragging`, `expanded`, `hasChildren`, `depth`), actions through `select()`, `toggle()`, `toggleExpanded()` and the `api`. Draw the focus state: the keyboard focus marker is now yours to show.
+
+<preview path="./data-list/demos/UnstyledDataList.vue" />
+
 ## Selection and context menu
 
 `selection` is `'none'` (default), `'single'` or `'multiple'`. Click replaces, `Ctrl`/`⌘`-click toggles, `Shift`-click selects a range; the keyboard mirrors this (see [Keyboard](#keyboard)). Right-clicking an unselected item selects it first, so a context menu always acts on the item under the pointer.
@@ -335,6 +341,7 @@ ARIA: `role="listbox"` with `option` children when selection is enabled, `role="
 | `childLevel` | `{ sortOptions?, sort?, layout?, tileMinWidth? }` | inherits | Sorting and layout of the child levels |
 | `tileCards` | `boolean` | `false` | Grid: draw tiles as cards; an expanded card opens into its band |
 | `bandElevated` | `boolean` | `false` | Lift an expanded card and its band with a shadow |
+| `unstyledItems` | `boolean` | `false` | The template owns the whole box; the list draws no item chrome |
 | `maxDepth` | `number` | unlimited | Deepest level shown, 0 = top level only |
 | `nestingIndent` | `number \| string` | `'1.5rem'` | Indent per level |
 | `nestingStyle` | `'lines' \| 'none'` | `'lines'` | Guide lines per level, or indent only |

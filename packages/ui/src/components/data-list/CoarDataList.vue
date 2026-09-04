@@ -146,6 +146,12 @@ export interface CoarDataListProps<T = unknown> {
   tileCards?: boolean;
   /** Lift an expanded card and its band with a shadow. */
   bandElevated?: boolean;
+  /**
+   * The template owns the whole box: the list draws no padding, hover, selection,
+   * focus, dividers or card around items — only position, measurement and the
+   * drop indicators. Show state through the slot props instead.
+   */
+  unstyledItems?: boolean;
 }
 
 const props = withDefaults(defineProps<CoarDataListProps<T>>(), {
@@ -192,6 +198,7 @@ const props = withDefaults(defineProps<CoarDataListProps<T>>(), {
   canNest: undefined,
   tileCards: false,
   bandElevated: false,
+  unstyledItems: false,
 });
 
 const emit = defineEmits<{
@@ -273,6 +280,7 @@ const cfg = computed(() => {
       canNest: s.canNest,
       tileCards: toValue(s.tileCards),
       bandElevated: toValue(s.bandElevated),
+      unstyledItems: toValue(s.unstyledItems),
     };
   }
   return {
@@ -322,6 +330,7 @@ const cfg = computed(() => {
     canNest: props.canNest,
     tileCards: props.tileCards,
     bandElevated: props.bandElevated,
+    unstyledItems: props.unstyledItems,
   };
 });
 
@@ -997,6 +1006,7 @@ defineExpose({
         'coar-data-list--dragging': reorder.dragging.value,
         'coar-data-list--nested': nestingActive,
         'coar-data-list--band-elevated': cfg.bandElevated,
+        'coar-data-list--unstyled': cfg.unstyledItems,
         [`coar-data-list--nesting-${cfg.nestingStyle}`]: nestingActive,
       },
     ]"
@@ -1592,6 +1602,39 @@ defineExpose({
 
 .coar-data-list__group-count {
   font-weight: var(--coar-font-weight-regular, 400);
+}
+
+/* ── unstyledItems: the template owns the box ──
+   Everything below only keeps what the template cannot do itself — position,
+   measurement, the drop indicators (before/after lines) and the cursor. Doubled
+   root class + :hover / state classes so these win over every chrome rule above. */
+.coar-data-list.coar-data-list--unstyled .coar-data-list__item,
+.coar-data-list.coar-data-list--unstyled .coar-data-list__item:hover,
+.coar-data-list.coar-data-list--unstyled .coar-data-list__item--selected,
+.coar-data-list.coar-data-list--unstyled .coar-data-list__item--selected:hover,
+.coar-data-list.coar-data-list--unstyled .coar-data-list__item--focused,
+.coar-data-list.coar-data-list--unstyled .coar-data-list__item--card,
+.coar-data-list.coar-data-list--unstyled .coar-data-list__item--drop-inside,
+.coar-data-list.coar-data-list--unstyled .coar-data-list__item--row {
+  padding: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  outline: none;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  clip-path: none;
+  opacity: 1;
+}
+
+.coar-data-list.coar-data-list--unstyled .coar-data-list__item--dragging {
+  opacity: 1;
+}
+
+/* Nested lists still indent, so a template can rely on the structure it gets. */
+.coar-data-list.coar-data-list--unstyled.coar-data-list--nested .coar-data-list__item {
+  padding-left: calc(var(--coar-data-list-depth, 0) * var(--coar-data-list-indent, 1.5rem));
 }
 
 .coar-data-list__empty {
