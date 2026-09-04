@@ -21,6 +21,7 @@ import {
   type DayOfWeek,
   type EventTextContrastPolicy,
   type RecurringSeries,
+  type TimeGridRangeSpec,
   type ViewWindow,
   DEFAULT_ALL_DAY_MAX_VISIBLE_LANES,
   DEFAULT_WORK_DAYS,
@@ -117,6 +118,13 @@ export interface CalendarBuilderState<
   monthDensity: MaybeRefOrGetter<CalendarMonthDensity>;
   /** One fixed day or a width-driven 1…7-day surface. */
   dayMode: MaybeRefOrGetter<CalendarDayMode>;
+  /**
+   * Explicit range spec for the `day` view — anchor, span, filter,
+   * step (see `TimeGridRangeSpec`). `null` (default) follows
+   * `dayMode`. `week` / `workWeek` are fixed presets of the same
+   * model and ignore it.
+   */
+  timeGridRange: MaybeRefOrGetter<TimeGridRangeSpec | null>;
   /** Intl date style (C6 — independent of timeStyle / hour12).
    *  Locale-derived when undefined (Article 9). */
   dateStyle: MaybeRefOrGetter<'short' | 'medium' | 'long' | 'full' | undefined>;
@@ -237,6 +245,7 @@ export function createCalendarBuilderState<TMeta extends Record<string, unknown>
     density: 'comfortable',
     monthDensity: 'details',
     dayMode: 'single',
+    timeGridRange: null,
     // Article 9 defaults — undefined lets Intl pick locale-appropriate.
     dateStyle: undefined,
     timeStyle: undefined,

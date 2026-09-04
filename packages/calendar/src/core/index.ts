@@ -67,6 +67,19 @@ export {
 } from './viewWindow';
 export { responsiveDayColumnCount } from './dayColumns';
 export {
+  TIME_GRID_PRESETS,
+  resolveTimeGridRange,
+  resolveSpanDays,
+  timeGridRangeSpecFor,
+  timeGridStepDays,
+  type TimeGridAnchor,
+  type TimeGridFilter,
+  type TimeGridRange,
+  type TimeGridRangeSpec,
+  type TimeGridView,
+  type ResolveTimeGridRangeOptions,
+} from './timeGridRange';
+export {
   capAllDayBand,
   allDayBandLanes,
   DEFAULT_ALL_DAY_MAX_VISIBLE_LANES,

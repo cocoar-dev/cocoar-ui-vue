@@ -6,7 +6,7 @@ description: "CoarWorkWeekView — week view filtered to a configurable working-
 
 The week view with weekend columns filtered out. Configurable working-day set via `builder.workDays(...)` — defaults to Mon–Fri but adapts to 6-day operations (Mon–Sat), 4-day weeks (Mon–Thu), Sun–Thu Middle-East work weeks, or any other DayOfWeek subset.
 
-Mechanically the work-week view is a thin filter over [`<CoarWeekView>`](/components/calendar/week-view): same time-grid, same DnD pipeline, same slot rendering, same all-day band. The visible-range `ViewWindow` even stays the full Mon–Sun span — only the columns rendered differ. Loaders see weekend events the same way they do for the full week.
+Mechanically the work-week view is a preset of the one time-grid model shared with [`<CoarDayView>`](/components/calendar/day-view#one-model-for-every-time-grid) and [`<CoarWeekView>`](/components/calendar/week-view): anchor `weekStart`, span 7, filter `workDays`, step 7. Same time-grid, same DnD pipeline, same slot rendering, same all-day band, same touch paging. The visible-range `ViewWindow` stays the full Mon–Sun span — only the columns rendered differ. Loaders see weekend events the same way they do for the full week.
 
 ```html
 <CoarWorkWeekView :builder="builder" />

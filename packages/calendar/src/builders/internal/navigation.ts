@@ -16,6 +16,9 @@ import {
   type ViewWindow,
   Temporal,
   navigateCursor,
+  resolveSpanDays,
+  timeGridRangeSpecFor,
+  timeGridStepDays,
   windowDayCount,
 } from '../../core';
 import type { CalendarBuilderState } from '../calendar-builder-state';
@@ -31,6 +34,8 @@ type NavigationState = Pick<
   | 'date'
   | 'timezone'
   | 'dayColumnCount'
+  | 'dayMode'
+  | 'timeGridRange'
   | 'agendaLengthDays'
   | 'timelineRangeDays'
   | 'availableViews'
@@ -43,9 +48,11 @@ export function goToToday(state: NavigationState): void {
 }
 
 /**
- * Step the cursor by one range of the active view. A responsive
- * multi-day view steps by the number of columns actually rendered
- * (read from the visible window), not by the configured minimum.
+ * Step the cursor by one page of the active view. The time-grid views
+ * (day / week / workWeek) step through their range spec — a
+ * `'responsive'` span reads the column count actually rendered from
+ * the visible window, not the configured minimum — so an explicit
+ * `builder.timeGridRange(...)` step applies to buttons and swipes alike.
  */
 export function navigate(
   state: NavigationState,
@@ -53,17 +60,26 @@ export function navigate(
   direction: 1 | -1,
 ): void {
   const view = state.view.value;
-  const dayColumns =
-    view === 'day' && visible?.view === 'day'
-      ? Math.max(1, windowDayCount(visible))
-      : toValue(state.dayColumnCount);
+  const sign = direction === 1 ? 1 : -1;
+  if (view === 'day' || view === 'week' || view === 'workWeek') {
+    const spec = timeGridRangeSpecFor(view, {
+      dayMode: toValue(state.dayMode),
+      explicit: toValue(state.timeGridRange),
+    });
+    const spanDays =
+      visible?.view === view
+        ? Math.max(1, windowDayCount(visible))
+        : resolveSpanDays(spec, toValue(state.dayColumnCount));
+    state.date.value = state.date.value.add({ days: timeGridStepDays(spec, spanDays) * sign });
+    return;
+  }
   state.date.value = navigateCursor(
     view,
     state.date.value,
     direction === 1 ? 'next' : 'prev',
     toValue(state.agendaLengthDays),
     toValue(state.timelineRangeDays),
-    dayColumns,
+    toValue(state.dayColumnCount),
   );
 }
 

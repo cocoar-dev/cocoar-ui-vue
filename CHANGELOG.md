@@ -34,6 +34,15 @@ the time grids.
   such as `#e03131` where WCAG 2 narrowly picks black. `meta.textColor`
   overrides either policy for one event. `eventInkColor` joins
   `eventTextColor` on the core subpath.
+- **One model for every time grid.** Day, Multi-day, Week and Work week now
+  render on one surface and are presets of one range spec — `anchor`
+  (`cursor` | `weekStart`), `span` (days | `responsive`), `filter` (`all` |
+  `workDays`), `step` (days | `span`). `builder.timeGridRange(...)` lets the
+  Day view use any other combination ("start Monday, show five days, page by
+  a week"); Week and Work week stay fixed presets. `resolveTimeGridRange` and
+  the presets are exported from the core subpath. Every grid feature — touch
+  paging, empty-cell hooks, the all-day cap — therefore behaves identically
+  across the four views by construction.
 - **Touch paging on week / work-week / day.** A horizontal pan moves the grid
   with the finger — header cells, all-day band and columns together, the hour
   axis stays put — and pages on release past a quarter of the width or on a

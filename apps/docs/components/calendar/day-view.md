@@ -97,6 +97,32 @@ function useDayView<TMeta>(): {
 
 Returns a fresh standalone builder + its imperative api. The builder type is the same `CalendarBuilder` used by `<CoarCalendar>` — `useDayView()` is a thin shorthand that pre-sets `view: 'day'`.
 
+## One model for every time grid
+
+Day, Multi-day, Week and Work week render on the same surface and are described by the same four parameters. The classic views are presets; `builder.timeGridRange(...)` lets the Day view use any other combination.
+
+| Parameter | Meaning | Values |
+|---|---|---|
+| `anchor` | Where the first column stands | `'cursor'`, or `'weekStart'` (cursor snapped to the locale's first day of the week) |
+| `span` | Days from the anchor | a number, or `'responsive'` (as many complete columns as the container width allows) |
+| `filter` | Which of those days are drawn | `'all'`, or `'workDays'` (the builder's `workDays`; the loader window still covers the whole span) |
+| `step` | How far `next` / `prev` / a swipe move the cursor | a number of days, or `'span'` (as many as are shown) |
+
+| View | anchor | span | filter | step |
+|---|---|---|---|---|
+| Day, `dayMode('single')` | cursor | 1 | all | span |
+| Day, `dayMode('multiDay')` | cursor | responsive | all | span |
+| Week | weekStart | 7 | all | 7 |
+| Work week | weekStart | 7 | workDays | 7 |
+
+"Start on Monday, show five days, page by a week" is one more spec:
+
+```ts
+builder.view('day').timeGridRange({ anchor: 'cursor', span: 5, filter: 'all', step: 7 });
+```
+
+Week and Work week are fixed presets and ignore `timeGridRange`; `null` restores the `dayMode` presets. Because there is one resolver (`resolveTimeGridRange`, exported from the core subpath) and one surface underneath, every grid feature — touch paging, the empty-cell hooks, the all-day lane cap — behaves identically across the four.
+
 ## Touch paging
 
 On touch devices a horizontal pan on the day columns moves the grid with the finger — header cells, all-day band and columns together, the hour axis stays put — and pages to the previous / next range on release past a quarter of the width or on a fast flick. Below that the grid settles back. A touch that never moves is a tap and reaches `onTimeClick` on release, so a swipe never starts with a stray slot click. Vertical pans stay native scrolling. Mouse and pen keep their click-on-press semantics.
@@ -110,7 +136,8 @@ Full reference: see [the composer's API reference](/components/calendar/coar-cal
 | Setter | Argument | Default | Notes |
 |---|---|---|---|
 | `timeRange(r)` | `MaybeRefOrGetter<{ startMinutes, endMinutes }>` | `{0, 1440}` | Visible hour range, in minutes from midnight. Events outside are still rendered into the all-day band when applicable. |
-| `dayMode(m)` | `'single' \| 'multiDay'` | `'single'` | Fixed one-day column or width-aware multi-day range. |
+| `dayMode(m)` | `'single' \| 'multiDay'` | `'single'` | Fixed one-day column or width-aware multi-day range (the two Day presets of the time-grid model). |
+| `timeGridRange(spec)` | `MaybeRefOrGetter<TimeGridRangeSpec \| null>` | `null` | Explicit anchor / span / filter / step for the Day view — see "One model for every time grid". |
 | `dayColumnCount(n)` | `MaybeRefOrGetter<number>` | `1` | Minimum number of complete columns in Multi-day mode. |
 | `dayColumnMinWidth(px)` | `MaybeRefOrGetter<number>` | `220` | Target width used to derive additional columns, capped at seven. |
 | `slotDuration(d)` | `MaybeRefOrGetter<number>` | `30` | Slot subdivision (minutes). Also the snap step when dragging. |

@@ -29,6 +29,7 @@ import type {
   EventTextContrastPolicy,
   RecurringSeries,
   Temporal,
+  TimeGridRangeSpec,
 } from '../core';
 import type { CalendarDensity, DstPolicy, EventsLoader, SeriesLoader, TimeRange } from './types';
 import type { RecurrenceEngine } from '../recurrence/types';
@@ -46,7 +47,6 @@ export abstract class CalendarBuilderConfig<
   }
 
   // ─── Hooks implemented by the top layer ────────────────────────
-
   /** C1 boundary validation (memoized per event object). Throws on the first bad event. */
   protected abstract _validateEvents(events: ReadonlyArray<CalendarEvent<TMeta>>): void;
   /** The loader source changed — its cache is stale. */
@@ -195,16 +195,11 @@ export abstract class CalendarBuilderConfig<
   }
 
   /**
-   * How much height the all-day band claims. The hour axis starts
-   * below the band, so every height change moves the whole grid:
-   *
-   *   - `'fitsContent'` (default): as tall as needed, absent on days
-   *     without all-day events.
-   *   - `'alwaysOneLane'`: at least one lane — removes the 0↔1 jump,
-   *     the most frequent and the largest.
-   *   - `'reservesCap'`: always `allDayMaxVisibleLanes` tall, so the
-   *     hour axis sits at the same place on every day; costs a few
-   *     rows of height when nothing is in them.
+   * How much height the all-day band claims (the hour axis starts
+   * below it, so every height change moves the whole grid):
+   * `'fitsContent'` (default) follows the content, `'alwaysOneLane'`
+   * removes the 0↔1 jump, `'reservesCap'` is always
+   * `allDayMaxVisibleLanes` tall so the axis never moves between days.
    */
   allDayBandMode(mode: MaybeRefOrGetter<AllDayBandMode>): this {
     this.state.allDayBandMode = mode;
@@ -212,13 +207,11 @@ export abstract class CalendarBuilderConfig<
   }
 
   /**
-   * Touch paging on week / work-week / day: a horizontal pan moves
-   * the grid with the finger (hour axis stays put) and pages to the
-   * previous / next range on release past a quarter of the width or
-   * on a fast flick; below that it settles back. A touch that never
-   * moves is a tap and reaches `onTimeClick` on release. Mouse and
-   * pen keep their click-on-press semantics. Default on; honours
-   * `prefers-reduced-motion`.
+   * Touch paging on week / work-week / day: a horizontal pan moves the
+   * grid with the finger and pages on release past a quarter of the
+   * width or on a fast flick. A touch that never moves is a tap and
+   * reaches `onTimeClick` on release; mouse and pen are unchanged.
+   * Default on; honours `prefers-reduced-motion`.
    */
   swipeNavigation(enabled: MaybeRefOrGetter<boolean>): this {
     this.state.swipeNavigation = enabled;
@@ -237,6 +230,20 @@ export abstract class CalendarBuilderConfig<
 
   dayMode(mode: MaybeRefOrGetter<CalendarDayMode>): this {
     this.state.dayMode = mode;
+    return this;
+  }
+
+  /**
+   * Describe the `day` view's columns and paging directly instead of
+   * through `dayMode`: `anchor` (first column), `span` (days, or
+   * `'responsive'`), `filter` (all weekdays or `workDays`), `step`
+   * (days per page, or `'span'`). Week and Work week are fixed presets
+   * of the same model. "Start at the cursor, show five days, page by a
+   * week" is `{ anchor: 'cursor', span: 5, filter: 'all', step: 7 }`.
+   * `null` restores the `dayMode` presets.
+   */
+  timeGridRange(spec: MaybeRefOrGetter<TimeGridRangeSpec | null>): this {
+    this.state.timeGridRange = spec;
     return this;
   }
 
