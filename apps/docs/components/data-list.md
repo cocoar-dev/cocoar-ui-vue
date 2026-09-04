@@ -92,11 +92,27 @@ Search, sort menu, multi-select, search-hit highlighting. The `item` slot render
 
 ### Writing the item template
 
-- The list positions rows absolutely and **measures their rendered height**, so the template may be one line, three lines, or vary per record. Keep `min-width: 0` on flex/grid children that should truncate.
-- Space between rows comes from the `gap` prop. Margins in the template are **not** part of the measured height and would make rows overlap; padding inside the template is fine.
-- Use **container queries** (`container-type: inline-size` on the template root) rather than viewport media queries. The same template then adapts when the list sits in a narrow side panel.
-- The slot receives `selected`, `focused`, `select()` and `toggle()`. Render a checkbox bound to `toggle()` when touch users should be able to multi-select without modifier keys.
-- Rows have no built-in actions column. Put a "…" button in the template or handle `item-contextmenu`.
+The list owns the **box** around each record; the template owns everything **inside** it.
+
+| The list decides | The template decides |
+|---|---|
+| Row/tile position, width and virtualization; tiles in a row are equal-width columns and stretch to the tallest | Everything inside the box: markup, layout, fields, images, typography, colours of the content, inline buttons or checkboxes |
+| Box padding (`density`), `gap` between rows, dividers, card border and radius (`tileCards`) | Its own height — one line, three lines, varying per record; it is measured |
+| Hover, selected, focus and drag styling of the box, drop indicators, cursor | How to *show* state: react to the slot props `selected`, `focused`, `dragging`, `expanded`, `depth`, `hasChildren` |
+| Chevron gutter, indent, guide lines, band frame and elevation for nested lists | Own expand controls via `toggleExpanded()` (hide the built-in ones with `hideExpandToggle`), own selection controls via `select()` / `toggle()` |
+| Roles, ARIA, keyboard, selection and drag behaviour | Whether a click inside should *not* select the row: stop it with `@click.stop` |
+
+Rules that follow from the split:
+
+- **No margins on the template root.** The list measures the box, margins are outside it and would make rows overlap. Use padding inside the template, or `gap` on the list.
+- **Don't position the root.** Rows are positioned by the list; use `position: relative` on your root only to place children inside it.
+- **Don't draw the box.** A border or background on the template root doubles with the list's card, hover and selection styling. Style content, not the container — or switch `tileCards` off and draw your own card, accepting that hover and selection then only tint it.
+- **Width is not yours in the grid.** Tiles share the row's columns; per-item spans are a possible later addition, not a template concern.
+- **Interactive children are safe.** Buttons, links and inputs inside the template never start a drag; clicks on them still bubble to the row unless stopped.
+- Keep `min-width: 0` on flex/grid children that should truncate, and use **container queries** (`container-type: inline-size` on the root) rather than viewport media queries — the same template then adapts inside a narrow side panel.
+- Render a checkbox bound to `toggle()` when touch users should multi-select without modifier keys; rows have no built-in actions column, so put a "…" button in the template or handle `item-contextmenu`.
+
+CSS variables the list exposes: `--coar-data-list-gap`, `--coar-data-list-indent`, `--coar-data-list-padding` (inner padding of the scroll area), `--coar-data-list-item-pad-x` / `-pad-y` (box padding per density); `--coar-data-list-depth` is set on nested rows and can be read by the template.
 
 ## Selection and context menu
 
