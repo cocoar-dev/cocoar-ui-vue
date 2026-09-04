@@ -41,8 +41,6 @@ import {
   detectFirstDayOfWeekFromLocale,
   startOfWeek,
   todayInZone,
-  isAllDayEvent,
-  isTimedEvent,
   buildFormatOptions,
   type AgendaItem,
   type AgendaEventItem,
@@ -52,6 +50,7 @@ import {
 import { CalendarBuilder } from '../builders/calendar-builder';
 import CoarAgendaDayHeader from './internal/agenda/CoarAgendaDayHeader.vue';
 import CoarAgendaEvent from './internal/agenda/CoarAgendaEvent.vue';
+import { agendaTimeLabel } from './internal/agenda/agendaTimeLabel';
 import { useViewWindow } from '../composables/useViewWindow';
 
 // Inlined defineProps argument to avoid vue-tsc TS4025 — see note in
@@ -232,11 +231,11 @@ function selectDayAgendaDate(event: MouseEvent, date: Temporal.PlainDate): void 
 }
 
 function formatEventTime(event: CalendarEvent<TMeta>): string {
-  if (isAllDayEvent(event)) {
-    return t('coar.calendar.agenda.allDay', undefined, 'All day');
-  }
-  if (!isTimedEvent(event)) return '';
-  return timeFormatter.value.format(new Date(event.start.epochMilliseconds));
+  return agendaTimeLabel(
+    event,
+    (ms) => timeFormatter.value.format(new Date(ms)),
+    t('coar.calendar.agenda.allDay', undefined, 'All day'),
+  );
 }
 
 function eventTitle(event: CalendarEvent<TMeta>): string {
@@ -248,7 +247,7 @@ function eventColor(event: CalendarEvent<TMeta>): string | undefined {
   return typeof meta?.color === 'string' ? meta.color : undefined;
 }
 function eventColorOrDefault(event: CalendarEvent<TMeta>): string {
-  return eventColor(event) ?? 'var(--coar-color-accent, #2563eb)';
+  return eventColor(event) ?? 'var(--coar-color-accent, var(--coar-color-accent-500, #2563eb))';
 }
 
 // ─── Click handlers ──────────────────────────────────────────────────

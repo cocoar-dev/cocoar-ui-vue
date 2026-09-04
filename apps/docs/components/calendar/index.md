@@ -33,6 +33,34 @@ import {
 } from '@cocoar/vue-calendar';
 ```
 
+## Install
+
+```bash
+pnpm add @cocoar/vue-calendar
+```
+
+The component styles ship as one stylesheet on the `./styles` subpath. Import it once, next to the design-system styles:
+
+```ts
+import '@cocoar/vue-ui/styles';
+import '@cocoar/vue-calendar/styles';
+```
+
+### Localization
+
+Every visible label (`Today`, `Month`, `All day`, the a11y announcements, …) is looked up as a `coar.calendar.*` key through the host's `@cocoar/vue-localization` service, with English fallbacks inline. The package ships German and English catalogs plus a translation source, so a host registers them instead of maintaining the key list by hand:
+
+```ts
+import { createCoarLocalization } from '@cocoar/vue-localization';
+import { createCalendarTranslationSource, calendarMessages } from '@cocoar/vue-calendar';
+
+const localization = createCoarLocalization({ defaultLanguage: 'de-AT' });
+localization.service.addTranslationSource(createCalendarTranslationSource());
+app.use(localization);
+```
+
+Regional tags resolve to their base language (`de-AT` → `de`). A host source registered **after** the calendar's overrides per key, so app-specific wording still wins. `calendarMessages.en` / `.de` are the flat key → text maps for hosts that bundle one catalog file themselves. Date, time and weekday names are never in the catalog — they come from `Intl` (C6).
+
 ## Two ways to use the calendar
 
 ### As a single shell
@@ -207,6 +235,7 @@ Two layers of tokens. **Calendar-specific** tokens are unique to this component 
 
 | Token | Light | Dark | Purpose |
 |---|---|---|---|
+| `--coar-color-accent` | → `--coar-color-accent-500`, then `#2563eb` | same | Today markers (day number, column header, agenda badge), default event fill in list surfaces, cross-zone hint dot. Never defined by the package: it follows the vue-ui accent ramp (so `--coar-accent` rebrands it) unless the host sets it explicitly. |
 | `--coar-calendar-bg` | `#fff` | `#18181b` | Background of every cell, header, and band. |
 | `--coar-calendar-bg-today` | `rgba(37, 99, 235, 0.04)` | `#2563eb24` | Today highlight on month cells + day-column tint. |
 | `--coar-calendar-bg-weekend` | `#f6f7f9` | `#212125` | Weekend tint (Sat/Sun) on month cells + day-columns. |

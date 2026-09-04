@@ -29,6 +29,7 @@ export type {
   CalendarDensity,
   CanDropFn,
   DateClickHandler,
+  DateDoubleClickHandler,
   DayHeaderRenderer,
   DstPolicy,
   EventClickHandler,
@@ -45,6 +46,7 @@ export type {
   RangeChangeHandler,
   SeriesLoader,
   TimeClickHandler,
+  TimeDoubleClickHandler,
   TimeRange,
 } from './builders/types';
 export { getEventZoneHints, type EventZoneHints } from './builders/event-zone-hints';
@@ -104,6 +106,19 @@ export { default as CoarYearView } from './components/CoarYearView.vue';
 export { default as CoarDisplayZoneSwitcher } from './components/CoarDisplayZoneSwitcher.vue';
 export { default as VirtualizedSurface1DY } from './components/VirtualizedSurface1DY.vue';
 export { default as VirtualizedSurface2D } from './components/VirtualizedSurface2D.vue';
+
+// ─── Localization ────────────────────────────────────────────────
+//
+// Shipped DE/EN catalogs for every `coar.calendar.*` key + a
+// `CoarTranslationSource` factory for `service.addTranslationSource`.
+// Hosts stop hand-maintaining the key list; their own source
+// registered afterwards still overrides per key.
+
+export {
+  calendarMessages,
+  createCalendarTranslationSource,
+  type CalendarMessageCatalog,
+} from './i18n/messages';
 
 // ─── Math kernel (framework-agnostic) ────────────────────────────
 //

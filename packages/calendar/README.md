@@ -17,6 +17,30 @@ Peer deps: `vue ^3.5`, `@cocoar/vue-ui workspace:*`,
 `@cocoar/vue-localization workspace:*`. Direct dep:
 `@js-temporal/polyfill ^0.5` (re-exported as `Temporal`).
 
+The component styles ship as one stylesheet on the `./styles` subpath —
+import it once next to the design-system styles:
+
+```ts
+import '@cocoar/vue-ui/styles';
+import '@cocoar/vue-calendar/styles';
+```
+
+Every visible label (`Today`, `Month`, `All day`, the a11y announcements, …)
+is looked up as a `coar.calendar.*` key through the host's
+`@cocoar/vue-localization` service. English fallbacks are inline; German and
+English catalogs ship with the package, so a host registers them instead of
+maintaining the key list by hand:
+
+```ts
+import { createCoarLocalization } from '@cocoar/vue-localization';
+import { createCalendarTranslationSource } from '@cocoar/vue-calendar';
+
+const localization = createCoarLocalization({ defaultLanguage: 'de-AT' });
+localization.service.addTranslationSource(createCalendarTranslationSource());
+// A host source registered AFTER this one overrides per key.
+app.use(localization);
+```
+
 ## Quick start
 
 ```vue
@@ -80,12 +104,19 @@ specific web UX:
 
 ```ts
 builder
-  .onDateClick(({ date, native }) => openCreate(date, native.currentTarget))
-  .onTimeClick(({ date, time, native }) => openCreateAt(date, time, native.currentTarget))
+  .onDateClick(({ date }) => selectDay(date))
+  .onTimeClick(({ date, time }) => selectSlot(date, time))
+  .onDateDoubleClick(({ date, native }) => openCreate(date, native.currentTarget))
+  .onTimeDoubleClick(({ date, time, native }) => openCreateAt(date, time, native.currentTarget))
   .onEventClick(({ event, native }) => openDetails(event, native.currentTarget))
   .onEventDoubleClick(({ event }) => openEditor(event))
   .onEventDrop(({ event, next }) => persistMove(event.id, next));
 ```
+
+Single-click and double-click on empty cells / slots are separate hooks, so
+the desktop convention "click selects, double-click creates" needs no timer on
+the host side. A double-click on an event element never reaches the date /
+time hooks — it routes to `onEventDoubleClick` only.
 
 Use the supplied DOM target with `@cocoar/vue-ui` for an anchored popover, or
 ignore it and open a modal, side panel, routed page, or custom view. The calendar

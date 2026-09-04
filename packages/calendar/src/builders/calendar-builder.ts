@@ -73,6 +73,7 @@ import type {
   CalendarDensity,
   CanDropFn,
   DateClickHandler,
+  DateDoubleClickHandler,
   DayHeaderRenderer,
   DstPolicy,
   EventClickHandler,
@@ -86,6 +87,7 @@ import type {
   RangeChangeHandler,
   SeriesLoader,
   TimeClickHandler,
+  TimeDoubleClickHandler,
   TimeRange,
 } from './types';
 import type { RecurrenceEngine } from '../recurrence/types';
@@ -292,6 +294,8 @@ export interface CalendarBuilderState<
   onEventDrop: EventDropHandler<TMeta> | null;
   onDateClick: DateClickHandler | null;
   onTimeClick: TimeClickHandler | null;
+  onDateDoubleClick: DateDoubleClickHandler | null;
+  onTimeDoubleClick: TimeDoubleClickHandler | null;
   onMoreClick: MoreClickHandler<TMeta> | null;
   onRangeChange: RangeChangeHandler | null;
 }
@@ -492,6 +496,8 @@ export class CalendarBuilder<TMeta extends Record<string, unknown> = Record<stri
       onEventDrop: null,
       onDateClick: null,
       onTimeClick: null,
+      onDateDoubleClick: null,
+      onTimeDoubleClick: null,
       onMoreClick: null,
       onRangeChange: null,
     });
@@ -990,6 +996,24 @@ export class CalendarBuilder<TMeta extends Record<string, unknown> = Record<stri
 
   onTimeClick(h: TimeClickHandler): this {
     this.state.onTimeClick = h;
+    return this;
+  }
+
+  /**
+   * Double-click on an empty day cell (month grid, all-day band).
+   * Desktop "double-click creates" convention; the single-click
+   * handlers keep firing for the two clicks that precede it, so a
+   * host that selects on click and creates on double-click needs no
+   * timer of its own.
+   */
+  onDateDoubleClick(h: DateDoubleClickHandler): this {
+    this.state.onDateDoubleClick = h;
+    return this;
+  }
+
+  /** Double-click on an empty time slot (week / work-week / day). */
+  onTimeDoubleClick(h: TimeDoubleClickHandler): this {
+    this.state.onTimeDoubleClick = h;
     return this;
   }
 

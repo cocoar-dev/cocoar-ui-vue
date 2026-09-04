@@ -456,7 +456,7 @@ defineExpose({
               top: `${row.top + row.height * 0.25}px`,
               width: `${bar.width}px`,
               height: `${row.height * 0.5}px`,
-              background: eventColor(bar.event) ?? 'var(--coar-color-accent, #2563eb)',
+              background: eventColor(bar.event) ?? 'var(--coar-color-accent, var(--coar-color-accent-500, #2563eb))',
             }"
             :aria-label="eventTitle(bar.event)"
             @click="onEventClick(bar.event, $event)"

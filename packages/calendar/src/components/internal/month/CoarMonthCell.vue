@@ -66,6 +66,12 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   /** Pointer-down on the cell body. Parent typically emits `date-click`. */
   cellPointerdown: [native: PointerEvent, day: Temporal.PlainDate];
+  /**
+   * Double-click on the EMPTY cell body. Pills / bars stop their own
+   * `dblclick` (they route to `onEventDoubleClick`), so this only
+   * reaches the parent for the cell background and day number.
+   */
+  cellDblclick: [native: MouseEvent, day: Temporal.PlainDate];
   /** Right-click / long-press on the cell body. */
   cellContextmenu: [native: MouseEvent, day: Temporal.PlainDate];
   /** Click on the kebab — opens the cell menu anchored at the trigger. */
@@ -85,6 +91,10 @@ const ariaExpanded = computed(() => (props.menuOpenForThisCell ? 'true' : 'false
 function onPointerdown(e: PointerEvent) {
   if (props.placeholder) return;
   emit('cellPointerdown', e, props.day);
+}
+function onDblclick(e: MouseEvent) {
+  if (props.placeholder) return;
+  emit('cellDblclick', e, props.day);
 }
 function onContextmenu(e: MouseEvent) {
   if (props.placeholder) return;
@@ -114,6 +124,7 @@ function onKebabClick(e: MouseEvent) {
     :aria-current="isToday ? 'date' : undefined"
     :aria-hidden="placeholder ? 'true' : undefined"
     @pointerdown="onPointerdown"
+    @dblclick="onDblclick"
     @contextmenu="onContextmenu"
   >
     <div v-if="!placeholder" class="coar-month-cell__day-number-row">
@@ -129,6 +140,7 @@ function onKebabClick(e: MouseEvent) {
         aria-haspopup="menu"
         :aria-expanded="ariaExpanded"
         @pointerdown.stop
+        @dblclick.stop
         @click.stop="onKebabClick"
       >
         <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true">
@@ -204,7 +216,7 @@ function onKebabClick(e: MouseEvent) {
   color: var(--coar-text-base, #1a1c1f);
 }
 .coar-month-cell--today .coar-month-cell__day-number {
-  color: var(--coar-color-accent, #2563eb);
+  color: var(--coar-color-accent, var(--coar-color-accent-500, #2563eb));
 }
 .coar-month-cell--other-month .coar-month-cell__day-number {
   color: var(--coar-text-subtle, #9ca3af);

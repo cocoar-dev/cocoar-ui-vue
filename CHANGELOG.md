@@ -9,6 +9,62 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ## 3.2.0
 
+**The calendar closes its consumer backlog.** Every finding that timetodo,
+amZettel and the Event-Tree stress app reported against `@cocoar/vue-calendar`
+since May and worked around locally is addressed in this release: the
+stylesheet is importable, double-click hooks exist for empty cells, the agenda
+shows time spans, the accent colour follows the design-system brand, the
+package ships its own German and English labels, and a crash in the
+cross-zone decorations is fixed.
+
+### Added
+
+- **`@cocoar/vue-calendar/styles` subpath.** The package stylesheet
+  (`dist/vue-calendar.css`) is now declared in the `exports` map, matching
+  `@cocoar/vue-ui/styles`. Hosts drop the relative
+  `node_modules/@cocoar/vue-calendar/dist/vue-calendar.css` import.
+- **`onDateDoubleClick` / `onTimeDoubleClick` builder hooks.** Empty month
+  cells, all-day cells and time-grid slots now report double-clicks
+  separately from single clicks, so the desktop convention "click selects,
+  double-click creates" needs no host-side click timer. `onTimeDoubleClick`
+  snaps to the slot grid exactly like `onTimeClick`; a double-click on an
+  event element still reaches `onEventDoubleClick` only.
+- **Shipped translation catalogs.** `calendarMessages` (`en` / `de`, flat
+  `coar.calendar.*` keys) and `createCalendarTranslationSource()` for
+  `service.addTranslationSource(...)`. Regional tags resolve to their base
+  language; a host source registered afterwards overrides per key. A test
+  scans the source tree and fails when a component reads a key either
+  catalog lacks.
+
+### Changed
+
+- **Agenda and Month List show time spans.** Timed events with an end render
+  `start – end` (en dash) in the time column; point events keep the start
+  time; all-day events keep the all-day label. Mirrors the SwiftUI port's
+  default.
+- **`--coar-color-accent` follows the vue-ui accent ramp.** Every usage now
+  falls back to `--coar-color-accent-500` before the historical blue, so a
+  host that brands `--coar-accent` gets matching today markers and default
+  event fills without a calendar-specific override. An explicit
+  `--coar-color-accent` still wins.
+
+### Fixed
+
+- **Cross-zone and UTC decorations no longer crash the agenda.** The
+  decoration component called the localization service's `t` detached from
+  its instance; the first event whose source zone differed from the display
+  zone threw `Cannot read properties of undefined (reading '_language')` and
+  left the agenda blank. The call is now bound to the service.
+- **Multi-day all-day events are announced with their inclusive last day.**
+  The month-grid `aria-label` named the RFC-5545 exclusive end (a Fri–Sun stay
+  read "Fri – Mon"); it now names the last covered day, and single-day
+  all-day events get one date instead of "Fri – Fri".
+
+---
+
+
+## 3.2.0
+
 **A list for records that do not fit into columns.** `CoarDataList` is the
 grid alternative for data with many fields on a notebook screen: the
 application owns a free multi-line template per record, the list owns

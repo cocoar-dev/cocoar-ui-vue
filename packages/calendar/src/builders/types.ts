@@ -240,6 +240,28 @@ export type TimeClickHandler = (payload: {
   native: PointerEvent;
 }) => void;
 
+/**
+ * Double-click on an EMPTY day cell (month grid / all-day band).
+ * Companion to `onEventDoubleClick` for the desktop convention
+ * "double-click creates, single-click selects". Never fires for a
+ * double-click on an event element — those stop propagation and
+ * route to `onEventDoubleClick` instead.
+ */
+export type DateDoubleClickHandler = (payload: {
+  date: Temporal.PlainDate;
+  native: MouseEvent;
+}) => void;
+
+/**
+ * Double-click on an EMPTY time slot (week / work-week / day).
+ * `time` is snapped to the slot grid exactly like `onTimeClick`.
+ */
+export type TimeDoubleClickHandler = (payload: {
+  date: Temporal.PlainDate;
+  time: Temporal.PlainTime;
+  native: MouseEvent;
+}) => void;
+
 export type MoreClickHandler<
   TMeta extends Record<string, unknown> = Record<string, unknown>,
 > = (payload: {

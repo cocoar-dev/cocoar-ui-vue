@@ -90,7 +90,7 @@ defineSlots<{
   background: var(--coar-calendar-bg, #fff);
 }
 .coar-time-grid-header__cell--today {
-  color: var(--coar-color-accent, #2563eb);
+  color: var(--coar-color-accent, var(--coar-color-accent-500, #2563eb));
 }
 .coar-time-grid-header__cell--weekend {
   background: var(--coar-calendar-bg-weekend, #f6f7f9);

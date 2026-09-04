@@ -299,8 +299,9 @@ function onA11yAnnounce(
 }
 
 // All event emission flows through the builder's `_emit*` family
-// (set up by the consumer via builder.onTimeClick / onEventClick /
-// onEventDrop / onEventDoubleClick / onDateClick). No defineEmits.
+// (set up by the consumer via builder.onTimeClick / onTimeDoubleClick /
+// onEventClick / onEventDrop / onEventDoubleClick / onDateClick /
+// onDateDoubleClick). No defineEmits.
 
 // ─── Geometry ─────────────────────────────────────────────────────────
 
@@ -536,7 +537,13 @@ function formatDayHeader(date: Temporal.PlainDate): string {
   return dayHeaderFormatter.value.format(new Date(Date.UTC(date.year, date.month - 1, date.day)));
 }
 
-function onColumnPointerDown(e: PointerEvent, date: Temporal.PlainDate) {
+/**
+ * Slot time under the pointer, snapped to the slot grid. ONE
+ * resolver for click and double-click so both hooks agree on what
+ * "the slot at this y" means. `null` when the pointer sits outside
+ * the 0–24 h range (render buffer rows).
+ */
+function slotTimeAt(e: MouseEvent): Temporal.PlainTime | null {
   const col = e.currentTarget as HTMLElement;
   const rect = col.getBoundingClientRect();
   const yInColumn = e.clientY - rect.top;
@@ -546,16 +553,28 @@ function onColumnPointerDown(e: PointerEvent, date: Temporal.PlainDate) {
   const totalMinFromMidnight = timeRange.value[0] * 60 + minutesFromStart;
   const hour = Math.floor(totalMinFromMidnight / 60);
   const minute = totalMinFromMidnight % 60;
-  if (hour < 0 || hour >= 24) return;
-  props.builder.state.onTimeClick?.({
-    date,
-    time: Temporal.PlainTime.from({ hour, minute }),
-    native: e,
-  });
+  if (hour < 0 || hour >= 24) return null;
+  return Temporal.PlainTime.from({ hour, minute });
+}
+
+function onColumnPointerDown(e: PointerEvent, date: Temporal.PlainDate) {
+  const time = slotTimeAt(e);
+  if (!time) return;
+  props.builder.state.onTimeClick?.({ date, time, native: e });
+}
+
+function onColumnDblclick(e: MouseEvent, date: Temporal.PlainDate) {
+  const time = slotTimeAt(e);
+  if (!time) return;
+  props.builder.state.onTimeDoubleClick?.({ date, time, native: e });
 }
 
 function onAllDayCellPointerDown(e: PointerEvent, date: Temporal.PlainDate) {
   props.builder.state.onDateClick?.({ date, native: e });
+}
+
+function onAllDayCellDblclick(e: MouseEvent, date: Temporal.PlainDate) {
+  props.builder.state.onDateDoubleClick?.({ date, native: e });
 }
 
 // ─── Default event card content ──────────────────────────────────────
@@ -625,7 +644,7 @@ function eventBgFor(event: CalendarEvent<TMeta>): string {
 }
 function eventBorderFor(event: CalendarEvent<TMeta>): string {
   const c = eventColor(event);
-  return c ?? 'var(--coar-color-accent, #2563eb)';
+  return c ?? 'var(--coar-color-accent, var(--coar-color-accent-500, #2563eb))';
 }
 
 // Register the imperative scroll-to-time impl on the builder so
@@ -711,6 +730,7 @@ defineExpose({
         :is-weekend="isWeekend"
         :set-columns-el="setAllDayColumnsEl"
         @cell-pointerdown="(e, day) => onAllDayCellPointerDown(e, day)"
+        @cell-dblclick="(e, day) => onAllDayCellDblclick(e, day)"
       >
         <!--
           All-day bars on top of the day-cell background.
@@ -839,6 +859,7 @@ defineExpose({
           :slot-height-px="slotHeightPx"
           :render-buffer-offset-px="minutesToPx(RENDER_BUFFER_MINUTES)"
           @pointerdown="(e, day) => onColumnPointerDown(e, day)"
+          @dblclick="(e, day) => onColumnDblclick(e, day)"
         >
           <!--
             Events.

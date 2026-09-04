@@ -35,6 +35,8 @@ defineProps<Props>();
 const emit = defineEmits<{
   /** User clicked an empty all-day cell. */
   cellPointerdown: [native: PointerEvent, day: Temporal.PlainDate];
+  /** User double-clicked an empty all-day cell (bars stop their own). */
+  cellDblclick: [native: MouseEvent, day: Temporal.PlainDate];
 }>();
 
 defineSlots<{
@@ -44,6 +46,9 @@ defineSlots<{
 
 function onCellPointerdown(e: PointerEvent, day: Temporal.PlainDate) {
   emit('cellPointerdown', e, day);
+}
+function onCellDblclick(e: MouseEvent, day: Temporal.PlainDate) {
+  emit('cellDblclick', e, day);
 }
 </script>
 
@@ -69,6 +74,7 @@ function onCellPointerdown(e: PointerEvent, day: Temporal.PlainDate) {
         }"
         :style="{ gridColumn: i + 1 }"
         @pointerdown="onCellPointerdown($event, day)"
+        @dblclick="onCellDblclick($event, day)"
       />
       <slot />
     </div>

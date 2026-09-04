@@ -375,7 +375,7 @@ function eventBgFor(event: CalendarEvent<TMeta>): string {
   );
 }
 function eventBorderFor(event: CalendarEvent<TMeta>): string {
-  return eventColor(event) ?? 'var(--coar-color-accent, #2563eb)';
+  return eventColor(event) ?? 'var(--coar-color-accent, var(--coar-color-accent-500, #2563eb))';
 }
 
 /**
@@ -423,9 +423,17 @@ function eventAriaLabel(event: CalendarEvent<TMeta>): string {
           overrides,
         ),
       );
+      // `end` is RFC-5545 EXCLUSIVE (C1 contract); the spoken label
+      // names the last day the event actually covers, so a Fri–Sun
+      // stay reads "Fri – Sun", not "Fri – Mon". Single-day events
+      // get just their date — no "Fri – Fri".
       const s = event.start;
       const startD = new Date(Date.UTC(s.year, s.month - 1, s.day));
-      const e = event.end ?? s;
+      const e =
+        event.end && Temporal.PlainDate.compare(event.end, s) > 0
+          ? event.end.subtract({ days: 1 })
+          : s;
+      if (e.equals(s)) return `${title}, ${fmt.format(startD)}`;
       const endD = new Date(Date.UTC(e.year, e.month - 1, e.day));
       return `${title}, ${fmt.format(startD)} – ${fmt.format(endD)}`;
     }
@@ -454,6 +462,9 @@ function eventAriaLabel(event: CalendarEvent<TMeta>): string {
 
 function onCellClick(e: PointerEvent, date: Temporal.PlainDate) {
   props.builder.state.onDateClick?.({ date, native: e });
+}
+function onCellDblclick(e: MouseEvent, date: Temporal.PlainDate) {
+  props.builder.state.onDateDoubleClick?.({ date, native: e });
 }
 
 // ─── Phantom stubs for non-interactive pill / bar variants ──────────
@@ -528,6 +539,7 @@ defineExpose({
           :ariaColIndex="colIndex + 1"
           :ariaLabel="formatCellAriaLabel(day)"
           @cell-pointerdown="(e) => onCellClick(e, day)"
+          @cell-dblclick="(e) => onCellDblclick(e, day)"
           @cell-contextmenu="(e) => openCellMenuFromContext(e, rowIndex, day)"
           @kebab-click="(e) => openCellMenuFromKebab(e, rowIndex, day)"
         >

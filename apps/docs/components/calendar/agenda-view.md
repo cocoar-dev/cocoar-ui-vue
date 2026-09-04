@@ -101,6 +101,18 @@ Same universal surface as the [composer](/components/calendar/coar-calendar#api-
 | `agendaLengthDays(n)` | `MaybeRefOrGetter<number>` | `30` | How many days the visible window covers, starting from `date()`. |
 | `showEmptyDays(b)` | `MaybeRefOrGetter<boolean>` | `false` | When `true`, empty days render a header in italic-grey. When `false`, only days with events appear. |
 
+## Time labels
+
+The time column follows one rule, shared with the Month List surface and with the SwiftUI port:
+
+| Event | Label |
+|---|---|
+| all-day (`PlainDate` start) | the localised `All day` label |
+| timed with `end` | `start – end`, both in the display zone (en dash, U+2013) |
+| timed without `end` (point event) | the start time only |
+
+Formatting goes through `buildFormatOptions` (C6): `locale`, `timeStyle` and `hour12` apply to both ends of the span.
+
 ## Multi-day events & continuation tags
 
 A multi-day event appears on every day it touches. The first day shows the event normally; subsequent days show it dimmed with a localised `(cont.)` tag appended to the title. Both rows are interactive — clicking either dispatches `onEventClick` with the same event.

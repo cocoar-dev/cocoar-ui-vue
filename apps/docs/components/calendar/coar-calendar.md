@@ -414,12 +414,18 @@ The calendar owns interaction geometry; the host application owns the editing ex
 
 ```ts
 builder
-  .onDateClick(({ date, native }) => openCreate({ date, anchor: native.currentTarget }))
-  .onTimeClick(({ date, time, native }) => openCreate({ date, time, anchor: native.currentTarget }))
+  .onDateClick(({ date }) => selectDay(date))
+  .onTimeClick(({ date, time }) => selectSlot(date, time))
+  .onDateDoubleClick(({ date, native }) => openCreate({ date, anchor: native.currentTarget }))
+  .onTimeDoubleClick(({ date, time, native }) =>
+    openCreate({ date, time, anchor: native.currentTarget }),
+  )
   .onEventClick(({ event, native }) => openDetails(event, native.currentTarget))
   .onEventDoubleClick(({ event }) => openEditModal(event))
   .onEventDrop(({ event, next }) => persistMove(event.id, next));
 ```
+
+Single-click and double-click on an empty cell or slot are separate hooks. The desktop convention "click selects, double-click creates" (Apple Calendar, Outlook) therefore needs no click-timer on the host side, and the Google-style "click opens a popup" model is one handler away. The single-click hooks still fire for the two clicks that precede a double-click. A double-click on an event element stops at the event and reaches `onEventDoubleClick` only — never the date / time hooks. `onTimeDoubleClick` snaps to the slot grid exactly like `onTimeClick`.
 
 `native.currentTarget` is the rendered calendar element and can be passed directly to `@cocoar/vue-ui`'s overlay service. Applications using a modal or routed editor can ignore it. For recurring events, call `getRecurrenceMeta(event)` before opening the editor so the host can offer This occurrence / This and following / Entire series; the calendar supplies stable occurrence identity but never guesses the backend mutation.
 
@@ -539,8 +545,10 @@ The builder is **flat** — every setter lives directly on it. There are no sub-
 | `onEventHover(fn)` | `(payload: { event, native: PointerEvent }) => void` | Pair with `useOverlay()` for popovers / tooltips. `native.currentTarget` is the anchor element. No hover delay applied — wrap with `setTimeout(..., 200)` if needed. |
 | `onEventHoverLeave(fn)` | `(payload: { event, native: PointerEvent }) => void` | Companion close-trigger for the popover the hover handler opened. |
 | `onEventDrop(fn)` | `(payload) => void` | Drag-and-drop / keyboard / touch all flow through this. |
-| `onDateClick(fn)` | `(payload) => void` | Empty cell / day-header clicked. |
-| `onTimeClick(fn)` | `(payload) => void` | Empty time slot (week / day). |
+| `onDateClick(fn)` | `(payload: { date, native: PointerEvent }) => void` | Empty cell / day-header clicked. |
+| `onTimeClick(fn)` | `(payload: { date, time, native: PointerEvent }) => void` | Empty time slot (week / day). |
+| `onDateDoubleClick(fn)` | `(payload: { date, native: MouseEvent }) => void` | Empty month cell / all-day cell double-clicked. Never fires for a double-click on an event. |
+| `onTimeDoubleClick(fn)` | `(payload: { date, time, native: MouseEvent }) => void` | Empty time slot double-clicked; `time` snapped like `onTimeClick`. |
 | `onMoreClick(fn)` | `(payload) => void` | Per-cell context menu trigger (month). |
 | `onRangeChange(fn)` | `(window) => void` | Visible window changed. |
 
