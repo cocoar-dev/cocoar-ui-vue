@@ -14,6 +14,7 @@ import { useI18n } from '@cocoar/vue-localization';
 import { useVirtualList } from '../../composables/useVirtualList';
 import { useDataListModel } from './useDataListModel';
 import { useSearchHighlight } from './internal/useSearchHighlight';
+import { useDataListLines } from './internal/useDataListLines';
 import CoarDataListToolbar from './CoarDataListToolbar.vue';
 import CoarContextMenu from '../menu/CoarContextMenu.vue';
 import CoarMenu from '../menu/CoarMenu.vue';
@@ -28,6 +29,7 @@ import type {
   CoarDataListItemEvent,
   CoarDataListItemSlotProps,
   CoarDataListKey,
+  CoarDataListLayout,
   CoarDataListMenuEntry,
   CoarDataListMenuItem,
   CoarDataListSearchBy,
@@ -68,9 +70,13 @@ export interface CoarDataListProps<T = unknown> {
   /** Marks search matches inside the rendered rows (CSS Custom Highlight API). */
   searchHighlight?: boolean;
 
+  /** `'list'` (default) or `'grid'`: tiles in exact data order, as many per row as fit `tileMinWidth`. */
+  layout?: CoarDataListLayout;
+  /** Minimum tile width in the grid layout, px number or CSS length. Default `'14rem'`. */
+  tileMinWidth?: number | string;
   /** Row padding. Default `'m'`. */
   density?: CoarDataListDensity;
-  /** Draws a divider between rows. */
+  /** Draws a divider between rows (list layout). */
   dividers?: boolean;
   /**
    * Space between rows — a pixel number or any CSS length (e.g. `'0.5rem'`).
@@ -107,6 +113,8 @@ const props = withDefaults(defineProps<CoarDataListProps<T>>(), {
   showSort: false,
   searchPlaceholder: undefined,
   searchHighlight: false,
+  layout: 'list',
+  tileMinWidth: '14rem',
   density: 'm',
   dividers: false,
   gap: undefined,
@@ -159,6 +167,8 @@ const cfg = computed(() => {
       showSort: toValue(s.showSort),
       searchPlaceholder: toValue(s.searchPlaceholder),
       searchHighlight: toValue(s.searchHighlight),
+      layout: toValue(s.layout),
+      tileMinWidth: toValue(s.tileMinWidth),
       density: toValue(s.density),
       dividers: toValue(s.dividers),
       gap: toValue(s.gap),
@@ -189,6 +199,8 @@ const cfg = computed(() => {
     showSort: props.showSort,
     searchPlaceholder: props.searchPlaceholder,
     searchHighlight: props.searchHighlight,
+    layout: props.layout,
+    tileMinWidth: props.tileMinWidth,
     density: props.density,
     dividers: props.dividers,
     gap: props.gap,
@@ -248,25 +260,56 @@ const list = useDataListModel<T>({
   selected,
 });
 
-// ─── Virtualisation ──────────────────────────────────────────────────────────
+// ─── Lines & virtualisation ──────────────────────────────────────────────────
+// The virtualizer works on lines: one entry per line in list layout, up to
+// `columns` entries per line in grid layout, group headings always alone.
 const scrollRef = useTemplateRef<HTMLElement>('scrollRef');
+const probeRef = useTemplateRef<HTMLElement>('probeRef');
 const entries = list.entries;
 
+const { lines, columns, lineIndexOfKey } = useDataListLines<T>({
+  entries,
+  layout: () => cfg.value.layout,
+  tileMinWidth: () => cfg.value.tileMinWidth,
+  gap: () => cfg.value.gap,
+  viewport: scrollRef,
+  probe: probeRef,
+});
+
 const virtualizer = useVirtualList({
-  count: () => entries.value.length,
+  count: () => lines.value.length,
   itemSize: () => cfg.value.itemSize,
   overscan: () => cfg.value.overscan,
   scrollElement: scrollRef,
   measure: true,
-  itemKey: (index) => entries.value[index]?.key ?? index,
+  itemKey: (index) => lines.value[index]?.key ?? index,
 });
 
-const virtualEntries = computed(() =>
+// A line key like `r:4` means "one row" in list layout but "a row of tiles"
+// in grid layout, and a different row once the column count changes — the
+// heights measured before no longer describe it.
+watch([columns, () => cfg.value.layout], () => virtualizer.invalidateMeasurements());
+
+const virtualLines = computed(() =>
   virtualizer.virtualRows.value.flatMap((row) => {
-    const entry = entries.value[row.index];
-    return entry ? [{ row, entry }] : [];
+    const line = lines.value[row.index];
+    return line ? [{ row, line }] : [];
   }),
 );
+
+const cellsStyle = computed(() => ({
+  gridTemplateColumns: `repeat(${columns.value}, minmax(0, 1fr))`,
+  columnGap: cfg.value.layout === 'grid' ? 'var(--coar-data-list-gap, 0px)' : undefined,
+}));
+
+const probeStyle = computed(() => {
+  const gap = cfg.value.gap;
+  const min = cfg.value.tileMinWidth;
+  return {
+    width: typeof min === 'number' ? `${min}px` : min,
+    paddingLeft: gap === undefined || gap === '' ? '0px' : typeof gap === 'number' ? `${gap}px` : gap,
+  };
+});
 
 useSearchHighlight({
   root: scrollRef,
@@ -384,8 +427,8 @@ function slotPropsFor(entry: ItemEntry): CoarDataListItemSlotProps<T> {
 }
 
 function scrollToKey(key: CoarDataListKey, align: 'auto' | 'start' | 'center' | 'end' = 'auto') {
-  const entryIndex = list.entryIndexOfKey(key);
-  if (entryIndex >= 0) virtualizer.scrollToIndex(entryIndex, align);
+  const lineIndex = lineIndexOfKey(key);
+  if (lineIndex >= 0) virtualizer.scrollToIndex(lineIndex, align);
 }
 
 function moveFocus(toIndex: number, event: KeyboardEvent) {
@@ -401,9 +444,11 @@ function moveFocus(toIndex: number, event: KeyboardEvent) {
   scrollToKey(key);
 }
 
+/** Items per viewport page: visible lines times tiles per line. */
 function pageSize(): number {
   const viewport = scrollRef.value?.clientHeight ?? 0;
-  return Math.max(1, Math.floor(viewport / Math.max(1, cfg.value.itemSize)) - 1);
+  const visibleLines = Math.max(1, Math.floor(viewport / Math.max(1, cfg.value.itemSize)) - 1);
+  return visibleLines * columns.value;
 }
 
 function onKeyDown(event: KeyboardEvent) {
@@ -411,13 +456,24 @@ function onKeyDown(event: KeyboardEvent) {
   const items = list.items.value;
   if (items.length === 0) return;
   const current = focusedKey.value === null ? -1 : list.indexOfKey(focusedKey.value);
+  const step = columns.value; // 1 in list layout; a full line of tiles in grid layout
 
   switch (event.key) {
     case 'ArrowDown':
       event.preventDefault();
-      moveFocus(current + 1, event);
+      moveFocus(current < 0 ? 0 : current + step, event);
       return;
     case 'ArrowUp':
+      event.preventDefault();
+      moveFocus(current <= 0 ? 0 : current - step, event);
+      return;
+    case 'ArrowRight':
+      if (cfg.value.layout !== 'grid') return;
+      event.preventDefault();
+      moveFocus(current + 1, event);
+      return;
+    case 'ArrowLeft':
+      if (cfg.value.layout !== 'grid') return;
       event.preventDefault();
       moveFocus(current <= 0 ? 0 : current - 1, event);
       return;
@@ -500,7 +556,12 @@ function focusKey(key: CoarDataListKey) {
 
 /** Forget measured row heights so the estimate applies until rows re-measure. */
 function invalidateMeasurements(key?: CoarDataListKey) {
-  virtualizer.invalidateMeasurements(key === undefined ? undefined : `i:${String(key)}`);
+  if (key === undefined) {
+    virtualizer.invalidateMeasurements();
+    return;
+  }
+  const line = lines.value[lineIndexOfKey(key)];
+  if (line) virtualizer.invalidateMeasurements(line.key);
 }
 
 onMounted(() => {
@@ -525,6 +586,7 @@ defineExpose({
     class="coar-data-list"
     :class="[
       `coar-data-list--density-${cfg.density}`,
+      `coar-data-list--layout-${cfg.layout}`,
       {
         'coar-data-list--bordered': cfg.bordered,
         'coar-data-list--elevated': cfg.elevated,
@@ -562,46 +624,52 @@ defineExpose({
       @focus="onViewportFocus"
       @contextmenu="onViewportContextMenu"
     >
+      <!-- Resolves tileMinWidth / gap to pixels for the column count. -->
+      <div ref="probeRef" class="coar-data-list__probe" :style="probeStyle" aria-hidden="true" />
+
       <div
-        v-if="entries.length > 0"
+        v-if="lines.length > 0"
         class="coar-data-list__spacer"
         :style="{ height: `${virtualizer.totalSize.value}px` }"
       >
         <div
-          v-for="{ row, entry } in virtualEntries"
-          :key="entry.key"
+          v-for="{ row, line } in virtualLines"
+          :key="line.key"
           :ref="(el) => virtualizer.measureElement(row.index, el as Element | null)"
           class="coar-data-list__row"
-          :class="{ 'coar-data-list__row--last': row.index === entries.length - 1 }"
+          :class="{ 'coar-data-list__row--last': row.index === lines.length - 1 }"
           :style="{ transform: `translateY(${row.start}px)` }"
         >
           <div
-            v-if="entry.kind === 'group'"
+            v-if="line.kind === 'group'"
             class="coar-data-list__group"
             role="presentation"
           >
-            <slot name="group-header" :group="entry.group" :count="entry.count" :items="entry.items">
-              <span class="coar-data-list__group-label">{{ entry.group }}</span>
-              <span class="coar-data-list__group-count">{{ entry.count }}</span>
+            <slot name="group-header" :group="line.entry.group" :count="line.entry.count" :items="line.entry.items">
+              <span class="coar-data-list__group-label">{{ line.entry.group }}</span>
+              <span class="coar-data-list__group-count">{{ line.entry.count }}</span>
             </slot>
           </div>
-          <div
-            v-else
-            class="coar-data-list__item"
-            :class="{
-              'coar-data-list__item--selected': list.isSelected(entry.itemKey),
-              'coar-data-list__item--focused': focusedKey === entry.itemKey,
-            }"
-            :role="cfg.selection === 'none' ? 'listitem' : 'option'"
-            :aria-selected="cfg.selection === 'none' ? undefined : list.isSelected(entry.itemKey) ? 'true' : 'false'"
-            @mousedown="onItemMouseDown"
-            @click="onItemClick(entry, $event)"
-            @dblclick="onItemDoubleClick(entry, $event)"
-            @contextmenu="onItemContextMenu(entry, $event)"
-          >
-            <slot name="item" v-bind="slotPropsFor(entry)">
-              {{ String(entry.itemKey) }}
-            </slot>
+          <div v-else class="coar-data-list__cells" :style="cellsStyle" role="presentation">
+            <div
+              v-for="entry in line.entries"
+              :key="entry.key"
+              class="coar-data-list__item"
+              :class="{
+                'coar-data-list__item--selected': list.isSelected(entry.itemKey),
+                'coar-data-list__item--focused': focusedKey === entry.itemKey,
+              }"
+              :role="cfg.selection === 'none' ? 'listitem' : 'option'"
+              :aria-selected="cfg.selection === 'none' ? undefined : list.isSelected(entry.itemKey) ? 'true' : 'false'"
+              @mousedown="onItemMouseDown"
+              @click="onItemClick(entry, $event)"
+              @dblclick="onItemDoubleClick(entry, $event)"
+              @contextmenu="onItemContextMenu(entry, $event)"
+            >
+              <slot name="item" v-bind="slotPropsFor(entry)">
+                {{ String(entry.itemKey) }}
+              </slot>
+            </div>
           </div>
         </div>
       </div>
@@ -698,9 +766,23 @@ defineExpose({
   outline-offset: -1px;
 }
 
+.coar-data-list__probe {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+  height: 0;
+  box-sizing: content-box;
+}
+
 .coar-data-list__spacer {
   position: relative;
   width: 100%;
+}
+
+.coar-data-list__cells {
+  display: grid;
+  align-items: stretch;
+  min-width: 0;
 }
 
 .coar-data-list__row {
@@ -727,9 +809,15 @@ defineExpose({
   cursor: pointer;
 }
 
-.coar-data-list--dividers .coar-data-list__item {
+.coar-data-list--dividers.coar-data-list--layout-list .coar-data-list__item {
   border-radius: 0;
   border-bottom: 1px solid var(--coar-border-neutral-secondary, var(--coar-border-neutral));
+}
+
+.coar-data-list--layout-grid .coar-data-list__item {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--coar-radius-s);
 }
 
 @media (hover: hover) {

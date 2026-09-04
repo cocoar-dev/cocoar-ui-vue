@@ -104,6 +104,18 @@ Search, sort menu, multi-select, search-hit highlighting. The `item` slot render
 
 <preview path="./data-list/demos/SelectionDataList.vue" />
 
+## Grid layout
+
+`layout="grid"` flows the same records into tiles: as many per row as fit `tileMinWidth`, always in exact data order — a tile grid is a list that wraps. Search, sort, grouping, selection, context menus and the `api` work identically, so a list/grid toggle is one setter or prop. The item slot is unchanged; give the template a second shape for tiles as the demo does.
+
+<preview path="./data-list/demos/GridDataList.vue" />
+
+```ts
+builder.layout(layoutRef).tileMinWidth('11rem').gap(8)
+```
+
+Rows are still virtualized and measured — tiles in one row share the height of the tallest. Group headings take a full row. `dividers` only apply to the list layout; use `gap` for spacing between tiles. Layouts that give up the data order for the visuals (masonry) are deliberately not part of this component.
+
 ## Grouping
 
 `groupBy` returns a group name per item; groups render with a heading (customisable via the `group-header` slot) and are ordered by `sortGroups` (`'asc'` by default). Sorting applies inside each group.
@@ -173,7 +185,8 @@ The scroll area is the single tab stop; a focus marker moves between items.
 
 | Key | Action |
 |---|---|
-| `↓` / `↑` | Move focus; selects the focused item unless `Ctrl` is held; `Shift` extends the range |
+| `↓` / `↑` | Move focus by one row (one tile row in grid layout); selects the focused item unless `Ctrl` is held; `Shift` extends the range |
+| `→` / `←` | Grid layout: move focus by one tile |
 | `Home` / `End` | First / last item |
 | `PageDown` / `PageUp` | Move by one viewport |
 | `Space` | Toggle the focused item |
@@ -201,8 +214,10 @@ ARIA: `role="listbox"` with `option` children when selection is enabled, `role="
 | `showSort` | `boolean` | `false` | Sort control in the toolbar (needs `sortOptions`) |
 | `searchPlaceholder` | `string` | `'Search…'` | Placeholder of the search input |
 | `searchHighlight` | `boolean` | `false` | Highlight matches in rendered rows |
+| `layout` | `'list' \| 'grid'` | `'list'` | Rows, or tiles wrapping in data order |
+| `tileMinWidth` | `number \| string` | `'14rem'` | Minimum tile width in grid layout; decides the column count |
 | `density` | `'s' \| 'm' \| 'l'` | `'m'` | Row padding |
-| `dividers` | `boolean` | `false` | Line between rows |
+| `dividers` | `boolean` | `false` | Line between rows (list layout) |
 | `gap` | `number \| string` | — | Space between rows (px number or CSS length); use this, not a template margin |
 | `bordered` | `boolean` | `false` | Border around the list |
 | `elevated` | `boolean` | `false` | Elevation shadow |

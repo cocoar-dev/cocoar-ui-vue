@@ -49,6 +49,7 @@ function mountList(props: Record<string, unknown> = {}) {
   const wrapper = mount(Host, { attachTo: document.body });
   const viewport = wrapper.find('.coar-data-list__viewport').element as HTMLElement;
   Object.defineProperty(viewport, 'clientHeight', { configurable: true, get: () => 200 });
+  Object.defineProperty(viewport, 'clientWidth', { configurable: true, get: () => 600 });
   viewport.dispatchEvent(new Event('scroll'));
   return { wrapper, viewport, selected, sort, search };
 }
@@ -181,6 +182,55 @@ describe('CoarDataList', () => {
     const rem = mountList({ gap: '0.5rem' });
     await nextTick();
     expect((rem.wrapper.find('.coar-data-list').element as HTMLElement).style.getPropertyValue('--coar-data-list-gap')).toBe('0.5rem');
+  });
+
+  it('wraps tiles into rows in grid layout, keeping data order', async () => {
+    const { wrapper } = mountList({ layout: 'grid', tileMinWidth: 200 });
+    await nextTick();
+    await nextTick();
+    const rows = wrapper.findAll('.coar-data-list__row');
+    expect(rows.length).toBe(3); // 8 items, 600px / 200px = 3 per row
+    expect(rows[0].findAll('.coar-data-list__item').map((node) => node.text())).toEqual([
+      'Task 1 · Ada', 'Task 2 · Grace', 'Task 3 · Ada',
+    ]);
+    expect(rows[2].findAll('.coar-data-list__item').length).toBe(2);
+    expect((rows[0].find('.coar-data-list__cells').element as HTMLElement).style.gridTemplateColumns).toBe('repeat(3, minmax(0, 1fr))');
+    expect(wrapper.find('.coar-data-list--layout-grid').exists()).toBe(true);
+  });
+
+  it('keeps group headings on their own row in grid layout', async () => {
+    const { wrapper } = mountList({ layout: 'grid', tileMinWidth: 200, groupBy: (row: Row) => row.owner });
+    await nextTick();
+    await nextTick();
+    const rows = wrapper.findAll('.coar-data-list__row');
+    expect(rows.map((row) => (row.find('.coar-data-list__group').exists() ? 'G' : row.findAll('.coar-data-list__item').length))).toEqual([
+      'G', 3, 1, 'G', 3, 1,
+    ]);
+  });
+
+  it('moves focus by tile and by row in grid layout', async () => {
+    const { wrapper, selected } = mountList({ layout: 'grid', tileMinWidth: 200 });
+    await nextTick();
+    await nextTick();
+    const viewport = wrapper.find('.coar-data-list__viewport');
+    await viewport.trigger('focus');
+    await viewport.trigger('keydown', { key: 'ArrowRight' });
+    expect(selected.value).toEqual([2]);
+    await viewport.trigger('keydown', { key: 'ArrowDown' });
+    expect(selected.value).toEqual([5]);
+    await viewport.trigger('keydown', { key: 'ArrowLeft' });
+    expect(selected.value).toEqual([4]);
+    await viewport.trigger('keydown', { key: 'ArrowUp' });
+    expect(selected.value).toEqual([1]);
+  });
+
+  it('ignores ArrowLeft/Right in list layout', async () => {
+    const { wrapper, selected } = mountList();
+    await nextTick();
+    const viewport = wrapper.find('.coar-data-list__viewport');
+    await viewport.trigger('focus');
+    await viewport.trigger('keydown', { key: 'ArrowRight' });
+    expect(selected.value).toEqual([]);
   });
 
   it('exposes the headless list and scroll helpers', async () => {

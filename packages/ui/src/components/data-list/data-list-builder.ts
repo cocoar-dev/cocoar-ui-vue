@@ -21,6 +21,7 @@ import {
 } from 'vue';
 import type {
   CoarDataListDensity,
+  CoarDataListLayout,
   CoarDataListItemEvent,
   CoarDataListKey,
   CoarDataListMenuEntry,
@@ -49,6 +50,8 @@ export interface DataListBuilderState<T> {
   searchPlaceholder: MaybeRefOrGetter<string | undefined>;
   searchHighlight: MaybeRefOrGetter<boolean>;
 
+  layout: MaybeRefOrGetter<CoarDataListLayout>;
+  tileMinWidth: MaybeRefOrGetter<number | string>;
   density: MaybeRefOrGetter<CoarDataListDensity>;
   dividers: MaybeRefOrGetter<boolean>;
   gap: MaybeRefOrGetter<number | string | undefined>;
@@ -176,6 +179,8 @@ export class DataListBuilder<T> {
       showSort: false,
       searchPlaceholder: undefined,
       searchHighlight: false,
+      layout: 'list',
+      tileMinWidth: '14rem',
       density: 'm',
       dividers: false,
       gap: undefined,
@@ -299,6 +304,18 @@ export class DataListBuilder<T> {
   }
 
   // ─── Appearance ───────────────────────────────────────────────────────────
+
+  /** `'list'` (default) or `'grid'` — tiles in exact data order, wrapping by `tileMinWidth`. */
+  layout(value: MaybeRefOrGetter<CoarDataListLayout>): this {
+    this.state.layout = value;
+    return this;
+  }
+
+  /** Minimum tile width in the grid layout (px number or CSS length). Default `'14rem'`. */
+  tileMinWidth(value: MaybeRefOrGetter<number | string>): this {
+    this.state.tileMinWidth = value;
+    return this;
+  }
 
   density(value: MaybeRefOrGetter<CoarDataListDensity>): this {
     this.state.density = value;

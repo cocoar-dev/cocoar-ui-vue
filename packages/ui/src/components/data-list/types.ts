@@ -42,6 +42,13 @@ export type CoarDataListSortGroups = 'asc' | 'desc' | 'none' | ((a: string, b: s
 
 export type CoarDataListDensity = 's' | 'm' | 'l';
 
+/**
+ * `'list'`: one record per row. `'grid'`: records flow into tiles, as many per
+ * row as fit `tileMinWidth`. Both keep the exact data order — a tile grid is a
+ * list that wraps.
+ */
+export type CoarDataListLayout = 'list' | 'grid';
+
 /** A visible row — either an item or the heading of a group. */
 export type CoarDataListEntry<T> =
   | {

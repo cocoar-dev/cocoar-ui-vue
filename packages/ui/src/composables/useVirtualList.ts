@@ -225,6 +225,30 @@ export function useVirtualList(opts: UseVirtualListOptions): UseVirtualListRetur
     index: number,
     align: 'auto' | 'start' | 'center' | 'end' = 'auto',
   ): void {
+    scrollToIndexOnce(index, align);
+    // With measured rows the target offset is an estimate until the rows around
+    // it have rendered; re-check for a few ticks and correct the position.
+    if (!getMeasure()) return;
+    let attempts = 0;
+    const settle = () => {
+      const n = getCount();
+      if (n === 0 || attempts++ >= 8) return;
+      const i = Math.max(0, Math.min(n - 1, index | 0));
+      const before = offsetAt(i);
+      void nextTick(() => {
+        if (offsetAt(i) !== before) {
+          scrollToIndexOnce(index, align);
+          settle();
+        }
+      });
+    };
+    settle();
+  }
+
+  function scrollToIndexOnce(
+    index: number,
+    align: 'auto' | 'start' | 'center' | 'end',
+  ): void {
     const el = opts.scrollElement.value;
     if (!el) return;
     const n = getCount();
@@ -339,7 +363,12 @@ export function useVirtualList(opts: UseVirtualListOptions): UseVirtualListRetur
       remeasureScheduled = false;
       let changed = false;
       for (const [el, key] of observedElements) {
-        if (!el.isConnected) continue;
+        if (!el.isConnected) {
+          // Unmounted without a matching null-ref (e.g. the index→key mapping changed).
+          resizeObserver?.unobserve(el);
+          observedElements.delete(el);
+          continue;
+        }
         if (recordSize(key, el.getBoundingClientRect().height)) changed = true;
       }
       if (changed) measureVersion.value++;

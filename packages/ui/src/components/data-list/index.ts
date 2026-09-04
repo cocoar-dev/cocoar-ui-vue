@@ -15,6 +15,7 @@ export type {
   CoarDataListItemEvent,
   CoarDataListItemSlotProps,
   CoarDataListKey,
+  CoarDataListLayout,
   CoarDataListMenuEntry,
   CoarDataListMenuItem,
   CoarDataListSearchBy,
