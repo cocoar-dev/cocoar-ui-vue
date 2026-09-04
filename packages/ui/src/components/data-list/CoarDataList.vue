@@ -142,6 +142,8 @@ export interface CoarDataListProps<T = unknown> {
   hideExpandToggle?: boolean;
   /** Veto for dropping `item` inside `parent` (drag & drop re-parenting). */
   canNest?: (item: T, parent: T) => boolean;
+  /** Grid layout: draw tiles as cards (border + radius). An expanded tile's frame opens into the band of its children. */
+  tileCards?: boolean;
 }
 
 const props = withDefaults(defineProps<CoarDataListProps<T>>(), {
@@ -186,6 +188,7 @@ const props = withDefaults(defineProps<CoarDataListProps<T>>(), {
   nestingStyle: 'lines',
   hideExpandToggle: false,
   canNest: undefined,
+  tileCards: false,
 });
 
 const emit = defineEmits<{
@@ -265,6 +268,7 @@ const cfg = computed(() => {
       nestingStyle: toValue(s.nestingStyle),
       hideExpandToggle: toValue(s.hideExpandToggle),
       canNest: s.canNest,
+      tileCards: toValue(s.tileCards),
     };
   }
   return {
@@ -312,6 +316,7 @@ const cfg = computed(() => {
     nestingStyle: props.nestingStyle,
     hideExpandToggle: props.hideExpandToggle,
     canNest: props.canNest,
+    tileCards: props.tileCards,
   };
 });
 
@@ -353,8 +358,7 @@ const expanded = computed<CoarDataListKey[]>({
   },
 });
 
-// Nesting is a list-layout feature; the grid shows top-level items only.
-const nestingActive = computed(() => !!cfg.value.children && cfg.value.layout === 'list');
+const nestingActive = computed(() => !!cfg.value.children);
 
 const list = useDataListModel<T>({
   items: () => cfg.value.items,
@@ -373,7 +377,6 @@ const list = useDataListModel<T>({
   expanded,
   childLevel: () => cfg.value.childLevel,
   maxDepth: () => cfg.value.maxDepth,
-  nesting: () => cfg.value.layout === 'list',
 });
 
 // ─── Lines & virtualisation ──────────────────────────────────────────────────
@@ -381,15 +384,55 @@ const list = useDataListModel<T>({
 // `columns` entries per line in grid layout, group headings always alone.
 const scrollRef = useTemplateRef<HTMLElement>('scrollRef');
 const probeRef = useTemplateRef<HTMLElement>('probeRef');
+const childProbeRef = useTemplateRef<HTMLElement>('childProbeRef');
 const entries = list.entries;
 
-const { lines, columns, lineIndexOfKey } = useDataListLines<T>({
+/** Horizontal inset of a band's content, in px (resolved from `nestingIndent`). */
+const bandInsetPx = computed(() => {
+  const indent = cfg.value.nestingIndent;
+  if (typeof indent === 'number') return indent;
+  const match = /^\s*(-?[\d.]+)\s*(px|rem|em)?\s*$/.exec(indent);
+  if (!match) return 24;
+  const amount = Number.parseFloat(match[1]);
+  if (match[2] === 'rem' || match[2] === 'em') {
+    const root = typeof document !== 'undefined' ? Number.parseFloat(getComputedStyle(document.documentElement).fontSize) : 16;
+    return amount * (Number.isFinite(root) && root > 0 ? root : 16);
+  }
+  return amount;
+});
+
+const { lines, columns, lineIndexOfKey, positionOfKey } = useDataListLines<T>({
   entries,
   layout: () => cfg.value.layout,
   tileMinWidth: () => cfg.value.tileMinWidth,
+  childLayout: () => cfg.value.childLevel?.layout,
+  childTileMinWidth: () => cfg.value.childLevel?.tileMinWidth,
   gap: () => cfg.value.gap,
+  bandInset: () => bandInsetPx.value,
   viewport: scrollRef,
   probe: probeRef,
+  childProbe: childProbeRef,
+});
+
+// Grid layout: one expanded parent per row. A band hangs under its parent's row
+// like a folder under its tab; a second band in the same row would have no tab
+// to hang from. The most recently expanded tile wins, the others collapse.
+// One watcher for both facts: which key was just added and which row now holds
+// two open tiles. Two watchers would race — they hang off the same source.
+let recentlyExpanded: CoarDataListKey | null = null;
+watch([lines, expanded], ([current, next], [, previous]) => {
+  const before = new Set(previous ?? []);
+  const added = next.find((key) => !before.has(key));
+  if (added !== undefined) recentlyExpanded = added;
+  const collapse: CoarDataListKey[] = [];
+  for (const line of current) {
+    if (line.kind !== 'items' || line.layout !== 'grid') continue;
+    const open = line.entries.filter((entry) => entry.hasChildren && entry.expanded).map((entry) => entry.itemKey);
+    if (open.length <= 1) continue;
+    const keep = recentlyExpanded !== null && open.includes(recentlyExpanded) ? recentlyExpanded : open[0];
+    for (const key of open) if (key !== keep) collapse.push(key);
+  }
+  if (collapse.length > 0) expanded.value = expanded.value.filter((key) => !collapse.includes(key));
 });
 
 const virtualizer = useVirtualList({
@@ -413,19 +456,55 @@ const virtualLines = computed(() =>
   }),
 );
 
-const cellsStyle = computed(() => ({
-  gridTemplateColumns: `repeat(${columns.value}, minmax(0, 1fr))`,
-  columnGap: cfg.value.layout === 'grid' ? 'var(--coar-data-list-gap, 0px)' : undefined,
-}));
+type Line = (typeof lines.value)[number];
+type ItemsLine = Extract<Line, { kind: 'items' }>;
 
-const probeStyle = computed(() => {
+function cellsStyle(line: ItemsLine) {
+  return {
+    gridTemplateColumns: `repeat(${line.columns}, minmax(0, 1fr))`,
+    columnGap: line.layout === 'grid' ? 'var(--coar-data-list-gap, 0px)' : undefined,
+  };
+}
+
+function rowClass(line: Line) {
+  const band = line.band;
+  return {
+    'coar-data-list__row--last': false,
+    'coar-data-list__row--band': !!band,
+    'coar-data-list__row--band-first': !!band?.first,
+    'coar-data-list__row--band-last': !!band?.last,
+    'coar-data-list__row--opens-band': line.kind === 'items' && line.opensBand,
+    [`coar-data-list__row--layout-${line.kind === 'items' ? line.layout : 'list'}`]: true,
+  };
+}
+
+function rowStyle(line: Line, start: number) {
+  const style: Record<string, string> = { transform: `translateY(${start}px)` };
+  const band = line.band;
+  if (band) {
+    style['--coar-data-list-band-level'] = String(band.level);
+    style['--coar-data-list-parent-col'] = String(band.parentColumn);
+    style['--coar-data-list-parent-cols'] = String(band.parentColumns);
+  } else if (line.kind === 'items' && line.opensBand) {
+    style['--coar-data-list-band-level'] = '0';
+  }
+  return style;
+}
+
+/** Indent inside a band is relative to the band, not to the top level. */
+function itemDepthStyle(line: ItemsLine, entry: ItemEntry) {
+  if (!nestingActive.value) return undefined;
+  const relativeDepth = line.layout === 'list' ? entry.depth - (line.band?.level ?? 0) : 0;
+  return { '--coar-data-list-depth': String(Math.max(0, relativeDepth)) };
+}
+
+function probeStyle(min: number | string) {
   const gap = cfg.value.gap;
-  const min = cfg.value.tileMinWidth;
   return {
     width: typeof min === 'number' ? `${min}px` : min,
     paddingLeft: gap === undefined || gap === '' ? '0px' : typeof gap === 'number' ? `${gap}px` : gap,
   };
-});
+}
 
 useSearchHighlight({
   root: scrollRef,
@@ -630,11 +709,7 @@ function scrollToKey(key: CoarDataListKey, align: 'auto' | 'start' | 'center' | 
   if (lineIndex >= 0) virtualizer.scrollToIndex(lineIndex, align);
 }
 
-function moveFocus(toIndex: number, event: KeyboardEvent) {
-  const items = list.items.value;
-  if (items.length === 0) return;
-  const index = Math.max(0, Math.min(items.length - 1, toIndex));
-  const key = list.keyOf(items[index]);
+function focusItem(key: CoarDataListKey, event: KeyboardEvent) {
   focusedKey.value = key;
   if (selectable.value) {
     if (event.shiftKey && cfg.value.selection === 'multiple') list.select(key, 'range');
@@ -643,11 +718,87 @@ function moveFocus(toIndex: number, event: KeyboardEvent) {
   scrollToKey(key);
 }
 
-/** Items per viewport page: visible lines times tiles per line. */
-function pageSize(): number {
+/** Focus by position among the visible items (data order). */
+function moveFocus(toIndex: number, event: KeyboardEvent) {
+  const items = list.items.value;
+  if (items.length === 0) return;
+  const index = Math.max(0, Math.min(items.length - 1, toIndex));
+  focusItem(list.keyOf(items[index]), event);
+}
+
+/** Items lines only, for vertical navigation across rows, bands and headings. */
+function itemsLineAt(from: number, direction: 1 | -1, steps = 1): ItemsLine | null {
+  let index = from;
+  let remaining = steps;
+  let found: ItemsLine | null = null;
+  while (remaining > 0) {
+    index += direction;
+    if (index < 0 || index >= lines.value.length) break;
+    const line = lines.value[index];
+    if (line.kind !== 'items') continue;
+    found = line;
+    remaining--;
+  }
+  return found;
+}
+
+/**
+ * Focus the item one or more rows up / down, keeping the column where possible.
+ * Rows are what the user sees: a tile row, a band under it, a nested list row.
+ */
+function moveFocusVertically(steps: number, event: KeyboardEvent) {
+  const current = focusedKey.value === null ? null : positionOfKey(focusedKey.value);
+  if (!current) {
+    moveFocus(steps > 0 ? 0 : list.items.value.length - 1, event);
+    return;
+  }
+  const target = itemsLineAt(current.line, steps > 0 ? 1 : -1, Math.abs(steps));
+  if (!target) return;
+  const entry = target.entries[Math.min(current.column, target.entries.length - 1)];
+  focusItem(entry.itemKey, event);
+}
+
+/** Focus the previous / next tile as seen on screen: along the row, then across rows. */
+function moveFocusHorizontally(delta: 1 | -1, event: KeyboardEvent) {
+  const current = focusedKey.value === null ? null : positionOfKey(focusedKey.value);
+  if (!current) {
+    moveFocus(delta > 0 ? 0 : list.items.value.length - 1, event);
+    return;
+  }
+  const line = lines.value[current.line] as ItemsLine;
+  const column = current.column + delta;
+  if (column >= 0 && column < line.entries.length) {
+    focusItem(line.entries[column].itemKey, event);
+    return;
+  }
+  const next = itemsLineAt(current.line, delta);
+  if (!next) return;
+  focusItem((delta > 0 ? next.entries[0] : next.entries[next.entries.length - 1]).itemKey, event);
+}
+
+/** Visible lines per viewport page. */
+function pageLines(): number {
   const viewport = scrollRef.value?.clientHeight ?? 0;
-  const visibleLines = Math.max(1, Math.floor(viewport / Math.max(1, cfg.value.itemSize)) - 1);
-  return visibleLines * columns.value;
+  return Math.max(1, Math.floor(viewport / Math.max(1, cfg.value.itemSize)) - 1);
+}
+
+function expandFocused(event: KeyboardEvent, entry: ItemEntry, current: number) {
+  if (!entry.hasChildren) return;
+  event.preventDefault();
+  if (!entry.expanded) list.expand(entry.itemKey);
+  else moveFocus(current + 1, event); // first child is next in data order
+}
+
+function collapseFocused(event: KeyboardEvent, entry: ItemEntry) {
+  if (entry.hasChildren && entry.expanded) {
+    event.preventDefault();
+    list.collapse(entry.itemKey);
+    return;
+  }
+  if (entry.parentKey !== null) {
+    event.preventDefault();
+    focusItem(entry.parentKey, event);
+  }
 }
 
 function onKeyDown(event: KeyboardEvent) {
@@ -656,53 +807,41 @@ function onKeyDown(event: KeyboardEvent) {
   const items = list.items.value;
   if (items.length === 0) return;
   const current = focusedKey.value === null ? -1 : list.indexOfKey(focusedKey.value);
-  const step = columns.value; // 1 in list layout; a full line of tiles in grid layout
+  const entry = current < 0 ? undefined : list.entryOfKey(list.keyOf(items[current]));
+  const position = focusedKey.value === null ? null : positionOfKey(focusedKey.value);
+  const inTileRow = position !== null && (lines.value[position.line] as ItemsLine | undefined)?.layout === 'grid';
 
   switch (event.key) {
     case 'ArrowDown':
       event.preventDefault();
-      moveFocus(current < 0 ? 0 : current + step, event);
+      moveFocusVertically(1, event);
       return;
     case 'ArrowUp':
       event.preventDefault();
-      moveFocus(current <= 0 ? 0 : current - step, event);
+      moveFocusVertically(-1, event);
       return;
-    case 'ArrowRight': {
-      if (cfg.value.layout === 'grid') {
+    case 'ArrowRight':
+      if (inTileRow) {
         event.preventDefault();
-        moveFocus(current + 1, event);
+        moveFocusHorizontally(1, event);
         return;
       }
-      if (!nestingActive.value || current < 0) return;
-      // Expand a collapsed parent; on an expanded one, step into the first child.
-      const entry = list.entryOfKey(list.keyOf(items[current]));
-      if (!entry?.hasChildren) return;
-      event.preventDefault();
-      if (!entry.expanded) list.expand(entry.itemKey);
-      else moveFocus(current + 1, event);
+      if (nestingActive.value && entry) expandFocused(event, entry, current);
       return;
-    }
-    case 'ArrowLeft': {
-      if (cfg.value.layout === 'grid') {
+    case 'ArrowLeft':
+      if (inTileRow) {
         event.preventDefault();
-        moveFocus(current <= 0 ? 0 : current - 1, event);
+        moveFocusHorizontally(-1, event);
         return;
       }
-      if (!nestingActive.value || current < 0) return;
-      // Collapse an expanded parent; otherwise jump to the parent row.
-      const entry = list.entryOfKey(list.keyOf(items[current]));
-      if (!entry) return;
-      if (entry.hasChildren && entry.expanded) {
-        event.preventDefault();
-        list.collapse(entry.itemKey);
-        return;
-      }
-      if (entry.parentKey !== null) {
-        event.preventDefault();
-        moveFocus(list.indexOfKey(entry.parentKey), event);
-      }
+      if (nestingActive.value && entry) collapseFocused(event, entry);
       return;
-    }
+    case '+':
+      if (nestingActive.value && entry) expandFocused(event, entry, current);
+      return;
+    case '-':
+      if (nestingActive.value && entry) collapseFocused(event, entry);
+      return;
     case 'Home':
       event.preventDefault();
       moveFocus(0, event);
@@ -713,11 +852,11 @@ function onKeyDown(event: KeyboardEvent) {
       return;
     case 'PageDown':
       event.preventDefault();
-      moveFocus(current + pageSize(), event);
+      moveFocusVertically(pageLines(), event);
       return;
     case 'PageUp':
       event.preventDefault();
-      moveFocus(current - pageSize(), event);
+      moveFocusVertically(-pageLines(), event);
       return;
     case ' ':
       if (current < 0 || !selectable.value) return;
@@ -727,8 +866,7 @@ function onKeyDown(event: KeyboardEvent) {
     case 'Enter': {
       if (current < 0) return;
       event.preventDefault();
-      const entry = entries.value[list.entryIndexOfKey(list.keyOf(items[current]))];
-      if (entry?.kind === 'item') fireActivate(entry, event);
+      if (entry) fireActivate(entry, event);
       return;
     }
     case 'a':
@@ -861,8 +999,9 @@ defineExpose({
       @dragleave="reorder.onViewportDragLeave"
       @drop="reorder.onViewportDrop"
     >
-      <!-- Resolves tileMinWidth / gap to pixels for the column count. -->
-      <div ref="probeRef" class="coar-data-list__probe" :style="probeStyle" aria-hidden="true" />
+      <!-- Resolve tileMinWidth / gap to pixels for the column counts (top level and child levels). -->
+      <div ref="probeRef" class="coar-data-list__probe" :style="probeStyle(cfg.tileMinWidth)" aria-hidden="true" />
+      <div ref="childProbeRef" class="coar-data-list__probe" :style="probeStyle(cfg.childLevel?.tileMinWidth ?? cfg.tileMinWidth)" aria-hidden="true" />
 
       <div
         v-if="lines.length > 0"
@@ -874,8 +1013,8 @@ defineExpose({
           :key="line.key"
           :ref="(el) => virtualizer.measureElement(row.index, el as Element | null)"
           class="coar-data-list__row"
-          :class="{ 'coar-data-list__row--last': row.index === lines.length - 1 }"
-          :style="{ transform: `translateY(${row.start}px)` }"
+          :class="[rowClass(line), { 'coar-data-list__row--last': row.index === lines.length - 1 }]"
+          :style="rowStyle(line, row.start)"
         >
           <div
             v-if="line.kind === 'group'"
@@ -887,7 +1026,9 @@ defineExpose({
               <span class="coar-data-list__group-count">{{ line.entry.count }}</span>
             </slot>
           </div>
-          <div v-else class="coar-data-list__cells" :style="cellsStyle" role="presentation">
+          <!-- The frame draws a band's border; outside a band it is transparent. -->
+          <div v-else class="coar-data-list__frame" role="presentation">
+          <div class="coar-data-list__cells" :style="cellsStyle(line)" role="presentation">
             <div
               v-for="entry in line.entries"
               :key="entry.key"
@@ -900,10 +1041,13 @@ defineExpose({
                   'coar-data-list__item--nested': entry.depth > 0,
                   'coar-data-list__item--parent': entry.hasChildren,
                   'coar-data-list__item--expanded': entry.expanded,
+                  'coar-data-list__item--tile': line.layout === 'grid',
+                  'coar-data-list__item--card': line.layout === 'grid' && cfg.tileCards,
+                  'coar-data-list__item--row': line.layout === 'list',
                 },
                 dropClass(entry.itemKey),
               ]"
-              :style="nestingActive ? { '--coar-data-list-depth': entry.depth } : undefined"
+              :style="itemDepthStyle(line, entry)"
               :data-key="String(entry.itemKey)"
               :role="cfg.selection === 'none' ? 'listitem' : 'option'"
               :aria-selected="cfg.selection === 'none' ? undefined : list.isSelected(entry.itemKey) ? 'true' : 'false'"
@@ -920,7 +1064,7 @@ defineExpose({
             >
               <template v-if="nestingActive">
                 <span
-                  v-for="level in entry.depth"
+                  v-for="level in (line.layout === 'list' ? Math.max(0, entry.depth - (line.band?.level ?? 0)) : 0)"
                   :key="level"
                   class="coar-data-list__guide"
                   :style="{ '--coar-data-list-guide-index': level - 1 }"
@@ -949,6 +1093,7 @@ defineExpose({
                 </slot>
               </div>
             </div>
+          </div>
           </div>
         </div>
       </div>
@@ -1092,6 +1237,80 @@ defineExpose({
   min-width: 0;
 }
 
+/* ── Bands: children of an expanded tile, under that tile's row ── */
+.coar-data-list__frame {
+  --coar-data-list-band-inset: var(--coar-data-list-indent, 1.5rem);
+  min-width: 0;
+}
+
+/* Rows inside a band sit inside the frames of every enclosing band. */
+.coar-data-list__row--band > .coar-data-list__frame {
+  position: relative;
+  margin-left: calc((var(--coar-data-list-band-level) - 1) * var(--coar-data-list-band-inset));
+  margin-right: calc((var(--coar-data-list-band-level) - 1) * var(--coar-data-list-band-inset));
+  padding-left: var(--coar-data-list-band-inset);
+  padding-right: var(--coar-data-list-band-inset);
+  border-left: 1px solid var(--coar-border-neutral);
+  border-right: 1px solid var(--coar-border-neutral);
+  background: var(--coar-background-neutral-secondary, rgb(0 0 0 / 0.02));
+}
+
+.coar-data-list__row--band-first > .coar-data-list__frame {
+  border-top: 1px solid var(--coar-border-neutral);
+  padding-top: var(--coar-spacing-xs);
+}
+
+.coar-data-list__row--band-last > .coar-data-list__frame {
+  border-bottom: 1px solid var(--coar-border-neutral);
+  border-bottom-left-radius: var(--coar-radius-s);
+  border-bottom-right-radius: var(--coar-radius-s);
+  padding-bottom: var(--coar-spacing-xs);
+}
+
+/* The row that opens a band touches it (no gap) and paints above its top border,
+   so an expanded card's open bottom edge cuts the frame exactly under the card. */
+.coar-data-list__row--opens-band {
+  padding-bottom: 0;
+  z-index: 1;
+}
+
+/* ── Tiles ── */
+.coar-data-list__item--tile {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.coar-data-list__item--tile > .coar-data-list__toggle {
+  position: absolute;
+  top: var(--coar-spacing-xxs);
+  right: var(--coar-spacing-xxs);
+  margin: 0;
+  z-index: 1;
+}
+
+.coar-data-list__item--tile.coar-data-list__item--expanded > .coar-data-list__toggle .coar-data-list__chevron {
+  transform: rotate(90deg);
+}
+
+.coar-data-list__item--card {
+  border: 1px solid var(--coar-border-neutral);
+  border-radius: var(--coar-radius-s);
+  background: var(--coar-surface-neutral-primary, #fff);
+}
+
+/* Expanded card: bottom edge opens into the band, like a tab into its panel. */
+.coar-data-list__row--opens-band .coar-data-list__item--card.coar-data-list__item--expanded {
+  border-bottom-color: transparent;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  margin-bottom: -1px;
+  padding-bottom: calc(var(--coar-data-list-item-pad-y) + 1px);
+}
+
+.coar-data-list__item--tile.coar-data-list__item--selected {
+  border-color: var(--coar-border-accent-primary, currentColor);
+}
+
 .coar-data-list__row {
   position: absolute;
   inset: 0 0 auto;
@@ -1197,14 +1416,12 @@ defineExpose({
   cursor: pointer;
 }
 
-.coar-data-list--dividers.coar-data-list--layout-list .coar-data-list__item {
+.coar-data-list--dividers .coar-data-list__item--row {
   border-radius: 0;
   border-bottom: 1px solid var(--coar-border-neutral-secondary, var(--coar-border-neutral));
 }
 
-.coar-data-list--layout-grid .coar-data-list__item {
-  display: flex;
-  flex-direction: column;
+.coar-data-list__item--tile {
   border-radius: var(--coar-radius-s);
 }
 
@@ -1258,33 +1475,33 @@ defineExpose({
   border-radius: 2px;
 }
 
-.coar-data-list--layout-list .coar-data-list__item--drop-before::before,
-.coar-data-list--layout-list .coar-data-list__item--drop-after::after {
+.coar-data-list__item--row.coar-data-list__item--drop-before::before,
+.coar-data-list__item--row.coar-data-list__item--drop-after::after {
   left: 0;
   right: 0;
   height: 3px;
 }
 
-.coar-data-list--layout-list .coar-data-list__item--drop-before::before {
+.coar-data-list__item--row.coar-data-list__item--drop-before::before {
   top: -2px;
 }
 
-.coar-data-list--layout-list .coar-data-list__item--drop-after::after {
+.coar-data-list__item--row.coar-data-list__item--drop-after::after {
   bottom: -2px;
 }
 
-.coar-data-list--layout-grid .coar-data-list__item--drop-before::before,
-.coar-data-list--layout-grid .coar-data-list__item--drop-after::after {
+.coar-data-list__item--tile.coar-data-list__item--drop-before::before,
+.coar-data-list__item--tile.coar-data-list__item--drop-after::after {
   top: 0;
   bottom: 0;
   width: 3px;
 }
 
-.coar-data-list--layout-grid .coar-data-list__item--drop-before::before {
+.coar-data-list__item--tile.coar-data-list__item--drop-before::before {
   left: -2px;
 }
 
-.coar-data-list--layout-grid .coar-data-list__item--drop-after::after {
+.coar-data-list__item--tile.coar-data-list__item--drop-after::after {
   right: -2px;
 }
 

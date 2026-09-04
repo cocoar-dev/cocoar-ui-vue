@@ -80,6 +80,8 @@ export interface DataListBuilderState<T> {
   hideExpandToggle: MaybeRefOrGetter<boolean>;
   canNest?: (item: T, parent: T) => boolean;
   expanded: Ref<CoarDataListKey[]>;
+  /** Grid layout: draw each tile as a card (border + radius); an expanded tile opens into its band. */
+  tileCards: MaybeRefOrGetter<boolean>;
 
   /** Drag & drop reordering (see the `reorderable` setter). */
   reorderable: MaybeRefOrGetter<boolean>;
@@ -248,6 +250,7 @@ export class DataListBuilder<T> {
       hideExpandToggle: false,
       canNest: undefined,
       expanded: ref<CoarDataListKey[]>([]),
+      tileCards: false,
       reorderable: false,
       dragEngine: 'native',
       canDrag: undefined,
@@ -384,6 +387,12 @@ export class DataListBuilder<T> {
   /** Minimum tile width in the grid layout (px number or CSS length). Default `'14rem'`. */
   tileMinWidth(value: MaybeRefOrGetter<number | string>): this {
     this.state.tileMinWidth = value;
+    return this;
+  }
+
+  /** Grid layout: draw tiles as cards. An expanded tile's frame opens into the band of its children. */
+  tileCards(on: MaybeRefOrGetter<boolean> = true): this {
+    this.state.tileCards = on;
     return this;
   }
 
@@ -684,6 +693,18 @@ export class DataListLevelBuilder<T> {
   /** Sort applied on every child level. `null` keeps the children's input order. */
   sort(value: CoarDataListSort | null): this {
     this.config.sort = value;
+    return this;
+  }
+
+  /** Layout of the child levels — a list may nest grid children and vice versa. Default: the list's layout. */
+  layout(value: CoarDataListLayout): this {
+    this.config.layout = value;
+    return this;
+  }
+
+  /** Minimum tile width for child levels in grid layout. Default: the list's `tileMinWidth`. */
+  tileMinWidth(value: number | string): this {
+    this.config.tileMinWidth = value;
     return this;
   }
 }

@@ -114,11 +114,11 @@ Search, sort menu, multi-select, search-hit highlighting. The `item` slot render
 builder.layout(layoutRef).tileMinWidth('11rem').gap(8)
 ```
 
-Rows are still virtualized and measured — tiles in one row share the height of the tallest. Group headings take a full row. `dividers` only apply to the list layout; use `gap` for spacing between tiles. Layouts that give up the data order for the visuals (masonry) are deliberately not part of this component.
+Rows are still virtualized and measured — tiles in one row share the height of the tallest. Group headings take a full row. `dividers` only apply to list rows; use `gap` for spacing between tiles. Layouts that give up the data order for the visuals (masonry) are deliberately not part of this component. Nested children in the grid open in a band under the row, see [Nesting in the grid layout](#nesting-in-the-grid-layout).
 
 ## Nested lists
 
-`children` returns an item's sub-items and the list becomes a tree of lists: every child level is a list of its own — same template, own sorting — shown indented under its expanded parent. The exact order is kept on every level. Nesting is a **list-layout** feature; the grid shows top-level items only.
+`children` returns an item's sub-items and the list becomes a tree of lists: every child level is a list of its own — same template, own sorting, own layout — shown under its expanded parent. The exact order is kept on every level.
 
 <preview path="./data-list/demos/NestedDataList.vue" />
 
@@ -131,7 +131,7 @@ builder
   .expanded(expandedRef)                                                          // v-model:expanded
 ```
 
-- **Own configuration per level.** The `configure` callback of `.children()` receives a level builder: `sortOptions`, `sortOption`, `sort`. Without it, child levels inherit the top level's sort; `sort(null)` keeps their input order. Layout per level (a grid of children under a list row, or vice versa) is planned to live in the same place.
+- **Own configuration per level.** The `configure` callback of `.children()` receives a level builder: `sortOptions`, `sortOption`, `sort`, `layout`, `tileMinWidth`. Without it, child levels inherit the top level's sort and layout; `sort(null)` keeps their input order. A list may nest grid children and a grid may nest list rows.
 - **Drawing.** The list draws the structure so the template stays free: a chevron gutter (leaves get the same space so text aligns), an indent per level (`nestingIndent`) and, with `nestingStyle: 'lines'` (default), a guide line per ancestor. `hideExpandToggle` removes the chevrons when the template toggles itself via the `toggleExpanded()` slot prop.
 - **Search** keeps a parent whose descendants match and opens it while the query is active; a parent matching by itself does not force its children open.
 - **Selection** stays flat and key-based; selecting a parent does not select its children.
@@ -139,6 +139,24 @@ builder
 - **Drag & drop** gains a third position: the middle of a row means **inside** — the row becomes the new parent. Drop events carry `parentKey`, and `toIndex` / `afterKey` / `beforeKey` refer to the destination's siblings. `canNest(item, parent)` and `maxDepth` veto nesting; an item can never be dropped into its own subtree. Keyboard moves stay among siblings.
 
 The `api` adds `expand`, `collapse`, `toggleExpanded`, `expandAll`, `collapseAll` and the `expanded` ref.
+
+### Nesting in the grid layout
+
+Tiles never move sideways when something expands. The children of an expanded tile open in a **band under that tile's row**, framed like a folder hanging from its tab: with `tileCards` the tile is drawn as a card whose bottom edge opens into the band. The band's rows use the child level's layout — tiles by default, or list rows with `level.layout('list')` — and can nest further bands.
+
+<preview path="./data-list/demos/NestedGridDataList.vue" />
+
+```ts
+builder
+  .layout('grid').tileMinWidth('10rem').tileCards()
+  .children((entry) => entry.children, (level) => level.layout('list'))   // rows under the tile row
+```
+
+Because a band hangs from one tab, **one expanded parent per row** is the rule: expanding a second tile in the same row collapses the first (the most recently expanded wins). Parents in different rows may be open at the same time, and the rule re-applies when the column count changes. In the list layout any number of parents may be open.
+
+Reading order: a band follows its parent's whole row, so the children come after the parent's row-mates rather than right after the parent — the one deliberate deviation from the data order, made for readability. Range selection (`Shift`) still follows the data order.
+
+Keyboard in the grid: `↓` moves into the band (keeping the column), `↑` back out, `+` / `-` expand and collapse the focused tile.
 
 ## Reordering with drag & drop
 
@@ -244,7 +262,8 @@ The scroll area is the single tab stop; a focus marker moves between items.
 | Key | Action |
 |---|---|
 | `↓` / `↑` | Move focus by one row (one tile row in grid layout); selects the focused item unless `Ctrl` is held; `Shift` extends the range |
-| `→` / `←` | Grid layout: move focus by one tile. Nested list: expand / step into the first child, collapse / jump to the parent |
+| `→` / `←` | Tile rows: move focus by one tile. List rows: expand / step into the first child, collapse / jump to the parent |
+| `+` / `-` | Expand / collapse the focused item (any layout) |
 | `Home` / `End` | First / last item |
 | `PageDown` / `PageUp` | Move by one viewport |
 | `Space` | Toggle the focused item |
@@ -294,8 +313,9 @@ ARIA: `role="listbox"` with `option` children when selection is enabled, `role="
 | `dragAccept` | `string[]` | — | Whitelist of source `dragId`s |
 | `canDrop` | `(payload) => boolean` | — | Runtime veto for incoming drops |
 | `acceptsFiles` | `boolean` | `false` | Accept OS file drops (`files-drop`) |
-| `children` | `(item: T) => T[] \| null \| undefined` | — | Nested lists (list layout) |
-| `childLevel` | `{ sortOptions?, sort? }` | inherits | Sorting of the child levels |
+| `children` | `(item: T) => T[] \| null \| undefined` | — | Nested lists |
+| `childLevel` | `{ sortOptions?, sort?, layout?, tileMinWidth? }` | inherits | Sorting and layout of the child levels |
+| `tileCards` | `boolean` | `false` | Grid: draw tiles as cards; an expanded card opens into its band |
 | `maxDepth` | `number` | unlimited | Deepest level shown, 0 = top level only |
 | `nestingIndent` | `number \| string` | `'1.5rem'` | Indent per level |
 | `nestingStyle` | `'lines' \| 'none'` | `'lines'` | Guide lines per level, or indent only |

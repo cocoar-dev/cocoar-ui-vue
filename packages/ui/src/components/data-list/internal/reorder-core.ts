@@ -16,9 +16,12 @@ export function computeDropTarget(
     layout === 'grid'
       ? rect.width > 0 ? (point.x - rect.left) / rect.width : 0
       : rect.height > 0 ? (point.y - rect.top) / rect.height : 0;
-  if (options.nestable && layout === 'list') {
-    if (ratio < 0.25) return { key, position: 'before' };
-    if (ratio > 0.75) return { key, position: 'after' };
+  if (options.nestable) {
+    // List rows: the middle half. Tiles: the middle 40% of the width, so the
+    // edges stay reachable for before / after.
+    const inner = layout === 'grid' ? 0.3 : 0.25;
+    if (ratio < inner) return { key, position: 'before' };
+    if (ratio > 1 - inner) return { key, position: 'after' };
     return { key, position: 'inside' };
   }
   return { key, position: ratio < 0.5 ? 'before' : 'after' };

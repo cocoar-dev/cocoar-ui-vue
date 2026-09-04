@@ -62,6 +62,10 @@ export type CoarDataListNestingStyle = 'lines' | 'none';
 export interface CoarDataListLevelConfig<T> {
   sortOptions?: readonly CoarDataListSortOption<T>[];
   sort?: CoarDataListSort | null;
+  /** Layout of the child levels. Default: the list's own layout. */
+  layout?: CoarDataListLayout;
+  /** Minimum tile width when the child levels use the grid layout. Default: the list's `tileMinWidth`. */
+  tileMinWidth?: number | string;
 }
 
 /** A visible row — either an item or the heading of a group. */

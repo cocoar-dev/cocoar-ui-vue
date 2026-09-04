@@ -30,8 +30,10 @@ function createDataTransfer(): DataTransfer {
   } as unknown as DataTransfer;
 }
 
-function mountList(props: Record<string, unknown> = {}) {
-  const expanded = ref<CoarDataListKey[]>([]);
+function mountList(allProps: Record<string, unknown> = {}) {
+  // `expanded` is a real v-model here: initial value from the props, later changes through the ref.
+  const { expanded: initialExpanded, ...props } = allProps;
+  const expanded = ref<CoarDataListKey[]>((initialExpanded as CoarDataListKey[] | undefined) ?? []);
   const selected = ref<CoarDataListKey[]>([]);
   const reorders: CoarDataListDropEvent<Task>[] = [];
   const Host = defineComponent({
@@ -129,14 +131,99 @@ describe('CoarDataList nesting', () => {
     expect(expanded.value).toEqual([]);
   });
 
-  it('shows top-level items only in grid layout', async () => {
-    const { wrapper } = mountList({ layout: 'grid', tileMinWidth: 100 });
-    await nextTick();
-    await nextTick();
-    const Host = wrapper;
-    expect(Host.find('.coar-data-list--nested').exists()).toBe(false);
-    expect(Host.find('.coar-data-list__toggle').exists()).toBe(false);
-    expect(titles(Host)).toEqual(['Alpha', 'Beta', 'Gamma']);
+  describe('grid layout', () => {
+    const rowsOf = (wrapper: ReturnType<typeof mount>) =>
+      wrapper.findAll('.coar-data-list__row').map((row) => ({
+        band: row.classes().some((c) => c === 'coar-data-list__row--band'),
+        first: row.classes().includes('coar-data-list__row--band-first'),
+        last: row.classes().includes('coar-data-list__row--band-last'),
+        opens: row.classes().includes('coar-data-list__row--opens-band'),
+        titles: row.findAll('.coar-data-list__content').map((node) => node.text()),
+      }));
+
+    it('puts the children of an expanded tile in a band under its row, tiles stay put', async () => {
+      // 600px / 200px = 3 tiles per row: [Alpha, Beta, Gamma]
+      const { wrapper } = mountList({ layout: 'grid', tileMinWidth: 200, expanded: ['a'] });
+      await nextTick();
+      await nextTick();
+      expect(rowsOf(wrapper)).toEqual([
+        { band: false, first: false, last: false, opens: true, titles: ['Alpha', 'Beta', 'Gamma'] },
+        { band: true, first: true, last: true, opens: false, titles: ['Alpha one', 'Alpha two'] },
+      ]);
+      const bandRow = wrapper.findAll('.coar-data-list__row')[1].element as HTMLElement;
+      expect(bandRow.style.getPropertyValue('--coar-data-list-parent-col')).toBe('0');
+      expect(bandRow.style.getPropertyValue('--coar-data-list-parent-cols')).toBe('3');
+      expect(bandRow.style.getPropertyValue('--coar-data-list-band-level')).toBe('1');
+      // Children inherit the grid layout: tiles inside the band.
+      expect(wrapper.findAll('.coar-data-list__row')[1].findAll('.coar-data-list__item--tile').length).toBe(2);
+      expect(wrapper.find('.coar-data-list__item--tile.coar-data-list__item--expanded').text()).toContain('Alpha');
+    });
+
+    it('keeps one expanded parent per row (the most recent one)', async () => {
+      const { wrapper, expanded } = mountList({ layout: 'grid', tileMinWidth: 200, expanded: ['a'] });
+      await nextTick();
+      await nextTick();
+      // Gamma sits in the same row as Alpha → expanding it collapses Alpha.
+      expanded.value = ['a', 'c'];
+      await nextTick();
+      await nextTick();
+      expect(expanded.value).toEqual(['c']);
+      expect(rowsOf(wrapper).map((row) => row.titles)).toEqual([['Alpha', 'Beta', 'Gamma'], ['Gamma one']]);
+    });
+
+    it('allows expanded parents in different rows', async () => {
+      // 600px / 400px = 1 tile per row → every tile has its own row.
+      const { wrapper, expanded } = mountList({ layout: 'grid', tileMinWidth: 400, expanded: ['a', 'c'] });
+      await nextTick();
+      await nextTick();
+      expect(expanded.value).toEqual(['a', 'c']);
+      expect(rowsOf(wrapper).map((row) => row.titles)).toEqual([
+        ['Alpha'], ['Alpha one'], ['Alpha two'], ['Beta'], ['Gamma'], ['Gamma one'],
+      ]);
+    });
+
+    it('renders child levels in their own layout: list rows under tiles', async () => {
+      const { wrapper } = mountList({ layout: 'grid', tileMinWidth: 200, expanded: ['a'], childLevel: { layout: 'list' } });
+      await nextTick();
+      await nextTick();
+      const rows = rowsOf(wrapper);
+      expect(rows.map((row) => row.titles)).toEqual([['Alpha', 'Beta', 'Gamma'], ['Alpha one'], ['Alpha two']]);
+      expect(rows[1]).toMatchObject({ band: true, first: true, last: false });
+      expect(rows[2]).toMatchObject({ band: true, first: false, last: true });
+      expect(wrapper.findAll('.coar-data-list__row')[1].find('.coar-data-list__item--row').exists()).toBe(true);
+    });
+
+    it('renders grid children under list rows', async () => {
+      const { wrapper } = mountList({ expanded: ['a'], childLevel: { layout: 'grid', tileMinWidth: 200 } });
+      await nextTick();
+      await nextTick();
+      const rows = rowsOf(wrapper);
+      expect(rows.map((row) => row.titles)).toEqual([['Alpha'], ['Alpha one', 'Alpha two'], ['Beta'], ['Gamma']]);
+      expect(rows[1].band).toBe(false); // list parents nest inline, no band
+      expect(wrapper.findAll('.coar-data-list__row')[1].findAll('.coar-data-list__item--tile').length).toBe(2);
+    });
+
+    it('navigates rows visually: down goes into the band, up comes back', async () => {
+      const { wrapper, selected } = mountList({ layout: 'grid', tileMinWidth: 200, expanded: ['a'] });
+      await nextTick();
+      await nextTick();
+      const viewport = wrapper.find('.coar-data-list__viewport');
+      await viewport.trigger('focus'); // Alpha (col 0)
+      await viewport.trigger('keydown', { key: 'ArrowRight' }); // Beta (col 1)
+      expect(selected.value).toEqual(['b']);
+      await viewport.trigger('keydown', { key: 'ArrowDown' }); // band, col 1 → Alpha two
+      expect(selected.value).toEqual(['a2']);
+      await viewport.trigger('keydown', { key: 'ArrowUp' }); // back to row, col 1 → Beta
+      expect(selected.value).toEqual(['b']);
+      await viewport.trigger('keydown', { key: '-' }); // Beta has no children → nothing
+      await viewport.trigger('keydown', { key: 'ArrowLeft' }); // Alpha
+      await viewport.trigger('keydown', { key: '-' }); // collapse Alpha
+      await nextTick();
+      expect(wrapper.findAll('.coar-data-list__row').length).toBe(1);
+      await viewport.trigger('keydown', { key: '+' });
+      await nextTick();
+      expect(wrapper.findAll('.coar-data-list__row').length).toBe(2);
+    });
   });
 
   describe('drag & drop', () => {

@@ -14,13 +14,15 @@ describe('computeDropTarget', () => {
     expect(computeDropTarget('grid', rect, { x: 290, y: 105 }, 'a')).toEqual({ key: 'a', position: 'after' });
   });
 
-  it('offers the middle band as "inside" for nestable rows', () => {
+  it('offers the middle band as "inside" for nestable rows and tiles', () => {
     const nestable = { nestable: true };
     expect(computeDropTarget('list', rect, { x: 250, y: 105 }, 'a', nestable).position).toBe('before');
     expect(computeDropTarget('list', rect, { x: 250, y: 120 }, 'a', nestable).position).toBe('inside');
     expect(computeDropTarget('list', rect, { x: 250, y: 135 }, 'a', nestable).position).toBe('after');
-    // never in grid layout
-    expect(computeDropTarget('grid', rect, { x: 250, y: 120 }, 'a', nestable).position).toBe('after');
+    // tiles split horizontally: outer 30% before / after, the middle 40% inside
+    expect(computeDropTarget('grid', rect, { x: 210, y: 120 }, 'a', nestable).position).toBe('before');
+    expect(computeDropTarget('grid', rect, { x: 250, y: 120 }, 'a', nestable).position).toBe('inside');
+    expect(computeDropTarget('grid', rect, { x: 290, y: 120 }, 'a', nestable).position).toBe('after');
   });
 });
 
