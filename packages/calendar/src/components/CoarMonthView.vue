@@ -14,7 +14,7 @@
  *   - `<CoarMonthCell>` — day-cell wrapper + kebab + pills slot
  *   - `<CoarMonthPill>` / `<CoarMonthBar>` — event visuals
  *   - `useMonthDnd` — drag/drop glue (preview + ghost + keyboard)
- *   - `useMonthExpansion` — row expand/collapse + overflow detection
+ *   - `useMonthExpansion` — row expand/collapse
  *
  * Slot priority for events:
  *   template slot (#pill / #multiDayBar / #event)
@@ -294,7 +294,6 @@ const {
   collapseRow,
 } = useMonthExpansion({
   layout,
-  gridRef,
   resetToken: yearMonth,
   monthDensity: () => state.value.monthDensity,
 });

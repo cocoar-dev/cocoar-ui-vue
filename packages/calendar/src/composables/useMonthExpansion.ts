@@ -1,5 +1,5 @@
 /**
- * `useMonthExpansion` — month-view row-expansion + overflow detection.
+ * `useMonthExpansion` — month-view row expansion.
  *
  * The month view does NOT truncate to "+N more" — every event
  * stays in the DOM (so keyboard focus + DnD reach all of them).
@@ -16,12 +16,9 @@
  *   - the expanded-rows set (single-row mode — opening one
  *     collapses any other)
  *   - the per-row pixel height (collapsed vs expanded)
- *   - the overflow-detection — runs in `nextTick` after every
- *     layout / events / row-height change, plus on window resize
  *
- * Pill heights are NOT assumed (consumers can pass custom
- * `#pill` slots with arbitrary heights), so we never count
- * events; we only know whether the pills CONTAINER overflows.
+ * Pill heights are NOT assumed (consumers can pass custom `#pill`
+ * slots with arbitrary heights), so nothing here counts events.
  */
 
 import {
@@ -29,9 +26,6 @@ import {
   type MaybeRefOrGetter,
   type Ref,
   computed,
-  nextTick,
-  onBeforeUnmount,
-  onMounted,
   ref,
   toValue,
   watch,
@@ -59,8 +53,6 @@ const MONTH_BAR_HEIGHT: Record<CalendarMonthDensity, number> = {
 export interface UseMonthExpansionOptions {
   /** Pixel-perfect month layout from `layoutMonthGrid`. */
   layout: ComputedRef<MonthLayout> | Ref<MonthLayout>;
-  /** Rows-container element used to query cell overflow. */
-  gridRef: Ref<HTMLElement | null>;
   /** Reactive token that resets expansion when the visible
    *  month changes (typically a `Temporal.PlainYearMonth`). */
   resetToken: ComputedRef<unknown> | Ref<unknown>;
@@ -91,10 +83,6 @@ export interface UseMonthExpansionReturn {
   /** Imperative expand / collapse helpers. */
   expandRow(rowIdx: number): void;
   collapseRow(rowIdx: number): void;
-
-  /** dateKey-keyed set of cells whose pill list outgrows their
-   *  slot (pills container scrolls). */
-  overflowingCells: Ref<Set<string>>;
 }
 
 export function useMonthExpansion(opts: UseMonthExpansionOptions): UseMonthExpansionReturn {
@@ -142,52 +130,6 @@ export function useMonthExpansion(opts: UseMonthExpansionOptions): UseMonthExpan
     expandedRows.value = next;
   }
 
-  // Per-cell overflow detection — `dateKey` → does this cell's
-  // pill list outgrow the available space at the current row
-  // height? Re-measured after layout via `refreshOverflow()`.
-  const overflowingCells = ref<Set<string>>(new Set());
-
-  function refreshOverflow(): void {
-    const grid = opts.gridRef.value;
-    if (!grid) return;
-    const next = new Set<string>();
-    const cells = grid.querySelectorAll<HTMLElement>('[data-day-key]');
-    cells.forEach((cell) => {
-      const pills = cell.querySelector<HTMLElement>('.coar-month-cell__pills');
-      if (!pills) return;
-      if (pills.scrollHeight > pills.clientHeight + 1) {
-        const k = cell.getAttribute('data-day-key');
-        if (k) next.add(k);
-      }
-    });
-    // Avoid setting a brand-new Set every tick if nothing changed —
-    // keeps reactive consumers from re-running for no reason.
-    const curr = overflowingCells.value;
-    if (curr.size === next.size) {
-      let same = true;
-      for (const k of next) {
-        if (!curr.has(k)) {
-          same = false;
-          break;
-        }
-      }
-      if (same) return;
-    }
-    overflowingCells.value = next;
-  }
-
-  // Recompute overflow after every layout / row-height /
-  // expansion change. `nextTick` waits for Vue to finish
-  // rendering.
-  watch([opts.layout, rowHeightPx, expandedRows], () => nextTick(refreshOverflow), { deep: false });
-  onMounted(() => {
-    nextTick(refreshOverflow);
-    window.addEventListener('resize', refreshOverflow);
-  });
-  onBeforeUnmount(() => {
-    window.removeEventListener('resize', refreshOverflow);
-  });
-
   // Reset expansion when navigating to a different month — the
   // previous month's expanded rows shouldn't carry over.
   watch(opts.resetToken, () => {
@@ -204,6 +146,5 @@ export function useMonthExpansion(opts: UseMonthExpansionOptions): UseMonthExpan
     expandedRows,
     expandRow,
     collapseRow,
-    overflowingCells,
   };
 }
