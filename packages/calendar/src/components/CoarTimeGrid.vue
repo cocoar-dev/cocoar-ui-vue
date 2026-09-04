@@ -82,6 +82,19 @@ const props = defineProps<{
    * keeps its width so columns align with the live grid).
    */
   ghost?: boolean;
+  /**
+   * Ghost only: pin the sticky top (header + all-day band) to the live
+   * grid's height so the hour rows of both pages line up during the
+   * pan even when only one of them has an all-day band.
+   */
+  ghostTopPx?: number;
+  /**
+   * Ghost only: height of the live grid's all-day band (0 = none).
+   * The ghost renders its band exactly that tall — an empty one when
+   * it has no all-day events — so the pinned top stays opaque over the
+   * ghost's own scrolled hour rows.
+   */
+  ghostBandPx?: number;
 }>();
 const emit = defineEmits<{
   /** The swipe runtime's state, for the surface that hosts the neighbour pages. */
@@ -823,7 +836,10 @@ defineExpose({
       column widths), because the all-day band's `top: 36px` didn't
       match the header's actual rendered height.
     -->
-    <div class="coar-time-grid__sticky-top">
+    <div
+      class="coar-time-grid__sticky-top"
+      :style="props.ghost && props.ghostTopPx ? { height: props.ghostTopPx + 'px' } : undefined"
+    >
       <!-- Header row: blank cell over hour labels + one cell per day -->
       <CoarTimeGridHeader
         :days="days"
@@ -846,13 +862,13 @@ defineExpose({
 
       <!-- All-day band (between header and body, only if there are any) -->
       <CoarTimeGridAllDayBand
-        v-if="allDayBandLaneCount > 0"
+        v-if="props.ghost ? (props.ghostBandPx ?? 0) > 0 : allDayBandLaneCount > 0"
         :days="days"
         :axis-label="t('coar.calendar.timegrid.allDay', undefined, 'all-day')"
-        :band-height-px="allDayBandHeight"
+        :band-height-px="props.ghost ? (props.ghostBandPx ?? 0) : allDayBandHeight"
         :is-today="isTodayColumn"
         :is-weekend="isWeekend"
-        :set-columns-el="setAllDayColumnsEl"
+        :set-columns-el="props.ghost ? () => {} : setAllDayColumnsEl"
         :collapsible="allDayExpanded && allDayCap.exceedsCap"
         :collapse-label="t('coar.calendar.timegrid.allDayCollapse', undefined, 'Show fewer')"
         @cell-pointerdown="(e, day) => onAllDayCellPointerDown(e, day)"
@@ -1211,16 +1227,38 @@ defineExpose({
 .coar-time-grid--ghost {
   pointer-events: none;
 }
-.coar-time-grid--ghost .coar-time-grid__hour-axis,
-.coar-time-grid--ghost .coar-time-grid-header__corner,
-.coar-time-grid--ghost .coar-time-grid-all-day-band__axis {
+.coar-time-grid--ghost .coar-time-grid__hour-axis {
+  /* Header corner + all-day axis: same rule in their own components
+     (scoped styles don't reach into children). */
   visibility: hidden;
 }
 /* A ghost's cells slide INTO the live area; the surface clips at its
-   own edge instead. */
+   own edge instead. Both axes — a single non-visible axis would turn
+   the other into `auto` and make the ghost a scroll container that
+   clips its own translated columns. */
 .coar-time-grid--ghost .coar-time-grid__sticky-top,
 .coar-time-grid--ghost .coar-time-grid__body {
-  overflow-x: visible;
+  overflow: visible;
+}
+/* The pinned sticky top must not spill a taller header into the first
+   hour rows; clip vertically only. */
+.coar-time-grid--ghost .coar-time-grid__sticky-top {
+  clip-path: inset(0 -100vw 0 -100vw);
+}
+/*
+ * Painting during a swipe. Pages overlap the way sliding sheets do:
+ * a ghost box covers part of the live grid and vice versa, so no
+ * page may paint an opaque box — only the moving cell strips paint
+ * (header cells, all-day cells, columns each carry an opaque
+ * background). The fixed parts of the live grid (hour axis, header
+ * corner, all-day axis) keep opaque backgrounds and their z-order,
+ * so cells sliding under them disappear.
+ */
+.coar-time-grid--ghost,
+.coar-time-grid--ghost > .coar-time-grid__sticky-top,
+.coar-time-grid--swiping > .coar-time-grid__sticky-top,
+.coar-time-grid--settling > .coar-time-grid__sticky-top {
+  background: transparent;
 }
 .coar-time-grid__hour-axis {
   position: relative;

@@ -109,7 +109,18 @@ function onCellDblclick(e: MouseEvent, day: Temporal.PlainDate) {
   background: var(--coar-calendar-bg, #fff);
   font-size: var(--coar-font-size-xs, 11px);
 }
+/* During a swipe only the cells paint (see CoarTimeGrid.vue). */
+.coar-time-grid--ghost .coar-time-grid-all-day-band,
+.coar-time-grid--swiping .coar-time-grid-all-day-band,
+.coar-time-grid--settling .coar-time-grid-all-day-band {
+  background: transparent;
+}
 .coar-time-grid-all-day-band__axis {
+  /* Opaque + above the cells so bars sliding under the axis column
+     during a swipe disappear. */
+  position: relative;
+  z-index: 1;
+  background: var(--coar-calendar-bg, #fff);
   /* No border-right — the first all-day cell owns the seam via
      `border-left: 1px` (parity with the hour-axis fix below the band). */
   text-transform: uppercase;
@@ -149,8 +160,20 @@ function onCellDblclick(e: MouseEvent, day: Temporal.PlainDate) {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
+  /* Opaque strip that moves with the cells — the band box itself
+     goes transparent while pages overlap during a swipe. */
+  background: var(--coar-calendar-bg, #fff);
   touch-action: pan-y;
   transform: translateX(var(--coar-time-grid-swipe-x, 0px));
+}
+/* Neighbour page: the axis keeps its width, paints nothing. */
+.coar-time-grid--ghost .coar-time-grid-all-day-band__axis {
+  visibility: hidden;
+}
+/* A ghost band is pinned to the live band's height; lanes it can't
+   fit stay hidden instead of pushing the hour rows down. */
+.coar-time-grid--ghost .coar-time-grid-all-day-band__columns {
+  overflow: hidden;
 }
 .coar-time-grid--settling .coar-time-grid-all-day-band__columns {
   transition: transform 180ms ease-out;

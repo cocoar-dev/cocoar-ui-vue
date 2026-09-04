@@ -83,12 +83,29 @@ defineSlots<{
   min-height: var(--coar-time-grid-header-height);
 }
 .coar-time-grid-header__corner {
-  /* empty top-left cell */
+  /* Empty top-left cell — opaque so header cells sliding under it
+     during a swipe disappear behind the axis column. */
+  position: relative;
+  z-index: 1;
+  background: var(--coar-calendar-bg, #fff);
+}
+/* Neighbour page: the corner keeps its width, paints nothing. */
+.coar-time-grid--ghost .coar-time-grid-header__corner {
+  visibility: hidden;
+}
+/* During a swipe only the cells paint (see CoarTimeGrid.vue). */
+.coar-time-grid--ghost .coar-time-grid-header,
+.coar-time-grid--swiping .coar-time-grid-header,
+.coar-time-grid--settling .coar-time-grid-header {
+  background: transparent;
 }
 .coar-time-grid-header__cells {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
+  /* Opaque strip that moves with the cells — the header box itself
+     goes transparent while pages overlap during a swipe. */
+  background: var(--coar-calendar-bg, #fff);
   transform: translateX(var(--coar-time-grid-swipe-x, 0px));
   /* Paging handle: horizontal pans are ours, vertical stays native. */
   touch-action: pan-y;

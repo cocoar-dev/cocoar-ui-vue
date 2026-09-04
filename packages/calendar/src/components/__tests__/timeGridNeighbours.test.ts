@@ -21,6 +21,7 @@ import { CalendarBuilder } from '../../builders/calendar-builder';
 import { PREFETCH_WINDOWS } from '../../builders/calendar-builder-internals';
 import CoarWeekView from '../CoarWeekView.vue';
 import CoarDayView from '../CoarDayView.vue';
+import CoarTimeGrid from '../CoarTimeGrid.vue';
 import type { CalendarEvent, ViewWindow } from '../../core';
 import { zdt } from '../../__test-utils__/event-fixtures';
 
@@ -79,6 +80,44 @@ describe('neighbour pages while swiping', () => {
     await nextTick();
     expect(w.findAll('.coar-time-grid-surface__ghost')).toHaveLength(2);
     expect(setSpy).not.toHaveBeenCalled();
+  });
+
+  it('a ghost renders its all-day band pinned to the live band, or none at all', () => {
+    const days = [Temporal.PlainDate.from('2026-06-15')];
+    const allDay: CalendarEvent[] = [
+      { id: 'ad', start: Temporal.PlainDate.from('2026-06-15'), meta: { title: 'all day' } },
+    ];
+    // Live page has a 60 px band, ghost page has no all-day events → empty band, 60 px.
+    const empty = mount(CoarTimeGrid, {
+      props: {
+        builder: newBuilder().view('day').events(ref([])),
+        dates: days,
+        ghost: true,
+        ghostBandPx: 60,
+      },
+    });
+    const band = empty.find('.coar-time-grid-all-day-band');
+    expect(band.exists()).toBe(true);
+    expect(band.attributes('style')).toContain('min-height: 60px');
+    expect(empty.findAll('.coar-time-grid-all-day-bar')).toHaveLength(0);
+
+    // Live page has no band → the ghost renders none even with all-day events.
+    const none = mount(CoarTimeGrid, {
+      props: {
+        builder: newBuilder().view('day').events(ref(allDay)),
+        dates: days,
+        ghost: true,
+        ghostBandPx: 0,
+      },
+    });
+    expect(none.find('.coar-time-grid-all-day-band').exists()).toBe(false);
+
+    // Not a ghost: the band follows the page's own events as before.
+    const live = mount(CoarTimeGrid, {
+      props: { builder: newBuilder().view('day').events(ref(allDay)), dates: days },
+    });
+    expect(live.find('.coar-time-grid-all-day-band').exists()).toBe(true);
+    expect(live.findAll('.coar-time-grid-all-day-bar')).toHaveLength(1);
   });
 
   it('ghosts read their own window in loader mode', async () => {

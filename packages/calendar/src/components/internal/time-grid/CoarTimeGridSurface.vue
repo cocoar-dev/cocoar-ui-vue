@@ -112,6 +112,25 @@ const swipeState = ref<TimeGridSwipeState>({
 const showNeighbours = computed(
   () => swipeState.value.engaged || swipeState.value.swiping || swipeState.value.settling,
 );
+/**
+ * Heights of the live grid's sticky top (header + all-day band) and
+ * of its all-day band alone, measured when a gesture starts. The
+ * ghosts pin theirs to them so the hour rows of all three pages line
+ * up while they move together — an empty band of the same height
+ * when the ghost page has no all-day events.
+ */
+const liveTopPx = ref(0);
+const liveBandPx = ref(0);
+watch(showNeighbours, (on) => {
+  if (!on) return;
+  const live = ':scope > .coar-time-grid:not(.coar-time-grid--ghost)';
+  const find = (selector: string) =>
+    root.value?.querySelector<HTMLElement>(`${live} ${selector}`) ?? null;
+  const top = find('.coar-time-grid__sticky-top');
+  liveTopPx.value = top ? Math.round(top.getBoundingClientRect().height) : 0;
+  // `clientHeight`: the band's `min-height` excludes its bottom border.
+  liveBandPx.value = find('.coar-time-grid-all-day-band')?.clientHeight ?? 0;
+});
 
 /** The page one step before / after the live one — same resolver, cursor ∓/± step. */
 const prevRange = computed(() =>
@@ -197,6 +216,8 @@ defineExpose({
       :builder="builder"
       :dates="prevRange.days"
       :window="prevWindow"
+      :ghost-top-px="liveTopPx"
+      :ghost-band-px="liveBandPx"
     >
       <template v-if="$slots.event" #event="slotProps">
         <slot name="event" v-bind="slotProps" />
@@ -228,6 +249,8 @@ defineExpose({
       :builder="builder"
       :dates="nextRange.days"
       :window="nextWindow"
+      :ghost-top-px="liveTopPx"
+      :ghost-band-px="liveBandPx"
     >
       <template v-if="$slots.event" #event="slotProps">
         <slot name="event" v-bind="slotProps" />
