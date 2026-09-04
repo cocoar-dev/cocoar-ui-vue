@@ -544,6 +544,7 @@ The builder is **flat** — every setter lives directly on it. There are no sub-
 | `allDayBandMode(m)` | `MaybeRefOrGetter<'fitsContent' \| 'alwaysOneLane' \| 'reservesCap'>` | How much height the all-day band claims. `fitsContent` (default) follows the content and disappears without all-day events; `alwaysOneLane` keeps at least one lane so the grid never jumps 0↔1; `reservesCap` is always `allDayMaxVisibleLanes` tall so the hour axis sits at the same place on every day. |
 | `timeGridRange(spec)` | `MaybeRefOrGetter<TimeGridRangeSpec \| null>` | Anchor / span / filter / step of the Day view's columns and paging. Week and Work week are fixed presets of the same model. See the [Day view](/components/calendar/day-view#one-model-for-every-time-grid). |
 | `swipeNavigation(b)` | `MaybeRefOrGetter<boolean>` | Touch paging on week / work-week / day (default `true`): a horizontal pan moves the grid with the finger and pages on release past a quarter of the width or on a fast flick. A touch that never moves is a tap and reaches `onTimeClick` on release. On the columns mouse / pen are unaffected; a mouse drag across the day-name strip pages too. Honours `prefers-reduced-motion`. |
+| `prefetchNeighbours(b)` | `MaybeRefOrGetter<boolean>` | Warm the loader / series caches for the previous and next page of the time grids so the neighbour pages drawn during a swipe carry their events. Default `true`; one extra fetch per neighbour in loader mode, a no-op in `events()` mode. |
 | `eventTextContrast(p)` | `MaybeRefOrGetter<'wcag' \| 'apca'>` | How the automatic black/white text on event surfaces is chosen. `'wcag'` (default) is the WCAG 2 ratio; `'apca'` (WCAG 3 draft) picks white on saturated mid-tones such as `#e03131`, where WCAG 2 narrowly picks black. A per-event `meta.textColor` wins over either. |
 | `onEventClick(fn)` | `(payload: { event, native: PointerEvent }) => void` | Common: open details, a side panel or a click-anchored popover. |
 | `onEventDoubleClick(fn)` | `(payload: { event, native: MouseEvent }) => void` | Common: open the host application's edit UI. |
@@ -570,6 +571,8 @@ interface CalendarApi<TMeta> {
   setDayMode(mode: CalendarDayMode): void;
   getVisibleRange(): ViewWindow | null;
   getVisibleEvents(): CalendarEvent<TMeta>[];
+  /** Same read for any window, e.g. the neighbour pages drawn during a swipe. */
+  getEventsForWindow(window: ViewWindow): CalendarEvent<TMeta>[];
   scrollToTime(time: Temporal.PlainTime): void;
   scrollToDate(date: Temporal.PlainDate): void;
   refresh(): void;

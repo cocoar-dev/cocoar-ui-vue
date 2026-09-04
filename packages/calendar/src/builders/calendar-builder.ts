@@ -57,7 +57,11 @@ import {
   Temporal,
   detectBrowserTimezone,
 } from '../core';
-import { SET_VISIBLE_RANGE, INVALIDATE_LOADER_CACHE } from './calendar-builder-internals';
+import {
+  SET_VISIBLE_RANGE,
+  INVALIDATE_LOADER_CACHE,
+  PREFETCH_WINDOWS,
+} from './calendar-builder-internals';
 import { CalendarBuilderHandlers } from './calendar-builder-handlers';
 import { createCalendarBuilderState, type CalendarApi } from './calendar-builder-state';
 import { windowsEqual } from './internal/window-utils';
@@ -66,6 +70,7 @@ import { LoadingTracker } from './internal/loading-tracker';
 import { EventValidator } from './internal/event-validation';
 import { LoaderPipeline } from './internal/loader-pipeline';
 import { SeriesPipeline } from './internal/series-pipeline';
+import { eventsForWindow } from './internal/events-for-window';
 
 export type { CalendarApi, CalendarBuilderState } from './calendar-builder-state';
 
@@ -150,7 +155,9 @@ export class CalendarBuilder<
       refresh: () => this._refresh(),
       refreshRange: (w) => this._refreshRange(w),
       getVisibleRange: () => this._visibleRange.value,
-      getVisibleEvents: () => this._getVisibleEvents(),
+      getVisibleEvents: () =>
+        eventsForWindow(this.state, this._loader, this._series, this._visibleRange.value),
+      getEventsForWindow: (w) => eventsForWindow(this.state, this._loader, this._series, w),
     };
 
     this._scope.run(() => this._installWatchers());
@@ -323,6 +330,21 @@ export class CalendarBuilder<
     this._invalidateSeries(true);
   }
 
+  /**
+   * Warm both caches for windows the user is about to see — the
+   * neighbour pages drawn during a swipe. Cache hits and in-flight
+   * windows are skipped; `_visibleRange` and `onRangeChange` are NOT
+   * touched, so consumers see no navigation.
+   *
+   * @internal symbol-keyed; reachable only via the internal symbol.
+   */
+  [PREFETCH_WINDOWS](windows: ReadonlyArray<ViewWindow>): void {
+    for (const w of windows) {
+      this._loader.prefetch(w);
+      this._series.run(w);
+    }
+  }
+
   private _refresh(): void {
     this[INVALIDATE_LOADER_CACHE]();
     const window = this._visibleRange.value;
@@ -336,36 +358,6 @@ export class CalendarBuilder<
     if (!current) return;
     if (!this._loader.has(current)) this._loader.maybeSchedule(current);
     if (!this._series.has(current)) this._series.run(current);
-  }
-
-  // ─── Internal: events accessor ─────────────────────────────
-
-  private _getVisibleEvents(): CalendarEvent<TMeta>[] {
-    const nonRecurring = this._getNonRecurringEvents();
-    const recurring = this._getRecurringEvents();
-    if (recurring.length === 0) return nonRecurring;
-    if (nonRecurring.length === 0) return recurring;
-    return nonRecurring.concat(recurring);
-  }
-
-  private _getNonRecurringEvents(): CalendarEvent<TMeta>[] {
-    // Mode 1: events() source — return the full source array.
-    const source = this.state.events;
-    if (source !== null) return toValue(source) ?? [];
-    // Mode 2: loader cache — entries for the current window if we
-    // have them, else empty (the loader populates on next invocation).
-    const window = this._visibleRange.value;
-    if (window) {
-      const cached = this._loader.get(window);
-      if (cached) return cached;
-    }
-    return [];
-  }
-
-  private _getRecurringEvents(): CalendarEvent<TMeta>[] {
-    const window = this._visibleRange.value;
-    if (!window) return [];
-    return this._series.get(window) ?? [];
   }
 
   // ─── Internal: diagnostics + view-component registration ──────

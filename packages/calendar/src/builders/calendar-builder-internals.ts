@@ -23,10 +23,19 @@ export const INVALIDATE_LOADER_CACHE: unique symbol = Symbol(
 );
 
 /**
+ * Privileged method symbol — warm the loader / series caches for
+ * windows the user is about to see (the neighbour pages the time
+ * grid draws while it is being swiped). Never touches
+ * `_visibleRange` and never fires `onRangeChange`.
+ */
+export const PREFETCH_WINDOWS: unique symbol = Symbol('CalendarBuilder.prefetchWindows');
+
+/**
  * Type-narrowed surface a `CalendarBuilder` exposes to internal
- * composables (only `useViewWindow` today).
+ * composables (`useViewWindow`, the time-grid surface).
  */
 export interface PrivilegedBuilder {
   [SET_VISIBLE_RANGE](window: ViewWindow | null): void;
   [INVALIDATE_LOADER_CACHE](): void;
+  [PREFETCH_WINDOWS](windows: ReadonlyArray<ViewWindow>): void;
 }

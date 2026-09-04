@@ -57,16 +57,11 @@ export abstract class CalendarBuilderConfig<
   protected abstract _resetRecurrenceEngine(): void;
 
   // ─── Universal config (C1, C5, C6, C4) ───────────────────────
-
   /**
-   * Bind the event source. Mutually exclusive with `eventsLoader()`
-   * — calling this clears any previously-set loader and drops the
-   * cache (cache only makes sense for loader mode).
-   *
-   * The library accepts ONLY `Temporal.ZonedDateTime` (timed) or
-   * `Temporal.PlainDate` (all-day) on event start/end. Strings,
-   * `Date`, floating `PlainDateTime` etc. throw at index-insert via
-   * `validateCalendarEvent` (C1).
+   * Bind the event source. Mutually exclusive with `eventsLoader()` —
+   * clears a previously-set loader and its cache. Only
+   * `Temporal.ZonedDateTime` (timed) / `Temporal.PlainDate` (all-day)
+   * are accepted on start/end; anything else throws (C1).
    */
   events(source: MaybeRefOrGetter<CalendarEvent<TMeta>[]>): this {
     this.state.events = source;
@@ -84,10 +79,9 @@ export abstract class CalendarBuilderConfig<
   }
 
   /**
-   * Bind a calendar-managed loader. Called whenever the visible
-   * window changes; results cached per `(view, timezone, start, end)`
-   * so navigation back to a previously-seen window doesn't re-fetch.
-   * Mutually exclusive with `events()`.
+   * Bind a calendar-managed loader, called per visible-window change
+   * and cached per `(view, timezone, start, end)`. Mutually exclusive
+   * with `events()`.
    */
   eventsLoader(loader: EventsLoader<TMeta>): this {
     this.state.eventsLoader = loader;
@@ -101,15 +95,11 @@ export abstract class CalendarBuilderConfig<
 
   /**
    * Phase 4 — bind a recurring-series source. Reactive: expansion
-   * re-runs whenever the source changes or the visible range changes.
-   *
-   * Composes with `events()` / `eventsLoader()`; `getVisibleEvents()`
-   * returns the merged set. Mutually exclusive with `seriesLoader()`
-   * (one or the other, not both).
-   *
-   * Expansion uses the engine from `recurrenceEngine()` if set, else
-   * the lazy default rrule-temporal adapter. DST policy from
-   * `dstPolicy()` applies uniformly to every expanded occurrence.
+   * re-runs whenever the source or the visible range changes.
+   * Composes with `events()` / `eventsLoader()` (merged in
+   * `getVisibleEvents()`); mutually exclusive with `seriesLoader()`.
+   * Uses `recurrenceEngine()` if set, else the lazy default; the
+   * `dstPolicy()` applies to every expanded occurrence.
    */
   series(source: MaybeRefOrGetter<RecurringSeries<TMeta>[]>): this {
     this.state.series = source;
@@ -215,6 +205,16 @@ export abstract class CalendarBuilderConfig<
    */
   swipeNavigation(enabled: MaybeRefOrGetter<boolean>): this {
     this.state.swipeNavigation = enabled;
+    return this;
+  }
+
+  /**
+   * Warm the caches for the previous / next time-grid page so the
+   * neighbour pages drawn during a swipe carry their events. Default
+   * on; one extra fetch per neighbour in loader mode.
+   */
+  prefetchNeighbours(enabled: MaybeRefOrGetter<boolean>): this {
+    this.state.prefetchNeighbours = enabled;
     return this;
   }
 

@@ -113,6 +113,13 @@ export interface CalendarBuilderState<
    * with the finger and pages on release. Mouse / pen unaffected.
    */
   swipeNavigation: MaybeRefOrGetter<boolean>;
+  /**
+   * Warm the loader / series caches for the previous and next page
+   * of the time grids as soon as a page is visible, so the neighbour
+   * pages drawn during a swipe carry their events. Costs one extra
+   * fetch per neighbour in loader mode; a no-op in `events()` mode.
+   */
+  prefetchNeighbours: MaybeRefOrGetter<boolean>;
   density: MaybeRefOrGetter<CalendarDensity>;
   /** Apple-style month presentation. Default `details` preserves the classic web grid. */
   monthDensity: MaybeRefOrGetter<CalendarMonthDensity>;
@@ -242,6 +249,7 @@ export function createCalendarBuilderState<TMeta extends Record<string, unknown>
     allDayMaxVisibleLanes: DEFAULT_ALL_DAY_MAX_VISIBLE_LANES,
     allDayBandMode: 'fitsContent',
     swipeNavigation: true,
+    prefetchNeighbours: true,
     density: 'comfortable',
     monthDensity: 'details',
     dayMode: 'single',
@@ -332,4 +340,8 @@ export interface CalendarApi<TMeta extends Record<string, unknown> = Record<stri
    *  `events()` source if set, else the loader cache (or empty if no
    *  cache hit yet). */
   getVisibleEvents(): CalendarEvent<TMeta>[];
+  /** Same read for an arbitrary window (the neighbour pages the time
+   *  grid draws while it is being swiped). Loader mode returns whatever
+   *  the cache holds for that window — nothing until it was fetched. */
+  getEventsForWindow(window: ViewWindow): CalendarEvent<TMeta>[];
 }

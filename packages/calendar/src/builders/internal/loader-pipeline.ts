@@ -42,6 +42,8 @@ export class LoaderPipeline<TMeta extends Record<string, unknown>> {
    */
   private _generation = 0;
   private _debounceHandle: ReturnType<typeof setTimeout> | null = null;
+  /** Window keys with a fetch in flight — `prefetch` must not double-dispatch. */
+  private readonly _inFlightKeys = new Set<string>();
 
   constructor(private readonly deps: LoaderPipelineDeps<TMeta>) {}
 
@@ -65,12 +67,25 @@ export class LoaderPipeline<TMeta extends Record<string, unknown>> {
     }, LOADER_DEBOUNCE_MS);
   }
 
+  /**
+   * Warm the cache for a window the user is about to see. No
+   * debounce — this runs AFTER the visible window settled — and no
+   * double dispatch while the same window is already in flight.
+   */
+  prefetch(window: ViewWindow): void {
+    if (!this.deps.loader()) return;
+    const key = windowKey(window);
+    if (this.cache.value.has(key) || this._inFlightKeys.has(key)) return;
+    this.run(window);
+  }
+
   /** Invoke the loader for `window` now (no debounce). */
   run(window: ViewWindow): void {
     const loader = this.deps.loader();
     if (!loader) return;
     const key = windowKey(window);
     const generation = this._generation;
+    this._inFlightKeys.add(key);
     this.deps.loading.begin();
     Promise.resolve()
       .then(() => loader(window))
@@ -90,7 +105,10 @@ export class LoaderPipeline<TMeta extends Record<string, unknown>> {
         console.error(`[CalendarBuilder] eventsLoader rejected for window ${key}:`, e);
         // NOT cached on error — next visit re-attempts.
       })
-      .finally(() => this.deps.loading.end());
+      .finally(() => {
+        this._inFlightKeys.delete(key);
+        this.deps.loading.end();
+      });
   }
 
   /** Drop everything; in-flight results are discarded on arrival. */

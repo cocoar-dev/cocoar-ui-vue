@@ -34,7 +34,7 @@ import {
 import { useI18n, useLocalization } from '@cocoar/vue-localization';
 import { useTimeGridDnd, type TimeGridEventDropPayload } from '../composables/useTimeGridDnd';
 import { useA11yAnnouncer } from '../composables/useA11yAnnouncer';
-import { useTimeGridSwipe } from '../composables/useTimeGridSwipe';
+import { useTimeGridSwipe, type TimeGridSwipeState } from '../composables/useTimeGridSwipe';
 import {
   Temporal,
   eventInkColor,
@@ -49,6 +49,7 @@ import {
   type CalendarEvent,
   type PositionedEvent,
   type AllDayBar,
+  type ViewWindow,
 } from '../core';
 import { CalendarBuilder } from '../builders/calendar-builder';
 import { RenderEvent, RenderDayHeader } from '../builders/render-helpers';
@@ -69,6 +70,22 @@ const props = defineProps<{
   /** One date per day-column to render. The wrapper (Day/Week
    *  view) computes this from the builder's date + firstDayOfWeek. */
   dates?: ReadonlyArray<Temporal.PlainDate>;
+  /**
+   * Read events for THIS window instead of the builder's visible
+   * window. The neighbour pages drawn during a swipe pass their own
+   * window; the live grid leaves it undefined.
+   */
+  window?: ViewWindow;
+  /**
+   * Neighbour-page mode: purely visual. No scroll registration on the
+   * builder, `aria-hidden`, no pointer events, hour axis hidden (it
+   * keeps its width so columns align with the live grid).
+   */
+  ghost?: boolean;
+}>();
+const emit = defineEmits<{
+  /** The swipe runtime's state, for the surface that hosts the neighbour pages. */
+  swipeState: [state: TimeGridSwipeState];
 }>();
 const { t } = useI18n();
 
@@ -89,10 +106,13 @@ const state = computed(() => {
   const s = props.builder.state;
   const tr = toValue(s.timeRange);
   return {
-    // Phase 4: read via api.getVisibleEvents() so events from
-    // `events()` / `eventsLoader()` AND expanded occurrences from
-    // `series()` / `seriesLoader()` all reach the layout.
-    events: props.builder.api.getVisibleEvents(),
+    // Phase 4: read via the api so events from `events()` /
+    // `eventsLoader()` AND expanded occurrences from `series()` /
+    // `seriesLoader()` all reach the layout. A neighbour page reads
+    // its own window.
+    events: props.window
+      ? props.builder.api.getEventsForWindow(props.window)
+      : props.builder.api.getVisibleEvents(),
     timezone: toValue(s.timezone),
     locale: toValue(s.locale),
     density: toValue(s.density),
@@ -179,9 +199,19 @@ function setAllDayColumnsEl(el: HTMLElement | null) {
 // translate the header cells, all-day columns and body columns share.
 const swipe = useTimeGridSwipe({
   columnsEl: columnsRef,
-  enabled: () => state.value.swipeNavigation,
+  enabled: () => state.value.swipeNavigation && !props.ghost,
   onCommit: (direction) => (direction === 1 ? props.builder.api.next() : props.builder.api.prev()),
 });
+watch(
+  () => ({
+    engaged: swipe.engaged.value,
+    swiping: swipe.isSwiping.value,
+    settling: swipe.settling.value,
+    offsetX: swipe.swipeStyle.value['--coar-time-grid-swipe-x'],
+  }),
+  (s) => emit('swipeState', s),
+  { flush: 'sync' },
+);
 
 /**
  * Find the nearest scrollable ancestor of the columns container.
@@ -742,10 +772,10 @@ function scrollToTime(time: Temporal.PlainTime): void {
   surface.scrollTo({ top: Math.max(0, px), behavior: 'smooth' });
 }
 onMounted(() => {
-  props.builder._setScrollToTime(scrollToTime);
+  if (!props.ghost) props.builder._setScrollToTime(scrollToTime);
 });
 onBeforeUnmount(() => {
-  props.builder._setScrollToTime(undefined);
+  if (!props.ghost) props.builder._setScrollToTime(undefined);
 });
 
 defineExpose({
@@ -763,9 +793,11 @@ defineExpose({
       {
         'coar-time-grid--settling': swipe.settling.value,
         'coar-time-grid--swiping': swipe.isSwiping.value,
+        'coar-time-grid--ghost': props.ghost,
       },
     ]"
-    :style="swipe.swipeStyle.value"
+    :style="props.ghost ? undefined : swipe.swipeStyle.value"
+    :aria-hidden="props.ghost ? 'true' : undefined"
     role="region"
     :aria-label="
       days.length === 1
@@ -1174,8 +1206,27 @@ defineExpose({
   position: relative;
   overflow: hidden;
 }
+/* Neighbour page: visual only. The hidden axis keeps its width so the
+   ghost's columns line up with the live grid's columns. */
+.coar-time-grid--ghost {
+  pointer-events: none;
+}
+.coar-time-grid--ghost .coar-time-grid__hour-axis,
+.coar-time-grid--ghost .coar-time-grid-header__corner,
+.coar-time-grid--ghost .coar-time-grid-all-day-band__axis {
+  visibility: hidden;
+}
+/* A ghost's cells slide INTO the live area; the surface clips at its
+   own edge instead. */
+.coar-time-grid--ghost .coar-time-grid__sticky-top,
+.coar-time-grid--ghost .coar-time-grid__body {
+  overflow-x: visible;
+}
 .coar-time-grid__hour-axis {
   position: relative;
+  /* Above the cells sliding past it during a swipe. */
+  z-index: 2;
+  background: var(--coar-calendar-bg, #fff);
   /* No border-right here — the first day-column already owns
      `border-left: 1px` for the axis-vs-grid seam. Painting both
      produced a 2px double-line at the boundary (issue surfaced as

@@ -54,7 +54,11 @@ the time grids.
   together, the hour axis stays put — and pages on release past a quarter of
   the width or on a fast flick. A touch that never moves is a tap and reaches
   `onTimeClick` on release, so a swipe never starts with a stray slot click.
-  On the columns, mouse and pen keep their click-on-press semantics.
+  On the columns, mouse and pen keep their click-on-press semantics. While
+  you drag, the previous and next page are drawn beside the current one —
+  same columns, same events — and the builder pre-warms those two windows
+  in loader mode (`prefetchNeighbours(false)` opts out;
+  `api.getEventsForWindow(window)` is the read behind it).
   `swipeNavigation(false)` switches it off; `prefers-reduced-motion` skips
   the settle animation.
 - **`@cocoar/vue-calendar/styles` subpath.** The package stylesheet

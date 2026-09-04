@@ -30,6 +30,15 @@
 
 import { computed, onBeforeUnmount, ref, type Ref } from 'vue';
 
+/** Snapshot the grid emits so its host can mirror the swipe on sibling pages. */
+export interface TimeGridSwipeState {
+  engaged: boolean;
+  swiping: boolean;
+  settling: boolean;
+  /** The `--coar-time-grid-swipe-x` value, e.g. `'-140px'`. */
+  offsetX: string;
+}
+
 export interface UseTimeGridSwipeOptions {
   /** The element whose width is one "page" (the body columns container). */
   columnsEl: Ref<HTMLElement | null>;
@@ -46,6 +55,13 @@ export interface UseTimeGridSwipeReturn {
   settling: Ref<boolean>;
   /** True from the first horizontal move until release. */
   isSwiping: Ref<boolean>;
+  /**
+   * True from the moment a pointer was taken until the gesture ends
+   * (release, cancel, end of settle). The surface mounts the
+   * neighbour pages on this — before the first movement, so they are
+   * there when the pan starts.
+   */
+  engaged: Ref<boolean>;
   /**
    * Feed a `pointerdown`. Returns `true` when the composable took the
    * pointer — the caller must then NOT fire its click semantics; they
@@ -78,6 +94,7 @@ export function useTimeGridSwipe(options: UseTimeGridSwipeOptions): UseTimeGridS
   const offsetX = ref(0);
   const settling = ref(false);
   const isSwiping = ref(false);
+  const engaged = ref(false);
 
   const swipeStyle = computed<Record<string, string>>(() => ({
     '--coar-time-grid-swipe-x': `${offsetX.value}px`,
@@ -118,6 +135,7 @@ export function useTimeGridSwipe(options: UseTimeGridSwipeOptions): UseTimeGridS
   function reset(): void {
     gesture = null;
     isSwiping.value = false;
+    if (!settling.value) engaged.value = false;
     detach();
   }
 
@@ -138,6 +156,7 @@ export function useTimeGridSwipe(options: UseTimeGridSwipeOptions): UseTimeGridS
       abandoned: false,
       onTap,
     };
+    engaged.value = true;
     window.addEventListener('pointermove', onPointerMove, { passive: true });
     window.addEventListener('pointerup', onPointerUp);
     window.addEventListener('pointercancel', onPointerCancel);
@@ -205,6 +224,7 @@ export function useTimeGridSwipe(options: UseTimeGridSwipeOptions): UseTimeGridS
       settling.value = false;
       offsetX.value = 0;
       if (direction !== null) options.onCommit(direction);
+      engaged.value = false;
     };
     if (reducedMotion() || target === offsetX.value || pageWidth() === 0) {
       finish();
@@ -224,5 +244,5 @@ export function useTimeGridSwipe(options: UseTimeGridSwipeOptions): UseTimeGridS
     if (settleTimer) clearTimeout(settleTimer);
   });
 
-  return { swipeStyle, settling, isSwiping, onPointerdown };
+  return { swipeStyle, settling, isSwiping, engaged, onPointerdown };
 }
