@@ -228,6 +228,7 @@ interface CoarListboxOption<T> {
 | `emptyText` | `string` | `'No items'` | Fallback empty state text |
 | `draggable` | `boolean` | `false` | Allow items to be dragged out of this list |
 | `droppable` | `boolean` | `false` | Accept drops from compatible listboxes |
+| `dragEngine` | `'native' \| 'pointer' \| 'auto'` | `'native'` | HTML5 drag events, or Pointer Events for touch — see [Drag & Drop → Engines](./drag-drop#engines) |
 | `dragGroup` | `string` | — | Shared name linking lists that can exchange items |
 | `dragId` | `string` | auto | Stable identifier — pair with other lists' `dragAccept` for directional flow |
 | `dragAccept` | `string[]` | — | Whitelist of source `dragId`s this list accepts. Unset = accept any source in the same `dragGroup`; empty array = accept nothing |

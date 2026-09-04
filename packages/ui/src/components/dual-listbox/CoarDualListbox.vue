@@ -2,6 +2,7 @@
 import { computed, shallowRef, useSlots, useTemplateRef, type Slots } from 'vue';
 import CoarButton from '../button/CoarButton.vue';
 import CoarListbox from '../listbox/CoarListbox.vue';
+import type { DragEngine } from '../../composables/useDragDrop';
 import type {
   CoarListboxOption,
   CoarListboxItemComponents,
@@ -64,6 +65,8 @@ export interface CoarDualListboxProps<T = unknown> {
 
   /** Enables drag-and-drop between the two columns. */
   dragDrop?: boolean;
+  /** Drag engine for both columns: `'native'` (default), `'pointer'` (touch-capable) or `'auto'`. */
+  dragEngine?: DragEngine;
 
   /**
    * Enables virtual scrolling on both columns. Use for large datasets (thousands of items).
@@ -112,6 +115,7 @@ const props = withDefaults(defineProps<CoarDualListboxProps<T>>(), {
   emptySelected: 'None selected',
   sortSelectedBySource: false,
   dragDrop: false,
+  dragEngine: 'native',
   virtual: false,
   itemHeight: 32,
   groupHeadingHeight: 28,
@@ -327,6 +331,7 @@ const sharedSlotNames = computed<string[]>(() =>
       :empty-text="emptyAvailable"
       :draggable="dragDrop"
       :droppable="dragDrop"
+      :drag-engine="dragEngine"
       :drag-group="dragDrop ? dualDragGroup : undefined"
       :can-drag="canDrag"
       :can-drop="canDrop"
@@ -427,6 +432,7 @@ const sharedSlotNames = computed<string[]>(() =>
       :empty-text="emptySelected"
       :draggable="dragDrop"
       :droppable="dragDrop"
+      :drag-engine="dragEngine"
       :drag-group="dragDrop ? dualDragGroup : undefined"
       :can-drag="canDrag"
       :can-drop="canDrop"

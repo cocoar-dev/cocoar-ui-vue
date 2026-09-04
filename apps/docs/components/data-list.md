@@ -148,7 +148,7 @@ The drop payload names the **visible neighbours** of the insertion point (`after
 | `pointer` | mouse, pen, touch (long-press) | other data lists only | tablets, touch-first views |
 | `auto` | picks `pointer` on coarse-pointer devices | — | one setting for both |
 
-The engine is a prop, so an app can decide at runtime (a device check, a user setting). **Accepting OS files** (`acceptsFiles` → `files-drop`) is a plain native drop listener and works with either engine.
+The engine is a prop, so an app can decide at runtime (a device check, a user setting). It is the shared `useDragDrop` engine — `CoarListbox` offers the same `dragEngine` prop, so lists and listboxes on the pointer engine can exchange items. **Accepting OS files** (`acceptsFiles` → `files-drop`) is a plain native drop listener and works with either engine.
 
 ## Grouping
 

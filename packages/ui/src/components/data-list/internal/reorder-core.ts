@@ -73,9 +73,3 @@ export function autoscrollDelta(clientY: number, rect: { top: number; bottom: nu
 export function isFileDrag(dt: DataTransfer | null): boolean {
   return !!dt && Array.from(dt.types).includes('Files');
 }
-
-/** Resolves `'auto'` once per session: coarse pointers (touch) get the pointer engine. */
-export function detectDragEngine(): 'native' | 'pointer' {
-  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return 'native';
-  return window.matchMedia('(pointer: coarse)').matches ? 'pointer' : 'native';
-}

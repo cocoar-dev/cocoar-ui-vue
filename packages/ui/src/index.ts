@@ -2,6 +2,7 @@
 export {
   useVirtualList,
   useDragDrop,
+  detectDragEngine,
   setCoarDragImageFromElement,
   setCoarDragImageFromHtml,
 } from './composables';
@@ -12,6 +13,9 @@ export type {
   UseDragDropOptions,
   UseDragDropReturn,
   DropPayload,
+  DragEngine,
+  DragPoint,
+  PointerDragOptions,
   CoarDragImageOptions,
 } from './composables';
 

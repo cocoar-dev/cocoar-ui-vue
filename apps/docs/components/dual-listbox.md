@@ -136,6 +136,7 @@ Shared slots apply to both columns; side-specific slots override only one side.
 | `emptySelected` | `string` | `'None selected'` | Empty state for right column |
 | `sortSelectedBySource` | `boolean` | `false` | When `true`, the right column is re-sorted by the order of items in `options` after every move. Default keeps the order in which the user moved items across |
 | `dragDrop` | `boolean` | `false` | Enable drag-and-drop between the two columns |
+| `dragEngine` | `'native' \| 'pointer' \| 'auto'` | `'native'` | HTML5 drag events, or Pointer Events for touch — see [Drag & Drop → Engines](./drag-drop#engines) |
 | `canDrag` | `(item) => boolean` | — | Per-item source permission, applied to both columns. See [Listbox docs](./listbox#per-item-validation) |
 | `canDrop` | `(payload) => boolean` | — | Runtime drop validation, applied to both columns |
 | `virtual` | `boolean` | `false` | Enable virtual scrolling — render only rows in/near the viewport |

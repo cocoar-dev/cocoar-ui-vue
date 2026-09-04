@@ -1,13 +1,6 @@
-import { computed, onBeforeUnmount, ref, shallowRef, watch, type Ref } from 'vue';
+import { computed, ref, shallowRef, type Ref } from 'vue';
 import { useDragDrop, type DropPayload } from '../../../composables/useDragDrop';
-import { deleteDrag, registerDrag, type DragEntry } from '../../../composables/dragRegistry';
-import {
-  autoscrollDelta,
-  computeDropTarget,
-  detectDragEngine,
-  isFileDrag,
-  resolveInsertion,
-} from './reorder-core';
+import { autoscrollDelta, computeDropTarget, isFileDrag, resolveInsertion } from './reorder-core';
 import type {
   CoarDataListDragEngine,
   CoarDataListDropEvent,
@@ -47,36 +40,18 @@ export interface UseDataListReorderOptions<T> {
   onDragEnd: (payload: { items: readonly T[]; dropped: boolean }) => void;
 }
 
-/** A data list that takes part in pointer-engine drags. Keyed by its viewport element. */
-interface PointerSurface {
-  hover(entry: DragEntry<unknown>, x: number, y: number): boolean;
-  leave(): void;
-  drop(entry: DragEntry<unknown>, x: number, y: number): boolean;
-}
-
-const pointerSurfaces = new Map<HTMLElement, PointerSurface>();
-
 const ITEM_SELECTOR = '.coar-data-list__item';
-const INTERACTIVE_SELECTOR = 'button, a, input, textarea, select, [contenteditable=""], [contenteditable="true"]';
-const MOUSE_THRESHOLD = 6;
-const TOUCH_THRESHOLD = 10;
-const LONG_PRESS_MS = 280;
 
-function genId(): string {
-  return `drag-${crypto.randomUUID?.() ?? Math.random().toString(16).slice(2)}`;
-}
-
+/**
+ * Reordering for `<CoarDataList>`: the list-specific parts (hit testing on rows,
+ * insertion maths, keyboard grab mode, file drops) on top of the shared
+ * `useDragDrop` engines (native HTML5 or pointer events).
+ */
 export function useDataListReorder<T>(options: UseDataListReorderOptions<T>) {
-  const instanceId = `coar-data-list-${crypto.randomUUID?.() ?? Math.random().toString(16).slice(2)}`;
-  const resolvedEngine = computed<'native' | 'pointer'>(() => {
-    const engine = options.engine();
-    return engine === 'auto' ? detectDragEngine() : engine;
-  });
-
   // ── Shared state ──────────────────────────────────────────────────────────
   const dragKeys = shallowRef<Set<CoarDataListKey>>(new Set());
   const dropTarget = shallowRef<CoarDataListDropTarget | null>(null);
-  const isDragOver = ref(false);
+  const fileOver = ref(false);
   const grabbed = ref(false);
   const dragging = computed(() => dragKeys.value.size > 0);
 
@@ -98,30 +73,30 @@ export function useDataListReorder<T>(options: UseDataListReorderOptions<T>) {
     return source.filter(allowed);
   }
 
-  /** Item element under a viewport point, and the drop target it implies. */
-  function targetAt(x: number, y: number): CoarDataListDropTarget | null {
+  function itemElementAt(x: number, y: number): HTMLElement | null {
     const viewport = options.viewport.value;
-    if (!viewport || options.sorted() || typeof document.elementFromPoint !== 'function') return null;
+    if (!viewport || typeof document.elementFromPoint !== 'function') return null;
     const el = document.elementFromPoint(x, y)?.closest<HTMLElement>(ITEM_SELECTOR);
-    if (!el || !viewport.contains(el)) return null;
+    return el && viewport.contains(el) ? el : null;
+  }
+
+  /** Drop target implied by the pointer position: before/after the row or tile under it. */
+  function targetAt(x: number, y: number): CoarDataListDropTarget | null {
+    if (options.sorted()) return null;
+    const el = itemElementAt(x, y);
+    if (!el) return null;
     const key = keyIndex().get(el.dataset.key ?? '');
     if (key === undefined || dragKeys.value.has(key)) return null;
     return computeDropTarget(options.layout(), el.getBoundingClientRect(), { x, y }, key);
   }
 
   function itemAt(x: number, y: number): T | null {
-    const viewport = options.viewport.value;
-    if (!viewport || typeof document.elementFromPoint !== 'function') return null;
-    const el = document.elementFromPoint(x, y)?.closest<HTMLElement>(ITEM_SELECTOR);
-    if (!el || !viewport.contains(el)) return null;
-    const key = keyIndex().get(el.dataset.key ?? '');
+    const el = itemElementAt(x, y);
+    const key = el ? keyIndex().get(el.dataset.key ?? '') : undefined;
     return key === undefined ? null : (options.itemByKey(key) ?? null);
   }
 
-  function commitDrop(
-    items: readonly T[],
-    meta: { fromSelf: boolean; sourceId: string | null; sourceDragGroup: string | null },
-  ): boolean {
+  function commitDrop(items: readonly T[], meta: { fromSelf: boolean; sourceId: string | null; sourceDragGroup: string | null }): boolean {
     const keys = items.map(options.keyOf);
     const visibleKeys = options.visibleItems().map(options.keyOf);
     const target = dropTarget.value;
@@ -143,7 +118,7 @@ export function useDataListReorder<T>(options: UseDataListReorderOptions<T>) {
   function reset(): void {
     dragKeys.value = new Set();
     dropTarget.value = null;
-    isDragOver.value = false;
+    fileOver.value = false;
     grabbed.value = false;
     stopAutoscroll();
   }
@@ -170,26 +145,49 @@ export function useDataListReorder<T>(options: UseDataListReorderOptions<T>) {
     autoscrollFrame = null;
   }
 
-  // ── Native engine (HTML5 drag events) ─────────────────────────────────────
+  // ── Shared engine (native or pointer) ─────────────────────────────────────
   const dnd = useDragDrop<T>({
     dragId: () => options.dragId(),
     dragGroup: () => options.dragGroup(),
     dragAccept: () => options.dragAccept(),
     canDrop: (payload) => options.canDrop()?.(payload) ?? true,
-    onDragStart: (items) => options.onDragStart(items),
+    engine: () => options.engine(),
+    pointer: {
+      target: options.viewport,
+      ghostClass: 'coar-data-list__ghost',
+      onHover: (point) => {
+        if (!options.enabled()) return;
+        dropTarget.value = targetAt(point.x, point.y);
+        autoscroll(point.y);
+      },
+      onLeave: () => {
+        dropTarget.value = null;
+        stopAutoscroll();
+      },
+      onDrop: () => {
+        stopAutoscroll();
+      },
+    },
+    onDragStart: (items) => {
+      dragKeys.value = new Set(items.map(options.keyOf));
+      options.onDragStart(items);
+    },
     onDragEnd: (payload) => {
       options.onDragEnd(payload);
       reset();
     },
     onDropAccept: ({ items, fromId, fromGroup, fromSelf }) => {
+      if (!options.enabled()) return;
       commitDrop(items, { fromSelf, sourceId: fromId, sourceDragGroup: fromGroup });
+      dropTarget.value = null;
     },
     onItemsRemove: ({ items, toGroup }) => {
       options.onItemsRemove({ items: [...items], keys: items.map(options.keyOf), toDragGroup: toGroup });
     },
   });
 
-  const nativeDraggable = computed(() => options.enabled() && resolvedEngine.value === 'native');
+  const nativeDraggable = computed(() => options.enabled() && dnd.engine.value === 'native');
+  const isDragOver = computed(() => dnd.isDragOver.value || fileOver.value);
 
   function onItemDragStart(event: DragEvent, item: T): void {
     if (!nativeDraggable.value) return;
@@ -198,7 +196,6 @@ export function useDataListReorder<T>(options: UseDataListReorderOptions<T>) {
       event.preventDefault();
       return;
     }
-    dragKeys.value = new Set(items.map(options.keyOf));
     event.dataTransfer?.setData('text/plain', items.map((entry) => String(options.keyOf(entry))).join(', '));
   }
 
@@ -207,12 +204,17 @@ export function useDataListReorder<T>(options: UseDataListReorderOptions<T>) {
     reset();
   }
 
+  function onItemPointerDown(event: PointerEvent, item: T): void {
+    if (!options.enabled()) return;
+    dnd.onPointerDown(event, () => itemsToDrag(item), event.currentTarget as HTMLElement);
+  }
+
   function onViewportDragOver(event: DragEvent): void {
     if (isFileDrag(event.dataTransfer)) {
       if (!options.acceptsFiles()) return;
       event.preventDefault();
       if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
-      isDragOver.value = true;
+      fileOver.value = true;
       return;
     }
     if (!options.enabled()) return;
@@ -221,7 +223,6 @@ export function useDataListReorder<T>(options: UseDataListReorderOptions<T>) {
       dropTarget.value = null;
       return;
     }
-    isDragOver.value = true;
     dropTarget.value = targetAt(event.clientX, event.clientY);
     autoscroll(event.clientY);
   }
@@ -229,7 +230,7 @@ export function useDataListReorder<T>(options: UseDataListReorderOptions<T>) {
   function onViewportDragLeave(event: DragEvent): void {
     dnd.onDragLeave(event);
     if (!dnd.isDragOver.value) {
-      isDragOver.value = false;
+      fileOver.value = false;
       dropTarget.value = null;
       stopAutoscroll();
     }
@@ -238,7 +239,7 @@ export function useDataListReorder<T>(options: UseDataListReorderOptions<T>) {
   function onViewportDrop(event: DragEvent): void {
     stopAutoscroll();
     if (isFileDrag(event.dataTransfer)) {
-      isDragOver.value = false;
+      fileOver.value = false;
       if (!options.acceptsFiles() || !event.dataTransfer) return;
       event.preventDefault();
       options.onFilesDrop({ files: Array.from(event.dataTransfer.files), item: itemAt(event.clientX, event.clientY), event });
@@ -246,227 +247,7 @@ export function useDataListReorder<T>(options: UseDataListReorderOptions<T>) {
     }
     if (!options.enabled()) return;
     dnd.onDrop(event);
-    isDragOver.value = false;
     dropTarget.value = null;
-  }
-
-  // ── Pointer engine (Pointer Events, touch-capable) ────────────────────────
-  interface PendingPointer {
-    item: T;
-    element: HTMLElement;
-    x: number;
-    y: number;
-    pointerId: number;
-    timer: ReturnType<typeof setTimeout> | null;
-  }
-  interface ActivePointer {
-    entry: DragEntry<T>;
-    ghost: HTMLElement | null;
-    offsetX: number;
-    offsetY: number;
-    hovered: PointerSurface | null;
-  }
-  let pending: PendingPointer | null = null;
-  let active: ActivePointer | null = null;
-
-  function isDropAllowed(entry: DragEntry<unknown>): boolean {
-    const fromSelf = entry.sourceId === instanceId;
-    const ownGroup = options.dragGroup() ?? null;
-    if (!fromSelf && entry.dragGroup !== ownGroup) return false;
-    const accept = options.dragAccept();
-    if (accept && (!entry.fromId || !accept.includes(entry.fromId))) return false;
-    const canDrop = options.canDrop();
-    if (canDrop) {
-      return canDrop({ items: entry.items as readonly T[], fromId: entry.fromId, fromGroup: entry.dragGroup, fromSelf });
-    }
-    return true;
-  }
-
-  const surface: PointerSurface = {
-    hover(entry, x, y) {
-      if (!options.enabled() || !isDropAllowed(entry)) {
-        isDragOver.value = false;
-        dropTarget.value = null;
-        return false;
-      }
-      isDragOver.value = true;
-      dropTarget.value = targetAt(x, y);
-      autoscroll(y);
-      return true;
-    },
-    leave() {
-      isDragOver.value = false;
-      dropTarget.value = null;
-      stopAutoscroll();
-    },
-    drop(entry) {
-      stopAutoscroll();
-      if (!options.enabled() || !isDropAllowed(entry)) return false;
-      const fromSelf = entry.sourceId === instanceId;
-      entry.consumed = true;
-      if (!fromSelf) entry.onAcceptedBy?.(instanceId, null);
-      commitDrop(entry.items as readonly T[], { fromSelf, sourceId: entry.fromId, sourceDragGroup: entry.dragGroup });
-      isDragOver.value = false;
-      dropTarget.value = null;
-      return true;
-    },
-  };
-
-  watch(
-    options.viewport,
-    (el, previous) => {
-      if (previous) pointerSurfaces.delete(previous);
-      if (el) pointerSurfaces.set(el, surface);
-    },
-    { immediate: true },
-  );
-
-  function surfaceAt(x: number, y: number): PointerSurface | null {
-    if (typeof document.elementFromPoint !== 'function') return null;
-    const el = document.elementFromPoint(x, y);
-    if (!el) return null;
-    for (const [viewport, candidate] of pointerSurfaces) {
-      if (viewport.contains(el)) return candidate;
-    }
-    return null;
-  }
-
-  function preventTouchScroll(event: TouchEvent): void {
-    if (active) event.preventDefault();
-  }
-
-  function onItemPointerDown(event: PointerEvent, item: T): void {
-    if (!options.enabled() || resolvedEngine.value !== 'pointer') return;
-    if (event.button !== 0 || !event.isPrimary) return;
-    if ((event.target as Element | null)?.closest(INTERACTIVE_SELECTOR)) return;
-    const element = (event.currentTarget as HTMLElement | null) ?? (event.target as HTMLElement);
-    cancelPending();
-    pending = { item, element, x: event.clientX, y: event.clientY, pointerId: event.pointerId, timer: null };
-    if (event.pointerType !== 'mouse') {
-      // Touch / pen: long-press starts the drag so plain scrolling keeps working.
-      pending.timer = setTimeout(() => {
-        if (pending) beginPointerDrag(pending, pending.x, pending.y);
-      }, LONG_PRESS_MS);
-    }
-    document.addEventListener('pointermove', onDocumentPointerMove);
-    document.addEventListener('pointerup', onDocumentPointerUp);
-    document.addEventListener('pointercancel', onDocumentPointerCancel);
-  }
-
-  function cancelPending(): void {
-    if (pending?.timer) clearTimeout(pending.timer);
-    pending = null;
-  }
-
-  function beginPointerDrag(from: PendingPointer, x: number, y: number): void {
-    cancelPending();
-    const items = itemsToDrag(from.item);
-    if (items.length === 0) {
-      removeDocumentListeners();
-      return;
-    }
-    const group = options.dragGroup() ?? null;
-    const entry: DragEntry<T> = {
-      id: genId(),
-      sourceId: instanceId,
-      fromId: options.dragId() ?? null,
-      dragGroup: group,
-      items,
-      onAcceptedBy: () => {
-        options.onItemsRemove({ items: [...items], keys: items.map(options.keyOf), toDragGroup: group });
-      },
-    };
-    registerDrag(entry);
-    dragKeys.value = new Set(items.map(options.keyOf));
-
-    const rect = from.element.getBoundingClientRect();
-    let ghost: HTMLElement | null = null;
-    if (typeof document !== 'undefined' && document.body) {
-      ghost = from.element.cloneNode(true) as HTMLElement;
-      ghost.classList.add('coar-data-list__ghost');
-      ghost.style.width = `${rect.width}px`;
-      ghost.style.left = `${rect.left}px`;
-      ghost.style.top = `${rect.top}px`;
-      if (items.length > 1) ghost.dataset.count = String(items.length);
-      document.body.appendChild(ghost);
-    }
-    active = { entry, ghost, offsetX: x - rect.left, offsetY: y - rect.top, hovered: null };
-    document.addEventListener('touchmove', preventTouchScroll, { passive: false });
-    document.addEventListener('keydown', onDocumentKeyDown);
-    options.onDragStart(items);
-    movePointerDrag(x, y);
-  }
-
-  function movePointerDrag(x: number, y: number): void {
-    if (!active) return;
-    if (active.ghost) {
-      active.ghost.style.left = `${x - active.offsetX}px`;
-      active.ghost.style.top = `${y - active.offsetY}px`;
-    }
-    const next = surfaceAt(x, y);
-    if (active.hovered && active.hovered !== next) active.hovered.leave();
-    active.hovered = next;
-    next?.hover(active.entry as DragEntry<unknown>, x, y);
-  }
-
-  function onDocumentPointerMove(event: PointerEvent): void {
-    if (active) {
-      movePointerDrag(event.clientX, event.clientY);
-      return;
-    }
-    if (!pending || event.pointerId !== pending.pointerId) return;
-    const distance = Math.hypot(event.clientX - pending.x, event.clientY - pending.y);
-    if (event.pointerType === 'mouse') {
-      if (distance >= MOUSE_THRESHOLD) beginPointerDrag(pending, event.clientX, event.clientY);
-    } else if (distance >= TOUCH_THRESHOLD) {
-      // Moved before the long-press fired: this is a scroll, not a drag.
-      cancelPending();
-      removeDocumentListeners();
-    }
-  }
-
-  function onDocumentPointerUp(event: PointerEvent): void {
-    if (!active) {
-      cancelPending();
-      removeDocumentListeners();
-      return;
-    }
-    const entry = active.entry;
-    const target = surfaceAt(event.clientX, event.clientY);
-    const dropped = target ? target.drop(entry as DragEntry<unknown>, event.clientX, event.clientY) : false;
-    finishPointerDrag(dropped);
-  }
-
-  function onDocumentPointerCancel(): void {
-    if (active) finishPointerDrag(false);
-    else {
-      cancelPending();
-      removeDocumentListeners();
-    }
-  }
-
-  function onDocumentKeyDown(event: KeyboardEvent): void {
-    if (event.key === 'Escape' && active) finishPointerDrag(false);
-  }
-
-  function finishPointerDrag(dropped: boolean): void {
-    if (!active) return;
-    const { entry, ghost, hovered } = active;
-    hovered?.leave();
-    ghost?.remove();
-    deleteDrag(entry.id);
-    active = null;
-    removeDocumentListeners();
-    options.onDragEnd({ items: entry.items, dropped });
-    reset();
-  }
-
-  function removeDocumentListeners(): void {
-    document.removeEventListener('pointermove', onDocumentPointerMove);
-    document.removeEventListener('pointerup', onDocumentPointerUp);
-    document.removeEventListener('pointercancel', onDocumentPointerCancel);
-    document.removeEventListener('touchmove', preventTouchScroll);
-    document.removeEventListener('keydown', onDocumentKeyDown);
   }
 
   // ── Keyboard: Ctrl+X grab, arrows move the target, Ctrl+V / Enter drop ──────
@@ -548,17 +329,8 @@ export function useDataListReorder<T>(options: UseDataListReorderOptions<T>) {
     }
   }
 
-  onBeforeUnmount(() => {
-    cancelPending();
-    if (active) finishPointerDrag(false);
-    removeDocumentListeners();
-    stopAutoscroll();
-    const viewport = options.viewport.value;
-    if (viewport) pointerSurfaces.delete(viewport);
-  });
-
   return {
-    engine: resolvedEngine,
+    engine: dnd.engine,
     dragging,
     grabbed,
     dragKeys,

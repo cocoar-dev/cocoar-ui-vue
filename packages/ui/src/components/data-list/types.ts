@@ -1,3 +1,5 @@
+import type { DragEngine } from '../../composables/useDragDrop';
+
 /** Identity of a list item — what `itemKey` returns. */
 export type CoarDataListKey = string | number;
 
@@ -96,13 +98,8 @@ export interface CoarDataListItemEvent<T> {
   event: MouseEvent | KeyboardEvent;
 }
 
-/**
- * How drags are started and tracked. `'native'` = HTML5 drag events (interoperable
- * with CoarTree / CoarListbox, no touch support). `'pointer'` = Pointer Events
- * (mouse, pen and touch; only between data lists). `'auto'` picks `'pointer'` on
- * coarse-pointer devices. Accepting OS files works with either engine.
- */
-export type CoarDataListDragEngine = 'native' | 'pointer' | 'auto';
+/** Drag engine — see `DragEngine` in `useDragDrop`. Accepting OS files works with either. */
+export type CoarDataListDragEngine = DragEngine;
 
 export type CoarDataListDropPosition = 'before' | 'after';
 
