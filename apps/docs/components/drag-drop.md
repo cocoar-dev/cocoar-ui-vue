@@ -88,6 +88,39 @@ Visual feedback: when any rule fails during `dragover`, the composable sets `dro
 | `onDragLeave` | `(event) => void` | Call from `@dragleave`. Ignores events whose relatedTarget is still inside the container. |
 | `onDrop` | `(event, ctx?) => void` | Call from `@drop`. Optional `ctx.insertIndex` is forwarded to `onDropAccept`. |
 
+## Engines
+
+The same contract runs on two input engines. Pick one per surface with `engine`; the matching rules, `onDropAccept` / `onItemsRemove` and the registry are shared, so a source on one engine simply cannot reach a target on the other — but everything else stays identical.
+
+| Engine | Input | Targets | Use when |
+|---|---|---|---|
+| `'native'` (default) | HTML5 drag events | any HTML5 drop target: other Cocoar components, the OS, other apps | desktop |
+| `'pointer'` | Pointer Events — mouse, pen, touch (long-press) | surfaces using `useDragDrop` with the pointer engine | tablets, touch-first views |
+| `'auto'` | picks `'pointer'` on coarse-pointer devices | — | one setting for both |
+
+```ts
+const dnd = useDragDrop<Row>({
+  engine: 'auto',
+  dragGroup: 'rows',
+  pointer: {
+    target: containerRef,                       // registered as a pointer drop surface
+    onHover: (point, payload) => { insertAt.value = indexAt(point) },
+    onLeave: () => { insertAt.value = null },
+    onDrop: () => insertAt.value,               // becomes onDropAccept's insertIndex
+  },
+  onDropAccept, onItemsRemove,
+})
+```
+
+```vue
+<!-- source: wire pointerdown next to the native handlers; the engine decides which one acts -->
+<div :draggable="dnd.engine.value === 'native' || undefined"
+     @dragstart="dnd.startDrag($event, [row])" @dragend="dnd.endDrag"
+     @pointerdown="dnd.onPointerDown($event, [row])">
+```
+
+`onPointerDown` accepts a getter for the items, resolved when the drag actually starts (after the mouse threshold or the touch long-press). Drags never start from interactive children (buttons, inputs, links). A ghost cloned from the source follows the pointer; pass `pointer.ghost` for your own element or `false` for none. `Escape` cancels. Accepting OS files is a plain `drop` listener and is unaffected by the engine. Components exposing this choice: `CoarDataList` (`dragEngine`), `CoarListbox` / `CoarDualListbox` (`dragEngine`).
+
 ## Patterns
 
 **Two-way exchange** — both surfaces draggable + droppable + same `dragGroup`:

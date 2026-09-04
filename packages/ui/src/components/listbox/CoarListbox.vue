@@ -12,7 +12,7 @@ import type {
   CoarListboxSearchField,
 } from './types';
 import { useVirtualList } from '../../composables/useVirtualList';
-import { useDragDrop } from '../../composables/useDragDrop';
+import { useDragDrop, type DragEngine, type DragPoint } from '../../composables/useDragDrop';
 
 export interface CoarListboxProps<T = unknown> {
   /** Items to render. */
@@ -82,6 +82,12 @@ export interface CoarListboxProps<T = unknown> {
   /** Accepts drops from draggable listboxes sharing the same `dragGroup`. */
   droppable?: boolean;
   /**
+   * Drag engine: `'native'` (HTML5 drag events, default), `'pointer'` (Pointer Events —
+   * mouse, pen and touch via long-press; only other pointer-engine surfaces can be
+   * targets) or `'auto'` (pointer on coarse-pointer devices).
+   */
+  dragEngine?: DragEngine;
+  /**
    * Shared name linking compatible lists. Items can only cross between listboxes with
    * the same `dragGroup`. A list without a group still accepts/emits self-drops.
    */
@@ -146,6 +152,7 @@ const props = withDefaults(defineProps<CoarListboxProps<T>>(), {
   overscan: 5,
   draggable: false,
   droppable: false,
+  dragEngine: 'native',
   dragGroup: undefined,
   dragId: undefined,
   dragAccept: undefined,
@@ -496,13 +503,32 @@ function canDragItem(item: CoarListboxOption<T>): boolean {
   return props.canDrag ? props.canDrag(item) : true;
 }
 
+// Pointer engine: the insert index is resolved from the pointer position while
+// hovering and handed to `onDropAccept` on release (the native path passes it
+// through `onListDrop` instead).
+let pointerInsertIndex: number | null = null;
+function insertIndexAt(point: DragPoint): number | null {
+  if (typeof document.elementFromPoint !== 'function') return null;
+  const el = document.elementFromPoint(point.x, point.y)?.closest<HTMLElement>('.coar-listbox-item');
+  if (!el || !listRef.value?.contains(el)) return null;
+  const value = el.dataset.value;
+  const index = visibleItems.value.findIndex((i) => String(i.value) === value);
+  return index >= 0 ? index : null;
+}
+
 const dnd = useDragDrop<CoarListboxOption<T>>({
   dragId: () => props.dragId,
   dragGroup: () => props.dragGroup,
   dragAccept: () => props.dragAccept,
-  canDrop: props.canDrop
-    ? (p) => props.canDrop!(p)
-    : undefined,
+  // `droppable` gates every incoming drop, for both engines.
+  canDrop: (p) => props.droppable && (props.canDrop ? props.canDrop(p) : true),
+  engine: () => props.dragEngine,
+  pointer: {
+    target: listRef,
+    onHover: (point) => { pointerInsertIndex = insertIndexAt(point); },
+    onLeave: () => { pointerInsertIndex = null; },
+    onDrop: () => pointerInsertIndex,
+  },
   onDragStart: (items) => emit('drag-start', { items }),
   onDragEnd: ({ items, dropped }) => emit('drag-end', { items, dropped }),
   onDropAccept: ({ items, insertIndex, fromGroup, fromSelf }) =>
@@ -529,6 +555,14 @@ function onItemDragStart(event: DragEvent, item: CoarListboxOption<T>) {
 }
 
 function onItemDragEnd() { dnd.endDrag(); }
+function onItemPointerDown(event: PointerEvent, item: CoarListboxOption<T>) {
+  if (!canDragItem(item)) return;
+  dnd.onPointerDown(
+    event,
+    () => (isHighlighted(item) ? visibleItems.value.filter((i) => isHighlighted(i) && canDragItem(i)) : [item]),
+    event.currentTarget as HTMLElement,
+  );
+}
 function onListDragOver(event: DragEvent) {
   if (!props.droppable) return;
   dnd.onDragOver(event);
@@ -634,11 +668,13 @@ const hostClasses = computed(() => [
               :role="displayOnly ? 'listitem' : 'option'"
               :aria-selected="displayOnly ? undefined : isHighlighted(entry.item) ? 'true' : 'false'"
               :aria-disabled="entry.item.disabled ? 'true' : undefined"
-              :draggable="canDragItem(entry.item) ? true : undefined"
+              :draggable="canDragItem(entry.item) && dnd.engine.value === 'native' ? true : undefined"
+              :data-value="String(entry.item.value)"
               @click="handleItemClick(entry.item, $event)"
               @dblclick="handleItemDoubleClick(entry.item, $event)"
               @dragstart="draggable ? onItemDragStart($event, entry.item) : undefined"
               @dragend="draggable ? onItemDragEnd() : undefined"
+              @pointerdown="draggable ? onItemPointerDown($event, entry.item) : undefined"
               @drop.stop="droppable ? onListDrop($event, entry.item) : undefined"
             >
               <component
@@ -705,11 +741,13 @@ const hostClasses = computed(() => [
             :role="displayOnly ? 'listitem' : 'option'"
             :aria-selected="displayOnly ? undefined : isHighlighted(item) ? 'true' : 'false'"
             :aria-disabled="item.disabled ? 'true' : undefined"
-            :draggable="canDragItem(item) ? true : undefined"
+            :draggable="canDragItem(item) && dnd.engine.value === 'native' ? true : undefined"
+            :data-value="String(item.value)"
             @click="handleItemClick(item, $event)"
             @dblclick="handleItemDoubleClick(item, $event)"
             @dragstart="draggable ? onItemDragStart($event, item) : undefined"
             @dragend="draggable ? onItemDragEnd() : undefined"
+            @pointerdown="draggable ? onItemPointerDown($event, item) : undefined"
             @drop.stop="droppable ? onListDrop($event, item) : undefined"
           >
             <component

@@ -5,11 +5,14 @@ export type {
   VirtualRow,
 } from './useVirtualList';
 
-export { useDragDrop } from './useDragDrop';
+export { useDragDrop, detectDragEngine } from './useDragDrop';
 export type {
   UseDragDropOptions,
   UseDragDropReturn,
   DropPayload,
+  DragEngine,
+  DragPoint,
+  PointerDragOptions,
 } from './useDragDrop';
 
 export {

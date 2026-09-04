@@ -296,6 +296,7 @@ export default defineConfig({
             { text: 'Badge', link: '/components/badge' },
             { text: 'Card', link: '/components/card' },
             { text: 'Code Block', link: '/components/code-block' },
+            { text: 'Data List', link: '/components/data-list' },
             { text: 'Divider', link: '/components/divider' },
             { text: 'Link', link: '/components/link' },
             { text: 'Note', link: '/components/note' },

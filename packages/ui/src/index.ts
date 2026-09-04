@@ -2,6 +2,7 @@
 export {
   useVirtualList,
   useDragDrop,
+  detectDragEngine,
   setCoarDragImageFromElement,
   setCoarDragImageFromHtml,
 } from './composables';
@@ -12,6 +13,9 @@ export type {
   UseDragDropOptions,
   UseDragDropReturn,
   DropPayload,
+  DragEngine,
+  DragPoint,
+  PointerDragOptions,
   CoarDragImageOptions,
 } from './composables';
 
@@ -308,6 +312,52 @@ export type {
   TreeApi,
   TreeBuilderState,
 } from './components/tree';
+
+// Data List (virtualized, sortable, searchable record list with a free item template)
+export {
+  CoarDataList,
+  useDataList,
+  DataListBuilder,
+  DataListLevelBuilder,
+  useDataListModel,
+  createValueComparator,
+  normalizeSearchText,
+  searchTerms,
+  matchesSearchTerms,
+  DATA_LIST_HIGHLIGHT_NAME,
+} from './components/data-list';
+export type {
+  CoarDataListProps,
+  CoarDataListDensity,
+  CoarDataListDragEngine,
+  CoarDataListDropEvent,
+  CoarDataListDropPosition,
+  CoarDataListDropTarget,
+  CoarDataListFilesDropEvent,
+  CoarDataListItemsRemoveEvent,
+  CoarDataListEntry,
+  CoarDataListGroupSlotProps,
+  CoarDataListItemEvent,
+  CoarDataListItemSlotProps,
+  CoarDataListKey,
+  CoarDataListLayout,
+  CoarDataListLevelConfig,
+  CoarDataListNestingStyle,
+  CoarDataListMenuEntry,
+  CoarDataListMenuItem,
+  CoarDataListSearchBy,
+  CoarDataListSelection,
+  CoarDataListSelectionMode,
+  CoarDataListSort,
+  CoarDataListSortDirection,
+  CoarDataListSortGroups,
+  CoarDataListSortOption,
+  DataListApi,
+  DataListBuilderState,
+  UseDataListModelOptions,
+  UseDataListModelReturn,
+  ValueComparator,
+} from './components/data-list';
 
 // Panel Layout (resizable workbench + split-pane primitive)
 export { CoarSplitPane, CoarPanelLayout } from './components/panel-layout';

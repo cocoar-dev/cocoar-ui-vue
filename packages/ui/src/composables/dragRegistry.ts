@@ -55,3 +55,39 @@ export function deleteDrag(id: string): void {
   registry.delete(id);
   if (activeEntry?.id === id) activeEntry = null;
 }
+
+// ── Pointer-engine drop surfaces ──────────────────────────────────────────────
+// The pointer engine has no browser-provided target dispatch, so surfaces that
+// accept pointer drags register their element here and are looked up by hit test.
+
+/** A drop surface for pointer-engine drags. @internal */
+export interface PointerSurface {
+  hover(entry: DragEntry<unknown>, x: number, y: number): void;
+  leave(): void;
+  drop(entry: DragEntry<unknown>, x: number, y: number): boolean;
+}
+
+const pointerSurfaces = new Map<HTMLElement, PointerSurface>();
+
+/** @internal */
+export function registerPointerSurface(element: HTMLElement, surface: PointerSurface): void {
+  pointerSurfaces.set(element, surface);
+}
+
+/** @internal */
+export function unregisterPointerSurface(element: HTMLElement): void {
+  pointerSurfaces.delete(element);
+}
+
+/** The registered surface whose element contains the point, innermost first. @internal */
+export function findPointerSurface(x: number, y: number): PointerSurface | null {
+  if (typeof document === 'undefined' || typeof document.elementFromPoint !== 'function') return null;
+  const hit = document.elementFromPoint(x, y);
+  if (!hit) return null;
+  let best: { element: HTMLElement; surface: PointerSurface } | null = null;
+  for (const [element, surface] of pointerSurfaces) {
+    if (!element.contains(hit)) continue;
+    if (!best || best.element.contains(element)) best = { element, surface };
+  }
+  return best?.surface ?? null;
+}

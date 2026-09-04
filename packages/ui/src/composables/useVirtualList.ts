@@ -3,10 +3,12 @@ import {
   computed,
   watch,
   unref,
+  nextTick,
   onBeforeUnmount,
   type MaybeRefOrGetter,
   type Ref,
   type ComputedRef,
+  type ComponentPublicInstance,
 } from 'vue';
 
 /** Options for {@link useVirtualList}. */
@@ -23,6 +25,18 @@ export interface UseVirtualListOptions {
   overscan?: MaybeRefOrGetter<number>;
   /** The scrollable element — typically a template ref on the scrolling container. */
   scrollElement: Ref<HTMLElement | null>;
+  /**
+   * Measure rendered rows with a `ResizeObserver`. When on, `itemSize` is only the
+   * estimate used until a row has been reported via {@link UseVirtualListReturn.measureElement};
+   * the measured height then replaces it. Default false.
+   */
+  measure?: MaybeRefOrGetter<boolean>;
+  /**
+   * Stable key for an index, used to store measured heights. Defaults to the index,
+   * which is only correct while the list neither reorders nor inserts. Pass the
+   * item's own id when the data can move.
+   */
+  itemKey?: (index: number) => string | number;
 }
 
 /** One positioned row produced by the virtualizer. */
@@ -47,6 +61,14 @@ export interface UseVirtualListReturn {
   ): void;
   /** Inspect the precomputed offset for an index (debug/tests). */
   offsetFor(index: number): number;
+  /**
+   * Register (or, with `null`, unregister) the DOM element rendered for `index` so its
+   * height is measured. No-op unless `measure` is on. Bind it as a function ref:
+   * `:ref="(el) => measureElement(row.index, el)"`.
+   */
+  measureElement(index: number, el: Element | ComponentPublicInstance | null): void;
+  /** Drop measured heights — all of them, or just the row with `key` — so estimates apply again. */
+  invalidateMeasurements(key?: string | number): void;
 }
 
 function toGetter<T>(v: MaybeRefOrGetter<T>): () => T {
@@ -74,21 +96,41 @@ export function useVirtualList(opts: UseVirtualListOptions): UseVirtualListRetur
   const getCount = toGetter(opts.count);
   const getSize = toGetter(opts.itemSize);
   const getOverscan = toGetter(opts.overscan ?? 5);
+  const getMeasure = toGetter(opts.measure ?? false);
+  const keyOf = opts.itemKey ?? ((index: number) => index);
 
   const scrollTop = ref(0);
   const viewportHeight = ref(0);
 
-  // Cumulative offset table — only materialized for the per-index (function)
-  // size path. For a constant item size we skip the O(n) array entirely and
-  // derive offsets analytically (offset(i) = i * size), so a count change
-  // (expand/collapse) stays O(1) instead of rebuilding an n-length array.
-  const offsets = computed<number[] | null>(() => {
+  // Measured heights live outside Vue's reactivity (a Map keyed by item key);
+  // `measureVersion` is bumped whenever one changes so the offset table recomputes.
+  const measured = new Map<string | number, number>();
+  const measureVersion = ref(0);
+  const observedElements = new Map<Element, string | number>();
+  let resizeObserver: ResizeObserver | null = null;
+
+  function sizeAt(index: number): number {
+    if (getMeasure()) {
+      const known = measured.get(keyOf(index));
+      if (known !== undefined) return known;
+    }
     const sizeRaw = getSize();
-    if (typeof sizeRaw !== 'function') return null;
+    return typeof sizeRaw === 'function' ? sizeRaw(index) : sizeRaw;
+  }
+
+  // Cumulative offset table — only materialized for the per-index (function)
+  // size path or while measuring. For a constant item size we skip the O(n) array
+  // entirely and derive offsets analytically (offset(i) = i * size), so a count
+  // change (expand/collapse) stays O(1) instead of rebuilding an n-length array.
+  const offsets = computed<number[] | null>(() => {
+    const measuring = getMeasure();
+    const sizeRaw = getSize();
+    if (!measuring && typeof sizeRaw !== 'function') return null;
+    void measureVersion.value; // dependency: a measured height changed
     const n = getCount();
     const arr: number[] = new Array(n + 1);
     arr[0] = 0;
-    for (let i = 0; i < n; i++) arr[i + 1] = arr[i] + sizeRaw(i);
+    for (let i = 0; i < n; i++) arr[i + 1] = arr[i] + sizeAt(i);
     return arr;
   });
 
@@ -183,6 +225,30 @@ export function useVirtualList(opts: UseVirtualListOptions): UseVirtualListRetur
     index: number,
     align: 'auto' | 'start' | 'center' | 'end' = 'auto',
   ): void {
+    scrollToIndexOnce(index, align);
+    // With measured rows the target offset is an estimate until the rows around
+    // it have rendered; re-check for a few ticks and correct the position.
+    if (!getMeasure()) return;
+    let attempts = 0;
+    const settle = () => {
+      const n = getCount();
+      if (n === 0 || attempts++ >= 8) return;
+      const i = Math.max(0, Math.min(n - 1, index | 0));
+      const before = offsetAt(i);
+      void nextTick(() => {
+        if (offsetAt(i) !== before) {
+          scrollToIndexOnce(index, align);
+          settle();
+        }
+      });
+    };
+    settle();
+  }
+
+  function scrollToIndexOnce(
+    index: number,
+    align: 'auto' | 'start' | 'center' | 'end',
+  ): void {
     const el = opts.scrollElement.value;
     if (!el) return;
     const n = getCount();
@@ -260,10 +326,94 @@ export function useVirtualList(opts: UseVirtualListOptions): UseVirtualListRetur
     detach = null;
   });
 
+  // ── Measurement ──────────────────────────────────────────────────────
+  function recordSize(key: string | number, size: number): boolean {
+    const rounded = Math.ceil(size);
+    if (!(rounded > 0) || measured.get(key) === rounded) return false;
+    measured.set(key, rounded);
+    return true;
+  }
+
+  function ensureResizeObserver(): ResizeObserver | null {
+    if (resizeObserver || typeof ResizeObserver === 'undefined') return resizeObserver;
+    resizeObserver = new ResizeObserver((entries) => {
+      let changed = false;
+      for (const entry of entries) {
+        const key = observedElements.get(entry.target);
+        if (key === undefined) continue;
+        const box = Array.isArray(entry.borderBoxSize) ? entry.borderBoxSize[0] : entry.borderBoxSize;
+        const size = box?.blockSize ?? (entry.target as HTMLElement).getBoundingClientRect().height;
+        if (recordSize(key, size)) changed = true;
+      }
+      if (changed) measureVersion.value++;
+    });
+    return resizeObserver;
+  }
+
+  // Function refs run while Vue is still patching — children before the parent's
+  // own props — so a synchronous measurement can see the previous styles (e.g. a
+  // gap or density change on the root). Re-measure every observed row once the
+  // patch has finished; this also covers background tabs, where the
+  // ResizeObserver is paused.
+  let remeasureScheduled = false;
+  function scheduleRemeasure(): void {
+    if (remeasureScheduled) return;
+    remeasureScheduled = true;
+    void nextTick(() => {
+      remeasureScheduled = false;
+      let changed = false;
+      for (const [el, key] of observedElements) {
+        if (!el.isConnected) {
+          // Unmounted without a matching null-ref (e.g. the index→key mapping changed).
+          resizeObserver?.unobserve(el);
+          observedElements.delete(el);
+          continue;
+        }
+        if (recordSize(key, el.getBoundingClientRect().height)) changed = true;
+      }
+      if (changed) measureVersion.value++;
+    });
+  }
+
+  function measureElement(index: number, value: Element | ComponentPublicInstance | null): void {
+    if (!getMeasure()) return;
+    const el = value instanceof Element ? value : (value as ComponentPublicInstance | null)?.$el;
+    const key = keyOf(index);
+    if (!(el instanceof Element)) {
+      for (const [element, elementKey] of observedElements) {
+        if (elementKey === key) {
+          resizeObserver?.unobserve(element);
+          observedElements.delete(element);
+        }
+      }
+      return;
+    }
+    if (observedElements.get(el) !== key) {
+      observedElements.set(el, key);
+      ensureResizeObserver()?.observe(el);
+    }
+    if (recordSize(key, el.getBoundingClientRect().height)) measureVersion.value++;
+    scheduleRemeasure();
+  }
+
+  function invalidateMeasurements(key?: string | number): void {
+    if (key === undefined) measured.clear();
+    else measured.delete(key);
+    measureVersion.value++;
+  }
+
+  onBeforeUnmount(() => {
+    resizeObserver?.disconnect();
+    resizeObserver = null;
+    observedElements.clear();
+  });
+
   return {
     virtualRows,
     totalSize,
     scrollToIndex,
     offsetFor: (i: number) => offsetAt(i),
+    measureElement,
+    invalidateMeasurements,
   };
 }
