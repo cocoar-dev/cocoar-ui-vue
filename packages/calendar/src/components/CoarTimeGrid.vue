@@ -34,6 +34,7 @@ import {
 import { useI18n, useLocalization } from '@cocoar/vue-localization';
 import { useTimeGridDnd, type TimeGridEventDropPayload } from '../composables/useTimeGridDnd';
 import { useA11yAnnouncer } from '../composables/useA11yAnnouncer';
+import { useTimeGridSwipe } from '../composables/useTimeGridSwipe';
 import {
   Temporal,
   eventInkColor,
@@ -110,6 +111,7 @@ const state = computed(() => {
     eventTextContrast: toValue(s.eventTextContrast),
     allDayMaxVisibleLanes: toValue(s.allDayMaxVisibleLanes),
     allDayBandMode: toValue(s.allDayBandMode),
+    swipeNavigation: toValue(s.swipeNavigation),
     dayHeaderRenderer: s.dayHeaderRenderer,
     dstPolicy: toValue(s.dstPolicy),
   };
@@ -172,6 +174,14 @@ const allDayColumnsRef = ref<HTMLElement | null>(null);
 function setAllDayColumnsEl(el: HTMLElement | null) {
   allDayColumnsRef.value = el;
 }
+
+// Touch paging (iOS parity). Owns the `--coar-time-grid-swipe-x`
+// translate the header cells, all-day columns and body columns share.
+const swipe = useTimeGridSwipe({
+  columnsEl: columnsRef,
+  enabled: () => state.value.swipeNavigation,
+  onCommit: (direction) => (direction === 1 ? props.builder.api.next() : props.builder.api.prev()),
+});
 
 /**
  * Find the nearest scrollable ancestor of the columns container.
@@ -609,7 +619,11 @@ function onColumnPointerDown(e: PointerEvent, date: Temporal.PlainDate) {
   if (originatesFromEvent(e)) return;
   const time = slotTimeAt(e);
   if (!time) return;
-  props.builder.state.onTimeClick?.({ date, time, native: e });
+  const fire = () => props.builder.state.onTimeClick?.({ date, time, native: e });
+  // Touch: the swipe runtime decides on release whether this was a
+  // tap (→ fire) or the start of a pan (→ page). Mouse / pen: as before.
+  if (swipe.onPointerdown(e, fire)) return;
+  fire();
 }
 
 function onColumnDblclick(e: MouseEvent, date: Temporal.PlainDate) {
@@ -735,7 +749,11 @@ defineExpose({
 <template>
   <div
     class="coar-time-grid"
-    :class="[`coar-time-grid--density-${density}`]"
+    :class="[
+      `coar-time-grid--density-${density}`,
+      { 'coar-time-grid--settling': swipe.settling.value },
+    ]"
+    :style="swipe.swipeStyle.value"
     role="region"
     :aria-label="
       days.length === 1
@@ -1165,6 +1183,18 @@ defineExpose({
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
   position: relative;
+  /* Touch paging: horizontal pans are ours, vertical stays native. */
+  touch-action: pan-y;
+  transform: translateX(var(--coar-time-grid-swipe-x, 0px));
+}
+.coar-time-grid--settling .coar-time-grid__columns {
+  transition: transform 180ms ease-out;
+}
+/* The translated header cells / band / columns must not widen the
+   scroll surface while they are off to one side. */
+.coar-time-grid__sticky-top,
+.coar-time-grid__body {
+  overflow-x: clip;
 }
 
 /* Column visuals (today / weekend tint, slot-gradient lines,

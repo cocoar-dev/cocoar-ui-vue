@@ -149,6 +149,11 @@ function onCellDblclick(e: MouseEvent, day: Temporal.PlainDate) {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
+  touch-action: pan-y;
+  transform: translateX(var(--coar-time-grid-swipe-x, 0px));
+}
+.coar-time-grid--settling .coar-time-grid-all-day-band__columns {
+  transition: transform 180ms ease-out;
 }
 .coar-time-grid-all-day-band__cell {
   border-left: 1px solid var(--coar-calendar-border, #d1d5db);

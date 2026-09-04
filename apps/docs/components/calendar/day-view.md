@@ -97,6 +97,12 @@ function useDayView<TMeta>(): {
 
 Returns a fresh standalone builder + its imperative api. The builder type is the same `CalendarBuilder` used by `<CoarCalendar>` — `useDayView()` is a thin shorthand that pre-sets `view: 'day'`.
 
+## Touch paging
+
+On touch devices a horizontal pan on the day columns moves the grid with the finger — header cells, all-day band and columns together, the hour axis stays put — and pages to the previous / next range on release past a quarter of the width or on a fast flick. Below that the grid settles back. A touch that never moves is a tap and reaches `onTimeClick` on release, so a swipe never starts with a stray slot click. Vertical pans stay native scrolling. Mouse and pen keep their click-on-press semantics.
+
+`builder.swipeNavigation(false)` switches the gesture off. `prefers-reduced-motion` skips the settle animation and pages immediately. The same gesture is available on the Week and Work week grids.
+
 ## Builder setters
 
 Full reference: see [the composer's API reference](/components/calendar/coar-calendar#api-reference). Highlights for the day view:

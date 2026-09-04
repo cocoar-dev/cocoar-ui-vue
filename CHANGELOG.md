@@ -7,6 +7,43 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## 3.3.0
+
+**The web calendar catches up with the iOS calendar.** Four behaviours that
+`Cocoar.Calendar.iOS` 5.x added after the two calendars were last aligned
+land on the web with the same contracts: a capped all-day band, an agenda
+empty state, a modern contrast policy with per-event ink, and touch paging on
+the time grids.
+
+### Added
+
+- **`@cocoar/vue-calendar` — all-day band lane cap.**
+  `allDayMaxVisibleLanes(n | null)` (default `3`, like the system calendar)
+  folds lanes beyond the cap into per-day "+N" markers; a click expands the
+  band, a "Show fewer" control folds it back. `allDayBandMode('fitsContent' |
+  'alwaysOneLane' | 'reservesCap')` decides how much height the band claims —
+  `reservesCap` keeps the hour axis at the same place on every day. Pure
+  `capAllDayBand` / `allDayBandLanes` are exported from the core subpath.
+- **Agenda empty state.** `<CoarAgendaView>` gains an `empty` slot
+  (`agendaEmpty` on the shell). It appears only when the list draws nothing
+  and no load is in flight, never next to empty-day headers, and has no
+  default rendering.
+- **Contrast policy and per-event text colour.** `eventTextContrast('wcag' |
+  'apca')` selects how the automatic black/white ink on event surfaces is
+  chosen; APCA (the WCAG 3 draft method) picks white on saturated mid-tones
+  such as `#e03131` where WCAG 2 narrowly picks black. `meta.textColor`
+  overrides either policy for one event. `eventInkColor` joins
+  `eventTextColor` on the core subpath.
+- **Touch paging on week / work-week / day.** A horizontal pan moves the grid
+  with the finger — header cells, all-day band and columns together, the hour
+  axis stays put — and pages on release past a quarter of the width or on a
+  fast flick. A touch that never moves is a tap and reaches `onTimeClick` on
+  release, so a swipe never starts with a stray slot click. Mouse and pen keep
+  their click-on-press semantics. `swipeNavigation(false)` switches it off;
+  `prefers-reduced-motion` skips the settle animation.
+
+---
+
 ## 3.2.0
 
 **The calendar closes its consumer backlog.** Every finding that timetodo,

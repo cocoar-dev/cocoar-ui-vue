@@ -71,6 +71,11 @@ export {
 } from './composables/useCoarDrag';
 export { useA11yAnnouncer } from './composables/useA11yAnnouncer';
 export {
+  useTimeGridSwipe,
+  type UseTimeGridSwipeOptions,
+  type UseTimeGridSwipeReturn,
+} from './composables/useTimeGridSwipe';
+export {
   useTimeGridDnd,
   type UseTimeGridDndOptions,
   type UseTimeGridDndReturn,

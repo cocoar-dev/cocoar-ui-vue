@@ -27,11 +27,7 @@ withDefaults(defineProps<Props>(), { density: 'comfortable' });
 
 defineSlots<{
   /** Custom day-header. The default reads `formatLabel(day)`. */
-  dayHeader(props: {
-    date: Temporal.PlainDate;
-    isToday: boolean;
-    isWeekend: boolean;
-  }): unknown;
+  dayHeader(props: { date: Temporal.PlainDate; isToday: boolean; isWeekend: boolean }): unknown;
 }>();
 </script>
 
@@ -54,12 +50,7 @@ defineSlots<{
         :aria-colindex="i + 1"
         :aria-current="isToday(day) ? 'date' : undefined"
       >
-        <slot
-          name="dayHeader"
-          :date="day"
-          :is-today="isToday(day)"
-          :is-weekend="isWeekend(day)"
-        >
+        <slot name="dayHeader" :date="day" :is-today="isToday(day)" :is-weekend="isWeekend(day)">
           <span class="coar-time-grid-header__label">{{ formatLabel(day) }}</span>
         </slot>
       </div>
@@ -75,11 +66,17 @@ defineSlots<{
   background: var(--coar-calendar-bg, #fff);
   min-height: var(--coar-time-grid-header-height);
 }
-.coar-time-grid-header__corner { /* empty top-left cell */ }
+.coar-time-grid-header__corner {
+  /* empty top-left cell */
+}
 .coar-time-grid-header__cells {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
+  transform: translateX(var(--coar-time-grid-swipe-x, 0px));
+}
+.coar-time-grid--settling .coar-time-grid-header__cells {
+  transition: transform 180ms ease-out;
 }
 .coar-time-grid-header__cell {
   padding: 8px 12px;

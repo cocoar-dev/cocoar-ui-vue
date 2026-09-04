@@ -228,6 +228,11 @@ export interface CalendarBuilderState<
   allDayMaxVisibleLanes: MaybeRefOrGetter<number | null>;
   /** How much height the all-day band claims — see `AllDayBandMode`. */
   allDayBandMode: MaybeRefOrGetter<AllDayBandMode>;
+  /**
+   * Touch paging on the time grids: a horizontal pan moves the grid
+   * with the finger and pages on release. Mouse / pen unaffected.
+   */
+  swipeNavigation: MaybeRefOrGetter<boolean>;
   density: MaybeRefOrGetter<CalendarDensity>;
   /** Apple-style month presentation. Default `details` preserves the classic web grid. */
   monthDensity: MaybeRefOrGetter<CalendarMonthDensity>;
@@ -470,6 +475,7 @@ export class CalendarBuilder<TMeta extends Record<string, unknown> = Record<stri
       eventTextContrast: 'wcag',
       allDayMaxVisibleLanes: DEFAULT_ALL_DAY_MAX_VISIBLE_LANES,
       allDayBandMode: 'fitsContent',
+      swipeNavigation: true,
       density: 'comfortable',
       monthDensity: 'details',
       dayMode: 'single',
@@ -792,6 +798,20 @@ export class CalendarBuilder<TMeta extends Record<string, unknown> = Record<stri
    */
   allDayBandMode(mode: MaybeRefOrGetter<AllDayBandMode>): this {
     this.state.allDayBandMode = mode;
+    return this;
+  }
+
+  /**
+   * Touch paging on week / work-week / day: a horizontal pan moves
+   * the grid with the finger (hour axis stays put) and pages to the
+   * previous / next range on release past a quarter of the width or
+   * on a fast flick; below that it settles back. A touch that never
+   * moves is a tap and reaches `onTimeClick` on release. Mouse and
+   * pen keep their click-on-press semantics. Default on; honours
+   * `prefers-reduced-motion`.
+   */
+  swipeNavigation(enabled: MaybeRefOrGetter<boolean>): this {
+    this.state.swipeNavigation = enabled;
     return this;
   }
 
