@@ -1252,7 +1252,8 @@ defineExpose({
   padding-right: var(--coar-data-list-band-inset);
   border-left: 1px solid var(--coar-border-neutral);
   border-right: 1px solid var(--coar-border-neutral);
-  background: var(--coar-background-neutral-secondary, rgb(0 0 0 / 0.02));
+  /* An outline, not a panel: the frame continues the parent card's border. */
+  background: transparent;
 }
 
 .coar-data-list__row--band-first > .coar-data-list__frame {
@@ -1268,8 +1269,9 @@ defineExpose({
 }
 
 /* The row that opens a band touches it (no gap) and paints above its top border,
-   so an expanded card's open bottom edge cuts the frame exactly under the card. */
-.coar-data-list__row--opens-band {
+   so an expanded card's open bottom edge cuts the frame exactly under the card.
+   (Doubled class: the generic row rule below sets the gap and must lose.) */
+.coar-data-list__row.coar-data-list__row--opens-band {
   padding-bottom: 0;
   z-index: 1;
 }
@@ -1298,13 +1300,15 @@ defineExpose({
   background: var(--coar-surface-neutral-primary, #fff);
 }
 
-/* Expanded card: bottom edge opens into the band, like a tab into its panel. */
+/* Expanded card: bottom edge opens into the band, like a tab into its panel.
+   The card extends one pixel over the band's top border and covers it. */
 .coar-data-list__row--opens-band .coar-data-list__item--card.coar-data-list__item--expanded {
   border-bottom-color: transparent;
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
   margin-bottom: -1px;
   padding-bottom: calc(var(--coar-data-list-item-pad-y) + 1px);
+  z-index: 1;
 }
 
 .coar-data-list__item--tile.coar-data-list__item--selected {
