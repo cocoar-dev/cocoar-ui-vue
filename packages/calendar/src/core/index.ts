@@ -66,6 +66,15 @@ export {
   type ViewWindowOptions,
 } from './viewWindow';
 export { responsiveDayColumnCount } from './dayColumns';
+export {
+  capAllDayBand,
+  allDayBandLanes,
+  DEFAULT_ALL_DAY_MAX_VISIBLE_LANES,
+  type AllDayBandMode,
+  type AllDayCapOptions,
+  type AllDayCapResult,
+  type AllDayOverflowMarker,
+} from './allDayBandCap';
 export { contentAwareCascadeFrames, type CascadeItem, type CascadeFrame } from './cascadeLayout';
 export {
   eventTextColor,

@@ -28,15 +28,24 @@ interface Props {
   isWeekend: (day: Temporal.PlainDate) => boolean;
   /** Forwards the columns DOM element to the parent on mount. */
   setColumnsEl: (el: HTMLElement | null) => void;
+  /**
+   * Render the collapse control under the axis label. The parent
+   * sets this only while the band is expanded beyond its lane cap.
+   */
+  collapsible?: boolean;
+  /** Localised label for the collapse control. */
+  collapseLabel?: string;
 }
 
-defineProps<Props>();
+withDefaults(defineProps<Props>(), { collapsible: false, collapseLabel: '' });
 
 const emit = defineEmits<{
   /** User clicked an empty all-day cell. */
   cellPointerdown: [native: PointerEvent, day: Temporal.PlainDate];
   /** User double-clicked an empty all-day cell (bars stop their own). */
   cellDblclick: [native: MouseEvent, day: Temporal.PlainDate];
+  /** User asked to fold the expanded band back to its lane cap. */
+  collapse: [];
 }>();
 
 defineSlots<{
@@ -59,7 +68,18 @@ function onCellDblclick(e: MouseEvent, day: Temporal.PlainDate) {
     role="region"
     :aria-label="axisLabel"
   >
-    <div class="coar-time-grid-all-day-band__axis" aria-hidden="true">{{ axisLabel }}</div>
+    <div class="coar-time-grid-all-day-band__axis">
+      <span aria-hidden="true">{{ axisLabel }}</span>
+      <button
+        v-if="collapsible"
+        type="button"
+        class="coar-time-grid-all-day-band__collapse"
+        @pointerdown.stop
+        @click.stop="emit('collapse')"
+      >
+        {{ collapseLabel }}
+      </button>
+    </div>
     <div
       :ref="(el) => setColumnsEl(el as HTMLElement | null)"
       class="coar-time-grid-all-day-band__columns"
@@ -106,6 +126,23 @@ function onCellDblclick(e: MouseEvent, day: Temporal.PlainDate) {
    */
   align-self: start;
   line-height: 1.2;
+}
+.coar-time-grid-all-day-band__collapse {
+  display: block;
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--coar-color-accent, var(--coar-color-accent-500, #2563eb));
+  font: inherit;
+  font-size: var(--coar-font-size-xs, 11px);
+  text-transform: none;
+  letter-spacing: normal;
+  cursor: pointer;
+}
+.coar-time-grid-all-day-band__collapse:hover,
+.coar-time-grid-all-day-band__collapse:focus-visible {
+  text-decoration: underline;
 }
 .coar-time-grid-all-day-band__columns {
   position: relative;

@@ -7,6 +7,8 @@
  *     no default rendering
  *   - `eventTextContrast('apca')` flips the text colour on saturated
  *     mid-tones; `meta.textColor` overrides either policy
+ *   - all-day band lane cap: "+N" markers beyond `allDayMaxVisibleLanes`,
+ *     expand / collapse, and `allDayBandMode` height rules
  */
 
 import { describe, expect, it, vi } from 'vitest';
@@ -143,5 +145,120 @@ describe('eventTextContrast policy + meta.textColor', () => {
     const b = newBuilder(red({ textColor: '#fde68a' })).eventTextContrast('apca');
     const w = mount(CoarMonthView, { props: { builder: b.view('month') } });
     expect(ink(w, '.coar-month-pill[data-event-id="red"]')).toBe('#fde68a');
+  });
+});
+
+describe('all-day band lane cap', () => {
+  const allDay = (n: number): CalendarEvent[] =>
+    Array.from({ length: n }, (_, i) => ({
+      id: `ad${i}`,
+      start: pd('2026-06-15'),
+      end: pd('2026-06-16'),
+      meta: { title: `All-day ${i}` },
+    }));
+  const bandHeight = (w: ReturnType<typeof mount>) =>
+    Number.parseInt(
+      (w.find('.coar-time-grid-all-day-band').attributes('style') ?? '').match(
+        /min-height:\s*(\d+)px/,
+      )?.[1] ?? '-1',
+      10,
+    );
+
+  it('shows every lane while the layout fits the cap', () => {
+    const w = mount(CoarDayView, { props: { builder: newBuilder(allDay(3)).view('day') } });
+    expect(w.findAll('.coar-time-grid-all-day-bar')).toHaveLength(3);
+    expect(w.findAll('.coar-time-grid-all-day-overflow')).toHaveLength(0);
+  });
+
+  it('folds lanes beyond the cap into a "+N" marker, expands on click, collapses again', async () => {
+    const w = mount(CoarDayView, { props: { builder: newBuilder(allDay(5)).view('day') } });
+    // cap 3 → lanes 0,1 as bars, lane 2 = marker "+3"
+    expect(w.findAll('.coar-time-grid-all-day-bar')).toHaveLength(2);
+    const marker = w.find('.coar-time-grid-all-day-overflow');
+    expect(marker.text()).toBe('+3');
+    expect(marker.attributes('aria-label')).toContain('3');
+    expect(w.find('.coar-time-grid-all-day-band__collapse').exists()).toBe(false);
+    const cappedHeight = bandHeight(w);
+
+    await marker.trigger('click');
+    expect(w.findAll('.coar-time-grid-all-day-bar')).toHaveLength(5);
+    expect(w.findAll('.coar-time-grid-all-day-overflow')).toHaveLength(0);
+    expect(bandHeight(w)).toBeGreaterThan(cappedHeight);
+
+    await w.find('.coar-time-grid-all-day-band__collapse').trigger('click');
+    expect(w.findAll('.coar-time-grid-all-day-bar')).toHaveLength(2);
+    expect(bandHeight(w)).toBe(cappedHeight);
+  });
+
+  it('a marker click never bubbles into the empty-cell hooks', async () => {
+    const onDateClick = vi.fn();
+    const onDateDoubleClick = vi.fn();
+    const w = mount(CoarDayView, {
+      props: {
+        builder: newBuilder(allDay(5))
+          .view('day')
+          .onDateClick(onDateClick)
+          .onDateDoubleClick(onDateDoubleClick),
+      },
+    });
+    const marker = w.find('.coar-time-grid-all-day-overflow');
+    await marker.trigger('pointerdown');
+    await marker.trigger('dblclick');
+    expect(onDateClick).not.toHaveBeenCalled();
+    expect(onDateDoubleClick).not.toHaveBeenCalled();
+  });
+
+  it('allDayMaxVisibleLanes(null) shows everything', () => {
+    const w = mount(CoarDayView, {
+      props: { builder: newBuilder(allDay(6)).view('day').allDayMaxVisibleLanes(null) },
+    });
+    expect(w.findAll('.coar-time-grid-all-day-bar')).toHaveLength(6);
+  });
+
+  it('is reactive (C7): raising the cap unfolds the band', async () => {
+    const cap = ref<number | null>(3);
+    const w = mount(CoarDayView, {
+      props: { builder: newBuilder(allDay(5)).view('day').allDayMaxVisibleLanes(cap) },
+    });
+    expect(w.findAll('.coar-time-grid-all-day-bar')).toHaveLength(2);
+    cap.value = 10;
+    await nextTick();
+    expect(w.findAll('.coar-time-grid-all-day-bar')).toHaveLength(5);
+  });
+
+  it('fitsContent: no band without all-day events', () => {
+    const w = mount(CoarDayView, { props: { builder: newBuilder([]).view('day') } });
+    expect(w.find('.coar-time-grid-all-day-band').exists()).toBe(false);
+  });
+
+  it('alwaysOneLane: an empty band keeps one lane of height', () => {
+    const w = mount(CoarDayView, {
+      props: { builder: newBuilder([]).view('day').allDayBandMode('alwaysOneLane') },
+    });
+    expect(w.find('.coar-time-grid-all-day-band').exists()).toBe(true);
+    const one = bandHeight(w);
+    const two = bandHeight(
+      mount(CoarDayView, {
+        props: { builder: newBuilder(allDay(2)).view('day').allDayBandMode('alwaysOneLane') },
+      }),
+    );
+    expect(one).toBeGreaterThan(0);
+    expect(two).toBeGreaterThan(one);
+  });
+
+  it('reservesCap: the band is cap-tall regardless of content, grows only when expanded', async () => {
+    const empty = mount(CoarDayView, {
+      props: { builder: newBuilder([]).view('day').allDayBandMode('reservesCap') },
+    });
+    const one = mount(CoarDayView, {
+      props: { builder: newBuilder(allDay(1)).view('day').allDayBandMode('reservesCap') },
+    });
+    const five = mount(CoarDayView, {
+      props: { builder: newBuilder(allDay(5)).view('day').allDayBandMode('reservesCap') },
+    });
+    expect(bandHeight(empty)).toBe(bandHeight(one));
+    expect(bandHeight(five)).toBe(bandHeight(one));
+    await five.find('.coar-time-grid-all-day-overflow').trigger('click');
+    expect(bandHeight(five)).toBeGreaterThan(bandHeight(one));
   });
 });

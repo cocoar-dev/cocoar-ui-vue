@@ -28,6 +28,7 @@ import {
   ref,
   toValue,
   useTemplateRef,
+  watch,
   watchEffect,
 } from 'vue';
 import { useI18n, useLocalization } from '@cocoar/vue-localization';
@@ -40,6 +41,8 @@ import {
   nowInZone,
   layoutDayEvents,
   layoutAllDayBand,
+  capAllDayBand,
+  allDayBandLanes,
   isAllDayEvent,
   buildFormatOptions,
   type CalendarEvent,
@@ -54,6 +57,7 @@ import CoarTimeGridNowMarker from './internal/time-grid/CoarTimeGridNowMarker.vu
 import CoarTimeGridHeader from './internal/time-grid/CoarTimeGridHeader.vue';
 import CoarTimeGridAllDayBand from './internal/time-grid/CoarTimeGridAllDayBand.vue';
 import CoarTimeGridColumn from './internal/time-grid/CoarTimeGridColumn.vue';
+import CoarTimeGridAllDayOverflow from './internal/time-grid/CoarTimeGridAllDayOverflow.vue';
 import { originatesFromEvent } from './internal/originatesFromEvent';
 import { contentAwareCascadeFrames, type CascadeItem } from '../core/cascadeLayout';
 
@@ -104,6 +108,8 @@ const state = computed(() => {
     canDrop: s.canDrop,
     eventRenderer: s.eventRenderer,
     eventTextContrast: toValue(s.eventTextContrast),
+    allDayMaxVisibleLanes: toValue(s.allDayMaxVisibleLanes),
+    allDayBandMode: toValue(s.allDayBandMode),
     dayHeaderRenderer: s.dayHeaderRenderer,
     dstPolicy: toValue(s.dstPolicy),
   };
@@ -453,15 +459,52 @@ const allDayBars = computed<AllDayBar<TMeta>[]>(() => {
   });
 });
 
-const allDayLaneCount = computed(() =>
-  allDayBars.value.length === 0 ? 0 : allDayBars.value[0].laneCount,
+/**
+ * Lane cap (iOS parity). The user's expand choice lives here; it is
+ * reset whenever the layout stops exceeding the cap so a band that
+ * later shrinks doesn't remember a stale "expanded". An in-flight
+ * all-day drag counts as expanded — the preview lane may sit beyond
+ * the cap and must stay visible.
+ */
+const allDayExpanded = ref(false);
+const allDayCap = computed(() =>
+  capAllDayBand(allDayBars.value, {
+    maxVisibleLanes: state.value.allDayMaxVisibleLanes,
+    expanded: allDayExpanded.value || dragAllDaySourceSnapshot.value !== null,
+    columnCount: days.value.length,
+  }),
 );
+watch(
+  () => allDayCap.value.exceedsCap,
+  (exceeds) => {
+    if (!exceeds) allDayExpanded.value = false;
+  },
+);
+const allDayLaneCount = computed(() => allDayCap.value.visibleLanes);
+/** Lanes the band is SIZED for — may exceed the content under `reservesCap` / `alwaysOneLane`. */
+const allDayBandLaneCount = computed(() =>
+  allDayBandLanes(
+    allDayLaneCount.value,
+    state.value.allDayBandMode,
+    state.value.allDayMaxVisibleLanes,
+  ),
+);
+const allDayMarkerTop = computed(
+  () => 4 + (allDayLaneCount.value - 1) * (ALL_DAY_LANE_HEIGHT + ALL_DAY_LANE_GAP),
+);
+function allDayOverflowLabel(hidden: number): string {
+  return t(
+    'coar.calendar.timegrid.allDayMore',
+    { count: hidden },
+    `${hidden} more all-day events — show all`,
+  );
+}
 
 const ALL_DAY_LANE_HEIGHT = 24;
 const ALL_DAY_LANE_GAP = 2;
 const allDayBandHeight = computed(() => {
-  if (allDayLaneCount.value === 0) return 0;
-  return allDayLaneCount.value * (ALL_DAY_LANE_HEIGHT + ALL_DAY_LANE_GAP) + 8;
+  if (allDayBandLaneCount.value === 0) return 0;
+  return allDayBandLaneCount.value * (ALL_DAY_LANE_HEIGHT + ALL_DAY_LANE_GAP) + 8;
 });
 
 // Convert minutes-from-day-start to pixels.
@@ -739,16 +782,31 @@ defineExpose({
 
       <!-- All-day band (between header and body, only if there are any) -->
       <CoarTimeGridAllDayBand
-        v-if="allDayLaneCount > 0"
+        v-if="allDayBandLaneCount > 0"
         :days="days"
         :axis-label="t('coar.calendar.timegrid.allDay', undefined, 'all-day')"
         :band-height-px="allDayBandHeight"
         :is-today="isTodayColumn"
         :is-weekend="isWeekend"
         :set-columns-el="setAllDayColumnsEl"
+        :collapsible="allDayExpanded && allDayCap.exceedsCap"
+        :collapse-label="t('coar.calendar.timegrid.allDayCollapse', undefined, 'Show fewer')"
         @cell-pointerdown="(e, day) => onAllDayCellPointerDown(e, day)"
         @cell-dblclick="(e, day) => onAllDayCellDblclick(e, day)"
+        @collapse="allDayExpanded = false"
       >
+        <!-- "+N" markers for the lanes folded away by the cap. -->
+        <CoarTimeGridAllDayOverflow
+          v-for="marker in allDayCap.overflow"
+          :key="`overflow-${marker.col}`"
+          :hidden="marker.hidden"
+          :ariaLabel="allDayOverflowLabel(marker.hidden)"
+          :top="allDayMarkerTop"
+          :left="`calc(${(marker.col / days.length) * 100}% + ${marker.col === 0 ? 4 : 2}px)`"
+          :width="`calc(${(1 / days.length) * 100}% - ${(marker.col === 0 ? 4 : 2) + (marker.col === days.length - 1 ? 4 : 2)}px)`"
+          :height="ALL_DAY_LANE_HEIGHT"
+          @expand="allDayExpanded = true"
+        />
         <!--
           All-day bars on top of the day-cell background.
           Same calc()-based inset as timed events: 2 px gap left and
@@ -757,7 +815,7 @@ defineExpose({
           no overflow, no overlap with adjacent bars.
         -->
         <CoarTimeGridAllDayBar
-          v-for="bar in allDayBars"
+          v-for="bar in allDayCap.bars"
           :key="bar.event.id"
           :event="bar.event"
           :bar="bar"

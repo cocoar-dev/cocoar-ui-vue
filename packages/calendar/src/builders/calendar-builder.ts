@@ -58,10 +58,12 @@ import {
   type CalendarDayMode,
   type CalendarMonthDensity,
   type CalendarView,
+  type AllDayBandMode,
   type DayOfWeek,
   type EventTextContrastPolicy,
   type RecurringSeries,
   type ViewWindow,
+  DEFAULT_ALL_DAY_MAX_VISIBLE_LANES,
   DEFAULT_WORK_DAYS,
   Temporal,
   detectBrowserTimezone,
@@ -219,6 +221,13 @@ export interface CalendarBuilderState<
    * the historical behaviour; `'apca'` fixes saturated mid-tones.
    */
   eventTextContrast: MaybeRefOrGetter<EventTextContrastPolicy>;
+  /**
+   * Lanes the all-day band shows before it folds the rest behind
+   * per-day "+N" markers (week / work-week / day). `null` = unlimited.
+   */
+  allDayMaxVisibleLanes: MaybeRefOrGetter<number | null>;
+  /** How much height the all-day band claims — see `AllDayBandMode`. */
+  allDayBandMode: MaybeRefOrGetter<AllDayBandMode>;
   density: MaybeRefOrGetter<CalendarDensity>;
   /** Apple-style month presentation. Default `details` preserves the classic web grid. */
   monthDensity: MaybeRefOrGetter<CalendarMonthDensity>;
@@ -459,6 +468,8 @@ export class CalendarBuilder<TMeta extends Record<string, unknown> = Record<stri
       workDays: DEFAULT_WORK_DAYS,
       shadeWeekends: true,
       eventTextContrast: 'wcag',
+      allDayMaxVisibleLanes: DEFAULT_ALL_DAY_MAX_VISIBLE_LANES,
+      allDayBandMode: 'fitsContent',
       density: 'comfortable',
       monthDensity: 'details',
       dayMode: 'single',
@@ -753,6 +764,34 @@ export class CalendarBuilder<TMeta extends Record<string, unknown> = Record<stri
    */
   eventTextContrast(policy: MaybeRefOrGetter<EventTextContrastPolicy>): this {
     this.state.eventTextContrast = policy;
+    return this;
+  }
+
+  /**
+   * Cap the all-day band (week / work-week / day) at `n` lanes —
+   * default 3, like the system calendar. Beyond that, the last
+   * visible lane carries per-day "+N" markers; a click expands the
+   * band, a collapse control folds it back. `null` shows every lane.
+   */
+  allDayMaxVisibleLanes(n: MaybeRefOrGetter<number | null>): this {
+    this.state.allDayMaxVisibleLanes = n;
+    return this;
+  }
+
+  /**
+   * How much height the all-day band claims. The hour axis starts
+   * below the band, so every height change moves the whole grid:
+   *
+   *   - `'fitsContent'` (default): as tall as needed, absent on days
+   *     without all-day events.
+   *   - `'alwaysOneLane'`: at least one lane — removes the 0↔1 jump,
+   *     the most frequent and the largest.
+   *   - `'reservesCap'`: always `allDayMaxVisibleLanes` tall, so the
+   *     hour axis sits at the same place on every day; costs a few
+   *     rows of height when nothing is in them.
+   */
+  allDayBandMode(mode: MaybeRefOrGetter<AllDayBandMode>): this {
+    this.state.allDayBandMode = mode;
     return this;
   }
 

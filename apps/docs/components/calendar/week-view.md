@@ -95,6 +95,23 @@ Full reference: see [the composer's API reference](/components/calendar/coar-cal
 
 Multi-day events that touch any visible day are split into one bar per row, each clipped to the row. Single-day all-day events appear in the same band. Cluster-aware lane sizing means a busy day doesn't unfairly narrow events on quieter days in the same week.
 
+
+### Lane cap and band height
+
+The band shows at most `allDayMaxVisibleLanes` lanes — default **3**, like the system calendar. When the layout needs more, the last visible lane is given up for per-day **"+N"** markers; a click on a marker expands the band, and a **Show fewer** control under the axis label folds it back. `null` shows every lane.
+
+`allDayBandMode` decides how much height the band claims. The hour axis starts below the band, so every height change moves the whole grid:
+
+| Mode | Height | When |
+|---|---|---|
+| `fitsContent` (default) | as tall as needed, absent without all-day events | Dense weeks where every pixel counts. |
+| `alwaysOneLane` | at least one lane | Removes the 0↔1 jump — the most frequent and the largest — when paging through days. |
+| `reservesCap` | always `allDayMaxVisibleLanes` tall | The hour axis sits at the same place on every day; costs a few rows when nothing is in them. |
+
+```ts
+builder.allDayMaxVisibleLanes(3).allDayBandMode('reservesCap');
+```
+
 ## Point events (timed, no `end`)
 
 A timed event without `end` keeps the default 30-minute slot geometry but renders distinguishably from a real 30-minute event: a solid start edge in the event color sits exactly on the start time, and the card body drops to ~38 % fill opacity — the title stays fully opaque. Resize handles are suppressed (there is no `end` to grab). Month and Agenda render point events unchanged. The look matches the SwiftUI port; tune it via `--coar-calendar-point-edge-height` / `--coar-calendar-point-body-opacity` (see [Theming](/components/calendar/#theming)).
