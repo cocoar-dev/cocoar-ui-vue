@@ -21,9 +21,20 @@ interface Props {
   /** Locale-aware label for a day-header. */
   formatLabel: (day: Temporal.PlainDate) => string;
   density?: 'comfortable' | 'compact' | 'spacious';
+  /**
+   * The strip is a paging handle: a drag across the day names (any
+   * pointer) pages the grid. Shows the grab cursor and forwards
+   * `pointerdown` to the parent's swipe runtime.
+   */
+  swipeable?: boolean;
 }
 
-withDefaults(defineProps<Props>(), { density: 'comfortable' });
+withDefaults(defineProps<Props>(), { density: 'comfortable', swipeable: false });
+
+const emit = defineEmits<{
+  /** Pointer went down on the day-name strip (any pointer type). */
+  cellsPointerdown: [native: PointerEvent];
+}>();
 
 defineSlots<{
   /** Custom day-header. The default reads `formatLabel(day)`. */
@@ -37,7 +48,12 @@ defineSlots<{
     :class="{ 'coar-time-grid-header--density-compact': density === 'compact' }"
   >
     <div class="coar-time-grid-header__corner" aria-hidden="true" />
-    <div class="coar-time-grid-header__cells" role="row">
+    <div
+      class="coar-time-grid-header__cells"
+      :class="{ 'coar-time-grid-header__cells--swipeable': swipeable }"
+      role="row"
+      @pointerdown="emit('cellsPointerdown', $event)"
+    >
       <div
         v-for="(day, i) in days"
         :key="day.toString()"
@@ -74,6 +90,15 @@ defineSlots<{
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
   transform: translateX(var(--coar-time-grid-swipe-x, 0px));
+  /* Paging handle: horizontal pans are ours, vertical stays native. */
+  touch-action: pan-y;
+}
+.coar-time-grid-header__cells--swipeable {
+  cursor: grab;
+  user-select: none;
+}
+.coar-time-grid--swiping .coar-time-grid-header__cells--swipeable {
+  cursor: grabbing;
 }
 .coar-time-grid--settling .coar-time-grid-header__cells {
   transition: transform 180ms ease-out;

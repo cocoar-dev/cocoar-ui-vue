@@ -622,8 +622,17 @@ function onColumnPointerDown(e: PointerEvent, date: Temporal.PlainDate) {
   const fire = () => props.builder.state.onTimeClick?.({ date, time, native: e });
   // Touch: the swipe runtime decides on release whether this was a
   // tap (→ fire) or the start of a pan (→ page). Mouse / pen: as before.
-  if (swipe.onPointerdown(e, fire)) return;
+  if (swipe.onPointerdown(e, { onTap: fire })) return;
   fire();
+}
+
+/**
+ * The day-name strip is a paging handle for EVERY pointer type: there
+ * is no event to drag and no slot to click up there, so a mouse drag
+ * across the day names pages the grid like a finger does.
+ */
+function onHeaderPointerdown(e: PointerEvent) {
+  swipe.onPointerdown(e, { allowMouse: true });
 }
 
 function onColumnDblclick(e: MouseEvent, date: Temporal.PlainDate) {
@@ -751,7 +760,10 @@ defineExpose({
     class="coar-time-grid"
     :class="[
       `coar-time-grid--density-${density}`,
-      { 'coar-time-grid--settling': swipe.settling.value },
+      {
+        'coar-time-grid--settling': swipe.settling.value,
+        'coar-time-grid--swiping': swipe.isSwiping.value,
+      },
     ]"
     :style="swipe.swipeStyle.value"
     role="region"
@@ -787,6 +799,8 @@ defineExpose({
         :is-weekend="isWeekend"
         :format-label="formatDayHeader"
         :density="density"
+        :swipeable="state.swipeNavigation"
+        @cells-pointerdown="onHeaderPointerdown"
       >
         <template v-if="$slots.dayHeader || state.dayHeaderRenderer" #dayHeader="slotProps">
           <slot v-if="$slots.dayHeader" name="dayHeader" v-bind="slotProps" />

@@ -48,28 +48,15 @@ the time grids.
   the api; `hide-view-switcher` and `hide-mode-switcher` drop one control
   while keeping the header. Until now hosts hid these with `:deep()` CSS
   overrides, because an empty `#header` slot falls back to the built-in bar.
-- **Touch paging on week / work-week / day.** A horizontal pan moves the grid
-  with the finger — header cells, all-day band and columns together, the hour
-  axis stays put — and pages on release past a quarter of the width or on a
-  fast flick. A touch that never moves is a tap and reaches `onTimeClick` on
-  release, so a swipe never starts with a stray slot click. Mouse and pen keep
-  their click-on-press semantics. `swipeNavigation(false)` switches it off;
-  `prefers-reduced-motion` skips the settle animation.
-
----
-
-## 3.2.0
-
-**The calendar closes its consumer backlog.** Every finding that timetodo,
-amZettel and the Event-Tree stress app reported against `@cocoar/vue-calendar`
-since May and worked around locally is addressed in this release: the
-stylesheet is importable, double-click hooks exist for empty cells, the agenda
-shows time spans, the accent colour follows the design-system brand, the
-package ships its own German and English labels, and a crash in the
-cross-zone decorations is fixed.
-
-### Added
-
+- **Swipe paging on week / work-week / day.** A horizontal pan on the columns
+  (touch) or a drag across the day-name strip (any pointer, grab cursor)
+  moves the grid with the pointer — header cells, all-day band and columns
+  together, the hour axis stays put — and pages on release past a quarter of
+  the width or on a fast flick. A touch that never moves is a tap and reaches
+  `onTimeClick` on release, so a swipe never starts with a stray slot click.
+  On the columns, mouse and pen keep their click-on-press semantics.
+  `swipeNavigation(false)` switches it off; `prefers-reduced-motion` skips
+  the settle animation.
 - **`@cocoar/vue-calendar/styles` subpath.** The package stylesheet
   (`dist/vue-calendar.css`) is now declared in the `exports` map, matching
   `@cocoar/vue-ui/styles`. Hosts drop the relative

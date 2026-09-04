@@ -127,6 +127,8 @@ Week and Work week are fixed presets and ignore `timeGridRange`; `null` restores
 
 On touch devices a horizontal pan on the day columns moves the grid with the finger — header cells, all-day band and columns together, the hour axis stays put — and pages to the previous / next range on release past a quarter of the width or on a fast flick. Below that the grid settles back. A touch that never moves is a tap and reaches `onTimeClick` on release, so a swipe never starts with a stray slot click. Vertical pans stay native scrolling. Mouse and pen keep their click-on-press semantics.
 
+The **day-name strip** at the top is a paging handle for every pointer type: a mouse drag across the day names pages the grid the same way (grab cursor), because there is nothing else to drag or click up there. On the columns themselves the mouse keeps its click-on-press semantics.
+
 `builder.swipeNavigation(false)` switches the gesture off. `prefers-reduced-motion` skips the settle animation and pages immediately. The same gesture is available on the Week and Work week grids.
 
 ## Builder setters

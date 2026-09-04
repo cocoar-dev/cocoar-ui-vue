@@ -9,8 +9,12 @@
  * day swipe (5.2.0).
  *
  * Responsibilities:
- *   - touch only (`pointerType === 'touch'`); mouse and pen keep the
- *     existing pointerdown semantics untouched
+ *   - on the day columns: touch only (`pointerType === 'touch'`) —
+ *     mouse and pen keep the existing pointerdown semantics (drag an
+ *     event, click a slot)
+ *   - on the day-header strip: every pointer type — there is nothing
+ *     else to drag or click there, so a mouse drag across the day
+ *     names pages too (`allowMouse`)
  *   - tap vs. pan disambiguation for the column: a touch that never
  *     moves is a tap and fires the deferred `onTap` on release, so
  *     `onTimeClick` doesn't fire at the start of every swipe
@@ -43,11 +47,19 @@ export interface UseTimeGridSwipeReturn {
   /** True from the first horizontal move until release. */
   isSwiping: Ref<boolean>;
   /**
-   * Feed a column `pointerdown`. Returns `true` when the composable
-   * took the pointer (touch) — the caller must then NOT fire its
-   * click semantics; they arrive via `onTap` on release instead.
+   * Feed a `pointerdown`. Returns `true` when the composable took the
+   * pointer — the caller must then NOT fire its click semantics; they
+   * arrive via `onTap` on release instead. Touch is always taken;
+   * mouse / pen only with `allowMouse` (the day-header strip).
    */
-  onPointerdown: (e: PointerEvent, onTap?: () => void) => boolean;
+  onPointerdown: (e: PointerEvent, options?: SwipePointerdownOptions) => boolean;
+}
+
+export interface SwipePointerdownOptions {
+  /** Deferred click semantics, fired on release when the pointer never moved. */
+  onTap?: () => void;
+  /** Take mouse / pen pointers too (primary button only). */
+  allowMouse?: boolean;
 }
 
 /** Horizontal travel before a touch counts as a pan, not a tap. */
@@ -109,9 +121,13 @@ export function useTimeGridSwipe(options: UseTimeGridSwipeOptions): UseTimeGridS
     detach();
   }
 
-  function onPointerdown(e: PointerEvent, onTap?: () => void): boolean {
-    if (e.pointerType !== 'touch' || !options.enabled()) return false;
+  function onPointerdown(e: PointerEvent, opts: SwipePointerdownOptions = {}): boolean {
+    if (!options.enabled()) return false;
+    const isTouch = e.pointerType === 'touch';
+    if (!isTouch && !opts.allowMouse) return false;
+    if (!isTouch && e.button !== 0) return false;
     if (settling.value) return true; // swallow taps mid-settle
+    const onTap = opts.onTap;
     gesture = {
       pointerId: e.pointerId,
       startX: e.clientX,
