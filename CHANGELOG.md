@@ -7,7 +7,15 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
-## 3.3.0
+## 3.2.0
+
+**A list for records that do not fit into columns.** `CoarDataList` is the
+grid alternative for data with many fields on a notebook screen: the
+application owns a free multi-line template per record, the list owns
+everything a hand-rolled list keeps reinventing — measured virtual scrolling,
+search, a sort menu, selection, grouping, tiles, nesting and drag & drop.
+Along the way the shared drag & drop composable gained a pointer engine, so
+touch-first surfaces can reorder without giving up HTML5 drops on the desktop.
 
 **The calendar catches up — with its consumers and with iOS.** Every finding
 timetodo, amZettel and the Event-Tree stress app reported against
@@ -19,6 +27,77 @@ and Work week became one time-grid model, the header became optional
 defaulting to `en-US`.
 
 ### Added
+
+- **`CoarDataList` — virtualized record list with a free item template.** Every
+  row is a slot; the list measures its height, virtualizes rows, and provides
+  AND-term, diacritics-folding search with `::highlight` marks, an
+  `Intl.Collator` sort menu (`sortOptions`, natural numbers, nulls last,
+  stable), `groupBy` with headings, `gap`, `density`, `dividers`, `bordered`,
+  `elevated`, an empty state, and key-based selection (`'none' | 'single' |
+  'multiple'`) with click, `Ctrl`/`Shift` and full keyboard navigation.
+  State flows through `v-model:search`, `v-model:sort` and
+  `v-model:selected`; `item-click`, `item-dblclick`, `item-contextmenu` and
+  `item-activate` report interactions. Rows carry `role="option"` /
+  `listitem` semantics; the toolbar labels are translatable via the new
+  `coar.ui.dataList.*` keys.
+- **Fluent `useDataList<T>()` builder and `api`.** `{ builder, api }` follows
+  the `useTree()` / `CalendarBuilder` pattern: one chain configures data,
+  behaviour, appearance, handlers and declarative `itemMenu` / `viewportMenu`
+  context menus (rendered by the list); every setter takes a value, a `Ref` or
+  a getter. `api` offers selection, `scrollToKey`, `focusKey`,
+  `invalidateMeasurements`, expansion and the live `items` / `count` / `total`
+  refs. `useDataListModel()` exposes the headless pipeline
+  (filter → search → sort → group → nesting plus selection and expansion) for
+  custom renderers.
+- **Grid layout.** `layout: 'grid'` with `tileMinWidth` flows the same records
+  into equal-width tiles per row — always in exact data order — with rows still
+  virtualized and measured. `tileCards` draws each tile as a card. Search,
+  sort, grouping, selection, context menus and the `api` behave identically;
+  arrows move by tile and by row. Masonry is deliberately not a layout of this
+  component.
+- **Nested lists.** `children(accessor, level => …)` turns the list into a tree
+  of lists; each child level is configured on its own (`sortOptions`, `sort`,
+  `layout`, `tileMinWidth`), so parents can be sorted by title while children
+  keep a manual order. `v-model:expanded`, `maxDepth`, `nestingIndent`,
+  `nestingStyle` (`'lines' | 'none'`), `hideExpandToggle` and `canNest`
+  control it; search keeps matching parents and opens them while a query is
+  active, selection stays flat, `→` / `←` and `+` / `-` expand and collapse.
+  In the grid layout the children of an expanded tile open in a band under its
+  row — no tile moves sideways — framed like a folder hanging from its tab
+  (`bandElevated` adds a shadow); one expanded parent per row.
+- **Drag & drop reordering.** Opt in with `reorderable`; the list shows an
+  insertion line (or the "inside" band for nesting) and reports `reorder`,
+  `items-add`, `items-remove` and `files-drop` events with `toIndex`,
+  `afterKey`, `beforeKey`, `group` and `parentKey` — it never mutates the
+  data. Lists sharing a `dragGroup` exchange items (a board is three lists),
+  `canDrag`, `canDrop` and `dragAccept` veto, `acceptsFiles` takes OS files
+  with either engine. Reordering is refused per level while that level is
+  sorted. Keyboard: `Ctrl`+`X`, arrows / `Home` / `End`, `Ctrl`+`V` or
+  `Enter`, `Escape`.
+- **`unstyledItems` — the template owns the whole box.** The list then draws
+  no padding, hover, selection, focus, divider or card and keeps only
+  position, measurement, drop indicators and the row gap. State arrives via the
+  slot props `selected`, `focused`, `dragging`, `expanded`, `hasChildren`,
+  `depth`; actions via `select()`, `toggle()`, `toggleExpanded()`.
+- **Pointer engine for `useDragDrop`.** New `engine: 'native' | 'pointer' |
+  'auto'` option: `'pointer'` drives drags from Pointer Events (mouse, pen,
+  touch with long-press, ghost element, text selection suppressed) between
+  surfaces registered via `pointer.target`; `'auto'` picks it on
+  coarse-pointer devices. Sources wire `onPointerDown()` next to the native
+  handlers and the engine decides which one acts. Matching rules,
+  `onDropAccept` / `onItemsRemove` and the registry are shared with the native
+  engine. `CoarListbox` and `CoarDualListbox` expose it as the opt-in
+  `dragEngine` prop; `CoarTree` stays native by design.
+- **Measured rows in `useVirtualList`.** `measure` and `itemKey` options plus
+  `measureElement(index, el)` and `invalidateMeasurements(key?)` replace the
+  fixed-height estimate with observed heights (ResizeObserver, keyed by item),
+  and `scrollToIndex` settles on the target after the surrounding rows have
+  been measured.
+- **Data List documentation.** A new "Data List" page under Display covers the
+  builder, the item template contract (what the list owns, what the template
+  owns), grid, nesting, reordering and engines, grouping, large lists, the
+  headless model, sorting, search, keyboard, the full API and the i18n keys;
+  the Drag & Drop page documents the engines.
 
 - **Live topmost month while scrolling the Month view.** `api.topmostVisibleMonth`
   is the month of the topmost visible section, updated on every scroll
@@ -133,6 +212,15 @@ defaulting to `en-US`.
 
 ### Fixed
 
+- **Date-time pickers no longer revert typed edits on blur.** Maskito's
+  datetime mask defaulted to `', '` between date and time while the pickers
+  format and parse with a plain space, so the first keystroke re-masked the
+  value, parsing failed and the edit was discarded. The mask's
+  `dateTimeSeparator` is now a space, and the masked 12-hour text uses
+  Maskito's canonical form (two-digit hour, non-breaking space before the
+  meridiem) so programmatic writes and the DOM agree. Round-trip tests cover
+  all four date patterns in 24-hour and 12-hour mode.
+
 - **Locale fallback to the host's localization service now works.** The
   builder's `locale` defaulted to `'en-US'`, so the documented fallback to
   the `@cocoar/vue-localization` language never applied in any view. The
@@ -154,103 +242,6 @@ defaulting to `en-US`.
   The month-grid `aria-label` named the RFC-5545 exclusive end (a Fri–Sun stay
   read "Fri – Mon"); it now names the last covered day, and single-day
   all-day events get one date instead of "Fri – Fri".
-
----
-
-
-## 3.2.0
-
-**A list for records that do not fit into columns.** `CoarDataList` is the
-grid alternative for data with many fields on a notebook screen: the
-application owns a free multi-line template per record, the list owns
-everything a hand-rolled list keeps reinventing — measured virtual scrolling,
-search, a sort menu, selection, grouping, tiles, nesting and drag & drop.
-Along the way the shared drag & drop composable gained a pointer engine, so
-touch-first surfaces can reorder without giving up HTML5 drops on the desktop.
-
-### Added
-
-- **`CoarDataList` — virtualized record list with a free item template.** Every
-  row is a slot; the list measures its height, virtualizes rows, and provides
-  AND-term, diacritics-folding search with `::highlight` marks, an
-  `Intl.Collator` sort menu (`sortOptions`, natural numbers, nulls last,
-  stable), `groupBy` with headings, `gap`, `density`, `dividers`, `bordered`,
-  `elevated`, an empty state, and key-based selection (`'none' | 'single' |
-  'multiple'`) with click, `Ctrl`/`Shift` and full keyboard navigation.
-  State flows through `v-model:search`, `v-model:sort` and
-  `v-model:selected`; `item-click`, `item-dblclick`, `item-contextmenu` and
-  `item-activate` report interactions. Rows carry `role="option"` /
-  `listitem` semantics; the toolbar labels are translatable via the new
-  `coar.ui.dataList.*` keys.
-- **Fluent `useDataList<T>()` builder and `api`.** `{ builder, api }` follows
-  the `useTree()` / `CalendarBuilder` pattern: one chain configures data,
-  behaviour, appearance, handlers and declarative `itemMenu` / `viewportMenu`
-  context menus (rendered by the list); every setter takes a value, a `Ref` or
-  a getter. `api` offers selection, `scrollToKey`, `focusKey`,
-  `invalidateMeasurements`, expansion and the live `items` / `count` / `total`
-  refs. `useDataListModel()` exposes the headless pipeline
-  (filter → search → sort → group → nesting plus selection and expansion) for
-  custom renderers.
-- **Grid layout.** `layout: 'grid'` with `tileMinWidth` flows the same records
-  into equal-width tiles per row — always in exact data order — with rows still
-  virtualized and measured. `tileCards` draws each tile as a card. Search,
-  sort, grouping, selection, context menus and the `api` behave identically;
-  arrows move by tile and by row. Masonry is deliberately not a layout of this
-  component.
-- **Nested lists.** `children(accessor, level => …)` turns the list into a tree
-  of lists; each child level is configured on its own (`sortOptions`, `sort`,
-  `layout`, `tileMinWidth`), so parents can be sorted by title while children
-  keep a manual order. `v-model:expanded`, `maxDepth`, `nestingIndent`,
-  `nestingStyle` (`'lines' | 'none'`), `hideExpandToggle` and `canNest`
-  control it; search keeps matching parents and opens them while a query is
-  active, selection stays flat, `→` / `←` and `+` / `-` expand and collapse.
-  In the grid layout the children of an expanded tile open in a band under its
-  row — no tile moves sideways — framed like a folder hanging from its tab
-  (`bandElevated` adds a shadow); one expanded parent per row.
-- **Drag & drop reordering.** Opt in with `reorderable`; the list shows an
-  insertion line (or the "inside" band for nesting) and reports `reorder`,
-  `items-add`, `items-remove` and `files-drop` events with `toIndex`,
-  `afterKey`, `beforeKey`, `group` and `parentKey` — it never mutates the
-  data. Lists sharing a `dragGroup` exchange items (a board is three lists),
-  `canDrag`, `canDrop` and `dragAccept` veto, `acceptsFiles` takes OS files
-  with either engine. Reordering is refused per level while that level is
-  sorted. Keyboard: `Ctrl`+`X`, arrows / `Home` / `End`, `Ctrl`+`V` or
-  `Enter`, `Escape`.
-- **`unstyledItems` — the template owns the whole box.** The list then draws
-  no padding, hover, selection, focus, divider or card and keeps only
-  position, measurement, drop indicators and the row gap. State arrives via the
-  slot props `selected`, `focused`, `dragging`, `expanded`, `hasChildren`,
-  `depth`; actions via `select()`, `toggle()`, `toggleExpanded()`.
-- **Pointer engine for `useDragDrop`.** New `engine: 'native' | 'pointer' |
-  'auto'` option: `'pointer'` drives drags from Pointer Events (mouse, pen,
-  touch with long-press, ghost element, text selection suppressed) between
-  surfaces registered via `pointer.target`; `'auto'` picks it on
-  coarse-pointer devices. Sources wire `onPointerDown()` next to the native
-  handlers and the engine decides which one acts. Matching rules,
-  `onDropAccept` / `onItemsRemove` and the registry are shared with the native
-  engine. `CoarListbox` and `CoarDualListbox` expose it as the opt-in
-  `dragEngine` prop; `CoarTree` stays native by design.
-- **Measured rows in `useVirtualList`.** `measure` and `itemKey` options plus
-  `measureElement(index, el)` and `invalidateMeasurements(key?)` replace the
-  fixed-height estimate with observed heights (ResizeObserver, keyed by item),
-  and `scrollToIndex` settles on the target after the surrounding rows have
-  been measured.
-- **Data List documentation.** A new "Data List" page under Display covers the
-  builder, the item template contract (what the list owns, what the template
-  owns), grid, nesting, reordering and engines, grouping, large lists, the
-  headless model, sorting, search, keyboard, the full API and the i18n keys;
-  the Drag & Drop page documents the engines.
-
-### Fixed
-
-- **Date-time pickers no longer revert typed edits on blur.** Maskito's
-  datetime mask defaulted to `', '` between date and time while the pickers
-  format and parse with a plain space, so the first keystroke re-masked the
-  value, parsing failed and the edit was discarded. The mask's
-  `dateTimeSeparator` is now a space, and the masked 12-hour text uses
-  Maskito's canonical form (two-digit hour, non-breaking space before the
-  meridiem) so programmatic writes and the DOM agree. Round-trip tests cover
-  all four date patterns in 24-hour and 12-hour mode.
 
 ---
 
