@@ -1249,6 +1249,9 @@ defineExpose({
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
+  /* Inner padding of the scroll area — set it when elevated bands or focus rings
+     need room inside the viewport (e.g. `--coar-data-list-padding: 0.5rem`). */
+  padding: var(--coar-data-list-padding, 0);
   /* Rows are re-positioned as they get measured; scroll anchoring would chase them. */
   overflow-anchor: none;
   outline: none;

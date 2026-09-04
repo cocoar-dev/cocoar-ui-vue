@@ -152,7 +152,7 @@ builder
   .children((entry) => entry.children, (level) => level.layout('list'))   // rows under the tile row
 ```
 
-The other tiles of the row keep their `gap` to the band; only the expanded card reaches down to it, so card and band read as one frame around parent and children. `bandElevated` lifts that frame with a shadow.
+The other tiles of the row keep their `gap` to the band; only the expanded card reaches down to it, so card and band read as one frame around parent and children. `bandElevated` lifts that frame with a shadow — give the scroll area some inner room for it with the CSS variable `--coar-data-list-padding` on the list (the demo uses `var(--coar-spacing-m)`).
 
 Because a band hangs from one tab, **one expanded parent per row** is the rule: expanding a second tile in the same row collapses the first (the most recently expanded wins). Parents in different rows may be open at the same time, and the rule re-applies when the column count changes. In the list layout any number of parents may be open.
 

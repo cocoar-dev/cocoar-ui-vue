@@ -121,7 +121,15 @@ export function useDataListLines<T>(options: UseDataListLinesOptions<T>): UseDat
 
   function remeasure(): void {
     const viewport = options.viewport.value;
-    if (viewport) viewportWidth.value = viewport.clientWidth;
+    if (viewport) {
+      // Content width: the viewport may carry inner padding (`--coar-data-list-padding`).
+      let padding = 0;
+      if (typeof getComputedStyle !== 'undefined') {
+        const style = getComputedStyle(viewport);
+        padding = (Number.parseFloat(style.paddingLeft) || 0) + (Number.parseFloat(style.paddingRight) || 0);
+      }
+      viewportWidth.value = Math.max(0, viewport.clientWidth - padding);
+    }
     const top = readProbe(options.probe.value, options.tileMinWidth());
     minTilePx.value = top.width;
     gapPx.value = top.gap;

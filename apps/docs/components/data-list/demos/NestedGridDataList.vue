@@ -6,7 +6,8 @@
       <span class="demo__hint">One open folder per row — open another in the same row and the first closes.</span>
     </div>
 
-    <CoarDataList :builder="builder">
+    <!-- Inner padding gives the elevated band room inside the scroll area. -->
+    <CoarDataList :builder="builder" class="files">
       <template #item="{ item, depth, hasChildren, expanded }">
         <div class="folder" :class="{ 'folder--child': depth > 0 }">
           <div class="folder__icon" :class="`folder__icon--${item.kind}`">
@@ -115,6 +116,10 @@ watch(childLayout, (layout) => {
 
 .demo__hint {
   margin-left: auto;
+}
+
+.files {
+  --coar-data-list-padding: var(--coar-spacing-m);
 }
 
 .folder {
