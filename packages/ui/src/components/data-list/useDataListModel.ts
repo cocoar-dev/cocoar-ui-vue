@@ -186,6 +186,7 @@ export function useDataListModel<T>(options: UseDataListModelOptions<T>): UseDat
   }
 
   const entries = computed<CoarDataListEntry<T>[]>(() => {
+    warnAboutDuplicateKeys();
     const result: CoarDataListEntry<T>[] = [];
     let index = 0;
     const maxDepth = toValue(options.maxDepth) ?? Number.POSITIVE_INFINITY;
@@ -251,17 +252,40 @@ export function useDataListModel<T>(options: UseDataListModelOptions<T>): UseDat
     return byKey;
   });
 
+  const duplicateKeys: CoarDataListKey[] = [];
   const sourceByKey = computed(() => {
     const byKey = new Map<CoarDataListKey, T>();
+    duplicateKeys.length = 0;
     const visit = (list: readonly T[]) => {
       for (const item of list) {
-        byKey.set(keyOf(item), item);
+        const key = keyOf(item);
+        if (byKey.has(key)) duplicateKeys.push(key);
+        byKey.set(key, item);
         if (childrenOf.value) visit(childItems(item));
       }
     };
     visit(source.value);
     return byKey;
   });
+
+  // DEV-only: everything the list remembers (selection, focus, measured heights,
+  // drag & drop) is stored under the key, so duplicates surface as "the wrong row
+  // reacts". Warns once per distinct set of offenders; production builds drop it.
+  let warnedDuplicates = '';
+  function warnAboutDuplicateKeys(): void {
+    if (!import.meta.env?.DEV) return;
+    void sourceByKey.value;
+    if (duplicateKeys.length === 0) return;
+    const distinct = [...new Set(duplicateKeys)];
+    const signature = distinct.map(String).join(' ');
+    if (signature === warnedDuplicates) return;
+    warnedDuplicates = signature;
+    const shown = distinct.slice(0, 5).map((key) => JSON.stringify(key)).join(', ');
+    const more = distinct.length > 5 ? ` and ${distinct.length - 5} more` : '';
+    console.warn(
+      `[CoarDataList] ${distinct.length} duplicate item key(s): ${shown}${more}. \`itemKey\` must return a unique value per record — selection, focus, measured heights and drag & drop are stored under it, so duplicates make the wrong row react.`,
+    );
+  }
 
   function itemByKey(key: CoarDataListKey): T | undefined {
     return positions.value.get(key)?.entry.item ?? sourceByKey.value.get(key);

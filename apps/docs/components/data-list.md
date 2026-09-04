@@ -262,7 +262,7 @@ ARIA: `role="listbox"` with `option` children when selection is enabled, `role="
 |------|------|---------|-------------|
 | `builder` | `DataListBuilder<T>` | — | Fluent builder from `useDataList()`. When set, the other config props and the `v-model`s are ignored |
 | `items` | `T[]` | `[]` | Records to display |
-| `itemKey` | `(item: T) => string \| number` | — | Stable identity (required in props-mode) |
+| `itemKey` | `(item: T) => string \| number` | — | Stable identity (required in props-mode). Must be unique across all levels — selection, focus, measured heights and drag & drop are stored under it; duplicates warn in DEV |
 | `searchBy` | `(keyof T)[] \| (item: T) => string` | all primitive props | Text the search matches against |
 | `filter` | `(item: T) => boolean` | — | Predicate applied before the search |
 | `sortOptions` | `CoarDataListSortOption<T>[]` | `[]` | Sort menu entries |

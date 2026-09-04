@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { ref } from 'vue';
 import { useDataListModel } from './useDataListModel';
 import type { CoarDataListSort, CoarDataListSortOption } from './types';
@@ -224,6 +224,43 @@ describe('useDataListModel nesting', () => {
     list.collapseAll();
     expect(list.count.value).toBe(3);
     expect(list.itemByKey('b1x')?.title).toBe('Deep'); // still resolvable while hidden
+  });
+});
+
+describe('useDataListModel duplicate keys', () => {
+  it('warns once per set of duplicate keys in DEV', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const items = ref<Row[]>([...rows, { ...rows[1] }, { ...rows[3] }]);
+    const list = useDataListModel<Row>({ items, itemKey: (row) => row.id });
+    void list.entries.value;
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][0]).toContain('2 duplicate item key(s): 2, 4');
+    void list.entries.value; // same offenders → no repeat
+    items.value = [...items.value];
+    void list.entries.value;
+    expect(warn).toHaveBeenCalledTimes(1);
+    items.value = [...rows, { ...rows[0] }]; // a different offender → warns again
+    void list.entries.value;
+    expect(warn).toHaveBeenCalledTimes(2);
+    expect(warn.mock.calls[1][0]).toContain('1 duplicate item key(s): 1');
+    items.value = rows;
+    void list.entries.value;
+    expect(warn).toHaveBeenCalledTimes(2);
+    warn.mockRestore();
+  });
+
+  it('counts duplicates across nested levels', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    interface Node { id: string; kids?: Node[] }
+    const list = useDataListModel<Node>({
+      items: [{ id: 'a', kids: [{ id: 'a' }] }],
+      itemKey: (node) => node.id,
+      children: (node) => node.kids,
+    });
+    void list.entries.value;
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][0]).toContain('"a"');
+    warn.mockRestore();
   });
 });
 
