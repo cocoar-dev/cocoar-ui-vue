@@ -59,6 +59,7 @@ import {
   type CalendarMonthDensity,
   type CalendarView,
   type DayOfWeek,
+  type EventTextContrastPolicy,
   type RecurringSeries,
   type ViewWindow,
   DEFAULT_WORK_DAYS,
@@ -212,6 +213,12 @@ export interface CalendarBuilderState<
   workDays: MaybeRefOrGetter<readonly DayOfWeek[]>;
   /** Tint Saturday and Sunday cells in month views. Enabled by default. */
   shadeWeekends: MaybeRefOrGetter<boolean>;
+  /**
+   * How the black/white text colour on event surfaces is chosen when
+   * the event supplies no `meta.textColor`. `'wcag'` (default) keeps
+   * the historical behaviour; `'apca'` fixes saturated mid-tones.
+   */
+  eventTextContrast: MaybeRefOrGetter<EventTextContrastPolicy>;
   density: MaybeRefOrGetter<CalendarDensity>;
   /** Apple-style month presentation. Default `details` preserves the classic web grid. */
   monthDensity: MaybeRefOrGetter<CalendarMonthDensity>;
@@ -451,6 +458,7 @@ export class CalendarBuilder<TMeta extends Record<string, unknown> = Record<stri
       // `builder.workDays(...)`.
       workDays: DEFAULT_WORK_DAYS,
       shadeWeekends: true,
+      eventTextContrast: 'wcag',
       density: 'comfortable',
       monthDensity: 'details',
       dayMode: 'single',
@@ -733,6 +741,18 @@ export class CalendarBuilder<TMeta extends Record<string, unknown> = Record<stri
   /** Tint Saturday and Sunday cells in month views. */
   shadeWeekends(enabled: MaybeRefOrGetter<boolean>): this {
     this.state.shadeWeekends = enabled;
+    return this;
+  }
+
+  /**
+   * Contrast policy for the automatic black/white text on event
+   * surfaces: `'wcag'` (WCAG 2 ratio, default) or `'apca'` (WCAG 3
+   * draft; picks white on saturated mid-tones like `#e03131` where
+   * WCAG 2 narrowly picks black). A per-event `meta.textColor` wins
+   * over either policy.
+   */
+  eventTextContrast(policy: MaybeRefOrGetter<EventTextContrastPolicy>): this {
+    this.state.eventTextContrast = policy;
     return this;
   }
 

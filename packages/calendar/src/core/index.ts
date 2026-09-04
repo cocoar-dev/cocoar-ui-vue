@@ -67,7 +67,13 @@ export {
 } from './viewWindow';
 export { responsiveDayColumnCount } from './dayColumns';
 export { contentAwareCascadeFrames, type CascadeItem, type CascadeFrame } from './cascadeLayout';
-export { eventTextColor } from './eventTextContrast';
+export {
+  eventTextColor,
+  eventInkColor,
+  type EventTextContrastPolicy,
+  type EventTextColorOptions,
+  type EventInkOptions,
+} from './eventTextContrast';
 // EventIndex is intentionally NOT re-exported. It exists for tests
 // + future internal use, but the runtime layout pipeline reaches the
 // events through `_computeVisibleEvents` (BaseCalendarBuilder) +

@@ -23,6 +23,8 @@ const props = withDefaults(
     bar: AllDayBar<TMeta>;
     variant?: 'live' | 'preview' | 'phantom' | 'invalid';
     bg: string;
+    /** Text colour resolved by the parent (policy + `meta.textColor`). Falls back to WCAG on `bg`. */
+    ink?: string;
     border: string;
     title: string;
     ariaLabel?: string;
@@ -45,6 +47,7 @@ const props = withDefaults(
   }>(),
   {
     variant: 'live',
+    ink: undefined,
     ariaLabel: undefined,
     snappingBack: false,
     density: 'comfortable',
@@ -74,7 +77,7 @@ const showStartHandle = computed(() => isInteractive.value && !props.clippedStar
 const showEndHandle = computed(() => isInteractive.value && !props.clippedEnd);
 
 const borderLeft = computed(() => (props.clippedStart ? 'none' : `3px solid ${props.border}`));
-const eventInk = computed(() => eventTextColor(props.bg));
+const eventInk = computed(() => props.ink ?? eventTextColor(props.bg));
 
 function onPointerdown(e: PointerEvent) {
   if (!isInteractive.value) return;

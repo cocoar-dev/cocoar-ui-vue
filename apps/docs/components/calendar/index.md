@@ -174,7 +174,7 @@ import { Temporal } from '@js-temporal/polyfill';
 }
 ```
 
-The default event renderer reads `meta.title` and `meta.color` if present. Drop those in `meta` to skip writing a custom renderer for simple cases.
+The default event renderer reads `meta.title` and `meta.color` if present. Drop those in `meta` to skip writing a custom renderer for simple cases. Text on the coloured surface is black or white by contrast policy (`builder.eventTextContrast('wcag' | 'apca')`); `meta.textColor` (any CSS colour) overrides that choice for one event — tones on the fence are a design decision, not a computation.
 
 ## Display zone — switcher + on-card hints
 

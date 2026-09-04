@@ -97,6 +97,10 @@ defineSlots<{
   multiDayBar?(props: { event: CalendarEvent; bar: MonthMultiDayBar }): unknown;
   /** Per-day-column header (week / month). */
   dayHeader?(props: { date: Temporal.PlainDate; isToday: boolean; isWeekend: boolean }): unknown;
+  /** Agenda empty state — forwarded to `<CoarAgendaView>`'s `empty`
+   *  slot. Shown only when the agenda draws nothing and no load is
+   *  in flight; no default. */
+  agendaEmpty?(): unknown;
 }>();
 
 interface HeaderSlotScope {
@@ -629,6 +633,9 @@ onBeforeUnmount(() => {
       <CoarAgendaView v-else-if="view === 'agenda'" ref="agendaView" :builder="props.builder">
         <template v-if="$slots.event" #event="slotProps">
           <slot name="event" v-bind="slotProps" :view="view" />
+        </template>
+        <template v-if="$slots.agendaEmpty" #empty>
+          <slot name="agendaEmpty" />
         </template>
       </CoarAgendaView>
 

@@ -35,6 +35,7 @@ import { useTimeGridDnd, type TimeGridEventDropPayload } from '../composables/us
 import { useA11yAnnouncer } from '../composables/useA11yAnnouncer';
 import {
   Temporal,
+  eventInkColor,
   todayInZone,
   nowInZone,
   layoutDayEvents,
@@ -102,6 +103,7 @@ const state = computed(() => {
     pixelsPerHour: toValue(s.pixelsPerHour),
     canDrop: s.canDrop,
     eventRenderer: s.eventRenderer,
+    eventTextContrast: toValue(s.eventTextContrast),
     dayHeaderRenderer: s.dayHeaderRenderer,
     dstPolicy: toValue(s.dstPolicy),
   };
@@ -652,6 +654,16 @@ function eventBorderFor(event: CalendarEvent<TMeta>): string {
   return c ?? 'var(--coar-color-accent, var(--coar-color-accent-500, #2563eb))';
 }
 
+/** Text colour for an event surface — `meta.textColor` or the policy's black/white. */
+function eventInkFor(event: CalendarEvent<TMeta>): string {
+  const meta = event.meta as { textColor?: unknown } | undefined;
+  return eventInkColor({
+    background: eventBgFor(event),
+    textColor: meta?.textColor,
+    policy: state.value.eventTextContrast,
+  });
+}
+
 // Register the imperative scroll-to-time impl on the builder so
 // CoarCalendar's api.scrollToTime can find it once the view mounts.
 // The public api takes `Temporal.PlainTime`; the inner scroll logic
@@ -752,6 +764,7 @@ defineExpose({
           :variant="isPreviewEvent(bar.event.id) ? 'preview' : 'live'"
           :kbd-active="keyboardDrag !== null"
           :bg="eventBgFor(bar.event)"
+          :ink="eventInkFor(bar.event)"
           :border="eventBorderFor(bar.event)"
           :title="eventTitle(bar.event)"
           :aria-label="
@@ -798,6 +811,7 @@ defineExpose({
           :event="dragAllDaySourceSnapshot.event"
           :bar="phantomAllDayBarStub"
           :bg="eventBgFor(dragAllDaySourceSnapshot.event)"
+          :ink="eventInkFor(dragAllDaySourceSnapshot.event)"
           :border="eventBorderFor(dragAllDaySourceSnapshot.event)"
           :title="eventTitle(dragAllDaySourceSnapshot.event)"
           :density="density"
@@ -819,6 +833,7 @@ defineExpose({
           :event="dnd.draggedEvent.value!"
           :bar="phantomAllDayBarStub"
           :bg="eventBgFor(dnd.draggedEvent.value!)"
+          :ink="eventInkFor(dnd.draggedEvent.value!)"
           :border="eventBorderFor(dnd.draggedEvent.value!)"
           :title="eventTitle(dnd.draggedEvent.value!)"
           :snapping-back="dnd.snappingBack.value"
@@ -887,6 +902,7 @@ defineExpose({
             :variant="isPreviewEvent(positioned.event.id) ? 'preview' : 'live'"
             :kbd-active="keyboardDrag !== null"
             :bg="eventBgFor(positioned.event)"
+            :ink="eventInkFor(positioned.event)"
             :border="eventBorderFor(positioned.event)"
             :title="eventTitle(positioned.event)"
             :display-zone="timezone"
@@ -941,6 +957,7 @@ defineExpose({
             :event="dragSourceSnapshot.event"
             :positioned="phantomPositionedStub"
             :bg="eventBgFor(dragSourceSnapshot.event)"
+            :ink="eventInkFor(dragSourceSnapshot.event)"
             :border="eventBorderFor(dragSourceSnapshot.event)"
             :title="eventTitle(dragSourceSnapshot.event)"
             :display-zone="timezone"
@@ -968,6 +985,7 @@ defineExpose({
             :event="dnd.draggedEvent.value!"
             :positioned="phantomPositionedStub"
             :bg="eventBgFor(dnd.draggedEvent.value!)"
+            :ink="eventInkFor(dnd.draggedEvent.value!)"
             :border="eventBorderFor(dnd.draggedEvent.value!)"
             :title="eventTitle(dnd.draggedEvent.value!)"
             :snapping-back="dnd.snappingBack.value"

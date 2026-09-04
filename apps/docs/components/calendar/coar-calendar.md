@@ -540,6 +540,7 @@ The builder is **flat** — every setter lives directly on it. There are no sub-
 | `canDrop(fn)` | `(event, target) => boolean` | Drop-target validator. Read refs inside the function for reactive policies. |
 | `eventRenderer(r)` | `EventRenderer<TMeta>` | Universal event renderer. Branch on `ctx.layout?.kind` (`'positioned'` / `'allDayBar'` / `'monthPill'` / `'monthBar'`) to render per layout variant. See "Custom event rendering" above. |
 | `dayHeaderRenderer(r)` | `DayHeaderRenderer` | Day column header. |
+| `eventTextContrast(p)` | `MaybeRefOrGetter<'wcag' \| 'apca'>` | How the automatic black/white text on event surfaces is chosen. `'wcag'` (default) is the WCAG 2 ratio; `'apca'` (WCAG 3 draft) picks white on saturated mid-tones such as `#e03131`, where WCAG 2 narrowly picks black. A per-event `meta.textColor` wins over either. |
 | `onEventClick(fn)` | `(payload: { event, native: PointerEvent }) => void` | Common: open details, a side panel or a click-anchored popover. |
 | `onEventDoubleClick(fn)` | `(payload: { event, native: MouseEvent }) => void` | Common: open the host application's edit UI. |
 | `onEventHover(fn)` | `(payload: { event, native: PointerEvent }) => void` | Pair with `useOverlay()` for popovers / tooltips. `native.currentTarget` is the anchor element. No hover delay applied — wrap with `setTimeout(..., 200)` if needed. |
@@ -588,6 +589,7 @@ Variant-specific slots (`pill`, `multiDayBar`, `allDayEvent`) still exist on the
 | `event` | `{ event, view, layout?, item? }` | Per-event renderer (Day / Week / Agenda; falls back for month pills / bars). |
 | `allDayEvent` | `{ event, layout }` | All-day band renderer (week / day). |
 | `pill` | `{ event, pill }` | Month single-day pill. |
+| `agendaEmpty` | — | Agenda empty state (forwarded to `<CoarAgendaView>`'s `empty` slot). Shown only when the agenda draws nothing and no load is in flight; no default. |
 | `multiDayBar` | `{ event, bar }` | Month multi-day bar. |
 | `dayHeader` | `{ date, isToday, isWeekend }` | Per-day column header (week / day). |
 

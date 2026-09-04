@@ -81,6 +81,15 @@ defineSlots<{
     item: AgendaHeaderItem;
     isToday: boolean;
   }): unknown;
+  /**
+   * Shown when the list draws NOTHING — no events in the window and
+   * no empty-day headers (`showEmptyDays` off) — and no load is in
+   * flight. No default: without the slot the surface stays blank,
+   * as before. Rendered as an overlay above the (empty) surface so
+   * the virtualized list stays mounted and scroll-to-date refs stay
+   * valid.
+   */
+  empty?(): unknown;
 }>();
 
 // ─── Builder bindings ────────────────────────────────────────────────
@@ -149,6 +158,16 @@ const rangeStart = computed(() => rangeStartDate.value.toString());
 const rangeEnd = computed(() => rangeEndDate.value.toString());
 
 // ─── Items ───────────────────────────────────────────────────────────
+
+/**
+ * The empty state only appears when nothing at all is drawn. With
+ * `showEmptyDays` the list draws headers, so a "no events" message
+ * would be redundant; during a load it would flash and then be
+ * replaced — worse than none.
+ */
+const showEmptyState = computed(
+  () => items.value.length === 0 && !showEmptyDays.value && !props.builder.api.loading.value,
+);
 
 const items = computed<AgendaItem[]>(() =>
   buildAgendaItems(events.value, {
@@ -480,6 +499,15 @@ defineExpose({
         </template>
       </template>
     </VirtualizedSurface1DY>
+
+    <div
+      v-if="$slots.empty && showEmptyState"
+      class="coar-agenda-view__empty"
+      role="status"
+      aria-live="polite"
+    >
+      <slot name="empty" />
+    </div>
   </div>
 </template>
 
@@ -498,6 +526,19 @@ defineExpose({
   flex: 1 1 auto;
   min-height: 0;
   height: auto;
+}
+
+/* Overlay, not a replacement: the surface underneath stays mounted
+   and keeps the anchor mechanics; the empty state takes no gestures. */
+.coar-agenda-view__empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--coar-spacing-l, 24px);
+  color: var(--coar-text-subtle, #6c7280);
+  pointer-events: none;
 }
 
 .coar-agenda-view__week-strip {

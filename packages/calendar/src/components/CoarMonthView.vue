@@ -32,6 +32,7 @@ import { useMonthExpansion } from '../composables/useMonthExpansion';
 import { useViewWindow } from '../composables/useViewWindow';
 import {
   Temporal,
+  eventInkColor,
   monthGridDates,
   startOfWeek,
   layoutMonthGrid,
@@ -111,6 +112,7 @@ const state = computed(() => {
     dstPolicy: toValue(s.dstPolicy),
     canDrop: s.canDrop,
     eventRenderer: s.eventRenderer,
+    eventTextContrast: toValue(s.eventTextContrast),
     maxEventsPerCell: toValue(s.maxEventsPerCell),
   };
 });
@@ -379,6 +381,16 @@ function eventBorderFor(event: CalendarEvent<TMeta>): string {
   return eventColor(event) ?? 'var(--coar-color-accent, var(--coar-color-accent-500, #2563eb))';
 }
 
+/** Text colour for an event surface — `meta.textColor` or the policy's black/white. */
+function eventInkFor(event: CalendarEvent<TMeta>): string {
+  const meta = event.meta as { textColor?: unknown } | undefined;
+  return eventInkColor({
+    background: eventBgFor(event),
+    textColor: meta?.textColor,
+    policy: state.value.eventTextContrast,
+  });
+}
+
 /**
  * Locale-formatted screen-reader label for one grid cell.
  * Example: "Wednesday, April 15, 2026". The cell carries it as
@@ -579,6 +591,7 @@ defineExpose({
             :variant="isPreviewId(pill.event.id) ? 'preview' : 'live'"
             :kbd-active="keyboardDrag !== null"
             :bg="eventBgFor(pill.event)"
+            :ink="eventInkFor(pill.event)"
             :border="eventBorderFor(pill.event)"
             :title="eventTitle(pill.event)"
             :display-zone="effectiveTimezone"
@@ -620,6 +633,7 @@ defineExpose({
             :event="dragSourceSnapshot.event"
             :pill="phantomPillStub"
             :bg="eventBgFor(dragSourceSnapshot.event)"
+            :ink="eventInkFor(dragSourceSnapshot.event)"
             :border="eventBorderFor(dragSourceSnapshot.event)"
             :title="eventTitle(dragSourceSnapshot.event)"
             :display-zone="effectiveTimezone"
@@ -633,6 +647,7 @@ defineExpose({
             :event="dnd.draggedEvent.value!"
             :pill="phantomPillStub"
             :bg="eventBgFor(dnd.draggedEvent.value!)"
+            :ink="eventInkFor(dnd.draggedEvent.value!)"
             :border="eventBorderFor(dnd.draggedEvent.value!)"
             :title="eventTitle(dnd.draggedEvent.value!)"
             :display-zone="effectiveTimezone"
@@ -650,6 +665,7 @@ defineExpose({
           :variant="isPreviewId(bar.event.id) ? 'preview' : 'live'"
           :kbd-active="keyboardDrag !== null"
           :bg="eventBgFor(bar.event)"
+          :ink="eventInkFor(bar.event)"
           :border="eventBorderFor(bar.event)"
           :title="eventTitle(bar.event)"
           :display-zone="effectiveTimezone"
@@ -699,6 +715,7 @@ defineExpose({
           :event="dragSourceSnapshot!.event"
           :bar="phantomBarStub"
           :bg="eventBgFor(dragSourceSnapshot!.event)"
+          :ink="eventInkFor(dragSourceSnapshot!.event)"
           :border="eventBorderFor(dragSourceSnapshot!.event)"
           :title="eventTitle(dragSourceSnapshot!.event)"
           :display-zone="effectiveTimezone"
@@ -724,6 +741,7 @@ defineExpose({
           :event="dnd.draggedEvent.value!"
           :bar="phantomBarStub"
           :bg="eventBgFor(dnd.draggedEvent.value!)"
+          :ink="eventInkFor(dnd.draggedEvent.value!)"
           :border="eventBorderFor(dnd.draggedEvent.value!)"
           :title="eventTitle(dnd.draggedEvent.value!)"
           :display-zone="effectiveTimezone"

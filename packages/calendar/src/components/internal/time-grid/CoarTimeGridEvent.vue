@@ -38,6 +38,8 @@ const props = withDefaults(
     positioned: PositionedEvent<TMeta>;
     variant?: 'live' | 'preview' | 'phantom' | 'invalid';
     bg: string;
+    /** Text colour resolved by the parent (policy + `meta.textColor`). Falls back to WCAG on `bg`. */
+    ink?: string;
     border: string;
     title: string;
     /** Display zone — surfaced on the default decoration layer (C3/C5 hints). */
@@ -74,6 +76,7 @@ const props = withDefaults(
   }>(),
   {
     variant: 'live',
+    ink: undefined,
     displayZone: undefined,
     ariaLabel: undefined,
     snappingBack: false,
@@ -102,7 +105,7 @@ const isInteractive = computed(
 // In the time grid every card is timed, so a missing `end` ⇒ point event.
 const isPoint = computed(() => props.event.end == null);
 const useCustomSlot = computed(() => props.variant === 'live' || props.variant === 'preview');
-const eventInk = computed(() => eventTextColor(props.bg));
+const eventInk = computed(() => props.ink ?? eventTextColor(props.bg));
 
 function onPointerdown(e: PointerEvent) {
   if (!isInteractive.value) return;

@@ -158,3 +158,4 @@ interface CalendarApi<TMeta> {
 |---|---|---|
 | `event` | `{ event, item }` | Per-row renderer. `item` is the full `AgendaEventItem` (event + `isContinuation` flag). |
 | `dayGroupHeader` | `{ date, item, isToday }` | Per-day header renderer (same component renders the inline + floating overlay). |
+| `empty` | — | Empty state. Shown only when the list draws nothing — no events in the window, `showEmptyDays` off — and no load is in flight. No default; without the slot the surface stays blank. Rendered as a non-interactive overlay so the list stays mounted. Inside `<CoarCalendar>` use the `agendaEmpty` slot. |
