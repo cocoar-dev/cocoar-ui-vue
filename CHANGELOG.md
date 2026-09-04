@@ -9,11 +9,14 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ## 3.3.0
 
-**The web calendar catches up with the iOS calendar.** Four behaviours that
-`Cocoar.Calendar.iOS` 5.x added after the two calendars were last aligned
-land on the web with the same contracts: a capped all-day band, an agenda
-empty state, a modern contrast policy with per-event ink, and touch paging on
-the time grids.
+**The calendar catches up — with its consumers and with iOS.** Every finding
+timetodo, amZettel and the Event-Tree stress app reported against
+`@cocoar/vue-calendar` since May is addressed, and every behaviour
+`Cocoar.Calendar.iOS` 5.3.1 added after the two calendars were last aligned
+lands on the web with the same contracts. Along the way Day, Multi-day, Week
+and Work week became one time-grid model, the header became optional
+(`hideHeader`, `api.rangeLabel`), and the builder's `locale` stopped
+defaulting to `en-US`.
 
 ### Added
 
