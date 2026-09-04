@@ -1334,6 +1334,11 @@ defineExpose({
   box-shadow: var(--coar-elevation-medium);
 }
 
+/* `nestingStyle: 'none'` draws no structure at all — no guide lines, no band frame. */
+.coar-data-list--nesting-none .coar-data-list__band-box {
+  display: none;
+}
+
 /* The row that opens a band paints above the frame's top border, so the expanded
    card's open bottom edge cuts it exactly under the card. The other tiles keep the
    row gap; only the card reaches down to the band. */

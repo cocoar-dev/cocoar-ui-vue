@@ -344,7 +344,7 @@ ARIA: `role="listbox"` with `option` children when selection is enabled, `role="
 | `unstyledItems` | `boolean` | `false` | The template owns the whole box; the list draws no item chrome |
 | `maxDepth` | `number` | unlimited | Deepest level shown, 0 = top level only |
 | `nestingIndent` | `number \| string` | `'1.5rem'` | Indent per level |
-| `nestingStyle` | `'lines' \| 'none'` | `'lines'` | Guide lines per level, or indent only |
+| `nestingStyle` | `'lines' \| 'none'` | `'lines'` | Guide lines per level and band frames, or indent only |
 | `hideExpandToggle` | `boolean` | `false` | No built-in chevrons |
 | `canNest` | `(item: T, parent: T) => boolean` | — | Veto for dropping inside a row |
 
@@ -410,6 +410,20 @@ ARIA: `role="listbox"` with `option` children when selection is enabled, `role="
 | `selected` | `Ref<key[]>` | External selection model |
 
 Returns `items`, `entries` (with group headings), `total`, `count`, `keyOf`, `itemByKey`, `indexOfKey`, `entryIndexOfKey`, `selected`, `selectedItems`, `anchor`, `isSelected`, `select(key, mode?)`, `selectAll()`, `clear()`.
+
+## i18n Keys
+
+These keys can be translated via [`@cocoar/vue-localization`](/foundations/localization/translations).
+
+| Key | Default (English) | Used as |
+|-----|-------------------|---------|
+| `coar.ui.dataList.search` | `'Search…'` | Placeholder of the toolbar search input |
+| `coar.ui.dataList.sortBy` | `'Sort by'` | Placeholder of the sort select |
+| `coar.ui.dataList.ascending` | `'Ascending'` | Label of the sort-direction button |
+| `coar.ui.dataList.descending` | `'Descending'` | Label of the sort-direction button |
+| `coar.ui.dataList.empty` | `'No items'` | Empty state when no item is visible |
+| `coar.ui.dataList.expand` | `'Expand'` | Chevron label of a collapsed parent |
+| `coar.ui.dataList.collapse` | `'Collapse'` | Chevron label of an expanded parent |
 
 ## Grid or list?
 
