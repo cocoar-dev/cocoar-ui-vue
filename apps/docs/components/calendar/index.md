@@ -246,11 +246,24 @@ Two layers of tokens. **Calendar-specific** tokens are unique to this component 
 | `--coar-calendar-event-default-bg` | → `--coar-color-accent-soft`, then `#93c5fd` | `#1e3a8a` | Fill of events without a `meta.color`. |
 | `--coar-calendar-point-edge-height` | `3px` | — | Start-edge bar on point events (timed, no `end`) in Day / Week. |
 | `--coar-calendar-point-body-opacity` | `0.38` | — | Body fill opacity of point events (title stays fully opaque). |
+| `--coar-calendar-scroll-inset-bottom` | `0px` | — | Extra scroll room at the bottom of every scrolling surface (Day / Week grids, Month, List, Agenda, Timeline, Year), so the last rows can clear host chrome that overlays the bottom edge. See [Host chrome over the bottom edge](#host-chrome-over-the-bottom-edge). |
 | `--coar-time-grid-axis-width` | `80px` | — | Width of the hour-axis on the left of Day / Week. |
 | `--coar-time-grid-header-height` | _auto_ | — | Sticky day-of-week header min-height. |
 
 Light values are per-usage `var()` fallbacks — the tokens are undefined in light mode, so a single override anywhere wins. Dark values ship with the package stylesheet (see below).
 
+### Host chrome over the bottom edge
+
+On phones something almost always sits over the bottom of the viewport — a tab bar, a floating action button, the home-indicator safe area. Padding *around* the calendar doesn't help: the scroll container is inside the component, and outer padding shrinks the surface instead of letting the content scroll past the overlay. `--coar-calendar-scroll-inset-bottom` adds that room *inside* every scrolling surface (the same content inset the iOS calendar applies), and keyboard / focus scrolling honours it through `scroll-padding-bottom`.
+
+```css
+/* A 56 px bottom bar plus the device's safe area. */
+.my-app .coar-calendar {
+  --coar-calendar-scroll-inset-bottom: calc(56px + env(safe-area-inset-bottom));
+}
+```
+
+The token is read at runtime, so it can change with the host's layout (a bar that hides while scrolling, a sheet that opens). Standalone sub-views read it the same way.
 ### Inherited from the design system
 
 Used as direct `var()` references. Override at the design-system level rather than per-calendar-instance unless you need a calendar-only variant.

@@ -273,6 +273,13 @@ function formatTime(event: CalendarEvent<TMeta>): string {
   min-height: 0;
   overflow: auto;
   border-top: 1px solid var(--coar-border-neutral-tertiary);
+  scroll-padding-bottom: var(--coar-calendar-scroll-inset-bottom, 0px);
+}
+/* Bottom content inset (iOS parity), see `--coar-calendar-scroll-inset-bottom`. */
+.coar-month-list-view__agenda::after {
+  content: '';
+  display: block;
+  height: var(--coar-calendar-scroll-inset-bottom, 0px);
 }
 .coar-month-list-view__selected-title {
   position: sticky;
@@ -301,6 +308,12 @@ function formatTime(event: CalendarEvent<TMeta>): string {
   .coar-month-list-view__selector {
     overflow: auto;
     border-right: 1px solid var(--coar-border-neutral-tertiary);
+    scroll-padding-bottom: var(--coar-calendar-scroll-inset-bottom, 0px);
+  }
+  .coar-month-list-view__selector::after {
+    content: '';
+    display: block;
+    height: var(--coar-calendar-scroll-inset-bottom, 0px);
   }
   .coar-month-list-view__agenda {
     border-top: 0;

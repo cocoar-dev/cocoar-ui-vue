@@ -711,6 +711,8 @@ onBeforeUnmount(() => {
   /* Time-grid views scroll vertically through the hour range. */
   overflow-y: auto;
   overflow-x: hidden;
+  /* Focus-driven scrolling lands above the host's bottom chrome. */
+  scroll-padding-bottom: var(--coar-calendar-scroll-inset-bottom, 0px);
 }
 .coar-calendar__body--month {
   /* The continuous month surface owns its scrolling so it can preserve

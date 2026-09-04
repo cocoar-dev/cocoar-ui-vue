@@ -17,6 +17,14 @@ the time grids.
 
 ### Added
 
+- **`--coar-calendar-scroll-inset-bottom`** — bottom content inset for
+  every scrolling surface (Day / Week grids, Month, List, Agenda,
+  Timeline, Year), the counterpart of the iOS calendar's content inset.
+  Set it to the height of whatever overlays the bottom edge (tab bar,
+  floating button, `env(safe-area-inset-bottom)`) and the last rows scroll
+  clear of it; focus-driven scrolling honours it via `scroll-padding-bottom`.
+  Default `0px`.
+
 - **`@cocoar/vue-calendar` — all-day band lane cap.**
   `allDayMaxVisibleLanes(n | null)` (default `3`, like the system calendar)
   folds lanes beyond the cap into per-day "+N" markers; a click expands the

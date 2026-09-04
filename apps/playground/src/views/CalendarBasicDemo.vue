@@ -118,6 +118,8 @@ builder
 .page__header h1 { margin: 0 0 4px; }
 .page__layout { display: flex; gap: 16px; flex: 1; min-height: 600px; }
 .page__calendar { flex: 1; border: 1px solid #e5e7eb; border-radius: 6px; overflow: hidden; }
+/* Bottom content inset: the last rows scroll clear of the floating palette button. */
+.page__calendar { --coar-calendar-scroll-inset-bottom: 72px; }
 .page__log { width: 320px; padding: 12px; background: #fafafa; border-radius: 6px; }
 .page__log h3 { margin: 0 0 8px; font-size: 13px; }
 .page__log ul { list-style: none; padding: 0; margin: 0; font-family: monospace; font-size: 11px; line-height: 1.4; }

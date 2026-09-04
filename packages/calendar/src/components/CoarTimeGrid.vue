@@ -1168,6 +1168,11 @@ defineExpose({
   font-family: var(--coar-body-base-family, system-ui, sans-serif);
   font-variant-numeric: tabular-nums;
   background: var(--coar-calendar-bg, #fff);
+  /* Bottom content inset (iOS parity): extra scroll room so the last
+     hours can clear host chrome that overlays the bottom edge (a
+     floating action button, a tab bar, the safe area). The grid is
+     content inside an outer scroller, so the room is padding here. */
+  padding-bottom: var(--coar-calendar-scroll-inset-bottom, 0px);
   /*
    * Sticky-header stack:
    *   --header-height: top sticky band (day-of-week labels)

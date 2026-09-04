@@ -256,6 +256,14 @@ defineExpose({
   overscroll-behavior-y: contain;
   background: var(--coar-calendar-bg, #fff);
   scrollbar-gutter: stable;
+  scroll-padding-bottom: var(--coar-calendar-scroll-inset-bottom, 0px);
+}
+/* Bottom content inset (iOS parity) — a real trailing block, because
+   block-end padding on a scroller is not scrollable in every engine. */
+.coar-continuous-month-view::after {
+  content: '';
+  display: block;
+  height: var(--coar-calendar-scroll-inset-bottom, 0px);
 }
 .coar-continuous-month-view__section {
   position: relative;

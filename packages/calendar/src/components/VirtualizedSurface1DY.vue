@@ -166,10 +166,7 @@ const range = computed<Range1D>(() => {
         ? props.itemCount - 1
         : Math.floor((clamped + viewportHeight.value) / size);
     const startIndex = Math.max(0, firstVisible - Math.floor(props.overscan));
-    const endIndex = Math.min(
-      props.itemCount,
-      lastVisible + 1 + Math.floor(props.overscan),
-    );
+    const endIndex = Math.min(props.itemCount, lastVisible + 1 + Math.floor(props.overscan));
     return { startIndex, endIndex, offset: startIndex * size, totalSize: total };
   }
   // Variable mode — track cacheVersion so the computed re-runs after a
@@ -246,8 +243,7 @@ function ensureResizeObserver() {
       if (!ctx) continue;
       const measured = entry.contentRect.height;
       const c = cache.value;
-      const cur =
-        c && c.has(ctx.index) ? c.get(ctx.index) : props.estimatedItemSize;
+      const cur = c && c.has(ctx.index) ? c.get(ctx.index) : props.estimatedItemSize;
       if (Math.abs(measured - cur) < 0.5) continue;
       pendingMeasurements.set(ctx.index, measured);
     }
@@ -473,15 +469,8 @@ defineExpose({
 </script>
 
 <template>
-  <div
-    ref="containerRef"
-    class="coar-virtualized-surface-1dy"
-    @scroll="onScroll"
-  >
-    <div
-      class="coar-virtualized-surface-1dy__spacer"
-      :style="{ height: totalSize + 'px' }"
-    >
+  <div ref="containerRef" class="coar-virtualized-surface-1dy" @scroll="onScroll">
+    <div class="coar-virtualized-surface-1dy__spacer" :style="{ height: totalSize + 'px' }">
       <div
         v-for="i in renderedIndices"
         :key="i"
@@ -501,6 +490,7 @@ defineExpose({
   position: relative;
   overflow-y: auto;
   overflow-x: hidden;
+  scroll-padding-bottom: var(--coar-calendar-scroll-inset-bottom, 0px);
   /* `contain: strict` isolates layout, paint, size, and style. Critical
      for 60fps scroll. */
   contain: strict;
@@ -509,6 +499,9 @@ defineExpose({
 .coar-virtualized-surface-1dy__spacer {
   position: relative;
   width: 100%;
+  /* Bottom content inset (iOS parity): the spacer's `height` is the
+     virtual total; the padding adds scroll room below the last item. */
+  padding-bottom: var(--coar-calendar-scroll-inset-bottom, 0px);
   /* Spacer height is set via :style. */
 }
 
