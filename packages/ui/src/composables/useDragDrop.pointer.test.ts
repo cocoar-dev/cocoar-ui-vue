@@ -176,6 +176,28 @@ describe('useDragDrop pointer engine', () => {
     expect(pointer.api().isDragging.value).toBe(false);
   });
 
+  it('blocks text selection while a pointer drag is pending or active', async () => {
+    const left = surface('left', [{ id: 'a' }]);
+    const row = left.el.querySelector('.row') as HTMLElement;
+
+    const before = new Event('selectstart', { cancelable: true, bubbles: true });
+    document.dispatchEvent(before);
+    expect(before.defaultPrevented).toBe(false);
+
+    row.dispatchEvent(pointerEvent('pointerdown', { clientX: 0, clientY: 0, button: 0 }));
+    const pending = new Event('selectstart', { cancelable: true, bubbles: true });
+    document.dispatchEvent(pending);
+    expect(pending.defaultPrevented).toBe(true);
+
+    document.dispatchEvent(pointerEvent('pointermove', { clientX: 50, clientY: 50 }));
+    expect(document.body.style.userSelect).toBe('none');
+    document.dispatchEvent(pointerEvent('pointerup', { clientX: 50, clientY: 50 }));
+    expect(document.body.style.userSelect).toBe('');
+    const after = new Event('selectstart', { cancelable: true, bubbles: true });
+    document.dispatchEvent(after);
+    expect(after.defaultPrevented).toBe(false);
+  });
+
   it('supports a custom ghost and none at all', async () => {
     let api!: UseDragDropReturn<Row>;
     const Comp = defineComponent({

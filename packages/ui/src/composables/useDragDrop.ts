@@ -381,6 +381,25 @@ export function useDragDrop<T>(opts: UseDragDropOptions<T> = {}): UseDragDropRet
     document.addEventListener('pointermove', onDocumentPointerMove);
     document.addEventListener('pointerup', onDocumentPointerUp);
     document.addEventListener('pointercancel', onDocumentPointerCancel);
+    // A mouse drag would otherwise select text along the way, already before the threshold.
+    document.addEventListener('selectstart', preventSelection);
+  }
+
+  function preventSelection(event: Event): void {
+    if (pending || active) event.preventDefault();
+  }
+
+  let previousUserSelect: string | null = null;
+  function suppressTextSelection(): void {
+    if (typeof document === 'undefined' || !document.body) return;
+    document.getSelection?.()?.removeAllRanges();
+    previousUserSelect = document.body.style.userSelect;
+    document.body.style.userSelect = 'none';
+  }
+  function restoreTextSelection(): void {
+    if (previousUserSelect === null || typeof document === 'undefined' || !document.body) return;
+    document.body.style.userSelect = previousUserSelect;
+    previousUserSelect = null;
   }
 
   function cancelPending(): void {
@@ -408,6 +427,7 @@ export function useDragDrop<T>(opts: UseDragDropOptions<T> = {}): UseDragDropRet
       if (ghost) document.body.appendChild(ghost);
     }
     active = { entry, ghost, offsetX: x - rect.left, offsetY: y - rect.top, hovered: null };
+    suppressTextSelection();
     document.addEventListener('touchmove', preventTouchScroll, { passive: false });
     document.addEventListener('keydown', onDocumentKeyDown);
     opts.onDragStart?.(items);
@@ -475,6 +495,7 @@ export function useDragDrop<T>(opts: UseDragDropOptions<T> = {}): UseDragDropRet
     hovered?.leave();
     ghost?.remove();
     active = null;
+    restoreTextSelection();
     removeDocumentListeners();
     opts.onDragEnd?.({ items: entry.items, dropped: dropped || !!entry.consumed });
     deleteDrag(entry.id);
@@ -488,6 +509,7 @@ export function useDragDrop<T>(opts: UseDragDropOptions<T> = {}): UseDragDropRet
     document.removeEventListener('pointercancel', onDocumentPointerCancel);
     document.removeEventListener('touchmove', preventTouchScroll);
     document.removeEventListener('keydown', onDocumentKeyDown);
+    document.removeEventListener('selectstart', preventSelection);
   }
 
   // ── Pointer engine: target ────────────────────────────────────────────────
