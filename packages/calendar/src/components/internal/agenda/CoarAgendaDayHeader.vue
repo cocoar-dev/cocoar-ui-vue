@@ -90,7 +90,7 @@ function onPointerdown(e: PointerEvent) {
   color: var(--coar-text-base, #1a1c1f);
 }
 .coar-agenda-day-header--today {
-  color: var(--coar-color-accent, #2563eb);
+  color: var(--coar-color-accent, var(--coar-color-accent-500, #2563eb));
 }
 .coar-agenda-day-header--empty {
   color: var(--coar-text-subtle, #9ca3af);
@@ -117,7 +117,7 @@ function onPointerdown(e: PointerEvent) {
   font-size: var(--coar-font-size-xs, 11px);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  background: var(--coar-color-accent, #2563eb);
+  background: var(--coar-color-accent, var(--coar-color-accent-500, #2563eb));
   color: #fff;
   padding: 2px 8px;
   border-radius: 999px;

@@ -66,8 +66,43 @@ export {
   type ViewWindowOptions,
 } from './viewWindow';
 export { responsiveDayColumnCount } from './dayColumns';
+export { formatRangeLabel, type RangeLabelOptions } from './rangeLabel';
+export {
+  DEFAULT_TIMED_EVENT_DETAIL_MIN_WIDTH,
+  resolveTimedCardAnatomy,
+  type TimedCardAnatomy,
+  type TimedCardAnatomyInput,
+} from './timedCardAnatomy';
+export {
+  TIME_GRID_PRESETS,
+  resolveTimeGridRange,
+  resolveSpanDays,
+  timeGridRangeSpecFor,
+  timeGridStepDays,
+  type TimeGridAnchor,
+  type TimeGridFilter,
+  type TimeGridRange,
+  type TimeGridRangeSpec,
+  type TimeGridView,
+  type ResolveTimeGridRangeOptions,
+} from './timeGridRange';
+export {
+  capAllDayBand,
+  allDayBandLanes,
+  DEFAULT_ALL_DAY_MAX_VISIBLE_LANES,
+  type AllDayBandMode,
+  type AllDayCapOptions,
+  type AllDayCapResult,
+  type AllDayOverflowMarker,
+} from './allDayBandCap';
 export { contentAwareCascadeFrames, type CascadeItem, type CascadeFrame } from './cascadeLayout';
-export { eventTextColor } from './eventTextContrast';
+export {
+  eventTextColor,
+  eventInkColor,
+  type EventTextContrastPolicy,
+  type EventTextColorOptions,
+  type EventInkOptions,
+} from './eventTextContrast';
 // EventIndex is intentionally NOT re-exported. It exists for tests
 // + future internal use, but the runtime layout pipeline reaches the
 // events through `_computeVisibleEvents` (BaseCalendarBuilder) +

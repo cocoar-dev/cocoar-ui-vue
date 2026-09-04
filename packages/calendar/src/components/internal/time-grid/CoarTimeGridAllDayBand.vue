@@ -28,13 +28,24 @@ interface Props {
   isWeekend: (day: Temporal.PlainDate) => boolean;
   /** Forwards the columns DOM element to the parent on mount. */
   setColumnsEl: (el: HTMLElement | null) => void;
+  /**
+   * Render the collapse control under the axis label. The parent
+   * sets this only while the band is expanded beyond its lane cap.
+   */
+  collapsible?: boolean;
+  /** Localised label for the collapse control. */
+  collapseLabel?: string;
 }
 
-defineProps<Props>();
+withDefaults(defineProps<Props>(), { collapsible: false, collapseLabel: '' });
 
 const emit = defineEmits<{
   /** User clicked an empty all-day cell. */
   cellPointerdown: [native: PointerEvent, day: Temporal.PlainDate];
+  /** User double-clicked an empty all-day cell (bars stop their own). */
+  cellDblclick: [native: MouseEvent, day: Temporal.PlainDate];
+  /** User asked to fold the expanded band back to its lane cap. */
+  collapse: [];
 }>();
 
 defineSlots<{
@@ -45,6 +56,9 @@ defineSlots<{
 function onCellPointerdown(e: PointerEvent, day: Temporal.PlainDate) {
   emit('cellPointerdown', e, day);
 }
+function onCellDblclick(e: MouseEvent, day: Temporal.PlainDate) {
+  emit('cellDblclick', e, day);
+}
 </script>
 
 <template>
@@ -54,7 +68,18 @@ function onCellPointerdown(e: PointerEvent, day: Temporal.PlainDate) {
     role="region"
     :aria-label="axisLabel"
   >
-    <div class="coar-time-grid-all-day-band__axis" aria-hidden="true">{{ axisLabel }}</div>
+    <div class="coar-time-grid-all-day-band__axis">
+      <span aria-hidden="true">{{ axisLabel }}</span>
+      <button
+        v-if="collapsible"
+        type="button"
+        class="coar-time-grid-all-day-band__collapse"
+        @pointerdown.stop
+        @click.stop="emit('collapse')"
+      >
+        {{ collapseLabel }}
+      </button>
+    </div>
     <div
       :ref="(el) => setColumnsEl(el as HTMLElement | null)"
       class="coar-time-grid-all-day-band__columns"
@@ -69,6 +94,7 @@ function onCellPointerdown(e: PointerEvent, day: Temporal.PlainDate) {
         }"
         :style="{ gridColumn: i + 1 }"
         @pointerdown="onCellPointerdown($event, day)"
+        @dblclick="onCellDblclick($event, day)"
       />
       <slot />
     </div>
@@ -83,7 +109,18 @@ function onCellPointerdown(e: PointerEvent, day: Temporal.PlainDate) {
   background: var(--coar-calendar-bg, #fff);
   font-size: var(--coar-font-size-xs, 11px);
 }
+/* During a swipe only the cells paint (see CoarTimeGrid.vue). */
+.coar-time-grid--ghost .coar-time-grid-all-day-band,
+.coar-time-grid--swiping .coar-time-grid-all-day-band,
+.coar-time-grid--settling .coar-time-grid-all-day-band {
+  background: transparent;
+}
 .coar-time-grid-all-day-band__axis {
+  /* Opaque + above the cells so bars sliding under the axis column
+     during a swipe disappear. */
+  position: relative;
+  z-index: 1;
+  background: var(--coar-calendar-bg, #fff);
   /* No border-right — the first all-day cell owns the seam via
      `border-left: 1px` (parity with the hour-axis fix below the band). */
   text-transform: uppercase;
@@ -101,11 +138,45 @@ function onCellPointerdown(e: PointerEvent, day: Temporal.PlainDate) {
   align-self: start;
   line-height: 1.2;
 }
+.coar-time-grid-all-day-band__collapse {
+  display: block;
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--coar-color-accent, var(--coar-color-accent-500, #2563eb));
+  font: inherit;
+  font-size: var(--coar-font-size-xs, 11px);
+  text-transform: none;
+  letter-spacing: normal;
+  cursor: pointer;
+}
+.coar-time-grid-all-day-band__collapse:hover,
+.coar-time-grid-all-day-band__collapse:focus-visible {
+  text-decoration: underline;
+}
 .coar-time-grid-all-day-band__columns {
   position: relative;
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
+  /* Opaque strip that moves with the cells — the band box itself
+     goes transparent while pages overlap during a swipe. */
+  background: var(--coar-calendar-bg, #fff);
+  touch-action: pan-y;
+  transform: translateX(var(--coar-time-grid-swipe-x, 0px));
+}
+/* Neighbour page: the axis keeps its width, paints nothing. */
+.coar-time-grid--ghost .coar-time-grid-all-day-band__axis {
+  visibility: hidden;
+}
+/* A ghost band is pinned to the live band's height; lanes it can't
+   fit stay hidden instead of pushing the hour rows down. */
+.coar-time-grid--ghost .coar-time-grid-all-day-band__columns {
+  overflow: hidden;
+}
+.coar-time-grid--settling .coar-time-grid-all-day-band__columns {
+  transition: transform 180ms ease-out;
 }
 .coar-time-grid-all-day-band__cell {
   border-left: 1px solid var(--coar-calendar-border, #d1d5db);

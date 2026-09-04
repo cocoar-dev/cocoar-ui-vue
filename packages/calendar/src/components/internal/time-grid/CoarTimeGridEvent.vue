@@ -25,7 +25,7 @@
  */
 
 import { computed } from 'vue';
-import type { CalendarEvent, PositionedEvent } from '../../../core';
+import type { CalendarEvent, PositionedEvent, TimedCardAnatomy } from '../../../core';
 import CoarEventDecorations from '../CoarEventDecorations.vue';
 import CoarEventAssignees from '../CoarEventAssignees.vue';
 import { eventTextColor } from '../../../core/eventTextContrast';
@@ -38,8 +38,19 @@ const props = withDefaults(
     positioned: PositionedEvent<TMeta>;
     variant?: 'live' | 'preview' | 'phantom' | 'invalid';
     bg: string;
+    /** Text colour resolved by the parent (policy + `meta.textColor`). Falls back to WCAG on `bg`. */
+    ink?: string;
     border: string;
     title: string;
+    /** `meta.location`, rendered by the full anatomy only. */
+    location?: string;
+    /** Localised "start – end" (or start) for the time row of the full anatomy. */
+    timeLabel?: string;
+    /**
+     * What the built-in card shows (`resolveTimedCardAnatomy`). Omitted
+     * = the one-line title, as the phantom / invalid variants use.
+     */
+    anatomy?: TimedCardAnatomy;
     /** Display zone — surfaced on the default decoration layer (C3/C5 hints). */
     displayZone?: string;
     ariaLabel?: string;
@@ -74,6 +85,10 @@ const props = withDefaults(
   }>(),
   {
     variant: 'live',
+    location: undefined,
+    timeLabel: undefined,
+    anatomy: undefined,
+    ink: undefined,
     displayZone: undefined,
     ariaLabel: undefined,
     snappingBack: false,
@@ -102,7 +117,12 @@ const isInteractive = computed(
 // In the time grid every card is timed, so a missing `end` ⇒ point event.
 const isPoint = computed(() => props.event.end == null);
 const useCustomSlot = computed(() => props.variant === 'live' || props.variant === 'preview');
-const eventInk = computed(() => eventTextColor(props.bg));
+const eventInk = computed(() => props.ink ?? eventTextColor(props.bg));
+const anatomy = computed<TimedCardAnatomy>(
+  () => props.anatomy ?? { compact: false, titleLines: 1, showLocation: false, showTime: false },
+);
+const showLocation = computed(() => anatomy.value.showLocation && !!props.location);
+const showTime = computed(() => anatomy.value.showTime && !!props.timeLabel);
 
 function onPointerdown(e: PointerEvent) {
   if (!isInteractive.value) return;
@@ -138,6 +158,7 @@ function onEndResize(e: PointerEvent) {
       'coar-time-grid-event--invalid': variant === 'invalid',
       'coar-time-grid-event--snap-back': variant === 'invalid' && snappingBack,
       'coar-time-grid-event--density-compact': density === 'compact',
+      'coar-time-grid-event--anatomy-compact': anatomy.compact,
       'coar-time-grid-event--point': isPoint,
     }"
     :style="{
@@ -177,9 +198,15 @@ function onEndResize(e: PointerEvent) {
       <div class="coar-time-grid-event__default">
         <span class="coar-time-grid-event__title-row">
           <CoarEventDecorations :event="event" :display-zone="displayZone" size="s" />
-          <span class="coar-time-grid-event__title">{{ title }}</span>
+          <span
+            class="coar-time-grid-event__title"
+            :class="{ 'coar-time-grid-event__title--two-lines': anatomy.titleLines === 2 }"
+            >{{ title }}</span
+          >
           <CoarEventAssignees :event="event" :max="2" size="xs" />
         </span>
+        <span v-if="showLocation" class="coar-time-grid-event__location">{{ location }}</span>
+        <span v-if="showTime" class="coar-time-grid-event__time">{{ timeLabel }}</span>
       </div>
     </slot>
     <div v-else class="coar-time-grid-event__default">
@@ -313,6 +340,27 @@ function onEndResize(e: PointerEvent) {
   text-overflow: ellipsis;
   display: block;
   min-width: 0;
+}
+/* Full anatomy with room: the title may wrap once. */
+.coar-time-grid-event__title--two-lines {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+/* Location + time rows of the full anatomy (iOS 4.0 parity). The
+   compact anatomy never renders them — see `resolveTimedCardAnatomy`. */
+.coar-time-grid-event__location,
+.coar-time-grid-event__time {
+  display: block;
+  color: var(--event-ink, var(--coar-text-base, #1a1c1f));
+  opacity: 0.8;
+  font-size: 10px;
+  line-height: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Point events — solid start edge in the (undimmed) event color. */

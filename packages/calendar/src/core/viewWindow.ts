@@ -30,6 +30,11 @@ import { type DayOfWeek, startOfWeek, monthGridDates } from './temporal';
 /** Default `workDays` — Mon–Fri using the 0=Sun..6=Sat convention. */
 export const DEFAULT_WORK_DAYS: readonly DayOfWeek[] = [1, 2, 3, 4, 5];
 import type { CalendarView, ViewWindow } from './types';
+import {
+  resolveTimeGridRange,
+  timeGridRangeSpecFor,
+  type TimeGridRangeSpec,
+} from './timeGridRange';
 
 export interface ViewWindowOptions {
   view: CalendarView;
@@ -48,10 +53,17 @@ export interface ViewWindowOptions {
    */
   timelineRangeDays?: number;
   /**
-   * Number of adjacent columns rendered by the day view. Default 1.
-   * Ignored for non-day views.
+   * Resolved column count for a `'responsive'` time-grid span (the
+   * day view measures its container). Default 1. Ignored by views
+   * whose spec has a fixed span.
    */
   dayColumnCount?: number;
+  /**
+   * Explicit time-grid range spec for the `day` view
+   * (`builder.timeGridRange(...)`). `week` / `workWeek` are fixed
+   * presets and ignore it. Without it the day view is one column.
+   */
+  timeGridRange?: TimeGridRangeSpec | null;
   /** Adjacent calendar months loaded around the cursor for the continuous month surface. */
   monthBuffer?: number;
   /**
@@ -71,38 +83,34 @@ export function computeViewWindow(opts: ViewWindowOptions): ViewWindow {
   const { view, cursor, firstDayOfWeek, timezone } = opts;
 
   switch (view) {
-    case 'day': {
-      const dayColumnCount = Math.max(1, opts.dayColumnCount ?? 1);
-      return {
-        view,
-        start: cursor.toString(),
-        end: cursor.add({ days: dayColumnCount }).toString(),
-        timezone,
-      };
-    }
-
-    case 'dayAgenda':
-    case 'week': {
-      const weekStart = startOfWeek(cursor, firstDayOfWeek);
-      return {
-        view,
-        start: weekStart.toString(),
-        end: weekStart.add({ days: 7 }).toString(),
-        timezone,
-      };
-    }
-
+    case 'day':
+    case 'week':
     case 'workWeek': {
-      // The visible-window bounds cover the full Mon–Sun span the
-      // work-week is anchored in, NOT just the workday columns
-      // that render. Two reasons: (1) `eventsLoader(window)` callbacks
-      // should see weekend events too — consumers may filter them
-      // out in their data layer or rely on the view to suppress
-      // weekend columns; the loader doesn't need to know the column
-      // set. (2) `windowContainsDate` over a workWeek window stays
-      // intuitive (Saturday IS in the rendered week, just not
-      // displayed). The view component itself filters the date
-      // array via `workWeekDates(...)`.
+      // ONE resolver for every time-grid surface (`timeGridRange.ts`).
+      // The window is the UNFILTERED span: a work week's loaders see
+      // weekend events too, and `windowContainsDate` stays intuitive
+      // (Saturday IS in the rendered week, just not displayed). The
+      // surface filters the column dates itself.
+      const spec = timeGridRangeSpecFor(view, {
+        dayMode: 'multiDay',
+        explicit: view === 'day' ? (opts.timeGridRange ?? null) : null,
+      });
+      const range = resolveTimeGridRange({
+        spec,
+        cursor,
+        firstDayOfWeek,
+        workDays: [],
+        responsiveColumns: opts.dayColumnCount ?? 1,
+      });
+      return {
+        view,
+        start: range.start.toString(),
+        end: range.start.add({ days: range.spanDays }).toString(),
+        timezone,
+      };
+    }
+
+    case 'dayAgenda': {
       const weekStart = startOfWeek(cursor, firstDayOfWeek);
       return {
         view,
@@ -216,10 +224,15 @@ export function windowContainsDate(window: ViewWindow, date: Temporal.PlainDate)
 /**
  * Navigate forward / backward by one logical "page" in the view.
  *
- * - day: ±1 day
- * - week: ±7 days
+ * - day: ± the rendered column count (the time-grid preset's step)
+ * - week / workWeek: ±7 days
  * - month: ±1 month (from the cursor's calendar month)
  * - agenda: ± agendaLengthDays
+ *
+ * The builder resolves the time-grid views through
+ * `timeGridStepDays(spec, spanDays)` so an explicit
+ * `builder.timeGridRange(...)` step applies; this function keeps the
+ * preset semantics for direct callers.
  *
  * Returns the new cursor for the next computeViewWindow call.
  */

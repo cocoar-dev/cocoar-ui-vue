@@ -44,7 +44,6 @@ import {
   Temporal,
   computeViewWindow,
   detectFirstDayOfWeekFromLocale,
-  buildFormatOptions,
   type CalendarEvent,
   type CalendarDayMode,
   type CalendarMonthDensity,
@@ -60,8 +59,24 @@ import { CalendarBuilder } from '../builders/calendar-builder';
 
 interface Props {
   builder: CalendarBuilder<Record<string, unknown>>;
+  /**
+   * Render only the body — no header bar at all. For hosts that own
+   * navigation and view selection themselves (drive the calendar
+   * through `api.goTo / next / prev / setView / setMonthDensity /
+   * setDayMode`). An empty `#header` slot does NOT do this: Vue
+   * renders the built-in fallback when a slot yields no nodes.
+   */
+  hideHeader?: boolean;
+  /** Keep the header (nav buttons, range label) but drop the primary view switcher. */
+  hideViewSwitcher?: boolean;
+  /** Keep the header but drop the Month / Day display-choice switcher. */
+  hideModeSwitcher?: boolean;
 }
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  hideHeader: false,
+  hideViewSwitcher: false,
+  hideModeSwitcher: false,
+});
 
 defineSlots<{
   /** Replace the entire header bar. Overrides headerStart/End/viewSwitcher. */
@@ -97,6 +112,10 @@ defineSlots<{
   multiDayBar?(props: { event: CalendarEvent; bar: MonthMultiDayBar }): unknown;
   /** Per-day-column header (week / month). */
   dayHeader?(props: { date: Temporal.PlainDate; isToday: boolean; isWeekend: boolean }): unknown;
+  /** Agenda empty state — forwarded to `<CoarAgendaView>`'s `empty`
+   *  slot. Shown only when the agenda draws nothing and no load is
+   *  in flight; no default. */
+  agendaEmpty?(): unknown;
 }>();
 
 interface HeaderSlotScope {
@@ -219,93 +238,10 @@ const prev = () => props.builder.api.prev();
 const setView = (v: CalendarView) => props.builder.api.setView(v);
 
 // ─── Range label ─────────────────────────────────────────────────
-
-const rangeLabel = computed<string>(() => {
-  const w = window.value;
-  const start = Temporal.PlainDate.from(w.start);
-  const lastVisible = Temporal.PlainDate.from(w.end).subtract({ days: 1 });
-  const locale = effectiveLocale.value;
-  const fmtOverrides = {
-    dateStyle: state.value.dateStyle,
-    timeStyle: state.value.timeStyle,
-    hour12: state.value.hour12,
-  };
-  switch (view.value) {
-    case 'day': {
-      if (start.until(lastVisible, { largestUnit: 'day' }).days > 0) {
-        const fmt = new Intl.DateTimeFormat(
-          locale,
-          buildFormatOptions(
-            { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' },
-            fmtOverrides,
-          ),
-        );
-        return fmt.formatRange(toDate(start), toDate(lastVisible));
-      }
-      return new Intl.DateTimeFormat(
-        locale,
-        buildFormatOptions(
-          { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' },
-          fmtOverrides,
-        ),
-      ).format(toDate(cursor.value));
-    }
-    case 'dayAgenda': {
-      return new Intl.DateTimeFormat(
-        locale,
-        buildFormatOptions(
-          { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' },
-          fmtOverrides,
-        ),
-      ).format(toDate(cursor.value));
-    }
-    case 'week':
-    case 'workWeek': {
-      // The window is the full Mon–Sun span for workWeek too; the
-      // label reflects that span (not the filtered render set) so
-      // navigation reads consistently with week view.
-      const fmt = new Intl.DateTimeFormat(
-        locale,
-        buildFormatOptions(
-          { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' },
-          fmtOverrides,
-        ),
-      );
-      return fmt.formatRange(toDate(start), toDate(lastVisible));
-    }
-    case 'month':
-    case 'monthList': {
-      return new Intl.DateTimeFormat(
-        locale,
-        buildFormatOptions({ year: 'numeric', month: 'long', timeZone: 'UTC' }, fmtOverrides),
-      ).format(toDate(cursor.value));
-    }
-    case 'agenda':
-    case 'timeline': {
-      // Both views span a configurable range of days; the label is
-      // the formatted date-range bounds, same as agenda's existing
-      // shape.
-      const fmt = new Intl.DateTimeFormat(
-        locale,
-        buildFormatOptions(
-          { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' },
-          fmtOverrides,
-        ),
-      );
-      return fmt.formatRange(toDate(start), toDate(lastVisible));
-    }
-    case 'year':
-      return String(cursor.value.year);
-    default:
-      return '';
-  }
-});
-
-function toDate(d: Temporal.PlainDate): Date {
-  // Anchor at UTC midnight so Intl with timeZone:'UTC' renders the
-  // exact calendar date and never drifts by a day.
-  return new Date(Date.UTC(d.year, d.month - 1, d.day));
-}
+// One formatter for the header and `api.rangeLabel` (core
+// `formatRangeLabel`), so hosts that draw their own controls show
+// exactly this text.
+const rangeLabel = computed<string>(() => props.builder.api.rangeLabel.value);
 
 // ─── View-switcher labels ────────────────────────────────────────
 
@@ -484,7 +420,14 @@ onBeforeUnmount(() => {
 <template>
   <div class="coar-calendar" :class="[`coar-calendar--density-${state.density}`]">
     <!-- ── Header ──────────────────────────────────────────────── -->
-    <slot name="header" :view="view" :cursor="cursor" :range="window" :controls="headerControls">
+    <slot
+      v-if="!props.hideHeader"
+      name="header"
+      :view="view"
+      :cursor="cursor"
+      :range="window"
+      :controls="headerControls"
+    >
       <header class="coar-calendar__header">
         <slot name="headerStart" :controls="headerControls" />
         <div class="coar-calendar__nav">
@@ -508,7 +451,7 @@ onBeforeUnmount(() => {
         </div>
         <span class="coar-calendar__range-label">{{ rangeLabel }}</span>
         <span class="coar-calendar__spacer" />
-        <div class="coar-calendar__view-switcher">
+        <div v-if="!props.hideViewSwitcher" class="coar-calendar__view-switcher">
           <slot
             name="viewSwitcher"
             :view="view"
@@ -524,7 +467,9 @@ onBeforeUnmount(() => {
           </slot>
         </div>
         <div
-          v-if="navigationView === 'month' && monthModeOptions.length > 1"
+          v-if="
+            !props.hideModeSwitcher && navigationView === 'month' && monthModeOptions.length > 1
+          "
           class="coar-calendar__mode-switcher"
         >
           <CoarSegmentedControl
@@ -535,7 +480,9 @@ onBeforeUnmount(() => {
           />
         </div>
         <div
-          v-else-if="navigationView === 'day' && dayModeOptions.length > 1"
+          v-else-if="
+            !props.hideModeSwitcher && navigationView === 'day' && dayModeOptions.length > 1
+          "
           class="coar-calendar__mode-switcher"
         >
           <CoarSegmentedControl
@@ -629,6 +576,9 @@ onBeforeUnmount(() => {
       <CoarAgendaView v-else-if="view === 'agenda'" ref="agendaView" :builder="props.builder">
         <template v-if="$slots.event" #event="slotProps">
           <slot name="event" v-bind="slotProps" :view="view" />
+        </template>
+        <template v-if="$slots.agendaEmpty" #empty>
+          <slot name="agendaEmpty" />
         </template>
       </CoarAgendaView>
 
@@ -761,6 +711,8 @@ onBeforeUnmount(() => {
   /* Time-grid views scroll vertically through the hour range. */
   overflow-y: auto;
   overflow-x: hidden;
+  /* Focus-driven scrolling lands above the host's bottom chrome. */
+  scroll-padding-bottom: var(--coar-calendar-scroll-inset-bottom, 0px);
 }
 .coar-calendar__body--month {
   /* The continuous month surface owns its scrolling so it can preserve

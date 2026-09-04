@@ -12,7 +12,7 @@
  * `@internal` JSDoc that consumers can ignore.
  */
 
-import type { ViewWindow } from '../core';
+import type { Temporal, ViewWindow } from '../core';
 
 /** Privileged method symbol — see `CalendarBuilder` for the impl. */
 export const SET_VISIBLE_RANGE: unique symbol = Symbol('CalendarBuilder.setVisibleRange');
@@ -23,10 +23,29 @@ export const INVALIDATE_LOADER_CACHE: unique symbol = Symbol(
 );
 
 /**
+ * Privileged method symbol — warm the loader / series caches for
+ * windows the user is about to see (the neighbour pages the time
+ * grid draws while it is being swiped). Never touches
+ * `_visibleRange` and never fires `onRangeChange`.
+ */
+export const PREFETCH_WINDOWS: unique symbol = Symbol('CalendarBuilder.prefetchWindows');
+/**
+ * Privileged method symbol — the continuous month surface reports the
+ * month of its topmost visible section while the user scrolls. Feeds
+ * `api.topmostVisibleMonth` and the month label; never moves the
+ * cursor (the surface does that itself once the scroll settles).
+ */
+export const SET_TOPMOST_VISIBLE_MONTH: unique symbol = Symbol(
+  'CalendarBuilder.setTopmostVisibleMonth',
+);
+
+/**
  * Type-narrowed surface a `CalendarBuilder` exposes to internal
- * composables (only `useViewWindow` today).
+ * composables (`useViewWindow`, the time-grid surface).
  */
 export interface PrivilegedBuilder {
   [SET_VISIBLE_RANGE](window: ViewWindow | null): void;
   [INVALIDATE_LOADER_CACHE](): void;
+  [PREFETCH_WINDOWS](windows: ReadonlyArray<ViewWindow>): void;
+  [SET_TOPMOST_VISIBLE_MONTH](month: Temporal.PlainYearMonth | null): void;
 }

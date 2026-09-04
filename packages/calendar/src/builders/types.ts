@@ -51,11 +51,9 @@ export type { DstPolicy } from '../core/temporal';
  *
  * Mutually exclusive with `events()`: setting one drops the other.
  */
-export type EventsLoader<
-  TMeta extends Record<string, unknown> = Record<string, unknown>,
-> = (window: ViewWindow) =>
-  | CalendarEvent<TMeta>[]
-  | Promise<CalendarEvent<TMeta>[]>;
+export type EventsLoader<TMeta extends Record<string, unknown> = Record<string, unknown>> = (
+  window: ViewWindow,
+) => CalendarEvent<TMeta>[] | Promise<CalendarEvent<TMeta>[]>;
 
 // ─── Recurring series loader ──────────────────────────────────────
 
@@ -74,11 +72,9 @@ import type { RecurringSeries } from '../core/types';
  * non-recurring events with the expanded recurring occurrences in
  * `getVisibleEvents()`.
  */
-export type SeriesLoader<
-  TMeta extends Record<string, unknown> = Record<string, unknown>,
-> = (window: ViewWindow) =>
-  | RecurringSeries<TMeta>[]
-  | Promise<RecurringSeries<TMeta>[]>;
+export type SeriesLoader<TMeta extends Record<string, unknown> = Record<string, unknown>> = (
+  window: ViewWindow,
+) => RecurringSeries<TMeta>[] | Promise<RecurringSeries<TMeta>[]>;
 
 // ─── Renderers ────────────────────────────────────────────────────
 
@@ -93,9 +89,7 @@ export type EventLayoutCtx<TMeta extends Record<string, unknown> = Record<string
   | { kind: 'monthBar'; layout: MonthMultiDayBar<TMeta> }
   | { kind: 'monthPill'; layout: MonthCellPill<TMeta> };
 
-export interface EventRendererCtx<
-  TMeta extends Record<string, unknown> = Record<string, unknown>,
-> {
+export interface EventRendererCtx<TMeta extends Record<string, unknown> = Record<string, unknown>> {
   event: CalendarEvent<TMeta>;
   view: CalendarView;
   /** Present for variant-specific layouts; absent for the universal
@@ -114,9 +108,7 @@ export interface EventRendererCtx<
  * Slot priority: a `<template #event>` slot on `<CoarCalendar>`
  * overrides the builder renderer (Vue convention).
  */
-export type EventRenderer<
-  TMeta extends Record<string, unknown> = Record<string, unknown>,
-> =
+export type EventRenderer<TMeta extends Record<string, unknown> = Record<string, unknown>> =
   | Component
   | ((ctx: EventRendererCtx<TMeta>) => Component | VNode);
 
@@ -131,9 +123,8 @@ export type DayHeaderRenderer =
 
 // ─── Handlers ─────────────────────────────────────────────────────
 
-export type EventClickHandler<
-  TMeta extends Record<string, unknown> = Record<string, unknown>,
-> = (payload: { event: CalendarEvent<TMeta>; native: PointerEvent }) => void;
+export type EventClickHandler<TMeta extends Record<string, unknown> = Record<string, unknown>> =
+  (payload: { event: CalendarEvent<TMeta>; native: PointerEvent }) => void;
 
 export type EventDoubleClickHandler<
   TMeta extends Record<string, unknown> = Record<string, unknown>,
@@ -153,9 +144,8 @@ export type EventDoubleClickHandler<
  * on a sustained hover — so this handler doubles as a long-press
  * surface on tablets if paired with a delay.
  */
-export type EventHoverHandler<
-  TMeta extends Record<string, unknown> = Record<string, unknown>,
-> = (payload: { event: CalendarEvent<TMeta>; native: PointerEvent }) => void;
+export type EventHoverHandler<TMeta extends Record<string, unknown> = Record<string, unknown>> =
+  (payload: { event: CalendarEvent<TMeta>; native: PointerEvent }) => void;
 
 /**
  * Fired on `pointerleave` from an event element. Companion to
@@ -190,9 +180,7 @@ export type EventHoverLeaveHandler<
  *     spring-forward gap, `'overlap'` for a fall-back overlap, `null`
  *     for clean drops. Resolution is governed by the active policy.
  */
-export interface EventDropPayload<
-  TMeta extends Record<string, unknown> = Record<string, unknown>,
-> {
+export interface EventDropPayload<TMeta extends Record<string, unknown> = Record<string, unknown>> {
   event: CalendarEvent<TMeta>;
   original: {
     /** Source zone preserved (C3) — pre-drag value. */
@@ -225,9 +213,9 @@ export interface EventDropPayload<
   native: PointerEvent | null;
 }
 
-export type EventDropHandler<
-  TMeta extends Record<string, unknown> = Record<string, unknown>,
-> = (payload: EventDropPayload<TMeta>) => void;
+export type EventDropHandler<TMeta extends Record<string, unknown> = Record<string, unknown>> = (
+  payload: EventDropPayload<TMeta>,
+) => void;
 
 export type DateClickHandler = (payload: {
   date: Temporal.PlainDate;
@@ -240,12 +228,26 @@ export type TimeClickHandler = (payload: {
   native: PointerEvent;
 }) => void;
 
-export type MoreClickHandler<
-  TMeta extends Record<string, unknown> = Record<string, unknown>,
-> = (payload: {
+/**
+ * Double-click on an EMPTY day cell (month grid / all-day band).
+ * Companion to `onEventDoubleClick` for the desktop convention
+ * "double-click creates, single-click selects". Never fires for a
+ * double-click on an event element — those stop propagation and
+ * route to `onEventDoubleClick` instead.
+ */
+export type DateDoubleClickHandler = (payload: {
   date: Temporal.PlainDate;
-  events: CalendarEvent<TMeta>[];
-  native: PointerEvent;
+  native: MouseEvent;
+}) => void;
+
+/**
+ * Double-click on an EMPTY time slot (week / work-week / day).
+ * `time` is snapped to the slot grid exactly like `onTimeClick`.
+ */
+export type TimeDoubleClickHandler = (payload: {
+  date: Temporal.PlainDate;
+  time: Temporal.PlainTime;
+  native: MouseEvent;
 }) => void;
 
 export type RangeChangeHandler = (window: ViewWindow) => void;
@@ -272,9 +274,10 @@ export interface CanDropTarget {
   displayZone: string;
 }
 
-export type CanDropFn<
-  TMeta extends Record<string, unknown> = Record<string, unknown>,
-> = (event: CalendarEvent<TMeta>, target: CanDropTarget) => boolean;
+export type CanDropFn<TMeta extends Record<string, unknown> = Record<string, unknown>> = (
+  event: CalendarEvent<TMeta>,
+  target: CanDropTarget,
+) => boolean;
 
 // ─── Builder configuration shapes ─────────────────────────────────
 

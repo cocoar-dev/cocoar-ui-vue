@@ -35,30 +35,25 @@ const props = withDefaults(defineProps<Props>(), {
   displayZone: undefined,
 });
 
+// `useLocalization()` returns the service INSTANCE; `t` is a class
+// method that reads `this._language`, so it must be called on the
+// service (never detached — an unbound `service.t` throws on the
+// first cross-zone event and blanks the agenda).
 const localization = useLocalization();
-const t = localization?.t ?? ((_k: string, _p?: unknown, fb?: string) => fb ?? '');
+const t = (key: string, params?: Record<string, unknown>, fallback?: string): string =>
+  localization ? localization.t(key, params, fallback) : (fallback ?? '');
 
 const hints = computed(() => getEventZoneHints(props.event, props.displayZone));
 
-const utcLabel = computed(() =>
-  t('coar.calendar.event.utcLabel', undefined, 'Global'),
-);
+const utcLabel = computed(() => t('coar.calendar.event.utcLabel', undefined, 'Global'));
 const utcTooltip = computed(() =>
-  t(
-    'coar.calendar.event.utcGlobalHint',
-    undefined,
-    'Global event — same instant worldwide',
-  ),
+  t('coar.calendar.event.utcGlobalHint', undefined, 'Global event — same instant worldwide'),
 );
 
 const sourceZoneTooltip = computed<string>(() => {
   const z = hints.value.sourceZone;
   if (!z) return '';
-  return t(
-    'coar.calendar.event.crossZoneHint',
-    { zone: z },
-    `Source zone: ${z}`,
-  );
+  return t('coar.calendar.event.crossZoneHint', { zone: z }, `Source zone: ${z}`);
 });
 
 const iconPx = computed(() => (props.size === 's' ? '14px' : '12px'));
@@ -109,7 +104,7 @@ const iconPx = computed(() => (props.size === 's' ? '14px' : '12px'));
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: var(--coar-color-accent, #2563eb);
+  background: var(--coar-color-accent, var(--coar-color-accent-500, #2563eb));
 }
 .coar-event-decorations__sr-only {
   position: absolute;

@@ -38,6 +38,7 @@
 import { type Ref, type MaybeRefOrGetter, computed, onScopeDispose, toValue, watch } from 'vue';
 import {
   type CalendarView,
+  type TimeGridRangeSpec,
   type ViewWindow,
   computeViewWindow,
   detectFirstDayOfWeekFromLocale,
@@ -53,8 +54,10 @@ export interface UseViewWindowOptions {
    * separately remember to set `builder.state.view`.
    */
   view?: CalendarView;
-  /** Resolved number of rendered day columns (may react to container width). */
+  /** Resolved column count for a `'responsive'` time-grid span (may react to container width). */
   dayColumnCount?: MaybeRefOrGetter<number>;
+  /** The time-grid range spec the surface renders with (day view only; week / workWeek are presets). */
+  timeGridRange?: MaybeRefOrGetter<TimeGridRangeSpec | null>;
   /** Adjacent months to include in the loader/recurrence window. */
   monthBuffer?: MaybeRefOrGetter<number>;
 }
@@ -117,6 +120,7 @@ export function useViewWindow<TMeta extends Record<string, unknown> = Record<str
       agendaLengthDays: toValue(builder.state.agendaLengthDays),
       timelineRangeDays: toValue(builder.state.timelineRangeDays),
       dayColumnCount: toValue(options?.dayColumnCount ?? builder.state.dayColumnCount),
+      timeGridRange: toValue(options?.timeGridRange ?? builder.state.timeGridRange),
       monthBuffer: toValue(options?.monthBuffer ?? 0),
       timezone: toValue(builder.state.timezone),
     });

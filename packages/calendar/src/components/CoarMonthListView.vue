@@ -6,8 +6,6 @@ import {
   buildAgendaItems,
   buildFormatOptions,
   detectFirstDayOfWeekFromLocale,
-  isAllDayEvent,
-  isTimedEvent,
   localizedWeekdayNames,
   monthGridDates,
   todayInZone,
@@ -17,6 +15,7 @@ import {
 import { CalendarBuilder } from '../builders/calendar-builder';
 import { useViewWindow } from '../composables/useViewWindow';
 import CoarAgendaEvent from './internal/agenda/CoarAgendaEvent.vue';
+import { agendaTimeLabel } from './internal/agenda/agendaTimeLabel';
 
 const props = defineProps<{ builder: CalendarBuilder<TMeta> }>();
 const { t } = useI18n();
@@ -100,25 +99,33 @@ function eventTitle(event: CalendarEvent<TMeta>): string {
 }
 function eventColor(event: CalendarEvent<TMeta>): string {
   const color = (event.meta as { color?: unknown } | undefined)?.color;
-  return typeof color === 'string' ? color : 'var(--coar-color-accent, #2563eb)';
+  return typeof color === 'string'
+    ? color
+    : 'var(--coar-color-accent, var(--coar-color-accent-500, #2563eb))';
 }
-function formatTime(event: CalendarEvent<TMeta>): string {
-  if (isAllDayEvent(event)) return t('coar.calendar.agenda.allDay', undefined, 'All day');
-  if (!isTimedEvent(event)) return '';
-  return new Intl.DateTimeFormat(
-    locale.value,
-    buildFormatOptions(
-      {
-        hour: 'numeric',
-        minute: '2-digit',
-        timeZone: state.value.timezone,
-      },
-      {
-        timeStyle: state.value.timeStyle,
-        hour12: state.value.hour12,
-      },
+const timeFormatter = computed(
+  () =>
+    new Intl.DateTimeFormat(
+      locale.value,
+      buildFormatOptions(
+        {
+          hour: 'numeric',
+          minute: '2-digit',
+          timeZone: state.value.timezone,
+        },
+        {
+          timeStyle: state.value.timeStyle,
+          hour12: state.value.hour12,
+        },
+      ),
     ),
-  ).format(new Date(event.start.epochMilliseconds));
+);
+function formatTime(event: CalendarEvent<TMeta>): string {
+  return agendaTimeLabel(
+    event,
+    (ms) => timeFormatter.value.format(new Date(ms)),
+    t('coar.calendar.agenda.allDay', undefined, 'All day'),
+  );
 }
 </script>
 
@@ -266,6 +273,13 @@ function formatTime(event: CalendarEvent<TMeta>): string {
   min-height: 0;
   overflow: auto;
   border-top: 1px solid var(--coar-border-neutral-tertiary);
+  scroll-padding-bottom: var(--coar-calendar-scroll-inset-bottom, 0px);
+}
+/* Bottom content inset (iOS parity), see `--coar-calendar-scroll-inset-bottom`. */
+.coar-month-list-view__agenda::after {
+  content: '';
+  display: block;
+  height: var(--coar-calendar-scroll-inset-bottom, 0px);
 }
 .coar-month-list-view__selected-title {
   position: sticky;
@@ -294,6 +308,12 @@ function formatTime(event: CalendarEvent<TMeta>): string {
   .coar-month-list-view__selector {
     overflow: auto;
     border-right: 1px solid var(--coar-border-neutral-tertiary);
+    scroll-padding-bottom: var(--coar-calendar-scroll-inset-bottom, 0px);
+  }
+  .coar-month-list-view__selector::after {
+    content: '';
+    display: block;
+    height: var(--coar-calendar-scroll-inset-bottom, 0px);
   }
   .coar-month-list-view__agenda {
     border-top: 0;

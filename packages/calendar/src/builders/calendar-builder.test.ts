@@ -61,7 +61,8 @@ describe('CalendarBuilder construction', () => {
     const b = CalendarBuilder.create();
     expect(toValue(b.state.dstPolicy)).toBe('compatible');
     expect(typeof toValue(b.state.timezone)).toBe('string'); // browser zone
-    expect(toValue(b.state.locale)).toBe('en-US');
+    // Article 9: no locale decision baked in — the host language (or en-US) is resolved at read time.
+    expect(toValue(b.state.locale)).toBeUndefined();
     expect(b.state.view.value).toBe('month');
     expect(toValue(b.state.availableViews)).toEqual([
       'year',
@@ -112,7 +113,6 @@ describe('CalendarBuilder construction', () => {
       .onEventDrop(() => {})
       .onDateClick(() => {})
       .onTimeClick(() => {})
-      .onMoreClick(() => {})
       .onRangeChange(() => {});
     expect(result).toBe(b);
     expect(toValue(b.state.shadeWeekends)).toBe(false);
@@ -374,11 +374,45 @@ describe('Navigation setters', () => {
     expect(b.state.date.value.toString()).toBe('2026-06-08');
   });
 
-  it('day navigation pages by the configured column count', () => {
+  it('multi-day navigation pages by the configured column floor before the surface mounts', () => {
+    const b = CalendarBuilder.create();
+    b.view('day').dayMode('multiDay').dayColumnCount(3).date(Temporal.PlainDate.from('2026-06-15'));
+    b.api.next();
+    expect(b.state.date.value.toString()).toBe('2026-06-18');
+  });
+
+  it('single-day navigation pages by one, whatever the column floor says', () => {
     const b = CalendarBuilder.create();
     b.view('day').dayColumnCount(3).date(Temporal.PlainDate.from('2026-06-15'));
     b.api.next();
-    expect(b.state.date.value.toString()).toBe('2026-06-18');
+    expect(b.state.date.value.toString()).toBe('2026-06-16');
+  });
+
+  it('an explicit timeGridRange step applies to next / prev (5 shown, page by 7)', () => {
+    const b = CalendarBuilder.create();
+    b.view('day')
+      .timeGridRange({ anchor: 'cursor', span: 5, filter: 'all', step: 7 })
+      .date(Temporal.PlainDate.from('2026-08-10'));
+    b.api.next();
+    expect(b.state.date.value.toString()).toBe('2026-08-17');
+    b.api.prev();
+    b.api.prev();
+    expect(b.state.date.value.toString()).toBe('2026-08-03');
+  });
+
+  it("step 'span' pages by the span, and week / workWeek ignore the explicit spec", () => {
+    const b = CalendarBuilder.create();
+    b.view('day')
+      .timeGridRange({ anchor: 'cursor', span: 4, filter: 'all', step: 'span' })
+      .date(Temporal.PlainDate.from('2026-08-10'));
+    b.api.next();
+    expect(b.state.date.value.toString()).toBe('2026-08-14');
+    b.view('week');
+    b.api.next();
+    expect(b.state.date.value.toString()).toBe('2026-08-21');
+    b.view('workWeek');
+    b.api.prev();
+    expect(b.state.date.value.toString()).toBe('2026-08-14');
   });
 
   it('day navigation uses the currently rendered responsive column count', () => {

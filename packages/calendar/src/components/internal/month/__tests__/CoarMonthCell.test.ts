@@ -34,7 +34,7 @@ describe('<CoarMonthCell>', () => {
       expect(wrapper.find('.coar-month-cell__day-number').text()).toBe('4');
     });
 
-    it('exposes data-day-key for overflow detection', () => {
+    it('exposes data-day-key for the drop hit-test', () => {
       const wrapper = mountCell();
       expect(wrapper.find('.coar-month-cell').attributes('data-day-key')).toBe('2026-05-04');
     });
@@ -86,7 +86,9 @@ describe('<CoarMonthCell>', () => {
   describe('kebab menu trigger', () => {
     it('reflects menuOpenForThisCell on aria-expanded', () => {
       const closed = mountCell();
-      expect(closed.find('.coar-month-cell__menu-trigger').attributes('aria-expanded')).toBe('false');
+      expect(closed.find('.coar-month-cell__menu-trigger').attributes('aria-expanded')).toBe(
+        'false',
+      );
 
       const open = mountCell({ menuOpenForThisCell: true });
       expect(open.find('.coar-month-cell__menu-trigger').attributes('aria-expanded')).toBe('true');
@@ -128,7 +130,9 @@ describe('<CoarMonthCell>', () => {
   describe('density', () => {
     it('applies --density-compact only when density is compact', () => {
       const compact = mountCell({ density: 'compact' });
-      expect(compact.find('.coar-month-cell').classes()).toContain('coar-month-cell--density-compact');
+      expect(compact.find('.coar-month-cell').classes()).toContain(
+        'coar-month-cell--density-compact',
+      );
 
       const comfortable = mountCell();
       expect(comfortable.find('.coar-month-cell').classes()).not.toContain(

@@ -17,6 +17,15 @@ search, a sort menu, selection, grouping, tiles, nesting and drag & drop.
 Along the way the shared drag & drop composable gained a pointer engine, so
 touch-first surfaces can reorder without giving up HTML5 drops on the desktop.
 
+**The calendar catches up — with its consumers and with iOS.** Every finding
+timetodo, amZettel and the Event-Tree stress app reported against
+`@cocoar/vue-calendar` since May is addressed, and every behaviour
+`Cocoar.Calendar.iOS` 5.3.1 added after the two calendars were last aligned
+lands on the web with the same contracts. Along the way Day, Multi-day, Week
+and Work week became one time-grid model, the header became optional
+(`hideHeader`, `api.rangeLabel`), and the builder's `locale` stopped
+defaulting to `en-US`.
+
 ### Added
 
 - **`CoarDataList` — virtualized record list with a free item template.** Every
@@ -90,6 +99,117 @@ touch-first surfaces can reorder without giving up HTML5 drops on the desktop.
   headless model, sorting, search, keyboard, the full API and the i18n keys;
   the Drag & Drop page documents the engines.
 
+- **Live topmost month while scrolling the Month view.** `api.topmostVisibleMonth`
+  is the month of the topmost visible section, updated on every scroll
+  frame (finger down, deceleration); `api.rangeLabel` and the header follow
+  it immediately. The cursor (`state.date`) — and with it `onRangeChange`
+  and the loaders — catches up only once the scroll settles (`scrollend`,
+  or a 160 ms fallback). A month stays active until its section has
+  scrolled out completely. Counterpart of iOS 3.6.
+- **Compact card anatomy under overlap (Day / Week).** The built-in card now
+  shows the location (`meta.location`) and the time span when it has the
+  height, and lets the title wrap once on tall cards. When cards in front
+  leave less than `timedEventDetailMinWidth(px)` (default `112`, iOS
+  `timedEventDetailMinimumWidth`) unobscured, the card drops to one
+  end-truncated title line with no rows — every card stays its own click
+  and drag target. `0` disables the switch; custom `#event` slots and
+  `eventRenderer` are never touched. Counterpart of iOS 4.0.
+
+- **`--coar-calendar-scroll-inset-bottom`** — bottom content inset for
+  every scrolling surface (Day / Week grids, Month, List, Agenda,
+  Timeline, Year), the counterpart of the iOS calendar's content inset.
+  Set it to the height of whatever overlays the bottom edge (tab bar,
+  floating button, `env(safe-area-inset-bottom)`) and the last rows scroll
+  clear of it; focus-driven scrolling honours it via `scroll-padding-bottom`.
+  Default `0px`.
+
+- **`@cocoar/vue-calendar` — all-day band lane cap.**
+  `allDayMaxVisibleLanes(n | null)` (default `3`, like the system calendar)
+  folds lanes beyond the cap into per-day "+N" markers; a click expands the
+  band, a "Show fewer" control folds it back. `allDayBandMode('fitsContent' |
+  'alwaysOneLane' | 'reservesCap')` decides how much height the band claims —
+  `reservesCap` keeps the hour axis at the same place on every day. Pure
+  `capAllDayBand` / `allDayBandLanes` are exported from the core subpath.
+- **Agenda empty state.** `<CoarAgendaView>` gains an `empty` slot
+  (`agendaEmpty` on the shell). It appears only when the list draws nothing
+  and no load is in flight, never next to empty-day headers, and has no
+  default rendering.
+- **Contrast policy and per-event text colour.** `eventTextContrast('wcag' |
+  'apca')` selects how the automatic black/white ink on event surfaces is
+  chosen; APCA (the WCAG 3 draft method) picks white on saturated mid-tones
+  such as `#e03131` where WCAG 2 narrowly picks black. `meta.textColor`
+  overrides either policy for one event. `eventInkColor` joins
+  `eventTextColor` on the core subpath.
+- **One model for every time grid.** Day, Multi-day, Week and Work week now
+  render on one surface and are presets of one range spec — `anchor`
+  (`cursor` | `weekStart`), `span` (days | `responsive`), `filter` (`all` |
+  `workDays`), `step` (days | `span`). `builder.timeGridRange(...)` lets the
+  Day view use any other combination ("start Monday, show five days, page by
+  a week"); Week and Work week stay fixed presets. `resolveTimeGridRange` and
+  the presets are exported from the core subpath. Every grid feature — touch
+  paging, empty-cell hooks, the all-day cap — therefore behaves identically
+  across the four views by construction.
+- **Shell chrome can be switched off.** `<CoarCalendar hide-header>` renders
+  only the body for hosts that own navigation and view selection through
+  the api; `hide-view-switcher` and `hide-mode-switcher` drop one control
+  while keeping the header. Until now hosts hid these with `:deep()` CSS
+  overrides, because an empty `#header` slot falls back to the built-in bar.
+- **Swipe paging on week / work-week / day.** A horizontal pan on the columns
+  (touch) or a drag across the day-name strip (any pointer, grab cursor)
+  moves the grid with the pointer — header cells, all-day band and columns
+  together, the hour axis stays put — and pages on release past a quarter of
+  the width or on a fast flick. A touch that never moves is a tap and reaches
+  `onTimeClick` on release, so a swipe never starts with a stray slot click.
+  On the columns, mouse and pen keep their click-on-press semantics. While
+  you drag, the previous and next page are drawn beside the current one —
+  same columns, same events — and the builder pre-warms those two windows
+  in loader mode (`prefetchNeighbours(false)` opts out;
+  `api.getEventsForWindow(window)` is the read behind it).
+  `swipeNavigation(false)` switches it off; `prefers-reduced-motion` skips
+  the settle animation.
+- **`@cocoar/vue-calendar/styles` subpath.** The package stylesheet
+  (`dist/vue-calendar.css`) is now declared in the `exports` map, matching
+  `@cocoar/vue-ui/styles`. Hosts drop the relative
+  `node_modules/@cocoar/vue-calendar/dist/vue-calendar.css` import.
+- **`onDateDoubleClick` / `onTimeDoubleClick` builder hooks.** Empty month
+  cells, all-day cells and time-grid slots now report double-clicks
+  separately from single clicks, so the desktop convention "click selects,
+  double-click creates" needs no host-side click timer. `onTimeDoubleClick`
+  snaps to the slot grid exactly like `onTimeClick`; a double-click on an
+  event element still reaches `onEventDoubleClick` only.
+- **Shipped translation catalogs.** `calendarMessages` (`en` / `de`, flat
+  `coar.calendar.*` keys) and `createCalendarTranslationSource()` for
+  `service.addTranslationSource(...)`. Regional tags resolve to their base
+  language; a host source registered afterwards overrides per key. A test
+  scans the source tree and fails when a component reads a key either
+  catalog lacks.
+
+- **`api.rangeLabel`** — the title of the visible window ("15.–21. Juni
+  2026", "June 2026", "2026") as a readonly computed, formatted by the same
+  `formatRangeLabel` (core) the built-in header uses. For hosts that set
+  `hideHeader` and draw their own navigation. Correct before any view has
+  mounted, too.
+
+### Changed
+
+- **Agenda and Month List show time spans.** Timed events with an end render
+  `start – end` (en dash) in the time column; point events keep the start
+  time; all-day events keep the all-day label. Mirrors the SwiftUI port's
+  default.
+- **`--coar-color-accent` follows the vue-ui accent ramp.** Every usage now
+  falls back to `--coar-color-accent-500` before the historical blue, so a
+  host that brands `--coar-accent` gets matching today markers and default
+  event fills without a calendar-specific override. An explicit
+  `--coar-color-accent` still wins.
+
+### Removed
+
+- **`onMoreClick`** and the `MoreClickHandler` type. The setter never
+  fired: it was specified for a "+N more" overflow surface in the month
+  view, and the month view deliberately has none (every event stays in
+  the DOM, cells scroll, a row expands via its cell menu). Use
+  `onDateClick` plus `api.getEventsForWindow(window)` for a day's events.
+
 ### Fixed
 
 - **Date-time pickers no longer revert typed edits on blur.** Maskito's
@@ -100,6 +220,28 @@ touch-first surfaces can reorder without giving up HTML5 drops on the desktop.
   Maskito's canonical form (two-digit hour, non-breaking space before the
   meridiem) so programmatic writes and the DOM agree. Round-trip tests cover
   all four date patterns in 24-hour and 12-hour mode.
+
+- **Locale fallback to the host's localization service now works.** The
+  builder's `locale` defaulted to `'en-US'`, so the documented fallback to
+  the `@cocoar/vue-localization` language never applied in any view. The
+  default is now `undefined`: an explicit `locale(...)` wins, then the
+  host language, then `en-US`. Hosts with the localization plugin that
+  never called `locale(...)` will see the calendar in their app language.
+
+- **Cross-zone and UTC decorations no longer crash the agenda.** The
+  decoration component called the localization service's `t` detached from
+  its instance; the first event whose source zone differed from the display
+  zone threw `Cannot read properties of undefined (reading '_language')` and
+  left the agenda blank. The call is now bound to the service.
+- **Clicking an event no longer also reports an empty-cell click.** A pill or
+  card's `pointerdown` bubbled through its month cell / time-grid column, so
+  `onDateClick` / `onTimeClick` fired alongside `onEventClick`. The
+  empty-surface hooks now ignore pointer events that started inside an event
+  element, matching their documented "empty cell / slot" contract.
+- **Multi-day all-day events are announced with their inclusive last day.**
+  The month-grid `aria-label` named the RFC-5545 exclusive end (a Fri–Sun stay
+  read "Fri – Mon"); it now names the last covered day, and single-day
+  all-day events get one date instead of "Fri – Fri".
 
 ---
 

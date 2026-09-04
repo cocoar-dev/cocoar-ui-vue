@@ -41,8 +41,6 @@ import {
   detectFirstDayOfWeekFromLocale,
   startOfWeek,
   todayInZone,
-  isAllDayEvent,
-  isTimedEvent,
   buildFormatOptions,
   type AgendaItem,
   type AgendaEventItem,
@@ -52,6 +50,7 @@ import {
 import { CalendarBuilder } from '../builders/calendar-builder';
 import CoarAgendaDayHeader from './internal/agenda/CoarAgendaDayHeader.vue';
 import CoarAgendaEvent from './internal/agenda/CoarAgendaEvent.vue';
+import { agendaTimeLabel } from './internal/agenda/agendaTimeLabel';
 import { useViewWindow } from '../composables/useViewWindow';
 
 // Inlined defineProps argument to avoid vue-tsc TS4025 — see note in
@@ -82,6 +81,15 @@ defineSlots<{
     item: AgendaHeaderItem;
     isToday: boolean;
   }): unknown;
+  /**
+   * Shown when the list draws NOTHING — no events in the window and
+   * no empty-day headers (`showEmptyDays` off) — and no load is in
+   * flight. No default: without the slot the surface stays blank,
+   * as before. Rendered as an overlay above the (empty) surface so
+   * the virtualized list stays mounted and scroll-to-date refs stay
+   * valid.
+   */
+  empty?(): unknown;
 }>();
 
 // ─── Builder bindings ────────────────────────────────────────────────
@@ -150,6 +158,16 @@ const rangeStart = computed(() => rangeStartDate.value.toString());
 const rangeEnd = computed(() => rangeEndDate.value.toString());
 
 // ─── Items ───────────────────────────────────────────────────────────
+
+/**
+ * The empty state only appears when nothing at all is drawn. With
+ * `showEmptyDays` the list draws headers, so a "no events" message
+ * would be redundant; during a load it would flash and then be
+ * replaced — worse than none.
+ */
+const showEmptyState = computed(
+  () => items.value.length === 0 && !showEmptyDays.value && !props.builder.api.loading.value,
+);
 
 const items = computed<AgendaItem[]>(() =>
   buildAgendaItems(events.value, {
@@ -232,11 +250,11 @@ function selectDayAgendaDate(event: MouseEvent, date: Temporal.PlainDate): void 
 }
 
 function formatEventTime(event: CalendarEvent<TMeta>): string {
-  if (isAllDayEvent(event)) {
-    return t('coar.calendar.agenda.allDay', undefined, 'All day');
-  }
-  if (!isTimedEvent(event)) return '';
-  return timeFormatter.value.format(new Date(event.start.epochMilliseconds));
+  return agendaTimeLabel(
+    event,
+    (ms) => timeFormatter.value.format(new Date(ms)),
+    t('coar.calendar.agenda.allDay', undefined, 'All day'),
+  );
 }
 
 function eventTitle(event: CalendarEvent<TMeta>): string {
@@ -248,7 +266,7 @@ function eventColor(event: CalendarEvent<TMeta>): string | undefined {
   return typeof meta?.color === 'string' ? meta.color : undefined;
 }
 function eventColorOrDefault(event: CalendarEvent<TMeta>): string {
-  return eventColor(event) ?? 'var(--coar-color-accent, #2563eb)';
+  return eventColor(event) ?? 'var(--coar-color-accent, var(--coar-color-accent-500, #2563eb))';
 }
 
 // ─── Click handlers ──────────────────────────────────────────────────
@@ -481,6 +499,15 @@ defineExpose({
         </template>
       </template>
     </VirtualizedSurface1DY>
+
+    <div
+      v-if="$slots.empty && showEmptyState"
+      class="coar-agenda-view__empty"
+      role="status"
+      aria-live="polite"
+    >
+      <slot name="empty" />
+    </div>
   </div>
 </template>
 
@@ -499,6 +526,19 @@ defineExpose({
   flex: 1 1 auto;
   min-height: 0;
   height: auto;
+}
+
+/* Overlay, not a replacement: the surface underneath stays mounted
+   and keeps the anchor mechanics; the empty state takes no gestures. */
+.coar-agenda-view__empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--coar-spacing-l, 24px);
+  color: var(--coar-text-subtle, #6c7280);
+  pointer-events: none;
 }
 
 .coar-agenda-view__week-strip {

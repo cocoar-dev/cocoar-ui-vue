@@ -94,7 +94,10 @@ function openMonth(date: Temporal.PlainDate) {
   box-sizing: border-box;
   height: 100%;
   padding: 20px;
+  /* Bottom content inset (iOS parity), see `--coar-calendar-scroll-inset-bottom`. */
+  padding-bottom: calc(20px + var(--coar-calendar-scroll-inset-bottom, 0px));
   overflow: auto;
+  scroll-padding-bottom: var(--coar-calendar-scroll-inset-bottom, 0px);
   background: var(--coar-calendar-bg, #fff);
   font-family: var(--coar-body-base-family, system-ui, sans-serif);
 }

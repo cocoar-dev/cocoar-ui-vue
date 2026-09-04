@@ -76,9 +76,7 @@ const state = computed(() => {
   };
 });
 
-const visibleRange = computed<ViewWindow | null>(
-  () => props.builder.api.visibleRange.value,
-);
+const visibleRange = computed<ViewWindow | null>(() => props.builder.api.visibleRange.value);
 
 const windowStart = computed<Temporal.PlainDate | null>(() => {
   const w = visibleRange.value;
@@ -115,9 +113,7 @@ const dateAxis = computed<Temporal.PlainDate[]>(() => {
   return out;
 });
 
-const today = computed<Temporal.PlainDate>(() =>
-  Temporal.Now.plainDateISO(state.value.timezone),
-);
+const today = computed<Temporal.PlainDate>(() => Temporal.Now.plainDateISO(state.value.timezone));
 
 function isToday(d: Temporal.PlainDate): boolean {
   return d.equals(today.value);
@@ -139,9 +135,7 @@ const dateHeaderFormatter = computed(
 );
 
 function formatDateHeader(d: Temporal.PlainDate): string {
-  return dateHeaderFormatter.value.format(
-    new Date(Date.UTC(d.year, d.month - 1, d.day)),
-  );
+  return dateHeaderFormatter.value.format(new Date(Date.UTC(d.year, d.month - 1, d.day)));
 }
 
 function eventTitle(event: CalendarEvent<TMeta>): string {
@@ -164,18 +158,12 @@ function onEventHover(event: CalendarEvent<TMeta>, native: PointerEvent): void {
   if (handler) handler({ event, native });
 }
 
-function onEventHoverLeave(
-  event: CalendarEvent<TMeta>,
-  native: PointerEvent,
-): void {
+function onEventHoverLeave(event: CalendarEvent<TMeta>, native: PointerEvent): void {
   const handler = props.builder.state.onEventHoverLeave;
   if (handler) handler({ event, native });
 }
 
-function onEventDoubleClick(
-  event: CalendarEvent<TMeta>,
-  native: MouseEvent,
-): void {
+function onEventDoubleClick(event: CalendarEvent<TMeta>, native: MouseEvent): void {
   const handler = props.builder.state.onEventDoubleClick;
   if (handler) handler({ event, native });
 }
@@ -310,14 +298,8 @@ const visibleRows = computed(() => {
   const headerH = rh;
   const startScroll = scrollTop.value - headerH;
   const endScroll = scrollTop.value + viewportHeight.value - headerH;
-  const firstIdx = Math.max(
-    0,
-    Math.floor(startScroll / rh) - VIRTUALIZATION_BUFFER_ROWS,
-  );
-  const lastIdx = Math.min(
-    rows.length - 1,
-    Math.ceil(endScroll / rh) + VIRTUALIZATION_BUFFER_ROWS,
-  );
+  const firstIdx = Math.max(0, Math.floor(startScroll / rh) - VIRTUALIZATION_BUFFER_ROWS);
+  const lastIdx = Math.min(rows.length - 1, Math.ceil(endScroll / rh) + VIRTUALIZATION_BUFFER_ROWS);
   if (firstIdx > lastIdx) return [];
   return rows.slice(firstIdx, lastIdx + 1);
 });
@@ -419,7 +401,10 @@ defineExpose({
       <!-- Bars area: regular flow (no sticky), scrolls both axes -->
       <div
         class="coar-timeline-view__bars-area"
-        :style="{ width: `${layout.totalWidth}px`, height: `${Math.max(layout.totalHeight, state.rowHeight)}px` }"
+        :style="{
+          width: `${layout.totalWidth}px`,
+          height: `${Math.max(layout.totalHeight, state.rowHeight)}px`,
+        }"
       >
         <!-- Day grid lines as background -->
         <div class="coar-timeline-view__day-grid-bg">
@@ -456,7 +441,9 @@ defineExpose({
               top: `${row.top + row.height * 0.25}px`,
               width: `${bar.width}px`,
               height: `${row.height * 0.5}px`,
-              background: eventColor(bar.event) ?? 'var(--coar-color-accent, #2563eb)',
+              background:
+                eventColor(bar.event) ??
+                'var(--coar-color-accent, var(--coar-color-accent-500, #2563eb))',
             }"
             :aria-label="eventTitle(bar.event)"
             @click="onEventClick(bar.event, $event)"
@@ -487,6 +474,7 @@ defineExpose({
   width: 100%;
   height: 100%;
   overflow: auto;
+  scroll-padding-bottom: var(--coar-calendar-scroll-inset-bottom, 0px);
   font-family: var(--coar-body-base-family);
   font-size: var(--coar-body-s-size, 13px);
   background: var(--coar-background-neutral-primary);
@@ -518,6 +506,12 @@ defineExpose({
   cursor: grabbing;
 }
 
+/* Bottom content inset (iOS parity), see `--coar-calendar-scroll-inset-bottom`. */
+.coar-timeline-view::after {
+  content: '';
+  display: block;
+  height: var(--coar-calendar-scroll-inset-bottom, 0px);
+}
 .coar-timeline-view__grid {
   display: grid;
   /* width / height / template come from inline style — the layout

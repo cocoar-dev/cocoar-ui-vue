@@ -100,7 +100,7 @@ Constrain the visible hour range in `day` / `week` views via `timeRange([startHo
 
 ## Locale & first day of week
 
-Pass any BCP-47 locale via `locale(...)`. The first day of week is auto-detected from the locale (`en-US` → Sunday, `de-AT` / `fr-FR` → Monday, `ja-JP` → Sunday) and used by the `month` and `week` view windows. Override with `firstDayOfWeek(0..6)` (0 = Sunday … 6 = Saturday) when needed. Range labels and weekday names use the same locale.
+Pass any BCP-47 locale via `locale(...)`. Without it the calendar follows the host's `@cocoar/vue-localization` language, and `en-US` when no localization service is installed. The first day of week is auto-detected from the locale (`en-US` → Sunday, `de-AT` / `fr-FR` → Monday, `ja-JP` → Sunday) and used by the `month` and `week` view windows. Override with `firstDayOfWeek(0..6)` (0 = Sunday … 6 = Saturday) when needed. Range labels and weekday names use the same locale.
 
 <preview path="./demos/CalendarLocale.vue" />
 
@@ -414,12 +414,18 @@ The calendar owns interaction geometry; the host application owns the editing ex
 
 ```ts
 builder
-  .onDateClick(({ date, native }) => openCreate({ date, anchor: native.currentTarget }))
-  .onTimeClick(({ date, time, native }) => openCreate({ date, time, anchor: native.currentTarget }))
+  .onDateClick(({ date }) => selectDay(date))
+  .onTimeClick(({ date, time }) => selectSlot(date, time))
+  .onDateDoubleClick(({ date, native }) => openCreate({ date, anchor: native.currentTarget }))
+  .onTimeDoubleClick(({ date, time, native }) =>
+    openCreate({ date, time, anchor: native.currentTarget }),
+  )
   .onEventClick(({ event, native }) => openDetails(event, native.currentTarget))
   .onEventDoubleClick(({ event }) => openEditModal(event))
   .onEventDrop(({ event, next }) => persistMove(event.id, next));
 ```
+
+Single-click and double-click on an empty cell or slot are separate hooks. The desktop convention "click selects, double-click creates" (Apple Calendar, Outlook) therefore needs no click-timer on the host side, and the Google-style "click opens a popup" model is one handler away. The single-click hooks still fire for the two clicks that precede a double-click. A double-click on an event element stops at the event and reaches `onEventDoubleClick` only — never the date / time hooks. `onTimeDoubleClick` snaps to the slot grid exactly like `onTimeClick`.
 
 `native.currentTarget` is the rendered calendar element and can be passed directly to `@cocoar/vue-ui`'s overlay service. Applications using a modal or routed editor can ignore it. For recurring events, call `getRecurrenceMeta(event)` before opening the editor so the host can offer This occurrence / This and following / Entire series; the calendar supplies stable occurrence identity but never guesses the backend mutation.
 
@@ -480,6 +486,8 @@ api.refreshRange(start, end);   // invalidate intersecting cache entries
 
 watch(api.loading, (b) => console.log('loading?', b));
 watch(api.visibleRange, (w) => console.log('window changed', w));
+api.rangeLabel.value;           // "15.–21. Juni 2026" — the header's title, for your own header
+api.topmostVisibleMonth.value;  // Month view: the month at the top while scrolling (cursor follows on settle)
 ```
 
 <preview path="./demos/CalendarImperativeApi.vue" />
@@ -534,14 +542,22 @@ The builder is **flat** — every setter lives directly on it. There are no sub-
 | `canDrop(fn)` | `(event, target) => boolean` | Drop-target validator. Read refs inside the function for reactive policies. |
 | `eventRenderer(r)` | `EventRenderer<TMeta>` | Universal event renderer. Branch on `ctx.layout?.kind` (`'positioned'` / `'allDayBar'` / `'monthPill'` / `'monthBar'`) to render per layout variant. See "Custom event rendering" above. |
 | `dayHeaderRenderer(r)` | `DayHeaderRenderer` | Day column header. |
+| `allDayMaxVisibleLanes(n)` | `MaybeRefOrGetter<number \| null>` | Lanes the all-day band (week / work-week / day) shows before it folds the rest behind per-day "+N" markers. Default `3`; `null` = unlimited. A click on a marker expands the band; a collapse control folds it back. |
+| `timedEventDetailMinWidth(px)` | `MaybeRefOrGetter<number>` | Unobscured width below which an overlapped Day / Week card switches to the compact anatomy (one end-truncated title line, no location, no time row). Default `112` like iOS; `0` disables the switch. See [Overlapping timed cards](/components/calendar/week-view#overlapping-timed-cards). |
+| `allDayBandMode(m)` | `MaybeRefOrGetter<'fitsContent' \| 'alwaysOneLane' \| 'reservesCap'>` | How much height the all-day band claims. `fitsContent` (default) follows the content and disappears without all-day events; `alwaysOneLane` keeps at least one lane so the grid never jumps 0↔1; `reservesCap` is always `allDayMaxVisibleLanes` tall so the hour axis sits at the same place on every day. |
+| `timeGridRange(spec)` | `MaybeRefOrGetter<TimeGridRangeSpec \| null>` | Anchor / span / filter / step of the Day view's columns and paging. Week and Work week are fixed presets of the same model. See the [Day view](/components/calendar/day-view#one-model-for-every-time-grid). |
+| `swipeNavigation(b)` | `MaybeRefOrGetter<boolean>` | Touch paging on week / work-week / day (default `true`): a horizontal pan moves the grid with the finger and pages on release past a quarter of the width or on a fast flick. A touch that never moves is a tap and reaches `onTimeClick` on release. On the columns mouse / pen are unaffected; a mouse drag across the day-name strip pages too. Honours `prefers-reduced-motion`. |
+| `prefetchNeighbours(b)` | `MaybeRefOrGetter<boolean>` | Warm the loader / series caches for the previous and next page of the time grids so the neighbour pages drawn during a swipe carry their events. Default `true`; one extra fetch per neighbour in loader mode, a no-op in `events()` mode. |
+| `eventTextContrast(p)` | `MaybeRefOrGetter<'wcag' \| 'apca'>` | How the automatic black/white text on event surfaces is chosen. `'wcag'` (default) is the WCAG 2 ratio; `'apca'` (WCAG 3 draft) picks white on saturated mid-tones such as `#e03131`, where WCAG 2 narrowly picks black. A per-event `meta.textColor` wins over either. |
 | `onEventClick(fn)` | `(payload: { event, native: PointerEvent }) => void` | Common: open details, a side panel or a click-anchored popover. |
 | `onEventDoubleClick(fn)` | `(payload: { event, native: MouseEvent }) => void` | Common: open the host application's edit UI. |
 | `onEventHover(fn)` | `(payload: { event, native: PointerEvent }) => void` | Pair with `useOverlay()` for popovers / tooltips. `native.currentTarget` is the anchor element. No hover delay applied — wrap with `setTimeout(..., 200)` if needed. |
 | `onEventHoverLeave(fn)` | `(payload: { event, native: PointerEvent }) => void` | Companion close-trigger for the popover the hover handler opened. |
 | `onEventDrop(fn)` | `(payload) => void` | Drag-and-drop / keyboard / touch all flow through this. |
-| `onDateClick(fn)` | `(payload) => void` | Empty cell / day-header clicked. |
-| `onTimeClick(fn)` | `(payload) => void` | Empty time slot (week / day). |
-| `onMoreClick(fn)` | `(payload) => void` | Per-cell context menu trigger (month). |
+| `onDateClick(fn)` | `(payload: { date, native: PointerEvent }) => void` | Empty cell / day-header clicked. |
+| `onTimeClick(fn)` | `(payload: { date, time, native: PointerEvent }) => void` | Empty time slot (week / day). |
+| `onDateDoubleClick(fn)` | `(payload: { date, native: MouseEvent }) => void` | Empty month cell / all-day cell double-clicked. Never fires for a double-click on an event. |
+| `onTimeDoubleClick(fn)` | `(payload: { date, time, native: MouseEvent }) => void` | Empty time slot double-clicked; `time` snapped like `onTimeClick`. |
 | `onRangeChange(fn)` | `(window) => void` | Visible window changed. |
 
 ### `CalendarApi<TMeta>`
@@ -557,6 +573,8 @@ interface CalendarApi<TMeta> {
   setDayMode(mode: CalendarDayMode): void;
   getVisibleRange(): ViewWindow | null;
   getVisibleEvents(): CalendarEvent<TMeta>[];
+  /** Same read for any window, e.g. the neighbour pages drawn during a swipe. */
+  getEventsForWindow(window: ViewWindow): CalendarEvent<TMeta>[];
   scrollToTime(time: Temporal.PlainTime): void;
   scrollToDate(date: Temporal.PlainDate): void;
   refresh(): void;
@@ -564,6 +582,10 @@ interface CalendarApi<TMeta> {
   readonly loading: Readonly<Ref<boolean>>;
   readonly visibleRange: Readonly<Ref<ViewWindow | null>>;
   readonly gridReady: Readonly<Ref<boolean>>;
+  /** Title of the visible window, exactly as the built-in header shows it. */
+  readonly rangeLabel: Readonly<ComputedRef<string>>;
+  /** Month view: the topmost visible month, live while scrolling; `null` elsewhere. */
+  readonly topmostVisibleMonth: Readonly<ShallowRef<Temporal.PlainYearMonth | null>>;
 }
 ```
 
@@ -580,6 +602,7 @@ Variant-specific slots (`pill`, `multiDayBar`, `allDayEvent`) still exist on the
 | `event` | `{ event, view, layout?, item? }` | Per-event renderer (Day / Week / Agenda; falls back for month pills / bars). |
 | `allDayEvent` | `{ event, layout }` | All-day band renderer (week / day). |
 | `pill` | `{ event, pill }` | Month single-day pill. |
+| `agendaEmpty` | — | Agenda empty state (forwarded to `<CoarAgendaView>`'s `empty` slot). Shown only when the agenda draws nothing and no load is in flight; no default. |
 | `multiDayBar` | `{ event, bar }` | Month multi-day bar. |
 | `dayHeader` | `{ date, isToday, isWeekend }` | Per-day column header (week / day). |
 
@@ -588,5 +611,8 @@ Variant-specific slots (`pill`, `multiDayBar`, `allDayEvent`) still exist on the
 | Prop | Type | Description |
 |------|------|-------------|
 | `builder` | `CalendarBuilder` | **Required.** From `useCalendar()`. |
+| `hideHeader` | `boolean` | Render only the body — no header bar. For hosts that own navigation and view selection and drive the calendar through `api.goTo / next / prev / setView / setMonthDensity / setDayMode`; `api.rangeLabel` is the title the built-in header would have shown. Default `false`. |
+| `hideViewSwitcher` | `boolean` | Keep the header but drop the primary view switcher. Default `false`. |
+| `hideModeSwitcher` | `boolean` | Keep the header but drop the Month / Day display-choice switcher. Default `false`. |
 
-That's it — everything else lives on the builder.
+Everything else lives on the builder. To replace the header with your own controls instead of hiding it, use the `header` slot — its `controls` scope carries `prev`, `next`, `goToToday`, `setView`, the formatted `rangeLabel`, the active `view` and the `available` views. Note that an **empty** `#header` slot does not hide the header: Vue renders the built-in fallback when a slot yields no nodes, which is why `hideHeader` exists.

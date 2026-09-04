@@ -33,6 +33,34 @@ import {
 } from '@cocoar/vue-calendar';
 ```
 
+## Install
+
+```bash
+pnpm add @cocoar/vue-calendar
+```
+
+The component styles ship as one stylesheet on the `./styles` subpath. Import it once, next to the design-system styles:
+
+```ts
+import '@cocoar/vue-ui/styles';
+import '@cocoar/vue-calendar/styles';
+```
+
+### Localization
+
+Every visible label (`Today`, `Month`, `All day`, the a11y announcements, …) is looked up as a `coar.calendar.*` key through the host's `@cocoar/vue-localization` service, with English fallbacks inline. The package ships German and English catalogs plus a translation source, so a host registers them instead of maintaining the key list by hand:
+
+```ts
+import { createCoarLocalization } from '@cocoar/vue-localization';
+import { createCalendarTranslationSource, calendarMessages } from '@cocoar/vue-calendar';
+
+const localization = createCoarLocalization({ defaultLanguage: 'de-AT' });
+localization.service.addTranslationSource(createCalendarTranslationSource());
+app.use(localization);
+```
+
+Regional tags resolve to their base language (`de-AT` → `de`). A host source registered **after** the calendar's overrides per key, so app-specific wording still wins. `calendarMessages.en` / `.de` are the flat key → text maps for hosts that bundle one catalog file themselves. Date, time and weekday names are never in the catalog — they come from `Intl` (C6).
+
 ## Two ways to use the calendar
 
 ### As a single shell
@@ -146,7 +174,7 @@ import { Temporal } from '@js-temporal/polyfill';
 }
 ```
 
-The default event renderer reads `meta.title` and `meta.color` if present. Drop those in `meta` to skip writing a custom renderer for simple cases.
+The default event renderer reads `meta.title` and `meta.color` if present. Drop those in `meta` to skip writing a custom renderer for simple cases. Text on the coloured surface is black or white by contrast policy (`builder.eventTextContrast('wcag' | 'apca')`); `meta.textColor` (any CSS colour) overrides that choice for one event — tones on the fence are a design decision, not a computation.
 
 ## Display zone — switcher + on-card hints
 
@@ -207,6 +235,7 @@ Two layers of tokens. **Calendar-specific** tokens are unique to this component 
 
 | Token | Light | Dark | Purpose |
 |---|---|---|---|
+| `--coar-color-accent` | → `--coar-color-accent-500`, then `#2563eb` | same | Today markers (day number, column header, agenda badge), default event fill in list surfaces, cross-zone hint dot. Never defined by the package: it follows the vue-ui accent ramp (so `--coar-accent` rebrands it) unless the host sets it explicitly. |
 | `--coar-calendar-bg` | `#fff` | `#18181b` | Background of every cell, header, and band. |
 | `--coar-calendar-bg-today` | `rgba(37, 99, 235, 0.04)` | `#2563eb24` | Today highlight on month cells + day-column tint. |
 | `--coar-calendar-bg-weekend` | `#f6f7f9` | `#212125` | Weekend tint (Sat/Sun) on month cells + day-columns. |
@@ -217,11 +246,24 @@ Two layers of tokens. **Calendar-specific** tokens are unique to this component 
 | `--coar-calendar-event-default-bg` | → `--coar-color-accent-soft`, then `#93c5fd` | `#1e3a8a` | Fill of events without a `meta.color`. |
 | `--coar-calendar-point-edge-height` | `3px` | — | Start-edge bar on point events (timed, no `end`) in Day / Week. |
 | `--coar-calendar-point-body-opacity` | `0.38` | — | Body fill opacity of point events (title stays fully opaque). |
+| `--coar-calendar-scroll-inset-bottom` | `0px` | — | Extra scroll room at the bottom of every scrolling surface (Day / Week grids, Month, List, Agenda, Timeline, Year), so the last rows can clear host chrome that overlays the bottom edge. See [Host chrome over the bottom edge](#host-chrome-over-the-bottom-edge). |
 | `--coar-time-grid-axis-width` | `80px` | — | Width of the hour-axis on the left of Day / Week. |
 | `--coar-time-grid-header-height` | _auto_ | — | Sticky day-of-week header min-height. |
 
 Light values are per-usage `var()` fallbacks — the tokens are undefined in light mode, so a single override anywhere wins. Dark values ship with the package stylesheet (see below).
 
+### Host chrome over the bottom edge
+
+On phones something almost always sits over the bottom of the viewport — a tab bar, a floating action button, the home-indicator safe area. Padding *around* the calendar doesn't help: the scroll container is inside the component, and outer padding shrinks the surface instead of letting the content scroll past the overlay. `--coar-calendar-scroll-inset-bottom` adds that room *inside* every scrolling surface (the same content inset the iOS calendar applies), and keyboard / focus scrolling honours it through `scroll-padding-bottom`.
+
+```css
+/* A 56 px bottom bar plus the device's safe area. */
+.my-app .coar-calendar {
+  --coar-calendar-scroll-inset-bottom: calc(56px + env(safe-area-inset-bottom));
+}
+```
+
+The token is read at runtime, so it can change with the host's layout (a bar that hides while scrolling, a sheet that opens). Standalone sub-views read it the same way.
 ### Inherited from the design system
 
 Used as direct `var()` references. Override at the design-system level rather than per-calendar-instance unless you need a calendar-only variant.

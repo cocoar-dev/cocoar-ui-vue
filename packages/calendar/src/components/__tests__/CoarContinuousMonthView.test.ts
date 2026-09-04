@@ -219,3 +219,81 @@ describe('CoarContinuousMonthView', () => {
     }
   });
 });
+
+describe('live topmost month while scrolling', () => {
+  const rect = (top: number, height: number) =>
+    ({
+      left: 0,
+      top,
+      width: 700,
+      height,
+      right: 700,
+      bottom: top + height,
+      x: 0,
+      y: top,
+      toJSON: () => ({}),
+    }) as DOMRect;
+
+  /** Lay the sections out 500 px tall each, scrolled so `scrollTop` is the viewport top. */
+  function layOut(wrapper: ReturnType<typeof mount>, scrollTop: number) {
+    const root = wrapper.element as HTMLElement;
+    root.getBoundingClientRect = () => rect(0, 600);
+    const sections = wrapper.findAll('[data-month-key]');
+    sections.forEach((section, index) => {
+      (section.element as HTMLElement).getBoundingClientRect = () =>
+        rect(index * 500 - scrollTop, 500);
+    });
+  }
+
+  it('publishes the topmost section live and moves the cursor only when the scroll settles', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      const calendar = builder();
+      const onRangeChange = vi.fn();
+      calendar.onRangeChange(onRangeChange);
+      const wrapper = mount(CoarContinuousMonthView, { props: { builder: calendar } });
+      await nextTick();
+      expect(calendar.api.topmostVisibleMonth.value?.toString()).toBe('2026-06');
+      onRangeChange.mockClear();
+
+      // June is section index 6 (window starts at 2025-12). Scroll so
+      // that August's section top sits at the viewport top.
+      layOut(wrapper, 8 * 500);
+      wrapper.element.dispatchEvent(new Event('scroll'));
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
+      expect(calendar.api.topmostVisibleMonth.value?.toString()).toBe('2026-08');
+      expect(calendar.api.rangeLabel.value).toBe('August 2026');
+      // The semantic cursor has not moved yet — no loader / range churn mid-gesture.
+      expect(calendar.state.date.value.toString()).toBe('2026-06-15');
+      expect(onRangeChange).not.toHaveBeenCalled();
+
+      wrapper.element.dispatchEvent(new Event('scrollend'));
+      await nextTick();
+      expect(calendar.state.date.value.toString()).toBe('2026-08-15');
+      expect(calendar.api.rangeLabel.value).toBe('August 2026');
+      wrapper.unmount();
+      expect(calendar.api.topmostVisibleMonth.value).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('falls back to a settle timer where scrollend does not fire', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      const calendar = builder();
+      const wrapper = mount(CoarContinuousMonthView, { props: { builder: calendar } });
+      await nextTick();
+      layOut(wrapper, 7 * 500);
+      wrapper.element.dispatchEvent(new Event('scroll'));
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      expect(calendar.api.topmostVisibleMonth.value?.toString()).toBe('2026-07');
+      expect(calendar.state.date.value.toString()).toBe('2026-06-15');
+      vi.advanceTimersByTime(200);
+      expect(calendar.state.date.value.toString()).toBe('2026-07-15');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});

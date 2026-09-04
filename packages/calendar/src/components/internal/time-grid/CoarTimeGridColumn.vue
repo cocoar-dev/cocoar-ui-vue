@@ -41,6 +41,8 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   pointerdown: [native: PointerEvent, day: Temporal.PlainDate];
+  /** Double-click on the EMPTY column (event cards stop their own). */
+  dblclick: [native: MouseEvent, day: Temporal.PlainDate];
 }>();
 
 defineSlots<{
@@ -61,6 +63,9 @@ const backgroundImage = computed(
 function onPointerdown(e: PointerEvent) {
   emit('pointerdown', e, props.day);
 }
+function onDblclick(e: MouseEvent) {
+  emit('dblclick', e, props.day);
+}
 </script>
 
 <template>
@@ -76,6 +81,7 @@ function onPointerdown(e: PointerEvent) {
       backgroundPosition: `0 ${renderBufferOffsetPx}px`,
     }"
     @pointerdown="onPointerdown"
+    @dblclick="onDblclick"
   >
     <slot />
   </div>

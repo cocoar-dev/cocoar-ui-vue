@@ -21,17 +21,24 @@ interface Props {
   /** Locale-aware label for a day-header. */
   formatLabel: (day: Temporal.PlainDate) => string;
   density?: 'comfortable' | 'compact' | 'spacious';
+  /**
+   * The strip is a paging handle: a drag across the day names (any
+   * pointer) pages the grid. Shows the grab cursor and forwards
+   * `pointerdown` to the parent's swipe runtime.
+   */
+  swipeable?: boolean;
 }
 
-withDefaults(defineProps<Props>(), { density: 'comfortable' });
+withDefaults(defineProps<Props>(), { density: 'comfortable', swipeable: false });
+
+const emit = defineEmits<{
+  /** Pointer went down on the day-name strip (any pointer type). */
+  cellsPointerdown: [native: PointerEvent];
+}>();
 
 defineSlots<{
   /** Custom day-header. The default reads `formatLabel(day)`. */
-  dayHeader(props: {
-    date: Temporal.PlainDate;
-    isToday: boolean;
-    isWeekend: boolean;
-  }): unknown;
+  dayHeader(props: { date: Temporal.PlainDate; isToday: boolean; isWeekend: boolean }): unknown;
 }>();
 </script>
 
@@ -41,7 +48,12 @@ defineSlots<{
     :class="{ 'coar-time-grid-header--density-compact': density === 'compact' }"
   >
     <div class="coar-time-grid-header__corner" aria-hidden="true" />
-    <div class="coar-time-grid-header__cells" role="row">
+    <div
+      class="coar-time-grid-header__cells"
+      :class="{ 'coar-time-grid-header__cells--swipeable': swipeable }"
+      role="row"
+      @pointerdown="emit('cellsPointerdown', $event)"
+    >
       <div
         v-for="(day, i) in days"
         :key="day.toString()"
@@ -54,12 +66,7 @@ defineSlots<{
         :aria-colindex="i + 1"
         :aria-current="isToday(day) ? 'date' : undefined"
       >
-        <slot
-          name="dayHeader"
-          :date="day"
-          :is-today="isToday(day)"
-          :is-weekend="isWeekend(day)"
-        >
+        <slot name="dayHeader" :date="day" :is-today="isToday(day)" :is-weekend="isWeekend(day)">
           <span class="coar-time-grid-header__label">{{ formatLabel(day) }}</span>
         </slot>
       </div>
@@ -75,11 +82,43 @@ defineSlots<{
   background: var(--coar-calendar-bg, #fff);
   min-height: var(--coar-time-grid-header-height);
 }
-.coar-time-grid-header__corner { /* empty top-left cell */ }
+.coar-time-grid-header__corner {
+  /* Empty top-left cell — opaque so header cells sliding under it
+     during a swipe disappear behind the axis column. */
+  position: relative;
+  z-index: 1;
+  background: var(--coar-calendar-bg, #fff);
+}
+/* Neighbour page: the corner keeps its width, paints nothing. */
+.coar-time-grid--ghost .coar-time-grid-header__corner {
+  visibility: hidden;
+}
+/* During a swipe only the cells paint (see CoarTimeGrid.vue). */
+.coar-time-grid--ghost .coar-time-grid-header,
+.coar-time-grid--swiping .coar-time-grid-header,
+.coar-time-grid--settling .coar-time-grid-header {
+  background: transparent;
+}
 .coar-time-grid-header__cells {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
+  /* Opaque strip that moves with the cells — the header box itself
+     goes transparent while pages overlap during a swipe. */
+  background: var(--coar-calendar-bg, #fff);
+  transform: translateX(var(--coar-time-grid-swipe-x, 0px));
+  /* Paging handle: horizontal pans are ours, vertical stays native. */
+  touch-action: pan-y;
+}
+.coar-time-grid-header__cells--swipeable {
+  cursor: grab;
+  user-select: none;
+}
+.coar-time-grid--swiping .coar-time-grid-header__cells--swipeable {
+  cursor: grabbing;
+}
+.coar-time-grid--settling .coar-time-grid-header__cells {
+  transition: transform 180ms ease-out;
 }
 .coar-time-grid-header__cell {
   padding: 8px 12px;
@@ -90,7 +129,7 @@ defineSlots<{
   background: var(--coar-calendar-bg, #fff);
 }
 .coar-time-grid-header__cell--today {
-  color: var(--coar-color-accent, #2563eb);
+  color: var(--coar-color-accent, var(--coar-color-accent-500, #2563eb));
 }
 .coar-time-grid-header__cell--weekend {
   background: var(--coar-calendar-bg-weekend, #f6f7f9);

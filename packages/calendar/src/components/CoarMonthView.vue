@@ -14,7 +14,7 @@
  *   - `<CoarMonthCell>` — day-cell wrapper + kebab + pills slot
  *   - `<CoarMonthPill>` / `<CoarMonthBar>` — event visuals
  *   - `useMonthDnd` — drag/drop glue (preview + ghost + keyboard)
- *   - `useMonthExpansion` — row expand/collapse + overflow detection
+ *   - `useMonthExpansion` — row expand/collapse
  *
  * Slot priority for events:
  *   template slot (#pill / #multiDayBar / #event)
@@ -32,6 +32,7 @@ import { useMonthExpansion } from '../composables/useMonthExpansion';
 import { useViewWindow } from '../composables/useViewWindow';
 import {
   Temporal,
+  eventInkColor,
   monthGridDates,
   startOfWeek,
   layoutMonthGrid,
@@ -52,6 +53,7 @@ import { RenderEvent } from '../builders/render-helpers';
 import CoarMonthPill from './internal/month/CoarMonthPill.vue';
 import CoarMonthBar from './internal/month/CoarMonthBar.vue';
 import CoarMonthCell from './internal/month/CoarMonthCell.vue';
+import { originatesFromEvent } from './internal/originatesFromEvent';
 import CoarMonthRow from './internal/month/CoarMonthRow.vue';
 import CoarMonthGrid from './internal/month/CoarMonthGrid.vue';
 
@@ -110,6 +112,7 @@ const state = computed(() => {
     dstPolicy: toValue(s.dstPolicy),
     canDrop: s.canDrop,
     eventRenderer: s.eventRenderer,
+    eventTextContrast: toValue(s.eventTextContrast),
     maxEventsPerCell: toValue(s.maxEventsPerCell),
   };
 });
@@ -291,7 +294,6 @@ const {
   collapseRow,
 } = useMonthExpansion({
   layout,
-  gridRef,
   resetToken: yearMonth,
   monthDensity: () => state.value.monthDensity,
 });
@@ -375,7 +377,17 @@ function eventBgFor(event: CalendarEvent<TMeta>): string {
   );
 }
 function eventBorderFor(event: CalendarEvent<TMeta>): string {
-  return eventColor(event) ?? 'var(--coar-color-accent, #2563eb)';
+  return eventColor(event) ?? 'var(--coar-color-accent, var(--coar-color-accent-500, #2563eb))';
+}
+
+/** Text colour for an event surface — `meta.textColor` or the policy's black/white. */
+function eventInkFor(event: CalendarEvent<TMeta>): string {
+  const meta = event.meta as { textColor?: unknown } | undefined;
+  return eventInkColor({
+    background: eventBgFor(event),
+    textColor: meta?.textColor,
+    policy: state.value.eventTextContrast,
+  });
 }
 
 /**
@@ -423,9 +435,17 @@ function eventAriaLabel(event: CalendarEvent<TMeta>): string {
           overrides,
         ),
       );
+      // `end` is RFC-5545 EXCLUSIVE (C1 contract); the spoken label
+      // names the last day the event actually covers, so a Fri–Sun
+      // stay reads "Fri – Sun", not "Fri – Mon". Single-day events
+      // get just their date — no "Fri – Fri".
       const s = event.start;
       const startD = new Date(Date.UTC(s.year, s.month - 1, s.day));
-      const e = event.end ?? s;
+      const e =
+        event.end && Temporal.PlainDate.compare(event.end, s) > 0
+          ? event.end.subtract({ days: 1 })
+          : s;
+      if (e.equals(s)) return `${title}, ${fmt.format(startD)}`;
       const endD = new Date(Date.UTC(e.year, e.month - 1, e.day));
       return `${title}, ${fmt.format(startD)} – ${fmt.format(endD)}`;
     }
@@ -453,7 +473,13 @@ function eventAriaLabel(event: CalendarEvent<TMeta>): string {
 // ─── Click handlers ──────────────────────────────────────────────────
 
 function onCellClick(e: PointerEvent, date: Temporal.PlainDate) {
+  // A pill's pointerdown bubbles through its cell — that's an event
+  // click (onEventClick), not an empty-cell click.
+  if (originatesFromEvent(e)) return;
   props.builder.state.onDateClick?.({ date, native: e });
+}
+function onCellDblclick(e: MouseEvent, date: Temporal.PlainDate) {
+  props.builder.state.onDateDoubleClick?.({ date, native: e });
 }
 
 // ─── Phantom stubs for non-interactive pill / bar variants ──────────
@@ -528,6 +554,7 @@ defineExpose({
           :ariaColIndex="colIndex + 1"
           :ariaLabel="formatCellAriaLabel(day)"
           @cell-pointerdown="(e) => onCellClick(e, day)"
+          @cell-dblclick="(e) => onCellDblclick(e, day)"
           @cell-contextmenu="(e) => openCellMenuFromContext(e, rowIndex, day)"
           @kebab-click="(e) => openCellMenuFromKebab(e, rowIndex, day)"
         >
@@ -563,6 +590,7 @@ defineExpose({
             :variant="isPreviewId(pill.event.id) ? 'preview' : 'live'"
             :kbd-active="keyboardDrag !== null"
             :bg="eventBgFor(pill.event)"
+            :ink="eventInkFor(pill.event)"
             :border="eventBorderFor(pill.event)"
             :title="eventTitle(pill.event)"
             :display-zone="effectiveTimezone"
@@ -604,6 +632,7 @@ defineExpose({
             :event="dragSourceSnapshot.event"
             :pill="phantomPillStub"
             :bg="eventBgFor(dragSourceSnapshot.event)"
+            :ink="eventInkFor(dragSourceSnapshot.event)"
             :border="eventBorderFor(dragSourceSnapshot.event)"
             :title="eventTitle(dragSourceSnapshot.event)"
             :display-zone="effectiveTimezone"
@@ -617,6 +646,7 @@ defineExpose({
             :event="dnd.draggedEvent.value!"
             :pill="phantomPillStub"
             :bg="eventBgFor(dnd.draggedEvent.value!)"
+            :ink="eventInkFor(dnd.draggedEvent.value!)"
             :border="eventBorderFor(dnd.draggedEvent.value!)"
             :title="eventTitle(dnd.draggedEvent.value!)"
             :display-zone="effectiveTimezone"
@@ -634,6 +664,7 @@ defineExpose({
           :variant="isPreviewId(bar.event.id) ? 'preview' : 'live'"
           :kbd-active="keyboardDrag !== null"
           :bg="eventBgFor(bar.event)"
+          :ink="eventInkFor(bar.event)"
           :border="eventBorderFor(bar.event)"
           :title="eventTitle(bar.event)"
           :display-zone="effectiveTimezone"
@@ -683,6 +714,7 @@ defineExpose({
           :event="dragSourceSnapshot!.event"
           :bar="phantomBarStub"
           :bg="eventBgFor(dragSourceSnapshot!.event)"
+          :ink="eventInkFor(dragSourceSnapshot!.event)"
           :border="eventBorderFor(dragSourceSnapshot!.event)"
           :title="eventTitle(dragSourceSnapshot!.event)"
           :display-zone="effectiveTimezone"
@@ -708,6 +740,7 @@ defineExpose({
           :event="dnd.draggedEvent.value!"
           :bar="phantomBarStub"
           :bg="eventBgFor(dnd.draggedEvent.value!)"
+          :ink="eventInkFor(dnd.draggedEvent.value!)"
           :border="eventBorderFor(dnd.draggedEvent.value!)"
           :title="eventTitle(dnd.draggedEvent.value!)"
           :display-zone="effectiveTimezone"
