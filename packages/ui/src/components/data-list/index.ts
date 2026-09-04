@@ -10,6 +10,12 @@ export { normalizeSearchText, searchTerms, matchesSearchTerms } from './internal
 export { DATA_LIST_HIGHLIGHT_NAME } from './internal/useSearchHighlight';
 export type {
   CoarDataListDensity,
+  CoarDataListDragEngine,
+  CoarDataListDropEvent,
+  CoarDataListDropPosition,
+  CoarDataListDropTarget,
+  CoarDataListFilesDropEvent,
+  CoarDataListItemsRemoveEvent,
   CoarDataListEntry,
   CoarDataListGroupSlotProps,
   CoarDataListItemEvent,

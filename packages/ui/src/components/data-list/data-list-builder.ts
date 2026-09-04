@@ -19,8 +19,13 @@ import {
   type MaybeRefOrGetter,
   type Ref,
 } from 'vue';
+import type { DropPayload } from '../../composables/useDragDrop';
 import type {
   CoarDataListDensity,
+  CoarDataListDragEngine,
+  CoarDataListDropEvent,
+  CoarDataListFilesDropEvent,
+  CoarDataListItemsRemoveEvent,
   CoarDataListLayout,
   CoarDataListItemEvent,
   CoarDataListKey,
@@ -63,6 +68,22 @@ export interface DataListBuilderState<T> {
   emptyText: MaybeRefOrGetter<string | undefined>;
   ariaLabel: MaybeRefOrGetter<string | undefined>;
   disabled: MaybeRefOrGetter<boolean>;
+
+  /** Drag & drop reordering (see the `reorderable` setter). */
+  reorderable: MaybeRefOrGetter<boolean>;
+  dragEngine: MaybeRefOrGetter<CoarDataListDragEngine>;
+  canDrag?: (item: T) => boolean;
+  dragGroup: MaybeRefOrGetter<string | undefined>;
+  dragId: MaybeRefOrGetter<string | undefined>;
+  dragAccept: MaybeRefOrGetter<string[] | undefined>;
+  canDrop?: (payload: DropPayload<T>) => boolean;
+  acceptsFiles: MaybeRefOrGetter<boolean>;
+  onReorder?: (event: CoarDataListDropEvent<T>) => void;
+  onItemsAdd?: (event: CoarDataListDropEvent<T>) => void;
+  onItemsRemove?: (event: CoarDataListItemsRemoveEvent<T>) => void;
+  onFilesDrop?: (event: CoarDataListFilesDropEvent<T>) => void;
+  onDragStart?: (items: readonly T[]) => void;
+  onDragEnd?: (payload: { items: readonly T[]; dropped: boolean }) => void;
 
   /** Writable state the component binds to (the `v-model`s of props-mode). */
   search: Ref<string>;
@@ -192,6 +213,20 @@ export class DataListBuilder<T> {
       emptyText: undefined,
       ariaLabel: undefined,
       disabled: false,
+      reorderable: false,
+      dragEngine: 'native',
+      canDrag: undefined,
+      dragGroup: undefined,
+      dragId: undefined,
+      dragAccept: undefined,
+      canDrop: undefined,
+      acceptsFiles: false,
+      onReorder: undefined,
+      onItemsAdd: undefined,
+      onItemsRemove: undefined,
+      onFilesDrop: undefined,
+      onDragStart: undefined,
+      onDragEnd: undefined,
       search: ref(''),
       sort: ref<CoarDataListSort | null>(null),
       selected: ref<CoarDataListKey[]>([]),
@@ -367,6 +402,93 @@ export class DataListBuilder<T> {
 
   ariaLabel(label: MaybeRefOrGetter<string | undefined>): this {
     this.state.ariaLabel = label;
+    return this;
+  }
+
+  // ─── Drag & drop ──────────────────────────────────────────────────────────
+
+  /**
+   * Let users reorder items by dragging (and drop items into this list from other
+   * lists sharing a `dragGroup`). The list emits `reorder` / `items-add` /
+   * `items-remove` and never mutates the data. Disabled while a sort is active.
+   */
+  reorderable(on: MaybeRefOrGetter<boolean> = true): this {
+    this.state.reorderable = on;
+    return this;
+  }
+
+  /** `'native'` (default, HTML5), `'pointer'` (touch-capable) or `'auto'`. */
+  dragEngine(engine: MaybeRefOrGetter<CoarDataListDragEngine>): this {
+    this.state.dragEngine = engine;
+    return this;
+  }
+
+  /** Per-item veto: return `false` to keep an item where it is. */
+  canDrag(fn: (item: T) => boolean): this {
+    this.state.canDrag = fn;
+    return this;
+  }
+
+  /** Lists sharing a `dragGroup` accept each other's items. */
+  dragGroup(group: MaybeRefOrGetter<string | undefined>): this {
+    this.state.dragGroup = group;
+    return this;
+  }
+
+  /** Public identifier of this list, reported as `sourceId` to drop targets. */
+  dragId(id: MaybeRefOrGetter<string | undefined>): this {
+    this.state.dragId = id;
+    return this;
+  }
+
+  /** Whitelist of source `dragId`s this list accepts drops from. */
+  dragAccept(ids: MaybeRefOrGetter<string[] | undefined>): this {
+    this.state.dragAccept = ids;
+    return this;
+  }
+
+  /** Runtime veto for incoming drops (items, source id / group, `fromSelf`). */
+  canDrop(fn: (payload: DropPayload<T>) => boolean): this {
+    this.state.canDrop = fn;
+    return this;
+  }
+
+  /** Accept OS file drops (Explorer / Finder); works with either drag engine. */
+  acceptsFiles(on: MaybeRefOrGetter<boolean> = true): this {
+    this.state.acceptsFiles = on;
+    return this;
+  }
+
+  /** Items were dropped inside this list. Apply `toIndex` / `afterKey` to your data. */
+  onReorder(handler: (event: CoarDataListDropEvent<T>) => void): this {
+    this.state.onReorder = handler;
+    return this;
+  }
+
+  /** Items from another list were dropped here. */
+  onItemsAdd(handler: (event: CoarDataListDropEvent<T>) => void): this {
+    this.state.onItemsAdd = handler;
+    return this;
+  }
+
+  /** Items of this list were accepted by another list — remove them from your data. */
+  onItemsRemove(handler: (event: CoarDataListItemsRemoveEvent<T>) => void): this {
+    this.state.onItemsRemove = handler;
+    return this;
+  }
+
+  onFilesDrop(handler: (event: CoarDataListFilesDropEvent<T>) => void): this {
+    this.state.onFilesDrop = handler;
+    return this;
+  }
+
+  onDragStart(handler: (items: readonly T[]) => void): this {
+    this.state.onDragStart = handler;
+    return this;
+  }
+
+  onDragEnd(handler: (payload: { items: readonly T[]; dropped: boolean }) => void): this {
+    this.state.onDragEnd = handler;
     return this;
   }
 

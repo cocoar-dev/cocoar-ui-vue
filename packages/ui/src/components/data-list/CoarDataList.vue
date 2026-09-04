@@ -15,6 +15,8 @@ import { useVirtualList } from '../../composables/useVirtualList';
 import { useDataListModel } from './useDataListModel';
 import { useSearchHighlight } from './internal/useSearchHighlight';
 import { useDataListLines } from './internal/useDataListLines';
+import { useDataListReorder } from './internal/useDataListReorder';
+import type { DropPayload } from '../../composables/useDragDrop';
 import CoarDataListToolbar from './CoarDataListToolbar.vue';
 import CoarContextMenu from '../menu/CoarContextMenu.vue';
 import CoarMenu from '../menu/CoarMenu.vue';
@@ -24,10 +26,14 @@ import { useContextMenu } from '../menu/useContextMenu';
 import type { DataListBuilder } from './data-list-builder';
 import type {
   CoarDataListDensity,
+  CoarDataListDragEngine,
+  CoarDataListDropEvent,
   CoarDataListEntry,
+  CoarDataListFilesDropEvent,
   CoarDataListGroupSlotProps,
   CoarDataListItemEvent,
   CoarDataListItemSlotProps,
+  CoarDataListItemsRemoveEvent,
   CoarDataListKey,
   CoarDataListLayout,
   CoarDataListMenuEntry,
@@ -97,6 +103,27 @@ export interface CoarDataListProps<T = unknown> {
   emptyText?: string;
   ariaLabel?: string;
   disabled?: boolean;
+
+  /**
+   * Let users reorder items by dragging, and accept drops from lists sharing a
+   * `dragGroup`. Emits `reorder` / `items-add` / `items-remove`; the data is
+   * never mutated by the list. Disabled while a sort is active.
+   */
+  reorderable?: boolean;
+  /** `'native'` (HTML5, default), `'pointer'` (touch-capable) or `'auto'`. */
+  dragEngine?: CoarDataListDragEngine;
+  /** Per-item veto for dragging. */
+  canDrag?: (item: T) => boolean;
+  /** Lists sharing a group accept each other's items. */
+  dragGroup?: string;
+  /** Public identifier of this list, reported to drop targets as `sourceId`. */
+  dragId?: string;
+  /** Whitelist of source `dragId`s accepted here. */
+  dragAccept?: string[];
+  /** Runtime veto for incoming drops. */
+  canDrop?: (payload: DropPayload<T>) => boolean;
+  /** Accept OS file drops (`files-drop`); works with either drag engine. */
+  acceptsFiles?: boolean;
 }
 
 const props = withDefaults(defineProps<CoarDataListProps<T>>(), {
@@ -126,6 +153,14 @@ const props = withDefaults(defineProps<CoarDataListProps<T>>(), {
   emptyText: undefined,
   ariaLabel: undefined,
   disabled: false,
+  reorderable: false,
+  dragEngine: 'native',
+  canDrag: undefined,
+  dragGroup: undefined,
+  dragId: undefined,
+  dragAccept: undefined,
+  canDrop: undefined,
+  acceptsFiles: false,
 });
 
 const emit = defineEmits<{
@@ -134,6 +169,15 @@ const emit = defineEmits<{
   'item-contextmenu': [event: CoarDataListItemEvent<T>];
   /** Enter or double-click on an item. */
   'item-activate': [event: CoarDataListItemEvent<T>];
+  /** Items were dropped inside this list; apply the new position to your data. */
+  reorder: [event: CoarDataListDropEvent<T>];
+  /** Items from another list were dropped here. */
+  'items-add': [event: CoarDataListDropEvent<T>];
+  /** Items of this list were accepted by another list; remove them from your data. */
+  'items-remove': [event: CoarDataListItemsRemoveEvent<T>];
+  'files-drop': [event: CoarDataListFilesDropEvent<T>];
+  'drag-start': [items: readonly T[]];
+  'drag-end': [payload: { items: readonly T[]; dropped: boolean }];
 }>();
 
 defineSlots<{
@@ -180,6 +224,14 @@ const cfg = computed(() => {
       emptyText: toValue(s.emptyText),
       ariaLabel: toValue(s.ariaLabel),
       disabled: toValue(s.disabled),
+      reorderable: toValue(s.reorderable),
+      dragEngine: toValue(s.dragEngine),
+      canDrag: s.canDrag,
+      dragGroup: toValue(s.dragGroup),
+      dragId: toValue(s.dragId),
+      dragAccept: toValue(s.dragAccept),
+      canDrop: s.canDrop,
+      acceptsFiles: toValue(s.acceptsFiles),
     };
   }
   return {
@@ -212,6 +264,14 @@ const cfg = computed(() => {
     emptyText: props.emptyText,
     ariaLabel: props.ariaLabel,
     disabled: props.disabled,
+    reorderable: props.reorderable,
+    dragEngine: props.dragEngine,
+    canDrag: props.canDrag,
+    dragGroup: props.dragGroup,
+    dragId: props.dragId,
+    dragAccept: props.dragAccept,
+    canDrop: props.canDrop,
+    acceptsFiles: props.acceptsFiles,
   };
 });
 
@@ -413,6 +473,58 @@ function onViewportContextMenu(event: MouseEvent) {
   internalMenu.open(event);
 }
 
+// ─── Drag & drop ─────────────────────────────────────────────────────────────
+const reorder = useDataListReorder<T>({
+  viewport: scrollRef,
+  enabled: () => cfg.value.reorderable && !cfg.value.disabled,
+  sorted: () => sort.value !== null,
+  engine: () => cfg.value.dragEngine,
+  layout: () => cfg.value.layout,
+  visibleItems: () => list.items.value,
+  keyOf: (item) => list.keyOf(item),
+  itemByKey: (key) => list.itemByKey(key),
+  isSelected: (key) => list.isSelected(key),
+  canDrag: () => cfg.value.canDrag,
+  dragGroup: () => cfg.value.dragGroup,
+  dragId: () => cfg.value.dragId,
+  dragAccept: () => cfg.value.dragAccept,
+  canDrop: () => cfg.value.canDrop,
+  groupOf: (item) => cfg.value.groupBy?.(item) ?? null,
+  acceptsFiles: () => cfg.value.acceptsFiles,
+  focusedKey,
+  scrollToKey: (key) => scrollToKey(key),
+  onReorder: (event) => {
+    emit('reorder', event);
+    props.builder?.state.onReorder?.(event);
+  },
+  onItemsAdd: (event) => {
+    emit('items-add', event);
+    props.builder?.state.onItemsAdd?.(event);
+  },
+  onItemsRemove: (event) => {
+    emit('items-remove', event);
+    props.builder?.state.onItemsRemove?.(event);
+  },
+  onFilesDrop: (event) => {
+    emit('files-drop', event);
+    props.builder?.state.onFilesDrop?.(event);
+  },
+  onDragStart: (items) => {
+    emit('drag-start', items);
+    props.builder?.state.onDragStart?.(items);
+  },
+  onDragEnd: (payload) => {
+    emit('drag-end', payload);
+    props.builder?.state.onDragEnd?.(payload);
+  },
+});
+
+function dropClass(key: CoarDataListKey): string | undefined {
+  const target = reorder.dropTarget.value;
+  if (!target || target.key !== key) return undefined;
+  return `coar-data-list__item--drop-${target.position}`;
+}
+
 // ─── Slot props & navigation ─────────────────────────────────────────────────
 function slotPropsFor(entry: ItemEntry): CoarDataListItemSlotProps<T> {
   return {
@@ -421,6 +533,7 @@ function slotPropsFor(entry: ItemEntry): CoarDataListItemSlotProps<T> {
     itemKey: entry.itemKey,
     selected: list.isSelected(entry.itemKey),
     focused: focusedKey.value === entry.itemKey,
+    dragging: reorder.isDragged(entry.itemKey),
     select: () => list.select(entry.itemKey, 'replace'),
     toggle: () => list.select(entry.itemKey, 'toggle'),
   };
@@ -453,6 +566,7 @@ function pageSize(): number {
 
 function onKeyDown(event: KeyboardEvent) {
   if (!interactive.value) return;
+  if (reorder.onKeyDown(event)) return;
   const items = list.items.value;
   if (items.length === 0) return;
   const current = focusedKey.value === null ? -1 : list.indexOfKey(focusedKey.value);
@@ -593,6 +707,9 @@ defineExpose({
         'coar-data-list--dividers': cfg.dividers,
         'coar-data-list--disabled': cfg.disabled,
         'coar-data-list--selectable': selectable,
+        'coar-data-list--reorderable': cfg.reorderable && !cfg.disabled,
+        'coar-data-list--drag-over': reorder.isDragOver.value,
+        'coar-data-list--dragging': reorder.dragging.value,
       },
     ]"
     :style="gapStyle"
@@ -623,6 +740,9 @@ defineExpose({
       @keydown="onKeyDown"
       @focus="onViewportFocus"
       @contextmenu="onViewportContextMenu"
+      @dragover="reorder.onViewportDragOver"
+      @dragleave="reorder.onViewportDragLeave"
+      @drop="reorder.onViewportDrop"
     >
       <!-- Resolves tileMinWidth / gap to pixels for the column count. -->
       <div ref="probeRef" class="coar-data-list__probe" :style="probeStyle" aria-hidden="true" />
@@ -655,16 +775,25 @@ defineExpose({
               v-for="entry in line.entries"
               :key="entry.key"
               class="coar-data-list__item"
-              :class="{
-                'coar-data-list__item--selected': list.isSelected(entry.itemKey),
-                'coar-data-list__item--focused': focusedKey === entry.itemKey,
-              }"
+              :class="[
+                {
+                  'coar-data-list__item--selected': list.isSelected(entry.itemKey),
+                  'coar-data-list__item--focused': focusedKey === entry.itemKey,
+                  'coar-data-list__item--dragging': reorder.isDragged(entry.itemKey),
+                },
+                dropClass(entry.itemKey),
+              ]"
+              :data-key="String(entry.itemKey)"
               :role="cfg.selection === 'none' ? 'listitem' : 'option'"
               :aria-selected="cfg.selection === 'none' ? undefined : list.isSelected(entry.itemKey) ? 'true' : 'false'"
+              :draggable="reorder.nativeDraggable.value ? true : undefined"
               @mousedown="onItemMouseDown"
               @click="onItemClick(entry, $event)"
               @dblclick="onItemDoubleClick(entry, $event)"
               @contextmenu="onItemContextMenu(entry, $event)"
+              @dragstart="reorder.onItemDragStart($event, entry.item)"
+              @dragend="reorder.onItemDragEnd"
+              @pointerdown="reorder.onItemPointerDown($event, entry.item)"
             >
               <slot name="item" v-bind="slotPropsFor(entry)">
                 {{ String(entry.itemKey) }}
@@ -707,6 +836,34 @@ defineExpose({
 .coar-data-list__menu-item--danger > button,
 .coar-data-list__menu-item--danger > .coar-menu-item {
   color: var(--coar-text-semantic-error-bold, #dc2626);
+}
+
+/* Pointer-engine drag ghost: a clone of the row appended to <body>. */
+.coar-data-list__ghost {
+  position: fixed;
+  z-index: 10000;
+  pointer-events: none;
+  box-sizing: border-box;
+  opacity: 0.85;
+  border-radius: var(--coar-radius-s);
+  background: var(--coar-surface-neutral-primary, #fff);
+  box-shadow: var(--coar-elevation-high, 0 8px 24px rgb(0 0 0 / 0.2));
+  cursor: grabbing;
+}
+
+.coar-data-list__ghost[data-count]::after {
+  content: attr(data-count);
+  position: absolute;
+  top: -0.5rem;
+  right: -0.5rem;
+  min-width: 1.25rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: var(--coar-background-accent-primary, #2563eb);
+  color: var(--coar-text-on-accent, #fff);
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  text-align: center;
 }
 </style>
 
@@ -835,6 +992,70 @@ defineExpose({
 .coar-data-list__item--focused {
   outline: 1px solid var(--coar-focus-color);
   outline-offset: -1px;
+}
+
+/* ── Drag & drop ── */
+.coar-data-list--reorderable .coar-data-list__item {
+  position: relative;
+  touch-action: pan-y;
+}
+
+.coar-data-list--reorderable.coar-data-list--layout-grid .coar-data-list__item {
+  touch-action: pan-x pan-y;
+}
+
+.coar-data-list--dragging .coar-data-list__item {
+  cursor: grabbing;
+}
+
+.coar-data-list__item--dragging {
+  opacity: 0.4;
+}
+
+.coar-data-list--drag-over .coar-data-list__viewport {
+  outline: 2px solid var(--coar-border-accent-primary);
+  outline-offset: -2px;
+}
+
+/* Insertion indicator: a line above/below the row, or left/right of a tile. */
+.coar-data-list__item--drop-before::before,
+.coar-data-list__item--drop-after::after {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+  background: var(--coar-border-accent-primary);
+  border-radius: 2px;
+}
+
+.coar-data-list--layout-list .coar-data-list__item--drop-before::before,
+.coar-data-list--layout-list .coar-data-list__item--drop-after::after {
+  left: 0;
+  right: 0;
+  height: 3px;
+}
+
+.coar-data-list--layout-list .coar-data-list__item--drop-before::before {
+  top: -2px;
+}
+
+.coar-data-list--layout-list .coar-data-list__item--drop-after::after {
+  bottom: -2px;
+}
+
+.coar-data-list--layout-grid .coar-data-list__item--drop-before::before,
+.coar-data-list--layout-grid .coar-data-list__item--drop-after::after {
+  top: 0;
+  bottom: 0;
+  width: 3px;
+}
+
+.coar-data-list--layout-grid .coar-data-list__item--drop-before::before {
+  left: -2px;
+}
+
+.coar-data-list--layout-grid .coar-data-list__item--drop-after::after {
+  right: -2px;
 }
 
 .coar-data-list__group {

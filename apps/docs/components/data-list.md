@@ -116,6 +116,40 @@ builder.layout(layoutRef).tileMinWidth('11rem').gap(8)
 
 Rows are still virtualized and measured — tiles in one row share the height of the tallest. Group headings take a full row. `dividers` only apply to the list layout; use `gap` for spacing between tiles. Layouts that give up the data order for the visuals (masonry) are deliberately not part of this component.
 
+## Reordering with drag & drop
+
+Opt in with `reorderable`. Users drag one item or the whole selection; the list shows an insertion line and reports the result — it **never mutates your data**. Lists sharing a `dragGroup` accept each other's items, which is all a board needs: three columns, three lists.
+
+<preview path="./data-list/demos/ReorderDataList.vue" />
+
+```ts
+builder
+  .reorderable()
+  .dragEngine('auto')            // 'native' | 'pointer' | 'auto'
+  .dragGroup('board').dragId('backlog')
+  .onReorder((e) => { /* same list: move e.items after e.afterKey */ })
+  .onItemsAdd((e) => { /* from another list: insert e.items after e.afterKey */ })
+  .onItemsRemove((e) => { /* another list accepted e.items: remove them */ });
+```
+
+The drop payload names the **visible neighbours** of the insertion point (`afterKey`, `beforeKey`) plus `toIndex` among the visible items. Neighbours stay correct while a search hides rows, so apply the move relative to `afterKey` rather than by index. With `groupBy`, `group` carries the heading the items were dropped into.
+
+**Rules**
+
+- Reordering is off while a sort is active — the dragged order would be gone after the next re-sort. Drops from other lists are still accepted and append.
+- `canDrag(item)` vetoes single items; `canDrop(payload)` and `dragAccept` veto incoming drops.
+- Keyboard: `Ctrl`+`X` grabs the focused item (or selection), arrows / `Home` / `End` move the insertion line, `Ctrl`+`V` or `Enter` drops, `Escape` cancels.
+
+### Drag engines
+
+| Engine | Input | Interoperable with | Use when |
+|---|---|---|---|
+| `native` (default) | mouse via HTML5 drag events | `CoarTree`, `CoarListbox`, other HTML5 targets | desktop apps |
+| `pointer` | mouse, pen, touch (long-press) | other data lists only | tablets, touch-first views |
+| `auto` | picks `pointer` on coarse-pointer devices | — | one setting for both |
+
+The engine is a prop, so an app can decide at runtime (a device check, a user setting). **Accepting OS files** (`acceptsFiles` → `files-drop`) is a plain native drop listener and works with either engine.
+
 ## Grouping
 
 `groupBy` returns a group name per item; groups render with a heading (customisable via the `group-header` slot) and are ordered by `sortGroups` (`'asc'` by default). Sorting applies inside each group.
@@ -192,6 +226,7 @@ The scroll area is the single tab stop; a focus marker moves between items.
 | `Space` | Toggle the focused item |
 | `Enter` | `item-activate` |
 | `Ctrl`/`⌘` + `A` | Select all visible items (multiple) |
+| `Ctrl`+`X` → arrows → `Ctrl`+`V` / `Enter` | Grab, move, drop (`reorderable`); `Escape` cancels |
 
 ARIA: `role="listbox"` with `option` children when selection is enabled, `role="list"` / `listitem` otherwise.
 
@@ -227,6 +262,14 @@ ARIA: `role="listbox"` with `option` children when selection is enabled, `role="
 | `emptyText` | `string` | `'No items'` | Text when nothing is visible |
 | `ariaLabel` | `string` | — | Accessible name of the list |
 | `disabled` | `boolean` | `false` | Blocks interaction |
+| `reorderable` | `boolean` | `false` | Drag & drop reordering and accepting drops |
+| `dragEngine` | `'native' \| 'pointer' \| 'auto'` | `'native'` | How drags are tracked (see [Drag engines](#drag-engines)) |
+| `canDrag` | `(item: T) => boolean` | — | Per-item drag veto |
+| `dragGroup` | `string` | — | Lists sharing a group accept each other's items |
+| `dragId` | `string` | — | Reported to targets as `sourceId` |
+| `dragAccept` | `string[]` | — | Whitelist of source `dragId`s |
+| `canDrop` | `(payload) => boolean` | — | Runtime veto for incoming drops |
+| `acceptsFiles` | `boolean` | `false` | Accept OS file drops (`files-drop`) |
 
 ### Models
 
@@ -244,14 +287,19 @@ ARIA: `role="listbox"` with `option` children when selection is enabled, `role="
 | `item-dblclick` | `CoarDataListItemEvent<T>` | Double-click |
 | `item-contextmenu` | `CoarDataListItemEvent<T>` | Right-click / long-press; item is selected first |
 | `item-activate` | `CoarDataListItemEvent<T>` | Double-click or `Enter` |
+| `reorder` | `CoarDataListDropEvent<T>` | Items dropped inside this list |
+| `items-add` | `CoarDataListDropEvent<T>` | Items from another list dropped here |
+| `items-remove` | `CoarDataListItemsRemoveEvent<T>` | Another list accepted items of this one |
+| `files-drop` | `CoarDataListFilesDropEvent<T>` | OS files dropped (`acceptsFiles`) |
+| `drag-start` / `drag-end` | `T[]` / `{ items, dropped }` | Drag lifecycle |
 
-`CoarDataListItemEvent<T>` is `{ item, itemKey, index, event }`.
+`CoarDataListItemEvent<T>` is `{ item, itemKey, index, event }`. `CoarDataListDropEvent<T>` is `{ items, keys, toIndex, afterKey, beforeKey, group, fromSelf, sourceId, sourceDragGroup }`.
 
 ### Slots
 
 | Slot | Props | Description |
 |------|-------|-------------|
-| `item` | `{ item, index, itemKey, selected, focused, select, toggle }` | Row content |
+| `item` | `{ item, index, itemKey, selected, focused, dragging, select, toggle }` | Row content |
 | `group-header` | `{ group, count, items }` | Group heading |
 | `empty` | — | Shown when no item is visible |
 | `toolbar-left` / `toolbar-right` | — | Extra toolbar content beside search and sort |

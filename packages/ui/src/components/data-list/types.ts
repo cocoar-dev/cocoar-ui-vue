@@ -75,6 +75,8 @@ export interface CoarDataListItemSlotProps<T> {
   itemKey: CoarDataListKey;
   selected: boolean;
   focused: boolean;
+  /** Part of an in-flight drag (pointer or keyboard). */
+  dragging: boolean;
   /** Select only this item. */
   select(): void;
   /** Toggle this item's selection (multiple) or select/clear it (single). */
@@ -92,6 +94,57 @@ export interface CoarDataListItemEvent<T> {
   itemKey: CoarDataListKey;
   index: number;
   event: MouseEvent | KeyboardEvent;
+}
+
+/**
+ * How drags are started and tracked. `'native'` = HTML5 drag events (interoperable
+ * with CoarTree / CoarListbox, no touch support). `'pointer'` = Pointer Events
+ * (mouse, pen and touch; only between data lists). `'auto'` picks `'pointer'` on
+ * coarse-pointer devices. Accepting OS files works with either engine.
+ */
+export type CoarDataListDragEngine = 'native' | 'pointer' | 'auto';
+
+export type CoarDataListDropPosition = 'before' | 'after';
+
+/** Where a drag would land, relative to a visible item. */
+export interface CoarDataListDropTarget {
+  key: CoarDataListKey;
+  position: CoarDataListDropPosition;
+}
+
+/**
+ * Payload of `reorder` (drop inside the same list) and `items-add` (drop from
+ * another list). The list never mutates its data — apply the change to your
+ * source. `afterKey` / `beforeKey` name the visible neighbours of the insertion
+ * point (dragged items excluded), which stays correct while a search hides rows.
+ */
+export interface CoarDataListDropEvent<T> {
+  items: T[];
+  keys: CoarDataListKey[];
+  /** Index among the visible items, dragged items excluded. */
+  toIndex: number;
+  afterKey: CoarDataListKey | null;
+  beforeKey: CoarDataListKey | null;
+  /** `groupBy` value at the insertion point, or `null` without grouping / at the end. */
+  group: string | null;
+  fromSelf: boolean;
+  /** `dragId` of the source list, if it set one. */
+  sourceId: string | null;
+  sourceDragGroup: string | null;
+}
+
+export interface CoarDataListItemsRemoveEvent<T> {
+  items: T[];
+  keys: CoarDataListKey[];
+  /** `dragGroup` of the list that accepted the items. */
+  toDragGroup: string | null;
+}
+
+export interface CoarDataListFilesDropEvent<T> {
+  files: File[];
+  /** The item under the pointer, or `null` on empty space. */
+  item: T | null;
+  event: DragEvent;
 }
 
 /** One entry of a declarative context menu (`builder.itemMenu` / `builder.viewportMenu`). */

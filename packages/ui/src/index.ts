@@ -324,6 +324,12 @@ export {
 export type {
   CoarDataListProps,
   CoarDataListDensity,
+  CoarDataListDragEngine,
+  CoarDataListDropEvent,
+  CoarDataListDropPosition,
+  CoarDataListDropTarget,
+  CoarDataListFilesDropEvent,
+  CoarDataListItemsRemoveEvent,
   CoarDataListEntry,
   CoarDataListGroupSlotProps,
   CoarDataListItemEvent,
