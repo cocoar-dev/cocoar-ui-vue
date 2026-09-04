@@ -60,8 +60,24 @@ import { CalendarBuilder } from '../builders/calendar-builder';
 
 interface Props {
   builder: CalendarBuilder<Record<string, unknown>>;
+  /**
+   * Render only the body — no header bar at all. For hosts that own
+   * navigation and view selection themselves (drive the calendar
+   * through `api.goTo / next / prev / setView / setMonthDensity /
+   * setDayMode`). An empty `#header` slot does NOT do this: Vue
+   * renders the built-in fallback when a slot yields no nodes.
+   */
+  hideHeader?: boolean;
+  /** Keep the header (nav buttons, range label) but drop the primary view switcher. */
+  hideViewSwitcher?: boolean;
+  /** Keep the header but drop the Month / Day display-choice switcher. */
+  hideModeSwitcher?: boolean;
 }
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  hideHeader: false,
+  hideViewSwitcher: false,
+  hideModeSwitcher: false,
+});
 
 defineSlots<{
   /** Replace the entire header bar. Overrides headerStart/End/viewSwitcher. */
@@ -488,7 +504,14 @@ onBeforeUnmount(() => {
 <template>
   <div class="coar-calendar" :class="[`coar-calendar--density-${state.density}`]">
     <!-- ── Header ──────────────────────────────────────────────── -->
-    <slot name="header" :view="view" :cursor="cursor" :range="window" :controls="headerControls">
+    <slot
+      v-if="!props.hideHeader"
+      name="header"
+      :view="view"
+      :cursor="cursor"
+      :range="window"
+      :controls="headerControls"
+    >
       <header class="coar-calendar__header">
         <slot name="headerStart" :controls="headerControls" />
         <div class="coar-calendar__nav">
@@ -512,7 +535,7 @@ onBeforeUnmount(() => {
         </div>
         <span class="coar-calendar__range-label">{{ rangeLabel }}</span>
         <span class="coar-calendar__spacer" />
-        <div class="coar-calendar__view-switcher">
+        <div v-if="!props.hideViewSwitcher" class="coar-calendar__view-switcher">
           <slot
             name="viewSwitcher"
             :view="view"
@@ -528,7 +551,9 @@ onBeforeUnmount(() => {
           </slot>
         </div>
         <div
-          v-if="navigationView === 'month' && monthModeOptions.length > 1"
+          v-if="
+            !props.hideModeSwitcher && navigationView === 'month' && monthModeOptions.length > 1
+          "
           class="coar-calendar__mode-switcher"
         >
           <CoarSegmentedControl
@@ -539,7 +564,9 @@ onBeforeUnmount(() => {
           />
         </div>
         <div
-          v-else-if="navigationView === 'day' && dayModeOptions.length > 1"
+          v-else-if="
+            !props.hideModeSwitcher && navigationView === 'day' && dayModeOptions.length > 1
+          "
           class="coar-calendar__mode-switcher"
         >
           <CoarSegmentedControl

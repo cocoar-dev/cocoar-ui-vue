@@ -43,6 +43,11 @@ the time grids.
   the presets are exported from the core subpath. Every grid feature — touch
   paging, empty-cell hooks, the all-day cap — therefore behaves identically
   across the four views by construction.
+- **Shell chrome can be switched off.** `<CoarCalendar hide-header>` renders
+  only the body for hosts that own navigation and view selection through
+  the api; `hide-view-switcher` and `hide-mode-switcher` drop one control
+  while keeping the header. Until now hosts hid these with `:deep()` CSS
+  overrides, because an empty `#header` slot falls back to the built-in bar.
 - **Touch paging on week / work-week / day.** A horizontal pan moves the grid
   with the finger — header cells, all-day band and columns together, the hour
   axis stays put — and pages on release past a quarter of the width or on a

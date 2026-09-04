@@ -602,5 +602,8 @@ Variant-specific slots (`pill`, `multiDayBar`, `allDayEvent`) still exist on the
 | Prop | Type | Description |
 |------|------|-------------|
 | `builder` | `CalendarBuilder` | **Required.** From `useCalendar()`. |
+| `hideHeader` | `boolean` | Render only the body — no header bar. For hosts that own navigation and view selection and drive the calendar through `api.goTo / next / prev / setView / setMonthDensity / setDayMode`. Default `false`. |
+| `hideViewSwitcher` | `boolean` | Keep the header but drop the primary view switcher. Default `false`. |
+| `hideModeSwitcher` | `boolean` | Keep the header but drop the Month / Day display-choice switcher. Default `false`. |
 
-That's it — everything else lives on the builder.
+Everything else lives on the builder. To replace the header with your own controls instead of hiding it, use the `header` slot — its `controls` scope carries `prev`, `next`, `goToToday`, `setView`, the formatted `rangeLabel`, the active `view` and the `available` views. Note that an **empty** `#header` slot does not hide the header: Vue renders the built-in fallback when a slot yields no nodes, which is why `hideHeader` exists.
