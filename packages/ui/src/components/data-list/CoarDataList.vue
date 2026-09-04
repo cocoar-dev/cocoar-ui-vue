@@ -1332,9 +1332,15 @@ defineExpose({
 }
 
 /* ── Tiles ── */
-.coar-data-list__item--tile {
+/* Doubled class: the generic item rule (align-items: flex-start) comes later in
+   the file and must lose — a tile's content takes the full tile width. */
+.coar-data-list__item.coar-data-list__item--tile {
   flex-direction: column;
   align-items: stretch;
+}
+
+.coar-data-list__item--tile > .coar-data-list__content {
+  width: 100%;
 }
 
 .coar-data-list__item--tile > .coar-data-list__toggle {
