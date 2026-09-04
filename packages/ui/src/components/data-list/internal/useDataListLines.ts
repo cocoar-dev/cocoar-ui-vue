@@ -56,8 +56,17 @@ export interface UseDataListLinesOptions<T> {
   childProbe: Ref<HTMLElement | null>;
 }
 
+/** A band's extent in lines — one frame is drawn per band, not per line. */
+export interface CoarDataListBandRange {
+  parentKey: CoarDataListKey;
+  level: number;
+  firstLine: number;
+  lastLine: number;
+}
+
 export interface UseDataListLinesReturn<T> {
   lines: ComputedRef<CoarDataListLine<T>[]>;
+  bands: ComputedRef<CoarDataListBandRange[]>;
   /** Tiles per row on the top level (1 in list layout). */
   columns: ComputedRef<number>;
   lineIndexOfKey(key: CoarDataListKey): number;
@@ -226,6 +235,23 @@ export function useDataListLines<T>(options: UseDataListLinesOptions<T>): UseDat
     return result;
   });
 
+  const bands = computed<CoarDataListBandRange[]>(() => {
+    const result: CoarDataListBandRange[] = [];
+    const open = new Map<CoarDataListKey, CoarDataListBandRange>();
+    lines.value.forEach((line, index) => {
+      const band = line.band;
+      if (!band) return;
+      if (band.first) open.set(band.parentKey, { parentKey: band.parentKey, level: band.level, firstLine: index, lastLine: index });
+      const range = open.get(band.parentKey);
+      if (range) range.lastLine = index;
+      if (band.last && range) {
+        result.push(range);
+        open.delete(band.parentKey);
+      }
+    });
+    return result;
+  });
+
   const positions = computed(() => {
     const map = new Map<CoarDataListKey, { line: number; column: number }>();
     lines.value.forEach((line, index) => {
@@ -286,5 +312,5 @@ export function useDataListLines<T>(options: UseDataListLinesOptions<T>): UseDat
     detachWindow = null;
   });
 
-  return { lines, columns, lineIndexOfKey, positionOfKey, remeasure };
+  return { lines, bands, columns, lineIndexOfKey, positionOfKey, remeasure };
 }

@@ -82,6 +82,8 @@ export interface DataListBuilderState<T> {
   expanded: Ref<CoarDataListKey[]>;
   /** Grid layout: draw each tile as a card (border + radius); an expanded tile opens into its band. */
   tileCards: MaybeRefOrGetter<boolean>;
+  /** Lift an expanded card and its band with a shadow. */
+  bandElevated: MaybeRefOrGetter<boolean>;
 
   /** Drag & drop reordering (see the `reorderable` setter). */
   reorderable: MaybeRefOrGetter<boolean>;
@@ -251,6 +253,7 @@ export class DataListBuilder<T> {
       canNest: undefined,
       expanded: ref<CoarDataListKey[]>([]),
       tileCards: false,
+      bandElevated: false,
       reorderable: false,
       dragEngine: 'native',
       canDrag: undefined,
@@ -393,6 +396,12 @@ export class DataListBuilder<T> {
   /** Grid layout: draw tiles as cards. An expanded tile's frame opens into the band of its children. */
   tileCards(on: MaybeRefOrGetter<boolean> = true): this {
     this.state.tileCards = on;
+    return this;
+  }
+
+  /** Lift an expanded card and its band with a shadow. */
+  bandElevated(on: MaybeRefOrGetter<boolean> = true): this {
+    this.state.bandElevated = on;
     return this;
   }
 

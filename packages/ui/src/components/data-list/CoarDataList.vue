@@ -144,6 +144,8 @@ export interface CoarDataListProps<T = unknown> {
   canNest?: (item: T, parent: T) => boolean;
   /** Grid layout: draw tiles as cards (border + radius). An expanded tile's frame opens into the band of its children. */
   tileCards?: boolean;
+  /** Lift an expanded card and its band with a shadow. */
+  bandElevated?: boolean;
 }
 
 const props = withDefaults(defineProps<CoarDataListProps<T>>(), {
@@ -189,6 +191,7 @@ const props = withDefaults(defineProps<CoarDataListProps<T>>(), {
   hideExpandToggle: false,
   canNest: undefined,
   tileCards: false,
+  bandElevated: false,
 });
 
 const emit = defineEmits<{
@@ -269,6 +272,7 @@ const cfg = computed(() => {
       hideExpandToggle: toValue(s.hideExpandToggle),
       canNest: s.canNest,
       tileCards: toValue(s.tileCards),
+      bandElevated: toValue(s.bandElevated),
     };
   }
   return {
@@ -317,6 +321,7 @@ const cfg = computed(() => {
     hideExpandToggle: props.hideExpandToggle,
     canNest: props.canNest,
     tileCards: props.tileCards,
+    bandElevated: props.bandElevated,
   };
 });
 
@@ -401,7 +406,7 @@ const bandInsetPx = computed(() => {
   return amount;
 });
 
-const { lines, columns, lineIndexOfKey, positionOfKey } = useDataListLines<T>({
+const { lines, bands, columns, lineIndexOfKey, positionOfKey } = useDataListLines<T>({
   entries,
   layout: () => cfg.value.layout,
   tileMinWidth: () => cfg.value.tileMinWidth,
@@ -455,6 +460,33 @@ const virtualLines = computed(() =>
     return line ? [{ row, line }] : [];
   }),
 );
+
+/**
+ * One frame per band, drawn as a single element spanning all its lines (a
+ * per-line border would show seams, a per-line shadow would show them twice).
+ * Its extent comes from the virtualizer's offsets, so it follows measured heights.
+ */
+const gapPx = computed(() => {
+  const gap = cfg.value.gap;
+  if (gap === undefined || gap === '') return 0;
+  return typeof gap === 'number' ? gap : Number.parseFloat(gap) || 0;
+});
+const bandBoxes = computed(() =>
+  bands.value.map((band) => {
+    const top = virtualizer.offsetFor(band.firstLine);
+    const isLast = band.lastLine === lines.value.length - 1;
+    const bottom = virtualizer.offsetFor(band.lastLine + 1) - (isLast ? 0 : gapPx.value);
+    return { key: `band:${String(band.parentKey)}`, level: band.level, top, height: Math.max(0, bottom - top) };
+  }),
+);
+
+function bandBoxStyle(box: { level: number; top: number; height: number }) {
+  return {
+    transform: `translateY(${box.top}px)`,
+    height: `${box.height}px`,
+    '--coar-data-list-band-level': String(box.level),
+  };
+}
 
 type Line = (typeof lines.value)[number];
 type ItemsLine = Extract<Line, { kind: 'items' }>;
@@ -964,6 +996,7 @@ defineExpose({
         'coar-data-list--drag-over': reorder.isDragOver.value,
         'coar-data-list--dragging': reorder.dragging.value,
         'coar-data-list--nested': nestingActive,
+        'coar-data-list--band-elevated': cfg.bandElevated,
         [`coar-data-list--nesting-${cfg.nestingStyle}`]: nestingActive,
       },
     ]"
@@ -1008,6 +1041,15 @@ defineExpose({
         class="coar-data-list__spacer"
         :style="{ height: `${virtualizer.totalSize.value}px` }"
       >
+        <!-- Band frames first, so the rows (and the opened card) paint above them. -->
+        <div
+          v-for="box in bandBoxes"
+          :key="box.key"
+          class="coar-data-list__band-box"
+          :class="{ 'coar-data-list__band-box--elevated': cfg.bandElevated }"
+          :style="bandBoxStyle(box)"
+          aria-hidden="true"
+        />
         <div
           v-for="{ row, line } in virtualLines"
           :key="line.key"
@@ -1243,36 +1285,46 @@ defineExpose({
   min-width: 0;
 }
 
-/* Rows inside a band sit inside the frames of every enclosing band. */
+/* Rows inside a band keep clear of the frames of every enclosing band. */
 .coar-data-list__row--band > .coar-data-list__frame {
   position: relative;
   margin-left: calc((var(--coar-data-list-band-level) - 1) * var(--coar-data-list-band-inset));
   margin-right: calc((var(--coar-data-list-band-level) - 1) * var(--coar-data-list-band-inset));
   padding-left: var(--coar-data-list-band-inset);
   padding-right: var(--coar-data-list-band-inset);
-  border-left: 1px solid var(--coar-border-neutral);
-  border-right: 1px solid var(--coar-border-neutral);
-  /* An outline, not a panel: the frame continues the parent card's border. */
-  background: transparent;
 }
 
 .coar-data-list__row--band-first > .coar-data-list__frame {
-  border-top: 1px solid var(--coar-border-neutral);
-  padding-top: var(--coar-spacing-xs);
+  padding-top: var(--coar-spacing-s);
 }
 
 .coar-data-list__row--band-last > .coar-data-list__frame {
-  border-bottom: 1px solid var(--coar-border-neutral);
-  border-bottom-left-radius: var(--coar-radius-s);
-  border-bottom-right-radius: var(--coar-radius-s);
-  padding-bottom: var(--coar-spacing-xs);
+  padding-bottom: var(--coar-spacing-s);
 }
 
-/* The row that opens a band touches it (no gap) and paints above its top border,
-   so an expanded card's open bottom edge cuts the frame exactly under the card.
-   (Doubled class: the generic row rule below sets the gap and must lose.) */
-.coar-data-list__row.coar-data-list__row--opens-band {
-  padding-bottom: 0;
+/* The frame itself: one element per band, spanning all its lines, drawn under
+   the rows. An outline that continues the parent card's border. */
+.coar-data-list__band-box {
+  --coar-data-list-band-inset: var(--coar-data-list-indent, 1.5rem);
+  position: absolute;
+  inset: 0 0 auto;
+  box-sizing: border-box;
+  margin-left: calc((var(--coar-data-list-band-level) - 1) * var(--coar-data-list-band-inset));
+  margin-right: calc((var(--coar-data-list-band-level) - 1) * var(--coar-data-list-band-inset));
+  border: 1px solid var(--coar-border-neutral);
+  border-bottom-left-radius: var(--coar-radius-s);
+  border-bottom-right-radius: var(--coar-radius-s);
+  pointer-events: none;
+}
+
+.coar-data-list__band-box--elevated {
+  box-shadow: var(--coar-elevation-medium);
+}
+
+/* The row that opens a band paints above the frame's top border, so the expanded
+   card's open bottom edge cuts it exactly under the card. The other tiles keep the
+   row gap; only the card reaches down to the band. */
+.coar-data-list__row--opens-band {
   z-index: 1;
 }
 
@@ -1301,14 +1353,22 @@ defineExpose({
 }
 
 /* Expanded card: bottom edge opens into the band, like a tab into its panel.
-   The card extends one pixel over the band's top border and covers it. */
+   The card grows by the row gap plus one pixel, so it bridges the gap the other
+   tiles keep and covers the band's top border under itself. */
 .coar-data-list__row--opens-band .coar-data-list__item--card.coar-data-list__item--expanded {
   border-bottom-color: transparent;
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
-  margin-bottom: -1px;
-  padding-bottom: calc(var(--coar-data-list-item-pad-y) + 1px);
+  margin-bottom: calc(-1 * (var(--coar-data-list-gap, 0px) + 1px));
+  padding-bottom: calc(var(--coar-data-list-item-pad-y) + var(--coar-data-list-gap, 0px) + 1px);
   z-index: 1;
+}
+
+/* With elevation the card carries the top part of the shadow; its bottom stays
+   open so the shadow flows into the band's without a seam. */
+.coar-data-list--band-elevated .coar-data-list__row--opens-band .coar-data-list__item--card.coar-data-list__item--expanded {
+  box-shadow: var(--coar-elevation-medium);
+  clip-path: inset(-24px -24px 0 -24px);
 }
 
 .coar-data-list__item--tile.coar-data-list__item--selected {

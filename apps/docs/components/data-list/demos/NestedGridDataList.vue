@@ -76,6 +76,7 @@ builder
   .layout('grid')
   .tileMinWidth('10rem')
   .tileCards()
+  .bandElevated()
   .gap(8)
   // Child levels are lists of their own — here their layout follows the toggle above.
   .children((entry) => entry.children, (level) => level.layout(childLayout.value).tileMinWidth('9rem'))
