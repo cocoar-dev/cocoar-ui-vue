@@ -185,6 +185,16 @@ export abstract class CalendarBuilderConfig<
   }
 
   /**
+   * Unobscured width (px) below which an overlapped Day / Week card
+   * switches to the compact anatomy — one end-truncated title line, no
+   * location, no time. Default 112 like iOS; `0` disables the switch.
+   */
+  timedEventDetailMinWidth(px: MaybeRefOrGetter<number>): this {
+    this.state.timedEventDetailMinWidth = px;
+    return this;
+  }
+
+  /**
    * How much height the all-day band claims (the hour axis starts
    * below it, so every height change moves the whole grid):
    * `'fitsContent'` (default) follows the content, `'alwaysOneLane'`
@@ -234,12 +244,9 @@ export abstract class CalendarBuilderConfig<
   }
 
   /**
-   * Describe the `day` view's columns and paging directly instead of
-   * through `dayMode`: `anchor` (first column), `span` (days, or
-   * `'responsive'`), `filter` (all weekdays or `workDays`), `step`
-   * (days per page, or `'span'`). Week and Work week are fixed presets
-   * of the same model. "Start at the cursor, show five days, page by a
-   * week" is `{ anchor: 'cursor', span: 5, filter: 'all', step: 7 }`.
+   * The `day` view's columns and paging as one spec — `anchor`, `span`
+   * (days or `'responsive'`), `filter` (all / `workDays`), `step` (days
+   * per page or `'span'`); Week and Work week are fixed presets of it.
    * `null` restores the `dayMode` presets.
    */
   timeGridRange(spec: MaybeRefOrGetter<TimeGridRangeSpec | null>): this {
@@ -278,17 +285,10 @@ export abstract class CalendarBuilderConfig<
   }
 
   /**
-   * Phase 4 §A8 — recurrence engine for `expandSeries` calls of this
-   * builder. Without it, the lazy default (rrule-temporal adapter)
-   * is used. The factory form is the SSR escape: the engine is
-   * constructed only when actually needed. Implement `RecurrenceEngine`
-   * for custom engines (server-side pre-expansion, alternate RRULE
-   * parser, mocks for tests).
-   *
-   * **Set once at construction.** Mid-session swap has no sensible
-   * semantics (in-flight requests, worker lifecycle, cache coherency)
-   * — a call after an expansion was dispatched does NOT cancel or
-   * re-route in-flight calls.
+   * Recurrence engine for this builder's `expandSeries` calls (default:
+   * the lazy rrule-temporal adapter; the factory form is the SSR
+   * escape). **Set once at construction** — a swap does not cancel or
+   * re-route in-flight expansions.
    */
   recurrenceEngine(engineOrFactory: RecurrenceEngine | (() => RecurrenceEngine)): this {
     this.state.recurrenceEngine = engineOrFactory;

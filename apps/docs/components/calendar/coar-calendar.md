@@ -487,6 +487,7 @@ api.refreshRange(start, end);   // invalidate intersecting cache entries
 watch(api.loading, (b) => console.log('loading?', b));
 watch(api.visibleRange, (w) => console.log('window changed', w));
 api.rangeLabel.value;           // "15.–21. Juni 2026" — the header's title, for your own header
+api.topmostVisibleMonth.value;  // Month view: the month at the top while scrolling (cursor follows on settle)
 ```
 
 <preview path="./demos/CalendarImperativeApi.vue" />
@@ -542,6 +543,7 @@ The builder is **flat** — every setter lives directly on it. There are no sub-
 | `eventRenderer(r)` | `EventRenderer<TMeta>` | Universal event renderer. Branch on `ctx.layout?.kind` (`'positioned'` / `'allDayBar'` / `'monthPill'` / `'monthBar'`) to render per layout variant. See "Custom event rendering" above. |
 | `dayHeaderRenderer(r)` | `DayHeaderRenderer` | Day column header. |
 | `allDayMaxVisibleLanes(n)` | `MaybeRefOrGetter<number \| null>` | Lanes the all-day band (week / work-week / day) shows before it folds the rest behind per-day "+N" markers. Default `3`; `null` = unlimited. A click on a marker expands the band; a collapse control folds it back. |
+| `timedEventDetailMinWidth(px)` | `MaybeRefOrGetter<number>` | Unobscured width below which an overlapped Day / Week card switches to the compact anatomy (one end-truncated title line, no location, no time row). Default `112` like iOS; `0` disables the switch. See [Overlapping timed cards](/components/calendar/week-view#overlapping-timed-cards). |
 | `allDayBandMode(m)` | `MaybeRefOrGetter<'fitsContent' \| 'alwaysOneLane' \| 'reservesCap'>` | How much height the all-day band claims. `fitsContent` (default) follows the content and disappears without all-day events; `alwaysOneLane` keeps at least one lane so the grid never jumps 0↔1; `reservesCap` is always `allDayMaxVisibleLanes` tall so the hour axis sits at the same place on every day. |
 | `timeGridRange(spec)` | `MaybeRefOrGetter<TimeGridRangeSpec \| null>` | Anchor / span / filter / step of the Day view's columns and paging. Week and Work week are fixed presets of the same model. See the [Day view](/components/calendar/day-view#one-model-for-every-time-grid). |
 | `swipeNavigation(b)` | `MaybeRefOrGetter<boolean>` | Touch paging on week / work-week / day (default `true`): a horizontal pan moves the grid with the finger and pages on release past a quarter of the width or on a fast flick. A touch that never moves is a tap and reaches `onTimeClick` on release. On the columns mouse / pen are unaffected; a mouse drag across the day-name strip pages too. Honours `prefers-reduced-motion`. |
@@ -582,6 +584,8 @@ interface CalendarApi<TMeta> {
   readonly gridReady: Readonly<Ref<boolean>>;
   /** Title of the visible window, exactly as the built-in header shows it. */
   readonly rangeLabel: Readonly<ComputedRef<string>>;
+  /** Month view: the topmost visible month, live while scrolling; `null` elsewhere. */
+  readonly topmostVisibleMonth: Readonly<ShallowRef<Temporal.PlainYearMonth | null>>;
 }
 ```
 

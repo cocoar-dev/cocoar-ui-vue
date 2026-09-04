@@ -3,6 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, toValue, watch } f
 import { useLocalization } from '@cocoar/vue-localization';
 import { Temporal, type CalendarEvent, type MonthCellPill, type MonthMultiDayBar } from '../core';
 import { CalendarBuilder } from '../builders/calendar-builder';
+import { SET_TOPMOST_VISIBLE_MONTH } from '../builders/calendar-builder-internals';
 import { useViewWindow } from '../composables/useViewWindow';
 import CoarMonthView from './CoarMonthView.vue';
 
@@ -49,10 +50,24 @@ function formatMonth(month: Temporal.PlainYearMonth): string {
 const initialMonth = yearMonthOf(props.builder.state.date.value);
 const months = ref<Temporal.PlainYearMonth[]>(monthRange(initialMonth));
 const MAX_MATERIALIZED_MONTHS = 25;
+/**
+ * Live anchor: the topmost visible section. Updated on every scroll
+ * frame and published as `api.topmostVisibleMonth`; the semantic
+ * cursor follows only once the scroll settles (iOS 3.6 rule), so
+ * `onRangeChange` / loaders don't churn while the finger is down.
+ */
 const activeMonthKey = ref(monthKey(initialMonth));
 let frame = 0;
 let adjustingMonths = false;
 let syncingCursorFromScroll = false;
+/** Fallback for engines without `scrollend`. */
+const SCROLL_SETTLE_MS = 160;
+let settleTimer: ReturnType<typeof setTimeout> | null = null;
+let cursorSyncPending = false;
+
+function publishTopmost(key: string): void {
+  props.builder[SET_TOPMOST_VISIBLE_MONTH](Temporal.PlainYearMonth.from(key));
+}
 
 // One writer covers the current month plus its immediate neighbours. This keeps
 // event loaders and recurrence expansion ready before either neighbour scrolls in.
@@ -82,12 +97,14 @@ async function ensureMonthAndAlign(
   }
   alignMonthToTop(key, behavior);
   activeMonthKey.value = key;
+  publishTopmost(key);
   requestAnimationFrame(() => {
     adjustingMonths = false;
   });
 }
 
-function updateCursorFromViewport(): void {
+/** The live anchor: which section is topmost right now. */
+function updateTopmostFromViewport(): void {
   const container = root.value;
   if (!container || adjustingMonths) return;
   const containerTop = container.getBoundingClientRect().top;
@@ -103,14 +120,32 @@ function updateCursorFromViewport(): void {
   const key = active.dataset.monthKey;
   if (!key || key === activeMonthKey.value) return;
   activeMonthKey.value = key;
-  const nextMonth = Temporal.PlainYearMonth.from(key);
+  publishTopmost(key);
+  cursorSyncPending = true;
+}
+
+/** Once the scroll settled: pull the semantic cursor to the live anchor. */
+function syncCursorToTopmost(): void {
+  if (!cursorSyncPending) return;
+  cursorSyncPending = false;
+  const nextMonth = Temporal.PlainYearMonth.from(activeMonthKey.value);
   const current = props.builder.state.date.value;
+  if (yearMonthOf(current).equals(nextMonth)) return;
   const nextDate = nextMonth.toPlainDate({ day: Math.min(current.day, nextMonth.daysInMonth) });
   syncingCursorFromScroll = true;
   props.builder.api.goTo(nextDate);
   queueMicrotask(() => {
     syncingCursorFromScroll = false;
   });
+}
+
+function onScrollEnd(): void {
+  if (settleTimer) clearTimeout(settleTimer);
+  settleTimer = null;
+  // Don't depend on the last animation frame having run (throttled
+  // tabs, programmatic scrolls): read the viewport once more.
+  updateTopmostFromViewport();
+  syncCursorToTopmost();
 }
 
 async function extendIfNeeded(): Promise<void> {
@@ -156,9 +191,13 @@ async function extendIfNeeded(): Promise<void> {
 function onScroll(): void {
   cancelAnimationFrame(frame);
   frame = requestAnimationFrame(() => {
-    updateCursorFromViewport();
+    updateTopmostFromViewport();
     void extendIfNeeded();
   });
+  // `scrollend` fires once per gesture where supported; the timer is
+  // the fallback and is harmless next to it (the sync is idempotent).
+  if (settleTimer) clearTimeout(settleTimer);
+  settleTimer = setTimeout(onScrollEnd, SCROLL_SETTLE_MS);
 }
 
 watch(
@@ -196,11 +235,16 @@ watch(
 onMounted(async () => {
   await nextTick();
   alignMonthToTop(activeMonthKey.value);
+  publishTopmost(activeMonthKey.value);
   root.value?.addEventListener('scroll', onScroll, { passive: true });
+  root.value?.addEventListener('scrollend', onScrollEnd);
 });
 onBeforeUnmount(() => {
   cancelAnimationFrame(frame);
+  if (settleTimer) clearTimeout(settleTimer);
   root.value?.removeEventListener('scroll', onScroll);
+  root.value?.removeEventListener('scrollend', onScrollEnd);
+  props.builder[SET_TOPMOST_VISIBLE_MONTH](null);
 });
 
 defineExpose({

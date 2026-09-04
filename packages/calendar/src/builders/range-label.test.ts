@@ -16,6 +16,7 @@ import { defineComponent, h, nextTick } from 'vue';
 import { Temporal } from '@js-temporal/polyfill';
 import { createCoarLocalization } from '@cocoar/vue-localization';
 import { CalendarBuilder } from './calendar-builder';
+import { SET_TOPMOST_VISIBLE_MONTH } from './calendar-builder-internals';
 import { useCalendar } from '../useCalendar';
 import CoarCalendar from '../components/CoarCalendar.vue';
 import CoarWeekView from '../components/CoarWeekView.vue';
@@ -64,6 +65,22 @@ describe('api.rangeLabel', () => {
     await nextTick();
     expect(w.find('.coar-calendar__range-label').text()).toBe(b.api.rangeLabel.value);
     expect(norm(b.api.rangeLabel.value)).toBe('Jun 22 – 28, 2026');
+  });
+
+  it('month label follows the live topmost month while the cursor stays put', () => {
+    const b = newBuilder().view('month');
+    expect(b.api.topmostVisibleMonth.value).toBeNull();
+    expect(norm(b.api.rangeLabel.value)).toBe('June 2026');
+    b[SET_TOPMOST_VISIBLE_MONTH](Temporal.PlainYearMonth.from('2026-08'));
+    expect(b.api.topmostVisibleMonth.value?.toString()).toBe('2026-08');
+    expect(norm(b.api.rangeLabel.value)).toBe('August 2026');
+    expect(b.state.date.value.toString()).toBe('2026-06-17');
+    // Other views ignore the anchor.
+    b.api.setView('week');
+    expect(norm(b.api.rangeLabel.value)).toBe('Jun 15 – 21, 2026');
+    b.api.setView('month');
+    b[SET_TOPMOST_VISIBLE_MONTH](null);
+    expect(norm(b.api.rangeLabel.value)).toBe('June 2026');
   });
 
   it('falls back to the host localization language when no locale is set', () => {

@@ -50,6 +50,8 @@ import {
   type PositionedEvent,
   type AllDayBar,
   type ViewWindow,
+  resolveTimedCardAnatomy,
+  type TimedCardAnatomy,
 } from '../core';
 import { CalendarBuilder } from '../builders/calendar-builder';
 import { RenderEvent, RenderDayHeader } from '../builders/render-helpers';
@@ -61,7 +63,12 @@ import CoarTimeGridAllDayBand from './internal/time-grid/CoarTimeGridAllDayBand.
 import CoarTimeGridColumn from './internal/time-grid/CoarTimeGridColumn.vue';
 import CoarTimeGridAllDayOverflow from './internal/time-grid/CoarTimeGridAllDayOverflow.vue';
 import { originatesFromEvent } from './internal/originatesFromEvent';
-import { contentAwareCascadeFrames, type CascadeItem } from '../core/cascadeLayout';
+import {
+  contentAwareCascadeFrames,
+  type CascadeFrame,
+  type CascadeItem,
+} from '../core/cascadeLayout';
+import { agendaTimeLabel } from './internal/agenda/agendaTimeLabel';
 
 // Inlined defineProps argument to avoid vue-tsc TS4025 — see note in
 // CoarMonthView.vue.
@@ -132,6 +139,7 @@ const state = computed(() => {
     dateStyle: toValue(s.dateStyle),
     timeStyle: toValue(s.timeStyle),
     hour12: toValue(s.hour12),
+    timedEventDetailMinWidth: toValue(s.timedEventDetailMinWidth),
     timeRange: [Math.floor(tr.startMinutes / 60), Math.ceil(tr.endMinutes / 60)] as readonly [
       number,
       number,
@@ -423,7 +431,7 @@ const dayLayouts = computed<
   {
     date: Temporal.PlainDate;
     positioned: PositionedEvent<TMeta>[];
-    horizontalFrames: Map<string, { x: number; width: number }>;
+    horizontalFrames: Map<string, CascadeFrame>;
   }[]
 >(() => {
   // While dragging, anchor the preview event to the rightmost lane
@@ -486,7 +494,7 @@ const dayLayouts = computed<
 });
 
 function eventHorizontalStyle(
-  layout: { horizontalFrames: Map<string, { x: number; width: number }> },
+  layout: { horizontalFrames: Map<string, CascadeFrame> },
   positioned: PositionedEvent<TMeta>,
 ): { left: string; width: string } {
   const frame = layout.horizontalFrames.get(positioned.event.id);
@@ -500,6 +508,62 @@ function eventHorizontalStyle(
     left: `calc(${frame.x}% + 2px)`,
     width: `calc(${frame.width}% - 4px)`,
   };
+}
+
+// ─── Card anatomy (iOS 4.0 parity) ───────────────────────────────────
+// The cascade works in percent of the column; the compact switch needs
+// pixels. Measure the columns container once mounted and on resize.
+
+const columnsWidthPx = ref(0);
+let columnsObserver: ResizeObserver | null = null;
+onMounted(() => {
+  const el = columnsRef.value;
+  if (!el) return;
+  columnsWidthPx.value = el.getBoundingClientRect().width;
+  if (typeof ResizeObserver === 'undefined') return;
+  columnsObserver = new ResizeObserver(([entry]) => {
+    columnsWidthPx.value = entry.contentRect.width;
+  });
+  columnsObserver.observe(el);
+});
+onBeforeUnmount(() => columnsObserver?.disconnect());
+
+const columnWidthPx = computed(() =>
+  columnsWidthPx.value > 0 && visibleDays.value.length > 0
+    ? columnsWidthPx.value / visibleDays.value.length
+    : 0,
+);
+const cardTimeFormatter = computed(
+  () =>
+    new Intl.DateTimeFormat(
+      locale.value,
+      buildFormatOptions(
+        { hour: 'numeric', minute: '2-digit', timeZone: timezone.value },
+        { timeStyle: state.value.timeStyle, hour12: state.value.hour12 },
+      ),
+    ),
+);
+function cardTimeLabel(event: CalendarEvent<TMeta>): string {
+  return agendaTimeLabel(event, (ms) => cardTimeFormatter.value.format(ms), '');
+}
+function cardLocation(event: CalendarEvent<TMeta>): string | undefined {
+  const meta = event.meta as { location?: unknown } | undefined;
+  return typeof meta?.location === 'string' && meta.location ? meta.location : undefined;
+}
+function cardAnatomy(
+  layout: { horizontalFrames: Map<string, CascadeFrame> },
+  positioned: PositionedEvent<TMeta>,
+): TimedCardAnatomy {
+  const frame = layout.horizontalFrames.get(positioned.event.id);
+  const fraction = frame ? frame.visibleContentWidth / 100 : 1 / positioned.laneCount;
+  const visibleWidthPx = columnWidthPx.value > 0 ? columnWidthPx.value * fraction - 4 : null;
+  return resolveTimedCardAnatomy({
+    durationMinutes: positioned.endMinutes - positioned.startMinutes,
+    visibleWidthPx,
+    detailMinWidth: state.value.timedEventDetailMinWidth,
+    overlapped: positioned.laneCount > 1,
+    hasLocation: cardLocation(positioned.event) !== undefined,
+  });
 }
 
 // All-day band: filtered to all-day + multi-day-all-day events,
@@ -1043,6 +1107,9 @@ defineExpose({
             :ink="eventInkFor(positioned.event)"
             :border="eventBorderFor(positioned.event)"
             :title="eventTitle(positioned.event)"
+            :location="cardLocation(positioned.event)"
+            :time-label="cardTimeLabel(positioned.event)"
+            :anatomy="cardAnatomy(layout, positioned)"
             :display-zone="timezone"
             :aria-label="
               isPreviewEvent(positioned.event.id) && keyboardDrag

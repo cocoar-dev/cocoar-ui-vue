@@ -17,6 +17,22 @@ the time grids.
 
 ### Added
 
+- **Live topmost month while scrolling the Month view.** `api.topmostVisibleMonth`
+  is the month of the topmost visible section, updated on every scroll
+  frame (finger down, deceleration); `api.rangeLabel` and the header follow
+  it immediately. The cursor (`state.date`) — and with it `onRangeChange`
+  and the loaders — catches up only once the scroll settles (`scrollend`,
+  or a 160 ms fallback). A month stays active until its section has
+  scrolled out completely. Counterpart of iOS 3.6.
+- **Compact card anatomy under overlap (Day / Week).** The built-in card now
+  shows the location (`meta.location`) and the time span when it has the
+  height, and lets the title wrap once on tall cards. When cards in front
+  leave less than `timedEventDetailMinWidth(px)` (default `112`, iOS
+  `timedEventDetailMinimumWidth`) unobscured, the card drops to one
+  end-truncated title line with no rows — every card stays its own click
+  and drag target. `0` disables the switch; custom `#event` slots and
+  `eventRenderer` are never touched. Counterpart of iOS 4.0.
+
 - **`--coar-calendar-scroll-inset-bottom`** — bottom content inset for
   every scrolling surface (Day / Week grids, Month, List, Agenda,
   Timeline, Year), the counterpart of the iOS calendar's content inset.

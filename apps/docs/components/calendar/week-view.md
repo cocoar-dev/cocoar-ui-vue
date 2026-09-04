@@ -112,6 +112,16 @@ The band shows at most `allDayMaxVisibleLanes` lanes — default **3**, like the
 builder.allDayMaxVisibleLanes(3).allDayBandMode('reservesCap');
 ```
 
+## Overlapping timed cards
+
+Events in the same collision group form a content-aware cascade: later cards render in front, but only cover as much of the card behind them as its content block allows. When the width that stays **unobscured** falls below `timedEventDetailMinWidth` (default **112 px**, like iOS), the built-in card switches to a **compact anatomy**: one end-truncated title line, no location row, no time row. Every card remains a separate clickable, draggable target. With room, the built-in card shows the location (from 34 minutes of height at the default scale), the time span (from 52) and lets the title wrap once (from 70).
+
+```ts
+builder.timedEventDetailMinWidth(96); // switch a little later
+builder.timedEventDetailMinWidth(0);  // never compact
+```
+
+A custom `#event` slot or `eventRenderer` is never touched by the policy — the cascade then keeps the safe side-by-side widths and your content decides what to show. The Day view uses exactly the same layout.
 ## Point events (timed, no `end`)
 
 A timed event without `end` keeps the default 30-minute slot geometry but renders distinguishably from a real 30-minute event: a solid start edge in the event color sits exactly on the start time, and the card body drops to ~38 % fill opacity — the title stays fully opaque. Resize handles are suppressed (there is no `end` to grab). Month and Agenda render point events unchanged. The look matches the SwiftUI port; tune it via `--coar-calendar-point-edge-height` / `--coar-calendar-point-body-opacity` (see [Theming](/components/calendar/#theming)).

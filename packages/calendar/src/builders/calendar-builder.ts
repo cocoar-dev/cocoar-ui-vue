@@ -19,13 +19,10 @@
  *     setup. Mutating the builder mid-session takes effect on the
  *     next render / drop.
  *
- *   - **Navigation state** (view + date) is held as `Ref<T>`
- *     (never `MaybeRefOrGetter`). Reason: `api.next/prev/goTo/setView`
- *     mutate it, so it MUST be writable. Setters that receive a Ref
- *     keep the binding two-way; setters that receive a plain value
- *     wrap it into a fresh internal ref. Setters that receive a
- *     function-getter throw — getters are read-only by definition
- *     and would silently lose `api.next()`-style writes.
+ *   - **Navigation state** (view + date) is a writable `Ref<T>` because
+ *     `api.next/prev/goTo/setView` mutate it: a passed Ref stays
+ *     two-way, a plain value is wrapped, a getter throws (it would
+ *     silently lose `api.next()`-style writes).
  *
  * **Loader pipeline (C5 single _visibleRange writer).**
  *
@@ -58,6 +55,7 @@ import {
   detectBrowserTimezone,
 } from '../core';
 import {
+  SET_TOPMOST_VISIBLE_MONTH,
   SET_VISIBLE_RANGE,
   INVALIDATE_LOADER_CACHE,
   PREFETCH_WINDOWS,
@@ -85,6 +83,7 @@ export class CalendarBuilder<
 
   // ── Internal writable refs (api exposes as readonly) ──────────
   private readonly _visibleRange = shallowRef<ViewWindow | null>(null);
+  private readonly _topmostVisibleMonth = shallowRef<Temporal.PlainYearMonth | null>(null);
   private readonly _gridReady = ref(false);
   /** Active view's scroll delegates. Registered on mount, cleared on unmount. */
   private _scrollToTimeImpl: ((time: Temporal.PlainTime) => void) | undefined;
@@ -134,7 +133,10 @@ export class CalendarBuilder<
       loading: this._loading.loading as Readonly<Ref<boolean>>,
       visibleRange: this._visibleRange as Readonly<ShallowRef<ViewWindow | null>>,
       gridReady: this._gridReady as Readonly<Ref<boolean>>,
-      rangeLabel: this._scope.run(() => createRangeLabel(this.state, this._visibleRange))!,
+      rangeLabel: this._scope.run(() =>
+        createRangeLabel(this.state, this._visibleRange, this._topmostVisibleMonth),
+      )!,
+      topmostVisibleMonth: this._topmostVisibleMonth,
       goTo: (d) => this._goTo(d),
       goToToday: () => this._goToToday(),
       next: () => this._navigate(+1),
@@ -294,13 +296,9 @@ export class CalendarBuilder<
    * `calendar-builder-internals.ts`, which is intentionally NOT in
    * `index.ts`'s public surface.
    *
-   * Side effects:
-   *   1. Updates the readonly `api.visibleRange` ref.
-   *   2. Fires the consumer's `onRangeChange` handler (deduped via
-   *      window-equality check — no-op if the window didn't change).
-   *   3. Schedules a debounced loader call if `eventsLoader` is set
-   *      and the cache doesn't already have this window.
-   *   4. Triggers recurring-series expansion for the window.
+   * Side effects (no-op when the window didn't change): updates
+   * `api.visibleRange`, fires `onRangeChange`, schedules the loader on
+   * a cache miss, runs the recurring-series expansion.
    *
    * @internal symbol-keyed; reachable only via the internal symbol.
    */
@@ -319,6 +317,13 @@ export class CalendarBuilder<
     }
     this._loader.maybeSchedule(window);
     this._series.run(window);
+  }
+
+  /** @internal symbol-keyed — the continuous month surface's live anchor. */
+  [SET_TOPMOST_VISIBLE_MONTH](month: Temporal.PlainYearMonth | null): void {
+    const curr = this._topmostVisibleMonth.value;
+    if (curr === month || (curr && month && curr.equals(month))) return;
+    this._topmostVisibleMonth.value = month;
   }
 
   /**

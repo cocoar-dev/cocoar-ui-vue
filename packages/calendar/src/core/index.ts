@@ -68,6 +68,12 @@ export {
 export { responsiveDayColumnCount } from './dayColumns';
 export { formatRangeLabel, type RangeLabelOptions } from './rangeLabel';
 export {
+  DEFAULT_TIMED_EVENT_DETAIL_MIN_WIDTH,
+  resolveTimedCardAnatomy,
+  type TimedCardAnatomy,
+  type TimedCardAnatomyInput,
+} from './timedCardAnatomy';
+export {
   TIME_GRID_PRESETS,
   resolveTimeGridRange,
   resolveSpanDays,

@@ -31,6 +31,7 @@ import {
   type TimeGridRangeSpec,
   type ViewWindow,
   DEFAULT_ALL_DAY_MAX_VISIBLE_LANES,
+  DEFAULT_TIMED_EVENT_DETAIL_MIN_WIDTH,
   DEFAULT_WORK_DAYS,
   Temporal,
 } from '../core';
@@ -118,6 +119,12 @@ export interface CalendarBuilderState<
   allDayMaxVisibleLanes: MaybeRefOrGetter<number | null>;
   /** How much height the all-day band claims — see `AllDayBandMode`. */
   allDayBandMode: MaybeRefOrGetter<AllDayBandMode>;
+  /**
+   * Unobscured width (px) below which an overlapped Day / Week card
+   * switches to the compact anatomy (one title line, no location, no
+   * time). iOS `timedEventDetailMinimumWidth`; `0` disables.
+   */
+  timedEventDetailMinWidth: MaybeRefOrGetter<number>;
   /**
    * Touch paging on the time grids: a horizontal pan moves the grid
    * with the finger and pages on release. Mouse / pen unaffected.
@@ -257,6 +264,7 @@ export function createCalendarBuilderState<TMeta extends Record<string, unknown>
     eventTextContrast: 'wcag',
     allDayMaxVisibleLanes: DEFAULT_ALL_DAY_MAX_VISIBLE_LANES,
     allDayBandMode: 'fitsContent',
+    timedEventDetailMinWidth: DEFAULT_TIMED_EVENT_DETAIL_MIN_WIDTH,
     swipeNavigation: true,
     prefetchNeighbours: true,
     density: 'comfortable',
@@ -331,6 +339,14 @@ export interface CalendarApi<TMeta extends Record<string, unknown> = Record<stri
    * any view has mounted, too (computed from the configured window).
    */
   readonly rangeLabel: Readonly<ComputedRef<string>>;
+  /**
+   * Continuous month view only: the month of the topmost visible
+   * section, live while the user scrolls (finger down, deceleration).
+   * The cursor (`state.date`) follows only once the scroll settles;
+   * `rangeLabel` uses this anchor in the meantime, like iOS. `null`
+   * when no continuous month surface is mounted.
+   */
+  readonly topmostVisibleMonth: Readonly<ShallowRef<Temporal.PlainYearMonth | null>>;
   // ── Imperative navigation ─────────────────────────────────────
   goTo(date: Temporal.PlainDate): void;
   goToToday(): void;

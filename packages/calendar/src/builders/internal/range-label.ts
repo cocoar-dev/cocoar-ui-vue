@@ -20,6 +20,7 @@ import {
   computeViewWindow,
   detectFirstDayOfWeekFromLocale,
   formatRangeLabel,
+  type Temporal,
   type ViewWindow,
 } from '../../core';
 import type { CalendarBuilderState } from '../calendar-builder-state';
@@ -42,13 +43,17 @@ type RangeLabelState = Pick<
 export function createRangeLabel(
   state: RangeLabelState,
   visibleRange: ShallowRef<ViewWindow | null>,
+  topmostVisibleMonth: ShallowRef<Temporal.PlainYearMonth | null>,
 ): ComputedRef<string> {
   // The host's localization service is injectable only while the
   // builder is created inside a setup (`useCalendar()`).
   const localization = getCurrentInstance() ? useLocalization() : null;
   return computed(() => {
     const view = state.view.value;
-    const cursor = state.date.value;
+    // Continuous month: the label follows the topmost visible section
+    // while scrolling; the cursor catches up once the scroll settles.
+    const live = view === 'month' ? topmostVisibleMonth.value : null;
+    const cursor = live ? live.toPlainDate({ day: 1 }) : state.date.value;
     const locale = toValue(state.locale) ?? localization?.language.value ?? 'en-US';
     const rendered = visibleRange.value;
     const window =
