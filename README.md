@@ -69,11 +69,13 @@ page, with every demo inlined and an index that says which page answers what. In
 project and Claude Code, Cursor, Codex or Copilot know the library:
 
 ```bash
-npx skills add cocoar-dev/cocoar-ui-vue
+npx @cocoar/vue-ui skill
 ```
 
-Or, matching the version you have installed: `npx skills add ./node_modules/@cocoar/vue-ui`, or
-with [agentskills-cli](https://mysticmind.github.io/agentskills-cli/) `agentskills-cli add @cocoar/vue-ui`.
+That is the version you have installed, handed to the [skills CLI](https://github.com/vercel-labs/skills)
+(options such as `-g` or `-a claude-code` pass through). Alternatives: `npx skills add cocoar-dev/cocoar-ui-vue`
+for the latest docs straight from GitHub, or `agentskills-cli add @cocoar/vue-ui` with
+[agentskills-cli](https://mysticmind.github.io/agentskills-cli/).
 
 The skill is generated from `apps/docs` by `pnpm skill:sync` into `skills/cocoar-vue-ui/`
 (the only hand-written part is `apps/docs/skill/SKILL.header.md`); CI fails when the docs and

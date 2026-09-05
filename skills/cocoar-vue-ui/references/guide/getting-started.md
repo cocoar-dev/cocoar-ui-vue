@@ -91,26 +91,23 @@ in your project knows the library's API and the mistakes it would otherwise make
 `skills/` folder at the package root and takes no part in your build: nothing is loaded unless you
 install it.
 
-With the [skills CLI](https://github.com/vercel-labs/skills) (no extra tooling; Claude Code,
-Cursor, Codex, Copilot and others):
+Once `@cocoar/vue-ui` is installed, one command installs the skill of exactly that version:
 
 ```bash
-# From the installed package — matches the version you use
-npx skills add ./node_modules/@cocoar/vue-ui
-
-# Or straight from GitHub — the latest docs
-npx skills add cocoar-dev/cocoar-ui-vue
+npx @cocoar/vue-ui skill
 ```
 
-With [agentskills-cli](https://mysticmind.github.io/agentskills-cli/) (a .NET tool that also
-reads npm packages):
+It hands the package's skill folder to the [skills CLI](https://github.com/vercel-labs/skills),
+which detects the agents in your project (Claude Code, Cursor, Codex, Copilot and others) and
+asks where to install. Its options pass through: `-y` accepts the defaults, `-g` installs
+user-wide instead of into the project, `-a claude-code` targets one agent.
 
-```bash
-agentskills-cli add @cocoar/vue-ui
-```
+Two alternatives: `npx skills add cocoar-dev/cocoar-ui-vue` takes the latest docs straight from
+GitHub, and [agentskills-cli](https://mysticmind.github.io/agentskills-cli/) (a .NET tool that
+also reads npm packages) installs it with `agentskills-cli add @cocoar/vue-ui`.
 
 Either places the skill in `.claude/skills/` for Claude Code and `.agents/skills/` for the
-agents that read the standard; `-g` installs it globally instead. Without a tool, copy
+agents that read the standard. Without a tool, copy
 `node_modules/@cocoar/vue-ui/skills/cocoar-vue-ui/` into the same folder by hand.
 
 The skill is generated from these docs, so it says what the docs say for the version you
