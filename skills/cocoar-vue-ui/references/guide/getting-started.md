@@ -1,6 +1,4 @@
----
-description: "Set up @cocoar/vue-ui in a Vue 3 project: install, import fonts and styles, use components, toggle dark mode, and register the overlay plugin."
----
+<!-- Generated from apps/docs/guide/getting-started.md by apps/docs/scripts/sync-skill.mjs. Do not edit; edit the docs page. -->
 
 # Getting Started
 
@@ -22,9 +20,9 @@ import '@cocoar/vue-ui/fonts';   // Poppins + Inter (self-hosted)
 import '@cocoar/vue-ui/styles';  // Design tokens + component styles
 ```
 
-::: info Bring your own fonts?
-The font import is optional. If you prefer a CDN or custom fonts, skip `@cocoar/vue-ui/fonts` and load them yourself. Components fall back to system fonts gracefully.
-:::
+> **Info: Bring your own fonts?**
+>
+> The font import is optional. If you prefer a CDN or custom fonts, skip `@cocoar/vue-ui/fonts` and load them yourself. Components fall back to system fonts gracefully.
 
 ## 3. Use Components
 
@@ -116,6 +114,6 @@ agents that read the standard; `-g` installs it globally instead. Without a tool
 `node_modules/@cocoar/vue-ui/skills/cocoar-vue-ui/` into the same folder by hand.
 
 The skill is generated from these docs, so it says what the docs say for the version you
-reference. The same content is available online as [llms.txt](/llms.txt) (an index with one line
-per page) and [llms-full.txt](/llms-full.txt) (everything in one file) for assistants that fetch
+reference. The same content is available online as [llms.txt](https://docs.cocoar.dev/cocoar-ui-vue/llms.txt) (an index with one line
+per page) and [llms-full.txt](https://docs.cocoar.dev/cocoar-ui-vue/llms-full.txt) (everything in one file) for assistants that fetch
 documentation by URL.

@@ -1,3 +1,7 @@
+---
+description: "Page Builder authoring contract — the inventory of every renderer capability, the authoring surface that writes it, and which gaps are named exceptions versus open."
+---
+
 # Authoring contract
 
 Every capability the renderer honours must be reachable from an authoring

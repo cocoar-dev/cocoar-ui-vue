@@ -1,0 +1,42 @@
+name: CI - Agent Skill
+
+# The Agent Skill in skills/cocoar-vue-ui is generated from the docs (apps/docs/scripts/sync-skill.mjs)
+# and ships inside @cocoar/vue-ui. A docs change without the regenerated skill would publish a
+# package that contradicts the site, and the main CI ignores apps/docs/** on purpose — so this
+# check runs on its own, without installing the workspace (the script needs only Node).
+
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'apps/docs/**'
+      - 'skills/**'
+      - 'packages/ui/scripts/copy-skill.mjs'
+      - '.github/workflows/ci-agent-skill.yml'
+  push:
+    branches: [develop]
+    paths:
+      - 'apps/docs/**'
+      - 'skills/**'
+      - 'packages/ui/scripts/copy-skill.mjs'
+      - '.github/workflows/ci-agent-skill.yml'
+
+jobs:
+  verify-skill:
+    name: Verify the agent skill matches the docs
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Verify skills/cocoar-vue-ui is up to date
+        run: node apps/docs/scripts/sync-skill.mjs --check

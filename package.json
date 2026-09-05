@@ -10,6 +10,8 @@
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
     "docs": "turbo run dev --filter @cocoar/docs",
+    "skill:sync": "node apps/docs/scripts/sync-skill.mjs",
+    "skill:check": "node apps/docs/scripts/sync-skill.mjs --check",
     "build:icons": "node scripts/icons/build-frontend-icons.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check ."

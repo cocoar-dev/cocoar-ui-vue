@@ -1,0 +1,127 @@
+<!-- Generated from apps/docs/components/data-grid/text.md by apps/docs/scripts/sync-skill.mjs. Do not edit; edit the docs page. -->
+
+# Text Column
+
+`col.text(field, configurator?)` declares a text column whose editor is `<CoarTextInput>` — same visual language as forms, fitted into the cell.
+
+```ts
+import { CoarGridBuilder } from '@cocoar/vue-data-grid';
+
+CoarGridBuilder.create<Person>().columns([
+  (col) => col.text('name').editable(true),
+  (col) => col.text('email', t => t.placeholder('user@example.com').maxLength(120)).editable(true),
+])
+```
+
+Read-only display uses AG Grid's default text rendering — same as plain `.field()`. The shortcut adds:
+- A configurable `CoarTextCellEditor` that opens on double-click / Enter / F2
+- `sortable: true` by default
+
+## Edit-mode flow
+
+| Action | Result |
+|--------|--------|
+| Double-click cell (or Enter / F2) | Opens `CoarTextCellEditor` with focus on the input, existing value selected |
+| Type a printable key on a focused cell | Opens editor seeded with that key (replace mode) |
+| Tab | Commits + moves focus to the next editable cell, opening its editor automatically |
+| Enter | Commits + stays |
+| Escape | Cancels |
+
+Toggles fire `cellValueChanged` like any other commit, so a single grid-level handler covers all column types.
+
+## Example
+
+**Demo — `data-grid/demos/GridText.vue`**
+
+```vue
+<template>
+  <div>
+    <div style="height: 320px;">
+      <CoarDataGrid :builder="builder" />
+    </div>
+    <div style="margin-top: 12px; font-size: 13px; color: var(--coar-text-neutral-secondary);">
+      Double-click any name or email cell. <strong>Tab</strong> commits and moves to the next editable cell, <strong>Enter</strong> commits, <strong>Escape</strong> cancels.
+    </div>
+    <div
+      v-if="lastChange"
+      style="margin-top: 8px; padding: 8px 12px; border-radius: 6px; background: var(--coar-surface-neutral-subtle); font-size: 13px;"
+    >
+      Last change: <strong>{{ lastChange.field }}</strong> on
+      <strong>{{ lastChange.row }}</strong> →
+      <code>{{ lastChange.newValue }}</code>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, shallowRef } from 'vue';
+import { CoarDataGrid, CoarGridBuilder } from '@cocoar/vue-data-grid';
+
+interface Person {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+}
+
+const data = ref<Person[]>([
+  { id: 1, name: 'Alice Johnson',  email: 'alice@example.com',  role: 'Engineer' },
+  { id: 2, name: 'Bob Smith',      email: 'bob@example.com',    role: 'Designer' },
+  { id: 3, name: 'Carol Williams', email: 'carol@example.com',  role: 'Manager' },
+  { id: 4, name: 'David Brown',    email: 'david@example.com',  role: 'Engineer' },
+]);
+
+const lastChange = shallowRef<{ row: string; field: string; newValue: string } | null>(null);
+
+const builder = CoarGridBuilder.create<Person>()
+  .columns([
+    (col) => col.text('name', (t) => t.placeholder('Name').maxLength(80)).header('Name').flex(1).editable(true),
+    (col) => col.text('email', (t) => t.placeholder('user@example.com').maxLength(120)).header('Email').flex(1).editable(true),
+    (col) => col.field('role').header('Role').width(140),       // not editable
+  ])
+  .rowDataRef(data)
+  .stopEditingWhenCellsLoseFocus()
+  .onCellValueChanged((event) => {
+    if (!event.data || !event.colDef.field) return;
+    lastChange.value = {
+      row: event.data.name,
+      field: event.colDef.field,
+      newValue: String(event.newValue),
+    };
+  });
+</script>
+```
+
+```ts
+CoarGridBuilder.create<Person>().columns([
+  (col) => col.text('name', t => t.placeholder('Name').maxLength(80)).editable(true),
+  (col) => col.text('email', t => t.placeholder('user@example.com').maxLength(120)).editable(true),
+  (col) => col.field('role'),                                  // not editable
+])
+.stopEditingWhenCellsLoseFocus()
+.onCellValueChanged(event => save(event.data, event.colDef.field, event.newValue));
+```
+
+## Layered overrides
+
+```ts
+// Replace the editor (drops the configurator)
+col.text('name').editable(true).cellEditorConfig(MyCustomEditor, { ... })
+
+// Keep the bundled editor, override editable
+col.text('name').editable(row => !row.locked)
+```
+
+## API
+
+### `col.text(field, configurator?)`
+
+| Configurator method | Type | Description |
+|--------|------|-------------|
+| `.placeholder(value)` | `string` | Placeholder shown when input is empty |
+| `.maxLength(value)` | `number` | Max input length |
+| `.size(value)` | `'xs' \| 's' \| 'm' \| 'l'` | Input size (default: `'s'`) |
+| `.prefix(value)` | `string` | Text shown before the input value |
+| `.suffix(value)` | `string` | Text shown after the input value |
+
+Editor commits via `getValue()` per AG Grid's contract — Tab / Enter / Escape are handled by AG Grid's native edit-mode logic. Combine with `gridBuilder.stopEditingWhenCellsLoseFocus()` so clicking outside also commits.
