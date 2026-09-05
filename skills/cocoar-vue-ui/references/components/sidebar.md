@@ -1,0 +1,421 @@
+<!-- Generated from apps/docs/components/sidebar.md by apps/docs/scripts/sync-skill.mjs. Do not edit; edit the docs page. -->
+
+# Sidebar
+
+A structured navigation sidebar with three distinct sections: a header for branding, a scrollable content area for navigation, and a footer for secondary actions. Use the dedicated sidebar components (`CoarSidebarItem`, `CoarSidebarGroup`, `CoarSidebarHeading`, `CoarSidebarDivider`, `CoarSidebarSpacer`) for full collapsed/expanded support with automatic tooltips.
+
+```ts
+import {
+  CoarSidebar,
+  CoarSidebarItem,
+  CoarSidebarGroup,
+  CoarSidebarHeading,
+  CoarSidebarDivider,
+  CoarSidebarSpacer,
+} from '@cocoar/vue-ui';
+```
+
+## Sidebar Items
+
+Use `CoarSidebarItem` for navigation, `CoarSidebarGroup` for expandable or flyout sections, and `CoarSidebarHeading` for section labels. Items go directly into the sidebar — no `CoarMenu` wrapper needed.
+
+Toggle `collapsed` for icon-only mode with automatic tooltips. Groups support two modes: `expand` (inline panel with plus/minus indicator) and `flyout` (floating panel with chevron indicator). Use the controls to explore all options.
+
+**Demo — `sidebar/demos/SidebarItems.vue`**
+
+```vue
+<template>
+  <div style="display: flex; flex-direction: column; gap: 16px;">
+    <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+      <CoarCheckbox v-model="collapsed" label="collapsed" />
+      <CoarSelect v-model="size" :options="sizeOptions" label="size" size="s" style="width: 100px;" />
+      <CoarSelect v-model="variant" :options="variantOptions" label="variant" size="s" style="width: 140px;" />
+      <CoarCheckbox v-model="elevated" label="elevated" />
+      <CoarCheckbox v-model="borderless" label="borderless" />
+    </div>
+
+    <div style="height: 560px; border: 1px solid var(--coar-border-neutral-secondary); border-radius: 8px; overflow: hidden; display: flex;">
+      <CoarSidebar
+        v-model:collapsed="collapsed"
+        :size="size"
+        :variant="variant"
+        :elevated="elevated"
+        :borderless="borderless"
+      >
+        <template #header="{ collapsed: isCollapsed }">
+          <div style="display: flex; align-items: center; gap: 8px; padding: 4px;">
+            <div style="width: 28px; height: 28px; background: var(--coar-background-accent-primary); color: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; flex-shrink: 0;">C</div>
+            <strong v-if="!isCollapsed" style="white-space: nowrap;">cocoar</strong>
+          </div>
+        </template>
+
+        <CoarSidebarItem icon="home" label="Dashboard" active />
+        <CoarSidebarItem icon="user" label="Profile" />
+        <CoarSidebarItem icon="list" label="Projects" />
+        <CoarSidebarItem label="No Icon Item" />
+
+        <CoarSidebarHeading label="Management" />
+        <CoarSidebarGroup icon="users" label="Users" v-model:open="usersOpen">
+          <CoarSidebarItem icon="user-plus" label="All Users" />
+          <CoarSidebarItem icon="shield" label="Roles" />
+          <CoarSidebarItem icon="lock" label="Permissions" />
+        </CoarSidebarGroup>
+        <CoarSidebarGroup icon="list" label="Reports (hover)" mode="flyout" open-on-hover>
+          <CoarSidebarItem icon="globe" label="Sales" />
+          <CoarSidebarItem icon="bell" label="Alerts" />
+          <CoarSidebarGroup icon="settings" label="Nested flyout" mode="flyout">
+            <CoarSidebarItem icon="lock" label="Audit Log" />
+            <CoarSidebarItem icon="shield" label="Compliance" />
+          </CoarSidebarGroup>
+          <CoarSidebarGroup icon="list" label="Nested expand" v-model:open="expandInFlyout">
+            <CoarSidebarItem icon="user-plus" label="Create" />
+            <CoarSidebarItem icon="settings" label="Configure" />
+          </CoarSidebarGroup>
+        </CoarSidebarGroup>
+        <CoarSidebarGroup icon="settings" label="Quick Actions (icons)" mode="flyout" icon-only>
+          <CoarSidebarItem icon="user-plus" label="Add User" />
+          <CoarSidebarItem icon="lock" label="Lock" />
+          <CoarSidebarGroup icon="bell" label="Nested icons" mode="flyout">
+            <CoarSidebarItem icon="bell" label="Notify" />
+            <CoarSidebarItem icon="shield" label="Security" />
+          </CoarSidebarGroup>
+          <CoarSidebarGroup icon="list" label="Expand" v-model:open="expandInIconOnly">
+            <CoarSidebarItem icon="user-plus" label="Create" />
+            <CoarSidebarItem icon="settings" label="Configure" />
+          </CoarSidebarGroup>
+        </CoarSidebarGroup>
+
+        <CoarSidebarHeading label="System" />
+        <CoarSidebarItem icon="settings" label="Settings" />
+        <CoarSidebarItem icon="globe" label="Localization" />
+
+        <template #footer>
+          <CoarSidebarDivider />
+          <CoarSidebarItem icon="log-out" label="Logout" />
+          <CoarSidebarSpacer height="4px" />
+        </template>
+      </CoarSidebar>
+
+      <div style="flex: 1; padding: 24px; display: flex; align-items: center; justify-content: center; color: var(--coar-text-neutral-tertiary);">
+        Main content area
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue';
+import {
+  CoarSidebar,
+  CoarSidebarItem,
+  CoarSidebarGroup,
+  CoarSidebarHeading,
+  CoarSidebarDivider,
+  CoarSidebarSpacer,
+  CoarCheckbox,
+  CoarSelect,
+} from '@cocoar/vue-ui';
+import type { CoarSelectOption } from '@cocoar/vue-ui';
+
+const collapsed = ref(false);
+const size = ref<'s' | 'm' | 'l'>('m');
+const variant = ref<'primary' | 'secondary'>('primary');
+const elevated = ref(false);
+const borderless = ref(false);
+const usersOpen = ref(false);
+const reportsOpen = ref(false);
+const expandInFlyout = ref(false);
+const expandInIconOnly = ref(false);
+
+const sizeOptions: CoarSelectOption<string>[] = [
+  { value: 's', label: 's (16px)' },
+  { value: 'm', label: 'm (20px)' },
+  { value: 'l', label: 'l (24px)' },
+];
+
+const variantOptions: CoarSelectOption<string>[] = [
+  { value: 'primary', label: 'primary' },
+  { value: 'secondary', label: 'secondary' },
+];
+</script>
+```
+
+## Side / Orientation
+
+The `side` prop attaches the sidebar to any of the four edges. `left` and `right` give a vertical column (the classic navigation rail); `top` and `bottom` switch the layout to a horizontal toolbar. Tooltip placement, flyout direction, the active-state indicator border, and the collapsed dimension (width vs. height) all adapt automatically.
+
+Use the `side` selector below to flip between all four orientations on the same content.
+
+**Demo — `sidebar/demos/SidebarSides.vue`**
+
+```vue
+<template>
+  <div style="display: flex; flex-direction: column; gap: 16px;">
+    <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+      <CoarSelect
+        v-model="side"
+        :options="sideOptions"
+        label="side"
+        size="s"
+        style="width: 140px;"
+      />
+      <CoarCheckbox v-model="collapsed" label="collapsed" />
+      <CoarCheckbox v-model="elevated" label="elevated" />
+      <CoarCheckbox v-model="borderless" label="borderless" />
+      <span style="color: var(--coar-text-neutral-tertiary); font-size: 13px;">
+        Note: in horizontal sidebars `mode="expand"` opens to the right; `mode="flyout"` opens downward (top) or upward (bottom).
+      </span>
+    </div>
+
+    <div
+      :style="containerStyle"
+      style="height: 480px; border: 1px solid var(--coar-border-neutral-secondary); border-radius: 8px; overflow: hidden;"
+    >
+      <CoarSidebar
+        v-model:collapsed="collapsed"
+        :side="side"
+        :elevated="elevated"
+        :borderless="borderless"
+      >
+        <CoarSidebarItem icon="home" label="Home" active @click="lastClicked = 'Home'" />
+        <CoarSidebarItem icon="user" label="Profile" @click="lastClicked = 'Profile'" />
+        <CoarSidebarItem icon="list" label="Projects" @click="lastClicked = 'Projects'" />
+
+        <CoarSidebarGroup icon="users" label="Team" v-model:open="teamOpen">
+          <CoarSidebarItem icon="user-plus" label="Members" @click="lastClicked = 'Members'" />
+          <CoarSidebarItem icon="shield" label="Roles" @click="lastClicked = 'Roles'" />
+        </CoarSidebarGroup>
+
+        <CoarSidebarGroup icon="settings" label="Tools" mode="flyout">
+          <CoarSidebarItem icon="bell" label="Notifications" @click="lastClicked = 'Notifications'" />
+          <CoarSidebarItem icon="lock" label="Security" @click="lastClicked = 'Security'" />
+          <CoarSidebarItem icon="globe" label="Localization" @click="lastClicked = 'Localization'" />
+        </CoarSidebarGroup>
+
+        <CoarSidebarItem icon="settings" label="Settings" @click="lastClicked = 'Settings'" />
+      </CoarSidebar>
+
+      <div
+        style="flex: 1; padding: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: var(--coar-text-neutral-tertiary); text-align: center;"
+      >
+        <div>Main content area</div>
+        <div style="font-size: 13px;">Last clicked: <strong>{{ lastClicked }}</strong></div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, ref } from 'vue';
+import {
+  CoarSidebar,
+  CoarSidebarItem,
+  CoarSidebarGroup,
+  CoarCheckbox,
+  CoarSelect,
+} from '@cocoar/vue-ui';
+import type { CoarSelectOption } from '@cocoar/vue-ui';
+
+type Side = 'left' | 'right' | 'top' | 'bottom';
+
+const side = ref<Side>('left');
+const collapsed = ref(false);
+const elevated = ref(false);
+const borderless = ref(false);
+const teamOpen = ref(false);
+const lastClicked = ref('—');
+
+const sideOptions: CoarSelectOption<Side>[] = [
+  { value: 'left', label: 'left' },
+  { value: 'right', label: 'right' },
+  { value: 'top', label: 'top' },
+  { value: 'bottom', label: 'bottom' },
+];
+
+// Container layout flips based on side:
+// - left/right: flex-row, sidebar at start or end
+// - top/bottom: flex-column, sidebar at start or end
+const containerStyle = computed(() => {
+  switch (side.value) {
+    case 'right':
+      return { display: 'flex', flexDirection: 'row-reverse' as const };
+    case 'top':
+      return { display: 'flex', flexDirection: 'column' as const };
+    case 'bottom':
+      return { display: 'flex', flexDirection: 'column-reverse' as const };
+    default:
+      return { display: 'flex', flexDirection: 'row' as const };
+  }
+});
+</script>
+```
+
+## Router-aware navigation
+
+Pass `to` to `CoarSidebarItem` to render it as a real `<a href>` link instead of `<div role="menuitem">`. The item keeps its full visual styling — collapsed mode, tooltips, side-aware indicator border, all sidebar tokens — but the user gains native browser link behaviour: right-click → "Open in new tab" / "Copy link address", middle-click + Ctrl/Cmd-click open a new tab, and screenreaders announce "link" instead of "menuitem".
+
+```vue
+<!-- Before — modifier-clicks silently did nothing -->
+<CoarSidebarItem
+  icon="layout-dashboard"
+  label="Dashboard"
+  :active="route.path === '/dashboard'"
+  @click="router.push('/dashboard')"
+/>
+
+<!-- After — full browser link affordances + auto isActive -->
+<CoarSidebarItem
+  icon="layout-dashboard"
+  label="Dashboard"
+  to="/dashboard"
+/>
+```
+
+When `to` is set and `active` is omitted, the highlighted state and `aria-current="page"` attribute follow `<RouterLink>`'s internal `isActive` automatically — no more `route.path === '/x'` drift. Setting `active` explicitly still wins:
+
+```vue
+<!-- Manual override — keep "Settings" highlighted while a child modal is open -->
+<CoarSidebarItem
+  icon="settings"
+  label="Settings"
+  to="/settings"
+  :active="modal.isOpen || undefined"
+/>
+```
+
+Items without `to` keep the original `<div role="menuitem">` rendering and the `@click` emit pathway — use this for action items that don't map to a route (logout, drawer-toggle, external help link):
+
+```vue
+<CoarSidebarItem icon="log-out" label="Logout" @click="auth.signOut()" />
+```
+
+> **Info**
+>
+> `vue-router` is declared as an **optional `peerDependenciesMeta`** entry of `@cocoar/vue-ui` — install it for SPA routing, omit it for click-emit-only / external-URL use. Apps without a router can still use `<CoarSidebarItem>` with `@click` exactly as before. Setting `to` to a string URL (`to="https://docs.example.com"`) falls back to a plain `<a href>` that works without a router.
+
+> **Warning: Object `to` without router**
+>
+> Passing an object literal (`:to="{ name: 'dashboard' }"`) when no router is installed falls back to `String(to)`, producing `href="[object Object]"` — a broken link. The component logs a DEV-only `console.warn` once per component instance to make this loud at dev-time. Pass a string path for the no-router case.
+
+## Migrating from Menu-based Sidebar
+
+If you are using `CoarMenu` and `CoarMenuItem` inside `CoarSidebar`, we recommend migrating to the new sidebar-specific components. The new components support collapsed mode with automatic tooltips, flyout panels, icon-only mode, and nested groups — none of which work with the menu-based approach.
+
+**Before (menu-based):**
+
+```vue
+<CoarSidebar v-model:collapsed="collapsed">
+  <CoarMenu>
+    <CoarMenuItem icon="home" label="Dashboard" />
+    <CoarMenuItem icon="user" label="Profile" />
+    <CoarSubExpand icon="users" label="Users">
+      <CoarMenuItem icon="user-plus" label="All Users" />
+      <CoarMenuItem icon="shield" label="Roles" />
+    </CoarSubExpand>
+  </CoarMenu>
+</CoarSidebar>
+```
+
+**After (sidebar components):**
+
+```vue
+<CoarSidebar v-model:collapsed="collapsed">
+  <CoarSidebarItem icon="home" label="Dashboard" active />
+  <CoarSidebarItem icon="user" label="Profile" />
+  <CoarSidebarGroup icon="users" label="Users" v-model:open="usersOpen">
+    <CoarSidebarItem icon="user-plus" label="All Users" />
+    <CoarSidebarItem icon="shield" label="Roles" />
+  </CoarSidebarGroup>
+</CoarSidebar>
+```
+
+**Key differences:**
+- No `CoarMenu` wrapper — items go directly into the sidebar
+- `CoarSidebarItem` replaces `CoarMenuItem` (same props: `icon`, `label`, `active`, `disabled`)
+- `CoarSidebarGroup` replaces `CoarSubExpand` — add `mode="flyout"` for flyout behavior
+- Headings use `CoarSidebarHeading` instead of custom markup
+- Footer items use `<template #footer>` slot — they stretch to full width automatically
+
+## API
+
+### CoarSidebar
+
+#### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `side` | `'left' \| 'right' \| 'top' \| 'bottom'` | `'left'` | Which edge the sidebar attaches to. `top`/`bottom` switch the layout to horizontal (items in a row, scrolls horizontally). Flyout submenus and tooltip placements adapt automatically. |
+| `position` | `'left' \| 'right'` | — | **Deprecated.** Use `side` instead. Still accepted as an alias for backwards compatibility. |
+| `collapsed` | `boolean` | `false` | Narrow/icon-only collapsed state. Supports `v-model:collapsed`. In horizontal sidebars this collapses height instead of width. |
+| `size` | `'s' \| 'm' \| 'l'` | `'m'` | Icon size: s (16px), m (20px), l (24px) |
+| `variant` | `'primary' \| 'secondary'` | `'primary'` | Background color variant |
+| `elevated` | `boolean` | `false` | Show elevation shadow |
+| `borderless` | `boolean` | `false` | Hide the border |
+| `ariaLabel` | `string` | `'Sidebar'` | Accessible label for the nav landmark |
+
+#### Slots
+
+All slots receive `{ collapsed: boolean }` as scoped slot props.
+
+| Slot | Description |
+|------|-------------|
+| `#header` | Start of the main axis — top in vertical sidebars, left in horizontal. Use for logo, brand, workspace switcher |
+| `default` | Scrollable content area — sidebar items. Scrolls vertically in vertical sidebars, horizontally in horizontal ones |
+| `#footer` | End of the main axis — bottom in vertical sidebars, right in horizontal. Use for user profile, logout, secondary actions |
+
+### CoarSidebarItem
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `label` | `string` | *(required)* | Item label text |
+| `icon` | `string` | — | Icon name (recommended for collapsed mode) |
+| `to` | `RouteLocationRaw \| string` | `undefined` | Vue Router target. When set, renders as `<a href>` via `<RouterLink>` (or plain `<a>` if no router is installed). Enables native browser link behaviour (new-tab, copy address). See [Router-aware navigation](#router-aware-navigation). |
+| `active` | `boolean` | `undefined` | Highlight as current page. Defaults to `<RouterLink>`'s `isActive` when `to` is set; explicit value always wins. |
+| `disabled` | `boolean` | `false` | Disabled state |
+
+**Events:** `@click` — standard `MouseEvent` (emitted on both the `<div>` and `<a>` branches for telemetry / side-effects)
+
+### CoarSidebarGroup
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `label` | `string` | *(required)* | Group label text |
+| `icon` | `string` | — | Icon name (recommended for collapsed mode) |
+| `disabled` | `boolean` | `false` | Disabled state |
+| `mode` | `'expand' \| 'flyout'` | `'expand'` | `expand`: inline animated panel (plus/minus icon). `flyout`: floating panel next to the sidebar (chevron icon). |
+| `open` | `boolean` | `false` | Expanded state (expand mode). Supports `v-model:open`. |
+| `icon-only` | `boolean` | `false` | Flyout shows icon-only items with tooltips (no labels). Inherited by nested groups. Use `:icon-only="collapsed"` for dynamic behavior. |
+| `open-on-hover` | `boolean` | `false` | Open flyout on hover (200ms delay) instead of click. Only applies to `mode="flyout"`. |
+
+### CoarSidebarHeading
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `label` | `string` | *(required)* | Section heading text. Hidden when sidebar is collapsed (small spacer remains). |
+
+### CoarSidebarDivider
+
+No props. Renders a horizontal separator line.
+
+### CoarSidebarSpacer
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `height` | `string` | `var(--coar-spacing-m)` | CSS height value (e.g. `'8px'`, `'1rem'`) |
+| `grow` | `boolean` | `false` | If true, fills available space (`flex: 1`) |
+
+## CSS Tokens
+
+| Token | Default | Description |
+|-------|---------|-------------|
+| `--coar-sidebar-width` | `16rem` | Default width (vertical sidebars) |
+| `--coar-sidebar-collapsed-width` | *size-aware* — s: `2.25rem`, m: `2.75rem`, l: `3.25rem` | Width in collapsed mode. Auto-scales with `size`; set this token to override. |
+| `--coar-sidebar-height` | `auto` | Default height (horizontal sidebars) |
+| `--coar-sidebar-collapsed-height` | *size-aware* — same scale as collapsed-width | Height in collapsed mode. Auto-scales with `size`; set this token to override. |
+| `--coar-sidebar-item-padding` | `0.5rem 0.75rem` | Item padding |
+| `--coar-sidebar-item-gap` | `0.75rem` | Gap between icon and label |
+| `--coar-sidebar-item-margin-horizontal` | `0 2px` | Item margin in horizontal sidebars |
+| `--coar-sidebar-item-hover` | neutral tertiary | Hover background |
+| `--coar-sidebar-item-active-color` | accent primary | Active text color |
+| `--coar-sidebar-item-active-bg` | accent tertiary | Active background |
+| `--coar-sidebar-group-indent` | `16px` | Child indent for `mode="expand"` (vertical only) |

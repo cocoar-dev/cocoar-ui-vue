@@ -42,10 +42,12 @@
   },
   "files": [
     "dist",
-    "styles"
+    "styles",
+    "skills"
   ],
   "scripts": {
     "build": "vite build",
+    "prepack": "node scripts/copy-skill.mjs",
     "test": "vitest run",
     "lint": "eslint src/",
     "typecheck": "vue-tsc --noEmit"

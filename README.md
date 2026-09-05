@@ -62,6 +62,24 @@ cocoar-ui-vue/
 
 `CoarMarkdown` is in the optional `@cocoar/vue-markdown` package.
 
+## Agent skill
+
+`@cocoar/vue-ui` ships an [Agent Skill](https://agentskills.io/): the documentation, page by
+page, with every demo inlined and an index that says which page answers what. Install it into a
+project and Claude Code, Cursor, Codex or Copilot know the library:
+
+```bash
+npx skills add cocoar-dev/cocoar-ui-vue
+```
+
+Or, matching the version you have installed: `npx skills add ./node_modules/@cocoar/vue-ui`, or
+with [agentskills-cli](https://mysticmind.github.io/agentskills-cli/) `agentskills-cli add @cocoar/vue-ui`.
+
+The skill is generated from `apps/docs` by `pnpm skill:sync` into `skills/cocoar-vue-ui/`
+(the only hand-written part is `apps/docs/skill/SKILL.header.md`); CI fails when the docs and
+the skill drift. The docs site also serves [llms.txt](https://docs.cocoar.dev/cocoar-ui-vue/llms.txt)
+for assistants that read documentation by URL.
+
 ## Getting Started
 
 ### Prerequisites
