@@ -291,3 +291,16 @@ export interface TimeRange {
   /** Minute-of-day, inclusive (e.g. `22 * 60` for 22:00). */
   endMinutes: number;
 }
+
+/** Scope of the day agenda's `weekStripStart` / `weekStripEnd` slots. */
+export interface WeekStripSlotScope {
+  /** Selected day (the builder cursor). */
+  cursor: Temporal.PlainDate;
+  /** First / last day of the strip's week. */
+  weekStart: Temporal.PlainDate;
+  weekEnd: Temporal.PlainDate;
+  /** Select a day (same as tapping it in the strip). */
+  goTo(date: Temporal.PlainDate): void;
+  /** Move the selection by whole weeks; `-1` = previous week, `1` = next. */
+  shiftWeek(weeks: number): void;
+}

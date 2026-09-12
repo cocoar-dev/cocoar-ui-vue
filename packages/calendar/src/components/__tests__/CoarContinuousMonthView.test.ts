@@ -78,7 +78,7 @@ describe('CoarContinuousMonthView', () => {
     expect(june15.findAll('.coar-month-view__segment')).toHaveLength(2);
   });
 
-  it('keeps every same-day event reachable in Details mode', () => {
+  it('folds same-day events past the cap into a "+N" marker in Details mode', () => {
     const events: CalendarEvent[] = [14, 15, 16].map((hour, index) => ({
       id: `overlap-${index}`,
       start: zdt(`2026-06-15T${hour}:00:00`, 'Europe/Vienna'),
@@ -89,7 +89,11 @@ describe('CoarContinuousMonthView', () => {
       props: { builder: builder(events).monthDensity('details') },
     });
     const june15 = wrapper.find('[data-month-key="2026-06"] [data-day-key="2026-06-15"]');
-    expect(june15.findAll('.coar-month-pill')).toHaveLength(3);
+    expect(june15.findAll('.coar-month-pill')).toHaveLength(2);
+    expect(june15.find('.coar-month-cell__overflow').text()).toContain('+1');
+    expect(june15.find('.coar-month-cell__overflow').attributes('aria-label')).toBe(
+      '1 more events',
+    );
   });
 
   it('keeps month drag-and-drop active inside a continuous section', async () => {

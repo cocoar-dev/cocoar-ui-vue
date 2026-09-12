@@ -149,6 +149,12 @@ function onDblclick(e: MouseEvent) {
 <style scoped>
 .coar-month-pill {
   font-size: var(--coar-font-size-xs, 11px);
+  /* Fixed line box so the Details row budget holds in every host:
+     18 px pill + 2 px gap = 20 px pitch, two pills + the "+N" row
+     fit the 94 px iOS row (iOS: 16 pt events on a 19 pt pitch). An
+     inherited line-height would make the pitch depend on the host's
+     body typography and push the marker out of the cell. */
+  line-height: 16px;
   padding: 1px 6px;
   border-radius: 3px;
   cursor: pointer;
@@ -162,9 +168,8 @@ function onDblclick(e: MouseEvent) {
   /* Touch on a pill is always a drag — empty cell area still
      allows native scroll for the page. */
   touch-action: none;
-  /* Don't shrink in the cell's flex column. Without this the
-     pills compress to fit instead of overflowing the pills
-     container, and `overflow-y: auto` never engages. */
+  /* Don't shrink in the cell's flex column — the parent caps the
+     pill count, so a pill always keeps its full height. */
   flex: 0 0 auto;
 }
 /* Use `:focus` (not `:focus-visible`) so the ring shows after a

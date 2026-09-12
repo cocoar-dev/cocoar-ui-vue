@@ -159,3 +159,22 @@ interface CalendarApi<TMeta> {
 | `event` | `{ event, item }` | Per-row renderer. `item` is the full `AgendaEventItem` (event + `isContinuation` flag). |
 | `dayGroupHeader` | `{ date, item, isToday }` | Per-day header renderer (same component renders the inline + floating overlay). |
 | `empty` | — | Empty state. Shown only when the list draws nothing — no events in the window, `showEmptyDays` off — and no load is in flight. No default; without the slot the surface stays blank. Rendered as a non-interactive overlay so the list stays mounted. Inside `<CoarCalendar>` use the `agendaEmpty` slot. |
+| `weekStripStart` | `WeekStripSlotScope` | Day agenda only. Content at the start of the seven-day week strip, e.g. a previous-week button. |
+| `weekStripEnd` | `WeekStripSlotScope` | Day agenda only. Content at the end of the week strip, e.g. a next-week button. |
+
+### Day agenda week strip
+
+`view="dayAgenda"` renders a seven-day strip above the list; tapping a day moves the builder cursor. The strip has two slots for host controls at either end. Both receive the same `WeekStripSlotScope`: `cursor` (selected day), `weekStart` / `weekEnd` (the strip's window), `goTo(date)` and `shiftWeek(n)` — `-1` pages to the previous week, `1` to the next. The slot content sizes itself; the seven day buttons take the remaining width.
+
+```vue
+<CoarAgendaView :builder="builder" view="dayAgenda">
+  <template #weekStripStart="{ shiftWeek }">
+    <button type="button" aria-label="Vorige Woche" @click="shiftWeek(-1)">‹</button>
+  </template>
+  <template #weekStripEnd="{ shiftWeek }">
+    <button type="button" aria-label="Nächste Woche" @click="shiftWeek(1)">›</button>
+  </template>
+</CoarAgendaView>
+```
+
+Inside `<CoarCalendar>` the same slots exist under the same names and reach the day agenda when it is the active view.

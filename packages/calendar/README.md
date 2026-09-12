@@ -332,8 +332,8 @@ this package's `package.json` carries a placeholder `0.0.1` like
 everything else in the workspace — the actual semver number lives in
 CI.
 
-Post-launch backlog: Ctrl+C / Ctrl+V copy-paste, "+ N more" overflow
-signal in `<CoarMonthView>`, preemptive DST-gap visual marker.
+Post-launch backlog: Ctrl+C / Ctrl+V copy-paste, preemptive DST-gap
+visual marker.
 
 ## License
 

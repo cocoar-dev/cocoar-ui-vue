@@ -5,12 +5,12 @@
  *
  * Owns:
  *   - the 7-column CSS grid that lines up day cells across the week
- *   - the row's pixel height (set inline so per-row collapsed /
- *     expanded states can animate independently)
+ *   - the row's pixel height (set inline; base height per month
+ *     density plus the week's multi-day lane band)
  *   - the `position: relative` containing block that lets multi-day
  *     bars overlay across cells via absolute positioning
  *
- * Does NOT own: cells, bars, dnd, expansion logic. Those are
+ * Does NOT own: cells, bars, dnd, the pill cap. Those are
  * passed in as slot content.
  *
  * Lives in `internal/` — NOT exported from the package barrel.
@@ -18,7 +18,7 @@
 
 interface Props {
   /** Pixel height for the entire row (computed by the parent
-   *  from the multi-day-bar lane count + collapsed/expanded state). */
+   *  from the month density + multi-day-bar lane count). */
   heightPx: number;
   /**
    * Visual density. Compact tightens the row's `min-height`; the
@@ -59,11 +59,10 @@ defineSlots<{
   grid-template-columns: repeat(7, 1fr);
   min-height: 0;
   border-bottom: 1px solid var(--coar-calendar-border, #d1d5db);
-  /* Smooth the collapsed → expanded height change when a user
-     opens (or closes) a row via the cell kebab. 200 ms is short
-     enough to feel snappy but long enough to read as "the row
-     is growing", not just popping. The accordion-style single-
-     row expansion keeps total motion at one row at a time. */
+  /* Smooth the height change when the month density switches or
+     a multi-day lane appears / disappears. 200 ms is short enough
+     to feel snappy but long enough to read as "the row is
+     growing", not just popping. */
   transition: height 200ms ease-out;
 }
 @media (prefers-reduced-motion: reduce) {

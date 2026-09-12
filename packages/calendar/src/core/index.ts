@@ -124,6 +124,14 @@ export {
 } from './timeGridLayout';
 export {
   layoutMonthGrid,
+  capMonthCellPills,
+  capMonthRowLanes,
+  monthCellPillLimit,
+  MONTH_DEFAULT_MAX_VISIBLE_LANES,
+  type MonthRowLaneCap,
+  MONTH_STACKED_VISIBLE_PILLS,
+  MONTH_COMPACT_VISIBLE_PILLS,
+  type MonthCellPillCap,
   type MonthLayout,
   type MonthLayoutOptions,
   type MonthWeekRow,

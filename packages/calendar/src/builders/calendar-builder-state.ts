@@ -32,6 +32,7 @@ import {
   type ViewWindow,
   DEFAULT_ALL_DAY_MAX_VISIBLE_LANES,
   DEFAULT_TIMED_EVENT_DETAIL_MIN_WIDTH,
+  MONTH_DEFAULT_MAX_VISIBLE_LANES,
   DEFAULT_WORK_DAYS,
   Temporal,
 } from '../core';
@@ -177,6 +178,8 @@ export interface CalendarBuilderState<
   slotDuration: MaybeRefOrGetter<number>;
   pixelsPerHour: MaybeRefOrGetter<number>;
   maxEventsPerCell: MaybeRefOrGetter<number>;
+  /** Multi-day lanes a month row shows before the rest fold into "+N"; `null` = unlimited. */
+  monthMaxVisibleLanes: MaybeRefOrGetter<number | null>;
   /** Minimum number of adjacent columns in the responsive day view. */
   dayColumnCount: MaybeRefOrGetter<number>;
   /** Target width of one responsive day column in CSS pixels. */
@@ -292,7 +295,8 @@ export function createCalendarBuilderState<TMeta extends Record<string, unknown>
     // for a full 24h window — leaves room for the now-marker, focus
     // halos, and resize handles without crowding.
     pixelsPerHour: 60,
-    maxEventsPerCell: 3,
+    maxEventsPerCell: 2,
+    monthMaxVisibleLanes: MONTH_DEFAULT_MAX_VISIBLE_LANES,
     dayColumnCount: 1,
     dayColumnMinWidth: 220,
     agendaLengthDays: 30,

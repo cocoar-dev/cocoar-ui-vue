@@ -56,6 +56,7 @@ import {
   type AgendaEventItem,
 } from '../core';
 import { CalendarBuilder } from '../builders/calendar-builder';
+import type { WeekStripSlotScope } from '../builders/types';
 
 interface Props {
   builder: CalendarBuilder<Record<string, unknown>>;
@@ -116,6 +117,11 @@ defineSlots<{
    *  slot. Shown only when the agenda draws nothing and no load is
    *  in flight; no default. */
   agendaEmpty?(): unknown;
+  /** Day agenda — content at the start of the seven-day week strip
+   *  (e.g. a previous-week button). Forwarded to `<CoarAgendaView>`. */
+  weekStripStart?(props: WeekStripSlotScope): unknown;
+  /** Day agenda — content at the end of the week strip. */
+  weekStripEnd?(props: WeekStripSlotScope): unknown;
 }>();
 
 interface HeaderSlotScope {
@@ -523,6 +529,12 @@ onBeforeUnmount(() => {
       >
         <template v-if="$slots.event" #event="slotProps">
           <slot name="event" v-bind="slotProps" :view="view" />
+        </template>
+        <template v-if="$slots.weekStripStart" #weekStripStart="slotProps">
+          <slot name="weekStripStart" v-bind="slotProps" />
+        </template>
+        <template v-if="$slots.weekStripEnd" #weekStripEnd="slotProps">
+          <slot name="weekStripEnd" v-bind="slotProps" />
         </template>
       </CoarAgendaView>
 
