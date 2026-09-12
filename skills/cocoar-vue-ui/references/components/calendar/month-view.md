@@ -8,7 +8,7 @@ The shell's Month view follows the iOS structure: months scroll continuously and
 |---|---|
 | Compact | 52 px base week rows; per-day events combine into a segmented colour capsule. |
 | Stacked | 68 px base rows; compact individual event marks. |
-| Details | 94 px base rows; titles, assignees, multi-day bars and a `+N` row for whatever does not fit. |
+| Details | Base rows of at least 94 px — measured up when the host's pills are taller; titles, assignees, multi-day bars and a `+N` row for whatever does not fit. |
 | List | Compact month selector plus the selected day's event list; stacked in narrow containers and side-by-side from 720 px. |
 
 The regular Month choices use `<CoarContinuousMonthView>`. `<CoarMonthView>` remains exported as the lower-level single-month section for widgets and custom compositions.
@@ -435,7 +435,7 @@ Full reference: see [the composer's API reference](./coar-calendar.md#api-refere
 
 Month rows have a fixed height per density plus the height of the week's multi-day lane band, and that band is capped too: a row shows at most `monthMaxVisibleLanes` lanes (default **2**). A multi-day bar past the cap leaves the band entirely — it is never clipped mid-row — and counts into the `+N` of every day it covers. `null` restores the unbounded band of the iOS port, where a week grows with every lane.
 
-A Details cell renders its first `maxEventsPerCell` single-day pills (default **2**) and folds the rest, together with the folded bars covering the day, into one `+N` row in the subtle text colour. Stacked shows 2 marks and Compact 6 capsule segments and, like iOS, cap silently — their marks carry no titles, so the day has to be opened either way. Cells never scroll, and there is no per-cell menu or row expansion.
+A Details cell renders its first `maxEventsPerCell` single-day pills (default **2**) and folds the rest, together with the folded bars covering the day, into one `+N` row in the subtle text colour. The Details base row is the iOS 94 px or, if the host's styling needs more, the measured height of the day-number row plus `maxEventsPerCell` pills plus the `+N` row — the view measures its own rendered cells (`useMonthMetrics`), so a `:deep()` override that makes pills or the day-number row taller never clips the marker. Details multi-day bars take the measured pill height, so bars and pills in one row are always the same size. Stacked shows 2 marks and Compact 6 capsule segments and, like iOS, cap silently — their marks carry no titles, so the day has to be opened either way. Cells never scroll, and there is no per-cell menu or row expansion.
 
 On the web the `+N` row is a button (accessible name "N more events", `aria-haspopup="dialog"`). It opens a **day sheet** over that one cell: a small dialog aligned to the cell's top-left edge that lists every event of the day — the multi-day events covering it first (visible lanes, then folded ones), then the single-day pills — and scrolls when the list is long. The sheet opens downward and flips upward when the space below inside the scroll container is short; it never expands the row or the grid. Every pill in the sheet is a live pill with the grid's own wiring — drag it onto any other day, move it with the keyboard, double-click it for `onEventDoubleClick`. The sheet closes on Escape, its close control, a pointerdown outside it, another `+N`, or when the month changes; focus returns to the `+N` button.
 

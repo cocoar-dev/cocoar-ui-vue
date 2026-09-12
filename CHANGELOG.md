@@ -257,6 +257,16 @@ defaulting to `en-US`.
 
 ### Fixed
 
+- **`@cocoar/vue-calendar` — month Details geometry follows the host's
+  styling.** The Details row was a constant 94 px with a 24 px day-number
+  row and 18 px pills baked in; a host that restyles those (amZettel: 30 px
+  day-number row, pills with 2 px padding) got multi-day bars shorter than
+  pills, a gap under the bar band and a clipped `+N`. The view now measures
+  its rendered day-number row, pill, `+N` row and list spacing
+  (`useMonthMetrics`, re-measured on resize, font load and layout change);
+  the Details row is the iOS 94 px or the measured need, bars start below
+  the measured day-number row, and Details bars take the measured pill
+  height so bars and pills always match.
 - **Date-time pickers no longer revert typed edits on blur.** Maskito's
   datetime mask defaulted to `', '` between date and time while the pickers
   format and parse with a plain space, so the first keystroke re-masked the
