@@ -47,6 +47,7 @@ export type {
   TimeClickHandler,
   TimeDoubleClickHandler,
   TimeRange,
+  WeekStripSlotScope,
 } from './builders/types';
 export { getEventZoneHints, type EventZoneHints } from './builders/event-zone-hints';
 

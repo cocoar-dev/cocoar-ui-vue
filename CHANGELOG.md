@@ -28,6 +28,11 @@ defaulting to `en-US`.
 
 ### Added
 
+- **`@cocoar/vue-calendar` — day agenda week strip slots.** `weekStripStart`
+  and `weekStripEnd` on `<CoarAgendaView view="dayAgenda">` (and forwarded by
+  `<CoarCalendar>`) place host controls at either end of the seven-day
+  strip — typically previous / next week. Both receive `WeekStripSlotScope`:
+  `cursor`, `weekStart`, `weekEnd`, `goTo(date)` and `shiftWeek(n)`.
 - **An Agent Skill, generated from the docs.** `@cocoar/vue-ui` ships
   `skills/cocoar-vue-ui/`: a `SKILL.md` with the package table and the
   mistakes an assistant makes without the docs, plus every documentation page
@@ -200,6 +205,34 @@ defaulting to `en-US`.
 
 ### Changed
 
+- **Month cells fold overflow into a `+N` row, like iOS.** A Details cell
+  shows its first `maxEventsPerCell` single-day pills (default now `2`, was
+  `3`) and one stable `+N` row for the rest; Stacked keeps 2 marks and
+  Compact 6 capsule segments and cap silently, as on iOS. Rows have a fixed
+  height per density plus their multi-day lanes — cells no longer scroll,
+  `maxEventsPerCell` is a real cap instead of a height hint, and Details
+  pills sit on a fixed 16 px line box so two pills and the marker fit the
+  94 px row in every host (iOS: 16 pt events on a 19 pt pitch). Pure
+  `capMonthCellPills` / `monthCellPillLimit` are exported from the core
+  subpath. Mirrors `ContinuousMonthGeometry` in `Cocoar.Calendar.iOS` 5.3.1.
+- **Month rows cap their multi-day lanes.** `monthMaxVisibleLanes(n | null)`
+  (default `2`) bounds the lane band of a week row: a bar past the cap leaves
+  the band whole — never clipped mid-row — and counts into the `+N` of every
+  day it covers, where the day sheet lists it. `null` keeps the iOS port's
+  unbounded band, where a week grows with every lane. Pure `capMonthRowLanes`
+  is exported from the core subpath.
+- **`+N` opens a day sheet over the cell.** The web goes one step past iOS:
+  the `+N` row is a button ("N more events", `aria-haspopup="dialog"`) that
+  opens a small dialog aligned to that one cell — every event of the day as a
+  live pill, multi-day ones first, scrolling when long, opening downward and flipping
+  upward when the scroll container runs out of room. Pills in the sheet carry
+  the grid's own drag / keyboard / double-click wiring, so an event can be
+  dragged straight out of the sheet onto another day. Closes on Escape, its
+  close control, an outside pointerdown, another `+N`, or a month change;
+  focus returns to the button. A tap on the cell body still fires
+  `onDateClick`; the button does not. In the grid itself hidden events leave
+  the DOM, so grid keyboard focus and drag reach the visible pills only; a
+  drag preview into a full cell takes the last visible slot.
 - **Agenda and Month List show time spans.** Timed events with an end render
   `start – end` (en dash) in the time column; point events keep the start
   time; all-day events keep the all-day label. Mirrors the SwiftUI port's
@@ -212,11 +245,15 @@ defaulting to `en-US`.
 
 ### Removed
 
+- **The month cell's kebab menu and row expansion.** "Show more events" /
+  "Show fewer events", the hover-reveal trigger in the day-number row and
+  the right-click menu are gone with the `+N` row above; the
+  `coar.calendar.month.cellMenu` / `expandRow` / `collapseRow` message keys
+  are replaced by `coar.calendar.month.moreEvents`.
 - **`onMoreClick`** and the `MoreClickHandler` type. The setter never
-  fired: it was specified for a "+N more" overflow surface in the month
-  view, and the month view deliberately has none (every event stays in
-  the DOM, cells scroll, a row expands via its cell menu). Use
-  `onDateClick` plus `api.getEventsForWindow(window)` for a day's events.
+  fired: it was specified for a "+N more" surface that did not exist. The
+  `+N` row now opens the built-in day sheet; a host that wants its own day
+  surface uses `onDateClick` plus `api.getEventsForWindow(window)`.
 
 ### Fixed
 

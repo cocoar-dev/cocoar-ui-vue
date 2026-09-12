@@ -277,6 +277,37 @@ describe('CoarAgendaView', () => {
     expect(b.state.date.value.toString()).toBe('2026-06-16');
   });
 
+  it('renders weekStripStart / weekStripEnd around the day selector and lets them page by week', async () => {
+    const b = newBuilder(sampleEvents()).view('dayAgenda');
+    const w = mount(CoarAgendaView, {
+      props: { builder: b, view: 'dayAgenda' },
+      slots: {
+        weekStripStart: `<template #weekStripStart="{ shiftWeek }"><button class="prev" @click="shiftWeek(-1)">&lt;</button></template>`,
+        weekStripEnd: `<template #weekStripEnd="{ shiftWeek, weekStart, weekEnd }"><button class="next" @click="shiftWeek(1)">&gt;</button><span class="range">{{ weekStart }}–{{ weekEnd }}</span></template>`,
+      },
+    });
+    const strip = w.find('.coar-agenda-view__week-strip');
+    expect(strip.element.firstElementChild!.className).toContain('week-strip-start');
+    expect(strip.element.lastElementChild!.className).toContain('week-strip-end');
+    expect(strip.find('[role="tablist"]').findAll('.coar-agenda-view__week-day')).toHaveLength(7);
+    expect(w.find('.range').text()).toBe('2026-06-15–2026-06-21');
+
+    await w.find('.next').trigger('click');
+    expect(b.state.date.value.toString()).toBe('2026-06-22');
+    expect(w.findAll('.coar-agenda-view__week-day')[0].text()).toContain('22');
+    await w.find('.prev').trigger('click');
+    await w.find('.prev').trigger('click');
+    expect(b.state.date.value.toString()).toBe('2026-06-08');
+    expect(w.find('.range').text()).toBe('2026-06-08–2026-06-14');
+  });
+
+  it('renders no strip-end containers without the slots', () => {
+    const b = newBuilder(sampleEvents()).view('dayAgenda');
+    const w = mount(CoarAgendaView, { props: { builder: b, view: 'dayAgenda' } });
+    expect(w.find('.coar-agenda-view__week-strip-start').exists()).toBe(false);
+    expect(w.find('.coar-agenda-view__week-strip-end').exists()).toBe(false);
+  });
+
   it('event time labels route through buildFormatOptions (C6)', () => {
     const b = newBuilder(sampleEvents()).view('agenda').timeStyle('short').hour12(false);
     const w = mount(CoarAgendaView, { props: { builder: b } });

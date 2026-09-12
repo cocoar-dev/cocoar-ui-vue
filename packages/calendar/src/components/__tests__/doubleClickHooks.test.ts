@@ -8,7 +8,6 @@
  *   - all-day cell dblclick → date hook
  *   - dblclick ON AN EVENT never reaches the date/time hooks (event
  *     elements stop propagation and route to onEventDoubleClick)
- *   - the kebab trigger swallows dblclick
  */
 
 import { describe, expect, it, vi } from 'vitest';
@@ -65,14 +64,6 @@ describe('onDateDoubleClick — month grid', () => {
     expect(pill.exists()).toBe(true);
     await pill.trigger('dblclick');
     expect(onEventDoubleClick).toHaveBeenCalledTimes(1);
-    expect(onDateDoubleClick).not.toHaveBeenCalled();
-  });
-
-  it('does not fire from the per-cell kebab trigger', async () => {
-    const onDateDoubleClick = vi.fn();
-    const b = newBuilder().view('month').onDateDoubleClick(onDateDoubleClick);
-    const w = mount(CoarMonthView, { props: { builder: b } });
-    await w.find('.coar-month-cell__menu-trigger').trigger('dblclick');
     expect(onDateDoubleClick).not.toHaveBeenCalled();
   });
 

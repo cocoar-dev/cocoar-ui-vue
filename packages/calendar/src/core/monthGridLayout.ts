@@ -13,9 +13,10 @@
  *      flags so the renderer can drop the cap on the clipped side.
  *
  *   2. **Single-day events** (timed or single-day all-day) render
- *      as PILLS inside a specific cell. The cell's max-pill count
- *      is `maxEventsPerCell`; events past that show as a
- *      "+N more" link.
+ *      as PILLS inside a specific cell. `layoutMonthGrid` returns
+ *      every pill; the view caps them per cell with
+ *      `capMonthCellPills` and folds the rest into a "+N" marker
+ *      (the iOS `ContinuousMonthGeometry` contract).
  *
  * Per-week-row multi-day-bar lane assignment via the Spike C
  * interval-graph layout. Each row is independent — a 3-deep row
@@ -24,7 +25,7 @@
  * Pure TypeScript, no DOM, no Vue. Property-tested.
  */
 
-import type { CalendarEvent } from './types';
+import type { CalendarEvent, CalendarMonthDensity } from './types';
 import { isAllDayEvent } from './types';
 import { layoutOverlappingIntervals, type IntervalInput } from './overlapLayout';
 import { Temporal, dateKey, eventStartDateInZone } from './temporal';
@@ -96,6 +97,101 @@ export interface MonthLayoutOptions {
   /** Optional inclusive bounds. Dates outside stay as layout placeholders. */
   visibleStart?: Temporal.PlainDate;
   visibleEnd?: Temporal.PlainDate;
+}
+
+// ─── Per-cell pill cap ───────────────────────────────────────────────
+
+/** Colour marks a Stacked month cell shows. Mirrors iOS. */
+export const MONTH_STACKED_VISIBLE_PILLS = 2;
+/** Segments a Compact month cell's colour capsule shows. Mirrors iOS. */
+export const MONTH_COMPACT_VISIBLE_PILLS = 6;
+
+/**
+ * Single-day pills a month cell shows for a density before the
+ * remainder folds into the "+N" marker. Details honours the
+ * builder's `maxEventsPerCell`; Stacked and Compact use the fixed
+ * iOS limits because their marks carry no title to read.
+ */
+export function monthCellPillLimit(
+  density: CalendarMonthDensity,
+  maxEventsPerCell: number,
+): number {
+  switch (density) {
+    case 'compact':
+      return MONTH_COMPACT_VISIBLE_PILLS;
+    case 'stacked':
+      return MONTH_STACKED_VISIBLE_PILLS;
+    default:
+      return maxEventsPerCell;
+  }
+}
+
+export interface MonthCellPillCap<TMeta extends Record<string, unknown> = Record<string, unknown>> {
+  /** Pills the cell renders, in layout order. */
+  visible: ReadonlyArray<MonthCellPill<TMeta>>;
+  /** Pills folded into the "+N" marker. `0` = no marker. */
+  hidden: number;
+}
+
+/**
+ * Cap a cell's pills at `limit`. A non-finite or negative limit
+ * means "no cap". Pure — the same input always yields the same
+ * split, so the marker count is stable across renders.
+ */
+export function capMonthCellPills<TMeta extends Record<string, unknown> = Record<string, unknown>>(
+  pills: ReadonlyArray<MonthCellPill<TMeta>>,
+  limit: number,
+): MonthCellPillCap<TMeta> {
+  if (!Number.isFinite(limit) || limit < 0) return { visible: pills, hidden: 0 };
+  const max = Math.floor(limit);
+  if (pills.length <= max) return { visible: pills, hidden: 0 };
+  return { visible: pills.slice(0, max), hidden: pills.length - max };
+}
+
+// ─── Per-row lane cap ────────────────────────────────────────────────
+
+/** Multi-day lanes a month row shows before the rest fold into "+N". */
+export const MONTH_DEFAULT_MAX_VISIBLE_LANES = 2;
+
+export interface MonthRowLaneCap<TMeta extends Record<string, unknown> = Record<string, unknown>> {
+  /** Bars the row renders (lane < cap), in layout order. */
+  visible: ReadonlyArray<MonthMultiDayBar<TMeta>>;
+  /** Bars folded away (lane >= cap). */
+  hidden: ReadonlyArray<MonthMultiDayBar<TMeta>>;
+  /** Hidden bars covering each column 0..6 — feeds the cell's "+N". */
+  hiddenPerColumn: ReadonlyArray<number>;
+  /** Lanes the row actually shows. */
+  laneCount: number;
+}
+
+/**
+ * Cap a row's multi-day bars at `maxLanes`. `null`, a non-finite or
+ * a negative value means "no cap" (the row grows with its lanes).
+ * Lane numbers come from the first-fit interval layout, so a bar
+ * is either fully visible or fully folded — never clipped mid-row.
+ */
+export function capMonthRowLanes<TMeta extends Record<string, unknown> = Record<string, unknown>>(
+  bars: ReadonlyArray<MonthMultiDayBar<TMeta>>,
+  maxLanes: number | null,
+): MonthRowLaneCap<TMeta> {
+  const laneCount = bars.length ? bars[0].laneCount : 0;
+  const uncapped = maxLanes === null || !Number.isFinite(maxLanes) || maxLanes < 0;
+  const cap = uncapped ? laneCount : Math.floor(maxLanes);
+  if (laneCount <= cap) {
+    return { visible: bars, hidden: [], hiddenPerColumn: [0, 0, 0, 0, 0, 0, 0], laneCount };
+  }
+  const visible: MonthMultiDayBar<TMeta>[] = [];
+  const hidden: MonthMultiDayBar<TMeta>[] = [];
+  const hiddenPerColumn = [0, 0, 0, 0, 0, 0, 0];
+  for (const bar of bars) {
+    if (bar.lane < cap) {
+      visible.push(bar);
+      continue;
+    }
+    hidden.push(bar);
+    for (let col = bar.startCol; col <= bar.endCol; col++) hiddenPerColumn[col]++;
+  }
+  return { visible, hidden, hiddenPerColumn, laneCount: cap };
 }
 
 // ─── Main function ───────────────────────────────────────────────────

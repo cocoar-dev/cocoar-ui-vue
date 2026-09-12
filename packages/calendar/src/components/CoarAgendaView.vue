@@ -48,6 +48,7 @@ import {
   type CalendarEvent,
 } from '../core';
 import { CalendarBuilder } from '../builders/calendar-builder';
+import type { WeekStripSlotScope } from '../builders/types';
 import CoarAgendaDayHeader from './internal/agenda/CoarAgendaDayHeader.vue';
 import CoarAgendaEvent from './internal/agenda/CoarAgendaEvent.vue';
 import { agendaTimeLabel } from './internal/agenda/agendaTimeLabel';
@@ -90,6 +91,14 @@ defineSlots<{
    * valid.
    */
   empty?(): unknown;
+  /**
+   * Day agenda only — content at the start (left in LTR) of the
+   * seven-day week strip, e.g. a "previous week" button. Receives
+   * the strip's window and navigation helpers.
+   */
+  weekStripStart?(props: WeekStripSlotScope): unknown;
+  /** Day agenda only — content at the end of the week strip. */
+  weekStripEnd?(props: WeekStripSlotScope): unknown;
 }>();
 
 // ─── Builder bindings ────────────────────────────────────────────────
@@ -131,6 +140,18 @@ const dayAgendaDates = computed(() => {
   const start = startOfWeek(cursor.value, resolvedFirstDayOfWeek.value);
   return Array.from({ length: 7 }, (_, index) => start.add({ days: index }));
 });
+
+/** Move the selected day by whole weeks; the strip follows the cursor. */
+function shiftWeek(weeks: number): void {
+  props.builder.api.goTo(cursor.value.add({ weeks }));
+}
+const weekStripScope = computed<WeekStripSlotScope>(() => ({
+  cursor: cursor.value,
+  weekStart: dayAgendaDates.value[0],
+  weekEnd: dayAgendaDates.value[6],
+  goTo: (date: Temporal.PlainDate) => props.builder.api.goTo(date),
+  shiftWeek,
+}));
 
 // Push visible window into the builder for standalone usage (loader /
 // onRangeChange / api.getVisibleRange).
@@ -390,29 +411,36 @@ defineExpose({
     role="region"
     :aria-label="t('coar.calendar.agenda.viewLabel', undefined, 'Agenda view')"
   >
-    <div
-      v-if="view === 'dayAgenda'"
-      class="coar-agenda-view__week-strip"
-      role="tablist"
-      :aria-label="t('coar.calendar.dayAgenda.weekLabel', undefined, 'Week')"
-    >
-      <button
-        v-for="date in dayAgendaDates"
-        :key="date.toString()"
-        type="button"
-        role="tab"
-        class="coar-agenda-view__week-day"
-        :class="{
-          'coar-agenda-view__week-day--selected': Temporal.PlainDate.compare(date, cursor) === 0,
-          'coar-agenda-view__week-day--today': isToday(date),
-        }"
-        :aria-selected="Temporal.PlainDate.compare(date, cursor) === 0"
-        :aria-label="formatHeaderDate(date.toString())"
-        @click="selectDayAgendaDate($event, date)"
+    <div v-if="view === 'dayAgenda'" class="coar-agenda-view__week-strip">
+      <div v-if="$slots.weekStripStart" class="coar-agenda-view__week-strip-start">
+        <slot name="weekStripStart" v-bind="weekStripScope" />
+      </div>
+      <div
+        class="coar-agenda-view__week-days"
+        role="tablist"
+        :aria-label="t('coar.calendar.dayAgenda.weekLabel', undefined, 'Week')"
       >
-        <span class="coar-agenda-view__week-day-name">{{ formatWeekStripWeekday(date) }}</span>
-        <span class="coar-agenda-view__week-day-number">{{ date.day }}</span>
-      </button>
+        <button
+          v-for="date in dayAgendaDates"
+          :key="date.toString()"
+          type="button"
+          role="tab"
+          class="coar-agenda-view__week-day"
+          :class="{
+            'coar-agenda-view__week-day--selected': Temporal.PlainDate.compare(date, cursor) === 0,
+            'coar-agenda-view__week-day--today': isToday(date),
+          }"
+          :aria-selected="Temporal.PlainDate.compare(date, cursor) === 0"
+          :aria-label="formatHeaderDate(date.toString())"
+          @click="selectDayAgendaDate($event, date)"
+        >
+          <span class="coar-agenda-view__week-day-name">{{ formatWeekStripWeekday(date) }}</span>
+          <span class="coar-agenda-view__week-day-number">{{ date.day }}</span>
+        </button>
+      </div>
+      <div v-if="$slots.weekStripEnd" class="coar-agenda-view__week-strip-end">
+        <slot name="weekStripEnd" v-bind="weekStripScope" />
+      </div>
     </div>
 
     <!--
@@ -542,12 +570,28 @@ defineExpose({
 }
 
 .coar-agenda-view__week-strip {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  display: flex;
+  align-items: center;
+  gap: var(--coar-spacing-xs);
   flex: 0 0 auto;
   padding: var(--coar-spacing-xs) var(--coar-spacing-s);
   border-bottom: 1px solid var(--coar-border-neutral-tertiary);
   background: var(--coar-background-neutral-primary);
+}
+.coar-agenda-view__week-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  flex: 1 1 auto;
+  min-width: 0;
+}
+/* Host-provided controls at either end of the strip (e.g. previous /
+   next week). Sized by their content; vertically centred on the day
+   buttons. */
+.coar-agenda-view__week-strip-start,
+.coar-agenda-view__week-strip-end {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
 }
 
 .coar-agenda-view__week-day {

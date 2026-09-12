@@ -1,8 +1,8 @@
 /**
  * Tests for `<CoarMonthCell>` (internal/month).
  *
- * Scope: state-class wiring, kebab aria-expanded, click /
- * contextmenu / kebab-click emission, slot rendering, density.
+ * Scope: state-class wiring, "+N" overflow button, click emission,
+ * slot rendering, density.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -17,7 +17,6 @@ const baseProps = {
   day,
   dayKey: '2026-05-04',
   pillsMarginTopPx: 24,
-  kebabAriaLabel: 'Day actions',
   ariaRowIndex: 2,
   ariaColIndex: 1,
   ariaLabel: 'Monday, May 4, 2026',
@@ -83,29 +82,38 @@ describe('<CoarMonthCell>', () => {
     });
   });
 
-  describe('kebab menu trigger', () => {
-    it('reflects menuOpenForThisCell on aria-expanded', () => {
-      const closed = mountCell();
-      expect(closed.find('.coar-month-cell__menu-trigger').attributes('aria-expanded')).toBe(
-        'false',
-      );
-
-      const open = mountCell({ menuOpenForThisCell: true });
-      expect(open.find('.coar-month-cell__menu-trigger').attributes('aria-expanded')).toBe('true');
-    });
-
-    it('uses the supplied kebabAriaLabel', () => {
-      const wrapper = mountCell({ kebabAriaLabel: 'Tagesaktionen' });
-      expect(wrapper.find('.coar-month-cell__menu-trigger').attributes('aria-label')).toBe(
-        'Tagesaktionen',
-      );
-    });
-
-    it('emits kebabClick (and NOT cellPointerdown) when the kebab is clicked', async () => {
+  describe('"+N" overflow button', () => {
+    it('renders no button and no menu trigger by default', () => {
       const wrapper = mountCell();
-      await wrapper.find('.coar-month-cell__menu-trigger').trigger('click');
-      expect(wrapper.emitted('kebabClick')).toHaveLength(1);
+      expect(wrapper.find('.coar-month-cell__overflow').exists()).toBe(false);
+      expect(wrapper.find('.coar-month-cell__menu-trigger').exists()).toBe(false);
+    });
+
+    it('renders "+N" after the pills as a dialog trigger with an accessible name', () => {
+      const wrapper = mountCell({ overflowCount: 3, overflowLabel: '3 weitere Termine' });
+      const button = wrapper.find('button.coar-month-cell__overflow');
+      expect(button.exists()).toBe(true);
+      expect(button.text()).toBe('+3');
+      expect(button.attributes('aria-label')).toBe('3 weitere Termine');
+      expect(button.attributes('aria-haspopup')).toBe('dialog');
+      expect(button.attributes('aria-expanded')).toBe('false');
+      expect(wrapper.find('.coar-month-cell__pills').element.lastElementChild).toBe(button.element);
+    });
+
+    it('reflects overlayOpen on aria-expanded', () => {
+      const wrapper = mountCell({ overflowCount: 1, overlayOpen: true });
+      expect(wrapper.find('.coar-month-cell__overflow').attributes('aria-expanded')).toBe('true');
+    });
+
+    it('emits overflowClick on click and swallows pointerdown (no cell click)', async () => {
+      const wrapper = mountCell({ overflowCount: 1, overflowLabel: '1 more event' });
+      const button = wrapper.find('.coar-month-cell__overflow');
+      await button.trigger('pointerdown');
+      await button.trigger('click');
       expect(wrapper.emitted('cellPointerdown')).toBeUndefined();
+      const evts = wrapper.emitted('overflowClick');
+      expect(evts).toHaveLength(1);
+      expect((evts![0][1] as Temporal.PlainDate).toString()).toBe('2026-05-04');
     });
   });
 
@@ -118,10 +126,10 @@ describe('<CoarMonthCell>', () => {
       expect((evts![0][1] as Temporal.PlainDate).toString()).toBe('2026-05-04');
     });
 
-    it('emits cellContextmenu with native + day', async () => {
+    it('emits cellDblclick with native + day', async () => {
       const wrapper = mountCell();
-      await wrapper.find('.coar-month-cell').trigger('contextmenu');
-      const evts = wrapper.emitted('cellContextmenu');
+      await wrapper.find('.coar-month-cell').trigger('dblclick');
+      const evts = wrapper.emitted('cellDblclick');
       expect(evts).toHaveLength(1);
       expect((evts![0][1] as Temporal.PlainDate).toString()).toBe('2026-05-04');
     });

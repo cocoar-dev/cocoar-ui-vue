@@ -11,10 +11,24 @@
  * Internal pieces:
  *   - `<CoarMonthGrid>` — sticky weekday header + rows container
  *   - `<CoarMonthRow>` — one week row (7-col grid + bars overlay)
- *   - `<CoarMonthCell>` — day-cell wrapper + kebab + pills slot
+ *   - `<CoarMonthCell>` — day-cell wrapper + pills slot + "+N" button
+ *   - `<CoarMonthDayOverlay>` — the day sheet "+N" opens over the cell
  *   - `<CoarMonthPill>` / `<CoarMonthBar>` — event visuals
  *   - `useMonthDnd` — drag/drop glue (preview + ghost + keyboard)
- *   - `useMonthExpansion` — row expand/collapse
+ *   - `useMonthGeometry` — fixed per-density row heights
+ *   - `useMonthDayOverlay` — day-sheet open / position state
+ *
+ * Overflow follows the iOS calendar: a Details cell shows at most
+ * `maxEventsPerCell` pills and folds the rest into one "+N" row;
+ * Stacked (2 marks) and Compact (6 segments) cap silently. Multi-day
+ * bars get at most `monthMaxVisibleLanes` lanes per week row; bars
+ * past the cap leave the band and count into the "+N" of every day
+ * they cover. Cells never scroll and rows never grow past base +
+ * capped lanes. On the web the "+N" row is a button: it opens a sheet
+ * over that one cell listing every event of the day — multi-day
+ * events first, then the single-day pills — scrolling when long, each
+ * entry draggable to another day exactly like a pill in the grid. A
+ * tap on the cell body still routes to `onDateClick`.
  *
  * Slot priority for events:
  *   template slot (#pill / #multiDayBar / #event)
@@ -23,12 +37,12 @@
  *     → built-in default (title text on the variant background)
  */
 
-import { computed, ref, toValue, watch } from 'vue';
+import { computed, ref, toValue } from 'vue';
 import { useI18n, useLocalization } from '@cocoar/vue-localization';
-import { CoarContextMenu, CoarMenuItem, useContextMenu } from '@cocoar/vue-ui';
 import { useMonthDnd, type MonthEventDropPayload } from '../composables/useMonthDnd';
 import { useA11yAnnouncer } from '../composables/useA11yAnnouncer';
-import { useMonthExpansion } from '../composables/useMonthExpansion';
+import { useMonthGeometry } from '../composables/useMonthGeometry';
+import { useMonthDayOverlay } from '../composables/useMonthDayOverlay';
 import { useViewWindow } from '../composables/useViewWindow';
 import {
   Temporal,
@@ -36,6 +50,9 @@ import {
   monthGridDates,
   startOfWeek,
   layoutMonthGrid,
+  capMonthCellPills,
+  capMonthRowLanes,
+  monthCellPillLimit,
   localizedWeekdayNames,
   todayInZone,
   dateKey,
@@ -46,13 +63,16 @@ import {
   type CalendarEvent,
   type MonthMultiDayBar,
   type MonthCellPill,
+  type MonthCellPillCap,
   type MonthLayout,
+  type MonthRowLaneCap,
 } from '../core';
 import { CalendarBuilder } from '../builders/calendar-builder';
 import { RenderEvent } from '../builders/render-helpers';
 import CoarMonthPill from './internal/month/CoarMonthPill.vue';
 import CoarMonthBar from './internal/month/CoarMonthBar.vue';
 import CoarMonthCell from './internal/month/CoarMonthCell.vue';
+import CoarMonthDayOverlay from './internal/month/CoarMonthDayOverlay.vue';
 import { originatesFromEvent } from './internal/originatesFromEvent';
 import CoarMonthRow from './internal/month/CoarMonthRow.vue';
 import CoarMonthGrid from './internal/month/CoarMonthGrid.vue';
@@ -114,6 +134,7 @@ const state = computed(() => {
     eventRenderer: s.eventRenderer,
     eventTextContrast: toValue(s.eventTextContrast),
     maxEventsPerCell: toValue(s.maxEventsPerCell),
+    monthMaxVisibleLanes: toValue(s.monthMaxVisibleLanes),
   };
 });
 const cursor = computed(() => props.builder.state.date.value);
@@ -164,6 +185,7 @@ const weekdayHeaders = computed(() =>
 
 // ─── Drag & Drop ─────────────────────────────────────────────────────
 
+const rootEl = ref<HTMLElement | null>(null);
 const gridRef = ref<HTMLElement | null>(null);
 function setGridEl(el: HTMLElement | null) {
   gridRef.value = el;
@@ -281,83 +303,182 @@ function isWeekend(d: Temporal.PlainDate): boolean {
   return d.dayOfWeek === 6 || d.dayOfWeek === 7;
 }
 
-// ─── Row expansion + overflow ────────────────────────────────────────
+// ─── Row geometry ────────────────────────────────────────────────────
 
-const {
-  BAR_HEIGHT,
-  DAY_NUMBER_HEIGHT,
-  barTopPx,
-  rowBarHeightsPx,
-  rowHeightPx,
-  expandedRows,
-  expandRow,
-  collapseRow,
-} = useMonthExpansion({
+const { BAR_HEIGHT, DAY_NUMBER_HEIGHT, barTopPx, rowBarHeightsPx, rowHeightPx } = useMonthGeometry({
   layout,
-  resetToken: yearMonth,
   monthDensity: () => state.value.monthDensity,
+  maxLanes: () => state.value.monthMaxVisibleLanes,
 });
 
-// ─── Cell menu ───────────────────────────────────────────────────────
+// ─── Lane cap + folded bars ──────────────────────────────────────────
 
-const cellMenuCtl = useContextMenu();
-const cellMenuRowIdx = ref<number | null>(null);
-const cellMenuDayKey = ref<string | null>(null);
-/** `true` only when the menu was opened by clicking the kebab.
- *  Used to avoid highlighting the kebab on right-click /
- *  long-press (where the menu appears at the cursor). */
-const cellMenuFromKebab = ref(false);
-
-function openCellMenuFromKebab(e: MouseEvent, rowIdx: number, day: Temporal.PlainDate): void {
-  const btn = e.currentTarget as HTMLElement | null;
-  if (!btn) return;
-  const r = btn.getBoundingClientRect();
-  cellMenuRowIdx.value = rowIdx;
-  cellMenuDayKey.value = dateKey(day);
-  cellMenuFromKebab.value = true;
-  cellMenuCtl.open({ clientX: r.left, clientY: r.bottom + 4 });
-}
-function openCellMenuFromContext(e: MouseEvent, rowIdx: number, day: Temporal.PlainDate): void {
-  cellMenuRowIdx.value = rowIdx;
-  cellMenuDayKey.value = dateKey(day);
-  cellMenuFromKebab.value = false;
-  cellMenuCtl.open(e);
-}
-watch(
-  () => cellMenuCtl.isOpen.value,
-  (open) => {
-    if (!open) cellMenuFromKebab.value = false;
-  },
+/** Per row: bars the band shows, bars folded away, hidden count per column. */
+const rowLaneCaps = computed<ReadonlyArray<MonthRowLaneCap<TMeta>>>(() =>
+  layout.value.weekRows.map((row) =>
+    capMonthRowLanes(row.multiDayBars, state.value.monthMaxVisibleLanes),
+  ),
 );
-watch(yearMonth, () => {
-  cellMenuCtl.close();
-  cellMenuRowIdx.value = null;
-  cellMenuDayKey.value = null;
-  cellMenuFromKebab.value = false;
-});
 
-// ─── Pill / event helpers ────────────────────────────────────────────
+/** Row index + column of a day in the grid, or `null` off-grid. */
+function rowColOf(day: Temporal.PlainDate): { rowIdx: number; col: number } | null {
+  const key = dateKey(day);
+  const rows = layout.value.weekRows;
+  for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
+    const col = rows[rowIdx].days.findIndex((d) => dateKey(d) === key);
+    if (col >= 0) return { rowIdx, col };
+  }
+  return null;
+}
+function hiddenBarCountFor(day: Temporal.PlainDate): number {
+  const at = rowColOf(day);
+  return at ? (rowLaneCaps.value[at.rowIdx]?.hiddenPerColumn[at.col] ?? 0) : 0;
+}
+/** Every multi-day bar covering the day, visible ones first — the sheet's head. */
+function barsCoveringDay(day: Temporal.PlainDate): ReadonlyArray<MonthMultiDayBar<TMeta>> {
+  const at = rowColOf(day);
+  if (!at) return [];
+  const cap = rowLaneCaps.value[at.rowIdx];
+  const covers = (b: MonthMultiDayBar<TMeta>) => b.startCol <= at.col && b.endCol >= at.col;
+  return [...cap.visible.filter(covers), ...cap.hidden.filter(covers)];
+}
 
-const pillsByDayKey = computed<Map<string, ReadonlyArray<MonthCellPill<TMeta>>>>(() => {
-  const out = new Map<string, ReadonlyArray<MonthCellPill<TMeta>>>();
+// ─── Pill cap + "+N" overflow ────────────────────────────────────────
+
+const pillLimit = computed(() =>
+  monthCellPillLimit(state.value.monthDensity, state.value.maxEventsPerCell),
+);
+
+const EMPTY_CAP: MonthCellPillCap<TMeta> = { visible: [], hidden: 0 };
+
+/**
+ * Per-cell split into rendered pills and the "+N" count. A drag
+ * preview landing in a full cell takes the last visible slot so
+ * the user always sees where the drop will go; the folded count
+ * still reflects the real events behind the marker.
+ */
+const pillCapsByDayKey = computed<Map<string, MonthCellPillCap<TMeta>>>(() => {
+  const out = new Map<string, MonthCellPillCap<TMeta>>();
   for (const row of layout.value.weekRows) {
     for (const day of row.days) {
       const key = dateKey(day);
-      out.set(key, row.cellPills.get(key) ?? []);
+      const pills = row.cellPills.get(key) ?? [];
+      const cap = capMonthCellPills(pills, pillLimit.value);
+      const preview = cap.hidden > 0 ? pills.find((p) => isPreviewId(p.event.id)) : undefined;
+      if (preview && !cap.visible.includes(preview) && cap.visible.length > 0) {
+        out.set(key, {
+          visible: [...cap.visible.slice(0, cap.visible.length - 1), preview],
+          hidden: cap.hidden,
+        });
+      } else {
+        out.set(key, cap);
+      }
     }
   }
   return out;
 });
 
-function pillsFor(day: Temporal.PlainDate): ReadonlyArray<MonthCellPill<TMeta>> {
-  return pillsByDayKey.value.get(dateKey(day)) ?? [];
+function pillCapFor(day: Temporal.PlainDate): MonthCellPillCap<TMeta> {
+  return pillCapsByDayKey.value.get(dateKey(day)) ?? EMPTY_CAP;
 }
 function visiblePillsFor(day: Temporal.PlainDate): ReadonlyArray<MonthCellPill<TMeta>> {
-  // Month cells own a scrollable pills surface, so every event must remain
-  // reachable. Truncating to two made later events disappear without an
-  // overflow affordance, most visibly in Details mode.
-  return pillsFor(day);
+  return pillCapFor(day).visible;
 }
+/** Every pill of the day, uncapped — the day sheet's list. */
+function pillsFor(day: Temporal.PlainDate): ReadonlyArray<MonthCellPill<TMeta>> {
+  const key = dateKey(day);
+  for (const row of layout.value.weekRows) {
+    const pills = row.cellPills.get(key);
+    if (pills) return pills;
+  }
+  return [];
+}
+/**
+ * "+N" is a Details-only row, as on iOS: Stacked marks and the
+ * Compact capsule carry no titles, so the day has to be opened
+ * anyway — and their 68 / 52 px rows have no room for a marker.
+ * Counts folded single-day pills AND multi-day bars past the lane
+ * cap that cover this day.
+ */
+function overflowCountFor(day: Temporal.PlainDate): number {
+  if (state.value.monthDensity !== 'details') return 0;
+  return pillCapFor(day).hidden + hiddenBarCountFor(day);
+}
+function overflowLabelFor(count: number): string {
+  return t('coar.calendar.month.moreEvents', { count }, `${count} more events`);
+}
+
+// ─── Day sheet ("+N" click) ──────────────────────────────────────────
+
+const overlayRef = ref<InstanceType<typeof CoarMonthDayOverlay> | null>(null);
+const dayOverlay = useMonthDayOverlay({
+  rootRef: rootEl,
+  gridRef,
+  overlayEl: () => overlayRef.value?.el ?? null,
+  resetToken: yearMonth,
+});
+
+const overlayHeadingFormatter = computed(
+  () =>
+    new Intl.DateTimeFormat(
+      effectiveLocale.value,
+      buildFormatOptions(
+        { weekday: 'short', day: 'numeric', month: 'long', timeZone: 'UTC' },
+        { dateStyle: state.value.dateStyle, hour12: state.value.hour12 },
+      ),
+    ),
+);
+function overlayHeadingFor(day: Temporal.PlainDate): string {
+  return overlayHeadingFormatter.value.format(new Date(Date.UTC(day.year, day.month - 1, day.day)));
+}
+function overlayLabelFor(day: Temporal.PlainDate): string {
+  const date = formatCellAriaLabel(day);
+  return t('coar.calendar.month.dayOverlayLabel', { date }, `Events on ${date}`);
+}
+type SheetEntry<T extends Record<string, unknown>> =
+  | { kind: 'live'; pill: MonthCellPill<T> }
+  | { kind: 'phantom'; event: CalendarEvent<T> };
+
+/** Pre-drag order of the sheet, so the source phantom can hold its place. */
+let sheetOrder: string[] = [];
+
+/**
+ * The sheet's rows. At rest: the day's multi-day events (as pills,
+ * visible lanes first, folded ones after) followed by the single-day
+ * pills in layout order. While one of them is being dragged, the
+ * layout has already reflowed without it — the sheet keeps the
+ * pre-drag order and shows the source phantom in the dragged entry's
+ * slot, so the list does not jump under the pointer.
+ */
+const sheetEntries = computed<SheetEntry<TMeta>[]>(() => {
+  const day = dayOverlay.day.value;
+  if (!day) return [];
+  const live: MonthCellPill<TMeta>[] = [
+    ...barsCoveringDay(day).map((bar, order) => ({ event: bar.event, order: -1000 + order })),
+    ...pillsFor(day),
+  ];
+  const snap = dragSourceSnapshot.value;
+  const dragging = snap !== null && sheetOrder.includes(snap.event.id);
+  if (!dragging) {
+    sheetOrder = live.map((p) => p.event.id);
+    return live.map((pill) => ({ kind: 'live', pill }));
+  }
+  const byId = new Map(live.map((p) => [p.event.id, p] as const));
+  const out: SheetEntry<TMeta>[] = [];
+  for (const id of sheetOrder) {
+    if (id === snap.event.id) out.push({ kind: 'phantom', event: snap.event });
+    else {
+      const pill = byId.get(id);
+      if (pill) {
+        out.push({ kind: 'live', pill });
+        byId.delete(id);
+      }
+    }
+  }
+  // Anything new mid-drag (the preview ghost when the target is this day).
+  for (const pill of byId.values()) out.push({ kind: 'live', pill });
+  return out;
+});
 const usesBuiltInCompactCapsule = computed(
   () => state.value.monthDensity === 'compact' && !slots.pill && !state.value.eventRenderer,
 );
@@ -470,6 +591,49 @@ function eventAriaLabel(event: CalendarEvent<TMeta>): string {
   }
 }
 
+// ─── Live pill bindings (shared by the cell and the day sheet) ──────
+
+type LivePillProps = {
+  event: CalendarEvent<TMeta>;
+  pill: MonthCellPill<TMeta>;
+  variant: 'live' | 'preview';
+  kbdActive: boolean;
+  bg: string;
+  ink: string;
+  border: string;
+  title: string;
+  displayZone: string;
+  ariaLabel: string;
+  density: 'comfortable' | 'compact' | 'spacious';
+};
+function livePillProps(pill: MonthCellPill<TMeta>): LivePillProps {
+  const event = pill.event;
+  const preview = isPreviewId(event.id);
+  return {
+    event,
+    pill,
+    variant: preview ? 'preview' : 'live',
+    kbdActive: keyboardDrag.value !== null,
+    bg: eventBgFor(event),
+    ink: eventInkFor(event),
+    border: eventBorderFor(event),
+    title: eventTitle(event),
+    displayZone: effectiveTimezone.value,
+    ariaLabel: preview && keyboardDrag.value ? kbdPreviewAriaLabel(event) : eventAriaLabel(event),
+    density: state.value.density,
+  };
+}
+function livePillHandlers(event: CalendarEvent<TMeta>) {
+  return {
+    pointerdown: (e: PointerEvent) => onMonthEventPointerdown(e, event),
+    keydown: (e: KeyboardEvent) => onMonthEventKeydown(e, event),
+    dblclick: (e: MouseEvent) => props.builder.state.onEventDoubleClick?.({ event, native: e }),
+    pointerenter: (e: PointerEvent) => props.builder.state.onEventHover?.({ event, native: e }),
+    pointerleave: (e: PointerEvent) =>
+      props.builder.state.onEventHoverLeave?.({ event, native: e }),
+  };
+}
+
 // ─── Click handlers ──────────────────────────────────────────────────
 
 function onCellClick(e: PointerEvent, date: Temporal.PlainDate) {
@@ -514,11 +678,15 @@ defineExpose({
 
 <template>
   <div
+    ref="rootEl"
     class="coar-month-view"
     :class="[
       `coar-month-view--density-${state.density}`,
       `coar-month-view--mode-${state.monthDensity}`,
-      { 'coar-month-view--shade-weekends': state.shadeWeekends },
+      {
+        'coar-month-view--shade-weekends': state.shadeWeekends,
+        'coar-month-view--overlay-open': dayOverlay.day.value !== null,
+      },
     ]"
     role="grid"
     :aria-label="t('coar.calendar.month.gridLabel', undefined, 'Month grid')"
@@ -545,18 +713,16 @@ defineExpose({
           :placeholder="continuousSection && isOtherMonth(day)"
           :is-weekend="isWeekend(day)"
           :pills-margin-top-px="rowBarHeightsPx[rowIndex] - DAY_NUMBER_HEIGHT"
-          :menu-open-for-this-cell="
-            cellMenuCtl.isOpen.value && cellMenuFromKebab && cellMenuDayKey === dateKey(day)
-          "
-          :kebab-aria-label="t('coar.calendar.month.cellMenu', undefined, 'Day actions')"
+          :overflow-count="overflowCountFor(day)"
+          :overflow-label="overflowLabelFor(overflowCountFor(day))"
+          :overlay-open="dayOverlay.isOpen(day)"
           :density="state.density"
           :ariaRowIndex="rowIndex + 2"
           :ariaColIndex="colIndex + 1"
           :ariaLabel="formatCellAriaLabel(day)"
           @cell-pointerdown="(e) => onCellClick(e, day)"
           @cell-dblclick="(e) => onCellDblclick(e, day)"
-          @cell-contextmenu="(e) => openCellMenuFromContext(e, rowIndex, day)"
-          @kebab-click="(e) => openCellMenuFromKebab(e, rowIndex, day)"
+          @overflow-click="(_, d) => dayOverlay.toggle(d)"
         >
           <div
             v-if="usesBuiltInCompactCapsule && visiblePillsFor(day).length"
@@ -569,48 +735,14 @@ defineExpose({
               class="coar-month-view__segment"
               :style="{ background: eventBgFor(pill.event) }"
               :aria-label="eventAriaLabel(pill.event)"
-              @pointerdown="onMonthEventPointerdown($event, pill.event)"
-              @keydown="onMonthEventKeydown($event, pill.event)"
-              @dblclick="
-                props.builder.state.onEventDoubleClick?.({ event: pill.event, native: $event })
-              "
-              @pointerenter="
-                props.builder.state.onEventHover?.({ event: pill.event, native: $event })
-              "
-              @pointerleave="
-                props.builder.state.onEventHoverLeave?.({ event: pill.event, native: $event })
-              "
+              v-on="livePillHandlers(pill.event)"
             />
           </div>
           <CoarMonthPill
             v-for="pill in usesBuiltInCompactCapsule ? [] : visiblePillsFor(day)"
             :key="pill.event.id"
-            :event="pill.event"
-            :pill="pill"
-            :variant="isPreviewId(pill.event.id) ? 'preview' : 'live'"
-            :kbd-active="keyboardDrag !== null"
-            :bg="eventBgFor(pill.event)"
-            :ink="eventInkFor(pill.event)"
-            :border="eventBorderFor(pill.event)"
-            :title="eventTitle(pill.event)"
-            :display-zone="effectiveTimezone"
-            :aria-label="
-              isPreviewId(pill.event.id) && keyboardDrag
-                ? kbdPreviewAriaLabel(pill.event)
-                : eventAriaLabel(pill.event)
-            "
-            :density="state.density"
-            @pointerdown="onMonthEventPointerdown($event, pill.event)"
-            @keydown="onMonthEventKeydown($event, pill.event)"
-            @dblclick="
-              props.builder.state.onEventDoubleClick?.({ event: pill.event, native: $event })
-            "
-            @pointerenter="
-              props.builder.state.onEventHover?.({ event: pill.event, native: $event })
-            "
-            @pointerleave="
-              props.builder.state.onEventHoverLeave?.({ event: pill.event, native: $event })
-            "
+            v-bind="livePillProps(pill)"
+            v-on="livePillHandlers(pill.event)"
           >
             <template v-if="$slots.pill || state.eventRenderer" #default="{ event: e, pill: p }">
               <slot v-if="$slots.pill" name="pill" :event="e" :pill="p" />
@@ -655,9 +787,10 @@ defineExpose({
           />
         </CoarMonthCell>
 
-        <!-- Multi-day bars overlay -->
+        <!-- Multi-day bars overlay — lanes past `monthMaxVisibleLanes`
+             are folded into the covered cells' "+N" (and day sheets). -->
         <CoarMonthBar
-          v-for="bar in row.multiDayBars"
+          v-for="bar in rowLaneCaps[rowIndex].visible"
           :key="bar.event.id"
           :event="bar.event"
           :bar="bar"
@@ -755,19 +888,55 @@ defineExpose({
       </CoarMonthRow>
     </CoarMonthGrid>
 
-    <!-- Cell action menu -->
-    <CoarContextMenu :menu="cellMenuCtl">
-      <CoarMenuItem
-        v-if="cellMenuRowIdx !== null && !expandedRows.has(cellMenuRowIdx)"
-        :label="t('coar.calendar.month.expandRow', undefined, 'Show more events')"
-        @click="cellMenuRowIdx !== null && expandRow(cellMenuRowIdx)"
-      />
-      <CoarMenuItem
-        v-if="cellMenuRowIdx !== null && expandedRows.has(cellMenuRowIdx)"
-        :label="t('coar.calendar.month.collapseRow', undefined, 'Show fewer events')"
-        @click="cellMenuRowIdx !== null && collapseRow(cellMenuRowIdx)"
-      />
-    </CoarContextMenu>
+    <!-- Day sheet: every single-day event of the "+N" cell, over that
+         cell only. Pills carry the grid's own drag / keyboard wiring,
+         so an event can be dragged out of the sheet onto any day. -->
+    <CoarMonthDayOverlay
+      v-if="dayOverlay.day.value"
+      ref="overlayRef"
+      :day-number="dayOverlay.day.value.day"
+      :heading="overlayHeadingFor(dayOverlay.day.value)"
+      :label="overlayLabelFor(dayOverlay.day.value)"
+      :close-label="t('coar.calendar.month.dayOverlayClose', undefined, 'Close')"
+      :is-today="isToday(dayOverlay.day.value)"
+      :top="dayOverlay.position.value.top"
+      :left="dayOverlay.position.value.left"
+      :width="dayOverlay.position.value.width"
+      :max-list-height="dayOverlay.position.value.maxListHeight"
+      @close="dayOverlay.close()"
+    >
+      <template
+        v-for="entry in sheetEntries"
+        :key="entry.kind === 'live' ? entry.pill.event.id : `phantom-${entry.event.id}`"
+      >
+        <CoarMonthPill
+          v-if="entry.kind === 'live'"
+          v-bind="livePillProps(entry.pill)"
+          v-on="livePillHandlers(entry.pill.event)"
+        >
+          <template v-if="$slots.pill || state.eventRenderer" #default="{ event: e, pill: p }">
+            <slot v-if="$slots.pill" name="pill" :event="e" :pill="p" />
+            <RenderEvent
+              v-else-if="state.eventRenderer"
+              :renderer="state.eventRenderer"
+              :ctx="{ event: e, view: 'month', layout: { kind: 'monthPill', layout: p } }"
+            />
+          </template>
+        </CoarMonthPill>
+        <CoarMonthPill
+          v-else
+          variant="phantom"
+          :event="entry.event"
+          :pill="phantomPillStub"
+          :bg="eventBgFor(entry.event)"
+          :ink="eventInkFor(entry.event)"
+          :border="eventBorderFor(entry.event)"
+          :title="eventTitle(entry.event)"
+          :display-zone="effectiveTimezone"
+          :density="state.density"
+        />
+      </template>
+    </CoarMonthDayOverlay>
   </div>
 </template>
 
@@ -787,6 +956,9 @@ defineExpose({
 }
 
 .coar-month-view {
+  /* Containing block for the day sheet, which is positioned over
+     one cell and scrolls with the surface. */
+  position: relative;
   display: flex;
   flex-direction: column;
   background: var(--coar-calendar-bg, #fff);
@@ -797,10 +969,15 @@ defineExpose({
   /* No `overflow: hidden` here — it would create an inner scroll
      container and capture the weekday-row's sticky positioning,
      stopping it from sticking to the calendar body's actual
-     scroll surface. The body (`.coar-calendar__body--month`)
-     handles vertical scroll for expanded rows. */
+     scroll surface. */
   font-family: var(--coar-body-base-family, system-ui, sans-serif);
   font-variant-numeric: tabular-nums;
+}
+/* While a sheet is open, lift this month above its siblings so a
+   sheet reaching past the last row paints over the next section of
+   the continuous surface instead of under it. */
+.coar-month-view--overlay-open {
+  z-index: 10;
 }
 .coar-month-view:not(.coar-month-view--shade-weekends) :deep(.coar-month-cell--weekend) {
   background: var(--coar-calendar-bg, #fff);

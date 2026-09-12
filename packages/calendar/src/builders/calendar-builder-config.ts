@@ -344,9 +344,23 @@ export abstract class CalendarBuilderConfig<
     return this;
   }
 
-  /** Month view setting — pills before "+N more". */
+  /**
+   * Month view (Details density) — single-day pills a cell shows
+   * before the rest fold into a "+N" marker. Default `2`, matching
+   * the iOS calendar's fixed-height Details cell.
+   */
   maxEventsPerCell(n: MaybeRefOrGetter<number>): this {
     this.state.maxEventsPerCell = n;
+    return this;
+  }
+
+  /**
+   * Month view — multi-day lanes a week row shows before the remaining
+   * bars fold into the covered days' "+N" (and their day sheets).
+   * Default `2`; `null` lets the row grow with every lane.
+   */
+  monthMaxVisibleLanes(n: MaybeRefOrGetter<number | null>): this {
+    this.state.monthMaxVisibleLanes = n;
     return this;
   }
 

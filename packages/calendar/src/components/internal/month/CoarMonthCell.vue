@@ -5,19 +5,20 @@
  *
  * Owns:
  *   - the cell element (today / weekend / other-month classes)
- *   - the day-number row + per-cell kebab trigger
- *   - the pills container (scrollable when overflowing) — content
- *     is provided via the default slot, so live pills, source
- *     phantoms and invalid ghosts all flow through one path
+ *   - the day-number row
+ *   - the pills container — content is provided via the default
+ *     slot, so live pills, source phantoms and invalid ghosts all
+ *     flow through one path
+ *   - the "+N" overflow button below the pills — one stable row
+ *     like iOS, and on the web a control that opens the day sheet
  *
- * Does NOT own: dnd, layout, expand state, pill / bar visuals.
+ * Does NOT own: dnd, layout, the pill cap, pill / bar visuals.
  * Those live in the parent month view, `<CoarMonthPill>` and
  * `<CoarMonthBar>` respectively.
  *
  * Lives in `internal/` — NOT exported from the package barrel.
  */
 
-import { computed } from 'vue';
 import type { Temporal } from '../../../core';
 
 interface Props {
@@ -36,12 +37,17 @@ interface Props {
    */
   pillsMarginTopPx: number;
   /**
-   * Forwarded `aria-expanded` for the kebab. The cell only knows
-   * "is the menu currently open AGAINST me?", set by the parent.
+   * Single-day events the parent folded away because the cell's
+   * pill cap was reached. `0` renders no marker.
    */
-  menuOpenForThisCell?: boolean;
-  /** Localised kebab `aria-label`. Parent supplies the i18n string. */
-  kebabAriaLabel: string;
+  overflowCount?: number;
+  /**
+   * Accessible name of the "+N" button ("3 more events"). Parent
+   * supplies the i18n string.
+   */
+  overflowLabel?: string;
+  /** `true` while this cell's day sheet is open (`aria-expanded`). */
+  overlayOpen?: boolean;
   density?: 'comfortable' | 'compact' | 'spacious';
   /**
    * `aria-rowindex` for the cell — counts from 1, with row 1 being
@@ -59,7 +65,9 @@ const props = withDefaults(defineProps<Props>(), {
   isOtherMonth: false,
   isWeekend: false,
   placeholder: false,
-  menuOpenForThisCell: false,
+  overflowCount: 0,
+  overflowLabel: '',
+  overlayOpen: false,
   density: 'comfortable',
 });
 
@@ -72,21 +80,17 @@ const emit = defineEmits<{
    * reaches the parent for the cell background and day number.
    */
   cellDblclick: [native: MouseEvent, day: Temporal.PlainDate];
-  /** Right-click / long-press on the cell body. */
-  cellContextmenu: [native: MouseEvent, day: Temporal.PlainDate];
-  /** Click on the kebab — opens the cell menu anchored at the trigger. */
-  kebabClick: [native: MouseEvent, day: Temporal.PlainDate];
+  /** Click on the "+N" button — parent opens the day sheet. */
+  overflowClick: [native: MouseEvent, day: Temporal.PlainDate];
 }>();
 
 defineSlots<{
   /**
    * Pills (and source-phantom / invalid ghost). Rendered inside
-   * the pills container which scrolls when content overflows.
+   * the pills container above the "+N" marker.
    */
   default(): unknown;
 }>();
-
-const ariaExpanded = computed(() => (props.menuOpenForThisCell ? 'true' : 'false'));
 
 function onPointerdown(e: PointerEvent) {
   if (props.placeholder) return;
@@ -96,12 +100,8 @@ function onDblclick(e: MouseEvent) {
   if (props.placeholder) return;
   emit('cellDblclick', e, props.day);
 }
-function onContextmenu(e: MouseEvent) {
-  if (props.placeholder) return;
-  emit('cellContextmenu', e, props.day);
-}
-function onKebabClick(e: MouseEvent) {
-  emit('kebabClick', e, props.day);
+function onOverflowClick(e: MouseEvent) {
+  emit('overflowClick', e, props.day);
 }
 </script>
 
@@ -125,43 +125,36 @@ function onKebabClick(e: MouseEvent) {
     :aria-hidden="placeholder ? 'true' : undefined"
     @pointerdown="onPointerdown"
     @dblclick="onDblclick"
-    @contextmenu="onContextmenu"
   >
     <div v-if="!placeholder" class="coar-month-cell__day-number-row">
       <span class="coar-month-cell__day-number">{{ day.day }}</span>
-      <!-- Kebab trigger for per-cell actions. Hover-reveal on
-           desktop (CSS), always visible on touch where there's
-           no hover. Currently only carries expand/collapse —
-           future actions land here as extra menu items. -->
-      <button
-        type="button"
-        class="coar-month-cell__menu-trigger"
-        :aria-label="kebabAriaLabel"
-        aria-haspopup="menu"
-        :aria-expanded="ariaExpanded"
-        @pointerdown.stop
-        @dblclick.stop
-        @click.stop="onKebabClick"
-      >
-        <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true">
-          <circle cx="6" cy="2.5" r="1" fill="currentColor" />
-          <circle cx="6" cy="6" r="1" fill="currentColor" />
-          <circle cx="6" cy="9.5" r="1" fill="currentColor" />
-        </svg>
-      </button>
     </div>
 
-    <!-- Pills area: single-day events for this cell, offset
-         below the row's multi-day bars. The container scrolls
-         when the pill list outgrows the cell's height — no
-         "+N more" truncation, every event stays in the DOM
-         (so keyboard focus + DnD reach all of them). -->
+    <!-- Pills area: the capped single-day events for this cell,
+         offset below the row's multi-day bars, followed by one
+         stable "+N" row for whatever the parent folded away. The
+         row is a button: it opens the day sheet with every event
+         of the day (drag-enabled), and stops pointerdown so it is
+         not also an `onDateClick`. -->
     <div
       v-if="!placeholder"
       class="coar-month-cell__pills"
       :style="{ marginTop: pillsMarginTopPx + 'px' }"
     >
       <slot />
+      <button
+        v-if="overflowCount > 0"
+        type="button"
+        class="coar-month-cell__overflow"
+        :aria-label="overflowLabel"
+        aria-haspopup="dialog"
+        :aria-expanded="overlayOpen ? 'true' : 'false'"
+        @pointerdown.stop
+        @dblclick.stop
+        @click.stop="onOverflowClick"
+      >
+        +{{ overflowCount }}
+      </button>
     </div>
   </div>
 </template>
@@ -175,8 +168,8 @@ function onKebabClick(e: MouseEvent) {
      what's inside. */
   min-width: 0;
   /* `min-height: 0` is the flex/grid analogue: without it, a flex
-     child with `overflow: auto` can't actually shrink past its
-     content's intrinsic size, so the pill list won't scroll. */
+     child can't shrink past its content's intrinsic size and the
+     row's fixed height would be overruled by a full cell. */
   min-height: 0;
   border-left: 1px solid var(--coar-calendar-border, #d1d5db);
   cursor: pointer;
@@ -229,69 +222,51 @@ function onKebabClick(e: MouseEvent) {
   gap: 2px;
   /* Top padding gives the topmost pill's focus outline (2 px width
    * at outline-offset: 1 px → 3 px above the pill box) breathing
-   * room inside the overflow:auto viewport. Without it, the top of
-   * the focus halo is clipped by the scroll edge and the user sees
-   * a missing border. Bottom padding is part of the original visual
-   * spacing inside the cell. */
+   * room inside the clipped container. Bottom padding is part of
+   * the original visual spacing inside the cell. */
   padding: 3px 4px 4px 4px;
   /* margin-top is set inline based on the row's bar count, so the
      pills sit BELOW the multi-day bars no matter how many lanes
      are above. */
-  /* Take the remaining space inside the cell and scroll if the
-     pill list is taller. `min-height: 0` (here AND on the cell
-     parent) is what lets a flex child actually shrink to its
-     constraints; without it the cell's intrinsic content height
-     wins and overflow:auto never engages. */
+  /* Take the remaining space inside the cell. The parent caps the
+     pills so the list fits by construction; `overflow: hidden`
+     only guards custom `#pill` slots taller than the row budget. */
   flex: 1 1 0;
   min-height: 0;
-  overflow-y: auto;
-  /* Thin scrollbar that doesn't compete with calendar content. */
-  scrollbar-width: thin;
-  scrollbar-color: var(--coar-border-neutral-tertiary, #d1d5db) transparent;
-}
-.coar-month-cell__pills::-webkit-scrollbar {
-  width: 6px;
-}
-.coar-month-cell__pills::-webkit-scrollbar-thumb {
-  background: var(--coar-border-neutral-tertiary, #d1d5db);
-  border-radius: 3px;
-}
-.coar-month-cell__pills::-webkit-scrollbar-track {
-  background: transparent;
+  overflow: hidden;
 }
 
-/* Per-cell kebab trigger. Hover-reveal on devices that have
- * hover (typical desktop / mouse). Always visible on devices
- * without hover (touch). Also visible whenever the menu is open,
- * keeping the trigger anchored as the user mouses to the menu. */
-.coar-month-cell__menu-trigger {
-  margin-left: auto;
-  background: transparent;
+/* "+N" button — same type and line box as a Details pill, in the
+ * subtle text colour, no background at rest (the iOS `+N` row);
+ * hover / focus / open reveal it as a control. */
+.coar-month-cell__overflow {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  padding: 1px 6px;
   border: 0;
-  padding: 0;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
+  border-radius: 3px;
+  background: transparent;
+  font: inherit;
+  font-size: var(--coar-font-size-xs, 11px);
+  font-weight: 600;
+  line-height: 16px;
   color: var(--coar-text-subtle, #6c7280);
-  border-radius: var(--coar-radius-xs, 2px);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
 }
-.coar-month-cell__menu-trigger:hover,
-.coar-month-cell__menu-trigger:focus-visible,
-.coar-month-cell__menu-trigger[aria-expanded='true'] {
+.coar-month-cell__overflow:hover,
+.coar-month-cell__overflow:focus-visible,
+.coar-month-cell__overflow[aria-expanded='true'] {
   background: var(--coar-background-neutral-tertiary, #f3f4f6);
   color: var(--coar-text-base, #1a1c1f);
 }
-@media (hover: hover) {
-  .coar-month-cell__menu-trigger {
-    opacity: 0;
-  }
-  .coar-month-cell:hover .coar-month-cell__menu-trigger,
-  .coar-month-cell__menu-trigger:focus-visible,
-  .coar-month-cell__menu-trigger[aria-expanded='true'] {
-    opacity: 1;
-  }
+.coar-month-cell__overflow:focus-visible {
+  outline: 2px solid var(--coar-color-focus, #2563eb);
+  outline-offset: 1px;
+}
+.coar-month-cell--density-compact .coar-month-cell__overflow {
+  font-size: 10px;
+  padding: 0 4px;
 }
 </style>

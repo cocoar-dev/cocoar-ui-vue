@@ -531,7 +531,8 @@ The builder is **flat** — every setter lives directly on it. There are no sub-
 | `dayColumnCount(n)` | `MaybeRefOrGetter<number>` | Minimum complete columns in Multi-day mode. Clamped to `1…7`. |
 | `dayColumnMinWidth(px)` | `MaybeRefOrGetter<number>` | Target width used to derive extra Multi-day columns. |
 | `density(d)` | `MaybeRefOrGetter<'comfortable' \| 'compact'>` | Row / padding tightness. |
-| `maxEventsPerCell(n)` | `MaybeRefOrGetter<number>` | Month-cell pill hint. Default `3`. |
+| `maxEventsPerCell(n)` | `MaybeRefOrGetter<number>` | Single-day pills a Details month cell shows before the rest fold into `+N`. Default `2`, like iOS. |
+| `monthMaxVisibleLanes(n)` | `MaybeRefOrGetter<number \| null>` | Multi-day lanes a month week row shows before the remaining bars fold into the covered days' `+N`. Default `2`; `null` = the row grows with every lane. |
 | `agendaLengthDays(n)` | `MaybeRefOrGetter<number>` | Days the agenda window covers. Default `30`. |
 | `showEmptyDays(b)` | `MaybeRefOrGetter<boolean>` | Render headers for empty days (agenda). |
 | `availableViews(v)` | `MaybeRefOrGetter<readonly CalendarView[]>` | Filter the view-switcher. |
@@ -603,6 +604,7 @@ Variant-specific slots (`pill`, `multiDayBar`, `allDayEvent`) still exist on the
 | `allDayEvent` | `{ event, layout }` | All-day band renderer (week / day). |
 | `pill` | `{ event, pill }` | Month single-day pill. |
 | `agendaEmpty` | — | Agenda empty state (forwarded to `<CoarAgendaView>`'s `empty` slot). Shown only when the agenda draws nothing and no load is in flight; no default. |
+| `weekStripStart` / `weekStripEnd` | `WeekStripSlotScope` | Day agenda: host controls at either end of the seven-day week strip (e.g. previous / next week via `shiftWeek(±1)`). Forwarded to `<CoarAgendaView>`. |
 | `multiDayBar` | `{ event, bar }` | Month multi-day bar. |
 | `dayHeader` | `{ date, isToday, isWeekend }` | Per-day column header (week / day). |
 
