@@ -42,6 +42,7 @@ import { useI18n, useLocalization } from '@cocoar/vue-localization';
 import { useMonthDnd, type MonthEventDropPayload } from '../composables/useMonthDnd';
 import { useA11yAnnouncer } from '../composables/useA11yAnnouncer';
 import { useMonthGeometry } from '../composables/useMonthGeometry';
+import { useMonthMetrics } from '../composables/useMonthMetrics';
 import { useMonthDayOverlay } from '../composables/useMonthDayOverlay';
 import { useViewWindow } from '../composables/useViewWindow';
 import {
@@ -305,10 +306,15 @@ function isWeekend(d: Temporal.PlainDate): boolean {
 
 // ─── Row geometry ────────────────────────────────────────────────────
 
+// Measured in the host's styling so a restyled day-number row or a
+// taller pill never clips the "+N" row (see `useMonthMetrics`).
+const monthMetrics = useMonthMetrics({ rootRef: rootEl, trigger: layout });
 const { BAR_HEIGHT, DAY_NUMBER_HEIGHT, barTopPx, rowBarHeightsPx, rowHeightPx } = useMonthGeometry({
   layout,
   monthDensity: () => state.value.monthDensity,
   maxLanes: () => state.value.monthMaxVisibleLanes,
+  metrics: monthMetrics,
+  maxEventsPerCell: () => state.value.maxEventsPerCell,
 });
 
 // ─── Lane cap + folded bars ──────────────────────────────────────────
