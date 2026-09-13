@@ -257,6 +257,11 @@ export class CalendarBuilder<
 
   private _goToToday(): void {
     goToToday(this.state);
+    // Moving the cursor is not enough: a surface that scrolls freely
+    // (continuous month, agenda) only follows a cursor CHANGE, and the
+    // cursor may already be today while today's row sits off-screen.
+    // "Today" is an explicit request to see today, so scroll to it too.
+    this._scrollToDateImpl?.(this.state.date.value);
   }
 
   private _navigate(direction: 1 | -1): void {

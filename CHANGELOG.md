@@ -257,6 +257,15 @@ defaulting to `en-US`.
 
 ### Fixed
 
+- **`@cocoar/vue-calendar` — "Today" scrolls today into view inside the
+  current month.** `api.goToToday()` only moved the cursor, and the
+  continuous month surface only reacts to a month _change_ — so with today's
+  month already active (or the cursor already on today) the button did
+  nothing while today's row sat scrolled off-screen. `goToToday()` now also
+  requests a scroll to today; the month surface exposes `scrollToDate`,
+  which aligns the month to the top and nudges further when the day cell
+  would still fall below the fold. Agenda benefits the same way through its
+  existing `scrollToDate`.
 - **`@cocoar/vue-calendar` — month Details geometry follows the host's
   styling.** The Details row was a constant 94 px with a 24 px day-number
   row and 18 px pills baked in; a host that restyles those (amZettel: 30 px

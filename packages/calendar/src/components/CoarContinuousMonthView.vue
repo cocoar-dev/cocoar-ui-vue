@@ -77,25 +77,58 @@ function sectionElement(key: string): HTMLElement | null {
   return root.value?.querySelector<HTMLElement>(`[data-month-key="${key}"]`) ?? null;
 }
 
-function alignMonthToTop(key: string, behavior: ScrollBehavior = 'auto'): void {
+/**
+ * Scroll offset that puts the month section's top at the viewport top.
+ * With `date` the target is nudged further so that day's cell is fully
+ * visible as well — a month taller than the viewport would otherwise
+ * leave "today" below the fold even though its month is aligned.
+ */
+function scrollTopFor(
+  container: HTMLElement,
+  section: HTMLElement,
+  date?: Temporal.PlainDate,
+): number {
+  const containerTop = container.getBoundingClientRect().top;
+  let top = container.scrollTop + section.getBoundingClientRect().top - containerTop;
+  if (date) {
+    const cell = section.querySelector<HTMLElement>(
+      `[data-day-key="${date.toString()}"]:not([data-placeholder="true"])`,
+    );
+    if (cell) {
+      const cellBottom = container.scrollTop + cell.getBoundingClientRect().bottom - containerTop;
+      const viewportBottom = top + container.clientHeight;
+      if (cellBottom > viewportBottom) top += cellBottom - viewportBottom;
+    }
+  }
+  return top;
+}
+
+function alignMonthToTop(
+  key: string,
+  behavior: ScrollBehavior = 'auto',
+  date?: Temporal.PlainDate,
+): void {
   const container = root.value;
   const section = sectionElement(key);
   if (!container || !section) return;
-  const delta = section.getBoundingClientRect().top - container.getBoundingClientRect().top;
-  container.scrollTo({ top: container.scrollTop + delta, behavior });
+  container.scrollTo({ top: scrollTopFor(container, section, date), behavior });
 }
 
 async function ensureMonthAndAlign(
   target: Temporal.PlainYearMonth,
   behavior: ScrollBehavior,
+  date?: Temporal.PlainDate,
 ): Promise<void> {
   const key = monthKey(target);
+  // Claim the section before any await so the cursor watch below sees
+  // this alignment as already handled and does not schedule a second one.
+  activeMonthKey.value = key;
   if (!months.value.some((month) => monthKey(month) === key)) {
     adjustingMonths = true;
     months.value = monthRange(target);
     await nextTick();
   }
-  alignMonthToTop(key, behavior);
+  alignMonthToTop(key, behavior, date);
   activeMonthKey.value = key;
   publishTopmost(key);
   requestAnimationFrame(() => {
@@ -249,6 +282,14 @@ onBeforeUnmount(() => {
 
 defineExpose({
   scrollToMonth: (month: Temporal.PlainYearMonth) => ensureMonthAndAlign(month, 'smooth'),
+  /**
+   * Bring a date into view: its month aligned to the top, the day cell
+   * itself kept visible. Unlike the cursor watch this always scrolls —
+   * "Today" must work when the month is already the active one but the
+   * user has scrolled today's row out of the viewport.
+   */
+  scrollToDate: (date: Temporal.PlainDate) =>
+    ensureMonthAndAlign(yearMonthOf(date), 'smooth', date),
   activeMonth: computed(() => Temporal.PlainYearMonth.from(activeMonthKey.value)),
 });
 </script>

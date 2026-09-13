@@ -434,6 +434,24 @@ describe('Navigation setters', () => {
     b.api.goToToday();
     expect(b.state.date.value.toString()).toBe(Temporal.Now.plainDateISO('UTC').toString());
   });
+
+  it('goToToday() also asks the mounted surface to scroll to today', () => {
+    // The cursor may already BE today (nothing for a watcher to react
+    // to) while today's row is scrolled out of view; "Today" must still
+    // bring it back. Before the shell is mounted there is nothing to
+    // scroll and the call stays silent.
+    const b = CalendarBuilder.create();
+    b.timezone('UTC');
+    const today = Temporal.Now.plainDateISO('UTC');
+    b.api.goTo(today);
+    expect(() => b.api.goToToday()).not.toThrow();
+
+    const scrollToDate = vi.fn();
+    b._setScrollToDate(scrollToDate);
+    b.api.goToToday();
+    expect(scrollToDate).toHaveBeenCalledTimes(1);
+    expect(scrollToDate.mock.calls[0][0].toString()).toBe(today.toString());
+  });
 });
 
 // ─── _setVisibleRange contract ──────────────────────────────────

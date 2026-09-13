@@ -283,6 +283,39 @@ describe('live topmost month while scrolling', () => {
     }
   });
 
+  it('scrollToDate scrolls inside the active month and keeps the day cell visible', async () => {
+    const calendar = builder();
+    const wrapper = mount(CoarContinuousMonthView, { props: { builder: calendar } });
+    await nextTick();
+    const root = wrapper.element as HTMLElement;
+    const scrollTo = vi.fn();
+    root.scrollTo = scrollTo as unknown as typeof root.scrollTo;
+    Object.defineProperty(root, 'clientHeight', { value: 600, configurable: true });
+
+    // June is the active month, but the user scrolled 350 px into it —
+    // the cursor watch sees no month change and would do nothing.
+    const scrollTop = 6 * 500 + 350;
+    Object.defineProperty(root, 'scrollTop', { value: scrollTop, configurable: true });
+    layOut(wrapper, scrollTop);
+    const cell = wrapper.find('[data-month-key="2026-06"] [data-day-key="2026-06-15"]')
+      .element as HTMLElement;
+
+    // Day cell above the viewport: aligning the month top is enough.
+    cell.getBoundingClientRect = () => rect(-100, 60);
+    const exposed = wrapper.vm as unknown as { scrollToDate: (d: Temporal.PlainDate) => void };
+    exposed.scrollToDate(Temporal.PlainDate.from('2026-06-15'));
+    await nextTick();
+    expect(scrollTo).toHaveBeenLastCalledWith({ top: 6 * 500, behavior: 'smooth' });
+    expect(calendar.api.topmostVisibleMonth.value?.toString()).toBe('2026-06');
+
+    // Day cell below the fold of a month taller than the viewport: nudge
+    // past the month top so the cell's bottom edge lands in view.
+    cell.getBoundingClientRect = () => rect(290, 60);
+    exposed.scrollToDate(Temporal.PlainDate.from('2026-06-15'));
+    await nextTick();
+    expect(scrollTo).toHaveBeenLastCalledWith({ top: 6 * 500 + 100, behavior: 'smooth' });
+  });
+
   it('falls back to a settle timer where scrollend does not fire', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     try {

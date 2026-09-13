@@ -340,6 +340,9 @@ const bodyEl = useTemplateRef<HTMLElement>('bodyEl');
 const agendaRef = useTemplateRef<{ scrollToDate?: (d: Temporal.PlainDate) => void } | null>(
   'agendaView',
 );
+const continuousMonthRef = useTemplateRef<{
+  scrollToDate?: (d: Temporal.PlainDate) => void;
+} | null>('continuousMonthView');
 
 /**
  * Smooth-scroll the calendar body from its current `scrollTop` to
@@ -408,6 +411,11 @@ onMounted(() => {
     if (view.value === 'agenda') {
       const ag = agendaRef.value as { scrollToDate?: (iso: string) => void } | null;
       ag?.scrollToDate?.(d.toString());
+    } else if (view.value === 'month') {
+      // The continuous month surface owns its scrolling; its cursor
+      // watch only reacts to a MONTH change, so an explicit scroll
+      // request (api.goToToday inside the current month) goes here.
+      continuousMonthRef.value?.scrollToDate?.(d);
     }
   });
   props.builder._setGridReady(true);
@@ -562,7 +570,11 @@ onBeforeUnmount(() => {
         </template>
       </CoarWorkWeekView>
 
-      <CoarContinuousMonthView v-else-if="view === 'month'" :builder="props.builder">
+      <CoarContinuousMonthView
+        v-else-if="view === 'month'"
+        ref="continuousMonthView"
+        :builder="props.builder"
+      >
         <template v-if="$slots.pill || $slots.event" #pill="slotProps">
           <slot v-if="$slots.pill" name="pill" v-bind="slotProps" />
           <slot
