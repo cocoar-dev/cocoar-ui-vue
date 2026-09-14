@@ -108,6 +108,15 @@ export interface CalendarBuilderState<
   /** Tint Saturday and Sunday cells in month views. Enabled by default. */
   shadeWeekends: MaybeRefOrGetter<boolean>;
   /**
+   * The host's selected day, marked in the month grid with a filled
+   * circle around the day number (the iOS calendar's selection
+   * decoration). Deliberately NOT the cursor: the cursor follows the
+   * visible month while scrolling, the selection only changes when
+   * the host says so (a day was clicked, a companion pane follows it).
+   * `null` (default) marks nothing.
+   */
+  selectedDate: MaybeRefOrGetter<Temporal.PlainDate | null>;
+  /**
    * How the black/white text colour on event surfaces is chosen when
    * the event supplies no `meta.textColor`. `'wcag'` (default) keeps
    * the historical behaviour; `'apca'` fixes saturated mid-tones.
@@ -264,6 +273,7 @@ export function createCalendarBuilderState<TMeta extends Record<string, unknown>
     // `builder.workDays(...)`.
     workDays: DEFAULT_WORK_DAYS,
     shadeWeekends: true,
+    selectedDate: null,
     eventTextContrast: 'wcag',
     allDayMaxVisibleLanes: DEFAULT_ALL_DAY_MAX_VISIBLE_LANES,
     allDayBandMode: 'fitsContent',

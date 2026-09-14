@@ -405,6 +405,21 @@ defineExpose({
   color: var(--coar-text-subtle, #6c7280);
   font-weight: 500;
 }
+/* Selection and today share one 27px circle here, like iOS; the cell's base
+ * 20px selection ring is sized for the classic 24px header row. `margin: 0`
+ * also neutralises the base rule's -3px nudge, so a selected today does not
+ * shift — the today rule below wins fill and colour by source order. */
+.coar-continuous-month-view__section :deep(.coar-month-cell--selected .coar-month-cell__day-number) {
+  display: inline-flex;
+  width: 27px;
+  height: 27px;
+  margin: 0;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--coar-calendar-selection-fill, #e5e5ea);
+}
 .coar-continuous-month-view__section :deep(.coar-month-cell--today) {
   background: var(--coar-calendar-bg, #fff);
 }

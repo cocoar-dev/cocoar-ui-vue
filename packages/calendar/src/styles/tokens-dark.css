@@ -28,6 +28,7 @@
   --coar-calendar-bg-other-month: #131316; /* recedes behind the surface */
   /* Accent at 4% (the light value) is invisible on dark — lift to ~14%. */
   --coar-calendar-bg-today: #2563eb24;
+  --coar-calendar-selection-fill: #3a3a3c; /* Apple systemGray5 (dark) — selected day number circle */
 
   /* Lines */
   --coar-calendar-grid-line: #2c2c30; /* subtle line on #18181b */

@@ -28,6 +28,15 @@ defaulting to `en-US`.
 
 ### Added
 
+- **`@cocoar/vue-calendar` — selected day in the month grid.**
+  `builder.selectedDate(MaybeRefOrGetter<Temporal.PlainDate | null>)` marks
+  one day with a filled circle around its day number — the iOS calendar's
+  selection decoration (`--coar-calendar-selection-fill`, systemGray5 in
+  both schemes; today keeps its accent number on top). It is deliberately
+  not the cursor: the cursor follows the visible month while scrolling, the
+  selection only moves when the host says so — pass the day a companion
+  pane follows, typically from `onDateClick`. The cell carries
+  `aria-selected`. Default `null` marks nothing.
 - **`@cocoar/vue-calendar` — day agenda week strip slots.** `weekStripStart`
   and `weekStripEnd` on `<CoarAgendaView view="dayAgenda">` (and forwarded by
   `<CoarCalendar>`) place host controls at either end of the seven-day

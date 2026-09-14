@@ -76,6 +76,7 @@ describe('CalendarBuilder construction', () => {
     expect(toValue(b.state.monthDensity)).toBe('details');
     expect(toValue(b.state.dayMode)).toBe('single');
     expect(toValue(b.state.shadeWeekends)).toBe(true);
+    expect(toValue(b.state.selectedDate)).toBeNull();
     expect(b.state.date.value).toBeInstanceOf(Temporal.PlainDate);
   });
 
@@ -87,6 +88,7 @@ describe('CalendarBuilder construction', () => {
       .locale('de-AT')
       .firstDayOfWeek(1)
       .shadeWeekends(false)
+      .selectedDate(Temporal.PlainDate.from('2026-06-17'))
       .density('compact')
       .monthDensity('stacked')
       .dayMode('multiDay')
@@ -116,6 +118,7 @@ describe('CalendarBuilder construction', () => {
       .onRangeChange(() => {});
     expect(result).toBe(b);
     expect(toValue(b.state.shadeWeekends)).toBe(false);
+    expect(toValue(b.state.selectedDate)?.toString()).toBe('2026-06-17');
   });
 });
 

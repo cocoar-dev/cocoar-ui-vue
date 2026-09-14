@@ -26,6 +26,12 @@ interface Props {
   /** `dateKey(day)` precomputed by the parent. Surface as `data-day-key`. */
   dayKey: string;
   isToday?: boolean;
+  /**
+   * The host's selected day (`builder.selectedDate`): a filled circle
+   * around the day number, the iOS selection decoration. Today keeps
+   * its accent number on top of it.
+   */
+  selected?: boolean;
   isOtherMonth?: boolean;
   isWeekend?: boolean;
   /** Blank leading/trailing cell in a continuous month section. */
@@ -62,6 +68,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   isToday: false,
+  selected: false,
   isOtherMonth: false,
   isWeekend: false,
   placeholder: false,
@@ -110,6 +117,7 @@ function onOverflowClick(e: MouseEvent) {
     class="coar-month-cell"
     :class="{
       'coar-month-cell--today': isToday,
+      'coar-month-cell--selected': selected,
       'coar-month-cell--other-month': isOtherMonth,
       'coar-month-cell--weekend': isWeekend,
       'coar-month-cell--placeholder': placeholder,
@@ -122,6 +130,7 @@ function onOverflowClick(e: MouseEvent) {
     :aria-colindex="ariaColIndex"
     :aria-label="ariaLabel"
     :aria-current="isToday ? 'date' : undefined"
+    :aria-selected="selected ? 'true' : undefined"
     :aria-hidden="placeholder ? 'true' : undefined"
     @pointerdown="onPointerdown"
     @dblclick="onDblclick"
@@ -210,6 +219,20 @@ function onOverflowClick(e: MouseEvent) {
 }
 .coar-month-cell--today .coar-month-cell__day-number {
   color: var(--coar-color-accent, var(--coar-color-accent-500, #2563eb));
+}
+/* Selection: a filled circle around the day number, like the iOS calendar's
+   `selectionFill` (systemGray5). Today keeps its accent colour on top of it. */
+.coar-month-cell--selected .coar-month-cell__day-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  margin: -2px 0 -2px -3px;
+  border-radius: 999px;
+  background: var(--coar-calendar-selection-fill, #e5e5ea);
+  box-sizing: border-box;
 }
 .coar-month-cell--other-month .coar-month-cell__day-number {
   color: var(--coar-text-subtle, #9ca3af);

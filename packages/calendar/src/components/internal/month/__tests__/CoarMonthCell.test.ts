@@ -55,6 +55,15 @@ describe('<CoarMonthCell>', () => {
       expect(classes).not.toContain('coar-month-cell--today');
       expect(classes).not.toContain('coar-month-cell--weekend');
       expect(classes).not.toContain('coar-month-cell--other-month');
+      expect(classes).not.toContain('coar-month-cell--selected');
+      expect(wrapper.find('.coar-month-cell').attributes('aria-selected')).toBeUndefined();
+    });
+
+    it('marks the selected day with --selected and aria-selected', () => {
+      const wrapper = mountCell({ selected: true });
+      const cell = wrapper.find('.coar-month-cell');
+      expect(cell.classes()).toContain('coar-month-cell--selected');
+      expect(cell.attributes('aria-selected')).toBe('true');
     });
   });
 

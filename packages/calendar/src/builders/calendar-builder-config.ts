@@ -345,6 +345,18 @@ export abstract class CalendarBuilderConfig<
   }
 
   /**
+   * Month view — the host's selected day, drawn as a filled circle
+   * around the day number (the iOS selection decoration; today keeps
+   * its own accent). Independent of the cursor, which follows the
+   * visible month while scrolling; pass the day your companion pane
+   * or detail follows. `null` (default) marks nothing.
+   */
+  selectedDate(d: CalendarBuilderState['selectedDate']): this {
+    this.state.selectedDate = d;
+    return this;
+  }
+
+  /**
    * Month view (Details density) — single-day pills a cell shows
    * before the rest fold into a "+N" marker. Default `2`, matching
    * the iOS calendar's fixed-height Details cell.

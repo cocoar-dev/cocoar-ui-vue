@@ -125,6 +125,7 @@ const state = computed(() => {
     locale: toValue(s.locale),
     firstDayOfWeek: toValue(s.firstDayOfWeek),
     shadeWeekends: toValue(s.shadeWeekends),
+    selectedDate: toValue(s.selectedDate),
     density: toValue(s.density),
     monthDensity: toValue(s.monthDensity),
     dateStyle: toValue(s.dateStyle),
@@ -295,6 +296,10 @@ const today = ref<Temporal.PlainDate>(todayInZone(effectiveTimezone.value));
 
 function isToday(d: Temporal.PlainDate): boolean {
   return Temporal.PlainDate.compare(d, today.value) === 0;
+}
+function isSelected(d: Temporal.PlainDate): boolean {
+  const selected = state.value.selectedDate;
+  return selected !== null && Temporal.PlainDate.compare(d, selected) === 0;
 }
 function isOtherMonth(d: Temporal.PlainDate): boolean {
   return d.year !== yearMonth.value.year || d.month !== yearMonth.value.month;
@@ -715,6 +720,7 @@ defineExpose({
           :day="day"
           :day-key="dateKey(day)"
           :is-today="isToday(day)"
+          :selected="!(continuousSection && isOtherMonth(day)) && isSelected(day)"
           :is-other-month="isOtherMonth(day)"
           :placeholder="continuousSection && isOtherMonth(day)"
           :is-weekend="isWeekend(day)"

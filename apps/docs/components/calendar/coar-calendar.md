@@ -523,6 +523,7 @@ The builder is **flat** — every setter lives directly on it. There are no sub-
 | `firstDayOfWeek(d)` | `MaybeRefOrGetter<0..6 \| undefined>` | Override the locale-detected default. |
 | `workDays(d)` | `MaybeRefOrGetter<readonly DayOfWeek[]>` | Days to render in the `'workWeek'` view (0 = Sun … 6 = Sat). Default `[1,2,3,4,5]` (Mon–Fri). |
 | `shadeWeekends(b)` | `MaybeRefOrGetter<boolean>` | Tint Saturday / Sunday cells and headers in Month. Default `true`; disable for the unshaded iOS appearance. |
+| `selectedDate(d)` | `MaybeRefOrGetter<Temporal.PlainDate \| null>` | Month: the host's selected day, drawn as a filled circle around the day number. Independent of the cursor. Default `null`. |
 | `monthDensity(d)` | `MaybeRefOrGetter<'compact' \| 'stacked' \| 'details'>` | Month presentation. The shell exposes these beside the optional List variation. Default `'details'`. |
 | `dayMode(m)` | `MaybeRefOrGetter<'single' \| 'multiDay'>` | One fixed day or a width-aware 1–7-day surface. Default `'single'`. |
 | `timeRange(r)` | `MaybeRefOrGetter<{ startMinutes: number; endMinutes: number }>` | Day / week visible hour range, in minutes from midnight. |

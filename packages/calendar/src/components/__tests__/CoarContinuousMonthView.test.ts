@@ -78,6 +78,35 @@ describe('CoarContinuousMonthView', () => {
     expect(june15.findAll('.coar-month-view__segment')).toHaveLength(2);
   });
 
+  it('marks the host-selected day and follows a change without touching the cursor', async () => {
+    const selected = ref<Temporal.PlainDate | null>(Temporal.PlainDate.from('2026-06-17'));
+    const calendar = builder().selectedDate(selected);
+    const wrapper = mount(CoarContinuousMonthView, { props: { builder: calendar } });
+    const june = () => wrapper.find('[data-month-key="2026-06"]');
+    expect(june().find('[data-day-key="2026-06-17"]').classes()).toContain(
+      'coar-month-cell--selected',
+    );
+    expect(june().findAll('.coar-month-cell--selected')).toHaveLength(1);
+    // A placeholder in the neighbouring section never carries the selection.
+    expect(wrapper.find('[data-month-key="2026-07"] [data-day-key="2026-06-17"]').exists()).toBe(
+      false,
+    );
+
+    selected.value = Temporal.PlainDate.from('2026-06-18');
+    await nextTick();
+    expect(june().find('[data-day-key="2026-06-17"]').classes()).not.toContain(
+      'coar-month-cell--selected',
+    );
+    expect(june().find('[data-day-key="2026-06-18"]').classes()).toContain(
+      'coar-month-cell--selected',
+    );
+    expect(calendar.state.date.value.toString()).toBe('2026-06-15'); // selection ≠ cursor
+
+    selected.value = null;
+    await nextTick();
+    expect(wrapper.findAll('.coar-month-cell--selected')).toHaveLength(0);
+  });
+
   it('folds same-day events past the cap into a "+N" marker in Details mode', () => {
     const events: CalendarEvent[] = [14, 15, 16].map((hour, index) => ({
       id: `overlap-${index}`,

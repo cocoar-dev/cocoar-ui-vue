@@ -426,6 +426,7 @@ Full reference: see [the composer's API reference](./coar-calendar.md#api-refere
 | `firstDayOfWeek(d)` | `0..6 \| undefined` | locale-aware | `0` = Sunday, `1` = Monday, … |
 | `monthDensity(d)` | `'compact' \| 'stacked' \| 'details'` | `'details'` | Presentation used by continuous Month. |
 | `shadeWeekends(b)` | `MaybeRefOrGetter<boolean>` | `true` | Shades Saturday / Sunday cells and weekday headers. Set `false` for an unshaded appearance. |
+| `selectedDate(d)` | `MaybeRefOrGetter<Temporal.PlainDate \| null>` | `null` | The host's selected day: a filled circle around the day number (iOS selection decoration, `--coar-calendar-selection-fill`). Independent of the cursor — pass the day a companion pane follows, e.g. from `onDateClick`. |
 | `maxEventsPerCell(n)` | `MaybeRefOrGetter<number>` | `2` | Single-day pills a **Details** cell shows before the rest fold into the `+N` row. Stacked and Compact use fixed limits (2 marks / 6 capsule segments) like iOS. |
 | `monthMaxVisibleLanes(n)` | `MaybeRefOrGetter<number \| null>` | `2` | Multi-day lanes a week row shows. Bars past the cap leave the band and count into the `+N` of every day they cover; `null` lets the row grow with every lane. |
 | `eventRenderer(r)` | `EventRenderer<TMeta>` | — | Universal renderer. Branch on `ctx.layout?.kind === 'monthPill' \| 'monthBar'` for variant-specific rendering — see the example above. |
