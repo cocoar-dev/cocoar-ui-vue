@@ -296,6 +296,7 @@ function decrement() {
     <div class="coar-number-input-wrapper">
       <!-- Single-line input shell owns box / radius / padding / states -->
       <CoarInputFrame
+        mobile-sizing
         class="coar-number-input-frame"
         :size="size"
         :error="hasError"
@@ -401,15 +402,15 @@ function decrement() {
 
 /* Size-specific typography */
 .coar-number-input--xs .coar-number-input-field {
-  font-size: var(--coar-component-xs-font-size);
+  font-size: max(var(--coar-component-xs-font-size), var(--coar-control-min-font-size, 0px));
 }
 
 .coar-number-input--s .coar-number-input-field {
-  font-size: var(--coar-component-s-font-size);
+  font-size: max(var(--coar-component-s-font-size), var(--coar-control-min-font-size, 0px));
 }
 
 .coar-number-input--l .coar-number-input-field {
-  font-size: var(--coar-component-l-font-size);
+  font-size: max(var(--coar-component-l-font-size), var(--coar-control-min-font-size, 0px));
 }
 
 /* Input Field - right aligned for numbers. Horizontal padding owned by the frame. */
@@ -422,7 +423,7 @@ function decrement() {
   outline: none;
   background: transparent;
   font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-body-small-base-size);
+  font-size: max(var(--coar-body-small-base-size), var(--coar-control-min-font-size, 0px));
   font-weight: var(--coar-body-small-base-weight);
   color: var(--coar-text-neutral-primary);
   text-align: right;
@@ -479,6 +480,8 @@ function decrement() {
   justify-content: center;
   width: auto;
   height: auto;
+  min-width: var(--coar-control-min-target-size, auto);
+  min-height: var(--coar-control-min-target-size, auto);
   padding: 0;
   border: none;
   background: transparent;
@@ -489,7 +492,7 @@ function decrement() {
     color var(--coar-duration-fast) var(--coar-ease-out),
     opacity var(--coar-duration-fast) var(--coar-ease-out);
   flex-shrink: 0;
-  opacity: 0.4;
+  opacity: var(--coar-control-clear-opacity, 0.4);
 }
 
 /*
@@ -557,6 +560,7 @@ function decrement() {
   align-items: center;
   justify-content: center;
   width: var(--coar-number-btn-w);
+  min-width: var(--coar-control-min-target-size, auto);
   height: 100%;
   padding: 0;
   border: none;

@@ -17,6 +17,7 @@ import CoarThemeEditor from '@cocoar/vue-ui/theme-editor';
       <router-link to="/page-builder-scripting-spike">Scripting Spike</router-link>
       <router-link to="/file-explorer-poc">File Explorer POC</router-link>
       <router-link to="/panel-layout">Panel Layout</router-link>
+      <router-link to="/mobile-controls">Mobile Controls</router-link>
     </nav>
     <main class="app-main">
       <router-view />

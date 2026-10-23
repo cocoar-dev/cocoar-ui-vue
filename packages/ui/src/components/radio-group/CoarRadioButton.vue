@@ -91,12 +91,14 @@ function onBlur() { isFocused.value = false; }
 
 .coar-radio__label {
   display: inline-flex;
+  min-height: var(--coar-control-min-size, auto);
+  min-width: var(--coar-control-min-size, auto);
   align-items: center;
   gap: var(--coar-spacing-s);
   cursor: pointer;
   user-select: none;
   font-family: var(--coar-body-base-family);
-  font-size: var(--coar-component-m-font-size);
+  font-size: max(var(--coar-component-m-font-size), var(--coar-control-min-font-size, 0px));
   line-height: var(--coar-body-base-line-height);
   color: var(--coar-text-neutral-primary);
 }
@@ -177,15 +179,21 @@ function onBlur() { isFocused.value = false; }
    so the dot stays crisply centred. An odd 5px dot left 2.5px gaps that
    sub-pixel rounding rendered as visibly off-centre. */
 .coar-radio--xs .coar-radio__dot { width: 6px; height: 6px; }
-.coar-radio--xs .coar-radio__label { font-size: var(--coar-component-xs-font-size); }
+.coar-radio--xs .coar-radio__label {
+  font-size: max(var(--coar-component-xs-font-size), var(--coar-control-min-font-size, 0px));
+}
 
 .coar-radio--s .coar-radio__control { width: 16px; height: 16px; }
 .coar-radio--s .coar-radio__dot { width: 6px; height: 6px; }
-.coar-radio--s .coar-radio__label { font-size: var(--coar-component-s-font-size); }
+.coar-radio--s .coar-radio__label {
+  font-size: max(var(--coar-component-s-font-size), var(--coar-control-min-font-size, 0px));
+}
 
 .coar-radio--l .coar-radio__control { width: 22px; height: 22px; }
 .coar-radio--l .coar-radio__dot { width: 10px; height: 10px; }
-.coar-radio--l .coar-radio__label { font-size: var(--coar-component-l-font-size); }
+.coar-radio--l .coar-radio__label {
+  font-size: max(var(--coar-component-l-font-size), var(--coar-control-min-font-size, 0px));
+}
 
 /* Error */
 .coar-radio--error .coar-radio__control {

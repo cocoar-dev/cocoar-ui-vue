@@ -27,6 +27,8 @@ withDefaults(
     error?: boolean;
     disabled?: boolean;
     readonly?: boolean;
+    /** Opt into the inherited mobile size scale; does not enable mobile mode itself. */
+    mobileSizing?: boolean;
     /** Visual open/active state (e.g. a picker panel is open) — mirrors focus styling. */
     active?: boolean;
     /**
@@ -49,6 +51,7 @@ withDefaults(
     error: false,
     disabled: false,
     readonly: false,
+    mobileSizing: false,
     active: false,
     borderless: false,
     multiline: false,
@@ -73,6 +76,7 @@ const hasActions = computed(() => !!slots.actions);
         'coar-input-frame--active': active,
         'coar-input-frame--borderless': borderless,
         'coar-input-frame--multiline': multiline,
+        'coar-input-frame--mobile-sizing': mobileSizing,
         'coar-input-frame--has-leading': hasLeading,
         'coar-input-frame--has-trailing': hasTrailing,
         'coar-input-frame--has-actions': hasActions,
@@ -99,6 +103,9 @@ const hasActions = computed(() => !!slots.actions);
 
 <style scoped>
 .coar-input-frame {
+  /* Keep unsupported/nested frames from inheriting a standard input's floor. */
+  --coar-input-min-size: 0px;
+  --coar-input-focus-width: 1px;
   /* --coar-field-pad = base × per-size scale × density. Single source for the
      whole input family; the consumer never recomputes it. */
   --coar-field-pad: calc(
@@ -109,10 +116,13 @@ const hasActions = computed(() => !!slots.actions);
      Edge-buttons (Type B) inset their icon by max(field-pad, corner) so it clears
      the rounded cap at full radius — affixes (Type A) float, so they stay on
      field-pad. m base; per-size overrides re-derive it from their own height. */
-  --coar-input-corner: min(var(--coar-input-radius), calc(var(--coar-component-m-height) / 2));
+  --coar-input-corner: min(
+    var(--coar-input-radius),
+    calc(max(var(--coar-component-m-height), var(--coar-input-min-size, 0px)) / 2)
+  );
   display: flex;
   align-items: center;
-  height: var(--coar-component-m-height);
+  height: max(var(--coar-component-m-height), var(--coar-input-min-size, 0px));
   border: 1px solid var(--coar-border-input);
   border-radius: var(--coar-input-radius);
   background: var(--coar-surface-input);
@@ -123,26 +133,66 @@ const hasActions = computed(() => !!slots.actions);
     box-shadow var(--coar-duration-fast) var(--coar-ease-out);
 }
 
+/* Only the standard input family opts in; picker/select frames retain their sizing. */
+.coar-input-frame--mobile-sizing {
+  --coar-input-min-size: var(--coar-control-m-height, var(--coar-control-min-size, 0px));
+}
+.coar-input-frame--mobile-sizing.coar-input-frame--xs {
+  --coar-input-min-size: var(--coar-control-xs-height, var(--coar-control-min-size, 0px));
+}
+.coar-input-frame--mobile-sizing.coar-input-frame--s {
+  --coar-input-min-size: var(--coar-control-s-height, var(--coar-control-min-size, 0px));
+}
+.coar-input-frame--mobile-sizing.coar-input-frame--l {
+  --coar-input-min-size: var(--coar-control-l-height, var(--coar-control-min-size, 0px));
+}
+
+/* Paint the mobile border without taking space from the 44px xs action targets.
+   In particular this stays correct in apps with a global border-box reset. */
+.coar-mobile .coar-input-frame--mobile-sizing {
+  --coar-input-focus-width: 2px;
+  position: relative;
+  border-width: 0;
+}
+.coar-mobile .coar-input-frame--mobile-sizing::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid;
+  border-color: inherit;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
 /* ── Size variants (height + per-size scale + font) ─────────────── */
 .coar-input-frame--xs {
-  height: var(--coar-component-xs-height);
+  height: max(var(--coar-component-xs-height), var(--coar-input-min-size, 0px));
   --coar-component-scale: var(--coar-component-xs-scale);
-  --coar-input-corner: min(var(--coar-input-radius), calc(var(--coar-component-xs-height) / 2));
+  --coar-input-corner: min(
+    var(--coar-input-radius),
+    calc(max(var(--coar-component-xs-height), var(--coar-input-min-size, 0px)) / 2)
+  );
   font-size: var(--coar-component-xs-font-size);
 }
 .coar-input-frame--s {
-  height: var(--coar-component-s-height);
+  height: max(var(--coar-component-s-height), var(--coar-input-min-size, 0px));
   --coar-component-scale: var(--coar-component-s-scale);
-  --coar-input-corner: min(var(--coar-input-radius), calc(var(--coar-component-s-height) / 2));
+  --coar-input-corner: min(
+    var(--coar-input-radius),
+    calc(max(var(--coar-component-s-height), var(--coar-input-min-size, 0px)) / 2)
+  );
   font-size: var(--coar-component-s-font-size);
 }
 .coar-input-frame--m {
   font-size: var(--coar-component-m-font-size);
 }
 .coar-input-frame--l {
-  height: var(--coar-component-l-height);
+  height: max(var(--coar-component-l-height), var(--coar-input-min-size, 0px));
   --coar-component-scale: var(--coar-component-l-scale);
-  --coar-input-corner: min(var(--coar-input-radius), calc(var(--coar-component-l-height) / 2));
+  --coar-input-corner: min(
+    var(--coar-input-radius),
+    calc(max(var(--coar-component-l-height), var(--coar-input-min-size, 0px)) / 2)
+  );
   font-size: var(--coar-component-l-font-size);
 }
 
@@ -155,7 +205,7 @@ const hasActions = computed(() => !!slots.actions);
 .coar-input-frame:focus-within,
 .coar-input-frame--active {
   border-color: var(--coar-focus-color);
-  box-shadow: inset 0 0 0 1px var(--coar-focus-color);
+  box-shadow: inset 0 0 0 var(--coar-input-focus-width) var(--coar-focus-color);
 }
 .coar-input-frame--error {
   border-color: var(--coar-border-semantic-error-bold);
@@ -165,7 +215,7 @@ const hasActions = computed(() => !!slots.actions);
   /* Keep the error border on focus/active — must re-assert border-color, else the
      generic :focus-within rule (same specificity) wins and the border turns blue. */
   border-color: var(--coar-border-semantic-error-bold);
-  box-shadow: inset 0 0 0 1px var(--coar-border-semantic-error-bold);
+  box-shadow: inset 0 0 0 var(--coar-input-focus-width) var(--coar-border-semantic-error-bold);
 }
 .coar-input-frame--disabled {
   background: var(--coar-surface-input-disabled);
@@ -196,7 +246,7 @@ const hasActions = computed(() => !!slots.actions);
    wrapped rows keep clear of the rounded border. */
 .coar-input-frame--multiline {
   height: auto;
-  min-height: var(--coar-component-m-height);
+  min-height: max(var(--coar-component-m-height), var(--coar-input-min-size, 0px));
   align-items: stretch;
   /* Cap the radius at the single-row pill (half the min-height) instead of letting
      the browser cap it at half the GROWN height — otherwise a tall wrapped box
@@ -207,15 +257,15 @@ const hasActions = computed(() => !!slots.actions);
 }
 .coar-input-frame--multiline.coar-input-frame--xs {
   height: auto;
-  min-height: var(--coar-component-xs-height);
+  min-height: max(var(--coar-component-xs-height), var(--coar-input-min-size, 0px));
 }
 .coar-input-frame--multiline.coar-input-frame--s {
   height: auto;
-  min-height: var(--coar-component-s-height);
+  min-height: max(var(--coar-component-s-height), var(--coar-input-min-size, 0px));
 }
 .coar-input-frame--multiline.coar-input-frame--l {
   height: auto;
-  min-height: var(--coar-component-l-height);
+  min-height: max(var(--coar-component-l-height), var(--coar-input-min-size, 0px));
 }
 .coar-input-frame--multiline .coar-input-frame__field {
   height: auto;

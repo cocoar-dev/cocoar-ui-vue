@@ -206,6 +206,8 @@ function handleClick(event: MouseEvent) {
 
 .coar-button {
   display: inline-flex;
+  min-height: var(--coar-button-mobile-height, auto);
+  min-width: var(--coar-control-min-target-size, auto);
   align-items: center;
   justify-content: center;
   gap: var(--coar-spacing-s);
@@ -233,29 +235,33 @@ function handleClick(event: MouseEvent) {
    ======================================== */
 
 .coar-button--xs {
-  height: var(--coar-component-xs-height);
+  --coar-button-mobile-height: var(--coar-control-xs-height, var(--coar-control-min-size));
+  height: max(var(--coar-component-xs-height), var(--coar-button-mobile-height, 0px));
   padding: 0 calc(10px * var(--coar-component-density, 1));
-  font-size: var(--coar-component-xs-font-size);
+  font-size: max(var(--coar-component-xs-font-size), var(--coar-control-min-font-size, 0px));
   gap: 0.375rem;
 }
 
 .coar-button--s {
-  height: var(--coar-component-s-height);
+  --coar-button-mobile-height: var(--coar-control-s-height, var(--coar-control-min-size));
+  height: max(var(--coar-component-s-height), var(--coar-button-mobile-height, 0px));
   padding: 0 calc(12px * var(--coar-component-density, 1));
-  font-size: var(--coar-component-s-font-size);
+  font-size: max(var(--coar-component-s-font-size), var(--coar-control-min-font-size, 0px));
   gap: 0.375rem;
 }
 
 .coar-button--m {
-  height: var(--coar-component-m-height);
+  --coar-button-mobile-height: var(--coar-control-m-height, var(--coar-control-min-size));
+  height: max(var(--coar-component-m-height), var(--coar-button-mobile-height, 0px));
   padding: 0 calc(var(--coar-spacing-m) * var(--coar-component-density, 1));
-  font-size: var(--coar-component-m-font-size);
+  font-size: max(var(--coar-component-m-font-size), var(--coar-control-min-font-size, 0px));
 }
 
 .coar-button--l {
-  height: var(--coar-component-l-height);
+  --coar-button-mobile-height: var(--coar-control-l-height, var(--coar-control-min-size));
+  height: max(var(--coar-component-l-height), var(--coar-button-mobile-height, 0px));
   padding: 0 calc(var(--coar-spacing-l) * var(--coar-component-density, 1));
-  font-size: var(--coar-component-l-font-size);
+  font-size: max(var(--coar-component-l-font-size), var(--coar-control-min-font-size, 0px));
   gap: 0.625rem;
 }
 

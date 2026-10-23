@@ -148,6 +148,8 @@ function onBlur() {
 /* Wrapper */
 .coar-switch-wrapper {
   display: inline-flex;
+  min-height: var(--coar-control-min-size, auto);
+  min-width: var(--coar-control-min-size, auto);
   align-items: center;
   gap: var(--coar-spacing-s);
   cursor: pointer;
@@ -278,21 +280,21 @@ function onBlur() {
 /* Label */
 .coar-switch-label {
   font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-component-m-font-size);
+  font-size: max(var(--coar-component-m-font-size), var(--coar-control-min-font-size, 0px));
   font-weight: var(--coar-body-small-base-weight);
   color: var(--coar-text-neutral-primary);
 }
 
 .coar-switch--xs .coar-switch-label {
-  font-size: var(--coar-component-xs-font-size);
+  font-size: max(var(--coar-component-xs-font-size), var(--coar-control-min-font-size, 0px));
 }
 
 .coar-switch--s .coar-switch-label {
-  font-size: var(--coar-component-s-font-size);
+  font-size: max(var(--coar-component-s-font-size), var(--coar-control-min-font-size, 0px));
 }
 
 .coar-switch--l .coar-switch-label {
-  font-size: var(--coar-component-l-font-size);
+  font-size: max(var(--coar-component-l-font-size), var(--coar-control-min-font-size, 0px));
 }
 
 .coar-switch--disabled .coar-switch-label {

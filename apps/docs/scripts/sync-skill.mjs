@@ -41,6 +41,7 @@ const SECTIONS = [
       'guide/getting-started.md',
       'guide/error-handling.md',
       'guide/theming.md',
+      'guide/mobile.md',
       'guide/migration.md',
       'guide/migration-page-builder-3.md',
     ],
