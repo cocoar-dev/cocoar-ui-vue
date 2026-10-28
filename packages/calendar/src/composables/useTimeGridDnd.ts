@@ -39,6 +39,7 @@ import {
   applyMoveToEvent,
   useCalendarDnd,
   type CalendarDragMode,
+  type TimedAxisAdapter,
   type UseCalendarDndReturn,
 } from './useCalendarDnd';
 import {
@@ -114,6 +115,14 @@ export interface UseTimeGridDndOptions<TMeta extends Record<string, unknown> = R
   allDayColumnsRef: Ref<HTMLElement | null>;
   /** Pixels of leading render buffer in the time-grid body. */
   topBufferMinutes: ComputedRef<number> | Ref<number>;
+  /** Hit-test of the horizontal grid (days as rows); default vertical. */
+  timedAxis?: TimedAxisAdapter;
+  /**
+   * Which way time runs — the arrow keys follow the screen: vertical
+   * ↑/↓ = ±slot, ←/→ = ±day; horizontal ←/→ = ±slot, ↑/↓ = ±day
+   * (Shift resizes the end along the time axis in both).
+   */
+  orientation?: MaybeRefOrGetter<'vertical' | 'horizontal'>;
 
   canDrop?: (
     event: CalendarEvent<TMeta>,
@@ -193,6 +202,7 @@ export function useTimeGridDnd<TMeta extends Record<string, unknown> = Record<st
       ? computed(() => toValue(opts.dstPolicy!))
       : undefined,
     timeGridTopBufferMinutes: opts.topBufferMinutes,
+    timedAxis: opts.timedAxis,
     canDrop: opts.canDrop
       ? (event, target) =>
           opts.canDrop!(event, {
@@ -491,6 +501,28 @@ export function useTimeGridDnd<TMeta extends Record<string, unknown> = Record<st
   }
 
   /**
+   * The arrow-key rules below are written for the vertical grid (↑/↓
+   * along time, ←/→ across days). In the horizontal grid time runs
+   * along x, so the keys are rotated first: → is "later" (↓), ↓ is
+   * "next day" (→) — the arrow always follows the screen direction.
+   */
+  function arrowAlongVerticalAxis(k: string): string {
+    if (toValue(opts.orientation) !== 'horizontal') return k;
+    switch (k) {
+      case 'ArrowLeft':
+        return 'ArrowUp';
+      case 'ArrowRight':
+        return 'ArrowDown';
+      case 'ArrowUp':
+        return 'ArrowLeft';
+      case 'ArrowDown':
+        return 'ArrowRight';
+      default:
+        return k;
+    }
+  }
+
+  /**
    * Derive the next preview payload from `base` start/end + an
    * arrow keystroke. `base` is either the event's original
    * start/end (first arrow) or `keyboardDrag.next` (subsequent
@@ -515,6 +547,7 @@ export function useTimeGridDnd<TMeta extends Record<string, unknown> = Record<st
     e: KeyboardEvent,
     slotMin: number,
   ): { next: MoveResult; mode: CalendarDragMode } | null {
+    const key = arrowAlongVerticalAxis(e.key);
     const isTimed = isTimedEvent(event);
     const isAllDay = isAllDayEvent(event);
     const displayZone = toValue(opts.timezone);
@@ -531,12 +564,12 @@ export function useTimeGridDnd<TMeta extends Record<string, unknown> = Record<st
     } as CalendarEvent<TMeta>;
 
     // Shift+ArrowUp/Down on a timed event: resize the END side.
-    if (e.shiftKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown') && isTimed) {
+    if (e.shiftKey && (key === 'ArrowUp' || key === 'ArrowDown') && isTimed) {
       const baseEnd =
         (base.end as Temporal.ZonedDateTime | undefined) ??
         (base.start as Temporal.ZonedDateTime).add({ minutes: 30 });
       const endInDisplay = baseEnd.withTimeZone(displayZone);
-      const delta = e.key === 'ArrowDown' ? slotMin : -slotMin;
+      const delta = key === 'ArrowDown' ? slotMin : -slotMin;
       const newMinutesAbs =
         endInDisplay.hour * 60 + endInDisplay.minute + delta;
       const { date: newDate, minutes: newMinutes } = normalizeMinutes(
@@ -556,12 +589,12 @@ export function useTimeGridDnd<TMeta extends Record<string, unknown> = Record<st
       }
     }
     // ArrowUp/Down without shift: move on a timed event.
-    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+    if (key === 'ArrowUp' || key === 'ArrowDown') {
       if (!isTimed) return null;
       const startInDisplay = (base.start as Temporal.ZonedDateTime).withTimeZone(
         displayZone,
       );
-      const delta = e.key === 'ArrowDown' ? slotMin : -slotMin;
+      const delta = key === 'ArrowDown' ? slotMin : -slotMin;
       const newMinutesAbs =
         startInDisplay.hour * 60 + startInDisplay.minute + delta;
       const { date: newDate, minutes: newMinutes } = normalizeMinutes(
@@ -582,9 +615,9 @@ export function useTimeGridDnd<TMeta extends Record<string, unknown> = Record<st
     }
     // ArrowLeft/Right: shift by ±1 day in the DISPLAY zone, preserving
     // the wall-clock time. Suppressed in single-day view.
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+    if (key === 'ArrowLeft' || key === 'ArrowRight') {
       if (opts.days.value.length <= 1) return null;
-      const dayDelta = e.key === 'ArrowRight' ? 1 : -1;
+      const dayDelta = key === 'ArrowRight' ? 1 : -1;
       if (isAllDay) {
         const baseStart = base.start as Temporal.PlainDate;
         const newDate = baseStart.add({ days: dayDelta });
@@ -770,7 +803,7 @@ export function useTimeGridDnd<TMeta extends Record<string, unknown> = Record<st
     // it keeps the state machine reachable for the next arrow.
     nextTick(() => {
       const ghost = document.querySelector<HTMLElement>(
-        '.coar-time-grid-event--ghost[tabindex="0"], .coar-time-grid-all-day-bar--ghost[tabindex="0"]',
+        '.coar-time-grid-event--ghost[tabindex="0"], .coar-time-grid-all-day-bar--ghost[tabindex="0"], .coar-time-rows-event--ghost[tabindex="0"]',
       );
       if (ghost) ghost.focus({ preventScroll: true });
     });

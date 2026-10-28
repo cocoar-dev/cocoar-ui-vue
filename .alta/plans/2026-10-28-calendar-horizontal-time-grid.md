@@ -112,7 +112,7 @@ interface TimedAxisAdapter {
 - [x] 4. `core/timeRowsLayout.ts`: Zeilen aus `layoutDayEvents` (Lanes, Zeilenhöhen, kumulierte Offsets, Minuten → x, fit-to-width); Unit-Tests inkl. Mitternacht, Punkt-Termine, Überlappung mit 3 Lanes, `timeRange`-Clipping.
 - [ ] 5. `CoarTimeRows.vue` + `CoarTimeRowsEvent.vue` rendern (nur Anzeige): Stunden-Kopfzeile, Tageskopf-Spalte mit Ganztags-Chips, Zeilen, Karten, Now-Marker (`orientation`-Prop), Heute/Wochenende-Tönung, `scrollToTime`; `CoarTimeGridSurface` wählt nach Ausrichtung. Komponententests.
 - [ ] 6. Klick-Hooks verdrahten: waagrechte `slotTimeAt`, `onTimeClick`/`onTimeDoubleClick`/`onDateClick`/`onEventClick`/`onEventDoubleClick`, Touch über `surfaceTap`; Tests nach dem Muster von `touchDateClick.test.ts` / `touchEventClick.test.ts`.
-- [ ] 7. DnD-Adapter: heutigen timed Hit-Test und Greif-Versatz nach `verticalTimedAxis` verschieben (Standard); bestehende DnD-Tests unverändert grün.
+- [x] 7. DnD-Adapter: heutigen timed Hit-Test und Greif-Versatz nach `verticalTimedAxis` verschieben (Standard); bestehende DnD-Tests unverändert grün.
 - [ ] 8. `horizontalRowsAxis` + Verschieben über Zeilen + Resize links/rechts in `CoarTimeRows`; Tests für Verschieben auf anderen Tag, Resize, `canDrop`-Veto mit Snap-back, `dstPolicy`.
 - [ ] 9. Tastatur-DnD mit `axis: 'horizontal'` und konfigurierbarem Ghost-Selektor; Tests.
 - [ ] 10. Playground: Demo `/calendar-time-rows` (Woche, Arbeitswoche, Tag, Ausrichtung umschaltbar, Hook-Log) und Playwright-Spec `apps/playground/e2e/calendar-time-rows.spec.ts`.
