@@ -1,6 +1,6 @@
 ---
 title: Gedrehte Wochen-, Arbeitswochen- und Tagesansicht (Tage als Zeilen)
-status: in-progress
+status: done
 created: 2026-10-28
 summary: Die Zeitansicht von @cocoar/vue-calendar bekommt eine waagrechte Ausrichtung — ein Tag pro Zeile, die Uhrzeit als gemeinsame Achse von links nach rechts — mit denselben Daten, Hooks und demselben Drag-and-drop wie week/workWeek/day. Für 3.2.0, damit TimeBooking seinen eigenen „Wochenverlauf“ ersetzen kann.
 ---
@@ -128,7 +128,8 @@ interface TimedAxisAdapter {
 
 ### Ergebnis (2026-10-28)
 
-- Calendar-Suite 945/945 grün (vorher 890, bestehende Erwartungen unverändert), Typecheck/Lint grün, `skill:check` grün, Playwright `calendar-time-rows.spec.ts` 7/7.
+- Nachtrag: `api.scrollToTime` innerhalb von `<CoarCalendar>` scrollt jetzt auch die Zeilen (und Work week), Commit `b39a1ea`.
+- Calendar-Suite 948/948 grün (vorher 890, bestehende Erwartungen unverändert), Typecheck/Lint grün, `skill:check` grün, Playwright `calendar-time-rows.spec.ts` 7/7.
 - Sichtprüfung: Woche mit Überlappungen, Arbeitswoche, Tag, Multi-day (3 Zeilen), Dark Mode. Der Termin über Mitternacht liegt im Demo außerhalb von 06–20 Uhr; die zwei Segmente sind durch Unit- und Komponententests belegt.
 - Abweichungen vom Plan: Die Tastatur-Option heißt `orientation` (nicht `axis`); der Ghost-Fokus-Selektor wurde um `.coar-time-rows-event--ghost` erweitert statt konfigurierbar gemacht; die Doku-Überschrift lautet „Days as rows (horizontal orientation)“ (Doku ist englisch); `layoutTimeRows` hat zusätzlich `rowMinHeightPx` für die Ganztags-Chips. Die Slot-Linien nutzen `--coar-calendar-grid-line` (Dark-Mode-Fix nach der Sichtprüfung).
 
