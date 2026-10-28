@@ -727,7 +727,7 @@ defineExpose({
     ),
     repeating-linear-gradient(
       to right,
-      var(--coar-calendar-grid-line-subtle, #eef0f3) 0 1px,
+      var(--coar-calendar-grid-line, #e3e5e9) 0 1px,
       transparent 1px var(--coar-time-rows-slot-px)
     );
   contain: layout;

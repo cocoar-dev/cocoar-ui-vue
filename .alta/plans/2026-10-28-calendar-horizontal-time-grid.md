@@ -115,7 +115,7 @@ interface TimedAxisAdapter {
 - [x] 7. DnD-Adapter: heutigen timed Hit-Test und Greif-Versatz nach `verticalTimedAxis` verschieben (Standard); bestehende DnD-Tests unverändert grün.
 - [x] 8. `horizontalRowsAxis` + Verschieben über Zeilen + Resize links/rechts in `CoarTimeRows`; Tests für Verschieben auf anderen Tag, Resize, `canDrop`-Veto mit Snap-back, `dstPolicy`.
 - [x] 9. Tastatur-DnD mit `axis: 'horizontal'` und konfigurierbarem Ghost-Selektor; Tests.
-- [ ] 10. Playground: Demo `/calendar-time-rows` (Woche, Arbeitswoche, Tag, Ausrichtung umschaltbar, Hook-Log) und Playwright-Spec `apps/playground/e2e/calendar-time-rows.spec.ts`.
+- [x] 10. Playground: Demo `/calendar-time-rows` (Woche, Arbeitswoche, Tag, Ausrichtung umschaltbar, Hook-Log) und Playwright-Spec `apps/playground/e2e/calendar-time-rows.spec.ts`.
 - [ ] 11. Doku: Abschnitt „Waagrechte Ausrichtung“ in `apps/docs/components/calendar/day-view.md` (dort steht „ein Modell für jede Zeitansicht“), Builder-Tabelle in `coar-calendar.md`, Skill über `node apps/docs/scripts/sync-skill.mjs`; CHANGELOG 3.2.0 „Added“.
 
 ## Wie es geprüft wird
