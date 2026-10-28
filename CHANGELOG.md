@@ -266,6 +266,20 @@ defaulting to `en-US`.
 
 ### Fixed
 
+- **`@cocoar/vue-calendar` — the continuous month view no longer freezes on
+  mount.** With ~300 events and 39 series (amZettel, Pixel 8a) mounting the
+  month view blocked the main thread twice — about 0.6 s and 0.9 s at 4× CPU
+  throttling — because all 13 sections rendered at once, every section
+  converted every event into the display zone again, and all series expanded
+  in one go. Now only the month in view and the next one render on mount; the
+  other sections start as placeholders of about their height and fill one per
+  task, nearest first (at once when scrolled near, without moving the read
+  position). `layoutMonthGrid` caches each event's day bounds and skips
+  events outside the section with plain number comparisons; series expand one
+  after another, yielding every 8 ms; month labels reuse their formatters.
+  Same data, same throttling: the longest block drops from ~870 ms to
+  ~140 ms. Benchmark: `/calendar-month-perf` in the playground and
+  `apps/playground/scripts/month-perf.mjs`.
 - **`@cocoar/vue-calendar` — on touch screens `onDateClick` waits for a tap.**
   Month cells and the all-day band reported `onDateClick` on `pointerdown`,
   and on a touch screen every scroll starts with a finger down on a cell — so

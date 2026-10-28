@@ -28,6 +28,8 @@ builder
 
 Month navigation scrolls to the requested section. Scrolling updates the builder cursor when the next month's heading reaches the top, and event / recurrence loaders preload the adjacent months. The surface initially materializes 13 months and extends in either direction while keeping a bounded DOM window.
 
+Only the month in view and the next one render on mount. Every other section starts as its title plus an empty block of about its height and is filled one month per task afterwards, nearest first, so the first frame comes quickly and the main thread stays responsive on phones. A section that scrolls near the viewport is filled at once, and a section filled above the read position does not move it. Recurring series are expanded the same way, in slices of a few milliseconds.
+
 ```html
 <CoarContinuousMonthView :builder="builder" />
 ```

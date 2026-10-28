@@ -247,21 +247,28 @@ export function layoutMonthGrid<TMeta extends Record<string, unknown> = Record<s
   const multiDayCandidates: MultiDayProj<TMeta>[] = [];
   const cellPillsByKey = new Map<string, MonthCellPill<TMeta>[]>();
 
+  // Every section of a continuous month runs this over the same event
+  // list, so the per-event day bounds come from a cache and the range
+  // checks compare plain day ordinals instead of Temporal objects.
+  const gridStartOrd = dayOrdinal(gridDates[0]);
+  const gridEndOrd = dayOrdinal(gridDates[gridDates.length - 1]);
+  const visibleStartOrd = opts.visibleStart ? dayOrdinal(opts.visibleStart) : -Infinity;
+  const visibleEndOrd = opts.visibleEnd ? dayOrdinal(opts.visibleEnd) : Infinity;
+
   for (const event of events) {
     if (seenIds.has(event.id)) continue;
     seenIds.add(event.id);
 
-    const { firstDay, lastDayInclusive, isMultiDay } = resolveDayBounds(event, timezone);
-
-    const insideVisibleBounds = (day: Temporal.PlainDate) =>
-      (!opts.visibleStart || Temporal.PlainDate.compare(day, opts.visibleStart) >= 0) &&
-      (!opts.visibleEnd || Temporal.PlainDate.compare(day, opts.visibleEnd) <= 0);
+    const bounds = dayBoundsOf(event, timezone);
+    // Entirely outside the grid: no bar in any row, no pill in any cell.
+    if (bounds.lastOrd < gridStartOrd || bounds.firstOrd > gridEndOrd) continue;
+    const { firstDay, lastDayInclusive, isMultiDay } = bounds;
 
     if (isMultiDay) {
       multiDayCandidates.push({ event, firstDay, lastDayInclusive });
-    } else if (insideVisibleBounds(firstDay)) {
+    } else if (bounds.firstOrd >= visibleStartOrd && bounds.firstOrd <= visibleEndOrd) {
       // Single-day. Pin to the start day's bucket.
-      const key = dateKey(firstDay);
+      const key = bounds.firstKey;
       const existing = cellPillsByKey.get(key);
       const pill: MonthCellPill<TMeta> = {
         event,
@@ -357,6 +364,57 @@ export function layoutMonthGrid<TMeta extends Record<string, unknown> = Record<s
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────
+
+/** `yyyymmdd` as a number — orders like the date, compares in O(1). */
+function dayOrdinal(date: Temporal.PlainDate): number {
+  return date.year * 10000 + date.month * 100 + date.day;
+}
+
+interface DayBounds {
+  firstDay: Temporal.PlainDate;
+  lastDayInclusive: Temporal.PlainDate;
+  isMultiDay: boolean;
+  firstOrd: number;
+  lastOrd: number;
+  firstKey: string;
+}
+
+interface CachedDayBounds {
+  start: CalendarEvent['start'];
+  end: CalendarEvent['end'];
+  timezone: string;
+  bounds: DayBounds;
+}
+
+/**
+ * Day bounds per event object. An entry is reused only while the
+ * event still holds the very same (immutable) `start` / `end` objects
+ * and the zone is unchanged, so an event edited in place recomputes.
+ */
+const dayBoundsCache = new WeakMap<CalendarEvent, CachedDayBounds>();
+
+function dayBoundsOf(event: CalendarEvent, timezone: string): DayBounds {
+  const cached = dayBoundsCache.get(event);
+  if (
+    cached &&
+    cached.start === event.start &&
+    cached.end === event.end &&
+    cached.timezone === timezone
+  ) {
+    return cached.bounds;
+  }
+  const { firstDay, lastDayInclusive, isMultiDay } = resolveDayBounds(event, timezone);
+  const bounds: DayBounds = {
+    firstDay,
+    lastDayInclusive,
+    isMultiDay,
+    firstOrd: dayOrdinal(firstDay),
+    lastOrd: dayOrdinal(lastDayInclusive),
+    firstKey: dateKey(firstDay),
+  };
+  dayBoundsCache.set(event, { start: event.start, end: event.end, timezone, bounds });
+  return bounds;
+}
 
 /**
  * Resolve an event's calendar-day bounds for month-view bucketing.

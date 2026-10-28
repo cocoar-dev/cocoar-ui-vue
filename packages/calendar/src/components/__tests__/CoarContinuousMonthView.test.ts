@@ -363,3 +363,85 @@ describe('live topmost month while scrolling', () => {
     }
   });
 });
+
+describe('progressive mount', () => {
+  const grid = (wrapper: ReturnType<typeof mount>, key: string) =>
+    wrapper.find(`[data-month-key="${key}"] .coar-month-row`).exists();
+  const placeholder = (wrapper: ReturnType<typeof mount>, key: string) =>
+    wrapper.find(`[data-month-key="${key}"] .coar-continuous-month-view__placeholder`).exists();
+  const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  const nextTask = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+  it('renders the month in view and the next one first, the rest one task at a time', async () => {
+    const wrapper = mount(CoarContinuousMonthView, { props: { builder: builder() } });
+    // Synchronous mount: two real grids, eleven placeholders.
+    expect(grid(wrapper, '2026-06')).toBe(true);
+    expect(grid(wrapper, '2026-07')).toBe(true);
+    expect(placeholder(wrapper, '2026-05')).toBe(true);
+    expect(placeholder(wrapper, '2026-12')).toBe(true);
+    expect(wrapper.findAll('.coar-continuous-month-view__placeholder')).toHaveLength(11);
+    // A placeholder keeps the section's title and an estimated height.
+    expect(wrapper.find('[data-month-key="2026-05"] h2').text()).toContain('2026');
+    expect(
+      wrapper
+        .find('[data-month-key="2026-05"] .coar-continuous-month-view__placeholder')
+        .attributes('style'),
+    ).toMatch(/height: \d+px/);
+
+    // After the first frame, one month per task — nearest first: May
+    // (July is already there) goes early, December (farthest) last.
+    await vi.waitFor(() => {
+      expect(wrapper.findAll('.coar-continuous-month-view__placeholder').length).toBeLessThan(11);
+    });
+    expect(grid(wrapper, '2026-05')).toBe(true);
+    expect(placeholder(wrapper, '2025-12')).toBe(true);
+
+    // Each month renders in its own task; under a loaded test run that
+    // takes longer than waitFor's default second.
+    await vi.waitFor(
+      () => {
+        expect(wrapper.findAll('.coar-continuous-month-view__placeholder')).toHaveLength(0);
+      },
+      { timeout: 10_000 },
+    );
+    expect(grid(wrapper, '2025-12')).toBe(true);
+    wrapper.unmount();
+  });
+
+  it('a section filled above the read position does not move it', async () => {
+    const wrapper = mount(CoarContinuousMonthView, {
+      props: { builder: builder() },
+      attachTo: document.body,
+    });
+    await nextTick();
+    await nextTick();
+    const root = wrapper.element as HTMLElement;
+    let scrollTop = 1000;
+    Object.defineProperty(root, 'scrollTop', {
+      configurable: true,
+      get: () => scrollTop,
+      set: (value: number) => {
+        scrollTop = value;
+      },
+    });
+    // June's top moves down by 120 px once May's grid replaces its placeholder.
+    const june = wrapper.find('[data-month-key="2026-06"]').element as HTMLElement;
+    june.getBoundingClientRect = () => {
+      const top = grid(wrapper, '2026-05') ? 120 : 0;
+      return { top, bottom: top + 500, left: 0, right: 700, width: 700, height: 500 } as DOMRect;
+    };
+    await vi.waitFor(() => expect(grid(wrapper, '2026-05')).toBe(true), { timeout: 10_000 });
+    expect(root.scrollTop).toBe(1120);
+    wrapper.unmount();
+  });
+
+  it('stops filling once unmounted', async () => {
+    const wrapper = mount(CoarContinuousMonthView, { props: { builder: builder() } });
+    wrapper.unmount();
+    await nextFrame();
+    await nextTask();
+    await nextTask();
+    // Nothing throws, and the detached tree is left as it was.
+    expect(wrapper.findAll('.coar-continuous-month-view__placeholder')).toHaveLength(11);
+  });
+});
