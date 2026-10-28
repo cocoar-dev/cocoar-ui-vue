@@ -24,6 +24,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, toValue, useTemplateRef, watch } from 'vue';
 import { useLocalization } from '@cocoar/vue-localization';
 import CoarTimeGrid from '../../CoarTimeGrid.vue';
+import CoarTimeRows from '../time-rows/CoarTimeRows.vue';
 import {
   Temporal,
   detectFirstDayOfWeekFromLocale,
@@ -68,17 +69,26 @@ const spec = computed(() =>
 // Container width → responsive column count. Web deliberately omits
 // iOS's clipped peek column: every derived column is fully usable,
 // capped at one week.
+/** Days as rows on a horizontal time axis (`builder.timeGridOrientation`). */
+const horizontal = computed(
+  () => toValue(props.builder.state.timeGridOrientation) === 'horizontal',
+);
+
 const root = useTemplateRef<HTMLElement>('root');
 const availableWidth = ref(0);
 let resizeObserver: ResizeObserver | null = null;
+// Horizontal: days are rows, so the container width says nothing about
+// how many fit — a responsive span shows `dayColumnCount`, at least 3.
 const responsiveColumns = computed(() =>
-  responsiveDayColumnCount(
-    availableWidth.value,
-    toValue(props.builder.state.dayColumnCount),
-    toValue(props.builder.state.dayColumnMinWidth),
-    64,
-    7,
-  ),
+  horizontal.value
+    ? Math.min(7, Math.max(3, toValue(props.builder.state.dayColumnCount)))
+    : responsiveDayColumnCount(
+        availableWidth.value,
+        toValue(props.builder.state.dayColumnCount),
+        toValue(props.builder.state.dayColumnMinWidth),
+        64,
+        7,
+      ),
 );
 
 function rangeAt(cursor: Temporal.PlainDate): TimeGridRange {
@@ -110,7 +120,9 @@ const swipeState = ref<TimeGridSwipeState>({
   offsetX: '0px',
 });
 const showNeighbours = computed(
-  () => swipeState.value.engaged || swipeState.value.swiping || swipeState.value.settling,
+  () =>
+    !horizontal.value &&
+    (swipeState.value.engaged || swipeState.value.swiping || swipeState.value.settling),
 );
 /**
  * Heights of the live grid's sticky top (header + all-day band) and
@@ -205,6 +217,7 @@ defineExpose({
     :class="{
       'coar-time-grid--settling': swipeState.settling,
       'coar-time-grid--swiping': swipeState.swiping,
+      'coar-time-grid-surface--horizontal': horizontal,
     }"
     :style="{ '--coar-time-grid-swipe-x': swipeState.offsetX }"
     :data-day-count="days.length"
@@ -230,7 +243,16 @@ defineExpose({
       </template>
     </CoarTimeGrid>
 
-    <CoarTimeGrid :builder="builder" :dates="days" @swipe-state="swipeState = $event">
+    <CoarTimeRows v-if="horizontal" :builder="builder" :dates="days">
+      <template v-if="$slots.event" #event="slotProps">
+        <slot name="event" v-bind="slotProps" />
+      </template>
+      <template v-if="$slots.dayHeader" #dayHeader="slotProps">
+        <slot name="dayHeader" v-bind="slotProps" />
+      </template>
+    </CoarTimeRows>
+
+    <CoarTimeGrid v-else :builder="builder" :dates="days" @swipe-state="swipeState = $event">
       <template v-if="$slots.event" #event="slotProps">
         <slot name="event" v-bind="slotProps" />
       </template>
@@ -277,6 +299,10 @@ defineExpose({
 /* A ghost is a full grid placed one page to the side, its (hidden)
    hour axis keeping the width so its columns line up with ours:
    columns start at `axis`, one page is `100% - axis` wide. */
+.coar-time-grid-surface--horizontal {
+  /* The rows own their scroller (both axes); fill the host's height. */
+  height: 100%;
+}
 .coar-time-grid-surface__ghost {
   position: absolute;
   top: 0;

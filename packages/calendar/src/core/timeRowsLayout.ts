@@ -41,6 +41,11 @@ export interface TimeRowsLayoutOptions extends TimeRowsGeometry {
   timezone: string;
   /** Kept on the last lane of its cluster (drag preview), as in `layoutDayEvents`. */
   priorityId?: string;
+  /**
+   * Extra floor per row, px — e.g. what the row's label cell needs for
+   * its all-day chips. The row is the larger of this and its lanes.
+   */
+  rowMinHeightPx?: (date: Temporal.PlainDate) => number;
 }
 
 export interface TimeRow<TMeta extends Record<string, unknown> = Record<string, unknown>> {
@@ -86,7 +91,7 @@ export function layoutTimeRows<TMeta extends Record<string, unknown> = Record<st
       priorityId: opts.priorityId,
     });
     const laneCount = positioned.reduce((max, p) => Math.max(max, p.laneCount), 1);
-    const heightPx = timeRowHeightPx(laneCount, opts);
+    const heightPx = Math.max(timeRowHeightPx(laneCount, opts), opts.rowMinHeightPx?.(date) ?? 0);
     rows.push({ date, positioned, laneCount, topPx: top, heightPx });
     top += heightPx;
   }

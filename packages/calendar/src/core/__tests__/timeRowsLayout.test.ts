@@ -108,6 +108,18 @@ describe('layoutTimeRows', () => {
     expect(r.rows[0].positioned[0]).toMatchObject({ startMinutes: 240, endMinutes: 300 });
   });
 
+  it('rowMinHeightPx raises a row above what its lanes need', () => {
+    const r = layoutTimeRows([], {
+      ...G,
+      days: [MON, TUE],
+      timeRange: [0, 24],
+      timezone: 'UTC',
+      rowMinHeightPx: (d) => (d.equals(TUE) ? 70 : 0),
+    });
+    expect(r.rows.map((row) => row.heightPx)).toEqual([40, 70]);
+    expect(r.totalHeightPx).toBe(110);
+  });
+
   it('all-day events are not part of the timed rows', () => {
     const events: CalendarEvent[] = [{ id: 'ad', start: pd('2026-10-19'), end: pd('2026-10-20') }];
     const r = layoutTimeRows(events, { ...G, days: [MON], timeRange: [0, 24], timezone: 'UTC' });

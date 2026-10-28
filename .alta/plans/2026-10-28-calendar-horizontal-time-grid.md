@@ -110,11 +110,11 @@ interface TimedAxisAdapter {
 - [x] 2. Builder: Typ `CalendarTimeGridOrientation`, State, Setter `timeGridOrientation`, `api.setTimeGridOrientation`, `EventRendererCtx.orientation`; Tests in `builders/__tests__/time-grid-orientation.test.ts`.
 - [x] 3. `useTimeGridPresentation` aus `CoarTimeGrid.vue` herauslösen (keine Verhaltensänderung); die bestehende Suite muss unverändert grün sein.
 - [x] 4. `core/timeRowsLayout.ts`: Zeilen aus `layoutDayEvents` (Lanes, Zeilenhöhen, kumulierte Offsets, Minuten → x, fit-to-width); Unit-Tests inkl. Mitternacht, Punkt-Termine, Überlappung mit 3 Lanes, `timeRange`-Clipping.
-- [ ] 5. `CoarTimeRows.vue` + `CoarTimeRowsEvent.vue` rendern (nur Anzeige): Stunden-Kopfzeile, Tageskopf-Spalte mit Ganztags-Chips, Zeilen, Karten, Now-Marker (`orientation`-Prop), Heute/Wochenende-Tönung, `scrollToTime`; `CoarTimeGridSurface` wählt nach Ausrichtung. Komponententests.
-- [ ] 6. Klick-Hooks verdrahten: waagrechte `slotTimeAt`, `onTimeClick`/`onTimeDoubleClick`/`onDateClick`/`onEventClick`/`onEventDoubleClick`, Touch über `surfaceTap`; Tests nach dem Muster von `touchDateClick.test.ts` / `touchEventClick.test.ts`.
+- [x] 5. `CoarTimeRows.vue` + `CoarTimeRowsEvent.vue` rendern (nur Anzeige): Stunden-Kopfzeile, Tageskopf-Spalte mit Ganztags-Chips, Zeilen, Karten, Now-Marker (`orientation`-Prop), Heute/Wochenende-Tönung, `scrollToTime`; `CoarTimeGridSurface` wählt nach Ausrichtung. Komponententests.
+- [x] 6. Klick-Hooks verdrahten: waagrechte `slotTimeAt`, `onTimeClick`/`onTimeDoubleClick`/`onDateClick`/`onEventClick`/`onEventDoubleClick`, Touch über `surfaceTap`; Tests nach dem Muster von `touchDateClick.test.ts` / `touchEventClick.test.ts`.
 - [x] 7. DnD-Adapter: heutigen timed Hit-Test und Greif-Versatz nach `verticalTimedAxis` verschieben (Standard); bestehende DnD-Tests unverändert grün.
-- [ ] 8. `horizontalRowsAxis` + Verschieben über Zeilen + Resize links/rechts in `CoarTimeRows`; Tests für Verschieben auf anderen Tag, Resize, `canDrop`-Veto mit Snap-back, `dstPolicy`.
-- [ ] 9. Tastatur-DnD mit `axis: 'horizontal'` und konfigurierbarem Ghost-Selektor; Tests.
+- [x] 8. `horizontalRowsAxis` + Verschieben über Zeilen + Resize links/rechts in `CoarTimeRows`; Tests für Verschieben auf anderen Tag, Resize, `canDrop`-Veto mit Snap-back, `dstPolicy`.
+- [x] 9. Tastatur-DnD mit `axis: 'horizontal'` und konfigurierbarem Ghost-Selektor; Tests.
 - [ ] 10. Playground: Demo `/calendar-time-rows` (Woche, Arbeitswoche, Tag, Ausrichtung umschaltbar, Hook-Log) und Playwright-Spec `apps/playground/e2e/calendar-time-rows.spec.ts`.
 - [ ] 11. Doku: Abschnitt „Waagrechte Ausrichtung“ in `apps/docs/components/calendar/day-view.md` (dort steht „ein Modell für jede Zeitansicht“), Builder-Tabelle in `coar-calendar.md`, Skill über `node apps/docs/scripts/sync-skill.mjs`; CHANGELOG 3.2.0 „Added“.
 
