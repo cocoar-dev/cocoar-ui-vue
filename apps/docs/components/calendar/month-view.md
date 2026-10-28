@@ -145,7 +145,7 @@ A Details cell renders its first `maxEventsPerCell` single-day pills (default **
 
 On the web the `+N` row is a button (accessible name "N more events", `aria-haspopup="dialog"`). It opens a **day sheet** over that one cell: a small dialog aligned to the cell's top-left edge that lists every event of the day — the multi-day events covering it first (visible lanes, then folded ones), then the single-day pills — and scrolls when the list is long. The sheet opens downward and flips upward when the space below inside the scroll container is short; it never expands the row or the grid. Every pill in the sheet is a live pill with the grid's own wiring — drag it onto any other day, move it with the keyboard, double-click it for `onEventDoubleClick`. The sheet closes on Escape, its close control, a pointerdown outside it, another `+N`, or when the month changes; focus returns to the `+N` button.
 
-A tap on the cell body still fires `onDateClick` (the `+N` button does not), so a host that prefers its own day surface keeps working unchanged.
+A tap on the cell body still fires `onDateClick` (the `+N` button does not), so a host that prefers its own day surface keeps working unchanged. On touch screens it fires only for a tap — not when a scroll starts on a cell — and after the tap's click, so a sheet the handler opens stays open.
 
 In the grid itself hidden events are not in the DOM, so keyboard focus and drag-and-drop there reach only the visible pills; the sheet is where the rest become reachable. Drop onto a full cell works either way: a drag preview takes the last visible slot so the target is always visible.
 

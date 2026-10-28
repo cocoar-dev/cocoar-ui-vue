@@ -266,6 +266,18 @@ defaulting to `en-US`.
 
 ### Fixed
 
+- **`@cocoar/vue-calendar` — on touch screens `onDateClick` waits for a tap.**
+  Month cells and the all-day band reported `onDateClick` on `pointerdown`,
+  and on a touch screen every scroll starts with a finger down on a cell — so
+  swiping the month grid opened the day under the finger (amZettel, Pixel 8a
+  and iOS WebViews). For touch and pen the hook now fires only for a tap (lift
+  within 10 px, no `pointercancel`), and in a task after the click that
+  follows the lift: acting on `pointerup` let that click land on the backdrop
+  of a sheet the handler had just opened and close it. Without a click (some
+  WebViews) it fires 350 ms after the lift. `onTimeClick` takes the same
+  route — its touch tap fired on release, and with `swipeNavigation(false)`
+  on press. Mouse keeps firing on press; `native` stays the `pointerdown`.
+  Hosts can drop their own tap workarounds.
 - **`@cocoar/vue-calendar` — "Today" scrolls today into view inside the
   current month.** `api.goToToday()` only moved the cursor, and the
   continuous month surface only reacts to a month _change_ — so with today's

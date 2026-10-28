@@ -1205,6 +1205,10 @@ builder
 
 Single-click and double-click on an empty cell or slot are separate hooks. The desktop convention "click selects, double-click creates" (Apple Calendar, Outlook) therefore needs no click-timer on the host side, and the Google-style "click opens a popup" model is one handler away. The single-click hooks still fire for the two clicks that precede a double-click. A double-click on an event element stops at the event and reaches `onEventDoubleClick` only — never the date / time hooks. `onTimeDoubleClick` snaps to the slot grid exactly like `onTimeClick`.
 
+### Touch: taps, not scroll starts
+
+With a mouse, `onDateClick` and `onTimeClick` fire on press. On a touch screen every scroll also starts with a finger down on a cell, so for touch and pen they fire only for a **tap**: the finger lifts within a few pixels of where it went down, and the browser did not take the touch for scrolling (`pointercancel`). They fire in a task right **after** the `click` the browser sends for the tap — not on `pointerup` — so an overlay the handler opens (a sheet with a backdrop) cannot be hit by that click and close again. When a WebView sends no click, they fire 350 ms after the lift. Hosts need no tap detection of their own.
+
 `native.currentTarget` is the rendered calendar element and can be passed directly to `@cocoar/vue-ui`'s overlay service. Applications using a modal or routed editor can ignore it. For recurring events, call `getRecurrenceMeta(event)` before opening the editor so the host can offer This occurrence / This and following / Entire series; the calendar supplies stable occurrence identity but never guesses the backend mutation.
 
 ## Popovers and tooltips
@@ -1575,7 +1579,7 @@ The builder is **flat** — every setter lives directly on it. There are no sub-
 | `timedEventDetailMinWidth(px)` | `MaybeRefOrGetter<number>` | Unobscured width below which an overlapped Day / Week card switches to the compact anatomy (one end-truncated title line, no location, no time row). Default `112` like iOS; `0` disables the switch. See [Overlapping timed cards](./week-view.md#overlapping-timed-cards). |
 | `allDayBandMode(m)` | `MaybeRefOrGetter<'fitsContent' \| 'alwaysOneLane' \| 'reservesCap'>` | How much height the all-day band claims. `fitsContent` (default) follows the content and disappears without all-day events; `alwaysOneLane` keeps at least one lane so the grid never jumps 0↔1; `reservesCap` is always `allDayMaxVisibleLanes` tall so the hour axis sits at the same place on every day. |
 | `timeGridRange(spec)` | `MaybeRefOrGetter<TimeGridRangeSpec \| null>` | Anchor / span / filter / step of the Day view's columns and paging. Week and Work week are fixed presets of the same model. See the [Day view](./day-view.md#one-model-for-every-time-grid). |
-| `swipeNavigation(b)` | `MaybeRefOrGetter<boolean>` | Touch paging on week / work-week / day (default `true`): a horizontal pan moves the grid with the finger and pages on release past a quarter of the width or on a fast flick. A touch that never moves is a tap and reaches `onTimeClick` on release. On the columns mouse / pen are unaffected; a mouse drag across the day-name strip pages too. Honours `prefers-reduced-motion`. |
+| `swipeNavigation(b)` | `MaybeRefOrGetter<boolean>` | Touch paging on week / work-week / day (default `true`): a horizontal pan moves the grid with the finger and pages on release past a quarter of the width or on a fast flick. A touch that never moves is a tap and reaches `onTimeClick` after the click that follows the lift. On the columns mouse / pen are unaffected; a mouse drag across the day-name strip pages too. Honours `prefers-reduced-motion`. |
 | `prefetchNeighbours(b)` | `MaybeRefOrGetter<boolean>` | Warm the loader / series caches for the previous and next page of the time grids so the neighbour pages drawn during a swipe carry their events. Default `true`; one extra fetch per neighbour in loader mode, a no-op in `events()` mode. |
 | `eventTextContrast(p)` | `MaybeRefOrGetter<'wcag' \| 'apca'>` | How the automatic black/white text on event surfaces is chosen. `'wcag'` (default) is the WCAG 2 ratio; `'apca'` (WCAG 3 draft) picks white on saturated mid-tones such as `#e03131`, where WCAG 2 narrowly picks black. A per-event `meta.textColor` wins over either. |
 | `onEventClick(fn)` | `(payload: { event, native: PointerEvent }) => void` | Common: open details, a side panel or a click-anchored popover. |
@@ -1583,8 +1587,8 @@ The builder is **flat** — every setter lives directly on it. There are no sub-
 | `onEventHover(fn)` | `(payload: { event, native: PointerEvent }) => void` | Pair with `useOverlay()` for popovers / tooltips. `native.currentTarget` is the anchor element. No hover delay applied — wrap with `setTimeout(..., 200)` if needed. |
 | `onEventHoverLeave(fn)` | `(payload: { event, native: PointerEvent }) => void` | Companion close-trigger for the popover the hover handler opened. |
 | `onEventDrop(fn)` | `(payload) => void` | Drag-and-drop / keyboard / touch all flow through this. |
-| `onDateClick(fn)` | `(payload: { date, native: PointerEvent }) => void` | Empty cell / day-header clicked. |
-| `onTimeClick(fn)` | `(payload: { date, time, native: PointerEvent }) => void` | Empty time slot (week / day). |
+| `onDateClick(fn)` | `(payload: { date, native: PointerEvent }) => void` | Empty cell / day-header clicked. Mouse: on press. Touch / pen: only on a tap, after the click that follows it — see [Touch](#touch-taps-not-scroll-starts). `native` is the `pointerdown`. |
+| `onTimeClick(fn)` | `(payload: { date, time, native: PointerEvent }) => void` | Empty time slot (week / day). Same touch rule as `onDateClick`. |
 | `onDateDoubleClick(fn)` | `(payload: { date, native: MouseEvent }) => void` | Empty month cell / all-day cell double-clicked. Never fires for a double-click on an event. |
 | `onTimeDoubleClick(fn)` | `(payload: { date, time, native: MouseEvent }) => void` | Empty time slot double-clicked; `time` snapped like `onTimeClick`. |
 | `onRangeChange(fn)` | `(window) => void` | Visible window changed. |

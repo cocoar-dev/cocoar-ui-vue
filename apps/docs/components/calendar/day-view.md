@@ -128,7 +128,7 @@ Week and Work week are fixed presets and ignore `timeGridRange`; `null` restores
 
 ## Touch paging
 
-On touch devices a horizontal pan on the day columns moves the grid with the finger — header cells, all-day band and columns together, the hour axis stays put — and pages to the previous / next range on release past a quarter of the width or on a fast flick. Below that the grid settles back. A touch that never moves is a tap and reaches `onTimeClick` on release, so a swipe never starts with a stray slot click. Vertical pans stay native scrolling. Mouse and pen keep their click-on-press semantics.
+On touch devices a horizontal pan on the day columns moves the grid with the finger — header cells, all-day band and columns together, the hour axis stays put — and pages to the previous / next range on release past a quarter of the width or on a fast flick. Below that the grid settles back. A touch that never moves is a tap and reaches `onTimeClick` right after the click that follows the lift, so a swipe never starts with a stray slot click and an overlay the handler opens is not hit by that click. Vertical pans stay native scrolling. A mouse keeps its click-on-press semantics; a pen tap counts like a finger tap.
 
 While you drag, the **previous and next page** are drawn to the left and right of the current one — same columns, same events — so the gesture reads as paging between two visible pages; they are visual only and disappear once the grid settles. In loader mode the calendar pre-warms those two windows shortly after each page becomes visible (`builder.prefetchNeighbours(false)` switches that off; one extra fetch per neighbour), and `api.getEventsForWindow(window)` is the read behind it. In `events()` mode nothing needs fetching.
 

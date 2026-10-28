@@ -63,6 +63,7 @@ import CoarTimeGridAllDayBand from './internal/time-grid/CoarTimeGridAllDayBand.
 import CoarTimeGridColumn from './internal/time-grid/CoarTimeGridColumn.vue';
 import CoarTimeGridAllDayOverflow from './internal/time-grid/CoarTimeGridAllDayOverflow.vue';
 import { originatesFromEvent } from './internal/originatesFromEvent';
+import { afterFollowingClick, onSurfacePointerdown } from './internal/surfaceTap';
 import {
   contentAwareCascadeFrames,
   type CascadeFrame,
@@ -728,9 +729,12 @@ function onColumnPointerDown(e: PointerEvent, date: Temporal.PlainDate) {
   if (!time) return;
   const fire = () => props.builder.state.onTimeClick?.({ date, time, native: e });
   // Touch: the swipe runtime decides on release whether this was a
-  // tap (→ fire) or the start of a pan (→ page). Mouse / pen: as before.
-  if (swipe.onPointerdown(e, { onTap: fire })) return;
-  fire();
+  // tap (→ fire, after the click that follows the lift so it can't
+  // land on what the handler opens) or the start of a pan (→ page).
+  // Otherwise (mouse, or paging off): at once for a mouse, after a
+  // tap for touch / pen.
+  if (swipe.onPointerdown(e, { onTap: () => afterFollowingClick(fire) })) return;
+  onSurfacePointerdown(e, fire);
 }
 
 /**
@@ -750,7 +754,8 @@ function onColumnDblclick(e: MouseEvent, date: Temporal.PlainDate) {
 
 function onAllDayCellPointerDown(e: PointerEvent, date: Temporal.PlainDate) {
   if (originatesFromEvent(e)) return;
-  props.builder.state.onDateClick?.({ date, native: e });
+  // Mouse: at once. Touch / pen: only for a tap, after its click.
+  onSurfacePointerdown(e, () => props.builder.state.onDateClick?.({ date, native: e }));
 }
 
 function onAllDayCellDblclick(e: MouseEvent, date: Temporal.PlainDate) {
