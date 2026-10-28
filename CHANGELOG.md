@@ -291,6 +291,10 @@ defaulting to `en-US`.
   WebViews) it fires 350 ms after the lift. `onTimeClick` takes the same
   route — its touch tap fired on release, and with `swipeNavigation(false)`
   on press. Mouse keeps firing on press; `native` stays the `pointerdown`.
+  `onEventClick` does the same on touch: a tapped pill, bar or card no
+  longer reports on `pointerup` (its click closed the sheet the handler had
+  opened), and agenda / Month List rows and agenda day headers no longer
+  report on `pointerdown` at the start of every scroll.
   Hosts can drop their own tap workarounds.
 - **`@cocoar/vue-calendar` — "Today" scrolls today into view inside the
   current month.** `api.goToToday()` only moved the cursor, and the

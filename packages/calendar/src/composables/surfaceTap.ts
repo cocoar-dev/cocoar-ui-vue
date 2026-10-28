@@ -1,5 +1,7 @@
 /**
- * Tap gating for the empty-surface hooks (`onDateClick`, `onTimeClick`).
+ * Tap gating for the click hooks (`onDateClick`, `onTimeClick`, and
+ * `onEventClick` on list rows; draggable events use `afterFollowingClick`
+ * from the drag runtime's release).
  *
  * Those hooks are wired on `pointerdown` so a mouse press reacts at
  * once. On a touch screen, though, every scroll also begins with a

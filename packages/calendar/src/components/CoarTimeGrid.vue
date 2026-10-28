@@ -63,7 +63,7 @@ import CoarTimeGridAllDayBand from './internal/time-grid/CoarTimeGridAllDayBand.
 import CoarTimeGridColumn from './internal/time-grid/CoarTimeGridColumn.vue';
 import CoarTimeGridAllDayOverflow from './internal/time-grid/CoarTimeGridAllDayOverflow.vue';
 import { originatesFromEvent } from './internal/originatesFromEvent';
-import { afterFollowingClick, onSurfacePointerdown } from './internal/surfaceTap';
+import { afterFollowingClick, onSurfacePointerdown } from '../composables/surfaceTap';
 import {
   contentAwareCascadeFrames,
   type CascadeFrame,

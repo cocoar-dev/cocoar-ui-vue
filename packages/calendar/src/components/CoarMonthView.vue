@@ -75,7 +75,7 @@ import CoarMonthBar from './internal/month/CoarMonthBar.vue';
 import CoarMonthCell from './internal/month/CoarMonthCell.vue';
 import CoarMonthDayOverlay from './internal/month/CoarMonthDayOverlay.vue';
 import { originatesFromEvent } from './internal/originatesFromEvent';
-import { onSurfacePointerdown } from './internal/surfaceTap';
+import { onSurfacePointerdown } from '../composables/surfaceTap';
 import CoarMonthRow from './internal/month/CoarMonthRow.vue';
 import CoarMonthGrid from './internal/month/CoarMonthGrid.vue';
 

@@ -36,6 +36,7 @@ import {
 export type { DstPolicy, DstDisambiguation } from '../core/dnd/move-math';
 export { buildDropPayload } from '../core/dnd/move-math';
 import { useCoarDrag } from './useCoarDrag';
+import { afterFollowingClick } from './surfaceTap';
 
 /**
  * Pin the pointer cursor for the entire duration of a drag.
@@ -605,8 +606,17 @@ export function useCalendarDnd<TMeta extends Record<string, unknown> = Record<st
           runSnapBack = true;
         }
       } else {
-        // No movement past threshold → treat as click.
-        opts.onEventClick?.(ctx.data, lastNativeEvent);
+        // No movement past threshold → treat as click. On touch / pen
+        // only after the click the browser sends for the tap: acting on
+        // this pointerup let that click land on whatever the handler
+        // opened (a sheet's backdrop) and close it again.
+        const native = lastNativeEvent;
+        const fire = () => opts.onEventClick?.(ctx.data, native);
+        if (native?.pointerType === 'touch' || native?.pointerType === 'pen') {
+          afterFollowingClick(fire);
+        } else {
+          fire();
+        }
       }
       grabOffsetMinutes = 0;
       grabOffsetCols = 0;

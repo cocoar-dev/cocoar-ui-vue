@@ -21,7 +21,7 @@ import { Temporal } from '@js-temporal/polyfill';
 import { CalendarBuilder } from '../../builders/calendar-builder';
 import CoarMonthView from '../CoarMonthView.vue';
 import CoarDayView from '../CoarDayView.vue';
-import { CLICK_WAIT_MS } from '../internal/surfaceTap';
+import { CLICK_WAIT_MS } from '../../composables/surfaceTap';
 
 // An all-day event so the day view renders its all-day band.
 const events = (): CalendarEvent[] => [

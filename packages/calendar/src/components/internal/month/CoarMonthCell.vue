@@ -82,7 +82,7 @@ const emit = defineEmits<{
   /**
    * Pointer-down on the cell body. The parent routes it to
    * `onDateClick` — at once for a mouse, after a tap for touch / pen
-   * (`internal/surfaceTap`).
+   * (`composables/surfaceTap`).
    */
   cellPointerdown: [native: PointerEvent, day: Temporal.PlainDate];
   /**
