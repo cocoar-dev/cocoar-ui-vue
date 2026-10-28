@@ -22,6 +22,7 @@ import { toValue } from 'vue';
 import type {
   AllDayBandMode,
   CalendarDayMode,
+  CalendarTimeGridOrientation,
   CalendarEvent,
   CalendarMonthDensity,
   CalendarView,
@@ -240,6 +241,18 @@ export abstract class CalendarBuilderConfig<
 
   dayMode(mode: MaybeRefOrGetter<CalendarDayMode>): this {
     this.state.dayMode = mode;
+    return this;
+  }
+
+  /**
+   * Days as columns (`'vertical'`, default) or as rows with time
+   * running left → right on one shared axis (`'horizontal'`). Applies
+   * to `week`, `workWeek` and `day`; window, paging, hooks and drag &
+   * drop behave the same. Bind a Ref for `api.setTimeGridOrientation`
+   * to write through.
+   */
+  timeGridOrientation(orientation: MaybeRefOrGetter<CalendarTimeGridOrientation>): this {
+    this.state.timeGridOrientation = orientation;
     return this;
   }
 

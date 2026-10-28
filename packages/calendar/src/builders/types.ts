@@ -18,6 +18,7 @@ import type {
   AllDayBar,
   CalendarEvent,
   CalendarView,
+  CalendarTimeGridOrientation,
   MonthCellPill,
   MonthMultiDayBar,
   PositionedEvent,
@@ -95,6 +96,12 @@ export interface EventRendererCtx<TMeta extends Record<string, unknown> = Record
   /** Present for variant-specific layouts; absent for the universal
    *  `eventRenderer` fallback that fires across all views. */
   layout?: EventLayoutCtx<TMeta>;
+  /**
+   * Time-grid views only: `'horizontal'` when the event renders as a
+   * wide, short card in a day row (`builder.timeGridOrientation`).
+   * Absent elsewhere and in the vertical grid.
+   */
+  orientation?: CalendarTimeGridOrientation;
 }
 
 /**

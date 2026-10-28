@@ -63,7 +63,14 @@ import {
 import { CalendarBuilderHandlers } from './calendar-builder-handlers';
 import { createCalendarBuilderState, type CalendarApi } from './calendar-builder-state';
 import { windowsEqual } from './internal/window-utils';
-import { goToToday, navigate, setDayMode, setMonthDensity, setView } from './internal/navigation';
+import {
+  goToToday,
+  navigate,
+  setDayMode,
+  setMonthDensity,
+  setTimeGridOrientation,
+  setView,
+} from './internal/navigation';
 import { LoadingTracker } from './internal/loading-tracker';
 import { EventValidator } from './internal/event-validation';
 import { LoaderPipeline } from './internal/loader-pipeline';
@@ -144,6 +151,7 @@ export class CalendarBuilder<
       setView: (v) => this._setView(v),
       setMonthDensity: (density) => this._setMonthDensity(density),
       setDayMode: (mode) => this._setDayMode(mode),
+      setTimeGridOrientation: (orientation) => setTimeGridOrientation(this.state, orientation),
       // The scroll-to-X methods are wired by the active view component
       // via `_setScrollToTime` / `_setScrollToDate` (registered on
       // mount, cleared on unmount). Until wired, dev-warn so consumer

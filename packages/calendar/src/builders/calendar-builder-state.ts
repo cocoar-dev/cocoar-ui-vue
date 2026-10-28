@@ -22,6 +22,7 @@ import {
 import {
   type AllDayBandMode,
   type CalendarDayMode,
+  type CalendarTimeGridOrientation,
   type CalendarEvent,
   type CalendarMonthDensity,
   type CalendarView,
@@ -153,6 +154,11 @@ export interface CalendarBuilderState<
   /** One fixed day or a width-driven 1…7-day surface. */
   dayMode: MaybeRefOrGetter<CalendarDayMode>;
   /**
+   * Days as columns (`vertical`, default) or as rows on a shared
+   * horizontal time axis (`horizontal`) — for `week`, `workWeek`, `day`.
+   */
+  timeGridOrientation: MaybeRefOrGetter<CalendarTimeGridOrientation>;
+  /**
    * Explicit range spec for the `day` view — anchor, span, filter,
    * step (see `TimeGridRangeSpec`). `null` (default) follows
    * `dayMode`. `week` / `workWeek` are fixed presets of the same
@@ -283,6 +289,7 @@ export function createCalendarBuilderState<TMeta extends Record<string, unknown>
     density: 'comfortable',
     monthDensity: 'details',
     dayMode: 'single',
+    timeGridOrientation: 'vertical',
     timeGridRange: null,
     // Article 9 defaults — undefined lets Intl pick locale-appropriate.
     dateStyle: undefined,
@@ -369,6 +376,7 @@ export interface CalendarApi<TMeta extends Record<string, unknown> = Record<stri
   setView(view: CalendarView): void;
   setMonthDensity(density: CalendarMonthDensity): void;
   setDayMode(mode: CalendarDayMode): void;
+  setTimeGridOrientation(orientation: CalendarTimeGridOrientation): void;
   /** Wired by the active view on mount. Dev-warns (once) until then. */
   scrollToTime(time: Temporal.PlainTime): void;
   /** Wired by the active view on mount. Dev-warns (once) until then. */
