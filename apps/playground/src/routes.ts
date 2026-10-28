@@ -108,6 +108,10 @@ export const routes: RouteRecordRaw[] = [
   },
   // ─── @cocoar/vue-calendar demos ────────────────────────────
   {
+    path: '/calendar-month-perf',
+    component: () => import('./views/CalendarMonthPerfView.vue'),
+  },
+  {
     path: '/calendar-basic',
     component: () => import('./views/CalendarBasicDemo.vue'),
   },
