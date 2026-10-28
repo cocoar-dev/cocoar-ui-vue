@@ -29,23 +29,17 @@ import {
   toValue,
   useTemplateRef,
   watch,
-  watchEffect,
 } from 'vue';
-import { useI18n, useLocalization } from '@cocoar/vue-localization';
-import { useTimeGridDnd, type TimeGridEventDropPayload } from '../composables/useTimeGridDnd';
-import { useA11yAnnouncer } from '../composables/useA11yAnnouncer';
+import { useI18n } from '@cocoar/vue-localization';
+import { useTimeGridDnd } from '../composables/useTimeGridDnd';
+import { useTimeGridPresentation } from '../composables/useTimeGridPresentation';
 import { useTimeGridSwipe, type TimeGridSwipeState } from '../composables/useTimeGridSwipe';
 import {
   Temporal,
-  eventInkColor,
-  todayInZone,
-  nowInZone,
   layoutDayEvents,
   layoutAllDayBand,
   capAllDayBand,
   allDayBandLanes,
-  isAllDayEvent,
-  buildFormatOptions,
   type CalendarEvent,
   type PositionedEvent,
   type AllDayBar,
@@ -69,7 +63,6 @@ import {
   type CascadeFrame,
   type CascadeItem,
 } from '../core/cascadeLayout';
-import { agendaTimeLabel } from './internal/agenda/agendaTimeLabel';
 
 // Inlined defineProps argument to avoid vue-tsc TS4025 — see note in
 // CoarMonthView.vue.
@@ -163,13 +156,28 @@ const timeRange = computed(() => state.value.timeRange);
 const slotDuration = computed(() => state.value.slotDuration);
 const pixelsPerHour = computed(() => state.value.pixelsPerHour);
 const timezone = computed(() => state.value.timezone);
-// Locale chain (Article 9): builder.locale() > host @cocoar/vue-localization > 'en-US'.
-const localization = useLocalization();
-const locale = computed<string>(
-  () => state.value.locale ?? localization?.language.value ?? 'en-US',
-);
 const density = computed(() => state.value.density);
 const canDrop = computed(() => state.value.canDrop);
+
+// Axis-free presentation shared with the horizontal grid: today / now,
+// labels, colours, aria labels and the drag announcements.
+const {
+  nowMinutesFromGridStart,
+  isToday: isTodayColumn,
+  isWeekend,
+  formatDayHeader,
+  hourLabels,
+  cardTimeLabel,
+  cardLocation,
+  eventTitle,
+  eventBgFor,
+  eventBorderFor,
+  eventInkFor,
+  eventAriaLabel,
+  kbdPreviewAriaLabel,
+  a11y,
+  onA11yAnnounce,
+} = useTimeGridPresentation<TMeta>({ state, timeRange: computed(() => state.value.timeRange) });
 
 // Script-local alias for the `dates` prop so the template / drop-pipeline
 // reads stay terse.
@@ -291,84 +299,6 @@ const {
   onAnnounce: (kind, payload) => onA11yAnnounce(kind, payload),
 });
 
-// ─── A11y live-region ────────────────────────────────────────────────
-
-const a11y = useA11yAnnouncer();
-
-function formatAnnouncementWhen(payload: TimeGridEventDropPayload<TMeta>): string {
-  const isAllDay = payload.next.start instanceof Temporal.PlainDate;
-  const overrides = {
-    dateStyle: state.value.dateStyle,
-    timeStyle: state.value.timeStyle,
-    hour12: state.value.hour12,
-  };
-  try {
-    const fmt = new Intl.DateTimeFormat(
-      locale.value,
-      buildFormatOptions(
-        isAllDay
-          ? { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }
-          : {
-              weekday: 'short',
-              day: 'numeric',
-              month: 'short',
-              hour: 'numeric',
-              minute: '2-digit',
-              timeZone: timezone.value,
-            },
-        overrides,
-      ),
-    );
-    if (isAllDay) {
-      const pd = payload.next.start as Temporal.PlainDate;
-      return fmt.format(new Date(Date.UTC(pd.year, pd.month - 1, pd.day)));
-    }
-    const zdt = (payload.next.start as Temporal.ZonedDateTime).withTimeZone(timezone.value);
-    return fmt.format(new Date(zdt.epochMilliseconds));
-  } catch {
-    return payload.target.date;
-  }
-}
-
-/**
- * Aria-label for the preview-ghost variant during a keyboard
- * drag — tells the SR user the keys they have. The visible
- * card's regular aria-label would otherwise read out the
- * pre-drag start time, which is misleading once they've
- * staged a move.
- */
-function kbdPreviewAriaLabel(event: CalendarEvent<TMeta>): string {
-  const meta = event.meta as { title?: unknown } | undefined;
-  const rawTitle = typeof meta?.title === 'string' ? meta.title : undefined;
-  const title = rawTitle ?? t('coar.calendar.a11y.unnamedEvent', undefined, 'Event');
-  return t(
-    'coar.calendar.a11y.kbdPreviewLabel',
-    { title },
-    `${title} preview — Arrow keys to move, Enter to commit, Escape to cancel`,
-  );
-}
-
-function eventTitleSafe(p: TimeGridEventDropPayload<TMeta>): string {
-  const meta = p.event.meta as { title?: unknown } | undefined;
-  return typeof meta?.title === 'string'
-    ? meta.title
-    : t('coar.calendar.a11y.unnamedEvent', undefined, 'Event');
-}
-
-function onA11yAnnounce(
-  kind: 'committed' | 'cancelled',
-  payload?: TimeGridEventDropPayload<TMeta>,
-): void {
-  if (kind === 'cancelled') {
-    a11y.announce(t('coar.calendar.a11y.moveCancelled', undefined, 'Move cancelled'));
-    return;
-  }
-  if (!payload) return;
-  const title = eventTitleSafe(payload);
-  const when = formatAnnouncementWhen(payload);
-  a11y.announce(t('coar.calendar.a11y.eventMovedTo', { title, when }, `${title} moved to ${when}`));
-}
-
 // All event emission flows through the builder's `_emit*` family
 // (set up by the consumer via builder.onTimeClick / onTimeDoubleClick /
 // onEventClick / onEventDrop / onEventDoubleClick / onDateClick /
@@ -391,7 +321,6 @@ function onA11yAnnounce(
 const RENDER_BUFFER_MINUTES = 15;
 
 const totalHours = computed(() => timeRange.value[1] - timeRange.value[0]);
-const totalMinutes = computed(() => totalHours.value * 60);
 // Body height includes a leading + trailing render buffer so events
 // at the time-range boundary have room for their focus halo / resize
 // handles without being clipped or covered by the all-day band.
@@ -402,29 +331,6 @@ const totalHeightPx = computed(
 );
 
 const slotHeightPx = computed(() => (pixelsPerHour.value * slotDuration.value) / 60);
-
-const hourLabels = computed(() => {
-  const labels: { hour: number; label: string }[] = [];
-  // Article 9: hour-axis honours `builder.hour12()` AND `timeStyle()`.
-  // Note: setting `timeStyle` makes Intl drop the explicit `hour`
-  // field; `buildFormatOptions` handles the prune. A consumer using
-  // `.timeStyle('short')` gets the locale's short-form hour
-  // representation (e.g. "9 AM" / "09:00"); falling back to
-  // `{ hour: 'numeric' }` when timeStyle is unset gives the existing
-  // tight one-cell label.
-  const fmt = new Intl.DateTimeFormat(
-    locale.value,
-    buildFormatOptions(
-      { hour: 'numeric' },
-      { timeStyle: state.value.timeStyle, hour12: state.value.hour12 },
-    ),
-  );
-  for (let h = timeRange.value[0]; h <= timeRange.value[1]; h++) {
-    const ref = new Date(2024, 0, 1, h);
-    labels.push({ hour: h, label: fmt.format(ref) });
-  }
-  return labels;
-});
 
 // ─── Per-day event layout ─────────────────────────────────────────────
 
@@ -534,23 +440,6 @@ const columnWidthPx = computed(() =>
     ? columnsWidthPx.value / visibleDays.value.length
     : 0,
 );
-const cardTimeFormatter = computed(
-  () =>
-    new Intl.DateTimeFormat(
-      locale.value,
-      buildFormatOptions(
-        { hour: 'numeric', minute: '2-digit', timeZone: timezone.value },
-        { timeStyle: state.value.timeStyle, hour12: state.value.hour12 },
-      ),
-    ),
-);
-function cardTimeLabel(event: CalendarEvent<TMeta>): string {
-  return agendaTimeLabel(event, (ms) => cardTimeFormatter.value.format(ms), '');
-}
-function cardLocation(event: CalendarEvent<TMeta>): string | undefined {
-  const meta = event.meta as { location?: unknown } | undefined;
-  return typeof meta?.location === 'string' && meta.location ? meta.location : undefined;
-}
 function cardAnatomy(
   layout: { horizontalFrames: Map<string, CascadeFrame> },
   positioned: PositionedEvent<TMeta>,
@@ -640,66 +529,7 @@ function minutesToOffsetPx(min: number): number {
   return minutesToPx(min + RENDER_BUFFER_MINUTES);
 }
 
-// ─── Now-marker ───────────────────────────────────────────────────────
-
-const today = ref<Temporal.PlainDate>(todayInZone(timezone.value));
-const now = ref<Temporal.ZonedDateTime>(nowInZone(timezone.value));
-let nowTimer = 0;
-
-onMounted(() => {
-  // Update every 30s — sub-second is overkill for a clock indicator.
-  nowTimer = window.setInterval(() => {
-    today.value = todayInZone(timezone.value);
-    now.value = nowInZone(timezone.value);
-  }, 30_000);
-});
-onBeforeUnmount(() => {
-  if (nowTimer) clearInterval(nowTimer);
-});
-
-watchEffect(() => {
-  // Re-pick today/now when the timezone prop changes.
-  today.value = todayInZone(timezone.value);
-  now.value = nowInZone(timezone.value);
-});
-
-const nowMinutesFromGridStart = computed(() => {
-  const minutes = now.value.hour * 60 + now.value.minute - timeRange.value[0] * 60;
-  if (minutes < 0 || minutes >= totalMinutes.value) return null;
-  return minutes;
-});
-
-function isTodayColumn(date: Temporal.PlainDate): boolean {
-  return Temporal.PlainDate.compare(date, today.value) === 0;
-}
-
-function isWeekend(date: Temporal.PlainDate): boolean {
-  const dow = date.dayOfWeek; // 1..7 ISO
-  return dow === 6 || dow === 7;
-}
-
 // ─── Click handling ──────────────────────────────────────────────────
-
-const dayHeaderFormatter = computed(
-  () =>
-    new Intl.DateTimeFormat(
-      locale.value,
-      buildFormatOptions(
-        { weekday: 'short', day: 'numeric', month: 'short' },
-        {
-          dateStyle: state.value.dateStyle,
-          // No timeStyle for a date-only header.
-          hour12: state.value.hour12,
-        },
-      ),
-    ),
-);
-
-function formatDayHeader(date: Temporal.PlainDate): string {
-  // Convert to JS Date for Intl. UTC interpretation here is fine —
-  // we're only formatting day-of-week + day-of-month.
-  return dayHeaderFormatter.value.format(new Date(Date.UTC(date.year, date.month - 1, date.day)));
-}
 
 /**
  * Slot time under the pointer, snapped to the slot grid. ONE
@@ -760,86 +590,6 @@ function onAllDayCellPointerDown(e: PointerEvent, date: Temporal.PlainDate) {
 
 function onAllDayCellDblclick(e: MouseEvent, date: Temporal.PlainDate) {
   props.builder.state.onDateDoubleClick?.({ date, native: e });
-}
-
-// ─── Default event card content ──────────────────────────────────────
-//
-// Reads `meta.title` / `meta.color` if present. Consumers needing
-// more replace via the `#event` slot.
-
-function eventTitle(event: CalendarEvent<TMeta>): string {
-  const meta = event.meta as { title?: unknown } | undefined;
-  return typeof meta?.title === 'string' ? meta.title : '(untitled)';
-}
-
-/**
- * Build a screen-reader label for an event card. Includes the
- * title and a short start–end summary so users without sight know
- * what the focused event is. Locale-aware via `locale.value`.
- */
-function eventAriaLabel(event: CalendarEvent<TMeta>): string {
-  const title = eventTitle(event);
-  if (isAllDayEvent(event)) {
-    return `${title} (${t('coar.calendar.timegrid.allDay', undefined, 'all-day')})`;
-  }
-  try {
-    const fmt = new Intl.DateTimeFormat(
-      locale.value,
-      buildFormatOptions(
-        {
-          weekday: 'short',
-          day: 'numeric',
-          month: 'short',
-          hour: 'numeric',
-          minute: '2-digit',
-          timeZone: timezone.value,
-        },
-        {
-          dateStyle: state.value.dateStyle,
-          timeStyle: state.value.timeStyle,
-          hour12: state.value.hour12,
-        },
-      ),
-    );
-    const range = (
-      fmt as Intl.DateTimeFormat & {
-        formatRange?: (a: Date, b: Date) => string;
-      }
-    ).formatRange;
-    if (event.start instanceof Temporal.PlainDate) return title;
-    const startD = new Date(event.start.epochMilliseconds);
-    const endD =
-      event.end && !(event.end instanceof Temporal.PlainDate)
-        ? new Date(event.end.epochMilliseconds)
-        : startD;
-    return range
-      ? `${title}, ${range.call(fmt, startD, endD)}`
-      : `${title}, ${fmt.format(startD)} – ${fmt.format(endD)}`;
-  } catch {
-    return title;
-  }
-}
-function eventColor(event: CalendarEvent<TMeta>): string | undefined {
-  const meta = event.meta as { color?: unknown } | undefined;
-  return typeof meta?.color === 'string' ? meta.color : undefined;
-}
-function eventBgFor(event: CalendarEvent<TMeta>): string {
-  const c = eventColor(event);
-  return c ?? 'var(--coar-calendar-event-default-bg, var(--coar-color-accent-soft, #93c5fd))';
-}
-function eventBorderFor(event: CalendarEvent<TMeta>): string {
-  const c = eventColor(event);
-  return c ?? 'var(--coar-color-accent, var(--coar-color-accent-500, #2563eb))';
-}
-
-/** Text colour for an event surface — `meta.textColor` or the policy's black/white. */
-function eventInkFor(event: CalendarEvent<TMeta>): string {
-  const meta = event.meta as { textColor?: unknown } | undefined;
-  return eventInkColor({
-    background: eventBgFor(event),
-    textColor: meta?.textColor,
-    policy: state.value.eventTextContrast,
-  });
 }
 
 // Register the imperative scroll-to-time impl on the builder so

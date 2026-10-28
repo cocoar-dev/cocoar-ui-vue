@@ -108,7 +108,7 @@ interface TimedAxisAdapter {
 
 - [x] 1. Branch `feature/calendar-time-rows` vom Stand `fix/calendar-touch-date-click` anlegen.
 - [x] 2. Builder: Typ `CalendarTimeGridOrientation`, State, Setter `timeGridOrientation`, `api.setTimeGridOrientation`, `EventRendererCtx.orientation`; Tests in `builders/__tests__/time-grid-orientation.test.ts`.
-- [ ] 3. `useTimeGridPresentation` aus `CoarTimeGrid.vue` herauslösen (keine Verhaltensänderung); die bestehende Suite muss unverändert grün sein.
+- [x] 3. `useTimeGridPresentation` aus `CoarTimeGrid.vue` herauslösen (keine Verhaltensänderung); die bestehende Suite muss unverändert grün sein.
 - [ ] 4. `core/timeRowsLayout.ts`: Zeilen aus `layoutDayEvents` (Lanes, Zeilenhöhen, kumulierte Offsets, Minuten → x, fit-to-width); Unit-Tests inkl. Mitternacht, Punkt-Termine, Überlappung mit 3 Lanes, `timeRange`-Clipping.
 - [ ] 5. `CoarTimeRows.vue` + `CoarTimeRowsEvent.vue` rendern (nur Anzeige): Stunden-Kopfzeile, Tageskopf-Spalte mit Ganztags-Chips, Zeilen, Karten, Now-Marker (`orientation`-Prop), Heute/Wochenende-Tönung, `scrollToTime`; `CoarTimeGridSurface` wählt nach Ausrichtung. Komponententests.
 - [ ] 6. Klick-Hooks verdrahten: waagrechte `slotTimeAt`, `onTimeClick`/`onTimeDoubleClick`/`onDateClick`/`onEventClick`/`onEventDoubleClick`, Touch über `surfaceTap`; Tests nach dem Muster von `touchDateClick.test.ts` / `touchEventClick.test.ts`.
