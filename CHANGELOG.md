@@ -40,7 +40,8 @@ defaulting to `en-US`.
   resizes at the left / right edge, honours `canDrop` / `dstPolicy`, and
   the keyboard follows the screen (→ later, ↓ next day). No touch paging
   in this orientation — a horizontal swipe scrolls the time axis.
-  Renderers get `ctx.orientation`. Web only for now. Under the hood the
+  Renderers get `ctx.orientation`; `api.scrollToTime` scrolls the time
+  axis (and now also works in Work week). Web only for now. Under the hood the
   vertical grid's axis-free half moved into `useTimeGridPresentation` and
   the drag runtime takes a time-axis adapter; the vertical grid is
   unchanged.

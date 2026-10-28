@@ -379,3 +379,22 @@ describe('eventRenderer', () => {
     expect(seen[0]).toMatchObject({ view: 'week', orientation: 'horizontal' });
   });
 });
+
+describe('api.scrollToTime inside <CoarCalendar>', () => {
+  it.each(['week', 'workWeek', 'day'] as const)(
+    '%s: scrolls the time axis to the hour',
+    async (view) => {
+      const { default: CoarCalendar } = await import('../CoarCalendar.vue');
+      const b = newBuilder([]).view(view).availableViews(['week', 'workWeek', 'day']);
+      const w = mount(CoarCalendar, { props: { builder: b }, attachTo: document.body });
+      mounted.push(w);
+      await nextTick();
+      const scroller = w.find('.coar-time-rows__scroller').element as HTMLElement;
+      const scrollTo = vi.fn();
+      scroller.scrollTo = scrollTo as unknown as typeof scroller.scrollTo;
+      b.api.scrollToTime(Temporal.PlainTime.from('10:00'));
+      // 1 px / min in these tests → 10:00 sits at x = 600.
+      expect(scrollTo).toHaveBeenCalledWith({ left: 600, behavior: 'smooth' });
+    },
+  );
+});

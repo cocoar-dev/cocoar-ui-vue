@@ -389,9 +389,19 @@ onMounted(() => {
   // api.scrollToTime takes Temporal.PlainTime — extract hour.
   props.builder._setScrollToTime((time: Temporal.PlainTime) => {
     const hour = time.hour;
-    if (view.value !== 'day' && view.value !== 'week') return;
+    if (view.value !== 'day' && view.value !== 'week' && view.value !== 'workWeek') return;
     const body = bodyEl.value;
     if (!body) return;
+    // Horizontal time grid (days as rows): it scrolls its own time axis.
+    const rows = body.querySelector<HTMLElement>('.coar-time-rows__scroller');
+    if (rows) {
+      const rowLabel = rows.querySelector<HTMLElement>(
+        `.coar-time-rows__hour-label[data-hour="${hour}"]`,
+      );
+      if (rowLabel)
+        rows.scrollTo({ left: parseFloat(rowLabel.style.left) || 0, behavior: 'smooth' });
+      return;
+    }
     const label = body.querySelector<HTMLElement>(
       `.coar-time-grid__hour-label[data-hour="${hour}"]`,
     );
