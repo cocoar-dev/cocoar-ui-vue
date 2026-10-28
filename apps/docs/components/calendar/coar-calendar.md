@@ -483,6 +483,7 @@ api.goTo('2026-12-25');
 api.setView('month');
 api.setMonthDensity('compact');
 api.setDayMode('multiDay');
+api.setTimeGridOrientation('horizontal'); // days as rows
 api.scrollToTime(8);            // day / week only
 api.scrollToDate('2026-04-15'); // agenda only
 api.getVisibleRange();          // ViewWindow | null
@@ -532,6 +533,7 @@ The builder is **flat** — every setter lives directly on it. There are no sub-
 | `selectedDate(d)` | `MaybeRefOrGetter<Temporal.PlainDate \| null>` | Month: the host's selected day, drawn as a filled circle around the day number. Independent of the cursor. Default `null`. |
 | `monthDensity(d)` | `MaybeRefOrGetter<'compact' \| 'stacked' \| 'details'>` | Month presentation. The shell exposes these beside the optional List variation. Default `'details'`. |
 | `dayMode(m)` | `MaybeRefOrGetter<'single' \| 'multiDay'>` | One fixed day or a width-aware 1–7-day surface. Default `'single'`. |
+| `timeGridOrientation(o)` | `MaybeRefOrGetter<'vertical' \| 'horizontal'>` | Week / work week / day with days as columns (default) or as rows on one horizontal time axis — [Days as rows](/components/calendar/day-view#days-as-rows-horizontal-orientation). Window, paging and hooks are the same. |
 | `timeRange(r)` | `MaybeRefOrGetter<{ startMinutes: number; endMinutes: number }>` | Day / week visible hour range, in minutes from midnight. |
 | `slotDuration(d)` | `MaybeRefOrGetter<number>` | Time-grid slot subdivision (minutes). Default `30`. |
 | `pixelsPerHour(p)` | `MaybeRefOrGetter<number>` | Time-grid row height. Default `60`. |
@@ -579,6 +581,7 @@ interface CalendarApi<TMeta> {
   setView(view: CalendarView): void;
   setMonthDensity(density: CalendarMonthDensity): void;
   setDayMode(mode: CalendarDayMode): void;
+  setTimeGridOrientation(orientation: CalendarTimeGridOrientation): void;
   getVisibleRange(): ViewWindow | null;
   getVisibleEvents(): CalendarEvent<TMeta>[];
   /** Same read for any window, e.g. the neighbour pages drawn during a swipe. */

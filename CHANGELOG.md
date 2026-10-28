@@ -28,6 +28,22 @@ defaulting to `en-US`.
 
 ### Added
 
+- **`@cocoar/vue-calendar` — days as rows: a horizontal time grid.**
+  `builder.timeGridOrientation('horizontal')` (and
+  `api.setTimeGridOrientation`) turns Day, Multi-day, Week and Work week
+  by 90°: one row per day, time running left → right on one shared axis
+  — for time tracking, shifts and attendance, where start, end and gaps
+  of several days are compared at a glance. A presentation knob like
+  `dayMode`: window, paging, loaders and hooks are unchanged. Overlaps
+  stack as lanes and a row grows with them; all-day events are chips in
+  the day cell; drag & drop moves along the axis and onto other rows,
+  resizes at the left / right edge, honours `canDrop` / `dstPolicy`, and
+  the keyboard follows the screen (→ later, ↓ next day). No touch paging
+  in this orientation — a horizontal swipe scrolls the time axis.
+  Renderers get `ctx.orientation`. Web only for now. Under the hood the
+  vertical grid's axis-free half moved into `useTimeGridPresentation` and
+  the drag runtime takes a time-axis adapter; the vertical grid is
+  unchanged.
 - **`@cocoar/vue-calendar` — selected day in the month grid.**
   `builder.selectedDate(MaybeRefOrGetter<Temporal.PlainDate | null>)` marks
   one day with a filled circle around its day number — the iOS calendar's

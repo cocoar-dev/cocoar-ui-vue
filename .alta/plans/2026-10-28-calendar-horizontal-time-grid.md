@@ -116,15 +116,21 @@ interface TimedAxisAdapter {
 - [x] 8. `horizontalRowsAxis` + Verschieben über Zeilen + Resize links/rechts in `CoarTimeRows`; Tests für Verschieben auf anderen Tag, Resize, `canDrop`-Veto mit Snap-back, `dstPolicy`.
 - [x] 9. Tastatur-DnD mit `axis: 'horizontal'` und konfigurierbarem Ghost-Selektor; Tests.
 - [x] 10. Playground: Demo `/calendar-time-rows` (Woche, Arbeitswoche, Tag, Ausrichtung umschaltbar, Hook-Log) und Playwright-Spec `apps/playground/e2e/calendar-time-rows.spec.ts`.
-- [ ] 11. Doku: Abschnitt „Waagrechte Ausrichtung“ in `apps/docs/components/calendar/day-view.md` (dort steht „ein Modell für jede Zeitansicht“), Builder-Tabelle in `coar-calendar.md`, Skill über `node apps/docs/scripts/sync-skill.mjs`; CHANGELOG 3.2.0 „Added“.
+- [x] 11. Doku: Abschnitt „Waagrechte Ausrichtung“ in `apps/docs/components/calendar/day-view.md` (dort steht „ein Modell für jede Zeitansicht“), Builder-Tabelle in `coar-calendar.md`, Skill über `node apps/docs/scripts/sync-skill.mjs`; CHANGELOG 3.2.0 „Added“.
 
 ## Wie es geprüft wird
 
-- [ ] `pnpm --filter @cocoar/vue-calendar test`: alle bestehenden Tests grün, ohne geänderte Erwartungen (Regressionsschutz für die senkrechte Ansicht und das DnD).
-- [ ] Neue Unit- und Komponententests aus den Schritten 2–9 grün.
-- [ ] `pnpm turbo run typecheck lint --filter @cocoar/vue-calendar` und `pnpm skill:check` grün.
-- [ ] Playwright (`apps/playground`, Chromium, auch mit `hasTouch`): Tipp auf eine leere Stelle liefert `onTimeClick` mit der richtigen Uhrzeit; ein Termin lässt sich auf eine andere Zeile ziehen (`onEventDrop` mit neuem Datum, gleiche Uhrzeit); Ziehen der rechten Kante verlängert um ein Vielfaches von `slotDuration`; waagrechtes Wischen scrollt, ohne zu blättern; ein Sheet aus `onEventClick` bleibt auf Touch offen.
-- [ ] Sichtprüfung im Playground: Woche mit Überlappungen, Termin über Mitternacht (zwei Segmente), Arbeitswoche, Tag, `day` + `multiDay`, Dark Mode.
+- [x] `pnpm --filter @cocoar/vue-calendar test`: alle bestehenden Tests grün, ohne geänderte Erwartungen (Regressionsschutz für die senkrechte Ansicht und das DnD).
+- [x] Neue Unit- und Komponententests aus den Schritten 2–9 grün.
+- [x] `pnpm turbo run typecheck lint --filter @cocoar/vue-calendar` und `pnpm skill:check` grün.
+- [x] Playwright (`apps/playground`, Chromium, auch mit `hasTouch`): Tipp auf eine leere Stelle liefert `onTimeClick` mit der richtigen Uhrzeit; ein Termin lässt sich auf eine andere Zeile ziehen (`onEventDrop` mit neuem Datum, gleiche Uhrzeit); Ziehen der rechten Kante verlängert um ein Vielfaches von `slotDuration`; waagrechtes Wischen scrollt, ohne zu blättern; ein Sheet aus `onEventClick` bleibt auf Touch offen.
+- [x] Sichtprüfung im Playground: Woche mit Überlappungen, Termin über Mitternacht (zwei Segmente), Arbeitswoche, Tag, `day` + `multiDay`, Dark Mode.
+
+### Ergebnis (2026-10-28)
+
+- Calendar-Suite 945/945 grün (vorher 890, bestehende Erwartungen unverändert), Typecheck/Lint grün, `skill:check` grün, Playwright `calendar-time-rows.spec.ts` 7/7.
+- Sichtprüfung: Woche mit Überlappungen, Arbeitswoche, Tag, Multi-day (3 Zeilen), Dark Mode. Der Termin über Mitternacht liegt im Demo außerhalb von 06–20 Uhr; die zwei Segmente sind durch Unit- und Komponententests belegt.
+- Abweichungen vom Plan: Die Tastatur-Option heißt `orientation` (nicht `axis`); der Ghost-Fokus-Selektor wurde um `.coar-time-rows-event--ghost` erweitert statt konfigurierbar gemacht; die Doku-Überschrift lautet „Days as rows (horizontal orientation)“ (Doku ist englisch); `layoutTimeRows` hat zusätzlich `rowMinHeightPx` für die Ganztags-Chips. Die Slot-Linien nutzen `--coar-calendar-grid-line` (Dark-Mode-Fix nach der Sichtprüfung).
 
 ## Entscheidungen
 
