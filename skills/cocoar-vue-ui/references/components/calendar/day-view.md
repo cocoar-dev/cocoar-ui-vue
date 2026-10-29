@@ -328,8 +328,8 @@ Mi., 21.  │         [ Meeting    ]        [ Entwicklung ]
 
 ```vue
 <template>
-  <div style="display: flex; flex-direction: column; gap: 8px;">
-    <div style="display: flex; gap: 8px; align-items: center;">
+  <div style="display: flex; flex-direction: column; gap: 8px">
+    <div style="display: flex; gap: 8px; align-items: center">
       <CoarButton
         size="s"
         :variant="orientation === 'horizontal' ? 'primary' : 'secondary'"
@@ -344,9 +344,16 @@ Mi., 21.  │         [ Meeting    ]        [ Entwicklung ]
       >
         Days as columns
       </CoarButton>
-      <span style="font-size: 12px; color: var(--coar-text-neutral-secondary);">{{ last }}</span>
+      <span style="font-size: 12px; color: var(--coar-text-neutral-secondary)">{{ last }}</span>
     </div>
-    <div style="height: 420px; border: 1px solid var(--coar-border-neutral-tertiary); border-radius: var(--coar-radius-xs); overflow: hidden;">
+    <div
+      style="
+        height: 420px;
+        border: 1px solid var(--coar-border-neutral-tertiary);
+        border-radius: var(--coar-radius-xs);
+        overflow: hidden;
+      "
+    >
       <CoarWeekView :builder="builder" />
     </div>
   </div>
@@ -365,7 +372,14 @@ import {
 
 const zone = 'Europe/Vienna';
 const at = (date: string, time: string) => Temporal.ZonedDateTime.from(`${date}T${time}[${zone}]`);
-const block = (id: string, date: string, from: string, to: string, title: string, color: string): CalendarEvent => ({
+const block = (
+  id: string,
+  date: string,
+  from: string,
+  to: string,
+  title: string,
+  color: string,
+): CalendarEvent => ({
   id,
   start: at(date, from),
   end: at(date, to),
