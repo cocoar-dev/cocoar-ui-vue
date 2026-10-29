@@ -261,7 +261,11 @@ function onEndResize(e: PointerEvent) {
   padding: 0 6px;
   min-width: 0;
 }
+/* The title wins: it keeps its width (up to the card's), the time
+   takes what is left and fades out first on a narrow card. */
 .coar-time-rows-event__title {
+  flex: 0 0 auto;
+  max-width: 100%;
   color: var(--event-ink, var(--coar-text-base, #1a1c1f));
   font-weight: 600;
   white-space: nowrap;
@@ -270,7 +274,10 @@ function onEndResize(e: PointerEvent) {
   min-width: 0;
 }
 .coar-time-rows-event__time {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: var(--event-ink, var(--coar-text-base, #1a1c1f));
   opacity: 0.8;
   font-size: 10px;

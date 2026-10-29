@@ -43,6 +43,10 @@ builder
 <CoarWorkWeekView :builder="builder" />
 ```
 
+## Days as rows
+
+`builder.timeGridOrientation('horizontal')` shows the working days as rows on a horizontal time axis instead of columns — same window, paging, hooks and drag & drop. See [Days as rows](./day-view.md#days-as-rows-horizontal-orientation).
+
 ## Working-day conventions
 
 `workDays(d)` accepts any subset of `0..6` (`0` = Sunday, `6` = Saturday). The order in the array doesn't matter — internally it's used as a Set. The rendered columns appear in calendar order, anchored to `firstDayOfWeek`.

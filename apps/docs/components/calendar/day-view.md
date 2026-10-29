@@ -148,6 +148,8 @@ Di., 20.  │ [ Entwicklung   ][Daily][ Entwicklung      ]
 Mi., 21.  │         [ Meeting    ]        [ Entwicklung ]
 ```
 
+<preview path="./demos/WeekViewRows.vue" />
+
 - **Axis.** `pixelsPerHour` sets the horizontal density; a range narrower than the container is stretched to its width. The hour header sticks to the top, the day column to the left, and the grid scrolls on both axes inside its own scroller — give it a sized parent (inside `<CoarCalendar>` it fills the body).
 - **Overlaps** become lanes stacked downwards; a row grows with its lanes, nothing is covered. A timed event over midnight shows as one segment in each of its rows, as in the vertical grid.
 - **All-day events** are chips in the day cell of every day they cover — click / double-click reach `onEventClick` / `onEventDoubleClick`; they are not draggable here.
