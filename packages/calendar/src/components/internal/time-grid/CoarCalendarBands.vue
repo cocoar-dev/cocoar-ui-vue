@@ -136,8 +136,18 @@ function classes(band: ResolvedBand): string[] {
   width: 0;
   border-left: 2px solid var(--line-color);
 }
+/* A range's label stays inside the range. */
+.coar-calendar-band--tint,
+.coar-calendar-band--hatch,
+.coar-calendar-band--outline {
+  overflow: hidden;
+}
 .coar-calendar-band__label {
   position: absolute;
+  max-width: calc(100% - 4px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
   padding: 0 3px;
   font-size: 10px;
   line-height: 14px;
@@ -153,6 +163,8 @@ function classes(band: ResolvedBand): string[] {
   left: 2px;
 }
 .coar-calendar-band--line > .coar-calendar-band__label {
+  /* The line box has no width: the label sits beside it, unclipped. */
+  max-width: none;
   color: var(--line-color);
   font-weight: 600;
   background: var(--coar-calendar-bg, #fff);

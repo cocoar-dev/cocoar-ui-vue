@@ -112,6 +112,10 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('./views/CalendarTimeRowsDemo.vue'),
   },
   {
+    path: '/calendar-time-selection',
+    component: () => import('./views/CalendarTimeSelectionDemo.vue'),
+  },
+  {
     path: '/calendar-month-perf',
     component: () => import('./views/CalendarMonthPerfView.vue'),
   },
