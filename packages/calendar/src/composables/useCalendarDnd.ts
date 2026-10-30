@@ -122,6 +122,61 @@ export interface TimedAxisAdapter {
   locate(clientX: number, clientY: number): TimedAxisLocation | null;
   /** Pixels per minute along the time axis, as rendered. */
   pixelsPerMinute(): number;
+  /**
+   * Minutes from the start of the time range at a client point, read
+   * along the time axis only (the other coordinate is ignored), not
+   * clamped. Lets a gesture keep its day while the pointer drifts
+   * across the day axis (time-range selection).
+   */
+  minutesAt?(clientX: number, clientY: number): number;
+}
+
+export interface VerticalTimedAxisOptions {
+  /** The day-columns container (`.coar-time-grid__columns`). */
+  columnsRef?: Ref<HTMLElement | null>;
+  /** One date per column, left to right. */
+  days?: ComputedRef<ReadonlyArray<Temporal.PlainDate>> | Ref<ReadonlyArray<Temporal.PlainDate>>;
+  pixelsPerHour?: ComputedRef<number> | Ref<number>;
+  /** Render buffer (minutes) above the first hour of the columns. */
+  topBufferMinutes?: ComputedRef<number> | Ref<number>;
+}
+
+/**
+ * The vertical time grid's axis (days as columns): x picks the day
+ * column, y the minutes below the render buffer. The default hit-test
+ * of `useCalendarDnd`; `<CoarTimeGrid>` shares one instance between
+ * drag & drop and time-range selection.
+ */
+export function createVerticalTimedAxis(opts: VerticalTimedAxisOptions): TimedAxisAdapter {
+  const pxPerMin = () => (opts.pixelsPerHour?.value ?? 60) / 60;
+  function minutesAt(_clientX: number, clientY: number): number {
+    const cols = opts.columnsRef?.value;
+    if (!cols) return 0;
+    const localY = clientY - cols.getBoundingClientRect().top;
+    // Subtract the time-grid's render buffer so a point in the visual
+    // padding above the first hour maps before the range start.
+    return localY / pxPerMin() - (opts.topBufferMinutes?.value ?? 0);
+  }
+  return {
+    orientation: 'vertical',
+    pixelsPerMinute: pxPerMin,
+    minutesAt,
+    locate(clientX, clientY) {
+      const cols = opts.columnsRef?.value;
+      if (!cols) return null;
+      const rect = cols.getBoundingClientRect();
+      const localX = clientX - rect.left;
+      const localY = clientY - rect.top;
+      if (localX < 0 || localX >= rect.width || localY < 0) return null;
+      const days = opts.days?.value;
+      if (!days || days.length === 0) return null;
+      const colWidth = rect.width / days.length;
+      const dayIndex = Math.min(days.length - 1, Math.max(0, Math.floor(localX / colWidth)));
+      // `clamp` to 0 so points in the buffer zone still resolve
+      // cleanly to the boundary minute.
+      return { day: days[dayIndex], minutesFromGridStart: Math.max(0, minutesAt(clientX, clientY)) };
+    },
+  };
 }
 
 export interface UseCalendarDndOptions<
@@ -358,33 +413,15 @@ export function useCalendarDnd<TMeta extends Record<string, unknown> = Record<st
   let grabOffsetCols = 0;
 
   /** Default (vertical) time axis: x → day column, y → minutes. */
-  function locateVertical(clientX: number, clientY: number): TimedAxisLocation | null {
-    const cols = opts.columnsRef?.value;
-    if (!cols) return null;
-    const rect = cols.getBoundingClientRect();
-    const localX = clientX - rect.left;
-    const localY = clientY - rect.top;
-    if (localX < 0 || localX >= rect.width || localY < 0) return null;
-    const days = opts.days?.value;
-    if (!days || days.length === 0) return null;
-    const colWidth = rect.width / days.length;
-    const dayIndex = Math.min(days.length - 1, Math.max(0, Math.floor(localX / colWidth)));
-    const day = days[dayIndex];
-    const pxPerHour = opts.pixelsPerHour?.value ?? 60;
-    const pxPerMin = pxPerHour / 60;
-    // Subtract the time-grid's render buffer so a click in the
-    // visual padding above the first hour doesn't snap to a
-    // negative time. `clamp` to 0 so clicks in the buffer zone
-    // still resolve cleanly to the boundary minute.
-    const topBuffer = opts.timeGridTopBufferMinutes?.value ?? 0;
-    const minutesFromGridStart = Math.max(0, localY / pxPerMin - topBuffer);
-    return { day, minutesFromGridStart };
-  }
+  const verticalAxis = createVerticalTimedAxis({
+    columnsRef: opts.columnsRef,
+    days: opts.days,
+    pixelsPerHour: opts.pixelsPerHour,
+    topBufferMinutes: opts.timeGridTopBufferMinutes,
+  });
 
   function pointToSlot(clientX: number, clientY: number): CalendarDropTarget | null {
-    const loc = opts.timedAxis
-      ? opts.timedAxis.locate(clientX, clientY)
-      : locateVertical(clientX, clientY);
+    const loc = (opts.timedAxis ?? verticalAxis).locate(clientX, clientY);
     if (!loc) return null;
     const { day, minutesFromGridStart } = loc;
     const slot = opts.slotDuration?.value ?? 30;

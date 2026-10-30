@@ -194,6 +194,12 @@ const allDayColumnsRef = ref<HTMLElement | null>(null);
 const timedAxis: TimedAxisAdapter = {
   orientation: 'horizontal',
   pixelsPerMinute: () => pxPerMin.value,
+  minutesAt(clientX) {
+    const body = bodyRef.value;
+    const ppm = pxPerMin.value;
+    if (!body || ppm <= 0) return 0;
+    return (clientX - body.getBoundingClientRect().left - LABEL_WIDTH_PX) / ppm;
+  },
   locate(clientX, clientY) {
     const body = bodyRef.value;
     if (!body) return null;

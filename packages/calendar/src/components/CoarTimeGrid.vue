@@ -32,6 +32,7 @@ import {
 } from 'vue';
 import { useI18n } from '@cocoar/vue-localization';
 import { useTimeGridDnd } from '../composables/useTimeGridDnd';
+import { createVerticalTimedAxis } from '../composables/useCalendarDnd';
 import { useTimeGridPresentation } from '../composables/useTimeGridPresentation';
 import { useTimeGridSwipe, type TimeGridSwipeState } from '../composables/useTimeGridSwipe';
 import {
@@ -262,6 +263,13 @@ const surfaceRef = computed<HTMLElement | null>(() => {
 
 const daysRef = visibleDays;
 const renderBufferMinutesRef = computed(() => RENDER_BUFFER_MINUTES);
+/** One hit-test for drag & drop and time-range selection. */
+const timedAxis = createVerticalTimedAxis({
+  columnsRef,
+  days: daysRef,
+  pixelsPerHour,
+  topBufferMinutes: renderBufferMinutesRef,
+});
 
 const {
   dnd,
@@ -291,6 +299,7 @@ const {
   columnsRef,
   allDayColumnsRef,
   topBufferMinutes: renderBufferMinutesRef,
+  timedAxis,
   canDrop: canDrop.value ?? undefined,
   onEventClick: (event, native) => {
     if (native) props.builder.state.onEventClick?.({ event, native });
