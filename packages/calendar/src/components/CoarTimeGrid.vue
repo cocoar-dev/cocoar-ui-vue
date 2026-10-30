@@ -602,16 +602,18 @@ function minutesToOffsetPx(min: number): number {
 /**
  * Slot time under the pointer, snapped to the slot grid. ONE
  * resolver for click and double-click so both hooks agree on what
- * "the slot at this y" means. `null` when the pointer sits outside
- * the 0–24 h range (render buffer rows).
+ * "the slot at this y" means. The render buffer above the first hour
+ * is not part of the range: y is measured from the first hour line,
+ * and the buffer rows clamp to the first / last slot.
  */
 function slotTimeAt(e: MouseEvent): Temporal.PlainTime | null {
   const col = e.currentTarget as HTMLElement;
   const rect = col.getBoundingClientRect();
-  const yInColumn = e.clientY - rect.top;
-  // Snap to nearest slot boundary.
-  const snappedSlots = Math.floor(yInColumn / slotHeightPx.value);
-  const minutesFromStart = snappedSlots * slotDuration.value;
+  const yInRange = e.clientY - rect.top - minutesToPx(RENDER_BUFFER_MINUTES);
+  // The slot the pointer is in.
+  const lastSlot = Math.max(0, Math.ceil((totalHours.value * 60) / slotDuration.value) - 1);
+  const slotIndex = Math.min(lastSlot, Math.max(0, Math.floor(yInRange / slotHeightPx.value)));
+  const minutesFromStart = slotIndex * slotDuration.value;
   const totalMinFromMidnight = timeRange.value[0] * 60 + minutesFromStart;
   const hour = Math.floor(totalMinFromMidnight / 60);
   const minute = totalMinFromMidnight % 60;
