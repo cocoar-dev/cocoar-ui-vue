@@ -259,6 +259,87 @@ export type TimeDoubleClickHandler = (payload: {
 
 export type RangeChangeHandler = (window: ViewWindow) => void;
 
+// ─── Time-range selection, draft, background bands ────────────────
+
+/**
+ * A time range selected on the time grid (`builder.timeRangeSelect`):
+ * by a drag (`source: 'drag'`) or by a click / tap that took the
+ * selection policy's proposal (`source: 'click'`).
+ */
+export interface TimeRangeSelectPayload {
+  /** The day the selection was made on (the day pressed), display zone. */
+  date: Temporal.PlainDate;
+  /** Start in the display zone, snapped by the selection policy. */
+  start: Temporal.ZonedDateTime;
+  /** End in the display zone (exclusive); midnight of the next day for a range up to 24:00. */
+  end: Temporal.ZonedDateTime;
+  source: 'click' | 'drag';
+  /** The `pointerup` of a drag, the `pointerdown` of a click / tap. */
+  native: PointerEvent;
+}
+
+export type TimeRangeSelectHandler = (payload: TimeRangeSelectPayload) => void;
+
+/**
+ * The host's draft (`builder.draft`): a range drawn as an outlined
+ * block above the events, e.g. while a booking form is open. Not an
+ * event: no click, no drag, no lane.
+ */
+export interface CalendarDraft {
+  start: Temporal.ZonedDateTime;
+  end: Temporal.ZonedDateTime;
+}
+
+/** Scope of the `#draft` slot — one per day the draft covers. */
+export interface CalendarDraftSegment {
+  start: Temporal.ZonedDateTime;
+  end: Temporal.ZonedDateTime;
+  /** The day of this piece (a draft over midnight has two). */
+  date: Temporal.PlainDate;
+  /** Wall-clock minutes of `date` the piece covers, clipped to `timeRange`. */
+  startMinutes: number;
+  endMinutes: number;
+  /** The draft goes on before / after this piece. */
+  clippedStart: boolean;
+  clippedEnd: boolean;
+}
+
+/**
+ * A background range of one day (`builder.backgrounds`). Wall time of
+ * that day in the display zone; `end` `00:00` means midnight at the
+ * end of the day. Never takes pointer events.
+ */
+export interface CalendarBandRange {
+  /** Free name; becomes the class `coar-calendar-band--{kind}`. */
+  kind: string;
+  start: Temporal.PlainTime;
+  end: Temporal.PlainTime;
+  /** `'tint'` (default) fills, `'hatch'` stripes, `'outline'` frames. */
+  appearance?: 'tint' | 'hatch' | 'outline';
+  /** `'below'` (default) behind the events, `'above'` over them (a hint). */
+  layer?: 'below' | 'above';
+  /** Any CSS colour; without it the appearance's token applies. */
+  color?: string;
+  /** Tooltip (`title`). */
+  label?: string;
+}
+
+/** A line across the day at one time, with an optional short label. */
+export interface CalendarBandLine {
+  kind: string;
+  at: Temporal.PlainTime;
+  color?: string;
+  /** Short text beside the line, also the tooltip. */
+  label?: string;
+}
+
+export type CalendarBand = CalendarBandRange | CalendarBandLine;
+
+/** `builder.backgrounds` — read per visible day on every render (C7). */
+export type BackgroundsFn = (
+  date: Temporal.PlainDate,
+) => ReadonlyArray<CalendarBand> | null | undefined;
+
 // ─── Drop validator (C7: read on every check, never captured) ─────
 
 /**

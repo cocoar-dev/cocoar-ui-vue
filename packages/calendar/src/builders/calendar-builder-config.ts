@@ -32,7 +32,14 @@ import type {
   Temporal,
   TimeGridRangeSpec,
 } from '../core';
-import type { CalendarDensity, DstPolicy, EventsLoader, SeriesLoader, TimeRange } from './types';
+import type {
+  CalendarDensity,
+  CalendarDraft,
+  DstPolicy,
+  EventsLoader,
+  SeriesLoader,
+  TimeRange,
+} from './types';
 import type { RecurrenceEngine } from '../recurrence/types';
 import type { CalendarBuilderState } from './calendar-builder-state';
 import { asWritableRef } from './internal/window-utils';
@@ -264,6 +271,40 @@ export abstract class CalendarBuilderConfig<
    */
   timeGridRange(spec: MaybeRefOrGetter<TimeGridRangeSpec | null>): this {
     this.state.timeGridRange = spec;
+    return this;
+  }
+
+  /**
+   * Week / work week / day: a drag on free space selects a time range,
+   * a click or tap selects what `selectionPolicy` proposes — both
+   * reported through `onTimeRangeSelect`. Under a mouse the proposal
+   * is drawn while hovering; on touch a long press starts the drag.
+   * Presses on events keep moving them. Default off.
+   */
+  timeRangeSelect(enabled: MaybeRefOrGetter<boolean> = true): this {
+    this.state.timeRangeSelect = enabled;
+    return this;
+  }
+
+  /**
+   * Week / work week / day: under a mouse, the time at the pointer
+   * (snapped to `slotDuration`) on the time axis and a thin line across
+   * all days. Default off.
+   */
+  hoverIndicator(enabled: MaybeRefOrGetter<boolean> = true): this {
+    this.state.hoverIndicator = enabled;
+    return this;
+  }
+
+  /**
+   * A range to show as a draft — an outlined block above the events in
+   * its day(s), plus its start, duration and end on the time axis.
+   * Bind a Ref or getter that follows your form; `null` hides it. Not
+   * clickable, not part of the event layout. `<CoarCalendar>`'s
+   * `#draft` slot draws it yourself.
+   */
+  draft(value: MaybeRefOrGetter<CalendarDraft | null>): this {
+    this.state.draft = value;
     return this;
   }
 

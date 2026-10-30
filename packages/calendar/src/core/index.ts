@@ -124,6 +124,19 @@ export {
   type AllDayBar,
 } from './timeGridLayout';
 export {
+  busyMinutesOn,
+  defaultSelectionPolicy,
+  freeRangeAt,
+  gapOrDurationPolicy,
+  minuteOfDayToZoned,
+  snapToSlot,
+  type GapOrDurationPolicyOptions,
+  type MinuteRange,
+  type TimeSelectionBusy,
+  type TimeSelectionContext,
+  type TimeSelectionPolicy,
+} from './timeSelection';
+export {
   layoutMonthGrid,
   capMonthCellPills,
   capMonthRowLanes,
