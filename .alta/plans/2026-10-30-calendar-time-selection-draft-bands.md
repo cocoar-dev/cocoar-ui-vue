@@ -123,10 +123,10 @@ Wandzeit des Tages in der Anzeigezone. Gerendert in der Tagesspalte bzw. Zeilens
 - [x] 2. Typen + Builder: `CalendarBand`, `CalendarDraft`, `TimeRangeSelectPayload`, `TimeSelectionPolicy`; Setter `backgrounds`, `draft`, `timeRangeSelect`, `selectionPolicy`, `hoverIndicator`, Hook `onTimeRangeSelect`; Builder-Tests (Defaults, Ref/Getter, Verkettung).
 - [x] 3. `core/timeSelection.ts`: `busy` aus `layoutDayEvents`-Projektion (Anzeigezone, je Tag geschnitten), `freeRangeAt`, `snapToSlot`, `defaultSelectionPolicy`, `gapOrDurationPolicy`; Unit-Tests, die TimeBookings Fälle für `freeRangeAt` / `freeSlotAt` / `pickSlotAt` / `dragRange` nachstellen; Minuten ↔ `ZonedDateTime` inkl. Zeitumstellungstag.
 - [x] 4. `createVerticalTimedAxis` aus `useCalendarDnd` herauslösen; `CoarTimeGrid` und `CoarTimeRows` stellen ihren Adapter bereit. Bestehende DnD-Suiten unverändert grün.
-- [ ] 5. Bänder rendern (senkrecht in `CoarTimeGridColumn`, waagrecht in der Zeilenspur), drei Appearances, Linien mit Label, Tokens in Dark/Light; Komponententests (Lage, `layer`, Klick geht durch).
-- [ ] 6. Entwurf rendern + `CoarTimeAxisMarker` (Zeit / Bereich mit Dauer) in beiden Ausrichtungen; `#draft`-Slot; Tests (folgt der Ref, Mitternacht, `null`).
-- [ ] 7. `useTimeSelection` + `CoarTimeSelectionLayer`: Hover-Vorschlag, Klick, Ziehen mit Schwelle, Escape, Starttag, nächster Tag, Touch per langem Druck (nicht-passives `touchmove`, das während der Auswahl das Scrollen verhindert), Tap-Gate für den Klick; in beide Raster einhängen. Tests: Maus und Touch, beide Ausrichtungen, Policy-Aufrufe je Phase, Reihenfolge `onTimeClick` → `onTimeRangeSelect`.
-- [ ] 8. `hoverIndicator`: Uhrzeit + Linie durch alle Tage, nur `pointer: fine`; Tests.
+- [x] 5. Bänder rendern (senkrecht in `CoarTimeGridColumn`, waagrecht in der Zeilenspur), drei Appearances, Linien mit Label, Tokens in Dark/Light; Komponententests (Lage, `layer`, Klick geht durch).
+- [x] 6. Entwurf rendern + `CoarTimeAxisMarker` (Zeit / Bereich mit Dauer) in beiden Ausrichtungen; `#draft`-Slot; Tests (folgt der Ref, Mitternacht, `null`).
+- [x] 7. `useTimeSelection` + `CoarTimeSelectionLayer`: Hover-Vorschlag, Klick, Ziehen mit Schwelle, Escape, Starttag, nächster Tag, Touch per langem Druck (nicht-passives `touchmove`, das während der Auswahl das Scrollen verhindert), Tap-Gate für den Klick; in beide Raster einhängen. Tests: Maus und Touch, beide Ausrichtungen, Policy-Aufrufe je Phase, Reihenfolge `onTimeClick` → `onTimeRangeSelect`.
+- [x] 8. `hoverIndicator`: Uhrzeit + Linie durch alle Tage, nur `pointer: fine`; Tests.
 - [ ] 9. Playground: TimeBooking-artige Seite (`/calendar-time-selection`: Bänder, Policy, Entwurf mit Formular, beide Ausrichtungen) + Playwright-Spec.
 - [ ] 10. Doku: neue Seite „Selecting time & drafts“ (oder Abschnitte in `day-view.md`) mit Live-Demo, Builder-Tabelle in `coar-calendar.md`, Policy-Helfer im Core-Kapitel, Skill-Sync, CHANGELOG 3.2.0 „Added“.
 

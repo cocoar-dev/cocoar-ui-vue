@@ -48,6 +48,12 @@ import { RenderEvent, RenderDayHeader } from '../../../builders/render-helpers';
 import { originatesFromEvent } from '../originatesFromEvent';
 import CoarTimeRowsEvent from './CoarTimeRowsEvent.vue';
 import CoarTimeGridNowMarker from '../time-grid/CoarTimeGridNowMarker.vue';
+import CoarCalendarBands from '../time-grid/CoarCalendarBands.vue';
+import CoarTimeSelectionLayer from '../time-grid/CoarTimeSelectionLayer.vue';
+import CoarTimeAxisMarker from '../time-grid/CoarTimeAxisMarker.vue';
+import { useTimeSelection } from '../../../composables/useTimeSelection';
+import { useTimeGridOverlays, timeAxisMark } from '../../../composables/useTimeGridOverlays';
+import type { CalendarDraftSegment } from '../../../builders/types';
 
 const props = defineProps<{
   builder: CalendarBuilder<TMeta>;
@@ -60,6 +66,12 @@ const slots = defineSlots<{
   /** Not used by the horizontal grid: all-day events render as chips. */
   allDayEvent?(props: { event: CalendarEvent<TMeta>; layout: AllDayBar<TMeta> }): unknown;
   dayHeader?(props: { date: Temporal.PlainDate; isToday: boolean; isWeekend: boolean }): unknown;
+  /** Custom drawing of the host's draft (`builder.draft`), one call per day it covers. */
+  draft?(props: {
+    start: Temporal.ZonedDateTime;
+    end: Temporal.ZonedDateTime;
+    segment: CalendarDraftSegment;
+  }): unknown;
 }>();
 const { t } = useI18n();
 
@@ -102,6 +114,8 @@ const {
   isWeekend,
   formatDayHeader,
   hourLabels,
+  formatClock,
+  formatDuration,
   cardTimeLabel,
   eventTitle,
   eventBgFor,
@@ -244,6 +258,57 @@ const {
   onAnnounce: (kind, payload) => onA11yAnnounce(kind, payload),
 });
 
+// ─── Time-range selection, bands, draft ──────────────────────────────
+
+const selection = useTimeSelection<TMeta>({
+  builder: props.builder,
+  axis: timedAxis,
+  timeRange,
+  slotDuration,
+  timezone,
+  events: () => state.value.events,
+});
+const selectable = computed(() => toValue(props.builder.state.timeRangeSelect));
+const overlays = useTimeGridOverlays<TMeta>({
+  builder: props.builder,
+  days,
+  timeRange,
+  timezone,
+});
+/** Left offset in a track of a minute of the day. */
+function minuteOfDayToPx(minuteOfDay: number): number {
+  return minutesToX(minuteOfDay - timeRange.value[0] * 60);
+}
+const axisMark = computed(() =>
+  timeAxisMark({
+    drag: selection.dragSelection.value,
+    hoverMinute: selection.hoverMinute.value,
+    draft: overlays.draft.value,
+    draftSegments: days.value
+      .map((d) => overlays.draftFor(d))
+      .filter((s): s is CalendarDraftSegment => s !== null),
+    timezone: timezone.value,
+    toPx: minuteOfDayToPx,
+    formatClock,
+    formatDuration,
+  }),
+);
+/** The hover indicator's line through all rows (body coordinates). */
+const hoverLineLeftPx = computed(() =>
+  selection.hoverMinute.value === null
+    ? null
+    : LABEL_WIDTH_PX + minuteOfDayToPx(selection.hoverMinute.value),
+);
+/** The label column is not part of the time axis: no hover there. */
+function onBodyPointermove(e: PointerEvent) {
+  const target = e.target;
+  if (target instanceof Element && target.closest('.coar-time-rows__label')) {
+    selection.onPointerleave();
+    return;
+  }
+  selection.onPointermove(e);
+}
+
 // ─── Rows ────────────────────────────────────────────────────────────
 
 const layout = computed(() => {
@@ -319,9 +384,16 @@ function onTrackPointerdown(e: PointerEvent, date: Temporal.PlainDate) {
   if (originatesFromEvent(e)) return;
   const time = slotTimeAt(e);
   if (!time) return;
+  // With `timeRangeSelect` a mouse press belongs to the selection (it
+  // runs the click on release unless the press became a drag); touch
+  // and pen keep their tap path, the click wrapped to add the range.
+  const fire = selection.onSurfacePointerdown(e, () =>
+    props.builder.state.onTimeClick?.({ date, time, native: e }),
+  );
+  if (!fire) return;
   // Mouse: at once. Touch / pen: only for a tap, after its click — a
   // scroll of the rows starts with a finger on a track as well.
-  onSurfacePointerdown(e, () => props.builder.state.onTimeClick?.({ date, time, native: e }));
+  onSurfacePointerdown(e, fire);
 }
 function onTrackDblclick(e: MouseEvent, date: Temporal.PlainDate) {
   if (originatesFromEvent(e)) return;
@@ -371,7 +443,11 @@ defineExpose({
     class="coar-time-rows"
     :class="[
       `coar-time-rows--density-${density}`,
-      { 'coar-time-rows--shade-weekends': state.shadeWeekends },
+      {
+        'coar-time-rows--shade-weekends': state.shadeWeekends,
+        'coar-time-rows--selectable': selectable,
+        'coar-time-rows--selecting': selection.selecting.value,
+      },
     ]"
     :style="{
       '--coar-time-rows-label-width': LABEL_WIDTH_PX + 'px',
@@ -404,6 +480,7 @@ defineExpose({
             >
               {{ entry.label }}
             </div>
+            <CoarTimeAxisMarker v-if="axisMark" orientation="horizontal" :mark="axisMark" />
           </div>
         </div>
 
@@ -411,6 +488,8 @@ defineExpose({
           ref="body"
           class="coar-time-rows__body"
           :style="{ height: layout.totalHeightPx + 'px' }"
+          @pointermove="onBodyPointermove"
+          @pointerleave="selection.onPointerleave"
         >
           <div
             v-for="row in rows"
@@ -487,6 +566,13 @@ defineExpose({
               @pointerdown="onTrackPointerdown($event, row.date)"
               @dblclick="onTrackDblclick($event, row.date)"
             >
+              <!-- Host bands behind the events (`builder.backgrounds`). -->
+              <CoarCalendarBands
+                :bands="overlays.bandsFor(row.date)"
+                layer="below"
+                orientation="horizontal"
+                :to-px="minuteOfDayToPx"
+              />
               <CoarTimeRowsEvent
                 v-for="p in row.positioned"
                 :key="p.event.id"
@@ -592,8 +678,32 @@ defineExpose({
                 orientation="horizontal"
                 :left-px="minutesToX(nowMinutesFromGridStart)"
               />
+
+              <!-- Bands above the events, the selection and the host's draft. -->
+              <CoarCalendarBands
+                :bands="overlays.bandsFor(row.date)"
+                layer="above"
+                orientation="horizontal"
+                :to-px="minuteOfDayToPx"
+              />
+              <CoarTimeSelectionLayer
+                orientation="horizontal"
+                :to-px="minuteOfDayToPx"
+                :selection="selection.selectionFor(row.date)"
+                :draft="overlays.draftFor(row.date)"
+              >
+                <template v-if="slots.draft" #draft="draftProps">
+                  <slot name="draft" v-bind="draftProps" />
+                </template>
+              </CoarTimeSelectionLayer>
             </div>
           </div>
+          <div
+            v-if="hoverLineLeftPx !== null"
+            class="coar-time-rows__hover-line"
+            :style="{ left: hoverLineLeftPx + 'px' }"
+            aria-hidden="true"
+          />
         </div>
       </div>
     </div>
@@ -743,6 +853,25 @@ defineExpose({
 }
 .coar-time-rows__row--today .coar-time-rows__track {
   background-color: var(--coar-calendar-bg-today, rgba(37, 99, 235, 0.04));
+}
+/* Time-range selection: no text selection or iOS callout on a press. */
+.coar-time-rows--selectable .coar-time-rows__track,
+.coar-time-rows--selecting {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+/* Hover indicator: a thin line through every row at the pointer's time,
+   under the sticky label column. */
+.coar-time-rows__hover-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 1px solid
+    color-mix(in srgb, var(--coar-background-accent-primary, #2563eb) 60%, transparent);
+  pointer-events: none;
+  z-index: 5;
 }
 .coar-time-rows--density-compact .coar-time-rows__day-label {
   font-size: var(--coar-font-size-xs, 11px);

@@ -39,6 +39,7 @@ import {
   type ViewWindow,
 } from '../../../core';
 import { CalendarBuilder } from '../../../builders/calendar-builder';
+import type { CalendarDraftSegment } from '../../../builders/types';
 import { PREFETCH_WINDOWS } from '../../../builders/calendar-builder-internals';
 import { useViewWindow } from '../../../composables/useViewWindow';
 import type { TimeGridSwipeState } from '../../../composables/useTimeGridSwipe';
@@ -49,6 +50,12 @@ defineSlots<{
   event?(props: { event: CalendarEvent<TMeta>; layout: PositionedEvent<TMeta> }): unknown;
   allDayEvent?(props: { event: CalendarEvent<TMeta>; layout: AllDayBar<TMeta> }): unknown;
   dayHeader?(props: { date: Temporal.PlainDate; isToday: boolean; isWeekend: boolean }): unknown;
+  /** The host's draft (`builder.draft`), drawn yourself — one call per day it covers. */
+  draft?(props: {
+    start: Temporal.ZonedDateTime;
+    end: Temporal.ZonedDateTime;
+    segment: CalendarDraftSegment;
+  }): unknown;
 }>();
 
 const localization = useLocalization();
@@ -241,6 +248,9 @@ defineExpose({
       <template v-if="$slots.dayHeader" #dayHeader="slotProps">
         <slot name="dayHeader" v-bind="slotProps" />
       </template>
+      <template v-if="$slots.draft" #draft="slotProps">
+        <slot name="draft" v-bind="slotProps" />
+      </template>
     </CoarTimeGrid>
 
     <CoarTimeRows v-if="horizontal" :builder="builder" :dates="days">
@@ -249,6 +259,9 @@ defineExpose({
       </template>
       <template v-if="$slots.dayHeader" #dayHeader="slotProps">
         <slot name="dayHeader" v-bind="slotProps" />
+      </template>
+      <template v-if="$slots.draft" #draft="slotProps">
+        <slot name="draft" v-bind="slotProps" />
       </template>
     </CoarTimeRows>
 
@@ -261,6 +274,9 @@ defineExpose({
       </template>
       <template v-if="$slots.dayHeader" #dayHeader="slotProps">
         <slot name="dayHeader" v-bind="slotProps" />
+      </template>
+      <template v-if="$slots.draft" #draft="slotProps">
+        <slot name="draft" v-bind="slotProps" />
       </template>
     </CoarTimeGrid>
 
@@ -282,6 +298,9 @@ defineExpose({
       </template>
       <template v-if="$slots.dayHeader" #dayHeader="slotProps">
         <slot name="dayHeader" v-bind="slotProps" />
+      </template>
+      <template v-if="$slots.draft" #draft="slotProps">
+        <slot name="draft" v-bind="slotProps" />
       </template>
     </CoarTimeGrid>
   </div>

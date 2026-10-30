@@ -36,6 +36,13 @@
   /* Agenda row separator: near-invisible, like light's #f3f4f6. */
   --coar-calendar-agenda-divider: #27272a;
 
+  /* Background bands (`builder.backgrounds`) without their own colour:
+     lighter shades so a 12–26 % mix still reads on the dark surface. */
+  --coar-calendar-band-tint: #60a5fa;
+  --coar-calendar-band-hatch: #a1a1aa;
+  --coar-calendar-band-outline: #fbbf24;
+  --coar-calendar-band-line: #f87171;
+
   /* Default event fill (events without `meta.color`): a dark accent
      shade so the light title text stays readable. */
   --coar-calendar-event-default-bg: #1e3a8a;

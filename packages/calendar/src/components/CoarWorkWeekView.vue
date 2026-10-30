@@ -15,6 +15,7 @@ import { useTemplateRef } from 'vue';
 import CoarTimeGridSurface from './internal/time-grid/CoarTimeGridSurface.vue';
 import type { Temporal, CalendarEvent, PositionedEvent, AllDayBar } from '../core';
 import { CalendarBuilder } from '../builders/calendar-builder';
+import type { CalendarDraftSegment } from '../builders/types';
 
 defineProps<{ builder: CalendarBuilder<TMeta> }>();
 
@@ -22,6 +23,12 @@ defineSlots<{
   event?(props: { event: CalendarEvent<TMeta>; layout: PositionedEvent<TMeta> }): unknown;
   allDayEvent?(props: { event: CalendarEvent<TMeta>; layout: AllDayBar<TMeta> }): unknown;
   dayHeader?(props: { date: Temporal.PlainDate; isToday: boolean; isWeekend: boolean }): unknown;
+  /** The host's draft (`builder.draft`), drawn yourself — one call per day it covers. */
+  draft?(props: {
+    start: Temporal.ZonedDateTime;
+    end: Temporal.ZonedDateTime;
+    segment: CalendarDraftSegment;
+  }): unknown;
 }>();
 
 /** What the surface exposes — typed by hand because the surface is a generic component. */
@@ -48,6 +55,9 @@ defineExpose({
     </template>
     <template v-if="$slots.dayHeader" #dayHeader="slotProps">
       <slot name="dayHeader" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots.draft" #draft="slotProps">
+      <slot name="draft" v-bind="slotProps" />
     </template>
   </CoarTimeGridSurface>
 </template>

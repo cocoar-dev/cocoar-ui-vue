@@ -307,7 +307,8 @@ export interface CalendarDraftSegment {
 /**
  * A background range of one day (`builder.backgrounds`). Wall time of
  * that day in the display zone; `end` `00:00` means midnight at the
- * end of the day. Never takes pointer events.
+ * end of the day (a range over midnight is two bands, one per day).
+ * Never takes pointer events; clicks, hover and drags go through.
  */
 export interface CalendarBandRange {
   /** Free name; becomes the class `coar-calendar-band--{kind}`. */
@@ -320,7 +321,7 @@ export interface CalendarBandRange {
   layer?: 'below' | 'above';
   /** Any CSS colour; without it the appearance's token applies. */
   color?: string;
-  /** Tooltip (`title`). */
+  /** Short text in the band's leading corner (bands take no pointer, so no tooltip). */
   label?: string;
 }
 
@@ -329,7 +330,7 @@ export interface CalendarBandLine {
   kind: string;
   at: Temporal.PlainTime;
   color?: string;
-  /** Short text beside the line, also the tooltip. */
+  /** Short text beside the line ("max. 10:30 h"). */
   label?: string;
 }
 

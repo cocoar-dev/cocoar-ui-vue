@@ -124,6 +124,27 @@ export function useTimeGridPresentation<
     return labels;
   });
 
+  /** Wall-clock "hh:mm" of a minute of the day (axis marker); `1440` reads as midnight. */
+  const clockFormatter = computed(
+    () =>
+      new Intl.DateTimeFormat(locale.value, {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: state.value.hour12,
+        timeZone: 'UTC',
+      }),
+  );
+  function formatClock(minuteOfDay: number): string {
+    const m = ((Math.round(minuteOfDay) % 1440) + 1440) % 1440;
+    return clockFormatter.value.format(new Date(Date.UTC(2000, 0, 1, Math.floor(m / 60), m % 60)));
+  }
+  /** "45 min", "2:15 h". */
+  function formatDuration(minutes: number): string {
+    const m = Math.max(0, Math.round(minutes));
+    if (m < 60) return `${m} min`;
+    return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')} h`;
+  }
+
   const cardTimeFormatter = computed(
     () =>
       new Intl.DateTimeFormat(
@@ -309,6 +330,8 @@ export function useTimeGridPresentation<
     isWeekend,
     formatDayHeader,
     hourLabels,
+    formatClock,
+    formatDuration,
     cardTimeLabel,
     cardLocation,
     eventTitle,

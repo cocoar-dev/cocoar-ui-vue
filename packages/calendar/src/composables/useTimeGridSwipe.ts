@@ -69,6 +69,11 @@ export interface UseTimeGridSwipeReturn {
    * mouse / pen only with `allowMouse` (the day-header strip).
    */
   onPointerdown: (e: PointerEvent, options?: SwipePointerdownOptions) => boolean;
+  /**
+   * Give up a pointer that has not started panning (a long press took
+   * it for time-range selection): no page, no tap on release.
+   */
+  release: (pointerId: number) => void;
 }
 
 export interface SwipePointerdownOptions {
@@ -239,10 +244,15 @@ export function useTimeGridSwipe(options: UseTimeGridSwipeOptions): UseTimeGridS
     }, SETTLE_MS);
   }
 
+  function release(pointerId: number): void {
+    if (!gesture || gesture.pointerId !== pointerId || gesture.panning) return;
+    reset();
+  }
+
   onBeforeUnmount(() => {
     detach();
     if (settleTimer) clearTimeout(settleTimer);
   });
 
-  return { swipeStyle, settling, isSwiping, engaged, onPointerdown };
+  return { swipeStyle, settling, isSwiping, engaged, onPointerdown, release };
 }
