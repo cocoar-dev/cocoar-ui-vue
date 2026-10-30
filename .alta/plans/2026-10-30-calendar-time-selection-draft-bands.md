@@ -134,11 +134,11 @@ Wandzeit des Tages in der Anzeigezone. Gerendert in der Tagesspalte bzw. Zeilens
 
 ## Wie es geprüft wird
 
-- [ ] `pnpm --filter @cocoar/vue-calendar test`: bestehende Tests unverändert grün, neue grün.
-- [ ] `pnpm turbo run typecheck lint --filter @cocoar/vue-calendar --filter @cocoar/playground`, `pnpm skill:check`.
-- [ ] Playwright (Chromium, Maus und `hasTouch`), beide Ausrichtungen: Ziehen auf freier Fläche liefert `onTimeRangeSelect` mit eingerasteten Grenzen im Starttag; Escape liefert nichts; Hover zeigt Uhrzeit und den Vorschlag der Policy (Lücke bzw. 1 h); Klick wählt genau den Vorschlag; auf einer Karte startet keine Auswahl, Verschieben geht weiter; langer Druck + Ziehen wählt auf Touch, kurzes Wischen scrollt; Entwurf folgt einer geänderten Ref; Bänder liegen richtig und lassen Klicks durch.
-- [ ] Sichtprüfung im Playground und in der Doku, hell und dunkel.
-- [ ] TimeBooking-Probe mit lokalem Paket-Build (`~/cocoar-local-packages/…`): Wochenverlauf mit `gapOrDurationPolicy` verhält sich wie `useTimelinePick`.
+- [x] `pnpm --filter @cocoar/vue-calendar test`: bestehende Tests unverändert grün, neue grün (995/995; vorher 948, ein Doppelklick-Test auf den korrigierten Slot angepasst).
+- [x] `pnpm turbo run typecheck lint --filter @cocoar/vue-calendar --filter @cocoar/playground`, `pnpm skill:check`, Docs-Build.
+- [x] Playwright (Chromium, Maus und `hasTouch`), beide Ausrichtungen (12 neue + 7 bestehende Fälle grün; Touch-Langdruck senkrecht als Unit-Test): Ziehen auf freier Fläche liefert `onTimeRangeSelect` mit eingerasteten Grenzen im Starttag; Escape liefert nichts; Hover zeigt Uhrzeit und den Vorschlag der Policy (Lücke bzw. 1 h); Klick wählt genau den Vorschlag; auf einer Karte startet keine Auswahl, Verschieben geht weiter; langer Druck + Ziehen wählt auf Touch, kurzes Wischen scrollt; Entwurf folgt einer geänderten Ref; Bänder liegen richtig und lassen Klicks durch.
+- [x] Sichtprüfung im Playground und in der Doku, hell und dunkel.
+- [x] TimeBooking-Probe mit lokalem Paket-Build (`~/cocoar-local-packages/…`): Wochenverlauf mit `gapOrDurationPolicy` verhält sich wie `useTimelinePick`. Pakete `3.2.0-local.20261030.e12bd92` gebaut, Exporte geprüft. Die Regeln entsprechen TimeBookings Testfällen (`core/__tests__/timeSelection.test.ts`). Der Einbau in TimeBooking selbst liegt beim TimeBooking-Projekt.
 
 ## Entscheidungen
 
