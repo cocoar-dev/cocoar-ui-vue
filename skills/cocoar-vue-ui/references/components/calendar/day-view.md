@@ -473,6 +473,8 @@ Full reference: see [the composer's API reference](./coar-calendar.md#api-refere
 | `slotDuration(d)` | `MaybeRefOrGetter<number>` | `30` | Slot subdivision (minutes). Also the snap step when dragging. |
 | `pixelsPerHour(p)` | `MaybeRefOrGetter<number>` | `60` | Density along the time axis. `60` = 30 px per 30-min slot. |
 | `timeGridOrientation(o)` | `MaybeRefOrGetter<'vertical' \| 'horizontal'>` | `'vertical'` | Days as columns, or as rows on a horizontal time axis — see "Days as rows". |
+| `timeRangeSelect(b)` / `onTimeRangeSelect(fn)` | `MaybeRefOrGetter<boolean>` / handler | `false` | Select time ranges by dragging, clicking or a long press — see [Selecting time](./time-selection.md). |
+| `hoverIndicator(b)`, `draft(d)`, `backgrounds(fn)` | — | off / `null` / — | Time under the mouse, a host draft above the events, per-day bands — same page. |
 | `eventRenderer(r)` | `EventRenderer<TMeta>` | — | Universal renderer. Branch on `ctx.layout?.kind === 'positioned'` (timed cards) vs `'allDayBar'` (all-day band). |
 | `dayHeaderRenderer(r)` | `DayHeaderRenderer` | — | Per-day column header. |
 

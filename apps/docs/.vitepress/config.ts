@@ -420,6 +420,10 @@ export default defineConfig({
             { text: 'Day View', link: '/components/calendar/day-view' },
             { text: 'Week View', link: '/components/calendar/week-view' },
             { text: 'Work Week View', link: '/components/calendar/work-week-view' },
+            {
+              text: 'Selecting time, drafts & bands',
+              link: '/components/calendar/time-selection',
+            },
             { text: 'Agenda View', link: '/components/calendar/agenda-view' },
             { text: 'Timeline View', link: '/components/calendar/timeline-view' },
             { text: 'Performance baseline', link: '/components/calendar/performance' },

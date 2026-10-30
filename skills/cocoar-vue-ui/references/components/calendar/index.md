@@ -309,4 +309,5 @@ To customize, redefine any token under the same trigger after the package styles
 - **[Month Views](./month-view.md)** — continuous Compact / Stacked / Details months and responsive Month List.
 - **[Day View](./day-view.md)** — one-day or width-aware multi-day time-grid surface.
 - **[Week View](./week-view.md)** — 7-day time-grid + all-day band.
+- **[Selecting time, drafts & bands](./time-selection.md)** — drag or click to select time ranges, a hover time indicator, a host draft and per-day background bands.
 - **[Agenda View](./agenda-view.md)** — virtualized chronological list grouped by day.

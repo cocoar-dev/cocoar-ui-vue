@@ -128,7 +128,7 @@ Wandzeit des Tages in der Anzeigezone. Gerendert in der Tagesspalte bzw. Zeilens
 - [x] 7. `useTimeSelection` + `CoarTimeSelectionLayer`: Hover-Vorschlag, Klick, Ziehen mit Schwelle, Escape, Starttag, nächster Tag, Touch per langem Druck (nicht-passives `touchmove`, das während der Auswahl das Scrollen verhindert), Tap-Gate für den Klick; in beide Raster einhängen. Tests: Maus und Touch, beide Ausrichtungen, Policy-Aufrufe je Phase, Reihenfolge `onTimeClick` → `onTimeRangeSelect`.
 - [x] 8. `hoverIndicator`: Uhrzeit + Linie durch alle Tage, nur `pointer: fine`; Tests.
 - [x] 9. Playground: TimeBooking-artige Seite (`/calendar-time-selection`: Bänder, Policy, Entwurf mit Formular, beide Ausrichtungen) + Playwright-Spec.
-- [ ] 10. Doku: neue Seite „Selecting time & drafts“ (oder Abschnitte in `day-view.md`) mit Live-Demo, Builder-Tabelle in `coar-calendar.md`, Policy-Helfer im Core-Kapitel, Skill-Sync, CHANGELOG 3.2.0 „Added“.
+- [x] 10. Doku: neue Seite „Selecting time & drafts“ (oder Abschnitte in `day-view.md`) mit Live-Demo, Builder-Tabelle in `coar-calendar.md`, Policy-Helfer im Core-Kapitel, Skill-Sync, CHANGELOG 3.2.0 „Added“.
 
 **Abweichung, unterwegs gefunden:** Das senkrechte `onTimeClick` / `onTimeDoubleClick` maß den Slot ab dem 15-Minuten-Puffer über der ersten Stunde und meldete im letzten Viertel jedes Slots den nächsten. Das ist eigener Fix-Commit `8ac76fa`, nötig, damit Klick-Zeit und Auswahl übereinstimmen. Der Kontext erhält zusätzlich `bounds` (sichtbarer Zeitbereich), der Hook `source: 'click' | 'drag'`.
 

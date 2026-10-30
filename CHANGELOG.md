@@ -45,6 +45,28 @@ defaulting to `en-US`.
   vertical grid's axis-free half moved into `useTimeGridPresentation` and
   the drag runtime takes a time-axis adapter; the vertical grid is
   unchanged.
+- **`@cocoar/vue-calendar` — selecting time, drafts and background bands.**
+  For booking and scheduling screens on Week, Work week and Day, in both
+  orientations, all opt-in. `builder.timeRangeSelect(true)`: a mouse drag
+  on free space selects a range in the day pressed (Escape cancels), a
+  click selects what the **selection policy** proposes, both reported by
+  `onTimeRangeSelect({ date, start, end, source, native })` with
+  `ZonedDateTime`s in the display zone; under a mouse the proposal is
+  drawn while hovering; on touch a 500 ms long press starts the drag
+  while swipes keep scrolling and paging. `selectionPolicy(fn)` decides
+  in minutes of the day; `defaultSelectionPolicy()` (the slot) and
+  `gapOrDurationPolicy({ minutes, overlap })` (the gap between two
+  events, else a fixed length, drags stopping at events) ship with
+  `freeRangeAt`, `snapToSlot`, `busyMinutesOn` and `minuteOfDayToZoned`.
+  `hoverIndicator(true)` shows the time at the mouse on the axis and a
+  line across all days. `draft(ref)` draws a host range (an open form's)
+  as an outlined block above the events, `#draft` slot included, with
+  start, duration and end on the axis. `backgrounds((date) => bands)`
+  paints `tint` / `hatch` / `outline` ranges behind or above the events
+  and labelled lines, never taking pointer events. With
+  `timeRangeSelect` a mouse `onTimeClick` fires on release instead of on
+  press. Web only. Under the hood the vertical hit-test became
+  `createVerticalTimedAxis`, shared by drag & drop and selection.
 - **`@cocoar/vue-calendar` — selected day in the month grid.**
   `builder.selectedDate(MaybeRefOrGetter<Temporal.PlainDate | null>)` marks
   one day with a filled circle around its day number — the iOS calendar's
@@ -283,6 +305,12 @@ defaulting to `en-US`.
 
 ### Fixed
 
+- **`@cocoar/vue-calendar` — `onTimeClick` in the vertical time grid
+  reports the slot under the pointer.** The slot was measured from the top
+  of the 15-minute render buffer above the first hour line, so the last
+  15 minutes of every slot reported the next one (with 15-minute slots,
+  every click). `onTimeDoubleClick` had the same offset. Clicks in the
+  buffer rows now report the first / last slot.
 - **`@cocoar/vue-calendar` — the continuous month view no longer freezes on
   mount.** With ~300 events and 39 series (amZettel, Pixel 8a) mounting the
   month view blocked the main thread twice — about 0.6 s and 0.9 s at 4× CPU

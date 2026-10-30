@@ -1203,6 +1203,8 @@ builder
   .onEventDrop(({ event, next }) => persistMove(event.id, next));
 ```
 
+To create by **dragging a time range** — or to show what a click will pick, keep an open form's range visible and paint working hours behind the events — see [Selecting time, drafts & bands](./time-selection.md).
+
 Single-click and double-click on an empty cell or slot are separate hooks. The desktop convention "click selects, double-click creates" (Apple Calendar, Outlook) therefore needs no click-timer on the host side, and the Google-style "click opens a popup" model is one handler away. The single-click hooks still fire for the two clicks that precede a double-click. A double-click on an event element stops at the event and reaches `onEventDoubleClick` only — never the date / time hooks. `onTimeDoubleClick` snaps to the slot grid exactly like `onTimeClick`.
 
 ### Touch: taps, not scroll starts
@@ -1592,7 +1594,13 @@ The builder is **flat** — every setter lives directly on it. There are no sub-
 | `onEventHoverLeave(fn)` | `(payload: { event, native: PointerEvent }) => void` | Companion close-trigger for the popover the hover handler opened. |
 | `onEventDrop(fn)` | `(payload) => void` | Drag-and-drop / keyboard / touch all flow through this. |
 | `onDateClick(fn)` | `(payload: { date, native: PointerEvent }) => void` | Empty cell / day-header clicked. Mouse: on press. Touch / pen: only on a tap, after the click that follows it — see [Touch](#touch-taps-not-scroll-starts). `native` is the `pointerdown`. |
-| `onTimeClick(fn)` | `(payload: { date, time, native: PointerEvent }) => void` | Empty time slot (week / day). Same touch rule as `onDateClick`. |
+| `onTimeClick(fn)` | `(payload: { date, time, native: PointerEvent }) => void` | Empty time slot (week / day). Same touch rule as `onDateClick`. With `timeRangeSelect` a mouse click fires on release (a drag fires none). |
+| `timeRangeSelect(b)` | `MaybeRefOrGetter<boolean>` | Week / work week / day: a drag on free space selects a time range, a click selects the policy's proposal, touch selects with a long press. Default `false`. See [Selecting time](./time-selection.md). |
+| `selectionPolicy(fn)` | `(ctx: TimeSelectionContext) => { start, end } \| null` | What hover, click and drag select, in minutes of the day. Default `defaultSelectionPolicy()` (the slot); `gapOrDurationPolicy({ minutes })` picks the gap between events or a fixed length. |
+| `onTimeRangeSelect(fn)` | `(payload: { date, start, end, source, native }) => void` | A range was selected; `start` / `end` are `ZonedDateTime`s in the display zone. After `onTimeClick` for a click. |
+| `hoverIndicator(b)` | `MaybeRefOrGetter<boolean>` | Time at the mouse on the time axis and a line across all days. Default `false`. |
+| `draft(source)` | `MaybeRefOrGetter<{ start, end } \| null>` | A range drawn as an outlined block above the events (an open form's range); `null` hides it. `#draft` slot for custom drawing. |
+| `backgrounds(fn)` | `(date) => CalendarBand[] \| null` | Per-day background ranges (`tint` / `hatch` / `outline`, behind or above the events) and lines with a label. Never take pointer events. |
 | `onDateDoubleClick(fn)` | `(payload: { date, native: MouseEvent }) => void` | Empty month cell / all-day cell double-clicked. Never fires for a double-click on an event. |
 | `onTimeDoubleClick(fn)` | `(payload: { date, time, native: MouseEvent }) => void` | Empty time slot double-clicked; `time` snapped like `onTimeClick`. |
 | `onRangeChange(fn)` | `(window) => void` | Visible window changed. |
@@ -1644,6 +1652,7 @@ Variant-specific slots (`pill`, `multiDayBar`, `allDayEvent`) still exist on the
 | `weekStripStart` / `weekStripEnd` | `WeekStripSlotScope` | Day agenda: host controls at either end of the seven-day week strip (e.g. previous / next week via `shiftWeek(±1)`). Forwarded to `<CoarAgendaView>`. |
 | `multiDayBar` | `{ event, bar }` | Month multi-day bar. |
 | `dayHeader` | `{ date, isToday, isWeekend }` | Per-day column header (week / day). |
+| `draft` | `{ start, end, segment }` | The `builder.draft` range, drawn yourself — once per day it covers (week / day). See [Draft](./time-selection.md#draft). |
 
 ### `<CoarCalendar>` props
 
