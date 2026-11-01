@@ -1,6 +1,6 @@
 ---
 title: Zeitraum-Auswahl, Hover-Vorschlag, Entwurf und Hintergrund-Bänder im Zeitraster
-status: in-progress
+status: done
 created: 2026-10-30
 summary: Die Zeitraster-Ansichten (week, workWeek, day, senkrecht und waagrecht) bekommen Auswahl durch Ziehen und Klick mit Hover-Vorschlag, einen vom Host gesteuerten Entwurf und Hintergrund-Bänder je Tag. Der Kalender liefert Interaktion und Darstellung, die Regeln kommen über eine Auswahl-Policy und Helfer — damit TimeBooking seinen eigenen „Wochenverlauf“ ersetzen kann.
 ---
