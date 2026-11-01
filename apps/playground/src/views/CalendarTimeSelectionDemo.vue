@@ -116,17 +116,22 @@ function workRuleBands(date: Temporal.PlainDate): CalendarBand[] {
   return bands;
 }
 
+// TimeBooking's setup for the e2e spec: `?view=workWeek&pph=30&from=6&to=18&density=compact`.
+const query = new URLSearchParams(window.location.search);
+const num = (key: string, fallback: number) => Number(query.get(key) ?? fallback);
+
 const { builder } = useCalendar();
 builder
   .events(events)
   .timezone(ZONE)
   .locale('de-AT')
   .firstDayOfWeek(1)
-  .view('week')
+  .view(query.get('view') === 'workWeek' ? 'workWeek' : 'week')
   .availableViews(['week', 'workWeek', 'day'])
   .timeGridOrientation(orientation)
-  .timeRange({ startMinutes: 6 * 60, endMinutes: 20 * 60 })
-  .pixelsPerHour(90)
+  .timeRange({ startMinutes: num('from', 6) * 60, endMinutes: num('to', 20) * 60 })
+  .pixelsPerHour(num('pph', 90))
+  .density(query.get('density') === 'compact' ? 'compact' : 'comfortable')
   .slotDuration(15)
   .date(Temporal.PlainDate.from('2026-10-21'))
   .timeRangeSelect(true)

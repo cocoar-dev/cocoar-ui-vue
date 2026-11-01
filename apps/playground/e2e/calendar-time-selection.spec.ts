@@ -236,3 +236,65 @@ test.describe('touch', () => {
     await expect(log(page)).toContainText(`range click: ${TUE} 15:00–16:00`);
   });
 });
+
+test.describe("TimeBooking's setup: work week, 30 px/h stretched, 06–18, compact", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/calendar-time-selection?view=workWeek&pph=30&from=6&to=18&density=compact');
+    await expect(row(page, TUE)).toBeVisible();
+    // The width TimeBooking reported (axis 950 px for 12 h).
+    await page.locator('.page__calendar').evaluate((el) => {
+      (el as HTMLElement).style.flex = '0 0 1082px';
+    });
+    await expect
+      .poll(() => page.locator('.coar-time-rows__scroller').evaluate((el) => el.clientWidth))
+      .toBe(1082);
+  });
+
+  test('the stretched axis does not overflow: the last hour label sits inside', async ({
+    page,
+  }) => {
+    const scroller = page.locator('.coar-time-rows__scroller');
+    const { scrollWidth, clientWidth } = await scroller.evaluate((el) => ({
+      scrollWidth: el.scrollWidth,
+      clientWidth: el.clientWidth,
+    }));
+    expect(scrollWidth).toBe(clientWidth);
+    // Nothing sticks out past the right edge: hour labels, band labels.
+    const sticking = await scroller.evaluate((el) => {
+      const right = el.getBoundingClientRect().left + el.clientWidth;
+      return [...el.querySelectorAll('*')]
+        .filter((c) => c.getBoundingClientRect().right > right + 0.5)
+        .map((c) => c.className);
+    });
+    expect(sticking).toEqual([]);
+  });
+
+  test('grid, hover line, selection and axis time share one scale', async ({ page }) => {
+    const t = (await track(page, '2026-10-22').boundingBox())!;
+    const hourPx = parseFloat(
+      await track(page, '2026-10-22').evaluate((el) =>
+        (el as HTMLElement).style.getPropertyValue('--coar-time-rows-hour-px'),
+      ),
+    );
+    expect(hourPx).toBeCloseTo(950 / 12, 2);
+    // 14:20 by the grid's own scale (06:00 is the track's left edge) → 14:15.
+    await page.mouse.move(t.x + (8 * 60 + 20) * (hourPx / 60), t.y + 10);
+    await expect(page.locator('.coar-time-rows__hours [data-time-axis-marker]')).toHaveText(
+      '14:15',
+    );
+    // The hover line lies on the 15:00 grid line, also far right.
+    await page.mouse.move(t.x + 9 * hourPx + 1, t.y + 10);
+    const line = (await page.locator('.coar-time-rows__hover-line').boundingBox())!;
+    expect(Math.abs(line.x - (t.x + 9 * hourPx))).toBeLessThan(1);
+    // A one-hour proposal is one hour of the grid wide.
+    await page.mouse.move(t.x + (10 * 60 + 5) * (hourPx / 60), t.y + 10);
+    const sel = (await track(page, '2026-10-22').locator('[data-time-selection]').boundingBox())!;
+    expect(sel.width).toBeCloseTo(hourPx, 0);
+  });
+
+  test('hover reaches the bottom edge of the last row', async ({ page }) => {
+    const last = (await page.locator('.coar-time-rows__track').last().boundingBox())!;
+    await page.mouse.move(last.x + 300, last.y + last.height - 0.5);
+    await expect(page.locator('[data-time-axis-marker]')).toBeVisible();
+  });
+});

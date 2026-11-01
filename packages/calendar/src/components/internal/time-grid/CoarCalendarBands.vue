@@ -25,7 +25,14 @@ const props = defineProps<{
   orientation: 'vertical' | 'horizontal';
   /** Pixel offset along the time axis of a minute of the day. */
   toPx: (minuteOfDay: number) => number;
+  /**
+   * Horizontal grid: length of the time axis. A line closer than
+   * `LABEL_FLIP_PX` to its end puts its label on the left, inside.
+   */
+  extentPx?: number;
 }>();
+
+const LABEL_FLIP_PX = 120;
 
 const visible = computed(() =>
   props.bands.filter((b) =>
@@ -55,10 +62,16 @@ function boxStyle(band: ResolvedBand): Record<string, string> {
 }
 
 function classes(band: ResolvedBand): string[] {
+  const flip =
+    band.type === 'line' &&
+    props.orientation === 'horizontal' &&
+    props.extentPx !== undefined &&
+    props.toPx(band.at) > props.extentPx - LABEL_FLIP_PX;
   return [
     'coar-calendar-band',
     `coar-calendar-band--${band.kind}`,
     band.type === 'line' ? 'coar-calendar-band--line' : `coar-calendar-band--${band.appearance}`,
+    ...(flip ? ['coar-calendar-band--label-before'] : []),
   ];
 }
 </script>
@@ -169,6 +182,10 @@ function classes(band: ResolvedBand): string[] {
   font-weight: 600;
   background: var(--coar-calendar-bg, #fff);
   border-radius: 2px;
+}
+.coar-calendar-band--label-before > .coar-calendar-band__label {
+  left: auto;
+  right: 2px;
 }
 .coar-calendar-band--line.coar-calendar-band--vertical > .coar-calendar-band__label {
   top: auto;

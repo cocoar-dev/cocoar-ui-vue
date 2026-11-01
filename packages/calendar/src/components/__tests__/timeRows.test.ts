@@ -398,3 +398,54 @@ describe('api.scrollToTime inside <CoarCalendar>', () => {
     },
   );
 });
+
+describe('day column', () => {
+  it('dayLabelWidth sets the column and moves the time axis with it', async () => {
+    const onTimeRangeSelect = vi.fn();
+    const width = ref(200);
+    const b = newBuilder([])
+      .dayLabelWidth(width)
+      .timeRangeSelect(true)
+      .onTimeRangeSelect(onTimeRangeSelect);
+    const w = mountWeek(b);
+    expect(w.find('.coar-time-rows').attributes('style')).toContain(
+      '--coar-time-rows-label-width: 200px',
+    );
+    // x = 200 + minutes now; a click at 09:10 selects the 09:00 slot.
+    const track = w.findAll('.coar-time-rows__track')[1].element;
+    track.dispatchEvent(pointer('pointerdown', { x: 200 + 9 * 60 + 10, y: 44 + 10 }));
+    window.dispatchEvent(pointer('pointerup', { x: 200 + 9 * 60 + 10, y: 44 + 10 }));
+    const p = onTimeRangeSelect.mock.calls[0][0];
+    expect(p.start.toPlainTime().toString()).toBe('09:00:00');
+    width.value = 20;
+    await nextTick();
+    expect(w.find('.coar-time-rows').attributes('style')).toContain(
+      '--coar-time-rows-label-width: 48px',
+    );
+  });
+
+  it('the day header gets the row height without chips, one line with chips', () => {
+    const w = mountWeek(
+      newBuilder([{ id: 'off', start: pd('2026-10-20'), meta: { title: 'Off' } } as CalendarEvent]),
+    );
+    const days = w.findAll('.coar-time-rows__day');
+    expect(days[0].classes()).toContain('coar-time-rows__day--fill');
+    expect(days[1].classes()).not.toContain('coar-time-rows__day--fill');
+  });
+
+  it('the end label sits left of its line where it fits, else it is left out', async () => {
+    const b = newBuilder([]).timeRange({ startMinutes: 6 * 60, endMinutes: 18 * 60 });
+    const w = mountWeek(b);
+    // 1 px / min here: 60 px per hour is too narrow for the end label.
+    expect(w.find('.coar-time-rows__hour-label[data-hour="18"]').exists()).toBe(false);
+    expect(w.find('.coar-time-rows__hour-label[data-hour="17"]').exists()).toBe(true);
+    b.pixelsPerHour(120);
+    await nextTick();
+    const labels = w.findAll('.coar-time-rows__hour-label');
+    expect(labels.at(-1)!.attributes('data-hour')).toBe('18');
+    expect(labels.at(-1)!.classes()).toContain('coar-time-rows__hour-label--last');
+    expect(
+      labels.filter((l) => l.classes().includes('coar-time-rows__hour-label--last')),
+    ).toHaveLength(1);
+  });
+});

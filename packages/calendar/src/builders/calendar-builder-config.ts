@@ -264,6 +264,16 @@ export abstract class CalendarBuilderConfig<
   }
 
   /**
+   * Days as rows (`timeGridOrientation('horizontal')`): width of the
+   * sticky day column that holds the day header and the all-day chips.
+   * Default 132 px, at least 48. The time axis gets the rest.
+   */
+  dayLabelWidth(px: MaybeRefOrGetter<number>): this {
+    this.state.dayLabelWidth = px;
+    return this;
+  }
+
+  /**
    * The `day` view's columns and paging as one spec — `anchor`, `span`
    * (days or `'responsive'`), `filter` (all / `workDays`), `step` (days
    * per page or `'span'`); Week and Work week are fixed presets of it.

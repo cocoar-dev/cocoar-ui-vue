@@ -162,6 +162,8 @@ export interface CalendarBuilderState<
    * horizontal time axis (`horizontal`) — for `week`, `workWeek`, `day`.
    */
   timeGridOrientation: MaybeRefOrGetter<CalendarTimeGridOrientation>;
+  /** Horizontal time grid: width of the day column (day header + all-day chips), px. */
+  dayLabelWidth: MaybeRefOrGetter<number>;
   /**
    * Explicit range spec for the `day` view — anchor, span, filter,
    * step (see `TimeGridRangeSpec`). `null` (default) follows
@@ -315,6 +317,7 @@ export function createCalendarBuilderState<TMeta extends Record<string, unknown>
     monthDensity: 'details',
     dayMode: 'single',
     timeGridOrientation: 'vertical',
+    dayLabelWidth: 132,
     timeGridRange: null,
     timeRangeSelect: false,
     hoverIndicator: false,

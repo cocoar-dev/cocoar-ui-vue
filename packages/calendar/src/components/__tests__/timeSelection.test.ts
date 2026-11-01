@@ -553,6 +553,22 @@ describe('background bands', () => {
     },
   );
 
+  it('horizontal: a line near the end of the axis puts its label to its left', () => {
+    const w = mountWeek(
+      newBuilder([], 'horizontal').backgrounds(() => [
+        { kind: 'early', at: T('08:00'), label: 'a' },
+        { kind: 'late', at: T('23:30'), label: 'b' },
+      ]),
+    );
+    const tue = w.findAll('.coar-time-rows__track')[1];
+    expect(tue.find('.coar-calendar-band--early').classes()).not.toContain(
+      'coar-calendar-band--label-before',
+    );
+    expect(tue.find('.coar-calendar-band--late').classes()).toContain(
+      'coar-calendar-band--label-before',
+    );
+  });
+
   it('a click on a band reaches the day underneath', () => {
     const onTimeClick = vi.fn();
     const w = mountWeek(newBuilder([], 'vertical').backgrounds(bands).onTimeClick(onTimeClick));

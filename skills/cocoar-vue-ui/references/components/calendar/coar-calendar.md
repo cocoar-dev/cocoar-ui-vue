@@ -1563,6 +1563,7 @@ The builder is **flat** — every setter lives directly on it. There are no sub-
 | `monthDensity(d)` | `MaybeRefOrGetter<'compact' \| 'stacked' \| 'details'>` | Month presentation. The shell exposes these beside the optional List variation. Default `'details'`. |
 | `dayMode(m)` | `MaybeRefOrGetter<'single' \| 'multiDay'>` | One fixed day or a width-aware 1–7-day surface. Default `'single'`. |
 | `timeGridOrientation(o)` | `MaybeRefOrGetter<'vertical' \| 'horizontal'>` | Week / work week / day with days as columns (default) or as rows on one horizontal time axis — [Days as rows](./day-view.md#days-as-rows-horizontal-orientation). Window, paging and hooks are the same. |
+| `dayLabelWidth(px)` | `MaybeRefOrGetter<number>` | Days as rows: width of the sticky day column (day header + all-day chips). Default `132`, at least `48`. |
 | `timeRange(r)` | `MaybeRefOrGetter<{ startMinutes: number; endMinutes: number }>` | Day / week visible hour range, in minutes from midnight. |
 | `slotDuration(d)` | `MaybeRefOrGetter<number>` | Time-grid slot subdivision (minutes). Default `30`. |
 | `pixelsPerHour(p)` | `MaybeRefOrGetter<number>` | Time-grid row height. Default `60`. |

@@ -150,7 +150,8 @@ Mi., 21.  │         [ Meeting    ]        [ Entwicklung ]
 
 <preview path="./demos/WeekViewRows.vue" />
 
-- **Axis.** `pixelsPerHour` sets the horizontal density; a range narrower than the container is stretched to its width. The hour header sticks to the top, the day column to the left, and the grid scrolls on both axes inside its own scroller — give it a sized parent (inside `<CoarCalendar>` it fills the body).
+- **Axis.** `pixelsPerHour` sets the horizontal density; a range narrower than the container is stretched to its width (a small value such as `30` always fills the width). The hour header sticks to the top, the day column to the left, and the grid scrolls on both axes inside its own scroller — give it a sized parent (inside `<CoarCalendar>` it fills the body). The end of the axis gets its hour label left of the line when the hour is wide enough, none otherwise — a stretched axis never overflows.
+- **Day column.** `builder.dayLabelWidth(px)` sets its width (default 132, at least 48); the time axis gets the rest. A day without all-day chips gives the `#dayHeader` slot (or `dayHeaderRenderer`) the row's whole height, room for two lines such as weekday and day total; with chips the header keeps one 20 px line above them.
 - **Overlaps** become lanes stacked downwards; a row grows with its lanes, nothing is covered. A timed event over midnight shows as one segment in each of its rows, as in the vertical grid.
 - **All-day events** are chips in the day cell of every day they cover — click / double-click reach `onEventClick` / `onEventDoubleClick`; they are not draggable here.
 - **Hooks** as in the vertical grid: `onTimeClick` / `onTimeDoubleClick` from a row's track (x → slot), `onDateClick` / `onDateDoubleClick` from the day cell, `onEventClick` / `onEventDoubleClick` / hover from the cards. Touch goes through the same tap gate.
@@ -185,6 +186,7 @@ Full reference: see [the composer's API reference](/components/calendar/coar-cal
 | `slotDuration(d)` | `MaybeRefOrGetter<number>` | `30` | Slot subdivision (minutes). Also the snap step when dragging. |
 | `pixelsPerHour(p)` | `MaybeRefOrGetter<number>` | `60` | Density along the time axis. `60` = 30 px per 30-min slot. |
 | `timeGridOrientation(o)` | `MaybeRefOrGetter<'vertical' \| 'horizontal'>` | `'vertical'` | Days as columns, or as rows on a horizontal time axis — see "Days as rows". |
+| `dayLabelWidth(px)` | `MaybeRefOrGetter<number>` | `132` | Days as rows: width of the sticky day column. |
 | `timeRangeSelect(b)` / `onTimeRangeSelect(fn)` | `MaybeRefOrGetter<boolean>` / handler | `false` | Select time ranges by dragging, clicking or a long press — see [Selecting time](/components/calendar/time-selection). |
 | `hoverIndicator(b)`, `draft(d)`, `backgrounds(fn)` | — | off / `null` / — | Time under the mouse, a host draft above the events, per-day bands — same page. |
 | `eventRenderer(r)` | `EventRenderer<TMeta>` | — | Universal renderer. Branch on `ctx.layout?.kind === 'positioned'` (timed cards) vs `'allDayBar'` (all-day band). |

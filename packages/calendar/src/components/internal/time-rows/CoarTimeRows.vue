@@ -98,6 +98,7 @@ const state = computed(() => {
     eventRenderer: s.eventRenderer,
     eventTextContrast: toValue(s.eventTextContrast),
     shadeWeekends: toValue(s.shadeWeekends),
+    dayLabelWidth: toValue(s.dayLabelWidth),
     dayHeaderRenderer: s.dayHeaderRenderer,
     dstPolicy: toValue(s.dstPolicy),
   };
@@ -129,8 +130,8 @@ const {
 
 // ─── Geometry ────────────────────────────────────────────────────────
 
-/** Width of the sticky label column (day header + all-day chips), px. */
-const LABEL_WIDTH_PX = 132;
+/** Width of the sticky label column (day header + all-day chips), px — `builder.dayLabelWidth`. */
+const labelWidthPx = computed(() => Math.max(48, Math.round(state.value.dayLabelWidth)));
 const HEADER_HEIGHT_PX = 28;
 const CHIP_HEIGHT_PX = 18;
 const CHIP_GAP_PX = 2;
@@ -165,12 +166,24 @@ const pxPerMin = computed(() =>
   timeRowsPxPerMinute(
     state.value.pixelsPerHour,
     totalHours.value,
-    scrollerWidthPx.value - LABEL_WIDTH_PX,
+    scrollerWidthPx.value - labelWidthPx.value,
   ),
 );
 const trackWidthPx = computed(() => totalHours.value * 60 * pxPerMin.value);
 const slotWidthPx = computed(() => slotDuration.value * pxPerMin.value);
 const hourWidthPx = computed(() => 60 * pxPerMin.value);
+
+/**
+ * Below this hour width the label of the axis' end (right-aligned, left
+ * of its line) would run into the one before it: it is left out.
+ */
+const LAST_LABEL_MIN_HOUR_PX = 110;
+/** Hour labels of the header; the end label only where it fits. */
+const axisHourLabels = computed(() =>
+  hourWidthPx.value >= LAST_LABEL_MIN_HOUR_PX
+    ? hourLabels.value
+    : hourLabels.value.filter((entry) => entry.hour !== timeRange.value[1]),
+);
 
 function minutesToX(min: number): number {
   return min * pxPerMin.value;
@@ -212,15 +225,21 @@ const timedAxis: TimedAxisAdapter = {
     const body = bodyRef.value;
     const ppm = pxPerMin.value;
     if (!body || ppm <= 0) return 0;
-    return (clientX - body.getBoundingClientRect().left - LABEL_WIDTH_PX) / ppm;
+    return (clientX - body.getBoundingClientRect().left - labelWidthPx.value) / ppm;
   },
   locate(clientX, clientY) {
     const body = bodyRef.value;
     if (!body) return null;
     const rect = body.getBoundingClientRect();
-    const index = rowIndexAtY(rows.value, clientY - rect.top);
+    // The rendered body may end a fraction of a pixel below the summed
+    // row heights: its last line still belongs to the last row.
+    const y = clientY - rect.top;
+    const index = rowIndexAtY(
+      rows.value,
+      y >= layout.value.totalHeightPx && y <= rect.height ? layout.value.totalHeightPx - 0.5 : y,
+    );
     if (index === null) return null;
-    const x = clientX - rect.left - LABEL_WIDTH_PX;
+    const x = clientX - rect.left - labelWidthPx.value;
     const ppm = pxPerMin.value;
     if (ppm <= 0) return null;
     return { day: rows.value[index].date, minutesFromGridStart: Math.max(0, x / ppm) };
@@ -297,7 +316,7 @@ const axisMark = computed(() =>
 const hoverLineLeftPx = computed(() =>
   selection.hoverMinute.value === null
     ? null
-    : LABEL_WIDTH_PX + minuteOfDayToPx(selection.hoverMinute.value),
+    : labelWidthPx.value + minuteOfDayToPx(selection.hoverMinute.value),
 );
 /** The label column is not part of the time axis: no hover there. */
 function onBodyPointermove(e: PointerEvent) {
@@ -450,7 +469,7 @@ defineExpose({
       },
     ]"
     :style="{
-      '--coar-time-rows-label-width': LABEL_WIDTH_PX + 'px',
+      '--coar-time-rows-label-width': labelWidthPx + 'px',
       '--coar-time-rows-header-height': HEADER_HEIGHT_PX + 'px',
     }"
     role="region"
@@ -466,15 +485,16 @@ defineExpose({
       {{ a11y.message.value }}
     </div>
     <div ref="scroller" class="coar-time-rows__scroller">
-      <div class="coar-time-rows__canvas" :style="{ width: LABEL_WIDTH_PX + trackWidthPx + 'px' }">
+      <div class="coar-time-rows__canvas" :style="{ width: labelWidthPx + trackWidthPx + 'px' }">
         <!-- Hour header: sticky top; its corner sticks left as well. -->
         <div class="coar-time-rows__header" aria-hidden="true">
           <div class="coar-time-rows__corner" />
           <div class="coar-time-rows__hours" :style="{ width: trackWidthPx + 'px' }">
             <div
-              v-for="entry in hourLabels"
+              v-for="entry in axisHourLabels"
               :key="entry.hour"
               class="coar-time-rows__hour-label"
+              :class="{ 'coar-time-rows__hour-label--last': entry.hour === timeRange[1] }"
               :data-hour="entry.hour"
               :style="{ left: minutesToX((entry.hour - timeRange[0]) * 60) + 'px' }"
             >
@@ -510,7 +530,10 @@ defineExpose({
               @pointerdown="onLabelPointerdown($event, row.date)"
               @dblclick="onLabelDblclick($event, row.date)"
             >
-              <div class="coar-time-rows__day">
+              <div
+                class="coar-time-rows__day"
+                :class="{ 'coar-time-rows__day--fill': chipsFor(row.date).length === 0 }"
+              >
                 <slot
                   v-if="slots.dayHeader"
                   name="dayHeader"
@@ -685,6 +708,7 @@ defineExpose({
                 layer="above"
                 orientation="horizontal"
                 :to-px="minuteOfDayToPx"
+                :extent-px="trackWidthPx"
               />
               <CoarTimeSelectionLayer
                 orientation="horizontal"
@@ -758,6 +782,9 @@ defineExpose({
   left: 0;
   z-index: 2;
   flex: 0 0 var(--coar-time-rows-label-width);
+  /* Border inside the width, like the label cells: the hour labels line
+     up with the tracks and the header does not overflow by a pixel. */
+  box-sizing: border-box;
   background: var(--coar-calendar-bg, #fff);
   border-right: 1px solid var(--coar-calendar-border, #d1d5db);
 }
@@ -772,6 +799,11 @@ defineExpose({
   font-size: var(--coar-font-size-xs, 11px);
   color: var(--coar-text-subtle, #6c7280);
   white-space: nowrap;
+}
+/* The last hour line is the axis' right edge: its label sits left of it,
+   so a stretched axis does not overflow the scroller. */
+.coar-time-rows__hour-label--last {
+  transform: translateX(calc(-100% - 4px));
 }
 
 /* ── Rows ────────────────────────────────────────────────────── */
@@ -794,13 +826,24 @@ defineExpose({
   background: var(--coar-calendar-bg, #fff);
   border-right: 1px solid var(--coar-calendar-border, #d1d5db);
   cursor: pointer;
+  display: flex;
+  flex-direction: column;
 }
 .coar-time-rows__day {
-  height: 20px;
+  flex: 0 0 20px;
+  min-height: 20px;
   display: flex;
   align-items: center;
+  min-width: 0;
+}
+/* Without all-day chips the day header gets the row's whole height
+   (a `#dayHeader` slot with two lines, a button filling the cell). */
+.coar-time-rows__day--fill {
+  flex: 1 1 auto;
+  align-items: stretch;
 }
 .coar-time-rows__day-label {
+  line-height: 20px;
   font-size: var(--coar-font-size-sm, 13px);
   font-weight: 600;
   color: var(--coar-text-base, #1a1c1f);
