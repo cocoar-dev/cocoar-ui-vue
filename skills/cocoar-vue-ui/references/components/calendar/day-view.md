@@ -304,6 +304,10 @@ Week and Work week are fixed presets and ignore `timeGridRange`; `null` restores
 
 ## Days as rows (horizontal orientation)
 
+> **Warning: Preview — new in 3.2**
+>
+> The horizontal orientation is new in 3.2 and still a Preview: the API may change before it loses this mark. It already runs in production apps; feedback is welcome.
+
 `builder.timeGridOrientation('horizontal')` turns Day, Multi-day, Week and Work week by 90°: **one row per day, time running left → right** on one shared axis. It is a presentation knob like `dayMode` — the window, paging, `onRangeChange`, the loaders and every hook stay the same — and suits time tracking, shifts and attendance, where start, end and gaps of several days are compared at a glance.
 
 ```ts

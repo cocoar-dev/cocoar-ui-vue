@@ -2,7 +2,11 @@
 description: "Time grids — select time ranges by dragging or clicking, a selection policy for what a click picks, a hover time indicator, a host-driven draft and per-day background bands"
 ---
 
-# Selecting time, drafts & bands <Badge type="tip" text="3.2" />
+# Selecting time, drafts & bands <Badge type="warning" text="Preview" />
+
+::: warning Preview — new in 3.2
+Everything on this page is new in 3.2 and still a Preview: the API may change before it loses this mark. It already runs in production apps; feedback is welcome.
+:::
 
 Four opt-in features for Week, Work week and Day, in both [orientations](/components/calendar/day-view#days-as-rows-horizontal-orientation). Together they let a booking or scheduling screen work directly on the calendar: pick a range, see what a click will pick, keep the range of an open form visible, and show the working-time rules of each day behind the events.
 

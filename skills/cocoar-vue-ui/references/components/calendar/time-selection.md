@@ -1,6 +1,10 @@
 <!-- Generated from apps/docs/components/calendar/time-selection.md by apps/docs/scripts/sync-skill.mjs. Do not edit; edit the docs page. -->
 
-# Selecting time, drafts & bands (3.2)
+# Selecting time, drafts & bands (Preview)
+
+> **Warning: Preview — new in 3.2**
+>
+> Everything on this page is new in 3.2 and still a Preview: the API may change before it loses this mark. It already runs in production apps; feedback is welcome.
 
 Four opt-in features for Week, Work week and Day, in both [orientations](./day-view.md#days-as-rows-horizontal-orientation). Together they let a booking or scheduling screen work directly on the calendar: pick a range, see what a click will pick, keep the range of an open form visible, and show the working-time rules of each day behind the events.
 

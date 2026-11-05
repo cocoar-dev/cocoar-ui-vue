@@ -50,6 +50,10 @@ The Week view shares its builder type, `CalendarBuilder`, with the [Day view](/c
 
 ## Days as rows
 
+::: warning Preview — new in 3.2
+The horizontal orientation is new in 3.2 and still a Preview: the API may change before it loses this mark. It already runs in production apps; feedback is welcome.
+:::
+
 `builder.timeGridOrientation('horizontal')` lays the week out with one row per day and time running left → right — for time tracking, shifts and attendance. Window, paging, hooks and drag & drop stay the same; see [Days as rows](/components/calendar/day-view#days-as-rows-horizontal-orientation) for the details.
 
 <preview path="./demos/WeekViewRows.vue" />

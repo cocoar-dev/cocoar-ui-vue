@@ -26,9 +26,16 @@ and Work week became one time-grid model, the header became optional
 (`hideHeader`, `api.rangeLabel`), and the builder's `locale` stopped
 defaulting to `en-US`.
 
+**New and marked Preview: booking and scheduling on the time grid.** Days
+can be rows on a horizontal time axis (`timeGridOrientation('horizontal')`),
+and the time grids can select time ranges by drag, click or long press, show
+a host draft and per-day background bands. Built for TimeBooking's booking
+week and already running there; their API may still change before the
+Preview mark goes.
+
 ### Added
 
-- **`@cocoar/vue-calendar` — days as rows: a horizontal time grid.**
+- **`@cocoar/vue-calendar` — days as rows: a horizontal time grid (Preview).**
   `builder.timeGridOrientation('horizontal')` (and
   `api.setTimeGridOrientation`) turns Day, Multi-day, Week and Work week
   by 90°: one row per day, time running left → right on one shared axis
@@ -48,7 +55,7 @@ defaulting to `en-US`.
   vertical grid's axis-free half moved into `useTimeGridPresentation` and
   the drag runtime takes a time-axis adapter; the vertical grid is
   unchanged.
-- **`@cocoar/vue-calendar` — selecting time, drafts and background bands.**
+- **`@cocoar/vue-calendar` — selecting time, drafts and background bands (Preview).**
   For booking and scheduling screens on Week, Work week and Day, in both
   orientations, all opt-in. `builder.timeRangeSelect(true)`: a mouse drag
   on free space selects a range in the day pressed (Escape cancels), a
