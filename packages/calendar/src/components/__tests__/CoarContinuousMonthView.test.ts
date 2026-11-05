@@ -409,7 +409,9 @@ describe('progressive mount', () => {
     } finally {
       vi.useRealTimers();
     }
-  });
+    // Rendering eleven months in happy-dom is CPU work: on a CI runner
+    // running every package's suite at once it exceeds the 15 s default.
+  }, 60_000);
 
   it('a section filled above the read position does not move it', async () => {
     vi.useFakeTimers({
