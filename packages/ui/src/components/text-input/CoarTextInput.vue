@@ -134,6 +134,7 @@ function onClear() {
       <!-- Single-line: the shared input shell owns box / radius / padding / states -->
       <CoarInputFrame
         v-if="!isMultiline"
+        mobile-sizing
         class="coar-text-input-frame"
         :size="size"
         :error="hasError"
@@ -199,6 +200,7 @@ function onClear() {
            grows with the rows, radius capped at the single-row pill). -->
       <CoarInputFrame
         v-else
+        mobile-sizing
         multiline
         class="coar-text-input-frame"
         :size="size"
@@ -261,9 +263,15 @@ function onClear() {
    mode). Only field-level typography + the textarea/clear specifics live here. */
 
 /* Size-specific typography */
-.coar-text-input--xs .coar-text-input-field { font-size: var(--coar-component-xs-font-size); }
-.coar-text-input--s .coar-text-input-field { font-size: var(--coar-component-s-font-size); }
-.coar-text-input--l .coar-text-input-field { font-size: var(--coar-component-l-font-size); }
+.coar-text-input--xs .coar-text-input-field {
+  font-size: max(var(--coar-component-xs-font-size), var(--coar-control-min-font-size, 0px));
+}
+.coar-text-input--s .coar-text-input-field {
+  font-size: max(var(--coar-component-s-font-size), var(--coar-control-min-font-size, 0px));
+}
+.coar-text-input--l .coar-text-input-field {
+  font-size: max(var(--coar-component-l-font-size), var(--coar-control-min-font-size, 0px));
+}
 
 /* Input Field — horizontal padding is owned by CoarInputFrame (single-line) or
    by the textarea rule below (multiline); the field itself stays flush. */
@@ -276,7 +284,7 @@ function onClear() {
   outline: none;
   background: transparent;
   font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-body-small-base-size);
+  font-size: max(var(--coar-body-small-base-size), var(--coar-control-min-font-size, 0px));
   font-weight: var(--coar-body-small-base-weight);
   color: var(--coar-text-neutral-primary);
 }
@@ -350,6 +358,8 @@ function onClear() {
   justify-content: center;
   width: auto;
   height: auto;
+  min-width: var(--coar-control-min-target-size, auto);
+  min-height: var(--coar-control-min-target-size, auto);
   padding: 0;
   border: none;
   background: transparent;
@@ -360,7 +370,7 @@ function onClear() {
     color var(--coar-duration-fast) var(--coar-ease-out),
     opacity var(--coar-duration-fast) var(--coar-ease-out);
   flex-shrink: 0;
-  opacity: 0.4;
+  opacity: var(--coar-control-clear-opacity, 0.4);
 }
 
 /* Empty state — keep the slot (no resize on first keystroke), just hide it. */

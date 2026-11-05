@@ -91,6 +91,18 @@ Preview mark goes.
   `<CoarCalendar>`) place host controls at either end of the seven-day
   strip — typically previous / next week. Both receive `WeekStripSlotScope`:
   `cursor`, `weekStart`, `weekEnd`, `goTo(date)` and `shiftWeek(n)`.
+- **`@cocoar/vue-ui` — mobile presentation (Preview).** A `coar-mobile` class
+  on `html`, `body` or any parent gives buttons, text / password / number
+  inputs, checkboxes, radios and switches touch sizes: heights 44 / 48 / 52 /
+  56 px for `xs` … `l`, 44 px action targets (clear, reveal, steppers), 48 px
+  clickable labels and at least 16 px editable text, against iOS focus zoom.
+  An explicit presentation choice, no device or viewport detection; component
+  APIs, events and `v-model` are unchanged, and without the class everything
+  keeps its desktop size. The floors are inherited tokens
+  (`--coar-control-*-height`, `--coar-control-min-target-size`, …) an app can
+  override. Overlays teleported to `body` follow only a class on `body` /
+  `html`; pickers, selects, dialogs and grids have no mobile presentation
+  yet. New "Mobile presentation" guide.
 - **An Agent Skill, generated from the docs.** `@cocoar/vue-ui` ships
   `skills/cocoar-vue-ui/`: a `SKILL.md` with the package table and the
   mistakes an assistant makes without the docs, plus every documentation page

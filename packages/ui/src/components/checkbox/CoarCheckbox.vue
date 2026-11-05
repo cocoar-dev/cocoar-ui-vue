@@ -217,29 +217,30 @@ onBeforeUnmount(() => {
 .coar-checkbox-wrapper {
   box-sizing: border-box;
   display: inline-flex;
-  align-items: flex-start;
+  align-items: var(--coar-control-align-items, flex-start);
   gap: var(--coar-spacing-s);
   cursor: pointer;
   user-select: none;
   position: relative;
-  min-height: 32px;
+  min-height: max(32px, var(--coar-control-min-size, 0px));
+  min-width: var(--coar-control-min-size, auto);
   padding-block: 6px;
 }
 
 .coar-checkbox--xs .coar-checkbox-wrapper {
-  min-height: 24px;
+  min-height: max(24px, var(--coar-control-min-size, 0px));
   padding-block: 5px;
   gap: var(--coar-spacing-xs);
 }
 
 .coar-checkbox--s .coar-checkbox-wrapper {
-  min-height: 28px;
+  min-height: max(28px, var(--coar-control-min-size, 0px));
   padding-block: 6px;
   gap: var(--coar-spacing-xs);
 }
 
 .coar-checkbox--l .coar-checkbox-wrapper {
-  min-height: 40px;
+  min-height: max(40px, var(--coar-control-min-size, 0px));
   padding-block: var(--coar-spacing-s);
   gap: var(--coar-spacing-s);
 }
@@ -426,22 +427,22 @@ onBeforeUnmount(() => {
 /* Label */
 .coar-checkbox-label {
   font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-component-m-font-size);
+  font-size: max(var(--coar-component-m-font-size), var(--coar-control-min-font-size, 0px));
   font-weight: var(--coar-body-small-base-weight);
   line-height: 1.4;
   color: var(--coar-text-neutral-primary);
 }
 
 .coar-checkbox--xs .coar-checkbox-label {
-  font-size: var(--coar-component-xs-font-size);
+  font-size: max(var(--coar-component-xs-font-size), var(--coar-control-min-font-size, 0px));
 }
 
 .coar-checkbox--s .coar-checkbox-label {
-  font-size: var(--coar-component-s-font-size);
+  font-size: max(var(--coar-component-s-font-size), var(--coar-control-min-font-size, 0px));
 }
 
 .coar-checkbox--l .coar-checkbox-label {
-  font-size: var(--coar-component-l-font-size);
+  font-size: max(var(--coar-component-l-font-size), var(--coar-control-min-font-size, 0px));
 }
 
 .coar-checkbox--disabled .coar-checkbox-label {

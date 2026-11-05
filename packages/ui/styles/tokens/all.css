@@ -40,3 +40,6 @@
 @import './select-overlay.css';
 @import './tooltip.css';
 @import './new-components.css';
+
+/* 8. Optional mobile presentation (inherited from .coar-mobile) */
+@import './mobile.css';

@@ -121,6 +121,7 @@ function togglePasswordVisibility() {
     <div class="coar-password-input-wrapper">
       <!-- Single-line input shell owns box / radius / padding / states -->
       <CoarInputFrame
+        mobile-sizing
         class="coar-password-input-frame"
         :size="size"
         :error="hasError"
@@ -193,9 +194,15 @@ function togglePasswordVisibility() {
 /* Box / radius / size / states owned by CoarInputFrame. */
 
 /* Size-specific typography */
-.coar-password-input--xs .coar-password-input-field { font-size: var(--coar-component-xs-font-size); }
-.coar-password-input--s .coar-password-input-field { font-size: var(--coar-component-s-font-size); }
-.coar-password-input--l .coar-password-input-field { font-size: var(--coar-component-l-font-size); }
+.coar-password-input--xs .coar-password-input-field {
+  font-size: max(var(--coar-component-xs-font-size), var(--coar-control-min-font-size, 0px));
+}
+.coar-password-input--s .coar-password-input-field {
+  font-size: max(var(--coar-component-s-font-size), var(--coar-control-min-font-size, 0px));
+}
+.coar-password-input--l .coar-password-input-field {
+  font-size: max(var(--coar-component-l-font-size), var(--coar-control-min-font-size, 0px));
+}
 
 /* Input Field — horizontal padding owned by the frame. */
 .coar-password-input-field {
@@ -207,7 +214,7 @@ function togglePasswordVisibility() {
   outline: none;
   background: transparent;
   font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-body-small-base-size);
+  font-size: max(var(--coar-body-small-base-size), var(--coar-control-min-font-size, 0px));
   font-weight: var(--coar-body-small-base-weight);
   color: var(--coar-text-neutral-primary);
 }
@@ -223,6 +230,8 @@ function togglePasswordVisibility() {
   justify-content: center;
   width: auto;
   height: auto;
+  min-width: var(--coar-control-min-target-size, auto);
+  min-height: var(--coar-control-min-target-size, auto);
   padding: 0;
   border: none;
   background: transparent;
@@ -233,7 +242,7 @@ function togglePasswordVisibility() {
     color var(--coar-duration-fast) var(--coar-ease-out),
     opacity var(--coar-duration-fast) var(--coar-ease-out);
   flex-shrink: 0;
-  opacity: 0.4;
+  opacity: var(--coar-control-clear-opacity, 0.4);
 }
 
 /* Empty state — keep the slot (no resize on first keystroke), just hide it. */
@@ -260,6 +269,8 @@ function togglePasswordVisibility() {
    provides the outer field-pad, so the button itself stays flush. */
 .coar-password-input-toggle {
   display: flex;
+  min-width: var(--coar-control-min-target-size, auto);
+  min-height: var(--coar-control-min-target-size, auto);
   align-items: center;
   justify-content: center;
   padding: 0;

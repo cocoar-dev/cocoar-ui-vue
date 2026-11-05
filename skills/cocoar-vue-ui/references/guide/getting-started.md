@@ -46,6 +46,12 @@ Toggle dark mode by adding the `.dark-mode` class to the root element. All desig
 document.documentElement.classList.toggle('dark-mode', isDark);
 ```
 
+## Mobile Presentation
+
+Add `coar-mobile` to `body` or a local parent for touch-sized buttons and standard
+inputs. The existing component APIs stay unchanged. See [Mobile presentation](./mobile.md)
+for the supported controls, sizing floors, and overlay scope limitations.
+
 ## 5. Overlay System
 
 For components that render overlays (Dialog, Toast, Popover, Tooltip), register the plugin once:

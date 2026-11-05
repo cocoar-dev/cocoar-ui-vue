@@ -1,0 +1,17 @@
+/**
+ * Explicit mobile presentation. Apply to html, body or a local parent.
+ * These inherited floors are consumed by supported controls only; desktop size
+ * tokens and input methods remain unchanged. No viewport/device detection.
+ */
+.coar-mobile {
+  --coar-control-xs-height: 44px;
+  --coar-control-s-height: 48px;
+  --coar-control-m-height: 52px;
+  --coar-control-l-height: 56px;
+  /* Label-based controls keep a generous target without enlarging indicators. */
+  --coar-control-min-size: 48px;
+  --coar-control-min-font-size: 16px;
+  --coar-control-min-target-size: 44px;
+  --coar-control-clear-opacity: 1;
+  --coar-control-align-items: center;
+}
