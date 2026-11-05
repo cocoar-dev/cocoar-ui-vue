@@ -373,70 +373,79 @@ describe('progressive mount', () => {
   const nextTask = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
   it('renders the month in view and the next one first, the rest one task at a time', async () => {
-    const wrapper = mount(CoarContinuousMonthView, { props: { builder: builder() } });
-    // Synchronous mount: two real grids, eleven placeholders.
-    expect(grid(wrapper, '2026-06')).toBe(true);
-    expect(grid(wrapper, '2026-07')).toBe(true);
-    expect(placeholder(wrapper, '2026-05')).toBe(true);
-    expect(placeholder(wrapper, '2026-12')).toBe(true);
-    expect(wrapper.findAll('.coar-continuous-month-view__placeholder')).toHaveLength(11);
-    // A placeholder keeps the section's title and an estimated height.
-    expect(wrapper.find('[data-month-key="2026-05"] h2').text()).toContain('2026');
-    expect(
-      wrapper
-        .find('[data-month-key="2026-05"] .coar-continuous-month-view__placeholder')
-        .attributes('style'),
-    ).toMatch(/height: \d+px/);
+    // Driven by fake timers, task by task: real time made this depend on
+    // how loaded the machine was (a CI runner needs over a second per month).
+    vi.useFakeTimers({
+      toFake: ['setTimeout', 'clearTimeout', 'requestAnimationFrame', 'cancelAnimationFrame'],
+    });
+    try {
+      const wrapper = mount(CoarContinuousMonthView, { props: { builder: builder() } });
+      const pending = () => wrapper.findAll('.coar-continuous-month-view__placeholder').length;
+      // Synchronous mount: two real grids, eleven placeholders.
+      expect(grid(wrapper, '2026-06')).toBe(true);
+      expect(grid(wrapper, '2026-07')).toBe(true);
+      expect(placeholder(wrapper, '2026-05')).toBe(true);
+      expect(placeholder(wrapper, '2026-12')).toBe(true);
+      expect(pending()).toBe(11);
+      // A placeholder keeps the section's title and an estimated height.
+      expect(wrapper.find('[data-month-key="2026-05"] h2').text()).toContain('2026');
+      expect(
+        wrapper
+          .find('[data-month-key="2026-05"] .coar-continuous-month-view__placeholder')
+          .attributes('style'),
+      ).toMatch(/height: \d+px/);
 
-    // After the first frame, one month per task — nearest first: May
-    // (July is already there) goes early, December (farthest) last. On a
-    // loaded CI runner the first frame alone can take over a second.
-    await vi.waitFor(
-      () => {
-        expect(wrapper.findAll('.coar-continuous-month-view__placeholder').length).toBeLessThan(11);
-      },
-      { timeout: 10_000 },
-    );
-    expect(grid(wrapper, '2026-05')).toBe(true);
-    expect(placeholder(wrapper, '2025-12')).toBe(true);
+      // After the first frame, one month per task — nearest first: May
+      // (July is already there) goes early, December (farthest) last.
+      for (let i = 0; i < 100 && pending() === 11; i++) await vi.advanceTimersByTimeAsync(1);
+      expect(pending()).toBe(10);
+      expect(grid(wrapper, '2026-05')).toBe(true);
+      expect(placeholder(wrapper, '2025-12')).toBe(true);
 
-    // Each month renders in its own task; under a loaded test run that
-    // takes longer than waitFor's default second.
-    await vi.waitFor(
-      () => {
-        expect(wrapper.findAll('.coar-continuous-month-view__placeholder')).toHaveLength(0);
-      },
-      { timeout: 10_000 },
-    );
-    expect(grid(wrapper, '2025-12')).toBe(true);
-    wrapper.unmount();
+      for (let i = 0; i < 1000 && pending() > 0; i++) await vi.advanceTimersByTimeAsync(1);
+      expect(pending()).toBe(0);
+      expect(grid(wrapper, '2025-12')).toBe(true);
+      wrapper.unmount();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('a section filled above the read position does not move it', async () => {
-    const wrapper = mount(CoarContinuousMonthView, {
-      props: { builder: builder() },
-      attachTo: document.body,
+    vi.useFakeTimers({
+      toFake: ['setTimeout', 'clearTimeout', 'requestAnimationFrame', 'cancelAnimationFrame'],
     });
-    await nextTick();
-    await nextTick();
-    const root = wrapper.element as HTMLElement;
-    let scrollTop = 1000;
-    Object.defineProperty(root, 'scrollTop', {
-      configurable: true,
-      get: () => scrollTop,
-      set: (value: number) => {
-        scrollTop = value;
-      },
-    });
-    // June's top moves down by 120 px once May's grid replaces its placeholder.
-    const june = wrapper.find('[data-month-key="2026-06"]').element as HTMLElement;
-    june.getBoundingClientRect = () => {
-      const top = grid(wrapper, '2026-05') ? 120 : 0;
-      return { top, bottom: top + 500, left: 0, right: 700, width: 700, height: 500 } as DOMRect;
-    };
-    await vi.waitFor(() => expect(grid(wrapper, '2026-05')).toBe(true), { timeout: 10_000 });
-    expect(root.scrollTop).toBe(1120);
-    wrapper.unmount();
+    try {
+      const wrapper = mount(CoarContinuousMonthView, {
+        props: { builder: builder() },
+        attachTo: document.body,
+      });
+      await nextTick();
+      await nextTick();
+      const root = wrapper.element as HTMLElement;
+      let scrollTop = 1000;
+      Object.defineProperty(root, 'scrollTop', {
+        configurable: true,
+        get: () => scrollTop,
+        set: (value: number) => {
+          scrollTop = value;
+        },
+      });
+      // June's top moves down by 120 px once May's grid replaces its placeholder.
+      const june = wrapper.find('[data-month-key="2026-06"]').element as HTMLElement;
+      june.getBoundingClientRect = () => {
+        const top = grid(wrapper, '2026-05') ? 120 : 0;
+        return { top, bottom: top + 500, left: 0, right: 700, width: 700, height: 500 } as DOMRect;
+      };
+      for (let k = 0; k < 100 && !grid(wrapper, '2026-05'); k++) {
+        await vi.advanceTimersByTimeAsync(1);
+      }
+      expect(grid(wrapper, '2026-05')).toBe(true);
+      expect(root.scrollTop).toBe(1120);
+      wrapper.unmount();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('stops filling once unmounted', async () => {
