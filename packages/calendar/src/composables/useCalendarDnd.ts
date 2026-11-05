@@ -36,6 +36,7 @@ import {
 export type { DstPolicy, DstDisambiguation } from '../core/dnd/move-math';
 export { buildDropPayload } from '../core/dnd/move-math';
 import { useCoarDrag } from './useCoarDrag';
+import { afterFollowingClick } from './surfaceTap';
 
 /**
  * Pin the pointer cursor for the entire duration of a drag.
@@ -67,11 +68,14 @@ function setGlobalDragCursor(cursor: string | null): void {
   dragCursorStyleEl.textContent = `*, *::before, *::after { cursor: ${cursor} !important; }`;
 }
 
-function cursorForMode(mode: CalendarDragMode | null): string | null {
+function cursorForMode(
+  mode: CalendarDragMode | null,
+  timedAxis: 'vertical' | 'horizontal' = 'vertical',
+): string | null {
   switch (mode) {
     case 'timed-resize-start':
     case 'timed-resize-end':
-      return 'ns-resize';
+      return timedAxis === 'horizontal' ? 'ew-resize' : 'ns-resize';
     case 'allDay-resize-start':
     case 'allDay-resize-end':
     case 'month-resize-start':
@@ -99,6 +103,81 @@ function cursorForMode(mode: CalendarDragMode | null): string | null {
  * pointer is.
  */
 export type { CalendarDropTarget };
+
+/** Where a client point falls on a time grid, before snapping. */
+export interface TimedAxisLocation {
+  day: Temporal.PlainDate;
+  /** Minutes from the start of the time range (unsnapped, ≥ 0). */
+  minutesFromGridStart: number;
+}
+
+/**
+ * Time-axis strategy for timed drags (see `UseCalendarDndOptions.timedAxis`).
+ * The default — no adapter — is the vertical grid.
+ */
+export interface TimedAxisAdapter {
+  /** `'horizontal'`: time runs along x (grab offset from the card's left edge, `ew-resize`). */
+  orientation: 'vertical' | 'horizontal';
+  /** Day and minutes under a client point, or `null` off the grid. */
+  locate(clientX: number, clientY: number): TimedAxisLocation | null;
+  /** Pixels per minute along the time axis, as rendered. */
+  pixelsPerMinute(): number;
+  /**
+   * Minutes from the start of the time range at a client point, read
+   * along the time axis only (the other coordinate is ignored), not
+   * clamped. Lets a gesture keep its day while the pointer drifts
+   * across the day axis (time-range selection).
+   */
+  minutesAt?(clientX: number, clientY: number): number;
+}
+
+export interface VerticalTimedAxisOptions {
+  /** The day-columns container (`.coar-time-grid__columns`). */
+  columnsRef?: Ref<HTMLElement | null>;
+  /** One date per column, left to right. */
+  days?: ComputedRef<ReadonlyArray<Temporal.PlainDate>> | Ref<ReadonlyArray<Temporal.PlainDate>>;
+  pixelsPerHour?: ComputedRef<number> | Ref<number>;
+  /** Render buffer (minutes) above the first hour of the columns. */
+  topBufferMinutes?: ComputedRef<number> | Ref<number>;
+}
+
+/**
+ * The vertical time grid's axis (days as columns): x picks the day
+ * column, y the minutes below the render buffer. The default hit-test
+ * of `useCalendarDnd`; `<CoarTimeGrid>` shares one instance between
+ * drag & drop and time-range selection.
+ */
+export function createVerticalTimedAxis(opts: VerticalTimedAxisOptions): TimedAxisAdapter {
+  const pxPerMin = () => (opts.pixelsPerHour?.value ?? 60) / 60;
+  function minutesAt(_clientX: number, clientY: number): number {
+    const cols = opts.columnsRef?.value;
+    if (!cols) return 0;
+    const localY = clientY - cols.getBoundingClientRect().top;
+    // Subtract the time-grid's render buffer so a point in the visual
+    // padding above the first hour maps before the range start.
+    return localY / pxPerMin() - (opts.topBufferMinutes?.value ?? 0);
+  }
+  return {
+    orientation: 'vertical',
+    pixelsPerMinute: pxPerMin,
+    minutesAt,
+    locate(clientX, clientY) {
+      const cols = opts.columnsRef?.value;
+      if (!cols) return null;
+      const rect = cols.getBoundingClientRect();
+      const localX = clientX - rect.left;
+      const localY = clientY - rect.top;
+      if (localX < 0 || localX >= rect.width || localY < 0) return null;
+      const days = opts.days?.value;
+      if (!days || days.length === 0) return null;
+      const colWidth = rect.width / days.length;
+      const dayIndex = Math.min(days.length - 1, Math.max(0, Math.floor(localX / colWidth)));
+      // `clamp` to 0 so points in the buffer zone still resolve
+      // cleanly to the boundary minute.
+      return { day: days[dayIndex], minutesFromGridStart: Math.max(0, minutesAt(clientX, clientY)) };
+    },
+  };
+}
 
 export interface UseCalendarDndOptions<
   TMeta extends Record<string, unknown> = Record<string, unknown>,
@@ -172,6 +251,15 @@ export interface UseCalendarDndOptions<
    * `RENDER_BUFFER_MINUTES` the time-grid uses.
    */
   timeGridTopBufferMinutes?: ComputedRef<number> | Ref<number>;
+  /**
+   * Hit-test for timed drags along a time axis other than the default
+   * vertical one. Without it, `columnsRef` is the frame: x picks the
+   * day column, y the minutes. The horizontal time grid (days as rows)
+   * passes its own: y picks the row, x the minutes. Snapping to
+   * `slotDuration`, the grab offset and the `timeRange` clamp stay
+   * shared.
+   */
+  timedAxis?: TimedAxisAdapter;
   /**
    * Pointer-distance threshold (px) below which a pointerup is
    * treated as a click instead of a drop. Default 5. Forwarded to
@@ -324,26 +412,18 @@ export function useCalendarDnd<TMeta extends Record<string, unknown> = Record<st
   let grabOffsetMinutes = 0;
   let grabOffsetCols = 0;
 
+  /** Default (vertical) time axis: x → day column, y → minutes. */
+  const verticalAxis = createVerticalTimedAxis({
+    columnsRef: opts.columnsRef,
+    days: opts.days,
+    pixelsPerHour: opts.pixelsPerHour,
+    topBufferMinutes: opts.timeGridTopBufferMinutes,
+  });
+
   function pointToSlot(clientX: number, clientY: number): CalendarDropTarget | null {
-    const cols = opts.columnsRef?.value;
-    if (!cols) return null;
-    const rect = cols.getBoundingClientRect();
-    const localX = clientX - rect.left;
-    const localY = clientY - rect.top;
-    if (localX < 0 || localX >= rect.width || localY < 0) return null;
-    const days = opts.days?.value;
-    if (!days || days.length === 0) return null;
-    const colWidth = rect.width / days.length;
-    const dayIndex = Math.min(days.length - 1, Math.max(0, Math.floor(localX / colWidth)));
-    const day = days[dayIndex];
-    const pxPerHour = opts.pixelsPerHour?.value ?? 60;
-    const pxPerMin = pxPerHour / 60;
-    // Subtract the time-grid's render buffer so a click in the
-    // visual padding above the first hour doesn't snap to a
-    // negative time. `clamp` to 0 so clicks in the buffer zone
-    // still resolve cleanly to the boundary minute.
-    const topBuffer = opts.timeGridTopBufferMinutes?.value ?? 0;
-    const minutesFromGridStart = Math.max(0, localY / pxPerMin - topBuffer);
+    const loc = (opts.timedAxis ?? verticalAxis).locate(clientX, clientY);
+    if (!loc) return null;
+    const { day, minutesFromGridStart } = loc;
     const slot = opts.slotDuration?.value ?? 30;
     const startHour = opts.timeRange?.value[0] ?? 0;
     const endHour = opts.timeRange?.value[1] ?? 24;
@@ -605,8 +685,17 @@ export function useCalendarDnd<TMeta extends Record<string, unknown> = Record<st
           runSnapBack = true;
         }
       } else {
-        // No movement past threshold → treat as click.
-        opts.onEventClick?.(ctx.data, lastNativeEvent);
+        // No movement past threshold → treat as click. On touch / pen
+        // only after the click the browser sends for the tap: acting on
+        // this pointerup let that click land on whatever the handler
+        // opened (a sheet's backdrop) and close it again.
+        const native = lastNativeEvent;
+        const fire = () => opts.onEventClick?.(ctx.data, native);
+        if (native?.pointerType === 'touch' || native?.pointerType === 'pen') {
+          afterFollowingClick(fire);
+        } else {
+          fire();
+        }
       }
       grabOffsetMinutes = 0;
       grabOffsetCols = 0;
@@ -639,9 +728,12 @@ export function useCalendarDnd<TMeta extends Record<string, unknown> = Record<st
       const card = e.currentTarget as HTMLElement | null;
       if (card) {
         const r = card.getBoundingClientRect();
-        const pxPerHour = opts.pixelsPerHour?.value ?? 60;
-        const pxPerMin = pxPerHour / 60;
-        grabOffsetMinutes = pxPerMin > 0 ? (e.clientY - r.top) / pxPerMin : 0;
+        const axis = opts.timedAxis;
+        const pxPerMin = axis ? axis.pixelsPerMinute() : (opts.pixelsPerHour?.value ?? 60) / 60;
+        // Along the time axis: below the top edge (vertical) or right
+        // of the left edge (horizontal).
+        const along = axis?.orientation === 'horizontal' ? e.clientX - r.left : e.clientY - r.top;
+        grabOffsetMinutes = pxPerMin > 0 ? along / pxPerMin : 0;
       } else {
         grabOffsetMinutes = 0;
       }
@@ -783,7 +875,10 @@ export function useCalendarDnd<TMeta extends Record<string, unknown> = Record<st
   // which is jarring mid-drag.
   watch(
     () => drag.isDragging.value,
-    (active) => setGlobalDragCursor(active ? cursorForMode(dragMode.value) : null),
+    (active) =>
+      setGlobalDragCursor(
+        active ? cursorForMode(dragMode.value, opts.timedAxis?.orientation) : null,
+      ),
   );
 
   return {

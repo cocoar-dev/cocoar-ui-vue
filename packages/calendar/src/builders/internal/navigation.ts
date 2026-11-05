@@ -11,6 +11,7 @@
 import { isRef, toValue, type Ref } from 'vue';
 import {
   type CalendarDayMode,
+  type CalendarTimeGridOrientation,
   type CalendarMonthDensity,
   type CalendarView,
   type ViewWindow,
@@ -40,7 +41,7 @@ type NavigationState = Pick<
   | 'timelineRangeDays'
   | 'availableViews'
   | 'monthDensity'
-  | 'dayMode'
+  | 'timeGridOrientation'
 >;
 
 export function goToToday(state: NavigationState): void {
@@ -107,13 +108,20 @@ export function setDayMode(state: NavigationState, value: CalendarDayMode): void
   writePresentationKnob(state, 'dayMode', value, 'setDayMode');
 }
 
+export function setTimeGridOrientation(
+  state: NavigationState,
+  value: CalendarTimeGridOrientation,
+): void {
+  writePresentationKnob(state, 'timeGridOrientation', value, 'setTimeGridOrientation');
+}
+
 /**
- * `monthDensity` / `dayMode` are `MaybeRefOrGetter` config, yet the
+ * `monthDensity` / `dayMode` / `timeGridOrientation` are `MaybeRefOrGetter` config, yet the
  * shell's display controls write them. A bound Ref is written
  * through (two-way), a plain value is replaced, a getter cannot be
  * written and dev-warns.
  */
-function writePresentationKnob<K extends 'monthDensity' | 'dayMode'>(
+function writePresentationKnob<K extends 'monthDensity' | 'dayMode' | 'timeGridOrientation'>(
   state: NavigationState,
   key: K,
   value: NavigationState[K] extends infer T ? (T extends Ref<infer V> ? V : never) : never,

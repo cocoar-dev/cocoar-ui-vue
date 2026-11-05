@@ -270,6 +270,15 @@ export type CalendarMonthDensity = 'compact' | 'stacked' | 'details';
 export type CalendarDayMode = 'single' | 'multiDay';
 
 /**
+ * Orientation of the time-grid views (`week`, `workWeek`, `day`).
+ * `vertical`: days as columns, time running down (default).
+ * `horizontal`: days as rows, time running left → right on one shared
+ * axis. A presentation knob like `monthDensity` / `dayMode`: the view's
+ * window, paging and hooks are the same in both orientations.
+ */
+export type CalendarTimeGridOrientation = 'vertical' | 'horizontal';
+
+/**
  * A visible date range bounded to a single view mode.
  *
  * `start` is inclusive, `end` is exclusive. Both are ISO-8601

@@ -12,7 +12,7 @@ jobs:
   build-and-publish-stable:
     name: Lint, Test, Build & Publish Stable
     if: github.event.release.target_commitish == 'develop'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
       contents: read
@@ -154,7 +154,7 @@ jobs:
   deploy-docs:
     name: Deploy Documentation
     needs: build-and-publish-stable
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
 

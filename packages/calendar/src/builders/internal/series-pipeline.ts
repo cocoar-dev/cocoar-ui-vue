@@ -40,6 +40,14 @@ export interface SeriesPipelineDeps<TMeta extends Record<string, unknown>> {
 
 type ExpandSeriesFn = typeof import('../../recurrence/index').expandSeries;
 
+/** Main-thread budget for expanding series before yielding (ms). */
+const EXPANSION_SLICE_MS = 8;
+
+const now = (): number => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+
+/** A macrotask boundary, so input and rendering get through in between. */
+const yieldToEventLoop = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+
 export class SeriesPipeline<TMeta extends Record<string, unknown>> {
   /** Map<windowKey, expanded occurrences>. */
   readonly cache: ShallowRef<Map<string, CalendarEvent<TMeta>[]>> = shallowRef(new Map());
@@ -136,11 +144,21 @@ export class SeriesPipeline<TMeta extends Record<string, unknown>> {
         const dstPolicy = this.deps.dstPolicy();
         const engine = this.resolveEngine();
         const expandFn = await this.loadExpandSeries();
-        const expanded = await Promise.all(
-          series.map((s) => expandFn(s, expansionWindow, dstPolicy, engine)),
-        );
+        // One series after the other, yielding to the event loop once a
+        // slice of work is used up: the default engine computes
+        // synchronously, so expanding dozens of series in one go blocked
+        // the main thread for hundreds of ms on a phone.
+        const all: CalendarEvent<TMeta>[] = [];
+        let sliceStart = now();
+        for (const s of series) {
+          all.push(...(await expandFn(s, expansionWindow, dstPolicy, engine)));
+          if (now() - sliceStart >= EXPANSION_SLICE_MS) {
+            await yieldToEventLoop();
+            if (generation !== this._generation) return;
+            sliceStart = now();
+          }
+        }
         if (generation !== this._generation) return;
-        const all = expanded.flat();
         // Validate each expanded event so consumer renderers don't
         // see invalid shapes (engine bug containment).
         this.deps.validator.validate(all);

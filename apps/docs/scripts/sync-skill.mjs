@@ -212,6 +212,7 @@ const SECTIONS = [
       'components/calendar/day-view.md',
       'components/calendar/week-view.md',
       'components/calendar/work-week-view.md',
+      'components/calendar/time-selection.md',
       'components/calendar/agenda-view.md',
       'components/calendar/timeline-view.md',
       'components/calendar/performance.md',

@@ -26,7 +26,13 @@ export {
   type CalendarBuilderState,
 } from './builders/calendar-builder';
 export type {
+  BackgroundsFn,
+  CalendarBand,
+  CalendarBandLine,
+  CalendarBandRange,
   CalendarDensity,
+  CalendarDraft,
+  CalendarDraftSegment,
   CanDropFn,
   DateClickHandler,
   DateDoubleClickHandler,
@@ -47,6 +53,8 @@ export type {
   TimeClickHandler,
   TimeDoubleClickHandler,
   TimeRange,
+  TimeRangeSelectHandler,
+  TimeRangeSelectPayload,
   WeekStripSlotScope,
 } from './builders/types';
 export { getEventZoneHints, type EventZoneHints } from './builders/event-zone-hints';

@@ -75,6 +75,7 @@ import CoarMonthBar from './internal/month/CoarMonthBar.vue';
 import CoarMonthCell from './internal/month/CoarMonthCell.vue';
 import CoarMonthDayOverlay from './internal/month/CoarMonthDayOverlay.vue';
 import { originatesFromEvent } from './internal/originatesFromEvent';
+import { onSurfacePointerdown } from '../composables/surfaceTap';
 import CoarMonthRow from './internal/month/CoarMonthRow.vue';
 import CoarMonthGrid from './internal/month/CoarMonthGrid.vue';
 
@@ -331,15 +332,17 @@ const rowLaneCaps = computed<ReadonlyArray<MonthRowLaneCap<TMeta>>>(() =>
   ),
 );
 
+/** Row index + column per day key — every cell asks, once per render. */
+const rowColByDayKey = computed(() => {
+  const out = new Map<string, { rowIdx: number; col: number }>();
+  layout.value.weekRows.forEach((row, rowIdx) =>
+    row.days.forEach((d, col) => out.set(dateKey(d), { rowIdx, col })),
+  );
+  return out;
+});
 /** Row index + column of a day in the grid, or `null` off-grid. */
 function rowColOf(day: Temporal.PlainDate): { rowIdx: number; col: number } | null {
-  const key = dateKey(day);
-  const rows = layout.value.weekRows;
-  for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
-    const col = rows[rowIdx].days.findIndex((d) => dateKey(d) === key);
-    if (col >= 0) return { rowIdx, col };
-  }
-  return null;
+  return rowColByDayKey.value.get(dateKey(day)) ?? null;
 }
 function hiddenBarCountFor(day: Temporal.PlainDate): number {
   const at = rowColOf(day);
@@ -550,23 +553,46 @@ function formatCellAriaLabel(day: Temporal.PlainDate): string {
   return cellAriaFormatter.value.format(new Date(Date.UTC(day.year, day.month - 1, day.day)));
 }
 
+/**
+ * Formatters for the event labels — built once per locale / zone /
+ * style instead of once per pill and render. `null` when the options
+ * are invalid; the label then falls back to the title.
+ */
+function labelFormatter(options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat | null {
+  try {
+    return new Intl.DateTimeFormat(
+      effectiveLocale.value,
+      buildFormatOptions(options, {
+        dateStyle: state.value.dateStyle,
+        timeStyle: state.value.timeStyle,
+        hour12: state.value.hour12,
+      }),
+    );
+  } catch {
+    return null;
+  }
+}
+const allDayLabelFormatter = computed(() =>
+  labelFormatter({ weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }),
+);
+const timedLabelFormatter = computed(() =>
+  labelFormatter({
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: effectiveTimezone.value,
+  }),
+);
+
 /** Screen-reader label for an event in the month grid. */
 function eventAriaLabel(event: CalendarEvent<TMeta>): string {
   const title = eventTitle(event);
-  const overrides = {
-    dateStyle: state.value.dateStyle,
-    timeStyle: state.value.timeStyle,
-    hour12: state.value.hour12,
-  };
   try {
     if (isAllDayEvent(event)) {
-      const fmt = new Intl.DateTimeFormat(
-        effectiveLocale.value,
-        buildFormatOptions(
-          { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' },
-          overrides,
-        ),
-      );
+      const fmt = allDayLabelFormatter.value;
+      if (!fmt) return title;
       // `end` is RFC-5545 EXCLUSIVE (C1 contract); the spoken label
       // names the last day the event actually covers, so a Fri–Sun
       // stay reads "Fri – Sun", not "Fri – Mon". Single-day events
@@ -581,21 +607,8 @@ function eventAriaLabel(event: CalendarEvent<TMeta>): string {
       const endD = new Date(Date.UTC(e.year, e.month - 1, e.day));
       return `${title}, ${fmt.format(startD)} – ${fmt.format(endD)}`;
     }
-    const fmt = new Intl.DateTimeFormat(
-      effectiveLocale.value,
-      buildFormatOptions(
-        {
-          weekday: 'short',
-          day: 'numeric',
-          month: 'short',
-          hour: 'numeric',
-          minute: '2-digit',
-          timeZone: effectiveTimezone.value,
-        },
-        overrides,
-      ),
-    );
-    if (!isTimedEvent(event)) return title;
+    const fmt = timedLabelFormatter.value;
+    if (!fmt || !isTimedEvent(event)) return title;
     return `${title}, ${fmt.format(new Date(event.start.epochMilliseconds))}`;
   } catch {
     return title;
@@ -651,7 +664,9 @@ function onCellClick(e: PointerEvent, date: Temporal.PlainDate) {
   // A pill's pointerdown bubbles through its cell — that's an event
   // click (onEventClick), not an empty-cell click.
   if (originatesFromEvent(e)) return;
-  props.builder.state.onDateClick?.({ date, native: e });
+  // Mouse: at once. Touch / pen: only for a tap, after its click —
+  // every scroll of the grid starts with a finger down on a cell.
+  onSurfacePointerdown(e, () => props.builder.state.onDateClick?.({ date, native: e }));
 }
 function onCellDblclick(e: MouseEvent, date: Temporal.PlainDate) {
   props.builder.state.onDateDoubleClick?.({ date, native: e });

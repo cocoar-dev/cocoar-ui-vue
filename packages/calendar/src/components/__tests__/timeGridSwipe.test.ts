@@ -43,6 +43,9 @@ function pointer(type: string, init: PointerInit): Event {
   return e;
 }
 
+/** Let the task the tap gate schedules after the click run. */
+const nextTask = () => new Promise((resolve) => setTimeout(resolve, 0));
+
 async function swipeOn(el: Element, from: number, to: number, opts: { dy?: number } = {}) {
   el.dispatchEvent(
     pointer('pointerdown', { pointerId: 7, pointerType: 'touch', clientX: from, clientY: 100 }),
@@ -105,7 +108,7 @@ describe('time grid touch paging', () => {
     expect(b.state.date.value.toString()).toBe('2026-06-15');
   });
 
-  it('a touch tap reaches onTimeClick on release — not on press, and not after a pan', async () => {
+  it('a touch tap reaches onTimeClick after its click — not on press, and not after a pan', async () => {
     const onTimeClick = vi.fn();
     const b = newBuilder().view('day').onTimeClick(onTimeClick);
     const w = mount(CoarDayView, { props: { builder: b } });
@@ -117,6 +120,12 @@ describe('time grid touch paging', () => {
     window.dispatchEvent(
       pointer('pointerup', { pointerId: 3, pointerType: 'touch', clientX: 52, clientY: 91 }),
     );
+    // Not on release either: the click that follows the lift must not
+    // land on whatever the handler opens.
+    expect(onTimeClick).not.toHaveBeenCalled();
+    // (the grid is mounted detached, so the click is sent to window directly)
+    window.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await nextTask();
     expect(onTimeClick).toHaveBeenCalledTimes(1);
     expect(onTimeClick.mock.calls[0][0].date.toString()).toBe('2026-06-15');
 
@@ -134,7 +143,7 @@ describe('time grid touch paging', () => {
     expect(onTimeClick).toHaveBeenCalledTimes(1);
   });
 
-  it('swipeNavigation(false): no paging, touch press fires onTimeClick immediately', async () => {
+  it('swipeNavigation(false): no paging, a touch tap still fires onTimeClick after its click', async () => {
     const onTimeClick = vi.fn();
     const b = newBuilder().view('day').swipeNavigation(false).onTimeClick(onTimeClick);
     const w = mount(CoarDayView, { props: { builder: b } });
@@ -142,6 +151,13 @@ describe('time grid touch paging', () => {
     col.dispatchEvent(
       pointer('pointerdown', { pointerId: 9, pointerType: 'touch', clientX: 50, clientY: 90 }),
     );
+    expect(onTimeClick).not.toHaveBeenCalled();
+    window.dispatchEvent(
+      pointer('pointerup', { pointerId: 9, pointerType: 'touch', clientX: 50, clientY: 90 }),
+    );
+    // (the grid is mounted detached, so the click is sent to window directly)
+    window.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await nextTask();
     expect(onTimeClick).toHaveBeenCalledTimes(1);
     await swipeOn(col, 200, 100);
     expect(b.state.date.value.toString()).toBe('2026-06-15');

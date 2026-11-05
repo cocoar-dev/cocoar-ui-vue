@@ -79,7 +79,11 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const emit = defineEmits<{
-  /** Pointer-down on the cell body. Parent typically emits `date-click`. */
+  /**
+   * Pointer-down on the cell body. The parent routes it to
+   * `onDateClick` — at once for a mouse, after a tap for touch / pen
+   * (`composables/surfaceTap`).
+   */
   cellPointerdown: [native: PointerEvent, day: Temporal.PlainDate];
   /**
    * Double-click on the EMPTY cell body. Pills / bars stop their own

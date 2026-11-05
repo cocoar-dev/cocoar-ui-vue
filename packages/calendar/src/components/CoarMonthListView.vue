@@ -14,6 +14,7 @@ import {
 } from '../core';
 import { CalendarBuilder } from '../builders/calendar-builder';
 import { useViewWindow } from '../composables/useViewWindow';
+import { onSurfacePointerdown } from '../composables/surfaceTap';
 import CoarAgendaEvent from './internal/agenda/CoarAgendaEvent.vue';
 import { agendaTimeLabel } from './internal/agenda/agendaTimeLabel';
 
@@ -92,6 +93,10 @@ function selectDate(date: Temporal.PlainDate): void {
 }
 function isSame(left: Temporal.PlainDate, right: Temporal.PlainDate): boolean {
   return Temporal.PlainDate.compare(left, right) === 0;
+}
+/** Mouse: on press. Touch / pen: only for a tap, after its click — the list scrolls. */
+function onEventPointerdown(e: PointerEvent, event: CalendarEvent<TMeta>): void {
+  onSurfacePointerdown(e, () => props.builder.state.onEventClick?.({ event, native: e }));
 }
 function eventTitle(event: CalendarEvent<TMeta>): string {
   const title = (event.meta as { title?: unknown } | undefined)?.title;
@@ -180,7 +185,7 @@ function formatTime(event: CalendarEvent<TMeta>): string {
             :color="eventColor(item.event)"
             :continuation-tag="t('coar.calendar.agenda.continuationTag', undefined, '(cont.)')"
             :display-zone="state.timezone"
-            @pointerdown="builder.state.onEventClick?.({ event: item.event, native: $event })"
+            @pointerdown="onEventPointerdown($event, item.event)"
           >
             <template v-if="$slots.event" #default="slotProps">
               <slot name="event" v-bind="slotProps" />

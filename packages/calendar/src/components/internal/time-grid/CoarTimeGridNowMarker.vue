@@ -1,28 +1,32 @@
 <script setup lang="ts">
 /**
  * `<CoarTimeGridNowMarker>` — internal "current time" indicator
- * for the time-grid's today column.
+ * for the time-grid's today column (vertical grid) or today's row
+ * (horizontal grid).
  *
- * Thin horizontal line + dot; pure visual, no events. The
- * parent column decides whether to render it (only on today's
- * column when `nowMinutesFromGridStart !== null`) and feeds the
- * pixel offset.
+ * Thin line + dot; pure visual, no events. The parent decides
+ * whether to render it (only for today, when the current time is in
+ * the visible range) and feeds the pixel offset along the time axis.
  *
  * Lives in `internal/` — NOT exported from the package barrel.
  */
 
 interface Props {
-  /** Pixel offset from the column's top edge. */
-  topPx: number;
+  /** Vertical grid: pixel offset from the column's top edge. */
+  topPx?: number;
+  /** Horizontal grid: pixel offset from the row's left edge. */
+  leftPx?: number;
+  orientation?: 'vertical' | 'horizontal';
 }
 
-defineProps<Props>();
+withDefaults(defineProps<Props>(), { topPx: 0, leftPx: 0, orientation: 'vertical' });
 </script>
 
 <template>
   <div
     class="coar-time-grid-now-marker"
-    :style="{ top: topPx + 'px' }"
+    :class="{ 'coar-time-grid-now-marker--horizontal': orientation === 'horizontal' }"
+    :style="orientation === 'horizontal' ? { left: leftPx + 'px' } : { top: topPx + 'px' }"
     aria-hidden="true"
   >
     <span class="coar-time-grid-now-marker__dot" />
@@ -51,5 +55,16 @@ defineProps<Props>();
   display: block;
   height: 1px;
   background: var(--coar-color-danger, #dc2626);
+}
+/* Horizontal grid: a vertical line through today's row, dot on top. */
+.coar-time-grid-now-marker--horizontal {
+  top: 0;
+  bottom: 0;
+  right: auto;
+  width: 0;
+}
+.coar-time-grid-now-marker--horizontal .coar-time-grid-now-marker__line {
+  width: 1px;
+  height: 100%;
 }
 </style>

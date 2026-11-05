@@ -53,6 +53,7 @@ import CoarAgendaDayHeader from './internal/agenda/CoarAgendaDayHeader.vue';
 import CoarAgendaEvent from './internal/agenda/CoarAgendaEvent.vue';
 import { agendaTimeLabel } from './internal/agenda/agendaTimeLabel';
 import { useViewWindow } from '../composables/useViewWindow';
+import { onSurfacePointerdown } from '../composables/surfaceTap';
 
 // Inlined defineProps argument to avoid vue-tsc TS4025 — see note in
 // CoarMonthView.vue.
@@ -292,14 +293,18 @@ function eventColorOrDefault(event: CalendarEvent<TMeta>): string {
 
 // ─── Click handlers ──────────────────────────────────────────────────
 
+// Mouse: on press. Touch / pen: only for a tap, after its click — the
+// agenda scrolls, and every scroll starts with a finger on a row.
 function onEventClick(e: PointerEvent, event: CalendarEvent<TMeta>) {
-  props.builder.state.onEventClick?.({ event, native: e });
+  onSurfacePointerdown(e, () => props.builder.state.onEventClick?.({ event, native: e }));
 }
 function onHeaderClick(e: PointerEvent, dateIso: string) {
-  props.builder.state.onDateClick?.({
-    date: Temporal.PlainDate.from(dateIso),
-    native: e,
-  });
+  onSurfacePointerdown(e, () =>
+    props.builder.state.onDateClick?.({
+      date: Temporal.PlainDate.from(dateIso),
+      native: e,
+    }),
+  );
 }
 
 // ─── Floating sticky header (overlay) ────────────────────────────────

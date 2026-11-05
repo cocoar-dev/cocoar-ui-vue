@@ -29,23 +29,18 @@ import {
   toValue,
   useTemplateRef,
   watch,
-  watchEffect,
 } from 'vue';
-import { useI18n, useLocalization } from '@cocoar/vue-localization';
-import { useTimeGridDnd, type TimeGridEventDropPayload } from '../composables/useTimeGridDnd';
-import { useA11yAnnouncer } from '../composables/useA11yAnnouncer';
+import { useI18n } from '@cocoar/vue-localization';
+import { useTimeGridDnd } from '../composables/useTimeGridDnd';
+import { createVerticalTimedAxis } from '../composables/useCalendarDnd';
+import { useTimeGridPresentation } from '../composables/useTimeGridPresentation';
 import { useTimeGridSwipe, type TimeGridSwipeState } from '../composables/useTimeGridSwipe';
 import {
   Temporal,
-  eventInkColor,
-  todayInZone,
-  nowInZone,
   layoutDayEvents,
   layoutAllDayBand,
   capAllDayBand,
   allDayBandLanes,
-  isAllDayEvent,
-  buildFormatOptions,
   type CalendarEvent,
   type PositionedEvent,
   type AllDayBar,
@@ -62,13 +57,19 @@ import CoarTimeGridHeader from './internal/time-grid/CoarTimeGridHeader.vue';
 import CoarTimeGridAllDayBand from './internal/time-grid/CoarTimeGridAllDayBand.vue';
 import CoarTimeGridColumn from './internal/time-grid/CoarTimeGridColumn.vue';
 import CoarTimeGridAllDayOverflow from './internal/time-grid/CoarTimeGridAllDayOverflow.vue';
+import CoarCalendarBands from './internal/time-grid/CoarCalendarBands.vue';
+import CoarTimeSelectionLayer from './internal/time-grid/CoarTimeSelectionLayer.vue';
+import CoarTimeAxisMarker from './internal/time-grid/CoarTimeAxisMarker.vue';
+import { useTimeSelection } from '../composables/useTimeSelection';
+import { useTimeGridOverlays, timeAxisMark } from '../composables/useTimeGridOverlays';
+import type { CalendarDraftSegment } from '../builders/types';
 import { originatesFromEvent } from './internal/originatesFromEvent';
+import { afterFollowingClick, onSurfacePointerdown } from '../composables/surfaceTap';
 import {
   contentAwareCascadeFrames,
   type CascadeFrame,
   type CascadeItem,
 } from '../core/cascadeLayout';
-import { agendaTimeLabel } from './internal/agenda/agendaTimeLabel';
 
 // Inlined defineProps argument to avoid vue-tsc TS4025 — see note in
 // CoarMonthView.vue.
@@ -113,6 +114,12 @@ const slots = defineSlots<{
   event?(props: { event: CalendarEvent<TMeta>; layout: PositionedEvent<TMeta> }): unknown;
   allDayEvent?(props: { event: CalendarEvent<TMeta>; layout: AllDayBar<TMeta> }): unknown;
   dayHeader?(props: { date: Temporal.PlainDate; isToday: boolean; isWeekend: boolean }): unknown;
+  /** Custom drawing of the host's draft (`builder.draft`), one call per day it covers. */
+  draft?(props: {
+    start: Temporal.ZonedDateTime;
+    end: Temporal.ZonedDateTime;
+    segment: CalendarDraftSegment;
+  }): unknown;
 }>();
 
 // ─── Builder bindings ────────────────────────────────────────────────
@@ -162,13 +169,30 @@ const timeRange = computed(() => state.value.timeRange);
 const slotDuration = computed(() => state.value.slotDuration);
 const pixelsPerHour = computed(() => state.value.pixelsPerHour);
 const timezone = computed(() => state.value.timezone);
-// Locale chain (Article 9): builder.locale() > host @cocoar/vue-localization > 'en-US'.
-const localization = useLocalization();
-const locale = computed<string>(
-  () => state.value.locale ?? localization?.language.value ?? 'en-US',
-);
 const density = computed(() => state.value.density);
 const canDrop = computed(() => state.value.canDrop);
+
+// Axis-free presentation shared with the horizontal grid: today / now,
+// labels, colours, aria labels and the drag announcements.
+const {
+  nowMinutesFromGridStart,
+  isToday: isTodayColumn,
+  isWeekend,
+  formatDayHeader,
+  hourLabels,
+  formatClock,
+  formatDuration,
+  cardTimeLabel,
+  cardLocation,
+  eventTitle,
+  eventBgFor,
+  eventBorderFor,
+  eventInkFor,
+  eventAriaLabel,
+  kbdPreviewAriaLabel,
+  a11y,
+  onA11yAnnounce,
+} = useTimeGridPresentation<TMeta>({ state, timeRange: computed(() => state.value.timeRange) });
 
 // Script-local alias for the `dates` prop so the template / drop-pipeline
 // reads stay terse.
@@ -253,6 +277,13 @@ const surfaceRef = computed<HTMLElement | null>(() => {
 
 const daysRef = visibleDays;
 const renderBufferMinutesRef = computed(() => RENDER_BUFFER_MINUTES);
+/** One hit-test for drag & drop and time-range selection. */
+const timedAxis = createVerticalTimedAxis({
+  columnsRef,
+  days: daysRef,
+  pixelsPerHour,
+  topBufferMinutes: renderBufferMinutesRef,
+});
 
 const {
   dnd,
@@ -282,6 +313,7 @@ const {
   columnsRef,
   allDayColumnsRef,
   topBufferMinutes: renderBufferMinutesRef,
+  timedAxis,
   canDrop: canDrop.value ?? undefined,
   onEventClick: (event, native) => {
     if (native) props.builder.state.onEventClick?.({ event, native });
@@ -290,83 +322,50 @@ const {
   onAnnounce: (kind, payload) => onA11yAnnounce(kind, payload),
 });
 
-// ─── A11y live-region ────────────────────────────────────────────────
+// ─── Time-range selection, bands, draft ──────────────────────────────
 
-const a11y = useA11yAnnouncer();
-
-function formatAnnouncementWhen(payload: TimeGridEventDropPayload<TMeta>): string {
-  const isAllDay = payload.next.start instanceof Temporal.PlainDate;
-  const overrides = {
-    dateStyle: state.value.dateStyle,
-    timeStyle: state.value.timeStyle,
-    hour12: state.value.hour12,
-  };
-  try {
-    const fmt = new Intl.DateTimeFormat(
-      locale.value,
-      buildFormatOptions(
-        isAllDay
-          ? { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }
-          : {
-              weekday: 'short',
-              day: 'numeric',
-              month: 'short',
-              hour: 'numeric',
-              minute: '2-digit',
-              timeZone: timezone.value,
-            },
-        overrides,
-      ),
-    );
-    if (isAllDay) {
-      const pd = payload.next.start as Temporal.PlainDate;
-      return fmt.format(new Date(Date.UTC(pd.year, pd.month - 1, pd.day)));
-    }
-    const zdt = (payload.next.start as Temporal.ZonedDateTime).withTimeZone(timezone.value);
-    return fmt.format(new Date(zdt.epochMilliseconds));
-  } catch {
-    return payload.target.date;
-  }
+const selection = useTimeSelection<TMeta>({
+  builder: props.builder,
+  axis: timedAxis,
+  timeRange,
+  slotDuration,
+  timezone,
+  events: () => events.value,
+  // A long press took the finger: it no longer pages the grid.
+  onClaim: (pointerId) => swipe.release(pointerId),
+});
+const selectable = computed(() => !props.ghost && toValue(props.builder.state.timeRangeSelect));
+const overlays = useTimeGridOverlays<TMeta>({
+  builder: props.builder,
+  days: visibleDays,
+  timeRange,
+  timezone,
+});
+/** Top offset in a column of a minute of the day. */
+function minuteOfDayToPx(minuteOfDay: number): number {
+  return minutesToOffsetPx(minuteOfDay - timeRange.value[0] * 60);
 }
-
-/**
- * Aria-label for the preview-ghost variant during a keyboard
- * drag — tells the SR user the keys they have. The visible
- * card's regular aria-label would otherwise read out the
- * pre-drag start time, which is misleading once they've
- * staged a move.
- */
-function kbdPreviewAriaLabel(event: CalendarEvent<TMeta>): string {
-  const meta = event.meta as { title?: unknown } | undefined;
-  const rawTitle = typeof meta?.title === 'string' ? meta.title : undefined;
-  const title = rawTitle ?? t('coar.calendar.a11y.unnamedEvent', undefined, 'Event');
-  return t(
-    'coar.calendar.a11y.kbdPreviewLabel',
-    { title },
-    `${title} preview — Arrow keys to move, Enter to commit, Escape to cancel`,
-  );
-}
-
-function eventTitleSafe(p: TimeGridEventDropPayload<TMeta>): string {
-  const meta = p.event.meta as { title?: unknown } | undefined;
-  return typeof meta?.title === 'string'
-    ? meta.title
-    : t('coar.calendar.a11y.unnamedEvent', undefined, 'Event');
-}
-
-function onA11yAnnounce(
-  kind: 'committed' | 'cancelled',
-  payload?: TimeGridEventDropPayload<TMeta>,
-): void {
-  if (kind === 'cancelled') {
-    a11y.announce(t('coar.calendar.a11y.moveCancelled', undefined, 'Move cancelled'));
-    return;
-  }
-  if (!payload) return;
-  const title = eventTitleSafe(payload);
-  const when = formatAnnouncementWhen(payload);
-  a11y.announce(t('coar.calendar.a11y.eventMovedTo', { title, when }, `${title} moved to ${when}`));
-}
+const axisMark = computed(() => {
+  if (props.ghost) return null;
+  return timeAxisMark({
+    drag: selection.dragSelection.value,
+    hoverMinute: selection.hoverMinute.value,
+    draft: overlays.draft.value,
+    draftSegments: visibleDays.value
+      .map((d) => overlays.draftFor(d))
+      .filter((s): s is CalendarDraftSegment => s !== null),
+    timezone: timezone.value,
+    toPx: minuteOfDayToPx,
+    formatClock,
+    formatDuration,
+  });
+});
+/** The hover indicator's line across all columns. */
+const hoverLinePx = computed(() =>
+  props.ghost || selection.hoverMinute.value === null
+    ? null
+    : minuteOfDayToPx(selection.hoverMinute.value),
+);
 
 // All event emission flows through the builder's `_emit*` family
 // (set up by the consumer via builder.onTimeClick / onTimeDoubleClick /
@@ -390,7 +389,6 @@ function onA11yAnnounce(
 const RENDER_BUFFER_MINUTES = 15;
 
 const totalHours = computed(() => timeRange.value[1] - timeRange.value[0]);
-const totalMinutes = computed(() => totalHours.value * 60);
 // Body height includes a leading + trailing render buffer so events
 // at the time-range boundary have room for their focus halo / resize
 // handles without being clipped or covered by the all-day band.
@@ -401,29 +399,6 @@ const totalHeightPx = computed(
 );
 
 const slotHeightPx = computed(() => (pixelsPerHour.value * slotDuration.value) / 60);
-
-const hourLabels = computed(() => {
-  const labels: { hour: number; label: string }[] = [];
-  // Article 9: hour-axis honours `builder.hour12()` AND `timeStyle()`.
-  // Note: setting `timeStyle` makes Intl drop the explicit `hour`
-  // field; `buildFormatOptions` handles the prune. A consumer using
-  // `.timeStyle('short')` gets the locale's short-form hour
-  // representation (e.g. "9 AM" / "09:00"); falling back to
-  // `{ hour: 'numeric' }` when timeStyle is unset gives the existing
-  // tight one-cell label.
-  const fmt = new Intl.DateTimeFormat(
-    locale.value,
-    buildFormatOptions(
-      { hour: 'numeric' },
-      { timeStyle: state.value.timeStyle, hour12: state.value.hour12 },
-    ),
-  );
-  for (let h = timeRange.value[0]; h <= timeRange.value[1]; h++) {
-    const ref = new Date(2024, 0, 1, h);
-    labels.push({ hour: h, label: fmt.format(ref) });
-  }
-  return labels;
-});
 
 // ─── Per-day event layout ─────────────────────────────────────────────
 
@@ -533,23 +508,6 @@ const columnWidthPx = computed(() =>
     ? columnsWidthPx.value / visibleDays.value.length
     : 0,
 );
-const cardTimeFormatter = computed(
-  () =>
-    new Intl.DateTimeFormat(
-      locale.value,
-      buildFormatOptions(
-        { hour: 'numeric', minute: '2-digit', timeZone: timezone.value },
-        { timeStyle: state.value.timeStyle, hour12: state.value.hour12 },
-      ),
-    ),
-);
-function cardTimeLabel(event: CalendarEvent<TMeta>): string {
-  return agendaTimeLabel(event, (ms) => cardTimeFormatter.value.format(ms), '');
-}
-function cardLocation(event: CalendarEvent<TMeta>): string | undefined {
-  const meta = event.meta as { location?: unknown } | undefined;
-  return typeof meta?.location === 'string' && meta.location ? meta.location : undefined;
-}
 function cardAnatomy(
   layout: { horizontalFrames: Map<string, CascadeFrame> },
   positioned: PositionedEvent<TMeta>,
@@ -639,80 +597,23 @@ function minutesToOffsetPx(min: number): number {
   return minutesToPx(min + RENDER_BUFFER_MINUTES);
 }
 
-// ─── Now-marker ───────────────────────────────────────────────────────
-
-const today = ref<Temporal.PlainDate>(todayInZone(timezone.value));
-const now = ref<Temporal.ZonedDateTime>(nowInZone(timezone.value));
-let nowTimer = 0;
-
-onMounted(() => {
-  // Update every 30s — sub-second is overkill for a clock indicator.
-  nowTimer = window.setInterval(() => {
-    today.value = todayInZone(timezone.value);
-    now.value = nowInZone(timezone.value);
-  }, 30_000);
-});
-onBeforeUnmount(() => {
-  if (nowTimer) clearInterval(nowTimer);
-});
-
-watchEffect(() => {
-  // Re-pick today/now when the timezone prop changes.
-  today.value = todayInZone(timezone.value);
-  now.value = nowInZone(timezone.value);
-});
-
-const nowMinutesFromGridStart = computed(() => {
-  const minutes = now.value.hour * 60 + now.value.minute - timeRange.value[0] * 60;
-  if (minutes < 0 || minutes >= totalMinutes.value) return null;
-  return minutes;
-});
-
-function isTodayColumn(date: Temporal.PlainDate): boolean {
-  return Temporal.PlainDate.compare(date, today.value) === 0;
-}
-
-function isWeekend(date: Temporal.PlainDate): boolean {
-  const dow = date.dayOfWeek; // 1..7 ISO
-  return dow === 6 || dow === 7;
-}
-
 // ─── Click handling ──────────────────────────────────────────────────
-
-const dayHeaderFormatter = computed(
-  () =>
-    new Intl.DateTimeFormat(
-      locale.value,
-      buildFormatOptions(
-        { weekday: 'short', day: 'numeric', month: 'short' },
-        {
-          dateStyle: state.value.dateStyle,
-          // No timeStyle for a date-only header.
-          hour12: state.value.hour12,
-        },
-      ),
-    ),
-);
-
-function formatDayHeader(date: Temporal.PlainDate): string {
-  // Convert to JS Date for Intl. UTC interpretation here is fine —
-  // we're only formatting day-of-week + day-of-month.
-  return dayHeaderFormatter.value.format(new Date(Date.UTC(date.year, date.month - 1, date.day)));
-}
 
 /**
  * Slot time under the pointer, snapped to the slot grid. ONE
  * resolver for click and double-click so both hooks agree on what
- * "the slot at this y" means. `null` when the pointer sits outside
- * the 0–24 h range (render buffer rows).
+ * "the slot at this y" means. The render buffer above the first hour
+ * is not part of the range: y is measured from the first hour line,
+ * and the buffer rows clamp to the first / last slot.
  */
 function slotTimeAt(e: MouseEvent): Temporal.PlainTime | null {
   const col = e.currentTarget as HTMLElement;
   const rect = col.getBoundingClientRect();
-  const yInColumn = e.clientY - rect.top;
-  // Snap to nearest slot boundary.
-  const snappedSlots = Math.floor(yInColumn / slotHeightPx.value);
-  const minutesFromStart = snappedSlots * slotDuration.value;
+  const yInRange = e.clientY - rect.top - minutesToPx(RENDER_BUFFER_MINUTES);
+  // The slot the pointer is in.
+  const lastSlot = Math.max(0, Math.ceil((totalHours.value * 60) / slotDuration.value) - 1);
+  const slotIndex = Math.min(lastSlot, Math.max(0, Math.floor(yInRange / slotHeightPx.value)));
+  const minutesFromStart = slotIndex * slotDuration.value;
   const totalMinFromMidnight = timeRange.value[0] * 60 + minutesFromStart;
   const hour = Math.floor(totalMinFromMidnight / 60);
   const minute = totalMinFromMidnight % 60;
@@ -726,11 +627,20 @@ function onColumnPointerDown(e: PointerEvent, date: Temporal.PlainDate) {
   if (originatesFromEvent(e)) return;
   const time = slotTimeAt(e);
   if (!time) return;
-  const fire = () => props.builder.state.onTimeClick?.({ date, time, native: e });
+  // With `timeRangeSelect` a mouse press belongs to the selection (it
+  // runs the click on release unless the press became a drag); touch
+  // and pen keep their tap path, the click wrapped to add the range.
+  const fire = selection.onSurfacePointerdown(e, () =>
+    props.builder.state.onTimeClick?.({ date, time, native: e }),
+  );
+  if (!fire) return;
   // Touch: the swipe runtime decides on release whether this was a
-  // tap (→ fire) or the start of a pan (→ page). Mouse / pen: as before.
-  if (swipe.onPointerdown(e, { onTap: fire })) return;
-  fire();
+  // tap (→ fire, after the click that follows the lift so it can't
+  // land on what the handler opens) or the start of a pan (→ page).
+  // Otherwise (mouse, or paging off): at once for a mouse, after a
+  // tap for touch / pen.
+  if (swipe.onPointerdown(e, { onTap: () => afterFollowingClick(fire) })) return;
+  onSurfacePointerdown(e, fire);
 }
 
 /**
@@ -750,91 +660,12 @@ function onColumnDblclick(e: MouseEvent, date: Temporal.PlainDate) {
 
 function onAllDayCellPointerDown(e: PointerEvent, date: Temporal.PlainDate) {
   if (originatesFromEvent(e)) return;
-  props.builder.state.onDateClick?.({ date, native: e });
+  // Mouse: at once. Touch / pen: only for a tap, after its click.
+  onSurfacePointerdown(e, () => props.builder.state.onDateClick?.({ date, native: e }));
 }
 
 function onAllDayCellDblclick(e: MouseEvent, date: Temporal.PlainDate) {
   props.builder.state.onDateDoubleClick?.({ date, native: e });
-}
-
-// ─── Default event card content ──────────────────────────────────────
-//
-// Reads `meta.title` / `meta.color` if present. Consumers needing
-// more replace via the `#event` slot.
-
-function eventTitle(event: CalendarEvent<TMeta>): string {
-  const meta = event.meta as { title?: unknown } | undefined;
-  return typeof meta?.title === 'string' ? meta.title : '(untitled)';
-}
-
-/**
- * Build a screen-reader label for an event card. Includes the
- * title and a short start–end summary so users without sight know
- * what the focused event is. Locale-aware via `locale.value`.
- */
-function eventAriaLabel(event: CalendarEvent<TMeta>): string {
-  const title = eventTitle(event);
-  if (isAllDayEvent(event)) {
-    return `${title} (${t('coar.calendar.timegrid.allDay', undefined, 'all-day')})`;
-  }
-  try {
-    const fmt = new Intl.DateTimeFormat(
-      locale.value,
-      buildFormatOptions(
-        {
-          weekday: 'short',
-          day: 'numeric',
-          month: 'short',
-          hour: 'numeric',
-          minute: '2-digit',
-          timeZone: timezone.value,
-        },
-        {
-          dateStyle: state.value.dateStyle,
-          timeStyle: state.value.timeStyle,
-          hour12: state.value.hour12,
-        },
-      ),
-    );
-    const range = (
-      fmt as Intl.DateTimeFormat & {
-        formatRange?: (a: Date, b: Date) => string;
-      }
-    ).formatRange;
-    if (event.start instanceof Temporal.PlainDate) return title;
-    const startD = new Date(event.start.epochMilliseconds);
-    const endD =
-      event.end && !(event.end instanceof Temporal.PlainDate)
-        ? new Date(event.end.epochMilliseconds)
-        : startD;
-    return range
-      ? `${title}, ${range.call(fmt, startD, endD)}`
-      : `${title}, ${fmt.format(startD)} – ${fmt.format(endD)}`;
-  } catch {
-    return title;
-  }
-}
-function eventColor(event: CalendarEvent<TMeta>): string | undefined {
-  const meta = event.meta as { color?: unknown } | undefined;
-  return typeof meta?.color === 'string' ? meta.color : undefined;
-}
-function eventBgFor(event: CalendarEvent<TMeta>): string {
-  const c = eventColor(event);
-  return c ?? 'var(--coar-calendar-event-default-bg, var(--coar-color-accent-soft, #93c5fd))';
-}
-function eventBorderFor(event: CalendarEvent<TMeta>): string {
-  const c = eventColor(event);
-  return c ?? 'var(--coar-color-accent, var(--coar-color-accent-500, #2563eb))';
-}
-
-/** Text colour for an event surface — `meta.textColor` or the policy's black/white. */
-function eventInkFor(event: CalendarEvent<TMeta>): string {
-  const meta = event.meta as { textColor?: unknown } | undefined;
-  return eventInkColor({
-    background: eventBgFor(event),
-    textColor: meta?.textColor,
-    policy: state.value.eventTextContrast,
-  });
 }
 
 // Register the imperative scroll-to-time impl on the builder so
@@ -871,6 +702,8 @@ defineExpose({
         'coar-time-grid--settling': swipe.settling.value,
         'coar-time-grid--swiping': swipe.isSwiping.value,
         'coar-time-grid--ghost': props.ghost,
+        'coar-time-grid--selectable': selectable,
+        'coar-time-grid--selecting': selection.selecting.value,
       },
     ]"
     :style="props.ghost ? undefined : swipe.swipeStyle.value"
@@ -1067,10 +900,16 @@ defineExpose({
         >
           {{ entry.label }}
         </div>
+        <CoarTimeAxisMarker v-if="axisMark" orientation="vertical" :mark="axisMark" />
       </div>
 
       <!-- Day columns -->
-      <div ref="columns" class="coar-time-grid__columns">
+      <div
+        ref="columns"
+        class="coar-time-grid__columns"
+        @pointermove="selection.onPointermove"
+        @pointerleave="selection.onPointerleave"
+      >
         <CoarTimeGridColumn
           v-for="layout in dayLayouts"
           :key="layout.date.toString()"
@@ -1083,6 +922,13 @@ defineExpose({
           @pointerdown="(e, day) => onColumnPointerDown(e, day)"
           @dblclick="(e, day) => onColumnDblclick(e, day)"
         >
+          <!-- Host bands behind the events (`builder.backgrounds`). -->
+          <CoarCalendarBands
+            :bands="overlays.bandsFor(layout.date)"
+            layer="below"
+            orientation="vertical"
+            :to-px="minuteOfDayToPx"
+          />
           <!--
             Events.
             Lane-aware horizontal positioning uses calc() with pixel
@@ -1207,7 +1053,31 @@ defineExpose({
             v-if="isTodayColumn(layout.date) && nowMinutesFromGridStart !== null"
             :top-px="minutesToOffsetPx(nowMinutesFromGridStart)"
           />
+
+          <!-- Bands above the events, the selection and the host's draft. -->
+          <CoarCalendarBands
+            :bands="overlays.bandsFor(layout.date)"
+            layer="above"
+            orientation="vertical"
+            :to-px="minuteOfDayToPx"
+          />
+          <CoarTimeSelectionLayer
+            orientation="vertical"
+            :to-px="minuteOfDayToPx"
+            :selection="props.ghost ? null : selection.selectionFor(layout.date)"
+            :draft="overlays.draftFor(layout.date)"
+          >
+            <template v-if="$slots.draft" #draft="draftProps">
+              <slot name="draft" v-bind="draftProps" />
+            </template>
+          </CoarTimeSelectionLayer>
         </CoarTimeGridColumn>
+        <div
+          v-if="hoverLinePx !== null"
+          class="coar-time-grid__hover-line"
+          :style="{ top: hoverLinePx + 'px' }"
+          aria-hidden="true"
+        />
       </div>
     </div>
   </div>
@@ -1361,6 +1231,28 @@ defineExpose({
   /* Touch paging: horizontal pans are ours, vertical stays native. */
   touch-action: pan-y;
   transform: translateX(var(--coar-time-grid-swipe-x, 0px));
+}
+/* Time-range selection: no text selection or iOS callout on a press,
+   and none while a range is dragged anywhere in the grid. */
+.coar-time-grid--selectable .coar-time-grid__columns {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.coar-time-grid--selecting {
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* Hover indicator: a thin line across every day at the pointer's time. */
+.coar-time-grid__hover-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 1px solid
+    color-mix(in srgb, var(--coar-background-accent-primary, #2563eb) 60%, transparent);
+  pointer-events: none;
+  z-index: 6;
 }
 .coar-time-grid--settling .coar-time-grid__columns {
   transition: transform 180ms ease-out;

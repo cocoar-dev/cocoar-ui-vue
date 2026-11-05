@@ -26,8 +26,57 @@ and Work week became one time-grid model, the header became optional
 (`hideHeader`, `api.rangeLabel`), and the builder's `locale` stopped
 defaulting to `en-US`.
 
+**New and marked Preview: booking and scheduling on the time grid.** Days
+can be rows on a horizontal time axis (`timeGridOrientation('horizontal')`),
+and the time grids can select time ranges by drag, click or long press, show
+a host draft and per-day background bands. Built for TimeBooking's booking
+week and already running there; their API may still change before the
+Preview mark goes.
+
 ### Added
 
+- **`@cocoar/vue-calendar` — days as rows: a horizontal time grid (Preview).**
+  `builder.timeGridOrientation('horizontal')` (and
+  `api.setTimeGridOrientation`) turns Day, Multi-day, Week and Work week
+  by 90°: one row per day, time running left → right on one shared axis
+  — for time tracking, shifts and attendance, where start, end and gaps
+  of several days are compared at a glance. A presentation knob like
+  `dayMode`: window, paging, loaders and hooks are unchanged. Overlaps
+  stack as lanes and a row grows with them; all-day events are chips in
+  the day cell; drag & drop moves along the axis and onto other rows,
+  resizes at the left / right edge, honours `canDrop` / `dstPolicy`, and
+  the keyboard follows the screen (→ later, ↓ next day). No touch paging
+  in this orientation — a horizontal swipe scrolls the time axis.
+  `dayLabelWidth(px)` sets the day column (default 132); a day header
+  without all-day chips gets the row's height (two lines fit), and a
+  stretched axis never overflows its scroller.
+  Renderers get `ctx.orientation`; `api.scrollToTime` scrolls the time
+  axis (and now also works in Work week). Web only for now. Under the hood the
+  vertical grid's axis-free half moved into `useTimeGridPresentation` and
+  the drag runtime takes a time-axis adapter; the vertical grid is
+  unchanged.
+- **`@cocoar/vue-calendar` — selecting time, drafts and background bands (Preview).**
+  For booking and scheduling screens on Week, Work week and Day, in both
+  orientations, all opt-in. `builder.timeRangeSelect(true)`: a mouse drag
+  on free space selects a range in the day pressed (Escape cancels), a
+  click selects what the **selection policy** proposes, both reported by
+  `onTimeRangeSelect({ date, start, end, source, native })` with
+  `ZonedDateTime`s in the display zone; under a mouse the proposal is
+  drawn while hovering; on touch a 500 ms long press starts the drag
+  while swipes keep scrolling and paging. `selectionPolicy(fn)` decides
+  in minutes of the day; `defaultSelectionPolicy()` (the slot) and
+  `gapOrDurationPolicy({ minutes, overlap })` (the gap between two
+  events, else a fixed length, drags stopping at events) ship with
+  `freeRangeAt`, `snapToSlot`, `busyMinutesOn` and `minuteOfDayToZoned`.
+  `hoverIndicator(true)` shows the time at the mouse on the axis and a
+  line across all days. `draft(ref)` draws a host range (an open form's)
+  as an outlined block above the events, `#draft` slot included, with
+  start, duration and end on the axis. `backgrounds((date) => bands)`
+  paints `tint` / `hatch` / `outline` ranges behind or above the events
+  and labelled lines, never taking pointer events. With
+  `timeRangeSelect` a mouse `onTimeClick` fires on release instead of on
+  press. Web only. Under the hood the vertical hit-test became
+  `createVerticalTimedAxis`, shared by drag & drop and selection.
 - **`@cocoar/vue-calendar` — selected day in the month grid.**
   `builder.selectedDate(MaybeRefOrGetter<Temporal.PlainDate | null>)` marks
   one day with a filled circle around its day number — the iOS calendar's
@@ -266,6 +315,42 @@ defaulting to `en-US`.
 
 ### Fixed
 
+- **`@cocoar/vue-calendar` — `onTimeClick` in the vertical time grid
+  reports the slot under the pointer.** The slot was measured from the top
+  of the 15-minute render buffer above the first hour line, so the last
+  15 minutes of every slot reported the next one (with 15-minute slots,
+  every click). `onTimeDoubleClick` had the same offset. Clicks in the
+  buffer rows now report the first / last slot.
+- **`@cocoar/vue-calendar` — the continuous month view no longer freezes on
+  mount.** With ~300 events and 39 series (amZettel, Pixel 8a) mounting the
+  month view blocked the main thread twice — about 0.6 s and 0.9 s at 4× CPU
+  throttling — because all 13 sections rendered at once, every section
+  converted every event into the display zone again, and all series expanded
+  in one go. Now only the month in view and the next one render on mount; the
+  other sections start as placeholders of about their height and fill one per
+  task, nearest first (at once when scrolled near, without moving the read
+  position). `layoutMonthGrid` caches each event's day bounds and skips
+  events outside the section with plain number comparisons; series expand one
+  after another, yielding every 8 ms; month labels reuse their formatters.
+  Same data, same throttling: the longest block drops from ~870 ms to
+  ~140 ms. Benchmark: `/calendar-month-perf` in the playground and
+  `apps/playground/scripts/month-perf.mjs`.
+- **`@cocoar/vue-calendar` — on touch screens `onDateClick` waits for a tap.**
+  Month cells and the all-day band reported `onDateClick` on `pointerdown`,
+  and on a touch screen every scroll starts with a finger down on a cell — so
+  swiping the month grid opened the day under the finger (amZettel, Pixel 8a
+  and iOS WebViews). For touch and pen the hook now fires only for a tap (lift
+  within 10 px, no `pointercancel`), and in a task after the click that
+  follows the lift: acting on `pointerup` let that click land on the backdrop
+  of a sheet the handler had just opened and close it. Without a click (some
+  WebViews) it fires 350 ms after the lift. `onTimeClick` takes the same
+  route — its touch tap fired on release, and with `swipeNavigation(false)`
+  on press. Mouse keeps firing on press; `native` stays the `pointerdown`.
+  `onEventClick` does the same on touch: a tapped pill, bar or card no
+  longer reports on `pointerup` (its click closed the sheet the handler had
+  opened), and agenda / Month List rows and agenda day headers no longer
+  report on `pointerdown` at the start of every scroll.
+  Hosts can drop their own tap workarounds.
 - **`@cocoar/vue-calendar` — "Today" scrolls today into view inside the
   current month.** `api.goToToday()` only moved the cursor, and the
   continuous month surface only reacts to a month _change_ — so with today's
