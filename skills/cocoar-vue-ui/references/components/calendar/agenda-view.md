@@ -283,8 +283,8 @@ Same universal surface as the [composer](./coar-calendar.md#api-reference). High
 | Setter | Notes |
 |---|---|
 | `eventRenderer(r)` | Replaces the default time + title row content. |
-| `onDateClick(fn)` | Fires on day-group header click. |
-| `onEventClick(fn)` / `onEventDoubleClick(fn)` | Per-row interaction. |
+| `onDateClick(fn)` | Fires on day-group header click — with a mouse on press, with touch / pen only for a tap (not when a scroll starts on the header). |
+| `onEventClick(fn)` / `onEventDoubleClick(fn)` | Per-row interaction. `onEventClick` follows the same touch rule, firing after the tap's click so a sheet it opens stays open. |
 
 ### Agenda specific
 

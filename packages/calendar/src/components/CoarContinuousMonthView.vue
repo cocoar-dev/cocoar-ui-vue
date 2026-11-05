@@ -1,5 +1,15 @@
 <script setup lang="ts" generic="TMeta extends Record<string, unknown> = Record<string, unknown>">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, toValue, watch } from 'vue';
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  shallowRef,
+  toValue,
+  triggerRef,
+  watch,
+} from 'vue';
 import { useLocalization } from '@cocoar/vue-localization';
 import { Temporal, type CalendarEvent, type MonthCellPill, type MonthMultiDayBar } from '../core';
 import { CalendarBuilder } from '../builders/calendar-builder';
@@ -64,9 +74,145 @@ let syncingCursorFromScroll = false;
 const SCROLL_SETTLE_MS = 160;
 let settleTimer: ReturnType<typeof setTimeout> | null = null;
 let cursorSyncPending = false;
+/** True between a scroll event and its settle — background filling pauses. */
+let scrolling = false;
 
 function publishTopmost(key: string): void {
   props.builder[SET_TOPMOST_VISIBLE_MONTH](Temporal.PlainYearMonth.from(key));
+}
+
+// ─── Progressive mount ───────────────────────────────────────────────
+//
+// A section is a full month grid with its pills, and the surface keeps
+// up to 25 of them. Building all of them at once blocked the main
+// thread for most of a second on a mid-range phone. So only the month
+// in view and the next one render on mount; every other section starts
+// as an empty placeholder of about its height and is filled one month
+// per task afterwards — nearest first — so input and paint get through
+// in between. A placeholder that scrolls near the viewport is filled at
+// once, and filling one above the read position keeps that position.
+
+/** Months whose grid is rendered. Mutated in place + `triggerRef`. */
+const readyMonths = shallowRef(
+  new Set<string>([monthKey(initialMonth), monthKey(initialMonth.add({ months: 1 }))]),
+);
+/** Grid height per week row, learned from the first rendered section. */
+const gridPxPerWeek = ref(0);
+let fillTimer: ReturnType<typeof setTimeout> | null = null;
+let unmounted = false;
+
+function isReady(key: string): boolean {
+  return readyMonths.value.has(key);
+}
+
+/** Week rows a month section needs (the grid shows only its own weeks). */
+function weekCount(month: Temporal.PlainYearMonth): number {
+  const firstDow = toValue(props.builder.state.firstDayOfWeek) ?? 1;
+  const first = month.toPlainDate({ day: 1 });
+  const lead = ((first.dayOfWeek % 7) - firstDow + 7) % 7;
+  return Math.ceil((lead + month.daysInMonth) / 7);
+}
+
+/** Placeholder height: what a rendered grid of that many weeks measured. */
+function placeholderStyle(month: Temporal.PlainYearMonth): Record<string, string> {
+  const perWeek = gridPxPerWeek.value || 100;
+  return { height: `${Math.round(perWeek * weekCount(month))}px` };
+}
+
+/**
+ * Learn the per-week grid height from the month in view — on mount
+ * and when the density changes, both times followed by an alignment.
+ * Not refined on every fill: re-sizing placeholders above the read
+ * position would move it.
+ */
+function learnGridHeight(key: string): void {
+  const section = sectionElement(key);
+  const grid = section
+    ? Array.from(section.children).find(
+        (child) => !child.classList.contains('coar-continuous-month-view__title'),
+      )
+    : undefined;
+  const height = grid?.getBoundingClientRect().height ?? 0;
+  if (height > 0) gridPxPerWeek.value = height / weekCount(Temporal.PlainYearMonth.from(key));
+}
+
+/**
+ * Render the given months' grids. When `anchorKey` is given, the
+ * scroll position is corrected so that section's top stays where it
+ * was — a grid filled above it would otherwise push it down. (Its top
+ * depends only on the sections before it, so the anchor may be one of
+ * the filled months itself.)
+ */
+async function fillMonths(keys: string[], anchorKey?: string): Promise<void> {
+  const fresh = keys.filter((key) => !isReady(key));
+  if (fresh.length === 0) return;
+  const container = root.value;
+  const anchor = anchorKey ? sectionElement(anchorKey) : null;
+  const before = anchor?.getBoundingClientRect().top ?? 0;
+  for (const key of fresh) readyMonths.value.add(key);
+  triggerRef(readyMonths);
+  await nextTick();
+  if (container && anchor && anchor.isConnected) {
+    const delta = anchor.getBoundingClientRect().top - before;
+    if (delta !== 0) container.scrollTop += delta;
+  }
+}
+
+/** Placeholders within a viewport of the visible area, top to bottom. */
+function placeholdersNearViewport(): string[] {
+  const container = root.value;
+  if (!container) return [];
+  const view = container.getBoundingClientRect();
+  const margin = Math.max(view.height, 400);
+  const out: string[] = [];
+  for (const el of container.querySelectorAll<HTMLElement>('[data-month-key]')) {
+    const key = el.dataset.monthKey;
+    if (!key || isReady(key)) continue;
+    const r = el.getBoundingClientRect();
+    if (r.bottom >= view.top - margin && r.top <= view.bottom + margin) out.push(key);
+  }
+  return out;
+}
+
+/** Fill whatever the user is about to see, synchronously with the scroll frame. */
+function fillNearViewport(): void {
+  const near = placeholdersNearViewport();
+  if (near.length) void fillMonths(near, activeMonthKey.value);
+}
+
+/** The pending month nearest to the active one (ties: the later one). */
+function nextPendingMonth(): string | null {
+  const keys = months.value.map(monthKey);
+  const activeIdx = Math.max(0, keys.indexOf(activeMonthKey.value));
+  let best: string | null = null;
+  let bestDist = Infinity;
+  keys.forEach((key, idx) => {
+    if (isReady(key)) return;
+    const dist = Math.abs(idx - activeIdx) - (idx > activeIdx ? 0.5 : 0);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = key;
+    }
+  });
+  return best;
+}
+
+/** One month per task until every section is rendered. */
+function scheduleFill(): void {
+  if (fillTimer !== null || unmounted) return;
+  fillTimer = setTimeout(() => {
+    fillTimer = null;
+    if (unmounted) return;
+    // Never during an alignment or a burst of scroll frames: those
+    // measure sections and would see the height change mid-way.
+    if (adjustingMonths || scrolling) {
+      scheduleFill();
+      return;
+    }
+    const key = nextPendingMonth();
+    if (!key) return;
+    void fillMonths([key], activeMonthKey.value).then(scheduleFill);
+  }, 0);
 }
 
 // One writer covers the current month plus its immediate neighbours. This keeps
@@ -128,11 +274,15 @@ async function ensureMonthAndAlign(
     months.value = monthRange(target);
     await nextTick();
   }
+  // The target's grid (and the next month's, the rest of the screen)
+  // must be real before measuring where to scroll.
+  await fillMonths([key, monthKey(target.add({ months: 1 }))]);
   alignMonthToTop(key, behavior, date);
   activeMonthKey.value = key;
   publishTopmost(key);
   requestAnimationFrame(() => {
     adjustingMonths = false;
+    scheduleFill();
   });
 }
 
@@ -175,10 +325,13 @@ function syncCursorToTopmost(): void {
 function onScrollEnd(): void {
   if (settleTimer) clearTimeout(settleTimer);
   settleTimer = null;
+  scrolling = false;
   // Don't depend on the last animation frame having run (throttled
   // tabs, programmatic scrolls): read the viewport once more.
   updateTopmostFromViewport();
   syncCursorToTopmost();
+  fillNearViewport();
+  scheduleFill();
 }
 
 async function extendIfNeeded(): Promise<void> {
@@ -199,6 +352,7 @@ async function extendIfNeeded(): Promise<void> {
     const newFirstTop = sectionElement(oldFirstKey)?.getBoundingClientRect().top ?? oldFirstTop;
     container.scrollTop += newFirstTop - oldFirstTop;
     adjustingMonths = false;
+    scheduleFill();
   } else if (container.scrollHeight - container.scrollTop - container.clientHeight < 640) {
     adjustingMonths = true;
     const last = months.value.at(-1)!;
@@ -218,12 +372,15 @@ async function extendIfNeeded(): Promise<void> {
       container.scrollTop += newAnchorTop - oldAnchorTop;
     }
     adjustingMonths = false;
+    scheduleFill();
   }
 }
 
 function onScroll(): void {
+  scrolling = true;
   cancelAnimationFrame(frame);
   frame = requestAnimationFrame(() => {
+    fillNearViewport();
     updateTopmostFromViewport();
     void extendIfNeeded();
   });
@@ -253,6 +410,9 @@ watch(
     adjustingMonths = true;
     const offset = section.getBoundingClientRect().top - container.getBoundingClientRect().top;
     await nextTick();
+    // Placeholders follow the new row height too.
+    learnGridHeight(activeMonthKey.value);
+    await nextTick();
     const updated = sectionElement(activeMonthKey.value);
     if (updated) {
       container.scrollTop +=
@@ -266,15 +426,22 @@ watch(
 );
 
 onMounted(async () => {
-  await nextTick();
-  alignMonthToTop(activeMonthKey.value);
   publishTopmost(activeMonthKey.value);
   root.value?.addEventListener('scroll', onScroll, { passive: true });
   root.value?.addEventListener('scrollend', onScrollEnd);
+  await nextTick();
+  // Size the placeholders from the month in view before aligning it.
+  learnGridHeight(monthKey(initialMonth));
+  await nextTick();
+  alignMonthToTop(activeMonthKey.value);
+  // The rest after the first frame has been painted.
+  requestAnimationFrame(() => scheduleFill());
 });
 onBeforeUnmount(() => {
+  unmounted = true;
   cancelAnimationFrame(frame);
   if (settleTimer) clearTimeout(settleTimer);
+  if (fillTimer) clearTimeout(fillTimer);
   root.value?.removeEventListener('scroll', onScroll);
   root.value?.removeEventListener('scrollend', onScrollEnd);
   props.builder[SET_TOPMOST_VISIBLE_MONTH](null);
@@ -309,7 +476,14 @@ defineExpose({
       :aria-label="formatMonth(month)"
     >
       <h2 class="coar-continuous-month-view__title">{{ formatMonth(month) }}</h2>
+      <div
+        v-if="!isReady(monthKey(month))"
+        class="coar-continuous-month-view__placeholder"
+        :style="placeholderStyle(month)"
+        aria-hidden="true"
+      />
       <CoarMonthView
+        v-else
         :builder="builder"
         :month="month"
         :manage-view-window="false"

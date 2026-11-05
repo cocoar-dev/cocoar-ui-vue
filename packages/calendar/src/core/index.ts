@@ -13,6 +13,7 @@
 export type {
   CalendarEvent,
   CalendarDayMode,
+  CalendarTimeGridOrientation,
   CalendarMonthDensity,
   CalendarView,
   ViewWindow,
@@ -122,6 +123,19 @@ export {
   type PositionedEvent,
   type AllDayBar,
 } from './timeGridLayout';
+export {
+  busyMinutesOn,
+  defaultSelectionPolicy,
+  freeRangeAt,
+  gapOrDurationPolicy,
+  minuteOfDayToZoned,
+  snapToSlot,
+  type GapOrDurationPolicyOptions,
+  type MinuteRange,
+  type TimeSelectionBusy,
+  type TimeSelectionContext,
+  type TimeSelectionPolicy,
+} from './timeSelection';
 export {
   layoutMonthGrid,
   capMonthCellPills,

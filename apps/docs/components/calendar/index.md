@@ -311,4 +311,5 @@ Layout-mirroring for `direction: rtl` is **not yet** wired (multi-day bars, resi
 - **[Month Views](/components/calendar/month-view)** — continuous Compact / Stacked / Details months and responsive Month List.
 - **[Day View](/components/calendar/day-view)** — one-day or width-aware multi-day time-grid surface.
 - **[Week View](/components/calendar/week-view)** — 7-day time-grid + all-day band.
+- **[Selecting time, drafts & bands](/components/calendar/time-selection)** — drag or click to select time ranges, a hover time indicator, a host draft and per-day background bands.
 - **[Agenda View](/components/calendar/agenda-view)** — virtualized chronological list grouped by day.

@@ -8,7 +8,9 @@
  * invocation, never capture it at setup.
  */
 
+import type { TimeSelectionPolicy } from '../core';
 import type {
+  BackgroundsFn,
   CanDropFn,
   DateClickHandler,
   DateDoubleClickHandler,
@@ -22,6 +24,7 @@ import type {
   RangeChangeHandler,
   TimeClickHandler,
   TimeDoubleClickHandler,
+  TimeRangeSelectHandler,
 } from './types';
 import { CalendarBuilderConfig } from './calendar-builder-config';
 
@@ -58,6 +61,31 @@ export abstract class CalendarBuilderHandlers<
 
   dayHeaderRenderer(r: DayHeaderRenderer): this {
     this.state.dayHeaderRenderer = r;
+    return this;
+  }
+
+  /**
+   * What hover, click and drag select (`timeRangeSelect`): a function
+   * of the pointer's minute of the day, the day's events and the slot
+   * grid that returns a range in minutes, or `null` for nothing. Read
+   * on every pointer move (C7). Default `defaultSelectionPolicy()`;
+   * `gapOrDurationPolicy({ minutes: 60 })` selects the gap between two
+   * events or an hour.
+   */
+  selectionPolicy(policy: TimeSelectionPolicy<TMeta>): this {
+    this.state.selectionPolicy = policy;
+    return this;
+  }
+
+  /**
+   * Background bands per day on week / work week / day: ranges
+   * (`tint`, `hatch`, `outline`; behind or above the events) and lines
+   * at a time — working hours, opening hours, limits. Called for every
+   * visible day on render (C7); return `[]` or `null` for none.
+   * Bands never take pointer events.
+   */
+  backgrounds(fn: BackgroundsFn): this {
+    this.state.backgrounds = fn;
     return this;
   }
 
@@ -126,6 +154,17 @@ export abstract class CalendarBuilderHandlers<
 
   onRangeChange(h: RangeChangeHandler): this {
     this.state.onRangeChange = h;
+    return this;
+  }
+
+  /**
+   * A time range was selected (`timeRangeSelect`): by a drag, or by a
+   * click / tap taking the policy's proposal. A click fires
+   * `onTimeClick` first, then this; a drag fires only this. Escape
+   * during a drag cancels without a call.
+   */
+  onTimeRangeSelect(h: TimeRangeSelectHandler): this {
+    this.state.onTimeRangeSelect = h;
     return this;
   }
 }

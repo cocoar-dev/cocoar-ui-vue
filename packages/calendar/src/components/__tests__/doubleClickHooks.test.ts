@@ -91,10 +91,12 @@ describe('onTimeDoubleClick / onDateDoubleClick — time grid', () => {
     const w = mount(CoarDayView, { props: { builder: b } });
     const column = w.find('.coar-time-grid-column');
     expect(column.exists()).toBe(true);
-    // happy-dom reports a zero rect, so clientY IS the y-in-column.
-    // 3 slots × (pixelsPerHour × slotDuration / 60) px → 3 slots in.
+    // happy-dom reports a zero rect, so clientY IS the y-in-column. The
+    // first hour line sits below a 15 min render buffer; 3 slots ×
+    // (pixelsPerHour × slotDuration / 60) px below it → 3 slots in.
     const slotHeight = (toValue(b.state.pixelsPerHour) * toValue(b.state.slotDuration)) / 60;
-    await column.trigger('dblclick', { clientY: slotHeight * 3 + 1 });
+    const bufferPx = (toValue(b.state.pixelsPerHour) * 15) / 60;
+    await column.trigger('dblclick', { clientY: bufferPx + slotHeight * 3 + 1 });
     expect(onTimeDoubleClick).toHaveBeenCalledTimes(1);
     const payload = onTimeDoubleClick.mock.calls[0][0];
     expect(payload.date.toString()).toBe('2026-06-15');
@@ -103,6 +105,28 @@ describe('onTimeDoubleClick / onDateDoubleClick — time grid', () => {
       minutes: Math.floor(startMinutes / 60) * 60 + 3 * toValue(b.state.slotDuration),
     });
     expect(payload.time.toString()).toBe(expected.toString());
+  });
+
+  it('measures from the first hour line, not from the render buffer above it', async () => {
+    const onTimeClick = vi.fn();
+    const b = newBuilder().view('day').onTimeClick(onTimeClick);
+    const w = mount(CoarDayView, { props: { builder: b } });
+    const column = w.find('.coar-time-grid-column');
+    const pxPerHour = toValue(b.state.pixelsPerHour);
+    const slot = toValue(b.state.slotDuration);
+    const slotHeight = (pxPerHour * slot) / 60;
+    const bufferPx = (pxPerHour * 15) / 60;
+    // The last pixel of the second slot is still the second slot.
+    await column.trigger('pointerdown', { clientY: bufferPx + slotHeight * 2 - 1 });
+    // Inside the buffer above the first hour: the first slot.
+    await column.trigger('pointerdown', { clientY: 1 });
+    const startMinutes = Math.floor(toValue(b.state.timeRange).startMinutes / 60) * 60;
+    const at = (m: number) =>
+      Temporal.PlainTime.from({ hour: 0, minute: 0 }).add({ minutes: m }).toString();
+    expect(onTimeClick.mock.calls.map((c) => c[0].time.toString())).toEqual([
+      at(startMinutes + slot),
+      at(startMinutes),
+    ]);
   });
 
   it('agrees with onTimeClick on the snapped slot', async () => {

@@ -22,6 +22,7 @@ import {
 import {
   type AllDayBandMode,
   type CalendarDayMode,
+  type CalendarTimeGridOrientation,
   type CalendarEvent,
   type CalendarMonthDensity,
   type CalendarView,
@@ -29,6 +30,7 @@ import {
   type EventTextContrastPolicy,
   type RecurringSeries,
   type TimeGridRangeSpec,
+  type TimeSelectionPolicy,
   type ViewWindow,
   DEFAULT_ALL_DAY_MAX_VISIBLE_LANES,
   DEFAULT_TIMED_EVENT_DETAIL_MIN_WIDTH,
@@ -37,7 +39,9 @@ import {
   Temporal,
 } from '../core';
 import type {
+  BackgroundsFn,
   CalendarDensity,
+  CalendarDraft,
   CanDropFn,
   DateClickHandler,
   DateDoubleClickHandler,
@@ -55,6 +59,7 @@ import type {
   TimeClickHandler,
   TimeDoubleClickHandler,
   TimeRange,
+  TimeRangeSelectHandler,
 } from './types';
 import type { RecurrenceEngine } from '../recurrence/types';
 
@@ -153,12 +158,35 @@ export interface CalendarBuilderState<
   /** One fixed day or a width-driven 1…7-day surface. */
   dayMode: MaybeRefOrGetter<CalendarDayMode>;
   /**
+   * Days as columns (`vertical`, default) or as rows on a shared
+   * horizontal time axis (`horizontal`) — for `week`, `workWeek`, `day`.
+   */
+  timeGridOrientation: MaybeRefOrGetter<CalendarTimeGridOrientation>;
+  /** Horizontal time grid: width of the day column (day header + all-day chips), px. */
+  dayLabelWidth: MaybeRefOrGetter<number>;
+  /**
    * Explicit range spec for the `day` view — anchor, span, filter,
    * step (see `TimeGridRangeSpec`). `null` (default) follows
    * `dayMode`. `week` / `workWeek` are fixed presets of the same
    * model and ignore it.
    */
   timeGridRange: MaybeRefOrGetter<TimeGridRangeSpec | null>;
+  /**
+   * Time grids: a drag on free space selects a time range, a click /
+   * tap selects the policy's proposal (`onTimeRangeSelect`). Touch
+   * starts a drag with a long press. Default off.
+   */
+  timeRangeSelect: MaybeRefOrGetter<boolean>;
+  /**
+   * Time grids: under a mouse, the time at the pointer on the time
+   * axis and a line across all days. Default off.
+   */
+  hoverIndicator: MaybeRefOrGetter<boolean>;
+  /**
+   * Host draft drawn above the events (`CalendarDraft`), `null` hides
+   * it. Read through `toValue`, so a Ref or getter follows the form.
+   */
+  draft: MaybeRefOrGetter<CalendarDraft | null>;
   /** Intl date style (C6 — independent of timeStyle / hour12).
    *  Locale-derived when undefined (Article 9). */
   dateStyle: MaybeRefOrGetter<'short' | 'medium' | 'long' | 'full' | undefined>;
@@ -229,6 +257,10 @@ export interface CalendarBuilderState<
   canDrop: CanDropFn<TMeta> | null;
   eventRenderer: EventRenderer<TMeta> | null;
   dayHeaderRenderer: DayHeaderRenderer | null;
+  /** What a pointer position selects; `null` = `defaultSelectionPolicy()`. */
+  selectionPolicy: TimeSelectionPolicy<TMeta> | null;
+  /** Background bands per visible day (time grids). */
+  backgrounds: BackgroundsFn | null;
   // ── Handlers ──────────────────────────────────────────────────
   onEventClick: EventClickHandler<TMeta> | null;
   onEventDoubleClick: EventDoubleClickHandler<TMeta> | null;
@@ -240,6 +272,7 @@ export interface CalendarBuilderState<
   onDateDoubleClick: DateDoubleClickHandler | null;
   onTimeDoubleClick: TimeDoubleClickHandler | null;
   onRangeChange: RangeChangeHandler | null;
+  onTimeRangeSelect: TimeRangeSelectHandler | null;
 }
 
 // ─── Defaults ─────────────────────────────────────────────────────
@@ -283,7 +316,12 @@ export function createCalendarBuilderState<TMeta extends Record<string, unknown>
     density: 'comfortable',
     monthDensity: 'details',
     dayMode: 'single',
+    timeGridOrientation: 'vertical',
+    dayLabelWidth: 132,
     timeGridRange: null,
+    timeRangeSelect: false,
+    hoverIndicator: false,
+    draft: null,
     // Article 9 defaults — undefined lets Intl pick locale-appropriate.
     dateStyle: undefined,
     timeStyle: undefined,
@@ -320,6 +358,8 @@ export function createCalendarBuilderState<TMeta extends Record<string, unknown>
     canDrop: null,
     eventRenderer: null,
     dayHeaderRenderer: null,
+    selectionPolicy: null,
+    backgrounds: null,
     onEventClick: null,
     onEventDoubleClick: null,
     onEventHover: null,
@@ -330,6 +370,7 @@ export function createCalendarBuilderState<TMeta extends Record<string, unknown>
     onDateDoubleClick: null,
     onTimeDoubleClick: null,
     onRangeChange: null,
+    onTimeRangeSelect: null,
   });
 }
 
@@ -369,6 +410,7 @@ export interface CalendarApi<TMeta extends Record<string, unknown> = Record<stri
   setView(view: CalendarView): void;
   setMonthDensity(density: CalendarMonthDensity): void;
   setDayMode(mode: CalendarDayMode): void;
+  setTimeGridOrientation(orientation: CalendarTimeGridOrientation): void;
   /** Wired by the active view on mount. Dev-warns (once) until then. */
   scrollToTime(time: Temporal.PlainTime): void;
   /** Wired by the active view on mount. Dev-warns (once) until then. */

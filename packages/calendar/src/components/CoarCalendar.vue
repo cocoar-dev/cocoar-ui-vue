@@ -56,7 +56,7 @@ import {
   type AgendaEventItem,
 } from '../core';
 import { CalendarBuilder } from '../builders/calendar-builder';
-import type { WeekStripSlotScope } from '../builders/types';
+import type { CalendarDraftSegment, WeekStripSlotScope } from '../builders/types';
 
 interface Props {
   builder: CalendarBuilder<Record<string, unknown>>;
@@ -113,6 +113,12 @@ defineSlots<{
   multiDayBar?(props: { event: CalendarEvent; bar: MonthMultiDayBar }): unknown;
   /** Per-day-column header (week / month). */
   dayHeader?(props: { date: Temporal.PlainDate; isToday: boolean; isWeekend: boolean }): unknown;
+  /** The host's draft (`builder.draft`), drawn yourself — one call per day it covers. */
+  draft?(props: {
+    start: Temporal.ZonedDateTime;
+    end: Temporal.ZonedDateTime;
+    segment: CalendarDraftSegment;
+  }): unknown;
   /** Agenda empty state — forwarded to `<CoarAgendaView>`'s `empty`
    *  slot. Shown only when the agenda draws nothing and no load is
    *  in flight; no default. */
@@ -389,9 +395,19 @@ onMounted(() => {
   // api.scrollToTime takes Temporal.PlainTime — extract hour.
   props.builder._setScrollToTime((time: Temporal.PlainTime) => {
     const hour = time.hour;
-    if (view.value !== 'day' && view.value !== 'week') return;
+    if (view.value !== 'day' && view.value !== 'week' && view.value !== 'workWeek') return;
     const body = bodyEl.value;
     if (!body) return;
+    // Horizontal time grid (days as rows): it scrolls its own time axis.
+    const rows = body.querySelector<HTMLElement>('.coar-time-rows__scroller');
+    if (rows) {
+      const rowLabel = rows.querySelector<HTMLElement>(
+        `.coar-time-rows__hour-label[data-hour="${hour}"]`,
+      );
+      if (rowLabel)
+        rows.scrollTo({ left: parseFloat(rowLabel.style.left) || 0, behavior: 'smooth' });
+      return;
+    }
     const label = body.querySelector<HTMLElement>(
       `.coar-time-grid__hour-label[data-hour="${hour}"]`,
     );
@@ -527,6 +543,9 @@ onBeforeUnmount(() => {
         <template v-if="$slots.dayHeader" #dayHeader="slotProps">
           <slot name="dayHeader" v-bind="slotProps" />
         </template>
+        <template v-if="$slots.draft" #draft="slotProps">
+          <slot name="draft" v-bind="slotProps" />
+        </template>
       </CoarDayView>
 
       <CoarAgendaView
@@ -556,6 +575,9 @@ onBeforeUnmount(() => {
         <template v-if="$slots.dayHeader" #dayHeader="slotProps">
           <slot name="dayHeader" v-bind="slotProps" />
         </template>
+        <template v-if="$slots.draft" #draft="slotProps">
+          <slot name="draft" v-bind="slotProps" />
+        </template>
       </CoarWeekView>
 
       <CoarWorkWeekView v-else-if="view === 'workWeek'" :builder="props.builder">
@@ -567,6 +589,9 @@ onBeforeUnmount(() => {
         </template>
         <template v-if="$slots.dayHeader" #dayHeader="slotProps">
           <slot name="dayHeader" v-bind="slotProps" />
+        </template>
+        <template v-if="$slots.draft" #draft="slotProps">
+          <slot name="draft" v-bind="slotProps" />
         </template>
       </CoarWorkWeekView>
 
