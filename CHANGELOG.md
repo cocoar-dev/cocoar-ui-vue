@@ -382,6 +382,11 @@ Preview mark goes.
   the Details row is the iOS 94 px or the measured need, bars start below
   the measured day-number row, and Details bars take the measured pill
   height so bars and pills always match.
+- **`@cocoar/vue-ui` — `CoarButton` keeps its label width in narrow flex
+  rows.** Its `min-width` fell back to `auto`, which a flex row resolves to 0
+  for a box with `overflow: hidden`: a constrained toolbar squeezed buttons
+  below their label and clipped the text. The fallback is now `min-content`;
+  buttons that should shrink need an explicit `min-width` from the host.
 - **Date-time pickers no longer revert typed edits on blur.** Maskito's
   datetime mask defaulted to `', '` between date and time while the pickers
   format and parse with a plain space, so the first keystroke re-masked the
