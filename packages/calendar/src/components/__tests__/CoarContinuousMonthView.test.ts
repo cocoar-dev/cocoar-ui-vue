@@ -389,10 +389,14 @@ describe('progressive mount', () => {
     ).toMatch(/height: \d+px/);
 
     // After the first frame, one month per task — nearest first: May
-    // (July is already there) goes early, December (farthest) last.
-    await vi.waitFor(() => {
-      expect(wrapper.findAll('.coar-continuous-month-view__placeholder').length).toBeLessThan(11);
-    });
+    // (July is already there) goes early, December (farthest) last. On a
+    // loaded CI runner the first frame alone can take over a second.
+    await vi.waitFor(
+      () => {
+        expect(wrapper.findAll('.coar-continuous-month-view__placeholder').length).toBeLessThan(11);
+      },
+      { timeout: 10_000 },
+    );
     expect(grid(wrapper, '2026-05')).toBe(true);
     expect(placeholder(wrapper, '2025-12')).toBe(true);
 
