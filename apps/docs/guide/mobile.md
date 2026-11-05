@@ -2,7 +2,12 @@
 description: "Opt into mobile presentation with a coar-mobile parent: touch-sized buttons, text/password/number inputs, checkboxes, radios and switches without changing component APIs."
 ---
 
-# Mobile presentation
+# Mobile presentation <Badge type="warning" text="Preview" />
+
+::: warning Preview — new in 3.2
+The mobile presentation is new in 3.2 and still a Preview: token names and the
+set of adapted controls may change before it loses this mark.
+:::
 
 Add `coar-mobile` to `html`, `body`, or a local parent to opt into a mobile
 presentation. Import the normal `@cocoar/vue-ui/styles` stylesheet; no extra

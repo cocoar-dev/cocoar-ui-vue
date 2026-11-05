@@ -1,6 +1,11 @@
 <!-- Generated from apps/docs/guide/mobile.md by apps/docs/scripts/sync-skill.mjs. Do not edit; edit the docs page. -->
 
-# Mobile presentation
+# Mobile presentation (Preview)
+
+> **Warning: Preview — new in 3.2**
+>
+> The mobile presentation is new in 3.2 and still a Preview: token names and the
+> set of adapted controls may change before it loses this mark.
 
 Add `coar-mobile` to `html`, `body`, or a local parent to opt into a mobile
 presentation. Import the normal `@cocoar/vue-ui/styles` stylesheet; no extra

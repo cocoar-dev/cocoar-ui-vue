@@ -207,7 +207,9 @@ function handleClick(event: MouseEvent) {
 .coar-button {
   display: inline-flex;
   min-height: var(--coar-button-mobile-height, auto);
-  min-width: var(--coar-control-min-target-size, auto);
+  /* `auto` would resolve to 0 in a flex row (the button clips with
+     `overflow: hidden`): keep at least the label's width. */
+  min-width: var(--coar-control-min-target-size, min-content);
   align-items: center;
   justify-content: center;
   gap: var(--coar-spacing-s);

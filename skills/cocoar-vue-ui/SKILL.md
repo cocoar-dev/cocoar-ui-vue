@@ -90,7 +90,7 @@ of each other.
 - [Getting Started](references/guide/getting-started.md) — Set up @cocoar/vue-ui in a Vue 3 project: install, import fonts and styles, use components, toggle dark mode, and register the overlay plugin.
 - [Error Handling](references/guide/error-handling.md) — Error handling patterns in Cocoar UI: graceful fallbacks, overlay Promise rejections, error toasts, and handling failures in application code.
 - [Theming](references/guide/theming.md) — Theme Cocoar with CSS custom properties: set five oklch base colors and all shade scales for light and dark mode recalculate automatically.
-- [Mobile presentation](references/guide/mobile.md) — Opt into mobile presentation with a coar-mobile parent: touch-sized buttons, text/password/number inputs, checkboxes, radios and switches without changing component APIs.
+- [Mobile presentation (Preview)](references/guide/mobile.md) — Opt into mobile presentation with a coar-mobile parent: touch-sized buttons, text/password/number inputs, checkboxes, radios and switches without changing component APIs.
 - [Migrating to 2.11](references/guide/migration.md) — Migration guide for Cocoar UI 2.11: date/time pickers move onto CoarFormField, the clear button becomes opt-in, and two CSS tokens are renamed.
 - [Migrating Page Builder to 3.0](references/guide/migration-page-builder-3.md) — Migration guide for @cocoar/vue-page-builder 3.0: four PageConfig concepts removed, several names disambiguated, and documents migrated to schemaVersion 6.
 
