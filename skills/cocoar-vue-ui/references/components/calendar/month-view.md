@@ -184,6 +184,31 @@ const events = ref<CalendarEvent[]>([
     end: zdt('2026-04-15T15:45:00'),
     meta: { title: '1:1 with Bernhard', color: '#3b82f6' },
   },
+  // Timed events spanning days: bars inset a third of a day at their real ends.
+  {
+    id: 'away',
+    start: zdt('2026-04-16T15:30:00'),
+    end: zdt('2026-04-19T18:00:00'),
+    meta: { title: 'Away — Graz (Thu 15:30 → Sun 18:00)', color: '#db2777' },
+  },
+  {
+    id: 'release-party',
+    start: zdt('2026-04-21T22:00:00'),
+    end: zdt('2026-04-22T02:00:00'),
+    meta: { title: 'Release party (22:00 → 02:00)', color: '#ea580c' },
+  },
+  {
+    id: 'workshop',
+    start: zdt('2026-04-06T08:00:00'),
+    end: zdt('2026-04-09T00:00:00'),
+    meta: { title: 'Workshop (Mon 08:00 → Thu 00:00)', color: '#0d9488' },
+  },
+  {
+    id: 'audit',
+    start: zdt('2026-03-31T10:00:00'),
+    end: zdt('2026-04-03T12:00:00'),
+    meta: { title: 'Audit (Mar 31 → Apr 3)', color: '#4f46e5' },
+  },
   // Quarterly review crossing into May.
   {
     id: 'quarter-review',
