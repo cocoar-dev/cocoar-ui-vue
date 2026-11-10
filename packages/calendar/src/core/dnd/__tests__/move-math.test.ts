@@ -78,6 +78,31 @@ describe('core/dnd/move-math', () => {
     });
   });
 
+  describe('timed month resize-end', () => {
+    it('an end at 00:00 lands at 00:00 after the drop cell, so the bar ends on that cell', () => {
+      // Mon 08:00 → Thu 00:00 draws Mon–Wed; dropping the end handle on Fri
+      // must make the bar cover Fri, i.e. end Sat 00:00.
+      const ev: CalendarEvent = {
+        id: 'trip',
+        start: zdt('2026-04-13T08:00:00'),
+        end: zdt('2026-04-16T00:00:00'),
+      };
+      const next = applyMoveToEvent(ev, target('2026-04-17', null), 'month-resize-end');
+      expect(next.start.toString()).toBe('2026-04-13T08:00:00+00:00[UTC]');
+      expect(next.end?.toString()).toBe('2026-04-18T00:00:00+00:00[UTC]');
+    });
+
+    it('an end with a clock time keeps it on the drop cell', () => {
+      const ev: CalendarEvent = {
+        id: 'away',
+        start: zdt('2026-04-16T15:30:00'),
+        end: zdt('2026-04-19T18:00:00'),
+      };
+      const next = applyMoveToEvent(ev, target('2026-04-20', null), 'month-resize-end');
+      expect(next.end?.toString()).toBe('2026-04-20T18:00:00+00:00[UTC]');
+    });
+  });
+
   describe('all-day move', () => {
     it('shifts a 3-day all-day event by the start delta', () => {
       const ev: CalendarEvent = {

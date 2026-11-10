@@ -24,7 +24,8 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
   showed only on Thursday. It now covers its days in the display zone like an
   all-day span (split per week row); the end stays exclusive, so an end at
   exactly 00:00 does not reach into that day. Same rule in
-  `Cocoar.Calendar.iOS`.
+  `Cocoar.Calendar.iOS`. Dragging the end handle of such a bar onto a day
+  makes the bar end on that day, also when the event ends at 00:00.
 
 ## 3.2.0
 
