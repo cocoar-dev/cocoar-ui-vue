@@ -5,8 +5,10 @@
  *   - Multi-day events spanning across week-row boundaries → split
  *     into multiple bars, each clipped to its row.
  *   - Single-day events → pills on their start day.
- *   - Timed events → pinned to the start day as pills (we don't
- *     render times in month view).
+ *   - Timed events within one day → pills on their start day (we don't
+ *     render times in month view); timed events that end on a later
+ *     day in the display zone → bars like all-day spans, the end
+ *     exclusive (an end at 00:00 does not reach into that day).
  *   - All-day events with end-exclusive (RFC 5545) → end day is
  *     `end - 1 day`.
  *   - Same id appearing twice → deduped.
@@ -106,6 +108,87 @@ describe('layoutMonthGrid — single-day events as cell pills', () => {
     const pills = pillRow.cellPills.get('2026-04-15')!;
     expect(pills.length).toBe(3);
     expect(pills.map((p) => p.order)).toEqual([0, 1, 2]);
+  });
+});
+
+describe('layoutMonthGrid — timed events spanning days', () => {
+  // April 2026, row 2 = Mon Apr 13 … Sun Apr 19.
+  const rowOf = (r: ReturnType<typeof layoutMonthGrid>, day: string) =>
+    r.weekRows.find((row) => row.days.some((d) => d.toString() === day))!;
+
+  it('Thu 15:30 → Sun 18:00 becomes one bar Thu–Sun, not a pill on Thu', () => {
+    const r = layoutMonthGrid([evTimed('away', '2026-04-16T15:30:00', '2026-04-19T18:00:00')], {
+      gridDates: GRID,
+      timezone: 'UTC',
+    });
+    const row = r.weekRows[2];
+    expect(row.multiDayBars.length).toBe(1);
+    expect(row.multiDayBars[0].event.id).toBe('away');
+    expect(row.multiDayBars[0].startCol).toBe(3); // Thu
+    expect(row.multiDayBars[0].endCol).toBe(6); // Sun
+    expect(row.cellPills.get('2026-04-16')).toBeUndefined();
+  });
+
+  it('crossing midnight (22:00 → 02:00) spans both days', () => {
+    const r = layoutMonthGrid([evTimed('party', '2026-04-15T22:00:00', '2026-04-16T02:00:00')], {
+      gridDates: GRID,
+      timezone: 'UTC',
+    });
+    const bar = rowOf(r, '2026-04-15').multiDayBars[0];
+    expect(bar.startCol).toBe(2); // Wed
+    expect(bar.endCol).toBe(3); // Thu
+  });
+
+  it('an end at exactly 00:00 does not reach into that day (stays a pill)', () => {
+    const r = layoutMonthGrid([evTimed('late', '2026-04-15T22:00:00', '2026-04-16T00:00:00')], {
+      gridDates: GRID,
+      timezone: 'UTC',
+    });
+    const row = rowOf(r, '2026-04-15');
+    expect(row.multiDayBars.length).toBe(0);
+    expect(row.cellPills.get('2026-04-15')!.map((p) => p.event.id)).toEqual(['late']);
+  });
+
+  it('an end at 00:00 after several days ends the bar on the day before', () => {
+    const r = layoutMonthGrid([evTimed('trip', '2026-04-13T08:00:00', '2026-04-16T00:00:00')], {
+      gridDates: GRID,
+      timezone: 'UTC',
+    });
+    const bar = r.weekRows[2].multiDayBars[0];
+    expect(bar.startCol).toBe(0); // Mon
+    expect(bar.endCol).toBe(2); // Wed
+  });
+
+  it('spanning a week boundary splits into clipped bars like an all-day span', () => {
+    const r = layoutMonthGrid([evTimed('stay', '2026-04-17T09:00:00', '2026-04-21T12:00:00')], {
+      gridDates: GRID,
+      timezone: 'UTC',
+    });
+    const first = r.weekRows[2].multiDayBars[0];
+    const second = r.weekRows[3].multiDayBars[0];
+    expect([first.startCol, first.endCol, first.clippedEnd]).toEqual([4, 6, true]); // Fri–Sun
+    expect([second.startCol, second.endCol, second.clippedStart]).toEqual([0, 1, true]); // Mon–Tue
+  });
+
+  it('the days are those of the display zone', () => {
+    // 10:00 → 20:00 UTC on Apr 15 is one day in UTC …
+    const events = [evTimed('call', '2026-04-15T10:00:00', '2026-04-15T20:00:00')];
+    const utc = layoutMonthGrid(events, { gridDates: GRID, timezone: 'UTC' });
+    expect(rowOf(utc, '2026-04-15').multiDayBars.length).toBe(0);
+    // … but 19:00 Apr 15 → 05:00 Apr 16 in Tokyo.
+    const tokyo = layoutMonthGrid(events, { gridDates: GRID, timezone: 'Asia/Tokyo' });
+    const bar = rowOf(tokyo, '2026-04-15').multiDayBars[0];
+    expect([bar.startCol, bar.endCol]).toEqual([2, 3]);
+  });
+
+  it('an end before its start keeps the event a pill on its start day', () => {
+    const r = layoutMonthGrid([evTimed('odd', '2026-04-15T09:00:00', '2026-04-14T09:00:00')], {
+      gridDates: GRID,
+      timezone: 'UTC',
+    });
+    const row = rowOf(r, '2026-04-15');
+    expect(row.multiDayBars.length).toBe(0);
+    expect(row.cellPills.get('2026-04-15')!.length).toBe(1);
   });
 });
 

@@ -424,11 +424,14 @@ function dayBoundsOf(event: CalendarEvent, timezone: string): DayBounds {
  * so `[2026-04-13, 2026-04-16)` covers Mon-Wed (3 days) and
  * counts as multi-day.
  *
- * Timed events that span across midnight ARE treated as single-day
- * for the month view (their visual home is the start day). The
- * week / day views handle the cross-midnight clipping per-day in
- * the time grid; in the month view we don't have time slots, so
- * timed events live as pills on the start day.
+ * Timed events follow the same rule on the display zone's calendar: one
+ * that ends on a later day than it starts (Thu 15:30 → Sun 18:00) is a
+ * multi-day bar from its start day to its end day, so a stay or an absence
+ * reads at a glance like an all-day span. The end is exclusive here too: an
+ * end at exactly 00:00 belongs to the day before, so 22:00 → 00:00 stays a
+ * pill on its start day. A timed event within one day stays a pill. (Until
+ * 3.2.0 every timed event was pinned to its start day as a pill, which hid
+ * the rest of a multi-day stay from the month.)
  */
 function resolveDayBounds(
   event: CalendarEvent,
@@ -457,12 +460,22 @@ function resolveDayBounds(
     };
   }
 
-  // Timed event. Single-day in month-view terms — pin to start day in
-  // the display zone.
-  const startDay = eventStartDateInZone(event.start, timezone);
+  // Timed event: its days in the display zone, the end exclusive (an end
+  // at 00:00 does not reach into that day).
+  const firstDay = eventStartDateInZone(event.start, timezone);
+  let lastDayInclusive = firstDay;
+  if (event.end instanceof Temporal.ZonedDateTime) {
+    const end = event.end.withTimeZone(timezone);
+    const endDay = end.toPlainDate();
+    const atMidnight = Temporal.PlainTime.compare(end.toPlainTime(), new Temporal.PlainTime()) === 0;
+    lastDayInclusive = atMidnight ? endDay.subtract({ days: 1 }) : endDay;
+    if (Temporal.PlainDate.compare(lastDayInclusive, firstDay) < 0) {
+      lastDayInclusive = firstDay;
+    }
+  }
   return {
-    firstDay: startDay,
-    lastDayInclusive: startDay,
-    isMultiDay: false,
+    firstDay,
+    lastDayInclusive,
+    isMultiDay: Temporal.PlainDate.compare(lastDayInclusive, firstDay) > 0,
   };
 }
