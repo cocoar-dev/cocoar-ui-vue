@@ -42,7 +42,7 @@ Only the month in view and the next one render on mount. Every other section sta
 
 ## Single month section {#single-month-section}
 
-`<CoarMonthView>` renders the fixed single-section grid used internally by the continuous composition. Multi-day events render as continuous **bars** across the rows they touch; single-day events render as **pills** inside cells. Use it directly when the host owns pagination or needs a compact embedded month.
+`<CoarMonthView>` renders the fixed single-section grid used internally by the continuous composition. Multi-day events render as continuous **bars** across the rows they touch; single-day events render as **pills** inside cells. A timed event counts as multi-day when it ends on a later day than it starts in the display zone (Thu 15:30 → Sun 18:00 is a Thu–Sun bar); its end is exclusive, so an end at the start of a day (00:00, or 01:00 where DST skips midnight) does not reach into that day. Its bar stops a third of a day short of the outer edges of its first and last day — the same fixed inset whatever the clock times are — so it never reads as an all-day event; an edge cut by a week row or by the edge of a continuous month's section keeps running to the border. Use it directly when the host owns pagination or needs a compact embedded month.
 
 ```html
 <CoarMonthView :builder="builder" />
@@ -183,6 +183,31 @@ const events = ref<CalendarEvent[]>([
     start: zdt('2026-04-15T15:00:00'),
     end: zdt('2026-04-15T15:45:00'),
     meta: { title: '1:1 with Bernhard', color: '#3b82f6' },
+  },
+  // Timed events spanning days: bars inset a third of a day at their real ends.
+  {
+    id: 'away',
+    start: zdt('2026-04-16T15:30:00'),
+    end: zdt('2026-04-19T18:00:00'),
+    meta: { title: 'Away — Graz (Thu 15:30 → Sun 18:00)', color: '#db2777' },
+  },
+  {
+    id: 'release-party',
+    start: zdt('2026-04-21T22:00:00'),
+    end: zdt('2026-04-22T02:00:00'),
+    meta: { title: 'Release party (22:00 → 02:00)', color: '#ea580c' },
+  },
+  {
+    id: 'workshop',
+    start: zdt('2026-04-06T08:00:00'),
+    end: zdt('2026-04-09T00:00:00'),
+    meta: { title: 'Workshop (Mon 08:00 → Thu 00:00)', color: '#0d9488' },
+  },
+  {
+    id: 'audit',
+    start: zdt('2026-03-31T10:00:00'),
+    end: zdt('2026-04-03T12:00:00'),
+    meta: { title: 'Audit (Mar 31 → Apr 3)', color: '#4f46e5' },
   },
   // Quarterly review crossing into May.
   {

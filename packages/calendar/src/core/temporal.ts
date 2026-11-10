@@ -557,3 +557,12 @@ export function formatScheduledTime(
     timeZoneId: zdt.timeZoneId,
   };
 }
+
+/**
+ * True when a timed end is the very start of its day — 00:00, or the first
+ * moment of a day whose midnight a DST change skips (01:00 in Havana on
+ * 2026-03-08). Such an end is exclusive: it does not reach into that day.
+ */
+export function endsAtStartOfDay(end: Temporal.ZonedDateTime): boolean {
+  return Temporal.ZonedDateTime.compare(end, end.startOfDay()) === 0;
+}
