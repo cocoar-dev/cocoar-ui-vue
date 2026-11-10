@@ -7,7 +7,13 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
-## Unreleased
+## 3.3.0
+
+**Timed events that span days show across them in the month.** A timed event
+that ends on a later day than it starts — a stay from Thursday afternoon to
+Sunday evening, a party past midnight — is a bar over its days, like an
+all-day span, instead of a pill on its first day only. The bar stops a third
+of a day short of its real ends, so it never reads as all-day.
 
 ### Changed
 
