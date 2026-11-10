@@ -68,6 +68,24 @@ function setGlobalDragCursor(cursor: string | null): void {
   dragCursorStyleEl.textContent = `*, *::before, *::after { cursor: ${cursor} !important; }`;
 }
 
+/**
+ * Day columns between the one the pointer is in and the one the grabbed
+ * card starts in. Counted in grid columns, not from the card's left edge:
+ * a timed month bar is inset into its first day, so measuring from its edge
+ * would put a grab just past the next day's border at offset 0 and move the
+ * event's start onto that day.
+ */
+export function monthGrabOffsetDays(
+  pointerX: number,
+  cardLeft: number,
+  gridLeft: number,
+  cellWidth: number,
+): number {
+  const pointerCol = Math.floor((pointerX - gridLeft) / cellWidth);
+  const cardCol = Math.floor((cardLeft - gridLeft) / cellWidth);
+  return Math.max(0, pointerCol - cardCol);
+}
+
 function cursorForMode(
   mode: CalendarDragMode | null,
   timedAxis: 'vertical' | 'horizontal' = 'vertical',
@@ -786,10 +804,7 @@ export function useCalendarDnd<TMeta extends Record<string, unknown> = Record<st
         const gridRect = grid.getBoundingClientRect();
         const cellW = gridRect.width / 7;
         if (cellW > 0) {
-          // Distance in cells between the pointer and the bar's
-          // left edge — floor so cell 0 covers the entire first
-          // visible day-column.
-          grabOffsetDays = Math.floor((e.clientX - nodeRect.left) / cellW);
+          grabOffsetDays = monthGrabOffsetDays(e.clientX, nodeRect.left, gridRect.left, cellW);
         } else {
           grabOffsetDays = 0;
         }

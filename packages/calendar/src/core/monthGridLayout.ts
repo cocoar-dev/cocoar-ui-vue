@@ -28,7 +28,7 @@
 import type { CalendarEvent, CalendarMonthDensity } from './types';
 import { isAllDayEvent } from './types';
 import { layoutOverlappingIntervals, type IntervalInput } from './overlapLayout';
-import { Temporal, dateKey, eventStartDateInZone } from './temporal';
+import { Temporal, dateKey, endsAtStartOfDay, eventStartDateInZone } from './temporal';
 
 // ─── Output types ────────────────────────────────────────────────────
 
@@ -315,8 +315,10 @@ export function layoutMonthGrid<TMeta extends Record<string, unknown> = Record<s
         ...m,
         startCol,
         endCol,
-        clippedStart: Temporal.PlainDate.compare(m.firstDay, row.weekStart) < 0,
-        clippedEnd: Temporal.PlainDate.compare(m.lastDayInclusive, row.weekEnd) > 0,
+        // Clipped = the event goes on past what this row shows: past the week
+        // row or past the visible range (a continuous month's section).
+        clippedStart: Temporal.PlainDate.compare(m.firstDay, visStart) < 0,
+        clippedEnd: Temporal.PlainDate.compare(m.lastDayInclusive, visEnd) > 0,
       });
     }
 
@@ -467,8 +469,7 @@ function resolveDayBounds(
   if (event.end instanceof Temporal.ZonedDateTime) {
     const end = event.end.withTimeZone(timezone);
     const endDay = end.toPlainDate();
-    const atMidnight = Temporal.PlainTime.compare(end.toPlainTime(), new Temporal.PlainTime()) === 0;
-    lastDayInclusive = atMidnight ? endDay.subtract({ days: 1 }) : endDay;
+    lastDayInclusive = endsAtStartOfDay(end) ? endDay.subtract({ days: 1 }) : endDay;
     if (Temporal.PlainDate.compare(lastDayInclusive, firstDay) < 0) {
       lastDayInclusive = firstDay;
     }

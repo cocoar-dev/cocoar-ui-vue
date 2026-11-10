@@ -181,6 +181,35 @@ describe('layoutMonthGrid — timed events spanning days', () => {
     expect([bar.startCol, bar.endCol]).toEqual([2, 3]);
   });
 
+  it('an end at the start of a day DST begins at 01:00 does not reach into that day', () => {
+    // Havana skips 00:00 on 2026-03-08: the day starts at 01:00.
+    const events = [
+      {
+        id: 'stay',
+        start: Temporal.ZonedDateTime.from('2026-03-05T10:00:00[America/Havana]'),
+        end: Temporal.ZonedDateTime.from('2026-03-08T01:00:00[America/Havana]'),
+      },
+    ];
+    const march = monthGridDates(Temporal.PlainYearMonth.from('2026-03'), 1);
+    const r = layoutMonthGrid(events, { gridDates: march, timezone: 'America/Havana' });
+    const bar = rowOf(r, '2026-03-05').multiDayBars[0];
+    expect([bar.startCol, bar.endCol]).toEqual([3, 5]); // Thu–Sat, not into Sun 8
+  });
+
+  it('a bar cut by the visible range is clipped there, not given a false end', () => {
+    // March 31 → April 3 seen in April's section of a continuous month.
+    const r = layoutMonthGrid([evTimed('stay', '2026-03-31T10:00:00', '2026-04-03T12:00:00')], {
+      gridDates: GRID,
+      timezone: 'UTC',
+      visibleStart: Temporal.PlainDate.from('2026-04-01'),
+      visibleEnd: Temporal.PlainDate.from('2026-04-30'),
+    });
+    const bar = rowOf(r, '2026-04-01').multiDayBars[0];
+    expect([bar.startCol, bar.endCol]).toEqual([2, 4]); // Wed–Fri
+    expect(bar.clippedStart).toBe(true);
+    expect(bar.clippedEnd).toBe(false);
+  });
+
   it('an end before its start keeps the event a pill on its start day', () => {
     const r = layoutMonthGrid([evTimed('odd', '2026-04-15T09:00:00', '2026-04-14T09:00:00')], {
       gridDates: GRID,

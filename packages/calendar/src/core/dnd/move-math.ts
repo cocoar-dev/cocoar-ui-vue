@@ -107,6 +107,7 @@ export interface CalendarDropTarget {
  */
 export type { DstPolicy } from '../temporal';
 import type { DstPolicy } from '../temporal';
+import { endsAtStartOfDay } from '../temporal';
 
 /**
  * Thrown by `applyMoveToEvent` when `dstPolicy === 'reject'` and the
@@ -509,18 +510,25 @@ export function applyMoveToEvent(
     const oldEndAnchor = oldEndZdt ?? oldStartZdt;
     const anchorZone = oldEndZdt ? endSourceZone : startSourceZone;
     const oldEndInDisplay = oldEndAnchor.withTimeZone(target.displayZone);
-    // The drop cell is the LAST day the bar covers. An end at exactly 00:00
-    // is exclusive (the month layout draws it up to the day before), so it
-    // lands at 00:00 of the day AFTER the drop cell — otherwise the bar would
-    // end one day short of where it was dropped.
-    const endsAtMidnight =
-      oldEndZdt !== null &&
-      Temporal.PlainTime.compare(oldEndInDisplay.toPlainTime(), new Temporal.PlainTime()) === 0;
-    const endDate = endsAtMidnight ? targetDate.add({ days: 1 }) : targetDate;
+    // The drop cell is the LAST day the bar covers. An end at the start of a
+    // day (00:00, or 01:00 where DST skips midnight) is exclusive — the month
+    // layout draws it up to the day before — so it moves to the start of the
+    // day AFTER the drop cell; otherwise the bar would end one day short.
+    if (oldEndZdt !== null && endsAtStartOfDay(oldEndInDisplay)) {
+      let newEnd = targetDate
+        .add({ days: 1 })
+        .toZonedDateTime({ timeZone: target.displayZone })
+        .withTimeZone(anchorZone);
+      const capEnd = oldStartZdt.add({ minutes: MIN_RESIZE_MINUTES }).withTimeZone(anchorZone);
+      if (Temporal.Instant.compare(newEnd.toInstant(), capEnd.toInstant()) < 0) {
+        newEnd = capEnd;
+      }
+      return { start: oldStartZdt, end: newEnd };
+    }
     const monthResizeEndDst = detectDstSituation(target.displayZone, {
-      year: endDate.year,
-      month: endDate.month,
-      day: endDate.day,
+      year: targetDate.year,
+      month: targetDate.month,
+      day: targetDate.day,
       hour: oldEndInDisplay.hour,
       minute: oldEndInDisplay.minute,
       second: oldEndInDisplay.second,
@@ -534,9 +542,9 @@ export function applyMoveToEvent(
     const movedDisamb: 'compatible' | 'earlier' | 'later' =
       dstPolicy === 'reject' ? 'compatible' : (dstPolicy as 'compatible' | 'earlier' | 'later');
     const movedPdt = Temporal.PlainDateTime.from({
-      year: endDate.year,
-      month: endDate.month,
-      day: endDate.day,
+      year: targetDate.year,
+      month: targetDate.month,
+      day: targetDate.day,
       hour: oldEndInDisplay.hour,
       minute: oldEndInDisplay.minute,
       second: oldEndInDisplay.second,

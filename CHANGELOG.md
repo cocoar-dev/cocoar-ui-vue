@@ -15,7 +15,8 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
   edge.** A timed event spanning days stops a third of a day cell short of the
   outer edges of its first and last day, so it never reads as an all-day bar.
   The inset is fixed — it marks "not all-day", it does not reflect the clock
-  time; an edge cut by a week row keeps running to the border.
+  time; an edge cut by a week row or by the edge of a continuous month's
+  section keeps running to the border, without a resize handle there.
 
 ### Fixed
 
@@ -23,9 +24,11 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
   A timed event was pinned to its start day as a pill, so Thu 15:30 → Sun 18:00
   showed only on Thursday. It now covers its days in the display zone like an
   all-day span (split per week row); the end stays exclusive, so an end at
-  exactly 00:00 does not reach into that day. Same rule in
-  `Cocoar.Calendar.iOS`. Dragging the end handle of such a bar onto a day
-  makes the bar end on that day, also when the event ends at 00:00.
+  the start of a day (00:00, or 01:00 where DST skips midnight) does not
+  reach into that day. Same rule in `Cocoar.Calendar.iOS`. Dragging the end
+  handle of such a bar onto a day makes the bar end on that day, also when
+  the event ends at the start of a day; grabbing a bar just inside its second
+  day moves it by the day grabbed, not by one more.
 
 ## 3.2.0
 

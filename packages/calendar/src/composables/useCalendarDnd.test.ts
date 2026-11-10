@@ -23,6 +23,7 @@ import type { CalendarEvent } from '../core';
 import { pd, zdt } from '../__test-utils__/event-fixtures';
 import {
   applyMoveToEvent,
+  monthGrabOffsetDays,
   useCalendarDnd,
   type CalendarDropTarget,
   type UseCalendarDndOptions,
@@ -434,6 +435,21 @@ const baseEvent: CalendarEvent = {
   start: zdt('2026-04-15T09:00:00'),
   end: zdt('2026-04-15T09:30:00'),
 };
+
+describe('monthGrabOffsetDays', () => {
+  // 100 px cells, grid at x = 0.
+  it("counts columns from the card's first day, not from its inset edge", () => {
+    // Timed bar Mon–Thu, inset a third of a cell: left edge at x ≈ 35.
+    // A grab 10 px into Tuesday is one day in, not zero.
+    expect(monthGrabOffsetDays(110, 35, 0, 100)).toBe(1);
+    expect(monthGrabOffsetDays(90, 35, 0, 100)).toBe(0);
+  });
+
+  it('is unchanged for a bar flush with its first day and for a pill', () => {
+    expect(monthGrabOffsetDays(250, 102, 0, 100)).toBe(1); // all-day bar from Tue (col 1)
+    expect(monthGrabOffsetDays(340, 305, 0, 100)).toBe(0); // pill in Thu
+  });
+});
 
 describe('useCalendarDnd — drag lifecycle', () => {
   let harness: Harness;
