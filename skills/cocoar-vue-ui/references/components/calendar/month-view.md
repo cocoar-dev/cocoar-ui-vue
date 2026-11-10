@@ -42,7 +42,7 @@ Only the month in view and the next one render on mount. Every other section sta
 
 ## Single month section {#single-month-section}
 
-`<CoarMonthView>` renders the fixed single-section grid used internally by the continuous composition. Multi-day events render as continuous **bars** across the rows they touch; single-day events render as **pills** inside cells. A timed event counts as multi-day when it ends on a later day than it starts in the display zone (Thu 15:30 → Sun 18:00 is a Thu–Sun bar); its end is exclusive, so an end at exactly 00:00 does not reach into that day. Use it directly when the host owns pagination or needs a compact embedded month.
+`<CoarMonthView>` renders the fixed single-section grid used internally by the continuous composition. Multi-day events render as continuous **bars** across the rows they touch; single-day events render as **pills** inside cells. A timed event counts as multi-day when it ends on a later day than it starts in the display zone (Thu 15:30 → Sun 18:00 is a Thu–Sun bar); its end is exclusive, so an end at exactly 00:00 does not reach into that day. Its bar stops a third of a day short of the outer edges of its first and last day — the same fixed inset whatever the clock times are — so it never reads as an all-day event; an edge cut by a week row keeps running to the border. Use it directly when the host owns pagination or needs a compact embedded month.
 
 ```html
 <CoarMonthView :builder="builder" />

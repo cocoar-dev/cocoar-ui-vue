@@ -214,6 +214,32 @@ describe('CoarMonthView', () => {
     expect(bars.length).toBeGreaterThan(0);
   });
 
+  it('insets a timed multi-day bar at its real ends, never an all-day one', () => {
+    // Week of Mon 2026-06-15: timed Thu 15:30 → Sun 18:00, all-day starting Tue.
+    const events: CalendarEvent[] = [
+      {
+        id: 'away',
+        start: zdt('2026-06-18T15:30:00', 'Europe/Vienna'),
+        end: zdt('2026-06-21T18:00:00', 'Europe/Vienna'),
+        meta: { title: 'Away' },
+      },
+      { id: 'trip', start: pd('2026-06-16'), end: pd('2026-06-18'), meta: { title: 'Trip' } },
+    ];
+    const w = mount(CoarMonthView, { props: { builder: newBuilder(events).view('month') } });
+    const percent = (title: string, prop: 'left' | 'width') => {
+      const style =
+        w.findAll('.coar-month-bar').find((el) => el.text().includes(title))!.attributes('style') ?? '';
+      return Number(new RegExp(`${prop}: calc\\(([\\d.]+)%`).exec(style)![1]);
+    };
+    const cell = 100 / 7;
+    // Timed: a third of a cell in from Thursday's left edge and from Sunday's right edge,
+    // whatever the clock times are.
+    expect(percent('Away', 'left')).toBeCloseTo(3 * cell + cell / 3, 6);
+    expect(percent('Away', 'width')).toBeCloseTo(4 * cell - (2 * cell) / 3, 6);
+    // All-day: starts at Tuesday's edge, as before.
+    expect(percent('Trip', 'left')).toBeCloseTo(cell, 6);
+  });
+
   it('keeps assignees in the default month renderer', () => {
     const events = sampleEvents();
     events[0] = {

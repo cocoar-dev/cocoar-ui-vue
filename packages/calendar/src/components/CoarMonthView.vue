@@ -323,6 +323,31 @@ const { BAR_HEIGHT, DAY_NUMBER_HEIGHT, barTopPx, rowBarHeightsPx, rowHeightPx } 
   maxEventsPerCell: () => state.value.maxEventsPerCell,
 });
 
+// ─── Bar geometry ────────────────────────────────────────────────────
+
+/**
+ * A timed event's bar does not reach the edge of the day it starts or ends
+ * on: it is inset by a third of a day cell there — the same for 10:00 and
+ * for 22:00 — so it reads as "not all day" next to an all-day span, without
+ * pretending to place the hour. An edge where the bar only leaves the week
+ * row (clipped) keeps the full width.
+ */
+const TIMED_BAR_INSET = 1 / 3;
+function barGeometry(
+  event: CalendarEvent<TMeta>,
+  bar: { startCol: number; endCol: number; clippedStart?: boolean; clippedEnd?: boolean },
+): { left: string; width: string } {
+  const cell = 100 / 7;
+  const timed = isTimedEvent(event);
+  const insetStart = timed && !bar.clippedStart ? cell * TIMED_BAR_INSET : 0;
+  const insetEnd = timed && !bar.clippedEnd ? cell * TIMED_BAR_INSET : 0;
+  const span = (bar.endCol - bar.startCol + 1) * cell;
+  return {
+    left: `calc(${bar.startCol * cell + insetStart}% + 2px)`,
+    width: `calc(${span - insetStart - insetEnd}% - 4px)`,
+  };
+}
+
 // ─── Lane cap + folded bars ──────────────────────────────────────────
 
 /** Per row: bars the band shows, bars folded away, hidden count per column. */
@@ -835,8 +860,8 @@ defineExpose({
           "
           :density="state.density"
           :top="barTopPx(bar.lane)"
-          :left="`calc(${(bar.startCol / 7) * 100}% + 2px)`"
-          :width="`calc(${((bar.endCol - bar.startCol + 1) / 7) * 100}% - 4px)`"
+          :left="barGeometry(bar.event, bar).left"
+          :width="barGeometry(bar.event, bar).width"
           :height="BAR_HEIGHT"
           :z-index="isPreviewId(bar.event.id) ? 100 : bar.lane + 1"
           :clipped-start="bar.clippedStart"
@@ -880,8 +905,8 @@ defineExpose({
           :display-zone="effectiveTimezone"
           :density="state.density"
           :top="barTopPx(snapBar.lane)"
-          :left="`calc(${(snapBar.startCol / 7) * 100}% + 2px)`"
-          :width="`calc(${((snapBar.endCol - snapBar.startCol + 1) / 7) * 100}% - 4px)`"
+          :left="barGeometry(dragSourceSnapshot!.event, snapBar).left"
+          :width="barGeometry(dragSourceSnapshot!.event, snapBar).width"
           :height="BAR_HEIGHT"
           :z-index="snapBar.lane + 1"
           :clipped-start="snapBar.clippedStart"
@@ -907,8 +932,8 @@ defineExpose({
           :snapping-back="dnd.snappingBack.value"
           :density="state.density"
           :top="barTopPx(0)"
-          :left="`calc(${(invalidMonthGhost.startCol / 7) * 100}% + 2px)`"
-          :width="`calc(${((invalidMonthGhost.endCol - invalidMonthGhost.startCol + 1) / 7) * 100}% - 4px)`"
+          :left="barGeometry(dnd.draggedEvent.value!, invalidMonthGhost).left"
+          :width="barGeometry(dnd.draggedEvent.value!, invalidMonthGhost).width"
           :height="BAR_HEIGHT"
           :z-index="100"
         />
