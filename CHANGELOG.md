@@ -7,6 +7,25 @@ Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 
+## Unreleased
+
+### Changed
+
+- **`@cocoar/vue-calendar` — a timed month bar keeps its distance from the
+  edge.** A timed event spanning days stops a third of a day cell short of the
+  outer edges of its first and last day, so it never reads as an all-day bar.
+  The inset is fixed — it marks "not all-day", it does not reflect the clock
+  time; an edge cut by a week row keeps running to the border.
+
+### Fixed
+
+- **`@cocoar/vue-calendar` — timed events spanning days become month bars.**
+  A timed event was pinned to its start day as a pill, so Thu 15:30 → Sun 18:00
+  showed only on Thursday. It now covers its days in the display zone like an
+  all-day span (split per week row); the end stays exclusive, so an end at
+  exactly 00:00 does not reach into that day. Same rule in
+  `Cocoar.Calendar.iOS`.
+
 ## 3.2.0
 
 **A list for records that do not fit into columns.** `CoarDataList` is the
