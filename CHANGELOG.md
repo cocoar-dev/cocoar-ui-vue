@@ -1,9 +1,11 @@
 # Changelog
 
-All notable changes to the Cocoar Design System (Vue) will be documented in this file.
+> **Frozen.** Releases after 3.3.0 are recorded in the
+> [GitHub releases](https://github.com/cocoar-dev/cocoar-ui-vue/releases): notes generated from the pull
+> requests, with a short tour for feature releases. This file keeps the history up to 3.3.0 and is not
+> updated any more.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
-Versions are calculated automatically by [GitVersion](https://gitversion.net/).
 
 ---
 

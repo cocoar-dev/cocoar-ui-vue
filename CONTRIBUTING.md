@@ -6,7 +6,7 @@ Thank you for your interest in contributing! This guide covers the conventions a
 
 1. Fork and clone the repo
 2. Run `pnpm install`
-3. Create a feature branch from `develop`: `git checkout -b feature/my-feature`
+3. Create a branch from `develop` named for the type of the change: `git checkout -b feat/my-feature`
 4. Make your changes
 5. Run `pnpm build && pnpm test && pnpm lint` to verify
 6. Submit a PR against `develop`
@@ -15,15 +15,16 @@ Thank you for your interest in contributing! This guide covers the conventions a
 
 | Branch | Purpose |
 |--------|---------|
-| `develop` | Main development branch |
-| `feature/*` | New features |
-| `bugfix/*`, `fix/*` | Bug fixes |
-| `release/*` | Release preparation |
-| `hotfix/*` | Production hotfixes |
+| `develop` | Main development branch — changes arrive only through pull requests |
+| `feat/*`, `fix/*`, `docs/*`, `refactor/*`, `perf/*`, `test/*`, `ci/*`, `build/*`, `chore/*` | A change, named for its Conventional Commit type |
+| `release/X.Y` | Only when a fix must reach an older minor while `develop` has moved on |
+| `support/X.x` | Fixes of an older major |
+
+How changes are checked and released: [AGENTS.md](AGENTS.md).
 
 ## Commit Messages
 
-Use [Conventional Commits](https://www.conventionalcommits.org/):
+Use [Conventional Commits](https://www.conventionalcommits.org/) for commit subjects **and pull request titles**. Pull requests are squash-merged with their title as the commit; CI checks the title, and the release notes are generated from the titles (types and scopes: [`scripts/commit-types.mjs`](scripts/commit-types.mjs)):
 
 ```
 feat(button): add loading state

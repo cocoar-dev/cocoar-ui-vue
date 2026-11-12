@@ -1,0 +1,108 @@
+# dotnet-releaser configuration used only for the release notes (`dotnet-releaser changelog`).
+# Nothing is built or published by dotnet-releaser here: ci.yml does that on a tag, then runs
+# `dotnet-releaser changelog <this file> <version> --update` as its very last step, which creates the
+# GitHub release with notes generated from the pull requests and commits since the previous tag.
+#
+# __OWNER__ and __REPO__ are replaced by the workflow (scripts/release/notes.mjs) with the repository
+# the run belongs to, so a fork or a sandbox writes its own releases, never the ones of cocoar-dev.
+#
+# Commits and pull request titles follow Conventional Commits (see AGENTS.md); the auto-labelers below
+# map their types to the categories of the notes. The default (CodeAlta-style) prefixes are disabled.
+profile = "custom"
+
+[github]
+user = "__OWNER__"
+repo = "__REPO__"
+version_prefix = "v"
+
+[changelog]
+defaults = false
+owners = ["windischb"]
+# The maintainers: their changes are listed without an @mention (contributors are thanked by name).
+owners_commit_change_template = "- {{ commit.title }} ({{ commit.sha }})"
+owners_pull_request_change_template = "- {{ pr.title }} (PR #{{ pr.number }})"
+exclude.labels = ["skip-release-notes"]
+
+# --- Auto-labelers: the type of a Conventional Commit title gives the label (first match wins) ---------
+[[changelog.autolabeler]]
+label = "breaking-change"
+title = ['^\w+(\([^)]*\))?!:']
+body = ['BREAKING CHANGE:']
+
+[[changelog.autolabeler]]
+label = "feature"
+title = ['^feat(\([^)]*\))?:']
+
+[[changelog.autolabeler]]
+label = "bugfix"
+title = ['^fix(\([^)]*\))?:']
+
+[[changelog.autolabeler]]
+label = "enhancement"
+title = ['^(perf|refactor)(\([^)]*\))?:']
+
+[[changelog.autolabeler]]
+label = "documentation"
+title = ['^docs(\([^)]*\))?:']
+
+[[changelog.autolabeler]]
+label = "tests"
+title = ['^test(\([^)]*\))?:']
+
+[[changelog.autolabeler]]
+label = "dependencies"
+title = ['^(chore|build)\(deps\):', '^[Bb]ump ']
+
+[[changelog.autolabeler]]
+label = "maintenance"
+title = ['^(ci|build|chore|revert|style)(\([^)]*\))?:']
+
+[[changelog.autolabeler]]
+label = "misc"
+title = ['.']
+
+# --- Categories, in the order of the notes ---------------------------------------------------------------
+[[changelog.category]]
+title = "## 🚨 Breaking Changes"
+labels = ["breaking-change"]
+order = 10
+
+[[changelog.category]]
+title = "## ✨ New Features"
+labels = ["feature"]
+order = 20
+
+[[changelog.category]]
+title = "## 🐛 Bug Fixes"
+labels = ["bugfix"]
+order = 30
+
+[[changelog.category]]
+title = "## 🚀 Enhancements"
+labels = ["enhancement"]
+order = 40
+
+[[changelog.category]]
+title = "## 📚 Documentation"
+labels = ["documentation"]
+order = 50
+
+[[changelog.category]]
+title = "## 🏭 Tests"
+labels = ["tests"]
+order = 60
+
+[[changelog.category]]
+title = "## 📦 Dependencies"
+labels = ["dependencies"]
+order = 70
+
+[[changelog.category]]
+title = "## 🧰 Maintenance"
+labels = ["maintenance"]
+order = 80
+
+[[changelog.category]]
+title = "## 🧰 Misc"
+labels = ["misc"]
+order = 90

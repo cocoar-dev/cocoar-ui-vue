@@ -19,3 +19,7 @@ playwright/.cache/
 
 # Agent skill copy made by packages/ui/scripts/copy-skill.mjs at pack time (source: /skills)
 packages/ui/skills/
+
+# Release flow: local files of a release (release skill) and packed tarballs
+tmp/
+artifacts/
