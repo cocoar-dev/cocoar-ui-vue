@@ -1,0 +1,9 @@
+[
+  { "name": "button" },
+  { "name": "text-input" },
+  { "name": "password-input" },
+  { "name": "number-input" },
+  { "name": "checkbox" },
+  { "name": "radio-group" },
+  { "name": "switch" }
+]

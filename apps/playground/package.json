@@ -10,6 +10,8 @@
     "build:preview": "vite build && vite preview --strictPort --port 4188",
     "test": "playwright test",
     "test:packed-page-builder-consumer": "node scripts/verify-packed-page-builder-consumer.mjs ../../artifacts",
+    "test:visual": "node scripts/visual.mjs",
+    "test:visual:update": "node scripts/visual.mjs --update",
     "test:headed": "playwright test --headed",
     "test:debug": "playwright test --debug"
   },

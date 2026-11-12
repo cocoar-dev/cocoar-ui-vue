@@ -18,7 +18,10 @@ description: Bring a change of cocoar-ui-vue into develop the way the repository
    `node scripts/check-conventional.mjs --title "<title>"`. Write the commit subjects of the branch in the same
    form; only the title reaches `develop`.
 3. **Local checks.** `pnpm lint && pnpm typecheck && pnpm build`, then `pnpm test` as a background job
-   (`alta job start`). Docs changed: `pnpm skill:sync` and commit `skills/cocoar-vue-ui`.
+   (`alta job start`). Docs changed: `pnpm skill:sync` and commit `skills/cocoar-vue-ui`. A change that can alter
+   how a component looks: `node apps/playground/scripts/visual.mjs` (Docker, about a minute). A red `--default-`
+   image is a regression: fix the code, do not `--update` it unless the maintainer said the new look is intended
+   (AGENTS.md, "Visual baselines"). New stories and changed `--mobile-` images: `--update` and commit them.
 4. **Commit** only as the user's commit preference allows (review before commit when asked).
 5. **Push** the branch: `git push -u origin <branch>`.
 6. **Pull request.** `gh pr create --base develop --title "<title>" --body-file <file>` with the template of
@@ -44,9 +47,23 @@ When the maintainer asks to merge pull request `N`:
    that does not fit, merged as it is, lands under "Misc" in the release notes; so propose a fitting title, and
    keep the old one only when the maintainer says so (`--keep-title`). It corrects the **pull request title** first and says the old and
    the new one — the release notes read the pull request title (dotnet-releaser `pr.title`), so correcting only the
-   squash commit would keep the wrong line in the notes. It then waits for the checks, refuses unless "Build, test & pack"
-   passed and nothing is red, and squash-merges with `<title> (#N)` as the commit
-   subject (the branch of a fork is left alone). Run it as a background job when checks are still running.
+   squash commit would keep the wrong line in the notes. Run it from an up-to-date `develop`: the gate is
+   that copy of the script, not the pull request's. It refuses, and lists the files:
+   - a pull request that modifies, removes or renames an existing default-presentation baseline
+     (`apps/playground/visual/__screenshots__/*--default-*.png`): web apps would look different. Ask the maintainer;
+     only when they say yes for this pull request, run again with `--accept-default-visual-change`. New baselines
+     and changed `--mobile-` baselines pass;
+   - a pull request that modifies, removes or renames a file the visual comparison depends on (`VISUAL_HARNESS` in
+     the script: the visual Playwright config, spec and warm-up, `visual.mjs`, the story view, `manifest.ts`, `story.css`,
+     `ci.yml`, `pr.mjs`): a weakened comparison would pass changed components unseen. Ask the maintainer to review
+     those files; only on their yes, `--accept-visual-harness-change`;
+   - a file list the API cut short (more than 3000 files).
+   It then waits for the checks and decides for the head commit they belong to: the jobs "Build, test & pack" and
+   "Visual" of the `ci.yml` run of that commit must have succeeded (a check of the same name in another workflow
+   does not count), and nothing else may be red. It squash-merges exactly that commit
+   (`--match-head-commit`) with `<title> (#N)` as the commit subject (the branch of a fork is left alone); when a
+   push moved the head meanwhile, it waits and decides again. Run it as a background job when checks are still
+   running.
 4. Never merge by hand with `gh pr merge` while a check is pending: without branch protection GitHub allows it.
 5. **Report** the commit on `develop`, and the contributor to thank in the next release when it is not the
    maintainer.
