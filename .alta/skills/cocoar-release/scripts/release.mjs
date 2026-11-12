@@ -214,15 +214,24 @@ async function beta(args) {
   const done = watch(found.databaseId);
   console.log(`ended: ${done.conclusion}`);
   if (done.conclusion !== 'success') return 1;
-  const log = run('gh', ['run', 'view', String(found.databaseId), '--repo', REPO, '--log'], { check: false });
-  const version = /→ @cocoar[-\w]*\/vue-ui@(\S+)/.exec(log)?.[1];
-  const mode = /(LIVE publish[^\n]*|DRY RUN[^\n]*)/.exec(log)?.[1];
-  console.log(`beta ${version ?? '(version not found in the log)'} — ${mode ?? ''}`.trim());
+  // The version is in the name of the packed artifact (packages-<version>): the log of a real run is too long to read.
+  const version = runVersion(found.databaseId);
+  const publish = (done.jobs || []).find((j) => j.name === 'Publish');
+  console.log(`beta ${version ?? '(version not found)'} — publish ${publish?.conclusion ?? '?'}${LIVE ? '' : ` (dry run in ${REPO})`}`);
   if (LIVE && version) {
+    // The registry shows a new version package by package, over several minutes.
+    const listed = await npm({ _: [version], distTag: 'beta', minutes: 20 });
     const head = npmView(`${PROBE_PACKAGE}@${version}`, 'gitHead');
     ok(head === sha, `${PROBE_PACKAGE}@${version} on npm is ${head?.slice(0, 8) ?? 'missing'}`);
+    if (listed !== 0) return 1;
   }
   return 0;
+}
+
+/** The version a run packed, from the name of its artifact `packages-<version>`. */
+function runVersion(runId) {
+  const names = ghJson('api', `repos/${REPO}/actions/runs/${runId}/artifacts`, '-q', '[.artifacts[].name]') || [];
+  return names.map((n) => /^packages-(.+)$/.exec(n)?.[1]).find(Boolean);
 }
 
 /** The last beta: from npm in the real repository; elsewhere from the last successful beta run (a dry run). */
@@ -234,8 +243,7 @@ function lastBeta() {
   const runs = ghJson('run', 'list', '--repo', REPO, '--workflow', BETA_WORKFLOW, '--event', 'workflow_dispatch', '--branch', 'develop',
     '--status', 'success', '--limit', '1', '--json', 'databaseId,headSha') || [];
   if (!runs.length) return { source: 'no beta run' };
-  const log = run('gh', ['run', 'view', String(runs[0].databaseId), '--repo', REPO, '--log'], { check: false });
-  const version = /→ @cocoar[-\w]*\/vue-ui@(\S+)/.exec(log)?.[1];
+  const version = runVersion(runs[0].databaseId);
   return { version, sha: runs[0].headSha, source: `beta run ${runs[0].databaseId}, a dry run in ${REPO}` };
 }
 
