@@ -2,7 +2,7 @@
 
 Universal document viewer for Vue 3 — renders **PDFs**, **single images**, and **multi-page image galleries** through a single component with shared toolbar, panels, and annotation layer.
 
-> **Status: Preview tier.** Ships under the suite version (GitVersion-calculated) but the public API is still settling — small tweaks may land before the Preview marker drops.
+> **Status: Preview tier.** Ships under the suite version (the git tag of the release) but the public API is still settling — small tweaks may land before the Preview marker drops.
 
 📖 **Full reference, live demos, and configuration guide:** [docs.cocoar.dev/cocoar-ui-vue/components/document-viewer/](https://docs.cocoar.dev/cocoar-ui-vue/components/document-viewer/)
 

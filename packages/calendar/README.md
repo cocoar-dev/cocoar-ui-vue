@@ -327,7 +327,7 @@ In short:
 Feature-complete for the initial release (Temporal-only public API,
 C1–C8 invariants, year/month/month-list/week/work-week/day/day-agenda/agenda/timeline
 views, drag-and-drop, responsive day columns and virtualization). The
-repo's release version is calculated by GitVersion at publish time, so
+repo's release version is the git tag of the release (set at publish time), so
 this package's `package.json` carries a placeholder `0.0.1` like
 everything else in the workspace — the actual semver number lives in
 CI.

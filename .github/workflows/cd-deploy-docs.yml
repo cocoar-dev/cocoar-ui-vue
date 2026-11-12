@@ -4,7 +4,10 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version (e.g. v1.0, v2.0)'
+        description: 'Docs version (e.g. v3.3)'
+        required: true
+      ref:
+        description: 'Tag or branch to build the docs from (e.g. v3.3.1). A release deploys its docs by itself (ci.yml); this is for fixes in between.'
         required: true
 
 concurrency:
@@ -23,6 +26,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -45,6 +50,7 @@ jobs:
         run: cd apps/docs/.vitepress/dist && zip -r $GITHUB_WORKSPACE/docs.zip .
 
       - name: Upload to Shelf
+        if: github.repository == 'cocoar-dev/cocoar-ui-vue'
         env:
           KEY: ${{ secrets.SHELF_API_KEY }}
           URL: ${{ secrets.SHELF_BASE_URL }}
