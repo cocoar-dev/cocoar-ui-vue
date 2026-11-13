@@ -303,7 +303,7 @@ async function merge(number, { newTitle, keepTitle, acceptDefault, acceptHarness
   const early = prFiles(number);
   const earlyProblems = [
     ...fileGateProblems(early.files, early.changedFiles, { acceptDefault, acceptHarness }),
-    ...storyRecipeProblems(storyRecipes(early.files, pr.baseRefOid, pr.headRefOid), { acceptHarness }),
+    ...storyRecipeProblems(storyRecipes(number, early.files, pr.baseRefOid, pr.headRefOid), { acceptHarness }),
   ];
   if (earlyProblems.length) die(`#${number} ${earlyProblems.join(`\nerror: #${number} `)}`);
 
