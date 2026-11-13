@@ -2,6 +2,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  changedStoryRecipes,
+  recipeSourceProblems,
+  storyRecipeProblems,
   changedDefaultBaselines,
   changedHarnessFiles,
   ciProblems,
@@ -111,6 +114,73 @@ test('the manifest module is guarded, the list of stories is not', () => {
   assert.deepEqual(changedHarnessFiles([mod(manifest)]), []);
 });
 
+test('focus images of the default presentation are default baselines; mobile ones are not', () => {
+  const files = [
+    mod(`${dir}/button--default-light-focus.png`),
+    del(`${dir}/tabs--default-dark-focus.png`),
+    mod(`${dir}/button--mobile-light-focus.png`),
+    add(`${dir}/select--default-light-focus.png`),
+  ];
+  assert.deepEqual(changedDefaultBaselines(files), [
+    `${dir}/button--default-light-focus.png`,
+    `${dir}/tabs--default-dark-focus.png`,
+  ]);
+});
+
+test('the page of the visual baselines (visual.html, its main.ts) is guarded', () => {
+  const files = [mod('apps/playground/visual.html'), mod('apps/playground/src/visual/main.ts')];
+  assert.deepEqual(changedHarnessFiles(files), files.map((f) => f.filename));
+  assert.deepEqual(changedHarnessFiles(files.map((f) => add(f.filename))), []);
+});
+
+// ── recipes in stories.json ─────────────────────────────────────────────────
+
+const recipes = (entries) => JSON.stringify(entries);
+const button = { name: 'button', focus: '.coar-button >> nth=0' };
+const select = { name: 'select-open', capture: 'page', open: { actions: [{ dispatch: 'click', on: '[role=combobox]' }], overlays: 1 } };
+
+test('a new entry in stories.json passes', () => {
+  assert.deepEqual(changedStoryRecipes(recipes([button]), recipes([button, { name: 'tabs' }])), []);
+});
+
+test('an option changed, added or removed on an existing entry is refused, naming the story', () => {
+  const viewport = { ...button, viewport: { width: 1280, height: 800 } };
+  for (const head of [viewport, { name: 'button' }, { ...button, focus: '.coar-button >> nth=1' }]) {
+    const changed = changedStoryRecipes(recipes([button, select]), recipes([head, select]));
+    assert.equal(changed.length, 1);
+    assert.match(changed[0], /^button \(/);
+  }
+  const nested = { ...select, open: { ...select.open, overlays: 2 } };
+  assert.match(changedStoryRecipes(recipes([select]), recipes([nested]))[0], /^select-open \(/);
+  const problems = storyRecipeProblems(changedStoryRecipes(recipes([button]), recipes([{ name: 'button' }])));
+  assert.match(problems[0], /recipe of existing stories[\s\S]*button[\s\S]*--accept-visual-harness-change/);
+  assert.deepEqual(storyRecipeProblems(['button (…)'], { acceptHarness: true }), []);
+});
+
+test('a removed entry is refused; the file removed counts as all entries removed', () => {
+  assert.deepEqual(changedStoryRecipes(recipes([button, select]), recipes([select])), ['button (removed)']);
+  assert.deepEqual(changedStoryRecipes(recipes([button]), null), ['button (removed)']);
+});
+
+test('reordering entries or their keys is no change', () => {
+  const reordered = { focus: button.focus, name: 'button' };
+  assert.deepEqual(changedStoryRecipes(recipes([button, select]), recipes([select, reordered])), []);
+});
+
+test('the file added (no base) passes', () => {
+  assert.deepEqual(changedStoryRecipes(null, recipes([button, select])), []);
+});
+
+test('unparsable or malformed stories.json at either side is refused', () => {
+  assert.match(changedStoryRecipes('[{', recipes([button]))[0], /at the base cannot be parsed/);
+  assert.match(changedStoryRecipes(recipes([button]), '{"name":"button"}')[0], /at the head is not a list/);
+  assert.match(changedStoryRecipes(recipes([button]), recipes([button, button]))[0], /names a story twice: button/);
+});
+
+test('the server configuration of the visual page is guarded', () => {
+  assert.deepEqual(changedHarnessFiles([mod('apps/playground/vite.visual.config.ts')]), ['apps/playground/vite.visual.config.ts']);
+});
+
 test('an incomplete file list is refused', () => {
   const problems = fileGateProblems([mod('README.md')], 3001);
   assert.equal(problems.length, 1);
@@ -164,4 +234,16 @@ test('the newest run decides, and any red check refuses', () => {
     checks: [pass('Build, test & pack'), pass('Visual'), { name: 'CodeQL', bucket: 'fail', workflow: 'codeql' }],
   });
   assert.deepEqual(problems, ['CodeQL not green', 'the ci.yml run 7 is in_progress']);
+});
+
+test('a stories.json that cannot be read where it must exist is refused, not taken for a new file', () => {
+  // Added by the pull request: no base is expected.
+  assert.deepEqual(recipeSourceProblems('added', null, '[]'), []);
+  // Modified: a base lookup that finds nothing (a 404 for any reason) must not make every recipe "new".
+  assert.match(recipeSourceProblems('modified', null, '[]')[0], /could not be read at its base/);
+  assert.match(recipeSourceProblems('modified', '[]', null)[0], /could not be read at the head/);
+  // Removed by the pull request: no head is expected, the base is.
+  assert.deepEqual(recipeSourceProblems('removed', '[]', null), []);
+  assert.match(recipeSourceProblems('removed', null, null)[0], /could not be read at its base/);
+  assert.deepEqual(recipeSourceProblems('modified', '[]', '[]'), []);
 });

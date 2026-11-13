@@ -4,6 +4,14 @@
  * up in the components and not in the frame around them.
  */
 
+/* Page captures show the page around the story: give it the library's page
+   background, as an app does (the library sets none on html or body). Only for
+   them: a page background changes how Chromium composites the root (text
+   antialiasing, its fractional bottom row), and root captures must not move. */
+html:has([data-visual-root][data-visual-capture='page']) {
+  background: var(--coar-background-neutral-primary);
+}
+
 .vs-section + .vs-section {
   margin-top: 24px;
 }
