@@ -71,9 +71,16 @@ bedienbaren Komponenten eine Mobil-Darstellung, die nicht mehr Preview ist. Die 
 
 ### 2 · Touch und WebKit im Playground (Pull Request `test(playground)`)
 
-- [ ] Playwright-Projekte `chromium-touch` und `webkit-tablet` für die mit `@touch` markierten Verhaltens-Specs
-- [ ] `mobile-controls.spec.ts` und die Kalender-Specs, die Zeiger-Verhalten prüfen, laufen dort mit
-- [ ] `ci.yml`: WebKit installieren (Freigabe des Maintainers nötig: Datei des Bildvergleichs)
+- [x] Playwright-Projekt `webkit-tablet` (iPad-Profil) für die mit `@touch` markierten Verhaltens-Specs; ein eigenes
+      `chromium-touch` entfällt, weil die markierten Dateien Touch im Projekt `chromium` selbst einschalten
+- [x] `mobile-controls.spec.ts` und die Tap-Tests der beiden Kalender-Specs laufen dort mit, in Tablet-Größe
+- [x] Neue Ansicht `/touch-lab` mit `touch-lab.spec.ts`: 15 Tests, die die Overlay-Familie und die Controls nur per Tap bedienen
+- [x] `ci.yml`: WebKit installieren (eine Zeile; Freigabe des Maintainers erteilt)
+- [ ] Pull Request gemergt
 
-**Abnahme:** `pnpm test` läuft lokal und in der CI mit den neuen Projekten grün; ein absichtlich eingebauter Hover-only-Weg
-lässt einen `@touch`-Test rot werden.
+**Abnahme:** `pnpm test` läuft lokal und in der CI mit dem neuen Projekt grün (145 Tests); mit `pointer-events: none` auf dem
+Auslöser des Selects wird der Select-Test in beiden Projekten rot.
+
+**Befund:** Ein Tap öffnet kein Flyout-Untermenü (`CoarSubFlyout` öffnet beim nachgebildeten `mouseenter` und schließt beim
+`click` desselben Taps wieder), in beiden Engines. Der Test bleibt als erwarteter Fehler (`test.fail`) stehen und wird rot,
+sobald das behoben ist; Task `j4d2`. Der WebKit-Lauf belegt die Engine und ihre Touch-Ereignisse, nicht iOS Safari selbst.
