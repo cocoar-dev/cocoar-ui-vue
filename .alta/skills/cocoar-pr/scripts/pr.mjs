@@ -46,7 +46,7 @@ export const MUST_PASS = ['Build, test & pack', 'Visual'];
 
 export const DEFAULT_BASELINE = /^apps\/playground\/visual\/__screenshots__\/[^/]+--default-[^/]+\.png$/;
 
-// The files the visual comparison depends on. An existing story is guarded too (VISUAL_STORY): it could bring CSS
+// The files the visual comparison depends on. An existing file under stories/ is guarded too (VISUAL_STORIES_DIR): a story could bring CSS
 // that undoes a component change and keep its images the same. The list of stories, stories.json, is guarded entry by
 // entry (changedStoryRecipes): adding a story adds an entry and passes; changing or removing an existing entry does
 // not.
@@ -64,7 +64,9 @@ export const VISUAL_HARNESS = [
   '.github/workflows/ci.yml',
   '.alta/skills/cocoar-pr/scripts/pr.mjs',
 ];
-export const VISUAL_STORY = /^apps\/playground\/src\/visual\/stories\/[^/]+\.vue$/;
+// Every file under stories/: the stories and what they share (e.g. calendar-events.ts, the event set of the calendar
+// stories), which decides their pictures as much as the stories do.
+export const VISUAL_STORIES_DIR = 'apps/playground/src/visual/stories/';
 export const STORIES_JSON = 'apps/playground/src/visual/stories.json';
 
 /**
@@ -114,7 +116,8 @@ export function storyRecipeProblems(changed, { acceptHarness = false } = {}) {
   if (!changed.length || acceptHarness) return [];
   return [`changes the recipe of existing stories in stories.json:\n${list(changed)}\n  A changed viewport, action or capture can stop an image from proving what it proves. Merge only when the maintainer has reviewed these entries and says so: --accept-visual-harness-change`];
 }
-const isHarness = (name) => VISUAL_HARNESS.includes(name) || VISUAL_STORY.test(name ?? '');
+// A prefix, not a pattern: no file name under the folder can fall outside it.
+const isHarness = (name) => VISUAL_HARNESS.includes(name) || (typeof name === 'string' && name.length > VISUAL_STORIES_DIR.length && name.startsWith(VISUAL_STORIES_DIR));
 
 const CHANGING = ['modified', 'changed', 'removed'];
 

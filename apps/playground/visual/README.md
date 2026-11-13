@@ -20,8 +20,9 @@ The comparison itself is guarded the same way: a pull request that modifies, rem
 (the ones marked † below; the list is `VISUAL_HARNESS` in `.alta/skills/cocoar-pr/scripts/pr.mjs`) is merged only
 with the maintainer's explicit OK (`--accept-visual-harness-change`). Otherwise a pull request could loosen the
 comparison and change components at once, and "Visual" would stay green. Keep such changes in a pull request of
-their own. **Existing stories are guarded too**: a story could bring its own CSS that undoes a component change and
-keep its images the same. So are the **existing entries of `src/visual/stories.json`**: a changed viewport, action
+their own. **Existing stories are guarded too**, and so is **every file under `src/visual/stories/`** once it exists
+(stories and what they share, such as `calendar-events.ts`, the event set of the calendar stories): a story or a
+shared module could bring its own CSS that undoes a component change and keep its images the same. So are the **existing entries of `src/visual/stories.json`**: a changed viewport, action
 or capture could stop an image from proving what it proves (a regression at one viewport, the story moved to
 another, same image names). `pr.mjs` compares the file at the pull request's base and head entry by entry; a changed
 or removed entry needs the same OK. Adding a story (a new file, a new entry, new baselines) needs none.
@@ -41,10 +42,10 @@ Needs only Node and a running Docker. The images are made **only** in the Playwr
 `@playwright/test` in `pnpm-lock.yaml`, `linux/amd64` like CI), never directly on macOS or Windows: every system
 rasterises fonts differently, and the comparison has zero tolerance. The script copies the repository into a fresh
 container (tracked and untracked files, without `node_modules` and anything ignored), installs there with a pnpm
-store kept in the Docker volume `cocoar-visual-cache`, and runs `playwright.visual.config.ts`. A full run (28
-stories, 150 images) takes two and a half to three and a half minutes on an Apple-silicon Mac, almost all of it
-Chromium running under amd64 emulation (natively a test takes about 1 s instead of 3–4 s); a few stories take well
-under one. CI runs the same inner
+store kept in the Docker volume `cocoar-visual-cache`, and runs `playwright.visual.config.ts`. A full run (40
+stories, 198 images) took three and a half to four and a half minutes on an Apple-silicon Mac when measured on
+2026-11-13 (with 150 images it had taken two and a half to three and a half), almost all of it Chromium running under
+amd64 emulation (natively a test then took about 1 s instead of 3–4 s); a few stories take well under one. CI runs the same inner
 command, `visual.mjs --inside`, in the same image. The pages are served by their own Vite configuration,
 `vite.visual.config.ts`, not the playground's: a plugin or alias added for the playground cannot change what the
 baselines render.
@@ -112,6 +113,7 @@ plugin and host, localization, and nothing of the playground. `<html>` carries o
 | `"focus": "<selector>"` | Adds four images `…-focus.png` with that element focused as keyboard focus (`:focus-visible` must match). The selector is a Playwright selector and must match exactly one element (`… >> nth=2`). The four plain images do not change. |
 | `"scope": "local"` | The story puts `coar-mobile` on its own container (the page fails without one). Only the mobile mode is photographed, and `<html>` gets no `coar-mobile`. Needs `capture: "page"`: a local scope is about what leaves the container. |
 | `"viewport": { "width": 1280, "height": 900 }` | Another viewport than 1024×768: width 1024–1920, height 768–1200. Not smaller: the 760px story root and its overlays need the room, and below 1024px the library's responsive typography (`max-width: 1023px`) leaves its desktop range, so a story could dodge the default presentation by shrinking the page. |
+| `"width": 1232` | The width of the story root in px instead of 760, for components that react to their own width (the calendar's container queries switch at 672 and 720 px). An integer from 760 to the viewport's width minus 16 (the page keeps the browser's 8 px body margin), so a wide root needs a `viewport`: 1232 needs at least 1248. |
 
 Only these options and values are allowed: `manifest.ts` checks every entry when it loads, and the spec fails on
 anything else. Every image also asserts: nothing is hovered (the pointer never enters the page), and no element shows
@@ -129,7 +131,7 @@ entries); component styles come with the source, so a story never imports a buil
 | `src/visual/manifest.ts` † | Types, the run-time validation of every entry, helpers |
 | `vite.visual.config.ts` † | The server of the visual page: the Vue plugin and source aliases only, dependency scan of `visual.html` only (so dependencies are pre-bundled), independent of the playground's `vite.config.ts` |
 | `visual.html` †, `src/visual/main.ts` † | The page: only what an app of the library sets up. The playground's own `main.ts` loads Monaco and a pdf.js worker (14 MB per page), which made 160 parallel captures crash |
-| `src/visual/VisualStoryView.vue` † | Route `#/visual/:story`: sets the classes on `<html>`, renders the story in a fixed 760px `[data-visual-root]`, sets `data-visual-state="ready"` once mounted and the fonts are loaded |
+| `src/visual/VisualStoryView.vue` † | Route `#/visual/:story`: sets the classes on `<html>`, renders the story in `[data-visual-root]`, 760px wide by default or the entry's `width`, sets `data-visual-state="ready"` once mounted and the fonts are loaded |
 | `src/visual/story.css` † | The layout classes of the stories |
 | `visual/visual.spec.ts` † | One test per image (settled capture, then the exact pixel comparison), the options above, plus the manifest checks |
 | `visual/warm-up.ts` † | Visits every story once before the tests: a cold Vite dev server compiles and may reload pages |

@@ -247,3 +247,14 @@ test('a stories.json that cannot be read where it must exist is refused, not tak
   assert.match(recipeSourceProblems('removed', null, null)[0], /could not be read at its base/);
   assert.deepEqual(recipeSourceProblems('modified', '[]', '[]'), []);
 });
+
+test('everything under stories/ is guarded once it exists, also what stories share', () => {
+  const shared = `${stories}/calendar-events.ts`;
+  assert.deepEqual(changedHarnessFiles([mod(shared)]), [shared]);
+  assert.deepEqual(changedHarnessFiles([del(shared)]), [shared]);
+  assert.deepEqual(changedHarnessFiles([add(shared), add(`${stories}/calendar-month.vue`)]), []);
+  // Odd names too: a pattern with `.` would miss a newline in a file name.
+  const odd = `${stories}/shared\nhelper.ts`;
+  assert.deepEqual(changedHarnessFiles([mod(odd)]), [odd]);
+  assert.deepEqual(changedHarnessFiles([mod(`${stories}/sub/deep.ts`)]), [`${stories}/sub/deep.ts`]);
+});
