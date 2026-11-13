@@ -2,6 +2,8 @@
 
 # Drag & Drop
 
+**Devices:** desktop ready · tablet partial · phone partial — The default engine 'native' uses HTML5 drag events, made for the mouse; on touch use engine 'pointer' or 'auto'.
+
 `useDragDrop` is a small, framework-agnostic composable wrapping HTML5 drag-and-drop with the same group / accept / canDrop semantics used by [`CoarListbox`](./listbox.md#drag-drop-between-lists) — but usable from any Vue component. It takes care of the fiddly bits (module-level payload registry, group matching, directional whitelists, source-side cleanup on accept) so your component only needs to wire events.
 
 ```ts

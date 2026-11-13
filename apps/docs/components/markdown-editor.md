@@ -1,5 +1,7 @@
 ---
 description: 'CoarMarkdownEditor — Milkdown-based WYSIWYG markdown editor with lossless round-trip, floating or fixed toolbar and a render registry shared with CoarMarkdown'
+devices: { desktop: ready, tablet: partial, phone: partial }
+devicesNote: "Typing and the toolbar work on touch; table row/column grips and the code-block edit button need hover."
 ---
 
 # Markdown Editor <Badge type="warning" text="Preview" />

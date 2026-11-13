@@ -1,5 +1,7 @@
 ---
 description: "CoarCheckbox — boolean checkbox with v-model, indeterminate state, four sizes, label positioning, validation states and CoarFormField integration."
+devices: { desktop: ready, tablet: ready, phone: partial }
+devicesNote: "Mobile sizes under .coar-mobile; the mobile presentation is still Preview."
 ---
 
 # Checkbox

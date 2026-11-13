@@ -15,7 +15,7 @@ metadata:
 
 # Cocoar UI Vue
 
-A touch-first Vue 3 component library for the Cocoar Design System: 30+ accessible, themeable,
+A tablet-first Vue 3 component library for the Cocoar Design System: 30+ accessible, themeable,
 tree-shakeable components in `@cocoar/vue-ui`, plus companion packages for localization, data
 grid, calendar, markdown, page builder, document viewer, map, file explorer and script editor.
 This skill is the documentation, page by page, under `references/`, with every live demo inlined
@@ -65,8 +65,12 @@ Every companion package has `@cocoar/vue-ui` as a peer dependency and pins the s
   `--coar-error`, `--coar-warning`, `--coar-info` on `:root`; every shade scale for light and
   dark mode is derived with oklch. Style with `--coar-*` tokens; do not hard-code hex values or
   override generated shades.
-- **Touch-first, tablet-first.** Interactive elements are at least 44 × 44 px and work with touch
-  and focus; hover is an enhancement only. No hover-only interactions, no phone-first layouts.
+- **Tablet-first, phones by opt-in.** Components are designed for touch and focus, with hover
+  as an enhancement; the device line of a component names where that is not met yet. The default sizes follow the token scale (`xs` 27 px, `s` 32 px, `m` 40 px,
+  `l` 48 px), not 44 × 44 px. The `coar-mobile` class on `html`, `body` or a parent raises the
+  adapted controls to at least 44 px; it changes sizes only, never behaviour, and nothing switches
+  by viewport width. Before building for phones, read the mobile guide (`references/guide/mobile.md`)
+  and the device line under each component's title (table in its "Device support" section).
 - **Props, not slots, where the docs say so.** `CoarCheckbox` takes its text via the `label` prop,
   `CoarBadge` via `content`. `CoarTag` uses `closable` and `@closed`; `CoarPopconfirm` uses
   `message` with `@confirmed` / `@cancelled`. `CoarFormField` wraps a control and supplies label,

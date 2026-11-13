@@ -1,5 +1,7 @@
 ---
 description: "Month views — continuously scrolling Compact, Stacked and Details months, responsive Month List, and the lower-level CoarMonthView section"
+devices: { desktop: ready, tablet: partial, phone: planned }
+devicesNote: "Taps work on touch; multi-day bar resize handles are only 6 px and a touch on a pill always drags it."
 ---
 
 # Month Views <Badge type="warning" text="Preview" />

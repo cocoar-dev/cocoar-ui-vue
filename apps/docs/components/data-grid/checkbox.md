@@ -1,5 +1,7 @@
 ---
 description: "CoarDataGrid checkbox column — col.checkbox() renders a read-only CoarCheckbox per cell, with opt-in edit-mode toggling, per-row gating, and indeterminate tri-state."
+devices: { desktop: ready, tablet: partial, phone: no }
+devicesNote: "Touch scrolls and selects; editing starts with double-click and menus with right-click; not built for phones."
 ---
 
 # Checkbox Column

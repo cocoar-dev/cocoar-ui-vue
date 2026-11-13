@@ -2,6 +2,8 @@
 
 # Wizard (Preview)
 
+**Devices:** desktop ready · tablet ready · phone partial — Works on phones and the step indicator scrolls, but there is no .coar-mobile presentation yet.
+
 A multi-step flow shell — built to live **inside a modal** (it renders no modal of its own). Three things make it a wizard rather than a plain stepper:
 
 - **Animated body resize.** Only the active step is mounted, and the body smoothly animates its height between steps — so the surrounding modal grows / shrinks to fit each page.

@@ -1,5 +1,7 @@
 ---
 description: "CoarButton — action button with five variants, four sizes, icons, loading and disabled states, full width and router-aware link rendering."
+devices: { desktop: ready, tablet: ready, phone: partial }
+devicesNote: "Mobile sizes under .coar-mobile; the mobile presentation is still Preview."
 ---
 
 # Button

@@ -2,6 +2,8 @@
 
 # Form Field
 
+**Devices:** desktop ready · tablet ready · phone partial — Works on phones; the label and the status popover have no .coar-mobile presentation yet.
+
 A wrapper component that provides a label, hint text, and an inline error indicator around any form control. Instead of each input managing its own label and validation display, `CoarFormField` handles these concerns in one place.
 
 > **Tip: Field-status indicator**

@@ -2,6 +2,8 @@
 
 # `<CoarPageRenderer>` (Preview)
 
+**Devices:** desktop ready · tablet ready · phone partial — Responsive pages adapt to phone widths; its select and date fields still open desktop panels.
+
 The runtime-renderer half of `@cocoar/vue-page-builder`. Takes a `PageNode` schema (produced by [`<CoarPageBuilder>`](./coar-page-builder.md) or written by hand) and renders it as live Cocoar components. This is the component you mount on the actual page that end-users see.
 
 The renderer is also the **security boundary** — elements not in `config.allowedElements` are skipped at render time, even if they appear in hand-written or tampered JSON.

@@ -2,6 +2,8 @@
 
 # Zoned DateTime Picker
 
+**Devices:** desktop ready · tablet ready · phone planned — A phone presentation (sheet) is planned.
+
 The full-featured datetime picker for timezone-aware values. It captures a date, time, and IANA timezone as a single `Temporal.ZonedDateTime`, making it easy to derive UTC instants for storage while preserving the user's original intent.
 
 ```ts

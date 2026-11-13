@@ -2,6 +2,8 @@
 
 # Script Editor
 
+**Devices:** desktop ready · tablet partial · phone not supported — Monaco does not support mobile browsers; touch editing has gaps and phones are out of scope.
+
 A Monaco-based code editor for Vue 3 with Cocoar Design System theming. Supports **TypeScript, JavaScript, and JSON**, with first-class support for user-supplied type definitions (IntelliSense for your domain types).
 
 > **Info: Separate Package**

@@ -2,6 +2,8 @@
 
 # Number Column
 
+**Devices:** desktop ready · tablet partial · phone not supported — Touch scrolls and selects; editing starts with double-click and menus with right-click; not built for phones.
+
 `col.number(field, …)` is locale-aware in both display and editing. Two forms — pick by need:
 
 | Form | Effect |

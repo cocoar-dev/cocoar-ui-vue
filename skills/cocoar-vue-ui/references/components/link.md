@@ -2,6 +2,8 @@
 
 # Link
 
+**Devices:** desktop ready · tablet ready · phone ready
+
 Styled anchor elements for in-page navigation, external references, and any clickable text that isn't a button action. Two equivalent APIs:
 
 - **`<CoarLink>` SFC** (recommended) — `to` for router navigation, `href` for external links, automatic `rel="noopener"` for new-tab safety, disabled handling.

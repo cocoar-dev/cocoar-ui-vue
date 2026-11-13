@@ -2,6 +2,8 @@
 
 # Segmented Control
 
+**Devices:** desktop ready · tablet ready · phone planned — A .coar-mobile presentation is planned.
+
 Switch between a small fixed set of mutually-exclusive options like view modes, filters, density, or time ranges. A segmented control reads as a button-bar for view-state — same semantics as a radio group (single selection from N options), different visual register: it belongs in toolbars and headers, not in forms.
 
 ```ts

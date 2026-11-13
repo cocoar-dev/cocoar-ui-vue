@@ -2,6 +2,8 @@
 
 # Map Editor (Preview)
 
+**Devices:** desktop ready · tablet partial · phone partial — Map editing works on touch; the point list's drag reorder is mouse-only and nothing is phone-adapted.
+
 A visual editor for [`<CoarMap>`](./index.md) data. `<CoarMapEditor>` is the
 **write counterpart** of `<CoarMap>`: same `MapData` + `MapConfig`, but you can
 **place, move, edit, reorder and delete** points directly on the map, with every

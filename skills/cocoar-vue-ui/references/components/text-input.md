@@ -2,6 +2,8 @@
 
 # Text Input
 
+**Devices:** desktop ready · tablet ready · phone partial — Mobile sizes under .coar-mobile; the mobile presentation is still Preview.
+
 The go-to component for collecting short text from users -- names, emails, search queries, and more. It handles labels, validation, prefix/suffix decorations, and can even stretch into a textarea when you need longer content.
 
 ```ts

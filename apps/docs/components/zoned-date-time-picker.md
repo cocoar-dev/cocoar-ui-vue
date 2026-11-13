@@ -1,5 +1,7 @@
 ---
 description: "CoarZonedDateTimePicker — timezone-aware datetime picker capturing date, time and IANA timezone as one Temporal.ZonedDateTime, with form states and four sizes"
+devices: { desktop: ready, tablet: ready, phone: planned }
+devicesNote: "A phone presentation (sheet) is planned."
 ---
 
 # Zoned DateTime Picker

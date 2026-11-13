@@ -1,5 +1,7 @@
 ---
 description: "CoarDataList — virtualized, searchable, sortable record list with a free multi-line item template, key-based selection, grouping and a headless useDataListModel composable"
+devices: { desktop: ready, tablet: partial, phone: planned }
+devicesNote: "Item menus open on right-click and multi-select needs modifier keys, so both are hard to reach by touch."
 ---
 
 # Data List

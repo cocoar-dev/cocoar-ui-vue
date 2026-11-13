@@ -1,5 +1,6 @@
 ---
 description: "CoarDivider — horizontal separator with optional slotted label, left/center/right alignment, subtle or strong weight and spacing controls."
+devices: { desktop: ready, tablet: ready, phone: ready }
 ---
 
 # Divider

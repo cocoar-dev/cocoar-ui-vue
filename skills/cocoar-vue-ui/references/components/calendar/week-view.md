@@ -2,6 +2,8 @@
 
 # `<CoarWeekView>` — Week View (Preview)
 
+**Devices:** desktop ready · tablet partial · phone planned — Taps, swipe paging and long-press selection work on touch; event resize handles are only 6 px tall.
+
 7-day time-grid view — one hour-axis on the left, seven day columns on the right, all-day band pinned under the day-of-week header. The week's first day is locale-aware (`en-US` / `ja-JP` start on Sunday, `de-AT` / `fr-FR` start on Monday) but can be overridden via `firstDayOfWeek()`.
 
 ```html

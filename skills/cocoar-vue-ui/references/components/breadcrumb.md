@@ -2,6 +2,8 @@
 
 # Breadcrumb
 
+**Devices:** desktop ready · tablet ready · phone partial — Crumbs wrap to fit narrow screens, but their link targets are not enlarged under .coar-mobile.
+
 Show users exactly where they are within a page hierarchy and give them a quick path back to any parent level. Breadcrumbs are especially valuable in applications with deep navigation structures, where the sidebar alone does not make the current location obvious.
 
 ```ts

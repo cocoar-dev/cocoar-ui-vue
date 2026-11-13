@@ -1,5 +1,7 @@
 ---
 description: "CoarTree — generic tree primitive with keyboard navigation, drag-and-drop reorder, single/multiple/checkbox selection, context menus, lazy loading and a fluent useTree builder"
+devices: { desktop: ready, tablet: partial, phone: no }
+devicesNote: "Desktop-first: right-click menus, HTML5 drag and hover-revealed row actions are not tuned for touch."
 ---
 
 # Tree

@@ -1,5 +1,7 @@
 ---
 description: "CoarDataGrid in-cell editing — editable() with per-row predicates, custom Vue editors via cellEditorConfig, and onCellValueChanged for committed edits."
+devices: { desktop: ready, tablet: partial, phone: no }
+devicesNote: "Touch scrolls and selects; editing starts with double-click and menus with right-click; not built for phones."
 ---
 
 # Editing

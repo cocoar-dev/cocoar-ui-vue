@@ -1,5 +1,6 @@
 ---
 description: "CoarBadge — count and status badge with six semantic variants, five sizes, max-value capping, dot mode, pulse animation and border ring."
+devices: { desktop: ready, tablet: ready, phone: ready }
 ---
 
 # Badge

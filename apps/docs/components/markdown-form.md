@@ -1,5 +1,7 @@
 ---
 description: 'CoarMarkdownForm renders a fixed Markdown template with registered fill controls, separate typed values, validation and readonly output.'
+devices: { desktop: ready, tablet: ready, phone: partial }
+devicesNote: "Works on phones; its select and date fields still open the desktop panels."
 ---
 
 # Markdown Form

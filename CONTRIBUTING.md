@@ -59,6 +59,17 @@ docs: improve README
 
 See [NAMING.md](NAMING.md) for the full naming convention.
 
+## Mobile Contributions
+
+What runs without `.coar-mobile` must keep its look and behaviour ([stability promise](apps/docs/foundations/design-principles.md#stability-promise-for-web-apps)):
+
+- **The default presentation does not change.** The playground's visual baselines compare it pixel for pixel on every pull request; see [apps/playground/visual/README.md](apps/playground/visual/README.md).
+- **Mobile sizes only under `.coar-mobile`**, through `--coar-*` tokens whose fallback is today's value.
+- **Behaviour follows the input, never the class.** Hover, drag and gestures depend on the input device (`(hover: hover)`, the pointer type of the event), not on `.coar-mobile`.
+- **A new or changed state gets a story and baselines** in the same pull request.
+- **Update the page's `devices` line** (`apps/docs/components/…`), and its `devicesNote` when a limit changes; the values are explained in the [mobile guide](apps/docs/guide/mobile.md#device-support).
+- **New API carries the Preview badge.**
+
 ## Testing
 
 - Write unit tests with **Vitest** and **@vue/test-utils**

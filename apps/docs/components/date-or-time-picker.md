@@ -1,5 +1,7 @@
 ---
 description: "CoarZonedDateTimeOrDatePicker and CoarPlainDateTimeOrDatePicker — date pickers with a clock toggle switching between plain date and date-with-time values."
+devices: { desktop: ready, tablet: ready, phone: planned }
+devicesNote: "A phone presentation (sheet) is planned."
 ---
 
 # Date · optional time

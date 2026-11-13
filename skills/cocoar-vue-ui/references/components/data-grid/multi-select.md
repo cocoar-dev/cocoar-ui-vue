@@ -2,6 +2,8 @@
 
 # Multi-Select & Tag-Select Columns (New in 2.0)
 
+**Devices:** desktop ready · tablet partial · phone not supported — Touch scrolls and selects; editing starts with double-click and menus with right-click; not built for phones.
+
 Two column shortcuts for multi-value cells. Both store the cell value as `T[]` and share the same renderer — they differ only in the editor surface and which configurator options are available.
 
 | | Editor | When to use |

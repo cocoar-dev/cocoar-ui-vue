@@ -170,6 +170,17 @@ export default defineConfig({
     config(md) {
       md.use(containerPreview);
       md.use(componentPreview);
+      // A component page's `devices` frontmatter (rules: scripts/devices.mjs) is shown as badges
+      // under its title. The tag is inserted here, after the first H1, so no page carries it by
+      // hand; VitePress has parsed the frontmatter into env before the core rules run.
+      md.core.ruler.push('coar-device-badges', (state) => {
+        if (!state.env?.frontmatter?.devices) return;
+        const index = state.tokens.findIndex((t) => t.type === 'heading_close' && t.tag === 'h1');
+        if (index < 0) return;
+        const token = new state.Token('html_block', '', 0);
+        token.content = '<DeviceBadges />\n';
+        state.tokens.splice(index + 1, 0, token);
+      });
     },
   },
 

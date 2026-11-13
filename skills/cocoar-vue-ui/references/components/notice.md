@@ -2,6 +2,8 @@
 
 # Notice
 
+**Devices:** desktop ready · tablet ready · phone ready
+
 Notices communicate short, timely status information. They are deliberately more compact than [Notes](./note.md): use a Notice for a sentence near a control or directly below an application header, and a Note for rich supporting content inside a page.
 
 ```ts

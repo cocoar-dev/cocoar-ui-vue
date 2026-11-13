@@ -2,6 +2,8 @@
 
 # Selecting time, drafts & bands (Preview)
 
+**Devices:** desktop ready · tablet ready · phone planned — Long press selects on touch; the hover time indicator appears only for mouse and pen.
+
 > **Warning: Preview — new in 3.2**
 >
 > Everything on this page is new in 3.2 and still a Preview: the API may change before it loses this mark. It already runs in production apps; feedback is welcome.

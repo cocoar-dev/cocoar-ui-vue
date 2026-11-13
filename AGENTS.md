@@ -58,6 +58,9 @@ branch feat/… ──PR (Conventional Commit title, CI green)──> develop �
 - **One logical change per commit**, and one purpose per pull request: a refactor and a feature are two.
 - **Docs changed** (`apps/docs`): runs `pnpm skill:sync` and commits `skills/cocoar-vue-ui` in the same pull request.
 - **A user-visible change**: updates its docs page and demo; a new API that may still change gets the Preview badge.
+- **A component page** (`apps/docs/components/**`): states in its frontmatter what it supports on which device,
+  `devices: { desktop: ready, tablet: ready, phone: partial }` (`ready | partial | planned | no`, with a `devicesNote`
+  for `partial` and `no`); `pnpm skill:check` fails without it. A change that alters what a device can do updates it.
 - **Before a pull request**: `pnpm lint && pnpm typecheck && pnpm build`, and `pnpm test` as a background job (it
   runs the Playwright tests of the playground and takes minutes). A change that can alter how a component looks:
   `node apps/playground/scripts/visual.mjs` too (see [Visual baselines](#visual-baselines)).

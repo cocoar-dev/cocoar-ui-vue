@@ -2,6 +2,8 @@
 
 # Editing
 
+**Devices:** desktop ready · tablet partial · phone not supported — Touch scrolls and selects; editing starts with double-click and menus with right-click; not built for phones.
+
 In-cell editing is exposed through three builder methods that map directly onto AG Grid's editor lifecycle:
 
 | Method | Level | Purpose |

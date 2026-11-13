@@ -1,5 +1,7 @@
 ---
 description: "CoarPopover — anchored panel for rich interactive content with hover, click or combined trigger modes and automatic viewport-aware positioning"
+devices: { desktop: ready, tablet: partial, phone: planned }
+devicesNote: "The default hover mode relies on emulated mouse events on touch; use mode 'click' or 'both'."
 ---
 
 # Popover

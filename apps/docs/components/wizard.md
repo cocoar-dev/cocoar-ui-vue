@@ -1,5 +1,7 @@
 ---
 description: "CoarWizard — multi-step flow shell for modals with animated body resize, scrollable auto-centering step indicator, edge-placeable progress strip and step gating"
+devices: { desktop: ready, tablet: ready, phone: partial }
+devicesNote: "Works on phones and the step indicator scrolls, but there is no .coar-mobile presentation yet."
 ---
 
 # Wizard <Badge type="warning" text="Preview" />

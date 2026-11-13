@@ -2,6 +2,8 @@
 
 # Map (Preview)
 
+**Devices:** desktop ready · tablet ready · phone partial — Pan and zoom work by touch; the map's controls have no .coar-mobile presentation yet.
+
 An interactive [Leaflet](https://leafletjs.com/) map for Vue 3. `<CoarMap>` is
 **standalone and data-driven**: you feed it resolved `MapData` + `MapConfig` and
 it renders pins, a route, popups and an optional legend. It has **no dependency

@@ -2,6 +2,8 @@
 
 # Annotations
 
+**Devices:** desktop ready · tablet partial · phone partial — Drawing works with touch; marker and ink width and color open only on hover; not adapted to phones.
+
 `CoarDocumentViewer` ships with a built-in annotation layer that supports four types — **marker** highlights, comment **notes**, free-hand **ink**, and **freetext** boxes. Annotations are **controlled**: the consumer owns the data, the viewer emits events, the consumer applies changes.
 
 ```ts

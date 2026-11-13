@@ -2,6 +2,8 @@
 
 # Card
 
+**Devices:** desktop ready · tablet ready · phone ready
+
 Cards group related content into a visually distinct container, making it easy for users to scan and interact with discrete chunks of information. Use them for dashboards, content feeds, settings panels, or anywhere you need clear visual boundaries.
 
 ```ts

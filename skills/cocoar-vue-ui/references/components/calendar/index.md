@@ -2,6 +2,8 @@
 
 # Calendar (Preview)
 
+**Devices:** desktop ready · tablet partial · phone planned — Taps, swipe paging and long-press selection work on touch; event resize handles are only 6 px tall.
+
 A Vue 3 calendar whose visible hierarchy follows the iOS calendar: **Year**, **Month**, **Day** and **Agenda**, plus fixed **Week** and **Work week** time grids for web applications. Month and Day expose their display choices as nested variations instead of flattening every renderer into the primary view switcher.
 
 Events on the public surface use **`Temporal`** values directly (`PlainDate` for all-day, `ZonedDateTime` for timed) — there's no string parsing or implicit-zone guessing. Consumers convert their wire format (ISO strings, epoch ms, etc.) at the boundary; the calendar receives unambiguous values and runs all date math on them across DST boundaries.

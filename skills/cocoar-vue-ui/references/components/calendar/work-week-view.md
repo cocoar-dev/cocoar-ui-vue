@@ -2,6 +2,8 @@
 
 # `<CoarWorkWeekView>` — Work Week View (Preview)
 
+**Devices:** desktop ready · tablet partial · phone planned — Taps, swipe paging and long-press selection work on touch; event resize handles are only 6 px tall.
+
 The week view with weekend columns filtered out. Configurable working-day set via `builder.workDays(...)` — defaults to Mon–Fri but adapts to 6-day operations (Mon–Sat), 4-day weeks (Mon–Thu), Sun–Thu Middle-East work weeks, or any other DayOfWeek subset.
 
 Mechanically the work-week view is a preset of the one time-grid model shared with [`<CoarDayView>`](./day-view.md#one-model-for-every-time-grid) and [`<CoarWeekView>`](./week-view.md): anchor `weekStart`, span 7, filter `workDays`, step 7. Same time-grid, same DnD pipeline, same slot rendering, same all-day band, same touch paging. The visible-range `ViewWindow` stays the full Mon–Sun span — only the columns rendered differ. Loaders see weekend events the same way they do for the full week.

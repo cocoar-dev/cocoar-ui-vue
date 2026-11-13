@@ -2,6 +2,8 @@
 
 # Context Menu
 
+**Devices:** desktop ready · tablet partial · phone planned — Opens on right-click; on touch that depends on the browser's long press, so offer your own trigger as well.
+
 Open a menu at the pointer position on right-click. The `useContextMenu` composable manages open/close state and cursor coordinates, while `CoarContextMenu` renders the menu as a floating overlay with automatic viewport clamping.
 
 ```ts

@@ -1,5 +1,7 @@
 ---
 description: "CoarDataGrid text column — col.text() edits cells with CoarTextInput via CoarTextCellEditor, with placeholder, maxLength, and per-row editable gating."
+devices: { desktop: ready, tablet: partial, phone: no }
+devicesNote: "Touch scrolls and selects; editing starts with double-click and menus with right-click; not built for phones."
 ---
 
 # Text Column

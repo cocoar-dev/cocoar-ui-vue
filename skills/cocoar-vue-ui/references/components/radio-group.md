@@ -2,6 +2,8 @@
 
 # Radio Group
 
+**Devices:** desktop ready · tablet ready · phone partial — Mobile sizes under .coar-mobile; the mobile presentation is still Preview.
+
 When users must pick exactly one option from a small set of mutually exclusive choices, a radio group is the right tool. Each option is visible at a glance, unlike a select dropdown, which makes radios ideal when the list is short (roughly 2--5 items).
 
 ```ts

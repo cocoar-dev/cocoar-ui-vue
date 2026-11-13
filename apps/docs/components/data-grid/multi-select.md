@@ -1,5 +1,7 @@
 ---
 description: "CoarDataGrid multi-value columns — col.multiSelect() and col.tagSelect() edit array cells via CoarMultiSelect or CoarTagSelect, with chips display, search, and allowCreate."
+devices: { desktop: ready, tablet: partial, phone: no }
+devicesNote: "Touch scrolls and selects; editing starts with double-click and menus with right-click; not built for phones."
 ---
 
 # Multi-Select & Tag-Select Columns <Badge type="tip" text="New in 2.0" />

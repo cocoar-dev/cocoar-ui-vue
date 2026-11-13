@@ -1,5 +1,6 @@
 ---
 description: "CoarLink — styled anchor for router and external navigation with accent/subtle variants, three sizes, safe new-tab defaults and disabled handling"
+devices: { desktop: ready, tablet: ready, phone: ready }
 ---
 
 # Link

@@ -1,5 +1,7 @@
 ---
 description: "CoarPageRenderer turns a PageNode schema into live Cocoar components at runtime, enforcing the allowedElements security boundary with actions, validation and initialValues."
+devices: { desktop: ready, tablet: ready, phone: partial }
+devicesNote: "Responsive pages adapt to phone widths; its select and date fields still open desktop panels."
 ---
 
 # `<CoarPageRenderer>` <Badge type="warning" text="Preview" />

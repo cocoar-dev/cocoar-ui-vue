@@ -2,6 +2,8 @@
 
 # Month Views (Preview)
 
+**Devices:** desktop ready · tablet partial · phone planned — Taps work on touch; multi-day bar resize handles are only 6 px and a touch on a pill always drags it.
+
 The shell's Month view follows the iOS structure: months scroll continuously and expose **Compact**, **Stacked**, **Details**, and **List** display choices. Continuous sections render only the 4–6 weeks the month actually needs; leading and trailing positions stay blank instead of repeating neighbour dates.
 
 | Choice | Rendering |

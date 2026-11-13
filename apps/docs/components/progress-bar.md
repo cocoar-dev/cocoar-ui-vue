@@ -1,5 +1,6 @@
 ---
 description: "CoarProgressBar — determinate and indeterminate progress indicator with semantic color variants, three sizes, optional value display and accessible labels"
+devices: { desktop: ready, tablet: ready, phone: ready }
 ---
 
 # Progress Bar

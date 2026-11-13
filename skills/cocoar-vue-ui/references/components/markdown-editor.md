@@ -2,6 +2,8 @@
 
 # Markdown Editor (Preview)
 
+**Devices:** desktop ready · tablet partial · phone partial — Typing and the toolbar work on touch; table row/column grips and the code-block edit button need hover.
+
 WYSIWYG Markdown editor for Vue 3 based on [Milkdown](https://milkdown.dev/) (Kit approach), styled with the Cocoar Design System. Markdown-first: lossless round-trip between text and editor state. Shares the same remark stack — and the same render registry — as `@cocoar/vue-markdown-core` and `<CoarMarkdown>`.
 
 > **Info: Separate Package**

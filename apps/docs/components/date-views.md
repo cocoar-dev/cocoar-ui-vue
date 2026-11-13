@@ -1,5 +1,6 @@
 ---
 description: "CoarPlainDateView, CoarPlainDateTimeView and CoarZonedDateTimeView — read-only, locale-aware displays for Temporal date values with cross-zone projection."
+devices: { desktop: ready, tablet: ready, phone: ready }
 ---
 
 # Date Views <Badge type="tip" text="New in 2.0" />

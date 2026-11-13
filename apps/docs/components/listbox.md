@@ -1,5 +1,7 @@
 ---
 description: "CoarListbox — single-column selectable list with grouping, search, multi-select highlighting, keyboard navigation, custom item renderers and display-only mode"
+devices: { desktop: ready, tablet: partial, phone: planned }
+devicesNote: "Multi-highlight needs Ctrl/Shift-click or keys; drag on touch needs dragEngine 'pointer' or 'auto'."
 ---
 
 # Listbox

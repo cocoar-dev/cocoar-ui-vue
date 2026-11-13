@@ -2,6 +2,8 @@
 
 # Sidebar
 
+**Devices:** desktop ready · tablet partial · phone partial — Split-trigger flyouts open only on hover and icon-only labels are tooltips; no phone drawer.
+
 A structured navigation sidebar with three distinct sections: a header for branding, a scrollable content area for navigation, and a footer for secondary actions. Use the dedicated sidebar components (`CoarSidebarItem`, `CoarSidebarGroup`, `CoarSidebarHeading`, `CoarSidebarDivider`, `CoarSidebarSpacer`) for full collapsed/expanded support with automatic tooltips.
 
 ```ts

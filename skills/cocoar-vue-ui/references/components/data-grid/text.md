@@ -2,6 +2,8 @@
 
 # Text Column
 
+**Devices:** desktop ready · tablet partial · phone not supported — Touch scrolls and selects; editing starts with double-click and menus with right-click; not built for phones.
+
 `col.text(field, configurator?)` declares a text column whose editor is `<CoarTextInput>` — same visual language as forms, fitted into the cell.
 
 ```ts

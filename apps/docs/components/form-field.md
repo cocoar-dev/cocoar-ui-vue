@@ -1,5 +1,7 @@
 ---
 description: "CoarFormField — label, hint and validation wrapper for form controls with a severity-aware status icon, pinnable popover and live-evaluated rules"
+devices: { desktop: ready, tablet: ready, phone: partial }
+devicesNote: "Works on phones; the label and the status popover have no .coar-mobile presentation yet."
 ---
 
 # Form Field

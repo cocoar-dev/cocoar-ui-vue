@@ -2,6 +2,8 @@
 
 # Data Grid
 
+**Devices:** desktop ready · tablet partial · phone not supported — Touch scrolls and selects; editing starts with double-click and menus with right-click; not built for phones.
+
 A powerful data grid built on AG Grid with Cocoar theming. Configure columns, sorting, selection, and cell renderers through a fluent builder API — no raw AG Grid config needed.
 
 > **Info: Separate Package**

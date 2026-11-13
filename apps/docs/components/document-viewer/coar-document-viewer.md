@@ -1,5 +1,7 @@
 ---
 description: "CoarDocumentViewer component reference — the source prop, toolbar and side-panel chrome toggles, annotation surface props, and v-model panel open state."
+devices: { desktop: ready, tablet: partial, phone: partial }
+devicesNote: "Pinch zoom and drawing work on touch; marker/ink style flyouts open only on hover; not adapted to phones."
 ---
 
 # CoarDocumentViewer

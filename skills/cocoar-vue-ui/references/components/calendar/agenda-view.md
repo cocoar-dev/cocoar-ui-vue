@@ -2,6 +2,8 @@
 
 # `<CoarAgendaView>` — Agenda View (Preview)
 
+**Devices:** desktop ready · tablet ready · phone planned — Taps and scrolling work on touch; a phone presentation of the calendar is planned.
+
 Virtualized chronological list grouped by day. Multi-day events appear on every day they touch (with a `(cont.)` tag from day 2 onwards). The current-day header floats at the top of the surface and is pushed up by the next inline header — same UX as native CSS sticky, but works correctly on top of an absolutely-positioned virtualized surface.
 
 ```html

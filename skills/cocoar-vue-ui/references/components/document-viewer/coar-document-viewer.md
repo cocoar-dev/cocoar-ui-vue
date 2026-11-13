@@ -2,6 +2,8 @@
 
 # CoarDocumentViewer
 
+**Devices:** desktop ready · tablet partial · phone partial — Pinch zoom and drawing work on touch; marker/ink style flyouts open only on hover; not adapted to phones.
+
 The all-in-one viewer component. One required prop — `source` — plus a handful of toggles for chrome, panels, and the annotation surface.
 
 ```ts

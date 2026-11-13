@@ -1,5 +1,7 @@
 ---
 description: "CoarDataGrid select column — col.select() renders the matched option label and edits via CoarSelect with auto-commit on pick, clearable, searchable, and row-aware options."
+devices: { desktop: ready, tablet: partial, phone: no }
+devicesNote: "Touch scrolls and selects; editing starts with double-click and menus with right-click; not built for phones."
 ---
 
 # Select Column

@@ -1,5 +1,6 @@
 ---
 description: "CoarAvatar — user avatar with image and generated-initials fallback, six sizes, circle or square shape, clickable mode and group stacking."
+devices: { desktop: ready, tablet: ready, phone: ready }
 ---
 
 # Avatar

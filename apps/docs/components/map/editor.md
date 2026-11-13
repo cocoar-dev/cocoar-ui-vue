@@ -1,5 +1,7 @@
 ---
 description: "CoarMapEditor, the write counterpart of CoarMap: place, move, edit, reorder and delete points visually, emitting fresh MapData via v-model."
+devices: { desktop: ready, tablet: partial, phone: partial }
+devicesNote: "Map editing works on touch; the point list's drag reorder is mouse-only and nothing is phone-adapted."
 ---
 
 # Map Editor <Badge type="warning" text="Preview" />

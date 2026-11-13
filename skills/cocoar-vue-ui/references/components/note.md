@@ -2,6 +2,8 @@
 
 # Note
 
+**Devices:** desktop ready · tablet ready · phone ready
+
 Notes call attention to supplementary information without interrupting the main content flow. Use them for tips, requirements, deprecation warnings, or any contextual message that readers should notice but shouldn't be blocked by. A colored left border and tinted background create just enough contrast to stand out.
 
 ```ts

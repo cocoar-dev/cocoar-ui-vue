@@ -2,6 +2,8 @@
 
 # Button
 
+**Devices:** desktop ready · tablet ready · phone partial — Mobile sizes under .coar-mobile; the mobile presentation is still Preview.
+
 Buttons trigger actions and communicate what will happen when pressed.
 
 ```ts

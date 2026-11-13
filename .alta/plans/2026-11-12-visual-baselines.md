@@ -1,6 +1,6 @@
 ---
 title: Vergleichsbilder – Beleg, dass sich die Standard-Darstellung nicht ändert
-status: in-progress
+status: done
 created: 2026-11-12
 summary: Der Playground bekommt Vergleichsbilder der Komponenten (Standard und `.coar-mobile`, hell und dunkel). Jeder Pull Request wird dagegen geprüft; eine Änderung eines Standard-Bildes braucht die ausdrückliche Freigabe des Maintainers. Das ist der Beleg für die Garantie des Mobil-RFC, dass reine Web-Apps unverändert bleiben.
 ---

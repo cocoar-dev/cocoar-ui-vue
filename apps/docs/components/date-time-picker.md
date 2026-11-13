@@ -1,5 +1,7 @@
 ---
 description: "CoarPlainDateTimePicker — combined calendar and time input returning a timezone-less Temporal.PlainDateTime, with validation states, four sizes and localized labels."
+devices: { desktop: ready, tablet: ready, phone: planned }
+devicesNote: "A phone presentation (sheet) is planned."
 ---
 
 # DateTime Picker

@@ -1,5 +1,7 @@
 ---
 description: "CoarYearView — responsive twelve-month calendar overview with today marker and drill-in to the continuous Month view"
+devices: { desktop: ready, tablet: ready, phone: planned }
+devicesNote: "Tap to drill in works on touch; a phone presentation of the calendar is planned."
 ---
 
 # `<CoarYearView>` — Year View <Badge type="warning" text="Preview" />

@@ -1,5 +1,7 @@
 ---
 description: "CoarCalendar — top-level calendar shell wiring the iOS-style Year, Month, Day and Agenda hierarchy plus Week and Work Week, driven by the chainable useCalendar builder"
+devices: { desktop: ready, tablet: partial, phone: planned }
+devicesNote: "Taps, swipe paging and long-press selection work on touch; event resize handles are only 6 px tall."
 ---
 
 # `<CoarCalendar>` — Composer <Badge type="warning" text="Preview" />

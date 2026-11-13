@@ -1,5 +1,7 @@
 ---
 description: "CoarSplitPane and CoarPanelLayout — resizable split panes and a VS-Code-style workbench shell with top/left/content/right/bottom/status regions"
+devices: { desktop: ready, tablet: partial, phone: no }
+devicesNote: "Resize dividers are 6 px wide and hard to hit by touch; the workbench layout is not meant for phones."
 ---
 
 # Panel Layout <Badge type="warning" text="Preview" />
