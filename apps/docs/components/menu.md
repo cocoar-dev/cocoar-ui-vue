@@ -1,7 +1,7 @@
 ---
 description: "CoarMenu — context menus and action lists with full keyboard support, icons, headings, dividers, nested and flyout submenus and router-aware link items"
-devices: { desktop: ready, tablet: ready, phone: planned }
-devicesNote: "Submenus open on tap as well as hover; touch-sized rows for phones are planned."
+devices: { desktop: ready, tablet: partial, phone: planned }
+devicesNote: "Flyout submenus (CoarSubFlyout) do not open by tap yet; touch-sized rows for phones are planned."
 ---
 
 # Menu

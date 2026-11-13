@@ -2,7 +2,7 @@
 
 # Menu
 
-**Devices:** desktop ready · tablet ready · phone planned — Submenus open on tap as well as hover; touch-sized rows for phones are planned.
+**Devices:** desktop ready · tablet partial · phone planned — Flyout submenus (CoarSubFlyout) do not open by tap yet; touch-sized rows for phones are planned.
 
 Build context menus, action lists, and navigation panels with full keyboard support. Menus group related actions together, making them easy to discover and interact with. They support nested submenus, icons, section headings, and danger variants for destructive actions.
 
