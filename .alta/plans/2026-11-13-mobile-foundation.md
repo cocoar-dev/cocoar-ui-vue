@@ -1,6 +1,6 @@
 ---
 title: Mobil-Vorstufe – Doku sagt, was auf welchem Gerät gilt
-status: in-progress
+status: done
 created: 2026-11-13
 summary: Die Doku bekommt die Zusage für reine Web-Apps, einen ehrlichen Mobil-Leitfaden und je Komponentenseite eine Geräte-Angabe (`devices`), aus der Badges, eine Übersichtstabelle und derselbe Stand im Agent-Skill entstehen. Danach laufen die Verhaltens-Tests des Playgrounds auch mit Touch und in WebKit.
 ---
@@ -55,7 +55,7 @@ Handy zusagt und was nicht:
 - [x] „touch-first“ in `packages/ui/package.json`, `packages/ui/README.md`, `apps/docs/skill/SKILL.header.md` richtiggestellt;
       `CONTRIBUTING.md`: Abschnitt „Mobile Contributions“ (der Hinweis in `components/tree.md` bleibt, die Badges stehen darüber)
 - [x] `pnpm skill:sync`, Docs-Build, Lint, Typecheck, Tests; Gegenprüfung
-- [ ] Pull Request gemergt
+- [x] Pull Request gemergt (#48)
 
 **Abnahme:** `pnpm skill:check` schlägt fehl, wenn einer Komponentenseite `devices` fehlt oder ein Wert unbekannt ist; der
 Docs-Build zeigt die Badges auf `components/button` und die Tabelle auf `guide/mobile`; `skills/cocoar-vue-ui` enthält
@@ -76,7 +76,7 @@ bedienbaren Komponenten eine Mobil-Darstellung, die nicht mehr Preview ist. Die 
 - [x] `mobile-controls.spec.ts` und die Tap-Tests der beiden Kalender-Specs laufen dort mit, in Tablet-Größe
 - [x] Neue Ansicht `/touch-lab` mit `touch-lab.spec.ts`: 15 Tests, die die Overlay-Familie und die Controls nur per Tap bedienen
 - [x] `ci.yml`: WebKit installieren (eine Zeile; Freigabe des Maintainers erteilt)
-- [ ] Pull Request gemergt
+- [x] Pull Request gemergt (#49)
 
 **Abnahme:** `pnpm test` läuft lokal und in der CI mit dem neuen Projekt grün (145 Tests); mit `pointer-events: none` auf dem
 Auslöser des Selects wird der Select-Test in beiden Projekten rot.
