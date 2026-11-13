@@ -23,6 +23,7 @@ branch feat/… ──PR (Conventional Commit title, CI green)──> develop �
 | Change code or docs, merge a pull request (also from a fork) | skill `cocoar-pr` (`.alta/skills/cocoar-pr`) |
 | Start a beta, release a version | skill `cocoar-release` (`.alta/skills/cocoar-release`), maintainer only |
 | Check a title | `node scripts/check-conventional.mjs --title "…"` |
+| Compare or update the visual baselines | `node apps/playground/scripts/visual.mjs [--update] [story…]` (Docker) |
 
 ## Conventional Commits
 
@@ -58,7 +59,8 @@ branch feat/… ──PR (Conventional Commit title, CI green)──> develop �
 - **Docs changed** (`apps/docs`): runs `pnpm skill:sync` and commits `skills/cocoar-vue-ui` in the same pull request.
 - **A user-visible change**: updates its docs page and demo; a new API that may still change gets the Preview badge.
 - **Before a pull request**: `pnpm lint && pnpm typecheck && pnpm build`, and `pnpm test` as a background job (it
-  runs the Playwright tests of the playground and takes minutes).
+  runs the Playwright tests of the playground and takes minutes). A change that can alter how a component looks:
+  `node apps/playground/scripts/visual.mjs` too (see [Visual baselines](#visual-baselines)).
 - **Respects the user's commit preference**: with review before commit, it asks for the review and does not commit.
 - **Merges a pull request only when the user asks**, only with green checks, and always as a squash: it first
   corrects the **pull request title** when it is not a fitting Conventional Commit (the notes read the pull request
@@ -80,15 +82,45 @@ Say it plainly and propose the right way before acting, when a request would:
 - change docs without the regenerated Agent Skill, or edit `skills/` by hand;
 - put a skill of this repository's own work into `skills/` — that folder ships inside `@cocoar/vue-ui`; internal
   skills live in `.alta/skills/`;
-- change a version in a `package.json` (versions come from the git tags; the files keep `0.0.1`).
+- change a version in a `package.json` (versions come from the git tags; the files keep `0.0.1`);
+- change an existing default-presentation baseline (`apps/playground/visual/__screenshots__/*--default-*.png`), or
+  merge a pull request that does, without the maintainer's explicit OK: web apps without `.coar-mobile` would look
+  different;
+- change the visual comparison itself (the files in `VISUAL_HARNESS` of `.alta/skills/cocoar-pr/scripts/pr.mjs`:
+  the visual Playwright config, spec and warm-up, `visual.mjs`, the story view, `manifest.ts` and `story.css`, `ci.yml`,
+  `pr.mjs`) or an existing story, or merge a pull request that does, without the maintainer's explicit OK: a
+  weakened comparison, or a story that undoes a component change, passes changed components unseen.
 
 ## Checks
 
-CI (`.github/workflows/ci.yml`) builds and tests every pull request ("Build, test & pack"). Titles are not checked
+CI (`.github/workflows/ci.yml`) builds and tests every pull request ("Build, test & pack") and compares the visual
+baselines ("Visual"); `pr.mjs merge` requires both to have passed. Titles are not checked
 by CI, as in CodeAlta: the agent that merges judges the title and corrects it (skill `cocoar-pr`, `pr.mjs merge`).
 A title that does not fit, merged as it is — or a commit that reaches `develop` without a pull request — lands
 under "Misc" in the release notes: nothing breaks, it is only filed in the wrong place. The repository
 squash-merges with the pull request title as the commit subject.
+
+## Visual baselines
+
+The playground has screenshots of components, default and `.coar-mobile`, light and dark
+(`apps/playground/visual/__screenshots__/<story>--<mode>-<scheme>.png`), compared pixel for pixel by the CI job
+"Visual" on every pull request. They prove the promise of the library: **what runs without `.coar-mobile` looks
+exactly as before.** How to add a story, run and read a failure: [apps/playground/visual/README.md](apps/playground/visual/README.md).
+
+- **The command:** `node apps/playground/scripts/visual.mjs [--update] [story…]`. It needs Docker: the images are
+  made only in the Playwright image of the lockfile's version, as `linux/amd64` like CI, never on the host.
+- **A `--default-` baseline changes only with the maintainer's explicit OK.** An agent never updates one to make
+  the check green: a red default image is a regression until the maintainer says the new look is intended.
+  `pr.mjs merge` refuses a pull request that modifies, removes or renames one unless it is given
+  `--accept-default-visual-change`, which an agent passes only when the maintainer said so for this pull request.
+- New baselines and changed `--mobile-` baselines need no such OK; say in the pull request which images changed
+  and why.
+- **The comparison itself changes only with the maintainer's explicit OK.** `pr.mjs merge` refuses a pull request
+  that modifies, removes or renames a file the comparison depends on (`VISUAL_HARNESS` in `pr.mjs`) or an existing
+  story (it could hide a component change; a new story with its `stories.json` entry passes) unless it is
+  given `--accept-visual-harness-change`, again only when the maintainer said so for this pull request after
+  reviewing those files. Keep such changes in a pull request of their own, without component changes.
+- The gate is the `pr.mjs` of the maintainer's up-to-date `develop`, not the pull request's copy.
 
 ## Release notes
 

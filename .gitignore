@@ -16,6 +16,8 @@ apps/docs/.vitepress/dist/
 test-results/
 playwright-report/
 playwright/.cache/
+# Visual baselines: report, actual and diff images (apps/playground/scripts/visual.mjs)
+apps/playground/visual-results/
 
 # Agent skill copy made by packages/ui/scripts/copy-skill.mjs at pack time (source: /skills)
 packages/ui/skills/

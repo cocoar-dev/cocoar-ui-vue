@@ -32,6 +32,12 @@ export default [
   {
     ignores: ['**/dist/**', '**/node_modules/**', '**/.turbo/**'],
   },
+  // Visual-baseline stories are named after the component they show (button.vue);
+  // the file name is also the name of their baselines.
+  {
+    files: ['apps/playground/src/visual/stories/*.vue'],
+    rules: { 'vue/multi-word-component-names': 'off' },
+  },
   // ───────────────────────────────────────────────────────────────────────
   // Test files frequently declare multiple `defineComponent({ ... })`
   // wrappers in one file (mount harness, slot-content stubs, parent-child

@@ -41,4 +41,6 @@ const app = createApp(App);
 app.use(router);
 app.use(CoarOverlayPlugin);
 app.use(createCoarLocalization({ defaultLanguage: 'en' }));
-app.mount('#app');
+// Mount after the first navigation, so App.vue knows from its first render
+// whether the route is bare and never mounts the theme editor there.
+router.isReady().then(() => app.mount('#app'));

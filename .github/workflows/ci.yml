@@ -2,9 +2,9 @@ name: ci
 
 # One workflow for everything, as in CodeAlta:
 #
-#   pull request          → build & test (the title is judged and corrected by the agent that merges:
-#                           skill cocoar-pr, pr.mjs merge)
-#   push to develop, …    → build & test (the green run the release skill requires before a tag)
+#   pull request          → build & test, visual baselines (the title is judged and corrected by the agent that
+#                           merges: skill cocoar-pr, pr.mjs merge)
+#   push to develop, …    → build & test, visual baselines (the green run the release skill requires before a tag)
 #   workflow_dispatch     → build & test, then a prerelease: develop → X.Y.Z-beta.N on npm (dist-tag beta),
 #                           any other branch → X.Y.Z-alpha.N as @cocoar-dev/* on GitHub Packages
 #   tag vX.Y.Z            → build & test, publish (latest), deploy the docs, and as the very last step the
@@ -15,7 +15,7 @@ name: ci
 # Releases and betas are started with the release skill (.alta/skills/cocoar-release).
 #
 # Rehearsal: with the repository variable SIMULATE_BUILD=true (set only in a sandbox), lint, typecheck,
-# tests, the build and the docs build are skipped, so the whole flow costs a minute per run. The real
+# tests, the visual comparison, the build and the docs build are skipped, so the whole flow costs a minute per run. The real
 # repository never sets it.
 
 on:
@@ -152,6 +152,57 @@ jobs:
           name: docs-${{ steps.version.outputs.version }}
           path: apps/docs/.vitepress/dist
           retention-days: 7
+
+  # Visual baselines (apps/playground/visual/README.md), for pull requests and branch pushes. Not for tags or
+  # workflow_dispatch: those build a commit whose comparison already ran on its branch. The image is read from the
+  # lockfile (the version of @playwright/test), so it is named only there.
+  visual-image:
+    name: Visual image
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref_type == 'branch')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            pnpm-lock.yaml
+            apps/playground
+      - id: image
+        run: echo "image=$(node apps/playground/scripts/visual.mjs --print-image)" >> "$GITHUB_OUTPUT"
+
+  visual:
+    name: Visual
+    needs: visual-image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    container:
+      image: ${{ needs.visual-image.outputs.image }}
+      options: --ipc=host
+    steps:
+      - uses: actions/checkout@v6
+
+      # The same command as `node apps/playground/scripts/visual.mjs` runs inside Docker locally.
+      - name: Compare with the baselines
+        if: env.SIMULATE != 'true'
+        run: node apps/playground/scripts/visual.mjs --inside
+
+      - name: Simulated comparison
+        if: env.SIMULATE == 'true'
+        run: echo "::notice ::SIMULATE_BUILD — visual comparison skipped"
+
+      - name: Upload the report (expected / actual / diff)
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: visual-report
+          path: apps/playground/visual-results
+          retention-days: 14
 
   publish:
     name: Publish
