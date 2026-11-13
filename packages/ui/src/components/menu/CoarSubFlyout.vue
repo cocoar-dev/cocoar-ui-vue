@@ -178,9 +178,44 @@ function closeSubmenu() {
   }
 }
 
+/**
+ * `pointerType` of the pointer that last entered the item (`null`: none recorded).
+ *
+ * A tap sends `pointerenter` (type `touch`), `pointerdown`, `pointerup`, `pointerleave`,
+ * then the browser's compatibility mouse events — `mouseenter` among them — and `click`.
+ * That `mouseenter` is not a hover: if it opened the submenu, the `click` of the same tap
+ * would toggle it closed again. So hover ignores a `mouseenter` that follows a touch
+ * `pointerenter`, and the click alone opens or closes. The decision follows the pointer
+ * type of the gesture, never a device, user-agent or class check: a mouse (and a pen)
+ * sends `pointerenter` before its `mouseenter` and keeps the hover behaviour unchanged;
+ * a `mouseenter` without a recorded pointer type opens as before.
+ *
+ * The mark lives from the touch `pointerenter` until that tap's compatibility `mouseenter`,
+ * its `click` or a `pointercancel` (a touch that turns into a scroll). It is not cleared on
+ * `pointerleave` or `pointerup`: both come before the compatibility `mouseenter`. Limits:
+ * - a touch gesture that ends without click and without cancel (a long press) can leave the
+ *   mark until the next pointer entry, click or `mouseenter`; at worst one genuine hover
+ *   is then ignored on a hybrid device;
+ * - when the item under the finger changes during the contact (the menu scrolls under a
+ *   stationary finger), the item that gets the compatibility `mouseenter` never saw the
+ *   touch `pointerenter` and behaves as before this fix: it opens and closes in one tap.
+ */
+let lastPointerType: string | null = null;
+
+function onPointerEnter(event: PointerEvent) {
+  lastPointerType = event.pointerType;
+}
+
+function onPointerCancel() {
+  lastPointerType = null;
+}
+
 function onMouseEnter(event: MouseEvent) {
+  const enteredByTouch = lastPointerType === 'touch';
+  lastPointerType = null;
   if (props.disabled) return;
   cancelCloseTimer();
+  if (enteredByTouch) return;
 
   const anchor = event.currentTarget as HTMLElement;
 
@@ -214,6 +249,7 @@ function cancelCloseTimer() {
 }
 
 function onClick(event: MouseEvent) {
+  lastPointerType = null;
   if (props.disabled) {
     event.preventDefault();
     event.stopPropagation();
@@ -303,6 +339,8 @@ onBeforeUnmount(() => {
       :aria-controls="submenuPanelId"
       :aria-disabled="props.disabled || undefined"
       :tabindex="itemTabindex"
+      @pointerenter="onPointerEnter"
+      @pointercancel="onPointerCancel"
       @mouseenter="onMouseEnter"
       @mouseleave="onMouseLeave"
       @click="onClick"

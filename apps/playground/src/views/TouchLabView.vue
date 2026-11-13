@@ -110,6 +110,10 @@ const count = ref<number | null>(1);
               <CoarMenuItem @clicked="menuAction = 'Projects'">Projects</CoarMenuItem>
               <CoarMenuItem @clicked="menuAction = 'Archive'">Archive</CoarMenuItem>
             </CoarSubFlyout>
+            <CoarSubFlyout label="Share">
+              <CoarMenuItem @clicked="menuAction = 'Email'">Email</CoarMenuItem>
+              <CoarMenuItem @clicked="menuAction = 'Link'">Link</CoarMenuItem>
+            </CoarSubFlyout>
           </CoarMenu>
         </template>
       </CoarPopover>
