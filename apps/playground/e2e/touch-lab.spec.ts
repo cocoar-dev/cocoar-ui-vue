@@ -48,15 +48,7 @@ test.describe('touch lab', { tag: '@touch' }, () => {
 
   test('menu: a tap opens it, a tap on the parent opens the submenu, a tap on an item fires', async ({
     page,
-  }, testInfo) => {
-    // CoarSubFlyout opens on `mouseenter` and toggles on `click`. A tap has no hover: the
-    // browser fires the compatibility `mouseenter` (opens) and then `click` (closes again) in
-    // one go, so a tap never leaves the submenu open. A mouse user does not see it: the
-    // submenu is already open from hovering. Library gap, reported; not worked around here.
-    test.fail(
-      ['chromium', 'webkit-tablet'].includes(testInfo.project.name),
-      'CoarSubFlyout: a tap fires mouseenter (open) and click (toggle closed) together',
-    );
+  }) => {
     await section(page, 'menu').getByRole('button', { name: 'Actions' }).tap();
     const parent = page.getByRole('menuitem', { name: 'Move to' });
     await expect(parent).toBeVisible();
@@ -69,15 +61,25 @@ test.describe('touch lab', { tag: '@touch' }, () => {
     await expect(submenu).toBeHidden();
   });
 
+  test('menu: a second tap on the parent closes the submenu again', async ({ page }) => {
+    await section(page, 'menu').getByRole('button', { name: 'Actions' }).tap();
+    const parent = page.getByRole('menuitem', { name: 'Move to' });
+    const submenu = page.locator('.coar-submenu-panel');
+    await parent.tap();
+    await expect(parent).toHaveAttribute('aria-expanded', 'true');
+    await expect(submenu).toBeVisible();
+    await parent.tap();
+    await expect(parent).toHaveAttribute('aria-expanded', 'false');
+    await expect(submenu).toBeHidden();
+    await expect(parent).toBeVisible();
+  });
+
   test('menu: with the submenu open, a tap on a submenu item fires and closes it', async ({
     page,
   }) => {
-    // The submenu is opened from the keyboard here (a tap cannot open it, see above) so the
-    // tap on its items is still checked by itself.
     await section(page, 'menu').getByRole('button', { name: 'Actions' }).tap();
     const parent = page.getByRole('menuitem', { name: 'Move to' });
-    await parent.focus();
-    await page.keyboard.press('Enter');
+    await parent.tap();
     const submenu = page.locator('.coar-submenu-panel');
     await expect(submenu).toBeVisible();
     await submenu.getByRole('menuitem', { name: 'Archive' }).tap();
@@ -91,18 +93,15 @@ test.describe('touch lab', { tag: '@touch' }, () => {
     const parent = page.getByRole('menuitem', { name: 'Move to' });
     const menuPanel = page.locator('.coar-popover-panel', { has: parent });
     const submenu = page.locator('.coar-submenu-panel');
-    // Keyboard setup: a tap cannot open the submenu yet (see the test above). Replace the
-    // focus + Enter with `parent.tap()` once CoarSubFlyout opens by tap.
-    const openSubmenuByKeyboard = async () => {
-      await parent.focus();
-      await page.keyboard.press('Enter');
+    const openSubmenu = async () => {
+      await parent.tap();
       await expect(submenu).toBeVisible();
       await expect(parent).toHaveAttribute('aria-expanded', 'true');
     };
 
     await section(page, 'menu').getByRole('button', { name: 'Actions' }).tap();
     await expect(menuPanel).toBeVisible();
-    await openSubmenuByKeyboard();
+    await openSubmenu();
 
     // A tap on a submenu item fires it and closes the submenu; the menu it came from stays.
     await submenu.getByRole('menuitem', { name: 'Projects' }).tap();
@@ -112,7 +111,7 @@ test.describe('touch lab', { tag: '@touch' }, () => {
     await expect(menuPanel).toBeVisible();
 
     // A tap outside closes the submenu and the menu together, and fires nothing.
-    await openSubmenuByKeyboard();
+    await openSubmenu();
     await tapOutside(page);
     await expect(submenu).toBeHidden();
     await expect(menuPanel).toBeHidden();

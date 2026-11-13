@@ -1,6 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
-import { nextTick } from 'vue';
+import { nextTick, defineComponent, h, ref } from 'vue';
+import { CoarOverlayPlugin, _resetOverlayServiceForTests } from '../overlay/useOverlay';
+import CoarOverlayHost from '../overlay/CoarOverlayHost.vue';
 import CoarMenu from './CoarMenu.vue';
 import CoarMenuItem from './CoarMenuItem.vue';
 import CoarMenuDivider from './CoarMenuDivider.vue';
@@ -420,6 +422,248 @@ describe('CoarSubFlyout', () => {
     });
     await wrapper.find('.coar-submenu-item').trigger('click');
     expect(wrapper.find('[aria-expanded="false"]').exists()).toBe(true);
+  });
+});
+
+/**
+ * Open and close by pointer, tap and click, as full event sequences of real engines. The
+ * overlay service really opens here (plugin + host, as in CoarContextMenu.test.ts), so
+ * `aria-expanded` and the panel follow each other. Each sequence runs once on a bare
+ * CoarSubFlyout and once inside a CoarMenu: there the `mouseenter` opens through the parent
+ * cascade (`requestOpenFromChild`).
+ */
+describe.each([
+  { context: 'without a parent menu', inMenu: false },
+  { context: 'inside a CoarMenu', inMenu: true },
+])('CoarSubFlyout open and close by pointer ($context)', ({ inMenu }) => {
+  function mountFlyout(disabled = ref(false)) {
+    const flyout = () =>
+      h(
+        CoarSubFlyout,
+        { label: 'Move to', disabled: disabled.value },
+        {
+          default: () => h(CoarMenuItem, { label: 'Archive' }),
+        },
+      );
+    const Wrapper = defineComponent({
+      setup() {
+        return () =>
+          h('div', null, [
+            inMenu ? h(CoarMenu, null, { default: flyout }) : flyout(),
+            h(CoarOverlayHost),
+          ]);
+      },
+    });
+    return mount(Wrapper, {
+      global: {
+        plugins: [CoarOverlayPlugin],
+        stubs: { Teleport: true, CoarIcon: { template: '<span />', props: ['name', 'size'] } },
+      },
+      attachTo: document.body,
+    });
+  }
+
+  let wrapper: ReturnType<typeof mountFlyout> | null = null;
+
+  beforeEach(() => {
+    _resetOverlayServiceForTests();
+  });
+
+  afterEach(() => {
+    wrapper?.unmount();
+    wrapper = null;
+    _resetOverlayServiceForTests();
+  });
+
+  const item = () => wrapper!.find('.coar-submenu-item');
+  const expectOpen = (open: boolean) => {
+    expect(item().attributes('aria-expanded')).toBe(String(open));
+    expect(wrapper!.find('.coar-submenu-panel').exists()).toBe(open);
+  };
+  const send = async (...types: string[]) => {
+    for (const type of types) await item().trigger(type);
+  };
+  /** A primary pointer, as browsers send it for the mouse, a pen and the first finger. */
+  const pointer = (type: string, pointerType: string, button = 0) =>
+    item().trigger(type, { pointerType, button, isPrimary: true });
+
+  /**
+   * A tap as Chromium and WebKit send it: the pointer events of the contact, then the
+   * compatibility mouse events and the click. `mouseenter` comes only when the
+   * compatibility mouse was not already over the item (first tap, not the second).
+   */
+  const tap = async ({ mouseenter }: { mouseenter: boolean }) => {
+    for (const type of ['pointerenter', 'pointerdown', 'pointerup', 'pointerleave']) {
+      await pointer(type, 'touch');
+    }
+    if (mouseenter) await send('mouseenter');
+    await send('mousedown', 'mouseup', 'click');
+  };
+  const hover = async (pointerType = 'mouse') => {
+    await pointer('pointerenter', pointerType);
+    await send('mouseenter');
+  };
+  const mouseClick = async () => {
+    await pointer('pointerdown', 'mouse');
+    await send('mousedown');
+    await pointer('pointerup', 'mouse');
+    await send('mouseup', 'click');
+  };
+  /** Longer than the 80 ms hover close timer. */
+  const waitForCloseTimer = async () => {
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    await nextTick();
+  };
+
+  it('touch: a tap opens it and it stays open; a second tap closes; a third opens again', async () => {
+    wrapper = mountFlyout();
+    expectOpen(false);
+    await tap({ mouseenter: true });
+    expectOpen(true);
+    await tap({ mouseenter: false });
+    expectOpen(false);
+    await tap({ mouseenter: false });
+    expectOpen(true);
+  });
+
+  it('mouse: hover opens; a click on the open item closes; a click again opens', async () => {
+    wrapper = mountFlyout();
+    await hover();
+    expectOpen(true);
+    await mouseClick();
+    expectOpen(false);
+    await mouseClick();
+    expectOpen(true);
+  });
+
+  it('a bare mouseenter without pointer events opens (synthetic events of consumers)', async () => {
+    wrapper = mountFlyout();
+    await send('mouseenter');
+    expectOpen(true);
+  });
+
+  it('mouse after touch: hover opens again on a hybrid device', async () => {
+    wrapper = mountFlyout();
+    await tap({ mouseenter: true });
+    await tap({ mouseenter: false });
+    expectOpen(false);
+    await send('mouseleave');
+    await hover('mouse');
+    expectOpen(true);
+  });
+
+  it('pen: hover opens', async () => {
+    wrapper = mountFlyout();
+    await hover('pen');
+    expectOpen(true);
+  });
+
+  it('mouse, aborted press: after a press dragged away, a later click opens the closed submenu', async () => {
+    wrapper = mountFlyout();
+    await hover();
+    expectOpen(true);
+    await pointer('pointerdown', 'mouse');
+    await send('mousedown');
+    await pointer('pointerleave', 'mouse');
+    await send('mouseleave');
+    await waitForCloseTimer();
+    expectOpen(false);
+    await send('click');
+    expectOpen(true);
+  });
+
+  it('mouse, auxiliary press: a chorded left click without a new pointerdown closes the open submenu', async () => {
+    wrapper = mountFlyout();
+    await hover();
+    await mouseClick();
+    expectOpen(false);
+    // Middle button held: one pointerdown for the whole chord.
+    await pointer('pointerdown', 'mouse', 1);
+    await pointer('pointerleave', 'mouse', 1);
+    await send('mouseleave');
+    await hover();
+    expectOpen(true);
+    // Left button while the middle one is still held: no new pointerdown.
+    await send('mousedown', 'mouseup', 'click');
+    expectOpen(false);
+  });
+
+  it('consumption: the compatibility mouseenter of a tap consumes the touch mark; a later mouseenter opens', async () => {
+    wrapper = mountFlyout();
+    await pointer('pointerenter', 'touch');
+    await send('mouseenter');
+    expectOpen(false);
+    await send('mouseleave');
+    await send('mouseenter');
+    expectOpen(true);
+  });
+
+  it('hybrid (Chromium): after a tap closed it, a mouseenter without a new pointerenter opens', async () => {
+    wrapper = mountFlyout();
+    await hover('mouse');
+    expectOpen(true);
+    // A full tap on the open item; the compatibility mouse is already over it: no mouseenter.
+    await tap({ mouseenter: false });
+    expectOpen(false);
+    // The resting mouse moves within the item: Chromium sends mouseenter without pointerenter.
+    await send('mouseleave');
+    await send('mouseenter');
+    expectOpen(true);
+  });
+
+  it('cancel: a touch that turns into a scroll clears the mark; a later mouseenter opens', async () => {
+    wrapper = mountFlyout();
+    await pointer('pointerenter', 'touch');
+    await pointer('pointerdown', 'touch');
+    await pointer('pointercancel', 'touch');
+    await send('mouseenter');
+    expectOpen(true);
+  });
+
+  it('second finger: a non-primary touch leaves no mark; a later mouseenter opens', async () => {
+    wrapper = mountFlyout();
+    // A second finger gets no compatibility mouse events and no click: nothing would clear a mark.
+    for (const type of ['pointerenter', 'pointerdown', 'pointerup', 'pointerleave']) {
+      await item().trigger(type, { pointerType: 'touch', isPrimary: false });
+    }
+    expectOpen(false);
+    // The resting mouse moves within the item: Chromium sends mouseenter without pointerenter.
+    await send('mouseenter');
+    expectOpen(true);
+  });
+
+  it('a disabled item consumes the touch mark too; after enabling, a mouseenter opens', async () => {
+    const disabled = ref(true);
+    wrapper = mountFlyout(disabled);
+    await pointer('pointerenter', 'touch');
+    await send('mouseenter');
+    expectOpen(false);
+    disabled.value = false;
+    await nextTick();
+    await send('mouseleave');
+    await send('mouseenter');
+    expectOpen(true);
+  });
+
+  it('disabled: neither a tap nor a hover nor a click opens it', async () => {
+    wrapper = mountFlyout(ref(true));
+    await tap({ mouseenter: true });
+    expectOpen(false);
+    await hover();
+    expectOpen(false);
+    await send('click');
+    expectOpen(false);
+  });
+
+  it('disabling it while open closes it', async () => {
+    const disabled = ref(false);
+    wrapper = mountFlyout(disabled);
+    await hover();
+    expectOpen(true);
+    disabled.value = true;
+    await nextTick();
+    await nextTick();
+    expectOpen(false);
   });
 });
 

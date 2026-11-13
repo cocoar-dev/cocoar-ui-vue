@@ -253,7 +253,7 @@ are only being added, and testing on real devices remains the job of the app.
 
 | Page | Desktop | Tablet | Phone | Note |
 |---|---|---|---|---|
-| [Menu](../components/menu.md) | ready | partial | planned | Flyout submenus (CoarSubFlyout) do not open by tap yet; touch-sized rows for phones are planned. |
+| [Menu](../components/menu.md) | ready | ready | planned | Touch-sized rows for phones are planned. |
 | [Context Menu](../components/context-menu.md) | ready | partial | planned | Opens on right-click; on touch that depends on the browser's long press, so offer your own trigger as well. |
 | [Sidebar](../components/sidebar.md) | ready | partial | partial | Split-trigger flyouts open only on hover and icon-only labels are tooltips; no phone drawer. |
 | [Navbar](../components/navbar.md) | ready | ready | partial | No collapsed or menu layout for narrow screens; slot content must fit the phone width. |
