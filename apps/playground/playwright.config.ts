@@ -19,7 +19,13 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    // The engine of every iPad and iPhone browser, with a tablet profile (touch, mobile
+    // viewport). Runs only the tests tagged `@touch`. Playwright's WebKit is not iOS Safari:
+    // it proves the WebKit engine and its touch events, not iOS gestures or the soft keyboard.
+    { name: 'webkit-tablet', use: { ...devices['iPad (gen 7)'] }, grep: /@touch/ },
+  ],
   webServer: {
     command: 'pnpm dev',
     port: PORT,

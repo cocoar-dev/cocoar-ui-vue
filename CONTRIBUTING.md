@@ -75,6 +75,18 @@ What runs without `.coar-mobile` must keep its look and behaviour ([stability pr
 - Write unit tests with **Vitest** and **@vue/test-utils**
 - Component tests use `happy-dom` environment
 - Run tests: `pnpm test`
+- `pnpm test` also runs the Playwright tests of the playground (`apps/playground/e2e`). Install
+  their browsers once: `pnpm --filter @cocoar/playground exec playwright install chromium webkit`
+- Playwright has two projects: `chromium` (desktop Chrome) runs every spec; `webkit-tablet` (WebKit
+  with the iPad (gen 7) profile: touch, tablet viewport) runs only the tests tagged `@touch`. Tag a
+  test `{ tag: '@touch' }` when it operates components by touch (`locator.tap()`,
+  `page.touchscreen`) and uses no Chromium-only API such as CDP's `Input.dispatchTouchEvent`. The
+  tag alone does not enable touch in `chromium` (desktop Chrome has it off): the file or its
+  `describe` also needs `test.use({ hasTouch: true })`, or `tap()` fails there. Only the tagged
+  tests: `pnpm --filter @cocoar/playground exec playwright test --grep @touch`
+- Playwright's WebKit is the engine of every iPad and iPhone browser, not iOS Safari itself: it
+  proves the engine and its touch events, not iOS gestures, the soft keyboard or Safari's hover
+  heuristics
 
 ## Code of Conduct
 
