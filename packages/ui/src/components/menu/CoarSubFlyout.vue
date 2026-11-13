@@ -198,11 +198,24 @@ function closeSubmenu() {
  *   is then ignored on a hybrid device;
  * - when the item under the finger changes during the contact (the menu scrolls under a
  *   stationary finger), the item that gets the compatibility `mouseenter` never saw the
- *   touch `pointerenter` and behaves as before this fix: it opens and closes in one tap.
+ *   touch `pointerenter` and behaves as before this fix: it opens and closes in one tap;
+ * - on a hybrid device with the mouse resting over another item, Chromium moves the
+ *   compatibility mouse back to the cursor after a tap (`mouseleave`, `mouseenter` of the
+ *   item under the mouse, without a new `pointerenter`): that item opens and the tapped one
+ *   closes, as before this fix. WebKit keeps the tapped one open;
+ * - a multi-finger contact (first finger on the item, a second one elsewhere) ends without
+ *   click and without cancel, like a long press: the mark of the first finger stays.
+ * Only primary pointers get compatibility mouse events (Pointer Events, §11), so a
+ * non-primary one (a second finger) is not recorded: nothing would clear its mark. A
+ * synthetic `PointerEvent` without `isPrimary: true` is therefore ignored too and behaves
+ * as before this fix.
  */
 let lastPointerType: string | null = null;
 
 function onPointerEnter(event: PointerEvent) {
+  // Only the primary pointer gets compatibility mouse events: a second finger would leave
+  // a mark that nothing clears and that swallows the next genuine hover.
+  if (event.isPrimary === false) return;
   lastPointerType = event.pointerType;
 }
 

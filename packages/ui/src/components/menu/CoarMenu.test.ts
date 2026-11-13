@@ -483,8 +483,9 @@ describe.each([
   const send = async (...types: string[]) => {
     for (const type of types) await item().trigger(type);
   };
+  /** A primary pointer, as browsers send it for the mouse, a pen and the first finger. */
   const pointer = (type: string, pointerType: string, button = 0) =>
-    item().trigger(type, { pointerType, button });
+    item().trigger(type, { pointerType, button, isPrimary: true });
 
   /**
    * A tap as Chromium and WebKit send it: the pointer events of the contact, then the
@@ -615,6 +616,18 @@ describe.each([
     await pointer('pointerenter', 'touch');
     await pointer('pointerdown', 'touch');
     await pointer('pointercancel', 'touch');
+    await send('mouseenter');
+    expectOpen(true);
+  });
+
+  it('second finger: a non-primary touch leaves no mark; a later mouseenter opens', async () => {
+    wrapper = mountFlyout();
+    // A second finger gets no compatibility mouse events and no click: nothing would clear a mark.
+    for (const type of ['pointerenter', 'pointerdown', 'pointerup', 'pointerleave']) {
+      await item().trigger(type, { pointerType: 'touch', isPrimary: false });
+    }
+    expectOpen(false);
+    // The resting mouse moves within the item: Chromium sends mouseenter without pointerenter.
     await send('mouseenter');
     expectOpen(true);
   });
