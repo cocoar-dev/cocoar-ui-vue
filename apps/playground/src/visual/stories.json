@@ -185,5 +185,125 @@
       ],
       "overlays": 1
     }
+  },
+  {
+    "name": "calendar-month",
+    "capture": "page",
+    "clock": "2026-04-15T08:30:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "width": 1232
+  },
+  {
+    "name": "calendar-month-continuous",
+    "capture": "page",
+    "clock": "2026-04-15T08:30:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "width": 1232
+  },
+  {
+    "name": "calendar-month-list",
+    "capture": "page",
+    "clock": "2026-04-15T08:30:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "width": 1232
+  },
+  {
+    "name": "calendar-week",
+    "capture": "page",
+    "clock": "2026-04-15T08:30:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "width": 1232
+  },
+  {
+    "name": "calendar-work-week",
+    "capture": "page",
+    "clock": "2026-04-15T08:30:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "width": 1232
+  },
+  {
+    "name": "calendar-day",
+    "capture": "page",
+    "clock": "2026-04-15T08:30:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "width": 1232
+  },
+  {
+    "name": "calendar-week-rows",
+    "capture": "page",
+    "clock": "2026-04-15T08:30:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "width": 1232
+  },
+  {
+    "name": "calendar-year",
+    "capture": "page",
+    "clock": "2026-04-15T08:30:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 1080
+    },
+    "width": 1232
+  },
+  {
+    "name": "calendar-agenda",
+    "capture": "page",
+    "clock": "2026-04-15T08:30:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "width": 1232
+  },
+  {
+    "name": "calendar-timeline",
+    "capture": "page",
+    "clock": "2026-04-15T08:30:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "width": 1232
+  },
+  {
+    "name": "calendar-day-agenda",
+    "capture": "page",
+    "clock": "2026-04-15T08:30:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "width": 1232
+  },
+  {
+    "name": "calendar-multi-day",
+    "capture": "page",
+    "clock": "2026-04-15T08:30:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "width": 1232
   }
 ]

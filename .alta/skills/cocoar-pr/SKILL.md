@@ -56,7 +56,9 @@ When the maintainer asks to merge pull request `N`:
    - a pull request that modifies, removes or renames a file the visual comparison depends on (`VISUAL_HARNESS` in
      the script: the visual Playwright config, spec and warm-up, `visual.mjs`, the visual page (`visual.html`, its
      `main.ts`) and its server configuration `vite.visual.config.ts`, the story view, `manifest.ts`, `story.css`,
-     `ci.yml`, `pr.mjs`), or an existing story: a weakened comparison would pass changed components unseen;
+     `ci.yml`, `pr.mjs`), or an existing story or another existing file under `apps/playground/src/visual/stories/`
+     (files the stories share, such as `calendar-events.ts`, count too): a weakened comparison would pass changed
+     components unseen;
    - a pull request that changes or removes an existing entry of `apps/playground/src/visual/stories.json` (read at
      the base and at the head commit and compared entry by entry; the message names the stories): a changed
      viewport, action or capture can stop an image from proving what it proves. New entries pass.

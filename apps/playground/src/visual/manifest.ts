@@ -72,6 +72,12 @@ export interface VisualStory {
   scope?: 'html' | 'local';
   /** Another viewport than the default 1024×768. */
   viewport?: { width: number; height: number };
+  /**
+   * The width of `[data-visual-root]` in px, instead of the default 760, for
+   * components that react to their own width (the calendar's container
+   * queries). At most the viewport's width minus the page's body margin.
+   */
+  width?: number;
 }
 
 export const visualModes: readonly VisualMode[] = ['default', 'mobile'];
@@ -85,7 +91,16 @@ export const visualSchemes: readonly VisualScheme[] = ['light', 'dark'];
  */
 export const viewportLimits = { minWidth: 1024, minHeight: 768, maxWidth: 1920, maxHeight: 1200 };
 
-const STORY_KEYS = ['name', 'capture', 'open', 'clock', 'focus', 'scope', 'viewport'];
+/** The default width of the story root, and the least a `width` may be. */
+export const rootWidth = 760;
+/**
+ * The page keeps the browser's default body margin (8px each side), as an app
+ * without a reset does: a root wider than the viewport minus this would make
+ * the page scroll sideways.
+ */
+export const bodyMargins = 16;
+
+const STORY_KEYS = ['name', 'capture', 'open', 'clock', 'focus', 'scope', 'viewport', 'width'];
 const OPEN_KEYS = ['actions', 'overlays', 'ready', 'focus'];
 const isText = (v: unknown): v is string => typeof v === 'string' && v.trim() !== '';
 const isObject = (v: unknown): v is Record<string, unknown> =>
@@ -147,6 +162,19 @@ export function storyProblems(entry: unknown): string[] {
     ) {
       p.push(
         `viewport must be { width: ${minWidth}–${maxWidth}, height: ${minHeight}–${maxHeight} } (integers)`,
+      );
+    }
+  }
+  if (entry.width !== undefined) {
+    const viewportWidth = isObject(entry.viewport) ? entry.viewport.width : 1024;
+    const max = (Number.isInteger(viewportWidth) ? (viewportWidth as number) : 1024) - bodyMargins;
+    if (
+      !Number.isInteger(entry.width) ||
+      (entry.width as number) < rootWidth ||
+      (entry.width as number) > max
+    ) {
+      p.push(
+        `width must be an integer from ${rootWidth} to ${max} (the viewport's width minus the body margins; a wider root needs a wider viewport)`,
       );
     }
   }
