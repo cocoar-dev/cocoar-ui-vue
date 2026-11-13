@@ -1,9 +1,189 @@
 [
-  { "name": "button" },
-  { "name": "text-input" },
-  { "name": "password-input" },
-  { "name": "number-input" },
-  { "name": "checkbox" },
-  { "name": "radio-group" },
-  { "name": "switch" }
+  {
+    "name": "button",
+    "focus": ".coar-button--primary.coar-button--m >> nth=0"
+  },
+  {
+    "name": "text-input",
+    "focus": ".coar-text-input-field[placeholder=\"Placeholder\"] >> nth=2"
+  },
+  {
+    "name": "password-input",
+    "focus": ".coar-password-input-field[placeholder=\"Password\"] >> nth=2"
+  },
+  {
+    "name": "number-input",
+    "focus": ".coar-number-input-field[placeholder=\"0\"] >> nth=2"
+  },
+  {
+    "name": "checkbox",
+    "focus": ".coar-checkbox-input >> nth=8"
+  },
+  {
+    "name": "radio-group",
+    "focus": "input[name=\"size-m\"] >> nth=1"
+  },
+  {
+    "name": "switch",
+    "focus": ".coar-switch-input >> nth=6"
+  },
+  {
+    "name": "select"
+  },
+  {
+    "name": "select-open",
+    "capture": "page",
+    "open": {
+      "actions": [
+        {
+          "dispatch": "click",
+          "on": "[data-visual-open] [role=combobox]"
+        }
+      ],
+      "overlays": 1
+    }
+  },
+  {
+    "name": "multi-select"
+  },
+  {
+    "name": "multi-select-open",
+    "capture": "page",
+    "open": {
+      "actions": [
+        {
+          "dispatch": "click",
+          "on": "[data-visual-open] [role=combobox]"
+        }
+      ],
+      "overlays": 1
+    }
+  },
+  {
+    "name": "tag-select"
+  },
+  {
+    "name": "tag-select-open",
+    "capture": "page",
+    "open": {
+      "actions": [
+        {
+          "keyboardFocus": "[data-visual-open] .coar-tag-select-input"
+        }
+      ],
+      "overlays": 1,
+      "focus": "[data-visual-open] .coar-tag-select-input"
+    }
+  },
+  {
+    "name": "menu"
+  },
+  {
+    "name": "context-menu",
+    "capture": "page",
+    "open": {
+      "actions": [
+        {
+          "dispatch": "click",
+          "on": ".coar-overlay-host .coar-submenu-item"
+        }
+      ],
+      "overlays": 2
+    }
+  },
+  {
+    "name": "popover",
+    "capture": "page",
+    "open": {
+      "actions": [
+        {
+          "dispatch": "click",
+          "on": ".coar-popover-trigger"
+        }
+      ],
+      "overlays": 1
+    }
+  },
+  {
+    "name": "tooltip",
+    "capture": "page",
+    "open": {
+      "actions": [
+        {
+          "keyboardFocus": "[data-tooltip]"
+        }
+      ],
+      "overlays": 1,
+      "focus": "[data-tooltip]"
+    }
+  },
+  {
+    "name": "dialog",
+    "capture": "page",
+    "open": {
+      "overlays": 1,
+      "focus": ".coar-dialog-footer .coar-button--secondary"
+    }
+  },
+  {
+    "name": "date-picker",
+    "clock": "2026-03-10T09:00:00Z"
+  },
+  {
+    "name": "date-time-picker",
+    "clock": "2026-03-10T09:00:00Z"
+  },
+  {
+    "name": "zoned-date-time-picker",
+    "clock": "2026-03-10T09:00:00Z"
+  },
+  {
+    "name": "form-field"
+  },
+  {
+    "name": "form-field-status",
+    "capture": "page",
+    "open": {
+      "actions": [
+        {
+          "dispatch": "click",
+          "on": "[data-status=messages] .coar-popover-trigger"
+        },
+        {
+          "dispatch": "click",
+          "on": "[data-status=rules] .coar-popover-trigger"
+        }
+      ],
+      "overlays": 2
+    }
+  },
+  {
+    "name": "segmented-control",
+    "focus": ".coar-segmented-control__segment--active >> nth=2"
+  },
+  {
+    "name": "tabs",
+    "focus": ".coar-tab-button[tabindex=\"0\"] >> nth=0"
+  },
+  {
+    "name": "tag",
+    "focus": ".coar-tag__close >> nth=0"
+  },
+  {
+    "name": "badge"
+  },
+  {
+    "name": "local-scope",
+    "capture": "page",
+    "scope": "local",
+    "open": {
+      "actions": [
+        {
+          "dispatch": "click",
+          "on": "[data-visual-open] .coar-popover-trigger"
+        }
+      ],
+      "overlays": 1
+    }
+  }
 ]

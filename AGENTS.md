@@ -87,9 +87,11 @@ Say it plainly and propose the right way before acting, when a request would:
   merge a pull request that does, without the maintainer's explicit OK: web apps without `.coar-mobile` would look
   different;
 - change the visual comparison itself (the files in `VISUAL_HARNESS` of `.alta/skills/cocoar-pr/scripts/pr.mjs`:
-  the visual Playwright config, spec and warm-up, `visual.mjs`, the story view, `manifest.ts` and `story.css`, `ci.yml`,
-  `pr.mjs`) or an existing story, or merge a pull request that does, without the maintainer's explicit OK: a
-  weakened comparison, or a story that undoes a component change, passes changed components unseen.
+  the visual Playwright config, spec and warm-up, `visual.mjs`, the visual page (`visual.html`, `src/visual/main.ts`)
+  and its server configuration `vite.visual.config.ts`, the story view, `manifest.ts` and `story.css`, `ci.yml`,
+  `pr.mjs`), an existing story, or an existing entry of `src/visual/stories.json` (its viewport, actions, capture …),
+  or merge a pull request that does, without the maintainer's explicit OK: a weakened comparison, a story that undoes
+  a component change, or a recipe that no longer exercises the regression, passes changed components unseen.
 
 ## Checks
 
@@ -116,8 +118,10 @@ exactly as before.** How to add a story, run and read a failure: [apps/playgroun
 - New baselines and changed `--mobile-` baselines need no such OK; say in the pull request which images changed
   and why.
 - **The comparison itself changes only with the maintainer's explicit OK.** `pr.mjs merge` refuses a pull request
-  that modifies, removes or renames a file the comparison depends on (`VISUAL_HARNESS` in `pr.mjs`) or an existing
-  story (it could hide a component change; a new story with its `stories.json` entry passes) unless it is
+  that modifies, removes or renames a file the comparison depends on (`VISUAL_HARNESS` in `pr.mjs`, including
+  `vite.visual.config.ts`), an existing story (it could hide a component change), or that changes or removes an
+  existing entry of `stories.json` (compared entry by entry between base and head; a new story with a new entry
+  passes) unless it is
   given `--accept-visual-harness-change`, again only when the maintainer said so for this pull request after
   reviewing those files. Keep such changes in a pull request of their own, without component changes.
 - The gate is the `pr.mjs` of the maintainer's up-to-date `develop`, not the pull request's copy.

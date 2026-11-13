@@ -107,13 +107,6 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('./views/MobileControlsView.vue'),
   },
   {
-    // Visual baselines (apps/playground/visual): one story alone, without the
-    // playground's nav and theme editor (App.vue reads `meta.bare`).
-    path: '/visual/:story',
-    component: () => import('./visual/VisualStoryView.vue'),
-    meta: { bare: true },
-  },
-  {
     path: '/date-or-time',
     component: () => import('./views/DateOrTimePickerView.vue'),
   },

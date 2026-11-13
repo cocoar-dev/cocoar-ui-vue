@@ -10,7 +10,7 @@ export default async function warmUp(config: FullConfig) {
   const page = await browser.newPage({ baseURL });
   try {
     for (const story of visualStories) {
-      await page.goto(`/visual/${story.name}`, { timeout: 180_000 });
+      await page.goto(`/visual.html#/visual/${story.name}`, { timeout: 180_000 });
       await page.waitForSelector('[data-visual-state="ready"], [data-visual-state="error"]', {
         timeout: 180_000,
       });

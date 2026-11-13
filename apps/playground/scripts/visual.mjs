@@ -2,7 +2,8 @@
 // Visual baselines of the playground (apps/playground/visual/README.md).
 //
 //   node apps/playground/scripts/visual.mjs [--update] [story…]   compare (or update) in Docker
-//   node apps/playground/scripts/visual.mjs --inside [--update] [story…]
+//   node apps/playground/scripts/visual.mjs --repeat N [story…]   compare every image N times (stress)
+//   node apps/playground/scripts/visual.mjs --inside [--update | --repeat N] [story…]
 //                                    the same, already inside the Playwright image (CI uses this)
 //   node apps/playground/scripts/visual.mjs --print-image          the image, from the lockfile
 //
@@ -13,8 +14,10 @@
 // Outside, the repository (tracked and untracked-not-ignored files, without
 // node_modules and build output) is copied into a fresh container, installed
 // there with a pnpm store kept in the Docker volume `cocoar-visual-cache`, and
-// compared. The report lands in apps/playground/visual-results/ (ignored); with
-// --update, new and changed baselines are copied back into visual/__screenshots__.
+// compared. The container writes its results into a fresh temporary directory
+// of its own; afterwards they replace apps/playground/visual-results/ (ignored).
+// With --update, new and changed baselines are copied back into
+// visual/__screenshots__.
 //
 // No dependencies: Node, git, tar and docker.
 
@@ -61,9 +64,14 @@ function playwrightVersion() {
 const image = () => `mcr.microsoft.com/playwright:v${playwrightVersion()}-noble`;
 
 function parse(argv) {
-  const args = { update: false, inside: false, printImage: false, stories: [] };
-  for (const a of argv) {
-    if (a === '--update') args.update = true;
+  const args = { update: false, inside: false, printImage: false, repeat: 1, stories: [] };
+  for (let i = 0; i < argv.length; i += 1) {
+    const a = argv[i];
+    if (a === '--repeat') {
+      args.repeat = Number(argv[++i]);
+      if (!Number.isInteger(args.repeat) || args.repeat < 1)
+        die('--repeat needs a whole number ≥ 1');
+    } else if (a === '--update') args.update = true;
     else if (a === '--inside') args.inside = true;
     else if (a === '--print-image') args.printImage = true;
     else if (a === '-h' || a === '--help') args.help = true;
@@ -76,13 +84,16 @@ function parse(argv) {
     .map((f) => f.slice(0, -4));
   const unknown = args.stories.filter((s) => !known.includes(s));
   if (unknown.length) die(`unknown story ${unknown.join(', ')}; known: ${known.join(', ')}`);
+  if (args.update && args.repeat > 1) die('--repeat compares; it cannot be combined with --update');
   return args;
 }
 
 /** Arguments for `playwright test`, the same inside Docker locally and in CI. */
-function playwrightArgs({ update, stories }) {
+function playwrightArgs({ update, repeat, stories }) {
   const args = ['test', '-c', 'playwright.visual.config.ts'];
   if (update) args.push('--update-snapshots=changed');
+  // Every repeat is a test of its own: a fresh page, the full comparison.
+  if (repeat > 1) args.push(`--repeat-each=${repeat}`);
   // The manifest checks always run; they are cheap and guard every selection.
   if (stories.length) args.push('--grep', `story:(${stories.join('|')}) |manifest:`);
   return args;
@@ -145,21 +156,29 @@ async function outside(args) {
   if (spawnSync('docker', ['version'], { stdio: 'ignore' }).status !== 0)
     die('docker is not running');
   const started = Date.now();
-  fs.rmSync(RESULTS, { recursive: true, force: true });
-  fs.mkdirSync(RESULTS, { recursive: true });
+  // A fresh directory per run for the container to write into. Mounting
+  // visual-results/ itself lost the results of failing runs: the directory is
+  // deleted and recreated before each run, and Docker Desktop's file sharing
+  // sometimes still served the deleted one to the container.
+  const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cocoar-visual-out-'));
 
   const list = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'cocoar-visual-')), 'files');
   fs.writeFileSync(list, repositoryFiles().join('\0'));
 
-  const forwarded = [...(args.update ? ['--update'] : []), ...args.stories].join(' ');
+  const forwarded = [
+    ...(args.update ? ['--update'] : []),
+    ...(args.repeat > 1 ? ['--repeat', String(args.repeat)] : []),
+    ...args.stories,
+  ].join(' ');
   const script = [
     'mkdir -p /repo && tar -xf - -C /repo || exit 1',
     `node apps/playground/scripts/visual.mjs --inside ${forwarded}`,
     'code=$?',
-    'cp -r apps/playground/visual-results/. /out/ 2>/dev/null',
+    'cp -r apps/playground/visual-results/. /out/ || echo "visual: copying the results out of the container failed" >&2',
     ...(args.update
       ? [
-          'mkdir -p /out/__screenshots__ && cp apps/playground/visual/__screenshots__/*.png /out/__screenshots__/ 2>/dev/null',
+          // An update that exports nothing must not end as a success.
+          'mkdir -p /out/__screenshots__ && cp apps/playground/visual/__screenshots__/*.png /out/__screenshots__/ || { echo "visual: exporting the baselines failed" >&2; code=1; }',
         ]
       : []),
     // Files written into the bind mount belong to root on Linux hosts.
@@ -179,11 +198,15 @@ async function outside(args) {
     '-v',
     `${CACHE_VOLUME}:/cache`,
     '-v',
-    `${RESULTS}:/out`,
+    `${outDir}:/out`,
     '-e',
     'VISUAL_PNPM_STORE=/cache/pnpm-store',
     '-e',
     'COREPACK_HOME=/cache/corepack',
+    // TEMPORARY (flag measurements): removed before the end of this round.
+    ...(process.env.VISUAL_EXTRA_CHROMIUM_FLAGS
+      ? ['-e', `VISUAL_EXTRA_CHROMIUM_FLAGS=${process.env.VISUAL_EXTRA_CHROMIUM_FLAGS}`]
+      : []),
     ...(process.getuid
       ? ['-e', `HOST_UID=${process.getuid()}`, '-e', `HOST_GID=${process.getgid()}`]
       : []),
@@ -217,6 +240,9 @@ async function outside(args) {
   tarEnded.then((t) => t.ok || spawnSync('docker', ['rm', '-f', container], { stdio: 'ignore' }));
   const [transfer, run] = await Promise.all([tarEnded, dockerEnded]);
   fs.rmSync(path.dirname(list), { recursive: true, force: true });
+  fs.rmSync(RESULTS, { recursive: true, force: true });
+  fs.cpSync(outDir, RESULTS, { recursive: true });
+  fs.rmSync(outDir, { recursive: true, force: true });
 
   const seconds = Math.round((Date.now() - started) / 1000);
   if (!transfer.ok) {
@@ -232,6 +258,9 @@ async function outside(args) {
     process.exit(0);
   }
   console.log(`visual: FAILED (${run.why}) after ${seconds}s`);
+  if (!fs.existsSync(path.join(RESULTS, 'report', 'index.html'))) {
+    console.log('  the run left no report: see the output above');
+  }
   console.log(
     '  report (expected / actual / diff): apps/playground/visual-results/report/index.html',
   );
@@ -263,7 +292,7 @@ function copyBack() {
 const args = parse(process.argv.slice(2));
 if (args.help) {
   console.log(
-    'usage: node apps/playground/scripts/visual.mjs [--update] [story…] | --inside [--update] [story…] | --print-image',
+    'usage: node apps/playground/scripts/visual.mjs [--update | --repeat N] [story…] | --inside [--update | --repeat N] [story…] | --print-image',
   );
 } else if (args.printImage) {
   console.log(image());

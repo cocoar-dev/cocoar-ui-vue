@@ -54,9 +54,14 @@ When the maintainer asks to merge pull request `N`:
      only when they say yes for this pull request, run again with `--accept-default-visual-change`. New baselines
      and changed `--mobile-` baselines pass;
    - a pull request that modifies, removes or renames a file the visual comparison depends on (`VISUAL_HARNESS` in
-     the script: the visual Playwright config, spec and warm-up, `visual.mjs`, the story view, `manifest.ts`, `story.css`,
-     `ci.yml`, `pr.mjs`): a weakened comparison would pass changed components unseen. Ask the maintainer to review
-     those files; only on their yes, `--accept-visual-harness-change`;
+     the script: the visual Playwright config, spec and warm-up, `visual.mjs`, the visual page (`visual.html`, its
+     `main.ts`) and its server configuration `vite.visual.config.ts`, the story view, `manifest.ts`, `story.css`,
+     `ci.yml`, `pr.mjs`), or an existing story: a weakened comparison would pass changed components unseen;
+   - a pull request that changes or removes an existing entry of `apps/playground/src/visual/stories.json` (read at
+     the base and at the head commit and compared entry by entry; the message names the stories): a changed
+     viewport, action or capture can stop an image from proving what it proves. New entries pass.
+     For both: ask the maintainer to review those files or entries; only on their yes,
+     `--accept-visual-harness-change`;
    - a file list the API cut short (more than 3000 files).
    It then waits for the checks and decides for the head commit they belong to: the jobs "Build, test & pack" and
    "Visual" of the `ci.yml` run of that commit must have succeeded (a check of the same name in another workflow

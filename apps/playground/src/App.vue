@@ -1,19 +1,10 @@
 <script setup lang="ts">
-import { useRoute } from 'vue-router';
 import { CoarOverlayHost } from '@cocoar/vue-ui';
 import CoarThemeEditor from '@cocoar/vue-ui/theme-editor';
-
-const route = useRoute();
 </script>
 
 <template>
-  <!-- Bare routes (visual baselines) render the page alone: the theme editor
-       would put its own classes and styles on <html>. -->
-  <template v-if="route.meta.bare">
-    <router-view />
-    <CoarOverlayHost />
-  </template>
-  <div v-else class="app">
+  <div class="app">
     <nav class="app-nav">
       <router-link to="/">Home</router-link>
       <router-link to="/todos">Todos</router-link>

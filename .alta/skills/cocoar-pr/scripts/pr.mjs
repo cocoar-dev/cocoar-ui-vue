@@ -18,10 +18,14 @@
 //   different. Only the maintainer's explicit OK lets it through: --accept-default-visual-change. New baselines and
 //   changed --mobile- baselines pass.
 // - It refuses a pull request that modifies, removes or renames a file the comparison itself depends on
-//   (VISUAL_HARNESS: the Playwright config, spec and warm-up, visual.mjs, the story view and manifest, the CI
-//   workflow, this script) or an existing story: a pull request could weaken the comparison, or let a story undo a
+//   (VISUAL_HARNESS: the Playwright config, spec and warm-up, visual.mjs, the visual page and its server
+//   configuration, the story view and manifest, the CI workflow, this script) or an existing story: a pull request could weaken the comparison, or let a story undo a
 //   component change, and "Visual" would pass. Only the maintainer's explicit OK: --accept-visual-harness-change.
 //   New stories with their stories.json entry and new baselines pass.
+// - It refuses a pull request that changes the recipe of an existing story in stories.json (any option of an entry
+//   with the same name, or its removal): a viewport, an action or the capture decide what an image proves. Read from
+//   the file at the pull request's base and at the head commit; same flag, --accept-visual-harness-change. New entries
+//   pass.
 // - It refuses when the file list is incomplete (the API lists at most 3000 files).
 //
 // The gate is this file as it is in the maintainer's checkout of develop, not the pull request's copy: run it from
@@ -42,15 +46,18 @@ export const MUST_PASS = ['Build, test & pack', 'Visual'];
 
 export const DEFAULT_BASELINE = /^apps\/playground\/visual\/__screenshots__\/[^/]+--default-[^/]+\.png$/;
 
-// The files the visual comparison depends on. The list of stories is data (stories.json) and not guarded: adding a
-// story only adds an entry and baselines, and removing one orphans or removes baselines, which the spec and the
-// baseline gate catch. An existing story is guarded (VISUAL_STORY): it could bring CSS that undoes a component change
-// and keep its images the same.
+// The files the visual comparison depends on. An existing story is guarded too (VISUAL_STORY): it could bring CSS
+// that undoes a component change and keep its images the same. The list of stories, stories.json, is guarded entry by
+// entry (changedStoryRecipes): adding a story adds an entry and passes; changing or removing an existing entry does
+// not.
 export const VISUAL_HARNESS = [
   'apps/playground/playwright.visual.config.ts',
+  'apps/playground/vite.visual.config.ts',
   'apps/playground/visual/visual.spec.ts',
   'apps/playground/visual/warm-up.ts',
   'apps/playground/scripts/visual.mjs',
+  'apps/playground/visual.html',
+  'apps/playground/src/visual/main.ts',
   'apps/playground/src/visual/VisualStoryView.vue',
   'apps/playground/src/visual/manifest.ts',
   'apps/playground/src/visual/story.css',
@@ -58,6 +65,55 @@ export const VISUAL_HARNESS = [
   '.alta/skills/cocoar-pr/scripts/pr.mjs',
 ];
 export const VISUAL_STORY = /^apps\/playground\/src\/visual\/stories\/[^/]+\.vue$/;
+export const STORIES_JSON = 'apps/playground/src/visual/stories.json';
+
+/**
+ * The existing stories whose recipe in stories.json a pull request changes: an entry (by name) at the base whose
+ * options differ at the head, or that is gone there. New entries and a new order pass. `base` and `head` are the
+ * file's text at the base and at the head commit, null where the file does not exist. Text that is not a list of
+ * entries with a unique name refuses as well: the gate cannot judge it.
+ */
+export function changedStoryRecipes(base, head) {
+  const read = (text, side) => {
+    if (text == null) return { entries: [] };
+    let value;
+    try {
+      value = JSON.parse(text);
+    } catch (error) {
+      return { error: `stories.json at the ${side} cannot be parsed: ${error.message}` };
+    }
+    if (!Array.isArray(value) || value.some((e) => !e || typeof e !== 'object' || Array.isArray(e) || typeof e.name !== 'string')) {
+      return { error: `stories.json at the ${side} is not a list of entries with a name` };
+    }
+    const names = value.map((e) => e.name);
+    const twice = names.filter((n, i) => names.indexOf(n) !== i);
+    if (twice.length) return { error: `stories.json at the ${side} names a story twice: ${[...new Set(twice)].join(', ')}` };
+    return { entries: value };
+  };
+  const b = read(base, 'base');
+  const h = read(head, 'head');
+  const errors = [b.error, h.error].filter(Boolean);
+  if (errors.length) return errors;
+  // Key order is not a change; everything else is.
+  const canonical = (value) =>
+    JSON.stringify(value, (_key, v) =>
+      v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, v[k]])) : v,
+    );
+  const atHead = new Map(h.entries.map((e) => [e.name, e]));
+  const changed = [];
+  for (const entry of b.entries) {
+    const now = atHead.get(entry.name);
+    if (!now) changed.push(`${entry.name} (removed)`);
+    else if (canonical(entry) !== canonical(now)) changed.push(`${entry.name} (${canonical(entry)} → ${canonical(now)})`);
+  }
+  return changed;
+}
+
+/** Why the recipes of existing stories forbid the merge; empty when they allow it. */
+export function storyRecipeProblems(changed, { acceptHarness = false } = {}) {
+  if (!changed.length || acceptHarness) return [];
+  return [`changes the recipe of existing stories in stories.json:\n${list(changed)}\n  A changed viewport, action or capture can stop an image from proving what it proves. Merge only when the maintainer has reviewed these entries and says so: --accept-visual-harness-change`];
+}
 const isHarness = (name) => VISUAL_HARNESS.includes(name) || VISUAL_STORY.test(name ?? '');
 
 const CHANGING = ['modified', 'changed', 'removed'];
@@ -151,7 +207,45 @@ function die(message) {
 }
 
 function view(number) {
-  return ghJson(['pr', 'view', String(number), '--json', 'number,title,author,isCrossRepository,headRefName,headRefOid,state,mergeable,url,files']);
+  return ghJson(['pr', 'view', String(number), '--json', 'number,title,author,isCrossRepository,headRefName,headRefOid,baseRefOid,state,mergeable,url,files']);
+}
+
+/** A file's text at a commit, or null when it does not exist there. */
+function fileAt(filePath, sha) {
+  const r = spawnSync('gh', ['api', '-H', 'Accept: application/vnd.github.raw+json', `repos/{owner}/{repo}/contents/${filePath}?ref=${sha}`], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 << 20 });
+  if (r.status === 0) return r.stdout;
+  if (/HTTP 404/.test(r.stderr || '')) return null;
+  return die(`reading ${filePath} at ${sha.slice(0, 8)} failed: ${(r.stderr || '').trim()}`);
+}
+
+/**
+ * Why the two versions of stories.json cannot be compared; empty when they can. A file the pull request did not add
+ * must exist at the base, and one it did not remove must exist at the head: a lookup that finds nothing there (a
+ * 404 for any reason) must not pass for "no file", or every existing recipe would count as new.
+ */
+export function recipeSourceProblems(status, baseText, headText) {
+  const problems = [];
+  if (status !== 'added' && baseText === null) problems.push(`${STORIES_JSON} is ${status} by the pull request but could not be read at its base: the story recipes cannot be judged`);
+  if (status !== 'removed' && headText === null) problems.push(`${STORIES_JSON} could not be read at the head of the pull request: the story recipes cannot be judged`);
+  return problems;
+}
+
+/**
+ * The recipe changes of existing stories between the base and `sha`, read only when stories.json is in the files.
+ * The base tip is compared with the head, so the branch must contain the base tip: on a stale branch a story added
+ * to the base meanwhile would look removed.
+ */
+function storyRecipes(number, files, baseSha, sha) {
+  const entry = files.find((f) => f.filename === STORIES_JSON || f.previous_filename === STORIES_JSON);
+  if (!entry) return [];
+  const behind = Number(gh(['api', `repos/{owner}/{repo}/compare/${baseSha}...${sha}`, '--jq', '.behind_by']));
+  if (!(behind === 0)) die(`#${number} changes ${STORIES_JSON} and is ${behind} commit(s) behind its base: update the branch first (gh pr update-branch ${number}), then merge again`);
+  const status = entry.filename === STORIES_JSON ? entry.status : 'removed';
+  const base = fileAt(STORIES_JSON, baseSha);
+  const head = fileAt(STORIES_JSON, sha);
+  const problems = recipeSourceProblems(status, base, head);
+  if (problems.length) die(`#${number} not merged:\n${problems.map((x) => `  - ${x}`).join('\n')}`);
+  return changedStoryRecipes(base, head);
 }
 
 /** The files of a pull request with their status (gh pr view has no status), and its changed_files count. */
@@ -207,7 +301,10 @@ async function merge(number, { newTitle, keepTitle, acceptDefault, acceptHarness
 
   // Early answer, so nobody waits 40 minutes for a refusal; the verdict that counts is the one below.
   const early = prFiles(number);
-  const earlyProblems = fileGateProblems(early.files, early.changedFiles, { acceptDefault, acceptHarness });
+  const earlyProblems = [
+    ...fileGateProblems(early.files, early.changedFiles, { acceptDefault, acceptHarness }),
+    ...storyRecipeProblems(storyRecipes(early.files, pr.baseRefOid, pr.headRefOid), { acceptHarness }),
+  ];
   if (earlyProblems.length) die(`#${number} ${earlyProblems.join(`\nerror: #${number} `)}`);
 
   let title = pr.title;
@@ -233,6 +330,7 @@ async function merge(number, { newTitle, keepTitle, acceptDefault, acceptHarness
     if (head.state !== 'OPEN') die(`#${number} is ${head.state}`);
     const sha = head.headRefOid;
     const { files, changedFiles } = prFiles(number);
+    const recipes = storyRecipes(number, files, head.baseRefOid, sha);
     const checks = prChecks(number);
     const { runs, jobs } = ciRun(sha);
     if (view(number).headRefOid !== sha) {
@@ -243,11 +341,16 @@ async function merge(number, { newTitle, keepTitle, acceptDefault, acceptHarness
     console.log(`  head ${sha.slice(0, 8)}:`);
     for (const c of checks) console.log(`    ${c.bucket === 'pass' ? 'ok  ' : c.bucket === 'skipping' ? '-   ' : 'FAIL'} ${c.workflow ? `${c.workflow} / ` : ''}${c.name}: ${c.bucket}`);
     const fileProblems = fileGateProblems(files, changedFiles, { acceptDefault, acceptHarness });
-    const problems = [...fileProblems, ...ciProblems({ sha, runs, jobs, checks })];
+    const problems = [
+      ...fileProblems,
+      ...storyRecipeProblems(recipes, { acceptHarness }),
+      ...ciProblems({ sha, runs, jobs, checks }),
+    ];
     if (problems.length) die(`#${number} not merged:\n${problems.map((p) => `  - ${p}`).join('\n')}`);
     const accepted = [
       ...(acceptDefault ? changedDefaultBaselines(files).map((f) => `${f} (--accept-default-visual-change)`) : []),
       ...(acceptHarness ? changedHarnessFiles(files).map((f) => `${f} (--accept-visual-harness-change)`) : []),
+      ...(acceptHarness ? recipes.map((r) => `stories.json: ${r} (--accept-visual-harness-change)`) : []),
     ];
     if (accepted.length) console.log(`  accepted by the maintainer:\n${list(accepted)}`);
 
