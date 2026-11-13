@@ -1,5 +1,7 @@
 ---
 description: "CoarWorkWeekView — week view filtered to a configurable working-day set (default Mon-Fri), supporting 6-day, 4-day and Sun-Thu weeks on the same time grid"
+devices: { desktop: ready, tablet: partial, phone: planned }
+devicesNote: "Taps, swipe paging and long-press selection work on touch; event resize handles are only 6 px tall."
 ---
 
 # `<CoarWorkWeekView>` — Work Week View <Badge type="warning" text="Preview" />

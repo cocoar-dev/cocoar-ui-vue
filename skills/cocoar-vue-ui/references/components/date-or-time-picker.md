@@ -2,6 +2,8 @@
 
 # Date · optional time
 
+**Devices:** desktop ready · tablet ready · phone planned — A phone presentation (sheet) is planned.
+
 Sometimes a field is "a date, and *maybe* a time" — a due date that's usually
 just a day but occasionally needs an hour, a reminder that can be all-day or
 timed. Instead of a separate checkbox, these pickers put a small **clock toggle

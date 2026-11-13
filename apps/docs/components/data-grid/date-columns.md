@@ -1,5 +1,7 @@
 ---
 description: "CoarDataGrid date columns — col.plainDate/plainDateTime/zonedDateTime render Temporal values locale-aware and edit via the matching Cocoar date-time picker."
+devices: { desktop: ready, tablet: partial, phone: no }
+devicesNote: "Touch scrolls and selects; editing starts with double-click and menus with right-click; not built for phones."
 ---
 
 # Date Columns <Badge type="tip" text="New in 2.0" />

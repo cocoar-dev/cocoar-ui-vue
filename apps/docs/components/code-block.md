@@ -1,5 +1,7 @@
 ---
 description: "CoarCodeBlock — syntax-highlighted code display with copy-to-clipboard button, collapsible behavior, line numbers, title label and color variants."
+devices: { desktop: ready, tablet: ready, phone: partial }
+devicesNote: "Readable and scrollable on phones; the copy and collapse buttons have no .coar-mobile presentation yet."
 ---
 
 # Code Block

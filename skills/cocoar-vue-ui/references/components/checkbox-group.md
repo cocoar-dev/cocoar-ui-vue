@@ -2,6 +2,8 @@
 
 # Checkbox Group
 
+**Devices:** desktop ready · tablet ready · phone partial — Mobile sizes under .coar-mobile; the mobile presentation is still Preview.
+
 `CoarCheckboxGroup` turns multiple keyed checkboxes into one field value. Each child keeps its own visible label and DOM id; the group owns selection state, layout, shared form name, disabled/error state, and accessibility semantics.
 
 ```ts

@@ -1,5 +1,7 @@
 ---
 description: "CoarNavbar — top-level navigation bar with start, center and end content slots, elevated shadow by default or a flat bordered variant"
+devices: { desktop: ready, tablet: ready, phone: partial }
+devicesNote: "No collapsed or menu layout for narrow screens; slot content must fit the phone width."
 ---
 
 # Navbar

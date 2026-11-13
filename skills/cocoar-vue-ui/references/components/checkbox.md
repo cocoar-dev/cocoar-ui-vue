@@ -2,6 +2,8 @@
 
 # Checkbox
 
+**Devices:** desktop ready · tablet ready · phone partial — Mobile sizes under .coar-mobile; the mobile presentation is still Preview.
+
 Checkboxes let users pick one or more options from a list, or flip a single boolean on or off. Reach for a checkbox when the choice does not take effect until the user explicitly submits -- for instant toggles, consider a [Switch](./switch.md) instead.
 
 ```ts

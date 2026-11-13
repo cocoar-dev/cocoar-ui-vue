@@ -2,6 +2,8 @@
 
 # Toolbar customization
 
+**Devices:** desktop ready · tablet partial · phone partial — Pinch zoom and drawing work on touch; marker/ink style flyouts open only on hover; not adapted to phones.
+
 The toolbar is **order-driven**: the `tools` prop is an array of tool identifiers in the order you want them to render. Want zoom buttons on the left and page navigation on the right? Just reorder the array. Want a custom layout with only the four buttons you actually need? Pass that subset.
 
 When `tools` is omitted, the viewer falls back to `COAR_DOCUMENT_VIEWER_ALL_TOOLS` — the canonical 8-group layout with separators at the original group boundaries.

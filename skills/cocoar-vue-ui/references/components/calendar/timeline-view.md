@@ -2,6 +2,8 @@
 
 # `<CoarTimelineView>` — Timeline View (Preview)
 
+**Devices:** desktop ready · tablet ready · phone planned — Finger panning works like mouse panning; a phone presentation of the calendar is planned.
+
 Gantt-lite layout: **one row per logical event**, horizontal time-axis. The left pane lists event titles; the right pane renders bars positioned by `[start, end)` against the visible window. Same `CalendarEvent` data as Day / Week / Month / Agenda — just rendered as a project-plan timeline instead of a calendar grid.
 
 **Recurring series collapse to one row.** All occurrences of a recurring series (those with `meta.__recurrence.seriesId`) share a single row with one bar per occurrence — a weekly stand-up with 26 instances in the visible window renders as ONE row labelled "Standup ×26", not 26 separate rows. Standalone events (no recurrence metadata) keep one row per event. The grouping is automatic; consumer code doesn't need to do anything.

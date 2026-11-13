@@ -1,5 +1,7 @@
 ---
 description: "useToast and CoarToastContainer — non-blocking notification service with semantic variants, duration and position control, action buttons and progress indicator"
+devices: { desktop: ready, tablet: ready, phone: partial }
+devicesNote: "Toasts are a fixed 380 px wide and overflow 360 px phone screens."
 ---
 
 # Toast

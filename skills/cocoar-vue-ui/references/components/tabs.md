@@ -2,6 +2,8 @@
 
 # Tabs
 
+**Devices:** desktop ready · tablet ready · phone partial — The tab bar neither scrolls nor wraps, so many tabs overflow phone widths.
+
 Organize related content into separate panels that users switch between without leaving the page. Tabs are ideal for settings screens, detail views, and any layout where showing everything at once would feel overwhelming. The active tab is controlled via `v-model`, so you can read or set it programmatically.
 
 ```ts

@@ -1,5 +1,7 @@
 ---
 description: "CoarSegmentedControl — toolbar button-bar for switching between mutually-exclusive view options, with icons, four sizes, disabled segments and full-width mode"
+devices: { desktop: ready, tablet: ready, phone: planned }
+devicesNote: "A .coar-mobile presentation is planned."
 ---
 
 # Segmented Control

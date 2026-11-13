@@ -1,5 +1,6 @@
 ---
 description: "CoarNote — callout for supplementary information with six semantic color variants, three padding sizes and rich HTML slot content"
+devices: { desktop: ready, tablet: ready, phone: ready }
 ---
 
 # Note

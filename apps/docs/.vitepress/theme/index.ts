@@ -15,6 +15,8 @@ import { createCoarLocalization } from '@cocoar/vue-localization';
 
 import DemoPreview from './DemoPreview.vue';
 import LocaleSwitcher from './LocaleSwitcher.vue';
+import DeviceBadges from './DeviceBadges.vue';
+import DeviceMatrix from './DeviceMatrix.vue';
 
 const localization = createCoarLocalization({ defaultLanguage: 'en-US' });
 
@@ -42,6 +44,8 @@ const theme: Theme = {
     app.use(CoarOverlayPlugin);
     app.use(localization);
     app.component('demo-preview', DemoPreview);
+    app.component('DeviceBadges', DeviceBadges);
+    app.component('DeviceMatrix', DeviceMatrix);
   },
 };
 

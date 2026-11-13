@@ -1,5 +1,7 @@
 ---
 description: "CoarNumberInput — numeric input with min/max clamping, configurable step, optional stepper buttons, four sizes and standard form states"
+devices: { desktop: ready, tablet: ready, phone: partial }
+devicesNote: "Mobile sizes under .coar-mobile; the mobile presentation is still Preview."
 ---
 
 # Number Input

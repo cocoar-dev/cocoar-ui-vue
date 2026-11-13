@@ -1,5 +1,7 @@
 ---
 description: "CoarPasswordInput — masked text input with show/hide visibility toggle, clearable option, four sizes, validation states and CoarFormField integration"
+devices: { desktop: ready, tablet: ready, phone: partial }
+devicesNote: "Mobile sizes under .coar-mobile; the mobile presentation is still Preview."
 ---
 
 # Password Input

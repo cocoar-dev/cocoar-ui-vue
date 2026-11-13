@@ -2,6 +2,8 @@
 
 # Markdown
 
+**Devices:** desktop ready · tablet ready · phone partial — Wide tables get no horizontal scroll container and can overflow narrow screens.
+
 Render markdown content with Cocoar Design System styling. The system is split into two packages: a framework-agnostic parser and a Vue component.
 
 > **Info: Separate Packages**

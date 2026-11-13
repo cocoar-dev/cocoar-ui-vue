@@ -1,6 +1,6 @@
 # @cocoar/vue-ui
 
-Cocoar Design System — a touch-first Vue 3 component library with 30+ accessible, themeable components.
+Cocoar Design System — a tablet-first Vue 3 component library with 30+ accessible, themeable components.
 
 ## Install
 

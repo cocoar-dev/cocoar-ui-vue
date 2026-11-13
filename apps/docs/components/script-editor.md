@@ -1,5 +1,7 @@
 ---
 description: "@cocoar/vue-script-editor — Monaco-based TypeScript/JavaScript/JSON editor with v-model, custom type definitions, constrained mode with protected lines and automatic theming"
+devices: { desktop: ready, tablet: partial, phone: no }
+devicesNote: "Monaco does not support mobile browsers; touch editing has gaps and phones are out of scope."
 ---
 
 # Script Editor

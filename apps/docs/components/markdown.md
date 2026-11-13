@@ -1,5 +1,7 @@
 ---
 description: "@cocoar/vue-markdown — markdown rendering split into a framework-agnostic parser (markdown-core) and the CoarMarkdown Vue component with GFM support"
+devices: { desktop: ready, tablet: ready, phone: partial }
+devicesNote: "Wide tables get no horizontal scroll container and can overflow narrow screens."
 ---
 
 # Markdown

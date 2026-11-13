@@ -1,5 +1,7 @@
 ---
 description: "CoarWeekView — 7-day time-grid calendar view with hour axis, all-day band, locale-aware first day of week and a customizable day-header slot"
+devices: { desktop: ready, tablet: partial, phone: planned }
+devicesNote: "Taps, swipe paging and long-press selection work on touch; event resize handles are only 6 px tall."
 ---
 
 # `<CoarWeekView>` — Week View <Badge type="warning" text="Preview" />

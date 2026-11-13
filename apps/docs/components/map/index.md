@@ -1,5 +1,7 @@
 ---
 description: "CoarMap, a standalone data-driven Leaflet map for Vue 3 that renders pins, routes, popups and a legend from MapData plus MapConfig."
+devices: { desktop: ready, tablet: ready, phone: partial }
+devicesNote: "Pan and zoom work by touch; the map's controls have no .coar-mobile presentation yet."
 ---
 
 # Map <Badge type="warning" text="Preview" />

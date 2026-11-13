@@ -1,5 +1,7 @@
 ---
 description: "CoarPageBuilder visual editor: outline and properties inspector, drag-and-drop canvas, searchable element library and reusable compositions, emitting a PageNode JSON schema via v-model."
+devices: { desktop: ready, tablet: partial, phone: no }
+devicesNote: "Drag and drop works by touch; code editing uses Monaco, not made for touch; not meant for phones."
 ---
 
 # `<CoarPageBuilder>` <Badge type="warning" text="Preview" />

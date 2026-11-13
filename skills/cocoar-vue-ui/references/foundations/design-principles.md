@@ -42,11 +42,14 @@ Design for everyone. Meet WCAG AA standards at minimum. Keyboard navigation is n
 
 ### Touch-First
 
-All components work with **touch and focus** — hover is an enhancement, not a requirement. This is **tablet-first** design: touch interaction with desktop-appropriate information density. Not mobile-first — mobile phones have different constraints (small screens, portrait orientation, one-handed use). Tablets have similar screen real estate to laptops but use touch instead of mouse.
+Components are designed to work with **touch and focus** — hover is meant as an enhancement, not a requirement. This is **tablet-first** design: touch interaction with desktop-appropriate information density. Not mobile-first — mobile phones have different constraints (small screens, portrait orientation, one-handed use). Tablets have similar screen real estate to laptops but use touch instead of mouse.
 
-- Minimum **44 x 44 px** touch targets on all interactive elements
+- The default presentation follows the size scale of the design tokens: `xs` 27 px, `s` 32 px, `m` 40 px, `l` 48 px high
+- The [mobile presentation](../guide/mobile.md) (`.coar-mobile`) raises the adapted controls to at least 44 px, with 44 × 44 px targets for their actions
+- The phone presentation is an **opt-in**: tablet-first stays the default, and nothing switches by viewport width or device detection
+- **Appearance follows the class, behaviour follows the input**: `.coar-mobile` changes sizes only; how a component reacts (hover, drag, gestures) depends on the input the browser reports, never on the class
 - Appropriate tap spacing to prevent accidental activation
-- No hover-only interactions — every feature is reachable via tap or keyboard
+- No hover-only interactions — every feature is reachable via tap or keyboard; where a component does not meet this yet, the device line under its title says so
 - Use dimmed states instead of hiding; on focus/hover elements become prominent
 - Desktop gets additional polish (hover states) as progressive enhancement
 
@@ -73,6 +76,27 @@ Strong TypeScript types. Composable APIs. Predictable naming. The system should 
 - Composable utilities (`useDialog`, `useToast`) for programmatic control
 
 ---
+
+## Stability promise for web apps
+
+What runs without `.coar-mobile` keeps its look and behaviour. Mobile work does not change web apps that do not ask for it:
+
+- **Mobile work is opt-in** — through the `.coar-mobile` class for appearance, or through a new prop or option whose default is today's behaviour. New tokens default to today's value.
+- **It is checked, not just promised** — the playground has visual baselines of the default presentation, compared pixel for pixel on every pull request. A changed default image is merged only with the maintainer's explicit approval.
+- **A second presentation, not a rebuilt one** — a component whose phone interaction is fundamentally different gets a second presentation next to the existing one instead of a rebuilt desktop view.
+- **Preview first, breaking changes only in a major** — new features carry the Preview badge, and breaking changes come only with a major version.
+- **The exception is a bug fix** — it may change what is visible, and is then listed as a fix in the release notes.
+
+### Known legacy
+
+A few places react today to the viewport width or the primary pointer instead of an opt-in. They stay as they are:
+
+- `@cocoar/vue-ui/styles` (`base.css`) scales the title and heading sizes down below 1024 px and again below 768 px viewport width.
+- The panels of `CoarPlainDatePicker`, `CoarPlainDateTimePicker` and `CoarZonedDateTimePicker` stack their parts and become scrollable below 540 px viewport width.
+- `CoarNotice` banners wrap and reduce their padding below 640 px viewport width.
+- `CoarCalendar` lets its view switcher take a full row below 48rem viewport width, in addition to the same rule by container width.
+- The translations panel of `CoarPageBuilder` stacks its header and toolbar below 820 px viewport width.
+- `useDragDrop` with `engine: 'auto'` picks the pointer engine when the primary pointer is coarse (`(pointer: coarse)`) and the native HTML5 engine otherwise. The default engine is `'native'`.
 
 ## Design Token Architecture
 

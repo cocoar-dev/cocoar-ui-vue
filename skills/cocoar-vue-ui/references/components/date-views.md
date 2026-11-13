@@ -2,6 +2,8 @@
 
 # Date Views (New in 2.0)
 
+**Devices:** desktop ready · tablet ready · phone ready
+
 The read-only display siblings of the picker family. When you have a `Temporal.PlainDate` / `Temporal.PlainDateTime` / `Temporal.ZonedDateTime` value and just want to show it (no editor, no panel) — use these.
 
 ```ts

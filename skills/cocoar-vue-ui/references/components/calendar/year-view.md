@@ -2,6 +2,8 @@
 
 # `<CoarYearView>` — Year View (Preview)
 
+**Devices:** desktop ready · tablet ready · phone planned — Tap to drill in works on touch; a phone presentation of the calendar is planned.
+
 Responsive twelve-month overview. The grid automatically chooses how many month cards fit across the available width, uses the configured locale / first weekday, and marks today. Selecting a month title or a day updates the builder cursor and drills into Month.
 
 The Year view intentionally shows date structure rather than event density. It does not render event pills or occurrence markers. Loader and range-change consumers still receive the ordinary year `ViewWindow`, so applications can decide whether to return data for that surface.

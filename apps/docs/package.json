@@ -6,19 +6,20 @@
   "scripts": {
     "dev": "vitepress dev",
     "build": "vitepress build",
-    "preview": "vitepress preview"
+    "preview": "vitepress preview",
+    "test": "node --test \"scripts/*.test.mjs\""
   },
   "dependencies": {
     "@cocoar/vue-calendar": "workspace:*",
     "@cocoar/vue-data-grid": "workspace:*",
     "@cocoar/vue-localization": "workspace:*",
+    "@cocoar/vue-map": "workspace:*",
     "@cocoar/vue-markdown": "workspace:*",
     "@cocoar/vue-markdown-core": "workspace:*",
     "@cocoar/vue-markdown-editor": "workspace:*",
     "@cocoar/vue-markdown-form": "workspace:*",
     "@cocoar/vue-markdown-mermaid": "workspace:*",
     "@cocoar/vue-mermaid": "workspace:*",
-    "@cocoar/vue-map": "workspace:*",
     "@cocoar/vue-page-builder": "workspace:*",
     "@cocoar/vue-script-editor": "workspace:*",
     "@cocoar/vue-ui": "workspace:*",
@@ -30,6 +31,7 @@
   },
   "devDependencies": {
     "@vitepress-demo-preview/plugin": "^1.4.1",
+    "gray-matter": "4.0.3",
     "mermaid": "^11.14.0",
     "vitepress": "^1.6.4",
     "vitepress-plugin-llms": "latest",

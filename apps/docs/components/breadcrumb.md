@@ -1,5 +1,7 @@
 ---
 description: "CoarBreadcrumb — hierarchical navigation trail with router-aware links, non-interactive active item, icons and automatic render-mode selection per crumb."
+devices: { desktop: ready, tablet: ready, phone: partial }
+devicesNote: "Crumbs wrap to fit narrow screens, but their link targets are not enlarged under .coar-mobile."
 ---
 
 # Breadcrumb

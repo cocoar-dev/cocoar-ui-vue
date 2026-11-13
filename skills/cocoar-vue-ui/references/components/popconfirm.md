@@ -2,6 +2,8 @@
 
 # Popconfirm
 
+**Devices:** desktop ready · tablet ready · phone planned — Opens on tap; touch-sized popovers for phones are planned.
+
 A lightweight confirmation bubble that appears right next to the trigger element. Use it for quick "are you sure?" moments -- deleting a row, removing a team member, or publishing a change -- without pulling the user out of context with a full-screen modal dialog.
 
 ```ts

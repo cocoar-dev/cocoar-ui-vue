@@ -2,6 +2,8 @@
 
 # Panel Layout (Preview)
 
+**Devices:** desktop ready · tablet partial · phone not supported — Resize dividers are 6 px wide and hard to hit by touch; the workbench layout is not meant for phones.
+
 A VS-Code-style workbench: named, resizable regions you fill with whatever you like. Two pieces:
 
 - **`CoarSplitPane`** — the primitive: two panes with a draggable divider. Nestable.

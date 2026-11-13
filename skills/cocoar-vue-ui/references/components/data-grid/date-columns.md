@@ -2,6 +2,8 @@
 
 # Date Columns (New in 2.0)
 
+**Devices:** desktop ready · tablet partial · phone not supported — Touch scrolls and selects; editing starts with double-click and menus with right-click; not built for phones.
+
 Three Temporal-typed column shortcuts for date / date-time / zoned-date-time cells. All three follow the same pattern: a renderer that formats locale-aware via `toLocaleString`, an editor that wraps the matching `<CoarPlainDatePicker>` / `<CoarPlainDateTimePicker>` / `<CoarZonedDateTimePicker>` component.
 
 | | Cell value | Renderer format | Editor |

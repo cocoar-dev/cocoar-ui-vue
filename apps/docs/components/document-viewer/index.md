@@ -1,5 +1,7 @@
 ---
 description: "Source-agnostic document viewer for Vue 3 — CoarDocumentViewer renders PDFs, images, and image galleries with shared toolbar chrome, side panels, and an annotation layer."
+devices: { desktop: ready, tablet: partial, phone: partial }
+devicesNote: "Pinch zoom and drawing work on touch; marker/ink style flyouts open only on hover; not adapted to phones."
 ---
 
 # Document Viewer <Badge type="warning" text="Preview" />

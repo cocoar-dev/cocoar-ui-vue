@@ -1,5 +1,7 @@
 ---
 description: "CoarTextInput — text field with validation states, prefix/suffix decorations, clearable option, four sizes and multiline textarea mode"
+devices: { desktop: ready, tablet: ready, phone: partial }
+devicesNote: "Mobile sizes under .coar-mobile; the mobile presentation is still Preview."
 ---
 
 # Text Input

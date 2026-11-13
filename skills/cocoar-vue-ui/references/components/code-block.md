@@ -2,6 +2,8 @@
 
 # Code Block
 
+**Devices:** desktop ready · tablet ready · phone partial — Readable and scrollable on phones; the copy and collapse buttons have no .coar-mobile presentation yet.
+
 Display source code with syntax highlighting, a one-click copy button, and optional collapsing. Use it in documentation, onboarding flows, or anywhere users need to read or copy code snippets.
 
 ```ts

@@ -2,6 +2,8 @@
 
 # Navbar
 
+**Devices:** desktop ready · tablet ready · phone partial — No collapsed or menu layout for narrow screens; slot content must fit the phone width.
+
 A top-level navigation bar that anchors your application layout. It provides three flexible content slots -- start, center, and end -- so you can place a logo, navigation links, and user actions exactly where they belong. By default it uses a subtle shadow for visual elevation; switch to `bordered` for a flat look with a bottom border instead.
 
 ```ts

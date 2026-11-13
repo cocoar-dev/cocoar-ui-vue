@@ -2,6 +2,8 @@
 
 # Popover
 
+**Devices:** desktop ready · tablet partial · phone planned — The default hover mode relies on emulated mouse events on touch; use mode 'click' or 'both'.
+
 Popovers display rich, interactive content anchored to a trigger element. Unlike tooltips (which are text-only and non-interactive), popovers can hold forms, menus, formatted text, and action buttons. They stay open until the user clicks away or presses Escape, giving people time to interact with the content inside.
 
 ```ts

@@ -1,5 +1,6 @@
 ---
 description: "CoarNotice — compact inline notices and application banners with six semantic variants"
+devices: { desktop: ready, tablet: ready, phone: ready }
 ---
 
 # Notice

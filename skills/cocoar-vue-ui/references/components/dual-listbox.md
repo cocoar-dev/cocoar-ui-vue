@@ -2,6 +2,8 @@
 
 # Dual Listbox
 
+**Devices:** desktop ready · tablet partial · phone planned — Move buttons work on touch; multi-highlight needs Ctrl/Shift, and drag needs dragEngine 'pointer'.
+
 Two [`CoarListbox`](./listbox.md) columns side-by-side with move buttons — the classic pattern for moving items between "available" and "selected" sets. All the search, grouping, and custom-render features of `CoarListbox` carry over automatically.
 
 ```ts

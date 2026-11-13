@@ -1,5 +1,6 @@
 ---
 description: "CoarCard — content container with elevated and outlined styles, semantic color variants, padding sizes and header, footer and inset slots."
+devices: { desktop: ready, tablet: ready, phone: ready }
 ---
 
 # Card

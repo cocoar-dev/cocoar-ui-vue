@@ -2,6 +2,8 @@
 
 # Select
 
+**Devices:** desktop ready · tablet ready · phone planned — A phone presentation (sheet) is planned.
+
 Select components for single and multiple value selection. Choose between Single Select, Multi Select, or Tag Select variants.
 
 ```ts

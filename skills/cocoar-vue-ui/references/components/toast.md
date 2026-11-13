@@ -2,6 +2,8 @@
 
 # Toast
 
+**Devices:** desktop ready · tablet ready · phone partial — Toasts are a fixed 380 px wide and overflow 360 px phone screens.
+
 Non-blocking notification messages that slide in, deliver a brief update, and dismiss themselves. Toasts are perfect for confirming background actions -- a file uploaded, a record saved, or a network error encountered -- without interrupting the user's current workflow.
 
 ```ts

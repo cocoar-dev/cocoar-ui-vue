@@ -2,6 +2,8 @@
 
 # DateTime Picker
 
+**Devices:** desktop ready · tablet ready · phone planned — A phone presentation (sheet) is planned.
+
 Combines a calendar date picker with a time input and returns a `Temporal.PlainDateTime` -- a date and time without any timezone attached. Use this when the timezone is implicit (the user's local time) or irrelevant (an alarm, a reminder). If you need timezone awareness, reach for the [Zoned DateTime Picker](./zoned-date-time-picker.md) instead.
 
 ```ts

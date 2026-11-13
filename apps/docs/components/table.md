@@ -1,5 +1,7 @@
 ---
 description: "CoarTable — lightweight styled table wrapper with striped, plain and bordered variants, compact padding, hover highlighting and rich cell content"
+devices: { desktop: ready, tablet: ready, phone: partial }
+devicesNote: "Wide tables need a scroll container from the host; nothing wraps them for narrow screens."
 ---
 
 # Table

@@ -2,6 +2,8 @@
 
 # Password Input
 
+**Devices:** desktop ready · tablet ready · phone partial — Mobile sizes under .coar-mobile; the mobile presentation is still Preview.
+
 A text input tailored for passwords. It masks characters by default and provides a built-in eye toggle so users can temporarily reveal what they typed -- reducing frustration without sacrificing security.
 
 ```ts

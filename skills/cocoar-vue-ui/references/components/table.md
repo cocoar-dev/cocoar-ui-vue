@@ -2,6 +2,8 @@
 
 # Table
 
+**Devices:** desktop ready · tablet ready · phone partial — Wide tables need a scroll container from the host; nothing wraps them for narrow screens.
+
 A lightweight table wrapper that provides consistent styling, alternating row colors, and proper alignment out of the box. Use it whenever you need to present structured data -- user lists, order histories, configuration settings, or comparison grids.
 
 ```ts

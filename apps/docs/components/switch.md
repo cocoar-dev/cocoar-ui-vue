@@ -1,5 +1,7 @@
 ---
 description: "CoarSwitch — toggle for boolean settings that apply immediately, with four sizes, label positioning, validation states and keyboard and screen-reader support"
+devices: { desktop: ready, tablet: ready, phone: partial }
+devicesNote: "Mobile sizes under .coar-mobile; the mobile presentation is still Preview."
 ---
 
 # Switch

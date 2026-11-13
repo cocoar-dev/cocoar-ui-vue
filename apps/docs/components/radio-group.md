@@ -1,5 +1,7 @@
 ---
 description: "CoarRadioGroup and CoarRadioButton — single-choice selection with horizontal or vertical layout, four sizes, label positioning, keyboard navigation and form-field integration"
+devices: { desktop: ready, tablet: ready, phone: partial }
+devicesNote: "Mobile sizes under .coar-mobile; the mobile presentation is still Preview."
 ---
 
 # Radio Group

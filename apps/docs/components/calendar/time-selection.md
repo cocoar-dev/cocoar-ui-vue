@@ -1,5 +1,7 @@
 ---
 description: "Time grids — select time ranges by dragging or clicking, a selection policy for what a click picks, a hover time indicator, a host-driven draft and per-day background bands"
+devices: { desktop: ready, tablet: ready, phone: planned }
+devicesNote: "Long press selects on touch; the hover time indicator appears only for mouse and pen."
 ---
 
 # Selecting time, drafts & bands <Badge type="warning" text="Preview" />

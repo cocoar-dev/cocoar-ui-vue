@@ -2,6 +2,8 @@
 
 # `<CoarPageBuilder>` (Preview)
 
+**Devices:** desktop ready · tablet partial · phone not supported — Drag and drop works by touch; code editing uses Monaco, not made for touch; not meant for phones.
+
 The visual-editor half of `@cocoar/vue-page-builder`. It renders a three-panel layout: the vertically split Outline and Properties inspector on the left, the canvas in the centre, and a searchable element library on the right. It emits a `PageNode` JSON tree as `v-model`; the same tree is consumed by [`<CoarPageRenderer>`](./coar-page-renderer.md) at runtime.
 
 All three panels are resizable via drag handles and collapsible.

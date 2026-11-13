@@ -2,6 +2,8 @@
 
 # Tooltip
 
+**Devices:** desktop ready · tablet partial · phone partial — Hints show on hover or focus, so touch users may not see them; keep essential information elsewhere.
+
 Tooltips are small, text-only hints that appear on hover or focus. They are the simplest way to add contextual labels to icon buttons, truncated text, or any element that benefits from a brief explanation. Use the `v-tooltip` directive on any element -- no wrapper component needed.
 
 ```ts

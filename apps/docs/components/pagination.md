@@ -1,5 +1,7 @@
 ---
 description: "CoarPagination — page navigation computed from totalItems and pageSize with ellipsis truncation, first/last buttons and localized aria-labels"
+devices: { desktop: ready, tablet: ready, phone: partial }
+devicesNote: "Works on phones with fewer maxVisiblePages, but has no .coar-mobile presentation yet."
 ---
 
 # Pagination

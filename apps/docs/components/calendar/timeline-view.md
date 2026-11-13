@@ -1,5 +1,7 @@
 ---
 description: "CoarTimelineView — Gantt-lite timeline with one row per event, horizontal time-axis bars, automatic recurring-series row collapsing and drag-to-pan window"
+devices: { desktop: ready, tablet: ready, phone: planned }
+devicesNote: "Finger panning works like mouse panning; a phone presentation of the calendar is planned."
 ---
 
 # `<CoarTimelineView>` — Timeline View <Badge type="warning" text="Preview" />

@@ -2,6 +2,8 @@
 
 # Markdown Form
 
+**Devices:** desktop ready · tablet ready · phone partial — Works on phones; its select and date fields still open the desktop panels.
+
 `CoarMarkdownForm` turns a Markdown string into a form-like document. Headings,
 labels, lists and explanatory text stay fixed; only explicit field directives
 can be changed. Field values live in a separate object and never rewrite the

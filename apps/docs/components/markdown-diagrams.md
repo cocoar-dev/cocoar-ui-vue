@@ -1,5 +1,7 @@
 ---
 description: "@cocoar/vue-markdown-mermaid — renders mermaid code fences in CoarMarkdown as Cocoar-themed diagrams; lazy-loaded, strict security, degrades to plain code blocks"
+devices: { desktop: ready, tablet: partial, phone: partial }
+devicesNote: "With zoomable, touch zooms with the buttons but cannot pan a zoomed diagram."
 ---
 
 # Diagrams <Badge type="warning" text="Preview" />

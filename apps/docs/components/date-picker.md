@@ -1,5 +1,7 @@
 ---
 description: "CoarPlainDatePicker — calendar date picker returning Temporal.PlainDate, with min/max limits, validation states, four sizes and form-field integration."
+devices: { desktop: ready, tablet: ready, phone: planned }
+devicesNote: "A phone presentation (sheet) is planned."
 ---
 
 # Date Picker

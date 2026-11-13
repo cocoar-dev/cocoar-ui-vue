@@ -1,5 +1,7 @@
 ---
 description: "CoarPopconfirm — inline confirmation bubble anchored to a trigger element, with confirm/cancel actions, danger variant, custom labels and placement control"
+devices: { desktop: ready, tablet: ready, phone: planned }
+devicesNote: "Opens on tap; touch-sized popovers for phones are planned."
 ---
 
 # Popconfirm

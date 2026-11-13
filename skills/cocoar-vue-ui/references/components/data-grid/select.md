@@ -2,6 +2,8 @@
 
 # Select Column
 
+**Devices:** desktop ready · tablet partial · phone not supported — Touch scrolls and selects; editing starts with double-click and menus with right-click; not built for phones.
+
 `col.select(field, configurator)` declares a select column whose renderer shows the **label** of the matched option and whose editor is `<CoarSelect>` — same visual language as forms, with the dropdown teleported to `<body>` so it can overflow the cell freely.
 
 ```ts

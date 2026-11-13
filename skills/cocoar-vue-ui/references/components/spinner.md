@@ -2,6 +2,8 @@
 
 # Spinner
 
+**Devices:** desktop ready · tablet ready · phone ready
+
 Spinners signal that something is loading when you can't show a progress bar. They tell users "we're working on it" for network requests, lazy-loaded content, or any asynchronous operation with an unpredictable duration.
 
 ```ts

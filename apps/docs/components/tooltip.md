@@ -1,5 +1,7 @@
 ---
 description: "v-tooltip directive — text-only hover and focus hints for any element, with placement options and accessible labels for icon buttons"
+devices: { desktop: ready, tablet: partial, phone: partial }
+devicesNote: "Hints show on hover or focus, so touch users may not see them; keep essential information elsewhere."
 ---
 
 # Tooltip

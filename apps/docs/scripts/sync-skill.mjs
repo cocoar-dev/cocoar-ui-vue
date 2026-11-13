@@ -4,7 +4,9 @@
 // and apps/docs/components becomes a reference file of the skill, with each `<preview>` demo
 // inlined as a ```vue block so an assistant sees working code next to the prose. The page's
 // frontmatter description — the same line that feeds llms.txt on the docs site — becomes its
-// entry in the skill's index. The only hand-written part is apps/docs/skill/SKILL.header.md:
+// entry in the skill's index. A component page's `devices` line (rules in ./devices.mjs) becomes
+// a "Devices" line under its title, and this run fails when a page lacks it or breaks its
+// rules. The only hand-written part is apps/docs/skill/SKILL.header.md:
 // name, trigger description, package table, the gotchas.
 //
 //   node apps/docs/scripts/sync-skill.mjs          regenerate skills/cocoar-vue-ui/
@@ -23,6 +25,19 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import matter from 'gray-matter';
+
+import { SECTIONS, EXCLUDED } from './sections.mjs';
+import {
+  DEVICE_CLASSES,
+  DEVICE_CLASS_LABELS,
+  DEVICE_STATE_LABELS,
+  SAME_DEVICES_AS,
+  checkDevicePages,
+  devicesText,
+} from './devices.mjs';
+import { headingTitle } from './titles.mjs';
+
 const docsDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const repoDir = path.resolve(docsDir, '..', '..');
 const skillName = 'cocoar-vue-ui';
@@ -30,201 +45,6 @@ const skillDir = path.join(repoDir, 'skills', skillName);
 const headerFile = path.join(docsDir, 'skill', 'SKILL.header.md');
 const docsBaseUrl = 'https://docs.cocoar.dev/cocoar-ui-vue';
 const check = process.argv.includes('--check');
-
-// Mirrors the site's sidebar (apps/docs/.vitepress/config.ts). Listing pages explicitly is
-// deliberate: a docs page that is neither here nor in EXCLUDED fails the run, so a new page
-// cannot silently stay out of the skill.
-const SECTIONS = [
-  {
-    title: 'Guide',
-    pages: [
-      'guide/getting-started.md',
-      'guide/error-handling.md',
-      'guide/theming.md',
-      'guide/mobile.md',
-      'guide/migration.md',
-      'guide/migration-page-builder-3.md',
-    ],
-  },
-  {
-    title: 'Foundations',
-    pages: [
-      'foundations/design-principles.md',
-      'foundations/colors.md',
-      'foundations/typography.md',
-      'foundations/spacing.md',
-      'foundations/icons.md',
-      'foundations/motion.md',
-      'foundations/theming.md',
-    ],
-  },
-  {
-    title: 'Localization (@cocoar/vue-localization)',
-    pages: [
-      'foundations/localization/setup.md',
-      'foundations/localization/formatting.md',
-      'foundations/localization/translations.md',
-      'foundations/localization/timezones.md',
-    ],
-  },
-  {
-    title: 'Form controls',
-    pages: [
-      'components/button.md',
-      'components/form-field.md',
-      'components/text-input.md',
-      'components/number-input.md',
-      'components/password-input.md',
-      'components/otp-input.md',
-      'components/select.md',
-      'components/listbox.md',
-      'components/dual-listbox.md',
-      'components/checkbox.md',
-      'components/checkbox-group.md',
-      'components/radio-group.md',
-      'components/switch.md',
-      'components/segmented-control.md',
-      'components/date-picker.md',
-      'components/date-time-picker.md',
-      'components/zoned-date-time-picker.md',
-      'components/date-or-time-picker.md',
-      'components/date-views.md',
-    ],
-  },
-  {
-    title: 'Display',
-    pages: [
-      'components/avatar.md',
-      'components/badge.md',
-      'components/card.md',
-      'components/code-block.md',
-      'components/data-list.md',
-      'components/divider.md',
-      'components/link.md',
-      'components/note.md',
-      'components/notice.md',
-      'components/progress-bar.md',
-      'components/spinner.md',
-      'components/table.md',
-      'components/tag.md',
-    ],
-  },
-  {
-    title: 'Navigation',
-    pages: [
-      'components/menu.md',
-      'components/context-menu.md',
-      'components/sidebar.md',
-      'components/navbar.md',
-      'components/tabs.md',
-      'components/tree.md',
-      'components/breadcrumb.md',
-      'components/pagination.md',
-    ],
-  },
-  {
-    title: 'Layout',
-    pages: ['components/panel-layout.md', 'components/wizard.md'],
-  },
-  {
-    title: 'Overlay',
-    pages: [
-      'components/dialog.md',
-      'components/popover.md',
-      'components/popconfirm.md',
-      'components/toast.md',
-      'components/tooltip.md',
-    ],
-  },
-  {
-    title: 'Utilities',
-    pages: [
-      'components/transitions.md',
-      'components/virtual-list.md',
-      'components/drag-drop.md',
-      'components/fragment-parser.md',
-    ],
-  },
-  {
-    title: 'Content (@cocoar/vue-markdown, -editor, -form, -mermaid, @cocoar/vue-script-editor)',
-    pages: [
-      'components/markdown.md',
-      'components/markdown-editor.md',
-      'components/markdown-form.md',
-      'components/markdown-embeds.md',
-      'components/markdown-diagrams.md',
-      'components/mermaid.md',
-      'components/script-editor.md',
-    ],
-  },
-  {
-    title: 'Data Grid (@cocoar/vue-data-grid)',
-    pages: [
-      'components/data-grid.md',
-      'components/data-grid/editing.md',
-      'components/data-grid/text.md',
-      'components/data-grid/number.md',
-      'components/data-grid/select.md',
-      'components/data-grid/multi-select.md',
-      'components/data-grid/date-columns.md',
-      'components/data-grid/checkbox.md',
-    ],
-  },
-  {
-    title: 'Page Builder (@cocoar/vue-page-builder)',
-    pages: [
-      'components/page-builder/index.md',
-      'components/page-builder/coar-page-builder.md',
-      'components/page-builder/coar-page-renderer.md',
-      'components/page-builder/authoring-contract.md',
-      'components/page-builder/custom-elements.md',
-      'components/page-builder/idp-integration.md',
-    ],
-  },
-  {
-    title: 'Document Viewer (@cocoar/vue-document-viewer)',
-    pages: [
-      'components/document-viewer/index.md',
-      'components/document-viewer/coar-document-viewer.md',
-      'components/document-viewer/toolbar.md',
-      'components/document-viewer/annotations.md',
-    ],
-  },
-  {
-    title: 'Map (@cocoar/vue-map)',
-    pages: ['components/map/index.md', 'components/map/editor.md'],
-  },
-  {
-    title: 'File Explorer (@cocoar/vue-file-explorer-core)',
-    pages: [
-      'components/file-explorer/index.md',
-      'components/file-explorer/use-file-explorer.md',
-      'components/file-explorer/asset-store.md',
-      'components/file-explorer/in-memory-store.md',
-    ],
-  },
-  {
-    title: 'Calendar (@cocoar/vue-calendar)',
-    pages: [
-      'components/calendar/index.md',
-      'components/calendar/coar-calendar.md',
-      'components/calendar/year-view.md',
-      'components/calendar/month-view.md',
-      'components/calendar/day-view.md',
-      'components/calendar/week-view.md',
-      'components/calendar/work-week-view.md',
-      'components/calendar/time-selection.md',
-      'components/calendar/agenda-view.md',
-      'components/calendar/timeline-view.md',
-      'components/calendar/performance.md',
-    ],
-  },
-];
-
-// Pages that exist for the site, not for an agent working with the library: the landing page,
-// the changelog (an include of CHANGELOG.md, which ships with the package anyway) and the
-// kitchen sink (a visual comparison page with no prose).
-const EXCLUDED = new Set(['index.md', 'guide/changelog.md', 'foundations/kitchen-sink.md']);
 
 // --- Collect the pages ---
 
@@ -252,8 +72,43 @@ for (const rel of listed) {
   // Line endings are normalized on the way in: the pages are edited on Windows and Linux alike,
   // and the generated files must not differ by that.
   const raw = normalizeNewlines(fs.readFileSync(path.join(docsDir, rel), 'utf8'));
-  const { description, body } = splitFrontmatter(raw, rel);
-  pages.set(rel, { rel, description, body });
+  const { description, frontmatter, body } = splitFrontmatter(raw, rel);
+  pages.set(rel, { rel, description, frontmatter, body });
+}
+
+// --- Check the device statements (rules and tests in ./devices.mjs) ---
+//
+// Every page under components/ says which device classes it supports, or is listed in NO_DEVICES
+// with a reason; no other page carries the line. The frontmatter is also parsed the way VitePress
+// parses it (gray-matter), so a statement VitePress would not see fails here too. All problems
+// are collected so one run shows them all.
+
+const deviceCheck = checkDevicePages(
+  onDisk.map((rel) => {
+    const raw = fs.readFileSync(path.join(docsDir, rel), 'utf8');
+    const frontmatter = pages.has(rel)
+      ? pages.get(rel).frontmatter
+      : (normalizeNewlines(raw).match(/^---\n([\s\S]*?)\n---\n/) || [])[1] || '';
+    try {
+      // Options are passed so gray-matter does not serve a cached result between runs of a test.
+      return { rel, frontmatter, parsed: matter(raw, {}).data };
+    } catch (error) {
+      const where = error.mark ? ` (line ${error.mark.line + 1})` : '';
+      return { rel, frontmatter, parseError: `${error.reason || error.message}${where}` };
+    }
+  }),
+);
+if (deviceCheck.problems.length) {
+  console.error(
+    `sync-skill: ${deviceCheck.problems.length} problem(s) with the "devices" frontmatter:`,
+  );
+  for (const problem of deviceCheck.problems) console.error(`  ${problem}`);
+  process.exit(1);
+}
+for (const page of pages.values()) {
+  const statement = deviceCheck.statements.get(page.rel);
+  page.devices = statement ? statement.devices : null;
+  page.devicesNote = statement ? statement.note : null;
 }
 
 // --- Generate ---
@@ -342,10 +197,41 @@ function renderSkill() {
 
 function renderReference(page, target) {
   const banner = `<!-- Generated from apps/docs/${page.rel} by apps/docs/scripts/sync-skill.mjs. Do not edit; edit the docs page. -->\n\n`;
-  const body = transformBody(page, target).trim();
-  const title = (body.match(/^# (.+)$/m) || [])[1];
-  if (!title) fail(`${page.rel}: no H1 title`);
-  return { title: title.trim(), content: banner + body + '\n' };
+  let body = transformBody(page, target).trim();
+  const h1 = body.match(/^# (.+)$/m);
+  if (!h1) fail(`${page.rel}: no H1 title`);
+  if (page.devices) {
+    // The same statement the site shows as badges under the title.
+    const end = h1.index + h1[0].length;
+    const note = page.devicesNote ? ` — ${page.devicesNote}` : '';
+    body = `${body.slice(0, end)}\n\n**Devices:** ${devicesText(page.devices)}${note}${body.slice(end)}`;
+  }
+  return { title: h1[1].trim(), content: banner + body + '\n' };
+}
+
+// `<DeviceMatrix />` in a page (the mobile guide): the site renders it from a data loader
+// (.vitepress/theme/devices.data.ts); here it becomes one table per section of SECTIONS.
+function renderDeviceMatrix(target) {
+  const out = [];
+  for (const section of SECTIONS) {
+    // Pages with the same statement as another page (SAME_DEVICES_AS) would only repeat its row.
+    const rows = section.pages
+      .filter((rel) => !SAME_DEVICES_AS.has(rel))
+      .map((rel) => pages.get(rel))
+      .filter((p) => p.devices);
+    if (!rows.length) continue;
+    out.push('', `**${section.title}**`, '');
+    out.push(`| Page | ${DEVICE_CLASSES.map((c) => DEVICE_CLASS_LABELS[c]).join(' | ')} | Note |`);
+    out.push(`|---|${DEVICE_CLASSES.map(() => '---|').join('')}---|`);
+    for (const p of rows) {
+      const title = headingTitle((p.body.match(/^# (.+)$/m) || [])[1] || p.rel);
+      const link = rewriteLinks(`[${title}](/${p.rel})`, '', target);
+      const states = DEVICE_CLASSES.map((c) => DEVICE_STATE_LABELS[p.devices[c]]).join(' | ');
+      out.push(`| ${link} | ${states} | ${(p.devicesNote || '').replace(/\|/g, '\\|')} |`);
+    }
+  }
+  out.push('');
+  return out;
 }
 
 // One fence-aware pass over the page. Inside a code fence every line passes through untouched;
@@ -353,6 +239,7 @@ function renderReference(page, target) {
 //   - the page-level <script setup> goes, but its demo imports are remembered
 //   - a page-level <style> block goes
 //   - <preview path="…" /> and an imported <DemoComponent /> become the demo's source
+//   - <DeviceMatrix /> becomes the device tables of all component pages
 //   - <Badge text="…" /> becomes "(…)"
 //   - ::: containers become block quotes (code-group lines simply go)
 //   - site-absolute and page-relative links point at the sibling reference file, or the docs URL
@@ -401,6 +288,11 @@ function transformBody(page, target) {
     const preview = line.match(/^\s*<preview\s+path="([^"]+)"\s*\/>\s*$/);
     if (preview) {
       out.push(...renderDemo(path.posix.join(pageDir, preview[1]), page.rel));
+      continue;
+    }
+
+    if (/^\s*<DeviceMatrix\s*\/>\s*$/.test(line)) {
+      out.push(...renderDeviceMatrix(target));
       continue;
     }
 
@@ -505,7 +397,7 @@ function splitFrontmatter(raw, rel) {
   ) {
     description = description.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
   }
-  return { description, body: raw.slice(m[0].length).replace(/^\n+/, '') };
+  return { description, frontmatter: m[1], body: raw.slice(m[0].length).replace(/^\n+/, '') };
 }
 
 function normalizeNewlines(text) {

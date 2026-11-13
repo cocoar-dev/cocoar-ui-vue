@@ -2,6 +2,8 @@
 
 # Diagrams (Preview)
 
+**Devices:** desktop ready · tablet partial · phone partial — With zoomable, touch zooms with the buttons but cannot pan a zoomed diagram.
+
 Render diagrams inside markdown from a fenced code block — <code>```mermaid</code>
 — using [`@cocoar/vue-markdown-mermaid`](https://www.npmjs.com/package/@cocoar/vue-markdown-mermaid).
 The diagram source lives in the markdown as a normal code fence, so it

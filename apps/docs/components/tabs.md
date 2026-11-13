@@ -1,5 +1,7 @@
 ---
 description: "CoarTabGroup and CoarTab — v-model tab navigation with disabled tabs, tab-bar actions slot, fill-height mode and full keyboard support"
+devices: { desktop: ready, tablet: ready, phone: partial }
+devicesNote: "The tab bar neither scrolls nor wraps, so many tabs overflow phone widths."
 ---
 
 # Tabs

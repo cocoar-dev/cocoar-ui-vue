@@ -1,5 +1,7 @@
 ---
 description: "CoarMermaidDiagram — standalone Mermaid diagram component for Vue 3 rendering from a source string; Cocoar-themed, lazily loaded, with opt-in zoom/pan"
+devices: { desktop: ready, tablet: partial, phone: partial }
+devicesNote: "With zoomable, touch zooms with the buttons but cannot pan a zoomed diagram."
 ---
 
 # Mermaid Diagram <Badge type="warning" text="Preview" />

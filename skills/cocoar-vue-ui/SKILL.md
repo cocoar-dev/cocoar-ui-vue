@@ -15,7 +15,7 @@ metadata:
 
 # Cocoar UI Vue
 
-A touch-first Vue 3 component library for the Cocoar Design System: 30+ accessible, themeable,
+A tablet-first Vue 3 component library for the Cocoar Design System: 30+ accessible, themeable,
 tree-shakeable components in `@cocoar/vue-ui`, plus companion packages for localization, data
 grid, calendar, markdown, page builder, document viewer, map, file explorer and script editor.
 This skill is the documentation, page by page, under `references/`, with every live demo inlined
@@ -65,8 +65,12 @@ Every companion package has `@cocoar/vue-ui` as a peer dependency and pins the s
   `--coar-error`, `--coar-warning`, `--coar-info` on `:root`; every shade scale for light and
   dark mode is derived with oklch. Style with `--coar-*` tokens; do not hard-code hex values or
   override generated shades.
-- **Touch-first, tablet-first.** Interactive elements are at least 44 × 44 px and work with touch
-  and focus; hover is an enhancement only. No hover-only interactions, no phone-first layouts.
+- **Tablet-first, phones by opt-in.** Components are designed for touch and focus, with hover
+  as an enhancement; the device line of a component names where that is not met yet. The default sizes follow the token scale (`xs` 27 px, `s` 32 px, `m` 40 px,
+  `l` 48 px), not 44 × 44 px. The `coar-mobile` class on `html`, `body` or a parent raises the
+  adapted controls to at least 44 px; it changes sizes only, never behaviour, and nothing switches
+  by viewport width. Before building for phones, read the mobile guide (`references/guide/mobile.md`)
+  and the device line under each component's title (table in its "Device support" section).
 - **Props, not slots, where the docs say so.** `CoarCheckbox` takes its text via the `label` prop,
   `CoarBadge` via `content`. `CoarTag` uses `closable` and `@closed`; `CoarPopconfirm` uses
   `message` with `@confirmed` / `@cancelled`. `CoarFormField` wraps a control and supplies label,
@@ -90,13 +94,13 @@ of each other.
 - [Getting Started](references/guide/getting-started.md) — Set up @cocoar/vue-ui in a Vue 3 project: install, import fonts and styles, use components, toggle dark mode, and register the overlay plugin.
 - [Error Handling](references/guide/error-handling.md) — Error handling patterns in Cocoar UI: graceful fallbacks, overlay Promise rejections, error toasts, and handling failures in application code.
 - [Theming](references/guide/theming.md) — Theme Cocoar with CSS custom properties: set five oklch base colors and all shade scales for light and dark mode recalculate automatically.
-- [Mobile presentation (Preview)](references/guide/mobile.md) — Opt into mobile presentation with a coar-mobile parent: touch-sized buttons, text/password/number inputs, checkboxes, radios and switches without changing component APIs.
+- [Mobile presentation (Preview)](references/guide/mobile.md) — Opt into the mobile presentation with a coar-mobile parent: touch-sized controls, what decides sizes, layout and input behaviour, how it combines with brand themes, and which device classes each component supports.
 - [Migrating to 2.11](references/guide/migration.md) — Migration guide for Cocoar UI 2.11: date/time pickers move onto CoarFormField, the clear button becomes opt-in, and two CSS tokens are renamed.
 - [Migrating Page Builder to 3.0](references/guide/migration-page-builder-3.md) — Migration guide for @cocoar/vue-page-builder 3.0: four PageConfig concepts removed, several names disambiguated, and documents migrated to schemaVersion 6.
 
 ### Foundations
 
-- [Design Principles](references/foundations/design-principles.md) — The six Cocoar Design System principles — clarity, consistency, accessibility, touch-first, performance, developer experience — plus the design token architecture and do's and don'ts.
+- [Design Principles](references/foundations/design-principles.md) — The six Cocoar Design System principles — clarity, consistency, accessibility, touch-first, performance, developer experience — plus the stability promise for web apps, the design token architecture and do's and don'ts.
 - [Colors](references/foundations/colors.md) — Cocoar's two-layer color system: primitive palettes and semantic tokens that adapt to light and dark mode, with naming convention and full token reference.
 - [Typography](references/foundations/typography.md) — The Cocoar type scale: eleven utility classes from display to footnote using Inter and Poppins, with sizes, weights, and usage examples.
 - [Spacing & Effects](references/foundations/spacing.md) — Spacing and effects tokens: the 4 px spacing scale, border radius, stroke widths, and six shadow elevation levels with reference tables.

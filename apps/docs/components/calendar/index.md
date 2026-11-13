@@ -1,5 +1,7 @@
 ---
 description: "@cocoar/vue-calendar — Temporal-based Vue 3 calendar with Year, Month, Week, Day and Agenda views, iOS-style display variations, recurrence and standalone sub-views"
+devices: { desktop: ready, tablet: partial, phone: planned }
+devicesNote: "Taps, swipe paging and long-press selection work on touch; event resize handles are only 6 px tall."
 ---
 
 # Calendar <Badge type="warning" text="Preview" />

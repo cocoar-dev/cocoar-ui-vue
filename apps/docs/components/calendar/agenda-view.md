@@ -1,5 +1,7 @@
 ---
 description: "CoarAgendaView — virtualized chronological agenda list grouped by day, with floating day headers, multi-day event continuation and imperative scroll-to-date"
+devices: { desktop: ready, tablet: ready, phone: planned }
+devicesNote: "Taps and scrolling work on touch; a phone presentation of the calendar is planned."
 ---
 
 # `<CoarAgendaView>` — Agenda View <Badge type="warning" text="Preview" />

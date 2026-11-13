@@ -2,6 +2,8 @@
 
 # Pagination
 
+**Devices:** desktop ready · tablet ready · phone partial — Works on phones with fewer maxVisiblePages, but has no .coar-mobile presentation yet.
+
 Split large collections into digestible pages and let users navigate between them. Pagination automatically calculates page count from `totalItems` and `pageSize`, and intelligently truncates the page range with ellipses when there are too many pages to display at once.
 
 ```ts

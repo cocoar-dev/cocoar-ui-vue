@@ -1,5 +1,7 @@
 ---
 description: "CoarCheckboxGroup — coordinate multiple checkboxes through one array or boolean-record model, with FormField integration."
+devices: { desktop: ready, tablet: ready, phone: partial }
+devicesNote: "Mobile sizes under .coar-mobile; the mobile presentation is still Preview."
 ---
 
 # Checkbox Group

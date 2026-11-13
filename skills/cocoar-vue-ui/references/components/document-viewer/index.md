@@ -2,6 +2,8 @@
 
 # Document Viewer (Preview)
 
+**Devices:** desktop ready · tablet partial · phone partial — Pinch zoom and drawing work on touch; marker/ink style flyouts open only on hover; not adapted to phones.
+
 `@cocoar/vue-document-viewer` is a generic, source-agnostic document viewer for Vue 3. One component — [`<CoarDocumentViewer>`](./coar-document-viewer.md) — renders **PDFs**, **single images**, and **multi-page image galleries**, with shared toolbar chrome, side panels, and an annotation layer.
 
 You pick the source kind with a small factory (`pdfSource(...)`, `imageSource(...)`, `imageGallerySource(...)`); the viewer dispatches internally. The toolbar greys out tools the active source doesn't support — e.g. search and outline are PDF-only — rather than hiding them, so users don't see UI moving around when they switch documents.

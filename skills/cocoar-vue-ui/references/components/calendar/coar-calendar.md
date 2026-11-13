@@ -2,6 +2,8 @@
 
 # `<CoarCalendar>` — Composer (Preview)
 
+**Devices:** desktop ready · tablet partial · phone planned — Taps, swipe paging and long-press selection work on touch; event resize handles are only 6 px tall.
+
 `<CoarCalendar>` is the top-level shell that wires the complete calendar hierarchy together with prev / today / next navigation and responsive display controls. It's driven by the **builder** returned from `useCalendar()` — a single chainable surface that owns events, recurrence, configuration, handlers, renderers, and an imperative `api` object.
 
 The builder is **flat**: every setter lives directly on it, including view-specific ones (`timeRange`, `slotDuration` for Day / Week; `maxEventsPerCell` for Month; `agendaLengthDays` / `showEmptyDays` for Agenda). View-specific settings are no-ops outside their target view, so a single chained `.timeRange(...).maxEventsPerCell(...)` is fine — each one only takes effect when the matching view is active.

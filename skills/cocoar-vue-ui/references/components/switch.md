@@ -2,6 +2,8 @@
 
 # Switch
 
+**Devices:** desktop ready · tablet ready · phone partial — Mobile sizes under .coar-mobile; the mobile presentation is still Preview.
+
 A toggle for boolean settings that take effect immediately -- think "Enable notifications" or "Dark mode". Unlike a [Checkbox](./checkbox.md), a switch signals instant action rather than a deferred choice that requires a submit button.
 
 ```ts

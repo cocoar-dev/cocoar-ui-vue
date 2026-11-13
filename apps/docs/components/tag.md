@@ -1,5 +1,7 @@
 ---
 description: "CoarTag — label chip with six semantic color variants, three sizes, closable and selectable modes for metadata, categories and filter bars"
+devices: { desktop: ready, tablet: partial, phone: partial }
+devicesNote: "The close button is a 10–14 px icon without a larger touch target."
 ---
 
 # Tag

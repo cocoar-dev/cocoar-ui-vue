@@ -2,6 +2,8 @@
 
 # Data List
 
+**Devices:** desktop ready · tablet partial · phone planned — Item menus open on right-click and multi-select needs modifier keys, so both are hard to reach by touch.
+
 A list of records where **you own the row layout**. Where [`CoarDataGrid`](./data-grid.md) squeezes every field into a column, `CoarDataList` gives each record a free-form, multi-line template — the right tool when a notebook screen would otherwise show a dozen tiny columns and a horizontal scrollbar. It brings the parts a hand-rolled list keeps reinventing: virtual scrolling with measured row heights, search, a sort menu, keyboard and pointer selection, grouping, and an empty state.
 
 ```ts

@@ -2,6 +2,8 @@
 
 # Dialog
 
+**Devices:** desktop ready · tablet ready · phone planned — Shrinks to the screen width on a phone; a sheet presentation for phones is planned.
+
 Modal dialogs demand attention. They block interaction with the rest of the page until the user makes a decision, making them the right choice for destructive actions, important confirmations, and messages that must be acknowledged before proceeding. Use them sparingly -- when the stakes are high enough to justify interrupting the user's flow.
 
 ```ts

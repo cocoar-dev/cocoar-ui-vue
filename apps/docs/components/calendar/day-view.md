@@ -1,5 +1,7 @@
 ---
 description: "CoarDayView — one-day or width-aware multi-day time grid with hour axis, all-day band, configurable columns, time range and slot duration"
+devices: { desktop: ready, tablet: partial, phone: planned }
+devicesNote: "Taps, swipe paging and long-press selection work on touch; event resize handles are only 6 px tall."
 ---
 
 # `<CoarDayView>` — Day View <Badge type="warning" text="Preview" />

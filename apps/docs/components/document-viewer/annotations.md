@@ -1,5 +1,7 @@
 ---
 description: "CoarDocumentViewer annotation layer — controlled marker, comment, ink, and freetext annotations; the consumer owns the data and applies create/update/delete events."
+devices: { desktop: ready, tablet: partial, phone: partial }
+devicesNote: "Drawing works with touch; marker and ink width and color open only on hover; not adapted to phones."
 ---
 
 # Annotations

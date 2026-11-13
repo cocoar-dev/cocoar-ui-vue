@@ -2,6 +2,8 @@
 
 # Badge
 
+**Devices:** desktop ready · tablet ready · phone ready
+
 Badges draw attention to counts, statuses, or short labels. Attach them to icons, avatars, or buttons to surface information that needs a quick glance -- like unread messages, plan tiers, or live/offline indicators.
 
 ```ts

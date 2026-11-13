@@ -2,6 +2,8 @@
 
 # Tree
 
+**Devices:** desktop ready · tablet partial · phone not supported — Desktop-first: right-click menus, HTML5 drag and hover-revealed row actions are not tuned for touch.
+
 A generic, keyboard-navigable, drag-drop-aware tree primitive. Identity, children and label are extracted via prop functions — render any node shape (file systems, navigation, settings, categories, …) without forcing a common base type.
 
 ```ts

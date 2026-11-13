@@ -2,6 +2,8 @@
 
 # Tag
 
+**Devices:** desktop ready · tablet partial · phone partial — The close button is a 10–14 px icon without a larger touch target.
+
 Tags label, categorize, and organize content. Use them for metadata (status labels, technology stacks), filter chips, or user-driven selections. Unlike badges, which show counts and status dots, tags convey descriptive information that users can read and often interact with.
 
 ```ts

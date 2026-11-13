@@ -1,5 +1,7 @@
 ---
 description: "useDragDrop — HTML5 drag-and-drop composable with group, accept and canDrop matching rules for building custom drag surfaces like Kanban boards."
+devices: { desktop: ready, tablet: partial, phone: partial }
+devicesNote: "The default engine 'native' uses HTML5 drag events, made for the mouse; on touch use engine 'pointer' or 'auto'."
 ---
 
 # Drag & Drop

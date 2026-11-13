@@ -1,5 +1,6 @@
 ---
 description: "CoarSpinner — animated loading indicator for operations of unknown duration, with four sizes, accessible labels and full-page overlay patterns"
+devices: { desktop: ready, tablet: ready, phone: ready }
 ---
 
 # Spinner

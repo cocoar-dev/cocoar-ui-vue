@@ -1,5 +1,7 @@
 ---
 description: "CoarDataGrid number column — col.number() formats locale-aware and edits with CoarNumberCellEditor supporting min/max, decimals, step, and stepper buttons."
+devices: { desktop: ready, tablet: partial, phone: no }
+devicesNote: "Touch scrolls and selects; editing starts with double-click and menus with right-click; not built for phones."
 ---
 
 # Number Column

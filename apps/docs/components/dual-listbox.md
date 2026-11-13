@@ -1,5 +1,7 @@
 ---
 description: "CoarDualListbox — two-column transfer list with move buttons, per-column search, grouping, custom item renderers and drag & drop between columns"
+devices: { desktop: ready, tablet: partial, phone: planned }
+devicesNote: "Move buttons work on touch; multi-highlight needs Ctrl/Shift, and drag needs dragEngine 'pointer'."
 ---
 
 # Dual Listbox

@@ -1,5 +1,7 @@
 ---
 description: "useDialog — promise-based modal dialogs for confirm, alert and custom components, with configurable buttons, sizes and localized labels."
+devices: { desktop: ready, tablet: ready, phone: planned }
+devicesNote: "Shrinks to the screen width on a phone; a sheet presentation for phones is planned."
 ---
 
 # Dialog

@@ -1,5 +1,7 @@
 ---
 description: "CoarSidebar — navigation sidebar with header/content/footer sections, collapsible icon-only mode, expand and flyout groups, four-side orientation and router-aware items"
+devices: { desktop: ready, tablet: partial, phone: partial }
+devicesNote: "Split-trigger flyouts open only on hover and icon-only labels are tooltips; no phone drawer."
 ---
 
 # Sidebar

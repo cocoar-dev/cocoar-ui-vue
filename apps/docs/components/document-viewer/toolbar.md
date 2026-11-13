@@ -1,5 +1,7 @@
 ---
 description: "CoarDocumentViewer toolbar customization — the order-driven tools array of tool identifiers, separator trimming rules, and the full CoarDocumentViewerTool reference."
+devices: { desktop: ready, tablet: partial, phone: partial }
+devicesNote: "Pinch zoom and drawing work on touch; marker/ink style flyouts open only on hover; not adapted to phones."
 ---
 
 # Toolbar customization
