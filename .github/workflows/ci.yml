@@ -97,7 +97,7 @@ jobs:
 
       - name: Install Playwright browsers
         if: env.SIMULATE != 'true'
-        run: pnpm --filter @cocoar/playground exec playwright install --with-deps chromium
+        run: pnpm --filter @cocoar/playground exec playwright install --with-deps chromium webkit
 
       - name: Lint
         if: env.SIMULATE != 'true'

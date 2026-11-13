@@ -39,8 +39,39 @@ async function rowPoint(page: Page, day: string, minuteOfDay: number) {
 
 const hm = (h: number, m = 0) => h * 60 + m;
 
-test.beforeEach(async ({ page }) => {
-  await page.setViewportSize({ width: 1500, height: 900 });
+/**
+ * Returns the client point `at()` gives, after scrolling the grid's own scroller so that the
+ * point lands on `target` (only when it does not already: a no-op at desktop sizes). The
+ * webkit-tablet project runs at the iPad viewport, where most of the day is scrolled out.
+ */
+async function pointInView(
+  page: Page,
+  target: Locator,
+  at: () => Promise<{ x: number; y: number }>,
+): Promise<{ x: number; y: number }> {
+  const hits = (p: { x: number; y: number }) =>
+    target.evaluate((el, q) => {
+      const hit = document.elementFromPoint(q.x, q.y);
+      return !!hit && el.contains(hit);
+    }, p);
+  let p = await at();
+  if (!(await hits(p))) {
+    await page.locator('.coar-time-rows__scroller').evaluate((el, x) => {
+      const r = el.getBoundingClientRect();
+      el.scrollLeft += x - (r.left + r.width / 2);
+    }, p.x);
+    p = await at();
+  }
+  expect(await hits(p), 'the tapped point lies on its target').toBe(true);
+  return p;
+}
+
+test.beforeEach(async ({ page }, testInfo) => {
+  // webkit-tablet keeps the iPad viewport (810×1080): its @touch tests scroll the grid's own
+  // scroller to what they tap. Every other project keeps the desktop size the tests were written for.
+  if (testInfo.project.name !== 'webkit-tablet') {
+    await page.setViewportSize({ width: 1500, height: 900 });
+  }
   await page.goto('/calendar-time-selection');
   await expect(row(page, TUE)).toBeVisible();
 });
@@ -185,6 +216,8 @@ test.describe('days as columns, mouse', () => {
 test.describe('touch', () => {
   test.use({ hasTouch: true });
 
+  // Not tagged @touch: drives touch through CDP (`Input.dispatchTouchEvent`), which exists in
+  // Chromium only, so it cannot run in the webkit-tablet project.
   test('a long press and a drag select a range; the rows do not scroll', async ({ page }) => {
     const scroller = page.locator('.coar-time-rows__scroller');
     const a = await rowPoint(page, TUE, hm(14, 5));
@@ -209,6 +242,8 @@ test.describe('touch', () => {
     await expect(log(page)).not.toContainText('timeClick');
   });
 
+  // Not tagged @touch: drives touch through CDP (`Input.dispatchTouchEvent`), which exists in
+  // Chromium only, so it cannot run in the webkit-tablet project.
   test('a quick swipe scrolls and selects nothing', async ({ page }) => {
     const scroller = page.locator('.coar-time-rows__scroller');
     const a = await rowPoint(page, TUE, hm(16));
@@ -230,8 +265,8 @@ test.describe('touch', () => {
     await expect(log(page)).not.toContainText('range click');
   });
 
-  test('a tap selects the proposal after onTimeClick', async ({ page }) => {
-    const p = await rowPoint(page, TUE, hm(15, 5));
+  test('a tap selects the proposal after onTimeClick', { tag: '@touch' }, async ({ page }) => {
+    const p = await pointInView(page, track(page, TUE), () => rowPoint(page, TUE, hm(15, 5)));
     await page.touchscreen.tap(p.x, p.y);
     await expect(log(page)).toContainText(`range click: ${TUE} 15:00–16:00`);
   });

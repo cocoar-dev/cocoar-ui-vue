@@ -20,7 +20,7 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/mobile-controls');
 });
 
-test('mobile floors apply at every size across theme boundaries', async ({ page }) => {
+test('mobile floors apply at every size across theme boundaries', { tag: '@touch' }, async ({ page }) => {
   for (const size of sizes) {
     const row = page.locator(`[data-size="${size}"]`);
     await expect(row.locator('.coar-number-input-button')).toHaveCount(2);
@@ -68,7 +68,7 @@ test('mobile floors apply at every size across theme boundaries', async ({ page 
   await expect(page.locator('[data-size="xs"] .coar-text-input-field')).toHaveCSS('font-size', '16px');
 });
 
-test('scope changes preserve values and leave desktop siblings unchanged', async ({ page }) => {
+test('scope changes preserve values and leave desktop siblings unchanged', { tag: '@touch' }, async ({ page }) => {
   const sibling = page.getByTestId('desktop-sibling').getByRole('button');
   await expect(sibling).toHaveCSS('height', '27px');
   await expect(sibling).toHaveCSS('font-size', '11px');
@@ -94,7 +94,7 @@ test('scope changes preserve values and leave desktop siblings unchanged', async
   await expect(sibling).toHaveCSS('height', '27px');
 });
 
-test('works on body and does not automatically activate on narrow viewports', async ({ page }) => {
+test('works on body and does not automatically activate on narrow viewports', { tag: '@touch' }, async ({ page }) => {
   await page.getByLabel('Mobile presentation', { exact: true }).uncheck();
   await page.setViewportSize({ width: 390, height: 844 });
   const button = page.locator('[data-size="xs"]').getByRole('button', { name: 'Save', exact: true });
@@ -107,7 +107,7 @@ test('works on body and does not automatically activate on narrow viewports', as
   await expect(button).toHaveCSS('height', '27px');
 });
 
-test('desktop buttons retain their content minimum in constrained flex rows', async ({ page }) => {
+test('desktop buttons retain their content minimum in constrained flex rows', { tag: '@touch' }, async ({ page }) => {
   const fits = await page.getByTestId('desktop-sibling').getByRole('button').evaluate((el) => {
     const parent = el.parentElement!;
     parent.style.display = 'flex';
@@ -117,7 +117,7 @@ test('desktop buttons retain their content minimum in constrained flex rows', as
   expect(fits).toBe(true);
 });
 
-test('pill radii and compact density keep clear/reveal targets reachable', async ({ page }) => {
+test('pill radii and compact density keep clear/reveal targets reachable', { tag: '@touch' }, async ({ page }) => {
   await page.getByTestId('mobile-scope').evaluate((el) => {
     el.style.setProperty('--coar-input-radius', '999px');
     el.style.setProperty('--coar-component-density', '0.75');
@@ -129,7 +129,7 @@ test('pill radii and compact density keep clear/reveal targets reachable', async
   await expect(row.locator('.coar-password-input-field')).toHaveAttribute('type', 'text');
 });
 
-test('the size scale and xs action targets survive a border-box reset', async ({ page }) => {
+test('the size scale and xs action targets survive a border-box reset', { tag: '@touch' }, async ({ page }) => {
   await page.addStyleTag({
     content: `
       *, *::before, *::after { box-sizing: border-box; }
@@ -182,7 +182,7 @@ test('the size scale and xs action targets survive a border-box reset', async ({
   await expect(row.locator('.coar-text-input-field')).toHaveValue('');
 });
 
-test('touch, mouse, keyboard and non-editable semantics are preserved', async ({ page }) => {
+test('touch, mouse, keyboard and non-editable semantics are preserved', { tag: '@touch' }, async ({ page }) => {
   const row = page.locator('[data-size="xs"]');
   await row.getByRole('button', { name: 'Save', exact: true }).tap();
   await expect(page.getByTestId('click-count')).toHaveText('1');

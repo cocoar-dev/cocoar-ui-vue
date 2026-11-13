@@ -22,8 +22,39 @@ async function pxPerMinute(page: Page): Promise<number> {
   return (xs[1] - xs[0]) / 60;
 }
 
-test.beforeEach(async ({ page }) => {
-  await page.setViewportSize({ width: 1400, height: 900 });
+/**
+ * Returns the client point `at()` gives, after scrolling the grid's own scroller so that the
+ * point lands on `target` (only when it does not already: a no-op at desktop sizes). The
+ * webkit-tablet project runs at the iPad viewport, where most of the day is scrolled out.
+ */
+async function pointInView(
+  page: Page,
+  target: Locator,
+  at: () => Promise<{ x: number; y: number }>,
+): Promise<{ x: number; y: number }> {
+  const hits = (p: { x: number; y: number }) =>
+    target.evaluate((el, q) => {
+      const hit = document.elementFromPoint(q.x, q.y);
+      return !!hit && el.contains(hit);
+    }, p);
+  let p = await at();
+  if (!(await hits(p))) {
+    await page.locator('.coar-time-rows__scroller').evaluate((el, x) => {
+      const r = el.getBoundingClientRect();
+      el.scrollLeft += x - (r.left + r.width / 2);
+    }, p.x);
+    p = await at();
+  }
+  expect(await hits(p), 'the tapped point lies on its target').toBe(true);
+  return p;
+}
+
+test.beforeEach(async ({ page }, testInfo) => {
+  // webkit-tablet keeps the iPad viewport (810×1080): its @touch tests scroll the grid's own
+  // scroller to what they tap. Every other project keeps the desktop size the tests were written for.
+  if (testInfo.project.name !== 'webkit-tablet') {
+    await page.setViewportSize({ width: 1400, height: 900 });
+  }
   await page.goto('/calendar-time-rows');
   await expect(row(page, '2026-10-19')).toBeVisible();
 });
@@ -78,22 +109,33 @@ test('a click on an empty track reports the slot time', async ({ page }) => {
 test.describe('touch', () => {
   test.use({ hasTouch: true });
 
-  test('a tap on an empty track reports the slot time', async ({ page }) => {
+  test('a tap on an empty track reports the slot time', { tag: '@touch' }, async ({ page }) => {
     const ppm = await pxPerMinute(page);
-    const t = (await track(page, '2026-10-22').boundingBox())!;
-    await page.touchscreen.tap(t.x + (2 * 60 + 5) * ppm, t.y + 10);
+    const p = await pointInView(page, track(page, '2026-10-22'), async () => {
+      const t = (await track(page, '2026-10-22').boundingBox())!;
+      return { x: t.x + (2 * 60 + 5) * ppm, y: t.y + 10 };
+    });
+    await page.touchscreen.tap(p.x, p.y);
     await expect(log(page)).toContainText('timeClick: 2026-10-22 08:00');
   });
 
-  test("a tap on a card opens the sheet, and the tap's click does not close it", async ({
-    page,
-  }) => {
-    const box = (await card(page, '2026-10-21', 'Meeting').boundingBox())!;
-    await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
-    await page.waitForTimeout(500);
-    await expect(page.getByTestId('sheet')).toHaveText('Meeting');
-  });
+  test(
+    "a tap on a card opens the sheet, and the tap's click does not close it",
+    { tag: '@touch' },
+    async ({ page }) => {
+      const meeting = card(page, '2026-10-21', 'Meeting');
+      const p = await pointInView(page, meeting, async () => {
+        const box = (await meeting.boundingBox())!;
+        return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+      });
+      await page.touchscreen.tap(p.x, p.y);
+      await page.waitForTimeout(500);
+      await expect(page.getByTestId('sheet')).toHaveText('Meeting');
+    },
+  );
 
+  // Not tagged @touch: drives touch through CDP (`Input.dispatchTouchEvent`), which exists in
+  // Chromium only, so it cannot run in the webkit-tablet project.
   test('a horizontal swipe scrolls the time axis and does not page the week', async ({ page }) => {
     const scroller = page.locator('.coar-time-rows__scroller');
     const t = (await track(page, '2026-10-22').boundingBox())!;
