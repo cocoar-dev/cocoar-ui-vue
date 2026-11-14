@@ -240,7 +240,8 @@ function renderDeviceMatrix(target) {
 //   - a page-level <style> block goes
 //   - <preview path="…" /> and an imported <DemoComponent /> become the demo's source
 //   - <DeviceMatrix /> becomes the device tables of all component pages
-//   - <Badge text="…" /> becomes "(…)"
+//   - <PhoneFrame src="…" title="…" /> becomes a link to its demo in the mobile documentation
+//   - <Badge text="…" /> becomes "(…)"; attributes after a link (`{target="_self"}`) go
 //   - ::: containers become block quotes (code-group lines simply go)
 //   - site-absolute and page-relative links point at the sibling reference file, or the docs URL
 function transformBody(page, target) {
@@ -291,6 +292,17 @@ function transformBody(page, target) {
       continue;
     }
 
+    // <PhoneFrame src="form" title="…" /> (.vitepress/theme/PhoneFrame.vue): a demo of the mobile
+    // documentation (apps/docs/mobile) in a frame on the site; here a link to that demo.
+    const phoneFrame = line.match(/^\s*<PhoneFrame\s[^>]*\/>\s*$/);
+    if (phoneFrame) {
+      const src = line.match(/\bsrc="([^"]+)"/);
+      const title = line.match(/\btitle="([^"]+)"/);
+      if (!src || !title) fail(`${page.rel}: <PhoneFrame> needs src and title`);
+      out.push(`Live demo in phone size: [${title[1]}](${docsBaseUrl}/mobile/#/${src[1]})`);
+      continue;
+    }
+
     if (/^\s*<DeviceMatrix\s*\/>\s*$/.test(line)) {
       out.push(...renderDeviceMatrix(target));
       continue;
@@ -320,6 +332,8 @@ function transformBody(page, target) {
     }
 
     let text = line.replace(/\s*<Badge\s+[^>]*?text="([^"]+)"[^>]*\/>/g, ' ($1)');
+    // Attributes on a link (`[x](/y){target="_self"}`) are for the site only.
+    text = text.replace(/(\]\([^)\s]*\))\{[^}]*\}/g, '$1');
     text = rewriteLinks(text, page.rel, target);
 
     const stray = text.match(/<([A-Z]\w*)[\s/>]/);

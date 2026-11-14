@@ -17,6 +17,7 @@ import DemoPreview from './DemoPreview.vue';
 import LocaleSwitcher from './LocaleSwitcher.vue';
 import DeviceBadges from './DeviceBadges.vue';
 import DeviceMatrix from './DeviceMatrix.vue';
+import PhoneFrame from './PhoneFrame.vue';
 
 const localization = createCoarLocalization({ defaultLanguage: 'en-US' });
 
@@ -46,6 +47,7 @@ const theme: Theme = {
     app.component('demo-preview', DemoPreview);
     app.component('DeviceBadges', DeviceBadges);
     app.component('DeviceMatrix', DeviceMatrix);
+    app.component('PhoneFrame', PhoneFrame);
   },
 };
 
