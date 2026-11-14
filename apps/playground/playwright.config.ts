@@ -25,6 +25,8 @@ export default defineConfig({
     // viewport). Runs only the tests tagged `@touch`. Playwright's WebKit is not iOS Safari:
     // it proves the WebKit engine and its touch events, not iOS gestures or the soft keyboard.
     { name: 'webkit-tablet', use: { ...devices['iPad (gen 7)'] }, grep: /@touch/ },
+    // The same engine with a phone profile (390×664 viewport, touch, mobile). Runs only `@touch`.
+    { name: 'webkit-phone', use: { ...devices['iPhone 13'] }, grep: /@touch/ },
   ],
   webServer: {
     command: 'pnpm dev',

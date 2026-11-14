@@ -111,6 +111,10 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('./views/TouchLabView.vue'),
   },
   {
+    path: '/mobile-form',
+    component: () => import('./views/MobileFormView.vue'),
+  },
+  {
     path: '/date-or-time',
     component: () => import('./views/DateOrTimePickerView.vue'),
   },
