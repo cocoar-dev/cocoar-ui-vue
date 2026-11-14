@@ -60,6 +60,7 @@ export const VISUAL_HARNESS = [
   'apps/playground/src/visual/main.ts',
   'apps/playground/src/visual/VisualStoryView.vue',
   'apps/playground/src/visual/manifest.ts',
+  'apps/playground/src/visual/manifest.test.mjs',
   'apps/playground/src/visual/story.css',
   '.github/workflows/ci.yml',
   '.alta/skills/cocoar-pr/scripts/pr.mjs',

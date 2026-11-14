@@ -377,5 +377,14 @@
       "height": 900
     },
     "width": 1232
+  },
+  {
+    "name": "mobile-form-fields",
+    "capture": "page",
+    "modes": ["mobile"],
+    "viewport": {
+      "width": 390,
+      "height": 844
+    }
   }
 ]

@@ -4,7 +4,8 @@ Screenshots of components, compared pixel for pixel on every pull request (CI jo
 promise of the library: **what runs without `.coar-mobile` looks exactly as before.**
 
 Each story is photographed four times — default and `.coar-mobile`, light and dark — and four more times
-with an element focused by the keyboard when it has a `focus` option:
+with an element focused by the keyboard when it has a `focus` option (a story with `scope: "local"` or
+`modes: ["mobile"]` only in `.coar-mobile`, so half as many):
 
 ```
 visual/__screenshots__/<story>--default-light.png   <story>--default-dark.png
@@ -25,7 +26,9 @@ their own. **Existing stories are guarded too**, and so is **every file under `s
 shared module could bring its own CSS that undoes a component change and keep its images the same. So are the **existing entries of `src/visual/stories.json`**: a changed viewport, action
 or capture could stop an image from proving what it proves (a regression at one viewport, the story moved to
 another, same image names). `pr.mjs` compares the file at the pull request's base and head entry by entry; a changed
-or removed entry needs the same OK. Adding a story (a new file, a new entry, new baselines) needs none.
+or removed entry needs the same OK. So turning an existing story mobile-only (`modes: ["mobile"]`) needs it, and its
+`--default-` images, deleted, need `--accept-default-visual-change` too (kept, they fail the spec as baselines
+without a story). Adding a story (a new file, a new entry, new baselines) needs none.
 
 ## Run
 
@@ -112,8 +115,9 @@ plugin and host, localization, and nothing of the playground. `<html>` carries o
 | `"clock": "2026-03-10T09:00:00Z"` | Fixes `Date.now()` (and so `Temporal.Now` of the polyfill) before the page loads; timers keep running. Every story that shows "today" needs it. Locale (`en-US`) and time zone (`UTC`) are fixed for all stories; a zoned story names its zone itself (`time-zone="Europe/Vienna"`). |
 | `"focus": "<selector>"` | Adds four images `…-focus.png` with that element focused as keyboard focus (`:focus-visible` must match). The selector is a Playwright selector and must match exactly one element (`… >> nth=2`). The four plain images do not change. |
 | `"scope": "local"` | The story puts `coar-mobile` on its own container (the page fails without one). Only the mobile mode is photographed, and `<html>` gets no `coar-mobile`. Needs `capture: "page"`: a local scope is about what leaves the container. |
-| `"viewport": { "width": 1280, "height": 900 }` | Another viewport than 1024×768: width 1024–1920, height 768–1200. Not smaller: the 760px story root and its overlays need the room, and below 1024px the library's responsive typography (`max-width: 1023px`) leaves its desktop range, so a story could dodge the default presentation by shrinking the page. |
-| `"width": 1232` | The width of the story root in px instead of 760, for components that react to their own width (the calendar's container queries switch at 672 and 720 px). An integer from 760 to the viewport's width minus 16 (the page keeps the browser's 8 px body margin), so a wide root needs a `viewport`: 1232 needs at least 1248. |
+| `"modes": ["mobile"]` | Photographs the story only with `coar-mobile` on `<html>`: `<story>--mobile-<scheme>.png`, never a `--default-` image. The only value; without it a story takes both modes. Not with `scope: "local"`, which is mobile-only already. It is what allows a phone viewport (below). |
+| `"viewport": { "width": 1280, "height": 900 }` | Another viewport than 1024×768: width 1024–1920, height 768–1200. Not smaller: the 760px story root and its overlays need the room, and below 1024px the library's responsive typography (`max-width: 1023px`) leaves its desktop range, so a story could dodge the default presentation by shrinking the page. **A phone viewport**, width 320–480 and height 568–932 (`"width": 390, "height": 844`), only with `modes: ["mobile"]`: such a story has no default image a narrow page could change, so the promise holds. Its root is the viewport's width minus 16 (the body margins), and with `capture: "page"` nothing may scroll, as for every page capture. Nothing between 481 and 1023 px. |
+| `"width": 1232` | The width of the story root in px instead of 760, for components that react to their own width (the calendar's container queries switch at 672 and 720 px). An integer from 760 to the viewport's width minus 16 (the page keeps the browser's 8 px body margin), so a wide root needs a `viewport`: 1232 needs at least 1248. Not with a phone viewport. |
 
 Only these options and values are allowed: `manifest.ts` checks every entry when it loads, and the spec fails on
 anything else. Every image also asserts: nothing is hovered (the pointer never enters the page), and no element shows
@@ -129,6 +133,7 @@ entries); component styles come with the source, so a story never imports a buil
 | --- | --- |
 | `src/visual/stories.json` ‡ | The list of stories (data only), read by the view and by the spec. ‡ New entries pass the gate; a changed or removed existing entry needs the OK |
 | `src/visual/manifest.ts` † | Types, the run-time validation of every entry, helpers |
+| `src/visual/manifest.test.mjs` † | Unit tests of the validation, the modes, the baselines and the root width (no browser, no Docker). Part of `pnpm test` of the playground, so CI runs them in "Build, test & pack" |
 | `vite.visual.config.ts` † | The server of the visual page: the Vue plugin and source aliases only, dependency scan of `visual.html` only (so dependencies are pre-bundled), independent of the playground's `vite.config.ts` |
 | `visual.html` †, `src/visual/main.ts` † | The page: only what an app of the library sets up. The playground's own `main.ts` loads Monaco and a pdf.js worker (14 MB per page), which made 160 parallel captures crash |
 | `src/visual/VisualStoryView.vue` † | Route `#/visual/:story`: sets the classes on `<html>`, renders the story in `[data-visual-root]`, 760px wide by default or the entry's `width`, sets `data-visual-state="ready"` once mounted and the fonts are loaded |

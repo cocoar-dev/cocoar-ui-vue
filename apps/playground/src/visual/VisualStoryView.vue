@@ -12,7 +12,9 @@ import { markRaw, nextTick, onBeforeUnmount, ref, shallowRef, watch, type Compon
 import { useRoute } from 'vue-router';
 import {
   mobileOnHtml,
+  rootWidth,
   storyProblems,
+  storyRootWidth,
   visualModes,
   visualSchemes,
   visualStories,
@@ -32,7 +34,7 @@ const state = ref<'loading' | 'ready' | 'error'>('loading');
 const error = ref('');
 // `page` gives the page the library's background (story.css).
 const capture = ref<'root' | 'page'>('root');
-// `width` in stories.json; 760px (the stylesheet below) without it.
+// `width` in stories.json, or a phone viewport's width; 760px (the stylesheet below) without them.
 const width = ref<number | undefined>(undefined);
 
 const htmlClasses = { mobile: 'coar-mobile', dark: 'dark-mode' } as const;
@@ -72,7 +74,8 @@ async function load() {
 
   applyHtmlClasses(entry, mode, scheme);
   capture.value = entry.capture ?? 'root';
-  width.value = entry.width;
+  const w = storyRootWidth(entry);
+  width.value = w === rootWidth ? undefined : w;
   const component = markRaw((await loader()).default);
   if (id !== loadId) return;
   story.value = component;

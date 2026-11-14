@@ -55,7 +55,7 @@ When the maintainer asks to merge pull request `N`:
      and changed `--mobile-` baselines pass;
    - a pull request that modifies, removes or renames a file the visual comparison depends on (`VISUAL_HARNESS` in
      the script: the visual Playwright config, spec and warm-up, `visual.mjs`, the visual page (`visual.html`, its
-     `main.ts`) and its server configuration `vite.visual.config.ts`, the story view, `manifest.ts`, `story.css`,
+     `main.ts`) and its server configuration `vite.visual.config.ts`, the story view, `manifest.ts` and its tests, `story.css`,
      `ci.yml`, `pr.mjs`), or an existing story or another existing file under `apps/playground/src/visual/stories/`
      (files the stories share, such as `calendar-events.ts`, count too): a weakened comparison would pass changed
      components unseen;
