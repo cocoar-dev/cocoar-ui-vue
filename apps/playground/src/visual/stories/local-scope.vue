@@ -8,8 +8,8 @@ import { CoarButton, CoarPopover, CoarTextInput } from '@cocoar/vue-ui';
       .coar-mobile on a local container beside a desktop sibling; popover opened inside it
     </h2>
     <p style="margin: 0 0 16px; font-size: 12px">
-      Today's limit: the popover is teleported to body, so its button and input keep the desktop
-      presentation while the trigger it belongs to is mobile.
+      The popover is teleported to body and still takes the mobile presentation of the area it was
+      opened from: its button and input are mobile-sized like the trigger.
     </p>
     <div class="vs-row" style="align-items: flex-start; gap: 32px">
       <div style="width: 280px; align-items: stretch" class="vs-stack">
