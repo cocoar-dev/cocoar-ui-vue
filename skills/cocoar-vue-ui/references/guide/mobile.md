@@ -199,6 +199,16 @@ With `coar-mobile` on `html` or `body` there is nothing to do: the overlay sits
 inside it and inherits the tokens as before. Without `coar-mobile`, overlays are
 unchanged.
 
+### Dialogs as bottom sheets
+
+A dialog can open as a sheet docked to the bottom of the screen, with
+`presentation: 'sheet'` in `useDialog()` (Preview, see [Bottom sheet](../components/dialog.md#sheet)).
+The presentation is explicit, chosen per call, and never derived from `coar-mobile` or the
+window width: a dialog opened without it stays the centered dialog, also inside a
+`coar-mobile` area and on a narrow screen. Under `coar-mobile` the centered dialog keeps
+clear of the window edges and stacks its footer buttons in full width; without the class it
+looks as before.
+
 ### Where the area is found
 
 The overlay takes the nearest `.coar-mobile` ancestor of its context element.
@@ -359,7 +369,7 @@ are only being added, and testing on real devices remains the job of the app.
 
 | Page | Desktop | Tablet | Phone | Note |
 |---|---|---|---|---|
-| [Dialog](../components/dialog.md) | ready | ready | planned | Shrinks to the screen width on a phone; a sheet presentation for phones is planned. |
+| [Dialog](../components/dialog.md) | ready | ready | partial | On a phone use the bottom sheet (Preview); not yet checked on real devices, and Android's back button does not close it. |
 | [Popover](../components/popover.md) | ready | partial | planned | The default hover mode relies on emulated mouse events on touch; use mode 'click' or 'both'. |
 | [Popconfirm](../components/popconfirm.md) | ready | ready | planned | Opens on tap; touch-sized popovers for phones are planned. |
 | [Toast](../components/toast.md) | ready | ready | partial | Toasts are a fixed 380 px wide and overflow 360 px phone screens. |

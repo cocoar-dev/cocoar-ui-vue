@@ -186,6 +186,7 @@ export {
   selectPreset,
   hoverMenuPreset,
   dialogPreset,
+  sheetPreset,
   popconfirmPreset,
   popoverPreset,
   datepickerPreset,
@@ -244,8 +245,8 @@ export { CoarPopover } from './components/popover';
 export type { PopoverMode } from './components/popover';
 
 // Dialog
-export { useDialog, CoarDialogShell } from './components/dialog';
-export type { DialogConfig, DialogRef, DialogSize, ConfirmOptions } from './components/dialog';
+export { useDialog, CoarDialogShell, CoarDialogFooter } from './components/dialog';
+export type { DialogConfig, DialogRef, DialogSize, DialogPresentation, ConfirmOptions } from './components/dialog';
 
 // Menu
 export {

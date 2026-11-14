@@ -106,6 +106,15 @@
   --coar-dialog-border-radius: var(--coar-radius-l);
   --coar-dialog-background: var(--coar-background-neutral-primary);
 
+  /* Sheet (useDialog with presentation: 'sheet') — Preview */
+  --coar-sheet-border-radius: 16px;
+  --coar-sheet-padding: var(--coar-spacing-l);
+  --coar-sheet-top-gap: 24px;
+  --coar-sheet-handle-width: 36px;
+  --coar-sheet-handle-height: 4px;
+  --coar-sheet-handle-color: var(--coar-border-neutral-secondary);
+  --coar-sheet-handle-area-height: 20px;
+
   /* ==========================================================================
      TOAST
      ========================================================================== */

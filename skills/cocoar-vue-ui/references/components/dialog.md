@@ -2,7 +2,7 @@
 
 # Dialog
 
-**Devices:** desktop ready · tablet ready · phone planned — Shrinks to the screen width on a phone; a sheet presentation for phones is planned.
+**Devices:** desktop ready · tablet ready · phone partial — On a phone use the bottom sheet (Preview); not yet checked on real devices, and Android's back button does not close it.
 
 Modal dialogs demand attention. They block interaction with the rest of the page until the user makes a decision, making them the right choice for destructive actions, important confirmations, and messages that must be acknowledged before proceeding. Use them sparingly -- when the stakes are high enough to justify interrupting the user's flow.
 
@@ -95,6 +95,131 @@ function openAlert() {
 </script>
 ```
 
+## Bottom sheet (Preview) {#sheet}
+
+With `presentation: 'sheet'` a dialog opens as a sheet docked to the bottom of the screen,
+closer to the thumb on a phone. It works for `open`, `confirm` and `alert`:
+
+```ts
+dialog.open(EditContact, { title: 'Contact', presentation: 'sheet' });
+dialog.confirm({ title: 'Delete the entry?', message: '…', confirmVariant: 'danger', presentation: 'sheet' });
+dialog.alert('Saved', '…', { presentation: 'sheet' });
+```
+
+**Demo — `dialog/demos/SheetDialog.vue`**
+
+```vue
+<template>
+  <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+    <CoarButton variant="danger" icon-start="trash-2" @click="confirmDelete">Delete as sheet</CoarButton>
+    <CoarButton variant="secondary" @click="editContact">Edit contact as sheet</CoarButton>
+  </div>
+  <p style="margin-top: 8px; font-size: 13px; color: var(--coar-text-neutral-secondary);">
+    Last result: {{ lastResult || 'none' }}
+  </p>
+</template>
+
+<script setup lang="ts">
+import { defineComponent, h, ref } from 'vue';
+import { CoarButton, CoarDialogFooter, CoarFormField, CoarTextInput, useDialog } from '@cocoar/vue-ui';
+
+const dialog = useDialog();
+const lastResult = ref('');
+
+function confirmDelete() {
+  dialog.confirm({
+    title: 'Delete item?',
+    message: 'This action cannot be undone.',
+    confirmText: 'Delete',
+    cancelText: 'Keep',
+    confirmVariant: 'danger',
+    presentation: 'sheet',
+  }).result.then((confirmed) => {
+    lastResult.value = confirmed ? 'deleted' : 'kept';
+  });
+}
+
+// The body of the form sheet. In an app this is usually an SFC of its own; its buttons go into
+// <CoarDialogFooter> so they stay in the sheet's fixed footer while the fields scroll.
+const ContactForm = defineComponent({
+  props: { close: { type: Function, required: true } },
+  setup(props) {
+    const name = ref('Anna Berger');
+    const email = ref('anna@example.com');
+    const phone = ref('+43 1 234 567');
+    const field = (label: string, model: typeof name) =>
+      h(CoarFormField, { label }, () =>
+        h(CoarTextInput, { modelValue: model.value, 'onUpdate:modelValue': (v: string) => (model.value = v) }),
+      );
+    return () =>
+      h('div', { style: 'display: grid; gap: 16px;' }, [
+        field('Name', name),
+        field('E-mail', email),
+        field('Phone', phone),
+        h(CoarDialogFooter, null, () => [
+          h(CoarButton, { variant: 'secondary', onClick: () => props.close() }, () => 'Cancel'),
+          h(CoarButton, { onClick: () => props.close(name.value) }, () => 'Save'),
+        ]),
+      ]);
+  },
+});
+
+function editContact() {
+  dialog.open<string>(ContactForm, { title: 'Edit contact', presentation: 'sheet' }).result.then((saved) => {
+    lastResult.value = saved ? `saved ${saved}` : 'cancelled';
+  });
+}
+</script>
+```
+
+The presentation is chosen per call and never derived from `coar-mobile` or the window
+width: without `presentation` a dialog stays the centered dialog. Under `coar-mobile` the
+sheet's buttons and fields get the mobile sizes, like any other overlay.
+
+What the sheet does:
+
+- **Layout**: full width, rounded top corners, as high as its content and at most the visible
+  height minus 24 px. From a 640 px wide window on it keeps the width of its `size`,
+  centered. A drag handle and the header (title, close button) on top; the content scrolls
+  inside; the footer stays put.
+- **Buttons**: the footer buttons span the full width, stacked with the confirming one on top,
+  clear of the home indicator (`env(safe-area-inset-bottom)`).
+- **On-screen keyboard**: the sheet follows `window.visualViewport`. It sits above the keyboard,
+  shrinks with it, and the focused field is scrolled into the visible part.
+- **Page behind**: does not scroll while a sheet is open. The centered dialog does not lock the
+  page.
+- **Closing**: the close button, a tap on the backdrop, Escape, and dragging down — the same
+  switches as the dialog (`closeOnBackdropClick`, `closeOnEscape`, `showCloseButton`) plus
+  `dragToClose`.
+- **Drag**: only at the handle and the header, with finger, pen or mouse. Released after more
+  than 30 % of its height or with a flick down, it closes; otherwise it springs back. Dragging
+  the content scrolls it and never closes the sheet.
+- **Focus**: trapped inside and returned on close, `role="dialog"` with `aria-modal`, as in the
+  dialog. It slides in from below, without animation under `prefers-reduced-motion`.
+
+### `CoarDialogFooter` (Preview)
+
+The buttons of a body component opened with `dialog.open()` go into `<CoarDialogFooter>`. It
+moves them into the fixed footer of the dialog or sheet, so they stay visible while the content
+scrolls; in a sheet they get the full width and the safe-area spacing of the confirm buttons.
+Put the confirming button last. Outside a dialog or sheet it renders its content in place.
+
+```vue
+<script setup lang="ts">
+import { CoarButton, CoarDialogFooter } from '@cocoar/vue-ui';
+
+const props = defineProps<{ close: (result?: string) => void }>();
+</script>
+
+<template>
+  <!-- fields … -->
+  <CoarDialogFooter>
+    <CoarButton variant="secondary" @click="props.close()">Cancel</CoarButton>
+    <CoarButton @click="props.close('saved')">Save</CoarButton>
+  </CoarDialogFooter>
+</template>
+```
+
 ## Setup
 
 Register the overlay plugin once in your app entry point:
@@ -119,7 +244,7 @@ createApp(App)
 | Method | Parameters | Returns | Description |
 |--------|-----------|---------|-------------|
 | `dialog.confirm(options)` | `ConfirmOptions` | `DialogRef<boolean>` | Show a confirm/cancel dialog |
-| `dialog.alert(title, message, config?)` | `string, string, { context?: Element }?` | `DialogRef<void>` | Show an acknowledgement dialog. `config.context` (Preview): see [context](#context) |
+| `dialog.alert(title, message, config?)` | `string, string, { context?: Element, presentation?: DialogPresentation }?` | `DialogRef<void>` | Show an acknowledgement dialog. `config.context` and `config.presentation` (Preview): see [context](#context), [Bottom sheet](#sheet) |
 | `dialog.open(component, config?, props?)` | `Component, DialogConfig?, Record?` | `DialogRef<T>` | Open a custom component inside the dialog |
 
 ### `DialogConfig`
@@ -132,6 +257,8 @@ createApp(App)
 | `closeOnEscape` | `boolean` | `true` | Close on Escape |
 | `showCloseButton` | `boolean` | `true` | Show the close (×) button |
 | `context` (Preview) | `Element` | the calling component | Element the dialog belongs to, see [context](#context) |
+| `presentation` (Preview) | `'dialog' \| 'sheet'` | `'dialog'` | Centered dialog or [bottom sheet](#sheet). With `'sheet'`, `size` only caps the width from a 640 px window on |
+| `dragToClose` (Preview) | `boolean` | `closeOnBackdropClick` | Sheet only: whether dragging it down closes it |
 
 ### `ConfirmOptions`
 
@@ -144,6 +271,7 @@ createApp(App)
 | `confirmVariant` | `'primary' \| 'danger'` | `'primary'` | Confirm button color variant |
 | `size` | `'s' \| 'm' \| 'l'` | `'s'` | Dialog width |
 | `context` (Preview) | `Element` | the calling component | Element the dialog belongs to, see [context](#context) |
+| `presentation` (Preview) | `'dialog' \| 'sheet'` | `'dialog'` | Centered dialog or [bottom sheet](#sheet); a confirm sheet can always be dragged away |
 
 ### `DialogRef`
 

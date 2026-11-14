@@ -6,6 +6,7 @@ import CoarIcon from '../icon/CoarIcon.vue';
 import CoarButton from '../button/CoarButton.vue';
 import { vScrollbar } from '../scrollbar/vScrollbar';
 import { useFocusTrap } from '../_internal/useFocusTrap';
+import { provideDialogFooter } from './dialogFooter';
 
 const props = defineProps<{
   title: string;
@@ -35,6 +36,9 @@ const autoId = `coar-dialog-${crypto.randomUUID?.() ?? Date.now().toString(16)}`
 const titleId = `${autoId}-title`;
 
 useFocusTrap(dialogRef);
+
+// `CoarDialogFooter` of a body component: its buttons go into the footer element below.
+const { element: footerRef, used: footerUsed } = provideDialogFooter();
 
 function onClose(result?: unknown) {
   emit('close', result);
@@ -85,7 +89,7 @@ const BodyRenderer = computed(() => {
       <CoarButton :variant="confirmVariant" @click="onClose(true)">{{ confirmText }}</CoarButton>
     </div>
 
-    <div v-if="!confirmMode && $slots.footer" class="coar-dialog-footer">
+    <div v-if="!confirmMode && ($slots.footer || footerUsed)" ref="footerRef" class="coar-dialog-footer">
       <slot name="footer" />
     </div>
   </div>
@@ -169,6 +173,19 @@ const BodyRenderer = computed(() => {
   gap: var(--coar-spacing-s);
   padding: var(--coar-dialog-padding);
   padding-top: 0;
+}
+
+/* Mobile presentation only (the default look stays as it is): clear of the window edges,
+   full-width footer buttons with the confirming one (last in the markup) on top. 90vw is
+   the host's `maxWidth` of `dialogPreset`; a wider dialog would scroll sideways in it. */
+.coar-mobile .coar-dialog--s { width: min(var(--coar-dialog-s-width), 90vw); }
+.coar-mobile .coar-dialog--m { width: min(var(--coar-dialog-m-width), 90vw); }
+.coar-mobile .coar-dialog--l { width: min(var(--coar-dialog-l-width), 90vw); }
+.coar-mobile .coar-dialog--xl { width: min(var(--coar-dialog-xl-width), 90vw); }
+
+.coar-mobile .coar-dialog-footer {
+  flex-direction: column-reverse;
+  align-items: stretch;
 }
 
 @keyframes coar-dialog-scale-in {

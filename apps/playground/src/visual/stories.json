@@ -386,5 +386,31 @@
       "width": 390,
       "height": 844
     }
+  },
+  {
+    "name": "sheet-confirm",
+    "capture": "page",
+    "modes": ["mobile"],
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "open": {
+      "overlays": 1,
+      "focus": ".coar-sheet-footer .coar-button--secondary"
+    }
+  },
+  {
+    "name": "sheet-form",
+    "capture": "page",
+    "modes": ["mobile"],
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "open": {
+      "overlays": 1,
+      "focus": ".coar-sheet-close"
+    }
   }
 ]
