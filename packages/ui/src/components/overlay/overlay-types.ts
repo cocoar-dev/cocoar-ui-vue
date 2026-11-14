@@ -153,6 +153,7 @@ export const MOBILE_CONTEXT_TOKENS = [
   '--coar-control-min-size',
   '--coar-control-min-font-size',
   '--coar-control-min-target-size',
+  '--coar-control-row-min-height',
   '--coar-control-clear-opacity',
   '--coar-control-align-items',
 ] as const;

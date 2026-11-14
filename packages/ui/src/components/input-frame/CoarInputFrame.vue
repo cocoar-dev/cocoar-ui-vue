@@ -196,6 +196,21 @@ const hasActions = computed(() => !!slots.actions);
   font-size: var(--coar-component-l-font-size);
 }
 
+/* Mobile text floor for opted-in frames: a select's frame is its combobox and carries the
+   value text. Outside .coar-mobile the token is unset and each size keeps its font. */
+.coar-input-frame--mobile-sizing.coar-input-frame--xs {
+  font-size: max(var(--coar-component-xs-font-size), var(--coar-control-min-font-size, 0px));
+}
+.coar-input-frame--mobile-sizing.coar-input-frame--s {
+  font-size: max(var(--coar-component-s-font-size), var(--coar-control-min-font-size, 0px));
+}
+.coar-input-frame--mobile-sizing.coar-input-frame--m {
+  font-size: max(var(--coar-component-m-font-size), var(--coar-control-min-font-size, 0px));
+}
+.coar-input-frame--mobile-sizing.coar-input-frame--l {
+  font-size: max(var(--coar-component-l-font-size), var(--coar-control-min-font-size, 0px));
+}
+
 /* ── States ─────────────────────────────────────────────────────── */
 .coar-input-frame:hover:not(.coar-input-frame--disabled):not(.coar-input-frame--readonly):not(
     .coar-input-frame--error

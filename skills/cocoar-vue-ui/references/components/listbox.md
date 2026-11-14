@@ -2,7 +2,7 @@
 
 # Listbox
 
-**Devices:** desktop ready · tablet partial · phone planned — Multi-highlight needs Ctrl/Shift-click or keys; drag on touch needs dragEngine 'pointer' or 'auto'.
+**Devices:** desktop ready · tablet partial · phone partial — Rows touch-sized under .coar-mobile (Preview), not in virtual mode; multi-highlight needs Ctrl/Shift.
 
 A single-column list of selectable items with grouping, search, custom renderers, and multi-select highlighting. Use it as a form control (v-model of highlighted values), as a display-only roster, or as the foundation for [`CoarDualListbox`](./dual-listbox.md).
 

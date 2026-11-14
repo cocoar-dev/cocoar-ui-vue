@@ -101,8 +101,8 @@ the controls read these tokens in both modes.
 
 ## Supported controls
 
-This is the first mobile-controls increment, not a mobile redesign of the entire
-library.
+The adapted controls are what a form taps: fields, the rows that open from them, and
+the small controls around them. This is not a mobile redesign of the entire library.
 
 | Component | Mobile presentation |
 |-----------|---------------------|
@@ -113,6 +113,16 @@ library.
 | `CoarCheckbox` | At least 48×48px clickable label, without enlarging the indicator |
 | `CoarRadioButton` / `CoarRadioGroup` | At least 48×48px clickable option labels, without enlarging the indicators |
 | `CoarSwitch` | At least 48×48px clickable label, without enlarging the track |
+| `CoarSelect` / `CoarMultiSelect` | The field height scale and at least 16px text, a 44×44px clear target; options at least 44px tall with 16px text |
+| `CoarTagSelect` | The same field floors as a minimum height (the field still grows with its chips), 44×44px chip remove targets without enlarging the chips; options as above |
+| `CoarPlainDatePicker`, `CoarPlainDateTimePicker`, `CoarZonedDateTimePicker`, `CoarPlainDateTimeOrDatePicker`, `CoarZonedDateTimeOrDatePicker` | The field height scale and at least 16px editable text, 44×44px clear, calendar and time-zone targets; the panels keep their desktop layout |
+| `CoarMenu` / `CoarContextMenu` | Items and submenu triggers at least 44px tall with 16px text |
+| `CoarListbox` | Rows at least 44px tall with 16px text; in virtual mode the row height stays the `itemHeight` prop |
+| `CoarSegmentedControl` | The button height scale, at least 44px wide segments and 16px text |
+| `CoarTabGroup` | Tabs at least 44×44px with 16px text |
+| `CoarOtpInput` | Cells on the field height scale (square) with at least 16px text |
+| `CoarPagination` | Page and navigation buttons at least 44×44px with 16px text |
+| `CoarTag` | A 44×44px close target, without enlarging the tag |
 
 Text-input clear buttons also receive 44×44px targets. Clear buttons remain fully
 opaque without hover or focus when a value can be cleared; empty fields retain
@@ -128,8 +138,9 @@ of collapsing every size to one minimum:
 | `m` | 40px | 52px |
 | `l` | 48px | 56px |
 
-This scale applies to buttons and single-line text/password/number fields;
-textareas can grow taller. Larger custom component heights are preserved.
+This scale applies to buttons, segmented controls, OTP cells and the single-line
+fields (text, password, number, selects, date pickers); textareas and the tag select
+can grow taller. Larger custom component heights are preserved.
 The mobile input border is painted without taking layout space, so even an `xs`
 field can contain 44px actions under a global `box-sizing: border-box` reset.
 Rounded fields still have intentionally rounded hit regions.
@@ -147,9 +158,9 @@ outside a local mobile parent are unaffected.
 Overlays are teleported to `body`, outside a local mobile parent; the mode
 still reaches them, see [Overlays from a local area](#overlays).
 
-Date/time pickers, select panels, dialogs, OTP inputs, grids, and editors do not
-have dedicated mobile presentations in this increment. In particular,
-`CoarZonedDateTimePicker` does not yet switch to a sheet or a stepped mobile flow.
+The panels of date/time pickers, dialogs, grids, and editors do not have dedicated
+mobile presentations yet; select panels get touch-sized rows but stay dropdowns. In
+particular, no picker or select switches to a sheet or a stepped mobile flow.
 
 The class changes sizes only. A component without a mobile presentation keeps
 its own layout in both modes (see [Device support](#device-support)); adapted
@@ -168,8 +179,8 @@ computes for the mobile control tokens:
 
 `--coar-control-xs-height`, `--coar-control-s-height`, `--coar-control-m-height`,
 `--coar-control-l-height`, `--coar-control-min-size`, `--coar-control-min-font-size`,
-`--coar-control-min-target-size`, `--coar-control-clear-opacity`,
-`--coar-control-align-items`
+`--coar-control-min-target-size`, `--coar-control-row-min-height`,
+`--coar-control-clear-opacity`, `--coar-control-align-items`
 
 The values are read on the area itself, so brand rules (`.my-brand .coar-mobile`)
 and local overrides (`.my-form.coar-mobile`) reach the overlay too.
@@ -233,11 +244,14 @@ desktop size tokens. Applications can override them locally:
   --coar-control-l-height: 60px;
   --coar-control-min-font-size: 18px;
   --coar-control-min-target-size: 48px;
+  --coar-control-row-min-height: 48px;
 }
 ```
 
 `--coar-control-min-size` separately controls the minimum clickable label size
 for checkboxes, radios, and switches (48px by default).
+`--coar-control-row-min-height` is the minimum height of option, menu and listbox
+rows (44px by default).
 
 Leave enough horizontal room for the field and its actions, especially for
 password fields with both clear/reveal buttons and number fields with steppers.

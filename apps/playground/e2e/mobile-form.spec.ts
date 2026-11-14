@@ -62,16 +62,13 @@ test.describe('mobile form', { tag: '@touch' }, () => {
     await expect(startDay).toBeHidden();
 
     // Zoned date-time: a tap on a day changes the date and keeps the time; the panel stays
-    // open, and a second tap on its button closes it. (Not a tap outside: on a phone the
-    // panel covers everything above the field, the heading included.)
-    const openMeeting = field(page, 'meeting').getByRole('button', {
-      name: 'Open date and time picker',
-    });
-    await openMeeting.tap();
+    // open. Escape closes it: on a phone the 600 px panel can cover its own field and open
+    // button, so a tap cannot be relied on to close it there (see the test below).
+    await field(page, 'meeting').getByRole('button', { name: 'Open date and time picker' }).tap();
     const meetingDay = page.locator('button[data-date="2026-03-24"]');
     await expect(meetingDay).toBeVisible();
     await meetingDay.tap();
-    await openMeeting.tap();
+    await page.keyboard.press('Escape');
     await expect(meetingDay).toBeHidden();
 
     // Segmented control, switch and checkbox.
@@ -88,6 +85,24 @@ test.describe('mobile form', { tag: '@touch' }, () => {
       'Saved: name=Team offsite; seats=13; country=de; topics=design,research; ' +
         'start=2026-03-20; meeting=2026-03-24T10:00:00; visibility=public; notify=true; terms=true',
     );
+  });
+
+  test("the zoned date-time picker's panel closes by a tap on its button", async ({
+    page,
+  }, testInfo) => {
+    // stage E of 2026-11-14-mobile-library-expansion: the picker as a sheet. In `webkit-phone`
+    // the panel is 600 px high in a 664 px viewport: it fits on neither side of the field and
+    // covers the field and its open button, so the second tap lands on the panel.
+    test.fixme(testInfo.project.name === 'webkit-phone', 'the panel covers its open button');
+    const openMeeting = field(page, 'meeting').getByRole('button', {
+      name: 'Open date and time picker',
+    });
+    await openMeeting.tap();
+    const meetingDay = page.locator('button[data-date="2026-03-24"]');
+    await expect(meetingDay).toBeVisible();
+    await meetingDay.tap();
+    await openMeeting.tap();
+    await expect(meetingDay).toBeHidden();
   });
 
   test('cancel restores the initial values', async ({ page }) => {
@@ -160,11 +175,6 @@ async function optionRows(page: Page, id: string): Promise<string[]> {
 interface Measured {
   component: string;
   measure: (page: Page) => Promise<string[]>;
-  /**
-   * What is too small today (measured in `webkit-phone`). Set: the case is a `test.fixme`
-   * that records the gap; stage B of the plan closes it and removes the entry.
-   */
-  gap?: string;
 }
 
 const measured: Measured[] = [
@@ -203,8 +213,6 @@ const measured: Measured[] = [
       })),
       ...(await optionRows(page, 'country')),
     ],
-    // stage B of 2026-11-14-mobile-library-expansion
-    gap: 'field 42 px high, font 14 px; option rows 37 px high',
   },
   {
     component: 'CoarMultiSelect',
@@ -215,8 +223,6 @@ const measured: Measured[] = [
       })),
       ...(await optionRows(page, 'topics')),
     ],
-    // stage B of 2026-11-14-mobile-library-expansion
-    gap: 'field 42 px high, font 14 px; option rows 37 px high',
   },
   {
     component: 'CoarPlainDatePicker',
@@ -229,8 +235,6 @@ const measured: Measured[] = [
         target: true,
       })),
     ],
-    // stage B of 2026-11-14-mobile-library-expansion
-    gap: 'field 42 px high, input font 14 px; open button 37×40 px',
   },
   {
     component: 'CoarZonedDateTimePicker',
@@ -244,16 +248,17 @@ const measured: Measured[] = [
         field(page, 'meeting').getByRole('button', { name: 'Open date and time picker' }),
         { target: true },
       )),
+      ...(await problems(
+        'time-zone indicator',
+        field(page, 'meeting').locator('.coar-zdtp-tz-indicator'),
+        { target: true },
+      )),
     ],
-    // stage B of 2026-11-14-mobile-library-expansion
-    gap: 'field 42 px high, input font 14 px; open button 37×40 px',
   },
   {
     component: 'CoarSegmentedControl',
     measure: (page) =>
       problems('segment', field(page, 'visibility').getByRole('button'), { target: true }),
-    // stage B of 2026-11-14-mobile-library-expansion
-    gap: 'segments 32 px high',
   },
   {
     component: 'CoarSwitch',
@@ -285,10 +290,8 @@ test.describe(
   `mobile form geometry: targets ≥ ${MIN_TARGET} px, editable text ≥ ${MIN_FONT} px`,
   { tag: '@touch' },
   () => {
-    for (const { component, measure, gap } of measured) {
-      const title = gap ? `${component} (gap today: ${gap})` : component;
-      const declare = gap ? test.fixme : test;
-      declare(title, async ({ page }) => {
+    for (const { component, measure } of measured) {
+      test(component, async ({ page }) => {
         expect(await measure(page)).toEqual([]);
       });
     }

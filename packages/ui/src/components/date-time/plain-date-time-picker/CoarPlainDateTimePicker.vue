@@ -380,6 +380,7 @@ function onInputBlur() {
     <CoarInputFrame
       ref="triggerRef"
       class="coar-pdtp-trigger"
+      mobile-sizing
       :size="size"
       :error="hasError"
       :disabled="isDisabled"
@@ -461,7 +462,7 @@ function onInputBlur() {
   border: none;
   background: transparent;
   font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-body-small-base-size);
+  font-size: max(var(--coar-body-small-base-size), var(--coar-control-min-font-size, 0px));
   font-weight: var(--coar-body-small-base-weight);
   color: var(--coar-text-neutral-primary);
   outline: none;
@@ -481,13 +482,13 @@ function onInputBlur() {
 }
 
 .coar-pdtp--xs .coar-pdtp-input {
-  font-size: var(--coar-component-xs-font-size);
+  font-size: max(var(--coar-component-xs-font-size), var(--coar-control-min-font-size, 0px));
 }
 .coar-pdtp--s .coar-pdtp-input {
-  font-size: var(--coar-component-s-font-size);
+  font-size: max(var(--coar-component-s-font-size), var(--coar-control-min-font-size, 0px));
 }
 .coar-pdtp--l .coar-pdtp-input {
-  font-size: var(--coar-component-l-font-size);
+  font-size: max(var(--coar-component-l-font-size), var(--coar-control-min-font-size, 0px));
 }
 
 /* Clear */
@@ -496,6 +497,8 @@ function onInputBlur() {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  min-width: var(--coar-control-min-target-size, auto);
+  min-height: var(--coar-control-min-target-size, auto);
   background: none;
   border: none;
   padding: 0;
@@ -504,7 +507,7 @@ function onInputBlur() {
   transition:
     color var(--coar-duration-fast) var(--coar-ease-out),
     opacity var(--coar-duration-fast) var(--coar-ease-out);
-  opacity: 0.4;
+  opacity: var(--coar-control-clear-opacity, 0.4);
 }
 
 .coar-pdtp-clear--hidden {

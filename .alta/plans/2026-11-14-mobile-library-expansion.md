@@ -160,23 +160,29 @@ ist – ihre API ist öffentlich und soll von dir gesehen werden, bevor sie geba
       (`viewportLimits`, `rootWidth`), damit eine Geschichte der Standard-Darstellung nicht ausweichen kann. Handy-Bilder
       brauchen also eine Änderung am Vergleich selbst, in einem eigenen PR. Vorschlag: schmale Viewports nur für
       Geschichten, die ausschließlich die Mobil-Darstellung fotografieren. Etappe A geht ohne Bilder in den PR.
-- [ ] 5. Prüfen, PR, CI.
+- [x] 5. Prüfen, PR, CI. (#56; die Kerne der einfachen Picker aus Schritt 16 sind als #55 vorgezogen und gemergt.)
+
+**Doku · Handy-Rahmen** (`docs`, eigener PR, parallel zu B)
+
+- [ ] 5a. `PhoneFrame.vue` im Doku-Theme: ein iframe in Handy-Größe (390×844), in dem eine Demo als eigene Seite läuft –
+      nur so docken Blätter am Rand des Rahmens an und bleiben teleportierte Overlays darin. Umschalter hell/dunkel,
+      Link „in eigenem Tab“. Erste Demo: das Formular im Mobil-Leitfaden. Die Etappen B bis E zeigen ihre Ergebnisse darin.
 
 **B · Controls durchgängig** (`feat(ui)`, Branch `feat/mobile-controls-everywhere`)
 
-- [ ] 6. Token `--coar-control-row-min-height` in `mobile.css` und `MOBILE_CONTEXT_TOKENS` (`overlay-types.ts`); der
+- [x] 6. Token `--coar-control-row-min-height` in `mobile.css` und `MOBILE_CONTEXT_TOKENS` (`overlay-types.ts`); der
       bestehende Test hält beide Listen gleich.
-- [ ] 7. `mobile-sizing` an den Feldern von `CoarSelect`, `CoarMultiSelect`, `CoarTagSelect`, `CoarPlainDatePicker`,
+- [x] 7. `mobile-sizing` an den Feldern von `CoarSelect`, `CoarMultiSelect`, `CoarTagSelect`, `CoarPlainDatePicker`,
       `CoarPlainDateTimePicker`, `CoarZonedDateTimePicker`; Löschen- und Aufklapp-Ziele auf 44 px.
-- [ ] 8. Zeilenhöhe über das Token in `CoarSelectDropdownPanel.vue` (und den beiden anderen Panels), `CoarMenuItem.vue`,
+- [x] 8. Zeilenhöhe über das Token in `CoarSelectDropdownPanel.vue` (und den beiden anderen Panels), `CoarMenuItem.vue`,
       `CoarListbox.vue`.
-- [ ] 9. Höhenskala unter `.coar-mobile` für `CoarSegmentedControl`, `CoarTabGroup`/`CoarTab`, `CoarOtpInput`,
+- [x] 9. Höhenskala unter `.coar-mobile` für `CoarSegmentedControl`, `CoarTabGroup`/`CoarTab`, `CoarOtpInput`,
       `CoarPagination`; Schließen-Ziel von `CoarTag`.
-- [ ] 10. Unit-Tests je Komponente nach dem Muster der sieben Controls; `e2e/mobile-controls.spec.ts` um die neuen
+- [x] 10. Unit-Tests je Komponente nach dem Muster der sieben Controls; `e2e/mobile-controls.spec.ts` um die neuen
       Komponenten erweitern (Geometrie ≥ 44 px, Schrift ≥ 16 px); die `test.fixme` aus Schritt 3 auflösen.
-- [ ] 11. Bilder: `visual.mjs` muss alle `--default-`-Bilder grün zeigen; geänderte `--mobile-`-Bilder mit `--update`
+- [x] 11. Bilder: `visual.mjs` muss alle `--default-`-Bilder grün zeigen; geänderte `--mobile-`-Bilder mit `--update`
       übernehmen und im PR auflisten.
-- [ ] 12. Doku: „Supported controls“ in `guide/mobile.md`, `devices`-Zeilen und Notizen der betroffenen Seiten,
+- [x] 12. Doku: „Supported controls“ in `guide/mobile.md`, `devices`-Zeilen und Notizen der betroffenen Seiten,
       `pnpm skill:sync`.
 - [ ] 13. Prüfen, eine Gegenprüfung, PR, CI.
 

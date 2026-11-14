@@ -2,7 +2,7 @@
 
 # Date Picker
 
-**Devices:** desktop ready · tablet ready · phone planned — A phone presentation (sheet) is planned.
+**Devices:** desktop ready · tablet ready · phone partial — Mobile field sizes under .coar-mobile (Preview); the panel keeps its desktop layout, a phone sheet is planned.
 
 A calendar-backed date picker that returns a `Temporal.PlainDate` -- a date without time or timezone. Perfect for birthdays, deadlines, due dates, and any scenario where "which day" is all that matters.
 

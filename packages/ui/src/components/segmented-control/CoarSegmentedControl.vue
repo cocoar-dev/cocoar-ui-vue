@@ -133,6 +133,8 @@ const hostClasses = computed(() => [
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  /* Mobile (.coar-mobile): a 44px target for icon-only segments; `auto` outside. */
+  min-width: var(--coar-control-min-target-size, auto);
   gap: 0.375rem;
   background: transparent;
   border: none;
@@ -150,26 +152,26 @@ const hostClasses = computed(() => [
   border-right: none;
 }
 
-/* Sizes — heights / paddings / font-sizes match CoarButton. */
+/* Sizes — heights / paddings / font-sizes match CoarButton, also its mobile scale. */
 .coar-segmented-control--xs .coar-segmented-control__segment {
-  height: var(--coar-component-xs-height);
+  height: max(var(--coar-component-xs-height), var(--coar-control-xs-height, 0px));
   padding: 0 10px;
-  font-size: var(--coar-component-xs-font-size);
+  font-size: max(var(--coar-component-xs-font-size), var(--coar-control-min-font-size, 0px));
 }
 .coar-segmented-control--s .coar-segmented-control__segment {
-  height: var(--coar-component-s-height);
+  height: max(var(--coar-component-s-height), var(--coar-control-s-height, 0px));
   padding: 0 12px;
-  font-size: var(--coar-component-s-font-size);
+  font-size: max(var(--coar-component-s-font-size), var(--coar-control-min-font-size, 0px));
 }
 .coar-segmented-control--m .coar-segmented-control__segment {
-  height: var(--coar-component-m-height);
+  height: max(var(--coar-component-m-height), var(--coar-control-m-height, 0px));
   padding: 0 var(--coar-spacing-m);
-  font-size: var(--coar-component-m-font-size);
+  font-size: max(var(--coar-component-m-font-size), var(--coar-control-min-font-size, 0px));
 }
 .coar-segmented-control--l .coar-segmented-control__segment {
-  height: var(--coar-component-l-height);
+  height: max(var(--coar-component-l-height), var(--coar-control-l-height, 0px));
   padding: 0 var(--coar-spacing-l);
-  font-size: var(--coar-component-l-font-size);
+  font-size: max(var(--coar-component-l-font-size), var(--coar-control-min-font-size, 0px));
 }
 
 .coar-segmented-control__segment:hover:not(:disabled):not(.coar-segmented-control__segment--active) {

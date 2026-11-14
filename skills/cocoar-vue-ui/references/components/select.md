@@ -2,7 +2,7 @@
 
 # Select
 
-**Devices:** desktop ready · tablet ready · phone planned — A phone presentation (sheet) is planned.
+**Devices:** desktop ready · tablet ready · phone partial — Mobile field and option sizes under .coar-mobile (Preview); the panel stays a dropdown, a phone sheet is planned.
 
 Select components for single and multiple value selection. Choose between Single Select, Multi Select, or Tag Select variants.
 

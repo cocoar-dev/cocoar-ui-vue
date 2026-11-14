@@ -1,7 +1,7 @@
 ---
 description: "CoarSelect, CoarMultiSelect and CoarTagSelect — dropdown selection with inline search, clearable state, option groups, sorting and form-field integration"
-devices: { desktop: ready, tablet: ready, phone: planned }
-devicesNote: "A phone presentation (sheet) is planned."
+devices: { desktop: ready, tablet: ready, phone: partial }
+devicesNote: "Mobile field and option sizes under .coar-mobile (Preview); the panel stays a dropdown, a phone sheet is planned."
 ---
 
 # Select

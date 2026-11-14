@@ -12,6 +12,8 @@
   --coar-control-min-size: 48px;
   --coar-control-min-font-size: 16px;
   --coar-control-min-target-size: 44px;
+  /* Rows that a finger picks from a list: options, menu items. */
+  --coar-control-row-min-height: 44px;
   --coar-control-clear-opacity: 1;
   --coar-control-align-items: center;
 }

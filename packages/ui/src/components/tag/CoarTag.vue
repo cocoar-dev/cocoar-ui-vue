@@ -160,6 +160,20 @@ function onClose(event: MouseEvent): void {
 
 .coar-tag__close:hover { opacity: 1; }
 
+/* Mobile (.coar-mobile): a 44px hit area centred on the icon; the tag keeps its size. */
+.coar-mobile .coar-tag__close {
+  position: relative;
+}
+.coar-mobile .coar-tag__close::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--coar-control-min-target-size);
+  height: var(--coar-control-min-target-size);
+  transform: translate(-50%, -50%);
+}
+
 .coar-tag__close:focus-visible {
   outline: var(--coar-focus-width) var(--coar-focus-style) var(--coar-focus-color);
   outline-offset: 1px;

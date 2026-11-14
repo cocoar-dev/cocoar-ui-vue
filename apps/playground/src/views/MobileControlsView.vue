@@ -1,17 +1,34 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import { Temporal } from '@js-temporal/polyfill';
 import {
   CoarButton,
   CoarCheckbox,
   CoarFormField,
+  CoarListbox,
+  CoarMenu,
+  CoarMenuItem,
+  CoarMultiSelect,
   CoarNumberInput,
+  CoarOtpInput,
+  CoarPagination,
   CoarPasswordInput,
+  CoarPlainDatePicker,
+  CoarPlainDateTimePicker,
   CoarPopover,
   CoarRadioButton,
   CoarRadioGroup,
+  CoarSegmentedControl,
+  CoarSelect,
+  CoarSubExpand,
   CoarSwitch,
+  CoarTab,
+  CoarTabGroup,
+  CoarTag,
+  CoarTagSelect,
   CoarTextInput,
   CoarThemeScope,
+  CoarZonedDateTimePicker,
 } from '@cocoar/vue-ui';
 
 const mobile = ref(true);
@@ -28,8 +45,27 @@ const controls = ref(
     number: 1 as number | null,
     checked: false,
     enabled: false,
+    country: 'at' as string | null,
+    date: Temporal.PlainDate.from('2026-11-14') as Temporal.PlainDate | null,
+    view: 'day',
+    code: '12',
   })),
 );
+const countries = [
+  { value: 'at', label: 'Austria' },
+  { value: 'de', label: 'Germany' },
+  { value: 'ch', label: 'Switzerland' },
+];
+const views = [
+  { value: 'day', label: 'Day' },
+  { value: 'week', label: 'Week' },
+];
+const languages = ref<string[]>(['at', 'de']);
+const tags = ref<string[]>(['at', 'de']);
+const listed = ref<string[]>([]);
+const activeTab = ref('general');
+const page = ref(2);
+const tagCloses = ref(0);
 </script>
 
 <template>
@@ -45,6 +81,7 @@ const controls = ref(
       <h2>Unchanged desktop sibling (xs)</h2>
       <CoarButton size="xs">Desktop</CoarButton>
       <CoarTextInput size="xs" placeholder="Desktop input" />
+      <CoarSelect size="xs" :options="countries" placeholder="Desktop select" />
     </section>
 
     <section data-testid="desktop-popover">
@@ -88,6 +125,24 @@ const controls = ref(
               clearable
             />
           </CoarFormField>
+          <CoarFormField label="Country">
+            <CoarSelect
+              v-model="control.country"
+              :options="countries"
+              :size="control.size"
+              clearable
+            />
+          </CoarFormField>
+          <CoarFormField label="Start date">
+            <CoarPlainDatePicker v-model="control.date" :size="control.size" clearable />
+          </CoarFormField>
+          <CoarSegmentedControl
+            v-model="control.view"
+            :options="views"
+            :size="control.size"
+            aria-label="View"
+          />
+          <CoarOtpInput v-model="control.code" :size="control.size" :length="4" />
           <CoarCheckbox v-model="control.checked" :size="control.size">Accept</CoarCheckbox>
           <CoarSwitch v-model="control.enabled" :size="control.size">Enable</CoarSwitch>
           <CoarRadioGroup :name="`choice-${control.size}`" :size="control.size" label="Choice">
@@ -116,6 +171,38 @@ const controls = ref(
               <span class="sr-only">Only option</span>
             </CoarRadioButton>
           </CoarRadioGroup>
+        </section>
+
+        <section data-testid="rows-and-small-controls">
+          <h2>Selects, pickers, rows and small controls</h2>
+          <CoarFormField label="Languages">
+            <CoarMultiSelect v-model="languages" :options="countries" clearable />
+          </CoarFormField>
+          <CoarFormField label="Regions">
+            <CoarTagSelect v-model="tags" :options="countries" />
+          </CoarFormField>
+          <CoarFormField label="Meeting">
+            <CoarPlainDateTimePicker />
+          </CoarFormField>
+          <CoarFormField label="Call">
+            <CoarZonedDateTimePicker />
+          </CoarFormField>
+          <CoarTabGroup v-model="activeTab">
+            <CoarTab id="general">General<template #content>General settings</template></CoarTab>
+            <CoarTab id="advanced">Advanced<template #content>Advanced settings</template></CoarTab>
+          </CoarTabGroup>
+          <CoarPagination v-model="page" :total-items="50" />
+          <div>
+            <CoarTag closable @closed="tagCloses++">Austria</CoarTag>
+            <output data-testid="tag-closes">{{ tagCloses }}</output>
+          </div>
+          <CoarListbox v-model="listed" :options="countries" label="Countries" />
+          <CoarMenu>
+            <CoarMenuItem icon="user" label="Profile" />
+            <CoarSubExpand label="More">
+              <CoarMenuItem label="Archive" />
+            </CoarSubExpand>
+          </CoarMenu>
         </section>
 
         <section data-testid="mobile-popover">

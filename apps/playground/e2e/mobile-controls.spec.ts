@@ -1,4 +1,4 @@
-import { expect, test, type Locator } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 
 // Geometry must be checked in a browser, not happy-dom. Touch is enabled even
 // with a desktop-sized viewport: .coar-mobile is explicit, not a device query.
@@ -244,3 +244,141 @@ test('touch, mouse, keyboard and non-editable semantics are preserved', { tag: '
   await extras.locator('.coar-text-input-clear').tap({ position: { x: 3, y: 3 } });
   await expect(extras.locator('textarea')).toHaveValue('');
 });
+
+async function expectFont(target: Locator, minimum = 16) {
+  const fontSize = await target.evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+  expect(fontSize).toBeGreaterThanOrEqual(minimum);
+}
+
+/** Taps a point off the visible icon, still inside its 44px hit area. */
+async function tapBeside(page: Page, target: Locator) {
+  await target.scrollIntoViewIfNeeded();
+  const box = (await target.boundingBox())!;
+  await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2 + 16);
+}
+
+test(
+  'selects, date pickers, segmented controls and OTP cells take the size scale',
+  { tag: '@touch' },
+  async ({ page }) => {
+    for (const size of sizes) {
+      const row = page.locator(`[data-size="${size}"]`);
+      for (const target of await row
+        .locator('.coar-select-clear, .coar-plain-date-picker-clear, .coar-input-frame-button')
+        .all()) {
+        await expectTarget(target);
+      }
+      await expectFont(row.locator('.coar-select-value'));
+      for (const segment of await row.locator('.coar-segmented-control__segment').all()) {
+        await expectTarget(segment);
+        await expect(segment).toHaveCSS('height', `${mobileHeights[size]}px`);
+        await expectFont(segment);
+      }
+      for (const cell of await row.locator('.coar-otp-input__cell').all()) {
+        await expect(cell).toHaveCSS('height', `${mobileHeights[size]}px`);
+        await expect(cell).toHaveCSS('width', `${mobileHeights[size]}px`);
+        await expectFont(cell);
+      }
+      await expect(row.locator('.coar-select-clear')).toHaveCSS('opacity', '1');
+    }
+  },
+);
+
+test('rows and small controls reach 44px targets', { tag: '@touch' }, async ({ page }) => {
+  const area = page.getByTestId('rows-and-small-controls');
+  for (const frame of await area.locator('.coar-input-frame').all()) {
+    const box = (await frame.boundingBox())!;
+    expect(box.height).toBeGreaterThanOrEqual(mobileHeights.m);
+  }
+  for (const target of await area
+    .locator(
+      [
+        '.coar-select-clear',
+        '.coar-input-frame-button',
+        '.coar-zdtp-tz-indicator',
+        '.coar-tab-button',
+        '.coar-pagination-button',
+      ].join(', '),
+    )
+    .all()) {
+    await expectTarget(target);
+  }
+  for (const row of await area
+    .locator('.coar-listbox-item, .coar-menu-item, .coar-sub-expand')
+    .all()) {
+    const box = (await row.boundingBox())!;
+    expect(box.height).toBeGreaterThanOrEqual(44);
+    await expectFont(row);
+  }
+  await expectFont(area.locator('.coar-tab-button').first());
+  await expectFont(area.locator('.coar-pagination-button--active'));
+});
+
+test(
+  'tag and chip remove targets grow without enlarging the tag',
+  { tag: '@touch' },
+  async ({ page }) => {
+    const area = page.getByTestId('rows-and-small-controls');
+    const tag = area.locator('.coar-tag');
+    expect((await tag.boundingBox())!.height).toBeLessThan(44);
+    await tapBeside(page, area.locator('.coar-tag__close'));
+    await expect(page.getByTestId('tag-closes')).toHaveText('1');
+
+    const chips = area.locator('.coar-tag-select-tag');
+    await expect(chips).toHaveCount(2);
+    expect((await chips.first().boundingBox())!.height).toBeLessThan(44);
+    await tapBeside(page, chips.last().locator('.coar-tag-select-tag-remove'));
+    await expect(chips).toHaveCount(1);
+  },
+);
+
+test(
+  'select options opened from the local area are touch-sized rows',
+  { tag: '@touch' },
+  async ({ page }) => {
+    await page.locator('[data-size="xs"] .coar-select-trigger').tap();
+    const host = page.locator('.coar-overlay-host');
+    const option = host.getByRole('option', { name: 'Germany', exact: true });
+    await expect(option).toBeVisible();
+    await expect(host).toHaveClass(/\bcoar-mobile\b/);
+    expect((await option.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    await expectFont(option);
+    await option.tap();
+    await expect(page.locator('[data-size="xs"] .coar-select-value')).toHaveText('Germany');
+  },
+);
+
+test(
+  'the new controls keep their desktop sizes without the class',
+  { tag: '@touch' },
+  async ({ page }) => {
+    await expect(page.getByTestId('desktop-sibling').locator('.coar-select-frame')).toHaveCSS(
+      'height',
+      '27px',
+    );
+    await page.getByLabel('Mobile presentation', { exact: true }).uncheck();
+    for (const size of sizes) {
+      const row = page.locator(`[data-size="${size}"]`);
+      await expect(row.locator('.coar-select-frame')).toHaveCSS(
+        'height',
+        `${desktopHeights[size]}px`,
+      );
+      await expect(row.locator('.coar-segmented-control__segment').first()).toHaveCSS(
+        'height',
+        `${desktopHeights[size]}px`,
+      );
+      await expect(row.locator('.coar-otp-input__cell').first()).toHaveCSS(
+        'height',
+        `${desktopHeights[size]}px`,
+      );
+      await expect(row.locator('.coar-select-value')).toHaveCSS(
+        'font-size',
+        `${desktopFonts[size]}px`,
+      );
+    }
+    const area = page.getByTestId('rows-and-small-controls');
+    await expect(area.locator('.coar-pagination-button--active')).toHaveCSS('height', '32px');
+    const item = (await area.locator('.coar-menu-item').first().boundingBox())!;
+    expect(item.height).toBeLessThan(44);
+  },
+);

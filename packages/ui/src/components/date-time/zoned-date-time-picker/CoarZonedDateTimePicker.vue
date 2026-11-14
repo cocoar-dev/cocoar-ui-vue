@@ -329,6 +329,7 @@ const tzIndicatorIcon = computed(() => {
       :aria-controls="pickerBase.isOpen.value ? panelId : undefined"
       :aria-invalid="hasError || undefined"
       class="coar-zdtp-trigger"
+      mobile-sizing
       :size="size"
       :error="hasError"
       :disabled="isDisabled"
@@ -454,6 +455,8 @@ const tzIndicatorIcon = computed(() => {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  min-width: var(--coar-control-min-target-size, auto);
+  min-height: var(--coar-control-min-target-size, auto);
   background: none;
   border: none;
   padding: 0;
@@ -462,7 +465,7 @@ const tzIndicatorIcon = computed(() => {
   transition:
     color var(--coar-duration-fast) var(--coar-ease-out),
     opacity var(--coar-duration-fast) var(--coar-ease-out);
-  opacity: 0.4;
+  opacity: var(--coar-control-clear-opacity, 0.4);
 }
 
 .coar-zdtp-clear--hidden {
@@ -492,7 +495,7 @@ const tzIndicatorIcon = computed(() => {
   outline: none;
   padding: 0;
   font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-body-small-base-size);
+  font-size: max(var(--coar-body-small-base-size), var(--coar-control-min-font-size, 0px));
   font-weight: var(--coar-body-small-base-weight);
   color: var(--coar-text-neutral-primary);
   text-align: right;
@@ -546,6 +549,9 @@ const tzIndicatorIcon = computed(() => {
   align-items: center;
   justify-content: center;
   width: 28px;
+  /* Mobile (.coar-mobile): a 44px target around the unchanged icon; `auto` outside. */
+  min-width: var(--coar-control-min-target-size, auto);
+  min-height: var(--coar-control-min-target-size, auto);
   height: 100%;
   flex-shrink: 0;
   background: none;
@@ -572,12 +578,34 @@ const tzIndicatorIcon = computed(() => {
    SIZE VARIANTS (font only — box height/scale come from the frame's size prop)
    ======================================== */
 
-.coar-zdtp--xs .coar-zdtp-input { font-size: var(--coar-component-xs-font-size); }
-.coar-zdtp--s .coar-zdtp-input { font-size: var(--coar-component-s-font-size); }
-.coar-zdtp--l .coar-zdtp-input { font-size: var(--coar-component-l-font-size); }
+.coar-zdtp--xs .coar-zdtp-input { font-size: max(var(--coar-component-xs-font-size), var(--coar-control-min-font-size, 0px)); }
+.coar-zdtp--s .coar-zdtp-input { font-size: max(var(--coar-component-s-font-size), var(--coar-control-min-font-size, 0px)); }
+.coar-zdtp--l .coar-zdtp-input { font-size: max(var(--coar-component-l-font-size), var(--coar-control-min-font-size, 0px)); }
 
 /* Per-size calendar-button metrics for the TZ-caption anchor (mirrors the frame). */
 .coar-zdtp--xs { --coar-zdtp-scale: var(--coar-component-xs-scale); --coar-zdtp-height: var(--coar-component-xs-height); }
 .coar-zdtp--s { --coar-zdtp-scale: var(--coar-component-s-scale); --coar-zdtp-height: var(--coar-component-s-height); }
 .coar-zdtp--l { --coar-zdtp-scale: var(--coar-component-l-scale); --coar-zdtp-height: var(--coar-component-l-height); }
+
+/* Mobile (.coar-mobile): the frame takes the mobile height, paints its border inside
+   (no 1px frame border on the right) and the calendar button is at least a 44px
+   target. Re-anchor the caption to that button. */
+.coar-mobile .coar-zdtp { --coar-zdtp-height: max(var(--coar-component-m-height), var(--coar-control-m-height, 0px)); }
+.coar-mobile .coar-zdtp--xs { --coar-zdtp-height: max(var(--coar-component-xs-height), var(--coar-control-xs-height, 0px)); }
+.coar-mobile .coar-zdtp--s { --coar-zdtp-height: max(var(--coar-component-s-height), var(--coar-control-s-height, 0px)); }
+.coar-mobile .coar-zdtp--l { --coar-zdtp-height: max(var(--coar-component-l-height), var(--coar-control-l-height, 0px)); }
+.coar-mobile .coar-zdtp-tz-inline {
+  right: max(
+    calc(
+      var(--coar-spacing-s) * var(--coar-zdtp-scale)
+      + 16px
+      + max(
+        calc(var(--coar-field-padding-x) * var(--coar-zdtp-scale) * var(--coar-component-density, 1)),
+        min(var(--coar-input-radius), calc(var(--coar-zdtp-height) / 2))
+      )
+      + 1px
+    ),
+    var(--coar-control-min-target-size, 0px)
+  );
+}
 </style>
