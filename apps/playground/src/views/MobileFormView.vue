@@ -4,7 +4,9 @@
  * (`.coar-mobile` on its own root, so it works without the class on `<html>`). It is the
  * yardstick of the mobile expansion (`.alta/plans/2026-11-14-mobile-library-expansion.md`):
  * what still looks like desktop here is open. `e2e/mobile-form.spec.ts` operates every field
- * by tap and measures tap targets and font sizes.
+ * by tap and measures tap targets and font sizes. "Delete" confirms in a bottom sheet, "Edit
+ * details" opens a form sheet taller than a phone screen; `e2e/mobile-sheet.spec.ts` operates
+ * both.
  */
 import { ref } from 'vue';
 import { Temporal } from '@js-temporal/polyfill';
@@ -22,6 +24,7 @@ import {
   CoarZonedDateTimePicker,
   useDialog,
 } from '@cocoar/vue-ui';
+import MobileFormDetailsSheet, { type EventDetails } from './MobileFormDetailsSheet.vue';
 
 const countries = [
   { value: 'at', label: 'Austria' },
@@ -94,8 +97,33 @@ async function remove() {
     confirmText: 'Delete',
     cancelText: 'Keep',
     confirmVariant: 'danger',
+    presentation: 'sheet',
   }).result;
   status.value = confirmed ? 'Deleted' : 'Kept';
+}
+
+const details = ref<EventDetails>({
+  organizer: 'Anna Berger',
+  email: 'anna@example.com',
+  phone: '+43 1 234 567',
+  venue: 'Conference centre',
+  street: 'Ringstrasse 1',
+  postcode: '1010',
+  city: 'Vienna',
+  room: 'Hall B',
+  catering: 'Lunch',
+  notes: '',
+});
+
+async function editDetails() {
+  status.value = 'Editing details';
+  const edited = await dialog.open<EventDetails>(
+    MobileFormDetailsSheet,
+    { title: 'Edit details', presentation: 'sheet' },
+    { details: details.value },
+  ).result;
+  if (edited) details.value = edited;
+  status.value = edited ? `Details saved: ${edited.organizer}, ${edited.city}` : 'Details kept';
 }
 </script>
 
@@ -161,6 +189,9 @@ async function remove() {
         <CoarButton type="submit" data-testid="action-save">Save</CoarButton>
         <CoarButton variant="secondary" data-testid="action-cancel" @click="cancel">
           Cancel
+        </CoarButton>
+        <CoarButton variant="secondary" data-testid="action-details" @click="editDetails">
+          Edit details
         </CoarButton>
         <CoarButton variant="danger" data-testid="action-delete" @click="remove">
           Delete

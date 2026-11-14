@@ -201,6 +201,16 @@ With `coar-mobile` on `html` or `body` there is nothing to do: the overlay sits
 inside it and inherits the tokens as before. Without `coar-mobile`, overlays are
 unchanged.
 
+### Dialogs as bottom sheets
+
+A dialog can open as a sheet docked to the bottom of the screen, with
+`presentation: 'sheet'` in `useDialog()` (Preview, see [Bottom sheet](/components/dialog#sheet)).
+The presentation is explicit, chosen per call, and never derived from `coar-mobile` or the
+window width: a dialog opened without it stays the centered dialog, also inside a
+`coar-mobile` area and on a narrow screen. Under `coar-mobile` the centered dialog keeps
+clear of the window edges and stacks its footer buttons in full width; without the class it
+looks as before.
+
 ### Where the area is found
 
 The overlay takes the nearest `.coar-mobile` ancestor of its context element.

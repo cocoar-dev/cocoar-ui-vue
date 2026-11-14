@@ -117,11 +117,14 @@ test.describe('mobile form', { tag: '@touch' }, () => {
     );
   });
 
-  test('delete asks for confirmation; Delete confirms, Keep does not', async ({ page }) => {
+  test('delete asks for confirmation in a sheet; Delete confirms, Keep does not', async ({
+    page,
+  }) => {
     const confirm = page.getByRole('dialog', { name: 'Delete the event?' });
 
     await page.getByTestId('action-delete').tap();
     await expect(confirm).toBeVisible();
+    await expect(confirm).toHaveClass(/coar-sheet/);
     await expect(status(page)).toHaveText('Confirming delete');
     await confirm.getByRole('button', { name: 'Keep', exact: true }).tap();
     await expect(confirm).toBeHidden();

@@ -81,26 +81,26 @@ flowchart TD
 
 ## Schritte
 
-- [ ] 1. `refactor(ui)`-Commit: Fokus-Falle aus `CoarDialogShell.vue` nach `_internal/useFocusTrap.ts`, Verhalten und Tests
+- [x] 1. `refactor(ui)`-Commit: Fokus-Falle aus `CoarDialogShell.vue` nach `_internal/useFocusTrap.ts`, Verhalten und Tests
       unverändert, alle Bilder grün.
-- [ ] 2. `DialogPresentation`, `presentation`, `dragToClose` in `dialog-types.ts`; `useDialog.ts` wählt Hülle und Preset;
+- [x] 2. `DialogPresentation`, `presentation`, `dragToClose` in `dialog-types.ts`; `useDialog.ts` wählt Hülle und Preset;
       `sheetPreset`.
-- [ ] 3. `CoarSheetShell.vue` mit Aufbau, Tokens, Sicherheitsabstand, Animation, Scroll-Sperre.
-- [ ] 4. `useSheetDrag.ts` (Schwelle, Schwung, `pointercancel`, Zeiger-Capture) und `useVisualViewport.ts`.
-- [ ] 5. Dialog-Maße unter `.coar-mobile`.
-- [ ] 6. Unit-Tests: Wahl der Hülle, alle Schließwege mit Ergebnis des Promise, `dragToClose: false`, Zug-Folgen
+- [x] 3. `CoarSheetShell.vue` mit Aufbau, Tokens, Sicherheitsabstand, Animation, Scroll-Sperre.
+- [x] 4. `useSheetDrag.ts` (Schwelle, Schwung, `pointercancel`, Zeiger-Capture) und `useVisualViewport.ts`.
+- [x] 5. Dialog-Maße unter `.coar-mobile`.
+- [x] 6. Unit-Tests: Wahl der Hülle, alle Schließwege mit Ergebnis des Promise, `dragToClose: false`, Zug-Folgen
       (kurz, lang, Schwung, abgebrochen), Fokus-Falle und Rückgabe, Sperre gesetzt und wieder gelöst – auch bei zwei Blättern.
-- [ ] 7. `/mobile-form`: „Löschen“ als Blatt, dazu ein Bearbeiten-Formular im Blatt. `@touch`-Tests in drei Projekten
+- [x] 7. `/mobile-form`: „Löschen“ als Blatt, dazu ein Bearbeiten-Formular im Blatt. `@touch`-Tests in drei Projekten
       (öffnen, innen scrollen, Seite scrollt nicht, wegziehen, zu kurz ziehen). Geschichten `sheet`, `sheet-form` in
       Handy-Breite, Standard und Mobil, hell und dunkel.
-- [ ] 8. Doku: `apps/docs/components/dialog.md` (Abschnitt „Sheet“, Preview-Badge, Demo, `devices`), `guide/mobile.md`,
+- [x] 8. Doku: `apps/docs/components/dialog.md` (Abschnitt „Sheet“, Preview-Badge, Demo, `devices`), `guide/mobile.md`,
       `pnpm skill:sync`.
 - [ ] 9. Prüfen, eine Gegenprüfung, PR `feat(ui): dialogs can open as a bottom sheet`.
 - [ ] 10. iOS-Simulator (Safari): Tastatur über einem Feld im Blatt, Sicherheitsabstand am Gerät mit Home-Balken, Ziehen.
 
 ## Wie es geprüft wird
 
-- [ ] Kein `--default-`-Bild ändert sich; `dialog--mobile-*` ändert sich (Schritt 5) und steht im PR.
+- [x] Kein `--default-`-Bild ändert sich; `dialog--mobile-*` ändert sich (Schritt 5) und steht im PR.
 - [ ] `pnpm lint && pnpm typecheck && pnpm build`, `pnpm test` grün.
 - [ ] Im Simulator: ein fokussiertes Feld im Blatt ist nie von der Tastatur verdeckt; die Seite dahinter bewegt sich nicht.
 

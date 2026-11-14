@@ -1,8 +1,9 @@
 import { getCurrentInstance, markRaw, type Component, type ComponentInternalInstance } from 'vue';
 import CoarDialogShell from './CoarDialogShell.vue';
-import type { DialogConfig, DialogRef, ConfirmOptions, DialogSize } from './dialog-types';
+import CoarSheetShell from './CoarSheetShell.vue';
+import type { DialogConfig, DialogRef, ConfirmOptions, DialogPresentation, DialogSize } from './dialog-types';
 import { getOverlayService } from '../overlay/useOverlay';
-import { dialogPreset } from '../overlay/overlay-presets';
+import { dialogPreset, sheetPreset } from '../overlay/overlay-presets';
 import type { OverlayRef } from '../overlay/overlay-types';
 
 /**
@@ -19,8 +20,47 @@ function ownerElement(owner: ComponentInternalInstance | null): Element | undefi
   return node.parentElement ?? undefined;
 }
 
+interface ShellBehaviour {
+  presentation: DialogPresentation | undefined;
+  closeOnBackdropClick: boolean;
+  closeOnEscape: boolean;
+  dragToClose: boolean | undefined;
+}
+
+/**
+ * Opens the shell of the presentation in an overlay: `CoarDialogShell` centered, or
+ * `CoarSheetShell` docked to the bottom. Both close the same ways; the sheet also by drag,
+ * which follows `closeOnBackdropClick` unless `dragToClose` says otherwise.
+ */
+function openShell(
+  inputs: Record<string, unknown>,
+  behaviour: ShellBehaviour,
+  context: Element | undefined,
+): OverlayRef {
+  const sheet = behaviour.presentation === 'sheet';
+  return getOverlayService().open({
+    spec: {
+      ...(sheet ? sheetPreset : dialogPreset),
+      dismiss: {
+        outsideClick: behaviour.closeOnBackdropClick,
+        escapeKey: behaviour.closeOnEscape,
+      },
+      backdrop: {
+        kind: 'modal',
+        closeOnBackdropClick: behaviour.closeOnBackdropClick,
+      },
+    },
+    content: { kind: 'component', component: markRaw(sheet ? CoarSheetShell : CoarDialogShell) },
+    context,
+    inputs: sheet
+      ? { ...inputs, dragToClose: behaviour.dragToClose ?? behaviour.closeOnBackdropClick }
+      : inputs,
+  });
+}
+
 function openOverlayDialog<T = unknown>(
   shellProps: Record<string, unknown>,
+  presentation: DialogPresentation | undefined,
   context?: Element,
 ): DialogRef<T> {
   let resolve: (value: T | undefined) => void;
@@ -30,31 +70,24 @@ function openOverlayDialog<T = unknown>(
 
   let overlayRef: OverlayRef | null = null;
 
-  const closeOnBackdropClick = shellProps.closeOnBackdropClick ?? true;
-  const closeOnEscape = shellProps.closeOnEscape ?? true;
+  const { closeOnBackdropClick = true, closeOnEscape = true, ...sheetProps } = shellProps;
+  const onClose = (r: unknown) => {
+    resolve!(r as T);
+    overlayRef?.close(r);
+  };
 
-  overlayRef = getOverlayService().open({
-    spec: {
-      ...dialogPreset,
-      dismiss: {
-        outsideClick: closeOnBackdropClick as boolean,
-        escapeKey: closeOnEscape as boolean,
-      },
-      backdrop: {
-        kind: 'modal',
-        closeOnBackdropClick: closeOnBackdropClick as boolean,
-      },
+  overlayRef = openShell(
+    // The dialog shell has always received the two dismiss flags too (they fall through as
+    // attributes); kept so its DOM stays as it is. The sheet gets only its props.
+    presentation === 'sheet' ? { ...sheetProps, onClose } : { ...shellProps, onClose },
+    {
+      presentation,
+      closeOnBackdropClick: closeOnBackdropClick as boolean,
+      closeOnEscape: closeOnEscape as boolean,
+      dragToClose: undefined,
     },
-    content: { kind: 'component', component: markRaw(CoarDialogShell) },
     context,
-    inputs: {
-      ...shellProps,
-      onClose: (r: unknown) => {
-        resolve!(r as T);
-        overlayRef?.close(r);
-      },
-    },
-  });
+  );
 
   // When overlay closes externally (escape, backdrop), resolve promise
   overlayRef.afterClosed.then((r) => {
@@ -94,21 +127,8 @@ function open<T = unknown>(
     overlayRef?.close(val);
   };
 
-  overlayRef = getOverlayService().open({
-    spec: {
-      ...dialogPreset,
-      dismiss: {
-        outsideClick: closeOnBackdropClick,
-        escapeKey: closeOnEscape,
-      },
-      backdrop: {
-        kind: 'modal',
-        closeOnBackdropClick: closeOnBackdropClick,
-      },
-    },
-    content: { kind: 'component', component: markRaw(CoarDialogShell) },
-    context,
-    inputs: {
+  overlayRef = openShell(
+    {
       title: config.title ?? '',
       size: config.size ?? 'm',
       showCloseButton: config.showCloseButton ?? true,
@@ -121,7 +141,14 @@ function open<T = unknown>(
       bodyComponentProps: { ...bodyProps, close: closeFn },
       onClose: (r: unknown) => closeFn(r as T),
     },
-  });
+    {
+      presentation: config.presentation,
+      closeOnBackdropClick,
+      closeOnEscape,
+      dragToClose: config.dragToClose,
+    },
+    context,
+  );
 
   // When overlay closes externally (escape, backdrop), resolve promise
   overlayRef.afterClosed.then((r) => {
@@ -149,7 +176,7 @@ function confirm(
     confirmText: options.confirmText ?? 'Confirm',
     cancelText: options.cancelText ?? 'Cancel',
     confirmVariant: options.confirmVariant ?? 'primary',
-  }, context);
+  }, options.presentation, context);
 }
 
 /**
@@ -158,7 +185,7 @@ function confirm(
 function alert(
   title: string,
   message: string,
-  config: Pick<DialogConfig, 'context'> = {},
+  config: Pick<DialogConfig, 'context' | 'presentation'> = {},
 ): DialogRef<void> {
   return openOverlayDialog<void>({
     title,
@@ -171,7 +198,7 @@ function alert(
     confirmText: 'OK',
     cancelText: '',
     confirmVariant: 'primary',
-  }, config.context);
+  }, config.presentation, config.context);
 }
 
 /**
@@ -193,8 +220,15 @@ export function useDialog() {
     confirm(options: ConfirmOptions): DialogRef<boolean> {
       return confirm(options, options.context ?? ownerElement(owner));
     },
-    alert(title: string, message: string, config: Pick<DialogConfig, 'context'> = {}): DialogRef<void> {
-      return alert(title, message, { context: config.context ?? ownerElement(owner) });
+    alert(
+      title: string,
+      message: string,
+      config: Pick<DialogConfig, 'context' | 'presentation'> = {},
+    ): DialogRef<void> {
+      return alert(title, message, {
+        context: config.context ?? ownerElement(owner),
+        presentation: config.presentation,
+      });
     },
   };
 }

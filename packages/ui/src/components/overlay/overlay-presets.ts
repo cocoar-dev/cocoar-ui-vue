@@ -109,6 +109,25 @@ export const dialogPreset: OverlaySpec = {
 };
 
 /**
+ * **Preview** — may still change. Preset for programmatic dialogs presented as a bottom
+ * sheet (`useDialog` with `presentation: 'sheet'`). Modal backdrop, virtual anchor at the
+ * bottom edge. No size constraint: `CoarSheetShell` docks itself with `position: fixed`
+ * to the bottom of the visual viewport (the host is positioned by `top`/`left`, never by
+ * a transform, so it is no containing block), leaving the host empty-sized. Dismiss and
+ * focus trap are off for the same reason as in `dialogPreset`; `useDialog` sets dismiss.
+ */
+export const sheetPreset: OverlaySpec = {
+  anchor: { kind: 'virtual', placement: 'bottom' },
+  position: { placement: 'top', offset: 0, flip: false, shift: false },
+  backdrop: { kind: 'modal', closeOnBackdropClick: false },
+  scroll: { strategy: 'noop' },
+  dismiss: { outsideClick: false, escapeKey: false },
+  focus: { trap: false, restore: false },
+  a11y: { role: 'dialog' },
+  attachment: { strategy: 'body' },
+};
+
+/**
  * Preset for popconfirm overlays.
  * Anchor-relative, no backdrop, outside-click + escape dismiss.
  */

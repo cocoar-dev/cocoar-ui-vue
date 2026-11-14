@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed, onMounted, onBeforeUnmount, ref, nextTick, type Component, h } from 'vue';
+import { computed, ref, type Component, h } from 'vue';
 import { useI18n } from '@cocoar/vue-localization';
 import type { DialogSize } from './dialog-types';
 import CoarIcon from '../icon/CoarIcon.vue';
 import CoarButton from '../button/CoarButton.vue';
 import { vScrollbar } from '../scrollbar/vScrollbar';
+import { useFocusTrap } from '../_internal/useFocusTrap';
+import { provideDialogFooter } from './dialogFooter';
 
 const props = defineProps<{
   title: string;
@@ -33,100 +35,14 @@ const dialogRef = ref<HTMLElement | null>(null);
 const autoId = `coar-dialog-${crypto.randomUUID?.() ?? Date.now().toString(16)}`;
 const titleId = `${autoId}-title`;
 
-// --- Focus trap state ---
-const FOCUSABLE_SELECTOR = [
-  'a[href]',
-  'button:not(:disabled)',
-  'input:not(:disabled)',
-  'select:not(:disabled)',
-  'textarea:not(:disabled)',
-  '[tabindex]:not([tabindex="-1"])',
-].join(', ');
+useFocusTrap(dialogRef);
 
-let previouslyFocusedElement: Element | null = null;
-
-function getFocusableElements(): HTMLElement[] {
-  if (!dialogRef.value) return [];
-  return Array.from(dialogRef.value.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
-    .filter((el) => el.offsetParent !== null); // exclude hidden elements
-}
-
-function setInitialFocus() {
-  if (!dialogRef.value) return;
-
-  // Prefer element with autofocus attribute
-  const autofocusEl = dialogRef.value.querySelector<HTMLElement>('[autofocus]');
-  if (autofocusEl) {
-    autofocusEl.focus();
-    return;
-  }
-
-  // Otherwise focus first focusable element
-  const focusable = getFocusableElements();
-  if (focusable.length > 0) {
-    focusable[0].focus();
-  } else {
-    // Fallback: focus the dialog container itself
-    dialogRef.value.focus();
-  }
-}
+// `CoarDialogFooter` of a body component: its buttons go into the footer element below.
+const { element: footerRef, used: footerUsed } = provideDialogFooter();
 
 function onClose(result?: unknown) {
   emit('close', result);
 }
-
-function onKeydown(event: KeyboardEvent) {
-  // Focus trap: intercept Tab / Shift+Tab
-  if (event.key === 'Tab') {
-    const focusable = getFocusableElements();
-    if (focusable.length === 0) {
-      event.preventDefault();
-      return;
-    }
-
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-
-    if (event.shiftKey) {
-      // Shift+Tab: if on first element, wrap to last
-      if (document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      }
-    } else {
-      // Tab: if on last element, wrap to first
-      if (document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    }
-  }
-}
-
-onMounted(() => {
-  // Save the currently focused element for restoration on close
-  if (typeof document !== 'undefined') {
-    previouslyFocusedElement = document.activeElement;
-  }
-
-  document.addEventListener('keydown', onKeydown);
-
-  // Move focus into the dialog
-  nextTick(() => {
-    setInitialFocus();
-  });
-});
-
-onBeforeUnmount(() => {
-  document.removeEventListener('keydown', onKeydown);
-
-  // Restore focus to the element that was focused before the dialog opened
-  if (previouslyFocusedElement && previouslyFocusedElement instanceof HTMLElement) {
-    nextTick(() => {
-      (previouslyFocusedElement as HTMLElement).focus();
-    });
-  }
-});
 
 const sizeClass = computed(() => `coar-dialog--${props.size}`);
 
@@ -173,7 +89,7 @@ const BodyRenderer = computed(() => {
       <CoarButton :variant="confirmVariant" @click="onClose(true)">{{ confirmText }}</CoarButton>
     </div>
 
-    <div v-if="!confirmMode && $slots.footer" class="coar-dialog-footer">
+    <div v-if="!confirmMode && ($slots.footer || footerUsed)" ref="footerRef" class="coar-dialog-footer">
       <slot name="footer" />
     </div>
   </div>
@@ -257,6 +173,19 @@ const BodyRenderer = computed(() => {
   gap: var(--coar-spacing-s);
   padding: var(--coar-dialog-padding);
   padding-top: 0;
+}
+
+/* Mobile presentation only (the default look stays as it is): clear of the window edges,
+   full-width footer buttons with the confirming one (last in the markup) on top. 90vw is
+   the host's `maxWidth` of `dialogPreset`; a wider dialog would scroll sideways in it. */
+.coar-mobile .coar-dialog--s { width: min(var(--coar-dialog-s-width), 90vw); }
+.coar-mobile .coar-dialog--m { width: min(var(--coar-dialog-m-width), 90vw); }
+.coar-mobile .coar-dialog--l { width: min(var(--coar-dialog-l-width), 90vw); }
+.coar-mobile .coar-dialog--xl { width: min(var(--coar-dialog-xl-width), 90vw); }
+
+.coar-mobile .coar-dialog-footer {
+  flex-direction: column-reverse;
+  align-items: stretch;
 }
 
 @keyframes coar-dialog-scale-in {
