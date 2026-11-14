@@ -148,7 +148,7 @@ onBeforeUnmount(() => {
     </div>
 
     <p class="coar-phone-frame__narrow">
-      <a class="coar-phone-frame__narrow-link" :href="appUrl"
+      <a class="coar-phone-frame__narrow-link" :href="appUrl" target="_self"
         >Open “{{ title }}” in the mobile docs</a
       >
       On a phone the demo runs at the full size of your screen.

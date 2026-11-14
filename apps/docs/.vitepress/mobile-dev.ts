@@ -23,8 +23,10 @@ export function mobileDocsDev(siteBase: string): Plugin {
         },
       });
       server.middlewares.use((req, res, next) => {
-        if (req.url === base.slice(0, -1)) {
-          res.writeHead(302, { Location: base }).end();
+        const [path, query] = (req.url ?? '').split('?');
+        if (path === base.slice(0, -1)) {
+          // <base>mobile without the slash, also with a query (?scheme=dark).
+          res.writeHead(302, { Location: query ? `${base}?${query}` : base }).end();
         } else if (req.url?.startsWith(base)) {
           mobile.middlewares(req, res, next);
         } else {

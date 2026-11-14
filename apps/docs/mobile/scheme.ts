@@ -44,7 +44,9 @@ watchEffect(() => {
 });
 
 window.addEventListener('message', (event) => {
-  if (event.origin !== window.location.origin) return;
+  // Only the docs page that frames this app sets its scheme.
+  if (event.origin !== window.location.origin || event.source !== window.parent) return;
+  if (window.parent === window) return;
   const data = event.data as { type?: unknown; scheme?: unknown } | null;
   if (data?.type === SCHEME_MESSAGE && isScheme(data.scheme)) scheme.value = data.scheme;
 });
