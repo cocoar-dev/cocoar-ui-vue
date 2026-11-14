@@ -58,6 +58,7 @@ Returns a `ContextMenuContext` object:
 |------------|-------------------------------|------------------------------------------------|
 | `isOpen`   | `Readonly<Ref<boolean>>`      | Whether the menu is currently visible          |
 | `position` | `Readonly<Ref<{x, y}>>`      | Cursor position where the menu was opened      |
+| `target` <Badge type="warning" text="Preview" /> | `Readonly<Ref<Element \| null>>` | Element that was right-clicked (`null` when `open()` got no element target). `CoarContextMenu` passes it as the overlay's context, so a menu opened in a local `coar-mobile` area keeps the [mobile presentation](/guide/mobile#overlays). Optional in the `ContextMenuContext` type |
 | `open`     | `(event: MouseEvent) => void` | Open at the event's cursor position            |
 | `close`    | `() => void`                  | Close the menu                                 |
 
