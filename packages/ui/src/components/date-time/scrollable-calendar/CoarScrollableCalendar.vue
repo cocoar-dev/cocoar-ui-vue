@@ -11,7 +11,7 @@ import {
 import { Temporal } from '@js-temporal/polyfill';
 import { useL10n } from '@cocoar/vue-localization';
 
-import { vScrollbar } from '../../scrollbar';
+import { vScrollbar, getScrollbarInstance } from '../../scrollbar';
 import type { CoarDateMarker, DateFormatConfig } from '../_shared/types';
 import {
   coarCalculateIsoWeekNumber,
@@ -119,10 +119,12 @@ const weekdayHeaders = computed((): WeekdayHeader[] => {
 });
 
 // Month range management
-const MONTHS_BEFORE = 12;
-const MONTHS_AFTER = 12;
+const MONTHS_BEFORE = 3;
+const MONTHS_AFTER = 3;
 const MONTHS_TO_LOAD = 6;
 const MAX_MONTHS_IN_DOM = 25;
+/** Distance to an edge of the list, in px, below which more months load. */
+const LOAD_THRESHOLD = 500;
 
 const earliestMonth = ref<Temporal.PlainYearMonth>(
   activeMonth.value.subtract({ months: MONTHS_BEFORE }),
@@ -248,42 +250,120 @@ function scrollToMonth(targetMonth: Temporal.PlainYearMonth, smooth = false): vo
   isScrollingProgrammatically = true;
 
   const viewport = getScrollViewport() ?? container;
+  const finish = (): void => {
+    isScrollingProgrammatically = false;
+    isScrollPositioned.value = true;
+    restingTop = topMonth(viewport);
+    if (isCoverPending) coverAfterGrowing(viewport);
+  };
 
   if (smooth) {
     viewport.scrollTo({ top: el.offsetTop, behavior: 'smooth' });
-    setTimeout(() => {
-      isScrollingProgrammatically = false;
-      isScrollPositioned.value = true;
-    }, 500);
+    setTimeout(finish, 500);
   } else {
     viewport.scrollTop = el.offsetTop;
-    requestAnimationFrame(() => {
-      isScrollingProgrammatically = false;
-      isScrollPositioned.value = true;
-    });
+    requestAnimationFrame(finish);
   }
 }
 
-function ensureMonthInRange(targetMonth: Temporal.PlainYearMonth): void {
+/**
+ * Gives the month navigated to the same months around it as the opened one, so that positioning
+ * it leaves both edges of the list beyond the threshold of the infinite loading.
+ */
+function ensureMonthInRange(targetMonth: Temporal.PlainYearMonth): boolean {
+  const from = targetMonth.subtract({ months: MONTHS_BEFORE });
+  const to = targetMonth.add({ months: MONTHS_AFTER });
   let changed = false;
-  if (Temporal.PlainYearMonth.compare(targetMonth, earliestMonth.value) < 0) {
-    const diff = (earliestMonth.value.year - targetMonth.year) * 12 + (earliestMonth.value.month - targetMonth.month);
-    earliestMonth.value = earliestMonth.value.subtract({ months: diff + 3 });
+  if (Temporal.PlainYearMonth.compare(from, earliestMonth.value) < 0) {
+    earliestMonth.value = from;
     changed = true;
   }
-  if (Temporal.PlainYearMonth.compare(targetMonth, latestMonth.value) > 0) {
-    const diff = (targetMonth.year - latestMonth.value.year) * 12 + (targetMonth.month - latestMonth.value.month);
-    latestMonth.value = latestMonth.value.add({ months: diff + 3 });
+  if (Temporal.PlainYearMonth.compare(to, latestMonth.value) > 0) {
+    latestMonth.value = to;
     changed = true;
   }
   if (changed) rebuildMonths();
+  return changed;
+}
+
+/** The month at the top of the viewport, and where its top lies relative to the viewport's. */
+interface TopMonth {
+  readonly element: HTMLElement;
+  readonly offset: number;
+}
+
+function topMonth(viewport: HTMLElement): TopMonth | undefined {
+  const viewportTop = viewport.getBoundingClientRect().top;
+  const element = Array.from(viewport.querySelectorAll<HTMLElement>('[data-year-month]')).find(
+    (el) => el.getBoundingClientRect().bottom > viewportTop,
+  );
+  return element && { element, offset: element.getBoundingClientRect().top - viewportTop };
+}
+
+/**
+ * The top month when the list last came to rest: after a programmatic scroll, a user's scroll
+ * or a change of months. A viewport that grows can make the browser clamp the scroll position
+ * before the ResizeObserver reports it; this is where the list was before.
+ */
+let restingTop: TopMonth | undefined;
+
+/** The viewport height the ResizeObserver last reported. */
+let observedHeight = 0;
+
+/**
+ * Adds months where the list does not reach beyond the viewport and the loading threshold
+ * around `target` (a tall calendar), capped by MAX_MONTHS_IN_DOM only: like the opening
+ * range, these months may lie beyond min and max, with their days disabled; only the
+ * infinite loading stops at min and max. Returns whether it added any.
+ */
+function extendToCover(viewport: HTMLElement, target: HTMLElement): boolean {
+  const monthHeight = target.offsetHeight;
+  if (monthHeight === 0) return false;
+  const room = Math.max(0, MAX_MONTHS_IN_DOM - months.value.length);
+  const missingAfter = viewport.clientHeight + LOAD_THRESHOLD - (viewport.scrollHeight - target.offsetTop);
+  const missingBefore = LOAD_THRESHOLD - target.offsetTop;
+  const later = Math.min(Math.max(0, Math.ceil(missingAfter / monthHeight)), room);
+  const earlier = Math.min(Math.max(0, Math.ceil(missingBefore / monthHeight)), room - later);
+  if (later === 0 && earlier === 0) return false;
+  latestMonth.value = latestMonth.value.add({ months: later });
+  earliestMonth.value = earliestMonth.value.subtract({ months: earlier });
+  rebuildMonths();
+  return true;
+}
+
+/**
+ * The one way the list is positioned by the component: the months around `month` are made to
+ * cover the viewport, the DOM updates if months were added, then `month` is scrolled to the
+ * top. At opening the scroll is not taken for a user's (see onMounted).
+ */
+function positionAt(month: Temporal.PlainYearMonth, opening = false): void {
+  if (ensureMonthInRange(month)) {
+    nextTick(() => positionAt(month, opening));
+    return;
+  }
+  const viewport = getScrollViewport();
+  const target = viewport?.querySelector<HTMLElement>(`#${getMonthElementId(month)}`);
+  if (viewport && target && extendToCover(viewport, target)) {
+    nextTick(() => positionAt(month, opening));
+    return;
+  }
+  if (!opening) {
+    scrollToMonth(month, false);
+    return;
+  }
+  // The opening position is no user scroll: asleep, OverlayScrollbars ignores its scroll
+  // event instead of showing the scrollbar for a moment. That event is dispatched before
+  // the animation frame callbacks of the frame that follows, so it is past at the wake-up.
+  const scrollbars = getScrollbarInstance(scrollContainerRef.value!);
+  scrollbars?.sleep(true);
+  scrollToMonth(month, false);
+  requestAnimationFrame(() => scrollbars?.sleep(false));
 }
 
 // Watch activeMonth for external navigation (e.g., MonthList clicks)
 watch(activeMonth, (month) => {
   if (isUpdatingFromScroll) return;
-  ensureMonthInRange(month);
-  nextTick(() => scrollToMonth(month, false));
+  nextTick(() => positionAt(month));
 });
 
 function onScroll(): void {
@@ -291,6 +371,11 @@ function onScroll(): void {
 
   const container = scrollContainerRef.value;
   if (!container) return;
+  const viewport = getScrollViewport();
+  // A resize the ResizeObserver has not reported yet (WebKit dispatches the scroll event of
+  // the clamped position first): not a scroll of the user's; the observer handles it.
+  if (viewport && viewport.clientHeight !== observedHeight) return;
+  if (viewport && !isLoadingMonths && !isCoverPending) restingTop = topMonth(viewport);
 
   // Find most visible month
   const monthElements = container.querySelectorAll('[data-year-month]');
@@ -326,28 +411,50 @@ function checkInfiniteScroll(): void {
   if (!viewport) return;
 
   const { scrollTop, scrollHeight, clientHeight } = viewport;
-  const threshold = 500;
 
   const minMonth = props.min?.toPlainYearMonth() ?? null;
   const maxMonth = props.max?.toPlainYearMonth() ?? null;
 
-  if (scrollTop < threshold) {
+  if (scrollTop < LOAD_THRESHOLD) {
     const canLoad = !minMonth || Temporal.PlainYearMonth.compare(earliestMonth.value, minMonth) > 0;
     if (canLoad) loadEarlierMonths();
   }
 
-  if (scrollHeight - scrollTop - clientHeight < threshold) {
+  if (scrollHeight - scrollTop - clientHeight < LOAD_THRESHOLD) {
     const canLoad = !maxMonth || Temporal.PlainYearMonth.compare(latestMonth.value, maxMonth) < 0;
     if (canLoad) loadLaterMonths();
   }
 }
 
+/**
+ * Changes the months around the visible ones and keeps the month at the top of the viewport
+ * where it was (measured now, or given): corrected right after the DOM update, before the
+ * browser paints. A browser that anchored the scroll position itself (Chromium) leaves
+ * nothing to correct; one that does not (WebKit) is corrected by the full height added or
+ * removed above.
+ */
+function keepTopMonthInPlace(change: () => void, kept?: TopMonth): void {
+  const viewport = getScrollViewport();
+  const anchor = kept ?? (viewport ? topMonth(viewport) : undefined);
+
+  change();
+
+  nextTick(() => {
+    if (viewport && anchor?.element.isConnected) {
+      const offset = anchor.element.getBoundingClientRect().top - viewport.getBoundingClientRect().top;
+      viewport.scrollTop += offset - anchor.offset;
+    }
+    if (viewport) restingTop = topMonth(viewport);
+    requestAnimationFrame(() => {
+      isLoadingMonths = false;
+      if (isCoverPending && viewport) coverAfterGrowing(viewport);
+    });
+  });
+}
+
 function loadEarlierMonths(): void {
   if (isLoadingMonths) return;
   isLoadingMonths = true;
-
-  const viewport = getScrollViewport();
-  const scrollHeightBefore = viewport?.scrollHeight ?? 0;
 
   const minMonth = props.min?.toPlainYearMonth() ?? null;
   let current = earliestMonth.value;
@@ -362,16 +469,10 @@ function loadEarlierMonths(): void {
 
   if (newMonths.length === 0) { isLoadingMonths = false; return; }
 
-  earliestMonth.value = current;
-  months.value = [...newMonths, ...months.value];
-  trimMonthsFromEnd();
-
-  requestAnimationFrame(() => {
-    if (viewport) {
-      const addedHeight = viewport.scrollHeight - scrollHeightBefore;
-      viewport.scrollTop += addedHeight;
-    }
-    isLoadingMonths = false;
+  keepTopMonthInPlace(() => {
+    earliestMonth.value = current;
+    months.value = [...newMonths, ...months.value];
+    trimMonthsFromEnd();
   });
 }
 
@@ -392,11 +493,12 @@ function loadLaterMonths(): void {
 
   if (newMonths.length === 0) { isLoadingMonths = false; return; }
 
-  latestMonth.value = current;
-  months.value = [...months.value, ...newMonths];
-  trimMonthsFromBeginning();
-
-  requestAnimationFrame(() => { isLoadingMonths = false; });
+  // Trimming removes months above the visible ones.
+  keepTopMonthInPlace(() => {
+    latestMonth.value = current;
+    months.value = [...months.value, ...newMonths];
+    trimMonthsFromBeginning();
+  });
 }
 
 function trimMonthsFromEnd(): void {
@@ -461,7 +563,7 @@ function moveFocus(amount: number, unit: 'day' | 'month' | 'year'): void {
       const containerRect = container.getBoundingClientRect();
       const monthRect = monthEl.getBoundingClientRect();
       if (monthRect.bottom < containerRect.top || monthRect.top > containerRect.bottom) {
-        scrollToMonth(targetMonth, false);
+        positionAt(targetMonth);
       }
     }
   });
@@ -502,8 +604,7 @@ function onKeydown(event: KeyboardEvent): void {
     case 'Home':
       event.preventDefault();
       focusedDate.value = today.value;
-      ensureMonthInRange(today.value.toPlainYearMonth());
-      nextTick(() => scrollToMonth(today.value.toPlainYearMonth(), false));
+      positionAt(today.value.toPlainYearMonth());
       break;
   }
 }
@@ -515,50 +616,55 @@ watch(modelValue, (val) => {
 
 if (!focusedDate.value) focusedDate.value = today.value;
 
-// Mount: scroll to active month immediately (works with native overflow-y:auto
-// before OverlayScrollbars takes over), then observe for the OverlayScrollbars
-// viewport element to appear and attach the scroll listener to it.
+// Mount: OverlayScrollbars is initialised synchronously (defer: false in the template),
+// so its viewport, the element that scrolls, exists here. The list is positioned once it
+// has a layout, and stays hidden until then.
 let scrollListenerTarget: HTMLElement | null = null;
-let viewportObserver: MutationObserver | null = null;
+let sizeObserver: ResizeObserver | null = null;
+let isCoverPending = false;
 
-function attachScrollListener(): void {
-  const viewport = getScrollViewport();
-  if (viewport && viewport !== scrollListenerTarget) {
-    scrollListenerTarget?.removeEventListener('scroll', onScroll);
-    viewport.addEventListener('scroll', onScroll, { passive: true });
-    scrollListenerTarget = viewport;
-    // Re-scroll now that the OS viewport is ready; the earlier setTimeout call
-    // targeted the container element (OS not yet init'd), producing an offset.
-    scrollToMonth(activeMonth.value, false);
-  }
+/**
+ * The viewport grew after the list was positioned: months are added where they no longer
+ * cover it, around the month that was at the top, which goes back to where it was. Until the opening position
+ * is reached, and while a programmatic scroll or a load runs, this waits for it to finish.
+ */
+function coverAfterGrowing(viewport: HTMLElement): void {
+  isCoverPending = !isScrollPositioned.value || isScrollingProgrammatically || isLoadingMonths;
+  if (isCoverPending) return;
+  const top = restingTop?.element.isConnected ? restingTop : topMonth(viewport);
+  if (!top) return;
+  isLoadingMonths = true;
+  keepTopMonthInPlace(() => extendToCover(viewport, top.element), top);
 }
 
 onMounted(() => {
-  // Defer initial scroll to after layout
-  setTimeout(() => scrollToMonth(activeMonth.value, false), 0);
+  const viewport = getScrollViewport();
+  if (!viewport) return;
+  viewport.addEventListener('scroll', onScroll, { passive: true });
+  scrollListenerTarget = viewport;
 
-  const container = scrollContainerRef.value;
-  if (!container) return;
-
-  // If OverlayScrollbars viewport already exists (sync init), attach immediately
-  if (container.querySelector('[data-overlayscrollbars-viewport]')) {
-    attachScrollListener();
-  } else {
-    // Wait for OverlayScrollbars to create the viewport via requestIdleCallback
-    viewportObserver = new MutationObserver(() => {
-      if (container.querySelector('[data-overlayscrollbars-viewport]')) {
-        viewportObserver!.disconnect();
-        viewportObserver = null;
-        attachScrollListener();
-      }
-    });
-    viewportObserver.observe(container, { childList: true });
-  }
+  // Mounted without a layout (a parent with display: none, a closed tab), every month
+  // measures offsetTop 0: the opening waits for the viewport to get a size.
+  let isOpening = false;
+  observedHeight = viewport.clientHeight;
+  const open = () => {
+    isOpening = true;
+    positionAt(activeMonth.value, true);
+  };
+  if (observedHeight > 0) open();
+  sizeObserver = new ResizeObserver(() => {
+    const grew = viewport.clientHeight > observedHeight;
+    observedHeight = viewport.clientHeight;
+    if (observedHeight === 0) return;
+    if (!isOpening) open();
+    else if (grew) coverAfterGrowing(viewport);
+  });
+  sizeObserver.observe(viewport);
 });
 
 onBeforeUnmount(() => {
-  viewportObserver?.disconnect();
-  viewportObserver = null;
+  sizeObserver?.disconnect();
+  sizeObserver = null;
   if (scrollListenerTarget) {
     scrollListenerTarget.removeEventListener('scroll', onScroll);
     scrollListenerTarget = null;
@@ -591,7 +697,7 @@ onBeforeUnmount(() => {
     >
       <div
         ref="scrollContainerRef"
-        v-scrollbar="{ overflowX: 'hidden', autoHide: 'leave' }"
+        v-scrollbar="{ overflowX: 'hidden', autoHide: 'leave', defer: false }"
         class="coar-scrollable-calendar__months"
       >
         <div
@@ -648,6 +754,7 @@ onBeforeUnmount(() => {
             </template>
           </div>
         </div>
+        <div class="coar-scrollable-calendar__intrinsic-width" aria-hidden="true" />
       </div>
     </div>
   </div>
@@ -756,10 +863,21 @@ onBeforeUnmount(() => {
    MONTH BLOCK
    ======================================== */
 
+/* No content-visibility: auto. A month not yet rendered took an estimated size, so the
+   active month's offsetTop measured at opening changed once the months above it were
+   laid out, and on a slow device the list opened scrolled past the month heading.
+   Kept from it: the containment of a rendered month. */
 .coar-scrollable-calendar__month {
   padding-top: var(--coar-spacing-m);
-  content-visibility: auto;
-  contain-intrinsic-size: auto 260px;
+  contain: layout style paint;
+}
+
+/* The width the estimate of a month not yet rendered gave a calendar that sizes to its
+   content (a picker panel): 260px, an intrinsic size only. Where the calendar has a width,
+   this element fills it like the months and the weekday header, and moves nothing. */
+.coar-scrollable-calendar__intrinsic-width {
+  contain: size;
+  contain-intrinsic-size: 260px 0;
 }
 
 .coar-scrollable-calendar__month-header {
