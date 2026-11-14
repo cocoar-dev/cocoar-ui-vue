@@ -12,23 +12,9 @@ import CoarInputFrameButton from '../../input-frame/CoarInputFrameButton.vue';
 import { getOverlayService } from '../../overlay/useOverlay';
 import { datepickerPreset } from '../../overlay/overlay-presets';
 import type { OverlayRef } from '../../overlay/overlay-types';
-import { useDatePickerBase } from '../_shared/use-date-picker-base';
-import {
-  coarFormatPlainDate,
-  coarParsePlainDateFromInput,
-} from '../_shared/date-helpers';
-import {
-  coarFormatTime,
-  coarParseTimeInput,
-  coarDetect12HourFormat,
-  coarRoundMinutesToStep,
-} from '../_shared/time-helpers';
+import { useZonedDateTimePicker } from '../_shared/use-zoned-date-time-picker';
 import { coarCreateDateTimeMask } from '../_shared/maskito-config';
 import type { DateFormatConfig, CoarDateMarker, CoarTimeValue } from '../_shared/types';
-import {
-  coarGetAllTimezones,
-  coarFormatTimezoneLabel,
-} from '../_shared/timezone-helpers';
 import CoarZonedDateTimePickerPanel from './CoarZonedDateTimePickerPanel.vue';
 import { FORM_FIELD_INJECTION_KEY } from '../../form-field/constants';
 
@@ -108,21 +94,15 @@ const { t } = useI18n();
 // ============================================================
 // Composable
 // ============================================================
-const localeRef = computed(() => props.locale);
-const dateFormatRef = computed(() => props.dateFormat);
-const pickerBase = useDatePickerBase({ locale: localeRef, dateFormat: dateFormatRef });
-
-// ============================================================
-// State
-// ============================================================
-const activeMonth = ref<Temporal.PlainYearMonth>(
-  modelValue.value?.toPlainDateTime().toPlainDate().toPlainYearMonth()
-    ?? Temporal.Now.plainDateISO().toPlainYearMonth(),
-);
-const pendingTime = ref<CoarTimeValue | null>(null);
-
-// Timezone state
-const displayTimeZone = ref<string | null>(null);
+const picker = useZonedDateTimePicker(modelValue, props);
+const {
+  pickerBase, activeMonth, displayValue, valueTimeZone, effectiveDisplayTimeZone,
+  timeZonesDiffer, timezoneIndicatorState, timezoneIndicatorClickable,
+  currentTimeZoneDisplayName, valueTimeZoneLabel, allTimezones, effectiveUse24Hour,
+  inputPlaceholder, valueInWorkingTz, selectedDate, selectedTime,
+  minDate, maxDate, effectiveMinTime, effectiveMaxTime, formatValueInValueTz,
+  toggleDisplayTimezone,
+} = picker;
 
 // Form-field integration: label + status icon + message live on the wrapping
 // CoarFormField. We only consume its id / error / describedby contract.
@@ -142,84 +122,9 @@ const dateInputRef = ref<HTMLInputElement | null>(null);
 // Overlay
 let overlayRef: OverlayRef | null = null;
 
-// Display value
-const displayValue = ref('');
-
 // ============================================================
-// Timezone computeds
+// Maskito
 // ============================================================
-
-/** User's home timezone from the localization service */
-const userTimeZone = computed<string>(() =>
-  pickerBase.timezone.value || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-);
-
-/** Value's timezone (where the event "lives") */
-const valueTimeZone = computed<string | null>(() =>
-  modelValue.value?.timeZoneId ?? null,
-);
-
-/** Effective display timezone — explicit → user TZ */
-const effectiveDisplayTimeZone = computed<string>(() =>
-  displayTimeZone.value ?? userTimeZone.value,
-);
-
-/** Default timezone for new values */
-const effectiveDefaultTimeZone = computed<string>(() =>
-  props.timeZone ?? userTimeZone.value,
-);
-
-/** Whether value TZ differs from user TZ */
-const locationDiffersFromUser = computed(() =>
-  valueTimeZone.value != null && valueTimeZone.value !== userTimeZone.value,
-);
-
-/** Whether display TZ differs from value TZ */
-const timeZonesDiffer = computed(() =>
-  valueTimeZone.value != null && effectiveDisplayTimeZone.value !== valueTimeZone.value,
-);
-
-/** Timezone indicator icon state */
-const timezoneIndicatorState = computed((): 'home' | 'location' | 'world' => {
-  const dtz = effectiveDisplayTimeZone.value;
-  const utz = userTimeZone.value;
-  const vtz = valueTimeZone.value;
-  if (dtz === utz) return 'home';
-  if (vtz && dtz === vtz) return 'location';
-  return 'world';
-});
-
-const timezoneIndicatorClickable = computed(() =>
-  locationDiffersFromUser.value || timezoneIndicatorState.value !== 'home',
-);
-
-/** Timezone display label for the trigger */
-const currentTimeZoneDisplayName = computed(() =>
-  coarFormatTimezoneLabel(effectiveDisplayTimeZone.value),
-);
-
-/** Timezone display label for the footer (value TZ) */
-const valueTimeZoneLabel = computed(() => {
-  const vtz = valueTimeZone.value;
-  if (!vtz) return '';
-  return coarFormatTimezoneLabel(vtz);
-});
-
-// ============================================================
-// Timezone lists
-// ============================================================
-
-const allTimezones = coarGetAllTimezones();
-
-// ============================================================
-// Use24Hour / Maskito
-// ============================================================
-
-const effectiveUse24Hour = computed(() => {
-  if (props.use24Hour === true) return true;
-  if (props.use24Hour === false) return false;
-  return !coarDetect12HourFormat(pickerBase.effectiveLocale.value);
-});
 
 let maskitoInstance: Maskito | undefined;
 
@@ -232,60 +137,6 @@ function initMaskito() {
   );
   maskitoInstance = new Maskito(dateInputRef.value, mask);
 }
-
-// ============================================================
-// Format / parse
-// ============================================================
-
-/** Format a ZonedDateTime for the input field (in display TZ) */
-function formatValue(val: Temporal.ZonedDateTime): string {
-  const displayTz = effectiveDisplayTimeZone.value;
-  const inDisplayTz = val.withTimeZone(displayTz);
-  const datePart = coarFormatPlainDate(
-    inDisplayTz.toPlainDate(),
-    pickerBase.effectiveDateFormat.value.pattern,
-  );
-  const timePart = coarFormatTime(inDisplayTz.hour, inDisplayTz.minute, effectiveUse24Hour.value, true);
-  return `${datePart} ${timePart}`;
-}
-
-/** Format value in value timezone (for footer display) */
-function formatValueInValueTz(): string {
-  if (!modelValue.value) return '';
-  const datePart = coarFormatPlainDate(
-    modelValue.value.toPlainDate(),
-    pickerBase.effectiveDateFormat.value.pattern,
-  );
-  const timePart = coarFormatTime(modelValue.value.hour, modelValue.value.minute, effectiveUse24Hour.value);
-  return `${datePart} ${timePart}`;
-}
-
-function parseValueFromInput(text: string): Temporal.ZonedDateTime | null {
-  const parts = text.trim().split(/\s+/);
-  if (parts.length < 2) return null;
-  const datePart = parts[0];
-  const timePart = parts.slice(1).join(' ');
-  const date = coarParsePlainDateFromInput(datePart, pickerBase.effectiveDateFormat.value.pattern);
-  if (!date) return null;
-  const time = coarParseTimeInput(timePart);
-  if (!time) return null;
-  const pdt = date.toPlainDateTime({ hour: time.hours, minute: time.minutes });
-  const tz = valueTimeZone.value ?? effectiveDefaultTimeZone.value;
-  try {
-    return pdt.toZonedDateTime(tz);
-  } catch {
-    return null;
-  }
-}
-
-// Sync display value
-watch(
-  [modelValue, effectiveDisplayTimeZone],
-  () => {
-    displayValue.value = modelValue.value ? formatValue(modelValue.value) : '';
-  },
-  { immediate: true },
-);
 
 watch([dateInputRef, () => pickerBase.effectiveDateFormat.value], () => {
   nextTick(() => initMaskito());
@@ -314,75 +165,6 @@ const showClearButton = computed(
 const clearSlotActive = computed(
   () => props.clearable && !isDisabled.value && !props.readonly,
 );
-const inputPlaceholder = computed(() => {
-  if (props.placeholder) return props.placeholder;
-  const datePart = pickerBase.effectiveDateFormat.value.pattern.toUpperCase();
-  return effectiveUse24Hour.value ? `${datePart} HH:MM` : `${datePart} HH:MM AM/PM`;
-});
-
-// Extracted date/time from model (in working timezone for the panel)
-const workingTimeZone = computed(() => effectiveDisplayTimeZone.value);
-
-const valueInWorkingTz = computed(() => {
-  if (!modelValue.value) return null;
-  return modelValue.value.withTimeZone(workingTimeZone.value);
-});
-
-const selectedDate = computed((): Temporal.PlainDate | null =>
-  valueInWorkingTz.value ? valueInWorkingTz.value.toPlainDate() : null,
-);
-const selectedTime = computed((): CoarTimeValue | null => {
-  if (valueInWorkingTz.value) {
-    return { hours: valueInWorkingTz.value.hour, minutes: valueInWorkingTz.value.minute };
-  }
-  return pendingTime.value;
-});
-
-// Min/max as PlainDate (for calendar constraints)
-const minDate = computed((): Temporal.PlainDate | null =>
-  props.min ? props.min.toPlainDate() : null,
-);
-const maxDate = computed((): Temporal.PlainDate | null =>
-  props.max ? props.max.toPlainDate() : null,
-);
-
-// Effective time constraints (only on boundary dates)
-const effectiveMinTime = computed((): CoarTimeValue | null => {
-  if (!props.min || !selectedDate.value) return null;
-  const minInWtz = props.min.withTimeZone(workingTimeZone.value);
-  if (Temporal.PlainDate.compare(selectedDate.value, minInWtz.toPlainDate()) === 0) {
-    return { hours: minInWtz.hour, minutes: minInWtz.minute };
-  }
-  return null;
-});
-const effectiveMaxTime = computed((): CoarTimeValue | null => {
-  if (!props.max || !selectedDate.value) return null;
-  const maxInWtz = props.max.withTimeZone(workingTimeZone.value);
-  if (Temporal.PlainDate.compare(selectedDate.value, maxInWtz.toPlainDate()) === 0) {
-    return { hours: maxInWtz.hour, minutes: maxInWtz.minute };
-  }
-  return null;
-});
-
-// Year boundary helpers
-const isPrevYearDisabled = computed(() => activeMonth.value.year <= Temporal.Now.plainDateISO().year - 100);
-const isNextYearDisabled = computed(() => activeMonth.value.year >= Temporal.Now.plainDateISO().year + 50);
-const today = computed(() => Temporal.Now.plainDateISO());
-
-// ============================================================
-// Clamping
-// ============================================================
-
-function clampZonedDateTime(zdt: Temporal.ZonedDateTime): Temporal.ZonedDateTime {
-  if (props.min && Temporal.Instant.compare(zdt.toInstant(), props.min.toInstant()) < 0) {
-    return props.min;
-  }
-  if (props.max && Temporal.Instant.compare(zdt.toInstant(), props.max.toInstant()) > 0) {
-    return props.max;
-  }
-  return zdt;
-}
-
 // ============================================================
 // Open / close
 // ============================================================
@@ -420,65 +202,15 @@ function openPanel() {
     timeZonesDiffer: timeZonesDiffer.value,
     hasValue: modelValue.value != null,
     formatValueInValueTz: formatValueInValueTz(),
-    onDateSelected: (date: Temporal.PlainDate) => {
-      const time = selectedTime.value ?? props.defaultTime;
-      const pdt = date.toPlainDateTime({
-        hour: time.hours,
-        minute: coarRoundMinutesToStep(time.minutes, props.minuteStep),
-      });
-      const tz = valueTimeZone.value ?? effectiveDefaultTimeZone.value;
-      let zdt: Temporal.ZonedDateTime;
-      if (workingTimeZone.value !== tz) {
-        const inDisplayTz = pdt.toZonedDateTime(workingTimeZone.value);
-        zdt = inDisplayTz.withTimeZone(tz);
-      } else {
-        zdt = pdt.toZonedDateTime(tz);
-      }
-      zdt = clampZonedDateTime(zdt);
-      modelValue.value = zdt;
-    },
-    onActiveMonthChanged: (ym: Temporal.PlainYearMonth) => {
-      activeMonth.value = ym;
-    },
-    onSelectMonth: (ym: Temporal.PlainYearMonth) => {
-      activeMonth.value = ym;
-    },
-    onPreviousYear: () => {
-      if (!isPrevYearDisabled.value) activeMonth.value = activeMonth.value.subtract({ years: 1 });
-    },
-    onNextYear: () => {
-      if (!isNextYearDisabled.value) activeMonth.value = activeMonth.value.add({ years: 1 });
-    },
-    onScrollToTodayMonth: () => {
-      activeMonth.value = today.value.toPlainYearMonth();
-    },
-    onTimeChanged: (time: CoarTimeValue | null) => {
-      if (!time) return;
-      if (selectedDate.value) {
-        const pdt = selectedDate.value.toPlainDateTime({ hour: time.hours, minute: time.minutes });
-        const tz = valueTimeZone.value ?? effectiveDefaultTimeZone.value;
-        let zdt: Temporal.ZonedDateTime;
-        if (workingTimeZone.value !== tz) {
-          const inDisplayTz = pdt.toZonedDateTime(workingTimeZone.value);
-          zdt = inDisplayTz.withTimeZone(tz);
-        } else {
-          zdt = pdt.toZonedDateTime(tz);
-        }
-        zdt = clampZonedDateTime(zdt);
-        modelValue.value = zdt;
-      } else {
-        pendingTime.value = time;
-      }
-    },
-    onSelectDisplayTimezone: (tzId: string) => {
-      displayTimeZone.value = tzId;
-    },
-    onChangeValueTimezone: (newTzId: string) => {
-      if (modelValue.value) {
-        const pdt = modelValue.value.toPlainDateTime();
-        modelValue.value = pdt.toZonedDateTime(newTzId);
-      }
-    },
+    onDateSelected: picker.selectDate,
+    onActiveMonthChanged: picker.selectMonth,
+    onSelectMonth: picker.selectMonth,
+    onPreviousYear: picker.previousYear,
+    onNextYear: picker.nextYear,
+    onScrollToTodayMonth: picker.scrollToTodayMonth,
+    onTimeChanged: picker.changeTime,
+    onSelectDisplayTimezone: picker.selectDisplayTimezone,
+    onChangeValueTimezone: picker.changeValueTimezone,
   });
 
   // Sync parent state → panel inputs
@@ -560,43 +292,15 @@ function onKeydown(event: KeyboardEvent) {
 
 function clearValue(event: Event) {
   event.stopPropagation();
-  modelValue.value = null;
-  pendingTime.value = null;
-  displayValue.value = '';
+  picker.clearValue();
 }
 
 function onInputChange(event: Event) {
-  const text = (event.target as HTMLInputElement).value;
-  displayValue.value = text;
-  const parsed = parseValueFromInput(text);
-  if (parsed) {
-    modelValue.value = parsed;
-    const inWtz = parsed.withTimeZone(workingTimeZone.value);
-    activeMonth.value = inWtz.toPlainDate().toPlainYearMonth();
-  }
+  picker.changeInput((event.target as HTMLInputElement).value);
 }
 
 function onInputBlur() {
-  const text = displayValue.value;
-  const parsed = parseValueFromInput(text);
-  if (!parsed && text.length > 0) {
-    displayValue.value = modelValue.value ? formatValue(modelValue.value) : '';
-  }
-}
-
-// ============================================================
-// Timezone actions (trigger)
-// ============================================================
-
-/** Toggle display TZ between home ↔ location */
-function toggleDisplayTimezone() {
-  if (!timezoneIndicatorClickable.value) return;
-  const state = timezoneIndicatorState.value;
-  if (state === 'home' && valueTimeZone.value && valueTimeZone.value !== userTimeZone.value) {
-    displayTimeZone.value = valueTimeZone.value;
-  } else {
-    displayTimeZone.value = userTimeZone.value;
-  }
+  picker.blurInput();
 }
 
 // Timezone indicator icon name
