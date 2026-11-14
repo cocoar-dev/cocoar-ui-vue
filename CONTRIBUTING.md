@@ -69,6 +69,7 @@ What runs without `.coar-mobile` must keep its look and behaviour ([stability pr
 - **A new or changed state gets a story and baselines** in the same pull request.
 - **Update the page's `devices` line** (`apps/docs/components/…`), and its `devicesNote` when a limit changes; the values are explained in the [mobile guide](apps/docs/guide/mobile.md#device-support).
 - **New API carries the Preview badge.**
+- **Show it in phone size** when a demo helps. The mobile documentation (`apps/docs/mobile`, at `/mobile/` of the docs) is a small app of its own with `coar-mobile` on `html`. A demo is one `.vue` file in `apps/docs/mobile/demos/`, one entry in `DEMOS` of `apps/docs/mobile/demos/index.ts` (id, title, one-line description, group, optional docs page), and one `<PhoneFrame src="<id>" title="…" />` line on the docs page (`size="tablet"` for 810×1080). Run it with the docs: `pnpm --filter @cocoar/docs dev` serves it at `/mobile/`, and the docs build writes it to `.vitepress/dist/mobile`.
 
 ## Testing
 

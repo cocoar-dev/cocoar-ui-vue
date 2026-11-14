@@ -3,13 +3,18 @@ import llmstxt from 'vitepress-plugin-llms';
 import { containerPreview, componentPreview } from '@vitepress-demo-preview/plugin';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
+import { mobileDocsDev } from './mobile-dev';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// The site's base. The mobile documentation (../mobile) lives at <base>mobile/: served by
+// mobileDocsDev in dev, built there by the package's build script.
+const base = '/';
 
 export default defineConfig({
   title: 'Cocoar UI Vue',
   description: 'Vue 3 component library for the Cocoar Design System',
-  base: '/',
+  base,
 
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo_light.svg' }],
@@ -140,6 +145,7 @@ export default defineConfig({
         excludeUnnecessaryFiles: false,
         ignoreFiles: ['changelog.md'],
       }),
+      mobileDocsDev(base),
     ],
     ssr: {
       noExternal: [
@@ -186,7 +192,8 @@ export default defineConfig({
 
   // Spike pages link to live playground demos at localhost:5188; the
   // VitePress dead-link checker can't reach them at build time.
-  ignoreDeadLinks: [/^https?:\/\/localhost(:\d+)?\//],
+  // The mobile documentation at /mobile/ is an app of its own (../mobile), not a page.
+  ignoreDeadLinks: [/^https?:\/\/localhost(:\d+)?\//, /^\/mobile\//],
 
   themeConfig: {
     logo: {

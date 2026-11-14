@@ -41,6 +41,18 @@ validation, disabled/readonly states, and link-button semantics stay unchanged.
 Connecting a mouse does not switch the presentation. Narrowing the viewport does
 not automatically enable this mode either.
 
+## Try it in phone size {#try-it}
+
+The demo below runs in a real viewport of 390 × 844 CSS pixels, in an app with
+`coar-mobile` on `html`: overlays open inside it, and width-dependent rules see
+the phone's width. It is one page of the
+[mobile documentation](https://docs.cocoar.dev/cocoar-ui-vue/mobile/), a small app of demos that you
+can open on a phone directly and browse with your thumb. What a frame cannot
+show — the on-screen keyboard, safe areas, real finger gestures — needs that
+real device.
+
+Live demo in phone size: [A form in phone size](https://docs.cocoar.dev/cocoar-ui-vue/mobile/#/form)
+
 ## What decides what
 
 Each aspect of how a component looks and behaves has one source. They are
