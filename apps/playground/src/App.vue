@@ -19,6 +19,7 @@ import CoarThemeEditor from '@cocoar/vue-ui/theme-editor';
       <router-link to="/panel-layout">Panel Layout</router-link>
       <router-link to="/mobile-controls">Mobile Controls</router-link>
       <router-link to="/touch-lab">Touch Lab</router-link>
+      <router-link to="/mobile-form">Mobile Form</router-link>
     </nav>
     <main class="app-main">
       <router-view />

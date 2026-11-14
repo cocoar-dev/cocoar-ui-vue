@@ -1,6 +1,6 @@
 ---
 title: Overlay-Scope-Vertrag – Overlays behalten den lokalen Mobil-Modus
-status: in-progress
+status: done
 created: 2026-11-14
 summary: Overlays, die aus einem lokalen `.coar-mobile`-Bereich geöffnet werden (Popover, Select, Menü, Picker, Dialog, Kontextmenü, verschachtelt), bekommen im Overlay-Host die Klasse `coar-mobile` und die dort berechneten `--coar-control-*`-Werte. Dialoge und Kontextmenüs ohne Element-Anker finden ihren Bereich über eine neue Option `context`. Ohne `.coar-mobile` ändert sich nichts.
 ---
