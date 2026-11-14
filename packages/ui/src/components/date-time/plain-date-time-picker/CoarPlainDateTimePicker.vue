@@ -12,14 +12,7 @@ import CoarInputFrameButton from '../../input-frame/CoarInputFrameButton.vue';
 import { getOverlayService } from '../../overlay/useOverlay';
 import { datepickerPreset } from '../../overlay/overlay-presets';
 import type { OverlayRef } from '../../overlay/overlay-types';
-import { useDatePickerBase } from '../_shared/use-date-picker-base';
-import { coarFormatPlainDate, coarParsePlainDateFromInput } from '../_shared/date-helpers';
-import {
-  coarFormatTime,
-  coarParseTimeInput,
-  coarDetect12HourFormat,
-  coarRoundMinutesToStep,
-} from '../_shared/time-helpers';
+import { usePlainDateTimePicker } from '../_shared/use-plain-date-time-picker';
 import { coarCreateDateTimeMask } from '../_shared/maskito-config';
 import type { DateFormatConfig, CoarDateMarker, CoarTimeValue } from '../_shared/types';
 import CoarPlainDateTimePickerPanel from './CoarPlainDateTimePickerPanel.vue';
@@ -92,19 +85,12 @@ const emit = defineEmits<{
 // i18n
 const { t } = useI18n();
 
-// Composable
-const localeRef = computed(() => props.locale);
-const dateFormatRef = computed(() => props.dateFormat);
-const pickerBase = useDatePickerBase({ locale: localeRef, dateFormat: dateFormatRef });
-
-// Active month
-const activeMonth = ref<Temporal.PlainYearMonth>(
-  modelValue.value?.toPlainDate().toPlainYearMonth() ??
-    Temporal.Now.plainDateISO().toPlainYearMonth(),
-);
-
-// Pending time (stored until a date is selected)
-const pendingTime = ref<CoarTimeValue | null>(null);
+// Value logic: state, formatting/parsing, min/max, navigation (shared with other presentations)
+const picker = usePlainDateTimePicker(modelValue, props);
+const {
+  pickerBase, activeMonth, displayValue, effectiveUse24Hour, inputPlaceholder,
+  selectedDate, selectedTime, minDate, maxDate, effectiveMinTime, effectiveMaxTime,
+} = picker;
 
 // Form-field integration: label + status icon + message live on the wrapping
 // CoarFormField. We only consume its id / error / describedby contract.
@@ -123,16 +109,6 @@ const dateInputRef = ref<HTMLInputElement | null>(null);
 // Overlay
 let overlayRef: OverlayRef | null = null;
 
-// Display value
-const displayValue = ref('');
-
-// Effective use24Hour
-const effectiveUse24Hour = computed(() => {
-  if (props.use24Hour === true) return true;
-  if (props.use24Hour === false) return false;
-  return !coarDetect12HourFormat(pickerBase.effectiveLocale.value);
-});
-
 // Maskito
 let maskitoInstance: Maskito | undefined;
 
@@ -145,25 +121,6 @@ function initMaskito() {
   );
   maskitoInstance = new Maskito(dateInputRef.value, mask);
 }
-
-// Format value
-function formatValue(val: Temporal.PlainDateTime): string {
-  const datePart = coarFormatPlainDate(
-    val.toPlainDate(),
-    pickerBase.effectiveDateFormat.value.pattern,
-  );
-  const timePart = coarFormatTime(val.hour, val.minute, effectiveUse24Hour.value, true);
-  return `${datePart} ${timePart}`;
-}
-
-// Sync display value
-watch(
-  modelValue,
-  (val) => {
-    displayValue.value = val ? formatValue(val) : '';
-  },
-  { immediate: true },
-);
 
 watch([dateInputRef, () => pickerBase.effectiveDateFormat.value], () => {
   nextTick(() => initMaskito());
@@ -189,58 +146,6 @@ const showClearButton = computed(
 const clearSlotActive = computed(
   () => props.clearable && !isDisabled.value && !props.readonly,
 );
-const inputPlaceholder = computed(() => {
-  if (props.placeholder) return props.placeholder;
-  const datePart = pickerBase.effectiveDateFormat.value.pattern.toUpperCase();
-  return effectiveUse24Hour.value ? `${datePart} HH:MM` : `${datePart} HH:MM AM/PM`;
-});
-
-// Extracted date/time from model
-const selectedDate = computed((): Temporal.PlainDate | null =>
-  modelValue.value ? modelValue.value.toPlainDate() : null,
-);
-const selectedTime = computed((): CoarTimeValue | null => {
-  if (modelValue.value) return { hours: modelValue.value.hour, minutes: modelValue.value.minute };
-  return pendingTime.value;
-});
-const minDate = computed((): Temporal.PlainDate | null =>
-  props.min ? props.min.toPlainDate() : null,
-);
-const maxDate = computed((): Temporal.PlainDate | null =>
-  props.max ? props.max.toPlainDate() : null,
-);
-
-// Effective time constraints (only on boundary dates)
-const effectiveMinTime = computed((): CoarTimeValue | null => {
-  if (!props.min || !selectedDate.value) return null;
-  if (Temporal.PlainDate.compare(selectedDate.value, props.min.toPlainDate()) === 0) {
-    return { hours: props.min.hour, minutes: props.min.minute };
-  }
-  return null;
-});
-const effectiveMaxTime = computed((): CoarTimeValue | null => {
-  if (!props.max || !selectedDate.value) return null;
-  if (Temporal.PlainDate.compare(selectedDate.value, props.max.toPlainDate()) === 0) {
-    return { hours: props.max.hour, minutes: props.max.minute };
-  }
-  return null;
-});
-
-// Year boundary helpers
-const isPrevYearDisabled = computed(
-  () => activeMonth.value.year <= Temporal.Now.plainDateISO().year - 100,
-);
-const isNextYearDisabled = computed(
-  () => activeMonth.value.year >= Temporal.Now.plainDateISO().year + 50,
-);
-const today = computed(() => Temporal.Now.plainDateISO());
-
-// DateTime clamp
-function clampDateTime(dt: Temporal.PlainDateTime): Temporal.PlainDateTime {
-  if (props.min && Temporal.PlainDateTime.compare(dt, props.min) < 0) return props.min;
-  if (props.max && Temporal.PlainDateTime.compare(dt, props.max) > 0) return props.max;
-  return dt;
-}
 
 // Open/close
 function openPanel() {
@@ -268,40 +173,13 @@ function openPanel() {
     readonly: props.readonly as boolean,
     effectiveMinTime: effectiveMinTime.value,
     effectiveMaxTime: effectiveMaxTime.value,
-    onDateSelected: (date: Temporal.PlainDate) => {
-      const time = selectedTime.value ?? props.defaultTime;
-      let dt = date.toPlainDateTime({
-        hour: time.hours,
-        minute: coarRoundMinutesToStep(time.minutes, props.minuteStep),
-      });
-      dt = clampDateTime(dt);
-      modelValue.value = dt;
-    },
-    onActiveMonthChanged: (ym: Temporal.PlainYearMonth) => {
-      activeMonth.value = ym;
-    },
-    onSelectMonth: (ym: Temporal.PlainYearMonth) => {
-      activeMonth.value = ym;
-    },
-    onPreviousYear: () => {
-      if (!isPrevYearDisabled.value) activeMonth.value = activeMonth.value.subtract({ years: 1 });
-    },
-    onNextYear: () => {
-      if (!isNextYearDisabled.value) activeMonth.value = activeMonth.value.add({ years: 1 });
-    },
-    onScrollToTodayMonth: () => {
-      activeMonth.value = today.value.toPlainYearMonth();
-    },
-    onTimeChanged: (time: CoarTimeValue | null) => {
-      if (!time) return;
-      if (selectedDate.value) {
-        let dt = selectedDate.value.toPlainDateTime({ hour: time.hours, minute: time.minutes });
-        dt = clampDateTime(dt);
-        modelValue.value = dt;
-      } else {
-        pendingTime.value = time;
-      }
-    },
+    onDateSelected: picker.selectDate,
+    onActiveMonthChanged: picker.selectMonth,
+    onSelectMonth: picker.selectMonth,
+    onPreviousYear: picker.previousYear,
+    onNextYear: picker.nextYear,
+    onScrollToTodayMonth: picker.scrollToTodayMonth,
+    onTimeChanged: picker.changeTime,
   });
 
   // Sync parent state → panel inputs
@@ -472,41 +350,15 @@ function onKeydown(event: KeyboardEvent) {
 // Actions
 function clearValue(event: Event) {
   event.stopPropagation();
-  modelValue.value = null;
-  pendingTime.value = null;
-  displayValue.value = '';
+  picker.clearValue();
 }
 
 function onInputChange(event: Event) {
-  const text = (event.target as HTMLInputElement).value;
-  displayValue.value = text;
-  const parsed = parseValueFromInput(text);
-  if (parsed) {
-    modelValue.value = parsed;
-    activeMonth.value = parsed.toPlainDate().toPlainYearMonth();
-  }
+  picker.changeInput((event.target as HTMLInputElement).value);
 }
 
 function onInputBlur() {
-  const text = displayValue.value;
-  const parsed = parseValueFromInput(text);
-  if (!parsed && text.length > 0) {
-    displayValue.value = modelValue.value ? formatValue(modelValue.value) : '';
-  }
-}
-
-function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
-  if (!text) return null;
-  const parts = text.split(' ');
-  if (parts.length < 2) return null;
-  const date = coarParsePlainDateFromInput(parts[0], pickerBase.effectiveDateFormat.value.pattern, {
-    min: minDate.value,
-    max: maxDate.value,
-  });
-  if (!date) return null;
-  const time = coarParseTimeInput(parts.slice(1).join(' '));
-  if (!time) return null;
-  return date.toPlainDateTime({ hour: time.hours, minute: time.minutes });
+  picker.blurInput();
 }
 </script>
 

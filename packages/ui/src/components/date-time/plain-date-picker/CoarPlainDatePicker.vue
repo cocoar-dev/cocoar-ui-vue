@@ -22,11 +22,7 @@ import CoarInputFrameButton from '../../input-frame/CoarInputFrameButton.vue';
 import { getOverlayService } from '../../overlay/useOverlay';
 import { datepickerPreset } from '../../overlay/overlay-presets';
 import type { OverlayRef } from '../../overlay/overlay-types';
-import { useDatePickerBase } from '../_shared/use-date-picker-base';
-import {
-  coarFormatPlainDate,
-  coarParsePlainDateFromInput,
-} from '../_shared/date-helpers';
+import { usePlainDatePicker } from '../_shared/use-plain-date-picker';
 import { coarCreateDateMask } from '../_shared/maskito-config';
 import type { DateFormatConfig, CoarDateMarker } from '../_shared/types';
 import CoarPlainDatePickerPanel from './CoarPlainDatePickerPanel.vue';
@@ -106,15 +102,9 @@ const emit = defineEmits<{
 // i18n
 const { t } = useI18n();
 
-// Date picker base composable
-const localeRef = computed(() => props.locale);
-const dateFormatRef = computed(() => props.dateFormat);
-const pickerBase = useDatePickerBase({ locale: localeRef, dateFormat: dateFormatRef });
-
-// Active month for calendar + month list sync
-const activeMonth = ref<Temporal.PlainYearMonth>(
-  modelValue.value?.toPlainYearMonth() ?? Temporal.Now.plainDateISO().toPlainYearMonth(),
-);
+// Value logic: state, formatting/parsing, navigation (shared with other presentations)
+const picker = usePlainDatePicker(modelValue, props);
+const { pickerBase, activeMonth, displayValue, inputPlaceholder } = picker;
 
 // Form-field integration: label + status icon + message live on the wrapping
 // CoarFormField. We only consume its id / error / describedby contract.
@@ -134,9 +124,6 @@ const dateInputRef = ref<HTMLInputElement | null>(null);
 // Overlay
 let overlayRef: OverlayRef | null = null;
 
-// Display value
-const displayValue = ref('');
-
 // Maskito
 let maskitoInstance: Maskito | undefined;
 
@@ -146,19 +133,6 @@ function initMaskito() {
   const mask = coarCreateDateMask(pickerBase.effectiveDateFormat.value.pattern);
   maskitoInstance = new Maskito(dateInputRef.value, mask);
 }
-
-// Sync display value from model
-watch(
-  modelValue,
-  (val) => {
-    if (val) {
-      displayValue.value = coarFormatPlainDate(val, pickerBase.effectiveDateFormat.value.pattern);
-    } else {
-      displayValue.value = '';
-    }
-  },
-  { immediate: true },
-);
 
 // Init maskito when input is available and format changes
 watch(
@@ -189,14 +163,6 @@ const showClearButton = computed(
 const clearSlotActive = computed(
   () => props.clearable && !isDisabled.value && !props.readonly,
 );
-const inputPlaceholder = computed(
-  () => props.placeholder || pickerBase.effectiveDateFormat.value.pattern.toUpperCase(),
-);
-
-// Year boundary helpers (needed for panel callbacks)
-const isPrevYearDisabled = computed(() => activeMonth.value.year <= Temporal.Now.plainDateISO().year - 100);
-const isNextYearDisabled = computed(() => activeMonth.value.year >= Temporal.Now.plainDateISO().year + 50);
-const today = computed(() => Temporal.Now.plainDateISO());
 
 // Open/close
 function openPanel() {
@@ -223,26 +189,16 @@ function openPanel() {
     markers: props.markers,
     showTodayMonthButton: props.showTodayMonthButton,
     onDateSelected: (date: Temporal.PlainDate) => {
-      modelValue.value = date;
+      picker.selectDate(date);
       if (props.closeOnSelect) {
         closePanel();
       }
     },
-    onActiveMonthChanged: (ym: Temporal.PlainYearMonth) => {
-      activeMonth.value = ym;
-    },
-    onSelectMonth: (ym: Temporal.PlainYearMonth) => {
-      activeMonth.value = ym;
-    },
-    onPreviousYear: () => {
-      if (!isPrevYearDisabled.value) activeMonth.value = activeMonth.value.subtract({ years: 1 });
-    },
-    onNextYear: () => {
-      if (!isNextYearDisabled.value) activeMonth.value = activeMonth.value.add({ years: 1 });
-    },
-    onScrollToTodayMonth: () => {
-      activeMonth.value = today.value.toPlainYearMonth();
-    },
+    onActiveMonthChanged: picker.selectMonth,
+    onSelectMonth: picker.selectMonth,
+    onPreviousYear: picker.previousYear,
+    onNextYear: picker.nextYear,
+    onScrollToTodayMonth: picker.scrollToTodayMonth,
   });
 
   // Sync parent state → panel inputs
@@ -310,37 +266,15 @@ function onKeydown(event: KeyboardEvent) {
 // Actions
 function clearValue(event: Event) {
   event.stopPropagation();
-  modelValue.value = null;
-  displayValue.value = '';
+  picker.clearValue();
 }
 
 function onInputChange(event: Event) {
-  const input = event.target as HTMLInputElement;
-  displayValue.value = input.value;
-
-  const parsed = coarParsePlainDateFromInput(input.value, pickerBase.effectiveDateFormat.value.pattern, {
-    min: props.min,
-    max: props.max,
-  });
-  if (parsed) {
-    modelValue.value = parsed;
-    activeMonth.value = parsed.toPlainYearMonth();
-  }
+  picker.changeInput((event.target as HTMLInputElement).value);
 }
 
 function onInputBlur() {
-  const text = displayValue.value;
-  const parsed = coarParsePlainDateFromInput(text, pickerBase.effectiveDateFormat.value.pattern, {
-    min: props.min,
-    max: props.max,
-  });
-  if (!parsed && text.length > 0) {
-    if (modelValue.value) {
-      displayValue.value = coarFormatPlainDate(modelValue.value, pickerBase.effectiveDateFormat.value.pattern);
-    } else {
-      displayValue.value = '';
-    }
-  }
+  picker.blurInput();
 }
 </script>
 
