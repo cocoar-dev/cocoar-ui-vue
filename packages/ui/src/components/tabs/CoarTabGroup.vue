@@ -296,6 +296,14 @@ function onKeydown(event: KeyboardEvent) {
   white-space: nowrap;
 }
 
+/* Mobile: the 44px min-width replaces the flex item's automatic minimum (its label).
+   Not shrinking keeps every tab at least as wide as its label, as without the class,
+   where a tab never shrinks below its nowrap label either; a row wider than its
+   container overflows the same way in both modes. */
+.coar-mobile .coar-tab-button {
+  flex-shrink: 0;
+}
+
 .coar-tab-label {
   display: inline-block;
 }

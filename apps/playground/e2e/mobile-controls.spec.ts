@@ -382,3 +382,117 @@ test(
     expect(item.height).toBeLessThan(44);
   },
 );
+
+// ─── Narrow cases (phone width) ─────────────────────────────────────────────────
+
+const narrow = (page: Page) => page.getByTestId('narrow-cases');
+
+/**
+ * Taps on a grid over the 44×44px square centred on each icon: every point must reach
+ * that icon's own button or nothing interactive (no neighbour's hit area, no other control).
+ */
+async function expectOwnHitAreas(buttons: Locator) {
+  const all = await buttons.all();
+  expect(all.length).toBeGreaterThan(1);
+  for (const button of all) {
+    await button.scrollIntoViewIfNeeded();
+    const wrong = await button.evaluate((own) => {
+      const r = own.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      const found: string[] = [];
+      for (let dx = -21; dx <= 21; dx += 7) {
+        for (let dy = -21; dy <= 21; dy += 7) {
+          const hit = document.elementFromPoint(cx + dx, cy + dy);
+          const control = hit?.closest(
+            'button, input, select, textarea, a[href], [role="option"], [role="tab"], [tabindex]:not([tabindex="-1"])',
+          );
+          if (control && control !== own) {
+            found.push(`(${dx},${dy}) → ${control.tagName.toLowerCase()}.${control.className}`);
+          }
+        }
+      }
+      return found;
+    });
+    expect(wrong, 'points of the hit area that reach another control').toEqual([]);
+  }
+}
+
+test.describe('narrow cases at a 320px viewport', { tag: '@touch' }, () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 800 });
+  });
+
+  test('wrapped tag-select chips: each remove hit area reaches only its own button', async ({
+    page,
+  }) => {
+    const field = narrow(page).getByTestId('narrow-tag-select');
+    const chips = field.locator('.coar-tag-select-tag');
+    await expect(chips).toHaveCount(3);
+    const tops = await chips.evaluateAll((els) => els.map((el) => el.getBoundingClientRect().top));
+    expect(new Set(tops.map(Math.round)).size, 'the chips wrap').toBeGreaterThan(1);
+    await expectOwnHitAreas(field.locator('.coar-tag-select-tag-remove'));
+  });
+
+  test('closable tags wrapped in a list: each close hit area reaches only its own button', async ({
+    page,
+  }) => {
+    const list = narrow(page).getByTestId('tag-list');
+    const tops = await list
+      .locator('.coar-tag')
+      .evaluateAll((els) => els.map((el) => el.getBoundingClientRect().top));
+    expect(new Set(tops.map(Math.round)).size, 'the tags wrap').toBeGreaterThan(1);
+    await expectOwnHitAreas(list.locator('.coar-tag__close'));
+  });
+
+  test('long tabs are never narrower than their labels and never overlap', async ({ page }) => {
+    const buttons = narrow(page).getByTestId('narrow-tabs').locator('.coar-tab-button');
+    await expect(buttons).toHaveCount(4);
+    const boxes = await buttons.evaluateAll((els) =>
+      els.map((el) => {
+        const b = el.getBoundingClientRect();
+        const l = el.querySelector('.coar-tab-label')!.getBoundingClientRect();
+        return { left: b.left, right: b.right, labelLeft: l.left, labelRight: l.right };
+      }),
+    );
+    boxes.forEach((box, i) => {
+      expect(box.labelLeft, `tab ${i}: label inside its button`).toBeGreaterThanOrEqual(
+        box.left - 0.5,
+      );
+      expect(box.labelRight, `tab ${i}: label inside its button`).toBeLessThanOrEqual(
+        box.right + 0.5,
+      );
+      if (i > 0)
+        expect(box.left, `tab ${i}: after its neighbour`).toBeGreaterThanOrEqual(
+          boxes[i - 1].right - 0.5,
+        );
+    });
+  });
+
+  test('six OTP cells keep the mobile height and fit the container', async ({ page }) => {
+    const container = narrow(page).getByTestId('narrow-otp');
+    const cells = container.locator('.coar-otp-input__cell');
+    await expect(cells).toHaveCount(6);
+    const right = (await container.boundingBox())!;
+    for (const cell of await cells.all()) {
+      const box = (await cell.boundingBox())!;
+      expect(box.x + box.width).toBeLessThanOrEqual(right.x + right.width + 0.5);
+      expect(box.height).toBe(mobileHeights.m);
+      await expectFont(cell);
+    }
+    const group = (await container.locator('.coar-otp-input').boundingBox())!;
+    expect(group.x + group.width).toBeLessThanOrEqual(right.x + right.width + 0.5);
+  });
+
+  test('pagination with 30 items wraps its 44px buttons inside the container', async ({ page }) => {
+    const container = narrow(page).getByTestId('narrow-pagination');
+    const edge = (await container.boundingBox())!;
+    const buttons = container.locator('.coar-pagination-button');
+    await expect(buttons).toHaveCount(7);
+    for (const button of await buttons.all()) {
+      const box = (await button.boundingBox())!;
+      expect(box.x + box.width).toBeLessThanOrEqual(edge.x + edge.width + 0.5);
+      await expectTarget(button);
+    }
+  });
+});

@@ -173,6 +173,11 @@ function trackByItem(index: number, item: PaginationPageItem): string {
   gap: var(--coar-pagination-gap);
 }
 
+/* Mobile: the 44px buttons wrap instead of overflowing a narrow container. */
+.coar-mobile .coar-pagination-nav {
+  flex-wrap: wrap;
+}
+
 .coar-pagination-button {
   display: inline-flex;
   align-items: center;

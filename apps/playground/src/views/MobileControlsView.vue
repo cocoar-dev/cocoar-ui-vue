@@ -66,6 +66,13 @@ const listed = ref<string[]>([]);
 const activeTab = ref('general');
 const page = ref(2);
 const tagCloses = ref(0);
+// Narrow cases: what must still fit, wrap or keep its hit areas apart at a phone width.
+const otp = ref('');
+const narrowPage = ref(1);
+const longTab = ref('notifications');
+const longTabs = ['Notifications', 'Integrations', 'Permissions', 'Appearance'];
+const allTags = ref<string[]>(['at', 'de', 'ch']);
+const listedTags = ['Austria', 'Germany', 'Switzerland', 'Italy', 'France', 'Spain'];
 </script>
 
 <template>
@@ -205,6 +212,29 @@ const tagCloses = ref(0);
           </CoarMenu>
         </section>
 
+        <section data-testid="narrow-cases">
+          <h2>Narrow cases</h2>
+          <div data-testid="narrow-otp">
+            <CoarOtpInput v-model="otp" />
+          </div>
+          <div data-testid="narrow-pagination">
+            <CoarPagination v-model="narrowPage" :total-items="30" />
+          </div>
+          <div data-testid="narrow-tabs">
+            <CoarTabGroup v-model="longTab">
+              <CoarTab v-for="label in longTabs" :id="label.toLowerCase()" :key="label">
+                {{ label }}<template #content>{{ label }} settings</template>
+              </CoarTab>
+            </CoarTabGroup>
+          </div>
+          <div data-testid="narrow-tag-select" style="width: 180px">
+            <CoarTagSelect v-model="allTags" :options="countries" />
+          </div>
+          <div data-testid="tag-list" class="demo-tag-list">
+            <CoarTag v-for="label in listedTags" :key="label" closable>{{ label }}</CoarTag>
+          </div>
+        </section>
+
         <section data-testid="mobile-popover">
           <h2>Popover from the local area (teleported to body)</h2>
           <div>
@@ -243,6 +273,13 @@ section {
   grid-template-columns: minmax(0, 1fr);
   gap: var(--coar-spacing-m);
   padding-block: var(--coar-spacing-l);
+}
+
+.demo-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--coar-spacing-xs);
+  width: 200px;
 }
 
 .demo-popover {

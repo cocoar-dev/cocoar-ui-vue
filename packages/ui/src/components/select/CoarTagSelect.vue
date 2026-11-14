@@ -431,7 +431,21 @@ onBeforeUnmount(() => {
 
 .coar-tag-select-tag-remove:hover { opacity: 1; }
 
-/* Mobile: a 44px hit area centred on the 16px icon; the chip keeps its size. */
+/* Mobile: a 44×44px hit area centred on the 16px remove icon; the chip keeps its size.
+   The gaps keep the area clear of everything else: wrapped rows are 44px apart, and
+   the next chip or the input starts where the area ends ((44 - 16) / 2 beside the
+   icon, less the chip's own end padding). No two areas overlap, none covers another
+   control. */
+.coar-mobile .coar-tag-select-tags {
+  row-gap: max(
+    var(--coar-spacing-xs),
+    calc(var(--coar-control-min-target-size) - 24px * var(--coar-component-scale, 1))
+  );
+  column-gap: max(
+    var(--coar-spacing-xs),
+    calc((var(--coar-control-min-target-size) - 16px) / 2 - var(--coar-spacing-xs))
+  );
+}
 .coar-mobile .coar-tag-select-tag-remove {
   position: relative;
 }

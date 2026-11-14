@@ -114,15 +114,15 @@ the small controls around them. This is not a mobile redesign of the entire libr
 | `CoarRadioButton` / `CoarRadioGroup` | At least 48×48px clickable option labels, without enlarging the indicators |
 | `CoarSwitch` | At least 48×48px clickable label, without enlarging the track |
 | `CoarSelect` / `CoarMultiSelect` | The field height scale and at least 16px text, a 44×44px clear target; options at least 44px tall with 16px text |
-| `CoarTagSelect` | The same field floors as a minimum height (the field still grows with its chips), 44×44px chip remove targets without enlarging the chips; options as above |
+| `CoarTagSelect` | The same field floors as a minimum height (the field still grows with its chips), 44×44px chip remove targets without enlarging the chips (wider gaps between chips and wrapped rows keep the targets apart); options as above |
 | `CoarPlainDatePicker`, `CoarPlainDateTimePicker`, `CoarZonedDateTimePicker`, `CoarPlainDateTimeOrDatePicker`, `CoarZonedDateTimeOrDatePicker` | The field height scale and at least 16px editable text, 44×44px clear, calendar and time-zone targets; the panels keep their desktop layout |
 | `CoarMenu` / `CoarContextMenu` | Items and submenu triggers at least 44px tall with 16px text |
 | `CoarListbox` | Rows at least 44px tall with 16px text; in virtual mode the row height stays the `itemHeight` prop |
 | `CoarSegmentedControl` | The button height scale, at least 44px wide segments and 16px text |
-| `CoarTabGroup` | Tabs at least 44×44px with 16px text |
-| `CoarOtpInput` | Cells on the field height scale (square) with at least 16px text |
-| `CoarPagination` | Page and navigation buttons at least 44×44px with 16px text |
-| `CoarTag` | A 44×44px close target, without enlarging the tag |
+| `CoarTabGroup` | Tabs at least 44×44px with 16px text, never narrower than their label; a row wider than its container overflows as without the class |
+| `CoarOtpInput` | Cells on the field height scale with at least 16px text; square where there is room, narrower where the container is too narrow for them |
+| `CoarPagination` | Page and navigation buttons at least 44×44px with 16px text; they wrap in a narrow container |
+| `CoarTag` | A 44×44px close target, without enlarging the tag; a closable tag keeps the target's room as margin, so tags in a list never cover each other |
 
 Text-input clear buttons also receive 44×44px targets. Clear buttons remain fully
 opaque without hover or focus when a value can be cleared; empty fields retain

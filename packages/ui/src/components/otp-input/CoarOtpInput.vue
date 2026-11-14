@@ -489,6 +489,16 @@ const pattern = computed(() =>
   font-size: max(var(--coar-component-l-font-size), var(--coar-control-min-font-size, 0px));
 }
 
+/* Mobile: the cells keep the mobile height but give up width to fit their container
+   (six m cells need 332px); without the class the fixed width stays. */
+.coar-mobile .coar-otp-input {
+  max-width: 100%;
+}
+.coar-mobile .coar-otp-input__cell {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
 .coar-otp-input__cell::placeholder {
   color: var(--coar-text-neutral-tertiary, #999);
 }
