@@ -138,6 +138,51 @@
     "clock": "2026-03-10T09:00:00Z"
   },
   {
+    "name": "date-picker-open",
+    "capture": "page",
+    "clock": "2026-03-10T09:00:00Z",
+    "open": {
+      "actions": [
+        {
+          "dispatch": "click",
+          "on": "[data-visual-open] .coar-plain-date-picker-btn"
+        }
+      ],
+      "overlays": 1,
+      "ready": ".coar-scrollable-calendar__months-wrapper--ready"
+    }
+  },
+  {
+    "name": "date-time-picker-open",
+    "capture": "page",
+    "clock": "2026-03-10T09:00:00Z",
+    "open": {
+      "actions": [
+        {
+          "dispatch": "click",
+          "on": "[data-visual-open] .coar-pdtp-btn"
+        }
+      ],
+      "overlays": 1,
+      "ready": ".coar-scrollable-calendar__months-wrapper--ready"
+    }
+  },
+  {
+    "name": "zoned-date-time-picker-open",
+    "capture": "page",
+    "clock": "2026-03-10T09:00:00Z",
+    "open": {
+      "actions": [
+        {
+          "dispatch": "click",
+          "on": "[data-visual-open] .coar-zdtp-btn"
+        }
+      ],
+      "overlays": 1,
+      "ready": ".coar-scrollable-calendar__months-wrapper--ready"
+    }
+  },
+  {
     "name": "form-field"
   },
   {
