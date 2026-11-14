@@ -14,7 +14,25 @@
  */
 
 let lockCount = 0;
-let saved: { htmlOverflow: string; bodyPaddingRight: string } | null = null;
+// The inline declarations the lock overwrites, each with its priority. The shorthand alone is
+// not enough: it is empty when an app has set only `overflow-y` or gave the axes different
+// priorities. Restored in this order, the shorthand first, then the axes.
+const HTML_PROPERTIES = ['overflow', 'overflow-x', 'overflow-y'] as const;
+type Declaration = { property: string; value: string; priority: string };
+let saved: { html: Declaration[]; bodyPaddingRight: Declaration } | null = null;
+
+function read(style: CSSStyleDeclaration, property: string): Declaration {
+  return {
+    property,
+    value: style.getPropertyValue(property),
+    priority: style.getPropertyPriority(property),
+  };
+}
+
+function write(style: CSSStyleDeclaration, { property, value, priority }: Declaration) {
+  if (value) style.setProperty(property, value, priority);
+  else style.removeProperty(property);
+}
 
 function onTouchMove(event: TouchEvent) {
   const target = event.target;
@@ -26,20 +44,23 @@ function apply() {
   const html = document.documentElement;
   const body = document.body;
   const scrollbarWidth = window.innerWidth - html.clientWidth;
-  saved = { htmlOverflow: html.style.overflow, bodyPaddingRight: body.style.paddingRight };
+  saved = {
+    html: HTML_PROPERTIES.map((property) => read(html.style, property)),
+    bodyPaddingRight: read(body.style, 'padding-right'),
+  };
   if (scrollbarWidth > 0) {
     const padding = parseFloat(getComputedStyle(body).paddingRight) || 0;
     body.style.paddingRight = `${padding + scrollbarWidth}px`;
   }
-  html.style.overflow = 'hidden';
+  for (const property of HTML_PROPERTIES) html.style.setProperty(property, 'hidden');
   document.addEventListener('touchmove', onTouchMove, { passive: false });
 }
 
 function restore() {
   document.removeEventListener('touchmove', onTouchMove);
   if (!saved) return;
-  document.documentElement.style.overflow = saved.htmlOverflow;
-  document.body.style.paddingRight = saved.bodyPaddingRight;
+  for (const declaration of saved.html) write(document.documentElement.style, declaration);
+  write(document.body.style, saved.bodyPaddingRight);
   saved = null;
 }
 
