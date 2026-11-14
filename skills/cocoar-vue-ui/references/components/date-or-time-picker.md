@@ -2,7 +2,7 @@
 
 # Date · optional time
 
-**Devices:** desktop ready · tablet ready · phone planned — A phone presentation (sheet) is planned.
+**Devices:** desktop ready · tablet ready · phone partial — Mobile field sizes under .coar-mobile (Preview); the panel keeps its desktop layout, a phone sheet is planned.
 
 Sometimes a field is "a date, and *maybe* a time" — a due date that's usually
 just a day but occasionally needs an hour, a reminder that can be all-day or

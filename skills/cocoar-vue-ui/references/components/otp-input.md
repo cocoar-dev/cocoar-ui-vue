@@ -2,7 +2,7 @@
 
 # OTP Input (New in 2.0)
 
-**Devices:** desktop ready · tablet ready · phone partial — Works on phones (numeric keyboard, SMS autofill) but has no .coar-mobile presentation yet.
+**Devices:** desktop ready · tablet ready · phone partial — Mobile sizes under .coar-mobile (Preview); numeric keyboard and SMS autofill work on phones.
 
 The N-cell input for verification codes — 2FA / TOTP from authenticator apps, SMS one-time passwords, claim codes, short PINs. Auto-advances as the user types, jumps back on Backspace, spreads pasted codes across cells, and fires a `complete` event the moment the last cell fills so you can submit without a button click.
 

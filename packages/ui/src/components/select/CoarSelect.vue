@@ -274,6 +274,7 @@ onBeforeUnmount(() => {
         :id="inputId"
         ref="triggerRef"
         class="coar-select-trigger coar-select-frame"
+        mobile-sizing
         :size="size"
         :error="hasError"
         :disabled="disabled"
@@ -375,7 +376,7 @@ onBeforeUnmount(() => {
   gap: var(--coar-spacing-xs);
   min-width: 0;
   font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-body-small-base-size);
+  font-size: max(var(--coar-body-small-base-size), var(--coar-control-min-font-size, 0px));
   font-weight: var(--coar-body-small-base-weight);
   color: var(--coar-text-neutral-primary);
   overflow: hidden;
@@ -385,9 +386,9 @@ onBeforeUnmount(() => {
 
 .coar-select-placeholder { color: var(--coar-text-placeholder); }
 
-.coar-select--xs .coar-select-value { font-size: var(--coar-component-xs-font-size); }
-.coar-select--s .coar-select-value { font-size: var(--coar-component-s-font-size); }
-.coar-select--l .coar-select-value { font-size: var(--coar-component-l-font-size); }
+.coar-select--xs .coar-select-value { font-size: max(var(--coar-component-xs-font-size), var(--coar-control-min-font-size, 0px)); }
+.coar-select--s .coar-select-value { font-size: max(var(--coar-component-s-font-size), var(--coar-control-min-font-size, 0px)); }
+.coar-select--l .coar-select-value { font-size: max(var(--coar-component-l-font-size), var(--coar-control-min-font-size, 0px)); }
 
 /* Clear — sized by intrinsic icon dimensions like the other input
  * controls (TextInput / NumberInput / DatePickers). Hardcoded 16×16
@@ -397,6 +398,8 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  min-width: var(--coar-control-min-target-size, auto);
+  min-height: var(--coar-control-min-target-size, auto);
   padding: 0;
   border: none;
   background: transparent;
@@ -404,7 +407,7 @@ onBeforeUnmount(() => {
   cursor: pointer;
   border-radius: var(--coar-radius-xs);
   transition: color var(--coar-duration-fast) var(--coar-ease-out), opacity var(--coar-duration-fast) var(--coar-ease-out);
-  opacity: 0.4;
+  opacity: var(--coar-control-clear-opacity, 0.4);
 }
 
 .coar-select-trigger:hover .coar-select-clear,
@@ -440,7 +443,7 @@ onBeforeUnmount(() => {
   border: none;
   background: transparent;
   font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-body-small-base-size);
+  font-size: max(var(--coar-body-small-base-size), var(--coar-control-min-font-size, 0px));
   font-weight: var(--coar-body-small-base-weight);
   color: var(--coar-text-neutral-primary);
   outline: none;
@@ -450,9 +453,9 @@ onBeforeUnmount(() => {
   color: var(--coar-text-placeholder);
 }
 
-.coar-select--xs .coar-select-inline-search { font-size: var(--coar-component-xs-font-size); }
-.coar-select--s .coar-select-inline-search { font-size: var(--coar-component-s-font-size); }
-.coar-select--l .coar-select-inline-search { font-size: var(--coar-component-l-font-size); }
+.coar-select--xs .coar-select-inline-search { font-size: max(var(--coar-component-xs-font-size), var(--coar-control-min-font-size, 0px)); }
+.coar-select--s .coar-select-inline-search { font-size: max(var(--coar-component-s-font-size), var(--coar-control-min-font-size, 0px)); }
+.coar-select--l .coar-select-inline-search { font-size: max(var(--coar-component-l-font-size), var(--coar-control-min-font-size, 0px)); }
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {

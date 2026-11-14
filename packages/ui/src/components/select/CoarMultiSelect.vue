@@ -325,6 +325,7 @@ onBeforeUnmount(() => {
         ref="triggerRef"
         v-tooltip="tooltipConfig"
         class="coar-select-trigger coar-select-frame"
+        mobile-sizing
         :size="size"
         :error="hasError"
         :disabled="disabled"
@@ -414,9 +415,9 @@ onBeforeUnmount(() => {
 }
 
 /* Per-size value text (was constant — only single-select scaled it) */
-.coar-select--xs .coar-select-value { font-size: var(--coar-component-xs-font-size); }
-.coar-select--s .coar-select-value { font-size: var(--coar-component-s-font-size); }
-.coar-select--l .coar-select-value { font-size: var(--coar-component-l-font-size); }
+.coar-select--xs .coar-select-value { font-size: max(var(--coar-component-xs-font-size), var(--coar-control-min-font-size, 0px)); }
+.coar-select--s .coar-select-value { font-size: max(var(--coar-component-s-font-size), var(--coar-control-min-font-size, 0px)); }
+.coar-select--l .coar-select-value { font-size: max(var(--coar-component-l-font-size), var(--coar-control-min-font-size, 0px)); }
 
 /* Value */
 .coar-select-value {
@@ -426,7 +427,7 @@ onBeforeUnmount(() => {
   gap: var(--coar-spacing-xs);
   min-width: 0;
   font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-body-small-base-size);
+  font-size: max(var(--coar-body-small-base-size), var(--coar-control-min-font-size, 0px));
   font-weight: var(--coar-body-small-base-weight);
   color: var(--coar-text-neutral-primary);
   overflow: hidden;
@@ -460,6 +461,8 @@ onBeforeUnmount(() => {
   justify-content: center;
   width: 16px;
   height: 16px;
+  min-width: var(--coar-control-min-target-size, auto);
+  min-height: var(--coar-control-min-target-size, auto);
   padding: 0;
   border: none;
   background: transparent;
@@ -467,7 +470,7 @@ onBeforeUnmount(() => {
   cursor: pointer;
   border-radius: var(--coar-radius-xs);
   transition: color var(--coar-duration-fast) var(--coar-ease-out), opacity var(--coar-duration-fast) var(--coar-ease-out);
-  opacity: 0.4;
+  opacity: var(--coar-control-clear-opacity, 0.4);
 }
 
 .coar-select-trigger:hover .coar-select-clear,
@@ -498,7 +501,7 @@ onBeforeUnmount(() => {
   border: none;
   background: transparent;
   font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-body-small-base-size);
+  font-size: max(var(--coar-body-small-base-size), var(--coar-control-min-font-size, 0px));
   font-weight: var(--coar-body-small-base-weight);
   color: var(--coar-text-neutral-primary);
   outline: none;

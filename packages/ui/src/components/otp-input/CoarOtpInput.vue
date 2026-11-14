@@ -454,16 +454,17 @@ const pattern = computed(() =>
 .coar-otp-input__cell {
   /* Sizing matches `CoarTextInput` height tokens for visual rhythm
      consistency. Width is intentionally fixed (not flex) so the
-     cells stay square-ish regardless of container width. */
-  width: var(--coar-component-m-height);
-  height: var(--coar-component-m-height);
+     cells stay square-ish regardless of container width. Under .coar-mobile
+     they take the mobile height scale, as CoarTextInput does. */
+  width: max(var(--coar-component-m-height), var(--coar-control-m-height, 0px));
+  height: max(var(--coar-component-m-height), var(--coar-control-m-height, 0px));
   padding: 0;
   border: 1px solid var(--coar-border-input);
   border-radius: var(--coar-input-radius);
   background: var(--coar-surface-input);
   color: var(--coar-text-neutral-primary);
   font-family: var(--coar-mono-base-family, ui-monospace, SFMono-Regular, Menlo, monospace);
-  font-size: var(--coar-component-m-font-size);
+  font-size: max(var(--coar-component-m-font-size), var(--coar-control-min-font-size, 0px));
   font-variant-numeric: tabular-nums;
   text-align: center;
   box-sizing: border-box;
@@ -473,19 +474,29 @@ const pattern = computed(() =>
 }
 
 .coar-otp-input--xs .coar-otp-input__cell {
-  width: var(--coar-component-xs-height);
-  height: var(--coar-component-xs-height);
-  font-size: var(--coar-component-xs-font-size);
+  width: max(var(--coar-component-xs-height), var(--coar-control-xs-height, 0px));
+  height: max(var(--coar-component-xs-height), var(--coar-control-xs-height, 0px));
+  font-size: max(var(--coar-component-xs-font-size), var(--coar-control-min-font-size, 0px));
 }
 .coar-otp-input--s .coar-otp-input__cell {
-  width: var(--coar-component-s-height);
-  height: var(--coar-component-s-height);
-  font-size: var(--coar-component-s-font-size);
+  width: max(var(--coar-component-s-height), var(--coar-control-s-height, 0px));
+  height: max(var(--coar-component-s-height), var(--coar-control-s-height, 0px));
+  font-size: max(var(--coar-component-s-font-size), var(--coar-control-min-font-size, 0px));
 }
 .coar-otp-input--l .coar-otp-input__cell {
-  width: var(--coar-component-l-height);
-  height: var(--coar-component-l-height);
-  font-size: var(--coar-component-l-font-size);
+  width: max(var(--coar-component-l-height), var(--coar-control-l-height, 0px));
+  height: max(var(--coar-component-l-height), var(--coar-control-l-height, 0px));
+  font-size: max(var(--coar-component-l-font-size), var(--coar-control-min-font-size, 0px));
+}
+
+/* Mobile: the cells keep the mobile height but give up width to fit their container
+   (six m cells need 332px); without the class the fixed width stays. */
+.coar-mobile .coar-otp-input {
+  max-width: 100%;
+}
+.coar-mobile .coar-otp-input__cell {
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
 .coar-otp-input__cell::placeholder {

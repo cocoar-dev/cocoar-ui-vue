@@ -142,13 +142,20 @@ const searchQuery = props.searchQuery;
 .coar-select-option {
   display: flex;
   align-items: center;
+  /* Mobile floors (.coar-mobile tokens); outside it both resolve to today's values. */
+  min-height: var(--coar-control-row-min-height, auto);
   gap: var(--coar-select-option-gap);
   padding: var(--coar-select-option-padding);
   font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-select-option-font-size);
+  font-size: max(var(--coar-select-option-font-size), var(--coar-control-min-font-size, 0px));
   color: var(--coar-text-neutral-primary);
   cursor: pointer;
   transition: background-color 0.1s ease;
+}
+
+/* The row floor counts the padding, with or without an app-wide border-box reset. */
+.coar-mobile .coar-select-option {
+  box-sizing: border-box;
 }
 
 .coar-select-option:hover:not(.coar-select-option--disabled),

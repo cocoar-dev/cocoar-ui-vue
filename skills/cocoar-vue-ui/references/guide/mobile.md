@@ -99,8 +99,8 @@ the controls read these tokens in both modes.
 
 ## Supported controls
 
-This is the first mobile-controls increment, not a mobile redesign of the entire
-library.
+The adapted controls are what a form taps: fields, the rows that open from them, and
+the small controls around them. This is not a mobile redesign of the entire library.
 
 | Component | Mobile presentation |
 |-----------|---------------------|
@@ -111,6 +111,16 @@ library.
 | `CoarCheckbox` | At least 48×48px clickable label, without enlarging the indicator |
 | `CoarRadioButton` / `CoarRadioGroup` | At least 48×48px clickable option labels, without enlarging the indicators |
 | `CoarSwitch` | At least 48×48px clickable label, without enlarging the track |
+| `CoarSelect` / `CoarMultiSelect` | The field height scale and at least 16px text, a 44×44px clear target; options at least 44px tall with 16px text |
+| `CoarTagSelect` | The same field floors as a minimum height (the field still grows with its chips), 44×44px chip remove targets without enlarging the chips (wider gaps between chips and wrapped rows keep the targets apart); options as above |
+| `CoarPlainDatePicker`, `CoarPlainDateTimePicker`, `CoarZonedDateTimePicker`, `CoarPlainDateTimeOrDatePicker`, `CoarZonedDateTimeOrDatePicker` | The field height scale and at least 16px editable text, 44×44px clear, calendar and time-zone targets; the panels keep their desktop layout |
+| `CoarMenu` / `CoarContextMenu` | Items and submenu triggers at least 44px tall with 16px text |
+| `CoarListbox` | Rows at least 44px tall with 16px text; in virtual mode the row height stays the `itemHeight` prop |
+| `CoarSegmentedControl` | The button height scale, at least 44px wide segments and 16px text |
+| `CoarTabGroup` | Tabs at least 44×44px with 16px text, never narrower than their label; a row wider than its container overflows as without the class |
+| `CoarOtpInput` | Cells on the field height scale with at least 16px text; square where there is room, narrower where the container is too narrow for them |
+| `CoarPagination` | Page and navigation buttons at least 44×44px with 16px text; they wrap in a narrow container |
+| `CoarTag` | A 44×44px close target, without enlarging the tag; a closable tag keeps the target's room as margin, so tags in a list never cover each other |
 
 Text-input clear buttons also receive 44×44px targets. Clear buttons remain fully
 opaque without hover or focus when a value can be cleared; empty fields retain
@@ -126,8 +136,9 @@ of collapsing every size to one minimum:
 | `m` | 40px | 52px |
 | `l` | 48px | 56px |
 
-This scale applies to buttons and single-line text/password/number fields;
-textareas can grow taller. Larger custom component heights are preserved.
+This scale applies to buttons, segmented controls, OTP cells and the single-line
+fields (text, password, number, selects, date pickers); textareas and the tag select
+can grow taller. Larger custom component heights are preserved.
 The mobile input border is painted without taking layout space, so even an `xs`
 field can contain 44px actions under a global `box-sizing: border-box` reset.
 Rounded fields still have intentionally rounded hit regions.
@@ -145,9 +156,9 @@ outside a local mobile parent are unaffected.
 Overlays are teleported to `body`, outside a local mobile parent; the mode
 still reaches them, see [Overlays from a local area](#overlays).
 
-Date/time pickers, select panels, dialogs, OTP inputs, grids, and editors do not
-have dedicated mobile presentations in this increment. In particular,
-`CoarZonedDateTimePicker` does not yet switch to a sheet or a stepped mobile flow.
+The panels of date/time pickers, dialogs, grids, and editors do not have dedicated
+mobile presentations yet; select panels get touch-sized rows but stay dropdowns. In
+particular, no picker or select switches to a sheet or a stepped mobile flow.
 
 The class changes sizes only. A component without a mobile presentation keeps
 its own layout in both modes (see [Device support](#device-support)); adapted
@@ -166,8 +177,8 @@ computes for the mobile control tokens:
 
 `--coar-control-xs-height`, `--coar-control-s-height`, `--coar-control-m-height`,
 `--coar-control-l-height`, `--coar-control-min-size`, `--coar-control-min-font-size`,
-`--coar-control-min-target-size`, `--coar-control-clear-opacity`,
-`--coar-control-align-items`
+`--coar-control-min-target-size`, `--coar-control-row-min-height`,
+`--coar-control-clear-opacity`, `--coar-control-align-items`
 
 The values are read on the area itself, so brand rules (`.my-brand .coar-mobile`)
 and local overrides (`.my-form.coar-mobile`) reach the overlay too.
@@ -231,11 +242,14 @@ desktop size tokens. Applications can override them locally:
   --coar-control-l-height: 60px;
   --coar-control-min-font-size: 18px;
   --coar-control-min-target-size: 48px;
+  --coar-control-row-min-height: 48px;
 }
 ```
 
 `--coar-control-min-size` separately controls the minimum clickable label size
 for checkboxes, radios, and switches (48px by default).
+`--coar-control-row-min-height` is the minimum height of option, menu and listbox
+rows (44px by default).
 
 Leave enough horizontal room for the field and its actions, especially for
 password fields with both clear/reveal buttons and number fields with steppers.
@@ -276,19 +290,19 @@ are only being added, and testing on real devices remains the job of the app.
 | [Text Input](../components/text-input.md) | ready | ready | partial | Mobile sizes under .coar-mobile; the mobile presentation is still Preview. |
 | [Number Input](../components/number-input.md) | ready | ready | partial | Mobile sizes under .coar-mobile; the mobile presentation is still Preview. |
 | [Password Input](../components/password-input.md) | ready | ready | partial | Mobile sizes under .coar-mobile; the mobile presentation is still Preview. |
-| [OTP Input](../components/otp-input.md) | ready | ready | partial | Works on phones (numeric keyboard, SMS autofill) but has no .coar-mobile presentation yet. |
-| [Select](../components/select.md) | ready | ready | planned | A phone presentation (sheet) is planned. |
-| [Listbox](../components/listbox.md) | ready | partial | planned | Multi-highlight needs Ctrl/Shift-click or keys; drag on touch needs dragEngine 'pointer' or 'auto'. |
+| [OTP Input](../components/otp-input.md) | ready | ready | partial | Mobile sizes under .coar-mobile (Preview); numeric keyboard and SMS autofill work on phones. |
+| [Select](../components/select.md) | ready | ready | partial | Mobile field and option sizes under .coar-mobile (Preview); the panel stays a dropdown, a phone sheet is planned. |
+| [Listbox](../components/listbox.md) | ready | partial | partial | Rows touch-sized under .coar-mobile (Preview), not in virtual mode; multi-highlight needs Ctrl/Shift. |
 | [Dual Listbox](../components/dual-listbox.md) | ready | partial | planned | Move buttons work on touch; multi-highlight needs Ctrl/Shift, and drag needs dragEngine 'pointer'. |
 | [Checkbox](../components/checkbox.md) | ready | ready | partial | Mobile sizes under .coar-mobile; the mobile presentation is still Preview. |
 | [Checkbox Group](../components/checkbox-group.md) | ready | ready | partial | Mobile sizes under .coar-mobile; the mobile presentation is still Preview. |
 | [Radio Group](../components/radio-group.md) | ready | ready | partial | Mobile sizes under .coar-mobile; the mobile presentation is still Preview. |
 | [Switch](../components/switch.md) | ready | ready | partial | Mobile sizes under .coar-mobile; the mobile presentation is still Preview. |
-| [Segmented Control](../components/segmented-control.md) | ready | ready | planned | A .coar-mobile presentation is planned. |
-| [Date Picker](../components/date-picker.md) | ready | ready | planned | A phone presentation (sheet) is planned. |
-| [DateTime Picker](../components/date-time-picker.md) | ready | ready | planned | A phone presentation (sheet) is planned. |
-| [Zoned DateTime Picker](../components/zoned-date-time-picker.md) | ready | ready | planned | A phone presentation (sheet) is planned. |
-| [Date · optional time](../components/date-or-time-picker.md) | ready | ready | planned | A phone presentation (sheet) is planned. |
+| [Segmented Control](../components/segmented-control.md) | ready | ready | partial | Mobile sizes under .coar-mobile; the mobile presentation is still Preview. |
+| [Date Picker](../components/date-picker.md) | ready | ready | partial | Mobile field sizes under .coar-mobile (Preview); the panel keeps its desktop layout, a phone sheet is planned. |
+| [DateTime Picker](../components/date-time-picker.md) | ready | ready | partial | Mobile field sizes under .coar-mobile (Preview); the panel keeps its desktop layout, a phone sheet is planned. |
+| [Zoned DateTime Picker](../components/zoned-date-time-picker.md) | ready | ready | partial | Mobile field sizes under .coar-mobile (Preview); the panel keeps its desktop layout, a phone sheet is planned. |
+| [Date · optional time](../components/date-or-time-picker.md) | ready | ready | partial | Mobile field sizes under .coar-mobile (Preview); the panel keeps its desktop layout, a phone sheet is planned. |
 | [Date Views](../components/date-views.md) | ready | ready | ready |  |
 
 **Display**
@@ -307,20 +321,20 @@ are only being added, and testing on real devices remains the job of the app.
 | [Progress Bar](../components/progress-bar.md) | ready | ready | ready |  |
 | [Spinner](../components/spinner.md) | ready | ready | ready |  |
 | [Table](../components/table.md) | ready | ready | partial | Wide tables need a scroll container from the host; nothing wraps them for narrow screens. |
-| [Tag](../components/tag.md) | ready | partial | partial | The close button is a 10–14 px icon without a larger touch target. |
+| [Tag](../components/tag.md) | ready | partial | partial | The close button is a 10–14 px icon; only under .coar-mobile (Preview) does it get a 44 px touch target. |
 
 **Navigation**
 
 | Page | Desktop | Tablet | Phone | Note |
 |---|---|---|---|---|
-| [Menu](../components/menu.md) | ready | ready | planned | Touch-sized rows for phones are planned. |
+| [Menu](../components/menu.md) | ready | ready | partial | Touch-sized rows under .coar-mobile; the mobile presentation is still Preview. |
 | [Context Menu](../components/context-menu.md) | ready | partial | planned | Opens on right-click; on touch that depends on the browser's long press, so offer your own trigger as well. |
 | [Sidebar](../components/sidebar.md) | ready | partial | partial | Split-trigger flyouts open only on hover and icon-only labels are tooltips; no phone drawer. |
 | [Navbar](../components/navbar.md) | ready | ready | partial | No collapsed or menu layout for narrow screens; slot content must fit the phone width. |
-| [Tabs](../components/tabs.md) | ready | ready | partial | The tab bar neither scrolls nor wraps, so many tabs overflow phone widths. |
+| [Tabs](../components/tabs.md) | ready | ready | partial | Touch-sized tabs under .coar-mobile (Preview), but the tab bar neither scrolls nor wraps, so many tabs overflow. |
 | [Tree](../components/tree.md) | ready | partial | not supported | Desktop-first: right-click menus, HTML5 drag and hover-revealed row actions are not tuned for touch. |
 | [Breadcrumb](../components/breadcrumb.md) | ready | ready | partial | Crumbs wrap to fit narrow screens, but their link targets are not enlarged under .coar-mobile. |
-| [Pagination](../components/pagination.md) | ready | ready | partial | Works on phones with fewer maxVisiblePages, but has no .coar-mobile presentation yet. |
+| [Pagination](../components/pagination.md) | ready | ready | partial | Mobile targets under .coar-mobile (Preview); use fewer maxVisiblePages on phones. |
 
 **Layout**
 

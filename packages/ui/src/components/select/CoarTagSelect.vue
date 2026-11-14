@@ -290,6 +290,7 @@ onBeforeUnmount(() => {
       <CoarInputFrame
         ref="triggerRef"
         multiline
+        mobile-sizing
         class="coar-tag-select-trigger coar-tag-select-frame"
         :size="size"
         :error="hasError"
@@ -373,9 +374,9 @@ onBeforeUnmount(() => {
 }
 
 /* Per-size input text (was constant 14px regardless of size) */
-.coar-select--xs .coar-tag-select-input { font-size: var(--coar-component-xs-font-size); }
-.coar-select--s .coar-tag-select-input { font-size: var(--coar-component-s-font-size); }
-.coar-select--l .coar-tag-select-input { font-size: var(--coar-component-l-font-size); }
+.coar-select--xs .coar-tag-select-input { font-size: max(var(--coar-component-xs-font-size), var(--coar-control-min-font-size, 0px)); }
+.coar-select--s .coar-tag-select-input { font-size: max(var(--coar-component-s-font-size), var(--coar-control-min-font-size, 0px)); }
+.coar-select--l .coar-tag-select-input { font-size: max(var(--coar-component-l-font-size), var(--coar-control-min-font-size, 0px)); }
 
 /* Tags Container */
 .coar-tag-select-tags {
@@ -430,6 +431,34 @@ onBeforeUnmount(() => {
 
 .coar-tag-select-tag-remove:hover { opacity: 1; }
 
+/* Mobile: a 44×44px hit area centred on the 16px remove icon; the chip keeps its size.
+   The gaps keep the area clear of everything else: wrapped rows are 44px apart, and
+   the next chip or the input starts where the area ends ((44 - 16) / 2 beside the
+   icon, less the chip's own end padding). No two areas overlap, none covers another
+   control. */
+.coar-mobile .coar-tag-select-tags {
+  row-gap: max(
+    var(--coar-spacing-xs),
+    calc(var(--coar-control-min-target-size) - 24px * var(--coar-component-scale, 1))
+  );
+  column-gap: max(
+    var(--coar-spacing-xs),
+    calc((var(--coar-control-min-target-size) - 16px) / 2 - var(--coar-spacing-xs))
+  );
+}
+.coar-mobile .coar-tag-select-tag-remove {
+  position: relative;
+}
+.coar-mobile .coar-tag-select-tag-remove::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--coar-control-min-target-size);
+  height: var(--coar-control-min-target-size);
+  transform: translate(-50%, -50%);
+}
+
 /* Input */
 .coar-tag-select-input {
   flex: 1;
@@ -439,7 +468,7 @@ onBeforeUnmount(() => {
   border: none;
   background: transparent;
   font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-body-small-base-size);
+  font-size: max(var(--coar-body-small-base-size), var(--coar-control-min-font-size, 0px));
   color: var(--coar-text-neutral-primary);
   outline: none;
 }

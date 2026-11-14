@@ -48,8 +48,8 @@ document.documentElement.classList.toggle('dark-mode', isDark);
 
 ## Mobile Presentation
 
-Add `coar-mobile` to `body` or a local parent for touch-sized buttons and standard
-inputs. The existing component APIs stay unchanged. See [Mobile presentation](./mobile.md)
+Add `coar-mobile` to `body` or a local parent for touch-sized buttons,
+form fields, and the option and menu rows they open. The existing component APIs stay unchanged. See [Mobile presentation](./mobile.md)
 for the supported controls, sizing floors, and overlay scope limitations.
 
 ## 5. Overlay System

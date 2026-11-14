@@ -85,9 +85,11 @@ function toggle(event: Event) {
   gap: var(--coar-menu-item-gap);
   width: 100%;
   box-sizing: border-box;
+  /* Mobile floors (.coar-mobile tokens); outside it both resolve to today's values. */
+  min-height: var(--coar-control-row-min-height, auto);
   padding: var(--coar-menu-item-padding);
   font-family: var(--coar-menu-item-font-family);
-  font-size: var(--coar-menu-item-font-size);
+  font-size: max(var(--coar-menu-item-font-size), var(--coar-control-min-font-size, 0px));
   font-weight: var(--coar-menu-item-font-weight);
   line-height: var(--coar-menu-item-line-height);
   color: var(--coar-menu-item-color);

@@ -2,7 +2,7 @@
 
 # Menu
 
-**Devices:** desktop ready · tablet ready · phone planned — Touch-sized rows for phones are planned.
+**Devices:** desktop ready · tablet ready · phone partial — Touch-sized rows under .coar-mobile; the mobile presentation is still Preview.
 
 Build context menus, action lists, and navigation panels with full keyboard support. Menus group related actions together, making them easy to discover and interact with. They support nested submenus, icons, section headings, and danger variants for destructive actions.
 

@@ -35,6 +35,11 @@ describe('CoarTag', () => {
       expect(wrapper.find('.coar-tag--elevated').exists()).toBe(false);
     });
 
+    it('marks a closable tag, which reserves its mobile hit area, and only that one', () => {
+      expect(mountTag({ closable: true }).classes()).toContain('coar-tag--closable');
+      expect(mountTag().classes()).not.toContain('coar-tag--closable');
+    });
+
     it('should not be borderless by default', () => {
       const wrapper = mountTag();
       expect(wrapper.find('.coar-tag--borderless').exists()).toBe(false);

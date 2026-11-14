@@ -41,6 +41,8 @@ withDefaults(
   justify-content: center;
   flex-shrink: 0;
   height: 100%;
+  /* Mobile: a 44px target even where icon + insets are narrower; `auto` outside. */
+  min-width: var(--coar-control-min-target-size, auto);
   /* Icon insets follow the frame contract: --coar-field-pad is the clearance to the
      OUTER (rounded) border only; internal boundaries use a fixed spacing token.
      - left  = the SEPARATOR side (internal) → spacing-s scaled by the per-size

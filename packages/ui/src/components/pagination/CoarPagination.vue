@@ -173,14 +173,20 @@ function trackByItem(index: number, item: PaginationPageItem): string {
   gap: var(--coar-pagination-gap);
 }
 
+/* Mobile: the 44px buttons wrap instead of overflowing a narrow container. */
+.coar-mobile .coar-pagination-nav {
+  flex-wrap: wrap;
+}
+
 .coar-pagination-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: var(--coar-pagination-button-size);
-  height: var(--coar-pagination-button-size);
+  /* Mobile (.coar-mobile): 44px targets and 16px text, as CoarButton; today's values outside. */
+  min-width: max(var(--coar-pagination-button-size), var(--coar-control-min-target-size, 0px));
+  height: max(var(--coar-pagination-button-size), var(--coar-control-min-target-size, 0px));
   padding: 0 var(--coar-spacing-xs);
-  font-size: var(--coar-pagination-font-size);
+  font-size: max(var(--coar-pagination-font-size), var(--coar-control-min-font-size, 0px));
   font-family: inherit;
   line-height: var(--coar-line-height-none);
   border: 1px solid transparent;

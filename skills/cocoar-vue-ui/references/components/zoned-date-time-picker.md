@@ -2,7 +2,7 @@
 
 # Zoned DateTime Picker
 
-**Devices:** desktop ready · tablet ready · phone planned — A phone presentation (sheet) is planned.
+**Devices:** desktop ready · tablet ready · phone partial — Mobile field sizes under .coar-mobile (Preview); the panel keeps its desktop layout, a phone sheet is planned.
 
 The full-featured datetime picker for timezone-aware values. It captures a date, time, and IANA timezone as a single `Temporal.ZonedDateTime`, making it easy to derive UTC instants for storage while preserving the user's original intent.
 

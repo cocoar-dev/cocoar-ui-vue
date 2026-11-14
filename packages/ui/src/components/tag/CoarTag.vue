@@ -39,6 +39,7 @@ const hostClasses = computed(() => [
   {
     'coar-tag--elevated': props.elevated,
     'coar-tag--borderless': props.borderless,
+    'coar-tag--closable': props.closable,
   },
 ]);
 
@@ -159,6 +160,48 @@ function onClose(event: MouseEvent): void {
 }
 
 .coar-tag__close:hover { opacity: 1; }
+
+/* Mobile (.coar-mobile): a 44×44px hit area centred on the close icon; the tag keeps
+   its size. The part of the area that sticks out above, below and after the tag is
+   reserved as margin, so tags in a list never overlap with their areas or cover a
+   neighbour, whatever gap the list uses. Tag height: line-height 1, so the larger of
+   font and icon, plus padding and border; the icon sits at the end padding. */
+.coar-mobile .coar-tag--closable {
+  margin-block: max(
+    0px,
+    calc(
+      (var(--coar-control-min-target-size) - var(--coar-tag-content-height) - 2 * var(--coar-spacing-xs) - 2px) / 2
+    )
+  );
+  margin-inline-end: max(
+    0px,
+    calc((var(--coar-control-min-target-size) - var(--coar-tag-icon-size)) / 2 - var(--coar-spacing-s) - 1px)
+  );
+}
+.coar-mobile .coar-tag--closable.coar-tag--s {
+  --coar-tag-icon-size: 10px;
+  --coar-tag-content-height: max(var(--coar-body-footnote-size), 10px);
+}
+.coar-mobile .coar-tag--closable.coar-tag--m {
+  --coar-tag-icon-size: 12px;
+  --coar-tag-content-height: max(var(--coar-body-caption-size), 12px);
+}
+.coar-mobile .coar-tag--closable.coar-tag--l {
+  --coar-tag-icon-size: 14px;
+  --coar-tag-content-height: max(var(--coar-body-small-base-size), 14px);
+}
+.coar-mobile .coar-tag__close {
+  position: relative;
+}
+.coar-mobile .coar-tag__close::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--coar-control-min-target-size);
+  height: var(--coar-control-min-target-size);
+  transform: translate(-50%, -50%);
+}
 
 .coar-tag__close:focus-visible {
   outline: var(--coar-focus-width) var(--coar-focus-style) var(--coar-focus-color);

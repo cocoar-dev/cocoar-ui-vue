@@ -914,12 +914,21 @@ const hostClasses = computed(() => [
   gap: var(--coar-spacing-xs);
   padding: var(--coar-spacing-xxs) var(--coar-spacing-s);
   font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-body-small-base-size);
+  font-size: max(var(--coar-body-small-base-size), var(--coar-control-min-font-size, 0px));
   color: var(--coar-text-neutral-primary);
   border-radius: var(--coar-radius-xs);
   cursor: pointer;
   min-width: 0;
   transition: background-color var(--coar-duration-fast) var(--coar-ease-out);
+}
+
+/* Mobile row floor (.coar-mobile tokens), counted with the padding. Not in virtual mode:
+   there the row height comes from the `itemHeight` prop, which positions every row. */
+.coar-listbox-list:not(.coar-listbox-list--virtual) .coar-listbox-item {
+  min-height: var(--coar-control-row-min-height, auto);
+}
+.coar-mobile .coar-listbox-list:not(.coar-listbox-list--virtual) .coar-listbox-item {
+  box-sizing: border-box;
 }
 
 .coar-listbox-item--rich {

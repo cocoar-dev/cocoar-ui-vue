@@ -1,7 +1,7 @@
 ---
 description: "CoarOtpInput — N-cell one-time-code input with auto-advance, paste spreading, numeric/alphanumeric/text modes, masking, transform/accept hooks and a complete event"
 devices: { desktop: ready, tablet: ready, phone: partial }
-devicesNote: "Works on phones (numeric keyboard, SMS autofill) but has no .coar-mobile presentation yet."
+devicesNote: "Mobile sizes under .coar-mobile (Preview); numeric keyboard and SMS autofill work on phones."
 ---
 
 # OTP Input <Badge type="tip" text="New in 2.0" />
