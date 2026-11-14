@@ -39,6 +39,11 @@ export interface OverlayInstance {
   panelEl: HTMLElement | null;
   /** The anchor element for reposition */
   anchorEl: Element | null;
+  /**
+   * Element whose surroundings the overlay belongs to (local `.coar-mobile` area, …).
+   * Resolved at `open()`: `options.context` → element anchor → parent overlay's panel → null.
+   */
+  contextEl: Element | null;
   /** Parent overlay instance (for tree hierarchies) */
   parent: OverlayInstance | null;
   /** Child overlays */
@@ -79,6 +84,13 @@ export interface OverlayOpenOptions {
    * `useOverlayParent()` returns, so descendants can pass it straight through.
    */
   parent?: OverlayRef | OverlayInstance;
+  /**
+   * **Preview** — may still change. Element the overlay belongs to, for overlays without
+   * an element anchor (dialogs, context menus). The overlay host takes over the local
+   * presentation of its surroundings (a `.coar-mobile` area). Defaults to the element
+   * anchor, then to the parent overlay's panel.
+   */
+  context?: Element;
 }
 
 /**
@@ -121,6 +133,7 @@ export function createOverlayService() {
       cleanups: [],
       panelEl: null,
       anchorEl: spec.anchor.kind === 'element' ? spec.anchor.element : null,
+      contextEl: null,
       parent: null,
       children: new Set(),
       hoverCloseTimer: null,
@@ -139,6 +152,8 @@ export function createOverlayService() {
         parentInstance.children.add(instance);
       }
     }
+
+    instance.contextEl = options.context ?? instance.anchorEl ?? instance.parent?.panelEl ?? null;
 
     instances.value = [...instances.value, instance];
     installGlobalListeners();

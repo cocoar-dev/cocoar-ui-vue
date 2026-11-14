@@ -169,6 +169,59 @@ describe('overlay-service', () => {
     expect(service.instances.value).toHaveLength(0);
     expect(child.isClosed).toBe(true);
   });
+
+  describe('contextEl', () => {
+    it('uses options.context first, even with an element anchor', () => {
+      const service = createOverlayService();
+      const context = document.createElement('div');
+      const anchor = document.createElement('button');
+      service.open({
+        spec: { anchor: { kind: 'element', element: anchor } },
+        content: { kind: 'slot' },
+        context,
+      });
+      expect(service.instances.value[0].contextEl).toBe(context);
+      service.closeAll();
+    });
+
+    it('falls back to the element anchor', () => {
+      const service = createOverlayService();
+      const anchor = document.createElement('button');
+      service.open({
+        spec: { anchor: { kind: 'element', element: anchor } },
+        content: { kind: 'slot' },
+      });
+      expect(service.instances.value[0].contextEl).toBe(anchor);
+      service.closeAll();
+    });
+
+    it("falls back to the parent overlay's panel for a nested overlay", () => {
+      const service = createOverlayService();
+      const parent = service.open({
+        spec: { anchor: { kind: 'virtual', placement: 'center' } },
+        content: { kind: 'slot' },
+      });
+      const parentPanel = document.createElement('div');
+      service.instances.value[0].panelEl = parentPanel;
+      service.open({
+        spec: { anchor: { kind: 'point', x: 10, y: 10 } },
+        content: { kind: 'slot' },
+        parent,
+      });
+      expect(service.instances.value[1].contextEl).toBe(parentPanel);
+      service.closeAll();
+    });
+
+    it('is null without context, element anchor or parent', () => {
+      const service = createOverlayService();
+      service.open({
+        spec: { anchor: { kind: 'virtual', placement: 'center' } },
+        content: { kind: 'slot' },
+      });
+      expect(service.instances.value[0].contextEl).toBeNull();
+      service.closeAll();
+    });
+  });
 });
 
 describe('overlay-presets', () => {

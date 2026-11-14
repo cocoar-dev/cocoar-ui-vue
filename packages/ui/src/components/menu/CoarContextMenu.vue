@@ -43,6 +43,7 @@ function openOverlay() {
       anchor: { kind: 'point', x: pos.x, y: pos.y },
     },
     content: { kind: 'component', component: markRaw(CoarContextMenuPanel) },
+    context: props.menu.target?.value ?? undefined,
     inputs: {
       renderContent,
       closeMenu: () => props.menu.close(),
