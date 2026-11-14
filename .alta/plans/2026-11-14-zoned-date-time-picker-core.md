@@ -1,6 +1,6 @@
 ---
 title: Logik-Kern des ZonedDateTimePicker – useZonedDateTimePicker()
-status: in-progress
+status: done
 created: 2026-11-14
 summary: Zustand, Zeitzonen, Formatieren, Parsen, Begrenzen und Wertänderungen des `CoarZonedDateTimePicker` kommen aus der 879-Zeilen-Komponente in `date-time/_shared/use-zoned-date-time-picker.ts`. Die Ansicht bleibt Pixel für Pixel gleich, belegt durch die Vergleichsbilder. Kein neues öffentliches API; das kommt erst mit einer zweiten Ansicht (`presentation`).
 ---
@@ -56,7 +56,7 @@ useDatePickerBase, date-/time-/timezone-helpers   (unverändert)
   (`pendingTime`), Begrenzung an `min`/`max` über Zeitzonen hinweg, `effectiveMinTime`/`MaxTime` nur am Grenztag,
   Wert-Zeitzone ändern (gleiche Wanduhrzeit), Umschalten home ↔ location, Symbolzustände home/location/world, ungültige
   Eingabe beim Blur. Die bestehenden Tests in `zoned-date-time-picker/__tests__` bleiben unverändert und grün.
-- [ ] **3. Prüfen:** `pnpm lint && pnpm typecheck && pnpm build`; `pnpm test` als Job; `node apps/playground/scripts/visual.mjs`
+- [x] **3. Prüfen:** `pnpm lint && pnpm typecheck && pnpm build`; `pnpm test` als Job; `node apps/playground/scripts/visual.mjs`
   – `zoned-date-time-picker` und `zoned-date-time-picker-open` (default und mobile) unverändert, kein Bild darf sich ändern,
   kein `--update`. Danach **eine** Gegenprüfung (GPT-6.1 Sol), ihre Befunde selbst nachprüfen, dann der Pull Request.
 
@@ -77,6 +77,7 @@ useDatePickerBase, date-/time-/timezone-helpers   (unverändert)
 - `pnpm lint`, `pnpm typecheck`, `pnpm build` und `pnpm test` sind grün, einschließlich aller 154 Playwright-Tests.
   Der volle Bildvergleich ist mit 217 Prüfungen grün; keine Geschichte oder Baseline wurde geändert.
 - Die einmalige abschließende Gegenprüfung fand keine Extraktionsregression; 50 gezielte Tests wurden dort erneut ausgeführt.
+- Pull Request #54 ist gegen `develop` geöffnet. Merge und Beta erfolgen nur auf ausdrücklichen Auftrag des Nutzers.
 
 ## Danach, nicht Teil dieses Plans
 
