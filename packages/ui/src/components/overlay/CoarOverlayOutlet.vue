@@ -2,6 +2,7 @@
 import { onBeforeUnmount, onMounted, provide, useTemplateRef, inject } from 'vue';
 import { OVERLAY_PARENT_KEY, OVERLAY_SERVICE_KEY } from './useOverlay';
 import type { OverlayInstance } from './overlay-service';
+import { MOBILE_CONTEXT_TOKENS } from './overlay-types';
 
 const props = defineProps<{
   instance: OverlayInstance;
@@ -11,8 +12,9 @@ const hostRef = useTemplateRef<HTMLElement>('hostRef');
 const panelRef = useTemplateRef<HTMLElement>('panelRef');
 
 const service = inject(OVERLAY_SERVICE_KEY)!;
-let themeObserver: MutationObserver | undefined;
+let contextObserver: MutationObserver | undefined;
 const copiedThemeTokens = new Set<string>();
+const copiedMobileTokens = new Set<string>();
 
 function themeSource(): HTMLElement | null {
   const anchor = props.instance.spec.anchor;
@@ -31,14 +33,55 @@ function syncThemeContext(host: HTMLElement, source: HTMLElement) {
   host.toggleAttribute('data-coar-theme-proxy', true);
   host.classList.toggle('light-mode', source.classList.contains('light-mode'));
   host.classList.toggle('dark-mode', source.classList.contains('dark-mode'));
-  for (const token of copiedThemeTokens) host.style.removeProperty(token);
-  copiedThemeTokens.clear();
   for (let index = 0; index < source.style.length; index += 1) {
     const property = source.style.item(index);
     if (!property.startsWith('--coar-')) continue;
     host.style.setProperty(property, source.style.getPropertyValue(property));
     copiedThemeTokens.add(property);
   }
+}
+
+/**
+ * The local `.coar-mobile` area the overlay was opened from. None when the host already
+ * sits inside it (`html`/`body` with `.coar-mobile`): the host inherits the tokens anyway.
+ */
+function mobileSource(host: HTMLElement): HTMLElement | null {
+  const instance = props.instance;
+  // A child opened before its parent mounted (in the parent content's `onMounted`) found no
+  // parent panel at `open()`; the parent outlet has mounted by now.
+  instance.contextEl ??= instance.parent?.panelEl ?? null;
+  const source = instance.contextEl?.closest('.coar-mobile');
+  return source instanceof HTMLElement && !source.contains(host) ? source : null;
+}
+
+/**
+ * Teleported overlays otherwise leave a local `.coar-mobile` area. Mirror the class
+ * (component rules key on it) and copy the computed mobile tokens of the area, so
+ * brand rules and local overrides on the area reach the overlay too.
+ */
+function syncMobileContext(host: HTMLElement, source: HTMLElement) {
+  const active = source.classList.contains('coar-mobile');
+  host.classList.toggle('coar-mobile', active);
+  if (!active) return;
+  const computed = getComputedStyle(source);
+  for (const token of MOBILE_CONTEXT_TOKENS) {
+    const value = computed.getPropertyValue(token).trim();
+    if (!value) continue;
+    host.style.setProperty(token, value);
+    copiedMobileTokens.add(token);
+  }
+}
+
+/**
+ * Both copies are cleared before either is written (a token can come from both sources),
+ * then theme, then mobile: the computed mobile value wins over a same-named theme value.
+ */
+function syncContext(host: HTMLElement, theme: HTMLElement | null, mobile: HTMLElement | null) {
+  for (const token of [...copiedThemeTokens, ...copiedMobileTokens]) host.style.removeProperty(token);
+  copiedThemeTokens.clear();
+  copiedMobileTokens.clear();
+  if (theme) syncThemeContext(host, theme);
+  if (mobile) syncMobileContext(host, mobile);
 }
 
 // Expose this overlay as the parent-context for any descendant that opens its own overlay
@@ -51,12 +94,19 @@ onMounted(() => {
   const hostEl = hostRef.value;
   const panelEl = panelRef.value;
   if (hostEl && panelEl) {
-    const source = themeSource();
-    if (source) {
-      syncThemeContext(hostEl, source);
-      if (typeof MutationObserver !== 'undefined') {
-        themeObserver = new MutationObserver(() => syncThemeContext(hostEl, source));
-        themeObserver.observe(source, {
+    const theme = themeSource();
+    const mobile = mobileSource(hostEl);
+    // Before onPanelMounted, so the first position is measured with the copied sizes.
+    syncContext(hostEl, theme, mobile);
+    if ((theme || mobile) && typeof MutationObserver !== 'undefined') {
+      contextObserver = new MutationObserver(() => syncContext(hostEl, theme, mobile));
+      // Mobile first: observing the same element again replaces its options, and the
+      // theme filter includes the mobile one.
+      if (mobile) {
+        contextObserver.observe(mobile, { attributes: true, attributeFilter: ['class', 'style'] });
+      }
+      if (theme) {
+        contextObserver.observe(theme, {
           attributes: true,
           attributeFilter: ['class', 'style', 'data-coar-theme-mode'],
         });
@@ -66,7 +116,7 @@ onMounted(() => {
   }
 });
 
-onBeforeUnmount(() => themeObserver?.disconnect());
+onBeforeUnmount(() => contextObserver?.disconnect());
 
 function getPanelClasses(): string[] {
   const classes = ['coar-overlay-panel'];

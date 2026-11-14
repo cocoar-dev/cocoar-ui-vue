@@ -11,6 +11,12 @@ export interface DialogConfig {
   closeOnEscape?: boolean;
   /** Whether to show the close (×) button. Default: true. */
   showCloseButton?: boolean;
+  /**
+   * **Preview** — may still change. Element the dialog belongs to: the overlay host takes
+   * over the local presentation of its surroundings (a `.coar-mobile` area). Defaults to
+   * the element of the component whose `setup()` called `useDialog()`.
+   */
+  context?: Element;
 }
 
 export interface ConfirmOptions {
@@ -21,6 +27,12 @@ export interface ConfirmOptions {
   confirmVariant?: 'primary' | 'danger';
   /** Size variant. Default: 's'. */
   size?: DialogSize;
+  /**
+   * **Preview** — may still change. Element the dialog belongs to: the overlay host takes
+   * over the local presentation of its surroundings (a `.coar-mobile` area). Defaults to
+   * the element of the component whose `setup()` called `useDialog()`.
+   */
+  context?: Element;
 }
 
 export interface DialogRef<T = unknown> {

@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { mount } from '@vue/test-utils';
+import { defineComponent, h, Fragment } from 'vue';
 import { _resetOverlayServiceForTests } from '../overlay/useOverlay';
 import { _resetToastServiceModule } from '../toast/toast-service';
 
@@ -119,6 +121,79 @@ describe('useDialog', () => {
       expect(callArgs.inputs.title).toBe('');
       expect(callArgs.inputs.size).toBe('m');
       expect(callArgs.inputs.showCloseButton).toBe(true);
+    });
+  });
+
+  describe('context', () => {
+    /** Mounts a component that calls useDialog() in setup() and hands it out. */
+    function mountOwner(fragment = false) {
+      let dialog!: ReturnType<typeof useDialog>;
+      const Owner = defineComponent({
+        setup() {
+          dialog = useDialog();
+          return () => (fragment
+            ? h(Fragment, [h('span', 'a'), h('span', 'b')])
+            : h('div', { class: 'owner' }));
+        },
+      });
+      const parent = document.createElement('section');
+      document.body.appendChild(parent);
+      const wrapper = mount(Owner, { attachTo: parent });
+      return { dialog, wrapper, parent };
+    }
+
+    it('uses an explicitly given context over the calling component', () => {
+      const { dialog, wrapper, parent } = mountOwner();
+      const context = document.createElement('div');
+      dialog.open({ template: '<div />' }, { context });
+      dialog.confirm({ title: 't', message: 'm', context });
+      dialog.alert('t', 'm', { context });
+      for (const [args] of mockOpen.mock.calls) expect(args.context).toBe(context);
+      wrapper.unmount();
+      parent.remove();
+    });
+
+    it("uses the calling component's element for open, confirm and alert", () => {
+      const { dialog, wrapper, parent } = mountOwner();
+      dialog.open({ template: '<div />' });
+      dialog.confirm({ title: 't', message: 'm' });
+      dialog.alert('t', 'm');
+      expect(mockOpen).toHaveBeenCalledTimes(3);
+      for (const [args] of mockOpen.mock.calls) expect(args.context).toBe(wrapper.element);
+      // The context never leaks into the shell's props.
+      for (const [args] of mockOpen.mock.calls) expect(args.inputs).not.toHaveProperty('context');
+      wrapper.unmount();
+      parent.remove();
+    });
+
+    it("uses the parent element for a component with a fragment root", () => {
+      const { dialog, wrapper, parent } = mountOwner(true);
+      dialog.open({ template: '<div />' });
+      // attachTo mounts into a container of its own inside `parent`.
+      const container = wrapper.find('span').element.parentElement;
+      expect(container).not.toBeNull();
+      expect(mockOpen.mock.calls[0][0].context).toBe(container);
+      wrapper.unmount();
+      parent.remove();
+    });
+
+    it('has no context after the calling component unmounted', () => {
+      const { dialog, wrapper, parent } = mountOwner();
+      wrapper.unmount();
+      dialog.open({ template: '<div />' });
+      expect(mockOpen.mock.calls[0][0].context).toBeUndefined();
+      parent.remove();
+    });
+
+    it('has no context and warns nothing outside setup()', () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const dialog = useDialog();
+      dialog.open({ template: '<div />' });
+      dialog.confirm({ title: 't', message: 'm' });
+      dialog.alert('t', 'm');
+      for (const [args] of mockOpen.mock.calls) expect(args.context).toBeUndefined();
+      expect(warn).not.toHaveBeenCalled();
+      warn.mockRestore();
     });
   });
 });

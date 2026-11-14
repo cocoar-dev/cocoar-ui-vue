@@ -6,6 +6,7 @@ import {
   CoarFormField,
   CoarNumberInput,
   CoarPasswordInput,
+  CoarPopover,
   CoarRadioButton,
   CoarRadioGroup,
   CoarSwitch,
@@ -44,6 +45,20 @@ const controls = ref(
       <h2>Unchanged desktop sibling (xs)</h2>
       <CoarButton size="xs">Desktop</CoarButton>
       <CoarTextInput size="xs" placeholder="Desktop input" />
+    </section>
+
+    <section data-testid="desktop-popover">
+      <h2>Popover from the desktop sibling</h2>
+      <div>
+        <CoarPopover mode="click" interactive>
+          <CoarButton variant="secondary">Share from desktop</CoarButton>
+          <template #content>
+            <div class="demo-popover">
+              <CoarButton data-testid="desktop-popover-button">Invite</CoarButton>
+            </div>
+          </template>
+        </CoarPopover>
+      </div>
     </section>
 
     <div data-testid="mobile-scope" :class="{ 'coar-mobile': mobile }">
@@ -102,6 +117,20 @@ const controls = ref(
             </CoarRadioButton>
           </CoarRadioGroup>
         </section>
+
+        <section data-testid="mobile-popover">
+          <h2>Popover from the local area (teleported to body)</h2>
+          <div>
+            <CoarPopover mode="click" interactive>
+              <CoarButton variant="secondary">Share from mobile</CoarButton>
+              <template #content>
+                <div class="demo-popover">
+                  <CoarButton data-testid="mobile-popover-button">Invite</CoarButton>
+                </div>
+              </template>
+            </CoarPopover>
+          </div>
+        </section>
       </CoarThemeScope>
     </div>
     <output data-testid="click-count">{{ clicks }}</output>
@@ -127,6 +156,10 @@ section {
   grid-template-columns: minmax(0, 1fr);
   gap: var(--coar-spacing-m);
   padding-block: var(--coar-spacing-l);
+}
+
+.demo-popover {
+  padding: var(--coar-spacing-m);
 }
 
 .sr-only {

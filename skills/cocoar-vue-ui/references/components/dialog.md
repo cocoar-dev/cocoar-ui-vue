@@ -119,8 +119,19 @@ createApp(App)
 | Method | Parameters | Returns | Description |
 |--------|-----------|---------|-------------|
 | `dialog.confirm(options)` | `ConfirmOptions` | `DialogRef<boolean>` | Show a confirm/cancel dialog |
-| `dialog.alert(title, message)` | `string, string` | `DialogRef<void>` | Show an acknowledgement dialog |
+| `dialog.alert(title, message, config?)` | `string, string, { context?: Element }?` | `DialogRef<void>` | Show an acknowledgement dialog. `config.context` (Preview): see [context](#context) |
 | `dialog.open(component, config?, props?)` | `Component, DialogConfig?, Record?` | `DialogRef<T>` | Open a custom component inside the dialog |
+
+### `DialogConfig`
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `title` | `string` | `''` | Dialog title |
+| `size` | `'s' \| 'm' \| 'l' \| 'xl'` | `'m'` | Dialog width |
+| `closeOnBackdropClick` | `boolean` | `true` | Close when the backdrop is clicked |
+| `closeOnEscape` | `boolean` | `true` | Close on Escape |
+| `showCloseButton` | `boolean` | `true` | Show the close (×) button |
+| `context` (Preview) | `Element` | the calling component | Element the dialog belongs to, see [context](#context) |
 
 ### `ConfirmOptions`
 
@@ -132,6 +143,7 @@ createApp(App)
 | `cancelText` | `string` | `'Cancel'` | Cancel button label |
 | `confirmVariant` | `'primary' \| 'danger'` | `'primary'` | Confirm button color variant |
 | `size` | `'s' \| 'm' \| 'l'` | `'s'` | Dialog width |
+| `context` (Preview) | `Element` | the calling component | Element the dialog belongs to, see [context](#context) |
 
 ### `DialogRef`
 
@@ -139,6 +151,20 @@ createApp(App)
 |----------|------|-------------|
 | `result` | `Promise<T \| undefined>` | Resolves when the dialog closes |
 | `close(result?)` | `(val?: T) => void` | Programmatically close the dialog |
+
+### `context` (Preview) {#context}
+
+A dialog opened from a local `coar-mobile` area keeps the mobile presentation
+of that area (see [Overlays from a local area](../guide/mobile.md#overlays)). Called
+in a component's `setup()`, `useDialog()` uses that component's element as the
+context. Outside `setup()` (stores, plain functions) pass it yourself:
+
+```ts
+useDialog().open(Body, { title: 'Edit', context: someEl });
+```
+
+An explicit `context` always wins. A local `CoarThemeScope` is not taken over
+through `context`.
 
 ## i18n Keys
 

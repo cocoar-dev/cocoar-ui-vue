@@ -141,6 +141,23 @@ export const OVERLAY_DEFAULTS = {
 } as const;
 
 /**
+ * Tokens of the mobile presentation (`styles/tokens/mobile.css`). An overlay opened from a
+ * local `.coar-mobile` area copies their computed values from that area onto its host.
+ * Must list exactly the custom properties declared there (checked by a test).
+ */
+export const MOBILE_CONTEXT_TOKENS = [
+  '--coar-control-xs-height',
+  '--coar-control-s-height',
+  '--coar-control-m-height',
+  '--coar-control-l-height',
+  '--coar-control-min-size',
+  '--coar-control-min-font-size',
+  '--coar-control-min-target-size',
+  '--coar-control-clear-opacity',
+  '--coar-control-align-items',
+] as const;
+
+/**
  * Fully resolved spec with all defaults applied.
  */
 export type ResolvedOverlaySpec = Omit<Required<OverlaySpec>, 'panelClass' | 'size'> & {

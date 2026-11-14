@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
-import { ref, readonly, defineComponent, h } from 'vue';
+import { ref, readonly, defineComponent, h, nextTick } from 'vue';
 import CoarContextMenu from './CoarContextMenu.vue';
 import CoarMenuItem from './CoarMenuItem.vue';
 import CoarSubFlyout from './CoarSubFlyout.vue';
-import type { ContextMenuContext } from './useContextMenu';
+import { useContextMenu, type ContextMenuContext } from './useContextMenu';
 import { CoarOverlayPlugin, _resetOverlayServiceForTests } from '../overlay/useOverlay';
 import CoarOverlayHost from '../overlay/CoarOverlayHost.vue';
 
@@ -105,5 +105,85 @@ describe('CoarContextMenu', () => {
     await new Promise<void>((r) => queueMicrotask(() => r()));
 
     expect(menu.isOpen.value).toBe(false);
+  });
+});
+
+describe('CoarContextMenu — local .coar-mobile area', () => {
+  const nodes: Element[] = [];
+  let unmount: (() => void) | undefined;
+
+  afterEach(() => {
+    unmount?.();
+    unmount = undefined;
+    _resetOverlayServiceForTests();
+    document.querySelectorAll('.coar-overlay-host').forEach((n) => n.remove());
+    nodes.splice(0).forEach((n) => n.remove());
+  });
+
+  /** Real Teleport: the menu host lands in body, outside the area, as in an app. */
+  function mountMenu(menu: ContextMenuContext) {
+    const Wrapper = defineComponent({
+      setup: () => () =>
+        h('div', null, [
+          h(CoarContextMenu, { menu }, { default: () => h(CoarMenuItem, { label: 'Copy' }) }),
+          h(CoarOverlayHost),
+        ]),
+    });
+    const w = mount(Wrapper, { global: { plugins: [CoarOverlayPlugin] }, attachTo: document.body });
+    unmount = () => w.unmount();
+  }
+
+  function mobileArea() {
+    const area = document.createElement('div');
+    area.className = 'coar-mobile';
+    area.style.setProperty('--coar-control-m-height', '52px');
+    document.body.appendChild(area);
+    nodes.push(area);
+    return area;
+  }
+
+  async function menuHost() {
+    await nextTick();
+    await nextTick();
+    return document.querySelector<HTMLElement>('.coar-overlay-host');
+  }
+
+  it('remembers the element target and the menu host takes over the area', async () => {
+    const menu = useContextMenu();
+    mountMenu(menu);
+    const area = mobileArea();
+    const row = document.createElement('div');
+    area.appendChild(row);
+    row.addEventListener('contextmenu', (e) => menu.open(e));
+    row.dispatchEvent(new MouseEvent('contextmenu', { clientX: 10, clientY: 10, bubbles: true }));
+
+    expect(menu.target?.value).toBe(row);
+    const host = await menuHost();
+    expect(host).not.toBeNull();
+    expect(host!.classList.contains('coar-mobile')).toBe(true);
+    expect(host!.style.getPropertyValue('--coar-control-m-height')).toBe('52px');
+  });
+
+  it('opens without context when the target is not an element', async () => {
+    const menu = useContextMenu();
+    mountMenu(menu);
+    const area = mobileArea();
+    const text = document.createTextNode('cell');
+    area.appendChild(text);
+    text.addEventListener('contextmenu', (e) => menu.open(e as MouseEvent));
+    text.dispatchEvent(new MouseEvent('contextmenu', { clientX: 10, clientY: 10, bubbles: true }));
+
+    expect(menu.isOpen.value).toBe(true);
+    expect(menu.target?.value).toBeNull();
+    const host = await menuHost();
+    expect(host).not.toBeNull();
+    expect(host!.classList.contains('coar-mobile')).toBe(false);
+  });
+
+  it('has no target when opened with plain coordinates', () => {
+    const menu = useContextMenu();
+    menu.open({ clientX: 1, clientY: 2 });
+    expect(menu.isOpen.value).toBe(true);
+    expect(menu.target?.value).toBeNull();
   });
 });

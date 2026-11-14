@@ -144,10 +144,8 @@ It is independent of light/dark mode. Removing the class restores normal sizing
 without remounting the controls or resetting their values. Desktop siblings
 outside a local mobile parent are unaffected.
 
-**Portaled content is not automatically part of a local mobile scope.** Overlays
-teleported to `body` leave that parent's DOM subtree. Use `coar-mobile` on `body`
-or `html` when supported controls inside overlays should also use the mode.
-This increment does not add a mobile-context bridge for local overlays.
+Overlays are teleported to `body`, outside a local mobile parent; the mode
+still reaches them, see [Overlays from a local area](#overlays).
 
 Date/time pickers, select panels, dialogs, OTP inputs, grids, and editors do not
 have dedicated mobile presentations in this increment. In particular,
@@ -159,6 +157,68 @@ controls inside it, such as the buttons of a dialog, still take the mobile
 sizes. A component that
 needs a different pattern on a phone will get an explicit option for it; no
 component changes its behaviour or layout pattern because the class is present.
+
+## Overlays from a local area {#overlays}
+
+An overlay opened from inside a local `coar-mobile` area keeps the mobile
+presentation: popovers, selects, menus and their submenus, date pickers,
+dialogs, context menus, and overlays opened from inside those. The overlay's
+host element gets the class `coar-mobile` and, inline, the values the area
+computes for the mobile control tokens:
+
+`--coar-control-xs-height`, `--coar-control-s-height`, `--coar-control-m-height`,
+`--coar-control-l-height`, `--coar-control-min-size`, `--coar-control-min-font-size`,
+`--coar-control-min-target-size`, `--coar-control-clear-opacity`,
+`--coar-control-align-items`
+
+The values are read on the area itself, so brand rules (`.my-brand .coar-mobile`)
+and local overrides (`.my-form.coar-mobile`) reach the overlay too.
+
+With `coar-mobile` on `html` or `body` there is nothing to do: the overlay sits
+inside it and inherits the tokens as before. Without `coar-mobile`, overlays are
+unchanged.
+
+### Where the area is found
+
+The overlay takes the nearest `.coar-mobile` ancestor of its context element.
+The context is, in this order:
+
+1. the `context` option: of `useOverlay().open()` / `getOverlayService().open()`,
+   of the dialog config (`DialogConfig`, `ConfirmOptions`, the third argument of
+   `alert`);
+2. the element the overlay is anchored to (popover, select, menu, date picker);
+3. the parent overlay, for an overlay opened from inside another one.
+
+Two callers set the context themselves:
+
+- `useDialog()` called in a component's `setup()` uses that component's element
+  (the parent element for a fragment root) while the component is mounted.
+- `useContextMenu().open(event)` remembers the element that was right-clicked
+  (`menu.target`), and `CoarContextMenu` passes it on.
+
+Outside `setup()` (a store, a plain function, a router guard) `useDialog()` has
+no component to use. Pass the context:
+
+```ts
+const dialog = useDialog();
+
+dialog.open(EditCustomer, { title: 'Edit customer', context: formEl });
+dialog.confirm({ title: 'Delete?', message: 'This cannot be undone.', context: formEl });
+dialog.alert('Saved', 'The customer was saved.', { context: formEl });
+```
+
+### Limits
+
+- The area is looked up when the overlay opens. A `coar-mobile` class added
+  somewhere only afterwards is not picked up. Changes to the area's class or
+  inline style are followed: removing the class there removes it from the
+  overlay.
+- A local `CoarThemeScope` is still followed only through an element anchor.
+  Dialogs and context menus take the mobile presentation of their area, but not
+  a local theme around it.
+- Not covered: the theme editor and palette editor (developer tools), the
+  markdown editor's table handles, the document viewer's annotation popover, and
+  toasts (global, not tied to an area).
 
 ## Customizing the floors
 

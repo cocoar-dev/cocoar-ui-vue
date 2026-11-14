@@ -182,6 +182,26 @@ test('the size scale and xs action targets survive a border-box reset', { tag: '
   await expect(row.locator('.coar-text-input-field')).toHaveValue('');
 });
 
+test('a popover opened in the local area keeps the mobile presentation', { tag: '@touch' }, async ({ page }) => {
+  await page.getByRole('button', { name: 'Share from mobile', exact: true }).click();
+  const invite = page.getByTestId('mobile-popover-button');
+  await expect(invite).toBeVisible();
+  // The overlay is teleported to body, outside the local .coar-mobile area.
+  const host = page.locator('.coar-overlay-host', { has: invite });
+  await expect(host).toHaveClass(/\bcoar-mobile\b/);
+  await expectTarget(invite);
+  await expect(invite).toHaveCSS('height', `${mobileHeights.m}px`);
+});
+
+test('a popover opened from the desktop sibling keeps the desktop presentation', { tag: '@touch' }, async ({ page }) => {
+  await page.getByRole('button', { name: 'Share from desktop', exact: true }).click();
+  const invite = page.getByTestId('desktop-popover-button');
+  await expect(invite).toBeVisible();
+  const host = page.locator('.coar-overlay-host', { has: invite });
+  await expect(host).not.toHaveClass(/\bcoar-mobile\b/);
+  await expect(invite).toHaveCSS('height', `${desktopHeights.m}px`);
+});
+
 test('touch, mouse, keyboard and non-editable semantics are preserved', { tag: '@touch' }, async ({ page }) => {
   const row = page.locator('[data-size="xs"]');
   await row.getByRole('button', { name: 'Save', exact: true }).tap();
