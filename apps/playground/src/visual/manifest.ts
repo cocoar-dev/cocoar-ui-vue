@@ -70,12 +70,20 @@ export interface VisualStory {
    * photographed and `<html>` gets no `coar-mobile`.
    */
   scope?: 'html' | 'local';
+  /**
+   * `["mobile"]`: the story is photographed only in the mobile presentation
+   * (`coar-mobile` on `<html>`) and has no `--default-` baselines. Only such a
+   * story may take a phone viewport (`phoneViewportLimits`).
+   */
+  modes?: ['mobile'];
   /** Another viewport than the default 1024×768. */
   viewport?: { width: number; height: number };
   /**
    * The width of `[data-visual-root]` in px, instead of the default 760, for
    * components that react to their own width (the calendar's container
-   * queries). At most the viewport's width minus the page's body margin.
+   * queries). At most the viewport's width minus the page's body margin. Not
+   * with a phone viewport: there the root is the viewport's width minus the
+   * body margins.
    */
   width?: number;
 }
@@ -90,6 +98,13 @@ export const visualSchemes: readonly VisualScheme[] = ['light', 'dark'];
  * shrinking the page. The largest keeps page captures reasonable in size.
  */
 export const viewportLimits = { minWidth: 1024, minHeight: 768, maxWidth: 1920, maxHeight: 1200 };
+/**
+ * The phone viewports, allowed only for a story with `modes: ["mobile"]`: it
+ * has no default image that a narrow page could change, so the rule above
+ * holds. From the smallest phones in use (320×568) to the large ones (430×932),
+ * with some room in width.
+ */
+export const phoneViewportLimits = { minWidth: 320, minHeight: 568, maxWidth: 480, maxHeight: 932 };
 
 /** The default width of the story root, and the least a `width` may be. */
 export const rootWidth = 760;
@@ -100,13 +115,33 @@ export const rootWidth = 760;
  */
 export const bodyMargins = 16;
 
-const STORY_KEYS = ['name', 'capture', 'open', 'clock', 'focus', 'scope', 'viewport', 'width'];
+const STORY_KEYS = [
+  'name',
+  'capture',
+  'open',
+  'clock',
+  'focus',
+  'scope',
+  'modes',
+  'viewport',
+  'width',
+];
 const OPEN_KEYS = ['actions', 'overlays', 'ready', 'focus'];
 const isText = (v: unknown): v is string => typeof v === 'string' && v.trim() !== '';
 const isObject = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v);
 const unknownKeys = (o: Record<string, unknown>, known: string[]) =>
   Object.keys(o).filter((k) => !known.includes(k));
+const isMobileOnly = (entry: { modes?: unknown }) =>
+  Array.isArray(entry.modes) && entry.modes.length === 1 && entry.modes[0] === 'mobile';
+type Limits = typeof viewportLimits;
+const within = (v: { width: number; height: number }, l: Limits) =>
+  v.width >= l.minWidth &&
+  v.width <= l.maxWidth &&
+  v.height >= l.minHeight &&
+  v.height <= l.maxHeight;
+const range = (l: Limits) =>
+  `{ width: ${l.minWidth}–${l.maxWidth}, height: ${l.minHeight}–${l.maxHeight} }`;
 
 function actionProblems(action: unknown, where: string): string[] {
   if (!isObject(action)) return [`${where} must be an object`];
@@ -147,25 +182,37 @@ export function storyProblems(entry: unknown): string[] {
   // A local scope is about what leaves the local container: overlays, seen only on the page.
   if (entry.scope === 'local' && entry.capture !== 'page')
     p.push('scope "local" needs capture "page"');
+  if (entry.modes !== undefined && !isMobileOnly(entry)) {
+    p.push('modes must be ["mobile"] (without it a story is photographed in both modes)');
+  }
+  if (entry.modes !== undefined && entry.scope === 'local') {
+    p.push('modes is not for scope "local": a local scope is photographed only in mobile already');
+  }
+  const phone = isObject(entry.viewport) && isPhoneViewport(entry.viewport);
   if (entry.viewport !== undefined) {
     const v = entry.viewport;
-    const { minWidth, minHeight, maxWidth, maxHeight } = viewportLimits;
     if (
       !isObject(v) ||
       unknownKeys(v, ['width', 'height']).length ||
       !Number.isInteger(v.width) ||
       !Number.isInteger(v.height) ||
-      (v.width as number) < minWidth ||
-      (v.width as number) > maxWidth ||
-      (v.height as number) < minHeight ||
-      (v.height as number) > maxHeight
+      !(within(v as { width: number; height: number }, viewportLimits) || phone)
     ) {
       p.push(
-        `viewport must be { width: ${minWidth}–${maxWidth}, height: ${minHeight}–${maxHeight} } (integers)`,
+        `viewport must be ${range(viewportLimits)} (integers), or a phone viewport ${range(phoneViewportLimits)} with modes ["mobile"]`,
+      );
+    } else if (phone && !isMobileOnly(entry)) {
+      // A narrow page changes the default presentation (responsive typography, layout): only an image without it may have one.
+      p.push(
+        `a phone viewport ${range(phoneViewportLimits)} needs modes ["mobile"]: a story with default images keeps a viewport of at least ${viewportLimits.minWidth}×${viewportLimits.minHeight}`,
       );
     }
   }
-  if (entry.width !== undefined) {
+  if (entry.width !== undefined && phone) {
+    p.push(
+      "width is not for a phone viewport: the root is the viewport's width minus the body margins",
+    );
+  } else if (entry.width !== undefined) {
     const viewportWidth = isObject(entry.viewport) ? entry.viewport.width : 1024;
     const max = (Number.isInteger(viewportWidth) ? (viewportWidth as number) : 1024) - bodyMargins;
     if (
@@ -220,7 +267,24 @@ export const manifestProblems: readonly string[] = (stories as unknown[]).flatMa
 
 /** The modes a story is photographed in. */
 export function storyModes(story: VisualStory): readonly VisualMode[] {
-  return story.scope === 'local' ? ['mobile'] : visualModes;
+  return story.scope === 'local' || isMobileOnly(story) ? ['mobile'] : visualModes;
+}
+
+/** Whether a viewport is in the phone range (integers within `phoneViewportLimits`). */
+export function isPhoneViewport(viewport: { width?: unknown; height?: unknown }): boolean {
+  const { width, height } = viewport;
+  return (
+    Number.isInteger(width) &&
+    Number.isInteger(height) &&
+    within({ width: width as number, height: height as number }, phoneViewportLimits)
+  );
+}
+
+/** The width of `[data-visual-root]`: `width`, or with a phone viewport that viewport minus the body margins, or 760. */
+export function storyRootWidth(story: VisualStory): number {
+  if (story.width) return story.width;
+  if (story.viewport && isPhoneViewport(story.viewport)) return story.viewport.width - bodyMargins;
+  return rootWidth;
 }
 
 /** Whether `mode` puts `coar-mobile` on `<html>` for this story. */
