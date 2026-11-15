@@ -4,6 +4,7 @@ import { defineComponent, h, nextTick } from 'vue';
 import CoarOverlayHost from '../overlay/CoarOverlayHost.vue';
 import { CoarOverlayPlugin, _resetOverlayServiceForTests } from '../overlay/useOverlay';
 import { useDialog } from './useDialog';
+import { setCoarKeyboardInset } from '../_internal/keyboardInset';
 
 /**
  * End to end with the real overlay service: `presentation: 'sheet'` opens the sheet shell,
@@ -12,11 +13,17 @@ import { useDialog } from './useDialog';
 describe('useDialog — presentation sheet', () => {
   const wrappers: VueWrapper[] = [];
   const nodes: Element[] = [];
+  const offsetHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetHeight')!.get!;
   let clock = 0;
+  let frameHeight = window.innerHeight;
 
   beforeEach(() => {
     clock = 0;
+    frameHeight = window.innerHeight;
     vi.spyOn(performance, 'now').mockImplementation(() => clock);
+    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (this: HTMLElement) {
+      return this.hasAttribute('data-coar-viewport-frame') ? frameHeight : offsetHeight.call(this);
+    });
   });
 
   afterEach(async () => {
@@ -25,6 +32,7 @@ describe('useDialog — presentation sheet', () => {
     document.querySelectorAll('.coar-overlay-host, .coar-overlay-backdrop').forEach((n) => n.remove());
     nodes.splice(0).forEach((n) => n.remove());
     document.documentElement.style.overflow = '';
+    setCoarKeyboardInset(0);
     vi.restoreAllMocks();
     await settle();
   });
@@ -56,6 +64,47 @@ describe('useDialog — presentation sheet', () => {
 
   const sheets = () => document.querySelectorAll('.coar-sheet');
   const locked = () => document.documentElement.style.overflow === 'hidden';
+
+  it('shrinks a sheet above a native keyboard, reveals the focused field and resets on dismissal', async () => {
+    frameHeight = 874;
+    vi.spyOn(document.documentElement, 'clientHeight', 'get').mockReturnValue(874);
+    const dialog = mountIn();
+    dialog.open(Body, { title: 'Edit', presentation: 'sheet' });
+    await settle();
+    const sheet = sheets()[0] as HTMLElement;
+    const field = sheet.querySelector<HTMLInputElement>('.field')!;
+    const scroller = field.parentElement!;
+    Object.defineProperties(scroller, {
+      scrollHeight: { value: 900, configurable: true },
+      clientHeight: { value: 200, configurable: true },
+    });
+    vi.spyOn(scroller, 'getBoundingClientRect').mockReturnValue({ top: 100, bottom: 400 } as DOMRect);
+    vi.spyOn(field, 'getBoundingClientRect').mockReturnValue({ top: 450, bottom: 502 } as DOMRect);
+    field.focus();
+    await settle();
+    scroller.scrollTop = 0;
+    setCoarKeyboardInset(328);
+    await settle();
+    expect(sheet.style.bottom).toBe('328px');
+    expect(sheet.style.maxHeight).toContain('546px');
+    expect(scroller.scrollTop).toBe(102);
+    expect(locked()).toBe(true);
+    setCoarKeyboardInset(0);
+    await settle();
+    expect(sheet.style.bottom).toBe('');
+    expect(sheet.style.maxHeight).toBe('');
+  });
+
+  it('does not apply the native keyboard inset to the default centered presentation', async () => {
+    setCoarKeyboardInset(328);
+    const dialog = mountIn();
+    dialog.open(Body, { title: 'Edit' });
+    await settle();
+    const centered = document.querySelector<HTMLElement>('.coar-dialog')!;
+    expect(centered.style.bottom).toBe('');
+    expect(sheets()).toHaveLength(0);
+    expect(locked()).toBe(false);
+  });
 
   function pointer(target: Element, type: string, clientY: number) {
     const event = new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 7, pointerType: 'touch', clientY });

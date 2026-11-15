@@ -369,7 +369,7 @@ are only being added, and testing on real devices remains the job of the app.
 
 | Page | Desktop | Tablet | Phone | Note |
 |---|---|---|---|---|
-| [Dialog](../components/dialog.md) | ready | ready | partial | Phone: use the bottom sheet (Preview); native keyboard and iOS gestures need checks. Android's back button does not close it. |
+| [Dialog](../components/dialog.md) | ready | ready | partial | Phone: use the bottom sheet (Preview); overlay-keyboard hosts need a native inset adapter. Android's back button does not close it. |
 | [Popover](../components/popover.md) | ready | partial | planned | The default hover mode relies on emulated mouse events on touch; use mode 'click' or 'both'. |
 | [Popconfirm](../components/popconfirm.md) | ready | ready | planned | Opens on tap; touch-sized popovers for phones are planned. |
 | [Toast](../components/toast.md) | ready | ready | partial | Toasts are a fixed 380 px wide and overflow 360 px phone screens. |

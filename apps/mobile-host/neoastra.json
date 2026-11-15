@@ -11,7 +11,7 @@
       "node",
       "../node_modules/vite/bin/vite.js",
       "--config",
-      "vite.config.ts",
+      "../../mobile-host/vite.config.ts",
       "--host",
       "127.0.0.1",
       "--port",
@@ -24,7 +24,7 @@
       "../node_modules/vite/bin/vite.js",
       "build",
       "--config",
-      "vite.config.ts",
+      "../../mobile-host/vite.config.ts",
       "--outDir",
       "../../mobile-host/obj/mobile-docs",
       "--emptyOutDir"

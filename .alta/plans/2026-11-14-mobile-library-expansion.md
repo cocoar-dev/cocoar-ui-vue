@@ -188,7 +188,12 @@ ist – ihre API ist öffentlich und soll von dir gesehen werden, bevor sie geba
 
 **C–F**
 
-- [ ] 14. Entwurf C (Blatt) schreiben und freigeben lassen, bauen, PR, Prüfung im iOS-Simulator.
+- [x] 14. C ist gebaut und gemergt (#61, #63). Die zusätzlichen Tastaturkorrekturen sind hostneutral implementiert
+      und auf iOS-Host/Safari hoch, Pixel sowie Fire hoch/quer nativ nachgeprüft; sehr enge Hosts scrollen das
+      ganze Blatt. Safari quer ohne sichtbare Seitenfläche bleibt eine Plattformgrenze. Produktreview,
+      Gesamtsuite und abschließender Vollvisualvergleich (227/227) bestehen. Frühere Laufzeitfehler blockieren
+      nicht mehr. Die Korrekturen gehören zum Keyboard-Fix-PR. Details im Plan
+      `2026-11-14-mobile-sheet.md`.
 - [ ] 15. Entwurf D (Select als Blatt), bauen, PR.
 - [ ] 16. Kerne der einfachen Picker lösen (`refactor(ui)`), Entwurf E, bauen, PR, Prüfung im iOS-Simulator.
       Danach Beta für amZettel auf dein Wort.

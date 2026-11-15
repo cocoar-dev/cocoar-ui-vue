@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- A test host for iOS and Android that shows the mobile documentation of apps/docs/mobile in a NeoAstra window. It has no
-       web source of its own: neoastra.json points the NeoAstra frontend pipeline at apps/docs/mobile, builds it with that app's
-       own Vite config into obj/mobile-docs and packages the result. See README.md. -->
+  <!-- A test host for iOS and Android that shows apps/docs/mobile in a NeoAstra window. Its Vite config extends the docs'
+       config with a keyboard bridge kept in this host, builds into obj/mobile-docs and packages the result. See README.md. -->
   <PropertyGroup>
     <TargetFrameworks>net11.0-ios;net11.0-android</TargetFrameworks>
     <OutputType>Exe</OutputType>
@@ -39,6 +38,7 @@
     <TrimMode>full</TrimMode>
   </PropertyGroup>
   <ItemGroup>
+    <NeoAstraFrontendInput Include="vite.config.ts;main.ts;keyboard-bridge.mjs" />
     <PackageReference Include="NeoAstra" Version="$(NeoAstraVersion)" />
     <!-- An agent drives the page through `dotnet neoastra mcp` in a `dotnet neoastra dev` session: debug builds only. -->
     <PackageReference Include="NeoAstra.Mcp" Version="$(NeoAstraVersion)" Condition="'$(Configuration)' == 'Debug'" />

@@ -176,6 +176,12 @@ export const vScrollbar: Directive<HTMLElement, ScrollbarOptions | boolean> = {
     if (state?.instance) {
       const opts = resolveOptions(binding);
       state.instance.options(buildOsOptions(opts));
+      // This option is applied to the DOM, not part of OverlayScrollbars' options.
+      const viewport = state.instance.elements().viewport;
+      const overscroll = opts.overscrollBehavior ?? '';
+      if (viewport && viewport.style.overscrollBehavior !== overscroll) {
+        viewport.style.overscrollBehavior = overscroll;
+      }
     }
   },
 

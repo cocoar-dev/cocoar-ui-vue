@@ -1,5 +1,5 @@
-// The contract of the mobile host: its page is the unchanged apps/docs/mobile, built with that app's
-// own Vite config into the host's obj folder; its dev server stays off the docs' port; NeoAstra.Mcp
+// The contract of the mobile host: apps/docs/mobile with a host-only keyboard bridge, built into
+// the host's obj folder; its dev server stays off the docs' port; NeoAstra.Mcp
 // exists in debug builds only; and the versions and identifiers agree. Run: node --test "apps/mobile-host/scripts/*.test.mjs"
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -21,15 +21,17 @@ const csproj = read('CocoarMobileHost.csproj');
 const frontendRoot = resolve(HOST_DIR, config.frontend.root);
 const option = (command, name) => command[command.indexOf(name) + 1];
 
-test('the page is the mobile docs app with its own Vite config, not a copy', () => {
+test('the page is the mobile docs app with a host-only extension of its config, not a copy', () => {
   assert.equal(frontendRoot, resolve(HOST_DIR, '../docs/mobile'));
   assert.ok(existsSync(join(frontendRoot, 'vite.config.ts')));
   assert.ok(existsSync(join(frontendRoot, 'index.html')));
   for (const command of [config.frontend.devCommand, config.frontend.buildCommand]) {
-    assert.equal(option(command, '--config'), 'vite.config.ts');
+    assert.equal(resolve(frontendRoot, option(command, '--config')), join(HOST_DIR, 'vite.config.ts'));
     // The commands run in frontend.root; the vite of apps/docs is the one the docs build uses.
     assert.ok(existsSync(join(frontendRoot, command[1])), `${command[1]} from ${frontendRoot}`);
   }
+  assert.match(read('vite.config.ts'), /import mobileDocs from '\.\.\/docs\/mobile\/vite\.config'/);
+  assert.match(csproj, /NeoAstraFrontendInput Include="vite\.config\.ts;main\.ts;keyboard-bridge\.mjs"/);
 });
 
 test('the build writes into the host obj folder that neoastra.json packages', () => {

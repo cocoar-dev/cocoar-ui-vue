@@ -8,7 +8,7 @@ namespace Cocoar.MobileHost;
 
 /// <summary>
 /// The host, the same on iOS and Android: one window with the mobile documentation. It offers the page no RPC services and
-/// no capabilities; the page is the unchanged web app of apps/docs/mobile.
+/// no capabilities; apps/docs/mobile is extended only by this host's keyboard bridge.
 /// </summary>
 internal static class App
 {

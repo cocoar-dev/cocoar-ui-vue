@@ -1,7 +1,7 @@
 ---
 description: "useDialog — promise-based modal dialogs for confirm, alert and custom components, with configurable buttons, sizes and localized labels."
 devices: { desktop: ready, tablet: ready, phone: partial }
-devicesNote: "Phone: use the bottom sheet (Preview); native keyboard and iOS gestures need checks. Android's back button does not close it."
+devicesNote: "Phone: use the bottom sheet (Preview); overlay-keyboard hosts need a native inset adapter. Android's back button does not close it."
 ---
 
 # Dialog
@@ -51,11 +51,14 @@ What the sheet does:
   height minus the top safe-area inset (`env(safe-area-inset-top)`) and a 24 px gap, keeping
   the handle and close button below the system bar. From a 640 px wide window on it keeps
   the width of its `size`, centered. A drag handle and the header (title, close button) on top;
-  the content scrolls inside; the footer stays put.
+  the content scrolls inside; the footer stays put. If a landscape keyboard leaves too little
+  height for the header, footer and a field, the whole sheet scrolls instead: fields and
+  buttons remain reachable rather than being clipped. The fixed footer returns when space allows.
 - **Buttons**: the footer buttons span the full width, stacked with the confirming one on top,
   clear of the home indicator (`env(safe-area-inset-bottom)`).
 - **On-screen keyboard**: the sheet follows `window.visualViewport`. It sits above the keyboard,
-  shrinks with it, and the focused field is scrolled into the visible part.
+  shrinks with it, and the focused field is scrolled into the visible part. Native hosts whose
+  overlay keyboard leaves the viewport unchanged report its occlusion as described below.
 - **Page behind**: does not scroll while a sheet is open. The centered dialog does not lock the
   page.
 - **Closing**: the close button, a tap on the backdrop, Escape, and dragging down — the same
@@ -66,6 +69,30 @@ What the sheet does:
   the content scrolls it and never closes the sheet.
 - **Focus**: trapped inside and returned on close, `role="dialog"` with `aria-modal`, as in the
   dialog. It slides in from below, without animation under `prefers-reduced-motion`.
+
+### Native overlay keyboards <Badge type="warning" text="Preview" />
+
+For a browser or a WebView that resizes above the keyboard, no adapter is needed. A native
+host that draws its keyboard **over** an unchanged page calls `setCoarKeyboardInset()` from
+its own keyboard listener:
+
+```ts
+import { setCoarKeyboardInset } from '@cocoar/vue-ui';
+
+// The part of the current layout viewport covered at its bottom, in CSS pixels.
+setCoarKeyboardInset(328);
+// On dismissal, when the WebView resizes clear of the keyboard, or on adapter cleanup:
+setCoarKeyboardInset(0);
+```
+
+The value is not a device-pixel height or an extra padding token. Convert the native
+keyboard rectangle to the WebView's CSS coordinates and report only its overlap with the
+bottom of the **current** layout viewport. A resized WebView has no overlap: report 0.
+Update it on keyboard and orientation changes, including when no sheet is open. The
+current value also applies to sheets opened later. Insets must be finite and non-negative;
+invalid values throw `RangeError`. Browser and native occlusion are combined, not added,
+so a shrinking visual viewport is not counted twice. Pinch zoom keeps the CSS-only layout.
+The library has no dependency on a particular host or native bridge.
 
 ### `CoarDialogFooter` <Badge type="warning" text="Preview" />
 

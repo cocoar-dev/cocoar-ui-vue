@@ -71,6 +71,96 @@ async function dragHandle(page: Page, sheet: Locator, dy: number): Promise<void>
 }
 
 test.describe('bottom sheet', { tag: '@touch' }, () => {
+  test('measures the fixed frame without counting a classic horizontal scrollbar', async ({
+    playwright, browserName, baseURL,
+  }) => {
+    test.skip(browserName !== 'chromium', 'Classic scrollbar launch flags are Chromium-specific.');
+    const browser = await playwright.chromium.launch({
+      // Playwright normally hides scrollbars; that cannot exercise this regression.
+      ignoreDefaultArgs: ['--hide-scrollbars'],
+      args: ['--disable-features=OverlayScrollbar'],
+    });
+    try {
+      const context = await browser.newContext({
+        baseURL, hasTouch: true, viewport: { width: 500, height: 700 },
+      });
+      const page = await context.newPage();
+      await page.goto('/mobile-form');
+      // Model host CSS retaining a classic scrollbar despite the page scroll lock.
+      await page.addStyleTag({ content: `
+        html { overflow-x: scroll !important; }
+        body::after { content: ''; display: block; width: 2000px; height: 1px; }
+        ::-webkit-scrollbar { width: 15px; height: 15px; }
+      ` });
+      const sheet = await openDetails(page);
+      expect(await page.evaluate(() => ({
+        inner: innerHeight, client: document.documentElement.clientHeight,
+        visual: visualViewport!.height,
+      }))).toEqual({ inner: 700, client: 685, visual: 685 });
+      await expect.poll(() => sheet.evaluate((el) => (el as HTMLElement).style.bottom)).toBe('0px');
+      expect((await sheet.boundingBox())!.y + (await sheet.boundingBox())!.height)
+        .toBeCloseTo(685, 1);
+    } finally {
+      await browser.close();
+    }
+  });
+
+  test('with very little height the whole sheet scrolls, keeping fields and footer reachable', async ({ page, browserName }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/visual.html#/visual/sheet-keyboard-short?mode=mobile&scheme=light');
+    const sheet = page.getByRole('dialog', { name: 'Edit details' });
+    await expect(sheet).toHaveClass(/coar-sheet--compact/);
+    await settled(sheet);
+    const notes = sheet.getByRole('textbox', { name: 'Notes', exact: true });
+    await notes.focus();
+    await expect.poll(async () => {
+      const field = (await notes.boundingBox())!;
+      const box = (await sheet.boundingBox())!;
+      return field.y >= box.y - 1 && field.y + field.height <= box.y + box.height + 1;
+    }).toBe(true);
+    // Real wheel input over the inner viewport must chain to the sheet, not be trapped
+    // by the normal body's overscroll containment or scroll the locked page.
+    const field = (await notes.boundingBox())!;
+    if (browserName === 'webkit') {
+      // Playwright rejects wheel input in mobile WebKit. Check the chaining contract
+      // and scroll geometry here; actual iOS finger gestures are checked natively.
+      const inner = sheet.locator('.coar-sheet-body [data-overlayscrollbars-viewport]');
+      await expect.poll(() => inner.evaluate((el) => getComputedStyle(el).overscrollBehaviorY))
+        .toBe('auto');
+      await sheet.evaluate((el) => { el.scrollTop = el.scrollHeight; });
+    } else {
+      await page.mouse.move(field.x + field.width / 2, field.y + field.height / 2);
+      await page.mouse.wheel(0, 1000);
+    }
+    await expect.poll(async () => {
+      const save = (await sheet.getByRole('button', { name: 'Save', exact: true }).boundingBox())!;
+      return save.y + save.height;
+    }).toBeLessThanOrEqual(844 - 700);
+    const save = (await sheet.getByRole('button', { name: 'Save', exact: true }).boundingBox())!;
+    expect(save.y + save.height).toBeLessThanOrEqual(844 - 700);
+    expect(await page.evaluate(() => scrollY)).toBe(0);
+  });
+
+  test('a host-neutral overlay inset keeps the footer and focused last field above the keyboard', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/visual.html#/visual/sheet-keyboard?mode=mobile&scheme=light');
+    const sheet = page.getByRole('dialog', { name: 'Edit details' });
+    await expect(sheet).toBeVisible();
+    await settled(sheet);
+    const notes = sheet.getByRole('textbox', { name: 'Notes', exact: true });
+    await notes.focus();
+    const keyboardTop = 844 - 328;
+    await expect.poll(async () => (await sheet.boundingBox())!.y + (await sheet.boundingBox())!.height)
+      .toBeCloseTo(keyboardTop, 1);
+    const footer = (await sheet.locator('.coar-sheet-footer').boundingBox())!;
+    await expect.poll(async () => {
+      const field = (await notes.boundingBox())!;
+      return field.y + field.height;
+    }).toBeLessThanOrEqual(footer.y);
+    expect(footer.y + footer.height).toBeLessThanOrEqual(keyboardTop);
+    expect(await page.evaluate(() => scrollY)).toBe(0);
+  });
+
   for (const visualViewport of [true, false]) {
     test(`keeps the handle below the top safe area (${visualViewport ? 'visual viewport' : 'CSS fallback'})`, async ({
       page,

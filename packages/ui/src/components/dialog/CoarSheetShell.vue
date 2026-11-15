@@ -94,6 +94,48 @@ const sheetStyle = computed(() => {
 });
 
 const EDITABLE_SELECTOR = 'input, textarea, select, [contenteditable="true"]';
+const compact = ref(false);
+let layoutObserver: ResizeObserver | null = null;
+
+/**
+ * A landscape phone can have less room above the keyboard than the header and footer
+ * alone need. In that case scroll the whole sheet instead of clipping its controls.
+ */
+function refreshLayout() {
+  const sheet = sheetRef.value;
+  if (!sheet || sheet.clientHeight <= 0) {
+    nextTick(revealFocusedField);
+    return;
+  }
+  const body = sheet.querySelector<HTMLElement>('.coar-sheet-body');
+  if (!body) return;
+  const padding = getComputedStyle(body);
+  const field = sheet.querySelector<HTMLElement>(EDITABLE_SELECTOR);
+  const minimumBody =
+    (parseFloat(padding.paddingTop) || 0) +
+    (parseFloat(padding.paddingBottom) || 0) +
+    Math.max(field?.offsetHeight ?? 0, parseFloat(padding.lineHeight) || 0);
+  const fixedHeight = Array.from(sheet.children)
+    .filter((el) => el !== body)
+    .reduce((height, el) => height + (el as HTMLElement).offsetHeight, 0);
+  compact.value = sheet.clientHeight < fixedHeight + minimumBody;
+  nextTick(revealFocusedField);
+}
+
+function observeLayout() {
+  const sheet = sheetRef.value;
+  if (!sheet) return;
+  layoutObserver?.observe(sheet);
+  for (const child of sheet.children) layoutObserver?.observe(child);
+  refreshLayout();
+}
+
+onMounted(() => {
+  if (typeof ResizeObserver !== 'undefined') layoutObserver = new ResizeObserver(refreshLayout);
+  nextTick(observeLayout);
+});
+watch(footerUsed, () => nextTick(observeLayout));
+onBeforeUnmount(() => layoutObserver?.disconnect());
 
 /**
  * Scrolls the focused field into the visible part of its scroll container inside the
@@ -104,18 +146,20 @@ function revealFocusedField() {
   const field = typeof document !== 'undefined' ? document.activeElement : null;
   if (!sheet || !(field instanceof HTMLElement) || !sheet.contains(field)) return;
   if (!field.matches(EDITABLE_SELECTOR)) return;
-  for (let el = field.parentElement; el && el !== sheet; el = el.parentElement) {
-    if (el.scrollHeight <= el.clientHeight) continue;
-    const box = el.getBoundingClientRect();
-    const rect = field.getBoundingClientRect();
-    if (rect.bottom > box.bottom) el.scrollTop += rect.bottom - box.bottom;
-    else if (rect.top < box.top) el.scrollTop -= box.top - rect.top;
-    return;
+  for (let el = field.parentElement; el; el = el.parentElement) {
+    if (el.scrollHeight > el.clientHeight) {
+      const box = el.getBoundingClientRect();
+      const rect = field.getBoundingClientRect();
+      if (rect.bottom > box.bottom) el.scrollTop += rect.bottom - box.bottom;
+      else if (rect.top < box.top) el.scrollTop -= box.top - rect.top;
+      return;
+    }
+    if (el === sheet) return;
   }
 }
 
 // The keyboard opens after the focus moves: reveal again once the viewport has shrunk.
-watch(metrics, () => nextTick(revealFocusedField));
+watch(metrics, () => nextTick(refreshLayout));
 
 const sizeClass = computed(() => `coar-sheet--${props.size}`);
 
@@ -131,14 +175,17 @@ const BodyRenderer = computed(() => {
   <div
     ref="sheetRef"
     class="coar-sheet"
-    :class="[sizeClass, { 'coar-sheet--dragging': drag.dragging.value }]"
+    :class="[
+      sizeClass,
+      { 'coar-sheet--dragging': drag.dragging.value, 'coar-sheet--compact': compact },
+    ]"
     :style="sheetStyle"
     role="dialog"
     aria-modal="true"
     :aria-label="title ? undefined : t('coar.ui.dialog.dialog', undefined, 'Dialog')"
     :aria-labelledby="title ? titleId : undefined"
     tabindex="-1"
-    @focusin="nextTick(revealFocusedField)"
+    @focusin="nextTick(refreshLayout)"
   >
     <div class="coar-sheet-handle-area" v-on="dragListeners">
       <span v-if="dragToClose" class="coar-sheet-handle" aria-hidden="true" />
@@ -158,7 +205,11 @@ const BodyRenderer = computed(() => {
     </div>
 
     <div
-      v-scrollbar="{ overflowX: 'hidden', defer: false, overscrollBehavior: 'contain' }"
+      v-scrollbar="{
+        overflowX: 'hidden',
+        defer: false,
+        overscrollBehavior: compact ? 'auto' : 'contain',
+      }"
       class="coar-sheet-body"
     >
       <p v-if="confirmMode">{{ confirmMessage }}</p>
@@ -167,11 +218,19 @@ const BodyRenderer = computed(() => {
     </div>
 
     <div v-if="confirmMode" class="coar-sheet-footer">
-      <CoarButton v-if="cancelText" variant="secondary" full-width @click="onClose(false)">{{ cancelText }}</CoarButton>
-      <CoarButton :variant="confirmVariant" full-width @click="onClose(true)">{{ confirmText }}</CoarButton>
+      <CoarButton v-if="cancelText" variant="secondary" full-width @click="onClose(false)">{{
+        cancelText
+      }}</CoarButton>
+      <CoarButton :variant="confirmVariant" full-width @click="onClose(true)">{{
+        confirmText
+      }}</CoarButton>
     </div>
 
-    <div v-if="!confirmMode && ($slots.footer || footerUsed)" ref="footerRef" class="coar-sheet-footer">
+    <div
+      v-if="!confirmMode && ($slots.footer || footerUsed)"
+      ref="footerRef"
+      class="coar-sheet-footer"
+    >
       <slot name="footer" />
     </div>
   </div>
@@ -204,12 +263,31 @@ const BodyRenderer = computed(() => {
   transition: none;
 }
 
+/* Not enough room for fixed chrome plus a field: all controls remain reachable by
+   scrolling the sheet. Restore the fixed footer as soon as there is room again. */
+.coar-sheet--compact {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.coar-sheet--compact .coar-sheet-body {
+  flex: 0 0 auto;
+}
+
 /* From tablet width on, the sheet keeps the width of its size, centered. */
 @media (min-width: 640px) {
-  .coar-sheet--s { max-width: var(--coar-dialog-s-width); }
-  .coar-sheet--m { max-width: var(--coar-dialog-m-width); }
-  .coar-sheet--l { max-width: var(--coar-dialog-l-width); }
-  .coar-sheet--xl { max-width: var(--coar-dialog-xl-width); }
+  .coar-sheet--s {
+    max-width: var(--coar-dialog-s-width);
+  }
+  .coar-sheet--m {
+    max-width: var(--coar-dialog-m-width);
+  }
+  .coar-sheet--l {
+    max-width: var(--coar-dialog-l-width);
+  }
+  .coar-sheet--xl {
+    max-width: var(--coar-dialog-xl-width);
+  }
 }
 
 .coar-sheet-handle-area {
@@ -261,7 +339,9 @@ const BodyRenderer = computed(() => {
   color: var(--coar-text-neutral-secondary);
   cursor: pointer;
   flex-shrink: 0;
-  transition: background-color var(--coar-duration-fast) var(--coar-ease-out), color var(--coar-duration-fast) var(--coar-ease-out);
+  transition:
+    background-color var(--coar-duration-fast) var(--coar-ease-out),
+    color var(--coar-duration-fast) var(--coar-ease-out);
 }
 
 .coar-sheet-close:hover {
@@ -305,8 +385,12 @@ const BodyRenderer = computed(() => {
 }
 
 @keyframes coar-sheet-slide-in {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
