@@ -3,7 +3,7 @@
 // order of GROUPS.
 import type { Component } from 'vue';
 
-export const GROUPS = ['Forms', 'Controls'] as const;
+export const GROUPS = ['Forms', 'Sheets', 'Controls'] as const;
 
 export interface MobileDemo {
   /** The address: #/<id>, and the `src` of a PhoneFrame. */
@@ -25,6 +25,14 @@ export const DEMOS: MobileDemo[] = [
     group: 'Forms',
     component: () => import('./FormDemo.vue'),
     docs: '/components/form-field',
+  },
+  {
+    id: 'sheet',
+    title: 'Bottom sheet',
+    description: 'A confirmation and a long form as sheets',
+    group: 'Sheets',
+    component: () => import('./SheetDemo.vue'),
+    docs: '/components/dialog#sheet',
   },
   {
     id: 'controls',

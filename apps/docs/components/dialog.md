@@ -37,6 +37,10 @@ dialog.alert('Saved', '…', { presentation: 'sheet' });
 
 <preview path="./dialog/demos/SheetDialog.vue" />
 
+In phone size, with a form longer than the screen:
+
+<PhoneFrame src="sheet" title="Dialogs as bottom sheets" />
+
 The presentation is chosen per call and never derived from `coar-mobile` or the window
 width: without `presentation` a dialog stays the centered dialog. Under `coar-mobile` the
 sheet's buttons and fields get the mobile sizes, like any other overlay.

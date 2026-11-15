@@ -172,6 +172,10 @@ function editContact() {
 </script>
 ```
 
+In phone size, with a form longer than the screen:
+
+Live demo in phone size: [Dialogs as bottom sheets](https://docs.cocoar.dev/cocoar-ui-vue/mobile/#/sheet)
+
 The presentation is chosen per call and never derived from `coar-mobile` or the window
 width: without `presentation` a dialog stays the centered dialog. Under `coar-mobile` the
 sheet's buttons and fields get the mobile sizes, like any other overlay.
