@@ -1,0 +1,59 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- A test host for iOS and Android that shows the mobile documentation of apps/docs/mobile in a NeoAstra window. It has no
+       web source of its own: neoastra.json points the NeoAstra frontend pipeline at apps/docs/mobile, builds it with that app's
+       own Vite config into obj/mobile-docs and packages the result. See README.md. -->
+  <PropertyGroup>
+    <TargetFrameworks>net11.0-ios;net11.0-android</TargetFrameworks>
+    <OutputType>Exe</OutputType>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Cocoar.MobileHost</RootNamespace>
+    <ApplicationId>dev.cocoar.ui.mobilehost</ApplicationId>
+    <ApplicationTitle>Cocoar UI Mobile</ApplicationTitle>
+    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+    <!-- NeoAstra, NeoAstra.Mcp and the tool in .config/dotnet-tools.json stay on the same version. -->
+    <NeoAstraVersion>1.13.2</NeoAstraVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
+    <SupportedOSPlatformVersion>17.0</SupportedOSPlatformVersion>
+    <!-- The keyboard of a native app: no form bar, focus() opens it, and it lies over the page, which reads its height from
+         a CSS variable of NeoAstra (the keyboard height). -->
+    <NeoAstraIOSHideFormAccessoryBar>true</NeoAstraIOSHideFormAccessoryBar>
+    <NeoAstraIOSKeyboardWithoutUserAction>true</NeoAstraIOSKeyboardWithoutUserAction>
+    <NeoAstraIOSKeyboardOverlay>true</NeoAstraIOSKeyboardOverlay>
+    <TrimMode Condition="'$(Configuration)' == 'Release'">full</TrimMode>
+  </PropertyGroup>
+  <PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
+    <SupportedOSPlatformVersion>26</SupportedOSPlatformVersion>
+    <!-- One ABI per build: NeoAstra 1.13.2 builds the page in every inner build of an ABI, and with several ABIs the
+         parallel builds empty and validate the one frontend.dist at the same time (asset_copy_invalid). An arm64 phone or
+         emulator takes this default; an x64 emulator builds with -r android-x64. Remove this once NeoAstra prepares the page
+         once per build. -->
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">android-arm64</RuntimeIdentifier>
+    <AndroidManifest>Platforms/Android/AndroidManifest.xml</AndroidManifest>
+    <!-- The window draws under the system bars as on iOS, and the page keeps clear of them with env(safe-area-inset-*). -->
+    <NeoAstraAndroidEdgeToEdge>true</NeoAstraAndroidEdgeToEdge>
+    <!-- The keyboard lies over the page, which reads its height, as on iOS. -->
+    <NeoAstraAndroidKeyboardOverlay>true</NeoAstraAndroidKeyboardOverlay>
+    <TrimMode>full</TrimMode>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="NeoAstra" Version="$(NeoAstraVersion)" />
+    <!-- An agent drives the page through `dotnet neoastra mcp` in a `dotnet neoastra dev` session: debug builds only. -->
+    <PackageReference Include="NeoAstra.Mcp" Version="$(NeoAstraVersion)" Condition="'$(Configuration)' == 'Debug'" />
+    <Compile Remove="Platforms/**" />
+    <Compile Include="Platforms/iOS/**/*.cs" Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'" />
+    <Compile Include="Platforms/Android/**/*.cs" Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'" />
+  </ItemGroup>
+  <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
+    <PackageReference Include="Xamarin.AndroidX.WebKit" Version="1.17.1" />
+  </ItemGroup>
+  <!-- The page is apps/docs/mobile (frontend.root of neoastra.json), which NeoAstra fingerprints by itself; the workspace
+       packages it compiles from source live outside it, so a change there builds the page again too. -->
+  <ItemGroup>
+    <NeoAstraFrontendInput Include="../docs/package.json" />
+    <NeoAstraFrontendInput Include="../../packages/ui/package.json;../../packages/ui/src;../../packages/ui/styles" />
+    <NeoAstraFrontendInput Include="../../packages/localization/package.json;../../packages/localization/src" />
+  </ItemGroup>
+</Project>

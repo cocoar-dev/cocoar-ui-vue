@@ -70,6 +70,7 @@ What runs without `.coar-mobile` must keep its look and behaviour ([stability pr
 - **Update the page's `devices` line** (`apps/docs/components/…`), and its `devicesNote` when a limit changes; the values are explained in the [mobile guide](apps/docs/guide/mobile.md#device-support).
 - **New API carries the Preview badge.**
 - **Show it in phone size** when a demo helps. The mobile documentation (`apps/docs/mobile`, at `/mobile/` of the docs) is a small app of its own with `coar-mobile` on `html`. A demo is one `.vue` file in `apps/docs/mobile/demos/`, one entry in `DEMOS` of `apps/docs/mobile/demos/index.ts` (id, title, one-line description, group, optional docs page), and one `<PhoneFrame src="<id>" title="…" />` line on the docs page (`size="tablet"` for 810×1080). Run it with the docs: `pnpm --filter @cocoar/docs dev` serves it at `/mobile/`, and the docs build writes it to `.vitepress/dist/mobile`.
+- **Check the native host too.** The optional [NeoAstra mobile test host](apps/mobile-host/README.md) runs the same mobile documentation on iOS and Android, with the keyboard-overlay settings used by amZettel. Use it to check the native keyboard, safe areas, and sheet interactions; keep the browser tests as well. Its .NET SDK and mobile workloads are separate prerequisites, not requirements for the normal library build.
 
 ## Testing
 

@@ -85,9 +85,9 @@ const sheetStyle = computed(() => {
   const style: Record<string, string> = {};
   const viewport = metrics.value;
   if (viewport) {
-    // Above the on-screen keyboard, never taller than what is visible.
+    // Above the keyboard; the handle and header also keep clear of the top system inset.
     style.bottom = `${viewport.bottomInset}px`;
-    style.maxHeight = `calc(${viewport.height}px - var(--coar-sheet-top-gap))`;
+    style.maxHeight = `calc(${viewport.height}px - var(--coar-sheet-top-gap) - env(safe-area-inset-top, 0px))`;
   }
   if (drag.offset.value > 0) style.translate = `0 ${drag.offset.value}px`;
   return style;
@@ -186,8 +186,8 @@ const BodyRenderer = computed(() => {
   box-sizing: border-box;
   width: 100%;
   margin-inline: auto;
-  max-height: calc(100vh - var(--coar-sheet-top-gap));
-  max-height: calc(100dvh - var(--coar-sheet-top-gap));
+  max-height: calc(100vh - var(--coar-sheet-top-gap) - env(safe-area-inset-top, 0px));
+  max-height: calc(100dvh - var(--coar-sheet-top-gap) - env(safe-area-inset-top, 0px));
   display: flex;
   flex-direction: column;
   overflow: hidden;
