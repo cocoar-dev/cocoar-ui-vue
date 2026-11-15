@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adapted from the neoastra-mobile template of NeoAstra 1.13.2, Copyright (c) 2026, Alexandre Mutel, BSD-2-Clause (see README.md).
+     No permissions: the packaged page needs none. A debug build reaches the development server of `dotnet neoastra dev` through
+     what the .NET and NeoAstra debug builds add themselves. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <application android:label="Cocoar UI Mobile" android:supportsRtl="true" />
+</manifest>

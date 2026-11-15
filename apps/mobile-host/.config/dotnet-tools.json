@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "isRoot": true,
+  "tools": {
+    "neoastra.tool": {
+      "version": "1.13.2",
+      "commands": ["neoastra"],
+      "rollForward": false
+    }
+  }
+}

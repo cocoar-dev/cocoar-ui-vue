@@ -12,6 +12,10 @@ coverage
 apps/docs/.vitepress/cache/
 apps/docs/.vitepress/dist/
 
+# Optional native mobile test host
+apps/mobile-host/bin/
+apps/mobile-host/obj/
+
 # Playwright
 test-results/
 playwright-report/

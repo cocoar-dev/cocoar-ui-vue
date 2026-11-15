@@ -1,0 +1,44 @@
+{
+  "$schema": "neoastra-project-v1.schema.json",
+  "version": 1,
+  "app": {
+    "identifier": "dev.cocoar.ui.mobilehost",
+    "displayName": "Cocoar UI Mobile"
+  },
+  "frontend": {
+    "root": "../docs/mobile",
+    "devCommand": [
+      "node",
+      "../node_modules/vite/bin/vite.js",
+      "--config",
+      "vite.config.ts",
+      "--host",
+      "127.0.0.1",
+      "--port",
+      "5178",
+      "--strictPort"
+    ],
+    "devUrl": "http://127.0.0.1:5178/",
+    "buildCommand": [
+      "node",
+      "../node_modules/vite/bin/vite.js",
+      "build",
+      "--config",
+      "vite.config.ts",
+      "--outDir",
+      "../../mobile-host/obj/mobile-docs",
+      "--emptyOutDir"
+    ],
+    "dist": "obj/mobile-docs",
+    "spaFallback": "index.html",
+    "packageManager": "pnpm",
+    "lockfile": "../../pnpm-lock.yaml"
+  },
+  "assets": {
+    "origin": "app://neoastra",
+    "cacheHashedAssets": true,
+    "csp": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+    "referrerPolicy": "no-referrer"
+  },
+  "capabilities": []
+}
