@@ -71,6 +71,49 @@ async function dragHandle(page: Page, sheet: Locator, dy: number): Promise<void>
 }
 
 test.describe('bottom sheet', { tag: '@touch' }, () => {
+  for (const visualViewport of [true, false]) {
+    test(`keeps the handle below the top safe area (${visualViewport ? 'visual viewport' : 'CSS fallback'})`, async ({
+      page,
+      browserName,
+    }) => {
+      test.skip(browserName !== 'chromium', 'Safe-area emulation requires Chromium CDP.');
+      await page.setViewportSize({ width: 390, height: 844 });
+      const cdp = await page.context().newCDPSession(page);
+      await cdp.send('Emulation.setSafeAreaInsetsOverride', { insets: { top: 47 } });
+      if (!visualViewport) {
+        await page.addInitScript(() => {
+          Object.defineProperty(window, 'visualViewport', { value: null, configurable: true });
+        });
+      }
+      await page.reload();
+      // This is a real env() inset, not a larger top-gap token that could hide the regression.
+      const safeTop = await page.evaluate(() => {
+        const probe = document.createElement('div');
+        probe.style.paddingTop = 'env(safe-area-inset-top, 0px)';
+        document.body.append(probe);
+        const top = parseFloat(getComputedStyle(probe).paddingTop);
+        probe.remove();
+        return top;
+      });
+      expect(safeTop).toBe(47);
+
+      const sheet = await openDetails(page);
+      const gap = await sheet.evaluate((el) =>
+        parseFloat(getComputedStyle(el).getPropertyValue('--coar-sheet-top-gap')),
+      );
+      const box = (await sheet.boundingBox())!;
+      expect(box.y).toBeCloseTo(safeTop + gap, 1);
+      const handle = (await sheet.locator('.coar-sheet-handle-area').boundingBox())!;
+      expect(handle.y).toBeGreaterThanOrEqual(safeTop + gap);
+      await expect(sheet.getByRole('button', { name: 'Close dialog' })).toBeInViewport();
+      await expect(sheet.getByRole('button', { name: 'Save', exact: true })).toBeInViewport();
+
+      // A host with no top inset keeps the existing 24 px gap, also after an inset change.
+      await cdp.send('Emulation.setSafeAreaInsetsOverride', { insets: { top: 0 } });
+      await expect.poll(async () => (await sheet.boundingBox())!.y).toBeCloseTo(gap, 1);
+    });
+  }
+
   test('the form sheet scrolls inside while the page behind stays put', async ({ page }) => {
     const sheet = await openDetails(page);
     const pageScroll = await page.evaluate(() => window.scrollY);

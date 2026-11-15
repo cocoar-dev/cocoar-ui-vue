@@ -1,7 +1,7 @@
 ---
 description: "useDialog — promise-based modal dialogs for confirm, alert and custom components, with configurable buttons, sizes and localized labels."
 devices: { desktop: ready, tablet: ready, phone: partial }
-devicesNote: "On a phone use the bottom sheet (Preview); not yet checked on real devices, and Android's back button does not close it."
+devicesNote: "Phone: use the bottom sheet (Preview); native keyboard and iOS gestures need checks. Android's back button does not close it."
 ---
 
 # Dialog
@@ -48,9 +48,10 @@ sheet's buttons and fields get the mobile sizes, like any other overlay.
 What the sheet does:
 
 - **Layout**: full width, rounded top corners, as high as its content and at most the visible
-  height minus 24 px. From a 640 px wide window on it keeps the width of its `size`,
-  centered. A drag handle and the header (title, close button) on top; the content scrolls
-  inside; the footer stays put.
+  height minus the top safe-area inset (`env(safe-area-inset-top)`) and a 24 px gap, keeping
+  the handle and close button below the system bar. From a 640 px wide window on it keeps
+  the width of its `size`, centered. A drag handle and the header (title, close button) on top;
+  the content scrolls inside; the footer stays put.
 - **Buttons**: the footer buttons span the full width, stacked with the confirming one on top,
   clear of the home indicator (`env(safe-area-inset-bottom)`).
 - **On-screen keyboard**: the sheet follows `window.visualViewport`. It sits above the keyboard,
