@@ -412,5 +412,34 @@
       "overlays": 1,
       "focus": ".coar-sheet-close"
     }
+  },
+  {
+    "name": "sheet-keyboard",
+    "capture": "page",
+    "modes": ["mobile"],
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "open": {
+      "overlays": 1,
+      "ready": ".keyboard-fixture[data-keyboard-ready]",
+      "actions": [{ "keyboardFocus": ".coar-sheet-body .coar-form-field:nth-child(10) input" }],
+      "focus": ".coar-sheet-body .coar-form-field:nth-child(10) input"
+    }
+  },
+  {
+    "name": "sheet-keyboard-short",
+    "capture": "page",
+    "modes": ["mobile"],
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "open": {
+      "overlays": 1,
+      "actions": [{ "keyboardFocus": ".coar-sheet-body .coar-form-field:nth-child(10) input" }],
+      "focus": ".coar-sheet-body .coar-form-field:nth-child(10) input"
+    }
   }
 ]

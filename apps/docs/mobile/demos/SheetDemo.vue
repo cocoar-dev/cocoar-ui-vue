@@ -45,7 +45,8 @@ async function edit() {
 <template>
   <div class="sheet-demo">
     <p class="sheet-demo__hint">
-      Drag a sheet down by its handle, tap the backdrop, or use its buttons.
+      Edit the contact and focus Phone or Notes: the field and footer stay above the keyboard.
+      Drag the handle down, tap the backdrop, or use the buttons to close.
     </p>
     <CoarButton full-width @click="edit">Edit contact</CoarButton>
     <CoarButton variant="danger" full-width @click="remove">Delete contact</CoarButton>

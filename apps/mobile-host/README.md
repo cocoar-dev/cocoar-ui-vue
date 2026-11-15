@@ -2,11 +2,12 @@
 
 A minimal iOS and Android app that shows the **mobile documentation** of `apps/docs/mobile` in a native
 WebView, so the components can be tried with a real keyboard, safe areas and touch. It is a test host,
-not a product: it is never published and has no web source of its own.
+not a product: it is never published and reuses the documentation's pages.
 
 - **One page, no copy.** [`neoastra.json`](neoastra.json) points the NeoAstra frontend pipeline at
-  `apps/docs/mobile` and builds it with that app's own `vite.config.ts`, only with another output folder
-  (`apps/mobile-host/obj/mobile-docs`). Nothing in `apps/docs` or `packages/` is changed or duplicated.
+  `apps/docs/mobile`. The host's Vite config extends that app's config with its own keyboard bridge
+  and builds into `apps/mobile-host/obj/mobile-docs`; no page is copied and the browser docs never
+  load the native adapter.
 - **Offline by default.** A normal start loads the page packaged into the app. `dev-ios`/`dev-android` run
   `dotnet neoastra dev` instead: the page comes live from Vite on `127.0.0.1:5178` (the docs keep 5177),
   with hot reload, and an agent can drive it over MCP.
@@ -78,7 +79,7 @@ page in the parallel build of every ABI into the one output folder, which fails.
   `android` first removes the development address an interrupted dev session may have left on the device.
 - `dev-ios` and `dev-android` build the Debug app, start Vite with the config of `apps/docs/mobile` on
   `http://127.0.0.1:5178/` (`--strictPort`: a busy port fails instead of moving), and start the app against it.
-  Changes to the docs page arrive by hot reload; a change in `apps/mobile-host` needs a new session.
+  Changes to the docs page and keyboard bridge arrive by hot reload; native host changes need a new session.
 
 ## Agents (MCP, Debug only)
 
@@ -122,12 +123,19 @@ dotnet build -f net11.0-android -c Release
 When the iOS workload refuses your Xcode version, add `-p:ValidateXcodeVersion=false` to that one command, or
 export `ValidateXcodeVersion=false` for one session of the script; do not set it in the project.
 
-## Not covered yet
+## Keyboard adapter and native acceptance
 
 The host builds and packages the page; whether the keyboard, the safe areas and the bottom sheet behave right
-on a real iOS and Android device is a separate acceptance check. With the keyboard over the page, the page
-itself must keep focused fields clear of it: NeoAstra reports the height as the CSS variable
-`--neoastra-keyboard-height` on `<html>` and as a `neoastrakeyboard` event, which the docs app does not read yet.
+on a real iOS and Android device is a separate acceptance check. `keyboard-bridge.mjs` reads NeoAstra's
+`--neoastra-keyboard-height` on `<html>`, initially and on `neoastrakeyboard`, and passes it to the
+host-neutral `setCoarKeyboardInset()` API. This matches this host's keyboard-overlay configuration, where
+the layout viewport stays unchanged. Missing/closed keyboards report 0; HMR cleanup resets the inset and
+removes the listener. A host that resizes its WebView must instead report only the remaining occlusion,
+not the full native keyboard height.
+
+`vite.config.ts` adds `main.ts` only to this host's dev and packaged builds. The ordinary browser docs
+continue to use `apps/docs/mobile/vite.config.ts` with no NeoAstra code. The UI library neither knows
+NeoAstra's CSS variable nor listens to its events.
 
 ## Versions and licenses
 

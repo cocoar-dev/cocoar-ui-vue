@@ -247,6 +247,7 @@ export type { PopoverMode } from './components/popover';
 // Dialog
 export { useDialog, CoarDialogShell, CoarDialogFooter } from './components/dialog';
 export type { DialogConfig, DialogRef, DialogSize, DialogPresentation, ConfirmOptions } from './components/dialog';
+export { setCoarKeyboardInset } from './components/_internal/keyboardInset';
 
 // Menu
 export {

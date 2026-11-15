@@ -153,6 +153,38 @@ describe('vScrollbar', () => {
     wrapper.unmount();
   });
 
+  it('updates and clears overscroll containment when the binding changes', async () => {
+    const viewport = document.createElement('div');
+    mockElements.mockReturnValue({ viewport });
+    const wrapper = createWrapper({ overscrollBehavior: 'contain', defer: false });
+    expect(viewport.style.overscrollBehavior).toBe('contain');
+    const opts = wrapper.vm as unknown as { opts: Record<string, unknown> };
+    opts.opts = { overscrollBehavior: 'auto' };
+    await nextTick();
+    expect(viewport.style.overscrollBehavior).toBe('auto');
+    opts.opts = { overscrollBehavior: 'contain' };
+    await nextTick();
+    expect(viewport.style.overscrollBehavior).toBe('contain');
+    opts.opts = {};
+    await nextTick();
+    expect(viewport.style.overscrollBehavior).toBe('');
+    wrapper.unmount();
+    mockElements.mockImplementation(() => ({ viewport: document.createElement('div') }));
+  });
+
+  it('does not write default viewport styles on unrelated option updates', async () => {
+    const viewport = document.createElement('div');
+    mockElements.mockReturnValue({ viewport });
+    const wrapper = createWrapper({ defer: false });
+    const setOverscroll = vi.spyOn(viewport.style, 'overscrollBehavior', 'set');
+    (wrapper.vm as unknown as { opts: Record<string, unknown> }).opts = { theme: 'light' };
+    await nextTick();
+    expect(setOverscroll).not.toHaveBeenCalled();
+    setOverscroll.mockRestore();
+    wrapper.unmount();
+    mockElements.mockImplementation(() => ({ viewport: document.createElement('div') }));
+  });
+
   it('destroys when updated to false', async () => {
     const opts = ref<Record<string, unknown> | boolean>({});
     const Comp = defineComponent({
