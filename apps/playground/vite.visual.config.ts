@@ -14,9 +14,8 @@ export default defineConfig({
   plugins: [vue()],
   server: { port: 5188, strictPort: true },
   resolve: {
-    // The packages from source, as the stories need them (and the calendar's
-    // for step 3). Component styles come with the source; `…/styles` of the
-    // built packages is not available here.
+    // Include transitive renderer imports too: Docker has no package dist/.
+    // Component styles come with the source; built `…/styles` are not available.
     alias: [
       { find: /^@cocoar\/vue-ui$/, replacement: source('ui/src/index.ts') },
       { find: /^@cocoar\/vue-ui\/styles$/, replacement: source('ui/styles/all.css') },
@@ -26,6 +25,23 @@ export default defineConfig({
         find: /^@cocoar\/vue-fragment-parser$/,
         replacement: source('fragment-parser/src/index.ts'),
       },
+      { find: /^@cocoar\/vue-page-builder$/, replacement: source('page-builder/src/index.ts') },
+      {
+        find: /^#page-runtime-worker$/,
+        replacement: source('page-builder/src/runtimeWorkerEntry.ts'),
+      },
+      { find: /^@cocoar\/vue-script-editor$/, replacement: source('script-editor/src/index.ts') },
+      {
+        find: /^@cocoar\/vue-markdown-editor$/,
+        replacement: source('markdown-editor/src/index.ts'),
+      },
+      { find: /^@cocoar\/vue-markdown$/, replacement: source('markdown/src/index.ts') },
+      { find: /^@cocoar\/vue-markdown-core$/, replacement: source('markdown-core/src/index.ts') },
+      {
+        find: /^@cocoar\/vue-markdown-mermaid$/,
+        replacement: source('markdown-mermaid/src/index.ts'),
+      },
+      { find: /^@cocoar\/vue-mermaid$/, replacement: source('mermaid/src/index.ts') },
       { find: /^@cocoar\/vue-calendar$/, replacement: source('calendar/src/index.ts') },
       { find: /^@cocoar\/vue-calendar\/core$/, replacement: source('calendar/src/core/index.ts') },
       {

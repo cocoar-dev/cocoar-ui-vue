@@ -441,5 +441,16 @@
       "actions": [{ "keyboardFocus": ".coar-sheet-body .coar-form-field:nth-child(10) input" }],
       "focus": ".coar-sheet-body .coar-form-field:nth-child(10) input"
     }
+  },
+  {
+    "name": "builder-editors",
+    "width": 1232,
+    "viewport": { "width": 1280, "height": 1100 },
+    "ready": [
+      "[data-renderer=builder] .canvas-node .coar-input-frame",
+      "[data-renderer=script] .view-line:nth-child(3) span[class^=mtk]:not(.mtk1):text-is('12')",
+      "[data-renderer=markdown] .ProseMirror h2",
+      "[data-renderer=mermaid] .coar-mermaid[data-status=rendered] svg"
+    ]
   }
 ]

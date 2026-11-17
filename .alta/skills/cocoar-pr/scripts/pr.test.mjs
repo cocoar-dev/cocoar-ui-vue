@@ -181,6 +181,10 @@ test('the server configuration of the visual page is guarded', () => {
   assert.deepEqual(changedHarnessFiles([mod('apps/playground/vite.visual.config.ts')]), ['apps/playground/vite.visual.config.ts']);
 });
 
+test('renderer readiness of the visual page is guarded', () => {
+  assert.deepEqual(changedHarnessFiles([mod('apps/playground/visual/renderer-ready.ts')]), ['apps/playground/visual/renderer-ready.ts']);
+});
+
 test('an incomplete file list is refused', () => {
   const problems = fileGateProblems([mod('README.md')], 3001);
   assert.equal(problems.length, 1);

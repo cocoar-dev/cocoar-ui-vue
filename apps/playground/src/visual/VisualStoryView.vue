@@ -76,9 +76,16 @@ async function load() {
   capture.value = entry.capture ?? 'root';
   const w = storyRootWidth(entry);
   width.value = w === rootWidth ? undefined : w;
-  const component = markRaw((await loader()).default);
-  if (id !== loadId) return;
-  story.value = component;
+  try {
+    const component = markRaw((await loader()).default);
+    if (id !== loadId) return;
+    story.value = component;
+  } catch (cause) {
+    if (id === loadId) {
+      fail(`cannot load story "${name}": ${cause instanceof Error ? cause.message : String(cause)}`);
+    }
+    return;
+  }
 
   // Mounted and painted once, so every font face the story uses has been
   // requested; then wait until those faces have loaded.
