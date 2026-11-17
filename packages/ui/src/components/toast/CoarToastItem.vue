@@ -176,13 +176,13 @@ defineExpose({ startAutoClose });
 
 .coar-toast-title {
   font-weight: var(--coar-font-weight-semi-bold);
-  font-size: var(--coar-body-base-size);
+  font-size: var(--coar-toast-title-font-size, var(--coar-body-base-size));
   color: var(--coar-text-neutral-primary);
   margin-bottom: var(--coar-spacing-xxs);
 }
 
 .coar-toast-message {
-  font-size: var(--coar-body-small-base-size);
+  font-size: var(--coar-ui-font-size, var(--coar-body-small-base-size));
   color: var(--coar-text-neutral-secondary);
 }
 
@@ -192,8 +192,8 @@ defineExpose({ startAutoClose });
 }
 
 .coar-toast--no-title .coar-toast-message {
-  font-weight: var(--coar-font-weight-semi-bold);
-  font-size: var(--coar-body-base-size);
+  font-weight: var(--coar-label-font-weight, var(--coar-font-weight-semi-bold));
+  font-size: var(--coar-toast-title-font-size, var(--coar-body-base-size));
   color: var(--coar-text-neutral-primary);
 }
 
@@ -208,11 +208,11 @@ defineExpose({ startAutoClose });
   background: none;
   border: none;
   padding: var(--coar-spacing-xxs) var(--coar-spacing-xs);
-  font-size: var(--coar-body-small-base-size);
-  font-weight: var(--coar-font-weight-semi-bold);
+  font-size: var(--coar-ui-font-size, var(--coar-body-small-base-size));
+  font-weight: var(--coar-label-font-weight, var(--coar-font-weight-semi-bold));
   color: var(--coar-text-accent-primary);
   cursor: pointer;
-  border-radius: var(--coar-radius-s);
+  border-radius: var(--coar-control-radius, var(--coar-radius-s));
   transition: background-color var(--coar-duration-fast) var(--coar-ease-out);
 }
 
@@ -232,7 +232,7 @@ defineExpose({ startAutoClose });
   background: none;
   border: none;
   padding: var(--coar-spacing-xxs);
-  border-radius: var(--coar-radius-s);
+  border-radius: var(--coar-control-radius, var(--coar-radius-s));
   color: var(--coar-text-neutral-secondary);
   cursor: pointer;
   transition: background-color var(--coar-duration-fast) var(--coar-ease-out), color var(--coar-duration-fast) var(--coar-ease-out);

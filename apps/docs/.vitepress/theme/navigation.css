@@ -1,0 +1,33 @@
+/* Keep the existing top-level links visible on tablets. Use the icon-only search
+   affordance to make room, and expose the style in VitePress's navigation screen
+   instead of adding a second full-size selector to the narrow toolbar. */
+@media (min-width: 768px) and (max-width: 1279px) {
+  .VPNav .VPNavBar .VPNavBarExtra {
+    display: none;
+  }
+  .VPNav .VPNavBar .VPNavBarHamburger {
+    display: flex;
+  }
+  .Layout .VPNav .VPNavScreen {
+    display: block;
+  }
+  .VPNavBar .VPNavBarSearch {
+    padding-left: 0;
+  }
+  .VPNavBar .DocSearch-Button {
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    background: transparent;
+  }
+  .VPNavBar .DocSearch-Button :is(.DocSearch-Button-Placeholder, .DocSearch-Button-Keys) {
+    display: none;
+  }
+  .VPNavBar .DocSearch-Button .DocSearch-Search-Icon {
+    top: 0;
+    margin-right: 0;
+    width: 16px;
+    height: 16px;
+  }
+}

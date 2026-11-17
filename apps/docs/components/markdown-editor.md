@@ -403,6 +403,16 @@ If you embed the editor next to a viewer pane (the playground's "viewer pane" to
 | `--coar-markdown-link`                | `var(--coar-text-brand-primary)`      | Link color (also applied to inline code).                                                     |
 | `--coar-markdown-border`              | `var(--coar-border-neutral-tertiary)` | Used by tables, blockquote, `<hr>`.                                                           |
 
+## Compact presentation <Badge type="warning" text="Preview" />
+
+Inside an element with the class `coar-compact` (the experimental compact profile, working title) the
+editor follows the compact document layout of [`CoarMarkdown`](./markdown#theming) and tightens its
+own chrome: field-sized writing text (14 px, 16 px with `coar-mobile` so iOS does not zoom), a toolbar
+strip of one interactive row (36 px, 44 px with `coar-mobile`), 28 px floating-toolbar buttons (44 px
+with `coar-mobile`, wrapping within the viewport) and caption-sized text in the table and color
+pickers. The floating toolbar and the table handles are teleported to `<body>`; they carry the
+profile classes of the editor they belong to. Without `coar-compact` nothing changes.
+
 ## Toolbar layout (`tools`)
 
 Pass a `tools` array to control which buttons the **sidebar** toolbar exposes and

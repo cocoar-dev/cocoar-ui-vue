@@ -47,7 +47,7 @@ const src = computed(() => {
   gap: 6px;
   padding: 20px;
   background: var(--coar-background-neutral-secondary, #f7f7f9);
-  border: 1px dashed rgba(0, 0, 0, 0.15);
+  border: 1px dashed var(--coar-page-builder-dashed-border, rgba(0, 0, 0, 0.15));
   border-radius: 4px;
   color: var(--coar-text-neutral-secondary, #888);
   font-size: 12px;

@@ -6,6 +6,9 @@ Our type system creates clear visual hierarchy and ensures readability across al
 
 ## Type Scale
 
+These are the existing defaults. The opt-in [compact presentation](./compact-presentation.md) uses
+Inter throughout with a smaller, separate UI/input scale; it does not change these defaults.
+
 Each row shows the style rendered at its actual size, with font metadata alongside.
 
 **Demo — `typography/demos/TypeScale.vue`**

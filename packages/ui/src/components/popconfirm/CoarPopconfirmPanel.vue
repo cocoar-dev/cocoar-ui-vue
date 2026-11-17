@@ -94,13 +94,13 @@ defineProps<{
 
 .coar-popconfirm-panel__title {
   font-weight: var(--coar-font-weight-semi-bold);
-  font-size: var(--coar-body-base-size);
+  font-size: var(--coar-popconfirm-title-font-size, var(--coar-body-base-size));
   color: var(--coar-text-neutral-primary);
   margin-bottom: 0.25rem;
 }
 
 .coar-popconfirm-panel__message {
-  font-size: var(--coar-body-small-base-size);
+  font-size: var(--coar-ui-font-size, var(--coar-body-small-base-size));
   color: var(--coar-text-neutral-secondary);
   margin-bottom: 0.75rem;
   line-height: var(--coar-line-height-normal);

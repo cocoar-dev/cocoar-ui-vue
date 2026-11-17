@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, onUnmounted } from 'vue';
+import { ref, computed, onUnmounted, useTemplateRef } from 'vue';
+import { useCompactPresentationContext } from '../overlay/useCompactPresentationContext';
 
 export interface StepDef {
   step: number;
@@ -21,6 +22,32 @@ const emit = defineEmits<{
   'update:modelValue': [v: Record<number, StepOverride>];
   'close': [];
 }>();
+const source = useTemplateRef<HTMLElement>('source');
+const presentation = useCompactPresentationContext(() => source.value);
+const compactAccent = computed(() =>
+  presentation.value.classes.includes('coar-compact') && props.cssFamily === 'accent');
+
+// The compact accent has its own mode-aware scale. Inspect the real CSS roles
+// rather than previewing the legacy scale (which makes Slate look saturated).
+const paletteSteps = computed(() => {
+  if (!compactAccent.value || !source.value) return props.steps;
+  // Depend on live context updates, including consumer palette overrides.
+  const context = presentation.value;
+  const probe = document.createElement('span');
+  source.value.appendChild(probe);
+  try {
+    return props.steps.map((step) => {
+      if (step.defL === null) return step;
+      const role = `--coar-color-accent-${step.step}`;
+      if (!context.style[role]) return step;
+      probe.style.color = `oklch(from var(${role}) l c h)`;
+      const match = getComputedStyle(probe).color.match(/^oklch\(([\d.e+-]+)\s+([\d.e+-]+)/);
+      return match ? { ...step, defL: Number(match[1]), defC: Number(match[2]) } : step;
+    });
+  } finally {
+    probe.remove();
+  }
+});
 
 /* ── drag ────────────────────────────────────────────────────── */
 const pos    = ref({ x: Math.max(0, window.innerWidth / 2 - 220), y: 80 });
@@ -50,6 +77,9 @@ onUnmounted(() => stopDrag());
 
 /* ── palette logic ───────────────────────────────────────────── */
 function swatchStyle(s: StepDef): Record<string, string> {
+  if (compactAccent.value && !props.modelValue[s.step]) {
+    return { background: `var(--coar-color-accent-${s.step})` };
+  }
   if (s.defL === null) return { background: props.baseColor };
   const ov = props.modelValue[s.step];
   const l  = ov?.l ?? s.defL!;
@@ -78,16 +108,20 @@ const hasAnyOverride = computed(() => Object.keys(props.modelValue).length > 0);
 function resetAll() { emit('update:modelValue', {}); }
 function isChanged(s: StepDef) {
   const ov = props.modelValue[s.step];
+  // An explicit compact override remains authored even if it currently equals
+  // the default; a later scheme/brand change must not silently discard it.
+  if (compactAccent.value) return !!ov;
   return !!ov && (ov.l !== s.defL || ov.c !== s.defC);
 }
 </script>
 
 <template>
+  <span ref="source" hidden />
   <Teleport to="body">
     <div
       class="cpe-modal"
-      :class="{ 'cpe-modal--dragging': isDragging }"
-      :style="{ left: pos.x + 'px', top: pos.y + 'px' }"
+      :class="[presentation.classes, { 'cpe-modal--dragging': isDragging }]"
+      :style="[presentation.style, { left: pos.x + 'px', top: pos.y + 'px' }]"
       role="dialog"
       :aria-label="`${label} palette editor`"
     >
@@ -107,7 +141,7 @@ function isChanged(s: StepDef) {
       <!-- ── Swatch strip ── -->
       <div class="cpe-strip">
         <div
-          v-for="s in steps"
+          v-for="s in paletteSteps"
           :key="s.step"
           class="cpe-strip-swatch"
           :class="{ 'cpe-strip-swatch--changed': isChanged(s) }"
@@ -121,7 +155,7 @@ function isChanged(s: StepDef) {
       <!-- ── Step rows ── -->
       <div class="cpe-rows">
         <div
-          v-for="s in steps"
+          v-for="s in paletteSteps"
           :key="s.step"
           class="cpe-row"
           :class="{ 'cpe-row--changed': isChanged(s) }"
@@ -179,14 +213,14 @@ function isChanged(s: StepDef) {
   width: 400px;
   background: var(--coar-background-neutral-primary, #fff);
   border: 1px solid var(--coar-border-neutral-tertiary, #e8e8e8);
-  border-radius: 10px;
+  border-radius: var(--coar-panel-radius, 10px);
   box-shadow: 0 8px 32px rgba(0,0,0,.14), 0 2px 6px rgba(0,0,0,.08);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   user-select: none;
   font-family: var(--coar-body-base-family, Poppins, sans-serif);
-  font-size: 13px;
+  font-size: var(--coar-ui-font-size, 13px);
 }
 .cpe-modal--dragging { cursor: grabbing; }
 
@@ -203,12 +237,12 @@ function isChanged(s: StepDef) {
 .cpe-modal--dragging .cpe-titlebar { cursor: grabbing; }
 
 .cpe-drag-icon { color: var(--coar-text-neutral-tertiary, #ccc); flex-shrink: 0; }
-.cpe-title { font-size: 13px; font-weight: 600; color: var(--coar-text-neutral-primary, #1a1a1a); }
-.cpe-subtitle { font-size: 10px; color: var(--coar-text-neutral-tertiary, #8c8c8c); }
+.cpe-title { font-size: var(--coar-ui-font-size, 13px); font-weight: 600; color: var(--coar-text-neutral-primary, #1a1a1a); }
+.cpe-subtitle { font-size: var(--coar-caption-font-size, 10px); color: var(--coar-text-neutral-tertiary, #8c8c8c); }
 .cpe-titlebar-actions { margin-left: auto; display: flex; align-items: center; gap: 6px; }
 
 .cpe-reset-all {
-  font-size: 11px; color: var(--coar-background-accent-primary, #1183CD);
+  font-size: var(--coar-caption-font-size, 11px); color: var(--coar-background-accent-primary, #1183CD);
   border: none; background: transparent; cursor: pointer; padding: 0; font-family: inherit;
 }
 .cpe-reset-all:hover { text-decoration: underline; }
@@ -282,11 +316,11 @@ function isChanged(s: StepDef) {
 }
 .cpe-row-step {
   width: 30px; flex-shrink: 0;
-  font-size: 11px; font-weight: 700;
+  font-size: var(--coar-caption-font-size, 11px); font-weight: var(--coar-label-font-weight, 700);
   color: var(--coar-text-neutral-tertiary, #8c8c8c);
 }
 .cpe-row-base {
-  flex: 1; font-size: 11px;
+  flex: 1; font-size: var(--coar-caption-font-size, 11px);
   color: var(--coar-text-neutral-tertiary, #8c8c8c); font-style: italic;
 }
 
@@ -294,7 +328,7 @@ function isChanged(s: StepDef) {
 .cpe-sliders { flex: 1; display: flex; flex-direction: column; gap: 2px; }
 .cpe-slider-row { display: flex; align-items: center; gap: 6px; }
 .cpe-lbl {
-  width: 10px; font-size: 9px; font-weight: 700;
+  width: 10px; font-size: var(--coar-caption-font-size, 9px); font-weight: var(--coar-label-font-weight, 700);
   color: var(--coar-text-neutral-tertiary, #bbb); flex-shrink: 0;
 }
 .cpe-slider-row input[type="range"] {
@@ -303,7 +337,7 @@ function isChanged(s: StepDef) {
 }
 .cpe-val {
   width: 36px; text-align: right; flex-shrink: 0;
-  font-size: 10px; font-family: ui-monospace, monospace;
+  font-size: var(--coar-caption-font-size, 10px); font-family: ui-monospace, monospace;
   color: var(--coar-text-neutral-secondary, #595959);
 }
 
@@ -320,5 +354,26 @@ function isChanged(s: StepDef) {
 .cpe-reset-btn:not(:disabled):hover {
   background: var(--coar-background-neutral-secondary, #f0f0f0);
   color: var(--coar-text-neutral-secondary, #595959);
+}
+
+.cpe-modal.coar-compact {
+  box-sizing: border-box;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 96px);
+}
+.cpe-modal.coar-compact .cpe-strip-label {
+  padding: 2px 3px;
+  font-size: var(--coar-caption-font-size, 7px);
+  font-weight: var(--coar-label-font-weight, 700);
+  color: var(--coar-text-neutral-primary);
+  background: var(--coar-background-neutral-primary);
+  border-radius: 2px;
+  text-shadow: none;
+}
+.cpe-modal.coar-compact .cpe-close,
+.cpe-modal.coar-compact .cpe-reset-btn {
+  min-width: var(--coar-control-min-target-size, 0px);
+  min-height: var(--coar-control-min-target-size, 0px);
+  border-radius: var(--coar-control-radius, 5px);
 }
 </style>

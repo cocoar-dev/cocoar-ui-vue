@@ -144,7 +144,13 @@ onBeforeUnmount(() => {
 
 <template>
   <div :class="hostClasses">
-    <label class="coar-checkbox-wrapper" :class="{ 'coar-checkbox-focused': isFocused }">
+    <label
+      class="coar-checkbox-wrapper"
+      :class="{
+        'coar-checkbox-focused': isFocused,
+        'coar-checkbox-wrapper--unlabelled': !label,
+      }"
+    >
       <!-- Label before -->
       <span v-if="labelPosition === 'before' && label" class="coar-checkbox-label">
         {{ label }}
@@ -222,25 +228,31 @@ onBeforeUnmount(() => {
   cursor: pointer;
   user-select: none;
   position: relative;
-  min-height: max(32px, var(--coar-control-min-size, 0px));
+  min-height: max(var(--coar-indicator-m-height, 32px), var(--coar-control-min-size, 0px));
   min-width: var(--coar-control-min-size, auto);
   padding-block: 6px;
 }
 
+/* Without an internal label there is no first text line to align to. Center
+   the smaller Compact indicator inside its unchanged, generous click target. */
+.coar-compact .coar-checkbox-wrapper--unlabelled {
+  align-items: var(--coar-control-align-items, center);
+}
+
 .coar-checkbox--xs .coar-checkbox-wrapper {
-  min-height: max(24px, var(--coar-control-min-size, 0px));
+  min-height: max(var(--coar-indicator-xs-height, 24px), var(--coar-control-min-size, 0px));
   padding-block: 5px;
   gap: var(--coar-spacing-xs);
 }
 
 .coar-checkbox--s .coar-checkbox-wrapper {
-  min-height: max(28px, var(--coar-control-min-size, 0px));
+  min-height: max(var(--coar-indicator-s-height, 28px), var(--coar-control-min-size, 0px));
   padding-block: 6px;
   gap: var(--coar-spacing-xs);
 }
 
 .coar-checkbox--l .coar-checkbox-wrapper {
-  min-height: max(40px, var(--coar-control-min-size, 0px));
+  min-height: max(var(--coar-indicator-l-height, 40px), var(--coar-control-min-size, 0px));
   padding-block: var(--coar-spacing-s);
   gap: var(--coar-spacing-s);
 }
@@ -268,10 +280,10 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 20px;
-  height: 20px;
+  width: var(--coar-checkbox-size, 20px);
+  height: var(--coar-checkbox-size, 20px);
   border: 1px solid var(--coar-border-input);
-  border-radius: var(--coar-input-radius);
+  border-radius: var(--coar-checkbox-radius, var(--coar-input-radius));
   background: var(--coar-surface-input);
   transition:
     border-color var(--coar-duration-fast) var(--coar-ease-out),
@@ -288,8 +300,8 @@ onBeforeUnmount(() => {
   height: 16px;
 }
 .coar-checkbox--l .coar-checkbox-box {
-  width: 24px;
-  height: 24px;
+  width: var(--coar-checkbox-l-size, 24px);
+  height: var(--coar-checkbox-l-size, 24px);
 }
 
 /* Hover state */
@@ -391,8 +403,8 @@ onBeforeUnmount(() => {
 /* Checkmark icon */
 .coar-checkbox-icon {
   position: absolute;
-  width: 14px;
-  height: 14px;
+  width: var(--coar-checkbox-icon-size, 14px);
+  height: var(--coar-checkbox-icon-size, 14px);
   color: var(--coar-text-on-bold);
   opacity: 0;
   transition: opacity var(--coar-duration-fast) var(--coar-ease-out);
@@ -416,8 +428,8 @@ onBeforeUnmount(() => {
   height: 11px;
 }
 .coar-checkbox--l .coar-checkbox-icon {
-  width: 16px;
-  height: 16px;
+  width: var(--coar-checkbox-l-icon-size, 16px);
+  height: var(--coar-checkbox-l-icon-size, 16px);
 }
 
 .coar-checkbox--disabled .coar-checkbox-icon {

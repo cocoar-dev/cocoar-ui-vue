@@ -65,7 +65,7 @@ function revert() {
 .pb-page-code { display: flex; flex: 1; min-width: 0; min-height: 0; flex-direction: column; }
 .pb-page-code__toolbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 10px 14px; border-bottom: 1px solid var(--coar-border-neutral, #ddd); }
 .pb-page-code__toolbar > div:first-child { display: flex; flex-direction: column; gap: 2px; }
-.pb-page-code__toolbar span, .pb-page-code footer { color: var(--coar-text-neutral-secondary, #666); font-size: 11px; }
+.pb-page-code__toolbar span, .pb-page-code footer { color: var(--coar-text-neutral-secondary, #666); font-size: var(--coar-page-builder-meta-font-size, 11px); }
 .pb-page-code__actions { display: flex; align-items: center; gap: 8px; }
 .pb-page-code__dirty { color: var(--coar-text-semantic-warning-bold, #946200) !important; }
 .pb-page-code__editor { flex: 1; min-height: 360px; overflow: hidden; }

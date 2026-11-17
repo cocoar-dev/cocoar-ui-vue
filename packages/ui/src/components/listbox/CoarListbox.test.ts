@@ -458,6 +458,17 @@ describe('CoarListbox', () => {
     expect(e.payload.newLabel).toBe('X');
   });
 
+  it('marks an explicit viewport height without changing the fill-parent default', async () => {
+    const wrapper = mount(CoarListbox, { props: { options: baseOptions } });
+    const list = () => wrapper.find('.coar-listbox-list');
+    expect(list().classes()).not.toContain('coar-listbox-list--fixed-height');
+    await wrapper.setProps({ height: '240px' });
+    expect(list().classes()).toContain('coar-listbox-list--fixed-height');
+    expect(list().attributes('style')).toContain('height: 240px');
+    await wrapper.setProps({ height: undefined });
+    expect(list().classes()).not.toContain('coar-listbox-list--fixed-height');
+  });
+
   it('renders at most a windowed subset of items in virtual mode', async () => {
     const many: CoarListboxOption<string>[] = Array.from({ length: 5000 }, (_, i) => ({
       value: `v${i}`,

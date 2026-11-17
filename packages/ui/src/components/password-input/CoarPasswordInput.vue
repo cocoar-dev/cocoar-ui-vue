@@ -195,13 +195,13 @@ function togglePasswordVisibility() {
 
 /* Size-specific typography */
 .coar-password-input--xs .coar-password-input-field {
-  font-size: max(var(--coar-component-xs-font-size), var(--coar-control-min-font-size, 0px));
+  font-size: max(var(--coar-field-xs-font-size, var(--coar-field-xs-default-font-size, var(--coar-field-font-size, var(--coar-component-xs-font-size)))), var(--coar-control-min-font-size, 0px), var(--coar-field-min-font-size, 0px));
 }
 .coar-password-input--s .coar-password-input-field {
-  font-size: max(var(--coar-component-s-font-size), var(--coar-control-min-font-size, 0px));
+  font-size: max(var(--coar-field-s-font-size, var(--coar-field-s-default-font-size, var(--coar-field-font-size, var(--coar-component-s-font-size)))), var(--coar-control-min-font-size, 0px), var(--coar-field-min-font-size, 0px));
 }
 .coar-password-input--l .coar-password-input-field {
-  font-size: max(var(--coar-component-l-font-size), var(--coar-control-min-font-size, 0px));
+  font-size: max(var(--coar-field-l-font-size, var(--coar-field-l-default-font-size, var(--coar-field-font-size, var(--coar-component-l-font-size)))), var(--coar-control-min-font-size, 0px), var(--coar-field-min-font-size, 0px));
 }
 
 /* Input Field — horizontal padding owned by the frame. */
@@ -214,7 +214,7 @@ function togglePasswordVisibility() {
   outline: none;
   background: transparent;
   font-family: var(--coar-body-small-base-family);
-  font-size: max(var(--coar-body-small-base-size), var(--coar-control-min-font-size, 0px));
+  font-size: max(var(--coar-field-font-size, var(--coar-body-small-base-size)), var(--coar-control-min-font-size, 0px), var(--coar-field-min-font-size, 0px));
   font-weight: var(--coar-body-small-base-weight);
   color: var(--coar-text-neutral-primary);
 }

@@ -11,13 +11,13 @@
 .coar-map {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--coar-content-gap, 8px);
 }
 
 .coar-map__canvas {
   width: 100%;
   height: var(--coar-map-height, 360px);
-  border-radius: var(--coar-map-radius, 10px);
+  border-radius: var(--coar-map-radius, var(--coar-panel-radius, 10px));
   overflow: hidden;
   background: var(--coar-map-surface, #e8eef3);
 }
@@ -45,7 +45,7 @@
   transform: scale(1.22);
 }
 .coar-map-marker--selected .coar-map-pin {
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5), 0 1px 4px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 0 0 3px var(--coar-map-selection-ring, rgba(59, 130, 246, 0.5)), 0 1px 4px rgba(0, 0, 0, 0.35);
 }
 /* Shape dots are SVG paths — emphasise via stroke. */
 path.coar-map-marker--highlight,
@@ -60,12 +60,12 @@ path.coar-map-marker--selected {
 
 .coar-map__caption {
   margin: 0;
-  font-size: 13px;
-  color: var(--coar-map-caption-color, #666);
+  font-size: var(--coar-caption-font-size, 13px);
+  color: var(--coar-map-caption-color, var(--coar-map-text-muted, #666));
 }
 
 .coar-map__nocfg {
   margin: 0;
-  font-size: 13px;
-  color: #b91c1c;
+  font-size: var(--coar-ui-font-size, 13px);
+  color: var(--coar-map-error-color, #b91c1c);
 }

@@ -360,7 +360,7 @@ defineExpose({ next, back, goTo });
   align-items: center;
   gap: var(--coar-spacing-s, 0.5rem);
   padding: var(--coar-spacing-s, 0.5rem) var(--coar-spacing-m, 1rem);
-  border-radius: var(--coar-radius-m, 0.375rem);
+  border-radius: var(--coar-control-radius, var(--coar-radius-m, 0.375rem));
 }
 /* Horizontal indicator: marker stacked above the label, centred. */
 .coar-wizard:not(.coar-wizard--vertical) .coar-wizard__step-btn {
@@ -421,7 +421,7 @@ defineExpose({ next, back, goTo });
   border: 2px solid var(--coar-border-neutral, #d6d6d6);
   background: var(--coar-background-neutral-primary, #fff);
   color: var(--coar-text-neutral-tertiary, #9a9a9a);
-  font-size: var(--coar-font-size-s, 0.875rem);
+  font-size: var(--coar-ui-font-size, var(--coar-font-size-s, 0.875rem));
   font-weight: var(--coar-font-weight-semibold, 600);
   line-height: 1;
   transition: background 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s;
@@ -444,15 +444,15 @@ defineExpose({ next, back, goTo });
 }
 .coar-wizard--vertical .coar-wizard__step-text { text-align: left; }
 .coar-wizard__step-label {
-  font-size: var(--coar-font-size-s, 0.875rem);
-  font-weight: var(--coar-font-weight-medium, 500);
+  font-size: var(--coar-ui-font-size, var(--coar-font-size-s, 0.875rem));
+  font-weight: var(--coar-label-font-weight, var(--coar-font-weight-medium, 500));
   color: var(--coar-text-neutral-secondary, #555);
 }
 .coar-wizard__step--active .coar-wizard__step-label {
   color: var(--coar-text-neutral-primary, #1a1a1a);
 }
 .coar-wizard__step-desc {
-  font-size: var(--coar-font-size-xs, 0.75rem);
+  font-size: var(--coar-caption-font-size, var(--coar-font-size-xs, 0.75rem));
   color: var(--coar-text-neutral-tertiary, #9a9a9a);
 }
 

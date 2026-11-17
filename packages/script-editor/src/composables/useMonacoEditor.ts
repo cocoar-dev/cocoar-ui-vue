@@ -3,6 +3,7 @@ import { onBeforeUnmount, shallowRef, watch, type Ref } from 'vue';
 import {
   ensureCoarThemes,
   resolveTheme,
+  refreshCompactTheme,
   watchAutoTheme,
   type CoarScriptEditorTheme,
 } from '../theme';
@@ -387,14 +388,32 @@ export function useMonacoEditor(options: UseMonacoEditorOptions): UseMonacoEdito
     return options.variant?.() ?? 'editor';
   }
 
+  function resolvedTheme() {
+    const name = resolveTheme(options.theme());
+    refreshCompactTheme(monaco, name);
+    return name;
+  }
+
   function setupAutoThemeIfNeeded() {
     disposeAutoWatcher?.();
     disposeAutoWatcher = null;
     if (options.theme() === 'auto') {
       disposeAutoWatcher = watchAutoTheme(() => {
-        if (editorRef.value) monaco.editor.setTheme(resolveTheme(options.theme()));
+        if (editorRef.value) monaco.editor.setTheme(resolvedTheme());
       });
+      return;
     }
+    // An explicit light/dark theme changes only when the page enters or leaves the
+    // compact profile (`.coar-compact` on html/body). Apply only such a change, so a
+    // default page never sees an extra `setTheme` call.
+    let applied = resolveTheme(options.theme());
+    disposeAutoWatcher = watchAutoTheme(() => {
+      const next = resolveTheme(options.theme());
+      refreshCompactTheme(monaco, next);
+      if (next === applied) return;
+      applied = next;
+      if (editorRef.value) monaco.editor.setTheme(next);
+    });
   }
 
   function mount() {
@@ -426,7 +445,7 @@ export function useMonacoEditor(options: UseMonacoEditorOptions): UseMonacoEdito
 
     const editor = monaco.editor.create(options.host.value, {
       model,
-      theme: resolveTheme(options.theme()),
+      theme: resolvedTheme(),
       readOnly: options.readonly(),
       minimap: { enabled: options.minimap() },
       automaticLayout: true,
@@ -624,8 +643,8 @@ export function useMonacoEditor(options: UseMonacoEditorOptions): UseMonacoEdito
   // cover subsequent changes only.
   watch(
     () => options.theme(),
-    (theme) => {
-      if (editorRef.value) monaco.editor.setTheme(resolveTheme(theme));
+    () => {
+      if (editorRef.value) monaco.editor.setTheme(resolvedTheme());
       setupAutoThemeIfNeeded();
     },
   );

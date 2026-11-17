@@ -1,0 +1,8 @@
+[
+  {
+    "name": "compact-page-builder",
+    "capture": "page",
+    "viewport": { "width": 1280, "height": 900 },
+    "width": 1232
+  }
+]

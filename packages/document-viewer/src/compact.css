@@ -1,0 +1,73 @@
+/**
+ * Document viewer — compact presentation (experimental, opt-in via `.coar-compact`).
+ *
+ * Outside a `.coar-compact` scope nothing here applies and the viewer keeps its original
+ * look. The viewer's sources read their colors as
+ * `var(--coar-color-<name>, var(--coar-document-viewer-<role>, <original>))`:
+ * a consumer's `--coar-color-*` override still wins first, the roles below exist only in
+ * the compact profile, and otherwise the original fallback applies.
+ *
+ * The PDF page (canvas background, rendered content, freetext/ink/marker annotations,
+ * search highlight colors) is document content and is not themed here.
+ *
+ * `.coar-compact` may sit on an ancestor or on the viewer root (`class` attribute). The
+ * annotation popover is teleported to `<body>`; it receives the compact classes of its
+ * viewer (see `internal/presentation-context.ts`), so it is listed here too.
+ */
+
+/* Independent size roles; touch fields use the shared field target floor. */
+:where(.coar-compact) {
+  --coar-document-viewer-header-height: 40px;
+  --coar-document-viewer-target-size: 28px;
+  --coar-document-viewer-input-height: 28px;
+}
+
+:where(.coar-compact.coar-mobile, .coar-compact .coar-mobile, .coar-mobile .coar-compact) {
+  --coar-document-viewer-header-height: 48px;
+  --coar-document-viewer-target-size: 44px;
+  --coar-document-viewer-input-height: var(--coar-control-min-size, 44px);
+  /* Color swatches stay below 44px so a palette fits a popover row; 32px plus the 6px gap
+     keeps them well apart (WCAG 2.5.8). */
+  --coar-document-viewer-swatch-size: 32px;
+}
+
+/* Native number/text/search inputs have different UA box models. In compact
+   chrome the height role describes the complete field box, just like InputFrame. */
+.coar-compact .coar-pdf-viewer .coar-pdf-toolbar__page-input,
+.coar-pdf-viewer.coar-compact .coar-pdf-toolbar__page-input,
+.coar-compact .coar-pdf-viewer .coar-pdf-toolbar__zoom-input,
+.coar-pdf-viewer.coar-compact .coar-pdf-toolbar__zoom-input,
+.coar-compact .coar-pdf-viewer .coar-pdf-searchbar__input,
+.coar-pdf-viewer.coar-compact .coar-pdf-searchbar__input {
+  box-sizing: border-box;
+}
+
+/* Color roles: resolved on the viewer root / popover, so light, dark and nested
+   scopes resolve in the viewer's own context. */
+:is(
+    .coar-compact .coar-pdf-viewer,
+    .coar-pdf-viewer.coar-compact,
+    .coar-compact .coar-pdf-annotation-popover,
+    .coar-pdf-annotation-popover.coar-compact
+  ) {
+  --coar-document-viewer-surface: var(--coar-background-neutral-primary, #ffffff);
+  --coar-document-viewer-chrome: var(--coar-background-neutral-secondary, #f6f7f8);
+  --coar-document-viewer-hover: var(--coar-background-neutral-tertiary, rgba(0, 0, 0, 0.06));
+  --coar-document-viewer-backdrop: var(--coar-background-neutral-secondary, rgba(0, 0, 0, 0.04));
+  --coar-document-viewer-veil: color-mix(in srgb, var(--coar-background-neutral-primary, #ffffff) 55%, transparent);
+  --coar-document-viewer-border: var(--coar-border-neutral-tertiary, #e5e7eb);
+  --coar-document-viewer-divider: var(--coar-border-neutral-tertiary, rgba(0, 0, 0, 0.08));
+  --coar-document-viewer-text: var(--coar-text-neutral-primary, #1a1a1a);
+  --coar-document-viewer-text-secondary: var(--coar-text-neutral-secondary, #4b5563);
+  --coar-document-viewer-text-muted: var(--coar-text-neutral-tertiary, #6b7280);
+  --coar-document-viewer-accent: var(--coar-background-accent-primary, #2563eb);
+  --coar-document-viewer-accent-hover: var(--coar-background-accent-hover, #1d4ed8);
+  --coar-document-viewer-accent-tint: var(--coar-background-accent-tertiary, rgba(37, 99, 235, 0.08));
+  --coar-document-viewer-accent-tint-hover: var(--coar-background-accent-tertiary-active, rgba(37, 99, 235, 0.12));
+  --coar-document-viewer-on-accent: var(--coar-text-on-bold, #ffffff);
+  --coar-document-viewer-focus-ring: var(--coar-focus-color, #2563eb);
+  --coar-document-viewer-danger: var(--coar-text-semantic-error-bold, #dc2626);
+  --coar-document-viewer-danger-tint: var(--coar-background-semantic-error-subtlest, #fef2f2);
+  --coar-document-viewer-selection: color-mix(in srgb, var(--coar-background-accent-primary, #2563eb) 25%, transparent);
+  --coar-document-viewer-popover-shadow: var(--coar-elevation-high, 0 4px 16px rgba(0, 0, 0, 0.15));
+}

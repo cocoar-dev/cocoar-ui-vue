@@ -1,0 +1,19 @@
+/*
+ * Handle colour roles for the default `os-theme-dark` scrollbar (every library
+ * surface uses it, in light and dark mode alike). Unset, each role falls back to the
+ * theme's own variable, so the scrollbar looks as overlayscrollbars.css draws it and a
+ * consumer's `--os-handle-*` overrides still apply. The compact profile sets the roles.
+ * An explicit `theme: 'light'` is left alone: the consumer chose it for its surface.
+ */
+:where(.coar-compact, .coar-compact *) .os-theme-dark .os-scrollbar-handle,
+.coar-compact.os-theme-dark .os-scrollbar-handle {
+  background: var(--coar-scrollbar-handle-bg, var(--os-handle-bg));
+}
+:where(.coar-compact, .coar-compact *) .os-theme-dark .os-scrollbar-handle:hover,
+.coar-compact.os-theme-dark .os-scrollbar-handle:hover {
+  background: var(--coar-scrollbar-handle-bg-hover, var(--os-handle-bg-hover));
+}
+:where(.coar-compact, .coar-compact *) .os-theme-dark .os-scrollbar-handle:active,
+.coar-compact.os-theme-dark .os-scrollbar-handle:active {
+  background: var(--coar-scrollbar-handle-bg-active, var(--os-handle-bg-active));
+}

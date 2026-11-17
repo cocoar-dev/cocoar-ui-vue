@@ -143,7 +143,7 @@ const searchQuery = props.searchQuery;
   display: flex;
   align-items: center;
   /* Mobile floors (.coar-mobile tokens); outside it both resolve to today's values. */
-  min-height: var(--coar-control-row-min-height, auto);
+  min-height: var(--coar-interactive-row-height, var(--coar-control-row-min-height, auto));
   gap: var(--coar-select-option-gap);
   padding: var(--coar-select-option-padding);
   font-family: var(--coar-body-small-base-family);
@@ -154,7 +154,8 @@ const searchQuery = props.searchQuery;
 }
 
 /* The row floor counts the padding, with or without an app-wide border-box reset. */
-.coar-mobile .coar-select-option {
+.coar-mobile .coar-select-option,
+.coar-compact .coar-select-option {
   box-sizing: border-box;
 }
 

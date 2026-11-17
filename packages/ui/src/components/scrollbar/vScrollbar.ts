@@ -1,6 +1,7 @@
 import type { Directive, DirectiveBinding } from 'vue';
 import { OverlayScrollbars, ClickScrollPlugin, type PartialOptions } from 'overlayscrollbars';
 import 'overlayscrollbars/overlayscrollbars.css';
+import './vScrollbar-roles.css';
 
 /**
  * Theme options for the scrollbar appearance.

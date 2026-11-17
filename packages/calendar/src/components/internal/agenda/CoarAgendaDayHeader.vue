@@ -82,15 +82,15 @@ function onPointerdown(e: PointerEvent) {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  padding: 8px 16px;
+  padding: var(--coar-calendar-agenda-header-padding, 8px 16px);
   background: var(--coar-calendar-bg, #fff);
   border-bottom: 1px solid var(--coar-calendar-border, #e3e5e9);
-  font-weight: 600;
-  font-size: var(--coar-font-size-sm, 13px);
+  font-weight: var(--coar-calendar-label-font-weight, 600);
+  font-size: var(--coar-calendar-label-font-size, var(--coar-font-size-sm, 13px));
   color: var(--coar-text-base, #1a1c1f);
 }
 .coar-agenda-day-header--today {
-  color: var(--coar-color-accent, var(--coar-color-accent-500, #2563eb));
+  color: var(--coar-calendar-today-color, var(--coar-color-accent, var(--coar-color-accent-500, #2563eb)));
 }
 .coar-agenda-day-header--empty {
   color: var(--coar-text-subtle, #9ca3af);
@@ -114,13 +114,13 @@ function onPointerdown(e: PointerEvent) {
   will-change: transform;
 }
 .coar-agenda-day-header__today {
-  font-size: var(--coar-font-size-xs, 11px);
+  font-size: var(--coar-calendar-caption-font-size, var(--coar-font-size-xs, 11px));
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  background: var(--coar-color-accent, var(--coar-color-accent-500, #2563eb));
-  color: #fff;
+  background: var(--coar-calendar-accent, var(--coar-color-accent, var(--coar-color-accent-500, #2563eb)));
+  color: var(--coar-calendar-on-accent, #fff);
   padding: 2px 8px;
   border-radius: 999px;
-  font-weight: 700;
+  font-weight: var(--coar-calendar-badge-font-weight, 700);
 }
 </style>

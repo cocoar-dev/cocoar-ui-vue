@@ -1,0 +1,111 @@
+/*
+ * Compact presentation profile (Preview) for `@cocoar/vue-markdown` and the
+ * editor that shares this stylesheet. Imported by `markdown-blocks.css`.
+ *
+ * Everything here is scoped to `.coar-compact`: without that class no rule
+ * matches and no `--coar-markdown-*` role below is defined, so every
+ * `var(role, legacy)` declaration in `markdown-blocks.css` keeps its legacy
+ * value. Roles are set on the scope element (not on `.coar-markdown`), so the
+ * mobile values below inherit into nested and local `.coar-mobile` areas.
+ *
+ * Markdown is document content: reading text, headings and code text have
+ * their own roles here and do not shrink with the UI text role. Consumer
+ * colors (`<span style="color:…">`) and saved content are untouched.
+ */
+
+.coar-compact {
+  /* Reading text. */
+  --coar-markdown-font-size: 14px;
+  --coar-markdown-line-height: 1.5;
+
+  /* Heading hierarchy: page 24 / section 18 / subsection 16, then body-sized
+     levels. 600 marks hierarchy; nothing is 700 by default. */
+  --coar-markdown-h1-font-size: 24px;
+  --coar-markdown-h1-font-weight: 600;
+  --coar-markdown-h1-line-height: 1.25;
+  --coar-markdown-h2-font-size: 18px;
+  --coar-markdown-h2-font-weight: 600;
+  --coar-markdown-h2-line-height: 1.3;
+  --coar-markdown-h3-font-size: 16px;
+  --coar-markdown-h3-font-weight: 600;
+  --coar-markdown-h3-line-height: 1.35;
+  --coar-markdown-h4-font-size: 14px;
+  --coar-markdown-h4-font-weight: 600;
+  --coar-markdown-h4-line-height: 1.4;
+  --coar-markdown-h5-font-size: 13px;
+  --coar-markdown-h5-font-weight: 600;
+  --coar-markdown-h5-line-height: 1.4;
+  --coar-markdown-h6-font-size: 12px;
+  --coar-markdown-h6-font-weight: 600;
+  --coar-markdown-h6-line-height: 1.4;
+
+  /* Vertical rhythm on a 4 px grid. */
+  --coar-markdown-tight-spacing: 8px;
+  --coar-markdown-block-spacing: 12px;
+  --coar-markdown-section-spacing: 24px;
+  --coar-markdown-block-gap: 12px;
+
+  /* Boxes drawn by the renderer (unsupported node, unknown embed). */
+  --coar-markdown-box-radius: var(--coar-panel-radius, 8px);
+
+  /* Inline code: code text role, a quiet chip instead of bare accent text. */
+  --coar-markdown-code-font-family: 'Cascadia Code', Consolas, Monaco, 'Courier New', monospace;
+  --coar-markdown-code-font-size: 0.875em;
+  --coar-markdown-inline-code-padding: 0.1em 0.35em;
+  --coar-markdown-inline-code-radius: 4px;
+
+  /* Tables: data text, sentence-case header without tracking. */
+  --coar-markdown-table-font-size: 13px;
+  --coar-markdown-table-line-height: 1.45;
+  --coar-markdown-table-cell-padding: 8px 12px;
+  --coar-markdown-table-header-font-size: 12px;
+  --coar-markdown-table-header-font-weight: 600;
+  --coar-markdown-table-header-transform: none;
+  --coar-markdown-table-header-letter-spacing: normal;
+
+  /* Placeholder for an unregistered embed. */
+  --coar-markdown-embed-placeholder-gap: 8px;
+  --coar-markdown-embed-placeholder-padding: 8px 12px;
+}
+
+/* Mobile inside the profile: same hierarchy, one step larger reading and
+   table text, roomier cells for touch reading. Covers html/body, local and
+   nested combinations of the two classes. */
+.coar-compact.coar-mobile,
+.coar-compact .coar-mobile,
+.coar-mobile .coar-compact {
+  --coar-markdown-font-size: 15px;
+  --coar-markdown-table-font-size: 14px;
+  --coar-markdown-table-cell-padding: 10px 12px;
+  --coar-markdown-embed-placeholder-padding: 10px 12px;
+}
+
+/* Roles that read color or shared UI roles are resolved on the markdown
+   element itself, not on the scope: a light/dark or mobile scope between
+   `.coar-compact` and the document then still applies. The font size and line
+   height are declarations the legacy stylesheet does not make at all, so they
+   exist only inside the profile. */
+.coar-compact .coar-markdown {
+  --coar-markdown-inline-code-background: var(--coar-background-neutral-tertiary);
+  --coar-markdown-inline-code-color: var(--coar-text-neutral-primary);
+  --coar-markdown-table-header-color: var(--coar-text-neutral-secondary);
+  /* Frontmatter: legible metadata instead of gray-400 (below 4.5:1 on white). */
+  --coar-markdown-frontmatter-color: var(--coar-text-neutral-tertiary);
+  /* Placeholder of an unregistered embed: UI text. */
+  --coar-markdown-embed-placeholder-font-size: var(--coar-ui-font-size, 13px);
+
+  font-size: var(--coar-markdown-font-size);
+  line-height: var(--coar-markdown-line-height);
+}
+
+.coar-compact .coar-markdown :where(:not(pre) > code),
+.coar-compact .coar-markdown-inline-code {
+  font-family: var(--coar-markdown-code-font-family);
+  font-size: var(--coar-markdown-code-font-size);
+}
+
+.coar-compact .coar-markdown :where(a),
+.coar-compact .coar-markdown-link {
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}

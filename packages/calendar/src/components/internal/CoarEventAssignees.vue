@@ -1,6 +1,6 @@
 <script setup lang="ts" generic="TMeta extends Record<string, unknown> = Record<string, unknown>">
 import { computed } from 'vue';
-import type { CalendarEvent } from '../../core';
+import { eventTextColor, type CalendarEvent } from '../../core';
 
 const props = withDefaults(
   defineProps<{
@@ -14,7 +14,8 @@ const props = withDefaults(
 interface Assignee {
   id: string;
   displayName: string;
-  color?: string;
+  color: string;
+  autoColor: boolean;
 }
 
 const assignees = computed<Assignee[]>(() => {
@@ -37,7 +38,12 @@ const assignees = computed<Assignee[]>(() => {
         : typeof rawColor === 'number'
           ? `#${rawColor.toString(16).padStart(6, '0').slice(-6)}`
           : colorFor(String(value.id ?? displayName));
-    return [{ id: String(value.id ?? `${displayName}:${index}`), displayName, color }];
+    return [{
+      id: String(value.id ?? `${displayName}:${index}`),
+      displayName,
+      color,
+      autoColor: typeof rawColor !== 'string' && typeof rawColor !== 'number',
+    }];
   });
 });
 
@@ -72,7 +78,12 @@ function colorFor(seed: string): string {
       v-for="person in visible"
       :key="person.id"
       class="coar-event-assignees__avatar"
-      :style="{ background: person.color }"
+      :style="{
+        background: person.autoColor ? `var(--coar-calendar-avatar-auto-bg, ${person.color})` : person.color,
+        '--assignee-ink': person.autoColor
+          ? 'var(--coar-text-on-accent, #fff)'
+          : eventTextColor(person.color, 'white'),
+      }"
       aria-hidden="true"
       >{{ initials(person.displayName) }}</span
     >
@@ -98,7 +109,7 @@ function colorFor(seed: string): string {
   justify-content: center;
   border: 1px solid color-mix(in srgb, white 78%, transparent);
   border-radius: 999px;
-  color: white;
+  color: var(--coar-calendar-avatar-ink, white);
   font-weight: 750;
   line-height: 1;
   box-shadow: 0 0 0 1px color-mix(in srgb, black 13%, transparent);
@@ -108,7 +119,7 @@ function colorFor(seed: string): string {
   margin-inline-start: -4px;
 }
 .coar-event-assignees__overflow {
-  background: var(--coar-surface-muted, #6b7280);
+  background: var(--coar-calendar-avatar-overflow-bg, var(--coar-surface-muted, #6b7280));
 }
 .coar-event-assignees--xs .coar-event-assignees__avatar,
 .coar-event-assignees--xs .coar-event-assignees__overflow {

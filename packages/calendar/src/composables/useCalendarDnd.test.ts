@@ -508,6 +508,20 @@ describe('useCalendarDnd — drag lifecycle', () => {
     expect(startStr).toMatch(/^2026-04-1\d/);
   });
 
+  it('resolves the release point even when the final move frame is still pending', async () => {
+    harness.dnd.startDrag(baseEvent)(pointerEvent('pointerdown', { clientX: 350, clientY: 540 }));
+    window.dispatchEvent(pointerEvent('pointermove', { clientX: 350, clientY: 600 }));
+    await flushRaf();
+    window.dispatchEvent(pointerEvent('pointermove', { clientX: 450, clientY: 690 }));
+    // No animation frame between the final move and release.
+    window.dispatchEvent(pointerEvent('pointerup', { clientX: 450, clientY: 720 }));
+    expect(onEventDrop).toHaveBeenCalledOnce();
+    const payload = onEventDrop.mock.calls[0][0];
+    expect(payload.target.date).toBe('2026-04-17');
+    expect(payload.target.minutes).toBe(12 * 60);
+    expect(payload.next.start.hour).toBe(12);
+  });
+
   it('treats a release without movement as a click (onEventClick)', async () => {
     const handler = harness.dnd.startDrag(baseEvent);
     handler(pointerEvent('pointerdown', { clientX: 350, clientY: 540 }));
@@ -527,6 +541,30 @@ describe('useCalendarDnd — drag lifecycle', () => {
     expect(harness.dnd.dropTarget.value).toBeNull();
     expect(harness.dnd.dragMode.value).toBeNull();
     expect(harness.dnd.snappingBack.value).toBe(false);
+  });
+
+  it.each(['start', 'end'] as const)('keeps the %s edge anchored inside a 44 px resize target', async (edge) => {
+    const handle = document.createElement('div');
+    const top = edge === 'start' ? 540 : 526;
+    vi.spyOn(handle, 'getBoundingClientRect').mockReturnValue({
+      x: 250, y: top, left: 250, right: 294, top, bottom: top + 44,
+      width: 44, height: 44, toJSON: () => ({}),
+    });
+    const begin = edge === 'start'
+      ? harness.dnd.startTimedResizeStart(baseEvent)
+      : harness.dnd.startTimedResizeEnd(baseEvent);
+    handle.addEventListener('pointerdown', (e) => begin(e as PointerEvent));
+    handle.dispatchEvent(pointerEvent('pointerdown', { clientX: 272, clientY: top + 22 }));
+    const y = top + 22 + (edge === 'start' ? -60 : 60);
+    window.dispatchEvent(pointerEvent('pointermove', { clientX: 272, clientY: y }));
+    await flushRaf();
+    window.dispatchEvent(pointerEvent('pointerup', { clientX: 272, clientY: y }));
+    expect(onEventDrop).toHaveBeenCalledOnce();
+    const next = onEventDrop.mock.calls[0][0].next;
+    expect(next.start.hour).toBe(edge === 'start' ? 8 : 9);
+    expect(next.start.minute).toBe(0);
+    expect(next.end.hour).toBe(edge === 'end' ? 10 : 9);
+    expect(next.end.minute).toBe(30);
   });
 });
 
@@ -576,6 +614,33 @@ describe('useCalendarDnd — invalid drop snap-back', () => {
     expect(harness.dnd.snappingBack.value).toBe(false);
     expect(harness.dnd.dropTarget.value).toBeNull();
     expect(harness.dnd.dragMode.value).toBeNull();
+  });
+
+  it('does not clear a new drag when the previous snap-back would expire', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'requestAnimationFrame', 'cancelAnimationFrame'] });
+    try {
+      const handler = harness.dnd.startDrag(baseEvent);
+      handler(pointerEvent('pointerdown', { clientX: 350, clientY: 540 }));
+      window.dispatchEvent(pointerEvent('pointermove', { clientX: 450, clientY: 660 }));
+      await vi.advanceTimersByTimeAsync(32);
+      window.dispatchEvent(pointerEvent('pointerup', { clientX: 450, clientY: 660 }));
+      expect(harness.dnd.snappingBack.value).toBe(true);
+
+      handler(pointerEvent('pointerdown', { clientX: 350, clientY: 540 }));
+      window.dispatchEvent(pointerEvent('pointermove', { clientX: 450, clientY: 570 }));
+      await vi.advanceTimersByTimeAsync(32);
+      const secondTarget = harness.dnd.dropTarget.value;
+      expect(secondTarget?.valid).toBe(false);
+      await vi.advanceTimersByTimeAsync(250);
+
+      expect(harness.dnd.snappingBack.value).toBe(false);
+      expect(harness.dnd.dragMode.value).toBe('timed');
+      expect(harness.dnd.dropTarget.value).toEqual(secondTarget);
+      expect(onEventDrop).not.toHaveBeenCalled();
+    } finally {
+      window.dispatchEvent(pointerEvent('pointercancel', { clientX: 450, clientY: 570 }));
+      vi.useRealTimers();
+    }
   });
 });
 

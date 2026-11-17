@@ -4,6 +4,11 @@ import { useRoute, useRouter } from 'vue-router';
 import { CoarButton, CoarOverlayHost, CoarSwitch } from '@cocoar/vue-ui';
 import { findDemo } from './demos';
 import { embedded, scheme, setScheme } from './scheme';
+import PresentationSwitcher from '../components/PresentationSwitcher.vue';
+import { useDocsPresentation } from '../useDocsPresentation';
+
+// Embedded demos have no header/switcher, but must still receive live parent messages.
+useDocsPresentation();
 
 const route = useRoute();
 const router = useRouter();
@@ -29,7 +34,10 @@ function back() {
         Back
       </CoarButton>
       <h1 class="m-header__title">{{ demo ? demo.title : 'Cocoar UI · Mobile' }}</h1>
-      <CoarSwitch v-model="dark" label="Dark" />
+      <div class="m-header__controls">
+        <PresentationSwitcher />
+        <CoarSwitch v-model="dark" label="Dark" />
+      </div>
     </header>
     <main class="m-main">
       <RouterView />
@@ -61,6 +69,7 @@ a {
   top: 0;
   z-index: 1;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--coar-spacing-s);
   padding: calc(env(safe-area-inset-top) + var(--coar-spacing-xs))
@@ -79,6 +88,14 @@ a {
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.m-header__controls {
+  display: flex;
+  flex: 1 0 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--coar-spacing-s);
 }
 
 .m-main {

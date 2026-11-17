@@ -417,14 +417,14 @@ are only being added, and testing on real devices remains the job of the app.
 
 | Page | Desktop | Tablet | Phone | Note |
 |---|---|---|---|---|
-| [Map](../components/map/index.md) | ready | ready | partial | Pan and zoom work by touch; the map's controls have no .coar-mobile presentation yet. |
+| [Map](../components/map/index.md) | ready | ready | partial | Touch pan/zoom; compact mobile enlarges zoom and list controls. Dense pins and vertices retain small spatial targets. |
 | [Map Editor](../components/map/editor.md) | ready | partial | partial | Map editing works on touch; the point list's drag reorder is mouse-only and nothing is phone-adapted. |
 
 **Calendar (@cocoar/vue-calendar)**
 
 | Page | Desktop | Tablet | Phone | Note |
 |---|---|---|---|---|
-| [Calendar](../components/calendar/index.md) | ready | partial | planned | Taps, swipe paging and long-press selection work on touch; event resize handles are only 6 px tall. |
+| [Calendar](../components/calendar/index.md) | ready | partial | planned | Touch taps, paging and long-press selection work; legacy resize targets are 6 px. Compact targets stay smaller on short/crowded events. |
 | [`<CoarCalendar>` — Composer](../components/calendar/coar-calendar.md) | ready | partial | planned | Taps, swipe paging and long-press selection work on touch; event resize handles are only 6 px tall. |
 | [`<CoarYearView>` — Year View](../components/calendar/year-view.md) | ready | ready | planned | Tap to drill in works on touch; a phone presentation of the calendar is planned. |
 | [Month Views](../components/calendar/month-view.md) | ready | partial | planned | Taps work on touch; multi-day bar resize handles are only 6 px and a touch on a pill always drags it. |

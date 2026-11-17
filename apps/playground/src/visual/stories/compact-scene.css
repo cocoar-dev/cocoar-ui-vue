@@ -1,0 +1,5 @@
+/* New samples paint their own canvas with the opted-in palette. The parent
+   frame deliberately still shows the legacy palette; no component is restyled. */
+:where([data-visual-root] > .coar-compact) {
+  background: var(--coar-background-neutral-primary);
+}

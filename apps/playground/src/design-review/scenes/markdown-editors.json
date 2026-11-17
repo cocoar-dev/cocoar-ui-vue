@@ -1,0 +1,12 @@
+[
+  { "name": "compact-markdown-viewer" },
+  { "name": "compact-markdown-editor" },
+  { "name": "compact-markdown-editor-panels" },
+  { "name": "compact-markdown-form" },
+  { "name": "compact-markdown-mermaid" },
+  {
+    "name": "compact-markdown-phone",
+    "modes": ["mobile"],
+    "viewport": { "width": 390, "height": 844 }
+  }
+]

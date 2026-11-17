@@ -121,15 +121,15 @@ defineSlots<{
   transition: transform 180ms ease-out;
 }
 .coar-time-grid-header__cell {
-  padding: 8px 12px;
+  padding: var(--coar-calendar-header-cell-padding, 8px 12px);
   border-left: 1px solid var(--coar-calendar-border, #d1d5db);
-  font-size: var(--coar-font-size-sm, 13px);
-  font-weight: 600;
+  font-size: var(--coar-calendar-label-font-size, var(--coar-font-size-sm, 13px));
+  font-weight: var(--coar-calendar-label-font-weight, 600);
   color: var(--coar-text-base, #1a1c1f);
   background: var(--coar-calendar-bg, #fff);
 }
 .coar-time-grid-header__cell--today {
-  color: var(--coar-color-accent, var(--coar-color-accent-500, #2563eb));
+  color: var(--coar-calendar-today-color, var(--coar-color-accent, var(--coar-color-accent-500, #2563eb)));
 }
 .coar-time-grid-header__cell--weekend {
   background: var(--coar-calendar-bg-weekend, #f6f7f9);
@@ -138,6 +138,6 @@ defineSlots<{
 /* Density */
 .coar-time-grid-header--density-compact .coar-time-grid-header__cell {
   padding: 4px 8px;
-  font-size: var(--coar-font-size-xs, 11px);
+  font-size: var(--coar-calendar-caption-font-size, var(--coar-font-size-xs, 11px));
 }
 </style>

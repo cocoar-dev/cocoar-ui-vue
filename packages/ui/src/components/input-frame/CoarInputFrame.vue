@@ -134,6 +134,11 @@ const hasActions = computed(() => !!slots.actions);
 }
 
 /* Only the standard input family opts in; picker/select frames retain their sizing. */
+.coar-compact .coar-input-frame {
+  /* A shared control height includes its border, independent of an app reset. */
+  box-sizing: border-box;
+}
+
 .coar-input-frame--mobile-sizing {
   --coar-input-min-size: var(--coar-control-m-height, var(--coar-control-min-size, 0px));
 }
@@ -172,7 +177,7 @@ const hasActions = computed(() => !!slots.actions);
     var(--coar-input-radius),
     calc(max(var(--coar-component-xs-height), var(--coar-input-min-size, 0px)) / 2)
   );
-  font-size: var(--coar-component-xs-font-size);
+  font-size: max(var(--coar-field-xs-font-size, var(--coar-field-xs-default-font-size, var(--coar-field-font-size, var(--coar-component-xs-font-size)))), var(--coar-field-min-font-size, 0px));
 }
 .coar-input-frame--s {
   height: max(var(--coar-component-s-height), var(--coar-input-min-size, 0px));
@@ -181,10 +186,10 @@ const hasActions = computed(() => !!slots.actions);
     var(--coar-input-radius),
     calc(max(var(--coar-component-s-height), var(--coar-input-min-size, 0px)) / 2)
   );
-  font-size: var(--coar-component-s-font-size);
+  font-size: max(var(--coar-field-s-font-size, var(--coar-field-s-default-font-size, var(--coar-field-font-size, var(--coar-component-s-font-size)))), var(--coar-field-min-font-size, 0px));
 }
 .coar-input-frame--m {
-  font-size: var(--coar-component-m-font-size);
+  font-size: max(var(--coar-field-font-size, var(--coar-component-m-font-size)), var(--coar-field-min-font-size, 0px));
 }
 .coar-input-frame--l {
   height: max(var(--coar-component-l-height), var(--coar-input-min-size, 0px));
@@ -193,22 +198,22 @@ const hasActions = computed(() => !!slots.actions);
     var(--coar-input-radius),
     calc(max(var(--coar-component-l-height), var(--coar-input-min-size, 0px)) / 2)
   );
-  font-size: var(--coar-component-l-font-size);
+  font-size: max(var(--coar-field-l-font-size, var(--coar-field-l-default-font-size, var(--coar-field-font-size, var(--coar-component-l-font-size)))), var(--coar-field-min-font-size, 0px));
 }
 
 /* Mobile text floor for opted-in frames: a select's frame is its combobox and carries the
    value text. Outside .coar-mobile the token is unset and each size keeps its font. */
 .coar-input-frame--mobile-sizing.coar-input-frame--xs {
-  font-size: max(var(--coar-component-xs-font-size), var(--coar-control-min-font-size, 0px));
+  font-size: max(var(--coar-field-xs-font-size, var(--coar-field-xs-default-font-size, var(--coar-field-font-size, var(--coar-component-xs-font-size)))), var(--coar-control-min-font-size, 0px), var(--coar-field-min-font-size, 0px));
 }
 .coar-input-frame--mobile-sizing.coar-input-frame--s {
-  font-size: max(var(--coar-component-s-font-size), var(--coar-control-min-font-size, 0px));
+  font-size: max(var(--coar-field-s-font-size, var(--coar-field-s-default-font-size, var(--coar-field-font-size, var(--coar-component-s-font-size)))), var(--coar-control-min-font-size, 0px), var(--coar-field-min-font-size, 0px));
 }
 .coar-input-frame--mobile-sizing.coar-input-frame--m {
-  font-size: max(var(--coar-component-m-font-size), var(--coar-control-min-font-size, 0px));
+  font-size: max(var(--coar-field-font-size, var(--coar-component-m-font-size)), var(--coar-control-min-font-size, 0px), var(--coar-field-min-font-size, 0px));
 }
 .coar-input-frame--mobile-sizing.coar-input-frame--l {
-  font-size: max(var(--coar-component-l-font-size), var(--coar-control-min-font-size, 0px));
+  font-size: max(var(--coar-field-l-font-size, var(--coar-field-l-default-font-size, var(--coar-field-font-size, var(--coar-component-l-font-size)))), var(--coar-control-min-font-size, 0px), var(--coar-field-min-font-size, 0px));
 }
 
 /* ── States ─────────────────────────────────────────────────────── */
@@ -288,6 +293,7 @@ const hasActions = computed(() => !!slots.actions);
   padding-top: var(--coar-spacing-xs);
   padding-bottom: var(--coar-spacing-xs);
 }
+
 /* Affixes top-align in multiline (e.g. the textarea's clear button sits at the
    top-right corner, level with the first line, not floating in the vertical centre
    of a tall box). The matching top padding keeps it on the first line. */

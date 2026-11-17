@@ -1,0 +1,94 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [11 0 R 13 0 R 15 0 R] /Count 3 >>
+endobj
+3 0 obj
+<< /Type /Catalog /Pages 2 0 R /Outlines 5 0 R /PageMode /UseOutlines >>
+endobj
+4 0 obj
+<< /Title (Compact outline fixture) /Author (Cocoar) /Producer (cocoar visual fixture) /CreationDate (D:20261115000000Z) >>
+endobj
+5 0 obj
+<< /Type /Outlines /First 6 0 R /Last 10 0 R /Count 5 >>
+endobj
+6 0 obj
+<< /Title (Chapter 1: Overview) /Dest [11 0 R /Fit] /Parent 5 0 R /Next 8 0 R /First 7 0 R /Last 7 0 R /Count 1 >>
+endobj
+7 0 obj
+<< /Title (Section 1.1 Planning calendar) /Dest [11 0 R /Fit] /Parent 6 0 R >>
+endobj
+8 0 obj
+<< /Title (Chapter 2: Details) /Dest [13 0 R /Fit] /Parent 5 0 R /Prev 6 0 R /Next 10 0 R /First 9 0 R /Last 9 0 R /Count 1 >>
+endobj
+9 0 obj
+<< /Title (Section 2.1 Cost centres) /Dest [13 0 R /Fit] /Parent 8 0 R >>
+endobj
+10 0 obj
+<< /Title (Chapter 3: Appendix) /Dest [15 0 R /Fit] /Parent 5 0 R /Prev 8 0 R >>
+endobj
+11 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R >> >> /Contents 12 0 R >>
+endobj
+12 0 obj
+<< /Length 274 >>
+stream
+BT /F1 26 Tf 56 760 Td (Handbook) Tj ET
+BT /F1 14 Tf 56 716 Td (Chapter 1: Overview) Tj ET
+BT /F1 14 Tf 56 690 Td (The overview explains the budget process.) Tj ET
+BT /F1 14 Tf 56 664 Td (Section 1.1 covers the planning calendar.) Tj ET
+0.85 0.88 0.93 rg 56 380 483 200 re f
+endstream
+endobj
+13 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R >> >> /Contents 14 0 R >>
+endobj
+14 0 obj
+<< /Length 267 >>
+stream
+BT /F1 26 Tf 56 760 Td (Details) Tj ET
+BT /F1 14 Tf 56 716 Td (Chapter 2: Details) Tj ET
+BT /F1 14 Tf 56 690 Td (Detailed figures follow the budget order.) Tj ET
+BT /F1 14 Tf 56 664 Td (Section 2.1 lists every cost centre.) Tj ET
+0.85 0.88 0.93 rg 56 380 483 200 re f
+endstream
+endobj
+15 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R >> >> /Contents 16 0 R >>
+endobj
+16 0 obj
+<< /Length 253 >>
+stream
+BT /F1 26 Tf 56 760 Td (Appendix) Tj ET
+BT /F1 14 Tf 56 716 Td (Chapter 3: Appendix) Tj ET
+BT /F1 14 Tf 56 690 Td (Glossary of terms and abbreviations.) Tj ET
+BT /F1 14 Tf 56 664 Td (Nothing else to see here.) Tj ET
+0.85 0.88 0.93 rg 56 380 483 200 re f
+endstream
+endobj
+xref
+0 17
+0000000000 65535 f 
+0000000009 00000 n 
+0000000106 00000 n 
+0000000178 00000 n 
+0000000266 00000 n 
+0000000405 00000 n 
+0000000477 00000 n 
+0000000607 00000 n 
+0000000701 00000 n 
+0000000843 00000 n 
+0000000932 00000 n 
+0000001029 00000 n 
+0000001157 00000 n 
+0000001483 00000 n 
+0000001611 00000 n 
+0000001930 00000 n 
+0000002058 00000 n 
+trailer
+<< /Size 17 /Root 3 0 R /Info 4 0 R >>
+startxref
+2363
+%%EOF

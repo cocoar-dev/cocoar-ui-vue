@@ -327,6 +327,15 @@ can still be typed, but formatting commands are not shown.
 - `readonly` formats the values as a finished document. No field is editable.
 - Fixed Markdown is never editable in either mode.
 
+## Compact presentation <Badge type="warning" text="Preview" />
+
+Inside an element with the class `coar-compact` (the experimental compact profile, working title), the
+form reads its colors from the semantic tokens instead of fixed light values, so it follows dark mode
+and the accent: input-colored block frames with the control radius, the focus color on focus,
+semantic error colors and 12 px error text, filled-in readonly values at weight 600 instead of 700, and
+`design: 'basic'` controls with field-sized text and the height of the Cocoar inputs. Without the
+class nothing changes.
+
 ## Validation
 
 Validation is always calculated, while `show-errors` controls its visual

@@ -1,4 +1,5 @@
 import { computed, onBeforeUnmount, ref, toValue, watch, type ComputedRef, type MaybeRefOrGetter, type Ref } from 'vue';
+import { withCompactDragContext } from './useDragImage';
 import {
   DRAG_MIME,
   registerDrag,
@@ -161,7 +162,9 @@ export function detectDragEngine(): 'native' | 'pointer' {
 const INTERACTIVE_SELECTOR = 'button, a, input, textarea, select, [contenteditable=""], [contenteditable="true"]';
 
 function defaultGhost(source: HTMLElement, count: number, extraClass?: string): HTMLElement {
-  const ghost = source.cloneNode(true) as HTMLElement;
+  const clone = source.cloneNode(true) as HTMLElement;
+  clone.removeAttribute('id');
+  const ghost = withCompactDragContext(source, clone);
   const rect = source.getBoundingClientRect();
   ghost.classList.add('coar-dnd-ghost');
   if (extraClass) ghost.classList.add(extraClass);
@@ -177,6 +180,11 @@ function defaultGhost(source: HTMLElement, count: number, extraClass?: string): 
     opacity: '0.85',
     cursor: 'grabbing',
   } satisfies Partial<CSSStyleDeclaration>);
+  if (ghost !== clone) {
+    ghost.style.background = 'var(--coar-background-neutral-primary, #fff)';
+    ghost.style.borderRadius = 'var(--coar-control-radius, 6px)';
+    ghost.style.boxShadow = 'var(--coar-shadow-m, 0 6px 18px rgba(0, 0, 0, 0.18))';
+  }
   if (count > 1) {
     const badge = document.createElement('span');
     badge.className = 'coar-dnd-ghost__count';
@@ -190,7 +198,7 @@ function defaultGhost(source: HTMLElement, count: number, extraClass?: string): 
       borderRadius: '999px',
       background: 'var(--coar-background-accent-primary, #2563eb)',
       color: 'var(--coar-text-on-accent, #fff)',
-      fontSize: '0.75rem',
+      fontSize: 'var(--coar-caption-font-size, 0.75rem)',
       lineHeight: '1.25rem',
       textAlign: 'center',
     } satisfies Partial<CSSStyleDeclaration>);

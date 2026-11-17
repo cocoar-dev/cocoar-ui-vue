@@ -1,14 +1,22 @@
+/*
+ * Presentation roles: several declarations read an optional
+ * `--coar-markdown-form-*` role first and fall back to the exact legacy value.
+ * Only the opt-in `.coar-compact` profile (`markdown-form-compact.css`)
+ * defines them; without it every fallback applies unchanged.
+ */
+@import './markdown-form-compact.css';
+
 .coar-markdown-form > .coar-markdown {
   max-width: none;
 }
 .coar-markdown-form__issues {
   margin-block-end: 1rem;
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--coar-color-danger-500, #b42318);
-  border-radius: var(--coar-radius-m, 6px);
-  background: var(--coar-color-danger-50, #fef3f2);
-  color: var(--coar-color-danger-800, #7a271a);
-  font-size: 0.85rem;
+  padding: var(--coar-markdown-form-issues-padding, 0.75rem 1rem);
+  border: 1px solid var(--coar-markdown-form-error-border, var(--coar-color-danger-500, #b42318));
+  border-radius: var(--coar-markdown-form-issues-radius, var(--coar-radius-m, 6px));
+  background: var(--coar-markdown-form-issues-background, var(--coar-color-danger-50, #fef3f2));
+  color: var(--coar-markdown-form-issues-color, var(--coar-color-danger-800, #7a271a));
+  font-size: var(--coar-markdown-form-issues-font-size, 0.85rem);
 }
 .coar-markdown-form__issues ul {
   margin: 0.35rem 0 0;
@@ -70,16 +78,16 @@
   min-height: 58px;
   margin: 2px 0 10px;
   overflow: hidden;
-  border: 1px dashed #abc0c7;
-  border-radius: 3px 10px 3px 10px;
-  background: #fbfdfd;
+  border: 1px dashed var(--coar-markdown-form-block-border, #abc0c7);
+  border-radius: var(--coar-markdown-form-block-radius, 3px 10px 3px 10px);
+  background: var(--coar-markdown-form-block-background, #fbfdfd);
   transition:
     border-color 120ms ease,
     box-shadow 120ms ease;
 }
 .coar-markdown-form-field--block:focus-within {
-  border-color: #326b8c;
-  box-shadow: 0 0 0 3px rgba(50, 107, 140, 0.12);
+  border-color: var(--coar-markdown-form-focus-border, #326b8c);
+  box-shadow: var(--coar-markdown-form-focus-ring, 0 0 0 3px rgba(50, 107, 140, 0.12));
 }
 .coar-markdown-form-field--frameless {
   border-color: transparent;
@@ -109,36 +117,36 @@
   margin-block-end: 0;
 }
 .coar-markdown-form-field--underlined {
-  border-bottom: 1px solid #a5b3b8;
+  border-bottom: 1px solid var(--coar-markdown-form-underline, #a5b3b8);
 }
 .coar-markdown-form-field__readonly {
   padding: 1px 2px;
-  color: #1c3c4b;
-  font-weight: 700;
+  color: var(--coar-markdown-form-value-color, #1c3c4b);
+  font-weight: var(--coar-markdown-form-value-font-weight, 700);
 }
 .coar-markdown-form-field__empty {
   display: block;
   min-height: 44px;
   padding: 8px 10px;
-  color: #9aa5aa;
+  color: var(--coar-markdown-form-empty-color, #9aa5aa);
 }
 .coar-markdown-form-field__invalid {
   padding: 0.3rem 0.45rem;
-  color: var(--coar-color-danger-700, #b42318);
-  font-size: 0.78rem;
+  color: var(--coar-markdown-form-error-color, var(--coar-color-danger-700, #b42318));
+  font-size: var(--coar-markdown-form-caption-font-size, 0.78rem);
 }
 .coar-markdown-form-field--block.coar-markdown-form-field--error {
-  border-color: var(--coar-color-danger-500, #b42318);
+  border-color: var(--coar-markdown-form-error-border, var(--coar-color-danger-500, #b42318));
   border-style: solid;
-  box-shadow: 0 0 0 2px rgba(180, 35, 24, 0.1);
+  box-shadow: var(--coar-markdown-form-error-ring, 0 0 0 2px rgba(180, 35, 24, 0.1));
 }
 .coar-markdown-form-field__error {
   display: block;
   flex-basis: 100%;
   margin-block-start: 3px;
-  color: var(--coar-color-danger-700, #b42318);
-  font-size: 0.7rem;
-  line-height: 1.2;
+  color: var(--coar-markdown-form-error-color, var(--coar-color-danger-700, #b42318));
+  font-size: var(--coar-markdown-form-error-font-size, 0.7rem);
+  line-height: var(--coar-markdown-form-error-line-height, 1.2);
 }
 .coar-markdown-form-field__error--inline {
   position: absolute;
@@ -150,20 +158,20 @@
   white-space: nowrap;
 }
 .coar-markdown-form-basic-control[aria-invalid='true'] {
-  border-color: var(--coar-color-danger-500, #b42318);
+  border-color: var(--coar-markdown-form-error-border, var(--coar-color-danger-500, #b42318));
 }
 .coar-markdown-form-basic-control {
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
-  min-height: 27px;
-  padding: 2px 6px;
-  border: 1px solid #aebbc0;
-  border-radius: 3px;
-  background: #fff;
-  color: #25353d;
+  min-height: var(--coar-markdown-form-control-height, 27px);
+  padding: var(--coar-markdown-form-control-padding, 2px 6px);
+  border: 1px solid var(--coar-markdown-form-control-border, #aebbc0);
+  border-radius: var(--coar-markdown-form-control-radius, 3px);
+  background: var(--coar-markdown-form-control-background, #fff);
+  color: var(--coar-markdown-form-control-color, #25353d);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--coar-markdown-form-control-font-size, 12px);
 }
 .coar-markdown-form-basic-checkbox {
   display: inline-flex;

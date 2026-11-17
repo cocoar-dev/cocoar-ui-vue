@@ -220,7 +220,8 @@ function onChevron(e: MouseEvent) {
   gap: 6px;
   padding: var(--coar-tree-row-pad-y, 3px) var(--coar-tree-row-pad-x, 4px)
     var(--coar-tree-row-pad-y, 3px) 0;
-  font-size: var(--coar-tree-row-font, var(--coar-body-small-base-size, 13px));
+  /* `m` density sets no row font, so the compact profile's UI size applies there. */
+  font-size: var(--coar-tree-row-font, var(--coar-ui-font-size, var(--coar-body-small-base-size, 13px)));
   cursor: pointer;
   user-select: none;
   outline: none;
@@ -280,7 +281,7 @@ function onChevron(e: MouseEvent) {
   flex-shrink: 0;
   background: transparent;
   border: none;
-  border-radius: var(--coar-radius-xs, 2px);
+  border-radius: var(--coar-control-radius, var(--coar-radius-xs, 2px));
   padding: 0;
   color: var(--coar-text-neutral-tertiary);
   cursor: pointer;
@@ -308,7 +309,8 @@ function onChevron(e: MouseEvent) {
   height: var(--coar-tree-control-size, 16px);
   flex-shrink: 0;
   border: 1px solid var(--coar-border-input, #cbd5e1);
-  border-radius: var(--coar-radius-xs, 2px);
+  /* Follows CoarCheckbox, which rounds with --coar-input-radius. */
+  border-radius: var(--coar-tree-checkbox-radius, var(--coar-radius-xs, 2px));
   background: var(--coar-surface-input, #fff);
   cursor: pointer;
   box-sizing: border-box;

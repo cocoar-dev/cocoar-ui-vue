@@ -134,10 +134,12 @@ const BodyRenderer = computed(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-width: var(--coar-dialog-close-size, auto);
+  min-height: var(--coar-dialog-close-size, auto);
   background: none;
   border: none;
   padding: var(--coar-spacing-xs);
-  border-radius: var(--coar-radius-s);
+  border-radius: var(--coar-control-radius, var(--coar-radius-s));
   color: var(--coar-text-neutral-secondary);
   cursor: pointer;
   flex-shrink: 0;
@@ -152,6 +154,10 @@ const BodyRenderer = computed(() => {
 .coar-dialog-close:focus-visible {
   outline: var(--coar-focus-width) var(--coar-focus-style) var(--coar-focus-color);
   outline-offset: -2px;
+}
+
+.coar-compact .coar-dialog-close {
+  box-sizing: border-box;
 }
 
 .coar-dialog-body {

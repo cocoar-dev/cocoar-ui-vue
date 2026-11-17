@@ -40,6 +40,15 @@ describe('CoarContinuousMonthView', () => {
     expect(wrapper.classes()).not.toContain('coar-continuous-month-view--shade-weekends');
   });
 
+  it.each([0, 1])('derives weekend header flags from dates with firstDayOfWeek=%s', (first) => {
+    const calendar = builder().locale('en-US').firstDayOfWeek(first as 0 | 1);
+    const wrapper = mount(CoarContinuousMonthView, { props: { builder: calendar } });
+    const current = wrapper.find('[data-month-key="2026-06"]');
+    expect(current.findAll('.coar-month-grid__weekday-cell--weekend').map((cell) => cell.text()).sort())
+      .toEqual(['Sat', 'Sun']);
+    wrapper.unmount();
+  });
+
   it('uses the iOS base row heights for Compact, Stacked and Details', async () => {
     const calendar = builder().monthDensity('compact');
     const wrapper = mount(CoarContinuousMonthView, { props: { builder: calendar } });

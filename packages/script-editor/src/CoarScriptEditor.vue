@@ -228,6 +228,10 @@ defineExpose({
 </template>
 
 <style>
+/* Opt-in `.coar-compact` profile (Preview): defines the `--coar-script-editor-*`
+   frame roles read below; without the class every `var(role, legacy)` keeps its value. */
+@import './styles/script-editor-compact.css';
+
 .coar-script-editor {
   position: relative;
   display: block;
@@ -235,7 +239,7 @@ defineExpose({
   height: 100%;
   min-height: 200px;
   border: 1px solid var(--coar-border-input, var(--coar-border-neutral-tertiary, #e5e7eb));
-  border-radius: var(--coar-radius-xs, 4px);
+  border-radius: var(--coar-script-editor-radius, var(--coar-radius-xs, 4px));
   overflow: hidden;
   background: var(--coar-background-neutral-primary, #ffffff);
   transition:
@@ -297,7 +301,13 @@ defineExpose({
   top: 8px;
   left: 12px;
   color: var(--coar-text-placeholder, #9ca3af);
-  font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+  font-family: var(
+    --coar-script-editor-placeholder-font-family,
+    'Fira Code',
+    'Cascadia Code',
+    'Consolas',
+    monospace
+  );
   font-size: 13px;
   pointer-events: none;
   white-space: pre-line;

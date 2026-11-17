@@ -64,9 +64,9 @@ const expectedType = computed(() => expectedExpressionType(props.target));
 .pb-expression-dialog { display: flex; flex-direction: column; gap: 12px; }
 .pb-expression-dialog__meta { display: flex; justify-content: space-between; gap: 24px; }
 .pb-expression-dialog__meta div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.pb-expression-dialog__meta span, .pb-expression-dialog__hint { color: var(--coar-text-neutral-secondary, #666); font-size: 12px; }
+.pb-expression-dialog__meta span, .pb-expression-dialog__hint { color: var(--coar-text-neutral-secondary, #666); font-size: var(--coar-page-builder-meta-font-size, 12px); }
 .pb-expression-dialog__meta strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pb-expression-dialog__editor { flex: none; border: 1px solid var(--coar-border-neutral, #ddd); border-radius: 6px; overflow: hidden; }
+.pb-expression-dialog__editor { flex: none; border: 1px solid var(--coar-border-neutral, #ddd); border-radius: var(--coar-page-builder-panel-radius, 6px); overflow: hidden; }
 .pb-expression-dialog__hint { margin: 0; }
 .pb-expression-dialog footer { display: flex; justify-content: flex-end; gap: 8px; }
 </style>

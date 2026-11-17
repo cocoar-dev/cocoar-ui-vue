@@ -14,6 +14,11 @@
   align-items: center;
   gap: var(--coar-spacing-xs, 4px);
 }
+/* Touch-sized controls can otherwise make the optional-time composition
+   wider than its container after switching from date to date-time. */
+:is(.coar-compact, .coar-compact *).coar-date-or-time {
+  max-width: 100%;
+}
 .coar-date-or-time--toggle-end .coar-date-or-time__toggle {
   order: 1;
 }

@@ -19,6 +19,8 @@
 interface Props {
   /** Localised, first-day-of-week-respecting weekday labels. */
   weekdayHeaders: ReadonlyArray<string>;
+  /** Actual dates, not weekday positions or translated label text, determine weekends. */
+  weekendColumns?: ReadonlyArray<boolean>;
   /**
    * Forward the rows container's DOM element to the parent the
    * moment it mounts (and `null` on unmount). The parent uses it
@@ -47,6 +49,7 @@ defineSlots<{
         v-for="(name, i) in weekdayHeaders"
         :key="i"
         class="coar-month-grid__weekday-cell"
+        :class="{ 'coar-month-grid__weekday-cell--weekend': weekendColumns?.[i] }"
         role="columnheader"
         :aria-colindex="i + 1"
       >
@@ -81,9 +84,9 @@ defineSlots<{
   background: var(--coar-calendar-bg, #fff);
 }
 .coar-month-grid__weekday-cell {
-  padding: 8px 12px;
-  font-size: var(--coar-font-size-xs, 11px);
-  font-weight: 600;
+  padding: var(--coar-calendar-weekday-cell-padding, 8px 12px);
+  font-size: var(--coar-calendar-caption-font-size, var(--coar-font-size-xs, 11px));
+  font-weight: var(--coar-calendar-caption-font-weight, 600);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--coar-text-subtle, #6c7280);

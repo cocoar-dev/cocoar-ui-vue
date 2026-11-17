@@ -452,15 +452,15 @@ const sizeClass = computed(
   display: flex;
   align-items: center;
   justify-content: center;
-  width: var(--coar-component-m-height);
-  height: calc(var(--coar-component-m-height) * 0.6);
+  width: var(--coar-time-step-size, var(--coar-component-m-height));
+  height: var(--coar-time-step-size, calc(var(--coar-component-m-height) * 0.6));
   padding: 0;
   border: none;
   border-radius: var(--coar-radius-xs);
   background: transparent;
   color: var(--coar-icon-neutral-secondary);
   cursor: pointer;
-  opacity: 0;
+  opacity: var(--coar-picker-action-opacity, 0);
   transition:
     background-color var(--coar-duration-fast) var(--coar-ease-out),
     color var(--coar-duration-fast) var(--coar-ease-out),
@@ -484,11 +484,11 @@ const sizeClass = computed(
 
 /* Show buttons on hover/focus-within */
 .coar-time-picker-host:hover .coar-time-picker__btn {
-  opacity: 0.35;
+  opacity: var(--coar-picker-action-opacity, 0.35);
 }
 
 .coar-time-picker-host:focus-within .coar-time-picker__btn {
-  opacity: 0.35;
+  opacity: var(--coar-picker-action-opacity, 0.35);
 }
 
 .coar-time-picker__btn:hover:not(:disabled) {
@@ -500,8 +500,8 @@ const sizeClass = computed(
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: var(--coar-component-m-height);
-  height: var(--coar-component-m-height);
+  min-width: var(--coar-time-cell-height, var(--coar-component-m-height));
+  height: var(--coar-time-cell-height, var(--coar-component-m-height));
   padding: 0 var(--coar-spacing-s);
   border: 1px solid var(--coar-border-input);
   /* Follow the themeable field radius (not a hardcoded step) so the spinner cells
@@ -509,7 +509,7 @@ const sizeClass = computed(
   border-radius: var(--coar-input-radius);
   background: var(--coar-surface-input);
   font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-component-m-font-size);
+  font-size: max(var(--coar-field-font-size, var(--coar-component-m-font-size)), var(--coar-field-min-font-size, 0px));
   font-weight: var(--coar-body-small-base-weight);
   font-variant-numeric: tabular-nums;
   color: var(--coar-text-neutral-primary);
@@ -566,15 +566,15 @@ const sizeClass = computed(
 
 /* XS */
 .coar-time-picker--xs .coar-time-picker__btn {
-  width: var(--coar-component-xs-height);
-  height: calc(var(--coar-component-xs-height) * 0.6);
+  width: var(--coar-time-step-size, var(--coar-component-xs-height));
+  height: var(--coar-time-step-size, calc(var(--coar-component-xs-height) * 0.6));
 }
 
 .coar-time-picker--xs .coar-time-picker__value {
-  min-width: var(--coar-component-xs-height);
-  height: var(--coar-component-xs-height);
+  min-width: var(--coar-time-cell-height, var(--coar-component-xs-height));
+  height: var(--coar-time-cell-height, var(--coar-component-xs-height));
   padding: 0 var(--coar-spacing-xs);
-  font-size: var(--coar-component-xs-font-size);
+  font-size: max(var(--coar-field-xs-font-size, var(--coar-field-xs-default-font-size, var(--coar-field-font-size, var(--coar-component-xs-font-size)))), var(--coar-field-min-font-size, 0px));
 }
 
 .coar-time-picker--xs .coar-time-picker__separator {
@@ -587,15 +587,15 @@ const sizeClass = computed(
 
 /* S */
 .coar-time-picker--s .coar-time-picker__btn {
-  width: var(--coar-component-s-height);
-  height: calc(var(--coar-component-s-height) * 0.6);
+  width: var(--coar-time-step-size, var(--coar-component-s-height));
+  height: var(--coar-time-step-size, calc(var(--coar-component-s-height) * 0.6));
 }
 
 .coar-time-picker--s .coar-time-picker__value {
-  min-width: var(--coar-component-s-height);
-  height: var(--coar-component-s-height);
+  min-width: var(--coar-time-cell-height, var(--coar-component-s-height));
+  height: var(--coar-time-cell-height, var(--coar-component-s-height));
   padding: 0 var(--coar-spacing-s);
-  font-size: var(--coar-component-s-font-size);
+  font-size: max(var(--coar-field-s-font-size, var(--coar-field-s-default-font-size, var(--coar-field-font-size, var(--coar-component-s-font-size)))), var(--coar-field-min-font-size, 0px));
 }
 
 .coar-time-picker--s .coar-time-picker__separator {
@@ -608,15 +608,15 @@ const sizeClass = computed(
 
 /* L */
 .coar-time-picker--l .coar-time-picker__btn {
-  width: var(--coar-component-l-height);
-  height: calc(var(--coar-component-l-height) * 0.6);
+  width: var(--coar-time-step-size, var(--coar-component-l-height));
+  height: var(--coar-time-step-size, calc(var(--coar-component-l-height) * 0.6));
 }
 
 .coar-time-picker--l .coar-time-picker__value {
-  min-width: var(--coar-component-l-height);
-  height: var(--coar-component-l-height);
+  min-width: var(--coar-time-cell-height, var(--coar-component-l-height));
+  height: var(--coar-time-cell-height, var(--coar-component-l-height));
   padding: 0 var(--coar-spacing-m);
-  font-size: var(--coar-component-l-font-size);
+  font-size: max(var(--coar-field-l-font-size, var(--coar-field-l-default-font-size, var(--coar-field-font-size, var(--coar-component-l-font-size)))), var(--coar-field-min-font-size, 0px));
 }
 
 .coar-time-picker--l .coar-time-picker__separator {
@@ -643,6 +643,10 @@ const sizeClass = computed(
 
 .coar-time-picker--readonly .coar-time-picker__btn {
   display: none;
+}
+
+.coar-compact .coar-time-picker__value {
+  box-sizing: border-box;
 }
 
 /* ========================================

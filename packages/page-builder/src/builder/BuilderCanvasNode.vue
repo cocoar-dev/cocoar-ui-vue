@@ -344,24 +344,24 @@ function zoneClasses(index: number): Record<string, boolean> {
 <style scoped>
 /* ── Color families ───────────────────────────────────────────────────────── */
 .canvas-node {
-  /* Selection follows the host accent instead of a hardcoded blue, but is
-     pulled down in chroma so authoring never competes with the page content. */
+  /* Keep the muted fill independent of the readable selected frame and label. */
   --canvas-accent: oklch(from var(--coar-background-accent-primary, #315f91) 0.44 0.07 h);
-  --canvas-border: rgba(80, 86, 96, 0.16);
-  --canvas-border-selected: var(--canvas-accent);
-  --canvas-tab-fg: #666b73;
-  --canvas-tab-bg: #fff;
-  --canvas-tab-border: rgba(80, 86, 96, 0.24);
+  --canvas-border: var(--coar-page-builder-canvas-border, rgba(80, 86, 96, 0.16));
+  --canvas-border-hover: var(--coar-page-builder-canvas-border-hover, rgba(80, 86, 96, 0.34));
+  --canvas-border-selected: var(--coar-page-builder-canvas-selection-color, var(--canvas-accent));
+  --canvas-tab-fg: var(--coar-page-builder-canvas-tab-fg, #666b73);
+  --canvas-tab-bg: var(--coar-page-builder-canvas-tab-bg, #fff);
+  --canvas-tab-border: var(--coar-page-builder-canvas-tab-border, rgba(80, 86, 96, 0.24));
 }
 .canvas-node--container {
-  --canvas-border: rgba(80, 86, 96, 0.16);
-  --canvas-tab-fg: #666b73;
-  --canvas-tab-border: rgba(80, 86, 96, 0.24);
+  --canvas-border: var(--coar-page-builder-canvas-border, rgba(80, 86, 96, 0.16));
+  --canvas-tab-fg: var(--coar-page-builder-canvas-tab-fg, #666b73);
+  --canvas-tab-border: var(--coar-page-builder-canvas-tab-border, rgba(80, 86, 96, 0.24));
 }
 .canvas-node--element {
-  --canvas-border: rgba(80, 86, 96, 0.16);
-  --canvas-tab-fg: #666b73;
-  --canvas-tab-border: rgba(80, 86, 96, 0.24);
+  --canvas-border: var(--coar-page-builder-canvas-border, rgba(80, 86, 96, 0.16));
+  --canvas-tab-fg: var(--coar-page-builder-canvas-tab-fg, #666b73);
+  --canvas-tab-border: var(--coar-page-builder-canvas-tab-border, rgba(80, 86, 96, 0.24));
 }
 
 /* ── Base wrapper ─────────────────────────────────────────────────────────── */
@@ -369,7 +369,7 @@ function zoneClasses(index: number): Record<string, boolean> {
   position: relative;
   box-sizing: border-box;
   border: 1px solid var(--canvas-border);
-  border-radius: 5px;
+  border-radius: var(--coar-page-builder-control-radius, 5px);
   padding: 11px 8px 8px;
   cursor: pointer;
   transition: border-color 0.12s ease-out, background-color 0.12s ease-out;
@@ -392,10 +392,12 @@ function zoneClasses(index: number): Record<string, boolean> {
   min-height: 0;
 }
 
-.canvas-node:hover:not(:has(.canvas-node:hover)) { border-color: rgba(80, 86, 96, 0.34); }
-.canvas-node--responsive-hidden { opacity: 0.52; background: repeating-linear-gradient(-45deg, transparent 0 6px, rgba(90,90,100,.06) 6px 12px); }
+.canvas-node:hover:not(:has(.canvas-node:hover)) { border-color: var(--canvas-border-hover); }
+.canvas-node--responsive-hidden { opacity: 0.52; background: repeating-linear-gradient(-45deg, transparent 0 6px, var(--coar-page-builder-hatch, rgba(90,90,100,.06)) 6px 12px); }
 
 .canvas-node--selected {
+  /* Compact selection stays visible under the pointer; default hover is unchanged. */
+  --canvas-border-hover: var(--coar-page-builder-canvas-selection-color, var(--coar-page-builder-canvas-border-hover, rgba(80, 86, 96, 0.34)));
   border-color: var(--canvas-border-selected);
   border-style: solid;
   background: color-mix(in oklab, var(--canvas-accent) 4%, transparent);
@@ -406,13 +408,13 @@ function zoneClasses(index: number): Record<string, boolean> {
 
 /* ── Runtime-blocked (unknown type / not in allowedElements) ── */
 .canvas-node--blocked {
-  --canvas-border: rgba(192, 57, 43, 0.5);
-  --canvas-tab-fg: #c0392b;
-  --canvas-tab-border: rgba(192, 57, 43, 0.55);
+  --canvas-border: var(--coar-page-builder-blocked-border, rgba(192, 57, 43, 0.5));
+  --canvas-tab-fg: var(--coar-page-builder-error-accent, #c0392b);
+  --canvas-tab-border: var(--coar-page-builder-blocked-tab-border, rgba(192, 57, 43, 0.55));
   background: repeating-linear-gradient(
     45deg,
-    rgba(192, 57, 43, 0.04) 0px,
-    rgba(192, 57, 43, 0.04) 6px,
+    var(--coar-page-builder-blocked-hatch, rgba(192, 57, 43, 0.04)) 0px,
+    var(--coar-page-builder-blocked-hatch, rgba(192, 57, 43, 0.04)) 6px,
     transparent 6px,
     transparent 12px
   );
@@ -423,8 +425,9 @@ function zoneClasses(index: number): Record<string, boolean> {
   align-items: center;
   gap: 6px;
   margin: 2px 0 6px;
+  /* In the canvas flow: a size change would move the authored layout. */
   font-size: 11px;
-  font-weight: 500;
+  font-weight: var(--coar-page-builder-label-font-weight, 500);
   color: var(--coar-text-semantic-error-bold, #c0392b);
 }
 
@@ -446,7 +449,7 @@ function zoneClasses(index: number): Record<string, boolean> {
   background: var(--canvas-tab-bg);
   border: 1px solid var(--canvas-tab-border);
   border-radius: 4px;
-  font-size: 10px;
+  font-size: var(--coar-page-builder-badge-font-size, 10px);
   font-weight: 400;
   color: var(--canvas-tab-fg);
   white-space: nowrap;
@@ -472,7 +475,7 @@ function zoneClasses(index: number): Record<string, boolean> {
 .canvas-node--selected > .canvas-node__tab {
   border-color: var(--canvas-border-selected);
   color: var(--canvas-border-selected);
-  font-weight: 500;
+  font-weight: var(--coar-page-builder-label-font-weight, 500);
 }
 
 .canvas-node__tab-label {
@@ -557,8 +560,8 @@ function zoneClasses(index: number): Record<string, boolean> {
 
 /* ── Drop zones ───────────────────────────────────────────────────────────── */
 .canvas-dropzone {
-  border: 1px dashed rgba(22, 102, 204, 0.45);
-  background: rgba(22, 102, 204, 0.12);
+  border: 1px dashed var(--coar-page-builder-drop-zone-border, rgba(22, 102, 204, 0.45));
+  background: var(--coar-page-builder-drop-zone-bg, rgba(22, 102, 204, 0.12));
   border-radius: 3px;
   flex-shrink: 0;
   box-sizing: border-box;
@@ -574,9 +577,10 @@ function zoneClasses(index: number): Record<string, boolean> {
   opacity: 1;
   pointer-events: auto;
   padding: 14px 12px;
-  border-color: rgba(102, 102, 110, 0.25);
-  background: rgba(102, 102, 110, 0.04);
+  border-color: var(--coar-page-builder-drop-zone-idle-border, rgba(102, 102, 110, 0.25));
+  background: var(--coar-page-builder-drop-zone-idle-bg, rgba(102, 102, 110, 0.04));
   color: var(--coar-text-neutral-tertiary, #8a8a90);
+  /* In the canvas flow: a size change would move the authored layout. */
   font-size: 12px;
   text-align: center;
   font-style: italic;
@@ -585,20 +589,20 @@ function zoneClasses(index: number): Record<string, boolean> {
 }
 
 .canvas-dropzone--drag-active {
-  border-color: rgba(22, 102, 204, 0.7);
-  background: rgba(22, 102, 204, 0.2);
+  border-color: var(--coar-page-builder-drop-zone-active-border, rgba(22, 102, 204, 0.7));
+  background: var(--coar-page-builder-drop-zone-active-bg, rgba(22, 102, 204, 0.2));
 }
 
 .canvas-dropzone--over {
   border-style: solid;
-  border-color: rgba(22, 102, 204, 0.95);
-  background: rgba(22, 102, 204, 0.35);
-  box-shadow: inset 0 0 0 1px rgba(22, 102, 204, 0.6);
+  border-color: var(--coar-page-builder-drop-zone-over-border, rgba(22, 102, 204, 0.95));
+  background: var(--coar-page-builder-drop-zone-over-bg, rgba(22, 102, 204, 0.35));
+  box-shadow: inset 0 0 0 1px var(--coar-page-builder-drop-zone-over-inset, rgba(22, 102, 204, 0.6));
 }
 
 .canvas-dropzone--disabled {
-  background: rgba(100, 100, 106, 0.08);
-  border-color: rgba(100, 100, 106, 0.3);
+  background: var(--coar-page-builder-drop-zone-disabled-bg, rgba(100, 100, 106, 0.08));
+  border-color: var(--coar-page-builder-drop-zone-disabled-border, rgba(100, 100, 106, 0.3));
   opacity: 0.55;
 }
 
@@ -633,9 +637,10 @@ function zoneClasses(index: number): Record<string, boolean> {
   align-items: center;
   gap: 6px;
   padding: 10px;
-  border: 1px dashed rgba(102, 102, 110, 0.3);
+  border: 1px dashed var(--coar-page-builder-dashed-border, rgba(102, 102, 110, 0.3));
   border-radius: 4px;
   color: var(--coar-text-neutral-secondary, #888);
+  /* In the canvas flow: a size change would move the authored layout. */
   font-size: 12px;
 }
 </style>

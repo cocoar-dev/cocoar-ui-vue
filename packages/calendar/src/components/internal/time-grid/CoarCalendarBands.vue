@@ -162,7 +162,7 @@ function classes(band: ResolvedBand): string[] {
   text-overflow: ellipsis;
   box-sizing: border-box;
   padding: 0 3px;
-  font-size: 10px;
+  font-size: var(--coar-calendar-event-meta-font-size, 10px);
   line-height: 14px;
   white-space: nowrap;
   color: var(--coar-text-subtle, #6c7280);

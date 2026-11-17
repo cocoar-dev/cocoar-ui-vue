@@ -27,6 +27,7 @@ export const SECTIONS = [
       'foundations/icons.md',
       'foundations/motion.md',
       'foundations/theming.md',
+      'foundations/compact-presentation.md',
     ],
   },
   {

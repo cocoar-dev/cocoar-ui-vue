@@ -85,7 +85,7 @@ if (rename && rowId) {
   color: inherit;
   background: var(--coar-background-neutral-primary);
   border: 1px solid var(--coar-border-accent-primary);
-  border-radius: var(--coar-radius-xs, 2px);
+  border-radius: var(--coar-control-radius, var(--coar-radius-xs, 2px));
   padding: 1px 4px;
   margin: -2px 0;
   outline: none;

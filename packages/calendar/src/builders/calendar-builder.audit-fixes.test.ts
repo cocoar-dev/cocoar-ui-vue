@@ -152,35 +152,23 @@ describe('Audit #2 — privileged methods are symbol-keyed (unforgeable)', () =>
 // ─── Audit #3 (HIGH): per-builder UTC fallback warn ─────────────
 
 describe('Audit #3 — UTC fallback produces a per-builder console.error', () => {
-  it('logs an error per-builder when detection falls back to UTC', async () => {
-    // Re-import via vi.doMock so we can stub detectBrowserTimezone.
-    vi.resetModules();
-    vi.doMock('../core', async () => {
-      const real = await vi.importActual<typeof import('../core')>('../core');
-      return { ...real, detectBrowserTimezone: () => 'UTC' };
-    });
+  it('logs an error per-builder when Intl supplies no timezone', () => {
+    const options = Intl.DateTimeFormat().resolvedOptions();
+    vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({ ...options, timeZone: '' });
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const { CalendarBuilder: Reloaded } = await import('./calendar-builder');
-    Reloaded.create();
+    expect(CalendarBuilder.create().state.timezone).toBe('UTC');
     expect(errorSpy).toHaveBeenCalledTimes(1);
-    expect(errorSpy.mock.calls[0][0]).toMatch(/UTC|silent|fell back/i);
-    Reloaded.create();
+    expect(errorSpy.mock.calls[0][0]).toMatch(/fell back to UTC/i);
+    CalendarBuilder.create();
     expect(errorSpy).toHaveBeenCalledTimes(2); // PER-builder, not per-process
-    vi.doUnmock('../core');
-    vi.resetModules();
   });
 
-  it('does NOT log when detection returns a real zone', () => {
-    // happy-dom default returns a real Intl-detectable zone; no error.
+  it.each(['UTC', 'Europe/Vienna'])('does not log when Intl reports %s', (timeZone) => {
+    const options = Intl.DateTimeFormat().resolvedOptions();
+    vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({ ...options, timeZone });
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    CalendarBuilder.create();
-    // The default zone in happy-dom is typically 'UTC' too in some
-    // configurations — accept either no error OR the documented one.
-    // The intent: we don't error spuriously on already-good detection.
-    // (If happy-dom returns UTC, that's a fair fallback warn.)
-    if (errorSpy.mock.calls.length > 0) {
-      expect(errorSpy.mock.calls[0][0]).toMatch(/UTC|fell back/i);
-    }
+    expect(CalendarBuilder.create().state.timezone).toBe(timeZone);
+    expect(errorSpy).not.toHaveBeenCalled();
   });
 });
 

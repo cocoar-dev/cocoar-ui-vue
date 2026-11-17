@@ -41,7 +41,7 @@ function toggle(event: MouseEvent) {
 </script>
 
 <template>
-  <div class="coar-tree-cell" :style="{ paddingLeft: `${depth * 20}px` }">
+  <div class="coar-tree-cell" :style="{ paddingLeft: `calc(${depth} * var(--coar-data-grid-tree-indent, 20px))` }">
     <span
       v-if="hasChildren"
       class="coar-tree-cell__toggle"
@@ -76,11 +76,11 @@ function toggle(event: MouseEvent) {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: var(--coar-data-grid-tree-toggle-size, 20px);
+  height: var(--coar-data-grid-tree-toggle-size, 20px);
   flex-shrink: 0;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: var(--coar-control-radius, 4px);
   transition: background-color 0.1s;
 }
 
@@ -89,7 +89,7 @@ function toggle(event: MouseEvent) {
 }
 
 .coar-tree-cell__spacer {
-  width: 20px;
+  width: var(--coar-data-grid-tree-toggle-size, 20px);
   flex-shrink: 0;
 }
 
@@ -101,7 +101,7 @@ function toggle(event: MouseEvent) {
 
 .coar-tree-cell__count {
   color: var(--coar-text-neutral-tertiary, #888);
-  font-size: 0.85em;
+  font-size: var(--coar-caption-font-size, 0.85em);
   flex-shrink: 0;
   margin-left: 4px;
 }

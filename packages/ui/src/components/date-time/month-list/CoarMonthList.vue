@@ -212,15 +212,15 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: var(--coar-picker-action-size, 28px);
+  height: var(--coar-picker-action-size, 28px);
   padding: 0;
   border: none;
   border-radius: var(--coar-radius-xs);
   background: transparent;
   color: var(--coar-icon-neutral-secondary);
   cursor: pointer;
-  opacity: 0.35;
+  opacity: var(--coar-picker-action-opacity, 0.35);
   transition:
     background-color var(--coar-duration-fast) var(--coar-ease-out),
     color var(--coar-duration-fast) var(--coar-ease-out),
@@ -266,7 +266,7 @@ onMounted(() => {
   align-items: center;
   justify-content: flex-start;
   width: 100%;
-  height: 32px;
+  height: var(--coar-picker-month-height, 32px);
   padding: 0 var(--coar-spacing-s);
   border: none;
   border-radius: var(--coar-radius-xs);

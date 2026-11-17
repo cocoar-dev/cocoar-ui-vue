@@ -239,7 +239,7 @@ function handleKeydown(event: KeyboardEvent) {
   padding: var(--coar-sidebar-item-padding, 0.5rem 0.75rem);
   margin: var(--coar-sidebar-item-margin, 2px 0);
   font-family: var(--coar-body-base-family);
-  font-size: var(--coar-component-m-font-size);
+  font-size: var(--coar-ui-font-size, var(--coar-component-m-font-size));
   font-weight: var(--coar-font-weight-regular);
   line-height: var(--coar-line-height-relaxed);
   color: var(--coar-text-neutral-secondary);
@@ -342,7 +342,7 @@ function handleKeydown(event: KeyboardEvent) {
 .coar-sidebar-item--collapsed {
   justify-content: center;
   padding: 0.5rem;
-  border-radius: var(--coar-radius-s);
+  border-radius: var(--coar-control-radius, var(--coar-radius-s));
 }
 
 .coar-sidebar-item--collapsed.coar-sidebar-item--vertical {

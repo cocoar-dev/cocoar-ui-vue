@@ -242,9 +242,10 @@ function setAllDayColumnsEl(el: HTMLElement | null) {
 
 // Touch paging (iOS parity). Owns the `--coar-time-grid-swipe-x`
 // translate the header cells, all-day columns and body columns share.
+const scrollableX = ref(false);
 const swipe = useTimeGridSwipe({
   columnsEl: columnsRef,
-  enabled: () => state.value.swipeNavigation && !props.ghost,
+  enabled: () => state.value.swipeNavigation && !props.ghost && !scrollableX.value,
   onCommit: (direction) => (direction === 1 ? props.builder.api.next() : props.builder.api.prev()),
 });
 watch(
@@ -490,16 +491,34 @@ function eventHorizontalStyle(
 // pixels. Measure the columns container once mounted and on resize.
 
 const columnsWidthPx = ref(0);
+const allDayLaneMetric = useTemplateRef<HTMLElement>('allDayLaneMetric');
+const allDayLaneHeight = ref(24);
 let columnsObserver: ResizeObserver | null = null;
 onMounted(() => {
   const el = columnsRef.value;
   if (!el) return;
+  const surface = surfaceRef.value;
+  const measureHorizontalScroll = () => {
+    scrollableX.value = !!surface && surface.scrollWidth > surface.clientWidth + 1;
+  };
+  measureHorizontalScroll();
   columnsWidthPx.value = el.getBoundingClientRect().width;
+  const metric = allDayLaneMetric.value;
+  const laneHeight = metric?.getBoundingClientRect().height ?? 0;
+  if (laneHeight > 0) allDayLaneHeight.value = laneHeight;
   if (typeof ResizeObserver === 'undefined') return;
-  columnsObserver = new ResizeObserver(([entry]) => {
-    columnsWidthPx.value = entry.contentRect.width;
+  columnsObserver = new ResizeObserver((entries) => {
+    measureHorizontalScroll();
+    for (const entry of entries) {
+      if (entry.target === el) columnsWidthPx.value = entry.contentRect.width;
+      if (entry.target === metric && entry.contentRect.height > 0) {
+        allDayLaneHeight.value = entry.contentRect.height;
+      }
+    }
   });
   columnsObserver.observe(el);
+  if (metric) columnsObserver.observe(metric);
+  if (surface) columnsObserver.observe(surface);
 });
 onBeforeUnmount(() => columnsObserver?.disconnect());
 
@@ -565,7 +584,7 @@ const allDayBandLaneCount = computed(() =>
   ),
 );
 const allDayMarkerTop = computed(
-  () => 4 + (allDayLaneCount.value - 1) * (ALL_DAY_LANE_HEIGHT + ALL_DAY_LANE_GAP),
+  () => 4 + (allDayLaneCount.value - 1) * (allDayLaneHeight.value + ALL_DAY_LANE_GAP),
 );
 function allDayOverflowLabel(hidden: number): string {
   return t(
@@ -575,11 +594,10 @@ function allDayOverflowLabel(hidden: number): string {
   );
 }
 
-const ALL_DAY_LANE_HEIGHT = 24;
 const ALL_DAY_LANE_GAP = 2;
 const allDayBandHeight = computed(() => {
   if (allDayBandLaneCount.value === 0) return 0;
-  return allDayBandLaneCount.value * (ALL_DAY_LANE_HEIGHT + ALL_DAY_LANE_GAP) + 8;
+  return allDayBandLaneCount.value * (allDayLaneHeight.value + ALL_DAY_LANE_GAP) + 8;
 });
 
 // Convert minutes-from-day-start to pixels.
@@ -704,6 +722,7 @@ defineExpose({
         'coar-time-grid--ghost': props.ghost,
         'coar-time-grid--selectable': selectable,
         'coar-time-grid--selecting': selection.selecting.value,
+        'coar-time-grid--scrollable-x': scrollableX,
       },
     ]"
     :style="props.ghost ? undefined : swipe.swipeStyle.value"
@@ -717,6 +736,10 @@ defineExpose({
           : t('coar.calendar.timegrid.weekLabel', undefined, 'Week view')
     "
   >
+    <!-- CSS owns the lane role; observing its independent box keeps bar
+         positions, overflow targets and the band budget on the same metric,
+         including when a surrounding mobile/theme scope changes. -->
+    <span ref="allDayLaneMetric" class="coar-time-grid__all-day-lane-metric" aria-hidden="true" />
     <!-- Live region for SR announcements (move committed / move
          cancelled). Visually hidden but read out by assistive
          tech. -->
@@ -744,7 +767,7 @@ defineExpose({
         :is-weekend="isWeekend"
         :format-label="formatDayHeader"
         :density="density"
-        :swipeable="state.swipeNavigation"
+        :swipeable="state.swipeNavigation && !scrollableX"
         @cells-pointerdown="onHeaderPointerdown"
       >
         <template v-if="$slots.dayHeader || state.dayHeaderRenderer" #dayHeader="slotProps">
@@ -781,7 +804,7 @@ defineExpose({
           :top="allDayMarkerTop"
           :left="`calc(${(marker.col / days.length) * 100}% + ${marker.col === 0 ? 4 : 2}px)`"
           :width="`calc(${(1 / days.length) * 100}% - ${(marker.col === 0 ? 4 : 2) + (marker.col === days.length - 1 ? 4 : 2)}px)`"
-          :height="ALL_DAY_LANE_HEIGHT"
+          :height="allDayLaneHeight"
           @expand="allDayExpanded = true"
         />
         <!--
@@ -808,10 +831,10 @@ defineExpose({
               : eventAriaLabel(bar.event)
           "
           :density="density"
-          :top="4 + bar.lane * (ALL_DAY_LANE_HEIGHT + ALL_DAY_LANE_GAP)"
+          :top="4 + bar.lane * (allDayLaneHeight + ALL_DAY_LANE_GAP)"
           :left="`calc(${(bar.startCol / days.length) * 100}% + ${bar.startCol === 0 ? 4 : 2}px)`"
           :width="`calc(${((bar.endCol - bar.startCol + 1) / days.length) * 100}% - ${(bar.startCol === 0 ? 4 : 2) + (bar.endCol === days.length - 1 ? 4 : 2)}px)`"
-          :height="ALL_DAY_LANE_HEIGHT"
+          :height="allDayLaneHeight"
           :z-index="isPreviewEvent(bar.event.id) ? 100 : 1"
           :clipped-start="bar.clippedStart"
           :clipped-end="bar.clippedEnd"
@@ -850,10 +873,10 @@ defineExpose({
           :border="eventBorderFor(dragAllDaySourceSnapshot.event)"
           :title="eventTitle(dragAllDaySourceSnapshot.event)"
           :density="density"
-          :top="4 + dragAllDaySourceSnapshot.lane * (ALL_DAY_LANE_HEIGHT + ALL_DAY_LANE_GAP)"
+          :top="4 + dragAllDaySourceSnapshot.lane * (allDayLaneHeight + ALL_DAY_LANE_GAP)"
           :left="`calc(${(dragAllDaySourceSnapshot.startCol / days.length) * 100}% + ${dragAllDaySourceSnapshot.startCol === 0 ? 4 : 2}px)`"
           :width="`calc(${((dragAllDaySourceSnapshot.endCol - dragAllDaySourceSnapshot.startCol + 1) / days.length) * 100}% - ${(dragAllDaySourceSnapshot.startCol === 0 ? 4 : 2) + (dragAllDaySourceSnapshot.endCol === days.length - 1 ? 4 : 2)}px)`"
-          :height="ALL_DAY_LANE_HEIGHT"
+          :height="allDayLaneHeight"
           :z-index="1"
           :clipped-start="dragAllDaySourceSnapshot.clippedStart"
           :clipped-end="dragAllDaySourceSnapshot.clippedEnd"
@@ -874,11 +897,11 @@ defineExpose({
           :snapping-back="dnd.snappingBack.value"
           :density="density"
           :top="
-            4 + (dragAllDaySourceSnapshot?.lane ?? 0) * (ALL_DAY_LANE_HEIGHT + ALL_DAY_LANE_GAP)
+            4 + (dragAllDaySourceSnapshot?.lane ?? 0) * (allDayLaneHeight + ALL_DAY_LANE_GAP)
           "
           :left="`calc(${(invalidAllDayGhost.startCol / days.length) * 100}% + ${invalidAllDayGhost.startCol === 0 ? 4 : 2}px)`"
           :width="`calc(${((invalidAllDayGhost.endCol - invalidAllDayGhost.startCol + 1) / days.length) * 100}% - ${(invalidAllDayGhost.startCol === 0 ? 4 : 2) + (invalidAllDayGhost.endCol === days.length - 1 ? 4 : 2)}px)`"
-          :height="ALL_DAY_LANE_HEIGHT"
+          :height="allDayLaneHeight"
           :z-index="100"
         />
       </CoarTimeGridAllDayBand>
@@ -1084,6 +1107,16 @@ defineExpose({
 </template>
 
 <style scoped>
+.coar-time-grid__all-day-lane-metric {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: var(--coar-calendar-all-day-lane-height, 24px);
+  visibility: hidden;
+  pointer-events: none;
+}
+
 /* Visually-hidden live-region — kept in the layout flow but
    off-screen so the surface ring around it can't catch focus and
    the surrounding layout doesn't shift. Standard a11y pattern. */
@@ -1152,7 +1185,7 @@ defineExpose({
    in `internal/time-grid/CoarTimeGridAllDayBar.vue`. The slot-
    fallback title span is owned by this parent. */
 .coar-time-grid__all-day-bar-title {
-  font-weight: 600;
+  font-weight: var(--coar-calendar-event-title-font-weight, 600);
   text-overflow: ellipsis;
   overflow: hidden;
   color: var(--coar-text-base, #1a1c1f);
@@ -1218,7 +1251,7 @@ defineExpose({
   right: 8px;
   transform: translateY(-50%);
   text-align: right;
-  font-size: var(--coar-font-size-xs, 11px);
+  font-size: var(--coar-calendar-caption-font-size, var(--coar-font-size-xs, 11px));
   color: var(--coar-text-subtle, #6c7280);
   padding-right: 8px;
 }
@@ -1242,6 +1275,12 @@ defineExpose({
 .coar-time-grid--selecting {
   user-select: none;
   -webkit-user-select: none;
+}
+/* Overflowing fixed spans use native horizontal scrolling, not a range
+   change. Both the header and empty slots must allow that same gesture. */
+.coar-time-grid--scrollable-x .coar-time-grid__columns,
+.coar-time-grid--scrollable-x :deep(.coar-time-grid-header__cells) {
+  touch-action: pan-x pan-y;
 }
 /* Hover indicator: a thin line across every day at the pointer's time. */
 .coar-time-grid__hover-line {
@@ -1277,7 +1316,7 @@ defineExpose({
   height: 100%;
 }
 .coar-time-grid__event-title {
-  font-weight: 600;
+  font-weight: var(--coar-calendar-event-title-font-weight, 600);
   color: var(--coar-text-base, #1a1c1f);
   text-overflow: ellipsis;
   overflow: hidden;

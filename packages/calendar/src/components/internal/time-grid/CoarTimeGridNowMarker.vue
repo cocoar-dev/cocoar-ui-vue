@@ -49,12 +49,12 @@ withDefaults(defineProps<Props>(), { topPx: 0, leftPx: 0, orientation: 'vertical
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--coar-color-danger, #dc2626);
+  background: var(--coar-calendar-now-color, var(--coar-color-danger, #dc2626));
 }
 .coar-time-grid-now-marker__line {
   display: block;
   height: 1px;
-  background: var(--coar-color-danger, #dc2626);
+  background: var(--coar-calendar-now-color, var(--coar-color-danger, #dc2626));
 }
 /* Horizontal grid: a vertical line through today's row, dot on top. */
 .coar-time-grid-now-marker--horizontal {

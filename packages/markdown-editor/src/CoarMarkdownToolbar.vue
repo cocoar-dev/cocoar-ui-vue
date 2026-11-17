@@ -44,7 +44,7 @@ export default defineComponent({
 .coar-md-external-toolbar {
   display: flex;
   min-width: 0;
-  min-height: 2.25rem;
+  min-height: var(--coar-markdown-editor-toolbar-size, 2.25rem);
   overflow: visible;
   background: var(--coar-background-neutral-secondary);
 }
@@ -61,7 +61,7 @@ export default defineComponent({
 
 .coar-md-external-toolbar--left,
 .coar-md-external-toolbar--right {
-  width: 2.25rem;
+  width: var(--coar-markdown-editor-toolbar-size, 2.25rem);
   min-height: 0;
 }
 </style>

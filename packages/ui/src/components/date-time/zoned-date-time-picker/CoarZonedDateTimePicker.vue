@@ -495,7 +495,7 @@ const tzIndicatorIcon = computed(() => {
   outline: none;
   padding: 0;
   font-family: var(--coar-body-small-base-family);
-  font-size: max(var(--coar-body-small-base-size), var(--coar-control-min-font-size, 0px));
+  font-size: max(var(--coar-field-font-size, var(--coar-body-small-base-size)), var(--coar-control-min-font-size, 0px), var(--coar-field-min-font-size, 0px));
   font-weight: var(--coar-body-small-base-weight);
   color: var(--coar-text-neutral-primary);
   text-align: right;
@@ -518,7 +518,7 @@ const tzIndicatorIcon = computed(() => {
      uses (CoarInputFrameButton: spacing-s×scale left pad + icon + max(field-pad,
      corner) right pad + 1px separator) plus the frame's 1px right border. Tracks
      radius + field padding without inheriting the frame's private vars. */
-  right: calc(
+  right: max(var(--coar-zone-caption-min-offset, 0px), calc(
     var(--coar-spacing-s) * var(--coar-zdtp-scale)
     + 16px
     + max(
@@ -526,7 +526,7 @@ const tzIndicatorIcon = computed(() => {
       min(var(--coar-input-radius), calc(var(--coar-zdtp-height) / 2))
     )
     + 2px
-  );
+  ));
   transform: translateY(50%);
   padding: 0 var(--coar-spacing-xs);
   font-family: var(--coar-body-caption-family);
@@ -578,9 +578,9 @@ const tzIndicatorIcon = computed(() => {
    SIZE VARIANTS (font only — box height/scale come from the frame's size prop)
    ======================================== */
 
-.coar-zdtp--xs .coar-zdtp-input { font-size: max(var(--coar-component-xs-font-size), var(--coar-control-min-font-size, 0px)); }
-.coar-zdtp--s .coar-zdtp-input { font-size: max(var(--coar-component-s-font-size), var(--coar-control-min-font-size, 0px)); }
-.coar-zdtp--l .coar-zdtp-input { font-size: max(var(--coar-component-l-font-size), var(--coar-control-min-font-size, 0px)); }
+.coar-zdtp--xs .coar-zdtp-input { font-size: max(var(--coar-field-xs-font-size, var(--coar-field-xs-default-font-size, var(--coar-field-font-size, var(--coar-component-xs-font-size)))), var(--coar-control-min-font-size, 0px), var(--coar-field-min-font-size, 0px)); }
+.coar-zdtp--s .coar-zdtp-input { font-size: max(var(--coar-field-s-font-size, var(--coar-field-s-default-font-size, var(--coar-field-font-size, var(--coar-component-s-font-size)))), var(--coar-control-min-font-size, 0px), var(--coar-field-min-font-size, 0px)); }
+.coar-zdtp--l .coar-zdtp-input { font-size: max(var(--coar-field-l-font-size, var(--coar-field-l-default-font-size, var(--coar-field-font-size, var(--coar-component-l-font-size)))), var(--coar-control-min-font-size, 0px), var(--coar-field-min-font-size, 0px)); }
 
 /* Per-size calendar-button metrics for the TZ-caption anchor (mirrors the frame). */
 .coar-zdtp--xs { --coar-zdtp-scale: var(--coar-component-xs-scale); --coar-zdtp-height: var(--coar-component-xs-height); }

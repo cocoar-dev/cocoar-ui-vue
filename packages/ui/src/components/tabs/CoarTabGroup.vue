@@ -277,17 +277,18 @@ function onKeydown(event: KeyboardEvent) {
   display: inline-flex;
   align-items: center;
   gap: var(--coar-spacing-s);
-  /* Mobile (.coar-mobile): 44px targets; `auto` outside. */
+  /* Mobile (.coar-mobile): 44px targets; the compact profile's interactive row height;
+     `auto` outside both. */
   min-width: var(--coar-control-min-target-size, auto);
-  min-height: var(--coar-control-min-target-size, auto);
+  min-height: var(--coar-control-min-target-size, var(--coar-interactive-row-height, auto));
   padding: var(--coar-spacing-s) var(--coar-spacing-m);
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
   font-family: var(--coar-body-base-family);
-  font-size: max(var(--coar-body-small-base-size), var(--coar-control-min-font-size, 0px));
-  font-weight: var(--coar-font-weight-medium);
+  font-size: max(var(--coar-ui-font-size, var(--coar-body-small-base-size)), var(--coar-control-min-font-size, 0px));
+  font-weight: var(--coar-label-font-weight, var(--coar-font-weight-medium));
   color: var(--coar-text-neutral-secondary);
   cursor: pointer;
   transition:

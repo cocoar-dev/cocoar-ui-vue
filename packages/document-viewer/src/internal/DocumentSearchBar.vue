@@ -122,37 +122,38 @@ nextTick(() => inputEl.value?.focus());
   padding: 4px 8px;
   background: var(--coar-pdf-toolbar-bg);
   color: var(--coar-pdf-toolbar-fg);
-  border-bottom: 1px solid var(--coar-color-border, #e5e7eb);
-  font-size: 13px;
+  border-bottom: 1px solid var(--coar-color-border, var(--coar-document-viewer-border, #e5e7eb));
+  font-size: var(--coar-ui-font-size, 13px);
 }
 
 .coar-pdf-searchbar__icon {
-  color: var(--coar-color-fg-muted, #6b7280);
+  color: var(--coar-color-fg-muted, var(--coar-document-viewer-text-muted, #6b7280));
   flex-shrink: 0;
 }
 
 .coar-pdf-searchbar__input {
   flex: 1 1 auto;
   min-width: 0;
-  height: 24px;
+  height: var(--coar-document-viewer-input-height, 24px);
   padding: 0 8px;
-  border: 1px solid var(--coar-color-border, #e5e7eb);
-  border-radius: 4px;
-  background: var(--coar-color-surface, #ffffff);
+  border: 1px solid var(--coar-color-border, var(--coar-document-viewer-border, #e5e7eb));
+  border-radius: var(--coar-control-radius, 4px);
+  background: var(--coar-color-surface, var(--coar-document-viewer-surface, #ffffff));
   color: inherit;
   font: inherit;
+  font-size: var(--coar-field-font-size, 13px);
 }
 .coar-pdf-searchbar__input:focus {
-  outline: 2px solid var(--coar-color-accent, #2563eb);
+  outline: 2px solid var(--coar-color-accent, var(--coar-document-viewer-accent, #2563eb));
   outline-offset: 0;
-  border-color: var(--coar-color-accent, #2563eb);
+  border-color: var(--coar-color-accent, var(--coar-document-viewer-accent, #2563eb));
 }
 
 .coar-pdf-searchbar__count {
   font-variant-numeric: tabular-nums;
   min-width: 4em;
   text-align: center;
-  color: var(--coar-color-fg-muted, #6b7280);
+  color: var(--coar-color-fg-muted, var(--coar-document-viewer-text-muted, #6b7280));
 }
 .coar-pdf-searchbar__count[data-empty='true'] {
   visibility: hidden;
@@ -163,20 +164,20 @@ nextTick(() => inputEl.value?.focus());
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: var(--coar-document-viewer-target-size, 26px);
+  height: var(--coar-document-viewer-target-size, 26px);
   padding: 0;
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: var(--coar-control-radius, 4px);
   background: transparent;
   color: inherit;
   cursor: pointer;
 }
 .coar-pdf-searchbar__btn:hover:not(:disabled) {
-  background: var(--coar-color-surface-3, rgba(0, 0, 0, 0.06));
+  background: var(--coar-color-surface-3, var(--coar-document-viewer-hover, rgba(0, 0, 0, 0.06)));
 }
 .coar-pdf-searchbar__btn:focus-visible {
-  outline: 2px solid var(--coar-color-accent, #2563eb);
+  outline: 2px solid var(--coar-color-accent, var(--coar-document-viewer-accent, #2563eb));
   outline-offset: 1px;
 }
 .coar-pdf-searchbar__btn:disabled {

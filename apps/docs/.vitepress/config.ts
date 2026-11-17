@@ -4,6 +4,7 @@ import { containerPreview, componentPreview } from '@vitepress-demo-preview/plug
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { mobileDocsDev } from './mobile-dev';
+import { PRESENTATION_INIT_SCRIPT } from '../presentation.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -17,6 +18,7 @@ export default defineConfig({
   base,
 
   head: [
+    ['script', {}, PRESENTATION_INIT_SCRIPT],
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo_light.svg' }],
     [
       'link',
@@ -231,6 +233,7 @@ export default defineConfig({
             { text: 'Design Principles', link: '/foundations/design-principles' },
             { text: 'Colors', link: '/foundations/colors' },
             { text: 'Typography', link: '/foundations/typography' },
+            { text: 'Compact presentation (Preview)', link: '/foundations/compact-presentation' },
             { text: 'Spacing & Effects', link: '/foundations/spacing' },
             { text: 'Icons', link: '/foundations/icons' },
             { text: 'Motion', link: '/foundations/motion' },
@@ -267,6 +270,7 @@ export default defineConfig({
             { text: 'Design Principles', link: '/foundations/design-principles' },
             { text: 'Colors', link: '/foundations/colors' },
             { text: 'Typography', link: '/foundations/typography' },
+            { text: 'Compact presentation (Preview)', link: '/foundations/compact-presentation' },
             { text: 'Spacing & Effects', link: '/foundations/spacing' },
             { text: 'Icons', link: '/foundations/icons' },
             { text: 'Motion', link: '/foundations/motion' },

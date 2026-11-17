@@ -66,14 +66,14 @@ const customValue = ref(props.currentColor ?? '#000000');
    rest of the editor chrome — the overlay teleports the panel to body and
    scoped styles wouldn't apply across that boundary. */
 .coar-md-color-picker {
-  width: 224px;
+  width: var(--coar-markdown-editor-color-picker-width, 224px);
   display: flex;
   flex-direction: column;
   gap: var(--coar-spacing-s);
   padding: var(--coar-spacing-s);
   background: var(--coar-background-neutral-primary);
   border: 1px solid var(--coar-border-neutral);
-  border-radius: var(--coar-radius-xl);
+  border-radius: var(--coar-markdown-editor-panel-radius, var(--coar-radius-xl));
   box-shadow: var(--coar-shadow-m, 0 4px 12px rgba(0, 0, 0, 0.12));
 }
 
@@ -91,7 +91,7 @@ const customValue = ref(props.currentColor ?? '#000000');
   aspect-ratio: 1 / 1;
   padding: 0;
   border: 1px solid var(--coar-border-neutral);
-  border-radius: var(--coar-radius-s);
+  border-radius: var(--coar-markdown-editor-button-radius, var(--coar-radius-s));
   background: var(--coar-md-swatch, transparent);
   color: var(--coar-text-neutral-secondary);
   cursor: pointer;
@@ -112,16 +112,16 @@ const customValue = ref(props.currentColor ?? '#000000');
   border-top: 1px solid var(--coar-border-neutral);
 }
 .coar-md-color-custom-label {
-  font-size: 12px;
+  font-size: var(--coar-markdown-editor-caption-font-size, 12px);
   color: var(--coar-text-neutral-secondary);
   flex-shrink: 0;
 }
 .coar-md-color-custom-input {
   flex: 1;
-  height: 28px;
+  height: var(--coar-markdown-editor-color-input-height, 28px);
   padding: 0;
   border: 1px solid var(--coar-border-neutral);
-  border-radius: var(--coar-radius-s);
+  border-radius: var(--coar-markdown-editor-button-radius, var(--coar-radius-s));
   background: transparent;
   cursor: pointer;
 }

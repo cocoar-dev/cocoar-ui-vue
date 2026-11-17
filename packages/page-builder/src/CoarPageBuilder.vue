@@ -919,10 +919,10 @@ function applyJson() {
   min-height: 520px;
   background: var(--coar-background-neutral-primary, #fff);
   border: 1px solid var(--coar-border-neutral, #e2e2e6);
-  border-radius: 8px;
+  border-radius: var(--coar-page-builder-panel-radius, 8px);
   overflow: hidden;
   font-family: var(--coar-body-base-family, sans-serif);
-  font-size: 13px;
+  font-size: var(--coar-page-builder-font-size, 13px);
   font-weight: 400;
   color: var(--coar-text-neutral-primary, #202124);
   transition: grid-template-columns 0.18s ease-out;
@@ -976,11 +976,11 @@ function applyJson() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: var(--coar-page-builder-rail-button-size, 32px);
+  height: var(--coar-page-builder-rail-button-size, 32px);
   padding: 0;
   border: 0;
-  border-radius: 5px;
+  border-radius: var(--coar-page-builder-control-radius, 5px);
   background: transparent;
   color: var(--coar-icon-neutral-secondary, #6c7078);
   cursor: pointer;
@@ -1000,7 +1000,8 @@ function applyJson() {
 .pb-builder__activity-btn--active::before {
   content: '';
   position: absolute;
-  left: -6px;
+  /* Centred in the 44px rail (TOOL_RAIL_WIDTH): -6px for the 32px button. */
+  left: calc((var(--coar-page-builder-rail-button-size, 32px) - 44px) / 2);
   width: 2px;
   height: 18px;
   border-radius: 2px;
@@ -1022,7 +1023,7 @@ function applyJson() {
   align-items: center;
   gap: 8px;
   padding: 0 12px;
-  height: 40px;
+  height: var(--coar-page-builder-header-height, 40px);
   box-sizing: border-box;
   border-bottom: 1px solid var(--coar-border-neutral, #e2e2e6);
   color: var(--coar-text-neutral-secondary, #5a5a60);
@@ -1030,8 +1031,8 @@ function applyJson() {
 }
 
 .pb-builder__pane-title {
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--coar-page-builder-label-font-size, 12px);
+  font-weight: var(--coar-page-builder-label-font-weight, 500);
   letter-spacing: 0.01em;
   color: var(--coar-text-neutral-secondary, #5a5a60);
   flex: 1;
@@ -1039,7 +1040,7 @@ function applyJson() {
 
 /* Align the tab list and props header to the same compact height. */
 .pb-builder :deep(.coar-tab-list) {
-  min-height: 40px;
+  min-height: var(--coar-page-builder-header-height, 40px);
   box-sizing: border-box;
   align-items: stretch;
 }
@@ -1049,7 +1050,7 @@ function applyJson() {
   display: inline-flex;
   align-items: center;
   font-weight: 400;
-  font-size: 13px;
+  font-size: var(--coar-page-builder-font-size, 13px);
 }
 /* The accent underline is the only selection signal here: colouring the label
    as well made the tab strip the loudest thing in an otherwise quiet chrome. */
@@ -1058,7 +1059,7 @@ function applyJson() {
   color: var(--coar-text-neutral-primary, #202124);
 }
 .pb-builder :deep(.pb-props__header) {
-  height: 40px;
+  height: var(--coar-page-builder-header-height, 40px);
   padding: 0 12px;
   box-sizing: border-box;
 }
@@ -1131,14 +1132,14 @@ function applyJson() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: var(--coar-page-builder-icon-button-size, 24px);
+  height: var(--coar-page-builder-icon-button-size, 24px);
   padding: 0;
   border: 1px solid transparent;
   background: transparent;
   color: var(--coar-icon-neutral-secondary, #5a5a60);
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: var(--coar-page-builder-control-radius, 4px);
   transition: background-color 0.12s, color 0.12s, border-color 0.12s;
 }
 .pb-builder__icon-btn:hover:not(:disabled) {
@@ -1149,7 +1150,8 @@ function applyJson() {
 .pb-builder__icon-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 .pb-builder__icon-btn--corner {
   position: absolute;
-  top: 8px;
+  /* Centred in the 40px inspector header: 8px for the 24px button. */
+  top: calc((var(--coar-page-builder-header-height, 40px) - var(--coar-page-builder-icon-button-size, 24px)) / 2);
   right: 8px;
   z-index: 2;
 }
@@ -1158,14 +1160,14 @@ function applyJson() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: var(--coar-page-builder-rail-button-size, 28px);
+  height: var(--coar-page-builder-rail-button-size, 28px);
   padding: 0;
   border: 1px solid transparent;
   background: transparent;
   color: var(--coar-icon-neutral-secondary, #5a5a60);
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: var(--coar-page-builder-control-radius, 4px);
   transition: background-color 0.12s, border-color 0.12s, color 0.12s;
 }
 .pb-builder__rail-btn:hover {
@@ -1203,14 +1205,14 @@ function applyJson() {
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  height: 38px;
+  height: var(--coar-page-builder-header-height, 38px);
   box-sizing: border-box;
   border-bottom: 1px solid var(--coar-border-neutral, #e2e2e6);
   background: var(--coar-background-neutral-secondary, #f7f7f9);
   flex-shrink: 0;
 }
 
-.pb-builder__bar-control { display: inline-flex; align-items: center; gap: 5px; margin-left: 4px; color: var(--coar-text-neutral-secondary, #555); font-size: 11px; }
+.pb-builder__bar-control { display: inline-flex; align-items: center; gap: 5px; margin-left: 4px; color: var(--coar-text-neutral-secondary, #555); font-size: var(--coar-page-builder-meta-font-size, 11px); }
 
 /*
  * Centres the scaled frame while it is narrower than the pane. Deliberately no
@@ -1219,7 +1221,7 @@ function applyJson() {
  * width comes from the zoom composable, which is what auto margins act on.
  */
 .pb-builder__preview-scale { margin-inline: auto; }
-.pb-builder__bar-control select { max-width: 150px; border: 1px solid var(--coar-border-neutral, #d0d0d0); border-radius: 4px; background: var(--coar-background-neutral-primary, #fff); font: inherit; }
+.pb-builder__bar-control select { max-width: 150px; border: 1px solid var(--coar-border-neutral, #d0d0d0); border-radius: var(--coar-page-builder-control-radius, 4px); background: var(--coar-page-builder-input-background, var(--coar-background-neutral-primary, #fff)); font: inherit; }
 
 .pb-builder__preview {
   padding: 20px 24px;
@@ -1233,7 +1235,7 @@ function applyJson() {
 .pb-builder__preview-frame {
   background: var(--coar-background-neutral-primary, #fff);
   border: 1px solid var(--coar-border-neutral, #e2e2e6);
-  border-radius: 8px;
+  border-radius: var(--coar-page-builder-panel-radius, 8px);
   overflow: auto;
   flex: 0 0 auto;
   transition: max-width 0.18s ease-out, width 0.18s ease-out;
@@ -1253,7 +1255,7 @@ function applyJson() {
 }
 
 .pb-builder__preview-empty strong { color: var(--coar-text-neutral-primary, #222); }
-.pb-builder__preview-empty span { max-width: 440px; font-size: 12px; }
+.pb-builder__preview-empty span { max-width: 440px; font-size: var(--coar-page-builder-meta-font-size, 12px); }
 
 /* ── JSON pane ── */
 .pb-builder__json-pane {
@@ -1275,31 +1277,31 @@ function applyJson() {
 }
 
 .pb-builder__json-hint {
-  font-size: 12px;
+  font-size: var(--coar-page-builder-meta-font-size, 12px);
   color: var(--coar-text-neutral-secondary, #888);
   flex: 1;
 }
 
 .pb-builder__json-error {
-  font-size: 12px;
+  font-size: var(--coar-page-builder-meta-font-size, 12px);
   color: var(--coar-text-semantic-error-bold, #c0392b);
   font-family: ui-monospace, Menlo, Consolas, monospace;
 }
 
 .pb-builder__json-warning {
-  font-size: 12px;
+  font-size: var(--coar-page-builder-meta-font-size, 12px);
   color: var(--coar-text-semantic-warning-bold, #9a6700);
   font-family: ui-monospace, Menlo, Consolas, monospace;
 }
 
 .pb-builder__json-apply {
   padding: 4px 14px;
-  border-radius: 4px;
+  border-radius: var(--coar-page-builder-control-radius, 4px);
   border: none;
   background: var(--coar-background-accent-primary, #1666cc);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 500;
+  color: var(--coar-page-builder-on-accent, #fff);
+  font-size: var(--coar-page-builder-font-size, 12px);
+  font-weight: var(--coar-page-builder-label-font-weight, 500);
   font-family: inherit;
   cursor: pointer;
   white-space: nowrap;
@@ -1314,7 +1316,7 @@ function applyJson() {
   outline: none;
   padding: 16px;
   font-family: ui-monospace, Menlo, Consolas, monospace;
-  font-size: 12px;
+  font-size: var(--coar-page-builder-code-font-size, 12px);
   color: var(--coar-text-neutral-primary, #111);
   background: var(--coar-background-neutral-secondary, #f7f7f9);
   line-height: 1.55;

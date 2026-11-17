@@ -1192,8 +1192,10 @@ defineExpose({
   pointer-events: none;
   box-sizing: border-box;
   opacity: 0.85;
-  border-radius: var(--coar-radius-s);
-  background: var(--coar-surface-neutral-primary, #fff);
+  border-radius: var(--coar-panel-radius, var(--coar-radius-s));
+  /* `--coar-surface-neutral-primary` is not a library token, so this is white unless a
+     consumer sets it (dark mode too); the compact profile supplies a mode-aware surface. */
+  background: var(--coar-surface-neutral-primary, var(--coar-data-list-surface, #fff));
   box-shadow: var(--coar-elevation-high, 0 8px 24px rgb(0 0 0 / 0.2));
   cursor: grabbing;
 }
@@ -1241,13 +1243,13 @@ defineExpose({
 
 .coar-data-list--bordered {
   border: 1px solid var(--coar-border-neutral);
-  border-radius: var(--coar-radius-s);
+  border-radius: var(--coar-panel-radius, var(--coar-radius-s));
   padding: 0 var(--coar-spacing-xs);
 }
 
 .coar-data-list--elevated {
   box-shadow: var(--coar-elevation-medium);
-  border-radius: var(--coar-radius-s);
+  border-radius: var(--coar-panel-radius, var(--coar-radius-s));
   padding: 0 var(--coar-spacing-xs);
 }
 
@@ -1265,7 +1267,7 @@ defineExpose({
   /* Rows are re-positioned as they get measured; scroll anchoring would chase them. */
   overflow-anchor: none;
   outline: none;
-  border-radius: var(--coar-radius-xs);
+  border-radius: var(--coar-control-radius, var(--coar-radius-xs));
 }
 
 .coar-data-list__viewport:focus-visible {
@@ -1325,8 +1327,8 @@ defineExpose({
   margin-left: calc((var(--coar-data-list-band-level) - 1) * var(--coar-data-list-band-inset));
   margin-right: calc((var(--coar-data-list-band-level) - 1) * var(--coar-data-list-band-inset));
   border: 1px solid var(--coar-border-neutral);
-  border-bottom-left-radius: var(--coar-radius-s);
-  border-bottom-right-radius: var(--coar-radius-s);
+  border-bottom-left-radius: var(--coar-panel-radius, var(--coar-radius-s));
+  border-bottom-right-radius: var(--coar-panel-radius, var(--coar-radius-s));
   pointer-events: none;
 }
 
@@ -1372,8 +1374,9 @@ defineExpose({
 
 .coar-data-list__item--card {
   border: 1px solid var(--coar-border-neutral);
-  border-radius: var(--coar-radius-s);
-  background: var(--coar-surface-neutral-primary, #fff);
+  border-radius: var(--coar-panel-radius, var(--coar-radius-s));
+  /* See the drag ghost above: white outside the compact profile, as before. */
+  background: var(--coar-surface-neutral-primary, var(--coar-data-list-surface, #fff));
 }
 
 /* Expanded card: bottom edge opens into the band, like a tab into its panel.
@@ -1417,7 +1420,7 @@ defineExpose({
   align-items: flex-start;
   box-sizing: border-box;
   padding: var(--coar-data-list-item-pad-y) var(--coar-data-list-item-pad-x);
-  border-radius: var(--coar-radius-xs);
+  border-radius: var(--coar-control-radius, var(--coar-radius-xs));
   min-width: 0;
   transition: background-color var(--coar-duration-fast) var(--coar-ease-out);
 }
@@ -1445,7 +1448,7 @@ defineExpose({
   margin-right: var(--coar-spacing-xs);
   padding: 0;
   border: 0;
-  border-radius: var(--coar-radius-xs);
+  border-radius: var(--coar-control-radius, var(--coar-radius-xs));
   background: transparent;
   color: var(--coar-icon-neutral-secondary);
   cursor: pointer;
@@ -1510,7 +1513,7 @@ defineExpose({
 }
 
 .coar-data-list__item--tile {
-  border-radius: var(--coar-radius-s);
+  border-radius: var(--coar-panel-radius, var(--coar-radius-s));
 }
 
 @media (hover: hover) {
@@ -1599,7 +1602,9 @@ defineExpose({
   gap: var(--coar-spacing-xs);
   padding: var(--coar-spacing-s) var(--coar-data-list-item-pad-x) var(--coar-spacing-xxs);
   font-size: var(--coar-body-caption-size);
-  font-weight: var(--coar-font-weight-semibold);
+  /* --coar-font-weight-semibold is not a defined token (the weight inherits); the
+     compact profile gives the heading its label weight instead. */
+  font-weight: var(--coar-label-font-weight, var(--coar-font-weight-semibold));
   color: var(--coar-text-neutral-secondary);
   text-transform: uppercase;
   letter-spacing: 0.04em;

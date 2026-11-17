@@ -70,15 +70,15 @@ function isOn(row: number, col: number) {
   padding: var(--coar-spacing-s, 8px);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--coar-markdown-editor-table-picker-gap, 6px);
 }
 .coar-md-table-picker__grid {
   display: grid;
-  gap: 3px;
+  gap: var(--coar-markdown-editor-table-picker-cell-gap, 3px);
 }
 .coar-md-table-picker__cell {
-  width: 18px;
-  height: 18px;
+  width: var(--coar-markdown-editor-table-picker-cell-size, 18px);
+  height: var(--coar-markdown-editor-table-picker-cell-size, 18px);
   padding: 0;
   border: 1px solid var(--coar-border-neutral);
   border-radius: 2px;
@@ -90,13 +90,13 @@ function isOn(row: number, col: number) {
   border-color: var(--coar-background-accent-primary, #2563eb);
 }
 .coar-md-table-picker__label {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--coar-markdown-editor-table-picker-label-font-size, 12px);
+  font-weight: var(--coar-markdown-editor-table-picker-label-font-weight, 600);
   text-align: center;
   color: var(--coar-text-neutral-secondary);
 }
 .coar-md-table-picker__hint {
-  font-size: 11px;
+  font-size: var(--coar-markdown-editor-table-picker-hint-font-size, 11px);
   text-align: center;
   color: var(--coar-text-neutral-tertiary);
 }

@@ -12,6 +12,8 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useData, withBase } from 'vitepress';
 import { SCHEME_MESSAGE, mobileDocsPath, type Scheme } from '../../mobile/embed';
+import { PRESENTATION_MESSAGE } from '../../presentation.mjs';
+import { useDocsPresentation } from '../../useDocsPresentation';
 
 const props = withDefaults(
   defineProps<{
@@ -37,6 +39,7 @@ const SCHEMES: Scheme[] = ['light', 'dark'];
 const SCHEME_LABELS: Record<Scheme, string> = { light: 'Light', dark: 'Dark' };
 
 const { isDark } = useData();
+const { presentation } = useDocsPresentation();
 
 const viewport = computed(() => SIZES[props.size]);
 const outer = computed(() => ({
@@ -69,13 +72,17 @@ const scale = computed(() =>
   available.value > 0 ? Math.min(1, available.value / outer.value.width) : 1,
 );
 
-function sendScheme() {
+function sendAppearance() {
   frame.value?.contentWindow?.postMessage(
     { type: SCHEME_MESSAGE, scheme: scheme.value },
     window.location.origin,
   );
+  frame.value?.contentWindow?.postMessage(
+    { type: PRESENTATION_MESSAGE, presentation: presentation.value },
+    window.location.origin,
+  );
 }
-watch(scheme, sendScheme);
+watch([scheme, presentation], sendAppearance);
 
 let media: MediaQueryList | null = null;
 let observer: ResizeObserver | null = null;
@@ -87,7 +94,9 @@ onMounted(() => {
   media.addEventListener('change', onMedia);
   observer = new ResizeObserver(([entry]) => (available.value = entry.contentRect.width));
   if (stage.value) observer.observe(stage.value);
-  frameUrl.value = withBase(mobileDocsPath(props.src, { embed: true, scheme: scheme.value }));
+  frameUrl.value = withBase(mobileDocsPath(props.src, {
+    embed: true, scheme: scheme.value, presentation: presentation.value,
+  }));
   mounted.value = true;
 });
 
@@ -141,7 +150,7 @@ onBeforeUnmount(() => {
             :width="viewport.width"
             :height="viewport.height"
             loading="lazy"
-            @load="sendScheme"
+            @load="sendAppearance"
           />
         </div>
       </div>

@@ -278,3 +278,13 @@ The markdown component uses CSS custom properties for theming:
   --coar-markdown-border: var(--coar-border-neutral);
 }
 ```
+
+### Compact presentation <Badge type="warning" text="Preview" />
+
+Inside an element with the class `coar-compact` (the experimental compact profile, working title), the
+shared stylesheet uses a denser reading layout: 14 px reading text (15 px with `coar-mobile`), headings
+24 / 18 / 16 px at weight 600, 12 / 24 px block and section spacing, sentence-case table headers, inline
+code as a quiet chip and legible frontmatter. Without the class nothing changes. The values are
+`--coar-markdown-*` roles (`--coar-markdown-font-size`, `--coar-markdown-h1-font-size`,
+`--coar-markdown-table-cell-padding`, …) that you can override inside the profile. Colors set in the
+document (`<span style="color: …">`) are kept as they are.

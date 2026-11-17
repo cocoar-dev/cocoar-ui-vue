@@ -219,7 +219,7 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
 }
 
 .coar-code-block {
-  border-radius: var(--coar-radius-s);
+  border-radius: var(--coar-panel-radius, var(--coar-radius-s));
   border: 1px solid var(--coar-code-block-border);
   background: var(--coar-code-block-bg);
   overflow: hidden;
@@ -260,7 +260,7 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
   border: none;
   color: var(--coar-code-block-text-muted);
   cursor: pointer;
-  border-radius: var(--coar-radius-xs);
+  border-radius: var(--coar-control-radius, var(--coar-radius-xs));
   transition:
     color var(--coar-duration-fast) var(--coar-ease-out),
     background var(--coar-duration-fast) var(--coar-ease-out);
@@ -289,7 +289,7 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
 
 .coar-code-language {
   font-family: 'Cascadia Code', 'Consolas', 'Monaco', 'Courier New', monospace;
-  font-size: var(--coar-component-xs-font-size);
+  font-size: var(--coar-caption-font-size, var(--coar-component-xs-font-size));
   font-weight: var(--coar-font-weight-medium);
   color: var(--coar-code-block-text-muted);
   text-transform: uppercase;
@@ -299,11 +299,11 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
 /* Copy button */
 .coar-code-copy-btn {
   padding: var(--coar-spacing-xxs) var(--coar-spacing-s);
-  font-size: var(--coar-component-xs-font-size);
+  font-size: var(--coar-caption-font-size, var(--coar-component-xs-font-size));
   font-family: var(--coar-body-small-base-family);
   background: transparent;
   border: none;
-  border-radius: var(--coar-radius-xs);
+  border-radius: var(--coar-control-radius, var(--coar-radius-xs));
   color: var(--coar-code-block-text-muted);
   cursor: pointer;
   transition:

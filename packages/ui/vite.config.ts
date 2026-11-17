@@ -19,6 +19,7 @@ export default defineConfig({
       entry: {
         index: resolve(__dirname, 'src/index.ts'),
         fonts: resolve(__dirname, 'src/fonts.ts'),
+        'compact-fonts': resolve(__dirname, 'src/compact-fonts.ts'),
       },
       formats: ['es'],
       cssFileName: 'index',

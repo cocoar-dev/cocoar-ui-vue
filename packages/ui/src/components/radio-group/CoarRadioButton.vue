@@ -91,7 +91,7 @@ function onBlur() { isFocused.value = false; }
 
 .coar-radio__label {
   display: inline-flex;
-  min-height: var(--coar-control-min-size, auto);
+  min-height: var(--coar-choice-row-height, var(--coar-control-min-size, auto));
   min-width: var(--coar-control-min-size, auto);
   align-items: center;
   gap: var(--coar-spacing-s);

@@ -133,12 +133,12 @@ watch(
   align-items: center;
   gap: 0.25rem;
   padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 500;
+  font-size: var(--coar-markdown-editor-caption-font-size, 0.75rem);
+  font-weight: var(--coar-markdown-editor-label-font-weight, 500);
   color: var(--coar-text-neutral-secondary);
   background: var(--coar-background-neutral-primary);
   border: 1px solid var(--coar-border-neutral);
-  border-radius: var(--coar-radius-s);
+  border-radius: var(--coar-markdown-editor-button-radius, var(--coar-radius-s));
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.12s ease-out;

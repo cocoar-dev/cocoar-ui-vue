@@ -27,6 +27,8 @@ import type {
   CoarDocumentViewerTool,
 } from './types';
 import type { DocumentSource } from './source-types';
+// Opt-in compact presentation roles (`.coar-compact`); no effect outside it.
+import './compact.css';
 
 /**
  * Zoom level ladder for the +/- buttons. Roughly 1.15× between adjacent steps
@@ -1374,6 +1376,7 @@ defineExpose({
         :colors="annotationColors"
         :draft="false"
         :labels="labels"
+        :context-el="viewerRoot"
         @save="onPopoverSave"
         @delete="onPopoverDelete"
         @close="onPopoverClose"
@@ -1388,6 +1391,7 @@ defineExpose({
         :colors="annotationColors"
         :draft="true"
         :labels="labels"
+        :context-el="viewerRoot"
         @save="onDraftSave"
         @close="editor.cancelDraftPin"
       />
@@ -1402,6 +1406,7 @@ defineExpose({
         :colors="annotationColors"
         :draft="true"
         :labels="labels"
+        :context-el="viewerRoot"
         @save="onDraftFreetextSave"
         @close="editor.cancelDraftFreetext"
       />
@@ -1464,16 +1469,16 @@ defineExpose({
 
 <style scoped>
 .coar-pdf-viewer {
-  --coar-pdf-toolbar-bg: var(--coar-color-surface-2, #f6f7f8);
-  --coar-pdf-toolbar-fg: var(--coar-color-fg, #1a1a1a);
-  --coar-pdf-page-bg: var(--coar-color-surface, #ffffff);
+  --coar-pdf-toolbar-bg: var(--coar-color-surface-2, var(--coar-document-viewer-chrome, #f6f7f8));
+  --coar-pdf-toolbar-fg: var(--coar-color-fg, var(--coar-document-viewer-text, #1a1a1a));
+  --coar-pdf-page-bg: var(--coar-color-surface, var(--coar-document-viewer-surface, #ffffff));
   --coar-pdf-page-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.06);
   --coar-pdf-page-gap: 16px;
   --coar-pdf-canvas-bg: #ffffff;
-  --coar-pdf-comment-pin-bg: var(--coar-color-accent, #2563eb);
-  --coar-pdf-comment-pin-fg: #ffffff;
-  --coar-pdf-selection-bg: rgba(37, 99, 235, 0.25);
-  --coar-pdf-overlay-bg: rgba(0, 0, 0, 0.04);
+  --coar-pdf-comment-pin-bg: var(--coar-color-accent, var(--coar-document-viewer-accent, #2563eb));
+  --coar-pdf-comment-pin-fg: var(--coar-document-viewer-on-accent, #ffffff);
+  --coar-pdf-selection-bg: var(--coar-document-viewer-selection, rgba(37, 99, 235, 0.25));
+  --coar-pdf-overlay-bg: var(--coar-document-viewer-backdrop, rgba(0, 0, 0, 0.04));
 
   position: relative;
   /* Row layout — side panels (sidebar, annotations) flank the document column.
@@ -1512,7 +1517,7 @@ defineExpose({
 .coar-pdf-viewer__divider {
   flex: 0 0 1px;
   width: 1px;
-  background: var(--coar-color-border, #e5e7eb);
+  background: var(--coar-color-border, var(--coar-document-viewer-border, #e5e7eb));
   cursor: col-resize;
   position: relative;
   /* Inflate the hit-area to ±3px without affecting layout. */
@@ -1528,7 +1533,7 @@ defineExpose({
 }
 .coar-pdf-viewer__divider:hover,
 .coar-pdf-viewer--resizing .coar-pdf-viewer__divider {
-  background: var(--coar-color-accent, #2563eb);
+  background: var(--coar-color-accent, var(--coar-document-viewer-accent, #2563eb));
 }
 
 /* While a splitter is being dragged, suppress global selection and pin the
@@ -1551,19 +1556,19 @@ defineExpose({
    `:deep()` rules. The override is purely layout-level and won't surprise
    anyone reading the child component in isolation. */
 .coar-pdf-viewer__center > :deep(.coar-pdf-toolbar) {
-  min-height: 44px !important;
-  height: 44px !important;
+  min-height: var(--coar-document-viewer-header-height, 44px) !important;
+  height: var(--coar-document-viewer-header-height, 44px) !important;
   box-sizing: border-box;
-  border-bottom: 1px solid var(--coar-color-border, #e5e7eb);
+  border-bottom: 1px solid var(--coar-color-border, var(--coar-document-viewer-border, #e5e7eb));
 }
 .coar-pdf-viewer :deep(.coar-pdf-sidebar__header) {
-  min-height: 44px !important;
-  height: 44px !important;
+  min-height: var(--coar-document-viewer-header-height, 44px) !important;
+  height: var(--coar-document-viewer-header-height, 44px) !important;
   box-sizing: border-box;
 }
 .coar-pdf-viewer :deep(.coar-pdf-anno-panel__header) {
-  min-height: 44px !important;
-  height: 44px !important;
+  min-height: var(--coar-document-viewer-header-height, 44px) !important;
+  height: var(--coar-document-viewer-header-height, 44px) !important;
   box-sizing: border-box;
 }
 
@@ -1708,7 +1713,7 @@ defineExpose({
 }
 .coar-pdf-search-rect--current {
   background: var(--coar-pdf-search-current-bg, rgba(249, 115, 22, 0.7));
-  outline: 2px solid var(--coar-color-accent, #2563eb);
+  outline: 2px solid var(--coar-color-accent, var(--coar-document-viewer-accent, #2563eb));
 }
 
 /* TextLayer — mirrors the minimum subset of pdfjs's `pdf_viewer.css` needed for
@@ -1774,18 +1779,18 @@ defineExpose({
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  font-size: 0.875rem;
+  font-size: var(--coar-ui-font-size, 0.875rem);
 }
 
 .coar-pdf-viewer__overlay--loading {
-  background: rgba(255, 255, 255, 0.55);
-  color: var(--coar-color-fg-muted, #6b7280);
+  background: var(--coar-document-viewer-veil, rgba(255, 255, 255, 0.55));
+  color: var(--coar-color-fg-muted, var(--coar-document-viewer-text-muted, #6b7280));
   backdrop-filter: blur(2px);
 }
 
 .coar-pdf-viewer__overlay--error {
   background: var(--coar-pdf-overlay-bg);
-  color: var(--coar-color-danger, #dc2626);
+  color: var(--coar-color-danger, var(--coar-document-viewer-danger, #dc2626));
   pointer-events: auto;
 }
 
@@ -1795,29 +1800,30 @@ defineExpose({
   align-items: center;
   gap: 0.75rem;
   padding: 1rem 1.5rem;
-  background: var(--coar-color-surface, #ffffff);
-  border: 1px solid var(--coar-color-border, #e5e7eb);
-  border-radius: 0.5rem;
+  background: var(--coar-color-surface, var(--coar-document-viewer-surface, #ffffff));
+  border: 1px solid var(--coar-color-border, var(--coar-document-viewer-border, #e5e7eb));
+  border-radius: var(--coar-panel-radius, 0.5rem);
   box-shadow: var(--coar-pdf-page-shadow);
 }
 
 .coar-pdf-viewer__error-title {
   margin: 0;
-  color: var(--coar-color-fg, #1a1a1a);
+  color: var(--coar-color-fg, var(--coar-document-viewer-text, #1a1a1a));
 }
 
 .coar-pdf-viewer__error-retry {
   appearance: none;
-  border: 1px solid var(--coar-color-border, #e5e7eb);
-  background: var(--coar-color-surface-2, #f6f7f8);
+  border: 1px solid var(--coar-color-border, var(--coar-document-viewer-border, #e5e7eb));
+  background: var(--coar-color-surface-2, var(--coar-document-viewer-chrome, #f6f7f8));
   color: inherit;
+  min-height: var(--coar-document-viewer-target-size, auto);
   padding: 0.375rem 0.875rem;
-  border-radius: 0.375rem;
+  border-radius: var(--coar-control-radius, 0.375rem);
   font: inherit;
   cursor: pointer;
 }
 .coar-pdf-viewer__error-retry:hover {
-  background: var(--coar-color-surface-3, #ececec);
+  background: var(--coar-color-surface-3, var(--coar-document-viewer-hover, #ececec));
 }
 </style>
 

@@ -41,6 +41,21 @@ const errorMessage = ref('');
 // only ever apply the newest result.
 let renderToken = 0;
 const panZoom = shallowRef<PanZoomHandle | null>(null);
+let appearanceObserver: MutationObserver | undefined;
+let renderedCompact = false;
+let appearanceKey = '';
+
+function appearance() {
+  const compact = Boolean(container.value?.closest('.coar-compact'));
+  const config = {
+    theme: 'base',
+    themeVariables: buildMermaidThemeVariables(
+      readCssTokens(container.value),
+      makeCssColorResolver(compact ? container.value : undefined),
+    ),
+  };
+  return { compact, config, key: JSON.stringify(config) };
+}
 
 function teardownPanZoom(): void {
   panZoom.value?.destroy();
@@ -64,15 +79,15 @@ async function render(): Promise<void> {
   status.value = 'loading';
 
   try {
+    const current = appearance();
+    renderedCompact = current.compact;
+    appearanceKey = current.key;
     const rendered = await renderMermaid(
-      () => ({
-        theme: 'base',
-        themeVariables: buildMermaidThemeVariables(
-          readCssTokens(container.value),
-          makeCssColorResolver(),
-        ),
-      }),
+      () => current.config,
       code,
+      // Mermaid's config is page-global: a diagram of the opt-in compact
+      // profile (Preview) re-initializes it only when the profile changes.
+      current.compact ? 'compact' : 'default',
     );
     if (token !== renderToken) return; // superseded by a newer render
 
@@ -94,9 +109,29 @@ async function render(): Promise<void> {
   }
 }
 
-onMounted(render);
+onMounted(() => {
+  void render();
+  if (typeof MutationObserver === 'undefined') return;
+  appearanceObserver = new MutationObserver(() => {
+    const current = appearance();
+    if ((renderedCompact || current.compact)
+      && (renderedCompact !== current.compact || appearanceKey !== current.key)) void render();
+  });
+  let ancestor: Element | null = container.value;
+  while (ancestor) {
+    appearanceObserver.observe(ancestor, {
+      attributes: true,
+      attributeFilter: ['class', 'style', 'data-theme', 'data-coar-theme-mode'],
+    });
+    ancestor = ancestor.parentElement;
+  }
+});
 watch(() => props.code, render);
-onBeforeUnmount(teardownPanZoom);
+onBeforeUnmount(() => {
+  ++renderToken;
+  appearanceObserver?.disconnect();
+  teardownPanZoom();
+});
 </script>
 
 <template>
@@ -142,6 +177,10 @@ onBeforeUnmount(teardownPanZoom);
 </template>
 
 <style>
+/* Opt-in `.coar-compact` profile (Preview): defines the `--coar-mermaid-*`
+   roles read below; without the class every `var(role, legacy)` keeps its value. */
+@import './styles/mermaid-compact.css';
+
 .coar-mermaid {
   position: relative;
   margin: var(--coar-spacing-m, 1rem) 0;
@@ -170,7 +209,7 @@ onBeforeUnmount(teardownPanZoom);
   height: var(--coar-mermaid-height, 420px);
   overflow: hidden;
   border: 1px solid var(--coar-border-neutral-tertiary, #e2e2e2);
-  border-radius: var(--coar-input-radius, 8px);
+  border-radius: var(--coar-mermaid-radius, var(--coar-input-radius, 8px));
   background: var(--coar-background-neutral-primary, #fff);
   cursor: grab;
 }
@@ -203,7 +242,7 @@ onBeforeUnmount(teardownPanZoom);
   display: flex;
   gap: 2px;
   padding: 2px;
-  border-radius: var(--coar-input-radius, 8px);
+  border-radius: var(--coar-mermaid-radius, var(--coar-input-radius, 8px));
   background: color-mix(in srgb, var(--coar-background-neutral-primary, #fff) 88%, transparent);
   border: 1px solid var(--coar-border-neutral-tertiary, #e2e2e2);
 }
@@ -212,11 +251,11 @@ onBeforeUnmount(teardownPanZoom);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: var(--coar-mermaid-control-size, 26px);
+  height: var(--coar-mermaid-control-size, 26px);
   padding: 0;
   border: none;
-  border-radius: calc(var(--coar-input-radius, 8px) - 2px);
+  border-radius: calc(var(--coar-mermaid-radius, var(--coar-input-radius, 8px)) - 2px);
   background: transparent;
   color: var(--coar-text-neutral-secondary, #333);
   font-family: var(--coar-font-family-body, sans-serif);
@@ -232,16 +271,16 @@ onBeforeUnmount(teardownPanZoom);
 .coar-mermaid__loading {
   color: var(--coar-text-neutral-tertiary, #666);
   font-family: var(--coar-font-family-body, sans-serif);
-  font-size: var(--coar-font-size-xs, 14px);
-  padding: var(--coar-spacing-m, 1rem);
+  font-size: var(--coar-mermaid-ui-font-size, var(--coar-font-size-xs, 14px));
+  padding: var(--coar-mermaid-padding, var(--coar-spacing-m, 1rem));
 }
 
 .coar-mermaid__error {
   width: 100%;
   border: 1px solid var(--coar-border-semantic-error, #dc2626);
-  border-radius: var(--coar-input-radius, 8px);
+  border-radius: var(--coar-mermaid-radius, var(--coar-input-radius, 8px));
   background: var(--coar-background-semantic-error-subtle, #fee2e2);
-  padding: var(--coar-spacing-m, 1rem);
+  padding: var(--coar-mermaid-padding, var(--coar-spacing-m, 1rem));
   font-family: var(--coar-font-family-body, sans-serif);
 }
 
@@ -254,17 +293,17 @@ onBeforeUnmount(teardownPanZoom);
 .coar-mermaid__error-message {
   margin: 0 0 var(--coar-spacing-s, 0.5rem);
   color: var(--coar-text-semantic-error-subtle, #b91c1c);
-  font-size: var(--coar-font-size-xs, 14px);
+  font-size: var(--coar-mermaid-ui-font-size, var(--coar-font-size-xs, 14px));
 }
 
 .coar-mermaid__error-source {
   margin: 0;
   padding: var(--coar-spacing-s, 0.5rem);
   overflow-x: auto;
-  border-radius: var(--coar-input-radius, 8px);
+  border-radius: var(--coar-mermaid-code-radius, var(--coar-input-radius, 8px));
   background: var(--coar-background-neutral-secondary, #f8f9fa);
   color: var(--coar-text-neutral-secondary, #333);
-  font-size: var(--coar-font-size-xs, 14px);
+  font-size: var(--coar-mermaid-code-font-size, var(--coar-font-size-xs, 14px));
   white-space: pre;
 }
 </style>

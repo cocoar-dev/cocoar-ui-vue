@@ -107,7 +107,7 @@ function onCellDblclick(e: MouseEvent, day: Temporal.PlainDate) {
   grid-template-columns: var(--coar-time-grid-axis-width) 1fr;
   border-bottom: 1px solid var(--coar-calendar-border, #d1d5db);
   background: var(--coar-calendar-bg, #fff);
-  font-size: var(--coar-font-size-xs, 11px);
+  font-size: var(--coar-calendar-caption-font-size, var(--coar-font-size-xs, 11px));
 }
 /* During a swipe only the cells paint (see CoarTimeGrid.vue). */
 .coar-time-grid--ghost .coar-time-grid-all-day-band,
@@ -144,12 +144,14 @@ function onCellDblclick(e: MouseEvent, day: Temporal.PlainDate) {
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--coar-color-accent, var(--coar-color-accent-500, #2563eb));
+  color: var(--coar-calendar-link-color, var(--coar-color-accent, var(--coar-color-accent-500, #2563eb)));
   font: inherit;
-  font-size: var(--coar-font-size-xs, 11px);
+  font-size: var(--coar-calendar-caption-font-size, var(--coar-font-size-xs, 11px));
   text-transform: none;
   letter-spacing: normal;
   cursor: pointer;
+  min-height: var(--coar-calendar-all-day-action-size, auto);
+  min-width: var(--coar-calendar-all-day-action-size, auto);
 }
 .coar-time-grid-all-day-band__collapse:hover,
 .coar-time-grid-all-day-band__collapse:focus-visible {

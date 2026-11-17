@@ -226,7 +226,10 @@ defineExpose({
       'coar-time-grid--swiping': swipeState.swiping,
       'coar-time-grid-surface--horizontal': horizontal,
     }"
-    :style="{ '--coar-time-grid-swipe-x': swipeState.offsetX }"
+    :style="{
+      '--coar-time-grid-swipe-x': swipeState.offsetX,
+      '--coar-time-grid-day-count': days.length,
+    }"
     :data-day-count="days.length"
   >
     <CoarTimeGrid

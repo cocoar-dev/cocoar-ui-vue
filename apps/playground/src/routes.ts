@@ -3,6 +3,18 @@ import type { RoutedOverlayFragment } from '@cocoar/vue-fragment-parser';
 
 export const routes: RouteRecordRaw[] = [
   {
+    path: '/design-review/field-sizes',
+    component: () => import('./views/CompactFieldSizeReviewView.vue'),
+  },
+  {
+    path: '/design-review/context',
+    component: () => import('./views/CompactContextReviewView.vue'),
+  },
+  {
+    path: '/design-review',
+    component: () => import('./views/CompactDesignReviewView.vue'),
+  },
+  {
     path: '/',
     component: () => import('./views/HomeView.vue'),
   },

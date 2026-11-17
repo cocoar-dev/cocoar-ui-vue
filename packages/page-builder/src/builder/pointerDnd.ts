@@ -23,6 +23,7 @@
  */
 import type { NodePath } from './operations';
 import type { DragPayload } from './useBuilderDnd';
+import { readCompactPresentationContext } from '@cocoar/vue-ui';
 
 // ─── Pure helpers (unit-tested) ───────────────────────────────────────────────
 
@@ -296,6 +297,15 @@ export function createPointerDndEngine(dnd: PointerDndTarget): PointerDndEngine 
     const clone = src.cloneNode(true) as HTMLElement;
     clone.style.margin = '0';
     const wrap = document.createElement('div');
+    const context = readCompactPresentationContext(src);
+    if (context.classes.length) {
+      wrap.classList.add('pb-dnd-ghost', ...context.classes);
+      for (const [name, value] of Object.entries(context.style)) wrap.style.setProperty(name, value);
+      const text = getComputedStyle(src);
+      for (const property of ['font-family', 'font-size', 'font-weight', 'line-height', 'color']) {
+        wrap.style.setProperty(property, text.getPropertyValue(property));
+      }
+    }
     // Inline styles on purpose: the ghost lives on <body>, outside every
     // scoped stylesheet — it must look right even without them.
     Object.assign(wrap.style, {
@@ -308,8 +318,8 @@ export function createPointerDndEngine(dnd: PointerDndTarget): PointerDndEngine 
       width: `${Math.min(rect.width || GHOST_MAX_WIDTH_PX, GHOST_MAX_WIDTH_PX)}px`,
       maxHeight: `${GHOST_MAX_HEIGHT_PX}px`,
       overflow: 'hidden',
-      borderRadius: '6px',
-      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.18)',
+      borderRadius: context.classes.length ? 'var(--coar-page-builder-control-radius, 6px)' : '6px',
+      boxShadow: context.classes.length ? 'var(--coar-page-builder-overlay-shadow, 0 8px 24px rgba(0, 0, 0, 0.18))' : '0 8px 24px rgba(0, 0, 0, 0.18)',
       background: 'var(--coar-background-neutral-primary, #fff)',
       transform: `translate(${lastX + 12}px, ${lastY + 10}px)`,
     } satisfies Partial<CSSStyleDeclaration>);

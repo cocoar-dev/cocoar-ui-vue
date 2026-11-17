@@ -388,7 +388,7 @@ function cancelEditValueTimezone() {
   max-height: 440px;
   background: var(--coar-background-neutral-primary);
   border: 1px solid var(--coar-border-neutral-tertiary);
-  border-radius: var(--coar-radius-s);
+  border-radius: var(--coar-picker-panel-radius, var(--coar-radius-s));
   box-shadow: var(--coar-shadow-m);
   overflow: hidden;
 }
@@ -423,8 +423,8 @@ function cancelEditValueTimezone() {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: var(--coar-picker-action-size, 28px);
+  height: var(--coar-picker-action-size, 28px);
   border-radius: 50%;
   border: 1px solid var(--coar-border-neutral-secondary);
   background: var(--coar-background-neutral-primary);
@@ -464,14 +464,14 @@ function cancelEditValueTimezone() {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: var(--coar-picker-action-size, 28px);
+  height: var(--coar-picker-action-size, 28px);
   border-radius: var(--coar-radius-xs);
   border: none;
   background: none;
   color: var(--coar-icon-neutral-secondary);
   cursor: pointer;
-  opacity: 0.5;
+  opacity: var(--coar-picker-action-opacity, 0.5);
   transition: opacity var(--coar-duration-fast) var(--coar-ease-out), background-color var(--coar-duration-fast) var(--coar-ease-out);
 }
 .coar-zdtp-year-btn:hover:not(:disabled) { opacity: 1; background: var(--coar-background-neutral-tertiary); }
@@ -489,17 +489,21 @@ function cancelEditValueTimezone() {
   flex: 1;
   min-width: 0;
   height: 28px;
+  min-height: var(--coar-select-search-size, 0px);
   border: 1px solid var(--coar-border-input);
   border-radius: var(--coar-radius-xs);
   padding: 0 var(--coar-spacing-xs);
   font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-body-small-base-size);
+  font-size: max(var(--coar-field-font-size, var(--coar-body-small-base-size)), var(--coar-field-min-font-size, 0px));
   color: var(--coar-text-neutral-primary);
   background: var(--coar-surface-input);
   outline: none;
 }
 .coar-zdtp-tz-search-input:focus {
   border-color: var(--coar-border-accent-primary);
+}
+.coar-compact .coar-zdtp-tz-search-input {
+  box-sizing: border-box;
 }
 .coar-zdtp-tz-search-input::placeholder {
   color: var(--coar-text-neutral-disabled);
@@ -509,8 +513,8 @@ function cancelEditValueTimezone() {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: var(--coar-picker-action-size, 24px);
+  height: var(--coar-picker-action-size, 24px);
   border: none;
   background: none;
   color: var(--coar-icon-neutral-secondary);
@@ -547,6 +551,7 @@ function cancelEditValueTimezone() {
   align-items: center;
   justify-content: space-between;
   width: 100%;
+  min-height: var(--coar-interactive-row-height, auto);
   padding: var(--coar-spacing-xs) var(--coar-spacing-s);
   border: none;
   background: none;
@@ -594,7 +599,7 @@ function cancelEditValueTimezone() {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 24px;
+  height: var(--coar-picker-month-height, 24px);
   border: none;
   border-radius: var(--coar-radius-xs);
   background: none;
@@ -632,6 +637,7 @@ function cancelEditValueTimezone() {
   justify-content: space-between;
   gap: var(--coar-spacing-xs);
   width: 100%;
+  min-height: var(--coar-interactive-row-height, auto);
   padding: var(--coar-spacing-xs) var(--coar-spacing-s);
   border: none;
   border-top: 1px solid var(--coar-border-neutral-tertiary);
@@ -680,7 +686,7 @@ function cancelEditValueTimezone() {
 .coar-zdtp-footer {
   display: flex;
   align-items: center;
-  min-height: 36px;
+  min-height: var(--coar-interactive-row-height, 36px);
   padding: 0 var(--coar-spacing-s);
   border-top: 1px solid var(--coar-border-neutral-tertiary);
   background: var(--coar-background-neutral-primary);
@@ -741,8 +747,8 @@ function cancelEditValueTimezone() {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: var(--coar-picker-action-size, 24px);
+  height: var(--coar-picker-action-size, 24px);
   flex-shrink: 0;
   border: none;
   background: none;
@@ -772,8 +778,8 @@ function cancelEditValueTimezone() {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: var(--coar-picker-action-size, 24px);
+  height: var(--coar-picker-action-size, 24px);
   flex-shrink: 0;
   border: none;
   background: none;
@@ -783,6 +789,11 @@ function cancelEditValueTimezone() {
 }
 .coar-zdtp-footer-cancel:hover {
   background: var(--coar-background-neutral-tertiary);
+}
+
+.coar-compact .coar-zdtp-tz-picker-item,
+.coar-compact .coar-zdtp-display-tz-btn {
+  box-sizing: border-box;
 }
 
 /* Stacked single-column layout for small viewports */

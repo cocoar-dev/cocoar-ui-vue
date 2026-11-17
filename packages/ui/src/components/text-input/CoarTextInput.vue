@@ -264,13 +264,13 @@ function onClear() {
 
 /* Size-specific typography */
 .coar-text-input--xs .coar-text-input-field {
-  font-size: max(var(--coar-component-xs-font-size), var(--coar-control-min-font-size, 0px));
+  font-size: max(var(--coar-field-xs-font-size, var(--coar-field-xs-default-font-size, var(--coar-field-font-size, var(--coar-component-xs-font-size)))), var(--coar-control-min-font-size, 0px), var(--coar-field-min-font-size, 0px));
 }
 .coar-text-input--s .coar-text-input-field {
-  font-size: max(var(--coar-component-s-font-size), var(--coar-control-min-font-size, 0px));
+  font-size: max(var(--coar-field-s-font-size, var(--coar-field-s-default-font-size, var(--coar-field-font-size, var(--coar-component-s-font-size)))), var(--coar-control-min-font-size, 0px), var(--coar-field-min-font-size, 0px));
 }
 .coar-text-input--l .coar-text-input-field {
-  font-size: max(var(--coar-component-l-font-size), var(--coar-control-min-font-size, 0px));
+  font-size: max(var(--coar-field-l-font-size, var(--coar-field-l-default-font-size, var(--coar-field-font-size, var(--coar-component-l-font-size)))), var(--coar-control-min-font-size, 0px), var(--coar-field-min-font-size, 0px));
 }
 
 /* Input Field — horizontal padding is owned by CoarInputFrame (single-line) or
@@ -284,7 +284,7 @@ function onClear() {
   outline: none;
   background: transparent;
   font-family: var(--coar-body-small-base-family);
-  font-size: max(var(--coar-body-small-base-size), var(--coar-control-min-font-size, 0px));
+  font-size: max(var(--coar-field-font-size, var(--coar-body-small-base-size)), var(--coar-control-min-font-size, 0px), var(--coar-field-min-font-size, 0px));
   font-weight: var(--coar-body-small-base-weight);
   color: var(--coar-text-neutral-primary);
 }
@@ -296,6 +296,22 @@ function onClear() {
   height: auto;
   resize: vertical;
   min-height: calc(var(--coar-component-m-height) + var(--coar-component-m-height));
+}
+
+.coar-compact .coar-text-input-frame.coar-input-frame--multiline :deep(.coar-input-frame__field) {
+  /* Only textarea rows need stable medium-font metrics; tag frames inherit their own. */
+  font-family: var(--coar-body-small-base-family);
+  font-size: max(var(--coar-field-font-size), var(--coar-field-min-font-size));
+  font-weight: var(--coar-body-small-base-weight);
+  line-height: normal;
+}
+
+.coar-compact .coar-text-input-textarea {
+  /* Keep the established row floor, but give larger glyphs their extra leading. */
+  line-height: max(
+    1lh,
+    calc(1lh + (1em - max(var(--coar-field-font-size), var(--coar-field-min-font-size))) * var(--coar-body-base-line-height))
+  );
 }
 
 .coar-text-input--xs .coar-text-input-textarea {

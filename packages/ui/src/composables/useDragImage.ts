@@ -12,6 +12,7 @@
  * Scope: pure helper — no Vue reactivity, no state. Safe to call from any
  * `dragstart` handler, including inside `useDragDrop` consumers.
  */
+import { readCompactPresentationContext } from '../components/overlay/useCompactPresentationContext';
 
 export interface CoarDragImageOptions {
   /** X offset of the cursor within the ghost (px). Default: 12 */
@@ -29,6 +30,27 @@ export interface CoarDragImageOptions {
 }
 
 const DEFAULT_OPACITY = '0.9';
+
+/** Snapshot a local profile for a short-lived body-mounted drag preview. */
+export function withCompactDragContext(source: Element | null, node: HTMLElement): HTMLElement {
+  const context = readCompactPresentationContext(source);
+  if (!context.classes.length) return node;
+  // Keep a real ancestor: selector-based compact styling must also reach the
+  // cloned root, not only its children.
+  const wrapper = document.createElement('div');
+  wrapper.classList.add(...context.classes);
+  for (const [name, value] of Object.entries(context.style)) wrapper.style.setProperty(name, value);
+  const computed = getComputedStyle(source!);
+  // Only the inherited text contract, not an arbitrary computed-style dump.
+  // A dragged row can inherit UI/caption text rather than the profile's body text.
+  for (const property of ['font-family', 'font-size', 'font-weight', 'line-height', 'color']) {
+    wrapper.style.setProperty(property, computed.getPropertyValue(property));
+  }
+  wrapper.style.width = node.style.width;
+  wrapper.style.height = node.style.height;
+  wrapper.appendChild(node);
+  return wrapper;
+}
 
 /**
  * Use an existing DOM element as the drag image, optionally cloned so the live
@@ -53,7 +75,7 @@ export function setCoarDragImageFromElement(
   const clone = source.cloneNode(true) as HTMLElement;
   clone.style.width = `${rect.width}px`;
   clone.style.height = `${rect.height}px`;
-  mountAndSet(event, clone, options);
+  mountAndSet(event, clone, options, source);
 }
 
 /**
@@ -74,8 +96,13 @@ export function setCoarDragImageFromHtml(
 function mountAndSet(
   event: DragEvent,
   node: HTMLElement,
-  options: CoarDragImageOptions
+  options: CoarDragImageOptions,
+  source: Element | null = event.currentTarget instanceof Element ? event.currentTarget
+    : event.target instanceof Element ? event.target : null,
 ): void {
+  const original = node;
+  node = withCompactDragContext(source, node);
+  const compact = node !== original;
   const offsetX = options.offsetX ?? 12;
   const offsetY = options.offsetY ?? 12;
   const applyDefault = options.applyDefaultStyle ?? true;
@@ -91,10 +118,10 @@ function mountAndSet(
   node.style.pointerEvents = 'none';
   if (applyDefault) {
     node.style.opacity = DEFAULT_OPACITY;
-    node.style.borderRadius = node.style.borderRadius || '6px';
+    node.style.borderRadius = node.style.borderRadius || (compact ? 'var(--coar-control-radius, 6px)' : '6px');
     node.style.boxShadow =
-      node.style.boxShadow || '0 6px 18px rgba(0, 0, 0, 0.18)';
-    node.style.background = node.style.background || '#fff';
+      node.style.boxShadow || (compact ? 'var(--coar-shadow-m, 0 6px 18px rgba(0, 0, 0, 0.18))' : '0 6px 18px rgba(0, 0, 0, 0.18)');
+    node.style.background = node.style.background || (compact ? 'var(--coar-background-neutral-primary, #fff)' : '#fff');
   }
   if (options.style) {
     Object.assign(node.style, options.style);

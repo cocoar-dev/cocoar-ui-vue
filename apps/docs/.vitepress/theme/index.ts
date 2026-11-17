@@ -1,13 +1,15 @@
 import DefaultTheme from 'vitepress/theme';
 import type { Theme } from 'vitepress';
 import { h, watchEffect, onMounted } from 'vue';
-import { useData, inBrowser } from 'vitepress';
+import { useData } from 'vitepress';
 
 import '@cocoar/vue-ui/fonts';
 import '@cocoar/vue-ui/styles';
 
 import './custom.css';
 import './coar-overrides.css';
+import './compact.css';
+import './navigation.css';
 
 import { CoarOverlayPlugin, CoarOverlayHost } from '@cocoar/vue-ui';
 import CoarThemeEditor from '@cocoar/vue-ui/theme-editor';
@@ -18,6 +20,7 @@ import LocaleSwitcher from './LocaleSwitcher.vue';
 import DeviceBadges from './DeviceBadges.vue';
 import DeviceMatrix from './DeviceMatrix.vue';
 import PhoneFrame from './PhoneFrame.vue';
+import PresentationSwitcher from '../../components/PresentationSwitcher.vue';
 
 const localization = createCoarLocalization({ defaultLanguage: 'en-US' });
 
@@ -37,7 +40,8 @@ const theme: Theme = {
   extends: DefaultTheme,
   Layout() {
     return h(DefaultTheme.Layout, null, {
-      'nav-bar-content-after': () => h(LocaleSwitcher),
+      'nav-bar-content-after': () => [h(PresentationSwitcher), h(LocaleSwitcher)],
+      'nav-screen-content-after': () => h(PresentationSwitcher),
       'layout-bottom': () => [h(CoarOverlayHost), h(DarkModeSync), h(CoarThemeEditor, { hideDarkToggle: true })],
     });
   },

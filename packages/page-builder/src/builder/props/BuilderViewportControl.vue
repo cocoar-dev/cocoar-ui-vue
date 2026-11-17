@@ -66,19 +66,19 @@ function title(option: PagePreviewViewport) {
   gap: 1px;
   padding: 1px;
   border: 1px solid var(--coar-border-neutral, #e2e2e6);
-  border-radius: 5px;
+  border-radius: var(--coar-page-builder-control-radius, 5px);
   background: var(--coar-background-neutral-primary, #fff);
   flex-shrink: 0;
 }
 
 .pb-viewport__btn {
   border: 0;
-  border-radius: 4px;
+  border-radius: var(--coar-page-builder-control-radius, 4px);
   padding: 3px 7px;
   background: transparent;
   color: var(--coar-text-neutral-secondary, #5a5a60);
   font: inherit;
-  font-size: 11px;
+  font-size: var(--coar-page-builder-meta-font-size, 11px);
   white-space: nowrap;
   cursor: pointer;
 }

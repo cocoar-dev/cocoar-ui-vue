@@ -217,12 +217,12 @@ function onOverflowClick(e: MouseEvent) {
   box-sizing: border-box;
 }
 .coar-month-cell__day-number {
-  font-size: var(--coar-font-size-sm, 13px);
-  font-weight: 600;
+  font-size: var(--coar-calendar-label-font-size, var(--coar-font-size-sm, 13px));
+  font-weight: var(--coar-calendar-label-font-weight, 600);
   color: var(--coar-text-base, #1a1c1f);
 }
 .coar-month-cell--today .coar-month-cell__day-number {
-  color: var(--coar-color-accent, var(--coar-color-accent-500, #2563eb));
+  color: var(--coar-calendar-today-color, var(--coar-color-accent, var(--coar-color-accent-500, #2563eb)));
 }
 /* Selection: a filled circle around the day number, like the iOS calendar's
    `selectionFill` (systemGray5). Today keeps its accent colour on top of it. */
@@ -267,15 +267,18 @@ function onOverflowClick(e: MouseEvent) {
  * subtle text colour, no background at rest (the iOS `+N` row);
  * hover / focus / open reveal it as a control. */
 .coar-month-cell__overflow {
+  box-sizing: border-box;
+  min-width: var(--coar-calendar-month-overflow-target-size, 0px);
+  min-height: var(--coar-calendar-month-overflow-target-size, 0px);
   flex: 0 0 auto;
   align-self: flex-start;
   padding: 1px 6px;
   border: 0;
-  border-radius: 3px;
+  border-radius: var(--coar-calendar-event-radius, 3px);
   background: transparent;
   font: inherit;
-  font-size: var(--coar-font-size-xs, 11px);
-  font-weight: 600;
+  font-size: var(--coar-calendar-event-font-size, var(--coar-font-size-xs, 11px));
+  font-weight: var(--coar-calendar-label-font-weight, 600);
   line-height: 16px;
   color: var(--coar-text-subtle, #6c7280);
   white-space: nowrap;
@@ -285,15 +288,15 @@ function onOverflowClick(e: MouseEvent) {
 .coar-month-cell__overflow:hover,
 .coar-month-cell__overflow:focus-visible,
 .coar-month-cell__overflow[aria-expanded='true'] {
-  background: var(--coar-background-neutral-tertiary, #f3f4f6);
+  background: var(--coar-calendar-hover-bg, var(--coar-background-neutral-tertiary, #f3f4f6));
   color: var(--coar-text-base, #1a1c1f);
 }
 .coar-month-cell__overflow:focus-visible {
-  outline: 2px solid var(--coar-color-focus, #2563eb);
+  outline: 2px solid var(--coar-calendar-focus-color, var(--coar-color-focus, #2563eb));
   outline-offset: 1px;
 }
 .coar-month-cell--density-compact .coar-month-cell__overflow {
-  font-size: 10px;
+  font-size: var(--coar-calendar-event-font-size-dense, 10px);
   padding: 0 4px;
 }
 </style>

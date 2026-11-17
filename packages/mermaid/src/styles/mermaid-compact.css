@@ -1,0 +1,32 @@
+/*
+ * Compact presentation profile (Preview) of `@cocoar/vue-mermaid`'s own
+ * chrome: zoom viewport and controls, loading and error states. Imported by
+ * `CoarMermaidDiagram.vue`. Only `.coar-compact` defines the `--coar-mermaid-*`
+ * roles; outside it every `var(role, legacy)` keeps its legacy value.
+ *
+ * The diagram itself is not resized: its text and coordinates come from
+ * Mermaid (theme bridge: colors and font family from the tokens of the
+ * diagram's own scope, re-read when the profile changes).
+ */
+
+.coar-compact {
+  --coar-mermaid-radius: var(--coar-panel-radius, 8px);
+  --coar-mermaid-control-size: 28px;
+  --coar-mermaid-padding: 12px;
+  --coar-mermaid-code-radius: var(--coar-control-radius, 6px);
+  --coar-mermaid-code-font-size: 13px;
+}
+
+/* Zoom buttons are the only way to zoom on touch (no pinch handling): a full
+   44 px target inside the profile's mobile presentation. */
+.coar-compact.coar-mobile,
+.coar-compact .coar-mobile,
+.coar-mobile .coar-compact {
+  --coar-mermaid-control-size: 44px;
+}
+
+/* UI text of the loading and error states, resolved on the component so a
+   local mobile scope gives its own size. */
+.coar-compact .coar-mermaid {
+  --coar-mermaid-ui-font-size: var(--coar-ui-font-size, 13px);
+}

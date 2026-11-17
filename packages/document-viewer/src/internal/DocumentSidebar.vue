@@ -290,9 +290,9 @@ async function onOutlineClick(node: OutlineNode) {
   flex-direction: column;
   width: 200px;
   flex: 0 0 200px;
-  background: var(--coar-color-surface-2, #f6f7f8);
-  border-right: 1px solid var(--coar-color-border, #e5e7eb);
-  font-size: 12px;
+  background: var(--coar-color-surface-2, var(--coar-document-viewer-chrome, #f6f7f8));
+  border-right: 1px solid var(--coar-color-border, var(--coar-document-viewer-border, #e5e7eb));
+  font-size: var(--coar-ui-font-size, 12px);
   overflow: hidden;
 }
 
@@ -301,7 +301,7 @@ async function onOutlineClick(node: OutlineNode) {
   align-items: center;
   gap: 4px;
   padding: 4px 4px 4px 8px;
-  border-bottom: 1px solid var(--coar-color-border, #e5e7eb);
+  border-bottom: 1px solid var(--coar-color-border, var(--coar-document-viewer-border, #e5e7eb));
 }
 
 .coar-pdf-sidebar__tabs {
@@ -312,27 +312,28 @@ async function onOutlineClick(node: OutlineNode) {
 
 .coar-pdf-sidebar__tab {
   appearance: none;
+  min-height: var(--coar-document-viewer-target-size, auto);
   padding: 4px 8px;
   border: none;
   background: transparent;
-  color: var(--coar-color-fg-muted, #6b7280);
+  color: var(--coar-color-fg-muted, var(--coar-document-viewer-text-muted, #6b7280));
   cursor: pointer;
   font: inherit;
-  border-radius: 4px;
+  border-radius: var(--coar-control-radius, 4px);
 }
 .coar-pdf-sidebar__tab--active {
-  color: var(--coar-color-fg, #1a1a1a);
-  font-weight: 600;
-  background: var(--coar-color-surface, #ffffff);
+  color: var(--coar-color-fg, var(--coar-document-viewer-text, #1a1a1a));
+  font-weight: var(--coar-label-font-weight, 600);
+  background: var(--coar-color-surface, var(--coar-document-viewer-surface, #ffffff));
 }
 .coar-pdf-sidebar__tab:hover:not(.coar-pdf-sidebar__tab--active) {
-  background: var(--coar-color-surface-3, rgba(0, 0, 0, 0.04));
+  background: var(--coar-color-surface-3, var(--coar-document-viewer-hover, rgba(0, 0, 0, 0.04)));
 }
 
 .coar-pdf-sidebar__close {
   appearance: none;
-  width: 24px;
-  height: 24px;
+  width: var(--coar-document-viewer-target-size, 24px);
+  height: var(--coar-document-viewer-target-size, 24px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -340,10 +341,10 @@ async function onOutlineClick(node: OutlineNode) {
   background: transparent;
   color: inherit;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: var(--coar-control-radius, 4px);
 }
 .coar-pdf-sidebar__close:hover {
-  background: var(--coar-color-surface-3, rgba(0, 0, 0, 0.06));
+  background: var(--coar-color-surface-3, var(--coar-document-viewer-hover, rgba(0, 0, 0, 0.06)));
 }
 
 .coar-pdf-sidebar__thumbs {
@@ -365,17 +366,17 @@ async function onOutlineClick(node: OutlineNode) {
   padding: 0;
   background: transparent;
   border: 2px solid transparent;
-  border-radius: 4px;
+  border-radius: var(--coar-control-radius, 4px);
   cursor: pointer;
   font: inherit;
   color: inherit;
   width: 100%;
 }
 .coar-pdf-sidebar__thumb:hover {
-  border-color: var(--coar-color-border, #e5e7eb);
+  border-color: var(--coar-color-border, var(--coar-document-viewer-border, #e5e7eb));
 }
 .coar-pdf-sidebar__thumb--current {
-  border-color: var(--coar-color-accent, #2563eb);
+  border-color: var(--coar-color-accent, var(--coar-document-viewer-accent, #2563eb));
 }
 
 .coar-pdf-sidebar__thumb :deep(.coar-pdf-sidebar__thumb-canvas) {
@@ -386,11 +387,11 @@ async function onOutlineClick(node: OutlineNode) {
 /* Skeleton placeholder for the un-rendered thumb so the list height is stable. */
 .coar-pdf-sidebar__thumb:not(:has(canvas)) {
   min-height: 130px;
-  background: var(--coar-color-surface, #ffffff);
+  background: var(--coar-color-surface, var(--coar-document-viewer-surface, #ffffff));
 }
 
 .coar-pdf-sidebar__thumb-label {
-  color: var(--coar-color-fg-muted, #6b7280);
+  color: var(--coar-color-fg-muted, var(--coar-document-viewer-text-muted, #6b7280));
   font-variant-numeric: tabular-nums;
 }
 
@@ -416,9 +417,16 @@ async function onOutlineClick(node: OutlineNode) {
   color: inherit;
   font: inherit;
   cursor: pointer;
-  border-radius: 2px;
+  border-radius: var(--coar-control-radius, 2px);
+}
+/* Compact profile: outline entries are rows of the interactive-row rhythm (36px
+   desktop / 44px touch); the depth indentation stays inline on the link. */
+.coar-compact .coar-pdf-sidebar__outline :deep(.coar-pdf-sidebar__outline-link) {
+  display: flex;
+  align-items: center;
+  min-height: var(--coar-interactive-row-height, 0px);
 }
 .coar-pdf-sidebar__outline :deep(.coar-pdf-sidebar__outline-link:hover) {
-  background: var(--coar-color-surface-3, rgba(0, 0, 0, 0.06));
+  background: var(--coar-color-surface-3, var(--coar-document-viewer-hover, rgba(0, 0, 0, 0.06)));
 }
 </style>

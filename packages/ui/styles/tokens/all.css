@@ -43,3 +43,6 @@
 
 /* 8. Optional mobile presentation (inherited from .coar-mobile) */
 @import './mobile.css';
+
+/* 9. Experimental appearance; existing desktop/mobile values stay untouched. */
+@import './compact.css';

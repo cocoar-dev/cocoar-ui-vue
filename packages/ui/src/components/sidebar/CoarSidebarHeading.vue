@@ -41,8 +41,8 @@ const sidebarCollapsed = inject(SIDEBAR_COLLAPSED_KEY, ref(false));
 
 .coar-sidebar-heading__text {
   font-family: var(--coar-body-base-family);
-  font-size: var(--coar-font-size-xs);
-  font-weight: var(--coar-font-weight-semi-bold);
+  font-size: var(--coar-caption-font-size, var(--coar-font-size-xs));
+  font-weight: var(--coar-label-font-weight, var(--coar-font-weight-semi-bold));
   line-height: var(--coar-line-height-normal);
   text-transform: uppercase;
   letter-spacing: 0.05em;

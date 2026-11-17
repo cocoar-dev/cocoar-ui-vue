@@ -3,6 +3,7 @@ import { onBeforeUnmount, onMounted, provide, useTemplateRef, inject } from 'vue
 import { OVERLAY_PARENT_KEY, OVERLAY_SERVICE_KEY } from './useOverlay';
 import type { OverlayInstance } from './overlay-service';
 import { MOBILE_CONTEXT_TOKENS } from './overlay-types';
+import { readCompactPresentationContext } from './useCompactPresentationContext';
 
 const props = defineProps<{
   instance: OverlayInstance;
@@ -15,11 +16,17 @@ const service = inject(OVERLAY_SERVICE_KEY)!;
 let contextObserver: MutationObserver | undefined;
 const copiedThemeTokens = new Set<string>();
 const copiedMobileTokens = new Set<string>();
+const copiedCompactTokens = new Set<string>();
+let compactModeApplied = false;
 
 function themeSource(): HTMLElement | null {
   const anchor = props.instance.spec.anchor;
-  if (anchor.kind !== 'element') return null;
-  const source = anchor.element.closest('.coar-theme-scope, [data-coar-theme-proxy]');
+  // Virtual anchors in the new appearance use the same explicit context as
+  // sizing. Keep the legacy theme resolution unchanged outside that profile.
+  const context = props.instance.contextEl ?? props.instance.parent?.panelEl;
+  const element = anchor.kind === 'element' ? anchor.element
+    : context?.closest('.coar-compact') ? context : null;
+  const source = element?.closest('.coar-theme-scope, [data-coar-theme-proxy]');
   return source instanceof HTMLElement ? source : null;
 }
 
@@ -72,16 +79,50 @@ function syncMobileContext(host: HTMLElement, source: HTMLElement) {
   }
 }
 
+function compactContext(host: HTMLElement): Element | null {
+  const instance = props.instance;
+  instance.contextEl ??= instance.parent?.panelEl ?? null;
+  const context = instance.contextEl;
+  const area = context?.closest('.coar-compact');
+  return area && !area.contains(host) ? context : null;
+}
+
+function syncCompactContext(host: HTMLElement, context: Element | null) {
+  host.classList.toggle('coar-compact', context !== null);
+  if (!context) return;
+  const presentation = readCompactPresentationContext(context);
+  for (const mode of ['light-mode', 'dark-mode']) {
+    host.classList.toggle(mode, presentation.classes.includes(mode));
+  }
+  compactModeApplied = true;
+  for (const [token, value] of Object.entries(presentation.style)) {
+    host.style.setProperty(token, value);
+    copiedCompactTokens.add(token);
+  }
+}
+
 /**
  * Both copies are cleared before either is written (a token can come from both sources),
  * then theme, then mobile: the computed mobile value wins over a same-named theme value.
  */
 function syncContext(host: HTMLElement, theme: HTMLElement | null, mobile: HTMLElement | null) {
-  for (const token of [...copiedThemeTokens, ...copiedMobileTokens]) host.style.removeProperty(token);
+  for (const token of [...copiedThemeTokens, ...copiedMobileTokens, ...copiedCompactTokens]) {
+    host.style.removeProperty(token);
+  }
   copiedThemeTokens.clear();
   copiedMobileTokens.clear();
+  copiedCompactTokens.clear();
+  if (compactModeApplied) {
+    host.classList.remove('light-mode', 'dark-mode');
+    compactModeApplied = false;
+  }
   if (theme) syncThemeContext(host, theme);
-  if (mobile) syncMobileContext(host, mobile);
+  const effectiveMobile = mobileSource(host) ?? mobile;
+  if (effectiveMobile) syncMobileContext(host, effectiveMobile);
+  else host.classList.remove('coar-mobile');
+  // Read the actual trigger's effective roles after theme/mobile resolution;
+  // the new field/action split must not fall back to the legacy 16px floor.
+  syncCompactContext(host, compactContext(host));
 }
 
 // Expose this overlay as the parent-context for any descendant that opens its own overlay
@@ -98,8 +139,19 @@ onMounted(() => {
     const mobile = mobileSource(hostEl);
     // Before onPanelMounted, so the first position is measured with the copied sizes.
     syncContext(hostEl, theme, mobile);
-    if ((theme || mobile) && typeof MutationObserver !== 'undefined') {
+    if (typeof MutationObserver !== 'undefined') {
       contextObserver = new MutationObserver(() => syncContext(hostEl, theme, mobile));
+      // Observe only context ancestors' attributes, never layout/content or the
+      // host we write to. This also handles activating/removing a local profile
+      // while a panel is open, without a mutation feedback loop.
+      let ancestor = props.instance.contextEl;
+      while (ancestor && !ancestor.contains(hostEl)) {
+        contextObserver.observe(ancestor, {
+          attributes: true,
+          attributeFilter: ['class', 'style', 'data-theme', 'data-coar-theme-mode'],
+        });
+        ancestor = ancestor.parentElement;
+      }
       // Mobile first: observing the same element again replaces its options, and the
       // theme filter includes the mobile one.
       if (mobile) {

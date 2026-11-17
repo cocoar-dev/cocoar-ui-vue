@@ -116,10 +116,10 @@ function cancel(event: Event) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: var(--coar-page-builder-inline-button-size, 22px);
+  height: var(--coar-page-builder-inline-button-size, 22px);
   border: 0;
-  border-radius: 4px;
+  border-radius: var(--coar-page-builder-control-radius, 4px);
   background: transparent;
   color: var(--coar-text-neutral-secondary, #5a5a60);
   cursor: pointer;
@@ -138,10 +138,10 @@ function cancel(event: Event) {
 .pb-zoom__field {
   display: inline-flex;
   align-items: center;
-  height: 22px;
+  height: var(--coar-page-builder-inline-button-size, 22px);
   padding: 0 4px;
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: var(--coar-page-builder-control-radius, 4px);
 }
 
 .pb-zoom__field:hover,
@@ -157,7 +157,7 @@ function cancel(event: Event) {
   background: transparent;
   color: var(--coar-text-neutral-secondary, #5a5a60);
   font: inherit;
-  font-size: 11px;
+  font-size: var(--coar-page-builder-meta-font-size, 11px);
   font-variant-numeric: tabular-nums;
   text-align: right;
   outline: none;
@@ -167,6 +167,6 @@ function cancel(event: Event) {
 
 .pb-zoom__suffix {
   color: var(--coar-text-neutral-tertiary, #8a8a90);
-  font-size: 11px;
+  font-size: var(--coar-page-builder-meta-font-size, 11px);
 }
 </style>

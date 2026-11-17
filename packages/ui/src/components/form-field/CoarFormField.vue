@@ -428,6 +428,13 @@ provide(FORM_FIELD_INJECTION_KEY, {
   width: 100%;
 }
 
+/* Compact inline fields keep their label beside the control. Stacked labels
+   still span the row for label actions; the legacy layout stays unchanged. */
+.coar-compact .coar-form-field--inline .coar-form-field__label-cluster,
+.coar-form-field--inline.coar-compact .coar-form-field__label-cluster {
+  width: auto;
+}
+
 .coar-form-field__label-action {
   display: inline-flex;
   align-items: center;
@@ -461,7 +468,7 @@ provide(FORM_FIELD_INJECTION_KEY, {
      below the baseline. Aligning the SVG's geometric box to the line box
      therefore makes it look too high; this optical correction keeps glyph
      and label centered in both stacked and inline layouts. */
-  transform: translateY(3px);
+  transform: translateY(var(--coar-form-label-icon-offset, 3px));
 }
 .coar-form-field__status-icon--error {
   color: var(--coar-text-semantic-error-bold);

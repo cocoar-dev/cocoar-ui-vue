@@ -92,7 +92,7 @@ export function readCssTokens(el?: Element | null): (name: string) => string {
  *
  * Returns a getter yielding `''` when there is no DOM / no 2D context (SSR).
  */
-export function makeCssColorResolver(): (value: string) => string {
+export function makeCssColorResolver(context?: Element | null): (value: string) => string {
   if (typeof document === 'undefined') return () => '';
   const canvas = document.createElement('canvas');
   canvas.width = 1;
@@ -103,6 +103,17 @@ export function makeCssColorResolver(): (value: string) => string {
 
   return (value: string): string => {
     if (!value) return '';
+    // Color-scheme-dependent tokens (light-dark/currentColor) must resolve
+    // where the diagram lives, not on the page-global canvas.
+    if (context) {
+      const probe = document.createElement('span');
+      probe.style.display = 'none';
+      probe.style.color = value;
+      if (!probe.style.color) return '';
+      context.appendChild(probe);
+      value = getComputedStyle(probe).color;
+      probe.remove();
+    }
     // Validity probe: a valid color overwrites both sentinels to the same
     // normalized value; an invalid one is ignored, leaving them different.
     ctx.fillStyle = '#000000';

@@ -579,7 +579,7 @@ const effectiveTools = computed<readonly CoarDocumentViewerTool[]>(() =>
   gap: 4px;
   padding: 0 6px;
   font-variant-numeric: tabular-nums;
-  font-size: 12px;
+  font-size: var(--coar-ui-font-size, 12px);
 }
 /* Single-page source (image): grey out the input so it visually matches
    the disabled prev/next neighbours. The input itself also gets the native
@@ -600,54 +600,55 @@ const effectiveTools = computed<readonly CoarDocumentViewerTool[]>(() =>
   gap: 2px;
   padding: 0 6px;
   font-variant-numeric: tabular-nums;
-  font-size: 12px;
+  font-size: var(--coar-ui-font-size, 12px);
 }
 
 .coar-pdf-toolbar__zoom-input {
   width: 3.2em;
-  height: 22px;
+  height: var(--coar-document-viewer-input-height, 22px);
   padding: 0 4px;
-  border: 1px solid var(--coar-color-border, #e5e7eb);
-  border-radius: 4px;
-  background: var(--coar-color-surface, #ffffff);
+  border: 1px solid var(--coar-color-border, var(--coar-document-viewer-border, #e5e7eb));
+  border-radius: var(--coar-control-radius, 4px);
+  background: var(--coar-color-surface, var(--coar-document-viewer-surface, #ffffff));
   color: inherit;
   font: inherit;
-  font-size: 12px;
+  font-size: var(--coar-field-font-size, 12px);
   font-variant-numeric: tabular-nums;
   text-align: right;
   outline: none;
 }
 .coar-pdf-toolbar__zoom-input:focus-visible {
-  border-color: var(--coar-color-accent, #2563eb);
-  box-shadow: 0 0 0 2px var(--coar-color-accent-tint, rgba(37, 99, 235, 0.2));
+  border-color: var(--coar-color-accent, var(--coar-document-viewer-accent, #2563eb));
+  box-shadow: 0 0 0 2px var(--coar-color-accent-tint, var(--coar-document-viewer-accent-tint, rgba(37, 99, 235, 0.2)));
 }
 
 .coar-pdf-toolbar__zoom-suffix {
-  color: var(--coar-color-fg-muted, #6b7280);
+  color: var(--coar-color-fg-muted, var(--coar-document-viewer-text-muted, #6b7280));
   pointer-events: none;
 }
 
 .coar-pdf-toolbar__page-input {
   width: 3em;
-  height: 22px;
+  height: var(--coar-document-viewer-input-height, 22px);
   padding: 0 4px;
-  border: 1px solid var(--coar-color-border, #e5e7eb);
-  border-radius: 4px;
-  background: var(--coar-color-surface, #ffffff);
+  border: 1px solid var(--coar-color-border, var(--coar-document-viewer-border, #e5e7eb));
+  border-radius: var(--coar-control-radius, 4px);
+  background: var(--coar-color-surface, var(--coar-document-viewer-surface, #ffffff));
   color: inherit;
   font: inherit;
+  font-size: var(--coar-field-font-size, 12px);
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
 .coar-pdf-toolbar__page-input:focus {
-  outline: 2px solid var(--coar-color-accent, #2563eb);
+  outline: 2px solid var(--coar-color-accent, var(--coar-document-viewer-accent, #2563eb));
   outline-offset: 0;
-  border-color: var(--coar-color-accent, #2563eb);
+  border-color: var(--coar-color-accent, var(--coar-document-viewer-accent, #2563eb));
 }
 
 .coar-pdf-toolbar__page-sep,
 .coar-pdf-toolbar__page-total {
-  color: var(--coar-color-fg-muted, #6b7280);
+  color: var(--coar-color-fg-muted, var(--coar-document-viewer-text-muted, #6b7280));
 }
 
 /* Flyout panel content — bordered card with stroke-width row + color row. */
@@ -671,19 +672,19 @@ const effectiveTools = computed<readonly CoarDocumentViewerTool[]>(() =>
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: var(--coar-document-viewer-target-size, 30px);
+  height: var(--coar-document-viewer-target-size, 30px);
   padding: 0;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: var(--coar-control-radius, 4px);
   cursor: pointer;
 }
 .coar-pdf-toolbar__flyout-width:hover {
-  background: var(--coar-color-surface-3, rgba(0, 0, 0, 0.05));
+  background: var(--coar-color-surface-3, var(--coar-document-viewer-hover, rgba(0, 0, 0, 0.05)));
 }
 .coar-pdf-toolbar__flyout-width--active {
-  border-color: var(--coar-color-accent, #2563eb);
+  border-color: var(--coar-color-accent, var(--coar-document-viewer-accent, #2563eb));
 }
 .coar-pdf-toolbar__flyout-width-dot {
   display: block;
@@ -693,8 +694,8 @@ const effectiveTools = computed<readonly CoarDocumentViewerTool[]>(() =>
 
 .coar-pdf-toolbar__flyout-color {
   appearance: none;
-  width: 22px;
-  height: 22px;
+  width: var(--coar-document-viewer-swatch-size, 22px);
+  height: var(--coar-document-viewer-swatch-size, 22px);
   border-radius: 50%;
   border: 2px solid transparent;
   padding: 0;
@@ -702,11 +703,11 @@ const effectiveTools = computed<readonly CoarDocumentViewerTool[]>(() =>
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
 }
 .coar-pdf-toolbar__flyout-color--active {
-  border-color: var(--coar-color-accent, #2563eb);
-  outline: 1px solid var(--coar-color-surface, #ffffff);
+  border-color: var(--coar-color-accent, var(--coar-document-viewer-accent, #2563eb));
+  outline: 1px solid var(--coar-color-surface, var(--coar-document-viewer-surface, #ffffff));
 }
 .coar-pdf-toolbar__flyout-color:focus-visible {
-  outline: 2px solid var(--coar-color-accent, #2563eb);
+  outline: 2px solid var(--coar-color-accent, var(--coar-document-viewer-accent, #2563eb));
   outline-offset: 1px;
 }
 </style>

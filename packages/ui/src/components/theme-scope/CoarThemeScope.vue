@@ -76,7 +76,12 @@ function assignFamily(target: Record<string, string>, family: string | undefined
 const tokenStyle = computed<Record<string, string>>(() => {
   const theme = props.theme;
   const result: Record<string, string> = {};
-  if (theme.accent) result['--coar-accent'] = theme.accent;
+  if (theme.accent) {
+    result['--coar-accent'] = theme.accent;
+    // Inert outside the experimental appearance; an explicit theme keeps its
+    // accent instead of being replaced by the profile's default Slate.
+    result['--coar-appearance-accent'] = theme.accent;
+  }
   if (theme.success) result['--coar-success'] = theme.success;
   if (theme.warning) result['--coar-warning'] = theme.warning;
   if (theme.error) result['--coar-error'] = theme.error;
@@ -85,9 +90,20 @@ const tokenStyle = computed<Record<string, string>>(() => {
   const buttonRadius = cssLength(theme.buttonRadius);
   const inputRadius = cssLength(theme.inputRadius);
   const cardRadius = cssLength(theme.cardRadius);
-  if (buttonRadius) result['--coar-button-radius'] = buttonRadius;
-  if (inputRadius) result['--coar-input-radius'] = inputRadius;
-  if (cardRadius) result['--coar-card-radius'] = cardRadius;
+  if (buttonRadius) {
+    result['--coar-button-radius'] = buttonRadius;
+    result['--coar-appearance-button-radius'] = buttonRadius;
+  }
+  if (inputRadius) {
+    result['--coar-input-radius'] = inputRadius;
+    result['--coar-appearance-input-radius'] = inputRadius;
+  }
+  if (cardRadius) {
+    result['--coar-card-radius'] = cardRadius;
+    result['--coar-appearance-card-radius'] = cardRadius;
+  }
+  if (theme.bodyFontFamily?.trim()) result['--coar-appearance-font-body'] = theme.bodyFontFamily;
+  if (theme.titleFontFamily?.trim()) result['--coar-appearance-font-title'] = theme.titleFontFamily;
 
   assignFamily(result, theme.bodyFontFamily, [
     '--coar-font-family-body',

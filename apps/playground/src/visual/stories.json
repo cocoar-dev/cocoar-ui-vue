@@ -443,7 +443,500 @@
     }
   },
   {
+    "name": "compact-core-fields",
+    "focus": "[data-core-kind=fields] [data-size=m] input[type=text]"
+  },
+  {
+    "name": "compact-core-selection"
+  },
+  {
+    "name": "compact-core-states"
+  },
+  {
+    "name": "compact-core-dates",
+    "clock": "2026-11-15T09:00:00Z"
+  },
+  {
+    "name": "compact-core-typography"
+  },
+  {
+    "name": "compact-calendar-week",
+    "capture": "page",
+    "clock": "2026-04-15T08:30:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "width": 1232
+  },
+  {
+    "name": "compact-calendar-day",
+    "capture": "page",
+    "clock": "2026-04-15T08:30:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "width": 1232
+  },
+  {
+    "name": "compact-calendar-multi-day",
+    "capture": "page",
+    "clock": "2026-04-15T08:30:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "width": 1232
+  },
+  {
+    "name": "compact-calendar-month",
+    "capture": "page",
+    "clock": "2026-04-15T08:30:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "width": 1232
+  },
+  {
+    "name": "compact-calendar-month-modes",
+    "capture": "page",
+    "clock": "2026-04-15T08:30:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "width": 1232
+  },
+  {
+    "name": "compact-calendar-month-continuous",
+    "capture": "page",
+    "clock": "2026-04-15T08:30:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "width": 1232
+  },
+  {
+    "name": "compact-calendar-month-list",
+    "capture": "page",
+    "clock": "2026-04-15T08:30:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "width": 1232
+  },
+  {
+    "name": "compact-calendar-agenda",
+    "capture": "page",
+    "clock": "2026-04-15T08:30:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "width": 1232
+  },
+  {
+    "name": "compact-calendar-day-agenda",
+    "capture": "page",
+    "clock": "2026-04-15T08:30:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "width": 1232
+  },
+  {
+    "name": "compact-calendar-week-rows",
+    "capture": "page",
+    "clock": "2026-04-15T08:30:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "width": 1232
+  },
+  {
+    "name": "compact-calendar-timeline",
+    "capture": "page",
+    "clock": "2026-04-15T08:30:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "width": 1232
+  },
+  {
+    "name": "compact-calendar-year",
+    "capture": "page",
+    "clock": "2026-04-15T08:30:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 1080
+    },
+    "width": 1232
+  },
+  {
+    "name": "compact-calendar-phone",
+    "capture": "page",
+    "clock": "2026-04-15T08:30:00Z",
+    "modes": ["mobile"],
+    "viewport": {
+      "width": 390,
+      "height": 844
+    }
+  },
+  {
+    "name": "compact-display-indicators"
+  },
+  {
+    "name": "compact-display-navigation",
+    "focus": ".coar-tab-button[tabindex=\"0\"] >> nth=0"
+  },
+  {
+    "name": "compact-display-lists"
+  },
+  {
+    "name": "compact-display-data"
+  },
+  {
+    "name": "compact-display-sidebar"
+  },
+  {
+    "name": "compact-display-toast"
+  },
+  {
+    "name": "compact-display-popover-open",
+    "capture": "page",
+    "open": {
+      "actions": [
+        {
+          "dispatch": "click",
+          "on": "[data-visual-open] .coar-popover-trigger"
+        }
+      ],
+      "overlays": 1
+    }
+  },
+  {
+    "name": "compact-display-popconfirm-open",
+    "capture": "page",
+    "open": {
+      "actions": [
+        {
+          "dispatch": "click",
+          "on": "[data-visual-open] .coar-popconfirm-trigger"
+        }
+      ],
+      "overlays": 1
+    }
+  },
+  {
+    "name": "compact-display-submenu-open",
+    "capture": "page",
+    "open": {
+      "actions": [
+        {
+          "dispatch": "click",
+          "on": "[data-visual-open] .coar-submenu-item"
+        }
+      ],
+      "overlays": 1
+    }
+  },
+  {
+    "name": "compact-display-sidebar-flyout-open",
+    "capture": "page",
+    "open": {
+      "actions": [
+        {
+          "dispatch": "click",
+          "on": "[data-visual-open] .coar-sidebar-group__trigger"
+        }
+      ],
+      "overlays": 1
+    }
+  },
+  {
+    "name": "compact-display-tooltip-open",
+    "capture": "page",
+    "open": {
+      "actions": [
+        {
+          "keyboardFocus": "[data-tooltip]"
+        }
+      ],
+      "overlays": 1,
+      "focus": "[data-tooltip]"
+    }
+  },
+  {
+    "name": "compact-interaction-select-open",
+    "capture": "page",
+    "open": {
+      "actions": [
+        {
+          "dispatch": "click",
+          "on": "[data-visual-open] [role=combobox]"
+        }
+      ],
+      "overlays": 1
+    }
+  },
+  {
+    "name": "compact-interaction-multi-select-open",
+    "capture": "page",
+    "open": {
+      "actions": [
+        {
+          "dispatch": "click",
+          "on": "[data-visual-open] [role=combobox]"
+        }
+      ],
+      "overlays": 1
+    }
+  },
+  {
+    "name": "compact-interaction-tag-select-open",
+    "capture": "page",
+    "open": {
+      "actions": [
+        {
+          "keyboardFocus": "[data-visual-open] .coar-tag-select-input"
+        }
+      ],
+      "overlays": 1,
+      "focus": "[data-visual-open] .coar-tag-select-input"
+    }
+  },
+  {
+    "name": "compact-interaction-date-picker-open",
+    "capture": "page",
+    "clock": "2026-03-10T09:00:00Z",
+    "open": {
+      "actions": [
+        {
+          "dispatch": "click",
+          "on": "[data-visual-open] .coar-plain-date-picker-btn"
+        }
+      ],
+      "overlays": 1,
+      "ready": ".coar-scrollable-calendar__months-wrapper--ready"
+    }
+  },
+  {
+    "name": "compact-interaction-date-time-picker-open",
+    "capture": "page",
+    "clock": "2026-03-10T09:00:00Z",
+    "open": {
+      "actions": [
+        {
+          "dispatch": "click",
+          "on": "[data-visual-open] .coar-pdtp-btn"
+        }
+      ],
+      "overlays": 1,
+      "ready": ".coar-scrollable-calendar__months-wrapper--ready"
+    }
+  },
+  {
+    "name": "compact-interaction-zoned-picker-open",
+    "capture": "page",
+    "clock": "2026-03-10T09:00:00Z",
+    "open": {
+      "actions": [
+        {
+          "dispatch": "click",
+          "on": "[data-visual-open] .coar-zdtp-btn"
+        }
+      ],
+      "overlays": 1,
+      "ready": ".coar-scrollable-calendar__months-wrapper--ready"
+    }
+  },
+  {
+    "name": "compact-interaction-zoned-zone-list-open",
+    "capture": "page",
+    "clock": "2026-03-10T09:00:00Z",
+    "open": {
+      "actions": [
+        {
+          "dispatch": "click",
+          "on": "[data-visual-open] .coar-zdtp-btn"
+        },
+        {
+          "dispatch": "click",
+          "on": ".coar-overlay-host .coar-zdtp-display-tz-btn"
+        }
+      ],
+      "overlays": 1,
+      "focus": ".coar-zdtp-tz-search-input",
+      "ready": ".coar-zdtp-tz-picker-item--active"
+    }
+  },
+  {
+    "name": "compact-interaction-dialog-open",
+    "capture": "page",
+    "open": {
+      "overlays": 1,
+      "focus": ".coar-dialog-close"
+    }
+  },
+  {
+    "name": "compact-interaction-sheet-form",
+    "capture": "page",
+    "modes": [
+      "mobile"
+    ],
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "open": {
+      "overlays": 1,
+      "focus": ".coar-sheet-close"
+    }
+  },
+  {
+    "name": "compact-interaction-form-status-open",
+    "capture": "page",
+    "open": {
+      "actions": [
+        {
+          "dispatch": "click",
+          "on": "[data-status=messages] .coar-popover-trigger"
+        },
+        {
+          "dispatch": "click",
+          "on": "[data-status=rules] .coar-popover-trigger"
+        }
+      ],
+      "overlays": 2
+    }
+  },
+  {
+    "name": "compact-interaction-context-menu-open",
+    "capture": "page",
+    "open": {
+      "actions": [
+        {
+          "dispatch": "click",
+          "on": ".coar-overlay-host [data-level=\"1\"] > .coar-submenu-item"
+        },
+        {
+          "dispatch": "click",
+          "on": ".coar-overlay-host [data-level=\"2\"] > .coar-submenu-item"
+        }
+      ],
+      "overlays": 3
+    }
+  },
+  {
+    "name": "compact-interaction-panel-layout",
+    "focus": "[aria-label=\"Resize left panel\"]"
+  },
+  {
+    "name": "compact-interaction-theme-editor-open",
+    "capture": "page",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "open": {
+      "actions": [
+        {
+          "dispatch": "click",
+          "on": ".te-fab"
+        }
+      ],
+      "overlays": 1
+    }
+  },
+  {
+    "name": "compact-interaction-palette-editor-open",
+    "capture": "page",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "open": {
+      "actions": [
+        {
+          "dispatch": "click",
+          "on": ".te-fab"
+        },
+        {
+          "dispatch": "click",
+          "on": ".te-palette-btn >> nth=0"
+        }
+      ],
+      "overlays": 1,
+      "ready": ".cpe-modal"
+    }
+  },
+  {
+    "name": "compact-interaction-transitions"
+  },
+  {
+    "name": "compact-interaction-field-actions",
+    "focus": "[data-field=stepper] input"
+  },
+  {
+    "name": "compact-edge-selection",
+    "capture": "page",
+    "open": {
+      "actions": [
+        { "dispatch": "click", "on": "[data-case=empty] [role=combobox]" }
+      ],
+      "overlays": 1,
+      "focus": "[data-case=empty] .coar-select-inline-search",
+      "ready": ".coar-select-empty"
+    }
+  },
+  {
+    "name": "compact-edge-dates",
+    "capture": "page",
+    "viewport": { "width": 1280, "height": 1000 },
+    "clock": "2026-03-10T09:00:00Z",
+    "open": {
+      "actions": [
+        { "dispatch": "click", "on": "[data-case=markers] .coar-plain-date-picker-btn" }
+      ],
+      "overlays": 1,
+      "ready": ".coar-scrollable-calendar__months-wrapper--ready"
+    }
+  },
+  {
+    "name": "compact-edge-dialogs",
+    "capture": "page",
+    "viewport": { "width": 1280, "height": 900 },
+    "open": {
+      "actions": [
+        { "dispatch": "click", "on": "[data-size=xl]" }
+      ],
+      "overlays": 1,
+      "focus": ".coar-dialog-close"
+    }
+  },
+  {
+    "name": "compact-edge-scrollbars"
+  },
+  {
     "name": "builder-editors",
+    "width": 1232,
+    "viewport": { "width": 1280, "height": 1100 },
+    "ready": [
+      "[data-renderer=builder] .canvas-node .coar-input-frame",
+      "[data-renderer=script] .view-line:nth-child(3) span[class^=mtk]:not(.mtk1):text-is('12')",
+      "[data-renderer=markdown] .ProseMirror h2",
+      "[data-renderer=mermaid] .coar-mermaid[data-status=rendered] svg"
+    ]
+  },
+  {
+    "name": "compact-builder-editors",
     "width": 1232,
     "viewport": { "width": 1280, "height": 1100 },
     "ready": [

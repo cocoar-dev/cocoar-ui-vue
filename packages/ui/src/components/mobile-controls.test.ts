@@ -163,7 +163,7 @@ describe('mobile floors in the styles', () => {
       expect(
         rules.some(
           (r) =>
-            r.selector === '.coar-mobile .coar-select-option' &&
+            r.selector.split(',').some((selector) => selector.trim() === '.coar-mobile .coar-select-option') &&
             /box-sizing:\s*border-box/.test(r.body),
         ),
         file,

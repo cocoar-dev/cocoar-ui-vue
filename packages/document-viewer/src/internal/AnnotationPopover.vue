@@ -11,6 +11,7 @@
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { CoarDocumentViewerLabels } from "../CoarDocumentViewer.vue";
+import { useCompactPresentationContext } from '@cocoar/vue-ui';
 
 export interface AnnotationPopoverPayload {
   /** Comment text (may be empty). */
@@ -32,6 +33,8 @@ const props = defineProps<{
   draft: boolean;
   /** All UI strings, already merged with defaults. */
   labels: Required<CoarDocumentViewerLabels>;
+  /** The viewer root: its presentation context (compact profile) follows the teleport. */
+  contextEl?: HTMLElement | null;
 }>();
 
 const emit = defineEmits<{
@@ -48,6 +51,8 @@ const color = ref(props.initialColor);
 
 /** Current popover position (computed from anchor + own size). */
 const pos = ref<{ top: number; left: number }>({ top: 0, left: 0 });
+
+const presentation = useCompactPresentationContext(() => props.contextEl);
 
 function reposition() {
   const el = root.value;
@@ -127,9 +132,10 @@ const isDirty = computed(
     <div
       ref="root"
       class="coar-pdf-annotation-popover"
+      :class="presentation.classes"
       role="dialog"
       :aria-label="draft ? labels.modeNote : labels.annotationEditComment"
-      :style="{ top: pos.top + 'px', left: pos.left + 'px' }"
+      :style="{ ...presentation.style, top: pos.top + 'px', left: pos.left + 'px' }"
       @mousedown.stop
       @click.stop
     >
@@ -197,17 +203,19 @@ const isDirty = computed(
   min-width: 220px;
   max-width: 300px;
   padding: 8px;
-  background: var(--coar-color-surface, #ffffff);
-  color: var(--coar-color-fg, #1a1a1a);
-  border: 1px solid var(--coar-color-border, #e5e7eb);
-  border-radius: 6px;
-  box-shadow:
+  background: var(--coar-color-surface, var(--coar-document-viewer-surface, #ffffff));
+  color: var(--coar-color-fg, var(--coar-document-viewer-text, #1a1a1a));
+  border: 1px solid var(--coar-color-border, var(--coar-document-viewer-border, #e5e7eb));
+  border-radius: var(--coar-panel-radius, 6px);
+  box-shadow: var(
+    --coar-document-viewer-popover-shadow,
     0 4px 16px rgba(0, 0, 0, 0.15),
-    0 1px 3px rgba(0, 0, 0, 0.1);
+    0 1px 3px rgba(0, 0, 0, 0.1)
+  );
   display: flex;
   flex-direction: column;
   gap: 8px;
-  font-size: 13px;
+  font-size: var(--coar-ui-font-size, 13px);
 }
 
 .coar-pdf-annotation-popover__swatches {
@@ -218,8 +226,8 @@ const isDirty = computed(
 
 .coar-pdf-annotation-popover__swatch {
   appearance: none;
-  width: 22px;
-  height: 22px;
+  width: var(--coar-document-viewer-swatch-size, 22px);
+  height: var(--coar-document-viewer-swatch-size, 22px);
   border-radius: 50%;
   border: 2px solid transparent;
   padding: 0;
@@ -227,11 +235,11 @@ const isDirty = computed(
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
 }
 .coar-pdf-annotation-popover__swatch--active {
-  border-color: var(--coar-color-accent, #2563eb);
-  outline: 1px solid var(--coar-color-surface, #ffffff);
+  border-color: var(--coar-color-accent, var(--coar-document-viewer-accent, #2563eb));
+  outline: 1px solid var(--coar-color-surface, var(--coar-document-viewer-surface, #ffffff));
 }
 .coar-pdf-annotation-popover__swatch:focus-visible {
-  outline: 2px solid var(--coar-color-accent, #2563eb);
+  outline: 2px solid var(--coar-color-accent, var(--coar-document-viewer-accent, #2563eb));
   outline-offset: 1px;
 }
 
@@ -239,17 +247,18 @@ const isDirty = computed(
   width: 100%;
   resize: vertical;
   padding: 6px 8px;
-  border: 1px solid var(--coar-color-border, #e5e7eb);
-  border-radius: 4px;
-  background: var(--coar-color-surface, #ffffff);
+  border: 1px solid var(--coar-color-border, var(--coar-document-viewer-border, #e5e7eb));
+  border-radius: var(--coar-control-radius, 4px);
+  background: var(--coar-color-surface, var(--coar-document-viewer-surface, #ffffff));
   color: inherit;
   font: inherit;
+  font-size: var(--coar-field-font-size, 13px);
   box-sizing: border-box;
 }
 .coar-pdf-annotation-popover__textarea:focus {
-  outline: 2px solid var(--coar-color-accent, #2563eb);
+  outline: 2px solid var(--coar-color-accent, var(--coar-document-viewer-accent, #2563eb));
   outline-offset: 0;
-  border-color: var(--coar-color-accent, #2563eb);
+  border-color: var(--coar-color-accent, var(--coar-document-viewer-accent, #2563eb));
 }
 
 .coar-pdf-annotation-popover__actions {
@@ -260,32 +269,33 @@ const isDirty = computed(
 
 .coar-pdf-annotation-popover__btn {
   appearance: none;
+  min-height: var(--coar-document-viewer-target-size, auto);
   padding: 4px 10px;
-  border-radius: 4px;
-  border: 1px solid var(--coar-color-border, #e5e7eb);
-  background: var(--coar-color-surface-2, #f6f7f8);
+  border-radius: var(--coar-control-radius, 4px);
+  border: 1px solid var(--coar-color-border, var(--coar-document-viewer-border, #e5e7eb));
+  background: var(--coar-color-surface-2, var(--coar-document-viewer-chrome, #f6f7f8));
   color: inherit;
   font: inherit;
   cursor: pointer;
 }
 .coar-pdf-annotation-popover__btn:hover {
-  background: var(--coar-color-surface-3, #ececec);
+  background: var(--coar-color-surface-3, var(--coar-document-viewer-hover, #ececec));
 }
 .coar-pdf-annotation-popover__btn--primary {
-  background: var(--coar-color-accent, #2563eb);
-  border-color: var(--coar-color-accent, #2563eb);
-  color: white;
+  background: var(--coar-color-accent, var(--coar-document-viewer-accent, #2563eb));
+  border-color: var(--coar-color-accent, var(--coar-document-viewer-accent, #2563eb));
+  color: var(--coar-document-viewer-on-accent, white);
 }
 .coar-pdf-annotation-popover__btn--primary:hover {
-  background: var(--coar-color-accent-hover, #1d4ed8);
+  background: var(--coar-color-accent-hover, var(--coar-document-viewer-accent-hover, #1d4ed8));
 }
 .coar-pdf-annotation-popover__btn--danger {
   background: transparent;
-  color: var(--coar-color-danger, #dc2626);
-  border-color: var(--coar-color-danger, #dc2626);
+  color: var(--coar-color-danger, var(--coar-document-viewer-danger, #dc2626));
+  border-color: var(--coar-color-danger, var(--coar-document-viewer-danger, #dc2626));
 }
 .coar-pdf-annotation-popover__btn--danger:hover {
-  background: var(--coar-color-danger-tint, #fef2f2);
+  background: var(--coar-color-danger-tint, var(--coar-document-viewer-danger-tint, #fef2f2));
 }
 .coar-pdf-annotation-popover__btn--ghost {
   background: transparent;

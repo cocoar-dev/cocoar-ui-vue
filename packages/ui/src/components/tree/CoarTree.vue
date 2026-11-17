@@ -2316,7 +2316,7 @@ defineExpose({
 .coar-tree__empty {
   padding: 12px;
   color: var(--coar-text-neutral-tertiary);
-  font-size: var(--coar-body-small-base-size, 13px);
+  font-size: var(--coar-ui-font-size, var(--coar-body-small-base-size, 13px));
   text-align: center;
 }
 
@@ -2329,7 +2329,7 @@ defineExpose({
   gap: 6px;
   padding: var(--coar-tree-row-pad-y, 3px) var(--coar-tree-row-pad-x, 4px)
     var(--coar-tree-row-pad-y, 3px) 0;
-  font-size: var(--coar-tree-row-font, var(--coar-body-small-base-size, 13px));
+  font-size: var(--coar-tree-row-font, var(--coar-ui-font-size, var(--coar-body-small-base-size, 13px)));
   box-sizing: border-box;
 }
 .coar-tree__draft-spacer {
@@ -2350,7 +2350,7 @@ defineExpose({
   color: inherit;
   background: var(--coar-background-neutral-primary);
   border: 1px solid var(--coar-border-accent-primary);
-  border-radius: var(--coar-radius-xs, 2px);
+  border-radius: var(--coar-control-radius, var(--coar-radius-xs, 2px));
   padding: 1px 4px;
   margin: -2px 0;
   outline: none;
