@@ -50,6 +50,8 @@ export interface VisualOpen {
 export interface VisualStory {
   /** File name in `./stories` without `.vue`; also the prefix of its baselines. */
   name: string;
+  /** Each selector must match exactly one visible, rendered result before capture (not a loading shell). */
+  ready?: string[];
   /**
    * `root` photographs the `[data-visual-root]` element; `page` the whole
    * viewport, for stories whose overlays are teleported to `body`.
@@ -117,6 +119,7 @@ export const bodyMargins = 16;
 
 const STORY_KEYS = [
   'name',
+  'ready',
   'capture',
   'open',
   'clock',
@@ -165,6 +168,12 @@ export function storyProblems(entry: unknown): string[] {
   const p: string[] = unknownKeys(entry, STORY_KEYS).map((k) => `unknown option "${k}"`);
   if (!isText(entry.name) || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(entry.name)) {
     p.push('name must be kebab-case: the file name of the story');
+  }
+  if (
+    entry.ready !== undefined &&
+    (!Array.isArray(entry.ready) || !entry.ready.length || !entry.ready.every(isText))
+  ) {
+    p.push('ready must be a non-empty list of renderer selectors');
   }
   if (entry.capture !== undefined && entry.capture !== 'root' && entry.capture !== 'page') {
     p.push('capture must be "root" or "page"');

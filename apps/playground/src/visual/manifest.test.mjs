@@ -29,6 +29,14 @@ test('the entries of stories.json are valid', () => {
   assert.deepEqual(manifestProblems, []);
 });
 
+test('renderer readiness rejects empty or malformed selector lists', () => {
+  assert.deepEqual(problems({ name: 'renderers', ready: ['.monaco-editor .view-line', '.coar-mermaid[data-status=rendered] svg'] }), []);
+  assert.deepEqual(problems({ name: 'plain' }), []);
+  for (const ready of [[], '', '.renderer', null, true, {}, [''], [' '], [1], ['.renderer', null]]) {
+    assert.deepEqual(problems({ name: 'renderers', ready }), ['ready must be a non-empty list of renderer selectors'], JSON.stringify(ready));
+  }
+});
+
 test('the baselines on disk are exactly those of the stories', () => {
   const dir = new URL('../../visual/__screenshots__/', import.meta.url);
   const files = fs

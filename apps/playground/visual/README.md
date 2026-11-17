@@ -110,6 +110,7 @@ plugin and host, localization, and nothing of the playground. `<html>` carries o
 
 | Option | What the spec does |
 | --- | --- |
+| `"ready": ["…", "…"]` | Waits for every selector to match exactly one visible renderer result, during warm-up and before capture. Name actual output, such as a syntax-coloured Monaco token or `.coar-mermaid[data-status=rendered] svg`, not a mounted loading shell. Existing assertion/test budgets and the settled pixel comparison are unchanged. |
 | `"capture": "page"` | Photographs the whole 1024×768 viewport instead of `[data-visual-root]`, for overlays teleported to `body`. The page gets the library's background (`--coar-background-neutral-primary`); nothing may scroll (the test fails if the page is larger than the viewport). |
 | `"open": { "actions": […], "overlays": N, "ready": "…", "focus": "…" }` | Opens overlays before the capture (needs `capture: "page"`). Prefer a story that opens its overlay on mount (`useDialog()`, `useContextMenu().open`) and leave `actions` out; components without such an API get `actions`: `{ "dispatch": "click", "on": "<selector>" }` dispatches a click on the element, for overlays that open on click — no pointer moves, nothing is hovered, focus does not move; `{ "keyboardFocus": "<selector>" }` gives the element real keyboard focus, for overlays that open on focus (a tooltip, a tag select) — its ring is then part of the picture and must be named in `open.focus`; `{ "press": "Enter", "on": "<selector>" }` presses a real key on the element. The spec then waits until `N` overlays (`.coar-overlay-host`) are shown — the overlay service shows a host once it has positioned it — and until `ready` (a selector) exists; the settled capture does the rest. `focus` names, as a CSS selector, the element that keeps the focus (focused by the overlay itself, like a dialog's first button, or by `keyboardFocus`): its focus ring is then expected. |
 | `"clock": "2026-03-10T09:00:00Z"` | Fixes `Date.now()` (and so `Temporal.Now` of the polyfill) before the page loads; timers keep running. Every story that shows "today" needs it. Locale (`en-US`) and time zone (`UTC`) are fixed for all stories; a zoned story names its zone itself (`time-zone="Europe/Vienna"`). |
@@ -124,8 +125,23 @@ anything else. Every image also asserts: nothing is hovered (the pointer never e
 a focus ring unless the image is about it (`focus`, `open.focus`). Stories import the packages from source
 (`vite.visual.config.ts` aliases `@cocoar/vue-ui`, `/styles`, `/fonts`, `@cocoar/vue-localization`,
 `@cocoar/vue-fragment-parser`, `@cocoar/vue-calendar` and its `core`, `recurrence` and `recurrence-rrule-temporal`
-entries); component styles come with the source, so a story never imports a built `…/styles` such as
+entries, plus `@cocoar/vue-page-builder`, `@cocoar/vue-script-editor`, `@cocoar/vue-markdown-editor`,
+`@cocoar/vue-markdown`, `@cocoar/vue-markdown-core`, `@cocoar/vue-markdown-mermaid` and
+`@cocoar/vue-mermaid`); component styles come with the source, so a story never imports a built `…/styles` such as
 `@cocoar/vue-calendar/styles`.
+The builder's internal `#page-runtime-worker` import resolves to its real source worker entry too:
+its package import-map default points at a built file absent from a fresh container.
+Story import failures report `data-visual-state="error"` and fail warm-up immediately.
+
+Stories declaring renderer readiness run as an ordered group with fresh, isolated pages for every image.
+Within each group only one Monaco/SES/diagram stack starts at a time; `--repeat N` creates independent
+groups that may run concurrently on different workers, alongside ordinary stories. A failure does not
+skip later cases. Ordinary stories remain fully parallel with four workers; all capture budgets,
+zero retries and the exact pixel comparison stay unchanged. Every renderer image also rejects page errors,
+console errors and requests outside localhost.
+The JSON selector requires the fixture's numeric token to be syntax-coloured, not just visible as plain
+text (`mtk1`). A regression test withholds Monaco's real lazy JSON-mode chunk until the readiness check
+has rejected that uncoloured state, then releases it and requires the completed renderers.
 
 ## How it works
 
@@ -140,6 +156,7 @@ entries); component styles come with the source, so a story never imports a buil
 | `src/visual/story.css` † | The layout classes of the stories |
 | `visual/visual.spec.ts` † | One test per image (settled capture, then the exact pixel comparison), the options above, plus the manifest checks |
 | `visual/warm-up.ts` † | Visits every story once before the tests: a cold Vite dev server compiles and may reload pages |
+| `visual/renderer-ready.ts` † | Requires every declared renderer result to exist exactly once and be visible, in warm-up and captures |
 | `playwright.visual.config.ts` † | Starts `vite.visual.config.ts`; reduced motion, 1024×768 at scale 1, `en-US`, UTC, 4 workers, no retries |
 | `scripts/visual.mjs` † | Docker around all of it; `--inside` is what runs in the container and in CI. A failed copy into the container fails the run and copies nothing back |
 | `.github/workflows/ci.yml` †, `.alta/skills/cocoar-pr/scripts/pr.mjs` † | The job "Visual", and the merge gate |

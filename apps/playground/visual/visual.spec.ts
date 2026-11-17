@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import zlib from 'node:zlib';
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { waitForRenderers } from './renderer-ready';
 import {
   baselineName,
   manifestProblems,
@@ -53,7 +54,7 @@ test('manifest: every baseline belongs to a story', () => {
   expect(orphans, 'baselines without a story in stories.json: delete them').toEqual([]);
 });
 
-for (const story of visualStories) {
+function registerStory(story: VisualStory) {
   for (const mode of storyModes(story)) {
     for (const scheme of visualSchemes) {
       test(`story:${story.name} ${mode} ${scheme}`, async ({ page }) => {
@@ -68,6 +69,46 @@ for (const story of visualStories) {
   }
 }
 
+for (const story of visualStories.filter((entry) => !entry.ready)) registerStory(story);
+
+test.describe('asynchronous renderer images', () => {
+  // Limit simultaneous heavyweight startups within each repeat group. Keep these
+  // NEW captures ordered, not serial: a failure must not skip the remaining cases.
+  // Repeated groups may still run concurrently on different workers.
+  // Ordinary stories retain fullyParallel and the configuration keeps four workers.
+  test.describe.configure({ mode: 'default' });
+
+  test('story:builder-editors waits for deferred JSON syntax colouring', async ({ page }) => {
+    const story = visualStories.find((entry) => entry.name === 'builder-editors')!;
+    const scriptReady = story.ready!.find((selector) => selector.includes('[data-renderer=script]'))!;
+    let releaseJson!: () => void;
+    const jsonReleased = new Promise<void>((resolve) => { releaseJson = resolve; });
+    let jsonRequested = false;
+    await page.route(/\/jsonMode(?:-[^/?]+)?\.js(?:\?.*)?$/, async (route) => {
+      jsonRequested = true;
+      await jsonReleased;
+      await route.continue();
+    });
+    try {
+      await page.setViewportSize(story.viewport!);
+      await page.goto('/visual.html#/visual/builder-editors', { waitUntil: 'domcontentloaded' });
+      await expect.poll(() => jsonRequested).toBe(true);
+      // The model is visible, but the real lazy JSON mode is still withheld.
+      const line = page.locator('[data-renderer=script] .view-line:nth-child(3)');
+      await expect(line).toContainText('12');
+      await expect(line.locator('span[class^=mtk]:not(.mtk1)')).toHaveCount(0);
+      await expect(
+        waitForRenderers(page, { ...story, ready: [scriptReady] }, 100),
+      ).rejects.toThrow(/exactly once/);
+    } finally {
+      releaseJson();
+    }
+    await waitForRenderers(page, story);
+  });
+
+  for (const story of visualStories.filter((entry) => entry.ready)) registerStory(story);
+});
+
 async function photograph(
   page: Page,
   story: VisualStory,
@@ -76,6 +117,20 @@ async function photograph(
   variant?: VisualVariant,
 ) {
   expect(storyProblems(story), 'an invalid entry of stories.json').toEqual([]);
+  const rendererProblems: string[] = [];
+  if (story.ready) {
+    // Check every renderer image, not extra heavyweight copies of the same page.
+    page.on('pageerror', (error) => rendererProblems.push(error.message));
+    page.on('console', (message) => {
+      if (message.type() === 'error') rendererProblems.push(message.text());
+    });
+    page.on('request', (request) => {
+      const url = new URL(request.url());
+      if (/^https?:$/.test(url.protocol) && !['localhost', '127.0.0.1'].includes(url.hostname)) {
+        rendererProblems.push(`external request: ${url}`);
+      }
+    });
+  }
   if (story.viewport) await page.setViewportSize(story.viewport);
   // Before the page loads, so "today" is the same from the first render on.
   if (story.clock) await page.clock.setFixedTime(new Date(story.clock));
@@ -97,6 +152,7 @@ async function photograph(
   expect(htmlClasses.sort()).toEqual(expectedClasses.sort());
 
   if (story.open) await openOverlays(page, story.open);
+  await waitForRenderers(page, story);
   const focused = variant === 'focus' ? await focusByKeyboard(page, story.focus!) : undefined;
 
   // Nothing hovered, and a focus ring only where the image is about focus.
@@ -139,7 +195,14 @@ async function photograph(
   });
 
   const name = baselineName(story.name, mode, scheme, variant);
-  await expectSameAsBaseline(name, await stableCapture(capturePage ? page : root));
+  const image = await stableCapture(capturePage ? page : root);
+  if (story.ready) {
+    expect(
+      rendererProblems,
+      'renderer pages must load without errors or external requests',
+    ).toEqual([]);
+  }
+  await expectSameAsBaseline(name, image);
 }
 
 // The capture options; `animations: 'disabled'` ends finite animations and

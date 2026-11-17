@@ -18,7 +18,7 @@
 //   different. Only the maintainer's explicit OK lets it through: --accept-default-visual-change. New baselines and
 //   changed --mobile- baselines pass.
 // - It refuses a pull request that modifies, removes or renames a file the comparison itself depends on
-//   (VISUAL_HARNESS: the Playwright config, spec and warm-up, visual.mjs, the visual page and its server
+//   (VISUAL_HARNESS: the Playwright config, spec, warm-up and renderer-ready.ts, visual.mjs, the visual page and its server
 //   configuration, the story view and manifest, the CI workflow, this script) or an existing story: a pull request could weaken the comparison, or let a story undo a
 //   component change, and "Visual" would pass. Only the maintainer's explicit OK: --accept-visual-harness-change.
 //   New stories with their stories.json entry and new baselines pass.
@@ -55,6 +55,7 @@ export const VISUAL_HARNESS = [
   'apps/playground/vite.visual.config.ts',
   'apps/playground/visual/visual.spec.ts',
   'apps/playground/visual/warm-up.ts',
+  'apps/playground/visual/renderer-ready.ts',
   'apps/playground/scripts/visual.mjs',
   'apps/playground/visual.html',
   'apps/playground/src/visual/main.ts',
