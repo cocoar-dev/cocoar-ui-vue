@@ -86,7 +86,10 @@ test.describe('Auth Customization Lab', () => {
     await expect(page.getByText('Edit structure, Quick Properties', { exact: false })).toBeVisible();
     const builder = page.locator('.pb-builder');
     await openBuilderTool(builder, 'Structure');
-    await page.getByRole('treeitem', { name: 'Anmelden submit', exact: true }).click();
+    const submitNode = builder.getByRole('treeitem', { name: 'Anmelden submit', exact: true });
+    // Select the row itself, not an inline action that can cover its click center.
+    await submitNode.press('Enter');
+    await expect(submitNode).toHaveAttribute('aria-selected', 'true');
     await builder.getByRole('tab', { name: 'Translations', exact: true }).click();
     const translationRow = builder.getByRole('row').filter({ hasText: 'page.submit.label' });
     await expect(translationRow.getByRole('textbox').nth(0)).toHaveValue('Anmelden');
@@ -95,6 +98,7 @@ test.describe('Auth Customization Lab', () => {
     await englishLabel.fill('Continue');
     await expect(translationRow.getByRole('textbox').nth(0)).toHaveValue('Anmelden');
     await builder.getByRole('tab', { name: 'Editor', exact: true }).click();
+    await expect(submitNode).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByRole('button', { name: 'Edit element code' })).toBeVisible();
     await page.getByRole('button', { name: 'Edit element code' }).click();
     const codeDialog = page.getByRole('dialog', { name: 'Element Code · submit' });
