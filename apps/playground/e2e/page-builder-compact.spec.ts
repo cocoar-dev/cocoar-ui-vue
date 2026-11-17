@@ -152,6 +152,9 @@ test.describe('PageBuilder compact presentation', () => {
   test('keeps the canvas node frame and the drop zones out of the profile', async ({ page }) => {
     await page.goto('/page-builder');
     const builder = page.locator('.pb-builder');
+    // The demo's runtime supplies the login card width asynchronously. Measure
+    // both profiles after it has replaced the stretched fallback layout.
+    await expect(builder.locator('.canvas-node--root > .canvas-node__body > .canvas-node')).toHaveCSS('width', '380px');
     const geometry = () =>
       builder.evaluate((root) => ({
         nodes: [...root.querySelectorAll<HTMLElement>('.pb-canvas__content .canvas-node')].map((node) => {
