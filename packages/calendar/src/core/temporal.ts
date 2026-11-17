@@ -115,6 +115,15 @@ export function detectHour12FromLocale(locale: string): boolean {
 
 let _warnedDetectFallback = false;
 
+/** Read the default timezone without conflating a detected UTC with a fallback. */
+export function readBrowserTimezone(): string | undefined {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * The browser's IANA timezone, e.g. `'Europe/Vienna'`. Falls back to
  * `'UTC'` on environments without `Intl.DateTimeFormat` (SSR / locked
@@ -130,12 +139,8 @@ let _warnedDetectFallback = false;
  * the warning.
  */
 export function detectBrowserTimezone(): string {
-  try {
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (tz) return tz;
-  } catch {
-    /* fall through */
-  }
+  const tz = readBrowserTimezone();
+  if (tz) return tz;
   if (!_warnedDetectFallback && typeof console !== 'undefined') {
     _warnedDetectFallback = true;
     console.warn(

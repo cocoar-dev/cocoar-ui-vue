@@ -52,8 +52,8 @@ import {
   type CalendarView,
   type ViewWindow,
   Temporal,
-  detectBrowserTimezone,
 } from '../core';
+import { readBrowserTimezone } from '../core/temporal';
 import {
   SET_TOPMOST_VISIBLE_MONTH,
   SET_VISIBLE_RANGE,
@@ -107,18 +107,13 @@ export class CalendarBuilder<
   private readonly _scope: EffectScope = effectScope(true);
 
   private constructor() {
-    const detectedZone = detectBrowserTimezone();
-    super(createCalendarBuilderState<TMeta>(detectedZone));
-    // Warn loudly per-builder (not per-process) if the browser can't
-    // tell us its zone. `detectBrowserTimezone` falls back to 'UTC'
-    // when Intl is unavailable — almost never what the user wants
-    // (Article 9: defaults that hide decisions bite later).
-    if (typeof console !== 'undefined' && detectedZone === 'UTC') {
+    const detectedZone = readBrowserTimezone();
+    super(createCalendarBuilderState<TMeta>(detectedZone ?? 'UTC'));
+    // Warn once per builder only when detection actually failed.
+    if (typeof console !== 'undefined' && detectedZone === undefined) {
       console.error(
-        '[CalendarBuilder] Browser timezone detection failed and silently fell back to UTC. ' +
-          'This builder will render every event in UTC unless you call ' +
-          '`builder.timezone("Europe/Vienna")` (or similar IANA zone) explicitly. ' +
-          'If you intentionally want UTC, call `.timezone("UTC")` to silence this error.',
+        '[CalendarBuilder] Browser timezone detection failed and fell back to UTC. ' +
+          'Call `builder.timezone(...)` with the intended IANA timezone to control event display.',
       );
     }
 
