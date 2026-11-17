@@ -235,8 +235,9 @@ for (const scheme of SCHEMES) {
       await expect(page.locator('.coar-time-grid-event--invalid')).toHaveCount(0, { timeout: 3000 });
       expect((await record(page)).drops).toEqual([]);
       expect((await card(page, 'drag-me').boundingBox())!.y).toBeCloseTo(g.y(HM(11)), 0); // snapped back
-      // 2) Thursday 07:30 (before the allowed 08:00)
-      await dragTo(page, from, { x: g.colX(4), y: g.y(HM(7, 15)) }, async () => {
+      // 2) Thursday 07:30 (before the allowed 08:00). Aim at 08:00:
+      // the pointer grabbed the card 30 minutes below its start.
+      await dragTo(page, from, { x: g.colX(4), y: g.y(HM(8)) }, async () => {
         await expect(page.locator('.coar-time-grid-event--invalid')).toHaveCount(1);
       });
       await page.mouse.up();

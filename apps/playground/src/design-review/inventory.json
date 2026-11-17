@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "sourceRevision": "8effaab5afb83ec462f47239e7e96758fb5832daba25419083f23b2ecfeec15f",
+  "sourceRevision": "58cf57a3f3b36d807e6d81c757e613a3e45eddd96bd1052c77f9c4027aa3bc46",
   "packages": [
     {
       "dir": "packages/calendar",
@@ -2187,12 +2187,12 @@
         {
           "name": "open sheet: close size + header/list budget (compact desktop & mobile, light & dark)",
           "status": "reviewed",
-          "reason": "Current full suite passes compact-advanced-interactions.spec.ts:41-69 in light/dark with desktop/mobile classes: close 32/44px, real header/frame/list budget exactly 360px and sheet <=360px. Not native-device acceptance. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log)."
+          "reason": "Current full suite passes compact-advanced-interactions.spec.ts:41-69 in light/dark with desktop/mobile classes: close 32/44px, real header/frame/list budget exactly 360px and sheet <=360px. Not native-device acceptance. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log). The relevant calendar browser cases also passed on Linux/UTC with the timezone correction; calendar native-device acceptance remains open."
         },
         {
           "name": "keyboard: Escape closes and returns focus to \"+N\"",
           "status": "reviewed",
-          "reason": "Current full suite passes compact-advanced-interactions.spec.ts:63-69: real overflow reopens the sheet, sheet receives focus, Escape removes it and returns focus to the overflow button in all four scheme/mobile-class combinations. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log)."
+          "reason": "Current full suite passes compact-advanced-interactions.spec.ts:63-69: real overflow reopens the sheet, sheet receives focus, Escape removes it and returns focus to the overflow button in all four scheme/mobile-class combinations. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log). The relevant calendar browser cases also passed on Linux/UTC with the timezone correction; calendar native-device acceptance remains open."
         },
         {
           "name": "open sheet appearance (shadow, radius, today header, colours)",
@@ -2634,7 +2634,7 @@
         {
           "name": "all-day lanes + cap",
           "status": "reviewed",
-          "reason": "Current compact-calendar-states.spec.ts:110-143 passes in the isolated 93-case run and full 786-case suite: configured lane cap shows +4 with its accessible name; expanding reveals all five authored titles and grows the band. Light/dark and desktop/mobile classes, Chromium only. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log)."
+          "reason": "Current compact-calendar-states.spec.ts:110-143 passes in the isolated 93-case run and full 786-case suite: configured lane cap shows +4 with its accessible name; expanding reveals all five authored titles and grows the band. Light/dark and desktop/mobile classes, Chromium only. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log). The relevant calendar browser cases also passed on Linux/UTC with the timezone correction; calendar native-device acceptance remains open."
         },
         {
           "name": "link accent text role",
@@ -2644,7 +2644,7 @@
         {
           "name": "expanded (collapse link shown)",
           "status": "reviewed",
-          "reason": "Current compact-calendar-states.spec.ts:110-143 asserts visible collapse control, 24px desktop/44px mobile-class target height, matching band/axis growth, readable lane text and restoration of folded height and overflow button after collapse. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log)."
+          "reason": "Current compact-calendar-states.spec.ts:110-143 asserts visible collapse control, 24px desktop/44px mobile-class target height, matching band/axis growth, readable lane text and restoration of folded height and overflow button after collapse. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log). The relevant calendar browser cases also passed on Linux/UTC with the timezone correction; calendar native-device acceptance remains open."
         }
       ],
       "scenario": "All-day band with lanes capped at two and the \"+N\" link.",
@@ -2788,7 +2788,7 @@
         {
           "name": "overflow chip",
           "status": "reviewed",
-          "reason": "Current compact-calendar-states.spec.ts:110-143 asserts +4 text, accessible name, 24/44px target height and expansion by a real click in both schemes and desktop/mobile classes. Hover/focus-visible remain separate pending states. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log)."
+          "reason": "Current compact-calendar-states.spec.ts:110-143 asserts +4 text, accessible name, 24/44px target height and expansion by a real click in both schemes and desktop/mobile classes. Hover/focus-visible remain separate pending states. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log). The relevant calendar browser cases also passed on Linux/UTC with the timezone correction; calendar native-device acceptance remains open."
         },
         {
           "name": "hover",
@@ -2946,7 +2946,7 @@
         {
           "name": "mouse / keyboard drag, resize and invalid drop",
           "status": "reviewed",
-          "reason": "Current compact-calendar-states.spec.ts:154-308 passes actual pointer move, top/bottom resize, rejected weekend/early drops, Escape cancellation, staged keyboard moves and repeated-arrow event identity in light/dark and desktop/mobile classes. Verified by 93/93 isolated and 779 passed/7 existing skips in the complete suite. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log)."
+          "reason": "Current compact-calendar-states.spec.ts:154-308 passes actual pointer move, top/bottom resize, rejected weekend/early drops, Escape cancellation, staged keyboard moves and repeated-arrow event identity in light/dark and desktop/mobile classes. Verified by 93/93 isolated and 779 passed/7 existing skips in the complete suite. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log). Linux/UTC Chromium confirms the pointer move, edge resize, invalid drop, Escape and keyboard cases twice without retries, including a second drag after rejection. No native-device proof."
         },
         {
           "name": "touch drag / resize / invalid drop",
@@ -3233,12 +3233,12 @@
         {
           "name": "hover proposal / drag selection",
           "status": "reviewed",
-          "reason": "Current compact-calendar-states.spec.ts:316-375 passes real mouse hover and range drag: indicator/proposal appears, duration changes, one dated 13:00-14:30 drag payload is emitted without a click, draft has expected geometry and pointer transparency, Escape cancels and a subsequent empty-slot drag still works. Both schemes and desktop/mobile classes. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log)."
+          "reason": "Current compact-calendar-states.spec.ts:316-375 passes real mouse hover and range drag: indicator/proposal appears, duration changes, one dated 13:00-14:30 drag payload is emitted without a click, draft has expected geometry and pointer transparency, Escape cancels and a subsequent empty-slot drag still works. Both schemes and desktop/mobile classes. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log). The relevant calendar browser cases also passed on Linux/UTC with the timezone correction; calendar native-device acceptance remains open."
         },
         {
           "name": "clipped start/end draft",
           "status": "reviewed",
-          "reason": "Current compact-calendar-states.spec.ts:381-414 passes top/bottom clipped drafts in both schemes: exact cut-side class, dashed square cut edge, solid rounded intact edge, column/body bounds and matching clipped event. All measured text, including event time/location, must meet 4.5:1. Desktop Chromium; mobile/native proof remains open. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log)."
+          "reason": "Current compact-calendar-states.spec.ts:381-414 passes top/bottom clipped drafts in both schemes: exact cut-side class, dashed square cut edge, solid rounded intact edge, column/body bounds and matching clipped event. All measured text, including event time/location, must meet 4.5:1. Desktop Chromium; mobile/native proof remains open. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log). The relevant calendar browser cases also passed on Linux/UTC with the timezone correction; calendar native-device acceptance remains open."
         }
       ],
       "scenario": "Host draft (day and week-rows) and hover/drag selection layer.",
@@ -3532,12 +3532,12 @@
         {
           "name": "compact: measured header budget (44px actions)",
           "status": "reviewed",
-          "reason": "Current full suite passes compact-advanced-interactions.spec.ts:41-61: mobile-class close control is 44px and participates in measured header/frame/list budget of 360px; sheet remains <=360px in both light and dark. Desktop 32px variant is checked separately by the same test. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log)."
+          "reason": "Current full suite passes compact-advanced-interactions.spec.ts:41-61: mobile-class close control is 44px and participates in measured header/frame/list budget of 360px; sheet remains <=360px in both light and dark. Desktop 32px variant is checked separately by the same test. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log). The relevant calendar browser cases also passed on Linux/UTC with the timezone correction; calendar native-device acceptance remains open."
         },
         {
           "name": "compact: open/close/focus handoff",
           "status": "reviewed",
-          "reason": "Current full suite passes compact-advanced-interactions.spec.ts:41-69: close-button click, real overflow reopen, sheet focus, Escape close and overflow focus return in light/dark and desktop/mobile classes. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log)."
+          "reason": "Current full suite passes compact-advanced-interactions.spec.ts:41-69: close-button click, real overflow reopen, sheet focus, Escape close and overflow focus return in light/dark and desktop/mobile classes. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log). The relevant calendar browser cases also passed on Linux/UTC with the timezone correction; calendar native-device acceptance remains open."
         },
         {
           "name": "flip-up near the viewport bottom",
@@ -10138,7 +10138,7 @@
         {
           "name": "selected node chrome and type tab (font, colours, tab background)",
           "status": "reviewed",
-          "reason": "Current post-review canvas regression passes 3/3 repeats after a real canvas click, with the pointer remaining over the selected node: compact tab text >=4.5:1 and frame >=3:1, neutral hover before selection and the historical legacy hover preserved. Light/dark with desktop/mobile classes and live host accents are checked. Full suite revalidated: 779 passed, seven existing skips; no native-device claim."
+          "reason": "Current post-review canvas regression passes 3/3 repeats after a real canvas click, with the pointer remaining over the selected node: compact tab text >=4.5:1 and frame >=3:1, neutral hover before selection and the historical legacy hover preserved. Light/dark with desktop/mobile classes and live host accents are checked. Full suite revalidated: 779 passed, seven existing skips; no native-device claim. The targeted Builder browser and stylesheet checks also passed on Linux/UTC; product Builder code is unchanged."
         },
         {
           "name": "hover-only node chrome",
@@ -10148,7 +10148,7 @@
         {
           "name": "drop zones: idle / over (accent colour-mix)",
           "status": "reviewed",
-          "reason": "The current canvas test performs a real pointer drag, measures the over-state background/border against compact roles and checks the idle background after its transition completes. Three final repeated runs pass in both profiles and all four mode/mobile-class variants. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log)."
+          "reason": "The current canvas test performs a real pointer drag, measures the over-state background/border against compact roles and checks the idle background after its transition completes. Three final repeated runs pass in both profiles and all four mode/mobile-class variants. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log). The targeted Builder browser and stylesheet checks also passed on Linux/UTC; product Builder code is unchanged."
         },
         {
           "name": "drop zones: active but not over",
@@ -10163,7 +10163,7 @@
         {
           "name": "empty card placeholder",
           "status": "reviewed",
-          "reason": "Current canvas test waits for the final idle background and enforces 4.5:1 for the compact placeholder text; legacy is recorded without redesign. Three final repeated runs pass. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log)."
+          "reason": "Current canvas test waits for the final idle background and enforces 4.5:1 for the compact placeholder text; legacy is recorded without redesign. Three final repeated runs pass. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log). The targeted Builder browser and stylesheet checks also passed on Linux/UTC; product Builder code is unchanged."
         },
         {
           "name": "generic preview dashed border",
@@ -15759,7 +15759,7 @@
         {
           "name": "defines roles only under .coar-compact",
           "status": "reviewed",
-          "reason": "Current src/styles/compact.test.ts passes 7/7: every selector is compact-scoped, roles retain legacy fallbacks, authored renderers consume no chrome roles and selected ink uses the shared theme-aware role. This is source-level proof, not a browser/device claim. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log)."
+          "reason": "Current src/styles/compact.test.ts passes 7/7: every selector is compact-scoped, roles retain legacy fallbacks, authored renderers consume no chrome roles and selected ink uses the shared theme-aware role. This is source-level proof, not a browser/device claim. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log). The targeted Builder browser and stylesheet checks also passed on Linux/UTC; product Builder code is unchanged."
         },
         {
           "name": "derived values re-resolve under .coar-mobile between .coar-compact and builder",

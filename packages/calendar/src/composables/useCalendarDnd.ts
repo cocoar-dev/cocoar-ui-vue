@@ -639,6 +639,14 @@ export function useCalendarDnd<TMeta extends Record<string, unknown> = Record<st
     surfaceRef: opts.surfaceRef,
     dragThreshold: opts.dragThreshold ?? 5,
     onDragStart: ({ event, data }) => {
+      // A new pointerdown can arrive before the previous rejection has
+      // faded out. Its timer must not clear the new drag's mode or target.
+      if (snapBackTimer !== null) {
+        clearTimeout(snapBackTimer);
+        snapBackTimer = null;
+        snapBackUntil.value = 0;
+        dropTarget.value = null;
+      }
       lastNativeEvent = event;
       dragStartDisplayZone = opts.timezone.value;
       dragStartOriginalStart = data?.start ?? null;

@@ -615,6 +615,33 @@ describe('useCalendarDnd — invalid drop snap-back', () => {
     expect(harness.dnd.dropTarget.value).toBeNull();
     expect(harness.dnd.dragMode.value).toBeNull();
   });
+
+  it('does not clear a new drag when the previous snap-back would expire', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'requestAnimationFrame', 'cancelAnimationFrame'] });
+    try {
+      const handler = harness.dnd.startDrag(baseEvent);
+      handler(pointerEvent('pointerdown', { clientX: 350, clientY: 540 }));
+      window.dispatchEvent(pointerEvent('pointermove', { clientX: 450, clientY: 660 }));
+      await vi.advanceTimersByTimeAsync(32);
+      window.dispatchEvent(pointerEvent('pointerup', { clientX: 450, clientY: 660 }));
+      expect(harness.dnd.snappingBack.value).toBe(true);
+
+      handler(pointerEvent('pointerdown', { clientX: 350, clientY: 540 }));
+      window.dispatchEvent(pointerEvent('pointermove', { clientX: 450, clientY: 570 }));
+      await vi.advanceTimersByTimeAsync(32);
+      const secondTarget = harness.dnd.dropTarget.value;
+      expect(secondTarget?.valid).toBe(false);
+      await vi.advanceTimersByTimeAsync(250);
+
+      expect(harness.dnd.snappingBack.value).toBe(false);
+      expect(harness.dnd.dragMode.value).toBe('timed');
+      expect(harness.dnd.dropTarget.value).toEqual(secondTarget);
+      expect(onEventDrop).not.toHaveBeenCalled();
+    } finally {
+      window.dispatchEvent(pointerEvent('pointercancel', { clientX: 450, clientY: 570 }));
+      vi.useRealTimers();
+    }
+  });
 });
 
 describe('useCalendarDnd — hit-test buffer', () => {
