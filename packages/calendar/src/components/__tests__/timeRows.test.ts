@@ -279,6 +279,13 @@ describe('drag and drop', () => {
       ),
     );
     const handle = w.find('.coar-time-rows-event__resize--end').element;
+    // Resize preserves the grab distance to the handle edge. happy-dom
+    // has no layout, so supply the real 6 px right-edge geometry.
+    vi.spyOn(handle, 'getBoundingClientRect').mockReturnValue({
+      left: LABEL + 10 * 60 - 6, right: LABEL + 10 * 60,
+      top: 48, bottom: 74, x: LABEL + 10 * 60 - 6, y: 48,
+      width: 6, height: 26, toJSON: () => ({}),
+    });
     handle.dispatchEvent(pointer('pointerdown', { x: LABEL + 10 * 60 - 2, y: rowY(1) }));
     window.dispatchEvent(pointer('pointermove', { x: LABEL + 11 * 60 + 20, y: rowY(1) }));
     await nextFrame();

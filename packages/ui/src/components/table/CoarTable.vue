@@ -51,10 +51,10 @@ const tableClasses = computed(() => [
 }
 
 .coar-table :deep(th) {
-  padding: 0.75rem var(--coar-spacing-m);
+  padding: var(--coar-table-cell-padding, 0.75rem var(--coar-spacing-m));
   text-align: left;
-  font-weight: var(--coar-font-weight-semi-bold);
-  font-size: var(--coar-component-s-font-size);
+  font-weight: var(--coar-label-font-weight, var(--coar-font-weight-semi-bold));
+  font-size: var(--coar-caption-font-size, var(--coar-component-s-font-size));
   color: var(--coar-text-neutral-primary);
   border-bottom: 1px solid var(--coar-border-neutral-tertiary);
   white-space: nowrap;
@@ -72,7 +72,7 @@ const tableClasses = computed(() => [
 }
 
 .coar-table :deep(td) {
-  padding: 0.75rem var(--coar-spacing-m);
+  padding: var(--coar-table-cell-padding, 0.75rem var(--coar-spacing-m));
   text-align: left;
   color: var(--coar-text-neutral-secondary);
   vertical-align: top;

@@ -296,7 +296,16 @@ const freetexts = computed(() =>
   transform: scale(1.1);
 }
 .coar-pdf-annotation-pin:focus-visible {
-  outline: 2px solid var(--coar-color-accent, #2563eb);
+  outline: 2px solid var(--coar-color-accent, var(--coar-document-viewer-accent, #2563eb));
   outline-offset: 2px;
+}
+
+/* Compact profile on touch: a 44px target around the 22px pin. The pin itself (and so
+   its anchor, the centre on the annotation point) keeps its size. */
+:is(.coar-compact.coar-mobile, .coar-compact .coar-mobile, .coar-mobile .coar-compact) .coar-pdf-annotation-pin::before {
+  content: '';
+  position: absolute;
+  inset: -11px;
+  border-radius: 50%;
 }
 </style>

@@ -213,7 +213,7 @@ function itemTooltip(item: WrapperSlotItem): string | undefined {
 
 .coar-wrap-cell__item--clickable {
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: var(--coar-control-radius, 4px);
   padding: 2px;
   transition: background-color 0.1s;
 }

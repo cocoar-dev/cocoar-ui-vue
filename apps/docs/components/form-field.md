@@ -28,6 +28,8 @@ Wrap any form control in `CoarFormField` and pass `label`, `hint`, or `error` pr
 
 `CoarFormField` can place its label before or after any control, either stacked or inline. All four combinations have a visible effect. Inline layouts are especially useful when the field label is the only label of a checkbox or switch; leave the control's own `label` unset in that case.
 
+Each example below has its own value. The two checkboxes demonstrate label-after and label-before independently; in Compact, the inline label stays beside its control.
+
 <preview path="./form-field/demos/FormFieldLayouts.vue" />
 
 ## Status Indicator

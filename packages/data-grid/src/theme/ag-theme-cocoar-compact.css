@@ -1,0 +1,119 @@
+/**
+ * Cocoar compact presentation for AG Grid (experimental, opt-in via `.coar-compact`).
+ *
+ * Outside a `.coar-compact` scope nothing here applies: the default grid keeps
+ * `ag-theme-cocoar.css` + `cocoarTheme` exactly as before.
+ *
+ * Why the adapter lives in CSS, not in `cocoarTheme`:
+ * AG Grid's theming API writes every param as `--ag-x: var(--ag-inherited-x, <param>)`
+ * on the grid root and maps the parent's `--ag-x` into `--ag-inherited-x`. A value set
+ * on `.ag-theme-cocoar` (or any ancestor) therefore wins over the TS param. The profile
+ * is a DOM scope (class on an ancestor or on the grid wrapper itself), so it can only be
+ * expressed here; one `cocoarTheme` instance serves default and compact grids alike.
+ * This file is the single source for the compact grid: it sets the *live* AG Grid 35
+ * variables (the legacy file also sets several pre-v33 names AG Grid no longer reads,
+ * kept there for compatibility), checked by `ag-theme-cocoar-compact.test.ts`.
+ *
+ * Selector: `.coar-compact` may sit on an ancestor or on the grid wrapper (`class` prop).
+ * Derived values are declared on the wrapper so tokens resolve in the grid's own scope
+ * (nested `.coar-mobile` / light/dark areas inside a compact area resolve correctly).
+ *
+ * Grid roles (override on the grid or any element inside the compact area):
+ *   --coar-data-grid-font-size, --coar-data-grid-row-height, --coar-data-grid-header-height,
+ *   --coar-data-grid-list-item-height, --coar-data-grid-cell-padding-x,
+ *   --coar-data-grid-header-font-weight, --coar-data-grid-control-radius,
+ *   --coar-data-grid-radius, --coar-data-grid-tree-indent, --coar-data-grid-tree-toggle-size
+ */
+
+/* Package role defaults: literal values only, so inheriting them from the compact
+   area never freezes a token resolved in another scope. */
+:where(.coar-compact) {
+  --coar-data-grid-cell-padding-x: 12px;
+}
+
+/* Touch: tree toggles get a full 44px target; the indentation step stays 20px. */
+:where(.coar-compact.coar-mobile, .coar-compact .coar-mobile, .coar-mobile .coar-compact) {
+  --coar-data-grid-tree-toggle-size: 44px;
+}
+
+:is(.coar-compact .ag-theme-cocoar, .ag-theme-cocoar.coar-compact) {
+  /* AG Grid reads this for both its wrapper and popup roots. Fix the
+     theme input, not just the wrapper: filter menus must share its scheme. */
+  --ag-browser-color-scheme: var(--coar-compact-color-scheme, light);
+
+  /* Typography: UI text role (13px desktop / 14px mobile), header in the label weight. */
+  --ag-font-size: var(--coar-data-grid-font-size, var(--coar-ui-font-size, var(--coar-font-size-xs, 14px)));
+  --ag-header-font-weight: var(--coar-data-grid-header-font-weight, var(--coar-label-font-weight, 600));
+
+  /* Rows: grid rows, header and AG list items (filter/column lists) follow the
+     interactive-row rhythm (36px desktop / 44px mobile) unless the grid role overrides. */
+  --ag-row-height: var(--coar-data-grid-row-height, var(--coar-interactive-row-height, 40px));
+  --ag-header-height: var(--coar-data-grid-header-height, var(--coar-interactive-row-height, 40px));
+  --ag-list-item-height: var(--coar-data-grid-list-item-height, var(--coar-interactive-row-height, 36px));
+  --ag-cell-horizontal-padding: var(--coar-data-grid-cell-padding-x, var(--coar-spacing-m, 16px));
+
+  /* Shape: inputs/buttons inside the grid use the control radius, the wrapper the panel radius. */
+  --ag-border-radius: var(--coar-data-grid-control-radius, var(--coar-control-radius, var(--coar-radius-m, 8px)));
+  --ag-wrapper-border-radius: var(--coar-data-grid-radius, var(--coar-panel-radius, var(--coar-radius-m, 8px)));
+
+  /* Colors AG Grid otherwise derives from Quartz defaults or from `cocoarTheme`'s
+     fixed fallbacks (accent #2196f3, header text #1a1a1a): bind them to the tokens. */
+  --ag-accent-color: var(--coar-background-accent-primary, #2196f3);
+  --ag-header-text-color: var(--coar-text-neutral-secondary, #404040);
+  --ag-subtle-text-color: var(--coar-text-neutral-tertiary, #525252);
+  --ag-icon-color: var(--coar-icon-neutral-secondary, #404040);
+  --ag-chrome-background-color: var(--coar-background-neutral-secondary, #f5f5f5);
+  --ag-checkbox-unchecked-border-color: var(--coar-border-input, #e5e5e5);
+  --ag-input-border: solid 1px var(--coar-border-input, #e5e5e5);
+  --ag-input-focus-border: solid 1px var(--coar-border-accent-primary, #0066cc);
+  --ag-focus-shadow: 0 0 0 var(--coar-focus-width, 2px) var(--coar-focus-color, #0066cc);
+  --ag-menu-border: solid 1px var(--coar-border-neutral-tertiary, #e5e5e5);
+  --ag-menu-shadow: var(--coar-elevation-medium, none);
+  --ag-popup-shadow: var(--coar-elevation-medium, none);
+
+  .ag-header {
+    font-weight: var(--ag-header-font-weight);
+  }
+
+  .ag-header-cell {
+    padding-left: var(--ag-cell-horizontal-padding);
+    padding-right: var(--ag-cell-horizontal-padding);
+  }
+
+  /* Drag & drop markers: the legacy rules read token names that do not exist and
+     fall back to fixed blue/red; bind them to the accent and error roles here. */
+  .ag-row.coar-drop-target {
+    background-color: var(--coar-background-accent-tertiary, rgba(0, 102, 204, 0.1)) !important;
+    outline-color: var(--coar-border-accent-primary, #0066cc);
+    border-radius: var(--coar-control-radius, var(--coar-radius-s, 6px));
+  }
+
+  &.coar-drop-target-root {
+    outline-color: var(--coar-border-accent-primary, #0066cc);
+    border-radius: var(--coar-panel-radius, var(--coar-radius-s, 6px));
+  }
+
+  .ag-row.coar-drop-target--invalid {
+    background-color: var(--coar-background-semantic-error-subtlest, rgba(204, 0, 0, 0.06)) !important;
+    outline-color: var(--coar-border-semantic-error, rgba(204, 0, 0, 0.4));
+    border-radius: var(--coar-control-radius, var(--coar-radius-s, 6px));
+  }
+
+  &.ag-theme-cocoar--bordered,
+  &.ag-theme-cocoar--elevated {
+    border-radius: var(--coar-panel-radius, var(--coar-radius-s));
+  }
+
+  /* Hover chips of the tree toggle and clickable wrapper items: the legacy
+     `--coar-surface-neutral-hover` is undefined (fixed black 6%, invisible in dark). */
+  .coar-tree-cell__toggle:hover,
+  .coar-wrap-cell__item--clickable:hover {
+    background-color: var(--coar-background-neutral-tertiary, rgba(0, 0, 0, 0.06));
+  }
+}
+
+/* Quick-filter highlight (CSS Custom Highlight API): styled per originating element. */
+.coar-compact ::highlight(coar-search),
+.coar-compact::highlight(coar-search) {
+  text-decoration-color: var(--coar-border-accent-primary, #0066cc);
+}

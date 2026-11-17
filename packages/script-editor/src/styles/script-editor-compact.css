@@ -1,0 +1,20 @@
+/*
+ * Compact presentation profile (Preview) of `@cocoar/vue-script-editor`'s
+ * frame. Imported by `CoarScriptEditor.vue`. Only `.coar-compact` defines the
+ * `--coar-script-editor-*` roles below; outside it the legacy values apply.
+ *
+ * The frame is plain CSS and follows a local `.coar-compact` area. What Monaco
+ * paints (colors, line numbers, selection) is a page-global Monaco theme: the
+ * compact Monaco themes apply only when `<html>` or `<body>` carries
+ * `.coar-compact` (see `theme.ts`). Code text keeps its role (13 px, line
+ * height 1.5, Cascadia Code), independent of the UI text roles.
+ */
+
+.coar-compact {
+  /* Same shape as the profile's text inputs. */
+  --coar-script-editor-radius: var(--coar-control-radius, 6px);
+  /* The placeholder overlays Monaco's first line: same code font as Monaco
+     (legacy lists Fira Code first, which Monaco does not use). */
+  --coar-script-editor-placeholder-font-family: 'Cascadia Code', 'Consolas', 'Monaco',
+    'Courier New', monospace;
+}

@@ -496,7 +496,7 @@ const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
   flex-direction: column;
   height: 100%;
   font-family: var(--coar-body-base-family, Poppins, sans-serif);
-  font-size: 13px;
+  font-size: var(--coar-ui-font-size, 13px);
   color: var(--coar-text-neutral-primary, #1a1a1a);
 }
 
@@ -550,7 +550,7 @@ const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
   cursor: pointer;
   list-style: none;
   user-select: none;
-  font-size: 12px; font-weight: 600;
+  font-size: var(--coar-ui-font-size, 12px); font-weight: var(--coar-label-font-weight, 600);
   color: var(--coar-text-neutral-primary, #1a1a1a);
   transition: background 0.1s;
 }
@@ -573,7 +573,7 @@ const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
 /* ── Components divider ──────────────────────────────── */
 .te-components-divider {
   padding: 7px 16px;
-  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em;
+  font-size: var(--coar-caption-font-size, 10px); font-weight: var(--coar-label-font-weight, 700); text-transform: uppercase; letter-spacing: .08em;
   color: var(--coar-text-neutral-tertiary, #8c8c8c);
   background: var(--coar-background-neutral-secondary, #f8f8f8);
   border-top: 1px solid var(--coar-border-neutral-tertiary, #e8e8e8);
@@ -588,7 +588,7 @@ const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
 .te-section:last-child { border-bottom: none; }
 .te-section-label {
   display: flex; align-items: center; gap: 6px;
-  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em;
+  font-size: var(--coar-caption-font-size, 11px); font-weight: var(--coar-label-font-weight, 600); text-transform: uppercase; letter-spacing: .05em;
   color: var(--coar-text-neutral-tertiary, #8c8c8c); margin-bottom: 10px;
 }
 
@@ -620,7 +620,7 @@ const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
   background: color-mix(in srgb, var(--coar-background-accent-primary, #1183CD) 6%, transparent);
 }
 .te-preset-name { font-size: 13px; font-weight: 600; color: var(--coar-text-neutral-primary, #1a1a1a); }
-.te-preset-desc { font-size: 11px; color: var(--coar-text-neutral-tertiary, #8c8c8c); }
+.te-preset-desc { font-size: var(--coar-caption-font-size, 11px); color: var(--coar-text-neutral-tertiary, #8c8c8c); }
 
 /* ── Color rows ──────────────────────────────────────── */
 .te-color-row { display: flex; align-items: center; gap: 9px; margin-bottom: 7px; }
@@ -688,7 +688,7 @@ const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
 }
 
 /* ── Hint text ───────────────────────────────────────── */
-.te-hint { font-size: 11px; color: var(--coar-text-neutral-tertiary, #8c8c8c); line-height: 1.45; margin: 0; }
+.te-hint { font-size: var(--coar-caption-font-size, 11px); color: var(--coar-text-neutral-tertiary, #8c8c8c); line-height: 1.45; margin: 0; }
 .te-hint code { font-family: ui-monospace, monospace; font-size: 10px; }
 
 /* ── Disabled scale row ──────────────────────────────── */
@@ -727,6 +727,6 @@ const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
   flex-shrink: 0;
   background: var(--coar-background-neutral-primary, #fff);
 }
-.te-footer-hint { margin: 8px 0 0; font-size: 11px; color: var(--coar-text-neutral-tertiary, #8c8c8c); line-height: 1.4; }
+.te-footer-hint { margin: 8px 0 0; font-size: var(--coar-caption-font-size, 11px); color: var(--coar-text-neutral-tertiary, #8c8c8c); line-height: 1.4; }
 .te-footer-hint code { font-family: ui-monospace, monospace; font-size: 10px; }
 </style>

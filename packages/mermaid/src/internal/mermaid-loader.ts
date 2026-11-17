@@ -11,6 +11,12 @@
  * untrusted — strict mode sanitizes HTML in labels and blocks click bindings).
  * The theme config is captured at that first initialization; a reactive
  * theme-swap at runtime is a deliberate follow-up, not part of this slice.
+ *
+ * Mermaid's configuration is global to the page. The one exception to "once"
+ * is a change of presentation profile between two renders (the opt-in
+ * `.coar-compact` profile, Preview, beside the default one): Mermaid is then
+ * initialized again with the config of the diagram about to render. A page
+ * that uses one profile only never re-initializes, exactly as before.
  */
 
 /** The slice of Mermaid's API this package uses. */
@@ -24,7 +30,15 @@ export interface MermaidApi {
 /** Init config passed to Mermaid — kept loose to stay version-tolerant. */
 export type MermaidInitConfig = Record<string, unknown>;
 
+type InitializableMermaid = MermaidApi & { initialize(config: MermaidInitConfig): void };
+
+/** Options every initialization sets, before the caller's theme config. */
+const BASE_CONFIG: MermaidInitConfig = { startOnLoad: false, securityLevel: 'strict' };
+
 let loadPromise: Promise<MermaidApi> | null = null;
+/** Profile of the config Mermaid is initialized with; `null` until the first render. */
+let appliedProfile: string | null = null;
+let appliedCompactConfig = '';
 
 /**
  * Resolve the initialized Mermaid instance, importing + initializing it on the
@@ -36,14 +50,8 @@ export function loadMermaid(configFactory: () => MermaidInitConfig): Promise<Mer
 
   loadPromise = import('mermaid')
     .then((mod) => {
-      const mermaid = ((mod as { default?: unknown }).default ?? mod) as MermaidApi & {
-        initialize(config: MermaidInitConfig): void;
-      };
-      mermaid.initialize({
-        startOnLoad: false,
-        securityLevel: 'strict',
-        ...configFactory(),
-      });
+      const mermaid = ((mod as { default?: unknown }).default ?? mod) as InitializableMermaid;
+      mermaid.initialize({ ...BASE_CONFIG, ...configFactory() });
       return mermaid;
     })
     .catch((err) => {
@@ -69,13 +77,29 @@ let renderSeq = 0;
  * Render one diagram to an SVG string, serialized against every other render.
  * Loads + initializes Mermaid on first use (via {@link loadMermaid}); rejects if
  * the source is invalid so the caller can show a fallback.
+ *
+ * `profile` names the presentation profile of the diagram (`'default'` or
+ * `'compact'`). When it differs from the profile Mermaid was last initialized
+ * for, Mermaid is initialized again with `configFactory()` before rendering;
+ * renders are serialized, so that config applies to this render only until
+ * the next change.
  */
 export function renderMermaid(
   configFactory: () => MermaidInitConfig,
   code: string,
+  profile = 'default',
 ): Promise<string> {
   const run = async (): Promise<string> => {
-    const mermaid = await loadMermaid(configFactory);
+    const config = configFactory();
+    const compactConfig = profile === 'compact' ? JSON.stringify(config) : '';
+    const mermaid = await loadMermaid(() => config);
+    if (appliedProfile === null) {
+      appliedProfile = profile;
+    } else if (appliedProfile !== profile || compactConfig !== appliedCompactConfig) {
+      (mermaid as InitializableMermaid).initialize({ ...BASE_CONFIG, ...config });
+      appliedProfile = profile;
+    }
+    appliedCompactConfig = compactConfig;
     // Wait for web fonts before rendering. Mermaid sizes every box from the
     // MEASURED text width; if it measures with a fallback font (because the real
     // font, e.g. Poppins from the theme bridge, hasn't loaded yet) but then
@@ -116,4 +140,6 @@ export function renderMermaid(
 /** Test-only hook: forget the cached instance so a fresh load can be asserted. */
 export function resetMermaidForTests(): void {
   loadPromise = null;
+  appliedProfile = null;
+  appliedCompactConfig = '';
 }

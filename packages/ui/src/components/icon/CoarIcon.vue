@@ -236,11 +236,11 @@ const rotateTransitionValue = computed(() => {
   stroke: currentColor;
 }
 
-.coar-icon--xs { width: 12px; height: 12px; }
-.coar-icon--s  { width: 16px; height: 16px; }
-.coar-icon--m  { width: 20px; height: 20px; }
-.coar-icon--l  { width: 24px; height: 24px; }
-.coar-icon--xl { width: 32px; height: 32px; }
+.coar-icon--xs { width: var(--coar-icon-xs-size, 12px); height: var(--coar-icon-xs-size, 12px); }
+.coar-icon--s  { width: var(--coar-icon-s-size, 16px); height: var(--coar-icon-s-size, 16px); }
+.coar-icon--m  { width: var(--coar-icon-m-size, 20px); height: var(--coar-icon-m-size, 20px); }
+.coar-icon--l  { width: var(--coar-icon-l-size, 24px); height: var(--coar-icon-l-size, 24px); }
+.coar-icon--xl { width: var(--coar-icon-xl-size, 32px); height: var(--coar-icon-xl-size, 32px); }
 
 .coar-icon--auto {
   width: auto;

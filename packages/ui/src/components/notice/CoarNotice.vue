@@ -94,13 +94,13 @@ const hostClasses = computed(() => [
   border: 1px solid var(--coar-notice-border);
   background: var(--coar-notice-background);
   color: var(--coar-notice-foreground);
-  font-size: 0.85rem;
-  line-height: 1.4;
+  font-size: var(--coar-ui-font-size, 0.85rem);
+  line-height: var(--coar-ui-line-height, 1.4);
 }
 
 .coar-notice--inline {
   padding: var(--coar-spacing-s) var(--coar-spacing-m);
-  border-radius: var(--coar-radius-xs);
+  border-radius: var(--coar-control-radius, var(--coar-radius-xs));
 }
 
 .coar-notice--banner {
@@ -167,7 +167,7 @@ const hostClasses = computed(() => [
   background: transparent;
   color: inherit;
   font: inherit;
-  font-weight: 600;
+  font-weight: var(--coar-label-font-weight, 600);
   text-decoration: underline;
   text-underline-offset: 0.15em;
   white-space: nowrap;
@@ -182,7 +182,7 @@ const hostClasses = computed(() => [
 
 .coar-notice__cta {
   flex: 0 0 auto;
-  font-weight: 600;
+  font-weight: var(--coar-label-font-weight, 600);
   white-space: nowrap;
 }
 

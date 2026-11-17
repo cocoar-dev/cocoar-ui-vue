@@ -464,7 +464,7 @@ const pattern = computed(() =>
   background: var(--coar-surface-input);
   color: var(--coar-text-neutral-primary);
   font-family: var(--coar-mono-base-family, ui-monospace, SFMono-Regular, Menlo, monospace);
-  font-size: max(var(--coar-component-m-font-size), var(--coar-control-min-font-size, 0px));
+  font-size: max(var(--coar-field-font-size, var(--coar-component-m-font-size)), var(--coar-control-min-font-size, 0px), var(--coar-field-min-font-size, 0px));
   font-variant-numeric: tabular-nums;
   text-align: center;
   box-sizing: border-box;
@@ -476,17 +476,17 @@ const pattern = computed(() =>
 .coar-otp-input--xs .coar-otp-input__cell {
   width: max(var(--coar-component-xs-height), var(--coar-control-xs-height, 0px));
   height: max(var(--coar-component-xs-height), var(--coar-control-xs-height, 0px));
-  font-size: max(var(--coar-component-xs-font-size), var(--coar-control-min-font-size, 0px));
+  font-size: max(var(--coar-field-xs-font-size, var(--coar-field-xs-default-font-size, var(--coar-field-font-size, var(--coar-component-xs-font-size)))), var(--coar-control-min-font-size, 0px), var(--coar-field-min-font-size, 0px));
 }
 .coar-otp-input--s .coar-otp-input__cell {
   width: max(var(--coar-component-s-height), var(--coar-control-s-height, 0px));
   height: max(var(--coar-component-s-height), var(--coar-control-s-height, 0px));
-  font-size: max(var(--coar-component-s-font-size), var(--coar-control-min-font-size, 0px));
+  font-size: max(var(--coar-field-s-font-size, var(--coar-field-s-default-font-size, var(--coar-field-font-size, var(--coar-component-s-font-size)))), var(--coar-control-min-font-size, 0px), var(--coar-field-min-font-size, 0px));
 }
 .coar-otp-input--l .coar-otp-input__cell {
   width: max(var(--coar-component-l-height), var(--coar-control-l-height, 0px));
   height: max(var(--coar-component-l-height), var(--coar-control-l-height, 0px));
-  font-size: max(var(--coar-component-l-font-size), var(--coar-control-min-font-size, 0px));
+  font-size: max(var(--coar-field-l-font-size, var(--coar-field-l-default-font-size, var(--coar-field-font-size, var(--coar-component-l-font-size)))), var(--coar-control-min-font-size, 0px), var(--coar-field-min-font-size, 0px));
 }
 
 /* Mobile: the cells keep the mobile height but give up width to fit their container

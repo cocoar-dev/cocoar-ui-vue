@@ -179,7 +179,7 @@ export function useTimeGridPresentation<
     );
   }
   function eventBorderFor(event: CalendarEvent<TMeta>): string {
-    return eventColor(event) ?? 'var(--coar-color-accent, var(--coar-color-accent-500, #2563eb))';
+    return eventColor(event) ?? 'var(--coar-calendar-event-default-color, var(--coar-color-accent, var(--coar-color-accent-500, #2563eb)))';
   }
   /** Text colour for an event surface — `meta.textColor` or the policy's black/white. */
   function eventInkFor(event: CalendarEvent<TMeta>): string {

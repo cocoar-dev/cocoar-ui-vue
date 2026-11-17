@@ -35,6 +35,10 @@ Add a border or elevation shadow to the grid. Toggle the checkboxes to see the e
 
 Dark styles ship with the package. The theme maps AG Grid's variables onto the semantic `--coar-*` tokens (with hardcoded fallbacks), so the grid follows your design-system theme in both modes. Dark values activate via the `.dark-mode` class — on `<html>` or any ancestor (the Cocoar convention, same as `@cocoar/vue-ui`), or directly on the grid element. `[data-theme="dark"]` is **not** a trigger here.
 
+### Compact presentation <Badge type="warning" text="Preview" />
+
+Inside the experimental `.coar-compact` profile — on an ancestor or on the grid itself (`class="coar-compact"`) — the grid uses the library's compact roles: 13px UI text (14px with `.coar-mobile`), rows, header and AG Grid's list items at the interactive-row height (36px, 44px with `.coar-mobile`), 12px cell padding, the header in the label weight, and AG Grid's accent, icons, checkboxes, inputs, menus and drop markers on the semantic tokens. The same `cocoarTheme` serves both looks; outside the profile nothing changes. Override a role on the grid or inside the compact area: `--coar-data-grid-row-height`, `--coar-data-grid-header-height`, `--coar-data-grid-list-item-height`, `--coar-data-grid-font-size`, `--coar-data-grid-cell-padding-x`, `--coar-data-grid-header-font-weight`, `--coar-data-grid-control-radius`, `--coar-data-grid-radius`, `--coar-data-grid-tree-indent` and `--coar-data-grid-tree-toggle-size` (the last two apply in every presentation).
+
 ## Column Types
 
 Built-in renderers for dates, numbers, currency, tags, and icons — no custom cell components needed. Date, number, and currency columns are locale-aware and update reactively when the locale changes. Try the locale switcher in the nav bar.

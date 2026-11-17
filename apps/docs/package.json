@@ -7,7 +7,8 @@
     "dev": "vitepress dev",
     "build": "vitepress build && vite build --config mobile/vite.config.ts",
     "preview": "vitepress preview",
-    "test": "node --test \"scripts/*.test.mjs\""
+    "test": "node --test \"scripts/*.test.mjs\"",
+    "test:browser": "pnpm --dir ../playground exec playwright test -c playwright.docs.config.ts"
   },
   "dependencies": {
     "@cocoar/vue-calendar": "workspace:*",

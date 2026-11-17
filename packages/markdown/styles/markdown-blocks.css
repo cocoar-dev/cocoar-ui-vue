@@ -15,7 +15,14 @@
  * Import once at app entry:
  *
  *   @import "@cocoar/vue-markdown/styles";
+ *
+ * Presentation roles: several declarations below read an optional
+ * `--coar-markdown-*` role first and fall back to the exact legacy value. The
+ * roles are defined only by the opt-in `.coar-compact` profile
+ * (`markdown-compact.css`); without it every fallback applies unchanged.
  */
+
+@import './markdown-compact.css';
 
 .coar-markdown {
   display: block;
@@ -30,14 +37,17 @@
     --coar-background-neutral-tertiary,
     var(--coar-background-neutral-primary)
   );
-  --coar-markdown-radius: var(--coar-radius-xs);
-  --coar-markdown-space-1: var(--coar-spacing-s, 0.5rem);
-  --coar-markdown-space-2: var(--coar-spacing-m, 1rem);
+  --coar-markdown-radius: var(--coar-markdown-box-radius, var(--coar-radius-xs));
+  --coar-markdown-space-1: var(--coar-markdown-tight-spacing, var(--coar-spacing-s, 0.5rem));
+  --coar-markdown-space-2: var(--coar-markdown-block-spacing, var(--coar-spacing-m, 1rem));
   /* Block-start margin before top-level headings. Override on `.coar-markdown`
      itself for per-instance tuning. The default sits at `xl` (~32px) — large
      enough to mark sections, small enough that an editor's heading doesn't
      push four lines of whitespace into view. */
-  --coar-markdown-heading-block-start: var(--coar-spacing-xl, 2rem);
+  --coar-markdown-heading-block-start: var(
+    --coar-markdown-section-spacing,
+    var(--coar-spacing-xl, 2rem)
+  );
 
   color: var(--coar-markdown-text);
 }
@@ -48,39 +58,39 @@
 }
 
 .coar-markdown h1 {
-  font-size: var(--coar-font-size-xl);
-  font-weight: var(--coar-font-weight-bold);
-  line-height: var(--coar-line-height-tight);
+  font-size: var(--coar-markdown-h1-font-size, var(--coar-font-size-xl));
+  font-weight: var(--coar-markdown-h1-font-weight, var(--coar-font-weight-bold));
+  line-height: var(--coar-markdown-h1-line-height, var(--coar-line-height-tight));
 }
 
 .coar-markdown h2 {
-  font-size: var(--coar-font-size-l);
-  font-weight: var(--coar-font-weight-bold);
-  line-height: 1.25;
+  font-size: var(--coar-markdown-h2-font-size, var(--coar-font-size-l));
+  font-weight: var(--coar-markdown-h2-font-weight, var(--coar-font-weight-bold));
+  line-height: var(--coar-markdown-h2-line-height, 1.25);
 }
 
 .coar-markdown h3 {
-  font-size: var(--coar-font-size-m);
-  font-weight: var(--coar-font-weight-semi-bold);
-  line-height: var(--coar-line-height-snug);
+  font-size: var(--coar-markdown-h3-font-size, var(--coar-font-size-m));
+  font-weight: var(--coar-markdown-h3-font-weight, var(--coar-font-weight-semi-bold));
+  line-height: var(--coar-markdown-h3-line-height, var(--coar-line-height-snug));
 }
 
 .coar-markdown h4 {
-  font-size: var(--coar-font-size-s);
-  font-weight: var(--coar-font-weight-semi-bold);
-  line-height: 1.35;
+  font-size: var(--coar-markdown-h4-font-size, var(--coar-font-size-s));
+  font-weight: var(--coar-markdown-h4-font-weight, var(--coar-font-weight-semi-bold));
+  line-height: var(--coar-markdown-h4-line-height, 1.35);
 }
 
 .coar-markdown h5 {
-  font-size: var(--coar-font-size-xs);
-  font-weight: var(--coar-font-weight-semi-bold);
-  line-height: var(--coar-line-height-normal);
+  font-size: var(--coar-markdown-h5-font-size, var(--coar-font-size-xs));
+  font-weight: var(--coar-markdown-h5-font-weight, var(--coar-font-weight-semi-bold));
+  line-height: var(--coar-markdown-h5-line-height, var(--coar-line-height-normal));
 }
 
 .coar-markdown h6 {
-  font-size: var(--coar-font-size-xxs);
-  font-weight: var(--coar-font-weight-medium);
-  line-height: 1.45;
+  font-size: var(--coar-markdown-h6-font-size, var(--coar-font-size-xxs));
+  font-weight: var(--coar-markdown-h6-font-weight, var(--coar-font-weight-medium));
+  line-height: var(--coar-markdown-h6-line-height, 1.45);
 }
 
 /* Zero out user-agent margins on every block we render. The bare-element
@@ -259,11 +269,14 @@
    `.coar-markdown-inline-code` without a custom mark schema. */
 .coar-markdown :where(:not(pre) > code),
 .coar-markdown-inline-code {
-  padding: 0;
+  padding: var(--coar-markdown-inline-code-padding, 0);
   border: 0;
-  border-radius: 0;
-  background: transparent;
-  color: var(--coar-text-accent-secondary, var(--coar-markdown-link));
+  border-radius: var(--coar-markdown-inline-code-radius, 0);
+  background: var(--coar-markdown-inline-code-background, transparent);
+  color: var(
+    --coar-markdown-inline-code-color,
+    var(--coar-text-accent-secondary, var(--coar-markdown-link))
+  );
 }
 
 /* Links — same fallback pattern: bare `<a>` inside `.coar-markdown` picks
@@ -292,8 +305,8 @@
   width: 100%;
   border-collapse: collapse;
   border-spacing: 0;
-  font-size: var(--coar-body-small-base-size, 0.9rem);
-  line-height: var(--coar-line-height-relaxed, 1.5);
+  font-size: var(--coar-markdown-table-font-size, var(--coar-body-small-base-size, 0.9rem));
+  line-height: var(--coar-markdown-table-line-height, var(--coar-line-height-relaxed, 1.5));
 }
 
 /* Header row background — covers the viewer's `<thead>` *and* the editor's
@@ -305,20 +318,20 @@
 
 .coar-markdown :where(table th),
 .coar-markdown-table > thead th {
-  padding: 0.625rem var(--coar-markdown-space-2);
+  padding: var(--coar-markdown-table-cell-padding, 0.625rem var(--coar-markdown-space-2));
   text-align: left;
   vertical-align: top;
-  font-weight: var(--coar-font-weight-semi-bold, 600);
-  font-size: var(--coar-component-s-font-size, 0.85em);
-  color: var(--coar-markdown-text);
+  font-weight: var(--coar-markdown-table-header-font-weight, var(--coar-font-weight-semi-bold, 600));
+  font-size: var(--coar-markdown-table-header-font-size, var(--coar-component-s-font-size, 0.85em));
+  color: var(--coar-markdown-table-header-color, var(--coar-markdown-text));
   border-bottom: 1px solid var(--coar-markdown-border);
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
+  text-transform: var(--coar-markdown-table-header-transform, uppercase);
+  letter-spacing: var(--coar-markdown-table-header-letter-spacing, 0.025em);
 }
 
 .coar-markdown :where(table td),
 .coar-markdown-table > tbody td {
-  padding: 0.625rem var(--coar-markdown-space-2);
+  padding: var(--coar-markdown-table-cell-padding, 0.625rem var(--coar-markdown-space-2));
   text-align: left;
   vertical-align: top;
   color: var(--coar-text-neutral-secondary, var(--coar-markdown-text));
@@ -377,7 +390,7 @@
    the viewer's `DefaultFrontmatter` renderer and the editor's frontmatter
    NodeView so both surfaces match. */
 .coar-markdown-frontmatter {
-  color: var(--coar-color-gray-400, #c0c0c0);
+  color: var(--coar-markdown-frontmatter-color, var(--coar-color-gray-400, #c0c0c0));
   font-style: italic;
 }
 
@@ -408,13 +421,13 @@
 .coar-markdown-embed--unknown {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
+  gap: var(--coar-markdown-embed-placeholder-gap, 8px);
+  padding: var(--coar-markdown-embed-placeholder-padding, 10px 14px);
   border: 1px dashed var(--coar-border-neutral, #d4d4d4);
   border-radius: var(--coar-markdown-radius, 8px);
   background: var(--coar-background-neutral-secondary, #f5f5f5);
   color: var(--coar-text-neutral-secondary, #666);
-  font-size: 13px;
+  font-size: var(--coar-markdown-embed-placeholder-font-size, 13px);
 }
 
 .coar-markdown-embed__icon {

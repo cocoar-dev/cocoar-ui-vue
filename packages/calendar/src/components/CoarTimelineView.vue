@@ -443,7 +443,7 @@ defineExpose({
               height: `${row.height * 0.5}px`,
               background:
                 eventColor(bar.event) ??
-                'var(--coar-color-accent, var(--coar-color-accent-500, #2563eb))',
+                'var(--coar-calendar-event-default-color, var(--coar-color-accent, var(--coar-color-accent-500, #2563eb)))',
             }"
             :aria-label="eventTitle(bar.event)"
             @click="onEventClick(bar.event, $event)"
@@ -476,7 +476,7 @@ defineExpose({
   overflow: auto;
   scroll-padding-bottom: var(--coar-calendar-scroll-inset-bottom, 0px);
   font-family: var(--coar-body-base-family);
-  font-size: var(--coar-body-s-size, 13px);
+  font-size: var(--coar-calendar-ui-font-size, var(--coar-body-s-size, 13px));
   background: var(--coar-background-neutral-primary);
   /* Pan affordance — empty area shows the grab hand; bars and other
      interactive children re-assert their own cursor. The
@@ -536,9 +536,9 @@ defineExpose({
 }
 
 .coar-timeline-view__corner-title {
-  font-weight: 600;
+  font-weight: var(--coar-calendar-caption-font-weight, 600);
   color: var(--coar-text-neutral-secondary);
-  font-size: 11px;
+  font-size: var(--coar-calendar-caption-font-size, 11px);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -567,14 +567,14 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: var(--coar-calendar-caption-font-size, 11px);
   color: var(--coar-text-neutral-secondary);
 }
 
 .coar-timeline-view__date-cell--today {
-  background: var(--coar-background-accent-soft, #eff6ff);
-  color: var(--coar-text-accent, #2563eb);
-  font-weight: 600;
+  background: var(--coar-calendar-timeline-today-bg, var(--coar-background-accent-soft, #eff6ff));
+  color: var(--coar-calendar-today-color, var(--coar-text-accent, #2563eb));
+  font-weight: var(--coar-calendar-label-font-weight, 600);
 }
 
 .coar-timeline-view__date-cell--weekend {
@@ -620,7 +620,7 @@ defineExpose({
 }
 
 .coar-timeline-view__label-count {
-  font-size: 11px;
+  font-size: var(--coar-calendar-caption-font-size, 11px);
   color: var(--coar-text-neutral-secondary);
   font-variant-numeric: tabular-nums;
   flex: 0 0 auto;
@@ -662,7 +662,7 @@ defineExpose({
 .coar-timeline-view__bar {
   position: absolute;
   border: none;
-  border-radius: var(--coar-radius-xs, 4px);
+  border-radius: var(--coar-calendar-event-radius, var(--coar-radius-xs, 4px));
   color: white;
   font-size: 12px;
   font-weight: 500;
@@ -681,7 +681,7 @@ defineExpose({
 }
 
 .coar-timeline-view__bar:focus-visible {
-  outline: 2px solid var(--coar-border-accent, #2563eb);
+  outline: 2px solid var(--coar-calendar-focus-color, var(--coar-border-accent, #2563eb));
   outline-offset: 2px;
 }
 

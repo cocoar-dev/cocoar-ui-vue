@@ -1,0 +1,280 @@
+/**
+ * Compact presentation profile for `@cocoar/vue-calendar` (Preview, opt-in).
+ *
+ * Active only under `.coar-compact` (on an ancestor or on the calendar's
+ * own root). Outside the profile no rule here matches, and every
+ * `--coar-calendar-*` role below is undefined, so each usage resolves to
+ * its exact historical fallback — default and `.coar-mobile` presentation
+ * stay unchanged.
+ *
+ * Where the roles are defined, and why there:
+ *   The roles are DERIVED from the vue-ui semantic tokens
+ *   (`--coar-background-neutral-*`, `--coar-text-neutral-*`, …) and the
+ *   shared compact roles (`--coar-ui-font-size`, `--coar-caption-font-size`,
+ *   `--coar-interactive-row-height`, …). A custom property that references
+ *   another one is resolved on the element that declares it and then
+ *   inherited as a fixed value. Declaring the roles on `.coar-compact`
+ *   itself would freeze them with the scheme / mobile values of that
+ *   element — a `.dark-mode` or `.coar-mobile` scope between it and the
+ *   calendar would no longer reach the calendar. So they are declared on
+ *   the OUTERMOST calendar root inside the profile, where every enclosing
+ *   scope has already been inherited. Nested calendar roots (a time grid
+ *   inside the shell) do not re-declare them, so a consumer value set on
+ *   the outer calendar element reaches the whole tree.
+ *
+ * Specificity is one class (`.coar-compact`; the root list sits in
+ * `:where()`), declared after `tokens-dark.css`: it replaces the package's
+ * dark values for the root element, and a consumer rule on the calendar
+ * element loaded later still wins.
+ *
+ * What is deliberately NOT a role here:
+ *   - event colours from `meta.color` / `meta.textColor`, assignee colours
+ *     and band colours set per band — consumer data, rendered raw;
+ *   - JS-coupled geometry: `pixelsPerHour`,
+ *     the time-rows header / chip / label line boxes, the month pill line
+ *     box (16 px), the time axis width
+ *     (`--coar-time-grid-axis-width`, already public). These are measured
+ *     or computed in script; changing them in CSS alone would break hit
+ *     testing and budgets.
+ *   - `--coar-calendar-scroll-inset-bottom` — a host contract.
+ */
+
+.coar-compact
+  :where(
+    .coar-calendar,
+    .coar-time-grid-surface,
+    .coar-time-grid,
+    .coar-time-rows,
+    .coar-month-view,
+    .coar-continuous-month-view,
+    .coar-month-list-view,
+    .coar-agenda-view,
+    .coar-timeline-view,
+    .coar-year-view
+  ):not(
+    :where(
+        .coar-calendar,
+        .coar-time-grid-surface,
+        .coar-time-grid,
+        .coar-time-rows,
+        .coar-month-view,
+        .coar-continuous-month-view,
+        .coar-month-list-view,
+        .coar-agenda-view,
+        .coar-timeline-view,
+        .coar-year-view
+      )
+      *
+  ),
+.coar-compact:where(
+    .coar-calendar,
+    .coar-time-grid-surface,
+    .coar-time-grid,
+    .coar-time-rows,
+    .coar-month-view,
+    .coar-continuous-month-view,
+    .coar-month-list-view,
+    .coar-agenda-view,
+    .coar-timeline-view,
+    .coar-year-view
+  ):not(
+    :where(
+        .coar-calendar,
+        .coar-time-grid-surface,
+        .coar-time-grid,
+        .coar-time-rows,
+        .coar-month-view,
+        .coar-continuous-month-view,
+        .coar-month-list-view,
+        .coar-agenda-view,
+        .coar-timeline-view,
+        .coar-year-view
+      )
+      *
+  ) {
+  /* ── Existing calendar colour tokens, now semantic ───────────────
+     Same names the package and its consumers already use; light and
+     dark both follow the vue-ui semantic scheme of the enclosing scope. */
+  --coar-calendar-bg: var(--coar-background-neutral-primary, #fff);
+  --coar-calendar-bg-weekend: var(--coar-background-neutral-secondary, #f7f7f7);
+  --coar-calendar-bg-other-month: color-mix(
+    in srgb,
+    var(--coar-background-neutral-secondary, #f7f7f7) 60%,
+    var(--coar-background-neutral-primary, #fff)
+  );
+  /* One tint strength for light and dark: 10 % of the accent reads on
+     white and on the dark surface (light was 4 %, dark 14 %). */
+  --coar-calendar-bg-today: color-mix(
+    in srgb,
+    var(--coar-background-accent-primary, #2563eb) 10%,
+    transparent
+  );
+  --coar-calendar-selection-fill: var(--coar-background-accent-secondary, #dbeafe);
+  --coar-calendar-selection-border-color: var(--coar-border-accent-primary, #2563eb);
+  --coar-calendar-draft-border-color: var(--coar-border-accent-primary, #2563eb);
+  --coar-calendar-axis-marker-text-color: var(--coar-text-accent-primary, #2563eb);
+  --coar-calendar-border: var(--coar-border-neutral-tertiary, #e5e5e5);
+  /* Slot lines: a quieter step of the same line colour. */
+  --coar-calendar-grid-line: color-mix(
+    in srgb,
+    var(--coar-border-neutral-tertiary, #e5e5e5) 55%,
+    var(--coar-background-neutral-primary, #fff)
+  );
+  --coar-calendar-agenda-divider: color-mix(
+    in srgb,
+    var(--coar-border-neutral-tertiary, #e5e5e5) 65%,
+    var(--coar-background-neutral-primary, #fff)
+  );
+  --coar-calendar-band-tint: var(--coar-background-accent-primary, #2563eb);
+  --coar-calendar-band-hatch: var(--coar-text-neutral-tertiary, #6b6b6b);
+  --coar-calendar-band-outline: var(--coar-background-semantic-warning-bold, #d97706);
+  --coar-calendar-band-line: var(--coar-border-semantic-error, #dc2626);
+  /* Default event fill (no `meta.color`): the soft accent surface. Its
+     ink is `--coar-text-base` (the contrast policy cannot parse a var()). */
+  --coar-calendar-event-default-bg: var(--coar-background-accent-secondary, #dbeafe);
+  --coar-calendar-event-default-color: var(--coar-background-accent-primary, #2563eb);
+  /* Package-only text names (defined by tokens-dark.css for dark only). */
+  --coar-text-base: var(--coar-text-neutral-primary, #444);
+  --coar-text-subtle: var(--coar-text-neutral-tertiary, #6b6b6b);
+
+  /* ── State colours that had no resolving vue-ui token ────────────
+     (`--coar-color-focus`, `--coar-color-danger`, `--coar-text-danger`,
+     `--coar-surface-subtle`, … are not defined by vue-ui; outside the
+     profile they keep their literal fallbacks.) */
+  --coar-calendar-today-color: var(--coar-text-accent-primary, #2563eb);
+  --coar-calendar-today-marker-bg: var(--coar-background-accent-primary, #2563eb);
+  --coar-calendar-accent: var(--coar-background-accent-primary, #2563eb);
+  --coar-calendar-link-color: var(--coar-text-accent-primary, #2563eb);
+  --coar-calendar-on-accent: var(--coar-text-on-accent, #fff);
+  --coar-calendar-focus-color: var(--coar-focus-color, #2563eb);
+  --coar-calendar-drag-outline-color: var(--coar-border-accent-primary, #2563eb);
+  --coar-calendar-hover-bg: var(--coar-background-neutral-secondary, #f7f7f7);
+  --coar-calendar-now-color: var(--coar-icon-semantic-error-bold, #dc2626);
+  --coar-calendar-invalid-color: var(--coar-border-semantic-error, #dc2626);
+  --coar-calendar-invalid-stripe: color-mix(
+    in srgb,
+    var(--coar-border-semantic-error, #dc2626) 18%,
+    transparent
+  );
+  --coar-calendar-invalid-shadow: 0 4px 12px
+    color-mix(in srgb, var(--coar-border-semantic-error, #dc2626) 15%, transparent);
+  --coar-calendar-drag-shadow: var(--coar-shadow-m, 0 4px 8px rgba(0, 0, 0, 0.08));
+  --coar-calendar-overlay-shadow: var(--coar-shadow-xl, 0 16px 32px rgba(0, 0, 0, 0.12));
+  --coar-calendar-timeline-today-bg: var(--coar-calendar-bg-today);
+  --coar-calendar-avatar-overflow-bg: var(--coar-background-brand-primary, #64748b);
+  --coar-calendar-avatar-auto-bg: var(--coar-background-accent-primary, #334155);
+  --coar-calendar-scrollbar-color: var(--coar-border-neutral-tertiary, #e5e5e5);
+
+  /* ── Typography ──────────────────────────────────────────────────
+     Labels and controls follow the shared UI text role (13 px desktop,
+     14 px mobile); dense data text (event cards, pills, bars, axis and
+     weekday captions) follows the caption role (12 px). The historical
+     `--coar-font-size-xs` usages resolved to vue-ui's 14 px, not their
+     11 px fallback, so events and captions get smaller here, by design,
+     and stay ≥ 11 px. Weights: 400 body, 500 labels / titles, 600 only
+     for hierarchy (view titles, today number). */
+  --coar-calendar-ui-font-size: var(--coar-ui-font-size, 13px);
+  --coar-calendar-label-font-size: var(--coar-ui-font-size, 13px);
+  --coar-calendar-label-font-weight: var(--coar-label-font-weight, 500);
+  --coar-calendar-caption-font-size: var(--coar-caption-font-size, 12px);
+  --coar-calendar-caption-font-weight: var(--coar-label-font-weight, 500);
+  --coar-calendar-event-font-size: var(--coar-caption-font-size, 12px);
+  --coar-calendar-event-font-size-dense: 11px;
+  --coar-calendar-event-title-font-weight: var(--coar-label-font-weight, 500);
+  --coar-calendar-event-meta-font-size: 11px;
+  /* Hierarchy comes from size and weight, not a second alpha reduction of
+     ink that was already selected for contrast against the event surface. */
+  --coar-calendar-event-meta-opacity: 1;
+  --coar-calendar-agenda-continuation-opacity: 1;
+  --coar-calendar-other-month-opacity: 1;
+  --coar-calendar-badge-font-weight: 600;
+  --coar-calendar-strong-font-weight: 600;
+  --coar-calendar-heading-font-weight: 600;
+  --coar-calendar-title-font-size: 16px;
+  --coar-calendar-section-title-font-size: 18px;
+  --coar-calendar-section-title-font-weight: 600;
+  --coar-calendar-agenda-title-font-size: var(--coar-ui-font-size, 13px);
+
+  /* ── Shape and rhythm ────────────────────────────────────────────── */
+  --coar-calendar-event-radius: 4px;
+  --coar-calendar-control-radius: var(--coar-control-radius, 6px);
+  --coar-calendar-panel-radius: var(--coar-panel-radius, 8px);
+  --coar-calendar-header-padding: var(--coar-content-gap, 8px) var(--coar-panel-padding, 16px);
+  --coar-calendar-header-gap: calc(var(--coar-content-gap, 8px) * 1.5);
+  --coar-calendar-header-cell-padding: 8px;
+  --coar-calendar-weekday-cell-padding: 6px 8px;
+  /* Agenda rows: 20 px text line + padding = the interactive row height
+     (36 px desktop, 44 px mobile). */
+  --coar-calendar-agenda-row-padding: calc((var(--coar-interactive-row-height, 36px) - 20px) / 2)
+    var(--coar-panel-padding, 16px);
+  --coar-calendar-agenda-row-gap: 10px;
+  --coar-calendar-agenda-header-padding: 6px var(--coar-panel-padding, 16px);
+  --coar-calendar-week-day-min-height: calc(var(--coar-interactive-row-height, 36px) + 4px);
+  --coar-calendar-day-min-height: var(--coar-interactive-row-height, 36px);
+  --coar-calendar-day-min-height-wide: calc(var(--coar-interactive-row-height, 36px) + 4px);
+  /* The day sheet measures its actual header when budgeting the scroll list. */
+  --coar-calendar-day-overlay-close-size: var(--coar-picker-action-size, 32px);
+  /* Geometry reads the actual CSS metric before positioning lanes and
+     budgeting the band. Desktop stays dense; touch gets distinct targets. */
+  --coar-calendar-all-day-lane-height: max(24px, var(--coar-control-min-size, 0px));
+  --coar-calendar-all-day-action-size: max(24px, var(--coar-control-min-size, 0px));
+  --coar-calendar-month-overflow-target-size: max(24px, var(--coar-control-min-size, 0px));
+  --coar-calendar-resize-target-size: max(24px, var(--coar-control-min-size, 0px));
+}
+
+/* Keep the move area free beside the resize rail. Short duration cards
+   divide the rail in half, rather than letting the start/end targets
+   overlap or pretending that a taller card represents the real duration. */
+.coar-compact .coar-time-grid-event__resize {
+  left: auto;
+  max-height: 50%;
+  max-width: 50%;
+}
+
+/* Fixed week spans must not squeeze overlapping events into unreadable
+   slivers. The shell owns both scroll axes, keeping its sticky header.
+   128 px is a geometry floor, not a change to responsive span selection. */
+.coar-compact .coar-calendar .coar-calendar__body--day,
+.coar-compact .coar-calendar .coar-calendar__body--week,
+.coar-compact .coar-calendar .coar-calendar__body--workWeek,
+.coar-compact.coar-calendar .coar-calendar__body--day,
+.coar-compact.coar-calendar .coar-calendar__body--week,
+.coar-compact.coar-calendar .coar-calendar__body--workWeek {
+  overflow-x: auto;
+}
+.coar-compact .coar-time-grid-surface:not(.coar-time-grid-surface--horizontal),
+.coar-compact.coar-time-grid-surface:not(.coar-time-grid-surface--horizontal) {
+  min-width: calc(var(--coar-time-grid-axis-width, 80px) + var(--coar-time-grid-day-count, 1) * 128px);
+}
+
+/* Headings rendered by the user agent (`<h2>` / `<h3>` with no weight of
+   their own): weight joins the compact hierarchy. Only in the profile. */
+.coar-compact .coar-month-list-view__title,
+.coar-compact .coar-month-list-view__selected-title {
+  font-weight: var(--coar-calendar-heading-font-weight, 600);
+}
+
+/* Author-provided backgrounds stay raw; the shared event contrast policy
+   supplies their ink. Generated fallback avatars use the compact palette. */
+.coar-compact .coar-event-assignees__avatar {
+  --coar-calendar-avatar-ink: var(--assignee-ink, white);
+}
+
+/* Adjacent-month dates remain selectable, so their distinction must not
+   make them unreadable. Selected/today states retain their own ink. */
+.coar-compact .coar-month-list-view__day--other:not(.coar-month-list-view__day--selected):not(.coar-month-list-view__day--today) {
+  color: var(--coar-text-subtle);
+}
+
+/* The legacy continuous header assumes Monday-first positions. Compact
+   follows the dates' weekend flags and keeps enabled labels readable.
+   Include the grid/ARIA header to outrank the scoped nth-child rule. */
+.coar-compact .coar-continuous-month-view .coar-continuous-month-view__section .coar-month-grid .coar-month-grid__weekday-cell[role='columnheader'],
+.coar-compact.coar-continuous-month-view .coar-continuous-month-view__section .coar-month-grid .coar-month-grid__weekday-cell[role='columnheader'] {
+  color: var(--coar-text-subtle);
+  background: transparent;
+}
+.coar-compact .coar-continuous-month-view--shade-weekends .coar-continuous-month-view__section .coar-month-grid .coar-month-grid__weekday-cell--weekend[role='columnheader'],
+.coar-compact.coar-continuous-month-view--shade-weekends .coar-continuous-month-view__section .coar-month-grid .coar-month-grid__weekday-cell--weekend[role='columnheader'] {
+  background: var(--coar-calendar-bg-weekend, #f6f7f9);
+}

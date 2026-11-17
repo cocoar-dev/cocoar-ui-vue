@@ -263,6 +263,10 @@ The viewer fills 100% of its parent and uses internal flexbox to allocate space 
 
 Splitters between the columns are draggable — users can resize the left rail (thumbnails) and right rail (annotations panel) on the fly.
 
+## Compact presentation (Preview)
+
+Inside the experimental `.coar-compact` profile — on an ancestor or on the viewer — the chrome (toolbar, sidebar, annotations panel, search bar, annotation popover) follows the semantic color tokens in light and dark, uses the library's UI, caption and field text sizes, and gets 28px buttons and inputs (44px buttons, 36px inputs and 48px headers with `.coar-mobile`). The annotation popover, teleported to `body`, takes the profile of its viewer. The page itself — canvas, rendered content, annotations, search highlights — is document content and keeps its colors. `--coar-color-*` overrides you set still win; outside the profile nothing changes.
+
 ## Position memory example
 
 ```vue

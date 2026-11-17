@@ -31,6 +31,8 @@ export { createOverlayService } from './overlay-service';
 export type { OverlayService, OverlayInstance, OverlayContent, OverlayOpenOptions } from './overlay-service';
 
 // Plugin & composable
+export { readCompactPresentationContext, useCompactPresentationContext } from './useCompactPresentationContext';
+export type { CompactPresentationContext } from './useCompactPresentationContext';
 export {
   CoarOverlayPlugin,
   OVERLAY_SERVICE_KEY,

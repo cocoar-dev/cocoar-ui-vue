@@ -109,6 +109,17 @@ exported as pure functions if you need to build your own Mermaid config:
 | `readCssTokens(el?)` | `getComputedStyle`-backed token getter. |
 | `makeCssColorResolver()` | Canvas-backed CSS-color → sRGB resolver (handles `oklch(...)`). |
 
+### Compact presentation <Badge type="warning" text="Preview" />
+
+Inside an element with the class `coar-compact` (the experimental compact profile, working title), the
+zoom viewport and its controls take the panel radius, the zoom buttons are 28 px (44 px with
+`coar-mobile`, since they are the only way to zoom on touch), and the loading and error states use the
+UI text size. The diagram itself keeps Mermaid's sizes.
+
+Mermaid's configuration is global to the page. A page that uses one profile initializes Mermaid once,
+as before; when a diagram of the other profile renders, Mermaid is initialized again with that
+diagram's tokens.
+
 ## In markdown
 
 To render diagrams from ` ```mermaid ` fences inside `<CoarMarkdown>`, don't wire

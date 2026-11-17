@@ -663,8 +663,8 @@ onBeforeUnmount(() => {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--coar-spacing-m);
-  padding: var(--coar-spacing-s) var(--coar-spacing-m);
+  gap: var(--coar-calendar-header-gap, var(--coar-spacing-m));
+  padding: var(--coar-calendar-header-padding, var(--coar-spacing-s) var(--coar-spacing-m));
   border-bottom: 1px solid var(--coar-border-neutral-tertiary);
   background: var(--coar-background-neutral-primary);
   flex: 0 0 auto;
@@ -677,7 +677,7 @@ onBeforeUnmount(() => {
 }
 
 .coar-calendar__range-label {
-  font-size: var(--coar-component-m-font-size);
+  font-size: var(--coar-calendar-title-font-size, var(--coar-component-m-font-size));
   font-weight: 600;
   color: var(--coar-text-neutral-primary);
   min-width: 0;

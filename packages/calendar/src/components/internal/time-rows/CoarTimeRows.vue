@@ -796,7 +796,7 @@ defineExpose({
   position: absolute;
   bottom: 6px;
   transform: translateX(4px);
-  font-size: var(--coar-font-size-xs, 11px);
+  font-size: var(--coar-calendar-caption-font-size, var(--coar-font-size-xs, 11px));
   color: var(--coar-text-subtle, #6c7280);
   white-space: nowrap;
 }
@@ -844,34 +844,34 @@ defineExpose({
 }
 .coar-time-rows__day-label {
   line-height: 20px;
-  font-size: var(--coar-font-size-sm, 13px);
-  font-weight: 600;
+  font-size: var(--coar-calendar-label-font-size, var(--coar-font-size-sm, 13px));
+  font-weight: var(--coar-calendar-label-font-weight, 600);
   color: var(--coar-text-base, #1a1c1f);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .coar-time-rows__row--today .coar-time-rows__day-label {
-  color: var(--coar-color-accent, var(--coar-color-accent-500, #2563eb));
+  color: var(--coar-calendar-today-color, var(--coar-color-accent, var(--coar-color-accent-500, #2563eb)));
 }
 .coar-time-rows__chip {
   box-sizing: border-box;
   height: 18px;
   margin-top: 2px;
   padding: 0 6px;
-  border-radius: 3px;
+  border-radius: var(--coar-calendar-event-radius, 3px);
   border-left: 3px solid var(--event-border);
   background: var(--event-bg);
   color: var(--event-ink, var(--coar-text-base, #1a1c1f));
-  font-size: var(--coar-font-size-xs, 11px);
-  font-weight: 600;
+  font-size: var(--coar-calendar-event-font-size, var(--coar-font-size-xs, 11px));
+  font-weight: var(--coar-calendar-event-title-font-weight, 600);
   line-height: 18px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .coar-time-rows__chip:focus-visible {
-  outline: 2px solid var(--coar-background-accent-primary, #2563eb);
+  outline: 2px solid var(--coar-calendar-focus-color, var(--coar-background-accent-primary, #2563eb));
   outline-offset: 1px;
 }
 .coar-time-rows__track {
@@ -917,6 +917,6 @@ defineExpose({
   z-index: 5;
 }
 .coar-time-rows--density-compact .coar-time-rows__day-label {
-  font-size: var(--coar-font-size-xs, 11px);
+  font-size: var(--coar-calendar-caption-font-size, var(--coar-font-size-xs, 11px));
 }
 </style>

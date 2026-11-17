@@ -19,6 +19,14 @@ export interface MobileDemo {
 
 export const DEMOS: MobileDemo[] = [
   {
+    id: 'compact',
+    title: 'Compact presentation',
+    description: 'Preview: smaller text, aligned touch controls and a native-keyboard sheet',
+    group: 'Controls',
+    component: () => import('./CompactDemo.vue'),
+    docs: '/foundations/compact-presentation',
+  },
+  {
     id: 'form',
     title: 'Form',
     description: 'Inputs, selects, date, switch, dialog',

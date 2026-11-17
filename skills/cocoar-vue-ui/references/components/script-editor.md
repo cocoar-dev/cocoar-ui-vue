@@ -1250,6 +1250,16 @@ The editor container surfaces these CSS custom properties:
 
 To register your own Monaco theme, call `monaco.editor.defineTheme('my-theme', {...})` anywhere in your app and pass it via the underlying editor instance (`editorRef.value?.getEditor().updateOptions({ theme: 'my-theme' })`).
 
+### Compact presentation (Preview)
+
+Two more themes, `coar-compact-light` and `coar-compact-dark` (slate neutrals, line numbers at 4.5:1),
+are registered next to the two above, which stay unchanged. Monaco themes apply to every editor on the
+page, so the compact themes are used only when `<html>` or `<body>` has the class `coar-compact`
+(the experimental compact profile, working title); `theme` keeps choosing light or dark. The editor
+frame follows a local `coar-compact` area too (control radius), but Monaco's colors inside it do not:
+mixing default and compact editors on one page is not supported. The compact themes use fixed colors
+and do not follow token or accent overrides.
+
 ### Font
 
 The editor renders code in **Cascadia Code** (Microsoft's ligature-enabled coding font) with `Consolas`, `Monaco`, `Courier New` as fallback. Ligatures are enabled by default, so `!=`, `=>`, `===`, and `&&` render as combined glyphs. This matches `CoarCodeBlock` — both components share the same font stack.

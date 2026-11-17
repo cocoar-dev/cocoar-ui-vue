@@ -2,7 +2,7 @@
 
 # Map (Preview)
 
-**Devices:** desktop ready · tablet ready · phone partial — Pan and zoom work by touch; the map's controls have no .coar-mobile presentation yet.
+**Devices:** desktop ready · tablet ready · phone partial — Touch pan/zoom; compact mobile enlarges zoom and list controls. Dense pins and vertices retain small spatial targets.
 
 An interactive [Leaflet](https://leafletjs.com/) map for Vue 3. `<CoarMap>` is
 **standalone and data-driven**: you feed it resolved `MapData` + `MapConfig` and
@@ -316,6 +316,10 @@ that actually render a map (your bundler code-splits it into its own chunk).
 Until the map hydrates — and if Leaflet ever fails to load, or with JS off — a
 crawlable `<ol>` of the named points is shown and then hidden once the map is
 live. The map container's height is `--coar-map-height` (default `360px`).
+
+## Compact presentation (Preview)
+
+Inside the experimental `.coar-compact` profile — on an ancestor or on the map — Leaflet's own controls, popups, tooltips and attribution use the library's text, radii and semantic colors (light and dark), and the selection ring follows the accent. With `.coar-mobile` as well, zoom buttons and the point list's drag handle get a 44px touch target. Pins and editor vertices keep their real hit geometry: expanded invisible targets would intercept neighbouring markers. Dense map markers therefore do not meet the same touch-target floor; the point list is an alternative for selecting pins. Map data — tiles, the route, shape dots, category colors, pin size — is not themed. `--coar-map-*` variables you set still win; outside the profile nothing changes.
 
 ## Security
 

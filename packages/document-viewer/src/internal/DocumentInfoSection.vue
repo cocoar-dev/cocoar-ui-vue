@@ -153,8 +153,8 @@ const technicalRows = computed<Row[]>(() => {
 
 <style scoped>
 .coar-pdf-info {
-  border-bottom: 1px solid var(--coar-color-divider, rgba(0, 0, 0, 0.08));
-  background: var(--coar-color-surface, #ffffff);
+  border-bottom: 1px solid var(--coar-color-divider, var(--coar-document-viewer-divider, rgba(0, 0, 0, 0.08)));
+  background: var(--coar-color-surface, var(--coar-document-viewer-surface, #ffffff));
 }
 
 .coar-pdf-info__header {
@@ -171,19 +171,19 @@ const technicalRows = computed<Row[]>(() => {
   text-align: left;
 }
 .coar-pdf-info__header:hover {
-  background: var(--coar-color-surface-2, rgba(0, 0, 0, 0.03));
+  background: var(--coar-color-surface-2, var(--coar-document-viewer-chrome, rgba(0, 0, 0, 0.03)));
 }
 .coar-pdf-info__header:focus-visible {
-  outline: 2px solid var(--coar-color-focus-ring, #2563eb);
+  outline: 2px solid var(--coar-color-focus-ring, var(--coar-document-viewer-focus-ring, #2563eb));
   outline-offset: -2px;
 }
 
 .coar-pdf-info__title {
-  font-weight: 600;
-  font-size: 12px;
+  font-weight: var(--coar-label-font-weight, 600);
+  font-size: var(--coar-caption-font-size, 12px);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--coar-color-fg-2, #4b5563);
+  color: var(--coar-color-fg-2, var(--coar-document-viewer-text-secondary, #4b5563));
 }
 
 .coar-pdf-info__body {
@@ -195,18 +195,18 @@ const technicalRows = computed<Row[]>(() => {
   grid-template-columns: max-content 1fr;
   gap: 4px 12px;
   margin: 0;
-  font-size: 12px;
+  font-size: var(--coar-ui-font-size, 12px);
   line-height: 1.4;
 }
 
 .coar-pdf-info__dt {
-  color: var(--coar-color-fg-3, #6b7280);
+  color: var(--coar-color-fg-3, var(--coar-document-viewer-text-muted, #6b7280));
   margin: 0;
   white-space: nowrap;
 }
 
 .coar-pdf-info__dd {
-  color: var(--coar-color-fg, #1a1a1a);
+  color: var(--coar-color-fg, var(--coar-document-viewer-text, #1a1a1a));
   margin: 0;
   /* Long values (PDF producers, keywords) — wrap rather than force the
      panel wider. `min-width: 0` is required for grid item to actually shrink. */
@@ -216,7 +216,7 @@ const technicalRows = computed<Row[]>(() => {
 
 .coar-pdf-info__divider {
   height: 1px;
-  background: var(--coar-color-divider, rgba(0, 0, 0, 0.06));
+  background: var(--coar-color-divider, var(--coar-document-viewer-divider, rgba(0, 0, 0, 0.06)));
   margin: 10px 0;
 }
 </style>

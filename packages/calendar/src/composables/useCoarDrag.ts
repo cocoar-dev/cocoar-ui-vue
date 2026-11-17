@@ -185,14 +185,7 @@ export function useCoarDrag<T>(opts: UseCoarDragOptions<T>): UseCoarDragReturn<T
     };
   }
 
-  function tick(): void {
-    rafHandle = 0;
-    // We tick whenever a drag is being TRACKED (data is set), even
-    // before the threshold is crossed — auto-scroll and threshold
-    // detection still need to run. `onDragMove` is only called once
-    // we're past the threshold.
-    if (draggedData.value === null) return;
-    applyAutoScroll();
+  function publishMove(): void {
     pendingMove = false;
     if (!crossedThreshold.value) {
       const threshold = opts.dragThreshold ?? 0;
@@ -207,6 +200,17 @@ export function useCoarDrag<T>(opts: UseCoarDragOptions<T>): UseCoarDragReturn<T
     if (crossedThreshold.value) {
       opts.onDragMove?.(buildContext());
     }
+  }
+
+  function tick(): void {
+    rafHandle = 0;
+    // We tick whenever a drag is being TRACKED (data is set), even
+    // before the threshold is crossed — auto-scroll and threshold
+    // detection still need to run. `onDragMove` is only called once
+    // we're past the threshold.
+    if (draggedData.value === null) return;
+    applyAutoScroll();
+    publishMove();
     // Auto-scroll keeps producing pointer-doesn't-move-but-content-does
     // updates; schedule the next tick if still dragging and any axis
     // is in the hot zone.
@@ -255,6 +259,13 @@ export function useCoarDrag<T>(opts: UseCoarDragOptions<T>): UseCoarDragReturn<T
 
   function onPointerUp(e: PointerEvent): void {
     if (e.pointerId !== pointerId) return;
+    // The release can arrive before the scheduled move frame, or at a
+    // position with no preceding pointermove. Resolve that final point
+    // before consumers commit their cached drop target. Do not scroll.
+    const changed = pendingMove || e.clientX !== lastPointerX || e.clientY !== lastPointerY;
+    lastPointerX = e.clientX;
+    lastPointerY = e.clientY;
+    if (changed) publishMove();
     endDrag('drop');
   }
 

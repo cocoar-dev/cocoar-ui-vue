@@ -8,7 +8,7 @@
         layout="inline"
         label-position="after"
       >
-        <CoarCheckbox v-model="active" />
+        <CoarCheckbox v-model="activeAfter" />
       </CoarFormField>
     </section>
 
@@ -20,7 +20,7 @@
         layout="inline"
         label-position="before"
       >
-        <CoarCheckbox v-model="active" />
+        <CoarCheckbox v-model="activeBefore" />
       </CoarFormField>
     </section>
 
@@ -32,7 +32,7 @@
         layout="inline"
         label-position="after"
       >
-        <CoarTextInput v-model="name" placeholder="Ada Lovelace" />
+        <CoarTextInput v-model="inlineName" placeholder="Ada Lovelace" />
       </CoarFormField>
     </section>
 
@@ -44,7 +44,7 @@
         layout="stacked"
         label-position="after"
       >
-        <CoarTextInput v-model="name" placeholder="Ada Lovelace" />
+        <CoarTextInput v-model="stackedName" placeholder="Ada Lovelace" />
       </CoarFormField>
     </section>
   </div>
@@ -54,8 +54,10 @@
 import { ref } from 'vue';
 import { CoarCheckbox, CoarFormField, CoarTextInput } from '@cocoar/vue-ui';
 
-const active = ref(false);
-const name = ref('');
+const activeAfter = ref(false);
+const activeBefore = ref(false);
+const inlineName = ref('');
+const stackedName = ref('');
 </script>
 
 <style scoped>

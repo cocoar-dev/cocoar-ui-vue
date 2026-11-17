@@ -1,0 +1,59 @@
+/*
+ * Compact presentation profile (Preview) of `@cocoar/vue-markdown-form`.
+ * Imported by `markdown-form.css`. Only `.coar-compact` defines the
+ * `--coar-markdown-form-*` roles; without it the legacy literals apply.
+ *
+ * The legacy look uses fixed light colors (#abc0c7, #fbfdfd, #1c3c4b …) and
+ * `--coar-color-danger-*` names the token set does not define, so it does not
+ * follow dark mode or the accent. Inside the profile every color reads a
+ * semantic token instead. The roles are resolved on the form element (not on
+ * the scope), so a light/dark or mobile scope between `.coar-compact` and the
+ * form applies to them. Template text and filled values are document content:
+ * the form's reading size comes from `@cocoar/vue-markdown`'s profile.
+ */
+
+.coar-compact .coar-markdown-form {
+  /* Template issues: a semantic error notice. */
+  --coar-markdown-form-issues-padding: 8px 12px;
+  --coar-markdown-form-issues-radius: var(--coar-panel-radius, 8px);
+  --coar-markdown-form-issues-background: var(--coar-background-semantic-error-subtlest);
+  --coar-markdown-form-issues-color: var(--coar-text-semantic-error-bold);
+  --coar-markdown-form-issues-font-size: var(--coar-ui-font-size, 13px);
+
+  /* Block (Markdown) fields: one control shape instead of the 3/10 px leaf,
+     neutral surface and border, the library's focus color. */
+  --coar-markdown-form-block-border: var(--coar-border-input);
+  --coar-markdown-form-block-radius: var(--coar-control-radius, 6px);
+  --coar-markdown-form-block-background: var(--coar-background-neutral-primary);
+  --coar-markdown-form-focus-border: var(--coar-border-focus, var(--coar-focus-color));
+  --coar-markdown-form-focus-ring: 0 0 0 3px
+    color-mix(in srgb, var(--coar-focus-color) 30%, transparent);
+
+  /* Readonly values: still marked as filled-in content, without 700. */
+  --coar-markdown-form-underline: var(--coar-border-input);
+  --coar-markdown-form-value-color: var(--coar-text-neutral-primary);
+  --coar-markdown-form-value-font-weight: 600;
+  --coar-markdown-form-empty-color: var(--coar-text-neutral-disabled);
+
+  /* Errors: semantic colors, caption size instead of 11.2 px. */
+  --coar-markdown-form-error-color: var(--coar-text-semantic-error-subtle);
+  --coar-markdown-form-error-border: var(--coar-border-semantic-error);
+  --coar-markdown-form-error-ring: 0 0 0 2px
+    color-mix(in srgb, var(--coar-border-semantic-error) 18%, transparent);
+  --coar-markdown-form-error-font-size: var(--coar-caption-font-size, 12px);
+  --coar-markdown-form-error-line-height: 1.35;
+  --coar-markdown-form-caption-font-size: var(--coar-caption-font-size, 12px);
+
+  /* `design: 'basic'` native controls: same height rule as the Cocoar xs
+     inputs (with the mobile floor), field text size, semantic colors. */
+  --coar-markdown-form-control-height: max(
+    var(--coar-component-xs-height, 27px),
+    var(--coar-control-xs-height, 0px)
+  );
+  --coar-markdown-form-control-padding: 2px 8px;
+  --coar-markdown-form-control-border: var(--coar-border-input);
+  --coar-markdown-form-control-radius: var(--coar-control-radius, 6px);
+  --coar-markdown-form-control-background: var(--coar-background-neutral-primary);
+  --coar-markdown-form-control-color: var(--coar-text-neutral-primary);
+  --coar-markdown-form-control-font-size: var(--coar-field-font-size, 14px);
+}

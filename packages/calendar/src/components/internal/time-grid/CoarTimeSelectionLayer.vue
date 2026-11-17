@@ -95,10 +95,13 @@ function boxStyle(start: number, end: number): Record<string, string> {
     transparent
   );
   border: 1px dashed
-    color-mix(
-      in srgb,
-      var(--coar-calendar-selection-color, var(--coar-background-accent-primary, #2563eb)) 55%,
-      transparent
+    var(
+      --coar-calendar-selection-border-color,
+      color-mix(
+        in srgb,
+        var(--coar-calendar-selection-color, var(--coar-background-accent-primary, #2563eb)) 55%,
+        transparent
+      )
     );
 }
 .coar-time-selection--drag {
@@ -112,7 +115,11 @@ function boxStyle(start: number, end: number): Record<string, string> {
 /* Draft: clearly outlined, above the events; an overlap stays visible through the fill. */
 .coar-time-draft {
   z-index: 95;
-  border: 2px solid var(--coar-calendar-draft-color, var(--coar-background-accent-primary, #2563eb));
+  border: 2px solid
+    var(
+      --coar-calendar-draft-color,
+      var(--coar-calendar-draft-border-color, var(--coar-background-accent-primary, #2563eb))
+    );
   background: color-mix(
     in srgb,
     var(--coar-calendar-draft-color, var(--coar-background-accent-primary, #2563eb)) 16%,

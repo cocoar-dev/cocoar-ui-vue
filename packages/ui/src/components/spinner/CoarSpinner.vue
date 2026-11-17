@@ -68,7 +68,7 @@ const hostClasses = computed(() => [
 }
 
 .coar-spinner-arc {
-  stroke: var(--coar-background-accent-primary);
+  stroke: var(--coar-spinner-color, var(--coar-background-accent-primary));
   fill: none;
   stroke-dasharray: 44 19;
   stroke-dashoffset: 0;

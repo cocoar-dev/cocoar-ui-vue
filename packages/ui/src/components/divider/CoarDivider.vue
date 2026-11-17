@@ -83,7 +83,7 @@ const hasContent = computed(() => !!slots.default);
 .coar-divider__content {
   padding: 0 var(--coar-spacing-m);
   color: var(--coar-text-neutral-secondary);
-  font-size: var(--coar-body-small-base-size);
+  font-size: var(--coar-ui-font-size, var(--coar-body-small-base-size));
   white-space: nowrap;
 }
 

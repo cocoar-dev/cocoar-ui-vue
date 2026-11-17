@@ -112,16 +112,21 @@ describe('useTimeGridDnd', () => {
       });
 
       // Second arrow accumulates onto the preview.
-      api.onEventKeydown(new KeyboardEvent('keydown', { key: 'ArrowDown' }), event);
+      const preview = api.workingEvents.value.find((e) => api.isPreviewEvent(e.id))!;
+      api.onEventKeydown(new KeyboardEvent('keydown', { key: 'ArrowDown' }), preview);
       expect(drops).toHaveLength(0);
+      expect(api.keyboardDrag.value!.event.id).toBe(event.id);
+      expect(api.workingEvents.value.map((e) => e.id)).toEqual(['t__preview']);
       expect(zdtSnapshot(api.keyboardDrag.value!.next)).toEqual({
         start: '2026-04-15T10:00:00Z',
         end: '2026-04-15T11:00:00Z',
       });
 
       // Enter commits the accumulated preview.
-      api.onEventKeydown(new KeyboardEvent('keydown', { key: 'Enter' }), event);
+      api.onEventKeydown(new KeyboardEvent('keydown', { key: 'Enter' }), api.workingEvents.value[0]);
       expect(drops).toHaveLength(1);
+      expect(drops[0].event).toEqual(event);
+      expect(drops[0].original.start).toEqual(event.start);
       expect(zdtSnapshot(drops[0].next)).toEqual({
         start: '2026-04-15T10:00:00Z',
         end: '2026-04-15T11:00:00Z',
@@ -163,6 +168,27 @@ describe('useTimeGridDnd', () => {
   });
 
   describe('shift+arrow timed resize', () => {
+    it('does not invent an original end when repeatedly resizing a point-event preview', () => {
+      const drops: TimeGridEventDropPayload[] = [];
+      const event: CalendarEvent = { id: 'point', start: zdt('2026-04-15T09:00:00') };
+      const { api, wrapper } = harness([event], { onEventDrop: (payload) => drops.push(payload) });
+      try {
+        api.onEventKeydown(new KeyboardEvent('keydown', { key: 'ArrowDown', shiftKey: true }), event);
+        const preview = api.workingEvents.value[0];
+        expect(preview.end).toBeDefined();
+        api.onEventKeydown(new KeyboardEvent('keydown', { key: 'ArrowDown', shiftKey: true }), preview);
+        api.onEventKeydown(new KeyboardEvent('keydown', { key: 'Enter' }), api.workingEvents.value[0]);
+        expect(drops).toHaveLength(1);
+        expect(drops[0].event).toEqual(event);
+        expect(drops[0].original).not.toHaveProperty('end');
+        expect(zdtSnapshot(drops[0].next)).toEqual({
+          start: '2026-04-15T09:00:00Z', end: '2026-04-15T10:30:00Z',
+        });
+      } finally {
+        wrapper.unmount();
+      }
+    });
+
     it('Shift+ArrowDown stages a resize-end preview, Enter commits', () => {
       const drops: TimeGridEventDropPayload[] = [];
       const event: CalendarEvent = {

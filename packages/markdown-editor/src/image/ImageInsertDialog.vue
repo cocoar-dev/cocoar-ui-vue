@@ -77,8 +77,8 @@ onMounted(() => {
 .coar-md-image-dialog {
   display: flex;
   flex-direction: column;
-  gap: var(--coar-spacing-m, 12px);
-  min-width: 22rem;
+  gap: var(--coar-markdown-editor-dialog-gap, var(--coar-spacing-m, 12px));
+  min-width: var(--coar-markdown-editor-dialog-min-width, 22rem);
 }
 
 .coar-md-image-dialog__actions {

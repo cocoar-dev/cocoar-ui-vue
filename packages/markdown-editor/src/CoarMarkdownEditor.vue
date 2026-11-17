@@ -34,7 +34,7 @@ import {
 } from '@milkdown/core';
 import type { $Command } from '@milkdown/utils';
 import { Milkdown, MilkdownProvider, useEditor, useInstance } from '@milkdown/vue';
-import { FORM_FIELD_INJECTION_KEY, menuPreset, useOverlay, useDialog } from '@cocoar/vue-ui';
+import { FORM_FIELD_INJECTION_KEY, menuPreset, useOverlay, useDialog, useCompactPresentationContext } from '@cocoar/vue-ui';
 import type { OverlayRef } from '@cocoar/vue-ui';
 import {
   decideListToggleAction,
@@ -543,6 +543,7 @@ const Toolbar = defineComponent({
     const [, getInstance] = useInstance();
     const editorGroup = inject(MARKDOWN_EDITOR_GROUP_KEY, undefined);
     const rootEl = ref<HTMLElement | null>(null);
+    const presentation = useCompactPresentationContext(() => rootEl.value);
     const areaEl = ref<HTMLElement | null>(null);
     const floatingVisible = ref(false);
     // Set while a table-handle action menu is open — suppresses the floating
@@ -1914,8 +1915,8 @@ const Toolbar = defineComponent({
         h(
           'div',
           {
-            class: 'coar-md-floating-toolbar',
-            style: `left:${floatingStyle.value.left};top:${floatingStyle.value.top};`,
+            class: ['coar-md-floating-toolbar', ...presentation.value.classes],
+            style: { ...presentation.value.style, left: floatingStyle.value.left, top: floatingStyle.value.top },
           },
           toolbarMap[floatingContext.value] || textToolbar,
         ),
@@ -2129,6 +2130,9 @@ export default defineComponent({
 /* Shared markdown-block stylesheet — same source as the viewer (`CoarMarkdown`).
    Editor-specific compactness rules below win via deeper-selector specificity. */
 @import '@cocoar/vue-markdown/styles';
+/* Opt-in `.coar-compact` profile (Preview): defines the `--coar-markdown-editor-*`
+   roles read below; without the class every `var(role, legacy)` keeps its value. */
+@import './styles/markdown-editor-compact.css';
 
 /* Custom-embed NodeView host — holds the live, manually-mounted preview. The
    inner `.coar-markdown-embed` (from the shared stylesheet) owns block rhythm;
@@ -2136,8 +2140,12 @@ export default defineComponent({
 .coar-markdown-embed-host {
   position: relative;
 }
-.coar-markdown-embed-host--selected {
-  outline: 2px solid var(--coar-border-accent, #2563eb);
+/* Compact selection must outrank the generic contenteditable outline reset.
+   Keep the historical legacy cascade unchanged outside the opt-in profile. */
+.coar-markdown-embed-host--selected,
+.coar-compact .coar-md-area .milkdown .coar-markdown-embed-host--selected {
+  outline: 2px solid
+    var(--coar-markdown-editor-selection-outline-color, var(--coar-border-accent, #2563eb));
   outline-offset: 2px;
   border-radius: var(--coar-markdown-radius, 8px);
 }
@@ -2188,10 +2196,10 @@ export default defineComponent({
   border: none;
   outline: none;
   resize: none;
-  padding: var(--coar-spacing-s) var(--coar-spacing-m);
+  padding: var(--coar-markdown-editor-area-padding, var(--coar-spacing-s) var(--coar-spacing-m));
   font-family: var(--coar-font-family-mono, monospace);
-  font-size: var(--coar-font-size-s, 0.875rem);
-  line-height: 1.6;
+  font-size: var(--coar-markdown-editor-source-font-size, var(--coar-font-size-s, 0.875rem));
+  line-height: var(--coar-markdown-editor-source-line-height, 1.6);
   tab-size: 2;
   background: var(--coar-background-neutral-primary);
   color: var(--coar-text-neutral-primary);
@@ -2210,11 +2218,11 @@ export default defineComponent({
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: var(--coar-markdown-editor-corner-button-size, 28px);
+  height: var(--coar-markdown-editor-corner-button-size, 28px);
   padding: 0;
   border: 1px solid var(--coar-border-neutral);
-  border-radius: var(--coar-radius-s);
+  border-radius: var(--coar-markdown-editor-button-radius, var(--coar-radius-s));
   background: var(--coar-background-neutral-primary);
   color: var(--coar-text-neutral-secondary);
   cursor: pointer;
@@ -2231,8 +2239,8 @@ export default defineComponent({
      axes — the sidebar's own paddings still leave breathing room around each
      icon. We override both width and height tokens here so a single rule
      covers all four toolbar positions. */
-  --coar-sidebar-collapsed-width: 2.25rem;
-  --coar-sidebar-collapsed-height: 2.25rem;
+  --coar-sidebar-collapsed-width: var(--coar-markdown-editor-toolbar-size, 2.25rem);
+  --coar-sidebar-collapsed-height: var(--coar-markdown-editor-toolbar-size, 2.25rem);
   --coar-sidebar-item-padding: 0.25rem 0.375rem;
 }
 
@@ -2267,7 +2275,7 @@ export default defineComponent({
 .coar-md-area {
   flex: 1;
   overflow: auto;
-  padding: var(--coar-spacing-s) var(--coar-spacing-m);
+  padding: var(--coar-markdown-editor-area-padding, var(--coar-spacing-s) var(--coar-spacing-m));
   /* Padding clicks land here and focus the editor (see onAreaMouseDown). */
   cursor: text;
   /* Containing block for the absolutely-positioned placeholder overlay. */
@@ -2293,7 +2301,7 @@ export default defineComponent({
 .coar-md-area .milkdown pre {
   background: var(--coar-background-neutral-secondary);
   padding: var(--coar-spacing-s) var(--coar-spacing-m);
-  border-radius: var(--coar-radius-xl);
+  border-radius: var(--coar-markdown-editor-panel-radius, var(--coar-radius-xl));
   overflow-x: auto;
   margin: 0.5em 0;
 }
@@ -2352,7 +2360,7 @@ export default defineComponent({
 .coar-md-placeholder {
   position: absolute;
   inset: 0;
-  padding: var(--coar-spacing-s) var(--coar-spacing-m);
+  padding: var(--coar-markdown-editor-area-padding, var(--coar-spacing-s) var(--coar-spacing-m));
   overflow: hidden;
   pointer-events: none;
   user-select: none;
@@ -2375,10 +2383,10 @@ export default defineComponent({
   transform: translate(-50%, -100%);
   display: flex;
   gap: 2px;
-  padding: var(--coar-spacing-xs) 6px;
+  padding: var(--coar-markdown-editor-float-padding, var(--coar-spacing-xs) 6px);
   background: var(--coar-background-neutral-primary);
   border: 1px solid var(--coar-border-neutral);
-  border-radius: var(--coar-radius-xl);
+  border-radius: var(--coar-markdown-editor-panel-radius, var(--coar-radius-xl));
   box-shadow: var(--coar-shadow-m, 0 4px 12px rgba(0, 0, 0, 0.12));
   z-index: 10000;
   animation: coar-md-float-in 0.12s ease-out;
@@ -2388,11 +2396,11 @@ export default defineComponent({
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: var(--coar-markdown-editor-float-button-size, 30px);
+  height: var(--coar-markdown-editor-float-button-size, 30px);
   padding: 0;
   border: none;
-  border-radius: var(--coar-radius-s);
+  border-radius: var(--coar-markdown-editor-button-radius, var(--coar-radius-s));
   background: transparent;
   color: var(--coar-text-neutral-secondary);
   cursor: pointer;
@@ -2421,7 +2429,7 @@ export default defineComponent({
 
 .coar-md-float-sep {
   width: 1px;
-  height: 18px;
+  height: var(--coar-markdown-editor-float-separator-height, 18px);
   background: var(--coar-border-neutral);
   margin: 0 2px;
   align-self: center;
@@ -2441,7 +2449,7 @@ export default defineComponent({
   padding: var(--coar-spacing-xs);
   background: var(--coar-background-neutral-primary);
   border: 1px solid var(--coar-border-neutral);
-  border-radius: var(--coar-radius-xl);
+  border-radius: var(--coar-markdown-editor-panel-radius, var(--coar-radius-xl));
   box-shadow: var(--coar-shadow-m, 0 4px 12px rgba(0, 0, 0, 0.12));
   min-width: 140px;
   z-index: 10001;
@@ -2453,12 +2461,12 @@ export default defineComponent({
   align-items: center;
   gap: var(--coar-spacing-s);
   width: 100%;
-  padding: 6px 10px;
+  padding: var(--coar-markdown-editor-menu-item-padding, 6px 10px);
   border: none;
-  border-radius: var(--coar-radius-m);
+  border-radius: var(--coar-markdown-editor-button-radius, var(--coar-radius-m));
   background: transparent;
   color: var(--coar-text-neutral-secondary);
-  font-size: 13px;
+  font-size: var(--coar-markdown-editor-menu-font-size, 13px);
   cursor: pointer;
   user-select: none;
   white-space: nowrap;

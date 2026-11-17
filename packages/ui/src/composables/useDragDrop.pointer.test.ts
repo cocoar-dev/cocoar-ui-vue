@@ -122,6 +122,30 @@ describe('useDragDrop pointer engine', () => {
     expect(left.api().isDragging.value).toBe(false);
   });
 
+  it('keeps a compact mobile dark pointer ghost in the source context and removes it on Escape', async () => {
+    const source = surface('compact', [{ id: 'a' }, { id: 'b' }]);
+    source.el.classList.add('coar-compact', 'coar-mobile', 'dark-mode');
+    const row = source.el.querySelector<HTMLElement>('.row')!;
+    row.style.setProperty('--coar-ui-font-size', '15px');
+    source.api().onPointerDown(pointerEvent('pointerdown', { clientX: 0, clientY: 0, button: 0 }), source.items.value, row);
+    pointAt(null);
+    document.dispatchEvent(pointerEvent('pointermove', { clientX: 30, clientY: 30 }));
+    await nextTick();
+    const ghost = document.querySelector<HTMLElement>('.coar-dnd-ghost')!;
+    expect(ghost.parentElement).toBe(document.body);
+    expect(ghost.classList.contains('coar-compact')).toBe(true);
+    expect(ghost.classList.contains('coar-mobile')).toBe(true);
+    expect(ghost.classList.contains('dark-mode')).toBe(true);
+    expect(ghost.style.getPropertyValue('--coar-ui-font-size')).toBe('15px');
+    expect(ghost.querySelector('.row')?.textContent).toBe('a');
+    expect(ghost.querySelector('.coar-dnd-ghost__count')?.textContent).toBe('2');
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await nextTick();
+    expect(ghost.isConnected).toBe(false);
+    expect(row.isConnected).toBe(true);
+    source.wrapper.unmount();
+  });
+
   it('refuses other groups, honours dragAccept and canDrop', async () => {
     const source = surface('s', [{ id: 'a' }], { dragGroup: 'g', dragId: 'src' });
     const otherGroup = surface('o', [], { dragGroup: 'h' });

@@ -114,15 +114,17 @@ defineExpose({
   padding: 0 0 4px;
   background: var(--coar-calendar-bg, #fff);
   border: 1px solid var(--coar-calendar-border, #d1d5db);
-  border-radius: var(--coar-radius-md, 8px);
-  box-shadow:
+  border-radius: var(--coar-calendar-panel-radius, var(--coar-radius-md, 8px));
+  box-shadow: var(
+    --coar-calendar-overlay-shadow,
     0 12px 32px rgba(0, 0, 0, 0.16),
-    0 2px 6px rgba(0, 0, 0, 0.08);
+    0 2px 6px rgba(0, 0, 0, 0.08)
+  );
   outline: none;
   font-variant-numeric: tabular-nums;
 }
 .coar-month-day-overlay:focus-visible {
-  outline: 2px solid var(--coar-color-focus, #2563eb);
+  outline: 2px solid var(--coar-calendar-focus-color, var(--coar-color-focus, #2563eb));
   outline-offset: 1px;
 }
 
@@ -134,12 +136,12 @@ defineExpose({
   padding: 4px 4px 2px 6px;
 }
 .coar-month-day-overlay__day-number {
-  font-size: var(--coar-font-size-sm, 13px);
-  font-weight: 600;
+  font-size: var(--coar-calendar-label-font-size, var(--coar-font-size-sm, 13px));
+  font-weight: var(--coar-calendar-label-font-weight, 600);
   color: var(--coar-text-base, #1a1c1f);
 }
 .coar-month-day-overlay--today .coar-month-day-overlay__day-number {
-  color: var(--coar-color-accent, var(--coar-color-accent-500, #2563eb));
+  color: var(--coar-calendar-today-color, var(--coar-color-accent, var(--coar-color-accent-500, #2563eb)));
 }
 .coar-month-day-overlay__heading {
   flex: 1 1 auto;
@@ -147,7 +149,7 @@ defineExpose({
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--coar-font-size-xs, 11px);
+  font-size: var(--coar-calendar-caption-font-size, var(--coar-font-size-xs, 11px));
   color: var(--coar-text-subtle, #6c7280);
 }
 .coar-month-day-overlay__close {
@@ -155,18 +157,18 @@ defineExpose({
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: var(--coar-calendar-day-overlay-close-size, 20px);
+  height: var(--coar-calendar-day-overlay-close-size, 20px);
   padding: 0;
   border: 0;
-  border-radius: var(--coar-radius-xs, 2px);
+  border-radius: var(--coar-calendar-control-radius, var(--coar-radius-xs, 2px));
   background: transparent;
   color: var(--coar-text-subtle, #6c7280);
   cursor: pointer;
 }
 .coar-month-day-overlay__close:hover,
 .coar-month-day-overlay__close:focus-visible {
-  background: var(--coar-background-neutral-tertiary, #f3f4f6);
+  background: var(--coar-calendar-hover-bg, var(--coar-background-neutral-tertiary, #f3f4f6));
   color: var(--coar-text-base, #1a1c1f);
 }
 
@@ -177,13 +179,13 @@ defineExpose({
   padding: 3px 4px 2px;
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: var(--coar-border-neutral-tertiary, #d1d5db) transparent;
+  scrollbar-color: var(--coar-calendar-scrollbar-color, var(--coar-border-neutral-tertiary, #d1d5db)) transparent;
 }
 .coar-month-day-overlay__list::-webkit-scrollbar {
   width: 6px;
 }
 .coar-month-day-overlay__list::-webkit-scrollbar-thumb {
-  background: var(--coar-border-neutral-tertiary, #d1d5db);
+  background: var(--coar-calendar-scrollbar-color, var(--coar-border-neutral-tertiary, #d1d5db));
   border-radius: 3px;
 }
 </style>

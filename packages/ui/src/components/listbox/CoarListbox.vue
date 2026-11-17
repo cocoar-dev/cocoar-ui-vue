@@ -627,7 +627,10 @@ const hostClasses = computed(() => [
     <div
       ref="listRef"
       class="coar-listbox-list"
-      :class="{ 'coar-listbox-list--virtual': virtual }"
+      :class="{
+        'coar-listbox-list--virtual': virtual,
+        'coar-listbox-list--fixed-height': Boolean(height),
+      }"
       :style="listStyle"
       :tabindex="displayOnly || disabled ? -1 : 0"
       :role="displayOnly ? 'list' : 'listbox'"
@@ -831,7 +834,9 @@ const hostClasses = computed(() => [
 .coar-listbox-title {
   font-family: var(--coar-body-small-base-family);
   font-size: var(--coar-body-caption-size);
-  font-weight: var(--coar-font-weight-semibold);
+  /* --coar-font-weight-semibold is not a defined token (the weight inherits); the
+     compact profile gives titles and headings its label weight instead. */
+  font-weight: var(--coar-label-font-weight, var(--coar-font-weight-semibold));
   color: var(--coar-text-neutral-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -857,6 +862,29 @@ const hostClasses = computed(() => [
   padding: var(--coar-spacing-xxs);
   user-select: none;
   outline: none;
+}
+
+/* Opaque native tracks can paint over the rounded right-hand border. Keep the
+   track transparent without clipping focus rings or changing the scrollport. */
+.coar-compact .coar-listbox-list {
+  scrollbar-color: var(--coar-scrollbar-thumb) transparent;
+}
+
+/* Safari versions without scrollbar-color need the native WebKit parts. */
+@supports not (scrollbar-color: gray transparent) {
+  .coar-compact .coar-listbox-list::-webkit-scrollbar {
+    width: calc(var(--coar-spacing-s) + var(--coar-spacing-xs));
+    height: calc(var(--coar-spacing-s) + var(--coar-spacing-xs));
+  }
+  .coar-compact .coar-listbox-list::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .coar-compact .coar-listbox-list::-webkit-scrollbar-thumb {
+    background: var(--coar-scrollbar-thumb);
+    background-clip: padding-box;
+    border: var(--coar-spacing-xxs) solid transparent;
+    border-radius: var(--coar-control-radius, var(--coar-input-radius));
+  }
 }
 
 .coar-listbox-list:focus-visible {
@@ -885,7 +913,7 @@ const hostClasses = computed(() => [
   height: 100%;
   min-height: 40px;
   font-family: var(--coar-body-small-base-family);
-  font-size: var(--coar-body-small-base-size);
+  font-size: var(--coar-ui-font-size, var(--coar-body-small-base-size));
   color: var(--coar-text-neutral-tertiary);
   font-style: italic;
 }
@@ -902,7 +930,7 @@ const hostClasses = computed(() => [
   background: var(--coar-surface-input);
   font-family: var(--coar-body-small-base-family);
   font-size: var(--coar-body-caption-size);
-  font-weight: var(--coar-font-weight-semibold);
+  font-weight: var(--coar-label-font-weight, var(--coar-font-weight-semibold));
   color: var(--coar-text-neutral-tertiary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -914,20 +942,34 @@ const hostClasses = computed(() => [
   gap: var(--coar-spacing-xs);
   padding: var(--coar-spacing-xxs) var(--coar-spacing-s);
   font-family: var(--coar-body-small-base-family);
-  font-size: max(var(--coar-body-small-base-size), var(--coar-control-min-font-size, 0px));
+  font-size: max(var(--coar-ui-font-size, var(--coar-body-small-base-size)), var(--coar-control-min-font-size, 0px));
   color: var(--coar-text-neutral-primary);
-  border-radius: var(--coar-radius-xs);
+  border-radius: var(--coar-control-radius, var(--coar-radius-xs));
   cursor: pointer;
   min-width: 0;
   transition: background-color var(--coar-duration-fast) var(--coar-ease-out);
 }
 
-/* Mobile row floor (.coar-mobile tokens), counted with the padding. Not in virtual mode:
-   there the row height comes from the `itemHeight` prop, which positions every row. */
+/* Row floor, counted with the padding: the mobile floor (.coar-mobile tokens), else the
+   compact profile's interactive row; `auto` outside both. Not in virtual mode: there the
+   row height comes from the `itemHeight` prop, which positions every row. */
 .coar-listbox-list:not(.coar-listbox-list--virtual) .coar-listbox-item {
-  min-height: var(--coar-control-row-min-height, auto);
+  min-height: var(--coar-control-row-min-height, var(--coar-interactive-row-height, auto));
 }
-.coar-mobile .coar-listbox-list:not(.coar-listbox-list--virtual) .coar-listbox-item {
+.coar-compact .coar-listbox-list--fixed-height {
+  /* A specified viewport must not grow to the virtual spacer's full height
+     inside an auto-sized parent. Keep the historical flex rule outside opt-in. */
+  flex: none;
+}
+.coar-compact .coar-listbox-list--virtual .coar-listbox-item,
+.coar-compact .coar-listbox-group-heading--virtual {
+  /* The virtualizer positions border boxes at itemHeight/groupHeadingHeight.
+     Padding must not extend those boxes over the following row. */
+  box-sizing: border-box;
+}
+.coar-mobile .coar-listbox-list:not(.coar-listbox-list--virtual) .coar-listbox-item,
+.coar-compact .coar-listbox-list:not(.coar-listbox-list--virtual) .coar-listbox-item {
+  /* Do not alter the legacy box model, including consumer-supplied dimensions. */
   box-sizing: border-box;
 }
 

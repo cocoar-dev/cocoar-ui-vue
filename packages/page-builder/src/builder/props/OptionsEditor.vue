@@ -106,8 +106,8 @@ function moveOption(index: number, delta: -1 | 1) {
 }
 
 .pb-select-options__label {
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--coar-page-builder-label-font-size, 12px);
+  font-weight: var(--coar-page-builder-label-font-weight, 500);
   color: var(--coar-text-neutral-secondary, #5a5a60);
 }
 
@@ -122,14 +122,14 @@ function moveOption(index: number, delta: -1 | 1) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: var(--coar-page-builder-inline-button-size, 22px);
+  height: var(--coar-page-builder-inline-button-size, 22px);
   padding: 0;
   border: 1px solid var(--coar-border-neutral, #dcdce0);
   background: transparent;
   color: var(--coar-icon-neutral-secondary, #5a5a60);
   cursor: pointer;
-  border-radius: 3px;
+  border-radius: var(--coar-page-builder-control-radius, 3px);
   transition: background-color 0.12s ease-out, color 0.12s ease-out;
 }
 
@@ -153,14 +153,14 @@ function moveOption(index: number, delta: -1 | 1) {
   align-items: center;
   gap: 6px;
   align-self: flex-start;
-  height: 24px;
+  height: var(--coar-page-builder-inline-button-size, 24px);
   padding: 0 8px;
   border: 1px dashed var(--coar-border-neutral, #cecece);
   background: transparent;
   color: var(--coar-text-neutral-secondary, #666);
   font-family: inherit;
-  font-size: 12px;
-  border-radius: 4px;
+  font-size: var(--coar-page-builder-label-font-size, 12px);
+  border-radius: var(--coar-page-builder-control-radius, 4px);
   cursor: pointer;
   transition: border-color 0.12s, color 0.12s;
 }

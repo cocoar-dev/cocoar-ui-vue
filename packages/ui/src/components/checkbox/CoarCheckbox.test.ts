@@ -22,6 +22,16 @@ describe('CoarCheckbox', () => {
     expect(wrapper.find('.coar-checkbox-label').exists()).toBe(false);
   });
 
+  it('only centers the compact indicator when it has no internal label', async () => {
+    const wrapper = mountCheckbox();
+    const control = wrapper.find('.coar-checkbox-wrapper');
+    expect(control.classes()).toContain('coar-checkbox-wrapper--unlabelled');
+    await wrapper.setProps({ label: 'A label that can wrap onto several lines' });
+    expect(control.classes()).not.toContain('coar-checkbox-wrapper--unlabelled');
+    await wrapper.setProps({ label: '' });
+    expect(control.classes()).toContain('coar-checkbox-wrapper--unlabelled');
+  });
+
   it('shows required asterisk', () => {
     const wrapper = mountCheckbox({ label: 'Terms', required: true });
     expect(wrapper.find('.coar-checkbox-required').text()).toBe('*');

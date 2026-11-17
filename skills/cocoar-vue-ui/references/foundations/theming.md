@@ -21,6 +21,10 @@ import CoarThemeEditor from '@cocoar/vue-ui/theme-editor';
 
 ### Props
 
+In the Preview [compact presentation](./compact-presentation.md), mounting the editor inside a compact
+area targets that area rather than a neighboring legacy area. Its teleported tools keep that area's
+presentation. The editor remains a single live editor per document.
+
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `hideDarkToggle` | `boolean` | `false` | Hides the light/dark toggle. Set to `true` when your app manages dark mode itself. |

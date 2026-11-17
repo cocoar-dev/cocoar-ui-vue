@@ -71,13 +71,14 @@ const hostClasses = computed(() => [
 
 .coar-card--outlined {
   background-color: var(--coar-background-neutral-primary);
-  border-color: var(--coar-color-gray-100);
+  /* Compact profile maps the primitive to a semantic border; unset elsewhere. */
+  border-color: var(--coar-card-outlined-border-color, var(--coar-color-gray-100));
 }
 
 .dark-mode .coar-card--outlined,
 [data-theme='dark'] .coar-card--outlined {
   background-color: var(--coar-background-neutral-secondary);
-  border-color: var(--coar-color-gray-200);
+  border-color: var(--coar-card-outlined-border-color, var(--coar-color-gray-200));
 }
 
 .coar-card--success {

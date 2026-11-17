@@ -108,16 +108,16 @@ function openMonth(date: Temporal.PlainDate) {
   margin: 0 0 8px;
   padding: 2px 4px;
   border: 0;
-  border-radius: 5px;
+  border-radius: var(--coar-calendar-control-radius, 5px);
   background: transparent;
   color: var(--coar-text-base, #1a1c1f);
   font: inherit;
-  font-weight: 700;
+  font-weight: var(--coar-calendar-heading-font-weight, 700);
   cursor: pointer;
   text-transform: capitalize;
 }
 .coar-year-view__month-title:hover {
-  background: var(--coar-surface-subtle, #f3f4f6);
+  background: var(--coar-calendar-hover-bg, var(--coar-surface-subtle, #f3f4f6));
 }
 .coar-year-view__weekdays,
 .coar-year-view__days {
@@ -128,7 +128,7 @@ function openMonth(date: Temporal.PlainDate) {
 .coar-year-view__weekdays {
   margin-bottom: 3px;
   color: var(--coar-text-subtle, #6b7280);
-  font-size: var(--coar-font-size-xs, 11px);
+  font-size: var(--coar-calendar-caption-font-size, var(--coar-font-size-xs, 11px));
 }
 .coar-year-view__day {
   aspect-ratio: 1;
@@ -139,18 +139,18 @@ function openMonth(date: Temporal.PlainDate) {
   background: transparent;
   color: var(--coar-text-base, #1a1c1f);
   font: inherit;
-  font-size: var(--coar-font-size-xs, 11px);
+  font-size: var(--coar-calendar-caption-font-size, var(--coar-font-size-xs, 11px));
   cursor: pointer;
 }
 .coar-year-view__day:hover:not(.coar-year-view__day--today) {
-  background: var(--coar-surface-subtle, #f3f4f6);
+  background: var(--coar-calendar-hover-bg, var(--coar-surface-subtle, #f3f4f6));
 }
 .coar-year-view__day--outside {
   visibility: hidden;
 }
 .coar-year-view__day--today {
   background: var(--coar-background-accent-primary, #2563eb);
-  color: white;
-  font-weight: 700;
+  color: var(--coar-calendar-on-accent, white);
+  font-weight: var(--coar-calendar-strong-font-weight, 700);
 }
 </style>

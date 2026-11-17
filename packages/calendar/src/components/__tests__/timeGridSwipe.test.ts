@@ -91,6 +91,41 @@ describe('time grid touch paging', () => {
     expect(b.state.date.value.toString()).toBe('2026-06-22');
   });
 
+  it('leaves an overflowing week to native scrolling and restores paging when it fits', async () => {
+    const host = document.createElement('div');
+    host.style.overflowY = 'auto';
+    let width = 390;
+    Object.defineProperties(host, {
+      clientWidth: { get: () => width },
+      scrollWidth: { get: () => 976 },
+    });
+    document.body.appendChild(host);
+    let measure: ResizeObserverCallback | undefined;
+    vi.stubGlobal('ResizeObserver', class {
+      constructor(private callback: ResizeObserverCallback) {}
+      observe(element: Element) { if (element === host) measure = this.callback; }
+      disconnect() {}
+    });
+    const b = newBuilder().view('week');
+    const w = mount(CoarWeekView, { props: { builder: b }, attachTo: host });
+    try {
+      await nextTick();
+      expect(w.find('.coar-time-grid--scrollable-x').exists()).toBe(true);
+      await swipeOn(w.find('.coar-time-grid-column').element, 300, 100);
+      expect(b.state.date.value.toString()).toBe('2026-06-15');
+      width = 1200;
+      measure!([], {} as ResizeObserver);
+      await nextTick();
+      expect(w.find('.coar-time-grid--scrollable-x').exists()).toBe(false);
+      await swipeOn(w.find('.coar-time-grid-column').element, 300, 100);
+      expect(b.state.date.value.toString()).toBe('2026-06-22');
+    } finally {
+      w.unmount();
+      host.remove();
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('a short pan settles back without paging', async () => {
     const b = newBuilder().view('day');
     const w = mount(CoarDayView, { props: { builder: b } });

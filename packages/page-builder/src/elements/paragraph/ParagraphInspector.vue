@@ -26,10 +26,10 @@ const { t } = useI18n();
 .pb-prop-textarea {
   width: 100%;
   border: 1px solid var(--coar-border-neutral, #d0d0d0);
-  border-radius: 6px;
+  border-radius: var(--coar-page-builder-control-radius, 6px);
   padding: 6px 10px;
   font-family: inherit;
-  font-size: 13px;
+  font-size: var(--coar-page-builder-field-font-size, 13px);
   color: var(--coar-text-neutral-primary, #111);
   background: var(--coar-background-neutral-primary, #fff);
   resize: vertical;

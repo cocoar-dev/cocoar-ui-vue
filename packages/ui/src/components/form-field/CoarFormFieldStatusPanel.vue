@@ -112,7 +112,7 @@ defineProps<{
      it smaller than the label inverts the visual hierarchy (label was just
      a header; the detail is what the user is here to read). */
   font-size: var(--coar-component-m-label-font-size);
-  line-height: 1.4;
+  line-height: var(--coar-ui-line-height, 1.4);
 }
 
 /* Section row: icon left, stacked-message body to the right. `flex-start`

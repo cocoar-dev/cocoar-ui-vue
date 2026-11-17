@@ -15,7 +15,7 @@ const document = computed(() => buildVisualDocument(props.node.props.html ?? '',
 </template>
 
 <style scoped>
-.pb-visual-preview { width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 4px; background: #f7f7f9; }
+.pb-visual-preview { width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 4px; background: var(--coar-page-builder-preview-backdrop, #f7f7f9); }
 .pb-visual-preview iframe { display: block; width: 100%; height: 100%; border: 0; pointer-events: none; }
-.pb-visual-preview span { display: grid; min-height: 80px; place-items: center; color: #991b1b; font-size: 12px; }
+.pb-visual-preview span { display: grid; min-height: 80px; place-items: center; color: var(--coar-page-builder-error-text, #991b1b); font-size: 12px; }
 </style>

@@ -8,6 +8,8 @@ import { CoarGridBuilder } from './builders';
 import { cocoarTheme } from './theme';
 import CoarDataGridSearch from './CoarDataGridSearch.vue';
 import './theme/ag-theme-cocoar.css';
+// After the default theme: compact rules win at equal specificity (opt-in `.coar-compact`).
+import './theme/ag-theme-cocoar-compact.css';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 

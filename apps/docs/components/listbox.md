@@ -17,6 +17,8 @@ import type { CoarListboxOption } from '@cocoar/vue-ui';
 
 Multi-select highlight via click, `Ctrl+Click`, `Shift+Click`, and keyboard (arrows, `Space`, `Ctrl+A`). Double-click (or `Enter`) emits `item-activate` — wire this up to move items, open a detail view, etc.
 
+In Compact, the scrollbar track stays transparent so the list's rounded border remains visible when its contents overflow.
+
 <preview path="./listbox/demos/BasicListbox.vue" />
 
 ## Display only

@@ -189,7 +189,9 @@ function onKeydown(e: KeyboardEvent): void {
 .coar-pane-divider:hover::before,
 .coar-pane-divider:focus-visible::before,
 .coar-pane-divider--dragging::before {
-  background: var(--coar-color-accent, #3b82f6);
+  /* `--coar-color-accent` is not a library token, so this is the literal blue unless a
+     consumer sets it; the compact profile supplies its accent border role instead. */
+  background: var(--coar-color-accent, var(--coar-pane-divider-active-color, #3b82f6));
 }
 .coar-pane-divider--vertical:hover::before,
 .coar-pane-divider--vertical:focus-visible::before,

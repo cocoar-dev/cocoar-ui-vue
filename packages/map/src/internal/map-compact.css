@@ -1,0 +1,144 @@
+/*
+ * Map — compact presentation (experimental, opt-in via `.coar-compact`).
+ *
+ * Outside a `.coar-compact` scope nothing here applies and the map keeps its original
+ * look. Imported after `map-base.css` by `<CoarMap>` and `<CoarMapEditor>`.
+ *
+ * Map data is not themed: tiles, the route line, shape dots, category colors, pin size
+ * and emoji stay as they are (marker anchors are tied to the pin geometry). What changes
+ * is the library's chrome around and on the map: Leaflet controls, popups, tooltips and
+ * attribution (real Leaflet 1.9 selectors, in Leaflet's own panes inside the canvas),
+ * selection colors, captions, and touch targets.
+ *
+ * `.coar-compact` may sit on an ancestor or on the map root (`class` attribute); every
+ * Leaflet rule is anchored at `.coar-map__canvas` (the Leaflet container) so other
+ * Leaflet maps of the application are not touched. Leaflet's CSS loads lazily after
+ * this file, so these rules are kept more specific than Leaflet's.
+ */
+
+/* Size roles: literal values, so inheriting them never freezes a token of another scope.
+   The point list's drag handle becomes a 44px target on touch. */
+:where(.coar-compact.coar-mobile, .coar-compact .coar-mobile, .coar-mobile .coar-compact) {
+  --coar-map-target-size: 44px;
+}
+
+/* Roles, resolved on the map root so light/dark and nested scopes resolve in its context.
+   Public `--coar-map-*` variables a consumer sets still win: the sources read them first. */
+:is(.coar-compact .coar-map, .coar-map.coar-compact) {
+  --coar-map-text: var(--coar-text-neutral-secondary, #444);
+  --coar-map-text-muted: var(--coar-text-neutral-tertiary, #666);
+  --coar-map-error-color: var(--coar-text-semantic-error-bold, #b91c1c);
+  --coar-map-selection-color: var(--coar-border-accent-primary, #3b82f6);
+  --coar-map-selection-ring: color-mix(in srgb, var(--coar-border-accent-primary, #3b82f6) 45%, transparent);
+  --coar-map-popup-shadow: var(--coar-elevation-high, 0 6px 24px rgba(15, 23, 42, 0.18));
+}
+
+/* Leaflet container typography: the library's UI text instead of Helvetica 12px. */
+.coar-compact .coar-map__canvas.leaflet-container {
+  font-family: var(--coar-font-family-body, inherit);
+  font-size: var(--coar-ui-font-size, 12px);
+  line-height: var(--coar-ui-line-height, 1.5);
+}
+
+/* Zoom control (.leaflet-bar). */
+.coar-compact .coar-map__canvas .leaflet-bar {
+  border-radius: var(--coar-control-radius, 4px);
+  box-shadow: var(--coar-elevation-low, 0 1px 5px rgba(0, 0, 0, 0.65));
+}
+.coar-compact .coar-map__canvas.leaflet-touch .leaflet-bar {
+  border-color: var(--coar-border-neutral-tertiary, rgba(0, 0, 0, 0.2));
+}
+.coar-compact .coar-map__canvas .leaflet-bar a {
+  background-color: var(--coar-background-neutral-primary, #fff);
+  border-bottom-color: var(--coar-border-neutral-tertiary, #ccc);
+  color: var(--coar-text-neutral-primary, #000);
+}
+.coar-compact .coar-map__canvas .leaflet-bar a:hover,
+.coar-compact .coar-map__canvas .leaflet-bar a:focus {
+  background-color: var(--coar-background-neutral-secondary, #f4f4f4);
+}
+.coar-compact .coar-map__canvas .leaflet-bar a.leaflet-disabled {
+  background-color: var(--coar-background-neutral-secondary, #f4f4f4);
+  color: var(--coar-text-neutral-disabled, #bbb);
+}
+.coar-compact .coar-map__canvas .leaflet-bar a:first-child {
+  border-top-left-radius: var(--coar-control-radius, 4px);
+  border-top-right-radius: var(--coar-control-radius, 4px);
+}
+.coar-compact .coar-map__canvas .leaflet-bar a:last-child {
+  border-bottom-left-radius: var(--coar-control-radius, 4px);
+  border-bottom-right-radius: var(--coar-control-radius, 4px);
+}
+.coar-compact .coar-map__canvas .leaflet-control-zoom-in,
+.coar-compact .coar-map__canvas .leaflet-control-zoom-out {
+  font-family: var(--coar-font-family-body, 'Lucida Console', Monaco, monospace);
+  font-weight: var(--coar-ui-font-weight, bold);
+}
+
+/* Touch: 44px zoom buttons in the compact profile on mobile. */
+:is(.coar-compact.coar-mobile, .coar-compact .coar-mobile, .coar-mobile .coar-compact) .coar-map__canvas .leaflet-bar a {
+  width: 44px;
+  height: 44px;
+  line-height: 44px;
+}
+
+/* Attribution: a legal notice of the tile provider; stays legible, styled as caption. */
+.coar-compact .coar-map__canvas .leaflet-control-attribution {
+  background: color-mix(in srgb, var(--coar-background-neutral-primary, #fff) 80%, transparent);
+  color: var(--coar-text-neutral-secondary, #333);
+  font-size: var(--coar-caption-font-size, 12px);
+}
+.coar-compact .coar-map__canvas .leaflet-control-attribution a {
+  color: var(--coar-text-accent-primary, #0078a8);
+}
+
+/* Popups (Leaflet's own, opened from pins and shape dots). */
+.coar-compact .coar-map__canvas .leaflet-popup-content-wrapper,
+.coar-compact .coar-map__canvas .leaflet-popup-tip {
+  background: var(--coar-background-neutral-primary, white);
+  color: var(--coar-text-neutral-primary, #333);
+  box-shadow: var(--coar-map-popup-shadow, 0 3px 14px rgba(0, 0, 0, 0.4));
+}
+.coar-compact .coar-map__canvas .leaflet-popup-content-wrapper {
+  border-radius: var(--coar-panel-radius, 12px);
+}
+.coar-compact .coar-map__canvas .leaflet-popup-content {
+  font-size: var(--coar-ui-font-size, 13px);
+  line-height: var(--coar-ui-line-height, 1.3);
+}
+.coar-compact .coar-map__canvas a.leaflet-popup-close-button {
+  color: var(--coar-text-neutral-tertiary, #757575);
+}
+.coar-compact .coar-map__canvas a.leaflet-popup-close-button:hover,
+.coar-compact .coar-map__canvas a.leaflet-popup-close-button:focus {
+  color: var(--coar-text-neutral-primary, #585858);
+}
+.coar-compact .coar-map__canvas .coar-map-popup__note {
+  color: var(--coar-text-neutral-secondary, #555);
+}
+
+/* Tooltips (marker labels on hover): surface, text and the matching arrow per direction. */
+.coar-compact .coar-map__canvas .leaflet-tooltip {
+  background-color: var(--coar-background-neutral-primary, #fff);
+  border-color: var(--coar-border-neutral-tertiary, #fff);
+  border-radius: var(--coar-control-radius, 3px);
+  color: var(--coar-text-neutral-primary, #222);
+  box-shadow: var(--coar-elevation-low, 0 1px 3px rgba(0, 0, 0, 0.4));
+}
+.coar-compact .coar-map__canvas .leaflet-tooltip-top::before {
+  border-top-color: var(--coar-background-neutral-primary, #fff);
+}
+.coar-compact .coar-map__canvas .leaflet-tooltip-bottom::before {
+  border-bottom-color: var(--coar-background-neutral-primary, #fff);
+}
+.coar-compact .coar-map__canvas .leaflet-tooltip-left::before {
+  border-left-color: var(--coar-background-neutral-primary, #fff);
+}
+.coar-compact .coar-map__canvas .leaflet-tooltip-right::before {
+  border-right-color: var(--coar-background-neutral-primary, #fff);
+}
+
+/* Spatial markers retain their real hit geometry. An invisible 44px halo
+   around a vertex can intercept a neighbouring pin's centre and prevent
+   selecting or dragging it. Zoom and point-list controls have touch targets;
+   dense map geometry is not claimed to meet that same target-size floor. */

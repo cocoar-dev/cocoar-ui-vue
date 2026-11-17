@@ -23,6 +23,8 @@ import { COAR_MAP_CONFIG_KEY } from './context';
 import { useMapEditor } from './internal/use-map-editor';
 import MapPointForm from './internal/MapPointForm.vue';
 import './internal/map-base.css';
+// Opt-in compact presentation (`.coar-compact`); no effect outside it.
+import './internal/map-compact.css';
 
 const props = defineProps<{
   data: MapData;
@@ -156,8 +158,8 @@ defineExpose({
 }
 .coar-map-marker--highlight .coar-map-edit-vertex,
 .coar-map-marker--selected .coar-map-edit-vertex {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4);
+  border-color: var(--coar-map-selection-color, #3b82f6);
+  box-shadow: 0 0 0 3px var(--coar-map-selection-ring, rgba(59, 130, 246, 0.4));
 }
 
 /* Floating property popup — a Vue overlay (not a Leaflet popup) so the
@@ -170,8 +172,8 @@ defineExpose({
   transform: translate(-50%, calc(-100% - 20px));
   background: var(--coar-background-neutral-primary, #fff);
   border: 1px solid var(--coar-border-neutral, #e2e8f0);
-  border-radius: 10px;
-  box-shadow: 0 6px 24px rgba(15, 23, 42, 0.18);
+  border-radius: var(--coar-panel-radius, 10px);
+  box-shadow: var(--coar-map-popup-shadow, 0 6px 24px rgba(15, 23, 42, 0.18));
   padding: 12px 12px 10px;
 }
 .coar-map-edit-popup--below {

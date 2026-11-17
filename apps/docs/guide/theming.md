@@ -4,6 +4,9 @@ description: "Theme Cocoar with CSS custom properties: set five oklch base color
 
 # Theming
 
+The defaults below remain unchanged. The experimental [compact presentation](../foundations/compact-presentation)
+adds an opt-in Slate palette and smaller typography; use its appearance inputs and documented scope boundaries.
+
 Cocoar uses an **oklch-based** color system. You set a few base colors, and the entire palette — including all shades for light and dark mode — is auto-calculated.
 
 ## Quick Start

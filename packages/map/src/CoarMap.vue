@@ -21,6 +21,8 @@ import {
   stopEmoji,
 } from './internal/map-model';
 import './internal/map-base.css';
+// Opt-in compact presentation (`.coar-compact`); no effect outside it.
+import './internal/map-compact.css';
 
 type Leaflet = typeof import('leaflet');
 
@@ -280,8 +282,8 @@ watch(() => props.selected, applySelectedVisual);
 .coar-map__fallback {
   margin: 0;
   padding-left: 20px;
-  font-size: 13px;
-  color: var(--coar-map-fallback-color, #444);
+  font-size: var(--coar-ui-font-size, 13px);
+  color: var(--coar-map-fallback-color, var(--coar-map-text, #444));
 }
 .coar-map__fallback-item {
   margin: 2px 0;
@@ -291,7 +293,7 @@ watch(() => props.selected, applySelectedVisual);
 }
 .coar-map__fallback-coords {
   margin-left: 6px;
-  color: #888;
+  color: var(--coar-map-text-muted, #888);
   font-variant-numeric: tabular-nums;
 }
 
@@ -303,7 +305,7 @@ watch(() => props.selected, applySelectedVisual);
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: 13px;
+  font-size: var(--coar-ui-font-size, 13px);
 }
 .coar-map__legend-item {
   display: inline-flex;

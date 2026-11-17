@@ -13,7 +13,10 @@ export type { CoarScriptEditorTheme } from './theme';
 export {
   COAR_THEME_LIGHT,
   COAR_THEME_DARK,
+  COAR_THEME_COMPACT_LIGHT,
+  COAR_THEME_COMPACT_DARK,
   ensureCoarThemes,
+  isCompactDocument,
   detectAutoTheme,
   watchAutoTheme,
 } from './theme';

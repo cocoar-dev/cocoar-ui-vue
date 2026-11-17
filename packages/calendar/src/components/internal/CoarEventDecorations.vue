@@ -104,7 +104,7 @@ const iconPx = computed(() => (props.size === 's' ? '14px' : '12px'));
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: var(--coar-color-accent, var(--coar-color-accent-500, #2563eb));
+  background: var(--coar-calendar-accent, var(--coar-color-accent, var(--coar-color-accent-500, #2563eb)));
 }
 .coar-event-decorations__sr-only {
   position: absolute;

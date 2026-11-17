@@ -91,8 +91,8 @@ function span(from: number, to: number): Record<string, string> {
   padding: 1px 5px;
   border-radius: 9px;
   background: var(--marker-color);
-  color: #fff;
-  font-size: 10px;
+  color: var(--coar-calendar-on-accent, #fff);
+  font-size: var(--coar-calendar-event-meta-font-size, 10px);
   font-weight: 600;
   line-height: 14px;
   white-space: nowrap;
@@ -139,8 +139,8 @@ function span(from: number, to: number): Record<string, string> {
 .coar-time-axis-marker__duration {
   padding: 0 4px;
   background: var(--coar-calendar-bg, #fff);
-  color: var(--marker-color);
-  font-size: 10px;
+  color: var(--coar-calendar-axis-marker-text-color, var(--marker-color));
+  font-size: var(--coar-calendar-event-meta-font-size, 10px);
   font-weight: 600;
   line-height: 12px;
   white-space: nowrap;

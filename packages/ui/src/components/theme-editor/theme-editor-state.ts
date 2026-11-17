@@ -22,6 +22,19 @@ export interface SemanticOverride {
 
 // ── Module-level hideDarkToggle storage ───────────────────────
 let _hideDarkToggle = false;
+let _compactTarget: HTMLElement | null = null;
+
+function editorTarget(): HTMLElement {
+  return _compactTarget ?? document.documentElement;
+}
+
+function applyEditorMode(dark: boolean) {
+  const target = editorTarget();
+  target.classList.toggle('dark-mode', dark);
+  // A local light preview must override a dark document, not just remove a
+  // class the local target did not have. The legacy document toggle is unchanged.
+  if (_compactTarget) target.classList.toggle('light-mode', !dark);
+}
 
 // ── isOpen (used by CoarThemeEditor.vue) ─────────────────────
 export const isOpen = ref(false);
@@ -641,13 +654,20 @@ export function applyPreset(preset: (typeof PRESETS)[number]) {
   if (!_hideDarkToggle) isDark.value = false;
 }
 
+/** The same brand inputs must drive the live editor and its downloaded theme. */
+function addAccentTokens(add: (token: string, value: string) => void) {
+  if (accent.value === DEFAULTS.accent) return;
+  add('--coar-accent', accent.value);
+  if (_compactTarget) add('--coar-appearance-accent', accent.value);
+}
+
 // ── applyTokens ───────────────────────────────────────────────
 export function applyTokens() {
   const lines: string[] = [];
   const add = (token: string, val: string) => lines.push(`  ${token}: ${val};`);
 
   const D = DEFAULTS;
-  if (accent.value !== D.accent) add('--coar-accent', accent.value);
+  addAccentTokens(add);
   if (success.value !== D.success) add('--coar-success', success.value);
   if (errorColor.value !== D.error) add('--coar-error', errorColor.value);
   if (warning.value !== D.warning) add('--coar-warning', warning.value);
@@ -712,8 +732,7 @@ export function applyTokens() {
     }
   }
   if (!_hideDarkToggle) {
-    if (isDark.value) document.documentElement.classList.add('dark-mode');
-    else document.documentElement.classList.remove('dark-mode');
+    applyEditorMode(isDark.value);
   }
   let tag = document.getElementById('coar-theme-editor') as HTMLStyleElement | null;
   if (!tag) {
@@ -721,8 +740,11 @@ export function applyTokens() {
     tag.id = 'coar-theme-editor';
     document.head.appendChild(tag);
   }
-  tag.textContent = `.coar-theme-editor {\n${lines.join('\n')}\n}`;
-  document.documentElement.classList.add('coar-theme-editor');
+  const selectors = _compactTarget
+    ? '.coar-theme-editor, .coar-theme-editor .coar-compact, .coar-theme-editor :where(.coar-theme-scope, .coar-mobile, .light-mode, .dark-mode, [data-theme])'
+    : '.coar-theme-editor';
+  tag.textContent = `${selectors} {\n${lines.join('\n')}\n}`;
+  editorTarget().classList.add('coar-theme-editor');
 }
 
 // ── reset ─────────────────────────────────────────────────────
@@ -730,7 +752,7 @@ export function reset() {
   applyPreset(PRESETS[0]);
   if (!_hideDarkToggle) {
     isDark.value = false;
-    document.documentElement.classList.remove('dark-mode');
+    applyEditorMode(false);
   }
   radiusXxs.value = DEFAULTS.radiusXxs;
   radiusXs.value = DEFAULTS.radiusXs;
@@ -770,7 +792,7 @@ export function downloadCSS() {
   const add = (token: string, val: string, def: string) => {
     if (val !== def) lines.push(`  ${token}: ${val};`);
   };
-  add('--coar-accent', accent.value, DEFAULTS.accent);
+  addAccentTokens((token, value) => lines.push(`  ${token}: ${value};`));
   add('--coar-success', success.value, DEFAULTS.success);
   add('--coar-error', errorColor.value, DEFAULTS.error);
   add('--coar-warning', warning.value, DEFAULTS.warning);
@@ -869,10 +891,11 @@ let _stopPaletteWatch: StopHandle | null = null;
 let _stopSemanticWatch: StopHandle | null = null;
 
 // ── initThemeEditorState ──────────────────────────────────────
-export function initThemeEditorState(hideDarkToggle: boolean) {
+export function initThemeEditorState(hideDarkToggle: boolean, source?: HTMLElement | null) {
   _hideDarkToggle = hideDarkToggle;
+  _compactTarget = source?.closest<HTMLElement>('.coar-compact') ?? null;
 
-  const cs = getComputedStyle(document.documentElement);
+  const cs = getComputedStyle(editorTarget());
   const get = (t: string) => cs.getPropertyValue(t).trim();
   const px = (t: string, def: number) => {
     const v = parseFloat(get(t));
@@ -889,6 +912,10 @@ export function initThemeEditorState(hideDarkToggle: boolean) {
   const font1 = (t: string) => get(t).split(',')[0].trim().replace(/['"]/g, '');
 
   str('--coar-accent', accent);
+  if (_compactTarget) {
+    const compactAccent = get('--coar-appearance-accent') || get('--coar-color-accent-500');
+    if (compactAccent) accent.value = compactAccent;
+  }
   str('--coar-success', success);
   str('--coar-error', errorColor);
   str('--coar-warning', warning);
@@ -936,7 +963,13 @@ export function initThemeEditorState(hideDarkToggle: boolean) {
   const fast = parseFloat(get('--coar-duration-fast'));
   if (!isNaN(fast) && BASE_DURATIONS.fast > 0) motionScale.value = fast / BASE_DURATIONS.fast;
 
-  if (!hideDarkToggle) isDark.value = document.documentElement.classList.contains('dark-mode');
+  if (!hideDarkToggle) {
+    // A nearer light boundary wins over a dark document (and vice versa).
+    // The legacy editor still follows its document class exactly as before.
+    isDark.value = _compactTarget
+      ? cs.colorScheme === 'dark'
+      : document.documentElement.classList.contains('dark-mode');
+  }
 
   // Set up watches
   _stopRefsWatch = watch(
@@ -998,5 +1031,6 @@ export function cleanupThemeEditorState() {
   _stopSemanticWatch = null;
 
   document.getElementById('coar-theme-editor')?.remove();
-  document.documentElement.classList.remove('coar-theme-editor');
+  editorTarget().classList.remove('coar-theme-editor');
+  _compactTarget = null;
 }

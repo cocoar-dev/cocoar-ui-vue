@@ -17,6 +17,8 @@ import { CoarButton, setCoarDragImageFromElement, useDragDrop } from '@cocoar/vu
 import type { MapConfig, MapData, MapPoint } from './types';
 import { stopEmoji } from './internal/map-model';
 import { reorderPoint, removePoint, selectionAfterRemove, selectionAfterReorder } from './internal/map-edit';
+// Opt-in compact presentation (`.coar-compact`): touch target of the drag handle.
+import './internal/map-compact.css';
 
 const props = defineProps<{
   data: MapData;
@@ -186,7 +188,7 @@ function isDropAfter(index: number): boolean {
   display: flex;
   align-items: center;
   gap: 4px;
-  border-radius: 6px;
+  border-radius: var(--coar-control-radius, 6px);
 }
 .coar-map-point-list__row--selected {
   background: var(--coar-background-accent-secondary, #eef2ff);
@@ -209,6 +211,9 @@ function isDropAfter(index: number): boolean {
 .coar-map-point-list__handle {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  min-width: var(--coar-map-target-size, auto);
+  min-height: var(--coar-map-target-size, auto);
   padding: 4px 2px;
   border: 0;
   background: transparent;
@@ -226,10 +231,12 @@ function isDropAfter(index: number): boolean {
   display: grid;
   grid-template-columns: auto 1fr;
   align-items: baseline;
+  align-content: center;
   column-gap: 8px;
+  min-height: var(--coar-interactive-row-height, auto);
   padding: 6px 8px;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--coar-control-radius, 6px);
   background: transparent;
   color: inherit;
   font: inherit;
@@ -246,14 +253,14 @@ function isDropAfter(index: number): boolean {
   grid-row: span 2;
 }
 .coar-map-point-list__label {
-  font-weight: 600;
+  font-weight: var(--coar-label-font-weight, 600);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .coar-map-point-list__coords {
   grid-column: 2;
-  font-size: 11px;
+  font-size: var(--coar-caption-font-size, 11px);
   color: var(--coar-text-neutral-tertiary, #94a3b8);
   font-variant-numeric: tabular-nums;
 }
@@ -263,7 +270,7 @@ function isDropAfter(index: number): boolean {
 }
 .coar-map-point-list__empty {
   padding: 10px 8px;
-  font-size: 13px;
+  font-size: var(--coar-ui-font-size, 13px);
   color: var(--coar-text-neutral-tertiary, #94a3b8);
 }
 </style>

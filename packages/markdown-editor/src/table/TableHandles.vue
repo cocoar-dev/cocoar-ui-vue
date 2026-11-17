@@ -25,12 +25,13 @@ import {
   addColBeforeCommand, addColAfterCommand, addRowBeforeCommand, addRowAfterCommand,
   moveColCommand, moveRowCommand,
 } from '@milkdown/preset-gfm';
-import { CoarContextMenu, CoarMenuItem, CoarMenuDivider, useContextMenu } from '@cocoar/vue-ui';
+import { CoarContextMenu, CoarMenuItem, CoarMenuDivider, useContextMenu, useCompactPresentationContext } from '@cocoar/vue-ui';
 
 const props = defineProps<{
   /** The editor's `.coar-md-area` element — the hover scope. */
   area: HTMLElement | null;
 }>();
+const presentation = useCompactPresentationContext(() => props.area);
 
 const emit = defineEmits<{
   /** Fired when the action menu opens (true) / closes (false), so the host can
@@ -359,7 +360,7 @@ const dropStyle = computed(() => {
 
 <template>
   <Teleport to="body">
-    <div v-if="geo" class="coar-md-th">
+    <div v-if="geo" class="coar-md-th" :class="presentation.classes" :style="presentation.style">
       <!-- column/row highlight -->
       <div v-if="highlightStyle" class="coar-md-th__hl" :style="highlightStyle" />
       <!-- drop indicator while dragging to reorder -->

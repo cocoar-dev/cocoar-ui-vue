@@ -934,11 +934,11 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 32px;
+  min-height: var(--coar-picker-day-min-height, 32px);
   font-family: var(--coar-body-caption-family);
   font-size: var(--coar-component-xs-font-size);
   color: var(--coar-text-neutral-tertiary);
-  opacity: 0.6;
+  opacity: var(--coar-picker-context-opacity, 0.6);
 }
 
 /* ========================================
@@ -951,7 +951,7 @@ onBeforeUnmount(() => {
   justify-content: center;
   width: 100%;
   aspect-ratio: 1;
-  min-height: 32px;
+  min-height: var(--coar-picker-day-min-height, 32px);
   padding: 2px;
   border: none;
   border-radius: 0;
@@ -973,7 +973,7 @@ onBeforeUnmount(() => {
 
 .coar-scrollable-calendar__day--outside {
   color: var(--coar-text-neutral-tertiary);
-  opacity: 0.5;
+  opacity: var(--coar-picker-context-opacity, 0.5);
 }
 
 .coar-scrollable-calendar__day--today:not(.coar-scrollable-calendar__day--selected) {
@@ -1046,6 +1046,11 @@ onBeforeUnmount(() => {
 
 .coar-scrollable-calendar__day--focused:not(.coar-scrollable-calendar__day--selected) {
   outline: 2px solid var(--coar-border-accent-primary);
+  outline-offset: -2px;
+}
+
+.coar-compact .coar-scrollable-calendar__day:focus-visible {
+  outline: var(--coar-focus-width) var(--coar-focus-style) var(--coar-focus-color);
   outline-offset: -2px;
 }
 

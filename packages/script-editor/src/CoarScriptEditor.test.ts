@@ -475,3 +475,41 @@ describe('CoarScriptEditor — exposes editor methods', () => {
     wrapper.unmount();
   });
 });
+
+describe('CoarScriptEditor — compact document theme', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    document.documentElement.className = '';
+  });
+
+  it('switches an explicit theme only when the page enters the compact profile', async () => {
+    const setTheme = monacoMock.editor.setTheme as ReturnType<typeof vi.fn>;
+    const wrapper = mount(CoarScriptEditor, { props: { theme: 'light' }, attachTo: document.body });
+    await nextTick();
+
+    document.documentElement.classList.add('some-unrelated-class');
+    await new Promise((r) => setTimeout(r, 0));
+    expect(setTheme).not.toHaveBeenCalled();
+
+    document.documentElement.classList.add('coar-compact');
+    await new Promise((r) => setTimeout(r, 0));
+    expect(setTheme).toHaveBeenLastCalledWith('coar-compact-light');
+
+    document.documentElement.classList.remove('coar-compact');
+    await new Promise((r) => setTimeout(r, 0));
+    expect(setTheme).toHaveBeenLastCalledWith('coar-light');
+
+    wrapper.unmount();
+    document.documentElement.className = '';
+  });
+
+  it('creates the editor with the compact theme in a compact document', async () => {
+    document.documentElement.classList.add('coar-compact', 'dark-mode');
+    const create = monacoMock.editor.create as ReturnType<typeof vi.fn>;
+    const wrapper = mount(CoarScriptEditor, { attachTo: document.body });
+    await nextTick();
+    expect(create.mock.calls.at(-1)![1].theme).toBe('coar-compact-dark');
+    wrapper.unmount();
+    document.documentElement.className = '';
+  });
+});

@@ -1,18 +1,21 @@
 <script setup lang="ts">
-import { markRaw, onMounted, onUnmounted } from 'vue';
+import { markRaw, onMounted, onUnmounted, useTemplateRef } from 'vue';
 import { getOverlayService } from '../overlay/useOverlay';
 import type { OverlayRef } from '../overlay/overlay-types';
 import CoarThemeEditorPanel from './CoarThemeEditorPanel.vue';
 import { initThemeEditorState, cleanupThemeEditorState, isOpen } from './theme-editor-state';
+import { useCompactPresentationContext } from '../overlay/useCompactPresentationContext';
 
 const props = withDefaults(defineProps<{ hideDarkToggle?: boolean }>(), {
   hideDarkToggle: false,
 });
 
 let overlayRef: OverlayRef | null = null;
+const origin = useTemplateRef<HTMLElement>('origin');
+const presentation = useCompactPresentationContext(() => origin.value);
 
 onMounted(() => {
-  initThemeEditorState(props.hideDarkToggle);
+  initThemeEditorState(props.hideDarkToggle, origin.value);
 });
 
 onUnmounted(() => {
@@ -34,6 +37,7 @@ function openPanel() {
   isOpen.value = true;
   overlayRef = getOverlayService().open({
     spec: PANEL_SPEC,
+    context: origin.value ?? undefined,
     content: {
       kind: 'component',
       component: markRaw(CoarThemeEditorPanel),
@@ -63,10 +67,12 @@ function handleFabClick() {
 </script>
 
 <template>
+  <span ref="origin" hidden />
   <Teleport to="body">
     <button
       class="te-fab"
-      :class="{ 'te-fab--open': isOpen }"
+      :class="[presentation.classes, { 'te-fab--open': isOpen }]"
+      :style="presentation.style"
       :title="isOpen ? 'Close theme editor' : 'Open theme editor'"
       @click="handleFabClick"
     >
@@ -109,6 +115,6 @@ function handleFabClick() {
   box-shadow: -4px 0 24px rgba(0,0,0,.07);
   display: flex; flex-direction: column;
   font-family: var(--coar-body-base-family, Poppins, sans-serif);
-  font-size: 13px; color: var(--coar-text-neutral-primary, #1a1a1a);
+  font-size: var(--coar-ui-font-size, 13px); color: var(--coar-text-neutral-primary, #1a1a1a);
 }
 </style>

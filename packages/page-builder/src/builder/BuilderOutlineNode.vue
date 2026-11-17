@@ -411,7 +411,7 @@ function canMoveDown(): boolean {
 
 <style scoped>
 .pb-tree-node {
-  font-size: 12px;
+  font-size: var(--coar-page-builder-font-size, 12px);
   font-weight: 400;
   color: var(--coar-text-neutral-primary, #303238);
 }
@@ -421,9 +421,9 @@ function canMoveDown(): boolean {
   align-items: center;
   gap: 6px;
   padding-right: 8px;
-  height: 30px;
+  height: var(--coar-page-builder-row-height, 30px);
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: var(--coar-page-builder-control-radius, 4px);
   position: relative;
 }
 
@@ -488,8 +488,8 @@ function canMoveDown(): boolean {
 
 .pb-outline-zone--active {
   height: 6px;
-  background: rgba(22, 102, 204, 0.15);
-  outline: 1px dashed rgba(22, 102, 204, 0.35);
+  background: var(--coar-page-builder-drop-zone-bg, rgba(22, 102, 204, 0.15));
+  outline: 1px dashed var(--coar-page-builder-drop-zone-border, rgba(22, 102, 204, 0.35));
   outline-offset: -1px;
 }
 
@@ -532,7 +532,7 @@ function canMoveDown(): boolean {
 }
 
 .pb-tree-label-key {
-  font-size: 11px;
+  font-size: var(--coar-page-builder-meta-font-size, 11px);
   font-family: ui-monospace, Menlo, Consolas, monospace;
   color: var(--coar-text-neutral-tertiary, #8a8a90);
   white-space: nowrap;
@@ -547,7 +547,7 @@ function canMoveDown(): boolean {
   border-radius: 999px;
   background: var(--coar-background-neutral-secondary, #f1f1f3);
   color: var(--coar-text-neutral-secondary, #666a72);
-  font-size: 9px;
+  font-size: var(--coar-page-builder-badge-font-size, 9px);
   font-weight: 400;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -603,14 +603,14 @@ function canMoveDown(): boolean {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: var(--coar-page-builder-inline-button-size, 22px);
+  height: var(--coar-page-builder-inline-button-size, 22px);
   padding: 0;
   border: none;
   background: transparent;
   color: var(--coar-icon-neutral-secondary, #5a5a60);
   cursor: pointer;
-  border-radius: 3px;
+  border-radius: var(--coar-page-builder-control-radius, 3px);
   transition: background-color 0.12s ease-out, color 0.12s ease-out;
 }
 
@@ -641,14 +641,14 @@ function canMoveDown(): boolean {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 26px;
+  height: var(--coar-page-builder-inline-button-size, 26px);
   padding: 0 10px;
   border: 1px dashed var(--coar-border-neutral, #cecece);
   background: transparent;
   color: var(--coar-text-neutral-secondary, #666);
   font-family: inherit;
-  font-size: 12px;
-  border-radius: 4px;
+  font-size: var(--coar-page-builder-label-font-size, 12px);
+  border-radius: var(--coar-page-builder-control-radius, 4px);
   cursor: pointer;
   transition: border-color 0.12s, color 0.12s, background-color 0.12s;
 }
@@ -668,15 +668,15 @@ function canMoveDown(): boolean {
   min-width: 200px;
   background: var(--coar-background-neutral-primary, #fff);
   border: 1px solid var(--coar-border-neutral, #dcdce0);
-  border-radius: 6px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border-radius: var(--coar-page-builder-panel-radius, 6px);
+  box-shadow: var(--coar-page-builder-overlay-shadow, 0 8px 24px rgba(0, 0, 0, 0.12));
   z-index: 10;
   display: flex;
   flex-direction: column;
 }
 
 .pb-tree-add__group-label {
-  font-size: 11px;
+  font-size: var(--coar-page-builder-meta-font-size, 11px);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--coar-text-neutral-tertiary, #8a8a90);
@@ -698,10 +698,10 @@ function canMoveDown(): boolean {
   background: transparent;
   color: var(--coar-text-neutral-primary, #111);
   font-family: inherit;
-  font-size: 13px;
+  font-size: var(--coar-page-builder-font-size, 13px);
   text-align: left;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: var(--coar-page-builder-control-radius, 4px);
   transition: background-color 0.12s;
 }
 

@@ -137,7 +137,7 @@ defineExpose({ showInitials, displayInitials, computedBgColor });
 }
 
 .coar-avatar--square.coar-avatar--clickable:focus-visible {
-  border-radius: var(--coar-radius-xs);
+  border-radius: var(--coar-control-radius, var(--coar-radius-xs));
 }
 
 .coar-avatar {
@@ -151,7 +151,7 @@ defineExpose({ showInitials, displayInitials, computedBgColor });
 }
 
 .coar-avatar--square .coar-avatar {
-  border-radius: var(--coar-radius-xs);
+  border-radius: var(--coar-control-radius, var(--coar-radius-xs));
 }
 
 /* Image */

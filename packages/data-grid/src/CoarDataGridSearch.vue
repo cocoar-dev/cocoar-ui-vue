@@ -55,13 +55,13 @@ const searchText = defineModel<string>({ default: '' });
 
 .coar-data-grid-search--bordered {
   border: 1px solid var(--coar-border-neutral);
-  border-radius: var(--coar-radius-s);
+  border-radius: var(--coar-panel-radius, var(--coar-radius-s));
   padding: var(--coar-spacing-s);
 }
 
 .coar-data-grid-search--elevated {
   box-shadow: var(--coar-elevation-medium);
-  border-radius: var(--coar-radius-s);
+  border-radius: var(--coar-panel-radius, var(--coar-radius-s));
   padding: var(--coar-spacing-s);
 }
 

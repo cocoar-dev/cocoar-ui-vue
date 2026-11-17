@@ -168,6 +168,8 @@ export { CoarDualListbox } from './components/dual-listbox';
 export type { CoarDualListboxProps } from './components/dual-listbox';
 
 // Overlay System
+export { readCompactPresentationContext, useCompactPresentationContext } from './components/overlay';
+export type { CompactPresentationContext } from './components/overlay';
 export {
   CoarOverlayHost,
   CoarOverlayOutlet,

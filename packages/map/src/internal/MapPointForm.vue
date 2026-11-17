@@ -121,8 +121,8 @@ function setCategory(value: string | null | undefined): void {
   gap: 3px;
 }
 .coar-map-form__label {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: var(--coar-caption-font-size, 11px);
+  font-weight: var(--coar-label-font-weight, 600);
   color: var(--coar-text-neutral-secondary, #64748b);
 }
 .coar-map-form__actions {

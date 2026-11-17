@@ -82,7 +82,7 @@ function onDblclick(e: MouseEvent) {
 
 <style scoped>
 .coar-agenda-event {
-  padding: 10px 16px;
+  padding: var(--coar-calendar-agenda-row-padding, 10px 16px);
   /* Own token (falls back to the border token): the row separator
      stays near-invisible in dark mode while borders don't. */
   border-bottom: 1px solid var(--coar-calendar-agenda-divider, var(--coar-calendar-border, #f3f4f6));
@@ -92,16 +92,16 @@ function onDblclick(e: MouseEvent) {
   transition: background-color 80ms ease;
 }
 .coar-agenda-event:hover {
-  background: var(--coar-surface-subtle, #f6f7f9);
+  background: var(--coar-calendar-hover-bg, var(--coar-surface-subtle, #f6f7f9));
 }
 .coar-agenda-event--continuation {
-  opacity: 0.7;
+  opacity: var(--coar-calendar-agenda-continuation-opacity, 0.7);
 }
 
 .coar-agenda-event__default {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--coar-calendar-agenda-row-gap, 12px);
 }
 .coar-agenda-event__color {
   width: 8px;
@@ -110,20 +110,20 @@ function onDblclick(e: MouseEvent) {
   flex: 0 0 auto;
 }
 .coar-agenda-event__time {
-  font-size: var(--coar-font-size-sm, 13px);
+  font-size: var(--coar-calendar-label-font-size, var(--coar-font-size-sm, 13px));
   color: var(--coar-text-subtle, #6c7280);
   min-width: 80px;
   font-variant-numeric: tabular-nums;
 }
 .coar-agenda-event__title {
-  font-size: var(--coar-font-size-base, 14px);
+  font-size: var(--coar-calendar-agenda-title-font-size, var(--coar-font-size-base, 14px));
   color: var(--coar-text-base, #1a1c1f);
   font-weight: 500;
   min-width: 0;
 }
 .coar-agenda-event__continuation-tag {
   margin-left: 6px;
-  font-size: var(--coar-font-size-xs, 11px);
+  font-size: var(--coar-calendar-caption-font-size, var(--coar-font-size-xs, 11px));
   color: var(--coar-text-subtle, #9ca3af);
   font-style: italic;
   font-weight: 400;

@@ -80,10 +80,10 @@ const fillWidth = computed(() =>
 .coar-progress-bar--l { --coar-progress-bar-height: var(--coar-progress-bar-l-height); }
 
 /* Variant colors */
-.coar-progress-bar--accent  { --coar-progress-bar-fill-color: var(--coar-background-accent-primary); }
-.coar-progress-bar--success { --coar-progress-bar-fill-color: var(--coar-background-semantic-success-bold); }
-.coar-progress-bar--warning { --coar-progress-bar-fill-color: var(--coar-background-semantic-warning-bold); }
-.coar-progress-bar--error   { --coar-progress-bar-fill-color: var(--coar-background-semantic-error-bold); }
+.coar-progress-bar--accent  { --coar-progress-bar-fill-color: var(--coar-progress-accent-color, var(--coar-background-accent-primary)); }
+.coar-progress-bar--success { --coar-progress-bar-fill-color: var(--coar-progress-success-color, var(--coar-background-semantic-success-bold)); }
+.coar-progress-bar--warning { --coar-progress-bar-fill-color: var(--coar-progress-warning-color, var(--coar-background-semantic-warning-bold)); }
+.coar-progress-bar--error   { --coar-progress-bar-fill-color: var(--coar-progress-error-color, var(--coar-background-semantic-error-bold)); }
 
 /* Container */
 .coar-progress-bar-container {

@@ -1,3 +1,6 @@
+// Roles of the opt-in compact presentation; inert without `.coar-compact`.
+import './styles/compact.css';
+
 export { default as CoarPageRenderer } from './CoarPageRenderer.vue';
 export { default as CoarPageBuilder } from './CoarPageBuilder.vue';
 

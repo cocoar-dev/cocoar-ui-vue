@@ -1,0 +1,441 @@
+/**
+ * Experimental compact presentation. Inert until `.coar-compact` is applied.
+ * Sizes express roles, not a transform/HTML-root zoom. Package-specific geometry
+ * (calendar time slots, document pages, editor lines) builds on its own roles.
+ *
+ * The mode marker is inherited, so the nearest explicit theme wins, including
+ * a light scope nested inside a dark application. Outside this profile the
+ * marker has no visual effect. light-dark() is resolved by the consuming color.
+ */
+.light-mode,
+[data-theme='light'] {
+  --coar-compact-color-scheme: light;
+}
+.dark-mode,
+[data-theme='dark'] {
+  --coar-compact-color-scheme: dark;
+}
+
+/* Independent defaults belong to the opt-in boundary (or an explicit reset).
+   A nested theme/mode must inherit consumer-authored density roles, not replace
+   them with the profile defaults. Derived aliases below rebind locally so an
+   explicit font, brand or mobile input still takes effect. */
+:root.coar-compact,
+.coar-compact,
+.coar-compact.coar-theme-none,
+.coar-compact .coar-theme-none {
+  --coar-font-family-body: var(--coar-appearance-font-body, Inter, ui-sans-serif, system-ui, sans-serif);
+  --coar-font-family-title: var(--coar-appearance-font-title, var(--coar-font-family-body));
+  --coar-ui-font-size: 13px;
+  --coar-ui-line-height: 1.4;
+  --coar-ui-font-weight: 400;
+  --coar-label-font-weight: 500;
+  --coar-field-font-size: 14px;
+  --coar-field-xs-font-size: initial;
+  --coar-field-s-font-size: initial;
+  --coar-field-l-font-size: initial;
+  --coar-field-min-font-size: 0px;
+  --coar-caption-font-size: 12px;
+  --coar-interactive-row-height: 36px;
+  --coar-panel-padding: 16px;
+  --coar-content-gap: 8px;
+  --coar-control-radius: 6px;
+  --coar-panel-radius: 8px;
+  --coar-form-label-icon-offset: 1px;
+  --coar-picker-action-size: 32px;
+  --coar-picker-month-height: 32px;
+  --coar-picker-day-min-height: 36px;
+  --coar-picker-action-opacity: 1;
+  --coar-picker-context-opacity: 1;
+  --coar-time-step-size: 28px;
+  --coar-time-cell-height: 36px;
+  --coar-checkbox-size: 16px;
+  --coar-checkbox-l-size: 20px;
+  --coar-checkbox-icon-size: 11px;
+  --coar-checkbox-l-icon-size: 14px;
+  --coar-checkbox-radius: 3px;
+  --coar-icon-xs-size: 12px;
+  --coar-icon-s-size: 16px;
+  --coar-icon-m-size: 18px;
+  --coar-icon-l-size: 24px;
+  --coar-icon-xl-size: 32px;
+  --coar-body-base-size: 14px;
+  --coar-body-base-weight: 400;
+  --coar-body-bold-weight: 600;
+  --coar-body-caption-weight: 400;
+  --coar-body-footnote-weight: 400;
+  --coar-body-small-bold-weight: 600;
+  --coar-body-large-size: 16px;
+  --coar-body-base-line-height: 1.5;
+  --coar-headings-heading-size: 18px;
+  --coar-headings-heading-weight: 600;
+  --coar-headings-subheading-size: 16px;
+  --coar-headings-subheading-weight: 500;
+  --coar-titles-display-size: 36px;
+  --coar-titles-display-weight: 600;
+  --coar-titles-subtitle-size: 20px;
+  --coar-titles-subtitle-weight: 500;
+  --coar-titles-title-size: 24px;
+  --coar-titles-title-weight: 600;
+  --coar-component-xs-height: 24px;
+  --coar-component-s-height: 32px;
+  --coar-component-m-height: 36px;
+  --coar-component-l-height: 44px;
+  --coar-component-xs-font-size: 12px;
+  --coar-component-l-font-size: 14px;
+  --coar-component-xs-label-font-size: 12px;
+  --coar-component-l-label-font-size: 14px;
+  --coar-component-xs-scale: calc(24 / 36);
+  --coar-component-s-scale: calc(32 / 36);
+  --coar-component-m-scale: 1;
+  --coar-component-l-scale: calc(44 / 36);
+  --coar-component-xs-label-margin: 4px;
+  --coar-component-s-label-margin: 4px;
+  --coar-component-m-label-margin: 6px;
+  --coar-component-l-label-margin: 8px;
+  --coar-component-density: 1;
+  --coar-field-padding-x: 10px;
+  --coar-background-neutral-primary: light-dark(#ffffff, #1c2431);
+  --coar-background-neutral-secondary: light-dark(#f6f8fb, #161e2a);
+  --coar-background-neutral-tertiary: light-dark(#edf1f6, #283345);
+  --coar-background-neutral-quaternary: light-dark(#e1e7ef, #344155);
+  --coar-background-neutral-active: light-dark(#e1e7ef, #344155);
+  --coar-background-neutral-disabled: light-dark(#edf1f6, #283345);
+  --coar-text-neutral-primary: light-dark(#292f3b, #edf1f7);
+  --coar-text-neutral-secondary: light-dark(#465268, #c3cddd);
+  --coar-text-neutral-tertiary: light-dark(#58677d, #a8b6ca);
+  --coar-text-neutral-disabled: light-dark(#8290a3, #7a8ba3);
+  --coar-text-placeholder: light-dark(#627188, #a8b6ca);
+  --coar-border-neutral-primary: light-dark(#465268, #c3cddd);
+  --coar-border-neutral-secondary: light-dark(#627188, #a8b6ca);
+  --coar-border-neutral-tertiary: light-dark(#dce3ed, #3a4960);
+  --coar-border-neutral-quaternary: light-dark(#edf1f6, #283345);
+  --coar-border-input: light-dark(#8e949c, #60718a);
+  --coar-border-input-hover: light-dark(#7d8794, #6d7e97);
+  --coar-text-on-bold: #ffffff;
+  --coar-text-on-brand-primary: #ffffff;
+  --coar-focus-color: light-dark(#465d7b, #b5c9e4);
+  --coar-tag-radius: 4px;
+  --coar-dialog-border-radius: 12px;
+  --coar-dialog-header-gap: 12px;
+  --coar-dialog-close-size: 32px;
+  --coar-sheet-border-radius: 16px;
+  --coar-toast-padding: 12px;
+  --coar-toast-gap: 12px;
+  --coar-badge-font-weight: 600;
+  --coar-popconfirm-title-font-size: 14px;
+  --coar-toast-title-font-size: 14px;
+  --coar-table-cell-padding: 8px 12px;
+  --coar-tooltip-padding: 4px 8px;
+  --coar-scrollbar-handle-bg: light-dark(rgb(70 82 104 / 40%), rgb(195 205 221 / 40%));
+  --coar-scrollbar-handle-bg-hover: light-dark(rgb(70 82 104 / 55%), rgb(195 205 221 / 55%));
+  --coar-scrollbar-handle-bg-active: light-dark(rgb(70 82 104 / 65%), rgb(195 205 221 / 65%));
+  --coar-navbar-height: 48px;
+  --coar-navbar-padding-x: 16px;
+  --coar-menu-heading-letter-spacing: 0.02em;
+  --coar-menu-heading-text-transform: none;
+  --coar-menu-item-padding: 6px 10px;
+  --coar-menu-heading-padding: 8px 10px 4px;
+  --coar-select-option-padding: 6px 10px;
+  --coar-select-search-size: 32px;
+  --coar-select-checkbox-indicator: 14px;
+  --coar-sidebar-header-padding: 12px;
+  --coar-sidebar-icon-size: 18px;
+  --coar-sidebar-item-padding: 6px 10px;
+  --coar-sidebar-item-radius: 4px;
+  --coar-scrollbar-thumb: light-dark(rgb(70 82 104 / 50%), rgb(195 205 221 / 50%));
+  --coar-scrollbar-thumb-hover: light-dark(rgb(70 82 104 / 65%), rgb(195 205 221 / 65%));
+  --coar-switch-m-track-width: 32px;
+  --coar-switch-m-track-height: 18px;
+  --coar-switch-m-thumb-size: 14px;
+  --coar-switch-l-track-width: 40px;
+  --coar-switch-l-track-height: 22px;
+  --coar-switch-l-thumb-size: 18px;
+}
+
+:root.coar-compact,
+.coar-compact,
+.coar-compact :where(.coar-mobile, .coar-theme-scope, .coar-theme-none, .light-mode, .dark-mode, [data-theme]) {
+  color-scheme: var(--coar-compact-color-scheme, light);
+  font-family: var(--coar-body-base-family);
+  font-size: var(--coar-body-base-size);
+  font-weight: var(--coar-body-base-weight);
+  line-height: var(--coar-body-base-line-height);
+  color: var(--coar-text-neutral-primary);
+
+  /* Rebind derived defaults, never the consumer's inherited size overrides. */
+  --coar-field-xs-default-font-size: calc(var(--coar-field-font-size) - 2px);
+  --coar-field-s-default-font-size: calc(var(--coar-field-font-size) - 1px);
+  --coar-field-l-default-font-size: calc(var(--coar-field-font-size) + 2px);
+
+  --coar-picker-panel-radius: var(--coar-panel-radius);
+
+  --coar-zone-caption-min-offset: var(--coar-control-min-target-size, 0px);
+  --coar-choice-row-height: var(--coar-interactive-row-height);
+
+  --coar-indicator-xs-height: var(--coar-component-xs-height);
+  --coar-indicator-s-height: var(--coar-component-s-height);
+  --coar-indicator-m-height: var(--coar-component-m-height);
+  --coar-indicator-l-height: var(--coar-component-l-height);
+
+  --coar-body-base-family: var(--coar-font-family-body);
+  --coar-body-bold-family: var(--coar-font-family-body);
+  --coar-body-caption-family: var(--coar-font-family-body);
+  --coar-body-footnote-family: var(--coar-font-family-body);
+  --coar-body-small-base-family: var(--coar-font-family-body);
+  --coar-body-small-bold-family: var(--coar-font-family-body);
+  --coar-headings-heading-family: var(--coar-font-family-title);
+  --coar-headings-subheading-family: var(--coar-font-family-title);
+  --coar-titles-display-family: var(--coar-font-family-title);
+  --coar-titles-subtitle-family: var(--coar-font-family-title);
+  --coar-titles-title-family: var(--coar-font-family-title);
+
+  --coar-body-bold-size: var(--coar-body-base-size);
+
+  --coar-body-caption-size: var(--coar-caption-font-size);
+
+  --coar-body-footnote-size: var(--coar-caption-font-size);
+
+  --coar-body-small-base-size: var(--coar-ui-font-size);
+  --coar-body-small-bold-size: var(--coar-ui-font-size);
+  --coar-body-small-base-weight: var(--coar-ui-font-weight);
+
+  --coar-body-small-base-line-height: var(--coar-ui-line-height);
+
+  --coar-heading-s: 600 16px/1.4 var(--coar-font-family-title);
+
+  --coar-component-s-font-size: var(--coar-ui-font-size);
+  --coar-component-m-font-size: var(--coar-ui-font-size);
+
+  --coar-component-s-label-font-size: var(--coar-ui-font-size);
+  --coar-component-m-label-font-size: var(--coar-ui-font-size);
+
+  --coar-field-padding-x-tight: calc(var(--coar-field-padding-x) / 2);
+
+  /* Slate is the default accent of this experiment. CoarThemeScope's explicit
+     accent takes precedence through this inherited, optional input. */
+  --coar-color-accent-50: light-dark(
+    oklch(from var(--coar-appearance-accent, #334155) 0.97 0.012 h),
+    oklch(from var(--coar-appearance-accent, #334155) 0.22 0.02 h)
+  );
+  --coar-color-accent-100: light-dark(
+    oklch(from var(--coar-appearance-accent, #334155) 0.94 0.02 h),
+    oklch(from var(--coar-appearance-accent, #334155) 0.28 0.03 h)
+  );
+  --coar-color-accent-200: light-dark(
+    oklch(from var(--coar-appearance-accent, #334155) 0.88 0.03 h),
+    oklch(from var(--coar-appearance-accent, #334155) 0.36 0.04 h)
+  );
+  --coar-color-accent-300: light-dark(
+    oklch(from var(--coar-appearance-accent, #334155) 0.78 0.04 h),
+    oklch(from var(--coar-appearance-accent, #334155) 0.46 0.05 h)
+  );
+  --coar-color-accent-400: oklch(from var(--coar-appearance-accent, #334155) 0.62 0.06 h);
+  --coar-color-accent-500: var(--coar-appearance-accent, #334155);
+  --coar-color-accent-600: light-dark(
+    oklch(from var(--coar-appearance-accent, #334155) 0.4 0.05 h),
+    oklch(from var(--coar-appearance-accent, #334155) 0.78 0.04 h)
+  );
+  --coar-color-accent-700: light-dark(
+    oklch(from var(--coar-appearance-accent, #334155) 0.34 0.04 h),
+    oklch(from var(--coar-appearance-accent, #334155) 0.85 0.03 h)
+  );
+  --coar-color-accent-800: light-dark(
+    oklch(from var(--coar-appearance-accent, #334155) 0.28 0.035 h),
+    oklch(from var(--coar-appearance-accent, #334155) 0.91 0.02 h)
+  );
+  --coar-color-accent-900: light-dark(
+    oklch(from var(--coar-appearance-accent, #334155) 0.22 0.03 h),
+    oklch(from var(--coar-appearance-accent, #334155) 0.96 0.01 h)
+  );
+
+  --coar-border-neutral: var(--coar-border-neutral-tertiary);
+  --coar-icon-neutral-primary: var(--coar-text-neutral-primary);
+  --coar-icon-neutral-secondary: var(--coar-text-neutral-secondary);
+  --coar-icon-neutral-tertiary: var(--coar-text-neutral-tertiary);
+  --coar-icon-neutral-disabled: var(--coar-text-neutral-disabled);
+  --coar-surface-input: var(--coar-background-neutral-primary);
+  --coar-surface-input-disabled: var(--coar-background-neutral-tertiary);
+
+  --coar-background-accent-primary: oklch(from var(--coar-appearance-accent, #334155) 0.38 0.045 h);
+  --coar-background-accent-hover: oklch(from var(--coar-appearance-accent, #334155) 0.32 0.04 h);
+  --coar-background-accent-active: oklch(from var(--coar-appearance-accent, #334155) 0.27 0.035 h);
+  --coar-background-accent-secondary: var(--coar-color-accent-100);
+  --coar-surface-accent-secondary: var(--coar-background-accent-secondary);
+  --coar-background-accent-tertiary: var(--coar-color-accent-50);
+  --coar-background-accent-tertiary-active: var(--coar-color-accent-200);
+  --coar-text-accent-primary: var(--coar-color-accent-700);
+  --coar-text-accent-secondary: var(--coar-color-accent-600);
+  --coar-border-accent-primary: var(--coar-color-accent-600);
+  --coar-border-accent-secondary: var(--coar-color-accent-300);
+  --coar-icon-accent-primary: var(--coar-text-accent-primary);
+
+  /* Status fills carry white text in either scheme; text/icon roles instead
+     become lighter in dark mode. All derive from the existing theme inputs. */
+  --coar-background-semantic-success-bold: oklch(from var(--coar-success) 0.45 0.1 h);
+  --coar-background-semantic-success-subtlest: light-dark(oklch(from var(--coar-success) 0.98 0.012 h), oklch(from var(--coar-success) 0.23 0.025 h));
+  --coar-background-semantic-success-subtle: light-dark(oklch(from var(--coar-success) 0.94 0.025 h), oklch(from var(--coar-success) 0.29 0.04 h));
+  --coar-text-semantic-success-bold: light-dark(oklch(from var(--coar-success) 0.36 0.1 h), oklch(from var(--coar-success) 0.88 0.06 h));
+  --coar-text-semantic-success-subtle: light-dark(oklch(from var(--coar-success) 0.44 0.1 h), oklch(from var(--coar-success) 0.8 0.08 h));
+  --coar-border-semantic-success-bold: var(--coar-text-semantic-success-subtle);
+  --coar-border-semantic-success-subtle: light-dark(oklch(from var(--coar-success) 0.82 0.06 h), oklch(from var(--coar-success) 0.42 0.06 h));
+  --coar-icon-semantic-success-bold: var(--coar-text-semantic-success-bold);
+  --coar-icon-semantic-success-subtle: var(--coar-text-semantic-success-subtle);
+  --coar-background-semantic-error-bold: oklch(from var(--coar-error) 0.45 0.14 h);
+  --coar-background-semantic-error-hover: oklch(from var(--coar-error) 0.39 0.12 h);
+  --coar-background-semantic-error-active: oklch(from var(--coar-error) 0.33 0.1 h);
+  --coar-background-semantic-error-subtlest: light-dark(oklch(from var(--coar-error) 0.98 0.012 h), oklch(from var(--coar-error) 0.23 0.025 h));
+  --coar-background-semantic-error-subtle: light-dark(oklch(from var(--coar-error) 0.94 0.025 h), oklch(from var(--coar-error) 0.29 0.04 h));
+  --coar-text-semantic-error-bold: light-dark(oklch(from var(--coar-error) 0.36 0.12 h), oklch(from var(--coar-error) 0.88 0.06 h));
+  --coar-text-semantic-error-subtle: light-dark(oklch(from var(--coar-error) 0.44 0.14 h), oklch(from var(--coar-error) 0.8 0.08 h));
+  --coar-border-semantic-error: var(--coar-text-semantic-error-subtle);
+  --coar-border-semantic-error-bold: var(--coar-text-semantic-error-subtle);
+  --coar-border-semantic-error-subtle: light-dark(oklch(from var(--coar-error) 0.82 0.06 h), oklch(from var(--coar-error) 0.42 0.06 h));
+  --coar-icon-semantic-error-bold: var(--coar-text-semantic-error-bold);
+  --coar-icon-semantic-error-subtle: var(--coar-text-semantic-error-subtle);
+  --coar-background-semantic-warning-bold: oklch(from var(--coar-warning) 0.45 0.09 h);
+  --coar-background-semantic-warning-subtlest: light-dark(oklch(from var(--coar-warning) 0.98 0.012 h), oklch(from var(--coar-warning) 0.23 0.025 h));
+  --coar-background-semantic-warning-subtle: light-dark(oklch(from var(--coar-warning) 0.94 0.025 h), oklch(from var(--coar-warning) 0.29 0.04 h));
+  --coar-text-semantic-warning-bold: light-dark(oklch(from var(--coar-warning) 0.36 0.08 h), oklch(from var(--coar-warning) 0.88 0.06 h));
+  --coar-text-semantic-warning-subtle: light-dark(oklch(from var(--coar-warning) 0.44 0.09 h), oklch(from var(--coar-warning) 0.8 0.08 h));
+  --coar-border-semantic-warning-bold: var(--coar-text-semantic-warning-subtle);
+  --coar-border-semantic-warning-subtle: light-dark(oklch(from var(--coar-warning) 0.82 0.06 h), oklch(from var(--coar-warning) 0.42 0.06 h));
+  --coar-icon-semantic-warning-bold: var(--coar-text-semantic-warning-bold);
+  --coar-icon-semantic-warning-subtle: var(--coar-text-semantic-warning-subtle);
+  --coar-background-semantic-info-bold: oklch(from var(--coar-info) 0.45 0.03 h);
+  --coar-background-semantic-info-subtlest: light-dark(oklch(from var(--coar-info) 0.98 0.006 h), oklch(from var(--coar-info) 0.23 0.012 h));
+  --coar-background-semantic-info-subtle: light-dark(oklch(from var(--coar-info) 0.94 0.012 h), oklch(from var(--coar-info) 0.29 0.02 h));
+  --coar-text-semantic-info-bold: light-dark(oklch(from var(--coar-info) 0.36 0.03 h), oklch(from var(--coar-info) 0.88 0.02 h));
+  --coar-text-semantic-info-subtle: light-dark(oklch(from var(--coar-info) 0.44 0.03 h), oklch(from var(--coar-info) 0.8 0.025 h));
+  --coar-border-semantic-info-bold: var(--coar-text-semantic-info-subtle);
+  --coar-border-semantic-info-subtle: light-dark(oklch(from var(--coar-info) 0.82 0.02 h), oklch(from var(--coar-info) 0.42 0.02 h));
+  --coar-icon-semantic-info-bold: var(--coar-text-semantic-info-bold);
+  --coar-icon-semantic-info-subtle: var(--coar-text-semantic-info-subtle);
+  --coar-button-danger-bg: var(--coar-background-semantic-error-bold);
+  --coar-button-danger-bg-hover: var(--coar-background-semantic-error-hover);
+  --coar-button-danger-bg-active: var(--coar-background-semantic-error-active);
+
+  --coar-button-radius: var(--coar-appearance-button-radius, var(--coar-control-radius));
+  --coar-input-radius: var(--coar-appearance-input-radius, var(--coar-control-radius));
+
+  --coar-card-radius: var(--coar-appearance-card-radius, var(--coar-panel-radius));
+  --coar-menu-radius: var(--coar-panel-radius);
+  --coar-popover-radius: var(--coar-panel-radius);
+  --coar-dropdown-radius: var(--coar-control-radius);
+
+  --coar-dialog-padding: var(--coar-panel-padding);
+
+  --coar-sheet-padding: var(--coar-panel-padding);
+  --coar-card-padding: var(--coar-panel-padding);
+  --coar-toast-border-radius: var(--coar-panel-radius);
+
+  --coar-tree-checkbox-radius: var(--coar-checkbox-radius);
+  --coar-card-outlined-border-color: var(--coar-border-neutral-tertiary);
+  --coar-pane-divider-active-color: var(--coar-focus-color);
+  --coar-data-list-surface: var(--coar-background-neutral-primary);
+  --coar-code-block-border: var(--coar-border-neutral-tertiary);
+
+  --coar-breadcrumb-font-size: var(--coar-ui-font-size);
+  --coar-breadcrumb-active-color: var(--coar-text-neutral-primary);
+  --coar-breadcrumb-link-color: var(--coar-text-accent-primary);
+  --coar-pagination-font-size: var(--coar-ui-font-size);
+  --coar-pagination-active-background: var(--coar-background-accent-primary);
+  --coar-pagination-active-color: var(--coar-text-on-bold);
+  --coar-pagination-hover-background: var(--coar-background-neutral-tertiary);
+  --coar-note-bg: var(--coar-background-neutral-secondary);
+  --coar-note-border-color: var(--coar-border-neutral-secondary);
+  --coar-tag-bg: var(--coar-background-neutral-secondary);
+  --coar-tag-border-color: var(--coar-border-neutral-tertiary);
+  --coar-dialog-background: var(--coar-background-neutral-primary);
+  --coar-toast-background: var(--coar-background-neutral-primary);
+  --coar-navbar-background: var(--coar-background-neutral-primary);
+  --coar-navbar-border-color: var(--coar-border-neutral-tertiary);
+  --coar-menu-item-font-family: var(--coar-font-family-body);
+  --coar-menu-item-font-size: var(--coar-ui-font-size);
+  --coar-menu-item-font-weight: var(--coar-ui-font-weight);
+  --coar-menu-item-line-height: var(--coar-ui-line-height);
+  --coar-menu-heading-font-family: var(--coar-font-family-body);
+  --coar-menu-heading-font-size: var(--coar-caption-font-size);
+  --coar-menu-heading-font-weight: var(--coar-label-font-weight);
+
+  --coar-menu-item-gap: var(--coar-content-gap);
+
+  --coar-menu-background: var(--coar-background-neutral-primary);
+  --coar-menu-item-color: var(--coar-text-neutral-secondary);
+  --coar-menu-heading-color: var(--coar-text-neutral-tertiary);
+  --coar-menu-item-background-hover: var(--coar-background-neutral-tertiary);
+  --coar-menu-item-background-focus: var(--coar-background-neutral-tertiary);
+  --coar-menu-item-background-open: var(--coar-background-accent-tertiary);
+  --coar-menu-item-background-active: var(--coar-background-accent-tertiary);
+  --coar-menu-item-text-active: var(--coar-text-accent-primary);
+  --coar-select-option-font-size: var(--coar-ui-font-size);
+
+  --coar-select-option-gap: var(--coar-content-gap);
+
+  --coar-sidebar-background: var(--coar-background-neutral-secondary);
+  --coar-sidebar-border: 1px solid var(--coar-border-neutral-tertiary);
+  --coar-sidebar-header-border: 1px solid var(--coar-border-neutral-tertiary);
+  --coar-sidebar-footer-border: 1px solid var(--coar-border-neutral-tertiary);
+
+  --coar-sidebar-item-gap: var(--coar-content-gap);
+
+  --coar-sidebar-item-hover: var(--coar-background-neutral-tertiary);
+  --coar-sidebar-item-active-color: var(--coar-text-accent-primary);
+  --coar-sidebar-item-active-bg: var(--coar-background-accent-tertiary);
+
+  --coar-switch-track-width: var(--coar-switch-m-track-width);
+  --coar-switch-track-height: var(--coar-switch-m-track-height);
+  --coar-switch-thumb-size: var(--coar-switch-m-thumb-size);
+  --coar-progress-bar-background: var(--coar-background-neutral-tertiary);
+  --coar-progress-accent-color: var(--coar-text-accent-primary);
+  --coar-progress-success-color: var(--coar-text-semantic-success-subtle);
+  --coar-progress-warning-color: var(--coar-text-semantic-warning-subtle);
+  --coar-progress-error-color: var(--coar-text-semantic-error-subtle);
+  --coar-spinner-color: var(--coar-icon-accent-primary);
+  --coar-sheet-handle-color: var(--coar-border-neutral-secondary);
+}
+
+/* A theme reset clears brand inputs, not the opted-in presentation. Rebind
+   compact roles above so the legacy reset cannot leave a half-legacy subtree. */
+.coar-compact.coar-theme-none,
+.coar-compact .coar-theme-none {
+  --coar-appearance-accent: initial;
+  --coar-appearance-font-body: initial;
+  --coar-appearance-font-title: initial;
+  --coar-appearance-button-radius: initial;
+  --coar-appearance-input-radius: initial;
+  --coar-appearance-card-radius: initial;
+  --coar-compact-color-scheme: light;
+}
+
+/* Mobile is an inherited role override, including when it is on an ancestor.
+   Keep the field's 16px text distinct from action text and smaller indicators. */
+.coar-mobile .coar-compact,
+.coar-compact.coar-mobile,
+.coar-compact .coar-mobile,
+.coar-mobile .coar-compact .coar-theme-none,
+.coar-compact.coar-mobile .coar-theme-none,
+.coar-compact .coar-mobile .coar-theme-none {
+  --coar-ui-font-size: 14px;
+  --coar-field-font-size: 16px;
+  --coar-field-min-font-size: 16px;
+  --coar-interactive-row-height: 44px;
+  --coar-control-xs-height: 44px;
+  --coar-control-s-height: 44px;
+  --coar-control-m-height: 44px;
+  --coar-control-l-height: 48px;
+  --coar-control-min-size: 44px;
+  --coar-control-min-font-size: 14px;
+  --coar-control-min-target-size: 44px;
+  --coar-control-row-min-height: var(--coar-interactive-row-height);
+  --coar-select-search-size: 44px;
+  --coar-picker-action-size: 44px;
+  --coar-picker-month-height: 44px;
+  --coar-picker-day-min-height: 44px;
+  --coar-time-step-size: 44px;
+  --coar-time-cell-height: 44px;
+  --coar-navbar-height: 56px;
+  --coar-popconfirm-title-font-size: 16px;
+  --coar-toast-title-font-size: 15px;
+  --coar-dialog-close-size: 44px;
+}

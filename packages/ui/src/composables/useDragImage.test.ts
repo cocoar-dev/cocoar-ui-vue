@@ -66,6 +66,31 @@ describe('setCoarDragImageFromElement', () => {
     expect(ghost.style.opacity).toBe('');
     expect(ghost.style.boxShadow).toBe('');
   });
+
+  it('carries a local compact mobile dark context without changing the source', async () => {
+    const source = document.createElement('div');
+    source.className = 'coar-compact coar-mobile dark-mode';
+    source.style.setProperty('--coar-ui-font-size', '15px');
+    source.style.fontSize = '15px';
+    source.textContent = 'Überprüfung';
+    document.body.appendChild(source);
+    const { event, setDragImage } = makeDragEvent();
+    setCoarDragImageFromElement(event, source);
+    const ghost = setDragImage.mock.calls[0][0] as HTMLElement;
+    expect(ghost).not.toBe(source);
+    expect(ghost.classList.contains('coar-compact')).toBe(true);
+    expect(ghost.classList.contains('coar-mobile')).toBe(true);
+    expect(ghost.classList.contains('dark-mode')).toBe(true);
+    expect(ghost.style.getPropertyValue('--coar-ui-font-size')).toBe('15px');
+    expect(ghost.style.fontSize).toBe('15px');
+    // happy-dom drops var() background shorthands; the browser context suite
+    // checks the painted surface as well as these transported roles.
+    expect(ghost.firstElementChild?.textContent).toBe('Überprüfung');
+    expect(source.parentElement).toBe(document.body);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(ghost.isConnected).toBe(false);
+    source.remove();
+  });
 });
 
 describe('setCoarDragImageFromHtml', () => {

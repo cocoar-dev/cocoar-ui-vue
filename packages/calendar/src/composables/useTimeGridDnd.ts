@@ -759,6 +759,11 @@ export function useTimeGridDnd<TMeta extends Record<string, unknown> = Record<st
     ) {
       return;
     }
+    // After the first arrow the focused card is a synthetic preview.
+    // Keep the real event (identity, metadata and source zones) for every
+    // subsequent derivation, validation and drop payload.
+    const existing = keyboardDrag.value as KeyboardDragState<TMeta> | null;
+    const sourceEvent = existing?.event ?? event;
     const slotMin = opts.slotDuration.value;
     const base: MoveResult = keyboardDrag.value
       ? keyboardDrag.value.next
@@ -766,7 +771,7 @@ export function useTimeGridDnd<TMeta extends Record<string, unknown> = Record<st
           start: event.start,
           ...(event.end ? { end: event.end } : {}),
         } as MoveResult);
-    const result = deriveNextFromArrow(base, event, e, slotMin);
+    const result = deriveNextFromArrow(base, sourceEvent, e, slotMin);
     if (!result) {
       // `deriveNextFromArrow` returns null when the move is impossible
       // (single-day view + arrow-left/right) OR when `dstPolicy='reject'`
@@ -781,12 +786,11 @@ export function useTimeGridDnd<TMeta extends Record<string, unknown> = Record<st
     // we transition into a kbd-drag). Subsequent arrows reuse the
     // existing snapshot so an in-flight `.timezone()` toggle doesn't
     // mid-flight rewrite the original-zone field on commit.
-    const existing = keyboardDrag.value;
     const startDisplayZone = existing?.startDisplayZone ?? toValue(opts.timezone);
-    const originalStart = existing?.originalStart ?? event.start;
-    const originalEnd = existing?.originalEnd ?? event.end;
+    const originalStart = existing?.originalStart ?? sourceEvent.start;
+    const originalEnd = existing?.originalEnd ?? sourceEvent.end;
     keyboardDrag.value = {
-      event,
+      event: sourceEvent,
       next: result.next,
       mode: result.mode,
       startDisplayZone,

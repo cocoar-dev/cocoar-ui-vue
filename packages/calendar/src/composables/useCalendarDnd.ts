@@ -817,16 +817,25 @@ export function useCalendarDnd<TMeta extends Record<string, unknown> = Record<st
     };
   }
 
-  /**
-   * Resize-handle pointerdown (timed): drags the START edge so only
-   * `event.start` shifts. No grab-offset to preserve — the user's
-   * pointer IS the new start position, snapped to slot.
-   */
+  /** Preserve the distance to the resized edge inside an enlarged target. */
+  function timedResizeGrabOffset(e: PointerEvent, end: boolean): number {
+    const handle = e.currentTarget;
+    if (!(handle instanceof HTMLElement)) return 0;
+    const rect = handle.getBoundingClientRect();
+    const axis = opts.timedAxis;
+    const pxPerMin = axis ? axis.pixelsPerMinute() : (opts.pixelsPerHour?.value ?? 60) / 60;
+    const along = axis?.orientation === 'horizontal'
+      ? e.clientX - (end ? rect.right : rect.left)
+      : e.clientY - (end ? rect.bottom : rect.top);
+    return pxPerMin > 0 ? along / pxPerMin : 0;
+  }
+
+  /** Resize the START edge without jumping to the target's grab point. */
   function startTimedResizeStart(event: CalendarEvent<TMeta>): (e: PointerEvent) => void {
     const inner = drag.startDrag(event);
     return (e) => {
       dragMode.value = 'timed-resize-start';
-      grabOffsetMinutes = 0;
+      grabOffsetMinutes = timedResizeGrabOffset(e, false);
       grabOffsetCols = 0;
       grabOffsetDays = 0;
       inner(e);
@@ -836,7 +845,7 @@ export function useCalendarDnd<TMeta extends Record<string, unknown> = Record<st
     const inner = drag.startDrag(event);
     return (e) => {
       dragMode.value = 'timed-resize-end';
-      grabOffsetMinutes = 0;
+      grabOffsetMinutes = timedResizeGrabOffset(e, true);
       grabOffsetCols = 0;
       grabOffsetDays = 0;
       inner(e);

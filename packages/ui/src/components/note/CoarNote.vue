@@ -32,7 +32,7 @@ const hostClasses = computed(() => [
 <style scoped>
 .coar-note {
   display: block;
-  border-radius: 0 var(--coar-radius-xs) var(--coar-radius-xs) 0;
+  border-radius: 0 var(--coar-panel-radius, var(--coar-radius-xs)) var(--coar-panel-radius, var(--coar-radius-xs)) 0;
   border-left: 4px solid var(--coar-note-border-color);
   background-color: var(--coar-note-bg);
   transition: background-color var(--coar-duration-normal) var(--coar-ease-out), border-color var(--coar-duration-normal) var(--coar-ease-out);

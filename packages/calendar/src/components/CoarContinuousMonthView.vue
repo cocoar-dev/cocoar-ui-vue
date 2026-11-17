@@ -531,8 +531,8 @@ defineExpose({
   margin: 0;
   padding: 20px 16px 10px;
   color: var(--coar-text-base, #1a1c1f);
-  font-size: clamp(1.55rem, 2.1vw, 2rem);
-  font-weight: 750;
+  font-size: var(--coar-calendar-section-title-font-size, clamp(1.55rem, 2.1vw, 2rem));
+  font-weight: var(--coar-calendar-section-title-font-weight, 750);
   line-height: 1.2;
 }
 .coar-continuous-month-view__section :deep(.coar-month-grid__weekday-row) {
@@ -604,8 +604,8 @@ defineExpose({
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: var(--coar-color-danger, #ff3b30);
-  color: white;
+  background: var(--coar-calendar-today-marker-bg, var(--coar-color-danger, #ff3b30));
+  color: var(--coar-calendar-on-accent, white);
 }
 /* Density changes affect every preceding section. A height transition would keep
  * moving the anchor for 200 ms after Vue has restored it, so continuous sections

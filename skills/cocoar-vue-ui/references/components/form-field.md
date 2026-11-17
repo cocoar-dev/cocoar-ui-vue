@@ -46,6 +46,8 @@ const name = ref('');
 
 `CoarFormField` can place its label before or after any control, either stacked or inline. All four combinations have a visible effect. Inline layouts are especially useful when the field label is the only label of a checkbox or switch; leave the control's own `label` unset in that case.
 
+Each example below has its own value. The two checkboxes demonstrate label-after and label-before independently; in Compact, the inline label stays beside its control.
+
 **Demo — `form-field/demos/FormFieldLayouts.vue`**
 
 ```vue
@@ -59,7 +61,7 @@ const name = ref('');
         layout="inline"
         label-position="after"
       >
-        <CoarCheckbox v-model="active" />
+        <CoarCheckbox v-model="activeAfter" />
       </CoarFormField>
     </section>
 
@@ -71,7 +73,7 @@ const name = ref('');
         layout="inline"
         label-position="before"
       >
-        <CoarCheckbox v-model="active" />
+        <CoarCheckbox v-model="activeBefore" />
       </CoarFormField>
     </section>
 
@@ -83,7 +85,7 @@ const name = ref('');
         layout="inline"
         label-position="after"
       >
-        <CoarTextInput v-model="name" placeholder="Ada Lovelace" />
+        <CoarTextInput v-model="inlineName" placeholder="Ada Lovelace" />
       </CoarFormField>
     </section>
 
@@ -95,7 +97,7 @@ const name = ref('');
         layout="stacked"
         label-position="after"
       >
-        <CoarTextInput v-model="name" placeholder="Ada Lovelace" />
+        <CoarTextInput v-model="stackedName" placeholder="Ada Lovelace" />
       </CoarFormField>
     </section>
   </div>
@@ -105,8 +107,10 @@ const name = ref('');
 import { ref } from 'vue';
 import { CoarCheckbox, CoarFormField, CoarTextInput } from '@cocoar/vue-ui';
 
-const active = ref(false);
-const name = ref('');
+const activeAfter = ref(false);
+const activeBefore = ref(false);
+const inlineName = ref('');
+const stackedName = ref('');
 </script>
 
 <style scoped>

@@ -41,6 +41,18 @@ describe('<CoarMonthGrid>', () => {
     expect(rows.find('.fake-row').exists()).toBe(true);
   });
 
+  it('marks only the supplied date-based weekend columns, independent of label order', () => {
+    const wrapper = mount(CoarMonthGrid, {
+      props: {
+        weekdayHeaders: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+        weekendColumns: [true, false, false, false, false, false, true],
+        setRowsEl: () => {},
+      },
+    });
+    expect(wrapper.findAll('.coar-month-grid__weekday-cell--weekend').map((cell) => cell.text()))
+      .toEqual(['Sun', 'Sat']);
+  });
+
   it('calls setRowsEl with the rows-container element on mount', async () => {
     const captured = ref<HTMLElement | null>(null);
     const wrapper = mount(CoarMonthGrid, {

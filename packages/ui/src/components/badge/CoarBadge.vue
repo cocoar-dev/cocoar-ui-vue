@@ -92,7 +92,8 @@ const badgeClasses = computed(() => [
   justify-content: center;
   border-radius: var(--coar-badge-radius);
   font-family: var(--coar-body-small-bold-family);
-  font-weight: var(--coar-body-small-bold-weight);
+  /* Compact profile: --coar-badge-font-weight (no blanket bold); unset elsewhere. */
+  font-weight: var(--coar-badge-font-weight, var(--coar-body-small-bold-weight));
   white-space: nowrap;
   user-select: none;
   text-align: center;

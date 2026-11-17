@@ -25,6 +25,9 @@ describe('CoarThemeScope', () => {
     expect(wrapper.attributes('style')).toContain('--coar-button-radius: 999px');
     expect(wrapper.attributes('style')).toContain('--coar-input-radius: 14px');
     expect(wrapper.attributes('style')).toContain('--coar-card-radius: 20px');
+    expect(wrapper.attributes('style')).toContain('--coar-appearance-button-radius: 999px');
+    expect(wrapper.attributes('style')).toContain('--coar-appearance-input-radius: 14px');
+    expect(wrapper.attributes('style')).toContain('--coar-appearance-card-radius: 20px');
   });
 
   it('reacts to the active ancestor mode in auto mode', async () => {
@@ -49,5 +52,7 @@ describe('CoarThemeScope', () => {
     const style = wrapper.attributes('style');
     expect(style).toContain('--coar-body-base-family: Instrument Sans');
     expect(style).toContain('--coar-headings-heading-family: Fraunces');
+    expect(style).toContain('--coar-appearance-font-body: Instrument Sans');
+    expect(style).toContain('--coar-appearance-font-title: Fraunces');
   });
 });

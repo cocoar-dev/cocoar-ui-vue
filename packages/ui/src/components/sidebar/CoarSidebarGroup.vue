@@ -413,7 +413,7 @@ onBeforeUnmount(() => {
   padding: var(--coar-sidebar-item-padding, 0.5rem 0.75rem);
   margin: var(--coar-sidebar-item-margin, 2px 0);
   font-family: var(--coar-body-base-family);
-  font-size: var(--coar-component-m-font-size);
+  font-size: var(--coar-ui-font-size, var(--coar-component-m-font-size));
   font-weight: var(--coar-font-weight-regular);
   line-height: var(--coar-line-height-relaxed);
   color: var(--coar-text-neutral-secondary);
@@ -656,7 +656,7 @@ onBeforeUnmount(() => {
   margin-right: auto;
   justify-content: center;
   padding: 0.5rem;
-  border-radius: var(--coar-radius-s);
+  border-radius: var(--coar-control-radius, var(--coar-radius-s));
 }
 
 .coar-sidebar-group--vertical.coar-sidebar-group--collapsed .coar-sidebar-group__label {
@@ -704,7 +704,7 @@ onBeforeUnmount(() => {
   margin-bottom: auto;
   justify-content: center;
   padding: 0.5rem;
-  border-radius: var(--coar-radius-s);
+  border-radius: var(--coar-control-radius, var(--coar-radius-s));
 }
 
 .coar-sidebar-group--horizontal.coar-sidebar-group--collapsed .coar-sidebar-group__label {
@@ -748,7 +748,7 @@ onBeforeUnmount(() => {
   margin-right: auto;
   justify-content: center;
   padding: 0.5rem;
-  border-radius: var(--coar-radius-s);
+  border-radius: var(--coar-control-radius, var(--coar-radius-s));
 }
 
 .coar-sidebar-group--icon-only .coar-sidebar-group__label {
@@ -781,15 +781,17 @@ onBeforeUnmount(() => {
   padding: 0.375rem;
   background: var(--coar-background-neutral-primary);
   border: 1px solid var(--coar-border-neutral-tertiary);
-  border-radius: var(--coar-radius-s);
+  border-radius: var(--coar-panel-radius, var(--coar-radius-s));
   box-shadow: var(--coar-elevation-medium);
 }
 
 .coar-sidebar-flyout__header {
   padding: 0.375rem 0.75rem;
   font-family: var(--coar-body-base-family);
-  font-size: var(--coar-component-s-font-size);
-  font-weight: var(--coar-font-weight-semibold);
+  font-size: var(--coar-caption-font-size, var(--coar-component-s-font-size));
+  /* --coar-font-weight-semibold is not a defined token (the weight inherits); the
+     compact profile gives the header its label weight instead. */
+  font-weight: var(--coar-label-font-weight, var(--coar-font-weight-semibold));
   color: var(--coar-text-neutral-tertiary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -815,7 +817,7 @@ onBeforeUnmount(() => {
   width: fit-content;
   margin: 0 auto;
   padding: 0.5rem;
-  border-radius: var(--coar-radius-s);
+  border-radius: var(--coar-control-radius, var(--coar-radius-s));
   justify-content: center;
 }
 
@@ -827,7 +829,7 @@ onBeforeUnmount(() => {
   width: fit-content;
   margin: 0 auto;
   padding: 0.5rem;
-  border-radius: var(--coar-radius-s);
+  border-radius: var(--coar-control-radius, var(--coar-radius-s));
   justify-content: center;
 }
 
@@ -839,7 +841,7 @@ onBeforeUnmount(() => {
   width: fit-content;
   margin: 0 auto;
   padding: 0.5rem;
-  border-radius: var(--coar-radius-s);
+  border-radius: var(--coar-control-radius, var(--coar-radius-s));
   justify-content: center;
 }
 

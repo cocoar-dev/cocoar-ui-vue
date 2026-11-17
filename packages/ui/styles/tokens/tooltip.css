@@ -7,10 +7,10 @@
 
 .coar-tooltip {
   display: block;
-  padding: var(--coar-spacing-xs);
+  padding: var(--coar-tooltip-padding, var(--coar-spacing-xs));
   background-color: var(--coar-background-neutral-primary);
   border: 1px solid var(--coar-border-neutral);
-  border-radius: var(--coar-radius-s);
+  border-radius: var(--coar-control-radius, var(--coar-radius-s));
   box-shadow: var(--coar-shadow-m);
   max-width: var(--coar-tooltip-max-width);
   pointer-events: none !important;
@@ -19,6 +19,6 @@
 
 .coar-tooltip-text {
   color: var(--coar-text-neutral-secondary);
-  font-size: var(--coar-body-small-base-size);
-  line-height: var(--coar-body-small-base-line-height);
+  font-size: var(--coar-caption-font-size, var(--coar-body-small-base-size));
+  line-height: var(--coar-ui-line-height, var(--coar-body-small-base-line-height));
 }

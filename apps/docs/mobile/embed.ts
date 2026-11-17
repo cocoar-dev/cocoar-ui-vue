@@ -1,4 +1,5 @@
 // What the docs' PhoneFrame (.vitepress/theme/PhoneFrame.vue) and the mobile app agree on.
+import type { DocsPresentation } from '../useDocsPresentation';
 
 export type Scheme = 'light' | 'dark';
 
@@ -17,10 +18,14 @@ export function isScheme(value: unknown): value is Scheme {
  * Site path (without the docs' base) of the mobile docs, or of one demo:
  * `mobileDocsPath('form', { embed: true, scheme: 'dark' })` → `/mobile/?embed=1&scheme=dark#/form`.
  */
-export function mobileDocsPath(demo = '', options: { embed?: boolean; scheme?: Scheme } = {}) {
+export function mobileDocsPath(
+  demo = '',
+  options: { embed?: boolean; scheme?: Scheme; presentation?: DocsPresentation } = {},
+) {
   const query = new URLSearchParams();
   if (options.embed) query.set(EMBED_PARAM, '1');
   if (options.scheme) query.set(SCHEME_PARAM, options.scheme);
+  if (options.presentation) query.set('presentation', options.presentation);
   const search = query.toString();
   return `/mobile/${search ? `?${search}` : ''}#/${demo}`;
 }

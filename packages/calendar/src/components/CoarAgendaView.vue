@@ -288,7 +288,7 @@ function eventColor(event: CalendarEvent<TMeta>): string | undefined {
   return typeof meta?.color === 'string' ? meta.color : undefined;
 }
 function eventColorOrDefault(event: CalendarEvent<TMeta>): string {
-  return eventColor(event) ?? 'var(--coar-color-accent, var(--coar-color-accent-500, #2563eb))';
+  return eventColor(event) ?? 'var(--coar-calendar-event-default-color, var(--coar-color-accent, var(--coar-color-accent-500, #2563eb)))';
 }
 
 // ─── Click handlers ──────────────────────────────────────────────────
@@ -602,7 +602,7 @@ defineExpose({
 .coar-agenda-view__week-day {
   display: flex;
   min-width: 0;
-  min-height: 48px;
+  min-height: var(--coar-calendar-week-day-min-height, 48px);
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -622,22 +622,22 @@ defineExpose({
 
 .coar-agenda-view__week-day--selected {
   background: var(--coar-background-accent-primary);
-  color: var(--coar-text-on-accent, white);
+  color: var(--coar-calendar-on-accent, var(--coar-text-on-accent, white));
 }
 
 .coar-agenda-view__week-day--today:not(.coar-agenda-view__week-day--selected) {
-  color: var(--coar-text-danger, #d70015);
+  color: var(--coar-calendar-today-color, var(--coar-text-danger, #d70015));
 }
 
 .coar-agenda-view__week-day-name {
-  font-size: var(--coar-component-xs-font-size);
-  font-weight: 600;
+  font-size: var(--coar-calendar-caption-font-size, var(--coar-component-xs-font-size));
+  font-weight: var(--coar-calendar-caption-font-weight, 600);
   text-transform: uppercase;
 }
 
 .coar-agenda-view__week-day-number {
-  font-size: var(--coar-component-s-font-size);
-  font-weight: 700;
+  font-size: var(--coar-calendar-ui-font-size, var(--coar-component-s-font-size));
+  font-weight: var(--coar-calendar-strong-font-weight, 700);
 }
 
 /* Density — compact tightens row padding + font size. The actual

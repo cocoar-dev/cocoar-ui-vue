@@ -1,0 +1,38 @@
+[
+  {
+    "name": "compact-data-grid"
+  },
+  {
+    "name": "compact-data-grid-tree"
+  },
+  {
+    "name": "compact-document-viewer",
+    "viewport": { "width": 1280, "height": 900 },
+    "width": 1232
+  },
+  {
+    "name": "compact-document-viewer-open",
+    "capture": "page",
+    "viewport": { "width": 1280, "height": 900 },
+    "width": 1232,
+    "open": {
+      "actions": [
+        { "dispatch": "click", "on": ".coar-pdf-anno-panel__item >> nth=0" },
+        { "dispatch": "click", "on": ".coar-pdf-anno-panel__item-menu >> nth=0" }
+      ],
+      "overlays": 1,
+      "ready": ".coar-pdf-annotation-popover.coar-compact"
+    }
+  },
+  {
+    "name": "compact-document-viewer-pdf",
+    "viewport": { "width": 1280, "height": 900 },
+    "width": 1232
+  },
+  {
+    "name": "compact-map"
+  },
+  {
+    "name": "compact-map-editor"
+  }
+]

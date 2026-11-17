@@ -185,6 +185,9 @@ const gridDates = computed(() => {
 const weekdayHeaders = computed(() =>
   localizedWeekdayNames(effectiveLocale.value, effectiveFirstDayOfWeek.value, 'short'),
 );
+const weekendColumns = computed(() =>
+  gridDates.value.slice(0, 7).map((date) => date.dayOfWeek === 6 || date.dayOfWeek === 7),
+);
 
 // ─── Drag & Drop ─────────────────────────────────────────────────────
 
@@ -537,7 +540,7 @@ function eventBgFor(event: CalendarEvent<TMeta>): string {
   );
 }
 function eventBorderFor(event: CalendarEvent<TMeta>): string {
-  return eventColor(event) ?? 'var(--coar-color-accent, var(--coar-color-accent-500, #2563eb))';
+  return eventColor(event) ?? 'var(--coar-calendar-event-default-color, var(--coar-color-accent, var(--coar-color-accent-500, #2563eb)))';
 }
 
 /** Text colour for an event surface — `meta.textColor` or the policy's black/white. */
@@ -747,7 +750,7 @@ defineExpose({
     <div class="coar-month-view__a11y-live" role="status" aria-live="polite" aria-atomic="true">
       {{ a11y.message.value }}
     </div>
-    <CoarMonthGrid :weekday-headers="weekdayHeaders" :set-rows-el="setGridEl">
+    <CoarMonthGrid :weekday-headers="weekdayHeaders" :weekend-columns="weekendColumns" :set-rows-el="setGridEl">
       <CoarMonthRow
         v-for="(row, rowIndex) in layout.weekRows"
         :key="row.weekStart.toString()"
@@ -1067,7 +1070,7 @@ defineExpose({
 .coar-month-view__segment:focus-visible {
   position: relative;
   z-index: 1;
-  outline: 2px solid var(--coar-color-focus, #2563eb);
+  outline: 2px solid var(--coar-calendar-focus-color, var(--coar-color-focus, #2563eb));
   outline-offset: 1px;
 }
 
@@ -1093,11 +1096,11 @@ defineExpose({
    pillRenderer / barRenderer / eventRenderer). */
 .coar-month-view__pill-title {
   color: var(--coar-text-base, #1a1c1f);
-  font-weight: 600;
+  font-weight: var(--coar-calendar-event-title-font-weight, 600);
 }
 .coar-month-view__bar-title {
   color: var(--coar-text-base, #1a1c1f);
-  font-weight: 600;
+  font-weight: var(--coar-calendar-event-title-font-weight, 600);
   text-overflow: ellipsis;
   overflow: hidden;
 }

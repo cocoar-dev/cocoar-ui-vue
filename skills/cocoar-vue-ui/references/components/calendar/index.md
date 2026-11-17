@@ -2,7 +2,7 @@
 
 # Calendar (Preview)
 
-**Devices:** desktop ready · tablet partial · phone planned — Taps, swipe paging and long-press selection work on touch; event resize handles are only 6 px tall.
+**Devices:** desktop ready · tablet partial · phone planned — Touch taps, paging and long-press selection work; legacy resize targets are 6 px. Compact targets stay smaller on short/crowded events.
 
 A Vue 3 calendar whose visible hierarchy follows the iOS calendar: **Year**, **Month**, **Day** and **Agenda**, plus fixed **Week** and **Work week** time grids for web applications. Month and Day expose their display choices as nested variations instead of flattening every renderer into the primary view switcher.
 
@@ -292,6 +292,31 @@ To customize, redefine any token under the same trigger after the package styles
   --coar-calendar-bg: #101014;
 }
 ```
+
+### Compact presentation (Preview)
+
+Inside the library's experimental `.coar-compact` profile, the calendar takes its surfaces, lines, text and
+state colours from the vue-ui semantic tokens (`--coar-background-neutral-*`, `--coar-border-neutral-tertiary`,
+`--coar-text-neutral-*`, accent and error roles) in light and dark alike, and its type from the shared compact
+roles: labels and day headers follow the UI text size, event cards, pills, bars and axis captions the caption
+size, with weight 500 for labels and titles and 600 only for view titles and the today number. Today is marked
+in the accent colour in every view. Radii, header and agenda-row padding follow the shared control, panel and
+interactive-row roles, so agenda rows reach the 44 px touch row under `.coar-mobile`.
+
+Fixed week columns retain a 128 px geometry floor and scroll inside the shell on narrow screens; a horizontal
+gesture scrolls rather than paging while the grid overflows. Month overflow actions and timed resize targets
+have independent roles (`--coar-calendar-month-overflow-target-size` and `--coar-calendar-resize-target-size`).
+The resize side rail is bounded by half the card to avoid overlapping targets and preserve its move area.
+All-day lanes measure their own CSS height before positioning bars and overflow actions.
+
+Outside the profile the presentation is unchanged: role usages retain their historical fallbacks, and compact-only
+overflow rules do not apply. The roles are set on the outermost calendar element, so a scheme or mobile
+scope between `.coar-compact` and the calendar still applies, and a value you set on the calendar element
+itself (`.my-calendar { --coar-calendar-bg: … }`) wins over the profile.
+
+Not part of the profile: event colours (`meta.color`, `meta.textColor`), assignee and band colours you pass,
+and the geometry the views compute in script — `pixelsPerHour`, `timelineRowHeight`, the
+pill and chip line boxes, `--coar-time-grid-axis-width` and `--coar-calendar-scroll-inset-bottom`.
 
 > **Tip: RTL**
 >

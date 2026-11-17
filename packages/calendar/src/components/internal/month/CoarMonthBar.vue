@@ -199,8 +199,8 @@ function onEndResize(e: PointerEvent) {
   position: absolute;
   box-sizing: border-box;
   padding: 1px 6px;
-  border-radius: 3px;
-  font-size: var(--coar-font-size-xs, 11px);
+  border-radius: var(--coar-calendar-event-radius, 3px);
+  font-size: var(--coar-calendar-event-font-size, var(--coar-font-size-xs, 11px));
   cursor: pointer;
   overflow: hidden;
   white-space: nowrap;
@@ -220,14 +220,14 @@ function onEndResize(e: PointerEvent) {
   border-bottom-right-radius: 0;
 }
 .coar-month-bar:focus {
-  outline: 2px solid var(--coar-background-accent-primary, #2563eb);
+  outline: 2px solid var(--coar-calendar-focus-color, var(--coar-background-accent-primary, #2563eb));
   outline-offset: 1px;
 }
 .coar-month-bar--ghost {
   pointer-events: none;
-  outline: 2px dashed var(--coar-background-accent-primary, #2563eb);
+  outline: 2px dashed var(--coar-calendar-drag-outline-color, var(--coar-background-accent-primary, #2563eb));
   outline-offset: 1px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--coar-calendar-drag-shadow, 0 4px 12px rgba(0, 0, 0, 0.12));
 }
 .coar-month-bar--source-phantom {
   opacity: 0.4;
@@ -238,13 +238,13 @@ function onEndResize(e: PointerEvent) {
   pointer-events: none;
   cursor: not-allowed;
   opacity: 0.7;
-  outline: 2px dashed var(--coar-color-danger, #dc2626);
+  outline: 2px dashed var(--coar-calendar-invalid-color, var(--coar-color-danger, #dc2626));
   outline-offset: 1px;
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+  box-shadow: var(--coar-calendar-invalid-shadow, 0 4px 12px rgba(220, 38, 38, 0.15));
   background-image: repeating-linear-gradient(
     45deg,
-    rgba(220, 38, 38, 0.18) 0,
-    rgba(220, 38, 38, 0.18) 6px,
+    var(--coar-calendar-invalid-stripe, rgba(220, 38, 38, 0.18)) 0,
+    var(--coar-calendar-invalid-stripe, rgba(220, 38, 38, 0.18)) 6px,
     transparent 6px,
     transparent 12px
   );
@@ -252,7 +252,7 @@ function onEndResize(e: PointerEvent) {
 
 .coar-month-bar__title {
   color: var(--event-ink, var(--coar-text-base, #1a1c1f));
-  font-weight: 600;
+  font-weight: var(--coar-calendar-event-title-font-weight, 600);
   text-overflow: ellipsis;
   overflow: hidden;
   min-width: 0;
@@ -298,7 +298,7 @@ function onEndResize(e: PointerEvent) {
 
 /* Density */
 .coar-month-bar--density-compact {
-  font-size: 10px;
+  font-size: var(--coar-calendar-event-font-size-dense, 10px);
   padding: 0 4px;
 }
 </style>
