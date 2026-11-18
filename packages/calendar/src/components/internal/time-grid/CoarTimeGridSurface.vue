@@ -325,6 +325,18 @@ defineExpose({
   /* The rows own their scroller (both axes); fill the host's height. */
   height: 100%;
 }
+/* A theme may give day columns a floor, so fixed week spans do not squeeze
+   overlapping events into unreadable slivers; the shell then scrolls
+   sideways. Without the value nothing is declared (layer + `revert-layer`). */
+@layer cocoar.components {
+  .coar-time-grid-surface:not(.coar-time-grid-surface--horizontal) {
+    --coar-i-time-grid-surface-min-width: calc(
+      var(--coar-time-grid-axis-width, 80px) + var(--coar-time-grid-day-count, 1) *
+        var(--coar-calendar-time-grid-day-min-width)
+    );
+    min-width: var(--coar-i-time-grid-surface-min-width, revert-layer);
+  }
+}
 .coar-time-grid-surface__ghost {
   position: absolute;
   top: 0;

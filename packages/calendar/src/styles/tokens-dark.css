@@ -14,6 +14,11 @@
  * Triggers on the vue-ui `.dark-mode` class convention AND on
  * `[data-theme="dark"]`, so both wiring styles work.
  *
+ * Each value reads the private `--coar-d-calendar-*` value first: under a
+ * role theme (`styles/compact.css`) a calendar root that is itself the
+ * dark scope follows the theme; without one the private value is
+ * undefined and the literal applies, as before.
+ *
  * Event colors from `meta.color` are intentionally NOT remapped —
  * they render raw in both modes (consumer ownership, same as iOS).
  */
@@ -23,35 +28,35 @@
 :root[data-theme='dark'],
 [data-theme='dark'] {
   /* Surfaces */
-  --coar-calendar-bg: #18181b; /* gray-50 dark (page surface) */
-  --coar-calendar-bg-weekend: #212125; /* between gray-50/gray-100: subtle tint */
-  --coar-calendar-bg-other-month: #131316; /* recedes behind the surface */
+  --coar-calendar-bg: var(--coar-d-calendar-bg, #18181b); /* gray-50 dark (page surface) */
+  --coar-calendar-bg-weekend: var(--coar-d-calendar-bg-weekend, #212125); /* between gray-50/gray-100: subtle tint */
+  --coar-calendar-bg-other-month: var(--coar-d-calendar-bg-other-month, #131316); /* recedes behind the surface */
   /* Accent at 4% (the light value) is invisible on dark — lift to ~14%. */
-  --coar-calendar-bg-today: #2563eb24;
-  --coar-calendar-selection-fill: #3a3a3c; /* Apple systemGray5 (dark) — selected day number circle */
+  --coar-calendar-bg-today: var(--coar-d-calendar-bg-today, #2563eb24);
+  --coar-calendar-selection-fill: var(--coar-d-calendar-selection-fill, #3a3a3c); /* Apple systemGray5 (dark) — selected day number circle */
 
   /* Lines */
-  --coar-calendar-grid-line: #2c2c30; /* subtle line on #18181b */
-  --coar-calendar-border: #3f3f46; /* gray-200 dark ("tertiary/cards") */
+  --coar-calendar-grid-line: var(--coar-d-calendar-grid-line, #2c2c30); /* subtle line on #18181b */
+  --coar-calendar-border: var(--coar-d-calendar-border, #3f3f46); /* gray-200 dark ("tertiary/cards") */
   /* Agenda row separator: near-invisible, like light's #f3f4f6. */
-  --coar-calendar-agenda-divider: #27272a;
+  --coar-calendar-agenda-divider: var(--coar-d-calendar-agenda-divider, #27272a);
 
   /* Background bands (`builder.backgrounds`) without their own colour:
      lighter shades so a 12–26 % mix still reads on the dark surface. */
-  --coar-calendar-band-tint: #60a5fa;
-  --coar-calendar-band-hatch: #a1a1aa;
-  --coar-calendar-band-outline: #fbbf24;
-  --coar-calendar-band-line: #f87171;
+  --coar-calendar-band-tint: var(--coar-d-calendar-band-tint, #60a5fa);
+  --coar-calendar-band-hatch: var(--coar-d-calendar-band-hatch, #a1a1aa);
+  --coar-calendar-band-outline: var(--coar-d-calendar-band-outline, #fbbf24);
+  --coar-calendar-band-line: var(--coar-d-calendar-band-line, #f87171);
 
   /* Default event fill (events without `meta.color`): a dark accent
      shade so the light title text stays readable. */
-  --coar-calendar-event-default-bg: #1e3a8a;
+  --coar-calendar-event-default-bg: var(--coar-d-calendar-event-default-bg, #1e3a8a);
 
   /* Text. These names are used ONLY by this package (vue-ui's
      semantic tokens are `--coar-text-neutral-*`), so nothing defines
      them — without these rules calendar text keeps its light-mode
      fallbacks (#1a1c1f / #6c7280) on the dark surfaces. Values are
      the vue-ui dark-primitive equivalents (gray-800 / gray-500). */
-  --coar-text-base: #f4f4f5;
-  --coar-text-subtle: #a1a1aa;
+  --coar-text-base: var(--coar-d-calendar-text-base, #f4f4f5);
+  --coar-text-subtle: var(--coar-d-calendar-text-subtle, #a1a1aa);
 }

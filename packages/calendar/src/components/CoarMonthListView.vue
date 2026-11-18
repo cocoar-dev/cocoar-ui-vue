@@ -266,6 +266,12 @@ function formatTime(event: CalendarEvent<TMeta>): string {
 .coar-month-list-view__day--other {
   opacity: var(--coar-calendar-other-month-opacity, 0.42);
 }
+/* Selected / today keep their own ink. */
+.coar-month-list-view__day--other:not(.coar-month-list-view__day--selected):not(
+    .coar-month-list-view__day--today
+  ) {
+  color: var(--coar-calendar-other-month-color, var(--coar-text-neutral-primary));
+}
 .coar-month-list-view__markers {
   display: flex;
   width: min(28px, 80%);
@@ -298,6 +304,14 @@ function formatTime(event: CalendarEvent<TMeta>): string {
   border-bottom: 1px solid var(--coar-border-neutral-tertiary);
   background: var(--coar-background-neutral-primary);
   font-size: var(--coar-calendar-label-font-size, var(--coar-component-m-font-size));
+}
+/* `<h2>` / `<h3>` carry no weight of their own: the user agent's applies
+   unless a theme sets the heading weight (layer + `revert-layer`). */
+@layer cocoar.components {
+  .coar-month-list-view__title,
+  .coar-month-list-view__selected-title {
+    font-weight: var(--coar-calendar-heading-font-weight, revert-layer);
+  }
 }
 .coar-month-list-view__events {
   display: flex;

@@ -543,13 +543,37 @@ defineExpose({
   border-left: 0;
   text-align: center;
 }
+/* The header marks weekends by position (Monday-first). A theme can mark
+   them by the dates' weekend flags instead: it sets the ink of the weekend
+   columns and the backgrounds of a plain and of a weekend header cell. */
 .coar-continuous-month-view__section :deep(.coar-month-grid__weekday-cell:nth-child(n + 6)) {
-  color: color-mix(in srgb, var(--coar-text-subtle, #6c7280) 58%, transparent);
+  color: var(
+    --coar-calendar-continuous-weekday-weekend-color,
+    color-mix(in srgb, var(--coar-text-subtle, #6c7280) 58%, transparent)
+  );
+}
+.coar-continuous-month-view__section :deep(.coar-month-grid__weekday-cell) {
+  --coar-i-continuous-weekday-bg: var(--coar-calendar-continuous-weekday-bg);
+}
+.coar-continuous-month-view--shade-weekends
+  .coar-continuous-month-view__section
+  :deep(.coar-month-grid__weekday-cell--weekend) {
+  --coar-i-continuous-weekday-bg: var(
+    --coar-calendar-continuous-weekday-weekend-bg,
+    var(--coar-calendar-continuous-weekday-bg)
+  );
 }
 .coar-continuous-month-view--shade-weekends
   .coar-continuous-month-view__section
   :deep(.coar-month-grid__weekday-cell:nth-child(n + 6)) {
-  background: var(--coar-calendar-bg-weekend, #f6f7f9);
+  background: var(--coar-i-continuous-weekday-bg, var(--coar-calendar-bg-weekend, #f6f7f9));
+}
+/* Cells the position rule does not reach: nothing is declared without the
+   theme's value (layer + `revert-layer`). */
+@layer cocoar.components {
+  .coar-continuous-month-view__section :deep(.coar-month-grid__weekday-cell) {
+    background: var(--coar-i-continuous-weekday-bg, revert-layer);
+  }
 }
 .coar-continuous-month-view__section :deep(.coar-month-row) {
   border-bottom: 0;

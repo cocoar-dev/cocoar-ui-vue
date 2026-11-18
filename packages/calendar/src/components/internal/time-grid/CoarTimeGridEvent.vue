@@ -393,6 +393,15 @@ function onEndResize(e: PointerEvent) {
 .coar-time-grid-event__resize--bottom {
   bottom: 0;
 }
+/* Enlarged resize targets leave the move area free: on short cards the
+   start and end targets share the card instead of overlapping. Without the
+   value nothing is declared (layer + `revert-layer`). */
+@layer cocoar.components {
+  .coar-time-grid-event__resize {
+    max-height: var(--coar-calendar-resize-max-size, revert-layer);
+    max-width: var(--coar-calendar-resize-max-size, revert-layer);
+  }
+}
 
 /* Density */
 .coar-time-grid-event--density-compact {
