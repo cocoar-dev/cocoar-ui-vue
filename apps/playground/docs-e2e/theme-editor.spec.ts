@@ -149,7 +149,8 @@ test('Compact loads as values, survives navigation and an open overlay, and its 
   expect(css).not.toContain('coar-theme-editor');
   expect(css).toMatch(/--coar-role-derivation: ;/);
   // In the layer of the library's tokens, like the `.coar-compact` entry.
-  expect(css.startsWith('@layer cocoar.tokens {')).toBe(true);
+  // It is headed by what to load for the font it names.
+  expect(css).toMatch(/^\/\*[\s\S]*?Inter: import '@cocoar\/vue-ui\/fonts'[\s\S]*?\*\/\n@layer cocoar\.tokens \{/);
 
   // A fresh page without the editor's changes and without the Compact class.
   const context = await browser.newContext({ viewport: page.viewportSize()!, reducedMotion: 'reduce' });
@@ -206,4 +207,62 @@ test('reset leaves colour scheme and touch mode alone; the other presets still a
   await expect(page.locator('.coar-compact')).toHaveCount(0);
   await page.getByRole('button', { name: 'Reset' }).click();
   await expect.poll(() => metrics(page)).toEqual(before.metrics);
+});
+
+test('a typed font is previewed from Google Fonts; the download names it and says to load it', async ({ page }) => {
+  // No request leaves the test: the stylesheet Google would send is answered here.
+  const requested: string[] = [];
+  await page.route('https://fonts.googleapis.com/**', async (route) => {
+    const family = new URL(route.request().url()).searchParams.get('family')!.split(':')[0];
+    requested.push(family);
+    if (family === 'No Such Font') return route.fulfill({ status: 400, body: '' });
+    await route.fulfill({
+      contentType: 'text/css',
+      body: `@font-face { font-family: '${family}'; font-weight: 400 700; src: local('Courier New'); }`,
+    });
+  });
+  await page.goto('/components/select');
+  const family = () => page.evaluate((selector) =>
+    getComputedStyle(document.querySelector(selector)!).fontFamily.split(',')[0].trim().replace(/["']/g, ''), select);
+  const before = await family();
+  await openEditor(page);
+  expect(requested, 'nothing is fetched before somebody chooses a font').toEqual([]);
+  await page.locator('.te-acc-summary', { hasText: 'Typography' }).click();
+  const body = page.locator('[data-te-font=body]');
+  const type = async (name: string) => {
+    await body.locator('input').fill(name);
+    await body.locator('input').press('Enter');
+    await body.locator('input').blur();
+  };
+
+  // A font the page does not have: previewed, and the components show it.
+  await type('Fraunces');
+  await expect(body.locator('[data-te-font-source]')).toHaveAttribute('data-te-font-source', 'google');
+  await expect(body.locator('.te-font-note')).toContainText('load it in your app');
+  expect(requested).toEqual(['Fraunces']);
+  await expect.poll(family).toBe('Fraunces');
+
+  // The download names the font, says to load it, and brings nothing of the preview.
+  const downloading = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download CSS' }).click();
+  const css = await readFile((await (await downloading).path())!, 'utf8');
+  expect(css).toContain('Fraunces: not part of @cocoar/vue-ui. Load it in your app');
+  expect(css).toContain('--coar-font-family-body: Fraunces, ui-sans-serif, system-ui, sans-serif;');
+  expect(css).not.toMatch(/googleapis|@font-face|@import/);
+
+  // A font the library ships and this page declares needs no preview.
+  await type('Onest');
+  await expect(body.locator('[data-te-font-source]')).toHaveCount(0);
+  await expect.poll(family).toBe('Onest');
+  expect(requested).toEqual(['Fraunces']);
+
+  // A name Google Fonts does not know says so (after trying its regular style).
+  await type('No Such Font');
+  await expect(body.locator('[data-te-font-source]')).toHaveAttribute('data-te-font-source', 'unknown');
+  expect(requested).toEqual(['Fraunces', 'No Such Font', 'No Such Font']);
+
+  // Reset: the page's own font, and the previews are gone.
+  await page.getByRole('button', { name: 'Reset' }).click();
+  await expect.poll(family).toBe(before);
+  await expect(page.locator('link[data-coar-font-preview]')).toHaveCount(0);
 });

@@ -29,6 +29,7 @@ single live editor per document.
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `hideDarkToggle` | `boolean` | `false` | Hides the light/dark toggle. Set to `true` when your app manages dark mode itself. |
+| `fontPreview` | `boolean` | `true` | Fetches a font chosen in the editor from Google Fonts when the page does not have it, to preview it. See [Type](#type). |
 
 ## The Token Tree
 
@@ -85,7 +86,15 @@ Controls the global radius scale (`xxs` → `xl`) plus per-component-group overr
 
 ### Type
 
-Font family for body text and headings, chosen from a short list: Poppins, Inter, Onest, DM Sans, Nunito, Geist and the system font. The editor only names the family; a font shows once your app loads it. The library self-hosts three entries, none of which loads anything from a CDN: `@cocoar/vue-ui/fonts` (Poppins, Inter 400 and 700, Cascadia Code), `@cocoar/vue-ui/fonts/compact` (Inter 400 to 700) and `@cocoar/vue-ui/fonts/onest` (Onest 400 to 700). Load the other families yourself.
+Font family for body text and headings. Type any family name; the field suggests Poppins, Inter, Onest, DM Sans, Nunito, Geist and the system font.
+
+**Trying a font without installing it.** When the page does not have the family you typed, the editor fetches it from Google Fonts to show it, and says so under the field. This is a preview only:
+
+- The downloaded theme names the font and does not contain it. The file starts with a comment that lists each font and what your app has to load for it.
+- The request goes to Google and carries the IP address of whoever uses the editor. It happens only for a font chosen in the editor, never when the editor mounts. Switch it off with `:font-preview="false"`; a font the page lacks then shows its fallback.
+- A name Google Fonts does not know shows only where that font is installed on the device.
+
+The library self-hosts three font entries, none of which loads anything from a CDN: `@cocoar/vue-ui/fonts` (Poppins, Inter 400 and 700, Cascadia Code), `@cocoar/vue-ui/fonts/compact` (Inter 400 to 700) and `@cocoar/vue-ui/fonts/onest` (Onest 400 to 700). Load any other family yourself, self-hosted or from your font provider.
 
 ### Spacing
 
@@ -163,7 +172,7 @@ With **Compact** loaded, the file contains every value a fresh app needs, with y
 
 The file is written into the cascade layer of the library's tokens, where `.coar-compact` is too. Your own unlayered styles therefore keep the last word, exactly as with the class: the theme sets body text to 14 px on its scope, and an app that declares `html { font-size: 16px }` itself keeps its 16 px (and the `rem` sizes that follow from it).
 
-The file names a font, it does not ship one. Load the font your theme uses yourself: `import '@cocoar/vue-ui/fonts/compact'` for the Inter weights of the Compact preset, `import '@cocoar/vue-ui/fonts/onest'` for Onest, or your own `@font-face` rules for another family.
+The file names a font, it does not ship one, and it starts with a comment saying what to load. Load the font your theme uses yourself: `import '@cocoar/vue-ui/fonts/compact'` for the Inter weights of the Compact preset, `import '@cocoar/vue-ui/fonts/onest'` for Onest, or your own `@font-face` rules for another family.
 
 Because themes are classes, you can apply different themes to different subtrees:
 

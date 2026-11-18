@@ -6,6 +6,7 @@ import {
   BODY_FAMILY_TOKENS, NESTED_BOUNDARIES, TITLE_FAMILY_TOKENS, serializeRoleTheme, type CoarRoleTheme,
 } from '../../theme/role-theme';
 import { ROLE_DERIVED_TOKENS } from '../overlay/compact-context';
+import { cssFontFamily, fontNotes, removeFontPreviews, setFontPreviewEnabled, showFont } from './font-preview';
 
 // ── Types ─────────────────────────────────────────────────────
 export type PaletteKey = 'accent' | 'error' | 'success' | 'warning' | 'info';
@@ -570,12 +571,6 @@ export const SEMANTIC_GROUPS: SemanticGroup[] = [
 export const semanticOverrides = reactive<Record<string, SemanticOverride>>({});
 
 // ── Computed select options ───────────────────────────────────
-export const FONT_OPTIONS_BODY_SELECT = computed<CoarSelectOption<string>[]>(() =>
-  FONT_OPTIONS_BODY.map((f) => ({ value: f, label: f })),
-);
-export const FONT_OPTIONS_TITLE_SELECT = computed<CoarSelectOption<string>[]>(() =>
-  FONT_OPTIONS_TITLE.map((f) => ({ value: f, label: f })),
-);
 export const SEMANTIC_PAL_OPTIONS = computed<CoarSelectOption<string>[]>(() =>
   SEMANTIC_PALETTES.map((p) => ({ value: p, label: SEMANTIC_PALETTE_LABELS[p] })),
 );
@@ -790,8 +785,9 @@ function controlDeclarations(base: ThemeControls, paddingBase: boolean): [string
   // A role theme derives every text role from the two families. Without one each role
   // holds its own family, so the font reaches the components only when all are set.
   const family = (role: 'body' | 'title', name: string, tokens: string[]) => {
-    if (roles) add(tokens[0], `var(--coar-appearance-font-${role}, ${name}, ${FONT_FALLBACK})`);
-    else for (const token of tokens) add(token, `${name}, ${FONT_FALLBACK}`);
+    const quoted = cssFontFamily(name);
+    if (roles) add(tokens[0], `var(--coar-appearance-font-${role}, ${quoted}, ${FONT_FALLBACK})`);
+    else for (const token of tokens) add(token, `${quoted}, ${FONT_FALLBACK}`);
   };
   if (changed('fontBody')) family('body', fontBody.value, BODY_FAMILY_TOKENS);
   if (changed('fontTitle')) family('title', fontTitle.value, TITLE_FAMILY_TOKENS);
@@ -921,13 +917,24 @@ export function reset() {
   writeControls(appControls);
   fieldPaddingXEnabled.value = appFieldPaddingX;
   baseline.value = { ...appControls };
+  // After the controls are back: the previews of fonts no role shows any more.
+  removeFontPreviews();
   applyTokens();
 }
 
 // ── downloadCSS ───────────────────────────────────────────────
-/** The theme a fresh app needs: every value, not the changes against a loaded preset. */
+/**
+ * The theme a fresh app needs: every value, not the changes against a loaded preset.
+ * It names fonts without containing them, so it starts by saying what to load.
+ */
 export function themeFileCss(name: string): string {
-  return themeCss(`.coar-theme--${name}`, DEFAULTS, false) || `.coar-theme--${name} {\n}`;
+  const css = themeCss(`.coar-theme--${name}`, DEFAULTS, false) || `.coar-theme--${name} {\n}`;
+  const role = roleTheme.value !== null;
+  const named = [
+    role || fontBody.value !== DEFAULTS.fontBody ? fontBody.value : '',
+    (role ? fontTitle.value !== baseline.value.fontTitle : fontTitle.value !== DEFAULTS.fontTitle) ? fontTitle.value : '',
+  ];
+  return fontNotes(named) + css;
 }
 
 export function downloadCSS() {
@@ -970,11 +977,17 @@ let _stopRefsWatch: StopHandle | null = null;
 let _stopPaletteWatch: StopHandle | null = null;
 let _stopSemanticWatch: StopHandle | null = null;
 let _stopRoleWatch: StopHandle | null = null;
+let _stopFontWatch: StopHandle | null = null;
 let _stopModeWatch: StopHandle | null = null;
 
 // ── initThemeEditorState ──────────────────────────────────────
-export function initThemeEditorState(hideDarkToggle: boolean, source?: HTMLElement | null) {
+export function initThemeEditorState(
+  hideDarkToggle: boolean,
+  source?: HTMLElement | null,
+  options: { fontPreview?: boolean } = {},
+) {
   _hideDarkToggle = hideDarkToggle;
+  setFontPreviewEnabled(options.fontPreview !== false);
   _compactTarget = source?.closest<HTMLElement>('.coar-compact') ?? null;
 
   const cs = getComputedStyle(editorTarget());
@@ -1110,6 +1123,11 @@ export function initThemeEditorState(hideDarkToggle: boolean, source?: HTMLEleme
   _stopPaletteWatch = watch(paletteOverrides, applyTokens, { deep: true });
   _stopSemanticWatch = watch(semanticOverrides, applyTokens, { deep: true });
   _stopRoleWatch = watch(roleOverrides, applyTokens, { deep: true });
+  // Not on mount: a preview is fetched only for a font somebody chose in the editor.
+  _stopFontWatch = watch([fontBody, fontTitle], ([body, title], [bodyBefore, titleBefore]) => {
+    if (body !== bodyBefore) showFont('body', body);
+    if (title !== titleBefore) showFont('title', title);
+  });
   // The mode follows the editor's own toggle only; a change the app makes stays.
   _stopModeWatch = watch(isDark, (dark) => {
     if (!_hideDarkToggle) applyEditorMode(dark);
@@ -1130,6 +1148,9 @@ export function cleanupThemeEditorState() {
   _stopModeWatch = null;
 
   removeLiveTheme();
+  removeFontPreviews();
+  _stopFontWatch?.();
+  _stopFontWatch = null;
   roleTheme.value = null;
   for (const token of Object.keys(roleOverrides)) delete roleOverrides[token];
   _compactTarget = null;

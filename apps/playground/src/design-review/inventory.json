@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "sourceRevision": "de053dcd794b5feab619ecf705a3a45c601d173b983a8617b576a87aee41bef3",
+  "sourceRevision": "dc6288f52bff86bf50535fecb5d4e4c255e5dedfe1001c2001806fc9e58e2f13",
   "packages": [
     {
       "dir": "packages/calendar",
@@ -22972,6 +22972,29 @@
           "summary": "02:11: packages/ui vitest 2083 passed (jsdom, no layout). Not browser evidence."
         }
       ]
+    },
+    {
+      "id": "packages/ui/src/components/theme-editor/font-preview.ts",
+      "kind": "ts-visual",
+      "package": "packages/ui",
+      "source": "packages/ui/src/components/theme-editor/font-preview.ts",
+      "exposure": "internal",
+      "signals": [
+        "dom-creation"
+      ],
+      "decision": "pending",
+      "tokenRoles": [],
+      "states": [],
+      "scenario": "",
+      "checks": {
+        "desktop": "pending",
+        "mobile": "pending",
+        "light": "pending",
+        "dark": "pending"
+      },
+      "reasons": {},
+      "notes": "",
+      "evidence": []
     },
     {
       "id": "packages/ui/src/components/theme-editor/internal/token-graph/naming.ts",

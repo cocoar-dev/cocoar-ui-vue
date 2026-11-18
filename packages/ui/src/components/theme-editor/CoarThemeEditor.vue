@@ -6,8 +6,16 @@ import CoarThemeEditorPanel from './CoarThemeEditorPanel.vue';
 import { initThemeEditorState, cleanupThemeEditorState, isOpen } from './theme-editor-state';
 import { useCompactPresentationContext } from '../overlay/useCompactPresentationContext';
 
-const props = withDefaults(defineProps<{ hideDarkToggle?: boolean }>(), {
+const props = withDefaults(defineProps<{
+  hideDarkToggle?: boolean;
+  /**
+   * Fetch a font chosen in the editor from Google Fonts when the page does not have
+   * it, to preview it. Off: such a font shows its fallback until the app loads it.
+   */
+  fontPreview?: boolean;
+}>(), {
   hideDarkToggle: false,
+  fontPreview: true,
 });
 
 let overlayRef: OverlayRef | null = null;
@@ -15,7 +23,7 @@ const origin = useTemplateRef<HTMLElement>('origin');
 const presentation = useCompactPresentationContext(() => origin.value);
 
 onMounted(() => {
-  initThemeEditorState(props.hideDarkToggle, origin.value);
+  initThemeEditorState(props.hideDarkToggle, origin.value, { fontPreview: props.fontPreview });
 });
 
 onUnmounted(() => {

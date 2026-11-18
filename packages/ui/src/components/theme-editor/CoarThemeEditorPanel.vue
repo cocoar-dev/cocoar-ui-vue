@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { Ref } from 'vue';
 import CoarPaletteEditor from './CoarPaletteEditor.vue';
 import CoarButton from '../button/CoarButton.vue';
 import CoarSelect from '../select/CoarSelect.vue';
@@ -7,7 +8,7 @@ import CoarSegmentedControl from '../segmented-control/CoarSegmentedControl.vue'
 import CoarFormField from '../form-field/CoarFormField.vue';
 import TokenScaleEditor from './TokenScaleEditor.vue';
 import {
-  DEFAULTS, RADIUS_OPTIONS, DROPDOWN_RADIUS_OPTIONS, SHADOW_OPTIONS, FONT_OPTIONS_BODY_SELECT, FONT_OPTIONS_TITLE_SELECT,
+  DEFAULTS, RADIUS_OPTIONS, DROPDOWN_RADIUS_OPTIONS, SHADOW_OPTIONS, FONT_OPTIONS_BODY, FONT_OPTIONS_TITLE,
   DENSITY_OPTIONS, PRESETS, PALETTE_STEPS, SEMANTIC_GROUPS, SEMANTIC_PAL_OPTIONS, SEMANTIC_STEP_OPTIONS,
   accent, success, errorColor, warning, info,
   radiusXxs, radiusXs, radiusS, radiusM, radiusL, radiusXl,
@@ -22,8 +23,31 @@ import {
   baseline, hasEditorChanges, roleTheme, roleOverrides, ROLE_VALUE_GROUPS,
   roleValue, setRoleValue, resetRoleValue, type RoleValueEntry,
 } from './theme-editor-state';
+import { cleanFontFamily, fontSources, type FontSource } from './font-preview';
 
 const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
+
+const FONT_FIELDS = [
+  { role: 'body', label: 'Body', model: fontBody, options: FONT_OPTIONS_BODY },
+  { role: 'title', label: 'Title', model: fontTitle, options: FONT_OPTIONS_TITLE },
+] as const;
+
+/** What the editor says under a font field; nothing where there is nothing to do. */
+const FONT_SOURCE_NOTES: Record<FontSource, string> = {
+  generic: '',
+  page: '',
+  loading: 'Loading a preview from Google Fonts…',
+  google: 'Preview from Google Fonts. The downloaded theme only names this font: load it in your app.',
+  unknown: 'Not on Google Fonts. It shows only where this font is installed.',
+  off: 'This page does not load this font: you see the fallback.',
+};
+
+function setFont(model: Ref<string>, event: Event) {
+  const input = event.target as HTMLInputElement;
+  // An emptied field keeps the font it had.
+  model.value = cleanFontFamily(input.value) || model.value;
+  input.value = model.value;
+}
 
 const PAIR = /^light-dark\(\s*(#[0-9a-f]{6})\s*,\s*(#[0-9a-f]{6})\s*\)$/i;
 
@@ -242,13 +266,23 @@ function setLength(entry: RoleValueEntry, raw: string) {
         <div class="te-accordion-body">
           <div class="te-section">
             <div class="te-section-label">Font families</div>
-            <div class="te-font-row">
-              <span class="te-font-label">Body</span>
-              <CoarSelect v-model="fontBody" :options="FONT_OPTIONS_BODY_SELECT" size="s" style="flex:1" />
-            </div>
-            <div class="te-font-row">
-              <span class="te-font-label">Title</span>
-              <CoarSelect v-model="fontTitle" :options="FONT_OPTIONS_TITLE_SELECT" size="s" style="flex:1" />
+            <!-- Any family name: the list only suggests. A font the page lacks is previewed (font-preview.ts). -->
+            <div v-for="font in FONT_FIELDS" :key="font.role" class="te-font-field" :data-te-font="font.role">
+              <div class="te-font-row">
+                <label class="te-font-label" :for="`te-font-${font.role}`">{{ font.label }}</label>
+                <input
+                  :id="`te-font-${font.role}`"
+                  class="te-font-input" :value="font.model.value" :list="`te-fonts-${font.role}`"
+                  placeholder="Font family" spellcheck="false" autocomplete="off"
+                  @change="setFont(font.model, $event)"
+                />
+                <datalist :id="`te-fonts-${font.role}`">
+                  <option v-for="name in font.options" :key="name" :value="name" />
+                </datalist>
+              </div>
+              <p v-if="FONT_SOURCE_NOTES[fontSources[font.role]]" class="te-font-note" :data-te-font-source="fontSources[font.role]">
+                {{ FONT_SOURCE_NOTES[fontSources[font.role]] }}
+              </p>
             </div>
             <p class="te-font-preview" :style="{ fontFamily: fontBody + ', sans-serif' }">
               The quick brown fox jumps over the lazy dog.
@@ -732,7 +766,16 @@ function setLength(entry: RoleValueEntry, raw: string) {
 .te-radius-label { width: 56px; flex-shrink: 0; font-size: 12px; color: var(--coar-text-neutral-secondary, #595959); }
 
 /* ── Typography ──────────────────────────────────────── */
-.te-font-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.te-font-field { margin-bottom: 8px; }
+.te-font-row { display: flex; align-items: center; gap: 10px; }
+.te-font-input {
+  flex: 1; min-width: 0; height: 28px; padding: 0 8px; box-sizing: border-box;
+  border: 1px solid var(--coar-border-input, #d6d6d6); border-radius: var(--coar-control-radius, 3px);
+  background: var(--coar-surface-input, #fff); color: var(--coar-text-neutral-primary, #1a1a1a);
+  font-family: inherit; font-size: 12px;
+}
+.te-font-input:focus-visible { outline: 2px solid var(--coar-border-accent-primary, #1183cd); outline-offset: -1px; }
+.te-font-note { margin: 4px 0 0 46px; font-size: var(--coar-caption-font-size, 11px); line-height: 1.4; color: var(--coar-text-neutral-secondary, #595959); }
 .te-font-label { width: 36px; flex-shrink: 0; font-size: 12px; color: var(--coar-text-neutral-secondary, #595959); }
 .te-font-preview { margin: 10px 0 0; font-size: 12px; color: var(--coar-text-neutral-secondary, #595959); line-height: 1.5; }
 .te-font-preview--title { font-size: 15px; font-weight: 700; margin-top: 4px; color: var(--coar-text-neutral-primary, #1a1a1a); }
