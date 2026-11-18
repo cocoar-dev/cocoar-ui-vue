@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Browser, type Page } from '@playwright/test';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { visualStories, type VisualStory } from '../src/visual/manifest';
@@ -11,8 +11,9 @@ import { visualStories, type VisualStory } from '../src/visual/manifest';
  * whose images the visual baselines pin against the beta), and again with every
  * `coar-compact` class replaced by `coar-theme--compact` before the first paint and the
  * Compact values loaded as an ordinary theme stylesheet for that class, the way an
- * exported theme ships. The two images must be identical, pixel for pixel. The pages
- * themselves (stories, review scenes) are not changed for this.
+ * exported theme ships. The two images must be identical, up to the rasterisation
+ * noise of two page loads (see `rasterNoise`). The pages themselves (stories, review
+ * scenes) are not changed for this.
  *
  * Covered: forms and open panels, calendar, data grid, page builder with its real
  * editors, markdown, viewer, map, Mermaid and Monaco, in both colour schemes, desktop
@@ -152,17 +153,55 @@ const cases: Case[] = [
   ]),
 ];
 
-/** Two consecutive identical captures: nothing is still loading, moving or blinking. */
+/** Three identical captures in a row: nothing is still loading, moving or blinking. */
 async function settled(page: Page): Promise<Buffer> {
   const shot = () => page.screenshot({ animations: 'disabled', caret: 'hide' });
   let previous = await shot();
-  for (let attempt = 0; attempt < 20; attempt += 1) {
+  let same = 0;
+  for (let attempt = 0; attempt < 40; attempt += 1) {
     await page.waitForTimeout(150);
     const next = await shot();
-    if (next.equals(previous)) return next;
+    same = next.equals(previous) ? same + 1 : 0;
+    if (same === 2) return next;
     previous = next;
   }
   throw new Error('the page never settled');
+}
+
+const NOISE = { pixels: 64, levels: 2 };
+
+/** How two captures differ: identical, or at most a few pixels by at most two levels. */
+async function rasterNoise(browser: Browser, first: Buffer, second: Buffer) {
+  if (first.equals(second)) return { pixels: 0, levels: 0, withinNoise: true };
+  const page = await browser.newPage();
+  try {
+    const result = await page.evaluate(async (sources) => {
+      const pixels = async (source: string) => {
+        const image = new Image();
+        await new Promise((resolve, reject) => { image.onload = resolve; image.onerror = reject; image.src = source; });
+        const canvas = document.createElement('canvas');
+        canvas.width = image.width;
+        canvas.height = image.height;
+        const context = canvas.getContext('2d')!;
+        context.drawImage(image, 0, 0);
+        return { width: image.width, height: image.height, data: context.getImageData(0, 0, image.width, image.height).data };
+      };
+      const [a, b] = [await pixels(sources[0]), await pixels(sources[1])];
+      if (a.width !== b.width || a.height !== b.height) return { pixels: Infinity, levels: 255 };
+      let count = 0;
+      let levels = 0;
+      for (let i = 0; i < a.data.length; i += 4) {
+        const delta = Math.max(
+          Math.abs(a.data[i] - b.data[i]), Math.abs(a.data[i + 1] - b.data[i + 1]), Math.abs(a.data[i + 2] - b.data[i + 2]),
+        );
+        if (delta > 0) { count += 1; levels = Math.max(levels, delta); }
+      }
+      return { pixels: count, levels };
+    }, [first, second].map((image) => `data:image/png;base64,${image.toString('base64')}`));
+    return { ...result, withinNoise: result.pixels <= NOISE.pixels && result.levels <= NOISE.levels };
+  } finally {
+    await page.close();
+  }
 }
 
 async function capture(page: Page, entry: Case, classFree: boolean): Promise<Buffer> {
@@ -204,22 +243,25 @@ test.describe('Compact as a theme class, without .coar-compact', () => {
         }
         return images;
       };
-      // Two loads of the very same page can differ in a few anti-aliased pixels of
-      // rounded corners (the browser rasterises them per load, outside Docker with the
-      // host's GPU). A real difference shows in every pair; one identical pair proves
-      // the two entries can paint the same image.
+      // Two loads of the very same page can differ in the anti-aliasing of rounded
+      // corners (the browser rasterises them per load, outside Docker with the host's
+      // GPU): a few pixels, one or two levels of a channel. A difference of style is
+      // never that small, so only this noise is tolerated, and a pair is repeated
+      // before it counts as different.
       let [byClass, byTheme] = await pair();
-      for (let attempt = 1; attempt < 4 && !byClass.equals(byTheme); attempt += 1) {
+      let noise = await rasterNoise(browser, byClass, byTheme);
+      for (let attempt = 1; attempt < 3 && !noise.withinNoise; attempt += 1) {
         [byClass, byTheme] = await pair();
+        noise = await rasterNoise(browser, byClass, byTheme);
       }
-      if (!byClass.equals(byTheme)) {
+      if (!noise.withinNoise) {
         for (const [name, image] of [['class-entry.png', byClass], ['theme-class.png', byTheme]] as const) {
           const path = testInfo.outputPath(name);
           writeFileSync(path, image);
           await testInfo.attach(name, { path, contentType: 'image/png' });
         }
       }
-      expect(byClass.equals(byTheme), 'the theme class must paint what .coar-compact paints').toBe(true);
+      expect(noise, 'the theme class must paint what .coar-compact paints').toMatchObject({ withinNoise: true });
     });
   }
 

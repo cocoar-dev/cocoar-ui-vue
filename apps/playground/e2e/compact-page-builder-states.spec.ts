@@ -972,6 +972,16 @@ async function checkCodeDialog(
   dialog: Locator, page: Page, profile: Profile, v: Variant, s: Shared, label: string, rootSelector: string, info: TestInfo,
 ) {
   const root = page.locator(rootSelector).first();
+  // The dialog fades in for 0.2s and the editor can be there after 50ms: text measured
+  // through a half-transparent dialog reads as low contrast. Wait for the fade (finite
+  // animations around the dialog; Monaco's blinking cursor never ends).
+  await root.evaluate(async (el) => {
+    const around = document.getAnimations().filter((animation) => {
+      const target = (animation.effect as KeyframeEffect | null)?.target;
+      return target && target.contains(el) && animation.effect!.getComputedTiming().endTime !== Infinity;
+    });
+    await Promise.all(around.map((animation) => animation.finished.catch(() => undefined)));
+  });
   const state = await root.evaluate((el) => ({
     role: getComputedStyle(el).getPropertyValue('--coar-page-builder-font-size').trim(),
     inCompact: !!el.closest('.coar-compact'),
