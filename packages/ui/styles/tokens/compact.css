@@ -261,6 +261,10 @@
   --coar-mermaid-control-size: 28px;
   --coar-mermaid-padding: 12px;
   --coar-mermaid-code-font-size: 13px;
+  --coar-document-viewer-header-height: 40px;
+  --coar-document-viewer-target-size: 28px;
+  --coar-document-viewer-input-height: 28px;
+  --coar-document-viewer-outline-link-display: flex;
 }
 
 :root.coar-compact,
@@ -318,4 +322,9 @@
   --coar-markdown-table-cell-padding: 10px 12px;
   --coar-markdown-embed-placeholder-padding: 10px 12px;
   --coar-mermaid-control-size: 44px;
+  --coar-document-viewer-header-height: 48px;
+  --coar-document-viewer-target-size: 44px;
+  --coar-document-viewer-input-height: var(--coar-control-min-size, 44px);
+  --coar-document-viewer-swatch-size: 32px;
+  --coar-document-viewer-pin-target-outset: 11px;
 }

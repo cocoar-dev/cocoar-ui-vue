@@ -27,7 +27,7 @@ import type {
   CoarDocumentViewerTool,
 } from './types';
 import type { DocumentSource } from './source-types';
-// Opt-in compact presentation roles (`.coar-compact`); no effect outside it.
+// Roles of a theme with role derivation (Compact); no effect without one.
 import './compact.css';
 
 /**

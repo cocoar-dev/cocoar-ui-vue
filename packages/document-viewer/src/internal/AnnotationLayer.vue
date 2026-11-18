@@ -300,12 +300,13 @@ const freetexts = computed(() =>
   outline-offset: 2px;
 }
 
-/* Compact profile on touch: a 44px target around the 22px pin. The pin itself (and so
-   its anchor, the centre on the annotation point) keeps its size. */
-:is(.coar-compact.coar-mobile, .coar-compact .coar-mobile, .coar-mobile .coar-compact) .coar-pdf-annotation-pin::before {
+/* Touch target of the pin: a theme can extend it beyond the 22px pin (Compact on touch:
+   11px on each side, a 44px target). The pin itself (and so its anchor, the centre on the
+   annotation point) keeps its size; without the value the target is the pin. */
+.coar-pdf-annotation-pin::before {
   content: '';
   position: absolute;
-  inset: -11px;
+  inset: calc(-1 * var(--coar-document-viewer-pin-target-outset, 0px));
   border-radius: 50%;
 }
 </style>

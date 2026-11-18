@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 /**
- * Compact presentation of the viewer (`.coar-compact`, `compact.css`). Geometry is
- * checked by the playground visual stories (`compact-document-viewer-*`); here the
- * contracts that keep the default look unchanged and the teleported popover in context.
+ * Presentation of the viewer under a role theme such as Compact (`compact.css` and the
+ * values in `@cocoar/vue-ui`). Geometry is checked by the playground visual stories
+ * (`compact-document-viewer-*`); here the contracts that keep the default look unchanged
+ * and the teleported popover in context.
  */
 
 async function read(path: string): Promise<string> {
@@ -51,20 +52,69 @@ describe('compact profile: default look unchanged', () => {
     }
   });
 
-  it('scopes every compact rule to the profile', async () => {
-    const css = (await read('compact.css')).replace(/\/\*[\s\S]*?\*\//g, '');
-    const selectors = [...css.matchAll(/(^|})\s*([^{}]+)\{/g)].map((m) => m[2].trim());
-    expect(selectors.length).toBe(4);
-    for (const selector of selectors) {
-      const parts = selector.replace(/^:(?:is|where)\(([\s\S]*)\)$/, '$1').split(',');
-      for (const part of parts) expect(part.trim(), selector).toContain('.coar-compact');
+  it('keys nothing on the `.coar-compact` class', async () => {
+    for (const path of [...SOURCES, 'compact.css']) {
+      const source = await read(path);
+      const css = path.endsWith('.vue') ? styleOf(source) : source.replace(/\/\*[\s\S]*?\*\//g, '');
+      expect(css, path).not.toContain('coar-compact');
     }
   });
 
-  it('keeps compact native fields on the shared touch floor with a consistent outer box', async () => {
+  it('derives every role of compact.css behind the activation of the theme', async () => {
+    const css = (await read('compact.css')).replace(/\/\*[\s\S]*?\*\//g, '');
+    const block = /:where\(\.coar-pdf-viewer, \.coar-pdf-annotation-popover\) \{([^}]*)\}/.exec(css)?.[1] ?? '';
+    const declarations = [...css.matchAll(/(--coar-[a-z-]+):\s*([^;]+);/g)];
+    expect(declarations.every((m) => block.includes(m[0]))).toBe(true);
+
+    const derived = declarations.filter((m) => m[1].startsWith('--coar-d-'));
+    const roles = declarations.filter((m) => !m[1].startsWith('--coar-d-'));
+    expect(derived.length).toBe(20);
+    for (const m of derived) expect(m[2], m[1]).toMatch(/^var\(--coar-role-derivation\) \S/);
+    expect(roles.map((m) => m[0])).toEqual(
+      derived.map((m) => {
+        const role = m[1].replace('--coar-d-', '--coar-');
+        return `${role}: var(${m[1]}, inherit);`;
+      }),
+    );
+  });
+
+  it('keeps the constants of the profile in the value module', async () => {
+    const values = await read('../../ui/src/theme/compact-packages/document-viewer.ts');
+    const [desktop, mobile] = values.split('COMPACT_DOCUMENT_VIEWER_MOBILE_TOKENS');
+    for (const value of [
+      "'--coar-document-viewer-header-height': '40px'",
+      "'--coar-document-viewer-target-size': '28px'",
+      "'--coar-document-viewer-input-height': '28px'",
+      "'--coar-document-viewer-outline-link-display': 'flex'",
+    ]) expect(desktop).toContain(value);
+    for (const value of [
+      "'--coar-document-viewer-header-height': '48px'",
+      "'--coar-document-viewer-target-size': '44px'",
+      // Native fields stand on the shared touch floor.
+      "'--coar-document-viewer-input-height': 'var(--coar-control-min-size, 44px)'",
+      "'--coar-document-viewer-swatch-size': '32px'",
+      "'--coar-document-viewer-pin-target-outset': '11px'",
+    ]) expect(mobile).toContain(value);
+
     const css = await read('compact.css');
-    expect(css).toContain('--coar-document-viewer-input-height: var(--coar-control-min-size, 44px);');
-    expect(css).toMatch(/\.coar-pdf-viewer\.coar-compact \.coar-pdf-searchbar__input\s*\{\s*box-sizing: border-box;/);
+    for (const m of values.matchAll(/'(--coar-document-viewer-[a-z-]+)':/g)) {
+      expect(css.replace(/\/\*[\s\S]*?\*\//g, ''), m[1]).not.toContain(`${m[1]}:`);
+    }
+  });
+
+  it('declares nothing without the value where the default presentation is silent', async () => {
+    const css = (await read('compact.css')).replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(css).toMatch(
+      /@layer cocoar\.components \{[^}]*\.coar-pdf-viewer \.coar-pdf-searchbar__input \{\s*box-sizing: var\(--coar-control-box-sizing, revert-layer\);/,
+    );
+    const sidebar = styleOf(await read('internal/DocumentSidebar.vue'));
+    expect(sidebar).toMatch(
+      /@layer cocoar\.components \{[^}]*outline-link\) \{\s*min-height: var\(--coar-interactive-row-height, revert-layer\);/,
+    );
+    expect(sidebar).toContain('display: var(--coar-document-viewer-outline-link-display, block);');
+    expect(styleOf(await read('internal/AnnotationLayer.vue'))).toContain(
+      'inset: calc(-1 * var(--coar-document-viewer-pin-target-outset, 0px));',
+    );
   });
 });
 
