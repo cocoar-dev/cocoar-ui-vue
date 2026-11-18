@@ -645,8 +645,12 @@ const sizeClass = computed(
   display: none;
 }
 
-.coar-compact .coar-time-picker__value {
-  box-sizing: border-box;
+/* In the library's layer with a fallback to the layers below: without the value this
+   declares nothing, so an app's own box model stays as it is. */
+@layer cocoar.components {
+  .coar-time-picker__value {
+    box-sizing: var(--coar-control-box-sizing, revert-layer);
+  }
 }
 
 /* ========================================

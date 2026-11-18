@@ -22,15 +22,15 @@
   --coar-info: #5e6b84;
 
   /* ── Accent palette steps ───────────────────────────── */
-  --coar-color-accent-50: oklch(from var(--coar-accent) 0.97 0.012 h);
-  --coar-color-accent-100: oklch(from var(--coar-accent) 0.92 0.035 h);
-  --coar-color-accent-200: oklch(from var(--coar-accent) 0.84 0.075 h);
-  --coar-color-accent-300: oklch(from var(--coar-accent) 0.74 0.115 h);
-  --coar-color-accent-400: oklch(from var(--coar-accent) 0.66 0.145 h);
-  --coar-color-accent-600: oklch(from var(--coar-accent) 0.53 0.15 h);
-  --coar-color-accent-700: oklch(from var(--coar-accent) 0.47 0.14 h);
-  --coar-color-accent-800: oklch(from var(--coar-accent) 0.39 0.12 h);
-  --coar-color-accent-900: oklch(from var(--coar-accent) 0.31 0.095 h);
+  --coar-color-accent-50: var(--coar-d-color-accent-50, oklch(from var(--coar-accent) 0.97 0.012 h));
+  --coar-color-accent-100: var(--coar-d-color-accent-100, oklch(from var(--coar-accent) 0.92 0.035 h));
+  --coar-color-accent-200: var(--coar-d-color-accent-200, oklch(from var(--coar-accent) 0.84 0.075 h));
+  --coar-color-accent-300: var(--coar-d-color-accent-300, oklch(from var(--coar-accent) 0.74 0.115 h));
+  --coar-color-accent-400: var(--coar-d-color-accent-400, oklch(from var(--coar-accent) 0.66 0.145 h));
+  --coar-color-accent-600: var(--coar-d-color-accent-600, oklch(from var(--coar-accent) 0.53 0.15 h));
+  --coar-color-accent-700: var(--coar-d-color-accent-700, oklch(from var(--coar-accent) 0.47 0.14 h));
+  --coar-color-accent-800: var(--coar-d-color-accent-800, oklch(from var(--coar-accent) 0.39 0.12 h));
+  --coar-color-accent-900: var(--coar-d-color-accent-900, oklch(from var(--coar-accent) 0.31 0.095 h));
 
   /* ── Green (success) palette steps ─────────────────── */
   --coar-color-green-50: oklch(from var(--coar-success) 0.97 0.012 h);
@@ -77,55 +77,55 @@
   --coar-color-slate-900: oklch(from var(--coar-info) 0.3 0.02 h);
 
   /* ── Accent semantic tokens ─────────────────────────── */
-  --coar-background-accent-primary: var(--coar-color-accent-500);
-  --coar-background-accent-secondary: var(--coar-color-accent-100);
-  --coar-background-accent-tertiary: var(--coar-color-accent-50);
-  --coar-background-accent-hover: var(--coar-color-accent-600);
-  --coar-background-accent-active: var(--coar-color-accent-700);
-  --coar-background-accent-tertiary-active: var(--coar-color-accent-200);
-  --coar-text-accent-primary: var(--coar-color-accent-600);
-  --coar-text-accent-secondary: var(--coar-color-accent-500);
-  --coar-border-accent-primary: var(--coar-color-accent-500);
-  --coar-border-accent-secondary: var(--coar-color-accent-300);
+  --coar-background-accent-primary: var(--coar-d-background-accent-primary, var(--coar-color-accent-500));
+  --coar-background-accent-secondary: var(--coar-d-background-accent-secondary, var(--coar-color-accent-100));
+  --coar-background-accent-tertiary: var(--coar-d-background-accent-tertiary, var(--coar-color-accent-50));
+  --coar-background-accent-hover: var(--coar-d-background-accent-hover, var(--coar-color-accent-600));
+  --coar-background-accent-active: var(--coar-d-background-accent-active, var(--coar-color-accent-700));
+  --coar-background-accent-tertiary-active: var(--coar-d-background-accent-tertiary-active, var(--coar-color-accent-200));
+  --coar-text-accent-primary: var(--coar-d-text-accent-primary, var(--coar-color-accent-600));
+  --coar-text-accent-secondary: var(--coar-d-text-accent-secondary, var(--coar-color-accent-500));
+  --coar-border-accent-primary: var(--coar-d-border-accent-primary, var(--coar-color-accent-500));
+  --coar-border-accent-secondary: var(--coar-d-border-accent-secondary, var(--coar-color-accent-300));
 
   /* ── Success semantic tokens ────────────────────────── */
-  --coar-background-semantic-success-bold: var(--coar-color-green-600);
-  --coar-background-semantic-success-subtlest: var(--coar-color-green-50);
-  --coar-background-semantic-success-subtle: var(--coar-color-green-100);
-  --coar-text-semantic-success-bold: var(--coar-color-green-800);
-  --coar-text-semantic-success-subtle: var(--coar-color-green-700);
-  --coar-border-semantic-success-bold: var(--coar-color-green-800);
-  --coar-border-semantic-success-subtle: var(--coar-color-green-200);
+  --coar-background-semantic-success-bold: var(--coar-d-background-semantic-success-bold, var(--coar-color-green-600));
+  --coar-background-semantic-success-subtlest: var(--coar-d-background-semantic-success-subtlest, var(--coar-color-green-50));
+  --coar-background-semantic-success-subtle: var(--coar-d-background-semantic-success-subtle, var(--coar-color-green-100));
+  --coar-text-semantic-success-bold: var(--coar-d-text-semantic-success-bold, var(--coar-color-green-800));
+  --coar-text-semantic-success-subtle: var(--coar-d-text-semantic-success-subtle, var(--coar-color-green-700));
+  --coar-border-semantic-success-bold: var(--coar-d-border-semantic-success-bold, var(--coar-color-green-800));
+  --coar-border-semantic-success-subtle: var(--coar-d-border-semantic-success-subtle, var(--coar-color-green-200));
 
   /* ── Error semantic tokens ──────────────────────────── */
-  --coar-background-semantic-error-bold: var(--coar-color-red-600);
-  --coar-background-semantic-error-hover: var(--coar-color-red-700);
-  --coar-background-semantic-error-active: var(--coar-color-red-800);
-  --coar-background-semantic-error-subtlest: var(--coar-color-red-50);
-  --coar-background-semantic-error-subtle: var(--coar-color-red-100);
-  --coar-text-semantic-error-bold: var(--coar-color-red-800);
-  --coar-text-semantic-error-subtle: var(--coar-color-red-700);
-  --coar-border-semantic-error: var(--coar-color-red-600);
-  --coar-border-semantic-error-bold: var(--coar-color-red-800);
-  --coar-border-semantic-error-subtle: var(--coar-color-red-200);
+  --coar-background-semantic-error-bold: var(--coar-d-background-semantic-error-bold, var(--coar-color-red-600));
+  --coar-background-semantic-error-hover: var(--coar-d-background-semantic-error-hover, var(--coar-color-red-700));
+  --coar-background-semantic-error-active: var(--coar-d-background-semantic-error-active, var(--coar-color-red-800));
+  --coar-background-semantic-error-subtlest: var(--coar-d-background-semantic-error-subtlest, var(--coar-color-red-50));
+  --coar-background-semantic-error-subtle: var(--coar-d-background-semantic-error-subtle, var(--coar-color-red-100));
+  --coar-text-semantic-error-bold: var(--coar-d-text-semantic-error-bold, var(--coar-color-red-800));
+  --coar-text-semantic-error-subtle: var(--coar-d-text-semantic-error-subtle, var(--coar-color-red-700));
+  --coar-border-semantic-error: var(--coar-d-border-semantic-error, var(--coar-color-red-600));
+  --coar-border-semantic-error-bold: var(--coar-d-border-semantic-error-bold, var(--coar-color-red-800));
+  --coar-border-semantic-error-subtle: var(--coar-d-border-semantic-error-subtle, var(--coar-color-red-200));
 
   /* ── Warning semantic tokens ────────────────────────── */
-  --coar-background-semantic-warning-bold: var(--coar-color-amber-600);
-  --coar-background-semantic-warning-subtlest: var(--coar-color-amber-50);
-  --coar-background-semantic-warning-subtle: var(--coar-color-amber-100);
-  --coar-text-semantic-warning-bold: var(--coar-color-amber-900);
-  --coar-text-semantic-warning-subtle: var(--coar-color-amber-800);
-  --coar-border-semantic-warning-bold: var(--coar-color-amber-900);
-  --coar-border-semantic-warning-subtle: var(--coar-color-amber-200);
+  --coar-background-semantic-warning-bold: var(--coar-d-background-semantic-warning-bold, var(--coar-color-amber-600));
+  --coar-background-semantic-warning-subtlest: var(--coar-d-background-semantic-warning-subtlest, var(--coar-color-amber-50));
+  --coar-background-semantic-warning-subtle: var(--coar-d-background-semantic-warning-subtle, var(--coar-color-amber-100));
+  --coar-text-semantic-warning-bold: var(--coar-d-text-semantic-warning-bold, var(--coar-color-amber-900));
+  --coar-text-semantic-warning-subtle: var(--coar-d-text-semantic-warning-subtle, var(--coar-color-amber-800));
+  --coar-border-semantic-warning-bold: var(--coar-d-border-semantic-warning-bold, var(--coar-color-amber-900));
+  --coar-border-semantic-warning-subtle: var(--coar-d-border-semantic-warning-subtle, var(--coar-color-amber-200));
 
   /* ── Info semantic tokens ───────────────────────────── */
-  --coar-background-semantic-info-bold: var(--coar-color-slate-700);
-  --coar-background-semantic-info-subtlest: var(--coar-color-slate-50);
-  --coar-background-semantic-info-subtle: var(--coar-color-slate-100);
-  --coar-text-semantic-info-bold: var(--coar-color-slate-800);
-  --coar-text-semantic-info-subtle: var(--coar-color-slate-700);
-  --coar-border-semantic-info-bold: var(--coar-color-slate-900);
-  --coar-border-semantic-info-subtle: var(--coar-color-slate-200);
+  --coar-background-semantic-info-bold: var(--coar-d-background-semantic-info-bold, var(--coar-color-slate-700));
+  --coar-background-semantic-info-subtlest: var(--coar-d-background-semantic-info-subtlest, var(--coar-color-slate-50));
+  --coar-background-semantic-info-subtle: var(--coar-d-background-semantic-info-subtle, var(--coar-color-slate-100));
+  --coar-text-semantic-info-bold: var(--coar-d-text-semantic-info-bold, var(--coar-color-slate-800));
+  --coar-text-semantic-info-subtle: var(--coar-d-text-semantic-info-subtle, var(--coar-color-slate-700));
+  --coar-border-semantic-info-bold: var(--coar-d-border-semantic-info-bold, var(--coar-color-slate-900));
+  --coar-border-semantic-info-subtle: var(--coar-d-border-semantic-info-subtle, var(--coar-color-slate-200));
 
   /* ── Radius scale ───────────────────────────────────── */
   --coar-radius-xxs: 1px;
@@ -137,16 +137,16 @@
 
   /* ── Component tokens ───────────────────────────────── */
   --coar-component-density: 1;
-  --coar-button-radius: var(--coar-radius-xs);
-  --coar-input-radius: var(--coar-radius-xs);
+  --coar-button-radius: var(--coar-d-button-radius, var(--coar-radius-xs));
+  --coar-input-radius: var(--coar-d-input-radius, var(--coar-radius-xs));
   --coar-tag-radius: var(--coar-radius-xs);
   --coar-badge-radius: var(--coar-radius-full);
-  --coar-card-radius: var(--coar-radius-s);
-  --coar-menu-radius: var(--coar-radius-s);
-  --coar-popover-radius: var(--coar-radius-s);
-  --coar-dropdown-radius: var(--coar-input-radius);
+  --coar-card-radius: var(--coar-d-card-radius, var(--coar-radius-s));
+  --coar-menu-radius: var(--coar-d-menu-radius, var(--coar-radius-s));
+  --coar-popover-radius: var(--coar-d-popover-radius, var(--coar-radius-s));
+  --coar-dropdown-radius: var(--coar-d-dropdown-radius, var(--coar-input-radius));
   --coar-dialog-border-radius: var(--coar-radius-l);
-  --coar-toast-border-radius: var(--coar-radius-m);
+  --coar-toast-border-radius: var(--coar-d-toast-border-radius, var(--coar-radius-m));
   --coar-card-shadow: var(--coar-elevation-medium);
   --coar-menu-shadow: var(--coar-shadow-s);
   --coar-popover-shadow: var(--coar-shadow-m);

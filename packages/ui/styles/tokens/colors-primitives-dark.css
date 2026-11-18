@@ -36,16 +36,16 @@
   /* Accent Colors - auto-generated from --coar-accent via oklch
      Designed for dark backgrounds: vibrant mid-range, rich dark tints.
      Inherits --coar-accent from :root, no need to re-declare. */
-  --coar-color-accent-50:  oklch(from var(--coar-accent) 0.20 0.045 h);
-  --coar-color-accent-100: oklch(from var(--coar-accent) 0.25 0.065 h);
-  --coar-color-accent-200: oklch(from var(--coar-accent) 0.32 0.095 h);
-  --coar-color-accent-300: oklch(from var(--coar-accent) 0.42 0.13  h);
-  --coar-color-accent-400: oklch(from var(--coar-accent) 0.52 0.155 h);
-  --coar-color-accent-500: var(--coar-accent);
-  --coar-color-accent-600: oklch(from var(--coar-accent) 0.68 0.14  h);
-  --coar-color-accent-700: oklch(from var(--coar-accent) 0.76 0.11  h);
-  --coar-color-accent-800: oklch(from var(--coar-accent) 0.85 0.07  h);
-  --coar-color-accent-900: oklch(from var(--coar-accent) 0.93 0.035 h);
+  --coar-color-accent-50:  var(--coar-d-color-accent-50, oklch(from var(--coar-accent) 0.20 0.045 h));
+  --coar-color-accent-100: var(--coar-d-color-accent-100, oklch(from var(--coar-accent) 0.25 0.065 h));
+  --coar-color-accent-200: var(--coar-d-color-accent-200, oklch(from var(--coar-accent) 0.32 0.095 h));
+  --coar-color-accent-300: var(--coar-d-color-accent-300, oklch(from var(--coar-accent) 0.42 0.13  h));
+  --coar-color-accent-400: var(--coar-d-color-accent-400, oklch(from var(--coar-accent) 0.52 0.155 h));
+  --coar-color-accent-500: var(--coar-d-color-accent-500, var(--coar-accent));
+  --coar-color-accent-600: var(--coar-d-color-accent-600, oklch(from var(--coar-accent) 0.68 0.14  h));
+  --coar-color-accent-700: var(--coar-d-color-accent-700, oklch(from var(--coar-accent) 0.76 0.11  h));
+  --coar-color-accent-800: var(--coar-d-color-accent-800, oklch(from var(--coar-accent) 0.85 0.07  h));
+  --coar-color-accent-900: var(--coar-d-color-accent-900, oklch(from var(--coar-accent) 0.93 0.035 h));
 
   /* Success (green) — inherits --coar-success from :root */
   --coar-color-green-50:  oklch(from var(--coar-success) 0.20 0.035 h);

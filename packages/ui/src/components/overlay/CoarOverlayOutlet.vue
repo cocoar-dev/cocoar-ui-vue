@@ -3,7 +3,7 @@ import { onBeforeUnmount, onMounted, provide, useTemplateRef, inject } from 'vue
 import { OVERLAY_PARENT_KEY, OVERLAY_SERVICE_KEY } from './useOverlay';
 import type { OverlayInstance } from './overlay-service';
 import { MOBILE_CONTEXT_TOKENS } from './overlay-types';
-import { readCompactPresentationContext } from './useCompactPresentationContext';
+import { hasRoleDerivation, readCompactPresentationContext } from './useCompactPresentationContext';
 
 const props = defineProps<{
   instance: OverlayInstance;
@@ -21,11 +21,11 @@ let compactModeApplied = false;
 
 function themeSource(): HTMLElement | null {
   const anchor = props.instance.spec.anchor;
-  // Virtual anchors in the new appearance use the same explicit context as
-  // sizing. Keep the legacy theme resolution unchanged outside that profile.
+  // Virtual anchors in a role theme use the same explicit context as sizing.
+  // Keep the legacy theme resolution unchanged outside such a theme.
   const context = props.instance.contextEl ?? props.instance.parent?.panelEl;
   const element = anchor.kind === 'element' ? anchor.element
-    : context?.closest('.coar-compact') ? context : null;
+    : hasRoleDerivation(context) ? context : null;
   const source = element?.closest('.coar-theme-scope, [data-coar-theme-proxy]');
   return source instanceof HTMLElement ? source : null;
 }
@@ -79,18 +79,24 @@ function syncMobileContext(host: HTMLElement, source: HTMLElement) {
   }
 }
 
+/**
+ * The trigger whose role theme the overlay takes over. None when the host already
+ * sits inside that theme (`html` or `body` carries it): the host inherits it anyway.
+ */
 function compactContext(host: HTMLElement): Element | null {
   const instance = props.instance;
   instance.contextEl ??= instance.parent?.panelEl ?? null;
   const context = instance.contextEl;
-  const area = context?.closest('.coar-compact');
-  return area && !area.contains(host) ? context : null;
+  if (!context || !hasRoleDerivation(context)) return null;
+  const area = context.closest('.coar-compact');
+  if (area) return area.contains(host) ? null : context;
+  return hasRoleDerivation(host.parentElement) ? null : context;
 }
 
 function syncCompactContext(host: HTMLElement, context: Element | null) {
-  host.classList.toggle('coar-compact', context !== null);
-  if (!context) return;
   const presentation = readCompactPresentationContext(context);
+  host.classList.toggle('coar-compact', presentation.classes.includes('coar-compact'));
+  if (!context) return;
   for (const mode of ['light-mode', 'dark-mode']) {
     host.classList.toggle(mode, presentation.classes.includes(mode));
   }

@@ -33,8 +33,8 @@
      ======================================== */
 
   /* Background and borders */
-  --coar-sidebar-background: var(--coar-background-neutral-primary);
-  --coar-sidebar-border: 1px solid var(--coar-border-neutral-tertiary);
+  --coar-sidebar-background: var(--coar-d-sidebar-background, var(--coar-background-neutral-primary));
+  --coar-sidebar-border: var(--coar-d-sidebar-border, 1px solid var(--coar-border-neutral-tertiary));
 
   /* Optional elevation shadow */
   --coar-sidebar-shadow: none;
@@ -45,14 +45,14 @@
 
   /* Header section */
   --coar-sidebar-header-padding: var(--coar-spacing-m);
-  --coar-sidebar-header-border: 1px solid var(--coar-border-neutral-tertiary);
+  --coar-sidebar-header-border: var(--coar-d-sidebar-header-border, 1px solid var(--coar-border-neutral-tertiary));
 
   /* Content section (scrollable area) */
   --coar-sidebar-content-padding: 0;
 
   /* Footer section */
   --coar-sidebar-footer-padding: 0;
-  --coar-sidebar-footer-border: 1px solid var(--coar-border-neutral-tertiary);
+  --coar-sidebar-footer-border: var(--coar-d-sidebar-footer-border, 1px solid var(--coar-border-neutral-tertiary));
 
   /* ========================================
      Sidebar Item Styling
@@ -60,12 +60,12 @@
 
   --coar-sidebar-icon-size: 20px;
   --coar-sidebar-item-padding: 0.5rem 0.75rem;
-  --coar-sidebar-item-gap: 0.75rem;
+  --coar-sidebar-item-gap: var(--coar-d-sidebar-item-gap, 0.75rem);
   --coar-sidebar-item-margin: 2px 0;
   --coar-sidebar-item-radius: var(--coar-radius-xxs);
-  --coar-sidebar-item-hover: var(--coar-background-neutral-tertiary);
-  --coar-sidebar-item-active-color: var(--coar-text-accent-primary);
-  --coar-sidebar-item-active-bg: var(--coar-background-accent-tertiary);
+  --coar-sidebar-item-hover: var(--coar-d-sidebar-item-hover, var(--coar-background-neutral-tertiary));
+  --coar-sidebar-item-active-color: var(--coar-d-sidebar-item-active-color, var(--coar-text-accent-primary));
+  --coar-sidebar-item-active-bg: var(--coar-d-sidebar-item-active-bg, var(--coar-background-accent-tertiary));
   --coar-sidebar-group-indent: 16px;
 
   /* ========================================
@@ -82,10 +82,10 @@
 
 :root.dark-mode,
 .dark-mode {
-  --coar-sidebar-background: var(--coar-background-neutral-primary);
-  --coar-sidebar-border: 1px solid var(--coar-border-neutral-tertiary);
-  --coar-sidebar-header-border: 1px solid var(--coar-border-neutral-tertiary);
-  --coar-sidebar-footer-border: 1px solid var(--coar-border-neutral-tertiary);
+  --coar-sidebar-background: var(--coar-d-sidebar-background, var(--coar-background-neutral-primary));
+  --coar-sidebar-border: var(--coar-d-sidebar-border, 1px solid var(--coar-border-neutral-tertiary));
+  --coar-sidebar-header-border: var(--coar-d-sidebar-header-border, 1px solid var(--coar-border-neutral-tertiary));
+  --coar-sidebar-footer-border: var(--coar-d-sidebar-footer-border, 1px solid var(--coar-border-neutral-tertiary));
 
   --coar-scrollbar-thumb: rgba(255, 255, 255, 0.2);
   --coar-scrollbar-thumb-hover: rgba(255, 255, 255, 0.3);

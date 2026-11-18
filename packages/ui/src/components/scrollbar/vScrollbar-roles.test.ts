@@ -18,25 +18,28 @@ beforeAll(async () => {
   css = fs.readFileSync(`${dir}/vScrollbar-roles.css`, 'utf8');
 });
 
-// The handle roles must resolve to overlayscrollbars' own theme variables when unset,
-// so a scrollbar outside the compact profile looks exactly as the theme draws it.
+// The handle roles reach overlayscrollbars as its own theme variables. Unset, each
+// variable keeps its inherited value, so a scrollbar outside a role theme looks exactly
+// as the theme draws it and no rule of ours competes with a consumer's.
 describe('vScrollbar handle roles', () => {
-  it('never adds a competing handle rule outside the compact opt-in', () => {
+  it('adds a competing handle style only for the `.coar-compact` entry', () => {
     const source = css.replace(/\/\*[\s\S]*?\*\//g, '');
-    const selectors = [...source.matchAll(/([^{}]+)\{/g)].flatMap((match) => match[1]!.split(','));
-    expect(selectors.length).toBeGreaterThan(0);
-    for (const selector of selectors) expect(selector).toContain('.coar-compact');
+    const rules = [...source.matchAll(/([^{}]+)\{([^{}]*)\}/g)];
+    expect(rules.length).toBeGreaterThan(1);
+    for (const [, selectors, body] of rules) {
+      const names = [...body!.matchAll(/^\s*([\w-]+)\s*:/gm)].map((match) => match[1]!);
+      if (names.every((name) => name.startsWith('--os-handle-bg'))) continue;
+      for (const selector of selectors!.split(',')) expect(selector).toContain('.coar-compact');
+    }
   });
 
   it.each([
-    ['', '--coar-scrollbar-handle-bg', '--os-handle-bg'],
-    [':hover', '--coar-scrollbar-handle-bg-hover', '--os-handle-bg-hover'],
-    [':active', '--coar-scrollbar-handle-bg-active', '--os-handle-bg-active'],
-  ])('handle%s falls back to the theme variable', (state, role, themeVar) => {
-    const rule = new RegExp(
-      `\\.os-theme-dark \\.os-scrollbar-handle${state.replace(':', '\\:')}\\s*\\{\\s*background: var\\(${role}, var\\(${themeVar}\\)\\);\\s*\\}`,
-    );
-    expect(css).toMatch(rule);
+    ['--os-handle-bg', '--coar-scrollbar-handle-bg'],
+    ['--os-handle-bg-hover', '--coar-scrollbar-handle-bg-hover'],
+    ['--os-handle-bg-active', '--coar-scrollbar-handle-bg-active'],
+  ])('%s takes the role and otherwise inherits the theme variable', (themeVar, role) => {
+    expect(css).toContain(`${themeVar}: var(${role}, inherit);`);
+    expect(css).toMatch(/\.os-theme-dark \.os-scrollbar-handle\s*\{/);
   });
 
   it('leaves an explicit light theme to overlayscrollbars', () => {

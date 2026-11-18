@@ -298,20 +298,25 @@ function onClear() {
   min-height: calc(var(--coar-component-m-height) + var(--coar-component-m-height));
 }
 
-.coar-compact .coar-text-input-frame.coar-input-frame--multiline :deep(.coar-input-frame__field) {
-  /* Only textarea rows need stable medium-font metrics; tag frames inherit their own. */
-  font-family: var(--coar-body-small-base-family);
-  font-size: max(var(--coar-field-font-size), var(--coar-field-min-font-size));
-  font-weight: var(--coar-body-small-base-weight);
-  line-height: normal;
-}
+/* With the field text roles of a theme, a textarea keeps the established row floor
+   and gives larger glyphs their extra leading. Both values read those roles, so
+   without them nothing is declared (the fallback returns to the layers below). */
+@layer cocoar.components {
+  .coar-text-input-frame.coar-input-frame--multiline :deep(.coar-input-frame__field) {
+    /* Only textarea rows need stable medium-font metrics; tag frames inherit their own. */
+    --coar-i-textarea-metrics: var(--coar-body-small-base-weight)
+      max(var(--coar-field-font-size), var(--coar-field-min-font-size)) / normal
+      var(--coar-body-small-base-family);
+    font: var(--coar-i-textarea-metrics, revert-layer);
+  }
 
-.coar-compact .coar-text-input-textarea {
-  /* Keep the established row floor, but give larger glyphs their extra leading. */
-  line-height: max(
-    1lh,
-    calc(1lh + (1em - max(var(--coar-field-font-size), var(--coar-field-min-font-size))) * var(--coar-body-base-line-height))
-  );
+  .coar-text-input-textarea {
+    --coar-i-textarea-line-height: max(
+      1lh,
+      calc(1lh + (1em - max(var(--coar-field-font-size), var(--coar-field-min-font-size))) * var(--coar-body-base-line-height))
+    );
+    line-height: var(--coar-i-textarea-line-height, revert-layer);
+  }
 }
 
 .coar-text-input--xs .coar-text-input-textarea {

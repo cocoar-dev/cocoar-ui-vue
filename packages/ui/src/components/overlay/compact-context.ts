@@ -1,99 +1,77 @@
-/**
- * Explicit transport contract of compact.css, not a snapshot of every computed
- * CSS property. The contract test reconciles it with that stylesheet. Package
- * profiles re-evaluate their own defaults on the mirrored `.coar-compact` host.
- */
-export const COMPACT_APPEARANCE_INPUT_TOKENS = [
-  'accent', 'font-body', 'font-title', 'button-radius', 'input-radius', 'card-radius',
-].map((role) => `--coar-appearance-${role}`);
+import { COMPACT_THEME } from '../../theme/compact-theme';
+import { APPEARANCE_INPUT_TOKENS, ROLE_DERIVATION_TOKEN } from '../../theme/role-theme';
 
-export const COMPACT_CONTEXT_TOKENS = [
+/** Optional inputs of a surrounding scope; an empty one is carried as `initial`. */
+export const COMPACT_APPEARANCE_INPUT_TOKENS = APPEARANCE_INPUT_TOKENS;
+
+/**
+ * The tokens styles/tokens/derived.css derives (its public names); the contract
+ * test reconciles the list with that stylesheet.
+ */
+export const ROLE_DERIVED_TOKENS = [
+  'field-xs-default-font-size', 'field-s-default-font-size', 'field-l-default-font-size',
+  'picker-panel-radius', 'zone-caption-min-offset', 'choice-row-height', 'indicator-xs-height',
+  'indicator-s-height', 'indicator-m-height', 'indicator-l-height', 'body-base-family',
+  'body-bold-family', 'body-caption-family', 'body-footnote-family', 'body-small-base-family',
+  'body-small-bold-family', 'headings-heading-family', 'headings-subheading-family',
+  'titles-display-family', 'titles-subtitle-family', 'titles-title-family', 'body-bold-size',
+  'body-caption-size', 'body-footnote-size', 'body-small-base-size', 'body-small-bold-size',
+  'body-small-base-weight', 'body-small-base-line-height', 'heading-s', 'component-s-font-size',
+  'component-m-font-size', 'component-s-label-font-size', 'component-m-label-font-size',
+  'field-padding-x-tight', 'color-accent-50', 'color-accent-100', 'color-accent-200',
+  'color-accent-300', 'color-accent-400', 'color-accent-500', 'color-accent-600',
+  'color-accent-700', 'color-accent-800', 'color-accent-900', 'border-neutral',
+  'icon-neutral-primary', 'icon-neutral-secondary', 'icon-neutral-tertiary',
+  'icon-neutral-disabled', 'surface-input', 'surface-input-disabled',
+  'background-accent-primary', 'background-accent-hover', 'background-accent-active',
+  'background-accent-secondary', 'surface-accent-secondary', 'background-accent-tertiary',
+  'background-accent-tertiary-active', 'text-accent-primary', 'text-accent-secondary',
+  'border-accent-primary', 'border-accent-secondary', 'icon-accent-primary',
+  'background-semantic-success-bold', 'background-semantic-success-subtlest',
+  'background-semantic-success-subtle', 'text-semantic-success-bold',
+  'text-semantic-success-subtle', 'border-semantic-success-bold',
+  'border-semantic-success-subtle', 'icon-semantic-success-bold', 'icon-semantic-success-subtle',
+  'background-semantic-error-bold', 'background-semantic-error-hover',
+  'background-semantic-error-active', 'background-semantic-error-subtlest',
+  'background-semantic-error-subtle', 'text-semantic-error-bold', 'text-semantic-error-subtle',
+  'border-semantic-error', 'border-semantic-error-bold', 'border-semantic-error-subtle',
+  'icon-semantic-error-bold', 'icon-semantic-error-subtle', 'background-semantic-warning-bold',
+  'background-semantic-warning-subtlest', 'background-semantic-warning-subtle',
+  'text-semantic-warning-bold', 'text-semantic-warning-subtle', 'border-semantic-warning-bold',
+  'border-semantic-warning-subtle', 'icon-semantic-warning-bold', 'icon-semantic-warning-subtle',
+  'background-semantic-info-bold', 'background-semantic-info-subtlest',
+  'background-semantic-info-subtle', 'text-semantic-info-bold', 'text-semantic-info-subtle',
+  'border-semantic-info-bold', 'border-semantic-info-subtle', 'icon-semantic-info-bold',
+  'icon-semantic-info-subtle', 'button-danger-bg', 'button-danger-bg-hover',
+  'button-danger-bg-active', 'button-radius', 'input-radius', 'card-radius', 'menu-radius',
+  'popover-radius', 'dropdown-radius', 'dialog-padding', 'sheet-padding', 'card-padding',
+  'toast-border-radius', 'tree-checkbox-radius', 'card-outlined-border-color',
+  'pane-divider-active-color', 'data-list-surface', 'code-block-border', 'breadcrumb-font-size',
+  'breadcrumb-active-color', 'breadcrumb-link-color', 'pagination-font-size',
+  'pagination-active-background', 'pagination-active-color', 'pagination-hover-background',
+  'note-bg', 'note-border-color', 'tag-bg', 'tag-border-color', 'dialog-background',
+  'toast-background', 'navbar-background', 'navbar-border-color', 'menu-item-font-family',
+  'menu-item-font-size', 'menu-item-font-weight', 'menu-item-line-height',
+  'menu-heading-font-family', 'menu-heading-font-size', 'menu-heading-font-weight',
+  'menu-item-gap', 'menu-background', 'menu-item-color', 'menu-heading-color',
+  'menu-item-background-hover', 'menu-item-background-focus', 'menu-item-background-open',
+  'menu-item-background-active', 'menu-item-text-active', 'select-option-font-size',
+  'select-option-gap', 'sidebar-background', 'sidebar-border', 'sidebar-header-border',
+  'sidebar-footer-border', 'sidebar-item-gap', 'sidebar-item-hover', 'sidebar-item-active-color',
+  'sidebar-item-active-bg', 'switch-track-width', 'switch-track-height', 'switch-thumb-size',
+  'progress-bar-background', 'progress-accent-color', 'progress-success-color',
+  'progress-warning-color', 'progress-error-color', 'spinner-color', 'sheet-handle-color',
+].map((role) => `--coar-${role}`);
+
+/**
+ * Explicit transport contract of a role theme, not a snapshot of every computed CSS
+ * property: the inputs a theme can set, the mode marker and what is derived from
+ * them. A teleported surface receives their effective values at its origin.
+ */
+export const COMPACT_CONTEXT_TOKENS = [...new Set([
   ...COMPACT_APPEARANCE_INPUT_TOKENS,
-  ...[
-    'compact-color-scheme',
-    'font-family-body', 'font-family-title',
-    'ui-font-size', 'ui-line-height', 'ui-font-weight', 'label-font-weight',
-    'field-font-size', 'field-xs-font-size', 'field-s-font-size', 'field-l-font-size',
-    'field-xs-default-font-size', 'field-s-default-font-size', 'field-l-default-font-size',
-    'field-min-font-size', 'caption-font-size', 'interactive-row-height',
-    'panel-padding', 'content-gap', 'control-radius', 'panel-radius',
-    'form-label-icon-offset', 'picker-action-size', 'picker-month-height',
-    'picker-day-min-height', 'picker-action-opacity', 'picker-context-opacity',
-    'picker-panel-radius', 'time-step-size', 'time-cell-height', 'zone-caption-min-offset',
-    'choice-row-height', 'checkbox-size', 'checkbox-l-size',
-    'checkbox-icon-size', 'checkbox-l-icon-size', 'checkbox-radius',
-    'body-base-size', 'body-bold-size', 'body-base-line-height',
-    'body-small-base-line-height', 'body-large-size', 'heading-s',
-    'component-density', 'field-padding-x', 'field-padding-x-tight',
-    'focus-color', 'text-on-bold', 'text-on-brand-primary',
-    'button-danger-bg', 'button-danger-bg-hover', 'button-danger-bg-active',
-    'background-semantic-error-hover', 'background-semantic-error-active', 'border-semantic-error',
-    'surface-input', 'surface-input-disabled', 'surface-accent-secondary', 'border-input', 'border-input-hover',
-    'border-neutral', 'text-placeholder',
-    'button-radius', 'input-radius', 'tag-radius', 'card-radius', 'menu-radius',
-    'popover-radius', 'dropdown-radius', 'dialog-border-radius', 'dialog-padding',
-    'dialog-header-gap', 'dialog-close-size', 'sheet-border-radius', 'sheet-padding', 'card-padding',
-    'toast-border-radius', 'toast-padding', 'toast-gap', 'navbar-height', 'navbar-padding-x',
-    'badge-font-weight', 'popconfirm-title-font-size', 'toast-title-font-size',
-    'table-cell-padding', 'tree-checkbox-radius', 'card-outlined-border-color',
-    'pane-divider-active-color', 'data-list-surface', 'code-block-border', 'tooltip-padding',
-    'scrollbar-handle-bg', 'scrollbar-handle-bg-hover', 'scrollbar-handle-bg-active',
-    'breadcrumb-font-size', 'breadcrumb-active-color', 'breadcrumb-link-color',
-    'pagination-font-size', 'pagination-active-background', 'pagination-active-color',
-    'pagination-hover-background', 'note-bg', 'note-border-color', 'tag-bg', 'tag-border-color',
-    'dialog-background', 'toast-background', 'navbar-background', 'navbar-border-color',
-    'menu-item-font-family', 'menu-item-font-size', 'menu-item-font-weight',
-    'menu-item-line-height', 'menu-heading-font-family', 'menu-heading-font-size',
-    'menu-heading-font-weight', 'menu-heading-letter-spacing', 'menu-heading-text-transform',
-    'menu-item-padding', 'menu-item-gap', 'menu-heading-padding', 'menu-background',
-    'menu-item-color', 'menu-heading-color', 'menu-item-background-hover',
-    'menu-item-background-focus', 'menu-item-background-open', 'menu-item-background-active',
-    'menu-item-text-active', 'select-option-font-size', 'select-option-padding',
-    'select-option-gap', 'select-search-size', 'select-checkbox-indicator',
-    'sidebar-background', 'sidebar-border', 'sidebar-header-border', 'sidebar-footer-border',
-    'sidebar-header-padding', 'sidebar-icon-size', 'sidebar-item-padding',
-    'sidebar-item-gap', 'sidebar-item-radius', 'sidebar-item-hover',
-    'sidebar-item-active-color', 'sidebar-item-active-bg', 'scrollbar-thumb',
-    'scrollbar-thumb-hover', 'switch-track-width', 'switch-track-height', 'switch-thumb-size',
-    'progress-bar-background', 'progress-accent-color', 'progress-success-color',
-    'progress-warning-color', 'progress-error-color', 'spinner-color', 'sheet-handle-color',
-    'control-min-size', 'control-min-font-size', 'control-min-target-size',
-    'control-row-min-height',
-  ].map((role) => `--coar-${role}`),
-  ...['xs', 's', 'm', 'l'].flatMap((size) =>
-    ['height', 'font-size', 'label-font-size', 'scale', 'label-margin']
-      .map((role) => `--coar-component-${size}-${role}`)),
-  ...['xs', 's', 'm', 'l'].flatMap((size) =>
-    [`--coar-control-${size}-height`, `--coar-indicator-${size}-height`]),
-  ...['xs', 's', 'm', 'l', 'xl'].map((size) => `--coar-icon-${size}-size`),
-  ...['m', 'l'].flatMap((size) =>
-    ['track-width', 'track-height', 'thumb-size'].map((role) => `--coar-switch-${size}-${role}`)),
-  ...[
-    'body-base', 'body-bold', 'body-caption', 'body-footnote',
-    'body-small-base', 'body-small-bold',
-  ].flatMap((role) => ['family', 'weight'].map((part) => `--coar-${role}-${part}`)),
-  ...['body-caption', 'body-footnote', 'body-small-base', 'body-small-bold']
-    .map((role) => `--coar-${role}-size`),
-  ...[
-    'headings-heading', 'headings-subheading',
-    'titles-display', 'titles-subtitle', 'titles-title',
-  ].flatMap((role) => ['family', 'size', 'weight'].map((part) => `--coar-${role}-${part}`)),
-  ...[50, 100, 200, 300, 400, 500, 600, 700, 800, 900]
-    .map((step) => `--coar-color-accent-${step}`),
-  ...['primary', 'secondary', 'tertiary', 'quaternary', 'active', 'disabled']
-    .map((role) => `--coar-background-neutral-${role}`),
-  ...['text', 'icon'].flatMap((kind) =>
-    ['primary', 'secondary', 'tertiary', 'disabled'].map((role) => `--coar-${kind}-neutral-${role}`)),
-  ...['primary', 'secondary', 'tertiary', 'quaternary']
-    .map((role) => `--coar-border-neutral-${role}`),
-  ...['primary', 'hover', 'active', 'secondary', 'tertiary', 'tertiary-active']
-    .map((role) => `--coar-background-accent-${role}`),
-  ...['text', 'border'].flatMap((kind) =>
-    ['primary', 'secondary'].map((role) => `--coar-${kind}-accent-${role}`)),
-  '--coar-icon-accent-primary',
-  ...['success', 'error', 'warning', 'info'].flatMap((status) => [
-    ...['bold', 'subtlest', 'subtle'].map((role) => `--coar-background-semantic-${status}-${role}`),
-    ...['text', 'border', 'icon'].flatMap((kind) =>
-      ['bold', 'subtle'].map((role) => `--coar-${kind}-semantic-${status}-${role}`)),
-  ]),
-] as const;
+  '--coar-compact-color-scheme',
+  ...Object.keys(COMPACT_THEME.tokens),
+  ...Object.keys(COMPACT_THEME.mobileTokens),
+  ...ROLE_DERIVED_TOKENS,
+])].filter((token) => token !== ROLE_DERIVATION_TOKEN);

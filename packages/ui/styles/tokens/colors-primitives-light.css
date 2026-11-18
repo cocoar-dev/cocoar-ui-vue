@@ -78,14 +78,14 @@
 
   /* Accent Colors - auto-generated from --coar-accent via oklch
      Extracts hue (h) from your brand color, applies designed lightness/chroma curves. */
-  --coar-color-accent-50:  oklch(from var(--coar-accent) 0.97 0.012 h);
-  --coar-color-accent-100: oklch(from var(--coar-accent) 0.92 0.035 h);
-  --coar-color-accent-200: oklch(from var(--coar-accent) 0.84 0.075 h);
-  --coar-color-accent-300: oklch(from var(--coar-accent) 0.74 0.115 h);
-  --coar-color-accent-400: oklch(from var(--coar-accent) 0.66 0.145 h);
-  --coar-color-accent-500: var(--coar-accent);
-  --coar-color-accent-600: oklch(from var(--coar-accent) 0.53 0.15  h);
-  --coar-color-accent-700: oklch(from var(--coar-accent) 0.47 0.14  h);
-  --coar-color-accent-800: oklch(from var(--coar-accent) 0.39 0.12  h);
-  --coar-color-accent-900: oklch(from var(--coar-accent) 0.31 0.095 h);
+  --coar-color-accent-50:  var(--coar-d-color-accent-50, oklch(from var(--coar-accent) 0.97 0.012 h));
+  --coar-color-accent-100: var(--coar-d-color-accent-100, oklch(from var(--coar-accent) 0.92 0.035 h));
+  --coar-color-accent-200: var(--coar-d-color-accent-200, oklch(from var(--coar-accent) 0.84 0.075 h));
+  --coar-color-accent-300: var(--coar-d-color-accent-300, oklch(from var(--coar-accent) 0.74 0.115 h));
+  --coar-color-accent-400: var(--coar-d-color-accent-400, oklch(from var(--coar-accent) 0.66 0.145 h));
+  --coar-color-accent-500: var(--coar-d-color-accent-500, var(--coar-accent));
+  --coar-color-accent-600: var(--coar-d-color-accent-600, oklch(from var(--coar-accent) 0.53 0.15  h));
+  --coar-color-accent-700: var(--coar-d-color-accent-700, oklch(from var(--coar-accent) 0.47 0.14  h));
+  --coar-color-accent-800: var(--coar-d-color-accent-800, oklch(from var(--coar-accent) 0.39 0.12  h));
+  --coar-color-accent-900: var(--coar-d-color-accent-900, oklch(from var(--coar-accent) 0.31 0.095 h));
 }

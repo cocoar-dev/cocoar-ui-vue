@@ -24,13 +24,15 @@ const emit = defineEmits<{
 }>();
 const source = useTemplateRef<HTMLElement>('source');
 const presentation = useCompactPresentationContext(() => source.value);
-const compactAccent = computed(() =>
-  presentation.value.classes.includes('coar-compact') && props.cssFamily === 'accent');
+// Whether the editor was opened from a theme with active role derivation. Such a
+// theme brings its own curves and sizes, and this tool then shows them as they are.
+const roleTheme = computed(() => Object.keys(presentation.value.style).length > 0);
 
-// The compact accent has its own mode-aware scale. Inspect the real CSS roles
-// rather than previewing the legacy scale (which makes Slate look saturated).
+// A role theme's accent has its own mode-aware scale. Inspect the real CSS roles
+// rather than previewing the default scale (which makes Slate look saturated).
+const accentRoles = computed(() => roleTheme.value && props.cssFamily === 'accent');
 const paletteSteps = computed(() => {
-  if (!compactAccent.value || !source.value) return props.steps;
+  if (!accentRoles.value || !source.value) return props.steps;
   // Depend on live context updates, including consumer palette overrides.
   const context = presentation.value;
   const probe = document.createElement('span');
@@ -77,7 +79,7 @@ onUnmounted(() => stopDrag());
 
 /* ── palette logic ───────────────────────────────────────────── */
 function swatchStyle(s: StepDef): Record<string, string> {
-  if (compactAccent.value && !props.modelValue[s.step]) {
+  if (accentRoles.value && !props.modelValue[s.step]) {
     return { background: `var(--coar-color-accent-${s.step})` };
   }
   if (s.defL === null) return { background: props.baseColor };
@@ -108,9 +110,9 @@ const hasAnyOverride = computed(() => Object.keys(props.modelValue).length > 0);
 function resetAll() { emit('update:modelValue', {}); }
 function isChanged(s: StepDef) {
   const ov = props.modelValue[s.step];
-  // An explicit compact override remains authored even if it currently equals
+  // An explicit override in a role theme remains authored even if it currently equals
   // the default; a later scheme/brand change must not silently discard it.
-  if (compactAccent.value) return !!ov;
+  if (accentRoles.value) return !!ov;
   return !!ov && (ov.l !== s.defL || ov.c !== s.defC);
 }
 </script>
@@ -120,7 +122,7 @@ function isChanged(s: StepDef) {
   <Teleport to="body">
     <div
       class="cpe-modal"
-      :class="[presentation.classes, { 'cpe-modal--dragging': isDragging }]"
+      :class="[presentation.classes, { 'cpe-modal--dragging': isDragging, 'cpe-modal--role-theme': roleTheme }]"
       :style="[presentation.style, { left: pos.x + 'px', top: pos.y + 'px' }]"
       role="dialog"
       :aria-label="`${label} palette editor`"
@@ -356,12 +358,12 @@ function isChanged(s: StepDef) {
   color: var(--coar-text-neutral-secondary, #595959);
 }
 
-.cpe-modal.coar-compact {
+.cpe-modal--role-theme {
   box-sizing: border-box;
   max-width: calc(100vw - 24px);
   max-height: calc(100dvh - 96px);
 }
-.cpe-modal.coar-compact .cpe-strip-label {
+.cpe-modal--role-theme .cpe-strip-label {
   padding: 2px 3px;
   font-size: var(--coar-caption-font-size, 7px);
   font-weight: var(--coar-label-font-weight, 700);
@@ -370,8 +372,8 @@ function isChanged(s: StepDef) {
   border-radius: 2px;
   text-shadow: none;
 }
-.cpe-modal.coar-compact .cpe-close,
-.cpe-modal.coar-compact .cpe-reset-btn {
+.cpe-modal--role-theme .cpe-close,
+.cpe-modal--role-theme .cpe-reset-btn {
   min-width: var(--coar-control-min-target-size, 0px);
   min-height: var(--coar-control-min-target-size, 0px);
   border-radius: var(--coar-control-radius, 5px);

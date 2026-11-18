@@ -428,11 +428,10 @@ provide(FORM_FIELD_INJECTION_KEY, {
   width: 100%;
 }
 
-/* Compact inline fields keep their label beside the control. Stacked labels
-   still span the row for label actions; the legacy layout stays unchanged. */
-.coar-compact .coar-form-field--inline .coar-form-field__label-cluster,
-.coar-form-field--inline.coar-compact .coar-form-field__label-cluster {
-  width: auto;
+/* A theme can keep the label of an inline field beside the control. Stacked labels
+   still span the row for label actions. */
+.coar-form-field--inline .coar-form-field__label-cluster {
+  width: var(--coar-form-inline-label-width, 100%);
 }
 
 .coar-form-field__label-action {

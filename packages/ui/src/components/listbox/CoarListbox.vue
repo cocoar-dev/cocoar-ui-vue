@@ -864,13 +864,19 @@ const hostClasses = computed(() => [
   outline: none;
 }
 
-/* Opaque native tracks can paint over the rounded right-hand border. Keep the
-   track transparent without clipping focus rings or changing the scrollport. */
-.coar-compact .coar-listbox-list {
-  scrollbar-color: var(--coar-scrollbar-thumb) transparent;
+/* Opaque native tracks can paint over the rounded right-hand border. A theme that
+   names the track colour gets a themed scrollbar, without clipping focus rings or
+   changing the scrollport; without it this declares nothing. */
+@layer cocoar.components {
+  .coar-listbox-list {
+    --coar-i-listbox-scrollbar-color: var(--coar-scrollbar-thumb) var(--coar-listbox-scrollbar-track);
+    scrollbar-color: var(--coar-i-listbox-scrollbar-color, revert-layer);
+  }
 }
 
-/* Safari versions without scrollbar-color need the native WebKit parts. */
+/* Safari versions without scrollbar-color need the native WebKit parts. A matching
+   ::-webkit-scrollbar rule replaces the native scrollbar whatever it declares, so
+   this fallback cannot follow a value: it stays with the `.coar-compact` entry. */
 @supports not (scrollbar-color: gray transparent) {
   .coar-compact .coar-listbox-list::-webkit-scrollbar {
     width: calc(var(--coar-spacing-s) + var(--coar-spacing-xs));
@@ -956,21 +962,23 @@ const hostClasses = computed(() => [
 .coar-listbox-list:not(.coar-listbox-list--virtual) .coar-listbox-item {
   min-height: var(--coar-control-row-min-height, var(--coar-interactive-row-height, auto));
 }
-.coar-compact .coar-listbox-list--fixed-height {
+.coar-listbox-list--fixed-height {
   /* A specified viewport must not grow to the virtual spacer's full height
-     inside an auto-sized parent. Keep the historical flex rule outside opt-in. */
-  flex: none;
+     inside an auto-sized parent. A theme opts in; the historical flex stays otherwise. */
+  flex: var(--coar-listbox-fixed-height-flex, 1);
 }
-.coar-compact .coar-listbox-list--virtual .coar-listbox-item,
-.coar-compact .coar-listbox-group-heading--virtual {
-  /* The virtualizer positions border boxes at itemHeight/groupHeadingHeight.
-     Padding must not extend those boxes over the following row. */
-  box-sizing: border-box;
-}
-.coar-mobile .coar-listbox-list:not(.coar-listbox-list--virtual) .coar-listbox-item,
-.coar-compact .coar-listbox-list:not(.coar-listbox-list--virtual) .coar-listbox-item {
+.coar-mobile .coar-listbox-list:not(.coar-listbox-list--virtual) .coar-listbox-item {
   /* Do not alter the legacy box model, including consumer-supplied dimensions. */
   box-sizing: border-box;
+}
+/* The virtualizer positions border boxes at itemHeight/groupHeadingHeight, and the
+   row floor counts the padding: a theme with such rows sets the box model. Without
+   the value this declares nothing. */
+@layer cocoar.components {
+  .coar-listbox-item,
+  .coar-listbox-group-heading--virtual {
+    box-sizing: var(--coar-control-box-sizing, revert-layer);
+  }
 }
 
 .coar-listbox-item--rich {

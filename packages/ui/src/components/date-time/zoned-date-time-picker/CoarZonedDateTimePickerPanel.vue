@@ -502,9 +502,6 @@ function cancelEditValueTimezone() {
 .coar-zdtp-tz-search-input:focus {
   border-color: var(--coar-border-accent-primary);
 }
-.coar-compact .coar-zdtp-tz-search-input {
-  box-sizing: border-box;
-}
 .coar-zdtp-tz-search-input::placeholder {
   color: var(--coar-text-neutral-disabled);
 }
@@ -791,9 +788,14 @@ function cancelEditValueTimezone() {
   background: var(--coar-background-neutral-tertiary);
 }
 
-.coar-compact .coar-zdtp-tz-picker-item,
-.coar-compact .coar-zdtp-display-tz-btn {
-  box-sizing: border-box;
+/* In the library's layer with a fallback to the layers below: without the value this
+   declares nothing, so an app's own box model stays as it is. */
+@layer cocoar.components {
+  .coar-zdtp-tz-search-input,
+  .coar-zdtp-tz-picker-item,
+  .coar-zdtp-display-tz-btn {
+    box-sizing: var(--coar-control-box-sizing, revert-layer);
+  }
 }
 
 /* Stacked single-column layout for small viewports */

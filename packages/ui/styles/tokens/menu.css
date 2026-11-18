@@ -8,21 +8,21 @@
 
 :root {
   /* --- Typography -------------------------------------------------------- */
-  --coar-menu-item-font-family: var(--coar-body-base-family);
-  --coar-menu-item-font-size: var(--coar-component-m-font-size);
-  --coar-menu-item-font-weight: var(--coar-font-weight-regular);
-  --coar-menu-item-line-height: var(--coar-line-height-relaxed);
+  --coar-menu-item-font-family: var(--coar-d-menu-item-font-family, var(--coar-body-base-family));
+  --coar-menu-item-font-size: var(--coar-d-menu-item-font-size, var(--coar-component-m-font-size));
+  --coar-menu-item-font-weight: var(--coar-d-menu-item-font-weight, var(--coar-font-weight-regular));
+  --coar-menu-item-line-height: var(--coar-d-menu-item-line-height, var(--coar-line-height-relaxed));
 
-  --coar-menu-heading-font-family: var(--coar-body-base-family);
-  --coar-menu-heading-font-size: var(--coar-component-xs-font-size);
-  --coar-menu-heading-font-weight: var(--coar-font-weight-semi-bold);
+  --coar-menu-heading-font-family: var(--coar-d-menu-heading-font-family, var(--coar-body-base-family));
+  --coar-menu-heading-font-size: var(--coar-d-menu-heading-font-size, var(--coar-component-xs-font-size));
+  --coar-menu-heading-font-weight: var(--coar-d-menu-heading-font-weight, var(--coar-font-weight-semi-bold));
   --coar-menu-heading-line-height: var(--coar-line-height-normal);
   --coar-menu-heading-letter-spacing: 0.05em;
   --coar-menu-heading-text-transform: uppercase;
 
   /* --- Spacing & Layout -------------------------------------------------- */
   --coar-menu-item-padding: 0.5rem 0.75rem;
-  --coar-menu-item-gap: 0.75rem;
+  --coar-menu-item-gap: var(--coar-d-menu-item-gap, 0.75rem);
   --coar-menu-heading-padding: 0.75rem 0.75rem 0.25rem 0.75rem;
   --coar-menu-min-width: 12rem;
   --coar-menu-max-width: 20rem;
@@ -35,25 +35,25 @@
   --coar-sub-expand-indent-offset: 16px;
 
   /* --- Colors ------------------------------------------------------------ */
-  --coar-menu-background: var(--coar-background-neutral-primary);
-  --coar-menu-item-color: var(--coar-text-neutral-secondary);
-  --coar-menu-heading-color: var(--coar-text-neutral-tertiary);
+  --coar-menu-background: var(--coar-d-menu-background, var(--coar-background-neutral-primary));
+  --coar-menu-item-color: var(--coar-d-menu-item-color, var(--coar-text-neutral-secondary));
+  --coar-menu-heading-color: var(--coar-d-menu-heading-color, var(--coar-text-neutral-tertiary));
 
   /* Item interactive states */
-  --coar-menu-item-background-hover: var(--coar-background-neutral-secondary);
-  --coar-menu-item-background-focus: var(--coar-background-neutral-secondary);
-  --coar-menu-item-background-open: var(--coar-background-accent-tertiary);
-  --coar-menu-item-background-active: var(--coar-background-accent-tertiary);
-  --coar-menu-item-text-active: var(--coar-text-accent-primary);
+  --coar-menu-item-background-hover: var(--coar-d-menu-item-background-hover, var(--coar-background-neutral-secondary));
+  --coar-menu-item-background-focus: var(--coar-d-menu-item-background-focus, var(--coar-background-neutral-secondary));
+  --coar-menu-item-background-open: var(--coar-d-menu-item-background-open, var(--coar-background-accent-tertiary));
+  --coar-menu-item-background-active: var(--coar-d-menu-item-background-active, var(--coar-background-accent-tertiary));
+  --coar-menu-item-text-active: var(--coar-d-menu-item-text-active, var(--coar-text-accent-primary));
 }
 
 :root.dark-mode,
 .dark-mode {
-  --coar-menu-background: var(--coar-color-gray-100);
-  --coar-menu-item-background-hover: var(--coar-color-gray-200);
-  --coar-menu-item-background-focus: var(--coar-color-gray-200);
-  --coar-menu-item-background-open: var(--coar-color-gray-200);
-  --coar-menu-item-background-active: var(--coar-color-gray-200);
+  --coar-menu-background: var(--coar-d-menu-background, var(--coar-color-gray-100));
+  --coar-menu-item-background-hover: var(--coar-d-menu-item-background-hover, var(--coar-color-gray-200));
+  --coar-menu-item-background-focus: var(--coar-d-menu-item-background-focus, var(--coar-color-gray-200));
+  --coar-menu-item-background-open: var(--coar-d-menu-item-background-open, var(--coar-color-gray-200));
+  --coar-menu-item-background-active: var(--coar-d-menu-item-background-active, var(--coar-color-gray-200));
 }
 
 /* Sidebar variant */

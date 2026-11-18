@@ -44,5 +44,8 @@
 /* 8. Optional mobile presentation (inherited from .coar-mobile) */
 @import './mobile.css';
 
-/* 9. Experimental appearance; existing desktop/mobile values stay untouched. */
+/* 9. Role derivation: inert until a theme activates it. */
+@import './derived.css';
+
+/* 10. `.coar-compact`: the Compact theme preset as a class (Preview). */
 @import './compact.css';
