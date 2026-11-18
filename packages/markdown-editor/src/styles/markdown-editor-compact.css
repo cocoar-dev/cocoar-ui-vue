@@ -25,7 +25,8 @@
     .coar-md-external-toolbar,
     .coar-md-floating-toolbar,
     .coar-md-table-picker,
-    .coar-md-color-picker
+    .coar-md-color-picker,
+    .coar-md-code-host
   ) {
   --coar-d-markdown-editor-button-radius: var(--coar-role-derivation) var(--coar-control-radius);
   --coar-markdown-editor-button-radius: var(--coar-d-markdown-editor-button-radius, inherit);
