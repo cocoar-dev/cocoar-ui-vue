@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { COMPACT_THEME } from './compact-theme';
 import { ROLE_DERIVATION_TOKEN, serializeRoleTheme } from './role-theme';
+import { COLOR_STEPS, DEFAULT_PALETTE_INPUTS } from './palette-inputs';
 
 async function source(relativePath: string): Promise<string> {
   const fsModule = 'node:fs';
@@ -15,6 +16,32 @@ async function source(relativePath: string): Promise<string> {
 }
 
 describe('Compact theme, one source for preset and class', () => {
+  it('uses the common accent curve and keeps the chosen fill in both schemes', () => {
+    for (const step of COLOR_STEPS) {
+      for (const suffix of ['', '-dark']) {
+        const token = `--coar-color-accent-${step}-lc${suffix}`;
+        expect(COMPACT_THEME.tokens[token], token).toBe(DEFAULT_PALETTE_INPUTS[token]);
+      }
+    }
+    for (const suffix of ['', '-dark']) {
+      expect(COMPACT_THEME.tokens[`--coar-background-accent-primary-lc${suffix}`]).toBe('l c');
+    }
+  });
+
+  it('uses the default theme hover and active steps for each scheme', () => {
+    for (const [suffix, hoverStep, activeStep] of [
+      ['', 600, 700],
+      ['-dark', 400, 300],
+    ] as const) {
+      expect(COMPACT_THEME.tokens[`--coar-background-accent-hover-lc${suffix}`]).toBe(
+        DEFAULT_PALETTE_INPUTS[`--coar-color-accent-${hoverStep}-lc${suffix}`],
+      );
+      expect(COMPACT_THEME.tokens[`--coar-background-accent-active-lc${suffix}`]).toBe(
+        DEFAULT_PALETTE_INPUTS[`--coar-color-accent-${activeStep}-lc${suffix}`],
+      );
+    }
+  });
+
   it('styles/tokens/compact.css is the serialized Compact theme', async () => {
     const css = await source('../../styles/tokens/compact.css');
     // Regenerate with: node --experimental-strip-types packages/ui/scripts/write-compact-css.mjs

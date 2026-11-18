@@ -7,6 +7,42 @@ const stateUrl = `/@fs${resolve(import.meta.dirname, '../../../packages/ui/src/c
 const hues = ['#334155', '#15803d', '#be185d', '#facc15', '#1183cd'];
 const roles = ['accent', 'success', 'error', 'warning', 'info'] as const;
 
+test('Compact keeps the chosen accent fill in both schemes @touch', async ({ page }) => {
+  await page.goto('/design-review?kind=fields');
+  const fills = await page.evaluate((hues) => {
+    const theme = document.createElement('div');
+    theme.className = 'coar-compact';
+    theme.innerHTML = '<span></span>';
+    document.body.appendChild(theme);
+    const probe = theme.firstElementChild as HTMLElement;
+    probe.style.color = 'var(--coar-background-accent-primary)';
+    const context = document.createElement('canvas').getContext('2d')!;
+    const read = (color: string) => {
+      context.clearRect(0, 0, 1, 1);
+      context.fillStyle = color;
+      context.fillRect(0, 0, 1, 1);
+      return Array.from(context.getImageData(0, 0, 1, 1).data).slice(0, 3);
+    };
+    const results = hues.flatMap((hue, index) => {
+      const darkHue = hues[(index + 1) % hues.length]!;
+      theme.style.setProperty('--coar-appearance-accent', `light-dark(${hue}, ${darkHue})`);
+      return (['light', 'dark'] as const).map((scheme) => {
+        theme.style.colorScheme = scheme;
+        return {
+          hue, scheme,
+          expected: read(scheme === 'light' ? hue : darkHue),
+          actual: read(getComputedStyle(probe).color),
+        };
+      });
+    });
+    theme.remove();
+    return results;
+  }, hues);
+  for (const { hue, scheme, expected, actual } of fills) {
+    expect(actual, `${hue} ${scheme}`).toEqual(expected);
+  }
+});
+
 for (const scheme of ['light', 'dark']) {
   // @touch runs the same CSS calculation in both WebKit device projects too.
   test(`filled roles choose the better APCA ink with every preset (${scheme}) @touch`, async ({ page }) => {

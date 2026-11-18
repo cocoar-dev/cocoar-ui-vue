@@ -20,8 +20,8 @@ import { DEFAULT_PALETTE_INPUTS } from './palette-inputs';
  */
 export const COMPACT_THEME: CoarRoleTheme = {
   tokens: {
-    // Complete palette inputs; Compact's accent and semantic role curves below
-    // retain its existing appearance until deliberately changed.
+    // Every preset uses the common accent palette, including for Compact's Slate
+    // default. Its absolute chroma can produce saturated blue accent steps.
     ...DEFAULT_PALETTE_INPUTS,
     // Activates the shared role derivation on this scope and the boundaries inside it.
     '--coar-role-derivation': '',
@@ -166,30 +166,12 @@ export const COMPACT_THEME: CoarRoleTheme = {
     '--coar-listbox-fixed-height-flex': 'none',
     '--coar-form-inline-label-width': 'auto',
     // Lightness and chroma of the derived colours (`-lc-dark` in the dark scheme).
-    '--coar-color-accent-50-lc': '0.97 0.012',
-    '--coar-color-accent-50-lc-dark': '0.22 0.02',
-    '--coar-color-accent-100-lc': '0.94 0.02',
-    '--coar-color-accent-100-lc-dark': '0.28 0.03',
-    '--coar-color-accent-200-lc': '0.88 0.03',
-    '--coar-color-accent-200-lc-dark': '0.36 0.04',
-    '--coar-color-accent-300-lc': '0.78 0.04',
-    '--coar-color-accent-300-lc-dark': '0.46 0.05',
-    '--coar-color-accent-400-lc': '0.62 0.06',
-    '--coar-color-accent-400-lc-dark': '0.62 0.06',
-    '--coar-color-accent-600-lc': '0.4 0.05',
-    '--coar-color-accent-600-lc-dark': '0.78 0.04',
-    '--coar-color-accent-700-lc': '0.34 0.04',
-    '--coar-color-accent-700-lc-dark': '0.85 0.03',
-    '--coar-color-accent-800-lc': '0.28 0.035',
-    '--coar-color-accent-800-lc-dark': '0.91 0.02',
-    '--coar-color-accent-900-lc': '0.22 0.03',
-    '--coar-color-accent-900-lc-dark': '0.96 0.01',
-    '--coar-background-accent-primary-lc': '0.38 0.045',
-    '--coar-background-accent-primary-lc-dark': '0.38 0.045',
-    '--coar-background-accent-hover-lc': '0.32 0.04',
-    '--coar-background-accent-hover-lc-dark': '0.32 0.04',
-    '--coar-background-accent-active-lc': '0.27 0.035',
-    '--coar-background-accent-active-lc-dark': '0.27 0.035',
+    '--coar-background-accent-primary-lc': 'l c',
+    '--coar-background-accent-primary-lc-dark': 'l c',
+    '--coar-background-accent-hover-lc': '0.53 0.15',
+    '--coar-background-accent-hover-lc-dark': '0.52 0.155',
+    '--coar-background-accent-active-lc': '0.47 0.14',
+    '--coar-background-accent-active-lc-dark': '0.42 0.13',
     '--coar-background-semantic-success-bold-lc': '0.45 0.1',
     '--coar-background-semantic-success-bold-lc-dark': '0.45 0.1',
     '--coar-background-semantic-success-subtlest-lc': '0.98 0.012',

@@ -127,8 +127,11 @@ rail to half the card: they do not promise full-size touch targets, and arrow ke
 ## Theme inputs and local specialization
 
 `CoarThemeScope` continues to accept accent, semantic colors, fonts and component radii.
-Without an explicit accent, compact uses Slate instead of the legacy blue. The compact curves
-separate filled-action colors from text, border and focus colors in light and dark mode.
+Without an explicit accent, Compact uses Slate (`#334155`) for its primary fill instead of the
+legacy blue. An accent you name is used as you chose it: the primary fill shows the colour itself.
+The palette follows the library's common curve in both cases, including its absolute chroma:
+derived accent text, borders and interaction states can therefore be saturated blue even with
+the Slate default. Hover and pressed fills use the default theme's steps for each colour scheme.
 Normal field outlines use a muted Slate tone; hover strengthens them only slightly.
 The `--coar-border-input` and `--coar-border-input-hover` roles remain independently
 customizable, separate from focus and semantic error colors.

@@ -331,7 +331,7 @@ test.describe('compact interaction scenes', () => {
       expect(await palette.evaluate((el) => !!el.closest('.coar-compact'))).toBe(true);
       await expectInter(palette);
       const row600 = palette.locator('.cpe-row').filter({ has: page.locator('.cpe-row-step', { hasText: /^600$/ }) });
-      await expect(row600.locator('.cpe-val').first()).toHaveText(v.scheme === 'dark' ? '0.780' : '0.400');
+      await expect(row600.locator('.cpe-val').first()).toHaveText(v.scheme === 'dark' ? '0.680' : '0.530');
       const swatch = palette.locator('.cpe-strip-swatch[title="600"]');
       const colors = await swatch.evaluate((el) => {
         const probe = document.createElement('span');
