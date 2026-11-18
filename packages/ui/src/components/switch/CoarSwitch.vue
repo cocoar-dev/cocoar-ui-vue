@@ -225,7 +225,7 @@ function onBlur() {
   width: var(--coar-switch-thumb-size);
   height: var(--coar-switch-thumb-size);
   border-radius: 50%;
-  background: var(--coar-text-on-bold);
+  background: var(--coar-text-on-accent, var(--coar-text-on-bold));
   transform: translateY(-50%) translateX(0);
   transition: transform var(--coar-duration-fast) ease;
 }

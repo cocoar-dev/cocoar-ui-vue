@@ -14,6 +14,12 @@
  */
 
 .coar-theme-none {
+  --coar-text-on-threshold: 0.3419552539852081;
+  --coar-text-on-accent: var(--coar-d-text-on-accent, var(--coar-text-on-bold));
+  --coar-text-on-success: var(--coar-d-text-on-success, var(--coar-text-on-bold));
+  --coar-text-on-error: var(--coar-d-text-on-error, var(--coar-text-on-bold));
+  --coar-text-on-warning: var(--coar-d-text-on-warning, var(--coar-text-on-bold));
+  --coar-text-on-info: var(--coar-d-text-on-info, var(--coar-text-on-bold));
   /* ── Base hue vars ──────────────────────────────────── */
   --coar-accent: #1183cd;
   --coar-success: #1e8f48;

@@ -118,7 +118,7 @@ function onPointerdown(e: PointerEvent) {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   background: var(--coar-calendar-accent, var(--coar-color-accent, var(--coar-color-accent-500, #2563eb)));
-  color: var(--coar-calendar-on-accent, #fff);
+  color: var(--coar-calendar-on-accent, var(--coar-text-on-accent, #fff));
   padding: 2px 8px;
   border-radius: 999px;
   font-weight: var(--coar-calendar-badge-font-weight, 700);

@@ -629,7 +629,7 @@ defineExpose({
   justify-content: center;
   border-radius: 50%;
   background: var(--coar-calendar-today-marker-bg, var(--coar-color-danger, #ff3b30));
-  color: var(--coar-calendar-on-accent, white);
+  color: var(--coar-calendar-on-accent, var(--coar-text-on-accent, white));
 }
 /* Density changes affect every preceding section. A height transition would keep
  * moving the anchor for 200 ms after Vue has restored it, so continuous sections

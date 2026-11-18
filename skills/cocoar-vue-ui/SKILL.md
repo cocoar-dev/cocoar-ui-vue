@@ -97,6 +97,7 @@ of each other.
 - [Mobile presentation (Preview)](references/guide/mobile.md) — Opt into the mobile presentation with a coar-mobile parent: touch-sized controls, what decides sizes, layout and input behaviour, how it combines with brand themes, and which device classes each component supports.
 - [Migrating to 2.11](references/guide/migration.md) — Migration guide for Cocoar UI 2.11: date/time pickers move onto CoarFormField, the clear button becomes opt-in, and two CSS tokens are renamed.
 - [Migrating Page Builder to 3.0](references/guide/migration-page-builder-3.md) — Migration guide for @cocoar/vue-page-builder 3.0: four PageConfig concepts removed, several names disambiguated, and documents migrated to schemaVersion 6.
+- [Migrating text on saturated fills](references/guide/migration-color-roles.md) — Text on saturated fills now has one computed ink role per base colour, with explicit overrides for custom themes.
 
 ### Foundations
 

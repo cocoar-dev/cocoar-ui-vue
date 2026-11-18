@@ -91,7 +91,7 @@ function span(from: number, to: number): Record<string, string> {
   padding: 1px 5px;
   border-radius: 9px;
   background: var(--marker-color);
-  color: var(--coar-calendar-on-accent, #fff);
+  color: var(--coar-calendar-on-accent, var(--coar-text-on-accent, #fff));
   font-size: var(--coar-calendar-event-meta-font-size, 10px);
   font-weight: 600;
   line-height: 14px;

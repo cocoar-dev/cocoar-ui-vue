@@ -983,7 +983,7 @@ onBeforeUnmount(() => {
 
 .coar-scrollable-calendar__day--selected {
   background: var(--coar-background-accent-primary);
-  color: var(--coar-text-on-bold);
+  color: var(--coar-text-on-accent, var(--coar-text-on-bold));
   font-weight: var(--coar-body-small-bold-weight);
 }
 
@@ -1037,7 +1037,7 @@ onBeforeUnmount(() => {
 }
 
 .coar-scrollable-calendar__day--marked.coar-scrollable-calendar__day--selected::after {
-  background: var(--coar-text-on-bold);
+  background: var(--coar-text-on-accent, var(--coar-text-on-bold));
 }
 
 /* ========================================

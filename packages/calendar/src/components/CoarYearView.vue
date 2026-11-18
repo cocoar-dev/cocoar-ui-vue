@@ -150,7 +150,7 @@ function openMonth(date: Temporal.PlainDate) {
 }
 .coar-year-view__day--today {
   background: var(--coar-background-accent-primary, #2563eb);
-  color: var(--coar-calendar-on-accent, white);
+  color: var(--coar-calendar-on-accent, var(--coar-text-on-accent, white));
   font-weight: var(--coar-calendar-strong-font-weight, 700);
 }
 </style>

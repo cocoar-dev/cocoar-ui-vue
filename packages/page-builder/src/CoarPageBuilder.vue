@@ -1299,7 +1299,7 @@ function applyJson() {
   border-radius: var(--coar-page-builder-control-radius, 4px);
   border: none;
   background: var(--coar-background-accent-primary, #1666cc);
-  color: var(--coar-page-builder-on-accent, #fff);
+  color: var(--coar-page-builder-on-accent, var(--coar-text-on-accent, #fff));
   font-size: var(--coar-page-builder-font-size, 12px);
   font-weight: var(--coar-page-builder-label-font-weight, 500);
   font-family: inherit;

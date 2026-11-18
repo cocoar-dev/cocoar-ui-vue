@@ -149,7 +149,11 @@ const FALLBACKS: Record<string, string[]> = {
   '--coar-calendar-label-font-weight': ['600'],
   '--coar-calendar-link-color': ['var(--coar-color-accent, var(--coar-color-accent-500, #2563eb))'],
   '--coar-calendar-now-color': ['var(--coar-color-danger, #dc2626)'],
-  '--coar-calendar-on-accent': ['#fff', 'var(--coar-text-on-accent, white)', 'white'],
+  '--coar-calendar-on-accent': [
+    'var(--coar-text-on-accent, #fff)',
+    'var(--coar-text-on-accent, white)',
+    'var(--coar-text-on-accent, var(--coar-text-on-bold, white))',
+  ],
   '--coar-calendar-overlay-shadow': [
     '0 12px 32px rgba(0, 0, 0, 0.16), 0 2px 6px rgba(0, 0, 0, 0.08)',
   ],

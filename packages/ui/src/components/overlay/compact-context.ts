@@ -9,6 +9,7 @@ export const COMPACT_APPEARANCE_INPUT_TOKENS = APPEARANCE_INPUT_TOKENS;
  * test reconciles the list with that stylesheet.
  */
 export const ROLE_DERIVED_TOKENS = [
+  'text-on-accent', 'text-on-success', 'text-on-error', 'text-on-warning', 'text-on-info',
   'field-xs-default-font-size', 'field-s-default-font-size', 'field-l-default-font-size',
   'picker-panel-radius', 'zone-caption-min-offset', 'choice-row-height', 'indicator-xs-height',
   'indicator-s-height', 'indicator-m-height', 'indicator-l-height', 'body-base-family',
@@ -71,6 +72,7 @@ export const ROLE_DERIVED_TOKENS = [
 export const COMPACT_CONTEXT_TOKENS = [...new Set([
   ...COMPACT_APPEARANCE_INPUT_TOKENS,
   '--coar-compact-color-scheme',
+  '--coar-text-on-threshold',
   ...Object.keys(COMPACT_THEME.tokens),
   ...Object.keys(COMPACT_THEME.mobileTokens),
   ...ROLE_DERIVED_TOKENS,

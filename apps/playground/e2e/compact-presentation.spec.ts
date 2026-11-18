@@ -30,8 +30,19 @@ function roleContrasts(scope: Element) {
     const values = [luminance(a), luminance(b)].sort((x, y) => y - x);
     return (values[0] + 0.05) / (values[1] + 0.05);
   }
+  function apca(a: number[], b: number[]) {
+    const y = (rgb: number[]) => {
+      const [r, g, b] = rgb.map((c) => (c / 255) ** 2.4);
+      const raw = 0.2126729 * r + 0.7151522 * g + 0.072175 * b;
+      return raw < 0.022 ? raw + (0.022 - raw) ** 1.414 : raw;
+    };
+    const text = y(a), background = y(b);
+    const value = background > text
+      ? (background ** 0.56 - text ** 0.57) * 1.14 - 0.027
+      : (background ** 0.65 - text ** 0.62) * 1.14 + 0.027;
+    return Math.abs(value * 100);
+  }
   const surface = color('--coar-background-neutral-primary');
-  const onBold = color('--coar-text-on-bold');
   const measured: Record<string, number> = {};
   for (const role of ['primary', 'secondary', 'tertiary']) {
     measured[`text-${role}`] = contrast(color(`--coar-text-neutral-${role}`), surface);
@@ -40,7 +51,7 @@ function roleContrasts(scope: Element) {
   measured['accent-border'] = contrast(color('--coar-border-accent-primary'), surface);
   measured['focus'] = contrast(color('--coar-focus-color'), surface);
   for (const status of ['success', 'error', 'warning', 'info']) {
-    measured[`${status}-fill`] = contrast(onBold, color(`--coar-background-semantic-${status}-bold`));
+    measured[`${status}-fill`] = apca(color(`--coar-text-on-${status}`), color(`--coar-background-semantic-${status}-bold`));
     for (const emphasis of ['bold', 'subtle']) {
       measured[`${status}-text-${emphasis}`] = contrast(
         color(`--coar-text-semantic-${status}-${emphasis}`),
@@ -48,7 +59,7 @@ function roleContrasts(scope: Element) {
       );
     }
   }
-  measured['accent-fill'] = contrast(onBold, color('--coar-background-accent-primary'));
+  measured['accent-fill'] = apca(color('--coar-text-on-accent'), color('--coar-background-accent-primary'));
   measured['selected-option'] = contrast(
     color('--coar-text-accent-primary'),
     color('--coar-background-accent-secondary'),
@@ -207,7 +218,7 @@ for (const mode of ['light', 'dark']) {
     await page.goto(review('typography', `&profile=compact&mode=${mode}`));
     const compact = page.locator('[data-review-profile=compact]');
     await expect(compact.locator('input').first()).toBeVisible();
-    for (const hue of ['#334155', '#15803d', '#be185d', '#facc15']) {
+    for (const hue of ['#334155', '#15803d', '#be185d', '#facc15', '#1183cd']) {
       await compact.evaluate((scope: HTMLElement, color) => {
         scope.style.setProperty('--coar-appearance-accent', color);
         for (const status of ['success', 'error', 'warning', 'info']) {
@@ -217,7 +228,7 @@ for (const mode of ['light', 'dark']) {
       const ratios = await compact.evaluate(roleContrasts);
       for (const [role, ratio] of Object.entries(ratios)) {
         expect(ratio, `${mode} ${hue} ${role}`).toBeGreaterThanOrEqual(
-          ['input-border', 'accent-border', 'focus'].includes(role) ? 3 : 4.5,
+          role.endsWith('-fill') ? 54.5 : ['input-border', 'accent-border', 'focus'].includes(role) ? 3 : 4.5,
         );
       }
     }
@@ -229,7 +240,7 @@ for (const mode of ['light', 'dark']) {
     const ratios = await page.locator('[data-review-profile=compact]').evaluate(roleContrasts);
     for (const [role, ratio] of Object.entries(ratios)) {
       expect(ratio, `${mode} ${role}`).toBeGreaterThanOrEqual(
-        ['input-border', 'accent-border', 'focus'].includes(role) ? 3 : 4.5,
+        role.endsWith('-fill') ? 54.5 : ['input-border', 'accent-border', 'focus'].includes(role) ? 3 : 4.5,
       );
     }
   });

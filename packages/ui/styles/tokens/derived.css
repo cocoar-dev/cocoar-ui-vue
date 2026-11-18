@@ -14,6 +14,9 @@
  *               (`:root`, `.light-mode`, `.dark-mode`, `.coar-theme-none`).
  * The rules below have no specificity (`:where`), so those declarations and every
  * consumer rule on the same element win.
+ * Text on saturated fills is the explicit exception: its five new roles choose
+ * black or white from the fill even without a theme. `--coar-text-on-bold` stays
+ * unchanged for applications that still use the legacy white role directly.
  *
  * Curves are inputs, not constants: `--coar-<token>-lc` holds the oklch lightness
  * and chroma of a derived colour (`-lc-dark` for the dark scheme). The accent they
@@ -47,6 +50,21 @@
   ) {
   /* Readable marker of an active derivation (an empty token cannot be read back). */
   --coar-d-role-derivation: var(--coar-role-derivation) on;
+  /* Text on saturated fills is automatic even without a role theme.
+     APCA uses c^2.4, not standard linear sRGB luminance. Lifting c by 2^15
+     before sRGB decoding bypasses its linear toe (except below 0.000003);
+     dividing by (2^15)^2.4 = 2^36 restores the APCA channel, with toe error
+     below 1e-13. This also works in Firefox without CSS pow().
+     Keep the helpers on each boundary so a local threshold is evaluated there. */
+  --coar-d-text-on-r: calc(1.055 * 32768 * clamp(0, r, 1) - 0.055);
+  --coar-d-text-on-g: calc(1.055 * 32768 * clamp(0, g, 1) - 0.055);
+  --coar-d-text-on-b: calc(1.055 * 32768 * clamp(0, b, 1) - 0.055);
+  --coar-d-text-on-channel: calc(1 - round(up, (0.2126729 * max(0, r) + 0.7151522 * max(0, g) + 0.072175 * max(0, b)) / 68719476736 - var(--coar-text-on-threshold, 0.3419552539852081), 1));
+  --coar-d-text-on-accent: color(from color(from var(--coar-background-accent-primary) srgb var(--coar-d-text-on-r) var(--coar-d-text-on-g) var(--coar-d-text-on-b)) srgb-linear var(--coar-d-text-on-channel) var(--coar-d-text-on-channel) var(--coar-d-text-on-channel) / 1);
+  --coar-d-text-on-success: color(from color(from var(--coar-background-semantic-success-bold) srgb var(--coar-d-text-on-r) var(--coar-d-text-on-g) var(--coar-d-text-on-b)) srgb-linear var(--coar-d-text-on-channel) var(--coar-d-text-on-channel) var(--coar-d-text-on-channel) / 1);
+  --coar-d-text-on-error: color(from color(from var(--coar-background-semantic-error-bold) srgb var(--coar-d-text-on-r) var(--coar-d-text-on-g) var(--coar-d-text-on-b)) srgb-linear var(--coar-d-text-on-channel) var(--coar-d-text-on-channel) var(--coar-d-text-on-channel) / 1);
+  --coar-d-text-on-warning: color(from color(from var(--coar-background-semantic-warning-bold) srgb var(--coar-d-text-on-r) var(--coar-d-text-on-g) var(--coar-d-text-on-b)) srgb-linear var(--coar-d-text-on-channel) var(--coar-d-text-on-channel) var(--coar-d-text-on-channel) / 1);
+  --coar-d-text-on-info: color(from color(from var(--coar-background-semantic-info-bold) srgb var(--coar-d-text-on-r) var(--coar-d-text-on-g) var(--coar-d-text-on-b)) srgb-linear var(--coar-d-text-on-channel) var(--coar-d-text-on-channel) var(--coar-d-text-on-channel) / 1);
   --coar-d-accent: var(--coar-role-derivation) var(--coar-appearance-accent, var(--coar-theme-accent));
   --coar-d-field-xs-default-font-size: var(--coar-role-derivation) calc(var(--coar-field-font-size) - 2px);
   --coar-d-field-s-default-font-size: var(--coar-role-derivation) calc(var(--coar-field-font-size) - 1px);
@@ -173,7 +191,7 @@
   --coar-d-breadcrumb-link-color: var(--coar-role-derivation) var(--coar-text-accent-primary);
   --coar-d-pagination-font-size: var(--coar-role-derivation) var(--coar-ui-font-size);
   --coar-d-pagination-active-background: var(--coar-role-derivation) var(--coar-background-accent-primary);
-  --coar-d-pagination-active-color: var(--coar-role-derivation) var(--coar-text-on-bold);
+  --coar-d-pagination-active-color: var(--coar-role-derivation) var(--coar-text-on-accent, var(--coar-text-on-bold));
   --coar-d-pagination-hover-background: var(--coar-role-derivation) var(--coar-background-neutral-tertiary);
   --coar-d-note-bg: var(--coar-role-derivation) var(--coar-background-neutral-secondary);
   --coar-d-note-border-color: var(--coar-role-derivation) var(--coar-border-neutral-secondary);
@@ -232,6 +250,11 @@
     .coar-theme-editor,
     .coar-compact
   ) {
+  --coar-text-on-accent: var(--coar-d-text-on-accent, inherit);
+  --coar-text-on-success: var(--coar-d-text-on-success, inherit);
+  --coar-text-on-error: var(--coar-d-text-on-error, inherit);
+  --coar-text-on-warning: var(--coar-d-text-on-warning, inherit);
+  --coar-text-on-info: var(--coar-d-text-on-info, inherit);
   --coar-field-xs-default-font-size: var(--coar-d-field-xs-default-font-size, inherit);
   --coar-field-s-default-font-size: var(--coar-d-field-s-default-font-size, inherit);
   --coar-field-l-default-font-size: var(--coar-d-field-l-default-font-size, inherit);

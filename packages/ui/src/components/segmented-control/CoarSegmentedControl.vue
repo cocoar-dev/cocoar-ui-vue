@@ -180,7 +180,7 @@ const hostClasses = computed(() => [
 
 .coar-segmented-control__segment--active {
   background: var(--coar-background-accent-primary);
-  color: var(--coar-text-on-bold);
+  color: var(--coar-text-on-accent, var(--coar-text-on-bold));
 }
 
 .coar-segmented-control__segment:focus-visible {

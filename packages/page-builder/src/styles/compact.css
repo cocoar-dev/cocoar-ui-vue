@@ -82,7 +82,7 @@
   --coar-page-builder-panel-radius: var(--coar-d-page-builder-panel-radius, inherit);
 
   /* ── Colours: shared semantic roles instead of literal values ── */
-  --coar-d-page-builder-on-accent: var(--coar-role-derivation) var(--coar-text-on-bold, #fff);
+  --coar-d-page-builder-on-accent: var(--coar-role-derivation) var(--coar-text-on-accent, var(--coar-text-on-bold, #fff));
   --coar-page-builder-on-accent: var(--coar-d-page-builder-on-accent, inherit);
   --coar-d-page-builder-input-background: var(--coar-role-derivation) var(--coar-surface-input, var(--coar-background-neutral-primary, #fff));
   --coar-page-builder-input-background: var(--coar-d-page-builder-input-background, inherit);

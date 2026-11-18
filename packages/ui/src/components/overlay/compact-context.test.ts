@@ -30,6 +30,7 @@ describe('compact presentation transport contract', () => {
     for (const token of names(derived)) if (!token.startsWith('--coar-d-')) declared.add(token);
     // The activation is written as such; an empty value cannot be read back and copied.
     declared.delete(ROLE_DERIVATION_TOKEN);
+    declared.add('--coar-text-on-threshold');
     // appearance-accent is an optional consumer input, never a profile default
     // that would mask a parent ThemeScope's explicit brand.
     for (const token of COMPACT_APPEARANCE_INPUT_TOKENS) declared.add(token);
@@ -52,8 +53,10 @@ describe('compact presentation transport contract', () => {
       expect(value, name).toBe(name.replace('--coar-', '--coar-d-'));
       expect(privates.has(value), value).toBe(true);
     }
-    // Derivation is inert without the activation: every private value starts with it.
+    // Existing derivation remains inert; text on fills is intentionally automatic
+    // with and without a theme, including its relative-colour channel helpers.
     for (const line of derived.matchAll(/^ {2}--coar-d-[\w-]+: (.*)$/gm)) {
+      if (line[0].startsWith('  --coar-d-text-on-')) continue;
       expect(line[1].startsWith(`var(${ROLE_DERIVATION_TOKEN}) `), line[0]).toBe(true);
     }
   });

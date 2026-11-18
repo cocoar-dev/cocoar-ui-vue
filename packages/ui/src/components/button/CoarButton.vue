@@ -274,7 +274,7 @@ function handleClick(event: MouseEvent) {
 /* Primary */
 .coar-button--primary {
   background: var(--coar-background-accent-primary);
-  color: var(--coar-text-on-bold);
+  color: var(--coar-text-on-accent, var(--coar-text-on-bold));
 }
 
 .coar-button--primary:hover:not(:disabled) {
@@ -317,7 +317,7 @@ function handleClick(event: MouseEvent) {
 /* Danger */
 .coar-button--danger {
   background: var(--coar-button-danger-bg);
-  color: var(--coar-text-on-bold);
+  color: var(--coar-text-on-error, var(--coar-text-on-bold));
 }
 
 .coar-button--danger:hover:not(:disabled) {

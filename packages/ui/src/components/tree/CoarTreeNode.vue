@@ -338,7 +338,7 @@ function onChevron(e: MouseEvent) {
   margin: auto;
   width: var(--coar-tree-icon-size, 12px);
   height: var(--coar-tree-icon-size, 12px);
-  color: var(--coar-text-on-bold, #fff);
+  color: var(--coar-text-on-accent, var(--coar-text-on-bold, #fff));
   opacity: 0;
 }
 .coar-tree-node__checkbox--checked:not(.coar-tree-node__checkbox--indeterminate) .coar-tree-node__check {

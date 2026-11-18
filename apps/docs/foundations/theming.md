@@ -78,6 +78,14 @@ Each color opens a **palette editor** (floating panel) where you can fine-tune t
 
 ### Semantic
 
+Text on a solid accent or status fill uses its own computed role:
+`--coar-text-on-accent`, `--coar-text-on-success`, `--coar-text-on-error`,
+`--coar-text-on-warning` and `--coar-text-on-info` (Preview). Each chooses white or
+black by APCA, with or without a preset. A theme can override a role with any
+colour or a `light-dark()` pair; text on neutral or tinted surfaces remains
+palette-derived. See [text on saturated fills](/foundations/colors#text-on-saturated-fills-preview)
+and the [migration note](/guide/migration-color-roles).
+
 Maps semantic roles to palette entries. Each row shows the resolved color, lets you pick a palette (Accent / Red / Green / Amber / Slate) and a step (50–900), and has a reset button that turns accent-colored when changed.
 
 This is the layer that connects intent to color: `--coar-background-semantic-error-bold` points at `Red / 600` by default. Reassigning it to `Amber / 600` would make all error surfaces amber — including form field borders, toast backgrounds, and the danger button — without touching any component code.

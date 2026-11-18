@@ -663,7 +663,7 @@ defineExpose({
   position: absolute;
   border: none;
   border-radius: var(--coar-calendar-event-radius, var(--coar-radius-xs, 4px));
-  color: white;
+  color: var(--coar-calendar-on-accent, var(--coar-text-on-accent, var(--coar-text-on-bold, white)));
   font-size: 12px;
   font-weight: 500;
   padding: 0 8px;
