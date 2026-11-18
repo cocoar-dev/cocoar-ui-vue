@@ -32,13 +32,13 @@ describe('renderMermaid — presentation profiles', () => {
 
   it('re-initializes with the rendering diagram\'s config when the profile changes', async () => {
     await renderMermaid(config('default'), 'graph TD; A-->B');
-    await renderMermaid(config('compact'), 'graph TD; A-->B', 'compact');
-    await renderMermaid(config('compact'), 'graph TD; A-->B', 'compact');
+    await renderMermaid(config('themed'), 'graph TD; A-->B', 'theme');
+    await renderMermaid(config('themed'), 'graph TD; A-->B', 'theme');
     await renderMermaid(config('default-2'), 'graph TD; A-->B', 'default');
 
     expect(mermaidMock.initialize.mock.calls.map(([c]) => c.themeVariables.name)).toEqual([
       'default',
-      'compact',
+      'themed',
       'default-2',
     ]);
     for (const [c] of mermaidMock.initialize.mock.calls) {
@@ -48,17 +48,34 @@ describe('renderMermaid — presentation profiles', () => {
     expect(mermaidMock.render).toHaveBeenCalledTimes(4);
   });
 
-  it('keeps a page that starts compact on its first config', async () => {
-    await renderMermaid(config('compact'), 'graph TD; A-->B', 'compact');
-    await renderMermaid(config('compact'), 'graph TD; A-->B', 'compact');
+  it('keeps a page that starts in a role theme on its first config while the roles stay', async () => {
+    await renderMermaid(config('themed'), 'graph TD; A-->B', 'theme');
+    await renderMermaid(config('themed'), 'graph TD; A-->B', 'theme');
     expect(mermaidMock.initialize).toHaveBeenCalledTimes(1);
   });
 
-  it('re-reads local mode and role overrides between compact diagrams', async () => {
-    await renderMermaid(config('compact-light'), 'graph TD; A-->B', 'compact');
-    await renderMermaid(config('compact-dark'), 'graph TD; A-->B', 'compact');
-    await renderMermaid(config('compact-brand'), 'graph TD; A-->B', 'compact');
+  it('applies the roles of each diagram in a role theme: local mode and role overrides', async () => {
+    await renderMermaid(config('themed-light'), 'graph TD; A-->B', 'theme');
+    await renderMermaid(config('themed-dark'), 'graph TD; A-->B', 'theme');
+    await renderMermaid(config('themed-brand'), 'graph TD; A-->B', 'theme');
     expect(mermaidMock.initialize.mock.calls.map(([c]) => c.themeVariables.name))
-      .toEqual(['compact-light', 'compact-dark', 'compact-brand']);
+      .toEqual(['themed-light', 'themed-dark', 'themed-brand']);
+  });
+
+  it('serializes renders, so each one runs with the config it initialized', async () => {
+    const order: string[] = [];
+    mermaidMock.initialize.mockImplementation((c: { themeVariables: { name: string } }) => {
+      order.push(`init:${c.themeVariables.name}`);
+    });
+    mermaidMock.render.mockImplementation(async (...[id, code]: string[]) => {
+      order.push(`render:${code}`);
+      return { svg: `<svg id="${id}"></svg>` };
+    });
+    await Promise.all([
+      renderMermaid(config('a'), 'A', 'theme'),
+      renderMermaid(config('b'), 'B', 'theme'),
+      renderMermaid(config('c'), 'C', 'default'),
+    ]);
+    expect(order).toEqual(['init:a', 'render:A', 'init:b', 'render:B', 'init:c', 'render:C']);
   });
 });

@@ -65,6 +65,17 @@ export function buildMermaidThemeVariables(
 }
 
 /**
+ * Whether a role theme is in effect where `getToken` reads: a scope whose theme
+ * sets `--coar-role-derivation`, as the `.coar-compact` entry or as any theme
+ * class (Preview). The shared derivation of `@cocoar/vue-ui`
+ * (styles/tokens/derived.css) leaves this readable marker on such a scope; the
+ * name of a class says nothing.
+ */
+export function hasRoleTheme(getToken: (name: string) => string): boolean {
+  return getToken('--coar-d-role-derivation').trim() === 'on';
+}
+
+/**
  * Produce a token getter backed by `getComputedStyle` on the given element
  * (defaults to `document.documentElement`). Returns a getter that always yields
  * `''` when there is no DOM (SSR) or no element, so callers stay side-effect and
