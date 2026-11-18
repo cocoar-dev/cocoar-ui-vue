@@ -20,6 +20,7 @@ export default defineConfig({
         index: resolve(__dirname, 'src/index.ts'),
         fonts: resolve(__dirname, 'src/fonts.ts'),
         'compact-fonts': resolve(__dirname, 'src/compact-fonts.ts'),
+        'onest-fonts': resolve(__dirname, 'src/onest-fonts.ts'),
       },
       formats: ['es'],
       cssFileName: 'index',

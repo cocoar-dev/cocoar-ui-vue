@@ -87,7 +87,7 @@ Controls the global radius scale (`xxs` → `xl`) plus per-component-group overr
 
 ### Type
 
-Font family for body text and headings, chosen from a short list: Poppins, Inter, Onest, DM Sans, Nunito, Geist and the system font. The editor only names the family; a font shows once your app loads it (`@cocoar/vue-ui/fonts` brings Poppins and Inter).
+Font family for body text and headings, chosen from a short list: Poppins, Inter, Onest, DM Sans, Nunito, Geist and the system font. The editor only names the family; a font shows once your app loads it. The library self-hosts three entries, none of which loads anything from a CDN: `@cocoar/vue-ui/fonts` (Poppins, Inter 400 and 700, Cascadia Code), `@cocoar/vue-ui/fonts/compact` (Inter 400 to 700) and `@cocoar/vue-ui/fonts/onest` (Onest 400 to 700). Load the other families yourself.
 
 ### Spacing
 
@@ -165,7 +165,7 @@ With **Compact** loaded, the file contains every value a fresh app needs, with y
 
 The file is written into the cascade layer of the library's tokens, where `.coar-compact` is too. Your own unlayered styles therefore keep the last word, exactly as with the class: the theme sets body text to 14 px on its scope, and an app that declares `html { font-size: 16px }` itself keeps its 16 px (and the `rem` sizes that follow from it).
 
-The file names a font, it does not ship one. Load the font your theme uses yourself: `import '@cocoar/vue-ui/fonts/compact'` for the Inter weights of the Compact preset, or your own `@font-face` rules for another family.
+The file names a font, it does not ship one. Load the font your theme uses yourself: `import '@cocoar/vue-ui/fonts/compact'` for the Inter weights of the Compact preset, `import '@cocoar/vue-ui/fonts/onest'` for Onest, or your own `@font-face` rules for another family.
 
 Because themes are classes, you can apply different themes to different subtrees:
 

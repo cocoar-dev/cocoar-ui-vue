@@ -50,6 +50,12 @@ const ShellThemeSync = {
       const sync = () => {
         const themed = getComputedStyle(html).getPropertyValue('--coar-d-role-derivation').trim() === 'on';
         if (html.classList.contains('coar-docs-themed') !== themed) html.classList.toggle('coar-docs-themed', themed);
+        // Fonts a theme names are loaded when it names them, not for every visitor:
+        // the Inter weights of the Compact values, and Onest from the Theme Editor.
+        if (themed) void import('@cocoar/vue-ui/fonts/compact');
+        const families = ['--coar-font-family-body', '--coar-font-family-title']
+          .map((token) => getComputedStyle(html).getPropertyValue(token));
+        if (families.some((family) => /\bOnest\b/.test(family))) void import('@cocoar/vue-ui/fonts/onest');
       };
       sync();
       // The Theme Editor marks each live change with an inline value on its scope.
