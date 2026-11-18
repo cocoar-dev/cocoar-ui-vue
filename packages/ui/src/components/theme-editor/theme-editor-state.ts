@@ -1,6 +1,9 @@
-import { ref, watch, computed, reactive, type Ref } from 'vue';
+import { ref, shallowRef, watch, computed, reactive, type Ref } from 'vue';
 import type { StepDef, StepOverride } from './CoarPaletteEditor.vue';
 import type { CoarSelectOption } from '../select';
+import { COMPACT_THEME } from '../../theme/compact-theme';
+import { NESTED_BOUNDARIES, serializeRoleTheme, type CoarRoleTheme } from '../../theme/role-theme';
+import { ROLE_DERIVED_TOKENS } from '../overlay/compact-context';
 
 // ── Types ─────────────────────────────────────────────────────
 export type PaletteKey = 'accent' | 'error' | 'success' | 'warning' | 'info';
@@ -171,12 +174,27 @@ export const DENSITY_OPTIONS = [
 ];
 
 // ── Presets ───────────────────────────────────────────────────
-export const PRESETS = [
+export type ThemeControls = typeof DEFAULTS;
+
+export interface ThemePreset {
+  id: string;
+  label: string;
+  description: string;
+  /** What the controls show after the preset is loaded. */
+  values: ThemeControls;
+  /**
+   * A preset that is a role theme: its values feed the shared derivation, and every
+   * one of them stays editable. Without it a preset is the controls' values alone.
+   */
+  roleTheme?: CoarRoleTheme;
+}
+
+export const PRESETS: ThemePreset[] = [
   {
     id: 'enterprise',
     label: 'Enterprise',
     description: 'Precise, professional — the default Cocoar look.',
-    values: { ...DEFAULTS, isDark: false },
+    values: { ...DEFAULTS },
   },
   {
     id: 'saas',
@@ -238,7 +256,14 @@ export const PRESETS = [
       toastShadow: 'none',
     },
   },
-] as const;
+  {
+    id: 'compact',
+    label: 'Compact',
+    description: 'Smaller text in Inter, Slate surfaces, 36px controls. Preview.',
+    values: { ...DEFAULTS, accent: '#334155', fontBody: 'Inter', fontTitle: 'Inter', fieldPaddingX: 10 },
+    roleTheme: COMPACT_THEME,
+  },
+];
 
 // ── Palette editor ────────────────────────────────────────────
 export const activePalette = ref<PaletteKey | null>(null);
@@ -567,219 +592,314 @@ export const BASE_DURATIONS: Record<string, number> = {
 export const motionLabel = (v: number) =>
   v === 0 ? 'Instant' : v < 0.7 ? 'Fast' : v < 1.3 ? 'Default' : v < 2 ? 'Slow' : 'Very slow';
 
-// ── hasChanges ────────────────────────────────────────────────
-export const hasChanges = computed(
-  () =>
-    accent.value !== DEFAULTS.accent ||
-    success.value !== DEFAULTS.success ||
-    errorColor.value !== DEFAULTS.error ||
-    warning.value !== DEFAULTS.warning ||
-    info.value !== DEFAULTS.info ||
-    radiusXxs.value !== DEFAULTS.radiusXxs ||
-    radiusXs.value !== DEFAULTS.radiusXs ||
-    radiusS.value !== DEFAULTS.radiusS ||
-    radiusM.value !== DEFAULTS.radiusM ||
-    radiusL.value !== DEFAULTS.radiusL ||
-    radiusXl.value !== DEFAULTS.radiusXl ||
-    spacingXs.value !== DEFAULTS.spacingXs ||
-    spacingS.value !== DEFAULTS.spacingS ||
-    spacingM.value !== DEFAULTS.spacingM ||
-    spacingL.value !== DEFAULTS.spacingL ||
-    spacingXl.value !== DEFAULTS.spacingXl ||
-    density.value !== DEFAULTS.density ||
-    fieldPaddingXEnabled.value ||
-    buttonRadius.value !== DEFAULTS.buttonRadius ||
-    inputRadius.value !== DEFAULTS.inputRadius ||
-    tagRadius.value !== DEFAULTS.tagRadius ||
-    badgeRadius.value !== DEFAULTS.badgeRadius ||
-    cardRadius.value !== DEFAULTS.cardRadius ||
-    menuRadius.value !== DEFAULTS.menuRadius ||
-    popoverRadius.value !== DEFAULTS.popoverRadius ||
-    dropdownRadius.value !== DEFAULTS.dropdownRadius ||
-    dialogRadius.value !== DEFAULTS.dialogRadius ||
-    toastRadius.value !== DEFAULTS.toastRadius ||
-    cardShadow.value !== DEFAULTS.cardShadow ||
-    menuShadow.value !== DEFAULTS.menuShadow ||
-    popoverShadow.value !== DEFAULTS.popoverShadow ||
-    dropdownShadow.value !== DEFAULTS.dropdownShadow ||
-    dialogShadow.value !== DEFAULTS.dialogShadow ||
-    toastShadow.value !== DEFAULTS.toastShadow ||
-    fontBody.value !== DEFAULTS.fontBody ||
-    fontTitle.value !== DEFAULTS.fontTitle ||
-    motionScale.value !== DEFAULTS.motionScale ||
+// ── The controls as one object ────────────────────────────────
+const CONTROL_REFS: { [K in keyof ThemeControls]: Ref<ThemeControls[K]> } = {
+  accent, success, error: errorColor, warning, info,
+  radiusXxs, radiusXs, radiusS, radiusM, radiusL, radiusXl,
+  spacingXs, spacingS, spacingM, spacingL, spacingXl,
+  density, buttonRadius, inputRadius, fieldPaddingX,
+  tagRadius, badgeRadius, cardRadius, menuRadius, popoverRadius, dropdownRadius, dialogRadius, toastRadius,
+  cardShadow, menuShadow, popoverShadow, dropdownShadow, dialogShadow, toastShadow,
+  fontBody, fontTitle, motionScale,
+};
+const CONTROL_KEYS = Object.keys(CONTROL_REFS) as (keyof ThemeControls)[];
+
+function readControls(): ThemeControls {
+  const values = {} as Record<string, string | number>;
+  for (const key of CONTROL_KEYS) values[key] = CONTROL_REFS[key].value;
+  return values as unknown as ThemeControls;
+}
+
+function writeControls(values: ThemeControls) {
+  for (const key of CONTROL_KEYS) (CONTROL_REFS[key] as Ref<string | number>).value = values[key];
+}
+
+/**
+ * What the loaded preset sets, the value a control's reset returns to. The
+ * library defaults until a preset is loaded.
+ */
+export const baseline = ref<ThemeControls>({ ...DEFAULTS });
+
+/** The role theme the editor loaded (the Compact preset), or none. */
+export const roleTheme = shallowRef<CoarRoleTheme | null>(null);
+
+/** Values of the loaded role theme the user changed, by token. */
+export const roleOverrides = reactive<Record<string, string>>({});
+
+/** What the app shows without the editor, read when the editor mounts. */
+let appControls: ThemeControls = { ...DEFAULTS };
+let appFieldPaddingX = false;
+
+function differs(base: ThemeControls): boolean {
+  return CONTROL_KEYS.some((key) => key !== 'fieldPaddingX' && CONTROL_REFS[key].value !== base[key]);
+}
+
+function hasOverrides(): boolean {
+  return (
     Object.values(paletteOverrides).some((ov) => Object.keys(ov).length > 0) ||
-    Object.keys(semanticOverrides).length > 0,
+    Object.keys(semanticOverrides).length > 0 ||
+    Object.keys(roleOverrides).length > 0
+  );
+}
+
+// ── hasChanges ────────────────────────────────────────────────
+/** There is a theme to download: something differs from a fresh app. */
+export const hasChanges = computed(
+  () => roleTheme.value !== null || differs(DEFAULTS) || fieldPaddingXEnabled.value || hasOverrides(),
+);
+
+/** The editor changed what the app shows: there is something to reset. */
+export const hasEditorChanges = computed(
+  () =>
+    roleTheme.value !== null ||
+    differs(appControls) ||
+    fieldPaddingXEnabled.value !== appFieldPaddingX ||
+    (fieldPaddingXEnabled.value && fieldPaddingX.value !== appControls.fieldPaddingX) ||
+    hasOverrides(),
 );
 
 // ── applyPreset ───────────────────────────────────────────────
-export function applyPreset(preset: (typeof PRESETS)[number]) {
-  const v = preset.values as Record<string, string | number | boolean>;
-  accent.value = v.accent as string;
-  success.value = v.success as string;
-  errorColor.value = v.error as string;
-  radiusXxs.value = v.radiusXxs as number;
-  radiusXs.value = v.radiusXs as number;
-  radiusS.value = v.radiusS as number;
-  radiusM.value = v.radiusM as number;
-  radiusL.value = v.radiusL as number;
-  radiusXl.value = v.radiusXl as number;
-  spacingXs.value = v.spacingXs as number;
-  spacingS.value = v.spacingS as number;
-  spacingM.value = v.spacingM as number;
-  spacingL.value = v.spacingL as number;
-  spacingXl.value = v.spacingXl as number;
-  warning.value = v.warning as string;
-  info.value = v.info as string;
-  buttonRadius.value = v.buttonRadius as string;
-  inputRadius.value = v.inputRadius as string;
-  fieldPaddingX.value = v.fieldPaddingX as number;
-  fieldPaddingXEnabled.value = (v.fieldPaddingX as number) !== DEFAULTS.fieldPaddingX;
-  tagRadius.value = v.tagRadius as string;
-  badgeRadius.value = v.badgeRadius as string;
-  cardRadius.value = v.cardRadius as string;
-  menuRadius.value = v.menuRadius as string;
-  popoverRadius.value = v.popoverRadius as string;
-  dropdownRadius.value = v.dropdownRadius as string;
-  dialogRadius.value = v.dialogRadius as string;
-  toastRadius.value = v.toastRadius as string;
-  cardShadow.value = v.cardShadow as string;
-  menuShadow.value = v.menuShadow as string;
-  popoverShadow.value = v.popoverShadow as string;
-  dropdownShadow.value = v.dropdownShadow as string;
-  dialogShadow.value = v.dialogShadow as string;
-  toastShadow.value = v.toastShadow as string;
-  fontBody.value = v.fontBody as string;
-  fontTitle.value = v.fontTitle as string;
-  motionScale.value = v.motionScale as number;
-  if (!_hideDarkToggle) isDark.value = false;
+export function applyPreset(preset: ThemePreset) {
+  const values = preset.values;
+  writeControls(values);
+  fieldPaddingXEnabled.value = values.fieldPaddingX !== DEFAULTS.fieldPaddingX;
+  baseline.value = { ...values };
+  for (const token of Object.keys(roleOverrides)) delete roleOverrides[token];
+  roleTheme.value = preset.roleTheme ?? null;
+  // Light or dark, touch and every other scope stay as the app has them.
+  applyTokens();
 }
 
-/** The same brand inputs must drive the live editor and its downloaded theme. */
-function addAccentTokens(add: (token: string, value: string) => void) {
-  if (accent.value === DEFAULTS.accent) return;
-  add('--coar-accent', accent.value);
-  if (_compactTarget) add('--coar-appearance-accent', accent.value);
+export interface RoleValueEntry {
+  token: string;
+  label: string;
+  /** `pair`: a `light-dark(<light>, <dark>)` colour. */
+  kind: 'length' | 'number' | 'pair';
 }
 
-// ── applyTokens ───────────────────────────────────────────────
-export function applyTokens() {
-  const lines: string[] = [];
-  const add = (token: string, val: string) => lines.push(`  ${token}: ${val};`);
+/** The values of a role theme the editor offers, by what they change. */
+export const ROLE_VALUE_GROUPS: { label: string; entries: RoleValueEntry[] }[] = [
+  {
+    label: 'Typography',
+    entries: [
+      { token: '--coar-body-base-size', label: 'Body text', kind: 'length' },
+      { token: '--coar-ui-font-size', label: 'Actions and labels', kind: 'length' },
+      { token: '--coar-field-font-size', label: 'Field text', kind: 'length' },
+      { token: '--coar-caption-font-size', label: 'Captions', kind: 'length' },
+      { token: '--coar-ui-font-weight', label: 'Action weight', kind: 'number' },
+      { token: '--coar-label-font-weight', label: 'Label weight', kind: 'number' },
+    ],
+  },
+  {
+    label: 'Sizes',
+    entries: [
+      { token: '--coar-component-xs-height', label: 'Control XS', kind: 'length' },
+      { token: '--coar-component-s-height', label: 'Control S', kind: 'length' },
+      { token: '--coar-component-m-height', label: 'Control M', kind: 'length' },
+      { token: '--coar-component-l-height', label: 'Control L', kind: 'length' },
+      { token: '--coar-interactive-row-height', label: 'List and menu row', kind: 'length' },
+      { token: '--coar-panel-padding', label: 'Panel padding', kind: 'length' },
+      { token: '--coar-content-gap', label: 'Content gap', kind: 'length' },
+      { token: '--coar-control-radius', label: 'Control radius', kind: 'length' },
+      { token: '--coar-panel-radius', label: 'Panel radius', kind: 'length' },
+    ],
+  },
+  {
+    label: 'Surfaces and text (light / dark)',
+    entries: [
+      { token: '--coar-background-neutral-primary', label: 'Surface', kind: 'pair' },
+      { token: '--coar-background-neutral-secondary', label: 'Surface, secondary', kind: 'pair' },
+      { token: '--coar-background-neutral-tertiary', label: 'Surface, tertiary', kind: 'pair' },
+      { token: '--coar-text-neutral-primary', label: 'Text', kind: 'pair' },
+      { token: '--coar-text-neutral-secondary', label: 'Text, secondary', kind: 'pair' },
+      { token: '--coar-border-neutral-tertiary', label: 'Divider', kind: 'pair' },
+      { token: '--coar-border-input', label: 'Field outline', kind: 'pair' },
+      { token: '--coar-focus-color', label: 'Focus ring', kind: 'pair' },
+    ],
+  },
+];
 
-  const D = DEFAULTS;
-  addAccentTokens(add);
-  if (success.value !== D.success) add('--coar-success', success.value);
-  if (errorColor.value !== D.error) add('--coar-error', errorColor.value);
-  if (warning.value !== D.warning) add('--coar-warning', warning.value);
-  if (info.value !== D.info) add('--coar-info', info.value);
-  if (radiusXxs.value !== D.radiusXxs) add('--coar-radius-xxs', `${radiusXxs.value}px`);
-  if (radiusXs.value !== D.radiusXs) add('--coar-radius-xs', `${radiusXs.value}px`);
-  if (radiusS.value !== D.radiusS) add('--coar-radius-s', `${radiusS.value}px`);
-  if (radiusM.value !== D.radiusM) add('--coar-radius-m', `${radiusM.value}px`);
-  if (radiusL.value !== D.radiusL) add('--coar-radius-l', `${radiusL.value}px`);
-  if (radiusXl.value !== D.radiusXl) add('--coar-radius-xl', `${radiusXl.value}px`);
-  if (spacingXs.value !== D.spacingXs) add('--coar-spacing-xs', `${spacingXs.value}px`);
-  if (spacingS.value !== D.spacingS) add('--coar-spacing-s', `${spacingS.value}px`);
-  if (spacingM.value !== D.spacingM) add('--coar-spacing-m', `${spacingM.value}px`);
-  if (spacingL.value !== D.spacingL) add('--coar-spacing-l', `${spacingL.value}px`);
-  if (spacingXl.value !== D.spacingXl) add('--coar-spacing-xl', `${spacingXl.value}px`);
-  if (density.value !== D.density) add('--coar-component-density', String(density.value));
-  if (fieldPaddingXEnabled.value) add('--coar-field-padding-x', `${fieldPaddingX.value}px`);
-  if (buttonRadius.value !== D.buttonRadius) add('--coar-button-radius', buttonRadius.value);
-  if (inputRadius.value !== D.inputRadius) add('--coar-input-radius', inputRadius.value);
-  if (tagRadius.value !== D.tagRadius) add('--coar-tag-radius', tagRadius.value);
-  if (badgeRadius.value !== D.badgeRadius) add('--coar-badge-radius', badgeRadius.value);
-  if (cardRadius.value !== D.cardRadius) add('--coar-card-radius', cardRadius.value);
-  if (menuRadius.value !== D.menuRadius) add('--coar-menu-radius', menuRadius.value);
-  if (popoverRadius.value !== D.popoverRadius) add('--coar-popover-radius', popoverRadius.value);
-  if (dropdownRadius.value !== D.dropdownRadius)
-    add('--coar-dropdown-radius', dropdownRadius.value);
-  if (dialogRadius.value !== D.dialogRadius) add('--coar-dialog-border-radius', dialogRadius.value);
-  if (toastRadius.value !== D.toastRadius) add('--coar-toast-border-radius', toastRadius.value);
-  if (cardShadow.value !== D.cardShadow) add('--coar-card-shadow', cardShadow.value);
-  if (menuShadow.value !== D.menuShadow) add('--coar-menu-shadow', menuShadow.value);
-  if (popoverShadow.value !== D.popoverShadow) add('--coar-popover-shadow', popoverShadow.value);
-  if (dropdownShadow.value !== D.dropdownShadow)
-    add('--coar-dropdown-shadow', dropdownShadow.value);
-  if (dialogShadow.value !== D.dialogShadow) add('--coar-dialog-shadow', dialogShadow.value);
-  if (toastShadow.value !== D.toastShadow) add('--coar-toast-shadow', toastShadow.value);
-  if (fontBody.value !== D.fontBody)
-    add('--coar-font-family-body', `${fontBody.value}, ui-sans-serif, system-ui, sans-serif`);
-  if (fontTitle.value !== D.fontTitle)
-    add('--coar-font-family-title', `${fontTitle.value}, ui-sans-serif, system-ui, sans-serif`);
-  if (motionScale.value !== D.motionScale) {
-    const s = motionScale.value;
-    for (const [key, base] of Object.entries(BASE_DURATIONS)) {
-      add(`--coar-duration-${key}`, `${Math.round(base * s)}ms`);
+/** A value of the loaded role theme, as edited or as the preset has it. */
+export function roleValue(token: string): string {
+  return roleOverrides[token] ?? roleTheme.value?.tokens[token] ?? '';
+}
+
+export function setRoleValue(token: string, value: string) {
+  const preset = roleTheme.value?.tokens[token];
+  if (value.trim() === '' || value === preset) delete roleOverrides[token];
+  else roleOverrides[token] = value;
+}
+
+export function resetRoleValue(token: string) {
+  delete roleOverrides[token];
+}
+
+// ── One list of declarations for live and download ────────────
+const FONT_FALLBACK = 'ui-sans-serif, system-ui, sans-serif';
+const px = (value: string | number) => `${value}px`;
+
+/** Controls that are one token each, in the order they are written. */
+const SCALE_TOKENS: [keyof ThemeControls, string, ((value: string | number) => string)?][] = [
+  ['success', '--coar-success'], ['error', '--coar-error'], ['warning', '--coar-warning'], ['info', '--coar-info'],
+  ['radiusXxs', '--coar-radius-xxs', px], ['radiusXs', '--coar-radius-xs', px], ['radiusS', '--coar-radius-s', px],
+  ['radiusM', '--coar-radius-m', px], ['radiusL', '--coar-radius-l', px], ['radiusXl', '--coar-radius-xl', px],
+  ['spacingXs', '--coar-spacing-xs', px], ['spacingS', '--coar-spacing-s', px], ['spacingM', '--coar-spacing-m', px],
+  ['spacingL', '--coar-spacing-l', px], ['spacingXl', '--coar-spacing-xl', px],
+  ['density', '--coar-component-density', String],
+];
+const COMPONENT_TOKENS: [keyof ThemeControls, string][] = [
+  ['buttonRadius', '--coar-button-radius'], ['inputRadius', '--coar-input-radius'], ['tagRadius', '--coar-tag-radius'],
+  ['badgeRadius', '--coar-badge-radius'], ['cardRadius', '--coar-card-radius'], ['menuRadius', '--coar-menu-radius'],
+  ['popoverRadius', '--coar-popover-radius'], ['dropdownRadius', '--coar-dropdown-radius'],
+  ['dialogRadius', '--coar-dialog-border-radius'], ['toastRadius', '--coar-toast-border-radius'],
+  ['cardShadow', '--coar-card-shadow'], ['menuShadow', '--coar-menu-shadow'], ['popoverShadow', '--coar-popover-shadow'],
+  ['dropdownShadow', '--coar-dropdown-shadow'], ['dialogShadow', '--coar-dialog-shadow'], ['toastShadow', '--coar-toast-shadow'],
+];
+
+/**
+ * What the controls set, compared with `base`: the app's own values for the live
+ * preview, a fresh app for the download, the preset's values for a role theme
+ * (whose own values the serializer writes).
+ */
+function controlDeclarations(base: ThemeControls, paddingBase: boolean): [string, string][] {
+  const out: [string, string][] = [];
+  const add = (token: string, value: string) => out.push([token, value]);
+  const roles = roleTheme.value !== null;
+  const changed = (key: keyof ThemeControls) => CONTROL_REFS[key].value !== base[key];
+
+  if (changed('accent')) {
+    // A role theme draws its palette from its own accent; a surrounding
+    // CoarThemeScope may still name another one.
+    if (roles) add('--coar-theme-accent', accent.value);
+    else {
+      add('--coar-accent', accent.value);
+      if (_compactTarget) add('--coar-appearance-accent', accent.value);
+    }
+  }
+  for (const [key, token, format] of SCALE_TOKENS) {
+    if (changed(key)) add(token, (format ?? String)(CONTROL_REFS[key].value));
+  }
+  if (fieldPaddingXEnabled.value && (!paddingBase || changed('fieldPaddingX'))) {
+    add('--coar-field-padding-x', px(fieldPaddingX.value));
+  }
+  for (const [key, token] of COMPONENT_TOKENS) {
+    if (changed(key)) add(token, String(CONTROL_REFS[key].value));
+  }
+  const family = (role: 'body' | 'title', name: string) =>
+    roles ? `var(--coar-appearance-font-${role}, ${name}, ${FONT_FALLBACK})` : `${name}, ${FONT_FALLBACK}`;
+  if (changed('fontBody')) add('--coar-font-family-body', family('body', fontBody.value));
+  if (changed('fontTitle')) add('--coar-font-family-title', family('title', fontTitle.value));
+  if (changed('motionScale')) {
+    for (const [key, duration] of Object.entries(BASE_DURATIONS)) {
+      add(`--coar-duration-${key}`, `${Math.round(duration * motionScale.value)}ms`);
     }
   }
   for (const key of Object.keys(paletteOverrides) as PaletteKey[]) {
     const prefix = PALETTE_CSS_TOKEN[key];
-    const baseVar = PALETTE_BASE_VAR[key];
+    const hue = roles && key === 'accent'
+      ? 'var(--coar-appearance-accent, var(--coar-theme-accent))'
+      : `var(${PALETTE_BASE_VAR[key]})`;
     for (const step of PALETTE_STEPS[key]) {
       if (step.defL === null) continue;
       const ov = paletteOverrides[key][step.step];
-      if (ov) add(`${prefix}-${step.step}`, `oklch(from var(${baseVar}) ${ov.l} ${ov.c} h)`);
+      if (ov) add(`${prefix}-${step.step}`, `oklch(from ${hue} ${ov.l} ${ov.c} h)`);
     }
   }
   for (const group of SEMANTIC_GROUPS) {
     for (const entry of group.entries) {
       const ov = semanticOverrides[entry.token];
-      if (ov) {
-        const prefix = SEMANTIC_PALETTE_CSS[ov.palette];
-        add(entry.token, `var(${prefix}-${ov.step})`);
-      }
+      if (ov) add(entry.token, `var(${SEMANTIC_PALETTE_CSS[ov.palette]}-${ov.step})`);
     }
   }
-  if (!_hideDarkToggle) {
-    applyEditorMode(isDark.value);
+  return out;
+}
+
+const block = (selectors: string, declarations: [string, string][]) =>
+  `${selectors} {\n${declarations.map(([token, value]) => `  ${token}: ${value};`).join('\n')}\n}`;
+
+/**
+ * The theme as CSS for one scope. The live preview and the download are this text
+ * with another selector and another comparison base, nothing else.
+ */
+function themeCss(selector: string, base: ThemeControls, paddingBase: boolean, selectors = selector): string {
+  const theme = roleTheme.value;
+  if (!theme) {
+    const declarations = controlDeclarations(base, paddingBase);
+    return declarations.length > 0 ? block(selectors, declarations) : '';
   }
-  let tag = document.getElementById('coar-theme-editor') as HTMLStyleElement | null;
-  if (!tag) {
-    tag = document.createElement('style');
-    tag.id = 'coar-theme-editor';
-    document.head.appendChild(tag);
+  // A role theme is written whole, with the edited values in place. A changed token
+  // that the library derives is repeated on the boundaries inside the scope, where
+  // the derivation would otherwise replace it.
+  const derived = new Set<string>(ROLE_DERIVED_TOKENS);
+  const tokens = { ...theme.tokens };
+  const derivedOverrides: [string, string][] = [];
+  const edited: [string, string][] = [
+    ...controlDeclarations(baseline.value, true),
+    ...Object.entries(roleOverrides),
+  ];
+  for (const [token, value] of edited) {
+    if (derived.has(token)) derivedOverrides.push([token, value]);
+    else tokens[token] = value;
   }
+  let css = serializeRoleTheme(selector, { tokens, mobileTokens: theme.mobileTokens });
+  if (derivedOverrides.length > 0) {
+    css += `\n${block(`${selector},\n${selector} ${NESTED_BOUNDARIES}`, derivedOverrides)}\n`;
+  }
+  return css;
+}
+
+const LIVE_ID = 'coar-theme-editor';
+
+function removeLiveTheme() {
+  document.getElementById(LIVE_ID)?.remove();
+  editorTarget().classList.remove('coar-theme-editor');
+}
+
+// ── applyTokens ───────────────────────────────────────────────
+export function applyTokens() {
+  // Inside a `.coar-compact` area the boundaries of that area take the values too.
   const selectors = _compactTarget
     ? '.coar-theme-editor, .coar-theme-editor .coar-compact, .coar-theme-editor :where(.coar-theme-scope, .coar-mobile, .light-mode, .dark-mode, [data-theme])'
     : '.coar-theme-editor';
-  tag.textContent = `${selectors} {\n${lines.join('\n')}\n}`;
+  const css = themeCss('.coar-theme-editor', appControls, appFieldPaddingX, selectors);
+  if (css === '') {
+    removeLiveTheme();
+    return;
+  }
+  let tag = document.getElementById(LIVE_ID) as HTMLStyleElement | null;
+  if (!tag) {
+    tag = document.createElement('style');
+    tag.id = LIVE_ID;
+    document.head.appendChild(tag);
+  }
+  tag.textContent = css;
   editorTarget().classList.add('coar-theme-editor');
 }
 
 // ── reset ─────────────────────────────────────────────────────
+/**
+ * Removes what the editor changed, nothing else: the theme the app has without
+ * the editor shows again. Light or dark, touch, other scopes and the state of the
+ * app are not the editor's to reset.
+ */
 export function reset() {
-  applyPreset(PRESETS[0]);
-  if (!_hideDarkToggle) {
-    isDark.value = false;
-    applyEditorMode(false);
-  }
-  radiusXxs.value = DEFAULTS.radiusXxs;
-  radiusXs.value = DEFAULTS.radiusXs;
-  radiusS.value = DEFAULTS.radiusS;
-  radiusM.value = DEFAULTS.radiusM;
-  radiusL.value = DEFAULTS.radiusL;
-  radiusXl.value = DEFAULTS.radiusXl;
-  spacingXs.value = DEFAULTS.spacingXs;
-  spacingS.value = DEFAULTS.spacingS;
-  spacingM.value = DEFAULTS.spacingM;
-  spacingL.value = DEFAULTS.spacingL;
-  spacingXl.value = DEFAULTS.spacingXl;
-  density.value = DEFAULTS.density;
-  fieldPaddingX.value = DEFAULTS.fieldPaddingX;
-  fieldPaddingXEnabled.value = false;
-  for (const key of Object.keys(paletteOverrides) as PaletteKey[]) {
-    paletteOverrides[key] = {};
-  }
+  roleTheme.value = null;
+  for (const token of Object.keys(roleOverrides)) delete roleOverrides[token];
+  for (const key of Object.keys(paletteOverrides) as PaletteKey[]) paletteOverrides[key] = {};
+  for (const token of Object.keys(semanticOverrides)) delete semanticOverrides[token];
   activePalette.value = null;
-  for (const group of SEMANTIC_GROUPS) {
-    for (const entry of group.entries) {
-      delete semanticOverrides[entry.token];
-    }
-  }
+  writeControls(appControls);
+  fieldPaddingXEnabled.value = appFieldPaddingX;
+  baseline.value = { ...appControls };
+  applyTokens();
 }
 
 // ── downloadCSS ───────────────────────────────────────────────
+/** The theme a fresh app needs: every value, not the changes against a loaded preset. */
+export function themeFileCss(name: string): string {
+  return themeCss(`.coar-theme--${name}`, DEFAULTS, false) || `.coar-theme--${name} {\n}`;
+}
+
 export function downloadCSS() {
   const name =
     themeName.value
@@ -788,77 +908,7 @@ export function downloadCSS() {
       .replace(/[^a-z0-9-]/g, '-')
       .replace(/-+/g, '-')
       .replace(/^-|-$/g, '') || 'custom';
-  const lines: string[] = [`.coar-theme--${name} {`];
-  const add = (token: string, val: string, def: string) => {
-    if (val !== def) lines.push(`  ${token}: ${val};`);
-  };
-  addAccentTokens((token, value) => lines.push(`  ${token}: ${value};`));
-  add('--coar-success', success.value, DEFAULTS.success);
-  add('--coar-error', errorColor.value, DEFAULTS.error);
-  add('--coar-warning', warning.value, DEFAULTS.warning);
-  add('--coar-info', info.value, DEFAULTS.info);
-  if (radiusXxs.value !== DEFAULTS.radiusXxs)
-    lines.push(`  --coar-radius-xxs: ${radiusXxs.value}px;`);
-  if (radiusXs.value !== DEFAULTS.radiusXs) lines.push(`  --coar-radius-xs: ${radiusXs.value}px;`);
-  if (radiusS.value !== DEFAULTS.radiusS) lines.push(`  --coar-radius-s: ${radiusS.value}px;`);
-  if (radiusM.value !== DEFAULTS.radiusM) lines.push(`  --coar-radius-m: ${radiusM.value}px;`);
-  if (radiusL.value !== DEFAULTS.radiusL) lines.push(`  --coar-radius-l: ${radiusL.value}px;`);
-  if (radiusXl.value !== DEFAULTS.radiusXl) lines.push(`  --coar-radius-xl: ${radiusXl.value}px;`);
-  if (spacingXs.value !== DEFAULTS.spacingXs)
-    lines.push(`  --coar-spacing-xs: ${spacingXs.value}px;`);
-  if (spacingS.value !== DEFAULTS.spacingS) lines.push(`  --coar-spacing-s: ${spacingS.value}px;`);
-  if (spacingM.value !== DEFAULTS.spacingM) lines.push(`  --coar-spacing-m: ${spacingM.value}px;`);
-  if (spacingL.value !== DEFAULTS.spacingL) lines.push(`  --coar-spacing-l: ${spacingL.value}px;`);
-  if (spacingXl.value !== DEFAULTS.spacingXl)
-    lines.push(`  --coar-spacing-xl: ${spacingXl.value}px;`);
-  if (density.value !== DEFAULTS.density)
-    lines.push(`  --coar-component-density: ${density.value};`);
-  if (fieldPaddingXEnabled.value) lines.push(`  --coar-field-padding-x: ${fieldPaddingX.value}px;`);
-  add('--coar-button-radius', buttonRadius.value, DEFAULTS.buttonRadius);
-  add('--coar-input-radius', inputRadius.value, DEFAULTS.inputRadius);
-  add('--coar-tag-radius', tagRadius.value, DEFAULTS.tagRadius);
-  add('--coar-badge-radius', badgeRadius.value, DEFAULTS.badgeRadius);
-  add('--coar-card-radius', cardRadius.value, DEFAULTS.cardRadius);
-  add('--coar-menu-radius', menuRadius.value, DEFAULTS.menuRadius);
-  add('--coar-popover-radius', popoverRadius.value, DEFAULTS.popoverRadius);
-  add('--coar-dropdown-radius', dropdownRadius.value, DEFAULTS.dropdownRadius);
-  add('--coar-dialog-border-radius', dialogRadius.value, DEFAULTS.dialogRadius);
-  add('--coar-toast-border-radius', toastRadius.value, DEFAULTS.toastRadius);
-  add('--coar-card-shadow', cardShadow.value, DEFAULTS.cardShadow);
-  add('--coar-menu-shadow', menuShadow.value, DEFAULTS.menuShadow);
-  add('--coar-popover-shadow', popoverShadow.value, DEFAULTS.popoverShadow);
-  add('--coar-dropdown-shadow', dropdownShadow.value, DEFAULTS.dropdownShadow);
-  add('--coar-dialog-shadow', dialogShadow.value, DEFAULTS.dialogShadow);
-  add('--coar-toast-shadow', toastShadow.value, DEFAULTS.toastShadow);
-  if (fontBody.value !== DEFAULTS.fontBody)
-    lines.push(
-      `  --coar-font-family-body: ${fontBody.value}, ui-sans-serif, system-ui, sans-serif;`,
-    );
-  if (fontTitle.value !== DEFAULTS.fontTitle)
-    lines.push(
-      `  --coar-font-family-title: ${fontTitle.value}, ui-sans-serif, system-ui, sans-serif;`,
-    );
-  if (motionScale.value !== DEFAULTS.motionScale) {
-    for (const [key, base] of Object.entries(BASE_DURATIONS)) {
-      lines.push(`  --coar-duration-${key}: ${Math.round(base * motionScale.value)}ms;`);
-    }
-  }
-  for (const key of Object.keys(paletteOverrides) as PaletteKey[]) {
-    const prefix = PALETTE_CSS_TOKEN[key];
-    const baseVar = PALETTE_BASE_VAR[key];
-    for (const step of PALETTE_STEPS[key]) {
-      if (step.defL === null) continue;
-      const ov = paletteOverrides[key][step.step];
-      if (ov)
-        lines.push(`  ${prefix}-${step.step}: oklch(from var(${baseVar}) ${ov.l} ${ov.c} h);`);
-    }
-  }
-  for (const [token, override] of Object.entries(semanticOverrides)) {
-    const prefix = SEMANTIC_PALETTE_CSS[override.palette as SemanticPalette];
-    lines.push(`  ${token}: var(${prefix}-${override.step});`);
-  }
-  lines.push('}');
-  const blob = new Blob([lines.join('\n')], { type: 'text/css' });
+  const blob = new Blob([themeFileCss(name)], { type: 'text/css' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `coar-theme--${name}.css`;
@@ -889,6 +939,8 @@ type StopHandle = () => void;
 let _stopRefsWatch: StopHandle | null = null;
 let _stopPaletteWatch: StopHandle | null = null;
 let _stopSemanticWatch: StopHandle | null = null;
+let _stopRoleWatch: StopHandle | null = null;
+let _stopModeWatch: StopHandle | null = null;
 
 // ── initThemeEditorState ──────────────────────────────────────
 export function initThemeEditorState(hideDarkToggle: boolean, source?: HTMLElement | null) {
@@ -971,6 +1023,14 @@ export function initThemeEditorState(hideDarkToggle: boolean, source?: HTMLEleme
       : document.documentElement.classList.contains('dark-mode');
   }
 
+  // What the app shows without the editor: the live preview writes only what
+  // differs from it, and "Reset" returns to it.
+  appControls = readControls();
+  appFieldPaddingX = fieldPaddingXEnabled.value;
+  baseline.value = { ...appControls };
+  roleTheme.value = null;
+  for (const token of Object.keys(roleOverrides)) delete roleOverrides[token];
+
   // Set up watches
   _stopRefsWatch = watch(
     [
@@ -1012,13 +1072,18 @@ export function initThemeEditorState(hideDarkToggle: boolean, source?: HTMLEleme
       fontBody,
       fontTitle,
       motionScale,
-      isDark,
+      roleTheme,
     ],
     applyTokens,
   );
 
   _stopPaletteWatch = watch(paletteOverrides, applyTokens, { deep: true });
   _stopSemanticWatch = watch(semanticOverrides, applyTokens, { deep: true });
+  _stopRoleWatch = watch(roleOverrides, applyTokens, { deep: true });
+  // The mode follows the editor's own toggle only; a change the app makes stays.
+  _stopModeWatch = watch(isDark, (dark) => {
+    if (!_hideDarkToggle) applyEditorMode(dark);
+  });
 }
 
 // ── cleanupThemeEditorState ───────────────────────────────────
@@ -1029,8 +1094,13 @@ export function cleanupThemeEditorState() {
   _stopRefsWatch = null;
   _stopPaletteWatch = null;
   _stopSemanticWatch = null;
+  _stopRoleWatch?.();
+  _stopModeWatch?.();
+  _stopRoleWatch = null;
+  _stopModeWatch = null;
 
-  document.getElementById('coar-theme-editor')?.remove();
-  editorTarget().classList.remove('coar-theme-editor');
+  removeLiveTheme();
+  roleTheme.value = null;
+  for (const token of Object.keys(roleOverrides)) delete roleOverrides[token];
   _compactTarget = null;
 }

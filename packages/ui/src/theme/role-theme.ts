@@ -22,7 +22,7 @@ export const APPEARANCE_INPUT_TOKENS = [
 ].map((role) => `--coar-appearance-${role}`);
 
 /** Boundaries inside a theme scope that set their own text and colour scheme again. */
-const NESTED_BOUNDARIES =
+export const NESTED_BOUNDARIES =
   ':where(.coar-mobile, .coar-theme-scope, .coar-theme-none, .light-mode, .dark-mode, [data-theme])';
 
 function rule(selectors: string[], declarations: [string, string][]): string {
