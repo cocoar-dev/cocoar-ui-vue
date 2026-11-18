@@ -214,6 +214,7 @@
   --coar-text-semantic-info-subtle-lc-dark: 0.8 0.025;
   --coar-border-semantic-info-subtle-lc: 0.82 0.02;
   --coar-border-semantic-info-subtle-lc-dark: 0.42 0.02;
+  --coar-data-grid-cell-padding-x: 12px;
   --coar-page-builder-panel-heading-font-size: 16px;
   --coar-page-builder-emphasis-font-weight: 600;
   --coar-page-builder-authored-font-size: 13px;
@@ -345,6 +346,7 @@
   --coar-popconfirm-title-font-size: 16px;
   --coar-toast-title-font-size: 15px;
   --coar-dialog-close-size: 44px;
+  --coar-data-grid-tree-toggle-size: 44px;
   --coar-markdown-font-size: 15px;
   --coar-markdown-table-font-size: 14px;
   --coar-markdown-table-cell-padding: 10px 12px;
