@@ -421,9 +421,9 @@ function canMoveDown(): boolean {
   align-items: center;
   gap: 6px;
   padding-right: 8px;
-  /* A theme whose action tray is in the flow (see .pb-tree-actions) lets the row
-     grow and wrap; compact.css adds the wrap mode and the minimum height. */
-  height: var(--coar-page-builder-tree-row-height, var(--coar-page-builder-row-height, 30px));
+  /* The row keeps the height of its role also where a theme lets it wrap (compact.css):
+     the action tray then takes a second line inside that height. */
+  height: var(--coar-page-builder-row-height, 30px);
   cursor: pointer;
   border-radius: var(--coar-page-builder-control-radius, 4px);
   position: relative;
