@@ -222,4 +222,41 @@ test.describe('Compact as a theme class, without .coar-compact', () => {
       expect(byClass.equals(byTheme), 'the theme class must paint what .coar-compact paints').toBe(true);
     });
   }
+
+  for (const scheme of ['light', 'dark'] as const) {
+    test(`nested overlays take the theme of their origin, follow a change and its removal (${scheme})`, async ({ page }) => {
+      await page.addInitScript(replaceClass, { css: themeCss, theme: THEME });
+      await page.goto(`/visual.html#/visual/compact-edge-dialogs?mode=default&scheme=${scheme}`);
+      await expect(page.locator('[data-visual-root]')).toHaveAttribute('data-visual-state', 'ready');
+      await expect(page.locator('.coar-compact')).toHaveCount(0);
+
+      // The theme sits on a container, so the panels on `body` do not inherit it.
+      const read = (index: number) => page.locator('.coar-overlay-host').nth(index).evaluate((host) => {
+        const style = getComputedStyle(host);
+        return {
+          byClass: host.classList.contains('coar-compact'),
+          family: style.fontFamily.split(',')[0].trim().replace(/["']/g, ''),
+          scheme: style.colorScheme,
+          themed: style.getPropertyValue('--coar-d-role-derivation').trim(),
+          focus: style.getPropertyValue('--coar-focus-color').trim(),
+        };
+      });
+      const themed = { byClass: false, family: 'Inter', scheme, themed: 'on' };
+
+      await page.locator('[data-size=m]').click();
+      await expect(page.locator('.coar-dialog--m')).toBeVisible();
+      expect(await read(0)).toMatchObject(themed);
+      await page.locator('.coar-dialog--m').getByRole('button', { name: 'Inneren Dialog öffnen' }).click();
+      await expect(page.locator('.coar-dialog')).toHaveCount(2);
+      expect(await read(1)).toMatchObject(themed);
+      const before = (await read(1)).focus;
+
+      // A value changed on the theme scope while both are open, then taken back.
+      const scope = page.locator(`[data-visual-root] .${THEME}`).first();
+      await scope.evaluate((element: HTMLElement) => element.style.setProperty('--coar-focus-color', 'rgb(1, 2, 3)'));
+      await expect.poll(async () => [(await read(0)).focus, (await read(1)).focus]).toEqual(['rgb(1, 2, 3)', 'rgb(1, 2, 3)']);
+      await scope.evaluate((element: HTMLElement) => element.style.removeProperty('--coar-focus-color'));
+      await expect.poll(async () => [(await read(0)).focus, (await read(1)).focus]).toEqual([before, before]);
+    });
+  }
 });
