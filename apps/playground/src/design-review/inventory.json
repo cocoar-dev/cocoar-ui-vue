@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "sourceRevision": "58cf57a3f3b36d807e6d81c757e613a3e45eddd96bd1052c77f9c4027aa3bc46",
+  "sourceRevision": "8d9365d54dae125b7dc4141b9a2bdb778c90b7ad8403895f9ff52286835e3d72",
   "packages": [
     {
       "dir": "packages/calendar",
@@ -2186,12 +2186,12 @@
       "states": [
         {
           "name": "open sheet: close size + header/list budget (compact desktop & mobile, light & dark)",
-          "status": "reviewed",
+          "status": "pending",
           "reason": "Current full suite passes compact-advanced-interactions.spec.ts:41-69 in light/dark with desktop/mobile classes: close 32/44px, real header/frame/list budget exactly 360px and sheet <=360px. Not native-device acceptance. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log). The relevant calendar browser cases also passed on Linux/UTC with the timezone correction; calendar native-device acceptance remains open."
         },
         {
           "name": "keyboard: Escape closes and returns focus to \"+N\"",
-          "status": "reviewed",
+          "status": "pending",
           "reason": "Current full suite passes compact-advanced-interactions.spec.ts:63-69: real overflow reopens the sheet, sheet receives focus, Escape removes it and returns focus to the overflow button in all four scheme/mobile-class combinations. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log). The relevant calendar browser cases also passed on Linux/UTC with the timezone correction; calendar native-device acceptance remains open."
         },
         {
@@ -2633,7 +2633,7 @@
       "states": [
         {
           "name": "all-day lanes + cap",
-          "status": "reviewed",
+          "status": "pending",
           "reason": "Current compact-calendar-states.spec.ts:110-143 passes in the isolated 93-case run and full 786-case suite: configured lane cap shows +4 with its accessible name; expanding reveals all five authored titles and grows the band. Light/dark and desktop/mobile classes, Chromium only. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log). The relevant calendar browser cases also passed on Linux/UTC with the timezone correction; calendar native-device acceptance remains open."
         },
         {
@@ -2643,7 +2643,7 @@
         },
         {
           "name": "expanded (collapse link shown)",
-          "status": "reviewed",
+          "status": "pending",
           "reason": "Current compact-calendar-states.spec.ts:110-143 asserts visible collapse control, 24px desktop/44px mobile-class target height, matching band/axis growth, readable lane text and restoration of folded height and overflow button after collapse. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log). The relevant calendar browser cases also passed on Linux/UTC with the timezone correction; calendar native-device acceptance remains open."
         }
       ],
@@ -2787,7 +2787,7 @@
       "states": [
         {
           "name": "overflow chip",
-          "status": "reviewed",
+          "status": "pending",
           "reason": "Current compact-calendar-states.spec.ts:110-143 asserts +4 text, accessible name, 24/44px target height and expansion by a real click in both schemes and desktop/mobile classes. Hover/focus-visible remain separate pending states. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log). The relevant calendar browser cases also passed on Linux/UTC with the timezone correction; calendar native-device acceptance remains open."
         },
         {
@@ -2945,7 +2945,7 @@
         },
         {
           "name": "mouse / keyboard drag, resize and invalid drop",
-          "status": "reviewed",
+          "status": "pending",
           "reason": "Current compact-calendar-states.spec.ts:154-308 passes actual pointer move, top/bottom resize, rejected weekend/early drops, Escape cancellation, staged keyboard moves and repeated-arrow event identity in light/dark and desktop/mobile classes. Verified by 93/93 isolated and 779 passed/7 existing skips in the complete suite. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log). Linux/UTC Chromium confirms the pointer move, edge resize, invalid drop, Escape and keyboard cases twice without retries, including a second drag after rejection. No native-device proof."
         },
         {
@@ -3232,12 +3232,12 @@
         },
         {
           "name": "hover proposal / drag selection",
-          "status": "reviewed",
+          "status": "pending",
           "reason": "Current compact-calendar-states.spec.ts:316-375 passes real mouse hover and range drag: indicator/proposal appears, duration changes, one dated 13:00-14:30 drag payload is emitted without a click, draft has expected geometry and pointer transparency, Escape cancels and a subsequent empty-slot drag still works. Both schemes and desktop/mobile classes. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log). The relevant calendar browser cases also passed on Linux/UTC with the timezone correction; calendar native-device acceptance remains open."
         },
         {
           "name": "clipped start/end draft",
-          "status": "reviewed",
+          "status": "pending",
           "reason": "Current compact-calendar-states.spec.ts:381-414 passes top/bottom clipped drafts in both schemes: exact cut-side class, dashed square cut edge, solid rounded intact edge, column/body bounds and matching clipped event. All measured text, including event time/location, must meet 4.5:1. Desktop Chromium; mobile/native proof remains open. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log). The relevant calendar browser cases also passed on Linux/UTC with the timezone correction; calendar native-device acceptance remains open."
         }
       ],
@@ -3531,12 +3531,12 @@
       "states": [
         {
           "name": "compact: measured header budget (44px actions)",
-          "status": "reviewed",
+          "status": "pending",
           "reason": "Current full suite passes compact-advanced-interactions.spec.ts:41-61: mobile-class close control is 44px and participates in measured header/frame/list budget of 360px; sheet remains <=360px in both light and dark. Desktop 32px variant is checked separately by the same test. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log). The relevant calendar browser cases also passed on Linux/UTC with the timezone correction; calendar native-device acceptance remains open."
         },
         {
           "name": "compact: open/close/focus handoff",
-          "status": "reviewed",
+          "status": "pending",
           "reason": "Current full suite passes compact-advanced-interactions.spec.ts:41-69: close-button click, real overflow reopen, sheet focus, Escape close and overflow focus return in light/dark and desktop/mobile classes. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log). The relevant calendar browser cases also passed on Linux/UTC with the timezone correction; calendar native-device acceptance remains open."
         },
         {
@@ -7306,6 +7306,30 @@
       ]
     },
     {
+      "id": "packages/map/src/internal/role-theme.ts",
+      "kind": "ts-visual",
+      "package": "packages/map",
+      "source": "packages/map/src/internal/role-theme.ts",
+      "exposure": "internal",
+      "signals": [
+        "css-tokens",
+        "computed-style"
+      ],
+      "decision": "pending",
+      "tokenRoles": [],
+      "states": [],
+      "scenario": "",
+      "checks": {
+        "desktop": "pending",
+        "mobile": "pending",
+        "light": "pending",
+        "dark": "pending"
+      },
+      "reasons": {},
+      "notes": "",
+      "evidence": []
+    },
+    {
       "id": "packages/map/src/internal/use-map-editor.ts",
       "kind": "ts-visual",
       "package": "packages/map",
@@ -10137,7 +10161,7 @@
       "states": [
         {
           "name": "selected node chrome and type tab (font, colours, tab background)",
-          "status": "reviewed",
+          "status": "pending",
           "reason": "Current post-review canvas regression passes 3/3 repeats after a real canvas click, with the pointer remaining over the selected node: compact tab text >=4.5:1 and frame >=3:1, neutral hover before selection and the historical legacy hover preserved. Light/dark with desktop/mobile classes and live host accents are checked. Full suite revalidated: 779 passed, seven existing skips; no native-device claim. The targeted Builder browser and stylesheet checks also passed on Linux/UTC; product Builder code is unchanged."
         },
         {
@@ -10147,7 +10171,7 @@
         },
         {
           "name": "drop zones: idle / over (accent colour-mix)",
-          "status": "reviewed",
+          "status": "pending",
           "reason": "The current canvas test performs a real pointer drag, measures the over-state background/border against compact roles and checks the idle background after its transition completes. Three final repeated runs pass in both profiles and all four mode/mobile-class variants. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log). The targeted Builder browser and stylesheet checks also passed on Linux/UTC; product Builder code is unchanged."
         },
         {
@@ -10162,7 +10186,7 @@
         },
         {
           "name": "empty card placeholder",
-          "status": "reviewed",
+          "status": "pending",
           "reason": "Current canvas test waits for the final idle background and enforces 4.5:1 for the compact placeholder text; legacy is recorded without redesign. Three final repeated runs pass. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log). The targeted Builder browser and stylesheet checks also passed on Linux/UTC; product Builder code is unchanged."
         },
         {
@@ -15758,7 +15782,7 @@
       "states": [
         {
           "name": "defines roles only under .coar-compact",
-          "status": "reviewed",
+          "status": "pending",
           "reason": "Current src/styles/compact.test.ts passes 7/7: every selector is compact-scoped, roles retain legacy fallbacks, authored renderers consume no chrome roles and selected ink uses the shared theme-aware role. This is source-level proof, not a browser/device claim. Revalidated after the hover reviewfix by the current full suite (review-fix-full-test.log). The targeted Builder browser and stylesheet checks also passed on Linux/UTC; product Builder code is unchanged."
         },
         {
@@ -20281,8 +20305,10 @@
       "source": "packages/ui/src/components/overlay/useCompactPresentationContext.ts",
       "exposure": "public",
       "signals": [
+        "css-tokens",
         "computed-style",
-        "class-names"
+        "class-names",
+        "size-literal"
       ],
       "decision": "implemented",
       "tokenRoles": [
@@ -22988,6 +23014,7 @@
       "exposure": "internal",
       "signals": [
         "style-injection",
+        "inline-style",
         "css-tokens",
         "dom-creation",
         "computed-style",
@@ -24107,6 +24134,271 @@
       ]
     },
     {
+      "id": "packages/ui/src/theme/compact-packages/calendar.ts",
+      "kind": "ts-visual",
+      "package": "packages/ui",
+      "source": "packages/ui/src/theme/compact-packages/calendar.ts",
+      "exposure": "internal",
+      "signals": [
+        "css-tokens",
+        "size-literal"
+      ],
+      "decision": "pending",
+      "tokenRoles": [],
+      "states": [],
+      "scenario": "",
+      "checks": {
+        "desktop": "pending",
+        "mobile": "pending",
+        "light": "pending",
+        "dark": "pending"
+      },
+      "reasons": {},
+      "notes": "",
+      "evidence": []
+    },
+    {
+      "id": "packages/ui/src/theme/compact-packages/data-grid.ts",
+      "kind": "ts-visual",
+      "package": "packages/ui",
+      "source": "packages/ui/src/theme/compact-packages/data-grid.ts",
+      "exposure": "internal",
+      "signals": [
+        "css-tokens",
+        "size-literal"
+      ],
+      "decision": "pending",
+      "tokenRoles": [],
+      "states": [],
+      "scenario": "",
+      "checks": {
+        "desktop": "pending",
+        "mobile": "pending",
+        "light": "pending",
+        "dark": "pending"
+      },
+      "reasons": {},
+      "notes": "",
+      "evidence": []
+    },
+    {
+      "id": "packages/ui/src/theme/compact-packages/document-viewer.ts",
+      "kind": "ts-visual",
+      "package": "packages/ui",
+      "source": "packages/ui/src/theme/compact-packages/document-viewer.ts",
+      "exposure": "internal",
+      "signals": [
+        "css-tokens",
+        "size-literal"
+      ],
+      "decision": "pending",
+      "tokenRoles": [],
+      "states": [],
+      "scenario": "",
+      "checks": {
+        "desktop": "pending",
+        "mobile": "pending",
+        "light": "pending",
+        "dark": "pending"
+      },
+      "reasons": {},
+      "notes": "",
+      "evidence": []
+    },
+    {
+      "id": "packages/ui/src/theme/compact-packages/map.ts",
+      "kind": "ts-visual",
+      "package": "packages/ui",
+      "source": "packages/ui/src/theme/compact-packages/map.ts",
+      "exposure": "internal",
+      "signals": [
+        "css-tokens",
+        "size-literal"
+      ],
+      "decision": "pending",
+      "tokenRoles": [],
+      "states": [],
+      "scenario": "",
+      "checks": {
+        "desktop": "pending",
+        "mobile": "pending",
+        "light": "pending",
+        "dark": "pending"
+      },
+      "reasons": {},
+      "notes": "",
+      "evidence": []
+    },
+    {
+      "id": "packages/ui/src/theme/compact-packages/markdown-editor.ts",
+      "kind": "ts-visual",
+      "package": "packages/ui",
+      "source": "packages/ui/src/theme/compact-packages/markdown-editor.ts",
+      "exposure": "internal",
+      "signals": [
+        "css-tokens",
+        "size-literal"
+      ],
+      "decision": "pending",
+      "tokenRoles": [],
+      "states": [],
+      "scenario": "",
+      "checks": {
+        "desktop": "pending",
+        "mobile": "pending",
+        "light": "pending",
+        "dark": "pending"
+      },
+      "reasons": {},
+      "notes": "",
+      "evidence": []
+    },
+    {
+      "id": "packages/ui/src/theme/compact-packages/markdown.ts",
+      "kind": "ts-visual",
+      "package": "packages/ui",
+      "source": "packages/ui/src/theme/compact-packages/markdown.ts",
+      "exposure": "internal",
+      "signals": [
+        "css-tokens",
+        "size-literal"
+      ],
+      "decision": "pending",
+      "tokenRoles": [],
+      "states": [],
+      "scenario": "",
+      "checks": {
+        "desktop": "pending",
+        "mobile": "pending",
+        "light": "pending",
+        "dark": "pending"
+      },
+      "reasons": {},
+      "notes": "",
+      "evidence": []
+    },
+    {
+      "id": "packages/ui/src/theme/compact-packages/mermaid.ts",
+      "kind": "ts-visual",
+      "package": "packages/ui",
+      "source": "packages/ui/src/theme/compact-packages/mermaid.ts",
+      "exposure": "internal",
+      "signals": [
+        "css-tokens",
+        "size-literal"
+      ],
+      "decision": "pending",
+      "tokenRoles": [],
+      "states": [],
+      "scenario": "",
+      "checks": {
+        "desktop": "pending",
+        "mobile": "pending",
+        "light": "pending",
+        "dark": "pending"
+      },
+      "reasons": {},
+      "notes": "",
+      "evidence": []
+    },
+    {
+      "id": "packages/ui/src/theme/compact-packages/page-builder.ts",
+      "kind": "ts-visual",
+      "package": "packages/ui",
+      "source": "packages/ui/src/theme/compact-packages/page-builder.ts",
+      "exposure": "internal",
+      "signals": [
+        "css-tokens",
+        "color-literal",
+        "size-literal"
+      ],
+      "decision": "pending",
+      "tokenRoles": [],
+      "states": [],
+      "scenario": "",
+      "checks": {
+        "desktop": "pending",
+        "mobile": "pending",
+        "light": "pending",
+        "dark": "pending"
+      },
+      "reasons": {},
+      "notes": "",
+      "evidence": []
+    },
+    {
+      "id": "packages/ui/src/theme/compact-packages/script-editor.ts",
+      "kind": "ts-visual",
+      "package": "packages/ui",
+      "source": "packages/ui/src/theme/compact-packages/script-editor.ts",
+      "exposure": "internal",
+      "signals": [
+        "css-tokens"
+      ],
+      "decision": "pending",
+      "tokenRoles": [],
+      "states": [],
+      "scenario": "",
+      "checks": {
+        "desktop": "pending",
+        "mobile": "pending",
+        "light": "pending",
+        "dark": "pending"
+      },
+      "reasons": {},
+      "notes": "",
+      "evidence": []
+    },
+    {
+      "id": "packages/ui/src/theme/compact-theme.ts",
+      "kind": "ts-visual",
+      "package": "packages/ui",
+      "source": "packages/ui/src/theme/compact-theme.ts",
+      "exposure": "internal",
+      "signals": [
+        "css-tokens",
+        "color-literal",
+        "size-literal"
+      ],
+      "decision": "pending",
+      "tokenRoles": [],
+      "states": [],
+      "scenario": "",
+      "checks": {
+        "desktop": "pending",
+        "mobile": "pending",
+        "light": "pending",
+        "dark": "pending"
+      },
+      "reasons": {},
+      "notes": "",
+      "evidence": []
+    },
+    {
+      "id": "packages/ui/src/theme/role-theme.ts",
+      "kind": "ts-visual",
+      "package": "packages/ui",
+      "source": "packages/ui/src/theme/role-theme.ts",
+      "exposure": "internal",
+      "signals": [
+        "css-tokens",
+        "size-literal"
+      ],
+      "decision": "pending",
+      "tokenRoles": [],
+      "states": [],
+      "scenario": "",
+      "checks": {
+        "desktop": "pending",
+        "mobile": "pending",
+        "light": "pending",
+        "dark": "pending"
+      },
+      "reasons": {},
+      "notes": "",
+      "evidence": []
+    },
+    {
       "id": "packages/ui/styles/all.css",
       "kind": "stylesheet",
       "package": "packages/ui",
@@ -24860,6 +25152,27 @@
           "summary": "2026-11-16 01:33 Docker compare: 72 compact-core/-display images and all legacy stories green (baselines rewritten 01:00 by this branch = pixel stability, not sign-off). Predates the 01:37 edit of styles/tokens/compact.css and later UI source edits; compact-interaction-* stories FAILED there (no baselines yet)."
         }
       ]
+    },
+    {
+      "id": "packages/ui/styles/tokens/derived.css",
+      "kind": "stylesheet",
+      "package": "packages/ui",
+      "source": "packages/ui/styles/tokens/derived.css",
+      "exposure": "public",
+      "signals": [],
+      "decision": "pending",
+      "tokenRoles": [],
+      "states": [],
+      "scenario": "",
+      "checks": {
+        "desktop": "pending",
+        "mobile": "pending",
+        "light": "pending",
+        "dark": "pending"
+      },
+      "reasons": {},
+      "notes": "",
+      "evidence": []
     },
     {
       "id": "packages/ui/styles/tokens/elevation.css",
@@ -26930,6 +27243,7 @@
       "sources": [
         "packages/ui/bin/cli.mjs",
         "packages/ui/scripts/copy-skill.mjs",
+        "packages/ui/scripts/write-compact-css.mjs",
         "packages/ui/src/components/_internal/keyboardInset.ts",
         "packages/ui/src/components/_internal/use-router-link.ts",
         "packages/ui/src/components/_internal/useFocusTrap.ts",
