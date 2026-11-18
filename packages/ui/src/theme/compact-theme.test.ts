@@ -38,7 +38,7 @@ describe('Compact theme, one source for preset and class', () => {
 
   it('gives every curve the derivation reads a value', async () => {
     const derived = await source('../../styles/tokens/derived.css');
-    const read = new Set(Array.from(derived.matchAll(/var\((--coar-[\w-]+-lc(?:-dark)?)\)/g), (m) => m[1]));
+    const read = new Set(Array.from(derived.matchAll(/var\((--coar-[\w-]+-lc(?:-dark)?)[,)]/g), (m) => m[1]));
     const given = Object.keys(COMPACT_THEME.tokens).filter((name) => /-lc(-dark)?$/.test(name));
     expect(given.sort()).toEqual([...read].sort());
   });

@@ -1005,25 +1005,40 @@ export function initThemeEditorState(
     const v = parseFloat(get(t));
     return isNaN(v) ? def : v;
   };
-  const str = (t: string, ref_: Ref<string>) => {
-    const v = get(t);
-    if (v) ref_.value = v;
-  };
   const strOpt = (t: string, ref_: Ref<string>, opts: { value: string }[]) => {
     const v = get(t);
     if (v && opts.some((o) => o.value === v)) ref_.value = v;
   };
   const font1 = (t: string) => get(t).split(',')[0].trim().replace(/['"]/g, '');
 
-  str('--coar-accent', accent);
-  if (_compactTarget) {
-    const compactAccent = get('--coar-appearance-accent') || get('--coar-color-accent-500');
-    if (compactAccent) accent.value = compactAccent;
-  }
-  str('--coar-success', success);
-  str('--coar-error', errorColor);
-  str('--coar-warning', warning);
-  str('--coar-info', info);
+  const readColor = (role: string, target: Ref<string>) => {
+    // A palette step is a derived expression, not the theme's base colour.
+    const token = [`--coar-appearance-${role}`, `--coar-theme-${role}`, `--coar-${role}`].find((name) => get(name));
+    if (!token) return;
+    const raw = get(token);
+    if (/^#[\da-f]{6}$/i.test(raw)) {
+      target.value = raw;
+      return;
+    }
+    // Native colour inputs need a hex value, including when the base is an
+    // expression or light-dark() pair. Resolve it in the source's current scheme.
+    const probe = document.createElement('span');
+    probe.style.color = `var(${token})`;
+    editorTarget().appendChild(probe);
+    const resolved = getComputedStyle(probe).color;
+    probe.remove();
+    const context = document.createElement('canvas').getContext('2d');
+    if (!context) return;
+    context.fillStyle = resolved;
+    context.fillRect(0, 0, 1, 1);
+    target.value = `#${Array.from(context.getImageData(0, 0, 1, 1).data).slice(0, 3)
+      .map((channel) => channel.toString(16).padStart(2, '0')).join('')}`;
+  };
+  readColor('accent', accent);
+  readColor('success', success);
+  readColor('error', errorColor);
+  readColor('warning', warning);
+  readColor('info', info);
 
   radiusXxs.value = px('--coar-radius-xxs', DEFAULTS.radiusXxs);
   radiusXs.value = px('--coar-radius-xs', DEFAULTS.radiusXs);

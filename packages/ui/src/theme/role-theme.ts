@@ -1,3 +1,5 @@
+import { COLOR_PALETTES } from './palette-inputs';
+
 /**
  * A theme as values for the shared role contract. The library derives everything
  * that follows from them (styles/tokens/derived.css); a theme never brings formulas
@@ -18,8 +20,12 @@ export const ROLE_DERIVATION_MARKER = '--coar-d-role-derivation';
 
 /** Optional inputs a surrounding `CoarThemeScope` hands to a theme; `.coar-theme-none` clears them. */
 export const APPEARANCE_INPUT_TOKENS = [
-  'accent', 'font-body', 'font-title', 'button-radius', 'input-radius', 'card-radius',
+  ...Object.keys(COLOR_PALETTES),
+  'font-body', 'font-title', 'button-radius', 'input-radius', 'card-radius',
 ].map((role) => `--coar-appearance-${role}`);
+
+/** Theme-owned bases survive the library defaults at nested scheme boundaries. */
+export const THEME_COLOR_INPUT_TOKENS = Object.keys(COLOR_PALETTES).map((role) => `--coar-theme-${role}`);
 
 /**
  * The tokens that carry a font family. Without a role theme each role holds its own

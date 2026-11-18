@@ -76,6 +76,28 @@ Sets the five base hue values that anchor the entire palette:
 
 Each color opens a **palette editor** (floating panel) where you can fine-tune the L (lightness) and C (chroma) for individual steps 50–900 using oklch relative color syntax.
 
+#### Base colours per scheme (Preview)
+
+A value-based theme accepts one colour for both schemes, or a `light-dark()` pair,
+through `--coar-theme-accent`, `--coar-theme-success`, `--coar-theme-error`,
+`--coar-theme-warning` and `--coar-theme-info`. These inputs survive nested
+light/dark boundaries and are carried into teleported overlays. For example,
+over an exported theme:
+
+```css
+.coar-theme--acme {
+  --coar-theme-accent: light-dark(#1183cd, #facc15);
+  --coar-theme-success: light-dark(#15803d, #0d9488);
+  --coar-color-green-600-lc-dark: 0.8 0.08;
+}
+```
+
+Each palette step has its own `-lc` and `-lc-dark` input, including step 500
+(`l c` preserves the base colour). The four status palettes use `green`, `red`,
+`amber` and `slate` in their token names. Existing base and palette overrides
+keep working; `CoarThemeScope` inputs still take precedence over preset values.
+The editor controls for these scheme-specific inputs are being added separately.
+
 ### Semantic
 
 Text on a solid accent or status fill uses its own computed role:

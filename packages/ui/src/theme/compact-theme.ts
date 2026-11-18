@@ -8,6 +8,7 @@ import { COMPACT_MERMAID_MOBILE_TOKENS, COMPACT_MERMAID_TOKENS } from './compact
 import { COMPACT_DOCUMENT_VIEWER_MOBILE_TOKENS, COMPACT_DOCUMENT_VIEWER_TOKENS } from './compact-packages/document-viewer';
 import { COMPACT_MAP_MOBILE_TOKENS, COMPACT_MAP_TOKENS } from './compact-packages/map';
 import type { CoarRoleTheme } from './role-theme';
+import { DEFAULT_PALETTE_INPUTS } from './palette-inputs';
 
 /**
  * The values of the Compact presentation: one source for the Theme Editor preset
@@ -19,6 +20,9 @@ import type { CoarRoleTheme } from './role-theme';
  */
 export const COMPACT_THEME: CoarRoleTheme = {
   tokens: {
+    // Complete palette inputs; Compact's accent and semantic role curves below
+    // retain its existing appearance until deliberately changed.
+    ...DEFAULT_PALETTE_INPUTS,
     // Activates the shared role derivation on this scope and the boundaries inside it.
     '--coar-role-derivation': '',
     // Slate, unless a surrounding CoarThemeScope names an accent.
@@ -171,6 +175,7 @@ export const COMPACT_THEME: CoarRoleTheme = {
     '--coar-color-accent-300-lc': '0.78 0.04',
     '--coar-color-accent-300-lc-dark': '0.46 0.05',
     '--coar-color-accent-400-lc': '0.62 0.06',
+    '--coar-color-accent-400-lc-dark': '0.62 0.06',
     '--coar-color-accent-600-lc': '0.4 0.05',
     '--coar-color-accent-600-lc-dark': '0.78 0.04',
     '--coar-color-accent-700-lc': '0.34 0.04',
@@ -180,9 +185,13 @@ export const COMPACT_THEME: CoarRoleTheme = {
     '--coar-color-accent-900-lc': '0.22 0.03',
     '--coar-color-accent-900-lc-dark': '0.96 0.01',
     '--coar-background-accent-primary-lc': '0.38 0.045',
+    '--coar-background-accent-primary-lc-dark': '0.38 0.045',
     '--coar-background-accent-hover-lc': '0.32 0.04',
+    '--coar-background-accent-hover-lc-dark': '0.32 0.04',
     '--coar-background-accent-active-lc': '0.27 0.035',
+    '--coar-background-accent-active-lc-dark': '0.27 0.035',
     '--coar-background-semantic-success-bold-lc': '0.45 0.1',
+    '--coar-background-semantic-success-bold-lc-dark': '0.45 0.1',
     '--coar-background-semantic-success-subtlest-lc': '0.98 0.012',
     '--coar-background-semantic-success-subtlest-lc-dark': '0.23 0.025',
     '--coar-background-semantic-success-subtle-lc': '0.94 0.025',
@@ -194,8 +203,11 @@ export const COMPACT_THEME: CoarRoleTheme = {
     '--coar-border-semantic-success-subtle-lc': '0.82 0.06',
     '--coar-border-semantic-success-subtle-lc-dark': '0.42 0.06',
     '--coar-background-semantic-error-bold-lc': '0.45 0.14',
+    '--coar-background-semantic-error-bold-lc-dark': '0.45 0.14',
     '--coar-background-semantic-error-hover-lc': '0.39 0.12',
+    '--coar-background-semantic-error-hover-lc-dark': '0.39 0.12',
     '--coar-background-semantic-error-active-lc': '0.33 0.1',
+    '--coar-background-semantic-error-active-lc-dark': '0.33 0.1',
     '--coar-background-semantic-error-subtlest-lc': '0.98 0.012',
     '--coar-background-semantic-error-subtlest-lc-dark': '0.23 0.025',
     '--coar-background-semantic-error-subtle-lc': '0.94 0.025',
@@ -207,6 +219,7 @@ export const COMPACT_THEME: CoarRoleTheme = {
     '--coar-border-semantic-error-subtle-lc': '0.82 0.06',
     '--coar-border-semantic-error-subtle-lc-dark': '0.42 0.06',
     '--coar-background-semantic-warning-bold-lc': '0.45 0.09',
+    '--coar-background-semantic-warning-bold-lc-dark': '0.45 0.09',
     '--coar-background-semantic-warning-subtlest-lc': '0.98 0.012',
     '--coar-background-semantic-warning-subtlest-lc-dark': '0.23 0.025',
     '--coar-background-semantic-warning-subtle-lc': '0.94 0.025',
@@ -218,6 +231,7 @@ export const COMPACT_THEME: CoarRoleTheme = {
     '--coar-border-semantic-warning-subtle-lc': '0.82 0.06',
     '--coar-border-semantic-warning-subtle-lc-dark': '0.42 0.06',
     '--coar-background-semantic-info-bold-lc': '0.45 0.03',
+    '--coar-background-semantic-info-bold-lc-dark': '0.45 0.03',
     '--coar-background-semantic-info-subtlest-lc': '0.98 0.006',
     '--coar-background-semantic-info-subtlest-lc-dark': '0.23 0.012',
     '--coar-background-semantic-info-subtle-lc': '0.94 0.012',

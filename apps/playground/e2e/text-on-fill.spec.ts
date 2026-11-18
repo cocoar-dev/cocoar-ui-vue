@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { resolve } from 'node:path';
 import { apcaContrast, APCA_TEXT_ON_THRESHOLD } from '../../../packages/ui/src/theme/color-contrast';
+import { COLOR_PALETTES } from '../../../packages/ui/src/theme/palette-inputs';
 
 const stateUrl = `/@fs${resolve(import.meta.dirname, '../../../packages/ui/src/components/theme-editor/theme-editor-state.ts')}`;
 const hues = ['#334155', '#15803d', '#be185d', '#facc15', '#1183cd'];
@@ -91,3 +92,134 @@ test('CSS threshold and APCA calculation use the same crossing', async ({ page }
     getComputedStyle(document.documentElement).getPropertyValue('--coar-text-on-threshold'));
   expect(Number(value)).toBeCloseTo(APCA_TEXT_ON_THRESHOLD, 14);
 });
+
+test('theme status inputs survive nested scheme boundaries while legacy defaults still reset @touch', async ({ page }) => {
+  await page.goto('/design-review?kind=fields');
+  const values = await page.evaluate(() => {
+    const theme = document.createElement('div');
+    theme.className = 'coar-theme--scheme-test';
+    theme.style.setProperty('--coar-role-derivation', ' ');
+    theme.style.setProperty('--coar-success', '#1183cd');
+    theme.style.setProperty('--coar-theme-success', 'light-dark(#1183cd, #facc15)');
+    theme.style.setProperty('--coar-color-green-500-lc', 'l c');
+    theme.style.setProperty('--coar-color-green-500-lc-dark', 'l c');
+    theme.innerHTML = '<div class="light-mode" style="color-scheme:light"><i></i></div><div class="dark-mode" style="color-scheme:dark"><i></i></div>';
+    document.body.appendChild(theme);
+    const read = (scheme: string, token: string) => {
+      const probe = theme.querySelector(`.${scheme}-mode i`) as HTMLElement;
+      probe.style.color = `var(${token})`;
+      const context = document.createElement('canvas').getContext('2d')!;
+      context.fillStyle = getComputedStyle(probe).color;
+      context.fillRect(0, 0, 1, 1);
+      return Array.from(context.getImageData(0, 0, 1, 1).data).slice(0, 3);
+    };
+    const result = {
+      legacyLight: read('light', '--coar-success'),
+      light: read('light', '--coar-color-green-500'),
+      dark: read('dark', '--coar-color-green-500'),
+    };
+    theme.remove();
+    return result;
+  });
+  // The existing primitive declaration resets the old base name at .light-mode.
+  expect(values.legacyLight).toEqual([30, 143, 72]);
+  expect(values.light).toEqual([17, 131, 205]);
+  expect(values.dark).toEqual([250, 204, 21]);
+});
+
+test('all base palettes keep independent light and dark curves in nested scopes @touch', async ({ page }) => {
+  await page.goto('/design-review?kind=fields');
+  const measured = await page.evaluate((palettes) => {
+    const theme = document.createElement('div');
+    theme.className = 'coar-compact';
+    for (const [role, palette] of Object.entries(palettes)) {
+      theme.style.setProperty(`--coar-theme-${role}`, 'light-dark(#1183cd, #facc15)');
+      theme.style.setProperty(`--coar-color-${palette}-600-lc`, '0.4 0.04');
+      theme.style.setProperty(`--coar-color-${palette}-600-lc-dark`, '0.8 0.03');
+    }
+    theme.innerHTML = '<div class="light-mode" style="color-scheme:light"><i></i><div class="dark-mode" style="color-scheme:dark"><i></i></div></div>';
+    document.body.appendChild(theme);
+    const read = (scheme: string, token: string) => {
+      const probe = theme.querySelector(`.${scheme}-mode > i`) as HTMLElement;
+      probe.style.color = `var(${token})`;
+      return getComputedStyle(probe).color;
+    };
+    const result = Object.values(palettes).map((palette) => ({
+      palette,
+      light: read('light', `--coar-color-${palette}-600`),
+      dark: read('dark', `--coar-color-${palette}-600`),
+    }));
+    theme.remove();
+    return result;
+  }, COLOR_PALETTES);
+  for (const { light, dark } of measured) {
+    expect(light).toMatch(/^oklch\(0\.4 0\.04 245\./);
+    expect(dark).toMatch(/^oklch\(0\.8 0\.03 91\./);
+  }
+});
+
+test('teleported overlays carry scheme-specific bases and palette inputs @touch', async ({ page }) => {
+  await page.goto('/visual.html#/visual/compact-edge-dialogs?mode=default&scheme=dark');
+  await expect(page.locator('[data-visual-root]')).toHaveAttribute('data-visual-state', 'ready');
+  await page.locator('[data-visual-root] .coar-compact').first().evaluate((scope: HTMLElement) => {
+    scope.style.setProperty('--coar-theme-success', 'light-dark(#1183cd, #facc15)');
+    scope.style.setProperty('--coar-color-green-500-lc', 'l c');
+    scope.style.setProperty('--coar-color-green-500-lc-dark', 'l c');
+  });
+  await page.locator('[data-size=m]').click();
+  const dialog = page.locator('.coar-dialog--m');
+  await expect(dialog).toBeVisible();
+  const colors = await dialog.evaluate((element) => {
+    const read = (parent: Element) => {
+      const probe = document.createElement('span');
+      probe.style.color = 'var(--coar-color-green-500)';
+      parent.appendChild(probe);
+      const context = document.createElement('canvas').getContext('2d')!;
+      context.fillStyle = getComputedStyle(probe).color;
+      context.fillRect(0, 0, 1, 1);
+      const rgb = Array.from(context.getImageData(0, 0, 1, 1).data).slice(0, 3);
+      probe.remove();
+      return rgb;
+    };
+    const dark = read(element);
+    const lightScope = document.createElement('div');
+    lightScope.className = 'light-mode';
+    lightScope.style.colorScheme = 'light';
+    element.appendChild(lightScope);
+    const light = read(lightScope);
+    lightScope.remove();
+    return { light, dark };
+  });
+  expect(colors).toEqual({ light: [17, 131, 205], dark: [250, 204, 21] });
+});
+
+test('the editor reads the Compact base, not a derived palette expression @touch', async ({ page }) => {
+  await page.goto('/visual.html#/visual/compact-interaction-theme-editor-open?mode=default&scheme=light');
+  await expect(page.locator('[data-visual-root]')).toHaveAttribute('data-visual-state', 'ready');
+  await page.getByTitle('Open theme editor', { exact: true }).click();
+  const row = page.locator('.te-color-row').filter({ has: page.locator('.te-color-name', { hasText: /^Accent$/ }) });
+  await expect(row.locator('input[type=color]')).toHaveValue('#334155');
+  await expect(row.locator('.te-color-hex')).toHaveText('#334155');
+});
+
+for (const [scheme, expected] of [['light', '#1183cd'], ['dark', '#facc15']] as const) {
+  test(`the editor resolves paired bases for native colour inputs (${scheme}) @touch`, async ({ page }) => {
+    await page.goto(`/visual.html#/visual/compact-interaction-theme-editor-open?mode=default&scheme=${scheme}`);
+    await expect(page.locator('[data-visual-root]')).toHaveAttribute('data-visual-state', 'ready');
+    await page.locator('[data-visual-root] .coar-compact').first().evaluate(async (scope: HTMLElement, url) => {
+      for (const role of ['accent', 'success', 'error', 'warning', 'info']) {
+        scope.style.setProperty(`--coar-theme-${role}`, 'light-dark(#1183cd, #facc15)');
+      }
+      // The editor initially reads on mount, before this test sets the app theme.
+      // Reinitialize against that theme to exercise the normal mount-time read.
+      const state = await import(/* @vite-ignore */ url);
+      state.cleanupThemeEditorState();
+      state.initThemeEditorState(false, scope, { fontPreview: false });
+    }, stateUrl);
+    await page.getByTitle('Open theme editor', { exact: true }).click();
+    await expect(page.locator('.te-color-swatch')).toHaveCount(5);
+    for (const input of await page.locator('.te-color-swatch').all()) {
+      await expect(input).toHaveValue(expected);
+    }
+  });
+}

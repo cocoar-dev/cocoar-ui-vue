@@ -22,6 +22,7 @@ describe('CoarThemeScope', () => {
     expect(wrapper.classes()).toContain('light-mode');
     expect(wrapper.attributes('style')).toContain('--coar-accent: #10b981');
     expect(wrapper.attributes('style')).toContain('--coar-error: #e5484d');
+    expect(wrapper.attributes('style')).toContain('--coar-appearance-error: #e5484d');
     expect(wrapper.attributes('style')).toContain('--coar-button-radius: 999px');
     expect(wrapper.attributes('style')).toContain('--coar-input-radius: 14px');
     expect(wrapper.attributes('style')).toContain('--coar-card-radius: 20px');

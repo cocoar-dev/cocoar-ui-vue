@@ -1,5 +1,6 @@
 import { COMPACT_THEME } from '../../theme/compact-theme';
-import { APPEARANCE_INPUT_TOKENS, ROLE_DERIVATION_TOKEN } from '../../theme/role-theme';
+import { APPEARANCE_INPUT_TOKENS, ROLE_DERIVATION_TOKEN, THEME_COLOR_INPUT_TOKENS } from '../../theme/role-theme';
+import { COLOR_PALETTES, COLOR_STEPS } from '../../theme/palette-inputs';
 
 /** Optional inputs of a surrounding scope; an empty one is carried as `initial`. */
 export const COMPACT_APPEARANCE_INPUT_TOKENS = APPEARANCE_INPUT_TOKENS;
@@ -9,6 +10,8 @@ export const COMPACT_APPEARANCE_INPUT_TOKENS = APPEARANCE_INPUT_TOKENS;
  * test reconciles the list with that stylesheet.
  */
 export const ROLE_DERIVED_TOKENS = [
+  ...Object.values(COLOR_PALETTES).filter((palette) => palette !== 'accent')
+    .flatMap((palette) => COLOR_STEPS.map((step) => `color-${palette}-${step}`)),
   'text-on-accent', 'text-on-success', 'text-on-error', 'text-on-warning', 'text-on-info',
   'field-xs-default-font-size', 'field-s-default-font-size', 'field-l-default-font-size',
   'picker-panel-radius', 'zone-caption-min-offset', 'choice-row-height', 'indicator-xs-height',
@@ -71,6 +74,7 @@ export const ROLE_DERIVED_TOKENS = [
  */
 export const COMPACT_CONTEXT_TOKENS = [...new Set([
   ...COMPACT_APPEARANCE_INPUT_TOKENS,
+  ...THEME_COLOR_INPUT_TOKENS,
   '--coar-compact-color-scheme',
   '--coar-text-on-threshold',
   ...Object.keys(COMPACT_THEME.tokens),

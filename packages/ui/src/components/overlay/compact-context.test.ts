@@ -31,6 +31,7 @@ describe('compact presentation transport contract', () => {
     // The activation is written as such; an empty value cannot be read back and copied.
     declared.delete(ROLE_DERIVATION_TOKEN);
     declared.add('--coar-text-on-threshold');
+    for (const role of ['success', 'error', 'warning', 'info']) declared.add(`--coar-theme-${role}`);
     // appearance-accent is an optional consumer input, never a profile default
     // that would mask a parent ThemeScope's explicit brand.
     for (const token of COMPACT_APPEARANCE_INPUT_TOKENS) declared.add(token);
