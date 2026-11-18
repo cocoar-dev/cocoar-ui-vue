@@ -4,6 +4,8 @@ import { h, watchEffect, onBeforeUnmount, onMounted } from 'vue';
 import { useData } from 'vitepress';
 
 import '@cocoar/vue-ui/fonts';
+// Declared for the Theme Editor: the browser fetches Onest only once a theme names it.
+import '@cocoar/vue-ui/fonts/onest';
 import '@cocoar/vue-ui/styles';
 
 import './custom.css';
@@ -50,6 +52,9 @@ const ShellThemeSync = {
       const sync = () => {
         const themed = getComputedStyle(html).getPropertyValue('--coar-d-role-derivation').trim() === 'on';
         if (html.classList.contains('coar-docs-themed') !== themed) html.classList.toggle('coar-docs-themed', themed);
+        // The Inter weights of the Compact values, when a theme asks for them and not for
+        // every visitor: their faces would replace the synthesized weights of the default look.
+        if (themed) void import('@cocoar/vue-ui/fonts/compact');
       };
       sync();
       // The Theme Editor marks each live change with an inline value on its scope.

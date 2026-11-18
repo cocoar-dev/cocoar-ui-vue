@@ -1,12 +1,20 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
 import {
-  DEFAULTS, PRESETS, accent, applyPreset, baseline, cleanupThemeEditorState, downloadCSS, fontBody,
+  DEFAULTS, FONT_OPTIONS_BODY, FONT_OPTIONS_TITLE, PRESETS, accent, applyPreset, baseline, cleanupThemeEditorState, downloadCSS, fontBody,
   hasEditorChanges, initThemeEditorState, isDark, radiusM, reset, resetRoleValue, roleTheme, setRoleValue,
   themeFileCss,
 } from './theme-editor-state';
 import { COMPACT_THEME } from '../../theme/compact-theme';
-import { serializeRoleTheme } from '../../theme/role-theme';
+import { BODY_FAMILY_TOKENS, serializeRoleTheme } from '../../theme/role-theme';
+
+// A font preview is a stylesheet link, which the test environment would fetch: an
+// anchor stands in for it (it resolves `href` the same way and loads nothing).
+beforeEach(() => {
+  const create = document.createElement.bind(document);
+  vi.spyOn(document, 'createElement').mockImplementation(((tag: string, options?: ElementCreationOptions) =>
+    create(tag === 'link' ? 'a' : tag, options)) as typeof document.createElement);
+});
 
 afterEach(() => {
   cleanupThemeEditorState();
@@ -18,6 +26,32 @@ afterEach(() => {
   document.documentElement.className = '';
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+});
+
+describe('theme editor fonts', () => {
+  it('offers Onest for body text and titles and writes it into the theme', async () => {
+    expect(FONT_OPTIONS_BODY).toContain('Onest');
+    expect(FONT_OPTIONS_TITLE).toContain('Onest');
+    initThemeEditorState(true);
+    fontBody.value = 'Onest';
+    await nextTick();
+    const css = themeFileCss('acme');
+    // Without a role theme every text role holds its own family: all of them are set.
+    for (const token of BODY_FAMILY_TOKENS) {
+      expect(css).toContain(`${token}: Onest, ui-sans-serif, system-ui, sans-serif;`);
+    }
+    expect(css).not.toContain('--coar-titles-title-family');
+  });
+
+  it('names the font once in a role theme, which derives the text roles from it', async () => {
+    initThemeEditorState(true);
+    applyPreset(PRESETS.find((preset) => preset.roleTheme)!);
+    fontBody.value = 'Onest';
+    await nextTick();
+    const css = themeFileCss('acme');
+    expect(css).toContain('--coar-font-family-body: var(--coar-appearance-font-body, Onest, ui-sans-serif, system-ui, sans-serif);');
+    expect(css).not.toContain('--coar-body-base-family:');
+  });
 });
 
 describe('theme editor export', () => {
@@ -103,7 +137,10 @@ describe('theme editor presets on one value contract', () => {
     accent.value = '#a21caf';
     await nextTick();
     const file = themeFileCss('acme');
-    expect(file).toBe(live().replaceAll('.coar-theme-editor', '.coar-theme--acme'));
+    // The same text; the file is headed by what to load for the fonts it names.
+    const notes = file.slice(0, file.indexOf('@layer'));
+    expect(notes).toContain('Nunito: not part of @cocoar/vue-ui');
+    expect(file.slice(notes.length)).toBe(live().replaceAll('.coar-theme-editor', '.coar-theme--acme'));
     expect(file).toContain('  --coar-ui-font-size: 15px;');
     expect(file).toContain('  --coar-theme-accent: #a21caf;');
     // A surrounding CoarThemeScope may still name another font.

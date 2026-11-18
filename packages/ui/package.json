@@ -23,7 +23,8 @@
   "sideEffects": [
     "*.css",
     "./dist/fonts.js",
-    "./dist/compact-fonts.js"
+    "./dist/compact-fonts.js",
+    "./dist/onest-fonts.js"
   ],
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -44,6 +45,11 @@
       "source": "./src/compact-fonts.ts",
       "import": "./dist/compact-fonts.js",
       "types": "./dist/compact-fonts.d.ts"
+    },
+    "./fonts/onest": {
+      "source": "./src/onest-fonts.ts",
+      "import": "./dist/onest-fonts.js",
+      "types": "./dist/onest-fonts.d.ts"
     }
   },
   "bin": {
@@ -66,6 +72,7 @@
     "@cocoar/vue-localization": "workspace:*",
     "@fontsource/cascadia-code": "^5.2.3",
     "@fontsource/inter": "^5.2.8",
+    "@fontsource/onest": "^5.3.1",
     "@fontsource/poppins": "^5.2.7",
     "@js-temporal/polyfill": "^0.5.1",
     "@maskito/core": "^5.2.2",

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "sourceRevision": "64b550775eb9df0db27855918ea373c6ffc392aeffcbee497986b6b0da835bcb",
+  "sourceRevision": "5161eccc693e97b6b31a5ed33e53bb07fb931b40daeeace40bb79759cf01dbcf",
   "packages": [
     {
       "dir": "packages/calendar",
@@ -469,6 +469,14 @@
       "target": "./dist/compact-fonts.js",
       "owners": [
         "packages/ui/src/compact-fonts.ts"
+      ]
+    },
+    {
+      "package": "packages/ui",
+      "subpath": "./fonts/onest",
+      "target": "./dist/onest-fonts.js",
+      "owners": [
+        "packages/ui/src/onest-fonts.ts"
       ]
     },
     {
@@ -22966,6 +22974,29 @@
       ]
     },
     {
+      "id": "packages/ui/src/components/theme-editor/font-preview.ts",
+      "kind": "ts-visual",
+      "package": "packages/ui",
+      "source": "packages/ui/src/components/theme-editor/font-preview.ts",
+      "exposure": "internal",
+      "signals": [
+        "dom-creation"
+      ],
+      "decision": "pending",
+      "tokenRoles": [],
+      "states": [],
+      "scenario": "",
+      "checks": {
+        "desktop": "pending",
+        "mobile": "pending",
+        "light": "pending",
+        "dark": "pending"
+      },
+      "reasons": {},
+      "notes": "",
+      "evidence": []
+    },
+    {
       "id": "packages/ui/src/components/theme-editor/internal/token-graph/naming.ts",
       "kind": "ts-visual",
       "package": "packages/ui",
@@ -24132,6 +24163,29 @@
           "summary": "legacy 16px Poppins, frame 42, button 40"
         }
       ]
+    },
+    {
+      "id": "packages/ui/src/onest-fonts.ts",
+      "kind": "ts-visual",
+      "package": "packages/ui",
+      "source": "packages/ui/src/onest-fonts.ts",
+      "exposure": "public",
+      "signals": [
+        "font-import"
+      ],
+      "decision": "pending",
+      "tokenRoles": [],
+      "states": [],
+      "scenario": "",
+      "checks": {
+        "desktop": "pending",
+        "mobile": "pending",
+        "light": "pending",
+        "dark": "pending"
+      },
+      "reasons": {},
+      "notes": "",
+      "evidence": []
     },
     {
       "id": "packages/ui/src/theme/compact-packages/calendar.ts",

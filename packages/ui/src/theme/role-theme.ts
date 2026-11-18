@@ -21,6 +21,29 @@ export const APPEARANCE_INPUT_TOKENS = [
   'accent', 'font-body', 'font-title', 'button-radius', 'input-radius', 'card-radius',
 ].map((role) => `--coar-appearance-${role}`);
 
+/**
+ * The tokens that carry a font family. Without a role theme each role holds its own
+ * family, so naming another font means setting them all; a role theme derives the
+ * roles from the first entry of each list.
+ */
+export const BODY_FAMILY_TOKENS = [
+  '--coar-font-family-body',
+  '--coar-body-base-family',
+  '--coar-body-bold-family',
+  '--coar-body-caption-family',
+  '--coar-body-footnote-family',
+  '--coar-body-small-base-family',
+  '--coar-body-small-bold-family',
+];
+export const TITLE_FAMILY_TOKENS = [
+  '--coar-font-family-title',
+  '--coar-headings-heading-family',
+  '--coar-headings-subheading-family',
+  '--coar-titles-display-family',
+  '--coar-titles-subtitle-family',
+  '--coar-titles-title-family',
+];
+
 /** Boundaries inside a theme scope that set their own text and colour scheme again. */
 export const NESTED_BOUNDARIES =
   ':where(.coar-mobile, .coar-theme-scope, .coar-theme-none, .light-mode, .dark-mode, [data-theme])';

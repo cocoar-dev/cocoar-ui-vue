@@ -67,6 +67,16 @@ describe('compact presentation transport contract', () => {
       expect(compact).toContain(`@fontsource/inter/${weight}.css`);
     }
   });
+
+  it('keeps Onest in an entry of its own, with the weights the roles use', async () => {
+    const onest = await source('../../onest-fonts.ts');
+    for (const weight of [400, 500, 600, 700]) {
+      expect(onest).toContain(`@fontsource/onest/${weight}.css`);
+    }
+    for (const entry of ['../../fonts.ts', '../../compact-fonts.ts']) {
+      expect(await source(entry)).not.toContain('@fontsource/onest');
+    }
+  });
 });
 
 describe('local compact overlays', () => {

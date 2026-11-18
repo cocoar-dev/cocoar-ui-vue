@@ -6,6 +6,7 @@ import {
   ref,
   useTemplateRef,
 } from 'vue';
+import { BODY_FAMILY_TOKENS, TITLE_FAMILY_TOKENS } from '../../theme/role-theme';
 
 export type CoarThemeMode = 'auto' | 'light' | 'dark';
 
@@ -105,23 +106,8 @@ const tokenStyle = computed<Record<string, string>>(() => {
   if (theme.bodyFontFamily?.trim()) result['--coar-appearance-font-body'] = theme.bodyFontFamily;
   if (theme.titleFontFamily?.trim()) result['--coar-appearance-font-title'] = theme.titleFontFamily;
 
-  assignFamily(result, theme.bodyFontFamily, [
-    '--coar-font-family-body',
-    '--coar-body-base-family',
-    '--coar-body-bold-family',
-    '--coar-body-caption-family',
-    '--coar-body-footnote-family',
-    '--coar-body-small-base-family',
-    '--coar-body-small-bold-family',
-  ]);
-  assignFamily(result, theme.titleFontFamily, [
-    '--coar-font-family-title',
-    '--coar-headings-heading-family',
-    '--coar-headings-subheading-family',
-    '--coar-titles-display-family',
-    '--coar-titles-subtitle-family',
-    '--coar-titles-title-family',
-  ]);
+  assignFamily(result, theme.bodyFontFamily, BODY_FAMILY_TOKENS);
+  assignFamily(result, theme.titleFontFamily, TITLE_FAMILY_TOKENS);
   return result;
 });
 
