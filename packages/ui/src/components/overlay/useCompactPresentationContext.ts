@@ -53,6 +53,9 @@ export function readCompactPresentationContext(
   // The target is a scope of its own: nested boundaries in it derive again, and
   // its plain text and `light-dark()` values follow the origin.
   result.style[ROLE_DERIVATION_TOKEN] = ' ';
+  // The marker is derived at theme boundaries only, and the target is none: without
+  // it a nested overlay or a renderer in the target would not see the theme.
+  result.style[ROLE_DERIVATION_MARKER] = 'on';
   result.style['color-scheme'] = dark ? 'dark' : 'light';
   Object.assign(result.style, SCOPE_SURFACE);
 
