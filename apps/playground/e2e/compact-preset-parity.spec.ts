@@ -26,14 +26,15 @@ const forTheme = (file: string) =>
   readFileSync(fileURLToPath(new URL(file, import.meta.url)), 'utf8').replaceAll('.coar-compact', `.${THEME}`);
 
 /**
- * The generated `.coar-compact` entry, for another selector: an exported theme. With
- * it the one rule of the scenes themselves that names the class (they paint their own
- * canvas; the library never paints an application's page background).
+ * The generated `.coar-compact` entry, for another selector and in the layer of the
+ * library's tokens: an exported theme, as the Theme Editor writes it. With it the one
+ * rule of the scenes themselves that names the class (they paint their own canvas; the
+ * library never paints an application's page background).
  */
 const themeCss = [
-  '../../../packages/ui/styles/tokens/compact.css',
-  '../src/visual/stories/compact-scene.css',
-].map(forTheme).join('\n');
+  `@layer cocoar.tokens {\n${forTheme('../../../packages/ui/styles/tokens/compact.css')}}`,
+  forTheme('../src/visual/stories/compact-scene.css'),
+].join('\n');
 
 /** Runs in the page before any script of it: no element keeps the class past a microtask. */
 function replaceClass({ css, theme }: { css: string; theme: string }) {

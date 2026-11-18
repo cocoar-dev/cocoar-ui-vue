@@ -817,6 +817,9 @@ function controlDeclarations(base: ThemeControls, paddingBase: boolean): [string
 const block = (selectors: string, declarations: [string, string][]) =>
   `${selectors} {\n${declarations.map(([token, value]) => `  ${token}: ${value};`).join('\n')}\n}`;
 
+/** The cascade layer of the library's token stylesheets (styles/all.css). */
+const TOKEN_LAYER = 'cocoar.tokens';
+
 /**
  * The theme as CSS for one scope. The live preview and the download are this text
  * with another selector and another comparison base, nothing else.
@@ -845,7 +848,10 @@ function themeCss(selector: string, base: ThemeControls, paddingBase: boolean, s
   if (derivedOverrides.length > 0) {
     css += `\n${block(`${selector},\n${selector} ${NESTED_BOUNDARIES}`, derivedOverrides)}\n`;
   }
-  return css;
+  // In the layer of the library's tokens, where the `.coar-compact` entry is: the theme
+  // then meets an application's own styles exactly as that entry does (an app that sets
+  // `html { font-size }` or a token itself keeps the last word).
+  return `@layer ${TOKEN_LAYER} {\n${css}}\n`;
 }
 
 const LIVE_ID = 'coar-theme-editor';

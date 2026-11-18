@@ -88,7 +88,8 @@ describe('theme editor presets on one value contract', () => {
     initThemeEditorState(true, null);
     applyPreset(compact);
     expect(roleTheme.value).toBe(COMPACT_THEME);
-    expect(live()).toBe(serializeRoleTheme('.coar-theme-editor', COMPACT_THEME));
+    // The same text as the `.coar-compact` entry, in the same cascade layer.
+    expect(live()).toBe(`@layer cocoar.tokens {\n${serializeRoleTheme('.coar-theme-editor', COMPACT_THEME)}}\n`);
     expect(live()).not.toContain('.coar-compact');
     expect(document.documentElement.classList.contains('coar-theme-editor')).toBe(true);
     expect(document.querySelector('.coar-compact')).toBeNull();
@@ -145,6 +146,8 @@ describe('theme editor presets on one value contract', () => {
     expect(live()).not.toContain('--coar-role-derivation');
     expect(live().match(/\{/g)).toHaveLength(1);
     expect(themeFileCss('saas')).toBe(live().replace('.coar-theme-editor', '.coar-theme--saas'));
+    // A preset of the default look stays an ordinary, unlayered theme class.
+    expect(live()).not.toContain('@layer');
   });
 
   it('tells attribute observers of each live change, and leaves no trace after a reset', async () => {
