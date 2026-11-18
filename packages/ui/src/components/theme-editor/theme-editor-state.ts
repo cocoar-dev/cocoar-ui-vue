@@ -607,8 +607,18 @@ function readControls(): ThemeControls {
   return values as unknown as ThemeControls;
 }
 
+let writingControls = false;
+
 function writeControls(values: ThemeControls) {
-  for (const key of CONTROL_KEYS) (CONTROL_REFS[key] as Ref<string | number>).value = values[key];
+  writingControls = true;
+  try {
+    for (const key of CONTROL_KEYS) (CONTROL_REFS[key] as Ref<string | number>).value = values[key];
+  } finally {
+    writingControls = false;
+  }
+  // Presets and resets restore values; they do not ask a font provider for a preview.
+  showFont('body', fontBody.value, false);
+  showFont('title', fontTitle.value, false);
 }
 
 /**
@@ -914,11 +924,10 @@ export function reset() {
   for (const key of Object.keys(paletteOverrides) as PaletteKey[]) paletteOverrides[key] = {};
   for (const token of Object.keys(semanticOverrides)) delete semanticOverrides[token];
   activePalette.value = null;
+  removeFontPreviews();
   writeControls(appControls);
   fieldPaddingXEnabled.value = appFieldPaddingX;
   baseline.value = { ...appControls };
-  // After the controls are back: the previews of fonts no role shows any more.
-  removeFontPreviews();
   applyTokens();
 }
 
@@ -1125,9 +1134,10 @@ export function initThemeEditorState(
   _stopRoleWatch = watch(roleOverrides, applyTokens, { deep: true });
   // Not on mount: a preview is fetched only for a font somebody chose in the editor.
   _stopFontWatch = watch([fontBody, fontTitle], ([body, title], [bodyBefore, titleBefore]) => {
+    if (writingControls) return;
     if (body !== bodyBefore) showFont('body', body);
     if (title !== titleBefore) showFont('title', title);
-  });
+  }, { flush: 'sync' });
   // The mode follows the editor's own toggle only; a change the app makes stays.
   _stopModeWatch = watch(isDark, (dark) => {
     if (!_hideDarkToggle) applyEditorMode(dark);

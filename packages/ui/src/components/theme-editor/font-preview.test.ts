@@ -4,7 +4,7 @@ import {
   cleanFontFamily, cssFontFamily, fontNotes, fontSources, removeFontPreviews, setFontPreviewEnabled, showFont,
 } from './font-preview';
 import {
-  PRESETS, applyPreset, cleanupThemeEditorState, fontBody, fontTitle, initThemeEditorState, themeFileCss,
+  PRESETS, applyPreset, cleanupThemeEditorState, fontBody, fontTitle, initThemeEditorState, reset, themeFileCss,
 } from './theme-editor-state';
 
 const links = () => [...document.head.querySelectorAll<HTMLLinkElement>('[data-coar-font-preview]')];
@@ -23,6 +23,7 @@ afterEach(() => {
   cleanupThemeEditorState();
   removeFontPreviews();
   setFontPreviewEnabled(true);
+  document.documentElement.removeAttribute('style');
   vi.restoreAllMocks();
 });
 
@@ -82,6 +83,40 @@ describe('font preview of the Theme Editor', () => {
 });
 
 describe('fonts in the editor state', () => {
+  it.each(['Segoe UI', '-apple-system', 'Helvetica Neue', 'Poppins'])(
+    'restores the app font %s without requesting a preview',
+    async (family) => {
+      document.documentElement.style.setProperty('--coar-font-family-body', `"${family}", sans-serif`);
+      document.documentElement.style.setProperty('--coar-font-family-title', 'system-ui');
+      initThemeEditorState(true);
+      expect(fontBody.value).toBe(family);
+      fontBody.value = 'Fraunces';
+      await nextTick();
+      const create = vi.spyOn(document.head, 'appendChild');
+      reset();
+      await nextTick();
+      expect(fontBody.value).toBe(family);
+      expect(create).not.toHaveBeenCalled();
+      expect(links()).toEqual([]);
+      expect(fontSources.body).toBe('off');
+      expect(fontSources.title).toBe('generic');
+    },
+  );
+
+  it('loads preset fonts without requesting previews, but still previews the next user choice', async () => {
+    initThemeEditorState(true);
+    fontBody.value = 'Fraunces';
+    await nextTick();
+    removeFontPreviews();
+    applyPreset(PRESETS.find((preset) => preset.id === 'compact')!);
+    await nextTick();
+    expect(links()).toEqual([]);
+    expect(fontSources.body).toBe('off');
+    fontBody.value = 'Onest';
+    await nextTick();
+    expect(links().map((link) => link.getAttribute('data-coar-font-preview'))).toEqual(['Onest']);
+  });
+
   it('previews only what somebody chose: nothing on mount, a request on a change', async () => {
     initThemeEditorState(true);
     await nextTick();

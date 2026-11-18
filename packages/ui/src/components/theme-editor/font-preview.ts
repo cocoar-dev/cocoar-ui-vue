@@ -90,13 +90,13 @@ function previewLink(family: string): HTMLLinkElement | null {
 /** The family each role currently shows, so a finished request reaches both. */
 const waiting: Record<FontRole, string> = { body: '', title: '' };
 
-/** Shows a family in a role: says where it comes from and, when the page lacks it, fetches a preview. */
-export function showFont(role: FontRole, family: string) {
+/** Labels a family and optionally fetches it. Restored values pass `false` for `fetchPreview`. */
+export function showFont(role: FontRole, family: string, fetchPreview = true) {
   waiting[role] = family;
-  previewFont(role, family);
+  previewFont(role, family, fetchPreview);
 }
 
-function previewFont(role: FontRole, family: string) {
+function previewFont(role: FontRole, family: string, fetchPreview: boolean) {
   if (!family || isGeneric(family)) {
     fontSources[role] = 'generic';
     return;
@@ -111,7 +111,7 @@ function previewFont(role: FontRole, family: string) {
     fontSources[role] = 'page';
     return;
   }
-  if (!enabled) {
+  if (!enabled || !fetchPreview) {
     fontSources[role] = 'off';
     return;
   }
