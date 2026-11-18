@@ -214,6 +214,7 @@
   --coar-text-semantic-info-subtle-lc-dark: 0.8 0.025;
   --coar-border-semantic-info-subtle-lc: 0.82 0.02;
   --coar-border-semantic-info-subtle-lc-dark: 0.42 0.02;
+  --coar-script-editor-placeholder-font-family: 'Cascadia Code', 'Consolas', 'Monaco', 'Courier New', monospace;
 }
 
 :root.coar-compact,

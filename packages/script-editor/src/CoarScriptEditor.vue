@@ -228,8 +228,8 @@ defineExpose({
 </template>
 
 <style>
-/* Opt-in `.coar-compact` profile (Preview): defines the `--coar-script-editor-*`
-   frame roles read below; without the class every `var(role, legacy)` keeps its value. */
+/* Role themes (Preview): derives the `--coar-script-editor-*` frame roles read below from
+   the theme's values; without a role theme every `var(role, legacy)` keeps its value. */
 @import './styles/script-editor-compact.css';
 
 .coar-script-editor {

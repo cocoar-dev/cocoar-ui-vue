@@ -403,9 +403,9 @@ export function useMonacoEditor(options: UseMonacoEditorOptions): UseMonacoEdito
       });
       return;
     }
-    // An explicit light/dark theme changes only when the page enters or leaves the
-    // compact profile (`.coar-compact` on html/body). Apply only such a change, so a
-    // default page never sees an extra `setTheme` call.
+    // An explicit light/dark theme changes only when the page enters or leaves a role
+    // theme (its values on html/body). Apply only such a change, so a default page
+    // never sees an extra `setTheme` call.
     let applied = resolveTheme(options.theme());
     disposeAutoWatcher = watchAutoTheme(() => {
       const next = resolveTheme(options.theme());
