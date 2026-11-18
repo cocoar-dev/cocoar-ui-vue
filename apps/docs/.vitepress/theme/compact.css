@@ -1,6 +1,9 @@
-/* VitePress owns its shell and prose. Bridge those roles only inside the opt-in;
-   components and their overlays continue to use the library's own compact CSS. */
-:root.coar-compact {
+/* VitePress owns its shell and prose. They follow the library theme in effect on
+   <html>: `.coar-compact` from the style switcher (present before the first paint),
+   or `.coar-docs-themed`, which index.ts sets while a theme without a class is active
+   (a preset loaded in the Theme Editor). Components and their overlays use the
+   library's own tokens. */
+:root:is(.coar-compact, .coar-docs-themed) {
   --coar-compact-color-scheme: light;
   --vp-font-family-base: var(--coar-font-family-body);
   --vp-c-bg: var(--coar-background-neutral-primary);
@@ -40,100 +43,100 @@
   --vp-nav-height: 48px;
 }
 
-:root.coar-compact.dark {
+:root:is(.coar-compact, .coar-docs-themed).dark {
   --coar-compact-color-scheme: dark;
 }
 
-:root.coar-compact body {
+:root:is(.coar-compact, .coar-docs-themed) body {
   font-family: var(--vp-font-family-base);
   font-size: var(--coar-body-base-size);
   line-height: var(--coar-body-base-line-height);
 }
 
 /* Only Markdown's immediate content, not headings/paragraphs inside live demos. */
-:root.coar-compact .vp-doc > div > :is(p, ul, ol, blockquote, table) {
+:root:is(.coar-compact, .coar-docs-themed) .vp-doc > div > :is(p, ul, ol, blockquote, table) {
   font-size: var(--coar-body-base-size);
   line-height: var(--coar-body-base-line-height);
 }
 
 /* The legacy dark override uses brand-3, which is a fill role in Compact.
    Keep inline code on the text role, including inside callouts. */
-:root.coar-compact .vp-doc :not(pre) > code {
+:root:is(.coar-compact, .coar-docs-themed) .vp-doc :not(pre) > code {
   color: var(--coar-text-accent-primary) !important;
 }
 
-:root.coar-compact .vp-doc > div > :is(p, ul, ol, blockquote) {
+:root:is(.coar-compact, .coar-docs-themed) .vp-doc > div > :is(p, ul, ol, blockquote) {
   margin: 12px 0;
 }
 
-:root.coar-compact .vp-doc > div > :is(h1, h2, h3, h4) {
+:root:is(.coar-compact, .coar-docs-themed) .vp-doc > div > :is(h1, h2, h3, h4) {
   font-family: var(--coar-font-family-title);
   font-weight: 600;
   letter-spacing: -0.01em;
 }
 
-:root.coar-compact .vp-doc > div > h1 { font-size: 28px; line-height: 36px; }
-:root.coar-compact .vp-doc > div > h2 { margin-top: 28px; padding-top: 20px; font-size: 21px; line-height: 28px; }
-:root.coar-compact .vp-doc > div > h3 { margin-top: 20px; font-size: 17px; line-height: 24px; }
-:root.coar-compact .vp-doc > div > h4 { font-size: 15px; line-height: 22px; }
+:root:is(.coar-compact, .coar-docs-themed) .vp-doc > div > h1 { font-size: 28px; line-height: 36px; }
+:root:is(.coar-compact, .coar-docs-themed) .vp-doc > div > h2 { margin-top: 28px; padding-top: 20px; font-size: 21px; line-height: 28px; }
+:root:is(.coar-compact, .coar-docs-themed) .vp-doc > div > h3 { margin-top: 20px; font-size: 17px; line-height: 24px; }
+:root:is(.coar-compact, .coar-docs-themed) .vp-doc > div > h4 { font-size: 15px; line-height: 22px; }
 
-:root.coar-compact :is(.VPNavBarMenuLink, .VPSidebarItem .text, .VPDocAsideOutline .outline-link) {
+:root:is(.coar-compact, .coar-docs-themed) :is(.VPNavBarMenuLink, .VPSidebarItem .text, .VPDocAsideOutline .outline-link) {
   font-size: var(--coar-ui-font-size);
   font-weight: var(--coar-ui-font-weight);
 }
 
-:root.coar-compact :is(.VPSidebar .group .title, .VPSidebarItem.is-active > .item > .link > .text) {
+:root:is(.coar-compact, .coar-docs-themed) :is(.VPSidebar .group .title, .VPSidebarItem.is-active > .item > .link > .text) {
   font-weight: var(--coar-label-font-weight);
 }
 
-:root.coar-compact .VPNavBarTitle .title {
+:root:is(.coar-compact, .coar-docs-themed) .VPNavBarTitle .title {
   font-weight: 600 !important;
 }
 
-:root.coar-compact :is(.VPFeature, .VPButton, .VPBadge, .VPDocFooter .pager-link) {
+:root:is(.coar-compact, .coar-docs-themed) :is(.VPFeature, .VPButton, .VPBadge, .VPDocFooter .pager-link) {
   border-radius: var(--coar-control-radius);
 }
 
-:root.coar-compact .VPFeature {
+:root:is(.coar-compact, .coar-docs-themed) .VPFeature {
   border-color: var(--coar-border-neutral-tertiary) !important;
 }
 
-:root.coar-compact .VPHero .name {
+:root:is(.coar-compact, .coar-docs-themed) .VPHero .name {
   color: var(--coar-text-accent-primary) !important;
   -webkit-text-fill-color: var(--coar-text-accent-primary) !important;
 }
 
-:root.coar-compact .VPHero .text { color: var(--coar-text-neutral-primary) !important; }
-:root.coar-compact .VPHero .tagline { color: var(--coar-text-neutral-secondary) !important; }
+:root:is(.coar-compact, .coar-docs-themed) .VPHero .text { color: var(--coar-text-neutral-primary) !important; }
+:root:is(.coar-compact, .coar-docs-themed) .VPHero .tagline { color: var(--coar-text-neutral-secondary) !important; }
 
-:root.coar-compact .VPBadge.tip {
+:root:is(.coar-compact, .coar-docs-themed) .VPBadge.tip {
   background-color: var(--coar-background-semantic-success-subtle) !important;
   color: var(--coar-text-semantic-success-bold);
   border-color: var(--coar-border-semantic-success-subtle);
 }
 
-:root.coar-compact .vp-doc :is(pre, .custom-block, div[class*='language-']) {
+:root:is(.coar-compact, .coar-docs-themed) .vp-doc :is(pre, .custom-block, div[class*='language-']) {
   border-radius: var(--coar-control-radius);
 }
 
-:root.coar-compact .vp-doc .custom-block .custom-block-title {
+:root:is(.coar-compact, .coar-docs-themed) .vp-doc .custom-block .custom-block-title {
   font-weight: var(--coar-label-font-weight);
 }
 
-:root.coar-compact .mermaid :is(text, .nodeLabel, .edgeLabel, .label, tspan) {
+:root:is(.coar-compact, .coar-docs-themed) .mermaid :is(text, .nodeLabel, .edgeLabel, .label, tspan) {
   fill: var(--coar-text-neutral-primary) !important;
   color: var(--coar-text-neutral-primary) !important;
 }
 
-:root.coar-compact .mermaid :is(.node rect, .node circle, .node polygon, .actor, .labelBox, rect.note, .cluster rect) {
+:root:is(.coar-compact, .coar-docs-themed) .mermaid :is(.node rect, .node circle, .node polygon, .actor, .labelBox, rect.note, .cluster rect) {
   fill: var(--coar-background-neutral-secondary) !important;
   stroke: var(--coar-border-neutral-secondary) !important;
 }
 
-:root.coar-compact .mermaid .edgeLabel {
+:root:is(.coar-compact, .coar-docs-themed) .mermaid .edgeLabel {
   background-color: var(--coar-background-neutral-primary) !important;
 }
 
 @media (max-width: 767px) {
-  :root.coar-compact .vp-doc > div > h1 { font-size: 24px; line-height: 32px; }
+  :root:is(.coar-compact, .coar-docs-themed) .vp-doc > div > h1 { font-size: 24px; line-height: 32px; }
 }

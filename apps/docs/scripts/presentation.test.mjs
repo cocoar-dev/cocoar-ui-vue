@@ -38,13 +38,14 @@ test('pre-paint bootstrap tolerates blocked local storage', () => {
   });
 });
 
-test('the VitePress bridge is confined to the compact root', () => {
+test('the VitePress bridge is confined to a root with an active library theme', () => {
   const css = readFileSync(new URL('../.vitepress/theme/compact.css', import.meta.url), 'utf8');
   const selectors = css.replace(/\/\*[\s\S]*?\*\//g, '')
     .matchAll(/([^{}]+)\{/g);
   for (const [_, selector] of selectors) {
     if (selector.trim().startsWith('@media')) continue;
-    assert.match(selector.trim(), /^:root\.coar-compact/, selector);
+    // The class entry, or the marker the theme sets for a theme without a class.
+    assert.match(selector.trim(), /^:root:is\(\.coar-compact, \.coar-docs-themed\)/, selector);
   }
 });
 

@@ -61,6 +61,14 @@ async function metrics(page: Page) {
   }, select);
 }
 
+/** The VitePress shell: prose text and the navigation bar. */
+async function shell(page: Page) {
+  return page.evaluate(() => ({
+    prose: getComputedStyle(document.querySelector('.vp-doc > div > p:not(.coar-doc-devices)')!).fontSize,
+    nav: document.querySelector('.VPNavBar')!.getBoundingClientRect().height,
+  }));
+}
+
 /** Text size of the options in the open dropdown: the overlay is teleported to `body`. */
 async function optionFont(page: Page) {
   const option = page.locator('.coar-overlay-host [role=option]').first();
@@ -73,12 +81,16 @@ test('Compact loads as values, survives navigation and an open overlay, and its 
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/components/select');
   const app = await metrics(page);
+  const appShell = await shell(page);
+  expect(appShell.prose).toBe('16px');
   const origin = await page.evaluate(() => performance.timeOrigin);
 
   await openEditor(page);
   await preset(page, 'Compact').click();
   await expect.poll(() => metrics(page)).toMatchObject({ bodyFamily: 'Inter', uiFont: '13px' });
   expect((await metrics(page)).text).not.toBe(app.text);
+  // The documentation's own shell and prose become compact with it, as with the style switcher.
+  await expect.poll(() => shell(page)).toEqual({ prose: '14px', nav: 48 });
   // Values, not the beta class, and no reload.
   await expect(page.locator('.coar-compact')).toHaveCount(0);
   expect(await page.evaluate(() => performance.timeOrigin)).toBe(origin);
@@ -136,6 +148,8 @@ test('Compact loads as values, survives navigation and an open overlay, and its 
   expect(css).not.toMatch(/\.coar-compact\b/);
   expect(css).not.toContain('coar-theme-editor');
   expect(css).toMatch(/--coar-role-derivation: ;/);
+  // In the layer of the library's tokens, like the `.coar-compact` entry.
+  expect(css.startsWith('@layer cocoar.tokens {')).toBe(true);
 
   // A fresh page without the editor's changes and without the Compact class.
   const context = await browser.newContext({ viewport: page.viewportSize()!, reducedMotion: 'reduce' });
@@ -157,6 +171,7 @@ test('Compact loads as values, survives navigation and an open overlay, and its 
   // Reset all: the app's own theme, in place.
   await page.getByRole('button', { name: 'Reset' }).click();
   await expect.poll(() => metrics(page)).toEqual(app);
+  await expect.poll(() => shell(page)).toEqual(appShell);
   await expect(page.locator('#coar-theme-editor')).toHaveCount(0);
   expect(await page.evaluate(() => performance.timeOrigin)).toBe(origin);
   expect(errors).toEqual([]);
@@ -168,7 +183,9 @@ test('reset leaves colour scheme and touch mode alone; the other presets still a
   await page.locator('.VPNavBar .VPSwitchAppearance').first().click();
   await expect(page.locator('html')).toHaveClass(/dark/);
   await page.evaluate(() => document.documentElement.classList.add('coar-mobile'));
-  const classes = () => page.evaluate(() => [...document.documentElement.classList].filter((name) => name !== 'coar-theme-editor').sort());
+  const classes = () => page.evaluate(() => [...document.documentElement.classList]
+    // The editor's scope and the shell's marker of an active theme are not the app's state.
+    .filter((name) => name !== 'coar-theme-editor' && name !== 'coar-docs-themed').sort());
   const before = { classes: await classes(), metrics: await metrics(page) };
 
   await openEditor(page);

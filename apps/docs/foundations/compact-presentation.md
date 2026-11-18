@@ -27,6 +27,9 @@ Use **Style → Bisher / Compact** in the navigation to switch the entire docume
 the VitePress shell, prose and ordinary live component examples. In a narrower window, the
 selector is in the main navigation menu. The mobile documentation has the same selector in its header.
 
+Loading the **Compact** preset in the Theme Editor (the button at the bottom right) switches the
+documentation the same way, shell and prose included, with values you can then edit.
+
 The choice is remembered in this browser and follows page navigation. Embedded phone/tablet
 demos follow it without reloading, so their form values and open dialogs remain intact.
 Light/dark mode remains independent. If browser storage is blocked, switching still works

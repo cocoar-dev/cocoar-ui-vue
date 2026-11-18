@@ -140,24 +140,28 @@ With **Compact** loaded, the file contains every value a fresh app needs, with y
 
 ```css
 /* coar-theme--myapp.css (shortened) */
-.coar-theme--myapp {
-  --coar-role-derivation: ;            /* derive the dependent tokens from these values */
-  --coar-theme-accent: #334155;
-  --coar-font-family-body: var(--coar-appearance-font-body, DM Sans, ui-sans-serif, system-ui, sans-serif);
-  --coar-ui-font-size: 13px;
-  --coar-component-m-height: 36px;
-  /* … */
-}
+@layer cocoar.tokens {
+  .coar-theme--myapp {
+    --coar-role-derivation: ;            /* derive the dependent tokens from these values */
+    --coar-theme-accent: #334155;
+    --coar-font-family-body: var(--coar-appearance-font-body, DM Sans, ui-sans-serif, system-ui, sans-serif);
+    --coar-ui-font-size: 13px;
+    --coar-component-m-height: 36px;
+    /* … */
+  }
 
-.coar-mobile .coar-theme--myapp,
-.coar-theme--myapp.coar-mobile,
-.coar-theme--myapp .coar-mobile {
-  --coar-interactive-row-height: 44px; /* touch sizes where the theme meets .coar-mobile */
-  /* … */
+  .coar-mobile .coar-theme--myapp,
+  .coar-theme--myapp.coar-mobile,
+  .coar-theme--myapp .coar-mobile {
+    --coar-interactive-row-height: 44px; /* touch sizes where the theme meets .coar-mobile */
+    /* … */
+  }
 }
 ```
 
-`--coar-role-derivation` (an empty value) is what makes the library derive palette steps, aliases and component roles from the values of the theme, on its class and on the scopes nested in it. The app needs the theme class and this file; it does not need `.coar-compact`. Dark mode and `.coar-mobile` stay separate choices of the app and combine with the theme.
+`--coar-role-derivation` (an empty value) is what makes the library derive palette steps, aliases and component roles from the values of the theme, on its class and on the scopes nested in it. The app needs the theme class and this file, loaded after the Cocoar stylesheet; it does not need `.coar-compact`. Dark mode and `.coar-mobile` stay separate choices of the app and combine with the theme.
+
+The file is written into the cascade layer of the library's tokens, where `.coar-compact` is too. Your own unlayered styles therefore keep the last word, exactly as with the class: the theme sets body text to 14 px on its scope, and an app that declares `html { font-size: 16px }` itself keeps its 16 px (and the `rem` sizes that follow from it).
 
 The file names a font, it does not ship one. Load the font your theme uses yourself: `import '@cocoar/vue-ui/fonts/compact'` for the Inter weights of the Compact preset, or your own `@font-face` rules for another family.
 
