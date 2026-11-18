@@ -404,3 +404,15 @@
   --coar-spinner-color: var(--coar-d-spinner-color, inherit);
   --coar-sheet-handle-color: var(--coar-d-sheet-handle-color, inherit);
 }
+
+/* A surface teleported out of a theme scope that sets no class of the library (an
+   overlay host, an editor tool on `body`) states the scope's text again, as the theme's
+   own rule does on the scope. The `.coar-compact` entry needs none: its surfaces carry
+   that class. One class of specificity, so the surface's own styles win. */
+.coar-theme-surface {
+  font-family: var(--coar-body-base-family);
+  font-size: var(--coar-body-base-size);
+  font-weight: var(--coar-body-base-weight);
+  line-height: var(--coar-body-base-line-height);
+  color: var(--coar-text-neutral-primary);
+}

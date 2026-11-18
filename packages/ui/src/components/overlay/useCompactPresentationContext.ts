@@ -17,14 +17,13 @@ export function hasRoleDerivation(element: Element | null | undefined): boolean 
   return getComputedStyle(element).getPropertyValue(ROLE_DERIVATION_MARKER).trim() === 'on';
 }
 
-/** What a theme scope sets on its own box; a teleported surface is such a box. */
-const SCOPE_SURFACE: Record<string, string> = {
-  'font-family': 'var(--coar-body-base-family)',
-  'font-size': 'var(--coar-body-base-size)',
-  'font-weight': 'var(--coar-body-base-weight)',
-  'line-height': 'var(--coar-body-base-line-height)',
-  color: 'var(--coar-text-neutral-primary)',
-};
+/**
+ * Gives a surface teleported out of a class-free theme the text of its scope (family,
+ * size, weight, line height, colour; styles/tokens/derived.css). A class and not inline
+ * values: the surface's own styles keep precedence, as they do over the `.coar-compact`
+ * rule that states the same for that entry.
+ */
+export const THEME_SURFACE_CLASS = 'coar-theme-surface';
 
 /**
  * Preview: explicit presentation transport for library surfaces teleported out
@@ -42,6 +41,7 @@ export function readCompactPresentationContext(
   if (!source || !hasRoleDerivation(source)) return result;
 
   if (source.closest('.coar-compact')) result.classes.push('coar-compact');
+  else result.classes.push(THEME_SURFACE_CLASS);
   if (source.closest('.coar-mobile')) result.classes.push('coar-mobile');
   const computed = getComputedStyle(source);
   const mode = source.closest('.light-mode, .dark-mode, [data-theme="light"], [data-theme="dark"]');
@@ -57,7 +57,6 @@ export function readCompactPresentationContext(
   // it a nested overlay or a renderer in the target would not see the theme.
   result.style[ROLE_DERIVATION_MARKER] = 'on';
   result.style['color-scheme'] = dark ? 'dark' : 'light';
-  Object.assign(result.style, SCOPE_SURFACE);
 
   for (const token of COMPACT_CONTEXT_TOKENS) {
     const value = computed.getPropertyValue(token).trim();

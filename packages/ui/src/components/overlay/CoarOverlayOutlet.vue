@@ -3,7 +3,7 @@ import { onBeforeUnmount, onMounted, provide, useTemplateRef, inject } from 'vue
 import { OVERLAY_PARENT_KEY, OVERLAY_SERVICE_KEY } from './useOverlay';
 import type { OverlayInstance } from './overlay-service';
 import { MOBILE_CONTEXT_TOKENS } from './overlay-types';
-import { hasRoleDerivation, readCompactPresentationContext } from './useCompactPresentationContext';
+import { THEME_SURFACE_CLASS, hasRoleDerivation, readCompactPresentationContext } from './useCompactPresentationContext';
 
 const props = defineProps<{
   instance: OverlayInstance;
@@ -96,6 +96,7 @@ function compactContext(host: HTMLElement): Element | null {
 function syncCompactContext(host: HTMLElement, context: Element | null) {
   const presentation = readCompactPresentationContext(context);
   host.classList.toggle('coar-compact', presentation.classes.includes('coar-compact'));
+  host.classList.toggle(THEME_SURFACE_CLASS, presentation.classes.includes(THEME_SURFACE_CLASS));
   if (!context) return;
   for (const mode of ['light-mode', 'dark-mode']) {
     host.classList.toggle(mode, presentation.classes.includes(mode));

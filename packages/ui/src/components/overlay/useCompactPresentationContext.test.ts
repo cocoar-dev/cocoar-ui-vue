@@ -35,7 +35,10 @@ describe('shared compact teleport context', () => {
     // (On the element itself: happy-dom does not inherit custom properties.)
     const source = area('<i style="--coar-d-role-derivation: on"></i>');
     const context = readCompactPresentationContext(source);
-    expect(context.classes).toEqual(['light-mode']);
+    expect(context.classes).toEqual(['coar-theme-surface', 'light-mode']);
+    // The scope's text comes with the class, never as inline values that would beat
+    // the surface's own styles (a button's white icon).
+    for (const property of ['color', 'font-family', 'font-size']) expect(context.style).not.toHaveProperty(property);
     expect(context.style['--coar-role-derivation']).toBe(' ');
     const target = document.createElement('div');
     for (const [name, value] of Object.entries(context.style)) target.style.setProperty(name, value);
