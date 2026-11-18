@@ -4,5 +4,10 @@
  */
 export const COMPACT_MAP_TOKENS: Record<string, string> = {};
 
-/** Where the theme scope meets `.coar-mobile`. */
-export const COMPACT_MAP_MOBILE_TOKENS: Record<string, string> = {};
+/**
+ * Where the theme scope meets `.coar-mobile`: the touch target of the zoom buttons
+ * and of the point list's drag handle.
+ */
+export const COMPACT_MAP_MOBILE_TOKENS: Record<string, string> = {
+  '--coar-map-target-size': '44px',
+};

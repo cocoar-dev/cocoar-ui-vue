@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 /**
- * Compact presentation of the map (`.coar-compact`, `internal/map-compact.css`).
- * Geometry is checked by the playground visual stories (`compact-map-*`); here the
- * contracts that keep the default look and the marker anchors unchanged.
+ * Roles of the map a theme can set (`internal/map-compact.css`; the Compact presentation
+ * sets them). Geometry is checked by the playground visual stories (`compact-map-*`);
+ * here the contracts that keep the default look and the marker anchors unchanged.
  */
 
 async function read(path: string): Promise<string> {
@@ -25,9 +25,10 @@ const styleOf = (source: string) =>
 describe('compact map: default look unchanged', () => {
   it('reads opt-in tokens and compact-only map roles only with a fallback', async () => {
     const optIn =
-      /var\(\s*(--coar-(?:ui-font-size|ui-line-height|ui-font-weight|label-font-weight|caption-font-size|interactive-row-height|content-gap|control-radius|panel-radius|map-(?:text|text-muted|error-color|selection-color|selection-ring|popup-shadow|target-size)))\s*([,)])/g;
+      /var\(\s*(--coar-(?:ui-font-size|ui-line-height|ui-font-weight|label-font-weight|caption-font-size|interactive-row-height|content-gap|control-radius|panel-radius|map-(?:text|text-muted|error-color|selection-color|selection-ring|popup-shadow|target-size|attribution-bg|chrome-[a-z-]+)))\s*([,)])/g;
     for (const path of [
       'internal/map-base.css',
+      'internal/map-compact.css',
       'CoarMap.vue',
       'CoarMapEditor.vue',
       'CoarMapPointList.vue',
@@ -38,14 +39,86 @@ describe('compact map: default look unchanged', () => {
     }
   });
 
-  it('scopes every compact rule to the profile and Leaflet rules to the map canvas', async () => {
-    const css = stripComments(await read('internal/map-compact.css'));
-    const selectors = [...css.matchAll(/(^|})\s*([^{}]+)\{/g)].map((m) => m[2].trim());
-    expect(selectors.length).toBeGreaterThan(10);
-    for (const selector of selectors) {
-      expect(selector).toContain('.coar-compact');
-      if (selector.includes('.leaflet-')) expect(selector).toContain('.coar-map__canvas');
+  it('depends on no class: without a role theme every role keeps what it inherits', async () => {
+    for (const path of [
+      'internal/map-base.css',
+      'internal/map-compact.css',
+      'CoarMap.vue',
+      'CoarMapEditor.vue',
+      'CoarMapPointList.vue',
+      'internal/MapPointForm.vue',
+    ]) {
+      expect(styleOf(await read(path)), path).not.toContain('coar-compact');
     }
+    const css = stripComments(await read('internal/map-compact.css'));
+    expect(css).not.toContain('@layer');
+    const block = /:where\(\.coar-map\)\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    const declared = [...block.matchAll(/(--coar-[a-z-]+)\s*:\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]);
+    const derived = declared.filter(([name]) => name.startsWith('--coar-d-map-'));
+    const roles = declared.filter(([name]) => !name.startsWith('--coar-d-'));
+    expect(derived.length).toBeGreaterThan(10);
+    expect(roles.length).toBe(derived.length);
+    // Private values are invalid unless the theme activates derivation …
+    for (const [name, value] of derived) expect(value, name).toMatch(/^var\(--coar-role-derivation\)\s/);
+    // … and each role then falls back to what the map inherits.
+    for (const [name, value] of roles) {
+      expect(value, name).toBe(`var(${name.replace('--coar-', '--coar-d-')}, inherit)`);
+    }
+    // Custom properties are declared nowhere else, and the activation token gates only them.
+    const rest = css.replace(block, '');
+    expect(rest).not.toMatch(/--coar-[a-z-]+\s*:/);
+    expect(rest).not.toContain('--coar-role-derivation');
+  });
+
+  it('keeps constants in the value module of the theme', async () => {
+    // Read as text: the module belongs to @cocoar/vue-ui, outside this package's sources.
+    const values = await read('../../ui/src/theme/compact-packages/map.ts');
+    expect(values).toMatch(/COMPACT_MAP_TOKENS: Record<string, string> = \{\};/);
+    expect(values).toMatch(/COMPACT_MAP_MOBILE_TOKENS: Record<string, string> = \{\s*'--coar-map-target-size': '44px',\s*\};/);
+    expect(styleOf(await read('CoarMapPointList.vue'))).toContain('min-width: var(--coar-map-target-size, auto);');
+  });
+
+  it('restyles Leaflet only on a map that found a role theme, anchored at its canvas', async () => {
+    const css = stripComments(await read('internal/map-compact.css'));
+    const rules = [...css.matchAll(/(^|})\s*([^{}]+)\{([^}]*)/g)]
+      .map((m) => ({ selectors: m[2].trim().split(/\s*,\s*/), body: m[3] }))
+      .filter((rule) => rule.selectors.some((selector) => selector.includes('.leaflet-')));
+    expect(rules.length).toBeGreaterThan(10);
+    for (const { selectors, body } of rules) {
+      for (const selector of selectors) expect(selector).toMatch(/^\.coar-map--role-theme \.coar-map__canvas[. ]/);
+      // Every declaration is one role with the value Leaflet declares as fallback.
+      for (const declaration of body.split(';').map((d) => d.trim()).filter(Boolean)) {
+        expect(declaration, selectors[0]).toMatch(/^[a-z-]+: var\(--coar-[a-z-]+, .+\)$/);
+      }
+    }
+    // Leaflet's values per state (leaflet/dist/leaflet.css 1.9): plain and `.leaflet-touch`.
+    const fallbacks = (selector: string) =>
+      rules.find((rule) => rule.selectors[0] === selector)?.body.replace(/\s+/g, ' ').trim();
+    expect(fallbacks('.coar-map--role-theme .coar-map__canvas.leaflet-container')).toBe(
+      "font-family: var(--coar-map-chrome-font-family, 'Helvetica Neue', Arial, Helvetica, sans-serif); " +
+        'font-size: var(--coar-ui-font-size, 0.75rem); line-height: var(--coar-ui-line-height, 1.5);',
+    );
+    expect(fallbacks('.coar-map--role-theme .coar-map__canvas.leaflet-touch .leaflet-bar')).toBe(
+      'border-color: var(--coar-map-chrome-border, rgba(0, 0, 0, 0.2)); box-shadow: var(--coar-map-chrome-shadow, none);',
+    );
+    expect(fallbacks('.coar-map--role-theme .coar-map__canvas.leaflet-touch .leaflet-bar a')).toBe(
+      'width: var(--coar-map-target-size, 30px); height: var(--coar-map-target-size, 30px); ' +
+        'line-height: var(--coar-map-target-size, 30px);',
+    );
+    expect(fallbacks('.coar-map--role-theme .coar-map__canvas .leaflet-popup-content')).toBe(
+      'font-size: var(--coar-ui-font-size, 1.08333em); line-height: var(--coar-ui-line-height, 1.3);',
+    );
+  });
+
+  it('marks the root from the values in effect, in the viewer and the editor', async () => {
+    for (const file of ['CoarMap.vue', 'CoarMapEditor.vue']) {
+      const source = await read(file);
+      expect(source, file).toContain("'coar-map--role-theme': roleTheme");
+      expect(source, file).toContain('const roleTheme = useRoleTheme(rootEl);');
+    }
+    const helper = await read('internal/role-theme.ts');
+    expect(helper).toContain("'--coar-d-role-derivation'");
+    expect(helper).not.toMatch(/classList|closest\(/);
   });
 
   it('keeps the Leaflet marker boxes and anchors of pins and vertices', async () => {

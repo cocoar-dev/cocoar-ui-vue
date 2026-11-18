@@ -20,8 +20,9 @@ import {
   stopColor,
   stopEmoji,
 } from './internal/map-model';
+import { useRoleTheme } from './internal/role-theme';
 import './internal/map-base.css';
-// Opt-in compact presentation (`.coar-compact`); no effect outside it.
+// Roles a theme can set (Compact sets them); no effect without a role theme.
 import './internal/map-compact.css';
 
 type Leaflet = typeof import('leaflet');
@@ -52,6 +53,9 @@ const cfg = computed<MapConfig | null>(() => props.config ?? injectedConfig ?? n
 const EMPTY_CONFIG: MapConfig = { defaultBasemap: '', basemaps: [] };
 
 const mapEl = ref<HTMLElement | null>(null);
+const rootEl = ref<HTMLElement | null>(null);
+// Restyling Leaflet's chrome is for a map inside a role theme only (map-compact.css).
+const roleTheme = useRoleTheme(rootEl);
 const mapRef = shallowRef<LeafletMap | null>(null);
 const ready = ref(false);
 
@@ -245,7 +249,7 @@ watch(() => props.selected, applySelectedVisual);
 </script>
 
 <template>
-  <div class="coar-map" :class="{ 'coar-map--ready': ready }">
+  <div ref="rootEl" class="coar-map" :class="{ 'coar-map--ready': ready, 'coar-map--role-theme': roleTheme }">
     <div ref="mapEl" class="coar-map__canvas" />
 
     <!-- Crawlable / no-JS fallback — removed once the map hydrates. -->

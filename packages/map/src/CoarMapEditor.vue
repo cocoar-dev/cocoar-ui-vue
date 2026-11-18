@@ -22,8 +22,9 @@ import type { MapConfig, MapData, MapPoint } from './types';
 import { COAR_MAP_CONFIG_KEY } from './context';
 import { useMapEditor } from './internal/use-map-editor';
 import MapPointForm from './internal/MapPointForm.vue';
+import { useRoleTheme } from './internal/role-theme';
 import './internal/map-base.css';
-// Opt-in compact presentation (`.coar-compact`); no effect outside it.
+// Roles a theme can set (Compact sets them); no effect without a role theme.
 import './internal/map-compact.css';
 
 const props = defineProps<{
@@ -46,6 +47,9 @@ const injectedConfig = inject(COAR_MAP_CONFIG_KEY, undefined);
 const cfg = computed<MapConfig | null>(() => props.config ?? injectedConfig ?? null);
 
 const mapEl = ref<HTMLElement | null>(null);
+const rootEl = ref<HTMLElement | null>(null);
+// Restyling Leaflet's chrome is for a map inside a role theme only (map-compact.css).
+const roleTheme = useRoleTheme(rootEl);
 
 const {
   ready,
@@ -86,7 +90,7 @@ defineExpose({
 </script>
 
 <template>
-  <div class="coar-map coar-map-editor" :class="{ 'coar-map--ready': ready }">
+  <div ref="rootEl" class="coar-map coar-map-editor" :class="{ 'coar-map--ready': ready, 'coar-map--role-theme': roleTheme }">
     <div class="coar-map-editor__stage">
       <div ref="mapEl" class="coar-map__canvas" />
 

@@ -344,4 +344,5 @@
   --coar-document-viewer-input-height: var(--coar-control-min-size, 44px);
   --coar-document-viewer-swatch-size: 32px;
   --coar-document-viewer-pin-target-outset: 11px;
+  --coar-map-target-size: 44px;
 }
