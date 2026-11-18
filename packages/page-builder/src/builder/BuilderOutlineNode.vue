@@ -421,7 +421,9 @@ function canMoveDown(): boolean {
   align-items: center;
   gap: 6px;
   padding-right: 8px;
-  height: var(--coar-page-builder-row-height, 30px);
+  /* A theme whose action tray is in the flow (see .pb-tree-actions) lets the row
+     grow and wrap; compact.css adds the wrap mode and the minimum height. */
+  height: var(--coar-page-builder-tree-row-height, var(--coar-page-builder-row-height, 30px));
   cursor: pointer;
   border-radius: var(--coar-page-builder-control-radius, 4px);
   position: relative;
@@ -521,7 +523,9 @@ function canMoveDown(): boolean {
   display: inline-flex;
   align-items: baseline;
   gap: 6px;
-  min-width: 0;
+  /* A wrapping row may move the action tray to the next line, never squeeze the
+     node name down to an unreadable sliver. */
+  min-width: var(--coar-page-builder-tree-label-min-width, 0);
 }
 
 .pb-tree-label-text {
@@ -555,7 +559,7 @@ function canMoveDown(): boolean {
 
 .pb-tree-node--selected > .pb-tree-row .pb-tree-label-key {
   color: var(--coar-text-accent-primary, #1666cc);
-  opacity: 0.7;
+  opacity: var(--coar-page-builder-tree-selected-key-opacity, 0.7);
 }
 
 .pb-tree-issue {
@@ -564,7 +568,8 @@ function canMoveDown(): boolean {
   justify-content: center;
   width: 18px;
   height: 18px;
-  margin-right: 30px; /* leave space for the hover-action overlay */
+  /* Leaves space for the hover-action overlay; none when the tray is in the flow. */
+  margin-right: var(--coar-page-builder-tree-issue-reserve, 30px);
   flex-shrink: 0;
 }
 
@@ -581,13 +586,29 @@ function canMoveDown(): boolean {
   gap: 1px;
   opacity: 0;
   transition: opacity 0.12s ease-out;
-  position: absolute;
+  /* An overlay at the row's end by default. A theme with larger action targets
+     keeps the tray in the flex row instead (`static` / `none`), so it does not
+     paint over the label and the validation state. */
+  position: var(--coar-page-builder-tree-actions-position, absolute);
   right: 4px;
   top: 50%;
-  transform: translateY(-50%);
+  transform: var(--coar-page-builder-tree-actions-transform, translateY(-50%));
+  /* Only for the tray in the flow; without effect on the absolute overlay. */
+  flex-shrink: 0;
+  margin-left: auto;
   background: var(--coar-background-neutral-secondary, #f1f1f3);
   border-radius: 4px;
   padding: 1px;
+}
+
+/* An empty tray in the flow would still take its padding and a gap. */
+.pb-tree-actions:empty {
+  display: var(--coar-page-builder-tree-actions-empty-display, flex);
+}
+
+/* Before the hover rule, which wins at equal specificity. */
+.pb-tree-row:focus-within .pb-tree-actions {
+  opacity: var(--coar-page-builder-tree-actions-focus-opacity, 0);
 }
 
 .pb-tree-row:hover .pb-tree-actions,
