@@ -6,7 +6,7 @@ import {
   themeFileCss,
 } from './theme-editor-state';
 import { COMPACT_THEME } from '../../theme/compact-theme';
-import { serializeRoleTheme } from '../../theme/role-theme';
+import { BODY_FAMILY_TOKENS, serializeRoleTheme } from '../../theme/role-theme';
 
 afterEach(() => {
   cleanupThemeEditorState();
@@ -27,7 +27,22 @@ describe('theme editor fonts', () => {
     initThemeEditorState(true);
     fontBody.value = 'Onest';
     await nextTick();
-    expect(themeFileCss('acme')).toContain('--coar-font-family-body: Onest, ui-sans-serif, system-ui, sans-serif;');
+    const css = themeFileCss('acme');
+    // Without a role theme every text role holds its own family: all of them are set.
+    for (const token of BODY_FAMILY_TOKENS) {
+      expect(css).toContain(`${token}: Onest, ui-sans-serif, system-ui, sans-serif;`);
+    }
+    expect(css).not.toContain('--coar-titles-title-family');
+  });
+
+  it('names the font once in a role theme, which derives the text roles from it', async () => {
+    initThemeEditorState(true);
+    applyPreset(PRESETS.find((preset) => preset.roleTheme)!);
+    fontBody.value = 'Onest';
+    await nextTick();
+    const css = themeFileCss('acme');
+    expect(css).toContain('--coar-font-family-body: var(--coar-appearance-font-body, Onest, ui-sans-serif, system-ui, sans-serif);');
+    expect(css).not.toContain('--coar-body-base-family:');
   });
 });
 

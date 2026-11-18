@@ -2,7 +2,9 @@ import { ref, shallowRef, watch, computed, reactive, type Ref } from 'vue';
 import type { StepDef, StepOverride } from './CoarPaletteEditor.vue';
 import type { CoarSelectOption } from '../select';
 import { COMPACT_THEME } from '../../theme/compact-theme';
-import { NESTED_BOUNDARIES, serializeRoleTheme, type CoarRoleTheme } from '../../theme/role-theme';
+import {
+  BODY_FAMILY_TOKENS, NESTED_BOUNDARIES, TITLE_FAMILY_TOKENS, serializeRoleTheme, type CoarRoleTheme,
+} from '../../theme/role-theme';
 import { ROLE_DERIVED_TOKENS } from '../overlay/compact-context';
 
 // ── Types ─────────────────────────────────────────────────────
@@ -785,10 +787,14 @@ function controlDeclarations(base: ThemeControls, paddingBase: boolean): [string
   for (const [key, token] of COMPONENT_TOKENS) {
     if (changed(key)) add(token, String(CONTROL_REFS[key].value));
   }
-  const family = (role: 'body' | 'title', name: string) =>
-    roles ? `var(--coar-appearance-font-${role}, ${name}, ${FONT_FALLBACK})` : `${name}, ${FONT_FALLBACK}`;
-  if (changed('fontBody')) add('--coar-font-family-body', family('body', fontBody.value));
-  if (changed('fontTitle')) add('--coar-font-family-title', family('title', fontTitle.value));
+  // A role theme derives every text role from the two families. Without one each role
+  // holds its own family, so the font reaches the components only when all are set.
+  const family = (role: 'body' | 'title', name: string, tokens: string[]) => {
+    if (roles) add(tokens[0], `var(--coar-appearance-font-${role}, ${name}, ${FONT_FALLBACK})`);
+    else for (const token of tokens) add(token, `${name}, ${FONT_FALLBACK}`);
+  };
+  if (changed('fontBody')) family('body', fontBody.value, BODY_FAMILY_TOKENS);
+  if (changed('fontTitle')) family('title', fontTitle.value, TITLE_FAMILY_TOKENS);
   if (changed('motionScale')) {
     for (const [key, duration] of Object.entries(BASE_DURATIONS)) {
       add(`--coar-duration-${key}`, `${Math.round(duration * motionScale.value)}ms`);
