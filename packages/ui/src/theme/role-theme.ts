@@ -8,8 +8,10 @@ import { COLOR_PALETTES } from './palette-inputs';
 export interface CoarRoleTheme {
   /** Token values on the theme scope. */
   tokens: Record<string, string>;
-  /** Token values where the scope meets `.coar-mobile`, in either nesting order. */
+  /** Inputs and role overrides where the scope meets `.coar-mobile`, in either nesting order. */
   mobileTokens: Record<string, string>;
+  /** Explicit derived-role values, reapplied at every boundary inside the scope. */
+  roles?: Record<string, string>;
 }
 
 /** Set by a theme (empty value = on) to have the library derive from its values. */
@@ -70,6 +72,11 @@ function rule(selectors: string[], declarations: [string, string][]): string {
 export function serializeRoleTheme(selector: string, theme: CoarRoleTheme): string {
   const s = selector;
   const none = [`${s}.coar-theme-none`, `${s} .coar-theme-none`];
+  const mobile = [
+    `.coar-mobile ${s}`, `${s}.coar-mobile`, `${s} .coar-mobile`,
+    `.coar-mobile ${s} .coar-theme-none`, `${s}.coar-mobile .coar-theme-none`,
+    `${s} .coar-mobile .coar-theme-none`,
+  ];
   const rules = [
     // A reset inside the scope returns to the theme's own defaults, not to a
     // mixture with the tokens `.coar-theme-none` restores.
@@ -88,11 +95,22 @@ export function serializeRoleTheme(selector: string, theme: CoarRoleTheme): stri
     ]),
   ];
   if (Object.keys(theme.mobileTokens).length > 0) {
-    rules.push(rule([
-      `.coar-mobile ${s}`, `${s}.coar-mobile`, `${s} .coar-mobile`,
-      `.coar-mobile ${s} .coar-theme-none`, `${s}.coar-mobile .coar-theme-none`,
-      `${s} .coar-mobile .coar-theme-none`,
-    ], Object.entries(theme.mobileTokens)));
+    rules.push(rule(mobile, Object.entries(theme.mobileTokens)));
+  }
+  if (theme.roles && Object.keys(theme.roles).length > 0) {
+    // Match the specificity of preset inputs on the root and reset scopes too.
+    rules.push(rule([`:root${s}`, ...none, s, `${s} ${NESTED_BOUNDARIES}`], Object.entries(theme.roles)));
+    // A boundary must not restore a desktop role over an inherited mobile value.
+    const mobileRoles = Object.entries(theme.mobileTokens)
+      .filter(([token]) => Object.hasOwn(theme.roles ?? {}, token));
+    if (mobileRoles.length > 0) {
+      rules.push(rule([
+        ...mobile,
+        `.coar-mobile ${s} ${NESTED_BOUNDARIES}`,
+        `${s}.coar-mobile ${NESTED_BOUNDARIES}`,
+        `${s} .coar-mobile ${NESTED_BOUNDARIES}`,
+      ], mobileRoles));
+    }
   }
   return `${rules.join('\n\n')}\n`;
 }

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
 import {
   DEFAULTS, FONT_OPTIONS_BODY, FONT_OPTIONS_TITLE, PRESETS, accent, applyPreset, baseline, cleanupThemeEditorState, downloadCSS, fontBody,
-  hasEditorChanges, initThemeEditorState, isDark, radiusM, reset, resetRoleValue, roleTheme, setRoleValue,
+  hasEditorChanges, initThemeEditorState, isDark, radiusM, reset, resetRoleValue, roleTheme, roleValue, setRoleValue,
   themeFileCss,
 } from './theme-editor-state';
 import { COMPACT_THEME } from '../../theme/compact-theme';
@@ -161,6 +161,38 @@ describe('theme editor presets on one value contract', () => {
     setRoleValue('--coar-panel-radius', '10px');
     await nextTick();
     expect(live().match(/--coar-panel-radius:/g)).toHaveLength(1);
+  });
+
+  it.each([
+    ['--coar-menu-radius', 'var(--coar-panel-radius)', '14px'],
+    ['--coar-text-neutral-primary', 'light-dark(#123456, #abcdef)', '#112233'],
+  ])('uses one serializer for the preset role %s, edits and resets in live and exported themes', async (token, presetValue, editedValue) => {
+    const theme = {
+      ...COMPACT_THEME,
+      roles: { [token]: presetValue },
+    };
+    initThemeEditorState(true, null);
+    applyPreset({ ...compact, roleTheme: theme });
+    expect(roleValue(token)).toBe(presetValue);
+    expect(live()).toBe(`@layer cocoar.tokens {\n${serializeRoleTheme('.coar-theme-editor', theme)}}\n`);
+
+    setRoleValue(token, editedValue);
+    await nextTick();
+    const edited = { ...theme, roles: { [token]: editedValue } };
+    expect(live()).toBe(`@layer cocoar.tokens {\n${serializeRoleTheme('.coar-theme-editor', edited)}}\n`);
+    const file = themeFileCss('acme');
+    expect(file.slice(file.indexOf('@layer'))).toBe(
+      live().replaceAll('.coar-theme-editor', '.coar-theme--acme'),
+    );
+
+    // Typing the preset value again removes the edit, just like the reset button.
+    setRoleValue(token, presetValue);
+    await nextTick();
+    expect(live()).toBe(`@layer cocoar.tokens {\n${serializeRoleTheme('.coar-theme-editor', theme)}}\n`);
+    setRoleValue(token, editedValue);
+    resetRoleValue(token);
+    await nextTick();
+    expect(roleValue(token)).toBe(presetValue);
   });
 
   it('resets one value to the loaded preset', async () => {

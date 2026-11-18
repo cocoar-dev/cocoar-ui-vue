@@ -3,7 +3,7 @@ import type { StepDef, StepOverride } from './CoarPaletteEditor.vue';
 import type { CoarSelectOption } from '../select';
 import { COMPACT_THEME } from '../../theme/compact-theme';
 import {
-  BODY_FAMILY_TOKENS, NESTED_BOUNDARIES, TITLE_FAMILY_TOKENS, serializeRoleTheme, type CoarRoleTheme,
+  BODY_FAMILY_TOKENS, TITLE_FAMILY_TOKENS, serializeRoleTheme, type CoarRoleTheme,
 } from '../../theme/role-theme';
 import { ROLE_DERIVED_TOKENS } from '../overlay/compact-context';
 import { cssFontFamily, fontNotes, removeFontPreviews, setFontPreviewEnabled, showFont } from './font-preview';
@@ -728,11 +728,11 @@ export const ROLE_VALUE_GROUPS: { label: string; entries: RoleValueEntry[] }[] =
 
 /** A value of the loaded role theme, as edited or as the preset has it. */
 export function roleValue(token: string): string {
-  return roleOverrides[token] ?? roleTheme.value?.tokens[token] ?? '';
+  return roleOverrides[token] ?? roleTheme.value?.roles?.[token] ?? roleTheme.value?.tokens[token] ?? '';
 }
 
 export function setRoleValue(token: string, value: string) {
-  const preset = roleTheme.value?.tokens[token];
+  const preset = roleTheme.value?.roles?.[token] ?? roleTheme.value?.tokens[token];
   if (value.trim() === '' || value === preset) delete roleOverrides[token];
   else roleOverrides[token] = value;
 }
@@ -847,19 +847,16 @@ function themeCss(selector: string, base: ThemeControls, paddingBase: boolean, s
   // the derivation would otherwise replace it.
   const derived = new Set<string>(ROLE_DERIVED_TOKENS);
   const tokens = { ...theme.tokens };
-  const derivedOverrides: [string, string][] = [];
+  const roles = { ...theme.roles };
   const edited: [string, string][] = [
     ...controlDeclarations(baseline.value, true),
     ...Object.entries(roleOverrides),
   ];
   for (const [token, value] of edited) {
-    if (derived.has(token)) derivedOverrides.push([token, value]);
+    if (derived.has(token) || Object.hasOwn(roles, token)) roles[token] = value;
     else tokens[token] = value;
   }
-  let css = serializeRoleTheme(selector, { tokens, mobileTokens: theme.mobileTokens });
-  if (derivedOverrides.length > 0) {
-    css += `\n${block(`${selector},\n${selector} ${NESTED_BOUNDARIES}`, derivedOverrides)}\n`;
-  }
+  const css = serializeRoleTheme(selector, { tokens, mobileTokens: theme.mobileTokens, roles });
   // In the layer of the library's tokens, where the `.coar-compact` entry is: the theme
   // then meets an application's own styles exactly as that entry does (an app that sets
   // `html { font-size }` or a token itself keeps the last word).
