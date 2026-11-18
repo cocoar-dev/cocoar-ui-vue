@@ -850,9 +850,15 @@ function themeCss(selector: string, base: ThemeControls, paddingBase: boolean, s
 
 const LIVE_ID = 'coar-theme-editor';
 
+const LIVE_REVISION = '--theme-editor-revision';
+let _liveRevision = 0;
+
 function removeLiveTheme() {
   document.getElementById(LIVE_ID)?.remove();
-  editorTarget().classList.remove('coar-theme-editor');
+  const target = editorTarget();
+  target.classList.remove('coar-theme-editor');
+  target.style.removeProperty(LIVE_REVISION);
+  if (target.getAttribute('style') === '') target.removeAttribute('style');
 }
 
 // ── applyTokens ───────────────────────────────────────────────
@@ -872,8 +878,20 @@ export function applyTokens() {
     tag.id = LIVE_ID;
     document.head.appendChild(tag);
   }
+  if (tag.textContent === css) return;
   tag.textContent = css;
   editorTarget().classList.add('coar-theme-editor');
+  signalLiveChange();
+}
+
+/**
+ * A rewritten stylesheet changes no attribute, and attributes are what open overlays
+ * and page-wide renderers (Monaco, Mermaid) observe on the ancestors of their scope.
+ * The counter is an inline value on the edited scope, so they read the new values.
+ */
+function signalLiveChange() {
+  _liveRevision += 1;
+  editorTarget().style.setProperty(LIVE_REVISION, String(_liveRevision));
 }
 
 // ── reset ─────────────────────────────────────────────────────

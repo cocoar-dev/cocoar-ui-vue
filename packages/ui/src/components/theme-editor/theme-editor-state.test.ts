@@ -147,6 +147,27 @@ describe('theme editor presets on one value contract', () => {
     expect(themeFileCss('saas')).toBe(live().replace('.coar-theme-editor', '.coar-theme--saas'));
   });
 
+  it('tells attribute observers of each live change, and leaves no trace after a reset', async () => {
+    initThemeEditorState(true);
+    const root = document.documentElement;
+    const seen: string[] = [];
+    const observer = new MutationObserver((records) => seen.push(...records.map((r) => r.attributeName ?? '')));
+    observer.observe(root, { attributes: true, attributeFilter: ['class', 'style'] });
+    applyPreset(PRESETS.find((preset) => preset.roleTheme)!);
+    await nextTick();
+    await nextTick();
+    expect(seen).toContain('style');
+    const first = root.style.getPropertyValue('--theme-editor-revision');
+    setRoleValue('--coar-ui-font-size', '15px');
+    await nextTick();
+    await nextTick();
+    expect(root.style.getPropertyValue('--theme-editor-revision')).not.toBe(first);
+    reset();
+    await nextTick();
+    expect(root.hasAttribute('style')).toBe(false);
+    observer.disconnect();
+  });
+
   it('resets to the theme the app has without the editor, and leaves mode and touch alone', async () => {
     document.documentElement.className = 'dark-mode coar-mobile app-state';
     document.documentElement.style.setProperty('--coar-radius-m', '9px');
