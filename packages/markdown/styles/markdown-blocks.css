@@ -17,9 +17,10 @@
  *   @import "@cocoar/vue-markdown/styles";
  *
  * Presentation roles: several declarations below read an optional
- * `--coar-markdown-*` role first and fall back to the exact legacy value. The
- * roles are defined only by the opt-in `.coar-compact` profile
- * (`markdown-compact.css`); without it every fallback applies unchanged.
+ * `--coar-markdown-*` role first and fall back to the exact legacy value. A
+ * role theme gives the roles, as values on its scope or derived from shared
+ * tokens in `markdown-compact.css`; without one every fallback applies
+ * unchanged.
  */
 
 @import './markdown-compact.css';
@@ -280,10 +281,13 @@
 }
 
 /* Links — same fallback pattern: bare `<a>` inside `.coar-markdown` picks
-   up the same color/underline as the viewer's `.coar-markdown-link`. */
+   up the same color/underline as the viewer's `.coar-markdown-link`. The
+   shorthand already resets the thickness to `auto`, so the role's fallback
+   declares what applies anyway. */
 .coar-markdown :where(a),
 .coar-markdown-link {
   text-decoration: underline;
+  text-decoration-thickness: var(--coar-markdown-link-underline-thickness, auto);
   color: var(--coar-markdown-link);
 }
 
