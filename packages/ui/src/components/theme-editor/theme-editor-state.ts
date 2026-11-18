@@ -164,8 +164,8 @@ export const SHADOW_OPTIONS = [
   { label: 'Elev.', value: 'var(--coar-elevation-medium)' },
 ];
 
-export const FONT_OPTIONS_BODY = ['Poppins', 'Inter', 'DM Sans', 'Nunito', 'Geist', 'system-ui'];
-export const FONT_OPTIONS_TITLE = ['Inter', 'Poppins', 'DM Sans', 'Nunito', 'Geist', 'system-ui'];
+export const FONT_OPTIONS_BODY = ['Poppins', 'Inter', 'Onest', 'DM Sans', 'Nunito', 'Geist', 'system-ui'];
+export const FONT_OPTIONS_TITLE = ['Inter', 'Poppins', 'Onest', 'DM Sans', 'Nunito', 'Geist', 'system-ui'];
 
 export const DENSITY_OPTIONS = [
   { label: 'Compact', value: 0.75 },

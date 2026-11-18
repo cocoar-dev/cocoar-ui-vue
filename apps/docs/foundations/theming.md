@@ -87,7 +87,7 @@ Controls the global radius scale (`xxs` → `xl`) plus per-component-group overr
 
 ### Type
 
-Font family for body text and headings, chosen from a curated list of Google Fonts. Fonts load on demand when selected.
+Font family for body text and headings, chosen from a short list: Poppins, Inter, Onest, DM Sans, Nunito, Geist and the system font. The editor only names the family; a font shows once your app loads it (`@cocoar/vue-ui/fonts` brings Poppins and Inter).
 
 ### Spacing
 

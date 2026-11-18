@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
 import {
-  DEFAULTS, PRESETS, accent, applyPreset, baseline, cleanupThemeEditorState, downloadCSS, fontBody,
+  DEFAULTS, FONT_OPTIONS_BODY, FONT_OPTIONS_TITLE, PRESETS, accent, applyPreset, baseline, cleanupThemeEditorState, downloadCSS, fontBody,
   hasEditorChanges, initThemeEditorState, isDark, radiusM, reset, resetRoleValue, roleTheme, setRoleValue,
   themeFileCss,
 } from './theme-editor-state';
@@ -18,6 +18,17 @@ afterEach(() => {
   document.documentElement.className = '';
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+});
+
+describe('theme editor fonts', () => {
+  it('offers Onest for body text and titles and writes it into the theme', async () => {
+    expect(FONT_OPTIONS_BODY).toContain('Onest');
+    expect(FONT_OPTIONS_TITLE).toContain('Onest');
+    initThemeEditorState(true);
+    fontBody.value = 'Onest';
+    await nextTick();
+    expect(themeFileCss('acme')).toContain('--coar-font-family-body: Onest, ui-sans-serif, system-ui, sans-serif;');
+  });
 });
 
 describe('theme editor export', () => {
