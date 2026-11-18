@@ -229,11 +229,23 @@ test('a typed font is previewed from Google Fonts; the download names it and say
   expect(requested, 'nothing is fetched before somebody chooses a font').toEqual([]);
   await page.locator('.te-acc-summary', { hasText: 'Typography' }).click();
   const body = page.locator('[data-te-font=body]');
-  const type = async (name: string) => {
-    await body.locator('input').fill(name);
-    await body.locator('input').press('Enter');
-    await body.locator('input').blur();
+  const choose = async (name: string) => {
+    await body.locator('.coar-select-trigger').click();
+    await page.locator('.coar-overlay-host [role=option]', { hasText: new RegExp(`^${name}$`) }).click();
   };
+  const type = async (name: string) => {
+    if (!await body.locator('.te-font-input').isVisible()) await choose('Other font…');
+    await body.locator('.te-font-input').fill(name);
+    await body.locator('.te-font-input').press('Enter');
+    await body.locator('.te-font-input').blur();
+  };
+  // The list offers the fonts as before; "Other font…" opens a field for any name.
+  await body.locator('.coar-select-trigger').click();
+  await expect(page.locator('.coar-overlay-host [role=option]')).toHaveText(
+    ['Poppins', 'Inter', 'Onest', 'DM Sans', 'Nunito', 'Geist', 'system-ui', 'Other font…'],
+  );
+  await page.keyboard.press('Escape');
+  await expect(body.locator('.te-font-input')).toHaveCount(0);
 
   // A font the page does not have: previewed, and the components show it.
   await type('Fraunces');
@@ -250,8 +262,10 @@ test('a typed font is previewed from Google Fonts; the download names it and say
   expect(css).toContain('--coar-font-family-body: Fraunces, ui-sans-serif, system-ui, sans-serif;');
   expect(css).not.toMatch(/googleapis|@font-face|@import/);
 
-  // A font the library ships and this page declares needs no preview.
-  await type('Onest');
+  // A font the library ships and this page declares needs no preview. Chosen from the
+  // list, the field for another name closes again.
+  await choose('Onest');
+  await expect(body.locator('.te-font-input')).toHaveCount(0);
   await expect(body.locator('[data-te-font-source]')).toHaveCount(0);
   await expect.poll(family).toBe('Onest');
   expect(requested).toEqual(['Fraunces']);

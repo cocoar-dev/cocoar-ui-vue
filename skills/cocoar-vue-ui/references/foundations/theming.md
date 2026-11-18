@@ -86,9 +86,9 @@ Controls the global radius scale (`xxs` → `xl`) plus per-component-group overr
 
 ### Type
 
-Font family for body text and headings. Type any family name; the field suggests Poppins, Inter, Onest, DM Sans, Nunito, Geist and the system font.
+Font family for body text and headings. Choose Poppins, Inter, Onest, DM Sans, Nunito, Geist or the system font from the list, or **Other font…** to type any family name.
 
-**Trying a font without installing it.** When the page does not have the family you typed, the editor fetches it from Google Fonts to show it, and says so under the field. This is a preview only:
+**Trying a font without installing it.** When the page does not have the family you chose or typed, the editor fetches it from Google Fonts to show it, and says so under the field. This is a preview only:
 
 - The downloaded theme names the font and does not contain it. The file starts with a comment that lists each font and what your app has to load for it.
 - The request goes to Google and carries the IP address of whoever uses the editor. It happens only for a font chosen in the editor, never when the editor mounts. Switch it off with `:font-preview="false"`; a font the page lacks then shows its fallback.

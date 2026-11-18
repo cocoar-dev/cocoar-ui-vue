@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Ref } from 'vue';
+import { reactive, watch, type Ref } from 'vue';
 import CoarPaletteEditor from './CoarPaletteEditor.vue';
 import CoarButton from '../button/CoarButton.vue';
 import CoarSelect from '../select/CoarSelect.vue';
@@ -23,14 +23,43 @@ import {
   baseline, hasEditorChanges, roleTheme, roleOverrides, ROLE_VALUE_GROUPS,
   roleValue, setRoleValue, resetRoleValue, type RoleValueEntry,
 } from './theme-editor-state';
-import { cleanFontFamily, fontSources, type FontSource } from './font-preview';
+import { cleanFontFamily, cssFontFamily, fontSources, type FontRole, type FontSource } from './font-preview';
 
 const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
 
+/** The entry of the font lists that opens a field for any other family name. */
+const OTHER_FONT = '\u0000other';
+const fontField = (role: FontRole, label: string, model: Ref<string>, options: string[]) => ({
+  role, label, model, options,
+  select: [...options.map((name) => ({ value: name, label: name })), { value: OTHER_FONT, label: 'Other font…' }],
+});
 const FONT_FIELDS = [
-  { role: 'body', label: 'Body', model: fontBody, options: FONT_OPTIONS_BODY },
-  { role: 'title', label: 'Title', model: fontTitle, options: FONT_OPTIONS_TITLE },
-] as const;
+  fontField('body', 'Body', fontBody, FONT_OPTIONS_BODY),
+  fontField('title', 'Title', fontTitle, FONT_OPTIONS_TITLE),
+];
+type FontField = (typeof FONT_FIELDS)[number];
+
+/** Roles whose field for another name is open although the font is still one of the list. */
+const otherFontOpen = reactive<Record<FontRole, boolean>>({ body: false, title: false });
+
+// A font of the list, wherever it comes from (a preset, Reset, or its name typed into
+// the field), is shown as that entry again.
+for (const font of FONT_FIELDS) {
+  watch(font.model, (name) => {
+    if (font.options.includes(name)) otherFontOpen[font.role] = false;
+  });
+}
+
+function fontChoice(font: FontField): string {
+  return otherFontOpen[font.role] || !font.options.includes(font.model.value) ? OTHER_FONT : font.model.value;
+}
+
+function chooseFont(font: FontField, value: string | null) {
+  if (value === null) return;
+  // "Other font…" opens the field; the font changes once a name is entered.
+  otherFontOpen[font.role] = value === OTHER_FONT;
+  if (value !== OTHER_FONT) font.model.value = value;
+}
 
 /** What the editor says under a font field; nothing where there is nothing to do. */
 const FONT_SOURCE_NOTES: Record<FontSource, string> = {
@@ -45,8 +74,9 @@ const FONT_SOURCE_NOTES: Record<FontSource, string> = {
 function setFont(model: Ref<string>, event: Event) {
   const input = event.target as HTMLInputElement;
   // An emptied field keeps the font it had.
-  model.value = cleanFontFamily(input.value) || model.value;
-  input.value = model.value;
+  const name = cleanFontFamily(input.value);
+  if (name) model.value = name;
+  else input.value = '';
 }
 
 const PAIR = /^light-dark\(\s*(#[0-9a-f]{6})\s*,\s*(#[0-9a-f]{6})\s*\)$/i;
@@ -266,28 +296,29 @@ function setLength(entry: RoleValueEntry, raw: string) {
         <div class="te-accordion-body">
           <div class="te-section">
             <div class="te-section-label">Font families</div>
-            <!-- Any family name: the list only suggests. A font the page lacks is previewed (font-preview.ts). -->
+            <!-- The fonts the list offers, or any other family by name: a font the page lacks is previewed (font-preview.ts). -->
             <div v-for="font in FONT_FIELDS" :key="font.role" class="te-font-field" :data-te-font="font.role">
               <div class="te-font-row">
-                <label class="te-font-label" :for="`te-font-${font.role}`">{{ font.label }}</label>
-                <input
-                  :id="`te-font-${font.role}`"
-                  class="te-font-input" :value="font.model.value" :list="`te-fonts-${font.role}`"
-                  placeholder="Font family" spellcheck="false" autocomplete="off"
-                  @change="setFont(font.model, $event)"
+                <span class="te-font-label">{{ font.label }}</span>
+                <CoarSelect
+                  :model-value="fontChoice(font)" :options="font.select" size="s" style="flex:1"
+                  :aria-label="`${font.label} font`" @update:model-value="chooseFont(font, $event)"
                 />
-                <datalist :id="`te-fonts-${font.role}`">
-                  <option v-for="name in font.options" :key="name" :value="name" />
-                </datalist>
               </div>
+              <input
+                v-if="fontChoice(font) === OTHER_FONT"
+                class="te-font-input" :value="font.options.includes(font.model.value) ? '' : font.model.value"
+                :aria-label="`${font.label} font, by name`" placeholder="Font family, e.g. Fraunces"
+                spellcheck="false" autocomplete="off" @change="setFont(font.model, $event)"
+              />
               <p v-if="FONT_SOURCE_NOTES[fontSources[font.role]]" class="te-font-note" :data-te-font-source="fontSources[font.role]">
                 {{ FONT_SOURCE_NOTES[fontSources[font.role]] }}
               </p>
             </div>
-            <p class="te-font-preview" :style="{ fontFamily: fontBody + ', sans-serif' }">
+            <p class="te-font-preview" :style="{ fontFamily: cssFontFamily(fontBody) + ', sans-serif' }">
               The quick brown fox jumps over the lazy dog.
             </p>
-            <p class="te-font-preview te-font-preview--title" :style="{ fontFamily: fontTitle + ', sans-serif' }">
+            <p class="te-font-preview te-font-preview--title" :style="{ fontFamily: cssFontFamily(fontTitle) + ', sans-serif' }">
               Heading Preview
             </p>
           </div>
@@ -769,7 +800,7 @@ function setLength(entry: RoleValueEntry, raw: string) {
 .te-font-field { margin-bottom: 8px; }
 .te-font-row { display: flex; align-items: center; gap: 10px; }
 .te-font-input {
-  flex: 1; min-width: 0; height: 28px; padding: 0 8px; box-sizing: border-box;
+  display: block; width: calc(100% - 46px); margin: 6px 0 0 46px; height: 28px; padding: 0 8px; box-sizing: border-box;
   border: 1px solid var(--coar-border-input, #d6d6d6); border-radius: var(--coar-control-radius, 3px);
   background: var(--coar-surface-input, #fff); color: var(--coar-text-neutral-primary, #1a1a1a);
   font-family: inherit; font-size: 12px;
