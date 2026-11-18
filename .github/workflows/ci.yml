@@ -40,7 +40,7 @@ env:
 
 jobs:
   build:
-    name: Build, test & pack
+    name: Build, unit tests & pack
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     permissions:
@@ -88,17 +88,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Cache Playwright browsers
-        if: env.SIMULATE != 'true'
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('**/pnpm-lock.yaml') }}
-
-      - name: Install Playwright browsers
-        if: env.SIMULATE != 'true'
-        run: pnpm --filter @cocoar/playground exec playwright install --with-deps chromium webkit
-
       - name: Lint
         if: env.SIMULATE != 'true'
         run: pnpm lint
@@ -107,9 +96,12 @@ jobs:
         if: env.SIMULATE != 'true'
         run: pnpm typecheck
 
-      - name: Test
+      - name: Unit tests
         if: env.SIMULATE != 'true'
-        run: pnpm test
+        run: |
+          pnpm test:mobile-host
+          pnpm exec turbo run test --filter='!@cocoar/playground'
+          pnpm --filter @cocoar/playground test:unit
 
       - name: Build packages
         if: env.SIMULATE != 'true'
@@ -123,6 +115,17 @@ jobs:
 
       - name: Pack
         run: node scripts/release/pack.mjs --out artifacts
+
+      - name: Cache Chromium for the packed-consumer check
+        if: env.SIMULATE != 'true' && steps.version.outputs.channel != 'alpha'
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-chromium-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install Chromium for the packed-consumer check
+        if: env.SIMULATE != 'true' && steps.version.outputs.channel != 'alpha'
+        run: pnpm --filter @cocoar/playground exec playwright install --with-deps chromium
 
       - name: Verify packed PageBuilder in Vite consumer
         if: env.SIMULATE != 'true' && steps.version.outputs.channel != 'alpha'
@@ -152,6 +155,94 @@ jobs:
           name: docs-${{ steps.version.outputs.version }}
           path: apps/docs/.vitepress/dist
           retention-days: 7
+
+  browser-tests:
+    name: Browser tests (${{ matrix.label }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { label: Chromium 1/3, browser: chromium, project: chromium, shard: '1/3' }
+          - { label: Chromium 2/3, browser: chromium, project: chromium, shard: '2/3' }
+          - { label: Chromium 3/3, browser: chromium, project: chromium, shard: '3/3' }
+          - { label: WebKit, browser: webkit, project: 'webkit-*', shard: '' }
+    steps:
+      - uses: actions/checkout@v6
+        if: env.SIMULATE != 'true'
+
+      - uses: pnpm/action-setup@v4
+        if: env.SIMULATE != 'true'
+        with:
+          version: 10.13.1
+
+      - uses: actions/setup-node@v6
+        if: env.SIMULATE != 'true'
+        with:
+          node-version: 22.17.1
+          cache: pnpm
+
+      - name: Install dependencies
+        if: env.SIMULATE != 'true'
+        run: pnpm install --frozen-lockfile
+
+      # The playground consumes built workspace dependencies. This is the same
+      # prerequisite as Turbo's ^build for its test task.
+      - name: Build playground dependencies
+        if: env.SIMULATE != 'true'
+        run: pnpm exec turbo run build --filter='@cocoar/playground^...'
+
+      - name: Cache Playwright browser
+        if: env.SIMULATE != 'true'
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ matrix.browser }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install Playwright browser
+        if: env.SIMULATE != 'true'
+        env:
+          BROWSER: ${{ matrix.browser }}
+        run: pnpm --filter @cocoar/playground exec playwright install --with-deps "$BROWSER"
+
+      - name: Run playground browser tests
+        if: env.SIMULATE != 'true'
+        env:
+          PROJECT: ${{ matrix.project }}
+          SHARD: ${{ matrix.shard }}
+        run: |
+          args=(--project="$PROJECT" --workers=1)
+          # Shard by test rather than by file: some presentation specs alone
+          # contain hundreds of cases. Each runner still uses one worker.
+          if [[ -n "$SHARD" ]]; then args+=(--fully-parallel --shard="$SHARD"); fi
+          pnpm --filter @cocoar/playground exec playwright test "${args[@]}"
+
+      - name: Simulated browser tests
+        if: env.SIMULATE == 'true'
+        run: echo "::notice ::SIMULATE_BUILD — browser tests skipped"
+
+  # Keep the existing required check name. A failed or skipped shard must not
+  # turn this check into a GitHub-successful skip or permit publishing.
+  build-and-test:
+    name: Build, test & pack
+    needs: [build, browser-tests]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Require build and every browser shard
+        env:
+          BUILD: ${{ needs.build.result }}
+          BROWSERS: ${{ needs.browser-tests.result }}
+        run: |
+          if [[ "$BUILD" != success || "$BROWSERS" != success ]]; then
+            echo "::error ::Build/pack: $BUILD; browser tests: $BROWSERS"
+            exit 1
+          fi
 
   # Visual baselines (apps/playground/visual/README.md), for pull requests and branch pushes. Not for tags or
   # workflow_dispatch: those build a commit whose comparison already ran on its branch. The image is read from the
@@ -206,7 +297,7 @@ jobs:
 
   publish:
     name: Publish
-    needs: build
+    needs: [build, build-and-test]
     if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
