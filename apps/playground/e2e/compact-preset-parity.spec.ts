@@ -169,7 +169,9 @@ async function settled(page: Page): Promise<Buffer> {
   throw new Error('the page never settled');
 }
 
-const NOISE = { pixels: 64, levels: 2 };
+// A page of many fields has a few such pixels at every rounded corner (100 on the page
+// builder's inspector), each off by one level; a 1280x900 capture has 1,152,000 pixels.
+const NOISE = { pixels: 400, levels: 2 };
 
 /** How two captures differ: identical, or at most a few pixels by at most two levels. */
 async function rasterNoise(browser: Browser, first: Buffer, second: Buffer) {
