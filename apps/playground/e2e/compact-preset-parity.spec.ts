@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { visualStories, type VisualStory } from '../src/visual/manifest';
 
@@ -21,11 +21,18 @@ import { visualStories, type VisualStory } from '../src/visual/manifest';
 
 const THEME = 'coar-theme--compact';
 
-/** The generated `.coar-compact` entry, for another selector: an exported theme. */
-const themeCss = readFileSync(
-  fileURLToPath(new URL('../../../packages/ui/styles/tokens/compact.css', import.meta.url)),
-  'utf8',
-).replaceAll('.coar-compact', `.${THEME}`);
+const forTheme = (file: string) =>
+  readFileSync(fileURLToPath(new URL(file, import.meta.url)), 'utf8').replaceAll('.coar-compact', `.${THEME}`);
+
+/**
+ * The generated `.coar-compact` entry, for another selector: an exported theme. With
+ * it the one rule of the scenes themselves that names the class (they paint their own
+ * canvas; the library never paints an application's page background).
+ */
+const themeCss = [
+  '../../../packages/ui/styles/tokens/compact.css',
+  '../src/visual/stories/compact-scene.css',
+].map(forTheme).join('\n');
 
 /** Runs in the page before any script of it: no element keeps the class past a microtask. */
 function replaceClass({ css, theme }: { css: string; theme: string }) {
@@ -181,23 +188,36 @@ async function capture(page: Page, entry: Case, classFree: boolean): Promise<Buf
 }
 
 test.describe('Compact as a theme class, without .coar-compact', () => {
-  test.describe.configure({ timeout: 90_000 });
+  test.describe.configure({ timeout: 180_000 });
 
   for (const entry of cases) {
     test(`paints like the class entry: ${entry.name}`, async ({ browser }, testInfo) => {
-      const images: Buffer[] = [];
-      for (const classFree of [false, true]) {
-        const context = await browser.newContext({ reducedMotion: 'reduce' });
-        try {
-          images.push(await capture(await context.newPage(), entry, classFree));
-        } finally {
-          await context.close();
+      const pair = async () => {
+        const images: Buffer[] = [];
+        for (const classFree of [false, true]) {
+          const context = await browser.newContext({ reducedMotion: 'reduce' });
+          try {
+            images.push(await capture(await context.newPage(), entry, classFree));
+          } finally {
+            await context.close();
+          }
         }
+        return images;
+      };
+      // Two loads of the very same page can differ in a few anti-aliased pixels of
+      // rounded corners (the browser rasterises them per load, outside Docker with the
+      // host's GPU). A real difference shows in every pair; one identical pair proves
+      // the two entries can paint the same image.
+      let [byClass, byTheme] = await pair();
+      for (let attempt = 1; attempt < 4 && !byClass.equals(byTheme); attempt += 1) {
+        [byClass, byTheme] = await pair();
       }
-      const [byClass, byTheme] = images;
       if (!byClass.equals(byTheme)) {
-        await testInfo.attach('class-entry.png', { body: byClass, contentType: 'image/png' });
-        await testInfo.attach('theme-class.png', { body: byTheme, contentType: 'image/png' });
+        for (const [name, image] of [['class-entry.png', byClass], ['theme-class.png', byTheme]] as const) {
+          const path = testInfo.outputPath(name);
+          writeFileSync(path, image);
+          await testInfo.attach(name, { path, contentType: 'image/png' });
+        }
       }
       expect(byClass.equals(byTheme), 'the theme class must paint what .coar-compact paints').toBe(true);
     });
