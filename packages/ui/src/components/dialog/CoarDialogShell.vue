@@ -156,8 +156,12 @@ const BodyRenderer = computed(() => {
   outline-offset: -2px;
 }
 
-.coar-compact .coar-dialog-close {
-  box-sizing: border-box;
+/* In the library's layer with a fallback to the layers below: without the value this
+   declares nothing, so an app's own box model stays as it is. */
+@layer cocoar.components {
+  .coar-dialog-close {
+    box-sizing: var(--coar-control-box-sizing, revert-layer);
+  }
 }
 
 .coar-dialog-body {

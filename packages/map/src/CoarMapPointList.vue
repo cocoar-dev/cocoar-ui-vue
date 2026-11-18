@@ -17,8 +17,6 @@ import { CoarButton, setCoarDragImageFromElement, useDragDrop } from '@cocoar/vu
 import type { MapConfig, MapData, MapPoint } from './types';
 import { stopEmoji } from './internal/map-model';
 import { reorderPoint, removePoint, selectionAfterRemove, selectionAfterReorder } from './internal/map-edit';
-// Opt-in compact presentation (`.coar-compact`): touch target of the drag handle.
-import './internal/map-compact.css';
 
 const props = defineProps<{
   data: MapData;

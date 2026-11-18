@@ -19,9 +19,32 @@ import {
   isDark, themeName, activePalette, hasChanges,
   paletteOverrides, semanticOverrides,
   applyPreset, reset, downloadCSS, setSemantic, resetSemantic,
+  baseline, hasEditorChanges, roleTheme, roleOverrides, ROLE_VALUE_GROUPS,
+  roleValue, setRoleValue, resetRoleValue, type RoleValueEntry,
 } from './theme-editor-state';
 
 const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
+
+const PAIR = /^light-dark\(\s*(#[0-9a-f]{6})\s*,\s*(#[0-9a-f]{6})\s*\)$/i;
+
+/** The two colours of a `light-dark()` value; null when the value is written another way. */
+function pairOf(token: string): [string, string] | null {
+  const match = roleValue(token).match(PAIR);
+  return match ? [match[1], match[2]] : null;
+}
+
+function setPair(token: string, index: 0 | 1, colour: string) {
+  const pair = pairOf(token);
+  if (!pair) return;
+  pair[index] = colour;
+  setRoleValue(token, `light-dark(${pair[0]}, ${pair[1]})`);
+}
+
+function setLength(entry: RoleValueEntry, raw: string) {
+  const value = raw.trim();
+  if (value === '') return resetRoleValue(entry.token);
+  setRoleValue(entry.token, entry.kind === 'length' && /^-?[\d.]+$/.test(value) ? `${value}px` : value);
+}
 </script>
 
 <template>
@@ -36,7 +59,7 @@ const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
       </svg>
       <span class="te-header-title">Theme Editor</span>
       <div class="te-header-actions">
-        <CoarButton v-if="hasChanges" variant="ghost" size="xs" @click="reset" title="Reset all changes">
+        <CoarButton v-if="hasEditorChanges" variant="ghost" size="xs" @click="reset" title="Reset all changes">
           <template #prefix><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></template>
           Reset
         </CoarButton>
@@ -64,6 +87,41 @@ const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
           </button>
         </div>
       </div>
+
+      <!-- Values of the loaded role theme -->
+      <details v-if="roleTheme" class="te-accordion" data-te-role-values>
+        <summary class="te-acc-summary">
+          <span class="te-acc-title">Values of this theme</span>
+          <svg class="te-acc-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        </summary>
+        <div class="te-accordion-body">
+          <div v-for="group in ROLE_VALUE_GROUPS" :key="group.label" class="te-section">
+            <div class="te-section-label">{{ group.label }}</div>
+            <div v-for="entry in group.entries" :key="entry.token" class="te-role-row" :data-te-role="entry.token">
+              <span class="te-role-name" :title="entry.token">{{ entry.label }}</span>
+              <template v-if="entry.kind === 'pair' && pairOf(entry.token)">
+                <input
+                  type="color" class="te-color-swatch" :value="pairOf(entry.token)![0]" :aria-label="`${entry.label}, light`"
+                  @input="setPair(entry.token, 0, ($event.target as HTMLInputElement).value)"
+                />
+                <input
+                  type="color" class="te-color-swatch" :value="pairOf(entry.token)![1]" :aria-label="`${entry.label}, dark`"
+                  @input="setPair(entry.token, 1, ($event.target as HTMLInputElement).value)"
+                />
+              </template>
+              <input
+                v-else
+                class="te-role-input" :value="roleValue(entry.token)" :aria-label="entry.label" spellcheck="false"
+                @change="setLength(entry, ($event.target as HTMLInputElement).value)"
+              />
+              <button
+                class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': entry.token in roleOverrides }"
+                :disabled="!(entry.token in roleOverrides)" title="Reset to the preset" @click="resetRoleValue(entry.token)"
+              ><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
+            </div>
+          </div>
+        </div>
+      </details>
 
       <!-- Brand -->
       <details class="te-accordion" open>
@@ -214,37 +272,37 @@ const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
               <span class="te-scale-name">XXS</span>
               <input type="range" class="te-slider" min="0" max="32" v-model.number="radiusXxs" />
               <span class="te-scale-val">{{ radiusXxs }}px</span>
-              <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': radiusXxs !== DEFAULTS.radiusXxs }" :disabled="radiusXxs === DEFAULTS.radiusXxs" @click="radiusXxs = DEFAULTS.radiusXxs" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
+              <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': radiusXxs !== baseline.radiusXxs }" :disabled="radiusXxs === baseline.radiusXxs" @click="radiusXxs = baseline.radiusXxs" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
             </div>
             <div class="te-scale-row">
               <span class="te-scale-name">XS</span>
               <input type="range" class="te-slider" min="0" max="32" v-model.number="radiusXs" />
               <span class="te-scale-val">{{ radiusXs }}px</span>
-              <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': radiusXs !== DEFAULTS.radiusXs }" :disabled="radiusXs === DEFAULTS.radiusXs" @click="radiusXs = DEFAULTS.radiusXs" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
+              <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': radiusXs !== baseline.radiusXs }" :disabled="radiusXs === baseline.radiusXs" @click="radiusXs = baseline.radiusXs" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
             </div>
             <div class="te-scale-row">
               <span class="te-scale-name">S</span>
               <input type="range" class="te-slider" min="0" max="32" v-model.number="radiusS" />
               <span class="te-scale-val">{{ radiusS }}px</span>
-              <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': radiusS !== DEFAULTS.radiusS }" :disabled="radiusS === DEFAULTS.radiusS" @click="radiusS = DEFAULTS.radiusS" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
+              <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': radiusS !== baseline.radiusS }" :disabled="radiusS === baseline.radiusS" @click="radiusS = baseline.radiusS" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
             </div>
             <div class="te-scale-row">
               <span class="te-scale-name">M</span>
               <input type="range" class="te-slider" min="0" max="32" v-model.number="radiusM" />
               <span class="te-scale-val">{{ radiusM }}px</span>
-              <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': radiusM !== DEFAULTS.radiusM }" :disabled="radiusM === DEFAULTS.radiusM" @click="radiusM = DEFAULTS.radiusM" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
+              <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': radiusM !== baseline.radiusM }" :disabled="radiusM === baseline.radiusM" @click="radiusM = baseline.radiusM" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
             </div>
             <div class="te-scale-row">
               <span class="te-scale-name">L</span>
               <input type="range" class="te-slider" min="0" max="32" v-model.number="radiusL" />
               <span class="te-scale-val">{{ radiusL }}px</span>
-              <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': radiusL !== DEFAULTS.radiusL }" :disabled="radiusL === DEFAULTS.radiusL" @click="radiusL = DEFAULTS.radiusL" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
+              <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': radiusL !== baseline.radiusL }" :disabled="radiusL === baseline.radiusL" @click="radiusL = baseline.radiusL" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
             </div>
             <div class="te-scale-row">
               <span class="te-scale-name">XL</span>
               <input type="range" class="te-slider" min="0" max="32" v-model.number="radiusXl" />
               <span class="te-scale-val">{{ radiusXl }}px</span>
-              <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': radiusXl !== DEFAULTS.radiusXl }" :disabled="radiusXl === DEFAULTS.radiusXl" @click="radiusXl = DEFAULTS.radiusXl" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
+              <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': radiusXl !== baseline.radiusXl }" :disabled="radiusXl === baseline.radiusXl" @click="radiusXl = baseline.radiusXl" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
             </div>
           </div>
         </div>
@@ -262,31 +320,31 @@ const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
               <span class="te-scale-name">XS</span>
               <input type="range" class="te-slider" min="0" max="96" v-model.number="spacingXs" />
               <span class="te-scale-val">{{ spacingXs }}px</span>
-              <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': spacingXs !== DEFAULTS.spacingXs }" :disabled="spacingXs === DEFAULTS.spacingXs" @click="spacingXs = DEFAULTS.spacingXs" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
+              <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': spacingXs !== baseline.spacingXs }" :disabled="spacingXs === baseline.spacingXs" @click="spacingXs = baseline.spacingXs" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
             </div>
             <div class="te-scale-row">
               <span class="te-scale-name">S</span>
               <input type="range" class="te-slider" min="0" max="96" v-model.number="spacingS" />
               <span class="te-scale-val">{{ spacingS }}px</span>
-              <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': spacingS !== DEFAULTS.spacingS }" :disabled="spacingS === DEFAULTS.spacingS" @click="spacingS = DEFAULTS.spacingS" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
+              <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': spacingS !== baseline.spacingS }" :disabled="spacingS === baseline.spacingS" @click="spacingS = baseline.spacingS" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
             </div>
             <div class="te-scale-row">
               <span class="te-scale-name">M</span>
               <input type="range" class="te-slider" min="0" max="96" v-model.number="spacingM" />
               <span class="te-scale-val">{{ spacingM }}px</span>
-              <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': spacingM !== DEFAULTS.spacingM }" :disabled="spacingM === DEFAULTS.spacingM" @click="spacingM = DEFAULTS.spacingM" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
+              <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': spacingM !== baseline.spacingM }" :disabled="spacingM === baseline.spacingM" @click="spacingM = baseline.spacingM" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
             </div>
             <div class="te-scale-row">
               <span class="te-scale-name">L</span>
               <input type="range" class="te-slider" min="0" max="96" v-model.number="spacingL" />
               <span class="te-scale-val">{{ spacingL }}px</span>
-              <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': spacingL !== DEFAULTS.spacingL }" :disabled="spacingL === DEFAULTS.spacingL" @click="spacingL = DEFAULTS.spacingL" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
+              <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': spacingL !== baseline.spacingL }" :disabled="spacingL === baseline.spacingL" @click="spacingL = baseline.spacingL" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
             </div>
             <div class="te-scale-row">
               <span class="te-scale-name">XL</span>
               <input type="range" class="te-slider" min="0" max="96" v-model.number="spacingXl" />
               <span class="te-scale-val">{{ spacingXl }}px</span>
-              <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': spacingXl !== DEFAULTS.spacingXl }" :disabled="spacingXl === DEFAULTS.spacingXl" @click="spacingXl = DEFAULTS.spacingXl" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
+              <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': spacingXl !== baseline.spacingXl }" :disabled="spacingXl === baseline.spacingXl" @click="spacingXl = baseline.spacingXl" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
             </div>
           </div>
           <div class="te-section">
@@ -341,7 +399,7 @@ const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
             <div class="te-scale-row" :class="{ 'te-scale-row--disabled': !fieldPaddingXEnabled }">
               <input type="range" class="te-slider" min="4" max="32" step="1" v-model.number="fieldPaddingX" :disabled="!fieldPaddingXEnabled" />
               <span class="te-scale-val">{{ fieldPaddingXEnabled ? fieldPaddingX + 'px' : `${DEFAULTS.fieldPaddingX}px` }}</span>
-              <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': fieldPaddingXEnabled }" :disabled="!fieldPaddingXEnabled" @click="fieldPaddingXEnabled = false; fieldPaddingX = DEFAULTS.fieldPaddingX" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
+              <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': fieldPaddingXEnabled }" :disabled="!fieldPaddingXEnabled" @click="fieldPaddingX = baseline.fieldPaddingX; fieldPaddingXEnabled = baseline.fieldPaddingX !== DEFAULTS.fieldPaddingX" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
             </div>
             <p class="te-hint">
               <template v-if="fieldPaddingXEnabled">Fixed override — <code>--coar-field-padding-x</code> ignored.</template>
@@ -603,6 +661,16 @@ const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
   background: var(--coar-background-neutral-secondary, #f0f0f0);
   color: var(--coar-text-neutral-secondary, #595959);
   padding: 1px 7px; border-radius: 99px;
+}
+
+/* ── Values of a role theme ──────────────────────────── */
+.te-role-row { display: flex; align-items: center; gap: 6px; min-height: 28px; }
+.te-role-name { flex: 1; min-width: 0; font-size: var(--coar-caption-font-size, 12px); color: var(--coar-text-neutral-secondary, #555); }
+.te-role-input {
+  width: 84px; height: 24px; padding: 0 6px; box-sizing: border-box;
+  border: 1px solid var(--coar-border-input, #d6d6d6); border-radius: var(--coar-control-radius, 3px);
+  background: var(--coar-surface-input, #fff); color: var(--coar-text-neutral-primary, #1a1a1a);
+  font-family: inherit; font-size: var(--coar-caption-font-size, 12px);
 }
 
 /* ── Presets ─────────────────────────────────────────── */

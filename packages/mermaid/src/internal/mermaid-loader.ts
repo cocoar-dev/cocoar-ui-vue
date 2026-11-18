@@ -13,10 +13,11 @@
  * theme-swap at runtime is a deliberate follow-up, not part of this slice.
  *
  * Mermaid's configuration is global to the page. The one exception to "once"
- * is a change of presentation profile between two renders (the opt-in
- * `.coar-compact` profile, Preview, beside the default one): Mermaid is then
- * initialized again with the config of the diagram about to render. A page
- * that uses one profile only never re-initializes, exactly as before.
+ * is a diagram inside a role theme (Preview; profile `'theme'`, beside the
+ * default one): it shows the roles in effect in its own scope, so Mermaid is
+ * initialized again when the profile changes between two renders or the config
+ * of such a diagram differs from the applied one. A page without a role theme
+ * never re-initializes, exactly as before.
  */
 
 /** The slice of Mermaid's API this package uses. */
@@ -32,13 +33,17 @@ export type MermaidInitConfig = Record<string, unknown>;
 
 type InitializableMermaid = MermaidApi & { initialize(config: MermaidInitConfig): void };
 
+/** `'theme'`: the diagram sits in a role theme and follows its effective roles. */
+export type MermaidProfile = 'default' | 'theme';
+
 /** Options every initialization sets, before the caller's theme config. */
 const BASE_CONFIG: MermaidInitConfig = { startOnLoad: false, securityLevel: 'strict' };
 
 let loadPromise: Promise<MermaidApi> | null = null;
 /** Profile of the config Mermaid is initialized with; `null` until the first render. */
-let appliedProfile: string | null = null;
-let appliedCompactConfig = '';
+let appliedProfile: MermaidProfile | null = null;
+/** Config applied for the `'theme'` profile, serialized; empty for the default one. */
+let appliedThemeConfig = '';
 
 /**
  * Resolve the initialized Mermaid instance, importing + initializing it on the
@@ -78,28 +83,28 @@ let renderSeq = 0;
  * Loads + initializes Mermaid on first use (via {@link loadMermaid}); rejects if
  * the source is invalid so the caller can show a fallback.
  *
- * `profile` names the presentation profile of the diagram (`'default'` or
- * `'compact'`). When it differs from the profile Mermaid was last initialized
- * for, Mermaid is initialized again with `configFactory()` before rendering;
- * renders are serialized, so that config applies to this render only until
- * the next change.
+ * `profile` names the presentation profile of the diagram. When it differs
+ * from the profile Mermaid was last initialized for, or a `'theme'` diagram
+ * brings another config than the applied one, Mermaid is initialized again
+ * with `configFactory()` before rendering; renders are serialized, so that
+ * config applies to this render only until the next change.
  */
 export function renderMermaid(
   configFactory: () => MermaidInitConfig,
   code: string,
-  profile = 'default',
+  profile: MermaidProfile = 'default',
 ): Promise<string> {
   const run = async (): Promise<string> => {
     const config = configFactory();
-    const compactConfig = profile === 'compact' ? JSON.stringify(config) : '';
+    const themeConfig = profile === 'theme' ? JSON.stringify(config) : '';
     const mermaid = await loadMermaid(() => config);
     if (appliedProfile === null) {
       appliedProfile = profile;
-    } else if (appliedProfile !== profile || compactConfig !== appliedCompactConfig) {
+    } else if (appliedProfile !== profile || themeConfig !== appliedThemeConfig) {
       (mermaid as InitializableMermaid).initialize({ ...BASE_CONFIG, ...config });
       appliedProfile = profile;
     }
-    appliedCompactConfig = compactConfig;
+    appliedThemeConfig = themeConfig;
     // Wait for web fonts before rendering. Mermaid sizes every box from the
     // MEASURED text width; if it measures with a fallback font (because the real
     // font, e.g. Poppins from the theme bridge, hasn't loaded yet) but then
@@ -141,5 +146,5 @@ export function renderMermaid(
 export function resetMermaidForTests(): void {
   loadPromise = null;
   appliedProfile = null;
-  appliedCompactConfig = '';
+  appliedThemeConfig = '';
 }

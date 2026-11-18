@@ -1,0 +1,418 @@
+/**
+ * Cocoar Design System - Role derivation
+ *
+ * One definition of the tokens that follow other tokens: aliases, palette steps and
+ * component roles. It is evaluated on every theme boundary of a theme that sets
+ * `--coar-role-derivation` (empty value = on); without it every rule here resolves to
+ * the value the element had before, so existing themes and overrides are untouched.
+ *
+ * How it works, per token X:
+ *   --coar-d-X  the derived value; invalid unless the theme activates derivation
+ *               and supplies the inputs the formula reads.
+ *   --coar-X    `var(--coar-d-X, inherit)` on a nested boundary (below), and
+ *               `var(--coar-d-X, <static value>)` where a token file declares X
+ *               (`:root`, `.light-mode`, `.dark-mode`, `.coar-theme-none`).
+ * The rules below have no specificity (`:where`), so those declarations and every
+ * consumer rule on the same element win.
+ *
+ * Curves are inputs, not constants: `--coar-<token>-lc` holds the oklch lightness
+ * and chroma of a derived colour (`-lc-dark` for the dark scheme). The accent they
+ * are drawn from is the one a scope names (`--coar-appearance-accent`, written by
+ * CoarThemeScope), else the theme's own (`--coar-theme-accent`). `--coar-accent`
+ * cannot carry it: every `.light-mode` boundary restores its default.
+ */
+
+/* The nearest explicit mode, as an inherited marker. `light-dark()` values of a
+   theme are resolved by the consuming element's color-scheme. */
+.light-mode,
+[data-theme='light'] {
+  --coar-compact-color-scheme: light;
+}
+.dark-mode,
+[data-theme='dark'] {
+  --coar-compact-color-scheme: dark;
+}
+
+:where(
+    :root,
+    .coar-theme-scope,
+    .coar-mobile,
+    .coar-theme-none,
+    .light-mode,
+    .dark-mode,
+    [data-theme],
+    [class*='coar-theme--'],
+    .coar-theme-editor,
+    .coar-compact
+  ) {
+  /* Readable marker of an active derivation (an empty token cannot be read back). */
+  --coar-d-role-derivation: var(--coar-role-derivation) on;
+  --coar-d-accent: var(--coar-role-derivation) var(--coar-appearance-accent, var(--coar-theme-accent));
+  --coar-d-field-xs-default-font-size: var(--coar-role-derivation) calc(var(--coar-field-font-size) - 2px);
+  --coar-d-field-s-default-font-size: var(--coar-role-derivation) calc(var(--coar-field-font-size) - 1px);
+  --coar-d-field-l-default-font-size: var(--coar-role-derivation) calc(var(--coar-field-font-size) + 2px);
+  --coar-d-picker-panel-radius: var(--coar-role-derivation) var(--coar-panel-radius);
+  --coar-d-zone-caption-min-offset: var(--coar-role-derivation) var(--coar-control-min-target-size, 0px);
+  --coar-d-choice-row-height: var(--coar-role-derivation) var(--coar-interactive-row-height);
+  --coar-d-indicator-xs-height: var(--coar-role-derivation) var(--coar-component-xs-height);
+  --coar-d-indicator-s-height: var(--coar-role-derivation) var(--coar-component-s-height);
+  --coar-d-indicator-m-height: var(--coar-role-derivation) var(--coar-component-m-height);
+  --coar-d-indicator-l-height: var(--coar-role-derivation) var(--coar-component-l-height);
+  --coar-d-body-base-family: var(--coar-role-derivation) var(--coar-font-family-body);
+  --coar-d-body-bold-family: var(--coar-role-derivation) var(--coar-font-family-body);
+  --coar-d-body-caption-family: var(--coar-role-derivation) var(--coar-font-family-body);
+  --coar-d-body-footnote-family: var(--coar-role-derivation) var(--coar-font-family-body);
+  --coar-d-body-small-base-family: var(--coar-role-derivation) var(--coar-font-family-body);
+  --coar-d-body-small-bold-family: var(--coar-role-derivation) var(--coar-font-family-body);
+  --coar-d-headings-heading-family: var(--coar-role-derivation) var(--coar-font-family-title);
+  --coar-d-headings-subheading-family: var(--coar-role-derivation) var(--coar-font-family-title);
+  --coar-d-titles-display-family: var(--coar-role-derivation) var(--coar-font-family-title);
+  --coar-d-titles-subtitle-family: var(--coar-role-derivation) var(--coar-font-family-title);
+  --coar-d-titles-title-family: var(--coar-role-derivation) var(--coar-font-family-title);
+  --coar-d-body-bold-size: var(--coar-role-derivation) var(--coar-body-base-size);
+  --coar-d-body-caption-size: var(--coar-role-derivation) var(--coar-caption-font-size);
+  --coar-d-body-footnote-size: var(--coar-role-derivation) var(--coar-caption-font-size);
+  --coar-d-body-small-base-size: var(--coar-role-derivation) var(--coar-ui-font-size);
+  --coar-d-body-small-bold-size: var(--coar-role-derivation) var(--coar-ui-font-size);
+  --coar-d-body-small-base-weight: var(--coar-role-derivation) var(--coar-ui-font-weight);
+  --coar-d-body-small-base-line-height: var(--coar-role-derivation) var(--coar-ui-line-height);
+  --coar-d-heading-s: var(--coar-role-derivation) var(--coar-heading-s-style) var(--coar-font-family-title);
+  --coar-d-component-s-font-size: var(--coar-role-derivation) var(--coar-ui-font-size);
+  --coar-d-component-m-font-size: var(--coar-role-derivation) var(--coar-ui-font-size);
+  --coar-d-component-s-label-font-size: var(--coar-role-derivation) var(--coar-ui-font-size);
+  --coar-d-component-m-label-font-size: var(--coar-role-derivation) var(--coar-ui-font-size);
+  --coar-d-field-padding-x-tight: var(--coar-role-derivation) calc(var(--coar-field-padding-x) / 2);
+  --coar-d-color-accent-50: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-accent) var(--coar-color-accent-50-lc) h), oklch(from var(--coar-d-accent) var(--coar-color-accent-50-lc-dark) h));
+  --coar-d-color-accent-100: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-accent) var(--coar-color-accent-100-lc) h), oklch(from var(--coar-d-accent) var(--coar-color-accent-100-lc-dark) h));
+  --coar-d-color-accent-200: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-accent) var(--coar-color-accent-200-lc) h), oklch(from var(--coar-d-accent) var(--coar-color-accent-200-lc-dark) h));
+  --coar-d-color-accent-300: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-accent) var(--coar-color-accent-300-lc) h), oklch(from var(--coar-d-accent) var(--coar-color-accent-300-lc-dark) h));
+  --coar-d-color-accent-400: var(--coar-role-derivation) oklch(from var(--coar-d-accent) var(--coar-color-accent-400-lc) h);
+  --coar-d-color-accent-500: var(--coar-role-derivation) var(--coar-d-accent);
+  --coar-d-color-accent-600: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-accent) var(--coar-color-accent-600-lc) h), oklch(from var(--coar-d-accent) var(--coar-color-accent-600-lc-dark) h));
+  --coar-d-color-accent-700: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-accent) var(--coar-color-accent-700-lc) h), oklch(from var(--coar-d-accent) var(--coar-color-accent-700-lc-dark) h));
+  --coar-d-color-accent-800: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-accent) var(--coar-color-accent-800-lc) h), oklch(from var(--coar-d-accent) var(--coar-color-accent-800-lc-dark) h));
+  --coar-d-color-accent-900: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-accent) var(--coar-color-accent-900-lc) h), oklch(from var(--coar-d-accent) var(--coar-color-accent-900-lc-dark) h));
+  --coar-d-border-neutral: var(--coar-role-derivation) var(--coar-border-neutral-tertiary);
+  --coar-d-icon-neutral-primary: var(--coar-role-derivation) var(--coar-text-neutral-primary);
+  --coar-d-icon-neutral-secondary: var(--coar-role-derivation) var(--coar-text-neutral-secondary);
+  --coar-d-icon-neutral-tertiary: var(--coar-role-derivation) var(--coar-text-neutral-tertiary);
+  --coar-d-icon-neutral-disabled: var(--coar-role-derivation) var(--coar-text-neutral-disabled);
+  --coar-d-surface-input: var(--coar-role-derivation) var(--coar-background-neutral-primary);
+  --coar-d-surface-input-disabled: var(--coar-role-derivation) var(--coar-background-neutral-tertiary);
+  --coar-d-background-accent-primary: var(--coar-role-derivation) oklch(from var(--coar-d-accent) var(--coar-background-accent-primary-lc) h);
+  --coar-d-background-accent-hover: var(--coar-role-derivation) oklch(from var(--coar-d-accent) var(--coar-background-accent-hover-lc) h);
+  --coar-d-background-accent-active: var(--coar-role-derivation) oklch(from var(--coar-d-accent) var(--coar-background-accent-active-lc) h);
+  --coar-d-background-accent-secondary: var(--coar-role-derivation) var(--coar-color-accent-100);
+  --coar-d-surface-accent-secondary: var(--coar-role-derivation) var(--coar-background-accent-secondary);
+  --coar-d-background-accent-tertiary: var(--coar-role-derivation) var(--coar-color-accent-50);
+  --coar-d-background-accent-tertiary-active: var(--coar-role-derivation) var(--coar-color-accent-200);
+  --coar-d-text-accent-primary: var(--coar-role-derivation) var(--coar-color-accent-700);
+  --coar-d-text-accent-secondary: var(--coar-role-derivation) var(--coar-color-accent-600);
+  --coar-d-border-accent-primary: var(--coar-role-derivation) var(--coar-color-accent-600);
+  --coar-d-border-accent-secondary: var(--coar-role-derivation) var(--coar-color-accent-300);
+  --coar-d-icon-accent-primary: var(--coar-role-derivation) var(--coar-text-accent-primary);
+  --coar-d-background-semantic-success-bold: var(--coar-role-derivation) oklch(from var(--coar-success) var(--coar-background-semantic-success-bold-lc) h);
+  --coar-d-background-semantic-success-subtlest: var(--coar-role-derivation) light-dark(oklch(from var(--coar-success) var(--coar-background-semantic-success-subtlest-lc) h), oklch(from var(--coar-success) var(--coar-background-semantic-success-subtlest-lc-dark) h));
+  --coar-d-background-semantic-success-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-success) var(--coar-background-semantic-success-subtle-lc) h), oklch(from var(--coar-success) var(--coar-background-semantic-success-subtle-lc-dark) h));
+  --coar-d-text-semantic-success-bold: var(--coar-role-derivation) light-dark(oklch(from var(--coar-success) var(--coar-text-semantic-success-bold-lc) h), oklch(from var(--coar-success) var(--coar-text-semantic-success-bold-lc-dark) h));
+  --coar-d-text-semantic-success-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-success) var(--coar-text-semantic-success-subtle-lc) h), oklch(from var(--coar-success) var(--coar-text-semantic-success-subtle-lc-dark) h));
+  --coar-d-border-semantic-success-bold: var(--coar-role-derivation) var(--coar-text-semantic-success-subtle);
+  --coar-d-border-semantic-success-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-success) var(--coar-border-semantic-success-subtle-lc) h), oklch(from var(--coar-success) var(--coar-border-semantic-success-subtle-lc-dark) h));
+  --coar-d-icon-semantic-success-bold: var(--coar-role-derivation) var(--coar-text-semantic-success-bold);
+  --coar-d-icon-semantic-success-subtle: var(--coar-role-derivation) var(--coar-text-semantic-success-subtle);
+  --coar-d-background-semantic-error-bold: var(--coar-role-derivation) oklch(from var(--coar-error) var(--coar-background-semantic-error-bold-lc) h);
+  --coar-d-background-semantic-error-hover: var(--coar-role-derivation) oklch(from var(--coar-error) var(--coar-background-semantic-error-hover-lc) h);
+  --coar-d-background-semantic-error-active: var(--coar-role-derivation) oklch(from var(--coar-error) var(--coar-background-semantic-error-active-lc) h);
+  --coar-d-background-semantic-error-subtlest: var(--coar-role-derivation) light-dark(oklch(from var(--coar-error) var(--coar-background-semantic-error-subtlest-lc) h), oklch(from var(--coar-error) var(--coar-background-semantic-error-subtlest-lc-dark) h));
+  --coar-d-background-semantic-error-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-error) var(--coar-background-semantic-error-subtle-lc) h), oklch(from var(--coar-error) var(--coar-background-semantic-error-subtle-lc-dark) h));
+  --coar-d-text-semantic-error-bold: var(--coar-role-derivation) light-dark(oklch(from var(--coar-error) var(--coar-text-semantic-error-bold-lc) h), oklch(from var(--coar-error) var(--coar-text-semantic-error-bold-lc-dark) h));
+  --coar-d-text-semantic-error-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-error) var(--coar-text-semantic-error-subtle-lc) h), oklch(from var(--coar-error) var(--coar-text-semantic-error-subtle-lc-dark) h));
+  --coar-d-border-semantic-error: var(--coar-role-derivation) var(--coar-text-semantic-error-subtle);
+  --coar-d-border-semantic-error-bold: var(--coar-role-derivation) var(--coar-text-semantic-error-subtle);
+  --coar-d-border-semantic-error-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-error) var(--coar-border-semantic-error-subtle-lc) h), oklch(from var(--coar-error) var(--coar-border-semantic-error-subtle-lc-dark) h));
+  --coar-d-icon-semantic-error-bold: var(--coar-role-derivation) var(--coar-text-semantic-error-bold);
+  --coar-d-icon-semantic-error-subtle: var(--coar-role-derivation) var(--coar-text-semantic-error-subtle);
+  --coar-d-background-semantic-warning-bold: var(--coar-role-derivation) oklch(from var(--coar-warning) var(--coar-background-semantic-warning-bold-lc) h);
+  --coar-d-background-semantic-warning-subtlest: var(--coar-role-derivation) light-dark(oklch(from var(--coar-warning) var(--coar-background-semantic-warning-subtlest-lc) h), oklch(from var(--coar-warning) var(--coar-background-semantic-warning-subtlest-lc-dark) h));
+  --coar-d-background-semantic-warning-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-warning) var(--coar-background-semantic-warning-subtle-lc) h), oklch(from var(--coar-warning) var(--coar-background-semantic-warning-subtle-lc-dark) h));
+  --coar-d-text-semantic-warning-bold: var(--coar-role-derivation) light-dark(oklch(from var(--coar-warning) var(--coar-text-semantic-warning-bold-lc) h), oklch(from var(--coar-warning) var(--coar-text-semantic-warning-bold-lc-dark) h));
+  --coar-d-text-semantic-warning-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-warning) var(--coar-text-semantic-warning-subtle-lc) h), oklch(from var(--coar-warning) var(--coar-text-semantic-warning-subtle-lc-dark) h));
+  --coar-d-border-semantic-warning-bold: var(--coar-role-derivation) var(--coar-text-semantic-warning-subtle);
+  --coar-d-border-semantic-warning-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-warning) var(--coar-border-semantic-warning-subtle-lc) h), oklch(from var(--coar-warning) var(--coar-border-semantic-warning-subtle-lc-dark) h));
+  --coar-d-icon-semantic-warning-bold: var(--coar-role-derivation) var(--coar-text-semantic-warning-bold);
+  --coar-d-icon-semantic-warning-subtle: var(--coar-role-derivation) var(--coar-text-semantic-warning-subtle);
+  --coar-d-background-semantic-info-bold: var(--coar-role-derivation) oklch(from var(--coar-info) var(--coar-background-semantic-info-bold-lc) h);
+  --coar-d-background-semantic-info-subtlest: var(--coar-role-derivation) light-dark(oklch(from var(--coar-info) var(--coar-background-semantic-info-subtlest-lc) h), oklch(from var(--coar-info) var(--coar-background-semantic-info-subtlest-lc-dark) h));
+  --coar-d-background-semantic-info-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-info) var(--coar-background-semantic-info-subtle-lc) h), oklch(from var(--coar-info) var(--coar-background-semantic-info-subtle-lc-dark) h));
+  --coar-d-text-semantic-info-bold: var(--coar-role-derivation) light-dark(oklch(from var(--coar-info) var(--coar-text-semantic-info-bold-lc) h), oklch(from var(--coar-info) var(--coar-text-semantic-info-bold-lc-dark) h));
+  --coar-d-text-semantic-info-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-info) var(--coar-text-semantic-info-subtle-lc) h), oklch(from var(--coar-info) var(--coar-text-semantic-info-subtle-lc-dark) h));
+  --coar-d-border-semantic-info-bold: var(--coar-role-derivation) var(--coar-text-semantic-info-subtle);
+  --coar-d-border-semantic-info-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-info) var(--coar-border-semantic-info-subtle-lc) h), oklch(from var(--coar-info) var(--coar-border-semantic-info-subtle-lc-dark) h));
+  --coar-d-icon-semantic-info-bold: var(--coar-role-derivation) var(--coar-text-semantic-info-bold);
+  --coar-d-icon-semantic-info-subtle: var(--coar-role-derivation) var(--coar-text-semantic-info-subtle);
+  --coar-d-button-danger-bg: var(--coar-role-derivation) var(--coar-background-semantic-error-bold);
+  --coar-d-button-danger-bg-hover: var(--coar-role-derivation) var(--coar-background-semantic-error-hover);
+  --coar-d-button-danger-bg-active: var(--coar-role-derivation) var(--coar-background-semantic-error-active);
+  --coar-d-button-radius: var(--coar-role-derivation) var(--coar-appearance-button-radius, var(--coar-control-radius));
+  --coar-d-input-radius: var(--coar-role-derivation) var(--coar-appearance-input-radius, var(--coar-control-radius));
+  --coar-d-card-radius: var(--coar-role-derivation) var(--coar-appearance-card-radius, var(--coar-panel-radius));
+  --coar-d-menu-radius: var(--coar-role-derivation) var(--coar-panel-radius);
+  --coar-d-popover-radius: var(--coar-role-derivation) var(--coar-panel-radius);
+  --coar-d-dropdown-radius: var(--coar-role-derivation) var(--coar-control-radius);
+  --coar-d-dialog-padding: var(--coar-role-derivation) var(--coar-panel-padding);
+  --coar-d-sheet-padding: var(--coar-role-derivation) var(--coar-panel-padding);
+  --coar-d-card-padding: var(--coar-role-derivation) var(--coar-panel-padding);
+  --coar-d-toast-border-radius: var(--coar-role-derivation) var(--coar-panel-radius);
+  --coar-d-tree-checkbox-radius: var(--coar-role-derivation) var(--coar-checkbox-radius);
+  --coar-d-card-outlined-border-color: var(--coar-role-derivation) var(--coar-border-neutral-tertiary);
+  --coar-d-pane-divider-active-color: var(--coar-role-derivation) var(--coar-focus-color);
+  --coar-d-data-list-surface: var(--coar-role-derivation) var(--coar-background-neutral-primary);
+  --coar-d-code-block-border: var(--coar-role-derivation) var(--coar-border-neutral-tertiary);
+  --coar-d-breadcrumb-font-size: var(--coar-role-derivation) var(--coar-ui-font-size);
+  --coar-d-breadcrumb-active-color: var(--coar-role-derivation) var(--coar-text-neutral-primary);
+  --coar-d-breadcrumb-link-color: var(--coar-role-derivation) var(--coar-text-accent-primary);
+  --coar-d-pagination-font-size: var(--coar-role-derivation) var(--coar-ui-font-size);
+  --coar-d-pagination-active-background: var(--coar-role-derivation) var(--coar-background-accent-primary);
+  --coar-d-pagination-active-color: var(--coar-role-derivation) var(--coar-text-on-bold);
+  --coar-d-pagination-hover-background: var(--coar-role-derivation) var(--coar-background-neutral-tertiary);
+  --coar-d-note-bg: var(--coar-role-derivation) var(--coar-background-neutral-secondary);
+  --coar-d-note-border-color: var(--coar-role-derivation) var(--coar-border-neutral-secondary);
+  --coar-d-tag-bg: var(--coar-role-derivation) var(--coar-background-neutral-secondary);
+  --coar-d-tag-border-color: var(--coar-role-derivation) var(--coar-border-neutral-tertiary);
+  --coar-d-dialog-background: var(--coar-role-derivation) var(--coar-background-neutral-primary);
+  --coar-d-toast-background: var(--coar-role-derivation) var(--coar-background-neutral-primary);
+  --coar-d-navbar-background: var(--coar-role-derivation) var(--coar-background-neutral-primary);
+  --coar-d-navbar-border-color: var(--coar-role-derivation) var(--coar-border-neutral-tertiary);
+  --coar-d-menu-item-font-family: var(--coar-role-derivation) var(--coar-font-family-body);
+  --coar-d-menu-item-font-size: var(--coar-role-derivation) var(--coar-ui-font-size);
+  --coar-d-menu-item-font-weight: var(--coar-role-derivation) var(--coar-ui-font-weight);
+  --coar-d-menu-item-line-height: var(--coar-role-derivation) var(--coar-ui-line-height);
+  --coar-d-menu-heading-font-family: var(--coar-role-derivation) var(--coar-font-family-body);
+  --coar-d-menu-heading-font-size: var(--coar-role-derivation) var(--coar-caption-font-size);
+  --coar-d-menu-heading-font-weight: var(--coar-role-derivation) var(--coar-label-font-weight);
+  --coar-d-menu-item-gap: var(--coar-role-derivation) var(--coar-content-gap);
+  --coar-d-menu-background: var(--coar-role-derivation) var(--coar-background-neutral-primary);
+  --coar-d-menu-item-color: var(--coar-role-derivation) var(--coar-text-neutral-secondary);
+  --coar-d-menu-heading-color: var(--coar-role-derivation) var(--coar-text-neutral-tertiary);
+  --coar-d-menu-item-background-hover: var(--coar-role-derivation) var(--coar-background-neutral-tertiary);
+  --coar-d-menu-item-background-focus: var(--coar-role-derivation) var(--coar-background-neutral-tertiary);
+  --coar-d-menu-item-background-open: var(--coar-role-derivation) var(--coar-background-accent-tertiary);
+  --coar-d-menu-item-background-active: var(--coar-role-derivation) var(--coar-background-accent-tertiary);
+  --coar-d-menu-item-text-active: var(--coar-role-derivation) var(--coar-text-accent-primary);
+  --coar-d-select-option-font-size: var(--coar-role-derivation) var(--coar-ui-font-size);
+  --coar-d-select-option-gap: var(--coar-role-derivation) var(--coar-content-gap);
+  --coar-d-sidebar-background: var(--coar-role-derivation) var(--coar-background-neutral-secondary);
+  --coar-d-sidebar-border: var(--coar-role-derivation) 1px solid var(--coar-border-neutral-tertiary);
+  --coar-d-sidebar-header-border: var(--coar-role-derivation) 1px solid var(--coar-border-neutral-tertiary);
+  --coar-d-sidebar-footer-border: var(--coar-role-derivation) 1px solid var(--coar-border-neutral-tertiary);
+  --coar-d-sidebar-item-gap: var(--coar-role-derivation) var(--coar-content-gap);
+  --coar-d-sidebar-item-hover: var(--coar-role-derivation) var(--coar-background-neutral-tertiary);
+  --coar-d-sidebar-item-active-color: var(--coar-role-derivation) var(--coar-text-accent-primary);
+  --coar-d-sidebar-item-active-bg: var(--coar-role-derivation) var(--coar-background-accent-tertiary);
+  --coar-d-switch-track-width: var(--coar-role-derivation) var(--coar-switch-m-track-width);
+  --coar-d-switch-track-height: var(--coar-role-derivation) var(--coar-switch-m-track-height);
+  --coar-d-switch-thumb-size: var(--coar-role-derivation) var(--coar-switch-m-thumb-size);
+  --coar-d-progress-bar-background: var(--coar-role-derivation) var(--coar-background-neutral-tertiary);
+  --coar-d-progress-accent-color: var(--coar-role-derivation) var(--coar-text-accent-primary);
+  --coar-d-progress-success-color: var(--coar-role-derivation) var(--coar-text-semantic-success-subtle);
+  --coar-d-progress-warning-color: var(--coar-role-derivation) var(--coar-text-semantic-warning-subtle);
+  --coar-d-progress-error-color: var(--coar-role-derivation) var(--coar-text-semantic-error-subtle);
+  --coar-d-spinner-color: var(--coar-role-derivation) var(--coar-icon-accent-primary);
+  --coar-d-sheet-handle-color: var(--coar-role-derivation) var(--coar-border-neutral-secondary);
+}
+
+:where(
+    .coar-theme-scope,
+    .coar-mobile,
+    .coar-theme-none,
+    .light-mode,
+    .dark-mode,
+    [data-theme],
+    [class*='coar-theme--'],
+    .coar-theme-editor,
+    .coar-compact
+  ) {
+  --coar-field-xs-default-font-size: var(--coar-d-field-xs-default-font-size, inherit);
+  --coar-field-s-default-font-size: var(--coar-d-field-s-default-font-size, inherit);
+  --coar-field-l-default-font-size: var(--coar-d-field-l-default-font-size, inherit);
+  --coar-picker-panel-radius: var(--coar-d-picker-panel-radius, inherit);
+  --coar-zone-caption-min-offset: var(--coar-d-zone-caption-min-offset, inherit);
+  --coar-choice-row-height: var(--coar-d-choice-row-height, inherit);
+  --coar-indicator-xs-height: var(--coar-d-indicator-xs-height, inherit);
+  --coar-indicator-s-height: var(--coar-d-indicator-s-height, inherit);
+  --coar-indicator-m-height: var(--coar-d-indicator-m-height, inherit);
+  --coar-indicator-l-height: var(--coar-d-indicator-l-height, inherit);
+  --coar-body-base-family: var(--coar-d-body-base-family, inherit);
+  --coar-body-bold-family: var(--coar-d-body-bold-family, inherit);
+  --coar-body-caption-family: var(--coar-d-body-caption-family, inherit);
+  --coar-body-footnote-family: var(--coar-d-body-footnote-family, inherit);
+  --coar-body-small-base-family: var(--coar-d-body-small-base-family, inherit);
+  --coar-body-small-bold-family: var(--coar-d-body-small-bold-family, inherit);
+  --coar-headings-heading-family: var(--coar-d-headings-heading-family, inherit);
+  --coar-headings-subheading-family: var(--coar-d-headings-subheading-family, inherit);
+  --coar-titles-display-family: var(--coar-d-titles-display-family, inherit);
+  --coar-titles-subtitle-family: var(--coar-d-titles-subtitle-family, inherit);
+  --coar-titles-title-family: var(--coar-d-titles-title-family, inherit);
+  --coar-body-bold-size: var(--coar-d-body-bold-size, inherit);
+  --coar-body-caption-size: var(--coar-d-body-caption-size, inherit);
+  --coar-body-footnote-size: var(--coar-d-body-footnote-size, inherit);
+  --coar-body-small-base-size: var(--coar-d-body-small-base-size, inherit);
+  --coar-body-small-bold-size: var(--coar-d-body-small-bold-size, inherit);
+  --coar-body-small-base-weight: var(--coar-d-body-small-base-weight, inherit);
+  --coar-body-small-base-line-height: var(--coar-d-body-small-base-line-height, inherit);
+  --coar-heading-s: var(--coar-d-heading-s, inherit);
+  --coar-component-s-font-size: var(--coar-d-component-s-font-size, inherit);
+  --coar-component-m-font-size: var(--coar-d-component-m-font-size, inherit);
+  --coar-component-s-label-font-size: var(--coar-d-component-s-label-font-size, inherit);
+  --coar-component-m-label-font-size: var(--coar-d-component-m-label-font-size, inherit);
+  --coar-field-padding-x-tight: var(--coar-d-field-padding-x-tight, inherit);
+  --coar-color-accent-50: var(--coar-d-color-accent-50, inherit);
+  --coar-color-accent-100: var(--coar-d-color-accent-100, inherit);
+  --coar-color-accent-200: var(--coar-d-color-accent-200, inherit);
+  --coar-color-accent-300: var(--coar-d-color-accent-300, inherit);
+  --coar-color-accent-400: var(--coar-d-color-accent-400, inherit);
+  --coar-color-accent-500: var(--coar-d-color-accent-500, inherit);
+  --coar-color-accent-600: var(--coar-d-color-accent-600, inherit);
+  --coar-color-accent-700: var(--coar-d-color-accent-700, inherit);
+  --coar-color-accent-800: var(--coar-d-color-accent-800, inherit);
+  --coar-color-accent-900: var(--coar-d-color-accent-900, inherit);
+  --coar-border-neutral: var(--coar-d-border-neutral, inherit);
+  --coar-icon-neutral-primary: var(--coar-d-icon-neutral-primary, inherit);
+  --coar-icon-neutral-secondary: var(--coar-d-icon-neutral-secondary, inherit);
+  --coar-icon-neutral-tertiary: var(--coar-d-icon-neutral-tertiary, inherit);
+  --coar-icon-neutral-disabled: var(--coar-d-icon-neutral-disabled, inherit);
+  --coar-surface-input: var(--coar-d-surface-input, inherit);
+  --coar-surface-input-disabled: var(--coar-d-surface-input-disabled, inherit);
+  --coar-background-accent-primary: var(--coar-d-background-accent-primary, inherit);
+  --coar-background-accent-hover: var(--coar-d-background-accent-hover, inherit);
+  --coar-background-accent-active: var(--coar-d-background-accent-active, inherit);
+  --coar-background-accent-secondary: var(--coar-d-background-accent-secondary, inherit);
+  --coar-surface-accent-secondary: var(--coar-d-surface-accent-secondary, inherit);
+  --coar-background-accent-tertiary: var(--coar-d-background-accent-tertiary, inherit);
+  --coar-background-accent-tertiary-active: var(--coar-d-background-accent-tertiary-active, inherit);
+  --coar-text-accent-primary: var(--coar-d-text-accent-primary, inherit);
+  --coar-text-accent-secondary: var(--coar-d-text-accent-secondary, inherit);
+  --coar-border-accent-primary: var(--coar-d-border-accent-primary, inherit);
+  --coar-border-accent-secondary: var(--coar-d-border-accent-secondary, inherit);
+  --coar-icon-accent-primary: var(--coar-d-icon-accent-primary, inherit);
+  --coar-background-semantic-success-bold: var(--coar-d-background-semantic-success-bold, inherit);
+  --coar-background-semantic-success-subtlest: var(--coar-d-background-semantic-success-subtlest, inherit);
+  --coar-background-semantic-success-subtle: var(--coar-d-background-semantic-success-subtle, inherit);
+  --coar-text-semantic-success-bold: var(--coar-d-text-semantic-success-bold, inherit);
+  --coar-text-semantic-success-subtle: var(--coar-d-text-semantic-success-subtle, inherit);
+  --coar-border-semantic-success-bold: var(--coar-d-border-semantic-success-bold, inherit);
+  --coar-border-semantic-success-subtle: var(--coar-d-border-semantic-success-subtle, inherit);
+  --coar-icon-semantic-success-bold: var(--coar-d-icon-semantic-success-bold, inherit);
+  --coar-icon-semantic-success-subtle: var(--coar-d-icon-semantic-success-subtle, inherit);
+  --coar-background-semantic-error-bold: var(--coar-d-background-semantic-error-bold, inherit);
+  --coar-background-semantic-error-hover: var(--coar-d-background-semantic-error-hover, inherit);
+  --coar-background-semantic-error-active: var(--coar-d-background-semantic-error-active, inherit);
+  --coar-background-semantic-error-subtlest: var(--coar-d-background-semantic-error-subtlest, inherit);
+  --coar-background-semantic-error-subtle: var(--coar-d-background-semantic-error-subtle, inherit);
+  --coar-text-semantic-error-bold: var(--coar-d-text-semantic-error-bold, inherit);
+  --coar-text-semantic-error-subtle: var(--coar-d-text-semantic-error-subtle, inherit);
+  --coar-border-semantic-error: var(--coar-d-border-semantic-error, inherit);
+  --coar-border-semantic-error-bold: var(--coar-d-border-semantic-error-bold, inherit);
+  --coar-border-semantic-error-subtle: var(--coar-d-border-semantic-error-subtle, inherit);
+  --coar-icon-semantic-error-bold: var(--coar-d-icon-semantic-error-bold, inherit);
+  --coar-icon-semantic-error-subtle: var(--coar-d-icon-semantic-error-subtle, inherit);
+  --coar-background-semantic-warning-bold: var(--coar-d-background-semantic-warning-bold, inherit);
+  --coar-background-semantic-warning-subtlest: var(--coar-d-background-semantic-warning-subtlest, inherit);
+  --coar-background-semantic-warning-subtle: var(--coar-d-background-semantic-warning-subtle, inherit);
+  --coar-text-semantic-warning-bold: var(--coar-d-text-semantic-warning-bold, inherit);
+  --coar-text-semantic-warning-subtle: var(--coar-d-text-semantic-warning-subtle, inherit);
+  --coar-border-semantic-warning-bold: var(--coar-d-border-semantic-warning-bold, inherit);
+  --coar-border-semantic-warning-subtle: var(--coar-d-border-semantic-warning-subtle, inherit);
+  --coar-icon-semantic-warning-bold: var(--coar-d-icon-semantic-warning-bold, inherit);
+  --coar-icon-semantic-warning-subtle: var(--coar-d-icon-semantic-warning-subtle, inherit);
+  --coar-background-semantic-info-bold: var(--coar-d-background-semantic-info-bold, inherit);
+  --coar-background-semantic-info-subtlest: var(--coar-d-background-semantic-info-subtlest, inherit);
+  --coar-background-semantic-info-subtle: var(--coar-d-background-semantic-info-subtle, inherit);
+  --coar-text-semantic-info-bold: var(--coar-d-text-semantic-info-bold, inherit);
+  --coar-text-semantic-info-subtle: var(--coar-d-text-semantic-info-subtle, inherit);
+  --coar-border-semantic-info-bold: var(--coar-d-border-semantic-info-bold, inherit);
+  --coar-border-semantic-info-subtle: var(--coar-d-border-semantic-info-subtle, inherit);
+  --coar-icon-semantic-info-bold: var(--coar-d-icon-semantic-info-bold, inherit);
+  --coar-icon-semantic-info-subtle: var(--coar-d-icon-semantic-info-subtle, inherit);
+  --coar-button-danger-bg: var(--coar-d-button-danger-bg, inherit);
+  --coar-button-danger-bg-hover: var(--coar-d-button-danger-bg-hover, inherit);
+  --coar-button-danger-bg-active: var(--coar-d-button-danger-bg-active, inherit);
+  --coar-button-radius: var(--coar-d-button-radius, inherit);
+  --coar-input-radius: var(--coar-d-input-radius, inherit);
+  --coar-card-radius: var(--coar-d-card-radius, inherit);
+  --coar-menu-radius: var(--coar-d-menu-radius, inherit);
+  --coar-popover-radius: var(--coar-d-popover-radius, inherit);
+  --coar-dropdown-radius: var(--coar-d-dropdown-radius, inherit);
+  --coar-dialog-padding: var(--coar-d-dialog-padding, inherit);
+  --coar-sheet-padding: var(--coar-d-sheet-padding, inherit);
+  --coar-card-padding: var(--coar-d-card-padding, inherit);
+  --coar-toast-border-radius: var(--coar-d-toast-border-radius, inherit);
+  --coar-tree-checkbox-radius: var(--coar-d-tree-checkbox-radius, inherit);
+  --coar-card-outlined-border-color: var(--coar-d-card-outlined-border-color, inherit);
+  --coar-pane-divider-active-color: var(--coar-d-pane-divider-active-color, inherit);
+  --coar-data-list-surface: var(--coar-d-data-list-surface, inherit);
+  --coar-code-block-border: var(--coar-d-code-block-border, inherit);
+  --coar-breadcrumb-font-size: var(--coar-d-breadcrumb-font-size, inherit);
+  --coar-breadcrumb-active-color: var(--coar-d-breadcrumb-active-color, inherit);
+  --coar-breadcrumb-link-color: var(--coar-d-breadcrumb-link-color, inherit);
+  --coar-pagination-font-size: var(--coar-d-pagination-font-size, inherit);
+  --coar-pagination-active-background: var(--coar-d-pagination-active-background, inherit);
+  --coar-pagination-active-color: var(--coar-d-pagination-active-color, inherit);
+  --coar-pagination-hover-background: var(--coar-d-pagination-hover-background, inherit);
+  --coar-note-bg: var(--coar-d-note-bg, inherit);
+  --coar-note-border-color: var(--coar-d-note-border-color, inherit);
+  --coar-tag-bg: var(--coar-d-tag-bg, inherit);
+  --coar-tag-border-color: var(--coar-d-tag-border-color, inherit);
+  --coar-dialog-background: var(--coar-d-dialog-background, inherit);
+  --coar-toast-background: var(--coar-d-toast-background, inherit);
+  --coar-navbar-background: var(--coar-d-navbar-background, inherit);
+  --coar-navbar-border-color: var(--coar-d-navbar-border-color, inherit);
+  --coar-menu-item-font-family: var(--coar-d-menu-item-font-family, inherit);
+  --coar-menu-item-font-size: var(--coar-d-menu-item-font-size, inherit);
+  --coar-menu-item-font-weight: var(--coar-d-menu-item-font-weight, inherit);
+  --coar-menu-item-line-height: var(--coar-d-menu-item-line-height, inherit);
+  --coar-menu-heading-font-family: var(--coar-d-menu-heading-font-family, inherit);
+  --coar-menu-heading-font-size: var(--coar-d-menu-heading-font-size, inherit);
+  --coar-menu-heading-font-weight: var(--coar-d-menu-heading-font-weight, inherit);
+  --coar-menu-item-gap: var(--coar-d-menu-item-gap, inherit);
+  --coar-menu-background: var(--coar-d-menu-background, inherit);
+  --coar-menu-item-color: var(--coar-d-menu-item-color, inherit);
+  --coar-menu-heading-color: var(--coar-d-menu-heading-color, inherit);
+  --coar-menu-item-background-hover: var(--coar-d-menu-item-background-hover, inherit);
+  --coar-menu-item-background-focus: var(--coar-d-menu-item-background-focus, inherit);
+  --coar-menu-item-background-open: var(--coar-d-menu-item-background-open, inherit);
+  --coar-menu-item-background-active: var(--coar-d-menu-item-background-active, inherit);
+  --coar-menu-item-text-active: var(--coar-d-menu-item-text-active, inherit);
+  --coar-select-option-font-size: var(--coar-d-select-option-font-size, inherit);
+  --coar-select-option-gap: var(--coar-d-select-option-gap, inherit);
+  --coar-sidebar-background: var(--coar-d-sidebar-background, inherit);
+  --coar-sidebar-border: var(--coar-d-sidebar-border, inherit);
+  --coar-sidebar-header-border: var(--coar-d-sidebar-header-border, inherit);
+  --coar-sidebar-footer-border: var(--coar-d-sidebar-footer-border, inherit);
+  --coar-sidebar-item-gap: var(--coar-d-sidebar-item-gap, inherit);
+  --coar-sidebar-item-hover: var(--coar-d-sidebar-item-hover, inherit);
+  --coar-sidebar-item-active-color: var(--coar-d-sidebar-item-active-color, inherit);
+  --coar-sidebar-item-active-bg: var(--coar-d-sidebar-item-active-bg, inherit);
+  --coar-switch-track-width: var(--coar-d-switch-track-width, inherit);
+  --coar-switch-track-height: var(--coar-d-switch-track-height, inherit);
+  --coar-switch-thumb-size: var(--coar-d-switch-thumb-size, inherit);
+  --coar-progress-bar-background: var(--coar-d-progress-bar-background, inherit);
+  --coar-progress-accent-color: var(--coar-d-progress-accent-color, inherit);
+  --coar-progress-success-color: var(--coar-d-progress-success-color, inherit);
+  --coar-progress-warning-color: var(--coar-d-progress-warning-color, inherit);
+  --coar-progress-error-color: var(--coar-d-progress-error-color, inherit);
+  --coar-spinner-color: var(--coar-d-spinner-color, inherit);
+  --coar-sheet-handle-color: var(--coar-d-sheet-handle-color, inherit);
+}
+
+/* A surface teleported out of a theme scope that sets no class of the library (an
+   overlay host, an editor tool on `body`) states the scope's text again, as the theme's
+   own rule does on the scope. The `.coar-compact` entry needs none: its surfaces carry
+   that class. One class of specificity, so the surface's own styles win. */
+.coar-theme-surface {
+  font-family: var(--coar-body-base-family);
+  font-size: var(--coar-body-base-size);
+  font-weight: var(--coar-body-base-weight);
+  line-height: var(--coar-body-base-line-height);
+  color: var(--coar-text-neutral-primary);
+}

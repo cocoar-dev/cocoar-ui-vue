@@ -1049,9 +1049,15 @@ onBeforeUnmount(() => {
   outline-offset: -2px;
 }
 
-.coar-compact .coar-scrollable-calendar__day:focus-visible {
-  outline: var(--coar-focus-width) var(--coar-focus-style) var(--coar-focus-color);
-  outline-offset: -2px;
+/* A theme that sets the day's focus ring width draws the shared focus ring on the
+   focused day, selected or not; without it the rules above stand. */
+.coar-scrollable-calendar__day:focus-visible {
+  --coar-i-day-focus-outline: var(--coar-picker-day-focus-outline-width) var(--coar-focus-style) var(--coar-focus-color);
+  outline: var(--coar-i-day-focus-outline, none);
+  outline-offset: var(--coar-picker-day-focus-outline-offset, 0px);
+}
+.coar-scrollable-calendar__day--focused:not(.coar-scrollable-calendar__day--selected):focus-visible {
+  outline: var(--coar-i-day-focus-outline, 2px solid var(--coar-border-accent-primary));
 }
 
 /* ========================================

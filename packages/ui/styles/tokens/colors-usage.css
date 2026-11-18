@@ -42,13 +42,13 @@
   --coar-border-neutral-secondary: var(--coar-color-gray-800);
   --coar-border-neutral-tertiary: var(--coar-color-gray-200);
   --coar-border-neutral-quaternary: var(--coar-color-gray-100);
-  --coar-border-neutral: var(--coar-color-gray-200); /* Alias for tertiary - used in dropdowns */
+  --coar-border-neutral: var(--coar-d-border-neutral, var(--coar-color-gray-200)); /* Alias for tertiary - used in dropdowns */
 
   /* Icon */
-  --coar-icon-neutral-primary: var(--coar-color-gray-900);
-  --coar-icon-neutral-secondary: var(--coar-color-gray-800);
-  --coar-icon-neutral-tertiary: var(--coar-color-gray-700);
-  --coar-icon-neutral-disabled: var(--coar-color-gray-500);
+  --coar-icon-neutral-primary: var(--coar-d-icon-neutral-primary, var(--coar-color-gray-900));
+  --coar-icon-neutral-secondary: var(--coar-d-icon-neutral-secondary, var(--coar-color-gray-800));
+  --coar-icon-neutral-tertiary: var(--coar-d-icon-neutral-tertiary, var(--coar-color-gray-700));
+  --coar-icon-neutral-disabled: var(--coar-d-icon-neutral-disabled, var(--coar-color-gray-500));
 
   /* ==========================================================================
      BRAND - Company identity colors (slate)
@@ -75,26 +75,26 @@
      ========================================================================== */
 
   /* Background — accent-500 = exact brand color */
-  --coar-background-accent-primary: var(--coar-color-accent-500);
-  --coar-background-accent-secondary: var(--coar-color-accent-100);
-  --coar-background-accent-tertiary: var(--coar-color-accent-50);
-  --coar-background-accent-hover: var(--coar-color-accent-600);
-  --coar-background-accent-active: var(--coar-color-accent-700);
-  --coar-background-accent-tertiary-active: var(--coar-color-accent-200);
+  --coar-background-accent-primary: var(--coar-d-background-accent-primary, var(--coar-color-accent-500));
+  --coar-background-accent-secondary: var(--coar-d-background-accent-secondary, var(--coar-color-accent-100));
+  --coar-background-accent-tertiary: var(--coar-d-background-accent-tertiary, var(--coar-color-accent-50));
+  --coar-background-accent-hover: var(--coar-d-background-accent-hover, var(--coar-color-accent-600));
+  --coar-background-accent-active: var(--coar-d-background-accent-active, var(--coar-color-accent-700));
+  --coar-background-accent-tertiary-active: var(--coar-d-background-accent-tertiary-active, var(--coar-color-accent-200));
 
   /* Text */
-  --coar-text-accent-primary: var(--coar-color-accent-600);
-  --coar-text-accent-secondary: var(--coar-color-accent-500);
+  --coar-text-accent-primary: var(--coar-d-text-accent-primary, var(--coar-color-accent-600));
+  --coar-text-accent-secondary: var(--coar-d-text-accent-secondary, var(--coar-color-accent-500));
 
   /* Border */
-  --coar-border-accent-primary: var(--coar-color-accent-500);
-  --coar-border-accent-secondary: var(--coar-color-accent-300);
+  --coar-border-accent-primary: var(--coar-d-border-accent-primary, var(--coar-color-accent-500));
+  --coar-border-accent-secondary: var(--coar-d-border-accent-secondary, var(--coar-color-accent-300));
 
   /* Surface */
-  --coar-surface-accent-secondary: var(--coar-color-accent-100);
+  --coar-surface-accent-secondary: var(--coar-d-surface-accent-secondary, var(--coar-color-accent-100));
 
   /* Icon */
-  --coar-icon-accent-primary: var(--coar-color-accent-700);
+  --coar-icon-accent-primary: var(--coar-d-icon-accent-primary, var(--coar-color-accent-700));
 
   /* ==========================================================================
      SEMANTIC - Status/feedback colors (success, error, warning, info)
@@ -103,51 +103,51 @@
      ========================================================================== */
 
   /* Success (green) */
-  --coar-background-semantic-success-bold: var(--coar-color-green-600);
-  --coar-background-semantic-success-subtlest: var(--coar-color-green-50);
-  --coar-background-semantic-success-subtle: var(--coar-color-green-100);
-  --coar-text-semantic-success-bold: var(--coar-color-green-800);
-  --coar-text-semantic-success-subtle: var(--coar-color-green-700);
-  --coar-border-semantic-success-bold: var(--coar-color-green-800);
-  --coar-border-semantic-success-subtle: var(--coar-color-green-200);
-  --coar-icon-semantic-success-bold: var(--coar-color-green-800);
-  --coar-icon-semantic-success-subtle: var(--coar-color-green-700);
+  --coar-background-semantic-success-bold: var(--coar-d-background-semantic-success-bold, var(--coar-color-green-600));
+  --coar-background-semantic-success-subtlest: var(--coar-d-background-semantic-success-subtlest, var(--coar-color-green-50));
+  --coar-background-semantic-success-subtle: var(--coar-d-background-semantic-success-subtle, var(--coar-color-green-100));
+  --coar-text-semantic-success-bold: var(--coar-d-text-semantic-success-bold, var(--coar-color-green-800));
+  --coar-text-semantic-success-subtle: var(--coar-d-text-semantic-success-subtle, var(--coar-color-green-700));
+  --coar-border-semantic-success-bold: var(--coar-d-border-semantic-success-bold, var(--coar-color-green-800));
+  --coar-border-semantic-success-subtle: var(--coar-d-border-semantic-success-subtle, var(--coar-color-green-200));
+  --coar-icon-semantic-success-bold: var(--coar-d-icon-semantic-success-bold, var(--coar-color-green-800));
+  --coar-icon-semantic-success-subtle: var(--coar-d-icon-semantic-success-subtle, var(--coar-color-green-700));
 
   /* Error (red) */
-  --coar-background-semantic-error-bold: var(--coar-color-red-600);
-  --coar-background-semantic-error-hover: var(--coar-color-red-700);
-  --coar-background-semantic-error-active: var(--coar-color-red-800);
-  --coar-background-semantic-error-subtlest: var(--coar-color-red-50);
-  --coar-background-semantic-error-subtle: var(--coar-color-red-100);
-  --coar-text-semantic-error-bold: var(--coar-color-red-800);
-  --coar-text-semantic-error-subtle: var(--coar-color-red-700);
-  --coar-border-semantic-error: var(--coar-color-red-600);
-  --coar-border-semantic-error-bold: var(--coar-color-red-800);
-  --coar-border-semantic-error-subtle: var(--coar-color-red-200);
-  --coar-icon-semantic-error-bold: var(--coar-color-red-800);
-  --coar-icon-semantic-error-subtle: var(--coar-color-red-700);
+  --coar-background-semantic-error-bold: var(--coar-d-background-semantic-error-bold, var(--coar-color-red-600));
+  --coar-background-semantic-error-hover: var(--coar-d-background-semantic-error-hover, var(--coar-color-red-700));
+  --coar-background-semantic-error-active: var(--coar-d-background-semantic-error-active, var(--coar-color-red-800));
+  --coar-background-semantic-error-subtlest: var(--coar-d-background-semantic-error-subtlest, var(--coar-color-red-50));
+  --coar-background-semantic-error-subtle: var(--coar-d-background-semantic-error-subtle, var(--coar-color-red-100));
+  --coar-text-semantic-error-bold: var(--coar-d-text-semantic-error-bold, var(--coar-color-red-800));
+  --coar-text-semantic-error-subtle: var(--coar-d-text-semantic-error-subtle, var(--coar-color-red-700));
+  --coar-border-semantic-error: var(--coar-d-border-semantic-error, var(--coar-color-red-600));
+  --coar-border-semantic-error-bold: var(--coar-d-border-semantic-error-bold, var(--coar-color-red-800));
+  --coar-border-semantic-error-subtle: var(--coar-d-border-semantic-error-subtle, var(--coar-color-red-200));
+  --coar-icon-semantic-error-bold: var(--coar-d-icon-semantic-error-bold, var(--coar-color-red-800));
+  --coar-icon-semantic-error-subtle: var(--coar-d-icon-semantic-error-subtle, var(--coar-color-red-700));
 
   /* Warning (amber) */
-  --coar-background-semantic-warning-bold: var(--coar-color-amber-600);
-  --coar-background-semantic-warning-subtlest: var(--coar-color-amber-50);
-  --coar-background-semantic-warning-subtle: var(--coar-color-amber-100);
-  --coar-text-semantic-warning-bold: var(--coar-color-amber-900);
-  --coar-text-semantic-warning-subtle: var(--coar-color-amber-800);
-  --coar-border-semantic-warning-bold: var(--coar-color-amber-900);
-  --coar-border-semantic-warning-subtle: var(--coar-color-amber-200);
-  --coar-icon-semantic-warning-bold: var(--coar-color-amber-900);
-  --coar-icon-semantic-warning-subtle: var(--coar-color-amber-800);
+  --coar-background-semantic-warning-bold: var(--coar-d-background-semantic-warning-bold, var(--coar-color-amber-600));
+  --coar-background-semantic-warning-subtlest: var(--coar-d-background-semantic-warning-subtlest, var(--coar-color-amber-50));
+  --coar-background-semantic-warning-subtle: var(--coar-d-background-semantic-warning-subtle, var(--coar-color-amber-100));
+  --coar-text-semantic-warning-bold: var(--coar-d-text-semantic-warning-bold, var(--coar-color-amber-900));
+  --coar-text-semantic-warning-subtle: var(--coar-d-text-semantic-warning-subtle, var(--coar-color-amber-800));
+  --coar-border-semantic-warning-bold: var(--coar-d-border-semantic-warning-bold, var(--coar-color-amber-900));
+  --coar-border-semantic-warning-subtle: var(--coar-d-border-semantic-warning-subtle, var(--coar-color-amber-200));
+  --coar-icon-semantic-warning-bold: var(--coar-d-icon-semantic-warning-bold, var(--coar-color-amber-900));
+  --coar-icon-semantic-warning-subtle: var(--coar-d-icon-semantic-warning-subtle, var(--coar-color-amber-800));
 
   /* Info (slate blue) */
-  --coar-background-semantic-info-bold: var(--coar-color-slate-700);
-  --coar-background-semantic-info-subtlest: var(--coar-color-slate-50);
-  --coar-background-semantic-info-subtle: var(--coar-color-slate-100);
-  --coar-text-semantic-info-bold: var(--coar-color-slate-800);
-  --coar-text-semantic-info-subtle: var(--coar-color-slate-700);
-  --coar-border-semantic-info-bold: var(--coar-color-slate-900);
-  --coar-border-semantic-info-subtle: var(--coar-color-slate-200);
-  --coar-icon-semantic-info-bold: var(--coar-color-white);
-  --coar-icon-semantic-info-subtle: var(--coar-color-slate-700);
+  --coar-background-semantic-info-bold: var(--coar-d-background-semantic-info-bold, var(--coar-color-slate-700));
+  --coar-background-semantic-info-subtlest: var(--coar-d-background-semantic-info-subtlest, var(--coar-color-slate-50));
+  --coar-background-semantic-info-subtle: var(--coar-d-background-semantic-info-subtle, var(--coar-color-slate-100));
+  --coar-text-semantic-info-bold: var(--coar-d-text-semantic-info-bold, var(--coar-color-slate-800));
+  --coar-text-semantic-info-subtle: var(--coar-d-text-semantic-info-subtle, var(--coar-color-slate-700));
+  --coar-border-semantic-info-bold: var(--coar-d-border-semantic-info-bold, var(--coar-color-slate-900));
+  --coar-border-semantic-info-subtle: var(--coar-d-border-semantic-info-subtle, var(--coar-color-slate-200));
+  --coar-icon-semantic-info-bold: var(--coar-d-icon-semantic-info-bold, var(--coar-color-white));
+  --coar-icon-semantic-info-subtle: var(--coar-d-icon-semantic-info-subtle, var(--coar-color-slate-700));
 
   /* ==========================================================================
      SPECIAL PURPOSE
@@ -166,8 +166,8 @@
      ========================================================================== */
 
   /* Input surfaces - backgrounds for form controls */
-  --coar-surface-input: var(--coar-color-white);
-  --coar-surface-input-disabled: var(--coar-color-gray-100);
+  --coar-surface-input: var(--coar-d-surface-input, var(--coar-color-white));
+  --coar-surface-input-disabled: var(--coar-d-surface-input-disabled, var(--coar-color-gray-100));
 
   /* Input borders - more visible than neutral-tertiary */
   --coar-border-input: var(--coar-color-gray-300);
@@ -206,28 +206,28 @@
   --coar-border-neutral-quaternary: var(--coar-color-gray-200);
 
   /* Icon */
-  --coar-icon-neutral-primary: var(--coar-color-gray-900);
-  --coar-icon-neutral-secondary: var(--coar-color-gray-700);
-  --coar-icon-neutral-tertiary: var(--coar-color-gray-600);
+  --coar-icon-neutral-primary: var(--coar-d-icon-neutral-primary, var(--coar-color-gray-900));
+  --coar-icon-neutral-secondary: var(--coar-d-icon-neutral-secondary, var(--coar-color-gray-700));
+  --coar-icon-neutral-tertiary: var(--coar-d-icon-neutral-tertiary, var(--coar-color-gray-600));
 
   /* ==========================================================================
      ACCENT - Lighter values for visibility on dark backgrounds
      ========================================================================== */
 
   /* Background — accent-500 = exact brand color (same in both modes) */
-  --coar-background-accent-primary: var(--coar-color-accent-500);
-  --coar-background-accent-secondary: var(--coar-color-accent-200);
-  --coar-background-accent-tertiary: var(--coar-color-accent-100);
-  --coar-background-accent-hover: var(--coar-color-accent-400);
-  --coar-background-accent-active: var(--coar-color-accent-300);
-  --coar-background-accent-tertiary-active: var(--coar-color-accent-300);
+  --coar-background-accent-primary: var(--coar-d-background-accent-primary, var(--coar-color-accent-500));
+  --coar-background-accent-secondary: var(--coar-d-background-accent-secondary, var(--coar-color-accent-200));
+  --coar-background-accent-tertiary: var(--coar-d-background-accent-tertiary, var(--coar-color-accent-100));
+  --coar-background-accent-hover: var(--coar-d-background-accent-hover, var(--coar-color-accent-400));
+  --coar-background-accent-active: var(--coar-d-background-accent-active, var(--coar-color-accent-300));
+  --coar-background-accent-tertiary-active: var(--coar-d-background-accent-tertiary-active, var(--coar-color-accent-300));
 
   /* Text */
-  --coar-text-accent-primary: var(--coar-color-accent-600);
-  --coar-text-accent-secondary: var(--coar-color-accent-500);
+  --coar-text-accent-primary: var(--coar-d-text-accent-primary, var(--coar-color-accent-600));
+  --coar-text-accent-secondary: var(--coar-d-text-accent-secondary, var(--coar-color-accent-500));
 
   /* Surface */
-  --coar-surface-accent-secondary: var(--coar-color-accent-200);
+  --coar-surface-accent-secondary: var(--coar-d-surface-accent-secondary, var(--coar-color-accent-200));
 
   /* ==========================================================================
      SEMANTIC - Adjusted for dark backgrounds
@@ -235,51 +235,51 @@
      ========================================================================== */
 
   /* Success */
-  --coar-background-semantic-success-bold: var(--coar-color-green-500);
-  --coar-background-semantic-success-subtlest: var(--coar-color-green-100);
-  --coar-background-semantic-success-subtle: var(--coar-color-green-200);
-  --coar-text-semantic-success-bold: var(--coar-color-green-900);
-  --coar-text-semantic-success-subtle: var(--coar-color-green-700);
-  --coar-border-semantic-success-bold: var(--coar-color-green-600);
-  --coar-border-semantic-success-subtle: var(--coar-color-green-300);
-  --coar-icon-semantic-success-bold: var(--coar-color-green-900);
-  --coar-icon-semantic-success-subtle: var(--coar-color-green-700);
+  --coar-background-semantic-success-bold: var(--coar-d-background-semantic-success-bold, var(--coar-color-green-500));
+  --coar-background-semantic-success-subtlest: var(--coar-d-background-semantic-success-subtlest, var(--coar-color-green-100));
+  --coar-background-semantic-success-subtle: var(--coar-d-background-semantic-success-subtle, var(--coar-color-green-200));
+  --coar-text-semantic-success-bold: var(--coar-d-text-semantic-success-bold, var(--coar-color-green-900));
+  --coar-text-semantic-success-subtle: var(--coar-d-text-semantic-success-subtle, var(--coar-color-green-700));
+  --coar-border-semantic-success-bold: var(--coar-d-border-semantic-success-bold, var(--coar-color-green-600));
+  --coar-border-semantic-success-subtle: var(--coar-d-border-semantic-success-subtle, var(--coar-color-green-300));
+  --coar-icon-semantic-success-bold: var(--coar-d-icon-semantic-success-bold, var(--coar-color-green-900));
+  --coar-icon-semantic-success-subtle: var(--coar-d-icon-semantic-success-subtle, var(--coar-color-green-700));
 
   /* Error */
-  --coar-background-semantic-error-bold: var(--coar-color-red-500);
-  --coar-background-semantic-error-hover: var(--coar-color-red-400);
-  --coar-background-semantic-error-active: var(--coar-color-red-300);
-  --coar-background-semantic-error-subtlest: var(--coar-color-red-100);
-  --coar-background-semantic-error-subtle: var(--coar-color-red-200);
-  --coar-text-semantic-error-bold: var(--coar-color-red-900);
-  --coar-text-semantic-error-subtle: var(--coar-color-red-700);
-  --coar-border-semantic-error: var(--coar-color-red-500);
-  --coar-border-semantic-error-bold: var(--coar-color-red-600);
-  --coar-border-semantic-error-subtle: var(--coar-color-red-300);
-  --coar-icon-semantic-error-bold: var(--coar-color-red-900);
-  --coar-icon-semantic-error-subtle: var(--coar-color-red-700);
+  --coar-background-semantic-error-bold: var(--coar-d-background-semantic-error-bold, var(--coar-color-red-500));
+  --coar-background-semantic-error-hover: var(--coar-d-background-semantic-error-hover, var(--coar-color-red-400));
+  --coar-background-semantic-error-active: var(--coar-d-background-semantic-error-active, var(--coar-color-red-300));
+  --coar-background-semantic-error-subtlest: var(--coar-d-background-semantic-error-subtlest, var(--coar-color-red-100));
+  --coar-background-semantic-error-subtle: var(--coar-d-background-semantic-error-subtle, var(--coar-color-red-200));
+  --coar-text-semantic-error-bold: var(--coar-d-text-semantic-error-bold, var(--coar-color-red-900));
+  --coar-text-semantic-error-subtle: var(--coar-d-text-semantic-error-subtle, var(--coar-color-red-700));
+  --coar-border-semantic-error: var(--coar-d-border-semantic-error, var(--coar-color-red-500));
+  --coar-border-semantic-error-bold: var(--coar-d-border-semantic-error-bold, var(--coar-color-red-600));
+  --coar-border-semantic-error-subtle: var(--coar-d-border-semantic-error-subtle, var(--coar-color-red-300));
+  --coar-icon-semantic-error-bold: var(--coar-d-icon-semantic-error-bold, var(--coar-color-red-900));
+  --coar-icon-semantic-error-subtle: var(--coar-d-icon-semantic-error-subtle, var(--coar-color-red-700));
 
   /* Warning */
-  --coar-background-semantic-warning-bold: var(--coar-color-amber-400);
-  --coar-background-semantic-warning-subtlest: var(--coar-color-amber-100);
-  --coar-background-semantic-warning-subtle: var(--coar-color-amber-200);
-  --coar-text-semantic-warning-bold: var(--coar-color-amber-900);
-  --coar-text-semantic-warning-subtle: var(--coar-color-amber-800);
-  --coar-border-semantic-warning-bold: var(--coar-color-amber-500);
-  --coar-border-semantic-warning-subtle: var(--coar-color-amber-300);
-  --coar-icon-semantic-warning-bold: var(--coar-color-amber-900);
-  --coar-icon-semantic-warning-subtle: var(--coar-color-amber-800);
+  --coar-background-semantic-warning-bold: var(--coar-d-background-semantic-warning-bold, var(--coar-color-amber-400));
+  --coar-background-semantic-warning-subtlest: var(--coar-d-background-semantic-warning-subtlest, var(--coar-color-amber-100));
+  --coar-background-semantic-warning-subtle: var(--coar-d-background-semantic-warning-subtle, var(--coar-color-amber-200));
+  --coar-text-semantic-warning-bold: var(--coar-d-text-semantic-warning-bold, var(--coar-color-amber-900));
+  --coar-text-semantic-warning-subtle: var(--coar-d-text-semantic-warning-subtle, var(--coar-color-amber-800));
+  --coar-border-semantic-warning-bold: var(--coar-d-border-semantic-warning-bold, var(--coar-color-amber-500));
+  --coar-border-semantic-warning-subtle: var(--coar-d-border-semantic-warning-subtle, var(--coar-color-amber-300));
+  --coar-icon-semantic-warning-bold: var(--coar-d-icon-semantic-warning-bold, var(--coar-color-amber-900));
+  --coar-icon-semantic-warning-subtle: var(--coar-d-icon-semantic-warning-subtle, var(--coar-color-amber-800));
 
   /* Info */
-  --coar-background-semantic-info-bold: var(--coar-color-slate-400);
-  --coar-background-semantic-info-subtlest: var(--coar-color-slate-200);
-  --coar-background-semantic-info-subtle: var(--coar-color-slate-300);
-  --coar-text-semantic-info-bold: var(--coar-color-slate-900);
-  --coar-text-semantic-info-subtle: var(--coar-color-slate-700);
-  --coar-border-semantic-info-bold: var(--coar-color-slate-600);
-  --coar-border-semantic-info-subtle: var(--coar-color-slate-400);
-  --coar-icon-semantic-info-bold: var(--coar-color-slate-50);
-  --coar-icon-semantic-info-subtle: var(--coar-color-slate-700);
+  --coar-background-semantic-info-bold: var(--coar-d-background-semantic-info-bold, var(--coar-color-slate-400));
+  --coar-background-semantic-info-subtlest: var(--coar-d-background-semantic-info-subtlest, var(--coar-color-slate-200));
+  --coar-background-semantic-info-subtle: var(--coar-d-background-semantic-info-subtle, var(--coar-color-slate-300));
+  --coar-text-semantic-info-bold: var(--coar-d-text-semantic-info-bold, var(--coar-color-slate-900));
+  --coar-text-semantic-info-subtle: var(--coar-d-text-semantic-info-subtle, var(--coar-color-slate-700));
+  --coar-border-semantic-info-bold: var(--coar-d-border-semantic-info-bold, var(--coar-color-slate-600));
+  --coar-border-semantic-info-subtle: var(--coar-d-border-semantic-info-subtle, var(--coar-color-slate-400));
+  --coar-icon-semantic-info-bold: var(--coar-d-icon-semantic-info-bold, var(--coar-color-slate-50));
+  --coar-icon-semantic-info-subtle: var(--coar-d-icon-semantic-info-subtle, var(--coar-color-slate-700));
 
   /* ==========================================================================
      SURFACE - Input surfaces in dark mode are slightly elevated from page bg
@@ -288,8 +288,8 @@
      ========================================================================== */
 
   /* Input surfaces - slightly lighter than page background for visibility */
-  --coar-surface-input: var(--coar-color-gray-100);
-  --coar-surface-input-disabled: var(--coar-color-gray-50);
+  --coar-surface-input: var(--coar-d-surface-input, var(--coar-color-gray-100));
+  --coar-surface-input-disabled: var(--coar-d-surface-input-disabled, var(--coar-color-gray-50));
 
   /* Input borders - visible on dark backgrounds */
   --coar-border-input: var(--coar-color-gray-400);

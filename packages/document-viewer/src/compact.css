@@ -1,73 +1,79 @@
 /**
- * Document viewer — compact presentation (experimental, opt-in via `.coar-compact`).
+ * Document viewer: roles a theme with role derivation gives the viewer (Preview).
  *
- * Outside a `.coar-compact` scope nothing here applies and the viewer keeps its original
- * look. The viewer's sources read their colors as
+ * Without such a theme nothing here applies and the viewer keeps its original look.
+ * The viewer's sources read their colors as
  * `var(--coar-color-<name>, var(--coar-document-viewer-<role>, <original>))`:
- * a consumer's `--coar-color-*` override still wins first, the roles below exist only in
- * the compact profile, and otherwise the original fallback applies.
+ * a consumer's `--coar-color-*` override still wins first, the roles below exist only
+ * under a role theme, and otherwise the original fallback applies.
+ *
+ * The size roles (`--coar-document-viewer-header-height`, `-target-size`, `-input-height`,
+ * `-swatch-size`, `-pin-target-outset`, `-outline-link-display`) are values of the theme itself:
+ * the Compact ones are in `@cocoar/vue-ui` (`src/theme/compact-packages/document-viewer.ts`).
  *
  * The PDF page (canvas background, rendered content, freetext/ink/marker annotations,
  * search highlight colors) is document content and is not themed here.
  *
- * `.coar-compact` may sit on an ancestor or on the viewer root (`class` attribute). The
- * annotation popover is teleported to `<body>`; it receives the compact classes of its
- * viewer (see `internal/presentation-context.ts`), so it is listed here too.
+ * The annotation popover is teleported to `<body>`; it receives the effective values of
+ * its viewer (`useCompactPresentationContext`), so it derives its roles here too.
  */
 
-/* Independent size roles; touch fields use the shared field target floor. */
-:where(.coar-compact) {
-  --coar-document-viewer-header-height: 40px;
-  --coar-document-viewer-target-size: 28px;
-  --coar-document-viewer-input-height: 28px;
+/* Native number/text/search inputs have different UA box models. A theme whose height
+   role describes the complete field box, just like InputFrame, sets the box model.
+   In the library's layer with a fallback to the layers below: without the value this
+   declares nothing. */
+@layer cocoar.components {
+  .coar-pdf-viewer .coar-pdf-toolbar__page-input,
+  .coar-pdf-viewer .coar-pdf-toolbar__zoom-input,
+  .coar-pdf-viewer .coar-pdf-searchbar__input {
+    box-sizing: var(--coar-control-box-sizing, revert-layer);
+  }
 }
 
-:where(.coar-compact.coar-mobile, .coar-compact .coar-mobile, .coar-mobile .coar-compact) {
-  --coar-document-viewer-header-height: 48px;
-  --coar-document-viewer-target-size: 44px;
-  --coar-document-viewer-input-height: var(--coar-control-min-size, 44px);
-  /* Color swatches stay below 44px so a palette fits a popover row; 32px plus the 6px gap
-     keeps them well apart (WCAG 2.5.8). */
-  --coar-document-viewer-swatch-size: 32px;
-}
+/* Color roles: derived on the viewer root / popover, so light, dark and nested scopes
+   resolve in the viewer's own context. `--coar-d-*` is invalid unless the theme activates
+   derivation; the role then keeps the value it inherits. No specificity, so a consumer
+   rule on the element wins. */
+:where(.coar-pdf-viewer, .coar-pdf-annotation-popover) {
+  --coar-d-document-viewer-surface: var(--coar-role-derivation) var(--coar-background-neutral-primary, #ffffff);
+  --coar-d-document-viewer-chrome: var(--coar-role-derivation) var(--coar-background-neutral-secondary, #f6f7f8);
+  --coar-d-document-viewer-hover: var(--coar-role-derivation) var(--coar-background-neutral-tertiary, rgba(0, 0, 0, 0.06));
+  --coar-d-document-viewer-backdrop: var(--coar-role-derivation) var(--coar-background-neutral-secondary, rgba(0, 0, 0, 0.04));
+  --coar-d-document-viewer-veil: var(--coar-role-derivation) color-mix(in srgb, var(--coar-background-neutral-primary, #ffffff) 55%, transparent);
+  --coar-d-document-viewer-border: var(--coar-role-derivation) var(--coar-border-neutral-tertiary, #e5e7eb);
+  --coar-d-document-viewer-divider: var(--coar-role-derivation) var(--coar-border-neutral-tertiary, rgba(0, 0, 0, 0.08));
+  --coar-d-document-viewer-text: var(--coar-role-derivation) var(--coar-text-neutral-primary, #1a1a1a);
+  --coar-d-document-viewer-text-secondary: var(--coar-role-derivation) var(--coar-text-neutral-secondary, #4b5563);
+  --coar-d-document-viewer-text-muted: var(--coar-role-derivation) var(--coar-text-neutral-tertiary, #6b7280);
+  --coar-d-document-viewer-accent: var(--coar-role-derivation) var(--coar-background-accent-primary, #2563eb);
+  --coar-d-document-viewer-accent-hover: var(--coar-role-derivation) var(--coar-background-accent-hover, #1d4ed8);
+  --coar-d-document-viewer-accent-tint: var(--coar-role-derivation) var(--coar-background-accent-tertiary, rgba(37, 99, 235, 0.08));
+  --coar-d-document-viewer-accent-tint-hover: var(--coar-role-derivation) var(--coar-background-accent-tertiary-active, rgba(37, 99, 235, 0.12));
+  --coar-d-document-viewer-on-accent: var(--coar-role-derivation) var(--coar-text-on-bold, #ffffff);
+  --coar-d-document-viewer-focus-ring: var(--coar-role-derivation) var(--coar-focus-color, #2563eb);
+  --coar-d-document-viewer-danger: var(--coar-role-derivation) var(--coar-text-semantic-error-bold, #dc2626);
+  --coar-d-document-viewer-danger-tint: var(--coar-role-derivation) var(--coar-background-semantic-error-subtlest, #fef2f2);
+  --coar-d-document-viewer-selection: var(--coar-role-derivation) color-mix(in srgb, var(--coar-background-accent-primary, #2563eb) 25%, transparent);
+  --coar-d-document-viewer-popover-shadow: var(--coar-role-derivation) var(--coar-elevation-high, 0 4px 16px rgba(0, 0, 0, 0.15));
 
-/* Native number/text/search inputs have different UA box models. In compact
-   chrome the height role describes the complete field box, just like InputFrame. */
-.coar-compact .coar-pdf-viewer .coar-pdf-toolbar__page-input,
-.coar-pdf-viewer.coar-compact .coar-pdf-toolbar__page-input,
-.coar-compact .coar-pdf-viewer .coar-pdf-toolbar__zoom-input,
-.coar-pdf-viewer.coar-compact .coar-pdf-toolbar__zoom-input,
-.coar-compact .coar-pdf-viewer .coar-pdf-searchbar__input,
-.coar-pdf-viewer.coar-compact .coar-pdf-searchbar__input {
-  box-sizing: border-box;
-}
-
-/* Color roles: resolved on the viewer root / popover, so light, dark and nested
-   scopes resolve in the viewer's own context. */
-:is(
-    .coar-compact .coar-pdf-viewer,
-    .coar-pdf-viewer.coar-compact,
-    .coar-compact .coar-pdf-annotation-popover,
-    .coar-pdf-annotation-popover.coar-compact
-  ) {
-  --coar-document-viewer-surface: var(--coar-background-neutral-primary, #ffffff);
-  --coar-document-viewer-chrome: var(--coar-background-neutral-secondary, #f6f7f8);
-  --coar-document-viewer-hover: var(--coar-background-neutral-tertiary, rgba(0, 0, 0, 0.06));
-  --coar-document-viewer-backdrop: var(--coar-background-neutral-secondary, rgba(0, 0, 0, 0.04));
-  --coar-document-viewer-veil: color-mix(in srgb, var(--coar-background-neutral-primary, #ffffff) 55%, transparent);
-  --coar-document-viewer-border: var(--coar-border-neutral-tertiary, #e5e7eb);
-  --coar-document-viewer-divider: var(--coar-border-neutral-tertiary, rgba(0, 0, 0, 0.08));
-  --coar-document-viewer-text: var(--coar-text-neutral-primary, #1a1a1a);
-  --coar-document-viewer-text-secondary: var(--coar-text-neutral-secondary, #4b5563);
-  --coar-document-viewer-text-muted: var(--coar-text-neutral-tertiary, #6b7280);
-  --coar-document-viewer-accent: var(--coar-background-accent-primary, #2563eb);
-  --coar-document-viewer-accent-hover: var(--coar-background-accent-hover, #1d4ed8);
-  --coar-document-viewer-accent-tint: var(--coar-background-accent-tertiary, rgba(37, 99, 235, 0.08));
-  --coar-document-viewer-accent-tint-hover: var(--coar-background-accent-tertiary-active, rgba(37, 99, 235, 0.12));
-  --coar-document-viewer-on-accent: var(--coar-text-on-bold, #ffffff);
-  --coar-document-viewer-focus-ring: var(--coar-focus-color, #2563eb);
-  --coar-document-viewer-danger: var(--coar-text-semantic-error-bold, #dc2626);
-  --coar-document-viewer-danger-tint: var(--coar-background-semantic-error-subtlest, #fef2f2);
-  --coar-document-viewer-selection: color-mix(in srgb, var(--coar-background-accent-primary, #2563eb) 25%, transparent);
-  --coar-document-viewer-popover-shadow: var(--coar-elevation-high, 0 4px 16px rgba(0, 0, 0, 0.15));
+  --coar-document-viewer-surface: var(--coar-d-document-viewer-surface, inherit);
+  --coar-document-viewer-chrome: var(--coar-d-document-viewer-chrome, inherit);
+  --coar-document-viewer-hover: var(--coar-d-document-viewer-hover, inherit);
+  --coar-document-viewer-backdrop: var(--coar-d-document-viewer-backdrop, inherit);
+  --coar-document-viewer-veil: var(--coar-d-document-viewer-veil, inherit);
+  --coar-document-viewer-border: var(--coar-d-document-viewer-border, inherit);
+  --coar-document-viewer-divider: var(--coar-d-document-viewer-divider, inherit);
+  --coar-document-viewer-text: var(--coar-d-document-viewer-text, inherit);
+  --coar-document-viewer-text-secondary: var(--coar-d-document-viewer-text-secondary, inherit);
+  --coar-document-viewer-text-muted: var(--coar-d-document-viewer-text-muted, inherit);
+  --coar-document-viewer-accent: var(--coar-d-document-viewer-accent, inherit);
+  --coar-document-viewer-accent-hover: var(--coar-d-document-viewer-accent-hover, inherit);
+  --coar-document-viewer-accent-tint: var(--coar-d-document-viewer-accent-tint, inherit);
+  --coar-document-viewer-accent-tint-hover: var(--coar-d-document-viewer-accent-tint-hover, inherit);
+  --coar-document-viewer-on-accent: var(--coar-d-document-viewer-on-accent, inherit);
+  --coar-document-viewer-focus-ring: var(--coar-d-document-viewer-focus-ring, inherit);
+  --coar-document-viewer-danger: var(--coar-d-document-viewer-danger, inherit);
+  --coar-document-viewer-danger-tint: var(--coar-d-document-viewer-danger-tint, inherit);
+  --coar-document-viewer-selection: var(--coar-d-document-viewer-selection, inherit);
+  --coar-document-viewer-popover-shadow: var(--coar-d-document-viewer-popover-shadow, inherit);
 }

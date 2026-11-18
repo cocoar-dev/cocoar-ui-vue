@@ -1,8 +1,9 @@
 /*
  * Presentation roles: several declarations read an optional
  * `--coar-markdown-form-*` role first and fall back to the exact legacy value.
- * Only the opt-in `.coar-compact` profile (`markdown-form-compact.css`)
- * defines them; without it every fallback applies unchanged.
+ * A role theme gives the roles, as values on its scope or derived from shared
+ * tokens in `markdown-form-compact.css`; without one every fallback applies
+ * unchanged.
  */
 @import './markdown-form-compact.css';
 

@@ -476,13 +476,25 @@ describe('CoarScriptEditor — exposes editor methods', () => {
   });
 });
 
-describe('CoarScriptEditor — compact document theme', () => {
+describe('CoarScriptEditor — role theme of the document', () => {
+  // A role theme on <html>, as a browser sees it: the class that carries the values,
+  // and the marker `derived.css` of `@cocoar/vue-ui` resolves to where the values are
+  // in effect (happy-dom does not evaluate that stylesheet).
+  function enterRoleTheme(themeClass: string) {
+    document.documentElement.style.setProperty('--coar-d-role-derivation', 'on');
+    document.documentElement.classList.add(themeClass);
+  }
+  function leaveRoleTheme() {
+    document.documentElement.className = '';
+    document.documentElement.removeAttribute('style');
+  }
+
   beforeEach(() => {
     vi.clearAllMocks();
-    document.documentElement.className = '';
+    leaveRoleTheme();
   });
 
-  it('switches an explicit theme only when the page enters the compact profile', async () => {
+  it('switches an explicit theme only when the page enters a role theme', async () => {
     const setTheme = monacoMock.editor.setTheme as ReturnType<typeof vi.fn>;
     const wrapper = mount(CoarScriptEditor, { props: { theme: 'light' }, attachTo: document.body });
     await nextTick();
@@ -491,25 +503,34 @@ describe('CoarScriptEditor — compact document theme', () => {
     await new Promise((r) => setTimeout(r, 0));
     expect(setTheme).not.toHaveBeenCalled();
 
+    // The class name alone decides nothing: the values do.
     document.documentElement.classList.add('coar-compact');
+    await new Promise((r) => setTimeout(r, 0));
+    expect(setTheme).not.toHaveBeenCalled();
+    document.documentElement.classList.remove('coar-compact');
+
+    enterRoleTheme('coar-theme--compact');
     await new Promise((r) => setTimeout(r, 0));
     expect(setTheme).toHaveBeenLastCalledWith('coar-compact-light');
 
-    document.documentElement.classList.remove('coar-compact');
+    leaveRoleTheme();
     await new Promise((r) => setTimeout(r, 0));
     expect(setTheme).toHaveBeenLastCalledWith('coar-light');
 
     wrapper.unmount();
-    document.documentElement.className = '';
   });
 
-  it('creates the editor with the compact theme in a compact document', async () => {
-    document.documentElement.classList.add('coar-compact', 'dark-mode');
-    const create = monacoMock.editor.create as ReturnType<typeof vi.fn>;
-    const wrapper = mount(CoarScriptEditor, { attachTo: document.body });
-    await nextTick();
-    expect(create.mock.calls.at(-1)![1].theme).toBe('coar-compact-dark');
-    wrapper.unmount();
-    document.documentElement.className = '';
-  });
+  it.each(['coar-compact', 'coar-theme--compact'])(
+    'creates the editor with the role theme where <html> carries the values as .%s',
+    async (themeClass) => {
+      enterRoleTheme(themeClass);
+      document.documentElement.classList.add('dark-mode');
+      const create = monacoMock.editor.create as ReturnType<typeof vi.fn>;
+      const wrapper = mount(CoarScriptEditor, { attachTo: document.body });
+      await nextTick();
+      expect(create.mock.calls.at(-1)![1].theme).toBe('coar-compact-dark');
+      wrapper.unmount();
+      leaveRoleTheme();
+    },
+  );
 });

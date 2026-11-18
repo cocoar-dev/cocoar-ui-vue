@@ -1,116 +1,100 @@
 /*
- * Compact presentation profile (Preview) of `@cocoar/vue-markdown-editor`'s
- * own chrome: writing area, source view, toolbars, floating toolbar and its
+ * Role-theme presentation (Preview) of `@cocoar/vue-markdown-editor`'s own
+ * chrome: writing area, source view, toolbars, floating toolbar and its
  * heading menu, table size picker, color picker, code-block shell, image
  * dialog body. Imported by `CoarMarkdownEditor.vue`; the document typography
- * comes from `@cocoar/vue-markdown/styles` (its `markdown-compact.css`).
+ * comes from `@cocoar/vue-markdown/styles`.
  *
- * Only `.coar-compact` defines the `--coar-markdown-editor-*` roles; outside
- * it every `var(role, legacy)` in the components keeps its legacy value.
- * Body-teleported chrome (floating toolbar, table handles) carries the class
- * itself (`compactProfileClasses`), overlays get it from the overlay outlet.
+ * The constant values of the `--coar-markdown-editor-*` roles belong to the
+ * theme (`@cocoar/vue-ui`, `src/theme/compact-packages/markdown-editor.ts`;
+ * `.coar-compact` is that theme as a class). This file holds only what follows
+ * from shared roles, derived wherever a theme sets `--coar-role-derivation`.
+ * Without such a theme every rule here resolves to what the element had
+ * before, and every `var(role, legacy)` in the components keeps its legacy
+ * value.
  *
- * Roles here are literals or read size/shape roles only (no colors), so they
- * may be resolved on the scope. Every role whose value differs on touch is
- * declared again for the mobile combinations below, which also re-resolves
- * the shared roles (`--coar-interactive-row-height` …) in that scope.
+ * The roles are derived on the roots of the package's chrome, so a mobile or
+ * theme boundary around an editor applies, and body-teleported chrome
+ * (floating toolbar, overlays) derives again from the values it was handed
+ * (`useCompactPresentationContext`, overlay outlet). Zero specificity: a
+ * consumer rule on a root wins.
  */
 
-.coar-compact {
-  --coar-markdown-editor-area-padding: 8px 12px;
-  --coar-markdown-editor-source-font-size: 13px;
-  --coar-markdown-editor-source-line-height: 1.5;
-  --coar-markdown-editor-button-radius: var(--coar-control-radius, 6px);
-  --coar-markdown-editor-panel-radius: var(--coar-panel-radius, 8px);
-  --coar-markdown-editor-corner-button-size: 28px;
+:where(
+    .coar-md-root,
+    .coar-md-external-toolbar,
+    .coar-md-floating-toolbar,
+    .coar-md-table-picker,
+    .coar-md-color-picker,
+    .coar-md-code-host
+  ) {
+  --coar-d-markdown-editor-button-radius: var(--coar-role-derivation) var(--coar-control-radius);
+  --coar-markdown-editor-button-radius: var(--coar-d-markdown-editor-button-radius, inherit);
+  --coar-d-markdown-editor-panel-radius: var(--coar-role-derivation) var(--coar-panel-radius);
+  --coar-markdown-editor-panel-radius: var(--coar-d-markdown-editor-panel-radius, inherit);
+
+  /* Writing text is field text (16 px on touch, against the iOS focus zoom),
+     not the viewer's reading size. */
+  --coar-d-markdown-editor-writing-font-size: var(--coar-role-derivation) var(--coar-field-font-size);
+  --coar-markdown-editor-writing-font-size: var(--coar-d-markdown-editor-writing-font-size, inherit);
 
   /* Fixed / external toolbar strip: one interactive row. */
-  --coar-markdown-editor-toolbar-size: var(--coar-interactive-row-height, 36px);
+  --coar-d-markdown-editor-toolbar-size: var(--coar-role-derivation) var(--coar-interactive-row-height);
+  --coar-markdown-editor-toolbar-size: var(--coar-d-markdown-editor-toolbar-size, inherit);
 
-  /* Floating toolbar and its heading menu. */
-  --coar-markdown-editor-float-padding: 4px;
-  --coar-markdown-editor-float-button-size: 28px;
-  --coar-markdown-editor-float-separator-height: 16px;
-  --coar-markdown-editor-menu-row-height: var(--coar-interactive-row-height, 36px);
-  --coar-markdown-editor-menu-item-padding: 0 10px;
-  --coar-markdown-editor-menu-font-size: var(--coar-ui-font-size, 13px);
+  /* Heading menu of the floating toolbar. */
+  --coar-d-markdown-editor-menu-row-height: var(--coar-role-derivation) var(--coar-interactive-row-height);
+  --coar-markdown-editor-menu-row-height: var(--coar-d-markdown-editor-menu-row-height, inherit);
+  --coar-d-markdown-editor-menu-font-size: var(--coar-role-derivation) var(--coar-ui-font-size);
+  --coar-markdown-editor-menu-font-size: var(--coar-d-markdown-editor-menu-font-size, inherit);
 
   /* Small UI text: captions, hints, the code block's Edit button. */
-  --coar-markdown-editor-caption-font-size: var(--coar-caption-font-size, 12px);
-  --coar-markdown-editor-label-font-weight: var(--coar-label-font-weight, 500);
+  --coar-d-markdown-editor-caption-font-size: var(--coar-role-derivation) var(--coar-caption-font-size);
+  --coar-markdown-editor-caption-font-size: var(--coar-d-markdown-editor-caption-font-size, inherit);
+  --coar-d-markdown-editor-label-font-weight: var(--coar-role-derivation) var(--coar-label-font-weight);
+  --coar-markdown-editor-label-font-weight: var(--coar-d-markdown-editor-label-font-weight, inherit);
 
   /* Table size picker: the 11 px hint becomes caption-sized, the size label
      loses its blanket bold. */
-  --coar-markdown-editor-table-picker-gap: 8px;
-  --coar-markdown-editor-table-picker-label-font-size: var(--coar-caption-font-size, 12px);
-  --coar-markdown-editor-table-picker-label-font-weight: var(--coar-label-font-weight, 500);
-  --coar-markdown-editor-table-picker-hint-font-size: var(--coar-caption-font-size, 12px);
-
-  /* Image dialog body: fits a narrow sheet instead of forcing 22 rem. */
-  --coar-markdown-editor-dialog-gap: 12px;
-  --coar-markdown-editor-dialog-min-width: min(22rem, 100%);
+  --coar-d-markdown-editor-table-picker-label-font-size: var(--coar-role-derivation) var(--coar-caption-font-size);
+  --coar-markdown-editor-table-picker-label-font-size: var(--coar-d-markdown-editor-table-picker-label-font-size, inherit);
+  --coar-d-markdown-editor-table-picker-label-font-weight: var(--coar-role-derivation) var(--coar-label-font-weight);
+  --coar-markdown-editor-table-picker-label-font-weight: var(--coar-d-markdown-editor-table-picker-label-font-weight, inherit);
+  --coar-d-markdown-editor-table-picker-hint-font-size: var(--coar-role-derivation) var(--coar-caption-font-size);
+  --coar-markdown-editor-table-picker-hint-font-size: var(--coar-d-markdown-editor-table-picker-hint-font-size, inherit);
 }
 
-.coar-compact.coar-mobile,
-.coar-compact .coar-mobile,
-.coar-mobile .coar-compact {
-  /* 16 px keeps iOS from zooming into the focused source textarea. */
-  --coar-markdown-editor-source-font-size: var(--coar-field-font-size, 16px);
-  --coar-markdown-editor-corner-button-size: 44px;
-  --coar-markdown-editor-toolbar-size: var(--coar-interactive-row-height, 44px);
-  --coar-markdown-editor-float-button-size: 44px;
-  --coar-markdown-editor-float-separator-height: 24px;
-  --coar-markdown-editor-menu-row-height: var(--coar-interactive-row-height, 44px);
-  --coar-markdown-editor-menu-font-size: var(--coar-ui-font-size, 14px);
-  --coar-markdown-editor-caption-font-size: var(--coar-caption-font-size, 12px);
-  --coar-markdown-editor-label-font-weight: var(--coar-label-font-weight, 500);
-  --coar-markdown-editor-table-picker-label-font-size: var(--coar-caption-font-size, 12px);
-  --coar-markdown-editor-table-picker-label-font-weight: var(--coar-label-font-weight, 500);
-  --coar-markdown-editor-table-picker-hint-font-size: var(--coar-caption-font-size, 12px);
-  /* A finger picks from the size grid: 8 × 28 px + gaps still fits 320 px. */
-  --coar-markdown-editor-table-picker-cell-size: 28px;
-  --coar-markdown-editor-table-picker-cell-gap: 4px;
-  --coar-markdown-editor-color-picker-width: 264px;
-  --coar-markdown-editor-color-input-height: 44px;
+/* Selected embed: follows the accent, resolved on the host for local theme
+   scopes. Without a role theme the role stays undefined and the selection
+   keeps its legacy look (see `CoarMarkdownEditor.vue`). */
+:where(.coar-markdown-embed-host) {
+  --coar-d-markdown-editor-selection-outline-color: var(--coar-role-derivation) var(--coar-border-accent-primary);
+  --coar-markdown-editor-selection-outline-color: var(--coar-d-markdown-editor-selection-outline-color, inherit);
 }
 
-/* Writing text is field text (14 px desktop, 16 px mobile against the iOS
-   focus zoom), resolved on the area itself so a local mobile scope applies.
-   More specific than the viewer's `.coar-compact .coar-markdown` reading size. */
-.coar-compact .coar-md-area.coar-markdown {
-  font-size: var(--coar-field-font-size, 14px);
-}
+/* Declarations the default presentation does not make. In the library's layer
+   they fall back to the layers below, so they are no-ops without the value
+   and a host rule always wins. */
+@layer cocoar.components {
+  /* More specific than the viewer's reading size on `.coar-markdown`. */
+  .coar-md-area.coar-markdown {
+    font-size: var(--coar-markdown-editor-writing-font-size, revert-layer);
+  }
 
-/* Same rule in the mobile combinations, with the mobile fallback: without a
-   `--coar-field-font-size` from the shared tokens the area still gets 16 px. */
-.coar-compact.coar-mobile .coar-md-area.coar-markdown,
-.coar-compact .coar-mobile .coar-md-area.coar-markdown,
-.coar-mobile .coar-compact .coar-md-area.coar-markdown {
-  font-size: var(--coar-field-font-size, 16px);
-}
+  /* The placeholder is a viewer render inside the area: it must match the
+     caret line, so it takes the area's size, not the viewer's reading size. */
+  .coar-md-placeholder .coar-markdown {
+    font-size: var(--coar-markdown-editor-writing-font-size, revert-layer);
+  }
 
-/* The placeholder is a viewer render inside the area: it must match the
-   caret line, so it takes the writing size, not the viewer's reading size. */
-.coar-compact .coar-md-placeholder .coar-markdown {
-  font-size: inherit;
-}
+  .coar-md-float-submenu-item {
+    min-height: var(--coar-markdown-editor-menu-row-height, revert-layer);
+  }
 
-/* Selected embed: the legacy outline reads `--coar-border-accent`, which the
-   token set does not define, so it is always #2563eb. Inside the profile it
-   follows the accent; resolved on the host for local theme scopes. */
-.coar-compact .coar-markdown-embed-host {
-  --coar-markdown-editor-selection-outline-color: var(--coar-border-accent-primary, #2563eb);
-}
-
-/* Declarations the legacy styles do not make: only inside the profile. */
-.coar-compact .coar-md-float-submenu-item {
-  min-height: var(--coar-markdown-editor-menu-row-height);
-}
-
-/* Floating toolbar on touch: wrap within the viewport instead of growing
-   one 44 px row past it. Both classes are mirrored onto the teleported
-   toolbar whenever the editor sits in a compact and a mobile scope. */
-.coar-md-floating-toolbar.coar-compact.coar-mobile {
-  flex-wrap: wrap;
-  max-width: calc(100vw - 16px);
+  /* On touch the theme lets the floating toolbar wrap within the viewport
+     instead of growing one 44 px row past it. */
+  .coar-md-floating-toolbar {
+    flex-wrap: var(--coar-markdown-editor-float-wrap, revert-layer);
+    max-width: var(--coar-markdown-editor-float-max-width, revert-layer);
+  }
 }

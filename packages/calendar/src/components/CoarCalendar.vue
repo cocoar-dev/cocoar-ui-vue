@@ -759,7 +759,9 @@ onBeforeUnmount(() => {
 .coar-calendar__body--workWeek {
   /* Time-grid views scroll vertically through the hour range. */
   overflow-y: auto;
-  overflow-x: hidden;
+  /* A theme with a day-column floor (`--coar-calendar-time-grid-day-min-width`)
+     lets the shell scroll sideways too, keeping its sticky header. */
+  overflow-x: var(--coar-calendar-time-grid-overflow-x, hidden);
   /* Focus-driven scrolling lands above the host's bottom chrome. */
   scroll-padding-bottom: var(--coar-calendar-scroll-inset-bottom, 0px);
 }

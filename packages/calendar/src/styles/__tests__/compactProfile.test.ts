@@ -1,21 +1,26 @@
 /// <reference types="vite/client" />
 /**
- * Compact presentation profile (`.coar-compact`, Preview) — token wiring.
+ * Compact presentation (Preview) — token wiring of the package for role themes.
  *
- * The profile must change nothing outside `.coar-compact`. The package
- * guarantees that by construction: every new `--coar-calendar-*` role is
- * declared only in `styles/compact.css` under `.coar-compact`, and every
- * usage wraps the historical value as its fallback —
- * `var(--coar-calendar-event-radius, 3px)` renders `3px` wherever the role
- * is undefined. These tests pin that contract at the source level:
+ * The presentation is a set of VALUES, not a class: a role theme (`.coar-compact`
+ * or any theme class carrying the same values) sets the constants and activates
+ * the derivation with `--coar-role-derivation`. Without one nothing changes. The
+ * package guarantees that by construction, and these tests pin it at the source
+ * level:
  *
- *   - compact.css declares nothing outside `.coar-compact`;
+ *   - no stylesheet rule, component or script of the package keys on
+ *     `.coar-compact`;
+ *   - `styles/compact.css` only derives: every role has a private
+ *     `--coar-d-calendar-*` value gated by `var(--coar-role-derivation)` and
+ *     falls back to `inherit`, at zero specificity;
+ *   - every constant of the presentation is in the value module of vue-ui
+ *     (`src/theme/compact-packages/calendar.ts`), none in the stylesheet;
  *   - each role is consumed only with a fallback, and the fallbacks are
- *     exactly the values the components used before the profile existed
+ *     exactly the values the components used before the roles existed
  *     (the table below; changing one changes the default look);
  *   - every role a component reads is declared (no dead / misspelt role);
- *   - every dark-mode value of `tokens-dark.css` is re-declared in the
- *     profile, so package dark values never leak into it;
+ *   - every dark-mode value of `tokens-dark.css` reads the derived value
+ *     first, so package dark values never leak into a role theme;
  *   - consumer-owned colours (`meta.color` → `--event-*`, band colours)
  *     are never touched.
  *
@@ -45,6 +50,18 @@ const stylesDir = decodeURIComponent(import.meta.url)
 const readStyle = (name: string): string => fs.readFileSync(`${stylesDir}/${name}`, 'utf8');
 const compactCss = readStyle('compact.css');
 const darkCss = readStyle('tokens-dark.css');
+// The constants of the presentation live in vue-ui (another package root: read, not imported).
+const valueModule = fs.readFileSync(
+  `${stylesDir}/../../../ui/src/theme/compact-packages/calendar.ts`,
+  'utf8',
+);
+const constants = new Map(
+  [
+    ...valueModule
+      .slice(valueModule.indexOf('COMPACT_CALENDAR_TOKENS'))
+      .matchAll(/'(--[a-z0-9-]+)':\s*'([^']*)'/g),
+  ].map((m) => [m[1], m[2]]),
+);
 const indexTs = Object.values(
   import.meta.glob<string>('../../index.ts', { query: '?raw', import: 'default', eager: true }),
 )[0];
@@ -52,6 +69,14 @@ const indexTs = Object.values(
 const sources = Object.entries(componentSources).filter(
   ([path]) => !/__tests__|\.test\.ts$/.test(path),
 );
+
+/**
+ * A role read without a fallback. Allowed only inside a private `--coar-i-*`
+ * property, whose own consumer carries the fallback.
+ */
+const BARE = '(bare, in a private --coar-i-* property)';
+/** The layer below: the rule declares nothing where the role is undefined. */
+const NOTHING = 'revert-layer';
 
 /** The historical value(s) each new role falls back to, whitespace-normalised. */
 const FALLBACKS: Record<string, string[]> = {
@@ -108,7 +133,7 @@ const FALLBACKS: Record<string, string[]> = {
   '--coar-calendar-header-cell-padding': ['8px 12px'],
   '--coar-calendar-header-gap': ['var(--coar-spacing-m)'],
   '--coar-calendar-header-padding': ['var(--coar-spacing-s) var(--coar-spacing-m)'],
-  '--coar-calendar-heading-font-weight': ['700'],
+  '--coar-calendar-heading-font-weight': ['700', NOTHING],
   '--coar-calendar-hover-bg': [
     'var(--coar-background-neutral-tertiary, #f3f4f6)',
     'var(--coar-surface-subtle, #f3f4f6)',
@@ -147,6 +172,15 @@ const FALLBACKS: Record<string, string[]> = {
   ],
   '--coar-calendar-week-day-min-height': ['48px'],
   '--coar-calendar-weekday-cell-padding': ['8px 12px'],
+  '--coar-calendar-other-month-color': ['var(--coar-text-neutral-primary)'],
+  '--coar-calendar-time-grid-overflow-x': ['hidden'],
+  '--coar-calendar-time-grid-day-min-width': [BARE],
+  '--coar-calendar-resize-max-size': [NOTHING],
+  '--coar-calendar-continuous-weekday-bg': [BARE],
+  '--coar-calendar-continuous-weekday-weekend-bg': ['var(--coar-calendar-continuous-weekday-bg)'],
+  '--coar-calendar-continuous-weekday-weekend-color': [
+    'color-mix(in srgb, var(--coar-text-subtle, #6c7280) 58%, transparent)',
+  ],
 };
 
 /** Calendar tokens that are host / inline contracts, not profile roles. */
@@ -166,7 +200,9 @@ function stripComments(css: string): string {
 
 function declaredIn(css: string): Set<string> {
   return new Set(
-    [...stripComments(css).matchAll(/(--coar-calendar-[a-z0-9-]+)\s*:/g)].map((m) => m[1]),
+    [...stripComments(css).matchAll(/(?<![a-z0-9-])(--coar-calendar-[a-z0-9-]+)\s*:/g)].map(
+      (m) => m[1],
+    ),
   );
 }
 
@@ -187,13 +223,18 @@ function splitSelectors(selector: string): string[] {
   return out.filter(Boolean);
 }
 
-/** `var(<role>, <fallback>)` usages with balanced-paren fallback, whitespace-normalised. */
+/**
+ * `var(<role>, <fallback>)` usages with balanced-paren fallback, whitespace-normalised.
+ * A usage without fallback is `BARE` inside a private `--coar-i-*` declaration, else null.
+ */
 function usagesOf(role: string, text: string): Array<string | null> {
   const out: Array<string | null> = [];
   const re = new RegExp(`var\\(\\s*${role.replace(/-/g, '\\-')}\\s*([,)])`, 'g');
   for (const match of text.matchAll(re)) {
     if (match[1] === ')') {
-      out.push(null);
+      const before = text.slice(0, match.index!);
+      const declaration = before.slice(Math.max(before.lastIndexOf(';'), before.lastIndexOf('{')) + 1);
+      out.push(/^\s*--coar-i-[a-z0-9-]+\s*:/.test(declaration) ? BARE : null);
       continue;
     }
     let depth = 1;
@@ -208,38 +249,94 @@ function usagesOf(role: string, text: string): Array<string | null> {
   return out;
 }
 
-const compactDeclared = declaredIn(compactCss);
+const derivedDeclared = declaredIn(compactCss);
 const darkDeclared = declaredIn(darkCss);
-const newRoles = [...compactDeclared].filter((role) => !darkDeclared.has(role));
+const calendarConstants = [...constants.keys()].filter((role) => role.startsWith('--coar-calendar-'));
+const declared = new Set([...derivedDeclared, ...calendarConstants]);
+const newRoles = [...declared].filter((role) => !darkDeclared.has(role));
 
-describe('compact profile — scoping', () => {
-  it('every rule of compact.css is scoped by .coar-compact', () => {
+/** `--coar-calendar-bg` / `--coar-text-base` → their private derived name. */
+const derivedNameOf = (token: string): string =>
+  `--coar-d-calendar-${token.replace(/^--coar-(calendar-)?/, '')}`;
+
+/** Declarations of a stylesheet: name → value, whitespace-normalised. */
+function declarationsOf(css: string): Array<[string, string]> {
+  return [...stripComments(css).matchAll(/(?<=^|[;{])\s*(--[a-z0-9-]+)\s*:([^;{}]*);/g)].map(
+    (m) => [m[1], m[2].replace(/\s+/g, ' ').trim()],
+  );
+}
+
+describe('compact presentation — values, not a class', () => {
+  it('nothing in the package keys on .coar-compact', () => {
+    expect(stripComments(compactCss)).not.toContain('coar-compact');
+    expect(stripComments(darkCss)).not.toContain('coar-compact');
+    const keyed = sources.filter(([, text]) => text.includes('coar-compact')).map(([path]) => path);
+    expect(keyed).toEqual([]);
+  });
+
+  it('every rule of compact.css has zero specificity', () => {
     const css = stripComments(compactCss);
-    const unscoped: string[] = [];
+    const specific: string[] = [];
     let rules = 0;
     for (const match of css.matchAll(/([^{}]+)\{[^{}]*\}/g)) {
       rules += 1;
       for (const selector of splitSelectors(match[1])) {
-        if (!selector.startsWith('.coar-compact')) unscoped.push(selector);
+        // `:where(…)`, optionally narrowed by `:not(:where(…) *)` (outermost root only).
+        if (!/^:where\([^()]*\)(:not\(\s*:where\([^()]*\)\s*\*\s*\))?$/.test(selector)) {
+          specific.push(selector);
+        }
       }
     }
     expect(rules).toBeGreaterThan(0);
-    expect(unscoped).toEqual([]);
+    expect(specific).toEqual([]);
   });
 
-  it('is imported by the package entry after the dark tokens', () => {
-    const dark = indexTs.indexOf("import './styles/tokens-dark.css'");
-    const compact = indexTs.indexOf("import './styles/compact.css'");
-    expect(dark).toBeGreaterThanOrEqual(0);
-    expect(compact).toBeGreaterThan(dark);
+  it('compact.css only derives: a gated private value, and the role falling back to inherit', () => {
+    const declarations = declarationsOf(compactCss);
+    const privateValues = new Map(declarations.filter(([name]) => name.startsWith('--coar-d-')));
+    const roles = declarations.filter(([name]) => !name.startsWith('--coar-d-'));
+    expect(roles.length).toBeGreaterThan(0);
+    expect(privateValues.size).toBe(roles.length);
+    for (const [name, value] of roles) {
+      const derivedName = derivedNameOf(name);
+      expect(value, name).toBe(`var(${derivedName}, inherit)`);
+      // Invalid, hence unset, unless a theme activates the derivation.
+      expect(privateValues.get(derivedName), derivedName).toMatch(/^var\(--coar-role-derivation\) \S/);
+    }
   });
 
-  it('re-declares every package dark value so none leaks into the profile', () => {
-    const missing = [...darkDeclared].filter((role) => !compactDeclared.has(role));
-    expect(missing).toEqual([]);
+  it('the constants are in the value module, the derivations in the stylesheet', () => {
+    expect(calendarConstants.length).toBe(constants.size);
+    expect(calendarConstants.filter((role) => derivedDeclared.has(role))).toEqual([]);
+    for (const [role, value] of constants) expect(value, role).not.toContain('var(');
+    // A formula of other tokens is resolved where it is declared: it must not be a constant.
+    for (const [name, value] of declarationsOf(compactCss)) {
+      if (name.startsWith('--coar-d-')) expect(value, name).toMatch(/var\(--(?!coar-role-derivation)/);
+    }
+  });
+
+  it('is imported by the package entry with the dark tokens', () => {
+    expect(indexTs).toContain("import './styles/tokens-dark.css'");
+    expect(indexTs).toContain("import './styles/compact.css'");
+  });
+
+  it('every package dark value reads the derived value first, so none leaks into a role theme', () => {
+    const dark = declarationsOf(darkCss);
+    expect(dark.length).toBeGreaterThan(0);
+    const derived = new Set(declarationsOf(compactCss).map(([name]) => name));
+    for (const [name, value] of dark) {
+      const derivedName = derivedNameOf(name);
+      // Without a role theme the private value is undefined: the literal applies, as before.
+      expect(value, name).toMatch(new RegExp(`^var\\(${derivedName}, #[0-9a-f]{6,8}\\)$`));
+      expect(derived.has(derivedName), derivedName).toBe(true);
+    }
     // The package-only text names are derived too.
-    expect(stripComments(compactCss)).toMatch(/--coar-text-base:\s*var\(--coar-text-neutral-primary/);
-    expect(stripComments(compactCss)).toMatch(/--coar-text-subtle:\s*var\(--coar-text-neutral-tertiary/);
+    expect(stripComments(compactCss)).toMatch(
+      /--coar-d-calendar-text-base:\s*var\(--coar-role-derivation\) var\(--coar-text-neutral-primary/,
+    );
+    expect(stripComments(compactCss)).toMatch(
+      /--coar-d-calendar-text-subtle:\s*var\(--coar-role-derivation\) var\(--coar-text-neutral-tertiary/,
+    );
   });
 
   it('never redefines consumer-owned colours', () => {
@@ -252,14 +349,14 @@ describe('compact profile — scoping', () => {
     // (for example `.day--other:not(...)`).
     const foreign = [...css.matchAll(/(?:^|[;{])\s*(--[a-z0-9-]+)\s*:/g)]
       .map((m) => m[1])
-      .filter((name) => !name.startsWith('--coar-calendar-'))
+      .filter((name) => !name.startsWith('--coar-calendar-') && !name.startsWith('--coar-d-calendar-'))
       .filter((name) => name !== '--coar-text-base' && name !== '--coar-text-subtle');
     expect(foreign).toEqual([]);
   });
 });
 
-describe('compact profile — roles and fallbacks', () => {
-  it('the fallback table covers exactly the roles compact.css introduces', () => {
+describe('compact presentation — roles and fallbacks', () => {
+  it('the fallback table covers exactly the roles the presentation introduces', () => {
     expect(newRoles.sort()).toEqual(Object.keys(FALLBACKS).sort());
   });
 
@@ -269,7 +366,7 @@ describe('compact profile — roles and fallbacks', () => {
       const found = new Set<string>();
       for (const [path, text] of sources) {
         for (const fallback of usagesOf(role, text)) {
-          // A bare `var(--role)` would render nothing outside the profile.
+          // A bare `var(--role)` would render nothing without a role theme.
           expect(fallback, `${path}: bare var(${role})`).not.toBeNull();
           found.add(fallback!);
         }
@@ -283,7 +380,7 @@ describe('compact profile — roles and fallbacks', () => {
     for (const [, text] of sources) {
       for (const match of text.matchAll(/var\(\s*(--coar-calendar-[a-z0-9-]+)/g)) {
         const role = match[1];
-        if (!compactDeclared.has(role) && !HOST_CONTRACTS.has(role)) undeclared.add(role);
+        if (!declared.has(role) && !HOST_CONTRACTS.has(role)) undeclared.add(role);
       }
     }
     expect([...undeclared]).toEqual([]);

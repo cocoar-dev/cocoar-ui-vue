@@ -133,10 +133,12 @@ const hasActions = computed(() => !!slots.actions);
     box-shadow var(--coar-duration-fast) var(--coar-ease-out);
 }
 
-/* Only the standard input family opts in; picker/select frames retain their sizing. */
-.coar-compact .coar-input-frame {
-  /* A shared control height includes its border, independent of an app reset. */
-  box-sizing: border-box;
+/* A theme whose control height includes the border sets the box model, independent
+   of an app reset. Without the value this declares nothing. */
+@layer cocoar.components {
+  .coar-input-frame {
+    box-sizing: var(--coar-control-box-sizing, revert-layer);
+  }
 }
 
 .coar-input-frame--mobile-sizing {

@@ -1,11 +1,12 @@
 /*
- * Page Builder — roles of the opt-in compact presentation (`.coar-compact`).
+ * Page Builder — roles of a role theme (the Compact values; `.coar-compact` is
+ * one way to apply them, a theme class carrying the same values is another).
  *
  * Only the AUTHORING CHROME consumes these roles (panes, outline, library,
  * inspector, toolbars, canvas selection chrome, code dialogs). Every consumer
- * writes `var(--coar-page-builder-…, <legacy value>)`, so outside
- * `.coar-compact` nothing is defined here and every surface keeps its exact
- * previous value — desktop and `.coar-mobile` alike.
+ * writes `var(--coar-page-builder-…, <legacy value>)`, so without a role theme
+ * nothing is defined and every surface keeps its exact previous value —
+ * desktop and `.coar-mobile` alike.
  *
  * Not chrome, never wired to these roles:
  *  - the renderer and every element renderer (authored page content);
@@ -13,14 +14,23 @@
  *  - saved layout (`node.style`, styleMapping.ts, nodeDefaults.ts), canvas
  *    geometry (node padding, drop-zone sizes) and zoom.
  *
- * The roles are set on each chrome ROOT rather than on `.coar-compact` itself:
- * a derived custom property is resolved where it is declared, so declaring it
- * on the root makes it follow a `.coar-mobile` (or another shared-role scope)
- * that sits between `.coar-compact` and the builder. Dialogs are teleported, so
- * their own roots are listed too; they receive `.coar-compact` through the
- * overlay context of @cocoar/vue-ui.
+ * Two kinds of role:
+ *  - constants are values of the theme itself: COMPACT_PAGE_BUILDER_TOKENS in
+ *    @cocoar/vue-ui (src/theme/compact-packages/page-builder.ts);
+ *  - what follows from shared tokens is derived below. `--coar-d-…` holds the
+ *    derived value and is invalid unless the theme activates derivation
+ *    (`--coar-role-derivation`); the role then falls back to `inherit`, which
+ *    is the same as not declaring it.
+ *
+ * The derivation sits on each chrome ROOT rather than on the theme scope: a
+ * derived custom property is resolved where it is declared, so declaring it on
+ * the root makes it follow a `.coar-mobile` (or another shared-role scope) that
+ * sits between the theme scope and the builder. Dialogs are teleported, so
+ * their own roots are listed too; they receive the theme's values through the
+ * overlay context of @cocoar/vue-ui. `:where` keeps the specificity at zero: a
+ * consumer rule on a root wins.
  */
-:is(.coar-compact, .coar-compact *):is(
+:where(
   .pb-builder,
   .pb-dnd-ghost,
   .pb-props,
@@ -30,185 +40,200 @@
   .pb-page-root-code-dialog
 ) {
   /* ── Typography: UI text, small labels, meta text, badges ── */
-  --coar-page-builder-font-size: var(--coar-ui-font-size, 13px);
+  --coar-d-page-builder-font-size: var(--coar-role-derivation) var(--coar-ui-font-size, 13px);
+  --coar-page-builder-font-size: var(--coar-d-page-builder-font-size, inherit);
   /* Consumed only by the line-height rule below, never with a component fallback. */
-  --coar-page-builder-line-height: var(--coar-ui-line-height, 1.4);
-  --coar-page-builder-label-font-size: var(--coar-caption-font-size, 12px);
-  --coar-page-builder-label-font-weight: var(--coar-label-font-weight, 500);
+  --coar-d-page-builder-line-height: var(--coar-role-derivation) var(--coar-ui-line-height, 1.4);
+  --coar-page-builder-line-height: var(--coar-d-page-builder-line-height, inherit);
+  --coar-d-page-builder-label-font-size: var(--coar-role-derivation) var(--coar-caption-font-size, 12px);
+  --coar-page-builder-label-font-size: var(--coar-d-page-builder-label-font-size, inherit);
+  --coar-d-page-builder-label-font-weight: var(--coar-role-derivation) var(--coar-label-font-weight, 500);
+  --coar-page-builder-label-font-weight: var(--coar-d-page-builder-label-font-weight, inherit);
   /* Legacy 11px meta text (hints, small actions, toolbar labels) is raised to
      the shared caption size: 11px was below the legibility floor of the profile. */
-  --coar-page-builder-meta-font-size: var(--coar-caption-font-size, 12px);
+  --coar-d-page-builder-meta-font-size: var(--coar-role-derivation) var(--coar-caption-font-size, 12px);
+  --coar-page-builder-meta-font-size: var(--coar-d-page-builder-meta-font-size, inherit);
   /* Legacy 9–10px chips and type tabs: one step below caption, never below 11px. */
-  --coar-page-builder-badge-font-size: max(11px, calc(var(--coar-caption-font-size, 12px) - 1px));
-  --coar-page-builder-code-font-size: var(--coar-caption-font-size, 12px);
-  --coar-page-builder-field-font-size: var(--coar-field-font-size, 14px);
-  --coar-page-builder-panel-heading-font-size: 16px;
-  /* Emphasis without blanket bold: 600 only where hierarchy needs it. */
-  --coar-page-builder-emphasis-font-weight: 600;
+  --coar-d-page-builder-badge-font-size: var(--coar-role-derivation) max(11px, calc(var(--coar-caption-font-size, 12px) - 1px));
+  --coar-page-builder-badge-font-size: var(--coar-d-page-builder-badge-font-size, inherit);
+  --coar-d-page-builder-code-font-size: var(--coar-role-derivation) var(--coar-caption-font-size, 12px);
+  --coar-page-builder-code-font-size: var(--coar-d-page-builder-code-font-size, inherit);
+  --coar-d-page-builder-field-font-size: var(--coar-role-derivation) var(--coar-field-font-size, 14px);
+  --coar-page-builder-field-font-size: var(--coar-d-page-builder-field-font-size, inherit);
 
   /* ── Geometry of the chrome (never of the page or the canvas content) ── */
-  --coar-page-builder-header-height: max(40px, var(--coar-interactive-row-height, 36px));
-  --coar-page-builder-row-height: var(--coar-interactive-row-height, 36px);
-  --coar-page-builder-rail-button-size: calc(var(--coar-interactive-row-height, 36px) - 4px);
-  --coar-page-builder-icon-button-size: calc(var(--coar-interactive-row-height, 36px) - 8px);
-  --coar-page-builder-inline-button-size: calc(var(--coar-interactive-row-height, 36px) - 12px);
-  --coar-page-builder-panel-padding: var(--coar-panel-padding, 16px);
-  --coar-page-builder-content-gap: var(--coar-content-gap, 8px);
-  --coar-page-builder-control-radius: var(--coar-control-radius, 6px);
-  --coar-page-builder-panel-radius: var(--coar-panel-radius, 8px);
+  --coar-d-page-builder-header-height: var(--coar-role-derivation) max(40px, var(--coar-interactive-row-height, 36px));
+  --coar-page-builder-header-height: var(--coar-d-page-builder-header-height, inherit);
+  --coar-d-page-builder-row-height: var(--coar-role-derivation) var(--coar-interactive-row-height, 36px);
+  --coar-page-builder-row-height: var(--coar-d-page-builder-row-height, inherit);
+  --coar-d-page-builder-rail-button-size: var(--coar-role-derivation) calc(var(--coar-interactive-row-height, 36px) - 4px);
+  --coar-page-builder-rail-button-size: var(--coar-d-page-builder-rail-button-size, inherit);
+  --coar-d-page-builder-icon-button-size: var(--coar-role-derivation) calc(var(--coar-interactive-row-height, 36px) - 8px);
+  --coar-page-builder-icon-button-size: var(--coar-d-page-builder-icon-button-size, inherit);
+  --coar-d-page-builder-inline-button-size: var(--coar-role-derivation) calc(var(--coar-interactive-row-height, 36px) - 12px);
+  --coar-page-builder-inline-button-size: var(--coar-d-page-builder-inline-button-size, inherit);
+  --coar-d-page-builder-panel-padding: var(--coar-role-derivation) var(--coar-panel-padding, 16px);
+  --coar-page-builder-panel-padding: var(--coar-d-page-builder-panel-padding, inherit);
+  --coar-d-page-builder-content-gap: var(--coar-role-derivation) var(--coar-content-gap, 8px);
+  --coar-page-builder-content-gap: var(--coar-d-page-builder-content-gap, inherit);
+  --coar-d-page-builder-control-radius: var(--coar-role-derivation) var(--coar-control-radius, 6px);
+  --coar-page-builder-control-radius: var(--coar-d-page-builder-control-radius, inherit);
+  --coar-d-page-builder-panel-radius: var(--coar-role-derivation) var(--coar-panel-radius, 8px);
+  --coar-page-builder-panel-radius: var(--coar-d-page-builder-panel-radius, inherit);
 
   /* ── Colours: shared semantic roles instead of literal values ── */
-  --coar-page-builder-on-accent: var(--coar-text-on-bold, #fff);
-  --coar-page-builder-input-background: var(--coar-surface-input, var(--coar-background-neutral-primary, #fff));
-  --coar-page-builder-overlay-shadow: var(--coar-shadow-m, 0 8px 24px rgba(0, 0, 0, 0.12));
-  --coar-page-builder-error-text: var(--coar-text-semantic-error-bold, #991b1b);
-  --coar-page-builder-hatch: color-mix(in oklab, var(--coar-text-neutral-secondary, #5a5a60) 8%, transparent);
-  --coar-page-builder-dashed-border: var(--coar-border-neutral, #e2e2e6);
-  --coar-page-builder-preview-backdrop: var(--coar-background-neutral-secondary, #f7f7f9);
-  /* Category identity is not the host brand. Keep four independently
-     customizable hues, with readable dark variants instead of dim light inks. */
-  --coar-page-builder-palette-container-color: light-dark(#52749a, #8caacc);
-  --coar-page-builder-palette-element-color: light-dark(#5f6b72, #9aa8b1);
-  --coar-page-builder-palette-composition-color: light-dark(#806b52, #baa083);
-  --coar-page-builder-palette-field-color: light-dark(#725f88, #b29bcb);
+  --coar-d-page-builder-on-accent: var(--coar-role-derivation) var(--coar-text-on-bold, #fff);
+  --coar-page-builder-on-accent: var(--coar-d-page-builder-on-accent, inherit);
+  --coar-d-page-builder-input-background: var(--coar-role-derivation) var(--coar-surface-input, var(--coar-background-neutral-primary, #fff));
+  --coar-page-builder-input-background: var(--coar-d-page-builder-input-background, inherit);
+  --coar-d-page-builder-overlay-shadow: var(--coar-role-derivation) var(--coar-shadow-m, 0 8px 24px rgba(0, 0, 0, 0.12));
+  --coar-page-builder-overlay-shadow: var(--coar-d-page-builder-overlay-shadow, inherit);
+  --coar-d-page-builder-error-text: var(--coar-role-derivation) var(--coar-text-semantic-error-bold, #991b1b);
+  --coar-page-builder-error-text: var(--coar-d-page-builder-error-text, inherit);
+  --coar-d-page-builder-hatch: var(--coar-role-derivation) color-mix(in oklab, var(--coar-text-neutral-secondary, #5a5a60) 8%, transparent);
+  --coar-page-builder-hatch: var(--coar-d-page-builder-hatch, inherit);
+  --coar-d-page-builder-dashed-border: var(--coar-role-derivation) var(--coar-border-neutral, #e2e2e6);
+  --coar-page-builder-dashed-border: var(--coar-d-page-builder-dashed-border, inherit);
+  --coar-d-page-builder-preview-backdrop: var(--coar-role-derivation) var(--coar-background-neutral-secondary, #f7f7f9);
+  --coar-page-builder-preview-backdrop: var(--coar-d-page-builder-preview-backdrop, inherit);
+
+  /* Text of the native selects of the chrome; the default leaves it to the user agent. */
+  --coar-d-page-builder-select-color: var(--coar-role-derivation) var(--coar-text-neutral-primary, #202124);
+  --coar-page-builder-select-color: var(--coar-d-page-builder-select-color, inherit);
 
   /* Canvas selection chrome: neutral structure from the shared border roles,
      drop targets from the host accent (legacy: a fixed blue). */
-  --coar-page-builder-canvas-border: var(--coar-border-neutral-tertiary, rgba(80, 86, 96, 0.16));
-  --coar-page-builder-canvas-border-hover: var(--coar-border-neutral, rgba(80, 86, 96, 0.34));
+  --coar-d-page-builder-canvas-border: var(--coar-role-derivation) var(--coar-border-neutral-tertiary, rgba(80, 86, 96, 0.16));
+  --coar-page-builder-canvas-border: var(--coar-d-page-builder-canvas-border, inherit);
+  --coar-d-page-builder-canvas-border-hover: var(--coar-role-derivation) var(--coar-border-neutral, rgba(80, 86, 96, 0.34));
+  --coar-page-builder-canvas-border-hover: var(--coar-d-page-builder-canvas-border-hover, inherit);
   /* Also labels selected nodes: use readable ink, not a fixed dark lightness. */
-  --coar-page-builder-canvas-selection-color: var(--coar-text-accent-primary, #315f91);
-  --coar-page-builder-canvas-tab-fg: var(--coar-text-neutral-secondary, #666b73);
-  --coar-page-builder-canvas-tab-bg: var(--coar-background-neutral-primary, #fff);
-  --coar-page-builder-canvas-tab-border: var(--coar-border-neutral, rgba(80, 86, 96, 0.24));
+  --coar-d-page-builder-canvas-selection-color: var(--coar-role-derivation) var(--coar-text-accent-primary, #315f91);
+  --coar-page-builder-canvas-selection-color: var(--coar-d-page-builder-canvas-selection-color, inherit);
+  --coar-d-page-builder-canvas-tab-fg: var(--coar-role-derivation) var(--coar-text-neutral-secondary, #666b73);
+  --coar-page-builder-canvas-tab-fg: var(--coar-d-page-builder-canvas-tab-fg, inherit);
+  --coar-d-page-builder-canvas-tab-bg: var(--coar-role-derivation) var(--coar-background-neutral-primary, #fff);
+  --coar-page-builder-canvas-tab-bg: var(--coar-d-page-builder-canvas-tab-bg, inherit);
+  --coar-d-page-builder-canvas-tab-border: var(--coar-role-derivation) var(--coar-border-neutral, rgba(80, 86, 96, 0.24));
+  --coar-page-builder-canvas-tab-border: var(--coar-d-page-builder-canvas-tab-border, inherit);
   /* Only used to derive the drop-zone and blocked roles below. */
-  --coar-page-builder-drop-accent: var(--coar-background-accent-primary, #1666cc);
-  --coar-page-builder-error-accent: var(--coar-text-semantic-error-bold, #c0392b);
-  --coar-page-builder-drop-zone-bg: color-mix(in oklab, var(--coar-page-builder-drop-accent) 12%, transparent);
-  --coar-page-builder-drop-zone-border: color-mix(in oklab, var(--coar-page-builder-drop-accent) 45%, transparent);
-  --coar-page-builder-drop-zone-active-bg: color-mix(in oklab, var(--coar-page-builder-drop-accent) 20%, transparent);
-  --coar-page-builder-drop-zone-active-border: color-mix(in oklab, var(--coar-page-builder-drop-accent) 70%, transparent);
-  --coar-page-builder-drop-zone-over-bg: color-mix(in oklab, var(--coar-page-builder-drop-accent) 35%, transparent);
-  --coar-page-builder-drop-zone-over-border: color-mix(in oklab, var(--coar-page-builder-drop-accent) 95%, transparent);
-  --coar-page-builder-drop-zone-over-inset: color-mix(in oklab, var(--coar-page-builder-drop-accent) 60%, transparent);
-  --coar-page-builder-drop-zone-idle-bg: color-mix(in oklab, var(--coar-text-neutral-secondary, #5a5a60) 4%, transparent);
-  --coar-page-builder-drop-zone-idle-border: var(--coar-border-neutral, #e2e2e6);
-  --coar-page-builder-drop-zone-disabled-bg: color-mix(in oklab, var(--coar-text-neutral-secondary, #5a5a60) 8%, transparent);
-  --coar-page-builder-drop-zone-disabled-border: var(--coar-border-neutral, #e2e2e6);
-  --coar-page-builder-blocked-border: color-mix(in oklab, var(--coar-page-builder-error-accent) 50%, transparent);
-  --coar-page-builder-blocked-tab-border: color-mix(in oklab, var(--coar-page-builder-error-accent) 55%, transparent);
-  --coar-page-builder-blocked-hatch: color-mix(in oklab, var(--coar-page-builder-error-accent) 4%, transparent);
+  --coar-d-page-builder-drop-accent: var(--coar-role-derivation) var(--coar-background-accent-primary, #1666cc);
+  --coar-page-builder-drop-accent: var(--coar-d-page-builder-drop-accent, inherit);
+  --coar-d-page-builder-error-accent: var(--coar-role-derivation) var(--coar-text-semantic-error-bold, #c0392b);
+  --coar-page-builder-error-accent: var(--coar-d-page-builder-error-accent, inherit);
+  --coar-d-page-builder-drop-zone-bg: var(--coar-role-derivation) color-mix(in oklab, var(--coar-page-builder-drop-accent) 12%, transparent);
+  --coar-page-builder-drop-zone-bg: var(--coar-d-page-builder-drop-zone-bg, inherit);
+  --coar-d-page-builder-drop-zone-border: var(--coar-role-derivation) color-mix(in oklab, var(--coar-page-builder-drop-accent) 45%, transparent);
+  --coar-page-builder-drop-zone-border: var(--coar-d-page-builder-drop-zone-border, inherit);
+  --coar-d-page-builder-drop-zone-active-bg: var(--coar-role-derivation) color-mix(in oklab, var(--coar-page-builder-drop-accent) 20%, transparent);
+  --coar-page-builder-drop-zone-active-bg: var(--coar-d-page-builder-drop-zone-active-bg, inherit);
+  --coar-d-page-builder-drop-zone-active-border: var(--coar-role-derivation) color-mix(in oklab, var(--coar-page-builder-drop-accent) 70%, transparent);
+  --coar-page-builder-drop-zone-active-border: var(--coar-d-page-builder-drop-zone-active-border, inherit);
+  --coar-d-page-builder-drop-zone-over-bg: var(--coar-role-derivation) color-mix(in oklab, var(--coar-page-builder-drop-accent) 35%, transparent);
+  --coar-page-builder-drop-zone-over-bg: var(--coar-d-page-builder-drop-zone-over-bg, inherit);
+  --coar-d-page-builder-drop-zone-over-border: var(--coar-role-derivation) color-mix(in oklab, var(--coar-page-builder-drop-accent) 95%, transparent);
+  --coar-page-builder-drop-zone-over-border: var(--coar-d-page-builder-drop-zone-over-border, inherit);
+  --coar-d-page-builder-drop-zone-over-inset: var(--coar-role-derivation) color-mix(in oklab, var(--coar-page-builder-drop-accent) 60%, transparent);
+  --coar-page-builder-drop-zone-over-inset: var(--coar-d-page-builder-drop-zone-over-inset, inherit);
+  --coar-d-page-builder-drop-zone-idle-bg: var(--coar-role-derivation) color-mix(in oklab, var(--coar-text-neutral-secondary, #5a5a60) 4%, transparent);
+  --coar-page-builder-drop-zone-idle-bg: var(--coar-d-page-builder-drop-zone-idle-bg, inherit);
+  --coar-d-page-builder-drop-zone-idle-border: var(--coar-role-derivation) var(--coar-border-neutral, #e2e2e6);
+  --coar-page-builder-drop-zone-idle-border: var(--coar-d-page-builder-drop-zone-idle-border, inherit);
+  --coar-d-page-builder-drop-zone-disabled-bg: var(--coar-role-derivation) color-mix(in oklab, var(--coar-text-neutral-secondary, #5a5a60) 8%, transparent);
+  --coar-page-builder-drop-zone-disabled-bg: var(--coar-d-page-builder-drop-zone-disabled-bg, inherit);
+  --coar-d-page-builder-drop-zone-disabled-border: var(--coar-role-derivation) var(--coar-border-neutral, #e2e2e6);
+  --coar-page-builder-drop-zone-disabled-border: var(--coar-d-page-builder-drop-zone-disabled-border, inherit);
+  --coar-d-page-builder-blocked-border: var(--coar-role-derivation) color-mix(in oklab, var(--coar-page-builder-error-accent) 50%, transparent);
+  --coar-page-builder-blocked-border: var(--coar-d-page-builder-blocked-border, inherit);
+  --coar-d-page-builder-blocked-tab-border: var(--coar-role-derivation) color-mix(in oklab, var(--coar-page-builder-error-accent) 55%, transparent);
+  --coar-page-builder-blocked-tab-border: var(--coar-d-page-builder-blocked-tab-border, inherit);
+  --coar-d-page-builder-blocked-hatch: var(--coar-role-derivation) color-mix(in oklab, var(--coar-page-builder-error-accent) 4%, transparent);
+  --coar-page-builder-blocked-hatch: var(--coar-d-page-builder-blocked-hatch, inherit);
 }
 
 /*
- * UI line height for the chrome containers only. Declared here and not in the
- * components: in the default presentation these containers inherit the host's
- * line height, which no `var()` fallback can express. The centre pane is left
- * out on purpose — it contains the authored page.
+ * Declarations the default presentation does not make at all. A `var()`
+ * fallback in the components would override the host there, so they sit in the
+ * library's cascade layer and fall back to `revert-layer`: without the role
+ * the declaration is as good as absent.
  */
-:is(.coar-compact, .coar-compact *) :is(
-  .pb-builder__pane--tools,
-  .pb-builder__pane--inspector,
-  .pb-builder__json-toolbar,
-  .pb-canvas__toolbar,
-  .pb-builder__preview-toolbar,
-  .pb-page-code,
-  .pb-translations,
-  .pb-compositions
-),
-:is(.coar-compact, .coar-compact *):is(
-  .pb-expression-dialog,
-  .pb-element-code-dialog,
-  .pb-page-root-code-dialog
-) {
-  line-height: var(--coar-page-builder-line-height);
-}
+@layer cocoar.components {
+  /*
+   * UI line height for the chrome containers only: in the default presentation
+   * they inherit the host's. The centre pane is left out on purpose — it
+   * contains the authored page.
+   */
+  :is(
+    .pb-builder__pane--tools,
+    .pb-builder__pane--inspector,
+    .pb-builder__json-toolbar,
+    .pb-canvas__toolbar,
+    .pb-builder__preview-toolbar,
+    .pb-page-code,
+    .pb-translations,
+    .pb-compositions,
+    .pb-expression-dialog,
+    .pb-element-code-dialog,
+    .pb-page-root-code-dialog
+  ) {
+    line-height: var(--coar-page-builder-line-height, revert-layer);
+  }
 
-/*
- * Authored content keeps its own typography. In the default presentation the
- * canvas content and the preview frame inherit the builder's 13px / 400; the
- * compact profile may change the builder's UI size (14px under `.coar-mobile`),
- * which must not resize the page being authored. Line height is not pinned:
- * the builder root never sets one, so content keeps inheriting the host's.
- */
-:is(.coar-compact, .coar-compact *) :is(.pb-canvas__content, .pb-builder__preview-frame) {
-  font-size: 13px;
-  font-weight: 400;
-}
+  /*
+   * Authored content keeps its own typography. In the default presentation the
+   * canvas content and the preview frame inherit the builder's 13px / 400; a
+   * theme may change the builder's UI size (14px under `.coar-mobile`), which
+   * must not resize the page being authored. Line height is not pinned: the
+   * builder root never sets one, so content keeps inheriting the host's.
+   */
+  :is(.pb-canvas__content, .pb-builder__preview-frame) {
+    font-size: var(--coar-page-builder-authored-font-size, revert-layer);
+    font-weight: var(--coar-page-builder-authored-font-weight, revert-layer);
+  }
 
-/*
- * Native selects of the chrome (preview language, composition version). The
- * default presentation leaves their text colour to the user agent, which no
- * `var()` fallback can express; the compact profile gives them the field text
- * role so they stay legible on the dark input surface.
- */
-:is(.coar-compact, .coar-compact *) :is(.pb-builder__bar-control select, .pb-compositions__version select) {
-  color: var(--coar-text-neutral-primary, #202124);
-}
+  /*
+   * Native selects of the chrome (preview language, composition version). The
+   * default presentation leaves their text colour to the user agent; a theme
+   * gives them the field text role so they stay legible on its input surface.
+   */
+  :is(.pb-builder__bar-control select, .pb-compositions__version select) {
+    color: var(--coar-page-builder-select-color, revert-layer);
+  }
 
-/* The legacy absolute hover tray reserves only 30px beside an issue icon.
-   Compact's four independent action targets are wider: keep their real width
-   in the flex row instead of painting over the label and validation state. */
-:is(.coar-compact, .coar-compact *) .pb-tree-row {
-  flex-wrap: wrap;
-  height: auto;
-  min-height: var(--coar-page-builder-row-height);
-}
-:is(.coar-compact, .coar-compact *) .pb-tree-row .pb-tree-label {
-  /* Deep warning rows may wrap the action tray, never squeeze the node name
-     down to an unreadable sliver to keep all four actions on the same line. */
-  min-width: 8ch;
-}
-:is(.coar-compact, .coar-compact *) .pb-tree-row .pb-tree-actions {
-  position: static;
-  transform: none;
-  flex-shrink: 0;
-  margin-left: auto;
-}
-:is(.coar-compact, .coar-compact *) .pb-tree-row .pb-tree-actions:empty {
-  display: none;
-}
-:is(.coar-compact, .coar-compact *) .pb-tree-row .pb-tree-issue {
-  margin-right: 0;
-}
-:is(.coar-compact, .coar-compact *) .pb-tree-row:focus-within .pb-tree-actions {
-  opacity: 1;
-}
-:is(.coar-compact, .coar-compact *) .pb-tree-node--selected > .pb-tree-row .pb-tree-label .pb-tree-label-key {
-  /* The accent ink already carries hierarchy; fading it again makes the
-     small authored-name caption fail text contrast on the selected surface.
-     Include its label container to outrank the component's scoped rule. */
-  opacity: 1;
-}
+  /*
+   * The weights of headings, `strong` and `th` come from the user agent or the
+   * host's reset. Hierarchy keeps the theme's emphasis weight; it is no longer
+   * the browser's 700.
+   */
+  :is(
+    .pb-compositions h3,
+    .pb-compositions h4,
+    .pb-compositions__item-copy strong,
+    .pb-translations__header h3,
+    .pb-translations__empty strong,
+    .pb-page-code__toolbar strong,
+    .pb-action-values__heading strong,
+    .pb-action-values__dynamic strong,
+    .pb-expression-dialog__meta strong,
+    .pb-element-code-dialog__meta strong,
+    .pb-page-root-code-dialog__meta strong,
+    .pb-builder__preview-empty strong
+  ) {
+    font-weight: var(--coar-page-builder-emphasis-font-weight, revert-layer);
+  }
 
-/*
- * Declarations the default presentation does not make at all: the weights of
- * headings, `strong` and `th` come from the user agent or the host's reset, and
- * the add-child menu rows have no minimum height. Writing a "legacy" fallback
- * into the components would override such a reset, so they live here only.
- * Hierarchy keeps 600; it is no longer the browser's 700.
- */
-:is(.coar-compact, .coar-compact *) :is(
-  .pb-compositions h3,
-  .pb-compositions h4,
-  .pb-compositions__item-copy strong,
-  .pb-translations__header h3,
-  .pb-translations__empty strong,
-  .pb-page-code__toolbar strong,
-  .pb-action-values__heading strong,
-  .pb-action-values__dynamic strong,
-  .pb-expression-dialog__meta strong,
-  .pb-element-code-dialog__meta strong,
-  .pb-page-root-code-dialog__meta strong,
-  .pb-builder__preview-empty strong
-) {
-  font-weight: var(--coar-page-builder-emphasis-font-weight);
-}
+  .pb-translations__table thead th {
+    font-weight: var(--coar-page-builder-label-font-weight, revert-layer);
+  }
 
-:is(.coar-compact, .coar-compact *) .pb-translations__table thead th {
-  font-weight: var(--coar-page-builder-label-font-weight);
-}
+  /* Rows of the outline and of its add-child menu are at least one interactive
+     row high; the default presentation sets no minimum. The outline row's own
+     layout roles (wrap, in-flow action tray) are in BuilderOutlineNode.vue. */
+  :is(.pb-tree-row, .pb-tree-add__item) {
+    min-height: var(--coar-page-builder-row-height, revert-layer);
+  }
 
-:is(.coar-compact, .coar-compact *) .pb-tree-add__item {
-  min-height: var(--coar-page-builder-row-height);
+  .pb-tree-row {
+    flex-wrap: var(--coar-page-builder-tree-row-wrap, revert-layer);
+  }
 }

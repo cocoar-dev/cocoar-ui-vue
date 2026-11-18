@@ -1,5 +1,5 @@
 ---
-description: "Preview: an opt-in compact presentation with Inter, Slate surfaces and separate desktop, touch and input roles. Existing applications keep their presentation."
+description: "Preview: the compact presentation, a theme with Inter, Slate surfaces and separate desktop, touch and input roles. Load it as a preset in the Theme Editor or opt in with .coar-compact. Existing applications keep their presentation."
 ---
 
 <script setup>
@@ -8,15 +8,27 @@ import CompactDemo from '../mobile/demos/CompactDemo.vue';
 
 # Compact presentation <Badge type="warning" text="Preview" />
 
-The compact profile is an experiment across the library, not a change of the default theme.
+The compact presentation is an experiment across the library, not a change of the default theme.
 It uses smaller, normally weighted Inter text, Slate-tinted structure, restrained corners and
 aligned controls. Existing props, events and data formats are unchanged.
+
+Compact is a set of values for the tokens every theme uses. The library derives everything else
+from them, with the same rules for every theme. There are two ways to apply the values:
+
+- **As a theme of your own:** load the **Compact** preset in the [Theme Editor](./theming),
+  adjust it (another font, other sizes or colours) and ship the exported theme class. No
+  `.coar-compact` is involved.
+- **With the class `.coar-compact`:** the entry the first betas introduced. It applies the same
+  values and stays supported; everything below that names the class holds for a theme class too.
 
 ## Compare this documentation
 
 Use **Style → Bisher / Compact** in the navigation to switch the entire documentation:
 the VitePress shell, prose and ordinary live component examples. In a narrower window, the
 selector is in the main navigation menu. The mobile documentation has the same selector in its header.
+
+Loading the **Compact** preset in the Theme Editor (the button at the bottom right) switches the
+documentation the same way, shell and prose included, with values you can then edit.
 
 The choice is remembered in this browser and follows page navigation. Embedded phone/tablet
 demos follow it without reloading, so their form values and open dialogs remain intact.
@@ -28,6 +40,23 @@ sample on this page, remain Compact in either site mode; explicit theme demonstr
 their own scopes. This documentation preference does not change an application's opt-in.
 
 ## Opt in
+
+### With an exported theme
+
+```ts
+import '@cocoar/vue-ui/styles';
+import '@cocoar/vue-ui/fonts/compact'; // or the font your theme names
+import './coar-theme--myapp.css';     // Theme Editor → Compact → Download CSS
+```
+
+```html
+<html class="coar-theme--myapp">
+```
+
+See [Exporting a theme based on Compact](./theming#exporting-a-theme-based-on-compact) for what the
+file contains.
+
+### With `.coar-compact`
 
 Keep the normal stylesheet import and load the optional font entry:
 
@@ -132,8 +161,9 @@ mobile presentation. Use a sibling outside `.coar-compact` for a fully legacy ar
 
 ## Teleports and global renderers
 
-Library overlays carry their originating profile, local theme, mobile roles and explicit overrides,
-including changes while open. Custom library-like teleports can use the Preview helper:
+Library overlays carry the theme in effect at their trigger, its local scope, mobile roles and
+explicit overrides, including changes while open, whether the theme comes from `.coar-compact` or
+from a theme class. Custom library-like teleports can use the Preview helper:
 
 ```ts
 const presentation = useCompactPresentationContext(() => origin.value);
@@ -148,12 +178,15 @@ const presentation = useCompactPresentationContext(() => origin.value);
 The helper is exported from `@cocoar/vue-ui`; it observes source ancestors, not all computed CSS
 properties. Register the origin as an element ref and keep it mounted while the tool is open.
 
-- **Monaco:** themes are document-global. Compact editor colors activate only when `html` or `body`
-  carries `.coar-compact`; local compact frames do not promise an independent Monaco theme.
+- **Monaco:** themes are document-global. Compact editor colors activate only when the theme applies
+  to `html` or `body` (through `.coar-compact` or a theme class); local compact frames do not
+  promise an independent Monaco theme.
   Compare legacy and compact editors in separate documents. Shared color roles are converted to
   concrete Monaco colors; code typography remains independent of the UI scale.
-- **Mermaid:** rendering is serialized with the diagram's resolved compact configuration. Local
-  mode and token changes rerender compact diagrams; stored diagram source is unchanged.
+- **Mermaid:** rendering is serialized with the configuration resolved from the theme in effect at
+  the diagram. Local mode and token changes rerender such diagrams; stored diagram source is unchanged.
+- **Map:** Leaflet's controls, popups and tooltips follow the theme in effect at the map. Without a
+  theme the library leaves Leaflet's own styles, and yours, alone.
 - **Page Builder:** authoring chrome uses the compact roles, including theme-aware accent ink for
   selected canvas labels and frames. Saved layout and document geometry retain their meaning.
   Embedded library widgets still use the host presentation.
@@ -164,4 +197,5 @@ Browser emulation is not native keyboard or safe-area acceptance.
 
 This preview is for testing in real applications, not a completed design review. Native calendar
 gestures and some grid editor and document viewer states still need verification. Keep the
-`.coar-compact` class behind an app-level toggle so testers can compare with the default presentation.
+theme class (or `.coar-compact`) behind an app-level toggle so testers can compare with the default
+presentation.

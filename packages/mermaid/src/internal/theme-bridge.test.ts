@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { buildMermaidThemeVariables, readCssTokens } from './theme-bridge';
+import { describe, it, expect, vi } from 'vitest';
+import { buildMermaidThemeVariables, hasRoleTheme, readCssTokens } from './theme-bridge';
 
 describe('buildMermaidThemeVariables', () => {
   it('maps resolved Cocoar tokens to Mermaid theme variables', () => {
@@ -59,6 +59,49 @@ describe('buildMermaidThemeVariables', () => {
       () => '', // resolver couldn't parse it
     );
     expect('primaryColor' in vars).toBe(false);
+  });
+});
+
+/**
+ * happy-dom resolves a custom property only on the element that declares it.
+ * Browsers inherit it: read it from the nearest ancestor that sets it.
+ */
+function inheritCustomProperties(): void {
+  const computed = getComputedStyle;
+  vi.stubGlobal('getComputedStyle', (element: HTMLElement) =>
+    new Proxy(computed(element), {
+      get(styles, key) {
+        if (key !== 'getPropertyValue') return Reflect.get(styles, key, styles);
+        return (name: string) => {
+          for (let scope: HTMLElement | null = element; scope; scope = scope.parentElement) {
+            const value = scope.style.getPropertyValue(name);
+            if (value) return value;
+          }
+          return styles.getPropertyValue(name);
+        };
+      },
+    }));
+}
+
+describe('hasRoleTheme', () => {
+  it('follows the marker of an active role derivation, padded or not', () => {
+    expect(hasRoleTheme((name) => (name === '--coar-d-role-derivation' ? ' on' : ''))).toBe(true);
+    expect(hasRoleTheme(() => '')).toBe(false);
+  });
+
+  it('reads the marker where the diagram lives, whatever the classes are', () => {
+    const scope = document.createElement('div');
+    scope.style.setProperty('--coar-d-role-derivation', 'on');
+    const inside = scope.appendChild(document.createElement('div'));
+    const named = document.createElement('div');
+    named.className = 'coar-compact';
+    document.body.append(scope, named);
+    inheritCustomProperties();
+    expect(hasRoleTheme(readCssTokens(inside))).toBe(true);
+    expect(hasRoleTheme(readCssTokens(named))).toBe(false);
+    vi.unstubAllGlobals();
+    scope.remove();
+    named.remove();
   });
 });
 

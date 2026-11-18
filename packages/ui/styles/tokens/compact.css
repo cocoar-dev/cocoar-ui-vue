@@ -1,29 +1,18 @@
 /**
- * Experimental compact presentation. Inert until `.coar-compact` is applied.
- * Sizes express roles, not a transform/HTML-root zoom. Package-specific geometry
- * (calendar time slots, document pages, editor lines) builds on its own roles.
+ * Compatibility entry of the Compact presentation (Preview): `.coar-compact` on
+ * `html` or a container applies the values of the Compact theme preset. New code
+ * loads the preset in the Theme Editor and ships its exported theme instead.
  *
- * The mode marker is inherited, so the nearest explicit theme wins, including
- * a light scope nested inside a dark application. Outside this profile the
- * marker has no visual effect. light-dark() is resolved by the consuming color.
+ * Generated from src/theme/compact-theme.ts by scripts/write-compact-css.mjs; do
+ * not edit. What follows from these values is derived in derived.css.
  */
-.light-mode,
-[data-theme='light'] {
-  --coar-compact-color-scheme: light;
-}
-.dark-mode,
-[data-theme='dark'] {
-  --coar-compact-color-scheme: dark;
-}
-
-/* Independent defaults belong to the opt-in boundary (or an explicit reset).
-   A nested theme/mode must inherit consumer-authored density roles, not replace
-   them with the profile defaults. Derived aliases below rebind locally so an
-   explicit font, brand or mobile input still takes effect. */
 :root.coar-compact,
 .coar-compact,
 .coar-compact.coar-theme-none,
 .coar-compact .coar-theme-none {
+  --coar-role-derivation: ;
+  --coar-theme-accent: #334155;
+  --coar-heading-s-style: 600 16px/1.4;
   --coar-font-family-body: var(--coar-appearance-font-body, Inter, ui-sans-serif, system-ui, sans-serif);
   --coar-font-family-title: var(--coar-appearance-font-title, var(--coar-font-family-body));
   --coar-ui-font-size: 13px;
@@ -151,6 +140,178 @@
   --coar-switch-l-track-width: 40px;
   --coar-switch-l-track-height: 22px;
   --coar-switch-l-thumb-size: 18px;
+  --coar-control-box-sizing: border-box;
+  --coar-picker-day-focus-outline-width: var(--coar-focus-width);
+  --coar-picker-day-focus-outline-offset: -2px;
+  --coar-date-or-time-max-width: 100%;
+  --coar-checkbox-unlabelled-align: center;
+  --coar-listbox-scrollbar-track: transparent;
+  --coar-listbox-fixed-height-flex: none;
+  --coar-form-inline-label-width: auto;
+  --coar-color-accent-50-lc: 0.97 0.012;
+  --coar-color-accent-50-lc-dark: 0.22 0.02;
+  --coar-color-accent-100-lc: 0.94 0.02;
+  --coar-color-accent-100-lc-dark: 0.28 0.03;
+  --coar-color-accent-200-lc: 0.88 0.03;
+  --coar-color-accent-200-lc-dark: 0.36 0.04;
+  --coar-color-accent-300-lc: 0.78 0.04;
+  --coar-color-accent-300-lc-dark: 0.46 0.05;
+  --coar-color-accent-400-lc: 0.62 0.06;
+  --coar-color-accent-600-lc: 0.4 0.05;
+  --coar-color-accent-600-lc-dark: 0.78 0.04;
+  --coar-color-accent-700-lc: 0.34 0.04;
+  --coar-color-accent-700-lc-dark: 0.85 0.03;
+  --coar-color-accent-800-lc: 0.28 0.035;
+  --coar-color-accent-800-lc-dark: 0.91 0.02;
+  --coar-color-accent-900-lc: 0.22 0.03;
+  --coar-color-accent-900-lc-dark: 0.96 0.01;
+  --coar-background-accent-primary-lc: 0.38 0.045;
+  --coar-background-accent-hover-lc: 0.32 0.04;
+  --coar-background-accent-active-lc: 0.27 0.035;
+  --coar-background-semantic-success-bold-lc: 0.45 0.1;
+  --coar-background-semantic-success-subtlest-lc: 0.98 0.012;
+  --coar-background-semantic-success-subtlest-lc-dark: 0.23 0.025;
+  --coar-background-semantic-success-subtle-lc: 0.94 0.025;
+  --coar-background-semantic-success-subtle-lc-dark: 0.29 0.04;
+  --coar-text-semantic-success-bold-lc: 0.36 0.1;
+  --coar-text-semantic-success-bold-lc-dark: 0.88 0.06;
+  --coar-text-semantic-success-subtle-lc: 0.44 0.1;
+  --coar-text-semantic-success-subtle-lc-dark: 0.8 0.08;
+  --coar-border-semantic-success-subtle-lc: 0.82 0.06;
+  --coar-border-semantic-success-subtle-lc-dark: 0.42 0.06;
+  --coar-background-semantic-error-bold-lc: 0.45 0.14;
+  --coar-background-semantic-error-hover-lc: 0.39 0.12;
+  --coar-background-semantic-error-active-lc: 0.33 0.1;
+  --coar-background-semantic-error-subtlest-lc: 0.98 0.012;
+  --coar-background-semantic-error-subtlest-lc-dark: 0.23 0.025;
+  --coar-background-semantic-error-subtle-lc: 0.94 0.025;
+  --coar-background-semantic-error-subtle-lc-dark: 0.29 0.04;
+  --coar-text-semantic-error-bold-lc: 0.36 0.12;
+  --coar-text-semantic-error-bold-lc-dark: 0.88 0.06;
+  --coar-text-semantic-error-subtle-lc: 0.44 0.14;
+  --coar-text-semantic-error-subtle-lc-dark: 0.8 0.08;
+  --coar-border-semantic-error-subtle-lc: 0.82 0.06;
+  --coar-border-semantic-error-subtle-lc-dark: 0.42 0.06;
+  --coar-background-semantic-warning-bold-lc: 0.45 0.09;
+  --coar-background-semantic-warning-subtlest-lc: 0.98 0.012;
+  --coar-background-semantic-warning-subtlest-lc-dark: 0.23 0.025;
+  --coar-background-semantic-warning-subtle-lc: 0.94 0.025;
+  --coar-background-semantic-warning-subtle-lc-dark: 0.29 0.04;
+  --coar-text-semantic-warning-bold-lc: 0.36 0.08;
+  --coar-text-semantic-warning-bold-lc-dark: 0.88 0.06;
+  --coar-text-semantic-warning-subtle-lc: 0.44 0.09;
+  --coar-text-semantic-warning-subtle-lc-dark: 0.8 0.08;
+  --coar-border-semantic-warning-subtle-lc: 0.82 0.06;
+  --coar-border-semantic-warning-subtle-lc-dark: 0.42 0.06;
+  --coar-background-semantic-info-bold-lc: 0.45 0.03;
+  --coar-background-semantic-info-subtlest-lc: 0.98 0.006;
+  --coar-background-semantic-info-subtlest-lc-dark: 0.23 0.012;
+  --coar-background-semantic-info-subtle-lc: 0.94 0.012;
+  --coar-background-semantic-info-subtle-lc-dark: 0.29 0.02;
+  --coar-text-semantic-info-bold-lc: 0.36 0.03;
+  --coar-text-semantic-info-bold-lc-dark: 0.88 0.02;
+  --coar-text-semantic-info-subtle-lc: 0.44 0.03;
+  --coar-text-semantic-info-subtle-lc-dark: 0.8 0.025;
+  --coar-border-semantic-info-subtle-lc: 0.82 0.02;
+  --coar-border-semantic-info-subtle-lc-dark: 0.42 0.02;
+  --coar-calendar-event-font-size-dense: 11px;
+  --coar-calendar-event-meta-font-size: 11px;
+  --coar-calendar-event-meta-opacity: 1;
+  --coar-calendar-agenda-continuation-opacity: 1;
+  --coar-calendar-other-month-opacity: 1;
+  --coar-calendar-badge-font-weight: 600;
+  --coar-calendar-strong-font-weight: 600;
+  --coar-calendar-heading-font-weight: 600;
+  --coar-calendar-title-font-size: 16px;
+  --coar-calendar-section-title-font-size: 18px;
+  --coar-calendar-section-title-font-weight: 600;
+  --coar-calendar-event-radius: 4px;
+  --coar-calendar-header-cell-padding: 8px;
+  --coar-calendar-weekday-cell-padding: 6px 8px;
+  --coar-calendar-agenda-row-gap: 10px;
+  --coar-calendar-time-grid-day-min-width: 128px;
+  --coar-calendar-time-grid-overflow-x: auto;
+  --coar-calendar-resize-max-size: 50%;
+  --coar-calendar-continuous-weekday-bg: transparent;
+  --coar-data-grid-cell-padding-x: 12px;
+  --coar-page-builder-panel-heading-font-size: 16px;
+  --coar-page-builder-emphasis-font-weight: 600;
+  --coar-page-builder-authored-font-size: 13px;
+  --coar-page-builder-authored-font-weight: 400;
+  --coar-page-builder-palette-container-color: light-dark(#52749a, #8caacc);
+  --coar-page-builder-palette-element-color: light-dark(#5f6b72, #9aa8b1);
+  --coar-page-builder-palette-composition-color: light-dark(#806b52, #baa083);
+  --coar-page-builder-palette-field-color: light-dark(#725f88, #b29bcb);
+  --coar-page-builder-tree-row-wrap: wrap;
+  --coar-page-builder-tree-label-min-width: 8ch;
+  --coar-page-builder-tree-actions-position: static;
+  --coar-page-builder-tree-actions-transform: none;
+  --coar-page-builder-tree-actions-empty-display: none;
+  --coar-page-builder-tree-actions-focus-opacity: 1;
+  --coar-page-builder-tree-issue-reserve: 0;
+  --coar-page-builder-tree-selected-key-opacity: 1;
+  --coar-markdown-font-size: 14px;
+  --coar-markdown-line-height: 1.5;
+  --coar-markdown-h1-font-size: 24px;
+  --coar-markdown-h1-font-weight: 600;
+  --coar-markdown-h1-line-height: 1.25;
+  --coar-markdown-h2-font-size: 18px;
+  --coar-markdown-h2-font-weight: 600;
+  --coar-markdown-h2-line-height: 1.3;
+  --coar-markdown-h3-font-size: 16px;
+  --coar-markdown-h3-font-weight: 600;
+  --coar-markdown-h3-line-height: 1.35;
+  --coar-markdown-h4-font-size: 14px;
+  --coar-markdown-h4-font-weight: 600;
+  --coar-markdown-h4-line-height: 1.4;
+  --coar-markdown-h5-font-size: 13px;
+  --coar-markdown-h5-font-weight: 600;
+  --coar-markdown-h5-line-height: 1.4;
+  --coar-markdown-h6-font-size: 12px;
+  --coar-markdown-h6-font-weight: 600;
+  --coar-markdown-h6-line-height: 1.4;
+  --coar-markdown-tight-spacing: 8px;
+  --coar-markdown-block-spacing: 12px;
+  --coar-markdown-section-spacing: 24px;
+  --coar-markdown-block-gap: 12px;
+  --coar-markdown-code-font-family: 'Cascadia Code', Consolas, Monaco, 'Courier New', monospace;
+  --coar-markdown-code-font-size: 0.875em;
+  --coar-markdown-inline-code-padding: 0.1em 0.35em;
+  --coar-markdown-inline-code-radius: 4px;
+  --coar-markdown-link-underline-thickness: 1px;
+  --coar-markdown-link-underline-offset: 2px;
+  --coar-markdown-table-font-size: 13px;
+  --coar-markdown-table-line-height: 1.45;
+  --coar-markdown-table-cell-padding: 8px 12px;
+  --coar-markdown-table-header-font-size: 12px;
+  --coar-markdown-table-header-font-weight: 600;
+  --coar-markdown-table-header-transform: none;
+  --coar-markdown-table-header-letter-spacing: normal;
+  --coar-markdown-embed-placeholder-gap: 8px;
+  --coar-markdown-embed-placeholder-padding: 8px 12px;
+  --coar-markdown-form-issues-padding: 8px 12px;
+  --coar-markdown-form-value-font-weight: 600;
+  --coar-markdown-form-error-line-height: 1.35;
+  --coar-markdown-form-control-padding: 2px 8px;
+  --coar-markdown-editor-area-padding: 8px 12px;
+  --coar-markdown-editor-source-font-size: 13px;
+  --coar-markdown-editor-source-line-height: 1.5;
+  --coar-markdown-editor-corner-button-size: 28px;
+  --coar-markdown-editor-float-padding: 4px;
+  --coar-markdown-editor-float-button-size: 28px;
+  --coar-markdown-editor-float-separator-height: 16px;
+  --coar-markdown-editor-menu-item-padding: 0 10px;
+  --coar-markdown-editor-table-picker-gap: 8px;
+  --coar-markdown-editor-dialog-gap: 12px;
+  --coar-markdown-editor-dialog-min-width: min(22rem, 100%);
+  --coar-script-editor-placeholder-font-family: 'Cascadia Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+  --coar-mermaid-control-size: 28px;
+  --coar-mermaid-padding: 12px;
+  --coar-mermaid-code-font-size: 13px;
+  --coar-document-viewer-header-height: 40px;
+  --coar-document-viewer-target-size: 28px;
+  --coar-document-viewer-input-height: 28px;
+  --coar-document-viewer-outline-link-display: flex;
 }
 
 :root.coar-compact,
@@ -162,241 +323,8 @@
   font-weight: var(--coar-body-base-weight);
   line-height: var(--coar-body-base-line-height);
   color: var(--coar-text-neutral-primary);
-
-  /* Rebind derived defaults, never the consumer's inherited size overrides. */
-  --coar-field-xs-default-font-size: calc(var(--coar-field-font-size) - 2px);
-  --coar-field-s-default-font-size: calc(var(--coar-field-font-size) - 1px);
-  --coar-field-l-default-font-size: calc(var(--coar-field-font-size) + 2px);
-
-  --coar-picker-panel-radius: var(--coar-panel-radius);
-
-  --coar-zone-caption-min-offset: var(--coar-control-min-target-size, 0px);
-  --coar-choice-row-height: var(--coar-interactive-row-height);
-
-  --coar-indicator-xs-height: var(--coar-component-xs-height);
-  --coar-indicator-s-height: var(--coar-component-s-height);
-  --coar-indicator-m-height: var(--coar-component-m-height);
-  --coar-indicator-l-height: var(--coar-component-l-height);
-
-  --coar-body-base-family: var(--coar-font-family-body);
-  --coar-body-bold-family: var(--coar-font-family-body);
-  --coar-body-caption-family: var(--coar-font-family-body);
-  --coar-body-footnote-family: var(--coar-font-family-body);
-  --coar-body-small-base-family: var(--coar-font-family-body);
-  --coar-body-small-bold-family: var(--coar-font-family-body);
-  --coar-headings-heading-family: var(--coar-font-family-title);
-  --coar-headings-subheading-family: var(--coar-font-family-title);
-  --coar-titles-display-family: var(--coar-font-family-title);
-  --coar-titles-subtitle-family: var(--coar-font-family-title);
-  --coar-titles-title-family: var(--coar-font-family-title);
-
-  --coar-body-bold-size: var(--coar-body-base-size);
-
-  --coar-body-caption-size: var(--coar-caption-font-size);
-
-  --coar-body-footnote-size: var(--coar-caption-font-size);
-
-  --coar-body-small-base-size: var(--coar-ui-font-size);
-  --coar-body-small-bold-size: var(--coar-ui-font-size);
-  --coar-body-small-base-weight: var(--coar-ui-font-weight);
-
-  --coar-body-small-base-line-height: var(--coar-ui-line-height);
-
-  --coar-heading-s: 600 16px/1.4 var(--coar-font-family-title);
-
-  --coar-component-s-font-size: var(--coar-ui-font-size);
-  --coar-component-m-font-size: var(--coar-ui-font-size);
-
-  --coar-component-s-label-font-size: var(--coar-ui-font-size);
-  --coar-component-m-label-font-size: var(--coar-ui-font-size);
-
-  --coar-field-padding-x-tight: calc(var(--coar-field-padding-x) / 2);
-
-  /* Slate is the default accent of this experiment. CoarThemeScope's explicit
-     accent takes precedence through this inherited, optional input. */
-  --coar-color-accent-50: light-dark(
-    oklch(from var(--coar-appearance-accent, #334155) 0.97 0.012 h),
-    oklch(from var(--coar-appearance-accent, #334155) 0.22 0.02 h)
-  );
-  --coar-color-accent-100: light-dark(
-    oklch(from var(--coar-appearance-accent, #334155) 0.94 0.02 h),
-    oklch(from var(--coar-appearance-accent, #334155) 0.28 0.03 h)
-  );
-  --coar-color-accent-200: light-dark(
-    oklch(from var(--coar-appearance-accent, #334155) 0.88 0.03 h),
-    oklch(from var(--coar-appearance-accent, #334155) 0.36 0.04 h)
-  );
-  --coar-color-accent-300: light-dark(
-    oklch(from var(--coar-appearance-accent, #334155) 0.78 0.04 h),
-    oklch(from var(--coar-appearance-accent, #334155) 0.46 0.05 h)
-  );
-  --coar-color-accent-400: oklch(from var(--coar-appearance-accent, #334155) 0.62 0.06 h);
-  --coar-color-accent-500: var(--coar-appearance-accent, #334155);
-  --coar-color-accent-600: light-dark(
-    oklch(from var(--coar-appearance-accent, #334155) 0.4 0.05 h),
-    oklch(from var(--coar-appearance-accent, #334155) 0.78 0.04 h)
-  );
-  --coar-color-accent-700: light-dark(
-    oklch(from var(--coar-appearance-accent, #334155) 0.34 0.04 h),
-    oklch(from var(--coar-appearance-accent, #334155) 0.85 0.03 h)
-  );
-  --coar-color-accent-800: light-dark(
-    oklch(from var(--coar-appearance-accent, #334155) 0.28 0.035 h),
-    oklch(from var(--coar-appearance-accent, #334155) 0.91 0.02 h)
-  );
-  --coar-color-accent-900: light-dark(
-    oklch(from var(--coar-appearance-accent, #334155) 0.22 0.03 h),
-    oklch(from var(--coar-appearance-accent, #334155) 0.96 0.01 h)
-  );
-
-  --coar-border-neutral: var(--coar-border-neutral-tertiary);
-  --coar-icon-neutral-primary: var(--coar-text-neutral-primary);
-  --coar-icon-neutral-secondary: var(--coar-text-neutral-secondary);
-  --coar-icon-neutral-tertiary: var(--coar-text-neutral-tertiary);
-  --coar-icon-neutral-disabled: var(--coar-text-neutral-disabled);
-  --coar-surface-input: var(--coar-background-neutral-primary);
-  --coar-surface-input-disabled: var(--coar-background-neutral-tertiary);
-
-  --coar-background-accent-primary: oklch(from var(--coar-appearance-accent, #334155) 0.38 0.045 h);
-  --coar-background-accent-hover: oklch(from var(--coar-appearance-accent, #334155) 0.32 0.04 h);
-  --coar-background-accent-active: oklch(from var(--coar-appearance-accent, #334155) 0.27 0.035 h);
-  --coar-background-accent-secondary: var(--coar-color-accent-100);
-  --coar-surface-accent-secondary: var(--coar-background-accent-secondary);
-  --coar-background-accent-tertiary: var(--coar-color-accent-50);
-  --coar-background-accent-tertiary-active: var(--coar-color-accent-200);
-  --coar-text-accent-primary: var(--coar-color-accent-700);
-  --coar-text-accent-secondary: var(--coar-color-accent-600);
-  --coar-border-accent-primary: var(--coar-color-accent-600);
-  --coar-border-accent-secondary: var(--coar-color-accent-300);
-  --coar-icon-accent-primary: var(--coar-text-accent-primary);
-
-  /* Status fills carry white text in either scheme; text/icon roles instead
-     become lighter in dark mode. All derive from the existing theme inputs. */
-  --coar-background-semantic-success-bold: oklch(from var(--coar-success) 0.45 0.1 h);
-  --coar-background-semantic-success-subtlest: light-dark(oklch(from var(--coar-success) 0.98 0.012 h), oklch(from var(--coar-success) 0.23 0.025 h));
-  --coar-background-semantic-success-subtle: light-dark(oklch(from var(--coar-success) 0.94 0.025 h), oklch(from var(--coar-success) 0.29 0.04 h));
-  --coar-text-semantic-success-bold: light-dark(oklch(from var(--coar-success) 0.36 0.1 h), oklch(from var(--coar-success) 0.88 0.06 h));
-  --coar-text-semantic-success-subtle: light-dark(oklch(from var(--coar-success) 0.44 0.1 h), oklch(from var(--coar-success) 0.8 0.08 h));
-  --coar-border-semantic-success-bold: var(--coar-text-semantic-success-subtle);
-  --coar-border-semantic-success-subtle: light-dark(oklch(from var(--coar-success) 0.82 0.06 h), oklch(from var(--coar-success) 0.42 0.06 h));
-  --coar-icon-semantic-success-bold: var(--coar-text-semantic-success-bold);
-  --coar-icon-semantic-success-subtle: var(--coar-text-semantic-success-subtle);
-  --coar-background-semantic-error-bold: oklch(from var(--coar-error) 0.45 0.14 h);
-  --coar-background-semantic-error-hover: oklch(from var(--coar-error) 0.39 0.12 h);
-  --coar-background-semantic-error-active: oklch(from var(--coar-error) 0.33 0.1 h);
-  --coar-background-semantic-error-subtlest: light-dark(oklch(from var(--coar-error) 0.98 0.012 h), oklch(from var(--coar-error) 0.23 0.025 h));
-  --coar-background-semantic-error-subtle: light-dark(oklch(from var(--coar-error) 0.94 0.025 h), oklch(from var(--coar-error) 0.29 0.04 h));
-  --coar-text-semantic-error-bold: light-dark(oklch(from var(--coar-error) 0.36 0.12 h), oklch(from var(--coar-error) 0.88 0.06 h));
-  --coar-text-semantic-error-subtle: light-dark(oklch(from var(--coar-error) 0.44 0.14 h), oklch(from var(--coar-error) 0.8 0.08 h));
-  --coar-border-semantic-error: var(--coar-text-semantic-error-subtle);
-  --coar-border-semantic-error-bold: var(--coar-text-semantic-error-subtle);
-  --coar-border-semantic-error-subtle: light-dark(oklch(from var(--coar-error) 0.82 0.06 h), oklch(from var(--coar-error) 0.42 0.06 h));
-  --coar-icon-semantic-error-bold: var(--coar-text-semantic-error-bold);
-  --coar-icon-semantic-error-subtle: var(--coar-text-semantic-error-subtle);
-  --coar-background-semantic-warning-bold: oklch(from var(--coar-warning) 0.45 0.09 h);
-  --coar-background-semantic-warning-subtlest: light-dark(oklch(from var(--coar-warning) 0.98 0.012 h), oklch(from var(--coar-warning) 0.23 0.025 h));
-  --coar-background-semantic-warning-subtle: light-dark(oklch(from var(--coar-warning) 0.94 0.025 h), oklch(from var(--coar-warning) 0.29 0.04 h));
-  --coar-text-semantic-warning-bold: light-dark(oklch(from var(--coar-warning) 0.36 0.08 h), oklch(from var(--coar-warning) 0.88 0.06 h));
-  --coar-text-semantic-warning-subtle: light-dark(oklch(from var(--coar-warning) 0.44 0.09 h), oklch(from var(--coar-warning) 0.8 0.08 h));
-  --coar-border-semantic-warning-bold: var(--coar-text-semantic-warning-subtle);
-  --coar-border-semantic-warning-subtle: light-dark(oklch(from var(--coar-warning) 0.82 0.06 h), oklch(from var(--coar-warning) 0.42 0.06 h));
-  --coar-icon-semantic-warning-bold: var(--coar-text-semantic-warning-bold);
-  --coar-icon-semantic-warning-subtle: var(--coar-text-semantic-warning-subtle);
-  --coar-background-semantic-info-bold: oklch(from var(--coar-info) 0.45 0.03 h);
-  --coar-background-semantic-info-subtlest: light-dark(oklch(from var(--coar-info) 0.98 0.006 h), oklch(from var(--coar-info) 0.23 0.012 h));
-  --coar-background-semantic-info-subtle: light-dark(oklch(from var(--coar-info) 0.94 0.012 h), oklch(from var(--coar-info) 0.29 0.02 h));
-  --coar-text-semantic-info-bold: light-dark(oklch(from var(--coar-info) 0.36 0.03 h), oklch(from var(--coar-info) 0.88 0.02 h));
-  --coar-text-semantic-info-subtle: light-dark(oklch(from var(--coar-info) 0.44 0.03 h), oklch(from var(--coar-info) 0.8 0.025 h));
-  --coar-border-semantic-info-bold: var(--coar-text-semantic-info-subtle);
-  --coar-border-semantic-info-subtle: light-dark(oklch(from var(--coar-info) 0.82 0.02 h), oklch(from var(--coar-info) 0.42 0.02 h));
-  --coar-icon-semantic-info-bold: var(--coar-text-semantic-info-bold);
-  --coar-icon-semantic-info-subtle: var(--coar-text-semantic-info-subtle);
-  --coar-button-danger-bg: var(--coar-background-semantic-error-bold);
-  --coar-button-danger-bg-hover: var(--coar-background-semantic-error-hover);
-  --coar-button-danger-bg-active: var(--coar-background-semantic-error-active);
-
-  --coar-button-radius: var(--coar-appearance-button-radius, var(--coar-control-radius));
-  --coar-input-radius: var(--coar-appearance-input-radius, var(--coar-control-radius));
-
-  --coar-card-radius: var(--coar-appearance-card-radius, var(--coar-panel-radius));
-  --coar-menu-radius: var(--coar-panel-radius);
-  --coar-popover-radius: var(--coar-panel-radius);
-  --coar-dropdown-radius: var(--coar-control-radius);
-
-  --coar-dialog-padding: var(--coar-panel-padding);
-
-  --coar-sheet-padding: var(--coar-panel-padding);
-  --coar-card-padding: var(--coar-panel-padding);
-  --coar-toast-border-radius: var(--coar-panel-radius);
-
-  --coar-tree-checkbox-radius: var(--coar-checkbox-radius);
-  --coar-card-outlined-border-color: var(--coar-border-neutral-tertiary);
-  --coar-pane-divider-active-color: var(--coar-focus-color);
-  --coar-data-list-surface: var(--coar-background-neutral-primary);
-  --coar-code-block-border: var(--coar-border-neutral-tertiary);
-
-  --coar-breadcrumb-font-size: var(--coar-ui-font-size);
-  --coar-breadcrumb-active-color: var(--coar-text-neutral-primary);
-  --coar-breadcrumb-link-color: var(--coar-text-accent-primary);
-  --coar-pagination-font-size: var(--coar-ui-font-size);
-  --coar-pagination-active-background: var(--coar-background-accent-primary);
-  --coar-pagination-active-color: var(--coar-text-on-bold);
-  --coar-pagination-hover-background: var(--coar-background-neutral-tertiary);
-  --coar-note-bg: var(--coar-background-neutral-secondary);
-  --coar-note-border-color: var(--coar-border-neutral-secondary);
-  --coar-tag-bg: var(--coar-background-neutral-secondary);
-  --coar-tag-border-color: var(--coar-border-neutral-tertiary);
-  --coar-dialog-background: var(--coar-background-neutral-primary);
-  --coar-toast-background: var(--coar-background-neutral-primary);
-  --coar-navbar-background: var(--coar-background-neutral-primary);
-  --coar-navbar-border-color: var(--coar-border-neutral-tertiary);
-  --coar-menu-item-font-family: var(--coar-font-family-body);
-  --coar-menu-item-font-size: var(--coar-ui-font-size);
-  --coar-menu-item-font-weight: var(--coar-ui-font-weight);
-  --coar-menu-item-line-height: var(--coar-ui-line-height);
-  --coar-menu-heading-font-family: var(--coar-font-family-body);
-  --coar-menu-heading-font-size: var(--coar-caption-font-size);
-  --coar-menu-heading-font-weight: var(--coar-label-font-weight);
-
-  --coar-menu-item-gap: var(--coar-content-gap);
-
-  --coar-menu-background: var(--coar-background-neutral-primary);
-  --coar-menu-item-color: var(--coar-text-neutral-secondary);
-  --coar-menu-heading-color: var(--coar-text-neutral-tertiary);
-  --coar-menu-item-background-hover: var(--coar-background-neutral-tertiary);
-  --coar-menu-item-background-focus: var(--coar-background-neutral-tertiary);
-  --coar-menu-item-background-open: var(--coar-background-accent-tertiary);
-  --coar-menu-item-background-active: var(--coar-background-accent-tertiary);
-  --coar-menu-item-text-active: var(--coar-text-accent-primary);
-  --coar-select-option-font-size: var(--coar-ui-font-size);
-
-  --coar-select-option-gap: var(--coar-content-gap);
-
-  --coar-sidebar-background: var(--coar-background-neutral-secondary);
-  --coar-sidebar-border: 1px solid var(--coar-border-neutral-tertiary);
-  --coar-sidebar-header-border: 1px solid var(--coar-border-neutral-tertiary);
-  --coar-sidebar-footer-border: 1px solid var(--coar-border-neutral-tertiary);
-
-  --coar-sidebar-item-gap: var(--coar-content-gap);
-
-  --coar-sidebar-item-hover: var(--coar-background-neutral-tertiary);
-  --coar-sidebar-item-active-color: var(--coar-text-accent-primary);
-  --coar-sidebar-item-active-bg: var(--coar-background-accent-tertiary);
-
-  --coar-switch-track-width: var(--coar-switch-m-track-width);
-  --coar-switch-track-height: var(--coar-switch-m-track-height);
-  --coar-switch-thumb-size: var(--coar-switch-m-thumb-size);
-  --coar-progress-bar-background: var(--coar-background-neutral-tertiary);
-  --coar-progress-accent-color: var(--coar-text-accent-primary);
-  --coar-progress-success-color: var(--coar-text-semantic-success-subtle);
-  --coar-progress-warning-color: var(--coar-text-semantic-warning-subtle);
-  --coar-progress-error-color: var(--coar-text-semantic-error-subtle);
-  --coar-spinner-color: var(--coar-icon-accent-primary);
-  --coar-sheet-handle-color: var(--coar-border-neutral-secondary);
 }
 
-/* A theme reset clears brand inputs, not the opted-in presentation. Rebind
-   compact roles above so the legacy reset cannot leave a half-legacy subtree. */
 .coar-compact.coar-theme-none,
 .coar-compact .coar-theme-none {
   --coar-appearance-accent: initial;
@@ -408,8 +336,6 @@
   --coar-compact-color-scheme: light;
 }
 
-/* Mobile is an inherited role override, including when it is on an ancestor.
-   Keep the field's 16px text distinct from action text and smaller indicators. */
 .coar-mobile .coar-compact,
 .coar-compact.coar-mobile,
 .coar-compact .coar-mobile,
@@ -438,4 +364,26 @@
   --coar-popconfirm-title-font-size: 16px;
   --coar-toast-title-font-size: 15px;
   --coar-dialog-close-size: 44px;
+  --coar-data-grid-tree-toggle-size: 44px;
+  --coar-markdown-font-size: 15px;
+  --coar-markdown-table-font-size: 14px;
+  --coar-markdown-table-cell-padding: 10px 12px;
+  --coar-markdown-embed-placeholder-padding: 10px 12px;
+  --coar-markdown-editor-source-font-size: var(--coar-field-font-size, 16px);
+  --coar-markdown-editor-corner-button-size: 44px;
+  --coar-markdown-editor-float-button-size: 44px;
+  --coar-markdown-editor-float-separator-height: 24px;
+  --coar-markdown-editor-float-wrap: wrap;
+  --coar-markdown-editor-float-max-width: calc(100vw - 16px);
+  --coar-markdown-editor-table-picker-cell-size: 28px;
+  --coar-markdown-editor-table-picker-cell-gap: 4px;
+  --coar-markdown-editor-color-picker-width: 264px;
+  --coar-markdown-editor-color-input-height: 44px;
+  --coar-mermaid-control-size: 44px;
+  --coar-document-viewer-header-height: 48px;
+  --coar-document-viewer-target-size: 44px;
+  --coar-document-viewer-input-height: var(--coar-control-min-size, 44px);
+  --coar-document-viewer-swatch-size: 32px;
+  --coar-document-viewer-pin-target-outset: 11px;
+  --coar-map-target-size: 44px;
 }

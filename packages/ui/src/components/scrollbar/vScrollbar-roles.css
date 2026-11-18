@@ -1,9 +1,22 @@
 /*
  * Handle colour roles for the default `os-theme-dark` scrollbar (every library
- * surface uses it, in light and dark mode alike). Unset, each role falls back to the
- * theme's own variable, so the scrollbar looks as overlayscrollbars.css draws it and a
- * consumer's `--os-handle-*` overrides still apply. The compact profile sets the roles.
+ * surface uses it, in light and dark mode alike). A theme sets the roles; they reach
+ * the handle as the theme variables overlayscrollbars.css draws with. Unset, each
+ * variable keeps the value it inherits, so the scrollbar looks as that stylesheet
+ * draws it and a consumer's `--os-handle-*` overrides still apply.
  * An explicit `theme: 'light'` is left alone: the consumer chose it for its surface.
+ */
+.os-theme-dark .os-scrollbar-handle {
+  --os-handle-bg: var(--coar-scrollbar-handle-bg, inherit);
+  --os-handle-bg-hover: var(--coar-scrollbar-handle-bg-hover, inherit);
+  --os-handle-bg-active: var(--coar-scrollbar-handle-bg-active, inherit);
+}
+
+/*
+ * Compatibility of the `.coar-compact` entry only: there the roles also outrank a
+ * consumer's own `.os-scrollbar-handle { background }` rule, as they did in the
+ * Preview. A value cannot express that precedence, so a theme applied without the
+ * class leaves such a rule in charge, like the default presentation does.
  */
 :where(.coar-compact, .coar-compact *) .os-theme-dark .os-scrollbar-handle,
 .coar-compact.os-theme-dark .os-scrollbar-handle {

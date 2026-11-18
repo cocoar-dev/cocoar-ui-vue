@@ -1,20 +1,22 @@
 /*
- * Compact presentation profile (Preview) of `@cocoar/vue-script-editor`'s
- * frame. Imported by `CoarScriptEditor.vue`. Only `.coar-compact` defines the
- * `--coar-script-editor-*` roles below; outside it the legacy values apply.
+ * Role derivation of `@cocoar/vue-script-editor`'s frame (Preview). Imported by
+ * `CoarScriptEditor.vue`. It is evaluated only in a role theme, one that sets
+ * `--coar-role-derivation` (the Compact values do; `.coar-compact` applies them);
+ * without one every declaration here resolves to the value the element had
+ * before, so the default presentation is untouched. The constants of the Compact
+ * values are in `packages/ui/src/theme/compact-packages/script-editor.ts`.
  *
- * The frame is plain CSS and follows a local `.coar-compact` area. What Monaco
- * paints (colors, line numbers, selection) is a page-global Monaco theme: the
- * compact Monaco themes apply only when `<html>` or `<body>` carries
- * `.coar-compact` (see `theme.ts`). Code text keeps its role (13 px, line
- * height 1.5, Cascadia Code), independent of the UI text roles.
+ * The frame is plain CSS and follows the theme of its own area. What Monaco
+ * paints (colors, line numbers, selection) is a page-global Monaco theme: it
+ * follows the role theme of the document, `<html>` or `<body>` (see
+ * `theme.ts`). Code text keeps its role (13 px, line height 1.5, Cascadia
+ * Code), independent of the UI text roles.
+ *
+ * No specificity (`:where`): a consumer rule on the editor element wins.
  */
 
-.coar-compact {
-  /* Same shape as the profile's text inputs. */
-  --coar-script-editor-radius: var(--coar-control-radius, 6px);
-  /* The placeholder overlays Monaco's first line: same code font as Monaco
-     (legacy lists Fira Code first, which Monaco does not use). */
-  --coar-script-editor-placeholder-font-family: 'Cascadia Code', 'Consolas', 'Monaco',
-    'Courier New', monospace;
+:where(.coar-script-editor) {
+  /* Same shape as the theme's text inputs. */
+  --coar-d-script-editor-radius: var(--coar-role-derivation) var(--coar-control-radius, 6px);
+  --coar-script-editor-radius: var(--coar-d-script-editor-radius, inherit);
 }

@@ -1,111 +1,66 @@
 /*
- * Compact presentation profile (Preview) for `@cocoar/vue-markdown` and the
- * editor that shares this stylesheet. Imported by `markdown-blocks.css`.
+ * Presentation roles of `@cocoar/vue-markdown` and the editor that shares this
+ * stylesheet. Imported by `markdown-blocks.css`.
  *
- * Everything here is scoped to `.coar-compact`: without that class no rule
- * matches and no `--coar-markdown-*` role below is defined, so every
- * `var(role, legacy)` declaration in `markdown-blocks.css` keeps its legacy
- * value. Roles are set on the scope element (not on `.coar-markdown`), so the
- * mobile values below inherit into nested and local `.coar-mobile` areas.
+ * A role theme gives the `--coar-markdown-*` roles that `markdown-blocks.css`
+ * reads with its legacy value as fallback. The constants are values of the
+ * theme, set on its scope so the mobile values inherit into nested and local
+ * `.coar-mobile` areas (Compact: `COMPACT_MARKDOWN_TOKENS` in `@cocoar/vue-ui`,
+ * `src/theme/compact-packages/markdown.ts`). This file holds the rest: the
+ * roles that follow from shared tokens, and the declarations the legacy
+ * stylesheet does not make at all. Without a role theme nothing here declares
+ * anything, so every legacy value and every host style stays as it is.
  *
  * Markdown is document content: reading text, headings and code text have
- * their own roles here and do not shrink with the UI text role. Consumer
- * colors (`<span style="color:…">`) and saved content are untouched.
+ * their own roles and do not shrink with the UI text role. Consumer colors
+ * (`<span style="color:…">`) and saved content are untouched.
  */
 
-.coar-compact {
-  /* Reading text. */
-  --coar-markdown-font-size: 14px;
-  --coar-markdown-line-height: 1.5;
-
-  /* Heading hierarchy: page 24 / section 18 / subsection 16, then body-sized
-     levels. 600 marks hierarchy; nothing is 700 by default. */
-  --coar-markdown-h1-font-size: 24px;
-  --coar-markdown-h1-font-weight: 600;
-  --coar-markdown-h1-line-height: 1.25;
-  --coar-markdown-h2-font-size: 18px;
-  --coar-markdown-h2-font-weight: 600;
-  --coar-markdown-h2-line-height: 1.3;
-  --coar-markdown-h3-font-size: 16px;
-  --coar-markdown-h3-font-weight: 600;
-  --coar-markdown-h3-line-height: 1.35;
-  --coar-markdown-h4-font-size: 14px;
-  --coar-markdown-h4-font-weight: 600;
-  --coar-markdown-h4-line-height: 1.4;
-  --coar-markdown-h5-font-size: 13px;
-  --coar-markdown-h5-font-weight: 600;
-  --coar-markdown-h5-line-height: 1.4;
-  --coar-markdown-h6-font-size: 12px;
-  --coar-markdown-h6-font-weight: 600;
-  --coar-markdown-h6-line-height: 1.4;
-
-  /* Vertical rhythm on a 4 px grid. */
-  --coar-markdown-tight-spacing: 8px;
-  --coar-markdown-block-spacing: 12px;
-  --coar-markdown-section-spacing: 24px;
-  --coar-markdown-block-gap: 12px;
-
+/* Roles that read color or shared UI roles are derived on the markdown element
+   itself, not on the theme scope: a light/dark or mobile scope between the two
+   then still applies. Each private `--coar-d-*` value is invalid unless a theme
+   sets `--coar-role-derivation`, and the role then keeps what it inherits. No
+   specificity, so a consumer rule on the element wins. */
+:where(.coar-markdown) {
   /* Boxes drawn by the renderer (unsupported node, unknown embed). */
-  --coar-markdown-box-radius: var(--coar-panel-radius, 8px);
+  --coar-d-markdown-box-radius: var(--coar-role-derivation) var(--coar-panel-radius, 8px);
+  --coar-markdown-box-radius: var(--coar-d-markdown-box-radius, inherit);
 
-  /* Inline code: code text role, a quiet chip instead of bare accent text. */
-  --coar-markdown-code-font-family: 'Cascadia Code', Consolas, Monaco, 'Courier New', monospace;
-  --coar-markdown-code-font-size: 0.875em;
-  --coar-markdown-inline-code-padding: 0.1em 0.35em;
-  --coar-markdown-inline-code-radius: 4px;
+  /* Inline code: a quiet chip instead of bare accent text. */
+  --coar-d-markdown-inline-code-background: var(--coar-role-derivation) var(--coar-background-neutral-tertiary);
+  --coar-markdown-inline-code-background: var(--coar-d-markdown-inline-code-background, inherit);
+  --coar-d-markdown-inline-code-color: var(--coar-role-derivation) var(--coar-text-neutral-primary);
+  --coar-markdown-inline-code-color: var(--coar-d-markdown-inline-code-color, inherit);
 
-  /* Tables: data text, sentence-case header without tracking. */
-  --coar-markdown-table-font-size: 13px;
-  --coar-markdown-table-line-height: 1.45;
-  --coar-markdown-table-cell-padding: 8px 12px;
-  --coar-markdown-table-header-font-size: 12px;
-  --coar-markdown-table-header-font-weight: 600;
-  --coar-markdown-table-header-transform: none;
-  --coar-markdown-table-header-letter-spacing: normal;
+  --coar-d-markdown-table-header-color: var(--coar-role-derivation) var(--coar-text-neutral-secondary);
+  --coar-markdown-table-header-color: var(--coar-d-markdown-table-header-color, inherit);
 
-  /* Placeholder for an unregistered embed. */
-  --coar-markdown-embed-placeholder-gap: 8px;
-  --coar-markdown-embed-placeholder-padding: 8px 12px;
-}
-
-/* Mobile inside the profile: same hierarchy, one step larger reading and
-   table text, roomier cells for touch reading. Covers html/body, local and
-   nested combinations of the two classes. */
-.coar-compact.coar-mobile,
-.coar-compact .coar-mobile,
-.coar-mobile .coar-compact {
-  --coar-markdown-font-size: 15px;
-  --coar-markdown-table-font-size: 14px;
-  --coar-markdown-table-cell-padding: 10px 12px;
-  --coar-markdown-embed-placeholder-padding: 10px 12px;
-}
-
-/* Roles that read color or shared UI roles are resolved on the markdown
-   element itself, not on the scope: a light/dark or mobile scope between
-   `.coar-compact` and the document then still applies. The font size and line
-   height are declarations the legacy stylesheet does not make at all, so they
-   exist only inside the profile. */
-.coar-compact .coar-markdown {
-  --coar-markdown-inline-code-background: var(--coar-background-neutral-tertiary);
-  --coar-markdown-inline-code-color: var(--coar-text-neutral-primary);
-  --coar-markdown-table-header-color: var(--coar-text-neutral-secondary);
   /* Frontmatter: legible metadata instead of gray-400 (below 4.5:1 on white). */
-  --coar-markdown-frontmatter-color: var(--coar-text-neutral-tertiary);
+  --coar-d-markdown-frontmatter-color: var(--coar-role-derivation) var(--coar-text-neutral-tertiary);
+  --coar-markdown-frontmatter-color: var(--coar-d-markdown-frontmatter-color, inherit);
+
   /* Placeholder of an unregistered embed: UI text. */
-  --coar-markdown-embed-placeholder-font-size: var(--coar-ui-font-size, 13px);
-
-  font-size: var(--coar-markdown-font-size);
-  line-height: var(--coar-markdown-line-height);
+  --coar-d-markdown-embed-placeholder-font-size: var(--coar-role-derivation) var(--coar-ui-font-size, 13px);
+  --coar-markdown-embed-placeholder-font-size: var(--coar-d-markdown-embed-placeholder-font-size, inherit);
 }
 
-.coar-compact .coar-markdown :where(:not(pre) > code),
-.coar-compact .coar-markdown-inline-code {
-  font-family: var(--coar-markdown-code-font-family);
-  font-size: var(--coar-markdown-code-font-size);
-}
+/* Declarations the legacy stylesheet does not make at all. In the library's
+   cascade layer each one falls back to the layers below, so without its role
+   it declares nothing and the text keeps the size, leading and font it has. */
+@layer cocoar.components {
+  .coar-markdown {
+    font-size: var(--coar-markdown-font-size, revert-layer);
+    line-height: var(--coar-markdown-line-height, revert-layer);
+  }
 
-.coar-compact .coar-markdown :where(a),
-.coar-compact .coar-markdown-link {
-  text-decoration-thickness: 1px;
-  text-underline-offset: 2px;
+  .coar-markdown :where(:not(pre) > code),
+  .coar-markdown-inline-code {
+    font-family: var(--coar-markdown-code-font-family, revert-layer);
+    font-size: var(--coar-markdown-code-font-size, revert-layer);
+  }
+
+  .coar-markdown :where(a),
+  .coar-markdown-link {
+    text-underline-offset: var(--coar-markdown-link-underline-offset, revert-layer);
+  }
 }

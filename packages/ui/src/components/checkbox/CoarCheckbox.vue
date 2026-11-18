@@ -233,10 +233,10 @@ onBeforeUnmount(() => {
   padding-block: 6px;
 }
 
-/* Without an internal label there is no first text line to align to. Center
-   the smaller Compact indicator inside its unchanged, generous click target. */
-.coar-compact .coar-checkbox-wrapper--unlabelled {
-  align-items: var(--coar-control-align-items, center);
+/* Without an internal label there is no first text line to align to. A theme with
+   a smaller indicator centers it inside its unchanged, generous click target. */
+.coar-checkbox-wrapper--unlabelled {
+  align-items: var(--coar-control-align-items, var(--coar-checkbox-unlabelled-align, flex-start));
 }
 
 .coar-checkbox--xs .coar-checkbox-wrapper {

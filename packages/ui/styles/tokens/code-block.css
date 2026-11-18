@@ -14,7 +14,7 @@
   /* Layout */
   --coar-code-block-bg: var(--coar-color-white);
   --coar-code-block-header-bg: var(--coar-color-gray-50);
-  --coar-code-block-border: #e1e4e8;
+  --coar-code-block-border: var(--coar-d-code-block-border, #e1e4e8);
 
   /* Text */
   --coar-code-block-text: #24292e;
@@ -47,7 +47,7 @@
   /* Layout */
   --coar-code-block-bg: var(--coar-color-gray-100);
   --coar-code-block-header-bg: var(--coar-color-gray-200);
-  --coar-code-block-border: var(--coar-color-gray-300);
+  --coar-code-block-border: var(--coar-d-code-block-border, var(--coar-color-gray-300));
 
   /* Text */
   --coar-code-block-text: #d4d4d4;

@@ -45,23 +45,23 @@
      Typography
      ========================================================================== */
   --ag-font-family: var(--coar-font-family-body, Poppins, sans-serif);
-  --ag-font-size: var(--coar-font-size-xs, 14px);
+  --ag-font-size: var(--coar-d-ag-font-size, var(--coar-font-size-xs, 14px));
 
   /* ==========================================================================
      Spacing & Sizing
      ========================================================================== */
   --ag-grid-size: 4px;
-  --ag-cell-horizontal-padding: var(--coar-spacing-m, 16px);
-  --ag-row-height: 40px;
-  --ag-header-height: 40px;
-  --ag-list-item-height: 36px;
+  --ag-cell-horizontal-padding: var(--coar-d-ag-cell-horizontal-padding, var(--coar-spacing-m, 16px));
+  --ag-row-height: var(--coar-d-ag-row-height, 40px);
+  --ag-header-height: var(--coar-d-ag-header-height, 40px);
+  --ag-list-item-height: var(--coar-d-ag-list-item-height, 36px);
 
   /* ==========================================================================
      Borders & Radius
      ========================================================================== */
   --ag-borders: solid 1px;
-  --ag-border-radius: var(--coar-radius-m, 8px);
-  --ag-wrapper-border-radius: var(--coar-radius-m, 8px);
+  --ag-border-radius: var(--coar-d-ag-border-radius, var(--coar-radius-m, 8px));
+  --ag-wrapper-border-radius: var(--coar-d-ag-wrapper-border-radius, var(--coar-radius-m, 8px));
   --ag-row-border-style: solid;
   --ag-row-border-width: 1px;
 
@@ -193,12 +193,12 @@
 
   /* Header styling */
   .ag-header {
-    font-weight: 600;
+    font-weight: var(--coar-data-grid-header-font-weight, var(--coar-label-font-weight, 600));
   }
 
   .ag-header-cell {
-    padding-left: var(--coar-spacing-m, 16px);
-    padding-right: var(--coar-spacing-m, 16px);
+    padding-left: var(--coar-data-grid-cell-padding-x, var(--coar-spacing-m, 16px));
+    padding-right: var(--coar-data-grid-cell-padding-x, var(--coar-spacing-m, 16px));
   }
 
   /* Cell styling — do NOT use display:flex on ag-cell.
@@ -249,38 +249,38 @@
 
   /* Drop target highlight for row drag & drop */
   .ag-row.coar-drop-target {
-    background-color: var(--coar-surface-accent-subtle, rgba(0, 102, 204, 0.1)) !important;
-    outline: 2px solid var(--coar-border-accent, #0066cc);
+    background-color: var(--coar-data-grid-drop-target-bg, var(--coar-surface-accent-subtle, rgba(0, 102, 204, 0.1))) !important;
+    outline: 2px solid var(--coar-data-grid-drop-target-outline-color, var(--coar-border-accent, #0066cc));
     outline-offset: -2px;
-    border-radius: var(--coar-radius-s, 6px);
+    border-radius: var(--coar-control-radius, var(--coar-radius-s, 6px));
   }
 
   /* Root drop zone — shown when dragging over empty grid area */
   &.coar-drop-target-root {
-    outline: 2px dashed var(--coar-border-accent, #0066cc);
+    outline: 2px dashed var(--coar-data-grid-drop-target-outline-color, var(--coar-border-accent, #0066cc));
     outline-offset: -2px;
-    border-radius: var(--coar-radius-s, 6px);
+    border-radius: var(--coar-panel-radius, var(--coar-radius-s, 6px));
   }
 
   /* Bordered variant */
   &.ag-theme-cocoar--bordered {
     border: 1px solid var(--coar-border-neutral);
-    border-radius: var(--coar-radius-s);
+    border-radius: var(--coar-panel-radius, var(--coar-radius-s));
     overflow: hidden;
   }
 
   /* Elevated variant */
   &.ag-theme-cocoar--elevated {
     box-shadow: var(--coar-elevation-medium);
-    border-radius: var(--coar-radius-s);
+    border-radius: var(--coar-panel-radius, var(--coar-radius-s));
     overflow: hidden;
   }
 
   .ag-row.coar-drop-target--invalid {
-    background-color: var(--coar-surface-semantic-error-subtle, rgba(204, 0, 0, 0.06)) !important;
+    background-color: var(--coar-data-grid-drop-target-invalid-bg, var(--coar-surface-semantic-error-subtle, rgba(204, 0, 0, 0.06))) !important;
     outline: 2px dashed var(--coar-border-semantic-error, rgba(204, 0, 0, 0.4));
     outline-offset: -2px;
-    border-radius: var(--coar-radius-s, 6px);
+    border-radius: var(--coar-control-radius, var(--coar-radius-s, 6px));
     cursor: not-allowed;
   }
 }
@@ -288,7 +288,7 @@
 /* Search highlight using CSS Custom Highlight API */
 ::highlight(coar-search) {
   text-decoration: underline;
-  text-decoration-color: var(--coar-border-accent, #0066cc);
+  text-decoration-color: var(--coar-data-grid-search-highlight-color, var(--coar-border-accent, #0066cc));
   text-decoration-thickness: 2px;
   text-underline-offset: 2px;
   background-color: transparent;

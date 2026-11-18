@@ -1,10 +1,17 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
 import {
-  DEFAULTS, accent, cleanupThemeEditorState, downloadCSS, initThemeEditorState, isDark,
+  DEFAULTS, PRESETS, accent, applyPreset, baseline, cleanupThemeEditorState, downloadCSS, fontBody,
+  hasEditorChanges, initThemeEditorState, isDark, radiusM, reset, resetRoleValue, roleTheme, setRoleValue,
+  themeFileCss,
 } from './theme-editor-state';
+import { COMPACT_THEME } from '../../theme/compact-theme';
+import { serializeRoleTheme } from '../../theme/role-theme';
 
 afterEach(() => {
+  cleanupThemeEditorState();
+  // The controls are module state; happy-dom resolves no tokens to read them from.
+  applyPreset(PRESETS[0]);
   cleanupThemeEditorState();
   accent.value = DEFAULTS.accent;
   document.body.innerHTML = '';
@@ -72,3 +79,123 @@ describe('theme editor export', () => {
     }
   });
 });
+
+describe('theme editor presets on one value contract', () => {
+  const compact = PRESETS.find((preset) => preset.id === 'compact')!;
+  const live = () => document.getElementById('coar-theme-editor')?.textContent ?? '';
+
+  it('loads Compact as values on the editor scope, without the compatibility class', () => {
+    initThemeEditorState(true, null);
+    applyPreset(compact);
+    expect(roleTheme.value).toBe(COMPACT_THEME);
+    // The same text as the `.coar-compact` entry, in the same cascade layer.
+    expect(live()).toBe(`@layer cocoar.tokens {\n${serializeRoleTheme('.coar-theme-editor', COMPACT_THEME)}}\n`);
+    expect(live()).not.toContain('.coar-compact');
+    expect(document.documentElement.classList.contains('coar-theme-editor')).toBe(true);
+    expect(document.querySelector('.coar-compact')).toBeNull();
+  });
+
+  it('writes the same theme for the live scope and the download', async () => {
+    initThemeEditorState(true, null);
+    applyPreset(compact);
+    setRoleValue('--coar-ui-font-size', '15px');
+    fontBody.value = 'Nunito';
+    accent.value = '#a21caf';
+    await nextTick();
+    const file = themeFileCss('acme');
+    expect(file).toBe(live().replaceAll('.coar-theme-editor', '.coar-theme--acme'));
+    expect(file).toContain('  --coar-ui-font-size: 15px;');
+    expect(file).toContain('  --coar-theme-accent: #a21caf;');
+    // A surrounding CoarThemeScope may still name another font.
+    expect(file).toContain('  --coar-font-family-body: var(--coar-appearance-font-body, Nunito, ui-sans-serif, system-ui, sans-serif);');
+    // Every value a fresh app needs, not the changes against a preset it does not have.
+    expect(file).toContain('  --coar-role-derivation: ;');
+    expect(file).toContain('  --coar-component-m-height: 36px;');
+    expect(file).not.toContain('.coar-compact');
+  });
+
+  it('repeats a changed derived token on the boundaries inside the scope', async () => {
+    initThemeEditorState(true, null);
+    applyPreset(compact);
+    setRoleValue('--coar-menu-radius', '14px');
+    await nextTick();
+    expect(live()).toMatch(/\.coar-theme-editor,\n\.coar-theme-editor :where\([^)]*\.coar-mobile[^)]*\) \{\n {2}--coar-menu-radius: 14px;\n\}/);
+    // An input is written once, in place of the preset value.
+    setRoleValue('--coar-panel-radius', '10px');
+    await nextTick();
+    expect(live().match(/--coar-panel-radius:/g)).toHaveLength(1);
+  });
+
+  it('resets one value to the loaded preset', async () => {
+    initThemeEditorState(true, null);
+    applyPreset(compact);
+    setRoleValue('--coar-ui-font-size', '15px');
+    await nextTick();
+    resetRoleValue('--coar-ui-font-size');
+    await nextTick();
+    expect(live()).toContain('  --coar-ui-font-size: 13px;');
+    expect(baseline.value.fontBody).toBe('Inter');
+    expect(baseline.value.accent).toBe('#334155');
+  });
+
+  it('keeps the other presets as changes of the controls alone', () => {
+    initThemeEditorState(true, null);
+    applyPreset(PRESETS.find((preset) => preset.id === 'saas')!);
+    expect(roleTheme.value).toBeNull();
+    expect(live()).toContain('--coar-button-radius: var(--coar-radius-m);');
+    expect(live()).not.toContain('--coar-role-derivation');
+    expect(live().match(/\{/g)).toHaveLength(1);
+    expect(themeFileCss('saas')).toBe(live().replace('.coar-theme-editor', '.coar-theme--saas'));
+    // A preset of the default look stays an ordinary, unlayered theme class.
+    expect(live()).not.toContain('@layer');
+  });
+
+  it('tells attribute observers of each live change, and leaves no trace after a reset', async () => {
+    initThemeEditorState(true);
+    const root = document.documentElement;
+    const seen: string[] = [];
+    const observer = new MutationObserver((records) => seen.push(...records.map((r) => r.attributeName ?? '')));
+    observer.observe(root, { attributes: true, attributeFilter: ['class', 'style'] });
+    applyPreset(PRESETS.find((preset) => preset.roleTheme)!);
+    await nextTick();
+    await nextTick();
+    expect(seen).toContain('style');
+    const first = root.style.getPropertyValue('--theme-editor-revision');
+    setRoleValue('--coar-ui-font-size', '15px');
+    await nextTick();
+    await nextTick();
+    expect(root.style.getPropertyValue('--theme-editor-revision')).not.toBe(first);
+    reset();
+    await nextTick();
+    expect(root.hasAttribute('style')).toBe(false);
+    observer.disconnect();
+  });
+
+  it('resets to the theme the app has without the editor, and leaves mode and touch alone', async () => {
+    document.documentElement.className = 'dark-mode coar-mobile app-state';
+    document.documentElement.style.setProperty('--coar-radius-m', '9px');
+    initThemeEditorState(false, null);
+    expect(isDark.value).toBe(true);
+    expect(radiusM.value).toBe(9);
+    // The app's own theme is not the editor's change.
+    expect(hasEditorChanges.value).toBe(false);
+    expect(live()).toBe('');
+
+    applyPreset(compact);
+    radiusM.value = 12;
+    await nextTick();
+    expect(hasEditorChanges.value).toBe(true);
+    // Loading a preset does not switch the app to light.
+    expect(document.documentElement.classList.contains('dark-mode')).toBe(true);
+
+    reset();
+    await nextTick();
+    expect(roleTheme.value).toBeNull();
+    expect(radiusM.value).toBe(9);
+    expect(document.getElementById('coar-theme-editor')).toBeNull();
+    expect(document.documentElement.className).toBe('dark-mode coar-mobile app-state');
+    expect(hasEditorChanges.value).toBe(false);
+    document.documentElement.removeAttribute('style');
+  });
+});
+

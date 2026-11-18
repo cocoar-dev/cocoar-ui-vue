@@ -17,7 +17,7 @@
 // Package stylesheet: dark-mode values for the `--coar-calendar-*`
 // tokens. Light values are per-usage fallbacks in the components.
 import './styles/tokens-dark.css';
-// Opt-in compact presentation (Preview): roles under `.coar-compact` only.
+// Role derivation for role themes (Compact, Preview): inert without one.
 import './styles/compact.css';
 
 // ─── Builder ──────────────────────────────────────────────────────

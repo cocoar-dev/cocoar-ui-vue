@@ -103,12 +103,14 @@ export function useMonthDayOverlay(opts: UseMonthDayOverlayOptions): UseMonthDay
     if (day.value === null || !isOpen(d)) return;
     const sheet = opts.overlayEl();
     if (!sheet) return;
-    if (root.closest('.coar-compact')) {
-      // Compact actions can be 44px high. Keep the list budget coupled to the
-      // real header instead of subtracting the legacy 30px constant.
-      const header = sheet.querySelector<HTMLElement>('.coar-month-day-overlay__header');
+    // The constant stands for the header as the default presentation draws it.
+    // A taller one (close targets up to 44px under a theme) gets the list
+    // budget from the measured chrome instead.
+    const headerHeight =
+      sheet.querySelector<HTMLElement>('.coar-month-day-overlay__header')?.offsetHeight ?? 0;
+    if (headerHeight > HEADER_HEIGHT) {
       const style = getComputedStyle(sheet);
-      const chrome = (header?.offsetHeight || HEADER_HEIGHT)
+      const chrome = headerHeight
         + (parseFloat(style.paddingTop) || 0) + (parseFloat(style.paddingBottom) || 0)
         + (parseFloat(style.borderTopWidth) || 0) + (parseFloat(style.borderBottomWidth) || 0);
       position.value = { ...position.value, maxListHeight: Math.max(0, maxHeight - chrome) };

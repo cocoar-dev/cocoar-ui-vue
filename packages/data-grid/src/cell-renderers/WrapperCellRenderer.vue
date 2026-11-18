@@ -219,7 +219,7 @@ function itemTooltip(item: WrapperSlotItem): string | undefined {
 }
 
 .coar-wrap-cell__item--clickable:hover {
-  background-color: var(--coar-surface-neutral-hover, rgba(0, 0, 0, 0.06));
+  background-color: var(--coar-data-grid-cell-action-hover-bg, var(--coar-surface-neutral-hover, rgba(0, 0, 0, 0.06)));
 }
 
 .coar-wrap-cell__inner {

@@ -8,7 +8,7 @@ import { CoarGridBuilder } from './builders';
 import { cocoarTheme } from './theme';
 import CoarDataGridSearch from './CoarDataGridSearch.vue';
 import './theme/ag-theme-cocoar.css';
-// After the default theme: compact rules win at equal specificity (opt-in `.coar-compact`).
+// The role adapter: what the grid follows in a role theme (Compact); a no-op without one.
 import './theme/ag-theme-cocoar-compact.css';
 
 ModuleRegistry.registerModules([AllCommunityModule]);

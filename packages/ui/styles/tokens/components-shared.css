@@ -24,8 +24,8 @@
 
   /* Component Font Sizes */
   --coar-component-xs-font-size: 11px;
-  --coar-component-s-font-size: 13px;
-  --coar-component-m-font-size: 14px;
+  --coar-component-s-font-size: var(--coar-d-component-s-font-size, 13px);
+  --coar-component-m-font-size: var(--coar-d-component-m-font-size, 14px);
   --coar-component-l-font-size: 16px;
 
   /* Component Size Scale — per-size, unitless multiplier for size-derived
@@ -40,8 +40,8 @@
 
   /* Component Label Font Sizes (slightly smaller for labels) */
   --coar-component-xs-label-font-size: 11px;
-  --coar-component-s-label-font-size: 13px;
-  --coar-component-m-label-font-size: 14px;
+  --coar-component-s-label-font-size: var(--coar-d-component-s-label-font-size, 13px);
+  --coar-component-m-label-font-size: var(--coar-d-component-m-label-font-size, 14px);
   --coar-component-l-label-font-size: 15px;
 
   /* Component Label Margins */

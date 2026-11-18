@@ -408,7 +408,10 @@ async function onOutlineClick(node: OutlineNode) {
 }
 .coar-pdf-sidebar__outline :deep(.coar-pdf-sidebar__outline-link) {
   appearance: none;
-  display: block;
+  /* A theme can make the entry a row (`flex`): its title is then centred in the row
+     height below; the depth indentation stays inline on the link. */
+  display: var(--coar-document-viewer-outline-link-display, block);
+  align-items: center;
   width: 100%;
   text-align: left;
   padding: 4px 8px;
@@ -419,12 +422,13 @@ async function onOutlineClick(node: OutlineNode) {
   cursor: pointer;
   border-radius: var(--coar-control-radius, 2px);
 }
-/* Compact profile: outline entries are rows of the interactive-row rhythm (36px
-   desktop / 44px touch); the depth indentation stays inline on the link. */
-.coar-compact .coar-pdf-sidebar__outline :deep(.coar-pdf-sidebar__outline-link) {
-  display: flex;
-  align-items: center;
-  min-height: var(--coar-interactive-row-height, 0px);
+/* Outline entries follow the interactive-row rhythm of a theme that has one (Compact:
+   36px desktop / 44px touch). In the library's layer with a fallback to the layers
+   below: without the value this declares nothing. */
+@layer cocoar.components {
+  .coar-pdf-sidebar__outline :deep(.coar-pdf-sidebar__outline-link) {
+    min-height: var(--coar-interactive-row-height, revert-layer);
+  }
 }
 .coar-pdf-sidebar__outline :deep(.coar-pdf-sidebar__outline-link:hover) {
   background: var(--coar-color-surface-3, var(--coar-document-viewer-hover, rgba(0, 0, 0, 0.06)));

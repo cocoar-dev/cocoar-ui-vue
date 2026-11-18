@@ -17,31 +17,54 @@ async function readSource(path: string): Promise<string> {
 
 const stripComments = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, '');
 
-describe('markdown-form compact profile stylesheet', () => {
-  let compact = '';
+/** Token names a block of the value module (`export const NAME … = { … };`) sets. */
+function moduleTokens(source: string, name: string): Set<string> {
+  const block = source.match(new RegExp(`export const ${name}\\b[^=]*=\\s*\\{([\\s\\S]*?)\\n\\};`));
+  if (!block) throw new Error(`${name} not found`);
+  return new Set([...block[1]!.matchAll(/^\s*'(--coar-[a-z0-9-]+)':/gm)].map((m) => m[1]!));
+}
+
+describe('markdown-form presentation roles', () => {
+  let roles = '';
   let base = '';
+  let constants = new Set<string>();
   beforeAll(async () => {
-    compact = stripComments(await readSource('../styles/markdown-form-compact.css'));
+    roles = stripComments(await readSource('../styles/markdown-form-compact.css'));
     base = stripComments(await readSource('../styles/markdown-form.css'));
+    const values = await readSource('../../ui/src/theme/compact-packages/markdown.ts');
+    constants = new Set(
+      [...moduleTokens(values, 'COMPACT_MARKDOWN_TOKENS')].filter((name) => name.startsWith('--coar-markdown-form-')),
+    );
   });
 
   it('is imported by the form stylesheet', () => {
     expect(base).toContain("@import './markdown-form-compact.css';");
   });
 
-  it('defines nothing outside .coar-compact', () => {
-    const selectors = [...compact.matchAll(/([^{};]+)\{/g)].flatMap((m) => m[1]!.split(','));
-    expect(selectors.length).toBeGreaterThan(0);
-    for (const selector of selectors) expect(selector.trim()).toContain('.coar-compact');
+  it('does not depend on the class .coar-compact', () => {
+    expect(roles).not.toContain('coar-compact');
+    expect(base).not.toContain('coar-compact');
   });
 
-  it('defines exactly the roles the form stylesheet reads', () => {
-    const readRoles = new Set(
-      [...base.matchAll(/var\(\s*(--coar-markdown-form-[a-z0-9-]+)\s*,/g)].map((m) => m[1]!),
-    );
-    const defined = new Set(
-      [...compact.matchAll(/(--coar-markdown-form-[a-z0-9-]+)\s*:/g)].map((m) => m[1]!),
-    );
-    expect([...readRoles].sort()).toEqual([...defined].sort());
+  it('derives a role only where a theme activates derivation, and keeps what it inherits otherwise', () => {
+    // Zero specificity, on the form element: a consumer rule on it wins.
+    const selectors = [...roles.matchAll(/([^{};]+)\{/g)].map((m) => m[1]!.trim());
+    expect(selectors).toEqual([':where(.coar-markdown-form)']);
+    const declared = [...roles.matchAll(/([a-z-]+)\s*:\s*([^;]+);/g)].map((m) => [m[1]!, m[2]!.trim()] as const);
+    expect(declared.length).toBeGreaterThan(0);
+    for (const [name, value] of declared) {
+      if (name.startsWith('--coar-d-')) {
+        expect(value.startsWith('var(--coar-role-derivation) '), name).toBe(true);
+      } else {
+        expect(value, name).toBe(`var(${name.replace('--coar-', '--coar-d-')}, inherit)`);
+      }
+    }
+  });
+
+  it('reads every role with a fallback, and a theme gives each one as a constant or a derivation', () => {
+    const read = new Set([...base.matchAll(/var\(\s*(--coar-markdown-form-[a-z0-9-]+)\s*,/g)].map((m) => m[1]!));
+    const derived = new Set([...roles.matchAll(/(--coar-markdown-form-[a-z0-9-]+)\s*:/g)].map((m) => m[1]!));
+    for (const name of constants) expect(derived.has(name), `${name} is a constant, not derived`).toBe(false);
+    expect([...derived, ...constants].sort()).toEqual([...read].sort());
   });
 });

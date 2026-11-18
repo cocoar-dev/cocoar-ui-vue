@@ -23,9 +23,10 @@ import CoarThemeEditor from '@cocoar/vue-ui/theme-editor';
 
 ### Props
 
-In the Preview [compact presentation](./compact-presentation), mounting the editor inside a compact
-area targets that area rather than a neighboring legacy area. Its teleported tools keep that area's
-presentation. The editor remains a single live editor per document.
+Mounted inside a `.coar-compact` area (the compatibility entry of the Preview
+[compact presentation](./compact-presentation)), the editor targets that area rather than a
+neighboring default area. Its teleported tools keep that area's presentation. The editor remains a
+single live editor per document.
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
@@ -52,7 +53,13 @@ Changing a primitive ripples through semantic tokens, which ripple through every
 
 ### Presets
 
-Four built-in starting points: **Enterprise** (default), **Modern SaaS** (rounded), **Playful** (pill buttons, vivid accent), and **Minimal** (sharp corners, no shadows). Selecting a preset resets all other tabs to the preset's values.
+Five built-in starting points: **Enterprise** (default), **Modern SaaS** (rounded), **Playful** (pill buttons, vivid accent), **Minimal** (sharp corners, no shadows) and **Compact** <Badge type="warning" text="Preview" /> (smaller Inter text, Slate surfaces, 36 px controls). Selecting a preset resets all other tabs to the preset's values.
+
+A preset is a set of values, nothing else. All presets use the same tokens and the same derivations; no preset adds a class to your page. **Compact** is the [compact presentation](./compact-presentation) as such a set: selecting the card loads its values into the editor without reloading the page, and every tab keeps working on top of them.
+
+### Values of this theme
+
+Shown while **Compact** is loaded. It lists the values the preset sets, in three groups: typography (body, action, field and caption text), sizes (control heights, row height, paddings, radii) and surfaces and text as a light and a dark colour each. Change any of them independently; the reset button of a row restores the value of the loaded preset.
 
 ### Brand
 
@@ -94,9 +101,13 @@ Box shadow per component group (buttons never have shadows; cards, menus, dialog
 
 A single duration multiplier that scales all `--coar-duration-*` tokens proportionally. Set to 0 for instant transitions, or push it above 2× to slow everything down for testing.
 
+## Resetting
+
+The reset button of a control restores the value of the loaded preset. **Reset** in the header removes everything the editor changed and nothing else: the theme your app has without the editor shows again. Light or dark mode, `.coar-mobile`, other theme scopes and the state of your app are left as they are.
+
 ## Exporting
 
-Type a class name into the name field at the bottom of the editor (default: `custom`), then click **Download CSS** to get a scoped block containing only the tokens you changed:
+Type a class name into the name field at the bottom of the editor (default: `custom`), then click **Download CSS**. The live preview and the download are the same CSS, written for another class. Starting from a preset that only changes the default look, you get a scoped block containing only the tokens you changed:
 
 ```css
 /* coar-theme--myapp.css */
@@ -124,6 +135,37 @@ Or import in your entry file:
 import '@cocoar/vue-ui/styles';
 import './coar-theme--myapp.css';
 ```
+
+### Exporting a theme based on Compact
+
+With **Compact** loaded, the file contains every value a fresh app needs, with your changes in place, not only the differences against a preset the app would not have:
+
+```css
+/* coar-theme--myapp.css (shortened) */
+@layer cocoar.tokens {
+  .coar-theme--myapp {
+    --coar-role-derivation: ;            /* derive the dependent tokens from these values */
+    --coar-theme-accent: #334155;
+    --coar-font-family-body: var(--coar-appearance-font-body, DM Sans, ui-sans-serif, system-ui, sans-serif);
+    --coar-ui-font-size: 13px;
+    --coar-component-m-height: 36px;
+    /* … */
+  }
+
+  .coar-mobile .coar-theme--myapp,
+  .coar-theme--myapp.coar-mobile,
+  .coar-theme--myapp .coar-mobile {
+    --coar-interactive-row-height: 44px; /* touch sizes where the theme meets .coar-mobile */
+    /* … */
+  }
+}
+```
+
+`--coar-role-derivation` (an empty value) is what makes the library derive palette steps, aliases and component roles from the values of the theme, on its class and on the scopes nested in it. The app needs the theme class and this file, loaded after the Cocoar stylesheet; it does not need `.coar-compact`. Dark mode and `.coar-mobile` stay separate choices of the app and combine with the theme.
+
+The file is written into the cascade layer of the library's tokens, where `.coar-compact` is too. Your own unlayered styles therefore keep the last word, exactly as with the class: the theme sets body text to 14 px on its scope, and an app that declares `html { font-size: 16px }` itself keeps its 16 px (and the `rem` sizes that follow from it).
+
+The file names a font, it does not ship one. Load the font your theme uses yourself: `import '@cocoar/vue-ui/fonts/compact'` for the Inter weights of the Compact preset, or your own `@font-face` rules for another family.
 
 Because themes are classes, you can apply different themes to different subtrees:
 

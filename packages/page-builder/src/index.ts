@@ -1,4 +1,4 @@
-// Roles of the opt-in compact presentation; inert without `.coar-compact`.
+// Roles a role theme (such as Compact) gives the builder chrome; inert without one.
 import './styles/compact.css';
 
 export { default as CoarPageRenderer } from './CoarPageRenderer.vue';

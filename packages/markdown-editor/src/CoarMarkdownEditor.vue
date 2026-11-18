@@ -2130,8 +2130,8 @@ export default defineComponent({
 /* Shared markdown-block stylesheet — same source as the viewer (`CoarMarkdown`).
    Editor-specific compactness rules below win via deeper-selector specificity. */
 @import '@cocoar/vue-markdown/styles';
-/* Opt-in `.coar-compact` profile (Preview): defines the `--coar-markdown-editor-*`
-   roles read below; without the class every `var(role, legacy)` keeps its value. */
+/* Role-theme presentation (Preview): derives the `--coar-markdown-editor-*` roles
+   read below; without a role theme every `var(role, legacy)` keeps its value. */
 @import './styles/markdown-editor-compact.css';
 
 /* Custom-embed NodeView host — holds the live, manually-mounted preview. The
@@ -2140,14 +2140,18 @@ export default defineComponent({
 .coar-markdown-embed-host {
   position: relative;
 }
-/* Compact selection must outrank the generic contenteditable outline reset.
-   Keep the historical legacy cascade unchanged outside the opt-in profile. */
-.coar-markdown-embed-host--selected,
-.coar-compact .coar-md-area .milkdown .coar-markdown-embed-host--selected {
+.coar-markdown-embed-host--selected {
   outline: 2px solid
     var(--coar-markdown-editor-selection-outline-color, var(--coar-border-accent, #2563eb));
   outline-offset: 2px;
   border-radius: var(--coar-markdown-radius, 8px);
+}
+/* In the writing area the contenteditable outline reset below removes that
+   outline. A theme that gives the selection a colour outranks the reset;
+   without the role this rule declares the reset's own value. */
+.coar-md-area .milkdown .coar-markdown-embed-host.coar-markdown-embed-host--selected {
+  --coar-i-embed-selection-outline: 2px solid var(--coar-markdown-editor-selection-outline-color);
+  outline: var(--coar-i-embed-selection-outline, none);
 }
 
 .coar-md-root {

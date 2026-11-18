@@ -107,7 +107,7 @@ of each other.
 - [Icons](references/foundations/icons.md) — CoarIcon and the built-in SVG icon set: preset sizes, colors, rotation, spin animation, and registering custom icon sources with fallback.
 - [Motion](references/foundations/motion.md) — Motion design tokens: duration and easing CSS variables plus pre-composed transition values, with interactive demos and usage examples.
 - [Theme Editor](references/foundations/theming.md) — CoarThemeEditor, a live token editor: explore primitive, semantic, and component token layers, apply presets, and export a CSS snippet.
-- [Compact presentation (Preview)](references/foundations/compact-presentation.md) — Preview: an opt-in compact presentation with Inter, Slate surfaces and separate desktop, touch and input roles. Existing applications keep their presentation.
+- [Compact presentation (Preview)](references/foundations/compact-presentation.md) — Preview: the compact presentation, a theme with Inter, Slate surfaces and separate desktop, touch and input roles. Load it as a preset in the Theme Editor or opt in with .coar-compact. Existing applications keep their presentation.
 
 ### Localization (@cocoar/vue-localization)
 

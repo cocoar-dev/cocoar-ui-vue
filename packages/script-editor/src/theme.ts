@@ -4,16 +4,17 @@ export const COAR_THEME_LIGHT = 'coar-light';
 export const COAR_THEME_DARK = 'coar-dark';
 
 /**
- * Monaco themes of the opt-in `.coar-compact` presentation profile (Preview):
- * slate neutrals, line numbers legible at 4.5:1. Registered next to the legacy
- * themes, whose names and colors stay as they are.
+ * Monaco themes of a document with a role theme (Preview), named for the Compact
+ * values they were introduced with: slate neutrals, line numbers legible at 4.5:1.
+ * Registered next to the legacy themes, whose names and colors stay as they are.
  *
  * Monaco themes are global to the page (`monaco.editor.setTheme` restyles every
- * editor), so a compact theme is chosen only for a compact *document*:
- * `.coar-compact` on `<html>` or `<body>`. A local `.coar-compact` area in a
- * default page keeps the legacy theme inside Monaco; its frame (border, radius)
- * still follows the local profile. The registered colors are fallbacks;
- * refreshCompactTheme resolves the active shared roles to Monaco's hex format.
+ * editor), so they are chosen only when the *document* has a role theme: its
+ * values on `<html>` or `<body>`, whichever class applies them (see
+ * {@link isCompactDocument}). A themed area in a default page keeps the legacy
+ * theme inside Monaco; its frame (border, radius) still follows the local theme.
+ * The registered colors are the Compact values, as fallbacks; refreshCompactTheme
+ * resolves the document's effective color roles to Monaco's hex format.
  */
 export const COAR_THEME_COMPACT_LIGHT = 'coar-compact-light';
 export const COAR_THEME_COMPACT_DARK = 'coar-compact-dark';
@@ -143,22 +144,30 @@ export function detectAutoTheme(): string {
 }
 
 /**
- * Whether the page as a whole uses the compact presentation profile:
- * `.coar-compact` on `<html>` or `<body>`. SSR-safe (false without a document).
+ * What `--coar-role-derivation` resolves to where a role theme is active (`derived.css`
+ * of `@cocoar/vue-ui`, which this package does not depend on): `on`, else empty.
+ */
+const ROLE_DERIVATION_MARKER = '--coar-d-role-derivation';
+
+/**
+ * Whether the page as a whole has a role theme, such as the Compact values: decided
+ * by the values in effect on `<html>` or `<body>`, not by the class that applies
+ * them. SSR-safe (false without a document).
  */
 export function isCompactDocument(): boolean {
   if (typeof document === 'undefined') return false;
-  return Boolean(
-    document.documentElement?.classList.contains('coar-compact') ||
-      document.body?.classList.contains('coar-compact'),
+  return [document.documentElement, document.body].some(
+    (boundary) =>
+      boundary &&
+      getComputedStyle(boundary).getPropertyValue(ROLE_DERIVATION_MARKER).trim() === 'on',
   );
 }
 
 /**
  * Resolves the Monaco theme name for a given prop value. For `'auto'`, uses
  * `detectAutoTheme()` (class / attribute / OS). For explicit `'light'`/`'dark'`, returns the
- * corresponding theme unconditionally. In a compact document (see
- * {@link isCompactDocument}) the compact variant of that theme is returned instead.
+ * corresponding theme unconditionally. In a document with a role theme (see
+ * {@link isCompactDocument}) the role variant of that theme is returned instead.
  */
 export function resolveTheme(theme: CoarScriptEditorTheme): string {
   const legacy =
@@ -196,8 +205,8 @@ const COMPACT_COLOR_ROLES: Readonly<Record<string, string>> = {
 };
 
 /**
- * Resolve shared compact roles at the document boundary. Monaco is page-global,
- * so local legacy/compact comparisons belong in separate documents.
+ * Resolve the color roles in effect at the document boundary. Monaco is page-global,
+ * so local comparisons of two themes belong in separate documents.
  */
 export function refreshCompactTheme(monacoNs: typeof monaco, name: string): void {
   if (name !== COAR_THEME_COMPACT_LIGHT && name !== COAR_THEME_COMPACT_DARK) return;

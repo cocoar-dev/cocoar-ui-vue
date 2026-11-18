@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mount, type VueWrapper } from '@vue/test-utils';
 import { defineComponent, h, nextTick } from 'vue';
-import { COMPACT_CONTEXT_TOKENS, COMPACT_APPEARANCE_INPUT_TOKENS } from './compact-context';
+import { ROLE_DERIVATION_TOKEN } from '../../theme/role-theme';
+import {
+  COMPACT_APPEARANCE_INPUT_TOKENS, COMPACT_CONTEXT_TOKENS, ROLE_DERIVED_TOKENS,
+} from './compact-context';
 import CoarOverlayHost from './CoarOverlayHost.vue';
 import { CoarOverlayPlugin, _resetOverlayServiceForTests, getOverlayService } from './useOverlay';
 
@@ -18,9 +21,15 @@ async function source(relativePath: string): Promise<string> {
 }
 
 describe('compact presentation transport contract', () => {
-  it('covers every declared appearance role, with no duplicate registrations', async () => {
+  it('covers every input, the mode marker and every derived token, with no duplicates', async () => {
     const css = await source('../../../styles/tokens/compact.css');
-    const declared = new Set(Array.from(css.matchAll(/^\s*(--coar-[\w-]+)\s*:/gm), (m) => m[1]));
+    const derived = await source('../../../styles/tokens/derived.css');
+    const names = (text: string) =>
+      new Set(Array.from(text.matchAll(/^\s*(--coar-[\w-]+)\s*:/gm), (m) => m[1]));
+    const declared = names(css);
+    for (const token of names(derived)) if (!token.startsWith('--coar-d-')) declared.add(token);
+    // The activation is written as such; an empty value cannot be read back and copied.
+    declared.delete(ROLE_DERIVATION_TOKEN);
     // appearance-accent is an optional consumer input, never a profile default
     // that would mask a parent ThemeScope's explicit brand.
     for (const token of COMPACT_APPEARANCE_INPUT_TOKENS) declared.add(token);
@@ -29,6 +38,24 @@ describe('compact presentation transport contract', () => {
     // The document opt-in must beat :root.dark-mode without touching a
     // document that has not opted in.
     expect(css).not.toMatch(/:root(?!\.coar-compact)/);
+  });
+
+  it('lists exactly the tokens the shared derivation defines, each from its private value', async () => {
+    const derived = await source('../../../styles/tokens/derived.css');
+    const publics = Array.from(
+      derived.matchAll(/^ {2}(--coar-[\w-]+): var\((--coar-d-[\w-]+), inherit\);$/gm),
+      (m) => [m[1], m[2]],
+    );
+    expect(publics.map(([name]) => name).sort()).toEqual([...ROLE_DERIVED_TOKENS].sort());
+    const privates = new Set(Array.from(derived.matchAll(/^ {2}(--coar-d-[\w-]+):/gm), (m) => m[1]));
+    for (const [name, value] of publics) {
+      expect(value, name).toBe(name.replace('--coar-', '--coar-d-'));
+      expect(privates.has(value), value).toBe(true);
+    }
+    // Derivation is inert without the activation: every private value starts with it.
+    for (const line of derived.matchAll(/^ {2}--coar-d-[\w-]+: (.*)$/gm)) {
+      expect(line[1].startsWith(`var(${ROLE_DERIVATION_TOKEN}) `), line[0]).toBe(true);
+    }
   });
 
   it('keeps the compact-only font weights out of the legacy font entry', async () => {

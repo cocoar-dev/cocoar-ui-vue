@@ -18,6 +18,7 @@ import { onBeforeUnmount, onMounted, nextTick, ref, shallowRef, watch } from 'vu
 import { renderMermaid } from './internal/mermaid-loader';
 import {
   buildMermaidThemeVariables,
+  hasRoleTheme,
   makeCssColorResolver,
   readCssTokens,
 } from './internal/theme-bridge';
@@ -42,19 +43,23 @@ const errorMessage = ref('');
 let renderToken = 0;
 const panZoom = shallowRef<PanZoomHandle | null>(null);
 let appearanceObserver: MutationObserver | undefined;
-let renderedCompact = false;
+let renderedThemed = false;
 let appearanceKey = '';
 
 function appearance() {
-  const compact = Boolean(container.value?.closest('.coar-compact'));
+  const element = container.value;
+  const tokens = readCssTokens(element);
+  // Decided by the values in effect at the diagram, never by a class name: a
+  // role theme (Preview) is the `.coar-compact` entry or any theme class.
+  const themed = Boolean(element) && hasRoleTheme(tokens);
   const config = {
     theme: 'base',
     themeVariables: buildMermaidThemeVariables(
-      readCssTokens(container.value),
-      makeCssColorResolver(compact ? container.value : undefined),
+      tokens,
+      makeCssColorResolver(themed ? element : undefined),
     ),
   };
-  return { compact, config, key: JSON.stringify(config) };
+  return { themed, config, key: JSON.stringify(config) };
 }
 
 function teardownPanZoom(): void {
@@ -80,14 +85,14 @@ async function render(): Promise<void> {
 
   try {
     const current = appearance();
-    renderedCompact = current.compact;
+    renderedThemed = current.themed;
     appearanceKey = current.key;
     const rendered = await renderMermaid(
       () => current.config,
       code,
-      // Mermaid's config is page-global: a diagram of the opt-in compact
-      // profile (Preview) re-initializes it only when the profile changes.
-      current.compact ? 'compact' : 'default',
+      // Mermaid's config is page-global: only a diagram inside a role theme
+      // re-initializes it, with the roles in effect in its own scope.
+      current.themed ? 'theme' : 'default',
     );
     if (token !== renderToken) return; // superseded by a newer render
 
@@ -114,8 +119,10 @@ onMounted(() => {
   if (typeof MutationObserver === 'undefined') return;
   appearanceObserver = new MutationObserver(() => {
     const current = appearance();
-    if ((renderedCompact || current.compact)
-      && (renderedCompact !== current.compact || appearanceKey !== current.key)) void render();
+    // Entering or leaving a role theme, or a changed role inside one. Outside
+    // a role theme the diagram keeps the config of its render, as before.
+    if ((renderedThemed || current.themed)
+      && (renderedThemed !== current.themed || appearanceKey !== current.key)) void render();
   });
   let ancestor: Element | null = container.value;
   while (ancestor) {
@@ -177,8 +184,8 @@ onBeforeUnmount(() => {
 </template>
 
 <style>
-/* Opt-in `.coar-compact` profile (Preview): defines the `--coar-mermaid-*`
-   roles read below; without the class every `var(role, legacy)` keeps its value. */
+/* The `--coar-mermaid-*` roles read below that follow shared tokens of a role
+   theme (Preview); without one every `var(role, legacy)` keeps its value. */
 @import './styles/mermaid-compact.css';
 
 .coar-mermaid {

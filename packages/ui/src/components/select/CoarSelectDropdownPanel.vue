@@ -154,9 +154,13 @@ const searchQuery = props.searchQuery;
 }
 
 /* The row floor counts the padding, with or without an app-wide border-box reset. */
-.coar-mobile .coar-select-option,
-.coar-compact .coar-select-option {
+.coar-mobile .coar-select-option {
   box-sizing: border-box;
+}
+@layer cocoar.components {
+  .coar-select-option {
+    box-sizing: var(--coar-control-box-sizing, revert-layer);
+  }
 }
 
 .coar-select-option:hover:not(.coar-select-option--disabled),
