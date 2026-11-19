@@ -182,8 +182,9 @@ describe('role theme of the page builder', () => {
     expect(source).toContain('position: var(--coar-page-builder-tree-actions-position, absolute);');
     expect(source).toContain('transform: var(--coar-page-builder-tree-actions-transform, translateY(-50%));');
     expect(source).toContain('margin-right: var(--coar-page-builder-tree-issue-reserve, 30px);');
-    // The row height is not a layout mode: a wrapping row keeps the height of its role.
-    expect(source).toContain('height: var(--coar-page-builder-small-row-height, var(--coar-page-builder-row-height, 30px));');
+    // A theme that wraps the row lets it grow (Compact: auto); without one it keeps its role's height.
+    expect(source).toContain('height: var(--coar-page-builder-tree-row-height, var(--coar-page-builder-small-row-height, var(--coar-page-builder-row-height, 30px)));');
+    expect(COMPACT_PAGE_BUILDER_TOKENS['--coar-page-builder-tree-row-height']).toBe('auto');
     // The focus rule must not hide the tray of a hovered row in the default presentation.
     expect(source.indexOf('.pb-tree-row:focus-within .pb-tree-actions'))
       .toBeLessThan(source.indexOf('.pb-tree-row:hover .pb-tree-actions'));

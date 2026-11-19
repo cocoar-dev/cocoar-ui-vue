@@ -335,6 +335,7 @@
   --coar-page-builder-palette-composition-color: light-dark(#806b52, #baa083);
   --coar-page-builder-palette-field-color: light-dark(#725f88, #b29bcb);
   --coar-page-builder-tree-row-wrap: wrap;
+  --coar-page-builder-tree-row-height: auto;
   --coar-page-builder-tree-label-min-width: 8ch;
   --coar-page-builder-tree-actions-position: static;
   --coar-page-builder-tree-actions-transform: none;
@@ -797,6 +798,7 @@
   --coar-page-builder-palette-composition-color: light-dark(#806b52, #baa083);
   --coar-page-builder-palette-field-color: light-dark(#725f88, #b29bcb);
   --coar-page-builder-tree-row-wrap: wrap;
+  --coar-page-builder-tree-row-height: auto;
   --coar-page-builder-tree-label-min-width: 8ch;
   --coar-page-builder-tree-actions-position: static;
   --coar-page-builder-tree-actions-transform: none;
@@ -2269,6 +2271,7 @@
   --coar-page-builder-palette-composition-color: light-dark(#806b52, #baa083);
   --coar-page-builder-palette-field-color: light-dark(#725f88, #b29bcb);
   --coar-page-builder-tree-row-wrap: wrap;
+  --coar-page-builder-tree-row-height: auto;
   --coar-page-builder-tree-label-min-width: 8ch;
   --coar-page-builder-tree-actions-position: static;
   --coar-page-builder-tree-actions-transform: none;
@@ -3769,6 +3772,7 @@
   --coar-page-builder-palette-composition-color: light-dark(#806b52, #baa083);
   --coar-page-builder-palette-field-color: light-dark(#725f88, #b29bcb);
   --coar-page-builder-tree-row-wrap: wrap;
+  --coar-page-builder-tree-row-height: auto;
   --coar-page-builder-tree-label-min-width: 8ch;
   --coar-page-builder-tree-actions-position: static;
   --coar-page-builder-tree-actions-transform: none;

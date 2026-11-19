@@ -298,11 +298,29 @@ async function openAllGroups(library: Locator) {
     if ((await toggles.nth(i).getAttribute('aria-expanded')) === 'false') await toggles.nth(i).click();
   }
 }
+/** Fonts loaded, no transition or animation running, and the outline's rows the same size twice in a row. */
+async function settledLayout(builder: Locator) {
+  let last = '';
+  await expect.poll(() => builder.evaluate(async (el) => {
+    await document.fonts.ready;
+    if (document.getAnimations().some((animation) => animation.playState === 'running'
+      && Number.isFinite(animation.effect?.getTiming().iterations ?? 1))) return 'moving';
+    return [...el.querySelectorAll('.pb-tree-row')].map((row) => row.getBoundingClientRect().height).join(',');
+  }).then((sizes) => {
+    const same = sizes !== 'moving' && sizes === last;
+    last = sizes;
+    return same;
+  }), { intervals: [150] }).toBe(true);
+}
+
 async function selectNode(builder: Locator, name: string) {
   await openDrawer(builder, 'Structure');
   const row = builder.locator('.pb-tree-row').filter({ hasText: name }).first();
   // A real mouse click on the row's own left edge (grip area), not on the label: the label centre can be covered by
   // `.pb-tree-actions` (see the label-hit test); no forced click is used anywhere.
+  // A row that wraps grows with its content: while the drawer opens and the theme's font loads,
+  // a narrower drawer makes it taller for a moment. Measure once nothing moves any more.
+  await settledLayout(builder);
   const height = (await row.boundingBox())!.height;
   await row.click({ position: { x: 6, y: height / 2 } });
   await expect(row).toHaveAttribute('aria-selected', 'true');
@@ -440,6 +458,12 @@ test.describe('page builder compact · inspectors, canvas, outline, renderer', (
         // compact rows the action tray can wrap below the readable node label.
         const issueBox = await rect(issue);
         const actionsBox = await rect(row.locator('.pb-tree-actions'));
+        if (profile === 'compact') {
+          // A wrapped tray takes a second line of its own row, not the top of the next row.
+          const rowBox = await rect(row);
+          expect.soft(actionsBox.y + actionsBox.h, `${label}: row actions stay inside their row`)
+            .toBeLessThanOrEqual(rowBox.y + rowBox.h + 0.5);
+        }
         const horizontalOverlap = Math.max(0, Math.min(issueBox.x + issueBox.w, actionsBox.x + actionsBox.w) - Math.max(issueBox.x, actionsBox.x));
         const verticalOverlap = Math.max(0, Math.min(issueBox.y + issueBox.h, actionsBox.y + actionsBox.h) - Math.max(issueBox.y, actionsBox.y));
         const overlap = verticalOverlap > 0 ? horizontalOverlap : 0;

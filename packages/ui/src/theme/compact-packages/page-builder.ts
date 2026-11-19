@@ -17,8 +17,10 @@ export const COMPACT_PAGE_BUILDER_TOKENS: Record<string, string> = {
   '--coar-page-builder-palette-composition-color': 'light-dark(#806b52, #baa083)',
   '--coar-page-builder-palette-field-color': 'light-dark(#725f88, #b29bcb)',
   // Outline rows: the four action targets are wider than the legacy hover overlay,
-  // so the tray sits in the flex row, which may wrap inside the row's height.
+  // so the tray sits in the flex row, which wraps; a wrapped row grows instead of
+  // painting its second line over the next row.
   '--coar-page-builder-tree-row-wrap': 'wrap',
+  '--coar-page-builder-tree-row-height': 'auto',
   '--coar-page-builder-tree-label-min-width': '8ch',
   '--coar-page-builder-tree-actions-position': 'static',
   '--coar-page-builder-tree-actions-transform': 'none',

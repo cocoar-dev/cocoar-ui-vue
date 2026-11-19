@@ -408,7 +408,8 @@ test.describe('library scenes: geometry and real interaction', () => {
         await expect(column(page, profile).locator('.pb-tree-row').first()).toBeVisible();
       }
       expect(await height(column(page, 'legacy').locator('.pb-tree-row').first())).toBe(30);
-      expect(await height(column(page, 'compact').locator('.pb-tree-row').first())).toBe(mobile ? 44 : 36);
+      // A compact row grows with its content: measured once the theme's font has loaded.
+      await expect.poll(() => height(column(page, 'compact').locator('.pb-tree-row').first())).toBe(mobile ? 44 : 36);
     }
     expect(problems).toEqual([]);
   });
