@@ -119,6 +119,8 @@ test.describe('library gallery', () => {
 
   test('the gallery lists every library scene and keeps the core kinds', async ({ page }) => {
     await page.goto(gallery('fields'));
+    // The control is filled once the gallery has mounted.
+    await expect(page.locator('[data-review-kind] option').first()).toBeAttached();
     const options = await page.locator('[data-review-kind] option').evaluateAll((list) =>
       list.map((option) => (option as HTMLOptionElement).value));
     expect(options).toEqual([
