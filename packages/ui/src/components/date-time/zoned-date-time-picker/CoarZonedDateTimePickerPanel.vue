@@ -8,7 +8,7 @@ import CoarIcon from '../../icon/CoarIcon.vue';
 import CoarSelect from '../../select/CoarSelect.vue';
 import CoarScrollableCalendar from '../scrollable-calendar/CoarScrollableCalendar.vue';
 import CoarTimePicker from '../time-picker/CoarTimePicker.vue';
-import { vScrollbar } from '../../scrollbar';
+import { vScrollbar, getScrollbarInstance, quietScrollbars } from '../../scrollbar';
 import type { DateFormatConfig, CoarDateMarker, CoarTimeValue } from '../_shared/types';
 import {
   coarFilterTimezones,
@@ -131,10 +131,15 @@ function openDisplayTimezonePicker() {
   timezoneSearchQuery.value = '';
   nextTick(() => {
     tzSearchInputRef.value?.focus();
-    // Allow the list + OverlayScrollbars to render, then scroll to active timezone
+    // Allow the list + OverlayScrollbars to render, then scroll to active timezone: no user's
+    // scroll, so it does not show the scrollbar for a moment.
     setTimeout(() => {
-      const activeItem = tzPickerListRef.value?.querySelector('.coar-zdtp-tz-picker-item--active') as HTMLElement | null;
-      activeItem?.scrollIntoView({ block: 'center', behavior: 'instant' });
+      const list = tzPickerListRef.value;
+      const activeItem = list?.querySelector('.coar-zdtp-tz-picker-item--active') as HTMLElement | null;
+      if (!list || !activeItem) return;
+      const wake = quietScrollbars(getScrollbarInstance(list));
+      activeItem.scrollIntoView({ block: 'center', behavior: 'instant' });
+      wake();
     }, 50);
   });
 }

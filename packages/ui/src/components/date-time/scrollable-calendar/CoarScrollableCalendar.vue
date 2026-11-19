@@ -11,7 +11,7 @@ import {
 import { Temporal } from '@js-temporal/polyfill';
 import { useL10n } from '@cocoar/vue-localization';
 
-import { vScrollbar, getScrollbarInstance } from '../../scrollbar';
+import { vScrollbar, getScrollbarInstance, quietScrollbars } from '../../scrollbar';
 import type { CoarDateMarker, DateFormatConfig } from '../_shared/types';
 import {
   coarCalculateIsoWeekNumber,
@@ -334,7 +334,7 @@ function extendToCover(viewport: HTMLElement, target: HTMLElement): boolean {
 /**
  * The one way the list is positioned by the component: the months around `month` are made to
  * cover the viewport, the DOM updates if months were added, then `month` is scrolled to the
- * top. At opening the scroll is not taken for a user's (see onMounted).
+ * top. At opening the scroll is not taken for a user's (see quietScroll).
  */
 function positionAt(month: Temporal.PlainYearMonth, opening = false): void {
   if (ensureMonthInRange(month)) {
@@ -351,13 +351,16 @@ function positionAt(month: Temporal.PlainYearMonth, opening = false): void {
     scrollToMonth(month, false);
     return;
   }
-  // The opening position is no user scroll: asleep, OverlayScrollbars ignores its scroll
-  // event instead of showing the scrollbar for a moment. That event is dispatched before
-  // the animation frame callbacks of the frame that follows, so it is past at the wake-up.
-  const scrollbars = getScrollbarInstance(scrollContainerRef.value!);
-  scrollbars?.sleep(true);
+  // The opening position is no user scroll.
+  const wake = quietScroll();
   scrollToMonth(month, false);
-  requestAnimationFrame(() => scrollbars?.sleep(false));
+  wake();
+}
+
+/** A scroll of the calendar's own (see quietScrollbars of v-scrollbar). */
+function quietScroll(): () => void {
+  const container = scrollContainerRef.value;
+  return quietScrollbars(container ? getScrollbarInstance(container) : null);
 }
 
 // Watch activeMonth for external navigation (e.g., MonthList clicks)
@@ -431,18 +434,28 @@ function checkInfiniteScroll(): void {
  * where it was (measured now, or given): corrected right after the DOM update, before the
  * browser paints. A browser that anchored the scroll position itself (Chromium) leaves
  * nothing to correct; one that does not (WebKit) is corrected by the full height added or
- * removed above.
+ * removed above. `quiet`: the change is no user's scroll (quietScroll).
  */
-function keepTopMonthInPlace(change: () => void, kept?: TopMonth): void {
+function keepTopMonthInPlace(change: () => void, kept?: TopMonth, quiet = false): void {
   const viewport = getScrollViewport();
   const anchor = kept ?? (viewport ? topMonth(viewport) : undefined);
+  const wake = quiet ? quietScroll() : undefined;
 
-  change();
+  try {
+    change();
+  } catch (error) {
+    wake?.();
+    throw error;
+  }
 
   nextTick(() => {
-    if (viewport && anchor?.element.isConnected) {
-      const offset = anchor.element.getBoundingClientRect().top - viewport.getBoundingClientRect().top;
-      viewport.scrollTop += offset - anchor.offset;
+    try {
+      if (viewport && anchor?.element.isConnected) {
+        const offset = anchor.element.getBoundingClientRect().top - viewport.getBoundingClientRect().top;
+        viewport.scrollTop += offset - anchor.offset;
+      }
+    } finally {
+      wake?.();
     }
     if (viewport) restingTop = topMonth(viewport);
     requestAnimationFrame(() => {
@@ -634,7 +647,7 @@ function coverAfterGrowing(viewport: HTMLElement): void {
   const top = restingTop?.element.isConnected ? restingTop : topMonth(viewport);
   if (!top) return;
   isLoadingMonths = true;
-  keepTopMonthInPlace(() => extendToCover(viewport, top.element), top);
+  keepTopMonthInPlace(() => extendToCover(viewport, top.element), top, true);
 }
 
 onMounted(() => {
