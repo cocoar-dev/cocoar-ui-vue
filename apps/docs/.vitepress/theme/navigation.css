@@ -1,6 +1,6 @@
 /* Keep the existing top-level links visible on tablets. Use the icon-only search
-   affordance to make room, and expose the style in VitePress's navigation screen
-   instead of adding a second full-size selector to the narrow toolbar. */
+   affordance to make room, and offer "Themed docs" in VitePress's navigation
+   screen instead of adding it to the narrow toolbar. */
 @media (min-width: 768px) and (max-width: 1279px) {
   .VPNav .VPNavBar .VPNavBarExtra {
     display: none;
@@ -29,5 +29,24 @@
     margin-right: 0;
     width: 16px;
     height: 16px;
+  }
+}
+
+/* VitePress keeps its title at full width (flex-shrink: 0). On a 320px phone, or on a tablet
+   with a wider theme font, the title and the buttons need more than the bar has, and the menu
+   button is pushed off the screen. The title gives way instead, with an ellipsis. */
+@media (max-width: 1279px) {
+  .VPNavBar .container > .title {
+    flex-shrink: 1;
+    min-width: 0;
+  }
+  .VPNavBar .VPNavBarTitle .title {
+    min-width: 0;
+    overflow: hidden;
+  }
+  .VPNavBar .VPNavBarTitle .title > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }

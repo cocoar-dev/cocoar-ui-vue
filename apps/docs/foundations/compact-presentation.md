@@ -23,21 +23,17 @@ from them, with the same rules for every theme. There are two ways to apply the 
 
 ## Compare this documentation
 
-Use **Style → Bisher / Compact** in the navigation to switch the entire documentation:
-the VitePress shell, prose and ordinary live component examples. In a narrower window, the
-selector is in the main navigation menu. The mobile documentation has the same selector in its header.
+Load the **Compact** preset in the [Theme Editor](./theming) (the button at the bottom right) to
+switch the live component examples, the phone and tablet demos included, without reloading:
+form values and open dialogs remain intact. **Reset** in the editor returns to the default look.
 
-Loading the **Compact** preset in the Theme Editor (the button at the bottom right) switches the
-documentation the same way, shell and prose included, with values you can then edit.
+**Themed docs** in the navigation decides whether the VitePress shell and prose take
+the theme as well. It is off by default and remembered in this browser; in a narrower window it
+is in the main navigation menu. Light/dark mode remains independent.
 
-The choice is remembered in this browser and follows page navigation. Embedded phone/tablet
-demos follow it without reloading, so their form values and open dialogs remain intact.
-Light/dark mode remains independent. If browser storage is blocked, switching still works
-for the current visit.
-
-**Bisher** remains the default. Examples that explicitly opt into Compact, including the
-sample on this page, remain Compact in either site mode; explicit theme demonstrations keep
-their own scopes. This documentation preference does not change an application's opt-in.
+Examples that explicitly opt into Compact, including the sample on this page, remain Compact
+either way; explicit theme demonstrations keep their own scopes. These documentation choices do
+not change an application's opt-in.
 
 ## Opt in
 

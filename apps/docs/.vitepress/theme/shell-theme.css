@@ -1,9 +1,13 @@
-/* VitePress owns its shell and prose. They follow the library theme in effect on
-   <html>: `.coar-compact` from the style switcher (present before the first paint),
-   or `.coar-docs-themed`, which index.ts sets while a theme without a class is active
-   (a preset loaded in the Theme Editor). Components and their overlays use the
-   library's own tokens. */
-:root:is(.coar-compact, .coar-docs-themed) {
+/* VitePress owns its shell and prose. With "Themed docs" (ShellThemeToggle,
+   `.coar-docs-themed` on <html>, set before the first paint) they take the library's
+   tokens: the default look, or the preset the Theme Editor shows. Off, they keep the
+   VitePress look whatever the editor shows. Components and their overlays use the
+   library's own tokens either way.
+
+   Without a preset the library defines the text sizes and weights below only inside a
+   theme; their fallbacks are the values of Enterprise, so the frame looks the same with
+   Enterprise as without a theme. */
+:root.coar-docs-themed {
   --coar-compact-color-scheme: light;
   --vp-font-family-base: var(--coar-font-family-body);
   --vp-c-bg: var(--coar-background-neutral-primary);
@@ -30,7 +34,7 @@
   --vp-c-warning-soft: var(--coar-background-semantic-warning-subtle);
   --vp-c-danger-1: var(--coar-text-semantic-error-bold);
   --vp-c-danger-soft: var(--coar-background-semantic-error-subtle);
-  --vp-code-font-size: var(--coar-caption-font-size);
+  --vp-code-font-size: var(--coar-caption-font-size, 12px);
   --vp-code-color: var(--coar-text-accent-primary);
   --vp-code-bg: var(--coar-background-neutral-tertiary);
   --vp-code-block-bg: var(--coar-background-neutral-secondary);
@@ -43,100 +47,100 @@
   --vp-nav-height: 48px;
 }
 
-:root:is(.coar-compact, .coar-docs-themed).dark {
+:root.coar-docs-themed.dark {
   --coar-compact-color-scheme: dark;
 }
 
-:root:is(.coar-compact, .coar-docs-themed) body {
+:root.coar-docs-themed body {
   font-family: var(--vp-font-family-base);
   font-size: var(--coar-body-base-size);
   line-height: var(--coar-body-base-line-height);
 }
 
 /* Only Markdown's immediate content, not headings/paragraphs inside live demos. */
-:root:is(.coar-compact, .coar-docs-themed) .vp-doc > div > :is(p, ul, ol, blockquote, table) {
+:root.coar-docs-themed .vp-doc > div > :is(p, ul, ol, blockquote, table) {
   font-size: var(--coar-body-base-size);
   line-height: var(--coar-body-base-line-height);
 }
 
 /* The legacy dark override uses brand-3, which is a fill role in Compact.
    Keep inline code on the text role, including inside callouts. */
-:root:is(.coar-compact, .coar-docs-themed) .vp-doc :not(pre) > code {
+:root.coar-docs-themed .vp-doc :not(pre) > code {
   color: var(--coar-text-accent-primary) !important;
 }
 
-:root:is(.coar-compact, .coar-docs-themed) .vp-doc > div > :is(p, ul, ol, blockquote) {
+:root.coar-docs-themed .vp-doc > div > :is(p, ul, ol, blockquote) {
   margin: 12px 0;
 }
 
-:root:is(.coar-compact, .coar-docs-themed) .vp-doc > div > :is(h1, h2, h3, h4) {
+:root.coar-docs-themed .vp-doc > div > :is(h1, h2, h3, h4) {
   font-family: var(--coar-font-family-title);
   font-weight: 600;
   letter-spacing: -0.01em;
 }
 
-:root:is(.coar-compact, .coar-docs-themed) .vp-doc > div > h1 { font-size: 28px; line-height: 36px; }
-:root:is(.coar-compact, .coar-docs-themed) .vp-doc > div > h2 { margin-top: 28px; padding-top: 20px; font-size: 21px; line-height: 28px; }
-:root:is(.coar-compact, .coar-docs-themed) .vp-doc > div > h3 { margin-top: 20px; font-size: 17px; line-height: 24px; }
-:root:is(.coar-compact, .coar-docs-themed) .vp-doc > div > h4 { font-size: 15px; line-height: 22px; }
+:root.coar-docs-themed .vp-doc > div > h1 { font-size: 28px; line-height: 36px; }
+:root.coar-docs-themed .vp-doc > div > h2 { margin-top: 28px; padding-top: 20px; font-size: 21px; line-height: 28px; }
+:root.coar-docs-themed .vp-doc > div > h3 { margin-top: 20px; font-size: 17px; line-height: 24px; }
+:root.coar-docs-themed .vp-doc > div > h4 { font-size: 15px; line-height: 22px; }
 
-:root:is(.coar-compact, .coar-docs-themed) :is(.VPNavBarMenuLink, .VPSidebarItem .text, .VPDocAsideOutline .outline-link) {
-  font-size: var(--coar-ui-font-size);
-  font-weight: var(--coar-ui-font-weight);
+:root.coar-docs-themed :is(.VPNavBarMenuLink, .VPSidebarItem .text, .VPDocAsideOutline .outline-link) {
+  font-size: var(--coar-ui-font-size, 14px);
+  font-weight: var(--coar-ui-font-weight, 400);
 }
 
-:root:is(.coar-compact, .coar-docs-themed) :is(.VPSidebar .group .title, .VPSidebarItem.is-active > .item > .link > .text) {
-  font-weight: var(--coar-label-font-weight);
+:root.coar-docs-themed :is(.VPSidebar .group .title, .VPSidebarItem.is-active > .item > .link > .text) {
+  font-weight: var(--coar-label-font-weight, 400);
 }
 
-:root:is(.coar-compact, .coar-docs-themed) .VPNavBarTitle .title {
+:root.coar-docs-themed .VPNavBarTitle .title {
   font-weight: 600 !important;
 }
 
-:root:is(.coar-compact, .coar-docs-themed) :is(.VPFeature, .VPButton, .VPBadge, .VPDocFooter .pager-link) {
+:root.coar-docs-themed :is(.VPFeature, .VPButton, .VPBadge, .VPDocFooter .pager-link) {
   border-radius: var(--coar-control-radius);
 }
 
-:root:is(.coar-compact, .coar-docs-themed) .VPFeature {
+:root.coar-docs-themed .VPFeature {
   border-color: var(--coar-border-neutral-tertiary) !important;
 }
 
-:root:is(.coar-compact, .coar-docs-themed) .VPHero .name {
+:root.coar-docs-themed .VPHero .name {
   color: var(--coar-text-accent-primary) !important;
   -webkit-text-fill-color: var(--coar-text-accent-primary) !important;
 }
 
-:root:is(.coar-compact, .coar-docs-themed) .VPHero .text { color: var(--coar-text-neutral-primary) !important; }
-:root:is(.coar-compact, .coar-docs-themed) .VPHero .tagline { color: var(--coar-text-neutral-secondary) !important; }
+:root.coar-docs-themed .VPHero .text { color: var(--coar-text-neutral-primary) !important; }
+:root.coar-docs-themed .VPHero .tagline { color: var(--coar-text-neutral-secondary) !important; }
 
-:root:is(.coar-compact, .coar-docs-themed) .VPBadge.tip {
+:root.coar-docs-themed .VPBadge.tip {
   background-color: var(--coar-background-semantic-success-subtle) !important;
   color: var(--coar-text-semantic-success-bold);
   border-color: var(--coar-border-semantic-success-subtle);
 }
 
-:root:is(.coar-compact, .coar-docs-themed) .vp-doc :is(pre, .custom-block, div[class*='language-']) {
+:root.coar-docs-themed .vp-doc :is(pre, .custom-block, div[class*='language-']) {
   border-radius: var(--coar-control-radius);
 }
 
-:root:is(.coar-compact, .coar-docs-themed) .vp-doc .custom-block .custom-block-title {
-  font-weight: var(--coar-label-font-weight);
+:root.coar-docs-themed .vp-doc .custom-block .custom-block-title {
+  font-weight: var(--coar-label-font-weight, 400);
 }
 
-:root:is(.coar-compact, .coar-docs-themed) .mermaid :is(text, .nodeLabel, .edgeLabel, .label, tspan) {
+:root.coar-docs-themed .mermaid :is(text, .nodeLabel, .edgeLabel, .label, tspan) {
   fill: var(--coar-text-neutral-primary) !important;
   color: var(--coar-text-neutral-primary) !important;
 }
 
-:root:is(.coar-compact, .coar-docs-themed) .mermaid :is(.node rect, .node circle, .node polygon, .actor, .labelBox, rect.note, .cluster rect) {
+:root.coar-docs-themed .mermaid :is(.node rect, .node circle, .node polygon, .actor, .labelBox, rect.note, .cluster rect) {
   fill: var(--coar-background-neutral-secondary) !important;
   stroke: var(--coar-border-neutral-secondary) !important;
 }
 
-:root:is(.coar-compact, .coar-docs-themed) .mermaid .edgeLabel {
+:root.coar-docs-themed .mermaid .edgeLabel {
   background-color: var(--coar-background-neutral-primary) !important;
 }
 
 @media (max-width: 767px) {
-  :root:is(.coar-compact, .coar-docs-themed) .vp-doc > div > h1 { font-size: 24px; line-height: 32px; }
+  :root.coar-docs-themed .vp-doc > div > h1 { font-size: 24px; line-height: 32px; }
 }

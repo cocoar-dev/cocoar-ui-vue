@@ -6,10 +6,18 @@ for (const profile of ['legacy', 'compact'] as const) {
       page,
     }) => {
       await page.setViewportSize({ width, height: 1000 });
-      await page.addInitScript(
-        (value) => localStorage.setItem('coar-docs-presentation', value),
-        profile,
-      );
+      // Compact through its class entry on <html> before the first paint, as an app opts in.
+      if (profile === 'compact') {
+        await page.addInitScript(() => {
+          const apply = () => document.documentElement?.classList.add('coar-compact');
+          if (document.documentElement) apply();
+          else new MutationObserver((_, observer) => {
+            if (!document.documentElement) return;
+            apply();
+            observer.disconnect();
+          }).observe(document, { childList: true });
+        });
+      }
       await page.goto('/components/form-field');
       const examples = page.locator('.layout-demo');
       const fields = examples.locator('.coar-form-field');

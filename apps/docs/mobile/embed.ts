@@ -1,5 +1,4 @@
 // What the docs' PhoneFrame (.vitepress/theme/PhoneFrame.vue) and the mobile app agree on.
-import type { DocsPresentation } from '../useDocsPresentation';
 
 export type Scheme = 'light' | 'dark';
 
@@ -9,6 +8,8 @@ export const EMBED_PARAM = 'embed';
 export const SCHEME_PARAM = 'scheme';
 /** `postMessage` payload from the frame when its scheme changes, same origin only. */
 export const SCHEME_MESSAGE = 'coar-mobile-docs:scheme';
+/** `postMessage` payload with the stylesheet of the docs' Theme Editor (`css: ''` when none). */
+export const THEME_MESSAGE = 'coar-mobile-docs:theme';
 
 export function isScheme(value: unknown): value is Scheme {
   return value === 'light' || value === 'dark';
@@ -20,12 +21,11 @@ export function isScheme(value: unknown): value is Scheme {
  */
 export function mobileDocsPath(
   demo = '',
-  options: { embed?: boolean; scheme?: Scheme; presentation?: DocsPresentation } = {},
+  options: { embed?: boolean; scheme?: Scheme } = {},
 ) {
   const query = new URLSearchParams();
   if (options.embed) query.set(EMBED_PARAM, '1');
   if (options.scheme) query.set(SCHEME_PARAM, options.scheme);
-  if (options.presentation) query.set('presentation', options.presentation);
   const search = query.toString();
   return `/mobile/${search ? `?${search}` : ''}#/${demo}`;
 }
