@@ -317,7 +317,7 @@ size="s"
   align-items: center;
   gap: 5px;
   padding: 7px 8px;
-  border-radius: var(--coar-page-builder-control-radius, 5px);
+  border-radius: var(--coar-page-builder-medium-control-radius, var(--coar-page-builder-control-radius, 5px));
   background: var(--coar-background-neutral-secondary, #f7f7f9);
   color: var(--coar-text-neutral-secondary, #666);
   font-size: var(--coar-page-builder-meta-font-size, 11px);

@@ -17,13 +17,15 @@
  * The diagram itself is not resized: its text and coordinates come from
  * Mermaid (theme bridge: colors and font family from the tokens of the
  * diagram's own scope, re-read when they change inside a role theme).
+ * Optional --coar-theme-mermaid-<role> inputs precede common UI roles; public
+ * per-instance --coar-mermaid-* overrides retain their existing priority.
  */
 
 :where(.coar-mermaid) {
-  --coar-d-mermaid-radius: var(--coar-role-derivation) var(--coar-panel-radius, 8px);
-  --coar-d-mermaid-code-radius: var(--coar-role-derivation) var(--coar-control-radius, 6px);
+  --coar-d-mermaid-radius: var(--coar-role-derivation) var(--coar-theme-mermaid-radius, var(--coar-panel-radius, 8px));
+  --coar-d-mermaid-code-radius: var(--coar-role-derivation) var(--coar-theme-mermaid-code-radius, var(--coar-control-radius, 6px));
   /* UI text of the loading and error states. */
-  --coar-d-mermaid-ui-font-size: var(--coar-role-derivation) var(--coar-ui-font-size, 13px);
+  --coar-d-mermaid-ui-font-size: var(--coar-role-derivation) var(--coar-theme-mermaid-ui-font-size, var(--coar-ui-font-size, 13px));
   --coar-mermaid-radius: var(--coar-d-mermaid-radius, inherit);
   --coar-mermaid-code-radius: var(--coar-d-mermaid-code-radius, inherit);
   --coar-mermaid-ui-font-size: var(--coar-d-mermaid-ui-font-size, inherit);

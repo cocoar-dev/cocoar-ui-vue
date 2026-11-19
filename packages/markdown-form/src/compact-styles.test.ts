@@ -48,17 +48,29 @@ describe('markdown-form presentation roles', () => {
 
   it('derives a role only where a theme activates derivation, and keeps what it inherits otherwise', () => {
     // Zero specificity, on the form element: a consumer rule on it wins.
-    const selectors = [...roles.matchAll(/([^{};]+)\{/g)].map((m) => m[1]!.trim());
+    const derivations = roles.slice(0, roles.indexOf('@layer'));
+    const selectors = [...derivations.matchAll(/([^{};]+)\{/g)].map((m) => m[1]!.trim());
     expect(selectors).toEqual([':where(.coar-markdown-form)']);
-    const declared = [...roles.matchAll(/([a-z-]+)\s*:\s*([^;]+);/g)].map((m) => [m[1]!, m[2]!.trim()] as const);
+    const declared = [...derivations.matchAll(/([a-z-]+)\s*:\s*([^;]+);/g)].map((m) => [m[1]!, m[2]!.trim()] as const);
     expect(declared.length).toBeGreaterThan(0);
     for (const [name, value] of declared) {
       if (name.startsWith('--coar-d-')) {
         expect(value.startsWith('var(--coar-role-derivation) '), name).toBe(true);
+        const input = name.replace('--coar-d-', '--coar-theme-');
+        expect(value.startsWith(`var(--coar-role-derivation) var(${input}, `), name).toBe(true);
       } else {
         expect(value, name).toBe(`var(${name.replace('--coar-', '--coar-d-')}, inherit)`);
       }
     }
+  });
+
+  it('only changes native color schemes when the theme supplies a package input', () => {
+    const layer = roles.slice(roles.indexOf('@layer'));
+    expect(layer).toContain('@layer cocoar.components');
+    expect(layer).toContain('color-scheme: var(--coar-theme-markdown-form-control-color-scheme, revert-layer);');
+    expect(layer).toContain('.coar-markdown-form input,');
+    expect(layer).toContain('.coar-markdown-form select,');
+    expect(layer).toContain('.coar-markdown-form textarea');
   });
 
   it('reads every role with a fallback, and a theme gives each one as a constant or a derivation', () => {

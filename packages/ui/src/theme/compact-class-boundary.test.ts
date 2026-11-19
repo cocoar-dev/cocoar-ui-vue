@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 const BOUNDARY: Record<string, string> = {
   'ui/styles/tokens/compact.css': 'the entry itself: the Compact values for the class (generated)',
   'ui/styles/tokens/derived.css': 'the class is a theme boundary, like .coar-theme-scope',
+  'ui/src/theme/role-theme.ts': 'the compatibility entry stops an outer preset scope, like any other preset',
   'ui/src/components/overlay/useCompactPresentationContext.ts': 'a teleported panel repeats the entry of its origin',
   'ui/src/components/overlay/CoarOverlayOutlet.vue': 'a teleported panel repeats the entry of its origin',
   'ui/src/components/theme-editor/theme-editor-state.ts': 'an editor mounted inside the entry edits that area',

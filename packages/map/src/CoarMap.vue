@@ -286,7 +286,7 @@ watch(() => props.selected, applySelectedVisual);
 .coar-map__fallback {
   margin: 0;
   padding-left: 20px;
-  font-size: var(--coar-ui-font-size, 13px);
+  font-size: var(--coar-map-font-size, var(--coar-ui-font-size, 13px));
   color: var(--coar-map-fallback-color, var(--coar-map-text, #444));
 }
 .coar-map__fallback-item {
@@ -297,7 +297,7 @@ watch(() => props.selected, applySelectedVisual);
 }
 .coar-map__fallback-coords {
   margin-left: 6px;
-  color: var(--coar-map-text-muted, #888);
+  color: var(--coar-map-coordinate-color, var(--coar-map-text-muted, #888));
   font-variant-numeric: tabular-nums;
 }
 
@@ -309,7 +309,7 @@ watch(() => props.selected, applySelectedVisual);
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: var(--coar-ui-font-size, 13px);
+  font-size: var(--coar-map-font-size, var(--coar-ui-font-size, 13px));
 }
 .coar-map__legend-item {
   display: inline-flex;

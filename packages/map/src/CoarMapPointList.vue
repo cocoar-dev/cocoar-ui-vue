@@ -251,14 +251,14 @@ function isDropAfter(index: number): boolean {
   grid-row: span 2;
 }
 .coar-map-point-list__label {
-  font-weight: var(--coar-label-font-weight, 600);
+  font-weight: var(--coar-map-label-font-weight, var(--coar-label-font-weight, 600));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .coar-map-point-list__coords {
   grid-column: 2;
-  font-size: var(--coar-caption-font-size, 11px);
+  font-size: var(--coar-map-small-caption-font-size, var(--coar-caption-font-size, 11px));
   color: var(--coar-text-neutral-tertiary, #94a3b8);
   font-variant-numeric: tabular-nums;
 }
@@ -268,7 +268,7 @@ function isDropAfter(index: number): boolean {
 }
 .coar-map-point-list__empty {
   padding: 10px 8px;
-  font-size: var(--coar-ui-font-size, 13px);
+  font-size: var(--coar-map-font-size, var(--coar-ui-font-size, 13px));
   color: var(--coar-text-neutral-tertiary, #94a3b8);
 }
 </style>

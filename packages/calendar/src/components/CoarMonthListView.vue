@@ -230,8 +230,8 @@ function formatTime(event: CalendarEvent<TMeta>): string {
   padding: 4px;
   color: var(--coar-text-neutral-secondary);
   text-align: center;
-  font-size: var(--coar-calendar-caption-font-size, 11px);
-  font-weight: var(--coar-calendar-caption-font-weight, 650);
+  font-size: var(--coar-calendar-small-caption-font-size, var(--coar-calendar-caption-font-size, 11px));
+  font-weight: var(--coar-calendar-strong-caption-font-weight, var(--coar-calendar-caption-font-weight, 650));
   text-transform: uppercase;
 }
 .coar-month-list-view__day {
@@ -244,8 +244,8 @@ function formatTime(event: CalendarEvent<TMeta>): string {
   gap: 2px;
   border: 0;
   border-radius: var(
-    --coar-calendar-control-radius,
-    var(--coar-button-radius, var(--coar-radius-xs, 2px))
+    --coar-calendar-button-control-radius,
+    var(--coar-calendar-control-radius, var(--coar-button-radius, var(--coar-radius-xs, 2px)))
   );
   background: transparent;
   color: var(--coar-text-neutral-primary);
@@ -260,7 +260,7 @@ function formatTime(event: CalendarEvent<TMeta>): string {
   color: var(--coar-calendar-on-accent, var(--coar-text-on-accent, white));
 }
 .coar-month-list-view__day--today:not(.coar-month-list-view__day--selected) {
-  color: var(--coar-calendar-today-color, var(--coar-text-danger, #d70015));
+  color: var(--coar-calendar-today-danger-color, var(--coar-calendar-today-color, var(--coar-text-danger, #d70015)));
   font-weight: var(--coar-calendar-strong-font-weight, 750);
 }
 .coar-month-list-view__day--other {
@@ -303,7 +303,7 @@ function formatTime(event: CalendarEvent<TMeta>): string {
   padding: var(--coar-spacing-s) var(--coar-spacing-m);
   border-bottom: 1px solid var(--coar-border-neutral-tertiary);
   background: var(--coar-background-neutral-primary);
-  font-size: var(--coar-calendar-label-font-size, var(--coar-component-m-font-size));
+  font-size: var(--coar-calendar-large-label-font-size, var(--coar-calendar-label-font-size, var(--coar-component-m-font-size)));
 }
 /* `<h2>` / `<h3>` carry no weight of their own: the user agent's applies
    unless a theme sets the heading weight (layer + `revert-layer`). */

@@ -626,11 +626,11 @@ defineExpose({
 }
 
 .coar-agenda-view__week-day--today:not(.coar-agenda-view__week-day--selected) {
-  color: var(--coar-calendar-today-color, var(--coar-text-danger, #d70015));
+  color: var(--coar-calendar-today-danger-color, var(--coar-calendar-today-color, var(--coar-text-danger, #d70015)));
 }
 
 .coar-agenda-view__week-day-name {
-  font-size: var(--coar-calendar-caption-font-size, var(--coar-component-xs-font-size));
+  font-size: var(--coar-calendar-badge-caption-font-size, var(--coar-calendar-caption-font-size, var(--coar-component-xs-font-size)));
   font-weight: var(--coar-calendar-caption-font-weight, 600);
   text-transform: uppercase;
 }

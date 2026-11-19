@@ -7,6 +7,10 @@
  * a consumer's `--coar-color-*` override still wins first, the roles below exist only
  * under a role theme, and otherwise the original fallback applies.
  *
+ * Optional `--coar-theme-document-viewer-*` inputs precede shared UI roles.
+ * More specific roles preserve distinct legacy fills and typography; when their
+ * inputs are unset they follow the existing package/common role.
+ *
  * The size roles (`--coar-document-viewer-header-height`, `-target-size`, `-input-height`,
  * `-swatch-size`, `-pin-target-outset`, `-outline-link-display`) are values of the theme itself:
  * the Compact ones are in `@cocoar/vue-ui` (`src/theme/compact-packages/document-viewer.ts`).
@@ -35,26 +39,43 @@
    derivation; the role then keeps the value it inherits. No specificity, so a consumer
    rule on the element wins. */
 :where(.coar-pdf-viewer, .coar-pdf-annotation-popover) {
-  --coar-d-document-viewer-surface: var(--coar-role-derivation) var(--coar-background-neutral-primary, #ffffff);
-  --coar-d-document-viewer-chrome: var(--coar-role-derivation) var(--coar-background-neutral-secondary, #f6f7f8);
-  --coar-d-document-viewer-hover: var(--coar-role-derivation) var(--coar-background-neutral-tertiary, rgba(0, 0, 0, 0.06));
-  --coar-d-document-viewer-backdrop: var(--coar-role-derivation) var(--coar-background-neutral-secondary, rgba(0, 0, 0, 0.04));
-  --coar-d-document-viewer-veil: var(--coar-role-derivation) color-mix(in srgb, var(--coar-background-neutral-primary, #ffffff) 55%, transparent);
-  --coar-d-document-viewer-border: var(--coar-role-derivation) var(--coar-border-neutral-tertiary, #e5e7eb);
-  --coar-d-document-viewer-divider: var(--coar-role-derivation) var(--coar-border-neutral-tertiary, rgba(0, 0, 0, 0.08));
-  --coar-d-document-viewer-text: var(--coar-role-derivation) var(--coar-text-neutral-primary, #1a1a1a);
-  --coar-d-document-viewer-text-secondary: var(--coar-role-derivation) var(--coar-text-neutral-secondary, #4b5563);
-  --coar-d-document-viewer-text-muted: var(--coar-role-derivation) var(--coar-text-neutral-tertiary, #6b7280);
-  --coar-d-document-viewer-accent: var(--coar-role-derivation) var(--coar-background-accent-primary, #2563eb);
-  --coar-d-document-viewer-accent-hover: var(--coar-role-derivation) var(--coar-background-accent-hover, #1d4ed8);
-  --coar-d-document-viewer-accent-tint: var(--coar-role-derivation) var(--coar-background-accent-tertiary, rgba(37, 99, 235, 0.08));
-  --coar-d-document-viewer-accent-tint-hover: var(--coar-role-derivation) var(--coar-background-accent-tertiary-active, rgba(37, 99, 235, 0.12));
-  --coar-d-document-viewer-on-accent: var(--coar-role-derivation) var(--coar-text-on-bold, #ffffff);
-  --coar-d-document-viewer-focus-ring: var(--coar-role-derivation) var(--coar-focus-color, #2563eb);
-  --coar-d-document-viewer-danger: var(--coar-role-derivation) var(--coar-text-semantic-error-bold, #dc2626);
-  --coar-d-document-viewer-danger-tint: var(--coar-role-derivation) var(--coar-background-semantic-error-subtlest, #fef2f2);
-  --coar-d-document-viewer-selection: var(--coar-role-derivation) color-mix(in srgb, var(--coar-background-accent-primary, #2563eb) 25%, transparent);
-  --coar-d-document-viewer-popover-shadow: var(--coar-role-derivation) var(--coar-elevation-high, 0 4px 16px rgba(0, 0, 0, 0.15));
+  --coar-d-document-viewer-surface: var(--coar-role-derivation) var(--coar-theme-document-viewer-surface, var(--coar-background-neutral-primary, #ffffff));
+  --coar-d-document-viewer-chrome: var(--coar-role-derivation) var(--coar-theme-document-viewer-chrome, var(--coar-background-neutral-secondary, #f6f7f8));
+  --coar-d-document-viewer-hover: var(--coar-role-derivation) var(--coar-theme-document-viewer-hover, var(--coar-background-neutral-tertiary, rgba(0, 0, 0, 0.06)));
+  --coar-d-document-viewer-backdrop: var(--coar-role-derivation) var(--coar-theme-document-viewer-backdrop, var(--coar-background-neutral-secondary, rgba(0, 0, 0, 0.04)));
+  --coar-d-document-viewer-veil: var(--coar-role-derivation) var(--coar-theme-document-viewer-veil, color-mix(in srgb, var(--coar-background-neutral-primary, #ffffff) 55%, transparent));
+  --coar-d-document-viewer-border: var(--coar-role-derivation) var(--coar-theme-document-viewer-border, var(--coar-border-neutral-tertiary, #e5e7eb));
+  --coar-d-document-viewer-divider: var(--coar-role-derivation) var(--coar-theme-document-viewer-divider, var(--coar-border-neutral-tertiary, rgba(0, 0, 0, 0.08)));
+  --coar-d-document-viewer-text: var(--coar-role-derivation) var(--coar-theme-document-viewer-text, var(--coar-text-neutral-primary, #1a1a1a));
+  --coar-d-document-viewer-text-secondary: var(--coar-role-derivation) var(--coar-theme-document-viewer-text-secondary, var(--coar-text-neutral-secondary, #4b5563));
+  --coar-d-document-viewer-text-muted: var(--coar-role-derivation) var(--coar-theme-document-viewer-text-muted, var(--coar-text-neutral-tertiary, #6b7280));
+  --coar-d-document-viewer-accent: var(--coar-role-derivation) var(--coar-theme-document-viewer-accent, var(--coar-background-accent-primary, #2563eb));
+  --coar-d-document-viewer-accent-hover: var(--coar-role-derivation) var(--coar-theme-document-viewer-accent-hover, var(--coar-background-accent-hover, #1d4ed8));
+  --coar-d-document-viewer-accent-tint: var(--coar-role-derivation) var(--coar-theme-document-viewer-accent-tint, var(--coar-background-accent-tertiary, rgba(37, 99, 235, 0.08)));
+  --coar-d-document-viewer-accent-tint-hover: var(--coar-role-derivation) var(--coar-theme-document-viewer-accent-tint-hover, var(--coar-background-accent-tertiary-active, rgba(37, 99, 235, 0.12)));
+  --coar-d-document-viewer-on-accent: var(--coar-role-derivation) var(--coar-theme-document-viewer-on-accent, var(--coar-text-on-bold, #ffffff));
+  --coar-d-document-viewer-focus-ring: var(--coar-role-derivation) var(--coar-theme-document-viewer-focus-ring, var(--coar-focus-color, #2563eb));
+  --coar-d-document-viewer-danger: var(--coar-role-derivation) var(--coar-theme-document-viewer-danger, var(--coar-text-semantic-error-bold, #dc2626));
+  --coar-d-document-viewer-danger-tint: var(--coar-role-derivation) var(--coar-theme-document-viewer-danger-tint, var(--coar-background-semantic-error-subtlest, #fef2f2));
+  --coar-d-document-viewer-selection: var(--coar-role-derivation) var(--coar-theme-document-viewer-selection, color-mix(in srgb, var(--coar-background-accent-primary, #2563eb) 25%, transparent));
+  --coar-d-document-viewer-popover-shadow: var(--coar-role-derivation) var(--coar-theme-document-viewer-popover-shadow, var(--coar-elevation-high, 0 4px 16px rgba(0, 0, 0, 0.15)));
+
+  --coar-d-document-viewer-button-hover: var(--coar-role-derivation) var(--coar-theme-document-viewer-button-hover, var(--coar-document-viewer-hover));
+  --coar-d-document-viewer-hover-subtle: var(--coar-role-derivation) var(--coar-theme-document-viewer-hover-subtle, var(--coar-document-viewer-hover));
+  --coar-d-document-viewer-toolbar-hover: var(--coar-role-derivation) var(--coar-theme-document-viewer-toolbar-hover, var(--coar-document-viewer-hover));
+  --coar-d-document-viewer-info-chrome: var(--coar-role-derivation) var(--coar-theme-document-viewer-info-chrome, var(--coar-document-viewer-chrome));
+  --coar-d-document-viewer-info-divider: var(--coar-role-derivation) var(--coar-theme-document-viewer-info-divider, var(--coar-document-viewer-divider));
+  --coar-d-document-viewer-field-focus-tint: var(--coar-role-derivation) var(--coar-theme-document-viewer-field-focus-tint, var(--coar-document-viewer-accent-tint));
+
+  --coar-d-document-viewer-font-size: var(--coar-role-derivation) var(--coar-theme-document-viewer-font-size, var(--coar-ui-font-size));
+  --coar-d-document-viewer-small-font-size: var(--coar-role-derivation) var(--coar-theme-document-viewer-small-font-size, var(--coar-ui-font-size));
+  --coar-d-document-viewer-reading-font-size: var(--coar-role-derivation) var(--coar-theme-document-viewer-reading-font-size, var(--coar-ui-font-size));
+  --coar-d-document-viewer-field-font-size: var(--coar-role-derivation) var(--coar-theme-document-viewer-field-font-size, var(--coar-field-font-size));
+  --coar-d-document-viewer-small-field-font-size: var(--coar-role-derivation) var(--coar-theme-document-viewer-small-field-font-size, var(--coar-field-font-size));
+  --coar-d-document-viewer-caption-font-size: var(--coar-role-derivation) var(--coar-theme-document-viewer-caption-font-size, var(--coar-caption-font-size));
+  --coar-d-document-viewer-footnote-font-size: var(--coar-role-derivation) var(--coar-theme-document-viewer-footnote-font-size, var(--coar-caption-font-size));
+  --coar-d-document-viewer-title-font-size: var(--coar-role-derivation) var(--coar-theme-document-viewer-title-font-size, var(--coar-caption-font-size));
+  --coar-d-document-viewer-label-font-weight: var(--coar-role-derivation) var(--coar-theme-document-viewer-label-font-weight, var(--coar-label-font-weight));
 
   --coar-document-viewer-surface: var(--coar-d-document-viewer-surface, inherit);
   --coar-document-viewer-chrome: var(--coar-d-document-viewer-chrome, inherit);
@@ -76,4 +97,19 @@
   --coar-document-viewer-danger-tint: var(--coar-d-document-viewer-danger-tint, inherit);
   --coar-document-viewer-selection: var(--coar-d-document-viewer-selection, inherit);
   --coar-document-viewer-popover-shadow: var(--coar-d-document-viewer-popover-shadow, inherit);
+  --coar-document-viewer-button-hover: var(--coar-d-document-viewer-button-hover, inherit);
+  --coar-document-viewer-hover-subtle: var(--coar-d-document-viewer-hover-subtle, inherit);
+  --coar-document-viewer-toolbar-hover: var(--coar-d-document-viewer-toolbar-hover, inherit);
+  --coar-document-viewer-info-chrome: var(--coar-d-document-viewer-info-chrome, inherit);
+  --coar-document-viewer-info-divider: var(--coar-d-document-viewer-info-divider, inherit);
+  --coar-document-viewer-field-focus-tint: var(--coar-d-document-viewer-field-focus-tint, inherit);
+  --coar-document-viewer-font-size: var(--coar-d-document-viewer-font-size, inherit);
+  --coar-document-viewer-small-font-size: var(--coar-d-document-viewer-small-font-size, inherit);
+  --coar-document-viewer-reading-font-size: var(--coar-d-document-viewer-reading-font-size, inherit);
+  --coar-document-viewer-field-font-size: var(--coar-d-document-viewer-field-font-size, inherit);
+  --coar-document-viewer-small-field-font-size: var(--coar-d-document-viewer-small-field-font-size, inherit);
+  --coar-document-viewer-caption-font-size: var(--coar-d-document-viewer-caption-font-size, inherit);
+  --coar-document-viewer-footnote-font-size: var(--coar-d-document-viewer-footnote-font-size, inherit);
+  --coar-document-viewer-title-font-size: var(--coar-d-document-viewer-title-font-size, inherit);
+  --coar-document-viewer-label-font-weight: var(--coar-d-document-viewer-label-font-weight, inherit);
 }

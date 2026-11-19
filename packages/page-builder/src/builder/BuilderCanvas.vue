@@ -103,7 +103,7 @@ function onWheel(event: WheelEvent) {
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  height: var(--coar-page-builder-header-height, 38px);
+  height: var(--coar-page-builder-toolbar-height, var(--coar-page-builder-header-height, 38px));
   box-sizing: border-box;
   border-bottom: 1px solid var(--coar-border-neutral, #e2e2e6);
   background: var(--coar-background-neutral-secondary, #f7f7f9);

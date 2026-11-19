@@ -253,8 +253,10 @@ for (const [scheme, expected] of [['light', '#1183cd'], ['dark', '#facc15']] as 
       state.initThemeEditorState(false, scope, { fontPreview: false });
     }, stateUrl);
     await page.getByTitle('Open theme editor', { exact: true }).click();
-    await expect(page.locator('.te-color-swatch')).toHaveCount(5);
-    for (const input of await page.locator('.te-color-swatch').all()) {
+    // The five base colours, as the scheme shown has them.
+    const bases = page.locator('[data-te-base] .te-color-row .te-color-swatch');
+    await expect(bases).toHaveCount(5);
+    for (const input of await bases.all()) {
       await expect(input).toHaveValue(expected);
     }
   });

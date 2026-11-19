@@ -82,6 +82,8 @@ function span(from: number, to: number): Record<string, string> {
   pointer-events: none;
   z-index: 3;
   --marker-color: var(--coar-background-accent-primary, #2563eb);
+  /* A currentColor theme input resolves against this marker's data, not its calendar root. */
+  color: var(--marker-color);
 }
 .coar-time-axis-marker--draft {
   --marker-color: var(--coar-calendar-draft-color, var(--coar-background-accent-primary, #2563eb));

@@ -14,7 +14,10 @@ function area(html: string) {
   return document.querySelector('i')!;
 }
 
-describe('shared compact teleport context', () => {
+// jsdom writes the ~930 transported custom properties into an inline style in about
+// 300 ms per update (browsers do not); a test that updates a context several times
+// then needs more than the default 5 s when every package tests at once.
+describe('shared compact teleport context', { timeout: 20_000 }, () => {
   it('adds nothing to legacy teleports, including legacy mobile', () => {
     expect(readCompactPresentationContext(null)).toEqual({ classes: [], style: {} });
     expect(readCompactPresentationContext(area('<div class="coar-mobile dark-mode"><i></i></div>')))
@@ -65,6 +68,8 @@ describe('shared compact teleport context', () => {
     const context = readCompactPresentationContext(source);
     expect(context.style['--coar-appearance-accent']).toBe('initial');
     expect(context.style['--coar-appearance-font-body']).toBe('initial');
+    expect(context.style['--coar-panel-radius']).toBe('initial');
+    expect(context.style['--coar-theme-document-viewer-font-size']).toBe('initial');
   });
 
   it('updates and clears a mounted custom teleport without retaining stale roles', async () => {

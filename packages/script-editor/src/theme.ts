@@ -204,9 +204,17 @@ const COMPACT_COLOR_ROLES: Readonly<Record<string, string>> = {
   focusBorder: '--coar-focus-color',
 };
 
+/** Optional package input for a Monaco color; common UI roles remain the fallback. */
+export function scriptEditorColorInput(key: string): string {
+  const role = key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`).replaceAll('.', '-');
+  return `--coar-theme-script-editor-${role}`;
+}
+
 /**
  * Resolve the color roles in effect at the document boundary. Monaco is page-global,
  * so local comparisons of two themes belong in separate documents.
+ * Public --coar-theme-script-editor-<color> inputs precede common UI roles;
+ * unset inputs keep Compact's existing palette and the no-theme path unchanged.
  */
 export function refreshCompactTheme(monacoNs: typeof monaco, name: string): void {
   if (name !== COAR_THEME_COMPACT_LIGHT && name !== COAR_THEME_COMPACT_DARK) return;
@@ -222,8 +230,10 @@ export function refreshCompactTheme(monacoNs: typeof monaco, name: string): void
   document.body.appendChild(probe);
   const colors: Record<string, string> = {};
   for (const [key, role] of Object.entries(COMPACT_COLOR_ROLES)) {
-    if (!getComputedStyle(probe).getPropertyValue(role).trim()) continue;
-    probe.style.color = `var(${role})`;
+    const input = scriptEditorColorInput(key);
+    const styles = getComputedStyle(probe);
+    if (!styles.getPropertyValue(input).trim() && !styles.getPropertyValue(role).trim()) continue;
+    probe.style.color = `var(${input}, var(${role}))`;
     ctx.clearRect(0, 0, 1, 1);
     ctx.fillStyle = getComputedStyle(probe).color;
     ctx.fillRect(0, 0, 1, 1);

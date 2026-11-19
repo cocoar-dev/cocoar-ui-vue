@@ -124,7 +124,7 @@ function onDblclick(e: MouseEvent) {
 .coar-agenda-event__continuation-tag {
   margin-left: 6px;
   font-size: var(--coar-calendar-caption-font-size, var(--coar-font-size-xs, 11px));
-  color: var(--coar-text-subtle, #9ca3af);
+  color: var(--coar-calendar-faint-text-color, var(--coar-text-subtle, #9ca3af));
   font-style: italic;
   font-weight: 400;
 }

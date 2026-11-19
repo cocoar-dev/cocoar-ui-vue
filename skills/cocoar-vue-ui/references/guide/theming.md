@@ -99,3 +99,25 @@ The oklch color system requires:
 - Safari 18+
 
 This covers all modern browsers. For older browsers, consider providing hex fallbacks for your specific brand color.
+
+### Different presets inside one another (Preview)
+
+The browser requirements above still apply to a single preset, ordinary light/dark
+switching and applications without a preset. Different presets **nested inside one
+another**, such as Enterprise around a Compact section, additionally use CSS
+`@scope` to keep the inner preset's typography, geometry and package inputs independent.
+
+- **Chrome / Edge 119+:** already covered by the baseline above.
+- **Firefox 146+:** required for reliable isolation of different nested presets.
+- **Safari 18+:** supports `@scope`. Safari 26.0–26.3 has a regression for scoped
+  rules applied directly to `<input>` and `<textarea>`; Safari 26.4 fixes it.
+  Apply preset and mode classes to `html` or a container, not directly to native fields.
+
+Without `@scope`, the exported stylesheet keeps its unscoped fallback: a single
+preset still works, but values from an outer preset can affect an inner, different
+preset, particularly at light/dark, reset and mobile boundaries. On those browsers,
+use one preset per ancestor chain rather than relying on nested isolation.
+Separate pages or sibling areas with different presets do not have this conflict.
+
+This restriction is about mixing presets, not about the usual light/dark switch.
+For the markup and export contract, see [Theme Editor](../foundations/theming.md).

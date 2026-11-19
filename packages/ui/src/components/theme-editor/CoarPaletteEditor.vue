@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, onUnmounted, useTemplateRef } from 'vue';
 import { useCompactPresentationContext } from '../overlay/useCompactPresentationContext';
+import { hexToOklch } from './color-preview';
+import type { ThemeScheme } from './scheme-values';
 
 export interface StepDef {
   step: number;
-  defL: number | null; // null = step 500 (base color itself)
+  /** null: the step is the base colour itself (step 500 by default). */
+  defL: number | null;
   defC: number | null;
 }
 
@@ -12,8 +15,10 @@ export interface StepOverride { l: number; c: number }
 
 const props = defineProps<{
   label: string;
+  /** The base colour in the edited scheme; every step takes its hue. */
   baseColor: string;
-  cssFamily: string;           // 'accent' | 'red' | 'green' | 'amber' | 'slate'
+  scheme: ThemeScheme;
+  /** The curve of the edited scheme, as the theme has it. */
   steps: StepDef[];
   modelValue: Record<number, StepOverride>;
 }>();
@@ -24,31 +29,15 @@ const emit = defineEmits<{
 }>();
 const source = useTemplateRef<HTMLElement>('source');
 const presentation = useCompactPresentationContext(() => source.value);
-// Whether the editor was opened from a theme with active role derivation. Such a
-// theme brings its own curves and sizes, and this tool then shows them as they are.
+// Whether the editor was opened from a theme with active role derivation: it then
+// takes that theme's sizes and touch targets.
 const roleTheme = computed(() => Object.keys(presentation.value.style).length > 0);
 
-// A role theme's accent has its own mode-aware scale. Inspect the real CSS roles
-// rather than previewing the default scale (which makes Slate look saturated).
-const accentRoles = computed(() => roleTheme.value && props.cssFamily === 'accent');
-const paletteSteps = computed(() => {
-  if (!accentRoles.value || !source.value) return props.steps;
-  // Depend on live context updates, including consumer palette overrides.
-  const context = presentation.value;
-  const probe = document.createElement('span');
-  source.value.appendChild(probe);
-  try {
-    return props.steps.map((step) => {
-      if (step.defL === null) return step;
-      const role = `--coar-color-accent-${step.step}`;
-      if (!context.style[role]) return step;
-      probe.style.color = `oklch(from var(${role}) l c h)`;
-      const match = getComputedStyle(probe).color.match(/^oklch\(([\d.e+-]+)\s+([\d.e+-]+)/);
-      return match ? { ...step, defL: Number(match[1]), defC: Number(match[2]) } : step;
-    });
-  } finally {
-    probe.remove();
-  }
+const round = (value: number) => Math.round(value * 1000) / 1000;
+/** A step without a curve of its own shows the base colour: its L and C are the base's. */
+const base = computed(() => {
+  const oklch = hexToOklch(props.baseColor);
+  return oklch ? { l: round(oklch.l), c: round(oklch.c) } : { l: 0, c: 0 };
 });
 
 /* ── drag ────────────────────────────────────────────────────── */
@@ -78,26 +67,27 @@ function stopDrag() {
 onUnmounted(() => stopDrag());
 
 /* ── palette logic ───────────────────────────────────────────── */
+function defaults(s: StepDef): StepOverride {
+  return s.defL === null || s.defC === null ? base.value : { l: s.defL, c: s.defC };
+}
+
 function swatchStyle(s: StepDef): Record<string, string> {
-  if (accentRoles.value && !props.modelValue[s.step]) {
-    return { background: `var(--coar-color-accent-${s.step})` };
-  }
-  if (s.defL === null) return { background: props.baseColor };
   const ov = props.modelValue[s.step];
-  const l  = ov?.l ?? s.defL!;
-  const c  = ov?.c ?? s.defC!;
+  if (!ov && s.defL === null) return { background: props.baseColor };
+  const { l, c } = ov ?? defaults(s);
+  // The same expression the library derives the step with.
   return { background: `oklch(from ${props.baseColor} ${l} ${c} h)` };
 }
 
-function getL(s: StepDef) { return props.modelValue[s.step]?.l ?? s.defL ?? 0; }
-function getC(s: StepDef) { return props.modelValue[s.step]?.c ?? s.defC ?? 0; }
+function getL(s: StepDef) { return props.modelValue[s.step]?.l ?? defaults(s).l; }
+function getC(s: StepDef) { return props.modelValue[s.step]?.c ?? defaults(s).c; }
 
 function setL(s: StepDef, val: number) {
-  const cur = props.modelValue[s.step] ?? { l: s.defL!, c: s.defC! };
+  const cur = props.modelValue[s.step] ?? defaults(s);
   emit('update:modelValue', { ...props.modelValue, [s.step]: { ...cur, l: val } });
 }
 function setC(s: StepDef, val: number) {
-  const cur = props.modelValue[s.step] ?? { l: s.defL!, c: s.defC! };
+  const cur = props.modelValue[s.step] ?? defaults(s);
   emit('update:modelValue', { ...props.modelValue, [s.step]: { ...cur, c: val } });
 }
 function resetStep(s: StepDef) {
@@ -108,13 +98,8 @@ function resetStep(s: StepDef) {
 
 const hasAnyOverride = computed(() => Object.keys(props.modelValue).length > 0);
 function resetAll() { emit('update:modelValue', {}); }
-function isChanged(s: StepDef) {
-  const ov = props.modelValue[s.step];
-  // An explicit override in a role theme remains authored even if it currently equals
-  // the default; a later scheme/brand change must not silently discard it.
-  if (accentRoles.value) return !!ov;
-  return !!ov && (ov.l !== s.defL || ov.c !== s.defC);
-}
+// A set step stays set even where it equals the curve: it is written into the theme.
+function isChanged(s: StepDef) { return !!props.modelValue[s.step]; }
 </script>
 
 <template>
@@ -131,7 +116,7 @@ function isChanged(s: StepDef) {
       <div class="cpe-titlebar" @mousedown="startDrag">
         <svg class="cpe-drag-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>
         <span class="cpe-title">{{ label }}</span>
-        <span class="cpe-subtitle">50–900 · oklch hue</span>
+        <span class="cpe-subtitle">50–900 · {{ scheme === 'dark' ? 'Dark' : 'Light' }} · oklch hue</span>
         <div class="cpe-titlebar-actions">
           <button v-if="hasAnyOverride" class="cpe-reset-all" @click="resetAll">Reset all</button>
           <button class="cpe-close" @click="$emit('close')" aria-label="Close">
@@ -143,7 +128,7 @@ function isChanged(s: StepDef) {
       <!-- ── Swatch strip ── -->
       <div class="cpe-strip">
         <div
-          v-for="s in paletteSteps"
+          v-for="s in steps"
           :key="s.step"
           class="cpe-strip-swatch"
           :class="{ 'cpe-strip-swatch--changed': isChanged(s) }"
@@ -157,7 +142,7 @@ function isChanged(s: StepDef) {
       <!-- ── Step rows ── -->
       <div class="cpe-rows">
         <div
-          v-for="s in paletteSteps"
+          v-for="s in steps"
           :key="s.step"
           class="cpe-row"
           :class="{ 'cpe-row--changed': isChanged(s) }"
@@ -165,42 +150,35 @@ function isChanged(s: StepDef) {
           <div class="cpe-row-swatch" :style="swatchStyle(s)" />
           <span class="cpe-row-step">{{ s.step }}</span>
 
-          <!-- step 500 = base, not editable -->
-          <template v-if="s.defL === null">
-            <span class="cpe-row-base">← base color (set in Brand tab)</span>
-          </template>
-
-          <template v-else>
-            <div class="cpe-sliders">
-              <div class="cpe-slider-row">
-                <span class="cpe-lbl">L</span>
-                <input
-                  type="range" min="0" max="1" step="0.005"
-                  :value="getL(s)"
-                  @input="setL(s, +($event.target as HTMLInputElement).value)"
-                />
-                <span class="cpe-val">{{ getL(s).toFixed(3) }}</span>
-              </div>
-              <div class="cpe-slider-row">
-                <span class="cpe-lbl">C</span>
-                <input
-                  type="range" min="0" max="0.4" step="0.002"
-                  :value="getC(s)"
-                  @input="setC(s, +($event.target as HTMLInputElement).value)"
-                />
-                <span class="cpe-val">{{ getC(s).toFixed(3) }}</span>
-              </div>
+          <div class="cpe-sliders">
+            <div class="cpe-slider-row">
+              <span class="cpe-lbl">L</span>
+              <input
+                type="range" min="0" max="1" step="0.005"
+                :value="getL(s)"
+                @input="setL(s, +($event.target as HTMLInputElement).value)"
+              />
+              <span class="cpe-val">{{ getL(s).toFixed(3) }}</span>
             </div>
-            <button
-              class="cpe-reset-btn"
-              :class="{ 'cpe-reset-btn--on': isChanged(s) }"
-              :disabled="!isChanged(s)"
-              title="Reset this step"
-              @click="resetStep(s)"
-            >
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-            </button>
-          </template>
+            <div class="cpe-slider-row">
+              <span class="cpe-lbl">C</span>
+              <input
+                type="range" min="0" max="0.4" step="0.002"
+                :value="getC(s)"
+                @input="setC(s, +($event.target as HTMLInputElement).value)"
+              />
+              <span class="cpe-val">{{ getC(s).toFixed(3) }}</span>
+            </div>
+          </div>
+          <button
+            class="cpe-reset-btn"
+            :class="{ 'cpe-reset-btn--on': isChanged(s) }"
+            :disabled="!isChanged(s)"
+            title="Reset this step"
+            @click="resetStep(s)"
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          </button>
         </div>
       </div>
     </div>
@@ -320,10 +298,6 @@ function isChanged(s: StepDef) {
   width: 30px; flex-shrink: 0;
   font-size: var(--coar-caption-font-size, 11px); font-weight: var(--coar-label-font-weight, 700);
   color: var(--coar-text-neutral-tertiary, #8c8c8c);
-}
-.cpe-row-base {
-  flex: 1; font-size: var(--coar-caption-font-size, 11px);
-  color: var(--coar-text-neutral-tertiary, #8c8c8c); font-style: italic;
 }
 
 /* ── Sliders ── */

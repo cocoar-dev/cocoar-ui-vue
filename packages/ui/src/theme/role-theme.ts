@@ -1,4 +1,7 @@
 import { COLOR_PALETTES } from './palette-inputs';
+import { ROLE_DERIVED_TOKENS } from './role-derived-tokens';
+import { ROLE_MOBILE_DEFAULTS, ROLE_ROOT_DEFAULTS, ROLE_SCHEME_DEFAULTS } from './role-input-defaults';
+import { ROLE_THEME_INPUT_DEFAULTS, ROLE_THEME_MOBILE_INPUTS, ROLE_THEME_ROLES } from './role-theme-contract';
 
 /**
  * A theme as values for the shared role contract. The library derives everything
@@ -112,5 +115,73 @@ export function serializeRoleTheme(selector: string, theme: CoarRoleTheme): stri
       ], mobileRoles));
     }
   }
-  return `${rules.join('\n\n')}\n`;
+  // Keep the original rules as a complete fallback. Older browsers must not lose
+  // a flat preset, its mobile presentation, or ordinary scheme/scope boundaries.
+  return `${rules.join('\n\n')}\n\n${isolatedRoleTheme(selector, theme)}`;
+}
+
+/**
+ * Native scoping stops at the NEXT preset, including a repeated preset or an
+ * editor preview. Its independent slot values also override legacy ancestor
+ * rules that remain necessary for browsers without @scope.
+ */
+function isolatedRoleTheme(selector: string, theme: CoarRoleTheme): string {
+  const derived = new Set(ROLE_DERIVED_TOKENS);
+  const roleNames = [...new Set([...ROLE_THEME_ROLES, ...Object.keys(theme.roles ?? {})])];
+  const roleValues = Object.fromEntries(roleNames.map(name => [
+    name,
+    theme.roles?.[name] ?? theme.tokens[name] ?? ROLE_ROOT_DEFAULTS[name]
+      ?? (derived.has(name) ? `var(--coar-d-${name.slice('--coar-'.length)}, inherit)` : 'initial'),
+  ]));
+  // Inputs on a preset root are not boundary overrides. In particular Compact's
+  // neutral colours historically yield to explicit light/dark-mode declarations.
+  // Re-derive aliases and inherit other roles instead of copying root constants.
+  const boundaryRoles = Object.fromEntries(roleNames.map(name => [
+    name,
+    theme.roles?.[name]
+      ?? (derived.has(name) ? `var(--coar-d-${name.slice('--coar-'.length)}, inherit)` : 'inherit'),
+  ]));
+  const inputs = { ...ROLE_THEME_INPUT_DEFAULTS, ...theme.tokens };
+  const state = { ...inputs, ...roleValues };
+  // Desktop completion contains unset mobile-only slots. Do not let those
+  // erase inherited mobile defaults; explicitly authored theme values still win.
+  const mobileState = {
+    ...state, ...ROLE_MOBILE_DEFAULTS, ...theme.tokens, ...theme.roles, ...theme.mobileTokens,
+  };
+  const none = [':scope.coar-theme-none', ':scope .coar-theme-none'];
+  const roots = [':root:scope', ':scope', ':scope.coar-mobile', ...none];
+  const mobileRoots = ['.coar-mobile :scope', ':scope.coar-mobile'];
+  const mobileNone = [
+    '.coar-mobile :scope .coar-theme-none', ':scope.coar-mobile .coar-theme-none',
+    ':scope .coar-mobile .coar-theme-none', ':scope.coar-mobile.coar-theme-none',
+  ];
+  const mobileRoles = Object.fromEntries(Object.entries(theme.mobileTokens)
+    .filter(([name]) => roleNames.includes(name)));
+  // Neutralise an outer preset's unscoped mobile declarations at a local mobile
+  // boundary, without replacing inherited consumer edits by constant defaults.
+  const inheritedMobileInputs = Object.fromEntries(ROLE_THEME_MOBILE_INPUTS
+    .map(name => [name, ROLE_MOBILE_DEFAULTS[name] ?? 'inherit']));
+  const scoped = [
+    rule(roots, Object.entries(inputs)),
+    rule(roots, Object.entries(roleValues)),
+    rule([`:scope ${NESTED_BOUNDARIES}`], Object.entries(boundaryRoles)),
+    rule(mobileRoots, Object.entries(mobileState)),
+    rule([':scope .coar-mobile'], Object.entries({
+      ...inheritedMobileInputs, ...theme.mobileTokens,
+    })),
+    rule([
+      `.coar-mobile :scope ${NESTED_BOUNDARIES}`,
+      `:scope.coar-mobile ${NESTED_BOUNDARIES}`,
+      `:scope .coar-mobile ${NESTED_BOUNDARIES}`,
+    ], Object.entries({ ...boundaryRoles, ...mobileRoles })),
+    rule(mobileNone, Object.entries(mobileState)),
+  ];
+  for (const scheme of ['light', 'dark'] as const) {
+    const defaults = Object.fromEntries(Object.entries(ROLE_SCHEME_DEFAULTS[scheme])
+      .filter(([name]) => !derived.has(name) && !Object.hasOwn(theme.roles ?? {}, name)));
+    if (Object.keys(defaults).length > 0) {
+      scoped.push(rule([`:scope .${scheme}-mode:where(:not(.coar-theme-none))`], Object.entries(defaults)));
+    }
+  }
+  return `@scope (${selector}) to (:scope :where(.coar-compact, .coar-theme-editor, [class*="coar-theme--"])) {\n${scoped.join('\n\n')}\n}\n`;
 }

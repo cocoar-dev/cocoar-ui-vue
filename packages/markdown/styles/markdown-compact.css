@@ -21,26 +21,28 @@
    then still applies. Each private `--coar-d-*` value is invalid unless a theme
    sets `--coar-role-derivation`, and the role then keeps what it inherits. No
    specificity, so a consumer rule on the element wins. */
+/* A theme may supply --coar-theme-markdown-<role> on its scope. These inputs
+   precede the common UI roles without shadowing per-instance public overrides. */
 :where(.coar-markdown) {
   /* Boxes drawn by the renderer (unsupported node, unknown embed). */
-  --coar-d-markdown-box-radius: var(--coar-role-derivation) var(--coar-panel-radius, 8px);
+  --coar-d-markdown-box-radius: var(--coar-role-derivation) var(--coar-theme-markdown-box-radius, var(--coar-panel-radius, 8px));
   --coar-markdown-box-radius: var(--coar-d-markdown-box-radius, inherit);
 
   /* Inline code: a quiet chip instead of bare accent text. */
-  --coar-d-markdown-inline-code-background: var(--coar-role-derivation) var(--coar-background-neutral-tertiary);
+  --coar-d-markdown-inline-code-background: var(--coar-role-derivation) var(--coar-theme-markdown-inline-code-background, var(--coar-background-neutral-tertiary));
   --coar-markdown-inline-code-background: var(--coar-d-markdown-inline-code-background, inherit);
-  --coar-d-markdown-inline-code-color: var(--coar-role-derivation) var(--coar-text-neutral-primary);
+  --coar-d-markdown-inline-code-color: var(--coar-role-derivation) var(--coar-theme-markdown-inline-code-color, var(--coar-text-neutral-primary));
   --coar-markdown-inline-code-color: var(--coar-d-markdown-inline-code-color, inherit);
 
-  --coar-d-markdown-table-header-color: var(--coar-role-derivation) var(--coar-text-neutral-secondary);
+  --coar-d-markdown-table-header-color: var(--coar-role-derivation) var(--coar-theme-markdown-table-header-color, var(--coar-text-neutral-secondary));
   --coar-markdown-table-header-color: var(--coar-d-markdown-table-header-color, inherit);
 
   /* Frontmatter: legible metadata instead of gray-400 (below 4.5:1 on white). */
-  --coar-d-markdown-frontmatter-color: var(--coar-role-derivation) var(--coar-text-neutral-tertiary);
+  --coar-d-markdown-frontmatter-color: var(--coar-role-derivation) var(--coar-theme-markdown-frontmatter-color, var(--coar-text-neutral-tertiary));
   --coar-markdown-frontmatter-color: var(--coar-d-markdown-frontmatter-color, inherit);
 
   /* Placeholder of an unregistered embed: UI text. */
-  --coar-d-markdown-embed-placeholder-font-size: var(--coar-role-derivation) var(--coar-ui-font-size, 13px);
+  --coar-d-markdown-embed-placeholder-font-size: var(--coar-role-derivation) var(--coar-theme-markdown-embed-placeholder-font-size, var(--coar-ui-font-size, 13px));
   --coar-markdown-embed-placeholder-font-size: var(--coar-d-markdown-embed-placeholder-font-size, inherit);
 }
 

@@ -369,7 +369,7 @@ function zoneClasses(index: number): Record<string, boolean> {
   position: relative;
   box-sizing: border-box;
   border: 1px solid var(--canvas-border);
-  border-radius: var(--coar-page-builder-control-radius, 5px);
+  border-radius: var(--coar-page-builder-medium-control-radius, var(--coar-page-builder-control-radius, 5px));
   padding: 11px 8px 8px;
   cursor: pointer;
   transition: border-color 0.12s ease-out, background-color 0.12s ease-out;
@@ -397,7 +397,7 @@ function zoneClasses(index: number): Record<string, boolean> {
 
 .canvas-node--selected {
   /* Compact selection stays visible under the pointer; default hover is unchanged. */
-  --canvas-border-hover: var(--coar-page-builder-canvas-selection-color, var(--coar-page-builder-canvas-border-hover, rgba(80, 86, 96, 0.34)));
+  --canvas-border-hover: var(--coar-page-builder-group-selection-color, var(--coar-page-builder-canvas-selection-color, var(--coar-page-builder-canvas-border-hover, rgba(80, 86, 96, 0.34))));
   border-color: var(--canvas-border-selected);
   border-style: solid;
   background: color-mix(in oklab, var(--canvas-accent) 4%, transparent);

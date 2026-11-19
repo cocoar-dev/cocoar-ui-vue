@@ -215,7 +215,7 @@ const isDirty = computed(
   display: flex;
   flex-direction: column;
   gap: 8px;
-  font-size: var(--coar-ui-font-size, 13px);
+  font-size: var(--coar-document-viewer-font-size, var(--coar-ui-font-size, 13px));
 }
 
 .coar-pdf-annotation-popover__swatches {
@@ -252,7 +252,7 @@ const isDirty = computed(
   background: var(--coar-color-surface, var(--coar-document-viewer-surface, #ffffff));
   color: inherit;
   font: inherit;
-  font-size: var(--coar-field-font-size, 13px);
+  font-size: var(--coar-document-viewer-field-font-size, var(--coar-field-font-size, 13px));
   box-sizing: border-box;
 }
 .coar-pdf-annotation-popover__textarea:focus {
@@ -279,7 +279,7 @@ const isDirty = computed(
   cursor: pointer;
 }
 .coar-pdf-annotation-popover__btn:hover {
-  background: var(--coar-color-surface-3, var(--coar-document-viewer-hover, #ececec));
+  background: var(--coar-color-surface-3, var(--coar-document-viewer-button-hover, var(--coar-document-viewer-hover, #ececec)));
 }
 .coar-pdf-annotation-popover__btn--primary {
   background: var(--coar-color-accent, var(--coar-document-viewer-accent, #2563eb));

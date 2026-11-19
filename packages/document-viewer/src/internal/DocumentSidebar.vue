@@ -292,7 +292,7 @@ async function onOutlineClick(node: OutlineNode) {
   flex: 0 0 200px;
   background: var(--coar-color-surface-2, var(--coar-document-viewer-chrome, #f6f7f8));
   border-right: 1px solid var(--coar-color-border, var(--coar-document-viewer-border, #e5e7eb));
-  font-size: var(--coar-ui-font-size, 12px);
+  font-size: var(--coar-document-viewer-small-font-size, var(--coar-ui-font-size, 12px));
   overflow: hidden;
 }
 
@@ -323,11 +323,11 @@ async function onOutlineClick(node: OutlineNode) {
 }
 .coar-pdf-sidebar__tab--active {
   color: var(--coar-color-fg, var(--coar-document-viewer-text, #1a1a1a));
-  font-weight: var(--coar-label-font-weight, 600);
+  font-weight: var(--coar-document-viewer-label-font-weight, var(--coar-label-font-weight, 600));
   background: var(--coar-color-surface, var(--coar-document-viewer-surface, #ffffff));
 }
 .coar-pdf-sidebar__tab:hover:not(.coar-pdf-sidebar__tab--active) {
-  background: var(--coar-color-surface-3, var(--coar-document-viewer-hover, rgba(0, 0, 0, 0.04)));
+  background: var(--coar-color-surface-3, var(--coar-document-viewer-hover-subtle, var(--coar-document-viewer-hover, rgba(0, 0, 0, 0.04))));
 }
 
 .coar-pdf-sidebar__close {

@@ -1779,7 +1779,7 @@ defineExpose({
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  font-size: var(--coar-ui-font-size, 0.875rem);
+  font-size: var(--coar-document-viewer-reading-font-size, var(--coar-ui-font-size, 0.875rem));
 }
 
 .coar-pdf-viewer__overlay--loading {
@@ -1823,7 +1823,7 @@ defineExpose({
   cursor: pointer;
 }
 .coar-pdf-viewer__error-retry:hover {
-  background: var(--coar-color-surface-3, var(--coar-document-viewer-hover, #ececec));
+  background: var(--coar-color-surface-3, var(--coar-document-viewer-button-hover, var(--coar-document-viewer-hover, #ececec)));
 }
 </style>
 

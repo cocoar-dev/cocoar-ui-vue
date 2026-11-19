@@ -76,7 +76,8 @@ describe('Compact theme, one source for preset and class', () => {
     expect(css).toContain(':root.coar-theme--acme,\n.coar-theme--acme,');
     expect(css).toContain('  --coar-role-derivation: ;\n  --coar-ui-font-size: 13px;');
     expect(css).toContain('color-scheme: var(--coar-compact-color-scheme, light);');
-    expect(css).not.toContain('.coar-compact');
+    expect(css.split('@scope')[0]).not.toContain('.coar-compact');
+    expect(css).toContain('@scope (.coar-theme--acme) to (:scope');
     expect(css).not.toContain('.coar-mobile .coar-theme--acme');
     expect(serializeRoleTheme('.x', { ...theme, mobileTokens: { '--coar-ui-font-size': '14px' } }))
       .toContain('.coar-mobile .x,\n.x.coar-mobile,\n.x .coar-mobile,');

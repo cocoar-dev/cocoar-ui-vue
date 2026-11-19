@@ -80,13 +80,15 @@ function colorFor(seed: string): string {
       class="coar-event-assignees__avatar"
       :style="{
         background: person.autoColor ? `var(--coar-calendar-avatar-auto-bg, ${person.color})` : person.color,
+        '--assignee-color': person.color,
         '--assignee-ink': person.autoColor
           ? 'var(--coar-text-on-accent, #fff)'
           : eventTextColor(person.color, 'white'),
       }"
       aria-hidden="true"
-      >{{ initials(person.displayName) }}</span
     >
+      <span class="coar-event-assignees__initials">{{ initials(person.displayName) }}</span>
+    </span>
     <span v-if="overflow" class="coar-event-assignees__overflow" aria-hidden="true"
       >+{{ overflow }}</span
     >
@@ -109,10 +111,19 @@ function colorFor(seed: string): string {
   justify-content: center;
   border: 1px solid color-mix(in srgb, white 78%, transparent);
   border-radius: 999px;
-  color: var(--coar-calendar-avatar-ink, white);
+  color: var(--coar-i-calendar-avatar-color, var(--coar-calendar-avatar-ink, white));
   font-weight: 750;
   line-height: 1;
   box-shadow: 0 0 0 1px color-mix(in srgb, black 13%, transparent);
+}
+.coar-event-assignees__avatar {
+  /* Keep a deferred fill's currentColor local to this person. Inactive themes
+     retain the original foreground, including consumer colour overrides. */
+  --coar-i-calendar-avatar-color: var(--coar-role-derivation) var(--assignee-color);
+}
+.coar-event-assignees__initials {
+  --coar-i-calendar-avatar-ink: var(--coar-role-derivation) var(--coar-calendar-avatar-ink, white);
+  color: var(--coar-i-calendar-avatar-ink, inherit);
 }
 .coar-event-assignees__avatar + .coar-event-assignees__avatar,
 .coar-event-assignees__overflow {

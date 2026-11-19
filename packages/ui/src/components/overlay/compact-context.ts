@@ -1,71 +1,13 @@
 import { COMPACT_THEME } from '../../theme/compact-theme';
+import { ENTERPRISE_THEME } from '../../theme/enterprise-theme';
 import { APPEARANCE_INPUT_TOKENS, ROLE_DERIVATION_TOKEN, THEME_COLOR_INPUT_TOKENS } from '../../theme/role-theme';
-import { COLOR_PALETTES, COLOR_STEPS } from '../../theme/palette-inputs';
+import { ROLE_DERIVED_TOKENS } from '../../theme/role-derived-tokens';
+import { ROLE_THEME_INPUT_DEFAULTS, ROLE_THEME_ROLES } from '../../theme/role-theme-contract';
+
+export { ROLE_DERIVED_TOKENS } from '../../theme/role-derived-tokens';
 
 /** Optional inputs of a surrounding scope; an empty one is carried as `initial`. */
 export const COMPACT_APPEARANCE_INPUT_TOKENS = APPEARANCE_INPUT_TOKENS;
-
-/**
- * The tokens styles/tokens/derived.css derives (its public names); the contract
- * test reconciles the list with that stylesheet.
- */
-export const ROLE_DERIVED_TOKENS = [
-  ...Object.values(COLOR_PALETTES).filter((palette) => palette !== 'accent')
-    .flatMap((palette) => COLOR_STEPS.map((step) => `color-${palette}-${step}`)),
-  'text-on-accent', 'text-on-success', 'text-on-error', 'text-on-warning', 'text-on-info',
-  'field-xs-default-font-size', 'field-s-default-font-size', 'field-l-default-font-size',
-  'picker-panel-radius', 'zone-caption-min-offset', 'choice-row-height', 'indicator-xs-height',
-  'indicator-s-height', 'indicator-m-height', 'indicator-l-height', 'body-base-family',
-  'body-bold-family', 'body-caption-family', 'body-footnote-family', 'body-small-base-family',
-  'body-small-bold-family', 'headings-heading-family', 'headings-subheading-family',
-  'titles-display-family', 'titles-subtitle-family', 'titles-title-family', 'body-bold-size',
-  'body-caption-size', 'body-footnote-size', 'body-small-base-size', 'body-small-bold-size',
-  'body-small-base-weight', 'body-small-base-line-height', 'heading-s', 'component-s-font-size',
-  'component-m-font-size', 'component-s-label-font-size', 'component-m-label-font-size',
-  'field-padding-x-tight', 'color-accent-50', 'color-accent-100', 'color-accent-200',
-  'color-accent-300', 'color-accent-400', 'color-accent-500', 'color-accent-600',
-  'color-accent-700', 'color-accent-800', 'color-accent-900', 'border-neutral',
-  'icon-neutral-primary', 'icon-neutral-secondary', 'icon-neutral-tertiary',
-  'icon-neutral-disabled', 'surface-input', 'surface-input-disabled',
-  'background-accent-primary', 'background-accent-hover', 'background-accent-active',
-  'background-accent-secondary', 'surface-accent-secondary', 'background-accent-tertiary',
-  'background-accent-tertiary-active', 'text-accent-primary', 'text-accent-secondary',
-  'border-accent-primary', 'border-accent-secondary', 'icon-accent-primary',
-  'background-semantic-success-bold', 'background-semantic-success-subtlest',
-  'background-semantic-success-subtle', 'text-semantic-success-bold',
-  'text-semantic-success-subtle', 'border-semantic-success-bold',
-  'border-semantic-success-subtle', 'icon-semantic-success-bold', 'icon-semantic-success-subtle',
-  'background-semantic-error-bold', 'background-semantic-error-hover',
-  'background-semantic-error-active', 'background-semantic-error-subtlest',
-  'background-semantic-error-subtle', 'text-semantic-error-bold', 'text-semantic-error-subtle',
-  'border-semantic-error', 'border-semantic-error-bold', 'border-semantic-error-subtle',
-  'icon-semantic-error-bold', 'icon-semantic-error-subtle', 'background-semantic-warning-bold',
-  'background-semantic-warning-subtlest', 'background-semantic-warning-subtle',
-  'text-semantic-warning-bold', 'text-semantic-warning-subtle', 'border-semantic-warning-bold',
-  'border-semantic-warning-subtle', 'icon-semantic-warning-bold', 'icon-semantic-warning-subtle',
-  'background-semantic-info-bold', 'background-semantic-info-subtlest',
-  'background-semantic-info-subtle', 'text-semantic-info-bold', 'text-semantic-info-subtle',
-  'border-semantic-info-bold', 'border-semantic-info-subtle', 'icon-semantic-info-bold',
-  'icon-semantic-info-subtle', 'button-danger-bg', 'button-danger-bg-hover',
-  'button-danger-bg-active', 'button-radius', 'input-radius', 'card-radius', 'menu-radius',
-  'popover-radius', 'dropdown-radius', 'dialog-padding', 'sheet-padding', 'card-padding',
-  'toast-border-radius', 'tree-checkbox-radius', 'card-outlined-border-color',
-  'pane-divider-active-color', 'data-list-surface', 'code-block-border', 'breadcrumb-font-size',
-  'breadcrumb-active-color', 'breadcrumb-link-color', 'pagination-font-size',
-  'pagination-active-background', 'pagination-active-color', 'pagination-hover-background',
-  'note-bg', 'note-border-color', 'tag-bg', 'tag-border-color', 'dialog-background',
-  'toast-background', 'navbar-background', 'navbar-border-color', 'menu-item-font-family',
-  'menu-item-font-size', 'menu-item-font-weight', 'menu-item-line-height',
-  'menu-heading-font-family', 'menu-heading-font-size', 'menu-heading-font-weight',
-  'menu-item-gap', 'menu-background', 'menu-item-color', 'menu-heading-color',
-  'menu-item-background-hover', 'menu-item-background-focus', 'menu-item-background-open',
-  'menu-item-background-active', 'menu-item-text-active', 'select-option-font-size',
-  'select-option-gap', 'sidebar-background', 'sidebar-border', 'sidebar-header-border',
-  'sidebar-footer-border', 'sidebar-item-gap', 'sidebar-item-hover', 'sidebar-item-active-color',
-  'sidebar-item-active-bg', 'switch-track-width', 'switch-track-height', 'switch-thumb-size',
-  'progress-bar-background', 'progress-accent-color', 'progress-success-color',
-  'progress-warning-color', 'progress-error-color', 'spinner-color', 'sheet-handle-color',
-].map((role) => `--coar-${role}`);
 
 /**
  * Explicit transport contract of a role theme, not a snapshot of every computed CSS
@@ -79,5 +21,10 @@ export const COMPACT_CONTEXT_TOKENS = [...new Set([
   '--coar-text-on-threshold',
   ...Object.keys(COMPACT_THEME.tokens),
   ...Object.keys(COMPACT_THEME.mobileTokens),
+  ...Object.keys(ENTERPRISE_THEME.tokens),
+  ...Object.keys(ENTERPRISE_THEME.mobileTokens),
+  ...Object.keys(ENTERPRISE_THEME.roles ?? {}),
+  ...Object.keys(ROLE_THEME_INPUT_DEFAULTS),
+  ...ROLE_THEME_ROLES,
   ...ROLE_DERIVED_TOKENS,
 ])].filter((token) => token !== ROLE_DERIVATION_TOKEN);

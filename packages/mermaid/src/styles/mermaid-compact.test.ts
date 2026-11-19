@@ -55,6 +55,10 @@ describe('mermaid roles', () => {
       if (name.startsWith('--coar-d-')) {
         // Invalid, so not declared in effect, unless a theme activates the derivation.
         expect(value, name).toMatch(/^var\(--coar-role-derivation\) \S/);
+        const input = name.replace('--coar-d-', '--coar-theme-');
+        expect(value, name).toMatch(new RegExp(
+          `^var\\(--coar-role-derivation\\) var\\(${input}, var\\(--coar-[a-z0-9-]+, [^)]+\\)\\)$`,
+        ));
       } else {
         // The derived value, else what the element inherits: as if not declared.
         expect(value, name).toBe(`var(${name.replace('--coar-', '--coar-d-')}, inherit)`);

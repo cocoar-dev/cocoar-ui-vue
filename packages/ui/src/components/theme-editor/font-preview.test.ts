@@ -128,14 +128,22 @@ describe('fonts in the editor state', () => {
     const file = themeFileCss('acme');
     expect(file).not.toContain('googleapis');
     expect(file).toContain('Fraunces: not part of @cocoar/vue-ui');
-    expect(file).toContain('--coar-font-family-title: Fraunces, ui-sans-serif, system-ui, sans-serif;');
+    expect(file).toContain('--coar-font-family-title: var(--coar-appearance-font-title, Fraunces, ui-sans-serif, system-ui, sans-serif);');
     cleanupThemeEditorState();
     expect(links()).toEqual([]);
   });
 
-  it('leaves a theme that names no font without a note', () => {
+  it('names both default families in a complete Enterprise export', () => {
     initThemeEditorState(true);
     expect(fontBody.value).toBe('Poppins');
+    expect(themeFileCss('acme')).toContain('Poppins:');
+    expect(themeFileCss('acme')).toContain('Inter:');
+  });
+
+  it('leaves a model using only system fonts without a font-loading note', () => {
+    initThemeEditorState(true);
+    fontBody.value = 'system-ui';
+    fontTitle.value = 'system-ui';
     expect(themeFileCss('acme')).not.toContain('Fonts this theme names');
   });
 

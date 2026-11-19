@@ -15,6 +15,7 @@ import {
   COMPACT_PAGE_BUILDER_MOBILE_TOKENS,
   COMPACT_PAGE_BUILDER_TOKENS,
 } from '../../../ui/src/theme/compact-packages/page-builder';
+import { ENTERPRISE_PAGE_BUILDER_TOKENS } from '../../../ui/src/theme/enterprise-packages/page-builder';
 
 const SRC = join(__dirname, '..');
 const COMPACT_CSS = readFileSync(join(__dirname, 'compact.css'), 'utf8');
@@ -79,16 +80,22 @@ describe('role theme of the page builder', () => {
   it('every derived role has a private value gated by the activation token', () => {
     const declared = declarations();
     const roles = [...declared.keys()].filter((name) => name.startsWith('--coar-page-builder-'));
-    expect(roles.length).toBeGreaterThan(30);
+    expect(roles.length).toBe(73);
     for (const role of roles) {
       const derived = role.replace('--coar-', '--coar-d-');
       // Without a role theme the private value is invalid and the role inherits,
       // which is the same as not declaring it.
       expect(declared.get(role), role).toBe(`var(${derived}, inherit)`);
-      expect(declared.get(derived), derived).toMatch(/^var\(--coar-role-derivation\) \S/);
+      const input = role.replace('--coar-', '--coar-theme-');
+      expect(declared.get(derived), derived).toMatch(
+        new RegExp(`^var\\(--coar-role-derivation\\) var\\(${input}[,)]`),
+      );
     }
     const others = [...declared.keys()].filter((name) => !name.startsWith('--coar-page-builder-'));
     expect(others.sort()).toEqual(roles.map((role) => role.replace('--coar-', '--coar-d-')).sort());
+    expect(Object.keys(ENTERPRISE_PAGE_BUILDER_TOKENS).sort()).toEqual(
+      roles.map((role) => role.replace('--coar-', '--coar-theme-')).sort(),
+    );
   });
 
   it('every constant is a value of the theme, not a formula', () => {
@@ -144,7 +151,12 @@ describe('role theme of the page builder', () => {
     const properties = [...layered.matchAll(/([a-z-]+)\s*:\s*([^;{}]+);/g)];
     expect(properties.length).toBeGreaterThan(5);
     for (const [, property, value] of properties) {
-      expect(value.trim(), property).toMatch(/^var\(--coar-page-builder-[a-z0-9-]+, revert-layer\)$/);
+      // Optional distinctions may wrap the old role, but the last fallback must
+      // still remove the declaration entirely when no role theme is present.
+      expect(value.trim(), property).toMatch(/^var\(--coar-page-builder-/);
+      const uses = roleUses(value);
+      expect(uses.at(-1)?.fallback, property).toBe('revert-layer');
+      expect(value.trim().endsWith(')'.repeat(uses.length)), property).toBe(true);
     }
   });
 
@@ -171,7 +183,7 @@ describe('role theme of the page builder', () => {
     expect(source).toContain('transform: var(--coar-page-builder-tree-actions-transform, translateY(-50%));');
     expect(source).toContain('margin-right: var(--coar-page-builder-tree-issue-reserve, 30px);');
     // The row height is not a layout mode: a wrapping row keeps the height of its role.
-    expect(source).toContain('height: var(--coar-page-builder-row-height, 30px);');
+    expect(source).toContain('height: var(--coar-page-builder-small-row-height, var(--coar-page-builder-row-height, 30px));');
     // The focus rule must not hide the tray of a hovered row in the default presentation.
     expect(source.indexOf('.pb-tree-row:focus-within .pb-tree-actions'))
       .toBeLessThan(source.indexOf('.pb-tree-row:hover .pb-tree-actions'));
@@ -179,7 +191,7 @@ describe('role theme of the page builder', () => {
 
   it('uses theme-aware selection ink only under a role theme, preserving the legacy accent', () => {
     expect(COMPACT_CSS).toContain(
-      '--coar-d-page-builder-canvas-selection-color: var(--coar-role-derivation) var(--coar-text-accent-primary, #315f91);',
+      '--coar-d-page-builder-canvas-selection-color: var(--coar-role-derivation) var(--coar-theme-page-builder-canvas-selection-color, var(--coar-text-accent-primary, #315f91));',
     );
     const source = readFileSync(join(SRC, 'builder/BuilderCanvasNode.vue'), 'utf8');
     expect(source).toContain(
@@ -195,7 +207,7 @@ describe('role theme of the page builder', () => {
       '.canvas-node:hover:not(:has(.canvas-node:hover)) { border-color: var(--canvas-border-hover); }',
     );
     expect(source).toContain(
-      '--canvas-border-hover: var(--coar-page-builder-canvas-selection-color, var(--coar-page-builder-canvas-border-hover, rgba(80, 86, 96, 0.34)));',
+      '--canvas-border-hover: var(--coar-page-builder-group-selection-color, var(--coar-page-builder-canvas-selection-color, var(--coar-page-builder-canvas-border-hover, rgba(80, 86, 96, 0.34))));',
     );
   });
 

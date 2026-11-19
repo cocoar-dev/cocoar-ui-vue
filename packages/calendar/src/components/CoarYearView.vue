@@ -127,7 +127,7 @@ function openMonth(date: Temporal.PlainDate) {
 }
 .coar-year-view__weekdays {
   margin-bottom: 3px;
-  color: var(--coar-text-subtle, #6b7280);
+  color: var(--coar-calendar-year-muted-color, var(--coar-text-subtle, #6b7280));
   font-size: var(--coar-calendar-caption-font-size, var(--coar-font-size-xs, 11px));
 }
 .coar-year-view__day {

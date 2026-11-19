@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mount, type VueWrapper } from '@vue/test-utils';
 import { defineComponent, h, nextTick } from 'vue';
 import { ROLE_DERIVATION_TOKEN } from '../../theme/role-theme';
+import { ENTERPRISE_THEME } from '../../theme/enterprise-theme';
 import {
   COMPACT_APPEARANCE_INPUT_TOKENS, COMPACT_CONTEXT_TOKENS, ROLE_DERIVED_TOKENS,
 } from './compact-context';
@@ -27,6 +28,11 @@ describe('compact presentation transport contract', () => {
     const names = (text: string) =>
       new Set(Array.from(text.matchAll(/^\s*(--coar-[\w-]+)\s*:/gm), (m) => m[1]));
     const declared = names(css);
+    for (const token of [
+      ...Object.keys(ENTERPRISE_THEME.tokens),
+      ...Object.keys(ENTERPRISE_THEME.mobileTokens),
+      ...Object.keys(ENTERPRISE_THEME.roles ?? {}),
+    ]) declared.add(token);
     for (const token of names(derived)) if (!token.startsWith('--coar-d-')) declared.add(token);
     // The activation is written as such; an empty value cannot be read back and copied.
     declared.delete(ROLE_DERIVATION_TOKEN);
@@ -39,7 +45,8 @@ describe('compact presentation transport contract', () => {
     expect([...COMPACT_CONTEXT_TOKENS].sort()).toEqual([...declared].sort());
     // The document opt-in must beat :root.dark-mode without touching a
     // document that has not opted in.
-    expect(css).not.toMatch(/:root(?!\.coar-compact)/);
+    expect(css.split('@scope')[0]).not.toMatch(/:root(?!\.coar-compact)/);
+    expect(css).toContain('@scope (.coar-compact) to (:scope');
   });
 
   it('lists exactly the tokens the shared derivation defines, each from its private value', async () => {
@@ -83,7 +90,10 @@ describe('compact presentation transport contract', () => {
   });
 });
 
-describe('local compact overlays', () => {
+// jsdom writes the ~930 transported custom properties into an inline style in about
+// 300 ms per update (browsers do not); a test that updates a context several times
+// then needs more than the default 5 s when every package tests at once.
+describe('local compact overlays', { timeout: 20_000 }, () => {
   let wrapper: VueWrapper;
   let area: HTMLElement;
   let anchor: HTMLElement;

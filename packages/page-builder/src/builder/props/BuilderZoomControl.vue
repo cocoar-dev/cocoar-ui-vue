@@ -119,7 +119,7 @@ function cancel(event: Event) {
   width: var(--coar-page-builder-inline-button-size, 22px);
   height: var(--coar-page-builder-inline-button-size, 22px);
   border: 0;
-  border-radius: var(--coar-page-builder-control-radius, 4px);
+  border-radius: var(--coar-page-builder-small-control-radius, var(--coar-page-builder-control-radius, 4px));
   background: transparent;
   color: var(--coar-text-neutral-secondary, #5a5a60);
   cursor: pointer;
@@ -141,7 +141,7 @@ function cancel(event: Event) {
   height: var(--coar-page-builder-inline-button-size, 22px);
   padding: 0 4px;
   border: 1px solid transparent;
-  border-radius: var(--coar-page-builder-control-radius, 4px);
+  border-radius: var(--coar-page-builder-small-control-radius, var(--coar-page-builder-control-radius, 4px));
 }
 
 .pb-zoom__field:hover,

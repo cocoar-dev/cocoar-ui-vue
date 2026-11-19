@@ -65,8 +65,12 @@ describe('markdown-editor role-theme stylesheet', () => {
       for (const declaration of declarations) {
         const [, name, value] = /^(--[a-z0-9-]+)\s*:\s*([\s\S]+)$/.exec(declaration)!;
         if (name!.startsWith('--coar-d-')) {
-          // Invalid unless a theme activates the derivation and supplies the input.
-          expect(value, name).toMatch(/^var\(--coar-role-derivation\) var\(--coar-[a-z0-9-]+\)$/);
+          // Package input first; otherwise the shared role must exist. Activation
+          // remains required even when the package input is supplied.
+          const input = name!.replace('--coar-d-', '--coar-theme-');
+          expect(value, name).toMatch(new RegExp(
+            `^var\\(--coar-role-derivation\\) var\\(${input}, var\\(--coar-[a-z0-9-]+\\)\\)$`,
+          ));
           derived.push(name!.replace('--coar-d-', '--coar-'));
         } else {
           // Without a theme the role is what the element inherited.
