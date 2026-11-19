@@ -1,4 +1,4 @@
-export { vScrollbar, getScrollbarInstance } from './vScrollbar';
+export { vScrollbar, getScrollbarInstance, quietScrollbars } from './vScrollbar';
 export type {
   ScrollbarOptions,
   ScrollbarTheme,

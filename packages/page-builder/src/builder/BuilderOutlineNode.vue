@@ -421,9 +421,9 @@ function canMoveDown(): boolean {
   align-items: center;
   gap: 6px;
   padding-right: 8px;
-  /* The row keeps the height of its role also where a theme lets it wrap (compact.css):
-     the action tray then takes a second line inside that height. */
-  height: var(--coar-page-builder-small-row-height, var(--coar-page-builder-row-height, 30px));
+  /* A theme that lets the row wrap (compact.css) also lets it grow, so a second line of
+     the action tray does not paint over the next row; its minimum stays one row. */
+  height: var(--coar-page-builder-tree-row-height, var(--coar-page-builder-small-row-height, var(--coar-page-builder-row-height, 30px)));
   cursor: pointer;
   border-radius: var(--coar-page-builder-small-control-radius, var(--coar-page-builder-control-radius, 4px));
   position: relative;

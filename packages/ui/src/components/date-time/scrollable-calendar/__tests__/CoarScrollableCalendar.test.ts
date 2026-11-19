@@ -396,6 +396,54 @@ describe('CoarScrollableCalendar', () => {
       expect(log).toEqual(['sleep true', `scrollTop ${3 * MONTH_HEIGHT} on viewport`, 'sleep false']);
     });
 
+    /** Asleep once, before every scroll of the calendar, and awake again only after the last. */
+    function expectQuiet(log: string[]) {
+      expect(log.filter((entry) => entry.startsWith('sleep'))).toEqual(['sleep true', 'sleep false']);
+      const scrolls = log.map((entry, i) => (entry.startsWith('scrollTop') ? i : -1)).filter((i) => i >= 0);
+      expect(scrolls.length).toBeGreaterThan(0);
+      expect(log.indexOf('sleep true')).toBeLessThan(scrolls[0]);
+      expect(log.indexOf('sleep false')).toBeGreaterThan(scrolls.at(-1)!);
+    }
+
+    it('keeps OverlayScrollbars asleep while it adds months to a viewport that grew', async () => {
+      const observers = stubResizeObserver();
+      const log: string[] = [];
+      const layout = fakeLayout({ viewportHeight: 360, log });
+      vi.mocked(getScrollbarInstance).mockReturnValue({
+        sleep: (sleeping: boolean) => log.push(`sleep ${sleeping}`),
+      } as unknown as ReturnType<typeof getScrollbarInstance>);
+      const wrapper = mountCalendar({ activeMonth: Temporal.PlainYearMonth.from('2026-03') });
+      await settle();
+      log.length = 0;
+
+      // The viewport grows by itself (a font loads, a panel opens): the months are no user's scroll.
+      layout.viewportHeight = 1400;
+      observers.resized();
+      await settle();
+
+      expect(topOf(wrapper, '2026-03')).toBe(0);
+      expectQuiet(log);
+    });
+
+    it('wakes OverlayScrollbars only after the last of overlapping scrolls of its own', async () => {
+      const observers = stubResizeObserver();
+      const log: string[] = [];
+      const layout = fakeLayout({ viewportHeight: 360, log });
+      vi.mocked(getScrollbarInstance).mockReturnValue({
+        sleep: (sleeping: boolean) => log.push(`sleep ${sleeping}`),
+      } as unknown as ReturnType<typeof getScrollbarInstance>);
+      const wrapper = mountCalendar({ activeMonth: Temporal.PlainYearMonth.from('2026-03') });
+      // The opening scroll is applied, its frame has not run yet: the viewport grows then.
+      await vi.waitUntil(() => log.some((entry) => entry.startsWith('scrollTop')));
+      layout.viewportHeight = 1400;
+      observers.resized();
+      await settle();
+
+      // Only the scrollbar: where the list ends after this race is a matter of its own.
+      expect(wrapper.find('[data-overlayscrollbars-viewport]').exists()).toBe(true);
+      expectQuiet(log);
+    });
+
     it('waits for a layout when it is mounted hidden, then positions the list once', async () => {
       const observers = stubResizeObserver();
       const log: string[] = [];

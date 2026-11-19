@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { defineComponent, nextTick, ref } from 'vue';
-import { vScrollbar, getScrollbarInstance } from './vScrollbar';
+import { vScrollbar, getScrollbarInstance, quietScrollbars } from './vScrollbar';
 
 // Mock overlayscrollbars
 const mockUpdate = vi.fn();
@@ -223,5 +223,44 @@ describe('vScrollbar', () => {
     // No need for nextTick since defer: false means sync init
     expect(OverlayScrollbars).toHaveBeenCalled();
     wrapper.unmount();
+  });
+});
+
+describe('quietScrollbars', () => {
+  const frames: FrameRequestCallback[] = [];
+  beforeEach(() => {
+    frames.length = 0;
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => frames.push(callback));
+  });
+  afterEach(() => vi.unstubAllGlobals());
+  const runFrame = () => frames.splice(0).forEach((callback) => callback(0));
+
+  it('sleeps for a scroll of the component and wakes in the frame after it', () => {
+    const log: boolean[] = [];
+    const instance = { sleep: (sleeping: boolean) => log.push(sleeping) } as unknown as Parameters<typeof quietScrollbars>[0];
+    const wake = quietScrollbars(instance);
+    expect(log).toEqual([true]);
+    wake();
+    wake();
+    expect(log).toEqual([true]);
+    runFrame();
+    expect(log).toEqual([true, false]);
+  });
+
+  it('wakes only after the last of overlapping scrolls', () => {
+    const log: boolean[] = [];
+    const instance = { sleep: (sleeping: boolean) => log.push(sleeping) } as unknown as Parameters<typeof quietScrollbars>[0];
+    const first = quietScrollbars(instance);
+    const second = quietScrollbars(instance);
+    first();
+    runFrame();
+    expect(log).toEqual([true]);
+    second();
+    runFrame();
+    expect(log).toEqual([true, false]);
+  });
+
+  it('does nothing without an instance yet (a deferred scrollbar)', () => {
+    expect(() => quietScrollbars(null)()).not.toThrow();
   });
 });

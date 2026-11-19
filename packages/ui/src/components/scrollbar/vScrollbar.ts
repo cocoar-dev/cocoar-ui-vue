@@ -202,3 +202,30 @@ export const vScrollbar: Directive<HTMLElement, ScrollbarOptions | boolean> = {
 export function getScrollbarInstance(el: HTMLElement): OverlayScrollbars | null {
   return stateMap.get(el)?.instance ?? null;
 }
+
+const quietScrolls = new WeakMap<OverlayScrollbars, number>();
+
+/**
+ * For a scroll a component makes itself, not the user (positioning a list at its selection, keeping
+ * a position while content grows): asleep, OverlayScrollbars ignores the scroll events it causes
+ * instead of showing the scrollbar for a moment (`autoHide: 'leave'`). Call it before the scroll
+ * and the returned function after it: those events are dispatched before the animation frame
+ * callbacks of the frame that follows, so they are past at the wake-up it schedules. Such scrolls
+ * can overlap; the scrollbar wakes when the last of them has ended.
+ */
+export function quietScrollbars(instance: OverlayScrollbars | null | undefined): () => void {
+  if (!instance) return () => {};
+  const open = quietScrolls.get(instance) ?? 0;
+  quietScrolls.set(instance, open + 1);
+  if (open === 0) instance.sleep(true);
+  let ended = false;
+  return () => {
+    if (ended) return;
+    ended = true;
+    requestAnimationFrame(() => {
+      const left = (quietScrolls.get(instance) ?? 1) - 1;
+      quietScrolls.set(instance, left);
+      if (left === 0) instance.sleep(false);
+    });
+  };
+}
