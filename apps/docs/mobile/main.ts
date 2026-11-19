@@ -13,10 +13,6 @@ import HomeView from './HomeView.vue';
 import DemoView from './DemoView.vue';
 import { findDemo } from './demos';
 import './scheme';
-import { PRESENTATION_PARAM, restorePresentation } from '../presentation.mjs';
-
-const query = new URLSearchParams(window.location.search);
-restorePresentation(query.has('embed') ? query.get(PRESENTATION_PARAM) : undefined);
 
 const router = createRouter({
   // Hash routes (#/form): the built app is static files under any base, without rewrites.

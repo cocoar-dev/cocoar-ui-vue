@@ -10,7 +10,7 @@ import '@cocoar/vue-ui/styles';
 
 import './custom.css';
 import './coar-overrides.css';
-import './compact.css';
+import './shell-theme.css';
 import './navigation.css';
 
 import { CoarOverlayPlugin, CoarOverlayHost } from '@cocoar/vue-ui';
@@ -22,7 +22,7 @@ import LocaleSwitcher from './LocaleSwitcher.vue';
 import DeviceBadges from './DeviceBadges.vue';
 import DeviceMatrix from './DeviceMatrix.vue';
 import PhoneFrame from './PhoneFrame.vue';
-import PresentationSwitcher from '../../components/PresentationSwitcher.vue';
+import ShellThemeToggle from './ShellThemeToggle.vue';
 
 const localization = createCoarLocalization({ defaultLanguage: 'en-US' });
 
@@ -39,21 +39,17 @@ const DarkModeSync = {
 };
 
 /**
- * The VitePress shell and prose follow the library theme in effect on `<html>`
- * (compact.css), whichever way it is applied: the `.coar-compact` entry of the
- * style switcher, or a theme loaded in the Theme Editor, which sets no class. A
- * selector cannot ask for a value, so the shell gets a class of its own.
+ * The Inter weights of the Compact values, once the Theme Editor shows a theme and not
+ * for every visitor: their faces would replace the synthesized weights of the default look.
+ * Whether the VitePress shell follows that theme is the reader's choice (ShellThemeToggle).
  */
-const ShellThemeSync = {
+const ThemeFontsSync = {
   setup() {
     let observer: MutationObserver | undefined;
     onMounted(() => {
       const html = document.documentElement;
       const sync = () => {
         const themed = getComputedStyle(html).getPropertyValue('--coar-d-role-derivation').trim() === 'on';
-        if (html.classList.contains('coar-docs-themed') !== themed) html.classList.toggle('coar-docs-themed', themed);
-        // The Inter weights of the Compact values, when a theme asks for them and not for
-        // every visitor: their faces would replace the synthesized weights of the default look.
         if (themed) void import('@cocoar/vue-ui/fonts/compact');
       };
       sync();
@@ -70,9 +66,9 @@ const theme: Theme = {
   extends: DefaultTheme,
   Layout() {
     return h(DefaultTheme.Layout, null, {
-      'nav-bar-content-after': () => [h(PresentationSwitcher), h(LocaleSwitcher)],
-      'nav-screen-content-after': () => h(PresentationSwitcher),
-      'layout-bottom': () => [h(CoarOverlayHost), h(DarkModeSync), h(ShellThemeSync), h(CoarThemeEditor, { hideDarkToggle: true })],
+      'nav-bar-content-after': () => [h(ShellThemeToggle), h(LocaleSwitcher)],
+      'nav-screen-content-after': () => h(ShellThemeToggle),
+      'layout-bottom': () => [h(CoarOverlayHost), h(DarkModeSync), h(ThemeFontsSync), h(CoarThemeEditor, { hideDarkToggle: true })],
     });
   },
   enhanceApp({ app }) {

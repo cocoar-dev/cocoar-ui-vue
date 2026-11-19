@@ -6,14 +6,13 @@
 // it and width-dependent rules see its width. `?embed` hides the app's own header.
 //
 // The frame follows the docs' colour scheme; its Light/Dark buttons override that for this frame
-// only, sent to the app by postMessage (no reload, the demo keeps its state). On a narrow docs
+// only, sent to the app by postMessage (no reload, the demo keeps its state). A theme loaded in the
+// docs' Theme Editor goes the same way, so the demo shows it too. On a narrow docs
 // viewport — a real phone — the frame would only shrink the demo, so it shows a link to the
 // mobile docs instead.
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useData, withBase } from 'vitepress';
-import { SCHEME_MESSAGE, mobileDocsPath, type Scheme } from '../../mobile/embed';
-import { PRESENTATION_MESSAGE } from '../../presentation.mjs';
-import { useDocsPresentation } from '../../useDocsPresentation';
+import { SCHEME_MESSAGE, THEME_MESSAGE, mobileDocsPath, type Scheme } from '../../mobile/embed';
 
 const props = withDefaults(
   defineProps<{
@@ -39,7 +38,8 @@ const SCHEMES: Scheme[] = ['light', 'dark'];
 const SCHEME_LABELS: Record<Scheme, string> = { light: 'Light', dark: 'Dark' };
 
 const { isDark } = useData();
-const { presentation } = useDocsPresentation();
+/** The live stylesheet of the docs' Theme Editor (CoarThemeEditor), empty when it shows none. */
+const editorTheme = () => document.getElementById('coar-theme-editor')?.textContent ?? '';
 
 const viewport = computed(() => SIZES[props.size]);
 const outer = computed(() => ({
@@ -77,15 +77,27 @@ function sendAppearance() {
     { type: SCHEME_MESSAGE, scheme: scheme.value },
     window.location.origin,
   );
-  frame.value?.contentWindow?.postMessage(
-    { type: PRESENTATION_MESSAGE, presentation: presentation.value },
-    window.location.origin,
-  );
+  sendTheme();
 }
-watch([scheme, presentation], sendAppearance);
+watch(scheme, sendAppearance);
+
+let sentTheme: string | null = null;
+/** A (re)loaded demo has none of the earlier messages yet. */
+function onFrameLoad() {
+  sentTheme = null;
+  sendAppearance();
+}
+function sendTheme() {
+  const css = editorTheme();
+  if (css === sentTheme || !frame.value?.contentWindow) return;
+  sentTheme = css;
+  frame.value.contentWindow.postMessage({ type: THEME_MESSAGE, css }, window.location.origin);
+}
 
 let media: MediaQueryList | null = null;
 let observer: ResizeObserver | null = null;
+// The editor marks every live change on <html> (a class and an inline revision value).
+let themeObserver: MutationObserver | null = null;
 const onMedia = () => (narrow.value = media?.matches ?? false);
 
 onMounted(() => {
@@ -94,15 +106,16 @@ onMounted(() => {
   media.addEventListener('change', onMedia);
   observer = new ResizeObserver(([entry]) => (available.value = entry.contentRect.width));
   if (stage.value) observer.observe(stage.value);
-  frameUrl.value = withBase(mobileDocsPath(props.src, {
-    embed: true, scheme: scheme.value, presentation: presentation.value,
-  }));
+  frameUrl.value = withBase(mobileDocsPath(props.src, { embed: true, scheme: scheme.value }));
+  themeObserver = new MutationObserver(sendTheme);
+  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'style'] });
   mounted.value = true;
 });
 
 onBeforeUnmount(() => {
   media?.removeEventListener('change', onMedia);
   observer?.disconnect();
+  themeObserver?.disconnect();
 });
 </script>
 
@@ -150,7 +163,7 @@ onBeforeUnmount(() => {
             :width="viewport.width"
             :height="viewport.height"
             loading="lazy"
-            @load="sendAppearance"
+            @load="onFrameLoad"
           />
         </div>
       </div>

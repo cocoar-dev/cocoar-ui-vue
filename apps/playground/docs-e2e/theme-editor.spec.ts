@@ -89,8 +89,9 @@ test('Compact loads as values, survives navigation and an open overlay, and its 
   await preset(page, 'Compact').click();
   await expect.poll(() => metrics(page)).toMatchObject({ bodyFamily: 'Inter', uiFont: '13px' });
   expect((await metrics(page)).text).not.toBe(app.text);
-  // The documentation's own shell and prose become compact with it, as with the style switcher.
-  await expect.poll(() => shell(page)).toEqual({ prose: '14px', nav: 48 });
+  // The documentation's own shell keeps the VitePress look: "Themed docs" is off
+  // (shell-theme.spec.ts covers it on).
+  expect(await shell(page)).toEqual(appShell);
   // Values, not the beta class, and no reload.
   await expect(page.locator('.coar-compact')).toHaveCount(0);
   expect(await page.evaluate(() => performance.timeOrigin)).toBe(origin);
@@ -144,9 +145,12 @@ test('Compact loads as values, survives navigation and an open overlay, and its 
   expect(download.suggestedFilename()).toBe('coar-theme--roundtrip.css');
   const css = await readFile((await download.path())!, 'utf8');
   expect(css).toContain('.coar-theme--roundtrip');
-  // The class, that is; a token of the contract is named `--coar-compact-color-scheme`.
-  expect(css).not.toMatch(/\.coar-compact\b/);
-  expect(css).not.toContain('coar-theme-editor');
+  // No rule applies the class or the editor's scope. Nested presets name both only where
+  // the theme stops (`@scope (…) to (:scope :where(.coar-compact, .coar-theme-editor, …))`),
+  // and a token of the contract is named `--coar-compact-color-scheme`.
+  const rules = css.replace(/\bto \(:scope :where\([^)]*\)\)/g, '');
+  expect(rules).not.toMatch(/\.coar-compact\b/);
+  expect(rules).not.toContain('coar-theme-editor');
   expect(css).toMatch(/--coar-role-derivation: ;/);
   // In the layer of the library's tokens, like the `.coar-compact` entry.
   // It is headed by what to load for the font it names.
@@ -185,8 +189,8 @@ test('reset leaves colour scheme and touch mode alone; the other presets still a
   await expect(page.locator('html')).toHaveClass(/dark/);
   await page.evaluate(() => document.documentElement.classList.add('coar-mobile'));
   const classes = () => page.evaluate(() => [...document.documentElement.classList]
-    // The editor's scope and the shell's marker of an active theme are not the app's state.
-    .filter((name) => name !== 'coar-theme-editor' && name !== 'coar-docs-themed').sort());
+    // The editor's scope is not the app's state.
+    .filter((name) => name !== 'coar-theme-editor').sort());
   const before = { classes: await classes(), metrics: await metrics(page) };
 
   await openEditor(page);
@@ -259,7 +263,7 @@ test('a typed font is previewed from Google Fonts; the download names it and say
   await page.getByRole('button', { name: 'Download CSS' }).click();
   const css = await readFile((await (await downloading).path())!, 'utf8');
   expect(css).toContain('Fraunces: not part of @cocoar/vue-ui. Load it in your app');
-  expect(css).toContain('--coar-font-family-body: Fraunces, ui-sans-serif, system-ui, sans-serif;');
+  expect(css).toContain('--coar-font-family-body: var(--coar-appearance-font-body, Fraunces, ui-sans-serif, system-ui, sans-serif);');
   expect(css).not.toMatch(/googleapis|@font-face|@import/);
 
   // A font the library ships and this page declares needs no preview. Chosen from the

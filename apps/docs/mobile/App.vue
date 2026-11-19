@@ -4,11 +4,10 @@ import { useRoute, useRouter } from 'vue-router';
 import { CoarButton, CoarOverlayHost, CoarSwitch } from '@cocoar/vue-ui';
 import { findDemo } from './demos';
 import { embedded, scheme, setScheme } from './scheme';
-import PresentationSwitcher from '../components/PresentationSwitcher.vue';
-import { useDocsPresentation } from '../useDocsPresentation';
+import { useEmbeddedTheme } from './theme';
 
-// Embedded demos have no header/switcher, but must still receive live parent messages.
-useDocsPresentation();
+// An embedded demo shows the theme the docs' Theme Editor has loaded.
+useEmbeddedTheme();
 
 const route = useRoute();
 const router = useRouter();
@@ -35,7 +34,6 @@ function back() {
       </CoarButton>
       <h1 class="m-header__title">{{ demo ? demo.title : 'Cocoar UI · Mobile' }}</h1>
       <div class="m-header__controls">
-        <PresentationSwitcher />
         <CoarSwitch v-model="dark" label="Dark" />
       </div>
     </header>

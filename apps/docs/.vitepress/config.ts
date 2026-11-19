@@ -4,7 +4,7 @@ import { containerPreview, componentPreview } from '@vitepress-demo-preview/plug
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { mobileDocsDev } from './mobile-dev';
-import { PRESENTATION_INIT_SCRIPT } from '../presentation.mjs';
+import { SHELL_THEME_INIT_SCRIPT } from '../shell-theme.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -18,7 +18,7 @@ export default defineConfig({
   base,
 
   head: [
-    ['script', {}, PRESENTATION_INIT_SCRIPT],
+    ['script', {}, SHELL_THEME_INIT_SCRIPT],
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo_light.svg' }],
     [
       'link',

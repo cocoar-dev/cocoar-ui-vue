@@ -5,7 +5,7 @@ const command = process.env.DOCS_TEST_PREVIEW ? 'preview' : 'dev';
 
 export default defineConfig({
   testDir: './docs-e2e',
-  outputDir: './test-results/docs-presentation',
+  outputDir: './test-results/docs',
   fullyParallel: false,
   workers: 1,
   retries: 0,
