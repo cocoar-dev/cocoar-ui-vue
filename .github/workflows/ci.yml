@@ -2,8 +2,9 @@ name: ci
 
 # One workflow for everything, as in CodeAlta:
 #
-#   pull request          → build & test, visual baselines (the title is judged and corrected by the agent that
-#                           merges: skill cocoar-pr, pr.mjs merge)
+#   pull request          → build & test (the docs' browser tests included; the playground's skipped when only
+#                           docs change: job scope), visual baselines (the title is judged and corrected by the
+#                           agent that merges: skill cocoar-pr, pr.mjs merge)
 #   push to develop, …    → build & test, visual baselines (the green run the release skill requires before a tag)
 #   workflow_dispatch     → build & test, then a prerelease: develop → X.Y.Z-beta.N on npm (dist-tag beta),
 #                           any other branch → X.Y.Z-alpha.N as @cocoar-dev/* on GitHub Packages
@@ -183,7 +184,8 @@ jobs:
         run: |
           playground=true
           if [[ "$EVENT" == pull_request ]]; then
-            files=$(git diff --name-only "$BASE...$HEAD")
+            # --no-renames: a file moved into the docs also lists where it came from.
+            files=$(git diff --name-only --no-renames "$BASE...$HEAD")
             printf '%s\n' "$files"
             outside=$(grep -vE '^(apps/docs/|skills/|\.alta/|apps/playground/docs-e2e/|apps/playground/playwright\.docs\.config\.ts$|[^/]+\.md$)' <<<"$files" || true)
             if [[ -n "$files" && -z "$outside" ]]; then playground=false; fi

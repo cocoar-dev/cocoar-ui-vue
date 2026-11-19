@@ -8,7 +8,8 @@ export default defineConfig({
   outputDir: './test-results/docs',
   fullyParallel: false,
   workers: 1,
-  retries: 0,
+  // As the playground's own config: a cold CI server can reload the first page once.
+  retries: process.env.CI ? 1 : 0,
   timeout: 30_000,
   expect: { timeout: 5_000 },
   reporter: 'list',
