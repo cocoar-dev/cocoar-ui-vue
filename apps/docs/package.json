@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vitepress dev",
+    "dev": "vitepress dev --port 5177",
     "build": "vitepress build && vite build --config mobile/vite.config.ts",
     "preview": "vitepress preview",
     "test": "node --test \"scripts/*.test.mjs\"",

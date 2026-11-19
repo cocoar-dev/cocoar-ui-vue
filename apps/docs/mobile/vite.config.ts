@@ -1,7 +1,8 @@
 // The mobile documentation: a small Vue app of its own, opened on a phone or shown in a
 // <PhoneFrame> of the docs (.vitepress/theme/PhoneFrame.vue). The docs build runs
 // `vite build --config mobile/vite.config.ts` after `vitepress build`, into .vitepress/dist/mobile;
-// in `vitepress dev` the plugin in .vitepress/mobile-dev.ts serves it at <base>mobile/.
+// in `vitepress dev` the plugin in .vitepress/mobile-dev.ts serves it at <base>__mobile/ and sends
+// <base>mobile/ there.
 //
 // `base: './'` keeps every asset address relative, so the built app works under whatever path the
 // docs are deployed to; the routes are hash routes (#/form), so no server rewrite is needed.

@@ -101,7 +101,9 @@ Say it plainly and propose the right way before acting, when a request would:
 ## Checks
 
 CI (`.github/workflows/ci.yml`) builds and tests every pull request ("Build, test & pack") and compares the visual
-baselines ("Visual"); `pr.mjs merge` requires both to have passed. Titles are not checked
+baselines ("Visual"); `pr.mjs merge` requires both to have passed. "Build, test & pack" includes the docs' browser
+tests; a pull request that changes only the docs, the Agent Skill, `.alta/`, Markdown files or the docs' tests skips
+the playground's browser tests ("Change scope"). Titles are not checked
 by CI, as in CodeAlta: the agent that merges judges the title and corrects it (skill `cocoar-pr`, `pr.mjs merge`).
 A title that does not fit, merged as it is — or a commit that reaches `develop` without a pull request — lands
 under "Misc" in the release notes: nothing breaks, it is only filed in the wrong place. The repository

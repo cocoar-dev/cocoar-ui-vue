@@ -8,7 +8,8 @@ export default defineConfig({
   outputDir: './test-results/docs',
   fullyParallel: false,
   workers: 1,
-  retries: 0,
+  // As the playground's own config: a cold CI server can reload the first page once.
+  retries: process.env.CI ? 1 : 0,
   timeout: 30_000,
   expect: { timeout: 5_000 },
   reporter: 'list',
@@ -23,7 +24,8 @@ export default defineConfig({
     { name: 'webkit-phone', use: { ...devices['iPhone 13'] } },
   ],
   webServer: {
-    command: `pnpm --filter @cocoar/docs ${command} --host 127.0.0.1 --port ${port} --strictPort`,
+    // vitepress itself, not the docs' dev script, which names its own port.
+    command: `pnpm --filter @cocoar/docs exec vitepress ${command} --host 127.0.0.1 --port ${port} --strictPort`,
     url: `http://127.0.0.1:${port}`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
