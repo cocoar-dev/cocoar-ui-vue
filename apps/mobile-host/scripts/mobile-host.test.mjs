@@ -53,10 +53,10 @@ test('the dev server is loopback on a port of its own, not the docs port', () =>
   assert.equal(option(devCommand, '--host'), '127.0.0.1');
   assert.equal(option(devCommand, '--port'), url.port);
   assert.ok(devCommand.includes('--strictPort'));
-  const docsPort = readFileSync(resolve(HOST_DIR, '../docs/.vitepress/config.ts'), 'utf8').match(
-    /port:\s*(\d+)/,
-  )?.[1];
-  assert.ok(docsPort, 'the docs config names its port');
+  // The docs' dev script names its port (apps/docs/package.json).
+  const docsDev = JSON.parse(readFileSync(resolve(HOST_DIR, '../docs/package.json'), 'utf8')).scripts.dev;
+  const docsPort = option(docsDev, '--port');
+  assert.ok(docsPort, 'the docs dev script names its port');
   assert.notEqual(url.port, docsPort);
 });
 
