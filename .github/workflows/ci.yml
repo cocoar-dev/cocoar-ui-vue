@@ -156,8 +156,45 @@ jobs:
           path: apps/docs/.vitepress/dist
           retention-days: 7
 
+  # Which tests a change needs. A pull request that changes only the docs site, the Agent Skill, the
+  # repository's own skills, tasks and notes, Markdown files or the docs' browser tests cannot change what the
+  # playground's browser tests exercise: those four jobs are skipped for it. A change of anything else, the
+  # lockfile and this workflow included, runs them; pushes, tags and dispatches always run everything.
+  scope:
+    name: Change scope
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      playground: ${{ steps.scope.outputs.playground }}
+    steps:
+      - uses: actions/checkout@v6
+        if: github.event_name == 'pull_request'
+        with:
+          fetch-depth: 0
+
+      - name: Files the pull request changes
+        id: scope
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          playground=true
+          if [[ "$EVENT" == pull_request ]]; then
+            files=$(git diff --name-only "$BASE...$HEAD")
+            printf '%s\n' "$files"
+            outside=$(grep -vE '^(apps/docs/|skills/|\.alta/|apps/playground/docs-e2e/|apps/playground/playwright\.docs\.config\.ts$|[^/]+\.md$)' <<<"$files" || true)
+            if [[ -n "$files" && -z "$outside" ]]; then playground=false; fi
+          fi
+          echo "playground=$playground" >> "$GITHUB_OUTPUT"
+          echo "### Playground browser tests: $playground" >> "$GITHUB_STEP_SUMMARY"
+
   browser-tests:
     name: Browser tests (${{ matrix.label }})
+    needs: scope
+    if: needs.scope.outputs.playground == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
@@ -274,11 +311,11 @@ jobs:
         if: env.SIMULATE == 'true'
         run: echo "::notice ::SIMULATE_BUILD — docs browser tests skipped"
 
-  # Keep the existing required check name. A failed or skipped shard must not
-  # turn this check into a GitHub-successful skip or permit publishing.
+  # Keep the existing required check name. A failed shard, or one skipped for another reason than the
+  # change scope, must not turn this check into a GitHub-successful skip or permit publishing.
   build-and-test:
     name: Build, test & pack
-    needs: [build, browser-tests, docs-browser-tests]
+    needs: [scope, build, browser-tests, docs-browser-tests]
     if: ${{ always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -289,7 +326,10 @@ jobs:
           BUILD: ${{ needs.build.result }}
           BROWSERS: ${{ needs.browser-tests.result }}
           DOCS: ${{ needs.docs-browser-tests.result }}
+          PLAYGROUND: ${{ needs.scope.outputs.playground }}
         run: |
+          # Skipped counts only where the change scope said so, never because a job before failed.
+          if [[ "$BROWSERS" == skipped && "$PLAYGROUND" == false ]]; then BROWSERS=success; fi
           if [[ "$BUILD" != success || "$BROWSERS" != success || "$DOCS" != success ]]; then
             echo "::error ::Build/pack: $BUILD; browser tests: $BROWSERS; docs browser tests: $DOCS"
             exit 1
