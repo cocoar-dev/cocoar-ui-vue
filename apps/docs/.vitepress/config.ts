@@ -8,8 +8,8 @@ import { SHELL_THEME_INIT_SCRIPT } from '../shell-theme.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// The site's base. The mobile documentation (../mobile) lives at <base>mobile/: served by
-// mobileDocsDev in dev, built there by the package's build script.
+// The site's base. The mobile documentation (../mobile) lives at <base>mobile/: built there by the
+// package's build script; in dev, mobileDocsDev serves it at <base>__mobile/ and redirects to it.
 const base = '/';
 
 export default defineConfig({
