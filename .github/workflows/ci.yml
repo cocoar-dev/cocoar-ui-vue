@@ -224,11 +224,61 @@ jobs:
         if: env.SIMULATE == 'true'
         run: echo "::notice ::SIMULATE_BUILD — browser tests skipped"
 
+  # The docs' own browser tests (apps/playground/docs-e2e, playwright.docs.config.ts) on the docs
+  # dev server: the style toggle, the Theme Editor in the docs, embedded demos. Chromium and WebKit.
+  docs-browser-tests:
+    name: Docs browser tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+        if: env.SIMULATE != 'true'
+
+      - uses: pnpm/action-setup@v4
+        if: env.SIMULATE != 'true'
+        with:
+          version: 10.13.1
+
+      - uses: actions/setup-node@v6
+        if: env.SIMULATE != 'true'
+        with:
+          node-version: 22.17.1
+          cache: pnpm
+
+      - name: Install dependencies
+        if: env.SIMULATE != 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Build docs dependencies
+        if: env.SIMULATE != 'true'
+        run: pnpm exec turbo run build --filter='@cocoar/docs^...'
+
+      - name: Cache Playwright browsers
+        if: env.SIMULATE != 'true'
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-docs-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install Playwright browsers
+        if: env.SIMULATE != 'true'
+        run: pnpm --filter @cocoar/playground exec playwright install --with-deps chromium webkit
+
+      - name: Run docs browser tests
+        if: env.SIMULATE != 'true'
+        run: pnpm --filter @cocoar/playground exec playwright test -c playwright.docs.config.ts --workers=1
+
+      - name: Simulated docs browser tests
+        if: env.SIMULATE == 'true'
+        run: echo "::notice ::SIMULATE_BUILD — docs browser tests skipped"
+
   # Keep the existing required check name. A failed or skipped shard must not
   # turn this check into a GitHub-successful skip or permit publishing.
   build-and-test:
     name: Build, test & pack
-    needs: [build, browser-tests]
+    needs: [build, browser-tests, docs-browser-tests]
     if: ${{ always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -238,9 +288,10 @@ jobs:
         env:
           BUILD: ${{ needs.build.result }}
           BROWSERS: ${{ needs.browser-tests.result }}
+          DOCS: ${{ needs.docs-browser-tests.result }}
         run: |
-          if [[ "$BUILD" != success || "$BROWSERS" != success ]]; then
-            echo "::error ::Build/pack: $BUILD; browser tests: $BROWSERS"
+          if [[ "$BUILD" != success || "$BROWSERS" != success || "$DOCS" != success ]]; then
+            echo "::error ::Build/pack: $BUILD; browser tests: $BROWSERS; docs browser tests: $DOCS"
             exit 1
           fi
 

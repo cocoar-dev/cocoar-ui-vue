@@ -41,9 +41,7 @@ export default defineConfig({
   ],
 
   vite: {
-    server: {
-      port: 5177,
-    },
+    // No port here: it would win over `vitepress dev --port` (the dev script names 5177).
     resolve: {
       conditions: ['source'],
       alias: [
