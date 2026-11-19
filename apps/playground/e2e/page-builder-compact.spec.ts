@@ -109,7 +109,8 @@ test.describe('PageBuilder compact presentation', () => {
     expect(await metrics(builder)).toEqual(legacy);
 
     await setProfile(page, ['coar-compact'], DESKTOP_ROLES);
-    expect(await metrics(builder)).toEqual({
+    // A compact outline row grows with its content: measured once the theme's font has loaded.
+    await expect.poll(() => metrics(builder)).toEqual({
       rootFont: '13px',
       paneHeader: 40,
       treeRow: 36,
@@ -126,7 +127,8 @@ test.describe('PageBuilder compact presentation', () => {
     });
 
     await setProfile(page, ['coar-compact'], MOBILE_ROLES);
-    expect(await metrics(builder)).toEqual({
+    // A compact outline row grows with its content: measured once the theme's font has loaded.
+    await expect.poll(() => metrics(builder)).toEqual({
       rootFont: '14px',
       paneHeader: 44,
       treeRow: 44,
