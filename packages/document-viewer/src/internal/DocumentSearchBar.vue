@@ -123,7 +123,7 @@ nextTick(() => inputEl.value?.focus());
   background: var(--coar-pdf-toolbar-bg);
   color: var(--coar-pdf-toolbar-fg);
   border-bottom: 1px solid var(--coar-color-border, var(--coar-document-viewer-border, #e5e7eb));
-  font-size: var(--coar-ui-font-size, 13px);
+  font-size: var(--coar-document-viewer-font-size, var(--coar-ui-font-size, 13px));
 }
 
 .coar-pdf-searchbar__icon {
@@ -141,7 +141,7 @@ nextTick(() => inputEl.value?.focus());
   background: var(--coar-color-surface, var(--coar-document-viewer-surface, #ffffff));
   color: inherit;
   font: inherit;
-  font-size: var(--coar-field-font-size, 13px);
+  font-size: var(--coar-document-viewer-field-font-size, var(--coar-field-font-size, 13px));
 }
 .coar-pdf-searchbar__input:focus {
   outline: 2px solid var(--coar-color-accent, var(--coar-document-viewer-accent, #2563eb));

@@ -58,6 +58,13 @@ const SOURCES = [
 ];
 
 describe('grid role adapter', () => {
+  it('accepts a preset header colour without changing the shared default', async () => {
+    const css = await read('ag-theme-cocoar-compact.css');
+    expect(css).toContain(
+      '--coar-d-ag-header-text-color: var(--coar-role-derivation) var(--coar-data-grid-header-text-color, var(--coar-text-neutral-secondary, #404040))',
+    );
+  });
+
   it('gives grid and popup roots the same originating color scheme', async () => {
     const css = await read('ag-theme-cocoar-compact.css');
     expect(css).toContain(
@@ -172,7 +179,8 @@ describe('grid role adapter', () => {
     const inputs = [
       '--coar-data-grid-font-size', '--coar-data-grid-row-height', '--coar-data-grid-header-height',
       '--coar-data-grid-list-item-height', '--coar-data-grid-cell-padding-x',
-      '--coar-data-grid-header-font-weight', '--coar-data-grid-control-radius', '--coar-data-grid-radius',
+      '--coar-data-grid-header-font-weight', '--coar-data-grid-header-text-color',
+      '--coar-data-grid-control-radius', '--coar-data-grid-radius',
       '--coar-data-grid-tree-indent', '--coar-data-grid-tree-toggle-size',
     ];
     const roles = new Set<string>();

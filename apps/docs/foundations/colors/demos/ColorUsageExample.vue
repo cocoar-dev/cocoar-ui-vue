@@ -46,6 +46,11 @@
         <span class="annotation-desc">Primary button</span>
       </div>
       <div class="annotation">
+        <span class="annotation-dot" style="background: var(--coar-text-on-accent)"></span>
+        <code>--coar-text-on-accent</code>
+        <span class="annotation-desc">Computed button ink</span>
+      </div>
+      <div class="annotation">
         <span class="annotation-dot" style="background: var(--coar-border-neutral-tertiary)"></span>
         <code>--coar-border-neutral-tertiary</code>
         <span class="annotation-desc">Card border</span>
@@ -96,7 +101,7 @@
 .avatar-text {
   font-size: 14px;
   font-weight: 700;
-  color: var(--coar-text-on-bold);
+  color: var(--coar-text-on-accent, var(--coar-text-on-bold));
 }
 
 .card-header-text {
@@ -164,7 +169,7 @@
   border-radius: 8px;
   border: none;
   background: var(--coar-background-accent-primary);
-  color: var(--coar-text-on-bold);
+  color: var(--coar-text-on-accent, var(--coar-text-on-bold));
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;

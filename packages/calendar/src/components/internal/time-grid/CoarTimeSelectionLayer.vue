@@ -89,6 +89,8 @@ function boxStyle(start: number, end: number): Record<string, string> {
 /* Selection: a light accent fill. The hover proposal is fainter than a range being dragged. */
 .coar-time-selection {
   z-index: 96;
+  /* The border input can mix currentColor without freezing the host's selection colour. */
+  color: var(--coar-calendar-selection-color, var(--coar-background-accent-primary, #2563eb));
   background: color-mix(
     in srgb,
     var(--coar-calendar-selection-color, var(--coar-background-accent-primary, #2563eb)) 14%,

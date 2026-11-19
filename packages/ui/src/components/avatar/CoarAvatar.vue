@@ -170,7 +170,7 @@ defineExpose({ showInitials, displayInitials, computedBgColor });
   height: 100%;
   font-family: var(--coar-body-base-family);
   font-weight: var(--coar-font-weight-semi-bold);
-  color: var(--coar-text-on-bold);
+  color: var(--coar-text-on-accent, var(--coar-text-on-bold));
   text-transform: uppercase;
   user-select: none;
 }

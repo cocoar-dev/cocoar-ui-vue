@@ -289,7 +289,7 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
 
 .coar-code-language {
   font-family: 'Cascadia Code', 'Consolas', 'Monaco', 'Courier New', monospace;
-  font-size: var(--coar-caption-font-size, var(--coar-component-xs-font-size));
+  font-size: var(--coar-code-block-caption-font-size, var(--coar-caption-font-size, var(--coar-component-xs-font-size)));
   font-weight: var(--coar-font-weight-medium);
   color: var(--coar-code-block-text-muted);
   text-transform: uppercase;
@@ -299,7 +299,7 @@ defineExpose({ copyCode, copyFeedback, isCollapsed, lines });
 /* Copy button */
 .coar-code-copy-btn {
   padding: var(--coar-spacing-xxs) var(--coar-spacing-s);
-  font-size: var(--coar-caption-font-size, var(--coar-component-xs-font-size));
+  font-size: var(--coar-code-block-caption-font-size, var(--coar-caption-font-size, var(--coar-component-xs-font-size)));
   font-family: var(--coar-body-small-base-family);
   background: transparent;
   border: none;

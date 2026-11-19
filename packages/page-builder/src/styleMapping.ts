@@ -30,7 +30,7 @@ const FOREGROUNDS = {
   primary: 'var(--coar-text-neutral-primary, #111)',
   secondary: 'var(--coar-text-neutral-secondary, #666)',
   tertiary: 'var(--coar-text-neutral-tertiary, #888)',
-  inverse: 'var(--coar-text-on-bold, #fff)',
+  inverse: 'var(--coar-text-on-accent, var(--coar-text-on-bold, #fff))',
   accent: 'var(--coar-text-accent-primary, #1666cc)',
   success: 'var(--coar-text-semantic-success-bold, #176b3a)',
   warning: 'var(--coar-text-semantic-warning-bold, #92400e)',

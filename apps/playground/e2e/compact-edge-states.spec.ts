@@ -90,13 +90,17 @@ for (const scheme of ['light', 'dark']) {
 
       // A compact export must reproduce its live brand, not silently fall
       // back to Slate when the downloaded class is applied to another scope.
-      await panel.locator('.te-color-swatch').first().fill('#a21caf');
+      // In dark the accent follows light until it is unlocked.
+      if (scheme === 'dark') await panel.getByRole('button', { name: 'Unlock dark Accent' }).click();
+      await panel.locator('[data-te-base="accent"] .te-color-row .te-color-swatch').fill('#a21caf');
       const downloadEvent = page.waitForEvent('download');
       await panel.getByRole('button', { name: 'Download CSS', exact: true }).click();
       const download = await downloadEvent;
       expect(download.suggestedFilename()).toBe('coar-theme--custom.css');
       const stylesheet = await readFile((await download.path())!, 'utf8');
-      expect(stylesheet).toContain('--coar-appearance-accent: #a21caf;');
+      expect(stylesheet).toMatch(scheme === 'dark'
+        ? /--coar-theme-accent: light-dark\(#[\da-f]{6}, #a21caf\);/i
+        : /--coar-theme-accent: #a21caf;/);
       const colors = await page.evaluate((css) => {
         const style = document.createElement('style');
         style.textContent = css;

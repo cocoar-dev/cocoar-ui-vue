@@ -18,69 +18,83 @@
  * specificity, so a consumer rule on the form wins. Template text and filled
  * values are document content: the form's reading size comes from
  * `@cocoar/vue-markdown`'s roles.
+ *
+ * Optional --coar-theme-markdown-form-<role> inputs on the theme scope take
+ * precedence over common UI roles. Direct public roles on a form still win.
  */
 
 :where(.coar-markdown-form) {
   /* Template issues: a semantic error notice. */
-  --coar-d-markdown-form-issues-radius: var(--coar-role-derivation) var(--coar-panel-radius, 8px);
+  --coar-d-markdown-form-issues-radius: var(--coar-role-derivation) var(--coar-theme-markdown-form-issues-radius, var(--coar-panel-radius, 8px));
   --coar-markdown-form-issues-radius: var(--coar-d-markdown-form-issues-radius, inherit);
-  --coar-d-markdown-form-issues-background: var(--coar-role-derivation) var(--coar-background-semantic-error-subtlest);
+  --coar-d-markdown-form-issues-background: var(--coar-role-derivation) var(--coar-theme-markdown-form-issues-background, var(--coar-background-semantic-error-subtlest));
   --coar-markdown-form-issues-background: var(--coar-d-markdown-form-issues-background, inherit);
-  --coar-d-markdown-form-issues-color: var(--coar-role-derivation) var(--coar-text-semantic-error-bold);
+  --coar-d-markdown-form-issues-color: var(--coar-role-derivation) var(--coar-theme-markdown-form-issues-color, var(--coar-text-semantic-error-bold));
   --coar-markdown-form-issues-color: var(--coar-d-markdown-form-issues-color, inherit);
-  --coar-d-markdown-form-issues-font-size: var(--coar-role-derivation) var(--coar-ui-font-size, 13px);
+  --coar-d-markdown-form-issues-font-size: var(--coar-role-derivation) var(--coar-theme-markdown-form-issues-font-size, var(--coar-ui-font-size, 13px));
   --coar-markdown-form-issues-font-size: var(--coar-d-markdown-form-issues-font-size, inherit);
 
   /* Block (Markdown) fields: one control shape instead of the 3/10 px leaf,
      neutral surface and border, the library's focus color. */
-  --coar-d-markdown-form-block-border: var(--coar-role-derivation) var(--coar-border-input);
+  --coar-d-markdown-form-block-border: var(--coar-role-derivation) var(--coar-theme-markdown-form-block-border, var(--coar-border-input));
   --coar-markdown-form-block-border: var(--coar-d-markdown-form-block-border, inherit);
-  --coar-d-markdown-form-block-radius: var(--coar-role-derivation) var(--coar-control-radius, 6px);
+  --coar-d-markdown-form-block-radius: var(--coar-role-derivation) var(--coar-theme-markdown-form-block-radius, var(--coar-control-radius, 6px));
   --coar-markdown-form-block-radius: var(--coar-d-markdown-form-block-radius, inherit);
-  --coar-d-markdown-form-block-background: var(--coar-role-derivation) var(--coar-background-neutral-primary);
+  --coar-d-markdown-form-block-background: var(--coar-role-derivation) var(--coar-theme-markdown-form-block-background, var(--coar-background-neutral-primary));
   --coar-markdown-form-block-background: var(--coar-d-markdown-form-block-background, inherit);
-  --coar-d-markdown-form-focus-border: var(--coar-role-derivation) var(--coar-border-focus, var(--coar-focus-color));
+  --coar-d-markdown-form-focus-border: var(--coar-role-derivation) var(--coar-theme-markdown-form-focus-border, var(--coar-border-focus, var(--coar-focus-color)));
   --coar-markdown-form-focus-border: var(--coar-d-markdown-form-focus-border, inherit);
-  --coar-d-markdown-form-focus-ring: var(--coar-role-derivation) 0 0 0 3px
-    color-mix(in srgb, var(--coar-focus-color) 30%, transparent);
+  --coar-d-markdown-form-focus-ring: var(--coar-role-derivation) var(--coar-theme-markdown-form-focus-ring, 0 0 0 3px
+    color-mix(in srgb, var(--coar-focus-color) 30%, transparent));
   --coar-markdown-form-focus-ring: var(--coar-d-markdown-form-focus-ring, inherit);
 
   /* Readonly values: still marked as filled-in content. */
-  --coar-d-markdown-form-underline: var(--coar-role-derivation) var(--coar-border-input);
+  --coar-d-markdown-form-underline: var(--coar-role-derivation) var(--coar-theme-markdown-form-underline, var(--coar-border-input));
   --coar-markdown-form-underline: var(--coar-d-markdown-form-underline, inherit);
-  --coar-d-markdown-form-value-color: var(--coar-role-derivation) var(--coar-text-neutral-primary);
+  --coar-d-markdown-form-value-color: var(--coar-role-derivation) var(--coar-theme-markdown-form-value-color, var(--coar-text-neutral-primary));
   --coar-markdown-form-value-color: var(--coar-d-markdown-form-value-color, inherit);
-  --coar-d-markdown-form-empty-color: var(--coar-role-derivation) var(--coar-text-neutral-disabled);
+  --coar-d-markdown-form-empty-color: var(--coar-role-derivation) var(--coar-theme-markdown-form-empty-color, var(--coar-text-neutral-disabled));
   --coar-markdown-form-empty-color: var(--coar-d-markdown-form-empty-color, inherit);
 
   /* Errors: semantic colors, caption size instead of 11.2 px. */
-  --coar-d-markdown-form-error-color: var(--coar-role-derivation) var(--coar-text-semantic-error-subtle);
+  --coar-d-markdown-form-error-color: var(--coar-role-derivation) var(--coar-theme-markdown-form-error-color, var(--coar-text-semantic-error-subtle));
   --coar-markdown-form-error-color: var(--coar-d-markdown-form-error-color, inherit);
-  --coar-d-markdown-form-error-border: var(--coar-role-derivation) var(--coar-border-semantic-error);
+  --coar-d-markdown-form-error-border: var(--coar-role-derivation) var(--coar-theme-markdown-form-error-border, var(--coar-border-semantic-error));
   --coar-markdown-form-error-border: var(--coar-d-markdown-form-error-border, inherit);
-  --coar-d-markdown-form-error-ring: var(--coar-role-derivation) 0 0 0 2px
-    color-mix(in srgb, var(--coar-border-semantic-error) 18%, transparent);
+  --coar-d-markdown-form-error-ring: var(--coar-role-derivation) var(--coar-theme-markdown-form-error-ring, 0 0 0 2px
+    color-mix(in srgb, var(--coar-border-semantic-error) 18%, transparent));
   --coar-markdown-form-error-ring: var(--coar-d-markdown-form-error-ring, inherit);
-  --coar-d-markdown-form-error-font-size: var(--coar-role-derivation) var(--coar-caption-font-size, 12px);
+  --coar-d-markdown-form-error-font-size: var(--coar-role-derivation) var(--coar-theme-markdown-form-error-font-size, var(--coar-caption-font-size, 12px));
   --coar-markdown-form-error-font-size: var(--coar-d-markdown-form-error-font-size, inherit);
-  --coar-d-markdown-form-caption-font-size: var(--coar-role-derivation) var(--coar-caption-font-size, 12px);
+  --coar-d-markdown-form-caption-font-size: var(--coar-role-derivation) var(--coar-theme-markdown-form-caption-font-size, var(--coar-caption-font-size, 12px));
   --coar-markdown-form-caption-font-size: var(--coar-d-markdown-form-caption-font-size, inherit);
 
   /* `design: 'basic'` native controls: same height rule as the Cocoar xs
      inputs (with the mobile floor), field text size, semantic colors. */
-  --coar-d-markdown-form-control-height: var(--coar-role-derivation) max(
+  --coar-d-markdown-form-control-height: var(--coar-role-derivation) var(--coar-theme-markdown-form-control-height, max(
     var(--coar-component-xs-height, 27px),
     var(--coar-control-xs-height, 0px)
-  );
+  ));
   --coar-markdown-form-control-height: var(--coar-d-markdown-form-control-height, inherit);
-  --coar-d-markdown-form-control-border: var(--coar-role-derivation) var(--coar-border-input);
+  --coar-d-markdown-form-control-border: var(--coar-role-derivation) var(--coar-theme-markdown-form-control-border, var(--coar-border-input));
   --coar-markdown-form-control-border: var(--coar-d-markdown-form-control-border, inherit);
-  --coar-d-markdown-form-control-radius: var(--coar-role-derivation) var(--coar-control-radius, 6px);
+  --coar-d-markdown-form-control-radius: var(--coar-role-derivation) var(--coar-theme-markdown-form-control-radius, var(--coar-control-radius, 6px));
   --coar-markdown-form-control-radius: var(--coar-d-markdown-form-control-radius, inherit);
-  --coar-d-markdown-form-control-background: var(--coar-role-derivation) var(--coar-background-neutral-primary);
+  --coar-d-markdown-form-control-background: var(--coar-role-derivation) var(--coar-theme-markdown-form-control-background, var(--coar-background-neutral-primary));
   --coar-markdown-form-control-background: var(--coar-d-markdown-form-control-background, inherit);
-  --coar-d-markdown-form-control-color: var(--coar-role-derivation) var(--coar-text-neutral-primary);
+  --coar-d-markdown-form-control-color: var(--coar-role-derivation) var(--coar-theme-markdown-form-control-color, var(--coar-text-neutral-primary));
   --coar-markdown-form-control-color: var(--coar-d-markdown-form-control-color, inherit);
-  --coar-d-markdown-form-control-font-size: var(--coar-role-derivation) var(--coar-field-font-size, 14px);
+  --coar-d-markdown-form-control-font-size: var(--coar-role-derivation) var(--coar-theme-markdown-form-control-font-size, var(--coar-field-font-size, 14px));
   --coar-markdown-form-control-font-size: var(--coar-d-markdown-form-control-font-size, inherit);
+}
+
+/* The legacy basic controls keep the browser's light presentation even on a
+   dark page. An explicit theme input preserves that choice without changing
+   the theme's surrounding color scheme or overriding application styles. */
+@layer cocoar.components {
+  .coar-markdown-form input,
+  .coar-markdown-form select,
+  .coar-markdown-form textarea {
+    color-scheme: var(--coar-theme-markdown-form-control-color-scheme, revert-layer);
+  }
 }

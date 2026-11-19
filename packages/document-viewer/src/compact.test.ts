@@ -68,8 +68,11 @@ describe('compact profile: default look unchanged', () => {
 
     const derived = declarations.filter((m) => m[1].startsWith('--coar-d-'));
     const roles = declarations.filter((m) => !m[1].startsWith('--coar-d-'));
-    expect(derived.length).toBe(20);
-    for (const m of derived) expect(m[2], m[1]).toMatch(/^var\(--coar-role-derivation\) \S/);
+    expect(derived.length).toBe(35);
+    for (const m of derived) {
+      const input = m[1].replace('--coar-d-', '--coar-theme-');
+      expect(m[2], m[1]).toMatch(new RegExp(`^var\\(--coar-role-derivation\\) var\\(${input}, `));
+    }
     expect(roles.map((m) => m[0])).toEqual(
       derived.map((m) => {
         const role = m[1].replace('--coar-d-', '--coar-');

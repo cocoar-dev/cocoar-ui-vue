@@ -195,7 +195,7 @@ function removeTranslationKey(key: string) {
 .pb-translations__locale { width: 180px; flex: none; }
 .pb-translations__toolbar { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(340px, 1fr); gap: 12px; margin-bottom: 14px; }
 .pb-translations__add { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
-.pb-translations__table-wrap { overflow: auto; border: 1px solid var(--coar-border-neutral, #ddd); border-radius: var(--coar-page-builder-panel-radius, 7px); }
+.pb-translations__table-wrap { overflow: auto; border: 1px solid var(--coar-border-neutral, #ddd); border-radius: var(--coar-page-builder-medium-panel-radius, var(--coar-page-builder-panel-radius, 7px)); }
 .pb-translations__table { width: 100%; min-width: 760px; border-collapse: collapse; }
 .pb-translations__table th, .pb-translations__table td { padding: 9px; border-bottom: 1px solid var(--coar-border-neutral, #e5e5e8); text-align: left; vertical-align: middle; }
 .pb-translations__table thead th { position: sticky; top: 0; z-index: 1; background: var(--coar-background-neutral-secondary, #f7f7f8); font-size: var(--coar-page-builder-label-font-size, 12px); }

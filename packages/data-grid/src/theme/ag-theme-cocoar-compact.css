@@ -23,7 +23,7 @@
  * Grid roles a theme or a consumer may set (on the grid or any ancestor):
  *   --coar-data-grid-font-size, --coar-data-grid-row-height, --coar-data-grid-header-height,
  *   --coar-data-grid-list-item-height, --coar-data-grid-cell-padding-x,
- *   --coar-data-grid-header-font-weight, --coar-data-grid-control-radius,
+ *   --coar-data-grid-header-font-weight, --coar-data-grid-header-text-color, --coar-data-grid-control-radius,
  *   --coar-data-grid-radius, --coar-data-grid-tree-indent, --coar-data-grid-tree-toggle-size
  * The constants among them that Compact sets are in
  * `packages/ui/src/theme/compact-packages/data-grid.ts`.
@@ -61,7 +61,7 @@
      fixed fallbacks (accent #2196f3, header text #1a1a1a): bind them to the tokens. */
   --coar-d-ag-accent-color: var(--coar-role-derivation) var(--coar-background-accent-primary, #2196f3);
   --ag-accent-color: var(--coar-d-ag-accent-color, inherit);
-  --coar-d-ag-header-text-color: var(--coar-role-derivation) var(--coar-text-neutral-secondary, #404040);
+  --coar-d-ag-header-text-color: var(--coar-role-derivation) var(--coar-data-grid-header-text-color, var(--coar-text-neutral-secondary, #404040));
   --ag-header-text-color: var(--coar-d-ag-header-text-color, inherit);
   --coar-d-ag-subtle-text-color: var(--coar-role-derivation) var(--coar-text-neutral-tertiary, #525252);
   --ag-subtle-text-color: var(--coar-d-ag-subtle-text-color, inherit);

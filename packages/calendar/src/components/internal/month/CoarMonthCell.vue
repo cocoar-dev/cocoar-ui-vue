@@ -199,7 +199,7 @@ function onOverflowClick(e: MouseEvent) {
 }
 .coar-month-cell--other-month {
   background: var(--coar-calendar-bg-other-month, #fafafb);
-  color: var(--coar-text-subtle, #9ca3af);
+  color: var(--coar-calendar-faint-text-color, var(--coar-text-subtle, #9ca3af));
 }
 .coar-month-cell--placeholder {
   background: var(--coar-calendar-bg, #fff);
@@ -239,7 +239,7 @@ function onOverflowClick(e: MouseEvent) {
   box-sizing: border-box;
 }
 .coar-month-cell--other-month .coar-month-cell__day-number {
-  color: var(--coar-text-subtle, #9ca3af);
+  color: var(--coar-calendar-faint-text-color, var(--coar-text-subtle, #9ca3af));
   font-weight: 500;
 }
 

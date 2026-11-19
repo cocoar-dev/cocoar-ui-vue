@@ -171,7 +171,7 @@ const technicalRows = computed<Row[]>(() => {
   text-align: left;
 }
 .coar-pdf-info__header:hover {
-  background: var(--coar-color-surface-2, var(--coar-document-viewer-chrome, rgba(0, 0, 0, 0.03)));
+  background: var(--coar-color-surface-2, var(--coar-document-viewer-info-chrome, var(--coar-document-viewer-chrome, rgba(0, 0, 0, 0.03))));
 }
 .coar-pdf-info__header:focus-visible {
   outline: 2px solid var(--coar-color-focus-ring, var(--coar-document-viewer-focus-ring, #2563eb));
@@ -179,8 +179,8 @@ const technicalRows = computed<Row[]>(() => {
 }
 
 .coar-pdf-info__title {
-  font-weight: var(--coar-label-font-weight, 600);
-  font-size: var(--coar-caption-font-size, 12px);
+  font-weight: var(--coar-document-viewer-label-font-weight, var(--coar-label-font-weight, 600));
+  font-size: var(--coar-document-viewer-title-font-size, var(--coar-caption-font-size, 12px));
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--coar-color-fg-2, var(--coar-document-viewer-text-secondary, #4b5563));
@@ -195,7 +195,7 @@ const technicalRows = computed<Row[]>(() => {
   grid-template-columns: max-content 1fr;
   gap: 4px 12px;
   margin: 0;
-  font-size: var(--coar-ui-font-size, 12px);
+  font-size: var(--coar-document-viewer-small-font-size, var(--coar-ui-font-size, 12px));
   line-height: 1.4;
 }
 
@@ -216,7 +216,7 @@ const technicalRows = computed<Row[]>(() => {
 
 .coar-pdf-info__divider {
   height: 1px;
-  background: var(--coar-color-divider, var(--coar-document-viewer-divider, rgba(0, 0, 0, 0.06)));
+  background: var(--coar-color-divider, var(--coar-document-viewer-info-divider, var(--coar-document-viewer-divider, rgba(0, 0, 0, 0.06))));
   margin: 10px 0;
 }
 </style>

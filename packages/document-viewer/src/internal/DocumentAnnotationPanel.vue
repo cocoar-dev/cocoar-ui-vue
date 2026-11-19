@@ -275,7 +275,7 @@ const sortOptions = computed(() => [
   flex: 0 0 260px;
   background: var(--coar-color-surface-2, var(--coar-document-viewer-chrome, #f6f7f8));
   border-left: 1px solid var(--coar-color-border, var(--coar-document-viewer-border, #e5e7eb));
-  font-size: var(--coar-ui-font-size, 12px);
+  font-size: var(--coar-document-viewer-small-font-size, var(--coar-ui-font-size, 12px));
   overflow: hidden;
 }
 
@@ -297,7 +297,7 @@ const sortOptions = computed(() => [
   margin-left: auto;
   color: var(--coar-color-fg-muted, var(--coar-document-viewer-text-muted, #6b7280));
   font-variant-numeric: tabular-nums;
-  font-size: var(--coar-caption-font-size, 11px);
+  font-size: var(--coar-document-viewer-caption-font-size, var(--coar-caption-font-size, 11px));
 }
 
 .coar-pdf-anno-panel__close {
@@ -350,12 +350,12 @@ const sortOptions = computed(() => [
   background: var(--coar-color-surface, var(--coar-document-viewer-surface, #ffffff));
   color: inherit;
   font: inherit;
-  font-size: var(--coar-field-font-size, 12px);
+  font-size: var(--coar-document-viewer-small-field-font-size, var(--coar-field-font-size, 12px));
   outline: none;
 }
 .coar-pdf-anno-panel__search-input:focus-visible {
   border-color: var(--coar-color-accent, var(--coar-document-viewer-accent, #2563eb));
-  box-shadow: 0 0 0 2px var(--coar-color-accent-tint, var(--coar-document-viewer-accent-tint, rgba(37, 99, 235, 0.2)));
+  box-shadow: 0 0 0 2px var(--coar-color-accent-tint, var(--coar-document-viewer-field-focus-tint, var(--coar-document-viewer-accent-tint, rgba(37, 99, 235, 0.2))));
 }
 
 .coar-pdf-anno-panel__filters {
@@ -380,7 +380,7 @@ const sortOptions = computed(() => [
   transition: background 0.1s ease, opacity 0.1s ease;
 }
 .coar-pdf-anno-panel__filter:hover {
-  background: var(--coar-color-surface-3, var(--coar-document-viewer-hover, rgba(0, 0, 0, 0.04)));
+  background: var(--coar-color-surface-3, var(--coar-document-viewer-hover-subtle, var(--coar-document-viewer-hover, rgba(0, 0, 0, 0.04))));
 }
 .coar-pdf-anno-panel__filter--off {
   opacity: 0.35;
@@ -397,15 +397,15 @@ const sortOptions = computed(() => [
   padding: 16px 12px;
   color: var(--coar-color-fg-muted, var(--coar-document-viewer-text-muted, #6b7280));
   text-align: center;
-  font-size: var(--coar-ui-font-size, 12px);
+  font-size: var(--coar-document-viewer-small-font-size, var(--coar-ui-font-size, 12px));
 }
 
 .coar-pdf-anno-panel__group-header {
   padding: 8px 12px 4px;
-  font-size: var(--coar-caption-font-size, 11px);
+  font-size: var(--coar-document-viewer-caption-font-size, var(--coar-caption-font-size, 11px));
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  font-weight: var(--coar-label-font-weight, 600);
+  font-weight: var(--coar-document-viewer-label-font-weight, var(--coar-label-font-weight, 600));
   color: var(--coar-color-fg-muted, var(--coar-document-viewer-text-muted, #6b7280));
 }
 
@@ -419,10 +419,10 @@ const sortOptions = computed(() => [
   outline: none;
 }
 .coar-pdf-anno-panel__item:hover {
-  background: var(--coar-color-surface-3, var(--coar-document-viewer-hover, rgba(0, 0, 0, 0.04)));
+  background: var(--coar-color-surface-3, var(--coar-document-viewer-hover-subtle, var(--coar-document-viewer-hover, rgba(0, 0, 0, 0.04))));
 }
 .coar-pdf-anno-panel__item:focus-visible {
-  background: var(--coar-color-surface-3, var(--coar-document-viewer-hover, rgba(0, 0, 0, 0.04)));
+  background: var(--coar-color-surface-3, var(--coar-document-viewer-hover-subtle, var(--coar-document-viewer-hover, rgba(0, 0, 0, 0.04))));
   outline: 2px solid var(--coar-color-accent, var(--coar-document-viewer-accent, #2563eb));
   outline-offset: -2px;
 }
@@ -453,7 +453,7 @@ const sortOptions = computed(() => [
 }
 
 .coar-pdf-anno-panel__item-text {
-  font-size: var(--coar-ui-font-size, 12px);
+  font-size: var(--coar-document-viewer-small-font-size, var(--coar-ui-font-size, 12px));
   color: var(--coar-color-fg, var(--coar-document-viewer-text, #1a1a1a));
   overflow: hidden;
   text-overflow: ellipsis;
@@ -461,7 +461,7 @@ const sortOptions = computed(() => [
 }
 
 .coar-pdf-anno-panel__item-meta {
-  font-size: var(--coar-caption-font-size, 10px);
+  font-size: var(--coar-document-viewer-footnote-font-size, var(--coar-caption-font-size, 10px));
   color: var(--coar-color-fg-muted, var(--coar-document-viewer-text-muted, #6b7280));
   overflow: hidden;
   text-overflow: ellipsis;

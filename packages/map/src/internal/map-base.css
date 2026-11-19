@@ -55,17 +55,17 @@ path.coar-map-marker--selected {
 
 .coar-map-popup__note {
   margin-top: 2px;
-  color: var(--coar-map-chrome-text-secondary, #555);
+  color: var(--coar-map-popup-note-color, var(--coar-map-chrome-text-secondary, #555));
 }
 
 .coar-map__caption {
   margin: 0;
-  font-size: var(--coar-caption-font-size, 13px);
+  font-size: var(--coar-map-caption-font-size, var(--coar-caption-font-size, 13px));
   color: var(--coar-map-caption-color, var(--coar-map-text-muted, #666));
 }
 
 .coar-map__nocfg {
   margin: 0;
-  font-size: var(--coar-ui-font-size, 13px);
+  font-size: var(--coar-map-font-size, var(--coar-ui-font-size, 13px));
   color: var(--coar-map-error-color, #b91c1c);
 }

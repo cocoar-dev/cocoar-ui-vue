@@ -83,10 +83,12 @@ const tokenStyle = computed<Record<string, string>>(() => {
     // accent instead of being replaced by the profile's default Slate.
     result['--coar-appearance-accent'] = theme.accent;
   }
-  if (theme.success) result['--coar-success'] = theme.success;
-  if (theme.warning) result['--coar-warning'] = theme.warning;
-  if (theme.error) result['--coar-error'] = theme.error;
-  if (theme.info) result['--coar-info'] = theme.info;
+  for (const role of ['success', 'warning', 'error', 'info'] as const) {
+    if (theme[role]) {
+      result[`--coar-${role}`] = theme[role];
+      result[`--coar-appearance-${role}`] = theme[role];
+    }
+  }
 
   const buttonRadius = cssLength(theme.buttonRadius);
   const inputRadius = cssLength(theme.inputRadius);

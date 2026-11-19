@@ -16,8 +16,18 @@
    LIGHT MODE (default)
    ============================================================================ */
 
+:root {
+  /* Equal |Lc| for pure white and black under APCA-W3; see color-contrast.ts. */
+  --coar-text-on-threshold: 0.3419552539852081;
+}
+
 :root,
 .light-mode {
+  --coar-text-on-accent: var(--coar-d-text-on-accent, var(--coar-text-on-bold));
+  --coar-text-on-success: var(--coar-d-text-on-success, var(--coar-text-on-bold));
+  --coar-text-on-error: var(--coar-d-text-on-error, var(--coar-text-on-bold));
+  --coar-text-on-warning: var(--coar-d-text-on-warning, var(--coar-text-on-bold));
+  --coar-text-on-info: var(--coar-d-text-on-info, var(--coar-text-on-bold));
   /* ==========================================================================
      NEUTRAL - Default UI colors (gray scale)
      ========================================================================== */
@@ -181,6 +191,11 @@
 
 :root.dark-mode,
 .dark-mode {
+  --coar-text-on-accent: var(--coar-d-text-on-accent, var(--coar-text-on-bold));
+  --coar-text-on-success: var(--coar-d-text-on-success, var(--coar-text-on-bold));
+  --coar-text-on-error: var(--coar-d-text-on-error, var(--coar-text-on-bold));
+  --coar-text-on-warning: var(--coar-d-text-on-warning, var(--coar-text-on-bold));
+  --coar-text-on-info: var(--coar-d-text-on-info, var(--coar-text-on-bold));
   /* ==========================================================================
      NEUTRAL - Invert the gray scale
      Background uses lighter grays to allow for shadows and depth

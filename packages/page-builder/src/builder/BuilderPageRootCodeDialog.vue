@@ -57,8 +57,8 @@ const libs = computed(() => [
 .pb-page-root-code-dialog { display: flex; flex-direction: column; gap: 12px; }
 .pb-page-root-code-dialog__meta { display: flex; justify-content: space-between; gap: 24px; }
 .pb-page-root-code-dialog__meta div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.pb-page-root-code-dialog__meta span, .pb-page-root-code-dialog__hint { color: var(--coar-text-neutral-secondary, #666); font-size: var(--coar-page-builder-meta-font-size, 12px); }
-.pb-page-root-code-dialog__editor { flex: none; border: 1px solid var(--coar-border-neutral, #ddd); border-radius: var(--coar-page-builder-panel-radius, 6px); overflow: hidden; }
+.pb-page-root-code-dialog__meta span, .pb-page-root-code-dialog__hint { color: var(--coar-text-neutral-secondary, #666); font-size: var(--coar-page-builder-large-meta-font-size, var(--coar-page-builder-meta-font-size, 12px)); }
+.pb-page-root-code-dialog__editor { flex: none; border: 1px solid var(--coar-border-neutral, #ddd); border-radius: var(--coar-page-builder-small-panel-radius, var(--coar-page-builder-panel-radius, 6px)); overflow: hidden; }
 .pb-page-root-code-dialog__editor :deep(.coar-script-editor) {
   --coar-script-editor-marker-display: none;
   --coar-script-editor-locked-line-bg: transparent;

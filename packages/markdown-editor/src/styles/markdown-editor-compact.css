@@ -18,6 +18,8 @@
  * (floating toolbar, overlays) derives again from the values it was handed
  * (`useCompactPresentationContext`, overlay outlet). Zero specificity: a
  * consumer rule on a root wins.
+ * Optional --coar-theme-markdown-editor-<role> inputs take precedence over
+ * common UI roles, so a value theme can preserve its own document defaults.
  */
 
 :where(
@@ -28,39 +30,39 @@
     .coar-md-color-picker,
     .coar-md-code-host
   ) {
-  --coar-d-markdown-editor-button-radius: var(--coar-role-derivation) var(--coar-control-radius);
+  --coar-d-markdown-editor-button-radius: var(--coar-role-derivation) var(--coar-theme-markdown-editor-button-radius, var(--coar-control-radius));
   --coar-markdown-editor-button-radius: var(--coar-d-markdown-editor-button-radius, inherit);
-  --coar-d-markdown-editor-panel-radius: var(--coar-role-derivation) var(--coar-panel-radius);
+  --coar-d-markdown-editor-panel-radius: var(--coar-role-derivation) var(--coar-theme-markdown-editor-panel-radius, var(--coar-panel-radius));
   --coar-markdown-editor-panel-radius: var(--coar-d-markdown-editor-panel-radius, inherit);
 
   /* Writing text is field text (16 px on touch, against the iOS focus zoom),
      not the viewer's reading size. */
-  --coar-d-markdown-editor-writing-font-size: var(--coar-role-derivation) var(--coar-field-font-size);
+  --coar-d-markdown-editor-writing-font-size: var(--coar-role-derivation) var(--coar-theme-markdown-editor-writing-font-size, var(--coar-field-font-size));
   --coar-markdown-editor-writing-font-size: var(--coar-d-markdown-editor-writing-font-size, inherit);
 
   /* Fixed / external toolbar strip: one interactive row. */
-  --coar-d-markdown-editor-toolbar-size: var(--coar-role-derivation) var(--coar-interactive-row-height);
+  --coar-d-markdown-editor-toolbar-size: var(--coar-role-derivation) var(--coar-theme-markdown-editor-toolbar-size, var(--coar-interactive-row-height));
   --coar-markdown-editor-toolbar-size: var(--coar-d-markdown-editor-toolbar-size, inherit);
 
   /* Heading menu of the floating toolbar. */
-  --coar-d-markdown-editor-menu-row-height: var(--coar-role-derivation) var(--coar-interactive-row-height);
+  --coar-d-markdown-editor-menu-row-height: var(--coar-role-derivation) var(--coar-theme-markdown-editor-menu-row-height, var(--coar-interactive-row-height));
   --coar-markdown-editor-menu-row-height: var(--coar-d-markdown-editor-menu-row-height, inherit);
-  --coar-d-markdown-editor-menu-font-size: var(--coar-role-derivation) var(--coar-ui-font-size);
+  --coar-d-markdown-editor-menu-font-size: var(--coar-role-derivation) var(--coar-theme-markdown-editor-menu-font-size, var(--coar-ui-font-size));
   --coar-markdown-editor-menu-font-size: var(--coar-d-markdown-editor-menu-font-size, inherit);
 
   /* Small UI text: captions, hints, the code block's Edit button. */
-  --coar-d-markdown-editor-caption-font-size: var(--coar-role-derivation) var(--coar-caption-font-size);
+  --coar-d-markdown-editor-caption-font-size: var(--coar-role-derivation) var(--coar-theme-markdown-editor-caption-font-size, var(--coar-caption-font-size));
   --coar-markdown-editor-caption-font-size: var(--coar-d-markdown-editor-caption-font-size, inherit);
-  --coar-d-markdown-editor-label-font-weight: var(--coar-role-derivation) var(--coar-label-font-weight);
+  --coar-d-markdown-editor-label-font-weight: var(--coar-role-derivation) var(--coar-theme-markdown-editor-label-font-weight, var(--coar-label-font-weight));
   --coar-markdown-editor-label-font-weight: var(--coar-d-markdown-editor-label-font-weight, inherit);
 
   /* Table size picker: the 11 px hint becomes caption-sized, the size label
      loses its blanket bold. */
-  --coar-d-markdown-editor-table-picker-label-font-size: var(--coar-role-derivation) var(--coar-caption-font-size);
+  --coar-d-markdown-editor-table-picker-label-font-size: var(--coar-role-derivation) var(--coar-theme-markdown-editor-table-picker-label-font-size, var(--coar-caption-font-size));
   --coar-markdown-editor-table-picker-label-font-size: var(--coar-d-markdown-editor-table-picker-label-font-size, inherit);
-  --coar-d-markdown-editor-table-picker-label-font-weight: var(--coar-role-derivation) var(--coar-label-font-weight);
+  --coar-d-markdown-editor-table-picker-label-font-weight: var(--coar-role-derivation) var(--coar-theme-markdown-editor-table-picker-label-font-weight, var(--coar-label-font-weight));
   --coar-markdown-editor-table-picker-label-font-weight: var(--coar-d-markdown-editor-table-picker-label-font-weight, inherit);
-  --coar-d-markdown-editor-table-picker-hint-font-size: var(--coar-role-derivation) var(--coar-caption-font-size);
+  --coar-d-markdown-editor-table-picker-hint-font-size: var(--coar-role-derivation) var(--coar-theme-markdown-editor-table-picker-hint-font-size, var(--coar-caption-font-size));
   --coar-markdown-editor-table-picker-hint-font-size: var(--coar-d-markdown-editor-table-picker-hint-font-size, inherit);
 }
 
@@ -68,7 +70,7 @@
    scopes. Without a role theme the role stays undefined and the selection
    keeps its legacy look (see `CoarMarkdownEditor.vue`). */
 :where(.coar-markdown-embed-host) {
-  --coar-d-markdown-editor-selection-outline-color: var(--coar-role-derivation) var(--coar-border-accent-primary);
+  --coar-d-markdown-editor-selection-outline-color: var(--coar-role-derivation) var(--coar-theme-markdown-editor-selection-outline-color, var(--coar-border-accent-primary));
   --coar-markdown-editor-selection-outline-color: var(--coar-d-markdown-editor-selection-outline-color, inherit);
 }
 

@@ -435,6 +435,11 @@ A realistic card built entirely with semantic tokens. Toggle light/dark mode to 
         <span class="annotation-desc">Primary button</span>
       </div>
       <div class="annotation">
+        <span class="annotation-dot" style="background: var(--coar-text-on-accent)"></span>
+        <code>--coar-text-on-accent</code>
+        <span class="annotation-desc">Computed button ink</span>
+      </div>
+      <div class="annotation">
         <span class="annotation-dot" style="background: var(--coar-border-neutral-tertiary)"></span>
         <code>--coar-border-neutral-tertiary</code>
         <span class="annotation-desc">Card border</span>
@@ -485,7 +490,7 @@ A realistic card built entirely with semantic tokens. Toggle light/dark mode to 
 .avatar-text {
   font-size: 14px;
   font-weight: 700;
-  color: var(--coar-text-on-bold);
+  color: var(--coar-text-on-accent, var(--coar-text-on-bold));
 }
 
 .card-header-text {
@@ -553,7 +558,7 @@ A realistic card built entirely with semantic tokens. Toggle light/dark mode to 
   border-radius: 8px;
   border: none;
   background: var(--coar-background-accent-primary);
-  color: var(--coar-text-on-bold);
+  color: var(--coar-text-on-accent, var(--coar-text-on-bold));
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -676,7 +681,31 @@ All tokens follow a predictable pattern:
 | `--coar-text-accent-primary` | Accent-colored text (links, highlights) |
 | `--coar-text-accent-secondary` | Lighter accent text |
 | `--coar-text-brand-primary` | Brand-colored text |
-| `--coar-text-on-bold` | White text on bold / colored surfaces |
+| `--coar-text-on-accent` | Computed black or white on the primary accent fill |
+| `--coar-text-on-success` | Computed black or white on the solid success fill |
+| `--coar-text-on-error` | Computed black or white on the solid error fill |
+| `--coar-text-on-warning` | Computed black or white on the solid warning fill |
+| `--coar-text-on-info` | Computed black or white on the solid info fill |
+| `--coar-text-on-bold` | Legacy white role; retained for direct use and as a fallback |
+
+### Text on saturated fills (Preview)
+
+The five `--coar-text-on-*` roles choose pure white or black from their actual
+solid fill, using the stronger APCA contrast. They work with every preset and
+without a theme. The same ink is used on hover and pressed states; links,
+validation text and text on tinted surfaces continue to use their palette roles.
+
+Set a role to override the calculation, including a `light-dark()` pair:
+
+```css
+.coar-theme--acme {
+  --coar-text-on-accent: light-dark(#102a43, #f0f8ff);
+}
+```
+
+Overrides are retained even when contrast is low. APCA selection is not a WCAG
+4.5:1 guarantee. `--coar-text-on-threshold` is the APCA luminance crossing used by
+the CSS calculation; normally leave it unchanged.
 
 ### Border
 

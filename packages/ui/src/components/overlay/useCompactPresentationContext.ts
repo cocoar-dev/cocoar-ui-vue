@@ -1,6 +1,6 @@
 import { onBeforeUnmount, shallowRef, watch } from 'vue';
 import { ROLE_DERIVATION_MARKER, ROLE_DERIVATION_TOKEN } from '../../theme/role-theme';
-import { COMPACT_APPEARANCE_INPUT_TOKENS, COMPACT_CONTEXT_TOKENS } from './compact-context';
+import { COMPACT_CONTEXT_TOKENS } from './compact-context';
 
 export interface CompactPresentationContext {
   classes: string[];
@@ -60,12 +60,9 @@ export function readCompactPresentationContext(
 
   for (const token of COMPACT_CONTEXT_TOKENS) {
     const value = computed.getPropertyValue(token).trim();
-    if (value) result.style[token] = value;
-    else if (COMPACT_APPEARANCE_INPUT_TOKENS.includes(token)) {
-      // Empty inputs are meaningful at .coar-theme-none: do not accidentally
-      // inherit the document's brand again after moving the tool to body.
-      result.style[token] = 'initial';
-    }
+    // Absence is meaningful too: a body-level theme must not fill an input or
+    // role that was intentionally unset at the origin (e.g. native radii).
+    result.style[token] = value || 'initial';
   }
   // Include explicit overrides at any boundary, not just the outer opt-in:
   // a ThemeScope or an inner package can specialize one role independently.

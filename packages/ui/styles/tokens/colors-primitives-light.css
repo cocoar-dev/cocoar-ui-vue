@@ -24,52 +24,52 @@
   --coar-info:    #5e6b84;
 
   /* Success (green) — auto-generated from --coar-success */
-  --coar-color-green-50:  oklch(from var(--coar-success) 0.97 0.012 h);
-  --coar-color-green-100: oklch(from var(--coar-success) 0.92 0.035 h);
-  --coar-color-green-200: oklch(from var(--coar-success) 0.84 0.065 h);
-  --coar-color-green-300: oklch(from var(--coar-success) 0.74 0.10  h);
-  --coar-color-green-400: oklch(from var(--coar-success) 0.66 0.13  h);
-  --coar-color-green-500: var(--coar-success);
-  --coar-color-green-600: oklch(from var(--coar-success) 0.47 0.12  h);
-  --coar-color-green-700: oklch(from var(--coar-success) 0.40 0.10  h);
-  --coar-color-green-800: oklch(from var(--coar-success) 0.33 0.08  h);
-  --coar-color-green-900: oklch(from var(--coar-success) 0.26 0.06  h);
+  --coar-color-green-50:  var(--coar-d-color-green-50, oklch(from var(--coar-success) 0.97 0.012 h));
+  --coar-color-green-100: var(--coar-d-color-green-100, oklch(from var(--coar-success) 0.92 0.035 h));
+  --coar-color-green-200: var(--coar-d-color-green-200, oklch(from var(--coar-success) 0.84 0.065 h));
+  --coar-color-green-300: var(--coar-d-color-green-300, oklch(from var(--coar-success) 0.74 0.10  h));
+  --coar-color-green-400: var(--coar-d-color-green-400, oklch(from var(--coar-success) 0.66 0.13  h));
+  --coar-color-green-500: var(--coar-d-color-green-500, var(--coar-success));
+  --coar-color-green-600: var(--coar-d-color-green-600, oklch(from var(--coar-success) 0.47 0.12  h));
+  --coar-color-green-700: var(--coar-d-color-green-700, oklch(from var(--coar-success) 0.40 0.10  h));
+  --coar-color-green-800: var(--coar-d-color-green-800, oklch(from var(--coar-success) 0.33 0.08  h));
+  --coar-color-green-900: var(--coar-d-color-green-900, oklch(from var(--coar-success) 0.26 0.06  h));
 
   /* Error (red) — auto-generated from --coar-error */
-  --coar-color-red-50:  oklch(from var(--coar-error) 0.97 0.012 h);
-  --coar-color-red-100: oklch(from var(--coar-error) 0.92 0.035 h);
-  --coar-color-red-200: oklch(from var(--coar-error) 0.84 0.07  h);
-  --coar-color-red-300: oklch(from var(--coar-error) 0.74 0.11  h);
-  --coar-color-red-400: oklch(from var(--coar-error) 0.66 0.145 h);
-  --coar-color-red-500: var(--coar-error);
-  --coar-color-red-600: oklch(from var(--coar-error) 0.47 0.13  h);
-  --coar-color-red-700: oklch(from var(--coar-error) 0.40 0.11  h);
-  --coar-color-red-800: oklch(from var(--coar-error) 0.33 0.09  h);
-  --coar-color-red-900: oklch(from var(--coar-error) 0.26 0.07  h);
+  --coar-color-red-50:  var(--coar-d-color-red-50, oklch(from var(--coar-error) 0.97 0.012 h));
+  --coar-color-red-100: var(--coar-d-color-red-100, oklch(from var(--coar-error) 0.92 0.035 h));
+  --coar-color-red-200: var(--coar-d-color-red-200, oklch(from var(--coar-error) 0.84 0.07  h));
+  --coar-color-red-300: var(--coar-d-color-red-300, oklch(from var(--coar-error) 0.74 0.11  h));
+  --coar-color-red-400: var(--coar-d-color-red-400, oklch(from var(--coar-error) 0.66 0.145 h));
+  --coar-color-red-500: var(--coar-d-color-red-500, var(--coar-error));
+  --coar-color-red-600: var(--coar-d-color-red-600, oklch(from var(--coar-error) 0.47 0.13  h));
+  --coar-color-red-700: var(--coar-d-color-red-700, oklch(from var(--coar-error) 0.40 0.11  h));
+  --coar-color-red-800: var(--coar-d-color-red-800, oklch(from var(--coar-error) 0.33 0.09  h));
+  --coar-color-red-900: var(--coar-d-color-red-900, oklch(from var(--coar-error) 0.26 0.07  h));
 
   /* Warning (amber) — auto-generated from --coar-warning */
-  --coar-color-amber-50:  oklch(from var(--coar-warning) 0.97 0.015 h);
-  --coar-color-amber-100: oklch(from var(--coar-warning) 0.92 0.04  h);
-  --coar-color-amber-200: oklch(from var(--coar-warning) 0.86 0.08  h);
-  --coar-color-amber-300: oklch(from var(--coar-warning) 0.78 0.12  h);
-  --coar-color-amber-400: oklch(from var(--coar-warning) 0.72 0.14  h);
-  --coar-color-amber-500: var(--coar-warning);
-  --coar-color-amber-600: oklch(from var(--coar-warning) 0.50 0.12  h);
-  --coar-color-amber-700: oklch(from var(--coar-warning) 0.43 0.10  h);
-  --coar-color-amber-800: oklch(from var(--coar-warning) 0.36 0.08  h);
-  --coar-color-amber-900: oklch(from var(--coar-warning) 0.29 0.06  h);
+  --coar-color-amber-50:  var(--coar-d-color-amber-50, oklch(from var(--coar-warning) 0.97 0.015 h));
+  --coar-color-amber-100: var(--coar-d-color-amber-100, oklch(from var(--coar-warning) 0.92 0.04  h));
+  --coar-color-amber-200: var(--coar-d-color-amber-200, oklch(from var(--coar-warning) 0.86 0.08  h));
+  --coar-color-amber-300: var(--coar-d-color-amber-300, oklch(from var(--coar-warning) 0.78 0.12  h));
+  --coar-color-amber-400: var(--coar-d-color-amber-400, oklch(from var(--coar-warning) 0.72 0.14  h));
+  --coar-color-amber-500: var(--coar-d-color-amber-500, var(--coar-warning));
+  --coar-color-amber-600: var(--coar-d-color-amber-600, oklch(from var(--coar-warning) 0.50 0.12  h));
+  --coar-color-amber-700: var(--coar-d-color-amber-700, oklch(from var(--coar-warning) 0.43 0.10  h));
+  --coar-color-amber-800: var(--coar-d-color-amber-800, oklch(from var(--coar-warning) 0.36 0.08  h));
+  --coar-color-amber-900: var(--coar-d-color-amber-900, oklch(from var(--coar-warning) 0.29 0.06  h));
 
   /* Info (slate) — auto-generated from --coar-info */
-  --coar-color-slate-50:  oklch(from var(--coar-info) 0.97 0.006 h);
-  --coar-color-slate-100: oklch(from var(--coar-info) 0.92 0.012 h);
-  --coar-color-slate-200: oklch(from var(--coar-info) 0.84 0.02  h);
-  --coar-color-slate-300: oklch(from var(--coar-info) 0.74 0.03  h);
-  --coar-color-slate-400: oklch(from var(--coar-info) 0.66 0.035 h);
-  --coar-color-slate-500: var(--coar-info);
-  --coar-color-slate-600: oklch(from var(--coar-info) 0.47 0.03  h);
-  --coar-color-slate-700: oklch(from var(--coar-info) 0.40 0.025 h);
-  --coar-color-slate-800: oklch(from var(--coar-info) 0.35 0.02  h);
-  --coar-color-slate-900: oklch(from var(--coar-info) 0.30 0.02  h);
+  --coar-color-slate-50:  var(--coar-d-color-slate-50, oklch(from var(--coar-info) 0.97 0.006 h));
+  --coar-color-slate-100: var(--coar-d-color-slate-100, oklch(from var(--coar-info) 0.92 0.012 h));
+  --coar-color-slate-200: var(--coar-d-color-slate-200, oklch(from var(--coar-info) 0.84 0.02  h));
+  --coar-color-slate-300: var(--coar-d-color-slate-300, oklch(from var(--coar-info) 0.74 0.03  h));
+  --coar-color-slate-400: var(--coar-d-color-slate-400, oklch(from var(--coar-info) 0.66 0.035 h));
+  --coar-color-slate-500: var(--coar-d-color-slate-500, var(--coar-info));
+  --coar-color-slate-600: var(--coar-d-color-slate-600, oklch(from var(--coar-info) 0.47 0.03  h));
+  --coar-color-slate-700: var(--coar-d-color-slate-700, oklch(from var(--coar-info) 0.40 0.025 h));
+  --coar-color-slate-800: var(--coar-d-color-slate-800, oklch(from var(--coar-info) 0.35 0.02  h));
+  --coar-color-slate-900: var(--coar-d-color-slate-900, oklch(from var(--coar-info) 0.30 0.02  h));
   --coar-color-white: #ffffff;
 
   /* THEMING: Set your brand color here. All accent shades auto-calculate from it.

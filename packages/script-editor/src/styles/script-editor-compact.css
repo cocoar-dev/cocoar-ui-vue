@@ -17,6 +17,6 @@
 
 :where(.coar-script-editor) {
   /* Same shape as the theme's text inputs. */
-  --coar-d-script-editor-radius: var(--coar-role-derivation) var(--coar-control-radius, 6px);
+  --coar-d-script-editor-radius: var(--coar-role-derivation) var(--coar-theme-script-editor-radius, var(--coar-control-radius, 6px));
   --coar-script-editor-radius: var(--coar-d-script-editor-radius, inherit);
 }

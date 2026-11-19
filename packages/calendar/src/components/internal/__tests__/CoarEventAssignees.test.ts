@@ -23,6 +23,8 @@ describe('assignee contrast inputs', () => {
     const avatars = wrapper.findAll('.coar-event-assignees__avatar');
     expect(avatars[0].attributes('style')).toContain('background: #ffff00');
     expect(avatars[0].attributes('style')).toContain('--assignee-ink: #000000');
+    expect(avatars[0].attributes('style')).toContain('--assignee-color: #ffff00');
+    expect(avatars[0].find('.coar-event-assignees__initials').text()).toBe('LF');
     expect(avatars[1].attributes('style')).toContain('--assignee-ink: #ffffff');
     // happy-dom drops background declarations with a var()/hsl() fallback.
     // SSR verifies Vue's emitted CSS without that parser limitation.

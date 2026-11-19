@@ -566,7 +566,10 @@ defineExpose({
 .coar-continuous-month-view--shade-weekends
   .coar-continuous-month-view__section
   :deep(.coar-month-grid__weekday-cell:nth-child(n + 6)) {
-  background: var(--coar-i-continuous-weekday-bg, var(--coar-calendar-bg-weekend, #f6f7f9));
+  background: var(
+    --coar-calendar-continuous-weekday-positional-bg,
+    var(--coar-i-continuous-weekday-bg, var(--coar-calendar-bg-weekend, #f6f7f9))
+  );
 }
 /* Cells the position rule does not reach: nothing is declared without the
    theme's value (layer + `revert-layer`). */
@@ -629,7 +632,7 @@ defineExpose({
   justify-content: center;
   border-radius: 50%;
   background: var(--coar-calendar-today-marker-bg, var(--coar-color-danger, #ff3b30));
-  color: var(--coar-calendar-on-accent, white);
+  color: var(--coar-calendar-on-accent, var(--coar-text-on-accent, white));
 }
 /* Density changes affect every preceding section. A height transition would keep
  * moving the anchor for 200 ms after Vue has restored it, so continuous sections

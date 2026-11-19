@@ -77,7 +77,31 @@ All tokens follow a predictable pattern:
 | `--coar-text-accent-primary` | Accent-colored text (links, highlights) |
 | `--coar-text-accent-secondary` | Lighter accent text |
 | `--coar-text-brand-primary` | Brand-colored text |
-| `--coar-text-on-bold` | White text on bold / colored surfaces |
+| `--coar-text-on-accent` | Computed black or white on the primary accent fill |
+| `--coar-text-on-success` | Computed black or white on the solid success fill |
+| `--coar-text-on-error` | Computed black or white on the solid error fill |
+| `--coar-text-on-warning` | Computed black or white on the solid warning fill |
+| `--coar-text-on-info` | Computed black or white on the solid info fill |
+| `--coar-text-on-bold` | Legacy white role; retained for direct use and as a fallback |
+
+### Text on saturated fills (Preview)
+
+The five `--coar-text-on-*` roles choose pure white or black from their actual
+solid fill, using the stronger APCA contrast. They work with every preset and
+without a theme. The same ink is used on hover and pressed states; links,
+validation text and text on tinted surfaces continue to use their palette roles.
+
+Set a role to override the calculation, including a `light-dark()` pair:
+
+```css
+.coar-theme--acme {
+  --coar-text-on-accent: light-dark(#102a43, #f0f8ff);
+}
+```
+
+Overrides are retained even when contrast is low. APCA selection is not a WCAG
+4.5:1 guarantee. `--coar-text-on-threshold` is the APCA luminance crossing used by
+the CSS calculation; normally leave it unchanged.
 
 ### Border
 

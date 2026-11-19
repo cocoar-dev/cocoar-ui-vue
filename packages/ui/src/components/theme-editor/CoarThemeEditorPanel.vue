@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, watch, type Ref } from 'vue';
+import { computed, reactive, ref, watch, type Ref } from 'vue';
 import CoarPaletteEditor from './CoarPaletteEditor.vue';
 import CoarButton from '../button/CoarButton.vue';
 import CoarSelect from '../select/CoarSelect.vue';
@@ -9,7 +9,7 @@ import CoarFormField from '../form-field/CoarFormField.vue';
 import TokenScaleEditor from './TokenScaleEditor.vue';
 import {
   DEFAULTS, RADIUS_OPTIONS, DROPDOWN_RADIUS_OPTIONS, SHADOW_OPTIONS, FONT_OPTIONS_BODY, FONT_OPTIONS_TITLE,
-  DENSITY_OPTIONS, PRESETS, PALETTE_STEPS, SEMANTIC_GROUPS, SEMANTIC_PAL_OPTIONS, SEMANTIC_STEP_OPTIONS,
+  DENSITY_OPTIONS, PRESETS, SEMANTIC_GROUPS, SEMANTIC_PAL_OPTIONS, SEMANTIC_STEP_OPTIONS,
   accent, success, errorColor, warning, info,
   radiusXxs, radiusXs, radiusS, radiusM, radiusL, radiusXl,
   spacingXs, spacingS, spacingM, spacingL, spacingXl,
@@ -18,14 +18,75 @@ import {
   cardShadow, menuShadow, popoverShadow, dropdownShadow, dialogShadow, toastShadow,
   fontBody, fontTitle, motionScale, motionLabel,
   isDark, themeName, activePalette, hasChanges,
-  paletteOverrides, semanticOverrides,
+  paletteOverridesFor, semanticOverridesFor, paletteSteps, previewRevision, editorTarget,
+  schemeColorOverride, setSchemeColor, type PaletteKey,
   applyPreset, reset, downloadCSS, setSemantic, resetSemantic,
-  baseline, hasEditorChanges, roleTheme, roleOverrides, ROLE_VALUE_GROUPS,
+  baseline, hasEditorChanges, roleOverrides, ROLE_VALUE_GROUPS,
   roleValue, setRoleValue, resetRoleValue, type RoleValueEntry,
 } from './theme-editor-state';
 import { cleanFontFamily, cssFontFamily, fontSources, type FontRole, type FontSource } from './font-preview';
+import { readColorPreviews, TEXT_ON_MIN_LC, type ColorPreview } from './color-preview';
 
 const props = defineProps<{ onClose?: () => void; hideDarkToggle?: boolean }>();
+const scheme = computed(() => isDark.value ? 'dark' : 'light');
+const paletteOverrides = computed(() => paletteOverridesFor(scheme.value));
+const semanticOverrides = computed(() => semanticOverridesFor(scheme.value));
+
+const BASE_COLORS: { key: PaletteKey; label: string; palette: string; model: Ref<string> }[] = [
+  { key: 'accent', label: 'Accent', palette: 'Accent', model: accent },
+  { key: 'success', label: 'Success', palette: 'Success (green)', model: success },
+  { key: 'error', label: 'Error', palette: 'Error (red)', model: errorColor },
+  { key: 'warning', label: 'Warning', palette: 'Warning (amber)', model: warning },
+  { key: 'info', label: 'Info', palette: 'Info (slate)', model: info },
+];
+type BaseColor = (typeof BASE_COLORS)[number];
+const BASE_GROUPS = [
+  { label: 'Brand color', colors: BASE_COLORS.slice(0, 1) },
+  { label: 'Status colors', colors: BASE_COLORS.slice(1) },
+];
+
+/** What the edited scope shows in the selected scheme: base, fill and the text on it. */
+const previews = ref<Partial<Record<PaletteKey, ColorPreview>>>({});
+watch([previewRevision, scheme], () => {
+  previews.value = readColorPreviews(editorTarget(), scheme.value, BASE_COLORS.map((color) => color.key));
+}, { immediate: true, flush: 'post' });
+
+const baseToken = (color: BaseColor) => `--coar-theme-${color.key}`;
+const inkToken = (color: BaseColor) => `--coar-text-on-${color.key}`;
+
+/** Light is the control itself; a dark base follows it until it is unlocked. */
+function baseLocked(color: BaseColor) {
+  return scheme.value === 'dark' && schemeColorOverride(baseToken(color), 'dark') === undefined;
+}
+function baseValue(color: BaseColor) {
+  if (scheme.value === 'light') return color.model.value;
+  return schemeColorOverride(baseToken(color), 'dark') ?? previews.value[color.key]?.base ?? color.model.value;
+}
+function setBase(color: BaseColor, value: string) {
+  setSchemeColor(baseToken(color), scheme.value, value);
+}
+function toggleBaseLock(color: BaseColor) {
+  // Unlocking starts from the color dark shows now; locking drops it again.
+  setSchemeColor(baseToken(color), 'dark', baseLocked(color) ? baseValue(color) : undefined);
+}
+
+/** The text on a fill is calculated in both schemes until it is unlocked. */
+function inkLocked(color: BaseColor) {
+  return schemeColorOverride(inkToken(color), scheme.value) === undefined;
+}
+function inkValue(color: BaseColor) {
+  return schemeColorOverride(inkToken(color), scheme.value) ?? previews.value[color.key]?.ink ?? '#ffffff';
+}
+function setInk(color: BaseColor, value: string) {
+  setSchemeColor(inkToken(color), scheme.value, value);
+}
+function toggleInkLock(color: BaseColor) {
+  setSchemeColor(inkToken(color), scheme.value, inkLocked(color) ? inkValue(color) : undefined);
+}
+function lowContrast(color: BaseColor) {
+  const preview = previews.value[color.key];
+  return !!preview && Math.abs(preview.contrast) < TEXT_ON_MIN_LC;
+}
 
 /** The entry of the font lists that opens a field for any other family name. */
 const OTHER_FONT = '\u0000other';
@@ -143,7 +204,7 @@ function setLength(entry: RoleValueEntry, raw: string) {
       </div>
 
       <!-- Values of the loaded role theme -->
-      <details v-if="roleTheme" class="te-accordion" data-te-role-values>
+      <details class="te-accordion" data-te-role-values>
         <summary class="te-acc-summary">
           <span class="te-acc-title">Values of this theme</span>
           <svg class="te-acc-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
@@ -185,61 +246,67 @@ function setLength(entry: RoleValueEntry, raw: string) {
         </summary>
         <div class="te-accordion-body">
 
-          <div v-if="!props.hideDarkToggle" class="te-section">
+          <div class="te-section" data-te-scheme>
             <div class="te-section-label">Appearance</div>
             <CoarSegmentedControl
+              v-if="!props.hideDarkToggle"
               v-model="isDark"
               :options="[{ value: false, label: 'Light' }, { value: true, label: 'Dark' }]"
               size="s"
               full-width
             />
+            <p class="te-hint">
+              <template v-if="scheme === 'dark'">You edit the dark colors. A locked one follows the light color; unlock it to choose another.</template>
+              <template v-else>You edit the light colors. Dark follows them until you unlock a dark color.</template>
+              <template v-if="props.hideDarkToggle"> Switch light and dark in the app.</template>
+            </p>
           </div>
 
-          <div class="te-section">
-            <div class="te-section-label">Brand color</div>
-            <div class="te-color-row">
-              <input type="color" class="te-color-swatch" v-model="accent" />
-              <span class="te-color-name">Accent</span>
-              <code class="te-color-hex">{{ accent }}</code>
-              <button class="te-palette-btn" :class="{ 'te-palette-btn--active': activePalette === 'accent' }" @click="activePalette = activePalette === 'accent' ? null : 'accent'" title="Edit 50–900 palette">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
-              </button>
-            </div>
-          </div>
-
-          <div class="te-section">
-            <div class="te-section-label">Status colors</div>
-            <div class="te-color-row">
-              <input type="color" class="te-color-swatch" v-model="success" />
-              <span class="te-color-name">Success</span>
-              <code class="te-color-hex">{{ success }}</code>
-              <button class="te-palette-btn" :class="{ 'te-palette-btn--active': activePalette === 'success' }" @click="activePalette = activePalette === 'success' ? null : 'success'" title="Edit 50–900 palette">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
-              </button>
-            </div>
-            <div class="te-color-row">
-              <input type="color" class="te-color-swatch" v-model="errorColor" />
-              <span class="te-color-name">Error</span>
-              <code class="te-color-hex">{{ errorColor }}</code>
-              <button class="te-palette-btn" :class="{ 'te-palette-btn--active': activePalette === 'error' }" @click="activePalette = activePalette === 'error' ? null : 'error'" title="Edit 50–900 palette">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
-              </button>
-            </div>
-            <div class="te-color-row">
-              <input type="color" class="te-color-swatch" v-model="warning" />
-              <span class="te-color-name">Warning</span>
-              <code class="te-color-hex">{{ warning }}</code>
-              <button class="te-palette-btn" :class="{ 'te-palette-btn--active': activePalette === 'warning' }" @click="activePalette = activePalette === 'warning' ? null : 'warning'" title="Edit 50–900 palette">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
-              </button>
-            </div>
-            <div class="te-color-row">
-              <input type="color" class="te-color-swatch" v-model="info" />
-              <span class="te-color-name">Info</span>
-              <code class="te-color-hex">{{ info }}</code>
-              <button class="te-palette-btn" :class="{ 'te-palette-btn--active': activePalette === 'info' }" @click="activePalette = activePalette === 'info' ? null : 'info'" title="Edit 50–900 palette">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
-              </button>
+          <div v-for="group in BASE_GROUPS" :key="group.label" class="te-section">
+            <div class="te-section-label">{{ group.label }}</div>
+            <div v-for="color in group.colors" :key="color.key" class="te-base" :data-te-base="color.key">
+              <div class="te-color-row">
+                <input
+                  type="color" class="te-color-swatch" :value="baseValue(color)" :disabled="baseLocked(color)"
+                  :aria-label="`${color.label}, ${scheme}`"
+                  @input="setBase(color, ($event.target as HTMLInputElement).value)"
+                />
+                <span class="te-color-name">{{ color.label }}</span>
+                <code class="te-color-hex">{{ baseValue(color) }}</code>
+                <button
+                  v-if="scheme === 'dark'"
+                  class="te-lock-btn" :class="{ 'te-lock-btn--open': !baseLocked(color) }"
+                  :aria-label="baseLocked(color) ? `Unlock dark ${color.label}` : `Lock dark ${color.label} to light`"
+                  :title="baseLocked(color) ? 'Follows the light color. Unlock to choose a dark one.' : 'Chosen for dark. Lock to follow the light color again.'"
+                  @click="toggleBaseLock(color)"
+                ><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2"/><path v-if="baseLocked(color)" d="M7 11V7a5 5 0 0 1 10 0v4"/><path v-else d="M7 11V7a5 5 0 0 1 9.9-1"/></svg></button>
+                <button class="te-palette-btn" :class="{ 'te-palette-btn--active': activePalette === color.key }" @click="activePalette = activePalette === color.key ? null : color.key" :title="`Edit the ${scheme} 50–900 palette`">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+                </button>
+              </div>
+              <div class="te-ink-row">
+                <span class="te-ink-sample" :style="{ background: previews[color.key]?.fill, color: previews[color.key]?.ink }" aria-hidden="true">Aa</span>
+                <span class="te-ink-name">Text on {{ color.label }}</span>
+                <input
+                  v-if="!inkLocked(color)"
+                  type="color" class="te-color-swatch te-color-swatch--s" :value="inkValue(color)"
+                  :aria-label="`Text on ${color.label}, ${scheme}`"
+                  @input="setInk(color, ($event.target as HTMLInputElement).value)"
+                />
+                <span
+                  v-if="previews[color.key]" class="te-ink-lc" :class="{ 'te-ink-lc--low': lowContrast(color) }"
+                  title="APCA contrast of the text on this color"
+                >Lc {{ Math.round(Math.abs(previews[color.key]!.contrast)) }}</span>
+                <button
+                  class="te-lock-btn" :class="{ 'te-lock-btn--open': !inkLocked(color) }"
+                  :aria-label="inkLocked(color) ? `Unlock text on ${color.label}` : `Lock text on ${color.label}`"
+                  :title="inkLocked(color) ? 'Calculated for the best contrast. Unlock to choose it.' : 'Chosen. Lock to calculate it again.'"
+                  @click="toggleInkLock(color)"
+                ><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2"/><path v-if="inkLocked(color)" d="M7 11V7a5 5 0 0 1 10 0v4"/><path v-else d="M7 11V7a5 5 0 0 1 9.9-1"/></svg></button>
+              </div>
+              <p v-if="lowContrast(color)" class="te-ink-warning" role="status">
+                Text on {{ color.label }} is hard to read: APCA Lc {{ Math.round(Math.abs(previews[color.key]!.contrast)) }}, below {{ TEXT_ON_MIN_LC }}.
+              </p>
             </div>
           </div>
 
@@ -261,14 +328,14 @@ function setLength(entry: RoleValueEntry, raw: string) {
               <span class="te-sem-label">{{ entry.label }}</span>
               <CoarSelect
                 :model-value="semanticOverrides[entry.token]?.palette ?? entry.defaultPalette"
-                @update:model-value="setSemantic(entry, 'palette', $event as string)"
+                @update:model-value="setSemantic(entry, 'palette', $event as string, scheme)"
                 :options="SEMANTIC_PAL_OPTIONS"
                 size="xs"
                 style="width:80px;flex-shrink:0"
               />
               <CoarSelect
                 :model-value="semanticOverrides[entry.token]?.step ?? entry.defaultStep"
-                @update:model-value="setSemantic(entry, 'step', $event as number)"
+                @update:model-value="setSemantic(entry, 'step', $event as number, scheme)"
                 :options="SEMANTIC_STEP_OPTIONS"
                 size="xs"
                 style="width:58px;flex-shrink:0"
@@ -277,7 +344,7 @@ function setLength(entry: RoleValueEntry, raw: string) {
                 class="te-icon-btn te-icon-btn--reset"
                 :class="{ 'te-icon-btn--changed': !!semanticOverrides[entry.token] }"
                 :disabled="!semanticOverrides[entry.token]"
-                @click="resetSemantic(entry.token)"
+                @click="resetSemantic(entry.token, scheme)"
                 title="Reset"
               >
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
@@ -463,11 +530,11 @@ function setLength(entry: RoleValueEntry, raw: string) {
             </div>
             <div class="te-scale-row" :class="{ 'te-scale-row--disabled': !fieldPaddingXEnabled }">
               <input type="range" class="te-slider" min="4" max="32" step="1" v-model.number="fieldPaddingX" :disabled="!fieldPaddingXEnabled" />
-              <span class="te-scale-val">{{ fieldPaddingXEnabled ? fieldPaddingX + 'px' : `${DEFAULTS.fieldPaddingX}px` }}</span>
+              <span class="te-scale-val">{{ fieldPaddingXEnabled ? fieldPaddingX + 'px' : 'Auto' }}</span>
               <button class="te-icon-btn te-icon-btn--reset" :class="{ 'te-icon-btn--changed': fieldPaddingXEnabled }" :disabled="!fieldPaddingXEnabled" @click="fieldPaddingX = baseline.fieldPaddingX; fieldPaddingXEnabled = baseline.fieldPaddingX !== DEFAULTS.fieldPaddingX" title="Reset"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
             </div>
             <p class="te-hint">
-              <template v-if="fieldPaddingXEnabled">Fixed override — <code>--coar-field-padding-x</code> ignored.</template>
+              <template v-if="fieldPaddingXEnabled">Fixed override through <code>--coar-field-padding-x</code>.</template>
               <template v-else>Shared by text/password/number/select fields. Tight affixes use half this value.</template>
             </p>
           </div>
@@ -600,12 +667,15 @@ function setLength(entry: RoleValueEntry, raw: string) {
       <p class="te-footer-hint">Apply with <code>&lt;html class="coar-theme--{{ themeName || 'custom' }}"&gt;</code></p>
     </footer>
 
-    <!-- Palette editor modals -->
-    <CoarPaletteEditor v-if="activePalette === 'accent'"  label="Accent"          css-family="accent" :base-color="accent"     :steps="PALETTE_STEPS.accent"  :model-value="paletteOverrides.accent"  @update:model-value="paletteOverrides.accent = $event"  @close="activePalette = null" />
-    <CoarPaletteEditor v-if="activePalette === 'error'"   label="Error (red)"     css-family="red"    :base-color="errorColor" :steps="PALETTE_STEPS.error"   :model-value="paletteOverrides.error"   @update:model-value="paletteOverrides.error = $event"   @close="activePalette = null" />
-    <CoarPaletteEditor v-if="activePalette === 'success'" label="Success (green)" css-family="green"  :base-color="success"    :steps="PALETTE_STEPS.success" :model-value="paletteOverrides.success" @update:model-value="paletteOverrides.success = $event" @close="activePalette = null" />
-    <CoarPaletteEditor v-if="activePalette === 'warning'" label="Warning (amber)" css-family="amber"  :base-color="warning"    :steps="PALETTE_STEPS.warning" :model-value="paletteOverrides.warning" @update:model-value="paletteOverrides.warning = $event" @close="activePalette = null" />
-    <CoarPaletteEditor v-if="activePalette === 'info'"    label="Info (slate)"    css-family="slate"  :base-color="info"       :steps="PALETTE_STEPS.info"    :model-value="paletteOverrides.info"    @update:model-value="paletteOverrides.info = $event"    @close="activePalette = null" />
+    <!-- Palette editor of the selected scheme -->
+    <template v-for="color in BASE_COLORS" :key="color.key">
+      <CoarPaletteEditor
+        v-if="activePalette === color.key"
+        :label="color.palette" :base-color="baseValue(color)" :scheme="scheme" :steps="paletteSteps(color.key, scheme)"
+        :model-value="paletteOverrides[color.key]" @update:model-value="paletteOverrides[color.key] = $event"
+        @close="activePalette = null"
+      />
+    </template>
 
   </aside>
 </template>
@@ -772,6 +842,38 @@ function setLength(entry: RoleValueEntry, raw: string) {
   color: var(--coar-text-neutral-tertiary, #8c8c8c);
   background: var(--coar-background-neutral-secondary, #f5f5f5);
   padding: 1px 5px; border-radius: 3px;
+}
+
+/* ── Base colors: locks and the text on each fill ───── */
+.te-base + .te-base { margin-top: 10px; }
+.te-base .te-color-row { margin-bottom: 4px; }
+.te-color-swatch:disabled { cursor: default; } /* the lock beside it says it is locked */
+.te-color-swatch--s { width: 20px; height: 20px; border-radius: 4px; }
+.te-lock-btn {
+  width: 22px; height: 22px; flex-shrink: 0; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: none; border-radius: 4px; background: transparent; cursor: pointer;
+  color: var(--coar-text-neutral-tertiary, #8c8c8c);
+}
+.te-lock-btn:hover { background: var(--coar-background-neutral-secondary, #f0f0f0); color: var(--coar-text-neutral-primary, #1a1a1a); }
+.te-lock-btn--open { color: var(--coar-background-accent-primary, #1183CD); }
+.te-ink-row { display: flex; align-items: center; gap: 7px; padding-left: 35px; }
+.te-ink-sample {
+  width: 26px; height: 20px; flex-shrink: 0; border-radius: 4px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600; line-height: 1;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.08);
+}
+.te-ink-name { flex: 1; font-size: var(--coar-caption-font-size, 11px); color: var(--coar-text-neutral-secondary, #595959); }
+.te-ink-lc {
+  font-size: 10px; font-family: ui-monospace, monospace;
+  color: var(--coar-text-neutral-tertiary, #8c8c8c);
+}
+.te-ink-lc--low { color: var(--coar-text-semantic-warning-bold, #a15c00); font-weight: 600; }
+.te-ink-warning {
+  margin: 4px 0 0 35px;
+  font-size: var(--coar-caption-font-size, 11px); line-height: 1.4;
+  color: var(--coar-text-semantic-warning-bold, #a15c00);
 }
 
 /* ── Palette button ──────────────────────────────────── */

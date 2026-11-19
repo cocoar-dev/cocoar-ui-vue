@@ -102,7 +102,7 @@ function handleFabClick() {
   position: fixed; bottom: 24px; right: 24px;
   z-index: calc(var(--coar-z-overlay, 1000) + 2);
   width: 44px; height: 44px; border-radius: 12px; border: none;
-  background: var(--coar-background-accent-primary, #1183CD); color: #fff;
+  background: var(--coar-background-accent-primary, #1183CD); color: var(--coar-text-on-accent, var(--coar-text-on-bold, #fff));
   cursor: pointer; display: flex; align-items: center; justify-content: center;
   box-shadow: 0 4px 16px rgba(17,131,205,.40), 0 1px 3px rgba(0,0,0,.12);
   transition: box-shadow 0.2s, background 0.15s;

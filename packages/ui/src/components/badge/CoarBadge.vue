@@ -142,7 +142,7 @@ const badgeClasses = computed(() => [
 /* Variants */
 .coar-badge--primary {
   background: var(--coar-background-accent-primary);
-  color: var(--coar-text-on-bold);
+  color: var(--coar-text-on-accent, var(--coar-text-on-bold));
 }
 .coar-badge--secondary {
   background: var(--coar-background-neutral-tertiary);
@@ -150,19 +150,19 @@ const badgeClasses = computed(() => [
 }
 .coar-badge--success {
   background: var(--coar-background-semantic-success-bold);
-  color: var(--coar-text-on-bold);
+  color: var(--coar-text-on-success, var(--coar-text-on-bold));
 }
 .coar-badge--warning {
   background: var(--coar-background-semantic-warning-bold);
-  color: var(--coar-text-on-bold);
+  color: var(--coar-text-on-warning, var(--coar-text-on-bold));
 }
 .coar-badge--error {
   background: var(--coar-background-semantic-error-bold);
-  color: var(--coar-text-on-bold);
+  color: var(--coar-text-on-error, var(--coar-text-on-bold));
 }
 .coar-badge--info {
   background: var(--coar-background-semantic-info-bold);
-  color: var(--coar-text-on-bold);
+  color: var(--coar-text-on-info, var(--coar-text-on-bold));
 }
 
 /* Dot mode */

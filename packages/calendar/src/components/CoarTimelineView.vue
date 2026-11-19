@@ -538,7 +538,7 @@ defineExpose({
 .coar-timeline-view__corner-title {
   font-weight: var(--coar-calendar-caption-font-weight, 600);
   color: var(--coar-text-neutral-secondary);
-  font-size: var(--coar-calendar-caption-font-size, 11px);
+  font-size: var(--coar-calendar-small-caption-font-size, var(--coar-calendar-caption-font-size, 11px));
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -567,13 +567,13 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--coar-calendar-caption-font-size, 11px);
+  font-size: var(--coar-calendar-small-caption-font-size, var(--coar-calendar-caption-font-size, 11px));
   color: var(--coar-text-neutral-secondary);
 }
 
 .coar-timeline-view__date-cell--today {
   background: var(--coar-calendar-timeline-today-bg, var(--coar-background-accent-soft, #eff6ff));
-  color: var(--coar-calendar-today-color, var(--coar-text-accent, #2563eb));
+  color: var(--coar-calendar-today-label-color, var(--coar-calendar-today-color, var(--coar-text-accent, #2563eb)));
   font-weight: var(--coar-calendar-label-font-weight, 600);
 }
 
@@ -620,7 +620,7 @@ defineExpose({
 }
 
 .coar-timeline-view__label-count {
-  font-size: var(--coar-calendar-caption-font-size, 11px);
+  font-size: var(--coar-calendar-small-caption-font-size, var(--coar-calendar-caption-font-size, 11px));
   color: var(--coar-text-neutral-secondary);
   font-variant-numeric: tabular-nums;
   flex: 0 0 auto;
@@ -663,7 +663,7 @@ defineExpose({
   position: absolute;
   border: none;
   border-radius: var(--coar-calendar-event-radius, var(--coar-radius-xs, 4px));
-  color: white;
+  color: var(--coar-calendar-on-accent, var(--coar-text-on-accent, var(--coar-text-on-bold, white)));
   font-size: 12px;
   font-weight: 500;
   padding: 0 8px;

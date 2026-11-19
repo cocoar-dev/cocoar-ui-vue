@@ -90,6 +90,6 @@ v-if="props.node.props.direction === 'row'"
 .pb-prop-seg__btn--active {
   background: var(--coar-surface-accent-secondary, #e6eefa);
   color: var(--coar-text-accent-primary, #1666cc);
-  font-weight: var(--coar-page-builder-label-font-weight, 600);
+  font-weight: var(--coar-page-builder-strong-label-font-weight, var(--coar-page-builder-label-font-weight, 600));
 }
 </style>

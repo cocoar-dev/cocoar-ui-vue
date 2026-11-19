@@ -22,16 +22,16 @@
   --coar-color-gray-900: #fafafa;
 
   /* Info (slate) — inherits --coar-info from :root */
-  --coar-color-slate-50:  oklch(from var(--coar-info) 0.18 0.012 h);
-  --coar-color-slate-100: oklch(from var(--coar-info) 0.23 0.018 h);
-  --coar-color-slate-200: oklch(from var(--coar-info) 0.30 0.022 h);
-  --coar-color-slate-300: oklch(from var(--coar-info) 0.40 0.025 h);
-  --coar-color-slate-400: oklch(from var(--coar-info) 0.50 0.03  h);
-  --coar-color-slate-500: var(--coar-info);
-  --coar-color-slate-600: oklch(from var(--coar-info) 0.70 0.025 h);
-  --coar-color-slate-700: oklch(from var(--coar-info) 0.78 0.018 h);
-  --coar-color-slate-800: oklch(from var(--coar-info) 0.86 0.012 h);
-  --coar-color-slate-900: oklch(from var(--coar-info) 0.93 0.006 h);
+  --coar-color-slate-50:  var(--coar-d-color-slate-50, oklch(from var(--coar-info) 0.18 0.012 h));
+  --coar-color-slate-100: var(--coar-d-color-slate-100, oklch(from var(--coar-info) 0.23 0.018 h));
+  --coar-color-slate-200: var(--coar-d-color-slate-200, oklch(from var(--coar-info) 0.30 0.022 h));
+  --coar-color-slate-300: var(--coar-d-color-slate-300, oklch(from var(--coar-info) 0.40 0.025 h));
+  --coar-color-slate-400: var(--coar-d-color-slate-400, oklch(from var(--coar-info) 0.50 0.03  h));
+  --coar-color-slate-500: var(--coar-d-color-slate-500, var(--coar-info));
+  --coar-color-slate-600: var(--coar-d-color-slate-600, oklch(from var(--coar-info) 0.70 0.025 h));
+  --coar-color-slate-700: var(--coar-d-color-slate-700, oklch(from var(--coar-info) 0.78 0.018 h));
+  --coar-color-slate-800: var(--coar-d-color-slate-800, oklch(from var(--coar-info) 0.86 0.012 h));
+  --coar-color-slate-900: var(--coar-d-color-slate-900, oklch(from var(--coar-info) 0.93 0.006 h));
 
   /* Accent Colors - auto-generated from --coar-accent via oklch
      Designed for dark backgrounds: vibrant mid-range, rich dark tints.
@@ -48,38 +48,38 @@
   --coar-color-accent-900: var(--coar-d-color-accent-900, oklch(from var(--coar-accent) 0.93 0.035 h));
 
   /* Success (green) — inherits --coar-success from :root */
-  --coar-color-green-50:  oklch(from var(--coar-success) 0.20 0.035 h);
-  --coar-color-green-100: oklch(from var(--coar-success) 0.25 0.055 h);
-  --coar-color-green-200: oklch(from var(--coar-success) 0.32 0.08  h);
-  --coar-color-green-300: oklch(from var(--coar-success) 0.42 0.11  h);
-  --coar-color-green-400: oklch(from var(--coar-success) 0.52 0.13  h);
-  --coar-color-green-500: var(--coar-success);
-  --coar-color-green-600: oklch(from var(--coar-success) 0.68 0.12  h);
-  --coar-color-green-700: oklch(from var(--coar-success) 0.76 0.09  h);
-  --coar-color-green-800: oklch(from var(--coar-success) 0.85 0.06  h);
-  --coar-color-green-900: oklch(from var(--coar-success) 0.93 0.03  h);
+  --coar-color-green-50:  var(--coar-d-color-green-50, oklch(from var(--coar-success) 0.20 0.035 h));
+  --coar-color-green-100: var(--coar-d-color-green-100, oklch(from var(--coar-success) 0.25 0.055 h));
+  --coar-color-green-200: var(--coar-d-color-green-200, oklch(from var(--coar-success) 0.32 0.08  h));
+  --coar-color-green-300: var(--coar-d-color-green-300, oklch(from var(--coar-success) 0.42 0.11  h));
+  --coar-color-green-400: var(--coar-d-color-green-400, oklch(from var(--coar-success) 0.52 0.13  h));
+  --coar-color-green-500: var(--coar-d-color-green-500, var(--coar-success));
+  --coar-color-green-600: var(--coar-d-color-green-600, oklch(from var(--coar-success) 0.68 0.12  h));
+  --coar-color-green-700: var(--coar-d-color-green-700, oklch(from var(--coar-success) 0.76 0.09  h));
+  --coar-color-green-800: var(--coar-d-color-green-800, oklch(from var(--coar-success) 0.85 0.06  h));
+  --coar-color-green-900: var(--coar-d-color-green-900, oklch(from var(--coar-success) 0.93 0.03  h));
 
   /* Error (red) — inherits --coar-error from :root */
-  --coar-color-red-50:  oklch(from var(--coar-error) 0.20 0.04  h);
-  --coar-color-red-100: oklch(from var(--coar-error) 0.25 0.06  h);
-  --coar-color-red-200: oklch(from var(--coar-error) 0.32 0.09  h);
-  --coar-color-red-300: oklch(from var(--coar-error) 0.42 0.12  h);
-  --coar-color-red-400: oklch(from var(--coar-error) 0.52 0.145 h);
-  --coar-color-red-500: var(--coar-error);
-  --coar-color-red-600: oklch(from var(--coar-error) 0.68 0.12  h);
-  --coar-color-red-700: oklch(from var(--coar-error) 0.76 0.09  h);
-  --coar-color-red-800: oklch(from var(--coar-error) 0.85 0.06  h);
-  --coar-color-red-900: oklch(from var(--coar-error) 0.93 0.03  h);
+  --coar-color-red-50:  var(--coar-d-color-red-50, oklch(from var(--coar-error) 0.20 0.04  h));
+  --coar-color-red-100: var(--coar-d-color-red-100, oklch(from var(--coar-error) 0.25 0.06  h));
+  --coar-color-red-200: var(--coar-d-color-red-200, oklch(from var(--coar-error) 0.32 0.09  h));
+  --coar-color-red-300: var(--coar-d-color-red-300, oklch(from var(--coar-error) 0.42 0.12  h));
+  --coar-color-red-400: var(--coar-d-color-red-400, oklch(from var(--coar-error) 0.52 0.145 h));
+  --coar-color-red-500: var(--coar-d-color-red-500, var(--coar-error));
+  --coar-color-red-600: var(--coar-d-color-red-600, oklch(from var(--coar-error) 0.68 0.12  h));
+  --coar-color-red-700: var(--coar-d-color-red-700, oklch(from var(--coar-error) 0.76 0.09  h));
+  --coar-color-red-800: var(--coar-d-color-red-800, oklch(from var(--coar-error) 0.85 0.06  h));
+  --coar-color-red-900: var(--coar-d-color-red-900, oklch(from var(--coar-error) 0.93 0.03  h));
 
   /* Warning (amber) — inherits --coar-warning from :root */
-  --coar-color-amber-50:  oklch(from var(--coar-warning) 0.22 0.04  h);
-  --coar-color-amber-100: oklch(from var(--coar-warning) 0.27 0.06  h);
-  --coar-color-amber-200: oklch(from var(--coar-warning) 0.34 0.09  h);
-  --coar-color-amber-300: oklch(from var(--coar-warning) 0.44 0.12  h);
-  --coar-color-amber-400: oklch(from var(--coar-warning) 0.54 0.14  h);
-  --coar-color-amber-500: var(--coar-warning);
-  --coar-color-amber-600: oklch(from var(--coar-warning) 0.70 0.12  h);
-  --coar-color-amber-700: oklch(from var(--coar-warning) 0.78 0.09  h);
-  --coar-color-amber-800: oklch(from var(--coar-warning) 0.86 0.06  h);
-  --coar-color-amber-900: oklch(from var(--coar-warning) 0.93 0.03  h);
+  --coar-color-amber-50:  var(--coar-d-color-amber-50, oklch(from var(--coar-warning) 0.22 0.04  h));
+  --coar-color-amber-100: var(--coar-d-color-amber-100, oklch(from var(--coar-warning) 0.27 0.06  h));
+  --coar-color-amber-200: var(--coar-d-color-amber-200, oklch(from var(--coar-warning) 0.34 0.09  h));
+  --coar-color-amber-300: var(--coar-d-color-amber-300, oklch(from var(--coar-warning) 0.44 0.12  h));
+  --coar-color-amber-400: var(--coar-d-color-amber-400, oklch(from var(--coar-warning) 0.54 0.14  h));
+  --coar-color-amber-500: var(--coar-d-color-amber-500, var(--coar-warning));
+  --coar-color-amber-600: var(--coar-d-color-amber-600, oklch(from var(--coar-warning) 0.70 0.12  h));
+  --coar-color-amber-700: var(--coar-d-color-amber-700, oklch(from var(--coar-warning) 0.78 0.09  h));
+  --coar-color-amber-800: var(--coar-d-color-amber-800, oklch(from var(--coar-warning) 0.86 0.06  h));
+  --coar-color-amber-900: var(--coar-d-color-amber-900, oklch(from var(--coar-warning) 0.93 0.03  h));
 }

@@ -405,7 +405,7 @@ onBeforeUnmount(() => {
   position: absolute;
   width: var(--coar-checkbox-icon-size, 14px);
   height: var(--coar-checkbox-icon-size, 14px);
-  color: var(--coar-text-on-bold);
+  color: var(--coar-text-on-accent, var(--coar-text-on-bold));
   opacity: 0;
   transition: opacity var(--coar-duration-fast) var(--coar-ease-out);
 }
@@ -413,6 +413,10 @@ onBeforeUnmount(() => {
 .coar-checkbox-box.coar-checkbox-checked:not(.coar-checkbox-indeterminate)
   .coar-checkbox-icon-check {
   opacity: 1;
+}
+
+.coar-checkbox--error .coar-checkbox-icon {
+  color: var(--coar-text-on-error, var(--coar-text-on-bold));
 }
 
 .coar-checkbox-box.coar-checkbox-indeterminate .coar-checkbox-icon-indeterminate {

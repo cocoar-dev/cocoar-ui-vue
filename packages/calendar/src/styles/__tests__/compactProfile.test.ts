@@ -80,6 +80,18 @@ const NOTHING = 'revert-layer';
 
 /** The historical value(s) each new role falls back to, whitespace-normalised. */
 const FALLBACKS: Record<string, string[]> = {
+  '--coar-calendar-continuous-weekday-positional-bg': ['var(--coar-i-continuous-weekday-bg, var(--coar-calendar-bg-weekend, #f6f7f9))'],
+  '--coar-calendar-faint-text-color': ['var(--coar-text-subtle, #9ca3af)'],
+  '--coar-calendar-today-danger-color': ['var(--coar-calendar-today-color, var(--coar-text-danger, #d70015))'],
+  '--coar-calendar-today-label-color': ['var(--coar-calendar-today-color, var(--coar-text-accent, #2563eb))'],
+  '--coar-calendar-small-caption-font-size': ['var(--coar-calendar-caption-font-size, 11px)'],
+  '--coar-calendar-badge-caption-font-size': ['var(--coar-calendar-caption-font-size, var(--coar-component-xs-font-size))'],
+  '--coar-calendar-strong-caption-font-weight': ['var(--coar-calendar-caption-font-weight, 650)'],
+  '--coar-calendar-large-label-font-size': ['var(--coar-calendar-label-font-size, var(--coar-component-m-font-size))'],
+  '--coar-calendar-small-control-radius': ['var(--coar-calendar-control-radius, var(--coar-radius-xs, 2px))'],
+  '--coar-calendar-button-control-radius': ['var(--coar-calendar-control-radius, var(--coar-button-radius, var(--coar-radius-xs, 2px)))'],
+  '--coar-calendar-agenda-header-border': ['var(--coar-calendar-border, #e3e5e9)'],
+  '--coar-calendar-year-muted-color': ['var(--coar-text-subtle, #6b7280)'],
   '--coar-calendar-avatar-auto-bg': ['${person.color}'],
   '--coar-calendar-avatar-ink': ['white'],
   '--coar-calendar-all-day-action-size': ['auto'],
@@ -149,7 +161,11 @@ const FALLBACKS: Record<string, string[]> = {
   '--coar-calendar-label-font-weight': ['600'],
   '--coar-calendar-link-color': ['var(--coar-color-accent, var(--coar-color-accent-500, #2563eb))'],
   '--coar-calendar-now-color': ['var(--coar-color-danger, #dc2626)'],
-  '--coar-calendar-on-accent': ['#fff', 'var(--coar-text-on-accent, white)', 'white'],
+  '--coar-calendar-on-accent': [
+    'var(--coar-text-on-accent, #fff)',
+    'var(--coar-text-on-accent, white)',
+    'var(--coar-text-on-accent, var(--coar-text-on-bold, white))',
+  ],
   '--coar-calendar-overlay-shadow': [
     '0 12px 32px rgba(0, 0, 0, 0.16), 0 2px 6px rgba(0, 0, 0, 0.08)',
   ],
@@ -315,6 +331,68 @@ describe('compact presentation — values, not a class', () => {
     }
   });
 
+  it('optional calendar geometry inputs retain the historical default values', () => {
+    const enterpriseModule = fs.readFileSync(
+      `${stylesDir}/../../../ui/src/theme/enterprise-packages/calendar.ts`,
+      'utf8',
+    );
+    const inputs = [...enterpriseModule.matchAll(/'(--coar-theme-calendar-[a-z-]+)':\s*'([^']*)'/g)]
+      .filter(([, input]) => /(?:font-(?:size|weight)|radius|padding|gap|height(?:-wide)?|size)$/.test(input));
+    expect(inputs.length).toBe(27);
+    const aliases: Record<string, string> = {
+      'small-caption-font-size': 'caption-font-size',
+      'badge-caption-font-size': 'caption-font-size',
+      'strong-caption-font-weight': 'caption-font-weight',
+      'large-label-font-size': 'label-font-size',
+      'small-control-radius': 'control-radius',
+      'button-control-radius': 'control-radius',
+    };
+    for (const [, input, value] of inputs) {
+      const suffix = input.slice('--coar-theme-calendar-'.length);
+      expect(FALLBACKS[`--coar-calendar-${aliases[suffix] ?? suffix}`], input).toContain(value);
+    }
+  });
+
+  it('every Enterprise input uses the same gated package derivation', () => {
+    const enterpriseModule = fs.readFileSync(
+      `${stylesDir}/../../../ui/src/theme/enterprise-packages/calendar.ts`,
+      'utf8',
+    );
+    const inputs = [...enterpriseModule.matchAll(/'(--coar-theme-calendar-[a-z-]+)':\s*'([^']*)'/g)];
+    expect(inputs.length).toBe(70);
+    const declarations = new Map(declarationsOf(compactCss));
+    for (const [, input] of inputs) {
+      const suffix = input.slice('--coar-theme-calendar-'.length);
+      expect(declarations.get(`--coar-d-calendar-${suffix}`), input).toMatch(
+        new RegExp(`^var\\(--coar-role-derivation\\) var\\(${input}(?:,|\\))`),
+      );
+    }
+  });
+
+  it('paired calendar inputs retain the original dark token defaults', () => {
+    const enterpriseModule = fs.readFileSync(
+      `${stylesDir}/../../../ui/src/theme/enterprise-packages/calendar.ts`,
+      'utf8',
+    );
+    const pairs = [...enterpriseModule.matchAll(/'--coar-theme-calendar-([a-z-]+)':\s*'(light-dark\([^']*)'/g)];
+    expect(pairs.length).toBe(19);
+    const darkDefaults = new Map(
+      [...darkCss.matchAll(/var\(--coar-d-calendar-([a-z-]+),\s*([^)]+)\)/g)]
+        .map(([, suffix, value]) => [suffix, value.trim()]),
+    );
+    const aliases: Record<string, string> = {
+      'year-muted-color': 'text-subtle',
+      'agenda-header-border': 'border',
+      'faint-text-color': 'text-subtle',
+      'continuous-weekday-positional-bg': 'bg-weekend',
+    };
+    for (const [, suffix, value] of pairs) {
+      const original = aliases[suffix] ?? suffix;
+      expect(darkDefaults.has(original), suffix).toBe(true);
+      expect(value.endsWith(`, ${darkDefaults.get(original)})`), suffix).toBe(true);
+    }
+  });
+
   it('is imported by the package entry with the dark tokens', () => {
     expect(indexTs).toContain("import './styles/tokens-dark.css'");
     expect(indexTs).toContain("import './styles/compact.css'");
@@ -332,10 +410,10 @@ describe('compact presentation — values, not a class', () => {
     }
     // The package-only text names are derived too.
     expect(stripComments(compactCss)).toMatch(
-      /--coar-d-calendar-text-base:\s*var\(--coar-role-derivation\) var\(--coar-text-neutral-primary/,
+      /--coar-d-calendar-text-base:\s*var\(--coar-role-derivation\) var\(--coar-theme-calendar-text-base, var\(--coar-text-neutral-primary, #444\)\)/,
     );
     expect(stripComments(compactCss)).toMatch(
-      /--coar-d-calendar-text-subtle:\s*var\(--coar-role-derivation\) var\(--coar-text-neutral-tertiary/,
+      /--coar-d-calendar-text-subtle:\s*var\(--coar-role-derivation\) var\(--coar-theme-calendar-text-subtle, var\(--coar-text-neutral-tertiary, #6b6b6b\)\)/,
     );
   });
 

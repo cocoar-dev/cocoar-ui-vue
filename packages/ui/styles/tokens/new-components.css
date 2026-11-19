@@ -90,7 +90,7 @@
   --coar-pagination-gap: var(--coar-spacing-xs);
   --coar-pagination-font-size: var(--coar-d-pagination-font-size, var(--coar-component-s-font-size));
   --coar-pagination-active-background: var(--coar-d-pagination-active-background, var(--coar-background-accent-primary));
-  --coar-pagination-active-color: var(--coar-d-pagination-active-color, var(--coar-text-on-bold));
+  --coar-pagination-active-color: var(--coar-d-pagination-active-color, var(--coar-text-on-accent, var(--coar-text-on-bold)));
   --coar-pagination-hover-background: var(--coar-d-pagination-hover-background, var(--coar-background-neutral-tertiary));
 
   /* ==========================================================================

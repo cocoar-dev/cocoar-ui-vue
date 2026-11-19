@@ -10,6 +10,7 @@ import {
   ensureCoarThemes,
   isCompactDocument,
   resolveTheme,
+  scriptEditorColorInput,
 } from './theme';
 
 /**
@@ -30,6 +31,13 @@ afterEach(() => {
 });
 
 describe('Monaco themes of a role theme document', () => {
+  it('maps Monaco keys to stable public package inputs', () => {
+    expect(scriptEditorColorInput('editorLineNumber.activeForeground')).toBe(
+      '--coar-theme-script-editor-editor-line-number-active-foreground',
+    );
+    expect(scriptEditorColorInput('focusBorder')).toBe('--coar-theme-script-editor-focus-border');
+  });
+
   it('keeps the legacy theme names in a default document', () => {
     expect(isCompactDocument()).toBe(false);
     expect(resolveTheme('light')).toBe(COAR_THEME_LIGHT);
@@ -132,7 +140,7 @@ describe('script-editor role stylesheet', () => {
 
   it('derives the frame radius from the control radius of the theme', () => {
     expect(declarations.get('--coar-d-script-editor-radius')).toBe(
-      'var(--coar-role-derivation) var(--coar-control-radius, 6px)',
+      'var(--coar-role-derivation) var(--coar-theme-script-editor-radius, var(--coar-control-radius, 6px))',
     );
     expect(declarations.has('--coar-script-editor-radius')).toBe(true);
   });

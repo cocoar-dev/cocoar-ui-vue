@@ -183,11 +183,11 @@ const primaryPlaceholder = computed(() =>
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: var(--coar-page-builder-inline-button-size, 20px);
-  height: var(--coar-page-builder-inline-button-size, 20px);
+  width: var(--coar-page-builder-small-inline-button-size, var(--coar-page-builder-inline-button-size, 20px));
+  height: var(--coar-page-builder-small-inline-button-size, var(--coar-page-builder-inline-button-size, 20px));
   padding: 0;
   border: 0;
-  border-radius: var(--coar-page-builder-control-radius, 4px);
+  border-radius: var(--coar-page-builder-small-control-radius, var(--coar-page-builder-control-radius, 4px));
   background: transparent;
   color: var(--coar-icon-neutral-secondary, #6c7078);
   cursor: pointer;

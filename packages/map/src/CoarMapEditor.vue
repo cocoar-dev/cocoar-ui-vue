@@ -163,7 +163,7 @@ defineExpose({
 .coar-map-marker--highlight .coar-map-edit-vertex,
 .coar-map-marker--selected .coar-map-edit-vertex {
   border-color: var(--coar-map-selection-color, #3b82f6);
-  box-shadow: 0 0 0 3px var(--coar-map-selection-ring, rgba(59, 130, 246, 0.4));
+  box-shadow: 0 0 0 3px var(--coar-map-editor-selection-ring, var(--coar-map-selection-ring, rgba(59, 130, 246, 0.4)));
 }
 
 /* Floating property popup — a Vue overlay (not a Leaflet popup) so the

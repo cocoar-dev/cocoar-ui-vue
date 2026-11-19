@@ -14,6 +14,9 @@
  *               (`:root`, `.light-mode`, `.dark-mode`, `.coar-theme-none`).
  * The rules below have no specificity (`:where`), so those declarations and every
  * consumer rule on the same element win.
+ * Text on saturated fills is the explicit exception: its five new roles choose
+ * black or white from the fill even without a theme. `--coar-text-on-bold` stays
+ * unchanged for applications that still use the legacy white role directly.
  *
  * Curves are inputs, not constants: `--coar-<token>-lc` holds the oklch lightness
  * and chroma of a derived colour (`-lc-dark` for the dark scheme). The accent they
@@ -47,7 +50,26 @@
   ) {
   /* Readable marker of an active derivation (an empty token cannot be read back). */
   --coar-d-role-derivation: var(--coar-role-derivation) on;
+  /* Text on saturated fills is automatic even without a role theme.
+     APCA uses c^2.4, not standard linear sRGB luminance. Lifting c by 2^15
+     before sRGB decoding bypasses its linear toe (except below 0.000003);
+     dividing by (2^15)^2.4 = 2^36 restores the APCA channel, with toe error
+     below 1e-13. This also works in Firefox without CSS pow().
+     Keep the helpers on each boundary so a local threshold is evaluated there. */
+  --coar-d-text-on-r: calc(1.055 * 32768 * clamp(0, r, 1) - 0.055);
+  --coar-d-text-on-g: calc(1.055 * 32768 * clamp(0, g, 1) - 0.055);
+  --coar-d-text-on-b: calc(1.055 * 32768 * clamp(0, b, 1) - 0.055);
+  --coar-d-text-on-channel: calc(1 - round(up, (0.2126729 * max(0, r) + 0.7151522 * max(0, g) + 0.072175 * max(0, b)) / 68719476736 - var(--coar-text-on-threshold, 0.3419552539852081), 1));
+  --coar-d-text-on-accent: color(from color(from var(--coar-background-accent-primary) srgb var(--coar-d-text-on-r) var(--coar-d-text-on-g) var(--coar-d-text-on-b)) srgb-linear var(--coar-d-text-on-channel) var(--coar-d-text-on-channel) var(--coar-d-text-on-channel) / 1);
+  --coar-d-text-on-success: color(from color(from var(--coar-background-semantic-success-bold) srgb var(--coar-d-text-on-r) var(--coar-d-text-on-g) var(--coar-d-text-on-b)) srgb-linear var(--coar-d-text-on-channel) var(--coar-d-text-on-channel) var(--coar-d-text-on-channel) / 1);
+  --coar-d-text-on-error: color(from color(from var(--coar-background-semantic-error-bold) srgb var(--coar-d-text-on-r) var(--coar-d-text-on-g) var(--coar-d-text-on-b)) srgb-linear var(--coar-d-text-on-channel) var(--coar-d-text-on-channel) var(--coar-d-text-on-channel) / 1);
+  --coar-d-text-on-warning: color(from color(from var(--coar-background-semantic-warning-bold) srgb var(--coar-d-text-on-r) var(--coar-d-text-on-g) var(--coar-d-text-on-b)) srgb-linear var(--coar-d-text-on-channel) var(--coar-d-text-on-channel) var(--coar-d-text-on-channel) / 1);
+  --coar-d-text-on-info: color(from color(from var(--coar-background-semantic-info-bold) srgb var(--coar-d-text-on-r) var(--coar-d-text-on-g) var(--coar-d-text-on-b)) srgb-linear var(--coar-d-text-on-channel) var(--coar-d-text-on-channel) var(--coar-d-text-on-channel) / 1);
   --coar-d-accent: var(--coar-role-derivation) var(--coar-appearance-accent, var(--coar-theme-accent));
+  --coar-d-success: var(--coar-role-derivation) var(--coar-appearance-success, var(--coar-theme-success, var(--coar-success)));
+  --coar-d-error: var(--coar-role-derivation) var(--coar-appearance-error, var(--coar-theme-error, var(--coar-error)));
+  --coar-d-warning: var(--coar-role-derivation) var(--coar-appearance-warning, var(--coar-theme-warning, var(--coar-warning)));
+  --coar-d-info: var(--coar-role-derivation) var(--coar-appearance-info, var(--coar-theme-info, var(--coar-info)));
   --coar-d-field-xs-default-font-size: var(--coar-role-derivation) calc(var(--coar-field-font-size) - 2px);
   --coar-d-field-s-default-font-size: var(--coar-role-derivation) calc(var(--coar-field-font-size) - 1px);
   --coar-d-field-l-default-font-size: var(--coar-role-derivation) calc(var(--coar-field-font-size) + 2px);
@@ -86,12 +108,52 @@
   --coar-d-color-accent-100: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-accent) var(--coar-color-accent-100-lc) h), oklch(from var(--coar-d-accent) var(--coar-color-accent-100-lc-dark) h));
   --coar-d-color-accent-200: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-accent) var(--coar-color-accent-200-lc) h), oklch(from var(--coar-d-accent) var(--coar-color-accent-200-lc-dark) h));
   --coar-d-color-accent-300: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-accent) var(--coar-color-accent-300-lc) h), oklch(from var(--coar-d-accent) var(--coar-color-accent-300-lc-dark) h));
-  --coar-d-color-accent-400: var(--coar-role-derivation) oklch(from var(--coar-d-accent) var(--coar-color-accent-400-lc) h);
-  --coar-d-color-accent-500: var(--coar-role-derivation) var(--coar-d-accent);
+  --coar-d-color-accent-400: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-accent) var(--coar-color-accent-400-lc) h), oklch(from var(--coar-d-accent) var(--coar-color-accent-400-lc-dark, var(--coar-color-accent-400-lc)) h));
+  --coar-d-color-accent-500: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-accent) var(--coar-color-accent-500-lc, l c) h), oklch(from var(--coar-d-accent) var(--coar-color-accent-500-lc-dark, l c) h));
   --coar-d-color-accent-600: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-accent) var(--coar-color-accent-600-lc) h), oklch(from var(--coar-d-accent) var(--coar-color-accent-600-lc-dark) h));
   --coar-d-color-accent-700: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-accent) var(--coar-color-accent-700-lc) h), oklch(from var(--coar-d-accent) var(--coar-color-accent-700-lc-dark) h));
   --coar-d-color-accent-800: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-accent) var(--coar-color-accent-800-lc) h), oklch(from var(--coar-d-accent) var(--coar-color-accent-800-lc-dark) h));
   --coar-d-color-accent-900: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-accent) var(--coar-color-accent-900-lc) h), oklch(from var(--coar-d-accent) var(--coar-color-accent-900-lc-dark) h));
+  --coar-d-color-green-50: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-success) var(--coar-color-green-50-lc, 0.97 0.012) h), oklch(from var(--coar-d-success) var(--coar-color-green-50-lc-dark, 0.20 0.035) h));
+  --coar-d-color-green-100: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-success) var(--coar-color-green-100-lc, 0.92 0.035) h), oklch(from var(--coar-d-success) var(--coar-color-green-100-lc-dark, 0.25 0.055) h));
+  --coar-d-color-green-200: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-success) var(--coar-color-green-200-lc, 0.84 0.065) h), oklch(from var(--coar-d-success) var(--coar-color-green-200-lc-dark, 0.32 0.08) h));
+  --coar-d-color-green-300: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-success) var(--coar-color-green-300-lc, 0.74 0.10) h), oklch(from var(--coar-d-success) var(--coar-color-green-300-lc-dark, 0.42 0.11) h));
+  --coar-d-color-green-400: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-success) var(--coar-color-green-400-lc, 0.66 0.13) h), oklch(from var(--coar-d-success) var(--coar-color-green-400-lc-dark, 0.52 0.13) h));
+  --coar-d-color-green-500: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-success) var(--coar-color-green-500-lc, l c) h), oklch(from var(--coar-d-success) var(--coar-color-green-500-lc-dark, l c) h));
+  --coar-d-color-green-600: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-success) var(--coar-color-green-600-lc, 0.47 0.12) h), oklch(from var(--coar-d-success) var(--coar-color-green-600-lc-dark, 0.68 0.12) h));
+  --coar-d-color-green-700: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-success) var(--coar-color-green-700-lc, 0.40 0.10) h), oklch(from var(--coar-d-success) var(--coar-color-green-700-lc-dark, 0.76 0.09) h));
+  --coar-d-color-green-800: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-success) var(--coar-color-green-800-lc, 0.33 0.08) h), oklch(from var(--coar-d-success) var(--coar-color-green-800-lc-dark, 0.85 0.06) h));
+  --coar-d-color-green-900: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-success) var(--coar-color-green-900-lc, 0.26 0.06) h), oklch(from var(--coar-d-success) var(--coar-color-green-900-lc-dark, 0.93 0.03) h));
+  --coar-d-color-red-50: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-error) var(--coar-color-red-50-lc, 0.97 0.012) h), oklch(from var(--coar-d-error) var(--coar-color-red-50-lc-dark, 0.20 0.04) h));
+  --coar-d-color-red-100: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-error) var(--coar-color-red-100-lc, 0.92 0.035) h), oklch(from var(--coar-d-error) var(--coar-color-red-100-lc-dark, 0.25 0.06) h));
+  --coar-d-color-red-200: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-error) var(--coar-color-red-200-lc, 0.84 0.07) h), oklch(from var(--coar-d-error) var(--coar-color-red-200-lc-dark, 0.32 0.09) h));
+  --coar-d-color-red-300: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-error) var(--coar-color-red-300-lc, 0.74 0.11) h), oklch(from var(--coar-d-error) var(--coar-color-red-300-lc-dark, 0.42 0.12) h));
+  --coar-d-color-red-400: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-error) var(--coar-color-red-400-lc, 0.66 0.145) h), oklch(from var(--coar-d-error) var(--coar-color-red-400-lc-dark, 0.52 0.145) h));
+  --coar-d-color-red-500: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-error) var(--coar-color-red-500-lc, l c) h), oklch(from var(--coar-d-error) var(--coar-color-red-500-lc-dark, l c) h));
+  --coar-d-color-red-600: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-error) var(--coar-color-red-600-lc, 0.47 0.13) h), oklch(from var(--coar-d-error) var(--coar-color-red-600-lc-dark, 0.68 0.12) h));
+  --coar-d-color-red-700: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-error) var(--coar-color-red-700-lc, 0.40 0.11) h), oklch(from var(--coar-d-error) var(--coar-color-red-700-lc-dark, 0.76 0.09) h));
+  --coar-d-color-red-800: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-error) var(--coar-color-red-800-lc, 0.33 0.09) h), oklch(from var(--coar-d-error) var(--coar-color-red-800-lc-dark, 0.85 0.06) h));
+  --coar-d-color-red-900: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-error) var(--coar-color-red-900-lc, 0.26 0.07) h), oklch(from var(--coar-d-error) var(--coar-color-red-900-lc-dark, 0.93 0.03) h));
+  --coar-d-color-amber-50: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-warning) var(--coar-color-amber-50-lc, 0.97 0.015) h), oklch(from var(--coar-d-warning) var(--coar-color-amber-50-lc-dark, 0.22 0.04) h));
+  --coar-d-color-amber-100: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-warning) var(--coar-color-amber-100-lc, 0.92 0.04) h), oklch(from var(--coar-d-warning) var(--coar-color-amber-100-lc-dark, 0.27 0.06) h));
+  --coar-d-color-amber-200: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-warning) var(--coar-color-amber-200-lc, 0.86 0.08) h), oklch(from var(--coar-d-warning) var(--coar-color-amber-200-lc-dark, 0.34 0.09) h));
+  --coar-d-color-amber-300: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-warning) var(--coar-color-amber-300-lc, 0.78 0.12) h), oklch(from var(--coar-d-warning) var(--coar-color-amber-300-lc-dark, 0.44 0.12) h));
+  --coar-d-color-amber-400: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-warning) var(--coar-color-amber-400-lc, 0.72 0.14) h), oklch(from var(--coar-d-warning) var(--coar-color-amber-400-lc-dark, 0.54 0.14) h));
+  --coar-d-color-amber-500: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-warning) var(--coar-color-amber-500-lc, l c) h), oklch(from var(--coar-d-warning) var(--coar-color-amber-500-lc-dark, l c) h));
+  --coar-d-color-amber-600: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-warning) var(--coar-color-amber-600-lc, 0.50 0.12) h), oklch(from var(--coar-d-warning) var(--coar-color-amber-600-lc-dark, 0.70 0.12) h));
+  --coar-d-color-amber-700: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-warning) var(--coar-color-amber-700-lc, 0.43 0.10) h), oklch(from var(--coar-d-warning) var(--coar-color-amber-700-lc-dark, 0.78 0.09) h));
+  --coar-d-color-amber-800: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-warning) var(--coar-color-amber-800-lc, 0.36 0.08) h), oklch(from var(--coar-d-warning) var(--coar-color-amber-800-lc-dark, 0.86 0.06) h));
+  --coar-d-color-amber-900: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-warning) var(--coar-color-amber-900-lc, 0.29 0.06) h), oklch(from var(--coar-d-warning) var(--coar-color-amber-900-lc-dark, 0.93 0.03) h));
+  --coar-d-color-slate-50: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-info) var(--coar-color-slate-50-lc, 0.97 0.006) h), oklch(from var(--coar-d-info) var(--coar-color-slate-50-lc-dark, 0.18 0.012) h));
+  --coar-d-color-slate-100: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-info) var(--coar-color-slate-100-lc, 0.92 0.012) h), oklch(from var(--coar-d-info) var(--coar-color-slate-100-lc-dark, 0.23 0.018) h));
+  --coar-d-color-slate-200: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-info) var(--coar-color-slate-200-lc, 0.84 0.02) h), oklch(from var(--coar-d-info) var(--coar-color-slate-200-lc-dark, 0.30 0.022) h));
+  --coar-d-color-slate-300: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-info) var(--coar-color-slate-300-lc, 0.74 0.03) h), oklch(from var(--coar-d-info) var(--coar-color-slate-300-lc-dark, 0.40 0.025) h));
+  --coar-d-color-slate-400: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-info) var(--coar-color-slate-400-lc, 0.66 0.035) h), oklch(from var(--coar-d-info) var(--coar-color-slate-400-lc-dark, 0.50 0.03) h));
+  --coar-d-color-slate-500: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-info) var(--coar-color-slate-500-lc, l c) h), oklch(from var(--coar-d-info) var(--coar-color-slate-500-lc-dark, l c) h));
+  --coar-d-color-slate-600: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-info) var(--coar-color-slate-600-lc, 0.47 0.03) h), oklch(from var(--coar-d-info) var(--coar-color-slate-600-lc-dark, 0.70 0.025) h));
+  --coar-d-color-slate-700: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-info) var(--coar-color-slate-700-lc, 0.40 0.025) h), oklch(from var(--coar-d-info) var(--coar-color-slate-700-lc-dark, 0.78 0.018) h));
+  --coar-d-color-slate-800: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-info) var(--coar-color-slate-800-lc, 0.35 0.02) h), oklch(from var(--coar-d-info) var(--coar-color-slate-800-lc-dark, 0.86 0.012) h));
+  --coar-d-color-slate-900: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-info) var(--coar-color-slate-900-lc, 0.30 0.02) h), oklch(from var(--coar-d-info) var(--coar-color-slate-900-lc-dark, 0.93 0.006) h));
   --coar-d-border-neutral: var(--coar-role-derivation) var(--coar-border-neutral-tertiary);
   --coar-d-icon-neutral-primary: var(--coar-role-derivation) var(--coar-text-neutral-primary);
   --coar-d-icon-neutral-secondary: var(--coar-role-derivation) var(--coar-text-neutral-secondary);
@@ -99,9 +161,9 @@
   --coar-d-icon-neutral-disabled: var(--coar-role-derivation) var(--coar-text-neutral-disabled);
   --coar-d-surface-input: var(--coar-role-derivation) var(--coar-background-neutral-primary);
   --coar-d-surface-input-disabled: var(--coar-role-derivation) var(--coar-background-neutral-tertiary);
-  --coar-d-background-accent-primary: var(--coar-role-derivation) oklch(from var(--coar-d-accent) var(--coar-background-accent-primary-lc) h);
-  --coar-d-background-accent-hover: var(--coar-role-derivation) oklch(from var(--coar-d-accent) var(--coar-background-accent-hover-lc) h);
-  --coar-d-background-accent-active: var(--coar-role-derivation) oklch(from var(--coar-d-accent) var(--coar-background-accent-active-lc) h);
+  --coar-d-background-accent-primary: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-accent) var(--coar-background-accent-primary-lc) h), oklch(from var(--coar-d-accent) var(--coar-background-accent-primary-lc-dark, var(--coar-background-accent-primary-lc)) h));
+  --coar-d-background-accent-hover: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-accent) var(--coar-background-accent-hover-lc) h), oklch(from var(--coar-d-accent) var(--coar-background-accent-hover-lc-dark, var(--coar-background-accent-hover-lc)) h));
+  --coar-d-background-accent-active: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-accent) var(--coar-background-accent-active-lc) h), oklch(from var(--coar-d-accent) var(--coar-background-accent-active-lc-dark, var(--coar-background-accent-active-lc)) h));
   --coar-d-background-accent-secondary: var(--coar-role-derivation) var(--coar-color-accent-100);
   --coar-d-surface-accent-secondary: var(--coar-role-derivation) var(--coar-background-accent-secondary);
   --coar-d-background-accent-tertiary: var(--coar-role-derivation) var(--coar-color-accent-50);
@@ -111,43 +173,43 @@
   --coar-d-border-accent-primary: var(--coar-role-derivation) var(--coar-color-accent-600);
   --coar-d-border-accent-secondary: var(--coar-role-derivation) var(--coar-color-accent-300);
   --coar-d-icon-accent-primary: var(--coar-role-derivation) var(--coar-text-accent-primary);
-  --coar-d-background-semantic-success-bold: var(--coar-role-derivation) oklch(from var(--coar-success) var(--coar-background-semantic-success-bold-lc) h);
-  --coar-d-background-semantic-success-subtlest: var(--coar-role-derivation) light-dark(oklch(from var(--coar-success) var(--coar-background-semantic-success-subtlest-lc) h), oklch(from var(--coar-success) var(--coar-background-semantic-success-subtlest-lc-dark) h));
-  --coar-d-background-semantic-success-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-success) var(--coar-background-semantic-success-subtle-lc) h), oklch(from var(--coar-success) var(--coar-background-semantic-success-subtle-lc-dark) h));
-  --coar-d-text-semantic-success-bold: var(--coar-role-derivation) light-dark(oklch(from var(--coar-success) var(--coar-text-semantic-success-bold-lc) h), oklch(from var(--coar-success) var(--coar-text-semantic-success-bold-lc-dark) h));
-  --coar-d-text-semantic-success-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-success) var(--coar-text-semantic-success-subtle-lc) h), oklch(from var(--coar-success) var(--coar-text-semantic-success-subtle-lc-dark) h));
+  --coar-d-background-semantic-success-bold: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-success) var(--coar-background-semantic-success-bold-lc) h), oklch(from var(--coar-d-success) var(--coar-background-semantic-success-bold-lc-dark, var(--coar-background-semantic-success-bold-lc)) h));
+  --coar-d-background-semantic-success-subtlest: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-success) var(--coar-background-semantic-success-subtlest-lc) h), oklch(from var(--coar-d-success) var(--coar-background-semantic-success-subtlest-lc-dark) h));
+  --coar-d-background-semantic-success-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-success) var(--coar-background-semantic-success-subtle-lc) h), oklch(from var(--coar-d-success) var(--coar-background-semantic-success-subtle-lc-dark) h));
+  --coar-d-text-semantic-success-bold: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-success) var(--coar-text-semantic-success-bold-lc) h), oklch(from var(--coar-d-success) var(--coar-text-semantic-success-bold-lc-dark) h));
+  --coar-d-text-semantic-success-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-success) var(--coar-text-semantic-success-subtle-lc) h), oklch(from var(--coar-d-success) var(--coar-text-semantic-success-subtle-lc-dark) h));
   --coar-d-border-semantic-success-bold: var(--coar-role-derivation) var(--coar-text-semantic-success-subtle);
-  --coar-d-border-semantic-success-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-success) var(--coar-border-semantic-success-subtle-lc) h), oklch(from var(--coar-success) var(--coar-border-semantic-success-subtle-lc-dark) h));
+  --coar-d-border-semantic-success-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-success) var(--coar-border-semantic-success-subtle-lc) h), oklch(from var(--coar-d-success) var(--coar-border-semantic-success-subtle-lc-dark) h));
   --coar-d-icon-semantic-success-bold: var(--coar-role-derivation) var(--coar-text-semantic-success-bold);
   --coar-d-icon-semantic-success-subtle: var(--coar-role-derivation) var(--coar-text-semantic-success-subtle);
-  --coar-d-background-semantic-error-bold: var(--coar-role-derivation) oklch(from var(--coar-error) var(--coar-background-semantic-error-bold-lc) h);
-  --coar-d-background-semantic-error-hover: var(--coar-role-derivation) oklch(from var(--coar-error) var(--coar-background-semantic-error-hover-lc) h);
-  --coar-d-background-semantic-error-active: var(--coar-role-derivation) oklch(from var(--coar-error) var(--coar-background-semantic-error-active-lc) h);
-  --coar-d-background-semantic-error-subtlest: var(--coar-role-derivation) light-dark(oklch(from var(--coar-error) var(--coar-background-semantic-error-subtlest-lc) h), oklch(from var(--coar-error) var(--coar-background-semantic-error-subtlest-lc-dark) h));
-  --coar-d-background-semantic-error-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-error) var(--coar-background-semantic-error-subtle-lc) h), oklch(from var(--coar-error) var(--coar-background-semantic-error-subtle-lc-dark) h));
-  --coar-d-text-semantic-error-bold: var(--coar-role-derivation) light-dark(oklch(from var(--coar-error) var(--coar-text-semantic-error-bold-lc) h), oklch(from var(--coar-error) var(--coar-text-semantic-error-bold-lc-dark) h));
-  --coar-d-text-semantic-error-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-error) var(--coar-text-semantic-error-subtle-lc) h), oklch(from var(--coar-error) var(--coar-text-semantic-error-subtle-lc-dark) h));
+  --coar-d-background-semantic-error-bold: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-error) var(--coar-background-semantic-error-bold-lc) h), oklch(from var(--coar-d-error) var(--coar-background-semantic-error-bold-lc-dark, var(--coar-background-semantic-error-bold-lc)) h));
+  --coar-d-background-semantic-error-hover: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-error) var(--coar-background-semantic-error-hover-lc) h), oklch(from var(--coar-d-error) var(--coar-background-semantic-error-hover-lc-dark, var(--coar-background-semantic-error-hover-lc)) h));
+  --coar-d-background-semantic-error-active: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-error) var(--coar-background-semantic-error-active-lc) h), oklch(from var(--coar-d-error) var(--coar-background-semantic-error-active-lc-dark, var(--coar-background-semantic-error-active-lc)) h));
+  --coar-d-background-semantic-error-subtlest: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-error) var(--coar-background-semantic-error-subtlest-lc) h), oklch(from var(--coar-d-error) var(--coar-background-semantic-error-subtlest-lc-dark) h));
+  --coar-d-background-semantic-error-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-error) var(--coar-background-semantic-error-subtle-lc) h), oklch(from var(--coar-d-error) var(--coar-background-semantic-error-subtle-lc-dark) h));
+  --coar-d-text-semantic-error-bold: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-error) var(--coar-text-semantic-error-bold-lc) h), oklch(from var(--coar-d-error) var(--coar-text-semantic-error-bold-lc-dark) h));
+  --coar-d-text-semantic-error-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-error) var(--coar-text-semantic-error-subtle-lc) h), oklch(from var(--coar-d-error) var(--coar-text-semantic-error-subtle-lc-dark) h));
   --coar-d-border-semantic-error: var(--coar-role-derivation) var(--coar-text-semantic-error-subtle);
   --coar-d-border-semantic-error-bold: var(--coar-role-derivation) var(--coar-text-semantic-error-subtle);
-  --coar-d-border-semantic-error-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-error) var(--coar-border-semantic-error-subtle-lc) h), oklch(from var(--coar-error) var(--coar-border-semantic-error-subtle-lc-dark) h));
+  --coar-d-border-semantic-error-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-error) var(--coar-border-semantic-error-subtle-lc) h), oklch(from var(--coar-d-error) var(--coar-border-semantic-error-subtle-lc-dark) h));
   --coar-d-icon-semantic-error-bold: var(--coar-role-derivation) var(--coar-text-semantic-error-bold);
   --coar-d-icon-semantic-error-subtle: var(--coar-role-derivation) var(--coar-text-semantic-error-subtle);
-  --coar-d-background-semantic-warning-bold: var(--coar-role-derivation) oklch(from var(--coar-warning) var(--coar-background-semantic-warning-bold-lc) h);
-  --coar-d-background-semantic-warning-subtlest: var(--coar-role-derivation) light-dark(oklch(from var(--coar-warning) var(--coar-background-semantic-warning-subtlest-lc) h), oklch(from var(--coar-warning) var(--coar-background-semantic-warning-subtlest-lc-dark) h));
-  --coar-d-background-semantic-warning-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-warning) var(--coar-background-semantic-warning-subtle-lc) h), oklch(from var(--coar-warning) var(--coar-background-semantic-warning-subtle-lc-dark) h));
-  --coar-d-text-semantic-warning-bold: var(--coar-role-derivation) light-dark(oklch(from var(--coar-warning) var(--coar-text-semantic-warning-bold-lc) h), oklch(from var(--coar-warning) var(--coar-text-semantic-warning-bold-lc-dark) h));
-  --coar-d-text-semantic-warning-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-warning) var(--coar-text-semantic-warning-subtle-lc) h), oklch(from var(--coar-warning) var(--coar-text-semantic-warning-subtle-lc-dark) h));
+  --coar-d-background-semantic-warning-bold: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-warning) var(--coar-background-semantic-warning-bold-lc) h), oklch(from var(--coar-d-warning) var(--coar-background-semantic-warning-bold-lc-dark, var(--coar-background-semantic-warning-bold-lc)) h));
+  --coar-d-background-semantic-warning-subtlest: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-warning) var(--coar-background-semantic-warning-subtlest-lc) h), oklch(from var(--coar-d-warning) var(--coar-background-semantic-warning-subtlest-lc-dark) h));
+  --coar-d-background-semantic-warning-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-warning) var(--coar-background-semantic-warning-subtle-lc) h), oklch(from var(--coar-d-warning) var(--coar-background-semantic-warning-subtle-lc-dark) h));
+  --coar-d-text-semantic-warning-bold: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-warning) var(--coar-text-semantic-warning-bold-lc) h), oklch(from var(--coar-d-warning) var(--coar-text-semantic-warning-bold-lc-dark) h));
+  --coar-d-text-semantic-warning-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-warning) var(--coar-text-semantic-warning-subtle-lc) h), oklch(from var(--coar-d-warning) var(--coar-text-semantic-warning-subtle-lc-dark) h));
   --coar-d-border-semantic-warning-bold: var(--coar-role-derivation) var(--coar-text-semantic-warning-subtle);
-  --coar-d-border-semantic-warning-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-warning) var(--coar-border-semantic-warning-subtle-lc) h), oklch(from var(--coar-warning) var(--coar-border-semantic-warning-subtle-lc-dark) h));
+  --coar-d-border-semantic-warning-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-warning) var(--coar-border-semantic-warning-subtle-lc) h), oklch(from var(--coar-d-warning) var(--coar-border-semantic-warning-subtle-lc-dark) h));
   --coar-d-icon-semantic-warning-bold: var(--coar-role-derivation) var(--coar-text-semantic-warning-bold);
   --coar-d-icon-semantic-warning-subtle: var(--coar-role-derivation) var(--coar-text-semantic-warning-subtle);
-  --coar-d-background-semantic-info-bold: var(--coar-role-derivation) oklch(from var(--coar-info) var(--coar-background-semantic-info-bold-lc) h);
-  --coar-d-background-semantic-info-subtlest: var(--coar-role-derivation) light-dark(oklch(from var(--coar-info) var(--coar-background-semantic-info-subtlest-lc) h), oklch(from var(--coar-info) var(--coar-background-semantic-info-subtlest-lc-dark) h));
-  --coar-d-background-semantic-info-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-info) var(--coar-background-semantic-info-subtle-lc) h), oklch(from var(--coar-info) var(--coar-background-semantic-info-subtle-lc-dark) h));
-  --coar-d-text-semantic-info-bold: var(--coar-role-derivation) light-dark(oklch(from var(--coar-info) var(--coar-text-semantic-info-bold-lc) h), oklch(from var(--coar-info) var(--coar-text-semantic-info-bold-lc-dark) h));
-  --coar-d-text-semantic-info-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-info) var(--coar-text-semantic-info-subtle-lc) h), oklch(from var(--coar-info) var(--coar-text-semantic-info-subtle-lc-dark) h));
+  --coar-d-background-semantic-info-bold: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-info) var(--coar-background-semantic-info-bold-lc) h), oklch(from var(--coar-d-info) var(--coar-background-semantic-info-bold-lc-dark, var(--coar-background-semantic-info-bold-lc)) h));
+  --coar-d-background-semantic-info-subtlest: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-info) var(--coar-background-semantic-info-subtlest-lc) h), oklch(from var(--coar-d-info) var(--coar-background-semantic-info-subtlest-lc-dark) h));
+  --coar-d-background-semantic-info-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-info) var(--coar-background-semantic-info-subtle-lc) h), oklch(from var(--coar-d-info) var(--coar-background-semantic-info-subtle-lc-dark) h));
+  --coar-d-text-semantic-info-bold: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-info) var(--coar-text-semantic-info-bold-lc) h), oklch(from var(--coar-d-info) var(--coar-text-semantic-info-bold-lc-dark) h));
+  --coar-d-text-semantic-info-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-info) var(--coar-text-semantic-info-subtle-lc) h), oklch(from var(--coar-d-info) var(--coar-text-semantic-info-subtle-lc-dark) h));
   --coar-d-border-semantic-info-bold: var(--coar-role-derivation) var(--coar-text-semantic-info-subtle);
-  --coar-d-border-semantic-info-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-info) var(--coar-border-semantic-info-subtle-lc) h), oklch(from var(--coar-info) var(--coar-border-semantic-info-subtle-lc-dark) h));
+  --coar-d-border-semantic-info-subtle: var(--coar-role-derivation) light-dark(oklch(from var(--coar-d-info) var(--coar-border-semantic-info-subtle-lc) h), oklch(from var(--coar-d-info) var(--coar-border-semantic-info-subtle-lc-dark) h));
   --coar-d-icon-semantic-info-bold: var(--coar-role-derivation) var(--coar-text-semantic-info-bold);
   --coar-d-icon-semantic-info-subtle: var(--coar-role-derivation) var(--coar-text-semantic-info-subtle);
   --coar-d-button-danger-bg: var(--coar-role-derivation) var(--coar-background-semantic-error-bold);
@@ -173,7 +235,7 @@
   --coar-d-breadcrumb-link-color: var(--coar-role-derivation) var(--coar-text-accent-primary);
   --coar-d-pagination-font-size: var(--coar-role-derivation) var(--coar-ui-font-size);
   --coar-d-pagination-active-background: var(--coar-role-derivation) var(--coar-background-accent-primary);
-  --coar-d-pagination-active-color: var(--coar-role-derivation) var(--coar-text-on-bold);
+  --coar-d-pagination-active-color: var(--coar-role-derivation) var(--coar-text-on-accent, var(--coar-text-on-bold));
   --coar-d-pagination-hover-background: var(--coar-role-derivation) var(--coar-background-neutral-tertiary);
   --coar-d-note-bg: var(--coar-role-derivation) var(--coar-background-neutral-secondary);
   --coar-d-note-border-color: var(--coar-role-derivation) var(--coar-border-neutral-secondary);
@@ -232,6 +294,11 @@
     .coar-theme-editor,
     .coar-compact
   ) {
+  --coar-text-on-accent: var(--coar-d-text-on-accent, inherit);
+  --coar-text-on-success: var(--coar-d-text-on-success, inherit);
+  --coar-text-on-error: var(--coar-d-text-on-error, inherit);
+  --coar-text-on-warning: var(--coar-d-text-on-warning, inherit);
+  --coar-text-on-info: var(--coar-d-text-on-info, inherit);
   --coar-field-xs-default-font-size: var(--coar-d-field-xs-default-font-size, inherit);
   --coar-field-s-default-font-size: var(--coar-d-field-s-default-font-size, inherit);
   --coar-field-l-default-font-size: var(--coar-d-field-l-default-font-size, inherit);
@@ -276,6 +343,46 @@
   --coar-color-accent-700: var(--coar-d-color-accent-700, inherit);
   --coar-color-accent-800: var(--coar-d-color-accent-800, inherit);
   --coar-color-accent-900: var(--coar-d-color-accent-900, inherit);
+  --coar-color-green-50: var(--coar-d-color-green-50, inherit);
+  --coar-color-green-100: var(--coar-d-color-green-100, inherit);
+  --coar-color-green-200: var(--coar-d-color-green-200, inherit);
+  --coar-color-green-300: var(--coar-d-color-green-300, inherit);
+  --coar-color-green-400: var(--coar-d-color-green-400, inherit);
+  --coar-color-green-500: var(--coar-d-color-green-500, inherit);
+  --coar-color-green-600: var(--coar-d-color-green-600, inherit);
+  --coar-color-green-700: var(--coar-d-color-green-700, inherit);
+  --coar-color-green-800: var(--coar-d-color-green-800, inherit);
+  --coar-color-green-900: var(--coar-d-color-green-900, inherit);
+  --coar-color-red-50: var(--coar-d-color-red-50, inherit);
+  --coar-color-red-100: var(--coar-d-color-red-100, inherit);
+  --coar-color-red-200: var(--coar-d-color-red-200, inherit);
+  --coar-color-red-300: var(--coar-d-color-red-300, inherit);
+  --coar-color-red-400: var(--coar-d-color-red-400, inherit);
+  --coar-color-red-500: var(--coar-d-color-red-500, inherit);
+  --coar-color-red-600: var(--coar-d-color-red-600, inherit);
+  --coar-color-red-700: var(--coar-d-color-red-700, inherit);
+  --coar-color-red-800: var(--coar-d-color-red-800, inherit);
+  --coar-color-red-900: var(--coar-d-color-red-900, inherit);
+  --coar-color-amber-50: var(--coar-d-color-amber-50, inherit);
+  --coar-color-amber-100: var(--coar-d-color-amber-100, inherit);
+  --coar-color-amber-200: var(--coar-d-color-amber-200, inherit);
+  --coar-color-amber-300: var(--coar-d-color-amber-300, inherit);
+  --coar-color-amber-400: var(--coar-d-color-amber-400, inherit);
+  --coar-color-amber-500: var(--coar-d-color-amber-500, inherit);
+  --coar-color-amber-600: var(--coar-d-color-amber-600, inherit);
+  --coar-color-amber-700: var(--coar-d-color-amber-700, inherit);
+  --coar-color-amber-800: var(--coar-d-color-amber-800, inherit);
+  --coar-color-amber-900: var(--coar-d-color-amber-900, inherit);
+  --coar-color-slate-50: var(--coar-d-color-slate-50, inherit);
+  --coar-color-slate-100: var(--coar-d-color-slate-100, inherit);
+  --coar-color-slate-200: var(--coar-d-color-slate-200, inherit);
+  --coar-color-slate-300: var(--coar-d-color-slate-300, inherit);
+  --coar-color-slate-400: var(--coar-d-color-slate-400, inherit);
+  --coar-color-slate-500: var(--coar-d-color-slate-500, inherit);
+  --coar-color-slate-600: var(--coar-d-color-slate-600, inherit);
+  --coar-color-slate-700: var(--coar-d-color-slate-700, inherit);
+  --coar-color-slate-800: var(--coar-d-color-slate-800, inherit);
+  --coar-color-slate-900: var(--coar-d-color-slate-900, inherit);
   --coar-border-neutral: var(--coar-d-border-neutral, inherit);
   --coar-icon-neutral-primary: var(--coar-d-icon-neutral-primary, inherit);
   --coar-icon-neutral-secondary: var(--coar-d-icon-neutral-secondary, inherit);

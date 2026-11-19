@@ -232,7 +232,7 @@ const someSelected = props.someSelected;
 .coar-multi-select-check-icon {
   width: 12px;
   height: 12px;
-  color: var(--coar-text-on-bold);
+  color: var(--coar-text-on-accent, var(--coar-text-on-bold));
 }
 
 .coar-select-group-header {

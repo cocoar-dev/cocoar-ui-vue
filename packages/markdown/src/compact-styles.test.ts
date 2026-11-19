@@ -67,6 +67,8 @@ describe('markdown presentation roles', () => {
     for (const [name, value] of declared) {
       if (name.startsWith('--coar-d-')) {
         expect(value.startsWith('var(--coar-role-derivation) '), name).toBe(true);
+        const input = name.replace('--coar-d-', '--coar-theme-');
+        expect(value.startsWith(`var(--coar-role-derivation) var(${input}, `), name).toBe(true);
       } else {
         expect(value, name).toBe(`var(${name.replace('--coar-', '--coar-d-')}, inherit)`);
         expect(constants.has(name), `${name} is derived, not a theme constant`).toBe(false);

@@ -15,6 +15,7 @@ export const SECTIONS = [
       'guide/mobile.md',
       'guide/migration.md',
       'guide/migration-page-builder-3.md',
+      'guide/migration-color-roles.md',
     ],
   },
   {

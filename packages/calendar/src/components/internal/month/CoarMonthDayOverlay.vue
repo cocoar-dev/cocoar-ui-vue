@@ -161,7 +161,7 @@ defineExpose({
   height: var(--coar-calendar-day-overlay-close-size, 20px);
   padding: 0;
   border: 0;
-  border-radius: var(--coar-calendar-control-radius, var(--coar-radius-xs, 2px));
+  border-radius: var(--coar-calendar-small-control-radius, var(--coar-calendar-control-radius, var(--coar-radius-xs, 2px)));
   background: transparent;
   color: var(--coar-text-subtle, #6c7280);
   cursor: pointer;

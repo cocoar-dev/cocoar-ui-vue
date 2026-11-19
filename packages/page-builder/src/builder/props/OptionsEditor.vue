@@ -129,7 +129,7 @@ function moveOption(index: number, delta: -1 | 1) {
   background: transparent;
   color: var(--coar-icon-neutral-secondary, #5a5a60);
   cursor: pointer;
-  border-radius: var(--coar-page-builder-control-radius, 3px);
+  border-radius: var(--coar-page-builder-tight-control-radius, var(--coar-page-builder-control-radius, 3px));
   transition: background-color 0.12s ease-out, color 0.12s ease-out;
 }
 
@@ -153,14 +153,14 @@ function moveOption(index: number, delta: -1 | 1) {
   align-items: center;
   gap: 6px;
   align-self: flex-start;
-  height: var(--coar-page-builder-inline-button-size, 24px);
+  height: var(--coar-page-builder-medium-inline-button-size, var(--coar-page-builder-inline-button-size, 24px));
   padding: 0 8px;
   border: 1px dashed var(--coar-border-neutral, #cecece);
   background: transparent;
   color: var(--coar-text-neutral-secondary, #666);
   font-family: inherit;
   font-size: var(--coar-page-builder-label-font-size, 12px);
-  border-radius: var(--coar-page-builder-control-radius, 4px);
+  border-radius: var(--coar-page-builder-small-control-radius, var(--coar-page-builder-control-radius, 4px));
   cursor: pointer;
   transition: border-color 0.12s, color 0.12s;
 }
