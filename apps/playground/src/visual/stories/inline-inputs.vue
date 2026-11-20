@@ -9,6 +9,7 @@ import {
   CoarSelect,
   CoarTagSelect,
   CoarTextInput,
+  CoarZonedDateTimePicker,
 } from '@cocoar/vue-ui';
 
 // appearance="inline" (no border or surface at rest) and width="content" (as wide as
@@ -19,6 +20,7 @@ const options = [
 ];
 const date = Temporal.PlainDate.from('2026-12-01');
 const dateTime = Temporal.PlainDateTime.from('2026-12-01T09:30');
+const zoned = Temporal.ZonedDateTime.from('2026-12-01T09:30[Europe/Vienna]');
 </script>
 
 <template>
@@ -40,6 +42,10 @@ const dateTime = Temporal.PlainDateTime.from('2026-12-01T09:30');
       <CoarNumberInput appearance="inline" width="content" placeholder="0" stepper-buttons="both" />
       <CoarSelect appearance="inline" width="content" :options="options" :model-value="null" placeholder="city" />
       <CoarPlainDateTimePicker appearance="inline" width="content" :model-value="dateTime" />
+    </div>
+    <div class="vs-row">
+      <span>Zoned:</span>
+      <CoarZonedDateTimePicker appearance="inline" width="content" :model-value="zoned" time-zone="Europe/Vienna" />
     </div>
   </section>
 

@@ -271,3 +271,23 @@ describe('inline appearance', () => {
     w.unmount();
   });
 });
+
+describe('content width', () => {
+  it('fits the field to its value and counts the zone caption only on request', () => {
+    const value = Temporal.ZonedDateTime.from('2026-12-01T09:30[Europe/Vienna]');
+    const fill = mountPicker({ modelValue: value });
+    expect(fill.find('.coar-zdtp--content').exists()).toBe(false);
+    expect(fill.find('.coar-zdtp-tz-sizer').exists()).toBe(false);
+    expect(fill.get('input').attributes('size')).toBeUndefined();
+    fill.unmount();
+
+    const w = mountPicker({ modelValue: value, width: 'content' });
+    expect(w.find('.coar-zdtp--content').exists()).toBe(true);
+    expect(Number(w.get('input').attributes('size'))).toBeGreaterThan(0);
+    const caption = w.get('.coar-zdtp-tz-inline:not(.coar-zdtp-tz-sizer)');
+    const sizer = w.get('.coar-zdtp-tz-sizer');
+    expect(sizer.text()).toBe(caption.text());
+    expect(sizer.attributes('aria-hidden')).toBe('true');
+    w.unmount();
+  });
+});

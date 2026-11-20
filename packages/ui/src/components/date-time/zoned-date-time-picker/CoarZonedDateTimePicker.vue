@@ -8,7 +8,7 @@ import { useI18n } from '@cocoar/vue-localization';
 
 import CoarIcon from '../../icon/CoarIcon.vue';
 import CoarInputFrame from '../../input-frame/CoarInputFrame.vue';
-import type { CoarInputAppearance } from '../../input-frame/types';
+import type { CoarInputAppearance, CoarInputWidth } from '../../input-frame/types';
 import CoarInputFrameButton from '../../input-frame/CoarInputFrameButton.vue';
 import { getOverlayService } from '../../overlay/useOverlay';
 import { datepickerPreset } from '../../overlay/overlay-presets';
@@ -27,6 +27,8 @@ const props = withDefaults(
     size?: CoarZonedDateTimePickerSize;
     /** `inline`: no border or surface until hovered or edited (Preview) */
     appearance?: CoarInputAppearance;
+    /** `content`: as wide as the shown value and its zone caption (Preview) */
+    width?: CoarInputWidth;
     disabled?: boolean;
     readonly?: boolean;
     required?: boolean;
@@ -63,6 +65,7 @@ const props = withDefaults(
     placeholder: '',
     size: 'm',
     appearance: 'outline',
+    width: 'fill',
     disabled: false,
     readonly: false,
     required: false,
@@ -321,7 +324,10 @@ const tzIndicatorIcon = computed(() => {
 <template>
   <div
     class="coar-zdtp"
-    :class="[`coar-zdtp--${size}`]"
+    :class="[
+      `coar-zdtp--${size}`,
+      { 'coar-zdtp--inline': appearance === 'inline', 'coar-zdtp--content': width === 'content' },
+    ]"
   >
     <!-- Trigger = the shared input shell. combobox role/aria fall through to its
          root; focus lives on the inner input (frame styles via :focus-within). -->
@@ -365,6 +371,7 @@ const tzIndicatorIcon = computed(() => {
         type="text"
         :placeholder="inputPlaceholder"
         :value="displayValue"
+        :size="width === 'content' ? Math.max(1, (displayValue || inputPlaceholder).length) : undefined"
         :disabled="isDisabled"
         :readonly="readonly"
         :required="required"
@@ -418,6 +425,16 @@ const tzIndicatorIcon = computed(() => {
     >
       {{ currentTimeZoneDisplayName }}
     </span>
+    <!-- Content width: the caption floats, so it adds nothing to the intrinsic width.
+         This zero-height copy, ending where the caption ends, makes the box at least
+         as wide as the caption and its distance from the right edge. -->
+    <span
+      v-if="modelValue && width === 'content'"
+      class="coar-zdtp-tz-inline coar-zdtp-tz-sizer"
+      aria-hidden="true"
+    >
+      {{ currentTimeZoneDisplayName }}
+    </span>
   </div>
 </template>
 
@@ -433,11 +450,49 @@ const tzIndicatorIcon = computed(() => {
      frame's private vars. */
   --coar-zdtp-scale: 1;
   --coar-zdtp-height: var(--coar-component-m-height);
+  /* Distance of the caption's right edge from the wrapper's: see .coar-zdtp-tz-inline. */
+  --coar-zdtp-caption-end: max(var(--coar-zone-caption-min-offset, 0px), calc(
+    var(--coar-spacing-s) * var(--coar-zdtp-scale)
+    + 16px
+    + max(
+      calc(var(--coar-field-padding-x) * var(--coar-zdtp-scale) * var(--coar-component-density, 1)),
+      min(var(--coar-input-radius), calc(var(--coar-zdtp-height) / 2))
+    )
+    + 2px
+  ));
   position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--coar-spacing-xs);
   width: 100%;
+}
+
+/* Content width: as wide as the value with its affixes, or as the zone caption with
+   its distance from the right edge, whichever is wider; at most the line. */
+.coar-zdtp--content {
+  display: inline-flex;
+  inline-size: max-content;
+  max-inline-size: 100%;
+}
+.coar-zdtp--content .coar-zdtp-input {
+  field-sizing: content;
+  min-inline-size: 2ch;
+}
+/* Two classes: the caption's own rule comes later and would place it back. */
+.coar-zdtp-tz-inline.coar-zdtp-tz-sizer {
+  position: static;
+  transform: none;
+  height: 0;
+  margin-top: calc(-1 * var(--coar-spacing-xs));
+  margin-right: var(--coar-zdtp-caption-end);
+  overflow: hidden;
+  visibility: hidden;
+}
+
+/* Inline: no border for the caption to cover, so it has no surface of its own and
+   lies on the fill of hover and focus. */
+.coar-zdtp--inline .coar-zdtp-tz-inline {
+  background-color: transparent;
 }
 
 /* Label + status icon + message are owned by the wrapping CoarFormField. */
@@ -524,15 +579,7 @@ const tzIndicatorIcon = computed(() => {
      uses (CoarInputFrameButton: spacing-s×scale left pad + icon + max(field-pad,
      corner) right pad + 1px separator) plus the frame's 1px right border. Tracks
      radius + field padding without inheriting the frame's private vars. */
-  right: max(var(--coar-zone-caption-min-offset, 0px), calc(
-    var(--coar-spacing-s) * var(--coar-zdtp-scale)
-    + 16px
-    + max(
-      calc(var(--coar-field-padding-x) * var(--coar-zdtp-scale) * var(--coar-component-density, 1)),
-      min(var(--coar-input-radius), calc(var(--coar-zdtp-height) / 2))
-    )
-    + 2px
-  ));
+  right: var(--coar-zdtp-caption-end);
   transform: translateY(50%);
   padding: 0 var(--coar-spacing-xs);
   font-family: var(--coar-body-caption-family);
@@ -600,8 +647,8 @@ const tzIndicatorIcon = computed(() => {
 .coar-mobile .coar-zdtp--xs { --coar-zdtp-height: max(var(--coar-component-xs-height), var(--coar-control-xs-height, 0px)); }
 .coar-mobile .coar-zdtp--s { --coar-zdtp-height: max(var(--coar-component-s-height), var(--coar-control-s-height, 0px)); }
 .coar-mobile .coar-zdtp--l { --coar-zdtp-height: max(var(--coar-component-l-height), var(--coar-control-l-height, 0px)); }
-.coar-mobile .coar-zdtp-tz-inline {
-  right: max(
+.coar-mobile .coar-zdtp {
+  --coar-zdtp-caption-end: max(
     calc(
       var(--coar-spacing-s) * var(--coar-zdtp-scale)
       + 16px

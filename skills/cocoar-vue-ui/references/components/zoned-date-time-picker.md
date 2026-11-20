@@ -122,15 +122,20 @@ import { CoarZonedDateTimePicker, CoarFormField } from '@cocoar/vue-ui';
 ## Inline (Preview) {#inline}
 
 `appearance="inline"` shows only the date, time and zone until the field is hovered, edited or its panel is open;
-the calendar button stays and loses its segment background. The field keeps the full width: the zone caption sits
-at a fixed place inside it, so there is no `width="content"`. How the fills behave and how to change them:
-[Text Input](./text-input.md#inline).
+the calendar button stays and loses its segment background. `width="content"` fits the field to the shown value
+and its zone caption: the box is at least as wide as the caption needs, so a long zone name does not stick out.
+How the fills behave and how to change them: [Text Input](./text-input.md#inline).
 
 **Demo — `zoned-date-time-picker/demos/ZonedDateTimePickerInline.vue`**
 
 ```vue
 <template>
-  <div style="display: grid; gap: 4px; max-width: 480px;">
+  <div style="display: grid; gap: 12px; max-width: 520px;">
+    <p style="margin: 0; line-height: 2.4;">
+      The call starts
+      <CoarZonedDateTimePicker v-model="call" appearance="inline" width="content" />
+      for everyone.
+    </p>
     <div style="display: grid; grid-template-columns: 120px 1fr; align-items: center;">
       <span>Starts</span>
       <CoarZonedDateTimePicker v-model="starts" appearance="inline" />
@@ -148,6 +153,7 @@ import { Temporal } from '@js-temporal/polyfill';
 import { CoarZonedDateTimePicker } from '@cocoar/vue-ui';
 
 const starts = ref<Temporal.ZonedDateTime | null>(Temporal.ZonedDateTime.from('2026-12-01T09:30[Europe/Vienna]'));
+const call = ref<Temporal.ZonedDateTime | null>(Temporal.ZonedDateTime.from('2026-12-01T16:00[America/Argentina/Buenos_Aires]'));
 const ends = ref<Temporal.ZonedDateTime | null>(null);
 </script>
 ```
@@ -204,6 +210,7 @@ These keys can be translated via [`@cocoar/vue-localization`](../foundations/loc
 | `placeholder` | `string` | `''` | Placeholder text |
 | `size` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Input size |
 | `appearance` (Preview) | `'outline' \| 'inline'` | `'outline'` | `inline`: no border or surface until hovered or edited, see [Inline](#inline) |
+| `width` (Preview) | `'fill' \| 'content'` | `'fill'` | `content`: as wide as the shown value and its zone caption |
 | `disabled` | `boolean` | `false` | Disable the picker |
 | `readonly` | `boolean` | `false` | Make read-only |
 | `required` | `boolean` | `false` | Mark as required |
