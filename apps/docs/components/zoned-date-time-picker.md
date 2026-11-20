@@ -48,6 +48,15 @@ Four sizes that stay visually aligned with every other Cocoar input component.
 
 <preview path="./zoned-date-time-picker/demos/ZonedDateTimePickerSizes.vue" />
 
+## Inline <Badge type="warning" text="Preview" /> {#inline}
+
+`appearance="inline"` shows only the date, time and zone until the field is hovered, edited or its panel is open;
+the calendar button stays and loses its segment background. The field keeps the full width: the zone caption sits
+at a fixed place inside it, so there is no `width="content"`. How the fills behave and how to change them:
+[Text Input](/components/text-input#inline).
+
+<preview path="./zoned-date-time-picker/demos/ZonedDateTimePickerInline.vue" />
+
 ## Accessibility
 
 ### Keyboard Navigation
@@ -99,7 +108,7 @@ These keys can be translated via [`@cocoar/vue-localization`](/foundations/local
 | `timezone` | `string` | user's timezone | IANA timezone ID (e.g. `'Europe/Berlin'`) |
 | `placeholder` | `string` | `''` | Placeholder text |
 | `size` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Input size |
-| `appearance` <Badge type="warning" text="Preview" /> | `'outline' \| 'inline'` | `'outline'` | `inline`: no border or surface until hovered or edited, see [Text Input](/components/text-input#inline) |
+| `appearance` <Badge type="warning" text="Preview" /> | `'outline' \| 'inline'` | `'outline'` | `inline`: no border or surface until hovered or edited, see [Inline](#inline) |
 | `disabled` | `boolean` | `false` | Disable the picker |
 | `readonly` | `boolean` | `false` | Make read-only |
 | `required` | `boolean` | `false` | Mark as required |

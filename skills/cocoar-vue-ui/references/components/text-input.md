@@ -253,44 +253,38 @@ that is edited where it is read:
 
 ```vue
 <template>
-  <table class="inline-properties">
-    <tbody>
-      <tr>
-        <th scope="row">Name</th>
-        <td><CoarTextInput v-model="name" appearance="inline" width="content" placeholder="–" /></td>
-      </tr>
-      <tr>
-        <th scope="row">Price</th>
-        <td>
-          <CoarNumberInput
-            v-model="price"
-            appearance="inline"
-            width="content"
-            :decimals="2"
-            suffix="EUR"
-          />
-        </td>
-      </tr>
-      <tr>
-        <th scope="row">Category</th>
-        <td>
-          <CoarSelect v-model="category" :options="categories" appearance="inline" width="content" searchable />
-        </td>
-      </tr>
-      <tr>
-        <th scope="row">Available from</th>
-        <td><CoarPlainDatePicker v-model="availableFrom" appearance="inline" width="content" /></td>
-      </tr>
-      <tr>
-        <th scope="row">Stock</th>
-        <td><CoarNumberInput v-model="stock" appearance="inline" width="content" :min="0" stepper-buttons="both" /></td>
-      </tr>
-      <tr>
-        <th scope="row">SKU</th>
-        <td><CoarTextInput v-model="sku" appearance="inline" width="content" error /></td>
-      </tr>
-    </tbody>
-  </table>
+  <div class="inline-properties">
+    <div class="inline-properties__row">
+      <span class="inline-properties__label">Name</span>
+      <div><CoarTextInput v-model="name" appearance="inline" width="content" placeholder="–" /></div>
+    </div>
+    <div class="inline-properties__row">
+      <span class="inline-properties__label">Price</span>
+      <div>
+        <CoarNumberInput v-model="price" appearance="inline" width="content" :decimals="2" suffix="EUR" />
+      </div>
+    </div>
+    <div class="inline-properties__row">
+      <span class="inline-properties__label">Category</span>
+      <div>
+        <CoarSelect v-model="category" :options="categories" appearance="inline" width="content" searchable />
+      </div>
+    </div>
+    <div class="inline-properties__row">
+      <span class="inline-properties__label">Available from</span>
+      <div><CoarPlainDatePicker v-model="availableFrom" appearance="inline" width="content" /></div>
+    </div>
+    <div class="inline-properties__row">
+      <span class="inline-properties__label">Stock</span>
+      <div>
+        <CoarNumberInput v-model="stock" appearance="inline" width="content" :min="0" stepper-buttons="both" />
+      </div>
+    </div>
+    <div class="inline-properties__row">
+      <span class="inline-properties__label">SKU</span>
+      <div><CoarTextInput v-model="sku" appearance="inline" width="content" error /></div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -314,24 +308,21 @@ const sku = ref('LAMP 01');
 
 <style scoped>
 .inline-properties {
-  border-collapse: collapse;
-  width: 100%;
+  display: grid;
   max-width: 520px;
 }
-.inline-properties th,
-.inline-properties td {
+.inline-properties__row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  align-items: center;
   padding: 2px 8px;
-  border: none;
-  text-align: start;
-  vertical-align: middle;
+  border-radius: var(--coar-radius-s);
 }
-.inline-properties th {
-  width: 140px;
-  font-weight: normal;
+.inline-properties__label {
   color: var(--coar-text-neutral-secondary);
 }
 /* A row hover in the colour the fills must stand out from. */
-.inline-properties tr:hover {
+.inline-properties__row:hover {
   background: var(--coar-background-neutral-secondary);
 }
 </style>

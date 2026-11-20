@@ -36,8 +36,10 @@ Four sizes to match surrounding inputs and keep your forms visually balanced.
 
 ## Inline <Badge type="warning" text="Preview" /> {#inline}
 
-`appearance` and `width` work as on the [Date Picker](/components/date-picker#inline):
-`<CoarPlainDateTimePicker appearance="inline" width="content" />`.
+`appearance` and `width` work as on the [Date Picker](/components/date-picker#inline): only the date and time show
+until the field is hovered, edited or its panel is open, and `width="content"` fits the field to them.
+
+<preview path="./date-time-picker/demos/DateTimePickerInline.vue" />
 
 ## Accessibility
 
