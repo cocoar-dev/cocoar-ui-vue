@@ -106,6 +106,29 @@ const types = defineObjectEditorTypes([money]);
 A control receives `modelValue`, the resolved `schema`, `id`, `label`, `readonly`, `error`, `options` and
 `locale`, and emits `update:modelValue`; `undefined` clears the value.
 
+## Schema editor
+
+`CoarSchemaEditor` describes the object: add properties, choose their type, mark them required, set limits, units
+and the allowed values of a choice. Groups hold properties of their own. It writes the same JSON Schema the object
+editor reads, so both can work on one schema side by side. Types of the app appear in its type list; their schema
+goes to `$defs` once a property uses them, and leaves again with the last one.
+
+<preview path="./object-editor/demos/SchemaAndObjectEditor.vue" />
+
+```vue
+<CoarSchemaEditor v-model="schema" :types="types" />
+<CoarObjectEditor v-model="data" :schema="schema" :types="types" />
+```
+
+Every change emits a new schema object; the one passed in is never changed. Keys are letters, digits, `_` and
+`-`, starting with a letter; renaming a property keeps its place and whether it is required. Problems the JSON
+Schema itself cannot express — a minimum above the maximum, a choice without values, a value twice — are marked in
+the list and explained in the inspector; `checkSchema(schema)` returns them for code.
+
+The same operations exist as functions: `addProperty`, `removeProperty`, `renameProperty`, `moveProperty`,
+`changePropertyType`, `updateProperty`, `setRequired` and `setOptions` take a schema and a path of keys
+(`['dimensions', 'width']`) and return the new schema.
+
 ## API
 
 ### CoarObjectEditor props
@@ -121,6 +144,13 @@ A control receives `modelValue`, the resolved `schema`, `id`, `label`, `readonly
 
 The component exposes `issues`: every problem of the value, as `{ pointer, keyword, message? }`.
 
+### CoarSchemaEditor props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `v-model` | `JsonSchema` | — | The schema; each change emits a new object |
+| `types` | `CoarObjectEditorTypes` | built-in types | The types to choose from |
+
 ### Functions
 
 | Function | Description |
@@ -128,6 +158,7 @@ The component exposes `issues`: every problem of the value, as `{ pointer, keywo
 | `defineObjectEditorTypes(types?)` | The built-in types plus the given ones |
 | `validateValue(schema, value)` | The problems of a value, each at its JSON Pointer |
 | `createObjectSchema()` | An empty object schema |
+| `checkSchema(schema)` | Bad keys, ranges and option lists, each at its path |
 | `getAt`, `setAt`, `parsePointer`, `formatPointer` | Read and write values by JSON Pointer, without changing the original |
 
 Validation uses [`@cfworker/json-schema`](https://github.com/cfworker/cfworker/tree/main/packages/json-schema): it
@@ -151,3 +182,5 @@ interprets the schema and never generates code, so a Content Security Policy wit
 | `coar.objectEditor.yes` / `no` | `Yes` / `No` |
 | `coar.objectEditor.filled` | `{count} filled` |
 | `coar.objectEditor.entry` / `entries` | `1 entry` / `{count} entries` |
+| `coar.objectEditor.type.<id>` | The `label` of the type |
+| `coar.schemaEditor.*` | Labels of the schema editor (`key`, `title`, `type`, `required`, `addProperty` …) and its problems (`invalidKey`, `keyTaken`, `rangeOrder`, `noOptions`, `emptyOption`, `duplicateOption`) |

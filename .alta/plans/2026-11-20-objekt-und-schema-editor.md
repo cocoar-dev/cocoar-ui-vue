@@ -220,12 +220,12 @@ Schema-Editor, damit der Review in Abschnitten geht.
 
 **Teil 2 — Schema-Editor**
 
-- [ ] 8. Schema-Operationen im Kern (`src/core/schema-ops.ts`): Property anlegen, entfernen, umbenennen,
+- [x] 8. Schema-Operationen im Kern (`src/core/schema-ops.ts`): Property anlegen, entfernen, umbenennen,
       verschieben (`x-coar-order`), Typ wechseln, Einstellungen setzen, eigenen Typ nach `$defs` kopieren. Mit Tests.
-- [ ] 9. Prüfung des Schemas (eindeutige und gültige Schlüssel, Grenzen, Auswahlwerte), mit Tests.
-- [ ] 10. `CoarSchemaEditor` aus dem Inspector des Spikes: Liste der Properties mit Verschachtelung, Typ-Auswahl aus dem
+- [x] 9. Prüfung des Schemas (eindeutige und gültige Schlüssel, Grenzen, Auswahlwerte), mit Tests.
+- [x] 10. `CoarSchemaEditor` aus dem Inspector des Spikes: Liste der Properties mit Verschachtelung, Typ-Auswahl aus dem
       Register (eingebaut und eigene), Einstellungen je nach `settings` des Typs, Auswahlwerte bearbeiten.
-- [ ] 11. Doku-Abschnitt mit Demo: Schema-Editor und Objekt-Editor nebeneinander am selben Schema. `pnpm skill:sync`.
+- [x] 11. Doku-Abschnitt mit Demo: Schema-Editor und Objekt-Editor nebeneinander am selben Schema. `pnpm skill:sync`.
 - [ ] 11a. Lokale Prüfungen (siehe unten), Branch `feat/object-editor`, PR nach Skill `cocoar-pr`, CI beobachten.
 
 **Aufräumen (ohne PR)**

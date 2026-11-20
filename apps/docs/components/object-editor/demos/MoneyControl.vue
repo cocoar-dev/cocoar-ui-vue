@@ -20,6 +20,7 @@
         appearance="inline"
         width="content"
         :options="currencies"
+        placeholder="–"
         :disabled="disabled"
         :readonly="locked"
         aria-label="Currency"

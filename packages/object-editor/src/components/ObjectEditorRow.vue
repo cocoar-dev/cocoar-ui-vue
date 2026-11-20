@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { CoarButton, CoarFormField, CoarIcon } from '@cocoar/vue-ui';
+import { CoarButton, CoarIcon } from '@cocoar/vue-ui';
 import { useI18n } from '@cocoar/vue-localization';
 import { isEmptyValue } from '../core/resolve';
 import { isJsonObject, type JsonValue } from '../core/schema';
 import type { ObjectEditorRowModel } from './rows';
+import HiddenLabelField from './HiddenLabelField.vue';
 
 const props = defineProps<{
   row: ObjectEditorRowModel;
@@ -119,8 +120,7 @@ function focusInput(event: MouseEvent) {
         />
         <template v-else>{{ displayText }}</template>
       </span>
-      <CoarFormField v-else-if="showsControl" :id="controlId" :error="error">
-        <label :id="`${controlId}-label`" class="coar-object-editor-sr-only" :for="controlId">{{ row.title }}</label>
+      <HiddenLabelField v-else-if="showsControl" :id="controlId" :label="row.title" :error="error">
         <div
           class="coar-object-editor-control"
           :class="{ 'coar-object-editor-control--numeric': row.typeId === 'number' }"
@@ -141,7 +141,7 @@ function focusInput(event: MouseEvent) {
             @update:model-value="update"
           />
         </div>
-      </CoarFormField>
+      </HiddenLabelField>
       <button
         v-else
         type="button"
