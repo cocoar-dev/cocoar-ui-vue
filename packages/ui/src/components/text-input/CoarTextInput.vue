@@ -4,7 +4,7 @@ import { useI18n } from '@cocoar/vue-localization';
 import { CoarIcon } from '../icon';
 import CoarInputFrame from '../input-frame/CoarInputFrame.vue';
 import type { CoarInputAppearance, CoarInputWidth } from '../input-frame/types';
-import { FORM_FIELD_INJECTION_KEY } from '../form-field/constants';
+import { FORM_FIELD_INJECTION_KEY, provideNoFormField } from '../form-field/constants';
 
 export type CoarTextInputSize = 'xs' | 's' | 'm' | 'l';
 
@@ -81,6 +81,8 @@ const emit = defineEmits<{
 }>();
 
 const formField = inject(FORM_FIELD_INJECTION_KEY, undefined);
+// Prefix / suffix actions are fields of their own, not part of this field.
+provideNoFormField();
 
 const inputElement = useTemplateRef<HTMLInputElement | HTMLTextAreaElement>('inputElement');
 
@@ -104,7 +106,7 @@ const clearSlotActive = computed(() =>
 
 // Frame slot presence — only provide #leading / #trailing when there's real
 // content, so CoarInputFrame's has-leading / has-trailing padding logic is right.
-const hasPrefix = computed(() => !!props.prefix || !!slots.prefix);
+const hasPrefix = computed(() => !!props.prefix || !!slots.prefix || !!slots.prefixAction);
 const hasTrailing = computed(
   () => !!props.suffix || !!slots.suffix || clearSlotActive.value || !!slots.suffixAction,
 );
@@ -152,12 +154,17 @@ function onClear() {
         :size="size"
         :error="hasError"
         :appearance="appearance"
+        :segment-start="!!$slots.prefixAction"
+        :segment-end="!!$slots.suffixAction"
         :disabled="disabled"
         :readonly="readonly"
       >
         <!-- Prefix → leading affix -->
         <template v-if="hasPrefix" #leading>
-          <span class="coar-text-input-prefix">
+          <span v-if="$slots.prefixAction" class="coar-text-input-prefix-actions">
+            <slot name="prefixAction" :disabled="disabled" :readonly="readonly" />
+          </span>
+          <span v-if="prefix || $slots.prefix" class="coar-text-input-prefix">
             <template v-if="prefix">{{ prefix }}</template>
             <slot name="prefix" />
           </span>
@@ -206,7 +213,7 @@ function onClear() {
           </button>
 
           <span v-if="$slots.suffixAction" class="coar-text-input-suffix-actions">
-            <slot name="suffixAction" />
+            <slot name="suffixAction" :disabled="disabled" :readonly="readonly" />
           </span>
         </template>
       </CoarInputFrame>
@@ -393,7 +400,9 @@ function onClear() {
   flex-shrink: 0;
 }
 
-/* Suffix Actions */
+/* Prefix and suffix actions: interactive content such as an inline select,
+   in the field's own text style rather than the muted affix style. */
+.coar-text-input-prefix-actions,
 .coar-text-input-suffix-actions {
   display: flex;
   align-items: center;

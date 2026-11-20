@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
+import { defineComponent, h } from 'vue';
+import CoarFormField from '../form-field/CoarFormField.vue';
+import CoarSelect from '../select/CoarSelect.vue';
 import CoarNumberInput from './CoarNumberInput.vue';
 
 const CoarIconStub = { template: '<span class="icon-stub" />' };
@@ -196,5 +199,59 @@ describe('CoarNumberInput inline appearance and content width', () => {
     const wrapper = mount(CoarNumberInput, { ...stubs, props: { width: 'content', placeholder: '0.00' } });
     expect(wrapper.classes()).toContain('coar-number-input--content');
     expect(wrapper.get('input').attributes('size')).toBe('4');
+  });
+});
+
+describe('CoarNumberInput prefix and suffix actions', () => {
+  it('renders actions at the outer edges, next to a text prefix and suffix', () => {
+    const wrapper = mount(CoarNumberInput, {
+      props: { prefix: '≈', suffix: 'pcs' },
+      slots: {
+        prefixAction: '<button class="before">±</button>',
+        suffixAction: '<button class="after">EUR</button>',
+      },
+    });
+    const leading = wrapper.get('.coar-input-frame__leading');
+    const trailing = wrapper.get('.coar-input-frame__trailing');
+    expect(leading.element.firstElementChild?.querySelector('.before')).not.toBeNull();
+    expect(leading.text()).toContain('≈');
+    expect(trailing.element.lastElementChild?.querySelector('.after')).not.toBeNull();
+    expect(trailing.text()).toContain('pcs');
+  });
+
+  it('gives the actions the disabled and readonly state of the field', () => {
+    const wrapper = mount(CoarNumberInput, {
+      props: { disabled: true, readonly: true },
+      slots: {
+        suffixAction: `<template #suffixAction="{ disabled, readonly }"><span class="state">{{ disabled }}/{{ readonly }}</span></template>`,
+      },
+    });
+    expect(wrapper.get('.state').text()).toBe('true/true');
+  });
+
+  it('renders no trailing affix without a suffix or action', () => {
+    const wrapper = mount(CoarNumberInput);
+    expect(wrapper.find('.coar-input-frame__trailing').exists()).toBe(false);
+  });
+});
+
+describe('CoarNumberInput actions and the surrounding form field', () => {
+  it('keeps a select in an action out of the field label and error', () => {
+    const Wrapper = defineComponent({
+      setup: () => () => h(CoarFormField, { label: 'Price', error: 'Required' }, {
+        default: () => h(CoarNumberInput, null, {
+          suffixAction: () => h(CoarSelect, {
+            'aria-label': 'Currency', modelValue: 'EUR', options: [{ value: 'EUR', label: 'EUR' }],
+          }),
+        }),
+      }),
+    });
+    const wrapper = mount(Wrapper);
+    const input = wrapper.get('input');
+    const trigger = wrapper.get('.coar-select-trigger');
+    expect(input.attributes('aria-invalid')).toBe('true');
+    expect(trigger.attributes('aria-labelledby')).toBeUndefined();
+    expect(trigger.attributes('aria-label')).toBe('Currency');
+    expect(trigger.attributes('aria-invalid')).toBeUndefined();
   });
 });

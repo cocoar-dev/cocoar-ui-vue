@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
+import { defineComponent, h } from 'vue';
+import CoarFormField from '../form-field/CoarFormField.vue';
+import CoarSelect from '../select/CoarSelect.vue';
 import CoarTextInput from './CoarTextInput.vue';
 
 // Provide a stub for CoarIcon
@@ -183,5 +186,51 @@ describe('CoarTextInput inline appearance and content width', () => {
     const wrapper = mount(CoarTextInput, { props: { width: 'content', rows: 2 } });
     expect(wrapper.classes()).not.toContain('coar-text-input--content');
     expect(wrapper.find('textarea').exists()).toBe(true);
+  });
+});
+
+describe('CoarTextInput prefix and suffix actions', () => {
+  it('renders a prefix action before the text prefix and passes the field state', () => {
+    const wrapper = mount(CoarTextInput, {
+      props: { prefix: '@', disabled: true },
+      slots: {
+        prefixAction: `<template #prefixAction="{ disabled, readonly }"><button class="before">{{ disabled }}/{{ readonly }}</button></template>`,
+      },
+    });
+    const leading = wrapper.get('.coar-input-frame__leading');
+    expect(leading.element.firstElementChild?.querySelector('.before')).not.toBeNull();
+    expect(leading.text()).toContain('@');
+    expect(wrapper.get('.before').text()).toBe('true/false');
+  });
+
+  it('passes the field state to a suffix action', () => {
+    const wrapper = mount(CoarTextInput, {
+      props: { readonly: true },
+      slots: {
+        suffixAction: `<template #suffixAction="{ disabled, readonly }"><button class="after">{{ disabled }}/{{ readonly }}</button></template>`,
+      },
+    });
+    expect(wrapper.get('.after').text()).toBe('false/true');
+  });
+});
+
+describe('CoarTextInput actions and the surrounding form field', () => {
+  it('keeps a select in an action out of the field label and error', () => {
+    const Wrapper = defineComponent({
+      setup: () => () => h(CoarFormField, { label: 'Price', error: 'Required' }, {
+        default: () => h(CoarTextInput, null, {
+          suffixAction: () => h(CoarSelect, {
+            'aria-label': 'Currency', modelValue: 'EUR', options: [{ value: 'EUR', label: 'EUR' }],
+          }),
+        }),
+      }),
+    });
+    const wrapper = mount(Wrapper);
+    const input = wrapper.get('input');
+    const trigger = wrapper.get('.coar-select-trigger');
+    expect(input.attributes('aria-invalid')).toBe('true');
+    expect(trigger.attributes('aria-labelledby')).toBeUndefined();
+    expect(trigger.attributes('aria-label')).toBe('Currency');
+    expect(trigger.attributes('aria-invalid')).toBeUndefined();
   });
 });

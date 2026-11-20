@@ -191,6 +191,48 @@ const price = ref<number | null>(49.9);
 </script>
 ```
 
+## Prefix & Suffix Actions (Preview) {#actions}
+
+`#prefixAction` and `#suffixAction` hold interactive content at the outer edges of the field, such as an inline
+select for the currency of an amount. Unlike `prefix` and `suffix`, which show muted text, an action keeps the text
+style of the field, and an inline select there runs to the edge, its fill following the field's corner. Both slots
+get `{ disabled, readonly }` of the field.
+
+**Demo — `number-input/demos/NumberInputCurrency.vue`**
+
+```vue
+<template>
+  <CoarFormField label="Price" style="max-width: 260px;">
+    <CoarNumberInput v-model="amount" :decimals="2" placeholder="0.00">
+      <template #suffixAction="{ disabled, readonly }">
+        <CoarSelect
+          v-model="currency"
+          :options="currencies"
+          aria-label="Currency"
+          appearance="inline"
+          width="content"
+          :disabled="disabled"
+          :readonly="readonly"
+        />
+      </template>
+    </CoarNumberInput>
+  </CoarFormField>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue';
+import { CoarFormField, CoarNumberInput, CoarSelect } from '@cocoar/vue-ui';
+
+const amount = ref<number | null>(129.9);
+const currency = ref<string | null>('EUR');
+const currencies = ['EUR', 'USD', 'CHF'].map((value) => ({ value, label: value }));
+</script>
+```
+
+An action is a field of its own: a select in it does not take the label, hint or error of the surrounding
+`CoarFormField`, so give it its own name with `aria-label`. The same slots exist on
+[Text Input](./text-input.md#actions).
+
 ## Accessibility
 
 ### Keyboard Navigation
@@ -245,3 +287,12 @@ These keys can be translated via [`@cocoar/vue-localization`](../foundations/loc
 | `readonly` | `boolean` | `false` | Make read-only |
 | `required` | `boolean` | `false` | Mark as required |
 | `error` | `boolean` | `false` | Error state (auto-injected from `CoarFormField`) |
+
+### Slots
+
+| Slot | Scope | Description |
+|------|-------|-------------|
+| `prefix` | — | Muted content before the value |
+| `suffix` | — | Muted content after the value |
+| `prefixAction` (Preview) | `{ disabled: boolean, readonly: boolean }` | Interactive content at the start edge, see [Actions](#actions) |
+| `suffixAction` (Preview) | `{ disabled: boolean, readonly: boolean }` | Interactive content at the end edge, see [Actions](#actions) |

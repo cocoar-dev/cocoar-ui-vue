@@ -46,6 +46,14 @@ withDefaults(
      * siblings while extra rows grow the box downward.
      */
     multiline?: boolean;
+    /**
+     * The leading / trailing affix starts / ends with an interactive segment, such
+     * as an inline select in a prefix or suffix action. The affix then runs to the
+     * outer edge and a nested inline frame loses its own radius, so its fill reaches
+     * the edge and this frame clips it at its corner.
+     */
+    segmentStart?: boolean;
+    segmentEnd?: boolean;
   }>(),
   {
     size: 'm',
@@ -56,6 +64,8 @@ withDefaults(
     active: false,
     appearance: 'outline',
     multiline: false,
+    segmentStart: false,
+    segmentEnd: false,
   },
 );
 
@@ -81,6 +91,8 @@ const hasActions = computed(() => !!slots.actions);
         'coar-input-frame--has-leading': hasLeading,
         'coar-input-frame--has-trailing': hasTrailing,
         'coar-input-frame--has-actions': hasActions,
+        'coar-input-frame--segment-start': segmentStart,
+        'coar-input-frame--segment-end': segmentEnd,
       },
     ]"
   >
@@ -360,6 +372,19 @@ const hasActions = computed(() => !!slots.actions);
 }
 .coar-input-frame--has-actions .coar-input-frame__trailing {
   padding-right: var(--coar-spacing-s);
+}
+
+/* An interactive segment at the outer edge (prefix / suffix action) brings the
+   inset of its own frame, so the affix drops the frame's inset on that side. */
+.coar-input-frame.coar-input-frame--segment-start > .coar-input-frame__leading {
+  padding-left: 0;
+}
+.coar-input-frame.coar-input-frame--segment-end > .coar-input-frame__trailing {
+  padding-right: 0;
+}
+.coar-input-frame--segment-start > .coar-input-frame__leading .coar-input-frame--inline,
+.coar-input-frame--segment-end > .coar-input-frame__trailing .coar-input-frame--inline {
+  border-radius: 0;
 }
 
 /* ── Actions (Type B edge-buttons) ──────────────────────────────── */

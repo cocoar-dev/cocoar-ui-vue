@@ -14,7 +14,7 @@
  *    instead of the viewport
  */
 import {
-  computed, inject, toRef, watch, onBeforeUnmount, onBeforeUpdate, shallowRef, useTemplateRef, nextTick, markRaw,
+  computed, inject, toRef, watch, onBeforeUnmount, onBeforeUpdate, shallowRef, useAttrs, useTemplateRef, nextTick, markRaw,
   type VNode,
 } from 'vue';
 import { useI18n } from '@cocoar/vue-localization';
@@ -96,6 +96,8 @@ const props = withDefaults(defineProps<CoarSelectProps<T>>(), {
   sortOptions: 'none',
 });
 
+defineOptions({ inheritAttrs: false });
+
 const model = defineModel<T | null>({ default: null });
 
 const slots = defineSlots<{
@@ -153,6 +155,14 @@ const {
 const inputId = computed(() => props.id || formField?.inputId.value || baseInputId.value);
 const describedBy = computed(() => formField?.messageId.value || undefined);
 const labelledBy = computed(() => formField?.labelId.value || undefined);
+// Without a form-field label, an `aria-label` given to the select names the
+// combobox; the host element, which has no role, gets the other attributes.
+// `useAttrs()` is not reactive: read it while rendering, not in a computed.
+const attrs = useAttrs();
+const ariaLabel = () =>
+  labelledBy.value ? undefined : (attrs['aria-label'] as string | undefined);
+const hostAttrs = () =>
+  Object.fromEntries(Object.entries(attrs).filter(([name]) => name !== 'aria-label'));
 
 const compare = computed(() => props.compareWith ?? ((a: T, b: T) => a === b));
 
@@ -291,7 +301,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="hostRef" :class="hostClasses">
+  <div ref="hostRef" v-bind="hostAttrs()" :class="hostClasses">
     <div class="coar-select-wrapper">
       <!-- Trigger = the shared input shell (combobox role/aria/handlers fall through
            to its root). The frame paints both appearances. -->
@@ -312,6 +322,7 @@ onBeforeUnmount(() => {
         :aria-activedescendant="activeDescendantId"
         :aria-describedby="describedBy"
         :aria-labelledby="labelledBy"
+        :aria-label="ariaLabel()"
         :aria-invalid="hasError ? 'true' : undefined"
         :aria-disabled="disabled ? 'true' : undefined"
         :tabindex="disabled ? -1 : 0"

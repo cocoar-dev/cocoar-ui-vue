@@ -215,6 +215,14 @@ describe('CoarSelect', () => {
     expect(w.find('.coar-select-dropdown').exists()).toBe(false);
   });
 
+  it('names the combobox with an aria-label when no form field labels it', () => {
+    const { wrapper: w } = mountSelect({ options: baseOptions, 'aria-label': 'Currency', class: 'extra' });
+    const host = w.find('.coar-select-host');
+    expect(w.find('.coar-select-trigger').attributes('aria-label')).toBe('Currency');
+    expect(host.attributes('aria-label')).toBeUndefined();
+    expect(host.classes()).toContain('extra');
+  });
+
   it('uses the surrounding form-field label as its accessible name', () => {
     const Wrapper = defineComponent({
       setup: () => () => h(CoarFormField, { label: 'Editing language' }, {

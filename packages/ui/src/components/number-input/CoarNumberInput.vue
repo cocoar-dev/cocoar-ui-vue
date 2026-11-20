@@ -4,7 +4,7 @@ import { useI18n } from '@cocoar/vue-localization';
 import { CoarIcon, type CoarIconSize } from '../icon';
 import CoarInputFrame from '../input-frame/CoarInputFrame.vue';
 import type { CoarInputAppearance, CoarInputWidth } from '../input-frame/types';
-import { FORM_FIELD_INJECTION_KEY } from '../form-field/constants';
+import { FORM_FIELD_INJECTION_KEY, provideNoFormField } from '../form-field/constants';
 import { Maskito } from '@maskito/core';
 import { maskitoNumberOptionsGenerator } from '@maskito/kit';
 
@@ -93,6 +93,8 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const formField = inject(FORM_FIELD_INJECTION_KEY, undefined);
+// Prefix / suffix actions are fields of their own, not part of this field.
+provideNoFormField();
 
 const displayValue = ref('');
 const inputElement = useTemplateRef<HTMLInputElement>('inputElement');
@@ -315,12 +317,17 @@ function decrement() {
         :size="size"
         :error="hasError"
         :appearance="appearance"
+        :segment-start="!!$slots.prefixAction"
+        :segment-end="!!$slots.suffixAction"
         :disabled="disabled"
         :readonly="readonly"
       >
         <!-- Clear (left) + prefix → leading affix (only when there's real content,
              so the frame's has-leading padding logic stays correct) -->
-        <template v-if="clearSlotActive || prefix || $slots.prefix" #leading>
+        <template v-if="clearSlotActive || prefix || $slots.prefix || $slots.prefixAction" #leading>
+          <span v-if="$slots.prefixAction" class="coar-number-input-actions">
+            <slot name="prefixAction" :disabled="disabled" :readonly="readonly" />
+          </span>
           <button
             v-if="clearSlotActive"
             type="button"
@@ -364,10 +371,13 @@ function decrement() {
         />
 
         <!-- Suffix → trailing affix (only when present) -->
-        <template v-if="suffix || $slots.suffix" #trailing>
-          <span class="coar-number-input-suffix">
+        <template v-if="suffix || $slots.suffix || $slots.suffixAction" #trailing>
+          <span v-if="suffix || $slots.suffix" class="coar-number-input-suffix">
             <template v-if="suffix">{{ suffix }}</template>
             <slot name="suffix" />
+          </span>
+          <span v-if="$slots.suffixAction" class="coar-number-input-actions">
+            <slot name="suffixAction" :disabled="disabled" :readonly="readonly" />
           </span>
         </template>
 
@@ -484,6 +494,15 @@ function decrement() {
 }
 
 /* Prefix / Suffix — outer field-pad owned by the frame's leading/trailing affix. */
+/* Prefix and suffix actions: interactive content such as an inline select,
+   in the field's own text style rather than the muted affix style. */
+.coar-number-input-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--coar-spacing-xs);
+  flex-shrink: 0;
+}
+
 .coar-number-input-prefix {
   display: inline-flex;
   align-items: center;

@@ -36,6 +36,18 @@ Prefix and suffix slots help users understand the expected format -- think curre
 
 <preview path="./text-input/demos/TextInputPrefixSuffix.vue" />
 
+## Prefix & Suffix Actions <Badge type="warning" text="Preview" /> {#actions}
+
+`#prefixAction` and `#suffixAction` hold interactive content at the outer edges of the field, such as an inline
+select for the protocol of a web address. Unlike `#prefix` and `#suffix`, which show muted text, an action keeps the
+text style of the field. An inline select there runs to the edge: its fill on hover reaches the border and follows
+the field's corner. Both slots get `{ disabled, readonly }` of the field, so the action can follow its state.
+
+<preview path="./text-input/demos/TextInputActions.vue" />
+
+An action is a field of its own: a select in it does not take the label, hint or error of the surrounding
+`CoarFormField`, so give it its own name with `aria-label`.
+
 ## Clear Button
 
 When `clearable` is enabled, a small X button appears on hover or focus so users can quickly reset the field. It's **off by default** — set `clearable` to opt in.
@@ -125,6 +137,15 @@ Labels are automatically associated with their inputs. The required asterisk is 
 | `disabled` | `boolean` | `false` | Disable the input |
 | `readonly` | `boolean` | `false` | Make read-only |
 | `required` | `boolean` | `false` | HTML required attribute |
+
+### Slots
+
+| Slot | Scope | Description |
+|------|-------|-------------|
+| `prefix` | — | Muted content before the value, after a prefix action |
+| `suffix` | — | Muted content after the value |
+| `prefixAction` <Badge type="warning" text="Preview" /> | `{ disabled: boolean, readonly: boolean }` | Interactive content at the start edge, see [Actions](#actions) |
+| `suffixAction` | `{ disabled: boolean, readonly: boolean }` | Interactive content at the end edge, see [Actions](#actions) |
 
 ::: tip
 Label, hint, and error are provided by [`CoarFormField`](/components/form-field). Wrap inputs in a `CoarFormField` to add these features.
