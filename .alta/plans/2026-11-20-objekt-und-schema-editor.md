@@ -226,7 +226,7 @@ Schema-Editor, damit der Review in Abschnitten geht.
 - [x] 10. `CoarSchemaEditor` aus dem Inspector des Spikes: Liste der Properties mit Verschachtelung, Typ-Auswahl aus dem
       Register (eingebaut und eigene), Einstellungen je nach `settings` des Typs, Auswahlwerte bearbeiten.
 - [x] 11. Doku-Abschnitt mit Demo: Schema-Editor und Objekt-Editor nebeneinander am selben Schema. `pnpm skill:sync`.
-- [ ] 11a. Lokale Prüfungen (siehe unten), Branch `feat/object-editor`, PR nach Skill `cocoar-pr`, CI beobachten.
+- [x] 11a. Lokale Prüfungen (siehe unten), Branch `feat/object-editor`, PR nach Skill `cocoar-pr`, CI beobachten.
 
 **Aufräumen (ohne PR)**
 
@@ -236,15 +236,15 @@ Schema-Editor, damit der Review in Abschnitten geht.
 
 ## How it is verified
 
-- [ ] Unit-Tests des Pakets (`pnpm --filter @cocoar/vue-object-editor test`) grün, mit den Fällen aus Schritt 3 und 9.
-- [ ] Ein Schema aus dem Schema-Editor validiert mit einem zweiten, unabhängigen Validator: ein Test prüft die
+- [x] Unit-Tests des Pakets (`pnpm --filter @cocoar/vue-object-editor test`) grün, mit den Fällen aus Schritt 3 und 9.
+- [x] Ein Schema aus dem Schema-Editor validiert mit einem zweiten, unabhängigen Validator: ein Test prüft die
       Demo-Schemas zusätzlich mit `ajv` als Dev-Abhängigkeit. So stellen wir sicher, dass wir Standard schreiben.
-- [ ] Rundreise: Schema-Editor erzeugt ein Schema → Objekt-Editor füllt es → die Daten bestehen die Prüfung → Daten
+- [x] Rundreise: Schema-Editor erzeugt ein Schema → Objekt-Editor füllt es → die Daten bestehen die Prüfung → Daten
       mit unbekannten Properties und einem Array von Objekten kommen unverändert zurück.
-- [ ] Doku-Browser-Tests (`apps/playground/docs-e2e/`) für die Demo-Seite: Wert bearbeiten, Fehler erscheint in der
+- [x] Doku-Browser-Tests (`apps/playground/docs-e2e/`) für die Demo-Seite: Wert bearbeiten, Fehler erscheint in der
       richtigen Zeile, Ansicht und Bearbeiten verschieben nichts.
-- [ ] `pnpm lint && pnpm typecheck && pnpm build`, `pnpm skill:check`; `pnpm test` läuft in der CI.
-- [ ] Visueller Vergleich `node apps/playground/scripts/visual.mjs`: keine bestehende Aufnahme ändert sich (das Paket
+- [x] `pnpm lint && pnpm typecheck && pnpm build`, `pnpm skill:check`; `pnpm test` läuft in der CI des PR.
+- [x] Visueller Vergleich `node apps/playground/scripts/visual.mjs`: keine bestehende Aufnahme ändert sich (das Paket
       ist neu und ändert `@cocoar/vue-ui` nicht).
 
 ## Decisions
