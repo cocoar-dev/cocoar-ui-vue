@@ -14,7 +14,8 @@
  *    instead of the viewport
  */
 import {
-  computed, inject, toRef, watch, onBeforeUnmount, useTemplateRef, nextTick, markRaw,
+  computed, inject, toRef, watch, onBeforeUnmount, onBeforeUpdate, shallowRef, useAttrs, useTemplateRef, nextTick, markRaw,
+  type VNode,
 } from 'vue';
 import { useI18n } from '@cocoar/vue-localization';
 import { CoarIcon } from '../icon';
@@ -22,7 +23,10 @@ import { useSelectBase, resolveDropdownSize, type CoarSelectSize, type CoarSelec
 import { getOverlayService, useOverlayParent } from '../overlay/useOverlay';
 import { selectPreset } from '../overlay/overlay-presets';
 import type { OverlayRef } from '../overlay/overlay-types';
-import type { CoarSelectOption, CoarSelectSortGroups, CoarSelectSortOptions } from './types';
+import type {
+  CoarSelectOption, CoarSelectSortGroups, CoarSelectSortOptions,
+  CoarSelectValueSlotProps, CoarSelectOptionSlotProps,
+} from './types';
 import { FORM_FIELD_INJECTION_KEY } from '../form-field/constants';
 import CoarInputFrame from '../input-frame/CoarInputFrame.vue';
 import type { CoarInputWidth } from '../input-frame/types';
@@ -92,7 +96,21 @@ const props = withDefaults(defineProps<CoarSelectProps<T>>(), {
   sortOptions: 'none',
 });
 
+defineOptions({ inheritAttrs: false });
+
 const model = defineModel<T | null>({ default: null });
+
+const slots = defineSlots<{
+  /** Content of the closed select: the selected option, or the empty state. */
+  value?(scope: CoarSelectValueSlotProps<T>): VNode[];
+  /** Content of an option in the dropdown. */
+  option?(scope: CoarSelectOptionSlotProps<T>): VNode[];
+}>();
+// The dropdown is mounted by the overlay service, outside this component's
+// render. Vue's slots object is not reactive, so mirror the current option slot
+// before each update: an open dropdown follows a slot that changes or appears.
+const optionSlot = shallowRef(slots.option);
+onBeforeUpdate(() => { optionSlot.value = slots.option; });
 
 const { t } = useI18n();
 
@@ -137,6 +155,14 @@ const {
 const inputId = computed(() => props.id || formField?.inputId.value || baseInputId.value);
 const describedBy = computed(() => formField?.messageId.value || undefined);
 const labelledBy = computed(() => formField?.labelId.value || undefined);
+// Without a form-field label, an `aria-label` given to the select names the
+// combobox; the host element, which has no role, gets the other attributes.
+// `useAttrs()` is not reactive: read it while rendering, not in a computed.
+const attrs = useAttrs();
+const ariaLabel = () =>
+  labelledBy.value ? undefined : (attrs['aria-label'] as string | undefined);
+const hostAttrs = () =>
+  Object.fromEntries(Object.entries(attrs).filter(([name]) => name !== 'aria-label'));
 
 const compare = computed(() => props.compareWith ?? ((a: T, b: T) => a === b));
 
@@ -195,6 +221,9 @@ function onTriggerClick(event: Event) {
   }
 }
 
+// Also handles the keys of the inline search, which sit inside the trigger and
+// bubble up to it. The search has no handler of its own: a second one would run
+// after a selection had closed the list, and Enter would open it again.
 function handleKeyDown(event: KeyboardEvent) {
   const wasOpen = isOpen.value;
   const isSearchFocused = searchInputRef.value != null && event.target === searchInputRef.value;
@@ -239,6 +268,7 @@ function openOverlay() {
       isSelected,
       onOptionClick: (opt: CoarSelectOption<T>) => selectOption(opt),
       onHighlight: (i: number) => { highlightedIndex.value = i; },
+      optionSlot,
     },
     parent: parentOverlay,
   });
@@ -271,7 +301,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="hostRef" :class="hostClasses">
+  <div ref="hostRef" v-bind="hostAttrs()" :class="hostClasses">
     <div class="coar-select-wrapper">
       <!-- Trigger = the shared input shell (combobox role/aria/handlers fall through
            to its root). The frame paints both appearances. -->
@@ -292,6 +322,7 @@ onBeforeUnmount(() => {
         :aria-activedescendant="activeDescendantId"
         :aria-describedby="describedBy"
         :aria-labelledby="labelledBy"
+        :aria-label="ariaLabel()"
         :aria-invalid="hasError ? 'true' : undefined"
         :aria-disabled="disabled ? 'true' : undefined"
         :tabindex="disabled ? -1 : 0"
@@ -305,8 +336,10 @@ onBeforeUnmount(() => {
              its width, so the box neither grows nor moves while typing. -->
         <span v-if="isOpen && searchable && width === 'content'" class="coar-select-content-search">
           <span class="coar-select-value coar-select-search-sizer" aria-hidden="true">
-            <CoarIcon v-if="selectedOption?.icon" :name="selectedOption.icon" size="s" class="coar-select-value-icon" />
-            {{ selectedOption ? selectedOption.label : placeholder }}
+            <slot name="value" :option="selectedOption" :value="model" :placeholder="placeholder">
+              <CoarIcon v-if="selectedOption?.icon" :name="selectedOption.icon" size="s" class="coar-select-value-icon" />
+              {{ selectedOption ? selectedOption.label : placeholder }}
+            </slot>
           </span>
           <input
             ref="searchInputRef"
@@ -316,7 +349,6 @@ onBeforeUnmount(() => {
             :value="searchQuery"
             autocomplete="off"
             @input="onSearchInput"
-            @keydown="handleKeyDown"
             @click.stop
           />
         </span>
@@ -330,16 +362,17 @@ onBeforeUnmount(() => {
           :value="searchQuery"
           autocomplete="off"
           @input="onSearchInput"
-          @keydown="handleKeyDown"
           @click.stop
         />
         <!-- Selected Value or Placeholder -->
         <span v-else class="coar-select-value" :class="{ 'coar-select-placeholder': !selectedOption }">
-          <template v-if="selectedOption">
-            <CoarIcon v-if="selectedOption.icon" :name="selectedOption.icon" size="s" class="coar-select-value-icon" />
-            {{ selectedOption.label }}
-          </template>
-          <template v-else>{{ placeholder }}</template>
+          <slot name="value" :option="selectedOption" :value="model" :placeholder="placeholder">
+            <template v-if="selectedOption">
+              <CoarIcon v-if="selectedOption.icon" :name="selectedOption.icon" size="s" class="coar-select-value-icon" />
+              {{ selectedOption.label }}
+            </template>
+            <template v-else>{{ placeholder }}</template>
+          </slot>
         </span>
 
         <!-- Clear + chevron → trailing affixes (both Type A inline, not edge-buttons) -->

@@ -226,8 +226,12 @@ test('a typed font is previewed from Google Fonts; the download names it and say
     });
   });
   await page.goto('/components/select');
-  const family = () => page.evaluate((selector) =>
-    getComputedStyle(document.querySelector(selector)!).fontFamily.split(',')[0].trim().replace(/["']/g, ''), select);
+  // Waits for the page to render, as metrics() does: goto returns before the demos mount.
+  const family = async () => {
+    await expect(page.locator(select).first()).toBeVisible();
+    return page.evaluate((selector) =>
+      getComputedStyle(document.querySelector(selector)!).fontFamily.split(',')[0].trim().replace(/["']/g, ''), select);
+  };
   const before = await family();
   await openEditor(page);
   expect(requested, 'nothing is fetched before somebody chooses a font').toEqual([]);

@@ -119,6 +119,50 @@ const price = ref('');
 </script>
 ```
 
+## Prefix & Suffix Actions (Preview) {#actions}
+
+`#prefixAction` and `#suffixAction` hold interactive content at the outer edges of the field, such as an inline
+select for the protocol of a web address. Unlike `#prefix` and `#suffix`, which show muted text, an action keeps the
+text style of the field. An inline select there runs to the edge: its fill on hover reaches the border and follows
+the field's corner. Both slots get `{ disabled, readonly }` of the field, so the action can follow its state.
+
+**Demo — `text-input/demos/TextInputActions.vue`**
+
+```vue
+<template>
+  <CoarFormField label="Website" style="max-width: 360px;">
+    <CoarTextInput v-model="host" placeholder="example.com">
+      <template #prefixAction="{ disabled, readonly }">
+        <CoarSelect
+          v-model="scheme"
+          :options="schemes"
+          aria-label="Protocol"
+          appearance="inline"
+          width="content"
+          :disabled="disabled"
+          :readonly="readonly"
+        />
+      </template>
+    </CoarTextInput>
+  </CoarFormField>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue';
+import { CoarFormField, CoarSelect, CoarTextInput } from '@cocoar/vue-ui';
+
+const host = ref('cocoar.dev');
+const scheme = ref<string | null>('https://');
+const schemes = [
+  { value: 'https://', label: 'https://' },
+  { value: 'http://', label: 'http://' },
+];
+</script>
+```
+
+An action is a field of its own: a select in it does not take the label, hint or error of the surrounding
+`CoarFormField`, so give it its own name with `aria-label`.
+
 ## Clear Button
 
 When `clearable` is enabled, a small X button appears on hover or focus so users can quickly reset the field. It's **off by default** — set `clearable` to opt in.
@@ -380,6 +424,15 @@ needs other values, set the roles on its container:
 | `disabled` | `boolean` | `false` | Disable the input |
 | `readonly` | `boolean` | `false` | Make read-only |
 | `required` | `boolean` | `false` | HTML required attribute |
+
+### Slots
+
+| Slot | Scope | Description |
+|------|-------|-------------|
+| `prefix` | — | Muted content before the value, after a prefix action |
+| `suffix` | — | Muted content after the value |
+| `prefixAction` (Preview) | `{ disabled: boolean, readonly: boolean }` | Interactive content at the start edge, see [Actions](#actions) |
+| `suffixAction` | `{ disabled: boolean, readonly: boolean }` | Interactive content at the end edge, see [Actions](#actions) |
 
 > **Tip**
 >

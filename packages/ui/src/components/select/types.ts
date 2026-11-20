@@ -14,6 +14,21 @@ export interface CoarSelectOption<T = unknown> {
   icon?: string;
 }
 
+/** Scope of CoarSelect's `#value` slot: the selected option, or `null` for the empty state. */
+export interface CoarSelectValueSlotProps<T = unknown> {
+  option: CoarSelectOption<T> | null;
+  value: T | null;
+  placeholder: string;
+}
+
+/** Scope of CoarSelect's `#option` slot. The slot only draws the content; the select keeps selection, keyboard and roles. */
+export interface CoarSelectOptionSlotProps<T = unknown> {
+  option: CoarSelectOption<T>;
+  selected: boolean;
+  highlighted: boolean;
+  index: number;
+}
+
 /** Controls sorting of groups. 'asc' = alphabetical, 'desc' = reverse, 'none' = input order, or custom comparator. */
 export type CoarSelectSortGroups = 'asc' | 'desc' | 'none' | ((a: string, b: string) => number);
 

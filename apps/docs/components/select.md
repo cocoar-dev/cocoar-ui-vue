@@ -78,6 +78,19 @@ selects keep the full width: their chips wrap.
 
 <preview path="./select/demos/SelectInline.vue" />
 
+## Templates <Badge type="warning" text="Preview" /> {#templates}
+
+`CoarSelect` can draw the selected value and the options with your own content, such as an avatar or a second
+line. `#value` draws the closed select, also when nothing is selected; `#option` draws each option in the list.
+Without a slot, the select shows the icon and label as before; each slot works without the other.
+
+<preview path="./select/demos/SelectTemplates.vue" />
+
+The select keeps selection, keyboard navigation, focus, disabled options and the checkmark, so keep slot content
+non-interactive: no buttons, links, inputs or closable tags. Every option still needs its `label`: search, sorting,
+the option's accessible name and the overflow tooltip use it. With `width="content"` and `searchable`, the
+`#value` content also keeps the width of the box while you search.
+
 ## API
 
 ### Props
@@ -99,6 +112,18 @@ selects keep the full width: their chips wrap.
 | `dropdownPosition` | `'auto' \| 'top' \| 'bottom'` | `'auto'` | Dropdown position preference |
 | `sortGroups` | `'asc' \| 'desc' \| 'none' \| (a, b) => number` | `'asc'` | Sort order for groups |
 | `sortOptions` | `'asc' \| 'desc' \| 'none' \| (a, b) => number` | `'none'` | Sort order for options (within each group, or all if ungrouped) |
+
+### Slots <Badge type="warning" text="Preview" />
+
+`CoarSelect` only, see [Templates](#templates).
+
+| Slot | Scope | Without the slot |
+|------|-------|------------------|
+| `value` | `{ option: CoarSelectOption<T> \| null, value: T \| null, placeholder: string }` | Icon and label of the selected option, or the placeholder |
+| `option` | `{ option: CoarSelectOption<T>, selected: boolean, highlighted: boolean, index: number }` | Icon and label of the option; the checkmark is always the select's own |
+
+The scope types are exported as `CoarSelectValueSlotProps<T>` and `CoarSelectOptionSlotProps<T>`. `index` is the
+position in the filtered, sorted list.
 
 ## i18n Keys
 

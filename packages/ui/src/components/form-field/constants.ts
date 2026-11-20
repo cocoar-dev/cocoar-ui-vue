@@ -1,4 +1,4 @@
-import type { ComputedRef, InjectionKey } from 'vue';
+import { provide, type ComputedRef, type InjectionKey } from 'vue';
 
 export interface FormFieldProvided {
   inputId: ComputedRef<string>;
@@ -17,3 +17,12 @@ export interface FormFieldProvided {
 export const FORM_FIELD_INJECTION_KEY: InjectionKey<FormFieldProvided> = Symbol.for(
   'coar:form-field',
 ) as InjectionKey<FormFieldProvided>;
+
+/**
+ * Hide the surrounding form field from the calling component's descendants. A
+ * control nested in an input (e.g. a select in a suffix action) is a field of its
+ * own: it must not take the input's label, message or error state.
+ */
+export function provideNoFormField(): void {
+  provide(FORM_FIELD_INJECTION_KEY, undefined as unknown as FormFieldProvided);
+}

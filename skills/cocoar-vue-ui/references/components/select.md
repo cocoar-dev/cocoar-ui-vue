@@ -469,6 +469,86 @@ const methods = [
 </script>
 ```
 
+## Templates (Preview) {#templates}
+
+`CoarSelect` can draw the selected value and the options with your own content, such as an avatar or a second
+line. `#value` draws the closed select, also when nothing is selected; `#option` draws each option in the list.
+Without a slot, the select shows the icon and label as before; each slot works without the other.
+
+**Demo — `select/demos/SelectTemplates.vue`**
+
+```vue
+<template>
+  <CoarFormField label="Owner">
+    <CoarSelect
+      v-model="owner"
+      :options="options"
+      :compare-with="samePerson"
+      placeholder="Choose a person"
+      searchable
+      clearable
+    >
+      <template #value="{ option, placeholder }">
+        <span v-if="option" class="person">
+          <CoarAvatar :name="option.label" size="xs" :max-length="2" aria-hidden="true" />
+          <span>{{ option.label }}</span>
+        </span>
+        <span v-else>{{ placeholder }}</span>
+      </template>
+      <template #option="{ option }">
+        <span class="person">
+          <CoarAvatar :name="option.label" size="xs" :max-length="2" aria-hidden="true" />
+          <span class="person-copy">
+            <span>{{ option.label }}</span>
+            <small>{{ option.value.role }}</small>
+          </span>
+        </span>
+      </template>
+    </CoarSelect>
+  </CoarFormField>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue';
+import { CoarAvatar, CoarFormField, CoarSelect, type CoarSelectOption } from '@cocoar/vue-ui';
+
+interface Person {
+  id: string;
+  role: string;
+}
+const options: CoarSelectOption<Person>[] = [
+  { value: { id: 'anna', role: 'Product management' }, label: 'Anna Berger' },
+  { value: { id: 'lukas', role: 'Design' }, label: 'Lukas Huber' },
+  { value: { id: 'sophie', role: 'Purchasing' }, label: 'Sophie Wagner' },
+];
+const owner = ref<Person | null>(options[1].value);
+const samePerson = (a: Person, b: Person) => a.id === b.id;
+</script>
+
+<style scoped>
+.person {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.person-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.person-copy small {
+  font-size: 12px;
+  color: var(--coar-text-neutral-tertiary);
+}
+</style>
+```
+
+The select keeps selection, keyboard navigation, focus, disabled options and the checkmark, so keep slot content
+non-interactive: no buttons, links, inputs or closable tags. Every option still needs its `label`: search, sorting,
+the option's accessible name and the overflow tooltip use it. With `width="content"` and `searchable`, the
+`#value` content also keeps the width of the box while you search.
+
 ## API
 
 ### Props
@@ -490,6 +570,18 @@ const methods = [
 | `dropdownPosition` | `'auto' \| 'top' \| 'bottom'` | `'auto'` | Dropdown position preference |
 | `sortGroups` | `'asc' \| 'desc' \| 'none' \| (a, b) => number` | `'asc'` | Sort order for groups |
 | `sortOptions` | `'asc' \| 'desc' \| 'none' \| (a, b) => number` | `'none'` | Sort order for options (within each group, or all if ungrouped) |
+
+### Slots (Preview)
+
+`CoarSelect` only, see [Templates](#templates).
+
+| Slot | Scope | Without the slot |
+|------|-------|------------------|
+| `value` | `{ option: CoarSelectOption<T> \| null, value: T \| null, placeholder: string }` | Icon and label of the selected option, or the placeholder |
+| `option` | `{ option: CoarSelectOption<T>, selected: boolean, highlighted: boolean, index: number }` | Icon and label of the option; the checkmark is always the select's own |
+
+The scope types are exported as `CoarSelectValueSlotProps<T>` and `CoarSelectOptionSlotProps<T>`. `index` is the
+position in the filtered, sorted list.
 
 ## i18n Keys
 
