@@ -10,7 +10,7 @@
  * `searchQuery`) and accessed via `.value` in the template. That keeps the dropdown
  * in sync with the parent `CoarSelect` without duplicating state.
  */
-import { type FunctionalComponent, type PropType, type Ref, type Slot } from 'vue';
+import { computed, type FunctionalComponent, type PropType, type Ref, type Slot } from 'vue';
 import { useI18n } from '@cocoar/vue-localization';
 import { CoarIcon } from '../icon';
 import { vScrollbar } from '../scrollbar/vScrollbar';
@@ -64,6 +64,7 @@ const filteredOptions = props.filteredOptions;
 const highlightedIndex = props.highlightedIndex;
 const searchQuery = props.searchQuery;
 const optionSlot = props.optionSlot;
+const hasOptionSlot = computed(() => !!optionSlot?.value);
 // One stable component for the slot content, so a parent update re-renders the
 // consumer's components instead of remounting them.
 const OptionContent: FunctionalComponent<CoarSelectOptionSlotProps<T>> = (scope) =>
@@ -97,14 +98,14 @@ const OptionContent: FunctionalComponent<CoarSelectOptionSlotProps<T>> = (scope)
           }"
           :aria-selected="isSelected(option)"
           :aria-disabled="option.disabled ? 'true' : undefined"
-          :aria-label="optionSlot ? option.label : undefined"
+          :aria-label="hasOptionSlot ? option.label : undefined"
           tabindex="-1"
           role="option"
           v-tooltip="{ content: option.label, onlyOnOverflow: '.coar-select-option-label', placement: 'top', openDelay: 300 }"
           @click="onOptionClick(option)"
           @mouseenter="onHighlight(i)"
         >
-          <span v-if="optionSlot" class="coar-select-option-label">
+          <span v-if="hasOptionSlot" class="coar-select-option-label">
             <OptionContent
               :option="option"
               :selected="isSelected(option)"
