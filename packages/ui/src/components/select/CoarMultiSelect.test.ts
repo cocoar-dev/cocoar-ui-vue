@@ -140,6 +140,30 @@ describe('CoarMultiSelect', () => {
     expect(selectAllCheck.classes()).toContain('coar-multi-select-check--indeterminate');
   });
 
+  it('toggles a searched option once with Enter in the search', async () => {
+    const { wrapper: w, state } = mountMultiSelect({ modelValue: [], options: baseOptions, searchable: true });
+    await w.find('.coar-select-trigger').trigger('click');
+    const search = w.find('.coar-select-inline-search');
+    await search.setValue('ban');
+    await search.trigger('keydown', { key: 'ArrowDown' });
+    await search.trigger('keydown', { key: 'Enter' });
+    expect(state.modelValue).toEqual(['b']);
+  });
+
+  it('moves the highlight one option per arrow key in the search', async () => {
+    const { wrapper: w } = mountMultiSelect({ modelValue: [], options: baseOptions, searchable: true });
+    await w.find('.coar-select-trigger').trigger('click');
+    const search = w.find('.coar-select-inline-search');
+    await search.trigger('keydown', { key: 'ArrowDown' });
+    const first = w.findAll('.coar-select-option--highlighted').map((el) => el.text());
+    await search.trigger('keydown', { key: 'ArrowDown' });
+    const second = w.findAll('.coar-select-option--highlighted').map((el) => el.text());
+    expect(first).toHaveLength(1);
+    expect(second).toHaveLength(1);
+    const labels = w.findAll('.coar-select-option').map((el) => el.text());
+    expect(labels.indexOf(second[0]) - labels.indexOf(first[0])).toBe(1);
+  });
+
   it('has multiselectable ARIA', async () => {
     const { wrapper: w } = mountMultiSelect({ options: baseOptions });
     await w.find('.coar-select-trigger').trigger('click');

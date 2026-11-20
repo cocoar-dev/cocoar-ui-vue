@@ -10,12 +10,12 @@
  * `searchQuery`) and accessed via `.value` in the template. That keeps the dropdown
  * in sync with the parent `CoarSelect` without duplicating state.
  */
-import { type PropType, type Ref } from 'vue';
+import { type FunctionalComponent, type PropType, type Ref, type Slot } from 'vue';
 import { useI18n } from '@cocoar/vue-localization';
 import { CoarIcon } from '../icon';
 import { vScrollbar } from '../scrollbar/vScrollbar';
 import { vTooltip } from '../tooltip/vTooltip';
-import type { CoarSelectOption } from './types';
+import type { CoarSelectOption, CoarSelectOptionSlotProps } from './types';
 import type { CoarSelectSize } from './useSelectBase';
 
 const props = defineProps({
@@ -49,6 +49,11 @@ const props = defineProps({
     type: Function as PropType<(i: number) => void>,
     required: true,
   },
+  /** Ref to CoarSelect's `#option` slot; the overlay renders outside CoarSelect, so the slot comes in as a prop. */
+  optionSlot: {
+    type: Object as PropType<Ref<Slot<CoarSelectOptionSlotProps<T>> | undefined>>,
+    default: undefined,
+  },
 });
 
 const { t } = useI18n();
@@ -58,6 +63,11 @@ const { t } = useI18n();
 const filteredOptions = props.filteredOptions;
 const highlightedIndex = props.highlightedIndex;
 const searchQuery = props.searchQuery;
+const optionSlot = props.optionSlot;
+// One stable component for the slot content, so a parent update re-renders the
+// consumer's components instead of remounting them.
+const OptionContent: FunctionalComponent<CoarSelectOptionSlotProps<T>> = (scope) =>
+  optionSlot?.value?.(scope);
 </script>
 
 <template>
@@ -87,14 +97,25 @@ const searchQuery = props.searchQuery;
           }"
           :aria-selected="isSelected(option)"
           :aria-disabled="option.disabled ? 'true' : undefined"
+          :aria-label="optionSlot ? option.label : undefined"
           tabindex="-1"
           role="option"
           v-tooltip="{ content: option.label, onlyOnOverflow: '.coar-select-option-label', placement: 'top', openDelay: 300 }"
           @click="onOptionClick(option)"
           @mouseenter="onHighlight(i)"
         >
-          <CoarIcon v-if="option.icon" :name="option.icon" size="s" class="coar-select-option-icon" />
-          <span class="coar-select-option-label">{{ option.label }}</span>
+          <span v-if="optionSlot" class="coar-select-option-label">
+            <OptionContent
+              :option="option"
+              :selected="isSelected(option)"
+              :highlighted="highlightedIndex === i"
+              :index="i"
+            />
+          </span>
+          <template v-else>
+            <CoarIcon v-if="option.icon" :name="option.icon" size="s" class="coar-select-option-icon" />
+            <span class="coar-select-option-label">{{ option.label }}</span>
+          </template>
           <CoarIcon v-if="isSelected(option)" name="check" source="coar-builtin" size="s" class="coar-select-option-check" />
         </div>
       </template>

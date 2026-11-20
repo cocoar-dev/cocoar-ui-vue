@@ -149,7 +149,10 @@ export { CoarSwitch } from './components/switch';
 export type { CoarSwitchProps, CoarSwitchSize } from './components/switch';
 
 export { CoarSelect, CoarMultiSelect, CoarTagSelect } from './components/select';
-export type { CoarSelectOption, CoarSelectSize, CoarSelectAppearance } from './components/select';
+export type {
+  CoarSelectOption, CoarSelectSize, CoarSelectAppearance,
+  CoarSelectValueSlotProps, CoarSelectOptionSlotProps,
+} from './components/select';
 
 export { CoarListbox } from './components/listbox';
 export type {

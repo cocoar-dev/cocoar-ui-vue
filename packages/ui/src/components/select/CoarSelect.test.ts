@@ -1,8 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mount, type VueWrapper } from '@vue/test-utils';
-import { defineComponent, h, reactive } from 'vue';
+import { defineComponent, h, reactive, ref, type VNode } from 'vue';
 import CoarSelect from './CoarSelect.vue';
-import type { CoarSelectOption, CoarSelectSortGroups, CoarSelectSortOptions } from './types';
+import type {
+  CoarSelectOption, CoarSelectSortGroups, CoarSelectSortOptions,
+  CoarSelectValueSlotProps, CoarSelectOptionSlotProps,
+} from './types';
 import { CoarOverlayPlugin, _resetOverlayServiceForTests } from '../overlay/useOverlay';
 import CoarOverlayHost from '../overlay/CoarOverlayHost.vue';
 import CoarFormField from '../form-field/CoarFormField.vue';
@@ -14,7 +17,15 @@ import CoarFormField from '../form-field/CoarFormField.vue';
  * State is held in a `reactive` object so tests can read the current model value back
  * without plumbing `setProps` through the wrapper.
  */
-function mountSelect(initial: Record<string, unknown> = {}): { wrapper: VueWrapper; state: Record<string, unknown> } {
+type SelectSlots = {
+  value?: (scope: CoarSelectValueSlotProps) => VNode[];
+  option?: (scope: CoarSelectOptionSlotProps) => VNode[];
+};
+
+function mountSelect(
+  initial: Record<string, unknown> = {},
+  slots: SelectSlots | (() => SelectSlots) = {},
+): { wrapper: VueWrapper; state: Record<string, unknown> } {
   const state = reactive({ ...initial }) as Record<string, unknown>;
   const Wrapper = defineComponent({
     setup() {
@@ -22,7 +33,7 @@ function mountSelect(initial: Record<string, unknown> = {}): { wrapper: VueWrapp
         h(CoarSelect, {
           ...state,
           'onUpdate:modelValue': (v: unknown) => { state.modelValue = v; },
-        }),
+        }, typeof slots === 'function' ? slots() : slots),
         h(CoarOverlayHost),
       ]);
     },
@@ -191,6 +202,19 @@ describe('CoarSelect', () => {
     expect(trigger.attributes('aria-invalid')).toBe('true');
   });
 
+  it('handles a search-input Enter only once without reopening the dropdown', async () => {
+    const { wrapper: w, state } = mountSelect({
+      modelValue: null, options: baseOptions, searchable: true,
+    });
+    await w.find('.coar-select-trigger').trigger('click');
+    const search = w.find('.coar-select-inline-search');
+    await search.setValue('ban');
+    await search.trigger('keydown', { key: 'ArrowDown' });
+    await search.trigger('keydown', { key: 'Enter' });
+    expect(state.modelValue).toBe('b');
+    expect(w.find('.coar-select-dropdown').exists()).toBe(false);
+  });
+
   it('uses the surrounding form-field label as its accessible name', () => {
     const Wrapper = defineComponent({
       setup: () => () => h(CoarFormField, { label: 'Editing language' }, {
@@ -351,5 +375,124 @@ describe('CoarSelect inline appearance and content width', () => {
     expect(w.find('.coar-select-content-search .coar-select-inline-search').exists()).toBe(true);
     await w.get('.coar-select-inline-search').setValue('app');
     expect(w.findAll('.coar-select-option').map((o) => o.text())).toEqual(['Apple']);
+  });
+});
+
+describe('CoarSelect templates', () => {
+  beforeEach(() => {
+    _resetOverlayServiceForTests();
+  });
+
+  afterEach(() => {
+    _resetOverlayServiceForTests();
+    document.body.innerHTML = '';
+  });
+
+  it('renders a value slot for selected and empty states, including raw values', async () => {
+    const { wrapper: w, state } = mountSelect({ modelValue: null, options: baseOptions, placeholder: 'Pick one' }, {
+      value: ({ option, value, placeholder }) => [
+        h('span', { class: 'custom-value' }, option ? `${option.label}/${value}` : `Empty: ${placeholder}`),
+      ],
+    });
+    expect(w.find('.custom-value').text()).toBe('Empty: Pick one');
+    state.modelValue = 'b';
+    await w.vm.$nextTick();
+    expect(w.find('.custom-value').text()).toBe('Banana/b');
+    await w.find('.coar-select-trigger').trigger('click');
+    // A value slot alone must not change the default option renderer.
+    expect(w.findAll('.coar-select-option-label').map((el) => el.text())).toEqual(['Apple', 'Banana', 'Cherry', 'Disabled']);
+  });
+
+  it('keeps the original value-slot content as the content-width search sizer', async () => {
+    const { wrapper: w } = mountSelect({
+      modelValue: 'a', options: baseOptions, width: 'content', searchable: true,
+    }, {
+      value: ({ option }) => [h('span', { class: 'custom-value' }, `Person: ${option?.label}`)],
+    });
+    await w.find('.coar-select-trigger').trigger('click');
+    expect(w.find('.coar-select-search-sizer .custom-value').text()).toBe('Person: Apple');
+    await w.find('.coar-select-inline-search').setValue('ban');
+    expect(w.findAll('.coar-select-option')).toHaveLength(1);
+    expect(w.find('.coar-select-option-label').text()).toBe('Banana');
+  });
+
+  it('passes option state to the slot while preserving roles, checks and keyboard selection', async () => {
+    const { wrapper: w, state } = mountSelect({ modelValue: 'b', options: baseOptions }, {
+      option: ({ option, selected, highlighted, index }) => [
+        h('span', {
+          class: 'custom-option', 'data-selected': String(selected),
+          'data-highlighted': String(highlighted), 'data-index': index,
+        }, `Custom ${option.label}`),
+      ],
+    });
+    const trigger = w.find('.coar-select-trigger');
+    await trigger.trigger('click');
+    expect(w.find('.coar-select-value').text()).toBe('Banana');
+    const selected = w.findAll('.coar-select-option')[1];
+    expect(selected.attributes('role')).toBe('option');
+    expect(selected.attributes('aria-label')).toBe('Banana');
+    expect(selected.attributes('aria-selected')).toBe('true');
+    expect(selected.find('.custom-option').attributes('data-selected')).toBe('true');
+    expect(selected.find('.custom-option').attributes('data-index')).toBe('1');
+    expect(selected.find('.coar-select-option-check').exists()).toBe(true);
+    await selected.trigger('mouseenter');
+    expect(selected.find('.custom-option').attributes('data-highlighted')).toBe('true');
+    await trigger.trigger('keydown', { key: 'ArrowDown' });
+    expect(w.findAll('.custom-option')[2].attributes('data-highlighted')).toBe('true');
+    await trigger.trigger('keydown', { key: 'Enter' });
+    expect(state.modelValue).toBe('c');
+    expect(w.find('.coar-select-dropdown').exists()).toBe(false);
+  });
+
+  it('filters by labels and blocks disabled options even with custom content', async () => {
+    const { wrapper: w, state } = mountSelect({ options: baseOptions, searchable: true }, {
+      option: () => [h('span', { class: 'custom-option' }, 'Visual content')],
+    });
+    await w.find('.coar-select-trigger').trigger('click');
+    await w.findAll('.custom-option')[3].trigger('click');
+    expect(state.modelValue).toBeUndefined();
+    expect(w.find('.coar-select-dropdown').exists()).toBe(true);
+    await w.find('.coar-select-inline-search').setValue('ban');
+    expect(w.findAll('.coar-select-option')).toHaveLength(1);
+    expect(w.find('.coar-select-option').attributes('aria-label')).toBe('Banana');
+    await w.find('.custom-option').trigger('click');
+    expect(state.modelValue).toBe('b');
+  });
+
+  it('updates service-mounted slot content without remounting its components', async () => {
+    let mounts = 0;
+    const suffix = ref('!');
+    const Label = defineComponent({
+      props: { label: { type: String, required: true } },
+      setup(props) {
+        mounts += 1;
+        return () => h('span', { class: 'slot-label' }, props.label);
+      },
+    });
+    const { wrapper: w } = mountSelect({ options: baseOptions }, {
+      option: ({ option }) => [h(Label, { label: option.label + suffix.value })],
+    });
+    await w.find('.coar-select-trigger').trigger('click');
+    expect(mounts).toBe(4);
+    suffix.value = '?';
+    await w.vm.$nextTick();
+    expect(w.find('.slot-label').text()).toBe('Apple?');
+    expect(mounts).toBe(4);
+  });
+
+  it('switches between custom and default option content while the overlay is open', async () => {
+    const custom = ref(false);
+    const { wrapper: w } = mountSelect({ options: baseOptions }, () => custom.value ? {
+      option: ({ option }) => [h('span', { class: 'custom-option' }, `Custom ${option.label}`)],
+    } : {});
+    await w.find('.coar-select-trigger').trigger('click');
+    expect(w.find('.custom-option').exists()).toBe(false);
+    custom.value = true;
+    await w.vm.$nextTick();
+    expect(w.findAll('.custom-option')).toHaveLength(4);
+    custom.value = false;
+    await w.vm.$nextTick();
+    expect(w.find('.custom-option').exists()).toBe(false);
+    expect(w.find('.coar-select-option-label').text()).toBe('Apple');
   });
 });
