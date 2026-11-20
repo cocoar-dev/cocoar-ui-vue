@@ -206,6 +206,149 @@ const bio = ref('');
 </script>
 ```
 
+## Inline (Preview) {#inline}
+
+`appearance="inline"` lets a field sit in a sentence or a table row without looking like a form. At rest only the
+value shows; hovering fills the box lightly to show what a click activates, and while the field is edited the fill
+is stronger. Size, padding, radius and font stay those of the outlined field, so the value does not move when the
+field is focused. An error keeps its red border, and disabled and readonly look as usual. Only the box itself
+reacts to a click: the free space next to it activates nothing.
+
+`width="content"` makes a single-line field as wide as its value (or its placeholder when it is empty) plus its
+prefix, suffix and clear button, at most the available width. A multiline field keeps the full width.
+
+**Demo — `text-input/demos/TextInputInline.vue`**
+
+```vue
+<template>
+  <div style="display: flex; flex-direction: column; gap: 16px; max-width: 480px;">
+    <p style="margin: 0; line-height: 2.4;">
+      The
+      <CoarTextInput v-model="product" appearance="inline" width="content" placeholder="product" />
+      ships from
+      <CoarTextInput v-model="city" appearance="inline" width="content" placeholder="city" />
+      · in stock
+    </p>
+    <CoarFormField label="Description">
+      <CoarTextInput v-model="description" appearance="inline" :rows="2" />
+    </CoarFormField>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue';
+import { CoarTextInput, CoarFormField } from '@cocoar/vue-ui';
+
+const product = ref('Cocoar Desk Lamp');
+const city = ref('');
+const description = ref('Dimmable LED lamp with a warm white setting.');
+</script>
+```
+
+The same props work on [Number Input](./number-input.md#inline), [Select](./select.md#inline),
+[Date Picker](./date-picker.md#inline) and the other date pickers. Together they make a property list
+that is edited where it is read:
+
+**Demo — `text-input/demos/InlineProperties.vue`**
+
+```vue
+<template>
+  <table class="inline-properties">
+    <tbody>
+      <tr>
+        <th scope="row">Name</th>
+        <td><CoarTextInput v-model="name" appearance="inline" width="content" placeholder="–" /></td>
+      </tr>
+      <tr>
+        <th scope="row">Price</th>
+        <td>
+          <CoarNumberInput
+            v-model="price"
+            appearance="inline"
+            width="content"
+            :decimals="2"
+            suffix="EUR"
+          />
+        </td>
+      </tr>
+      <tr>
+        <th scope="row">Category</th>
+        <td>
+          <CoarSelect v-model="category" :options="categories" appearance="inline" width="content" searchable />
+        </td>
+      </tr>
+      <tr>
+        <th scope="row">Available from</th>
+        <td><CoarPlainDatePicker v-model="availableFrom" appearance="inline" width="content" /></td>
+      </tr>
+      <tr>
+        <th scope="row">Stock</th>
+        <td><CoarNumberInput v-model="stock" appearance="inline" width="content" :min="0" stepper-buttons="both" /></td>
+      </tr>
+      <tr>
+        <th scope="row">SKU</th>
+        <td><CoarTextInput v-model="sku" appearance="inline" width="content" error /></td>
+      </tr>
+    </tbody>
+  </table>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue';
+import { Temporal } from '@js-temporal/polyfill';
+import { CoarTextInput, CoarNumberInput, CoarSelect, CoarPlainDatePicker } from '@cocoar/vue-ui';
+
+const name = ref('Cocoar Desk Lamp');
+const price = ref<number | null>(49.9);
+const category = ref<string | null>('lighting');
+const categories = [
+  { value: 'lighting', label: 'Lighting' },
+  { value: 'furniture', label: 'Furniture' },
+  { value: 'office', label: 'Office supplies' },
+  { value: 'decoration', label: 'Decoration' },
+];
+const availableFrom = ref<Temporal.PlainDate | null>(Temporal.PlainDate.from('2026-12-01'));
+const stock = ref<number | null>(12);
+const sku = ref('LAMP 01');
+</script>
+
+<style scoped>
+.inline-properties {
+  border-collapse: collapse;
+  width: 100%;
+  max-width: 520px;
+}
+.inline-properties th,
+.inline-properties td {
+  padding: 2px 8px;
+  border: none;
+  text-align: start;
+  vertical-align: middle;
+}
+.inline-properties th {
+  width: 140px;
+  font-weight: normal;
+  color: var(--coar-text-neutral-secondary);
+}
+/* A row hover in the colour the fills must stand out from. */
+.inline-properties tr:hover {
+  background: var(--coar-background-neutral-secondary);
+}
+</style>
+```
+
+The two fills are the theme roles `--coar-surface-input-inline-hover` and `--coar-surface-input-inline-active`,
+which the Theme Editor lists as "Inline field, hover" and "Inline field, editing". By default they mix the text
+colour into transparency, so they show on any surface, also on a hovered row and in dark mode. Where a background
+needs other values, set the roles on its container:
+
+```css
+.my-editor {
+  --coar-surface-input-inline-hover: rgb(0 0 0 / 8%);
+  --coar-surface-input-inline-active: rgb(0 0 0 / 14%);
+}
+```
+
 ## Accessibility
 
 ### Keyboard Navigation
@@ -239,6 +382,8 @@ const bio = ref('');
 | `suffix` | `string` | `''` | Suffix text after the input |
 | `size` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Input size |
 | `rows` | `number` | `1` | Rows >= 2 enables textarea mode |
+| `appearance` (Preview) | `'outline' \| 'inline'` | `'outline'` | `inline`: no border or surface until hovered or edited, see [Inline](#inline) |
+| `width` (Preview) | `'fill' \| 'content'` | `'fill'` | `content`: as wide as the value or placeholder (single line only) |
 | `clearable` | `boolean` | `false` | Show clear button when input has value |
 | `error` | `boolean` | `false` | Error state (auto-injected from `CoarFormField`) |
 | `disabled` | `boolean` | `false` | Disable the input |

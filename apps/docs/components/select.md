@@ -66,6 +66,18 @@ Control the order of groups and options via `sortGroups` and `sortOptions`. Both
 import type { CoarSelectSortGroups, CoarSelectSortOptions } from '@cocoar/vue-ui';
 ```
 
+## Inline {#inline}
+
+`appearance="inline"` shows only the value until the select is hovered or open: a light fill on hover, a stronger
+one while it has focus or its list is open. An error keeps its red border. It works on all three selects, and its
+look is shared with the other inputs ([Text Input](/components/text-input#inline) shows how to change the fills).
+
+`width="content"` <Badge type="warning" text="Preview" /> makes `CoarSelect` as wide as the selected label or the placeholder, at most the available
+width. While you search, the box keeps that width, so it neither grows nor moves with each letter. Multi and tag
+selects keep the full width: their chips wrap.
+
+<preview path="./select/demos/SelectInline.vue" />
+
 ## API
 
 ### Props
@@ -81,7 +93,8 @@ import type { CoarSelectSortGroups, CoarSelectSortOptions } from '@cocoar/vue-ui
 | `disabled` | `boolean` | `false` | Disable the select |
 | `readonly` | `boolean` | `false` | Read-only state |
 | `error` | `boolean` | `false` | Error state (auto-injected from `CoarFormField`) |
-| `appearance` | `'outline' \| 'inline'` | `'outline'` | Visual appearance variant |
+| `appearance` | `'outline' \| 'inline'` | `'outline'` | `inline`: no border or surface until hovered or open, see [Inline](#inline) |
+| `width` <Badge type="warning" text="Preview" /> | `'fill' \| 'content'` | `'fill'` | `content`: as wide as the selected label or placeholder (`CoarSelect` only) |
 | `compareWith` | `(a: T, b: T) => boolean` | `===` | Custom comparison function for matching values |
 | `dropdownPosition` | `'auto' \| 'top' \| 'bottom'` | `'auto'` | Dropdown position preference |
 | `sortGroups` | `'asc' \| 'desc' \| 'none' \| (a, b) => number` | `'asc'` | Sort order for groups |

@@ -20,6 +20,7 @@
  * internal uses fixed spacing tokens.
  */
 import { computed, useSlots } from 'vue';
+import type { CoarInputAppearance } from './types';
 
 withDefaults(
   defineProps<{
@@ -32,12 +33,12 @@ withDefaults(
     /** Visual open/active state (e.g. a picker panel is open) — mirrors focus styling. */
     active?: boolean;
     /**
-     * Borderless ("inline") variant: no border / surface / focus ring. Keeps the
-     * box model (a transparent 1px border) and radius so an inline control aligns
-     * with its bordered siblings; the consumer supplies any hover/active fill.
-     * Used by the selects' `appearance="inline"`.
+     * `inline`: no visible border, surface or focus ring; a fill on hover and a
+     * stronger one on focus / open (`--coar-surface-input-inline-hover` /
+     * `-active`). The transparent 1px border keeps the box model of the outline
+     * frame, so value and size stay put; an error keeps its red border.
      */
-    borderless?: boolean;
+    appearance?: CoarInputAppearance;
     /**
      * Auto-height variant for content that wraps onto multiple rows (tag-select,
      * future textarea). The per-size `height` becomes a `min-height` floor and the
@@ -53,7 +54,7 @@ withDefaults(
     readonly: false,
     mobileSizing: false,
     active: false,
-    borderless: false,
+    appearance: 'outline',
     multiline: false,
   },
 );
@@ -74,7 +75,7 @@ const hasActions = computed(() => !!slots.actions);
         'coar-input-frame--disabled': disabled,
         'coar-input-frame--readonly': readonly,
         'coar-input-frame--active': active,
-        'coar-input-frame--borderless': borderless,
+        'coar-input-frame--inline': appearance === 'inline',
         'coar-input-frame--multiline': multiline,
         'coar-input-frame--mobile-sizing': mobileSizing,
         'coar-input-frame--has-leading': hasLeading,
@@ -221,19 +222,19 @@ const hasActions = computed(() => !!slots.actions);
 /* ── States ─────────────────────────────────────────────────────── */
 .coar-input-frame:hover:not(.coar-input-frame--disabled):not(.coar-input-frame--readonly):not(
     .coar-input-frame--error
-  ) {
+  ):where(:not(.coar-input-frame--inline)) {
   border-color: var(--coar-border-input-hover);
 }
-.coar-input-frame:focus-within,
-.coar-input-frame--active {
+.coar-input-frame:focus-within:where(:not(.coar-input-frame--inline)),
+.coar-input-frame--active:where(:not(.coar-input-frame--inline)) {
   border-color: var(--coar-focus-color);
   box-shadow: inset 0 0 0 var(--coar-input-focus-width) var(--coar-focus-color);
 }
 .coar-input-frame--error {
   border-color: var(--coar-border-semantic-error-bold);
 }
-.coar-input-frame--error:focus-within,
-.coar-input-frame--error.coar-input-frame--active {
+.coar-input-frame--error:focus-within:where(:not(.coar-input-frame--inline)),
+.coar-input-frame--error.coar-input-frame--active:where(:not(.coar-input-frame--inline)) {
   /* Keep the error border on focus/active — must re-assert border-color, else the
      generic :focus-within rule (same specificity) wins and the border turns blue. */
   border-color: var(--coar-border-semantic-error-bold);
@@ -245,20 +246,26 @@ const hasActions = computed(() => !!slots.actions);
   opacity: 0.6;
 }
 
-/* ── Borderless / inline variant ────────────────────────────────── */
-/* Transparent border keeps the box model identical to bordered siblings; the
-   consumer paints any hover/active fill. Focus ring + border are suppressed. */
-.coar-input-frame--borderless {
-  border-color: transparent;
+/* ── Inline appearance ────────────────────────────────────────── */
+/* No border, surface or focus ring: the value sits in its text or table row. A
+   fill shows what a click activates (hover) and what is being edited (focus /
+   open). The fills are translucent roles, so they show on any background, and a
+   container can override them locally. The transparent border keeps the box model
+   of the outline frame; an error keeps its red border. */
+.coar-input-frame--inline {
   background: transparent;
+  transition:
+    border-color var(--coar-duration-fast) var(--coar-ease-out),
+    background-color var(--coar-duration-fast) var(--coar-ease-out);
 }
-.coar-input-frame--borderless:hover:not(.coar-input-frame--disabled):not(.coar-input-frame--readonly):not(
-    .coar-input-frame--error
-  ),
-.coar-input-frame--borderless:focus-within,
-.coar-input-frame--borderless.coar-input-frame--active {
+.coar-input-frame--inline:not(.coar-input-frame--error) {
   border-color: transparent;
-  box-shadow: none;
+}
+.coar-input-frame--inline:hover:where(:not(.coar-input-frame--disabled, .coar-input-frame--readonly)) {
+  background: var(--coar-surface-input-inline-hover);
+}
+.coar-input-frame--inline:is(:focus-within, .coar-input-frame--active):where(:not(.coar-input-frame--disabled)) {
+  background: var(--coar-surface-input-inline-active);
 }
 
 /* ── Multiline / auto-height variant ────────────────────────────── */

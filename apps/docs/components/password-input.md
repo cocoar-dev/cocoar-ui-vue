@@ -66,6 +66,7 @@ The visibility toggle button has an accessible label that updates based on the c
 | `placeholder` | `string` | `''` | Placeholder text |
 | `error` | `boolean` | `false` | Error state (auto-injected from `CoarFormField`) |
 | `size` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Input size |
+| `appearance` <Badge type="warning" text="Preview" /> | `'outline' \| 'inline'` | `'outline'` | `inline`: no border or surface until hovered or edited, see [Text Input](/components/text-input#inline) |
 | `disabled` | `boolean` | `false` | Disable the input |
 | `readonly` | `boolean` | `false` | Make read-only |
 | `required` | `boolean` | `false` | Mark as required |

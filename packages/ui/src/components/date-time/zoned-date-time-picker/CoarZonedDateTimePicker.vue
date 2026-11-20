@@ -8,6 +8,7 @@ import { useI18n } from '@cocoar/vue-localization';
 
 import CoarIcon from '../../icon/CoarIcon.vue';
 import CoarInputFrame from '../../input-frame/CoarInputFrame.vue';
+import type { CoarInputAppearance } from '../../input-frame/types';
 import CoarInputFrameButton from '../../input-frame/CoarInputFrameButton.vue';
 import { getOverlayService } from '../../overlay/useOverlay';
 import { datepickerPreset } from '../../overlay/overlay-presets';
@@ -24,6 +25,8 @@ const props = withDefaults(
   defineProps<{
     placeholder?: string;
     size?: CoarZonedDateTimePickerSize;
+    /** `inline`: no border or surface until hovered or edited (Preview) */
+    appearance?: CoarInputAppearance;
     disabled?: boolean;
     readonly?: boolean;
     required?: boolean;
@@ -59,6 +62,7 @@ const props = withDefaults(
   {
     placeholder: '',
     size: 'm',
+    appearance: 'outline',
     disabled: false,
     readonly: false,
     required: false,
@@ -332,6 +336,7 @@ const tzIndicatorIcon = computed(() => {
       mobile-sizing
       :size="size"
       :error="hasError"
+      :appearance="appearance"
       :disabled="isDisabled"
       :readonly="readonly"
       :active="pickerBase.isOpen.value"
@@ -391,6 +396,7 @@ const tzIndicatorIcon = computed(() => {
       <template #actions>
         <CoarInputFrameButton
           class="coar-zdtp-btn"
+          :plain="appearance === 'inline'"
           :disabled="isDisabled"
           :aria-label="t('coar.ui.zonedDateTimePicker.openPicker', undefined, 'Open date and time picker')"
           @click.stop="togglePanel"

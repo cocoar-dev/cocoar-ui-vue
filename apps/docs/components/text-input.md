@@ -54,6 +54,37 @@ Set `rows` to 2 or more and the input switches to a textarea, perfect for descri
 
 <preview path="./text-input/demos/TextInputMultiline.vue" />
 
+## Inline <Badge type="warning" text="Preview" /> {#inline}
+
+`appearance="inline"` lets a field sit in a sentence or a table row without looking like a form. At rest only the
+value shows; hovering fills the box lightly to show what a click activates, and while the field is edited the fill
+is stronger. Size, padding, radius and font stay those of the outlined field, so the value does not move when the
+field is focused. An error keeps its red border, and disabled and readonly look as usual. Only the box itself
+reacts to a click: the free space next to it activates nothing.
+
+`width="content"` makes a single-line field as wide as its value (or its placeholder when it is empty) plus its
+prefix, suffix and clear button, at most the available width. A multiline field keeps the full width.
+
+<preview path="./text-input/demos/TextInputInline.vue" />
+
+The same props work on [Number Input](/components/number-input#inline), [Select](/components/select#inline),
+[Date Picker](/components/date-picker#inline) and the other date pickers. Together they make a property list
+that is edited where it is read:
+
+<preview path="./text-input/demos/InlineProperties.vue" />
+
+The two fills are the theme roles `--coar-surface-input-inline-hover` and `--coar-surface-input-inline-active`,
+which the Theme Editor lists as "Inline field, hover" and "Inline field, editing". By default they mix the text
+colour into transparency, so they show on any surface, also on a hovered row and in dark mode. Where a background
+needs other values, set the roles on its container:
+
+```css
+.my-editor {
+  --coar-surface-input-inline-hover: rgb(0 0 0 / 8%);
+  --coar-surface-input-inline-active: rgb(0 0 0 / 14%);
+}
+```
+
 ## Accessibility
 
 ### Keyboard Navigation
@@ -87,6 +118,8 @@ Labels are automatically associated with their inputs. The required asterisk is 
 | `suffix` | `string` | `''` | Suffix text after the input |
 | `size` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Input size |
 | `rows` | `number` | `1` | Rows >= 2 enables textarea mode |
+| `appearance` <Badge type="warning" text="Preview" /> | `'outline' \| 'inline'` | `'outline'` | `inline`: no border or surface until hovered or edited, see [Inline](#inline) |
+| `width` <Badge type="warning" text="Preview" /> | `'fill' \| 'content'` | `'fill'` | `content`: as wide as the value or placeholder (single line only) |
 | `clearable` | `boolean` | `false` | Show clear button when input has value |
 | `error` | `boolean` | `false` | Error state (auto-injected from `CoarFormField`) |
 | `disabled` | `boolean` | `false` | Disable the input |

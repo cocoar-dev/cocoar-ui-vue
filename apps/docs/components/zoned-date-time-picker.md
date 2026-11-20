@@ -99,6 +99,7 @@ These keys can be translated via [`@cocoar/vue-localization`](/foundations/local
 | `timezone` | `string` | user's timezone | IANA timezone ID (e.g. `'Europe/Berlin'`) |
 | `placeholder` | `string` | `''` | Placeholder text |
 | `size` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Input size |
+| `appearance` <Badge type="warning" text="Preview" /> | `'outline' \| 'inline'` | `'outline'` | `inline`: no border or surface until hovered or edited, see [Text Input](/components/text-input#inline) |
 | `disabled` | `boolean` | `false` | Disable the picker |
 | `readonly` | `boolean` | `false` | Make read-only |
 | `required` | `boolean` | `false` | Mark as required |

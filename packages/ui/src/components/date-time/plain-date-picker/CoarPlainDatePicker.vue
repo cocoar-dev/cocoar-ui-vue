@@ -18,6 +18,7 @@ import { useI18n } from '@cocoar/vue-localization';
 
 import CoarIcon from '../../icon/CoarIcon.vue';
 import CoarInputFrame from '../../input-frame/CoarInputFrame.vue';
+import type { CoarInputAppearance, CoarInputWidth } from '../../input-frame/types';
 import CoarInputFrameButton from '../../input-frame/CoarInputFrameButton.vue';
 import { getOverlayService } from '../../overlay/useOverlay';
 import { datepickerPreset } from '../../overlay/overlay-presets';
@@ -36,6 +37,10 @@ const props = withDefaults(
     placeholder?: string;
     /** Size variant */
     size?: CoarPlainDatePickerSize;
+    /** `inline`: no border or surface until hovered or edited (Preview) */
+    appearance?: CoarInputAppearance;
+    /** `content`: as wide as the shown value or placeholder (Preview) */
+    width?: CoarInputWidth;
     /** Disabled state */
     disabled?: boolean;
     /** Readonly state */
@@ -74,6 +79,8 @@ const props = withDefaults(
   {
     placeholder: '',
     size: 'm',
+    appearance: 'outline',
+    width: 'fill',
     disabled: false,
     readonly: false,
     required: false,
@@ -288,6 +295,7 @@ function onInputBlur() {
         'coar-plain-date-picker--readonly': readonly,
         'coar-plain-date-picker--error': hasError,
         'coar-plain-date-picker--open': pickerBase.isOpen.value,
+        'coar-plain-date-picker--content': width === 'content',
       },
     ]"
   >
@@ -299,6 +307,7 @@ function onInputBlur() {
       mobile-sizing
       :size="size"
       :error="hasError"
+      :appearance="appearance"
       :disabled="isDisabled"
       :readonly="readonly"
       :active="pickerBase.isOpen.value"
@@ -329,6 +338,7 @@ function onInputBlur() {
         class="coar-plain-date-picker-input"
         :value="displayValue"
         :placeholder="inputPlaceholder"
+        :size="width === 'content' ? Math.max(1, (displayValue || inputPlaceholder).length) : undefined"
         :disabled="isDisabled"
         :readonly="readonly"
         :required="required"
@@ -344,6 +354,7 @@ function onInputBlur() {
       <template #actions>
         <CoarInputFrameButton
           class="coar-plain-date-picker-btn"
+          :plain="appearance === 'inline'"
           :aria-label="t('coar.ui.datePicker.openPicker', undefined, 'Open picker')"
           :disabled="isDisabled || readonly"
           @click="togglePanel"
@@ -360,6 +371,18 @@ function onInputBlur() {
   display: flex;
   flex-direction: column;
   width: 100%;
+}
+
+/* Content width: the field is as wide as the shown value or placeholder (the
+   `size` attribute is the fallback without field-sizing), the box at most the line. */
+.coar-plain-date-picker--content {
+  display: inline-flex;
+  inline-size: max-content;
+  max-inline-size: 100%;
+}
+.coar-plain-date-picker--content .coar-plain-date-picker-input {
+  field-sizing: content;
+  min-inline-size: 2ch;
 }
 
 /* Label + status icon + message are owned by the wrapping CoarFormField. */

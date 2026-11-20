@@ -34,6 +34,11 @@ Four sizes to match surrounding inputs and keep your forms visually balanced.
 **PlainDateTime vs ZonedDateTime:** Choose `PlainDateTime` when the timezone is always the user's local time or when it simply does not matter (alarm clocks, recurring events). Choose `ZonedDateTime` when you need to pin a specific instant in time and derive UTC for storage or sharing across timezones.
 :::
 
+## Inline <Badge type="warning" text="Preview" /> {#inline}
+
+`appearance` and `width` work as on the [Date Picker](/components/date-picker#inline):
+`<CoarPlainDateTimePicker appearance="inline" width="content" />`.
+
 ## Accessibility
 
 ### Keyboard Navigation
@@ -81,6 +86,8 @@ These keys can be translated via [`@cocoar/vue-localization`](/foundations/local
 | `v-model` | `Temporal.PlainDateTime \| null` | `null` | Selected date+time |
 | `placeholder` | `string` | `''` | Placeholder text |
 | `size` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Input size |
+| `appearance` <Badge type="warning" text="Preview" /> | `'outline' \| 'inline'` | `'outline'` | `inline`: no border or surface until hovered or edited, see [Inline](#inline) |
+| `width` <Badge type="warning" text="Preview" /> | `'fill' \| 'content'` | `'fill'` | `content`: as wide as the shown value or placeholder |
 | `disabled` | `boolean` | `false` | Disable the picker |
 | `readonly` | `boolean` | `false` | Make read-only |
 | `required` | `boolean` | `false` | Mark as required |

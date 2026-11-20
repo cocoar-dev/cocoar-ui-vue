@@ -173,3 +173,28 @@ describe('CoarNumberInput', () => {
     expect(wrapper.emitted('update:modelValue')?.[0]).toEqual([4]);
   });
 });
+
+describe('CoarNumberInput inline appearance and content width', () => {
+  const stubs = { global: { stubs: { CoarIcon: { template: '<span />' } } } };
+
+  it('keeps the outline frame and the full width by default', () => {
+    const wrapper = mount(CoarNumberInput, stubs);
+    expect(wrapper.get('.coar-input-frame').classes()).not.toContain('coar-input-frame--inline');
+    expect(wrapper.classes()).not.toContain('coar-number-input--content');
+    expect(wrapper.get('input').attributes('size')).toBeUndefined();
+  });
+
+  it('opts into the inline frame and keeps the error state', () => {
+    const wrapper = mount(CoarNumberInput, { ...stubs, props: { appearance: 'inline', error: true } });
+    const frame = wrapper.get('.coar-input-frame');
+    expect(frame.classes()).toContain('coar-input-frame--inline');
+    expect(frame.classes()).toContain('coar-input-frame--error');
+    expect(wrapper.get('input').attributes('aria-invalid')).toBe('true');
+  });
+
+  it('sizes the field to its placeholder when empty', () => {
+    const wrapper = mount(CoarNumberInput, { ...stubs, props: { width: 'content', placeholder: '0.00' } });
+    expect(wrapper.classes()).toContain('coar-number-input--content');
+    expect(wrapper.get('input').attributes('size')).toBe('4');
+  });
+});

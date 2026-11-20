@@ -169,3 +169,15 @@ describe('CoarMultiSelect', () => {
     expect(headers).toEqual(['Beta', 'Alpha']);
   });
 });
+
+describe('CoarMultiSelect inline appearance', () => {
+  it('draws the inline frame only on request and keeps the error state', () => {
+    const options = [{ value: 'a', label: 'Apple' }];
+    const { wrapper: outline } = mountMultiSelect({ options });
+    expect(outline.get('.coar-input-frame').classes()).not.toContain('coar-input-frame--inline');
+    const { wrapper: w } = mountMultiSelect({ options, appearance: 'inline', error: true });
+    const frame = w.get('.coar-input-frame');
+    expect(frame.classes()).toContain('coar-input-frame--inline');
+    expect(frame.classes()).toContain('coar-input-frame--error');
+  });
+});

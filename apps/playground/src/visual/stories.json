@@ -945,5 +945,9 @@
       "[data-renderer=markdown] .ProseMirror h2",
       "[data-renderer=mermaid] .coar-mermaid[data-status=rendered] svg"
     ]
+  },
+  {
+    "name": "inline-inputs",
+    "focus": ".coar-text-input--content .coar-text-input-field >> nth=0"
   }
 ]

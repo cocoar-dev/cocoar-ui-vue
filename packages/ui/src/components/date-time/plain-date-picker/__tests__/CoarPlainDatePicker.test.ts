@@ -278,3 +278,32 @@ describe('CoarPlainDatePicker', () => {
     });
   });
 });
+
+describe('inline appearance', () => {
+  it('keeps the outline frame and the calendar segment by default', () => {
+    const w = mountPicker();
+    expect(w.get('.coar-input-frame').classes()).not.toContain('coar-input-frame--inline');
+    expect(w.get('.coar-plain-date-picker-btn').classes()).not.toContain('coar-input-frame-button--plain');
+    w.unmount();
+  });
+
+  it('draws the inline frame with a plain calendar button and keeps the error state', () => {
+    const w = mountPicker({ appearance: 'inline', error: true });
+    const frame = w.get('.coar-input-frame');
+    expect(frame.classes()).toContain('coar-input-frame--inline');
+    expect(frame.classes()).toContain('coar-input-frame--error');
+    expect(w.get('.coar-plain-date-picker-btn').classes()).toContain('coar-input-frame-button--plain');
+    w.unmount();
+  });
+
+  it('fits the field to the shown value only on request', () => {
+    const fill = mountPicker();
+    expect(fill.find('.coar-plain-date-picker--content').exists()).toBe(false);
+    expect(fill.get('input').attributes('size')).toBeUndefined();
+    fill.unmount();
+    const w = mountPicker({ width: 'content' });
+    expect(w.find('.coar-plain-date-picker--content').exists()).toBe(true);
+    expect(Number(w.get('input').attributes('size'))).toBeGreaterThan(0);
+    w.unmount();
+  });
+});

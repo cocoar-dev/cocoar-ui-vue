@@ -3,6 +3,7 @@ import { computed, ref, inject, useTemplateRef } from 'vue';
 import { useI18n } from '@cocoar/vue-localization';
 import { CoarIcon } from '../icon';
 import CoarInputFrame from '../input-frame/CoarInputFrame.vue';
+import type { CoarInputAppearance } from '../input-frame/types';
 import { FORM_FIELD_INJECTION_KEY } from '../form-field/constants';
 
 export type CoarPasswordInputSize = 'xs' | 's' | 'm' | 'l';
@@ -12,6 +13,8 @@ export interface CoarPasswordInputProps {
   placeholder?: string;
   /** Input size */
   size?: CoarPasswordInputSize;
+  /** `inline`: no border or surface until hovered or edited (Preview) */
+  appearance?: CoarInputAppearance;
   /** Disables the input */
   disabled?: boolean;
   /** Makes the input read-only */
@@ -35,6 +38,7 @@ export interface CoarPasswordInputProps {
 const props = withDefaults(defineProps<CoarPasswordInputProps>(), {
   placeholder: '',
   size: 'm',
+  appearance: 'outline',
   disabled: false,
   readonly: false,
   required: false,
@@ -125,6 +129,7 @@ function togglePasswordVisibility() {
         class="coar-password-input-frame"
         :size="size"
         :error="hasError"
+        :appearance="appearance"
         :disabled="disabled"
         :readonly="readonly"
       >

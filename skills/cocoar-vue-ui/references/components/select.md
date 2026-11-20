@@ -428,6 +428,47 @@ const flatOptions: CoarSelectOption<string>[] = groupedOptions.map(({ group, ...
 import type { CoarSelectSortGroups, CoarSelectSortOptions } from '@cocoar/vue-ui';
 ```
 
+## Inline {#inline}
+
+`appearance="inline"` shows only the value until the select is hovered or open: a light fill on hover, a stronger
+one while it has focus or its list is open. An error keeps its red border. It works on all three selects, and its
+look is shared with the other inputs ([Text Input](./text-input.md#inline) shows how to change the fills).
+
+`width="content"` (Preview) makes `CoarSelect` as wide as the selected label or the placeholder, at most the available
+width. While you search, the box keeps that width, so it neither grows nor moves with each letter. Multi and tag
+selects keep the full width: their chips wrap.
+
+**Demo — `select/demos/SelectInline.vue`**
+
+```vue
+<template>
+  <p style="margin: 0; line-height: 2.4;">
+    Ship to
+    <CoarSelect v-model="city" :options="cities" appearance="inline" width="content" searchable />
+    by
+    <CoarSelect v-model="method" :options="methods" appearance="inline" width="content" placeholder="method" />
+  </p>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue';
+import { CoarSelect } from '@cocoar/vue-ui';
+
+const city = ref<string | null>('vie');
+const cities = [
+  { value: 'vie', label: 'Vienna' },
+  { value: 'ber', label: 'Berlin' },
+  { value: 'zrh', label: 'Zurich' },
+  { value: 'ams', label: 'Amsterdam' },
+];
+const method = ref<string | null>(null);
+const methods = [
+  { value: 'standard', label: 'Standard' },
+  { value: 'express', label: 'Express' },
+];
+</script>
+```
+
 ## API
 
 ### Props
@@ -443,7 +484,8 @@ import type { CoarSelectSortGroups, CoarSelectSortOptions } from '@cocoar/vue-ui
 | `disabled` | `boolean` | `false` | Disable the select |
 | `readonly` | `boolean` | `false` | Read-only state |
 | `error` | `boolean` | `false` | Error state (auto-injected from `CoarFormField`) |
-| `appearance` | `'outline' \| 'inline'` | `'outline'` | Visual appearance variant |
+| `appearance` | `'outline' \| 'inline'` | `'outline'` | `inline`: no border or surface until hovered or open, see [Inline](#inline) |
+| `width` (Preview) | `'fill' \| 'content'` | `'fill'` | `content`: as wide as the selected label or placeholder (`CoarSelect` only) |
 | `compareWith` | `(a: T, b: T) => boolean` | `===` | Custom comparison function for matching values |
 | `dropdownPosition` | `'auto' \| 'top' \| 'bottom'` | `'auto'` | Dropdown position preference |
 | `sortGroups` | `'asc' \| 'desc' \| 'none' \| (a, b) => number` | `'asc'` | Sort order for groups |

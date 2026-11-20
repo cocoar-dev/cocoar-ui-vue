@@ -161,6 +161,7 @@ import { CoarPasswordInput, CoarFormField } from '@cocoar/vue-ui';
 | `placeholder` | `string` | `''` | Placeholder text |
 | `error` | `boolean` | `false` | Error state (auto-injected from `CoarFormField`) |
 | `size` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Input size |
+| `appearance` (Preview) | `'outline' \| 'inline'` | `'outline'` | `inline`: no border or surface until hovered or edited, see [Text Input](./text-input.md#inline) |
 | `disabled` | `boolean` | `false` | Disable the input |
 | `readonly` | `boolean` | `false` | Make read-only |
 | `required` | `boolean` | `false` | Mark as required |

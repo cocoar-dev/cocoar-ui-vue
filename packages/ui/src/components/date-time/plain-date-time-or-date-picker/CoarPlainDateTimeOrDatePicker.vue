@@ -17,6 +17,7 @@ import { vTooltip } from '../../tooltip/vTooltip';
 import CoarPlainDatePicker from '../plain-date-picker/CoarPlainDatePicker.vue';
 import CoarPlainDateTimePicker from '../plain-date-time-picker/CoarPlainDateTimePicker.vue';
 import { useDateOrTime } from '../_shared/use-date-or-time';
+import type { CoarInputAppearance } from '../../input-frame/types';
 import '../_shared/date-or-time.css';
 
 export type CoarPlainDateTimeOrDatePickerSize = 'xs' | 's' | 'm' | 'l';
@@ -25,6 +26,8 @@ const props = withDefaults(
   defineProps<{
     placeholder?: string;
     size?: CoarPlainDateTimeOrDatePickerSize;
+    /** `inline`: no border or surface until hovered or edited (Preview) */
+    appearance?: CoarInputAppearance;
     disabled?: boolean;
     readonly?: boolean;
     required?: boolean;
@@ -45,6 +48,7 @@ const props = withDefaults(
   {
     placeholder: '',
     size: 'm',
+    appearance: 'outline',
     disabled: false,
     readonly: false,
     required: false,
@@ -110,6 +114,7 @@ const toggleLabel = computed(() => (withTime.value ? props.removeTimeLabel : pro
     <CoarPlainDateTimePicker
       v-if="withTime"
       class="coar-date-or-time__input"
+      :appearance="appearance"
       :model-value="dateTimeValue"
       :placeholder="placeholder"
       :size="size"
@@ -129,6 +134,7 @@ const toggleLabel = computed(() => (withTime.value ? props.removeTimeLabel : pro
     <CoarPlainDatePicker
       v-else
       class="coar-date-or-time__input"
+      :appearance="appearance"
       :model-value="dateValue"
       :placeholder="placeholder"
       :size="size"

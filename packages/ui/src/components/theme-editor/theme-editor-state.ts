@@ -726,6 +726,8 @@ export const ROLE_VALUE_GROUPS: { label: string; entries: RoleValueEntry[] }[] =
       { token: '--coar-border-neutral-tertiary', label: 'Divider', kind: 'pair' },
       { token: '--coar-border-input', label: 'Field outline', kind: 'pair' },
       { token: '--coar-focus-color', label: 'Focus ring', kind: 'pair' },
+      { token: '--coar-surface-input-inline-hover', label: 'Inline field, hover', kind: 'pair' },
+      { token: '--coar-surface-input-inline-active', label: 'Inline field, editing', kind: 'pair' },
     ],
   },
 ];

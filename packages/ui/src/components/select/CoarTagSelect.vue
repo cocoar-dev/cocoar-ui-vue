@@ -297,7 +297,7 @@ onBeforeUnmount(() => {
         :disabled="disabled"
         :readonly="readonly"
         :active="isOpen"
-        :borderless="appearance === 'inline'"
+        :appearance="appearance"
         @click="onTriggerClick"
       >
         <div class="coar-tag-select-tags">
@@ -359,18 +359,10 @@ onBeforeUnmount(() => {
 }
 
 /* Trigger — box / radius / size / states / multiline min-height + vertical pad are
-   owned by CoarInputFrame (multiline mode). Only the pointer affordance and the
-   inline (borderless) fill live here. */
+   owned by CoarInputFrame (multiline mode). Only the pointer affordance lives
+   here. */
 .coar-tag-select-frame:not(.coar-input-frame--disabled):not(.coar-input-frame--readonly) {
   cursor: text;
-}
-
-/* Inline appearance: borderless frame + a neutral fill on hover / focus / open
-   (mirrors CoarSelect's inline treatment). */
-.coar-select--inline .coar-tag-select-frame:hover:not(.coar-input-frame--disabled):not(.coar-input-frame--readonly),
-.coar-select--inline .coar-tag-select-frame:focus-within,
-.coar-select--inline .coar-tag-select-frame.coar-input-frame--active {
-  background: var(--coar-background-neutral-tertiary);
 }
 
 /* Per-size input text (was constant 14px regardless of size) */

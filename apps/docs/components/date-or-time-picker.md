@@ -106,6 +106,7 @@ Both components share this surface (the zoned variant adds the timezone props).
 | `v-model:withTime` | `boolean` | `false` | The clock toggle / mode. |
 | `placeholder` | `string` | `''` | Placeholder text. |
 | `size` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Field + toggle size. |
+| `appearance` <Badge type="warning" text="Preview" /> | `'outline' \| 'inline'` | `'outline'` | Passed to the field: `inline` shows no border or surface until hovered or edited, see [Text Input](/components/text-input#inline). |
 | `disabled` | `boolean` | `false` | Disable the field and toggle. |
 | `readonly` | `boolean` | `false` | Read-only (toggle disabled too). |
 | `required` | `boolean` | `false` | Mark as required. |

@@ -253,3 +253,21 @@ describe('CoarZonedDateTimePicker', () => {
     });
   });
 });
+
+describe('inline appearance', () => {
+  it('keeps the outline frame and the calendar segment by default', () => {
+    const w = mountPicker();
+    expect(w.get('.coar-input-frame').classes()).not.toContain('coar-input-frame--inline');
+    expect(w.get('.coar-zdtp-btn').classes()).not.toContain('coar-input-frame-button--plain');
+    w.unmount();
+  });
+
+  it('draws the inline frame with a plain calendar button and keeps the error state', () => {
+    const w = mountPicker({ appearance: 'inline', error: true });
+    const frame = w.get('.coar-input-frame');
+    expect(frame.classes()).toContain('coar-input-frame--inline');
+    expect(frame.classes()).toContain('coar-input-frame--error');
+    expect(w.get('.coar-zdtp-btn').classes()).toContain('coar-input-frame-button--plain');
+    w.unmount();
+  });
+});

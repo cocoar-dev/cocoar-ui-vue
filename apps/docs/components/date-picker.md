@@ -46,6 +46,15 @@ Four sizes to stay consistent with other form controls across your layout.
 **Temporal.PlainDate:** This component uses the TC39 Temporal API (`@js-temporal/polyfill`). PlainDate represents a calendar date without time or timezone -- no more wrestling with midnight UTC offsets.
 :::
 
+## Inline <Badge type="warning" text="Preview" /> {#inline}
+
+`appearance="inline"` shows only the date until the field is hovered, edited or its calendar is open; the calendar
+button stays and loses its segment background. `width="content"` fits the field to the shown date or the format
+placeholder. Typing a date works as usual. How both behave and how to change the fills:
+[Text Input](/components/text-input#inline).
+
+<preview path="./date-picker/demos/DatePickerInline.vue" />
+
 ## Accessibility
 
 ### Keyboard Navigation
@@ -75,6 +84,8 @@ Four sizes to stay consistent with other form controls across your layout.
 | `min` | `Temporal.PlainDate` | `undefined` | Minimum selectable date |
 | `max` | `Temporal.PlainDate` | `undefined` | Maximum selectable date |
 | `size` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Input size |
+| `appearance` <Badge type="warning" text="Preview" /> | `'outline' \| 'inline'` | `'outline'` | `inline`: no border or surface until hovered or edited, see [Inline](#inline) |
+| `width` <Badge type="warning" text="Preview" /> | `'fill' \| 'content'` | `'fill'` | `content`: as wide as the shown value or placeholder |
 | `disabled` | `boolean` | `false` | Disable the picker |
 | `readonly` | `boolean` | `false` | Make read-only |
 | `required` | `boolean` | `false` | Mark as required |

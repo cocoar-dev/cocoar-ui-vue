@@ -8,6 +8,7 @@ import { useI18n } from '@cocoar/vue-localization';
 
 import CoarIcon from '../../icon/CoarIcon.vue';
 import CoarInputFrame from '../../input-frame/CoarInputFrame.vue';
+import type { CoarInputAppearance, CoarInputWidth } from '../../input-frame/types';
 import CoarInputFrameButton from '../../input-frame/CoarInputFrameButton.vue';
 import { getOverlayService } from '../../overlay/useOverlay';
 import { datepickerPreset } from '../../overlay/overlay-presets';
@@ -24,6 +25,10 @@ const props = withDefaults(
   defineProps<{
     placeholder?: string;
     size?: CoarPlainDateTimePickerSize;
+    /** `inline`: no border or surface until hovered or edited (Preview) */
+    appearance?: CoarInputAppearance;
+    /** `content`: as wide as the shown value or placeholder (Preview) */
+    width?: CoarInputWidth;
     disabled?: boolean;
     readonly?: boolean;
     required?: boolean;
@@ -55,6 +60,8 @@ const props = withDefaults(
   {
     placeholder: '',
     size: 'm',
+    appearance: 'outline',
+    width: 'fill',
     disabled: false,
     readonly: false,
     required: false,
@@ -372,6 +379,7 @@ function onInputBlur() {
         'coar-pdtp--readonly': readonly,
         'coar-pdtp--error': hasError,
         'coar-pdtp--open': pickerBase.isOpen.value,
+        'coar-pdtp--content': width === 'content',
       },
     ]"
   >
@@ -383,6 +391,7 @@ function onInputBlur() {
       mobile-sizing
       :size="size"
       :error="hasError"
+      :appearance="appearance"
       :disabled="isDisabled"
       :readonly="readonly"
       :active="pickerBase.isOpen.value"
@@ -412,6 +421,7 @@ function onInputBlur() {
         class="coar-pdtp-input"
         :value="displayValue"
         :placeholder="inputPlaceholder"
+        :size="width === 'content' ? Math.max(1, (displayValue || inputPlaceholder).length) : undefined"
         :disabled="isDisabled"
         :readonly="readonly"
         :required="required"
@@ -427,6 +437,7 @@ function onInputBlur() {
       <template #actions>
         <CoarInputFrameButton
           class="coar-pdtp-btn"
+          :plain="appearance === 'inline'"
           :aria-label="t('coar.ui.dateTimePicker.openPicker', undefined, 'Open picker')"
           :disabled="isDisabled || readonly"
           @click="togglePanel"
@@ -443,6 +454,18 @@ function onInputBlur() {
   display: flex;
   flex-direction: column;
   width: 100%;
+}
+
+/* Content width: the field is as wide as the shown value or placeholder (the
+   `size` attribute is the fallback without field-sizing), the box at most the line. */
+.coar-pdtp--content {
+  display: inline-flex;
+  inline-size: max-content;
+  max-inline-size: 100%;
+}
+.coar-pdtp--content .coar-pdtp-input {
+  field-sizing: content;
+  min-inline-size: 2ch;
 }
 
 /* Label + status icon + message are owned by the wrapping CoarFormField. */
