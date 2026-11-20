@@ -1438,6 +1438,8 @@
   --coar-border-input: light-dark(#8e949c, #60718a);
   --coar-border-input-hover: light-dark(#7d8794, #6d7e97);
   --coar-focus-color: light-dark(#465d7b, #b5c9e4);
+  --coar-surface-input-inline-hover: color-mix(in srgb, currentColor 6%, transparent);
+  --coar-surface-input-inline-active: color-mix(in srgb, currentColor 11%, transparent);
 }
 
 :scope :where(.coar-mobile, .coar-theme-scope, .coar-theme-none, .light-mode, .dark-mode, [data-theme]) {
@@ -1960,6 +1962,8 @@
   --coar-border-input: inherit;
   --coar-border-input-hover: inherit;
   --coar-focus-color: inherit;
+  --coar-surface-input-inline-hover: inherit;
+  --coar-surface-input-inline-active: inherit;
 }
 
 .coar-mobile :scope,
@@ -2886,6 +2890,8 @@
   --coar-theme-calendar-all-day-action-size: initial;
   --coar-theme-calendar-month-overflow-target-size: initial;
   --coar-code-block-caption-font-size: initial;
+  --coar-surface-input-inline-hover: color-mix(in srgb, currentColor 6%, transparent);
+  --coar-surface-input-inline-active: color-mix(in srgb, currentColor 11%, transparent);
 }
 
 :scope .coar-mobile {
@@ -3459,6 +3465,8 @@
   --coar-border-input: inherit;
   --coar-border-input-hover: inherit;
   --coar-focus-color: inherit;
+  --coar-surface-input-inline-hover: inherit;
+  --coar-surface-input-inline-active: inherit;
 }
 
 .coar-mobile :scope .coar-theme-none,
@@ -4387,6 +4395,8 @@
   --coar-theme-calendar-all-day-action-size: initial;
   --coar-theme-calendar-month-overflow-target-size: initial;
   --coar-code-block-caption-font-size: initial;
+  --coar-surface-input-inline-hover: color-mix(in srgb, currentColor 6%, transparent);
+  --coar-surface-input-inline-active: color-mix(in srgb, currentColor 11%, transparent);
 }
 
 :scope .light-mode:where(:not(.coar-theme-none)) {
@@ -4407,6 +4417,8 @@
   --coar-border-neutral-quaternary: var(--coar-color-gray-100);
   --coar-border-input: var(--coar-color-gray-300);
   --coar-border-input-hover: var(--coar-color-gray-400);
+  --coar-surface-input-inline-hover: color-mix(in srgb, currentColor 6%, transparent);
+  --coar-surface-input-inline-active: color-mix(in srgb, currentColor 11%, transparent);
 }
 
 :scope .dark-mode:where(:not(.coar-theme-none)) {

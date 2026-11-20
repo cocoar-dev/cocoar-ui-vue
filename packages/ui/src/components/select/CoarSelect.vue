@@ -25,6 +25,7 @@ import type { OverlayRef } from '../overlay/overlay-types';
 import type { CoarSelectOption, CoarSelectSortGroups, CoarSelectSortOptions } from './types';
 import { FORM_FIELD_INJECTION_KEY } from '../form-field/constants';
 import CoarInputFrame from '../input-frame/CoarInputFrame.vue';
+import type { CoarInputWidth } from '../input-frame/types';
 import CoarSelectDropdownPanel from './CoarSelectDropdownPanel.vue';
 
 export interface CoarSelectProps<T = unknown> {
@@ -34,8 +35,10 @@ export interface CoarSelectProps<T = unknown> {
   options?: CoarSelectOption<T>[];
   /** Select size */
   size?: CoarSelectSize;
-  /** Visual appearance */
+  /** `inline`: no border or surface until hovered or open */
   appearance?: CoarSelectAppearance;
+  /** `content`: as wide as the selected label or placeholder (Preview) */
+  width?: CoarInputWidth;
   /** Disables the select */
   disabled?: boolean;
   /** Makes the select read-only */
@@ -74,6 +77,7 @@ const props = withDefaults(defineProps<CoarSelectProps<T>>(), {
   options: () => [],
   size: 'm',
   appearance: 'outline',
+  width: 'fill',
   disabled: false,
   readonly: false,
   error: false,
@@ -150,6 +154,7 @@ const hostClasses = computed(() => [
   `coar-select--${props.size}`,
   {
     'coar-select--inline': props.appearance === 'inline',
+    'coar-select--content': props.width === 'content',
     'coar-select--disabled': props.disabled,
     'coar-select--readonly': props.readonly,
     'coar-select--error': hasError.value,
@@ -269,7 +274,7 @@ onBeforeUnmount(() => {
   <div ref="hostRef" :class="hostClasses">
     <div class="coar-select-wrapper">
       <!-- Trigger = the shared input shell (combobox role/aria/handlers fall through
-           to its root). Outline → bordered frame; inline → borderless frame. -->
+           to its root). The frame paints both appearances. -->
       <CoarInputFrame
         :id="inputId"
         ref="triggerRef"
@@ -280,7 +285,7 @@ onBeforeUnmount(() => {
         :disabled="disabled"
         :readonly="readonly"
         :active="isOpen"
-        :borderless="appearance === 'inline'"
+        :appearance="appearance"
         :aria-expanded="isOpen"
         aria-haspopup="listbox"
         :aria-controls="listboxId"
@@ -296,9 +301,28 @@ onBeforeUnmount(() => {
         @focus="onFocus"
         @blur="handleBlur"
       >
+        <!-- Content width: the search lies over the closed label, which keeps
+             its width, so the box neither grows nor moves while typing. -->
+        <span v-if="isOpen && searchable && width === 'content'" class="coar-select-content-search">
+          <span class="coar-select-value coar-select-search-sizer" aria-hidden="true">
+            <CoarIcon v-if="selectedOption?.icon" :name="selectedOption.icon" size="s" class="coar-select-value-icon" />
+            {{ selectedOption ? selectedOption.label : placeholder }}
+          </span>
+          <input
+            ref="searchInputRef"
+            type="text"
+            class="coar-select-inline-search"
+            :placeholder="selectedOption?.label || placeholder"
+            :value="searchQuery"
+            autocomplete="off"
+            @input="onSearchInput"
+            @keydown="handleKeyDown"
+            @click.stop
+          />
+        </span>
         <!-- Inline search (shown when open + searchable) -->
         <input
-          v-if="isOpen && searchable"
+          v-else-if="isOpen && searchable"
           ref="searchInputRef"
           type="text"
           class="coar-select-inline-search"
@@ -355,17 +379,31 @@ onBeforeUnmount(() => {
   width: 100%;
 }
 
-/* Trigger — box / radius / size / states are owned by CoarInputFrame. Only the
-   pointer affordance and the inline (borderless) fill live here. */
-.coar-select-trigger:not(.coar-input-frame--disabled):not(.coar-input-frame--readonly) {
-  cursor: pointer;
+/* Content width: as wide as the label or placeholder, at most the line. */
+.coar-select--content {
+  display: inline-block;
+  inline-size: max-content;
+  max-inline-size: 100%;
+}
+.coar-select-content-search {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+.coar-select-search-sizer {
+  visibility: hidden;
+}
+.coar-select-content-search .coar-select-inline-search {
+  position: absolute;
+  inset: 0;
+  width: 100%;
 }
 
-/* Inline appearance: borderless frame + a neutral fill on hover / focus / open. */
-.coar-select--inline .coar-select-frame:hover:not(.coar-input-frame--disabled):not(.coar-input-frame--readonly),
-.coar-select--inline .coar-select-frame:focus-within:not(.coar-input-frame--disabled),
-.coar-select--inline .coar-select-frame.coar-input-frame--active {
-  background: var(--coar-background-neutral-tertiary);
+/* Trigger — box / radius / size / states are owned by CoarInputFrame. Only the
+   pointer affordance lives here. */
+.coar-select-trigger:not(.coar-input-frame--disabled):not(.coar-input-frame--readonly) {
+  cursor: pointer;
 }
 
 /* Value */

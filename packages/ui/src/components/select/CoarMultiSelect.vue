@@ -319,7 +319,7 @@ onBeforeUnmount(() => {
   <div ref="hostRef" :class="hostClasses">
     <div class="coar-select-wrapper">
       <!-- Trigger = the shared input shell (combobox role/aria/handlers fall through
-           to its root). Outline → bordered frame; inline → borderless frame. -->
+           to its root). The frame paints both appearances. -->
       <CoarInputFrame
         :id="inputId"
         ref="triggerRef"
@@ -331,7 +331,7 @@ onBeforeUnmount(() => {
         :disabled="disabled"
         :readonly="readonly"
         :active="isOpen"
-        :borderless="appearance === 'inline'"
+        :appearance="appearance"
         :aria-expanded="isOpen"
         aria-haspopup="listbox"
         :aria-controls="listboxId"
@@ -402,16 +402,9 @@ onBeforeUnmount(() => {
 }
 
 /* Trigger — box / radius / size / states owned by CoarInputFrame. Only the pointer
-   affordance and the inline (borderless) fill live here. */
+   affordance lives here. */
 .coar-select-trigger:not(.coar-input-frame--disabled):not(.coar-input-frame--readonly) {
   cursor: pointer;
-}
-
-/* Inline appearance: borderless frame + a neutral fill on hover / focus / open. */
-.coar-select--inline .coar-select-frame:hover:not(.coar-input-frame--disabled):not(.coar-input-frame--readonly),
-.coar-select--inline .coar-select-frame:focus-within:not(.coar-input-frame--disabled),
-.coar-select--inline .coar-select-frame.coar-input-frame--active {
-  background: var(--coar-background-neutral-tertiary);
 }
 
 /* Per-size value text (was constant — only single-select scaled it) */

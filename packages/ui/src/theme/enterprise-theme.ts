@@ -156,6 +156,8 @@ export const ENTERPRISE_THEME: CoarRoleTheme = {
     '--coar-border-input': 'light-dark(var(--coar-color-gray-300), var(--coar-color-gray-400))',
     '--coar-border-input-hover': 'light-dark(var(--coar-color-gray-400), var(--coar-color-gray-500))',
     '--coar-focus-color': 'var(--coar-color-accent-300)',
+    '--coar-surface-input-inline-hover': 'color-mix(in srgb, currentColor 6%, transparent)',
+    '--coar-surface-input-inline-active': 'color-mix(in srgb, currentColor 11%, transparent)',
     '--coar-body-footnote-size': '10px',
     '--coar-heading-s': 'var(--coar-heading-s-style) var(--coar-font-family-body)',
     '--coar-component-s-font-size': '13px',

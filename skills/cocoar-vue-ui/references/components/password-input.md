@@ -131,6 +131,37 @@ import { CoarPasswordInput, CoarFormField } from '@cocoar/vue-ui';
 </script>
 ```
 
+## Inline (Preview) {#inline}
+
+`appearance="inline"` shows only the masked value until the field is hovered or edited, as on the
+[Text Input](./text-input.md#inline). The field keeps the full width: a width that follows the value would
+reveal the length of the password.
+
+**Demo — `password-input/demos/PasswordInputInline.vue`**
+
+```vue
+<template>
+  <div style="display: grid; gap: 4px; max-width: 480px;">
+    <div style="display: grid; grid-template-columns: 120px 1fr; align-items: center;">
+      <span>User</span>
+      <CoarTextInput v-model="user" appearance="inline" />
+    </div>
+    <div style="display: grid; grid-template-columns: 120px 1fr; align-items: center;">
+      <span>Password</span>
+      <CoarPasswordInput v-model="password" appearance="inline" />
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue';
+import { CoarPasswordInput, CoarTextInput } from '@cocoar/vue-ui';
+
+const user = ref('service-account');
+const password = ref('secret-value');
+</script>
+```
+
 ## Accessibility
 
 ### Keyboard Navigation
@@ -161,6 +192,7 @@ import { CoarPasswordInput, CoarFormField } from '@cocoar/vue-ui';
 | `placeholder` | `string` | `''` | Placeholder text |
 | `error` | `boolean` | `false` | Error state (auto-injected from `CoarFormField`) |
 | `size` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Input size |
+| `appearance` (Preview) | `'outline' \| 'inline'` | `'outline'` | `inline`: no border or surface until hovered or edited, see [Inline](#inline) |
 | `disabled` | `boolean` | `false` | Disable the input |
 | `readonly` | `boolean` | `false` | Make read-only |
 | `required` | `boolean` | `false` | Mark as required |

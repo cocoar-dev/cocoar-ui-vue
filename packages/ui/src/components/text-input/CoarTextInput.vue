@@ -3,6 +3,7 @@ import { computed, inject, useTemplateRef, useSlots } from 'vue';
 import { useI18n } from '@cocoar/vue-localization';
 import { CoarIcon } from '../icon';
 import CoarInputFrame from '../input-frame/CoarInputFrame.vue';
+import type { CoarInputAppearance, CoarInputWidth } from '../input-frame/types';
 import { FORM_FIELD_INJECTION_KEY } from '../form-field/constants';
 
 export type CoarTextInputSize = 'xs' | 's' | 'm' | 'l';
@@ -12,6 +13,10 @@ export interface CoarTextInputProps {
   placeholder?: string;
   /** Input size */
   size?: CoarTextInputSize;
+  /** `inline`: no border or surface until hovered or edited (Preview) */
+  appearance?: CoarInputAppearance;
+  /** `content`: as wide as the value or placeholder; single-line only (Preview) */
+  width?: CoarInputWidth;
   /** Number of visible text rows (1 = single-line, 2+ = textarea) */
   rows?: number;
   /** Disables the input */
@@ -47,6 +52,8 @@ export interface CoarTextInputProps {
 const props = withDefaults(defineProps<CoarTextInputProps>(), {
   placeholder: '',
   size: 'm',
+  appearance: 'outline',
+  width: 'fill',
   rows: 1,
   disabled: false,
   readonly: false,
@@ -102,10 +109,16 @@ const hasTrailing = computed(
   () => !!props.suffix || !!slots.suffix || clearSlotActive.value || !!slots.suffixAction,
 );
 
+// Width in characters where `field-sizing: content` is not supported.
+const contentSize = computed(() => Math.max(1, (model.value || props.placeholder).length));
+
 const hostClasses = computed(() => [
   'coar-text-input-host',
   `coar-text-input--${props.size}`,
-  { 'coar-text-input--multiline': isMultiline.value },
+  {
+    'coar-text-input--multiline': isMultiline.value,
+    'coar-text-input--content': props.width === 'content' && !isMultiline.value,
+  },
 ]);
 
 function onInput(event: Event) {
@@ -138,6 +151,7 @@ function onClear() {
         class="coar-text-input-frame"
         :size="size"
         :error="hasError"
+        :appearance="appearance"
         :disabled="disabled"
         :readonly="readonly"
       >
@@ -157,6 +171,7 @@ function onClear() {
           :type="type"
           :value="model"
           :placeholder="placeholder"
+          :size="width === 'content' ? contentSize : undefined"
           :disabled="disabled"
           :readonly="readonly"
           :required="required"
@@ -205,6 +220,7 @@ function onClear() {
         class="coar-text-input-frame"
         :size="size"
         :error="hasError"
+        :appearance="appearance"
         :disabled="disabled"
         :readonly="readonly"
       >
@@ -249,6 +265,19 @@ function onClear() {
 <style scoped>
 .coar-text-input-host {
   display: block;
+}
+
+/* Content width: the field is as wide as its value or placeholder (the `size`
+   attribute is the fallback without field-sizing), the box at most the line. */
+.coar-text-input--content {
+  display: inline-block;
+  inline-size: max-content;
+  max-inline-size: 100%;
+}
+.coar-text-input--content .coar-text-input-field {
+  field-sizing: content;
+  /* An empty field without placeholder stays a target to click into. */
+  min-inline-size: 2ch;
 }
 
 /* Container */

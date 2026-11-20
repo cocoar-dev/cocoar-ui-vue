@@ -147,3 +147,41 @@ describe('CoarTextInput', () => {
     expect(wrapper.find('input').attributes('aria-invalid')).toBeUndefined();
   });
 });
+
+describe('CoarTextInput inline appearance and content width', () => {
+  it('keeps the outline frame and the full width by default', () => {
+    const wrapper = mount(CoarTextInput, { props: { placeholder: 'Name' } });
+    expect(wrapper.get('.coar-input-frame').classes()).not.toContain('coar-input-frame--inline');
+    expect(wrapper.classes()).not.toContain('coar-text-input--content');
+    expect(wrapper.get('input').attributes('size')).toBeUndefined();
+  });
+
+  it.each([1, 3])('opts into the inline frame with %i rows and keeps the error state', (rows) => {
+    const wrapper = mount(CoarTextInput, { props: { rows, appearance: 'inline', error: true } });
+    const frame = wrapper.get('.coar-input-frame');
+    expect(frame.classes()).toContain('coar-input-frame--inline');
+    expect(frame.classes()).toContain('coar-input-frame--error');
+  });
+
+  it('keeps disabled and readonly on the inline frame', () => {
+    const wrapper = mount(CoarTextInput, { props: { appearance: 'inline', disabled: true, readonly: true } });
+    const frame = wrapper.get('.coar-input-frame');
+    expect(frame.classes()).toEqual(expect.arrayContaining([
+      'coar-input-frame--inline', 'coar-input-frame--disabled', 'coar-input-frame--readonly',
+    ]));
+  });
+
+  it('sizes a single line to its value, else to its placeholder', async () => {
+    const wrapper = mount(CoarTextInput, { props: { width: 'content', placeholder: 'Product name' } });
+    expect(wrapper.classes()).toContain('coar-text-input--content');
+    expect(wrapper.get('input').attributes('size')).toBe('12');
+    await wrapper.setProps({ modelValue: 'Lamp' });
+    expect(wrapper.get('input').attributes('size')).toBe('4');
+  });
+
+  it('ignores content width for a textarea', () => {
+    const wrapper = mount(CoarTextInput, { props: { width: 'content', rows: 2 } });
+    expect(wrapper.classes()).not.toContain('coar-text-input--content');
+    expect(wrapper.find('textarea').exists()).toBe(true);
+  });
+});

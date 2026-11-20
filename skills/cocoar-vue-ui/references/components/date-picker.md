@@ -153,6 +153,35 @@ import { CoarPlainDatePicker, CoarFormField } from '@cocoar/vue-ui';
 >
 > **Temporal.PlainDate:** This component uses the TC39 Temporal API (`@js-temporal/polyfill`). PlainDate represents a calendar date without time or timezone -- no more wrestling with midnight UTC offsets.
 
+## Inline (Preview) {#inline}
+
+`appearance="inline"` shows only the date until the field is hovered, edited or its calendar is open; the calendar
+button stays and loses its segment background. `width="content"` fits the field to the shown date or the format
+placeholder. Typing a date works as usual. How both behave and how to change the fills:
+[Text Input](./text-input.md#inline).
+
+**Demo — `date-picker/demos/DatePickerInline.vue`**
+
+```vue
+<template>
+  <p style="margin: 0; line-height: 2.4;">
+    Valid from
+    <CoarPlainDatePicker v-model="from" appearance="inline" width="content" />
+    to
+    <CoarPlainDatePicker v-model="to" appearance="inline" width="content" />
+  </p>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue';
+import { Temporal } from '@js-temporal/polyfill';
+import { CoarPlainDatePicker } from '@cocoar/vue-ui';
+
+const from = ref<Temporal.PlainDate | null>(Temporal.PlainDate.from('2026-12-01'));
+const to = ref<Temporal.PlainDate | null>(null);
+</script>
+```
+
 ## Accessibility
 
 ### Keyboard Navigation
@@ -182,6 +211,8 @@ import { CoarPlainDatePicker, CoarFormField } from '@cocoar/vue-ui';
 | `min` | `Temporal.PlainDate` | `undefined` | Minimum selectable date |
 | `max` | `Temporal.PlainDate` | `undefined` | Maximum selectable date |
 | `size` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Input size |
+| `appearance` (Preview) | `'outline' \| 'inline'` | `'outline'` | `inline`: no border or surface until hovered or edited, see [Inline](#inline) |
+| `width` (Preview) | `'fill' \| 'content'` | `'fill'` | `content`: as wide as the shown value or placeholder |
 | `disabled` | `boolean` | `false` | Disable the picker |
 | `readonly` | `boolean` | `false` | Make read-only |
 | `required` | `boolean` | `false` | Mark as required |

@@ -163,6 +163,34 @@ import { CoarNumberInput, CoarFormField } from '@cocoar/vue-ui';
 </script>
 ```
 
+## Inline (Preview) {#inline}
+
+`appearance="inline"` shows only the value until the field is hovered or edited, and `width="content"` fits the
+field to its value with its prefix, suffix and steppers. How both behave and how to change the fills:
+[Text Input](./text-input.md#inline).
+
+**Demo — `number-input/demos/NumberInputInline.vue`**
+
+```vue
+<template>
+  <p style="margin: 0; line-height: 2.4;">
+    Order
+    <CoarNumberInput v-model="quantity" appearance="inline" width="content" :min="1" stepper-buttons="both" />
+    units at
+    <CoarNumberInput v-model="price" appearance="inline" width="content" :decimals="2" suffix="EUR" />
+    each.
+  </p>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue';
+import { CoarNumberInput } from '@cocoar/vue-ui';
+
+const quantity = ref<number | null>(3);
+const price = ref<number | null>(49.9);
+</script>
+```
+
 ## Accessibility
 
 ### Keyboard Navigation
@@ -211,6 +239,8 @@ These keys can be translated via [`@cocoar/vue-localization`](../foundations/loc
 | `stepperButtons` | `'none' \| 'increment' \| 'decrement' \| 'both'` | `'none'` | Stepper button mode |
 | `clearable` | `boolean` | `false` | Show clear button when input has value |
 | `size` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Input size |
+| `appearance` (Preview) | `'outline' \| 'inline'` | `'outline'` | `inline`: no border or surface until hovered or edited, see [Inline](#inline) |
+| `width` (Preview) | `'fill' \| 'content'` | `'fill'` | `content`: as wide as the shown value or placeholder |
 | `disabled` | `boolean` | `false` | Disable the input |
 | `readonly` | `boolean` | `false` | Make read-only |
 | `required` | `boolean` | `false` | Mark as required |

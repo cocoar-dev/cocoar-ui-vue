@@ -3,6 +3,7 @@ import { computed, ref, watch, onMounted, onBeforeUnmount, inject, useTemplateRe
 import { useI18n } from '@cocoar/vue-localization';
 import { CoarIcon, type CoarIconSize } from '../icon';
 import CoarInputFrame from '../input-frame/CoarInputFrame.vue';
+import type { CoarInputAppearance, CoarInputWidth } from '../input-frame/types';
 import { FORM_FIELD_INJECTION_KEY } from '../form-field/constants';
 import { Maskito } from '@maskito/core';
 import { maskitoNumberOptionsGenerator } from '@maskito/kit';
@@ -21,6 +22,10 @@ export interface CoarNumberInputProps {
   placeholder?: string;
   /** Input size */
   size?: CoarNumberInputSize;
+  /** `inline`: no border or surface until hovered or edited (Preview) */
+  appearance?: CoarInputAppearance;
+  /** `content`: as wide as the value or placeholder and its affixes (Preview) */
+  width?: CoarInputWidth;
   /** Minimum allowed value */
   min?: number;
   /** Maximum allowed value */
@@ -58,6 +63,8 @@ export interface CoarNumberInputProps {
 const props = withDefaults(defineProps<CoarNumberInputProps>(), {
   placeholder: '',
   size: 'm',
+  appearance: 'outline',
+  width: 'fill',
   min: undefined,
   max: undefined,
   step: 1,
@@ -134,7 +141,14 @@ const iconSize = computed<CoarIconSize>(() => {
   return sizeMap[props.size];
 });
 
-const hostClasses = computed(() => ['coar-number-input-host', `coar-number-input--${props.size}`]);
+const hostClasses = computed(() => [
+  'coar-number-input-host',
+  `coar-number-input--${props.size}`,
+  { 'coar-number-input--content': props.width === 'content' },
+]);
+
+// Width in characters where `field-sizing: content` is not supported.
+const contentSize = computed(() => Math.max(1, (displayValue.value || props.placeholder).length));
 
 /**
  * Resolved number format with priority chain:
@@ -300,6 +314,7 @@ function decrement() {
         class="coar-number-input-frame"
         :size="size"
         :error="hasError"
+        :appearance="appearance"
         :disabled="disabled"
         :readonly="readonly"
       >
@@ -332,6 +347,7 @@ function decrement() {
           inputmode="decimal"
           :value="displayValue"
           :placeholder="placeholder"
+          :size="width === 'content' ? contentSize : undefined"
           :disabled="disabled"
           :readonly="readonly"
           :required="required"
@@ -390,6 +406,19 @@ function decrement() {
 <style scoped>
 .coar-number-input-host {
   display: block;
+}
+
+/* Content width: the field is as wide as its value or placeholder (the `size`
+   attribute is the fallback without field-sizing), the box at most the line. */
+.coar-number-input--content {
+  display: inline-block;
+  inline-size: max-content;
+  max-inline-size: 100%;
+}
+.coar-number-input--content .coar-number-input-field {
+  field-sizing: content;
+  /* An empty field without placeholder stays a target to click into. */
+  min-inline-size: 2ch;
 }
 
 .coar-number-input-wrapper {

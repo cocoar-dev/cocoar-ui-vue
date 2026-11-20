@@ -323,3 +323,33 @@ describe('CoarSelect', () => {
     });
   });
 });
+
+describe('CoarSelect inline appearance and content width', () => {
+  const options = [
+    { value: 'a', label: 'Apple' },
+    { value: 'b', label: 'Banana' },
+  ];
+
+  it('keeps the outline frame and the full width by default', () => {
+    const { wrapper: w } = mountSelect({ options });
+    expect(w.get('.coar-select-trigger').classes()).not.toContain('coar-input-frame--inline');
+    expect(w.find('.coar-select--content').exists()).toBe(false);
+  });
+
+  it('draws the inline frame and keeps the error state', () => {
+    const { wrapper: w } = mountSelect({ options, appearance: 'inline', error: true });
+    const frame = w.get('.coar-select-trigger');
+    expect(frame.classes()).toContain('coar-input-frame--inline');
+    expect(frame.classes()).toContain('coar-input-frame--error');
+  });
+
+  it('searches over the closed label at content width', async () => {
+    const { wrapper: w } = mountSelect({ options, modelValue: 'b', searchable: true, width: 'content' });
+    expect(w.find('.coar-select--content').exists()).toBe(true);
+    await w.get('.coar-select-trigger').trigger('click');
+    expect(w.get('.coar-select-search-sizer').text()).toBe('Banana');
+    expect(w.find('.coar-select-content-search .coar-select-inline-search').exists()).toBe(true);
+    await w.get('.coar-select-inline-search').setValue('app');
+    expect(w.findAll('.coar-select-option').map((o) => o.text())).toEqual(['Apple']);
+  });
+});

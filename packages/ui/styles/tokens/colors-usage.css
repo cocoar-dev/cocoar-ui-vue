@@ -182,6 +182,12 @@
   /* Input borders - more visible than neutral-tertiary */
   --coar-border-input: var(--coar-color-gray-300);
   --coar-border-input-hover: var(--coar-color-gray-400);
+
+  /* Inline inputs (appearance="inline") - fills on hover and on focus / open.
+     Mixed from the text colour where the input is, so they show on any surface,
+     also on a hovered row, in light and dark. */
+  --coar-surface-input-inline-hover: color-mix(in srgb, currentColor 6%, transparent);
+  --coar-surface-input-inline-active: color-mix(in srgb, currentColor 11%, transparent);
 }
 
 /* ============================================================================

@@ -1,9 +1,10 @@
 import { ref, computed, watch, type Ref } from 'vue';
+import type { CoarInputAppearance } from '../input-frame/types';
 import type { CoarSelectOption, CoarSelectSortGroups, CoarSelectSortOptions } from './types';
 import type { SizeSpec } from '../overlay/overlay-types';
 
 export type CoarSelectSize = 'xs' | 's' | 'm' | 'l';
-export type CoarSelectAppearance = 'outline' | 'inline';
+export type CoarSelectAppearance = CoarInputAppearance;
 
 /**
  * Width sizing for a select's dropdown overlay panel, shared by CoarSelect,

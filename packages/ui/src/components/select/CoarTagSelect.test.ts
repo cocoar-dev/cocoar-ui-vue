@@ -133,3 +133,15 @@ describe('CoarTagSelect', () => {
     expect(labels).toEqual(['Angular', 'Svelte', 'Vue']);
   });
 });
+
+describe('CoarTagSelect inline appearance', () => {
+  it('draws the inline frame only on request and keeps the error state', () => {
+    const options = [{ value: 'a', label: 'Apple' }];
+    const { wrapper: outline } = mountTagSelect({ options });
+    expect(outline.get('.coar-input-frame').classes()).not.toContain('coar-input-frame--inline');
+    const { wrapper: w } = mountTagSelect({ options, appearance: 'inline', error: true });
+    const frame = w.get('.coar-input-frame');
+    expect(frame.classes()).toContain('coar-input-frame--inline');
+    expect(frame.classes()).toContain('coar-input-frame--error');
+  });
+});

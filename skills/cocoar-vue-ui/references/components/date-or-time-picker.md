@@ -151,6 +151,34 @@ gives a round toggle), and the gap uses `--coar-spacing-xs`. Nothing to register
 in the theme editor — tuning the existing input / button / spacing / accent
 tokens restyles these too.
 
+## Inline (Preview) {#inline}
+
+`appearance="inline"` is passed to the date or date-time field, which then shows only its value until it is
+hovered, edited or its panel is open ([Text Input](./text-input.md#inline) describes the fills). The clock
+toggle is a ghost button already and stays as it is.
+
+**Demo — `date-or-time-picker/demos/OptionalTimeInline.vue`**
+
+```vue
+<template>
+  <div style="display: grid; gap: 4px; max-width: 480px;">
+    <div style="display: grid; grid-template-columns: 120px 1fr; align-items: center;">
+      <span>Due</span>
+      <CoarZonedDateTimeOrDatePicker v-model="due" v-model:with-time="withTime" appearance="inline" />
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue';
+import { Temporal } from '@js-temporal/polyfill';
+import { CoarZonedDateTimeOrDatePicker } from '@cocoar/vue-ui';
+
+const due = ref<Temporal.ZonedDateTime | Temporal.PlainDate | null>(Temporal.PlainDate.from('2026-12-01'));
+const withTime = ref(false);
+</script>
+```
+
 ## Accessibility
 
 The clock is a toggle button: it exposes `aria-pressed` for its state and a
@@ -174,6 +202,7 @@ Both components share this surface (the zoned variant adds the timezone props).
 | `v-model:withTime` | `boolean` | `false` | The clock toggle / mode. |
 | `placeholder` | `string` | `''` | Placeholder text. |
 | `size` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Field + toggle size. |
+| `appearance` (Preview) | `'outline' \| 'inline'` | `'outline'` | Passed to the field: `inline` shows no border or surface until hovered or edited, see [Inline](#inline). |
 | `disabled` | `boolean` | `false` | Disable the field and toggle. |
 | `readonly` | `boolean` | `false` | Read-only (toggle disabled too). |
 | `required` | `boolean` | `false` | Mark as required. |

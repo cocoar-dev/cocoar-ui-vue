@@ -110,3 +110,14 @@ describe('CoarPasswordInput', () => {
     expect(wrapper.emitted('blurred')).toHaveLength(1);
   });
 });
+
+describe('CoarPasswordInput inline appearance', () => {
+  it('keeps the outline frame by default and opts into the inline frame', async () => {
+    const wrapper = mount(CoarPasswordInput, { global: { stubs: { CoarIcon: { template: '<span />' } } } });
+    const frame = wrapper.get('.coar-input-frame');
+    expect(frame.classes()).not.toContain('coar-input-frame--inline');
+    await wrapper.setProps({ appearance: 'inline', error: true });
+    expect(frame.classes()).toContain('coar-input-frame--inline');
+    expect(frame.classes()).toContain('coar-input-frame--error');
+  });
+});

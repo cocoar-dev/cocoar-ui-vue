@@ -209,7 +209,9 @@ export const ROLE_SCHEME_DEFAULTS: Record<'light' | 'dark', Record<string, strin
     "--coar-surface-input": "var(--coar-d-surface-input, var(--coar-color-white))",
     "--coar-surface-input-disabled": "var(--coar-d-surface-input-disabled, var(--coar-color-gray-100))",
     "--coar-border-input": "var(--coar-color-gray-300)",
-    "--coar-border-input-hover": "var(--coar-color-gray-400)"
+    "--coar-border-input-hover": "var(--coar-color-gray-400)",
+    "--coar-surface-input-inline-hover": "color-mix(in srgb, currentColor 6%, transparent)",
+    "--coar-surface-input-inline-active": "color-mix(in srgb, currentColor 11%, transparent)"
   },
   "dark": {
     "--coar-text-on-accent": "var(--coar-d-text-on-accent, var(--coar-text-on-bold))",
@@ -429,6 +431,8 @@ export const ROLE_ROOT_DEFAULTS: Record<string, string> = {
   "--coar-surface-input-disabled": "var(--coar-d-surface-input-disabled, var(--coar-color-gray-100))",
   "--coar-border-input": "var(--coar-color-gray-300)",
   "--coar-border-input-hover": "var(--coar-color-gray-400)",
+  "--coar-surface-input-inline-hover": "color-mix(in srgb, currentColor 6%, transparent)",
+  "--coar-surface-input-inline-active": "color-mix(in srgb, currentColor 11%, transparent)",
   "--coar-body-base-family": "var(--coar-d-body-base-family, Poppins, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif)",
   "--coar-body-bold-family": "var(--coar-d-body-bold-family, Poppins, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif)",
   "--coar-body-bold-size": "var(--coar-d-body-bold-size, 16px)",

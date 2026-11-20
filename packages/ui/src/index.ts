@@ -107,6 +107,7 @@ export type { CoarTableProps, CoarTableVariant } from './components/table';
 // Form Controls
 export { CoarTextInput } from './components/text-input';
 export type { CoarTextInputProps, CoarTextInputSize } from './components/text-input';
+export type { CoarInputAppearance, CoarInputWidth } from './components/input-frame/types';
 export { CoarOtpInput } from './components/otp-input';
 export type { CoarOtpInputProps, CoarOtpInputSize, CoarOtpInputType } from './components/otp-input';
 

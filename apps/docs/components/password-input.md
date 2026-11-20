@@ -36,6 +36,14 @@ Four sizes to keep password fields visually consistent with the rest of your for
 
 <preview path="./password-input/demos/PasswordInputSizes.vue" />
 
+## Inline <Badge type="warning" text="Preview" /> {#inline}
+
+`appearance="inline"` shows only the masked value until the field is hovered or edited, as on the
+[Text Input](/components/text-input#inline). The field keeps the full width: a width that follows the value would
+reveal the length of the password.
+
+<preview path="./password-input/demos/PasswordInputInline.vue" />
+
 ## Accessibility
 
 ### Keyboard Navigation
@@ -66,6 +74,7 @@ The visibility toggle button has an accessible label that updates based on the c
 | `placeholder` | `string` | `''` | Placeholder text |
 | `error` | `boolean` | `false` | Error state (auto-injected from `CoarFormField`) |
 | `size` | `'xs' \| 's' \| 'm' \| 'l'` | `'m'` | Input size |
+| `appearance` <Badge type="warning" text="Preview" /> | `'outline' \| 'inline'` | `'outline'` | `inline`: no border or surface until hovered or edited, see [Inline](#inline) |
 | `disabled` | `boolean` | `false` | Disable the input |
 | `readonly` | `boolean` | `false` | Make read-only |
 | `required` | `boolean` | `false` | Mark as required |
