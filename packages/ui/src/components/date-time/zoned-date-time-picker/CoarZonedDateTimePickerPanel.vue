@@ -8,7 +8,7 @@ import CoarIcon from '../../icon/CoarIcon.vue';
 import CoarSelect from '../../select/CoarSelect.vue';
 import CoarScrollableCalendar from '../scrollable-calendar/CoarScrollableCalendar.vue';
 import CoarTimePicker from '../time-picker/CoarTimePicker.vue';
-import { vScrollbar } from '../../scrollbar';
+import { vScrollbar, getScrollbarInstance, quietScrollbars } from '../../scrollbar';
 import type { DateFormatConfig, CoarDateMarker, CoarTimeValue } from '../_shared/types';
 import {
   coarFilterTimezones,
@@ -131,11 +131,16 @@ function openDisplayTimezonePicker() {
   timezoneSearchQuery.value = '';
   nextTick(() => {
     tzSearchInputRef.value?.focus();
-    // Allow the list + OverlayScrollbars to render, then scroll to active timezone
-    setTimeout(() => {
-      const activeItem = tzPickerListRef.value?.querySelector('.coar-zdtp-tz-picker-item--active') as HTMLElement | null;
+    // The list opens at the active zone without showing its scrollbar for a moment: its
+    // OverlayScrollbars exists from the mount (`defer: false`), so this scroll can stay quiet.
+    const list = tzPickerListRef.value;
+    const activeItem = list?.querySelector<HTMLElement>('.coar-zdtp-tz-picker-item--active');
+    const scrolled = quietScrollbars(list ? getScrollbarInstance(list) : null);
+    try {
       activeItem?.scrollIntoView({ block: 'center', behavior: 'instant' });
-    }, 50);
+    } finally {
+      scrolled();
+    }
   });
 }
 
@@ -243,7 +248,7 @@ function cancelEditValueTimezone() {
         </div>
 
         <!-- Timezone picker list (replaces month grid + time + events) -->
-        <div v-if="isSelectingDisplayTimezone" ref="tzPickerListRef" v-scrollbar="{ overflowX: 'hidden', autoHide: 'leave' }" class="coar-zdtp-tz-picker-list">
+        <div v-if="isSelectingDisplayTimezone" ref="tzPickerListRef" v-scrollbar="{ overflowX: 'hidden', autoHide: 'leave', defer: false }" class="coar-zdtp-tz-picker-list">
           <div
             v-for="group in groupedTimezoneList"
             :key="group.name"
