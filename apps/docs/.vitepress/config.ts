@@ -376,6 +376,7 @@ export default defineConfig({
             { text: 'Markdown', link: '/components/markdown' },
             { text: 'Markdown Editor (Preview)', link: '/components/markdown-editor' },
             { text: 'Markdown Form', link: '/components/markdown-form' },
+            { text: 'Object Editor (Preview)', link: '/components/object-editor' },
             { text: 'Markdown Embeds (Preview)', link: '/components/markdown-embeds' },
             { text: 'Markdown Diagrams (Preview)', link: '/components/markdown-diagrams' },
             { text: 'Mermaid Diagram (Preview)', link: '/components/mermaid' },

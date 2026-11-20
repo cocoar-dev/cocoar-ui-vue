@@ -32,6 +32,7 @@ as a `vue` code block. The index at the bottom says which page answers what.
 | `@cocoar/vue-markdown` | `CoarMarkdown` viewer + the shared rendering registry (custom embeds, fence renderers) |
 | `@cocoar/vue-markdown-editor` | `CoarMarkdownEditor` — Milkdown WYSIWYG editor sharing the viewer's component map |
 | `@cocoar/vue-markdown-form` | `CoarMarkdownForm` — template-driven forms with fixed prose and registered field controls |
+| `@cocoar/vue-object-editor` | `CoarObjectEditor`, `CoarSchemaEditor` — edit a JSON object driven by a JSON Schema, and describe that schema (Preview) |
 | `@cocoar/vue-mermaid`, `@cocoar/vue-markdown-mermaid` | `CoarMermaidDiagram` and the adapter that renders ```` ```mermaid ```` fences in the viewer |
 | `@cocoar/vue-script-editor` | `CoarScriptEditor` — Monaco-based TS/JS/JSON editor with constrained and authoring modes |
 | `@cocoar/vue-page-builder` | `CoarPageBuilder` (visual editor) + `CoarPageRenderer` (runtime) over an open element registry |

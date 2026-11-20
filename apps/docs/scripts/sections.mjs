@@ -119,11 +119,12 @@ export const SECTIONS = [
     ],
   },
   {
-    title: 'Content (@cocoar/vue-markdown, -editor, -form, -mermaid, @cocoar/vue-script-editor)',
+    title: 'Content (@cocoar/vue-markdown, -editor, -form, -mermaid, @cocoar/vue-script-editor, @cocoar/vue-object-editor)',
     pages: [
       'components/markdown.md',
       'components/markdown-editor.md',
       'components/markdown-form.md',
+      'components/object-editor.md',
       'components/markdown-embeds.md',
       'components/markdown-diagrams.md',
       'components/mermaid.md',

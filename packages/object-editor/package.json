@@ -1,0 +1,61 @@
+{
+  "name": "@cocoar/vue-object-editor",
+  "version": "0.0.1",
+  "description": "Edit JSON objects driven by a JSON Schema, and describe that schema with a schema editor.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cocoar-dev/cocoar-ui-vue.git",
+    "directory": "packages/object-editor"
+  },
+  "homepage": "https://docs.cocoar.dev/cocoar-ui-vue/",
+  "bugs": "https://github.com/cocoar-dev/cocoar-ui-vue/issues",
+  "keywords": [
+    "vue",
+    "vue3",
+    "json",
+    "json-schema",
+    "editor",
+    "form"
+  ],
+  "type": "module",
+  "sideEffects": [
+    "*.css",
+    "styles/*.css"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./styles": "./styles/object-editor.css"
+  },
+  "files": [
+    "dist",
+    "styles"
+  ],
+  "scripts": {
+    "build": "vite build",
+    "test": "vitest run",
+    "lint": "eslint src/",
+    "typecheck": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "@cfworker/json-schema": "^4.1.1",
+    "@cocoar/vue-localization": "workspace:*",
+    "@js-temporal/polyfill": "^0.5.1"
+  },
+  "peerDependencies": {
+    "@cocoar/vue-ui": "workspace:*",
+    "vue": "^3.5.0"
+  },
+  "devDependencies": {
+    "@cocoar/vue-ui": "workspace:*",
+    "ajv": "^8.18.0",
+    "vue": "^3.5.32"
+  }
+}

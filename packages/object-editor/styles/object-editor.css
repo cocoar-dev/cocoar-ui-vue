@@ -1,0 +1,183 @@
+/*
+ * @cocoar/vue-object-editor — rows of CoarObjectEditor and the layout of
+ * CoarSchemaEditor. The value controls are the inline controls of
+ * @cocoar/vue-ui; these rules only lay them out and never reach into them.
+ */
+
+.coar-object-editor {
+  display: flex;
+  flex-direction: column;
+  font-family: var(--coar-body-small-base-family);
+}
+
+.coar-object-editor-row {
+  display: grid;
+  grid-template-columns: minmax(170px, 35%) minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  padding-inline: 6px;
+  border-radius: 8px;
+}
+/* Alternating backgrounds connect each key with its value. */
+.coar-object-editor-row:nth-child(even):not(:hover) {
+  background: color-mix(in srgb, var(--coar-background-neutral-secondary) 72%, transparent);
+}
+.coar-object-editor-row:hover {
+  background: var(--coar-background-neutral-secondary);
+}
+
+.coar-object-editor-key {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding-left: calc(var(--coar-object-editor-depth, 0) * 18px);
+}
+.coar-object-editor-row--nested .coar-object-editor-key {
+  border-left: 1px solid var(--coar-border-neutral-tertiary);
+}
+.coar-object-editor-chevron-space {
+  width: 18px;
+  flex: none;
+}
+.coar-object-editor-type {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: oklch(0.95 0.035 var(--coar-object-editor-hue));
+  color: oklch(0.52 0.13 var(--coar-object-editor-hue));
+}
+:where(.dark-mode, .dark) .coar-object-editor-type {
+  background: oklch(0.32 0.05 var(--coar-object-editor-hue));
+  color: oklch(0.78 0.12 var(--coar-object-editor-hue));
+}
+.coar-object-editor-label {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
+}
+.coar-object-editor-label > span {
+  font-size: 13px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.coar-object-editor-label small {
+  font-size: 11px;
+  color: var(--coar-text-neutral-tertiary);
+  font-family: var(--coar-font-family-mono, ui-monospace, monospace);
+}
+.coar-object-editor-required,
+.coar-object-editor-error {
+  color: var(--coar-text-error-primary, var(--coar-color-red-600));
+}
+.coar-object-editor-required {
+  margin-left: 2px;
+}
+
+.coar-object-editor-value {
+  /* The visible content inset of an inline input frame of size S, so display
+     values and controls start at the same edge. */
+  --coar-object-editor-inset: calc(
+    1px + var(--coar-field-padding-x) * var(--coar-component-s-scale) * var(--coar-component-density, 1)
+  );
+  /* Displays and the S controls share the body size: a value keeps its size
+     between view and edit. */
+  --coar-object-editor-value-size: var(--coar-body-base-size);
+  --coar-field-s-font-size: var(--coar-object-editor-value-size);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.coar-object-editor-static,
+.coar-object-editor-error {
+  padding-inline-start: var(--coar-object-editor-inset);
+}
+.coar-object-editor-static {
+  font-size: var(--coar-object-editor-value-size);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.coar-object-editor-muted {
+  color: var(--coar-text-neutral-tertiary);
+}
+.coar-object-editor-error {
+  font-size: 11px;
+}
+.coar-object-editor-control--numeric {
+  cursor: text;
+}
+.coar-object-editor-switch {
+  margin-inline-start: var(--coar-object-editor-inset);
+}
+
+/* Only the value itself activates its control, not the empty rest of the cell. */
+.coar-object-editor-display {
+  align-self: flex-start;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  padding: 6px var(--coar-object-editor-inset);
+  border: 0;
+  border-radius: var(--coar-input-radius);
+  background: transparent;
+  color: inherit;
+  font-family: var(--coar-body-small-base-family);
+  font-size: var(--coar-object-editor-value-size);
+  font-weight: var(--coar-body-small-base-weight);
+  text-align: left;
+  cursor: text;
+}
+.coar-object-editor-display:hover:not(:disabled) {
+  background: var(--coar-surface-input-inline-hover);
+}
+.coar-object-editor-display:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.coar-object-editor-tags,
+.coar-object-editor-color,
+.coar-object-editor-option {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+.coar-object-editor-option small {
+  color: var(--coar-text-neutral-tertiary);
+  font-size: 11px;
+}
+.coar-object-editor-swatch {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  border-radius: 4px;
+  border: 1px solid rgb(0 0 0 / 0.12);
+}
+
+.coar-object-editor-empty {
+  margin: 0;
+  padding: 24px;
+  text-align: center;
+  color: var(--coar-text-neutral-tertiary);
+}
+.coar-object-editor-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

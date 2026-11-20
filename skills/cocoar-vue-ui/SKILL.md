@@ -32,6 +32,7 @@ as a `vue` code block. The index at the bottom says which page answers what.
 | `@cocoar/vue-markdown` | `CoarMarkdown` viewer + the shared rendering registry (custom embeds, fence renderers) |
 | `@cocoar/vue-markdown-editor` | `CoarMarkdownEditor` — Milkdown WYSIWYG editor sharing the viewer's component map |
 | `@cocoar/vue-markdown-form` | `CoarMarkdownForm` — template-driven forms with fixed prose and registered field controls |
+| `@cocoar/vue-object-editor` | `CoarObjectEditor`, `CoarSchemaEditor` — edit a JSON object driven by a JSON Schema, and describe that schema (Preview) |
 | `@cocoar/vue-mermaid`, `@cocoar/vue-markdown-mermaid` | `CoarMermaidDiagram` and the adapter that renders ```` ```mermaid ```` fences in the viewer |
 | `@cocoar/vue-script-editor` | `CoarScriptEditor` — Monaco-based TS/JS/JSON editor with constrained and authoring modes |
 | `@cocoar/vue-page-builder` | `CoarPageBuilder` (visual editor) + `CoarPageRenderer` (runtime) over an open element registry |
@@ -186,11 +187,12 @@ of each other.
 - [Drag & Drop](references/components/drag-drop.md) — useDragDrop — HTML5 drag-and-drop composable with group, accept and canDrop matching rules for building custom drag surfaces like Kanban boards.
 - [Fragment Parser & Modal Routing](references/components/fragment-parser.md) — @cocoar/vue-fragment-parser — parses URL hash fragments into typed routes with parameters; composables enable deep-linkable modals with browser-back to close
 
-### Content (@cocoar/vue-markdown, -editor, -form, -mermaid, @cocoar/vue-script-editor)
+### Content (@cocoar/vue-markdown, -editor, -form, -mermaid, @cocoar/vue-script-editor, @cocoar/vue-object-editor)
 
 - [Markdown](references/components/markdown.md) — @cocoar/vue-markdown — markdown rendering split into a framework-agnostic parser (markdown-core) and the CoarMarkdown Vue component with GFM support
 - [Markdown Editor (Preview)](references/components/markdown-editor.md) — CoarMarkdownEditor — Milkdown-based WYSIWYG markdown editor with lossless round-trip, floating or fixed toolbar and a render registry shared with CoarMarkdown
 - [Markdown Form](references/components/markdown-form.md) — CoarMarkdownForm renders a fixed Markdown template with registered fill controls, separate typed values, validation and readonly output.
+- [Object Editor (Preview)](references/components/object-editor.md) — CoarObjectEditor edits a JSON object driven by a JSON Schema; CoarSchemaEditor describes that schema. Built-in value types plus types of the app.
 - [Custom Embeds (Preview)](references/components/markdown-embeds.md) — Markdown custom embeds — register Vue components rendered from :::key{props} directives in both viewer and editor, with lossless round-trip to plain text
 - [Diagrams (Preview)](references/components/markdown-diagrams.md) — @cocoar/vue-markdown-mermaid — renders mermaid code fences in CoarMarkdown as Cocoar-themed diagrams; lazy-loaded, strict security, degrades to plain code blocks
 - [Mermaid Diagram (Preview)](references/components/mermaid.md) — CoarMermaidDiagram — standalone Mermaid diagram component for Vue 3 rendering from a source string; Cocoar-themed, lazily loaded, with opt-in zoom/pan

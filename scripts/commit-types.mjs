@@ -33,6 +33,7 @@ export const SCOPES = [
   'markdown-form',
   'markdown-mermaid',
   'mermaid',
+  'object-editor',
   'page-builder',
   'script-editor',
   'docs',
