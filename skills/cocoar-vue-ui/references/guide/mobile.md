@@ -381,13 +381,14 @@ are only being added, and testing on real devices remains the job of the app.
 |---|---|---|---|---|
 | [Drag & Drop](../components/drag-drop.md) | ready | partial | partial | The default engine 'native' uses HTML5 drag events, made for the mouse; on touch use engine 'pointer' or 'auto'. |
 
-**Content (@cocoar/vue-markdown, -editor, -form, -mermaid, @cocoar/vue-script-editor)**
+**Content (@cocoar/vue-markdown, -editor, -form, -mermaid, @cocoar/vue-script-editor, @cocoar/vue-object-editor)**
 
 | Page | Desktop | Tablet | Phone | Note |
 |---|---|---|---|---|
 | [Markdown](../components/markdown.md) | ready | ready | partial | Wide tables get no horizontal scroll container and can overflow narrow screens. |
 | [Markdown Editor](../components/markdown-editor.md) | ready | partial | partial | Typing and the toolbar work on touch; table row/column grips and the code-block edit button need hover. |
 | [Markdown Form](../components/markdown-form.md) | ready | ready | partial | Works on phones; its select and date fields still open the desktop panels. |
+| [Object Editor](../components/object-editor.md) | ready | partial | planned | Built for pointer and keyboard. On tablets the rows work but are dense; a phone layout is planned. |
 | [Diagrams](../components/markdown-diagrams.md) | ready | partial | partial | With zoomable, touch zooms with the buttons but cannot pan a zoomed diagram. |
 | [Mermaid Diagram](../components/mermaid.md) | ready | partial | partial | With zoomable, touch zooms with the buttons but cannot pan a zoomed diagram. |
 | [Script Editor](../components/script-editor.md) | ready | partial | not supported | Monaco does not support mobile browsers; touch editing has gaps and phones are out of scope. |
