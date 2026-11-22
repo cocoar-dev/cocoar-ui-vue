@@ -399,12 +399,17 @@ jobs:
     permissions:
       contents: read
       packages: write
+      # npm trusted publishing: no token to expire (RELEASING.md, "Publishing").
+      id-token: write
     steps:
       - uses: actions/checkout@v6
 
       - uses: actions/setup-node@v6
         with:
           node-version: 22
+
+      - name: Use an npm with trusted publishing
+        run: npm install -g npm@11.21.3
 
       - name: Download the packages
         uses: actions/download-artifact@v8
@@ -422,18 +427,13 @@ jobs:
             *) echo "::error ::nothing to publish for channel ${{ needs.build.outputs.channel }}"; exit 1 ;;
           esac
 
-      - name: Setup the registry credentials
-        if: github.repository == 'cocoar-dev/cocoar-ui-vue'
+      - name: Setup the GitHub Packages credentials
+        if: github.repository == 'cocoar-dev/cocoar-ui-vue' && steps.registry.outputs.tag == 'alpha'
         env:
-          NPMJS_TOKEN: ${{ secrets.NPM_TOKEN }}
           GITHUB_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ "${{ steps.registry.outputs.tag }}" = "alpha" ]; then
-            echo "@cocoar-dev:registry=https://npm.pkg.github.com" >> ~/.npmrc
-            echo "//npm.pkg.github.com/:_authToken=$GITHUB_PACKAGES_TOKEN" >> ~/.npmrc
-          else
-            echo "//registry.npmjs.org/:_authToken=$NPMJS_TOKEN" >> ~/.npmrc
-          fi
+          echo "@cocoar-dev:registry=https://npm.pkg.github.com" >> ~/.npmrc
+          echo "//npm.pkg.github.com/:_authToken=$GITHUB_PACKAGES_TOKEN" >> ~/.npmrc
 
       - name: Publish
         env:
