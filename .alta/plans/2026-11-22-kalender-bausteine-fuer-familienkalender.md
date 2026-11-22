@@ -191,11 +191,11 @@ yearWallRows({ year });                      // Schritt 9
 
 `feat(calendar): a year wall planner on the board`
 
-- [ ] `yearWallRows`: zwölf Zeilen, 31 Spalten, fehlende Tage als `null`
-- [ ] Bänder laufen je Monat und tragen `clippedStart` und `clippedEnd`, damit Sommerferien über den Monatswechsel lesbar bleiben
-- [ ] Punkte über `#cell`, Wochenenden und heute als Klassen
-- [ ] Beschriftung nur, wenn das Band breit genug ist; auf dem Telefon Bänder ohne Text
-- [ ] Performance: 365 Zellen plus Bänder ohne Virtualisierung messen, Ziel unter 16 ms je Aktualisierung
+- [x] `yearWallRows`: zwölf Zeilen, 31 Spalten, fehlende Tage als `null`
+- [x] Bänder laufen je Monat und tragen `clippedStart` und `clippedEnd`, damit Sommerferien über den Monatswechsel lesbar bleiben
+- [x] Punkte über `#cell`, Wochenenden und heute als Klassen
+- [x] Beschriftung nur, wenn das Band breit genug ist; auf dem Telefon Bänder ohne Text
+- [x] Performance: 365 Zellen plus Bänder ohne Virtualisierung messen, Ziel unter 16 ms je Aktualisierung (Layout mit 1000 Terminen: Median 1 ms)
 
 ### 10. Ressourcen-Spalten im Stundenraster
 

@@ -6,6 +6,8 @@ import {
   layoutBoard,
   resourceWeekRows,
   weekBoardRows,
+  yearWallColumns,
+  yearWallRows,
   type BoardRow,
 } from '../boardLayout';
 import type { CalendarPeriod } from '../occupancy';
@@ -102,6 +104,32 @@ describe('resourceWeekRows', () => {
     expect(layoutBoard([], { rows, timezone: ZONE }).map((r) => r.row.key)).toEqual(['anna', 'ben', 'free']);
     const l = layoutBoard([timed('n', '2026-11-19T09:00', '2026-11-19T10:00')], { rows, timezone: ZONE });
     expect(l.map((r) => r.row.key)).toEqual(['anna', 'ben', BOARD_UNASSIGNED_ROW, 'free']);
+  });
+});
+
+describe('yearWallRows', () => {
+  const rows = yearWallRows<Meta>({ year: 2026, locale: 'en-GB' });
+
+  it('has twelve rows of 31 columns, with no day where a month ends', () => {
+    expect(rows).toHaveLength(12);
+    expect(rows.every((r) => r.dates.length === 31)).toBe(true);
+    expect(rows[1].dates[27]?.toString()).toBe('2026-02-28');
+    expect(rows[1].dates[28]).toBeNull();
+    expect(rows[1].label).toBe('Feb');
+    expect(yearWallColumns()[30]).toEqual({ key: '31', label: '31' });
+  });
+
+  it('runs a band through its months, clipped at each month end', () => {
+    const l = layoutBoard([allDay('summer', '2026-07-04', '2026-08-08')], { rows, timezone: ZONE });
+    expect(l[6].bars[0]).toMatchObject({ startCol: 3, endCol: 30, clippedStart: false, clippedEnd: true });
+    expect(l[7].bars[0]).toMatchObject({ startCol: 0, endCol: 6, clippedStart: true, clippedEnd: false });
+  });
+
+  it('keeps a single-day event in its cell, for a dot', () => {
+    const l = layoutBoard([allDay('birthday', '2026-03-12', '2026-03-13')], { rows, timezone: ZONE });
+    expect(l[2].bars).toHaveLength(0);
+    expect(l[2].cells[11].events.map((e) => e.id)).toEqual(['birthday']);
+    expect(l[2].row.showCellEvents).toBe(false);
   });
 });
 

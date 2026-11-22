@@ -34,6 +34,8 @@ export {
   layoutBoard,
   resourceWeekRows,
   weekBoardRows,
+  yearWallColumns,
+  yearWallRows,
   type BoardBar,
   type BoardCell,
   type BoardDropInput,
@@ -42,6 +44,7 @@ export {
   type BoardRowKind,
   type ResourceWeekRowsOptions,
   type WeekBoardRowsOptions,
+  type YearWallRowsOptions,
 } from './boardLayout';
 export {
   computeOccupancy,

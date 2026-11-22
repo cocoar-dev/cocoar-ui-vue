@@ -420,7 +420,7 @@ export function layoutMonthGrid<TMeta extends Record<string, unknown> = Record<s
 // ─── Helpers ─────────────────────────────────────────────────────────
 
 /** `yyyymmdd` as a number — orders like the date, compares in O(1). */
-function dayOrdinal(date: Temporal.PlainDate): number {
+export function dayOrdinal(date: Temporal.PlainDate): number {
   return date.year * 10000 + date.month * 100 + date.day;
 }
 

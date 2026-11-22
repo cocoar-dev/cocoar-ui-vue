@@ -330,7 +330,10 @@ defineExpose({ getLayout: () => layout.value });
     role="grid"
     :aria-rowcount="layout.length + 1"
     :aria-colcount="columnCount + 1"
-    :class="{ 'coar-calendar-board--settling': swipe.settling.value }"
+    :class="{
+      'coar-calendar-board--settling': swipe.settling.value,
+      'coar-calendar-board--year': range === 'year',
+    }"
     :style="{ '--coar-i-board-columns': columnCount, ...swipe.swipeStyle.value }"
     @pointerdown="onRootPointerdown"
   >
@@ -376,7 +379,7 @@ defineExpose({ getLayout: () => layout.value });
       :aria-rowindex="rowIndex + 2"
     >
       <div class="coar-calendar-board__label" role="rowheader" aria-colindex="1">
-        <slot name="rowLabel" :row="entry.row">{{ entry.row.key }}</slot>
+        <slot name="rowLabel" :row="entry.row">{{ entry.row.label ?? entry.row.key }}</slot>
       </div>
       <div class="coar-calendar-board__body">
         <div
@@ -426,7 +429,7 @@ defineExpose({ getLayout: () => layout.value });
             ]"
             role="gridcell"
             :aria-colindex="col + 2"
-            :aria-label="cellLabel(entry.row.key, cell.date)"
+            :aria-label="cellLabel(entry.row.label ?? entry.row.key, cell.date)"
             :aria-disabled="cell.date ? undefined : 'true'"
             :tabindex="activeCell.row === rowIndex && activeCell.col === col ? 0 : -1"
             :data-board-cell="`${rowIndex}:${col}`"
@@ -444,7 +447,7 @@ defineExpose({ getLayout: () => layout.value });
               :is-today="isToday(cell.date)"
               :is-past="isPast(cell.date)"
             />
-            <template v-if="cell.date">
+            <template v-if="cell.date && entry.row.showCellEvents !== false">
               <div
                 v-for="event in cell.events"
                 :key="event.id"
@@ -608,6 +611,45 @@ defineExpose({ getLayout: () => layout.value });
 .coar-calendar-board__bar--clipped-end {
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
+}
+/* A wall planner is dense: small cells, a band's title only where it fits. */
+.coar-calendar-board--year {
+  --coar-i-board-cell-min-height: 18px;
+}
+.coar-calendar-board--year .coar-calendar-board__label {
+  padding: var(--coar-calendar-board-label-padding, 2px 6px);
+}
+.coar-calendar-board--year .coar-calendar-board__column-header {
+  padding: 2px 0;
+}
+.coar-calendar-board--year .coar-calendar-board__row:not(.coar-calendar-board__row--header) {
+  position: relative;
+}
+.coar-calendar-board--year .coar-calendar-board__body {
+  position: relative;
+}
+.coar-calendar-board--year .coar-calendar-board__cell {
+  align-items: center;
+  justify-content: center;
+  min-height: var(--coar-calendar-board-cell-min-height, var(--coar-i-board-cell-min-height));
+  padding: 0;
+}
+.coar-calendar-board--year .coar-calendar-board__bars {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  padding: 0;
+  pointer-events: none;
+}
+.coar-calendar-board--year .coar-calendar-board__bar {
+  container-type: inline-size;
+  padding: 0 3px;
+  pointer-events: auto;
+}
+@container (max-width: 40px) {
+  .coar-calendar-board--year .coar-calendar-board__title {
+    display: none;
+  }
 }
 .coar-calendar-board__time {
   flex: 0 0 auto;

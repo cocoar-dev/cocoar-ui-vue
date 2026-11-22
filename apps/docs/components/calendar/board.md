@@ -52,6 +52,25 @@ const rows = (context: BoardRowsContext) =>
 
 A shared event stands in the row of each of its resources. Events of no listed resource get the row `BOARD_UNASSIGNED_ROW`, which appears only when there are any. For "who is free", use [`computeOccupancy`](/components/calendar/coar-calendar#occupancy).
 
+## A year wall planner
+
+Twelve rows of 31 columns keep holidays readable as continuous bands, which twelve small month grids would tear apart.
+
+```vue
+<CoarCalendarBoard
+  :builder="builder"
+  range="year"
+  :columns="yearWallColumns()"
+  :rows="(context) => yearWallRows({ year: context.year, locale: 'de-AT' })"
+>
+  <template #cell="{ events }">
+    <span v-if="events.length" class="dot" />
+  </template>
+</CoarCalendarBoard>
+```
+
+Multi-day events run as bands through each month and show their title where it fits. Single-day events are not drawn; they reach the `#cell` slot, so you decide what a dot means. A month's missing days stay as empty cells.
+
 ## Moving, selecting, paging
 
 Dragging an event runs through the same drop pipeline as the other views: `onEventDrop`, `canDrop` and the DST policy apply. On another day the event keeps its time. In another part of the day it starts where that part starts, or at the period's `dropMinutes`, which you want for a morning that begins at 00:00. The duration always stays.
@@ -71,6 +90,9 @@ interface BoardRow<TMeta> {
   kind: 'cells' | 'bars' | 'custom';
   match?: (event: CalendarEvent<TMeta>) => boolean;
   hideWhenEmpty?: boolean;
+  period?: CalendarPeriod; // a drop onto this row starts in this period
+  label?: string; // default: key
+  showCellEvents?: boolean; // false: single-day events only reach #cell
 }
 ```
 

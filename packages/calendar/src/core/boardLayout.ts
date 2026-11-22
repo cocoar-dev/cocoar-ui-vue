@@ -8,7 +8,7 @@
  */
 
 import { Temporal } from './temporal';
-import { dayBoundsOf } from './monthGridLayout';
+import { dayBoundsOf, dayOrdinal } from './monthGridLayout';
 import type { CalendarPeriod } from './occupancy';
 import { layoutOverlappingIntervals } from './overlapLayout';
 import { isTimedEvent, type CalendarEvent } from './types';
@@ -31,6 +31,13 @@ export interface BoardRow<TMeta extends Record<string, unknown> = Record<string,
   hideWhenEmpty?: boolean;
   /** The part of the day this row stands for; a drop onto it starts there. */
   period?: CalendarPeriod;
+  /** Text of the row's label. Default: `key`. */
+  label?: string;
+  /**
+   * Draw the single-day events of a cell. Default true. With `false`
+   * they only reach the `#cell` slot, for a planner that shows dots.
+   */
+  showCellEvents?: boolean;
 }
 
 export interface BoardBar<TMeta extends Record<string, unknown> = Record<string, unknown>> {
@@ -56,19 +63,20 @@ export interface BoardLayoutRow<TMeta extends Record<string, unknown> = Record<s
   cells: ReadonlyArray<BoardCell<TMeta>>;
 }
 
-const compareDays = Temporal.PlainDate.compare;
-
-/** Runs of consecutive columns of `dates` inside `[first, last]`. */
+/**
+ * Runs of consecutive columns inside `[first, last]`. Days are compared
+ * as ordinals: a year wall asks this for every event in every row.
+ */
 function columnRuns(
-  dates: ReadonlyArray<Temporal.PlainDate | null>,
-  first: Temporal.PlainDate,
-  last: Temporal.PlainDate,
+  ordinals: ReadonlyArray<number | null>,
+  first: number,
+  last: number,
 ): Array<[number, number]> {
   const runs: Array<[number, number]> = [];
   let start = -1;
-  for (let col = 0; col <= dates.length; col++) {
-    const date = dates[col];
-    const inside = !!date && compareDays(date, first) >= 0 && compareDays(date, last) <= 0;
+  for (let col = 0; col <= ordinals.length; col++) {
+    const ordinal = ordinals[col];
+    const inside = ordinal !== null && ordinal !== undefined && ordinal >= first && ordinal <= last;
     if (inside && start < 0) start = col;
     if (!inside && start >= 0) {
       runs.push([start, col - 1]);
@@ -91,25 +99,26 @@ export function layoutBoard<TMeta extends Record<string, unknown> = Record<strin
     const pending: Array<Omit<BoardBar<TMeta>, 'lane'>> = [];
 
     if (row.kind !== 'custom') {
+      const ordinals = row.dates.map((d) => (d ? dayOrdinal(d) : null));
+      const present = ordinals.filter((o): o is number => o !== null);
+      const rowFirst = present.length ? Math.min(...present) : Infinity;
+      const rowLast = present.length ? Math.max(...present) : -Infinity;
       for (const event of events) {
-        if (row.match && !row.match(event)) continue;
         const bounds = dayBoundsOf(event as CalendarEvent, timezone);
+        if (bounds.lastOrd < rowFirst || bounds.firstOrd > rowLast) continue;
+        if (row.match && !row.match(event)) continue;
         if (row.kind === 'cells' && !bounds.isMultiDay) {
-          const col = row.dates.findIndex((d) => d !== null && compareDays(d, bounds.firstDay) === 0);
+          const col = ordinals.indexOf(bounds.firstOrd);
           if (col >= 0) cellEvents[col].push(event);
           continue;
         }
-        for (const [startCol, endCol] of columnRuns(
-          row.dates,
-          bounds.firstDay,
-          bounds.lastDayInclusive,
-        )) {
+        for (const [startCol, endCol] of columnRuns(ordinals, bounds.firstOrd, bounds.lastOrd)) {
           pending.push({
             event,
             startCol,
             endCol,
-            clippedStart: compareDays(bounds.firstDay, row.dates[startCol]!) < 0,
-            clippedEnd: compareDays(bounds.lastDayInclusive, row.dates[endCol]!) > 0,
+            clippedStart: bounds.firstOrd < ordinals[startCol]!,
+            clippedEnd: bounds.lastOrd > ordinals[endCol]!,
           });
         }
       }
@@ -228,6 +237,44 @@ export function weekBoardRows<TMeta extends Record<string, unknown> = Record<str
     })),
     ...extraRows.map((key) => ({ key, dates, kind: 'custom' as const })),
   ];
+}
+
+export interface YearWallRowsOptions<TMeta extends Record<string, unknown>> {
+  year: number;
+  /** Month names. Default: the locale's short names. */
+  locale?: string;
+  /** Which events the planner shows. Default: all. */
+  match?: (event: CalendarEvent<TMeta>) => boolean;
+}
+
+/**
+ * A wall planner: twelve rows of 31 columns, with `null` for the days a
+ * month does not have. Multi-day events run as bands through their
+ * month; single-day events reach the `#cell` slot, to be drawn as dots.
+ */
+export function yearWallRows<TMeta extends Record<string, unknown> = Record<string, unknown>>(
+  options: YearWallRowsOptions<TMeta>,
+): BoardRow<TMeta>[] {
+  const { year, locale, match } = options;
+  const monthName = new Intl.DateTimeFormat(locale, { month: 'short', timeZone: 'UTC' });
+  return Array.from({ length: 12 }, (_, index) => {
+    const month = Temporal.PlainYearMonth.from({ year, month: index + 1 });
+    return {
+      key: month.toString(),
+      label: monthName.format(new Date(Date.UTC(year, index, 1))),
+      kind: 'cells' as const,
+      showCellEvents: false,
+      ...(match ? { match } : {}),
+      dates: Array.from({ length: 31 }, (_, day) =>
+        day < month.daysInMonth ? month.toPlainDate({ day: day + 1 }) : null,
+      ),
+    };
+  });
+}
+
+/** The column headers 1–31 of a wall planner. */
+export function yearWallColumns(): Array<{ key: string; label: string }> {
+  return Array.from({ length: 31 }, (_, i) => ({ key: String(i + 1), label: String(i + 1) }));
 }
 
 export interface ResourceWeekRowsOptions<TMeta extends Record<string, unknown>> {

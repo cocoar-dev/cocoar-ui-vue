@@ -4,7 +4,13 @@ import { nextTick, ref } from 'vue';
 import { Temporal } from '@js-temporal/polyfill';
 import { CalendarBuilder } from '../../builders/calendar-builder';
 import CoarCalendarBoard from '../CoarCalendarBoard.vue';
-import { weekBoardRows, type CalendarEvent, type CalendarPeriod } from '../../core';
+import {
+  weekBoardRows,
+  yearWallColumns,
+  yearWallRows,
+  type CalendarEvent,
+  type CalendarPeriod,
+} from '../../core';
 import { pd, zdt } from '../../__test-utils__/event-fixtures';
 
 const PERIODS: CalendarPeriod[] = [
@@ -215,6 +221,31 @@ describe('CoarCalendarBoard', () => {
     window.dispatchEvent(at('pointerup', 180, 250, 'touch'));
     await nextTick();
     expect(b.state.date.value.toString()).toBe('2026-11-26');
+  });
+
+  it('draws a year wall planner with bands, dots and missing days', () => {
+    const events: CalendarEvent[] = [
+      { id: 'holidays', start: pd('2026-07-04'), end: pd('2026-08-08'), meta: { title: 'Summer' } },
+      { id: 'birthday', start: pd('2026-03-12'), end: pd('2026-03-13'), meta: { title: 'Emma' } },
+    ];
+    const w = mount(CoarCalendarBoard, {
+      props: {
+        builder: newBuilder(events),
+        range: 'year',
+        columns: yearWallColumns(),
+        rows: (ctx: { year: number }) => yearWallRows({ year: ctx.year, locale: 'en-GB' }),
+      },
+      slots: {
+        cell: `<template #cell="{ events }"><i v-if="events.length" class="dot" /></template>`,
+      },
+    });
+    expect(w.classes()).toContain('coar-calendar-board--year');
+    expect(w.findAll('[data-row-key]')).toHaveLength(12);
+    expect(w.findAll('.coar-calendar-board__column-header')).toHaveLength(31);
+    expect(w.findAll('.coar-calendar-board__bar')).toHaveLength(2);
+    expect(w.find('[data-day-key="2026-03-12"] .dot').exists()).toBe(true);
+    expect(w.find('[data-day-key="2026-03-12"] .coar-calendar-board__event').exists()).toBe(false);
+    expect(w.findAll('[data-row-key="2026-02"] .coar-calendar-board__cell--none')).toHaveLength(3);
   });
 
   it('moves the focus with the arrow keys', async () => {
