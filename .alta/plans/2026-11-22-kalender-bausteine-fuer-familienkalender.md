@@ -181,11 +181,11 @@ yearWallRows({ year });                      // Schritt 9
 
 `feat(calendar): drag, create and swipe on the board`
 
-- [ ] Verschieben durch die vorhandene Drop-Pipeline (`applyMoveToEvent`, `canDrop`, Sommerzeit-Regel)
-- [ ] **Anderer Tag: die Uhrzeit bleibt.** Anderer Abschnitt: der Termin beginnt am Anfang des Abschnitts, die Dauer bleibt
-- [ ] Payload und `canDrop` bekommen optional `rowKey`. Was der Zeilenwechsel bedeutet (etwa eine andere Person), entscheidet die App
-- [ ] Anlegen durch Ziehen über Zellen, auf Touch langes Drücken wie im Raster
-- [ ] Wischen blättert über `usePageSwipe` aus Schritt 3
+- [x] Verschieben durch die vorhandene Drop-Pipeline (`applyMoveToEvent`, `canDrop`, Sommerzeit-Regel)
+- [x] **Anderer Tag: die Uhrzeit bleibt.** Anderer Abschnitt: der Termin beginnt am Anfang des Abschnitts oder an seiner `dropMinutes` (ein Morgen ab 00:00 bräuchte das), die Dauer bleibt
+- [x] Payload und `canDrop` bekommen optional `rowKey`. Was der Zeilenwechsel bedeutet (etwa eine andere Person), entscheidet die App
+- [x] Anlegen durch Ziehen über Zellen, auf Touch langes Drücken wie im Raster
+- [x] Wischen blättert über `usePageSwipe` aus Schritt 3
 
 ### 9. Wandplaner
 

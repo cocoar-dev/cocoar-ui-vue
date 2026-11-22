@@ -30,11 +30,13 @@ export { isTimedEvent, isAllDayEvent, validateCalendarEvent } from './types';
 export {
   BOARD_ALL_DAY_ROW,
   BOARD_UNASSIGNED_ROW,
+  boardDropTarget,
   layoutBoard,
   resourceWeekRows,
   weekBoardRows,
   type BoardBar,
   type BoardCell,
+  type BoardDropInput,
   type BoardLayoutRow,
   type BoardRow,
   type BoardRowKind,

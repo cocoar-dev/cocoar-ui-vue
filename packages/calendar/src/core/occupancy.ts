@@ -16,6 +16,12 @@ export interface CalendarPeriod {
   key: string;
   startMinutes: number;
   endMinutes: number;
+  /**
+   * Where an event dropped into this period starts on a board. Default
+   * `startMinutes`. Set it when the period begins at a time nobody
+   * means, such as a morning from 00:00.
+   */
+  dropMinutes?: number;
 }
 
 export interface OccupancyOptions<TMeta extends Record<string, unknown>> {

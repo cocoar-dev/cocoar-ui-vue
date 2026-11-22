@@ -29,6 +29,8 @@ export interface BoardRow<TMeta extends Record<string, unknown> = Record<string,
   match?: (event: CalendarEvent<TMeta>) => boolean;
   /** Left out of the layout when no event lands in it. */
   hideWhenEmpty?: boolean;
+  /** The part of the day this row stands for; a drop onto it starts there. */
+  period?: CalendarPeriod;
 }
 
 export interface BoardBar<TMeta extends Record<string, unknown> = Record<string, unknown>> {
@@ -134,6 +136,43 @@ export function layoutBoard<TMeta extends Record<string, unknown> = Record<strin
   return out;
 }
 
+// ─── Drops ───────────────────────────────────────────────────────────
+
+export interface BoardDropInput<TMeta extends Record<string, unknown>> {
+  event: CalendarEvent<TMeta>;
+  /** Row and day under the pointer. */
+  row: BoardRow<TMeta>;
+  date: Temporal.PlainDate;
+  /** Row the event was grabbed in. */
+  sourceRow: BoardRow<TMeta>;
+  /** Days from the event's first day to the day it was grabbed on. */
+  grabOffsetDays: number;
+  /** Display zone. */
+  timezone: string;
+}
+
+/**
+ * Where a dragged event lands. On another day the time stays. In
+ * another part of the day a single-day event starts where that part
+ * starts. The duration always stays. `null` on a `custom` row.
+ */
+export function boardDropTarget<TMeta extends Record<string, unknown> = Record<string, unknown>>(
+  input: BoardDropInput<TMeta>,
+): { date: string; minutes: number | null; mode: 'allDay' | 'timed' } | null {
+  const { event, row, date, sourceRow, grabOffsetDays, timezone } = input;
+  if (row.kind === 'custom') return null;
+  const startDay = date.subtract({ days: grabOffsetDays }).toString();
+  if (!isTimedEvent(event)) return { date: startDay, minutes: null, mode: 'allDay' };
+  const changedPeriod =
+    !!row.period && !!sourceRow.period && row.period.key !== sourceRow.period.key;
+  const multiDay = dayBoundsOf(event as CalendarEvent, timezone).isMultiDay;
+  const minutes =
+    changedPeriod && !multiDay
+      ? (row.period!.dropMinutes ?? row.period!.startMinutes)
+      : startMinuteIn(event as CalendarEvent, timezone);
+  return { date: startDay, minutes, mode: 'timed' };
+}
+
 // ─── Row sets ────────────────────────────────────────────────────────
 
 /** Key of the all-day row of `weekBoardRows`. */
@@ -183,6 +222,7 @@ export function weekBoardRows<TMeta extends Record<string, unknown> = Record<str
       key: period.key,
       dates,
       kind: 'cells' as const,
+      period,
       match: (event: CalendarEvent<TMeta>) =>
         !isSpanning(event) && periodIndexOf(startMinuteIn(event as CalendarEvent, timezone)) === index,
     })),

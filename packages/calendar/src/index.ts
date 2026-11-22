@@ -122,6 +122,7 @@ export {
   type BoardColumn,
   type BoardRowsContext,
 } from './components/CoarCalendarBoard.vue';
+export type { BoardRangeSelection } from './composables/useBoardDnd';
 export { default as CoarMonthListView } from './components/CoarMonthListView.vue';
 export { default as CoarAgendaView } from './components/CoarAgendaView.vue';
 export { default as CoarTimelineView } from './components/CoarTimelineView.vue';

@@ -216,6 +216,10 @@ export interface EventDropPayload<TMeta extends Record<string, unknown> = Record
     displayZone: string;
     /** DST disambiguation outcome (C4). `null` for clean drops. */
     disambiguation: 'gap' | 'overlap' | null;
+    /** Board only: key of the row the event was dropped on. */
+    rowKey?: string;
+    /** Board only: key of the row the event was grabbed in. */
+    sourceRowKey?: string;
   };
   native: PointerEvent | null;
 }
@@ -372,6 +376,8 @@ export interface CanDropTarget {
   /** The display zone the calendar was rendering in when the
    *  hit-test fired. */
   displayZone: string;
+  /** Board only: key of the row under the pointer. */
+  rowKey?: string;
 }
 
 export type CanDropFn<TMeta extends Record<string, unknown> = Record<string, unknown>> = (

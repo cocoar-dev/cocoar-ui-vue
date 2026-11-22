@@ -79,10 +79,142 @@ describe('CoarCalendarBoard', () => {
     await w.find('[data-row-key="morning"] [data-day-key="2026-11-18"]').trigger('pointerdown');
     expect(onDateClick.mock.calls[0][0].date.toString()).toBe('2026-11-18');
     const event = w.find('.coar-calendar-board__event');
-    await event.trigger('pointerdown');
-    await event.trigger('pointerup');
+    await event.trigger('pointerdown', { button: 0, pointerId: 1, clientX: 5, clientY: 5 });
+    window.dispatchEvent(new PointerEvent('pointerup', { pointerId: 1, clientX: 5, clientY: 5 }));
     expect(onDateClick).toHaveBeenCalledOnce();
     expect(onEventClick).toHaveBeenCalledOnce();
+  });
+
+  /** Rows 100 px high, the body from x = 100, seven columns of 100 px. */
+  function stubGeometry(w: ReturnType<typeof mount>) {
+    w.findAll('[data-row-index]').forEach((row, i) => {
+      const top = 100 + i * 100;
+      vi.spyOn(row.element, 'getBoundingClientRect').mockReturnValue({ top, bottom: top + 100 } as DOMRect);
+      vi.spyOn(row.find('.coar-calendar-board__body').element, 'getBoundingClientRect').mockReturnValue({
+        left: 100,
+        right: 800,
+        width: 700,
+      } as DOMRect);
+    });
+  }
+  const at = (type: string, x: number, y: number, pointerType = 'mouse') => {
+    const e = new PointerEvent(type, { pointerId: 1, clientX: x, clientY: y, bubbles: true });
+    Object.defineProperty(e, 'pointerType', { value: pointerType });
+    return e;
+  };
+  const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+
+  it('moves an event to another day and keeps its time', async () => {
+    const onEventDrop = vi.fn();
+    const b = newBuilder().onEventDrop(onEventDrop);
+    const w = mount(CoarCalendarBoard, { props: { builder: b, rows } });
+    stubGeometry(w);
+    // Rows: all-day 100, morning 200, evening 300; Thursday is column 3.
+    await w.find('.coar-calendar-board__event').trigger('pointerdown', {
+      button: 0, pointerId: 1, clientX: 450, clientY: 350,
+    });
+    window.dispatchEvent(at('pointermove', 650, 350));
+    await frame();
+    window.dispatchEvent(at('pointerup', 650, 350));
+    expect(onEventDrop).toHaveBeenCalledOnce();
+    const payload = onEventDrop.mock.calls[0][0];
+    expect(payload.next.start.toPlainDateTime().toString()).toBe('2026-11-21T15:30:00');
+    expect(payload.next.end.toPlainDateTime().toString()).toBe('2026-11-21T17:00:00');
+    expect(payload.target.rowKey).toBe('evening');
+  });
+
+  it('starts at the beginning of another part of the day', async () => {
+    const onEventDrop = vi.fn();
+    const b = newBuilder().onEventDrop(onEventDrop);
+    const w = mount(CoarCalendarBoard, { props: { builder: b, rows } });
+    stubGeometry(w);
+    await w.find('.coar-calendar-board__event').trigger('pointerdown', {
+      button: 0, pointerId: 1, clientX: 450, clientY: 350,
+    });
+    window.dispatchEvent(at('pointermove', 450, 250));
+    await frame();
+    window.dispatchEvent(at('pointerup', 450, 250));
+    const payload = onEventDrop.mock.calls[0][0];
+    expect(payload.next.start.toPlainDateTime().toString()).toBe('2026-11-19T00:00:00');
+    expect(payload.next.end.toPlainDateTime().toString()).toBe('2026-11-19T01:30:00');
+    expect(payload.target).toMatchObject({ rowKey: 'morning', sourceRowKey: 'evening' });
+  });
+
+  it('starts at the drop time a period names', async () => {
+    const onEventDrop = vi.fn();
+    const b = newBuilder().onEventDrop(onEventDrop);
+    const withDropTime = (ctx: { dates: Temporal.PlainDate[]; timezone: string }) =>
+      weekBoardRows({
+        dates: ctx.dates,
+        timezone: ctx.timezone,
+        periods: [{ ...PERIODS[0], dropMinutes: 8 * 60 }, PERIODS[1]],
+      });
+    const w = mount(CoarCalendarBoard, { props: { builder: b, rows: withDropTime } });
+    stubGeometry(w);
+    await w.find('.coar-calendar-board__event').trigger('pointerdown', {
+      button: 0, pointerId: 1, clientX: 450, clientY: 350,
+    });
+    window.dispatchEvent(at('pointermove', 450, 250));
+    await frame();
+    window.dispatchEvent(at('pointerup', 450, 250));
+    expect(onEventDrop.mock.calls[0][0].next.start.toPlainTime().toString()).toBe('08:00:00');
+  });
+
+  it('honours canDrop with the row under the pointer', async () => {
+    const onEventDrop = vi.fn();
+    const canDrop = vi.fn((_event, target: { rowKey?: string }) => target.rowKey !== 'morning');
+    const b = newBuilder().onEventDrop(onEventDrop).canDrop(canDrop);
+    const w = mount(CoarCalendarBoard, { props: { builder: b, rows } });
+    stubGeometry(w);
+    await w.find('.coar-calendar-board__event').trigger('pointerdown', {
+      button: 0, pointerId: 1, clientX: 450, clientY: 350,
+    });
+    window.dispatchEvent(at('pointermove', 450, 250));
+    await frame();
+    window.dispatchEvent(at('pointerup', 450, 250));
+    expect(canDrop).toHaveBeenCalled();
+    expect(onEventDrop).not.toHaveBeenCalled();
+  });
+
+  it('selects days across a row with the mouse', async () => {
+    const onDateClick = vi.fn();
+    const b = newBuilder().onDateClick(onDateClick);
+    const w = mount(CoarCalendarBoard, { props: { builder: b, rows, selectable: true } });
+    stubGeometry(w);
+    const cell = w.find('[data-row-key="morning"] [data-day-key="2026-11-17"]');
+    cell.element.dispatchEvent(at('pointerdown', 250, 250));
+    window.dispatchEvent(at('pointermove', 450, 250));
+    await nextTick();
+    expect(w.findAll('.coar-calendar-board__cell--selecting')).toHaveLength(3);
+    window.dispatchEvent(at('pointerup', 450, 250));
+    const selection = w.emitted('rangeSelect')![0][0] as { rowKey: string; start: unknown; end: unknown };
+    expect(String(selection.start)).toBe('2026-11-17');
+    expect(String(selection.end)).toBe('2026-11-19');
+    expect(selection.rowKey).toBe('morning');
+    expect(onDateClick).not.toHaveBeenCalled();
+  });
+
+  it('a click without a drag stays a day click when selectable', () => {
+    const onDateClick = vi.fn();
+    const b = newBuilder().onDateClick(onDateClick);
+    const w = mount(CoarCalendarBoard, { props: { builder: b, rows, selectable: true } });
+    stubGeometry(w);
+    const cell = w.find('[data-row-key="morning"] [data-day-key="2026-11-17"]');
+    cell.element.dispatchEvent(at('pointerdown', 250, 250));
+    window.dispatchEvent(at('pointerup', 250, 250));
+    expect(onDateClick).toHaveBeenCalledOnce();
+    expect(w.emitted('rangeSelect')).toBeUndefined();
+  });
+
+  it('a touch swipe pages the week', async () => {
+    const b = newBuilder();
+    const w = mount(CoarCalendarBoard, { props: { builder: b, rows } });
+    const cell = w.find('[data-row-key="morning"] [data-day-key="2026-11-17"]');
+    cell.element.dispatchEvent(at('pointerdown', 400, 250, 'touch'));
+    for (const x of [360, 300, 240, 180]) window.dispatchEvent(at('pointermove', x, 250, 'touch'));
+    window.dispatchEvent(at('pointerup', 180, 250, 'touch'));
+    await nextTick();
+    expect(b.state.date.value.toString()).toBe('2026-11-26');
   });
 
   it('moves the focus with the arrow keys', async () => {

@@ -52,6 +52,14 @@ const rows = (context: BoardRowsContext) =>
 
 A shared event stands in the row of each of its resources. Events of no listed resource get the row `BOARD_UNASSIGNED_ROW`, which appears only when there are any. For "who is free", use [`computeOccupancy`](/components/calendar/coar-calendar#occupancy).
 
+## Moving, selecting, paging
+
+Dragging an event runs through the same drop pipeline as the other views: `onEventDrop`, `canDrop` and the DST policy apply. On another day the event keeps its time. In another part of the day it starts where that part starts, or at the period's `dropMinutes`, which you want for a morning that begins at 00:00. The duration always stays.
+
+The payload's `target.rowKey` and `target.sourceRowKey` say which rows were involved, and `canDrop` gets `rowKey`. What a change of row means, such as another person, is for your `onEventDrop` to apply.
+
+With `selectable`, dragging across the days of a row emits `rangeSelect` with `{ rowKey, start, end, native }`, both days inclusive. A mouse selects at once, a touch after a long press. A horizontal swipe turns the page unless `swipeNavigation(false)` is set.
+
 ## Your own rows
 
 A row is plain data, so you can build any set:
@@ -76,6 +84,11 @@ interface BoardRow<TMeta> {
 | `rows` | `BoardRow[] \| (context) => BoardRow[]` | **Required.** The function form gets the visible `dates`, `year` and `timezone`. |
 | `range` | `'week' \| 'year'` | The window to load and page. Default `week`. |
 | `columns` | `{ key, label }[]` | Column headers. Default: the dates of the first row. |
+| `selectable` | `boolean` | Drag across days to select them. Default `false`. |
+
+| Event | Payload | Description |
+|---|---|---|
+| `rangeSelect` | `{ rowKey, start, end, native }` | Days selected in one row, both inclusive. |
 
 | Slot | Scope | Purpose |
 |---|---|---|
