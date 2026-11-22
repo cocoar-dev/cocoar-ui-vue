@@ -187,6 +187,10 @@ interface BoardRow<TMeta> {
 
 ## Styling tokens
 
+`--coar-calendar-board-header-bg` colors the day headers and the empty corner above the row labels. `--coar-calendar-board-cell-today-frame` is a `box-shadow` around today's cell, drawn above the bars.
+
+The events of a cell are ordered by start, all-day first, whether they are single or from a series.
+
 | Token | Default |
 |---|---|
 | `--coar-calendar-board-label-width` | `88px` |
@@ -196,6 +200,7 @@ interface BoardRow<TMeta> {
 | `--coar-calendar-board-cell-padding` | `3px` |
 | `--coar-calendar-board-bar-row-min-height` | `8px` |
 | `--coar-calendar-board-cell-gap` / `-cell-bg` / `-cell-today-bg` | `2px` / none / today's tint |
+| `--coar-calendar-board-cell-today-frame` / `-frame-radius` | none / `0` |
 | `--coar-calendar-board-line` / `-row-line` | the calendar border |
 | `--coar-calendar-board-header-bg` / `-today-bg` / `-padding` / `-line` | none / same / weekday padding / the line |
 | `--coar-calendar-board-header-direction` / `-align` / `-justify` | `column` / `center` / `flex-start` |

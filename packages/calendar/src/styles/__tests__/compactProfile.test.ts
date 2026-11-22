@@ -219,6 +219,8 @@ const HOST_CONTRACTS = new Set([
   '--coar-calendar-board-cell-bg',
   '--coar-calendar-board-cell-gap',
   '--coar-calendar-board-cell-today-bg',
+  '--coar-calendar-board-cell-today-frame',
+  '--coar-calendar-board-cell-today-frame-radius',
   '--coar-calendar-board-header-align',
   '--coar-calendar-board-header-bg',
   '--coar-calendar-board-header-direction',

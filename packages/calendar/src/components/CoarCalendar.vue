@@ -128,6 +128,8 @@ defineSlots<{
   dayNumber?(props: MonthDaySlotScope): unknown;
   /** Beside a month cell's day number. */
   dayContent?(props: MonthDaySlotScope): unknown;
+  /** At the foot of the day, below the events; counted when the day folds into "+N". */
+  dayFooter?(props: MonthDaySlotScope): unknown;
   /** Per-day-column header (week / month). */
   dayHeader?(props: { date: Temporal.PlainDate; isToday: boolean; isWeekend: boolean }): unknown;
   /** The host's draft (`builder.draft`), drawn yourself — one call per day it covers. */
@@ -650,6 +652,9 @@ onBeforeUnmount(() => {
         </template>
         <template v-if="$slots.dayContent" #dayContent="slotProps">
           <slot name="dayContent" v-bind="slotProps" />
+        </template>
+        <template v-if="$slots.dayFooter" #dayFooter="slotProps">
+          <slot name="dayFooter" v-bind="slotProps" />
         </template>
       </component>
 

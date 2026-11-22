@@ -40,6 +40,8 @@ export interface MonthMetrics {
   pillGap: number;
   pillsPaddingTop: number;
   pillsPaddingBottom: number;
+  /** Height of the `#dayFooter` per day key; days without one are not listed. */
+  footerHeights?: ReadonlyMap<string, number>;
 }
 
 /** The stylesheet's numbers — what `CoarMonthCell` / `CoarMonthPill` render unstyled. */
@@ -83,6 +85,24 @@ export function findMonthMetricSources(root: HTMLElement): MonthMetricSources | 
   };
 }
 
+const FOOTER_SELECTOR = '.coar-month-cell__day-footer';
+
+function measureFooters(root: HTMLElement): Map<string, number> {
+  const heights = new Map<string, number>();
+  for (const footer of root.querySelectorAll<HTMLElement>(FOOTER_SELECTOR)) {
+    const key = footer.closest<HTMLElement>('[data-day-key]')?.dataset.dayKey;
+    if (key && footer.offsetHeight > 0) heights.set(key, footer.offsetHeight);
+  }
+  return heights;
+}
+
+function sameHeights(
+  a: ReadonlyMap<string, number> = new Map(),
+  b: ReadonlyMap<string, number> = new Map(),
+): boolean {
+  return a.size === b.size && [...a].every(([key, height]) => b.get(key) === height);
+}
+
 /** Measure the rendered cells; `null` when nothing measurable is in the DOM. */
 export function measureMonthMetrics(root: HTMLElement): MonthMetrics | null {
   const sources = findMonthMetricSources(root);
@@ -91,6 +111,7 @@ export function measureMonthMetrics(root: HTMLElement): MonthMetrics | null {
   const pills = root.querySelector<HTMLElement>('.coar-month-cell__pills');
   const pillsStyle = pills ? getComputedStyle(pills) : null;
   const pillHeight = pill?.offsetHeight || DEFAULT_MONTH_METRICS.pillHeight;
+  const footerHeights = measureFooters(root);
   return {
     dayNumberHeight: dayRow.offsetHeight,
     pillHeight,
@@ -102,6 +123,7 @@ export function measureMonthMetrics(root: HTMLElement): MonthMetrics | null {
     pillsPaddingBottom: pillsStyle
       ? px(pillsStyle.paddingBottom)
       : DEFAULT_MONTH_METRICS.pillsPaddingBottom,
+    ...(footerHeights.size > 0 ? { footerHeights } : {}),
   };
 }
 
@@ -120,7 +142,8 @@ export function useMonthMetrics(opts: UseMonthMetricsOptions): Ref<MonthMetrics>
       next.markerHeight !== cur.markerHeight ||
       next.pillGap !== cur.pillGap ||
       next.pillsPaddingTop !== cur.pillsPaddingTop ||
-      next.pillsPaddingBottom !== cur.pillsPaddingBottom
+      next.pillsPaddingBottom !== cur.pillsPaddingBottom ||
+      !sameHeights(next.footerHeights, cur.footerHeights)
     ) {
       metrics.value = next;
     }
@@ -133,7 +156,8 @@ export function useMonthMetrics(opts: UseMonthMetricsOptions): Ref<MonthMetrics>
     const root = opts.rootRef.value;
     if (!observer || !root) return;
     const sources = findMonthMetricSources(root);
-    for (const el of [sources?.dayRow, sources?.pill, sources?.marker]) {
+    const footers = root.querySelectorAll<HTMLElement>(FOOTER_SELECTOR);
+    for (const el of [sources?.dayRow, sources?.pill, sources?.marker, ...footers]) {
       if (el && !observed.has(el)) {
         observed.add(el);
         observer.observe(el);

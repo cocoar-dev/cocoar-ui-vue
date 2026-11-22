@@ -29,6 +29,7 @@ import type { CalendarEvent, CalendarMonthDensity } from './types';
 import { isAllDayEvent } from './types';
 import { layoutOverlappingIntervals, type IntervalInput } from './overlapLayout';
 import { Temporal, dateKey, endsAtStartOfDay, eventStartDateInZone } from './temporal';
+import { compareEventStart } from './eventOrder';
 
 // ─── Output types ────────────────────────────────────────────────────
 
@@ -350,6 +351,12 @@ export function layoutMonthGrid<TMeta extends Record<string, unknown> = Record<s
       if (existing) existing.push(pill);
       else cellPillsByKey.set(key, [pill]);
     }
+  }
+
+  // Series occurrences arrive after the single events: a cell shows its day by start.
+  for (const [key, pills] of cellPillsByKey) {
+    const sorted = [...pills].sort((a, b) => compareEventStart(a.event, b.event));
+    cellPillsByKey.set(key, sorted.map((pill, order) => ({ ...pill, order })));
   }
 
   // For each row, produce multi-day bars by clipping events to

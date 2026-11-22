@@ -8,6 +8,7 @@
  */
 
 import { Temporal } from './temporal';
+import { compareEventStart } from './eventOrder';
 import { dayBoundsOf, dayOrdinal } from './monthGridLayout';
 import type { CalendarPeriod } from './occupancy';
 import { layoutOverlappingIntervals } from './overlapLayout';
@@ -141,7 +142,10 @@ export function layoutBoard<TMeta extends Record<string, unknown> = Record<strin
       row,
       bars: pending.map((bar) => ({ ...bar, lane: laneById.get(barId(bar)) ?? 0 })),
       laneCount: lanes.laneCount,
-      cells: row.dates.map((date, col) => ({ date, events: cellEvents[col] })),
+      cells: row.dates.map((date, col) => ({
+        date,
+        events: cellEvents[col].sort(compareEventStart),
+      })),
     });
   }
   return out;
