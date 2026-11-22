@@ -122,6 +122,8 @@ defineSlots<{
   resourceHeader?(props: { resource: CalendarResource | null; id: string }): unknown;
   /** A day with `builder.resources`: an entry of `builder.dayOverlays`. */
   overlay?(props: { overlay: CalendarDayOverlay }): unknown;
+  /** A day with `builder.resources`: a label of the hour axis. */
+  hourLabel?(props: { hour: number; label: string }): unknown;
   /** Replaces a month cell's day number. */
   dayNumber?(props: MonthDaySlotScope): unknown;
   /** Beside a month cell's day number. */
@@ -570,6 +572,9 @@ onBeforeUnmount(() => {
         </template>
         <template v-if="$slots.overlay" #overlay="slotProps">
           <slot name="overlay" v-bind="slotProps" />
+        </template>
+        <template v-if="$slots.hourLabel" #hourLabel="slotProps">
+          <slot name="hourLabel" v-bind="slotProps" />
         </template>
       </CoarDayView>
 

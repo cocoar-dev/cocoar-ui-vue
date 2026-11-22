@@ -60,6 +60,7 @@ defineSlots<{
   }): unknown;
   resourceHeader?(props: { resource: CalendarResource | null; id: string }): unknown;
   overlay?(props: { overlay: CalendarDayOverlay }): unknown;
+  hourLabel?(props: { hour: number; label: string }): unknown;
 }>();
 
 const localization = useLocalization();
@@ -290,6 +291,9 @@ defineExpose({
       </template>
       <template v-if="$slots.overlay" #overlay="slotProps">
         <slot name="overlay" v-bind="slotProps" />
+      </template>
+      <template v-if="$slots.hourLabel" #hourLabel="slotProps">
+        <slot name="hourLabel" v-bind="slotProps" />
       </template>
     </CoarResourceDayGrid>
 

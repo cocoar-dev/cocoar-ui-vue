@@ -31,6 +31,8 @@ export interface BoardRow<TMeta extends Record<string, unknown> = Record<string,
   hideWhenEmpty?: boolean;
   /** The part of the day this row stands for; a drop onto it starts there. */
   period?: CalendarPeriod;
+  /** Extra class on the row, to style it through the board's tokens. */
+  class?: string;
   /** Text of the row's label. Default: `key`. */
   label?: string;
   /**

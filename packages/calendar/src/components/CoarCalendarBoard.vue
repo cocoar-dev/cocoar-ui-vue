@@ -60,8 +60,12 @@ const props = withDefaults(
     columns?: ReadonlyArray<BoardColumn>;
     /** Drag across the days of a row to select them (`rangeSelect`). */
     selectable?: boolean;
+    /** Take the parent's height; rows of cells share what the others leave. */
+    fill?: boolean;
+    /** Leave out the row of column headers, for rows that name their own day. */
+    hideHeader?: boolean;
   }>(),
-  { range: 'week', columns: undefined, selectable: false },
+  { range: 'week', columns: undefined, selectable: false, fill: false, hideHeader: false },
 );
 
 const emit = defineEmits<{
@@ -132,6 +136,7 @@ const layout = computed(() =>
     timezone: timezone.value,
   }),
 );
+const headerRows = computed(() => (props.hideHeader ? 0 : 1));
 const columnCount = computed(
   () => props.columns?.length ?? resolvedRows.value[0]?.dates.length ?? 0,
 );
@@ -328,16 +333,22 @@ defineExpose({ getLayout: () => layout.value });
     ref="rootEl"
     class="coar-calendar-board"
     role="grid"
-    :aria-rowcount="layout.length + 1"
+    :aria-rowcount="layout.length + headerRows"
     :aria-colcount="columnCount + 1"
     :class="{
       'coar-calendar-board--settling': swipe.settling.value,
       'coar-calendar-board--year': range === 'year',
+      'coar-calendar-board--fill': fill,
     }"
     :style="{ '--coar-i-board-columns': columnCount, ...swipe.swipeStyle.value }"
     @pointerdown="onRootPointerdown"
   >
-    <div class="coar-calendar-board__row coar-calendar-board__row--header" role="row" aria-rowindex="1">
+    <div
+      v-if="!hideHeader"
+      class="coar-calendar-board__row coar-calendar-board__row--header"
+      role="row"
+      aria-rowindex="1"
+    >
       <div class="coar-calendar-board__label" role="columnheader" aria-colindex="1" />
       <div class="coar-calendar-board__columns">
         <div
@@ -372,11 +383,11 @@ defineExpose({ getLayout: () => layout.value });
       v-for="(entry, rowIndex) in layout"
       :key="entry.row.key"
       class="coar-calendar-board__row"
-      :class="`coar-calendar-board__row--${entry.row.kind}`"
+      :class="[`coar-calendar-board__row--${entry.row.kind}`, entry.row.class]"
       :data-row-key="entry.row.key"
       :data-row-index="rowIndex"
       role="row"
-      :aria-rowindex="rowIndex + 2"
+      :aria-rowindex="rowIndex + 1 + headerRows"
     >
       <div class="coar-calendar-board__label" role="rowheader" aria-colindex="1">
         <slot name="rowLabel" :row="entry.row">{{ entry.row.label ?? entry.row.key }}</slot>
@@ -484,6 +495,7 @@ defineExpose({ getLayout: () => layout.value });
   color: var(--coar-text-base, #1a1c1f);
 }
 .coar-calendar-board {
+  gap: var(--coar-calendar-board-row-gap, 0);
   overflow-x: clip;
   touch-action: pan-y;
 }
@@ -501,17 +513,50 @@ defineExpose({ getLayout: () => layout.value });
 .coar-calendar-board__row {
   display: grid;
   grid-template-columns: var(--coar-calendar-board-label-width, 88px) minmax(0, 1fr);
-  border-bottom: 1px solid var(--coar-calendar-border, #d1d5db);
+  border-bottom: 1px solid var(--coar-calendar-board-row-line, var(--coar-calendar-border, #d1d5db));
+}
+.coar-calendar-board--fill {
+  height: 100%;
+  min-height: 0;
+}
+.coar-calendar-board--fill .coar-calendar-board__row--cells {
+  flex: 1 1 0;
+  min-height: 0;
+}
+.coar-calendar-board--fill .coar-calendar-board__row--cells .coar-calendar-board__body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.coar-calendar-board--fill .coar-calendar-board__row--cells {
+  grid-template-rows: minmax(0, 1fr);
+}
+.coar-calendar-board--fill .coar-calendar-board__row--cells .coar-calendar-board__columns {
+  flex: 1 1 0;
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 0;
+}
+.coar-calendar-board--fill .coar-calendar-board__row--cells .coar-calendar-board__cell {
+  overflow: hidden;
 }
 .coar-calendar-board__row:last-child {
   border-bottom: 0;
 }
 .coar-calendar-board__label {
+  align-self: var(--coar-calendar-board-label-align, stretch);
   min-width: 0;
   padding: var(--coar-calendar-board-label-padding, 8px);
-  font-size: var(--coar-calendar-caption-font-size, var(--coar-font-size-xs, 11px));
-  font-weight: var(--coar-calendar-caption-font-weight, 600);
-  color: var(--coar-text-subtle, #6c7280);
+  font-size: var(
+    --coar-calendar-board-label-font-size,
+    var(--coar-calendar-caption-font-size, var(--coar-font-size-xs, 11px))
+  );
+  font-weight: var(
+    --coar-calendar-board-label-font-weight,
+    var(--coar-calendar-caption-font-weight, 600)
+  );
+  letter-spacing: var(--coar-calendar-board-label-letter-spacing, normal);
+  text-transform: var(--coar-calendar-board-label-transform, none);
+  color: var(--coar-calendar-board-label-color, var(--coar-text-subtle, #6c7280));
 }
 .coar-calendar-board__body {
   min-width: 0;
@@ -523,44 +568,66 @@ defineExpose({ getLayout: () => layout.value });
     var(--coar-i-board-columns),
     minmax(var(--coar-calendar-board-column-min-width, 0), 1fr)
   );
+  column-gap: var(--coar-calendar-board-column-gap, 0);
 }
 .coar-calendar-board__bars {
-  gap: 2px 0;
-  padding: 2px 0;
+  gap: var(--coar-calendar-board-bar-gap, 2px) 0;
+  padding: var(--coar-calendar-board-bars-padding, 2px 0);
 }
 .coar-calendar-board__column-header {
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  flex-direction: var(--coar-calendar-board-header-direction, column);
+  align-items: var(--coar-calendar-board-header-align, center);
+  justify-content: var(--coar-calendar-board-header-justify, flex-start);
   min-width: 0;
-  padding: var(--coar-calendar-weekday-cell-padding, 8px 12px);
-  border-left: 1px solid var(--coar-calendar-border, #d1d5db);
+  padding: var(--coar-calendar-board-header-padding, var(--coar-calendar-weekday-cell-padding, 8px 12px));
+  border-left: 1px solid var(--coar-calendar-board-header-line, var(--coar-calendar-board-line, var(--coar-calendar-border, #d1d5db)));
+  background: var(--coar-calendar-board-header-bg, transparent);
   font-size: var(--coar-calendar-weekday-font-size, var(--coar-calendar-caption-font-size, var(--coar-font-size-xs, 11px)));
   color: var(--coar-calendar-weekday-color, var(--coar-text-subtle, #6c7280));
 }
 .coar-calendar-board__column-header--today {
+  background: var(--coar-calendar-board-header-today-bg, var(--coar-calendar-board-header-bg, transparent));
   color: var(--coar-calendar-today-color, var(--coar-color-accent, var(--coar-color-accent-500, #2563eb)));
 }
 .coar-calendar-board__cell {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--coar-calendar-board-cell-gap, 2px);
   min-width: 0;
   min-height: var(--coar-calendar-board-cell-min-height, 48px);
   padding: var(--coar-calendar-board-cell-padding, 3px);
   box-sizing: border-box;
-  border-left: 1px solid var(--coar-calendar-border, #d1d5db);
+  border-left: 1px solid var(--coar-calendar-board-line, var(--coar-calendar-border, #d1d5db));
+  background: var(--coar-calendar-board-cell-bg, transparent);
   cursor: pointer;
 }
-.coar-calendar-board__row--bars .coar-calendar-board__cell {
+/* A row of bars: the cells lie behind the bars, as tall as the row. */
+.coar-calendar-board__row--bars .coar-calendar-board__body {
+  position: relative;
   min-height: var(--coar-calendar-board-bar-row-min-height, 8px);
+}
+.coar-calendar-board__row--bars .coar-calendar-board__columns {
+  position: absolute;
+  inset: 0;
+}
+.coar-calendar-board__row--bars .coar-calendar-board__bars {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+.coar-calendar-board__row--bars .coar-calendar-board__bar {
+  pointer-events: auto;
+}
+.coar-calendar-board__row--bars .coar-calendar-board__cell {
+  min-height: 0;
   padding: 0;
 }
 .coar-calendar-board__cell--weekend {
   background: var(--coar-calendar-bg-weekend, #f6f7f9);
 }
 .coar-calendar-board__cell--today {
-  background: var(--coar-calendar-bg-today, rgba(37, 99, 235, 0.04));
+  background: var(--coar-calendar-board-cell-today-bg, var(--coar-calendar-bg-today, rgba(37, 99, 235, 0.04)));
 }
 .coar-calendar-board__cell--none {
   background: var(--coar-calendar-bg-other-month, #fafafb);
@@ -584,6 +651,10 @@ defineExpose({ getLayout: () => layout.value });
   outline: 2px solid var(--coar-calendar-focus-color, var(--coar-color-focus, #2563eb));
   outline-offset: -2px;
 }
+/* A full cell clips its last event; it never squeezes them. */
+.coar-calendar-board__event {
+  flex: 0 0 auto;
+}
 .coar-calendar-board__event,
 .coar-calendar-board__bar {
   display: flex;
@@ -603,6 +674,16 @@ defineExpose({ getLayout: () => layout.value });
   user-select: none;
   /* A touch on an event is a drag, as everywhere in the calendar. */
   touch-action: none;
+}
+.coar-calendar-board__bar {
+  margin: var(--coar-calendar-board-bar-margin, 0);
+  padding: var(--coar-calendar-board-bar-padding, var(--coar-calendar-event-padding, 1px 6px));
+  border-radius: var(
+    --coar-calendar-board-bar-radius,
+    var(--coar-calendar-pill-radius, var(--coar-calendar-event-radius, 3px))
+  );
+  font-size: var(--coar-calendar-board-bar-font-size, inherit);
+  font-weight: var(--coar-calendar-board-bar-font-weight, inherit);
 }
 .coar-calendar-board__bar--clipped-start {
   border-top-left-radius: 0;
@@ -638,12 +719,12 @@ defineExpose({ getLayout: () => layout.value });
   position: absolute;
   inset: 0;
   z-index: 1;
-  padding: 0;
+  padding: var(--coar-calendar-board-bars-padding, 0);
   pointer-events: none;
 }
 .coar-calendar-board--year .coar-calendar-board__bar {
   container-type: inline-size;
-  padding: 0 3px;
+  padding: var(--coar-calendar-board-bar-padding, 0 3px);
   pointer-events: auto;
 }
 @container (max-width: 40px) {

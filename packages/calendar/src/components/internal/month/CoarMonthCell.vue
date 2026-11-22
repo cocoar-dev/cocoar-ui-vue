@@ -235,7 +235,11 @@ function onOverflowClick(e: MouseEvent) {
 
 .coar-month-cell__day-number-row {
   display: flex;
-  align-items: center;
+  flex: var(--coar-calendar-day-number-row-flex, 0 1 auto);
+  flex-direction: var(--coar-calendar-day-number-row-direction, row);
+  align-items: var(--coar-calendar-day-number-row-align, center);
+  justify-content: var(--coar-calendar-day-number-row-justify, flex-start);
+  gap: var(--coar-calendar-day-number-row-gap, 0);
   padding: var(--coar-calendar-day-number-row-padding, 4px 6px);
   height: var(--coar-calendar-day-number-row-height, 24px);
   box-sizing: border-box;
@@ -252,7 +256,7 @@ function onOverflowClick(e: MouseEvent) {
   color: var(--coar-text-base, #1a1c1f);
 }
 .coar-month-cell__day-content {
-  flex: 1 1 auto;
+  flex: var(--coar-calendar-day-content-flex, 1 1 auto);
   min-width: 0;
 }
 .coar-month-cell--today .coar-month-cell__day-number {

@@ -533,6 +533,10 @@ Set these on the calendar or a parent. Without them everything keeps its look. A
 | `--coar-calendar-weekday-color` | subtle text | Weekday header |
 | `--coar-calendar-weekday-font-size` | caption size | Weekday header |
 | `--coar-calendar-weekday-font-weight` | caption weight | Weekday header |
+| `--coar-calendar-weekday-bg` / `-border` | calendar background / border | Weekday header |
+| `--coar-calendar-weekday-letter-spacing` / `-transform` / `-align` | `0.04em` / `uppercase` / inherited | Weekday header |
+| `--coar-calendar-day-number-row-direction` / `-align` / `-justify` / `-gap` / `-flex` | `row` / `center` / `flex-start` / `0` / `0 1 auto` | Row of the day number, to stack the number and `#dayContent` |
+| `--coar-calendar-day-content-flex` | `1 1 auto` | The `#dayContent` box |
 | `--coar-calendar-section-title-padding` | `20px 16px 10px` | Month title of the continuous month |
 | `--coar-calendar-pill-font-size` | event size | Pills and bars |
 | `--coar-calendar-pill-line-height` | `16px` | Pills |

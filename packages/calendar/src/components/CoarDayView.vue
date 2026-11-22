@@ -39,6 +39,8 @@ defineSlots<{
   resourceHeader?(props: { resource: CalendarResource | null; id: string }): unknown;
   /** A day with `builder.resources`: an entry of `builder.dayOverlays`. */
   overlay?(props: { overlay: CalendarDayOverlay }): unknown;
+  /** A day with `builder.resources`: a label of the hour axis. */
+  hourLabel?(props: { hour: number; label: string }): unknown;
 }>();
 
 /** What the surface exposes — typed by hand because the surface is a generic component. */
@@ -74,6 +76,9 @@ defineExpose({
     </template>
     <template v-if="$slots.overlay" #overlay="slotProps">
       <slot name="overlay" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots.hourLabel" #hourLabel="slotProps">
+      <slot name="hourLabel" v-bind="slotProps" />
     </template>
   </CoarTimeGridSurface>
 </template>

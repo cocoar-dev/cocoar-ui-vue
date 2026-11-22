@@ -56,6 +56,20 @@ describe('CoarCalendarBoard', () => {
     expect((bar.element as HTMLElement).style.gridColumn).toBe('2 / 5');
   });
 
+  it('counts the header row in the grid semantics', () => {
+    const w = mount(CoarCalendarBoard, { props: { builder: newBuilder(), rows } });
+    expect(w.attributes('aria-rowcount')).toBe('5');
+    expect(w.find('[data-row-index="0"]').attributes('aria-rowindex')).toBe('2');
+  });
+
+  it('leaves the header out with hideHeader, and numbers the rows from 1', () => {
+    const w = mount(CoarCalendarBoard, { props: { builder: newBuilder(), rows, hideHeader: true } });
+    expect(w.find('.coar-calendar-board__row--header').exists()).toBe(false);
+    expect(w.findAll('.coar-calendar-board__column-header')).toHaveLength(0);
+    expect(w.attributes('aria-rowcount')).toBe('4');
+    expect(w.findAll('[data-row-index]').map((r) => r.attributes('aria-rowindex'))).toEqual(['1', '2', '3', '4']);
+  });
+
   it('follows the cursor', async () => {
     const b = newBuilder();
     const w = mount(CoarCalendarBoard, { props: { builder: b, rows } });

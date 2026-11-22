@@ -92,6 +92,7 @@ interface BoardRow<TMeta> {
   hideWhenEmpty?: boolean;
   period?: CalendarPeriod; // a drop onto this row starts in this period
   label?: string; // default: key
+  class?: string; // extra class, to set tokens for this row
   showCellEvents?: boolean; // false: single-day events only reach #cell
 }
 ```
@@ -107,6 +108,8 @@ interface BoardRow<TMeta> {
 | `range` | `'week' \| 'year'` | The window to load and page. Default `week`. |
 | `columns` | `{ key, label }[]` | Column headers. Default: the dates of the first row. |
 | `selectable` | `boolean` | Drag across days to select them. Default `false`. |
+| `fill` | `boolean` | Take the parent's height; rows of cells share what the others leave. Default `false`. |
+| `hideHeader` | `boolean` | Leave out the column headers, for rows that name their own day. Default `false`. |
 
 | Event | Payload | Description |
 |---|---|---|
@@ -130,5 +133,13 @@ interface BoardRow<TMeta> {
 | `--coar-calendar-board-cell-min-height` | `48px` |
 | `--coar-calendar-board-cell-padding` | `3px` |
 | `--coar-calendar-board-bar-row-min-height` | `8px` |
+| `--coar-calendar-board-cell-gap` / `-cell-bg` / `-cell-today-bg` | `2px` / none / today's tint |
+| `--coar-calendar-board-line` / `-row-line` | the calendar border |
+| `--coar-calendar-board-header-bg` / `-today-bg` / `-padding` / `-line` | none / same / weekday padding / the line |
+| `--coar-calendar-board-header-direction` / `-align` / `-justify` | `column` / `center` / `flex-start` |
+| `--coar-calendar-board-label-font-size` / `-font-weight` / `-color` / `-letter-spacing` / `-transform` / `-align` | caption role, `stretch` |
+| `--coar-calendar-board-bar-margin` / `-padding` / `-radius` / `-font-size` / `-font-weight` / `-gap` | `0` / event padding / pill radius / inherited / inherited / `2px` |
+| `--coar-calendar-board-bars-padding` | `2px 0` |
+| `--coar-calendar-board-row-gap` / `-column-gap` | `0` |
 
 Events use the event tokens of the [month view](/components/calendar/month-view#styling-tokens).

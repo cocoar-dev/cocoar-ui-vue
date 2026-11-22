@@ -74,14 +74,14 @@ defineSlots<{
 .coar-month-grid__weekday-row {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  border-bottom: 1px solid var(--coar-calendar-border, #d1d5db);
+  border-bottom: 1px solid var(--coar-calendar-weekday-border, var(--coar-calendar-border, #d1d5db));
   /* Pin to the top of the scroll surface (the calendar body) so
      the weekday labels stay visible while the user scrolls
      through expanded rows. */
   position: sticky;
   top: 0;
   z-index: 5;
-  background: var(--coar-calendar-bg, #fff);
+  background: var(--coar-calendar-weekday-bg, var(--coar-calendar-bg, #fff));
 }
 .coar-month-grid__weekday-cell {
   padding: var(--coar-calendar-weekday-cell-padding, 8px 12px);
@@ -93,8 +93,9 @@ defineSlots<{
     --coar-calendar-weekday-font-weight,
     var(--coar-calendar-caption-font-weight, 600)
   );
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  text-transform: var(--coar-calendar-weekday-transform, uppercase);
+  letter-spacing: var(--coar-calendar-weekday-letter-spacing, 0.04em);
+  text-align: var(--coar-calendar-weekday-align, inherit);
   color: var(--coar-calendar-weekday-color, var(--coar-text-subtle, #6c7280));
   border-left: 1px solid var(--coar-calendar-border, #d1d5db);
 }

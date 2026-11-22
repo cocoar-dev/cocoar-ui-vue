@@ -46,6 +46,7 @@ defineSlots<{
   allDayEvent?(props: { event: CalendarEvent<TMeta>; layout: AllDayBar<TMeta> }): unknown;
   resourceHeader?(props: { resource: CalendarResource | null; id: string }): unknown;
   overlay?(props: { overlay: CalendarDayOverlay }): unknown;
+  hourLabel?(props: { hour: number; label: string }): unknown;
 }>();
 
 const state = computed(() => {
@@ -463,7 +464,7 @@ defineExpose({ getLayout: () => layout.value });
           :data-hour="entry.hour"
           :style="{ top: `${px((entry.hour - timeRange[0]) * 60)}px` }"
         >
-          {{ entry.label }}
+          <slot name="hourLabel" :hour="entry.hour" :label="entry.label">{{ entry.label }}</slot>
         </div>
       </div>
       <div
@@ -568,7 +569,10 @@ defineExpose({ getLayout: () => layout.value });
 }
 .coar-resource-day__axis--label {
   padding: 4px 8px;
+  overflow: hidden;
   text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--coar-text-subtle, #6c7280);
 }
 .coar-resource-day__band {
@@ -585,6 +589,7 @@ defineExpose({ getLayout: () => layout.value });
   position: absolute;
   right: 8px;
   transform: translateY(-50%);
+  white-space: nowrap;
   color: var(--coar-text-subtle, #6c7280);
 }
 .coar-resource-day__hour:first-child {
@@ -626,13 +631,20 @@ defineExpose({ getLayout: () => layout.value });
 }
 .coar-resource-day__overlay {
   position: absolute;
-  left: 0;
-  right: 0;
+  left: var(--coar-calendar-day-overlay-inset, 0);
+  right: var(--coar-calendar-day-overlay-inset, 0);
   z-index: 1;
   overflow: hidden;
   box-sizing: border-box;
-  padding: 2px 6px;
-  background: color-mix(in srgb, var(--coar-calendar-band-tint, #2563eb) 10%, transparent);
+  padding: var(--coar-calendar-day-overlay-padding, 2px 6px);
+  border-radius: var(--coar-calendar-day-overlay-radius, 0);
+  background: var(
+    --coar-calendar-day-overlay-bg,
+    color-mix(in srgb, var(--coar-calendar-band-tint, #2563eb) 10%, transparent)
+  );
+  color: var(--coar-calendar-day-overlay-color, inherit);
+  font-size: var(--coar-calendar-day-overlay-font-size, inherit);
+  font-weight: var(--coar-calendar-day-overlay-font-weight, inherit);
 }
 .coar-resource-day__selection {
   position: absolute;
