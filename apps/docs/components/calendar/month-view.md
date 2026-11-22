@@ -206,6 +206,7 @@ Set these on the calendar or a parent. Without them everything keeps its look. A
 |---|---|---|
 | `--coar-calendar-day-number-font-size` | label size | Day number |
 | `--coar-calendar-day-number-font-weight` | label weight | Day number |
+| `--coar-calendar-month-selected-frame` | `none` | A `box-shadow` around the selected day, drawn above the multi-day bars |
 | `--coar-calendar-day-number-row-height` | `24px`, continuous `31px` | Row of the day number |
 | `--coar-calendar-day-number-row-padding` | `4px 6px`, continuous `2px 6px` | Row of the day number |
 | `--coar-calendar-today-font-weight` | day number weight | Today's number |

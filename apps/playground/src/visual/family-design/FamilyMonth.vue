@@ -20,8 +20,7 @@ builder
   .locale('de-AT')
   .firstDayOfWeek(1)
   .monthRowSizing('fill')
-  .weekdayFormat('short')
-  .dayClass((date) => (date.equals(familyToday) ? 'family-selected' : null));
+  .weekdayFormat('short');
 
 const first = familyToday.with({ day: 1 });
 const dates = Array.from({ length: 50 }, (_, i) => first.subtract({ days: 7 }).add({ days: i }));

@@ -158,6 +158,22 @@ describe('maxEventsPerCell in a row of fixed height', () => {
   });
 });
 
+describe('frame of the selected day', () => {
+  const frames = (w: ReturnType<typeof mount>) => w.findAll('.coar-month-view__selected-frame');
+
+  it('sits in the column of the selected day, once', () => {
+    const b = newBuilder(bars(1)).selectedDate(pd('2026-06-17'));
+    const w = mount(CoarMonthView, { props: { builder: b } });
+    expect(frames(w)).toHaveLength(1);
+    expect((frames(w)[0].element as HTMLElement).style.left).toBe(`${(2 / 7) * 100}%`);
+    expect(frames(w)[0].attributes('aria-hidden')).toBe('true');
+  });
+
+  it('is not there without a selected day', () => {
+    expect(frames(mount(CoarMonthView, { props: { builder: newBuilder(bars(1)) } }))).toHaveLength(0);
+  });
+});
+
 describe('day cell content', () => {
   it('renders #dayNumber and #dayContent with the neighbouring-month flag', () => {
     const w = mount(CoarMonthView, {

@@ -321,6 +321,10 @@ function isSelected(d: Temporal.PlainDate): boolean {
   const selected = state.value.selectedDate;
   return selected !== null && Temporal.PlainDate.compare(d, selected) === 0;
 }
+/** Column of the selected day in a week, -1 when it is not in this week. */
+function selectedColumn(days: ReadonlyArray<Temporal.PlainDate>): number {
+  return days.findIndex((d) => isSelected(d) && !(props.continuousSection && isOtherMonth(d)));
+}
 function isOtherMonth(d: Temporal.PlainDate): boolean {
   return d.year !== yearMonth.value.year || d.month !== yearMonth.value.month;
 }
@@ -999,6 +1003,14 @@ defineExpose({
           :height="BAR_HEIGHT"
           :z-index="100"
         />
+
+        <!-- Above the bars, below a dragged one; no box without the token. -->
+        <div
+          v-if="selectedColumn(row.days) >= 0"
+          class="coar-month-view__selected-frame"
+          :style="{ left: (selectedColumn(row.days) / 7) * 100 + '%' }"
+          aria-hidden="true"
+        />
       </CoarMonthRow>
     </CoarMonthGrid>
 
@@ -1171,5 +1183,15 @@ defineExpose({
   font-weight: var(--coar-calendar-event-title-font-weight, 600);
   text-overflow: ellipsis;
   overflow: hidden;
+}
+
+.coar-month-view__selected-frame {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: calc(100% / 7);
+  z-index: 50;
+  box-shadow: var(--coar-calendar-month-selected-frame, none);
+  pointer-events: none;
 }
 </style>
