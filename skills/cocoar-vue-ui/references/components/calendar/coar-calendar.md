@@ -17,7 +17,7 @@ The primary switcher follows iOS while keeping the fixed web time grids as usefu
 | Primary view | Display choices |
 |---|---|
 | Year | Responsive twelve-month overview; selecting a day or month drills into Month. |
-| Month | Compact, Stacked, Details, List. The first three use continuously scrolling 4–6-week month sections. |
+| Month | Compact, Stacked, Details, List. The first three use continuously scrolling 4–6-week month sections, or [one month at a time](./month-view.md#paged-month) with `monthPresentation('paged')`. |
 | Week | Fixed seven-day time grid. |
 | Work week | The Week grid filtered by `workDays(...)`. |
 | Day | One day or width-aware Multi-day (1–7 complete columns). |

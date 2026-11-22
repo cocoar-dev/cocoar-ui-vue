@@ -42,6 +42,16 @@ Only the month in view and the next one render on mount. Every other section sta
 <CoarMonthListView :builder="builder" />
 ```
 
+## One month at a time {#paged-month} (Preview)
+
+`monthPresentation('paged')` replaces the endless list with a single month that is turned by swiping. The finger pulls the page and it snaps in, while `api.next()` and `api.prev()` slide it. All rows stay equally high (`uniform`, or `fill` when `monthRowSizing('fill')` is set), so the grid never jumps between months. The neighbouring months are loaded with the visible window.
+
+```ts
+builder.view('month').monthPresentation('paged').monthRowSizing('fill');
+```
+
+A swipe that starts on an event belongs to its drag, and a vertical pan stays with the page. A tap on a day of a neighbouring month fires `onDateClick`; whether that also turns the page is up to the host. Standalone, the same surface is `<CoarPagedMonthView :builder="builder" />`, with the slots of `<CoarMonthView>`.
+
 ## Single month section {#single-month-section}
 
 `<CoarMonthView>` renders the fixed single-section grid used internally by the continuous composition. Multi-day events render as continuous **bars** across the rows they touch; single-day events render as **pills** inside cells. A timed event counts as multi-day when it ends on a later day than it starts in the display zone (Thu 15:30 → Sun 18:00 is a Thu–Sun bar); its end is exclusive, so an end at the start of a day (00:00, or 01:00 where DST skips midnight) does not reach into that day. Its bar stops a third of a day short of the outer edges of its first and last day — the same fixed inset whatever the clock times are — so it never reads as an all-day event; an edge cut by a week row or by the edge of a continuous month's section keeps running to the border. Use it directly when the host owns pagination or needs a compact embedded month.
@@ -454,6 +464,7 @@ Full reference: see [the composer's API reference](./coar-calendar.md#api-refere
 |---|---|---|---|
 | `firstDayOfWeek(d)` | `0..6 \| undefined` | locale-aware | `0` = Sunday, `1` = Monday, … |
 | `monthDensity(d)` | `'compact' \| 'stacked' \| 'details'` | `'details'` | Presentation used by continuous Month. |
+| `monthPresentation(p)` (Preview) | `'continuous' \| 'paged'` | `'continuous'` | The month of `<CoarCalendar>`: the endless list or [one month at a time](#paged-month). |
 | `monthRowSizing(s)` (Preview) | `'auto' \| 'uniform' \| 'fill'` | `'auto'` | `auto` grows a row with its multi-day lanes. `uniform` keeps all rows equal, so the grid never jumps. `fill` shares the height of the view between the rows and needs a parent with a height; a continuous month treats it as `uniform`. In `uniform` and `fill`, what does not fit folds into `+N`. |
 | `dayClass(fn)` (Preview) | `(date) => class value` | — | Extra classes of a month cell, read per day on every render, for example to highlight free days. |
 | `shadeWeekends(b)` | `MaybeRefOrGetter<boolean>` | `true` | Shades Saturday / Sunday cells and weekday headers. Set `false` for an unshaded appearance. |

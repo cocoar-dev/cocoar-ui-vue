@@ -15,6 +15,7 @@ export type {
   CalendarDayMode,
   CalendarTimeGridOrientation,
   CalendarMonthDensity,
+  CalendarMonthPresentation,
   CalendarMonthRowSizing,
   CalendarView,
   ViewWindow,

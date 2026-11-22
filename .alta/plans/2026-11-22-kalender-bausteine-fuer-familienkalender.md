@@ -104,13 +104,14 @@ flowchart LR
   A -- "Wischen darunter" --> R["rastet zurück"]
 ```
 
-- [ ] Neue Komponente `CoarPagedMonthView`: drei `CoarMonthView` nebeneinander über die vorhandene `month`-Prop. Nur die mittlere ist bedienbar, die Nachbarn sind für Tastatur und Screenreader unsichtbar
-- [ ] Ein einziger `useViewWindow` mit `monthBuffer: 1`, damit die Nachbarmonate beim Ziehen schon ihre Termine zeigen (C5)
-- [ ] `CoarCalendar` zeigt bei `paged` diese Komponente statt der endlosen Liste, `api.next()` und `api.prev()` blättern animiert
-- [ ] Die Geste nimmt nur waagrechte Bewegung. Senkrecht bleibt der Seite, ein Tipp wählt den Tag, langes Drücken zieht einen Termin
-- [ ] Ein Tipp auf einen Nachbartag löst wie jeder Tag `onDateClick` aus. Die App entscheidet, ob sie dabei umblättert
-- [ ] `prefers-reduced-motion`: ohne Animation
-- [ ] Tests für Schwelle, Zurückrasten, Tipp gegen Wischen, Laden der Nachbarmonate; neue Story
+- [x] Neue Komponente `CoarPagedMonthView`: drei `CoarMonthView` nebeneinander über die vorhandene `month`-Prop. Nur die mittlere ist bedienbar, die Nachbarn sind für Tastatur und Screenreader unsichtbar
+- [x] Ein einziger `useViewWindow` mit `monthBuffer: 1`, damit die Nachbarmonate beim Ziehen schon ihre Termine zeigen (C5)
+- [x] `CoarCalendar` zeigt bei `paged` diese Komponente statt der endlosen Liste, `api.next()` und `api.prev()` blättern animiert
+- [x] Die Geste nimmt nur waagrechte Bewegung. Senkrecht bleibt der Seite, ein Tipp wählt den Tag, langes Drücken zieht einen Termin
+- [x] Ein Tipp auf einen Nachbartag löst wie jeder Tag `onDateClick` aus. Die App entscheidet, ob sie dabei umblättert
+- [x] `prefers-reduced-motion`: ohne Animation
+- [x] Tests für Schwelle, Zurückrasten, Tipp gegen Wischen, Laden der Nachbarmonate
+- [ ] Neue Story mit Baselines (am Ende gesammelt, braucht Docker)
 
 ### 5. Gestaltung über Variablen
 

@@ -274,6 +274,9 @@ export type CalendarMonthDensity = 'compact' | 'stacked' | 'details';
  */
 export type CalendarMonthRowSizing = 'auto' | 'uniform' | 'fill';
 
+/** The month of `<CoarCalendar>`: an endless list, or one month at a time. */
+export type CalendarMonthPresentation = 'continuous' | 'paged';
+
 /** Day-level display choices. Multi-day derives 1…7 columns from width. */
 export type CalendarDayMode = 'single' | 'multiDay';
 

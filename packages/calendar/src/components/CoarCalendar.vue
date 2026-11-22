@@ -36,6 +36,7 @@ import CoarDayView from './CoarDayView.vue';
 import CoarWeekView from './CoarWeekView.vue';
 import CoarWorkWeekView from './CoarWorkWeekView.vue';
 import CoarContinuousMonthView from './CoarContinuousMonthView.vue';
+import CoarPagedMonthView from './CoarPagedMonthView.vue';
 import CoarMonthListView from './CoarMonthListView.vue';
 import CoarAgendaView from './CoarAgendaView.vue';
 import CoarTimelineView from './CoarTimelineView.vue';
@@ -177,6 +178,7 @@ const state = computed(() => {
     firstDayOfWeek: toValue(s.firstDayOfWeek),
     density: toValue(s.density),
     monthDensity: toValue(s.monthDensity),
+    monthPresentation: toValue(s.monthPresentation),
     dayMode: toValue(s.dayMode),
     dateStyle: toValue(s.dateStyle),
     timeStyle: toValue(s.timeStyle),
@@ -543,7 +545,7 @@ onBeforeUnmount(() => {
       internally), so the body must NOT scroll there or we'd get a
       double scrollbar / collapsed agenda.
     -->
-    <div ref="bodyEl" class="coar-calendar__body" :class="`coar-calendar__body--${view}`">
+    <div ref="bodyEl" class="coar-calendar__body" :class="[`coar-calendar__body--${view}`, { 'coar-calendar__body--month-paged': view === 'month' && state.monthPresentation === 'paged' }]">
       <CoarDayView v-if="view === 'day'" :builder="props.builder">
         <template v-if="$slots.event" #event="slotProps">
           <slot name="event" v-bind="slotProps" :view="view" />
@@ -606,7 +608,8 @@ onBeforeUnmount(() => {
         </template>
       </CoarWorkWeekView>
 
-      <CoarContinuousMonthView
+      <component
+        :is="state.monthPresentation === 'paged' ? CoarPagedMonthView : CoarContinuousMonthView"
         v-else-if="view === 'month'"
         ref="continuousMonthView"
         :builder="props.builder"
@@ -631,7 +634,7 @@ onBeforeUnmount(() => {
         <template v-if="$slots.dayContent" #dayContent="slotProps">
           <slot name="dayContent" v-bind="slotProps" />
         </template>
-      </CoarContinuousMonthView>
+      </component>
 
       <CoarMonthListView v-else-if="view === 'monthList'" :builder="props.builder">
         <template v-if="$slots.event" #event="slotProps">
@@ -786,6 +789,12 @@ onBeforeUnmount(() => {
   /* The continuous month surface owns its scrolling so it can preserve
      semantic month anchors while rows reflow between densities. */
   overflow: hidden;
+}
+.coar-calendar__body--month-paged {
+  /* One month on a surface shorter than its six rows scrolls here. */
+  overflow-x: hidden;
+  overflow-y: auto;
+  scroll-padding-bottom: var(--coar-calendar-scroll-inset-bottom, 0px);
 }
 .coar-calendar__body--agenda {
   /* Agenda is internally virtualized; let it own the scroll. */

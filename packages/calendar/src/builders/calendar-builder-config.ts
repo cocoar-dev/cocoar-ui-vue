@@ -25,6 +25,7 @@ import type {
   CalendarTimeGridOrientation,
   CalendarEvent,
   CalendarMonthDensity,
+  CalendarMonthPresentation,
   CalendarMonthRowSizing,
   CalendarView,
   DayOfWeek,
@@ -257,6 +258,15 @@ export abstract class CalendarBuilderConfig<
    */
   monthRowSizing(sizing: MaybeRefOrGetter<CalendarMonthRowSizing>): this {
     this.state.monthRowSizing = sizing;
+    return this;
+  }
+
+  /**
+   * The month of `<CoarCalendar>`: the endless list (`continuous`,
+   * default) or one month at a time, turned by swiping (`paged`).
+   */
+  monthPresentation(presentation: MaybeRefOrGetter<CalendarMonthPresentation>): this {
+    this.state.monthPresentation = presentation;
     return this;
   }
 

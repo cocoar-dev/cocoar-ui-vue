@@ -62,6 +62,7 @@ import {
   isTimedEvent,
   buildFormatOptions,
   type CalendarEvent,
+  type CalendarMonthRowSizing,
   type MonthMultiDayBar,
   type MonthCellPill,
   type MonthCellPillCap,
@@ -94,11 +95,14 @@ const props = withDefaults(
     manageViewWindow?: boolean;
     /** Render only the weeks belonging to this month; neighbour dates become blanks. */
     continuousSection?: boolean;
+    /** Overrides `builder.monthRowSizing`, for a surface that needs stable rows. */
+    rowSizing?: CalendarMonthRowSizing;
   }>(),
   {
     month: undefined,
     manageViewWindow: true,
     continuousSection: false,
+    rowSizing: undefined,
   },
 );
 const { t } = useI18n();
@@ -326,11 +330,10 @@ function isWeekend(d: Temporal.PlainDate): boolean {
 // taller pill never clips the "+N" row (see `useMonthMetrics`).
 const monthMetrics = useMonthMetrics({ rootRef: rootEl, trigger: layout });
 // A continuous section has no height of its own to share.
-const rowSizing = computed(() =>
-  props.continuousSection && state.value.monthRowSizing === 'fill'
-    ? 'uniform'
-    : state.value.monthRowSizing,
-);
+const rowSizing = computed<CalendarMonthRowSizing>(() => {
+  const sizing = props.rowSizing ?? state.value.monthRowSizing;
+  return props.continuousSection && sizing === 'fill' ? 'uniform' : sizing;
+});
 const rowsAreaHeight = ref(0);
 let rowsObserver: ResizeObserver | null = null;
 watch(
