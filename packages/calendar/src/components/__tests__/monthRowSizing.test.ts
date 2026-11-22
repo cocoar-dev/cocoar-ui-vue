@@ -69,6 +69,16 @@ describe('fitMonthRow', () => {
     expect(fitMonthRow({ ...base, rowHeight: 60, maxLanes: null, laneCount: 5 }).maxLanes).toBe(0);
   });
 
+  it('promises no pill to a row too short for one', () => {
+    expect(fitMonthRow({ ...base, rowHeight: 40 }).pillLimitWithoutMarker).toBe(0);
+  });
+
+  it('uses one limit in a density without a "+N" row', () => {
+    const fit = fitMonthRow({ ...base, rowHeight: 69, markerHeight: 0, pillLimit: 5 });
+    expect(fit.pillLimit).toBe(fit.pillLimitWithoutMarker);
+    expect(fit.pillLimit).toBe(2);
+  });
+
   it('gives a cell without "+N" the room of that row', () => {
     const fit = fitMonthRow({ ...base, rowHeight: 90, pillHeight: 15, pillLimit: 3 });
     expect(fit.pillLimit).toBe(2);

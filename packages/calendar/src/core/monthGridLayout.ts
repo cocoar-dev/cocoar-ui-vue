@@ -226,27 +226,27 @@ export interface MonthRowFit extends MonthCellFit {
   maxLanes: number;
 }
 
-function roomBelowDayNumber(input: MonthRowFitInput): number {
-  return Math.max(
-    0,
-    input.rowHeight -
-      input.dayNumberHeight -
-      input.pillsPaddingTop -
-      input.pillsPaddingBottom -
-      input.markerHeight,
-  );
+/** Height under the day number; negative when the row is too short for its padding. */
+function spaceBelowDayNumber(input: MonthRowFitInput): number {
+  return input.rowHeight - input.dayNumberHeight - input.pillsPaddingTop - input.pillsPaddingBottom;
 }
 
 /** The pills of one cell whose column carries `lanes` bar lanes. Pure. */
 export function fitMonthCell(input: MonthRowFitInput, lanes: number): MonthCellFit {
-  const room = roomBelowDayNumber(input) - lanes * (input.barHeight + input.barGap);
   const pillPitch = input.pillHeight + input.pillGap;
   if (pillPitch <= 0) return { pillLimit: 0, pillLimitWithoutMarker: 0 };
+  const space = spaceBelowDayNumber(input) - lanes * (input.barHeight + input.barGap);
   // Without a marker the last pill needs no gap below it.
-  const withoutMarker = Math.floor((room + input.markerHeight + input.pillGap) / pillPitch);
+  const withoutMarker = Math.min(
+    Math.max(0, Math.floor((space + input.pillGap) / pillPitch)),
+    input.pillLimit,
+  );
+  if (input.markerHeight <= 0)
+    return { pillLimit: withoutMarker, pillLimitWithoutMarker: withoutMarker };
+  const withMarker = Math.max(0, Math.floor((space - input.markerHeight) / pillPitch));
   return {
-    pillLimit: Math.min(Math.max(0, Math.floor(room / pillPitch)), input.pillLimit),
-    pillLimitWithoutMarker: Math.min(Math.max(0, withoutMarker), input.pillLimit),
+    pillLimit: Math.min(withMarker, input.pillLimit),
+    pillLimitWithoutMarker: withoutMarker,
   };
 }
 
@@ -258,7 +258,8 @@ export function fitMonthCell(input: MonthRowFitInput, lanes: number): MonthCellF
  */
 export function fitMonthRow(input: MonthRowFitInput): MonthRowFit {
   const lanePitch = input.barHeight + input.barGap;
-  const lanesThatFit = lanePitch > 0 ? Math.floor(roomBelowDayNumber(input) / lanePitch) : 0;
+  const room = Math.max(0, spaceBelowDayNumber(input) - input.markerHeight);
+  const lanesThatFit = lanePitch > 0 ? Math.floor(room / lanePitch) : 0;
   const maxLanes =
     input.maxLanes === null || !Number.isFinite(input.maxLanes) || input.maxLanes < 0
       ? lanesThatFit

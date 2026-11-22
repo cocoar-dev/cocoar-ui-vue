@@ -274,6 +274,22 @@ describe('CoarCalendarBoard', () => {
     expect(onEventClick.mock.calls[3][0].event.id).toBe('camp');
   });
 
+  it('leaves the keys and clicks of a control inside the event to it', async () => {
+    const onEventClick = vi.fn();
+    const w = mount(CoarCalendarBoard, {
+      props: { builder: newBuilder().onEventClick(onEventClick), rows },
+      slots: { event: '<button class="own">x</button>' },
+      attachTo: document.body,
+    });
+    const own = w.find('.coar-calendar-board__event .own');
+    const key = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
+    own.element.dispatchEvent(key);
+    (own.element as HTMLElement).click();
+    expect(onEventClick).not.toHaveBeenCalled();
+    expect(key.defaultPrevented).toBe(false);
+    w.unmount();
+  });
+
   it('does not open an event twice for one pointer press', async () => {
     const onEventClick = vi.fn();
     const w = mount(CoarCalendarBoard, { props: { builder: newBuilder().onEventClick(onEventClick), rows } });
