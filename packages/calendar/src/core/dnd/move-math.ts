@@ -98,6 +98,14 @@ export interface CalendarDropTarget {
   displayZone: string;
   /** Whether `canDrop()` (if any) accepted this target. */
   valid: boolean;
+  /** Key of the board row the event was dropped on. */
+  rowKey?: string;
+  /** Key of the board row the event was grabbed in. */
+  sourceRowKey?: string;
+  /** The resource column dropped on. */
+  resourceId?: string;
+  /** The resource column the event was grabbed in. */
+  sourceResourceId?: string;
 }
 
 /**
@@ -236,6 +244,14 @@ export interface EventDropPayload<TMeta extends Record<string, unknown> = Record
     minutes: number | null;
     displayZone: string;
     disambiguation: DstDisambiguation;
+    /** Key of the board row the event was dropped on. */
+    rowKey?: string;
+    /** Key of the board row the event was grabbed in. */
+    sourceRowKey?: string;
+    /** The resource column dropped on. */
+    resourceId?: string;
+    /** The resource column the event was grabbed in. */
+    sourceResourceId?: string;
   };
   native: PointerEvent | null;
 }

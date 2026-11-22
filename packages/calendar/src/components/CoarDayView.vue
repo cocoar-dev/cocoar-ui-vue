@@ -13,9 +13,15 @@
 
 import { useTemplateRef } from 'vue';
 import CoarTimeGridSurface from './internal/time-grid/CoarTimeGridSurface.vue';
-import type { Temporal, CalendarEvent, PositionedEvent, AllDayBar } from '../core';
+import type {
+  Temporal,
+  CalendarEvent,
+  CalendarResource,
+  PositionedEvent,
+  AllDayBar,
+} from '../core';
 import { CalendarBuilder } from '../builders/calendar-builder';
-import type { CalendarDraftSegment } from '../builders/types';
+import type { CalendarDayOverlay, CalendarDraftSegment } from '../builders/types';
 
 defineProps<{ builder: CalendarBuilder<TMeta> }>();
 
@@ -29,6 +35,12 @@ defineSlots<{
     end: Temporal.ZonedDateTime;
     segment: CalendarDraftSegment;
   }): unknown;
+  /** A day with `builder.resources`: the head of a resource column. */
+  resourceHeader?(props: { resource: CalendarResource | null; id: string }): unknown;
+  /** A day with `builder.resources`: an entry of `builder.dayOverlays`. */
+  overlay?(props: { overlay: CalendarDayOverlay }): unknown;
+  /** A day with `builder.resources`: a label of the hour axis. */
+  hourLabel?(props: { hour: number; label: string }): unknown;
 }>();
 
 /** What the surface exposes — typed by hand because the surface is a generic component. */
@@ -58,6 +70,15 @@ defineExpose({
     </template>
     <template v-if="$slots.draft" #draft="slotProps">
       <slot name="draft" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots.resourceHeader" #resourceHeader="slotProps">
+      <slot name="resourceHeader" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots.overlay" #overlay="slotProps">
+      <slot name="overlay" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots.hourLabel" #hourLabel="slotProps">
+      <slot name="hourLabel" v-bind="slotProps" />
     </template>
   </CoarTimeGridSurface>
 </template>

@@ -120,8 +120,8 @@ function onDblclick(e: MouseEvent) {
       'coar-month-pill--density-compact': density === 'compact',
     }"
     :style="{
-      background: bg,
-      borderLeft: `3px solid ${border}`,
+      '--event-bg': bg,
+      '--event-border-left': `3px solid ${border}`,
       '--event-ink': eventInk,
     }"
     :data-event-id="isInteractive ? event.id : undefined"
@@ -148,15 +148,20 @@ function onDblclick(e: MouseEvent) {
 
 <style scoped>
 .coar-month-pill {
-  font-size: var(--coar-calendar-event-font-size, var(--coar-font-size-xs, 11px));
+  background: var(--coar-calendar-event-surface-bg, var(--event-bg));
+  border-left: var(--coar-calendar-event-border-left, var(--event-border-left));
+  font-size: var(
+    --coar-calendar-pill-font-size,
+    var(--coar-calendar-event-font-size, var(--coar-font-size-xs, 11px))
+  );
   /* Fixed line box so the Details row budget holds in every host:
      18 px pill + 2 px gap = 20 px pitch, two pills + the "+N" row
      fit the 94 px iOS row (iOS: 16 pt events on a 19 pt pitch). An
      inherited line-height would make the pitch depend on the host's
      body typography and push the marker out of the cell. */
-  line-height: 16px;
-  padding: 1px 6px;
-  border-radius: var(--coar-calendar-event-radius, 3px);
+  line-height: var(--coar-calendar-pill-line-height, 16px);
+  padding: var(--coar-calendar-event-padding, 1px 6px);
+  border-radius: var(--coar-calendar-pill-radius, var(--coar-calendar-event-radius, 3px));
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;

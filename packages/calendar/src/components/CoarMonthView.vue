@@ -37,7 +37,7 @@
  *     → built-in default (title text on the variant background)
  */
 
-import { computed, ref, toValue } from 'vue';
+import { computed, onScopeDispose, ref, toValue, watch } from 'vue';
 import { useI18n, useLocalization } from '@cocoar/vue-localization';
 import { useMonthDnd, type MonthEventDropPayload } from '../composables/useMonthDnd';
 import { useA11yAnnouncer } from '../composables/useA11yAnnouncer';
@@ -62,6 +62,7 @@ import {
   isTimedEvent,
   buildFormatOptions,
   type CalendarEvent,
+  type CalendarMonthRowSizing,
   type MonthMultiDayBar,
   type MonthCellPill,
   type MonthCellPillCap,
@@ -69,6 +70,7 @@ import {
   type MonthRowLaneCap,
 } from '../core';
 import { CalendarBuilder } from '../builders/calendar-builder';
+import type { MonthDaySlotScope } from '../builders/types';
 import { RenderEvent } from '../builders/render-helpers';
 import CoarMonthPill from './internal/month/CoarMonthPill.vue';
 import CoarMonthBar from './internal/month/CoarMonthBar.vue';
@@ -93,11 +95,14 @@ const props = withDefaults(
     manageViewWindow?: boolean;
     /** Render only the weeks belonging to this month; neighbour dates become blanks. */
     continuousSection?: boolean;
+    /** Overrides `builder.monthRowSizing`, for a surface that needs stable rows. */
+    rowSizing?: CalendarMonthRowSizing;
   }>(),
   {
     month: undefined,
     manageViewWindow: true,
     continuousSection: false,
+    rowSizing: undefined,
   },
 );
 const { t } = useI18n();
@@ -109,6 +114,10 @@ const slots = defineSlots<{
   /** Render a multi-day bar. Falls back through the builder
    *  renderers to a bare title rendering. */
   multiDayBar?(props: { event: CalendarEvent<TMeta>; bar: MonthMultiDayBar<TMeta> }): unknown;
+  /** Replaces a day's number. */
+  dayNumber?(props: MonthDaySlotScope): unknown;
+  /** Beside the day number, also on the neighbouring months' days. */
+  dayContent?(props: MonthDaySlotScope): unknown;
 }>();
 
 // ─── Builder bindings ────────────────────────────────────────────────
@@ -129,6 +138,9 @@ const state = computed(() => {
     selectedDate: toValue(s.selectedDate),
     density: toValue(s.density),
     monthDensity: toValue(s.monthDensity),
+    monthRowSizing: toValue(s.monthRowSizing),
+    weekdayFormat: toValue(s.weekdayFormat),
+    dayClass: s.dayClass,
     dateStyle: toValue(s.dateStyle),
     timeStyle: toValue(s.timeStyle),
     hour12: toValue(s.hour12),
@@ -183,7 +195,11 @@ const gridDates = computed(() => {
 });
 
 const weekdayHeaders = computed(() =>
-  localizedWeekdayNames(effectiveLocale.value, effectiveFirstDayOfWeek.value, 'short'),
+  localizedWeekdayNames(
+    effectiveLocale.value,
+    effectiveFirstDayOfWeek.value,
+    state.value.weekdayFormat ?? 'short',
+  ),
 );
 const weekendColumns = computed(() =>
   gridDates.value.slice(0, 7).map((date) => date.dayOfWeek === 6 || date.dayOfWeek === 7),
@@ -318,12 +334,47 @@ function isWeekend(d: Temporal.PlainDate): boolean {
 // Measured in the host's styling so a restyled day-number row or a
 // taller pill never clips the "+N" row (see `useMonthMetrics`).
 const monthMetrics = useMonthMetrics({ rootRef: rootEl, trigger: layout });
-const { BAR_HEIGHT, DAY_NUMBER_HEIGHT, barTopPx, rowBarHeightsPx, rowHeightPx } = useMonthGeometry({
+// A continuous section has no height of its own to share.
+const rowSizing = computed<CalendarMonthRowSizing>(() => {
+  const sizing = props.rowSizing ?? state.value.monthRowSizing;
+  return props.continuousSection && sizing === 'fill' ? 'uniform' : sizing;
+});
+const rowsAreaHeight = ref(0);
+let rowsObserver: ResizeObserver | null = null;
+watch(
+  [gridRef, rowSizing],
+  ([el, sizing]) => {
+    rowsObserver?.disconnect();
+    rowsObserver = null;
+    if (!el || sizing !== 'fill') return;
+    rowsAreaHeight.value = el.clientHeight;
+    if (typeof ResizeObserver === 'undefined') return;
+    rowsObserver = new ResizeObserver(() => {
+      rowsAreaHeight.value = el.clientHeight;
+    });
+    rowsObserver.observe(el);
+  },
+  { flush: 'post' },
+);
+onScopeDispose(() => rowsObserver?.disconnect());
+
+const {
+  BAR_HEIGHT,
+  DAY_NUMBER_HEIGHT,
+  barTopPx,
+  rowBarHeightsPx,
+  rowHeightPx,
+  rowLaneLimits,
+  rowPillLimits,
+} = useMonthGeometry({
   layout,
   monthDensity: () => state.value.monthDensity,
   maxLanes: () => state.value.monthMaxVisibleLanes,
   metrics: monthMetrics,
   maxEventsPerCell: () => state.value.maxEventsPerCell,
+  rowSizing,
+  rowsAreaHeight,
+  pillLimit: () => monthCellPillLimit(state.value.monthDensity, state.value.maxEventsPerCell),
 });
 
 // ─── Bar geometry ────────────────────────────────────────────────────
@@ -355,8 +406,8 @@ function barGeometry(
 
 /** Per row: bars the band shows, bars folded away, hidden count per column. */
 const rowLaneCaps = computed<ReadonlyArray<MonthRowLaneCap<TMeta>>>(() =>
-  layout.value.weekRows.map((row) =>
-    capMonthRowLanes(row.multiDayBars, state.value.monthMaxVisibleLanes),
+  layout.value.weekRows.map((row, rowIndex) =>
+    capMonthRowLanes(row.multiDayBars, rowLaneLimits.value[rowIndex]),
   ),
 );
 
@@ -387,10 +438,6 @@ function barsCoveringDay(day: Temporal.PlainDate): ReadonlyArray<MonthMultiDayBa
 
 // ─── Pill cap + "+N" overflow ────────────────────────────────────────
 
-const pillLimit = computed(() =>
-  monthCellPillLimit(state.value.monthDensity, state.value.maxEventsPerCell),
-);
-
 const EMPTY_CAP: MonthCellPillCap<TMeta> = { visible: [], hidden: 0 };
 
 /**
@@ -401,11 +448,11 @@ const EMPTY_CAP: MonthCellPillCap<TMeta> = { visible: [], hidden: 0 };
  */
 const pillCapsByDayKey = computed<Map<string, MonthCellPillCap<TMeta>>>(() => {
   const out = new Map<string, MonthCellPillCap<TMeta>>();
-  for (const row of layout.value.weekRows) {
+  for (const [rowIndex, row] of layout.value.weekRows.entries()) {
     for (const day of row.days) {
       const key = dateKey(day);
       const pills = row.cellPills.get(key) ?? [];
-      const cap = capMonthCellPills(pills, pillLimit.value);
+      const cap = capMonthCellPills(pills, rowPillLimits.value[rowIndex]);
       const preview = cap.hidden > 0 ? pills.find((p) => isPreviewId(p.event.id)) : undefined;
       if (preview && !cap.visible.includes(preview) && cap.visible.length > 0) {
         out.set(key, {
@@ -737,6 +784,7 @@ defineExpose({
     :class="[
       `coar-month-view--density-${state.density}`,
       `coar-month-view--mode-${state.monthDensity}`,
+      `coar-month-view--rows-${rowSizing}`,
       {
         'coar-month-view--shade-weekends': state.shadeWeekends,
         'coar-month-view--overlay-open': dayOverlay.day.value !== null,
@@ -754,7 +802,7 @@ defineExpose({
       <CoarMonthRow
         v-for="(row, rowIndex) in layout.weekRows"
         :key="row.weekStart.toString()"
-        :height-px="rowHeightPx[rowIndex]"
+        :height-px="rowSizing === 'fill' ? null : rowHeightPx[rowIndex]"
         :density="state.density"
       >
         <CoarMonthCell
@@ -775,10 +823,17 @@ defineExpose({
           :ariaRowIndex="rowIndex + 2"
           :ariaColIndex="colIndex + 1"
           :ariaLabel="formatCellAriaLabel(day)"
+          :day-class="state.dayClass?.(day)"
           @cell-pointerdown="(e) => onCellClick(e, day)"
           @cell-dblclick="(e) => onCellDblclick(e, day)"
           @overflow-click="(_, d) => dayOverlay.toggle(d)"
         >
+          <template v-if="$slots.dayNumber" #dayNumber="scope">
+            <slot name="dayNumber" v-bind="scope" />
+          </template>
+          <template v-if="$slots.dayContent" #dayContent="scope">
+            <slot name="dayContent" v-bind="scope" />
+          </template>
           <div
             v-if="usesBuiltInCompactCapsule && visiblePillsFor(day).length"
             class="coar-month-view__segment-capsule"
@@ -1031,6 +1086,16 @@ defineExpose({
 /* While a sheet is open, lift this month above its siblings so a
    sheet reaching past the last row paints over the next section of
    the continuous surface instead of under it. */
+.coar-month-view--rows-fill {
+  height: 100%;
+  min-height: 0;
+}
+.coar-month-view--rows-fill :deep(.coar-month-grid__rows) {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 0;
+}
 .coar-month-view--overlay-open {
   z-index: 10;
 }
@@ -1044,7 +1109,6 @@ defineExpose({
 .coar-month-view--mode-compact :deep(.coar-month-bar) {
   height: 6px !important;
   min-height: 6px;
-  border-left-width: 0;
   border-radius: 999px;
   padding: 0;
 }

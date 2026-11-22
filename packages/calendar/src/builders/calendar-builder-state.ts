@@ -25,6 +25,10 @@ import {
   type CalendarTimeGridOrientation,
   type CalendarEvent,
   type CalendarMonthDensity,
+  type CalendarMonthPresentation,
+  type CalendarMonthRowSizing,
+  type CalendarResource,
+  type CalendarWeekdayFormat,
   type CalendarView,
   type DayOfWeek,
   type EventTextContrastPolicy,
@@ -45,6 +49,8 @@ import type {
   CanDropFn,
   DateClickHandler,
   DateDoubleClickHandler,
+  DayClassFn,
+  DayOverlaysFn,
   DayHeaderRenderer,
   DstPolicy,
   EventClickHandler,
@@ -53,6 +59,7 @@ import type {
   EventHoverHandler,
   EventHoverLeaveHandler,
   EventRenderer,
+  EventResourcesFn,
   EventsLoader,
   RangeChangeHandler,
   SeriesLoader,
@@ -155,6 +162,15 @@ export interface CalendarBuilderState<
   density: MaybeRefOrGetter<CalendarDensity>;
   /** Apple-style month presentation. Default `details` preserves the classic web grid. */
   monthDensity: MaybeRefOrGetter<CalendarMonthDensity>;
+  monthRowSizing: MaybeRefOrGetter<CalendarMonthRowSizing>;
+  monthPresentation: MaybeRefOrGetter<CalendarMonthPresentation>;
+  weekdayFormat: MaybeRefOrGetter<CalendarWeekdayFormat | null>;
+  /** Extra classes of a month cell, read per day on every render (C7). */
+  dayClass: DayClassFn | null;
+  resources: MaybeRefOrGetter<ReadonlyArray<CalendarResource>>;
+  /** Which resources an event belongs to, read on every layout (C7). */
+  eventResources: EventResourcesFn<TMeta> | null;
+  dayOverlays: DayOverlaysFn | null;
   /** One fixed day or a width-driven 1…7-day surface. */
   dayMode: MaybeRefOrGetter<CalendarDayMode>;
   /**
@@ -315,6 +331,13 @@ export function createCalendarBuilderState<TMeta extends Record<string, unknown>
     prefetchNeighbours: true,
     density: 'comfortable',
     monthDensity: 'details',
+    monthRowSizing: 'auto',
+    monthPresentation: 'continuous',
+    weekdayFormat: null,
+    dayClass: null,
+    resources: [],
+    eventResources: null,
+    dayOverlays: null,
     dayMode: 'single',
     timeGridOrientation: 'vertical',
     dayLabelWidth: 132,

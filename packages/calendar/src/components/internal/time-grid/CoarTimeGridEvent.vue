@@ -239,8 +239,8 @@ function onEndResize(e: PointerEvent) {
   touch-action: none;
   contain: layout paint;
   /* --event-bg / --event-border come in via the inline :style. */
-  background: var(--event-bg);
-  border-left: 3px solid var(--event-border);
+  background: var(--coar-calendar-event-surface-bg, var(--event-bg));
+  border-left: var(--coar-calendar-event-border-left, 3px solid var(--event-border));
 }
 /* Point events (no `end`) — the body is tap target + label carrier,
  * not a duration statement: fill AND leading bar mixed toward

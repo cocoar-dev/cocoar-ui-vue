@@ -18,8 +18,9 @@
 
 interface Props {
   /** Pixel height for the entire row (computed by the parent
-   *  from the month density + multi-day-bar lane count). */
-  heightPx: number;
+   *  from the month density + multi-day-bar lane count). `null`
+   *  lets the row share the height of the rows container. */
+  heightPx: number | null;
   /**
    * Visual density. Compact tightens the row's `min-height`; the
    * compact rule lives here (not on the parent month-view) because
@@ -44,8 +45,11 @@ defineSlots<{
 <template>
   <div
     class="coar-month-row"
-    :class="{ 'coar-month-row--density-compact': density === 'compact' }"
-    :style="{ height: heightPx + 'px' }"
+    :class="{
+      'coar-month-row--density-compact': density === 'compact',
+      'coar-month-row--fill': heightPx === null,
+    }"
+    :style="heightPx === null ? undefined : { height: heightPx + 'px' }"
     role="row"
   >
     <slot />
@@ -69,6 +73,10 @@ defineSlots<{
   .coar-month-row {
     transition: none;
   }
+}
+.coar-month-row--fill {
+  flex: 1 1 0;
+  transition: none;
 }
 .coar-month-row:last-child {
   border-bottom: none;

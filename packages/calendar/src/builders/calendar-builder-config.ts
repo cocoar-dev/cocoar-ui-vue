@@ -25,6 +25,10 @@ import type {
   CalendarTimeGridOrientation,
   CalendarEvent,
   CalendarMonthDensity,
+  CalendarMonthPresentation,
+  CalendarMonthRowSizing,
+  CalendarResource,
+  CalendarWeekdayFormat,
   CalendarView,
   DayOfWeek,
   EventTextContrastPolicy,
@@ -35,7 +39,10 @@ import type {
 import type {
   CalendarDensity,
   CalendarDraft,
+  DayClassFn,
+  DayOverlaysFn,
   DstPolicy,
+  EventResourcesFn,
   EventsLoader,
   SeriesLoader,
   TimeRange,
@@ -243,6 +250,64 @@ export abstract class CalendarBuilderConfig<
 
   monthDensity(density: MaybeRefOrGetter<CalendarMonthDensity>): this {
     this.state.monthDensity = density;
+    return this;
+  }
+
+  /**
+   * Height of the month rows. `auto` (default) grows a row with its
+   * multi-day lanes, `uniform` keeps all rows equal, `fill` shares the
+   * height of the view between them. In `uniform` and `fill` what does
+   * not fit folds into "+N". A continuous month treats `fill` as
+   * `uniform`, because it has no height to share.
+   */
+  monthRowSizing(sizing: MaybeRefOrGetter<CalendarMonthRowSizing>): this {
+    this.state.monthRowSizing = sizing;
+    return this;
+  }
+
+  /**
+   * The month of `<CoarCalendar>`: the endless list (`continuous`,
+   * default) or one month at a time, turned by swiping (`paged`).
+   */
+  monthPresentation(presentation: MaybeRefOrGetter<CalendarMonthPresentation>): this {
+    this.state.monthPresentation = presentation;
+    return this;
+  }
+
+  /**
+   * Weekday names of the month header, the year and the day agenda's
+   * week strip. `null` (default) keeps each view's own format.
+   */
+  weekdayFormat(format: MaybeRefOrGetter<CalendarWeekdayFormat | null>): this {
+    this.state.weekdayFormat = format;
+    return this;
+  }
+
+  /** Extra classes of a month cell, read per day on every render (C7). */
+  dayClass(fn: DayClassFn | null): this {
+    this.state.dayClass = fn;
+    return this;
+  }
+
+  /**
+   * Columns of the day view: one per resource. Applies to a single day
+   * on the vertical grid. With `eventResources`, an event stands in the
+   * columns of its resources; one without any gets its own column.
+   */
+  resources(resources: MaybeRefOrGetter<ReadonlyArray<CalendarResource>>): this {
+    this.state.resources = resources;
+    return this;
+  }
+
+  /** Which resources an event belongs to. */
+  eventResources(fn: EventResourcesFn<TMeta> | null): this {
+    this.state.eventResources = fn;
+    return this;
+  }
+
+  /** What lies across all resource columns of a day (`#overlay` slot). */
+  dayOverlays(fn: DayOverlaysFn | null): this {
+    this.state.dayOverlays = fn;
     return this;
   }
 

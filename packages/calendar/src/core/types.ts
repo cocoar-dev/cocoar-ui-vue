@@ -266,6 +266,20 @@ export type CalendarView =
 /** Rendering density of the Month grid. List is a separate view id, matching iOS. */
 export type CalendarMonthDensity = 'compact' | 'stacked' | 'details';
 
+/**
+ * How month rows get their height. `auto` grows a row with its multi-day
+ * lanes, `uniform` keeps every row at the density's base height, `fill`
+ * shares the height of the month view between the rows. In `uniform` and
+ * `fill` what does not fit folds into the day's "+N".
+ */
+export type CalendarMonthRowSizing = 'auto' | 'uniform' | 'fill';
+
+/** Weekday names of a month header, year and week strip; `null` keeps each view's own. */
+export type CalendarWeekdayFormat = 'narrow' | 'short';
+
+/** The month of `<CoarCalendar>`: an endless list, or one month at a time. */
+export type CalendarMonthPresentation = 'continuous' | 'paged';
+
 /** Day-level display choices. Multi-day derives 1…7 columns from width. */
 export type CalendarDayMode = 'single' | 'multiDay';
 

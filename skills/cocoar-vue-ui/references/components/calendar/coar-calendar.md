@@ -17,7 +17,7 @@ The primary switcher follows iOS while keeping the fixed web time grids as usefu
 | Primary view | Display choices |
 |---|---|
 | Year | Responsive twelve-month overview; selecting a day or month drills into Month. |
-| Month | Compact, Stacked, Details, List. The first three use continuously scrolling 4–6-week month sections. |
+| Month | Compact, Stacked, Details, List. The first three use continuously scrolling 4–6-week month sections, or [one month at a time](./month-view.md#paged-month) with `monthPresentation('paged')`. |
 | Week | Fixed seven-day time grid. |
 | Work week | The Week grid filtered by `workDays(...)`. |
 | Day | One day or width-aware Multi-day (1–7 complete columns). |
@@ -1411,6 +1411,37 @@ builder
   });
 </script>
 ```
+
+## Who is busy, and where a day has room (Preview) {#occupancy}
+
+Two pure functions from the core answer the questions behind views like "when does everyone have time". What a resource or a part of the day means stays with your app.
+
+```ts
+import { computeOccupancy, findDayGaps } from '@cocoar/vue-calendar';
+
+const parts = [
+  { key: 'morning', startMinutes: 0, endMinutes: 12 * 60 },
+  { key: 'afternoon', startMinutes: 12 * 60, endMinutes: 18 * 60 },
+  { key: 'evening', startMinutes: 18 * 60, endMinutes: 24 * 60 },
+];
+
+const occupancy = computeOccupancy(events, {
+  dates,
+  periods: parts,
+  resources: ['emma', 'jonas'],
+  timezone: 'Europe/Vienna',
+  resourcesOf: (event) => event.meta.personIds,
+});
+occupancy.busyResources(date, 'evening'); // ['emma']
+occupancy.isFree(date, 'evening', ['jonas']); // true
+
+const gaps = findDayGaps(entriesOfTheDay, { date, timezone: 'Europe/Vienna', minMinutes: 60 });
+// [{ start, end, minutes: 120 }]
+```
+
+- Periods are wall-clock minutes in the display zone, from `0` to `1440`, and half-open: an event ending at 18:00 leaves an evening from 18:00 free.
+- `computeOccupancy` counts events with a time. Pass `counts` to decide per event, also for all-day entries, which then cover their whole days.
+- `findDayGaps` takes any `{ start, end }`, so entries that are not calendar events can count. It merges overlaps, ignores all-day entries, and treats the time before the first and after the last entry as no gap.
 
 ## Imperative API
 

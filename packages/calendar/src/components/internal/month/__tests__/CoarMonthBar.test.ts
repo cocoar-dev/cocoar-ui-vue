@@ -116,7 +116,7 @@ describe('<CoarMonthBar>', () => {
       const wrapper = mountBar({ clippedStart: true });
       const style = wrapper.find('.coar-month-bar').attributes('style') ?? '';
       // happy-dom serializes the `none` shorthand to longhand.
-      expect(style).toMatch(/border-left-style:\s*none/);
+      expect(style).toContain('--event-border-left: none');
     });
   });
 

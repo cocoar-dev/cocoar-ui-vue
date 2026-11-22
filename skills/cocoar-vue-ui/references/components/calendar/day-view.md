@@ -456,6 +456,27 @@ builder
 
 Web only for now: the iOS and Android calendars draw the vertical grid.
 
+## One column per resource {#resources} (Preview)
+
+With `resources` and `eventResources`, a single day shows one hour column per resource, for example per person or room.
+
+```ts
+builder
+  .view('day')
+  .resources([
+    { id: 'emma', label: 'Emma' },
+    { id: 'jonas', label: 'Jonas' },
+  ])
+  .eventResources((event) => event.meta.personIds)
+  .dayOverlays((date) => mealsOn(date));
+```
+
+- A shared event is **one block** across neighbouring columns as long as it is alone in each of them. Otherwise it falls apart into a piece per column. Columns that are not neighbours get separate blocks of the same event, and dragging any of them moves the event.
+- An event without a listed resource is never lost: it stands in an extra column that appears only when needed.
+- `onEventDrop`, `canDrop`, `onTimeClick` and `onTimeRangeSelect` report `resourceId`, a drop also `sourceResourceId`. The library does not change the assignment; apply it in `onEventDrop`.
+- `dayOverlays` lies across all columns, behind the events, and is drawn by the `#overlay` slot. `#resourceHeader` draws the head of a column and `#hourLabel` a label of the hour axis.
+- It applies to one day on the vertical grid. Several days or the horizontal orientation show the regular grid, with a console warning. Events cannot be resized here yet.
+
 ## Touch paging
 
 On touch devices a horizontal pan on the day columns moves the grid with the finger — header cells, all-day band and columns together, the hour axis stays put — and pages to the previous / next range on release past a quarter of the width or on a fast flick. Below that the grid settles back. A touch that never moves is a tap and reaches `onTimeClick` right after the click that follows the lift, so a swipe never starts with a stray slot click and an overlay the handler opens is not hit by that click. Vertical pans stay native scrolling. A mouse keeps its click-on-press semantics; a pen tap counts like a finger tap.

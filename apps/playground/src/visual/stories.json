@@ -949,5 +949,139 @@
   {
     "name": "inline-inputs",
     "focus": ".coar-text-input--content .coar-text-input-field >> nth=0"
+  },
+  {
+    "name": "calendar-board-week",
+    "capture": "page",
+    "clock": "2026-11-19T13:12:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 1080
+    },
+    "width": 1232
+  },
+  {
+    "name": "calendar-board-resources",
+    "capture": "page",
+    "clock": "2026-11-19T13:12:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 1080
+    },
+    "width": 1232
+  },
+  {
+    "name": "calendar-year-wall",
+    "capture": "page",
+    "clock": "2026-11-19T13:12:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 1080
+    },
+    "width": 1232
+  },
+  {
+    "name": "calendar-resource-day",
+    "capture": "page",
+    "clock": "2026-11-19T13:12:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 1080
+    },
+    "width": 1232
+  },
+  {
+    "name": "calendar-paged-month",
+    "capture": "page",
+    "clock": "2026-11-19T13:12:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 1080
+    },
+    "width": 1232
+  },
+  {
+    "name": "calendar-mini-month",
+    "capture": "page",
+    "clock": "2026-11-19T13:12:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "width": 1000
+  },
+  {
+    "name": "family-design-week",
+    "capture": "page",
+    "clock": "2026-11-19T13:12:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 1080
+    },
+    "width": 1232
+  },
+  {
+    "name": "family-design-who",
+    "capture": "page",
+    "clock": "2026-11-19T13:12:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 1080
+    },
+    "width": 1232
+  },
+  {
+    "name": "family-design-people",
+    "capture": "page",
+    "clock": "2026-11-19T13:12:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 1080
+    },
+    "width": 1232
+  },
+  {
+    "name": "family-design-month",
+    "capture": "page",
+    "clock": "2026-11-19T13:12:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 1080
+    },
+    "width": 1232
+  },
+  {
+    "name": "family-design-year",
+    "capture": "page",
+    "clock": "2026-11-19T13:12:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 1080
+    },
+    "width": 1232
+  },
+  {
+    "name": "family-design-phone",
+    "modes": [
+      "mobile"
+    ],
+    "clock": "2026-11-19T13:12:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 1200
+    },
+    "width": 1232
+  },
+  {
+    "name": "family-design-tablet",
+    "modes": [
+      "mobile"
+    ],
+    "clock": "2026-11-19T13:12:00Z",
+    "viewport": {
+      "width": 1280,
+      "height": 1200
+    },
+    "width": 1232
   }
 ]

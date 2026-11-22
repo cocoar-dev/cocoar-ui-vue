@@ -19,7 +19,9 @@
  * Lives in `internal/` — NOT exported from the package barrel.
  */
 
+import { computed } from 'vue';
 import type { Temporal } from '../../../core';
+import type { MonthDaySlotScope } from '../../../builders/types';
 
 interface Props {
   day: Temporal.PlainDate;
@@ -64,6 +66,8 @@ interface Props {
   ariaColIndex: number;
   /** Locale-formatted date string for `aria-label`. */
   ariaLabel: string;
+  /** Extra classes from `builder.dayClass`. */
+  dayClass?: unknown;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -76,6 +80,7 @@ const props = withDefaults(defineProps<Props>(), {
   overflowLabel: '',
   overlayOpen: false,
   density: 'comfortable',
+  dayClass: undefined,
 });
 
 const emit = defineEmits<{
@@ -101,7 +106,18 @@ defineSlots<{
    * the pills container above the "+N" marker.
    */
   default(): unknown;
+  /** Replaces the day number. */
+  dayNumber?(props: MonthDaySlotScope): unknown;
+  /** Beside the day number, inside the day-number row. */
+  dayContent?(props: MonthDaySlotScope): unknown;
 }>();
+
+const slotScope = computed<MonthDaySlotScope>(() => ({
+  date: props.day,
+  isToday: props.isToday,
+  isSelected: props.selected,
+  isOtherMonth: props.isOtherMonth,
+}));
 
 function onPointerdown(e: PointerEvent) {
   if (props.placeholder) return;
@@ -119,14 +135,17 @@ function onOverflowClick(e: MouseEvent) {
 <template>
   <div
     class="coar-month-cell"
-    :class="{
-      'coar-month-cell--today': isToday,
-      'coar-month-cell--selected': selected,
-      'coar-month-cell--other-month': isOtherMonth,
-      'coar-month-cell--weekend': isWeekend,
-      'coar-month-cell--placeholder': placeholder,
-      'coar-month-cell--density-compact': density === 'compact',
-    }"
+    :class="[
+      {
+        'coar-month-cell--today': isToday,
+        'coar-month-cell--selected': selected,
+        'coar-month-cell--other-month': isOtherMonth,
+        'coar-month-cell--weekend': isWeekend,
+        'coar-month-cell--placeholder': placeholder,
+        'coar-month-cell--density-compact': density === 'compact',
+      },
+      placeholder ? undefined : dayClass,
+    ]"
     :data-day-key="dayKey"
     :data-placeholder="placeholder ? 'true' : undefined"
     role="gridcell"
@@ -140,7 +159,12 @@ function onOverflowClick(e: MouseEvent) {
     @dblclick="onDblclick"
   >
     <div v-if="!placeholder" class="coar-month-cell__day-number-row">
-      <span class="coar-month-cell__day-number">{{ day.day }}</span>
+      <slot name="dayNumber" v-bind="slotScope">
+        <span class="coar-month-cell__day-number">{{ day.day }}</span>
+      </slot>
+      <div v-if="$slots.dayContent" class="coar-month-cell__day-content">
+        <slot name="dayContent" v-bind="slotScope" />
+      </div>
     </div>
 
     <!-- Pills area: the capped single-day events for this cell,
@@ -211,18 +235,36 @@ function onOverflowClick(e: MouseEvent) {
 
 .coar-month-cell__day-number-row {
   display: flex;
-  align-items: center;
-  padding: 4px 6px;
-  height: 24px;
+  flex: var(--coar-calendar-day-number-row-flex, 0 1 auto);
+  flex-direction: var(--coar-calendar-day-number-row-direction, row);
+  align-items: var(--coar-calendar-day-number-row-align, center);
+  justify-content: var(--coar-calendar-day-number-row-justify, flex-start);
+  gap: var(--coar-calendar-day-number-row-gap, 0);
+  padding: var(--coar-calendar-day-number-row-padding, 4px 6px);
+  height: var(--coar-calendar-day-number-row-height, 24px);
   box-sizing: border-box;
 }
 .coar-month-cell__day-number {
-  font-size: var(--coar-calendar-label-font-size, var(--coar-font-size-sm, 13px));
-  font-weight: var(--coar-calendar-label-font-weight, 600);
+  font-size: var(
+    --coar-calendar-day-number-font-size,
+    var(--coar-calendar-label-font-size, var(--coar-font-size-sm, 13px))
+  );
+  font-weight: var(
+    --coar-calendar-day-number-font-weight,
+    var(--coar-calendar-label-font-weight, 600)
+  );
   color: var(--coar-text-base, #1a1c1f);
+}
+.coar-month-cell__day-content {
+  flex: var(--coar-calendar-day-content-flex, 1 1 auto);
+  min-width: 0;
 }
 .coar-month-cell--today .coar-month-cell__day-number {
   color: var(--coar-calendar-today-color, var(--coar-color-accent, var(--coar-color-accent-500, #2563eb)));
+  font-weight: var(
+    --coar-calendar-today-font-weight,
+    var(--coar-calendar-day-number-font-weight, var(--coar-calendar-label-font-weight, 600))
+  );
 }
 /* Selection: a filled circle around the day number, like the iOS calendar's
    `selectionFill` (systemGray5). Today keeps its accent colour on top of it. */

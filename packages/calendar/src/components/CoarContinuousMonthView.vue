@@ -13,6 +13,7 @@ import {
 import { useLocalization } from '@cocoar/vue-localization';
 import { Temporal, type CalendarEvent, type MonthCellPill, type MonthMultiDayBar } from '../core';
 import { CalendarBuilder } from '../builders/calendar-builder';
+import type { MonthDaySlotScope } from '../builders/types';
 import { SET_TOPMOST_VISIBLE_MONTH } from '../builders/calendar-builder-internals';
 import { useViewWindow } from '../composables/useViewWindow';
 import CoarMonthView from './CoarMonthView.vue';
@@ -21,6 +22,8 @@ const props = defineProps<{ builder: CalendarBuilder<TMeta> }>();
 defineSlots<{
   pill?(props: { event: CalendarEvent<TMeta>; pill: MonthCellPill<TMeta> }): unknown;
   multiDayBar?(props: { event: CalendarEvent<TMeta>; bar: MonthMultiDayBar<TMeta> }): unknown;
+  dayNumber?(props: MonthDaySlotScope): unknown;
+  dayContent?(props: MonthDaySlotScope): unknown;
 }>();
 
 const root = ref<HTMLElement | null>(null);
@@ -495,6 +498,12 @@ defineExpose({
         <template v-if="$slots.multiDayBar" #multiDayBar="slotProps">
           <slot name="multiDayBar" v-bind="slotProps" />
         </template>
+        <template v-if="$slots.dayNumber" #dayNumber="slotProps">
+          <slot name="dayNumber" v-bind="slotProps" />
+        </template>
+        <template v-if="$slots.dayContent" #dayContent="slotProps">
+          <slot name="dayContent" v-bind="slotProps" />
+        </template>
       </CoarMonthView>
     </section>
   </div>
@@ -529,7 +538,7 @@ defineExpose({
 }
 .coar-continuous-month-view__title {
   margin: 0;
-  padding: 20px 16px 10px;
+  padding: var(--coar-calendar-section-title-padding, 20px 16px 10px);
   color: var(--coar-text-base, #1a1c1f);
   font-size: var(--coar-calendar-section-title-font-size, clamp(1.55rem, 2.1vw, 2rem));
   font-weight: var(--coar-calendar-section-title-font-weight, 750);
@@ -590,9 +599,9 @@ defineExpose({
 .coar-continuous-month-view__section :deep(.coar-month-cell__day-number-row) {
   /* The iOS-style today marker is 27px high. The classic 24px header row
    * would let it protrude beyond the paint-contained cell and clip its top. */
-  height: 31px;
-  flex: 0 0 31px;
-  padding-block: 2px;
+  height: var(--coar-calendar-day-number-row-height, 31px);
+  flex: 0 0 var(--coar-calendar-day-number-row-height, 31px);
+  padding: var(--coar-calendar-day-number-row-padding, 2px 6px);
 }
 .coar-continuous-month-view__section :deep(.coar-month-cell--weekend) {
   background: var(--coar-calendar-bg, #fff);
@@ -612,8 +621,8 @@ defineExpose({
  * shift — the today rule below wins fill and colour by source order. */
 .coar-continuous-month-view__section :deep(.coar-month-cell--selected .coar-month-cell__day-number) {
   display: inline-flex;
-  width: 27px;
-  height: 27px;
+  width: var(--coar-calendar-today-marker-size, 27px);
+  height: var(--coar-calendar-today-marker-size, 27px);
   margin: 0;
   padding: 0;
   align-items: center;
@@ -626,8 +635,8 @@ defineExpose({
 }
 .coar-continuous-month-view__section :deep(.coar-month-cell--today .coar-month-cell__day-number) {
   display: inline-flex;
-  width: 27px;
-  height: 27px;
+  width: var(--coar-calendar-today-marker-size, 27px);
+  height: var(--coar-calendar-today-marker-size, 27px);
   align-items: center;
   justify-content: center;
   border-radius: 50%;

@@ -15,6 +15,9 @@ export type {
   CalendarDayMode,
   CalendarTimeGridOrientation,
   CalendarMonthDensity,
+  CalendarMonthPresentation,
+  CalendarMonthRowSizing,
+  CalendarWeekdayFormat,
   CalendarView,
   ViewWindow,
   ResolvedLocale,
@@ -24,6 +27,43 @@ export type {
   RecurrenceExpansionWindow,
 } from './types';
 export { isTimedEvent, isAllDayEvent, validateCalendarEvent } from './types';
+export {
+  UNASSIGNED_RESOURCE,
+  layoutResourceDay,
+  type CalendarResource,
+  type ResourceAllDayBlock,
+  type ResourceBlock,
+  type ResourceDayLayout,
+  type ResourceDayOptions,
+} from './resourceDayLayout';
+export {
+  BOARD_ALL_DAY_ROW,
+  BOARD_UNASSIGNED_ROW,
+  boardDropTarget,
+  layoutBoard,
+  resourceWeekRows,
+  weekBoardRows,
+  yearWallColumns,
+  yearWallRows,
+  type BoardBar,
+  type BoardCell,
+  type BoardDropInput,
+  type BoardLayoutRow,
+  type BoardRow,
+  type BoardRowKind,
+  type ResourceWeekRowsOptions,
+  type WeekBoardRowsOptions,
+  type YearWallRowsOptions,
+} from './boardLayout';
+export {
+  computeOccupancy,
+  findDayGaps,
+  type CalendarPeriod,
+  type DayGap,
+  type DayGapOptions,
+  type Occupancy,
+  type OccupancyOptions,
+} from './occupancy';
 export {
   Temporal,
   type DayOfWeek,
@@ -141,6 +181,9 @@ export {
   capMonthCellPills,
   capMonthRowLanes,
   monthCellPillLimit,
+  fitMonthRow,
+  type MonthRowFit,
+  type MonthRowFitInput,
   MONTH_DEFAULT_MAX_VISIBLE_LANES,
   type MonthRowLaneCap,
   MONTH_STACKED_VISIBLE_PILLS,

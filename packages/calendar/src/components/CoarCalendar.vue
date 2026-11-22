@@ -36,6 +36,7 @@ import CoarDayView from './CoarDayView.vue';
 import CoarWeekView from './CoarWeekView.vue';
 import CoarWorkWeekView from './CoarWorkWeekView.vue';
 import CoarContinuousMonthView from './CoarContinuousMonthView.vue';
+import CoarPagedMonthView from './CoarPagedMonthView.vue';
 import CoarMonthListView from './CoarMonthListView.vue';
 import CoarAgendaView from './CoarAgendaView.vue';
 import CoarTimelineView from './CoarTimelineView.vue';
@@ -46,6 +47,7 @@ import {
   detectFirstDayOfWeekFromLocale,
   type CalendarEvent,
   type CalendarDayMode,
+  type CalendarResource,
   type CalendarMonthDensity,
   type CalendarView,
   type MonthCellPill,
@@ -56,7 +58,12 @@ import {
   type AgendaEventItem,
 } from '../core';
 import { CalendarBuilder } from '../builders/calendar-builder';
-import type { CalendarDraftSegment, WeekStripSlotScope } from '../builders/types';
+import type {
+  CalendarDayOverlay,
+  CalendarDraftSegment,
+  MonthDaySlotScope,
+  WeekStripSlotScope,
+} from '../builders/types';
 
 interface Props {
   builder: CalendarBuilder<Record<string, unknown>>;
@@ -111,6 +118,16 @@ defineSlots<{
   /** Multi-day month-cell bar renderer. Falls back to `event` if not
    *  provided. */
   multiDayBar?(props: { event: CalendarEvent; bar: MonthMultiDayBar }): unknown;
+  /** A day with `builder.resources`: the head of a resource column. */
+  resourceHeader?(props: { resource: CalendarResource | null; id: string }): unknown;
+  /** A day with `builder.resources`: an entry of `builder.dayOverlays`. */
+  overlay?(props: { overlay: CalendarDayOverlay }): unknown;
+  /** A day with `builder.resources`: a label of the hour axis. */
+  hourLabel?(props: { hour: number; label: string }): unknown;
+  /** Replaces a month cell's day number. */
+  dayNumber?(props: MonthDaySlotScope): unknown;
+  /** Beside a month cell's day number. */
+  dayContent?(props: MonthDaySlotScope): unknown;
   /** Per-day-column header (week / month). */
   dayHeader?(props: { date: Temporal.PlainDate; isToday: boolean; isWeekend: boolean }): unknown;
   /** The host's draft (`builder.draft`), drawn yourself — one call per day it covers. */
@@ -169,6 +186,7 @@ const state = computed(() => {
     firstDayOfWeek: toValue(s.firstDayOfWeek),
     density: toValue(s.density),
     monthDensity: toValue(s.monthDensity),
+    monthPresentation: toValue(s.monthPresentation),
     dayMode: toValue(s.dayMode),
     dateStyle: toValue(s.dateStyle),
     timeStyle: toValue(s.timeStyle),
@@ -535,16 +553,28 @@ onBeforeUnmount(() => {
       internally), so the body must NOT scroll there or we'd get a
       double scrollbar / collapsed agenda.
     -->
-    <div ref="bodyEl" class="coar-calendar__body" :class="`coar-calendar__body--${view}`">
+    <div ref="bodyEl" class="coar-calendar__body" :class="[`coar-calendar__body--${view}`, { 'coar-calendar__body--month-paged': view === 'month' && state.monthPresentation === 'paged' }]">
       <CoarDayView v-if="view === 'day'" :builder="props.builder">
         <template v-if="$slots.event" #event="slotProps">
           <slot name="event" v-bind="slotProps" :view="view" />
+        </template>
+        <template v-if="$slots.allDayEvent" #allDayEvent="slotProps">
+          <slot name="allDayEvent" v-bind="slotProps" />
         </template>
         <template v-if="$slots.dayHeader" #dayHeader="slotProps">
           <slot name="dayHeader" v-bind="slotProps" />
         </template>
         <template v-if="$slots.draft" #draft="slotProps">
           <slot name="draft" v-bind="slotProps" />
+        </template>
+        <template v-if="$slots.resourceHeader" #resourceHeader="slotProps">
+          <slot name="resourceHeader" v-bind="slotProps" />
+        </template>
+        <template v-if="$slots.overlay" #overlay="slotProps">
+          <slot name="overlay" v-bind="slotProps" />
+        </template>
+        <template v-if="$slots.hourLabel" #hourLabel="slotProps">
+          <slot name="hourLabel" v-bind="slotProps" />
         </template>
       </CoarDayView>
 
@@ -595,7 +625,8 @@ onBeforeUnmount(() => {
         </template>
       </CoarWorkWeekView>
 
-      <CoarContinuousMonthView
+      <component
+        :is="state.monthPresentation === 'paged' ? CoarPagedMonthView : CoarContinuousMonthView"
         v-else-if="view === 'month'"
         ref="continuousMonthView"
         :builder="props.builder"
@@ -614,7 +645,13 @@ onBeforeUnmount(() => {
           <slot v-if="$slots.multiDayBar" name="multiDayBar" v-bind="slotProps" />
           <slot v-else name="event" :event="slotProps.event" :view="view" :layout="slotProps.bar" />
         </template>
-      </CoarContinuousMonthView>
+        <template v-if="$slots.dayNumber" #dayNumber="slotProps">
+          <slot name="dayNumber" v-bind="slotProps" />
+        </template>
+        <template v-if="$slots.dayContent" #dayContent="slotProps">
+          <slot name="dayContent" v-bind="slotProps" />
+        </template>
+      </component>
 
       <CoarMonthListView v-else-if="view === 'monthList'" :builder="props.builder">
         <template v-if="$slots.event" #event="slotProps">
@@ -769,6 +806,12 @@ onBeforeUnmount(() => {
   /* The continuous month surface owns its scrolling so it can preserve
      semantic month anchors while rows reflow between densities. */
   overflow: hidden;
+}
+.coar-calendar__body--month-paged {
+  /* One month on a surface shorter than its six rows scrolls here. */
+  overflow-x: hidden;
+  overflow-y: auto;
+  scroll-padding-bottom: var(--coar-calendar-scroll-inset-bottom, 0px);
 }
 .coar-calendar__body--agenda {
   /* Agenda is internally virtualized; let it own the scroll. */

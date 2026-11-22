@@ -38,6 +38,9 @@ export type {
   CanDropFn,
   DateClickHandler,
   DateDoubleClickHandler,
+  CalendarDayOverlay,
+  DayClassFn,
+  DayOverlaysFn,
   DayHeaderRenderer,
   DstPolicy,
   EventClickHandler,
@@ -49,7 +52,9 @@ export type {
   EventLayoutCtx,
   EventRenderer,
   EventRendererCtx,
+  EventResourcesFn,
   EventsLoader,
+  MonthDaySlotScope,
   RangeChangeHandler,
   SeriesLoader,
   TimeClickHandler,
@@ -114,6 +119,14 @@ export { default as CoarWorkWeekView } from './components/CoarWorkWeekView.vue';
 export { default as CoarTimeGrid } from './components/CoarTimeGrid.vue';
 export { default as CoarMonthView } from './components/CoarMonthView.vue';
 export { default as CoarContinuousMonthView } from './components/CoarContinuousMonthView.vue';
+export { default as CoarPagedMonthView } from './components/CoarPagedMonthView.vue';
+export { default as CoarMiniMonth } from './components/CoarMiniMonth.vue';
+export {
+  default as CoarCalendarBoard,
+  type BoardColumn,
+  type BoardRowsContext,
+} from './components/CoarCalendarBoard.vue';
+export type { BoardRangeSelection } from './composables/useBoardDnd';
 export { default as CoarMonthListView } from './components/CoarMonthListView.vue';
 export { default as CoarAgendaView } from './components/CoarAgendaView.vue';
 export { default as CoarTimelineView } from './components/CoarTimelineView.vue';

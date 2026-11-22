@@ -119,8 +119,8 @@ function onEndResize(e: PointerEvent) {
       left,
       width,
       height: height + 'px',
-      background: bg,
-      borderLeft,
+      '--event-bg': bg,
+      '--event-border-left': borderLeft,
       zIndex,
       '--event-ink': eventInk,
     }"
@@ -160,7 +160,9 @@ function onEndResize(e: PointerEvent) {
 .coar-time-grid-all-day-bar {
   position: absolute;
   box-sizing: border-box;
-  padding: 1px 6px;
+  background: var(--coar-calendar-event-surface-bg, var(--event-bg));
+  border-left: var(--coar-calendar-event-border-left, var(--event-border-left));
+  padding: var(--coar-calendar-event-padding, 1px 6px);
   border-radius: var(--coar-calendar-event-radius, 3px);
   font-size: var(--coar-calendar-event-font-size, var(--coar-font-size-xs, 11px));
   cursor: pointer;

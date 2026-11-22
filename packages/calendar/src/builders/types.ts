@@ -216,6 +216,14 @@ export interface EventDropPayload<TMeta extends Record<string, unknown> = Record
     displayZone: string;
     /** DST disambiguation outcome (C4). `null` for clean drops. */
     disambiguation: 'gap' | 'overlap' | null;
+    /** Board only: key of the row the event was dropped on. */
+    rowKey?: string;
+    /** Board only: key of the row the event was grabbed in. */
+    sourceRowKey?: string;
+    /** Day with resources: the column dropped on; none for the unassigned column. */
+    resourceId?: string;
+    /** Day with resources: the column the event was grabbed in. */
+    sourceResourceId?: string;
   };
   native: PointerEvent | null;
 }
@@ -233,6 +241,8 @@ export type TimeClickHandler = (payload: {
   date: Temporal.PlainDate;
   time: Temporal.PlainTime;
   native: PointerEvent;
+  /** The resource's column, in a day with resources. */
+  resourceId?: string;
 }) => void;
 
 /**
@@ -276,6 +286,8 @@ export interface TimeRangeSelectPayload {
   source: 'click' | 'drag';
   /** The `pointerup` of a drag, the `pointerdown` of a click / tap. */
   native: PointerEvent;
+  /** The resource's column, in a day with resources. */
+  resourceId?: string;
 }
 
 export type TimeRangeSelectHandler = (payload: TimeRangeSelectPayload) => void;
@@ -336,6 +348,38 @@ export interface CalendarBandLine {
 
 export type CalendarBand = CalendarBandRange | CalendarBandLine;
 
+/**
+ * Something across all resource columns of a day, such as a meal.
+ * Drawn behind the events; the `#overlay` slot renders it.
+ */
+export interface CalendarDayOverlay {
+  key: string;
+  start: Temporal.ZonedDateTime;
+  end: Temporal.ZonedDateTime;
+  label?: string;
+  /** Anything the `#overlay` slot needs. */
+  data?: unknown;
+}
+
+/** `builder.eventResources` — read on every layout (C7). */
+export type EventResourcesFn<TMeta extends Record<string, unknown>> = (
+  event: CalendarEvent<TMeta>,
+) => ReadonlyArray<string>;
+
+/** `builder.dayOverlays` — read per day on every render (C7). */
+export type DayOverlaysFn = (date: Temporal.PlainDate) => ReadonlyArray<CalendarDayOverlay>;
+
+/** `builder.dayClass` — the value of a Vue `:class` binding for a month cell. */
+export type DayClassFn = (date: Temporal.PlainDate) => unknown;
+
+/** Scope of the month cell's `#dayNumber` and `#dayContent` slots. */
+export interface MonthDaySlotScope {
+  date: Temporal.PlainDate;
+  isToday: boolean;
+  isSelected: boolean;
+  isOtherMonth: boolean;
+}
+
 /** `builder.backgrounds` — read per visible day on every render (C7). */
 export type BackgroundsFn = (
   date: Temporal.PlainDate,
@@ -361,6 +405,10 @@ export interface CanDropTarget {
   /** The display zone the calendar was rendering in when the
    *  hit-test fired. */
   displayZone: string;
+  /** Board only: key of the row under the pointer. */
+  rowKey?: string;
+  /** Day with resources: the column under the pointer. */
+  resourceId?: string;
 }
 
 export type CanDropFn<TMeta extends Record<string, unknown> = Record<string, unknown>> = (

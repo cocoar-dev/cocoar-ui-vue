@@ -44,6 +44,16 @@ Only the month in view and the next one render on mount. Every other section sta
 <CoarMonthListView :builder="builder" />
 ```
 
+## One month at a time {#paged-month} <Badge type="warning" text="Preview" />
+
+`monthPresentation('paged')` replaces the endless list with a single month that is turned by swiping. The finger pulls the page and it snaps in, while `api.next()` and `api.prev()` slide it. All rows stay equally high (`uniform`, or `fill` when `monthRowSizing('fill')` is set), so the grid never jumps between months. The neighbouring months are loaded with the visible window.
+
+```ts
+builder.view('month').monthPresentation('paged').monthRowSizing('fill');
+```
+
+A swipe that starts on an event belongs to its drag, and a vertical pan stays with the page. A tap on a day of a neighbouring month fires `onDateClick`; whether that also turns the page is up to the host. Standalone, the same surface is `<CoarPagedMonthView :builder="builder" />`, with the slots of `<CoarMonthView>`.
+
 ## Single month section {#single-month-section}
 
 `<CoarMonthView>` renders the fixed single-section grid used internally by the continuous composition. Multi-day events render as continuous **bars** across the rows they touch; single-day events render as **pills** inside cells. A timed event counts as multi-day when it ends on a later day than it starts in the display zone (Thu 15:30 → Sun 18:00 is a Thu–Sun bar); its end is exclusive, so an end at the start of a day (00:00, or 01:00 where DST skips midnight) does not reach into that day. Its bar stops a third of a day short of the outer edges of its first and last day — the same fixed inset whatever the clock times are — so it never reads as an all-day event; an edge cut by a week row or by the edge of a continuous month's section keeps running to the border. Use it directly when the host owns pagination or needs a compact embedded month.
@@ -134,6 +144,10 @@ Full reference: see [the composer's API reference](/components/calendar/coar-cal
 |---|---|---|---|
 | `firstDayOfWeek(d)` | `0..6 \| undefined` | locale-aware | `0` = Sunday, `1` = Monday, … |
 | `monthDensity(d)` | `'compact' \| 'stacked' \| 'details'` | `'details'` | Presentation used by continuous Month. |
+| `monthPresentation(p)` <Badge type="warning" text="Preview" /> | `'continuous' \| 'paged'` | `'continuous'` | The month of `<CoarCalendar>`: the endless list or [one month at a time](#paged-month). |
+| `monthRowSizing(s)` <Badge type="warning" text="Preview" /> | `'auto' \| 'uniform' \| 'fill'` | `'auto'` | `auto` grows a row with its multi-day lanes. `uniform` keeps all rows equal, so the grid never jumps. `fill` shares the height of the view between the rows and needs a parent with a height; a continuous month treats it as `uniform`. In `uniform` and `fill`, what does not fit folds into `+N`. |
+| `weekdayFormat(f)` <Badge type="warning" text="Preview" /> | `'narrow' \| 'short' \| null` | `null` | Weekday names of the month header, the year and the day agenda's week strip. `null` keeps each view's own format. |
+| `dayClass(fn)` <Badge type="warning" text="Preview" /> | `(date) => class value` | — | Extra classes of a month cell, read per day on every render, for example to highlight free days. |
 | `shadeWeekends(b)` | `MaybeRefOrGetter<boolean>` | `true` | Shades Saturday / Sunday cells and weekday headers. Set `false` for an unshaded appearance. |
 | `selectedDate(d)` | `MaybeRefOrGetter<Temporal.PlainDate \| null>` | `null` | The host's selected day: a filled circle around the day number (iOS selection decoration, `--coar-calendar-selection-fill`). Independent of the cursor — pass the day a companion pane follows, e.g. from `onDateClick`. |
 | `maxEventsPerCell(n)` | `MaybeRefOrGetter<number>` | `2` | Single-day pills a **Details** cell shows before the rest fold into the `+N` row. Stacked and Compact use fixed limits (2 marks / 6 capsule segments) like iOS. |
@@ -184,6 +198,35 @@ interface CalendarApi<TMeta> {
 
 `scrollToTime` / `scrollToDate` are not month operations. `api.goTo(...)`, `next()`, and `prev()` align the continuous surface to the requested month; a standalone `<CoarContinuousMonthView>` additionally exposes `scrollToMonth(...)` on its component ref.
 
+## Styling tokens <Badge type="warning" text="Preview" />
+
+Set these on the calendar or a parent. Without them everything keeps its look. A custom `#pill` or `#event` that draws its own card can clear the built-in surface with `--coar-calendar-event-surface-bg: transparent`, `--coar-calendar-event-border-left: 0` and `--coar-calendar-event-padding: 0`.
+
+| Token | Default | Applies to |
+|---|---|---|
+| `--coar-calendar-day-number-font-size` | label size | Day number |
+| `--coar-calendar-day-number-font-weight` | label weight | Day number |
+| `--coar-calendar-day-number-row-height` | `24px`, continuous `31px` | Row of the day number |
+| `--coar-calendar-day-number-row-padding` | `4px 6px`, continuous `2px 6px` | Row of the day number |
+| `--coar-calendar-today-font-weight` | day number weight | Today's number |
+| `--coar-calendar-today-marker-size` | `27px` | Today and selection circle of the continuous month |
+| `--coar-calendar-weekday-color` | subtle text | Weekday header |
+| `--coar-calendar-weekday-font-size` | caption size | Weekday header |
+| `--coar-calendar-weekday-font-weight` | caption weight | Weekday header |
+| `--coar-calendar-weekday-bg` / `-border` | calendar background / border | Weekday header |
+| `--coar-calendar-weekday-letter-spacing` / `-transform` / `-align` | `0.04em` / `uppercase` / inherited | Weekday header |
+| `--coar-calendar-day-number-row-direction` / `-align` / `-justify` / `-gap` / `-flex` | `row` / `center` / `flex-start` / `0` / `0 1 auto` | Row of the day number, to stack the number and `#dayContent` |
+| `--coar-calendar-day-content-flex` | `1 1 auto` | The `#dayContent` box |
+| `--coar-calendar-section-title-padding` | `20px 16px 10px` | Month title of the continuous month |
+| `--coar-calendar-pill-font-size` | event size | Pills and bars |
+| `--coar-calendar-pill-line-height` | `16px` | Pills |
+| `--coar-calendar-pill-radius` | event radius | Pills and bars |
+| `--coar-calendar-event-surface-bg` | the event's colour | Pills, bars, all-day bars, timed cards |
+| `--coar-calendar-event-border-left` | `3px` in the event's colour | Pills, bars, all-day bars, timed cards |
+| `--coar-calendar-event-padding` | `1px 6px` | Pills, bars, all-day bars |
+
+Weekend columns of the continuous header keep their own `--coar-calendar-continuous-weekday-weekend-color`.
+
 ## Month component props + slots
 
 | Prop | Type | Description |
@@ -194,3 +237,5 @@ interface CalendarApi<TMeta> {
 |---|---|---|
 | `pill` | `{ event, pill }` | Single-day pill renderer. `pill` is the `MonthCellPill` (event + visual order in the cell). |
 | `multiDayBar` | `{ event, bar }` | Multi-day bar renderer. `bar` is the `MonthMultiDayBar` (lane / startCol / endCol / clipping flags). |
+| `dayNumber` <Badge type="warning" text="Preview" /> | `{ date, isToday, isSelected, isOtherMonth }` | Replaces the day number. |
+| `dayContent` <Badge type="warning" text="Preview" /> | `{ date, isToday, isSelected, isOtherMonth }` | Content beside the day number, also on the neighbouring months' days. Keep it within the height of the day-number row. |
