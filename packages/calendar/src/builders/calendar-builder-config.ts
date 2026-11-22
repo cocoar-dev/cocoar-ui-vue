@@ -25,6 +25,7 @@ import type {
   CalendarTimeGridOrientation,
   CalendarEvent,
   CalendarMonthDensity,
+  CalendarMonthRowSizing,
   CalendarView,
   DayOfWeek,
   EventTextContrastPolicy,
@@ -35,6 +36,7 @@ import type {
 import type {
   CalendarDensity,
   CalendarDraft,
+  DayClassFn,
   DstPolicy,
   EventsLoader,
   SeriesLoader,
@@ -243,6 +245,24 @@ export abstract class CalendarBuilderConfig<
 
   monthDensity(density: MaybeRefOrGetter<CalendarMonthDensity>): this {
     this.state.monthDensity = density;
+    return this;
+  }
+
+  /**
+   * Height of the month rows. `auto` (default) grows a row with its
+   * multi-day lanes, `uniform` keeps all rows equal, `fill` shares the
+   * height of the view between them. In `uniform` and `fill` what does
+   * not fit folds into "+N". A continuous month treats `fill` as
+   * `uniform`, because it has no height to share.
+   */
+  monthRowSizing(sizing: MaybeRefOrGetter<CalendarMonthRowSizing>): this {
+    this.state.monthRowSizing = sizing;
+    return this;
+  }
+
+  /** Extra classes of a month cell, read per day on every render (C7). */
+  dayClass(fn: DayClassFn | null): this {
+    this.state.dayClass = fn;
     return this;
   }
 

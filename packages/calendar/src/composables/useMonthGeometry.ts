@@ -23,7 +23,13 @@
  */
 
 import { type ComputedRef, type MaybeRefOrGetter, type Ref, computed, toValue } from 'vue';
-import { capMonthRowLanes, type CalendarMonthDensity, type MonthLayout } from '../core';
+import {
+  capMonthRowLanes,
+  fitMonthRow,
+  type CalendarMonthDensity,
+  type CalendarMonthRowSizing,
+  type MonthLayout,
+} from '../core';
 import { DEFAULT_MONTH_METRICS, type MonthMetrics } from './useMonthMetrics';
 
 const BAR_GAP = 2;
@@ -69,6 +75,12 @@ export interface UseMonthGeometryOptions {
   metrics?: MaybeRefOrGetter<MonthMetrics>;
   /** Pills a Details cell shows — sizes the Details row. Default 2. */
   maxEventsPerCell?: MaybeRefOrGetter<number>;
+  /** How rows get their height. Default `auto`. */
+  rowSizing?: MaybeRefOrGetter<CalendarMonthRowSizing>;
+  /** Measured height of the rows container, read for `fill`. */
+  rowsAreaHeight?: MaybeRefOrGetter<number>;
+  /** The density's pill cap, narrowed per row in `uniform` and `fill`. */
+  pillLimit?: MaybeRefOrGetter<number>;
 }
 
 export interface UseMonthGeometryReturn {
@@ -87,6 +99,12 @@ export interface UseMonthGeometryReturn {
 
   /** Per-row total height. */
   rowHeightPx: ComputedRef<number[]>;
+
+  /** Per-row lane cap: the builder's, or what fits a row of fixed height. */
+  rowLaneLimits: ComputedRef<Array<number | null>>;
+
+  /** Per-row pill cap: the density's, or what fits a row of fixed height. */
+  rowPillLimits: ComputedRef<number[]>;
 }
 
 export function useMonthGeometry(opts: UseMonthGeometryOptions): UseMonthGeometryReturn {
@@ -110,13 +128,60 @@ export function useMonthGeometry(opts: UseMonthGeometryOptions): UseMonthGeometr
     return DAY_NUMBER_HEIGHT.value + lane * (BAR_HEIGHT.value + BAR_GAP);
   }
 
+  const rowSizing = computed(() => toValue(opts.rowSizing) ?? 'auto');
+  const pillLimit = computed(() => toValue(opts.pillLimit) ?? Number.POSITIVE_INFINITY);
+
+  /** The height of every row when it does not follow its content. */
+  const fixedRowHeight = computed(() => {
+    if (rowSizing.value === 'auto') return null;
+    const rows = opts.layout.value.weekRows.length;
+    const area = rowSizing.value === 'fill' ? (toValue(opts.rowsAreaHeight) ?? 0) : 0;
+    return area > 0 && rows > 0 ? Math.floor(area / rows) : baseRowHeight.value;
+  });
+
+  const rowFits = computed(() => {
+    const rowHeight = fixedRowHeight.value;
+    if (rowHeight === null) return null;
+    const m = metrics.value;
+    return opts.layout.value.weekRows.map((row) =>
+      fitMonthRow({
+        rowHeight,
+        dayNumberHeight: m.dayNumberHeight,
+        pillsPaddingTop: m.pillsPaddingTop,
+        pillsPaddingBottom: m.pillsPaddingBottom,
+        markerHeight: monthDensity.value === 'details' ? m.markerHeight : 0,
+        barHeight: BAR_HEIGHT.value,
+        barGap: BAR_GAP,
+        pillHeight: m.pillHeight,
+        pillGap: m.pillGap,
+        laneCount: row.multiDayBars[0]?.laneCount ?? 0,
+        maxLanes: toValue(opts.maxLanes) ?? null,
+        pillLimit: pillLimit.value,
+      }),
+    );
+  });
+
+  const rowLaneLimits = computed(() =>
+    opts.layout.value.weekRows.map(
+      (_, i) => rowFits.value?.[i].maxLanes ?? toValue(opts.maxLanes) ?? null,
+    ),
+  );
+  const rowPillLimits = computed(() =>
+    opts.layout.value.weekRows.map((_, i) =>
+      // The Compact capsule is one line of segments, not a stack.
+      monthDensity.value === 'compact'
+        ? pillLimit.value
+        : (rowFits.value?.[i].pillLimit ?? pillLimit.value),
+    ),
+  );
+
   /** For each row, compute how many lanes the multi-day bars
    *  occupy (so the cell-pill block knows where to start
    *  vertically). */
   const rowBarHeightsPx = computed(() => {
-    return opts.layout.value.weekRows.map((row) => {
+    return opts.layout.value.weekRows.map((row, rowIndex) => {
       if (row.multiDayBars.length === 0) return DAY_NUMBER_HEIGHT.value;
-      const lanes = capMonthRowLanes(row.multiDayBars, toValue(opts.maxLanes) ?? null).laneCount;
+      const lanes = capMonthRowLanes(row.multiDayBars, rowLaneLimits.value[rowIndex]).laneCount;
       return DAY_NUMBER_HEIGHT.value + lanes * (BAR_HEIGHT.value + BAR_GAP);
     });
   });
@@ -125,6 +190,7 @@ export function useMonthGeometry(opts: UseMonthGeometryOptions): UseMonthGeometr
    *  need — never for overflowing pills, which fold into "+N". */
   const rowHeightPx = computed(() => {
     return rowBarHeightsPx.value.map((barAreaHeight) => {
+      if (fixedRowHeight.value !== null) return fixedRowHeight.value;
       const laneBandHeight = Math.max(0, barAreaHeight - DAY_NUMBER_HEIGHT.value);
       return baseRowHeight.value + laneBandHeight;
     });
@@ -137,5 +203,7 @@ export function useMonthGeometry(opts: UseMonthGeometryOptions): UseMonthGeometr
     barTopPx,
     rowBarHeightsPx,
     rowHeightPx,
+    rowLaneLimits,
+    rowPillLimits,
   };
 }

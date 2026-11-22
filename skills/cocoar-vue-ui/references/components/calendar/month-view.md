@@ -454,6 +454,8 @@ Full reference: see [the composer's API reference](./coar-calendar.md#api-refere
 |---|---|---|---|
 | `firstDayOfWeek(d)` | `0..6 \| undefined` | locale-aware | `0` = Sunday, `1` = Monday, … |
 | `monthDensity(d)` | `'compact' \| 'stacked' \| 'details'` | `'details'` | Presentation used by continuous Month. |
+| `monthRowSizing(s)` (Preview) | `'auto' \| 'uniform' \| 'fill'` | `'auto'` | `auto` grows a row with its multi-day lanes. `uniform` keeps all rows equal, so the grid never jumps. `fill` shares the height of the view between the rows and needs a parent with a height; a continuous month treats it as `uniform`. In `uniform` and `fill`, what does not fit folds into `+N`. |
+| `dayClass(fn)` (Preview) | `(date) => class value` | — | Extra classes of a month cell, read per day on every render, for example to highlight free days. |
 | `shadeWeekends(b)` | `MaybeRefOrGetter<boolean>` | `true` | Shades Saturday / Sunday cells and weekday headers. Set `false` for an unshaded appearance. |
 | `selectedDate(d)` | `MaybeRefOrGetter<Temporal.PlainDate \| null>` | `null` | The host's selected day: a filled circle around the day number (iOS selection decoration, `--coar-calendar-selection-fill`). Independent of the cursor — pass the day a companion pane follows, e.g. from `onDateClick`. |
 | `maxEventsPerCell(n)` | `MaybeRefOrGetter<number>` | `2` | Single-day pills a **Details** cell shows before the rest fold into the `+N` row. Stacked and Compact use fixed limits (2 marks / 6 capsule segments) like iOS. |
@@ -514,3 +516,5 @@ interface CalendarApi<TMeta> {
 |---|---|---|
 | `pill` | `{ event, pill }` | Single-day pill renderer. `pill` is the `MonthCellPill` (event + visual order in the cell). |
 | `multiDayBar` | `{ event, bar }` | Multi-day bar renderer. `bar` is the `MonthMultiDayBar` (lane / startCol / endCol / clipping flags). |
+| `dayNumber` (Preview) | `{ date, isToday, isSelected, isOtherMonth }` | Replaces the day number. |
+| `dayContent` (Preview) | `{ date, isToday, isSelected, isOtherMonth }` | Content beside the day number, also on the neighbouring months' days. Keep it within the height of the day-number row. |

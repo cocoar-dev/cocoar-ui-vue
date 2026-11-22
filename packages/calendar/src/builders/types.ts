@@ -336,6 +336,17 @@ export interface CalendarBandLine {
 
 export type CalendarBand = CalendarBandRange | CalendarBandLine;
 
+/** `builder.dayClass` — the value of a Vue `:class` binding for a month cell. */
+export type DayClassFn = (date: Temporal.PlainDate) => unknown;
+
+/** Scope of the month cell's `#dayNumber` and `#dayContent` slots. */
+export interface MonthDaySlotScope {
+  date: Temporal.PlainDate;
+  isToday: boolean;
+  isSelected: boolean;
+  isOtherMonth: boolean;
+}
+
 /** `builder.backgrounds` — read per visible day on every render (C7). */
 export type BackgroundsFn = (
   date: Temporal.PlainDate,

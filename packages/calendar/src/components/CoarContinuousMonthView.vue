@@ -13,6 +13,7 @@ import {
 import { useLocalization } from '@cocoar/vue-localization';
 import { Temporal, type CalendarEvent, type MonthCellPill, type MonthMultiDayBar } from '../core';
 import { CalendarBuilder } from '../builders/calendar-builder';
+import type { MonthDaySlotScope } from '../builders/types';
 import { SET_TOPMOST_VISIBLE_MONTH } from '../builders/calendar-builder-internals';
 import { useViewWindow } from '../composables/useViewWindow';
 import CoarMonthView from './CoarMonthView.vue';
@@ -21,6 +22,8 @@ const props = defineProps<{ builder: CalendarBuilder<TMeta> }>();
 defineSlots<{
   pill?(props: { event: CalendarEvent<TMeta>; pill: MonthCellPill<TMeta> }): unknown;
   multiDayBar?(props: { event: CalendarEvent<TMeta>; bar: MonthMultiDayBar<TMeta> }): unknown;
+  dayNumber?(props: MonthDaySlotScope): unknown;
+  dayContent?(props: MonthDaySlotScope): unknown;
 }>();
 
 const root = ref<HTMLElement | null>(null);
@@ -494,6 +497,12 @@ defineExpose({
         </template>
         <template v-if="$slots.multiDayBar" #multiDayBar="slotProps">
           <slot name="multiDayBar" v-bind="slotProps" />
+        </template>
+        <template v-if="$slots.dayNumber" #dayNumber="slotProps">
+          <slot name="dayNumber" v-bind="slotProps" />
+        </template>
+        <template v-if="$slots.dayContent" #dayContent="slotProps">
+          <slot name="dayContent" v-bind="slotProps" />
         </template>
       </CoarMonthView>
     </section>

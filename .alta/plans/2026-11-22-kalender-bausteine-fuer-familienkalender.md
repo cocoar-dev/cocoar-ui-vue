@@ -75,12 +75,12 @@ Heute wächst eine Zeile mit der Zahl ihrer Balken, also würde das Raster beim 
 builder.monthRowSizing('auto' | 'uniform' | 'fill'); // Standard: 'auto' (wie heute)
 ```
 
-- [ ] `uniform`: Alle Zeilen sind gleich hoch, egal wie viele Balken sie tragen. Für das Telefon, wo der Monat über der Tageskarte steht und keine Höhe zum Füllen hat
-- [ ] `fill`: Die sechs Zeilen teilen sich die Höhe des Containers, für Tablet und Desktop
-- [ ] In beiden Formen falten Balken und Termine, die nicht passen, in das vorhandene „+N“ (`capMonthRowLanes`, `capMonthCellPills`)
-- [ ] Slots `#dayNumber` und `#dayContent` an `CoarMonthCell`, durchgereicht von `CoarMonthView`, `CoarContinuousMonthView` und `CoarCalendar`. Sie bekommen `{ date, isToday, isSelected, isOtherMonth }`, damit die App die Striche der Nachbartage blass zeichnen kann
-- [ ] Builder-Funktion `dayClass(date)` für hervorgehobene Tage, die Grundlage von „Frei finden“
-- [ ] Tests für beide Formen, Überlauf „+N“, Zeilen mit Balken und Slots auf Nachbartagen
+- [x] `uniform`: Alle Zeilen sind gleich hoch, egal wie viele Balken sie tragen. Für das Telefon, wo der Monat über der Tageskarte steht und keine Höhe zum Füllen hat
+- [x] `fill`: Die sechs Zeilen teilen sich die Höhe des Containers, für Tablet und Desktop
+- [x] In beiden Formen falten Balken und Termine, die nicht passen, in das vorhandene „+N“ (`capMonthRowLanes`, `capMonthCellPills`)
+- [x] Slots `#dayNumber` und `#dayContent` an `CoarMonthCell`, durchgereicht von `CoarMonthView`, `CoarContinuousMonthView` und `CoarCalendar`. Sie bekommen `{ date, isToday, isSelected, isOtherMonth }`, damit die App die Striche der Nachbartage blass zeichnen kann
+- [x] Builder-Funktion `dayClass(date)` für hervorgehobene Tage, die Grundlage von „Frei finden“
+- [x] Tests für beide Formen, Überlauf „+N“, Zeilen mit Balken und Slots auf Nachbartagen
 
 ### 3. Wischen aus dem Stundenraster herauslösen
 

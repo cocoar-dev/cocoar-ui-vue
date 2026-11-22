@@ -194,6 +194,58 @@ export function capMonthRowLanes<TMeta extends Record<string, unknown> = Record<
   return { visible, hidden, hiddenPerColumn, laneCount: cap };
 }
 
+// ─── Rows of a fixed height ───────────────────────────────────────────
+
+export interface MonthRowFitInput {
+  rowHeight: number;
+  dayNumberHeight: number;
+  pillsPaddingTop: number;
+  pillsPaddingBottom: number;
+  /** Height of the "+N" row; `0` for a density without one. */
+  markerHeight: number;
+  barHeight: number;
+  barGap: number;
+  pillHeight: number;
+  pillGap: number;
+  /** Lanes the row's multi-day bars use before any cap. */
+  laneCount: number;
+  /** The builder's lane cap; `null` = none. */
+  maxLanes: number | null;
+  /** The density's pill cap. */
+  pillLimit: number;
+}
+
+export interface MonthRowFit {
+  maxLanes: number;
+  pillLimit: number;
+}
+
+/**
+ * What fits into a row whose height does not follow its content. Bars
+ * come first, the pills take what is left, and the "+N" row keeps its
+ * place so a marker never clips. Pure.
+ */
+export function fitMonthRow(input: MonthRowFitInput): MonthRowFit {
+  const room = Math.max(
+    0,
+    input.rowHeight -
+      input.dayNumberHeight -
+      input.pillsPaddingTop -
+      input.pillsPaddingBottom -
+      input.markerHeight,
+  );
+  const lanePitch = input.barHeight + input.barGap;
+  const lanesThatFit = lanePitch > 0 ? Math.floor(room / lanePitch) : 0;
+  const maxLanes =
+    input.maxLanes === null || !Number.isFinite(input.maxLanes) || input.maxLanes < 0
+      ? lanesThatFit
+      : Math.min(lanesThatFit, Math.floor(input.maxLanes));
+  const lanes = Math.min(input.laneCount, maxLanes);
+  const pillPitch = input.pillHeight + input.pillGap;
+  const pillsThatFit = pillPitch > 0 ? Math.floor((room - lanes * lanePitch) / pillPitch) : 0;
+  return { maxLanes, pillLimit: Math.min(pillsThatFit, input.pillLimit) };
+}
+
 // ─── Main function ───────────────────────────────────────────────────
 
 /**

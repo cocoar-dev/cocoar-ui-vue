@@ -56,7 +56,11 @@ import {
   type AgendaEventItem,
 } from '../core';
 import { CalendarBuilder } from '../builders/calendar-builder';
-import type { CalendarDraftSegment, WeekStripSlotScope } from '../builders/types';
+import type {
+  CalendarDraftSegment,
+  MonthDaySlotScope,
+  WeekStripSlotScope,
+} from '../builders/types';
 
 interface Props {
   builder: CalendarBuilder<Record<string, unknown>>;
@@ -111,6 +115,10 @@ defineSlots<{
   /** Multi-day month-cell bar renderer. Falls back to `event` if not
    *  provided. */
   multiDayBar?(props: { event: CalendarEvent; bar: MonthMultiDayBar }): unknown;
+  /** Replaces a month cell's day number. */
+  dayNumber?(props: MonthDaySlotScope): unknown;
+  /** Beside a month cell's day number. */
+  dayContent?(props: MonthDaySlotScope): unknown;
   /** Per-day-column header (week / month). */
   dayHeader?(props: { date: Temporal.PlainDate; isToday: boolean; isWeekend: boolean }): unknown;
   /** The host's draft (`builder.draft`), drawn yourself — one call per day it covers. */
@@ -616,6 +624,12 @@ onBeforeUnmount(() => {
         <template v-if="$slots.multiDayBar || $slots.event" #multiDayBar="slotProps">
           <slot v-if="$slots.multiDayBar" name="multiDayBar" v-bind="slotProps" />
           <slot v-else name="event" :event="slotProps.event" :view="view" :layout="slotProps.bar" />
+        </template>
+        <template v-if="$slots.dayNumber" #dayNumber="slotProps">
+          <slot name="dayNumber" v-bind="slotProps" />
+        </template>
+        <template v-if="$slots.dayContent" #dayContent="slotProps">
+          <slot name="dayContent" v-bind="slotProps" />
         </template>
       </CoarContinuousMonthView>
 

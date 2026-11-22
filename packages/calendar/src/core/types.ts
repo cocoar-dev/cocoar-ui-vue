@@ -266,6 +266,14 @@ export type CalendarView =
 /** Rendering density of the Month grid. List is a separate view id, matching iOS. */
 export type CalendarMonthDensity = 'compact' | 'stacked' | 'details';
 
+/**
+ * How month rows get their height. `auto` grows a row with its multi-day
+ * lanes, `uniform` keeps every row at the density's base height, `fill`
+ * shares the height of the month view between the rows. In `uniform` and
+ * `fill` what does not fit folds into the day's "+N".
+ */
+export type CalendarMonthRowSizing = 'auto' | 'uniform' | 'fill';
+
 /** Day-level display choices. Multi-day derives 1…7 columns from width. */
 export type CalendarDayMode = 'single' | 'multiDay';
 
