@@ -8,13 +8,14 @@
  *   - `#dayNumber`, `#dayContent` and `dayClass` reach the neighbouring days
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
-import { ref } from 'vue';
+import { defineComponent, h, nextTick, ref } from 'vue';
 import { Temporal } from '@js-temporal/polyfill';
 import { CalendarBuilder } from '../../builders/calendar-builder';
 import CoarMonthView from '../CoarMonthView.vue';
 import { fitMonthRow, type CalendarEvent, type CalendarMonthRowSizing } from '../../core';
+import { measureMonthMetrics } from '../../composables/useMonthMetrics';
 import { pd } from '../../__test-utils__/event-fixtures';
 
 const bars = (count: number): CalendarEvent[] =>
@@ -155,6 +156,88 @@ describe('maxEventsPerCell in a row of fixed height', () => {
     const w = mount(CoarMonthView, { props: { builder: b } });
     expect(cell(w).findAll('.coar-month-pill').length).toBeLessThanOrEqual(3);
     expect(cell(w).find('.coar-month-cell__overflow').exists()).toBe(true);
+  });
+});
+
+describe('order and foot of a day', () => {
+  const timed = (id: string, time: string): CalendarEvent => ({
+    id,
+    start: Temporal.ZonedDateTime.from(`2026-06-16T${time}[Europe/Vienna]`),
+    end: Temporal.ZonedDateTime.from(`2026-06-16T${time}[Europe/Vienna]`).add({ minutes: 30 }),
+    meta: { title: id },
+  });
+
+  it('shows the earliest events and folds the later ones', () => {
+    const b = newBuilder([timed('e17', '17:00'), timed('e15', '15:30'), timed('e18', '18:00')]).maxEventsPerCell(1);
+    const w = mount(CoarMonthView, { props: { builder: b } });
+    expect(w.find('[data-day-key="2026-06-16"] .coar-month-pill').text()).toContain('e15');
+  });
+
+  it('renders the foot below the events, not on placeholder days', () => {
+    const w = mount(CoarMonthView, {
+      props: { builder: newBuilder([]) },
+      slots: { dayFooter: `<template #dayFooter="{ date }"><b class="foot">{{ date.day }}</b></template>` },
+    });
+    const cell = w.find('[data-day-key="2026-06-16"]').element;
+    expect(cell.lastElementChild?.className).toContain('coar-month-cell__day-footer');
+    expect(cell.querySelector('.foot')?.textContent).toBe('16');
+  });
+
+  it('counts a foot that is switched on after mount', async () => {
+    const show = ref(false);
+    const builder = newBuilder([]);
+    const Host = defineComponent({
+      setup: () => () =>
+        h(CoarMonthView, { builder }, show.value ? { dayFooter: () => h('b', 'x') } : {}),
+    });
+    const spy = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (this: HTMLElement) {
+      if (this.classList.contains('coar-month-cell__day-footer')) return this.children.length ? 15 : 0;
+      return 24;
+    });
+    try {
+      const w = mount(Host);
+      await nextTick();
+      const before = parseFloat(rowHeights(w)[0]);
+      show.value = true;
+      await nextTick();
+      await nextTick();
+      expect(parseFloat(rowHeights(w)[0])).toBe(before + 15);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('keeps uniform rows at one height, whatever a foot needs', async () => {
+    const spy = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (this: HTMLElement) {
+      if (this.classList.contains('coar-month-cell__day-footer')) return this.children.length ? 15 : 0;
+      return 24;
+    });
+    try {
+      const plain = mount(CoarMonthView, { props: { builder: newBuilder([], 'uniform') } });
+      const footed = mount(CoarMonthView, {
+        props: { builder: newBuilder([], 'uniform') },
+        slots: { dayFooter: `<template #dayFooter><b>x</b></template>` },
+      });
+      await nextTick();
+      await nextTick();
+      expect(rowHeights(footed)[0]).toBe(rowHeights(plain)[0]);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('measures the foot per day', () => {
+    const w = mount(CoarMonthView, {
+      props: { builder: newBuilder([]) },
+      slots: { dayFooter: `<template #dayFooter="{ date }"><b v-if="date.day === 16">x</b></template>` },
+    });
+    const spy = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (this: HTMLElement) {
+      if (this.classList.contains('coar-month-cell__day-footer')) return this.children.length ? 15 : 0;
+      return 24;
+    });
+    const measured = measureMonthMetrics(w.element as HTMLElement);
+    spy.mockRestore();
+    expect([...(measured?.footerHeights ?? [])]).toEqual([['2026-06-16', 15]]);
   });
 });
 

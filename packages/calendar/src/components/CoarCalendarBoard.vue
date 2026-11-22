@@ -568,6 +568,11 @@ defineExpose({ getLayout: () => layout.value });
   text-transform: var(--coar-calendar-board-label-transform, none);
   color: var(--coar-calendar-board-label-color, var(--coar-text-subtle, #6c7280));
 }
+/* The empty corner is a head field like the days beside it. */
+.coar-calendar-board__row--header .coar-calendar-board__label {
+  align-self: stretch;
+  background: var(--coar-calendar-board-header-bg, transparent);
+}
 .coar-calendar-board__body {
   min-width: 0;
 }
@@ -638,6 +643,19 @@ defineExpose({ getLayout: () => layout.value });
 }
 .coar-calendar-board__cell--today {
   background: var(--coar-calendar-board-cell-today-bg, var(--coar-calendar-bg-today, rgba(37, 99, 235, 0.04)));
+}
+/* Above the bars of the row; no box without the token. */
+.coar-calendar-board__cell--today {
+  position: relative;
+}
+.coar-calendar-board__cell--today::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: var(--coar-calendar-board-cell-today-frame-radius, 0);
+  box-shadow: var(--coar-calendar-board-cell-today-frame, none);
+  pointer-events: none;
 }
 .coar-calendar-board__cell--none {
   background: var(--coar-calendar-bg-other-month, #fafafb);

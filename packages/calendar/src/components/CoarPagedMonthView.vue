@@ -33,6 +33,8 @@ defineSlots<{
   multiDayBar?(props: { event: CalendarEvent<TMeta>; bar: MonthMultiDayBar<TMeta> }): unknown;
   dayNumber?(props: MonthDaySlotScope): unknown;
   dayContent?(props: MonthDaySlotScope): unknown;
+  /** At the foot of the day, below the events; counted when the day folds into "+N". */
+  dayFooter?(props: MonthDaySlotScope): unknown;
 }>();
 
 useViewWindow(props.builder, { view: 'month', monthBuffer: 1 });
@@ -133,6 +135,9 @@ defineExpose({
           </template>
           <template v-if="$slots.dayContent" #dayContent="slotProps">
             <slot name="dayContent" v-bind="slotProps" />
+          </template>
+          <template v-if="$slots.dayFooter" #dayFooter="slotProps">
+            <slot name="dayFooter" v-bind="slotProps" />
           </template>
         </CoarMonthView>
       </div>

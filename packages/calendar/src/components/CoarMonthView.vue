@@ -118,6 +118,8 @@ const slots = defineSlots<{
   dayNumber?(props: MonthDaySlotScope): unknown;
   /** Beside the day number, also on the neighbouring months' days. */
   dayContent?(props: MonthDaySlotScope): unknown;
+  /** At the foot of the day, below the events; counted when the day folds into "+N". */
+  dayFooter?(props: MonthDaySlotScope): unknown;
 }>();
 
 // ─── Builder bindings ────────────────────────────────────────────────
@@ -841,6 +843,9 @@ defineExpose({
           </template>
           <template v-if="$slots.dayContent" #dayContent="scope">
             <slot name="dayContent" v-bind="scope" />
+          </template>
+          <template v-if="$slots.dayFooter" #dayFooter="scope">
+            <slot name="dayFooter" v-bind="scope" />
           </template>
           <div
             v-if="usesBuiltInCompactCapsule && visiblePillsFor(day).length"

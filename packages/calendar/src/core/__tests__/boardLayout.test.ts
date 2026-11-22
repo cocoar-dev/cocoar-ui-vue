@@ -36,6 +36,28 @@ const allDay = (id: string, start: string, end: string, who: string[] = []): Cal
   meta: { who },
 });
 
+describe('order in a cell', () => {
+  it('sorts the events of a cell by start, whatever order they arrive in', () => {
+    const at = (id: string, time: string): CalendarEvent => ({
+      id,
+      start: Temporal.ZonedDateTime.from(`2026-11-19T${time}[Europe/Vienna]`),
+      end: Temporal.ZonedDateTime.from(`2026-11-19T${time}[Europe/Vienna]`).add({ minutes: 30 }),
+      meta: {},
+    });
+    const allDay: CalendarEvent = {
+      id: 'day',
+      start: Temporal.PlainDate.from('2026-11-19'),
+      end: Temporal.PlainDate.from('2026-11-20'),
+      meta: {},
+    };
+    const [row] = layoutBoard([at('late', '17:00'), allDay, at('early', '15:30')], {
+      rows: [{ key: 'r', label: 'R', kind: 'cells', dates: [Temporal.PlainDate.from('2026-11-19')] }],
+      timezone: 'Europe/Vienna',
+    });
+    expect(row.cells[0].events.map((e) => e.id)).toEqual(['day', 'early', 'late']);
+  });
+});
+
 describe('weekBoardRows + layoutBoard', () => {
   const layout = (events: CalendarEvent<Meta>[]) =>
     layoutBoard(events, {

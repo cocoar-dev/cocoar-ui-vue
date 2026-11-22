@@ -110,6 +110,8 @@ defineSlots<{
   dayNumber?(props: MonthDaySlotScope): unknown;
   /** Beside the day number, inside the day-number row. */
   dayContent?(props: MonthDaySlotScope): unknown;
+  /** At the foot of the day, below the events; counted when the day folds into "+N". */
+  dayFooter?(props: MonthDaySlotScope): unknown;
 }>();
 
 const slotScope = computed<MonthDaySlotScope>(() => ({
@@ -192,6 +194,9 @@ function onOverflowClick(e: MouseEvent) {
       >
         +{{ overflowCount }}
       </button>
+    </div>
+    <div v-if="!placeholder && $slots.dayFooter" class="coar-month-cell__day-footer">
+      <slot name="dayFooter" v-bind="slotScope" />
     </div>
   </div>
 </template>
@@ -303,6 +308,15 @@ function onOverflowClick(e: MouseEvent) {
   flex: 1 1 0;
   min-height: 0;
   overflow: hidden;
+}
+
+.coar-month-cell__day-footer {
+  flex: 0 0 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+.coar-month-cell__day-footer:empty {
+  display: none;
 }
 
 /* "+N" button — same type and line box as a Details pill, in the

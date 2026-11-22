@@ -22,9 +22,11 @@
  * slots with arbitrary heights), so nothing here counts events.
  */
 
+import type { Temporal } from '@js-temporal/polyfill';
 import { type ComputedRef, type MaybeRefOrGetter, type Ref, computed, toValue } from 'vue';
 import {
   capMonthRowLanes,
+  dateKey,
   fitMonthCell,
   fitMonthRow,
   type MonthCellFit,
@@ -96,7 +98,6 @@ export interface UseMonthGeometryReturn {
   /** Top-of-bar offset within a row for a given lane. */
   barTopPx(lane: number): number;
 
-
   /** Per-row total height. */
   rowHeightPx: ComputedRef<number[]>;
 
@@ -134,6 +135,14 @@ export function useMonthGeometry(opts: UseMonthGeometryOptions): UseMonthGeometr
   const rowSizing = computed(() => toValue(opts.rowSizing) ?? 'auto');
   const pillLimit = computed(() => toValue(opts.pillLimit) ?? Number.POSITIVE_INFINITY);
 
+  /** Height of a day's `#dayFooter`, 0 for a day without one. */
+  function footerOf(day: Temporal.PlainDate): number {
+    return metrics.value.footerHeights?.get(dateKey(day)) ?? 0;
+  }
+  const rowFooters = computed(() =>
+    opts.layout.value.weekRows.map((row) => Math.max(0, ...row.days.map(footerOf))),
+  );
+
   /** The height of every row when it does not follow its content. */
   const fixedRowHeight = computed(() => {
     if (rowSizing.value === 'auto') return null;
@@ -161,7 +170,13 @@ export function useMonthGeometry(opts: UseMonthGeometryOptions): UseMonthGeometr
       pillLimit: pillLimit.value,
     }));
   });
-  const rowFits = computed(() => rowFitInputs.value?.map(fitMonthRow) ?? null);
+  // Bars must clear the tallest footer of their week.
+  const rowFits = computed(
+    () =>
+      rowFitInputs.value?.map((input, i) =>
+        fitMonthRow({ ...input, rowHeight: input.rowHeight - rowFooters.value[i] }),
+      ) ?? null,
+  );
 
   const rowLaneLimits = computed(() =>
     opts.layout.value.weekRows.map(
@@ -190,11 +205,12 @@ export function useMonthGeometry(opts: UseMonthGeometryOptions): UseMonthGeometr
 
   const cellPillLimits = computed(() =>
     columnLanes.value.map((lanes, rowIndex) =>
-      lanes.map((laneCount) => {
+      lanes.map((laneCount, col) => {
         const input = rowFitInputs.value?.[rowIndex];
+        const footer = footerOf(opts.layout.value.weekRows[rowIndex].days[col]);
         // The Compact capsule is one line of segments, not a stack.
         return input && monthDensity.value !== 'compact'
-          ? fitMonthCell(input, laneCount)
+          ? fitMonthCell({ ...input, rowHeight: input.rowHeight - footer }, laneCount)
           : { pillLimit: pillLimit.value, pillLimitWithoutMarker: pillLimit.value };
       }),
     ),
@@ -218,10 +234,10 @@ export function useMonthGeometry(opts: UseMonthGeometryOptions): UseMonthGeometr
   /** A week grows only by the exact height its multi-day lanes
    *  need — never for overflowing pills, which fold into "+N". */
   const rowHeightPx = computed(() => {
-    return rowBarHeightsPx.value.map((barAreaHeight) => {
+    return rowBarHeightsPx.value.map((barAreaHeight, rowIndex) => {
       if (fixedRowHeight.value !== null) return fixedRowHeight.value;
       const laneBandHeight = Math.max(0, barAreaHeight - DAY_NUMBER_HEIGHT.value);
-      return baseRowHeight.value + laneBandHeight;
+      return baseRowHeight.value + laneBandHeight + rowFooters.value[rowIndex];
     });
   });
 
