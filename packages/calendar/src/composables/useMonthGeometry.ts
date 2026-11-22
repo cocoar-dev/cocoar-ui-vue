@@ -148,9 +148,7 @@ export function useMonthGeometry(opts: UseMonthGeometryOptions): UseMonthGeometr
     if (rowSizing.value === 'auto') return null;
     const rows = opts.layout.value.weekRows.length;
     const area = rowSizing.value === 'fill' ? (toValue(opts.rowsAreaHeight) ?? 0) : 0;
-    return area > 0 && rows > 0
-      ? Math.floor(area / rows)
-      : baseRowHeight.value + Math.max(0, ...rowFooters.value);
+    return area > 0 && rows > 0 ? Math.floor(area / rows) : baseRowHeight.value;
   });
 
   const rowFitInputs = computed<MonthRowFitInput[] | null>(() => {

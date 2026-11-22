@@ -23,6 +23,7 @@ import {
   type Ref,
   nextTick,
   onMounted,
+  onUpdated,
   onScopeDispose,
   ref,
   toValue,
@@ -130,9 +131,12 @@ export function measureMonthMetrics(root: HTMLElement): MonthMetrics | null {
 export function useMonthMetrics(opts: UseMonthMetricsOptions): Ref<MonthMetrics> {
   const metrics = ref<MonthMetrics>({ ...DEFAULT_MONTH_METRICS });
 
+  let footerCount = 0;
+
   function remeasure(): void {
     const root = opts.rootRef.value;
     if (!root) return;
+    footerCount = root.querySelectorAll(FOOTER_SELECTOR).length;
     const next = measureMonthMetrics(root);
     if (!next) return;
     const cur = metrics.value;
@@ -178,6 +182,11 @@ export function useMonthMetrics(opts: UseMonthMetricsOptions): Ref<MonthMetrics>
     if (typeof document !== 'undefined' && document.fonts?.ready) {
       void document.fonts.ready.then(measureAndObserve);
     }
+  });
+  // A host can switch `#dayFooter` on after mount, without a change of layout.
+  onUpdated(() => {
+    const root = opts.rootRef.value;
+    if (root && root.querySelectorAll(FOOTER_SELECTOR).length !== footerCount) measureAndObserve();
   });
   onScopeDispose(() => observer?.disconnect());
 

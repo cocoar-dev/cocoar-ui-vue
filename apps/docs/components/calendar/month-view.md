@@ -239,5 +239,5 @@ Weekend columns of the continuous header keep their own `--coar-calendar-continu
 | `pill` | `{ event, pill }` | Single-day pill renderer. `pill` is the `MonthCellPill` (event + visual order in the cell). |
 | `multiDayBar` | `{ event, bar }` | Multi-day bar renderer. `bar` is the `MonthMultiDayBar` (lane / startCol / endCol / clipping flags). |
 | `dayNumber` <Badge type="warning" text="Preview" /> | `{ date, isToday, isSelected, isOtherMonth }` | Replaces the day number. |
-| `dayFooter` <Badge type="warning" text="Preview" /> | `{ date, isToday, isSelected, isOtherMonth }` | Content at the foot of a day, such as its meal. Its measured height is counted before events fold into `+N`. A day that renders nothing here keeps its room. |
+| `dayFooter` <Badge type="warning" text="Preview" /> | `{ date, isToday, isSelected, isOtherMonth }` | Content at the foot of a day, such as its meal. Its measured height is counted before events fold into `+N`, and a row with `auto` sizing grows by it. A day that renders nothing here keeps its room. |
 | `dayContent` <Badge type="warning" text="Preview" /> | `{ date, isToday, isSelected, isOtherMonth }` | Content beside the day number, also on the neighbouring months' days. Keep it within the height of the day-number row. |

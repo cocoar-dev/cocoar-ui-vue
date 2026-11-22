@@ -10,7 +10,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
-import { ref } from 'vue';
+import { defineComponent, h, nextTick, ref } from 'vue';
 import { Temporal } from '@js-temporal/polyfill';
 import { CalendarBuilder } from '../../builders/calendar-builder';
 import CoarMonthView from '../CoarMonthView.vue';
@@ -181,6 +181,49 @@ describe('order and foot of a day', () => {
     const cell = w.find('[data-day-key="2026-06-16"]').element;
     expect(cell.lastElementChild?.className).toContain('coar-month-cell__day-footer');
     expect(cell.querySelector('.foot')?.textContent).toBe('16');
+  });
+
+  it('counts a foot that is switched on after mount', async () => {
+    const show = ref(false);
+    const builder = newBuilder([]);
+    const Host = defineComponent({
+      setup: () => () =>
+        h(CoarMonthView, { builder }, show.value ? { dayFooter: () => h('b', 'x') } : {}),
+    });
+    const spy = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (this: HTMLElement) {
+      if (this.classList.contains('coar-month-cell__day-footer')) return this.children.length ? 15 : 0;
+      return 24;
+    });
+    try {
+      const w = mount(Host);
+      await nextTick();
+      const before = parseFloat(rowHeights(w)[0]);
+      show.value = true;
+      await nextTick();
+      await nextTick();
+      expect(parseFloat(rowHeights(w)[0])).toBe(before + 15);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('keeps uniform rows at one height, whatever a foot needs', async () => {
+    const spy = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (this: HTMLElement) {
+      if (this.classList.contains('coar-month-cell__day-footer')) return this.children.length ? 15 : 0;
+      return 24;
+    });
+    try {
+      const plain = mount(CoarMonthView, { props: { builder: newBuilder([], 'uniform') } });
+      const footed = mount(CoarMonthView, {
+        props: { builder: newBuilder([], 'uniform') },
+        slots: { dayFooter: `<template #dayFooter><b>x</b></template>` },
+      });
+      await nextTick();
+      await nextTick();
+      expect(rowHeights(footed)[0]).toBe(rowHeights(plain)[0]);
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it('measures the foot per day', () => {
