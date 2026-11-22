@@ -27,6 +27,7 @@ import type {
   CalendarMonthDensity,
   CalendarMonthPresentation,
   CalendarMonthRowSizing,
+  CalendarResource,
   CalendarWeekdayFormat,
   CalendarView,
   DayOfWeek,
@@ -39,7 +40,9 @@ import type {
   CalendarDensity,
   CalendarDraft,
   DayClassFn,
+  DayOverlaysFn,
   DstPolicy,
+  EventResourcesFn,
   EventsLoader,
   SeriesLoader,
   TimeRange,
@@ -283,6 +286,28 @@ export abstract class CalendarBuilderConfig<
   /** Extra classes of a month cell, read per day on every render (C7). */
   dayClass(fn: DayClassFn | null): this {
     this.state.dayClass = fn;
+    return this;
+  }
+
+  /**
+   * Columns of the day view: one per resource. Applies to a single day
+   * on the vertical grid. With `eventResources`, an event stands in the
+   * columns of its resources; one without any gets its own column.
+   */
+  resources(resources: MaybeRefOrGetter<ReadonlyArray<CalendarResource>>): this {
+    this.state.resources = resources;
+    return this;
+  }
+
+  /** Which resources an event belongs to. */
+  eventResources(fn: EventResourcesFn<TMeta> | null): this {
+    this.state.eventResources = fn;
+    return this;
+  }
+
+  /** What lies across all resource columns of a day (`#overlay` slot). */
+  dayOverlays(fn: DayOverlaysFn | null): this {
+    this.state.dayOverlays = fn;
     return this;
   }
 

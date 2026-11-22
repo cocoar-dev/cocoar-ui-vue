@@ -47,6 +47,7 @@ import {
   detectFirstDayOfWeekFromLocale,
   type CalendarEvent,
   type CalendarDayMode,
+  type CalendarResource,
   type CalendarMonthDensity,
   type CalendarView,
   type MonthCellPill,
@@ -58,6 +59,7 @@ import {
 } from '../core';
 import { CalendarBuilder } from '../builders/calendar-builder';
 import type {
+  CalendarDayOverlay,
   CalendarDraftSegment,
   MonthDaySlotScope,
   WeekStripSlotScope,
@@ -116,6 +118,10 @@ defineSlots<{
   /** Multi-day month-cell bar renderer. Falls back to `event` if not
    *  provided. */
   multiDayBar?(props: { event: CalendarEvent; bar: MonthMultiDayBar }): unknown;
+  /** A day with `builder.resources`: the head of a resource column. */
+  resourceHeader?(props: { resource: CalendarResource | null; id: string }): unknown;
+  /** A day with `builder.resources`: an entry of `builder.dayOverlays`. */
+  overlay?(props: { overlay: CalendarDayOverlay }): unknown;
   /** Replaces a month cell's day number. */
   dayNumber?(props: MonthDaySlotScope): unknown;
   /** Beside a month cell's day number. */
@@ -558,6 +564,12 @@ onBeforeUnmount(() => {
         </template>
         <template v-if="$slots.draft" #draft="slotProps">
           <slot name="draft" v-bind="slotProps" />
+        </template>
+        <template v-if="$slots.resourceHeader" #resourceHeader="slotProps">
+          <slot name="resourceHeader" v-bind="slotProps" />
+        </template>
+        <template v-if="$slots.overlay" #overlay="slotProps">
+          <slot name="overlay" v-bind="slotProps" />
         </template>
       </CoarDayView>
 

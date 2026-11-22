@@ -102,6 +102,10 @@ export interface CalendarDropTarget {
   rowKey?: string;
   /** Key of the board row the event was grabbed in. */
   sourceRowKey?: string;
+  /** The resource column dropped on. */
+  resourceId?: string;
+  /** The resource column the event was grabbed in. */
+  sourceResourceId?: string;
 }
 
 /**
@@ -244,6 +248,10 @@ export interface EventDropPayload<TMeta extends Record<string, unknown> = Record
     rowKey?: string;
     /** Key of the board row the event was grabbed in. */
     sourceRowKey?: string;
+    /** The resource column dropped on. */
+    resourceId?: string;
+    /** The resource column the event was grabbed in. */
+    sourceResourceId?: string;
   };
   native: PointerEvent | null;
 }

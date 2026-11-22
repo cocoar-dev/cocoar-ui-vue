@@ -28,6 +28,15 @@ export type {
 } from './types';
 export { isTimedEvent, isAllDayEvent, validateCalendarEvent } from './types';
 export {
+  UNASSIGNED_RESOURCE,
+  layoutResourceDay,
+  type CalendarResource,
+  type ResourceAllDayBlock,
+  type ResourceBlock,
+  type ResourceDayLayout,
+  type ResourceDayOptions,
+} from './resourceDayLayout';
+export {
   BOARD_ALL_DAY_ROW,
   BOARD_UNASSIGNED_ROW,
   boardDropTarget,

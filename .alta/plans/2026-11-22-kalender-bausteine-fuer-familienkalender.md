@@ -207,15 +207,18 @@ builder
   .eventResources((event) => event.meta.personIds);
 ```
 
-- [ ] Gilt für die Tagesansicht mit einem Tag und senkrechtem Raster. Mehrere Tage oder Zeilen-Ausrichtung: Warnung im Dev-Modus, Raster wie bisher
-- [ ] **Geteilte Termine:** Nebeneinanderliegende Spalten werden ein Block. Nicht benachbarte ergeben mehrere Blöcke desselben Termins
-- [ ] **Überlappung:** Ein Block über mehrere Spalten bleibt ganz, solange er in jeder davon allein liegt. Sonst zerfällt er in Stücke je Spalte
-- [ ] Termine ohne Ressource gehen nie verloren: Sie stehen in einer eigenen Spalte, die nur erscheint, wenn es solche gibt
-- [ ] Ziehen, Fokus und Klick behandeln alle Blöcke als einen Termin
-- [ ] Payloads von Drop, Klick und Zeitauswahl bekommen optional `resourceId`. Die Library ändert die Zuordnung nicht, das tut die App in `onEventDrop`
-- [ ] Slot `#resourceHeader`, Überlagerungen quer durch alle Spalten (`overlays(date)` mit Slot `#overlay`, antippbar) für Essen
-- [ ] Die Jetzt-Linie läuft über alle Spalten
-- [ ] Tests und neue Stories; die bestehenden Raster-Baselines bleiben gleich
+- [x] Gilt für die Tagesansicht mit einem Tag und senkrechtem Raster. Mehrere Tage oder Zeilen-Ausrichtung: Warnung im Dev-Modus, Raster wie bisher
+- [x] **Geteilte Termine:** Nebeneinanderliegende Spalten werden ein Block. Nicht benachbarte ergeben mehrere Blöcke desselben Termins
+- [x] **Überlappung:** Ein Block über mehrere Spalten bleibt ganz, solange er in jeder davon allein liegt. Sonst zerfällt er in Stücke je Spalte
+- [x] Termine ohne Ressource gehen nie verloren: Sie stehen in einer eigenen Spalte, die nur erscheint, wenn es solche gibt
+- [x] Ziehen, Fokus und Klick behandeln alle Blöcke als einen Termin
+- [x] Payloads von Drop, Klick und Zeitauswahl bekommen optional `resourceId`. Die Library ändert die Zuordnung nicht, das tut die App in `onEventDrop`
+- [x] Slot `#resourceHeader`, Überlagerungen quer durch alle Spalten (`overlays(date)` mit Slot `#overlay`, antippbar) für Essen
+- [x] Die Jetzt-Linie läuft über alle Spalten
+- [x] Tests; die bestehenden Raster-Baselines bleiben gleich
+- [ ] Neue Story mit Baselines (am Ende gesammelt, braucht Docker)
+
+> **Abweichung:** Die Spalten sind eine eigene Fläche (`CoarResourceDayGrid`), die `CoarDayView` bei gesetzten Ressourcen zeigt, kein Modus von `CoarTimeGrid`. Dort ist eine Spalte durchgehend ein Tag, und ein Umbau hätte die bestehenden Ansichten gefährdet. Größe ziehen (Resize) gibt es in dieser Fläche noch nicht.
 
 ### 11. Mini-Monat
 

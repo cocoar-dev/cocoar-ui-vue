@@ -25,6 +25,7 @@ import { computed, onBeforeUnmount, onMounted, ref, toValue, useTemplateRef, wat
 import { useLocalization } from '@cocoar/vue-localization';
 import CoarTimeGrid from '../../CoarTimeGrid.vue';
 import CoarTimeRows from '../time-rows/CoarTimeRows.vue';
+import CoarResourceDayGrid from './CoarResourceDayGrid.vue';
 import {
   Temporal,
   detectFirstDayOfWeekFromLocale,
@@ -33,13 +34,14 @@ import {
   timeGridRangeSpecFor,
   type AllDayBar,
   type CalendarEvent,
+  type CalendarResource,
   type PositionedEvent,
   type TimeGridRange,
   type TimeGridView,
   type ViewWindow,
 } from '../../../core';
 import { CalendarBuilder } from '../../../builders/calendar-builder';
-import type { CalendarDraftSegment } from '../../../builders/types';
+import type { CalendarDayOverlay, CalendarDraftSegment } from '../../../builders/types';
 import { PREFETCH_WINDOWS } from '../../../builders/calendar-builder-internals';
 import { useViewWindow } from '../../../composables/useViewWindow';
 import type { TimeGridSwipeState } from '../../../composables/useTimeGridSwipe';
@@ -56,6 +58,8 @@ defineSlots<{
     end: Temporal.ZonedDateTime;
     segment: CalendarDraftSegment;
   }): unknown;
+  resourceHeader?(props: { resource: CalendarResource | null; id: string }): unknown;
+  overlay?(props: { overlay: CalendarDayOverlay }): unknown;
 }>();
 
 const localization = useLocalization();
@@ -118,6 +122,23 @@ useViewWindow(props.builder, {
   dayColumnCount: () => range.value.spanDays,
 });
 
+/** A day with resources has its own surface. */
+const hasResources = computed(() => toValue(props.builder.state.resources).length > 0);
+const resourceDay = computed(
+  () => props.view === 'day' && hasResources.value && !horizontal.value && days.value.length === 1,
+);
+watch(
+  () => props.view === 'day' && hasResources.value && !resourceDay.value,
+  (ignored) => {
+    if (ignored && typeof console !== 'undefined') {
+      console.warn(
+        '[CoarDayView] builder.resources() applies to a single day on the vertical grid; showing the regular grid.',
+      );
+    }
+  },
+  { immediate: true },
+);
+
 // ─── Neighbour pages ─────────────────────────────────────────────
 
 const swipeState = ref<TimeGridSwipeState>({
@@ -129,6 +150,7 @@ const swipeState = ref<TimeGridSwipeState>({
 const showNeighbours = computed(
   () =>
     !horizontal.value &&
+    !resourceDay.value &&
     (swipeState.value.engaged || swipeState.value.swiping || swipeState.value.settling),
 );
 /**
@@ -256,7 +278,22 @@ defineExpose({
       </template>
     </CoarTimeGrid>
 
-    <CoarTimeRows v-if="horizontal" :builder="builder" :dates="days">
+    <CoarResourceDayGrid v-if="resourceDay" :builder="builder" :date="days[0]">
+      <template v-if="$slots.event" #event="slotProps">
+        <slot name="event" v-bind="slotProps" />
+      </template>
+      <template v-if="$slots.allDayEvent" #allDayEvent="slotProps">
+        <slot name="allDayEvent" v-bind="slotProps" />
+      </template>
+      <template v-if="$slots.resourceHeader" #resourceHeader="slotProps">
+        <slot name="resourceHeader" v-bind="slotProps" />
+      </template>
+      <template v-if="$slots.overlay" #overlay="slotProps">
+        <slot name="overlay" v-bind="slotProps" />
+      </template>
+    </CoarResourceDayGrid>
+
+    <CoarTimeRows v-else-if="horizontal" :builder="builder" :dates="days">
       <template v-if="$slots.event" #event="slotProps">
         <slot name="event" v-bind="slotProps" />
       </template>
