@@ -1,0 +1,632 @@
+/*
+ * The family calendar design, reached from outside: only the library's
+ * public tokens, slots, `dayClass` and row classes. No selector of a
+ * library class, no :deep, no !important (the proof test checks that).
+ * The values are those of the design in the amZettel repository.
+ */
+.family-design {
+  --canvas: #f7f8f3;
+  --surface: #fffefa;
+  --surface-2: #f4f6ee;
+  --surface-3: #edf3e5;
+  --line: #e7ebe4;
+  --line-soft: #f0f1eb;
+  --ink: #243d35;
+  --ink-2: #5b6e62;
+  --muted: #7b867b;
+  --faint: #a3ab9e;
+  --accent-ink: #318866;
+  --accent-soft: #edf4e9;
+  --accent-line: #a7c8ad;
+  --stage: #224d3d;
+  --stage-ink: #f6f8ed;
+  --meal: #e9efdc;
+  --meal-ink: #6e8759;
+  --today: #c4453a;
+  --t2-wash: #f7eadc;
+  --t5-wash: #e3f1ea;
+  --t7-wash: #e3eff6;
+  --t8-wash: #e6eaf6;
+  --t9-wash: #efe8f4;
+  --t2-dot: #d08a4e;
+  --t5-dot: #57a68d;
+  --t7-dot: #6aa3c4;
+  --t8-dot: #6f86c2;
+  --t9-dot: #a38ab8;
+  --k-tint: color-mix(in srgb, var(--ink) 4.5%, transparent);
+
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: 14px;
+
+  --coar-body-base-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  --coar-text-base: var(--ink);
+  --coar-text-subtle: var(--muted);
+  --coar-calendar-bg: var(--surface);
+  --coar-calendar-bg-weekend: var(--k-tint);
+  --coar-calendar-bg-other-month: var(--surface-2);
+  --coar-calendar-bg-today: transparent;
+  --coar-calendar-border: var(--line-soft);
+  --coar-calendar-grid-line: var(--line-soft);
+  --coar-calendar-now-color: var(--today);
+  --coar-calendar-today-color: var(--today);
+  --coar-calendar-selection-fill: transparent;
+
+  /* Events are drawn by the slots, as whole cards. */
+  --coar-calendar-event-surface-bg: transparent;
+  --coar-calendar-event-border-left: 0;
+  --coar-calendar-event-padding: 0;
+  --coar-calendar-board-bar-padding: 0;
+  --coar-calendar-pill-line-height: normal;
+}
+.dark-mode .family-design {
+  --canvas: #121613;
+  --surface: #1b201c;
+  --surface-2: #222823;
+  --surface-3: #26302a;
+  --line: #2c332e;
+  --line-soft: #262c27;
+  --ink: #e9eee6;
+  --ink-2: #b7c2b8;
+  --muted: #8d998e;
+  --faint: #5f6a62;
+  --accent-ink: #6fcf9f;
+  --accent-soft: #1f3329;
+  --accent-line: #2f5a44;
+  --stage: #1d3a2f;
+  --stage-ink: #eef3e6;
+  --meal: #232b20;
+  --meal-ink: #a9c08f;
+  --t2-wash: #3a2c1f;
+  --t5-wash: #1f3329;
+  --t7-wash: #1e2e38;
+  --t8-wash: #232a3b;
+  --t9-wash: #2e2737;
+}
+
+/* ── Board: week and week per person ─────────────────────────── */
+.family-design--board {
+  --coar-calendar-board-label-width: 96px;
+  --coar-calendar-board-label-padding: 10px 4px 0 11px;
+  --coar-calendar-board-label-font-size: 9.5px;
+  --coar-calendar-board-label-font-weight: 700;
+  --coar-calendar-board-label-letter-spacing: 0.08em;
+  --coar-calendar-board-label-transform: uppercase;
+  --coar-calendar-board-label-color: var(--muted);
+  --coar-calendar-board-header-bg: var(--surface-2);
+  --coar-calendar-board-header-today-bg: var(--accent-soft);
+  --coar-calendar-board-header-padding: 10px 10px 9px;
+  --coar-calendar-board-header-direction: row;
+  --coar-calendar-board-header-justify: space-between;
+  --coar-calendar-board-header-align: baseline;
+  --coar-calendar-board-header-line: transparent;
+  --coar-calendar-board-line: var(--line-soft);
+  --coar-calendar-board-row-line: var(--line-soft);
+  --coar-calendar-board-cell-padding: 5px;
+  --coar-calendar-board-cell-gap: 4px;
+  --coar-calendar-board-cell-min-height: 0;
+  --coar-calendar-bg-weekend: transparent;
+  --coar-calendar-board-cell-today-bg: color-mix(in srgb, var(--accent-soft) 55%, transparent);
+  --coar-calendar-board-bar-margin: 0 5px;
+  --coar-calendar-board-bar-gap: 3px;
+  --coar-calendar-board-bars-padding: 5px 0;
+  --coar-calendar-board-bar-font-size: 11.5px;
+  --coar-calendar-board-bar-font-weight: 620;
+  --coar-calendar-board-bar-radius: 6px;
+  --coar-calendar-pill-radius: 8px;
+}
+.family-design--who {
+  --coar-calendar-board-label-width: 112px;
+  --coar-calendar-board-label-padding: 0 10px;
+  --coar-calendar-board-label-font-size: 13px;
+  --coar-calendar-board-label-font-weight: 620;
+  --coar-calendar-board-label-letter-spacing: normal;
+  --coar-calendar-board-label-transform: none;
+  --coar-calendar-board-label-color: var(--ink);
+  --coar-calendar-board-label-align: center;
+}
+.family-row-free {
+  --coar-calendar-board-cell-bg: var(--accent-soft);
+  --coar-calendar-board-cell-today-bg: var(--accent-soft);
+  --coar-calendar-bg-weekend: var(--accent-soft);
+  --coar-calendar-board-cell-padding: 7px 5px;
+  --coar-calendar-board-line: transparent;
+  --coar-calendar-board-label-padding: 8px 10px;
+  --coar-calendar-board-label-font-size: 9.5px;
+  --coar-calendar-board-label-font-weight: 700;
+  --coar-calendar-board-label-color: var(--accent-ink);
+  background: var(--accent-soft);
+}
+.family-row-plain {
+  --coar-calendar-board-cell-today-bg: transparent;
+}
+.family-weekday {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.family-day-number {
+  font-size: 22px;
+  font-weight: 540;
+  line-height: 1;
+  letter-spacing: -0.045em;
+  color: var(--ink);
+}
+.family-day-number--past {
+  color: var(--faint);
+}
+.family-day-number--today {
+  font-weight: 700;
+  color: var(--today);
+}
+.family-card {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 5px 6px 5px 9px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--family-wash);
+  color: var(--ink);
+  white-space: normal;
+}
+.family-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--family-stripe);
+}
+.family-card--all {
+  padding-left: 8px;
+  background: var(--stage);
+  color: var(--stage-ink);
+}
+.family-card--all::before {
+  display: none;
+}
+.family-card time {
+  font-size: 10px;
+  color: var(--ink-2);
+}
+.family-card--all time {
+  color: var(--stage-ink);
+}
+.family-card b {
+  flex: 0 0 auto;
+  overflow: hidden;
+  font-size: 11.5px;
+  font-weight: 620;
+  line-height: 1.2;
+}
+.family-bar {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 5px 8px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--family-wash);
+  color: var(--ink);
+  line-height: 11.5px;
+}
+.family-meal-mini {
+  padding: 5px 7px;
+  border-radius: 8px;
+  background: var(--meal);
+  color: var(--meal-ink);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.family-free {
+  font-size: 10.5px;
+  font-weight: 650;
+  color: var(--accent-ink);
+}
+
+/* ── Day with a column per person ────────────────────────────── */
+.family-design--people {
+  --coar-time-grid-axis-width: 42px;
+  --coar-calendar-header-cell-padding: 0 0 8px;
+  --coar-calendar-event-radius: 9px;
+  --coar-calendar-day-overlay-bg: transparent;
+  --coar-calendar-day-overlay-padding: 0;
+  --coar-calendar-day-overlay-inset: 1.5px;
+  border: 0;
+  border-radius: 0;
+}
+.family-person {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 620;
+}
+.family-person i {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 10px;
+  font-style: normal;
+}
+.family-people-card {
+  padding: 5px 5px 5px 9px;
+  border-radius: 9px;
+}
+.family-people-card b {
+  font-size: 12px;
+}
+.family-meal {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 0 8px;
+  border-radius: 7px;
+  background: var(--meal);
+  color: var(--meal-ink);
+  font-size: 11.5px;
+  font-weight: 620;
+}
+
+/* ── Month ───────────────────────────────────────────────────── */
+.family-design--month {
+  --coar-calendar-weekday-bg: var(--surface-2);
+  --coar-calendar-weekday-border: var(--line);
+  --coar-calendar-weekday-color: var(--muted);
+  --coar-calendar-weekday-font-size: 9.5px;
+  --coar-calendar-weekday-font-weight: 700;
+  --coar-calendar-weekday-letter-spacing: 0.12em;
+  --coar-calendar-weekday-transform: none;
+  --coar-calendar-weekday-cell-padding: 9px 10px 7px;
+  --coar-calendar-day-number-font-size: 12px;
+  --coar-calendar-day-number-font-weight: 580;
+  --coar-calendar-day-number-row-height: 24px;
+  --coar-calendar-day-number-row-padding: 5px 5px 3px;
+  --coar-text-base: var(--ink-2);
+}
+.family-line {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  color: var(--ink);
+  font-size: 11.5px;
+  font-weight: 620;
+  line-height: 15px;
+  white-space: nowrap;
+}
+.family-line i {
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--family-stripe);
+}
+.family-line span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.family-month-bar {
+  flex: 1;
+  min-width: 0;
+  padding: 0 6px;
+  overflow: hidden;
+  border-radius: 5px;
+  background: var(--family-wash);
+  color: var(--ink-2);
+  font-size: 10.5px;
+  font-weight: 620;
+  line-height: 15px;
+  white-space: nowrap;
+}
+.family-hour {
+  font-size: 10.5px;
+  color: var(--faint);
+}
+.family-selected {
+  box-shadow: inset 0 0 0 2px var(--accent-line);
+}
+.family-marks {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  width: 26px;
+  height: 4px;
+  margin-left: auto;
+}
+.family-marks i {
+  border-radius: 2px;
+  background: var(--line);
+}
+
+/* ── Phone: the week as seven rows ──────────────────────────── */
+.family-design--phone-week,
+.family-design--phone-who,
+.family-design--phone-month {
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  --coar-calendar-bg: transparent;
+  --coar-calendar-bg-weekend: transparent;
+  --coar-calendar-bg-other-month: transparent;
+}
+.family-design--phone-week {
+  --coar-calendar-board-label-width: 50px;
+  --coar-calendar-board-label-padding: 0;
+  --coar-calendar-board-label-align: center;
+  --coar-calendar-board-row-gap: 5px;
+  --coar-calendar-board-row-line: transparent;
+  --coar-calendar-board-line: transparent;
+  --coar-calendar-board-cell-padding: 0;
+  --coar-calendar-board-cell-min-height: 0;
+  --coar-calendar-board-cell-today-bg: transparent;
+}
+.family-phone-row {
+  box-sizing: border-box;
+  align-items: center;
+  min-height: 66px;
+  padding: 7px 10px 7px 11px;
+  border-radius: 15px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.family-phone-row--past {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--line-soft);
+}
+.family-phone-row--past > * {
+  opacity: 0.58;
+}
+.family-phone-row--today {
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+}
+.family-phone-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 40px;
+  gap: 3px;
+  line-height: 1;
+}
+.family-phone-weekday {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+.family-phone-number {
+  font-size: 21px;
+  font-weight: 560;
+  letter-spacing: -0.04em;
+  color: var(--ink);
+}
+.family-phone-row--today .family-phone-number {
+  font-weight: 700;
+  color: var(--today);
+}
+.family-phone-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+.family-phone-thumb {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--meal);
+  color: var(--meal-ink);
+  font-size: 15px;
+}
+.family-phone-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.family-phone-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 560;
+}
+.family-phone-line i {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--family-stripe);
+}
+.family-phone-line time {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.family-phone-line span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.family-phone-more {
+  padding-left: 13px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ── Phone: who has when ─────────────────────────────────────── */
+.family-design--phone-who {
+  --coar-calendar-board-label-width: 42px;
+  --coar-calendar-board-label-padding: 0;
+  --coar-calendar-board-label-align: center;
+  --coar-calendar-board-column-gap: 4px;
+  --coar-calendar-board-row-gap: 5px;
+  --coar-calendar-board-row-line: transparent;
+  --coar-calendar-board-line: transparent;
+  --coar-calendar-board-header-line: transparent;
+  --coar-calendar-board-header-padding: 0 0 3px;
+  --coar-calendar-board-cell-padding: 0;
+  --coar-calendar-board-cell-min-height: 0;
+  --coar-calendar-board-cell-today-bg: transparent;
+}
+.family-who-head {
+  display: block;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+}
+.family-who-head b {
+  display: block;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 560;
+}
+.family-who-head .family-who-today {
+  color: var(--today);
+  font-weight: 700;
+}
+.family-ticks {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 5px 3px;
+  border-radius: 9px;
+}
+.family-ticks--today {
+  background: var(--accent-soft);
+}
+.family-ticks i {
+  height: 8px;
+  border-radius: 3px;
+  background: var(--surface-3);
+}
+
+/* ── Phone: the month ────────────────────────────────────────── */
+.family-design--phone-month {
+  --coar-calendar-border: transparent;
+  --coar-calendar-bg-today: transparent;
+  --coar-calendar-weekday-bg: transparent;
+  --coar-calendar-weekday-border: transparent;
+  --coar-calendar-weekday-color: var(--muted);
+  --coar-calendar-weekday-font-size: 10.5px;
+  --coar-calendar-weekday-font-weight: 700;
+  --coar-calendar-weekday-letter-spacing: 0.1em;
+  --coar-calendar-weekday-transform: none;
+  --coar-calendar-weekday-cell-padding: 4px 0 7px;
+  --coar-calendar-weekday-align: center;
+  --coar-calendar-day-number-row-height: 100%;
+  --coar-calendar-day-number-row-flex: 1 0 auto;
+  --coar-calendar-day-number-row-direction: column;
+  --coar-calendar-day-number-row-gap: 3px;
+  --coar-calendar-day-number-row-padding: 3px 0 6px;
+  --coar-calendar-day-content-flex: 0 0 auto;
+}
+.family-phone-selected {
+  --coar-calendar-bg: var(--surface);
+  --coar-calendar-bg-today: var(--surface);
+  border-radius: 11px;
+  box-shadow: inset 0 0 0 1.5px var(--accent-line);
+}
+.family-phone-fit {
+  --coar-calendar-bg: var(--accent-soft);
+  --coar-calendar-bg-today: var(--accent-soft);
+  border-radius: 11px;
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+}
+.family-n {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 540;
+}
+.family-n--weekend {
+  color: var(--ink-2);
+}
+.family-n--past {
+  color: var(--muted);
+}
+.family-n--other {
+  color: var(--faint);
+}
+.family-n--today {
+  background: var(--today);
+  color: #fff;
+  font-weight: 700;
+}
+.family-design--finder .family-n {
+  color: var(--faint);
+}
+.family-design--finder .family-n--fit {
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+
+/* ── Year wall planner ───────────────────────────────────────── */
+.family-design--year {
+  --coar-calendar-board-label-padding: 0;
+  --coar-calendar-board-label-font-size: 12.5px;
+  --coar-calendar-board-label-font-weight: 650;
+  --coar-calendar-board-label-color: var(--ink-2);
+  --coar-calendar-board-label-align: center;
+  --coar-calendar-board-line: transparent;
+  --coar-calendar-board-row-line: var(--line-soft);
+  --coar-calendar-board-cell-min-height: 0;
+  --coar-calendar-board-header-line: transparent;
+  --coar-calendar-board-bars-padding: 3px 0;
+  --coar-calendar-board-bar-radius: 5px;
+  --coar-calendar-board-bar-font-size: 10.5px;
+  --coar-calendar-board-bar-font-weight: 620;
+  --coar-calendar-pill-radius: 5px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.family-design--year-compact {
+  --coar-calendar-board-label-font-size: 11px;
+  --coar-calendar-weekday-font-size: 9px;
+  --coar-calendar-weekday-color: var(--faint);
+}
+.family-band {
+  flex: 1;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  box-sizing: border-box;
+  padding-left: 6px;
+  overflow: hidden;
+  border-radius: 5px;
+  background: var(--family-wash);
+  color: var(--ink-2);
+}

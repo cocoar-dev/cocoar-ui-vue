@@ -111,7 +111,7 @@ flowchart LR
 - [x] Ein Tipp auf einen Nachbartag löst wie jeder Tag `onDateClick` aus. Die App entscheidet, ob sie dabei umblättert
 - [x] `prefers-reduced-motion`: ohne Animation
 - [x] Tests für Schwelle, Zurückrasten, Tipp gegen Wischen, Laden der Nachbarmonate
-- [ ] Neue Story mit Baselines (am Ende gesammelt, braucht Docker)
+- [x] Neue Story mit Baselines
 
 ### 5. Gestaltung über Variablen
 
@@ -175,7 +175,7 @@ yearWallRows({ year });                      // Schritt 9
 - [x] Das Fenster kommt über `useViewWindow` mit den vorhandenen Ansichten `week` und `year`, es gibt keine neue View-ID
 - [x] Spaltenbreiten und Mindestbreite über Variablen, Zustände `today` und `past` als Klassen
 - [x] Barrierefreiheit: `role="grid"`, Pfeiltasten zwischen Zellen, Beschriftung aus Zeile und Spalte
-- [ ] Neue Stories in Standard und `.coar-mobile`, hell und dunkel (am Ende gesammelt, braucht Docker)
+- [x] Neue Stories in Standard und `.coar-mobile`, hell und dunkel
 
 ### 8. Brett: Ziehen, Anlegen, Blättern
 
@@ -216,7 +216,7 @@ builder
 - [x] Slot `#resourceHeader`, Überlagerungen quer durch alle Spalten (`overlays(date)` mit Slot `#overlay`, antippbar) für Essen
 - [x] Die Jetzt-Linie läuft über alle Spalten
 - [x] Tests; die bestehenden Raster-Baselines bleiben gleich
-- [ ] Neue Story mit Baselines (am Ende gesammelt, braucht Docker)
+- [x] Neue Story mit Baselines
 
 > **Abweichung:** Die Spalten sind eine eigene Fläche (`CoarResourceDayGrid`), die `CoarDayView` bei gesetzten Ressourcen zeigt, kein Modus von `CoarTimeGrid`. Dort ist eine Spalte durchgehend ein Tag, und ein Umbau hätte die bestehenden Ansichten gefährdet. Größe ziehen (Resize) gibt es in dieser Fläche noch nicht.
 
@@ -228,11 +228,31 @@ builder
 - [x] Ohne Builder nutzbar, Slot `#day` für Marken
 - [x] Tastatur wie im Grid, Neos `MiniMonth.vue` als Maßstab
 
+### 12. Beweis: der Entwurf ist erreichbar
+
+`test(playground): prove the family calendar design can be reached with public tokens and slots`
+
+Vorgabe des Maintainers: Die Library muss nicht selbst so aussehen, aber ein Test muss beweisen, dass man sie so stylen kann.
+
+- [x] Messwerte aus dem echten Entwurf als Fixture (Geometrie und berechnete Stile der Schlüsselelemente)
+- [x] Skin in der Playground, nur mit öffentlichen Variablen und Slots: keine `.coar-*`-Selektoren, kein `:deep`, kein `!important`
+- [x] Playwright-Test vergleicht die Skin mit den Messwerten für Brett, Personenraster, Monat, Wandplaner und Woche nach Personen
+- [x] Jede Lücke, die der Test zeigt, in der Library schließen (ohne Änderung bestehender Baselines)
+
+### 13. Beweis für Telefon und Tablet
+
+`test(playground): prove the family calendar design on phone and tablet`
+
+- [x] Messwerte der Telefon- und Tablet-Rahmen des Entwurfs in die Fixture
+- [x] Skin und Stories für die Ansichten, die Library-Bausteine nutzen (Woche, Personen, Raster, Monat, Frei finden, Jahr)
+- [x] Beweis-Test auf beide Geräte ausweiten, Bilder gegen den Entwurf prüfen
+- [x] Jede Lücke in der Library schließen, ohne bestehende Baselines zu ändern
+
 ## Prüfung je Pull Request
 
-- [ ] `pnpm lint && pnpm typecheck && pnpm build`, `pnpm test` als Hintergrundjob
-- [ ] `node apps/playground/scripts/visual.mjs`: keine bestehende Baseline ändert sich
-- [ ] Doku und Demo aktualisiert, `pnpm skill:sync`, `devices` je Komponentenseite
+- [x] `pnpm lint && pnpm typecheck && pnpm build`, `pnpm test` als Hintergrundjob (Gesamtstand; vier WebKit-Zeitüberschreitungen in `mobile-sheet` und `theme-editor-schemes` liefen einzeln grün)
+- [x] `node apps/playground/scripts/visual.mjs`: keine bestehende Baseline ändert sich (500 Bilder)
+- [x] Doku und Demo aktualisiert, `pnpm skill:sync`, `devices` je Komponentenseite
 - [ ] Nach Schritt 5 und nach Schritt 10: Beta und Probe im echten Neo gegen den Entwurf auf Telefon, Tablet und Desktop
 
 ## Entscheidungen
