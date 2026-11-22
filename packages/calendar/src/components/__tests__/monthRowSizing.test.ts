@@ -58,15 +58,21 @@ describe('fitMonthRow', () => {
   };
 
   it('gives an empty row its full pill limit', () => {
-    expect(fitMonthRow(base)).toEqual({ maxLanes: 2, pillLimit: 2 });
+    expect(fitMonthRow(base)).toMatchObject({ maxLanes: 2, pillLimit: 2 });
   });
 
   it('lets bars take the room of the pills', () => {
-    expect(fitMonthRow({ ...base, laneCount: 2 })).toEqual({ maxLanes: 2, pillLimit: 0 });
+    expect(fitMonthRow({ ...base, laneCount: 2 })).toMatchObject({ maxLanes: 2, pillLimit: 0 });
   });
 
   it('never exceeds what the row can hold, whatever the cap says', () => {
     expect(fitMonthRow({ ...base, rowHeight: 60, maxLanes: null, laneCount: 5 }).maxLanes).toBe(0);
+  });
+
+  it('gives a cell without "+N" the room of that row', () => {
+    const fit = fitMonthRow({ ...base, rowHeight: 90, pillHeight: 15, pillLimit: 3 });
+    expect(fit.pillLimit).toBe(2);
+    expect(fit.pillLimitWithoutMarker).toBe(3);
   });
 });
 
@@ -93,6 +99,52 @@ describe('monthRowSizing', () => {
       props: { builder: newBuilder(bars(1), 'fill'), continuousSection: true, manageViewWindow: false },
     });
     expect(w.classes()).toContain('coar-month-view--rows-uniform');
+  });
+});
+
+describe('maxEventsPerCell in a row of fixed height', () => {
+  const sameDay = (count: number): CalendarEvent[] =>
+    Array.from({ length: count }, (_, i) => ({
+      id: `e${i}`,
+      start: pd('2026-06-16'),
+      end: pd('2026-06-17'),
+      meta: { title: `Event ${i}` },
+    }));
+  const cell = (w: ReturnType<typeof mount>) => w.find('[data-day-key="2026-06-16"]');
+
+  it('shows all events that fit, without a "+N" in their place', () => {
+    const b = newBuilder(sameDay(3), 'uniform').maxEventsPerCell(3);
+    const w = mount(CoarMonthView, { props: { builder: b } });
+    expect(cell(w).findAll('.coar-month-pill')).toHaveLength(3);
+    expect(cell(w).find('.coar-month-cell__overflow').exists()).toBe(false);
+  });
+
+  it('gives a day without a bar the lines of the bars elsewhere in its week', () => {
+    const friday = Array.from({ length: 5 }, (_, i) => ({
+      id: `f${i}`,
+      start: pd('2026-06-19'),
+      end: pd('2026-06-20'),
+      meta: { title: `Friday ${i}` },
+    }));
+    const b = newBuilder([...bars(1), ...friday], 'uniform').maxEventsPerCell(3);
+    const w = mount(CoarMonthView, { props: { builder: b } });
+    const free = w.find('[data-day-key="2026-06-19"]');
+    expect(free.findAll('.coar-month-pill')).toHaveLength(3);
+    expect((free.find('.coar-month-cell__pills').element as HTMLElement).style.marginTop).toBe('0px');
+  });
+
+  it('keeps one band for the whole week in a row that follows its content', () => {
+    const friday: CalendarEvent = { id: 'f', start: pd('2026-06-19'), end: pd('2026-06-20'), meta: { title: 'F' } };
+    const w = mount(CoarMonthView, { props: { builder: newBuilder([...bars(1), friday]) } });
+    const pills = w.find('[data-day-key="2026-06-19"] .coar-month-cell__pills').element as HTMLElement;
+    expect(pills.style.marginTop).not.toBe('0px');
+  });
+
+  it('keeps the limit and folds the rest into "+N"', () => {
+    const b = newBuilder(sameDay(5), 'uniform').maxEventsPerCell(3);
+    const w = mount(CoarMonthView, { props: { builder: b } });
+    expect(cell(w).findAll('.coar-month-pill').length).toBeLessThanOrEqual(3);
+    expect(cell(w).find('.coar-month-cell__overflow').exists()).toBe(true);
   });
 });
 

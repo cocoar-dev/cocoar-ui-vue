@@ -360,12 +360,11 @@ onScopeDispose(() => rowsObserver?.disconnect());
 
 const {
   BAR_HEIGHT,
-  DAY_NUMBER_HEIGHT,
   barTopPx,
-  rowBarHeightsPx,
   rowHeightPx,
   rowLaneLimits,
-  rowPillLimits,
+  cellPillLimits,
+  pillsTopPx,
 } = useMonthGeometry({
   layout,
   monthDensity: () => state.value.monthDensity,
@@ -449,10 +448,15 @@ const EMPTY_CAP: MonthCellPillCap<TMeta> = { visible: [], hidden: 0 };
 const pillCapsByDayKey = computed<Map<string, MonthCellPillCap<TMeta>>>(() => {
   const out = new Map<string, MonthCellPillCap<TMeta>>();
   for (const [rowIndex, row] of layout.value.weekRows.entries()) {
-    for (const day of row.days) {
+    for (const [col, day] of row.days.entries()) {
       const key = dateKey(day);
       const pills = row.cellPills.get(key) ?? [];
-      const cap = capMonthCellPills(pills, rowPillLimits.value[rowIndex]);
+      const limits = cellPillLimits.value[rowIndex][col];
+      // A cell gives up a line for "+N" only when something is really folded.
+      const fitsWithoutMarker =
+        (rowLaneCaps.value[rowIndex]?.hiddenPerColumn[col] ?? 0) === 0 &&
+        pills.length <= limits.pillLimitWithoutMarker;
+      const cap = capMonthCellPills(pills, fitsWithoutMarker ? pills.length : limits.pillLimit);
       const preview = cap.hidden > 0 ? pills.find((p) => isPreviewId(p.event.id)) : undefined;
       if (preview && !cap.visible.includes(preview) && cap.visible.length > 0) {
         out.set(key, {
@@ -815,7 +819,7 @@ defineExpose({
           :is-other-month="isOtherMonth(day)"
           :placeholder="continuousSection && isOtherMonth(day)"
           :is-weekend="isWeekend(day)"
-          :pills-margin-top-px="rowBarHeightsPx[rowIndex] - DAY_NUMBER_HEIGHT"
+          :pills-margin-top-px="pillsTopPx(rowIndex, colIndex)"
           :overflow-count="overflowCountFor(day)"
           :overflow-label="overflowLabelFor(overflowCountFor(day))"
           :overlay-open="dayOverlay.isOpen(day)"

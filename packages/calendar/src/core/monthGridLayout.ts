@@ -215,18 +215,19 @@ export interface MonthRowFitInput {
   pillLimit: number;
 }
 
-export interface MonthRowFit {
-  maxLanes: number;
+export interface MonthCellFit {
+  /** Pills of a cell that also shows the "+N" row. */
   pillLimit: number;
+  /** Pills of a cell where nothing is folded: the "+N" row takes no room. */
+  pillLimitWithoutMarker: number;
 }
 
-/**
- * What fits into a row whose height does not follow its content. Bars
- * come first, the pills take what is left, and the "+N" row keeps its
- * place so a marker never clips. Pure.
- */
-export function fitMonthRow(input: MonthRowFitInput): MonthRowFit {
-  const room = Math.max(
+export interface MonthRowFit extends MonthCellFit {
+  maxLanes: number;
+}
+
+function roomBelowDayNumber(input: MonthRowFitInput): number {
+  return Math.max(
     0,
     input.rowHeight -
       input.dayNumberHeight -
@@ -234,16 +235,35 @@ export function fitMonthRow(input: MonthRowFitInput): MonthRowFit {
       input.pillsPaddingBottom -
       input.markerHeight,
   );
+}
+
+/** The pills of one cell whose column carries `lanes` bar lanes. Pure. */
+export function fitMonthCell(input: MonthRowFitInput, lanes: number): MonthCellFit {
+  const room = roomBelowDayNumber(input) - lanes * (input.barHeight + input.barGap);
+  const pillPitch = input.pillHeight + input.pillGap;
+  if (pillPitch <= 0) return { pillLimit: 0, pillLimitWithoutMarker: 0 };
+  // Without a marker the last pill needs no gap below it.
+  const withoutMarker = Math.floor((room + input.markerHeight + input.pillGap) / pillPitch);
+  return {
+    pillLimit: Math.min(Math.max(0, Math.floor(room / pillPitch)), input.pillLimit),
+    pillLimitWithoutMarker: Math.min(Math.max(0, withoutMarker), input.pillLimit),
+  };
+}
+
+/**
+ * What fits into a row whose height does not follow its content. Bars
+ * come first, the pills take what is left, and the "+N" row keeps its
+ * place so a marker never clips. A cell whose pills all fit without
+ * that row needs no marker: `pillLimitWithoutMarker`. Pure.
+ */
+export function fitMonthRow(input: MonthRowFitInput): MonthRowFit {
   const lanePitch = input.barHeight + input.barGap;
-  const lanesThatFit = lanePitch > 0 ? Math.floor(room / lanePitch) : 0;
+  const lanesThatFit = lanePitch > 0 ? Math.floor(roomBelowDayNumber(input) / lanePitch) : 0;
   const maxLanes =
     input.maxLanes === null || !Number.isFinite(input.maxLanes) || input.maxLanes < 0
       ? lanesThatFit
       : Math.min(lanesThatFit, Math.floor(input.maxLanes));
-  const lanes = Math.min(input.laneCount, maxLanes);
-  const pillPitch = input.pillHeight + input.pillGap;
-  const pillsThatFit = pillPitch > 0 ? Math.floor((room - lanes * lanePitch) / pillPitch) : 0;
-  return { maxLanes, pillLimit: Math.min(pillsThatFit, input.pillLimit) };
+  return { maxLanes, ...fitMonthCell(input, Math.min(input.laneCount, maxLanes)) };
 }
 
 // ─── Main function ───────────────────────────────────────────────────
