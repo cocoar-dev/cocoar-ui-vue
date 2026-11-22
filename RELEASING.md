@@ -44,7 +44,16 @@ A beta creates no git tag, so the release notes always compare two releases.
 
 - a version that is already out from the same commit (`gitHead`) is skipped, from another commit it stops the run;
 - `latest` moves only to a higher version (a patch of an older line gets `release-X.Y`), and `beta` follows a release;
-- packages and docs leave only from `cocoar-dev/cocoar-ui-vue`; anywhere else every publish is a dry run.
+- packages and docs leave only from `cocoar-dev/cocoar-ui-vue`; anywhere else every publish is a dry run;
+- npm accepts them through **trusted publishing** (OIDC): the `Publish` job of `ci.yml` proves who it is, so there is
+  no token that can expire, and every version gets a provenance statement.
+
+Each package needs the connection once. Run `node scripts/release/trust-npm.mjs`, logged in to npm as an owner of
+`@cocoar` with 2FA. **A new package** cannot be connected before it exists on npm: publish its first version by hand,
+then run the script again. npm drops a connection that has no successful publish within two days.
+
+`beta` following a release uses `npm dist-tag`, which npm grants separately in the package's settings. Without it the
+release still goes through, with a warning in the log.
 
 ## Release notes
 

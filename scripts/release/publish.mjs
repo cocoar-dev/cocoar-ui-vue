@@ -36,13 +36,16 @@ function view(spec, field) {
   }
 }
 
-function npmWrite(npmArgs) {
+function npmWrite(npmArgs, { optional = false } = {}) {
   const full = [...npmArgs, '--registry', registry, ...(live ? [] : ['--dry-run'])];
   console.log(`  npm ${full.join(' ')}`);
   // Only `npm publish` honours --dry-run; `npm dist-tag` would write. Off the live path it is only shown.
   if (!live && npmArgs[0] !== 'publish') return;
   const result = tryRun('npm', full, { stdio: ['ignore', 'pipe', 'pipe'] });
-  if (result.status !== 0) fail(`npm ${npmArgs[0]} failed: ${result.stderr.split('\n').slice(-5).join(' | ')}`);
+  if (result.status === 0) return;
+  const reason = `npm ${npmArgs[0]} failed: ${result.stderr.split('\n').slice(-5).join(' | ')}`;
+  if (!optional) fail(reason);
+  console.log(`::warning ::${reason}`);
 }
 
 let published = 0;
@@ -79,7 +82,9 @@ if (tag === 'latest') {
     const beta = view(pkg.name, 'dist-tags.beta');
     if (beta && compareVersions(beta, pkg.version) < 0) {
       console.log(`  ${pkg.name}: beta ${beta} is older than ${pkg.version}, it follows`);
-      npmWrite(['dist-tag', 'add', `${pkg.name}@${pkg.version}`, 'beta']);
+      // Trusted publishing grants `npm dist-tag` only when it is switched on for the package. The release
+      // is out by now: a `beta` tag left behind is a warning, and must not stop the docs and the notes.
+      npmWrite(['dist-tag', 'add', `${pkg.name}@${pkg.version}`, 'beta'], { optional: true });
     }
   }
 }
