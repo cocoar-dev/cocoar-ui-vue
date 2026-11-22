@@ -45,5 +45,15 @@ To drive a calendar with it, pass the day to `api.goTo(day)`.
 | Slot | Scope | Purpose |
 |---|---|---|
 | `day` | `{ date, isToday, isSelected, isOtherMonth }` | The content of a day, for example with a mark. |
+| `title` | `{ month, label }` | The heading. `month` is a `Temporal.PlainYearMonth`, `label` the month and year in the locale. |
 
-The arrow keys move between days and `Page Up` / `Page Down` between months. `--coar-calendar-mini-month-day-size` (`26px`) and `--coar-calendar-mini-month-max-width` (`280px`) set its size.
+The arrow keys move between days and `Page Up` / `Page Down` between months.
+
+| Token | Default | Sets |
+|---|---|---|
+| `--coar-calendar-mini-month-day-size` | `26px` | The size of a day. |
+| `--coar-calendar-mini-month-max-width` | `280px` | The width of the month. |
+| `--coar-calendar-mini-month-day-font-size` | inherited | The type size of the days. |
+| `--coar-calendar-mini-month-weekday-font-size` | inherited | The type size of the weekdays. |
+| `--coar-calendar-mini-month-weekday-font-weight` | inherited | The weight of the weekdays. |
+| `--coar-calendar-mini-month-week-radius` | `0` | The corners of each day in the highlighted week. |

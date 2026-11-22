@@ -194,6 +194,8 @@ import './coar-theme--myapp.css';
 
 `--coar-role-derivation` (an empty value) is what makes the library derive palette steps, aliases and component roles from the values of the theme, on its class and on the scopes nested in it. The app needs the theme class and this file, loaded after the Cocoar stylesheet; it does not need `.coar-compact`. Dark mode and `.coar-mobile` stay separate choices of the app and combine with the theme.
 
+The calendar derives its `--coar-calendar-*` tokens on its outermost element, so with an active theme a value on a wrapper does not arrive. Put the class of a calendar skin on the component, `<CoarMonthView class="my-skin" />`: a rule on that element wins. `--coar-role-derivation: initial` on a wrapper also lets the values through, but it turns off the derivation for every component inside it, vue-ui included.
+
 The file is written into the cascade layer of the library's tokens, where `.coar-compact` is too. Your own unlayered styles therefore keep the last word, exactly as with the class: the theme sets body text to 14 px on its scope, and an app that declares `html { font-size: 16px }` itself keeps its 16 px (and the `rem` sizes that follow from it).
 
 The file names a font, it does not ship one, and it starts with a comment saying what to load. Load the font your theme uses yourself: `import '@cocoar/vue-ui/fonts/compact'` for the Inter weights of the Compact preset, `import '@cocoar/vue-ui/fonts/onest'` for Onest, or your own `@font-face` rules for another family.

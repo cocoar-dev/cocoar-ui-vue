@@ -262,6 +262,44 @@ describe('CoarCalendarBoard', () => {
     expect(w.findAll('[data-row-key="2026-02"] .coar-calendar-board__cell--none')).toHaveLength(3);
   });
 
+  it('opens an event with Enter, Space and a click without a pointer', async () => {
+    const onEventClick = vi.fn();
+    const w = mount(CoarCalendarBoard, { props: { builder: newBuilder().onEventClick(onEventClick), rows } });
+    const event = w.find('.coar-calendar-board__event');
+    await event.trigger('keydown', { key: 'Enter' });
+    await event.trigger('keydown', { key: ' ' });
+    (event.element as HTMLElement).click();
+    expect(onEventClick).toHaveBeenCalledTimes(3);
+    await w.find('.coar-calendar-board__bar').trigger('keydown', { key: 'Enter' });
+    expect(onEventClick.mock.calls[3][0].event.id).toBe('camp');
+  });
+
+  it('leaves the keys and clicks of a control inside the event to it', async () => {
+    const onEventClick = vi.fn();
+    const w = mount(CoarCalendarBoard, {
+      props: { builder: newBuilder().onEventClick(onEventClick), rows },
+      slots: { event: '<button class="own">x</button>' },
+      attachTo: document.body,
+    });
+    const own = w.find('.coar-calendar-board__event .own');
+    const key = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
+    own.element.dispatchEvent(key);
+    (own.element as HTMLElement).click();
+    expect(onEventClick).not.toHaveBeenCalled();
+    expect(key.defaultPrevented).toBe(false);
+    w.unmount();
+  });
+
+  it('does not open an event twice for one pointer press', async () => {
+    const onEventClick = vi.fn();
+    const w = mount(CoarCalendarBoard, { props: { builder: newBuilder().onEventClick(onEventClick), rows } });
+    const event = w.find('.coar-calendar-board__event');
+    await event.trigger('pointerdown', { button: 0, pointerId: 1, clientX: 5, clientY: 5 });
+    window.dispatchEvent(new PointerEvent('pointerup', { pointerId: 1, clientX: 5, clientY: 5 }));
+    event.element.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+    expect(onEventClick).toHaveBeenCalledOnce();
+  });
+
   it('moves the focus with the arrow keys', async () => {
     const w = mount(CoarCalendarBoard, {
       props: { builder: newBuilder(), rows },

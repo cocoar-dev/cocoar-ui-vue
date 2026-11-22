@@ -44,7 +44,11 @@ const props = withDefaults(
 
 const emit = defineEmits<{ 'update:modelValue': [date: Temporal.PlainDate] }>();
 
-defineSlots<{ day?(props: MonthDaySlotScope): unknown }>();
+defineSlots<{
+  day?(props: MonthDaySlotScope): unknown;
+  /** The heading. `label` is the month and year in the locale. */
+  title?(props: { month: Temporal.PlainYearMonth; label: string }): unknown;
+}>();
 
 const { t } = useI18n();
 const localization = useLocalization();
@@ -145,7 +149,9 @@ function onDayKeydown(e: KeyboardEvent, date: Temporal.PlainDate): void {
 <template>
   <div ref="root" class="coar-mini-month">
     <div class="coar-mini-month__head">
-      <span class="coar-mini-month__title" aria-live="polite">{{ title }}</span>
+      <span class="coar-mini-month__title" aria-live="polite">
+        <slot name="title" :month="month" :label="title">{{ title }}</slot>
+      </span>
       <button
         type="button"
         class="coar-mini-month__nav"
@@ -248,6 +254,8 @@ function onDayKeydown(e: KeyboardEvent, date: Temporal.PlainDate): void {
   padding-block: 2px;
   text-align: center;
   color: var(--coar-calendar-year-muted-color, var(--coar-text-subtle, #6b7280));
+  font-size: var(--coar-calendar-mini-month-weekday-font-size, inherit);
+  font-weight: var(--coar-calendar-mini-month-weekday-font-weight, inherit);
 }
 .coar-mini-month__day {
   width: 100%;
@@ -258,6 +266,7 @@ function onDayKeydown(e: KeyboardEvent, date: Temporal.PlainDate): void {
   background: transparent;
   color: inherit;
   font: inherit;
+  font-size: var(--coar-calendar-mini-month-day-font-size, inherit);
   cursor: pointer;
 }
 .coar-mini-month__day:hover {
@@ -269,7 +278,7 @@ function onDayKeydown(e: KeyboardEvent, date: Temporal.PlainDate): void {
   outline-offset: -2px;
 }
 .coar-mini-month__day--week {
-  border-radius: 0;
+  border-radius: var(--coar-calendar-mini-month-week-radius, 0);
   background: var(--coar-calendar-bg-today, rgba(37, 99, 235, 0.04));
 }
 .coar-mini-month__day--other {

@@ -321,6 +321,10 @@ function isSelected(d: Temporal.PlainDate): boolean {
   const selected = state.value.selectedDate;
   return selected !== null && Temporal.PlainDate.compare(d, selected) === 0;
 }
+/** Column of the selected day in a week, -1 when it is not in this week. */
+function selectedColumn(days: ReadonlyArray<Temporal.PlainDate>): number {
+  return days.findIndex((d) => isSelected(d) && !(props.continuousSection && isOtherMonth(d)));
+}
 function isOtherMonth(d: Temporal.PlainDate): boolean {
   return d.year !== yearMonth.value.year || d.month !== yearMonth.value.month;
 }
@@ -360,12 +364,11 @@ onScopeDispose(() => rowsObserver?.disconnect());
 
 const {
   BAR_HEIGHT,
-  DAY_NUMBER_HEIGHT,
   barTopPx,
-  rowBarHeightsPx,
   rowHeightPx,
   rowLaneLimits,
-  rowPillLimits,
+  cellPillLimits,
+  pillsTopPx,
 } = useMonthGeometry({
   layout,
   monthDensity: () => state.value.monthDensity,
@@ -449,10 +452,15 @@ const EMPTY_CAP: MonthCellPillCap<TMeta> = { visible: [], hidden: 0 };
 const pillCapsByDayKey = computed<Map<string, MonthCellPillCap<TMeta>>>(() => {
   const out = new Map<string, MonthCellPillCap<TMeta>>();
   for (const [rowIndex, row] of layout.value.weekRows.entries()) {
-    for (const day of row.days) {
+    for (const [col, day] of row.days.entries()) {
       const key = dateKey(day);
       const pills = row.cellPills.get(key) ?? [];
-      const cap = capMonthCellPills(pills, rowPillLimits.value[rowIndex]);
+      const limits = cellPillLimits.value[rowIndex][col];
+      // A cell gives up a line for "+N" only when something is really folded.
+      const fitsWithoutMarker =
+        (rowLaneCaps.value[rowIndex]?.hiddenPerColumn[col] ?? 0) === 0 &&
+        pills.length <= limits.pillLimitWithoutMarker;
+      const cap = capMonthCellPills(pills, fitsWithoutMarker ? pills.length : limits.pillLimit);
       const preview = cap.hidden > 0 ? pills.find((p) => isPreviewId(p.event.id)) : undefined;
       if (preview && !cap.visible.includes(preview) && cap.visible.length > 0) {
         out.set(key, {
@@ -815,7 +823,7 @@ defineExpose({
           :is-other-month="isOtherMonth(day)"
           :placeholder="continuousSection && isOtherMonth(day)"
           :is-weekend="isWeekend(day)"
-          :pills-margin-top-px="rowBarHeightsPx[rowIndex] - DAY_NUMBER_HEIGHT"
+          :pills-margin-top-px="pillsTopPx(rowIndex, colIndex)"
           :overflow-count="overflowCountFor(day)"
           :overflow-label="overflowLabelFor(overflowCountFor(day))"
           :overlay-open="dayOverlay.isOpen(day)"
@@ -995,6 +1003,14 @@ defineExpose({
           :height="BAR_HEIGHT"
           :z-index="100"
         />
+
+        <!-- Above the bars, below a dragged one; no box without the token. -->
+        <div
+          v-if="selectedColumn(row.days) >= 0"
+          class="coar-month-view__selected-frame"
+          :style="{ left: (selectedColumn(row.days) / 7) * 100 + '%' }"
+          aria-hidden="true"
+        />
       </CoarMonthRow>
     </CoarMonthGrid>
 
@@ -1167,5 +1183,15 @@ defineExpose({
   font-weight: var(--coar-calendar-event-title-font-weight, 600);
   text-overflow: ellipsis;
   overflow: hidden;
+}
+
+.coar-month-view__selected-frame {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: calc(100% / 7);
+  z-index: 50;
+  box-shadow: var(--coar-calendar-month-selected-frame, none);
+  pointer-events: none;
 }
 </style>

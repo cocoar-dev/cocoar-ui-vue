@@ -33,6 +33,7 @@ import { useCoarDrag } from '../../../composables/useCoarDrag';
 import { usePageSwipe } from '../../../composables/usePageSwipe';
 import { useTimeGridPresentation } from '../../../composables/useTimeGridPresentation';
 import { LONG_PRESS_MS } from '../../../composables/useTimeSelection';
+import { isEventActivation } from '../eventActivation';
 import { originatesFromEvent } from '../originatesFromEvent';
 import CoarTimeGridNowMarker from './CoarTimeGridNowMarker.vue';
 
@@ -272,6 +273,11 @@ function dropDate(data: DragData): string {
   return isAllDayEvent(data.event) ? data.event.start.toString() : props.date.toString();
 }
 
+function onEventActivate(e: KeyboardEvent | MouseEvent, event: CalendarEvent<TMeta>): void {
+  if (!isEventActivation(e)) return;
+  props.builder.state.onEventClick?.({ event, native: e as unknown as PointerEvent });
+}
+
 function onBlockPointerdown(e: PointerEvent, block: ResourceBlock<TMeta>): void {
   const rect = columnsEl.value?.getBoundingClientRect();
   const atPointer = ((e.clientY - (rect?.top ?? 0)) / pph.value) * 60;
@@ -446,6 +452,8 @@ defineExpose({ getLayout: () => layout.value });
             role="button"
             :aria-label="eventAriaLabel(block.event)"
             @pointerdown="onAllDayPointerdown($event, block)"
+            @keydown="onEventActivate($event, block.event)"
+            @click="onEventActivate($event, block.event)"
           >
             <slot name="allDayEvent" :event="block.event" :layout="block">
               <span class="coar-resource-day__title">{{ eventTitle(block.event) }}</span>
@@ -516,6 +524,8 @@ defineExpose({ getLayout: () => layout.value });
           role="button"
           :aria-label="eventAriaLabel(block.event)"
           @pointerdown="onBlockPointerdown($event, block)"
+          @keydown="onEventActivate($event, block.event)"
+          @click="onEventActivate($event, block.event)"
         >
           <slot name="event" :event="block.event" :layout="block">
             <span class="coar-resource-day__title">{{ eventTitle(block.event) }}</span>

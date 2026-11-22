@@ -77,6 +77,8 @@ Dragging an event runs through the same drop pipeline as the other views: `onEve
 
 The payload's `target.rowKey` and `target.sourceRowKey` say which rows were involved, and `canDrop` gets `rowKey`. What a change of row means, such as another person, is for your `onEventDrop` to apply.
 
+Enter, Space and `element.click()` on an event or bar fire `onEventClick` like a press without movement does.
+
 With `selectable`, dragging across the days of a row emits `rangeSelect` with `{ rowKey, start, end, native }`, both days inclusive. A mouse selects at once, a touch after a long press. A horizontal swipe turns the page unless `swipeNavigation(false)` is set.
 
 ## Your own rows
