@@ -71,7 +71,7 @@ describe('<CoarTimeGridAllDayBar>', () => {
   it('drops the left border when clippedStart', () => {
     const wrapper = mountBar({ clippedStart: true });
     const style = wrapper.find('.coar-time-grid-all-day-bar').attributes('style') ?? '';
-    expect(style).toMatch(/border-left-style:\s*none/);
+    expect(style).toContain('--event-border-left: none');
   });
 
   it('preview / phantom / invalid variants behave non-interactive', async () => {

@@ -274,6 +274,9 @@ export type CalendarMonthDensity = 'compact' | 'stacked' | 'details';
  */
 export type CalendarMonthRowSizing = 'auto' | 'uniform' | 'fill';
 
+/** Weekday names of a month header, year and week strip; `null` keeps each view's own. */
+export type CalendarWeekdayFormat = 'narrow' | 'short';
+
 /** The month of `<CoarCalendar>`: an endless list, or one month at a time. */
 export type CalendarMonthPresentation = 'continuous' | 'paged';
 

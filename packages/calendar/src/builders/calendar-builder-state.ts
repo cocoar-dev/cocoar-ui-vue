@@ -27,6 +27,7 @@ import {
   type CalendarMonthDensity,
   type CalendarMonthPresentation,
   type CalendarMonthRowSizing,
+  type CalendarWeekdayFormat,
   type CalendarView,
   type DayOfWeek,
   type EventTextContrastPolicy,
@@ -160,6 +161,7 @@ export interface CalendarBuilderState<
   monthDensity: MaybeRefOrGetter<CalendarMonthDensity>;
   monthRowSizing: MaybeRefOrGetter<CalendarMonthRowSizing>;
   monthPresentation: MaybeRefOrGetter<CalendarMonthPresentation>;
+  weekdayFormat: MaybeRefOrGetter<CalendarWeekdayFormat | null>;
   /** Extra classes of a month cell, read per day on every render (C7). */
   dayClass: DayClassFn | null;
   /** One fixed day or a width-driven 1…7-day surface. */
@@ -324,6 +326,7 @@ export function createCalendarBuilderState<TMeta extends Record<string, unknown>
     monthDensity: 'details',
     monthRowSizing: 'auto',
     monthPresentation: 'continuous',
+    weekdayFormat: null,
     dayClass: null,
     dayMode: 'single',
     timeGridOrientation: 'vertical',

@@ -71,9 +71,8 @@ describe('<CoarMonthPill>', () => {
     it('renders the bg / border styles inline', () => {
       const wrapper = mountPill();
       const style = wrapper.find('.coar-month-pill').attributes('style') ?? '';
-      expect(style).toContain('background: #abcdef');
-      // happy-dom serializes border-left to longhand properties.
-      expect(style).toMatch(/border-left(?:-color)?:\s*#0070f3/);
+      expect(style).toContain('--event-bg: #abcdef');
+      expect(style).toContain('--event-border-left: 3px solid #0070f3');
     });
   });
 

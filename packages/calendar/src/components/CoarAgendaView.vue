@@ -258,7 +258,7 @@ function formatHeaderDate(iso: string): string {
 
 function formatWeekStripWeekday(date: Temporal.PlainDate): string {
   return new Intl.DateTimeFormat(locale.value, {
-    weekday: 'narrow',
+    weekday: toValue(props.builder.state.weekdayFormat) ?? 'narrow',
     timeZone: 'UTC',
   }).format(new Date(`${date}T00:00:00Z`));
 }

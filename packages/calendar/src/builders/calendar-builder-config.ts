@@ -27,6 +27,7 @@ import type {
   CalendarMonthDensity,
   CalendarMonthPresentation,
   CalendarMonthRowSizing,
+  CalendarWeekdayFormat,
   CalendarView,
   DayOfWeek,
   EventTextContrastPolicy,
@@ -267,6 +268,15 @@ export abstract class CalendarBuilderConfig<
    */
   monthPresentation(presentation: MaybeRefOrGetter<CalendarMonthPresentation>): this {
     this.state.monthPresentation = presentation;
+    return this;
+  }
+
+  /**
+   * Weekday names of the month header, the year and the day agenda's
+   * week strip. `null` (default) keeps each view's own format.
+   */
+  weekdayFormat(format: MaybeRefOrGetter<CalendarWeekdayFormat | null>): this {
+    this.state.weekdayFormat = format;
     return this;
   }
 

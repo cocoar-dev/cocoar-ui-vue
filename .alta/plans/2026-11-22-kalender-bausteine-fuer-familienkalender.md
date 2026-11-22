@@ -117,10 +117,10 @@ flowchart LR
 
 `feat(calendar): tokens for the month title, day number, today marker and pills`
 
-- [ ] Variablen für Zeilen-Innenabstände, Monatstitel, Tageszahl, Heute-Markierung, Pills und Wochentagszeile
-- [ ] Builder-Option `weekdayFormat('narrow' | 'short')`
-- [ ] Jede `!important`-Regel in Neos `CalendarView.vue` prüfen: Variable, Slot oder eigener Fehler der Library. `touch-action: auto !important` ist kein Gestaltungsthema, die Ursache klären wir getrennt
-- [ ] Tabelle der Variablen in der Doku
+- [x] Variablen für Zeilen-Innenabstände, Monatstitel, Tageszahl, Heute-Markierung, Pills und Wochentagszeile
+- [x] Builder-Option `weekdayFormat('narrow' | 'short')`
+- [x] Jede `!important`-Regel in Neos `CalendarView.vue` prüfen: Variable, Slot oder eigener Fehler der Library. `touch-action: auto !important` ist kein Gestaltungsthema und bleibt bis zur Klärung der Ursache (eigene Aufgabe)
+- [x] Tabelle der Variablen in der Doku
 
 **Fertig, wenn** Neo keine `!important`-Regel mehr gegen Klassen der Library braucht.
 

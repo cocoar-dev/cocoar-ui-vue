@@ -466,6 +466,7 @@ Full reference: see [the composer's API reference](./coar-calendar.md#api-refere
 | `monthDensity(d)` | `'compact' \| 'stacked' \| 'details'` | `'details'` | Presentation used by continuous Month. |
 | `monthPresentation(p)` (Preview) | `'continuous' \| 'paged'` | `'continuous'` | The month of `<CoarCalendar>`: the endless list or [one month at a time](#paged-month). |
 | `monthRowSizing(s)` (Preview) | `'auto' \| 'uniform' \| 'fill'` | `'auto'` | `auto` grows a row with its multi-day lanes. `uniform` keeps all rows equal, so the grid never jumps. `fill` shares the height of the view between the rows and needs a parent with a height; a continuous month treats it as `uniform`. In `uniform` and `fill`, what does not fit folds into `+N`. |
+| `weekdayFormat(f)` (Preview) | `'narrow' \| 'short' \| null` | `null` | Weekday names of the month header, the year and the day agenda's week strip. `null` keeps each view's own format. |
 | `dayClass(fn)` (Preview) | `(date) => class value` | — | Extra classes of a month cell, read per day on every render, for example to highlight free days. |
 | `shadeWeekends(b)` | `MaybeRefOrGetter<boolean>` | `true` | Shades Saturday / Sunday cells and weekday headers. Set `false` for an unshaded appearance. |
 | `selectedDate(d)` | `MaybeRefOrGetter<Temporal.PlainDate \| null>` | `null` | The host's selected day: a filled circle around the day number (iOS selection decoration, `--coar-calendar-selection-fill`). Independent of the cursor — pass the day a companion pane follows, e.g. from `onDateClick`. |
@@ -516,6 +517,31 @@ interface CalendarApi<TMeta> {
 ```
 
 `scrollToTime` / `scrollToDate` are not month operations. `api.goTo(...)`, `next()`, and `prev()` align the continuous surface to the requested month; a standalone `<CoarContinuousMonthView>` additionally exposes `scrollToMonth(...)` on its component ref.
+
+## Styling tokens (Preview)
+
+Set these on the calendar or a parent. Without them everything keeps its look. A custom `#pill` or `#event` that draws its own card can clear the built-in surface with `--coar-calendar-event-surface-bg: transparent`, `--coar-calendar-event-border-left: 0` and `--coar-calendar-event-padding: 0`.
+
+| Token | Default | Applies to |
+|---|---|---|
+| `--coar-calendar-day-number-font-size` | label size | Day number |
+| `--coar-calendar-day-number-font-weight` | label weight | Day number |
+| `--coar-calendar-day-number-row-height` | `24px`, continuous `31px` | Row of the day number |
+| `--coar-calendar-day-number-row-padding` | `4px 6px`, continuous `2px 6px` | Row of the day number |
+| `--coar-calendar-today-font-weight` | day number weight | Today's number |
+| `--coar-calendar-today-marker-size` | `27px` | Today and selection circle of the continuous month |
+| `--coar-calendar-weekday-color` | subtle text | Weekday header |
+| `--coar-calendar-weekday-font-size` | caption size | Weekday header |
+| `--coar-calendar-weekday-font-weight` | caption weight | Weekday header |
+| `--coar-calendar-section-title-padding` | `20px 16px 10px` | Month title of the continuous month |
+| `--coar-calendar-pill-font-size` | event size | Pills and bars |
+| `--coar-calendar-pill-line-height` | `16px` | Pills |
+| `--coar-calendar-pill-radius` | event radius | Pills and bars |
+| `--coar-calendar-event-surface-bg` | the event's colour | Pills, bars, all-day bars, timed cards |
+| `--coar-calendar-event-border-left` | `3px` in the event's colour | Pills, bars, all-day bars, timed cards |
+| `--coar-calendar-event-padding` | `1px 6px` | Pills, bars, all-day bars |
+
+Weekend columns of the continuous header keep their own `--coar-calendar-continuous-weekday-weekend-color`.
 
 ## Month component props + slots
 

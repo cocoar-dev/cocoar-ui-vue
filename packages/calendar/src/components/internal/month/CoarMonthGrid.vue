@@ -85,11 +85,17 @@ defineSlots<{
 }
 .coar-month-grid__weekday-cell {
   padding: var(--coar-calendar-weekday-cell-padding, 8px 12px);
-  font-size: var(--coar-calendar-caption-font-size, var(--coar-font-size-xs, 11px));
-  font-weight: var(--coar-calendar-caption-font-weight, 600);
+  font-size: var(
+    --coar-calendar-weekday-font-size,
+    var(--coar-calendar-caption-font-size, var(--coar-font-size-xs, 11px))
+  );
+  font-weight: var(
+    --coar-calendar-weekday-font-weight,
+    var(--coar-calendar-caption-font-weight, 600)
+  );
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--coar-text-subtle, #6c7280);
+  color: var(--coar-calendar-weekday-color, var(--coar-text-subtle, #6c7280));
   border-left: 1px solid var(--coar-calendar-border, #d1d5db);
 }
 .coar-month-grid__weekday-cell:first-child {

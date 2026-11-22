@@ -208,6 +208,23 @@ const HOST_CONTRACTS = new Set([
   '--coar-calendar-point-body-opacity',
   '--coar-calendar-point-edge-height',
   '--coar-calendar-continuous-separator',
+  // Sizing of the month and the event surfaces: a host sets them, no theme role.
+  '--coar-calendar-day-number-font-size',
+  '--coar-calendar-day-number-font-weight',
+  '--coar-calendar-day-number-row-height',
+  '--coar-calendar-day-number-row-padding',
+  '--coar-calendar-event-border-left',
+  '--coar-calendar-event-padding',
+  '--coar-calendar-event-surface-bg',
+  '--coar-calendar-pill-font-size',
+  '--coar-calendar-pill-line-height',
+  '--coar-calendar-pill-radius',
+  '--coar-calendar-section-title-padding',
+  '--coar-calendar-today-font-weight',
+  '--coar-calendar-today-marker-size',
+  '--coar-calendar-weekday-color',
+  '--coar-calendar-weekday-font-size',
+  '--coar-calendar-weekday-font-weight',
 ]);
 
 function stripComments(css: string): string {

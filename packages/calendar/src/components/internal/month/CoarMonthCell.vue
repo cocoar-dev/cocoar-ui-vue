@@ -236,13 +236,19 @@ function onOverflowClick(e: MouseEvent) {
 .coar-month-cell__day-number-row {
   display: flex;
   align-items: center;
-  padding: 4px 6px;
-  height: 24px;
+  padding: var(--coar-calendar-day-number-row-padding, 4px 6px);
+  height: var(--coar-calendar-day-number-row-height, 24px);
   box-sizing: border-box;
 }
 .coar-month-cell__day-number {
-  font-size: var(--coar-calendar-label-font-size, var(--coar-font-size-sm, 13px));
-  font-weight: var(--coar-calendar-label-font-weight, 600);
+  font-size: var(
+    --coar-calendar-day-number-font-size,
+    var(--coar-calendar-label-font-size, var(--coar-font-size-sm, 13px))
+  );
+  font-weight: var(
+    --coar-calendar-day-number-font-weight,
+    var(--coar-calendar-label-font-weight, 600)
+  );
   color: var(--coar-text-base, #1a1c1f);
 }
 .coar-month-cell__day-content {
@@ -251,6 +257,10 @@ function onOverflowClick(e: MouseEvent) {
 }
 .coar-month-cell--today .coar-month-cell__day-number {
   color: var(--coar-calendar-today-color, var(--coar-color-accent, var(--coar-color-accent-500, #2563eb)));
+  font-weight: var(
+    --coar-calendar-today-font-weight,
+    var(--coar-calendar-day-number-font-weight, var(--coar-calendar-label-font-weight, 600))
+  );
 }
 /* Selection: a filled circle around the day number, like the iOS calendar's
    `selectionFill` (systemGray5). Today keeps its accent colour on top of it. */

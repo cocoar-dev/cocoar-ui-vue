@@ -17,6 +17,7 @@ export type {
   CalendarMonthDensity,
   CalendarMonthPresentation,
   CalendarMonthRowSizing,
+  CalendarWeekdayFormat,
   CalendarView,
   ViewWindow,
   ResolvedLocale,

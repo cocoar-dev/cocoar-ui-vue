@@ -27,7 +27,7 @@ const monthFormatter = computed(
 const weekdayFormatter = computed(
   () =>
     new Intl.DateTimeFormat(locale.value, {
-      weekday: 'narrow',
+      weekday: toValue(props.builder.state.weekdayFormat) ?? 'narrow',
       timeZone: 'UTC',
     }),
 );

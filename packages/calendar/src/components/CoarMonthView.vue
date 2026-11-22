@@ -139,6 +139,7 @@ const state = computed(() => {
     density: toValue(s.density),
     monthDensity: toValue(s.monthDensity),
     monthRowSizing: toValue(s.monthRowSizing),
+    weekdayFormat: toValue(s.weekdayFormat),
     dayClass: s.dayClass,
     dateStyle: toValue(s.dateStyle),
     timeStyle: toValue(s.timeStyle),
@@ -194,7 +195,11 @@ const gridDates = computed(() => {
 });
 
 const weekdayHeaders = computed(() =>
-  localizedWeekdayNames(effectiveLocale.value, effectiveFirstDayOfWeek.value, 'short'),
+  localizedWeekdayNames(
+    effectiveLocale.value,
+    effectiveFirstDayOfWeek.value,
+    state.value.weekdayFormat ?? 'short',
+  ),
 );
 const weekendColumns = computed(() =>
   gridDates.value.slice(0, 7).map((date) => date.dayOfWeek === 6 || date.dayOfWeek === 7),
@@ -1104,7 +1109,6 @@ defineExpose({
 .coar-month-view--mode-compact :deep(.coar-month-bar) {
   height: 6px !important;
   min-height: 6px;
-  border-left-width: 0;
   border-radius: 999px;
   padding: 0;
 }
