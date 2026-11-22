@@ -144,11 +144,11 @@ findDayGaps(intervals, { date, timezone, fromMinutes?, toMinutes?, minMinutes? }
   { start: ZonedDateTime; end: ZonedDateTime; minutes: number }[]
 ```
 
-- [ ] Minuten statt `PlainTime`, weil das Ende eines Abends 24:00 ist und `PlainTime` das nicht kennt
-- [ ] Belegung zählt **Überschneidung** mit halboffenen Intervallen. Ein Termin von 15:30 bis 18:00 belegt den Nachmittag, nicht den Abend
-- [ ] Ganztägige Einträge zählen standardmäßig nicht, wie im Entwurf (die Projektwoche macht niemanden unfrei)
-- [ ] `findDayGaps` nimmt beliebige `{ start, end }`, damit die App Essen mitrechnen kann. Überlappende Intervalle werden vereint, Lücken gibt es nur zwischen Einträgen
-- [ ] Tests: Mitternacht, mehrtägig, Sommerzeit-Tage (23 und 25 Stunden), Anzeigezone ungleich Quellzone, Serien
+- [x] Minuten statt `PlainTime`, weil das Ende eines Abends 24:00 ist und `PlainTime` das nicht kennt
+- [x] Belegung zählt **Überschneidung** mit halboffenen Intervallen. Ein Termin von 15:30 bis 18:00 belegt den Nachmittag, nicht den Abend
+- [x] Ganztägige Einträge zählen standardmäßig nicht, wie im Entwurf (die Projektwoche macht niemanden unfrei)
+- [x] `findDayGaps` nimmt beliebige `{ start, end }`, damit die App Essen mitrechnen kann. Überlappende Intervalle werden vereint, Lücken gibt es nur zwischen Einträgen
+- [x] Tests: Mitternacht, mehrtägig, Sommerzeit-Tage (23 und 25 Stunden), Anzeigezone ungleich Quellzone, Serien
 
 ### 7. `CoarCalendarBoard`: die Woche
 

@@ -473,6 +473,37 @@ Handlers fire across every event-rendering view at the same DOM elements that ha
 
 <preview path="./demos/CalendarPopover.vue" />
 
+## Who is busy, and where a day has room <Badge type="warning" text="Preview" /> {#occupancy}
+
+Two pure functions from the core answer the questions behind views like "when does everyone have time". What a resource or a part of the day means stays with your app.
+
+```ts
+import { computeOccupancy, findDayGaps } from '@cocoar/vue-calendar';
+
+const parts = [
+  { key: 'morning', startMinutes: 0, endMinutes: 12 * 60 },
+  { key: 'afternoon', startMinutes: 12 * 60, endMinutes: 18 * 60 },
+  { key: 'evening', startMinutes: 18 * 60, endMinutes: 24 * 60 },
+];
+
+const occupancy = computeOccupancy(events, {
+  dates,
+  periods: parts,
+  resources: ['emma', 'jonas'],
+  timezone: 'Europe/Vienna',
+  resourcesOf: (event) => event.meta.personIds,
+});
+occupancy.busyResources(date, 'evening'); // ['emma']
+occupancy.isFree(date, 'evening', ['jonas']); // true
+
+const gaps = findDayGaps(entriesOfTheDay, { date, timezone: 'Europe/Vienna', minMinutes: 60 });
+// [{ start, end, minutes: 120 }]
+```
+
+- Periods are wall-clock minutes in the display zone, from `0` to `1440`, and half-open: an event ending at 18:00 leaves an evening from 18:00 free.
+- `computeOccupancy` counts events with a time. Pass `counts` to decide per event, also for all-day entries, which then cover their whole days.
+- `findDayGaps` takes any `{ start, end }`, so entries that are not calendar events can count. It merges overlaps, ignores all-day entries, and treats the time before the first and after the last entry as no gap.
+
 ## Imperative API
 
 The builder exposes an `api` object — same shape regardless of whether the calendar component has mounted yet. Stash it from `useCalendar()` and call methods directly:

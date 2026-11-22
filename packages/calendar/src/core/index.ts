@@ -28,6 +28,15 @@ export type {
 } from './types';
 export { isTimedEvent, isAllDayEvent, validateCalendarEvent } from './types';
 export {
+  computeOccupancy,
+  findDayGaps,
+  type CalendarPeriod,
+  type DayGap,
+  type DayGapOptions,
+  type Occupancy,
+  type OccupancyOptions,
+} from './occupancy';
+export {
   Temporal,
   type DayOfWeek,
   detectFirstDayOfWeekFromLocale,
