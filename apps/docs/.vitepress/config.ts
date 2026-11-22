@@ -450,6 +450,7 @@ export default defineConfig({
               link: '/components/calendar/time-selection',
             },
             { text: 'Board', link: '/components/calendar/board' },
+            { text: 'Mini Month', link: '/components/calendar/mini-month' },
             { text: 'Agenda View', link: '/components/calendar/agenda-view' },
             { text: 'Timeline View', link: '/components/calendar/timeline-view' },
             { text: 'Performance baseline', link: '/components/calendar/performance' },

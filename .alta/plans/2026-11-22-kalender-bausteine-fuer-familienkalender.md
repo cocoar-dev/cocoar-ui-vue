@@ -224,9 +224,9 @@ builder
 
 `feat(calendar): a small month for picking a day`
 
-- [ ] `CoarMiniMonth` mit `v-model` (Tag), eigenem Blättern und Markierung der aktiven Woche
-- [ ] Ohne Builder nutzbar, Slot `#day` für Marken
-- [ ] Tastatur wie im Grid, Neos `MiniMonth.vue` als Maßstab
+- [x] `CoarMiniMonth` mit `v-model` (Tag), eigenem Blättern und Markierung der aktiven Woche
+- [x] Ohne Builder nutzbar, Slot `#day` für Marken
+- [x] Tastatur wie im Grid, Neos `MiniMonth.vue` als Maßstab
 
 ## Prüfung je Pull Request
 

@@ -120,6 +120,7 @@ export { default as CoarTimeGrid } from './components/CoarTimeGrid.vue';
 export { default as CoarMonthView } from './components/CoarMonthView.vue';
 export { default as CoarContinuousMonthView } from './components/CoarContinuousMonthView.vue';
 export { default as CoarPagedMonthView } from './components/CoarPagedMonthView.vue';
+export { default as CoarMiniMonth } from './components/CoarMiniMonth.vue';
 export {
   default as CoarCalendarBoard,
   type BoardColumn,
