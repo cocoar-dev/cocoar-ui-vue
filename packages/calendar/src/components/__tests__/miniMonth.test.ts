@@ -58,6 +58,14 @@ describe('CoarMiniMonth', () => {
     expect(w.find('[data-day-key="2026-11-19"] i').attributes('data-on')).toBe('true');
   });
 
+  it('lets the host format the title', () => {
+    const w = mount(CoarMiniMonth, {
+      props: { ...base, modelValue: pd('2026-11-19') },
+      slots: { title: `<template #title="{ month, label }"><b class="t">{{ month.month }}|{{ label }}</b></template>` },
+    });
+    expect(w.find('.t').text()).toBe('11|November 2026');
+  });
+
   it('stays silent without a selection', () => {
     vi.useFakeTimers({ now: new Date('2026-11-19T10:00:00Z') });
     const w = mount(CoarMiniMonth, { props: base });
