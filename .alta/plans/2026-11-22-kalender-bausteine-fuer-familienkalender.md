@@ -86,8 +86,8 @@ builder.monthRowSizing('auto' | 'uniform' | 'fill'); // Standard: 'auto' (wie he
 
 `refactor(calendar): share the page swipe between surfaces`
 
-- [ ] Die Geste aus `useTimeGridSwipe` wandert in ein internes `usePageSwipe` mit frei wählbarer CSS-Variable
-- [ ] `useTimeGridSwipe` bleibt als öffentliche API mit gleichem Verhalten bestehen, seine Tests laufen unverändert
+- [x] Die Geste aus `useTimeGridSwipe` wandert in ein internes `usePageSwipe` mit frei wählbarer CSS-Variable
+- [x] `useTimeGridSwipe` bleibt als öffentliche API mit gleichem Verhalten bestehen, seine Tests laufen unverändert
 
 ### 4. Monat zum Blättern
 
