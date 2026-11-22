@@ -540,6 +540,9 @@ onBeforeUnmount(() => {
         <template v-if="$slots.event" #event="slotProps">
           <slot name="event" v-bind="slotProps" :view="view" />
         </template>
+        <template v-if="$slots.allDayEvent" #allDayEvent="slotProps">
+          <slot name="allDayEvent" v-bind="slotProps" />
+        </template>
         <template v-if="$slots.dayHeader" #dayHeader="slotProps">
           <slot name="dayHeader" v-bind="slotProps" />
         </template>

@@ -74,6 +74,17 @@ describe('CoarCalendar shell', () => {
     expect(w.find('.coar-time-grid').exists()).toBe(true);
   });
 
+  it('passes #allDayEvent through to the day view', () => {
+    const b = newBuilder([
+      { id: 'holiday', start: pd('2026-06-15'), end: pd('2026-06-16'), meta: { title: 'Feiertag' } },
+    ]).view('day');
+    const w = mount(CoarCalendar, {
+      props: { builder: b },
+      slots: { allDayEvent: `<template #allDayEvent="{ event }"><b class="custom-all-day">{{ event.id }}</b></template>` },
+    });
+    expect(w.find('.custom-all-day').text()).toBe('holiday');
+  });
+
   it('header label routes through buildFormatOptions (C6)', () => {
     const b = newBuilder().view('day').locale('de-AT').dateStyle('long');
     const w = mount(CoarCalendar, { props: { builder: b } });
