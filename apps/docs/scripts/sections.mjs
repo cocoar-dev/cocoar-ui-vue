@@ -183,6 +183,7 @@ export const SECTIONS = [
       'components/calendar/index.md',
       'components/calendar/coar-calendar.md',
       'components/calendar/year-view.md',
+      'components/calendar/board.md',
       'components/calendar/month-view.md',
       'components/calendar/day-view.md',
       'components/calendar/week-view.md',

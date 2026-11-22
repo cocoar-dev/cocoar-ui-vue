@@ -28,6 +28,20 @@ export type {
 } from './types';
 export { isTimedEvent, isAllDayEvent, validateCalendarEvent } from './types';
 export {
+  BOARD_ALL_DAY_ROW,
+  BOARD_UNASSIGNED_ROW,
+  layoutBoard,
+  resourceWeekRows,
+  weekBoardRows,
+  type BoardBar,
+  type BoardCell,
+  type BoardLayoutRow,
+  type BoardRow,
+  type BoardRowKind,
+  type ResourceWeekRowsOptions,
+  type WeekBoardRowsOptions,
+} from './boardLayout';
+export {
   computeOccupancy,
   findDayGaps,
   type CalendarPeriod,

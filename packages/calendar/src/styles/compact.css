@@ -55,7 +55,10 @@
     .coar-month-list-view,
     .coar-agenda-view,
     .coar-timeline-view,
-    .coar-year-view
+    .coar-year-view,
+    .coar-paged-month-view,
+    .coar-calendar-board,
+    .coar-mini-month
   ):not(
     :where(
         .coar-calendar,
@@ -67,7 +70,10 @@
         .coar-month-list-view,
         .coar-agenda-view,
         .coar-timeline-view,
-        .coar-year-view
+        .coar-year-view,
+        .coar-paged-month-view,
+        .coar-calendar-board,
+        .coar-mini-month
       )
       *
   ) {

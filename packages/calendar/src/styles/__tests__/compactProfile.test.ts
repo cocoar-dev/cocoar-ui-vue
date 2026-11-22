@@ -209,6 +209,12 @@ const HOST_CONTRACTS = new Set([
   '--coar-calendar-point-edge-height',
   '--coar-calendar-continuous-separator',
   // Sizing of the month and the event surfaces: a host sets them, no theme role.
+  '--coar-calendar-board-bar-row-min-height',
+  '--coar-calendar-board-cell-min-height',
+  '--coar-calendar-board-cell-padding',
+  '--coar-calendar-board-column-min-width',
+  '--coar-calendar-board-label-padding',
+  '--coar-calendar-board-label-width',
   '--coar-calendar-day-number-font-size',
   '--coar-calendar-day-number-font-weight',
   '--coar-calendar-day-number-row-height',

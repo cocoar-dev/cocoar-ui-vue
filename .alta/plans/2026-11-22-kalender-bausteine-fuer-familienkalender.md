@@ -169,13 +169,13 @@ resourceWeekRows({ dates, resources, resourcesOf, extraRows: ['allFree'] });
 yearWallRows({ year });                      // Schritt 9
 ```
 
-- [ ] `layoutBoard` im Core: Balken über `layoutOverlappingIntervals`, die Tagesgrenzen (`dayBoundsOf`) aus `monthGridLayout` werden geteilt, ohne das Verhalten zu ändern
-- [ ] **Zuordnung:** Ein Termin mit Uhrzeit steht im Abschnitt, in dem er **beginnt**. Mehrtägiges und Ganztägiges läuft in der Balkenzeile
-- [ ] Slots `#rowLabel`, `#columnHeader`, `#event`, `#bar`, `#cell` (für `custom`-Zeilen)
-- [ ] Das Fenster kommt über `useViewWindow` mit den vorhandenen Ansichten `week` und `year`, es gibt keine neue View-ID
-- [ ] Spaltenbreiten und Mindestbreite über Variablen, Zustände `today` und `past` als Klassen
-- [ ] Barrierefreiheit: `role="grid"`, Pfeiltasten zwischen Zellen, Beschriftung aus Zeile und Spalte
-- [ ] Neue Stories in Standard und `.coar-mobile`, hell und dunkel
+- [x] `layoutBoard` im Core: Balken über `layoutOverlappingIntervals`, die Tagesgrenzen (`dayBoundsOf`) aus `monthGridLayout` werden geteilt, ohne das Verhalten zu ändern
+- [x] **Zuordnung:** Ein Termin mit Uhrzeit steht im Abschnitt, in dem er **beginnt**. Mehrtägiges und Ganztägiges läuft in der Balkenzeile
+- [x] Slots `#rowLabel`, `#columnHeader`, `#event`, `#bar`, `#cell` (für `custom`-Zeilen)
+- [x] Das Fenster kommt über `useViewWindow` mit den vorhandenen Ansichten `week` und `year`, es gibt keine neue View-ID
+- [x] Spaltenbreiten und Mindestbreite über Variablen, Zustände `today` und `past` als Klassen
+- [x] Barrierefreiheit: `role="grid"`, Pfeiltasten zwischen Zellen, Beschriftung aus Zeile und Spalte
+- [ ] Neue Stories in Standard und `.coar-mobile`, hell und dunkel (am Ende gesammelt, braucht Docker)
 
 ### 8. Brett: Ziehen, Anlegen, Blättern
 

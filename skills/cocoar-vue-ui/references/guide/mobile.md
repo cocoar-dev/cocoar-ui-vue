@@ -428,6 +428,7 @@ are only being added, and testing on real devices remains the job of the app.
 | [Calendar](../components/calendar/index.md) | ready | partial | planned | Touch taps, paging and long-press selection work; legacy resize targets are 6 px. Compact targets stay smaller on short/crowded events. |
 | [`<CoarCalendar>` — Composer](../components/calendar/coar-calendar.md) | ready | partial | planned | Taps, swipe paging and long-press selection work on touch; event resize handles are only 6 px tall. |
 | [`<CoarYearView>` — Year View](../components/calendar/year-view.md) | ready | ready | planned | Tap to drill in works on touch; a phone presentation of the calendar is planned. |
+| [`<CoarCalendarBoard>` — Board](../components/calendar/board.md) | ready | ready | partial | The grid works on touch; on a phone seven columns are narrow, so a week usually reads better as rows of days. |
 | [Month Views](../components/calendar/month-view.md) | ready | partial | planned | Taps work on touch; multi-day bar resize handles are only 6 px and a touch on a pill always drags it. |
 | [`<CoarDayView>` — Day View](../components/calendar/day-view.md) | ready | partial | planned | Taps, swipe paging and long-press selection work on touch; event resize handles are only 6 px tall. |
 | [`<CoarWeekView>` — Week View](../components/calendar/week-view.md) | ready | partial | planned | Taps, swipe paging and long-press selection work on touch; event resize handles are only 6 px tall. |

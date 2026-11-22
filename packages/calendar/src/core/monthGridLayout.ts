@@ -447,7 +447,7 @@ interface CachedDayBounds {
  */
 const dayBoundsCache = new WeakMap<CalendarEvent, CachedDayBounds>();
 
-function dayBoundsOf(event: CalendarEvent, timezone: string): DayBounds {
+export function dayBoundsOf(event: CalendarEvent, timezone: string): DayBounds {
   const cached = dayBoundsCache.get(event);
   if (
     cached &&
