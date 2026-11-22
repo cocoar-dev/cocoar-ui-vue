@@ -136,6 +136,14 @@ describe('day view with resources', () => {
     expect(payload.target).toMatchObject({ resourceId: 's', sourceResourceId: 'j' });
   });
 
+  it('opens a block with the keyboard', async () => {
+    const onEventClick = vi.fn();
+    const b = newBuilder([timed('a', '09:00', '10:00', ['j'])]).onEventClick(onEventClick);
+    const w = mount(CoarDayView, { props: { builder: b } });
+    await w.find('[data-event-id="a"]').trigger('keydown', { key: 'Enter' });
+    expect(onEventClick).toHaveBeenCalledOnce();
+  });
+
   it('asks canDrop with the resource under the pointer', async () => {
     const onEventDrop = vi.fn();
     const canDrop = vi.fn((_e, target: { resourceId?: string }) => target.resourceId !== 's');

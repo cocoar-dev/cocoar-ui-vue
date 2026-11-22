@@ -34,6 +34,7 @@ import {
 } from '../composables/useBoardDnd';
 import { usePageSwipe } from '../composables/usePageSwipe';
 import { useViewWindow } from '../composables/useViewWindow';
+import { isEventActivation } from './internal/eventActivation';
 import { originatesFromEvent } from './internal/originatesFromEvent';
 
 /** What a `rows` function gets to build its rows from. */
@@ -251,6 +252,11 @@ const selecting = useBoardSelection<TMeta>({
   onSelect: (selection) => emit('rangeSelect', selection),
 });
 
+function onEventActivate(e: KeyboardEvent | MouseEvent, event: CalendarEvent<TMeta>): void {
+  if (!isEventActivation(e)) return;
+  props.builder.state.onEventClick?.({ event, native: e as unknown as PointerEvent });
+}
+
 function onRootPointerdown(e: PointerEvent): void {
   if (!originatesFromEvent(e)) swipe.onPointerdown(e);
 }
@@ -417,6 +423,8 @@ defineExpose({ getLayout: () => layout.value });
             role="button"
             :aria-label="titleOf(bar.event)"
             @pointerdown="dnd.onEventPointerdown($event, bar.event, entry.row, dnd.dayUnderPointer($event) ?? entry.row.dates[bar.startCol])"
+            @keydown="onEventActivate($event, bar.event)"
+            @click="onEventActivate($event, bar.event)"
           >
             <slot name="bar" :event="bar.event" :row="entry.row" :bar="bar">
               <span class="coar-calendar-board__title">{{ titleOf(bar.event) }}</span>
@@ -470,6 +478,8 @@ defineExpose({ getLayout: () => layout.value });
                 role="button"
                 :aria-label="`${timeOf(event)} ${titleOf(event)}`.trim()"
                 @pointerdown="dnd.onEventPointerdown($event, event, entry.row, cell.date)"
+                @keydown="onEventActivate($event, event)"
+                @click="onEventActivate($event, event)"
               >
                 <slot name="event" :event="event" :row="entry.row" :date="cell.date">
                   <time v-if="timeOf(event)" class="coar-calendar-board__time">{{ timeOf(event) }}</time>
