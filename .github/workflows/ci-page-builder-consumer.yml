@@ -47,7 +47,8 @@ jobs:
 
       - name: Install Chromium (Linux)
         if: runner.os == 'Linux'
-        run: pnpm --filter @cocoar/playground exec playwright install --with-deps chromium
+        timeout-minutes: 10
+        run: scripts/ci/playwright-install.sh chromium
 
       - name: Install Chromium (Windows)
         if: runner.os == 'Windows'
