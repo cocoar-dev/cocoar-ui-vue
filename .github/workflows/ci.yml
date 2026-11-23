@@ -126,7 +126,7 @@ jobs:
 
       - name: Install Chromium for the packed-consumer check
         if: env.SIMULATE != 'true' && steps.version.outputs.channel != 'alpha'
-        timeout-minutes: 10
+        timeout-minutes: 25
         run: scripts/ci/playwright-install.sh chromium
 
       - name: Verify packed PageBuilder in Vite consumer
@@ -246,7 +246,7 @@ jobs:
 
       - name: Install Playwright browser
         if: env.SIMULATE != 'true'
-        timeout-minutes: 10
+        timeout-minutes: 25
         env:
           BROWSER: ${{ matrix.browser }}
         run: scripts/ci/playwright-install.sh "$BROWSER"
@@ -307,7 +307,7 @@ jobs:
 
       - name: Install Playwright browsers
         if: env.SIMULATE != 'true'
-        timeout-minutes: 10
+        timeout-minutes: 25
         run: scripts/ci/playwright-install.sh chromium webkit
 
       - name: Run docs browser tests
