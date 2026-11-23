@@ -357,6 +357,13 @@ function positionAt(month: Temporal.PlainYearMonth, opening = false): void {
   wake();
 }
 
+/** Calls `done` once the fonts that are loading have loaded (or failed); at once if none is. */
+function afterFontsLoaded(done: () => void): void {
+  const fonts = typeof document === 'undefined' ? undefined : document.fonts;
+  if (!fonts || fonts.status === 'loaded') done();
+  else fonts.ready.then(done, done);
+}
+
 /** A scroll of the calendar's own (see quietScrollbars of v-scrollbar). */
 function quietScroll(): () => void {
   const container = scrollContainerRef.value;
@@ -660,9 +667,15 @@ onMounted(() => {
   // measures offsetTop 0: the opening waits for the viewport to get a size.
   let isOpening = false;
   observedHeight = viewport.clientHeight;
+  // Web fonts the months asked for while being laid out change their height when they arrive.
+  // Positioned before, the list would be moved by the browser's scroll anchoring then (no
+  // anchoring in WebKit: left off by the difference), and OverlayScrollbars would take that
+  // for a user's scroll and show the scrollbar for a moment. The list stays hidden until then.
   const open = () => {
     isOpening = true;
-    positionAt(activeMonth.value, true);
+    afterFontsLoaded(() => {
+      if (scrollListenerTarget) positionAt(activeMonth.value, true);
+    });
   };
   if (observedHeight > 0) open();
   sizeObserver = new ResizeObserver(() => {

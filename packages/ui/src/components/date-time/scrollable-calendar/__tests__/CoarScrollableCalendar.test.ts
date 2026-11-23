@@ -396,6 +396,33 @@ describe('CoarScrollableCalendar', () => {
       expect(log).toEqual(['sleep true', `scrollTop ${3 * MONTH_HEIGHT} on viewport`, 'sleep false']);
     });
 
+    it('positions the list only once the web fonts that are loading have arrived', async () => {
+      // Arriving after the opening, they change the months' height: the browser's scroll
+      // anchoring would move the list, which OverlayScrollbars takes for a user's scroll.
+      let fontsArrive!: () => void;
+      const ready = new Promise<void>((resolve) => { fontsArrive = resolve; });
+      const fonts = { status: 'loading', ready };
+      const original = Object.getOwnPropertyDescriptor(document, 'fonts');
+      Object.defineProperty(document, 'fonts', { value: fonts, configurable: true });
+      restores.push(() => {
+        if (original) Object.defineProperty(document, 'fonts', original);
+        else delete (document as { fonts?: unknown }).fonts;
+      });
+      const log: string[] = [];
+      fakeLayout({ log });
+      const wrapper = mountCalendar({ activeMonth: Temporal.PlainYearMonth.from('2026-03') });
+
+      await settle();
+      expect(log).toEqual([]);
+      expect(isRevealed(wrapper)).toBe(false);
+
+      fonts.status = 'loaded';
+      fontsArrive();
+      await settle();
+      expect(log).toEqual([`scrollTop ${3 * MONTH_HEIGHT} on viewport`]);
+      expect(isRevealed(wrapper)).toBe(true);
+    });
+
     /** Asleep once, before every scroll of the calendar, and awake again only after the last. */
     function expectQuiet(log: string[]) {
       expect(log.filter((entry) => entry.startsWith('sleep'))).toEqual(['sleep true', 'sleep false']);
