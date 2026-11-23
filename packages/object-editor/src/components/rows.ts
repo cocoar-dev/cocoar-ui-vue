@@ -53,12 +53,22 @@ export interface CoarObjectEditorOrigin {
  * The shape the rows are built from: the local document over `base`, key by
  * key. It decides which groups and unknown keys exist; it is never stored, and
  * it is not a merge policy: a local value, also `null`, simply hides the base.
+ * A group inherits the keys it does not set; a list, and an object for which
+ * `replaces(tokens)` is true (a map), replaces the inherited one as a whole.
  */
-export function overlay(base: JsonValue | undefined, local: JsonValue | undefined): JsonValue | undefined {
+export function overlay(
+  base: JsonValue | undefined,
+  local: JsonValue | undefined,
+  replaces: (tokens: readonly string[]) => boolean = () => false,
+  tokens: string[] = [],
+): JsonValue | undefined {
   if (local === undefined) return base;
   if (!isJsonObject(local) || !isJsonObject(base)) return local;
+  if (tokens.length && replaces(tokens)) return local;
   const result: Record<string, JsonValue> = { ...base };
-  for (const [key, value] of Object.entries(local)) result[key] = overlay(base[key], value) as JsonValue;
+  for (const [key, value] of Object.entries(local)) {
+    result[key] = overlay(base[key], value, replaces, [...tokens, key]) as JsonValue;
+  }
   return result;
 }
 
