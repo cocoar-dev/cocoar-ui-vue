@@ -201,22 +201,25 @@ Die Arbeit beginnt, wenn #85 und #95 gemergt sind.
 **PR B — Suche, Listen und Maps, Schema-Profile (#91, #90, #89)**, Titel
 `feat(object-editor)!: search, ordered lists and maps, schema editor profiles`
 
-- [ ] 8. `v-model:search` und `focus(pointer)` in `CoarObjectEditor.vue`, Filter in `rows.ts` (Treffer und
+- [x] 8. `v-model:search` und `focus(pointer)` in `CoarObjectEditor.vue`, Filter in `rows.ts` (Treffer und
       Vorfahren, Zuklapp-Zustand bleibt erhalten). Tests, Demo mit Suchfeld.
-- [ ] 9. Zeilen für Einträge und Map-Schlüssel in `rows.ts`. Typen `list` und `map` mit Controls in
+- [x] 9. Zeilen für Einträge und Map-Schlüssel in `rows.ts`. Typen `list` und `map` mit Controls in
       `types/controls/`. `list` → `group-list` für Listen von Gruppen. Tastatur zum Umsortieren. Tests für
       Reihenfolge, Duplikate, `false`/`0`, doppelte Schlüssel, Fehler-Pfade.
-- [ ] 10. Schema-Editor: Einstellungen „Typ der Einträge“ und „Typ der Werte“, Typ `date-time`, Schalter
+- [x] 10. Schema-Editor: Einstellungen „Typ der Einträge“ und „Typ der Werte“, Typ `date-time`, Schalter
       „null erlauben“ mit Erhalt der `anyOf`-Form, Markierung nicht unterstützter Properties, Bestätigung bei
       verlustreichem Typwechsel.
-- [ ] 11. Prop `profile` mit `types`, `choiceEncoding`, `diagnostics`. Bewahrungs-Test mit importierten Schemas
+- [x] 11. Prop `profile` mit `types`, `choiceEncoding`, `diagnostics`. Bewahrungs-Test mit importierten Schemas
       (Deep-Equal aller nicht bearbeiteten Teile).
-- [ ] 12. Doku: „Search“, „Lists and maps“, „Schema profiles“. `pnpm skill:sync`. Der Round-Trip-Test aus Schritt 7
+- [x] 12. Doku: „Search“, „Lists and maps“, „Schema profiles“. `pnpm skill:sync`. Der Round-Trip-Test aus Schritt 7
       bekommt Liste und Map dazu.
 
 Umgesetzt in PR A, mit diesen Details: Der Hook `resolveType` bekommt `{ schema, pointer, typeId }`. Das Menü der
 Zeile (⋯) heißt bei vorhandener Basis „Reset to inherited“. Gesperrt sind Zeilen unter einer Gruppe, die lokal oder
 geerbt `null` ist. Die Migrations-Notiz steht auf der eigenen Seite `guide/migration-object-editor-values.md`.
+
+PR B liegt auf dem Branch von PR A (beide offen zugleich) und wird nach dessen Merge auf `develop` nachgezogen. Zusätzlich
+in PR B: ein Typwechsel behält fremde Annotationen (`x-…`, `$comment`), eine Map gilt nur bei Einzelwerten als `map`.
 
 Je PR: Branch von `origin/develop`, `pnpm lint && pnpm typecheck && pnpm build`, `pnpm test` als Job, Adaptive
 Review, PR nach Skill `cocoar-pr`. Danach eine Beta für ConfigHub, wenn der Maintainer sie anstößt.

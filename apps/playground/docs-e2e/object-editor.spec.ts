@@ -84,6 +84,26 @@ test.describe('inherited values', () => {
   });
 });
 
+test('a search finds a row under a closed group, and clearing it restores the group', async ({ page }) => {
+  const editor = product(page);
+  await row(editor, '/dimensions').getByRole('button', { name: 'Dimensions', exact: true }).click();
+  await expect(row(editor, '/dimensions/width')).toHaveCount(0);
+  const search = page.getByRole('textbox', { name: 'Search properties' });
+  await search.fill('width');
+  await expect(editor.locator('[data-pointer]')).toHaveCount(2);
+  await expect(row(editor, '/dimensions/width')).toBeVisible();
+  await search.fill('');
+  await expect(row(editor, '/dimensions/width')).toHaveCount(0);
+});
+
+test('a list item moves with Alt+ArrowDown', async ({ page }) => {
+  const editor = product(page);
+  const first = row(editor, '/highlights/0');
+  await first.locator('input').focus();
+  await page.keyboard.press('Alt+ArrowDown');
+  expect((await json(page)).highlights).toEqual(['Warm and cool light', 'Dimmable', 'Dimmable']);
+});
+
 test('switching between view and edit moves no row', async ({ page }) => {
   const editor = product(page);
   const rows = editor.locator('.coar-object-editor-row');

@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, shallowRef, useId, watch } from 'vue';
+import { computed, nextTick, ref, shallowRef, useId, useTemplateRef, watch } from 'vue';
 import { useI18n } from '@cocoar/vue-localization';
 import { formatPointer, getAt, isPointerPrefix, parsePointer, setAt } from '../core/pointer';
 import { issueMessage } from '../core/messages';
-import { schemaAt } from '../core/resolve';
+import { nonNullSchema, resolveSchema, schemaAt } from '../core/resolve';
 import { validateValue, type CoarPresence, type ObjectEditorIssue } from '../core/validate';
 import type { CoarObjectEditorOption } from '../core/options';
 import { isJsonObject, type JsonObject, type JsonSchema, type JsonValue } from '../core/schema';
@@ -14,6 +14,7 @@ import {
   buildRows,
   overlay,
   rowForPointer,
+  searchRows,
   type CoarObjectEditorOrigin,
   type CoarResolveType,
   type ObjectEditorRowModel,
@@ -77,6 +78,9 @@ const props = withDefaults(
   },
 );
 const model = defineModel<JsonObject | undefined>();
+/** Filters the rows by title, key or path (`dimensions.width`), also under closed groups. Never reads values. */
+const search = defineModel<string>('search', { default: '' });
+const root = useTemplateRef<HTMLElement>('root');
 const { t } = useI18n();
 const baseId = useId();
 
@@ -99,6 +103,7 @@ watch(
 
 /** Local over base: which groups and keys there are. Not stored. */
 const shape = computed(() => overlay(props.base, model.value));
+const searching = computed(() => search.value.trim() !== '');
 const buildOptions = computed(() => ({ resolveType: props.resolveType }));
 
 interface RowView {
@@ -110,7 +115,11 @@ interface RowView {
 }
 
 const views = computed<RowView[]>(() => {
-  const rows = buildRows(props.schema, shape.value, register.value, sources.value, toggled.value, buildOptions.value);
+  // A search sees every group open; the user's open and closed groups come back when it is cleared.
+  const rows = buildRows(props.schema, shape.value, register.value, sources.value, toggled.value, {
+    ...buildOptions.value,
+    allOpen: searching.value,
+  });
   const titles = new Map(rows.map((row) => [row.pointer, row.title]));
   return rows.map((row) => {
     const local = getAt(model.value, row.tokens);
@@ -130,9 +139,16 @@ const views = computed<RowView[]>(() => {
 
 /** `local` view: rows with a local key, and the groups that lead to them. */
 const visible = computed(() => {
-  if (props.view !== 'local') return views.value;
-  const set = views.value.filter((entry) => entry.state === 'local').map((entry) => entry.row.pointer);
-  return views.value.filter((entry) => set.some((pointer) => isPointerPrefix(entry.row.pointer, pointer)));
+  let list = views.value;
+  if (props.view === 'local') {
+    const set = list.filter((entry) => entry.state === 'local').map((entry) => entry.row.pointer);
+    list = list.filter((entry) => set.some((pointer) => isPointerPrefix(entry.row.pointer, pointer)));
+  }
+  if (searching.value) {
+    const found = new Set(searchRows(list.map((entry) => entry.row), search.value).map((row) => row.pointer));
+    list = list.filter((entry) => found.has(entry.row.pointer));
+  }
+  return list;
 });
 
 /** Every problem of the value: the schema's, those of the value types, and the app's. */
@@ -184,7 +200,31 @@ const placed = computed(() => {
   return { byRow, unplaced };
 });
 
-defineExpose({ issues });
+/**
+ * Shows the row of `pointer`: opens its groups, scrolls to it and focuses its
+ * control (or the row). For links from search results or from messages.
+ */
+async function focus(pointer: string) {
+  const tokens = parsePointer(pointer);
+  for (let round = 0; round < tokens.length + 1; round++) {
+    if (views.value.some((entry) => entry.row.pointer === pointer)) break;
+    const closed = views.value.filter((entry) => entry.row.collapsed && isPointerPrefix(entry.row.pointer, pointer));
+    if (!closed.length) break;
+    for (const entry of closed) toggle(entry.row.pointer);
+    await nextTick();
+  }
+  await nextTick();
+  const element = root.value?.querySelector<HTMLElement>(`[data-pointer="${CSS.escape(pointer)}"]`);
+  if (!element) return false;
+  element.scrollIntoView({ block: 'nearest' });
+  const target =
+    element.querySelector<HTMLElement>('.coar-object-editor-value input:not([type="hidden"]), .coar-object-editor-value [role="combobox"], .coar-object-editor-value button') ??
+    element.querySelector<HTMLElement>('button');
+  target?.focus({ preventScroll: true });
+  return true;
+}
+
+defineExpose({ issues, focus });
 
 const controlId = (pointer: string) => `${baseId}-value${pointer}`;
 
@@ -192,10 +232,102 @@ function update(tokens: string[], value: JsonValue | undefined) {
   model.value = (setAt(model.value ?? {}, tokens, value) ?? {}) as JsonObject;
 }
 
+// ── Lists and maps ──────────────────────────────────────────────────
+// An entry is always written through its list or map: an inherited list is
+// copied into the document first, never patched by index into an object.
+
+const shown = (tokens: string[]) => getAt(model.value, tokens) ?? getAt(props.base, tokens);
+
+function entrySchema(row: ObjectEditorRowModel): JsonSchema {
+  const raw = row.container === 'list' ? row.schema.items : row.schema.additionalProperties;
+  return raw && typeof raw === 'object' ? nonNullSchema(props.schema, resolveSchema(props.schema, raw)) : {};
+}
+
+function initialValue(schema: JsonSchema): JsonValue {
+  const type = Array.isArray(schema.type) ? schema.type[0] : schema.type;
+  if (type === 'string') return '';
+  if (type === 'number' || type === 'integer') return 0;
+  if (type === 'boolean') return false;
+  return null;
+}
+
+function writeEntry(row: ObjectEditorRowModel, change: (container: JsonValue[] | JsonObject) => void) {
+  const parent = row.tokens.slice(0, -1);
+  const current = shown(parent);
+  const copy = row.entry?.container === 'list'
+    ? [...(Array.isArray(current) ? current : [])]
+    : { ...(isJsonObject(current) ? current : {}) };
+  change(copy);
+  update(parent, copy);
+}
+
+function updateEntry(row: ObjectEditorRowModel, value: JsonValue | undefined) {
+  writeEntry(row, (container) => {
+    if (Array.isArray(container)) {
+      if (value === undefined) container.splice(Number(row.key), 1);
+      else container[Number(row.key)] = value;
+    } else if (value === undefined) delete container[row.key];
+    else container[row.key] = value;
+  });
+}
+
+function addEntry(row: ObjectEditorRowModel) {
+  const value = initialValue(entrySchema(row));
+  const current = shown(row.tokens);
+  if (row.container === 'list') {
+    update(row.tokens, [...(Array.isArray(current) ? current : []), value]);
+  } else {
+    const map = { ...(isJsonObject(current) ? current : {}) };
+    let key = 'key';
+    for (let n = 2; Object.hasOwn(map, key); n++) key = `key${n}`;
+    map[key] = value;
+    update(row.tokens, map);
+  }
+}
+
+function insertEntry(row: ObjectEditorRowModel) {
+  const parent = views.value.find((entry) => entry.row.pointer === formatPointer(row.tokens.slice(0, -1)));
+  if (!parent) return;
+  writeEntry(row, (list) => (list as JsonValue[]).splice(Number(row.key) + 1, 0, initialValue(entrySchema(parent.row))));
+}
+
+function moveEntry(row: ObjectEditorRowModel, offset: -1 | 1) {
+  writeEntry(row, (list) => {
+    const items = list as JsonValue[];
+    const from = Number(row.key);
+    const to = from + offset;
+    if (to < 0 || to >= items.length) return;
+    [items[from], items[to]] = [items[to], items[from]];
+  });
+  nextTick(() => focus(formatPointer([...row.tokens.slice(0, -1), String(Number(row.key) + offset)])));
+}
+
+/** Map keys the user tried to give twice, by pointer of the entry: shown at the key. */
+const keyErrors = ref(new Map<string, string>());
+
+function renameEntry(row: ObjectEditorRowModel, key: string) {
+  const parent = row.tokens.slice(0, -1);
+  const current = shown(parent);
+  const map = isJsonObject(current) ? current : {};
+  const errors = new Map(keyErrors.value);
+  errors.delete(row.pointer);
+  if (key !== row.key && (key === '' || Object.hasOwn(map, key))) {
+    errors.set(row.pointer, key === ''
+      ? t('coar.objectEditor.keyEmpty', undefined, 'A key cannot be empty.')
+      : t('coar.objectEditor.keyTaken', undefined, 'This key exists already.'));
+  } else if (key !== row.key) {
+    // Rebuilt in order, so the renamed entry keeps its place.
+    update(parent, Object.fromEntries(Object.entries(map).map(([k, v]) => [k === row.key ? key : k, v])));
+  }
+  keyErrors.value = errors;
+}
+
 // Removing a value. Over a base, a group left empty by it is removed too: an
 // empty local group would only stand in for the inherited one. Without a base,
-// {} is a value and stays.
+// {} is a value and stays. An entry of a list or map leaves through its container.
 function remove(tokens: string[]) {
+  const entry = views.value.find((view) => view.row.pointer === formatPointer(tokens))?.row;
+  if (entry?.entry) return updateEntry(entry, undefined);
   let next = setAt(model.value ?? {}, tokens, undefined) as JsonObject;
   if (props.base) {
     for (let depth = tokens.length - 1; depth > 0; depth--) {
@@ -228,7 +360,7 @@ async function edit(pointer: string) {
 </script>
 
 <template>
-  <div class="coar-object-editor" :class="[`coar-object-editor--${mode}`, { 'coar-object-editor--striped': striped }]">
+  <div ref="root" class="coar-object-editor" :class="[`coar-object-editor--${mode}`, { 'coar-object-editor--striped': striped }]">
     <ul v-if="placed.unplaced.length" class="coar-object-editor-issues">
       <li v-for="message in placed.unplaced" :key="message" class="coar-object-editor-error">{{ message }}</li>
     </ul>
@@ -248,15 +380,22 @@ async function edit(pointer: string) {
       :error="placed.byRow.get(entry.row.pointer)"
       :control-id="controlId(entry.row.pointer)"
       :locale="locale"
-      @update:value="update(entry.row.tokens, $event)"
+      :key-error="keyErrors.get(entry.row.pointer)"
+      @update:value="entry.row.entry ? updateEntry(entry.row, $event) : update(entry.row.tokens, $event)"
       @remove="remove(entry.row.tokens)"
+      @add="addEntry(entry.row)"
+      @insert="insertEntry(entry.row)"
+      @move="moveEntry(entry.row, $event)"
+      @rename="renameEntry(entry.row, $event)"
       @edit="edit(entry.row.pointer)"
       @leave="editing = ''"
       @toggle="toggle(entry.row.pointer)"
     />
     <p v-if="!visible.length" class="coar-object-editor-empty">
       {{
-        view === 'local'
+        searching
+          ? t('coar.objectEditor.noMatches', undefined, 'No property matches the search.')
+          : view === 'local'
           ? t('coar.objectEditor.noLocalValues', undefined, 'No values are set here.')
           : t('coar.objectEditor.noProperties', undefined, 'The schema has no properties yet.')
       }}

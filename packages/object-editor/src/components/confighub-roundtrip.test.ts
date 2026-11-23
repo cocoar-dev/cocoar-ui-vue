@@ -115,6 +115,37 @@ describe('ConfigHub round trip (#94)', () => {
     wrapper.unmount();
   });
 
+  it('edits an ordered list and a map of the layer and leaves the rest intact', async () => {
+    const listSchema: JsonSchema = {
+      type: 'object',
+      properties: {
+        hosts: { type: 'array', items: { type: 'string' }, title: 'Hosts' },
+        quotas: { type: 'object', additionalProperties: { type: 'integer' }, title: 'Quotas' },
+        note: { type: 'string' },
+      },
+    };
+    const model = ref<JsonObject | undefined>({ hosts: ['a', 'b', 'a'], quotas: { cpu: 0 }, note: 'x', other: true });
+    const wrapper = mount(
+      defineComponent({
+        setup: () => () =>
+          h(CoarObjectEditor, {
+            schema: listSchema,
+            modelValue: model.value,
+            'onUpdate:modelValue': (next: JsonObject | undefined) => (model.value = next),
+          }),
+      }),
+      { attachTo: document.body },
+    );
+    const rowOf = (pointer: string) =>
+      wrapper.findAllComponents({ name: 'ObjectEditorRow' }).find((row) => row.props('row').pointer === pointer)!;
+    rowOf('/hosts/2').vm.$emit('move', -1);
+    await nextTick();
+    rowOf('/quotas/cpu').vm.$emit('rename', 'cores');
+    await nextTick();
+    expect(model.value).toEqual({ hosts: ['a', 'a', 'b'], quotas: { cores: 0 }, note: 'x', other: true });
+    wrapper.unmount();
+  });
+
   it('keeps a schema that a second validator accepts', () => {
     const ajv = new Ajv2020({ strict: false });
     expect(ajv.validateSchema(schema)).toBe(true);

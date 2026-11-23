@@ -6,7 +6,7 @@ import { validateValue } from './validate';
 import { issueMessage } from './messages';
 import type { JsonSchema } from './schema';
 
-const known = new Set(['text', 'multiline', 'number', 'boolean', 'date', 'email', 'color', 'choice', 'choices', 'tags', 'object', 'list', 'json', 'money']);
+const known = new Set(['text', 'multiline', 'number', 'boolean', 'date', 'email', 'color', 'choice', 'choices', 'tags', 'object', 'list', 'map', 'group-list', 'json', 'money']);
 
 const product: JsonSchema = {
   type: 'object',
@@ -71,9 +71,14 @@ describe('resolve', () => {
     expect(type('stock')).toBe('number');
     expect(type('launch')).toBe('date');
     expect(type('category')).toBe('choice');
-    expect(type('tags')).toBe('tags');
+    expect(type('tags')).toBe('list');
+    expect(detectTypeId(product, { type: 'array', uniqueItems: true, items: { type: 'string' } }, known)).toBe('tags');
+    expect(detectTypeId(product, { type: 'array', items: { type: 'integer' } }, known)).toBe('list');
+    expect(detectTypeId(product, { type: 'object', additionalProperties: { type: 'number' } }, known)).toBe('map');
+    expect(detectTypeId(product, { type: 'object', additionalProperties: { type: 'object', properties: { a: {} } } }, known)).toBe('object');
+    expect(detectTypeId(product, { type: 'object', additionalProperties: { type: 'array' } }, known)).toBe('object');
     expect(type('dimensions')).toBe('object');
-    expect(type('contacts')).toBe('list');
+    expect(type('contacts')).toBe('group-list');
     expect(detectTypeId(product, { type: 'string', 'x-coar-type': 'multiline' }, known)).toBe('multiline');
     expect(detectTypeId(product, { type: 'string', 'x-coar-type': 'unknown' }, known)).toBe('text');
     expect(detectTypeId(product, { type: 'string', pattern: '^#[0-9A-Fa-f]{6}$' }, known)).toBe('color');

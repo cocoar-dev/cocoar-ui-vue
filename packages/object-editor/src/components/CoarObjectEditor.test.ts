@@ -49,7 +49,7 @@ describe('buildRows', () => {
     expect(rows.map((r) => r.pointer)).toEqual([
       '/name', '/stock', '/category', '/owner', '/dimensions', '/dimensions/width', '/contacts', '/extra',
     ]);
-    expect(rows.find((r) => r.pointer === '/contacts')!.typeId).toBe('list');
+    expect(rows.find((r) => r.pointer === '/contacts')!.typeId).toBe('group-list');
     expect(rows.find((r) => r.pointer === '/extra')!.extra).toBe(true);
     expect(buildRows(schema, {}, defineObjectEditorTypes(), {}, new Set(['/dimensions'])).map((r) => r.pointer)).not.toContain('/dimensions/width');
   });

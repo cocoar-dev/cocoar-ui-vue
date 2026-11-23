@@ -34,7 +34,7 @@ export interface CoarValueContext {
 }
 
 /** What the schema editor offers for a property of the type. */
-export type CoarTypeSetting = 'range' | 'decimals' | 'unit' | 'options' | 'suggestions';
+export type CoarTypeSetting = 'range' | 'decimals' | 'unit' | 'options' | 'suggestions' | 'itemType' | 'valueType';
 
 /**
  * A value type: the shape of its data and how the editors show it. The built-in
@@ -71,6 +71,8 @@ export interface CoarValueType<TValue = unknown> {
   previewInEdit?: boolean;
   /** Built in: written inline into the property instead of `$defs`. Set by the package. */
   builtin?: boolean;
+  /** Edited as one row per entry: an ordered list (`items`) or a map (`additionalProperties`). Set by the package. */
+  container?: 'list' | 'map';
   /** Shown read-only and not offered in the schema editor (lists of objects, unknown values). */
   readonlyOnly?: boolean;
   /**
