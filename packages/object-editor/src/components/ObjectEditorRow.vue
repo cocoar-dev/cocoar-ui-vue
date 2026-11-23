@@ -77,21 +77,26 @@ function focusInput(event: MouseEvent) {
 <template>
   <div
     class="coar-object-editor-row"
-    :class="{ 'coar-object-editor-row--nested': row.depth > 0, 'coar-object-editor-row--extra': row.extra }"
+    :class="{
+      'coar-object-editor-row--nested': row.depth > 0,
+      'coar-object-editor-row--open': row.nested && !collapsed && !!row.schema.properties && Object.keys(row.schema.properties).length > 0,
+      'coar-object-editor-row--extra': row.extra,
+    }"
     :data-pointer="row.pointer"
     :style="{ '--coar-object-editor-depth': row.depth }"
   >
     <div class="coar-object-editor-key">
-      <CoarButton
-        v-if="row.nested"
-        variant="ghost"
-        size="xs"
-        :icon-start="collapsed ? 'chevron-right' : 'chevron-down'"
-        :aria-expanded="!collapsed"
-        :aria-label="row.title"
-        @click="emit('toggle')"
-      />
-      <span v-else class="coar-object-editor-chevron-space"></span>
+      <span class="coar-object-editor-chevron">
+        <CoarButton
+          v-if="row.nested"
+          variant="ghost"
+          size="xs"
+          :icon-start="collapsed ? 'chevron-right' : 'chevron-down'"
+          :aria-expanded="!collapsed"
+          :aria-label="row.title"
+          @click="emit('toggle')"
+        />
+      </span>
       <span
         class="coar-object-editor-type"
         :style="{ '--coar-object-editor-hue': type.hue ?? 255 }"

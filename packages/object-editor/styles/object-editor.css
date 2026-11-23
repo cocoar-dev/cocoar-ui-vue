@@ -11,6 +11,10 @@
 }
 
 .coar-object-editor-row {
+  /* One indent step: the width of the chevron slot, so a nested row's chevron
+     and icon sit one slot to the right of its group's. */
+  --coar-object-editor-indent: 28px;
+  position: relative;
   display: grid;
   grid-template-columns: minmax(170px, 35%) minmax(0, 1fr);
   align-items: center;
@@ -19,9 +23,14 @@
   padding-inline: 6px;
   border-radius: 8px;
 }
-/* Alternating backgrounds connect each key with its value. */
+/* Every second row takes --coar-object-editor-row-stripe, transparent unless a
+   theme or preset sets it. It is read here, never set on the editor, so a value
+   on :root or a theme scope applies; `striped` sets it for one editor. */
 .coar-object-editor-row:nth-child(even):not(:hover) {
-  background: color-mix(in srgb, var(--coar-background-neutral-secondary) 72%, transparent);
+  background: var(--coar-object-editor-row-stripe, transparent);
+}
+.coar-object-editor--striped {
+  --coar-object-editor-row-stripe: color-mix(in srgb, var(--coar-background-neutral-secondary) 72%, transparent);
 }
 .coar-object-editor-row:hover {
   background: var(--coar-background-neutral-secondary);
@@ -32,13 +41,42 @@
   align-items: center;
   gap: 6px;
   min-width: 0;
-  padding-left: calc(var(--coar-object-editor-depth, 0) * 18px);
+  padding-left: calc(var(--coar-object-editor-depth, 0) * var(--coar-object-editor-indent));
 }
-.coar-object-editor-row--nested .coar-object-editor-key {
-  border-left: 1px solid var(--coar-border-neutral-tertiary);
+/* Nesting guides: one line per enclosing group, under the middle of its chevron,
+   over the full height of the row; the rows touch, so the lines run through. */
+.coar-object-editor-row--nested::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  left: 6px;
+  width: calc(var(--coar-object-editor-depth, 0) * var(--coar-object-editor-indent));
+  background-image: linear-gradient(
+    to right,
+    transparent calc(50% - 0.5px),
+    var(--coar-border-neutral-tertiary) calc(50% - 0.5px),
+    var(--coar-border-neutral-tertiary) calc(50% + 0.5px),
+    transparent calc(50% + 0.5px)
+  );
+  background-size: var(--coar-object-editor-indent) 100%;
+  background-repeat: repeat-x;
+  pointer-events: none;
 }
-.coar-object-editor-chevron-space {
-  width: 18px;
+/* An open group starts the guide of its rows right under its chevron. */
+.coar-object-editor-row--open::after {
+  content: '';
+  position: absolute;
+  top: calc(50% + 10px);
+  bottom: 0;
+  left: calc(6px + var(--coar-object-editor-depth, 0) * var(--coar-object-editor-indent) + var(--coar-object-editor-indent) / 2 - 0.5px);
+  width: 1px;
+  background: var(--coar-border-neutral-tertiary);
+  pointer-events: none;
+}
+.coar-object-editor-chevron {
+  display: inline-flex;
+  justify-content: center;
+  width: var(--coar-object-editor-indent);
   flex: none;
 }
 .coar-object-editor-type {

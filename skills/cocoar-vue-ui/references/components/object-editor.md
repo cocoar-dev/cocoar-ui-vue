@@ -20,15 +20,19 @@ import '@cocoar/vue-object-editor/styles';
 ## Basic usage
 
 Bind the object with `v-model` and pass its schema. `mode="view"` shows the formatted values; `mode="edit"` shows
-the controls. Both use the same rows, so switching moves nothing.
+the controls. Both use the same rows, so switching moves nothing. `striped` puts every second row on a light
+background; a theme can do that for every editor (see [Theming](#theming)).
 
 **Demo — `object-editor/demos/ObjectEditorProduct.vue`**
 
 ```vue
 <template>
   <div class="demo">
-    <CoarSegmentedControl v-model="mode" :options="modes" aria-label="Mode" />
-    <CoarObjectEditor v-model="product" :schema="productSchema" :mode="mode" locale="en-US" />
+    <div class="toolbar">
+      <CoarSegmentedControl v-model="mode" :options="modes" aria-label="Mode" />
+      <CoarSwitch v-model="striped" size="s" label="Striped" />
+    </div>
+    <CoarObjectEditor v-model="product" :schema="productSchema" :mode="mode" :striped="striped" locale="en-US" />
     <details>
       <summary>JSON</summary>
       <pre>{{ JSON.stringify(product, null, 2) }}</pre>
@@ -38,13 +42,14 @@ the controls. Both use the same rows, so switching moves nothing.
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { CoarSegmentedControl } from '@cocoar/vue-ui';
+import { CoarSegmentedControl, CoarSwitch } from '@cocoar/vue-ui';
 import { CoarObjectEditor } from '@cocoar/vue-object-editor';
 import '@cocoar/vue-object-editor/styles';
 import { createProduct, productSchema } from './product-schema';
 
 const product = ref(createProduct());
 const mode = ref<'view' | 'edit'>('edit');
+const striped = ref(false);
 const modes = [
   { value: 'view', label: 'View' },
   { value: 'edit', label: 'Edit' },
@@ -57,6 +62,11 @@ const modes = [
   flex-direction: column;
   gap: 12px;
   width: 100%;
+}
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 pre {
   font-size: 12px;
@@ -361,6 +371,7 @@ The same operations exist as functions: `addProperty`, `removeProperty`, `rename
 | `optionSources` | `Record<string, Option[] \| () => Option[] \| Promise<Option[]>>` | `{}` | Options named by `x-coar-options` |
 | `mode` | `'view' \| 'edit'` | `'edit'` | Formatted values or controls |
 | `locale` | `string` | browser | Locale of numbers and dates |
+| `striped` | `boolean` | `false` | Every second row on a light background, for this editor (see [Theming](#theming)) |
 
 The component exposes `issues`: every problem of the value, as `{ pointer, keyword, message? }`.
 
@@ -383,6 +394,21 @@ The component exposes `issues`: every problem of the value, as `{ pointer, keywo
 
 Validation uses [`@cfworker/json-schema`](https://github.com/cfworker/cfworker/tree/main/packages/json-schema): it
 interprets the schema and never generates code, so a Content Security Policy without `'unsafe-eval'` works.
+
+## Theming
+
+The rows sit on the background of the page. To give every second row a background in every object editor of an
+app, set its token in the theme or style preset; the `striped` prop sets the same token for one editor.
+
+| Token | Default | Description |
+|-------|---------|-------------|
+| `--coar-object-editor-row-stripe` | `transparent` | Background of every second row |
+
+```css
+:root {
+  --coar-object-editor-row-stripe: var(--coar-background-neutral-secondary);
+}
+```
 
 ## i18n Keys
 

@@ -28,8 +28,10 @@ const props = withDefaults(
     mode?: 'view' | 'edit';
     /** Locale of numbers and dates; the browser's when not set. */
     locale?: string;
+    /** Every second row on a light background; off: all rows on the background of the page. */
+    striped?: boolean;
   }>(),
-  { types: undefined, optionSources: () => ({}), mode: 'edit', locale: undefined },
+  { types: undefined, optionSources: () => ({}), mode: 'edit', locale: undefined, striped: false },
 );
 const model = defineModel<JsonObject | undefined>();
 const { t } = useI18n();
@@ -105,7 +107,7 @@ async function edit(pointer: string) {
 </script>
 
 <template>
-  <div class="coar-object-editor" :class="`coar-object-editor--${mode}`">
+  <div class="coar-object-editor" :class="[`coar-object-editor--${mode}`, { 'coar-object-editor--striped': striped }]">
     <ObjectEditorRow
       v-for="row in rows"
       :key="row.pointer"
