@@ -255,3 +255,110 @@ describe('CoarNumberInput actions and the surrounding form field', () => {
     expect(trigger.attributes('aria-invalid')).toBeUndefined();
   });
 });
+
+describe('CoarNumberInput keeps the value it was given', () => {
+  const mountInput = (props: Record<string, unknown>) =>
+    mount(CoarNumberInput, { props, global: { stubs: { CoarIcon: CoarIconStub } } });
+  const leave = async (wrapper: ReturnType<typeof mountInput>) => {
+    await wrapper.find('input').trigger('focus');
+    await wrapper.find('input').trigger('blur');
+  };
+  const enter = async (wrapper: ReturnType<typeof mountInput>, text: string) => {
+    await wrapper.find('input').setValue(text);
+    await wrapper.find('input').trigger('blur');
+  };
+  const last = (wrapper: ReturnType<typeof mountInput>) => wrapper.emitted('update:modelValue')?.at(-1)?.[0];
+
+  it.each([
+    [12.3456, { decimals: 2, locale: 'de-DE' }],
+    [150, { decimals: 2, max: 100, locale: 'en-US' }],
+    [-5, { min: 0, locale: 'en-US' }],
+    [0.5, { decimals: 0, locale: 'en-US' }],
+    [1e21, { decimals: 2, locale: 'en-US' }],
+  ])('does not rewrite %d when the field is left unchanged', async (modelValue, props) => {
+    const wrapper = mountInput({ modelValue, ...props });
+    await leave(wrapper);
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined();
+  });
+
+  it('still rounds and clamps what was typed', async () => {
+    const wrapper = mountInput({ modelValue: 1, decimals: 2, max: 100, locale: 'en-US' });
+    await enter(wrapper, '150');
+    expect(last(wrapper)).toBe(100);
+    expect((wrapper.find('input').element as HTMLInputElement).value).toBe('100.00');
+  });
+
+  it('reads a typed negative number', async () => {
+    const wrapper = mountInput({ modelValue: 1, decimals: 2, locale: 'en-US' });
+    await enter(wrapper, '-12.5');
+    expect(last(wrapper)).toBe(-12.5);
+  });
+
+  it('shows every digit with decimals null, without an exponent', () => {
+    const value = (modelValue: number) =>
+      (mountInput({ modelValue, decimals: null, locale: 'de-DE' }).find('input').element as HTMLInputElement).value;
+    expect(value(12.3456)).toBe('12,3456');
+    expect(value(1e-7)).toBe('0,0000001');
+    expect(value(1e21)).toBe('1000000000000000000000');
+    expect(value(-1.5e-3)).toBe('-0,0015');
+  });
+
+  it('steps without floating point noise with decimals null', async () => {
+    const wrapper = mountInput({ modelValue: 0.1, decimals: null, step: 0.2, stepperButtons: 'both' });
+    await wrapper.find('.coar-number-input-button--increment').trigger('click');
+    expect(last(wrapper)).toBe(0.3);
+  });
+
+  describe('exact', () => {
+    it.each([
+      ['de-DE', '12,3456', 12.3456],
+      ['de-DE', '12.3456', 12.3456],
+      ['en-US', '12.3456', 12.3456],
+      ['de-DE', '-0,5', -0.5],
+      ['en-US', '.5', 0.5],
+      ['en-US', '42', 42],
+    ])('%s stores %s as %d', async (locale, text, expected) => {
+      const wrapper = mountInput({ modelValue: 1, exact: true, decimals: null, locale });
+      await enter(wrapper, text);
+      expect(last(wrapper)).toBe(expected);
+      expect(wrapper.emitted('entry-refused')).toBeUndefined();
+    });
+
+    it.each([
+      ['en-US', '12,3456'],
+      ['de-DE', '1.234,5'],
+      ['en-US', '1,234.5'],
+      ['en-US', '1e5'],
+      ['en-US', 'abc'],
+      ['en-US', '-'],
+    ])('%s refuses %s and keeps the value', async (locale, text) => {
+      const wrapper = mountInput({ modelValue: 1, exact: true, decimals: null, locale });
+      await enter(wrapper, text);
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined();
+      expect(wrapper.emitted('entry-refused')).toEqual([[true]]);
+      expect((wrapper.find('input').element as HTMLInputElement).value).toBe(text);
+      expect(wrapper.find('input').attributes('aria-invalid')).toBe('true');
+    });
+
+    it('refuses more decimals than allowed instead of rounding', async () => {
+      const wrapper = mountInput({ modelValue: 1, exact: true, decimals: 2, locale: 'en-US' });
+      await enter(wrapper, '1.234');
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined();
+      await enter(wrapper, '1.2300');
+      expect(last(wrapper)).toBe(1.23);
+      expect(wrapper.emitted('entry-refused')).toEqual([[true], [false]]);
+    });
+
+    it('does not clamp a typed value', async () => {
+      const wrapper = mountInput({ modelValue: 1, exact: true, decimals: null, max: 10, locale: 'en-US' });
+      await enter(wrapper, '50');
+      expect(last(wrapper)).toBe(50);
+    });
+
+    it('empties the value', async () => {
+      const wrapper = mountInput({ modelValue: 1, exact: true, decimals: null, locale: 'en-US' });
+      await enter(wrapper, '');
+      expect(last(wrapper)).toBeNull();
+    });
+  });
+});

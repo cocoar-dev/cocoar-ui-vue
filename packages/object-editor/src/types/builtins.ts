@@ -1,7 +1,7 @@
 import { markRaw } from 'vue';
 import { Temporal } from '@js-temporal/polyfill';
 import { HEX_COLOR_PATTERN } from '../core/resolve';
-import { isJsonObject, type JsonObject, type JsonValue } from '../core/schema';
+import { isJsonObject, numberScale, type JsonObject, type JsonValue } from '../core/schema';
 import TextControl from './controls/TextControl.vue';
 import NumberControl from './controls/NumberControl.vue';
 import BooleanControl from './controls/BooleanControl.vue';
@@ -11,10 +11,12 @@ import ChoiceControl from './controls/ChoiceControl.vue';
 import ChoicesControl from './controls/ChoicesControl.vue';
 import TagsView from './controls/TagsView.vue';
 import ColorView from './controls/ColorView.vue';
-import type { CoarObjectEditorTypes, CoarValueContext, CoarValueType } from './types';
+import type { CoarObjectEditorTypes, CoarValueType } from './types';
 
-function decimalsOf(context: CoarValueContext): number {
-  return context.schema['x-coar-decimals'] ?? (context.schema.type === 'integer' ? 0 : 2);
+/** The decimals a number has as text; `Intl` accepts at most 20 everywhere. */
+function ownDecimals(value: number): number {
+  const [mantissa, exponent = '0'] = String(value).split('e');
+  return Math.min(20, Math.max(0, (mantissa.split('.')[1]?.length ?? 0) - Number(exponent)));
 }
 
 const builtinList: CoarValueType[] = [
@@ -48,7 +50,7 @@ const builtinList: CoarValueType[] = [
     settings: ['range', 'decimals', 'unit'],
     control: markRaw(NumberControl),
     format: (value: number, context) => {
-      const decimals = decimalsOf(context);
+      const decimals = numberScale(context.schema) ?? ownDecimals(value);
       const text = new Intl.NumberFormat(context.locale, {
         minimumFractionDigits: decimals,
         maximumFractionDigits: decimals,

@@ -198,6 +198,9 @@
 .coar-object-editor-control--numeric {
   cursor: text;
 }
+.coar-object-editor-control > .coar-object-editor-error {
+  display: block;
+}
 .coar-object-editor-switch {
   margin-inline-start: var(--coar-object-editor-inset);
 }
