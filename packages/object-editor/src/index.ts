@@ -3,6 +3,7 @@ export { default as CoarObjectEditor } from './components/CoarObjectEditor.vue';
 export type { CoarObjectEditorOptionSource } from './components/CoarObjectEditor.vue';
 export type { CoarObjectEditorOrigin, CoarResolveType } from './components/rows';
 export { default as CoarSchemaEditor } from './components/CoarSchemaEditor.vue';
+export type { CoarSchemaEditorProfile } from './components/CoarSchemaEditor.vue';
 
 // Value types
 export { COAR_BUILTIN_VALUE_TYPES, defineObjectEditorTypes } from './types/builtins';
@@ -29,6 +30,12 @@ export type { CoarPresence, ObjectEditorIssue, ValidateOptions } from './core/va
 export {
   addProperty,
   changePropertyType,
+  choiceEncodingOf,
+  droppedByTypeChange,
+  isNullable,
+  setEntryType,
+  setNullable,
+  unsupportedKeywords,
   moveProperty,
   propertyOptions,
   propertySchemaFor,
@@ -39,6 +46,6 @@ export {
   uniqueKey,
   updateProperty,
 } from './core/schema-ops';
-export type { SchemaPath } from './core/schema-ops';
+export type { AuthoringOptions, ChoiceEncoding, SchemaPath } from './core/schema-ops';
 export { checkSchema, PROPERTY_KEY_PATTERN } from './core/schema-check';
 export type { SchemaProblem } from './core/schema-check';

@@ -5,7 +5,7 @@ export const productSchema: JsonSchema = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',
   type: 'object',
   required: ['name', 'launchDate'],
-  'x-coar-order': ['name', 'description', 'stock', 'active', 'launchDate', 'category', 'color', 'tags', 'supportEmail', 'dimensions'],
+  'x-coar-order': ['name', 'description', 'stock', 'active', 'launchDate', 'category', 'color', 'tags', 'highlights', 'supportEmail', 'dimensions', 'prices'],
   properties: {
     name: { type: 'string', title: 'Product name', 'x-coar-type': 'text' },
     description: { type: 'string', title: 'Description', 'x-coar-type': 'multiline' },
@@ -30,7 +30,14 @@ export const productSchema: JsonSchema = {
       'x-coar-type': 'tags',
       'x-coar-suggestions': ['minimal', 'led', 'dimmable', 'new'],
     },
+    highlights: { type: 'array', items: { type: 'string' }, title: 'Highlights', 'x-coar-type': 'list' },
     supportEmail: { type: 'string', format: 'email', title: 'Support address', 'x-coar-type': 'email' },
+    prices: {
+      type: 'object',
+      title: 'Prices by country',
+      'x-coar-type': 'map',
+      additionalProperties: { type: 'number', minimum: 0, 'x-coar-type': 'number' },
+    },
     dimensions: {
       type: 'object',
       title: 'Dimensions',
@@ -53,6 +60,8 @@ export function createProduct(): JsonObject {
     category: 'lighting',
     color: '#E8B04B',
     tags: ['minimal', 'led'],
+    highlights: ['Dimmable', 'Warm and cool light', 'Dimmable'],
+    prices: { AT: 129.9, DE: 124.9 },
     supportEmail: 'support@cocoar',
     dimensions: { width: 18, height: 45 },
   };

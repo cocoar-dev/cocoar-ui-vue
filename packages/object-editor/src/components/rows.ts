@@ -28,6 +28,10 @@ export interface ObjectEditorRowModel {
   recursive: boolean;
   /** A value in the data the schema has no property for. */
   extra: boolean;
+  /** An ordered list or a map, edited as one row per entry. */
+  container?: 'list' | 'map';
+  /** An entry of a list or a map: its place among the others. */
+  entry?: { container: 'list' | 'map'; index: number; count: number };
 }
 
 export type OptionSourceValues = Readonly<Record<string, readonly CoarObjectEditorOption[]>>;
@@ -71,6 +75,8 @@ export interface BuildRowsOptions {
   /** Every group that holds data is open, also a recursive one (still finite: the data is). */
   allWithData?: boolean;
   resolveType?: CoarResolveType;
+  /** Every group is open, regardless of `toggled` (a search sees all rows). */
+  allOpen?: boolean;
 }
 
 function optionsFor(root: JsonSchema, schema: JsonSchema, typeId: string, sources: OptionSourceValues) {
@@ -91,7 +97,7 @@ export function buildRows(
   types: CoarObjectEditorTypes,
   sources: OptionSourceValues,
   toggled: ReadonlySet<string>,
-  { allWithData = false, resolveType }: BuildRowsOptions = {},
+  { allWithData = false, resolveType, allOpen = false }: BuildRowsOptions = {},
 ): ObjectEditorRowModel[] {
   const known = new Set(types.keys());
   const fallback = types.get('json')!;
@@ -119,10 +125,11 @@ export function buildRows(
       const chosen = resolveType?.({ schema: full, pointer, typeId: detected });
       const typeId = chosen && known.has(chosen) ? chosen : detected;
       const type = types.get(typeId) ?? fallback;
-      const nested = !type.control && !type.readonlyOnly && !!resolved.properties;
+      const container = type.container;
+      const nested = !!container || (!type.control && !type.readonlyOnly && !!resolved.properties);
       const ref = refId(raw);
       const recursive = !!ref && refs.has(ref);
-      const collapsed = allWithData
+      const collapsed = allWithData || allOpen
         ? nested && recursive && !isJsonObject(data[key])
         : nested && recursive !== toggled.has(pointer);
       rows.push({
@@ -142,8 +149,10 @@ export function buildRows(
         collapsed,
         recursive,
         extra: false,
+        ...(container ? { container } : {}),
       });
-      if (nested && !collapsed) {
+      if (container && !collapsed) entries(container, resolved, data[key], childTokens, depth + 1);
+      else if (nested && !collapsed) {
         visit(resolved, data[key], childTokens, depth + 1, ref ? new Set([...refs, ref]) : refs);
       }
     }
@@ -171,8 +180,65 @@ export function buildRows(
     }
   }
 
+  // The entries of a list (by index) or a map (by key), each with the type of
+  // `items` / `additionalProperties`.
+  function entries(
+    container: 'list' | 'map',
+    schema: JsonSchema,
+    data: JsonValue | undefined,
+    tokens: string[],
+    depth: number,
+  ) {
+    const raw = (container === 'list' ? schema.items : schema.additionalProperties) as JsonSchema | undefined;
+    const itemRaw: JsonSchema = raw && typeof raw === 'object' ? raw : {};
+    const full = resolveSchema(root, itemRaw);
+    const resolved = nonNullSchema(root, full);
+    const typeId = detectTypeId(root, itemRaw, known);
+    const type = types.get(typeId) ?? fallback;
+    const keys =
+      container === 'list'
+        ? (Array.isArray(data) ? data : []).map((_, index) => String(index))
+        : Object.keys(isJsonObject(data) ? data : {});
+    keys.forEach((key, index) => {
+      const childTokens = [...tokens, key];
+      rows.push({
+        pointer: formatPointer(childTokens),
+        tokens: childTokens,
+        key,
+        title: container === 'list' ? String(index + 1) : key,
+        required: false,
+        depth,
+        typeId,
+        type,
+        schema: resolved,
+        nullable: allowsNull(full),
+        options: optionsFor(root, resolved, typeId, sources),
+        nested: false,
+        collapsed: false,
+        recursive: false,
+        extra: false,
+        entry: { container, index, count: keys.length },
+      });
+    });
+  }
+
   visit(resolveSchema(root, root), value, [], 0, new Set());
   return rows;
+}
+
+/**
+ * The rows that match a search, and the groups that lead to them. A row matches
+ * by its title, its key or its path (`dimensions.width`), never by its value.
+ */
+export function searchRows(rows: readonly ObjectEditorRowModel[], query: string): ObjectEditorRowModel[] {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return [...rows];
+  const hits = rows
+    .filter((row) =>
+      [row.title, row.key, row.tokens.join('.'), row.pointer].some((text) => text.toLowerCase().includes(needle)),
+    )
+    .map((row) => row.pointer);
+  return rows.filter((row) => hits.some((pointer) => isPointerPrefix(row.pointer, pointer)));
 }
 
 /** The row an issue at `pointer` belongs to: the deepest row that contains it. */

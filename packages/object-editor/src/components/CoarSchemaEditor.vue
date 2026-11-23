@@ -15,6 +15,13 @@ import { detectTypeId, orderedKeys, resolveSchema } from '../core/resolve';
 import {
   addProperty,
   changePropertyType,
+  choiceEncodingOf,
+  droppedByTypeChange,
+  isNullable,
+  setEntryType,
+  setNullable,
+  unsupportedKeywords,
+  type ChoiceEncoding,
   moveProperty,
   propertyOptions,
   removeProperty,
@@ -33,12 +40,24 @@ import { defineObjectEditorTypes } from '../types/builtins';
 import type { CoarObjectEditorTypes, CoarValueType } from '../types/types';
 import HiddenLabelField from './HiddenLabelField.vue';
 
+/** What an app allows its users to author, and what it checks on top. */
+export interface CoarSchemaEditorProfile {
+  /** Ids of the types offered for new properties and type changes; all when not set. */
+  types?: readonly string[];
+  /** How choices write their values: `oneOf` with texts (default) or a plain `enum`. */
+  choiceEncoding?: ChoiceEncoding;
+  /** Problems of the app's own, shown like the editor's. */
+  diagnostics?: (schema: JsonSchema) => readonly { path: readonly string[]; message: string }[];
+}
+
 const props = withDefaults(
   defineProps<{
     /** Value types to choose from; \`defineObjectEditorTypes()\` adds the types of the app. */
     types?: CoarObjectEditorTypes;
+    /** Limits what can be authored, and adds the app's checks. */
+    profile?: CoarSchemaEditorProfile;
   }>(),
-  { types: undefined },
+  { types: undefined, profile: undefined },
 );
 /** The JSON Schema being edited; every change emits a new object. */
 const schema = defineModel<JsonSchema>({ required: true });
@@ -47,11 +66,18 @@ const baseId = useId();
 
 const register = computed(() => props.types ?? defineObjectEditorTypes());
 const typeLabel = (type: CoarValueType) => t(`coar.objectEditor.type.${type.id}`, undefined, type.label);
+const allowed = (type: CoarValueType) => !type.readonlyOnly && (!props.profile?.types || props.profile.types.includes(type.id));
 const typeOptions = computed(() =>
-  [...register.value.values()]
-    .filter((type) => !type.readonlyOnly)
+  [...register.value.values()].filter(allowed).map((type) => ({ value: type.id, label: typeLabel(type) })),
+);
+// The types an entry of a list or a map can have: single values.
+const ENTRY_TYPES = ['text', 'number', 'boolean', 'date', 'date-time', 'email', 'color'];
+const entryTypeOptions = computed(() =>
+  ENTRY_TYPES.map((id) => register.value.get(id))
+    .filter((type): type is CoarValueType => !!type && allowed(type))
     .map((type) => ({ value: type.id, label: typeLabel(type) })),
 );
+const authoring = computed(() => ({ choiceEncoding: props.profile?.choiceEncoding }));
 
 interface Item {
   path: string[];
@@ -63,6 +89,8 @@ interface Item {
   required: boolean;
   /** A group of properties edited here (not an app type, whose schema belongs to the app). */
   group: boolean;
+  /** Uses keywords the editor does not edit: shown, not changed. */
+  unsupported: boolean;
 }
 
 const items = computed<Item[]>(() => {
@@ -84,6 +112,7 @@ const items = computed<Item[]>(() => {
         type: register.value.get(typeId) ?? register.value.get('json')!,
         required: required.has(key),
         group,
+        unsupported: unsupportedKeywords(raw).length > 0,
       });
       if (group) visit(raw, at, depth + 1);
     }
@@ -102,6 +131,9 @@ const property = computed(() => {
 const settings = computed(() => new Set(selected.value?.type.settings ?? []));
 
 const problems = computed(() => checkSchema(schema.value));
+const hostProblems = computed(() => props.profile?.diagnostics?.(schema.value) ?? []);
+const hostProblemsAt = (path: SchemaPath) =>
+  hostProblems.value.filter((p) => p.path.join('/') === path.join('/')).map((p) => p.message);
 const problemsAt = (path: SchemaPath, field?: SchemaProblem['field']) =>
   problems.value.filter((p) => p.path.join('/') === path.join('/') && (!field || p.field === field));
 const problemText = (path: SchemaPath, field: SchemaProblem['field']) =>
@@ -135,7 +167,7 @@ function addNew() {
   const key = newKey.value.trim();
   const type = newType.value ? register.value.get(newType.value) : undefined;
   if (!composerTarget.value || !key || newKeyError.value || !type) return;
-  apply(addProperty(schema.value, composerTarget.value, key, type), [...composerTarget.value, key]);
+  apply(addProperty(schema.value, composerTarget.value, key, type, authoring.value), [...composerTarget.value, key]);
   composerTarget.value = null;
 }
 
@@ -163,11 +195,36 @@ function update(patch: Partial<JsonSchema>) {
   if (selected.value) apply(updateProperty(schema.value, selected.value.path, patch));
 }
 
-function setType(id: string | null) {
+/** A type change that would drop keywords waits for a confirmation that names them. */
+const pendingType = ref<{ id: string; dropped: string[] } | null>(null);
+watch(selectedId, () => (pendingType.value = null));
+
+function setType(id: string | null, confirmed = false) {
   const type = id ? register.value.get(id) : undefined;
-  if (selected.value && type && type.id !== selected.value.type.id) {
-    apply(changePropertyType(schema.value, selected.value.path, type));
+  if (!selected.value || !type || type.id === selected.value.type.id) return;
+  const dropped = droppedByTypeChange(schema.value, selected.value.path, type);
+  if (dropped.length && !confirmed) {
+    pendingType.value = { id: type.id, dropped };
+    return;
   }
+  pendingType.value = null;
+  apply(changePropertyType(schema.value, selected.value.path, type, authoring.value));
+}
+
+const unsupported = computed(() => (property.value ? unsupportedKeywords(property.value) : []));
+const nullable = computed(() => !!property.value && isNullable(property.value));
+const encoding = computed<ChoiceEncoding>(
+  () => props.profile?.choiceEncoding ?? (property.value ? choiceEncodingOf(property.value) : 'oneOf'),
+);
+const entryTypeId = computed(() => {
+  const value = property.value;
+  if (!value) return null;
+  const raw = settings.value.has('itemType') ? value.items : value.additionalProperties;
+  return raw && typeof raw === 'object' ? detectTypeId(schema.value, raw, new Set(register.value.keys())) : null;
+});
+function setEntry(id: string | null) {
+  const type = id ? register.value.get(id) : undefined;
+  if (selected.value && type) apply(setEntryType(schema.value, selected.value.path, type));
 }
 
 function move(offset: -1 | 1) {
@@ -188,7 +245,7 @@ function remove() {
 
 const options = computed(() => (property.value ? propertyOptions(property.value) : []));
 function changeOptions(next: CoarObjectEditorOption[]) {
-  if (selected.value) apply(setOptions(schema.value, selected.value.path, next));
+  if (selected.value) apply(setOptions(schema.value, selected.value.path, next, encoding.value));
 }
 function editOption(index: number, change: Partial<CoarObjectEditorOption>) {
   changeOptions(options.value.map((option, i) => (i === index ? { ...option, ...change } : option)));
@@ -225,7 +282,19 @@ const fieldId = (name: string) => `${baseId}-${name}`;
             <span>{{ item.title }}<b v-if="item.required" class="coar-object-editor-required" aria-hidden="true">*</b></span>
             <small>{{ item.key }}</small>
           </span>
-          <CoarIcon v-if="problemsAt(item.path).length" class="coar-schema-editor-warning" name="circle-alert" size="s" />
+          <CoarIcon
+            v-if="item.unsupported"
+            class="coar-schema-editor-unsupported"
+            name="lock"
+            size="s"
+            :title="t('coar.schemaEditor.unsupportedShort', undefined, 'Uses keywords this editor does not edit')"
+          />
+          <CoarIcon
+            v-if="problemsAt(item.path).length || hostProblemsAt(item.path).length"
+            class="coar-schema-editor-warning"
+            name="circle-alert"
+            size="s"
+          />
         </button>
         <CoarButton
           v-if="item.group"
@@ -291,15 +360,56 @@ const fieldId = (name: string) => `${baseId}-${name}`;
           @update:model-value="update({ description: $event })"
         />
       </CoarFormField>
+      <ul v-if="hostProblemsAt(selected.path).length" class="coar-object-editor-issues">
+        <li v-for="message in hostProblemsAt(selected.path)" :key="message" class="coar-object-editor-error">{{ message }}</li>
+      </ul>
+      <p v-if="unsupported.length" class="coar-schema-editor-note">
+        {{
+          t(
+            'coar.schemaEditor.unsupported',
+            { keywords: unsupported.join(', ') },
+            'Uses {keywords}, which this editor does not edit: only key, title and description can be changed here; the rest stays as it is.',
+          ).replace('{keywords}', unsupported.join(', '))
+        }}
+      </p>
+      <template v-else>
       <CoarFormField :id="fieldId('type')" :label="t('coar.schemaEditor.type', undefined, 'Type')">
         <CoarSelect :id="fieldId('type')" :model-value="selected.type.id" :options="typeOptions" @update:model-value="setType" />
       </CoarFormField>
+      <div v-if="pendingType" class="coar-schema-editor-confirm" role="alert">
+        <span>{{
+          t('coar.schemaEditor.typeDrops', { keywords: pendingType.dropped.join(', ') }, 'Changing the type removes {keywords}.').replace(
+            '{keywords}',
+            pendingType.dropped.join(', '),
+          )
+        }}</span>
+        <CoarButton size="s" @click="setType(pendingType.id, true)">{{ t('coar.schemaEditor.changeType', undefined, 'Change type') }}</CoarButton>
+        <CoarButton size="s" variant="ghost" @click="pendingType = null">{{ t('coar.schemaEditor.cancel', undefined, 'Cancel') }}</CoarButton>
+      </div>
       <CoarSwitch
         :model-value="selected.required"
         size="s"
         :label="t('coar.schemaEditor.required', undefined, 'Required')"
         @update:model-value="apply(setRequired(schema, selected.path, $event))"
       />
+      <CoarSwitch
+        :model-value="nullable"
+        size="s"
+        :label="t('coar.schemaEditor.allowsNull', undefined, 'Allows null')"
+        @update:model-value="apply(setNullable(schema, selected.path, $event))"
+      />
+
+      <CoarFormField
+        v-if="settings.has('itemType') || settings.has('valueType')"
+        :id="fieldId('entry-type')"
+        :label="
+          settings.has('itemType')
+            ? t('coar.schemaEditor.itemType', undefined, 'Type of the items')
+            : t('coar.schemaEditor.valueType', undefined, 'Type of the values')
+        "
+      >
+        <CoarSelect :id="fieldId('entry-type')" :model-value="entryTypeId" :options="entryTypeOptions" @update:model-value="setEntry" />
+      </CoarFormField>
 
       <template v-if="settings.has('range') || settings.has('decimals') || settings.has('unit')">
         <h3>{{ t('coar.schemaEditor.number', undefined, 'Number') }}</h3>
@@ -339,11 +449,20 @@ const fieldId = (name: string) => `${baseId}-${name}`;
 
       <template v-if="settings.has('options')">
         <h3>{{ t('coar.schemaEditor.options', undefined, 'Allowed values') }}</h3>
-        <div class="coar-schema-editor-columns coar-schema-editor-column-labels" aria-hidden="true">
+        <div
+          class="coar-schema-editor-columns coar-schema-editor-column-labels"
+          :class="{ 'coar-schema-editor-columns--single': encoding === 'enum' }"
+          aria-hidden="true"
+        >
           <span>{{ t('coar.schemaEditor.optionValue', undefined, 'Value in the JSON') }}</span>
-          <span>{{ t('coar.schemaEditor.optionLabel', undefined, 'Text') }}</span>
+          <span v-if="encoding !== 'enum'">{{ t('coar.schemaEditor.optionLabel', undefined, 'Text') }}</span>
         </div>
-        <div v-for="(option, index) in options" :key="index" class="coar-schema-editor-option">
+        <div
+          v-for="(option, index) in options"
+          :key="index"
+          class="coar-schema-editor-option"
+          :class="{ 'coar-schema-editor-option--single': encoding === 'enum' }"
+        >
           <HiddenLabelField
             :id="fieldId(`option-value-${index}`)"
             :label="t('coar.schemaEditor.optionValueOf', { n: index + 1 }, 'Value {n}').replace('{n}', String(index + 1))"
@@ -356,6 +475,7 @@ const fieldId = (name: string) => `${baseId}-${name}`;
             />
           </HiddenLabelField>
           <HiddenLabelField
+            v-if="encoding !== 'enum'"
             :id="fieldId(`option-label-${index}`)"
             :label="t('coar.schemaEditor.optionLabelOf', { n: index + 1 }, 'Text {n}').replace('{n}', String(index + 1))"
           >
@@ -394,6 +514,7 @@ const fieldId = (name: string) => `${baseId}-${name}`;
             @update:model-value="update({ 'x-coar-suggestions': $event.length ? $event : undefined })"
           />
         </HiddenLabelField>
+      </template>
       </template>
     </section>
   </div>

@@ -1,11 +1,12 @@
 import { markRaw } from 'vue';
 import { Temporal } from '@js-temporal/polyfill';
 import { HEX_COLOR_PATTERN } from '../core/resolve';
-import { isJsonObject, type JsonValue } from '../core/schema';
+import { isJsonObject, type JsonObject, type JsonValue } from '../core/schema';
 import TextControl from './controls/TextControl.vue';
 import NumberControl from './controls/NumberControl.vue';
 import BooleanControl from './controls/BooleanControl.vue';
 import DateControl from './controls/DateControl.vue';
+import DateTimeControl from './controls/DateTimeControl.vue';
 import ChoiceControl from './controls/ChoiceControl.vue';
 import ChoicesControl from './controls/ChoicesControl.vue';
 import TagsView from './controls/TagsView.vue';
@@ -83,6 +84,21 @@ const builtinList: CoarValueType[] = [
     },
   },
   {
+    id: 'date-time',
+    label: 'Date and time',
+    icon: 'clock',
+    hue: 75,
+    schema: { type: 'string', format: 'date-time' },
+    control: markRaw(DateTimeControl),
+    format: (value: string, context) => {
+      try {
+        return Temporal.Instant.from(value).toLocaleString(context.locale, { dateStyle: 'medium', timeStyle: 'short' });
+      } catch {
+        return value;
+      }
+    },
+  },
+  {
     id: 'email',
     label: 'Email',
     icon: 'at-sign',
@@ -144,6 +160,34 @@ const builtinList: CoarValueType[] = [
   },
   {
     id: 'list',
+    label: 'List',
+    icon: 'list-ordered',
+    hue: 30,
+    schema: { type: 'array', items: { type: 'string' } },
+    settings: ['itemType'],
+    container: 'list',
+    format: (value: JsonValue[], { t }) =>
+      value.length === 1
+        ? t('coar.objectEditor.item', undefined, '1 item')
+        : t('coar.objectEditor.items', { count: value.length }, '{count} items').replace('{count}', String(value.length)),
+  },
+  {
+    id: 'map',
+    label: 'Map',
+    icon: 'braces',
+    hue: 30,
+    schema: { type: 'object', additionalProperties: { type: 'string' } },
+    settings: ['valueType'],
+    container: 'map',
+    format: (value: JsonObject, { t }) => {
+      const count = Object.keys(value).length;
+      return count === 1
+        ? t('coar.objectEditor.entry', undefined, '1 entry')
+        : t('coar.objectEditor.entries', { count }, '{count} entries').replace('{count}', String(count));
+    },
+  },
+  {
+    id: 'group-list',
     label: 'List of groups',
     icon: 'list',
     hue: 270,

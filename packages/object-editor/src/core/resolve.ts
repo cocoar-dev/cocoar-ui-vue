@@ -89,6 +89,23 @@ export function nonNullSchema(root: JsonSchema, schema: JsonSchema): JsonSchema 
   return schema;
 }
 
+const SCALAR_TYPES = ['string', 'number', 'integer', 'boolean'];
+
+/**
+ * A typed map: an object whose values follow `additionalProperties` (a schema),
+ * with no fixed `properties` of its own.
+ */
+export function isMapSchema(root: JsonSchema, schema: JsonSchema): boolean {
+  const values = schema.additionalProperties;
+  if (!values || typeof values !== 'object') return false;
+  if (schema.properties && Object.keys(schema.properties).length) return false;
+  if (!hasType(schema, 'object') && schema.type) return false;
+  // Only single values (or a choice of them) have a control per entry; a map of
+  // groups or lists stays a group.
+  const entry = nonNullSchema(root, resolveSchema(root, values));
+  return isChoiceList(entry) || SCALAR_TYPES.some((type) => hasType(entry, type));
+}
+
 /** A list of constants, from `oneOf`/`anyOf` of `{ const }` or from `enum`. */
 export function isChoiceList(schema: JsonSchema): boolean {
   const list = schema.oneOf ?? schema.anyOf;
@@ -107,16 +124,20 @@ export function detectTypeId(root: JsonSchema, raw: JsonSchema, known: ReadonlyS
   if (ref && known.has(ref)) return ref;
   const schema = nonNullSchema(root, resolveSchema(root, raw));
   if (schema['x-coar-options'] || isChoiceList(schema)) return 'choice';
+  if (isMapSchema(root, schema)) return 'map';
   if (hasType(schema, 'object') || schema.properties) return 'object';
   if (hasType(schema, 'array')) {
-    const items = schema.items ? resolveSchema(root, schema.items) : {};
+    const items = schema.items ? nonNullSchema(root, resolveSchema(root, schema.items)) : {};
     if (isChoiceList(items)) return 'choices';
-    if (hasType(items, 'object') || items.properties) return 'list';
-    if (hasType(items, 'string')) return 'tags';
+    if (hasType(items, 'object') || items.properties) return 'group-list';
+    // Unique strings are tags; strings in order (duplicates allowed) and other scalars are a list.
+    if (hasType(items, 'string') && schema.uniqueItems) return 'tags';
+    if (SCALAR_TYPES.some((type) => hasType(items, type))) return 'list';
     return 'json';
   }
   if (hasType(schema, 'string')) {
     if (schema.format === 'date') return 'date';
+    if (schema.format === 'date-time') return 'date-time';
     if (schema.format === 'email') return 'email';
     if (schema.pattern === HEX_COLOR_PATTERN) return 'color';
     return 'text';
