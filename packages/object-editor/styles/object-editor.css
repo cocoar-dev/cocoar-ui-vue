@@ -16,7 +16,7 @@
   --coar-object-editor-indent: 28px;
   position: relative;
   display: grid;
-  grid-template-columns: minmax(170px, 35%) minmax(0, 1fr);
+  grid-template-columns: minmax(170px, 35%) minmax(0, 1fr) 28px;
   align-items: center;
   gap: 10px;
   min-height: 42px;
@@ -149,6 +149,51 @@
 }
 .coar-object-editor-error {
   font-size: 11px;
+}
+.coar-object-editor-value-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.coar-object-editor-value-line > :first-child {
+  min-width: 0;
+}
+/* null, "", [] and {}: values, set apart from absence ("–"). */
+.coar-object-editor-literal {
+  display: inline-block;
+  padding: 0 5px;
+  border: 1px solid var(--coar-border-neutral-tertiary);
+  border-radius: 4px;
+  font-family: var(--coar-font-family-mono, ui-monospace, monospace);
+  font-size: 11px;
+  line-height: 18px;
+  color: var(--coar-text-neutral-secondary);
+  white-space: nowrap;
+}
+.coar-object-editor-origin {
+  flex: none;
+  padding: 0 6px;
+  border-radius: 9px;
+  background: var(--coar-background-neutral-secondary);
+  font-size: 11px;
+  line-height: 18px;
+  color: var(--coar-text-neutral-secondary);
+  white-space: nowrap;
+}
+.coar-object-editor-hint {
+  padding-inline-start: var(--coar-object-editor-inset);
+  font-size: 11px;
+  color: var(--coar-text-neutral-tertiary);
+}
+/* Inherited values stay legible: a softer text colour, not a faded row. */
+.coar-object-editor-row--inherited .coar-object-editor-value {
+  --coar-text-neutral-primary: var(--coar-text-neutral-secondary);
+  color: var(--coar-text-neutral-secondary);
+}
+.coar-object-editor-actions {
+  display: flex;
+  justify-content: center;
 }
 .coar-object-editor-control--numeric {
   cursor: text;

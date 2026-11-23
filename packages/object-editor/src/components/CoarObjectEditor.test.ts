@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defineComponent, h, markRaw, ref } from 'vue';
+import { defineComponent, h, markRaw, nextTick, ref } from 'vue';
 import { mount } from '@vue/test-utils';
 import CoarObjectEditor from './CoarObjectEditor.vue';
 import { buildRows } from './rows';
@@ -71,7 +71,7 @@ describe('buildRows with a recursive definition (#93)', () => {
 
   it('opens recursive groups that hold data when every value must be seen', () => {
     const value = { head: { next: { next: {} } } };
-    const pointers = buildRows(recursive, value, defineObjectEditorTypes(), {}, new Set(), true).map((r) => r.pointer);
+    const pointers = buildRows(recursive, value, defineObjectEditorTypes(), {}, new Set(), { allWithData: true }).map((r) => r.pointer);
     expect(pointers).toContain('/head/next/next/label');
     expect(pointers).not.toContain('/head/next/next/next/label');
   });
@@ -105,13 +105,22 @@ describe('buildRows with a recursive definition (#93)', () => {
 });
 
 describe('CoarObjectEditor', () => {
-  it('writes a typed value at its path and removes a cleared one', async () => {
+  it('writes a typed value at its path and keeps an emptied text as "" (#86)', async () => {
     const { wrapper, model } = mountEditor({ name: 'Lamp' });
     const input = row(wrapper, '/name').find('input');
     await input.setValue('Desk lamp');
     expect(model.value).toEqual({ name: 'Desk lamp' });
     await input.setValue('');
+    expect(model.value).toEqual({ name: '' });
+    expect(row(wrapper, '/name').find('.coar-object-editor-literal').text()).toBe('""');
+    wrapper.unmount();
+  });
+
+  it('removes an emptied value with presence filled, as forms do', async () => {
+    const { wrapper, model } = mountEditor({ name: 'Lamp' }, { presence: 'filled' });
+    await row(wrapper, '/name').find('input').setValue('');
     expect(model.value).toEqual({});
+    expect(row(wrapper, '/name').find('.coar-object-editor-error').text()).toBe('Required.');
     wrapper.unmount();
   });
 
@@ -161,6 +170,67 @@ describe('CoarObjectEditor', () => {
     const wrapper = mount(() => h(CoarObjectEditor, { schema: loose, modelValue: { settings: {} } }));
     expect(wrapper.find('.coar-object-editor-issues').text()).toBe('flag: Required.');
     expect(row(wrapper, '/settings').find('.coar-object-editor-error').text()).toBe('mode: Required.');
+    wrapper.unmount();
+  });
+
+  it('shows null, "", [] and {} as values and a missing key as not set (#86)', () => {
+    const nullable: JsonSchema = {
+      type: 'object',
+      properties: {
+        flag: { type: ['boolean', 'null'], title: 'Flag' },
+        name: { type: 'string' },
+        tags: { type: 'array', items: { type: 'string' } },
+        group: { type: 'object', properties: { a: { type: 'string' } } },
+        missing: { type: 'string' },
+      },
+    };
+    const wrapper = mount(() =>
+      h(CoarObjectEditor, { schema: nullable, mode: 'view', modelValue: { flag: null, name: '', tags: [], group: {} } }),
+    );
+    expect(row(wrapper, '/flag').find('.coar-object-editor-literal').text()).toBe('null');
+    expect(row(wrapper, '/flag').attributes('data-state')).toBe('local');
+    expect(row(wrapper, '/tags').text()).toContain('[]');
+    expect(row(wrapper, '/group').text()).toContain('{}');
+    expect(row(wrapper, '/missing').attributes('data-state')).toBe('absent');
+    expect(row(wrapper, '/missing').find('.coar-object-editor-literal').exists()).toBe(false);
+    wrapper.unmount();
+  });
+
+  it('writes null for an emptied value the schema lets be null, and keeps the value otherwise (#86)', async () => {
+    const schema: JsonSchema = {
+      type: 'object',
+      properties: { a: { type: ['number', 'null'] }, b: { type: 'number' } },
+    };
+    const model = ref<JsonObject | undefined>({ a: 1, b: 2 });
+    const wrapper = mount(
+      () => h(CoarObjectEditor, { schema, modelValue: model.value, 'onUpdate:modelValue': (next: JsonObject | undefined) => (model.value = next) }),
+      { attachTo: document.body },
+    );
+    const control = (pointer: string) => wrapper.findAllComponents({ name: 'NumberControl' }).find((c) => c.props('id').endsWith(pointer))!;
+    control('/a').vm.$emit('update:modelValue', undefined);
+    await nextTick();
+    expect(model.value).toEqual({ a: null, b: 2 });
+    control('/b').vm.$emit('update:modelValue', undefined);
+    await nextTick();
+    expect(model.value).toEqual({ a: null, b: 2 });
+    expect(row(wrapper, '/b').find('.coar-object-editor-hint').exists()).toBe(true);
+    wrapper.unmount();
+  });
+
+  it('removes a key only through Remove, and offers Set to null where allowed (#86)', async () => {
+    const schema: JsonSchema = { type: 'object', properties: { flag: { type: ['boolean', 'null'] } } };
+    const model = ref<JsonObject | undefined>({ flag: false });
+    const wrapper = mount(
+      () => h(CoarObjectEditor, { schema, modelValue: model.value, 'onUpdate:modelValue': (next: JsonObject | undefined) => (model.value = next) }),
+      { attachTo: document.body },
+    );
+    const rowComponent = () => wrapper.findComponent({ name: 'ObjectEditorRow' });
+    rowComponent().vm.$emit('update:value', null);
+    await nextTick();
+    expect(model.value).toEqual({ flag: null });
+    rowComponent().vm.$emit('remove');
+    await nextTick();
+    expect(model.value).toEqual({});
     wrapper.unmount();
   });
 

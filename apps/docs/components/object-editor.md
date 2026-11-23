@@ -29,7 +29,8 @@ background; a theme can do that for every editor (see [Theming](#theming)).
 
 What the editor does with the data:
 
-- **A cleared value removes its key.** "Required" means the key is there and not empty.
+- **A value is there when its key is.** `null`, `""`, `[]` and `{}` are values; only **Remove** in the
+  row's menu deletes a key (see [Values and absence](#values-and-absence)).
 - **Problems appear in their row**, found by the schema (`minimum`, `format`, `required` …) and by the checks
   of the value types. A problem of a part without its own row names that part (`mode: Required.`); one that
   belongs to no row is listed above the rows.
@@ -37,6 +38,72 @@ What the editor does with the data:
   per click.
 - **Values the schema does not know stay in the data**, shown read-only as "not in the schema".
 - **Lists of objects** are shown read-only with their number of entries and kept unchanged.
+
+## Values and absence <Badge type="warning" text="Changed" /> {#values-and-absence}
+
+The editor stores exactly what is set, the way JSON Schema reads it:
+
+| State | Shown as | In the JSON |
+|-------|----------|-------------|
+| not set | `–` | no key |
+| `null` | `null` | `"x": null` |
+| empty | `""`, `[]`, `{}` | `"x": ""` … |
+
+- An emptied text is `""`, an emptied tag list `[]`. The row's menu (⋯) has **Remove value**, which deletes the
+  key, and **Set to null** where the schema allows `null` (`type: ["boolean", "null"]`, an `anyOf` with
+  `{ "type": "null" }`, or `null` in `enum`). `false` and `0` are always values.
+- A field that cannot show "no value" — an emptied number, date or choice — writes `null` when the schema allows
+  it. Otherwise nothing is written: the row asks for a value, and leaving the field restores the old one.
+- `required` is met by the key, also with `null`.
+- Rows below a group that is `null` are locked: editing them would replace that `null` with an object. The
+  group's menu has **Fill in this group**, which writes `{}`.
+
+Forms that want "empty means missing" pass `presence="filled"`: emptying a value then removes its key, and an
+empty value fails `required`. This was the behaviour before; see
+[Migrating the Object Editor values](/guide/migration-object-editor-values).
+
+## Inherited values {#inherited-values}
+
+A layered configuration edits one layer and shows what the layers below give. `base` holds those values,
+read-only: a row without a local key shows the base value, softer and marked with where it comes from. Editing
+writes the local document; **Reset to inherited** in the menu removes the local key again, and a group the reset
+leaves empty goes with it. `view="local"` shows only
+the keys the document sets — also `false`, `0`, `null` and empty values — with the groups that lead to them.
+Switching views never changes the document.
+
+<preview path="./object-editor/demos/ObjectEditorInherited.vue" />
+
+```vue
+<CoarObjectEditor
+  v-model="layer"
+  :schema="schema"
+  :base="inherited"
+  :origin="(pointer) => ({ label: sourceOf(pointer) })"
+  :view="onlyLocal ? 'local' : 'all'"
+/>
+```
+
+The editor looks up a value per path: the local one, else the base one. It does not merge — how layers combine is
+the app's rule. `origin` names the source of an inherited value; `conflict: true` shows "differs by context"
+instead of a value that would look authoritative. To check the effective document, turn `validate` off and pass
+the app's own `issues`: missing local keys are then no error, and the problems still appear in their rows.
+
+## Sensitive values {#sensitive-values}
+
+Secrets stay with the app: its control writes them, its type decides how they look. Three hooks keep them out of
+everything else:
+
+- **`resolveType`** chooses a type from a marker the schema already has, without changing the stored schema:
+  `({ schema }) => schema['x-cocoar-secret'] ? 'secret' : undefined`.
+- **`sensitive: true`** on the type: its value appears only through the type's own `format` or `view`, never
+  as generic text. **`validateSchema: false`**: the stored form (an encrypted envelope) differs from the logical
+  schema (`type: "string"`), so the schema's checks are skipped at this value.
+- **`redact(pointer, value)`** masks any other value as dots, read-only and without a control, also unknown keys
+  the schema does not describe.
+
+A missing required key is still reported where `validateSchema` is `false`: it is a check of the parent object.
+
+<preview path="./object-editor/demos/ObjectEditorSecret.vue" />
 
 ## The schema
 
@@ -146,6 +213,14 @@ The same operations exist as functions: `addProperty`, `removeProperty`, `rename
 | `mode` | `'view' \| 'edit'` | `'edit'` | Formatted values or controls |
 | `locale` | `string` | browser | Locale of numbers and dates |
 | `striped` | `boolean` | `false` | Every second row on a light background, for this editor (see [Theming](#theming)) |
+| `presence` | `'key' \| 'filled'` | `'key'` | When a value counts as there, see [Values and absence](#values-and-absence) |
+| `base` | `JsonObject` | — | Read-only values where the document has no key, see [Inherited values](#inherited-values) |
+| `origin` | `(pointer) => { label, title?, conflict? }` | — | Where an inherited value comes from |
+| `view` | `'all' \| 'local'` | `'all'` | `local`: only keys the document sets, with their groups |
+| `validate` | `boolean` | `true` | `false`: no built-in validation |
+| `issues` | `ObjectEditorIssue[]` | `[]` | Problems the app found, shown in their rows |
+| `resolveType` | `({ schema, pointer, typeId }) => string \| undefined` | — | Chooses the type of a property, see [Sensitive values](#sensitive-values) |
+| `redact` | `(pointer, value) => boolean` | — | Masks a value as dots |
 
 The component exposes `issues`: every problem of the value, as `{ pointer, keyword, message? }`.
 
@@ -161,7 +236,8 @@ The component exposes `issues`: every problem of the value, as `{ pointer, keywo
 | Function | Description |
 |----------|-------------|
 | `defineObjectEditorTypes(types?)` | The built-in types plus the given ones |
-| `validateValue(schema, value)` | The problems of a value, each at its JSON Pointer |
+| `validateValue(schema, value, { presence? })` | The problems of a value, each at its JSON Pointer |
+| `allowsNull(schema)`, `nonNullSchema(root, schema)` | Whether a schema allows `null`; the schema without its `null` alternative |
 | `createObjectSchema()` | An empty object schema |
 | `checkSchema(schema)` | Bad keys, ranges and option lists, each at its path |
 | `getAt`, `setAt`, `parsePointer`, `formatPointer` | Read and write values by JSON Pointer, without changing the original |
@@ -203,4 +279,12 @@ app, set its token in the theme or style preset; the `striped` prop sets the sam
 | `coar.objectEditor.filled` | `{count} filled` |
 | `coar.objectEditor.entry` / `entries` | `1 entry` / `{count} entries` |
 | `coar.objectEditor.type.<id>` | The `label` of the type |
+| `coar.objectEditor.remove` / `reset` / `setNull` | `Remove value` / `Reset to inherited` / `Set to null` |
+| `coar.objectEditor.actions` | `Actions for {title}` |
+| `coar.objectEditor.needsValue` | `Enter a value, or remove it from the menu.` |
+| `coar.objectEditor.lockedByNull` | `{group} is null: fill it in from its menu to edit this value` |
+| `coar.objectEditor.fillGroup` | `Fill in this group` |
+| `coar.objectEditor.inherited` / `conflict` | `inherited` / `differs by context` |
+| `coar.objectEditor.literalHint` | `This value is set; Remove deletes it.` |
+| `coar.objectEditor.noLocalValues` | `No values are set here.` |
 | `coar.schemaEditor.*` | Labels of the schema editor (`key`, `title`, `type`, `required`, `addProperty` …) and its problems (`invalidKey`, `keyTaken`, `rangeOrder`, `noOptions`, `emptyOption`, `duplicateOption`) |

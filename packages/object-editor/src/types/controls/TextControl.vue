@@ -10,7 +10,7 @@ const props = withDefaults(
 const emit = defineEmits<{ 'update:modelValue': [value: string | undefined] }>();
 const text = computed({
   get: () => (typeof props.modelValue === 'string' ? props.modelValue : ''),
-  set: (value: string) => emit('update:modelValue', value === '' ? undefined : value),
+  set: (value: string) => emit('update:modelValue', value),
 });
 </script>
 

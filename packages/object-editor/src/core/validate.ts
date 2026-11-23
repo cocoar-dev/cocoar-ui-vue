@@ -36,14 +36,25 @@ function toPointer(instanceLocation: string): string {
   }
 }
 
-// "required" is reported at the missing property, not at its parent, and an
-// empty value ("" or []) counts as missing.
+/**
+ * When a required value counts as there. `key` (JSON Schema): its key is in the
+ * object, also with `null` or an empty value. `filled` (forms): it is not
+ * `null`, `""`, `[]` or `{}` either.
+ */
+export type CoarPresence = 'key' | 'filled';
+
+export interface ValidateOptions {
+  presence?: CoarPresence;
+}
+
+// "required" is reported at the missing property, not at its parent.
 function collectRequired(
   root: JsonSchema,
   raw: JsonSchema,
   value: JsonValue | undefined,
   tokens: string[],
   out: ObjectEditorIssue[],
+  presence: CoarPresence,
 ): void {
   const schema = resolveSchema(root, raw);
   if (!isJsonObject(value)) return;
@@ -53,20 +64,25 @@ function collectRequired(
   const keys = [...orderedKeys(schema), ...[...required].filter((key) => !Object.hasOwn(properties, key))];
   for (const key of keys) {
     const child = value[key];
-    if (required.has(key) && isEmptyValue(child)) {
+    const missing = presence === 'key' ? child === undefined : isEmptyValue(child);
+    if (required.has(key) && missing) {
       out.push({ pointer: formatPointer([...tokens, key]), keyword: 'required' });
     } else if (child !== undefined && Object.hasOwn(properties, key)) {
-      collectRequired(root, properties[key], child, [...tokens, key], out);
+      collectRequired(root, properties[key], child, [...tokens, key], out, presence);
     }
   }
 }
 
 /** Validates `value` against `schema` and returns one issue per failing keyword. */
-export function validateValue(schema: JsonSchema, value: JsonValue | undefined): ObjectEditorIssue[] {
+export function validateValue(
+  schema: JsonSchema,
+  value: JsonValue | undefined,
+  { presence = 'key' }: ValidateOptions = {},
+): ObjectEditorIssue[] {
   // An object nobody filled in yet is an empty object: its required values are missing.
   const instance = value ?? {};
   const issues: ObjectEditorIssue[] = [];
-  collectRequired(schema, schema, instance, [], issues);
+  collectRequired(schema, schema, instance, [], issues, presence);
   const result = validatorFor(schema).validate(instance);
   const seen = new Set<string>();
   const choiceAt = new Set(

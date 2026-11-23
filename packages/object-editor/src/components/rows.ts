@@ -1,6 +1,6 @@
 import { formatPointer, isPointerPrefix } from '../core/pointer';
 import { optionsOf, type CoarObjectEditorOption } from '../core/options';
-import { detectTypeId, orderedKeys, refId, resolveSchema } from '../core/resolve';
+import { allowsNull, detectTypeId, nonNullSchema, orderedKeys, refId, resolveSchema } from '../core/resolve';
 import { isJsonObject, type JsonSchema, type JsonValue } from '../core/schema';
 import type { CoarObjectEditorTypes, CoarValueType } from '../types/types';
 
@@ -15,8 +15,10 @@ export interface ObjectEditorRowModel {
   depth: number;
   typeId: string;
   type: CoarValueType;
-  /** The schema of the value, `$ref` resolved. */
+  /** The schema of the value, `$ref` resolved and without its `null` alternative. */
   schema: JsonSchema;
+  /** The schema allows `null`. */
+  nullable: boolean;
   options: CoarObjectEditorOption[];
   /** An object edited as the rows below it. */
   nested: boolean;
@@ -30,6 +32,47 @@ export interface ObjectEditorRowModel {
 
 export type OptionSourceValues = Readonly<Record<string, readonly CoarObjectEditorOption[]>>;
 
+/** `local`: the key is in the edited document; `inherited`: only `base` has a value; `absent`: neither. */
+export type ObjectEditorRowState = 'local' | 'inherited' | 'absent';
+
+/** Where an inherited value comes from, as the app describes it. */
+export interface CoarObjectEditorOrigin {
+  /** Short text beside the value, such as the name of the layer. */
+  label: string;
+  /** Longer text on hover. */
+  title?: string;
+  /** The contexts the value comes from disagree: no single value is shown as the one that applies. */
+  conflict?: boolean;
+}
+
+/**
+ * The shape the rows are built from: the local document over `base`, key by
+ * key. It decides which groups and unknown keys exist; it is never stored, and
+ * it is not a merge policy: a local value, also `null`, simply hides the base.
+ */
+export function overlay(base: JsonValue | undefined, local: JsonValue | undefined): JsonValue | undefined {
+  if (local === undefined) return base;
+  if (!isJsonObject(local) || !isJsonObject(base)) return local;
+  const result: Record<string, JsonValue> = { ...base };
+  for (const [key, value] of Object.entries(local)) result[key] = overlay(base[key], value) as JsonValue;
+  return result;
+}
+
+/** Lets the app choose the value type of a property, e.g. from a marker of its own in the schema. */
+export type CoarResolveType = (context: {
+  /** The schema of the property, `$ref` resolved. */
+  schema: JsonSchema;
+  pointer: string;
+  /** The type the editor recognized. */
+  typeId: string;
+}) => string | undefined;
+
+export interface BuildRowsOptions {
+  /** Every group that holds data is open, also a recursive one (still finite: the data is). */
+  allWithData?: boolean;
+  resolveType?: CoarResolveType;
+}
+
 function optionsFor(root: JsonSchema, schema: JsonSchema, typeId: string, sources: OptionSourceValues) {
   const source = schema['x-coar-options'];
   if (source) return [...(sources[source] ?? [])];
@@ -41,8 +84,6 @@ function optionsFor(root: JsonSchema, schema: JsonSchema, typeId: string, source
  * The rows of `value` under `root`, in display order; the rows below a collapsed
  * object are left out. A group is open by default, a recursive one closed;
  * `toggled` holds the pointers of the groups the user switched.
- * `allWithData`: every group that holds data is open, also a recursive one
- * (still finite: the data is), for checks that must see every value.
  */
 export function buildRows(
   root: JsonSchema,
@@ -50,7 +91,7 @@ export function buildRows(
   types: CoarObjectEditorTypes,
   sources: OptionSourceValues,
   toggled: ReadonlySet<string>,
-  allWithData = false,
+  { allWithData = false, resolveType }: BuildRowsOptions = {},
 ): ObjectEditorRowModel[] {
   const known = new Set(types.keys());
   const fallback = types.get('json')!;
@@ -70,11 +111,14 @@ export function buildRows(
     const data = isJsonObject(object) ? object : {};
     for (const key of orderedKeys(schema)) {
       const raw = properties[key];
-      const resolved = resolveSchema(root, raw);
-      const typeId = detectTypeId(root, raw, known);
-      const type = types.get(typeId) ?? fallback;
+      const full = resolveSchema(root, raw);
+      const resolved = nonNullSchema(root, full);
       const childTokens = [...tokens, key];
       const pointer = formatPointer(childTokens);
+      const detected = detectTypeId(root, raw, known);
+      const chosen = resolveType?.({ schema: full, pointer, typeId: detected });
+      const typeId = chosen && known.has(chosen) ? chosen : detected;
+      const type = types.get(typeId) ?? fallback;
       const nested = !type.control && !type.readonlyOnly && !!resolved.properties;
       const ref = refId(raw);
       const recursive = !!ref && refs.has(ref);
@@ -92,6 +136,7 @@ export function buildRows(
         typeId,
         type,
         schema: resolved,
+        nullable: allowsNull(full),
         options: optionsFor(root, resolved, typeId, sources),
         nested,
         collapsed,
@@ -116,6 +161,7 @@ export function buildRows(
         typeId: 'json',
         type: fallback,
         schema: {},
+        nullable: true,
         options: [],
         nested: false,
         collapsed: false,
