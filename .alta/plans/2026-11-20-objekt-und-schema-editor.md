@@ -1,6 +1,6 @@
 ---
 title: Objekt-Editor und Schema-Editor als eigenes Paket @cocoar/vue-object-editor
-status: in-progress
+status: done
 created: 2026-11-20
 summary: Ein neues Paket mit zwei Komponenten — CoarObjectEditor füllt ein JSON-Objekt anhand eines JSON Schemas, CoarSchemaEditor beschreibt dieses Schema. Optik und Controls kommen aus dem Spike, darunter liegt ein echtes, rekursives Modell mit Typ-Register für eigene Typen der App.
 ---
@@ -230,7 +230,7 @@ Schema-Editor, damit der Review in Abschnitten geht.
 
 **Aufräumen (ohne PR)**
 
-- [ ] 12. Den lokalen Spike `apps/playground/src/json-editor-spike/`, `json-editor-spike.html` und
+- [x] 12. Den lokalen Spike `apps/playground/src/json-editor-spike/`, `json-editor-spike.html` und
       `vite.json-editor-spike.config.ts` löschen, sobald PR 1 die Optik übernommen hat. `mockups/` bleibt, bis du es
       nicht mehr brauchst.
 
