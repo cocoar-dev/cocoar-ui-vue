@@ -13,7 +13,6 @@ const props = defineProps<{
   mode: 'view' | 'edit';
   /** The row's value shows its control instead of its display. */
   editing: boolean;
-  collapsed: boolean;
   error?: string;
   controlId: string;
   locale?: string;
@@ -79,7 +78,7 @@ function focusInput(event: MouseEvent) {
     class="coar-object-editor-row"
     :class="{
       'coar-object-editor-row--nested': row.depth > 0,
-      'coar-object-editor-row--open': row.nested && !collapsed && !!row.schema.properties && Object.keys(row.schema.properties).length > 0,
+      'coar-object-editor-row--open': row.nested && !row.collapsed && !!row.schema.properties && Object.keys(row.schema.properties).length > 0,
       'coar-object-editor-row--extra': row.extra,
     }"
     :data-pointer="row.pointer"
@@ -91,8 +90,8 @@ function focusInput(event: MouseEvent) {
           v-if="row.nested"
           variant="ghost"
           size="xs"
-          :icon-start="collapsed ? 'chevron-right' : 'chevron-down'"
-          :aria-expanded="!collapsed"
+          :icon-start="row.collapsed ? 'chevron-right' : 'chevron-down'"
+          :aria-expanded="!row.collapsed"
           :aria-label="row.title"
           @click="emit('toggle')"
         />

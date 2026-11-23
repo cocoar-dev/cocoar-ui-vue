@@ -46,14 +46,17 @@ function collectRequired(
   out: ObjectEditorIssue[],
 ): void {
   const schema = resolveSchema(root, raw);
-  if (!schema.properties || !isJsonObject(value)) return;
+  if (!isJsonObject(value)) return;
+  const properties = schema.properties ?? {};
   const required = new Set(schema.required ?? []);
-  for (const key of orderedKeys(schema)) {
+  // `required` names keys with or without a schema in `properties`.
+  const keys = [...orderedKeys(schema), ...[...required].filter((key) => !Object.hasOwn(properties, key))];
+  for (const key of keys) {
     const child = value[key];
     if (required.has(key) && isEmptyValue(child)) {
       out.push({ pointer: formatPointer([...tokens, key]), keyword: 'required' });
-    } else if (child !== undefined) {
-      collectRequired(root, schema.properties[key], child, [...tokens, key], out);
+    } else if (child !== undefined && Object.hasOwn(properties, key)) {
+      collectRequired(root, properties[key], child, [...tokens, key], out);
     }
   }
 }

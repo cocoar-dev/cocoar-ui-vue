@@ -55,6 +55,55 @@ describe('buildRows', () => {
   });
 });
 
+describe('buildRows with a recursive definition (#93)', () => {
+  const recursive: JsonSchema = {
+    type: 'object',
+    properties: { head: { $ref: '#/$defs/node' } },
+    $defs: { node: { type: 'object', properties: { label: { type: 'string' }, next: { $ref: '#/$defs/node' } } } },
+  };
+
+  it('builds a finite list: the repeated definition starts closed', () => {
+    const rows = buildRows(recursive, {}, defineObjectEditorTypes(), {}, new Set());
+    expect(rows.map((r) => r.pointer)).toEqual(['/head', '/head/label', '/head/next']);
+    const next = rows.find((r) => r.pointer === '/head/next')!;
+    expect(next).toMatchObject({ nested: true, recursive: true, collapsed: true });
+  });
+
+  it('opens recursive groups that hold data when every value must be seen', () => {
+    const value = { head: { next: { next: {} } } };
+    const pointers = buildRows(recursive, value, defineObjectEditorTypes(), {}, new Set(), true).map((r) => r.pointer);
+    expect(pointers).toContain('/head/next/next/label');
+    expect(pointers).not.toContain('/head/next/next/next/label');
+  });
+
+  it('runs the check of an app type inside recursive data', async () => {
+    const shout: CoarValueType<string> = {
+      id: 'shout',
+      label: 'Shout',
+      icon: 'type',
+      schema: { type: 'string' },
+      control: markRaw(defineComponent({ setup: () => () => h('span') })),
+      validate: (value) => (value === value.toUpperCase() ? null : 'Use capitals.'),
+    };
+    const schema: JsonSchema = {
+      ...recursive,
+      $defs: { node: { type: 'object', properties: { label: { type: 'string', 'x-coar-type': 'shout' }, next: { $ref: '#/$defs/node' } } } },
+    };
+    const editor = ref<InstanceType<typeof CoarObjectEditor>>();
+    const wrapper = mount(() =>
+      h(CoarObjectEditor, { ref: editor, schema, types: defineObjectEditorTypes([shout]), modelValue: { head: { next: { label: 'quiet' } } } }),
+    );
+    expect(editor.value!.issues).toEqual([{ pointer: '/head/next/label', keyword: 'custom', message: 'Use capitals.' }]);
+    wrapper.unmount();
+  });
+
+  it('opens one level per toggle', () => {
+    const rows = buildRows(recursive, {}, defineObjectEditorTypes(), {}, new Set(['/head/next']));
+    expect(rows.map((r) => r.pointer)).toEqual(['/head', '/head/label', '/head/next', '/head/next/label', '/head/next/next']);
+    expect(rows.at(-1)!.collapsed).toBe(true);
+  });
+});
+
 describe('CoarObjectEditor', () => {
   it('writes a typed value at its path and removes a cleared one', async () => {
     const { wrapper, model } = mountEditor({ name: 'Lamp' });
@@ -100,6 +149,18 @@ describe('CoarObjectEditor', () => {
     expect(row(wrapper, '/dimensions/width').classes()).toContain('coar-object-editor-row--nested');
     await row(wrapper, '/dimensions').find('button').trigger('click');
     expect(row(wrapper, '/dimensions').classes()).not.toContain('coar-object-editor-row--open');
+    wrapper.unmount();
+  });
+
+  it('shows a required key without a row at the nearest row, or above the rows (#92)', () => {
+    const loose: JsonSchema = {
+      type: 'object',
+      required: ['flag'],
+      properties: { settings: { type: 'object', title: 'Settings', required: ['mode'], properties: { other: { type: 'string' } } } },
+    };
+    const wrapper = mount(() => h(CoarObjectEditor, { schema: loose, modelValue: { settings: {} } }));
+    expect(wrapper.find('.coar-object-editor-issues').text()).toBe('flag: Required.');
+    expect(row(wrapper, '/settings').find('.coar-object-editor-error').text()).toBe('mode: Required.');
     wrapper.unmount();
   });
 

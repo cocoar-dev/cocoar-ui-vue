@@ -78,7 +78,10 @@ What the editor does with the data:
 
 - **A cleared value removes its key.** "Required" means the key is there and not empty.
 - **Problems appear in their row**, found by the schema (`minimum`, `format`, `required` …) and by the checks
-  of the value types.
+  of the value types. A problem of a part without its own row names that part (`mode: Required.`); one that
+  belongs to no row is listed above the rows.
+- **A definition that contains itself** (`$ref` to an enclosing definition) starts closed and opens one level
+  per click.
 - **Values the schema does not know stay in the data**, shown read-only as "not in the schema".
 - **Lists of objects** are shown read-only with their number of entries and kept unchanged.
 
