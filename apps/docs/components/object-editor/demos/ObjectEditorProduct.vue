@@ -1,7 +1,10 @@
 <template>
   <div class="demo">
-    <CoarSegmentedControl v-model="mode" :options="modes" aria-label="Mode" />
-    <CoarObjectEditor v-model="product" :schema="productSchema" :mode="mode" locale="en-US" />
+    <div class="toolbar">
+      <CoarSegmentedControl v-model="mode" :options="modes" aria-label="Mode" />
+      <CoarSwitch v-model="striped" size="s" label="Striped" />
+    </div>
+    <CoarObjectEditor v-model="product" :schema="productSchema" :mode="mode" :striped="striped" locale="en-US" />
     <details>
       <summary>JSON</summary>
       <pre>{{ JSON.stringify(product, null, 2) }}</pre>
@@ -11,13 +14,14 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { CoarSegmentedControl } from '@cocoar/vue-ui';
+import { CoarSegmentedControl, CoarSwitch } from '@cocoar/vue-ui';
 import { CoarObjectEditor } from '@cocoar/vue-object-editor';
 import '@cocoar/vue-object-editor/styles';
 import { createProduct, productSchema } from './product-schema';
 
 const product = ref(createProduct());
 const mode = ref<'view' | 'edit'>('edit');
+const striped = ref(false);
 const modes = [
   { value: 'view', label: 'View' },
   { value: 'edit', label: 'Edit' },
@@ -30,6 +34,11 @@ const modes = [
   flex-direction: column;
   gap: 12px;
   width: 100%;
+}
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 pre {
   font-size: 12px;

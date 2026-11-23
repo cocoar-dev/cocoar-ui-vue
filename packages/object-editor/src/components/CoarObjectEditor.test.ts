@@ -85,6 +85,24 @@ describe('CoarObjectEditor', () => {
     wrapper.unmount();
   });
 
+  it('puts rows on one background unless striped', () => {
+    const plain = mountEditor({});
+    expect(plain.wrapper.find('.coar-object-editor').classes()).not.toContain('coar-object-editor--striped');
+    plain.wrapper.unmount();
+    const striped = mountEditor({}, { striped: true });
+    expect(striped.wrapper.find('.coar-object-editor').classes()).toContain('coar-object-editor--striped');
+    striped.wrapper.unmount();
+  });
+
+  it('marks an open group, whose guide starts under its chevron', async () => {
+    const { wrapper } = mountEditor({});
+    expect(row(wrapper, '/dimensions').classes()).toContain('coar-object-editor-row--open');
+    expect(row(wrapper, '/dimensions/width').classes()).toContain('coar-object-editor-row--nested');
+    await row(wrapper, '/dimensions').find('button').trigger('click');
+    expect(row(wrapper, '/dimensions').classes()).not.toContain('coar-object-editor-row--open');
+    wrapper.unmount();
+  });
+
   it('collapses a group', async () => {
     const { wrapper } = mountEditor({});
     expect(row(wrapper, '/dimensions/width').exists()).toBe(true);
