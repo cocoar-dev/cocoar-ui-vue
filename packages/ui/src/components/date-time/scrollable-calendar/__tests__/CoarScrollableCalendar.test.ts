@@ -205,6 +205,11 @@ describe('CoarScrollableCalendar', () => {
   });
 
   const MONTH_HEIGHT = 267;
+  /** The elements of a mocked OverlayScrollbars: host and viewport in one, nothing to guard at waking. */
+  const oneElement = () => {
+    const element = document.createElement('div');
+    return { host: element, viewport: element };
+  };
   const PICKER_VIEWPORT_HEIGHT = 312;
   const frame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
   const restores: (() => void)[] = [];
@@ -387,6 +392,7 @@ describe('CoarScrollableCalendar', () => {
       fakeLayout({ log });
       vi.mocked(getScrollbarInstance).mockReturnValue({
         sleep: (sleeping: boolean) => log.push(`sleep ${sleeping}`),
+        elements: oneElement,
       } as unknown as ReturnType<typeof getScrollbarInstance>);
       mountCalendar({ activeMonth: Temporal.PlainYearMonth.from('2026-03') });
 
@@ -438,6 +444,7 @@ describe('CoarScrollableCalendar', () => {
       const layout = fakeLayout({ viewportHeight: 360, log });
       vi.mocked(getScrollbarInstance).mockReturnValue({
         sleep: (sleeping: boolean) => log.push(`sleep ${sleeping}`),
+        elements: oneElement,
       } as unknown as ReturnType<typeof getScrollbarInstance>);
       const wrapper = mountCalendar({ activeMonth: Temporal.PlainYearMonth.from('2026-03') });
       await settle();
@@ -458,6 +465,7 @@ describe('CoarScrollableCalendar', () => {
       const layout = fakeLayout({ viewportHeight: 360, log });
       vi.mocked(getScrollbarInstance).mockReturnValue({
         sleep: (sleeping: boolean) => log.push(`sleep ${sleeping}`),
+        elements: oneElement,
       } as unknown as ReturnType<typeof getScrollbarInstance>);
       const wrapper = mountCalendar({ activeMonth: Temporal.PlainYearMonth.from('2026-03') });
       // The opening scroll is applied, its frame has not run yet: the viewport grows then.

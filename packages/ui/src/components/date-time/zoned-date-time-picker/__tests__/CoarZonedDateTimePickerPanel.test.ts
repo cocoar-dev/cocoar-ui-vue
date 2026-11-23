@@ -17,7 +17,11 @@ vi.mock('../../../scrollbar', async (importActual) => ({
       bindings.set(el.className, binding.value);
     },
   },
-  getScrollbarInstance: () => ({ sleep: (sleeping: boolean) => log.push(`sleep ${sleeping}`) }),
+  getScrollbarInstance: () => {
+    // Host and viewport in one: nothing to guard when it wakes.
+    const element = document.createElement('div');
+    return { sleep: (sleeping: boolean) => log.push(`sleep ${sleeping}`), elements: () => ({ host: element, viewport: element }) };
+  },
 }));
 
 vi.mock('../../../icon/CoarIcon.vue', () => ({

@@ -235,9 +235,47 @@ describe('quietScrollbars', () => {
   afterEach(() => vi.unstubAllGlobals());
   const runFrame = () => frames.splice(0).forEach((callback) => callback(0));
 
+  /** An instance that logs sleep and wake, with its host and the viewport inside it. */
+  function sleepingInstance(log: boolean[]) {
+    const host = document.createElement('div');
+    const viewport = host.appendChild(document.createElement('div'));
+    const instance = {
+      sleep: (sleeping: boolean) => log.push(sleeping),
+      elements: () => ({ host, viewport }),
+    } as unknown as Parameters<typeof quietScrollbars>[0];
+    return { instance, viewport };
+  }
+
+  /** Whether a scroll event of the viewport reaches a listener of the viewport. */
+  function reachesViewport(viewport: HTMLElement): boolean {
+    let reached = false;
+    const listener = () => { reached = true; };
+    viewport.addEventListener('scroll', listener);
+    viewport.dispatchEvent(new Event('scroll'));
+    viewport.removeEventListener('scroll', listener);
+    return reached;
+  }
+
+  it('stops the scroll event of its own measuring after waking, not a scroll to elsewhere', () => {
+    const { instance, viewport } = sleepingInstance([]);
+    viewport.scrollTop = 0;
+    quietScrollbars(instance)();
+    runFrame();
+
+    // OverlayScrollbars measured by scrolling and put the viewport back where it was.
+    expect(reachesViewport(viewport)).toBe(false);
+    viewport.scrollTop = 40;
+    expect(reachesViewport(viewport)).toBe(true);
+    viewport.scrollTop = 0;
+
+    runFrame();
+    runFrame();
+    expect(reachesViewport(viewport)).toBe(true);
+  });
+
   it('sleeps for a scroll of the component and wakes in the frame after it', () => {
     const log: boolean[] = [];
-    const instance = { sleep: (sleeping: boolean) => log.push(sleeping) } as unknown as Parameters<typeof quietScrollbars>[0];
+    const { instance } = sleepingInstance(log);
     const wake = quietScrollbars(instance);
     expect(log).toEqual([true]);
     wake();
@@ -249,7 +287,7 @@ describe('quietScrollbars', () => {
 
   it('wakes only after the last of overlapping scrolls', () => {
     const log: boolean[] = [];
-    const instance = { sleep: (sleeping: boolean) => log.push(sleeping) } as unknown as Parameters<typeof quietScrollbars>[0];
+    const { instance } = sleepingInstance(log);
     const first = quietScrollbars(instance);
     const second = quietScrollbars(instance);
     first();
