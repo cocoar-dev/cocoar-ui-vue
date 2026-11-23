@@ -99,6 +99,7 @@ of each other.
 - [Migrating to 2.11](references/guide/migration.md) — Migration guide for Cocoar UI 2.11: date/time pickers move onto CoarFormField, the clear button becomes opt-in, and two CSS tokens are renamed.
 - [Migrating Page Builder to 3.0](references/guide/migration-page-builder-3.md) — Migration guide for @cocoar/vue-page-builder 3.0: four PageConfig concepts removed, several names disambiguated, and documents migrated to schemaVersion 6.
 - [Migrating text on saturated fills](references/guide/migration-color-roles.md) — Text on saturated fills now has one computed ink role per base colour, with explicit overrides for custom themes.
+- [Migrating the Object Editor values](references/guide/migration-object-editor-values.md) — Object Editor: values are kept as set. null, empty text, empty lists and empty groups are values; only Remove deletes a key. presence="filled" keeps the form behaviour.
 
 ### Foundations
 

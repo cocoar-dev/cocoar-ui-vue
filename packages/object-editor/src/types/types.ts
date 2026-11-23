@@ -61,6 +61,7 @@ export interface CoarValueType<TValue = unknown> {
   /** Shows the value in view mode; without one, `format` gives its text. */
   view?: Component;
   format?(value: TValue, context: CoarValueContext): string;
+  /** With `presence="filled"`: whether a value counts as not filled in (default: `null`, `""`, `[]`, `{}`). */
   isEmpty?(value: TValue | undefined): boolean;
   /** A check beyond the schema; returns a message or null. */
   validate?(value: TValue, context: CoarValueContext): string | null;
@@ -72,6 +73,17 @@ export interface CoarValueType<TValue = unknown> {
   builtin?: boolean;
   /** Shown read-only and not offered in the schema editor (lists of objects, unknown values). */
   readonlyOnly?: boolean;
+  /**
+   * A secret or other value that must not appear as text: the editor shows it
+   * only through `format` or `view` of this type, never in generic output.
+   */
+  sensitive?: boolean;
+  /**
+   * `false`: the stored value has another form than the schema describes (an
+   * encrypted envelope for a logical string), so the schema's checks are not
+   * applied at this value; `validate` of the type still is.
+   */
+  validateSchema?: boolean;
 }
 
 export type CoarObjectEditorTypes = ReadonlyMap<string, CoarValueType>;

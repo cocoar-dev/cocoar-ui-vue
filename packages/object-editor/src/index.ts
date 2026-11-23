@@ -1,6 +1,7 @@
 // Components
 export { default as CoarObjectEditor } from './components/CoarObjectEditor.vue';
 export type { CoarObjectEditorOptionSource } from './components/CoarObjectEditor.vue';
+export type { CoarObjectEditorOrigin, CoarResolveType } from './components/rows';
 export { default as CoarSchemaEditor } from './components/CoarSchemaEditor.vue';
 
 // Value types
@@ -18,11 +19,11 @@ export type {
 export { createObjectSchema, isJsonObject, SCHEMA_DIALECT } from './core/schema';
 export type { JsonObject, JsonSchema, JsonValue } from './core/schema';
 export { formatPointer, getAt, parsePointer, setAt } from './core/pointer';
-export { detectTypeId, orderedKeys, resolveSchema } from './core/resolve';
+export { allowsNull, detectTypeId, nonNullSchema, orderedKeys, resolveSchema } from './core/resolve';
 export { optionsOf } from './core/options';
 export type { CoarObjectEditorOption } from './core/options';
 export { validateValue } from './core/validate';
-export type { ObjectEditorIssue } from './core/validate';
+export type { CoarPresence, ObjectEditorIssue, ValidateOptions } from './core/validate';
 
 // Schema operations (what CoarSchemaEditor does, for code)
 export {

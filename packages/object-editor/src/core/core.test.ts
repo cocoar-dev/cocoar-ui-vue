@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { formatPointer, getAt, parsePointer, setAt } from './pointer';
-import { detectTypeId, orderedKeys, resolveSchema } from './resolve';
+import { allowsNull, detectTypeId, nonNullSchema, orderedKeys, resolveSchema } from './resolve';
 import { optionsOf } from './options';
 import { validateValue } from './validate';
 import { issueMessage } from './messages';
@@ -79,6 +79,23 @@ describe('resolve', () => {
     expect(detectTypeId(product, { type: 'string', pattern: '^#[0-9A-Fa-f]{6}$' }, known)).toBe('color');
   });
 
+  it('sees through null: type arrays, anyOf with null, nullable choices and enums', () => {
+    const root: JsonSchema = { $defs: { flag: { type: 'boolean' } } };
+    const type = (schema: JsonSchema) => detectTypeId(root, schema, known);
+    expect(type({ type: ['boolean', 'null'] })).toBe('boolean');
+    expect(type({ anyOf: [{ type: 'string', format: 'date' }, { type: 'null' }] })).toBe('date');
+    expect(type({ anyOf: [{ $ref: '#/$defs/flag' }, { type: 'null' }] })).toBe('boolean');
+    expect(type({ oneOf: [{ const: 'a' }, { const: 'b' }, { const: null }] })).toBe('choice');
+    expect(type({ enum: ['a', null] })).toBe('choice');
+    expect(allowsNull({ type: ['integer', 'null'] })).toBe(true);
+    expect(allowsNull({ anyOf: [{ type: 'string' }, { type: 'null' }] })).toBe(true);
+    expect(allowsNull({ enum: ['a', null] })).toBe(true);
+    expect(allowsNull({ type: 'string' })).toBe(false);
+    expect(nonNullSchema(root, { type: ['integer', 'null'], minimum: 0 })).toEqual({ type: 'integer', minimum: 0 });
+    expect(nonNullSchema(root, { title: 'T', anyOf: [{ type: 'string' }, { type: 'null' }] })).toEqual({ title: 'T', type: 'string' });
+    expect(nonNullSchema(root, { enum: ['a', null] })).toEqual({ enum: ['a'] });
+  });
+
   it('reads options with titles, and from enum', () => {
     expect(optionsOf(product.properties!.category)).toEqual([
       { value: 'a', label: 'A' },
@@ -93,7 +110,6 @@ describe('validateValue', () => {
 
   it('reports each problem at the pointer of its value', () => {
     const issues = validateValue(product, {
-      name: '',
       price: { amount: 'x' } as never,
       stock: -1,
       launch: '2026-13-40',
@@ -130,6 +146,29 @@ describe('validateValue', () => {
       { pointer: '/price', keyword: 'required' },
       { pointer: '/name', keyword: 'required' },
     ]);
+  });
+
+  it('counts a required key as there by its key, or by a filled value with presence filled (#86)', () => {
+    const schema: JsonSchema = {
+      type: 'object',
+      required: ['flag', 'name', 'tags', 'group'],
+      properties: {
+        flag: { type: ['boolean', 'null'] },
+        name: { type: 'string' },
+        tags: { type: 'array', items: { type: 'string' } },
+        group: { type: 'object' },
+      },
+    };
+    const sparse = { flag: null, name: '', tags: [], group: {} };
+    expect(validateValue(schema, sparse)).toEqual([]);
+    expect(validateValue(schema, {}).map((issue) => issue.pointer)).toEqual(['/flag', '/name', '/tags', '/group']);
+    expect(validateValue(schema, sparse, { presence: 'filled' }).map((issue) => issue.pointer)).toEqual([
+      '/flag',
+      '/name',
+      '/tags',
+      '/group',
+    ]);
+    expect(validateValue(schema, { flag: false, name: 'x', tags: ['a'], group: { a: 1 } }, { presence: 'filled' })).toEqual([]);
   });
 
   it('reports required keys that have no schema in properties (#92)', () => {

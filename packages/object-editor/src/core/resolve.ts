@@ -50,6 +50,45 @@ function hasType(schema: JsonSchema, type: string): boolean {
   return Array.isArray(schema.type) ? schema.type.includes(type) : schema.type === type;
 }
 
+const isNullEntry = (entry: JsonSchema) => entry.type === 'null' || ('const' in entry && entry.const === null);
+
+/**
+ * Whether the schema allows `null`: `type: [t, "null"]`, an `anyOf`/`oneOf`
+ * entry `{ type: "null" }` or `{ const: null }`, or `null` in `enum`.
+ */
+export function allowsNull(schema: JsonSchema): boolean {
+  if (hasType(schema, 'null')) return true;
+  if ((schema.anyOf ?? schema.oneOf)?.some(isNullEntry)) return true;
+  return Array.isArray(schema.enum) && schema.enum.includes(null);
+}
+
+/**
+ * The schema without its `null` alternative, so a nullable value gets the type of
+ * its other form: `type: ["boolean", "null"]` reads as `type: "boolean"`, and
+ * `anyOf: [{ type: "boolean" }, { type: "null" }]` as `{ type: "boolean" }`.
+ * The schema itself is not changed; validation keeps using it as written.
+ */
+export function nonNullSchema(root: JsonSchema, schema: JsonSchema): JsonSchema {
+  if (Array.isArray(schema.type) && schema.type.includes('null')) {
+    const rest = schema.type.filter((type) => type !== 'null');
+    return { ...schema, type: rest.length === 1 ? rest[0] : rest };
+  }
+  for (const keyword of ['anyOf', 'oneOf'] as const) {
+    const list = schema[keyword];
+    if (!list?.some(isNullEntry)) continue;
+    const others = list.filter((entry) => !isNullEntry(entry));
+    // A choice keeps its other constants as the choice.
+    if (others.length !== 1 || 'const' in others[0]) return { ...schema, [keyword]: others };
+    const outer = { ...schema };
+    delete outer[keyword];
+    return { ...outer, ...resolveSchema(root, others[0]) };
+  }
+  if (Array.isArray(schema.enum) && schema.enum.includes(null)) {
+    return { ...schema, enum: schema.enum.filter((value) => value !== null) };
+  }
+  return schema;
+}
+
 /** A list of constants, from `oneOf`/`anyOf` of `{ const }` or from `enum`. */
 export function isChoiceList(schema: JsonSchema): boolean {
   const list = schema.oneOf ?? schema.anyOf;
@@ -66,7 +105,7 @@ export function detectTypeId(root: JsonSchema, raw: JsonSchema, known: ReadonlyS
   if (declared && known.has(declared)) return declared;
   const ref = refId(raw);
   if (ref && known.has(ref)) return ref;
-  const schema = resolveSchema(root, raw);
+  const schema = nonNullSchema(root, resolveSchema(root, raw));
   if (schema['x-coar-options'] || isChoiceList(schema)) return 'choice';
   if (hasType(schema, 'object') || schema.properties) return 'object';
   if (hasType(schema, 'array')) {
@@ -87,7 +126,7 @@ export function detectTypeId(root: JsonSchema, raw: JsonSchema, known: ReadonlyS
   return 'json';
 }
 
-/** Whether a value counts as "not set": the editor removes such a key. */
+/** Whether a value counts as "not filled in" for `presence: 'filled'`. */
 export function isEmptyValue(value: JsonValue | undefined): boolean {
   return (
     value === undefined ||

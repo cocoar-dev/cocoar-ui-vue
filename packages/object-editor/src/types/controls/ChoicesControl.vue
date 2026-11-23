@@ -11,7 +11,7 @@ const props = withDefaults(defineProps<CoarValueControlProps<JsonValue[]> & { al
 const emit = defineEmits<{ 'update:modelValue': [value: JsonValue[] | undefined] }>();
 const values = computed({
   get: () => (Array.isArray(props.modelValue) ? props.modelValue : []),
-  set: (value: JsonValue[]) => emit('update:modelValue', value.length ? value : undefined),
+  set: (value: JsonValue[]) => emit('update:modelValue', value),
 });
 // Free tags offer the suggestions of the schema and keep the tags already set.
 const choices = computed(() => {

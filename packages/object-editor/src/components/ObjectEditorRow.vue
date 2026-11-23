@@ -1,24 +1,37 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { CoarButton, CoarIcon } from '@cocoar/vue-ui';
+import { computed, ref } from 'vue';
+import { CoarButton, CoarIcon, CoarMenu, CoarMenuItem, CoarPopover } from '@cocoar/vue-ui';
 import { useI18n } from '@cocoar/vue-localization';
 import { isEmptyValue } from '../core/resolve';
 import { isJsonObject, type JsonValue } from '../core/schema';
-import type { ObjectEditorRowModel } from './rows';
+import type { CoarPresence } from '../core/validate';
+import type { CoarObjectEditorOrigin, ObjectEditorRowModel, ObjectEditorRowState } from './rows';
 import HiddenLabelField from './HiddenLabelField.vue';
 
 const props = defineProps<{
   row: ObjectEditorRowModel;
+  /** The value the row shows: the local one, or the inherited one. */
   value: JsonValue | undefined;
+  state: ObjectEditorRowState;
   mode: 'view' | 'edit';
+  presence: CoarPresence;
   /** The row's value shows its control instead of its display. */
   editing: boolean;
   error?: string;
   controlId: string;
   locale?: string;
+  /** Where an inherited value comes from. */
+  origin?: CoarObjectEditorOrigin;
+  /** A base value exists here: removing the local value resets to it. */
+  hasBase: boolean;
+  /** Title of the enclosing group that is `null`: the row is locked. */
+  lockedBy?: string;
+  /** The app masks this value (`redact`). */
+  redacted: boolean;
 }>();
 const emit = defineEmits<{
   'update:value': [value: JsonValue | undefined];
+  remove: [];
   edit: [];
   leave: [];
   toggle: [];
@@ -27,9 +40,12 @@ const { t } = useI18n();
 
 const type = computed(() => props.row.type);
 const readOnlyRow = computed(() => props.row.extra || !!type.value.readonlyOnly || !type.value.control);
+const conflict = computed(() => props.state === 'inherited' && !!props.origin?.conflict);
 const showsControl = computed(() => {
-  if (readOnlyRow.value) return false;
-  if (props.mode === 'view') return !!type.value.controlInView;
+  // A redacted value never reaches a control: the control would show it.
+  if (readOnlyRow.value || props.lockedBy || props.redacted) return false;
+  if (props.mode === 'view') return !!type.value.controlInView && !conflict.value;
+  if (conflict.value) return props.editing;
   return !type.value.previewInEdit || props.editing;
 });
 const context = computed(() => ({
@@ -38,31 +54,79 @@ const context = computed(() => ({
   locale: props.locale,
   t,
 }));
+
+/**
+ * The value is never shown as generic text: a sensitive type without a format
+ * or view of its own, and every value the app redacts, read as dots.
+ */
+const masked = computed(
+  () => props.redacted || (!!type.value.sensitive && !type.value.format && !type.value.view),
+);
+
+/** `null`, `""`, `[]` and `{}` as literals: they are values, not absence. */
+function literal(value: JsonValue | undefined): string | undefined {
+  if (props.presence !== 'key') return undefined;
+  if (value === null) return 'null';
+  if (value === '') return '""';
+  if (Array.isArray(value) && value.length === 0) return '[]';
+  if (isJsonObject(value) && Object.keys(value).length === 0) return '{}';
+  return undefined;
+}
+
+const notSet = computed(() =>
+  props.value === undefined || (props.presence === 'filled' && isEmptyValue(props.value)),
+);
+const valueLiteral = computed(() => literal(props.value));
+const showsView = computed(
+  () => !!type.value.view && !masked.value && !notSet.value && !valueLiteral.value && !conflict.value,
+);
 const displayText = computed(() => {
+  if (conflict.value) return t('coar.objectEditor.conflict', undefined, 'differs by context');
+  if (props.lockedBy) return '–';
+  if (notSet.value) return '–';
+  if (valueLiteral.value) return valueLiteral.value;
+  if (masked.value) return '••••••';
   if (props.row.nested) {
     const count = isJsonObject(props.value) ? Object.keys(props.value).length : 0;
     return t('coar.objectEditor.filled', { count }, '{count} filled').replace('{count}', String(count));
   }
-  if (isEmptyValue(props.value)) return '–';
   const format = type.value.format ?? ((value: JsonValue) => JSON.stringify(value));
   return format(props.value as JsonValue, context.value);
 });
 
+// A control that cannot show "no value" for a value that does not allow null
+// (an emptied number, date or choice): nothing is written, and leaving the field
+// restores the value. Absence is never written by accident.
+const pendingEmpty = ref(false);
+const revision = ref(0);
+
 function update(next: JsonValue | undefined) {
-  const empty = type.value.isEmpty ? type.value.isEmpty(next) : isEmptyValue(next);
-  emit('update:value', empty ? undefined : next);
+  if (props.presence === 'filled') {
+    const empty = type.value.isEmpty ? type.value.isEmpty(next) : isEmptyValue(next);
+    emit('update:value', empty ? undefined : next);
+    return;
+  }
+  if (next === undefined && !props.row.nullable) {
+    pendingEmpty.value = true;
+    return;
+  }
+  pendingEmpty.value = false;
+  emit('update:value', next === undefined ? null : next);
 }
 
 // Leaving an activated value returns it to its display, e.g. a multiline text
 // back to its one-line preview. Focus moving within the cell, or into the open
 // panel of its picker (teleported, so outside the cell), keeps it active.
 function onFocusOut(event: FocusEvent) {
-  if (!props.editing) return;
   const cell = event.currentTarget as HTMLElement;
   const next = event.relatedTarget as Node | null;
   if (next && cell.contains(next)) return;
   if (cell.querySelector('[aria-expanded="true"]')) return;
-  emit('leave');
+  if (pendingEmpty.value) {
+    pendingEmpty.value = false;
+    revision.value++;
+  }
+  if (props.editing) emit('leave');
 }
 
 // A click into the blank part of a numeric cell focuses its input.
@@ -71,6 +135,20 @@ function focusInput(event: MouseEvent) {
     .querySelector<HTMLInputElement>('input[inputmode="decimal"]:enabled:not([readonly])')
     ?.focus();
 }
+
+const canRemove = computed(() => props.state === 'local');
+const canSetNull = computed(
+  () => props.row.nullable && !props.row.extra && !(props.state === 'local' && props.value === null),
+);
+// A group that is null (here or inherited) is filled in with {} to edit its values.
+const canFillGroup = computed(() => props.row.nested && props.value === null);
+const hasActions = computed(
+  () =>
+    props.mode === 'edit' &&
+    !props.lockedBy &&
+    !type.value.readonlyOnly &&
+    (canRemove.value || canSetNull.value || canFillGroup.value),
+);
 </script>
 
 <template>
@@ -80,8 +158,11 @@ function focusInput(event: MouseEvent) {
       'coar-object-editor-row--nested': row.depth > 0,
       'coar-object-editor-row--open': row.nested && !row.collapsed && !!row.schema.properties && Object.keys(row.schema.properties).length > 0,
       'coar-object-editor-row--extra': row.extra,
+      'coar-object-editor-row--inherited': state === 'inherited',
+      'coar-object-editor-row--locked': !!lockedBy,
     }"
     :data-pointer="row.pointer"
+    :data-state="state"
     :style="{ '--coar-object-editor-depth': row.depth }"
   >
     <div class="coar-object-editor-key">
@@ -113,57 +194,124 @@ function focusInput(event: MouseEvent) {
       </span>
     </div>
     <div class="coar-object-editor-value">
-      <span v-if="row.nested || readOnlyRow" class="coar-object-editor-static" :class="{ 'coar-object-editor-muted': row.nested }">
-        <component
-          :is="type.view"
-          v-if="type.view && !row.nested && !isEmptyValue(value)"
-          :value="value"
-          :schema="row.schema"
-          :options="row.options"
-          :locale="locale"
-        />
-        <template v-else>{{ displayText }}</template>
-      </span>
-      <HiddenLabelField v-else-if="showsControl" :id="controlId" :label="row.title" :error="error">
-        <div
-          class="coar-object-editor-control"
-          :class="{ 'coar-object-editor-control--numeric': row.typeId === 'number' }"
-          @click.self="focusInput"
-          @focusout="onFocusOut"
+      <div class="coar-object-editor-value-line">
+        <span
+          v-if="lockedBy || row.nested || readOnlyRow"
+          class="coar-object-editor-static"
+          :class="{ 'coar-object-editor-muted': row.nested || notSet || !!lockedBy }"
         >
           <component
-            :is="type.control"
-            v-bind="type.controlProps"
-            :id="controlId"
-            :model-value="value"
+            :is="type.view"
+            v-if="showsView && !row.nested && !lockedBy"
+            :value="value"
             :schema="row.schema"
-            :label="row.title"
-            :readonly="mode === 'view' || !!row.schema.readOnly"
-            :error="!!error"
             :options="row.options"
             :locale="locale"
-            @update:model-value="update"
           />
-        </div>
-      </HiddenLabelField>
-      <button
-        v-else
-        type="button"
-        class="coar-object-editor-display"
-        :disabled="mode === 'view'"
-        @click="emit('edit')"
-      >
-        <component
-          :is="type.view"
-          v-if="type.view && !isEmptyValue(value)"
-          :value="value"
-          :schema="row.schema"
-          :options="row.options"
-          :locale="locale"
-        />
-        <template v-else>{{ displayText }}</template>
-      </button>
+          <span v-else :class="{ 'coar-object-editor-literal': !!valueLiteral && !lockedBy }">{{ displayText }}</span>
+        </span>
+        <HiddenLabelField v-else-if="showsControl" :id="controlId" :label="row.title" :error="error">
+          <div
+            class="coar-object-editor-control"
+            :class="{ 'coar-object-editor-control--numeric': row.typeId === 'number' }"
+            @click.self="focusInput"
+            @focusout="onFocusOut"
+          >
+            <component
+              :is="type.control"
+              v-bind="type.controlProps"
+              :id="controlId"
+              :key="revision"
+              :model-value="value ?? undefined"
+              :schema="row.schema"
+              :label="row.title"
+              :readonly="mode === 'view' || !!row.schema.readOnly"
+              :error="!!error"
+              :options="row.options"
+              :locale="locale"
+              @update:model-value="update"
+            />
+          </div>
+        </HiddenLabelField>
+        <button
+          v-else
+          type="button"
+          class="coar-object-editor-display"
+          :class="{ 'coar-object-editor-muted': notSet || conflict }"
+          :disabled="mode === 'view'"
+          @click="emit('edit')"
+        >
+          <component
+            :is="type.view"
+            v-if="showsView"
+            :value="value"
+            :schema="row.schema"
+            :options="row.options"
+            :locale="locale"
+          />
+          <span v-else :class="{ 'coar-object-editor-literal': !!valueLiteral }">{{ displayText }}</span>
+        </button>
+        <span
+          v-if="showsControl && valueLiteral && !row.nested"
+          class="coar-object-editor-literal"
+          :title="t('coar.objectEditor.literalHint', undefined, 'This value is set; Remove deletes it.')"
+          >{{ valueLiteral }}</span
+        >
+        <span
+          v-if="state === 'inherited'"
+          class="coar-object-editor-origin"
+          :title="origin?.title"
+          >{{ origin?.label ?? t('coar.objectEditor.inherited', undefined, 'inherited') }}</span
+        >
+      </div>
+      <span v-if="lockedBy" class="coar-object-editor-hint">{{
+        t('coar.objectEditor.lockedByNull', { group: lockedBy }, '{group} is null: fill it in from its menu to edit this value').replace(
+          '{group}',
+          lockedBy,
+        )
+      }}</span>
+      <span v-else-if="pendingEmpty" class="coar-object-editor-hint">{{
+        t('coar.objectEditor.needsValue', undefined, 'Enter a value, or remove it from the menu.')
+      }}</span>
       <span v-if="error" class="coar-object-editor-error" aria-hidden="true">{{ error }}</span>
+    </div>
+    <div class="coar-object-editor-actions">
+      <CoarPopover v-if="hasActions" mode="click">
+        <template #default>
+          <CoarButton
+            variant="ghost"
+            size="xs"
+            icon-start="ellipsis"
+            :aria-label="t('coar.objectEditor.actions', { title: row.title }, 'Actions for {title}').replace('{title}', row.title)"
+          />
+        </template>
+        <template #content>
+          <CoarMenu>
+            <CoarMenuItem
+              v-if="canRemove"
+              :label="
+                hasBase
+                  ? t('coar.objectEditor.reset', undefined, 'Reset to inherited')
+                  : t('coar.objectEditor.remove', undefined, 'Remove value')
+              "
+              :icon="hasBase ? 'rotate-ccw' : 'trash-2'"
+              @clicked="emit('remove')"
+            />
+            <CoarMenuItem
+              v-if="canFillGroup"
+              :label="t('coar.objectEditor.fillGroup', undefined, 'Fill in this group')"
+              icon="plus"
+              @clicked="emit('update:value', {})"
+            />
+            <CoarMenuItem
+              v-if="canSetNull"
+              :label="t('coar.objectEditor.setNull', undefined, 'Set to null')"
+              icon="x-circle"
+              @clicked="emit('update:value', null)"
+            />
+          </CoarMenu>
+        </template>
+      </CoarPopover>
     </div>
   </div>
 </template>
