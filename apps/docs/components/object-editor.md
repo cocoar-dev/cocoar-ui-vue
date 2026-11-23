@@ -109,8 +109,9 @@ Switching views never changes the document.
 />
 ```
 
-The editor looks up a value per path: the local one, else the base one. It does not merge — how layers combine is
-the app's rule. `origin` names the source of an inherited value; `conflict: true` shows "differs by context"
+The editor looks up a value per path: the local one, else the base one. A group inherits the keys it does not set;
+a local list or map replaces the inherited one as a whole, also when it is empty, and **Reset to inherited** on the
+list or map brings the inherited entries back. It does not merge — how layers combine is the app's rule. `origin` names the source of an inherited value; `conflict: true` shows "differs by context"
 instead of a value that would look authoritative. To check the effective document, turn `validate` off and pass
 the app's own `issues`: missing local keys are then no error, and the problems still appear in their rows.
 

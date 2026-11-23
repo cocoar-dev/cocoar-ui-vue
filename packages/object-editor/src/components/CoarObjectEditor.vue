@@ -3,7 +3,7 @@ import { computed, nextTick, ref, shallowRef, useId, useTemplateRef, watch } fro
 import { useI18n } from '@cocoar/vue-localization';
 import { formatPointer, getAt, isPointerPrefix, parsePointer, setAt } from '../core/pointer';
 import { issueMessage } from '../core/messages';
-import { nonNullSchema, resolveSchema, schemaAt } from '../core/resolve';
+import { isMapSchema, nonNullSchema, resolveSchema, schemaAt } from '../core/resolve';
 import { validateValue, type CoarPresence, type ObjectEditorIssue } from '../core/validate';
 import type { CoarObjectEditorOption } from '../core/options';
 import { isJsonObject, type JsonObject, type JsonSchema, type JsonValue } from '../core/schema';
@@ -102,7 +102,13 @@ watch(
 );
 
 /** Local over base: which groups and keys there are. Not stored. */
-const shape = computed(() => overlay(props.base, model.value));
+// A local map replaces the inherited map as a whole, as a list does: its
+// entries are not mixed with the inherited ones.
+const isMapAt = (tokens: readonly string[]) => {
+  const schema = schemaAt(props.schema, tokens);
+  return !!schema && isMapSchema(props.schema, nonNullSchema(props.schema, schema));
+};
+const shape = computed(() => overlay(props.base, model.value, isMapAt));
 const searching = computed(() => search.value.trim() !== '');
 const buildOptions = computed(() => ({ resolveType: props.resolveType }));
 
@@ -332,7 +338,8 @@ function remove(tokens: string[]) {
   if (props.base) {
     for (let depth = tokens.length - 1; depth > 0; depth--) {
       const group = getAt(next, tokens.slice(0, depth));
-      if (!isJsonObject(group) || Object.keys(group).length) break;
+      // An empty map is a value: it replaces the inherited map.
+      if (!isJsonObject(group) || Object.keys(group).length || isMapAt(tokens.slice(0, depth))) break;
       next = setAt(next, tokens.slice(0, depth), undefined) as JsonObject;
     }
   }

@@ -116,6 +116,39 @@ describe('typed maps (#90)', () => {
     wrapper.unmount();
   });
 
+  it('shows only the local entries of a map that replaces the inherited one (#100)', async () => {
+    const base = { limits: { cpu: 2, ram: 4 } };
+    const empty = mountEditor(schema, { limits: {} }, { base });
+    expect(pointers(empty.wrapper).filter((p) => p!.startsWith('/limits/'))).toEqual([]);
+    empty.wrapper.unmount();
+
+    const partial = mountEditor(schema, { limits: { disk: 0 } }, { base });
+    expect(pointers(partial.wrapper).filter((p) => p!.startsWith('/limits/'))).toEqual(['/limits/disk']);
+    expect(row(partial.wrapper, '/limits/disk').attributes('data-state')).toBe('local');
+    // Removing the last local entry keeps the empty map: it still replaces the inherited one.
+    rowOf(partial.wrapper, '/limits/disk').vm.$emit('remove');
+    await nextTick();
+    expect(partial.model.value).toEqual({ limits: {} });
+    // Resetting the map key brings the inherited entries back.
+    rowOf(partial.wrapper, '/limits').vm.$emit('remove');
+    await nextTick();
+    expect(partial.model.value).toEqual({});
+    expect(pointers(partial.wrapper).filter((p) => p!.startsWith('/limits/'))).toEqual(['/limits/cpu', '/limits/ram']);
+    expect(row(partial.wrapper, '/limits/cpu').attributes('data-state')).toBe('inherited');
+    partial.wrapper.unmount();
+  });
+
+  it('still lets a group inherit the keys it does not set', () => {
+    const groups: JsonSchema = {
+      type: 'object',
+      properties: { net: { type: 'object', properties: { host: { type: 'string' }, port: { type: 'integer' } } } },
+    };
+    const { wrapper } = mountEditor(groups, { net: { port: 1 } }, { base: { net: { host: 'b', port: 2 } } });
+    expect(row(wrapper, '/net/host').attributes('data-state')).toBe('inherited');
+    expect(row(wrapper, '/net/port').attributes('data-state')).toBe('local');
+    wrapper.unmount();
+  });
+
   it('reports a problem at the entry it belongs to', () => {
     const { wrapper } = mountEditor(schema, { limits: { cpu: -1 } });
     expect(row(wrapper, '/limits/cpu').find('.coar-object-editor-error').text()).toBe('At least 0.');
