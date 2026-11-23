@@ -1,6 +1,6 @@
 ---
 title: Object Editor für ConfigHub — JSON-Semantik, sensible Werte, geerbte Basis, Suche, Listen und Maps, Schema-Profile
-status: in-progress
+status: done
 created: 2026-11-23
 summary: Der Object Editor bewahrt null und leere Werte, zeigt geerbte Werte unter lokalen Überschreibungen, lässt die App Geheimnisse sicher darstellen, sucht über alle Ebenen, bearbeitet geordnete Listen und Maps, und der Schema-Editor bewahrt importierte Schemas. Damit kann ConfigHub ihn übernehmen (Issue #94).
 ---
