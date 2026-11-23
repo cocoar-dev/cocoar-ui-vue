@@ -225,7 +225,30 @@ export function quietScrollbars(instance: OverlayScrollbars | null | undefined):
     requestAnimationFrame(() => {
       const left = (quietScrolls.get(instance) ?? 1) - 1;
       quietScrolls.set(instance, left);
-      if (left === 0) instance.sleep(false);
+      if (left === 0) wake(instance);
     });
   };
+}
+
+/**
+ * Waking, OverlayScrollbars runs the update it skipped asleep, which measures the viewport by
+ * scrolling it and puts it back where it was. It means to ignore the scroll event that follows,
+ * but now and then takes it for a user's and shows the scrollbar (overlayscrollbars 2.15, seen in
+ * Chromium under load). That event, at the position it was woken at, is stopped at the host before
+ * it reaches the viewport, for the two frames that follow; a user's scroll moves the position.
+ */
+function wake(instance: OverlayScrollbars): void {
+  const { host, viewport } = instance.elements();
+  const at = { left: viewport.scrollLeft, top: viewport.scrollTop };
+  instance.sleep(false);
+  if (host === viewport) return;
+  const ownScroll = (event: Event) => {
+    if (event.target === viewport && viewport.scrollLeft === at.left && viewport.scrollTop === at.top) {
+      event.stopPropagation();
+    }
+  };
+  host.addEventListener('scroll', ownScroll, { capture: true });
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => host.removeEventListener('scroll', ownScroll, { capture: true })),
+  );
 }

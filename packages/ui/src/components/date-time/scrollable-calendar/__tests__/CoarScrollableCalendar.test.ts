@@ -205,6 +205,11 @@ describe('CoarScrollableCalendar', () => {
   });
 
   const MONTH_HEIGHT = 267;
+  /** The elements of a mocked OverlayScrollbars: host and viewport in one, nothing to guard at waking. */
+  const oneElement = () => {
+    const element = document.createElement('div');
+    return { host: element, viewport: element };
+  };
   const PICKER_VIEWPORT_HEIGHT = 312;
   const frame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
   const restores: (() => void)[] = [];
@@ -387,6 +392,7 @@ describe('CoarScrollableCalendar', () => {
       fakeLayout({ log });
       vi.mocked(getScrollbarInstance).mockReturnValue({
         sleep: (sleeping: boolean) => log.push(`sleep ${sleeping}`),
+        elements: oneElement,
       } as unknown as ReturnType<typeof getScrollbarInstance>);
       mountCalendar({ activeMonth: Temporal.PlainYearMonth.from('2026-03') });
 
@@ -394,6 +400,33 @@ describe('CoarScrollableCalendar', () => {
 
       // Awake, it would take the scroll for a user's and show the scrollbar for a moment.
       expect(log).toEqual(['sleep true', `scrollTop ${3 * MONTH_HEIGHT} on viewport`, 'sleep false']);
+    });
+
+    it('positions the list only once the web fonts that are loading have arrived', async () => {
+      // Arriving after the opening, they change the months' height: the browser's scroll
+      // anchoring would move the list, which OverlayScrollbars takes for a user's scroll.
+      let fontsArrive!: () => void;
+      const ready = new Promise<void>((resolve) => { fontsArrive = resolve; });
+      const fonts = { status: 'loading', ready };
+      const original = Object.getOwnPropertyDescriptor(document, 'fonts');
+      Object.defineProperty(document, 'fonts', { value: fonts, configurable: true });
+      restores.push(() => {
+        if (original) Object.defineProperty(document, 'fonts', original);
+        else delete (document as { fonts?: unknown }).fonts;
+      });
+      const log: string[] = [];
+      fakeLayout({ log });
+      const wrapper = mountCalendar({ activeMonth: Temporal.PlainYearMonth.from('2026-03') });
+
+      await settle();
+      expect(log).toEqual([]);
+      expect(isRevealed(wrapper)).toBe(false);
+
+      fonts.status = 'loaded';
+      fontsArrive();
+      await settle();
+      expect(log).toEqual([`scrollTop ${3 * MONTH_HEIGHT} on viewport`]);
+      expect(isRevealed(wrapper)).toBe(true);
     });
 
     /** Asleep once, before every scroll of the calendar, and awake again only after the last. */
@@ -411,6 +444,7 @@ describe('CoarScrollableCalendar', () => {
       const layout = fakeLayout({ viewportHeight: 360, log });
       vi.mocked(getScrollbarInstance).mockReturnValue({
         sleep: (sleeping: boolean) => log.push(`sleep ${sleeping}`),
+        elements: oneElement,
       } as unknown as ReturnType<typeof getScrollbarInstance>);
       const wrapper = mountCalendar({ activeMonth: Temporal.PlainYearMonth.from('2026-03') });
       await settle();
@@ -431,6 +465,7 @@ describe('CoarScrollableCalendar', () => {
       const layout = fakeLayout({ viewportHeight: 360, log });
       vi.mocked(getScrollbarInstance).mockReturnValue({
         sleep: (sleeping: boolean) => log.push(`sleep ${sleeping}`),
+        elements: oneElement,
       } as unknown as ReturnType<typeof getScrollbarInstance>);
       const wrapper = mountCalendar({ activeMonth: Temporal.PlainYearMonth.from('2026-03') });
       // The opening scroll is applied, its frame has not run yet: the viewport grows then.
