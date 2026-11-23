@@ -37,7 +37,9 @@ What the editor does with the data:
 - **A definition that contains itself** (`$ref` to an enclosing definition) starts closed and opens one level
   per click.
 - **Values the schema does not know stay in the data**, shown read-only as "not in the schema".
-- **Lists of objects** are shown read-only with their number of entries and kept unchanged.
+- **Lists and maps** of single values get a row per entry, see [Lists and maps](#lists-and-maps). **Lists of
+  groups** (arrays of objects) are shown read-only with their number of entries and kept unchanged.
+- **Search** (`v-model:search`) finds rows by title, key or path, see [Search](#search).
 
 ## Values and absence <Badge type="warning" text="Changed" /> {#values-and-absence}
 
@@ -61,6 +63,30 @@ The editor stores exactly what is set, the way JSON Schema reads it:
 Forms that want "empty means missing" pass `presence="filled"`: emptying a value then removes its key, and an
 empty value fails `required`. This was the behaviour before; see
 [Migrating the Object Editor values](/guide/migration-object-editor-values).
+
+## Lists and maps {#lists-and-maps}
+
+An **ordered list** (`type: "array"` with single-value `items`) and a **map** (`type: "object"` with a schema in
+`additionalProperties`) show one row per entry, with the control of the entry's type. The product above has both:
+`highlights` and `prices`.
+
+- A list keeps its order and duplicates; `false` and `0` are values. The list's menu adds an item; an item's menu
+  moves, inserts below and removes it. **Alt+↑** / **Alt+↓** move the focused item.
+- A map's keys are edited in place. A key that exists already is refused and marked at the key; the map's menu
+  adds an entry.
+- A problem of an entry appears in its row (`/prices/AT`).
+- An inherited list or map is copied into the document when one of its entries changes: the copy replaces it.
+
+Strings that must be unique are `tags` (`uniqueItems: true`); strings in order are a `list`.
+
+## Search {#search}
+
+`v-model:search` filters the rows by title, key or path (`dimensions.width`), also below closed groups, and keeps
+the groups that lead to a match. Clearing it brings back the groups as they were. Values are never searched, so a
+secret cannot match. It works together with `view="local"`.
+
+`focus(pointer)` (on the component's ref) opens the groups of a row, scrolls to it and focuses its control — for
+links from search results or from the app's own messages.
 
 ## Inherited values {#inherited-values}
 
@@ -143,11 +169,15 @@ A **choice** is `oneOf` of `{ const, title }`; several choices are an `array` wi
 | `number` | `number` / `integer` | Inline number input with unit |
 | `boolean` | `boolean` | Switch |
 | `date` | `string`, `format: "date"` | Inline date picker |
+| `date-time` | `string`, `format: "date-time"` | Inline date-time picker; stored as ISO 8601 with offset |
 | `email` | `string`, `format: "email"` | Inline text input |
 | `color` | `string`, `pattern` `#RRGGBB` | Inline text input with a swatch |
 | `choice` | `oneOf` of constants | Inline select |
 | `choices` | `array` of constants | Tag select |
-| `tags` | `array` of `string` | Tag select that creates tags |
+| `tags` | `array` of unique `string` | Tag select that creates tags |
+| `list` | `array` of single values, in order | A row per item |
+| `map` | `object` with `additionalProperties` | A row per key |
+| `group-list` | `array` of objects | Read-only, number of entries |
 | `object` | `object` | The rows of its properties, collapsible |
 
 ## Types of the app and option sources
@@ -200,6 +230,26 @@ The same operations exist as functions: `addProperty`, `removeProperty`, `rename
 `changePropertyType`, `updateProperty`, `setRequired` and `setOptions` take a schema and a path of keys
 (`['dimensions', 'width']`) and return the new schema.
 
+### Profiles of the app
+
+An app whose backend accepts only part of JSON Schema passes a `profile`:
+
+```vue
+<CoarSchemaEditor
+  v-model="schema"
+  :profile="{
+    types: ['text', 'number', 'boolean', 'choice', 'list', 'map'], // offered types
+    choiceEncoding: 'enum',                       // choices as a plain enum, without texts
+    diagnostics: (schema) => backendProblems(schema), // [{ path: ['retries'], message: '…' }]
+  }"
+/>
+```
+
+The schema editor changes only what is edited: `$defs`, annotations (`$comment`, `x-…` of other tools) and
+references stay as imported. A property with keywords it cannot edit (`allOf`, `if`, `patternProperties` …) shows
+them and offers only key, title and description. A type change that would drop keywords names them and waits for
+a confirmation. **Allows null** writes `type: [t, "null"]`, and keeps an existing `anyOf` with `{ "type": "null" }`.
+
 ## API
 
 ### CoarObjectEditor props
@@ -221,8 +271,10 @@ The same operations exist as functions: `addProperty`, `removeProperty`, `rename
 | `issues` | `ObjectEditorIssue[]` | `[]` | Problems the app found, shown in their rows |
 | `resolveType` | `({ schema, pointer, typeId }) => string \| undefined` | — | Chooses the type of a property, see [Sensitive values](#sensitive-values) |
 | `redact` | `(pointer, value) => boolean` | — | Masks a value as dots |
+| `v-model:search` | `string` | `''` | Filters rows by title, key or path, see [Search](#search) |
 
-The component exposes `issues`: every problem of the value, as `{ pointer, keyword, message? }`.
+The component exposes `issues` (every problem of the value, as `{ pointer, keyword, message? }`) and
+`focus(pointer)`.
 
 ### CoarSchemaEditor props
 
@@ -230,6 +282,7 @@ The component exposes `issues`: every problem of the value, as `{ pointer, keywo
 |------|------|---------|-------------|
 | `v-model` | `JsonSchema` | — | The schema; each change emits a new object |
 | `types` | `CoarObjectEditorTypes` | built-in types | The types to choose from |
+| `profile` | `{ types?, choiceEncoding?, diagnostics? }` | — | What can be authored, see [Profiles of the app](#profiles-of-the-app) |
 
 ### Functions
 
@@ -287,4 +340,8 @@ app, set its token in the theme or style preset; the `striped` prop sets the sam
 | `coar.objectEditor.inherited` / `conflict` | `inherited` / `differs by context` |
 | `coar.objectEditor.literalHint` | `This value is set; Remove deletes it.` |
 | `coar.objectEditor.noLocalValues` | `No values are set here.` |
-| `coar.schemaEditor.*` | Labels of the schema editor (`key`, `title`, `type`, `required`, `addProperty` …) and its problems (`invalidKey`, `keyTaken`, `rangeOrder`, `noOptions`, `emptyOption`, `duplicateOption`) |
+| `coar.objectEditor.noMatches` | `No property matches the search.` |
+| `coar.objectEditor.item` / `items` | `1 item` / `{count} items` |
+| `coar.objectEditor.addItem` / `addEntry` / `insertBelow` / `moveUp` / `moveDown` / `removeEntry` | `Add item` / `Add entry` / `Insert below` / `Move up` / `Move down` / `Remove` |
+| `coar.objectEditor.mapKey` / `keyEmpty` / `keyTaken` | `Key` / `A key cannot be empty.` / `This key exists already.` |
+| `coar.schemaEditor.*` | Labels of the schema editor (`key`, `title`, `type`, `required`, `addProperty` …) and its problems (`invalidKey`, `keyTaken`, `rangeOrder`, `noOptions`, `emptyOption`, `duplicateOption`), and `allowsNull`, `itemType`, `valueType`, `unsupported`, `typeDrops`, `changeType` |

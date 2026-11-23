@@ -27,3 +27,14 @@ the row's menu deletes a key.
 | `type: ["boolean", "null"]` | shown as a JSON value | Yes/no field with **Set to null** |
 
 See [Values and absence](../components/object-editor.md#values-and-absence).
+
+## Type ids
+
+| Before | Now |
+| --- | --- |
+| `list` (array of objects, read-only) | `group-list` |
+| — | `list`: an ordered array of single values, edited row by row |
+| `tags` for any array of strings | `tags` for unique strings (`uniqueItems: true`); strings in order are a `list` |
+
+A schema that names `x-coar-type: "list"` for an array of objects now asks for a list of single values: change it to
+`group-list`, or remove `x-coar-type` and let the editor recognize the array.

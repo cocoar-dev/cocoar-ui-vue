@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { CoarButton, CoarIcon, CoarMenu, CoarMenuItem, CoarPopover } from '@cocoar/vue-ui';
+import { CoarButton, CoarIcon, CoarMenu, CoarMenuItem, CoarPopover, CoarTextInput } from '@cocoar/vue-ui';
 import { useI18n } from '@cocoar/vue-localization';
 import { isEmptyValue } from '../core/resolve';
 import { isJsonObject, type JsonValue } from '../core/schema';
@@ -28,6 +28,8 @@ const props = defineProps<{
   lockedBy?: string;
   /** The app masks this value (`redact`). */
   redacted: boolean;
+  /** A key of a map entry that was refused (empty or taken). */
+  keyError?: string;
 }>();
 const emit = defineEmits<{
   'update:value': [value: JsonValue | undefined];
@@ -35,6 +37,14 @@ const emit = defineEmits<{
   edit: [];
   leave: [];
   toggle: [];
+  /** List or map: add an entry at the end. */
+  add: [];
+  /** List entry: insert an entry after this one. */
+  insert: [];
+  /** List entry: move one place up (-1) or down (1). */
+  move: [offset: -1 | 1];
+  /** Map entry: give it another key. */
+  rename: [key: string];
 }>();
 const { t } = useI18n();
 
@@ -86,7 +96,7 @@ const displayText = computed(() => {
   if (notSet.value) return '–';
   if (valueLiteral.value) return valueLiteral.value;
   if (masked.value) return '••••••';
-  if (props.row.nested) {
+  if (props.row.nested && !props.row.container) {
     const count = isJsonObject(props.value) ? Object.keys(props.value).length : 0;
     return t('coar.objectEditor.filled', { count }, '{count} filled').replace('{count}', String(count));
   }
@@ -101,7 +111,8 @@ const pendingEmpty = ref(false);
 const revision = ref(0);
 
 function update(next: JsonValue | undefined) {
-  if (props.presence === 'filled') {
+  // An entry of a list or map keeps its place while it is emptied: it leaves only through Remove.
+  if (props.presence === 'filled' && !props.row.entry) {
     const empty = type.value.isEmpty ? type.value.isEmpty(next) : isEmptyValue(next);
     emit('update:value', empty ? undefined : next);
     return;
@@ -141,14 +152,31 @@ const canSetNull = computed(
   () => props.row.nullable && !props.row.extra && !(props.state === 'local' && props.value === null),
 );
 // A group that is null (here or inherited) is filled in with {} to edit its values.
-const canFillGroup = computed(() => props.row.nested && props.value === null);
+const canFillGroup = computed(() => props.row.nested && !props.row.container && props.value === null);
+const listEntry = computed(() => (props.row.entry?.container === 'list' ? props.row.entry : undefined));
+const canAdd = computed(() => !!props.row.container && props.value !== null);
 const hasActions = computed(
   () =>
     props.mode === 'edit' &&
     !props.lockedBy &&
     !type.value.readonlyOnly &&
-    (canRemove.value || canSetNull.value || canFillGroup.value),
+    (canRemove.value || canSetNull.value || canFillGroup.value || canAdd.value || !!props.row.entry),
 );
+
+// Alt+↑ / Alt+↓ move a list entry, like the menu does.
+function onKeydown(event: KeyboardEvent) {
+  if (!listEntry.value || !event.altKey || props.mode !== 'edit') return;
+  if (event.key === 'ArrowUp' && listEntry.value.index > 0) emit('move', -1);
+  else if (event.key === 'ArrowDown' && listEntry.value.index < listEntry.value.count - 1) emit('move', 1);
+  else return;
+  event.preventDefault();
+}
+
+const keyDraft = ref(props.row.key);
+// Always reported, also the unchanged key: that clears an earlier refusal.
+function commitKey() {
+  emit('rename', keyDraft.value.trim());
+}
 </script>
 
 <template>
@@ -164,6 +192,7 @@ const hasActions = computed(
     :data-pointer="row.pointer"
     :data-state="state"
     :style="{ '--coar-object-editor-depth': row.depth }"
+    @keydown="onKeydown"
   >
     <div class="coar-object-editor-key">
       <span class="coar-object-editor-chevron">
@@ -184,11 +213,28 @@ const hasActions = computed(
       >
         <CoarIcon :name="row.extra ? 'circle-alert' : type.icon" size="s" />
       </span>
-      <span class="coar-object-editor-label" :title="row.description">
+      <HiddenLabelField
+        v-if="row.entry?.container === 'map' && mode === 'edit' && !lockedBy"
+        :id="`${controlId}-key`"
+        :label="t('coar.objectEditor.mapKey', undefined, 'Key')"
+        :error="keyError"
+      >
+        <CoarTextInput
+          :id="`${controlId}-key`"
+          v-model="keyDraft"
+          size="s"
+          appearance="inline"
+          width="content"
+          class="coar-object-editor-map-key"
+          @change="commitKey"
+          @keydown.enter="commitKey"
+        />
+      </HiddenLabelField>
+      <span v-else class="coar-object-editor-label" :title="row.description">
         <span
           >{{ row.title }}<b v-if="row.required" class="coar-object-editor-required" aria-hidden="true">*</b></span
         >
-        <small>{{
+        <small v-if="!listEntry">{{
           row.extra ? t('coar.objectEditor.notInSchema', undefined, 'not in the schema') : row.key
         }}</small>
       </span>
@@ -270,6 +316,7 @@ const hasActions = computed(
           lockedBy,
         )
       }}</span>
+      <span v-if="keyError" class="coar-object-editor-error" aria-hidden="true">{{ keyError }}</span>
       <span v-else-if="pendingEmpty" class="coar-object-editor-hint">{{
         t('coar.objectEditor.needsValue', undefined, 'Enter a value, or remove it from the menu.')
       }}</span>
@@ -288,13 +335,44 @@ const hasActions = computed(
         <template #content>
           <CoarMenu>
             <CoarMenuItem
-              v-if="canRemove"
+              v-if="canAdd"
               :label="
-                hasBase
-                  ? t('coar.objectEditor.reset', undefined, 'Reset to inherited')
-                  : t('coar.objectEditor.remove', undefined, 'Remove value')
+                row.container === 'list'
+                  ? t('coar.objectEditor.addItem', undefined, 'Add item')
+                  : t('coar.objectEditor.addEntry', undefined, 'Add entry')
               "
-              :icon="hasBase ? 'rotate-ccw' : 'trash-2'"
+              icon="plus"
+              @clicked="emit('add')"
+            />
+            <template v-if="listEntry">
+              <CoarMenuItem
+                :label="t('coar.objectEditor.moveUp', undefined, 'Move up')"
+                icon="arrow-up"
+                :disabled="listEntry.index === 0"
+                @clicked="emit('move', -1)"
+              />
+              <CoarMenuItem
+                :label="t('coar.objectEditor.moveDown', undefined, 'Move down')"
+                icon="arrow-down"
+                :disabled="listEntry.index === listEntry.count - 1"
+                @clicked="emit('move', 1)"
+              />
+              <CoarMenuItem
+                :label="t('coar.objectEditor.insertBelow', undefined, 'Insert below')"
+                icon="plus"
+                @clicked="emit('insert')"
+              />
+            </template>
+            <CoarMenuItem
+              v-if="canRemove || row.entry"
+              :label="
+                row.entry
+                  ? t('coar.objectEditor.removeEntry', undefined, 'Remove')
+                  : hasBase
+                    ? t('coar.objectEditor.reset', undefined, 'Reset to inherited')
+                    : t('coar.objectEditor.remove', undefined, 'Remove value')
+              "
+              :icon="hasBase && !row.entry ? 'rotate-ccw' : 'trash-2'"
               @clicked="emit('remove')"
             />
             <CoarMenuItem
