@@ -26,7 +26,7 @@
 /* Every second row takes --coar-object-editor-row-stripe, transparent unless a
    theme or preset sets it. It is read here, never set on the editor, so a value
    on :root or a theme scope applies; `striped` sets it for one editor. */
-.coar-object-editor-row:nth-child(even):not(:hover) {
+.coar-object-editor-row:nth-child(even of .coar-object-editor-row):not(:hover) {
   background: var(--coar-object-editor-row-stripe, transparent);
 }
 .coar-object-editor--striped {
@@ -203,6 +203,15 @@
   flex: none;
   border-radius: 4px;
   border: 1px solid rgb(0 0 0 / 0.12);
+}
+
+.coar-object-editor-issues {
+  margin: 0 0 6px;
+  padding: 0 6px;
+  list-style: none;
+}
+.coar-object-editor-issues .coar-object-editor-error {
+  padding-inline-start: 0;
 }
 
 .coar-object-editor-empty {

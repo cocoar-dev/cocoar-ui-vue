@@ -38,7 +38,8 @@ const { t } = useI18n();
 const baseId = useId();
 
 const register = computed(() => props.types ?? defineObjectEditorTypes());
-const collapsed = ref(new Set<string>());
+/** Groups switched by the user from their default (open; a recursive group closed). */
+const toggled = ref(new Set<string>());
 const editing = ref('');
 
 const sources = shallowRef<OptionSourceValues>({});
@@ -53,13 +54,14 @@ watch(
   { immediate: true },
 );
 
-const rows = computed(() => buildRows(props.schema, model.value, register.value, sources.value, collapsed.value));
+const rows = computed(() => buildRows(props.schema, model.value, register.value, sources.value, toggled.value));
 
 /** Every problem of the value: the schema's and those of the value types. */
 const issues = computed<ObjectEditorIssue[]>(() => {
   const list = validateValue(props.schema, model.value);
   const context = { locale: props.locale, t };
-  for (const row of buildRows(props.schema, model.value, register.value, sources.value, new Set())) {
+  // Every value is checked, also below closed groups and inside recursive data.
+  for (const row of buildRows(props.schema, model.value, register.value, sources.value, new Set(), true)) {
     const value = getAt(model.value, row.tokens);
     const message = value !== undefined ? row.type.validate?.(value, { ...context, schema: row.schema, options: row.options }) : null;
     if (message) list.push({ pointer: row.pointer, keyword: 'custom', message });
@@ -67,15 +69,24 @@ const issues = computed<ObjectEditorIssue[]>(() => {
   return list;
 });
 
-const errors = computed(() => {
+// An issue goes to the deepest row that contains it. When that row is not the
+// value itself (a required key without a property schema, a part of an app type
+// or of a closed group), the rest of the path comes first: "currency: Required."
+// Issues no row contains are listed above the rows.
+const placed = computed(() => {
   const byRow = new Map<string, string>();
+  const unplaced: string[] = [];
   for (const issue of issues.value) {
+    const tokens = parsePointer(issue.pointer);
     const row = rowForPointer(rows.value, issue.pointer);
-    if (!row || byRow.has(row.pointer)) continue;
-    const schema = schemaAt(props.schema, parsePointer(issue.pointer)) ?? row.schema;
-    byRow.set(row.pointer, issueMessage(issue, schema, t));
+    const rest = tokens.slice(row?.tokens.length ?? 0).join('.');
+    const schema = schemaAt(props.schema, tokens) ?? row?.schema ?? {};
+    const text = issueMessage(issue, schema, t);
+    const message = rest ? `${rest}: ${text}` : text;
+    if (!row) unplaced.push(message);
+    else if (!byRow.has(row.pointer)) byRow.set(row.pointer, message);
   }
-  return byRow;
+  return { byRow, unplaced };
 });
 
 defineExpose({ issues });
@@ -87,10 +98,10 @@ function update(tokens: string[], value: JsonValue | undefined) {
 }
 
 function toggle(pointer: string) {
-  const next = new Set(collapsed.value);
+  const next = new Set(toggled.value);
   if (next.has(pointer)) next.delete(pointer);
   else next.add(pointer);
-  collapsed.value = next;
+  toggled.value = next;
 }
 
 async function edit(pointer: string) {
@@ -108,6 +119,9 @@ async function edit(pointer: string) {
 
 <template>
   <div class="coar-object-editor" :class="[`coar-object-editor--${mode}`, { 'coar-object-editor--striped': striped }]">
+    <ul v-if="placed.unplaced.length" class="coar-object-editor-issues">
+      <li v-for="message in placed.unplaced" :key="message" class="coar-object-editor-error">{{ message }}</li>
+    </ul>
     <ObjectEditorRow
       v-for="row in rows"
       :key="row.pointer"
@@ -115,8 +129,7 @@ async function edit(pointer: string) {
       :value="getAt(model, row.tokens)"
       :mode="mode"
       :editing="editing === row.pointer"
-      :collapsed="collapsed.has(row.pointer)"
-      :error="errors.get(row.pointer)"
+      :error="placed.byRow.get(row.pointer)"
       :control-id="controlId(row.pointer)"
       :locale="locale"
       @update:value="update(row.tokens, $event)"

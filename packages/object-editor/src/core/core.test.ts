@@ -132,6 +132,16 @@ describe('validateValue', () => {
     ]);
   });
 
+  it('reports required keys that have no schema in properties (#92)', () => {
+    expect(validateValue({ type: 'object', required: ['flag'] }, {})).toEqual([{ pointer: '/flag', keyword: 'required' }]);
+    const nested: JsonSchema = {
+      type: 'object',
+      properties: { settings: { type: 'object', required: ['mode'] } },
+    };
+    expect(validateValue(nested, { settings: {} })).toEqual([{ pointer: '/settings/mode', keyword: 'required' }]);
+    expect(validateValue(nested, { settings: { mode: 'x' } })).toEqual([]);
+  });
+
   it('writes messages with the limits of the schema', () => {
     expect(issueMessage({ pointer: '/stock', keyword: 'minimum' }, { minimum: 0 }, t)).toBe('At least 0.');
     expect(issueMessage({ pointer: '/x', keyword: 'format' }, { format: 'email' }, t)).toBe(
