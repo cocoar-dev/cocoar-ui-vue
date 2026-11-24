@@ -50,6 +50,8 @@ const props = withDefaults(
     resolveType?: CoarResolveType;
     /** `true` for a value that must never appear as text (shown as dots). */
     redact?: (pointer: string, value: JsonValue) => boolean;
+    /** `true` for a value the schema does not describe that may be edited as JSON. Never a redacted one. */
+    editUnknown?: (pointer: string, value: JsonValue) => boolean;
     /** Read-only values that apply where the edited document has no key; editing writes the document. */
     base?: JsonObject;
     /** Where an inherited value comes from. */
@@ -70,6 +72,7 @@ const props = withDefaults(
     presence: 'key',
     resolveType: undefined,
     redact: undefined,
+    editUnknown: undefined,
     base: undefined,
     origin: undefined,
     view: 'all',
@@ -240,6 +243,12 @@ function isRedacted(row: ObjectEditorRowModel, value: JsonValue | undefined): bo
   return row.nested ? props.redact(row.pointer, value) : someWithin(value, row.tokens, props.redact);
 }
 
+// Only an existing value, never a redacted one: its JSON would show what redact hides.
+function isUnknownEditable(row: ObjectEditorRowModel, value: JsonValue | undefined): boolean {
+  if (!row.extra || value === undefined || !props.editUnknown || isRedacted(row, value)) return false;
+  return props.editUnknown(row.pointer, value);
+}
+
 const controlId = (pointer: string) => `${baseId}-value${pointer}`;
 
 function update(tokens: string[], value: JsonValue | undefined) {
@@ -389,6 +398,7 @@ async function edit(pointer: string) {
       :locked-by="entry.lockedBy"
       :origin="entry.state === 'inherited' ? origin?.(entry.row.pointer) : undefined"
       :redacted="isRedacted(entry.row, entry.value)"
+      :unknown-editable="isUnknownEditable(entry.row, entry.value)"
       :mode="mode"
       :presence="presence"
       :editing="editing === entry.row.pointer"

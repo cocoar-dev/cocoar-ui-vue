@@ -11,6 +11,7 @@ import ChoiceControl from './controls/ChoiceControl.vue';
 import ChoicesControl from './controls/ChoicesControl.vue';
 import TagsView from './controls/TagsView.vue';
 import ColorView from './controls/ColorView.vue';
+import JsonControl from './controls/JsonControl.vue';
 import type { CoarObjectEditorTypes, CoarValueType } from './types';
 
 /** The decimals a number has as text; `Intl` accepts at most 20 everywhere. */
@@ -207,6 +208,8 @@ const builtinList: CoarValueType[] = [
     hue: 0,
     schema: {},
     readonlyOnly: true,
+    // Only for values the schema does not describe, and only where the app allows it (`editUnknown`).
+    control: markRaw(JsonControl),
     format: (value: JsonValue) => JSON.stringify(value),
   },
 ];
