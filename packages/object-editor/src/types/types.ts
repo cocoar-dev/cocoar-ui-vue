@@ -73,7 +73,10 @@ export interface CoarValueType<TValue = unknown> {
   builtin?: boolean;
   /** Edited as one row per entry: an ordered list (`items`) or a map (`additionalProperties`). Set by the package. */
   container?: 'list' | 'map';
-  /** Shown read-only and not offered in the schema editor (lists of objects, unknown values). */
+  /**
+   * Shown read-only and not offered in the schema editor (lists of objects, unknown values).
+   * Its `control` serves only values the schema does not describe, where the app allows it.
+   */
   readonlyOnly?: boolean;
   /**
    * A secret or other value that must not appear as text: the editor shows it

@@ -28,6 +28,8 @@ const props = defineProps<{
   lockedBy?: string;
   /** The app masks this value (`redact`). */
   redacted: boolean;
+  /** A value the schema does not describe that the app lets the user edit (`editUnknown`). */
+  unknownEditable?: boolean;
   /** A key of a map entry that was refused (empty or taken). */
   keyError?: string;
 }>();
@@ -49,7 +51,9 @@ const emit = defineEmits<{
 const { t } = useI18n();
 
 const type = computed(() => props.row.type);
-const readOnlyRow = computed(() => props.row.extra || !!type.value.readonlyOnly || !type.value.control);
+const readOnlyRow = computed(
+  () => (props.row.extra ? !props.unknownEditable : !!type.value.readonlyOnly) || !type.value.control,
+);
 const conflict = computed(() => props.state === 'inherited' && !!props.origin?.conflict);
 const showsControl = computed(() => {
   // A redacted value never reaches a control: the control would show it.
@@ -111,6 +115,12 @@ const pendingEmpty = ref(false);
 const revision = ref(0);
 
 function update(next: JsonValue | undefined) {
+  // A value the schema does not describe is written as entered: `null`, `""`,
+  // `[]` and `{}` stay values, also with presence="filled".
+  if (props.row.extra) {
+    if (next !== undefined) emit('update:value', next);
+    return;
+  }
   // An entry of a list or map keeps its place while it is emptied: it leaves only through Remove.
   if (props.presence === 'filled' && !props.row.entry) {
     const empty = type.value.isEmpty ? type.value.isEmpty(next) : isEmptyValue(next);
@@ -268,7 +278,7 @@ function commitKey() {
               v-bind="type.controlProps"
               :id="controlId"
               :key="revision"
-              :model-value="value ?? undefined"
+              :model-value="row.extra ? value : value ?? undefined"
               :schema="row.schema"
               :label="row.title"
               :readonly="mode === 'view' || !!row.schema.readOnly"
@@ -298,7 +308,7 @@ function commitKey() {
           <span v-else :class="{ 'coar-object-editor-literal': !!valueLiteral }">{{ displayText }}</span>
         </button>
         <span
-          v-if="showsControl && valueLiteral && !row.nested"
+          v-if="showsControl && valueLiteral && !row.nested && !row.extra"
           class="coar-object-editor-literal"
           :title="t('coar.objectEditor.literalHint', undefined, 'This value is set; Remove deletes it.')"
           >{{ valueLiteral }}</span

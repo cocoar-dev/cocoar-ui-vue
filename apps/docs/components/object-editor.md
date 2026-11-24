@@ -133,6 +133,20 @@ A missing required key is still reported where `validateSchema` is `false`: it i
 
 <preview path="./object-editor/demos/ObjectEditorSecret.vue" />
 
+## Values outside the schema <Badge type="warning" text="Preview" /> {#values-outside-the-schema}
+
+A value the schema does not describe stays in the document and has a row of its own, marked "not in the schema"
+and read-only. `editUnknown(pointer, value)` lets the user edit such a value as JSON where the app returns `true`,
+for a legacy field or one only newer clients know. It is asked for each existing value; it never adds keys, and it
+does not lift `additionalProperties: false`: validation still reports the key.
+
+- The value changes only when the text is valid JSON and differs. Invalid text shows a message and leaves the
+  document as it was; Esc restores the text.
+- `null`, `""`, `[]` and `{}` are written as entered, also with `presence="filled"`.
+- A value that `redact` masks, or that holds a masked value, is never editable.
+
+<preview path="./object-editor/demos/ObjectEditorUnknown.vue" />
+
 ## The schema
 
 The schema is standard JSON Schema; anything that validates JSON Schema can check the data too. A few
@@ -278,6 +292,7 @@ a confirmation. **Allows null** writes `type: [t, "null"]`, and keeps an existin
 | `issues` | `ObjectEditorIssue[]` | `[]` | Problems the app found, shown in their rows |
 | `resolveType` | `({ schema, pointer, typeId }) => string \| undefined` | — | Chooses the type of a property, see [Sensitive values](#sensitive-values) |
 | `redact` | `(pointer, value) => boolean` | — | Masks a value as dots |
+| `editUnknown` <Badge type="warning" text="Preview" /> | `(pointer, value) => boolean` | — | Edits a value the schema does not describe as JSON, see [Values outside the schema](#values-outside-the-schema) |
 | `v-model:search` | `string` | `''` | Filters rows by title, key or path, see [Search](#search) |
 
 The component exposes `issues` (every problem of the value, as `{ pointer, keyword, message? }`) and
@@ -329,6 +344,7 @@ app, set its token in the theme or style preset; the `striped` prop sets the sam
 | `coar.objectEditor.minLength` / `maxLength` | `At least {min} characters.` / `At most {max} characters.` |
 | `coar.objectEditor.formatDate` / `formatEmail` / `format` | `Not a valid date.` / `Not a valid email address.` / `Wrong format.` |
 | `coar.objectEditor.type` | `Wrong kind of value.` |
+| `coar.objectEditor.invalidJson` | `Not valid JSON: the value is unchanged. Esc restores it.` |
 | `coar.objectEditor.invalidNumber` | `Enter a number with one decimal separator, without thousands separators.` |
 | `coar.objectEditor.invalidNumberScale` | `Enter a number with at most {count} decimal places, without thousands separators.` |
 | `coar.objectEditor.notAllowed` | `Not one of the allowed values.` |
