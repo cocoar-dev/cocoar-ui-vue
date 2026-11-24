@@ -207,6 +207,10 @@ jobs:
     container:
       image: ${{ needs.visual-image.outputs.image }}
       options: --ipc=host
+    # In a container, run steps default to sh; the test step uses bash arrays.
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
@@ -271,6 +275,9 @@ jobs:
     container:
       image: ${{ needs.visual-image.outputs.image }}
       options: --ipc=host
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v6
         if: env.SIMULATE != 'true'
