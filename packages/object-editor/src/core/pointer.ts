@@ -19,6 +19,21 @@ export function isPointerPrefix(prefix: string, pointer: string): boolean {
   return prefix === '' || pointer === prefix || pointer.startsWith(`${prefix}/`);
 }
 
+/** True when `test` holds for `value` or for any value inside it, each asked at its own pointer. */
+export function someWithin(
+  value: JsonValue,
+  tokens: readonly string[],
+  test: (pointer: string, value: JsonValue) => boolean,
+): boolean {
+  if (test(formatPointer(tokens), value)) return true;
+  const children: [string, JsonValue][] = Array.isArray(value)
+    ? value.map((child, index) => [String(index), child])
+    : isJsonObject(value)
+      ? Object.entries(value)
+      : [];
+  return children.some(([key, child]) => someWithin(child, [...tokens, key], test));
+}
+
 export function getAt(value: JsonValue | undefined, tokens: readonly string[]): JsonValue | undefined {
   let current = value;
   for (const token of tokens) {

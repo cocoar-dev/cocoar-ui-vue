@@ -76,6 +76,26 @@ describe('sensitive values (#88)', () => {
     wrapper.unmount();
   });
 
+  it('masks a row whose value holds a redacted value deeper inside, in view and edit', () => {
+    const isEnvelope = (_: string, value: JsonValue) => typeof value === 'object' && value !== null && '$enc' in value;
+    const pointers: string[] = [];
+    const redact = (pointer: string, value: JsonValue) => (pointers.push(pointer), isEnvelope(pointer, value));
+    for (const mode of ['view', 'edit'] as const) {
+      const { wrapper } = mountEditor(
+        { type: 'object', properties: { tags: { type: 'array', items: {} } } },
+        { legacy: { keep: 1, nested: { pw: ENVELOPE as never } }, tags: [{ pw: ENVELOPE as never }] as never, plain: { keep: 2 } },
+        { redact, mode },
+      );
+      const html = wrapper.html();
+      expect(html).not.toContain(ENVELOPE.data);
+      expect(row(wrapper, '/legacy').text()).toContain('••••••');
+      expect(row(wrapper, '/plain').text()).toContain('{"keep":2}');
+      wrapper.unmount();
+    }
+    expect(pointers).toContain('/legacy/nested/pw');
+    expect(pointers).toContain('/tags/0/pw');
+  });
+
   it('masks a redacted value also where the type has a control, in view and edit', () => {
     for (const mode of ['view', 'edit'] as const) {
       const { wrapper } = mountEditor(schema, { note: 'topsecretvalue' }, { redact: () => true, mode });
