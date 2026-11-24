@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, shallowRef, useId, useTemplateRef, watch } from 'vue';
 import { useI18n } from '@cocoar/vue-localization';
-import { formatPointer, getAt, isPointerPrefix, parsePointer, setAt } from '../core/pointer';
+import { formatPointer, getAt, isPointerPrefix, parsePointer, setAt, someWithin } from '../core/pointer';
 import { issueMessage } from '../core/messages';
 import { isMapSchema, nonNullSchema, resolveSchema, schemaAt } from '../core/resolve';
 import { validateValue, type CoarPresence, type ObjectEditorIssue } from '../core/validate';
@@ -232,6 +232,14 @@ async function focus(pointer: string) {
 
 defineExpose({ issues, focus });
 
+// A group shows only how many values it has; its values have rows of their own.
+// Every other row shows its value as a whole, so a redacted value anywhere inside
+// it masks the row (an unknown object, a list, a value of an app type).
+function isRedacted(row: ObjectEditorRowModel, value: JsonValue | undefined): boolean {
+  if (value === undefined || !props.redact) return false;
+  return row.nested ? props.redact(row.pointer, value) : someWithin(value, row.tokens, props.redact);
+}
+
 const controlId = (pointer: string) => `${baseId}-value${pointer}`;
 
 function update(tokens: string[], value: JsonValue | undefined) {
@@ -380,7 +388,7 @@ async function edit(pointer: string) {
       :has-base="entry.hasBase"
       :locked-by="entry.lockedBy"
       :origin="entry.state === 'inherited' ? origin?.(entry.row.pointer) : undefined"
-      :redacted="entry.value !== undefined && !!redact?.(entry.row.pointer, entry.value)"
+      :redacted="isRedacted(entry.row, entry.value)"
       :mode="mode"
       :presence="presence"
       :editing="editing === entry.row.pointer"

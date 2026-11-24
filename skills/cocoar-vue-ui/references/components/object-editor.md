@@ -261,7 +261,8 @@ everything else:
   as generic text. **`validateSchema: false`**: the stored form (an encrypted envelope) differs from the logical
   schema (`type: "string"`), so the schema's checks are skipped at this value.
 - **`redact(pointer, value)`** masks any other value as dots, read-only and without a control, also unknown keys
-  the schema does not describe.
+  the schema does not describe. It is asked for every value inside a row's value too: a redacted value deep in an
+  unknown object or a list masks the whole row.
 
 A missing required key is still reported where `validateSchema` is `false`: it is a check of the parent object.
 
