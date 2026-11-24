@@ -418,7 +418,8 @@ const fieldId = (name: string) => `${baseId}-${name}`;
             <CoarNumberInput
               :id="fieldId('min')"
               :model-value="property.minimum ?? null"
-              :decimals="property['x-coar-decimals'] ?? 0"
+              exact
+              :decimals="null"
               @update:model-value="update({ minimum: $event ?? undefined })"
             />
           </CoarFormField>
@@ -426,7 +427,8 @@ const fieldId = (name: string) => `${baseId}-${name}`;
             <CoarNumberInput
               :id="fieldId('max')"
               :model-value="property.maximum ?? null"
-              :decimals="property['x-coar-decimals'] ?? 0"
+              exact
+              :decimals="null"
               @update:model-value="update({ maximum: $event ?? undefined })"
             />
           </CoarFormField>

@@ -143,9 +143,14 @@ The schema is standard JSON Schema; anything that validates JSON Schema can chec
 | `x-coar-type` | property | Id of the value type. Without it the type is recognized from the schema (`format: "date"` → date) |
 | `x-coar-order` | object | Order of its properties. Key order alone does not survive every database |
 | `x-coar-unit` | number | Unit after the value, such as `cm` |
-| `x-coar-decimals` | number | Decimal places; 0 for `integer`, 2 for `number` without it |
+| `x-coar-decimals` | number | Fixed decimal places, for a known use such as money. Without it a `number` keeps every digit; an `integer` has none |
 | `x-coar-options` | choice | Name of an option source the app passes in `optionSources` |
 | `x-coar-suggestions` | tags | Suggested tags |
+
+A **number** is stored as entered, within JavaScript number precision, and leaving a field unchanged never rewrites
+it. Entry accepts the decimal separator of `locale` or a point, so `12,3456` and `12.3456` are the same value in
+German. Thousands separators are not accepted: in English `12,3456` is refused with a message instead of becoming
+`123456`, and so is an entry with more decimals than `x-coar-decimals` allows.
 
 A **choice** is `oneOf` of `{ const, title }`; several choices are an `array` with `uniqueItems` and
 `items.anyOf` of `{ const, title }`. A plain `enum` is read too.
@@ -324,6 +329,8 @@ app, set its token in the theme or style preset; the `striped` prop sets the sam
 | `coar.objectEditor.minLength` / `maxLength` | `At least {min} characters.` / `At most {max} characters.` |
 | `coar.objectEditor.formatDate` / `formatEmail` / `format` | `Not a valid date.` / `Not a valid email address.` / `Wrong format.` |
 | `coar.objectEditor.type` | `Wrong kind of value.` |
+| `coar.objectEditor.invalidNumber` | `Enter a number with one decimal separator, without thousands separators.` |
+| `coar.objectEditor.invalidNumberScale` | `Enter a number with at most {count} decimal places, without thousands separators.` |
 | `coar.objectEditor.notAllowed` | `Not one of the allowed values.` |
 | `coar.objectEditor.unique` | `Each value may appear only once.` |
 | `coar.objectEditor.additional` | `Contains values the schema does not allow.` |

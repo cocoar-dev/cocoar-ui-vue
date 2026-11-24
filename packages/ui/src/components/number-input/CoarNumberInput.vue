@@ -32,8 +32,16 @@ export interface CoarNumberInputProps {
   max?: number;
   /** Step increment for arrows/keyboard */
   step?: number;
-  /** Number of decimal places */
-  decimals?: number;
+  /** Number of decimal places; `null`: as many as the value has (Preview) */
+  decimals?: number | null;
+  /**
+   * The value is stored as typed or not at all: no mask, rounding or clamping (Preview).
+   * Accepts the locale's decimal separator or a point. Other text stays in the field,
+   * marked as an error, and `entry-refused` reports it.
+   */
+  exact?: boolean;
+  /** `min` and `max` apply when the field is left, not already while typing (Preview) */
+  clampOnBlur?: boolean;
   /** Disables the input */
   disabled?: boolean;
   /** Makes the input read-only */
@@ -69,6 +77,8 @@ const props = withDefaults(defineProps<CoarNumberInputProps>(), {
   max: undefined,
   step: 1,
   decimals: 0,
+  exact: false,
+  clampOnBlur: false,
   disabled: false,
   readonly: false,
   required: false,
@@ -89,6 +99,8 @@ const emit = defineEmits<{
   focused: [event: FocusEvent];
   blurred: [event: FocusEvent];
   clear: [];
+  /** `exact`: the text in the field is not a number it can store, or no longer so. */
+  'entry-refused': [refused: boolean];
 }>();
 
 const { t } = useI18n();
@@ -104,7 +116,8 @@ let maskitoInstance: Maskito | null = null;
 const autoId = `coar-number-input-${crypto.randomUUID?.() ?? Date.now().toString(16)}`;
 const inputId = computed(() => props.id || formField?.inputId.value || autoId);
 
-const hasError = computed(() => props.error || (formField?.hasError.value ?? false));
+const entryRefused = ref(false);
+const hasError = computed(() => props.error || entryRefused.value || (formField?.hasError.value ?? false));
 const describedBy = computed(() => formField?.messageId.value || undefined);
 
 const showClearButton = computed(
@@ -178,10 +191,28 @@ const resolvedNumberFormat = computed<NumberFormatConfig>(() => {
   return { decimal: '.', thousand: '' };
 });
 
+/** The shortest decimal text that reads back as this number, never with an exponent. */
+function plainDecimal(value: number): string {
+  const sign = value < 0 ? '-' : '';
+  const [mantissa, exponent = '0'] = String(Math.abs(value)).split('e');
+  const [integer, fraction = ''] = mantissa.split('.');
+  const digits = integer + fraction;
+  const point = integer.length + Number(exponent);
+  if (point <= 0) return `${sign}0.${'0'.repeat(-point)}${digits}`;
+  if (point >= digits.length) return sign + digits + '0'.repeat(point - digits.length);
+  return `${sign}${digits.slice(0, point)}.${digits.slice(point)}`;
+}
+
+function fractionDigits(value: number): number {
+  return plainDecimal(value).split('.')[1]?.length ?? 0;
+}
+
 function formatValue(value: number | null): string {
   if (value === null) return '';
   const format = resolvedNumberFormat.value;
-  const formatted = value.toFixed(props.decimals);
+  // toFixed switches to an exponent from 1e21 on.
+  const formatted =
+    props.decimals === null || Math.abs(value) >= 1e21 ? plainDecimal(value) : value.toFixed(props.decimals);
   return formatted.replace('.', format.decimal);
 }
 
@@ -196,6 +227,28 @@ function parseValue(str: string): number | null {
   return isNaN(parsed) ? null : parsed;
 }
 
+/** `exact`: the number the text states, or `null` when it states none this field can store. */
+function parseExact(str: string): number | null {
+  const decimal = resolvedNumberFormat.value.decimal.replace(/[\\\]^-]/g, '\\$&');
+  const match = new RegExp(`^(-?)(\\d*)(?:[.${decimal}](\\d*))?$`).exec(str.trim().replace(/^\u2212/, '-'));
+  if (!match || (!match[2] && !match[3])) return null;
+  const fraction = match[3] ?? '';
+  if (props.decimals !== null && fraction.replace(/0+$/, '').length > props.decimals) return null;
+  const parsed = Number(`${match[1]}${match[2] || '0'}.${fraction || '0'}`);
+  if (!Number.isFinite(parsed)) return null;
+  return parsed === 0 ? 0 : parsed;
+}
+
+function setEntryRefused(refused: boolean) {
+  if (entryRefused.value === refused) return;
+  entryRefused.value = refused;
+  emit('entry-refused', refused);
+}
+
+function roundValue(value: number): number {
+  return props.decimals === null ? value : parseFloat(value.toFixed(props.decimals));
+}
+
 function clampValue(value: number): number {
   let clamped = value;
   if (props.min !== undefined && clamped < props.min) clamped = props.min;
@@ -203,12 +256,27 @@ function clampValue(value: number): number {
   return clamped;
 }
 
+// Text nobody changed is not an entry: the value may have more digits than the
+// display, or lie outside min/max, and leaving the field must not rewrite it.
 function commitValue() {
+  if (displayValue.value === formatValue(model.value)) {
+    setEntryRefused(false);
+    return;
+  }
+  if (props.exact && displayValue.value.trim() !== '') {
+    const parsed = parseExact(displayValue.value);
+    setEntryRefused(parsed === null);
+    if (parsed === null) return;
+    model.value = parsed;
+    displayValue.value = formatValue(parsed);
+    return;
+  }
+  setEntryRefused(false);
   const parsed = parseValue(displayValue.value);
   if (parsed !== null) {
-    const clamped = clampValue(parsed);
-    const rounded = parseFloat(clamped.toFixed(props.decimals));
-    model.value = rounded;
+    const committed = roundValue(clampValue(parsed));
+    model.value = committed;
+    displayValue.value = formatValue(committed);
   } else {
     model.value = null;
     displayValue.value = '';
@@ -218,15 +286,22 @@ function commitValue() {
 function initMaskito() {
   destroyMaskito();
   const el = inputElement.value;
-  if (!el) return;
+  if (!el || props.exact) return;
   const format = resolvedNumberFormat.value;
-  const maskOptions = maskitoNumberOptionsGenerator({
+  const params = {
     decimalSeparator: format.decimal,
     thousandSeparator: format.thousand,
-    maximumFractionDigits: props.decimals,
-    min: props.min,
-    max: props.max,
-  });
+    maximumFractionDigits: props.decimals ?? Infinity,
+    // parseValue and formatValue read an ASCII minus.
+    minusSign: '-',
+  };
+  const unbounded = maskitoNumberOptionsGenerator(params);
+  // The bounds limit typing. The mask's blur plugins come from the unbounded
+  // options: with bounds they would clamp on blur a value nobody edited.
+  // commitValue clamps what was typed.
+  const maskOptions = props.clampOnBlur
+    ? unbounded
+    : { ...maskitoNumberOptionsGenerator({ ...params, min: props.min, max: props.max }), plugins: unbounded.plugins };
   maskitoInstance = new Maskito(el, maskOptions);
 }
 
@@ -240,12 +315,13 @@ watch(
   () => model.value,
   (newValue) => {
     displayValue.value = formatValue(newValue);
+    setEntryRefused(false);
   },
   { immediate: true },
 );
 
 // Re-initialize maskito when relevant props change
-watch([() => props.decimals, () => props.min, () => props.max, resolvedNumberFormat], () => {
+watch([() => props.decimals, () => props.exact, () => props.clampOnBlur, () => props.min, () => props.max, resolvedNumberFormat], () => {
   initMaskito();
 });
 
@@ -260,6 +336,7 @@ onBeforeUnmount(() => {
 function onInput(event: Event) {
   const target = event.target as HTMLInputElement;
   displayValue.value = target.value;
+  setEntryRefused(false);
 }
 
 function onFocus(event: FocusEvent) {
@@ -284,26 +361,31 @@ function onKeyDown(event: KeyboardEvent) {
 function onClear() {
   model.value = null;
   displayValue.value = '';
+  setEntryRefused(false);
   emit('clear');
   inputElement.value?.focus();
 }
 
+function stepBy(delta: number) {
+  const current = model.value ?? 0;
+  // Without fixed decimals the sum keeps the digits of its parts: 0.1 + 0.2 is 0.3.
+  const next =
+    props.decimals === null
+      ? clampValue(parseFloat((current + delta).toFixed(Math.max(fractionDigits(current), fractionDigits(delta)))))
+      : roundValue(clampValue(current + delta));
+  model.value = next;
+  displayValue.value = formatValue(next);
+  setEntryRefused(false);
+}
+
 function increment() {
   if (props.disabled || props.readonly || !canIncrement.value) return;
-  const current = model.value ?? 0;
-  const newValue = clampValue(current + props.step);
-  const rounded = parseFloat(newValue.toFixed(props.decimals));
-  model.value = rounded;
-  displayValue.value = formatValue(rounded);
+  stepBy(props.step);
 }
 
 function decrement() {
   if (props.disabled || props.readonly || !canDecrement.value) return;
-  const current = model.value ?? 0;
-  const newValue = clampValue(current - props.step);
-  const rounded = parseFloat(newValue.toFixed(props.decimals));
-  model.value = rounded;
-  displayValue.value = formatValue(rounded);
+  stepBy(-props.step);
 }
 </script>
 

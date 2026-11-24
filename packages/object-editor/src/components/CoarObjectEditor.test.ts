@@ -251,7 +251,7 @@ describe('CoarObjectEditor', () => {
     expect(row(wrapper, '/stock').text()).toContain('42');
     expect(row(wrapper, '/category').text()).toContain('Lighting');
     expect(row(wrapper, '/owner').text()).toContain('Anna Berger');
-    expect(row(wrapper, '/dimensions/width').text()).toContain('18.00 cm');
+    expect(row(wrapper, '/dimensions/width').text()).toContain('18 cm');
     expect(row(wrapper, '/name').find('input').attributes('readonly')).toBeDefined();
     wrapper.unmount();
   });

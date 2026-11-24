@@ -49,6 +49,11 @@ export interface JsonSchema {
 
 export const SCHEMA_DIALECT = 'https://json-schema.org/draft/2020-12/schema';
 
+/** The fixed decimal places of a number: `x-coar-decimals`, 0 for `integer`, none otherwise. */
+export function numberScale(schema: JsonSchema): number | undefined {
+  return schema['x-coar-decimals'] ?? (schema.type === 'integer' ? 0 : undefined);
+}
+
 export function isJsonObject(value: unknown): value is JsonObject {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
