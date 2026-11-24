@@ -28,11 +28,16 @@ export interface CoarDateMarker {
 /** AM/PM period indicator. */
 export type CoarTimePeriod = 'AM' | 'PM';
 
-/** Parsed time value with hours (0-23) and minutes (0-59). */
+/** Parsed time value with hours (0-23) and minutes (0-59), and seconds and milliseconds when given. */
 export interface CoarTimeValue {
   readonly hours: number;
   readonly minutes: number;
+  readonly seconds?: number;
+  readonly milliseconds?: number;
 }
+
+/** How exactly a date-time field shows and takes the time (Preview). */
+export type CoarTimePrecision = 'minute' | 'second' | 'millisecond';
 
 /**
  * Time formatting configuration.

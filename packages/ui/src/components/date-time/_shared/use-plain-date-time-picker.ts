@@ -7,8 +7,10 @@ import {
   coarParseTimeInput,
   coarDetect12HourFormat,
   coarRoundMinutesToStep,
+  coarTimeBelowMinute,
+  coarTimeTextHasPrecision,
 } from './time-helpers';
-import type { DateFormatConfig, CoarTimeValue } from './types';
+import type { DateFormatConfig, CoarTimePrecision, CoarTimeValue } from './types';
 
 interface PlainDateTimePickerOptions {
   readonly placeholder: string;
@@ -19,6 +21,8 @@ interface PlainDateTimePickerOptions {
   readonly use24Hour: boolean | 'auto';
   readonly minuteStep: 1 | 5 | 10 | 15;
   readonly defaultTime: CoarTimeValue;
+  /** How exactly the field shows and takes the time; defaults to `'minute'`. */
+  readonly precision?: CoarTimePrecision;
 }
 
 /**
@@ -44,6 +48,7 @@ export function usePlainDateTimePicker(
   /** The text in the field is no value; set when the field is left. */
   const refused = ref(false);
 
+  const precision = computed<CoarTimePrecision>(() => props.precision ?? 'minute');
   const effectiveUse24Hour = computed(() => {
     if (props.use24Hour === true) return true;
     if (props.use24Hour === false) return false;
@@ -52,7 +57,8 @@ export function usePlainDateTimePicker(
   const inputPlaceholder = computed(() => {
     if (props.placeholder) return props.placeholder;
     const datePart = pickerBase.effectiveDateFormat.value.pattern.toUpperCase();
-    return effectiveUse24Hour.value ? `${datePart} HH:MM` : `${datePart} HH:MM AM/PM`;
+    const time = { minute: 'HH:MM', second: 'HH:MM:SS', millisecond: 'HH:MM:SS.MSS' }[precision.value];
+    return effectiveUse24Hour.value ? `${datePart} ${time}` : `${datePart} ${time} AM/PM`;
   });
   const selectedDate = computed((): Temporal.PlainDate | null =>
     modelValue.value ? modelValue.value.toPlainDate() : null,
@@ -84,11 +90,17 @@ export function usePlainDateTimePicker(
 
   function formatValue(val: Temporal.PlainDateTime): string {
     const datePart = coarFormatPlainDate(val.toPlainDate(), pickerBase.effectiveDateFormat.value.pattern);
-    const timePart = coarFormatTime(val.hour, val.minute, effectiveUse24Hour.value, true);
+    const timePart = coarFormatTime(
+      val.hour, val.minute, effectiveUse24Hour.value, true, coarTimeBelowMinute(val, precision.value),
+    );
     return `${datePart} ${timePart}`;
   }
 
-  /** The date part must lie within the boundary dates; the time is not checked against them. */
+  /**
+   * The date part must lie within the boundary dates; the time is not checked against them.
+   * The time must have exactly the parts the field shows: fewer are still being
+   * typed, more would be cut down.
+   */
   function parseValueFromInput(text: string): Temporal.PlainDateTime | null {
     if (!text) return null;
     const parts = text.split(' ');
@@ -98,9 +110,14 @@ export function usePlainDateTimePicker(
       max: maxDate.value,
     });
     if (!date) return null;
-    const time = coarParseTimeInput(parts.slice(1).join(' '));
+    const timeText = parts.slice(1).join(' ');
+    const time = coarTimeTextHasPrecision(timeText, precision.value) ? coarParseTimeInput(timeText) : null;
     if (!time) return null;
-    return date.toPlainDateTime({ hour: time.hours, minute: time.minutes });
+    return date.toPlainDateTime(plainTime(time));
+  }
+
+  function plainTime(time: CoarTimeValue): Temporal.PlainTimeLike {
+    return { hour: time.hours, minute: time.minutes, second: time.seconds ?? 0, millisecond: time.milliseconds ?? 0 };
   }
 
   watch(
@@ -118,14 +135,24 @@ export function usePlainDateTimePicker(
     return dt;
   }
 
-  /** Commit a date and time from the panel, clamped to min/max. */
+  /**
+   * Commit a date and time from the panel, clamped to min/max. What the panel does
+   * not show stays: with the hour and minute of the value, its seconds and smaller
+   * parts are kept.
+   */
   function setDateTime(date: Temporal.PlainDate, time: CoarTimeValue) {
-    modelValue.value = clampDateTime(date.toPlainDateTime({ hour: time.hours, minute: time.minutes }));
+    const current = modelValue.value;
+    const keep = current && time.seconds === undefined
+      && current.hour === time.hours && current.minute === time.minutes;
+    modelValue.value = clampDateTime(date.toPlainDateTime(keep ? current.toPlainTime() : plainTime(time)));
   }
 
+  /** A value keeps its time; a time chosen before there is a date, or the default, snaps to the minute step. */
   function selectDate(date: Temporal.PlainDate) {
     const time = selectedTime.value ?? props.defaultTime;
-    setDateTime(date, { hours: time.hours, minutes: coarRoundMinutesToStep(time.minutes, props.minuteStep) });
+    setDateTime(date, modelValue.value
+      ? time
+      : { hours: time.hours, minutes: coarRoundMinutesToStep(time.minutes, props.minuteStep) });
   }
 
   function changeTime(time: CoarTimeValue | null) {
@@ -157,9 +184,16 @@ export function usePlainDateTimePicker(
     refused.value = false;
   }
 
-  /** Typed values are committed without rounding or clamping. */
+  /**
+   * Typed values are committed without rounding or clamping. Text nobody changed is
+   * no entry: the value may hold more than the field shows.
+   */
   function changeInput(text: string) {
     displayValue.value = text;
+    if (modelValue.value && text === formatValue(modelValue.value)) {
+      refused.value = false;
+      return;
+    }
     const parsed = parseValueFromInput(text);
     if (parsed) {
       modelValue.value = parsed;
@@ -177,6 +211,12 @@ export function usePlainDateTimePicker(
     refused.value = text.trim().length > 0 && !parseValueFromInput(text);
   }
 
+  /** Shows text the field refused before it reached it, such as a pasted value too precise for it. */
+  function refuseInput(text: string) {
+    displayValue.value = text;
+    refused.value = true;
+  }
+
   /** Brings back the text of the model's value (Esc), ending a refusal. */
   function restoreInput() {
     displayValue.value = modelValue.value ? formatValue(modelValue.value) : '';
@@ -188,6 +228,6 @@ export function usePlainDateTimePicker(
     selectedDate, selectedTime, minDate, maxDate, effectiveMinTime, effectiveMaxTime,
     isPrevYearDisabled, isNextYearDisabled, today,
     formatValue, parseValueFromInput, selectDate, changeTime, selectMonth, previousYear, nextYear,
-    scrollToTodayMonth, clearValue, changeInput, blurInput, restoreInput,
+    scrollToTodayMonth, clearValue, changeInput, blurInput, restoreInput, refuseInput, precision,
   };
 }

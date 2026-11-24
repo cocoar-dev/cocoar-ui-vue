@@ -158,6 +158,47 @@ const ends = ref<Temporal.ZonedDateTime | null>(null);
 </script>
 ```
 
+## Precision (Preview) {#precision}
+
+The field shows hours and minutes. `precision="second"` or `"millisecond"` adds seconds or milliseconds to it.
+A value keeps what the field does not show: choosing another date or zone, or leaving the field without editing
+it, does not change its seconds; changing the hour or minute sets what is not shown to zero. Text with more than
+the field shows, such as a pasted `15:46:56` in a minute field, is refused instead of cut down.
+
+Typed text is read in the zone the field shows, and the value keeps its own zone.
+
+**Demo — `zoned-date-time-picker/demos/ZonedDateTimePickerPrecision.vue`**
+
+```vue
+<template>
+  <div style="display: flex; flex-direction: column; gap: 12px; max-width: 360px;">
+    <CoarSegmentedControl v-model="precision" :options="options" size="s" aria-label="Precision" />
+    <CoarFormField label="Measured at">
+      <CoarZonedDateTimePicker v-model="value" :precision="precision" />
+    </CoarFormField>
+    <span style="font-size: 13px; color: #64748b;">
+      ZonedDateTime: {{ value?.toString() ?? 'none' }}
+    </span>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue';
+import { CoarFormField, CoarSegmentedControl, CoarZonedDateTimePicker, type CoarTimePrecision } from '@cocoar/vue-ui';
+import { Temporal } from '@js-temporal/polyfill';
+
+const precision = ref<CoarTimePrecision>('minute');
+const options = [
+  { value: 'minute', label: 'minute' },
+  { value: 'second', label: 'second' },
+  { value: 'millisecond', label: 'millisecond' },
+];
+const value = ref<Temporal.ZonedDateTime | null>(
+  Temporal.ZonedDateTime.from('2026-07-01T15:46:56.123+02:00[Europe/Berlin]'),
+);
+</script>
+```
+
 ## Typed and pasted input
 
 Text typed, pasted or filled in becomes the value only when it is one: a calendar day and a time. Anything else, such as `30.02.2026 10:30`
@@ -224,6 +265,7 @@ These keys can be translated via [`@cocoar/vue-localization`](../foundations/loc
 | `required` | `boolean` | `false` | Mark as required |
 | `error` | `boolean` | `false` | Error state (red border + `aria-invalid`). Auto-injected from a wrapping [`CoarFormField`](./form-field.md). |
 | `id` | `string` | `''` | Explicit input id (else taken from `CoarFormField`, else auto). |
+| `precision` (Preview) | `'minute' \| 'second' \| 'millisecond'` | `'minute'` | How exactly the field shows and takes the time, see [Precision](#precision) |
 
 ### Events
 

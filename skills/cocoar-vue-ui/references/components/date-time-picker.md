@@ -125,6 +125,13 @@ const at = ref<Temporal.PlainDateTime | null>(Temporal.PlainDateTime.from('2026-
 </script>
 ```
 
+## Precision (Preview) {#precision}
+
+The field shows hours and minutes. `precision="second"` or `"millisecond"` adds seconds or milliseconds to it.
+A value keeps what the field does not show: choosing another date, or leaving the field without editing it, does
+not change its seconds; changing the hour or minute sets what is not shown to zero. Text with more than the field
+shows, such as a pasted `15:46:56` in a minute field, is refused instead of cut down.
+
 ## Typed and pasted input
 
 Text typed, pasted or filled in becomes the value only when it is one: a calendar day and a time, the day within the dates of `min` and `max`. Anything else, such as `30.02.2026 10:30`
@@ -187,6 +194,7 @@ These keys can be translated via [`@cocoar/vue-localization`](../foundations/loc
 | `required` | `boolean` | `false` | Mark as required |
 | `error` | `boolean` | `false` | Error state (red border + `aria-invalid`). Auto-injected from a wrapping [`CoarFormField`](./form-field.md). |
 | `id` | `string` | `''` | Explicit input id (else taken from `CoarFormField`, else auto). |
+| `precision` (Preview) | `'minute' \| 'second' \| 'millisecond'` | `'minute'` | How exactly the field shows and takes the time, see [Precision](#precision) |
 
 ### Events
 
