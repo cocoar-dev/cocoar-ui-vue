@@ -21,7 +21,8 @@ const dateFormat: DateFormatConfig = locale === 'de-DE'
 const date = ref<Temporal.PlainDate | null>(null);
 const dateTime = ref<Temporal.PlainDateTime | null>(null);
 const zoned = ref<Temporal.ZonedDateTime | null>(null);
-const refused = ref({ date: false, dateTime: false, zoned: false });
+const precise = ref<Temporal.ZonedDateTime | null>(null);
+const refused = ref({ date: false, dateTime: false, zoned: false, precise: false });
 </script>
 
 <template>
@@ -45,6 +46,18 @@ const refused = ref({ date: false, dateTime: false, zoned: false });
       />
       <output data-testid="value">{{ zoned?.toString() ?? 'none' }}</output>
       <output data-testid="refused">{{ refused.zoned }}</output>
+    </section>
+    <section data-testid="precise">
+      <CoarZonedDateTimePicker
+        v-model="precise"
+        :locale="locale"
+        :date-format="dateFormat"
+        time-zone="Europe/Berlin"
+        precision="millisecond"
+        @entry-refused="refused.precise = $event"
+      />
+      <output data-testid="value">{{ precise?.toString() ?? 'none' }}</output>
+      <output data-testid="refused">{{ refused.precise }}</output>
     </section>
   </div>
 </template>

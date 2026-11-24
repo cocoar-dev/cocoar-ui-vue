@@ -109,16 +109,16 @@ Für `"2026-07-01T15:46:56.123+05:00"` gilt dann: Öffnen und Schließen ändert
 - [x] 4. Meldungen in `DateControl.vue` und `DateTimeControl.vue` mit den beiden neuen i18n-Schlüsseln.
 - [x] 5. Neue Playground-Seite `/date-input` (`src/views/DateInputDemo.vue`, `src/routes.ts`) und Spec `apps/playground/e2e/date-input.spec.ts`. Sie prüft das ausgegebene Modell, nicht nur die Anzeige, getrennt für Tippen, Einfügen aus der echten Zwischenablage und `fill`, jeweils in `de-DE` und `en-US`, und alle Regressionsfälle aus den Issues.
 - [x] 6. Doku: Abschnitt „Typed and pasted input“ auf `date-picker.md`, `date-time-picker.md` und `zoned-date-time-picker.md`, dazu die neuen Schlüssel in `object-editor.md`. Anschließend `pnpm skill:sync`.
-- [ ] 7. Prüfungen und Review laufen lassen (siehe unten), dann den Pull Request öffnen.
+- [x] 7. Prüfungen und Review laufen lassen (siehe unten), dann den Pull Request öffnen. ([#112](https://github.com/cocoar-dev/cocoar-ui-vue/pull/112))
 
 **Pull Request B** `feat(ui,object-editor): date-time fields keep seconds, fractions and the offset of a value (#111)`, auf Basis von `develop` nach dem Merge von A
 
-- [ ] 8. Branch `feat/date-time-precision`. In `time-helpers.ts` Formatierung und Parser um Sekunden und Millisekunden erweitern, `CoarTimeValue` um die optionalen Felder.
-- [ ] 9. Die Prop `precision` in beiden Datum-Zeit-Pickern samt Maske einführen. Die Regel „Was man nicht sieht, ändert man nicht“ in `setDateTime` und `selectDate` umsetzen. Mehr Genauigkeit als angezeigt wird abgelehnt.
-- [ ] 10. Einen Test für das Lesen getippten Textes in der Anzeigezone schreiben. Schlägt er fehl, den Fehler beheben.
-- [ ] 11. `DateTimeControl` umbauen: eigener Offset, `precision` wie beschrieben, keine Ausgabe ohne Änderung. Tests für einen Wert mit Nachkommastellen und Offset `+05:00`: Öffnen und Schließen ändert ihn nicht, eine Änderung nur des Datums behält Zeit, Nachkommastellen und Offset.
-- [ ] 12. Die e2e-Spec um die Fälle aus #111 erweitern. Die Doku zu `precision` kommt mit Preview-Badge und Demo, dazu ein Absatz zu `date-time` auf `object-editor.md`. Anschließend `pnpm skill:sync`.
-- [ ] 13. Prüfungen und Review laufen lassen, dann den Pull Request öffnen.
+- [x] 8. Branch `feat/date-time-precision`. In `time-helpers.ts` Formatierung und Parser um Sekunden und Millisekunden erweitern, `CoarTimeValue` um die optionalen Felder.
+- [x] 9. Die Prop `precision` in beiden Datum-Zeit-Pickern samt Maske einführen. Die Regel „Was man nicht sieht, ändert man nicht“ in `setDateTime` und `selectDate` umsetzen. Mehr Genauigkeit als angezeigt wird abgelehnt.
+- [x] 10. Einen Test für das Lesen getippten Textes in der Anzeigezone schreiben. Schlägt er fehl, den Fehler beheben.
+- [x] 11. `DateTimeControl` umbauen: eigener Offset, `precision` wie beschrieben, keine Ausgabe ohne Änderung. Tests für einen Wert mit Nachkommastellen und Offset `+05:00`: Öffnen und Schließen ändert ihn nicht, eine Änderung nur des Datums behält Zeit, Nachkommastellen und Offset.
+- [x] 12. Die e2e-Spec um die Fälle aus #111 erweitern. Die Doku zu `precision` kommt mit Preview-Badge und Demo, dazu ein Absatz zu `date-time` auf `object-editor.md`. Anschließend `pnpm skill:sync`.
+- [x] 13. Prüfungen und Review laufen lassen, dann den Pull Request öffnen.
 
 ## How it is verified
 
@@ -154,4 +154,7 @@ Für `"2026-07-01T15:46:56.123+05:00"` gilt dann: Öffnen und Schließen ändert
 
 - **Einfügen (Teil 1):** Ein Präprozessor, der das Feld direkt setzt, reicht nicht: Maskito verwirft ein Einfügen ohne verbleibende Zeichen. Der erste Präprozessor merkt sich den normalisierten Wert, ein letzter setzt ihn nach Maskitos eigenen als einzufügenden Text ins geleerte Feld.
 - **Parser:** `coarParsePlainDateFromInput` verlangt jetzt ein vierstelliges Jahr. Sonst übernahm das Tippen von `29.02.2026` schon `29.02.20` als 29.02.0020.
+- **Zone beim Tippen (Schritt 10):** Bestätigt. In der Anzeigezone Wien änderte das Tippen von `04:45` statt `04:30` einen New-Yorker Wert um 5 h 15 min. Die Tests aus dem Refactor #54 hatten das Verhalten festgeschrieben und sind angepasst.
+- **Rundung beim Datumswechsel:** Ein vorhandener Wert wurde beim Wählen eines anderen Datums auf das Minutenraster gerundet (10:32 → 10:30). Jetzt behält er seine Zeit; gerundet wird nur eine vorgemerkte oder die Standardzeit.
+- **Form des Zeit-Textes:** Ein Feld mit Sekunden nimmt nur Text mit genau seinen Teilen an (`coarTimeTextHasPrecision`). Sonst übernahm das Tippen `15:46` als Wert, bevor die Sekunden kamen.
 - **Playground-Seite:** Sie setzt `date-format` ausdrücklich, weil die Picker ihr Format vor der Prop `locale` aus den Sprachdaten nehmen.

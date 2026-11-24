@@ -440,6 +440,7 @@ export type {
   DateFormatConfig,
   CoarDateMarker,
   CoarTimeValue,
+  CoarTimePrecision,
   CoarTimePeriod,
   TimeFormatConfig,
   CoarCalendarGridCell,

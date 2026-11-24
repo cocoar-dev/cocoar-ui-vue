@@ -444,7 +444,7 @@ A **choice** is `oneOf` of `{ const, title }`; several choices are an `array` wi
 | `number` | `number` / `integer` | Inline number input with unit |
 | `boolean` | `boolean` | Switch |
 | `date` | `string`, `format: "date"` | Inline date picker |
-| `date-time` | `string`, `format: "date-time"` | Inline date-time picker; stored as ISO 8601 with offset |
+| `date-time` | `string`, `format: "date-time"` | Inline date-time picker with seconds (milliseconds for a value that has them), shown in the browser's zone; a change keeps the value's own offset (`Z` stays `Z`), and a value nobody changed stays as written |
 | `email` | `string`, `format: "email"` | Inline text input |
 | `color` | `string`, `pattern` `#RRGGBB` | Inline text input with a swatch |
 | `choice` | `oneOf` of constants | Inline select |
