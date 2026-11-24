@@ -104,6 +104,8 @@ const modelValue = defineModel<Temporal.PlainDate | null>({ default: null });
 const emit = defineEmits<{
   opened: [];
   closed: [];
+  /** `true` when the field is left with text that is no value: it stays as an error and the model keeps its value; `false` once that ends. */
+  'entry-refused': [refused: boolean];
 }>();
 
 // i18n
@@ -158,7 +160,8 @@ onBeforeUnmount(() => {
 });
 
 // Computed
-const hasError = computed(() => props.error || (formField?.hasError.value ?? false));
+const hasError = computed(() => props.error || picker.refused.value || (formField?.hasError.value ?? false));
+watch(picker.refused, (refused) => emit('entry-refused', refused));
 const describedBy = computed(() => formField?.messageId.value || undefined);
 const isDisabled = computed(() => props.disabled);
 const showClearButton = computed(
@@ -264,6 +267,12 @@ onMounted(() => {
 
 // Keyboard
 function onKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape' && !pickerBase.isOpen.value
+    && picker.displayValue.value !== (modelValue.value ? picker.formatValue(modelValue.value) : '')) {
+    event.preventDefault();
+    picker.restoreInput();
+    return;
+  }
   if ((event.key === 'Enter' || event.key === 'ArrowDown') && !pickerBase.isOpen.value) {
     event.preventDefault();
     openPanel();

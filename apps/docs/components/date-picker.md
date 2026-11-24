@@ -55,6 +55,13 @@ placeholder. Typing a date works as usual. How both behave and how to change the
 
 <preview path="./date-picker/demos/DatePickerInline.vue" />
 
+## Typed and pasted input
+
+Text typed, pasted or filled in becomes the value only when it is one: a complete calendar day within `min` and `max`. Anything else, such as `30.02.2026`
+or an incomplete entry, stays in the field when it is left: the field shows its error state (`aria-invalid`), the
+model keeps its value, and `entry-refused` reports `true`. `Escape` brings back the text of the value, and a valid
+entry ends the refusal.
+
 ## Accessibility
 
 ### Keyboard Navigation
@@ -63,7 +70,7 @@ placeholder. Typing a date works as usual. How both behave and how to change the
 |-----|--------|
 | `Tab` | Move focus to input / calendar |
 | `Enter` | Open calendar / select date |
-| `Escape` | Close calendar dropdown |
+| `Escape` | Close calendar dropdown; with it closed, bring back the value's text after an edit or a refused entry |
 | `Arrow Keys` | Navigate within the calendar |
 
 ### Screen Reader Support
@@ -91,6 +98,13 @@ placeholder. Typing a date works as usual. How both behave and how to change the
 | `required` | `boolean` | `false` | Mark as required |
 | `error` | `boolean` | `false` | Error state (red border + `aria-invalid`). Auto-injected from a wrapping [`CoarFormField`](/components/form-field). |
 | `id` | `string` | `''` | Explicit input id (else taken from `CoarFormField`, else auto). |
+
+### Events
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `entry-refused` | `boolean` | `true` when the field is left with text that is no value (see [Typed and pasted input](#typed-and-pasted-input)), `false` once that ends |
+| `opened` / `closed` | — | The calendar opened or closed |
 
 > **Label, hint, error message and the status icon live on the wrapping [`CoarFormField`](/components/form-field)** — not on the picker. Wrap the picker in a `CoarFormField` to get a label, the required asterisk, validation messages and the inline status indicator. The picker auto-adopts the field's id, error state and `aria-describedby` via injection.
 

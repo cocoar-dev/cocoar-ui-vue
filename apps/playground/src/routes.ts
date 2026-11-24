@@ -130,6 +130,10 @@ export const routes: RouteRecordRaw[] = [
     path: '/date-or-time',
     component: () => import('./views/DateOrTimePickerView.vue'),
   },
+  {
+    path: '/date-input',
+    component: () => import('./views/DateInputDemo.vue'),
+  },
   // ─── @cocoar/vue-calendar demos ────────────────────────────
   {
     path: '/calendar-time-rows',

@@ -192,23 +192,32 @@ describe('useZonedDateTimePicker', () => {
     }
   });
 
-  it('restores invalid nonempty input on blur, leaving the model alone', () => {
+  it('refuses invalid nonempty input on blur, leaving the model alone', () => {
     const { picker, model } = createPicker(zoned('2026-03-14T10:30[Europe/Vienna]'));
     picker.changeInput('incomplete');
     expect(picker.displayValue.value).toBe('incomplete');
     picker.blurInput();
+    expect(picker.displayValue.value).toBe('incomplete');
+    expect(picker.refused.value).toBe(true);
+    picker.changeInput('30.02.2026 10:30');
+    picker.blurInput();
+    expect(picker.refused.value).toBe(true);
+    expect(model.value?.toString()).toBe('2026-03-14T10:30:00+01:00[Europe/Vienna]');
+    picker.restoreInput();
     expect(picker.displayValue.value).toBe('14.03.2026 10:30');
+    expect(picker.refused.value).toBe(false);
     picker.changeInput('');
     picker.blurInput();
     expect(picker.displayValue.value).toBe('');
     expect(model.value?.hour).toBe(10);
   });
 
-  it('clears invalid input without a value on blur and resets pending time on clear', () => {
+  it('refuses invalid input without a value on blur and resets pending time on clear', () => {
     const { picker, model } = createPicker();
     picker.changeInput('incomplete');
     picker.blurInput();
-    expect(picker.displayValue.value).toBe('');
+    expect(picker.displayValue.value).toBe('incomplete');
+    expect(picker.refused.value).toBe(true);
     picker.changeTime({ hours: 12, minutes: 0 });
     picker.clearValue();
     expect(model.value).toBeNull();

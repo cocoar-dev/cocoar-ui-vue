@@ -87,6 +87,14 @@ describe('coarParsePlainDateFromInput', () => {
     expect(coarParsePlainDateFromInput('31.02.2026', 'dd.mm.yyyy')).toBeNull();
   });
 
+  it('does not take a year still being typed as a date', () => {
+    expect(coarParsePlainDateFromInput('29.02.20', 'dd.mm.yyyy')).toBeNull();
+    expect(coarParsePlainDateFromInput('02/29/202', 'mm/dd/yyyy')).toBeNull();
+    expect(coarParsePlainDateFromInput('20-02-29', 'yyyy-mm-dd')).toBeNull();
+    expect(coarParsePlainDateFromInput('29.02.0020', 'dd.mm.yyyy')?.toString()).toBe('0020-02-29');
+    expect(coarFormatPlainDate(Temporal.PlainDate.from('0020-02-29'), 'dd.mm.yyyy')).toBe('29.02.0020');
+  });
+
   it('returns null for empty string', () => {
     expect(coarParsePlainDateFromInput('', 'dd.mm.yyyy')).toBeNull();
   });

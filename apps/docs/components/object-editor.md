@@ -345,6 +345,8 @@ app, set its token in the theme or style preset; the `striped` prop sets the sam
 | `coar.objectEditor.formatDate` / `formatEmail` / `format` | `Not a valid date.` / `Not a valid email address.` / `Wrong format.` |
 | `coar.objectEditor.type` | `Wrong kind of value.` |
 | `coar.objectEditor.invalidJson` | `Not valid JSON: the value is unchanged. Esc restores it.` |
+| `coar.objectEditor.invalidDate` | `Not a date: the value is unchanged. Esc restores it.` |
+| `coar.objectEditor.invalidDateTime` | `Not a date and time: the value is unchanged. Esc restores it.` |
 | `coar.objectEditor.invalidNumber` | `Enter a number with one decimal separator, without thousands separators.` |
 | `coar.objectEditor.invalidNumberScale` | `Enter a number with at most {count} decimal places, without thousands separators.` |
 | `coar.objectEditor.notAllowed` | `Not one of the allowed values.` |

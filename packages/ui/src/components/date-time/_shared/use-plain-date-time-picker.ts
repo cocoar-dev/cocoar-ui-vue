@@ -41,6 +41,8 @@ export function usePlainDateTimePicker(
   /** Time chosen before there is a date; applied when a date is selected. */
   const pendingTime = ref<CoarTimeValue | null>(null);
   const displayValue = ref('');
+  /** The text in the field is no value; set when the field is left. */
+  const refused = ref(false);
 
   const effectiveUse24Hour = computed(() => {
     if (props.use24Hour === true) return true;
@@ -105,6 +107,7 @@ export function usePlainDateTimePicker(
     modelValue,
     (val) => {
       displayValue.value = val ? formatValue(val) : '';
+      refused.value = false;
     },
     { immediate: true },
   );
@@ -151,6 +154,7 @@ export function usePlainDateTimePicker(
     modelValue.value = null;
     pendingTime.value = null;
     displayValue.value = '';
+    refused.value = false;
   }
 
   /** Typed values are committed without rounding or clamping. */
@@ -159,21 +163,31 @@ export function usePlainDateTimePicker(
     const parsed = parseValueFromInput(text);
     if (parsed) {
       modelValue.value = parsed;
+      refused.value = false;
       activeMonth.value = parsed.toPlainDate().toPlainYearMonth();
     }
   }
 
+  /**
+   * Text that is no value stays in the field as refused, and the model keeps its
+   * value: an impossible day, a value outside min/max or an incomplete entry.
+   */
   function blurInput() {
     const text = displayValue.value;
-    const parsed = parseValueFromInput(text);
-    if (!parsed && text.length > 0) displayValue.value = modelValue.value ? formatValue(modelValue.value) : '';
+    refused.value = text.trim().length > 0 && !parseValueFromInput(text);
+  }
+
+  /** Brings back the text of the model's value (Esc), ending a refusal. */
+  function restoreInput() {
+    displayValue.value = modelValue.value ? formatValue(modelValue.value) : '';
+    refused.value = false;
   }
 
   return {
-    pickerBase, activeMonth, pendingTime, displayValue, effectiveUse24Hour, inputPlaceholder,
+    pickerBase, activeMonth, pendingTime, displayValue, refused, effectiveUse24Hour, inputPlaceholder,
     selectedDate, selectedTime, minDate, maxDate, effectiveMinTime, effectiveMaxTime,
     isPrevYearDisabled, isNextYearDisabled, today,
     formatValue, parseValueFromInput, selectDate, changeTime, selectMonth, previousYear, nextYear,
-    scrollToTodayMonth, clearValue, changeInput, blurInput,
+    scrollToTodayMonth, clearValue, changeInput, blurInput, restoreInput,
   };
 }

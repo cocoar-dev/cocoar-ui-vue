@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { maskitoTransform } from '@maskito/core';
+import { maskitoPipe, maskitoTransform, type MaskitoOptions } from '@maskito/core';
 import { Temporal } from '@js-temporal/polyfill';
 
 import { coarCreateDateMask, coarCreateDateTimeMask } from '../maskito-config';
@@ -81,5 +81,65 @@ describe('mask ↔ format ↔ parse round-trips', () => {
       expect(coarParsePlainDateFromInput(parts[0], pattern)?.toString()).toBe(date.toString());
       expect(coarParseTimeInput(parts.slice(1).join(' '))).toEqual({ hours: 20, minutes: 30 });
     }
+  });
+});
+
+// What Maskito does in the browser for a paste, a drop or a `fill`: the
+// preprocessors get the inserted text as `data`, the mask then takes the rest.
+function insert(text: string, options: MaskitoOptions, value = ''): string {
+  const { elementState, data } = maskitoPipe(options.preprocessors!)(
+    { elementState: { value, selection: [0, value.length] }, data: text },
+    'insert',
+  );
+  const state = { value: elementState.value.slice(0, elementState.selection[0]) + data + elementState.value.slice(elementState.selection[1]), selection: elementState.selection };
+  return maskitoTransform(state, options).value;
+}
+
+describe('an impossible calendar day stays as typed (#109)', () => {
+  // Maskito's min/max step used to turn it into a JS Date: 30.02.2026 → 02.03.2026.
+  it.each([
+    ['dd.mm.yyyy', '30.02.2026'],
+    ['mm/dd/yyyy', '02/30/2026'],
+    ['dd.mm.yyyy', '29.02.2026'],
+    ['yyyy-mm-dd', '2026-04-31'],
+  ] as const)('date mask %s keeps %s', (pattern, text) => {
+    expect(maskitoTransform(text, coarCreateDateMask(pattern))).toBe(text);
+  });
+
+  it('keeps a leap day', () => {
+    expect(maskitoTransform('29.02.2028', coarCreateDateMask('dd.mm.yyyy'))).toBe('29.02.2028');
+  });
+
+  it('keeps the impossible day while the time is typed and when it is complete', () => {
+    const mask = coarCreateDateTimeMask('dd.mm.yyyy', false);
+    expect(maskitoTransform('30.02.2026 1', mask)).toBe('30.02.2026 1');
+    expect(maskitoTransform('30.02.2026 10:30', mask)).toBe('30.02.2026 10:30');
+  });
+});
+
+describe('a value inserted at once keeps what it says (#110)', () => {
+  const mask = coarCreateDateTimeMask('mm/dd/yyyy', true);
+
+  it.each([
+    ['07/01/2026 03:46 PM', '07/01/2026 03:46\u00a0PM'],
+    ['07/01/2026 12:00 AM', '07/01/2026 12:00\u00a0AM'],
+    ['07/01/2026 12:00 PM', '07/01/2026 12:00\u00a0PM'],
+    ['07/01/2026 3:46 pm', '07/01/2026 03:46\u00a0PM'],
+    ['07/01/2026, 15:46', '07/01/2026 03:46\u00a0PM'],
+  ])('%s', (text, expected) => {
+    expect(insert(text, mask)).toBe(expected);
+    expect(coarParseTimeInput(expected.split(' ').slice(1).join(' '))).toEqual(coarParseTimeInput(text.split(/,?\s+/).slice(1).join(' ')));
+  });
+
+  it('replaces a selected value', () => {
+    expect(insert('07/01/2026 03:46 PM', mask, '01/02/2026 08:00\u00a0AM')).toBe('07/01/2026 03:46\u00a0PM');
+  });
+
+  it('reads a 12-hour value in a 24-hour field', () => {
+    expect(insert('01.07.2026 03:46 PM', coarCreateDateTimeMask('dd.mm.yyyy', false))).toBe('01.07.2026 15:46');
+  });
+
+  it('inserts a whole date', () => {
+    expect(insert('01.07.2026', coarCreateDateMask('dd.mm.yyyy'))).toBe('01.07.2026');
   });
 });
