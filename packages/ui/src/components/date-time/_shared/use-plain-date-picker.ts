@@ -29,6 +29,8 @@ export function usePlainDatePicker(
     modelValue.value?.toPlainYearMonth() ?? Temporal.Now.plainDateISO().toPlainYearMonth(),
   );
   const displayValue = ref('');
+  /** The text in the field is no value; set when the field is left. */
+  const refused = ref(false);
 
   const inputPlaceholder = computed(
     () => props.placeholder || pickerBase.effectiveDateFormat.value.pattern.toUpperCase(),
@@ -53,6 +55,7 @@ export function usePlainDatePicker(
     modelValue,
     (val) => {
       displayValue.value = val ? formatValue(val) : '';
+      refused.value = false;
     },
     { immediate: true },
   );
@@ -81,6 +84,7 @@ export function usePlainDatePicker(
   function clearValue() {
     modelValue.value = null;
     displayValue.value = '';
+    refused.value = false;
   }
 
   function changeInput(text: string) {
@@ -88,20 +92,30 @@ export function usePlainDatePicker(
     const parsed = parseValueFromInput(text);
     if (parsed) {
       modelValue.value = parsed;
+      refused.value = false;
       activeMonth.value = parsed.toPlainYearMonth();
     }
   }
 
+  /**
+   * Text that is no value stays in the field as refused, and the model keeps its
+   * value: an impossible day, a value outside min/max or an incomplete entry.
+   */
   function blurInput() {
     const text = displayValue.value;
-    const parsed = parseValueFromInput(text);
-    if (!parsed && text.length > 0) displayValue.value = modelValue.value ? formatValue(modelValue.value) : '';
+    refused.value = text.trim().length > 0 && !parseValueFromInput(text);
+  }
+
+  /** Brings back the text of the model's value (Esc), ending a refusal. */
+  function restoreInput() {
+    displayValue.value = modelValue.value ? formatValue(modelValue.value) : '';
+    refused.value = false;
   }
 
   return {
-    pickerBase, activeMonth, displayValue, inputPlaceholder,
+    pickerBase, activeMonth, displayValue, refused, inputPlaceholder,
     isPrevYearDisabled, isNextYearDisabled, today,
     formatValue, parseValueFromInput, selectDate, selectMonth, previousYear, nextYear,
-    scrollToTodayMonth, clearValue, changeInput, blurInput,
+    scrollToTodayMonth, clearValue, changeInput, blurInput, restoreInput,
   };
 }

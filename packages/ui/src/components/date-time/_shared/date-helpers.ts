@@ -109,7 +109,8 @@ export function coarFormatPlainDate(
   const sep = coarGetDateSeparatorForPattern(pattern);
   const day = String(date.day).padStart(2, '0');
   const month = String(date.month).padStart(2, '0');
-  const year = String(date.year);
+  // Four digits, as the parser reads them back: the year 20 is 0020.
+  const year = String(date.year).padStart(4, '0');
 
   switch (pattern) {
     case 'dd.mm.yyyy':
@@ -142,6 +143,9 @@ export function coarParsePlainDateFromInput(
   const parts = text.split(sep);
   if (parts.length !== 3) return null;
   if (parts.some((p) => p.length === 0 || !/^\d+$/.test(p))) return null;
+  // A year of fewer than four digits is one still being typed: 29.02.20 is not the year 20.
+  const yearPart = pattern.startsWith('yyyy') ? parts[0] : parts[2];
+  if (yearPart.length !== 4) return null;
 
   let year: number;
   let month: number;

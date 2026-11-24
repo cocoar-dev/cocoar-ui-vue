@@ -43,6 +43,8 @@ export function useZonedDateTimePicker(
   const pendingTime = ref<CoarTimeValue | null>(null);
   const displayTimeZone = ref<string | null>(null);
   const displayValue = ref('');
+  /** The text in the field is no value; set when the field is left. */
+  const refused = ref(false);
 
   const userTimeZone = computed<string>(() =>
     pickerBase.timezone.value || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
@@ -155,6 +157,7 @@ export function useZonedDateTimePicker(
     [modelValue, effectiveDisplayTimeZone],
     () => {
       displayValue.value = modelValue.value ? formatValue(modelValue.value) : '';
+      refused.value = false;
     },
     { immediate: true },
   );
@@ -224,6 +227,7 @@ export function useZonedDateTimePicker(
     modelValue.value = null;
     pendingTime.value = null;
     displayValue.value = '';
+    refused.value = false;
   }
 
   function changeInput(text: string) {
@@ -231,19 +235,29 @@ export function useZonedDateTimePicker(
     const parsed = parseValueFromInput(text);
     if (parsed) {
       modelValue.value = parsed;
+      refused.value = false;
       const inWtz = parsed.withTimeZone(workingTimeZone.value);
       activeMonth.value = inWtz.toPlainDate().toPlainYearMonth();
     }
   }
 
+  /**
+   * Text that is no value stays in the field as refused, and the model keeps its
+   * value: an impossible day, a value outside min/max or an incomplete entry.
+   */
   function blurInput() {
     const text = displayValue.value;
-    const parsed = parseValueFromInput(text);
-    if (!parsed && text.length > 0) displayValue.value = modelValue.value ? formatValue(modelValue.value) : '';
+    refused.value = text.trim().length > 0 && !parseValueFromInput(text);
+  }
+
+  /** Brings back the text of the model's value (Esc), ending a refusal. */
+  function restoreInput() {
+    displayValue.value = modelValue.value ? formatValue(modelValue.value) : '';
+    refused.value = false;
   }
 
   return {
-    pickerBase, activeMonth, pendingTime, displayTimeZone, displayValue,
+    pickerBase, activeMonth, pendingTime, displayTimeZone, displayValue, refused,
     userTimeZone, valueTimeZone, effectiveDisplayTimeZone, effectiveDefaultTimeZone,
     locationDiffersFromUser, timeZonesDiffer, timezoneIndicatorState, timezoneIndicatorClickable,
     currentTimeZoneDisplayName, valueTimeZoneLabel, allTimezones, effectiveUse24Hour, inputPlaceholder,
@@ -251,6 +265,6 @@ export function useZonedDateTimePicker(
     effectiveMinTime, effectiveMaxTime, isPrevYearDisabled, isNextYearDisabled, today,
     formatValue, formatValueInValueTz, parseValueFromInput, selectDate, changeTime,
     selectMonth, previousYear, nextYear, scrollToTodayMonth, selectDisplayTimezone,
-    changeValueTimezone, toggleDisplayTimezone, clearValue, changeInput, blurInput,
+    changeValueTimezone, toggleDisplayTimezone, clearValue, changeInput, blurInput, restoreInput,
   };
 }

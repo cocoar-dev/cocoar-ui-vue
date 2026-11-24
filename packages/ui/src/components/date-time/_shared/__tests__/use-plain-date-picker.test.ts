@@ -95,7 +95,22 @@ describe('usePlainDatePicker', () => {
     picker.changeInput('21.03.2026');
     expect(model.value).toBeNull();
     picker.blurInput();
-    expect(picker.displayValue.value).toBe('');
+    expect(picker.displayValue.value).toBe('21.03.2026');
+    expect(picker.refused.value).toBe(true);
+  });
+
+  it('refuses an impossible calendar day and keeps the model (#109)', () => {
+    const { picker, model } = createPicker(date('2026-03-14'));
+    for (const text of ['30.02.2026', '29.02.2026']) {
+      picker.changeInput(text);
+      picker.blurInput();
+      expect(picker.displayValue.value).toBe(text);
+      expect(picker.refused.value).toBe(true);
+      expect(model.value?.toString()).toBe('2026-03-14');
+    }
+    picker.changeInput('29.02.2028');
+    expect(model.value?.toString()).toBe('2028-02-29');
+    expect(picker.refused.value).toBe(false);
   });
 
   it('selects a date as given, without clamping (the panel limits the choice)', async () => {
@@ -118,20 +133,28 @@ describe('usePlainDatePicker', () => {
     expect(picker.displayValue.value).toBe('14.06.2026');
   });
 
-  it('keeps partial input while typing and restores the value on blur', () => {
+  it('keeps partial input as refused on blur, and restoreInput brings the value back', () => {
     const { picker, model } = createPicker(date('2026-03-14'));
     picker.changeInput('14.0');
     expect(picker.displayValue.value).toBe('14.0');
     expect(model.value?.toString()).toBe('2026-03-14');
+    expect(picker.refused.value).toBe(false);
     picker.blurInput();
+    expect(picker.displayValue.value).toBe('14.0');
+    expect(picker.refused.value).toBe(true);
+    picker.restoreInput();
     expect(picker.displayValue.value).toBe('14.03.2026');
+    expect(picker.refused.value).toBe(false);
   });
 
-  it('clears invalid input without a value on blur and leaves empty input alone', () => {
+  it('refuses invalid input without a value, clears the refusal, and leaves empty input alone', () => {
     const { picker } = createPicker();
     picker.changeInput('nonsense');
     picker.blurInput();
-    expect(picker.displayValue.value).toBe('');
+    expect(picker.displayValue.value).toBe('nonsense');
+    expect(picker.refused.value).toBe(true);
+    picker.clearValue();
+    expect(picker.refused.value).toBe(false);
     const withValue = createPicker(date('2026-03-14'));
     withValue.picker.changeInput('');
     withValue.picker.blurInput();
