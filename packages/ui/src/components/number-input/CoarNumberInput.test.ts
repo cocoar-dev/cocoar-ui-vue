@@ -288,6 +288,23 @@ describe('CoarNumberInput keeps the value it was given', () => {
     expect((wrapper.find('input').element as HTMLInputElement).value).toBe('100.00');
   });
 
+  it('clamps while typing by default, and only on blur with clampOnBlur', async () => {
+    const typed = async (props: Record<string, unknown>) => {
+      const wrapper = mountInput({ modelValue: 1, max: 100, locale: 'en-US', ...props });
+      const input = wrapper.find('input').element as HTMLInputElement;
+      input.focus();
+      input.value = '150';
+      input.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: '0' }));
+      await wrapper.vm.$nextTick();
+      return { wrapper, shown: input.value };
+    };
+    expect((await typed({})).shown).toBe('100');
+    const deferred = await typed({ clampOnBlur: true });
+    expect(deferred.shown).toBe('150');
+    await deferred.wrapper.find('input').trigger('blur');
+    expect(last(deferred.wrapper)).toBe(100);
+  });
+
   it('reads a typed negative number', async () => {
     const wrapper = mountInput({ modelValue: 1, decimals: 2, locale: 'en-US' });
     await enter(wrapper, '-12.5');

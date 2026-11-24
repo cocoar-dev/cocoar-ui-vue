@@ -40,6 +40,8 @@ export interface CoarNumberInputProps {
    * marked as an error, and `entry-refused` reports it.
    */
   exact?: boolean;
+  /** `min` and `max` apply when the field is left, not already while typing (Preview) */
+  clampOnBlur?: boolean;
   /** Disables the input */
   disabled?: boolean;
   /** Makes the input read-only */
@@ -76,6 +78,7 @@ const props = withDefaults(defineProps<CoarNumberInputProps>(), {
   step: 1,
   decimals: 0,
   exact: false,
+  clampOnBlur: false,
   disabled: false,
   readonly: false,
   required: false,
@@ -285,15 +288,20 @@ function initMaskito() {
   const el = inputElement.value;
   if (!el || props.exact) return;
   const format = resolvedNumberFormat.value;
-  const maskOptions = maskitoNumberOptionsGenerator({
+  const params = {
     decimalSeparator: format.decimal,
     thousandSeparator: format.thousand,
     maximumFractionDigits: props.decimals ?? Infinity,
     // parseValue and formatValue read an ASCII minus.
     minusSign: '-',
-    // No min or max here: the mask would clamp on blur a value nobody edited.
-    // commitValue clamps what was typed.
-  });
+  };
+  const unbounded = maskitoNumberOptionsGenerator(params);
+  // The bounds limit typing. The mask's blur plugins come from the unbounded
+  // options: with bounds they would clamp on blur a value nobody edited.
+  // commitValue clamps what was typed.
+  const maskOptions = props.clampOnBlur
+    ? unbounded
+    : { ...maskitoNumberOptionsGenerator({ ...params, min: props.min, max: props.max }), plugins: unbounded.plugins };
   maskitoInstance = new Maskito(el, maskOptions);
 }
 
@@ -313,7 +321,7 @@ watch(
 );
 
 // Re-initialize maskito when relevant props change
-watch([() => props.decimals, () => props.exact, resolvedNumberFormat], () => {
+watch([() => props.decimals, () => props.exact, () => props.clampOnBlur, () => props.min, () => props.max, resolvedNumberFormat], () => {
   initMaskito();
 });
 

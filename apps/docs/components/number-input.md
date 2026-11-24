@@ -66,7 +66,8 @@ An action is a field of its own: a select in it does not take the label, hint or
 ## Exact entry <Badge type="warning" text="Preview" /> {#exact}
 
 Leaving the field without changing its text never changes the value, also when the value has more digits than
-`decimals` shows or lies outside `min` and `max`. Text that was edited is rounded and clamped.
+`decimals` shows or lies outside `min` and `max`. Text that was edited is rounded and clamped: while typing, or
+with `clampOnBlur` only when the field is left.
 
 For data that must not be altered, such as configuration values, `exact` turns off the mask, rounding and clamping.
 It accepts the decimal separator of the locale or a point, and no thousands separators. Other text, or more digits
@@ -120,6 +121,7 @@ These keys can be translated via [`@cocoar/vue-localization`](/foundations/local
 | `max` | `number` | `undefined` | Maximum allowed value |
 | `step` | `number` | `1` | Step increment |
 | `decimals` | `number \| null` | `0` | Number of decimal places. `null` <Badge type="warning" text="Preview" />: as many as the value has |
+| `clampOnBlur` <Badge type="warning" text="Preview" /> | `boolean` | `false` | `min` and `max` apply when the field is left, not already while typing |
 | `exact` <Badge type="warning" text="Preview" /> | `boolean` | `false` | Stores the value as typed or not at all, see [Exact entry](#exact) |
 | `prefix` | `string` | `''` | Prefix text |
 | `suffix` | `string` | `''` | Suffix text (e.g. '%', 'EUR') |
