@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { effectScope, nextTick, reactive, ref, type EffectScope } from 'vue';
 import { Temporal } from '@js-temporal/polyfill';
 import { useZonedDateTimePicker } from '../use-zoned-date-time-picker';
-import type { DateFormatConfig } from '../types';
+import type { DateFormatConfig, CoarTimePrecision } from '../types';
 
 const homeZone = ref('Europe/Vienna');
 vi.mock('@cocoar/vue-localization', () => ({
@@ -25,6 +25,7 @@ function createPicker(value: Temporal.ZonedDateTime | null = null) {
     use24Hour: true as boolean | 'auto',
     minuteStep: 5 as 1 | 5 | 10 | 15,
     defaultTime: { hours: 9, minutes: 0 },
+    precision: 'minute' as CoarTimePrecision,
     timeZone: null as string | null,
   });
   const scope = effectScope();
@@ -44,6 +45,16 @@ afterEach(() => {
 });
 
 describe('useZonedDateTimePicker', () => {
+  it('keeps what the field does not show when only the typed date changes (#115)', async () => {
+    homeZone.value = 'Europe/Berlin';
+    const { picker, props, model } = createPicker(zoned('2026-07-01T00:30:56.1234567+05:45[+05:45]'));
+    props.precision = 'millisecond';
+    await nextTick();
+    expect(picker.displayValue.value).toBe('30.06.2026 20:45:56.123');
+    picker.changeInput('01.07.2026 20:45:56.123');
+    expect(model.value?.toString()).toBe('2026-07-02T00:30:56.1234567+05:45[+05:45]');
+  });
+
   it('reads typed text in the zone it is shown in, and keeps the value zone', () => {
     // Shown in Vienna (04:30), the value lives in New York (23:30 the day before).
     const { picker, model } = createPicker(zoned('2026-03-14T23:30[America/New_York]'));

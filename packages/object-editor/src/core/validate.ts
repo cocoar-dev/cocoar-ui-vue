@@ -6,9 +6,12 @@ import { isJsonObject, type JsonSchema, type JsonValue } from './schema';
 /** A problem of a value, at the JSON Pointer of the value it belongs to. */
 export interface ObjectEditorIssue {
   pointer: string;
-  /** The JSON Schema keyword that failed, or `custom` for the check of a value type. */
+  /**
+   * The JSON Schema keyword that failed, `custom` for the check of a value type, or
+   * `refused` for text a control did not take (the value is unchanged).
+   */
   keyword: string;
-  /** Set for `custom` issues: the message of the value type. */
+  /** Set for `custom` and `refused` issues: the message to show. */
   message?: string;
 }
 

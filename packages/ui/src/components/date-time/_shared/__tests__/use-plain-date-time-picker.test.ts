@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { effectScope, nextTick, reactive, ref, type EffectScope } from 'vue';
 import { Temporal } from '@js-temporal/polyfill';
 import { usePlainDateTimePicker } from '../use-plain-date-time-picker';
-import type { CoarTimeValue, DateFormatConfig } from '../types';
+import type { CoarTimeValue, DateFormatConfig, CoarTimePrecision } from '../types';
 
 vi.mock('@cocoar/vue-localization', () => ({
   useL10n: () => ({ language: ref('en-GB'), localeData: ref(null) }),
@@ -24,6 +24,7 @@ function createPicker(value: Temporal.PlainDateTime | null = null) {
     use24Hour: true as boolean | 'auto',
     minuteStep: 5 as 1 | 5 | 10 | 15,
     defaultTime: { hours: 9, minutes: 0 } as CoarTimeValue,
+    precision: 'minute' as CoarTimePrecision,
   });
   const scope = effectScope();
   scopes.push(scope);
@@ -115,6 +116,15 @@ describe('usePlainDateTimePicker', () => {
     props.minuteStep = 15;
     picker.selectDate(date('2026-03-14'));
     expect(model.value?.toString()).toBe('2026-03-14T09:00:00');
+  });
+
+  it('keeps what the field does not show when only the typed date changes (#115)', () => {
+    const { picker, props, model } = createPicker(Temporal.PlainDateTime.from('2026-06-30T20:45:56.1234567'));
+    props.precision = 'millisecond';
+    picker.changeInput('01.07.2026 20:45:56.123');
+    expect(model.value?.toString()).toBe('2026-07-01T20:45:56.1234567');
+    picker.changeInput('01.07.2026 20:45:57.000');
+    expect(model.value?.toString()).toBe('2026-07-01T20:45:57');
   });
 
   it('keeps the existing time exactly when selecting another date (#111)', () => {

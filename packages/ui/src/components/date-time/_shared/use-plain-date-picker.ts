@@ -106,6 +106,12 @@ export function usePlainDatePicker(
     refused.value = text.trim().length > 0 && !parseValueFromInput(text);
   }
 
+  /** Shows text the field refused before it reached it, such as a pasted ISO timestamp. */
+  function refuseInput(text: string) {
+    displayValue.value = text;
+    refused.value = true;
+  }
+
   /** Brings back the text of the model's value (Esc), ending a refusal. */
   function restoreInput() {
     displayValue.value = modelValue.value ? formatValue(modelValue.value) : '';
@@ -116,6 +122,6 @@ export function usePlainDatePicker(
     pickerBase, activeMonth, displayValue, refused, inputPlaceholder,
     isPrevYearDisabled, isNextYearDisabled, today,
     formatValue, parseValueFromInput, selectDate, selectMonth, previousYear, nextYear,
-    scrollToTodayMonth, clearValue, changeInput, blurInput, restoreInput,
+    scrollToTodayMonth, clearValue, changeInput, blurInput, restoreInput, refuseInput,
   };
 }

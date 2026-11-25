@@ -47,6 +47,8 @@ const emit = defineEmits<{
   move: [offset: -1 | 1];
   /** Map entry: give it another key. */
   rename: [key: string];
+  /** The control refused its text (a message), or that ended (`undefined`). */
+  refused: [message: string | undefined];
 }>();
 const { t } = useI18n();
 
@@ -286,6 +288,7 @@ function commitKey() {
               :options="row.options"
               :locale="locale"
               @update:model-value="update"
+              @refused="emit('refused', $event)"
             />
           </div>
         </HiddenLabelField>

@@ -87,6 +87,24 @@ for (const how of ['type', 'paste', 'fill'] as const) {
       await expect(refused(page, 'zoned')).toHaveText('true');
     });
 
+    for (const [locale, text] of [
+      ['de-DE', '2026-07-01T15:46:56.1234567+05:45'],
+      ['en-US', '2026-07-01T15:46:56.1234567+05:45'],
+      ['de-DE', '01.07.2026 15:46:56.1234567'],
+      ['en-US', '07/01/2026 03:46:56.1234567 PM'],
+    ] as const) {
+      test(`${locale} refuses ${text} instead of committing part of it (#115)`, async ({ page }) => {
+        test.skip(how === 'type', 'keystrokes go through the mask one by one');
+        await page.goto(`/date-input?locale=${locale}`);
+        const input = await enter(page, 'precise', text, how);
+        await expect(input).toHaveValue(text);
+        // The zoned picker marks its combobox frame, not the inner input.
+        await expect(page.getByTestId('precise').getByRole('combobox')).toHaveAttribute('aria-invalid', 'true');
+        await expect(value(page, 'precise')).toHaveText('none');
+        await expect(refused(page, 'precise')).toHaveText('true');
+      });
+    }
+
     test('de-DE zoned refuses 30.02.2026 10:30', async ({ page }) => {
       await page.goto('/date-input?locale=de-DE');
       const input = await enter(page, 'zoned', '30.02.2026 10:30', how);

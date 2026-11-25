@@ -159,6 +159,33 @@ describe('a value inserted at once keeps what it says (#110)', () => {
     expect(refused).toEqual(['01.07.2026 15:46:56']);
   });
 
+  // Text the field cannot take whole used to reach Maskito, which kept the digits
+  // it had room for: an ISO timestamp became 0701-02-20 (#115).
+  it.each([
+    ['dd.mm.yyyy', false, 'second', '2026-07-01T15:46:56.1234567+05:45'],
+    ['mm/dd/yyyy', true, 'second', '2026-07-01T15:46:56.1234567+05:45'],
+    ['dd.mm.yyyy', false, 'second', '01.07.2026 15:46:56.1234567'],
+    ['mm/dd/yyyy', true, 'second', '07/01/2026 03:46:56.1234567 PM'],
+    ['dd.mm.yyyy', false, 'millisecond', '01.07.2026 15:46:56.1234'],
+  ] as const)('%s %s %s refuses %s', (pattern, use12Hour, precision, text) => {
+    const refused: string[] = [];
+    const mask = coarCreateDateTimeMask(pattern, use12Hour, precision, (t) => refused.push(t));
+    const { data } = maskitoPipe(mask.preprocessors!)({ elementState: { value: '', selection: [0, 0] }, data: text }, 'insert');
+    expect(data).toBe('');
+    expect(refused).toEqual([text]);
+  });
+
+  it('refuses an ISO date in a localized date field, and lets a partial paste through', () => {
+    const refused: string[] = [];
+    const mask = coarCreateDateMask('dd.mm.yyyy', (t) => refused.push(t));
+    const run = (data: string) =>
+      maskitoPipe(mask.preprocessors!)({ elementState: { value: '', selection: [0, 0] }, data }, 'insert');
+    expect(run('2026-07-01').data).toBe('');
+    expect(refused).toEqual(['2026-07-01']);
+    expect(run('15.06').data).not.toBe('');
+    expect(refused).toHaveLength(1);
+  });
+
   it('inserts a whole date', () => {
     expect(insert('01.07.2026', coarCreateDateMask('dd.mm.yyyy'))).toBe('01.07.2026');
   });

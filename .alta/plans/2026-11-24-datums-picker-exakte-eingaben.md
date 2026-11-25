@@ -1,6 +1,6 @@
 ---
 title: Datums-Picker übernehmen genau das Eingegebene oder lehnen es sichtbar ab (#109, #110, #111)
-status: in-progress
+status: done
 created: 2026-11-24
 summary: Die Maske der Datums-Picker rechnet unmögliche Tage in den Folgemonat um, verliert beim Einfügen AM/PM und schneidet Sekunden ab. Künftig übernehmen die Picker genau das Eingegebene oder lehnen es sichtbar ab, und der Object Editor bearbeitet date-time-Werte verlustfrei.
 ---

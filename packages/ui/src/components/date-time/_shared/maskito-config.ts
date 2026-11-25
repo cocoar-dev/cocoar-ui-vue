@@ -15,8 +15,20 @@ import { coarFormatTime, coarParseTimeInput, coarTimeExceedsPrecision } from './
 
 type Pattern = DateFormatConfig['pattern'];
 
-/** What `normalize` answers for a complete value the field cannot show without losing part of it. */
-const TOO_PRECISE = Symbol('too precise');
+/** What `normalize` answers for text the field cannot take without changing it. */
+const REFUSE = Symbol('refuse');
+
+/**
+ * Whether inserted text can be part of an entry of the field: only the characters
+ * of its notation, and no more digits than it holds. Anything else, such as an
+ * ISO timestamp or seven fractional digits, would reach Maskito, which keeps only
+ * the digits it has room for and can make another date of them (#115).
+ */
+function fitsField(data: string, pattern: Pattern, extra: string, digits: number): boolean {
+  const separator = coarGetDateSeparatorForPattern(pattern).replace(/[-/\\.]/g, '\\$&');
+  const allowed = new RegExp(`^[\\d${separator}\\s${extra}]*$`, 'i');
+  return allowed.test(data) && data.replace(/\D/g, '').length <= digits;
+}
 
 /** A complete date part (all digits typed) that is no calendar day, such as 30.02. */
 function isImpossibleDay(value: string, pattern: Pattern): boolean {
@@ -48,22 +60,24 @@ function withoutRollover(postprocessors: readonly MaskitoPostprocessor[], patter
  * the emptied field, after Maskito's. Keystrokes and anything that is not a value
  * go through the mask as before.
  *
- * A value with more precision than the field shows (seconds in a minute field)
- * is not cut down (#111): the insertion is cancelled and `onRefuse` gets the
+ * Text the field cannot take without changing it is not cut down (#111, #115):
+ * a value with more precision than the field shows, or text that is no part of
+ * an entry (`fits` is false). The insertion is cancelled and `onRefuse` gets the
  * text, for the picker to show it as refused.
  */
 function wholeValuePreprocessors(
-  normalize: (text: string) => string | typeof TOO_PRECISE | null,
+  normalize: (text: string) => string | typeof REFUSE | null,
+  fits: (data: string) => boolean,
   onRefuse?: (text: string) => void,
 ): [first: MaskitoPreprocessor, last: MaskitoPreprocessor] {
-  let whole: string | typeof TOO_PRECISE | null = null;
+  let whole: string | typeof REFUSE | null = null;
   let text = '';
   const first: MaskitoPreprocessor = ({ elementState, data }, actionType) => {
     whole = null;
     if (actionType === 'insert' && data.length > 1) {
       const [from, to] = elementState.selection;
       text = (elementState.value.slice(0, from) + data + elementState.value.slice(to)).trim();
-      whole = normalize(text);
+      whole = normalize(text) ?? (fits(data) ? null : REFUSE);
     }
     return { elementState, data };
   };
@@ -71,7 +85,7 @@ function wholeValuePreprocessors(
     if (whole === null) return { elementState, data };
     const value = whole;
     whole = null;
-    if (value === TOO_PRECISE) {
+    if (value === REFUSE) {
       // Maskito cancels an insertion that adds nothing to the field.
       onRefuse?.(text);
       return { elementState, data: '' };
@@ -92,13 +106,13 @@ function normalizeDateTime(
   pattern: Pattern,
   use12Hour: boolean,
   precision: CoarTimePrecision,
-): string | typeof TOO_PRECISE | null {
+): string | typeof REFUSE | null {
   const match = text.match(/^(\S+?),?\s+(.+)$/);
   if (!match) return null;
   const date = normalizeDate(match[1], pattern);
   const time = coarParseTimeInput(match[2]);
   if (!date || !time) return null;
-  if (coarTimeExceedsPrecision(time, precision)) return TOO_PRECISE;
+  if (coarTimeExceedsPrecision(time, precision)) return REFUSE;
   const seconds = time.seconds ?? 0;
   const belowMinute = precision === 'minute' ? undefined
     : precision === 'second' ? { seconds } : { seconds, milliseconds: time.milliseconds ?? 0 };
@@ -118,12 +132,16 @@ const TIME_MODES = {
  * const mask = coarCreateDateMask('dd.mm.yyyy') // masks "01.06.2026"
  * const mask = coarCreateDateMask('mm/dd/yyyy') // masks "06/01/2026"
  */
-export function coarCreateDateMask(pattern: Pattern): MaskitoOptions {
+export function coarCreateDateMask(pattern: Pattern, onRefuse?: (text: string) => void): MaskitoOptions {
   const options = maskitoDateOptionsGenerator({
     mode: COAR_DATE_FORMAT_TO_MASKITO_MODE[pattern],
     separator: coarGetDateSeparatorForPattern(pattern),
   });
-  const [first, last] = wholeValuePreprocessors((text) => normalizeDate(text, pattern));
+  const [first, last] = wholeValuePreprocessors(
+    (text) => normalizeDate(text, pattern),
+    (data) => fitsField(data, pattern, '', 8),
+    onRefuse,
+  );
   return {
     ...options,
     preprocessors: [first, ...options.preprocessors, last],
@@ -156,8 +174,11 @@ export function coarCreateDateTimeMask(
     timeMode: TIME_MODES[precision][use12Hour ? 1 : 0],
     dateTimeSeparator: ' ',
   });
+  // The time's digits: 4 for minutes, 6 with seconds, 9 with milliseconds.
+  const timeDigits = { minute: 4, second: 6, millisecond: 9 }[precision];
   const [first, last] = wholeValuePreprocessors(
     (text) => normalizeDateTime(text, pattern, use12Hour, precision),
+    (data) => fitsField(data, pattern, use12Hour ? ':.,APM' : ':.,', 8 + timeDigits),
     onRefuse,
   );
   return {

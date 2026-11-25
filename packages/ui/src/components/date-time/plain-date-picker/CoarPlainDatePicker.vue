@@ -139,7 +139,7 @@ let maskitoInstance: Maskito | undefined;
 function initMaskito() {
   maskitoInstance?.destroy();
   if (!dateInputRef.value) return;
-  const mask = coarCreateDateMask(pickerBase.effectiveDateFormat.value.pattern);
+  const mask = coarCreateDateMask(pickerBase.effectiveDateFormat.value.pattern, picker.refuseInput);
   maskitoInstance = new Maskito(dateInputRef.value, mask);
 }
 

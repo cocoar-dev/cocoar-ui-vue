@@ -113,7 +113,23 @@ export function usePlainDateTimePicker(
     const timeText = parts.slice(1).join(' ');
     const time = coarTimeTextHasPrecision(timeText, precision.value) ? coarParseTimeInput(timeText) : null;
     if (!time) return null;
-    return date.toPlainDateTime(plainTime(time));
+    return date.toPlainDateTime(keepHidden(time));
+  }
+
+  /**
+   * The time of the value, with what the field does not show, when the entry shows
+   * the same time: editing only the date keeps 56.1234567 seconds (#115).
+   */
+  function keepHidden(time: CoarTimeValue): Temporal.PlainTimeLike {
+    const current = modelValue.value;
+    return current && showsTime(current, time) ? current.toPlainTime() : plainTime(time);
+  }
+
+  function showsTime(current: Temporal.PlainDateTime, time: CoarTimeValue): boolean {
+    if (current.hour !== time.hours || current.minute !== time.minutes) return false;
+    if (precision.value === 'minute') return true;
+    if (current.second !== (time.seconds ?? 0)) return false;
+    return precision.value === 'second' || current.millisecond === (time.milliseconds ?? 0);
   }
 
   function plainTime(time: CoarTimeValue): Temporal.PlainTimeLike {
@@ -121,8 +137,8 @@ export function usePlainDateTimePicker(
   }
 
   watch(
-    modelValue,
-    (val) => {
+    [modelValue, precision],
+    ([val]) => {
       displayValue.value = val ? formatValue(val) : '';
       refused.value = false;
     },
