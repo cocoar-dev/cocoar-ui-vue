@@ -160,9 +160,26 @@ const visible = computed(() => {
   return list;
 });
 
-/** Every problem of the value: the schema's, those of the value types, and the app's. */
+// Entries a control refused, by pointer: the text is no value and the value stays.
+const refusals = shallowRef(new Map<string, string>());
+function setRefusal(pointer: string, message: string | undefined) {
+  const next = new Map(refusals.value);
+  if (message === undefined) next.delete(pointer);
+  else next.set(pointer, message);
+  refusals.value = next;
+}
+
+/**
+ * Every problem of the value: entries the controls refused (also without
+ * `validate`, they are no check of the value), the schema's, those of the value
+ * types, and the app's.
+ */
 const issues = computed<ObjectEditorIssue[]>(() => {
-  const list: ObjectEditorIssue[] = [];
+  const list: ObjectEditorIssue[] = [...refusals.value].map(([pointer, message]) => ({
+    pointer,
+    keyword: 'refused',
+    message,
+  }));
   if (props.validate) {
     // Every value is checked, also below closed groups and inside recursive data.
     const checked = buildRows(props.schema, model.value, register.value, sources.value, new Set(), {
@@ -412,6 +429,7 @@ async function edit(pointer: string) {
       @insert="insertEntry(entry.row)"
       @move="moveEntry(entry.row, $event)"
       @rename="renameEntry(entry.row, $event)"
+      @refused="setRefusal(entry.row.pointer, $event)"
       @edit="edit(entry.row.pointer)"
       @leave="editing = ''"
       @toggle="toggle(entry.row.pointer)"

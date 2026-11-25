@@ -3,7 +3,12 @@ import type { CoarObjectEditorOption } from '../core/options';
 import type { Translate } from '../core/messages';
 import type { JsonSchema, JsonValue } from '../core/schema';
 
-/** Props every value control receives; it emits `update:modelValue` (`undefined` clears the value). */
+/**
+ * Props every value control receives. It emits `update:modelValue` (`undefined` clears
+ * the value), and may emit `refused` with a message while the text in it is no value
+ * and the value stays, then `refused` with `undefined` when that ends. The editor
+ * lists a refusal in `issues` (keyword `refused`) and shows its message at the row.
+ */
 export interface CoarValueControlProps<TValue = JsonValue> {
   modelValue: TValue | undefined;
   /** The schema of the value, `$ref` resolved. */

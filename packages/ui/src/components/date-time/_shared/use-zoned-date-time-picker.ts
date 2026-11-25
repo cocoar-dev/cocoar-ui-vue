@@ -163,10 +163,26 @@ export function useZonedDateTimePicker(
     const time = coarTimeTextHasPrecision(timeText, precision.value) ? coarParseTimeInput(timeText) : null;
     if (!time) return null;
     try {
-      return toZoned(date.toPlainDateTime(plainTime(time)));
+      return toZoned(date.toPlainDateTime(keepHidden(time)));
     } catch {
       return null;
     }
+  }
+
+  /**
+   * The time of the value, with what the field does not show, when the entry shows
+   * the same time: editing only the date keeps 56.1234567 seconds (#115).
+   */
+  function keepHidden(time: CoarTimeValue): Temporal.PlainTimeLike {
+    const current = valueInWorkingTz.value;
+    return current && showsTime(current, time) ? current.toPlainTime() : plainTime(time);
+  }
+
+  function showsTime(current: Temporal.ZonedDateTime, time: CoarTimeValue): boolean {
+    if (current.hour !== time.hours || current.minute !== time.minutes) return false;
+    if (precision.value === 'minute') return true;
+    if (current.second !== (time.seconds ?? 0)) return false;
+    return precision.value === 'second' || current.millisecond === (time.milliseconds ?? 0);
   }
 
   function plainTime(time: CoarTimeValue): Temporal.PlainTimeLike {
@@ -180,7 +196,7 @@ export function useZonedDateTimePicker(
   }
 
   watch(
-    [modelValue, effectiveDisplayTimeZone],
+    [modelValue, effectiveDisplayTimeZone, precision],
     () => {
       displayValue.value = modelValue.value ? formatValue(modelValue.value) : '';
       refused.value = false;

@@ -17,6 +17,7 @@ function message(t: Translate, key: string, fallback: string, params: Record<str
 export function issueMessage(issue: ObjectEditorIssue, schema: JsonSchema, t: Translate): string {
   switch (issue.keyword) {
     case 'custom':
+    case 'refused':
       return issue.message ?? message(t, 'invalid', 'Invalid value.');
     case 'required':
       return message(t, 'required', 'Required.');

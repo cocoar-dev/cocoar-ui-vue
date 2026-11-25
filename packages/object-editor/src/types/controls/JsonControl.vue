@@ -4,16 +4,25 @@ import { CoarTextInput } from '@cocoar/vue-ui';
 import { useI18n } from '@cocoar/vue-localization';
 import type { JsonValue } from '../../core/schema';
 import type { CoarValueControlProps } from '../types';
+import { useRefusal } from './useRefusal';
 
 // Edits a value the schema does not describe as JSON text. The value changes only
 // when the text is valid JSON and differs; anything else leaves it as it was.
 const props = withDefaults(defineProps<CoarValueControlProps<JsonValue>>(), { locale: undefined });
-const emit = defineEmits<{ 'update:modelValue': [value: JsonValue] }>();
+const emit = defineEmits<{ 'update:modelValue': [value: JsonValue]; refused: [message: string | undefined] }>();
 const { t } = useI18n();
 
 const stored = computed(() => (props.modelValue === undefined ? '' : JSON.stringify(props.modelValue)));
 const draft = ref(stored.value);
 const invalid = ref(false);
+useRefusal(
+  emit,
+  computed(() =>
+    invalid.value
+      ? t('coar.objectEditor.invalidJson', undefined, 'Not valid JSON: the value is unchanged. Esc restores it.')
+      : undefined,
+  ),
+);
 watch(stored, (text) => {
   draft.value = text;
   invalid.value = false;
@@ -57,7 +66,4 @@ function cancel() {
     @keydown.enter.prevent="commit"
     @keydown.esc="cancel"
   />
-  <span v-if="invalid" class="coar-object-editor-error" role="alert">{{
-    t('coar.objectEditor.invalidJson', undefined, 'Not valid JSON: the value is unchanged. Esc restores it.')
-  }}</span>
 </template>

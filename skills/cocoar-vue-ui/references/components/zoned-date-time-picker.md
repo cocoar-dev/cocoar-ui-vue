@@ -161,8 +161,9 @@ const ends = ref<Temporal.ZonedDateTime | null>(null);
 ## Precision (Preview) {#precision}
 
 The field shows hours and minutes. `precision="second"` or `"millisecond"` adds seconds or milliseconds to it.
-A value keeps what the field does not show: choosing another date or zone, or leaving the field without editing
-it, does not change its seconds; changing the hour or minute sets what is not shown to zero. Text with more than
+A value keeps what the field does not show: editing only its date (typed or chosen), choosing another zone, or
+leaving the field without editing it keeps its seconds and every fractional digit, also those the field does not
+show; changing the time sets what is not shown to zero. Text with more than
 the field shows, such as a pasted `15:46:56` in a minute field, is refused instead of cut down.
 
 Typed text is read in the zone the field shows, and the value keeps its own zone.
@@ -205,7 +206,8 @@ Text typed, pasted or filled in becomes the value only when it is one: a calenda
 or an incomplete entry, stays in the field when it is left: the field shows its error state (`aria-invalid`), the
 model keeps its value, and `entry-refused` reports `true`. `Escape` brings back the text of the value, and a valid
 entry ends the refusal. A pasted value keeps its AM/PM, and a time in the other clock (`15:46` in a 12-hour field, `3:46 PM` in a
-24-hour one) is converted.
+24-hour one) is converted. Pasted text the field cannot take whole, such as an ISO timestamp or more fractional
+digits than it shows, is refused as it is: no part of it reaches the value.
 
 ## Accessibility
 

@@ -567,7 +567,9 @@ const types = defineObjectEditorTypes([money]);
 ```
 
 A control receives `modelValue`, the resolved `schema`, `id`, `label`, `readonly`, `error`, `options` and
-`locale`, and emits `update:modelValue`; `undefined` clears the value.
+`locale`, and emits `update:modelValue`; `undefined` clears the value. A control that keeps text which is no value
+emits `refused` with a message, and `refused` with `undefined` when that ends: the editor shows the message at the
+row and lists it in `issues`.
 
 ## Schema editor
 
@@ -732,7 +734,9 @@ a confirmation. **Allows null** writes `type: [t, "null"]`, and keeps an existin
 | `v-model:search` | `string` | `''` | Filters rows by title, key or path, see [Search](#search) |
 
 The component exposes `issues` (every problem of the value, as `{ pointer, keyword, message? }`) and
-`focus(pointer)`.
+`focus(pointer)`. An entry a field refused, such as `30.02.2026` in a date or `1.234,5` in a number, is in `issues`
+with `keyword: 'refused'` while its text is shown, also with `validate` off: the value is unchanged, so a host can
+block saving until the entry is corrected or discarded with Esc.
 
 ### CoarSchemaEditor props
 

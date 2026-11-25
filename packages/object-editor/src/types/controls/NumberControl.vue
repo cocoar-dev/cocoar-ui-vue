@@ -4,9 +4,10 @@ import { useI18n } from '@cocoar/vue-localization';
 import { CoarNumberInput } from '@cocoar/vue-ui';
 import { numberScale } from '../../core/schema';
 import type { CoarValueControlProps } from '../types';
+import { useRefusal } from './useRefusal';
 
 const props = withDefaults(defineProps<CoarValueControlProps<number>>(), { locale: undefined });
-const emit = defineEmits<{ 'update:modelValue': [value: number | undefined] }>();
+const emit = defineEmits<{ 'update:modelValue': [value: number | undefined]; refused: [message: string | undefined] }>();
 const { t } = useI18n();
 const number = computed({
   get: () => (typeof props.modelValue === 'number' ? props.modelValue : null),
@@ -23,6 +24,7 @@ const refusal = computed(() =>
         'Enter a number with at most {count} decimal places, without thousands separators.',
       ).replace('{count}', String(decimals.value)),
 );
+useRefusal(emit, computed(() => (refused.value ? refusal.value : undefined)));
 </script>
 
 <template>
@@ -44,5 +46,4 @@ const refusal = computed(() =>
     :aria-label="label"
     @entry-refused="refused = $event"
   />
-  <span v-if="refused" class="coar-object-editor-error" role="alert">{{ refusal }}</span>
 </template>

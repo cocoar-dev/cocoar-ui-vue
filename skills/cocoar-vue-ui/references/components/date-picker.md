@@ -187,7 +187,8 @@ const to = ref<Temporal.PlainDate | null>(null);
 Text typed, pasted or filled in becomes the value only when it is one: a complete calendar day within `min` and `max`. Anything else, such as `30.02.2026`
 or an incomplete entry, stays in the field when it is left: the field shows its error state (`aria-invalid`), the
 model keeps its value, and `entry-refused` reports `true`. `Escape` brings back the text of the value, and a valid
-entry ends the refusal.
+entry ends the refusal. Pasted text in another notation, such as `2026-07-01` in a `DD.MM.YYYY` field, is refused
+as it is.
 
 ## Accessibility
 
