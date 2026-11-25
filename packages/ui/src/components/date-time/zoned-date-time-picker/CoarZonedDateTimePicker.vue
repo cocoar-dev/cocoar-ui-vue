@@ -15,7 +15,7 @@ import { datepickerPreset } from '../../overlay/overlay-presets';
 import type { OverlayRef } from '../../overlay/overlay-types';
 import { useZonedDateTimePicker } from '../_shared/use-zoned-date-time-picker';
 import { coarCreateDateTimeMask } from '../_shared/maskito-config';
-import type { DateFormatConfig, CoarDateMarker, CoarTimeValue } from '../_shared/types';
+import type { DateFormatConfig, CoarDateMarker, CoarTimePrecision, CoarTimeValue } from '../_shared/types';
 import CoarZonedDateTimePickerPanel from './CoarZonedDateTimePickerPanel.vue';
 import { FORM_FIELD_INJECTION_KEY } from '../../form-field/constants';
 
@@ -55,6 +55,11 @@ const props = withDefaults(
     minuteStep?: 1 | 5 | 10 | 15;
     /** Default time when selecting a date without existing time */
     defaultTime?: CoarTimeValue;
+    /**
+     * How exactly the field shows and takes the time: `'second'` and `'millisecond'`
+     * add them to the field. A value keeps what the field does not show (Preview).
+     */
+    precision?: CoarTimePrecision;
     showTodayMonthButton?: boolean;
     /** Default timezone for new values (IANA ID) */
     timeZone?: string | null;
@@ -83,6 +88,7 @@ const props = withDefaults(
     minuteStep: 5,
     defaultTime: () => ({ hours: 9, minutes: 0 }),
     showTodayMonthButton: true,
+    precision: 'minute',
     timeZone: null,
     timezoneFilter: () => [],
   },
@@ -143,11 +149,13 @@ function initMaskito() {
   const mask = coarCreateDateTimeMask(
     pickerBase.effectiveDateFormat.value.pattern,
     !effectiveUse24Hour.value,
+    props.precision,
+    picker.refuseInput,
   );
   maskitoInstance = new Maskito(dateInputRef.value, mask);
 }
 
-watch([dateInputRef, () => pickerBase.effectiveDateFormat.value], () => {
+watch([dateInputRef, () => pickerBase.effectiveDateFormat.value, () => props.precision], () => {
   nextTick(() => initMaskito());
 });
 

@@ -117,10 +117,12 @@ describe('usePlainDateTimePicker', () => {
     expect(model.value?.toString()).toBe('2026-03-14T09:00:00');
   });
 
-  it('keeps the existing time when selecting another date, rounded to the step', () => {
-    const { picker, model } = createPicker(dateTime('2026-03-14T10:32'));
+  it('keeps the existing time exactly when selecting another date (#111)', () => {
+    const { picker, model } = createPicker(Temporal.PlainDateTime.from('2026-03-14T10:32:56.123'));
     picker.selectDate(date('2026-03-16'));
-    expect(model.value?.toString()).toBe('2026-03-16T10:30:00');
+    expect(model.value?.toString()).toBe('2026-03-16T10:32:56.123');
+    picker.changeTime({ hours: 10, minutes: 45 });
+    expect(model.value?.toString()).toBe('2026-03-16T10:45:00');
   });
 
   it('keeps pending time until there is a date; null time changes do nothing', () => {

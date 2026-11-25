@@ -236,7 +236,7 @@ describe('CoarZonedDateTimePicker', () => {
   });
 
   describe('input parsing', () => {
-    it('parses valid datetime input', async () => {
+    it('parses valid datetime input in the zone it is shown in, into the default zone', async () => {
       const w = mountPicker({ locale: 'de-DE', timeZone: 'Europe/Vienna' });
       const input = w.find('.coar-zdtp-input');
       await input.setValue('15.06.2025 14:30');
@@ -244,11 +244,9 @@ describe('CoarZonedDateTimePicker', () => {
       const emitted = w.emitted('update:modelValue');
       expect(emitted).toBeTruthy();
       const val = emitted![emitted!.length - 1][0] as Temporal.ZonedDateTime;
-      expect(val.year).toBe(2025);
-      expect(val.month).toBe(6);
-      expect(val.day).toBe(15);
-      expect(val.hour).toBe(14);
-      expect(val.minute).toBe(30);
+      // Without a localization service the field shows the system zone.
+      const shownZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      expect(val.withTimeZone(shownZone).toPlainDateTime().toString()).toBe('2025-06-15T14:30:00');
       expect(val.timeZoneId).toBe('Europe/Vienna');
     });
   });

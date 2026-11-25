@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-// What the date pickers commit for typed, pasted and filled text (#109, #110).
+// What the date pickers commit for typed, pasted and filled text (#109, #110, #111).
 // Every case asserts the model, not only the text in the field.
 
 test.use({ timezoneId: 'Europe/Berlin', permissions: ['clipboard-read', 'clipboard-write'] });
@@ -70,6 +70,21 @@ for (const how of ['type', 'paste', 'fill'] as const) {
       await page.goto('/date-input?locale=en-US');
       await enter(page, 'date-time', '07/01/2026 03:46 PM', how);
       await expect(value(page, 'date-time')).toHaveText('2026-07-01T15:46:00');
+    });
+
+    test('de-DE zoned with milliseconds keeps 15:46:56.123 (#111)', async ({ page }) => {
+      await page.goto('/date-input?locale=de-DE');
+      await enter(page, 'precise', '01.07.2026 15:46:56.123', how);
+      await expect(value(page, 'precise')).toHaveText('2026-07-01T15:46:56.123+02:00[Europe/Berlin]');
+    });
+
+    test('de-DE zoned with minutes refuses 15:46:56.123 instead of cutting it (#111)', async ({ page }) => {
+      test.skip(how === 'type', 'the mask of a minute field takes no seconds keystrokes');
+      await page.goto('/date-input?locale=de-DE');
+      const input = await enter(page, 'zoned', '01.07.2026 15:46:56.123', how);
+      await expect(input).toHaveValue('01.07.2026 15:46:56.123');
+      await expect(value(page, 'zoned')).toHaveText('none');
+      await expect(refused(page, 'zoned')).toHaveText('true');
     });
 
     test('de-DE zoned refuses 30.02.2026 10:30', async ({ page }) => {

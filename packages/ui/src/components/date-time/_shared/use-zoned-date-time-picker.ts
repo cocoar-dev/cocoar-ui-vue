@@ -7,9 +7,11 @@ import {
   coarParseTimeInput,
   coarDetect12HourFormat,
   coarRoundMinutesToStep,
+  coarTimeBelowMinute,
+  coarTimeTextHasPrecision,
 } from './time-helpers';
 import { coarGetAllTimezones, coarFormatTimezoneLabel } from './timezone-helpers';
-import type { DateFormatConfig, CoarTimeValue } from './types';
+import type { DateFormatConfig, CoarTimePrecision, CoarTimeValue } from './types';
 
 interface ZonedDateTimePickerOptions {
   readonly placeholder: string;
@@ -21,6 +23,8 @@ interface ZonedDateTimePickerOptions {
   readonly minuteStep: 1 | 5 | 10 | 15;
   readonly defaultTime: CoarTimeValue;
   readonly timeZone: string | null;
+  /** How exactly the field shows and takes the time; defaults to `'minute'`. */
+  readonly precision?: CoarTimePrecision;
 }
 
 /**
@@ -77,6 +81,7 @@ export function useZonedDateTimePicker(
     return vtz ? coarFormatTimezoneLabel(vtz) : '';
   });
   const allTimezones = coarGetAllTimezones();
+  const precision = computed<CoarTimePrecision>(() => props.precision ?? 'minute');
   const effectiveUse24Hour = computed(() => {
     if (props.use24Hour === true) return true;
     if (props.use24Hour === false) return false;
@@ -85,7 +90,8 @@ export function useZonedDateTimePicker(
   const inputPlaceholder = computed(() => {
     if (props.placeholder) return props.placeholder;
     const datePart = pickerBase.effectiveDateFormat.value.pattern.toUpperCase();
-    return effectiveUse24Hour.value ? `${datePart} HH:MM` : `${datePart} HH:MM AM/PM`;
+    const time = { minute: 'HH:MM', second: 'HH:MM:SS', millisecond: 'HH:MM:SS.MSS' }[precision.value];
+    return effectiveUse24Hour.value ? `${datePart} ${time}` : `${datePart} ${time} AM/PM`;
   });
   const workingTimeZone = computed(() => effectiveDisplayTimeZone.value);
   const valueInWorkingTz = computed(() =>
@@ -126,31 +132,51 @@ export function useZonedDateTimePicker(
   function formatValue(val: Temporal.ZonedDateTime): string {
     const inDisplayTz = val.withTimeZone(effectiveDisplayTimeZone.value);
     const datePart = coarFormatPlainDate(inDisplayTz.toPlainDate(), pickerBase.effectiveDateFormat.value.pattern);
-    const timePart = coarFormatTime(inDisplayTz.hour, inDisplayTz.minute, effectiveUse24Hour.value, true);
+    const timePart = coarFormatTime(
+      inDisplayTz.hour, inDisplayTz.minute, effectiveUse24Hour.value, true,
+      coarTimeBelowMinute(inDisplayTz, precision.value),
+    );
     return `${datePart} ${timePart}`;
   }
 
   function formatValueInValueTz(): string {
     if (!modelValue.value) return '';
     const datePart = coarFormatPlainDate(modelValue.value.toPlainDate(), pickerBase.effectiveDateFormat.value.pattern);
-    const timePart = coarFormatTime(modelValue.value.hour, modelValue.value.minute, effectiveUse24Hour.value);
+    const timePart = coarFormatTime(
+      modelValue.value.hour, modelValue.value.minute, effectiveUse24Hour.value, false,
+      coarTimeBelowMinute(modelValue.value, precision.value),
+    );
     return `${datePart} ${timePart}`;
   }
 
+  /**
+   * The text is read in the zone it is shown in, the result keeps the value's zone.
+   * The time must have exactly the parts the field shows: fewer are still being
+   * typed, more would be cut down.
+   */
   function parseValueFromInput(text: string): Temporal.ZonedDateTime | null {
     const parts = text.trim().split(/\s+/);
     if (parts.length < 2) return null;
     const date = coarParsePlainDateFromInput(parts[0], pickerBase.effectiveDateFormat.value.pattern);
     if (!date) return null;
-    const time = coarParseTimeInput(parts.slice(1).join(' '));
+    const timeText = parts.slice(1).join(' ');
+    const time = coarTimeTextHasPrecision(timeText, precision.value) ? coarParseTimeInput(timeText) : null;
     if (!time) return null;
-    const pdt = date.toPlainDateTime({ hour: time.hours, minute: time.minutes });
-    const tz = valueTimeZone.value ?? effectiveDefaultTimeZone.value;
     try {
-      return pdt.toZonedDateTime(tz);
+      return toZoned(date.toPlainDateTime(plainTime(time)));
     } catch {
       return null;
     }
+  }
+
+  function plainTime(time: CoarTimeValue): Temporal.PlainTimeLike {
+    return { hour: time.hours, minute: time.minutes, second: time.seconds ?? 0, millisecond: time.milliseconds ?? 0 };
+  }
+
+  /** A wall-clock time of the working zone, as an instant in the value's zone. */
+  function toZoned(pdt: Temporal.PlainDateTime): Temporal.ZonedDateTime {
+    const tz = valueTimeZone.value ?? effectiveDefaultTimeZone.value;
+    return pdt.toZonedDateTime(workingTimeZone.value).withTimeZone(tz);
   }
 
   watch(
@@ -168,19 +194,25 @@ export function useZonedDateTimePicker(
     return zdt;
   }
 
-  /** Interpret the panel's wall-clock time in the display zone, retaining the value's zone. */
+  /**
+   * Interpret the panel's wall-clock time in the display zone, retaining the value's zone.
+   * What the panel does not show stays: with the hour and minute of the value, its
+   * seconds and smaller parts are kept.
+   */
   function setDateTime(date: Temporal.PlainDate, time: CoarTimeValue) {
-    const pdt = date.toPlainDateTime({ hour: time.hours, minute: time.minutes });
-    const tz = valueTimeZone.value ?? effectiveDefaultTimeZone.value;
-    const zdt = workingTimeZone.value !== tz
-      ? pdt.toZonedDateTime(workingTimeZone.value).withTimeZone(tz)
-      : pdt.toZonedDateTime(tz);
-    modelValue.value = clampZonedDateTime(zdt);
+    const current = valueInWorkingTz.value;
+    const keep = current && time.seconds === undefined
+      && current.hour === time.hours && current.minute === time.minutes;
+    const pdt = date.toPlainDateTime(keep ? current.toPlainTime() : plainTime(time));
+    modelValue.value = clampZonedDateTime(toZoned(pdt));
   }
 
+  /** A value keeps its time; a time chosen before there is a date, or the default, snaps to the minute step. */
   function selectDate(date: Temporal.PlainDate) {
     const time = selectedTime.value ?? props.defaultTime;
-    setDateTime(date, { hours: time.hours, minutes: coarRoundMinutesToStep(time.minutes, props.minuteStep) });
+    setDateTime(date, valueInWorkingTz.value
+      ? time
+      : { hours: time.hours, minutes: coarRoundMinutesToStep(time.minutes, props.minuteStep) });
   }
 
   function changeTime(time: CoarTimeValue | null) {
@@ -230,8 +262,13 @@ export function useZonedDateTimePicker(
     refused.value = false;
   }
 
+  /** Text nobody changed is no entry: the value may hold more than the field shows. */
   function changeInput(text: string) {
     displayValue.value = text;
+    if (modelValue.value && text === formatValue(modelValue.value)) {
+      refused.value = false;
+      return;
+    }
     const parsed = parseValueFromInput(text);
     if (parsed) {
       modelValue.value = parsed;
@@ -250,6 +287,12 @@ export function useZonedDateTimePicker(
     refused.value = text.trim().length > 0 && !parseValueFromInput(text);
   }
 
+  /** Shows text the field refused before it reached it, such as a pasted value too precise for it. */
+  function refuseInput(text: string) {
+    displayValue.value = text;
+    refused.value = true;
+  }
+
   /** Brings back the text of the model's value (Esc), ending a refusal. */
   function restoreInput() {
     displayValue.value = modelValue.value ? formatValue(modelValue.value) : '';
@@ -265,6 +308,6 @@ export function useZonedDateTimePicker(
     effectiveMinTime, effectiveMaxTime, isPrevYearDisabled, isNextYearDisabled, today,
     formatValue, formatValueInValueTz, parseValueFromInput, selectDate, changeTime,
     selectMonth, previousYear, nextYear, scrollToTodayMonth, selectDisplayTimezone,
-    changeValueTimezone, toggleDisplayTimezone, clearValue, changeInput, blurInput, restoreInput,
+    changeValueTimezone, toggleDisplayTimezone, clearValue, changeInput, blurInput, restoreInput, refuseInput, precision,
   };
 }

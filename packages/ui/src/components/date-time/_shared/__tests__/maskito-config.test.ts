@@ -139,6 +139,26 @@ describe('a value inserted at once keeps what it says (#110)', () => {
     expect(insert('01.07.2026 03:46 PM', coarCreateDateTimeMask('dd.mm.yyyy', false))).toBe('01.07.2026 15:46');
   });
 
+  it('keeps seconds and milliseconds in a field that shows them (#111)', () => {
+    const mask = coarCreateDateTimeMask('dd.mm.yyyy', false, 'millisecond');
+    expect(insert('01.07.2026 15:46:56.123', mask)).toBe('01.07.2026 15:46:56.123');
+    expect(insert('01.07.2026 15:46', mask)).toBe('01.07.2026 15:46:00.000');
+    expect(maskitoTransform('01.07.2026 15:46:56.123', mask)).toBe('01.07.2026 15:46:56.123');
+    const twelve = coarCreateDateTimeMask('mm/dd/yyyy', true, 'second');
+    expect(insert('07/01/2026 03:46:56 PM', twelve)).toBe('07/01/2026 03:46:56\u00a0PM');
+  });
+
+  it('refuses a value more precise than the field instead of cutting it (#111)', () => {
+    const refused: string[] = [];
+    const mask = coarCreateDateTimeMask('dd.mm.yyyy', false, 'minute', (text) => refused.push(text));
+    const { data } = maskitoPipe(mask.preprocessors!)(
+      { elementState: { value: '', selection: [0, 0] }, data: '01.07.2026 15:46:56' },
+      'insert',
+    );
+    expect(data).toBe('');
+    expect(refused).toEqual(['01.07.2026 15:46:56']);
+  });
+
   it('inserts a whole date', () => {
     expect(insert('01.07.2026', coarCreateDateMask('dd.mm.yyyy'))).toBe('01.07.2026');
   });

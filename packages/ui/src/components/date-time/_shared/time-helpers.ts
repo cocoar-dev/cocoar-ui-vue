@@ -4,7 +4,7 @@
  * Provides locale-aware time formatting with 12h/24h detection,
  * time parsing, and hour/minute manipulation with wrap-around support.
  */
-import type { CoarTimePeriod, CoarTimeValue } from './types';
+import type { CoarTimePeriod, CoarTimePrecision, CoarTimeValue } from './types';
 
 /**
  * Detects whether the given locale uses 12-hour time format.
@@ -41,14 +41,22 @@ export function coarDetect12HourFormat(locale: string): boolean {
  * coarFormatTime(14, 30, false)        // "2:30 PM"
  * coarFormatTime(14, 30, false, true)  // "02:30\u00a0PM"
  * coarFormatTime(0, 5, false)          // "12:05 AM"
+ * coarFormatTime(14, 30, true, false, { seconds: 5, milliseconds: 20 }) // "14:30:05.020"
  */
 export function coarFormatTime(
   hours: number,
   minutes: number,
   use24Hour: boolean,
   forMaskedInput = false,
+  belowMinute?: { seconds: number; milliseconds?: number },
 ): string {
-  const paddedMinutes = String(minutes).padStart(2, '0');
+  let paddedMinutes = String(minutes).padStart(2, '0');
+  if (belowMinute) {
+    paddedMinutes += `:${String(belowMinute.seconds).padStart(2, '0')}`;
+    if (belowMinute.milliseconds !== undefined) {
+      paddedMinutes += `.${String(belowMinute.milliseconds).padStart(3, '0')}`;
+    }
+  }
 
   if (use24Hour) {
     return `${String(hours).padStart(2, '0')}:${paddedMinutes}`;
@@ -65,7 +73,8 @@ export function coarFormatTime(
 }
 
 /**
- * Parses a time string into hours and minutes.
+ * Parses a time string into hours and minutes, with seconds and milliseconds
+ * when it has them ("14:30:05", "14:30:05.2" is 200 ms).
  * Supports both 24-hour ("14:30") and 12-hour ("2:30 PM") formats.
  *
  * @returns Parsed time value or null if invalid
@@ -73,32 +82,60 @@ export function coarFormatTime(
 export function coarParseTimeInput(text: string): CoarTimeValue | null {
   if (!text || typeof text !== 'string') return null;
 
-  const trimmed = text.trim().toUpperCase();
+  // "14:30", "2:30 PM", "14:30:05", "14:30:05.123", "02:30:05\u00a0PM"
+  const match = text
+    .trim()
+    .toUpperCase()
+    .match(/^(\d{1,2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?\s*(AM|PM)?$/);
+  if (!match) return null;
 
-  // 12-hour format (e.g., "2:30 PM")
-  const match12h = trimmed.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/);
-  if (match12h) {
-    let hours = parseInt(match12h[1], 10);
-    const minutes = parseInt(match12h[2], 10);
-    const period = match12h[3] as CoarTimePeriod;
-
-    if (hours < 1 || hours > 12 || minutes < 0 || minutes > 59) return null;
-
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const seconds = match[3] === undefined ? undefined : parseInt(match[3], 10);
+  const period = match[5] as CoarTimePeriod | undefined;
+  if (minutes > 59 || (seconds !== undefined && seconds > 59)) return null;
+  if (period) {
+    if (hours < 1 || hours > 12) return null;
     hours = period === 'AM' ? (hours === 12 ? 0 : hours) : (hours === 12 ? 12 : hours + 12);
-    return { hours, minutes };
+  } else if (hours > 23) {
+    return null;
   }
 
-  // 24-hour format (e.g., "14:30")
-  const match24h = trimmed.match(/^(\d{1,2}):(\d{2})$/);
-  if (match24h) {
-    const hours = parseInt(match24h[1], 10);
-    const minutes = parseInt(match24h[2], 10);
+  if (seconds === undefined) return { hours, minutes };
+  if (match[4] === undefined) return { hours, minutes, seconds };
+  return { hours, minutes, seconds, milliseconds: parseInt(match[4].padEnd(3, '0'), 10) };
+}
 
-    if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
-    return { hours, minutes };
-  }
+/** The part of a time below the minute that a field of the given precision shows. */
+export function coarTimeBelowMinute(
+  time: { readonly second: number; readonly millisecond: number },
+  precision: CoarTimePrecision,
+): { seconds: number; milliseconds?: number } | undefined {
+  if (precision === 'minute') return undefined;
+  if (precision === 'second') return { seconds: time.second };
+  return { seconds: time.second, milliseconds: time.millisecond };
+}
 
-  return null;
+/**
+ * Whether a time text has exactly the parts a field of the given precision shows:
+ * "14:30", "14:30:05" or "14:30:05.123", in 12 hours with AM/PM. Fewer parts are
+ * an entry still being typed, more would be cut down.
+ */
+export function coarTimeTextHasPrecision(text: string, precision: CoarTimePrecision): boolean {
+  const time = text.trim().replace(/\s*[AP]M$/i, '');
+  const shapes = {
+    minute: /^\d{1,2}:\d{2}$/,
+    second: /^\d{1,2}:\d{2}:\d{2}$/,
+    millisecond: /^\d{1,2}:\d{2}:\d{2}\.\d{3}$/,
+  };
+  return shapes[precision].test(time);
+}
+
+/** Whether a time has more than a field of the given precision can show, such as seconds in a minute field. */
+export function coarTimeExceedsPrecision(time: CoarTimeValue, precision: CoarTimePrecision): boolean {
+  if (precision === 'millisecond') return false;
+  if ((time.milliseconds ?? 0) !== 0) return true;
+  return precision === 'minute' && (time.seconds ?? 0) !== 0;
 }
 
 /**

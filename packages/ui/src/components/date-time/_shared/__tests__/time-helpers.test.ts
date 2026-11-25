@@ -9,6 +9,8 @@ import {
   coarIncrementMinutes,
   coarRoundMinutesToStep,
   coarGetValidMinutes,
+  coarTimeExceedsPrecision,
+  coarTimeTextHasPrecision,
 } from '../time-helpers';
 
 describe('coarDetect12HourFormat', () => {
@@ -164,5 +166,35 @@ describe('coarGetValidMinutes', () => {
 
   it('returns 60 values for step 1', () => {
     expect(coarGetValidMinutes(1)).toHaveLength(60);
+  });
+});
+
+describe('seconds and milliseconds (#111)', () => {
+  it('parses seconds and milliseconds, in 24 and 12 hours', () => {
+    expect(coarParseTimeInput('14:30:05')).toEqual({ hours: 14, minutes: 30, seconds: 5 });
+    expect(coarParseTimeInput('14:30:05.2')).toEqual({ hours: 14, minutes: 30, seconds: 5, milliseconds: 200 });
+    expect(coarParseTimeInput('02:30:05.123\u00a0PM')).toEqual({ hours: 14, minutes: 30, seconds: 5, milliseconds: 123 });
+    expect(coarParseTimeInput('14:30:60')).toBeNull();
+  });
+
+  it('formats them for a masked input', () => {
+    expect(coarFormatTime(14, 30, true, true, { seconds: 5 })).toBe('14:30:05');
+    expect(coarFormatTime(14, 30, false, true, { seconds: 5, milliseconds: 20 })).toBe('02:30:05.020\u00a0PM');
+  });
+
+  it('takes a time text only with the parts of the field', () => {
+    expect(coarTimeTextHasPrecision('14:30', 'minute')).toBe(true);
+    expect(coarTimeTextHasPrecision('14:30:05', 'minute')).toBe(false);
+    expect(coarTimeTextHasPrecision('14:30', 'second')).toBe(false);
+    expect(coarTimeTextHasPrecision('02:30:05\u00a0PM', 'second')).toBe(true);
+    expect(coarTimeTextHasPrecision('14:30:05.1', 'millisecond')).toBe(false);
+    expect(coarTimeTextHasPrecision('14:30:05.123', 'millisecond')).toBe(true);
+  });
+
+  it('says when a time has more than the field shows', () => {
+    expect(coarTimeExceedsPrecision({ hours: 1, minutes: 2, seconds: 3 }, 'minute')).toBe(true);
+    expect(coarTimeExceedsPrecision({ hours: 1, minutes: 2, seconds: 0 }, 'minute')).toBe(false);
+    expect(coarTimeExceedsPrecision({ hours: 1, minutes: 2, seconds: 3, milliseconds: 4 }, 'second')).toBe(true);
+    expect(coarTimeExceedsPrecision({ hours: 1, minutes: 2, seconds: 3, milliseconds: 4 }, 'millisecond')).toBe(false);
   });
 });

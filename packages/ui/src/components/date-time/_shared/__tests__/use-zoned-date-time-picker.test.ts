@@ -44,6 +44,14 @@ afterEach(() => {
 });
 
 describe('useZonedDateTimePicker', () => {
+  it('reads typed text in the zone it is shown in, and keeps the value zone', () => {
+    // Shown in Vienna (04:30), the value lives in New York (23:30 the day before).
+    const { picker, model } = createPicker(zoned('2026-03-14T23:30[America/New_York]'));
+    expect(picker.displayValue.value).toBe('15.03.2026 04:30');
+    picker.changeInput('15.03.2026 04:45');
+    expect(model.value?.toString()).toBe('2026-03-14T23:45:00-04:00[America/New_York]');
+  });
+
   it('starts with the value month or today, without opening the presentation', () => {
     expect(createPicker().picker.activeMonth.value.toString()).toBe('2026-03');
     const { picker } = createPicker(zoned('2025-12-31T23:30[America/New_York]'));
@@ -60,13 +68,12 @@ describe('useZonedDateTimePicker', () => {
     expect(picker.selectedTime.value).toEqual({ hours: 4, minutes: 30 });
   });
 
-  it('retains the value zone when parsing, independently of the display zone', () => {
+  it('reads text in the display zone and retains the value zone', () => {
     const { picker } = createPicker(zoned('2026-03-14T23:30[America/New_York]'));
     picker.selectDisplayTimezone('Asia/Tokyo');
     const parsed = picker.parseValueFromInput('16.03.2026 10:45')!;
     expect(parsed.timeZoneId).toBe('America/New_York');
-    expect(parsed.hour).toBe(10);
-    expect(parsed.minute).toBe(45);
+    expect(parsed.withTimeZone('Asia/Tokyo').toPlainDateTime().toString()).toBe('2026-03-16T10:45:00');
   });
 
   it('uses an explicit default zone for new values and the home zone otherwise', () => {
@@ -113,9 +120,9 @@ describe('useZonedDateTimePicker', () => {
   });
 
   it('selects dates in the display zone and retains the existing value zone', () => {
-    const { picker, model } = createPicker(zoned('2026-03-14T10:32[America/New_York]'));
+    const { picker, model } = createPicker(zoned('2026-03-14T10:32:56.123[America/New_York]'));
     picker.selectDate(date('2026-03-16'));
-    expect(model.value?.toString()).toBe('2026-03-16T10:30:00-04:00[America/New_York]');
+    expect(model.value?.toString()).toBe('2026-03-16T10:32:56.123-04:00[America/New_York]');
     picker.changeTime({ hours: 18, minutes: 17 });
     expect(model.value?.toString()).toBe('2026-03-16T13:17:00-04:00[America/New_York]');
   });
@@ -230,10 +237,11 @@ describe('useZonedDateTimePicker', () => {
     props.timeZone = 'America/New_York';
     props.max = zoned('2026-03-14T00:00Z[UTC]');
     picker.changeInput('31.03.2026 23:17');
-    expect(model.value?.toString()).toBe('2026-03-31T23:17:00-04:00[America/New_York]');
-    expect(picker.activeMonth.value.toString()).toBe('2026-04');
+    // Typed in Vienna, where the field shows it; stored in the default zone.
+    expect(model.value?.toString()).toBe('2026-03-31T17:17:00-04:00[America/New_York]');
+    expect(picker.activeMonth.value.toString()).toBe('2026-03');
     await nextTick();
-    expect(picker.displayValue.value).toBe('01.04.2026 05:17');
+    expect(picker.displayValue.value).toBe('31.03.2026 23:17');
   });
 
   it('reacts to external values and home zone changes without moving activeMonth', async () => {
